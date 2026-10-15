@@ -40,7 +40,7 @@ struct CloudNativeSignInOptions: View {
                     .frame(maxWidth: .infinity, minHeight: 44)
             }
             .accessibilityIdentifier(UITestIdentifier.cloudSignInEmailMethodButton)
-            .modifier(CloudLastSignInBadge(method: .email, onError: { self.hintError = $0 }))
+            .modifier(CloudLastSignInBadge(method: .email))
             if self.store.cloudSignInAttempt.isNativeRequestInFlight {
                 ProgressView().frame(maxWidth: .infinity)
             }
@@ -100,7 +100,7 @@ struct CloudNativeSignInOptions: View {
         })
         .frame(height: 50)
         .accessibilityIdentifier("cloudSignIn.\(provider.rawValue)")
-        .modifier(CloudLastSignInBadge(method: CloudSignInMethod(provider: provider), onError: { self.hintError = $0 }))
+        .modifier(CloudLastSignInBadge(method: CloudSignInMethod(provider: provider)))
     }
 
     private func begin(provider: CloudAuthProvider, presenter: UIViewController) {
@@ -209,24 +209,16 @@ struct CloudBrandedProviderButton: UIViewRepresentable {
 private struct CloudLastSignInBadge: ViewModifier {
     @Environment(FlashcardsStore.self) private var store: FlashcardsStore
     let method: CloudSignInMethod
-    let onError: (String) -> Void
     @State private var isPresented = false
-    @State private var isEmailRevealed = false
     @FocusState private var isFocused: Bool
-    @FocusState private var isMethodFocused: Bool
 
     func body(content: Content) -> some View {
         if let hint = self.store.cloudNativeSignIn.rememberedHint, hint.method == self.method {
             content
-                .help(hint.email ?? self.method.rawValue.capitalized)
-                .focused(self.$isMethodFocused)
-                .onChange(of: self.isMethodFocused) { _, focused in
-                    self.isEmailRevealed = focused
-                    self.isPresented = focused
-                }
+                .help(hint.email.map(maskedCloudSignInEmail) ?? aiSettingsLocalized("settings.account.cloudSignIn.lastUsed", "Last used"))
                 .overlay(alignment: .topTrailing) {
                     Button {
-                        self.isPresented.toggle()
+                        self.isPresented = !self.isPresented && hint.email != nil
                     } label: {
                         Text(aiSettingsLocalized("settings.account.cloudSignIn.lastUsed", "Last used"))
                             .font(.caption2)
@@ -234,33 +226,19 @@ private struct CloudLastSignInBadge: ViewModifier {
                             .background(.regularMaterial, in: Capsule())
                     }
                     .buttonStyle(.plain)
+                    .offset(y: -10)
                     .focused(self.$isFocused)
                     .onChange(of: self.isFocused) { _, focused in
-                        self.isEmailRevealed = focused
-                        self.isPresented = focused
+                        self.isPresented = focused && hint.email != nil
                     }
                     .accessibilityIdentifier("cloudSignIn.lastUsed.\(self.method.rawValue)")
                     .popover(isPresented: self.$isPresented) {
-                        VStack(alignment: .leading, spacing: 12) {
-                            if let email = hint.email {
-                                Text(self.isEmailRevealed ? email : maskedCloudSignInEmail(email))
-                                    .textSelection(.enabled)
-                                Button(aiSettingsLocalized("settings.account.cloudSignIn.showEmail", "Show email")) {
-                                    self.isEmailRevealed = true
-                                }
-                                Button(aiSettingsLocalized("common.copy", "Copy")) { UIPasteboard.general.string = email }
-                            }
-                            Button(aiSettingsLocalized("settings.account.cloudSignIn.forget", "Forget this sign-in"), role: .destructive) {
-                                do { try self.store.cloudNativeSignIn.forgetRememberedHint() }
-                                catch {
-                                    self.onError(aiSettingsLocalized("settings.account.cloudSignIn.hintFailed", "The remembered sign-in could not be updated. Try again."))
-                                    self.store.presentTechnicalError(error)
-                                }
-                                self.isPresented = false
-                            }
+                        if let email = hint.email {
+                            Text(maskedCloudSignInEmail(email))
+                                .font(.caption)
+                                .padding(8)
+                                .presentationCompactAdaptation(.popover)
                         }
-                        .padding()
-                        .presentationCompactAdaptation(.popover)
                     }
                 }
         } else {
