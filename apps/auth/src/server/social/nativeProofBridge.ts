@@ -27,7 +27,6 @@ export async function initiateNativeProofChallenge(principal: NativeProofPrincip
   return { session: challenge.Session, nonce, expiresAt: new Date(expiresAt) };
 }
 
-/** No public callers until provider verification is enabled; never provisions product data. */
 export async function exchangeVerifiedPrincipalForTokens(principal: NativeProofPrincipal): Promise<TokenResult> {
   const clientId = getClientId();
   const challenge = await initiateNativeProofChallenge(principal);
