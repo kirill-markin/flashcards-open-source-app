@@ -65,3 +65,28 @@ claims, Catalyst private Keychain access or these acceptance results.
    post-completion hint-save failure.
    Collection off and live withdrawal must suppress emission through `Analytics`;
    never infer positive analytics acceptance from an automation run.
+
+Account-method transport/state is dormant until Settings mounts it. On the signed
+artifact that exposes it, use an authorized non-demo account and verify:
+
+1. Load actual active/disabled methods, generation, cleanup state and read-only
+   proved recovery addresses. Reauthenticate with Apple for a hidden-Apple account;
+   current-email OTP is offered only when that actual session mailbox appears in
+   the proved recovery list. Never require a hidden relay OTP.
+2. Link through fresh current-account authority, then a separate new provider
+   attempt. Exercise genuine server-required secondary mailbox send/verify;
+   failed, expired or ambiguous sends/submissions require a fresh full attempt.
+   Close during slow SDK/network work and change account/server: no late result
+   may update the replacement state or continue a mutation.
+3. Unlink with a freshly listed exact subject/generation. Verify the server's last
+   usable method and different-account conflict refusals. Email stays read-only.
+4. For explicit re-enable, wait until fresh metadata reports cleanup complete,
+   then obtain new current-account proof and a new provider attempt. Native Apple
+   platforms never resume a consumed provider proof. After a failed/ambiguous
+   submission, refresh actual methods; show an already-active method as the actual
+   outcome, otherwise restart the full proof after cleanup. Confirm old receipts,
+   mailbox codes and provider credentials cannot be replayed.
+5. Verify management never redeems login tokens, changes the protected session,
+   provisions an account/workspace or changes the successful-login hint. Map only
+   actual SDK and mutation observations to the existing fact catalog; keep all
+   subject, mailbox, token, nonce and receipt values out of analytics.
