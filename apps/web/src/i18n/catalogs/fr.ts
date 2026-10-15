@@ -1512,6 +1512,12 @@ const frCatalog: TranslationCatalog = {
       value: "Supprimer",
     },
   },
+  browserSignInPrivacy: {
+    forget: "Oublier les informations de connexion",
+    signOutForget: "Se déconnecter et oublier",
+    forgotten: "Informations de connexion oubliées.",
+    error: "Impossible de modifier les informations de connexion. Autorisez les données du site d’authentification et réessayez.",
+  },
   accountStatus: {
     title: "État du compte",
     subtitle: "Consultez le compte actuellement connecté et la session du navigateur.",

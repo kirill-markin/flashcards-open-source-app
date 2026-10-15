@@ -1,5 +1,5 @@
 import { act, useEffect, useState, type ReactElement } from "react";
-import { vi, type Mock } from "vitest";
+import { expect, vi, type Mock } from "vitest";
 import { setNavigationHandlerForTests, resetApiClientStateForTests } from "../../api";
 import type { IndexedDbOpenRecoveryState } from "../../appError/AppErrorContext";
 import { INSTALLATION_ID_STORAGE_KEY } from "../../clientIdentity";
@@ -25,6 +25,21 @@ const indexedDbOpenRecoveryState: IndexedDbOpenRecoveryState = {
   signal: new AbortController().signal,
   throwIfFailed: (): void => {},
 };
+
+const browserHintsMocks = vi.hoisted(() => ({
+  consumeAcceptedBrowserSignInMethod: vi.fn(async (): Promise<null> => null),
+}));
+
+vi.mock("../../api/browserHints", async (importOriginal) => ({
+  ...await importOriginal<typeof import("../../api/browserHints")>(),
+  consumeAcceptedBrowserSignInMethod: browserHintsMocks.consumeAcceptedBrowserSignInMethod,
+}));
+
+export async function waitForBrowserSignInMethodConsumption(callCount: number): Promise<void> {
+  await vi.waitFor(() => {
+    expect(browserHintsMocks.consumeAcceptedBrowserSignInMethod).toHaveBeenCalledTimes(callCount);
+  });
+}
 
 const observabilityMocks = vi.hoisted(() => ({
   addWebBreadcrumbMock: vi.fn(),
@@ -414,6 +429,7 @@ export async function resetWorkspaceSessionTestEnvironment(setRedirectedUrl: (ur
   document.cookie = "logged_in=; Max-Age=0; Path=/";
   window.history.replaceState({}, document.title, reviewRouteUrl);
   resetObservabilityMocks();
+  browserHintsMocks.consumeAcceptedBrowserSignInMethod.mockClear();
   setNavigationHandlerForTests((url: string) => {
     setRedirectedUrl(url);
   });

@@ -1,3 +1,4 @@
+import { emailCodeVerificationFacts } from "./emailAuthFacts.js";
 /**
  * Email OTP verification endpoint. Reads the OTP session from an HMAC-signed
  * cookie, validates the 8-digit code via Cognito RespondToAuthChallenge,
@@ -139,6 +140,7 @@ function logLockedVerifyAttempt(
 
 export function createVerifyCodeApp(dependencies: VerifyCodeDependencies): Hono<AuthAppEnv> {
   const app = new Hono<AuthAppEnv>();
+  app.use("/api/verify-code", emailCodeVerificationFacts);
 
   app.post("/api/verify-code", async (c) => {
     let body: { code?: string; csrfToken?: string; otpSessionToken?: string };

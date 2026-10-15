@@ -16,6 +16,7 @@ import {
   seedIndexedDbState,
   seededSession,
   seededWorkspace,
+  waitForBrowserSignInMethodConsumption,
   type HarnessSnapshot,
 } from "./useWorkspaceSessionTestSupport";
 import { act } from "react";
@@ -67,6 +68,7 @@ describe("useWorkspaceSession reauth resume", () => {
     const fetchMock = vi.fn<(...args: Array<unknown>) => Promise<Response>>()
       .mockResolvedValueOnce(buildSessionResponse("workspace-1", "csrf-refresh"))
       .mockResolvedValueOnce(buildWorkspacesResponse([seededWorkspace]))
+      .mockResolvedValueOnce(buildSessionResponse("workspace-1", "csrf-refresh"))
       .mockResolvedValueOnce(buildSessionResponse("workspace-1", "csrf-resume"));
     vi.stubGlobal("fetch", fetchMock);
 
@@ -101,6 +103,7 @@ describe("useWorkspaceSession reauth resume", () => {
       expect(runSyncForWorkspaceMock).toHaveBeenCalledTimes(1);
     });
     await flushEffects();
+    await waitForBrowserSignInMethodConsumption(1);
 
     markBrowserReauthRequired();
     expect(isBrowserReauthRequired()).toBe(true);
@@ -113,7 +116,7 @@ describe("useWorkspaceSession reauth resume", () => {
       expect(runSyncSilentlyMock).toHaveBeenCalledTimes(1);
     });
 
-    expect(fetchMock).toHaveBeenCalledTimes(3);
+    expect(fetchMock).toHaveBeenCalledTimes(4);
     expect(latestState?.session?.userId).toBe("user-1");
     expect(latestState?.session?.csrfToken).toBe("csrf-resume");
     expect(isBrowserReauthRequired()).toBe(false);
@@ -126,6 +129,7 @@ describe("useWorkspaceSession reauth resume", () => {
     const fetchMock = vi.fn<(...args: Array<unknown>) => Promise<Response>>()
       .mockResolvedValueOnce(buildSessionResponse("workspace-1", "csrf-refresh"))
       .mockResolvedValueOnce(buildWorkspacesResponse([seededWorkspace]))
+      .mockResolvedValueOnce(buildSessionResponse("workspace-1", "csrf-refresh"))
       .mockResolvedValueOnce(buildSessionResponse("workspace-1", "csrf-resume-1"))
       .mockResolvedValueOnce(buildSessionResponse("workspace-1", "csrf-resume-2"));
     vi.stubGlobal("fetch", fetchMock);
@@ -166,6 +170,7 @@ describe("useWorkspaceSession reauth resume", () => {
       expect(runSyncForWorkspaceMock).toHaveBeenCalledTimes(1);
     });
     await flushEffects();
+    await waitForBrowserSignInMethodConsumption(1);
 
     await act(async () => {
       window.dispatchEvent(new Event("focus"));
@@ -197,9 +202,11 @@ describe("useWorkspaceSession reauth resume", () => {
     const fetchMock = vi.fn<(...args: Array<unknown>) => Promise<Response>>()
       .mockResolvedValueOnce(buildSessionResponse("workspace-1", "csrf-refresh"))
       .mockResolvedValueOnce(buildWorkspacesResponse([seededWorkspace]))
+      .mockResolvedValueOnce(buildSessionResponse("workspace-1", "csrf-refresh"))
       .mockResolvedValueOnce(buildSessionResponseForUser("user-2", "workspace-2", "csrf-user-2"))
       .mockResolvedValueOnce(buildSessionResponseForUser("user-2", "workspace-2", "csrf-user-2"))
-      .mockResolvedValueOnce(buildWorkspacesResponse([replacementWorkspace]));
+      .mockResolvedValueOnce(buildWorkspacesResponse([replacementWorkspace]))
+      .mockResolvedValueOnce(buildSessionResponseForUser("user-2", "workspace-2", "csrf-user-2"));
     vi.stubGlobal("fetch", fetchMock);
 
     const runSyncSilentlyMock = vi.fn(async (): Promise<void> => {});
@@ -234,6 +241,7 @@ describe("useWorkspaceSession reauth resume", () => {
       expect(runSyncForWorkspaceMock).toHaveBeenCalledTimes(1);
     });
     await flushEffects();
+    await waitForBrowserSignInMethodConsumption(1);
 
     await act(async () => {
       window.dispatchEvent(new Event("focus"));
@@ -261,6 +269,8 @@ describe("useWorkspaceSession reauth resume", () => {
       expect(latestState?.activeWorkspace?.workspaceId).toBe("workspace-2");
       expect(latestState?.sessionVerificationState).toBe("verified");
     });
+
+    await waitForBrowserSignInMethodConsumption(2);
 
     expect(deleteDatabaseSpy).toHaveBeenCalledTimes(1);
     expect(discardAllSyncWorkMock.mock.invocationCallOrder[0]).toBeLessThan(
@@ -302,9 +312,11 @@ describe("useWorkspaceSession reauth resume", () => {
     const fetchMock = vi.fn<(...args: Array<unknown>) => Promise<Response>>()
       .mockResolvedValueOnce(buildSessionResponse("workspace-1", "csrf-refresh"))
       .mockResolvedValueOnce(buildWorkspacesResponse([seededWorkspace]))
+      .mockResolvedValueOnce(buildSessionResponse("workspace-1", "csrf-refresh"))
       .mockResolvedValueOnce(buildSessionResponseForUser("user-2", "workspace-2", "csrf-user-2"))
       .mockResolvedValueOnce(buildSessionResponseForUser("user-2", "workspace-2", "csrf-user-2"))
       .mockResolvedValueOnce(buildWorkspacesResponse([replacementWorkspace]))
+      .mockResolvedValueOnce(buildSessionResponseForUser("user-2", "workspace-2", "csrf-user-2"))
       .mockResolvedValueOnce(buildSessionResponseForUser("user-2", "workspace-2", "csrf-user-2-next"));
     vi.stubGlobal("fetch", fetchMock);
 
@@ -347,6 +359,7 @@ describe("useWorkspaceSession reauth resume", () => {
     expect(latestState?.session?.userId).toBe("user-1");
     expect(latestState?.sessionVerificationState).toBe("verified");
     expect(runSyncForWorkspaceMock).toHaveBeenCalledTimes(1);
+    await waitForBrowserSignInMethodConsumption(1);
     runSyncForWorkspaceMock.mockClear();
 
     await act(async () => {
@@ -364,6 +377,8 @@ describe("useWorkspaceSession reauth resume", () => {
       await replacementWorkspaceSyncStarted.promise;
       await Promise.resolve();
     });
+
+    await waitForBrowserSignInMethodConsumption(2);
 
     expect(latestState?.session?.userId).toBe("user-2");
     expect(latestState?.activeWorkspace?.workspaceId).toBe("workspace-2");
@@ -383,7 +398,7 @@ describe("useWorkspaceSession reauth resume", () => {
     });
 
     expect(runSyncSilentlyMock).toHaveBeenCalledTimes(1);
-    expect(fetchMock).toHaveBeenCalledTimes(6);
+    expect(fetchMock).toHaveBeenCalledTimes(8);
     expect(runSyncForWorkspaceMock).toHaveBeenCalledTimes(1);
     expect(latestState?.session?.userId).toBe("user-2");
     expect(latestState?.session?.csrfToken).toBe("csrf-user-2-next");
@@ -398,6 +413,7 @@ describe("useWorkspaceSession reauth resume", () => {
     const fetchMock = vi.fn<(...args: Array<unknown>) => Promise<Response>>()
       .mockResolvedValueOnce(buildSessionResponse("workspace-1", "csrf-refresh"))
       .mockResolvedValueOnce(buildWorkspacesResponse([seededWorkspace]))
+      .mockResolvedValueOnce(buildSessionResponse("workspace-1", "csrf-refresh"))
       .mockResolvedValueOnce(buildSessionResponseForUser("user-2", "workspace-2", "csrf-user-2"))
       .mockResolvedValueOnce(buildSessionResponseForUser("user-2", "workspace-2", "csrf-user-2"))
       .mockResolvedValueOnce(new Response(JSON.stringify({
@@ -442,6 +458,7 @@ describe("useWorkspaceSession reauth resume", () => {
       expect(runSyncForWorkspaceMock).toHaveBeenCalledTimes(1);
     });
     await flushEffects();
+    await waitForBrowserSignInMethodConsumption(1);
 
     await act(async () => {
       window.dispatchEvent(new Event("focus"));
@@ -452,7 +469,7 @@ describe("useWorkspaceSession reauth resume", () => {
       expect(latestState?.sessionErrorMessage).toBe("Switch bootstrap failed");
     });
 
-    expect(fetchMock).toHaveBeenCalledTimes(5);
+    expect(fetchMock).toHaveBeenCalledTimes(6);
     expect(discardAllSyncWorkMock).toHaveBeenCalledTimes(1);
     expect(resetUserScopedUiStateMock).toHaveBeenCalledTimes(1);
     expect(observabilityMocks.setWebObservabilityUserMock).toHaveBeenCalledWith({ id: "user-2" });

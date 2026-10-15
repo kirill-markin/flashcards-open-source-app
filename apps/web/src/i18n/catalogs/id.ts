@@ -1512,6 +1512,12 @@ const idCatalog: TranslationCatalog = {
       value: "Hapus",
     },
   },
+  browserSignInPrivacy: {
+    forget: "Lupakan informasi login",
+    signOutForget: "Keluar dan lupakan",
+    forgotten: "Informasi login dilupakan.",
+    error: "Informasi login tidak dapat diubah. Izinkan data situs autentikasi lalu coba lagi.",
+  },
   accountStatus: {
     title: "Status Akun",
     subtitle: "Tinjau akun yang sedang masuk dan sesi peramban.",

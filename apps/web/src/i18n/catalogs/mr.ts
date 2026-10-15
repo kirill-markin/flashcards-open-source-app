@@ -1512,6 +1512,12 @@ const mrCatalog: TranslationCatalog = {
       value: "हटवा",
     },
   },
+  browserSignInPrivacy: {
+    forget: "साइन इन माहिती विसरा",
+    signOutForget: "साइन आउट करा आणि विसरा",
+    forgotten: "साइन इन माहिती विसरली आहे.",
+    error: "साइन इन माहिती बदलता आली नाही. प्रमाणीकरण साइटचा डेटा परवानगी द्या आणि पुन्हा प्रयत्न करा.",
+  },
   accountStatus: {
     title: "खात्याची स्थिती",
     subtitle: "सध्या साइन-इन केलेले खाते आणि ब्राउझर सत्र पाहा.",

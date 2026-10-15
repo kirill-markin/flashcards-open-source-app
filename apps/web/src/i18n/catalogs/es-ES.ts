@@ -1512,6 +1512,12 @@ const esEsCatalog: TranslationCatalog = {
       value: "Eliminar",
     },
   },
+  browserSignInPrivacy: {
+    forget: "Olvidar información de inicio de sesión",
+    signOutForget: "Cerrar sesión y olvidar",
+    forgotten: "Se ha olvidado la información de inicio de sesión.",
+    error: "No se pudo cambiar la información de inicio de sesión. Permite los datos del sitio de autenticación e inténtalo de nuevo.",
+  },
   accountStatus: {
     title: "Estado de la cuenta",
     subtitle: "Revisa la cuenta que ha iniciado sesión y la sesión del navegador actual.",
