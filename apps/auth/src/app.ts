@@ -1,3 +1,4 @@
+import authFact from "./routes/browser/authFact.js";
 import { randomUUID } from "node:crypto";
 import { PrincipalSessionError } from "./server/social/principalSessions.js";
 import { IssuedSessionValidationError } from "./server/browserSession.js";
@@ -352,6 +353,7 @@ function createMountedApp(basePath: string): Hono<AuthAppEnv> {
   app.route("/", sendCode);
   app.route("/", verifyCode);
   app.route("/", loginPage);
+  app.route("/", authFact);
   app.route("/", browserHints);
   app.route("/", refreshSession);
   app.route("/", refreshToken);

@@ -26,6 +26,17 @@ type Props = Readonly<{
  */
 let hasReportedSignOutForThisDocument = false;
 
+export async function leaveSignedInAccount(href: string): Promise<void> {
+  invalidateStripeBilling();
+  if (hasReportedSignOutForThisDocument === false) {
+    hasReportedSignOutForThisDocument = true;
+    track({ name: "signed_out", reason: "user_initiated" });
+  }
+  try { await flushBeforeIdentityTeardown(); }
+  catch { /* The analytics transport reports its own failure; departure must still complete. */ }
+  window.location.assign(href);
+}
+
 /**
  * The sign-out control, which holds its own navigation.
  *
@@ -66,22 +77,7 @@ export function SignOutLink(props: Props): ReactElement {
         }
 
         setIsSigningOut(true);
-        invalidateStripeBilling();
-        // Tracked here rather than on the load that comes back, because that load has no
-        // credential left to send it under and discards the queue with the rest of the account's
-        // local state. The drain below is what gets it off the browser before either happens.
-        if (hasReportedSignOutForThisDocument === false) {
-          hasReportedSignOutForThisDocument = true;
-          track({ name: "signed_out", reason: "user_initiated" });
-        }
-        void flushBeforeIdentityTeardown()
-          .catch((): void => {
-            // The sign-out leaves either way: nothing analytics does may strand a person on a page
-            // they asked to leave. The drain reports its own failures.
-          })
-          .then((): void => {
-            window.location.assign(href);
-          });
+        void leaveSignedInAccount(href);
       }}
     >
       {/* Decorative: the link carries `aria-busy`, which is what announces the wait. An

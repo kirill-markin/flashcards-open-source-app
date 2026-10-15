@@ -1,3 +1,4 @@
+import { emailCodeRequestFacts } from "./emailAuthFacts.js";
 import { randomBytes, randomInt } from "node:crypto";
 import { Hono } from "hono";
 import { AppleRelayDeliveryDisabledError } from "../../server/social/appleNotifications.js";
@@ -86,6 +87,7 @@ function parseOtpPayload(otpSessionToken: string): OtpPayload {
 
 export function createSendCodeApp(dependencies: SendCodeDependencies): Hono<AuthAppEnv> {
   const app = new Hono<AuthAppEnv>();
+  app.use("/api/send-code", emailCodeRequestFacts);
 
   app.post("/api/send-code", async (c) => {
     let body: { email?: string };

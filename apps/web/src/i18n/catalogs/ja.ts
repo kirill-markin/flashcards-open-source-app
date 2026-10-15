@@ -1512,6 +1512,12 @@ export const jaCatalog = {
       value: "削除",
     },
   },
+  browserSignInPrivacy: {
+    forget: "ログイン情報を削除",
+    signOutForget: "ログアウトして情報を削除",
+    forgotten: "ログイン情報を削除しました。",
+    error: "ログイン情報を変更できませんでした。認証サイトのデータ保存を許可して再試行してください。",
+  },
   accountStatus: {
     title: "アカウント状態",
     subtitle: "現在サインインしているアカウントとブラウザセッションを確認します。",

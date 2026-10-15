@@ -1,3 +1,4 @@
+import { BrowserSignInPrivacy } from "./BrowserSignInPrivacy";
 import { type ReactElement } from "react";
 import {
   buildLogoutUrl,
@@ -64,6 +65,7 @@ export function AccountStatusScreen(): ReactElement {
         </article>
       </div>
 
+      <BrowserSignInPrivacy />
       <div className="screen-actions">
         <SignOutLink
           className="ghost-btn"

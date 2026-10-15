@@ -1527,6 +1527,12 @@ const csCatalog: TranslationCatalog = {
       value: "Smazat",
     },
   },
+  browserSignInPrivacy: {
+    forget: "Zapomenout údaje o přihlášení",
+    signOutForget: "Odhlásit a zapomenout",
+    forgotten: "Údaje o přihlášení byly zapomenuty.",
+    error: "Údaje o přihlášení nelze změnit. Povolte data přihlašovacího webu a zkuste to znovu.",
+  },
   accountStatus: {
     title: "Stav účtu",
     subtitle: "Prohlédněte si aktuálně přihlášený účet a relaci prohlížeče.",

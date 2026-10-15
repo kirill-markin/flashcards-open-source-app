@@ -1512,6 +1512,12 @@ export const zhHansCatalog = {
       value: "删除",
     },
   },
+  browserSignInPrivacy: {
+    forget: "忘记登录信息",
+    signOutForget: "退出并忘记",
+    forgotten: "已忘记登录信息。",
+    error: "无法更新登录信息。请允许认证网站存储数据后重试。",
+  },
   accountStatus: {
     title: "账户状态",
     subtitle: "查看当前已登录账户和浏览器会话。",

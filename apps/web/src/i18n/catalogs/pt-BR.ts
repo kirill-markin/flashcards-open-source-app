@@ -1512,6 +1512,12 @@ const ptBrCatalog: TranslationCatalog = {
       value: "Excluir",
     },
   },
+  browserSignInPrivacy: {
+    forget: "Esquecer informações de login",
+    signOutForget: "Sair e esquecer",
+    forgotten: "Informações de login esquecidas.",
+    error: "Não foi possível alterar as informações de login. Permita dados do site de autenticação e tente novamente.",
+  },
   accountStatus: {
     title: "Status da conta",
     subtitle: "Consulte a conta conectada no momento e a sessão do navegador.",
