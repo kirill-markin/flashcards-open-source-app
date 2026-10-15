@@ -160,9 +160,28 @@ class MainActivityTest : FirebaseAppInstrumentationTimeoutTest() {
         openSettingsRow(rowTag = settingsAccountStatusRowTag)
         composeRule.onNodeWithText(settingsString(SettingsR.string.settings_account_status_screen_title)).fetchSemanticsNode()
         composeRule.onNodeWithText(settingsString(SettingsR.string.settings_account_status_sign_in_button)).performClick()
+        waitForTagToExist(tag = "cloud_sign_in_methods")
+        composeRule.onNodeWithText(settingsString(SettingsR.string.settings_auth_entry_title)).fetchSemanticsNode()
+        composeRule.onNodeWithContentDescription(settingsString(SettingsR.string.settings_back_content_description)).assertIsDisplayed()
+        composeRule.waitUntil(timeoutMillis = uiTimeoutMillis) {
+            composeRule.onAllNodesWithTag("cloud_sign_in_method_email")
+                .fetchSemanticsNodes()
+                .singleOrNull()
+                ?.config
+                ?.contains(SemanticsProperties.Disabled)
+                ?.not()
+                ?: false
+        }
+        composeRule.onNodeWithTag("cloud_sign_in_method_email").performScrollTo().performClick()
+        waitForTagToExist(tag = "cloud_sign_in_email_field")
         composeRule.onNodeWithText(settingsString(SettingsR.string.settings_sign_in_title)).fetchSemanticsNode()
-        composeRule.onNodeWithContentDescription(settingsString(SettingsR.string.settings_back_content_description)).fetchSemanticsNode()
+        composeRule.onNodeWithContentDescription(settingsString(SettingsR.string.settings_back_content_description)).assertIsDisplayed()
         tapVisibleBackButton()
+        waitForTagToExist(tag = "cloud_sign_in_methods")
+        composeRule.onNodeWithText(settingsString(SettingsR.string.settings_auth_entry_title)).fetchSemanticsNode()
+        composeRule.onNodeWithContentDescription(settingsString(SettingsR.string.settings_back_content_description)).assertIsDisplayed()
+        tapVisibleBackButton()
+        waitForTagToExist(tag = "account_status_screen")
         composeRule.onNodeWithText(settingsString(SettingsR.string.settings_account_status_screen_title)).fetchSemanticsNode()
     }
 
