@@ -58,6 +58,16 @@ internal class CloudSignInCoordinator(
         }
     }
 
+    suspend fun prepareSocialSignIn(credentials: StoredCloudCredentials): CloudWorkspaceLinkContext {
+        return operationCoordinator.runExclusive {
+            val context = prepareVerifiedSignIn(credentials = credentials)
+            if (context.guestUpgradeMode != null) {
+                markGuestUpgradePreparationState()
+            }
+            context
+        }
+    }
+
     /**
      * [onVerified] runs the moment the remote call returns credentials: before the link context is
      * built, and not at all on the short circuit below, which returns blocked credentials without
