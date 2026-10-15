@@ -145,6 +145,12 @@ private suspend fun finalizePendingGuestUpgradeRecovery(
         appVersion = appVersion
     )
     withContext(Dispatchers.IO) {
+        // Retain the social result before startup recovery can discard its guest completion route.
+        preferencesStore.socialAuthStore.retainCompletedGuestUpgrade(
+            installationId = preferencesStore.currentCloudSettings().installationId,
+            upgrade = pendingGuestUpgradeState,
+            workspace = completion.workspace
+        )
         guestSessionStore.clearAllSessions()
         preferencesStore.clearPendingGuestUpgrade()
     }

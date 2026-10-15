@@ -1,5 +1,7 @@
 package com.flashcardsopensourceapp.data.local.model.cloud
 
+import kotlinx.serialization.Serializable
+
 enum class CloudAccountState {
     DISCONNECTED,
     LINKING_READY,
@@ -7,11 +9,13 @@ enum class CloudAccountState {
     LINKED
 }
 
+@Serializable
 enum class CloudServiceConfigurationMode {
     OFFICIAL,
     CUSTOM
 }
 
+@Serializable
 data class CloudServiceConfiguration(
     val mode: CloudServiceConfigurationMode,
     val customOrigin: String?,
@@ -29,6 +33,7 @@ data class CloudOtpChallenge(
     val otpSessionToken: String
 )
 
+@Serializable
 data class StoredCloudCredentials(
     val refreshToken: String,
     val idToken: String,
@@ -50,6 +55,7 @@ sealed interface CloudSendCodeResult {
     ) : CloudSendCodeResult
 }
 
+@Serializable
 data class CloudWorkspaceSummary(
     val workspaceId: String,
     val name: String,
@@ -57,6 +63,7 @@ data class CloudWorkspaceSummary(
     val isSelected: Boolean
 )
 
+@Serializable
 enum class CloudGuestUpgradeMode {
     BOUND,
     MERGE_REQUIRED
@@ -131,14 +138,18 @@ data class AgentApiKeyConnectionsResult(
     val instructions: String
 )
 
+@Serializable
 sealed interface CloudWorkspaceLinkSelection {
+    @Serializable
     data class Existing(
         val workspaceId: String
     ) : CloudWorkspaceLinkSelection
 
+    @Serializable
     data object CreateNew : CloudWorkspaceLinkSelection
 }
 
+@Serializable
 enum class CloudWorkspacePostAuthRoute {
     NONE,
     LINKED_CREDENTIAL_RESTORE,
@@ -147,6 +158,7 @@ enum class CloudWorkspacePostAuthRoute {
     INVALID_STORED_STATE
 }
 
+@Serializable
 data class CloudWorkspaceLinkContext(
     val userId: String,
     val email: String?,

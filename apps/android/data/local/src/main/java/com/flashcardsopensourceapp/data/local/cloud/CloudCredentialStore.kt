@@ -15,9 +15,11 @@ import javax.crypto.SecretKey
 import javax.crypto.spec.GCMParameterSpec
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.SerializationException
-import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonNull
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.decodeFromJsonElement
 
 private const val legacyCloudSecretsName: String = "flashcards-cloud-secrets"
 private const val encryptedCloudSecretsName: String = "flashcards-cloud-secrets-encrypted.bin"
@@ -38,7 +40,9 @@ internal data class CloudCredentialSecrets(
     val refreshToken: String?,
     val idToken: String?,
     val idTokenExpiresAtMillis: Long?,
-    val pendingGuestUpgrade: String?
+    val pendingGuestUpgrade: String?,
+    val pendingSocialSignIn: String?,
+    val successfulSignInHint: String?
 )
 
 internal class CloudCredentialStore(context: Context) {
@@ -66,7 +70,9 @@ internal class CloudCredentialStore(context: Context) {
                     refreshToken = null,
                     idToken = null,
                     idTokenExpiresAtMillis = null,
-                    pendingGuestUpgrade = null
+                    pendingGuestUpgrade = null,
+                    pendingSocialSignIn = null,
+                    successfulSignInHint = null
                 )
             )
             clearLegacySecrets()
@@ -110,7 +116,9 @@ internal class CloudCredentialStore(context: Context) {
             } else {
                 null
             },
-            pendingGuestUpgrade = legacyPreferences.getString(pendingGuestUpgradeKey, null)
+            pendingGuestUpgrade = legacyPreferences.getString(pendingGuestUpgradeKey, null),
+            pendingSocialSignIn = null,
+            successfulSignInHint = null
         )
     }
 
@@ -172,7 +180,13 @@ internal class CloudCredentialStore(context: Context) {
         )
         cipher.updateAAD(cloudSecretsAssociatedData)
         val plaintext = cipher.doFinal(payload.copyOfRange(1 + cloudSecretsIvSize, payload.size))
-        return Json.decodeFromString<CloudCredentialSecrets>(plaintext.toString(Charsets.UTF_8))
+        val storedFields = Json.parseToJsonElement(plaintext.toString(Charsets.UTF_8)) as? JsonObject
+            ?: throw SerializationException("Cloud credential storage must contain an object.")
+        // Older encrypted records predate these optional fields; retain the existing cipher format.
+        val fields = JsonObject(
+            mapOf("pendingSocialSignIn" to JsonNull, "successfulSignInHint" to JsonNull) + storedFields
+        )
+        return Json.decodeFromJsonElement<CloudCredentialSecrets>(fields)
     }
 
     private fun loadKey(): SecretKey? {

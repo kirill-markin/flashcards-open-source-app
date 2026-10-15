@@ -2,6 +2,7 @@ package com.flashcardsopensourceapp.data.local.repository.cloudsync.account
 
 import com.flashcardsopensourceapp.data.local.ai.store.GuestAiSessionStore
 import com.flashcardsopensourceapp.data.local.cloud.CloudPreferencesStore
+import com.flashcardsopensourceapp.data.local.cloud.CloudSocialGuestBinding
 import com.flashcardsopensourceapp.data.local.cloud.remote.CloudRemoteException
 import com.flashcardsopensourceapp.data.local.cloud.remote.CloudRemoteGateway
 import com.flashcardsopensourceapp.data.local.cloud.sync.SyncLocalStore
@@ -446,6 +447,20 @@ class LocalCloudAccountRepository(
         return signInCoordinator.prepareVerifiedSignIn(credentials = credentials)
     }
 
+    internal suspend fun socialSignInGuestBinding(): CloudSocialGuestBinding? = operationCoordinator.runExclusive {
+        loadActiveGuestSessionOrNull(
+            preferencesStore = preferencesStore,
+            guestSessionStore = guestSessionStore,
+            configuration = preferencesStore.currentServerConfiguration()
+        )?.takeIf { session -> session.isAnalyticsOnly.not() }?.let { session ->
+            CloudSocialGuestBinding(userId = session.userId, workspaceId = session.workspaceId)
+        }
+    }
+
+    suspend fun prepareSocialSignIn(credentials: StoredCloudCredentials): CloudWorkspaceLinkContext {
+        return signInCoordinator.prepareSocialSignIn(credentials = credentials)
+    }
+
     override suspend fun verifyCode(
         challenge: CloudOtpChallenge,
         code: String,
@@ -464,7 +479,23 @@ class LocalCloudAccountRepository(
     ): CloudWorkspaceSummary {
         return workspaceLinkCoordinator.completeCloudLink(
             linkContext = linkContext,
-            selection = selection
+            selection = selection,
+            retainedWorkspace = null,
+            onWorkspaceSelected = {}
+        )
+    }
+
+    internal suspend fun completeSocialCloudLink(
+        linkContext: CloudWorkspaceLinkContext,
+        selection: CloudWorkspaceLinkSelection,
+        retainedWorkspace: CloudWorkspaceSummary?,
+        onWorkspaceSelected: suspend (CloudWorkspaceSummary) -> Unit
+    ): CloudWorkspaceSummary {
+        return workspaceLinkCoordinator.completeCloudLink(
+            linkContext = linkContext,
+            selection = selection,
+            retainedWorkspace = retainedWorkspace,
+            onWorkspaceSelected = onWorkspaceSelected
         )
     }
 

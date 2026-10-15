@@ -69,7 +69,9 @@ internal class CloudWorkspaceLinkCoordinator(
 ) {
     suspend fun completeCloudLink(
         linkContext: CloudWorkspaceLinkContext,
-        selection: CloudWorkspaceLinkSelection
+        selection: CloudWorkspaceLinkSelection,
+        retainedWorkspace: CloudWorkspaceSummary?,
+        onWorkspaceSelected: suspend (CloudWorkspaceSummary) -> Unit
     ): CloudWorkspaceSummary {
         return operationCoordinator.runExclusive {
             val recoveryState: CloudCredentialRecoveryState? = preferencesStore.loadCloudCredentialRecoveryState()
@@ -82,7 +84,9 @@ internal class CloudWorkspaceLinkCoordinator(
                 return@runExclusive completeGuestLocalRecoveryCloudLink(
                     linkContext = linkContext,
                     recoveryState = requireActiveCloudCredentialRecoveryState(recoveryState = recoveryState),
-                    selection = selection
+                    selection = selection,
+                    retainedWorkspace = retainedWorkspace,
+                    onWorkspaceSelected = onWorkspaceSelected
                 )
             }
             val resumedGuestUpgrade: CloudWorkspaceSummary? = if (recoveryState == null) {
@@ -104,11 +108,17 @@ internal class CloudWorkspaceLinkCoordinator(
                 recoveryState = recoveryState,
                 selection = selection
             )
-            val selectedWorkspace: CloudWorkspaceSummary = resolveWorkspaceSelection(
+            val selectedWorkspace: CloudWorkspaceSummary = retainedWorkspace?.let { workspace ->
+                selectRetainedCompletionWorkspace(
+                    authenticatedSession = authenticatedSession,
+                    workspace = workspace
+                )
+            } ?: resolveWorkspaceSelection(
                 linkContext = linkContext,
                 authenticatedSession = authenticatedSession,
                 selection = selection
             )
+            onWorkspaceSelected(selectedWorkspace)
             if (linkContext.postAuthRoute == CloudWorkspacePostAuthRoute.LINKED_CREDENTIAL_RESTORE) {
                 return@runExclusive completeLinkedCredentialRecoveryCloudLink(
                     authenticatedSession = authenticatedSession,
@@ -424,10 +434,28 @@ internal class CloudWorkspaceLinkCoordinator(
         }
     }
 
+    private suspend fun selectRetainedCompletionWorkspace(
+        authenticatedSession: AuthenticatedCloudSession,
+        workspace: CloudWorkspaceSummary
+    ): CloudWorkspaceSummary {
+        require(authenticatedSession.accountSnapshot.workspaces.any { candidate ->
+            candidate.workspaceId == workspace.workspaceId
+        }) {
+            "The retained sign-in completion workspace is unavailable for this account. Start sign-in again."
+        }
+        return remoteService.selectWorkspace(
+            apiBaseUrl = authenticatedSession.configuration.apiBaseUrl,
+            bearerToken = authenticatedSession.credentials.idToken,
+            workspaceId = workspace.workspaceId
+        )
+    }
+
     private suspend fun completeGuestLocalRecoveryCloudLink(
         linkContext: CloudWorkspaceLinkContext,
         recoveryState: CloudCredentialRecoveryState,
-        selection: CloudWorkspaceLinkSelection
+        selection: CloudWorkspaceLinkSelection,
+        retainedWorkspace: CloudWorkspaceSummary?,
+        onWorkspaceSelected: suspend (CloudWorkspaceSummary) -> Unit
     ): CloudWorkspaceSummary {
         require(linkContext.postAuthRoute == CloudWorkspacePostAuthRoute.GUEST_LOCAL_RECOVERY) {
             "Guest local recovery requires the guest recovery post-auth route."
@@ -442,6 +470,10 @@ internal class CloudWorkspaceLinkCoordinator(
         loadResumableGuestLocalRecoveryWorkspaceOrNull(
             authenticatedSession = authenticatedSession
         )?.let { resumableWorkspace ->
+            require(retainedWorkspace == null || retainedWorkspace.workspaceId == resumableWorkspace.workspaceId) {
+                "Guest local recovery workspace differs from the retained sign-in completion."
+            }
+            onWorkspaceSelected(resumableWorkspace)
             withContext(Dispatchers.IO) {
                 preferencesStore.saveCredentials(authenticatedSession.credentials)
             }
@@ -462,11 +494,17 @@ internal class CloudWorkspaceLinkCoordinator(
             return resumableWorkspace
         }
 
-        val selectedWorkspace: CloudWorkspaceSummary = remoteService.createWorkspace(
+        val selectedWorkspace: CloudWorkspaceSummary = retainedWorkspace?.let { workspace ->
+            selectRetainedCompletionWorkspace(
+                authenticatedSession = authenticatedSession,
+                workspace = workspace
+            )
+        } ?: remoteService.createWorkspace(
             apiBaseUrl = authenticatedSession.configuration.apiBaseUrl,
             bearerToken = authenticatedSession.credentials.idToken,
             name = "Personal"
         )
+        onWorkspaceSelected(selectedWorkspace)
         withContext(Dispatchers.IO) {
             preferencesStore.saveCredentials(authenticatedSession.credentials)
         }

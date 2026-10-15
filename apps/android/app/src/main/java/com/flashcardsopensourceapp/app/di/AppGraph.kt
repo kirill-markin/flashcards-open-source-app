@@ -102,6 +102,8 @@ import com.flashcardsopensourceapp.data.local.repository.DecksRepository
 import com.flashcardsopensourceapp.data.local.repository.FeedbackRepository
 import com.flashcardsopensourceapp.data.local.repository.ai.LocalAiChatRepository
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.account.LocalCloudAccountRepository
+import com.flashcardsopensourceapp.data.local.repository.cloudsync.account.LocalCloudSocialSignInRepository
+import com.flashcardsopensourceapp.data.local.repository.CloudSocialSignInRepository
 import com.flashcardsopensourceapp.data.local.repository.cards.LocalCardsRepository
 import com.flashcardsopensourceapp.data.local.repository.decks.LocalDecksRepository
 import com.flashcardsopensourceapp.data.local.repository.feedback.LocalFeedbackRepository
@@ -476,7 +478,7 @@ class AppGraph(
         timeProvider = SystemTimeProvider
     )
 
-    val cloudAccountRepository: CloudAccountRepository = LocalCloudAccountRepository(
+    private val localCloudAccountRepository = LocalCloudAccountRepository(
         database = database,
         preferencesStore = cloudPreferencesStore,
         remoteService = cloudRemoteService,
@@ -498,6 +500,14 @@ class AppGraph(
         },
         onAnalyticsGuestIdentityLinkRequested = ::requestAnalyticsGuestIdentityLink,
         onProductAnalyticsPreferencePushRefused = ::reportProductAnalyticsPreferencePushRefused
+    )
+    val cloudAccountRepository: CloudAccountRepository = localCloudAccountRepository
+    val cloudSocialSignInRepository: CloudSocialSignInRepository = LocalCloudSocialSignInRepository(
+        preferencesStore = cloudPreferencesStore,
+        socialGateway = cloudRemoteService,
+        remoteGateway = cloudRemoteService,
+        accountRepository = localCloudAccountRepository,
+        operationCoordinator = cloudOperationCoordinator
     )
     val accentColorViewModelStoreOwner: ViewModelStoreOwner = object : ViewModelStoreOwner {
         override val viewModelStore: ViewModelStore = ViewModelStore()
