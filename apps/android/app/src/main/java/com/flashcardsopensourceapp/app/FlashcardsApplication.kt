@@ -18,12 +18,18 @@ import com.flashcardsopensourceapp.app.observability.AndroidObservabilityStartup
 import com.flashcardsopensourceapp.app.observability.startAndroidObservability
 import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsEvent
 import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsLaunchType
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudAppleBrowserReturn
 import com.flashcardsopensourceapp.data.local.notifications.appNotificationWorkLimit
+import java.io.IOException
 import java.util.concurrent.atomic.AtomicLong
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
@@ -35,6 +41,52 @@ class FlashcardsApplication : Application(), Configuration.Provider {
     private val nextAppNotificationTapRequestId = AtomicLong(0L)
     private val appGraphStateMutable = MutableStateFlow<AppGraph?>(value = null)
     private val appNotificationTapStateMutable = MutableStateFlow<AppNotificationTapHandoffRequest?>(value = null)
+    private val appleSignInScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
+    private val appleSignInReturnStateMutable = MutableStateFlow<AppleSignInReturnState>(AppleSignInReturnState.Idle)
+    private var appleSignInReturnForRetry: CloudAppleBrowserReturn? = null
+    val appleSignInReturnState: StateFlow<AppleSignInReturnState>
+        get() = appleSignInReturnStateMutable.asStateFlow()
+
+    fun reportAppleSignInReturnFailure() {
+        appleSignInReturnForRetry = null
+        appleSignInReturnStateMutable.value = AppleSignInReturnState.Rejected
+    }
+
+    fun consumeAppleSignInReturn() {
+        appleSignInReturnForRetry = null
+        appleSignInReturnStateMutable.value = AppleSignInReturnState.Idle
+    }
+
+    fun acceptAppleSignInReturn(returned: CloudAppleBrowserReturn) {
+        appleSignInScope.launch { receiveAppleSignInReturn(returned) }
+    }
+
+    fun retryAppleSignInReturn() {
+        val returned = requireNotNull(appleSignInReturnForRetry) {
+            "Apple sign-in has no callback awaiting a storage retry."
+        }
+        acceptAppleSignInReturn(returned)
+    }
+
+    private suspend fun receiveAppleSignInReturn(returned: CloudAppleBrowserReturn) {
+        try {
+            val graph = appGraph
+            graph.awaitStartup()
+            val pending = graph.cloudSocialSignInRepository.acceptAppleBrowserReturn(returned)
+            appleSignInReturnForRetry = null
+            appleSignInReturnStateMutable.value = AppleSignInReturnState.Accepted(pending)
+        } catch (error: CancellationException) {
+            throw error
+        } catch (_: IOException) {
+            appleSignInReturnForRetry = returned
+            appleSignInReturnStateMutable.value = AppleSignInReturnState.StorageFailed
+        } catch (_: IllegalArgumentException) {
+            reportAppleSignInReturnFailure()
+        } catch (_: IllegalStateException) {
+            reportAppleSignInReturnFailure()
+        }
+    }
+
     private lateinit var observabilityStartup: AndroidObservabilityStartup
 
     val appGraph: AppGraph
