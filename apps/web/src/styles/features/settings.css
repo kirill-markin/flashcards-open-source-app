@@ -1045,3 +1045,15 @@
 .accent-custom-selected > span {
   color: var(--accent);
 }
+
+.account-method-button {
+  display: inline-flex; align-items: center; justify-content: center; gap: 12px;
+  min-height: 44px; padding: 12px 20px; border: 1px solid var(--text-secondary); border-radius: 999px;
+  font: 600 14px/1.4 system-ui, sans-serif; background: var(--surface); color: var(--text-primary); cursor: pointer;
+}
+.account-method-button svg { flex: 0 0 20px; }
+.account-method-google { background: #fff; color: #1f1f1f; border-color: #747775; font-family: Arial, sans-serif; font-weight: 500; }
+.account-method-apple { background: #000; color: #fff; border-color: #fff; }
+.account-method-button:focus-visible { outline: 2px solid var(--text-secondary); outline-offset: 3px; }
+.account-method-button:active { opacity: .75; }
+.account-method-button:disabled { opacity: .5; cursor: default; }

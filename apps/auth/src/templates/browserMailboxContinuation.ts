@@ -1,3 +1,4 @@
+import type { AuthAnalyticsContext } from "../server/analytics/signInFunnel.js";
 import { browserAuthFactsScript } from "./browserAuthFacts.js";
 import { renderBrowserHintFeedback } from "./browserHintControls.js";
 import type { LoginPageLocale } from "../routes/browser/loginPageLocale.js";
@@ -8,7 +9,8 @@ import { getLoginPageCopy } from "./login.js";
 type BrowserMailboxView = Readonly<{
   csrfToken: string;
   method: "apple" | "google";
-  analyticsScreen: "signin" | null;
+  intent: "login" | "reauth" | "link" | "reenable";
+  analyticsScreen: AuthAnalyticsContext["screen"];
   providerEmail: string | null;
   expiresAt: number;
   restartUri: string;
@@ -44,7 +46,8 @@ export function renderBrowserMailboxContinuation(
     const copy = ${browserScriptJson(copy)};
     const loginCopy = ${browserScriptJson(loginCopy)};
     const uiLocale = ${JSON.stringify(locale)};
-    const collectionDisabled = view.analyticsScreen !== "signin";
+    const authFactScreen = view.analyticsScreen;
+    const collectionDisabled = authFactScreen === null;
     ${browserAuthFactsScript}
     window.addEventListener("nibomo-auth-hint-error", function(event) {
       document.getElementById("signin-hint-feedback").hidden = false;
@@ -177,6 +180,8 @@ export function renderBrowserMailboxContinuation(
       if (new URL(view.restartUri, window.location.origin).pathname === "/api/social/" + view.method + "/start") {
         browserHints.beginOptional(view.method);
         authFact("auth_method_selected", view.method);
+      } else if (view.intent === "link") {
+        sendAuthFact({ eventName: "auth_account_link_finished", method: view.method, outcome: "cancelled" });
       }
     });
     if (!checkExpiry()) emailInput.focus();
