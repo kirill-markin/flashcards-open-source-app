@@ -68,6 +68,7 @@ class SettingsAuthRouteTest : FirebaseAppInstrumentationTimeoutTest() {
                             ),
                             onCodeChange = { code = it },
                             onVerifyCode = {},
+                            onShown = {},
                             onShowTechnicalDetails = { _, _ -> },
                             onBack = { route = "email" }
                         )

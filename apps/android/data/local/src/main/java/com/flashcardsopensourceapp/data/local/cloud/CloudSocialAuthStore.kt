@@ -24,6 +24,7 @@ import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.decodeFromJsonElement
 
 @Serializable
@@ -67,6 +68,9 @@ internal data class PendingCloudSocialSignIn(
     val originalReauthenticationBinding: CloudSocialAttemptBinding?,
     val rememberSignIn: Boolean,
     val mailboxReason: CloudSocialMailboxReason?,
+    val mailboxCodeRequested: Boolean,
+    val mailboxRequestInFlight: Boolean,
+    val providerCredentialObserved: Boolean,
     val providerEmail: String?,
     val completion: CloudSocialLoginCompletion?,
     val acceptedSession: CloudAcceptedSocialSession?,
@@ -99,15 +103,26 @@ internal data class PendingCloudSocialSignIn(
             phase = when {
                 acceptedSession != null -> CloudSocialSignInPhase.ACCEPTED
                 completionHandle != null -> CloudSocialSignInPhase.COMPLETION
+                mailboxRequestInFlight -> CloudSocialSignInPhase.INTERRUPTED_MAILBOX
                 appleBrowser?.returned?.status == CloudAppleBrowserStatus.DENIED -> CloudSocialSignInPhase.DENIED
                 mailboxReason != null || appleBrowser?.returned?.status == CloudAppleBrowserStatus.VERIFICATION_REQUIRED -> CloudSocialSignInPhase.MAILBOX
                 else -> CloudSocialSignInPhase.PROVIDER
             },
             mailboxReason = mailboxReason,
-            providerEmail = providerEmail
+            mailboxCodeRequested = mailboxCodeRequested,
+            providerEmail = providerEmail,
+            workspaceSelection = workspaceSelection
         )
     }
 }
+
+@Serializable
+internal data class PendingCloudEmailSignIn(
+    val configuration: CloudServiceConfiguration,
+    val refreshToken: String,
+    val hint: CloudSuccessfulSignInHint?,
+    val rememberSignIn: Boolean
+)
 
 @Serializable
 internal data class StoredCloudSignInHint(
@@ -160,7 +175,7 @@ internal class CloudSocialAuthStore(private val credentialStore: CloudCredential
             "Remembering a sign-in requires an accepted Nibomo session."
         }
         credentialStore.update { secrets ->
-            secrets.copy(pendingSocialSignIn = null, successfulSignInHint = if (pending.rememberSignIn) {
+            secrets.copy(pendingSocialSignIn = null, pendingEmailSignIn = null, successfulSignInHint = if (pending.rememberSignIn) {
                 Json.encodeToString(StoredCloudSignInHint(pending.configuration, accepted.hint.successfulHint()))
             } else {
                 null
@@ -168,10 +183,26 @@ internal class CloudSocialAuthStore(private val credentialStore: CloudCredential
         }
     }
 
-    fun rememberEmailSession(configuration: CloudServiceConfiguration, hint: CloudSuccessfulSignInHint) {
-        require(hint.method == CloudSignInMethod.EMAIL)
+    fun stageEmailSession(pending: PendingCloudEmailSignIn) {
+        require(pending.hint == null || pending.hint.method == CloudSignInMethod.EMAIL)
         credentialStore.update { secrets ->
-            secrets.copy(successfulSignInHint = Json.encodeToString(StoredCloudSignInHint(configuration, hint)))
+            secrets.copy(pendingEmailSignIn = Json.encodeToString(pending))
+        }
+    }
+
+    fun completeEmailSession(configuration: CloudServiceConfiguration, refreshToken: String) {
+        credentialStore.update { secrets ->
+            val value = secrets.pendingEmailSignIn ?: return@update secrets
+            val pending = decodeSocialAuthState { Json.decodeFromString<PendingCloudEmailSignIn>(value) }
+            if (pending.configuration != configuration || pending.refreshToken != refreshToken ||
+                secrets.refreshToken != refreshToken) {
+                return@update secrets
+            }
+            secrets.copy(pendingEmailSignIn = null, successfulSignInHint = when {
+                !pending.rememberSignIn -> null
+                pending.hint != null -> Json.encodeToString(StoredCloudSignInHint(configuration, pending.hint))
+                else -> secrets.successfulSignInHint
+            })
         }
     }
 
@@ -182,6 +213,7 @@ internal class CloudSocialAuthStore(private val credentialStore: CloudCredential
             }
             secrets.copy(
                 successfulSignInHint = null,
+                pendingEmailSignIn = null,
                 pendingSocialSignIn = pending?.let { Json.encodeToString(it.copy(rememberSignIn = false)) }
             )
         }
@@ -202,5 +234,12 @@ private fun <Result> decodeSocialAuthState(decode: () -> Result): Result {
 private fun decodePending(value: String): PendingCloudSocialSignIn = decodeSocialAuthState {
     val fields = Json.parseToJsonElement(value) as? JsonObject
         ?: throw SerializationException("Pending social sign-in must be an object.")
-    Json.decodeFromJsonElement<PendingCloudSocialSignIn>(JsonObject(mapOf("appleBrowser" to JsonNull) + fields))
+    val pending = Json.decodeFromJsonElement<PendingCloudSocialSignIn>(JsonObject(mapOf(
+        "appleBrowser" to JsonNull, "mailboxCodeRequested" to JsonPrimitive(false),
+        "mailboxRequestInFlight" to JsonPrimitive(false), "providerCredentialObserved" to JsonPrimitive(false)
+    ) + fields))
+    // Legacy mailbox records cannot prove whether a one-use request was already launched.
+    if ("mailboxRequestInFlight" !in fields && pending.snapshot().phase == CloudSocialSignInPhase.MAILBOX) {
+        pending.copy(mailboxRequestInFlight = true)
+    } else pending
 }

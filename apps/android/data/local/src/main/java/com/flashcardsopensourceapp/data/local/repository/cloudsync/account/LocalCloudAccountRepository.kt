@@ -465,8 +465,9 @@ class LocalCloudAccountRepository(
     suspend fun verifyEmailCodeSession(
         challenge: CloudOtpChallenge,
         code: String,
-        onVerified: (CloudEmailSession) -> Unit
-    ): CloudWorkspaceLinkContext = signInCoordinator.verifyCodeSession(challenge, code, onVerified)
+        onVerificationStarted: () -> Unit,
+        onVerified: suspend (CloudEmailSession) -> Unit
+    ): CloudWorkspaceLinkContext = signInCoordinator.verifyCodeSession(challenge, code, onVerificationStarted, onVerified)
 
     override suspend fun verifyCode(
         challenge: CloudOtpChallenge,
@@ -508,11 +509,15 @@ class LocalCloudAccountRepository(
 
     override suspend fun completeGuestUpgrade(
         linkContext: CloudWorkspaceLinkContext,
-        selection: CloudWorkspaceLinkSelection
+        selection: CloudWorkspaceLinkSelection,
+        onGuestCompletionStarted: () -> Unit,
+        onGuestCompletionFinished: () -> Unit
     ): CloudWorkspaceSummary {
         return workspaceLinkCoordinator.completeGuestUpgrade(
             linkContext = linkContext,
-            selection = selection
+            selection = selection,
+            onGuestCompletionStarted = onGuestCompletionStarted,
+            onGuestCompletionFinished = onGuestCompletionFinished
         )
     }
 

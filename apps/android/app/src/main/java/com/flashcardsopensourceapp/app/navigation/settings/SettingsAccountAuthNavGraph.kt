@@ -16,13 +16,13 @@ import androidx.navigation.navArgument
 import androidx.navigation.navigation
 import com.flashcardsopensourceapp.app.R
 import com.flashcardsopensourceapp.app.di.AppGraph
+import com.flashcardsopensourceapp.app.CloudSignInEntryContainer
 import com.flashcardsopensourceapp.app.navigation.SettingsDestination
 import com.flashcardsopensourceapp.app.navigation.navigateToTopLevelDestination
 import com.flashcardsopensourceapp.app.navigation.rememberRouteBackStackEntry
 import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsSurface
 import com.flashcardsopensourceapp.feature.settings.cloud.CloudPostAuthRoute
 import com.flashcardsopensourceapp.feature.settings.cloud.CloudSignInCodeRoute
-import com.flashcardsopensourceapp.feature.settings.cloud.CloudSignInEmailRoute
 import com.flashcardsopensourceapp.feature.settings.cloud.createCloudSignInViewModelFactory
 import com.flashcardsopensourceapp.feature.settings.cloud.signIn.CloudSendCodeNavigationOutcome
 import kotlinx.coroutines.CoroutineScope
@@ -58,6 +58,7 @@ internal fun NavGraphBuilder.registerSettingsAccountAuthNavGraph(
                 viewModelStoreOwner = authGraphBackStackEntry,
                 factory = createCloudSignInViewModelFactory(
                     cloudAccountRepository = appGraph.cloudAccountRepository,
+                    cloudSocialSignInRepository = appGraph.cloudSocialSignInRepository,
                     syncRepository = appGraph.syncRepository,
                     messageController = appGraph.appMessageBus,
                     analytics = appGraph.analytics,
@@ -67,11 +68,9 @@ internal fun NavGraphBuilder.registerSettingsAccountAuthNavGraph(
                     applicationContext = context.applicationContext
                 )
             )
-            val uiState by signInViewModel.uiState.collectAsStateWithLifecycle()
-
-            CloudSignInEmailRoute(
-                uiState = uiState,
-                onEmailChange = signInViewModel::updateEmail,
+            CloudSignInEntryContainer(
+                viewModel = signInViewModel,
+                onPostAuth = { navController.navigate(route = SettingsAccountPostAuthDestination.route) },
                 onSendCode = {
                     coroutineScope.launch {
                         when (signInViewModel.sendCode()) {
@@ -101,6 +100,7 @@ internal fun NavGraphBuilder.registerSettingsAccountAuthNavGraph(
                     )
                 },
                 onBack = {
+                    signInViewModel.cancelSignIn()
                     navController.popBackStack()
                 }
             )
@@ -118,6 +118,7 @@ internal fun NavGraphBuilder.registerSettingsAccountAuthNavGraph(
                 viewModelStoreOwner = authGraphBackStackEntry,
                 factory = createCloudSignInViewModelFactory(
                     cloudAccountRepository = appGraph.cloudAccountRepository,
+                    cloudSocialSignInRepository = appGraph.cloudSocialSignInRepository,
                     syncRepository = appGraph.syncRepository,
                     messageController = appGraph.appMessageBus,
                     analytics = appGraph.analytics,
@@ -131,6 +132,7 @@ internal fun NavGraphBuilder.registerSettingsAccountAuthNavGraph(
 
             CloudSignInCodeRoute(
                 uiState = uiState,
+                onShown = signInViewModel::reportEmailCodeFormShown,
                 onCodeChange = signInViewModel::updateCode,
                 onVerifyCode = {
                     coroutineScope.launch {
@@ -169,6 +171,7 @@ internal fun NavGraphBuilder.registerSettingsAccountAuthNavGraph(
                 viewModelStoreOwner = authGraphBackStackEntry,
                 factory = createCloudSignInViewModelFactory(
                     cloudAccountRepository = appGraph.cloudAccountRepository,
+                    cloudSocialSignInRepository = appGraph.cloudSocialSignInRepository,
                     syncRepository = appGraph.syncRepository,
                     messageController = appGraph.appMessageBus,
                     analytics = appGraph.analytics,
