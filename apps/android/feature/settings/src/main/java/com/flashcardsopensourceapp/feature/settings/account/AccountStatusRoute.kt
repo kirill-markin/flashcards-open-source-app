@@ -41,6 +41,7 @@ fun AccountStatusRoute(
     onRequestLogout: () -> Unit,
     onDismissLogoutConfirmation: () -> Unit,
     onConfirmLogout: () -> Unit,
+    onConfirmLogoutAndForget: () -> Unit,
     onBack: () -> Unit
 ) {
     SettingsScreenScaffold(
@@ -216,7 +217,13 @@ fun AccountStatusRoute(
                 Text(stringResource(R.string.settings_account_status_logout_dialog_title))
             },
             text = {
-                Text(stringResource(R.string.settings_account_status_logout_dialog_body))
+                Column {
+                    Text(stringResource(R.string.settings_account_status_logout_dialog_body))
+                    TextButton(onClick = onConfirmLogoutAndForget, enabled = !uiState.isSubmitting,
+                        modifier = Modifier.testTag("account_sign_out_and_forget")) {
+                        Text(stringResource(R.string.settings_auth_sign_out_forget))
+                    }
+                }
             }
         )
     }

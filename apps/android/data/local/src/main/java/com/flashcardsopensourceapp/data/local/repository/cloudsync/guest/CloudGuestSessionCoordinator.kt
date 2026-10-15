@@ -155,7 +155,9 @@ class CloudGuestSessionCoordinator(
                 remoteService = remoteService,
                 syncLocalStore = syncLocalStore,
                 guestSessionStore = guestSessionStore,
-                appVersion = appVersion
+                appVersion = appVersion,
+                onGuestCompletionStarted = {},
+                onGuestCompletionFinished = {}
             )
             if (recoveredGuestUpgrade != null) {
                 return CloudIdentityReconciliationResult(

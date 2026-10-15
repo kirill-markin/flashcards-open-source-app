@@ -90,7 +90,9 @@ class LocalCloudAccountRepositoryGuestUpgradeDrainTest {
 
         val linkedWorkspace = repository.completeGuestUpgrade(
             linkContext = linkContext,
-            selection = CloudWorkspaceLinkSelection.Existing(workspaceId = selectedWorkspace.workspaceId)
+            selection = CloudWorkspaceLinkSelection.Existing(workspaceId = selectedWorkspace.workspaceId),
+            onGuestCompletionStarted = {},
+            onGuestCompletionFinished = {}
         )
 
         assertEquals(selectedWorkspace.workspaceId, linkedWorkspace.workspaceId)
@@ -171,7 +173,9 @@ class LocalCloudAccountRepositoryGuestUpgradeDrainTest {
         val upgradeResult = async {
             repository.completeGuestUpgrade(
                 linkContext = linkContext,
-                selection = CloudWorkspaceLinkSelection.Existing(workspaceId = selectedWorkspace.workspaceId)
+                selection = CloudWorkspaceLinkSelection.Existing(workspaceId = selectedWorkspace.workspaceId),
+                onGuestCompletionStarted = {},
+                onGuestCompletionFinished = {}
             )
         }
         guestDrainEntered.await()
@@ -280,7 +284,9 @@ class LocalCloudAccountRepositoryGuestUpgradeDrainTest {
         val upgradeResult = async {
             repository.completeGuestUpgrade(
                 linkContext = linkContext,
-                selection = CloudWorkspaceLinkSelection.Existing(workspaceId = selectedWorkspace.workspaceId)
+                selection = CloudWorkspaceLinkSelection.Existing(workspaceId = selectedWorkspace.workspaceId),
+                onGuestCompletionStarted = {},
+                onGuestCompletionFinished = {}
             )
         }
 
@@ -367,7 +373,9 @@ class LocalCloudAccountRepositoryGuestUpgradeDrainTest {
         try {
             repository.completeGuestUpgrade(
                 linkContext = linkContext,
-                selection = CloudWorkspaceLinkSelection.Existing(workspaceId = selectedWorkspace.workspaceId)
+                selection = CloudWorkspaceLinkSelection.Existing(workspaceId = selectedWorkspace.workspaceId),
+                onGuestCompletionStarted = {},
+                onGuestCompletionFinished = {}
             )
             throw AssertionError("Expected guest upgrade drain to block workspace fork recovery.")
         } catch (error: SyncBlockedException) {
@@ -458,7 +466,9 @@ class LocalCloudAccountRepositoryGuestUpgradeDrainTest {
         try {
             repository.completeGuestUpgrade(
                 linkContext = linkContext,
-                selection = CloudWorkspaceLinkSelection.Existing(workspaceId = localWorkspaceId)
+                selection = CloudWorkspaceLinkSelection.Existing(workspaceId = localWorkspaceId),
+                onGuestCompletionStarted = {},
+                onGuestCompletionFinished = {}
             )
             throw AssertionError("Expected bound guest upgrade to stop before backend completion.")
         } catch (error: SyncBlockedException) {

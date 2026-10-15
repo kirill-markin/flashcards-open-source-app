@@ -62,9 +62,11 @@ class FlashcardsApplication : Application(), Configuration.Provider {
     }
 
     fun retryAppleSignInReturn() {
+        if (appleSignInReturnStateMutable.value != AppleSignInReturnState.StorageFailed) return
         val returned = requireNotNull(appleSignInReturnForRetry) {
             "Apple sign-in has no callback awaiting a storage retry."
         }
+        appleSignInReturnStateMutable.value = AppleSignInReturnState.Idle
         acceptAppleSignInReturn(returned)
     }
 

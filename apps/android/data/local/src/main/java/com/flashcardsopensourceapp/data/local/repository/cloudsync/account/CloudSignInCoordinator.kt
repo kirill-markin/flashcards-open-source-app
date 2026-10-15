@@ -79,12 +79,13 @@ internal class CloudSignInCoordinator(
         challenge: CloudOtpChallenge,
         code: String,
         onVerified: () -> Unit
-    ): CloudWorkspaceLinkContext = verifyCodeSession(challenge, code) { onVerified() }
+    ): CloudWorkspaceLinkContext = verifyCodeSession(challenge, code, {}) { onVerified() }
 
     suspend fun verifyCodeSession(
         challenge: CloudOtpChallenge,
         code: String,
-        onVerified: (CloudEmailSession) -> Unit
+        onVerificationStarted: () -> Unit,
+        onVerified: suspend (CloudEmailSession) -> Unit
     ): CloudWorkspaceLinkContext {
         return operationCoordinator.runExclusive {
             val recoveryState: CloudCredentialRecoveryState? = preferencesStore.loadCloudCredentialRecoveryState()
@@ -98,6 +99,7 @@ internal class CloudSignInCoordinator(
                 resumePendingGuestUpgradeIfNeeded()
             }
             val configuration: CloudServiceConfiguration = preferencesStore.currentServerConfiguration()
+            onVerificationStarted()
             val session: CloudEmailSession = remoteService.verifyCodeSession(
                 challenge = challenge,
                 code = code,
@@ -233,7 +235,9 @@ internal class CloudSignInCoordinator(
             remoteService = remoteService,
             syncLocalStore = syncLocalStore,
             guestSessionStore = guestSessionStore,
-            appVersion = appVersion
+            appVersion = appVersion,
+            onGuestCompletionStarted = {},
+            onGuestCompletionFinished = {}
         )
     }
 
