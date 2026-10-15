@@ -1,0 +1,96 @@
+import { randomBytes } from "node:crypto";
+import { transaction, type DatabaseExecutor } from "../../db.js";
+import { verifyEnrollmentMailboxOtp } from "./mailboxProof.js";
+import {
+  enrollAuthoritativeProviderPrincipal, enrollProviderPrincipalWithMailboxProofInExecutor,
+  type EnrolledProviderPrincipal, type PrincipalEnrollmentResult,
+} from "./principalEnrollment.js";
+import {
+  beginAuthAttemptEnrollment, beginAuthAttemptMailboxVerification, recordAuthAttemptMailboxRequired, authAttemptBindingHash, authHandleHash, type ClaimedAuthAttempt,
+} from "./attemptStore.js";
+import {
+  AuthAttemptError, requireAuthHandle, type AuthAttemptBinding, type AuthCompletionResponse, type AuthCompletionResult,
+} from "./attemptContract.js";
+
+async function persistCompletion(
+  executor: DatabaseExecutor, attempt: ClaimedAuthAttempt, enrolled: EnrolledProviderPrincipal,
+): Promise<AuthCompletionResponse> {
+  const completion = randomBytes(32).toString("base64url");
+  const result = await executor.query<Readonly<{ expires_at: Date }>>(
+    "SELECT auth.complete_social_attempt($1,$2,$3,$4,$5) AS expires_at", [
+      authHandleHash(attempt.handle), attempt.claimId, enrolled.principal.cognitoSubject,
+      enrolled.principal.cognitoUsername, authHandleHash(completion),
+    ],
+  );
+  const expiry = result.rows[0]?.expires_at;
+  if (expiry === undefined) throw new Error("Auth completion returned no expiry");
+  return { completion, expiresAt: expiry.toISOString() };
+}
+
+export type AuthoritativeAttemptResult =
+  | Readonly<{ status: "completed"; response: AuthCompletionResponse }>
+  | Readonly<{ status: "verification_required"; enrollment: Exclude<PrincipalEnrollmentResult, EnrolledProviderPrincipal>; attempt: ClaimedAuthAttempt }>;
+
+/** An ambiguous external success is restart-only: a fresh attempt must obtain actual mailbox proof on collision. */
+export async function completeAuthoritativeAuthAttempt(attempt: ClaimedAuthAttempt): Promise<AuthoritativeAttemptResult> {
+  const proof = attempt.secrets.proof;
+  if (proof === null) throw new AuthAttemptError("AUTH_ATTEMPT_INVALID");
+  await beginAuthAttemptEnrollment(attempt);
+  const enrolled = await enrollAuthoritativeProviderPrincipal(proof);
+  if (enrolled.status === "verification_required") {
+    return { status: "verification_required", enrollment: enrolled, attempt: await recordAuthAttemptMailboxRequired(attempt) };
+  }
+  const response = await transaction((executor) => persistCompletion(executor, attempt, enrolled));
+  return { status: "completed", response };
+}
+
+/** The attempt owns the Cognito challenge and the existing in-process mailbox proof authority consumes it once. */
+export async function completeMailboxAuthAttempt(attempt: ClaimedAuthAttempt, code: string): Promise<AuthCompletionResponse> {
+  const { proof, mailbox } = attempt.secrets;
+  if (proof === null || mailbox === null) throw new AuthAttemptError("AUTH_ATTEMPT_INVALID");
+  await beginAuthAttemptMailboxVerification(attempt);
+  const mailboxProof = await verifyEnrollmentMailboxOtp(mailbox.binding, code, mailbox.session);
+  const enrolled = await transaction((executor) =>
+    enrollProviderPrincipalWithMailboxProofInExecutor(executor, proof, mailboxProof, mailbox.binding));
+  return transaction((executor) => persistCompletion(executor, attempt, enrolled));
+}
+
+type CompletionRow = Readonly<{
+  cognito_subject: string;
+  cognito_username: string;
+  current_subject: string | null;
+  current_account: string | null;
+  purpose: AuthCompletionResult["purpose"];
+}>;
+
+/** Metadata enrollment commits before this transaction; link receipts use the bounded composition below. */
+export async function redeemAuthCompletionInExecutor(
+  executor: DatabaseExecutor, completion: string, binding: AuthAttemptBinding,
+): Promise<AuthCompletionResult> {
+  requireAuthHandle(completion);
+  if (binding.purpose === "link") throw new AuthAttemptError("AUTH_COMPLETION_INVALID");
+  const result = await executor.query<CompletionRow>("SELECT * FROM auth.redeem_social_completion($1,$2,$3,$4,$5)", [
+    authHandleHash(completion), authAttemptBindingHash(binding), binding.purpose, binding.client,
+    binding.client === "web" ? binding.origin : null,
+  ]);
+  const row = result.rows[0];
+  if (row === undefined) throw new AuthAttemptError("AUTH_COMPLETION_INVALID");
+  return { cognitoSubject: row.cognito_subject, cognitoUsername: row.cognito_username,
+    currentSubject: row.current_subject, currentAccount: row.current_account, purpose: row.purpose };
+}
+
+/** First identity operation after metadata registration: prelock every proof alias, link, then consume atomically. */
+export async function linkAndRedeemAuthCompletionInExecutor(
+  executor: DatabaseExecutor, completion: string, binding: AuthAttemptBinding,
+): Promise<AuthCompletionResult> {
+  requireAuthHandle(completion);
+  if (binding.purpose !== "link") throw new AuthAttemptError("AUTH_COMPLETION_INVALID");
+  const result = await executor.query<CompletionRow>("SELECT * FROM auth.link_and_redeem_social_completion($1,$2,$3,$4)", [
+    authHandleHash(completion), authAttemptBindingHash(binding), binding.client,
+    binding.client === "web" ? binding.origin : null,
+  ]);
+  const row = result.rows[0];
+  if (row === undefined) throw new AuthAttemptError("AUTH_COMPLETION_INVALID");
+  return { cognitoSubject: row.cognito_subject, cognitoUsername: row.cognito_username,
+    currentSubject: row.current_subject, currentAccount: row.current_account, purpose: row.purpose };
+}
