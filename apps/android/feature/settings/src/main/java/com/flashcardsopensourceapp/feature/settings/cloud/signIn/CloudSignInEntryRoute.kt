@@ -27,7 +27,6 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -45,17 +44,14 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.focus.onFocusChanged
-import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudSignInMethod
@@ -177,6 +173,12 @@ fun CloudSignInEntryRoute(
                     enabled = !state.busy, modifier = Modifier.testTag("cloud_sign_in_remember"))
                 Text(stringResource(R.string.settings_auth_remember))
             }
+            if (state.hint != null) {
+                TextButton(onClick = controller::forget, enabled = !state.busy,
+                    modifier = Modifier.testTag("cloud_sign_in_forget")) {
+                    Text(stringResource(R.string.settings_auth_forget))
+                }
+            }
             if (state.methods == null && !state.busy) TextButton(onClick = controller::load,
                 modifier = Modifier.testTag("cloud_sign_in_retry_methods")) {
                 Text(stringResource(R.string.settings_auth_retry))
@@ -197,8 +199,6 @@ private fun CloudSignInMethodButton(
     val remembered = hint?.takeIf { it.method == method }
     val email = remembered?.successfulEmail
     var expanded by remember { mutableStateOf(false) }
-    var reveal by rememberSaveable(email) { mutableStateOf(false) }
-    val clipboard = LocalClipboardManager.current
     val label = stringResource(when (method) {
         CloudSignInMethod.GOOGLE -> R.string.settings_auth_google
         CloudSignInMethod.EMAIL -> R.string.settings_auth_email
@@ -209,7 +209,7 @@ private fun CloudSignInMethodButton(
     TooltipBox(
         positionProvider = TooltipDefaults.rememberPlainTooltipPositionProvider(),
         state = tooltip,
-        tooltip = { if (email != null) PlainTooltip { Text(email) } }
+        tooltip = { if (email != null) PlainTooltip { Text(maskSignInEmail(email)) } }
     ) {
         Box(Modifier.fillMaxWidth()) {
             Button(
@@ -228,9 +228,6 @@ private fun CloudSignInMethodButton(
                 ),
                 shape = RoundedCornerShape(4.dp),
                 modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp)
-                    .onFocusChanged { focus ->
-                        if (focus.isFocused && email != null) scope.launch { tooltip.show() }
-                    }
                     .testTag("cloud_sign_in_method_${method.name.lowercase(java.util.Locale.ROOT)}")
             ) {
                 if (method == CloudSignInMethod.EMAIL) {
@@ -245,23 +242,18 @@ private fun CloudSignInMethodButton(
                 Text(label)
             }
             if (remembered != null) {
-                Box(Modifier.align(Alignment.TopEnd).offset(y = (-16).dp)) {
-                    TextButton(onClick = { expanded = true }, enabled = !busy,
-                        modifier = Modifier.testTag("cloud_sign_in_last_used")) {
+                Box(Modifier.align(Alignment.TopEnd).offset(y = (-24).dp)) {
+                    TextButton(onClick = { tooltip.dismiss(); expanded = !expanded && email != null }, enabled = !busy,
+                        modifier = Modifier.onFocusChanged { focus ->
+                            if (focus.isFocused && email != null) scope.launch { tooltip.show() }
+                            else tooltip.dismiss()
+                        }.testTag("cloud_sign_in_last_used")) {
                         Badge { Text(stringResource(R.string.settings_auth_last_used)) }
                     }
                     DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
                         if (email != null) {
-                            Text(if (reveal) email else maskSignInEmail(email), modifier = Modifier.padding(12.dp))
-                            DropdownMenuItem(text = { Text(stringResource(if (reveal)
-                                R.string.settings_auth_hide_email else R.string.settings_auth_reveal_email)) },
-                                onClick = { reveal = !reveal }, modifier = Modifier.testTag("cloud_sign_in_reveal"))
-                            DropdownMenuItem(text = { Text(stringResource(R.string.settings_auth_copy_email)) },
-                                onClick = { clipboard.setText(AnnotatedString(email)); expanded = false },
-                                modifier = Modifier.testTag("cloud_sign_in_copy"))
+                            Text(maskSignInEmail(email), modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp))
                         }
-                        DropdownMenuItem(text = { Text(stringResource(R.string.settings_auth_forget)) },
-                            onClick = { expanded = false; onForget() }, modifier = Modifier.testTag("cloud_sign_in_forget"))
                     }
                 }
             }
