@@ -67,14 +67,15 @@ test("current email reauthentication shares real PostgreSQL one-use receipts and
     assert.equal((await owner.query("SELECT 1 FROM auth.cognito_principals WHERE cognito_subject = $1", [subject])).rowCount, 1);
     await assert.rejects(auth.query(ready, [pending.handle, pending.lease]), { code: "55006" });
     const expected = claimParameters(pending.handle, null);
-    for (const wrong of [
+    const wrongClaims: Array<Array<string | number | null>> = [
       [pending.handle, opaque(), "web", origin, subject, username, null],
       [pending.handle, binding, "ios", null, subject, username, null],
       [pending.handle, binding, "web", "https://auth.flashcards-open-source-app.com", subject, username, null],
       [pending.handle, binding, "web", origin, alias, username, null],
       [pending.handle, binding, "web", origin, subject, "wrong-username", null],
       [pending.handle, binding, "web", origin, subject, username, authTime],
-    ]) assert.equal((await auth.query(claim, wrong)).rowCount, 0);
+    ];
+    for (const wrong of wrongClaims) assert.equal((await auth.query(claim, wrong)).rowCount, 0);
     const claims = await Promise.all([auth.query(claim, expected), contender.query(claim, expected)]);
     assert.deepEqual(claims.map((result) => result.rowCount).sort(), [0, 1]);
     const lease = claims.find((result) => result.rowCount === 1)?.rows[0].claim_id as string;
