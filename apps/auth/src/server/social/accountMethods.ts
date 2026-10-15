@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { query } from "../../db.js";
+import { query, transaction, type DatabaseExecutor } from "../../db.js";
 import { verifyCurrentAccountSession } from "../browserSession.js";
 import {
   authAttemptBindingHash, authHandleHash, claimAuthAttempt, createAuthAttempt, prepareAuthAttempt,
@@ -34,12 +34,41 @@ function proofParameters(proof: AccountMethodProof): readonly [string, string, s
     proof.binding.client === "web" ? proof.binding.origin : null];
 }
 
-export async function listAccountProviderMethods(sessionToken: string): Promise<ReadonlyArray<AccountProviderMethod>> {
+type AccountLoginMethods = Readonly<{
+  methods: ReadonlyArray<AccountProviderMethod>;
+  verifiedRecoveryEmails: ReadonlyArray<string>;
+}>;
+
+export async function listAccountLoginMethods(sessionToken: string): Promise<AccountLoginMethods> {
   const current = await verifyCurrentAccountSession(sessionToken);
-  const result = await query<ProviderMethodRow>("SELECT * FROM auth.list_account_provider_methods($1,$2,$3)",
-    [current.subject, current.username, current.authTime]);
-  return result.rows.map((row) => ({ provider: row.provider_type, providerSubject: row.provider_subject,
-    status: row.status, generation: row.generation, revocationPending: row.revocation_pending }));
+  return transaction((executor) => listAccountLoginMethodsInExecutor(executor,
+    current.subject, current.username, current.authTime));
+}
+
+export async function listAccountLoginMethodsInExecutor(
+  executor: DatabaseExecutor, subject: string, username: string, originalAuthTime: number | null,
+): Promise<AccountLoginMethods> {
+  const parameters: readonly [string, string, number | null] = [subject, username, originalAuthTime];
+  const result = await executor.query<ProviderMethodRow>("SELECT * FROM auth.list_account_provider_methods($1,$2,$3)", parameters);
+  const account = await executor.query<Readonly<{ account_id: string }>>(
+    "SELECT auth.account_provider_context($1,$2,$3) AS account_id", parameters);
+  const accountId = account.rows[0]?.account_id;
+  if (accountId === undefined) throw new Error("Current account lookup returned no result");
+  const emails = await executor.query<Readonly<{ email: string }>>(`
+    SELECT DISTINCT emails.email
+    FROM auth.user_identities AS identities JOIN auth.verified_login_emails AS emails
+      ON emails.cognito_subject = identities.provider_subject
+    WHERE identities.provider_type = 'cognito' AND identities.user_id = $1
+      AND emails.email !~ '@(privaterelay\\.appleid\\.com|private\\.icloud\\.com)$'
+      AND emails.email NOT LIKE '%@example.com'
+      AND NOT EXISTS (SELECT 1 FROM auth.deleted_subjects WHERE subject_sha256 =
+        encode(sha256(convert_to(emails.cognito_subject, 'UTF8')), 'hex'))
+    ORDER BY emails.email`, [accountId]);
+  return {
+    methods: result.rows.map((row) => ({ provider: row.provider_type, providerSubject: row.provider_subject,
+      status: row.status, generation: row.generation, revocationPending: row.revocation_pending })),
+    verifiedRecoveryEmails: emails.rows.map((row) => row.email),
+  };
 }
 
 export async function unlinkAccountProviderMethod(
