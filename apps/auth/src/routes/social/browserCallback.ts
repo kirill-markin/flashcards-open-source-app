@@ -1,3 +1,4 @@
+import { browserManagementError, browserManagementFailure, managementReturnUri } from "./browserManagementReturn.js";
 import { isCognitoTypedError } from "../../server/cognito/cognitoErrors.js";
 import { randomBytes } from "node:crypto";
 import { Hono, type Context } from "hono";
@@ -17,7 +18,7 @@ import { parseSocialObject } from "../../server/social/publicContract.js";
 import { requireSignInProvider } from "../../server/social/publicMethods.js";
 import { requireSocialRateLimit } from "../../server/social/rateLimit.js";
 import { readSocialBody, readSocialJson, requireSocialRequest, socialErrorResponse } from "./http.js";
-import { completeProvedAccountProviderReenable } from "../../server/social/accountMethods.js";
+import { completeProvedAccountProviderReenable, listAccountLoginMethods } from "../../server/social/accountMethods.js";
 import { requireAccountSession } from "./accountTransport.js";
 import { acceptBrowserCompletion } from "./browserCompletion.js";
 import { resolveLoginPageLocale } from "../browser/loginPageLocale.js";
@@ -74,7 +75,9 @@ function protectBrowserDocument(c: Context<AuthAppEnv>, nonce: string): void {
 async function providerCallback(c: Context<AuthAppEnv>): Promise<Response> {
   protectCallbackResponse(c);
   let claimedState: BrowserCallbackState | null = null;
-  let recovery: BrowserSignInRecovery | null = null;
+  let recovery: BrowserSignInRecovery | null = { chooserUri: "/login", locale: resolveLoginPageLocale(undefined, c.req.header("accept-language")) };
+  let managementState: BrowserCallbackState | null = null;
+  let linkRedemptionStarted = false;
   const events: ObservedAuthAnalyticsEvent[] = [];
   try {
     await requireSocialRequest(c, "callback");
@@ -97,6 +100,7 @@ async function providerCallback(c: Context<AuthAppEnv>): Promise<Response> {
     if (state.client === "web" && state.intent === "login") {
       recovery = browserSignInRecovery(c, state.redirectUri, state.locale);
     }
+    if (state.client === "web" && state.intent !== "login") managementState = state;
     requireSignInProvider(provider, state.client);
     if (provider === "apple" && c.req.path.endsWith("/apple/callback")) {
       return appleCallbackContinuation(c, parameters, state);
@@ -110,8 +114,9 @@ async function providerCallback(c: Context<AuthAppEnv>): Promise<Response> {
       events.push({ createEvent: createAuthAnalyticsFactEventFactory({ eventName: "auth_provider_finished", method: provider,
         outcome: denied ? "denied" : "provider_error" }), occurredAt: Date.now() });
       if (state.client === "android") return c.redirect(androidReturn("denied", state.attempt), 303);
-      return browserSignInErrorResponse(c,
-        jsonAuthError(c, 400, "PROVIDER_SIGN_IN_DENIED", "Provider authorization did not complete. Start a new provider sign-in."), recovery);
+      const response = jsonAuthError(c, 400, "PROVIDER_SIGN_IN_DENIED", "Provider authorization did not complete. Start a new provider sign-in.");
+      return managementState === null ? browserSignInErrorResponse(c, response, recovery)
+        : browserManagementError(c, managementState, response);
     }
     const code = oneParameter(parameters, "code", 4096);
     const identityToken = provider === "apple" && parameters.has("id_token") ? oneParameter(parameters, "id_token", 16_384) : null;
@@ -125,6 +130,10 @@ async function providerCallback(c: Context<AuthAppEnv>): Promise<Response> {
       await completeProvedAccountProviderReenable(await requireAccountSession(c, "web"), verified, browserAttemptBinding(state));
       return c.redirect(state.redirectUri, 303);
     }
+    const existingMethods = state.client === "web" && state.intent === "link"
+      ? await listAccountLoginMethods(await requireAccountSession(c, "web")) : null;
+    const existingMethod = existingMethods?.methods.find((method) => method.status === "active"
+      && method.provider === provider && method.providerSubject === verified.secrets.proof?.identity.subject) ?? null;
     const result = await completeAuthoritativeAuthAttempt(verified);
     if (state.client === "android") {
       clearBrowserState(c, state);
@@ -132,7 +141,12 @@ async function providerCallback(c: Context<AuthAppEnv>): Promise<Response> {
         : androidReturn("verification_required", state.attempt), 303);
     }
     if (result.status === "completed") {
-      const response = await acceptBrowserCompletion(c, state, result.response);
+      linkRedemptionStarted = state.intent === "link";
+      const response = await acceptBrowserCompletion(c, state, result.response, existingMethod);
+      linkRedemptionStarted = false;
+      if ("linkOutcome" in response) events.push({ createEvent: createAuthAnalyticsFactEventFactory({
+        eventName: "auth_account_link_finished", method: provider, outcome: response.linkOutcome,
+      }), occurredAt: Date.now() });
       if ("signInHint" in response) {
         events.push({ createEvent: createSignInSucceededWithMethodEventFactory(response.signInHint.method), occurredAt: Date.now() });
         const nonce = randomBytes(32).toString("base64url");
@@ -148,13 +162,17 @@ async function providerCallback(c: Context<AuthAppEnv>): Promise<Response> {
     protectBrowserDocument(c, nonce);
     const restartUri = state.intent === "login"
       ? `/api/social/${state.provider}/start?${new URLSearchParams({ client: "web", redirect_uri: state.redirectUri, ...(state.locale === undefined ? {} : { locale: state.locale }), ...(state.analytics.screen === "signin" ? { screen: "signin", ui_locale: state.analytics.uiLocale ?? "" } : {}) })}`
-      : state.redirectUri;
+      : managementReturnUri(state, "account_method_cancelled", "AUTH_ATTEMPT_RESTART_REQUIRED");
     return c.html(renderBrowserMailboxContinuation({ csrfToken: continuation.state,
       providerEmail: result.enrollment.providerEmail, expiresAt: state.expiresAt, restartUri,
-      method: state.provider, analyticsScreen: state.analytics.screen },
+      method: state.provider, intent: state.intent, analyticsScreen: state.analytics.screen },
     resolveLoginPageLocale(state.locale, c.req.header("accept-language")), nonce));
   } catch (error) {
+    if (linkRedemptionStarted && claimedState !== null) events.push({ createEvent: createAuthAnalyticsFactEventFactory({
+      eventName: "auth_account_link_finished", method: claimedState.provider, outcome: "server_error",
+    }), occurredAt: Date.now() });
     if (claimedState !== null) clearBrowserState(c, claimedState);
+    if (managementState !== null) return browserManagementFailure(c, managementState, error);
     return browserSignInErrorResponse(c, socialErrorResponse(c, error), recovery);
   } finally {
     if (claimedState !== null) await reportBrowserAuthEvents(c, events, claimedState.analytics);
@@ -169,6 +187,7 @@ app.post("/api/social/browser/complete", async (c) => {
   protectCallbackResponse(c);
   let analyticsState: BrowserCallbackState | null = null;
   let mailboxAction: "mailbox_send" | "mailbox_verify" | null = null;
+  let linkRedemptionStarted = false;
   const events: ObservedAuthAnalyticsEvent[] = [];
   try {
     const source = await requireSocialRequest(c, "complete");
@@ -202,19 +221,29 @@ app.post("/api/social/browser/complete", async (c) => {
     if (!("status" in response) || response.status !== "completed") throw new AuthAttemptError("AUTH_COMPLETION_INVALID");
     events.push({ createEvent: createAuthAnalyticsFactEventFactory({ eventName: "auth_code_verification_finished", method,
       outcome: "verified" }), occurredAt: Date.now() });
-    const accepted = await acceptBrowserCompletion(c, state, response);
+    linkRedemptionStarted = state.intent === "link";
+    const accepted = await acceptBrowserCompletion(c, state, response, null);
+    linkRedemptionStarted = false;
+    if ("linkOutcome" in accepted) events.push({ createEvent: createAuthAnalyticsFactEventFactory({
+      eventName: "auth_account_link_finished", method, outcome: accepted.linkOutcome,
+    }), occurredAt: Date.now() });
     if ("signInHint" in accepted) events.push({ createEvent: createSignInSucceededWithMethodEventFactory(accepted.signInHint.method), occurredAt: Date.now() });
     return c.json(accepted);
   } catch (error) {
+    if (linkRedemptionStarted && analyticsState !== null) events.push({ createEvent: createAuthAnalyticsFactEventFactory({
+      eventName: "auth_account_link_finished", method: analyticsState.provider, outcome: "server_error",
+    }), occurredAt: Date.now() });
     if (analyticsState !== null && mailboxAction === "mailbox_send") {
       events.push({ createEvent: createAuthAnalyticsFactEventFactory({ eventName: "auth_code_request_finished",
         method: analyticsState.provider, action: "initial", outcome: error instanceof AuthAttemptError
           && error.code === "AUTH_RATE_LIMITED" ? "rate_limited" : "server_error" }), occurredAt: Date.now() });
-    } else if (analyticsState !== null && mailboxAction === "mailbox_verify" && events.length === 0 && isCognitoTypedError(error)) {
-      const outcome = error.cognitoType === "CodeMismatchException" ? "invalid_code"
-        : error.cognitoType === "ExpiredCodeException" ? "expired_code"
-          : error.cognitoType === "TooManyRequestsException" || error.cognitoType === "LimitExceededException" ? "rate_limited" : null;
-      if (outcome !== null) events.push({ createEvent: createAuthAnalyticsFactEventFactory({
+    } else if (analyticsState !== null && mailboxAction === "mailbox_verify" && events.length === 0) {
+      const outcome = isCognitoTypedError(error)
+        ? error.cognitoType === "CodeMismatchException" ? "invalid_code"
+          : error.cognitoType === "ExpiredCodeException" ? "expired_code"
+            : error.cognitoType === "TooManyRequestsException" || error.cognitoType === "LimitExceededException" ? "rate_limited" : "server_error"
+        : error instanceof AuthAttemptError && error.code === "AUTH_RATE_LIMITED" ? "rate_limited" : "server_error";
+      events.push({ createEvent: createAuthAnalyticsFactEventFactory({
         eventName: "auth_code_verification_finished", method: analyticsState.provider, outcome,
       }), occurredAt: Date.now() });
     }

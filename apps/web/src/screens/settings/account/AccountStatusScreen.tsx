@@ -1,3 +1,4 @@
+import { AccountMethods } from "./AccountMethods";
 import { BrowserSignInPrivacy } from "./BrowserSignInPrivacy";
 import { type ReactElement } from "react";
 import {
@@ -65,6 +66,7 @@ export function AccountStatusScreen(): ReactElement {
         </article>
       </div>
 
+      <AccountMethods />
       <BrowserSignInPrivacy />
       <div className="screen-actions">
         <SignOutLink

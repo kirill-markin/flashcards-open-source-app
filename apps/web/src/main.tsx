@@ -1,3 +1,4 @@
+import "./api/accountMethodReturn";
 import { AppErrorBoundary, buildReactRootOptions } from "./observability/instrument";
 import React from "react";
 import ReactDOM from "react-dom/client";
