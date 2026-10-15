@@ -1,0 +1,29 @@
+<resources>
+    <string name="settings_auth_entry_title">Sign in or create an account</string>
+    <string name="settings_auth_google">Sign in with Google</string>
+    <string name="settings_auth_email">Continue with email</string>
+    <string name="settings_auth_apple">Sign in with Apple</string>
+    <string name="settings_auth_remember">Remember my sign-in method on this device</string>
+    <string name="settings_auth_last_used">Last used</string>
+    <string name="settings_auth_reveal_email">Show email</string>
+    <string name="settings_auth_hide_email">Hide email</string>
+    <string name="settings_auth_copy_email">Copy email</string>
+    <string name="settings_auth_forget">Forget this sign-in hint</string>
+    <string name="settings_auth_sign_out_forget">Sign out and forget</string>
+    <string name="settings_auth_cancelled">Google sign-in was cancelled. Choose a method to try again.</string>
+    <string name="settings_auth_google_failed">Google sign-in could not finish on this device. Try again, or choose Email to continue.</string>
+    <string name="settings_auth_fresh_attempt">Sign-in could not finish. Start again with a fresh attempt, or choose another method.</string>
+    <string name="settings_auth_network_restart">The sign-in request could not finish over the network. Check your connection, then start a fresh attempt.</string>
+    <string name="settings_auth_fresh_email_code">This code request cannot be retried safely. Request a new email code to continue.</string>
+    <string name="settings_auth_new_email_code">Request a new email code</string>
+    <string name="settings_auth_mailbox_body">Verify the email for this sign-in. Enter an email you can access; existing accounts require fresh ownership proof.</string>
+    <string name="settings_auth_mailbox_code">6–8 digit email code</string>
+    <string name="settings_auth_mailbox_restart">Need another code? Start a fresh sign-in attempt. This verification request cannot resend a code.</string>
+    <string name="settings_auth_start_again">Start again or choose another method</string>
+    <string name="settings_auth_browser_waiting">Finish signing in with Apple in your browser. If you closed the browser, start again.</string>
+    <string name="settings_auth_return_title">Apple sign-in</string>
+    <string name="settings_auth_return_storage_failed">The Apple return could not be saved securely on this device. Free some device storage, then retry. Closing this message lets you start a fresh sign-in.</string>
+    <string name="settings_auth_return_rejected">This Apple return could not complete the pending sign-in. Start a fresh attempt from this app.</string>
+    <string name="settings_auth_retry">Retry</string>
+    <string name="settings_auth_close">Close</string>
+</resources>

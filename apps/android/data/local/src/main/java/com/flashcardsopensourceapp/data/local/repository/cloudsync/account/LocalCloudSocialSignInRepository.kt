@@ -6,6 +6,7 @@ import com.flashcardsopensourceapp.data.local.cloud.CloudAppleBrowserBinding
 import com.flashcardsopensourceapp.data.local.cloud.CloudPreferencesStore
 import com.flashcardsopensourceapp.data.local.cloud.CloudSocialAttemptBinding
 import com.flashcardsopensourceapp.data.local.cloud.PendingCloudSocialSignIn
+import com.flashcardsopensourceapp.data.local.cloud.PendingCloudEmailSignIn
 import com.flashcardsopensourceapp.data.local.cloud.remote.CloudRemoteGateway
 import com.flashcardsopensourceapp.data.local.cloud.remote.auth.CloudSocialAuthGateway
 import com.flashcardsopensourceapp.data.local.model.cloud.AccountDeletionState
@@ -14,7 +15,6 @@ import com.flashcardsopensourceapp.data.local.model.cloud.CloudAppleBrowserLaunc
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudAppleBrowserReturn
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudAppleBrowserStatus
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudAuthMethods
-import com.flashcardsopensourceapp.data.local.model.cloud.CloudEmailSession
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudGuestUpgradeMode
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudOtpChallenge
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudPendingSocialSignIn
@@ -25,6 +25,7 @@ import com.flashcardsopensourceapp.data.local.model.cloud.CloudSocialSignInPhase
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudSuccessfulSignInHint
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspaceLinkContext
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspaceLinkSelection
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspacePostAuthRoute
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspaceSummary
 import com.flashcardsopensourceapp.data.local.model.cloud.cloudAppleReturnUri
 import com.flashcardsopensourceapp.data.local.model.cloud.shouldRefreshCloudIdToken
@@ -74,6 +75,9 @@ class LocalCloudSocialSignInRepository(
                 originalReauthenticationBinding = null,
                 rememberSignIn = rememberSignIn,
                 mailboxReason = null,
+                mailboxCodeRequested = false,
+                mailboxRequestInFlight = false,
+                providerCredentialObserved = false,
                 providerEmail = null,
                 completion = null,
                 acceptedSession = null,
@@ -117,6 +121,9 @@ class LocalCloudSocialSignInRepository(
                 originalReauthenticationBinding = null,
                 rememberSignIn = rememberSignIn,
                 mailboxReason = null,
+                mailboxCodeRequested = false,
+                mailboxRequestInFlight = false,
+                providerCredentialObserved = false,
                 providerEmail = null,
                 completion = null,
                 acceptedSession = null,
@@ -154,25 +161,32 @@ class LocalCloudSocialSignInRepository(
         challenge: CloudOtpChallenge,
         code: String,
         rememberSignIn: Boolean,
+        onVerificationStarted: () -> Unit,
         onVerified: () -> Unit
     ): CloudWorkspaceLinkContext = operationCoordinator.runExclusive {
         requireAccountIsNotDeleting()
         val configuration = preferencesStore.currentServerConfiguration()
-        var accepted: CloudEmailSession? = null
-        val context = accountRepository.verifyEmailCodeSession(challenge, code) { session ->
-            accepted = session
+        accountRepository.verifyEmailCodeSession(challenge, code, onVerificationStarted) { session ->
             onVerified()
-        }
-        accepted?.let { session ->
-            withContext(Dispatchers.IO) {
-                if (rememberSignIn && session.signInHint != null) {
-                    preferencesStore.socialAuthStore.rememberEmailSession(configuration, session.signInHint)
-                } else if (!rememberSignIn) {
-                    preferencesStore.socialAuthStore.forgetHint()
-                }
+            withContext(NonCancellable + Dispatchers.IO) {
+                preferencesStore.socialAuthStore.stageEmailSession(PendingCloudEmailSignIn(
+                    configuration, session.credentials.refreshToken, session.signInHint, rememberSignIn
+                ))
             }
         }
-        context
+    }
+
+    override suspend fun completeEmailSignInHint(context: CloudWorkspaceLinkContext) {
+        operationCoordinator.runExclusive {
+            check(preferencesStore.currentCloudSettings().linkedUserId == context.userId) {
+                "Remembering email sign-in requires the completed cloud account."
+            }
+            withContext(Dispatchers.IO) {
+                preferencesStore.socialAuthStore.completeEmailSession(
+                    preferencesStore.currentServerConfiguration(), context.credentials.refreshToken
+                )
+            }
+        }
     }
 
     override suspend fun resumePendingSignIn(): CloudPendingSocialSignIn? = operationCoordinator.runExclusive {
@@ -210,40 +224,51 @@ class LocalCloudSocialSignInRepository(
         }
     }
 
-    override suspend fun requestMailboxCode(attempt: String, email: String) {
+    override suspend fun requestMailboxCode(attempt: String, email: String, onRequested: () -> Unit, onCredentialReceived: () -> Unit) {
         operationCoordinator.runExclusive {
             val pending = requirePendingMailbox(attempt)
+            check(!pending.mailboxCodeRequested) { "A code was already requested. Start a fresh sign-in for another code." }
+            savePending(pending.copy(mailboxRequestInFlight = true))
             socialGateway.requestSocialMailboxCode(
                 authBaseUrl = pending.configuration.authBaseUrl,
                 attempt = pending.serverAttempt,
                 codeVerifier = pending.codeVerifier,
                 email = email
             )
+            onRequested()
+            if (pending.provider == CloudSocialProvider.APPLE && !pending.providerCredentialObserved) onCredentialReceived()
+            savePending(pending.copy(mailboxCodeRequested = true, mailboxRequestInFlight = false,
+                providerCredentialObserved = true))
         }
     }
 
-    override suspend fun verifyMailboxCode(attempt: String, code: String): CloudPendingSocialSignIn {
+    override suspend fun verifyMailboxCode(attempt: String, code: String, onVerificationStarted: () -> Unit, onVerified: () -> Unit): CloudPendingSocialSignIn {
         return operationCoordinator.runExclusive {
             val pending = requirePendingMailbox(attempt)
+            check(pending.mailboxCodeRequested) { "Request a code before verifying it." }
+            savePending(pending.copy(mailboxRequestInFlight = true))
+            onVerificationStarted()
             val completion = socialGateway.verifySocialMailboxCode(
                 authBaseUrl = pending.configuration.authBaseUrl,
                 attempt = pending.serverAttempt,
                 codeVerifier = pending.codeVerifier,
                 code = code
             )
-            val updated = pending.copy(completion = completion)
+            onVerified()
+            val updated = pending.copy(completion = completion, mailboxRequestInFlight = false)
             savePending(updated)
             updated.snapshot()
         }
     }
 
-    override suspend fun prepareSignIn(attempt: String): CloudWorkspaceLinkContext = operationCoordinator.runExclusive {
-        prepareAcceptedSession(pending = acceptSession(requirePending(attempt)))
+    override suspend fun prepareSignIn(attempt: String, onCredentialReceived: () -> Unit, onSessionAccepted: () -> Unit): CloudWorkspaceLinkContext = operationCoordinator.runExclusive {
+        val pending = requirePending(attempt)
+        prepareAcceptedSession(pending = acceptSession(pending, onCredentialReceived, onSessionAccepted))
     }
 
-    override suspend fun completeSignIn(attempt: String, selection: CloudWorkspaceLinkSelection): CloudWorkspaceSummary {
+    override suspend fun completeSignIn(attempt: String, selection: CloudWorkspaceLinkSelection, onGuestCompletionStarted: () -> Unit, onGuestCompletionFinished: () -> Unit): CloudWorkspaceSummary {
         return operationCoordinator.runExclusive {
-            val context = prepareAcceptedSession(acceptSession(requirePending(attempt)))
+            val context = prepareAcceptedSession(requirePending(attempt))
             val pending = requirePending(attempt)
             require(pending.workspaceSelection == null || pending.workspaceSelection == selection) {
                 "This sign-in already started completing a different workspace selection. Retry the original selection."
@@ -254,9 +279,13 @@ class LocalCloudSocialSignInRepository(
             ) {
                 pending.completedWorkspace
             } else if (context.guestUpgradeMode == CloudGuestUpgradeMode.MERGE_REQUIRED) {
-                accountRepository.completeGuestUpgrade(linkContext = context, selection = selection)
+                accountRepository.completeGuestUpgrade(
+                    linkContext = context, selection = selection,
+                    onGuestCompletionStarted = onGuestCompletionStarted,
+                    onGuestCompletionFinished = onGuestCompletionFinished
+                )
             } else {
-                accountRepository.completeSocialCloudLink(
+                val linked = accountRepository.completeSocialCloudLink(
                     linkContext = context,
                     selection = selection,
                     retainedWorkspace = pending.linkingWorkspace,
@@ -273,6 +302,7 @@ class LocalCloudSocialSignInRepository(
                         }
                     }
                 )
+                linked
             }
             withContext(NonCancellable + Dispatchers.IO) {
                 // Re-read so an explicit forget cannot be undone by a resumed acceptance.
@@ -282,9 +312,18 @@ class LocalCloudSocialSignInRepository(
                 check(completed.localId == attempt) { "The social sign-in attempt changed during completion." }
                 val result = completed.copy(completedWorkspace = workspace)
                 preferencesStore.socialAuthStore.savePending(result)
-                preferencesStore.socialAuthStore.completeAcceptedSession(result)
             }
             workspace
+        }
+    }
+
+    override suspend fun completeSignInHint(attempt: String) {
+        operationCoordinator.runExclusive {
+            val pending = requirePending(attempt)
+            check(pending.completedWorkspace != null) { "Remembering sign-in requires the completed workspace." }
+            withContext(NonCancellable + Dispatchers.IO) {
+                preferencesStore.socialAuthStore.completeAcceptedSession(pending)
+            }
         }
     }
 
@@ -317,7 +356,7 @@ class LocalCloudSocialSignInRepository(
         }
     }
 
-    private suspend fun acceptSession(pending: PendingCloudSocialSignIn): PendingCloudSocialSignIn {
+    private suspend fun acceptSession(pending: PendingCloudSocialSignIn, onCredentialReceived: () -> Unit, onSessionAccepted: () -> Unit): PendingCloudSocialSignIn {
         pending.acceptedSession?.let { return pending }
         val completion = requireNotNull(pending.completionHandle) { "The provider has not completed this sign-in attempt." }
         val session = socialGateway.redeemSocialLogin(
@@ -326,11 +365,14 @@ class LocalCloudSocialSignInRepository(
             codeVerifier = pending.codeVerifier
         )
         require(session.signInHint.method == pending.provider) { "The accepted session belongs to a different sign-in method." }
-        val accepted = pending.copy(acceptedSession = CloudAcceptedSocialSession(session.credentials, session.signInHint))
+        if (pending.provider == CloudSocialProvider.APPLE && !pending.providerCredentialObserved) onCredentialReceived()
+        val accepted = pending.copy(acceptedSession = CloudAcceptedSocialSession(session.credentials, session.signInHint),
+            providerCredentialObserved = true)
         // Retain the real session before any guest/workspace calls; redemption is single-use.
         withContext(NonCancellable + Dispatchers.IO) {
             preferencesStore.socialAuthStore.savePending(accepted)
         }
+        onSessionAccepted()
         return accepted
     }
 
