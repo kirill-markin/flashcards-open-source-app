@@ -192,6 +192,7 @@ enum UITestIdentifier {
     static let dangerZoneScreen: String = "dangerZone.screen"
     static let dangerZoneDeleteAccountButton: String = "dangerZone.deleteAccountButton"
     static let cloudSignInEmailField: String = "cloudSignIn.emailField"
+    static let cloudSignInEmailMethodButton: String = "cloudSignIn.emailMethod"
     static let cloudSignInSendCodeButton: String = "cloudSignIn.sendCodeButton"
     static let cloudSignInCreateWorkspaceButton: String = "cloudSignIn.createWorkspaceButton"
     static let currentWorkspacePickerScreen: String = "currentWorkspace.pickerScreen"

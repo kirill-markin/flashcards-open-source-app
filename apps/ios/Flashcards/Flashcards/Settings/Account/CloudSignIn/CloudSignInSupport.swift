@@ -61,6 +61,22 @@ struct CloudSignInPostAuthTaskHandle {
 struct CloudSignInAttemptState {
     let id: String
     var email: String
+    var selectedMethod: CloudSignInMethod = .email
+    var isEmailSelected = false
+    var rememberSignIn = false
+    var usesNativeSession = false
+    var nativeMethods: CloudAuthMethods?
+    var nativeTask: Task<Void, Never>?
+    var isNativeRequestInFlight = false
+    var isMailboxPresented = false
+    var isMailboxCodeSent = false
+    var mailboxNeedsRestart = false
+    var hasRecordedAccountReady = false
+    var hasRecordedSessionAccepted = false
+    var verifiedMethod: CloudSignInMethod?
+    var sessionConfiguration: CloudServiceConfiguration?
+    var credentialRecoveryPresentation: CloudCredentialRecoveryState?
+    var hasRequestedProvider = false
     var otpSheetState: CloudOtpSheetState?
     var postAuthLoadingState: CloudPostAuthLoadingState?
     var postAuthGuestLocalRecoveryPreparationState: CloudPostAuthGuestLocalRecoveryPreparationState?
@@ -126,6 +142,11 @@ struct CloudSignInAttemptState {
             || self.postAuthSyncState != nil
     }
 
+    var isMethodChangeBlocked: Bool {
+        self.isNativeRequestInFlight || self.isSendingCode || self.isVerifyingOtpCode
+            || self.isResendingOtpCode || self.verifiedMethod != nil
+    }
+
     /// Whether a step above the email form is on screen. A rebuilt view instance must not pull focus
     /// back to the email field underneath one.
     var isStepAboveEmailFormPresented: Bool {
@@ -155,7 +176,12 @@ extension FlashcardsStore {
      */
     func beginCloudSignInAttempt(originSurface: AnalyticsSurface?) {
         self.cancelCloudSignInPostAuthTasks()
+        self.cloudSignInAttempt.nativeTask?.cancel()
+        self.cloudNativeSignIn.onStageChanged = nil
+        self.cloudNativeSignIn.onProviderRequested = nil
+        self.cloudNativeSignIn.resetPendingSignIn()
         self.cloudSignInAttempt = CloudSignInAttemptState()
+        self.cloudSignInAttempt.credentialRecoveryPresentation = self.cloudCredentialRecoveryState
         self.isCloudSignInAttemptOpen = true
         self.cloudSignInOriginSurface = originSurface
         self.wasCredentialRecoveryGateActiveAtSignInStart = self.isCloudCredentialRecoveryGateActive
@@ -193,10 +219,6 @@ extension FlashcardsStore {
      * to the tab they are actually looking at. The restore is conditional on the tracker still
      * holding `signin`, so a sign-in that ended by moving the person somewhere that reported itself
      * first — a workspace landing them on a tab — leaves that report standing.
-     *
-     * The credential-recovery gate clearing on its own success is not such a case, and does not
-     * reach here at all: removing the gate destroys this sheet's presenter without an `onDismiss`.
-     * The gate's own `.onDisappear` is what names the screen the person lands on there.
      */
     func endCloudSignInAttempt() {
         if self.isCloudSignInAttemptOpen,
@@ -209,6 +231,10 @@ extension FlashcardsStore {
             restoring: self.cloudSignInReturnSurface
         )
         self.cancelCloudSignInPostAuthTasks()
+        self.cloudSignInAttempt.nativeTask?.cancel()
+        self.cloudNativeSignIn.onStageChanged = nil
+        self.cloudNativeSignIn.onProviderRequested = nil
+        self.cloudNativeSignIn.resetPendingSignIn()
         self.cloudSignInAttempt = CloudSignInAttemptState()
         self.isCloudSignInAttemptOpen = false
         self.cloudSignInOriginSurface = nil
@@ -284,7 +310,7 @@ extension FlashcardsStore {
     /// reported here: one event per attempt that authenticated, whatever post-auth then makes of it.
     func recordCloudSignInVerified(screen: AnalyticsSurface) {
         self.isCloudSignInAttemptOpen = false
-        Analytics.track(.signInSucceeded(screen: screen))
+        Analytics.track(.signInSucceededWithMethod(method: self.cloudSignInAttempt.selectedMethod.analyticsMethod, screen: screen))
     }
 
     private var isCloudCredentialRecoveryGateActive: Bool {
@@ -302,7 +328,7 @@ extension FlashcardsStore {
 
     private func trackCloudSignInFailed(reason: AnalyticsSignInFailureReason) {
         self.isCloudSignInAttemptOpen = false
-        Analytics.track(.signInFailed(reason: reason), screen: self.cloudSignInOriginSurface)
+        Analytics.track(.signInFailedWithMethod(method: self.cloudSignInAttempt.selectedMethod.analyticsMethod, reason: reason), screen: self.cloudSignInOriginSurface)
     }
 }
 

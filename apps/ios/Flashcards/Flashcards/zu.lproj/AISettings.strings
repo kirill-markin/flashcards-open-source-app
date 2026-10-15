@@ -922,3 +922,14 @@
 "ai.consent.withdrawalBody" = "Ukuvala lokhu kumisa izicelo ezintsha ze-AI. Akususi izingxoxo ezikhona noma idatha ethunyelwe kakade ku-OpenAI.";
 "ai.consent.withdrawalFailed" = "Ukwabelana ngedatha ne-AI kuvaliwe kule divayisi. Okukhethile akukavumelaniswa; zama futhi lapho usuxhumekile.";
 "ai.consent.retrySync" = "Zama futhi ukugcina okukhethile";
+"settings.account.cloudSignIn.unifiedTitle" = "Ngena ngemvume noma dala i-akhawunti";
+"settings.account.cloudSignIn.remember" = "Khumbula lokhu kungena kule divayisi";
+"settings.account.cloudSignIn.lastUsed" = "Kugcine ukusetshenziswa";
+"settings.account.cloudSignIn.showEmail" = "Bonisa i-imeyili";
+"settings.account.cloudSignIn.forget" = "Khohlwa lokhu kungena";
+"settings.account.cloudSignIn.signOutForget" = "Phuma ngemvume bese ukhohlwa";
+"settings.account.cloudSignIn.mailboxPrompt" = "Qinisekisa ukufinyelela ku-imeyili yakho. Faka ikhodi enamadijithi angu-6–8. Hlola ugaxekile uma kudingeka.";
+"settings.account.cloudSignIn.freshAttempt" = "Ukungena ngemvume akuqedwanga. Qala futhi ukuze uqhubeke.";
+"settings.account.cloudSignIn.restart" = "Qala futhi";
+"settings.account.cloudSignIn.rememberFailed" = "Ungenile ngemvume. Icebo lokungena alikwazanga ukulondolozwa. Zama futhi noma uvale.";
+"settings.account.cloudSignIn.hintFailed" = "Ukungena okukhunjuliwe akukwazanga ukubuyekezwa. Zama futhi.";

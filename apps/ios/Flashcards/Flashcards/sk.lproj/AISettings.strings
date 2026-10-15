@@ -922,3 +922,14 @@
 "ai.consent.withdrawalBody" = "Vypnutie zastaví nové požiadavky pre AI. Neodstráni existujúce chaty ani dáta už odoslané spoločnosti OpenAI.";
 "ai.consent.withdrawalFailed" = "Zdieľanie dát s AI je na tomto zariadení vypnuté. Vaša voľba sa ešte nesynchronizovala; skúste to znova, keď budete pripojení.";
 "ai.consent.retrySync" = "Skúsiť voľbu uložiť znova";
+"settings.account.cloudSignIn.unifiedTitle" = "Prihlásiť sa alebo vytvoriť účet";
+"settings.account.cloudSignIn.remember" = "Zapamätať si toto prihlásenie na zariadení";
+"settings.account.cloudSignIn.lastUsed" = "Naposledy použité";
+"settings.account.cloudSignIn.showEmail" = "Zobraziť e-mail";
+"settings.account.cloudSignIn.forget" = "Zabudnúť toto prihlásenie";
+"settings.account.cloudSignIn.signOutForget" = "Odhlásiť sa a zabudnúť";
+"settings.account.cloudSignIn.mailboxPrompt" = "Overte prístup k e-mailu. Zadajte kód so 6–8 číslicami. V prípade potreby skontrolujte spam.";
+"settings.account.cloudSignIn.freshAttempt" = "Prihlásenie sa nedokončilo. Ak chcete pokračovať, začnite znova.";
+"settings.account.cloudSignIn.restart" = "Začať znova";
+"settings.account.cloudSignIn.rememberFailed" = "Prihlásenie bolo úspešné. Pomôcku na prihlásenie sa nepodarilo uložiť. Skúste to znova alebo zatvorte.";
+"settings.account.cloudSignIn.hintFailed" = "Zapamätané prihlásenie sa nepodarilo aktualizovať. Skúste to znova.";

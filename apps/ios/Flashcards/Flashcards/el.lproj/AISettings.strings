@@ -922,3 +922,14 @@
 "ai.consent.withdrawalBody" = "Η απενεργοποίηση σταματά τα νέα αιτήματα ΤΝ. Δεν διαγράφει τις υπάρχουσες συνομιλίες ή τα δεδομένα που έχουν ήδη σταλεί στο OpenAI.";
 "ai.consent.withdrawalFailed" = "Η κοινοποίηση για ΤΝ είναι απενεργοποιημένη σε αυτή τη συσκευή. Η επιλογή σας δεν έχει συγχρονιστεί ακόμη· δοκιμάστε ξανά όταν συνδεθείτε.";
 "ai.consent.retrySync" = "Νέα προσπάθεια αποθήκευσης επιλογής";
+"settings.account.cloudSignIn.unifiedTitle" = "Σύνδεση ή δημιουργία λογαριασμού";
+"settings.account.cloudSignIn.remember" = "Απομνημόνευση αυτής της σύνδεσης στη συσκευή";
+"settings.account.cloudSignIn.lastUsed" = "Τελευταία χρήση";
+"settings.account.cloudSignIn.showEmail" = "Εμφάνιση email";
+"settings.account.cloudSignIn.forget" = "Διαγραφή υπενθύμισης σύνδεσης";
+"settings.account.cloudSignIn.signOutForget" = "Αποσύνδεση και διαγραφή υπενθύμισης";
+"settings.account.cloudSignIn.mailboxPrompt" = "Επιβεβαιώστε την πρόσβαση στο email σας. Εισαγάγετε τον κωδικό 6–8 ψηφίων. Ελέγξτε τα ανεπιθύμητα αν χρειαστεί.";
+"settings.account.cloudSignIn.freshAttempt" = "Η σύνδεση δεν ολοκληρώθηκε. Ξεκινήστε ξανά για να συνεχίσετε.";
+"settings.account.cloudSignIn.restart" = "Εκκίνηση ξανά";
+"settings.account.cloudSignIn.rememberFailed" = "Συνδεθήκατε. Δεν αποθηκεύτηκε η υπενθύμιση σύνδεσης. Δοκιμάστε ξανά ή κλείστε.";
+"settings.account.cloudSignIn.hintFailed" = "Δεν ήταν δυνατή η ενημέρωση της απομνημονευμένης σύνδεσης. Δοκιμάστε ξανά.";

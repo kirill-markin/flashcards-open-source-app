@@ -950,3 +950,14 @@
 "ai.consent.withdrawalBody" = "Al desactivarlo, se detienen las nuevas solicitudes de IA. No se eliminan los chats existentes ni los datos ya enviados a OpenAI.";
 "ai.consent.withdrawalFailed" = "El uso compartido con la IA está desactivado en este dispositivo. Tu elección aún no se ha sincronizado; inténtalo de nuevo cuando tengas conexión.";
 "ai.consent.retrySync" = "Volver a guardar la elección";
+"settings.account.cloudSignIn.unifiedTitle" = "Inicia sesión o crea una cuenta";
+"settings.account.cloudSignIn.remember" = "Recordar este inicio de sesión en este dispositivo";
+"settings.account.cloudSignIn.lastUsed" = "Último uso";
+"settings.account.cloudSignIn.showEmail" = "Mostrar correo electrónico";
+"settings.account.cloudSignIn.forget" = "Olvidar este inicio de sesión";
+"settings.account.cloudSignIn.signOutForget" = "Cerrar sesión y olvidar";
+"settings.account.cloudSignIn.mailboxPrompt" = "Verifica el acceso a tu correo. Ingresa el código de 6 a 8 dígitos. Revisa el correo no deseado si hace falta.";
+"settings.account.cloudSignIn.freshAttempt" = "El inicio de sesión no se completó. Vuelve a empezar para continuar.";
+"settings.account.cloudSignIn.restart" = "Volver a empezar";
+"settings.account.cloudSignIn.rememberFailed" = "Iniciaste sesión. No se pudo guardar el recordatorio. Inténtalo de nuevo o cierra.";
+"settings.account.cloudSignIn.hintFailed" = "No se pudo actualizar el inicio de sesión recordado. Inténtalo de nuevo.";

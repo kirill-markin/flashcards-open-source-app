@@ -98,19 +98,6 @@ struct CloudCredentialRecoveryGateView: View {
             Analytics.trackScreenViewed(.credentialRecovery)
         }
         .onDisappear {
-            // Clearing the gate swaps the tab root back in with the visible tab unchanged, which the
-            // tab root reports as a launch-time view and therefore stays silent about. This is the
-            // only place the screen the person lands on can be named.
-            //
-            // `signin` is accepted alongside the gate's own surface because the flow the gate exists
-            // for ends while its sign-in sheet is still on screen: `completeCloudLink` and
-            // `completeGuestLocalRecoveryCloudLink` clear the recovery state from under it, and
-            // removing the gate destroys that sheet's presenter without an `onDismiss`, so
-            // `endCloudSignInAttempt` never runs to hand the surface back. Restoring from `signin`
-            // too is what keeps that success path from leaving the tracker parked on the sign-in
-            // screen, where the next `permission_prompt_answered` would be stamped `signin` and the
-            // person's genuine next arrival on this tab would be swallowed by the dedupe.
-            //
             // Accepted only for the gate's *own* sheet, which is what this view's own presentation
             // state answers and no shared counter can. A gate that opened and closed over a sheet
             // the tab root was already presenting leaves that binding true, so `RootTabView` installs

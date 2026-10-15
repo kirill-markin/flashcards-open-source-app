@@ -922,3 +922,14 @@
 "ai.consent.withdrawalBody" = "اسے بند کرنے سے مصنوعی ذہانت کی نئی درخواستیں رک جاتی ہیں۔ موجودہ چیٹس یا OpenAI کو پہلے بھیجا گیا ڈیٹا حذف نہیں ہوتا۔";
 "ai.consent.withdrawalFailed" = "مصنوعی ذہانت کے ساتھ ڈیٹا شیئر کرنا اس ڈیوائس پر بند ہے۔ آپ کا انتخاب ابھی ہم وقت نہیں ہوا؛ کنکشن ہونے پر دوبارہ کوشش کریں۔";
 "ai.consent.retrySync" = "انتخاب دوبارہ محفوظ کرنے کی کوشش کریں";
+"settings.account.cloudSignIn.unifiedTitle" = "سائن ان کریں یا اکاؤنٹ بنائیں";
+"settings.account.cloudSignIn.remember" = "اس آلے پر یہ سائن ان یاد رکھیں";
+"settings.account.cloudSignIn.lastUsed" = "آخری بار استعمال شدہ";
+"settings.account.cloudSignIn.showEmail" = "ای میل دکھائیں";
+"settings.account.cloudSignIn.forget" = "یہ سائن ان بھول جائیں";
+"settings.account.cloudSignIn.signOutForget" = "سائن آؤٹ کریں اور بھول جائیں";
+"settings.account.cloudSignIn.mailboxPrompt" = "اپنی ای میل تک رسائی کی تصدیق کریں۔ 6–8 ہندسوں کا کوڈ درج کریں۔ ضرورت ہو تو اسپیم دیکھیں۔";
+"settings.account.cloudSignIn.freshAttempt" = "سائن ان مکمل نہیں ہوا۔ جاری رکھنے کے لیے دوبارہ شروع کریں۔";
+"settings.account.cloudSignIn.restart" = "دوبارہ شروع کریں";
+"settings.account.cloudSignIn.rememberFailed" = "سائن ان ہو گیا۔ سائن ان کی یاد دہانی محفوظ نہیں ہو سکی۔ دوبارہ کوشش کریں یا بند کریں۔";
+"settings.account.cloudSignIn.hintFailed" = "یاد رکھا گیا سائن ان اپ ڈیٹ نہیں ہو سکا۔ دوبارہ کوشش کریں۔";
