@@ -148,7 +148,7 @@ export function renderBrowserMailboxContinuation(
         try {
           completed = true;
           statusElement.textContent = copy.continue;
-          consumeBrowserCompletion(submission.result);
+          await consumeBrowserCompletion(submission.result);
         } catch {
           completed = false;
           stop(loginCopy.genericErrorPrefix + ": AUTH_COMPLETION_INVALID. " + copy.restart);

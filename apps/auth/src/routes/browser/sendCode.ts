@@ -9,7 +9,7 @@ import {
   reportSignInFailed,
   reportSignInSucceeded,
 } from "../../server/analytics/signInFunnel.js";
-import { IssuedSessionValidationError, setBrowserSessionCookies } from "../../server/browserSession.js";
+import { IssuedSessionValidationError, setBrowserSessionCookies, verifiedBrowserSession } from "../../server/browserSession.js";
 import { sign, verify } from "../../server/crypto.js";
 import { getDemoEmailPassword } from "../../server/demoEmailAccess.js";
 import { isReservedEmailDomain } from "../../server/reservedEmailDomains.js";
@@ -161,6 +161,7 @@ export function createSendCodeApp(dependencies: SendCodeDependencies): Hono<Auth
         refreshToken: tokens.refreshToken,
         expiresIn: tokens.expiresIn,
         signInHint: { method: "email", email },
+        acceptedSession: tokens[verifiedBrowserSession],
       });
     }
 
