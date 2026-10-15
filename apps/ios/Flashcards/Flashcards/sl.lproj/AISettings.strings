@@ -933,3 +933,19 @@
 "settings.account.cloudSignIn.restart" = "Začni znova";
 "settings.account.cloudSignIn.rememberFailed" = "Prijavljeni ste. Namiga za prijavo ni bilo mogoče shraniti. Poskusite znova ali zaprite.";
 "settings.account.cloudSignIn.hintFailed" = "Shranjene prijave ni bilo mogoče posodobiti. Poskusite znova.";
+
+"settings.account.methods.title" = "Načini prijave";
+"settings.account.methods.link" = "Poveži ponudnika";
+"settings.account.methods.unlink" = "Odstrani povezavo ponudnika";
+"settings.account.methods.reenable" = "Znova omogoči ponudnika";
+"settings.account.methods.generation" = "Generacija";
+"settings.account.methods.readOnly" = "Potrjeni obnovitveni e-naslovi so samo za branje. Dokazani so le navedeni naslovi.";
+"settings.account.methods.cleanup" = "Čiščenje čaka. Osvežujte do konca in začnite z novim dokazilom.";
+"settings.account.methods.confirmCurrent" = "Najprej potrdite trenutni račun z aktivnim načinom prijave. To ne zamenja računa.";
+"settings.account.methods.confirmNewProvider" = "Zdaj potrdite račun ponudnika za spremembo. Uporabite želeni račun.";
+"settings.account.methods.fresh" = "Sprememba ni dokončana ali je dokazilo poteklo. Osvežite načine in začnite z novim dokazilom.";
+"settings.account.methods.lastUsable" = "Pred odstranitvijo povezave ohranite drugega aktivnega ponudnika ali potrjen obnovitveni e-naslov.";
+"settings.account.methods.conflict" = "Ponudnik pripada drugemu računu. Izberite drug račun ponudnika.";
+"settings.account.methods.changed" = "Način se je spremenil. Osvežite načine in začnite znova.";
+"settings.account.methods.demo" = "Predstavitveni računi ne upravljajo načinov prijave. Prijavite se s svojim računom.";
+"settings.account.methods.refreshFailed" = "Načinov ni bilo mogoče osvežiti. Osvežite pred novo spremembo.";

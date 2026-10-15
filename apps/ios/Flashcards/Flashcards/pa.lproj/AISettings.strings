@@ -933,3 +933,19 @@
 "settings.account.cloudSignIn.restart" = "ਮੁੜ ਸ਼ੁਰੂ ਕਰੋ";
 "settings.account.cloudSignIn.rememberFailed" = "ਸਾਈਨ ਇਨ ਹੋ ਗਿਆ। ਸਾਈਨ ਇਨ ਦਾ ਸੰਕੇਤ ਸੰਭਾਲਿਆ ਨਹੀਂ ਜਾ ਸਕਿਆ। ਦੁਬਾਰਾ ਕੋਸ਼ਿਸ਼ ਕਰੋ ਜਾਂ ਬੰਦ ਕਰੋ।";
 "settings.account.cloudSignIn.hintFailed" = "ਯਾਦ ਰੱਖਿਆ ਸਾਈਨ ਇਨ ਅੱਪਡੇਟ ਨਹੀਂ ਹੋ ਸਕਿਆ। ਦੁਬਾਰਾ ਕੋਸ਼ਿਸ਼ ਕਰੋ।";
+
+"settings.account.methods.title" = "ਸਾਈਨ-ਇਨ ਢੰਗ";
+"settings.account.methods.link" = "ਪ੍ਰਦਾਤਾ ਜੋੜੋ";
+"settings.account.methods.unlink" = "ਪ੍ਰਦਾਤਾ ਦਾ ਲਿੰਕ ਹਟਾਓ";
+"settings.account.methods.reenable" = "ਪ੍ਰਦਾਤਾ ਮੁੜ ਚਾਲੂ ਕਰੋ";
+"settings.account.methods.generation" = "ਪੀੜ੍ਹੀ";
+"settings.account.methods.readOnly" = "ਤਸਦੀਕਸ਼ੁਦਾ ਰਿਕਵਰੀ ਈਮੇਲ ਸਿਰਫ਼ ਪੜ੍ਹੇ ਜਾ ਸਕਦੇ ਹਨ। ਸੂਚੀ ਦੇ ਪਤੇ ਹੀ ਸਾਬਤ ਹਨ।";
+"settings.account.methods.cleanup" = "ਸਫ਼ਾਈ ਬਾਕੀ ਹੈ। ਮੁਕੰਮਲ ਹੋਣ ਤੱਕ ਰਿਫ੍ਰੈਸ਼ ਕਰੋ, ਫਿਰ ਨਵੇਂ ਸਬੂਤ ਨਾਲ ਸ਼ੁਰੂ ਕਰੋ।";
+"settings.account.methods.confirmCurrent" = "ਪਹਿਲਾਂ ਸਰਗਰਮ ਸਾਈਨ-ਇਨ ਢੰਗ ਨਾਲ ਮੌਜੂਦਾ ਖਾਤਾ ਤਸਦੀਕ ਕਰੋ। ਖਾਤਾ ਨਹੀਂ ਬਦਲੇਗਾ।";
+"settings.account.methods.confirmNewProvider" = "ਹੁਣ ਬਦਲਾਅ ਲਈ ਪ੍ਰਦਾਤਾ ਦਾ ਖਾਤਾ ਤਸਦੀਕ ਕਰੋ। ਮਨਚਾਹਾ ਖਾਤਾ ਵਰਤੋ।";
+"settings.account.methods.fresh" = "ਬਦਲਾਅ ਪੂਰਾ ਨਹੀਂ ਹੋਇਆ ਜਾਂ ਸਬੂਤ ਦੀ ਮਿਆਦ ਮੁੱਕ ਗਈ। ਢੰਗ ਰਿਫ੍ਰੈਸ਼ ਕਰਕੇ ਨਵੇਂ ਸਬੂਤ ਨਾਲ ਸ਼ੁਰੂ ਕਰੋ।";
+"settings.account.methods.lastUsable" = "ਲਿੰਕ ਹਟਾਉਣ ਤੋਂ ਪਹਿਲਾਂ ਹੋਰ ਸਰਗਰਮ ਪ੍ਰਦਾਤਾ ਜਾਂ ਤਸਦੀਕਸ਼ੁਦਾ ਰਿਕਵਰੀ ਈਮੇਲ ਰੱਖੋ।";
+"settings.account.methods.conflict" = "ਪ੍ਰਦਾਤਾ ਹੋਰ ਖਾਤੇ ਦਾ ਹੈ। ਪ੍ਰਦਾਤਾ ਦਾ ਹੋਰ ਖਾਤਾ ਚੁਣੋ।";
+"settings.account.methods.changed" = "ਢੰਗ ਬਦਲ ਗਿਆ ਹੈ। ਢੰਗ ਰਿਫ੍ਰੈਸ਼ ਕਰਕੇ ਮੁੜ ਸ਼ੁਰੂ ਕਰੋ।";
+"settings.account.methods.demo" = "ਡੈਮੋ ਖਾਤੇ ਸਾਈਨ-ਇਨ ਢੰਗ ਨਹੀਂ ਸੰਭਾਲ ਸਕਦੇ। ਆਪਣੇ ਖਾਤੇ ਵਿੱਚ ਸਾਈਨ ਇਨ ਕਰੋ।";
+"settings.account.methods.refreshFailed" = "ਢੰਗ ਰਿਫ੍ਰੈਸ਼ ਨਹੀਂ ਹੋਏ। ਨਵੇਂ ਬਦਲਾਅ ਤੋਂ ਪਹਿਲਾਂ ਰਿਫ੍ਰੈਸ਼ ਕਰੋ।";

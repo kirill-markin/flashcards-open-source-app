@@ -961,3 +961,19 @@
 "settings.account.cloudSignIn.restart" = "Erneut beginnen";
 "settings.account.cloudSignIn.rememberFailed" = "Angemeldet. Der Anmeldehinweis konnte nicht gespeichert werden. Versuche es erneut oder schließe das Fenster.";
 "settings.account.cloudSignIn.hintFailed" = "Die gespeicherte Anmeldung konnte nicht aktualisiert werden. Versuche es erneut.";
+
+"settings.account.methods.title" = "Anmeldemethoden";
+"settings.account.methods.link" = "Anbieter verknüpfen";
+"settings.account.methods.unlink" = "Anbieter trennen";
+"settings.account.methods.reenable" = "Anbieter erneut aktivieren";
+"settings.account.methods.generation" = "Generation";
+"settings.account.methods.readOnly" = "Bestätigte Wiederherstellungsadressen sind schreibgeschützt. Nur die aufgeführten Adressen sind nachgewiesen.";
+"settings.account.methods.cleanup" = "Die Anbieterbereinigung steht aus. Aktualisiere bis zum Abschluss und beginne mit einem neuen Nachweis.";
+"settings.account.methods.confirmCurrent" = "Bestätige zuerst dein aktuelles Konto mit einer aktiven Anmeldemethode. Das Konto wird dabei nicht gewechselt.";
+"settings.account.methods.confirmNewProvider" = "Bestätige jetzt das Anbieterkonto für die Änderung. Verwende das gewünschte Konto.";
+"settings.account.methods.fresh" = "Die Änderung wurde nicht abgeschlossen oder der Nachweis ist abgelaufen. Aktualisiere die Methoden und beginne mit einem neuen Nachweis.";
+"settings.account.methods.lastUsable" = "Behalte vor dem Trennen einen anderen aktiven Anbieter oder eine bestätigte Wiederherstellungsadresse.";
+"settings.account.methods.conflict" = "Dieser Anbieter gehört zu einem anderen Konto. Wähle ein anderes Anbieterkonto.";
+"settings.account.methods.changed" = "Diese Methode hat sich geändert. Aktualisiere die Methoden und beginne erneut.";
+"settings.account.methods.demo" = "Demokonten können keine Anmeldemethoden verwalten. Melde dich mit deinem eigenen Konto an.";
+"settings.account.methods.refreshFailed" = "Die Methoden konnten nicht aktualisiert werden. Aktualisiere sie vor einer neuen Änderung.";

@@ -933,3 +933,19 @@
 "settings.account.cloudSignIn.restart" = "Ricomincia";
 "settings.account.cloudSignIn.rememberFailed" = "Accesso effettuato. Impossibile salvare il promemoria di accesso. Riprova o chiudi.";
 "settings.account.cloudSignIn.hintFailed" = "Impossibile aggiornare l’accesso memorizzato. Riprova.";
+
+"settings.account.methods.title" = "Metodi di accesso";
+"settings.account.methods.link" = "Collega provider";
+"settings.account.methods.unlink" = "Scollega provider";
+"settings.account.methods.reenable" = "Riattiva provider";
+"settings.account.methods.generation" = "Generazione";
+"settings.account.methods.readOnly" = "Le email di recupero verificate sono di sola lettura. Sono comprovati solo gli indirizzi elencati.";
+"settings.account.methods.cleanup" = "La pulizia è in attesa. Aggiorna fino al termine e ricomincia con una nuova prova.";
+"settings.account.methods.confirmCurrent" = "Prima verifica l’account attuale con un metodo di accesso attivo. Questo non cambia account.";
+"settings.account.methods.confirmNewProvider" = "Ora verifica l’account del provider per la modifica. Usa l’account desiderato.";
+"settings.account.methods.fresh" = "La modifica non è terminata o la prova è scaduta. Aggiorna i metodi e ricomincia con una nuova prova.";
+"settings.account.methods.lastUsable" = "Prima di scollegare, conserva un altro provider attivo o un’email di recupero verificata.";
+"settings.account.methods.conflict" = "Questo provider appartiene a un altro account. Scegli un altro account del provider.";
+"settings.account.methods.changed" = "Questo metodo è cambiato. Aggiorna i metodi e ricomincia.";
+"settings.account.methods.demo" = "Gli account demo non possono gestire i metodi di accesso. Accedi con il tuo account.";
+"settings.account.methods.refreshFailed" = "Impossibile aggiornare i metodi. Aggiorna prima di una nuova modifica.";

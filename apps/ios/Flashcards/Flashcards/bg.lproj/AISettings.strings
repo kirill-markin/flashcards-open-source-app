@@ -933,3 +933,19 @@
 "settings.account.cloudSignIn.restart" = "Започване отново";
 "settings.account.cloudSignIn.rememberFailed" = "Влязохте успешно. Подсказката за вход не можа да бъде запазена. Опитайте пак или затворете.";
 "settings.account.cloudSignIn.hintFailed" = "Запомненият вход не можа да бъде обновен. Опитайте отново.";
+
+"settings.account.methods.title" = "Начини за вход";
+"settings.account.methods.link" = "Свързване на доставчик";
+"settings.account.methods.unlink" = "Разкачване на доставчик";
+"settings.account.methods.reenable" = "Повторно активиране";
+"settings.account.methods.generation" = "Поколение";
+"settings.account.methods.readOnly" = "Потвърдените имейли за възстановяване са само за четене. Доказани са само изброените адреси.";
+"settings.account.methods.cleanup" = "Изчистването предстои. Обновявайте до края, после започнете с ново доказателство.";
+"settings.account.methods.confirmCurrent" = "Първо потвърдете текущия акаунт с активен начин за вход. Това не сменя акаунта.";
+"settings.account.methods.confirmNewProvider" = "Сега потвърдете акаунта при доставчика за промяната. Използвайте желания акаунт.";
+"settings.account.methods.fresh" = "Промяната не приключи или доказателството изтече. Обновете начините и започнете с ново доказателство.";
+"settings.account.methods.lastUsable" = "Преди разкачване запазете друг активен доставчик или потвърден имейл за възстановяване.";
+"settings.account.methods.conflict" = "Доставчикът принадлежи на друг акаунт. Изберете друг акаунт при доставчика.";
+"settings.account.methods.changed" = "Начинът е променен. Обновете начините и започнете отново.";
+"settings.account.methods.demo" = "Демо акаунтите не управляват начини за вход. Влезте със собствен акаунт.";
+"settings.account.methods.refreshFailed" = "Начините не бяха обновени. Обновете ги преди нова промяна.";

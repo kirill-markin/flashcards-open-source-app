@@ -933,3 +933,19 @@
 "settings.account.cloudSignIn.restart" = "Börja om";
 "settings.account.cloudSignIn.rememberFailed" = "Du är inloggad. Inloggningsledtråden kunde inte sparas. Försök igen eller stäng.";
 "settings.account.cloudSignIn.hintFailed" = "Den sparade inloggningen kunde inte uppdateras. Försök igen.";
+
+"settings.account.methods.title" = "Inloggningsmetoder";
+"settings.account.methods.link" = "Länka leverantör";
+"settings.account.methods.unlink" = "Koppla bort leverantör";
+"settings.account.methods.reenable" = "Aktivera leverantör igen";
+"settings.account.methods.generation" = "Generation";
+"settings.account.methods.readOnly" = "Verifierade återställningsadresser är skrivskyddade. Bara angivna adresser är styrkta.";
+"settings.account.methods.cleanup" = "Rensning väntar. Uppdatera tills den är klar och börja med nytt bevis.";
+"settings.account.methods.confirmCurrent" = "Verifiera först ditt nuvarande konto med en aktiv metod. Detta byter inte konto.";
+"settings.account.methods.confirmNewProvider" = "Verifiera nu leverantörskontot för ändringen. Använd det avsedda kontot.";
+"settings.account.methods.fresh" = "Ändringen slutfördes inte eller beviset gick ut. Uppdatera metoderna och börja med nytt bevis.";
+"settings.account.methods.lastUsable" = "Behåll en annan aktiv leverantör eller verifierad återställningsadress innan du kopplar bort.";
+"settings.account.methods.conflict" = "Leverantören tillhör ett annat konto. Välj ett annat leverantörskonto.";
+"settings.account.methods.changed" = "Metoden har ändrats. Uppdatera metoderna och börja om.";
+"settings.account.methods.demo" = "Demokonton kan inte hantera inloggningsmetoder. Logga in med ditt eget konto.";
+"settings.account.methods.refreshFailed" = "Metoderna kunde inte uppdateras. Uppdatera före en ny ändring.";
