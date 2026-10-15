@@ -7,7 +7,7 @@ explicit forgetting. Call consumption after the actual account and workspace are
 forgetting in the privacy lifecycle even when the session is absent.
 
 The [auth controls](../apps/auth/src/templates/browserHintControls.ts) expose explicit remembering,
-small last-used method badges and auth-local email reveal/copy. The web
+small last-used method badges and compact masked-email hints. The web
 [account privacy controls](../apps/web/src/screens/settings/account/BrowserSignInPrivacy.tsx) and
 [deletion cleanup](../apps/web/src/appData/session/browserSessionRecovery.ts) use the existing bridge.
 Ordinary logout, account switch and reauthentication cleanup retain the opted-in hint. Deletion and
@@ -30,8 +30,11 @@ copy pending presentation context: consumption is per tab, with no global dedupl
 
 ## Manual browser acceptance
 
-Run these procedures through the real deployed UI. Source and cloud
+Run these procedures through the real deployed UI after the applicable AWS/Web release succeeds.
+Record the deployed SHA, browser/OS, locale, UTC window and actual outcome. Source and cloud
 checks do not prove browser storage partitioning, provider proof, mailbox delivery or these flows.
+Use genuine browser cookies and natural Origin/CSRF traffic; fabricated headers, credentials or
+database fixtures cannot establish positive acceptance. Keep private evidence outside this document.
 
 1. On `app.nibomo.com`, sign in through Google, Apple and email in the same tab. Observe the auth
    response's successful hint and accepted-session metadata without copying their values into
@@ -63,12 +66,19 @@ checks do not prove browser storage partitioning, provider proof, mailbox delive
    must fail clearly, including the eight-second bridge timeout; no cookie or URL fallback occurs.
    Retry after restoring access. Test the browser's normal privacy/storage partitioning settings,
    especially Safari and Chrome, in both permanent host families.
-8. On both login and OAuth authorization entry, including Safari, verify Google → Apple → Email
+8. On both login and OAuth authorization entry, including Safari, verify one localized
+   sign-in/create-account screen with Google → Apple → Email
    with the envelope icon. Opt in, complete each actual method, sign out normally, and verify a
-   small localized Last used badge at the top right of only the successful method. Failed/cancelled
-   attempts preserve it. Hover and keyboard-focus that button; use the badge on touch. Reveal/copy
-   only the known successful email, never a different recovery/profile address or Apple's personal
-   address. A normal method-button tap must still authenticate. Switch UI locales, including RTL.
+   small localized Last used badge floating above/across the upper-right edge of only the successful
+   method. It must not increase button height, shift its label/logo, reorder or duplicate actions.
+   Failed/cancelled attempts preserve it. Deliberately hover, navigate with Tab/Shift-Tab, and tap
+   or keyboard-activate the badge: show only compact masked text for the known successful email,
+   with no Show, Copy, Forget or other controls inside the hint. Unknown email stays absent.
+   Initial/programmatic focus and focus restored after provider cancellation must not open it.
+   Escape, outside click and leaving keyboard focus dismiss it; restoration must not reopen it.
+   Badge activation must not authenticate; ordinary method-button taps must authenticate.
+   Keep optional Remember and explicit Forget outside the hint. Check narrow widths, large text,
+   screen-reader labels and UI locales including RTL.
 9. In Settings → Account Status, use Forget, then Sign out and forget. Block the auth frame/site
    storage and retry each: display an actionable error with no forgotten confirmation or sign-out.
    Restore access and retry. Delete an authorized disposable account through the existing flow and
@@ -80,10 +90,48 @@ checks do not prove browser storage partitioning, provider proof, mailbox delive
     request/verification outcomes, provider callback, session acceptance and web account readiness.
     Account-ready must follow real workspace readiness, occur once per consumed tab context, and
     omit old/missing method context. No email/hash, subject, token, nonce, query/fragment or journey
-    identifier may appear. Do not infer delivery or abandonment from these events.
+    identifier may appear. Requested code is not mailbox delivery; provider-internal screens and
+    abandonment are not observed. The auth producer's 150 ms report budget is best effort, so
+    distinguish missing delivery from a missing producer and derive funnels by querying facts.
 11. Exercise secondary provider mailbox proof. A successful continuation retains Google/Apple as
     the initiating method; another code starts a fresh provider request. Interrupt send/verify
     transport after submission: the UI must require a fresh attempt, and later redemption failure
     must not claim an invalid code. Repeat an actual Google → email login into the same stable user
-    and workspace, plus hidden-Apple returning login. These require real provider/mailbox evidence;
-    synthetic demo accounts and database fixtures cannot establish them.
+    and workspace, plus hidden-Apple returning login. For first enrollment with fresh authoritative
+    Gmail/verified Workspace `hd` or verified Apple shared email, require no redundant OTP and later
+    Email OTP into that same account/workspace. Historical `email_verified` alone or an external
+    Google email is not current mailbox authority. Never merge different existing accounts or demo
+    and real accounts. Hidden Apple returns through Apple; retain working relay recovery without
+    requiring it. Personal-email add/change and standalone aliases are outside these procedures.
+    These require real provider/mailbox evidence; synthetic demo accounts cannot establish them.
+
+## Manual Settings acceptance
+
+Use an operator-authorized non-demo account on each permanent app/auth host pair, including Safari.
+Security-method mutations require separate authorization for the selected account and operation.
+
+1. Open Settings → Account Status → Sign-in methods through the normal app. Require actual
+   providers, cleanup state, exact opaque generation and read-only proved non-relay recovery emails.
+   An empty list must not advertise disabled Email or infer a profile/provider address as authority.
+   Verify the demo refusal. Applicable proof actions keep Google → Apple → envelope Email order.
+2. Select an authorized link/unlink/re-enable and freshly prove the current account, then separately
+   prove the intended new provider for link/re-enable. Hidden Apple must offer Apple reauthentication;
+   current-email OTP is available only for the actual session mailbox in the proved recovery list.
+   Check already-linked same-provider proof: show the explicit no-op outcome and unchanged generation.
+3. Exercise actual current-email send failure (offline, timeout, rate limit and server error), wrong
+   or expired verification, and genuine provider-required mailbox continuation. Inspect the existing
+   request/verification facts at those boundaries. A successful verification followed by redemption
+   failure must retain Verified. No pre-invocation or later local-storage failure is a send failure.
+4. Unlink only the freshly listed target with its exact unnormalized generation. Verify conflict,
+   changed-generation and last-usable-method refusals. After cleanup, web re-enable requires entirely
+   fresh current-account and intended-provider proofs. Failed/ambiguous submission discards old
+   receipts/codes, refreshes actual metadata and shows any already-completed result before restart.
+5. Cancel, navigate away, switch account or sign out during proof and deliver the late return.
+   Management must not become login, replace session/workspace, provision an account or update hints.
+   For authorized unlink/deletion lifecycle checks, inspect actual cleanup/revocation and refusal of
+   old principal JWT/refresh credentials; fresh login after completed cleanup must work. Scheduled
+   cleanup or a green source gate alone does not prove real Apple revocation.
+6. Repeat with collection off, cookie refusal, missing visitor/consent and live withdrawal during
+   authorization. Only actual provider/code/link observations belong to the finite catalog; an
+   already-linked outcome is distinct from a new link, and there is no unlink/re-enable event.
+   Check localized loading/errors, keyboard access, large text, narrow layout and RTL.
