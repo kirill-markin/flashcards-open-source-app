@@ -1,8 +1,25 @@
 import { createCipheriv, createDecipheriv, hkdfSync, randomBytes } from "node:crypto";
 import type { DatabaseExecutor } from "../../db.js";
+import { getDatabaseErrorSqlState } from "../databaseErrors.js";
 import { SocialProofError } from "./providers.js";
 
 export type EncryptedAppleCredential = Readonly<{ providerSubject: string; clientId: string; ciphertext: string }>;
+
+export class AppleRevocationPendingError extends Error {
+  readonly code = "APPLE_REVOCATION_PENDING";
+  constructor() {
+    super("Apple revocation is still pending. Wait for cleanup to finish, then start a fresh Apple sign-in.");
+    this.name = "AppleRevocationPendingError";
+  }
+}
+
+export async function assertAppleRevocationClearInExecutor(executor: DatabaseExecutor, providerSubject: string): Promise<void> {
+  const result = await executor.query<Readonly<{ pending: boolean }>>(
+    "SELECT auth.apple_revocation_pending($1) AS pending", [providerSubject],
+  );
+  if (result.rows[0] === undefined) throw new Error("Apple revocation status lookup returned no result");
+  if (result.rows[0].pending) throw new AppleRevocationPendingError();
+}
 
 function credentialKey(): Buffer {
   const hex = process.env.SESSION_ENCRYPTION_KEY;
@@ -45,12 +62,16 @@ export function decryptAppleCredential(credential: EncryptedAppleCredential): st
 export async function storeAppleCredentialInExecutor(
   executor: DatabaseExecutor, cognitoSubject: string, credential: EncryptedAppleCredential,
 ): Promise<void> {
-  await executor.query("SELECT auth.store_apple_credential($1, $2, $3, $4)", [
-    cognitoSubject, credential.providerSubject, credential.clientId, credential.ciphertext,
-  ]);
+  try {
+    await executor.query("SELECT auth.store_apple_credential($1, $2, $3, $4)", [
+      cognitoSubject, credential.providerSubject, credential.clientId, credential.ciphertext,
+    ]);
+  } catch (error) {
+    if (getDatabaseErrorSqlState(error) === "55006") throw new AppleRevocationPendingError();
+    throw error;
+  }
 }
 
-/** Credentials survive principal deletion until the lifecycle caller revokes them. */
 export async function loadAppleCredentialsInExecutor(
   executor: DatabaseExecutor, cognitoSubject: string,
 ): Promise<ReadonlyArray<EncryptedAppleCredential>> {
@@ -60,7 +81,7 @@ export async function loadAppleCredentialsInExecutor(
   return result.rows.map((row) => ({ providerSubject: row.provider_subject, clientId: row.client_id, ciphertext: row.ciphertext }));
 }
 
-/** Delete only after successful revocation; compare ciphertext so retries cannot erase a newer proof. */
+/** Owner-only primitive; runtime completion uses the fenced lifecycle job instead. */
 export async function deleteRevokedAppleCredentialInExecutor(
   executor: DatabaseExecutor, credential: EncryptedAppleCredential,
 ): Promise<boolean> {

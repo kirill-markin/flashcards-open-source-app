@@ -1,6 +1,3 @@
-/**
- * Structured logger for auth service.
- */
 import type { AuthTraceId } from "./sentry.js";
 
 type AuthAction =
@@ -27,6 +24,7 @@ type AuthAction =
   | "database_pool_error"
   | "analytics_ingest_error"
   | "request_error"
+  | "apple_revocation_drain"
   | "error";
 
 export type AuthLogEvent = Readonly<{
@@ -37,6 +35,9 @@ export type AuthLogEvent = Readonly<{
   route?: string;
   statusCode?: number;
   code?: string;
+  claimed?: number;
+  completed?: number;
+  failed?: number;
   poolName?: string;
   sqlState?: string | null;
   errorCode?: string | null;
