@@ -194,9 +194,19 @@ final class CloudNativeSignInCoordinator {
                 throw LocalStoreError.uninitialized("Prepared sign-in workspace selection is unavailable")
             }
             self.stage = .completingAccount(pending.method)
-            // Existing completion owns guest drain, protected staged credentials, checkpoints and resume.
-            try await store.completeCloudLink(linkContext: context, selection: selection,
-                technicalErrorCaptureContext: captureContext)
+            if context.guestUpgradeMode != nil {
+                try await store.completeGuestCloudLink(
+                    linkContext: context,
+                    selection: selection,
+                    technicalErrorCaptureContext: captureContext
+                )
+            } else {
+                try await store.completeCloudLink(
+                    linkContext: context,
+                    selection: selection,
+                    technicalErrorCaptureContext: captureContext
+                )
+            }
             try self.checkCurrent(epoch)
             _ = try self.requirePendingSession(store: store)
             guard let session = store.cloudRuntime.activeCloudSession(),
