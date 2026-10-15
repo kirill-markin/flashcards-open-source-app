@@ -6,10 +6,11 @@ import { SocialProofError } from "../../server/social/providers.js";
 import { PrincipalEnrollmentError } from "../../server/social/mailboxProof.js";
 import { AppleRelayDeliveryDisabledError } from "../../server/social/appleNotifications.js";
 import { AppleRevocationPendingError } from "../../server/social/appleCredential.js";
-import { getDatabaseErrorSqlState } from "../../server/databaseErrors.js";
+import { getDatabaseErrorSqlState, getDatabaseErrorMessage } from "../../server/databaseErrors.js";
 import { isCognitoTypedError } from "../../server/cognito/cognitoErrors.js";
 import { getSocialRequestSource } from "../../server/social/requestSource.js";
 import { requireSocialRateLimit, type SocialPublicAction } from "../../server/social/rateLimit.js";
+import { AccountTransportError } from "./accountTransport.js";
 
 export async function requireSocialRequest(c: Context<AuthAppEnv>, action: SocialPublicAction): Promise<string> {
   c.header("Cache-Control", "no-store");
@@ -53,6 +54,7 @@ export async function readSocialJson(c: Context<AuthAppEnv>): Promise<unknown> {
 }
 
 export function socialErrorResponse(c: Context<AuthAppEnv>, error: unknown): Response {
+  if (error instanceof AccountTransportError) return jsonAuthError(c, error.code === "SESSION_REQUIRED" ? 401 : 503, error.code, error.message);
   if (error instanceof AuthAttemptError) {
     if (error.code === "AUTH_RATE_LIMITED") {
       c.header("Retry-After", "900");
@@ -71,7 +73,7 @@ export function socialErrorResponse(c: Context<AuthAppEnv>, error: unknown): Res
   }
   if (error instanceof PrincipalEnrollmentError) {
     return jsonAuthError(c, 409, error.code, error.code === "PROVIDER_METHOD_DISABLED"
-      ? "This provider method is disabled. Use verified email recovery."
+      ? "This provider method is disabled. Sign in with another usable method, then explicitly re-enable it."
       : "Mailbox or provider enrollment was rejected. Start a new provider sign-in and verify your mailbox.");
   }
   if (error instanceof AppleRevocationPendingError) return jsonAuthError(c, 409, error.code, error.message);
@@ -87,6 +89,19 @@ export function socialErrorResponse(c: Context<AuthAppEnv>, error: unknown): Res
       "Email verification could not complete. Start a new provider sign-in and request a fresh code.");
   }
   const state = getDatabaseErrorSqlState(error);
+  const message = getDatabaseErrorMessage(error);
+  if (state === "23514" && message.startsWith("Cannot unlink the last usable method;")) {
+    return jsonAuthError(c, 409, "LAST_USABLE_METHOD", "Link another provider or prove an existing non-relay email before unlinking this method.");
+  }
+  if (state === "23514" && message === "Provider method changed; reload account methods") {
+    return jsonAuthError(c, 409, "PROVIDER_METHOD_CHANGED", "Reload sign-in methods and obtain a fresh proof before retrying.");
+  }
+  if (state === "23514" && message === "Disabled method changed or revocation is pending; start again after cleanup") {
+    return jsonAuthError(c, 409, "PROVIDER_METHOD_CLEANUP_REQUIRED", "Wait for provider cleanup, reload methods, and obtain fresh proof before re-enabling.");
+  }
+  if (state === "23514" && message === "Recent bound current-account proof required; start again") {
+    return jsonAuthError(c, 409, "FRESH_ACCOUNT_PROOF_REQUIRED", "Verify a current sign-in method again before managing providers.");
+  }
   if (state === "23514" || state === "23505" || state === "55006") {
     return jsonAuthError(c, 409, "AUTH_ATTEMPT_RESTART_REQUIRED", "The sign-in lifecycle changed or its proof was consumed. Start a new provider sign-in.");
   }

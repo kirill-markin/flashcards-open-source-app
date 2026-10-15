@@ -11,13 +11,15 @@ import {
   androidAppleReturnUri, browserAttemptBinding, browserAuthOrigin, clearBrowserState, readBrowserState,
   writeBrowserState, type BrowserCallbackState,
 } from "../../server/social/browserState.js";
-import { continueBrowserSignIn } from "../../server/social/completeSignIn.js";
+import { continueBrowserSignIn, completeAccountProviderContinuation } from "../../server/social/completeSignIn.js";
 import { completeAuthoritativeAuthAttempt } from "../../server/social/completionStore.js";
 import { parseSocialObject } from "../../server/social/publicContract.js";
 import { requireSignInProvider } from "../../server/social/publicMethods.js";
 import { getSocialRequestSource } from "../../server/social/requestSource.js";
 import { requireSocialRateLimit } from "../../server/social/rateLimit.js";
 import { readSocialBody, readSocialJson, requireSocialRequest, socialErrorResponse } from "./http.js";
+import { completeAccountProviderLink, completeProvedAccountProviderReenable } from "../../server/social/accountMethods.js";
+import { requireAccountSession } from "./accountTransport.js";
 
 const app = new Hono<AuthAppEnv>();
 
@@ -34,7 +36,7 @@ function oneParameter(parameters: URLSearchParams, key: string, maximum: number)
   return values[0];
 }
 
-function androidReturn(status: "completed" | "verification_required" | "denied", handle: string): string {
+function androidReturn(status: "completed" | "verification_required" | "denied" | "provider_proved", handle: string): string {
   const uri = new URL(androidAppleReturnUri);
   uri.hash = new URLSearchParams({ status, [status === "completed" ? "completion" : "attempt"]: handle }).toString();
   return uri.toString();
@@ -63,11 +65,25 @@ async function appleCallbackContinuation(c: Context<AuthAppEnv>, parameters: URL
 
 async function acceptBrowserCompletion(
   c: Context<AuthAppEnv>, state: BrowserCallbackState, completion: AuthCompletionResponse,
-): Promise<Readonly<{ ok: true; redirectUri: string; signInHint: import("../../server/social/signInHint.js").ProviderSignInHint }>> {
+): Promise<Readonly<{ ok: true; redirectUri: string; signInHint?: import("../../server/social/signInHint.js").ProviderSignInHint; purpose?: "reauth" | "link"; completion?: string; expiresAt?: string }>> {
   const binding = browserAttemptBinding(state);
   const source = getSocialRequestSource();
   await requireSocialRateLimit("redeem", source);
-  const { response } = await continueBrowserSignIn({ action: "redeem", completion: completion.completion, binding }, source);
+  if (state.client !== "web") throw new AuthAttemptError("AUTH_COMPLETION_INVALID");
+  if (state.intent !== "login") {
+    const session = await requireAccountSession(c, "web");
+    if (state.intent === "link") {
+      await completeAccountProviderLink(session, completion.completion, binding);
+      clearBrowserState(c, state);
+      return { ok: true, purpose: "link", redirectUri: state.redirectUri };
+    }
+    if (state.intent !== "reauth") throw new AuthAttemptError("AUTH_ATTEMPT_INVALID");
+    clearBrowserState(c, state);
+    const destination = new URL(state.redirectUri);
+    destination.hash = new URLSearchParams({ status: "reauthenticated", completion: completion.completion }).toString();
+    return { ok: true, purpose: "reauth", ...completion, redirectUri: destination.toString() };
+  }
+  const { response } = await continueBrowserSignIn({ action: "redeem", completion: completion.completion, binding: { ...binding, purpose: "login" } }, source);
   if (!("signInHint" in response) || state.client !== "web") throw new AuthAttemptError("AUTH_COMPLETION_INVALID");
   setBrowserSessionCookies(c, response.idToken, response.refreshToken);
   clearBrowserState(c, state);
@@ -100,6 +116,7 @@ async function providerCallback(c: Context<AuthAppEnv>): Promise<Response> {
     if (provider === "apple" && c.req.path.endsWith("/apple/callback")) {
       return appleCallbackContinuation(c, parameters, state);
     }
+    if (state.client === "web" && state.intent !== "login") await requireAccountSession(c, "web");
     const claimed = await claimBrowserAuthAttempt(state);
     claimedState = state;
     if (parameters.has("error")) {
@@ -116,6 +133,12 @@ async function providerCallback(c: Context<AuthAppEnv>): Promise<Response> {
       outcome: "credential_received" }), occurredAt: Date.now() });
     const verified = await verifyClaimedAuthAttempt(claimed, provider === "google"
       ? { provider, authorizationCode: code, identityToken: null } : { provider, authorizationCode: code, identityToken });
+    if (state.intent === "reenable") {
+      clearBrowserState(c, state);
+      if (state.client === "android") return c.redirect(androidReturn("provider_proved", state.attempt), 303);
+      await completeProvedAccountProviderReenable(await requireAccountSession(c, "web"), verified, browserAttemptBinding(state));
+      return c.redirect(state.redirectUri, 303);
+    }
     const result = await completeAuthoritativeAuthAttempt(verified);
     if (state.client === "android") {
       clearBrowserState(c, state);
@@ -124,7 +147,7 @@ async function providerCallback(c: Context<AuthAppEnv>): Promise<Response> {
     }
     if (result.status === "completed") {
       const response = await acceptBrowserCompletion(c, state, result.response);
-      events.push({ createEvent: createSignInSucceededWithMethodEventFactory(response.signInHint.method), occurredAt: Date.now() });
+      if (response.signInHint !== undefined) events.push({ createEvent: createSignInSucceededWithMethodEventFactory(response.signInHint.method), occurredAt: Date.now() });
       return c.redirect(response.redirectUri, 303);
     }
     const continuation = { ...state, phase: "mailbox" as const, state: randomBytes(32).toString("base64url") };
@@ -158,9 +181,14 @@ app.post("/api/social/browser/complete", async (c) => {
     }
     analyticsState = state;
     const binding = browserAttemptBinding(state);
+    if (state.intent !== "login") await requireAccountSession(c, "web");
+    const continuation = (request: Exclude<import("../../server/social/publicContract.js").AccountProviderContinuation, { action: "provider" }>, source: string) =>
+      state.intent === "login"
+        ? continueBrowserSignIn({ ...request, binding: { ...binding, purpose: "login" } }, source)
+        : completeAccountProviderContinuation(request, source);
     if (fields.action === "mailbox_send" && typeof fields.email === "string" && fields.email.length <= 254) {
       await requireSocialRateLimit("mailbox_send", source);
-      const { response, method } = await continueBrowserSignIn({ action: "mailbox_send", attempt: state.attempt, binding, email: fields.email }, source);
+      const { response, method } = await continuation({ action: "mailbox_send", attempt: state.attempt, binding, email: fields.email }, source);
       events.push({ createEvent: createAuthAnalyticsFactEventFactory({ eventName: "auth_code_request_finished", method,
         action: "initial", outcome: "accepted" }), occurredAt: Date.now() });
       return c.json(response);
@@ -169,12 +197,12 @@ app.post("/api/social/browser/complete", async (c) => {
       throw new AuthAttemptError("AUTH_ATTEMPT_INVALID");
     }
     await requireSocialRateLimit("mailbox_verify", source);
-    const { response, method } = await continueBrowserSignIn({ action: "mailbox_verify", attempt: state.attempt, binding, code: fields.code }, source);
+    const { response, method } = await continuation({ action: "mailbox_verify", attempt: state.attempt, binding, code: fields.code }, source);
     if (!("status" in response) || response.status !== "completed") throw new AuthAttemptError("AUTH_COMPLETION_INVALID");
     events.push({ createEvent: createAuthAnalyticsFactEventFactory({ eventName: "auth_code_verification_finished", method,
       outcome: "verified" }), occurredAt: Date.now() });
     const accepted = await acceptBrowserCompletion(c, state, response);
-    events.push({ createEvent: createSignInSucceededWithMethodEventFactory(accepted.signInHint.method), occurredAt: Date.now() });
+    if (accepted.signInHint !== undefined) events.push({ createEvent: createSignInSucceededWithMethodEventFactory(accepted.signInHint.method), occurredAt: Date.now() });
     return c.json(accepted);
   } catch (error) {
     return socialErrorResponse(c, error);

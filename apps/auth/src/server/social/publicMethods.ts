@@ -17,6 +17,8 @@ export type PublicAuthMethods = Readonly<{
     google: ProviderAvailability;
   }>;
   endpoints: Readonly<{ attempt: string; complete: string; browserComplete: string; sendCode: string; verifyCode: string }>;
+  account: Readonly<{ methods: string; providerMethod: string; unlink: string; emailReauth: string;
+    nativeAttempt: string; nativeComplete: string; freshProofSeconds: 120; emailRecovery: "read_only" }>;
   completion: Readonly<{ codeChallengeMethod: "S256"; tokenEnvelope: "TokenResult"; productAccountProvisioned: false }>;
 }>;
 
@@ -45,6 +47,9 @@ export function getPublicAuthMethods(client: SocialClient): PublicAuthMethods {
     },
     endpoints: { attempt: "/api/social/attempt", complete: "/api/social/complete", browserComplete: "/api/social/browser/complete",
       sendCode: "/api/send-code", verifyCode: "/api/verify-code" },
+    account: { methods: "/api/account/login-methods", providerMethod: "/api/account/provider-methods/link",
+      unlink: "/api/account/provider-methods/unlink", emailReauth: "/api/account/reauth/email",
+      nativeAttempt: "/api/social/attempt", nativeComplete: "/api/social/complete", freshProofSeconds: 120, emailRecovery: "read_only" },
     completion: { codeChallengeMethod: "S256", tokenEnvelope: "TokenResult", productAccountProvisioned: false },
   };
 }

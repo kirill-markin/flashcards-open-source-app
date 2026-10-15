@@ -302,3 +302,11 @@ Lambda request ID and `claimed/completed/failed` counts. The fixed native EventB
 reference `flashcards-apple-revocation-drain`; HTTP envelopes cannot dispatch the privileged mode.
 Inspect nonzero failure summaries and retained job error codes; successful scheduling or schema
 checks do not prove real Apple login, token revocation, or private-relay OTP receipt.
+
+## Account sign-in methods
+
+The authenticated transport contract is defined in [public request/result types](../apps/auth/src/server/social/publicContract.ts),
+[configured endpoints](../apps/auth/src/server/social/publicMethods.ts), and [session/CSRF adapters](../apps/auth/src/routes/social/accountTransport.ts).
+[Provider mutations](../apps/auth/src/server/social/accountMethods.ts) and [current-email reauthentication](../apps/auth/src/server/social/currentEmailReauth.ts)
+share the existing attempt ledger. [Cloud consumers](../apps/auth/src/integration/accountMethodsGate.ts) exercise signed demo-session refusals and reachable transport guards on both auth hosts;
+non-demo management success, browser CSRF bootstrap, actual provider proof, mailbox delivery, and native SDK acceptance require the release acceptance flows.

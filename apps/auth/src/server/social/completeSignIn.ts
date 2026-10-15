@@ -8,7 +8,7 @@ import { AuthAttemptError } from "./attemptContract.js";
 import { normalizeEnrollmentEmail } from "./mailboxProof.js";
 import { exchangeVerifiedPrincipalForTokens } from "./nativeProofBridge.js";
 import { requireNativeProvider, requireSignInProvider } from "./publicMethods.js";
-import type { NativeSignInRequest, SignInContinuationRequest } from "./publicContract.js";
+import type { NativeSignInRequest, SignInContinuationRequest, AccountProviderContinuation } from "./publicContract.js";
 import type { TokenResult } from "../cognito/cognitoAuth.js";
 import type { ProviderSignInHint } from "./signInHint.js";
 import type { IdentityProvider } from "./identityStore.js";
@@ -20,6 +20,10 @@ export type NativeSignInResponse =
   | Readonly<{ status: "mailbox_code_sent" }>
   | Readonly<{ ok: true; signInHint: ProviderSignInHint } & TokenResult>;
 
+export type AccountProviderContinuationResult = Readonly<{
+  response: Exclude<NativeSignInResponse, Readonly<{ ok: true; signInHint: ProviderSignInHint } & TokenResult>>;
+  method: IdentityProvider;
+}>;
 type NativeSignInResult = Readonly<{ response: NativeSignInResponse; method: IdentityProvider }>;
 
 /** Tokens create no org rows: native guest prepare/complete must precede the first generic account request. */
@@ -32,7 +36,16 @@ export async function continueBrowserSignIn(request: SignInContinuationRequest, 
   return completeSignIn(request, trustedIp);
 }
 
-async function completeSignIn(request: NativeSignInRequest | SignInContinuationRequest, trustedIp: string): Promise<NativeSignInResult> {
+export async function completeAccountProviderContinuation(
+  request: AccountProviderContinuation, trustedIp: string,
+): Promise<AccountProviderContinuationResult> {
+  if (request.binding.purpose === "login") throw new AuthAttemptError("AUTH_ATTEMPT_INVALID");
+  const result = await completeSignIn(request, trustedIp);
+  if ("signInHint" in result.response) throw new AuthAttemptError("AUTH_COMPLETION_INVALID");
+  return { response: result.response, method: result.method };
+}
+
+async function completeSignIn(request: NativeSignInRequest | SignInContinuationRequest | AccountProviderContinuation, trustedIp: string): Promise<NativeSignInResult> {
   if (request.action === "redeem") {
     const principal = await transaction((executor) => redeemSocialSignInInExecutor(executor, request.completion, request.binding));
     requireSignInProvider(principal.signInHint.method, request.binding.client);
