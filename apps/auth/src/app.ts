@@ -10,6 +10,9 @@ import * as Sentry from "@sentry/aws-serverless";
 import { type Context, Hono } from "hono";
 import type { MiddlewareHandler } from "hono";
 import health from "./routes/health.js";
+import authMethods from "./routes/social/authMethods.js";
+import socialAttempt from "./routes/social/attempt.js";
+import socialComplete from "./routes/social/complete.js";
 import agentSendCode from "./routes/agent/agentSendCode.js";
 import agentVerifyCode from "./routes/agent/agentVerifyCode.js";
 import sendCode from "./routes/browser/sendCode.js";
@@ -141,10 +144,13 @@ export function registerAuthErrorHandler(app: Hono<AuthAppEnv>): void {
     const traceId = getTraceId(c);
     const logger = getRequestLogger(c);
     const routeKind = getApiRouteKind(c.req.path);
+    const socialCompletion = stripApiStagePrefix(c.req.path) === "/api/social/complete";
     if (isTransientDatabaseError(error)) {
       const statusCode = 503;
-      const code = "SERVICE_UNAVAILABLE";
-      const message = "Service is temporarily unavailable. Retry shortly.";
+      const code = socialCompletion ? "AUTH_ATTEMPT_RESTART_REQUIRED" : "SERVICE_UNAVAILABLE";
+      const message = socialCompletion
+        ? "Sign-in could not complete. Start a new provider sign-in; the previous proof may have been consumed."
+        : "Service is temporarily unavailable. Retry shortly.";
       logger({
         domain: "auth",
         action: "request_error",
@@ -211,7 +217,9 @@ export function registerAuthErrorHandler(app: Hono<AuthAppEnv>): void {
           500,
         );
       }
-      return jsonAuthError(c, 500, "INTERNAL_ERROR", "Authentication failed. Try again.");
+      return socialCompletion
+        ? jsonAuthError(c, 500, "AUTH_ATTEMPT_RESTART_REQUIRED", "Sign-in could not complete. Start a new provider sign-in; the previous proof may have been consumed.")
+        : jsonAuthError(c, 500, "INTERNAL_ERROR", "Authentication failed. Try again.");
     }
 
     return c.text(`Request failed. Reference: ${requestId}`, 500);
@@ -296,6 +304,9 @@ function createMountedApp(basePath: string): Hono<AuthAppEnv> {
   registerAuthErrorHandler(app);
 
   app.route("/", health);
+  app.route("/", authMethods);
+  app.route("/", socialAttempt);
+  app.route("/", socialComplete);
   app.route("/", robots);
   app.route("/", agentSendCode);
   app.route("/", agentVerifyCode);

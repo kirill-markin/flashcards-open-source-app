@@ -309,6 +309,7 @@ export function createVerifyCodeApp(dependencies: VerifyCodeDependencies): Hono<
       idToken: tokens.idToken,
       refreshToken: tokens.refreshToken,
       expiresIn: tokens.expiresIn,
+      signInHint: { method: "email", email: payload.e },
     });
   });
 

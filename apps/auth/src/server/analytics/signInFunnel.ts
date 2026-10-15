@@ -46,6 +46,10 @@ import { logWarning } from "../logger.js";
 import { getPublicApiBaseUrl, getPublicAuthBaseUrl } from "../publicUrls.js";
 import {
   createSignInCodeRequestedEvent,
+  createAuthAnalyticsFactEventFactory,
+  createSignInSucceededWithMethodEventFactory,
+  type AuthAnalyticsFact,
+  type AuthAnalyticsMethod,
   createSignInFailedEventFactory,
   createSignInScreenViewedEvent,
   createSignInSucceededEvent,
@@ -287,4 +291,12 @@ export async function reportSignInSucceeded(c: Context<AuthAppEnv>): Promise<voi
   }
 
   await reportSignInFunnelEvent(c, createSignInSucceededEvent);
+}
+
+export async function reportAuthFact(c: Context<AuthAppEnv>, fact: AuthAnalyticsFact): Promise<void> {
+  await reportSignInFunnelEvent(c, createAuthAnalyticsFactEventFactory(fact));
+}
+
+export async function reportSignInSucceededWithMethod(c: Context<AuthAppEnv>, method: AuthAnalyticsMethod): Promise<void> {
+  await reportSignInFunnelEvent(c, createSignInSucceededWithMethodEventFactory(method));
 }
