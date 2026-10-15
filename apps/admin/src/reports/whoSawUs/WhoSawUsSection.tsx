@@ -61,7 +61,6 @@ function getDayTotal(day: WhoSawUsDay): number {
   return d3.sum(whoSawUsSeriesKeys, (key) => day.visitorsBySeries[key] ?? 0);
 }
 
-/** The UTC day `notFinalDayCount` days before the day the query ran. */
 function buildLastFinalDate(generatedAtUtc: string): string {
   const generatedAt = new Date(generatedAtUtc);
   if (Number.isNaN(generatedAt.getTime())) {
@@ -81,7 +80,6 @@ function buildWhoSawUsChartModel(report: WhoSawUsReport): WhoSawUsChartModel {
   return {
     dates,
     tickDates: createTickDates(dates),
-    // A missing value is drawn as no bar, which is what the section explanation says it means.
     matrix: report.days.map((day) => ({
       date: day.date,
       valuesByKey: Object.fromEntries(
@@ -192,6 +190,7 @@ export function WhoSawUsSection(
                   <li>Store numbers right of the dashed line are not final; Google Play can lag up to a week</li>
                 </ul>
               </li>
+              {loadState.status === "ready" ? <li>Generated {formatGeneratedAt(loadState.report.generatedAtUtc)}.</li> : null}
             </ul>
           </ExplanationTip>
         </div>
@@ -213,7 +212,7 @@ export function WhoSawUsSection(
         <section className="chart-column">
           <div className="chart-shell">
             <div className="chart-meta">
-              <span>Daily unique visitors by surface</span>
+              <span>Daily visitors · UTC</span>
               <div className="chart-meta-right">
                 <ChartColorKey
                   ariaLabel="Who saw us color key"
@@ -221,7 +220,6 @@ export function WhoSawUsSection(
                   getColor={(key) => whoSawUsSeriesColors[key]}
                   getLabel={(key) => whoSawUsSeriesLabels[key]}
                 />
-                <span>Generated {formatGeneratedAt(loadState.report.generatedAtUtc)}</span>
               </div>
             </div>
             <div className="chart-scroll">

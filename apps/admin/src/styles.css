@@ -1491,6 +1491,51 @@ h2 {
   font-size: 16px;
 }
 
+.level-1-metrics-grid .chart-meta {
+  align-items: flex-start;
+  flex-direction: column;
+  gap: 12px;
+  padding: 20px 20px 8px;
+}
+
+.level-1-metrics-grid .chart-meta-right,
+.level-1-metrics-grid .platform-key {
+  justify-content: flex-start;
+  gap: 8px;
+}
+
+.level-1-metrics-grid .platform-key-item {
+  padding: 5px 8px;
+  font-weight: 600;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.level-1-metrics-grid .chart-scroll {
+  padding: 8px 12px 16px;
+}
+
+.level-1-metrics-grid .activity-chart-table {
+  margin-top: 0;
+  border-top: 1px solid var(--panel-border);
+}
+
+.level-1-metrics-grid .activity-chart-table summary {
+  padding: 16px 20px;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.level-1-metrics-grid .activity-coverage-note {
+  margin: 12px 20px 16px;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+
+.level-1-metrics-grid ul.activity-coverage-note {
+  padding-left: 18px;
+}
+
 .activity-chart-hit:focus {
   outline: none;
   stroke: var(--text);
