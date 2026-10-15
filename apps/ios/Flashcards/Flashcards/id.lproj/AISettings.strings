@@ -922,3 +922,14 @@
 "ai.consent.withdrawalBody" = "Menonaktifkan ini menghentikan permintaan AI baru. Obrolan yang sudah ada atau data yang telah dikirim ke OpenAI tidak akan dihapus.";
 "ai.consent.withdrawalFailed" = "Berbagi data dengan AI dinonaktifkan di perangkat ini. Pilihan Anda belum disinkronkan; coba lagi saat terhubung.";
 "ai.consent.retrySync" = "Coba simpan pilihan lagi";
+"settings.account.cloudSignIn.unifiedTitle" = "Masuk atau buat akun";
+"settings.account.cloudSignIn.remember" = "Ingat proses masuk ini di perangkat ini";
+"settings.account.cloudSignIn.lastUsed" = "Terakhir digunakan";
+"settings.account.cloudSignIn.showEmail" = "Tampilkan email";
+"settings.account.cloudSignIn.forget" = "Lupakan proses masuk ini";
+"settings.account.cloudSignIn.signOutForget" = "Keluar dan lupakan";
+"settings.account.cloudSignIn.mailboxPrompt" = "Verifikasi akses ke email Anda. Masukkan kode 6–8 digit. Periksa spam jika perlu.";
+"settings.account.cloudSignIn.freshAttempt" = "Proses masuk belum selesai. Mulai lagi untuk melanjutkan.";
+"settings.account.cloudSignIn.restart" = "Mulai lagi";
+"settings.account.cloudSignIn.rememberFailed" = "Anda sudah masuk. Petunjuk masuk tidak dapat disimpan. Coba lagi atau tutup.";
+"settings.account.cloudSignIn.hintFailed" = "Proses masuk yang diingat tidak dapat diperbarui. Coba lagi.";

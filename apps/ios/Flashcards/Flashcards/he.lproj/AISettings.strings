@@ -922,3 +922,14 @@
 "ai.consent.withdrawalBody" = "הכיבוי מפסיק בקשות AI חדשות. הוא לא מוחק צ׳אטים קיימים או נתונים שכבר נשלחו ל-OpenAI.";
 "ai.consent.withdrawalFailed" = "שיתוף הנתונים עם AI כבוי במכשיר הזה. הבחירה שלך עדיין לא סונכרנה; יש לנסות שוב כשיש חיבור.";
 "ai.consent.retrySync" = "ניסיון נוסף לשמירת הבחירה";
+"settings.account.cloudSignIn.unifiedTitle" = "כניסה או יצירת חשבון";
+"settings.account.cloudSignIn.remember" = "שמירת דרך הכניסה במכשיר הזה";
+"settings.account.cloudSignIn.lastUsed" = "בשימוש לאחרונה";
+"settings.account.cloudSignIn.showEmail" = "הצגת כתובת האימייל";
+"settings.account.cloudSignIn.forget" = "שכחת דרך הכניסה הזו";
+"settings.account.cloudSignIn.signOutForget" = "יציאה ושכחת דרך הכניסה";
+"settings.account.cloudSignIn.mailboxPrompt" = "יש לאמת גישה לאימייל. יש להזין קוד בן 6–8 ספרות. כדאי לבדוק גם בספאם.";
+"settings.account.cloudSignIn.freshAttempt" = "הכניסה לא הושלמה. יש להתחיל מחדש כדי להמשיך.";
+"settings.account.cloudSignIn.restart" = "התחלה מחדש";
+"settings.account.cloudSignIn.rememberFailed" = "הכניסה הצליחה. לא ניתן היה לשמור את רמז הכניסה. יש לנסות שוב או לסגור.";
+"settings.account.cloudSignIn.hintFailed" = "לא ניתן היה לעדכן את דרך הכניסה השמורה. יש לנסות שוב.";

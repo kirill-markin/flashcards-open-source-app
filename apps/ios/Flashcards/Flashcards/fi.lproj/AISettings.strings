@@ -922,3 +922,14 @@
 "ai.consent.withdrawalBody" = "Tämän poistaminen käytöstä estää uudet tekoälypyynnöt. Se ei poista aiempia keskusteluja eikä OpenAI:lle jo lähetettyjä tietoja.";
 "ai.consent.withdrawalFailed" = "Tietojen jakaminen tekoälylle on poistettu käytöstä tällä laitteella. Valintaasi ei ole vielä synkronoitu; yritä uudelleen, kun yhteys on käytettävissä.";
 "ai.consent.retrySync" = "Yritä tallentaa valinta uudelleen";
+"settings.account.cloudSignIn.unifiedTitle" = "Kirjaudu tai luo tili";
+"settings.account.cloudSignIn.remember" = "Muista tämä kirjautuminen laitteella";
+"settings.account.cloudSignIn.lastUsed" = "Viimeksi käytetty";
+"settings.account.cloudSignIn.showEmail" = "Näytä sähköpostiosoite";
+"settings.account.cloudSignIn.forget" = "Unohda tämä kirjautuminen";
+"settings.account.cloudSignIn.signOutForget" = "Kirjaudu ulos ja unohda";
+"settings.account.cloudSignIn.mailboxPrompt" = "Vahvista sähköpostin käyttöoikeus. Syötä 6–8-numeroinen koodi. Tarkista tarvittaessa roskaposti.";
+"settings.account.cloudSignIn.freshAttempt" = "Kirjautuminen ei valmistunut. Aloita uudelleen jatkaaksesi.";
+"settings.account.cloudSignIn.restart" = "Aloita uudelleen";
+"settings.account.cloudSignIn.rememberFailed" = "Olet kirjautunut. Kirjautumisvihjettä ei voitu tallentaa. Yritä uudelleen tai sulje.";
+"settings.account.cloudSignIn.hintFailed" = "Muistettua kirjautumista ei voitu päivittää. Yritä uudelleen.";

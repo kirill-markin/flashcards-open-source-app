@@ -91,6 +91,7 @@ enum LiveSmokeIdentifier {
     static let accountStatusSwitchAccountButton: String = "accountStatus.switchAccountButton"
     static let accountStatusLogoutButton: String = "accountStatus.logoutButton"
     static let cloudSignInEmailField: String = "cloudSignIn.emailField"
+    static let cloudSignInEmailMethodButton: String = "cloudSignIn.emailMethod"
     static let cloudSignInSendCodeButton: String = "cloudSignIn.sendCodeButton"
     static let cloudSignInCreateWorkspaceButton: String = "cloudSignIn.createWorkspaceButton"
     static let currentWorkspacePickerScreen: String = "currentWorkspace.pickerScreen"

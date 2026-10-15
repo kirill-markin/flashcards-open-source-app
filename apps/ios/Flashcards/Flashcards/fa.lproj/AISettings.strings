@@ -922,3 +922,14 @@
 "ai.consent.withdrawalBody" = "خاموش کردن این گزینه درخواست‌های جدید هوش مصنوعی را متوقف می‌کند. گفتگوهای موجود یا داده‌هایی که قبلاً به OpenAI فرستاده شده‌اند حذف نمی‌شوند.";
 "ai.consent.withdrawalFailed" = "اشتراک‌گذاری داده با هوش مصنوعی در این دستگاه خاموش است. انتخاب شما هنوز همگام‌سازی نشده؛ پس از اتصال دوباره تلاش کنید.";
 "ai.consent.retrySync" = "تلاش دوباره برای ذخیرهٔ انتخاب";
+"settings.account.cloudSignIn.unifiedTitle" = "ورود یا ساخت حساب";
+"settings.account.cloudSignIn.remember" = "این ورود در این دستگاه به خاطر سپرده شود";
+"settings.account.cloudSignIn.lastUsed" = "آخرین استفاده";
+"settings.account.cloudSignIn.showEmail" = "نمایش ایمیل";
+"settings.account.cloudSignIn.forget" = "فراموش کردن این ورود";
+"settings.account.cloudSignIn.signOutForget" = "خروج و فراموش کردن";
+"settings.account.cloudSignIn.mailboxPrompt" = "دسترسی به ایمیل خود را تأیید کنید. کد ۶ تا ۸ رقمی را وارد کنید. در صورت نیاز پوشهٔ هرزنامه را بررسی کنید.";
+"settings.account.cloudSignIn.freshAttempt" = "ورود کامل نشد. برای ادامه از نو شروع کنید.";
+"settings.account.cloudSignIn.restart" = "شروع دوباره";
+"settings.account.cloudSignIn.rememberFailed" = "وارد شدید. راهنمای ورود ذخیره نشد. دوباره تلاش کنید یا ببندید.";
+"settings.account.cloudSignIn.hintFailed" = "ورود به‌خاطرسپرده‌شده به‌روزرسانی نشد. دوباره تلاش کنید.";
