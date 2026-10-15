@@ -25,6 +25,7 @@ type AuthAction =
   | "analytics_ingest_error"
   | "request_error"
   | "apple_revocation_drain"
+  | "apple_notification"
   | "error";
 
 export type AuthLogEvent = Readonly<{

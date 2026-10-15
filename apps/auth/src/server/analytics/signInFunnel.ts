@@ -40,7 +40,9 @@
  * report today, and no admin SQL is changed here.
  */
 import type { Context } from "hono";
+import { performance } from "node:perf_hooks";
 import { normalizeSupportedLoginPageLocale } from "../../routes/browser/loginPageLocale.js";
+import type { LoginPageLocale } from "../../routes/browser/loginPageLocale.js";
 import { type AuthAppEnv, getRequestId, getTraceId } from "../apiErrors.js";
 import { logWarning } from "../logger.js";
 import { getPublicApiBaseUrl, getPublicAuthBaseUrl } from "../publicUrls.js";
@@ -65,10 +67,6 @@ import {
 } from "./visitorSession.js";
 
 /**
- * The added wait one instrumented request may spend. It is the whole of it, and it belongs to the
- * one call a report now makes: the credential-free collector takes the event with no credential to
- * obtain first, so there is nothing left to apportion between.
- *
  * The size of it is a concurrency limit, and it is derived rather than chosen. Concurrency is
  * arrival rate x invocation duration, so residency added here is multiplied by the rate at which
  * these routes can be driven — and they can be driven hard, because they are unauthenticated and
@@ -187,7 +185,7 @@ function readBrowserUserAgent(c: Context<AuthAppEnv>): string | null {
   return userAgent.trim() === "" ? null : userAgent;
 }
 
-function createReportCall(c: Context<AuthAppEnv>, userAgent: string): AuthAnalyticsCall {
+function createReportCall(c: Context<AuthAppEnv>, userAgent: string, timeoutMs: number): AuthAnalyticsCall {
   return {
     apiBaseUrl: getPublicApiBaseUrl(c.req.url),
     origin: getPublicAuthBaseUrl(c.req.url),
@@ -195,7 +193,7 @@ function createReportCall(c: Context<AuthAppEnv>, userAgent: string): AuthAnalyt
     requestId: getRequestId(c),
     traceId: getTraceId(c),
     route: c.req.path,
-    timeoutMs: analyticsReportBudgetMs,
+    timeoutMs,
   };
 }
 
@@ -212,9 +210,20 @@ function createReportCall(c: Context<AuthAppEnv>, userAgent: string): AuthAnalyt
 async function reportSignInFunnelEvent(
   c: Context<AuthAppEnv>,
   createEvent: AuthAnalyticsEventFactory,
+  context: AuthAnalyticsContext,
+): Promise<void> {
+  await reportSignInFunnelEvents(c, [{ createEvent, occurredAt: Date.now() }], context);
+}
+
+export type ObservedAuthAnalyticsEvent = Readonly<{ createEvent: AuthAnalyticsEventFactory; occurredAt: number }>;
+
+async function reportSignInFunnelEvents(
+  c: Context<AuthAppEnv>,
+  events: ReadonlyArray<ObservedAuthAnalyticsEvent>,
+  context: AuthAnalyticsContext,
 ): Promise<void> {
   try {
-    if (c.req.query("screen") !== signInScreenMarker) {
+    if (context.screen !== signInScreenMarker || events.length === 0) {
       return;
     }
 
@@ -237,32 +246,35 @@ async function reportSignInFunnelEvent(
       return;
     }
 
-    await postAnonymousAnalyticsEvent(
-      createReportCall(c, userAgent),
-      createEvent(
-        anonymousId,
-        Date.now(),
-        normalizeSupportedLoginPageLocale(c.req.query("ui_locale") ?? ""),
-      ),
-    );
+    const remaining = c.get("analyticsReportBudgetRemainingMs") ?? analyticsReportBudgetMs;
+    if (remaining <= 0) return;
+    const startedAt = performance.now();
+    try {
+      await Promise.all(events.map(({ createEvent, occurredAt }) => postAnonymousAnalyticsEvent(
+        createReportCall(c, userAgent, remaining),
+        { ...createEvent(anonymousId, occurredAt, context.uiLocale), clientSentAt: new Date().toISOString() },
+      )));
+    } finally {
+      c.set("analyticsReportBudgetRemainingMs", Math.max(0, remaining - Math.max(1, Math.ceil(performance.now() - startedAt))));
+    }
   } catch (error) {
     logReportFailure(c, error instanceof Error ? error.message : String(error));
   }
 }
 
 export async function reportSignInScreenViewed(c: Context<AuthAppEnv>): Promise<void> {
-  await reportSignInFunnelEvent(c, createSignInScreenViewedEvent);
+  await reportSignInFunnelEvent(c, createSignInScreenViewedEvent, readAuthAnalyticsContext(c));
 }
 
 export async function reportSignInCodeRequested(c: Context<AuthAppEnv>): Promise<void> {
-  await reportSignInFunnelEvent(c, createSignInCodeRequestedEvent);
+  await reportSignInFunnelEvent(c, createSignInCodeRequestedEvent, readAuthAnalyticsContext(c));
 }
 
 export async function reportSignInFailed(
   c: Context<AuthAppEnv>,
   reason: AuthSignInFailureReason,
 ): Promise<void> {
-  await reportSignInFunnelEvent(c, createSignInFailedEventFactory(reason));
+  await reportSignInFunnelEvent(c, createSignInFailedEventFactory(reason), readAuthAnalyticsContext(c));
 }
 
 /**
@@ -290,13 +302,27 @@ export async function reportSignInSucceeded(c: Context<AuthAppEnv>): Promise<voi
     logReportFailure(c, error instanceof Error ? error.message : String(error));
   }
 
-  await reportSignInFunnelEvent(c, createSignInSucceededEvent);
+  await reportSignInFunnelEvent(c, createSignInSucceededEvent, readAuthAnalyticsContext(c));
 }
 
 export async function reportAuthFact(c: Context<AuthAppEnv>, fact: AuthAnalyticsFact): Promise<void> {
-  await reportSignInFunnelEvent(c, createAuthAnalyticsFactEventFactory(fact));
+  await reportSignInFunnelEvent(c, createAuthAnalyticsFactEventFactory(fact), readAuthAnalyticsContext(c));
 }
 
 export async function reportSignInSucceededWithMethod(c: Context<AuthAppEnv>, method: AuthAnalyticsMethod): Promise<void> {
-  await reportSignInFunnelEvent(c, createSignInSucceededWithMethodEventFactory(method));
+  await reportSignInFunnelEvent(c, createSignInSucceededWithMethodEventFactory(method), readAuthAnalyticsContext(c));
+}
+
+export type AuthAnalyticsContext = Readonly<{ screen: "signin" | null; uiLocale: LoginPageLocale | null }>;
+
+export function readAuthAnalyticsContext(c: Context<AuthAppEnv>): AuthAnalyticsContext {
+  return { screen: c.req.query("screen") === signInScreenMarker ? "signin" : null,
+    uiLocale: normalizeSupportedLoginPageLocale(c.req.query("ui_locale") ?? "") };
+}
+
+/** Context is authenticated by the callback cookie; consent and visitor cookies are still read live. */
+export async function reportBrowserAuthEvents(
+  c: Context<AuthAppEnv>, events: ReadonlyArray<ObservedAuthAnalyticsEvent>, context: AuthAnalyticsContext,
+): Promise<void> {
+  await reportSignInFunnelEvents(c, events, context);
 }

@@ -4,6 +4,10 @@ import type { SocialClient } from "./providers.js";
 
 export type NativeSocialClient = Exclude<SocialClient, "web">;
 export type NativeSignInBinding = AuthAttemptBinding & Readonly<{ client: NativeSocialClient; purpose: "login" }>;
+export type SignInContinuationRequest =
+  | Readonly<{ action: "mailbox_send"; attempt: string; binding: AuthAttemptBinding & Readonly<{ purpose: "login" }>; email: string }>
+  | Readonly<{ action: "mailbox_verify"; attempt: string; binding: AuthAttemptBinding & Readonly<{ purpose: "login" }>; code: string }>
+  | Readonly<{ action: "redeem"; completion: string; binding: AuthAttemptBinding & Readonly<{ purpose: "login" }> }>;
 export type NativeSignInRequest =
   | Readonly<{ action: "provider"; attempt: string; binding: NativeSignInBinding; submission: AuthProviderSubmission }>
   | Readonly<{ action: "mailbox_send"; attempt: string; binding: NativeSignInBinding; email: string }>

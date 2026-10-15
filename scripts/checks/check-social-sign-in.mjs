@@ -17,6 +17,132 @@ async function request(origin, path, body) {
   return { status: response.status, body: await response.json() };
 }
 
+async function browserTransport(origin, provider, parameters) {
+  const response = await fetch(`${origin}/api/social/${provider}/start?${new URLSearchParams(parameters)}`, {
+    redirect: "manual", signal: AbortSignal.timeout(10_000),
+  });
+  assert.equal(response.status, 302);
+  assert.equal(response.headers.get("cache-control"), "no-store");
+  assert.equal(response.headers.get("referrer-policy"), "no-referrer");
+  const authorization = new URL(response.headers.get("location"));
+  assert.equal(authorization.origin, provider === "apple" ? "https://appleid.apple.com" : "https://accounts.google.com");
+  assert.equal(authorization.searchParams.get("redirect_uri"), `${origin}/api/social/${provider}/callback`);
+  assert.equal(authorization.searchParams.get("response_type"), "code");
+  assert.match(authorization.searchParams.get("state"), /^[A-Za-z0-9_-]{43}$/);
+  assert.match(authorization.searchParams.get("nonce"), provider === "apple" ? /^[0-9a-f]{64}$/ : /^[A-Za-z0-9_-]{43}$/);
+  if (provider === "google") {
+    assert.equal(authorization.searchParams.get("code_challenge_method"), "S256");
+    assert.match(authorization.searchParams.get("code_challenge"), /^[A-Za-z0-9_-]{43}$/);
+  } else assert.equal(authorization.searchParams.get("response_mode"), "form_post");
+  const state = authorization.searchParams.get("state");
+  const cookieName = `__Host-social_callback_${state}`;
+  const setCookie = response.headers.get("set-cookie") ?? "";
+  assert.equal(setCookie.startsWith(`${cookieName}=`), true);
+  assert.equal(/; Secure/i.test(setCookie) && /; HttpOnly/i.test(setCookie) && /; SameSite=None/i.test(setCookie), true);
+  assert.equal(/; Domain=/i.test(setCookie), false);
+  let cookie = setCookie.split(";")[0];
+  let newerCookieName = null;
+  const callback = async (state, boundCookie) => {
+    const fields = new URLSearchParams({ state, error: "access_denied" });
+    return fetch(`${origin}/api/social/${provider}/callback${provider === "google" ? `?${fields}` : ""}`, {
+      method: provider === "apple" ? "POST" : "GET",
+      headers: { ...(provider === "apple" ? { "Content-Type": "application/x-www-form-urlencoded", Origin: "https://appleid.apple.com" } : {}),
+        "Sec-Fetch-Site": "cross-site", ...(boundCookie === null ? {} : { Cookie: boundCookie }) },
+      body: provider === "apple" ? fields : undefined, redirect: "manual", signal: AbortSignal.timeout(10_000),
+    });
+  };
+  const otherOrigin = origins.find((candidate) => candidate !== origin);
+  const denialFields = new URLSearchParams({ state, error: "access_denied" });
+  if (provider === "google") {
+    const crossHost = await fetch(`${otherOrigin}/api/social/google/callback?${denialFields}`, {
+      headers: { Cookie: cookie, "Sec-Fetch-Site": "cross-site" }, redirect: "manual", signal: AbortSignal.timeout(10_000),
+    });
+    assert.equal(crossHost.status, 409);
+    assert.equal(crossHost.headers.get("set-cookie"), null);
+    for (const refused of [await callback(state, null), await callback(randomBytes(32).toString("base64url"), cookie)]) {
+      assert.equal(refused.status, 409);
+      assert.equal(refused.headers.get("set-cookie"), null);
+    }
+    const mismatch = await fetch(`${origin}/api/social/apple/callback`, {
+      method: "POST", headers: { Cookie: cookie, "Content-Type": "application/x-www-form-urlencoded",
+        Origin: "https://appleid.apple.com", "Sec-Fetch-Site": "cross-site" },
+      body: denialFields, redirect: "manual", signal: AbortSignal.timeout(10_000),
+    });
+    assert.equal(mismatch.status, 400);
+    assert.equal(mismatch.headers.get("set-cookie"), null);
+    const newer = await fetch(`${origin}/api/social/google/start?${new URLSearchParams(parameters)}`, {
+      redirect: "manual", signal: AbortSignal.timeout(10_000),
+    });
+    assert.equal(newer.status, 302);
+    const newerState = new URL(newer.headers.get("location")).searchParams.get("state");
+    newerCookieName = `__Host-social_callback_${newerState}`;
+    assert.notEqual(newerCookieName, cookieName);
+    const newerCookie = newer.headers.get("set-cookie");
+    assert.ok(newerCookie.startsWith(`${newerCookieName}=`));
+    cookie += `; ${newerCookie.split(";")[0]}`;
+  }
+  let denied = await callback(state, cookie);
+  const continueApple = (fields, requestOrigin) => fetch(`${origin}/api/social/apple/continue`, {
+    method: "POST", headers: { Cookie: cookie, "Content-Type": "application/x-www-form-urlencoded",
+      "Sec-Fetch-Site": "same-origin", ...(requestOrigin === null ? {} : { Origin: requestOrigin }) },
+    body: fields, redirect: "manual", signal: AbortSignal.timeout(10_000),
+  });
+  if (provider === "apple") {
+    assert.equal(denied.status, 200);
+    assert.equal(denied.headers.get("set-cookie"), null);
+    assert.equal(denied.headers.get("cache-control"), "no-store");
+    assert.equal(denied.headers.get("referrer-policy"), "same-origin");
+    assert.match(denied.headers.get("content-type"), /^text\/html/);
+    const policy = denied.headers.get("content-security-policy");
+    assert.match(policy, /default-src 'none'/);
+    assert.match(policy, /form-action 'self'/);
+    const nonce = /script-src 'nonce-([A-Za-z0-9_-]{43})'/.exec(policy)?.[1];
+    assert.ok(nonce);
+    const document = await denied.text();
+    assert.match(document, /method="post" action="\/api\/social\/apple\/continue"/);
+    assert.ok(document.includes(`<script nonce="${nonce}">`));
+    const fields = new URLSearchParams([...document.matchAll(/<input type="hidden" name="([a-z_]+)" value="([A-Za-z0-9_-]+)">/g)]
+      .map((match) => [match[1], match[2]]));
+    assert.deepEqual([...fields], [...denialFields]);
+    if (parameters.client !== "android") {
+      for (const refused of [await continueApple(fields, null), await continueApple(fields, "null"), await continueApple(fields, otherOrigin)]) {
+        assert.ok([400, 403].includes(refused.status));
+        assert.equal(refused.headers.get("set-cookie"), null);
+      }
+    }
+    denied = await continueApple(fields, origin);
+  }
+  if (parameters.client === "android") {
+    assert.equal(denied.status, 303);
+    const returned = new URL(denied.headers.get("location"));
+    assert.equal(returned.protocol, "com.nibomo.app:");
+    assert.equal(returned.host, "");
+    assert.equal(returned.pathname, "/auth/social/apple");
+    assert.equal(returned.search, "");
+    const fields = new URLSearchParams(returned.hash.slice(1));
+    assert.deepEqual([...fields.keys()].sort(), ["attempt", "status"]);
+    assert.equal(fields.get("status"), "denied");
+    assert.match(fields.get("attempt"), /^[A-Za-z0-9_-]{43}$/);
+  } else {
+    assert.equal(denied.status, 400);
+    assert.equal((await denied.json()).code, "PROVIDER_SIGN_IN_DENIED");
+  }
+  assert.equal(denied.headers.get("access-control-allow-origin"), provider === "apple" ? origin : null);
+  assert.equal(/(?:^|,\s*)(?:session|refresh|logged_in)=/.test(denied.headers.get("set-cookie") ?? ""), false);
+  assert.equal(denied.headers.get("set-cookie").startsWith(`${cookieName}=`), true);
+  if (newerCookieName !== null) assert.equal(denied.headers.get("set-cookie").includes(newerCookieName), false);
+  const replay = provider === "apple" ? await continueApple(denialFields, origin) : await callback(state, cookie);
+  assert.equal(replay.status, 409);
+  assert.equal(replay.headers.get("set-cookie"), null);
+  const wrongPhase = await fetch(`${origin}/api/social/browser/complete`, {
+    method: "POST", headers: { Cookie: cookie, Origin: origin, "Content-Type": "application/json" },
+    body: JSON.stringify({ csrfToken: state, action: "mailbox_verify", code: "123456" }),
+    redirect: "manual", signal: AbortSignal.timeout(10_000),
+  });
+  assert.equal(wrongPhase.status, 400);
+  assert.equal(wrongPhase.headers.get("set-cookie"), null);
+}
+
 for (const origin of origins) {
   for (const client of clients) {
     const metadata = await request(origin, `/api/auth-methods?client=${client}`, null);
@@ -24,8 +150,11 @@ for (const origin of origins) {
     assert.equal(metadata.body.client, client);
     assert.deepEqual(metadata.body.authOrigins, origins);
     assert.equal(metadata.body.methods.email.available, true);
-    assert.equal(metadata.body.methods.google.available, client !== "web");
-    assert.equal(metadata.body.methods.apple.available, client !== "web" && client !== "android");
+    assert.equal(metadata.body.methods.google.available, true);
+    assert.equal(metadata.body.methods.apple.available, true);
+    assert.equal(metadata.body.methods.google.transport, client === "web" ? "browser" : "native");
+    assert.equal(metadata.body.methods.apple.transport, client === "web" || client === "android" ? "browser" : "native");
+    if (client === "android") assert.equal(metadata.body.methods.apple.nativeReturnUri, "com.nibomo.app:/auth/social/apple");
     assert.equal(metadata.body.completion.productAccountProvisioned, false);
     assert.equal(/privateKey|clientSecret|secretArn|ciphertext/.test(JSON.stringify(metadata.body)), false);
   }
@@ -42,6 +171,24 @@ for (const origin of origins) {
     assert.equal((await request(origin, "/api/social/attempt", { ...parameters, purpose })).status, 400);
   }
   assert.equal((await request(origin, "/api/social/attempt", { ...parameters, provider: "apple", client: "android" })).status, 409);
+  const redirectUri = `${origin.replace("//auth.", "//app.")}/`;
+  await browserTransport(origin, "google", { redirect_uri: redirectUri });
+  await browserTransport(origin, "apple", { redirect_uri: redirectUri });
+  await browserTransport(origin, "apple", { client: "android", codeChallenge: challenge });
+  const invalidRedirect = await fetch(`${origin}/api/social/google/start?redirect_uri=https%3A%2F%2Funtrusted.invalid`, {
+    redirect: "manual", signal: AbortSignal.timeout(10_000),
+  });
+  assert.equal(invalidRedirect.status, 400);
+  assert.equal(invalidRedirect.headers.get("set-cookie"), null);
+  const notification = await request(origin, "/api/social/apple/notifications", { payload: "invalid" });
+  assert.equal(notification.status, 400);
+  assert.equal(notification.body.code, "APPLE_NOTIFICATION_INVALID");
+  const blockedCallback = await fetch(`${origin}/api/social/apple/callback`, {
+    method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded", Origin: "https://untrusted.invalid", "Sec-Fetch-Site": "cross-site" },
+    body: new URLSearchParams({ state: randomBytes(32).toString("base64url"), error: "access_denied" }),
+    redirect: "manual", signal: AbortSignal.timeout(10_000),
+  });
+  assert.equal(blockedCallback.status, 403);
   assert.equal((await request(origin, "/api/social/complete", {
     action: "mailbox_send", attempt: attempt.body.attempt, client: "ios", purpose: "login",
     codeVerifier: verifier, email: "unproved@mail.test",
@@ -59,4 +206,4 @@ for (const origin of origins) {
   });
   assert.equal(blockedOrigin.status, 403);
 }
-console.log("Native auth public API gate passed on both permanent hosts: metadata, configured native attempts, unsupported transports/purposes, unproved mailbox refusal, one-use receipt refusal, and origin denial. No provider authentication or mailbox delivery was simulated.");
+console.log("Social auth public API gate passed on both permanent hosts: configured metadata, native attempts, browser authorization/PKCE/cookies, browser and Android callback state binding/one-use claims, invalid notification refusal, unsupported native transports/purposes, unproved mailbox refusal, receipt refusal and origin denial. No provider authentication or mailbox delivery was simulated.");

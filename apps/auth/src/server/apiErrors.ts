@@ -8,6 +8,7 @@ export type AuthAppEnv = {
     requestId: string;
     traceId: AuthTraceId | null;
     logger: AuthLogger;
+    analyticsReportBudgetRemainingMs: number | undefined;
   };
 };
 
@@ -16,6 +17,8 @@ export type AuthPublicErrorCode =
   | import("./social/providers.js").SocialProofErrorCode
   | import("./social/mailboxProof.js").EnrollmentErrorCode
   | "APPLE_REVOCATION_PENDING"
+  | "APPLE_NOTIFICATION_INVALID"
+  | "PROVIDER_SIGN_IN_DENIED"
   | "INVALID_REQUEST"
   | "INVALID_EMAIL"
   | "PASSWORD_SIGN_IN_FAILED"
