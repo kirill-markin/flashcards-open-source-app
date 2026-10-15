@@ -1,6 +1,8 @@
 import { createCachedNodejsFunction } from "../lambda-input-cache";
 import * as cdk from "aws-cdk-lib";
 import * as apigw from "aws-cdk-lib/aws-apigateway";
+import * as events from "aws-cdk-lib/aws-events";
+import * as eventTargets from "aws-cdk-lib/aws-events-targets";
 import * as ec2 from "aws-cdk-lib/aws-ec2";
 import * as rds from "aws-cdk-lib/aws-rds";
 import * as lambda from "aws-cdk-lib/aws-lambda";
@@ -308,6 +310,10 @@ export function authGateway(scope: Construct, props: AuthGatewayProps): AuthGate
     description: "Signs Nibomo OIDC ID tokens; private key never leaves KMS",
   });
 
+  const appleRevocationRuleName = "flashcards-apple-revocation-drain";
+  const appleRevocationRuleArn = cdk.Stack.of(scope).formatArn({
+    service: "events", resource: "rule", resourceName: appleRevocationRuleName,
+  });
   const authFn = createCachedNodejsFunction(scope, "AuthHandler", {
     entry: resolveFromRepoRoot("apps", "auth", "src", "lambda.ts"),
     handler: "handler",
@@ -329,6 +335,7 @@ export function authGateway(scope: Construct, props: AuthGatewayProps): AuthGate
       DB_NAME: "flashcards",
       [databasePoolMaxConnectionsEnvName]: databasePoolMaxConnectionsEnvValue,
       COGNITO_USER_POOL_ID: props.userPoolId,
+      APPLE_REVOCATION_RULE_ARN: appleRevocationRuleArn,
       COGNITO_CLIENT_ID: props.userPoolClientId,
       COGNITO_REGION: cdk.Stack.of(scope).region,
       OIDC_SIGNING_KEY_ARN: oidcSigningKey.keyArn,
@@ -359,12 +366,21 @@ export function authGateway(scope: Construct, props: AuthGatewayProps): AuthGate
   });
 
   authFn.addToRolePolicy(new cdk.aws_iam.PolicyStatement({
-    actions: ["cognito-idp:AdminCreateUser"],
+    actions: ["cognito-idp:AdminCreateUser", "cognito-idp:AdminUserGlobalSignOut"],
     resources: [cdk.Stack.of(scope).formatArn({
       service: "cognito-idp",
       resource: "userpool",
       resourceName: props.userPoolId,
     })],
+  }));
+  const appleRevocationRule = new events.Rule(scope, "AppleRevocationDrainRule", {
+    ruleName: appleRevocationRuleName,
+    schedule: events.Schedule.rate(cdk.Duration.minutes(1)),
+    description: "Drain one durable Apple lifecycle step on the existing auth Lambda",
+  });
+  appleRevocationRule.addTarget(new eventTargets.LambdaFunction(authFn, {
+    retryAttempts: 0,
+    maxEventAge: cdk.Duration.minutes(1),
   }));
   oidcSigningKey.grant(authFn, "kms:Sign", "kms:GetPublicKey");
   sessionEncryptionKey.grantRead(authFn);

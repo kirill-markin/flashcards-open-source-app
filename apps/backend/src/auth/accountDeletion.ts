@@ -405,6 +405,7 @@ async function stageAccountIdentityDeletionInExecutor(
   for (const subject of subjects) {
     await executor.query("INSERT INTO auth.cognito_deletion_jobs (deletion_id, cognito_subject) VALUES ($1, $2)", [deletionId, subject]);
   }
+  await executor.query("SELECT auth.stage_deleted_apple_revocations($1)", [deletionId]);
   const emails = await executor.query<Readonly<{ email: string }>>(
     "SELECT email FROM auth.verified_login_emails WHERE cognito_subject = ANY($1::text[])", [[...subjects]],
   );

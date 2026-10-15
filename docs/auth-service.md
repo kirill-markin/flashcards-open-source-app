@@ -230,3 +230,35 @@ always report an unverified email; verify the enterprise-domain flow separately
 with a real mailbox. Each run registers a client labelled `OIDC smoke <run-id>`;
 its review-account connection remains until explicitly revoked in the database,
 because there is no OAuth connection-management HTTP API.
+
+## Apple lifecycle
+
+[Durable lifecycle](../apps/auth/src/server/social/appleLifecycle.ts) stages encrypted Apple tokens
+before unlink or account erasure and drains one leased step per minute through the existing auth
+Lambda. [Schema](../db/migrations/0187_apple_provider_lifecycle.sql) fences completion, retains failed
+jobs with capped backoff, and prevents credential replacement until cleanup finishes. Refresh-session
+revocation has its own completion receipt, so Apple retries do not repeatedly sign out email recovery
+sessions. A crash between Cognito success and its database receipt can repeat that step; existing
+Cognito account-deletion jobs remain request-driven. This does not invalidate already-issued JWTs in
+application verification; that enforcement belongs to login-method management before API activation.
+
+[Signed notifications](../apps/auth/src/server/social/appleNotifications.ts) verify Apple signatures,
+issuer, configured audiences and event claims before any write. The service has no public HTTP mount
+in this slice. The later mount must accept only `{payload: string}`, enforce the body limit before
+parsing, acknowledge only after the database commit, and return retryable failures when persistence
+fails. No provider claims or unsigned internal calls may substitute for verification. Apple publishes
+[claim/event examples](https://developer.apple.com/documentation/signinwithapple/processing-changes-for-sign-in-with-apple-accounts),
+with [delivery observations](https://developer.apple.com/forums/thread/655485) for JSON-string events
+and millisecond timestamps; its Sign in with Apple docs specify no retry schedule guarantee.
+
+Relay notifications retain only hashed delivery-policy addresses and ordered event times. The shared
+app-owned OTP initiation checks this policy and returns a clear error while forwarding is disabled;
+verified recovery aliases remain enrolled. Direct public Cognito requests are outside that check.
+Provider account deletion disables the Apple method and known relay delivery without deleting the
+independent Nibomo account or its other recovery methods.
+
+After deployment, inspect the auth Lambda CloudWatch group for `action=apple_revocation_drain`, its
+Lambda request ID and `claimed/completed/failed` counts. The fixed native EventBridge event must
+reference `flashcards-apple-revocation-drain`; HTTP envelopes cannot dispatch the privileged mode.
+Inspect nonzero failure summaries and retained job error codes; successful scheduling or schema
+checks do not prove real Apple login, token revocation, or private-relay OTP receipt.

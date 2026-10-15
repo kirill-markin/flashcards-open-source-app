@@ -1,16 +1,6 @@
-/**
- * Agent-only OTP bootstrap route for terminal clients. It returns a short
- * opaque handle instead of a signed payload so agents do not need to repeat
- * the full Cognito session blob in the next request.
- *
- * TODO(mcp-oauth): This bespoke email_otp_then_api_key agent bootstrap is the
- * precursor to the standardized OAuth 2.1 /authorize + /token endpoints added
- * for the MCP connector. Long term, MCP can become the single agent surface for
- * both naive (Claude.ai, ChatGPT) and smart clients, and this flow may fold into
- * the standard OAuth path.
- */
 import { randomUUID } from "node:crypto";
 import { Hono } from "hono";
+import { AppleRelayDeliveryDisabledError } from "../../server/social/appleNotifications.js";
 import { initiateEmailOtp } from "../../server/cognito/cognitoAuth.js";
 import { type AuthAppEnv, getRequestId } from "../../server/apiErrors.js";
 import { createAgentEnvelope, createAgentErrorEnvelope } from "../../server/agent/agentEnvelope.js";
@@ -215,6 +205,12 @@ export function createAgentSendCodeApp(dependencies: AgentSendCodeDependencies):
       try {
         session = (await dependencies.initiateEmailOtp(email)).session;
       } catch (error) {
+        if (error instanceof AppleRelayDeliveryDisabledError) {
+          return c.json(createAgentErrorEnvelope(
+            c.req.url, error.code, error.message,
+            "Ask the user to enable email forwarding for Nibomo in Apple Account settings, then start a new send-code request.",
+          ), 409);
+        }
         if (isCognitoInvalidEmailError(error)) {
           log({
             domain: "auth",

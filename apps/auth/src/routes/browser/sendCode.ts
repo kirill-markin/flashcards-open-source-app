@@ -1,17 +1,6 @@
-/**
- * Email OTP initiation endpoint. Accepts an email address, calls Cognito
- * InitiateAuth with EMAIL_OTP challenge, and stores the Cognito session
- * in an HMAC-signed cookie. No database needed.
- *
- * Auto-creates the Cognito account if the user doesn't exist yet.
- *
- * A random delay (200-800 ms) is added before responding to equalise timing
- * between new and existing users, preventing email-existence enumeration.
- *
- * Security: HMAC-signed cookie + CSRF token + 3-min TTL.
- */
 import { randomBytes, randomInt } from "node:crypto";
 import { Hono } from "hono";
+import { AppleRelayDeliveryDisabledError } from "../../server/social/appleNotifications.js";
 import { setCookie } from "hono/cookie";
 import { initiateEmailOtp, signInWithPassword, type TokenResult } from "../../server/cognito/cognitoAuth.js";
 import { type AuthAppEnv, getRequestId, jsonAuthError } from "../../server/apiErrors.js";
@@ -226,6 +215,9 @@ export function createSendCodeApp(dependencies: SendCodeDependencies): Hono<Auth
         const [result] = await Promise.all([dependencies.initiateEmailOtp(email), dependencies.jitterDelay()]);
         session = result.session;
       } catch (err) {
+        if (err instanceof AppleRelayDeliveryDisabledError) {
+          return jsonAuthError(c, 409, err.code, err.message);
+        }
         if (isCognitoInvalidEmailError(err)) {
           log({
             domain: "auth",
