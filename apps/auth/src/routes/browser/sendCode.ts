@@ -9,7 +9,7 @@ import {
   reportSignInFailed,
   reportSignInSucceeded,
 } from "../../server/analytics/signInFunnel.js";
-import { setBrowserSessionCookies } from "../../server/browserSession.js";
+import { IssuedSessionValidationError, setBrowserSessionCookies } from "../../server/browserSession.js";
 import { sign, verify } from "../../server/crypto.js";
 import { getDemoEmailPassword } from "../../server/demoEmailAccess.js";
 import { isReservedEmailDomain } from "../../server/reservedEmailDomains.js";
@@ -18,6 +18,7 @@ import {
   loadLatestSentOtpSessionToken,
   recordOtpSendDecision,
 } from "../../server/otp/otpRateLimit.js";
+import { PrincipalSessionError } from "../../server/social/principalSessions.js";
 import { log, maskEmail } from "../../server/logger.js";
 import { isTransientDatabaseError } from "../../server/databaseErrors.js";
 import { isRejectedPasswordSignIn } from "../../server/cognito/passwordSignInErrors.js";
@@ -114,12 +115,16 @@ export function createSendCodeApp(dependencies: SendCodeDependencies): Hono<Auth
       // Anyone who knows one of these emails and the shared insecure demo
       // password can sign in to that account without OTP.
       //
-      // Only the Cognito call is guarded, so nothing after it can be reported to the person as a
-      // rejected password.
       let tokens: TokenResult;
       try {
         tokens = await dependencies.signInWithPassword(email, demoPassword);
       } catch (error) {
+        if (error instanceof PrincipalSessionError) throw error;
+        if (error instanceof IssuedSessionValidationError) {
+          await reportSignInFailed(c, "server_error");
+          return jsonAuthError(c, 503, "SERVICE_UNAVAILABLE",
+            "Authentication succeeded, but session validation could not complete. Try signing in again shortly.");
+        }
         if (isRejectedPasswordSignIn(error)) {
           await reportSignInFailed(c, "invalid_code");
           return jsonAuthError(c, 401, "PASSWORD_SIGN_IN_FAILED", "Email or password is incorrect.");

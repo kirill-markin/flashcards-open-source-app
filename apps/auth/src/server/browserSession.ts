@@ -9,7 +9,10 @@ import {
 } from "aws-jwt-verify/error";
 import type { Context } from "hono";
 import { deleteCookie, setCookie } from "hono/cookie";
+import { isTransientDatabaseError } from "./databaseErrors.js";
 import { parseCookieDomainCandidates, resolveCookieDomain } from "./cookieDomain.js";
+import { log } from "./logger.js";
+import { assertVerifiedPrincipalSession, PrincipalSessionError } from "./social/principalSessions.js";
 
 const SESSION_COOKIE_MAX_AGE_SECONDS = 3_024_000;
 
@@ -94,11 +97,13 @@ function getCookieOptions(context: Context): Readonly<{
 
 export async function validateSessionToken(sessionToken: string): Promise<SessionTokenValidationResult> {
   try {
-    await getVerifier().verify(sessionToken);
+    await assertIssuedSessionToken(sessionToken);
     return { status: "valid" };
   } catch (error) {
+    if (isTransientDatabaseError(error) || (error instanceof PrincipalSessionError && error.statusCode === 503)) throw error;
     const reason = error instanceof Error ? error.message : String(error);
     if (
+      (error instanceof PrincipalSessionError && error.statusCode !== 503) ||
       error instanceof JwtParseError ||
       error instanceof JwtInvalidSignatureError ||
       error instanceof JwtInvalidSignatureAlgorithmError ||
@@ -110,6 +115,30 @@ export async function validateSessionToken(sessionToken: string): Promise<Sessio
     }
 
     return { status: "error", reason };
+  }
+}
+
+export async function assertIssuedSessionToken(sessionToken: string): Promise<void> {
+  const payload = await getVerifier().verify(sessionToken);
+  await assertVerifiedPrincipalSession(payload);
+}
+
+export class IssuedSessionValidationError extends Error {
+  constructor(cause: unknown) {
+    super("Cognito returned tokens, but session validation could not complete.", { cause });
+    this.name = "IssuedSessionValidationError";
+  }
+}
+
+/** A failed check here follows successful Cognito authentication and may follow a consumed proof. */
+export async function assertNewlyIssuedSessionToken(sessionToken: string): Promise<void> {
+  try {
+    await assertIssuedSessionToken(sessionToken);
+  } catch (error) {
+    if (error instanceof PrincipalSessionError) throw error;
+    log({ domain: "auth", action: "issued_session_validation_error",
+      error: error instanceof Error ? error.message : String(error) });
+    throw new IssuedSessionValidationError(error);
   }
 }
 
@@ -129,6 +158,7 @@ export function extractVerifiedSessionIdentity(payload: VerifiedSessionTokenPayl
 
 export async function verifySessionTokenIdentity(sessionToken: string): Promise<SessionUserIdentity> {
   const payload = await getVerifier().verify(sessionToken);
+  await assertVerifiedPrincipalSession(payload);
   return extractVerifiedSessionIdentity(payload as VerifiedSessionTokenPayload);
 }
 

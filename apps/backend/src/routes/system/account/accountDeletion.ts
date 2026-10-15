@@ -1,5 +1,5 @@
 import type { Hono } from "hono";
-import { authenticateRequest } from "../../../auth";
+import { authenticateAccountDeletionRequest } from "../../../auth";
 import { deleteAccountForAuthenticatedUser } from "../../../auth/accountDeletion";
 import {
   enforceSessionCsrfProtection,
@@ -28,7 +28,7 @@ export function registerAccountDeletionRoute(
   app.post("/me/delete", async (context) => {
     const requestId = context.get("requestId");
     const requestAuthInputs = extractRequestAuthInputs(context.req.raw);
-    const auth = await authenticateRequest(toAuthRequest(requestAuthInputs));
+    const auth = await authenticateAccountDeletionRequest(toAuthRequest(requestAuthInputs));
 
     if (auth.transport === "session") {
       await enforceSessionCsrfProtection(context.req.method, requestAuthInputs, options.allowedOrigins);

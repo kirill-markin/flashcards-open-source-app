@@ -84,11 +84,18 @@ export async function handler(): Promise<Readonly<{ passed: true; checks: Readon
     const successProof = await issueNativeProofGrant(principal, getClientId(), success.nonce, success.expiresAt);
     const tokens = extractTokenResult(await answer(principal, success, successProof), "Native proof cloud gate");
     refreshCredentials.push(tokens.refreshToken);
-    assert.equal((await verifier.verify(tokens.idToken)).sub, principal.cognitoSubject);
+    const originalClaims = await verifier.verify(tokens.idToken);
+    assert.equal(originalClaims.sub, principal.cognitoSubject);
+    assert.ok(Number.isSafeInteger(originalClaims.auth_time));
+    assert.ok(originalClaims.auth_time <= originalClaims.iat);
     await expectRefused(answer(principal, success, successProof));
     const replay = await initiateNativeProofChallenge(principal);
     await expectRefused(answer(principal, replay, successProof));
-    assert.equal((await verifier.verify((await refreshTokens(tokens.refreshToken)).idToken)).sub, principal.cognitoSubject);
+    await setTimeout(1_100);
+    const refreshedClaims = await verifier.verify((await refreshTokens(tokens.refreshToken)).idToken);
+    assert.equal(refreshedClaims.sub, principal.cognitoSubject);
+    assert.equal(refreshedClaims.auth_time, originalClaims.auth_time);
+    assert.ok(refreshedClaims.iat > originalClaims.iat);
 
     const bridgeTokens = await exchangeVerifiedPrincipalForTokens(principal);
     refreshCredentials.push(bridgeTokens.refreshToken);
@@ -96,7 +103,7 @@ export async function handler(): Promise<Readonly<{ passed: true; checks: Readon
     return { passed: true, checks: [
       "USER_AUTH/PASSWORD", "CUSTOM_AUTH", "forged-metadata", "wrong-client", "wrong-nonce",
       "expired-grant", "SQL-wrong-principal/username", "atomic-redemption", "session-and-grant-replay",
-      "REFRESH_TOKEN_AUTH", "internal-bridge",
+      "REFRESH_TOKEN_AUTH", "internal-bridge", "signed-original-auth-time",
     ] };
   } catch (error) {
     primaryError = error;
