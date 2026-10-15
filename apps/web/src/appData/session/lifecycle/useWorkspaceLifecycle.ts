@@ -1,3 +1,4 @@
+import { consumeAcceptedBrowserSignInMethod, readBrowserSignInInformationGeneration } from "../../../api/browserHints";
 import { mergeRefreshedSessionPreferences, readAccountPreferencesWriteVersion } from "../accentColorWrite";
 import { clearEntitlementState, readEntitlementIdentityGeneration, setEntitlementIdentity } from "../../../premium/entitlementStore";
 import { useCallback, useEffect, useRef } from "react";
@@ -24,6 +25,8 @@ import {
   registerAnalyticsSessionOwnerPublisher,
   setAnalyticsConfirmedOwner,
   syncAnalyticsPreferencesWithAccount,
+  track,
+  readAnalyticsSessionOwnerId,
 } from "../../../analytics";
 import { clearAnalyticsVisitorCookie, resetAnalyticsSession } from "../../../analytics/identity";
 import type { IndexedDbOpenRecoveryState } from "../../../appError/AppErrorContext";
@@ -141,7 +144,38 @@ export function useWorkspaceLifecycle(params: UseWorkspaceLifecycleParams): Work
   // active workspace id instead of the workspace object: publishing the same
   // workspace as a new object must not tear down and restart that timer.
   const activeWorkspaceId = activeWorkspace?.workspaceId ?? null;
+  // One-use method consumption must survive a ready-to-ready workspace switch.
+  const hasReadyWorkspace = activeWorkspaceId !== null;
+  const sessionUserId = session?.userId ?? null;
   const resumePromiseRef = useRef<Promise<void> | null>(null);
+  const analyticsReadyRef = useRef<Readonly<{ userId: string; ready: Promise<void> }> | null>(null);
+
+  useEffect(() => {
+    if (sessionLoadState !== "ready" || sessionVerificationState !== "verified"
+      || sessionUserId === null || !hasReadyWorkspace) return;
+    const userId = sessionUserId;
+    const generation = readEntitlementIdentityGeneration();
+    const informationGeneration = readBrowserSignInInformationGeneration();
+    let current = true;
+    const isCurrent = (): boolean => current && !indexedDbOpenRecoveryState.hasFailed()
+      && informationGeneration === readBrowserSignInInformationGeneration()
+      && generation === readEntitlementIdentityGeneration() && readAnalyticsSessionOwnerId() === userId;
+    void (async (): Promise<void> => {
+      const preferences = analyticsReadyRef.current;
+      if (preferences?.userId !== userId) return;
+      await preferences.ready;
+      if (!isCurrent()) return;
+      const verified = await revalidateSessionRequest();
+      if (!isCurrent() || verified.userId !== userId) return;
+      const method = await consumeAcceptedBrowserSignInMethod();
+      if (method === null || !isCurrent()) return;
+      track({ name: "auth_session_accepted", screen: "signin", method });
+      track({ name: "auth_account_ready", screen: "signin", method });
+    })().catch((error: unknown): void => {
+      if (isCurrent()) setErrorMessage(normalizeCaughtError(error).message);
+    });
+    return () => { current = false; };
+  }, [hasReadyWorkspace, indexedDbOpenRecoveryState, sessionUserId, sessionLoadState, sessionVerificationState, setErrorMessage]);
 
   const resumeConfirmedAccountDeletion = useCallback(async function resumeConfirmedAccountDeletion(): Promise<void> {
     await runWithAccountDeletionLock(
@@ -327,6 +361,7 @@ export function useWorkspaceLifecycle(params: UseWorkspaceLifecycleParams): Work
       const analyticsPreferencesSync = syncAnalyticsPreferencesWithAccount(
         currentSession.preferences,
       );
+      analyticsReadyRef.current = { userId: currentSession.userId, ready: analyticsPreferencesSync };
       // Started after the owner publish above, and never awaited: no user action may be blocked,
       // delayed or failed by an analytics call. `getSession()` above is also the
       // request-context call the route requires to have run first, and the account it verified is
@@ -478,7 +513,8 @@ export function useWorkspaceLifecycle(params: UseWorkspaceLifecycleParams): Work
           // dropped it and advanced the guest identity generation, which also stops a link started
           // by `initialize` from binding it to the account being published on this line.
           setAnalyticsConfirmedOwner(currentSession.userId);
-          void syncAnalyticsPreferencesWithAccount(currentSession.preferences);
+          analyticsReadyRef.current = { userId: currentSession.userId,
+            ready: syncAnalyticsPreferencesWithAccount(currentSession.preferences) };
           setSessionVerificationState("verified");
           setSessionErrorMessage("");
           setErrorMessage("");

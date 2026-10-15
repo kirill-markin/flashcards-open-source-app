@@ -1512,6 +1512,12 @@ const viCatalog: TranslationCatalog = {
       value: "Xóa",
     },
   },
+  browserSignInPrivacy: {
+    forget: "Quên thông tin đăng nhập",
+    signOutForget: "Đăng xuất và quên",
+    forgotten: "Đã quên thông tin đăng nhập.",
+    error: "Không thể đổi thông tin đăng nhập. Cho phép dữ liệu trang xác thực rồi thử lại.",
+  },
   accountStatus: {
     title: "Trạng thái tài khoản",
     subtitle: "Xem tài khoản đang đăng nhập và phiên trình duyệt hiện tại.",

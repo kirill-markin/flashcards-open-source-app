@@ -1527,6 +1527,12 @@ const ukCatalog: TranslationCatalog = {
       value: "Видалити",
     },
   },
+  browserSignInPrivacy: {
+    forget: "Забути дані про вхід",
+    signOutForget: "Вийти й забути",
+    forgotten: "Дані про вхід видалено.",
+    error: "Не вдалося змінити дані про вхід. Дозвольте зберігання даних сайту авторизації та повторіть спробу.",
+  },
   accountStatus: {
     title: "Стан акаунта",
     subtitle: "Перегляньте поточний акаунт і сесію браузера.",

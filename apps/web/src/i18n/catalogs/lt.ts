@@ -1527,6 +1527,12 @@ const ltCatalog: TranslationCatalog = {
       value: "Ištrinti",
     },
   },
+  browserSignInPrivacy: {
+    forget: "Pamiršti prisijungimo informaciją",
+    signOutForget: "Atsijungti ir pamiršti",
+    forgotten: "Prisijungimo informacija pamiršta.",
+    error: "Nepavyko pakeisti prisijungimo informacijos. Leiskite autentifikavimo svetainės duomenis ir bandykite dar kartą.",
+  },
   accountStatus: {
     title: "Paskyros būsena",
     subtitle: "Peržiūrėkite dabartinę prisijungusią paskyrą ir naršyklės sesiją.",

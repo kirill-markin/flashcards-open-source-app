@@ -1512,6 +1512,12 @@ const itCatalog: TranslationCatalog = {
       value: "Elimina",
     },
   },
+  browserSignInPrivacy: {
+    forget: "Dimentica le informazioni di accesso",
+    signOutForget: "Esci e dimentica",
+    forgotten: "Informazioni di accesso dimenticate.",
+    error: "Impossibile modificare le informazioni di accesso. Consenti i dati del sito di autenticazione e riprova.",
+  },
   accountStatus: {
     title: "Stato dell’account",
     subtitle: "Consulta l’account attualmente connesso e la sessione del browser.",
