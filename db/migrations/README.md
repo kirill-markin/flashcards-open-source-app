@@ -31,6 +31,8 @@ The owner-only [proof services](../../apps/auth/src/server/social/accountConnect
 
 Private saved-collision capture/adoption, durable historical workspace baselines and bounded cleanup
 are defined in [`0212_account_connection_readiness.sql`](0212_account_connection_readiness.sql).
+Private replay origin binding is defined in
+[`0213_account_connection_replay_origin.sql`](0213_account_connection_replay_origin.sql), at migration count 215.
 The real module/PostgreSQL boundary is
 [`accountConnectionPreparation.postgres.integration.ts`](../../apps/backend/src/auth/accountConnectionPreparation.postgres.integration.ts).
 The [private preparation module](../../apps/auth/src/server/social/accountConnectionPreparation.ts) requires
