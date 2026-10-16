@@ -9,7 +9,7 @@ import { captureAppOperationError } from "../../../observability/appOperationObs
 import type { IndexedDbOpenRecoveryState } from "../../../appError/AppErrorContext";
 import { nowIso } from "../../domain";
 import {
-  createCardLocally,
+  createOnboardingDemoCardLocally,
   type LocalCardMutationResult,
 } from "./syncLocalMutations";
 
@@ -72,10 +72,6 @@ async function buildDemoCardText(): Promise<DemoCardText> {
   };
 }
 
-// Seeds the onboarding demo card for a brand-new user. The card is an ordinary card:
-// it goes through createCardLocally, so it lands in IndexedDB and in the outbox and is
-// pushed by the normal sync path. Nothing else in the app special-cases it.
-//
 // This is a new-user card, not a new-workspace card. An empty workspace is not by itself
 // a new account: an existing user who deliberately creates a second workspace is handed an
 // empty one too, and would otherwise be onboarded again. isOnlyWorkspaceForUser carries
@@ -106,7 +102,7 @@ export async function seedDemoCardForNewWorkspace(
 
   try {
     const demoCardText = await buildDemoCardText();
-    return await createCardLocally(
+    return await createOnboardingDemoCardLocally(
       {
         workspaceId: input.workspaceId,
         input: {

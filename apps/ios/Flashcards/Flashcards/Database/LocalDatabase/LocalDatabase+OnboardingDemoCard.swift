@@ -61,13 +61,6 @@ extension LocalDatabase {
         try self.seedOnboardingDemoCardIntoEmptyWorkspace(workspaceId: workspaceId)
     }
 
-    /**
-     The card is written through the normal card mutation path, so it is an
-     ordinary `demo`-tagged card everywhere afterwards: review, cards list,
-     filters, tags, sync and export treat it like any other card.
-
-     Skipped when the workspace holds any card row, tombstones included.
-     */
     func seedOnboardingDemoCardIntoEmptyWorkspace(workspaceId: String) throws {
         let existingCardCount = try self.core.scalarInt(
             sql: "SELECT COUNT(*) FROM cards WHERE workspace_id = ?",
@@ -77,16 +70,26 @@ extension LocalDatabase {
             return
         }
 
-        _ = try self.createCards(
-            workspaceId: workspaceId,
-            inputs: [
-                CardEditorInput(
-                    frontText: onboardingDemoCardFrontText(),
-                    backText: onboardingDemoCardBackText(),
-                    tags: [onboardingDemoCardTag]
-                )
-            ]
+        let input = CardEditorInput(
+            frontText: onboardingDemoCardFrontText(),
+            backText: onboardingDemoCardBackText(),
+            tags: [onboardingDemoCardTag]
         )
+        try self.cardStore.validateCardInput(input: input)
+        _ = try self.core.inTransaction {
+            let now = nowIsoTimestamp()
+            let metadata = CardMetadata(
+                source: makeDefaultCardMetadata(createdAt: now).source,
+                onboardingDemo: OnboardingDemoMetadata(
+                    frontText: input.frontText, backText: input.backText, tags: input.tags,
+                    cardType: basicCardType, wasEdited: false
+                )
+            )
+            return try self.persistCardMutation(
+                workspaceId: workspaceId, input: input, initialMetadata: metadata, cardId: nil,
+                cloudSettings: self.workspaceSettingsStore.loadCloudSettings(), now: now
+            )
+        }
     }
 
     private func captureOnboardingDemoCardSeedFailure(error: Error, workspaceId: String?, stage: String) {
