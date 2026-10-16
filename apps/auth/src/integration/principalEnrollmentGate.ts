@@ -300,7 +300,8 @@ export async function checkAppleConsentReconnect(runtime: pg.Client, owner: pg.C
         "SELECT auth.apply_apple_notification($1,$2,$3,$4,$5,NULL) AS outcome", parameters);
       return { outcome: (await apply()).rows[0].outcome, replay: apply };
     };
-    assert.equal((await notification("consent-revoked", revokedAt)).outcome, "applied");
+    const revoked = await notification("consent-revoked", revokedAt);
+    assert.equal(revoked.outcome, "applied");
     const record = (attempt: Awaited<ReturnType<typeof beginVerifying>>, issuedAt: number) => runtime.query(
       "SELECT auth.record_apple_login_proof($1,$2,'module-fixture',$3,$4)",
       [authHandleHash(attempt.handle), attempt.claimId, appleProvider, issuedAt]);
@@ -312,7 +313,26 @@ export async function checkAppleConsentReconnect(runtime: pg.Client, owner: pg.C
       await owner.query("DELETE FROM auth.apple_revocation_credentials WHERE provider_subject = $1", [appleProvider]);
       await owner.query("UPDATE auth.apple_session_revocation_jobs SET completed_at = clock_timestamp(), cognito_subject = NULL, lease_id = NULL, lease_until = NULL WHERE subject_sha256 = $1 AND completed_at IS NULL", [authHandleHash(appleSubject)]);
     };
-    await finishCleanup();
+    // Exercise the real queue boundary; fixture receipts do not attest external provider calls.
+    const sessionJob = (await runtime.query<{ job_id: string; lease_id: string; cognito_subject: string }>(
+      "SELECT * FROM auth.claim_apple_session_revocation()")).rows[0];
+    assert.ok(sessionJob);
+    assert.equal(sessionJob.cognito_subject, appleSubject);
+    await runtime.query("SELECT auth.complete_apple_session_revocation($1,$2)", [sessionJob.job_id, sessionJob.lease_id]);
+    assert.equal((await runtime.query<{ pending: boolean }>(
+      "SELECT auth.apple_revocation_pending($1) AS pending", [appleProvider])).rows[0].pending, true);
+    const providerPending = await beginVerifying();
+    await assert.rejects(record(providerPending, Math.floor(Date.now() / 1_000) + 2), { code: "P4102" });
+    const providerJob = (await runtime.query<{
+      job_id: string; lease_id: string; provider_subject: string; ciphertext: string;
+    }>("SELECT * FROM auth.claim_apple_revocation()")).rows[0];
+    assert.ok(providerJob);
+    assert.equal(providerJob.provider_subject, appleProvider);
+    await runtime.query("SELECT auth.complete_apple_revocation($1,$2,$3)",
+      [providerJob.job_id, providerJob.lease_id, providerJob.ciphertext]);
+    assert.equal((await revoked.replay()).rows[0].outcome, "applied");
+    assert.equal((await runtime.query<{ pending: boolean }>(
+      "SELECT auth.apple_revocation_pending($1) AS pending", [appleProvider])).rows[0].pending, false);
     const stale = await beginVerifying();
     await assert.rejects(record(stale, Math.floor(revokedAt.getTime() / 1_000)), { code: "P4103" });
     const fence = (await owner.query<{ minimum_auth_time: string }>(
