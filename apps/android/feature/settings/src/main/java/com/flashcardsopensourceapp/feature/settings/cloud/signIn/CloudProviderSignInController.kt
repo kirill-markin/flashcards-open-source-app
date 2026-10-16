@@ -14,6 +14,8 @@ import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsAuthPro
 import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsEvent
 import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsSignInFailureReason
 import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsSurface
+import com.flashcardsopensourceapp.core.ui.nextAppTechnicalErrorReportId
+import com.flashcardsopensourceapp.core.ui.renderTechnicalErrorDetails
 import com.flashcardsopensourceapp.data.local.cloud.remote.CloudRemoteException
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudAuthMethods
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudPendingSocialSignIn
@@ -48,6 +50,9 @@ data class CloudProviderSignInUiState(
     val codeRequested: Boolean,
     val requiresRestart: Boolean,
     val error: String,
+    val cleanupPending: Boolean,
+    val errorTechnicalDetails: String?,
+    val errorTechnicalDetailsReportId: String?,
     val prepared: Boolean
 )
 
@@ -62,7 +67,8 @@ class CloudProviderSignInController internal constructor(
 ) {
     private val mutableState = MutableStateFlow(CloudProviderSignInUiState(
         methods = null, hint = null, step = CloudSignInEntryStep.METHODS, busy = false,
-        email = "", code = "", codeRequested = false, requiresRestart = false, error = "", prepared = false
+        email = "", code = "", codeRequested = false, requiresRestart = false, error = "", cleanupPending = false,
+        errorTechnicalDetails = null, errorTechnicalDetailsReportId = null, prepared = false
     ))
     val uiState = mutableState.asStateFlow()
     private var pending: CloudPendingSocialSignIn? = null
@@ -253,7 +259,8 @@ class CloudProviderSignInController internal constructor(
     fun resetEntry() {
         generation += 1
         mutableState.update { it.copy(step = CloudSignInEntryStep.METHODS, error = "", code = "",
-            email = "", codeRequested = false, requiresRestart = false, prepared = false) }
+            email = "", codeRequested = false, requiresRestart = false, cleanupPending = false,
+            errorTechnicalDetails = null, errorTechnicalDetailsReportId = null, prepared = false) }
     }
 
     private fun reportAppleCredentialReceived() {
@@ -277,19 +284,26 @@ class CloudProviderSignInController internal constructor(
     private fun runOperation(action: suspend () -> Unit) {
         if (mutableState.value.busy) return
         val requestGeneration = generation
-        mutableState.update { it.copy(busy = true, error = "") }
+        mutableState.update { it.copy(busy = true, error = "", cleanupPending = false,
+            errorTechnicalDetails = null, errorTechnicalDetailsReportId = null) }
         scope.launch {
             try {
                 action()
             } catch (error: CancellationException) {
                 throw error
             } catch (error: Exception) {
+                val cleanupPending = error is CloudRemoteException && error.statusCode == 409 &&
+                    error.errorCode in setOf("APPLE_REVOCATION_PENDING", "PROVIDER_METHOD_CLEANUP_REQUIRED")
                 if (requestGeneration == generation) mutableState.update { it.copy(
-                    error = strings.get(when (error) {
-                        is IOException -> R.string.settings_auth_network_restart
-                        is GetCredentialException -> R.string.settings_auth_google_failed
+                    step = if (cleanupPending) CloudSignInEntryStep.METHODS else it.step,
+                    error = strings.get(when {
+                        cleanupPending -> R.string.settings_auth_apple_cleanup_pending
+                        error is IOException -> R.string.settings_auth_network_restart
+                        error is GetCredentialException -> R.string.settings_auth_google_failed
                         else -> R.string.settings_auth_fresh_attempt
-                    }), requiresRestart = true
+                    }), requiresRestart = true, cleanupPending = cleanupPending,
+                    errorTechnicalDetails = renderTechnicalErrorDetails(error),
+                    errorTechnicalDetailsReportId = nextAppTechnicalErrorReportId("provider-sign-in")
                 ) }
             } finally {
                 mutableState.update { it.copy(busy = false) }

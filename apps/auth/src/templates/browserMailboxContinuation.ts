@@ -2,6 +2,7 @@ import type { AuthAnalyticsContext } from "../server/analytics/signInFunnel.js";
 import { browserAuthFactsScript } from "./browserAuthFacts.js";
 import { renderBrowserHintFeedback } from "./browserHintControls.js";
 import type { LoginPageLocale } from "../routes/browser/loginPageLocale.js";
+import { AUTH_ENTRY_COPY } from "./authEntryCopy.js";
 import { BROWSER_CONTINUATION_COPY } from "./browserContinuationCopy.js";
 import { browserCompletionConsumerScript, browserHtml, browserScriptJson, renderBrowserDocument } from "./browserCompletion.js";
 import { getLoginPageCopy } from "./login.js";
@@ -45,6 +46,7 @@ export function renderBrowserMailboxContinuation(
     const view = ${browserScriptJson(view)};
     const copy = ${browserScriptJson(copy)};
     const loginCopy = ${browserScriptJson(loginCopy)};
+    const entryCopy = ${browserScriptJson(AUTH_ENTRY_COPY[locale])};
     const uiLocale = ${JSON.stringify(locale)};
     const authFactScreen = view.analyticsScreen;
     const collectionDisabled = authFactScreen === null;
@@ -66,6 +68,9 @@ export function renderBrowserMailboxContinuation(
     let completed = false;
 
     function showError(message) {
+      errorElement.className = "error";
+      errorElement.setAttribute("role", "alert");
+      statusElement.textContent = "";
       errorElement.textContent = message;
       errorElement.hidden = false;
     }
@@ -119,6 +124,14 @@ export function renderBrowserMailboxContinuation(
       }
       if (!response.ok) {
         const code = result && typeof result.code === "string" ? result.code : "HTTP_" + response.status;
+        if (response.status === 409 && view.intent === "login"
+          && (code === "APPLE_REVOCATION_PENDING" || code === "PROVIDER_METHOD_CLEANUP_REQUIRED")) {
+          stop("HTTP " + response.status + ": " + code);
+          errorElement.className = "hint";
+          errorElement.setAttribute("role", "status");
+          statusElement.textContent = entryCopy.cleanupPending;
+          return { kind: "rejected" };
+        }
         showError(loginCopy.genericErrorPrefix + ": " + code);
         if (code !== "ENROLLMENT_EMAIL_INVALID") stop(loginCopy.genericErrorPrefix + ": " + code + ". " + copy.restart);
         return { kind: "rejected" };
