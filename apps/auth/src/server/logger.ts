@@ -32,6 +32,7 @@ type AuthAction =
   | "apple_revocation_drain"
   | "apple_notification"
   | "provider_mailbox_verification_required"
+  | "provider_reconnected"
   | "error";
 
 export type AuthLogEvent = Readonly<{

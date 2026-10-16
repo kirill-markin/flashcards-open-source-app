@@ -11,6 +11,7 @@ import { isCognitoTypedError } from "../../server/cognito/cognitoErrors.js";
 import { getSocialRequestSource } from "../../server/social/requestSource.js";
 import { requireSocialRateLimit, type SocialPublicAction } from "../../server/social/rateLimit.js";
 import { AccountTransportError } from "./accountTransport.js";
+import { logWarning } from "../../server/logger.js";
 
 export async function requireSocialRequest(c: Context<AuthAppEnv>, action: SocialPublicAction): Promise<string> {
   c.header("Cache-Control", "no-store");
@@ -74,7 +75,9 @@ export function socialErrorResponse(c: Context<AuthAppEnv>, error: unknown): Res
   if (error instanceof PrincipalEnrollmentError) {
     return jsonAuthError(c, 409, error.code, error.code === "PROVIDER_METHOD_DISABLED"
       ? "This provider method is disabled. Sign in with another usable method, then explicitly re-enable it."
-      : "Mailbox or provider enrollment was rejected. Start a new provider sign-in and verify your mailbox.");
+      : error.code === "PROVIDER_ENROLLMENT_CONFLICT"
+        ? "This identity belongs to a different account or its enrollment changed. Sign in with that account's existing method; accounts cannot be merged during sign-in."
+        : "Mailbox enrollment was rejected. Start a new provider sign-in and verify your mailbox.");
   }
   if (error instanceof AppleRevocationPendingError) return jsonAuthError(c, 409, error.code, error.message);
   if (error instanceof AppleRelayDeliveryDisabledError) {
@@ -90,6 +93,32 @@ export function socialErrorResponse(c: Context<AuthAppEnv>, error: unknown): Res
   }
   const state = getDatabaseErrorSqlState(error);
   const message = getDatabaseErrorMessage(error);
+  if (state === "P4101" || (state === "23514" && [
+    "Verified provider method is disabled; start again",
+    "Apple login method is disabled; explicit reauthorization is required",
+  ].includes(message))) {
+    logWarning({ domain: "auth", action: "error", code: "PROVIDER_METHOD_DISABLED", sqlState: state });
+    return jsonAuthError(c, 409, "PROVIDER_METHOD_DISABLED",
+      "This sign-in method was unlinked or cannot be automatically reconnected. Sign in with another method, then explicitly re-enable it in account settings.");
+  }
+  if (state === "P4102" || (state === "55006" && [
+    "Apple revocation pending",
+    "Apple revocation is pending; retry a fresh Apple sign-in after cleanup completes",
+  ].includes(message))) {
+    logWarning({ domain: "auth", action: "error", code: "APPLE_REVOCATION_PENDING", sqlState: state });
+    return jsonAuthError(c, 409, "APPLE_REVOCATION_PENDING",
+      "Apple sign-in cleanup is still running. Wait a moment, then start a fresh Apple sign-in.");
+  }
+  if (state === "P4103") {
+    logWarning({ domain: "auth", action: "error", code: "APPLE_RECONNECT_PROOF_REQUIRED", sqlState: state });
+    return jsonAuthError(c, 409, "APPLE_RECONNECT_PROOF_REQUIRED",
+      "Apple consent or account security changed after this authorization. Start a fresh Apple sign-in after cleanup finishes.");
+  }
+  if (state === "23505") {
+    logWarning({ domain: "auth", action: "error", code: "PROVIDER_ENROLLMENT_CONFLICT", sqlState: state });
+    return jsonAuthError(c, 409, "PROVIDER_ENROLLMENT_CONFLICT",
+      "This identity belongs to a different account. Sign in to that account with its existing method; accounts cannot be merged during sign-in.");
+  }
   if (state === "23514" && message.startsWith("Cannot unlink the last usable method;")) {
     return jsonAuthError(c, 409, "LAST_USABLE_METHOD", "Link another provider or prove an existing non-relay email before unlinking this method.");
   }
@@ -102,7 +131,9 @@ export function socialErrorResponse(c: Context<AuthAppEnv>, error: unknown): Res
   if (state === "23514" && message === "Recent bound current-account proof required; start again") {
     return jsonAuthError(c, 409, "FRESH_ACCOUNT_PROOF_REQUIRED", "Verify a current sign-in method again before managing providers.");
   }
-  if (state === "23514" || state === "23505" || state === "55006") {
+  if (state === "23514" || state === "55006") {
+    logWarning({ domain: "auth", action: "error", code: "AUTH_ATTEMPT_RESTART_REQUIRED", sqlState: state,
+      reasonCategory: "social_lifecycle_refused" });
     return jsonAuthError(c, 409, "AUTH_ATTEMPT_RESTART_REQUIRED", "The sign-in lifecycle changed or its proof was consumed. Start a new provider sign-in.");
   }
   throw error;

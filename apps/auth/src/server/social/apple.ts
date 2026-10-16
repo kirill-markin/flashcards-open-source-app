@@ -18,7 +18,7 @@ const verifiers = new Map<string, ReturnType<typeof createProviderVerifier>>();
 
 export async function verifyAppleIdentityToken(
   token: string, rawNonce: string, client: SocialClient,
-): Promise<VerifiedProviderIdentity> {
+): Promise<VerifiedProviderIdentity & Readonly<{ issuedAt: number }>> {
   const config = getAppleSignInConfig();
   if (config === null) throw new SocialProofError("PROVIDER_UNAVAILABLE");
   validateProofInput(token, rawNonce);
@@ -35,7 +35,7 @@ export async function verifyAppleIdentityToken(
     const verified = readProviderBoolean(payload.email_verified);
     const privateRelay = readProviderBoolean(payload.is_private_email);
     const relayDomain = address?.endsWith("@privaterelay.appleid.com") === true || address?.endsWith("@private.icloud.com") === true;
-    return { provider: "apple", subject, clientId,
+    return { provider: "apple", subject, clientId, issuedAt: payload.iat as number,
       email: address === null ? null : { address, authority: verified ? "provider" : "otp_required", privateRelay: privateRelay || relayDomain } };
   } catch (error) {
     rejectProviderProof(error);
@@ -60,7 +60,7 @@ export type AppleAuthorizationProof = Readonly<{
 }>;
 
 export async function exchangeAppleAuthorizationCode(proof: AppleAuthorizationProof): Promise<Readonly<{
-  identity: VerifiedProviderIdentity; credential: EncryptedAppleCredential;
+  identity: VerifiedProviderIdentity & Readonly<{ issuedAt: number }>; credential: EncryptedAppleCredential;
 }>> {
   const config = getAppleSignInConfig();
   if (config === null) throw new SocialProofError("PROVIDER_UNAVAILABLE");
