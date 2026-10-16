@@ -26,7 +26,7 @@ export type AccountProviderContinuationResult = Readonly<{
 }>;
 type NativeSignInResult = Readonly<{ response: NativeSignInResponse; method: IdentityProvider }>;
 
-/** Tokens create no org rows: native guest prepare/complete must precede the first generic account request. */
+/** Guest prepare/complete precedes generic provisioning, including a bound Apple return with an early profile. */
 export async function completeNativeSignIn(request: NativeSignInRequest, trustedIp: string): Promise<NativeSignInResult> {
   return completeSignIn(request, trustedIp);
 }
