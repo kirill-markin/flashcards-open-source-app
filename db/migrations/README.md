@@ -24,6 +24,11 @@ Private bounded account union, exact receipts and scoped retired-shell deletion 
 [`0210_proved_account_union.sql`](0210_proved_account_union.sql). The real PostgreSQL boundary is
 [`provedAccountUnion.postgres.integration.ts`](../../apps/backend/src/auth/provedAccountUnion.postgres.integration.ts).
 
+Private account-connection proof reservations and exact session/transport receipts are defined in
+[`0211_account_connection_proofs.sql`](0211_account_connection_proofs.sql), with the real PostgreSQL/module boundary in
+[`accountConnectionProofs.postgres.integration.ts`](../../apps/backend/src/auth/accountConnectionProofs.postgres.integration.ts).
+The owner-only [proof services](../../apps/auth/src/server/social/accountConnectionProof.ts) have no public coordinator or union grant.
+
 ## Corrections to applied migrations
 
 An applied migration is immutable. `scripts/deploy/migrate.sh` records every migration by filename

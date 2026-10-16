@@ -53,6 +53,7 @@ export async function completeAuthoritativeLoginInExecutor(
   proof: ProviderEnrollmentProof, principal: CognitoEmailPrincipal | null,
 ): Promise<AuthoritativeLoginResult> {
   if (attempt.provider !== proof.provider) throw new AuthAttemptError("AUTH_ATTEMPT_INVALID");
+  await executor.query("SELECT auth.assert_unreserved_auth_attempt($1)", [authHandleHash(attempt.handle)]);
   const boundSubject = await lockAuthoritativeLoginPrincipalsInExecutor(executor, proof, principal);
   const reconnect = proof.provider === "apple"
     ? await executor.query<Readonly<{ reconnected: boolean }>>("SELECT auth.reconnect_apple_login_attempt($1,$2,$3) AS reconnected",
