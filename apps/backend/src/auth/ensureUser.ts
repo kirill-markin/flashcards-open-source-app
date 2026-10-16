@@ -1,7 +1,6 @@
 import { randomUUID } from "node:crypto";
 import {
   applyUserDatabaseScopeInExecutor,
-  transactionWithUserScope,
   type DatabaseExecutor,
 } from "../database";
 import { unsafeTransaction } from "../database/unsafe";
@@ -13,6 +12,7 @@ import {
   lockCognitoIdentityLifecycleInExecutor,
   lockAccountLifecyclesInExecutor,
   loadClientAccountIdentityInExecutor,
+  resolveCanonicalAccountIdInExecutor,
   type ClientAccountIdentity,
 } from "./userIdentities";
 
@@ -116,7 +116,11 @@ export async function ensureUserProfileInExecutor(
 }
 
 export async function ensureUserProfile(userId: string, email: string | null): Promise<UserProfile> {
-  return transactionWithUserScope({ userId }, async (executor) => ensureUserProfileInExecutor(executor, userId, email));
+  return unsafeTransaction(async (executor) => {
+    const canonicalUserId = await resolveCanonicalAccountIdInExecutor(executor, userId);
+    await applyUserDatabaseScopeInExecutor(executor, { userId: canonicalUserId });
+    return ensureUserProfileInExecutor(executor, canonicalUserId, email);
+  });
 }
 
 /** Reads under the caller's scope, so the caller applies the scope of the id it is asking about. */
