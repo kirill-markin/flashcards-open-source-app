@@ -13,11 +13,13 @@ import {
 import type { AuthTransport } from "../auth";
 import type { PublicHttpErrorDetails } from "../shared/errors";
 import { getPublicApiBaseUrl } from "../shared/publicUrls";
-import type { RequestContext } from "../server/requestContext";
+import { getClientAccountIdentity, type RequestContext } from "../server/requestContext";
 import type { WorkspaceSummary } from "../workspaces";
 
 type AccountData = Readonly<{
   userId: string;
+  canonicalAccountId: string;
+  linkedAccountIds: ReadonlyArray<string>;
   selectedWorkspaceId: string | null;
   agentWorkspaceReplicaId: string | null;
   authTransport: AuthTransport;
@@ -131,10 +133,13 @@ export function createAgentAccountEnvelope(
   requestContext: RequestContext,
   agentWorkspaceReplicaId: string | null,
 ): AgentEnvelope<AccountData> {
+  const identity = getClientAccountIdentity(requestContext);
   return createAgentEnvelope(
     requestUrl,
     {
-      userId: requestContext.userId,
+      userId: identity.originalClientUserId,
+      canonicalAccountId: identity.canonicalAccountId,
+      linkedAccountIds: identity.linkedAccountIds,
       selectedWorkspaceId: requestContext.selectedWorkspaceId,
       agentWorkspaceReplicaId,
       authTransport: requestContext.transport,
