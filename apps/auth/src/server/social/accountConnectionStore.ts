@@ -5,7 +5,7 @@ import { requireAuthHandle } from "./attemptContract.js";
 import { authAttemptBindingHash, authHandleHash } from "./attemptStore.js";
 import {
   AccountConnectionError, type ConnectionBinding, type ConnectionReceipt, type ConnectionRow,
-  type ConnectionSession, type ConnectionReplay, type ConnectionSqlParameters,
+  type ConnectionSession, type ConnectionReplay, type ConnectionSqlParameters, type ConnectionChoices,
 } from "./accountConnectionContract.js";
 
 export function connectionParameters(operation: string, current: ConnectionSession, binding: ConnectionBinding): ConnectionSqlParameters {
@@ -17,7 +17,7 @@ export function connectionParameters(operation: string, current: ConnectionSessi
 
 export function connectionReceipt(operation: string, row: ConnectionRow | undefined): ConnectionReceipt {
   if (row === undefined) throw new AccountConnectionError("ACCOUNT_CONNECTION_RESTART_REQUIRED");
-  return { operation, state: row.state, account: row.source_account, targetAccount: row.target_account,
+  return { operation, operationId: row.operation_id, state: row.state, account: row.source_account, targetAccount: row.target_account,
     expiresAt: row.expires_at.toISOString() };
 }
 
@@ -70,4 +70,18 @@ export async function claimAccountConnectionProofsInExecutor(
     "SELECT * FROM auth.claim_account_connection_proofs($1,$2,$3,$4,$5,$6,$7)",
     connectionParameters(operation, current, binding));
   return connectionReceipt(operation, result.rows[0]);
+}
+
+/** Caller takes actual11 retirement locks first; the public consent writer remains separate. */
+export async function prepareAccountConnectionChoicesInExecutor(
+  executor: DatabaseExecutor, operation: string, current: ConnectionSession, binding: ConnectionBinding,
+  omittedWorkspaceIds: readonly string[],
+): Promise<ConnectionChoices> {
+  await claimAccountConnectionProofsInExecutor(executor, operation, current, binding);
+  const result = await executor.query<Readonly<{ choices: ConnectionChoices }>>(
+    "SELECT auth.prepare_account_connection_choices($1,$2::uuid[]) AS choices",
+    [authHandleHash(operation), omittedWorkspaceIds]);
+  const row = result.rows[0];
+  if (row === undefined) throw new AccountConnectionError("ACCOUNT_CONNECTION_RESTART_REQUIRED");
+  return row.choices;
 }

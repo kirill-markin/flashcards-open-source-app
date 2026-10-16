@@ -1,3 +1,4 @@
+import type { ConnectionSuggestion } from "./accountConnectionContract.js";
 import { createCipheriv, createDecipheriv, hkdfSync, randomBytes } from "node:crypto";
 import { AuthAttemptError, requireAuthHandle } from "./attemptContract.js";
 import { authHandleHash } from "./attemptStore.js";
@@ -7,6 +8,7 @@ import { parseSocialObject } from "./publicContract.js";
 import type { IdentityProvider } from "./identityStore.js";
 
 export type ProviderSignInHint = Readonly<{
+  connectionSuggestion?: ConnectionSuggestion;
   method: IdentityProvider;
   recoveryEmail: string;
   providerEmail: string | null;
@@ -45,7 +47,17 @@ function parseHint(value: unknown): ProviderSignInHint {
   const relationship = hint.providerEmail === null ? "missing"
     : hint.providerEmail === hint.recoveryEmail ? "matches_recovery" : "different_from_recovery";
   if (hint.emailRelationship !== relationship) throw new AuthAttemptError("AUTH_COMPLETION_INVALID");
-  return { method: hint.method, recoveryEmail: hint.recoveryEmail, providerEmail: hint.providerEmail, emailRelationship: relationship };
+  let connectionSuggestion: ConnectionSuggestion | undefined;
+  if (hint.connectionSuggestion !== undefined) {
+    const suggestion = parseSocialObject(hint.connectionSuggestion);
+    if (typeof suggestion.suggestion !== "string" || !/^[A-Za-z0-9_-]{43}$/.test(suggestion.suggestion)
+      || typeof suggestion.expiresAt !== "string" || !Number.isFinite(Date.parse(suggestion.expiresAt))) {
+      throw new AuthAttemptError("AUTH_COMPLETION_INVALID");
+    }
+    connectionSuggestion = { suggestion: suggestion.suggestion, expiresAt: suggestion.expiresAt };
+  }
+  return { ...(connectionSuggestion === undefined ? {} : { connectionSuggestion }),
+    method: hint.method, recoveryEmail: hint.recoveryEmail, providerEmail: hint.providerEmail, emailRelationship: relationship };
 }
 
 export function decryptSignInHint(completion: string, ciphertext: string): ProviderSignInHint {
