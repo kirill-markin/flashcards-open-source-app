@@ -41,7 +41,7 @@ export type AuthoritativeAttemptResult =
   | Readonly<{ status: "verification_required"; enrollment: Exclude<PrincipalEnrollmentResult, EnrolledProviderPrincipal>; attempt: ClaimedAuthAttempt }>;
 
 type AuthoritativeLoginResult =
-  | Readonly<{ status: "completed"; response: AuthCompletionResponse }>
+  | Readonly<{ status: "completed"; response: AuthCompletionResponse; reconnected: boolean }>
   | Readonly<{ status: "verification_required"; enrollment: Exclude<PrincipalEnrollmentResult, EnrolledProviderPrincipal> }>;
 
 /** Caller owns the transaction so a refused/expired completion rolls back new provider metadata. */
@@ -50,9 +50,13 @@ export async function completeAuthoritativeLoginInExecutor(
   proof: ProviderEnrollmentProof, principal: CognitoEmailPrincipal | null,
 ): Promise<AuthoritativeLoginResult> {
   if (attempt.provider !== proof.provider) throw new AuthAttemptError("AUTH_ATTEMPT_INVALID");
+  const reconnect = proof.provider === "apple"
+    ? await executor.query<Readonly<{ reconnected: boolean }>>("SELECT auth.reconnect_apple_login_attempt($1,$2,$3) AS reconnected",
+      [authHandleHash(attempt.handle), attempt.claimId, proof.identity.subject]) : null;
+  const reconnected = reconnect?.rows[0]?.reconnected ?? false;
   const enrolled = await enrollAuthoritativeLoginPrincipalInExecutor(executor, proof, principal);
   if (enrolled.status === "verification_required") return { status: "verification_required", enrollment: enrolled };
-  return { status: "completed", response: await persistCompletion(executor, { ...attempt, purpose: "login" }, enrolled) };
+  return { status: "completed", response: await persistCompletion(executor, { ...attempt, purpose: "login" }, enrolled), reconnected };
 }
 
 function logMailboxVerificationRequired(
@@ -71,7 +75,11 @@ export async function completeAuthoritativeAuthAttempt(attempt: ClaimedAuthAttem
   if (attempt.purpose === "login") {
     const principal = await prepareAuthoritativeLoginPrincipal(proof);
     const result = await transaction((executor) => completeAuthoritativeLoginInExecutor(executor, attempt, proof, principal));
-    if (result.status === "completed") return result;
+    if (result.status === "completed") {
+      if (result.reconnected) log({ domain: "auth", action: "provider_reconnected", provider: proof.provider,
+        client: attempt.client, purpose: attempt.purpose });
+      return result;
+    }
     const mailboxAttempt = await recordAuthAttemptMailboxRequired(attempt);
     logMailboxVerificationRequired(attempt, proof, result.enrollment);
     return { ...result, attempt: mailboxAttempt };
