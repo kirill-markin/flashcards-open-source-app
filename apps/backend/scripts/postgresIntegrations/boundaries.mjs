@@ -73,6 +73,16 @@ export const createdRolesByMigration = new Map([
 // migration contracts retain their original cutoffs.
 export const boundaryDefinitions = Object.freeze([
   Object.freeze({
+    migrationFileName: "0201_direct_media_account_owner.sql",
+    expectedMigrationCount: 203,
+    testFiles: Object.freeze([
+      "src/mediaAssets/ingestion/directAccountOwner.postgres.integration.ts",
+      "src/mediaAssets/ingestion/directIngestionApply.postgres.integration.ts",
+      "src/mediaAssets/blobLifecycle/lifecycle.postgres.integration.ts",
+      "src/mediaAssets/multipart/writerLifecycle/writerAbandonment.postgres.integration.ts",
+    ]),
+  }),
+  Object.freeze({
     migrationFileName: "0200_generated_media_account_owner.sql",
     expectedMigrationCount: 202,
     testFiles: Object.freeze([
@@ -125,8 +135,6 @@ export const boundaryDefinitions = Object.freeze([
       "src/chat/cardImages/generationBudget.postgres.integration.ts",
       "src/mediaAssets/blobLifecycle/cleanup/reconciliation.postgres.integration.ts",
       "src/aiUsage/aiUsage.postgres.integration.ts",
-      "src/mediaAssets/blobLifecycle/lifecycle.postgres.integration.ts",
-      "src/mediaAssets/ingestion/directIngestionApply.postgres.integration.ts",
       "src/catalog/authoring/lockOrder.postgres.integration.ts",
       "src/catalog/authoring/versions/publishedVersionAlignment.postgres.integration.ts",
       "src/catalog/distribution/public/public.postgres.integration.ts",
