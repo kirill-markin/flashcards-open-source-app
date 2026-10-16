@@ -11,6 +11,7 @@ import {
   isTransientDatabaseError,
   TransientDatabaseHttpError,
 } from "../../../database/transient";
+import { HttpError } from "../../../shared/errors";
 import type { BackendObservationScope } from "../../../observability/sentry";
 import { isLowercaseWorkspaceId } from "../../../workspaces/identity";
 import { mediaBlobCleanupDelayMs } from "../../blobLifecycle";
@@ -789,6 +790,9 @@ function knownFailureTransitionErrorResult(
   input: MultipartCompletionReconciliationBatchInput,
   transitionError: unknown,
 ): MultipartCompletionReconciliationJobResult | null {
+  if (transitionError instanceof HttpError && transitionError.code === "ACCOUNT_SCOPE_CHANGED") {
+    throw transitionError;
+  }
   if (
     transitionError instanceof MultipartCompletionReconciliationLeaseLostError
   ) {
@@ -909,6 +913,9 @@ export async function processClaimedMultipartCompletionReconciliationWithDepende
     await dependencies.applyJobFn(job, input.deadlineAtMs);
     return result(job, "applied", null);
   } catch (error) {
+    if (error instanceof HttpError && error.code === "ACCOUNT_SCOPE_CHANGED") {
+      throw error;
+    }
     if (error instanceof MultipartCompletionReconciliationLeaseLostError) {
       return result(job, "lease_lost", null);
     }
@@ -1003,6 +1010,9 @@ export async function runMultipartCompletionReconciliationBatchWithDependencies(
       if (jobResult.outcome === "interrupted") break;
     }
   } catch (error) {
+    if (error instanceof HttpError && error.code === "ACCOUNT_SCOPE_CHANGED") {
+      throw error;
+    }
     throw new MultipartCompletionReconciliationBatchError(
       toBatchResult(results),
       error,
