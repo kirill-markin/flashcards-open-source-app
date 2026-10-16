@@ -345,3 +345,45 @@ export async function beginAuthAttemptMailboxOtp(attempt: ClaimedAuthAttempt, em
   const secrets = { ...attempt.secrets, mailbox: { binding, session } };
   await transaction((executor) => advanceAuthAttemptInExecutor(executor, attempt, "mailbox_sending", "mailbox_ready", secrets));
 }
+
+export function connectionCallbackParameters(state: BrowserCallbackState): readonly [string, string, string, string, string | null, string, string] {
+  if (state.connectionOperation === undefined || state.phase !== "provider" || state.intent !== "login") {
+    throw new AuthAttemptError("AUTH_ATTEMPT_INVALID");
+  }
+  requireAuthHandle(state.connectionOperation);
+  const binding = state.client === "web" ? authAttemptBindingHash(browserAttemptBinding(state))
+    : Buffer.from(state.codeChallenge, "base64url").toString("hex");
+  return [authHandleHash(state.connectionOperation), authHandleHash(state.attempt), binding, state.client,
+    state.client === "web" ? state.authOrigin : null, state.provider, state.authOrigin + "/api/social/" + state.provider + "/callback"];
+}
+
+export async function claimConnectionBrowserAttempt(state: BrowserCallbackState): Promise<ClaimedAuthAttempt> {
+  const result = await query<AttemptRow>("SELECT * FROM auth.claim_connection_callback($1,$2,$3,$4,$5,$6,$7)",
+    connectionCallbackParameters(state));
+  const row = result.rows[0];
+  if (row === undefined || row.purpose !== "login" || row.phase !== "provider_claimed"
+    || row.provider_type !== state.provider || row.client_type !== state.client
+    || row.redirect_uri !== state.authOrigin + "/api/social/" + state.provider + "/callback") {
+    throw new AuthAttemptError("AUTH_ATTEMPT_RESTART_REQUIRED");
+  }
+  return { [claimedAttemptBrand]: true, handle: state.attempt, claimId: row.claim_id, provider: row.provider_type,
+    client: row.client_type, purpose: row.purpose, redirectUri: row.redirect_uri,
+    secrets: openSecrets(state.attempt, row.secret_ciphertext), phase: row.phase };
+}
+
+export async function loadConnectionProviderBrowserLaunch(operation: string, handle: string, authOrigin: string): Promise<Readonly<{
+  attempt: string; nonce: string; redirectUri: string; expiresAt: string; codeChallenge: string;
+}>> {
+  requireAuthHandle(operation);
+  requireAuthHandle(handle);
+  if (!socialAuthOrigins.includes(authOrigin)) throw new AuthAttemptError("AUTH_ATTEMPT_INVALID");
+  const result = await query<AttemptRow & Readonly<{ binding_sha256: string; expires_at: Date }>>(
+    "SELECT * FROM auth.load_connection_provider_launch($1,$2,$3)", [authHandleHash(operation), authHandleHash(handle), authOrigin]);
+  const row = result.rows[0];
+  if (row === undefined || row.redirect_uri !== authOrigin + "/api/social/apple/callback"
+    || !/^[0-9a-f]{64}$/.test(row.binding_sha256)) throw new AuthAttemptError("AUTH_ATTEMPT_RESTART_REQUIRED");
+  const secrets = openSecrets(handle, row.secret_ciphertext);
+  if (secrets.proof !== null || secrets.mailbox !== null) throw new AuthAttemptError("AUTH_ATTEMPT_RESTART_REQUIRED");
+  return { attempt: handle, nonce: appleRequestNonce(secrets.nonce), redirectUri: row.redirect_uri,
+    expiresAt: row.expires_at.toISOString(), codeChallenge: Buffer.from(row.binding_sha256, "hex").toString("base64url") };
+}

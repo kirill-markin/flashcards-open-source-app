@@ -14,6 +14,7 @@ const cookieOptions = { path: "/", secure: true, httpOnly: true, sameSite: "None
 const browserStateBrand: unique symbol = Symbol("verified browser callback cookie");
 
 type BrowserStateFields = Readonly<{
+  connectionOperation?: string;
   version: "social-browser-v1";
   authOrigin: string;
   attempt: string;
@@ -79,6 +80,10 @@ export function readBrowserState(c: Context, token: string): BrowserCallbackStat
       || (state.provider !== "apple" && state.provider !== "google")
       || !["login", "reauth", "link", "reenable"].includes(state.intent)
       || (state.phase !== "provider" && state.phase !== "mailbox")) throw new Error("Invalid callback cookie");
+    if (state.connectionOperation !== undefined) {
+      requireAuthHandle(state.connectionOperation);
+      if (state.intent !== "login" || state.phase !== "provider") throw new Error("Invalid connection callback phase");
+    }
     requireAuthHandle(state.attempt);
     requireAuthHandle(state.state);
     if (state.client === "web") {

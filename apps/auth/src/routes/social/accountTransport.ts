@@ -87,3 +87,16 @@ export function accountProof(c: Context<AuthAppEnv>, fields: Readonly<Record<str
     })();
   return { completion: parseCompletionHandle(proof.completion), binding: binding as AuthReauthenticationBinding };
 }
+
+/** The original browser binding must outlive fresh proofs for committed-result replay. */
+export function preserveAccountConnectionContext(c: Context<AuthAppEnv>, original: Omit<BrowserContext, "expiresAt">): void {
+  const context: BrowserContext = { ...original, expiresAt: Date.now() + 86_400_000 };
+  setCookie(c, contextPrefix + context.token, sign(JSON.stringify(context)),
+    { path: "/", secure: true, httpOnly: true, sameSite: "Strict", maxAge: 86_400 });
+}
+
+export function preserveAccountLoginContext(c: Context<AuthAppEnv>, token: string, secret: string, redirectUri: string): void {
+  parseCompletionHandle(token);
+  parseCompletionHandle(secret);
+  preserveAccountConnectionContext(c, { token, secret, origin: new URL(redirectUri).origin, authOrigin: browserAuthOrigin(c) });
+}
