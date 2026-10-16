@@ -241,9 +241,11 @@ because there is no OAuth connection-management HTTP API.
 ## Apple lifecycle
 
 [Durable lifecycle](../apps/auth/src/server/social/appleLifecycle.ts) stages encrypted Apple tokens
-before unlink or account erasure and drains one leased step per minute through the existing auth
-Lambda. [Schema](../db/migrations/0187_apple_provider_lifecycle.sql) fences completion, retains failed
-jobs with capped backoff, and prevents credential replacement until cleanup finishes. Refresh-session
+before unlink or account erasure. Verified revocation notifications and committed method unlinks
+asynchronously wake the existing auth Lambda; its bounded drain alternates session and provider work
+when execution time permits. The minute schedule retains durable recovery.
+[Schema](../db/migrations/0187_apple_provider_lifecycle.sql) fences completion, retains failed jobs
+with capped backoff, and prevents credential replacement until cleanup finishes. Refresh-session
 revocation has its own completion receipt, so Apple retries do not repeatedly sign out email recovery
 sessions. A crash between Cognito success and its database receipt can repeat that step; existing
 Cognito account-deletion jobs remain request-driven. The principal session fence above rejects
@@ -253,9 +255,9 @@ already-issued JWTs and holds sign-in while that durable signout outcome remains
 issuer, configured audiences and event claims before lifecycle effects. The public endpoint is
 `POST /api/social/apple/notifications`, registered on `auth.nibomo.com`. Its JSON body is exactly
 `{payload: string}`, bounded to 24 KiB before parsing, with per-source rate limits. It acknowledges only
-after commit; exact signed replays return success and conflicting replay payloads are rejected.
-Persistence failures return retryable 5xx responses. No provider claims or unsigned internal calls may
-substitute for verification. Apple publishes
+after commit; applied revocations also await wake acceptance. Exact signed revocation replays retry
+the wake, and conflicting replay payloads are rejected. Persistence and wake failures return retryable
+5xx responses. No provider claims or unsigned internal calls may substitute for verification. Apple publishes
 [claim/event examples](https://developer.apple.com/documentation/signinwithapple/processing-changes-for-sign-in-with-apple-accounts),
 with [delivery observations](https://developer.apple.com/forums/thread/655485) for JSON-string events
 and millisecond timestamps; its Sign in with Apple docs specify no retry schedule guarantee.
@@ -267,8 +269,10 @@ Provider account deletion disables the Apple method and known relay delivery wit
 independent Nibomo account or its other recovery methods.
 
 After deployment, inspect the auth Lambda CloudWatch group for `action=apple_revocation_drain`, its
-Lambda request ID and `claimed/completed/failed` counts. The fixed native EventBridge event must
-reference `flashcards-apple-revocation-drain`; HTTP envelopes cannot dispatch the privileged mode.
+Lambda request ID and `claimed/completed/failed` counts. Inspect `action=apple_revocation_wake` for
+accepted wakes and explicit dispatch failures. The fixed native EventBridge event must reference
+`flashcards-apple-revocation-drain`; the fixed direct-invoke wake accepts no job or identity fields.
+HTTP envelopes cannot dispatch either privileged mode.
 Inspect nonzero failure summaries and retained job error codes; successful scheduling or schema
 checks do not prove real Apple login, token revocation, or private-relay OTP receipt.
 

@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import type { JwtPayload } from "aws-jwt-verify/jwt-model";
 import { query, transaction } from "../../db.js";
 import { getAppleSignInConfig } from "./config.js";
+import { wakeAppleRevocations } from "./appleRevocationWake.js";
 import {
   createProviderVerifier, parseProviderObject, readProviderBoolean, readProviderEmail,
   rejectProviderProof, SocialProofError,
@@ -71,7 +72,6 @@ function parseVerifiedNotification(payload: JwtPayload, token: string): AppleNot
   };
 }
 
-/** The future HTTP mount passes only the body payload string; no decoded-claims or verification bypass API. */
 export async function processSignedAppleNotification(token: string): Promise<AppleNotificationOutcome> {
   const config = getAppleSignInConfig();
   if (config === null) throw new SocialProofError("PROVIDER_UNAVAILABLE");
@@ -94,7 +94,7 @@ export async function processSignedAppleNotification(token: string): Promise<App
   } catch (error) {
     rejectProviderProof(error);
   }
-  return transaction(async (executor) => {
+  const outcome = await transaction(async (executor) => {
     await executor.query("SET LOCAL lock_timeout = '1s'", []);
     await executor.query("SET LOCAL statement_timeout = '2s'", []);
     const result = await executor.query<Readonly<{ outcome: AppleNotificationOutcome }>>(
@@ -105,6 +105,10 @@ export async function processSignedAppleNotification(token: string): Promise<App
     if (result.rows[0] === undefined) throw new Error("Apple notification processing returned no outcome");
     return result.rows[0].outcome;
   });
+  if (outcome === "applied" && (notification.type === "consent-revoked" || notification.type === "account-deleted")) {
+    await wakeAppleRevocations();
+  }
+  return outcome;
 }
 
 /** Delivery availability does not remove the verified alias or disable the email OTP method. */
