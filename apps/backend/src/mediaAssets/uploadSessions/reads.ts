@@ -2,6 +2,7 @@ import {
   queryWithWorkspaceScopeReadOnly,
   type DatabaseExecutor,
 } from "../../database";
+import { transactionWithMultipartWriterOwnerScope } from "../multipart/writerLifecycle/ownerScope";
 import { HttpError } from "../../shared/errors";
 import {
   findMediaAssetRowForUpdateInExecutor,
@@ -106,8 +107,7 @@ export async function loadMediaAssetForCompletedUploadSessionReplayForWorkspace(
   userId: string,
   session: MediaAssetUploadSession,
 ): Promise<MediaAsset> {
-  const result = await queryWithWorkspaceScopeReadOnly<MediaAssetRow>(
-    { userId, workspaceId: session.workspaceId },
+  const loadResult = (executor: DatabaseExecutor) => executor.query<MediaAssetRow>(
     [
       "SELECT",
       MEDIA_ASSET_COLUMNS,
@@ -118,6 +118,10 @@ export async function loadMediaAssetForCompletedUploadSessionReplayForWorkspace(
       "LIMIT 1",
     ].join(" "),
     [session.workspaceId, session.mediaAssetId],
+  );
+  const result = await transactionWithMultipartWriterOwnerScope(
+    { userId, workspaceId: session.workspaceId },
+    loadResult,
   );
   const row = result.rows[0];
   if (row === undefined) {
