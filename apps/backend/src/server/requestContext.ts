@@ -151,6 +151,10 @@ async function loadAuthenticatedRequestContext(
     ? await dependencies.ensureCognitoUserProfileFn(auth.subjectUserId, auth.email)
     : await dependencies.ensureUserProfileFn(auth.userId, auth.email);
   assertRequestActive();
+  if (auth.transport === "api_key" && auth.clientAccountIdentity !== undefined
+      && auth.clientAccountIdentity.canonicalAccountId !== userProfile.userId) {
+    throw new HttpError(409, "Account ownership changed. Reload the account and retry the request.", "ACCOUNT_SCOPE_CHANGED");
+  }
   const selectedWorkspaceId = auth.transport === "api_key"
     ? auth.selectedWorkspaceId
     : userProfile.selectedWorkspaceId;
