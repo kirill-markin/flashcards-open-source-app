@@ -1,7 +1,4 @@
-import {
-  transactionWithWorkspaceScope,
-  type DatabaseExecutor,
-} from "../../database";
+import type { DatabaseExecutor } from "../../database";
 import { unsafeTransaction } from "../../database/unsafe";
 import {
   applyMultipartWriterOwnerScopeInExecutor,
@@ -138,7 +135,7 @@ export function handoffMediaAssetUploadSessionCompletionAttempt(
   input: MultipartMediaBlobWriterAttemptExactInput,
 ): Promise<MultipartMediaBlobWriterAttemptHandoffStatus> {
   const snapshot = snapshotMultipartAttemptExactInput(input);
-  return transactionWithWorkspaceScope(
+  return transactionWithMultipartWriterOwnerScope(
     { userId: snapshot.userId, workspaceId: snapshot.workspaceId },
     async (executor) => {
       const result = await executor.query<MultipartAttemptStatusRow>(

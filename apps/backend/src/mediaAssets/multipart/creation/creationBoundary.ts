@@ -284,6 +284,16 @@ async function replayLeasedMultipartUploadSessionCreationCommitUnknown<Result>(
   }
 }
 
+function throwIfMultipartCreationAccountScopeChanged(error: unknown): void {
+  if (
+    error instanceof HttpError
+    && error.statusCode === 409
+    && error.code === "ACCOUNT_SCOPE_CHANGED"
+  ) {
+    throw error;
+  }
+}
+
 function createMultipartUploadSessionCreationAggregateError(
   message: string,
   errors: ReadonlyArray<unknown>,
@@ -356,6 +366,7 @@ async function releaseMultipartUploadSessionCreationClaimAfterFailure(
   creationError: unknown,
   dependencies: MultipartUploadSessionCreationApplicationDependencies,
 ): Promise<never> {
+  throwIfMultipartCreationAccountScopeChanged(creationError);
   let releaseStatus: "released" | "finalized";
   try {
     releaseStatus = await releaseMultipartUploadSessionCreationClaim(
@@ -367,6 +378,7 @@ async function releaseMultipartUploadSessionCreationClaimAfterFailure(
       dependencies,
     );
   } catch (releaseError) {
+    throwIfMultipartCreationAccountScopeChanged(releaseError);
     throw createMultipartUploadSessionCreationAggregateError(
       `Multipart upload session creation failed and its exact claim could not be released. mediaAssetId=${input.mediaAssetId} claimToken=${claimToken}`,
       [creationError, releaseError],
@@ -397,6 +409,7 @@ async function settleFailedMultipartUploadSessionPersistence(
   persistenceError: unknown,
   dependencies: MultipartUploadSessionCreationApplicationDependencies,
 ): Promise<MediaAssetUploadSessionCreateResult> {
+  throwIfMultipartCreationAccountScopeChanged(persistenceError);
   let releaseStatus: "released" | "finalized" | null = null;
   let releaseError: Error | null = null;
   try {
@@ -409,6 +422,7 @@ async function settleFailedMultipartUploadSessionPersistence(
       dependencies,
     );
   } catch (error) {
+    throwIfMultipartCreationAccountScopeChanged(error);
     releaseError = normalizeCaughtError(error);
   }
 
@@ -423,6 +437,7 @@ async function settleFailedMultipartUploadSessionPersistence(
       );
       return replay.sessionResult;
     } catch (replayError) {
+      throwIfMultipartCreationAccountScopeChanged(replayError);
       if (
         isMultipartUploadSessionCreationReplayPendingError(replayError)
       ) {
@@ -565,6 +580,7 @@ export async function createMultipartUploadSessionAtApplicationBoundary(
         ),
       );
     } catch (releaseError) {
+      throwIfMultipartCreationAccountScopeChanged(releaseError);
       throw createMultipartUploadSessionCreationAggregateError(
         `Multipart upload session creation could not establish a safe lease deadline or release its exact claim. mediaAssetId=${input.mediaAssetId} claimToken=${claimToken}`,
         [deadlineError, releaseError],
