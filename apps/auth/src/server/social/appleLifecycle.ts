@@ -39,21 +39,45 @@ export type AppleRevocationDrainSummary = Readonly<{
   failed: number;
 }>;
 
-/** One external revocation per 30s Lambda invocation; expired leases are reclaimed on later ticks. */
+// Provider work includes an 8s secret load, two 5s HTTP attempts, and a 2s completion.
+// Recheck after each claim; an unexpectedly slow database leaves its durable lease recoverable.
+const providerExecutionBudgetMs = 21_000;
+const sessionExecutionBudgetMs = 12_000;
+const claimBudgetMs = 4_000;
+const maximumDrainRounds = 2;
+
 export async function drainAppleRevocations(requestId: string, getRemainingTimeMs: () => number): Promise<AppleRevocationDrainSummary> {
-  if (getRemainingTimeMs() < 25_000) throw new Error("Apple revocation tick has insufficient remaining execution time");
-  const sessionSummary = await drainPrincipalSessionRevocation(requestId, getRemainingTimeMs);
-  if (sessionSummary !== null) return sessionSummary;
+  if (getRemainingTimeMs() < providerExecutionBudgetMs + claimBudgetMs) {
+    throw new Error("Apple revocation drain has insufficient remaining execution time");
+  }
+  let summary: AppleRevocationDrainSummary = { claimed: 0, completed: 0, failed: 0 };
+  for (let round = 0; round < maximumDrainRounds; round += 1) {
+    if (getRemainingTimeMs() < sessionExecutionBudgetMs + claimBudgetMs) break;
+    const sessions = await drainPrincipalSessionRevocation(requestId, getRemainingTimeMs);
+    if (sessions !== null) summary = addDrainSummary(summary, sessions);
+    // Alternate queues before claiming another session so provider work is not held behind a batch.
+    if (getRemainingTimeMs() < providerExecutionBudgetMs + claimBudgetMs) break;
+    const provider = await drainAppleCredentialRevocation(requestId, getRemainingTimeMs);
+    if (provider !== null) summary = addDrainSummary(summary, provider);
+    if (sessions === null && provider === null) break;
+  }
+  log({ domain: "auth", action: "apple_revocation_drain", requestId, ...summary });
+  return summary;
+}
+
+function addDrainSummary(left: AppleRevocationDrainSummary, right: AppleRevocationDrainSummary): AppleRevocationDrainSummary {
+  return { claimed: left.claimed + right.claimed, completed: left.completed + right.completed, failed: left.failed + right.failed };
+}
+
+async function drainAppleCredentialRevocation(
+  requestId: string, getRemainingTimeMs: () => number,
+): Promise<AppleRevocationDrainSummary | null> {
   const job = await lifecycleTransaction(async (executor) => {
     const result = await executor.query<AppleRevocationJob>("SELECT * FROM auth.claim_apple_revocation()", []);
     return result.rows[0] ?? null;
   });
-  if (job === null) {
-    const summary = { claimed: 0, completed: 0, failed: 0 };
-    log({ domain: "auth", action: "apple_revocation_drain", requestId, ...summary });
-    return summary;
-  }
-  if (getRemainingTimeMs() < 21_000) throw new Error("Apple revocation claim exhausted its execution budget; lease will be reclaimed");
+  if (job === null) return null;
+  if (getRemainingTimeMs() < providerExecutionBudgetMs) throw new Error("Apple revocation claim exhausted its execution budget; lease will be reclaimed");
   const credential: EncryptedAppleCredential = {
     providerSubject: job.provider_subject, clientId: job.client_id, ciphertext: job.ciphertext,
   };
@@ -65,7 +89,7 @@ export async function drainAppleRevocations(requestId: string, getRemainingTimeM
       await executor.query("SELECT auth.retry_apple_revocation($1, $2, $3)", [job.job_id, job.lease_id, code]);
     });
     const summary = { claimed: 1, completed: 0, failed: 1 };
-    logWarning({ domain: "auth", action: "apple_revocation_drain", requestId, code, ...summary });
+    logWarning({ domain: "auth", action: "apple_revocation_drain", requestId, code });
     return summary;
   }
   // A failed commit leaves the lease/credential intact; a later tick repeats the idempotent provider revoke.
@@ -73,7 +97,6 @@ export async function drainAppleRevocations(requestId: string, getRemainingTimeM
     await executor.query("SELECT auth.complete_apple_revocation($1, $2, $3)", [job.job_id, job.lease_id, job.ciphertext]);
   });
   const summary = { claimed: 1, completed: 1, failed: 0 };
-  log({ domain: "auth", action: "apple_revocation_drain", requestId, ...summary });
   return summary;
 }
 
@@ -85,7 +108,7 @@ async function drainPrincipalSessionRevocation(requestId: string, getRemainingTi
     return result.rows[0] ?? null;
   });
   if (job === null) return null;
-  if (getRemainingTimeMs() < 12_000) throw new Error("Principal signout claim exhausted its execution budget; lease will be reclaimed");
+  if (getRemainingTimeMs() < sessionExecutionBudgetMs) throw new Error("Principal signout claim exhausted its execution budget; lease will be reclaimed");
   try {
     await revokePrincipalRefreshSessions(job.cognito_subject);
   } catch {
@@ -94,13 +117,12 @@ async function drainPrincipalSessionRevocation(requestId: string, getRemainingTi
     });
     const summary = { claimed: 1, completed: 0, failed: 1 };
     logWarning({ domain: "auth", action: "apple_revocation_drain", requestId,
-      reasonCategory: "principal_sessions", code: "PRINCIPAL_SIGNOUT_FAILED", ...summary });
+      reasonCategory: "principal_sessions", code: "PRINCIPAL_SIGNOUT_FAILED" });
     return summary;
   }
   await lifecycleTransaction(async (executor) => {
     await executor.query("SELECT auth.complete_apple_session_revocation($1, $2)", [job.job_id, job.lease_id]);
   });
   const summary = { claimed: 1, completed: 1, failed: 0 };
-  log({ domain: "auth", action: "apple_revocation_drain", requestId, reasonCategory: "principal_sessions", ...summary });
   return summary;
 }

@@ -30,6 +30,7 @@ type AuthAction =
   | "analytics_ingest_error"
   | "request_error"
   | "apple_revocation_drain"
+  | "apple_revocation_wake"
   | "apple_notification"
   | "provider_mailbox_verification_required"
   | "provider_reconnected"
