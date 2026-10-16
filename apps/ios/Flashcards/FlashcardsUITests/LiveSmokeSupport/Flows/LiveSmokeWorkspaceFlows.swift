@@ -521,16 +521,19 @@ extension LiveSmokeTestCase {
 
         while Date() < deadline {
             if createButton.exists && createButton.isHittable {
-                return
+                let buttonFrame = createButton.frame
+                let chooserViewport = chooserList.frame.intersection(self.app.frame)
+                if buttonFrame.isEmpty == false && chooserViewport.contains(buttonFrame) {
+                    return
+                }
             }
 
             chooserList.swipeUp()
             RunLoop.current.run(until: Date(timeIntervalSinceNow: liveSmokeFocusPollIntervalSeconds))
         }
 
-        throw LiveSmokeFailure.missingElement(
-            identifier: LiveSmokeIdentifier.cloudSignInCreateWorkspaceButton,
-            timeoutSeconds: LiveSmokeConfiguration.longUiTimeoutSeconds,
+        throw LiveSmokeFailure.unexpectedAccountState(
+            message: "'\(LiveSmokeIdentifier.cloudSignInCreateWorkspaceButton)' did not become hittable fully inside the workspace chooser viewport within \(formatDuration(seconds: LiveSmokeConfiguration.longUiTimeoutSeconds)).",
             screen: self.currentScreenSummary(),
             step: self.currentStepTitle
         )
