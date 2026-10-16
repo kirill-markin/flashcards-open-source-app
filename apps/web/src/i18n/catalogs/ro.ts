@@ -1544,12 +1544,6 @@ const roCatalog: TranslationCatalog = {
     changed: "Metoda s-a schimbat. Reîmprospătează metodele și începe din nou.",
     codePrompt: "Confirmă accesul la e-mail. Introdu codul din 6–8 cifre. Verifică spamul dacă este nevoie.",
   },
-  browserSignInPrivacy: {
-    forget: "Uită informațiile de autentificare",
-    signOutForget: "Deconectează și uită",
-    forgotten: "Informațiile de autentificare au fost uitate.",
-    error: "Informațiile de autentificare nu au putut fi schimbate. Permite datele site-ului de autentificare și încearcă din nou.",
-  },
   accountStatus: {
     title: "Starea contului",
     subtitle: "Vezi contul autentificat curent și sesiunea din browser.",

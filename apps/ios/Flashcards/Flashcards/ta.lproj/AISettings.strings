@@ -923,11 +923,9 @@
 "ai.consent.withdrawalFailed" = "இந்தச் சாதனத்தில் AI தரவுப் பகிர்வு முடக்கப்பட்டுள்ளது. உங்கள் தேர்வு இன்னும் ஒத்திசைக்கப்படவில்லை; இணைப்பு கிடைக்கும்போது மீண்டும் முயலவும்.";
 "ai.consent.retrySync" = "தேர்வைச் சேமிக்க மீண்டும் முயல்";
 "settings.account.cloudSignIn.unifiedTitle" = "உள்நுழையவும் அல்லது கணக்கை உருவாக்கவும்";
-"settings.account.cloudSignIn.remember" = "இந்தச் சாதனத்தில் இந்த உள்நுழைவை நினைவில் கொள்";
+"settings.account.cloudSignIn.continueEmail" = "மின்னஞ்சல் மூலம் தொடரவும்";
 "settings.account.cloudSignIn.lastUsed" = "கடைசியாகப் பயன்படுத்தியது";
 "settings.account.cloudSignIn.showEmail" = "மின்னஞ்சலைக் காட்டு";
-"settings.account.cloudSignIn.forget" = "இந்த உள்நுழைவை மறந்துவிடு";
-"settings.account.cloudSignIn.signOutForget" = "வெளியேறி மறந்துவிடு";
 "settings.account.cloudSignIn.mailboxPrompt" = "உங்கள் மின்னஞ்சல் அணுகலை உறுதிப்படுத்தவும். 6–8 இலக்கக் குறியீட்டை உள்ளிடவும். தேவைப்பட்டால் ஸ்பேமைச் சரிபார்க்கவும்.";
 "settings.account.cloudSignIn.freshAttempt" = "உள்நுழைவு முடியவில்லை. தொடர மீண்டும் தொடங்கவும்.";
 "settings.account.cloudSignIn.restart" = "மீண்டும் தொடங்கு";

@@ -923,11 +923,9 @@
 "ai.consent.withdrawalFailed" = "مصنوعی ذہانت کے ساتھ ڈیٹا شیئر کرنا اس ڈیوائس پر بند ہے۔ آپ کا انتخاب ابھی ہم وقت نہیں ہوا؛ کنکشن ہونے پر دوبارہ کوشش کریں۔";
 "ai.consent.retrySync" = "انتخاب دوبارہ محفوظ کرنے کی کوشش کریں";
 "settings.account.cloudSignIn.unifiedTitle" = "سائن ان کریں یا اکاؤنٹ بنائیں";
-"settings.account.cloudSignIn.remember" = "اس آلے پر یہ سائن ان یاد رکھیں";
+"settings.account.cloudSignIn.continueEmail" = "ای میل کے ساتھ جاری رکھیں";
 "settings.account.cloudSignIn.lastUsed" = "آخری بار استعمال شدہ";
 "settings.account.cloudSignIn.showEmail" = "ای میل دکھائیں";
-"settings.account.cloudSignIn.forget" = "یہ سائن ان بھول جائیں";
-"settings.account.cloudSignIn.signOutForget" = "سائن آؤٹ کریں اور بھول جائیں";
 "settings.account.cloudSignIn.mailboxPrompt" = "اپنی ای میل تک رسائی کی تصدیق کریں۔ 6–8 ہندسوں کا کوڈ درج کریں۔ ضرورت ہو تو اسپیم دیکھیں۔";
 "settings.account.cloudSignIn.freshAttempt" = "سائن ان مکمل نہیں ہوا۔ جاری رکھنے کے لیے دوبارہ شروع کریں۔";
 "settings.account.cloudSignIn.restart" = "دوبارہ شروع کریں";

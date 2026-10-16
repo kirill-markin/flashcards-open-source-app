@@ -63,7 +63,6 @@ struct CloudSignInAttemptState {
     var email: String
     var selectedMethod: CloudSignInMethod = .email
     var isEmailSelected = false
-    var rememberSignIn = false
     var usesNativeSession = false
     var nativeMethods: CloudAuthMethods?
     var nativeTask: Task<Void, Never>?

@@ -951,11 +951,9 @@
 "ai.consent.withdrawalFailed" = "Le partage avec l’IA est désactivé sur cet appareil. Votre choix n’est pas encore synchronisé ; réessayez avec une connexion.";
 "ai.consent.retrySync" = "Réessayer d’enregistrer le choix";
 "settings.account.cloudSignIn.unifiedTitle" = "Se connecter ou créer un compte";
-"settings.account.cloudSignIn.remember" = "Mémoriser cette connexion sur cet appareil";
+"settings.account.cloudSignIn.continueEmail" = "Continuer avec un e-mail";
 "settings.account.cloudSignIn.lastUsed" = "Dernière utilisation";
 "settings.account.cloudSignIn.showEmail" = "Afficher l’adresse e-mail";
-"settings.account.cloudSignIn.forget" = "Oublier cette connexion";
-"settings.account.cloudSignIn.signOutForget" = "Se déconnecter et oublier";
 "settings.account.cloudSignIn.mailboxPrompt" = "Vérifiez l’accès à votre e-mail. Saisissez le code de 6 à 8 chiffres. Vérifiez les spams si nécessaire.";
 "settings.account.cloudSignIn.freshAttempt" = "La connexion n’a pas abouti. Recommencez pour continuer.";
 "settings.account.cloudSignIn.restart" = "Recommencer";

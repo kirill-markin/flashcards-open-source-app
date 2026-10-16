@@ -923,11 +923,9 @@
 "ai.consent.withdrawalFailed" = "આ ઉપકરણ પર એઆઈ સાથે ડેટા શેર કરવાનું બંધ છે. તમારી પસંદગી હજી સિંક થઈ નથી; કનેક્શન મળે ત્યારે ફરી પ્રયાસ કરો.";
 "ai.consent.retrySync" = "પસંદગી સાચવવાનો ફરી પ્રયાસ કરો";
 "settings.account.cloudSignIn.unifiedTitle" = "સાઇન ઇન કરો અથવા ખાતું બનાવો";
-"settings.account.cloudSignIn.remember" = "આ ઉપકરણ પર આ સાઇન ઇન યાદ રાખો";
+"settings.account.cloudSignIn.continueEmail" = "ઇમેઇલ વડે આગળ વધો";
 "settings.account.cloudSignIn.lastUsed" = "છેલ્લે વપરાયેલ";
 "settings.account.cloudSignIn.showEmail" = "ઇમેલ બતાવો";
-"settings.account.cloudSignIn.forget" = "આ સાઇન ઇન ભૂલી જાઓ";
-"settings.account.cloudSignIn.signOutForget" = "સાઇન આઉટ કરો અને ભૂલી જાઓ";
 "settings.account.cloudSignIn.mailboxPrompt" = "તમારા ઇમેલની ઍક્સેસ ચકાસો. 6–8 અંકનો કોડ દાખલ કરો. જરૂર હોય તો સ્પૅમ તપાસો.";
 "settings.account.cloudSignIn.freshAttempt" = "સાઇન ઇન પૂર્ણ થયું નથી. આગળ વધવા ફરી શરૂ કરો.";
 "settings.account.cloudSignIn.restart" = "ફરી શરૂ કરો";

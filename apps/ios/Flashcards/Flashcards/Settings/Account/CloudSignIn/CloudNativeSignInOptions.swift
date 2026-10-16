@@ -11,69 +11,60 @@ struct CloudNativeSignInOptions: View {
     @State private var metadataRequest = UUID()
 
     var body: some View {
-        @Bindable var store = self.store
         Section {
-            if let methods = self.store.cloudSignInAttempt.nativeMethods {
-                if case .native = methods.methods.apple {
-                    self.providerButton(.apple)
-                }
-                if case .native = methods.methods.google {
-                    self.providerButton(.google)
-                }
-            } else if self.metadataError == nil {
-                ProgressView().frame(maxWidth: .infinity)
-            } else {
-                Button(aiSettingsLocalized("common.retry", "Retry")) {
-                    self.metadataError = nil
-                    self.metadataRequest = UUID()
-                }
-            }
-            Button {
-                guard !self.store.cloudSignInAttempt.isMethodChangeBlocked else { return }
-                self.store.cloudNativeSignIn.resetPendingSignIn()
-                self.store.cloudSignInAttempt.usesNativeSession = false
-                self.store.cloudSignInAttempt.isEmailSelected = true
-                self.store.cloudSignInAttempt.selectedMethod = .email
-                Analytics.track(.authMethodSelected(method: .email, screen: self.screen))
-            } label: {
-                Label(aiSettingsLocalized("common.email", "Email"), systemImage: "envelope")
-                    .frame(maxWidth: .infinity, minHeight: 44)
-            }
-            .accessibilityIdentifier(UITestIdentifier.cloudSignInEmailMethodButton)
-            .modifier(CloudLastSignInBadge(method: .email))
-            if self.store.cloudSignInAttempt.isNativeRequestInFlight {
-                ProgressView().frame(maxWidth: .infinity)
-            }
-            if let hintError = self.hintError {
-                Text(hintError).foregroundStyle(.red)
-                Button(aiSettingsLocalized("settings.account.cloudSignIn.forget", "Forget this sign-in")) {
-                    do {
-                        try self.store.cloudNativeSignIn.forgetRememberedHint()
-                        self.hintError = nil
-                        self.metadataRequest = UUID()
-                    } catch { self.presentHintError(error) }
-                }
-            }
-            if let metadataError = self.metadataError { Text(metadataError).foregroundStyle(.red) }
-            Toggle(aiSettingsLocalized("settings.account.cloudSignIn.remember", "Remember this sign-in on this device"),
-                isOn: $store.cloudSignInAttempt.rememberSignIn)
-                .accessibilityIdentifier("cloudSignIn.remember")
-                .onChange(of: self.store.cloudSignInAttempt.rememberSignIn) { _, remember in
-                    if !remember {
-                        do { try self.store.cloudNativeSignIn.forgetRememberedHint() }
-                        catch { self.presentHintError(error) }
+            VStack(spacing: 16) {
+                if let methods = self.store.cloudSignInAttempt.nativeMethods {
+                    if case .native = methods.methods.apple {
+                        self.providerButton(.apple)
                     }
+                    if case .native = methods.methods.google {
+                        self.providerButton(.google)
+                    }
+                } else if self.metadataError == nil {
+                    ProgressView().frame(maxWidth: .infinity)
+                } else {
+                    Button(aiSettingsLocalized("common.retry", "Retry")) {
+                        self.metadataError = nil
+                        self.metadataRequest = UUID()
+                    }
+                    .buttonStyle(.bordered)
                 }
+                CloudEmailSignInButton {
+                    guard !self.store.cloudSignInAttempt.isMethodChangeBlocked else { return }
+                    self.store.cloudNativeSignIn.resetPendingSignIn()
+                    self.store.cloudSignInAttempt.usesNativeSession = false
+                    self.store.cloudSignInAttempt.isEmailSelected = true
+                    self.store.cloudSignInAttempt.selectedMethod = .email
+                    Analytics.track(.authMethodSelected(method: .email, screen: self.screen))
+                }
+                .frame(maxWidth: .infinity)
+                .frame(height: 48)
+                .accessibilityIdentifier(UITestIdentifier.cloudSignInEmailMethodButton)
+                .modifier(CloudLastSignInBadge(method: .email))
+                if self.store.cloudSignInAttempt.isNativeRequestInFlight {
+                    ProgressView().frame(maxWidth: .infinity)
+                }
+                if let hintError = self.hintError {
+                    Text(hintError).foregroundStyle(.red)
+                    Button(aiSettingsLocalized("common.retry", "Retry")) {
+                        self.metadataRequest = UUID()
+                    }
+                    .buttonStyle(.bordered)
+                }
+                if let metadataError = self.metadataError { Text(metadataError).foregroundStyle(.red) }
+            }
+            .padding(.vertical, 12)
+            .listRowInsets(EdgeInsets(top: 0, leading: 0, bottom: 0, trailing: 0))
+            .listRowBackground(Color.clear)
+            .listRowSeparator(.hidden)
         }
+        .listSectionSeparator(.hidden)
         .disabled(self.store.cloudSignInAttempt.isMethodChangeBlocked)
         .task(id: self.metadataRequest) {
             let id = self.store.cloudSignInAttempt.id
             do {
                 try self.store.cloudNativeSignIn.loadRememberedHint()
                 self.hintError = nil
-                if self.store.cloudNativeSignIn.rememberedHint != nil {
-                    self.store.cloudSignInAttempt.rememberSignIn = true
-                }
             } catch {
                 self.presentHintError(error)
             }
@@ -98,7 +89,6 @@ struct CloudNativeSignInOptions: View {
         CloudBrandedProviderButton(provider: provider, onPress: { presenter in
             self.begin(provider: provider, presenter: presenter)
         })
-        .frame(height: 50)
         .accessibilityIdentifier("cloudSignIn.\(provider.rawValue)")
         .modifier(CloudLastSignInBadge(method: CloudSignInMethod(provider: provider)))
     }
@@ -133,8 +123,7 @@ struct CloudNativeSignInOptions: View {
             do {
                 let result = try await self.store.cloudNativeSignIn.beginProviderSignIn(provider: provider,
                     configuration: try self.store.currentCloudServiceConfiguration(),
-                    presentation: try CloudNativeAuthPresentation(viewController: presenter),
-                    remember: self.store.cloudSignInAttempt.rememberSignIn)
+                    presentation: try CloudNativeAuthPresentation(viewController: presenter))
                 guard self.store.cloudSignInAttempt.id == id else { return }
                 switch result {
                 case .sessionAccepted(let context):
@@ -171,7 +160,22 @@ struct CloudNativeSignInOptions: View {
     }
 }
 
-struct CloudBrandedProviderButton: UIViewRepresentable {
+struct CloudBrandedProviderButton: View {
+    let provider: CloudAuthProvider
+    let onPress: (UIViewController) -> Void
+
+    var body: some View {
+        CloudNativeProviderControl(provider: self.provider, onPress: self.onPress)
+            .frame(maxWidth: .infinity)
+            .frame(height: 48)
+            .background {
+                // The Google SDK draws a 40-point surface inset inside its 48-point control.
+                RoundedRectangle(cornerRadius: 2).fill(.white).padding(4)
+            }
+    }
+}
+
+private struct CloudNativeProviderControl: UIViewRepresentable {
     let provider: CloudAuthProvider
     let onPress: (UIViewController) -> Void
 
@@ -179,7 +183,26 @@ struct CloudBrandedProviderButton: UIViewRepresentable {
         let button: UIControl
         switch self.provider {
         case .apple:
-            button = ASAuthorizationAppleIDButton(type: .continue, style: .white)
+            let apple = ASAuthorizationAppleIDButton(type: .continue, style: .white)
+            apple.cornerRadius = 2
+            let container = UIButton(type: .custom)
+            container.configuration = .plain()
+            container.accessibilityLabel = apple.accessibilityLabel
+            apple.isAccessibilityElement = false
+            apple.isUserInteractionEnabled = false
+            container.configurationUpdateHandler = { button in
+                apple.isHighlighted = button.isHighlighted
+                apple.isEnabled = button.isEnabled
+            }
+            apple.translatesAutoresizingMaskIntoConstraints = false
+            container.addSubview(apple)
+            NSLayoutConstraint.activate([
+                apple.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: 4),
+                apple.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -4),
+                apple.topAnchor.constraint(equalTo: container.topAnchor, constant: 4),
+                apple.bottomAnchor.constraint(equalTo: container.bottomAnchor, constant: -4),
+            ])
+            button = container
         case .google:
             let google = GIDSignInButton()
             google.style = .wide
@@ -208,11 +231,51 @@ struct CloudBrandedProviderButton: UIViewRepresentable {
     }
 }
 
+private struct CloudEmailSignInButton: UIViewRepresentable {
+    let onPress: () -> Void
+
+    func makeUIView(context: Context) -> UIButton {
+        let button = UIButton(type: .system)
+        var configuration = UIButton.Configuration.filled()
+        configuration.title = aiSettingsLocalized("settings.account.cloudSignIn.continueEmail", "Continue with Email")
+        configuration.titleLineBreakMode = .byWordWrapping
+        configuration.image = UIImage(systemName: "envelope")
+        configuration.imagePadding = 8
+        configuration.contentInsets = NSDirectionalEdgeInsets(top: 0, leading: 12, bottom: 0, trailing: 12)
+        configuration.cornerStyle = .fixed
+        configuration.background.cornerRadius = 2
+        configuration.background.backgroundInsets = NSDirectionalEdgeInsets(top: 4, leading: 4, bottom: 4, trailing: 4)
+        button.configuration = configuration
+        button.titleLabel?.numberOfLines = 2
+        button.configurationUpdateHandler = { button in
+            var configuration = button.configuration
+            configuration?.baseBackgroundColor = button.isHighlighted ? UIColor(white: 0.9, alpha: 1) : .white
+            configuration?.baseForegroundColor = button.isEnabled ? .black : .darkGray
+            button.configuration = configuration
+        }
+        button.addTarget(context.coordinator, action: #selector(Coordinator.pressed), for: .touchUpInside)
+        return button
+    }
+
+    func updateUIView(_ view: UIButton, context: Context) {
+        view.isEnabled = context.environment.isEnabled
+        context.coordinator.onPress = self.onPress
+    }
+
+    func makeCoordinator() -> Coordinator { Coordinator(onPress: self.onPress) }
+
+    @MainActor
+    final class Coordinator: NSObject {
+        var onPress: () -> Void
+        init(onPress: @escaping () -> Void) { self.onPress = onPress }
+        @objc func pressed() { self.onPress() }
+    }
+}
+
 private struct CloudLastSignInBadge: ViewModifier {
     @Environment(FlashcardsStore.self) private var store: FlashcardsStore
     let method: CloudSignInMethod
     @State private var isPresented = false
-    @FocusState private var isFocused: Bool
 
     func body(content: Content) -> some View {
         if let hint = self.store.cloudNativeSignIn.rememberedHint, hint.method == self.method {
@@ -229,10 +292,6 @@ private struct CloudLastSignInBadge: ViewModifier {
                     }
                     .buttonStyle(.plain)
                     .offset(y: -10)
-                    .focused(self.$isFocused)
-                    .onChange(of: self.isFocused) { _, focused in
-                        self.isPresented = focused && hint.email != nil
-                    }
                     .accessibilityIdentifier("cloudSignIn.lastUsed.\(self.method.rawValue)")
                     .popover(isPresented: self.$isPresented) {
                         if let email = hint.email {

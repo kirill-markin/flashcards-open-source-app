@@ -1544,12 +1544,6 @@ const ltCatalog: TranslationCatalog = {
     changed: "Būdas pasikeitė. Atnaujinkite būdus ir pradėkite iš naujo.",
     codePrompt: "Patvirtinkite prieigą prie el. pašto. Įveskite 6–8 skaitmenų kodą. Jei reikia, patikrinkite šlamštą.",
   },
-  browserSignInPrivacy: {
-    forget: "Pamiršti prisijungimo informaciją",
-    signOutForget: "Atsijungti ir pamiršti",
-    forgotten: "Prisijungimo informacija pamiršta.",
-    error: "Nepavyko pakeisti prisijungimo informacijos. Leiskite autentifikavimo svetainės duomenis ir bandykite dar kartą.",
-  },
   accountStatus: {
     title: "Paskyros būsena",
     subtitle: "Peržiūrėkite dabartinę prisijungusią paskyrą ir naršyklės sesiją.",

@@ -923,11 +923,9 @@
 "ai.consent.withdrawalFailed" = "Slökkt er á gagnamiðlun til gervigreindar á þessu tæki. Valið þitt hefur ekki enn verið samstillt; reyndu aftur þegar þú ert með tengingu.";
 "ai.consent.retrySync" = "Reyna aftur að vista valið";
 "settings.account.cloudSignIn.unifiedTitle" = "Skráðu þig inn eða stofnaðu reikning";
-"settings.account.cloudSignIn.remember" = "Muna þessa innskráningu í þessu tæki";
+"settings.account.cloudSignIn.continueEmail" = "Halda áfram með tölvupósti";
 "settings.account.cloudSignIn.lastUsed" = "Síðast notað";
 "settings.account.cloudSignIn.showEmail" = "Sýna netfang";
-"settings.account.cloudSignIn.forget" = "Gleyma þessari innskráningu";
-"settings.account.cloudSignIn.signOutForget" = "Skrá út og gleyma";
 "settings.account.cloudSignIn.mailboxPrompt" = "Staðfestu aðgang að tölvupóstinum þínum. Sláðu inn 6–8 stafa tölukóðann. Athugaðu ruslpóst ef þarf.";
 "settings.account.cloudSignIn.freshAttempt" = "Innskráningu lauk ekki. Byrjaðu aftur til að halda áfram.";
 "settings.account.cloudSignIn.restart" = "Byrja aftur";

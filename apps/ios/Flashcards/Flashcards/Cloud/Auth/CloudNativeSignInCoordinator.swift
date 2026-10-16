@@ -54,7 +54,6 @@ final class CloudNativeSignInCoordinator {
     @ObservationIgnored private var configuration: CloudServiceConfiguration?
     @ObservationIgnored private var pending: CloudPendingNativeSession?
     @ObservationIgnored private var acceptedHint: CloudSuccessfulSignInHint?
-    @ObservationIgnored private var rememberSuccessfulSignIn = false
 
     init(social: CloudSocialAuthService, email: CloudAuthService, hintStore: CloudSignInHintStore) {
         self.social = social
@@ -67,8 +66,6 @@ final class CloudNativeSignInCoordinator {
     }
 
     func forgetRememberedHint() throws {
-        // An explicit Forget also prevents the current in-flight attempt from recreating the hint.
-        self.rememberSuccessfulSignIn = false
         try self.hintStore.clear()
         self.rememberedHint = nil
     }
@@ -83,7 +80,6 @@ final class CloudNativeSignInCoordinator {
         self.linkContext = nil
         self.completedAccount = nil
         self.acceptedHint = nil
-        self.rememberSuccessfulSignIn = false
         self.stage = .idle
         self.email.resetChallengeSession()
     }
@@ -91,13 +87,11 @@ final class CloudNativeSignInCoordinator {
     func beginProviderSignIn(
         provider: CloudAuthProvider,
         configuration: CloudServiceConfiguration,
-        presentation: CloudNativeAuthPresentation,
-        remember: Bool
+        presentation: CloudNativeAuthPresentation
     ) async throws -> CloudNativeSignInResult {
         guard !self.isWorking else { throw CloudNativeAuthError.alreadyInProgress }
         self.resetPendingSignIn()
         self.configuration = configuration
-        self.rememberSuccessfulSignIn = remember
         return try await self.perform { epoch in
             self.stage = .preparingProvider(provider)
             let methods = try await self.social.metadata(client: .currentNative, authBaseUrl: configuration.authBaseUrl)
@@ -155,13 +149,11 @@ final class CloudNativeSignInCoordinator {
     func verifyEmailCode(
         challenge: CloudOtpChallenge,
         code: String,
-        configuration: CloudServiceConfiguration,
-        remember: Bool
+        configuration: CloudServiceConfiguration
     ) async throws -> CloudVerifiedAuthContext {
         guard !self.isWorking else { throw CloudNativeAuthError.alreadyInProgress }
         self.resetPendingSignIn()
         self.configuration = configuration
-        self.rememberSuccessfulSignIn = remember
         return try await self.perform { epoch in
             let session = try await self.email.verifyCodeSession(challenge: challenge, code: code,
                 authBaseUrl: configuration.authBaseUrl)
@@ -240,7 +232,7 @@ final class CloudNativeSignInCoordinator {
         guard self.completedAccount != nil else {
             throw LocalStoreError.uninitialized("A successful linked sign-in is required to remember its hint")
         }
-        guard self.rememberSuccessfulSignIn, let hint = self.acceptedHint else { return }
+        guard let hint = self.acceptedHint else { return }
         try self.hintStore.save(hint)
         self.rememberedHint = hint
     }

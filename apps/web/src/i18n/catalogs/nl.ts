@@ -1529,12 +1529,6 @@ const nlCatalog: TranslationCatalog = {
     changed: "De methode is gewijzigd. Vernieuw de methoden en begin opnieuw.",
     codePrompt: "Bevestig toegang tot je e-mail. Voer de code van 6–8 cijfers in. Controleer zo nodig je spammap.",
   },
-  browserSignInPrivacy: {
-    forget: "Inloggegevens vergeten",
-    signOutForget: "Uitloggen en vergeten",
-    forgotten: "Inloggegevens vergeten.",
-    error: "Inloggegevens konden niet worden gewijzigd. Sta websitegegevens voor de authenticatiesite toe en probeer opnieuw.",
-  },
   accountStatus: {
     title: "Accountstatus",
     subtitle: "Bekijk het huidige aangemelde account en de browsersessie.",
