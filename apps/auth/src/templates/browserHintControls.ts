@@ -2,14 +2,6 @@ import type { LoginPageLocale } from "../routes/browser/loginPageLocale.js";
 import { BROWSER_HINT_COPY } from "./browserHintCopy.js";
 import { BROWSER_CONTINUATION_COPY } from "./browserContinuationCopy.js";
 
-export function renderBrowserHintControls(locale: LoginPageLocale): string {
-  const copy = BROWSER_HINT_COPY[locale];
-  return `<div class="auth-hint-controls">
-    <label><input id="remember-signin" type="checkbox"> ${copy.remember}</label>
-    <button id="forget-signin" type="button">${copy.forget}</button>
-  </div>`;
-}
-
 export function renderBrowserHintFeedback(locale: LoginPageLocale): string {
   return `<div id="signin-hint-feedback" class="auth-hint-feedback" role="status" hidden>
     <p>${BROWSER_HINT_COPY[locale].error}</p>
@@ -23,28 +15,25 @@ export const browserHintControlsStyles = `
   .auth-last-used { position: absolute; top: 0; right: 12px; transform: translateY(-50%); width: auto; min-height: 24px;
     padding: 1px 6px; border: 0; border-radius: 8px; background: #3a3a3c; color: #fff;
     font: 500 10px/1.2 system-ui, sans-serif; cursor: pointer; }
+  .auth-last-used:hover { background: #48484a; }
+  .auth-last-used:active { background: #636366; }
   .auth-hint-popover { display: none; position: absolute; top: calc(100% - 2px); right: 0; z-index: 2;
     max-width: 100%; padding: 6px 8px; border: 1px solid #8e8e93; border-radius: 8px;
     background: #1c1c1e; color: #f6f6f8; font-size: 12px; overflow-wrap: anywhere; }
   .has-hint[data-keyboard-focus] .auth-hint-popover, .has-hint[data-open] .auth-hint-popover,
   .has-hint[data-hover] .auth-hint-popover { display: block; }
+  .auth-hint-popover p { margin: 0; }
   .auth-hint-popover:empty, .has-hint[data-dismissed] .auth-hint-popover { display: none !important; }
-  .auth-hint-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; font-size: 12px; color: var(--text-secondary); }
-  .auth-hint-controls label { display: flex; align-items: center; gap: 6px; }
-  .auth-hint-controls input { width: auto; margin: 0; }
-  .auth-hint-controls button, .auth-hint-feedback button { width: auto; min-height: 32px;
+  .auth-hint-feedback button { width: auto; min-height: 32px;
     padding: 4px 8px; border: 1px solid #8e8e93; border-radius: 8px; background: #2c2c2e; color: #f6f6f8; font: inherit; cursor: pointer; }
-  .auth-hint-controls :focus-visible, .auth-last-used:focus-visible { outline: 2px solid #8e8e93; outline-offset: 2px; }
+  .auth-last-used:focus-visible { outline: 2px solid #8e8e93; outline-offset: 2px; }
   .auth-hint-feedback { font-size: 12px; color: #ff858b; overflow-wrap: anywhere; }
   .auth-hint-feedback[hidden], .auth-last-used[hidden] { display: none; }
 `;
 
 export const browserHintControlsScript = `
-  var rememberSignIn = document.getElementById("remember-signin");
-  var forgetSignIn = document.getElementById("forget-signin");
   var hintFeedback = document.getElementById("signin-hint-feedback");
   var hintContinue = document.getElementById("signin-hint-continue");
-  var hintBusy = false;
   var entrySessionAccepted = false;
   var hintKeyboardNavigation = false;
 
@@ -58,7 +47,6 @@ export const browserHintControlsScript = `
   function renderRememberedHint() {
     try {
       var hint = browserHints.readHint();
-      rememberSignIn.checked = browserHints.isRemembering();
       stepMethods.querySelectorAll(".auth-method-option").forEach(function(option) {
         var button = option.querySelector(".auth-method");
         var badge = option.querySelector(".auth-last-used");
@@ -71,9 +59,9 @@ export const browserHintControlsScript = `
         option.removeAttribute("data-hover");
         badge.hidden = !active;
         button.removeAttribute("aria-describedby");
+        badge.removeAttribute("aria-describedby");
         popover.replaceChildren();
         if (!active) return;
-        button.setAttribute("aria-describedby", popover.id);
         var email = hint.method === "email" ? hint.email : hint.providerEmail;
         if (email === null) return;
         var emailLabel = document.createElement("p");
@@ -81,38 +69,13 @@ export const browserHintControlsScript = `
         var masked = email.slice(0, 1) + "•••@" + email.split("@")[1];
         emailLabel.textContent = masked;
         popover.append(emailLabel);
+        badge.setAttribute("aria-describedby", popover.id);
       });
     } catch (error) { hintError(error); }
   }
 
-  async function updateRemembering(action) {
-    if (hintBusy) return;
-    hintBusy = true;
-    rememberSignIn.disabled = true;
-    forgetSignIn.disabled = true;
-    methodButtons.forEach(function(button) { button.disabled = true; });
-    try {
-      await action();
-      hintFeedback.hidden = true;
-      renderRememberedHint();
-    } catch (error) {
-      hintError(error);
-      // Keep the last confirmed preference when a clear or opt-in failed.
-      try { rememberSignIn.checked = browserHints.isRemembering(); } catch (readError) { hintError(readError); }
-    } finally {
-      hintBusy = false;
-      rememberSignIn.disabled = false;
-      forgetSignIn.disabled = false;
-      methodButtons.forEach(function(button) { button.disabled = false; });
-    }
-  }
-
   function configureBrowserHints() {
     renderRememberedHint();
-    rememberSignIn.addEventListener("change", function() {
-      void updateRemembering(rememberSignIn.checked ? browserHints.enableRemembering : browserHints.forget);
-    });
-    forgetSignIn.addEventListener("click", function() { void updateRemembering(browserHints.forget); });
     document.addEventListener("keydown", function(event) {
       hintKeyboardNavigation = event.isTrusted && event.key === "Tab";
     }, true);
@@ -125,6 +88,7 @@ export const browserHintControlsScript = `
       hintKeyboardNavigation = false;
     });
     document.addEventListener("pointerdown", function(event) {
+      hintKeyboardNavigation = false;
       stepMethods.querySelectorAll(".auth-method-option").forEach(function(option) {
         if (!option.contains(event.target)) {
           option.removeAttribute("data-open");
@@ -159,6 +123,10 @@ export const browserHintControlsScript = `
         }
       });
     });
+    window.addEventListener("pageshow", function() {
+      hintKeyboardNavigation = false;
+      renderRememberedHint();
+    });
     window.addEventListener("storage", function(event) {
       if (event.key === null || event.key.startsWith("nibomo-auth-hint-")) renderRememberedHint();
     });
@@ -168,7 +136,6 @@ export const browserHintControlsScript = `
     entrySessionAccepted = true;
     document.querySelectorAll("#step-email input, #step-email button, #step-otp input, #step-otp button").forEach(function(control) { control.disabled = true; });
     if (await browserHints.acceptOptional(result)) { continueSignIn(); return; }
-    // Session cookies are already accepted. The explicit continuation keeps the optional error readable.
     hintContinue.hidden = false;
     hintContinue.onclick = continueSignIn;
   }

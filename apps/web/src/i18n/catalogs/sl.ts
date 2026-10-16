@@ -1559,12 +1559,6 @@ const slCatalog: TranslationCatalog = {
     changed: "Način se je spremenil. Osvežite načine in začnite znova.",
     codePrompt: "Potrdite dostop do e-pošte. Vnesite 6–8-mestno kodo. Po potrebi preverite neželeno pošto.",
   },
-  browserSignInPrivacy: {
-    forget: "Pozabi podatke o prijavi",
-    signOutForget: "Odjava in pozabi",
-    forgotten: "Podatki o prijavi so pozabljeni.",
-    error: "Podatkov o prijavi ni bilo mogoče spremeniti. Dovolite podatke spletnega mesta za prijavo in poskusite znova.",
-  },
   accountStatus: {
     title: "Stanje računa",
     subtitle: "Oglejte si trenutni prijavljeni račun in sejo brskalnika.",
