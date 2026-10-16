@@ -73,6 +73,13 @@ export const createdRolesByMigration = new Map([
 // migration contracts retain their original cutoffs.
 export const boundaryDefinitions = Object.freeze([
   Object.freeze({
+    migrationFileName: "0207_community_profile_aliases.sql",
+    expectedMigrationCount: 209,
+    testFiles: Object.freeze([
+      "src/community/leaderboard/profileAliases.postgres.integration.ts",
+    ]),
+  }),
+  Object.freeze({
     migrationFileName: "0206_account_billing_union.sql",
     expectedMigrationCount: 208,
     testFiles: Object.freeze([
