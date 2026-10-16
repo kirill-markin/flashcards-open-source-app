@@ -947,3 +947,6 @@
 "settings.account.methods.changed" = "Yöntem değişti. Yöntemleri yenileyip yeniden başlayın.";
 "settings.account.methods.demo" = "Demo hesaplar giriş yöntemlerini yönetemez. Kendi hesabınızla giriş yapın.";
 "settings.account.methods.refreshFailed" = "Yöntemler yenilenemedi. Yeni bir değişiklikten önce yenileyin.";
+
+"settings.account.cloudSignIn.continueGoogle" = "Google ile devam et";
+"settings.account.cloudSignIn.appleCleanupPending" = "Apple bir güvenlik güncellemesini tamamlıyor. Biraz sonra Apple ile tekrar deneyin veya başka bir giriş yöntemi seçin.";

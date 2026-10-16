@@ -947,3 +947,6 @@
 "settings.account.methods.changed" = "পদ্ধতি বদলেছে। পদ্ধতি রিফ্রেশ করে আবার শুরু করুন।";
 "settings.account.methods.demo" = "ডেমো অ্যাকাউন্ট সাইন-ইন পদ্ধতি পরিচালনা করতে পারে না। নিজের অ্যাকাউন্টে সাইন ইন করুন।";
 "settings.account.methods.refreshFailed" = "পদ্ধতি রিফ্রেশ হয়নি। নতুন পরিবর্তনের আগে রিফ্রেশ করুন।";
+
+"settings.account.cloudSignIn.continueGoogle" = "Google দিয়ে চালিয়ে যান";
+"settings.account.cloudSignIn.appleCleanupPending" = "Apple একটি নিরাপত্তা আপডেট সম্পন্ন করছে। কিছুক্ষণ পরে আবার Apple দিয়ে চেষ্টা করুন, অথবা সাইন ইন করার অন্য পদ্ধতি বেছে নিন।";

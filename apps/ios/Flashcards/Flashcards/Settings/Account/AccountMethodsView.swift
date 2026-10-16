@@ -116,7 +116,7 @@ struct AccountMethodsView: View {
                                 operation: operation, presentation: try CloudNativeAuthPresentation(viewController: presenter))
                         }
                     })
-                    .frame(height: 48).accessibilityIdentifier("accountMethods.reauth.\(provider.rawValue)")
+                    .accessibilityIdentifier("accountMethods.reauth.\(provider.rawValue)")
                 }
             }
             if self.coordinator.canReauthenticateWithCurrentEmail {
@@ -137,7 +137,7 @@ struct AccountMethodsView: View {
                 CloudBrandedProviderButton(provider: operation.provider, onPress: { presenter in
                     self.presenter = presenter
                     self.mutate()
-                }).frame(height: 48).accessibilityIdentifier("accountMethods.confirmProvider")
+                }).accessibilityIdentifier("accountMethods.confirmProvider")
             }
         case .currentEmailCodeSent, .mailboxCodeSent:
             if case .currentEmailCodeSent = self.coordinator.stage,

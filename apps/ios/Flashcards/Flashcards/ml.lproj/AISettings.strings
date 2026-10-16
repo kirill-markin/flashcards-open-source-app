@@ -947,3 +947,6 @@
 "settings.account.methods.changed" = "രീതി മാറി. രീതികൾ പുതുക്കി വീണ്ടും തുടങ്ങുക.";
 "settings.account.methods.demo" = "ഡെമോ അക്കൗണ്ടുകൾക്ക് സൈൻ-ഇൻ രീതികൾ നിയന്ത്രിക്കാനാവില്ല. സ്വന്തം അക്കൗണ്ടിൽ സൈൻ ഇൻ ചെയ്യുക.";
 "settings.account.methods.refreshFailed" = "രീതികൾ പുതുക്കാനായില്ല. പുതിയ മാറ്റത്തിന് മുമ്പ് പുതുക്കുക.";
+
+"settings.account.cloudSignIn.continueGoogle" = "Google ഉപയോഗിച്ച് തുടരുക";
+"settings.account.cloudSignIn.appleCleanupPending" = "Apple ഒരു സുരക്ഷാ അപ്‌ഡേറ്റ് പൂർത്തിയാക്കുകയാണ്. അൽപ്പസമയത്തിനുശേഷം Apple ഉപയോഗിച്ച് വീണ്ടും ശ്രമിക്കുക, അല്ലെങ്കിൽ സൈൻ ഇൻ ചെയ്യാൻ മറ്റൊരു മാർഗം തിരഞ്ഞെടുക്കുക.";

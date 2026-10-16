@@ -361,6 +361,7 @@ struct CloudSignInSheet: View {
 
         guard isValidCloudEmail(self.store.cloudSignInAttempt.email) else {
             self.store.cloudSignInAttempt.authErrorPresentation = CloudAuthInlineErrorPresentation(
+                role: .error,
                 message: aiSettingsLocalized("settings.account.cloudSignIn.enterValidEmail", "Enter a valid email address"),
                 technicalError: nil
             )
@@ -818,6 +819,7 @@ struct CloudSignInSheet: View {
         captureContext: TechnicalErrorCaptureContext
     ) {
         self.store.cloudSignInAttempt.authErrorPresentation = CloudAuthInlineErrorPresentation(
+            role: presentation.role,
             message: presentation.message,
             technicalError: presentation.technicalError.map { action in
                 self.store.captureTechnicalErrorActionIfNeeded(
@@ -852,6 +854,7 @@ struct CloudSignInSheet: View {
                 try await operation()
             } catch {
                 self.store.cloudSignInAttempt.authErrorPresentation = CloudAuthInlineErrorPresentation(
+                    role: .error,
                     message: Flashcards.errorMessage(error: error),
                     technicalError: nil
                 )

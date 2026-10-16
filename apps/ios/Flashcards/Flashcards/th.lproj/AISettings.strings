@@ -947,3 +947,6 @@
 "settings.account.methods.changed" = "วิธีเปลี่ยนไปแล้ว รีเฟรชวิธีแล้วเริ่มใหม่";
 "settings.account.methods.demo" = "บัญชีสาธิตจัดการวิธีเข้าสู่ระบบไม่ได้ เข้าสู่ระบบด้วยบัญชีของคุณ";
 "settings.account.methods.refreshFailed" = "รีเฟรชวิธีไม่ได้ โปรดรีเฟรชก่อนเปลี่ยนแปลงใหม่";
+
+"settings.account.cloudSignIn.continueGoogle" = "ดำเนินการต่อด้วย Google";
+"settings.account.cloudSignIn.appleCleanupPending" = "Apple กำลังดำเนินการอัปเดตความปลอดภัยให้เสร็จสิ้น โปรดลองอีกครั้งด้วย Apple ในอีกสักครู่ หรือเลือกวิธีลงชื่อเข้าใช้อื่น";

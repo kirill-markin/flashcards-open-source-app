@@ -975,3 +975,6 @@
 "settings.account.methods.changed" = "Cette méthode a changé. Actualisez les méthodes et recommencez.";
 "settings.account.methods.demo" = "Les comptes de démonstration ne peuvent pas gérer les méthodes de connexion. Connectez-vous avec votre compte.";
 "settings.account.methods.refreshFailed" = "Impossible d’actualiser les méthodes. Actualisez avant un nouveau changement.";
+
+"settings.account.cloudSignIn.continueGoogle" = "Continuer avec Google";
+"settings.account.cloudSignIn.appleCleanupPending" = "Apple termine une mise à jour de sécurité. Réessayez avec Apple dans un instant ou choisissez une autre méthode de connexion.";

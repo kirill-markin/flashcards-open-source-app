@@ -947,3 +947,6 @@
 "settings.account.methods.changed" = "పద్ధతి మారింది. పద్ధతులను రిఫ్రెష్ చేసి మళ్లీ ప్రారంభించండి.";
 "settings.account.methods.demo" = "డెమో ఖాతాలు సైన్-ఇన్ పద్ధతులను నిర్వహించలేవు. మీ ఖాతాలో సైన్ ఇన్ చేయండి.";
 "settings.account.methods.refreshFailed" = "పద్ధతులను రిఫ్రెష్ చేయలేకపోయాం. కొత్త మార్పుకు ముందు రిఫ్రెష్ చేయండి.";
+
+"settings.account.cloudSignIn.continueGoogle" = "Googleతో కొనసాగించండి";
+"settings.account.cloudSignIn.appleCleanupPending" = "Apple భద్రతా అప్‌డేట్‌ను పూర్తి చేస్తోంది. కొద్దిసేపటి తర్వాత Appleతో మళ్లీ ప్రయత్నించండి లేదా సైన్ ఇన్ చేయడానికి మరో పద్ధతిని ఎంచుకోండి.";

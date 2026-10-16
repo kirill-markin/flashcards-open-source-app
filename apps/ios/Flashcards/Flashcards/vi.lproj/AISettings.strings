@@ -947,3 +947,6 @@
 "settings.account.methods.changed" = "Phương thức đã thay đổi. Làm mới phương thức và bắt đầu lại.";
 "settings.account.methods.demo" = "Tài khoản dùng thử không thể quản lý phương thức đăng nhập. Đăng nhập bằng tài khoản của bạn.";
 "settings.account.methods.refreshFailed" = "Không thể làm mới phương thức. Làm mới trước thay đổi mới.";
+
+"settings.account.cloudSignIn.continueGoogle" = "Tiếp tục với Google";
+"settings.account.cloudSignIn.appleCleanupPending" = "Apple đang hoàn tất bản cập nhật bảo mật. Hãy thử lại với Apple sau giây lát hoặc chọn phương thức đăng nhập khác.";

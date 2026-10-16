@@ -214,6 +214,7 @@ struct CloudOtpVerificationSheet: View {
         let nextCode = normalizedOtpCode(self.store.cloudSignInAttempt.otpCode)
         guard nextCode.isEmpty == false else {
             self.store.cloudSignInAttempt.otpAuthErrorPresentation = CloudAuthInlineErrorPresentation(
+                role: .error,
                 message: aiSettingsLocalized("settings.account.cloudSignIn.codeRequired", "Code is required"),
                 technicalError: nil
             )
@@ -222,6 +223,7 @@ struct CloudOtpVerificationSheet: View {
         guard let currentOtpSheetState = self.otpSheetState,
               let currentChallenge = currentOtpSheetState.challenge else {
             self.store.cloudSignInAttempt.otpAuthErrorPresentation = CloudAuthInlineErrorPresentation(
+                role: .error,
                 message: aiSettingsLocalized("settings.account.cloudSignIn.codeStillLoading", "Code is still loading"),
                 technicalError: nil
             )
@@ -440,6 +442,7 @@ struct CloudOtpVerificationSheet: View {
         captureContext: TechnicalErrorCaptureContext
     ) {
         self.store.cloudSignInAttempt.otpAuthErrorPresentation = CloudAuthInlineErrorPresentation(
+            role: presentation.role,
             message: presentation.message,
             technicalError: presentation.technicalError.map { action in
                 self.store.captureTechnicalErrorActionIfNeeded(
