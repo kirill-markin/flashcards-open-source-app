@@ -73,6 +73,17 @@ export const createdRolesByMigration = new Map([
 // migration contracts retain their original cutoffs.
 export const boundaryDefinitions = Object.freeze([
   Object.freeze({
+    migrationFileName: "0200_generated_media_account_owner.sql",
+    expectedMigrationCount: 202,
+    testFiles: Object.freeze([
+      "src/chat/cardImages/promotion/jobsAccountOwner.postgres.integration.ts",
+      "src/chat/cardImages/promotion/jobsAccountOwnerRace.postgres.integration.ts",
+      "src/chat/cardImages/promotion/jobsSettlement.postgres.integration.ts",
+      "src/chat/cardImages/promotion/jobsLeasing.postgres.integration.ts",
+      "src/chat/cardImages/promotion/jobsRevocation.postgres.integration.ts",
+    ]),
+  }),
+  Object.freeze({
     migrationFileName: "0199_starter_workspace_visibility.sql",
     expectedMigrationCount: 201,
     testFiles: Object.freeze([
@@ -104,7 +115,6 @@ export const boundaryDefinitions = Object.freeze([
       "src/chat/runs/generatedImageAttemptBudget.postgres.integration.ts",
       "src/chat/store/historyService.postgres.integration.ts",
       "src/billing/entitlement.postgres.integration.ts",
-      "src/chat/cardImages/promotion/jobsSettlement.postgres.integration.ts",
       "src/productAnalytics/serverFacts/authoringUpdates.postgres.integration.ts",
       "src/productAnalytics/writer.postgres.integration.ts",
       "src/sync/freshBootstrap.postgres.integration.ts",
@@ -112,8 +122,6 @@ export const boundaryDefinitions = Object.freeze([
       "src/cards/managedMedia/managedImageSnapshotMerge.postgres.integration.ts",
       "src/cards/onboardingDemo.postgres.integration.ts",
       "src/chat/cardImages/generationBudget.postgres.integration.ts",
-      "src/chat/cardImages/promotion/jobsLeasing.postgres.integration.ts",
-      "src/chat/cardImages/promotion/jobsRevocation.postgres.integration.ts",
       "src/mediaAssets/blobLifecycle/cleanup/reconciliation.postgres.integration.ts",
       "src/aiUsage/aiUsage.postgres.integration.ts",
       "src/mediaAssets/blobLifecycle/lifecycle.postgres.integration.ts",
