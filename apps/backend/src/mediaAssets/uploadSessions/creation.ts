@@ -1,9 +1,9 @@
 import {
-  queryWithWorkspaceScopeReadOnly,
   transactionWithWorkspaceScope,
   type DatabaseExecutor,
 } from "../../database";
 import { HttpError } from "../../shared/errors";
+import { transactionWithMultipartWriterOwnerScope } from "../multipart/writerLifecycle/ownerScope";
 import {
   assertMediaBlobMatchesInput,
   MEDIA_ASSET_JOIN_CLAUSE,
@@ -79,7 +79,7 @@ export async function createMediaAssetFromReachableBlobForWorkspace(
   workspaceId: string,
   input: MediaAssetUploadSessionCreateInput,
 ): Promise<MediaAssetMutationResult | null> {
-  return transactionWithWorkspaceScope({ userId, workspaceId }, async (executor) => {
+  return transactionWithMultipartWriterOwnerScope({ userId, workspaceId }, async (executor) => {
     await assertReplicaBelongsToWorkspaceInExecutor(executor, workspaceId, input.lastModifiedByReplicaId);
     const mediaBlobRow = await findReachableMediaBlobForUploadSessionCreateInExecutor(executor, workspaceId, input);
     if (mediaBlobRow === null) {
@@ -279,7 +279,7 @@ export async function acquireMediaAssetUploadSessionCreationClaimForWorkspace(
   claimToken: string,
   leaseDurationMs: number,
 ): Promise<MediaAssetUploadSessionCreationClaimResult> {
-  return transactionWithWorkspaceScope(
+  return transactionWithMultipartWriterOwnerScope(
     { userId, workspaceId },
     async (executor) => {
       const result =
@@ -425,7 +425,7 @@ export async function releaseMediaAssetUploadSessionCreationClaimForWorkspace(
   replicaId: string,
   claimToken: string,
 ): Promise<MediaAssetUploadSessionCreationClaimReleaseResult> {
-  return transactionWithWorkspaceScope(
+  return transactionWithMultipartWriterOwnerScope(
     { userId, workspaceId },
     (executor) => releaseMediaAssetUploadSessionCreationClaimInExecutor(
       executor,
@@ -449,7 +449,7 @@ export async function recordMediaAssetUploadSessionWithCreationClaimForWorkspace
   s3UploadId: string,
   expiresAt: string,
 ): Promise<MediaAssetUploadSessionCreateResult> {
-  return transactionWithWorkspaceScope(
+  return transactionWithMultipartWriterOwnerScope(
     { userId, workspaceId },
     async (executor) => {
       const result = await recordMediaAssetUploadSessionInExecutor(
@@ -544,17 +544,19 @@ export async function loadMediaAssetUploadSessionCreationReplayForWorkspace(
   sessionId: string,
   input: MediaAssetUploadSessionCreateInput,
 ): Promise<MediaAssetUploadSessionCreationReplayResult> {
-  const result = await queryWithWorkspaceScopeReadOnly<MediaAssetUploadSessionRow>(
+  const result = await transactionWithMultipartWriterOwnerScope(
     { userId, workspaceId },
-    [
-      "SELECT",
-      MEDIA_UPLOAD_SESSION_COLUMNS,
-      "FROM content.media_upload_sessions",
-      "WHERE workspace_id = $1",
-      "AND media_upload_session_id = $2",
-      "LIMIT 1",
-    ].join(" "),
-    [workspaceId, sessionId],
+    (executor) => executor.query<MediaAssetUploadSessionRow>(
+      [
+        "SELECT",
+        MEDIA_UPLOAD_SESSION_COLUMNS,
+        "FROM content.media_upload_sessions",
+        "WHERE workspace_id = $1",
+        "AND media_upload_session_id = $2",
+        "LIMIT 1",
+      ].join(" "),
+      [workspaceId, sessionId],
+    ),
   );
   const row = result.rows[0];
   if (row === undefined) {
