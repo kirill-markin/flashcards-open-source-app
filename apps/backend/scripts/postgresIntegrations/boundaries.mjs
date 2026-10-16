@@ -73,10 +73,24 @@ export const createdRolesByMigration = new Map([
 // migration contracts retain their original cutoffs.
 export const boundaryDefinitions = Object.freeze([
   Object.freeze({
+    migrationFileName: "0211_account_connection_proofs.sql",
+    expectedMigrationCount: 213,
+    testFiles: Object.freeze([
+      "src/auth/accountConnectionProofs.postgres.integration.ts",
+      "src/auth/provedAccountUnion.postgres.integration.ts",
+      "src/auth/principalEnrollment.postgres.integration.ts",
+      "src/auth/socialSignIn.postgres.integration.ts",
+      "src/auth/appleConsentReconnect.postgres.integration.ts",
+      "src/auth/accountEmailReauthentication.postgres.integration.ts",
+      "src/auth/emailAuthAttempt.postgres.integration.ts",
+      "src/auth/accountProviderMethods.postgres.integration.ts",
+      "src/auth/accountProviderBrowserHandoffs.postgres.integration.ts",
+    ]),
+  }),
+  Object.freeze({
     migrationFileName: "0210_proved_account_union.sql",
     expectedMigrationCount: 212,
     testFiles: Object.freeze([
-      "src/auth/provedAccountUnion.postgres.integration.ts",
       "src/auth/appleLifecycle.postgres.integration.ts",
       "src/aiConsent/consent.postgres.integration.ts",
       "src/routes/system/account/accountPreferences.postgres.integration.ts",
@@ -88,15 +102,6 @@ export const boundaryDefinitions = Object.freeze([
     expectedMigrationCount: 211,
     testFiles: Object.freeze([
       "src/community/accountUnion.postgres.integration.ts",
-    ]),
-  }),
-  Object.freeze({
-    migrationFileName: "0208_provider_email_reconciliation.sql",
-    expectedMigrationCount: 210,
-    testFiles: Object.freeze([
-      "src/auth/principalEnrollment.postgres.integration.ts",
-      "src/auth/socialSignIn.postgres.integration.ts",
-      "src/auth/appleConsentReconnect.postgres.integration.ts",
     ]),
   }),
   Object.freeze({
@@ -112,15 +117,6 @@ export const boundaryDefinitions = Object.freeze([
     testFiles: Object.freeze([
       "src/billing/entitlement.postgres.integration.ts",
       "src/aiUsage/aiUsage.postgres.integration.ts",
-    ]),
-  }),
-  Object.freeze({
-    migrationFileName: "0205_account_email_reauthentication.sql",
-    expectedMigrationCount: 207,
-    testFiles: Object.freeze([
-      "src/auth/accountEmailReauthentication.postgres.integration.ts",
-      "src/auth/emailAuthAttempt.postgres.integration.ts",
-      "src/auth/accountProviderMethods.postgres.integration.ts",
     ]),
   }),
   Object.freeze({
@@ -210,13 +206,6 @@ export const boundaryDefinitions = Object.freeze([
       "src/catalog/distribution/public/public.postgres.integration.ts",
       "src/mediaAssets/blobLifecycle/cleanup/sharedProvenance.postgres.integration.ts",
       "src/cards/managedMedia/generatedImageAppend.postgres.integration.ts",
-    ]),
-  }),
-  Object.freeze({
-    migrationFileName: "0193_account_provider_browser_handoffs.sql",
-    expectedMigrationCount: 195,
-    testFiles: Object.freeze([
-      "src/auth/accountProviderBrowserHandoffs.postgres.integration.ts",
     ]),
   }),
   Object.freeze({
