@@ -25,6 +25,7 @@ import com.flashcardsopensourceapp.data.local.model.sync.SyncOperationPayload
 import com.flashcardsopensourceapp.data.local.model.sync.WorkspaceSchedulerSettingsSyncPayload
 import com.flashcardsopensourceapp.data.local.model.cards.buildDeckFilterDefinition
 import com.flashcardsopensourceapp.data.local.model.cards.buildDeckFilterDefinitionJsonObject
+import com.flashcardsopensourceapp.data.local.model.cards.decodeOnboardingDemoMetadata
 import com.flashcardsopensourceapp.data.local.model.cards.decodeCardMetadataJson
 import com.flashcardsopensourceapp.data.local.model.cards.defaultCardType
 import com.flashcardsopensourceapp.data.local.model.cards.makeDefaultCardMetadata
@@ -397,7 +398,8 @@ internal fun parseCardPayloadMetadata(
                 metadataObject = sourceObject,
                 fieldPath = "$fieldPath.metadata.source"
             )
-        }
+        },
+        onboardingDemo = decodeOnboardingDemoMetadata(value = metadataObject.opt("onboardingDemo"))
     )
 }
 

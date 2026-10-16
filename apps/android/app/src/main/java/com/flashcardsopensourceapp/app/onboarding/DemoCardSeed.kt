@@ -40,7 +40,7 @@ fun buildDemoCardDraft(context: Context): CardDraft {
         context.getString(R.string.demo_card_back_2),
         context.getString(R.string.demo_card_back_3, againLabel)
     )
-    return CardDraft(
+    return CardDraft.onboardingDemo(
         frontText = context.getString(R.string.demo_card_front),
         backText = backParagraphs.joinToString(separator = demoCardParagraphSeparator),
         tags = listOf(demoCardTag)
