@@ -154,8 +154,13 @@ export async function checkAccountConnectionPreparation(runtime: pg.Client, owne
     await owner.query("UPDATE auth.provider_login_methods SET activated_at=$2 WHERE provider_subject=$1", [providers.google, methodGeneration]);
 
     for (const [index, workspace] of workspaces.entries()) {
-      await owner.query("INSERT INTO org.workspaces(workspace_id,name) VALUES($1,'Personal')", [workspace]);
-      await owner.query("INSERT INTO org.workspace_memberships(workspace_id,user_id,role) VALUES($1,$2,'owner')", [workspace, accounts[index === 1 ? 1 : 0]]);
+      await transaction(owner, async () => {
+        await owner.query(`INSERT INTO org.workspaces(workspace_id,name,fsrs_client_updated_at,
+          fsrs_last_modified_by_replica_id,fsrs_last_operation_id) VALUES($1,'Personal',now(),$1,'seed')`, [workspace]);
+        await owner.query(`INSERT INTO sync.workspace_replicas(replica_id,workspace_id,user_id,actor_kind,actor_key,platform)
+          VALUES($1,$1,$2,'workspace_seed','seed','system')`, [workspace, accounts[index === 1 ? 1 : 0]]);
+        await owner.query("INSERT INTO org.workspace_memberships(workspace_id,user_id,role) VALUES($1,$2,'owner')", [workspace, accounts[index === 1 ? 1 : 0]]);
+      });
     }
     await owner.query("UPDATE org.user_settings SET workspace_id=$2 WHERE user_id=$1", [accounts[0], workspaces[0]]);
     await owner.query("UPDATE org.user_settings SET workspace_id=$2 WHERE user_id=$1", [accounts[1], workspaces[1]]);
