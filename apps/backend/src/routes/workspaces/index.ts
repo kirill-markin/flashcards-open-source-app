@@ -15,10 +15,12 @@ import {
   revokeAgentApiKeyConnectionForUser,
 } from "../../agent/apiKeys";
 import {
+  listAuthorizedUserWorkspacesPageForSelectedWorkspace,
   listUserWorkspacesPageForSelectedWorkspace,
   renameWorkspaceForUser,
   selectWorkspaceForApiKeyConnection,
   selectWorkspaceForUser,
+  type AuthorizedWorkspaceSummaryPage,
   type DeleteWorkspaceResult,
   type WorkspaceDeletePreview,
   type ResetWorkspaceProgressResult,
@@ -72,10 +74,7 @@ type WorkspaceRoutesOptions = Readonly<{
   withTransientDatabaseRetryFn?: typeof withTransientDatabaseRetry;
 }>;
 
-type WorkspacesPageResponse = Readonly<{
-  workspaces: ReadonlyArray<WorkspaceSummary>;
-  nextCursor: string | null;
-}>;
+type WorkspacesPageResponse = AuthorizedWorkspaceSummaryPage;
 
 type WorkspaceDeleteResponse = DeleteWorkspaceResult;
 
@@ -116,17 +115,20 @@ export function createWorkspaceRoutes(options: WorkspaceRoutesOptions): Hono<App
     const pageInput = parseCursorQueryParams(context.req.raw);
 
     try {
-      const workspacesPage = shouldUseAgentSetupEnvelope(requestContext.transport)
-        ? await listUserWorkspacesPageForSelectedWorkspace(
-          requestContext.userId,
-          requestContext.selectedWorkspaceId,
-          pageInput,
-        )
-        : await listUserWorkspacesPageForSelectedWorkspace(
-          requestContext.userId,
-          requestContext.selectedWorkspaceId,
-          pageInput,
-        );
+      const result = shouldUseAgentSetupEnvelope(requestContext.transport)
+        ? {
+          kind: "agent" as const,
+          page: await listUserWorkspacesPageForSelectedWorkspace(
+            requestContext.userId, requestContext.selectedWorkspaceId, pageInput,
+          ),
+        }
+        : {
+          kind: "human" as const,
+          page: await listAuthorizedUserWorkspacesPageForSelectedWorkspace(
+            requestContext.userId, requestContext.selectedWorkspaceId, pageInput,
+          ),
+        };
+      const workspacesPage = result.page;
       addBackendBreadcrumb({
         action: "workspaces_list",
         scope: createWorkspaceRouteScope(requestId, context.req.path, context.req.method, requestContext.userId, null, context.get("clientAppVersion"), context.get("clientPlatform")),
@@ -138,16 +140,16 @@ export function createWorkspaceRoutes(options: WorkspaceRoutesOptions): Hono<App
           hasNextCursor: workspacesPage.nextCursor !== null,
         },
       });
-      if (shouldUseAgentSetupEnvelope(requestContext.transport)) {
+      if (result.kind === "agent") {
         return context.json(createAgentWorkspacesEnvelope(
           context.req.url,
-          workspacesPage.workspaces,
-          workspacesPage.nextCursor,
+          result.page.workspaces,
+          result.page.nextCursor,
         ));
       }
       return context.json({
-        workspaces: workspacesPage.workspaces,
-        nextCursor: workspacesPage.nextCursor,
+        workspaces: result.page.workspaces,
+        nextCursor: result.page.nextCursor,
       } satisfies WorkspacesPageResponse);
     } catch (error) {
       const scope = createWorkspaceRouteScope(requestId, context.req.path, context.req.method, requestContext.userId, null, context.get("clientAppVersion"), context.get("clientPlatform"));
