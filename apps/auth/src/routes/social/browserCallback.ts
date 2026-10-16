@@ -75,7 +75,7 @@ function protectBrowserDocument(c: Context<AuthAppEnv>, nonce: string): void {
 async function providerCallback(c: Context<AuthAppEnv>): Promise<Response> {
   protectCallbackResponse(c);
   let claimedState: BrowserCallbackState | null = null;
-  let recovery: BrowserSignInRecovery | null = { chooserUri: "/login", locale: resolveLoginPageLocale(undefined, c.req.header("accept-language")) };
+  let recovery: BrowserSignInRecovery | null = { chooserUri: "/login", locale: resolveLoginPageLocale(undefined, c.req.header("accept-language")), retryMethod: null };
   let managementState: BrowserCallbackState | null = null;
   let linkRedemptionStarted = false;
   const events: ObservedAuthAnalyticsEvent[] = [];
@@ -97,7 +97,12 @@ async function providerCallback(c: Context<AuthAppEnv>): Promise<Response> {
     }
     const state = readBrowserState(c, oneParameter(parameters, "state", 43));
     if (state.provider !== provider || state.phase !== "provider") throw new AuthAttemptError("AUTH_ATTEMPT_INVALID");
-    if (state.client === "web" && state.intent === "login") {
+    if (state.client === "android") {
+      recovery = state.intent === "login" ? {
+        chooserUri: `/api/social/apple/start?${new URLSearchParams({ client: "android", codeChallenge: state.codeChallenge })}`,
+        locale: resolveLoginPageLocale(undefined, c.req.header("accept-language")), retryMethod: "apple",
+      } : null;
+    } else if (state.intent === "login") {
       recovery = browserSignInRecovery(c, state.redirectUri, state.locale);
     }
     if (state.client === "web" && state.intent !== "login") managementState = state;
