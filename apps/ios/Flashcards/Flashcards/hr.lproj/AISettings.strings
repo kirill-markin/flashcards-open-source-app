@@ -923,11 +923,9 @@
 "ai.consent.withdrawalFailed" = "Dijeljenje podataka s AI-jem isključeno je na ovom uređaju. Vaš odabir još nije sinkroniziran; pokušajte ponovno kada imate vezu.";
 "ai.consent.retrySync" = "Ponovno spremi odabir";
 "settings.account.cloudSignIn.unifiedTitle" = "Prijavite se ili izradite račun";
-"settings.account.cloudSignIn.remember" = "Zapamti ovu prijavu na uređaju";
+"settings.account.cloudSignIn.continueEmail" = "Nastavi e-poštom";
 "settings.account.cloudSignIn.lastUsed" = "Zadnje korišteno";
 "settings.account.cloudSignIn.showEmail" = "Prikaži e-poštu";
-"settings.account.cloudSignIn.forget" = "Zaboravi ovu prijavu";
-"settings.account.cloudSignIn.signOutForget" = "Odjavi se i zaboravi";
 "settings.account.cloudSignIn.mailboxPrompt" = "Potvrdite pristup e-pošti. Unesite kod od 6 do 8 znamenki. Po potrebi provjerite neželjenu poštu.";
 "settings.account.cloudSignIn.freshAttempt" = "Prijava nije dovršena. Počnite ponovno za nastavak.";
 "settings.account.cloudSignIn.restart" = "Počni ponovno";

@@ -951,11 +951,9 @@
 "ai.consent.withdrawalFailed" = "Die Datenfreigabe für KI ist auf diesem Gerät ausgeschaltet. Deine Auswahl wurde noch nicht synchronisiert; versuche es erneut, sobald du verbunden bist.";
 "ai.consent.retrySync" = "Auswahl erneut speichern";
 "settings.account.cloudSignIn.unifiedTitle" = "Anmelden oder Konto erstellen";
-"settings.account.cloudSignIn.remember" = "Diese Anmeldung auf diesem Gerät merken";
+"settings.account.cloudSignIn.continueEmail" = "Mit E-Mail fortfahren";
 "settings.account.cloudSignIn.lastUsed" = "Zuletzt verwendet";
 "settings.account.cloudSignIn.showEmail" = "E-Mail anzeigen";
-"settings.account.cloudSignIn.forget" = "Diese Anmeldung vergessen";
-"settings.account.cloudSignIn.signOutForget" = "Abmelden und vergessen";
 "settings.account.cloudSignIn.mailboxPrompt" = "Bestätige den Zugriff auf deine E-Mail. Gib den 6- bis 8-stelligen Code ein. Prüfe bei Bedarf den Spamordner.";
 "settings.account.cloudSignIn.freshAttempt" = "Die Anmeldung wurde nicht abgeschlossen. Beginne erneut, um fortzufahren.";
 "settings.account.cloudSignIn.restart" = "Erneut beginnen";

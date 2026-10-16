@@ -923,11 +923,9 @@
 "ai.consent.withdrawalFailed" = "ಈ ಸಾಧನದಲ್ಲಿ AI ಜೊತೆ ಡೇಟಾ ಹಂಚಿಕೆ ಆಫ್ ಆಗಿದೆ. ನಿಮ್ಮ ಆಯ್ಕೆ ಇನ್ನೂ ಸಿಂಕ್ ಆಗಿಲ್ಲ; ಸಂಪರ್ಕ ದೊರೆತಾಗ ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ.";
 "ai.consent.retrySync" = "ಆಯ್ಕೆಯನ್ನು ಉಳಿಸಲು ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ";
 "settings.account.cloudSignIn.unifiedTitle" = "ಸೈನ್ ಇನ್ ಮಾಡಿ ಅಥವಾ ಖಾತೆ ರಚಿಸಿ";
-"settings.account.cloudSignIn.remember" = "ಈ ಸಾಧನದಲ್ಲಿ ಈ ಸೈನ್ ಇನ್ ನೆನಪಿಡಿ";
+"settings.account.cloudSignIn.continueEmail" = "ಇಮೇಲ್ ಮೂಲಕ ಮುಂದುವರಿಯಿರಿ";
 "settings.account.cloudSignIn.lastUsed" = "ಕೊನೆಯದಾಗಿ ಬಳಸಿದ್ದು";
 "settings.account.cloudSignIn.showEmail" = "ಇಮೇಲ್ ತೋರಿಸಿ";
-"settings.account.cloudSignIn.forget" = "ಈ ಸೈನ್ ಇನ್ ಮರೆತುಬಿಡಿ";
-"settings.account.cloudSignIn.signOutForget" = "ಸೈನ್ ಔಟ್ ಮಾಡಿ ಮತ್ತು ಮರೆತುಬಿಡಿ";
 "settings.account.cloudSignIn.mailboxPrompt" = "ನಿಮ್ಮ ಇಮೇಲ್ ಪ್ರವೇಶವನ್ನು ದೃಢಪಡಿಸಿ. 6–8 ಅಂಕಿಗಳ ಕೋಡ್ ನಮೂದಿಸಿ. ಅಗತ್ಯವಿದ್ದರೆ ಸ್ಪ್ಯಾಮ್ ಪರಿಶೀಲಿಸಿ.";
 "settings.account.cloudSignIn.freshAttempt" = "ಸೈನ್ ಇನ್ ಪೂರ್ಣಗೊಂಡಿಲ್ಲ. ಮುಂದುವರಿಯಲು ಮತ್ತೆ ಪ್ರಾರಂಭಿಸಿ.";
 "settings.account.cloudSignIn.restart" = "ಮತ್ತೆ ಪ್ರಾರಂಭಿಸಿ";
