@@ -1529,12 +1529,6 @@ const isCatalog: TranslationCatalog = {
     changed: "Aðferðin breyttist. Endurnýjaðu aðferðir og byrjaðu aftur.",
     codePrompt: "Staðfestu aðgang að tölvupóstinum þínum. Sláðu inn 6–8 stafa tölukóðann. Athugaðu ruslpóst ef þarf.",
   },
-  browserSignInPrivacy: {
-    forget: "Gleyma innskráningarupplýsingum",
-    signOutForget: "Skrá út og gleyma",
-    forgotten: "Innskráningarupplýsingum hefur verið gleymt.",
-    error: "Ekki tókst að breyta innskráningarupplýsingum. Leyfðu vefgögn fyrir auðkenningarsíðuna og reyndu aftur.",
-  },
   accountStatus: {
     title: "Staða aðgangs",
     subtitle: "Skoðaðu núverandi innskráðan aðgang og vafralotu.",

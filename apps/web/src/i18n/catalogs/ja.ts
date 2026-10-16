@@ -1529,12 +1529,6 @@ export const jaCatalog = {
     changed: "この方法は変更されました。方法を更新してやり直してください。",
     codePrompt: "メールへのアクセスを確認してください。6～8桁のコードを入力し、必要に応じて迷惑メールも確認してください。",
   },
-  browserSignInPrivacy: {
-    forget: "ログイン情報を削除",
-    signOutForget: "ログアウトして情報を削除",
-    forgotten: "ログイン情報を削除しました。",
-    error: "ログイン情報を変更できませんでした。認証サイトのデータ保存を許可して再試行してください。",
-  },
   accountStatus: {
     title: "アカウント状態",
     subtitle: "現在サインインしているアカウントとブラウザセッションを確認します。",

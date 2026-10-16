@@ -1544,12 +1544,6 @@ const hrCatalog: TranslationCatalog = {
     changed: "Način je promijenjen. Osvježite načine i počnite ponovno.",
     codePrompt: "Potvrdite pristup e-pošti. Unesite kod od 6 do 8 znamenki. Po potrebi provjerite neželjenu poštu.",
   },
-  browserSignInPrivacy: {
-    forget: "Zaboravi podatke o prijavi",
-    signOutForget: "Odjavi i zaboravi",
-    forgotten: "Podaci o prijavi su zaboravljeni.",
-    error: "Podaci o prijavi nisu promijenjeni. Dopustite podatke stranice za autentifikaciju i pokušajte ponovno.",
-  },
   accountStatus: {
     title: "Stanje računa",
     subtitle: "Pregledajte trenutačno prijavljeni račun i sesiju preglednika.",

@@ -1529,12 +1529,6 @@ const lvCatalog: TranslationCatalog = {
     changed: "Veids ir mainījies. Atsvaidziniet veidus un sāciet no jauna.",
     codePrompt: "Apstipriniet piekļuvi e-pastam. Ievadiet 6–8 ciparu kodu. Vajadzības gadījumā pārbaudiet mēstules.",
   },
-  browserSignInPrivacy: {
-    forget: "Aizmirst pieteikšanās informāciju",
-    signOutForget: "Izrakstīties un aizmirst",
-    forgotten: "Pieteikšanās informācija ir aizmirsta.",
-    error: "Neizdevās mainīt pieteikšanās informāciju. Atļaujiet autentifikācijas vietnes datus un mēģiniet vēlreiz.",
-  },
   accountStatus: {
     title: "Konta statuss",
     subtitle: "Pārskatiet pašreizējo pierakstīto kontu un pārlūka sesiju.",

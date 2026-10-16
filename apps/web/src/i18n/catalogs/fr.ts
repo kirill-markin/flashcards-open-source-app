@@ -1529,12 +1529,6 @@ const frCatalog: TranslationCatalog = {
     changed: "Cette méthode a changé. Actualisez les méthodes et recommencez.",
     codePrompt: "Vérifiez l’accès à votre e-mail. Saisissez le code de 6 à 8 chiffres. Vérifiez les spams si nécessaire.",
   },
-  browserSignInPrivacy: {
-    forget: "Oublier les informations de connexion",
-    signOutForget: "Se déconnecter et oublier",
-    forgotten: "Informations de connexion oubliées.",
-    error: "Impossible de modifier les informations de connexion. Autorisez les données du site d’authentification et réessayez.",
-  },
   accountStatus: {
     title: "État du compte",
     subtitle: "Consultez le compte actuellement connecté et la session du navigateur.",

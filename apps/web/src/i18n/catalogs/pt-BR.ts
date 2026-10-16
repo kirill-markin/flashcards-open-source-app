@@ -1529,12 +1529,6 @@ const ptBrCatalog: TranslationCatalog = {
     changed: "Este método mudou. Atualize os métodos e recomece.",
     codePrompt: "Confirme o acesso ao seu e-mail. Digite o código de 6 a 8 dígitos. Confira o spam se necessário.",
   },
-  browserSignInPrivacy: {
-    forget: "Esquecer informações de login",
-    signOutForget: "Sair e esquecer",
-    forgotten: "Informações de login esquecidas.",
-    error: "Não foi possível alterar as informações de login. Permita dados do site de autenticação e tente novamente.",
-  },
   accountStatus: {
     title: "Status da conta",
     subtitle: "Consulte a conta conectada no momento e a sessão do navegador.",

@@ -1529,12 +1529,6 @@ const svCatalog: TranslationCatalog = {
     changed: "Metoden har ändrats. Uppdatera metoderna och börja om.",
     codePrompt: "Bekräfta åtkomst till din e-post. Ange koden med 6–8 siffror. Kontrollera skräpposten vid behov.",
   },
-  browserSignInPrivacy: {
-    forget: "Glöm inloggningsinformation",
-    signOutForget: "Logga ut och glöm",
-    forgotten: "Inloggningsinformationen är glömd.",
-    error: "Kunde inte ändra inloggningsinformationen. Tillåt webbplatsdata för inloggningssidan och försök igen.",
-  },
   accountStatus: {
     title: "Kontostatus",
     subtitle: "Se det inloggade kontot och webbläsarsessionen.",
