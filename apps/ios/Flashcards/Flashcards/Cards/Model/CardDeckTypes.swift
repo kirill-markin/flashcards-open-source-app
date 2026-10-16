@@ -98,15 +98,22 @@ struct CardSourceMetadata: Codable, Hashable, Sendable {
 struct CardMetadata: Codable, Hashable, Sendable {
     let version: Int
     let source: CardSourceMetadata?
+    let onboardingDemo: OnboardingDemoMetadata?
 
     enum CodingKeys: String, CodingKey {
         case version
         case source
+        case onboardingDemo
     }
 
     init(source: CardSourceMetadata?) {
+        self.init(source: source, onboardingDemo: nil)
+    }
+
+    init(source: CardSourceMetadata?, onboardingDemo: OnboardingDemoMetadata?) {
         self.version = 1
         self.source = source
+        self.onboardingDemo = onboardingDemo
     }
 
     init(from decoder: Decoder) throws {
@@ -122,11 +129,13 @@ struct CardMetadata: Codable, Hashable, Sendable {
 
         self.version = version
         self.source = try container.decode(CardSourceMetadata?.self, forKey: .source)
+        self.onboardingDemo = try? container.decode(OnboardingDemoMetadata.self, forKey: .onboardingDemo)
     }
 
     func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(self.version, forKey: .version)
+        try container.encodeIfPresent(self.onboardingDemo, forKey: .onboardingDemo)
         if let source = self.source {
             try container.encode(source, forKey: .source)
         } else {
