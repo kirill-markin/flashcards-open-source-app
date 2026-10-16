@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { applyUserDatabaseScopeInExecutor, type DatabaseExecutor } from "../../database";
 import type { AccountKind } from "../limits";
+import { resolveBillingOwnerInExecutor } from "../identity";
 import type { PurchaseStatus } from "../resolver";
 import { AppleBillingError, type ApplePurchaseIdentity, type ApplePurchaseState, type AppleNotification } from "./contracts";
 
@@ -41,7 +42,8 @@ export async function accountToken(executor: DatabaseExecutor, userId: string): 
 
 async function readPurchase(executor: DatabaseExecutor, identity: ApplePurchaseIdentity): Promise<StoredApplePurchase | null> {
   const result = await executor.query<StoredApplePurchase>(`
-    SELECT purchase_id, user_id, status, is_trial, will_renew, until, provider_status_raw, account_deleted_at
+    SELECT purchase_id, auth.canonical_account_id(user_id) AS user_id, status, is_trial,
+      will_renew, until, provider_status_raw, account_deleted_at
     FROM billing.purchases WHERE provider = 'apple' AND provider_purchase_id = $1 AND environment = $2`,
   [identity.originalTransactionId, identity.environment]);
   return result.rows[0] ?? null;
@@ -54,10 +56,12 @@ export async function lockPurchase(
     [`apple:${identity.environment}:${identity.originalTransactionId}`]);
   const observed = await readPurchase(executor, identity);
   // A token may attribute an unowned purchase, but can never reclaim an attached one.
-  const tokenOwner = observed?.user_id == null && identity.appAccountToken !== null
+  const originalTokenOwner = observed?.user_id == null && identity.appAccountToken !== null
     ? (await executor.query<{ user_id: string }>(
       "SELECT user_id FROM billing.user_billing_state WHERE apple_app_account_token = $1::uuid",
       [identity.appAccountToken])).rows[0]?.user_id ?? null : null;
+  const tokenOwner = originalTokenOwner === null ? null
+    : await resolveBillingOwnerInExecutor(executor, originalTokenOwner);
   const userIds = [...new Set([observed?.user_id ?? null, presentingUserId, tokenOwner]
     .filter((id): id is string => id !== null))].sort((left, right) => left.localeCompare(right));
   const accounts: Array<AppleAccount> = [];

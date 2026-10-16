@@ -15,18 +15,19 @@ import { createWebGuestEverPurchasedGuardSql } from "../guestAuth/reaper";
 import {
   anonymizeBillingForDeletedPersonInExecutor,
   transferBillingToUpgradedAccountInExecutor,
+  resolveBillingOwnerInExecutor,
 } from "./identity";
+import { lockPurchase } from "./apple/store";
+import { lockGooglePurchaseOwners, readGooglePurchase } from "./google/store";
+import { findStripeCustomerIdentityInExecutor, listStripeCustomerIdentitiesInExecutor,
+  getStripeAccountTrialEligibilityInExecutor, hasStripeTrialConsumptionInExecutor, loadStripeCheckoutAttemptInExecutor,
+  reserveStripeCheckoutAttemptInExecutor } from "./stripe/identityStore";
+import { loadEntitlementResolutionInputsInExecutor } from "./store";
+import { resolveEntitlement } from "./resolver";
 import {
   resolveEntitlementSnapshotForUser,
   type EntitlementWire,
 } from "./snapshot";
-
-// The entitlement is derived from rows nothing writes yet, so a unit test with hand-built inputs would
-// only restate the resolver. What is worth pinning is the part no pure test can reach: that the reads
-// match the shipped billing schema, that the cache is written once and not rewritten while the answer
-// holds, and that the sync pull route publishes the resolved value. This file must stay listed in
-// apps/backend/scripts/postgresIntegrations/boundaries.mjs, because an unlisted integration file is
-// never executed by any workflow.
 
 type EntitlementSnapshotStateRow = Readonly<{
   tier: string;
@@ -904,6 +905,282 @@ test("the reaper's purchase guard spares a paying guest under both roles that re
         "DELETE FROM billing.user_billing_state WHERE user_id = ANY($1::text[])",
         [[payingGuestUserId, freeGuestUserId]],
       );
+    }
+  });
+});
+
+// The owner connection stands in for the future atomic union; runtime must not gain a transfer API.
+test("private account billing union retains aliases, paid history and every month of AI usage", async () => {
+  await withPostgresIntegrationFixture(async (fixture) => {
+    const client = await fixture.ownerPool.connect();
+    const source = `${fixture.userId}-billing-source`;
+    const target = fixture.userId;
+    const sourceIdentityId = randomUUID();
+    const targetIdentityId = randomUUID();
+    const sourceCustomer = `cus_${randomUUID().replaceAll("-", "")}`;
+    const targetCustomer = `cus_${randomUUID().replaceAll("-", "")}`;
+    const sourceApple = randomUUID();
+    const targetApple = randomUUID();
+    const sourceGoogle = randomUUID();
+    const targetGoogle = randomUUID();
+    const sourceAttemptId = randomUUID();
+    const targetAttemptId = randomUUID();
+    const providerEventId = randomUUID();
+    const now = new Date("2026-10-16T12:00:00.000Z");
+    const executor: DatabaseExecutor = {
+      query: async <Row extends pg.QueryResultRow>(
+        text: string, params: ReadonlyArray<SqlValue>,
+      ): Promise<pg.QueryResult<Row>> => client.query<Row>(text, [...params]),
+    };
+    try {
+      await client.query("BEGIN");
+      await client.query("INSERT INTO org.user_settings(user_id, email) VALUES ($1, 'billing-source@example.com')", [source]);
+      await client.query(`INSERT INTO billing.user_billing_state
+        (user_id, trial_consumed_at, trial_provider, ever_purchased_at, stripe_customer_id,
+          apple_app_account_token, google_obfuscated_account_id)
+        VALUES ($1, '2026-01-01', 'apple', '2026-02-01', $3, $5, $7),
+          ($2, '2026-03-01', 'google', '2026-04-01', $4, $6, $8)`,
+      [source, target, sourceCustomer, targetCustomer, sourceApple, targetApple, sourceGoogle, targetGoogle]);
+      assert.equal(await getStripeAccountTrialEligibilityInExecutor(executor, target, "production"), true);
+      await client.query(`INSERT INTO billing.stripe_customer_identities
+        (identity_id, environment, user_id, customer_id)
+        VALUES ($1, 'production', $3, $5), ($2, 'production', $4, $6)`,
+      [sourceIdentityId, targetIdentityId, source, target, sourceCustomer, targetCustomer]);
+      assert.equal(await getStripeAccountTrialEligibilityInExecutor(executor, target, "production"), true);
+      await client.query("UPDATE billing.stripe_customer_identities SET customer_id = NULL WHERE identity_id = $1", [targetIdentityId]);
+      assert.equal(await getStripeAccountTrialEligibilityInExecutor(executor, target, "production"), null);
+      await client.query("UPDATE billing.stripe_customer_identities SET customer_id = $2 WHERE identity_id = $1",
+        [targetIdentityId, targetCustomer]);
+      await client.query(`INSERT INTO billing.stripe_trial_consumptions
+        (identity_id, environment, subscription_id, consumed_at)
+        VALUES ($1, 'production', 'sub_SourceTrial', '2026-01-01')`, [sourceIdentityId]);
+      await client.query(`INSERT INTO billing.stripe_checkout_attempts
+        (attempt_id, identity_id, environment, user_id, trial_days, locale, expires_at)
+        VALUES ($1, $2, 'production', $3, 7, 'en', now() + interval '1 hour')`,
+      [sourceAttemptId, sourceIdentityId, source]);
+      await client.query(`INSERT INTO billing.stripe_checkout_attempts
+        (attempt_id, identity_id, environment, user_id, session_id, status, trial_days, locale, expires_at)
+        VALUES ($1, $2, 'production', $3, 'cs_FrozenTarget', 'open', 7, 'fr', now() + interval '2 hours')`,
+      [targetAttemptId, targetIdentityId, target]);
+      await client.query(`INSERT INTO billing.purchases
+        (provider, provider_purchase_id, environment, kind, tier, user_id, previous_user_id,
+          status, until, provider_status_raw)
+        VALUES ('apple', $3, 'production', 'subscription', 'premium', $1, 'original-holder', 'active', '2030-01-01', '1'),
+          ('google', $4, 'production', 'subscription', 'premium', $2, NULL, 'active', '2030-01-01', 'ACTIVE'),
+          ('stripe', $5, 'production', 'subscription', 'premium', $1, NULL, 'expired', '2026-02-01', 'canceled')`,
+      [source, target, `apple-${sourceIdentityId}`, `google-${targetIdentityId}`, `sub_${sourceIdentityId}`]);
+      await client.query(`INSERT INTO billing.grants(user_id, tier, source, reason, granted_at)
+        VALUES ($1, 'lifetime', 'gift', 'Account union integration', '2026-01-01'),
+          ($2, 'premium', 'gift', 'Account union integration', '2026-01-01')`, [source, target]);
+      await client.query(`INSERT INTO billing.provider_events
+        (provider, event_id, user_id, provider_purchase_id, environment, payload_raw, payload)
+        VALUES ('apple', $1, $2, $3, 'production', 'original-fact', '{"original":true}')`,
+      [providerEventId, source, `apple-${sourceIdentityId}`]);
+      await client.query(`INSERT INTO billing.apple_transactions
+        (environment, transaction_id, subject_id, original_transaction_id, product_id, purchased_at,
+          source_signed_at, native_fields, observed_at)
+        SELECT 'production', $1, subject_id, $2, 'premium_monthly', '2026-02-01',
+          '2026-02-01', '{"price":6990}', '2026-02-01'
+        FROM billing.history_subjects WHERE provider = 'apple' AND user_id = $3`,
+      [randomUUID(), `apple-${sourceIdentityId}`, source]);
+      await client.query(`INSERT INTO billing.entitlement_snapshots(user_id, tier, status, source)
+        VALUES ($1, 'lifetime', 'active', 'grant'), ($2, 'premium', 'active', 'purchase')`, [source, target]);
+      await client.query(`INSERT INTO ai.usage_events
+        (usage_event_id, user_id, workspace_id, occurred_at, surface, provider, model_id,
+          request_id, tier_at_call, input_tokens, output_tokens, user_supplied_key)
+        VALUES ($1, $5, $7, '2026-09-01', 'chat', 'openai', 'gpt-5', 'past-source', 'free', 11, 2, false),
+          ($2, $6, $7, '2026-09-02', 'dictation', 'openai', 'gpt-5', 'past-target', 'premium', 13, 3, true),
+          ($3, $5, $7, '2026-10-01', 'chat', 'openai', 'gpt-5', 'current-source', 'premium', 17, 5, false),
+          ($4, $6, NULL, '2026-10-02', 'chat', 'openai', 'gpt-5', 'current-target', 'free', 19, 7, false)`,
+      [randomUUID(), randomUUID(), randomUUID(), randomUUID(), source, target, fixture.workspaceId]);
+      const usageBefore = await client.query<{ facts: ReadonlyArray<object> }>(`SELECT jsonb_agg(
+        to_jsonb(usage) - 'user_id' ORDER BY usage_event_id) AS facts
+        FROM ai.usage_events AS usage WHERE user_id IN ($1, $2)`, [source, target]);
+      const purchasesBefore = await client.query<{ facts: ReadonlyArray<object> }>(`SELECT jsonb_agg(
+        to_jsonb(purchase) - 'user_id' ORDER BY purchase_id) AS facts
+        FROM billing.purchases AS purchase WHERE user_id IN ($1, $2)`, [source, target]);
+      const grantsBefore = await client.query<{ facts: ReadonlyArray<object> }>(`SELECT jsonb_agg(
+        to_jsonb(grant_row) - 'user_id' ORDER BY grant_id) AS facts
+        FROM billing.grants AS grant_row WHERE user_id IN ($1, $2)`, [source, target]);
+      const nativeBefore = await client.query<{ facts: ReadonlyArray<object> }>(`SELECT jsonb_agg(
+        to_jsonb(transaction_row)) AS facts FROM billing.apple_transactions AS transaction_row
+        WHERE original_transaction_id = $1`, [`apple-${sourceIdentityId}`]);
+      const attemptBefore = await loadStripeCheckoutAttemptInExecutor(executor, sourceAttemptId, "production");
+      const openAttemptBefore = await loadStripeCheckoutAttemptInExecutor(executor, targetAttemptId, "production");
+      assert.notEqual(attemptBefore, null);
+      assert.notEqual(openAttemptBefore, null);
+
+      await client.query("SELECT billing.transfer_account_billing($1, $2)", [source, target]);
+      await client.query("SELECT ai.transfer_account_usage($1, $2)", [source, target]);
+      await client.query("SELECT auth.record_account_retirement($1, $2, $3)", [source, target, randomUUID()]);
+      await client.query("SET LOCAL ROLE backend_app");
+      for (const functionName of ["billing.transfer_account_billing", "ai.transfer_account_usage"]) {
+        await client.query("SAVEPOINT runtime_transfer_denied");
+        await assert.rejects(client.query(`SELECT ${functionName}($1, $2)`, [source, target]),
+          (error: Error) => "code" in error && error.code === "42501");
+        await client.query("ROLLBACK TO SAVEPOINT runtime_transfer_denied");
+      }
+      assert.equal(await resolveBillingOwnerInExecutor(executor, source), target);
+      const aliases = await client.query<{ user_id: string; owner_id: string }>(`SELECT user_id,
+        billing.canonical_owner_id(user_id) AS owner_id FROM billing.user_billing_state
+        WHERE apple_app_account_token IN ($1, $2) AND google_obfuscated_account_id IN ($3, $4)`,
+      [sourceApple, targetApple, sourceGoogle, targetGoogle]);
+      assert.equal(aliases.rows.length, 2);
+      assert.ok(aliases.rows.every((row) => row.owner_id === target));
+      const apple = await lockPurchase(executor, {
+        originalTransactionId: `unknown-${randomUUID()}`, appAccountToken: sourceApple, environment: "production",
+      }, null);
+      assert.equal(apple.ownerUserId, target);
+      const googleToken = `unknown-${randomUUID()}`;
+      const google = await lockGooglePurchaseOwners(executor, {
+        purchaseToken: googleToken, productId: "premium", basePlanId: "monthly", offerId: null,
+        price: null, status: "active", providerStatus: "ACTIVE", environment: "production", currentPhase: "base_price",
+        isTrial: false, willRenew: true, autorenewDisabledReason: "unknown", cancellationSurveyReason: null,
+        paid: true, completed: true, until: new Date("2030-01-01"), graceUntil: null, startedAt: now, verifiedAt: now,
+        latestSuccessfulOrderId: null, linkedPurchaseToken: null, acknowledgementState: "acknowledged",
+        obfuscatedExternalAccountId: sourceGoogle, outOfAppPurchaseContext: null,
+      }, [{ purchaseToken: googleToken, predecessorToken: null, state: null }], null);
+      assert.equal(google.ownerUserId, target);
+      assert.equal((await readGooglePurchase(executor, `google-${targetIdentityId}`, "production"))?.user_id, target);
+      const customers = await listStripeCustomerIdentitiesInExecutor(executor, target, "production");
+      assert.equal(customers.length, 2);
+      assert.equal(customers.filter((identity) => identity.isPrimary).length, 1);
+      assert.equal(customers.find((identity) => identity.isPrimary)?.identityId, targetIdentityId);
+      for (const customer of [sourceCustomer, targetCustomer]) {
+        assert.equal((await findStripeCustomerIdentityInExecutor(executor, "production", customer))?.userId, target);
+      }
+      const attemptAfter = await loadStripeCheckoutAttemptInExecutor(executor, sourceAttemptId, "production");
+      assert.deepEqual(attemptAfter, { ...attemptBefore, userId: target });
+      assert.deepEqual(await loadStripeCheckoutAttemptInExecutor(executor, targetAttemptId, "production"), openAttemptBefore);
+      assert.equal(await hasStripeTrialConsumptionInExecutor(executor, sourceIdentityId, "production"), true);
+      assert.equal(await hasStripeTrialConsumptionInExecutor(executor, targetIdentityId, "production"), false);
+      const primary = customers.find((identity) => identity.identityId === targetIdentityId);
+      assert.ok(primary);
+      const frozenOffer = await reserveStripeCheckoutAttemptInExecutor(executor, primary, "en");
+      assert.deepEqual(frozenOffer, openAttemptBefore);
+      await client.query(`UPDATE billing.stripe_checkout_attempts SET status = 'complete'
+        WHERE attempt_id = $1`, [targetAttemptId]);
+      await client.query(`UPDATE billing.stripe_checkout_attempts SET status = 'abandoned'
+        WHERE attempt_id = $1`, [sourceAttemptId]);
+      assert.equal(await getStripeAccountTrialEligibilityInExecutor(executor, target, "production"), false);
+      assert.equal(await getStripeAccountTrialEligibilityInExecutor(executor, target, "sandbox"), true);
+      await client.query("SAVEPOINT future_trial_offer");
+      await client.query("UPDATE billing.stripe_customer_identities SET customer_id = NULL WHERE identity_id = $1", [targetIdentityId]);
+      assert.equal(await getStripeAccountTrialEligibilityInExecutor(executor, target, "production"), false);
+      await client.query("UPDATE billing.stripe_customer_identities SET is_primary = false WHERE identity_id = $1", [targetIdentityId]);
+      assert.equal(await getStripeAccountTrialEligibilityInExecutor(executor, target, "production"), false);
+      await client.query("ROLLBACK TO SAVEPOINT future_trial_offer");
+      const futureOffer = await reserveStripeCheckoutAttemptInExecutor(executor, primary, "en");
+      assert.equal(futureOffer.trialDays, 0);
+      assert.equal((await loadStripeCheckoutAttemptInExecutor(executor, sourceAttemptId, "production"))?.trialDays, 7);
+      const state = await client.query<{ trial_consumed_at: Date; trial_provider: string; ever_purchased_at: Date }>(
+        "SELECT trial_consumed_at, trial_provider, ever_purchased_at FROM billing.user_billing_state WHERE user_id = $1", [target]);
+      assert.deepEqual(state.rows[0], { trial_consumed_at: new Date("2026-01-01"),
+        trial_provider: "apple", ever_purchased_at: new Date("2026-02-01") });
+      const inputs = await loadEntitlementResolutionInputsInExecutor(executor, target);
+      assert.equal(inputs.purchases.length, 3);
+      assert.equal(inputs.grants.length, 2);
+      assert.equal(inputs.cached, null);
+      assert.equal(resolveEntitlement(inputs.purchases, inputs.grants, "account", now).tier, "lifetime");
+      const snapshots = await client.query("SELECT user_id FROM billing.entitlement_snapshots WHERE user_id IN ($1, $2)", [source, target]);
+      assert.equal(snapshots.rows.length, 0);
+      const usageAfter = await client.query<{ facts: ReadonlyArray<object> }>(`SELECT jsonb_agg(
+        to_jsonb(usage) - 'user_id' ORDER BY usage_event_id) AS facts
+        FROM ai.usage_events AS usage WHERE user_id = $1`, [target]);
+      assert.deepEqual(usageAfter.rows, usageBefore.rows);
+      const purchasesAfter = await client.query<{ facts: ReadonlyArray<object> }>(`SELECT jsonb_agg(
+        to_jsonb(purchase) - 'user_id' ORDER BY purchase_id) AS facts
+        FROM billing.purchases AS purchase WHERE user_id = $1`, [target]);
+      assert.deepEqual(purchasesAfter.rows, purchasesBefore.rows);
+      const grantsAfter = await client.query<{ facts: ReadonlyArray<object> }>(`SELECT jsonb_agg(
+        to_jsonb(grant_row) - 'user_id' ORDER BY grant_id) AS facts
+        FROM billing.grants AS grant_row WHERE user_id = $1`, [target]);
+      assert.deepEqual(grantsAfter.rows, grantsBefore.rows);
+      const nativeAfter = await client.query<{ facts: ReadonlyArray<object> }>(`SELECT jsonb_agg(
+        to_jsonb(transaction_row)) AS facts FROM billing.apple_transactions AS transaction_row
+        WHERE original_transaction_id = $1`, [`apple-${sourceIdentityId}`]);
+      assert.deepEqual(nativeAfter.rows, nativeBefore.rows);
+      const subjects = await client.query<{ user_id: string }>(`SELECT user_id FROM billing.history_subjects
+        WHERE subject_hash = encode(sha256(convert_to($1::text, 'UTF8')), 'hex')`, [`apple-${sourceIdentityId}`]);
+      assert.deepEqual(subjects.rows, [{ user_id: target }]);
+      const event = await client.query<{ user_id: string; payload_raw: string }>(
+        "SELECT user_id, payload_raw FROM billing.provider_events WHERE event_id = $1", [providerEventId]);
+      assert.deepEqual(event.rows, [{ user_id: source, payload_raw: "original-fact" }]);
+      const usageTotals = await client.query<{ month: string; calls: number; input_tokens: number }>(`SELECT
+        to_char(occurred_at AT TIME ZONE 'UTC', 'YYYY-MM') AS month,
+        count(*)::integer AS calls, sum(input_tokens)::integer AS input_tokens
+        FROM ai.usage_events WHERE user_id = $1 GROUP BY month ORDER BY month`, [target]);
+      assert.deepEqual(usageTotals.rows, [
+        { month: "2026-09", calls: 2, input_tokens: 24 }, { month: "2026-10", calls: 2, input_tokens: 36 },
+      ]);
+      const budget = await client.query<{ platform_messages: number; weighted_tokens: number }>(`SELECT
+        count(DISTINCT request_id) FILTER (WHERE surface = 'chat' AND NOT user_supplied_key)::integer AS platform_messages,
+        sum(COALESCE(input_tokens, 0) + 6 * COALESCE(output_tokens, 0))
+          FILTER (WHERE NOT user_supplied_key)::integer AS weighted_tokens
+        FROM ai.usage_events WHERE user_id = $1 AND occurred_at >= '2026-10-01' AND occurred_at < '2026-11-01'`, [target]);
+      assert.deepEqual(budget.rows, [{ platform_messages: 2, weighted_tokens: 108 }]);
+      await client.query("UPDATE billing.grants SET revoked_at = $2 WHERE user_id = $1 AND tier = 'lifetime'", [target, now]);
+      const withoutLifetime = await loadEntitlementResolutionInputsInExecutor(executor, target);
+      assert.equal(resolveEntitlement(withoutLifetime.purchases, withoutLifetime.grants, "account", now).tier, "premium");
+    } finally {
+      await client.query("ROLLBACK");
+      client.release();
+    }
+  });
+});
+
+test("billing union moves unopposed handles and resolves an older guest alias through retirement", async () => {
+  await withPostgresIntegrationFixture(async (fixture) => {
+    const client = await fixture.ownerPool.connect();
+    const source = `${fixture.userId}-source`;
+    const guest = `${fixture.userId}-old-guest`;
+    const token = randomUUID();
+    const guestToken = randomUUID();
+    const googleId = randomUUID();
+    const customerId = `cus_${randomUUID().replaceAll("-", "")}`;
+    const executor: DatabaseExecutor = {
+      query: async <Row extends pg.QueryResultRow>(
+        text: string, params: ReadonlyArray<SqlValue>,
+      ): Promise<pg.QueryResult<Row>> => client.query<Row>(text, [...params]),
+    };
+    try {
+      await client.query("BEGIN");
+      await client.query("INSERT INTO org.user_settings(user_id) VALUES ($1)", [source]);
+      await client.query(`INSERT INTO auth.guest_upgrade_history
+        (upgrade_id, source_guest_user_id, source_guest_workspace_id, source_guest_session_id,
+          target_subject_user_id, target_user_id, target_workspace_id, selection_type)
+        VALUES ($1, $2, $3, $4, $5, $5, $3, 'existing')`,
+      [randomUUID(), guest, fixture.workspaceId, randomUUID(), source]);
+      await client.query(`INSERT INTO billing.user_billing_state
+        (user_id, apple_app_account_token, google_obfuscated_account_id, stripe_customer_id)
+        VALUES ($1, $3, $4, $5), ($2, $6, NULL, NULL)`,
+      [source, guest, token, googleId, customerId, guestToken]);
+      await client.query("SELECT billing.transfer_account_billing($1, $2)", [source, fixture.userId]);
+      await client.query("SELECT auth.record_account_retirement($1, $2, $3)", [source, fixture.userId, randomUUID()]);
+      await client.query("SET LOCAL ROLE backend_app");
+      const state = await client.query<{ user_id: string; apple: string | null; google: string | null; stripe: string | null }>(
+        `SELECT user_id, apple_app_account_token::text AS apple,
+          google_obfuscated_account_id AS google, stripe_customer_id AS stripe
+        FROM billing.user_billing_state WHERE user_id IN ($1, $2) ORDER BY user_id`, [source, fixture.userId]);
+      assert.deepEqual(state.rows, [
+        { user_id: fixture.userId, apple: token, google: googleId, stripe: customerId },
+        { user_id: source, apple: null, google: null, stripe: null },
+      ]);
+      assert.equal(await resolveBillingOwnerInExecutor(executor, guest), fixture.userId);
+      for (const appAccountToken of [guestToken, token]) {
+        const mapped = await lockPurchase(executor, {
+          originalTransactionId: `new-${randomUUID()}`, environment: "production", appAccountToken,
+        }, null);
+        assert.equal(mapped.ownerUserId, fixture.userId);
+      }
+      const privileges = await client.query<{ role: string; allowed: boolean }>(`SELECT role,
+        has_function_privilege(role, 'billing.transfer_account_billing(text,text)', 'EXECUTE')
+          OR has_function_privilege(role, 'ai.transfer_account_usage(text,text)', 'EXECUTE') AS allowed
+        FROM unnest(ARRAY['backend_app', 'auth_app', 'reporting_readonly']) AS role ORDER BY role`);
+      assert.ok(privileges.rows.every((row) => !row.allowed));
+    } finally {
+      await client.query("ROLLBACK");
+      client.release();
     }
   });
 });
