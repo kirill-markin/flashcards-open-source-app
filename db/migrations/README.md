@@ -14,6 +14,9 @@ merge and erasure. The creation/recovery transaction and lock contract lives in
 [`identityStore.ts`](../../apps/backend/src/billing/stripe/identityStore.ts); provider primitives and
 private configuration live alongside it. No purchase routes or entitlement changes are activated.
 
+Public profile alias storage and live leaderboard participation reads are defined in
+[`0207_community_profile_aliases.sql`](0207_community_profile_aliases.sql).
+
 ## Corrections to applied migrations
 
 An applied migration is immutable. `scripts/deploy/migrate.sh` records every migration by filename

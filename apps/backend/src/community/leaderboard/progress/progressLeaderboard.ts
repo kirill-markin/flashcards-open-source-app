@@ -536,6 +536,7 @@ async function readLeaderboardSnapshotEntriesInExecutor(
       "entries.base_sort_position AS base_sort_position",
       "FROM community.leaderboard_snapshot_entries AS entries",
       "WHERE entries.snapshot_id = ANY($1::uuid[])",
+      "AND community.public_profile_participates(entries.public_profile_id)",
       "ORDER BY entries.snapshot_id, entries.base_sort_position ASC",
     ].join(" "),
     [snapshotIds],
