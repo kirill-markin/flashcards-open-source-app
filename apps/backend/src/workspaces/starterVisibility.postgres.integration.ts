@@ -3,10 +3,20 @@ import { randomUUID } from "node:crypto";
 import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import test from "node:test";
+import { Hono } from "hono";
 import pg from "pg";
+import { createAgentApiKeyForUser } from "../agent/apiKeys";
+import type { AgentEnvelope } from "../agent/envelope";
+import { resetAuthConfigForTests } from "../auth/config";
 import { applyUserDatabaseScopeInExecutor, transactionWithUserScope, type DatabaseExecutor } from "../database";
+import { hashGuestToken } from "../guestAuth/shared";
+import { createAgentRoutes } from "../routes/agent";
+import { createWorkspaceRoutes } from "../routes/workspaces";
+import type { AppEnv } from "../server/app";
+import type { CursorPageInput } from "../shared/pagination";
 import { createWorkspaceInExecutor } from "./create";
 import {
+  listAuthorizedUserWorkspacesPageForSelectedWorkspace,
   listUserWorkspaceIdsInExecutor,
   listUserWorkspacesForSelectedWorkspace,
   listUserWorkspacesPageForSelectedWorkspace,
@@ -18,6 +28,7 @@ import {
   ensureMcpConnectionWorkspaceSelection,
   ensureUserSelectedWorkspaceInExecutor,
 } from "./selection";
+import type { AuthorizedWorkspaceSummaryPage, WorkspaceSummaryPage } from "./types";
 import { parseSyncPullInput, parseSyncPushInput, processSyncPull, processSyncPush } from "../sync";
 import { createCatalogPackageVersionFromWorkspaceSelectionInExecutor } from "../catalog/authoring/versions/workspaceSnapshots";
 
@@ -45,6 +56,7 @@ test("starter omission preserves complete membership, runtime defaults and late 
   const catalogAuthorId = randomUUID();
   const catalogPackageId = randomUUID();
   const catalogVersionId = randomUUID();
+  const previousAuthMode = process.env.AUTH_MODE;
   try {
     await Promise.all([owner.connect(), backend.connect(), auth.connect()]);
     await backend.query("SET ROLE backend_app");
@@ -61,6 +73,28 @@ test("starter omission preserves complete membership, runtime defaults and late 
     const foreign = await create(foreignId, "automatic_starter");
     const fallback = await create(fallbackId, "automatic_starter");
     const fallbackSurplus = await create(fallbackId, "automatic_starter");
+    const guestToken = randomUUID();
+    await owner.query("INSERT INTO auth.guest_sessions(session_id,session_secret_hash,user_id,platform) VALUES ($1,$2,$3,'android')",
+      [randomUUID(), hashGuestToken(guestToken), userId]);
+    await owner.query("UPDATE org.user_settings SET workspace_id = $2 WHERE user_id = $1", [userId, visible]);
+    process.env.AUTH_MODE = "cognito";
+    resetAuthConfigForTests();
+    const app = new Hono<AppEnv>();
+    app.use("*", async (context, next) => {
+      context.set("requestId", randomUUID());
+      await next();
+    });
+    app.route("/v1", createWorkspaceRoutes({ allowedOrigins: [] }));
+    app.route("/v1", createAgentRoutes({ allowedOrigins: [] }));
+    const listHumanPage = async (input: CursorPageInput): Promise<AuthorizedWorkspaceSummaryPage> => {
+      const query = new URLSearchParams({ limit: String(input.limit) });
+      if (input.cursor !== null) query.set("cursor", input.cursor);
+      const response = await app.request(`http://localhost/v1/workspaces?${query}`, {
+        headers: { Authorization: `Guest ${guestToken}` },
+      });
+      assert.equal(response.status, 200);
+      return await response.json() as AuthorizedWorkspaceSummaryPage;
+    };
     await owner.query("UPDATE org.workspaces SET created_at = '2026-01-01' WHERE workspace_id = ANY($1::uuid[])", [[hidden, fallback]]);
     assert.equal((await owner.query("SELECT org.workspace_is_unused_starter($1) AS unused", [hidden])).rows[0].unused, true);
     assert.equal((await listUserWorkspacesForSelectedWorkspace(userId, null)).length, 2);
@@ -73,6 +107,26 @@ test("starter omission preserves complete membership, runtime defaults and late 
     assert.deepEqual((await listUserWorkspacesForSelectedWorkspace(fallbackId, fallbackSurplus)).map((row) => row.workspaceId), [fallbackSurplus]);
     assert.deepEqual((await listUserWorkspacesForSelectedWorkspace(userId, foreign)).map((row) => row.workspaceId), [visible]);
     assert.equal((await listUserWorkspacesForSelectedWorkspace(userId, hidden)).find((row) => row.workspaceId === hidden)?.isSelected, true);
+    const hiddenPage = await listHumanPage({ limit: 1, cursor: null });
+    assert.deepEqual(hiddenPage.workspaces, [{
+      workspaceId: hidden, name: "Personal", createdAt: "2026-01-01T00:00:00.000Z",
+      isSelected: false, isVisible: false,
+    }]);
+    assert.ok(hiddenPage.nextCursor !== null);
+    const visiblePage = await listHumanPage({ limit: 1, cursor: hiddenPage.nextCursor });
+    assert.deepEqual(visiblePage.workspaces.map((row) => [row.workspaceId, row.isSelected, row.isVisible]), [[visible, true, true]]);
+    assert.equal(visiblePage.nextCursor, null);
+    const selectedPage = await listAuthorizedUserWorkspacesPageForSelectedWorkspace(userId, hidden, { limit: 100, cursor: null });
+    assert.deepEqual(selectedPage.workspaces.map((row) => [row.workspaceId, row.isSelected, row.isVisible]),
+      [[hidden, true, true], [visible, false, true]]);
+    const foreignSelectionPage = await listAuthorizedUserWorkspacesPageForSelectedWorkspace(userId, foreign, { limit: 100, cursor: null });
+    assert.deepEqual(foreignSelectionPage.workspaces.map((row) => [row.workspaceId, row.isSelected, row.isVisible]),
+      [[hidden, false, false], [visible, false, true]]);
+    for (const selected of [null, fallbackSurplus]) {
+      const fallbackPage = await listAuthorizedUserWorkspacesPageForSelectedWorkspace(fallbackId, selected, { limit: 100, cursor: null });
+      assert.deepEqual(fallbackPage.workspaces.map((row) => [row.workspaceId, row.isVisible]),
+        [[fallback, selected === null], [fallbackSurplus, selected === fallbackSurplus]]);
+    }
     await transactionWithUserScope({ userId }, async (executor) => {
       assert.equal((await listUserWorkspaceIdsInExecutor(executor, userId)).length, 2);
       assert.equal(await ensureUserSelectedWorkspaceInExecutor(executor, userId, hidden), hidden);
@@ -109,9 +163,10 @@ test("starter omission preserves complete membership, runtime defaults and late 
       assert.deepEqual((await client.query("SELECT workspace_id FROM org.visible_workspace_ids($1)", [hidden])).rows, []);
     }
 
-    // An early hidden prefix must not consume either a page or the stats cap.
+    const hiddenPrefix: string[] = [];
     for (let index = 0; index < 100; index += 1) {
       const id = await create(userId, "automatic_starter");
+      hiddenPrefix.push(id);
       await owner.query("UPDATE org.workspaces SET created_at = '2026-01-02', starter_suppressed_at = now() WHERE workspace_id = $1", [id]);
     }
     const secondVisible = await create(userId, "explicit");
@@ -124,12 +179,38 @@ test("starter omission preserves complete membership, runtime defaults and late 
     assert.deepEqual(nextPage.workspaces.map((row) => row.workspaceId), [secondVisible]);
     assert.equal(nextPage.nextCursor, null);
     assert.equal((await listUserWorkspacesWithStatsForSelectedWorkspace(userId, null)).length, 2);
+    const firstHumanPage = await listHumanPage({ limit: 100, cursor: null });
+    assert.equal(firstHumanPage.workspaces.length, 100);
+    assert.ok(firstHumanPage.nextCursor !== null);
+    assert.ok(firstHumanPage.workspaces.every((row) => row.isVisible === false));
+    const lastHumanPage = await listHumanPage({ limit: 100, cursor: firstHumanPage.nextCursor });
+    assert.equal(lastHumanPage.nextCursor, null);
+    const authorized = [...firstHumanPage.workspaces, ...lastHumanPage.workspaces];
+    assert.deepEqual(authorized.map((row) => row.workspaceId), [hidden, ...hiddenPrefix.sort(), visible, secondVisible]);
+    assert.deepEqual(authorized.filter((row) => row.isVisible).map((row) => row.workspaceId), [visible, secondVisible]);
+    assert.deepEqual(authorized.filter((row) => row.isSelected).map((row) => row.workspaceId), [visible]);
+    const key = await createAgentApiKeyForUser(userId, "visible-list-fixture");
+    for (const path of ["/v1/workspaces", "/v1/agent/workspaces"]) {
+      const response = await app.request(`http://localhost${path}?limit=1`, {
+        headers: { Authorization: `ApiKey ${key.apiKey}` },
+      });
+      assert.equal(response.status, 200);
+      const envelope = await response.json() as AgentEnvelope<WorkspaceSummaryPage>;
+      assert.equal(envelope.ok, true);
+      assert.equal(typeof envelope.instructions, "string");
+      assert.deepEqual(envelope.data.workspaces.map((row) => row.workspaceId), [visible]);
+      const workspace = envelope.data.workspaces[0];
+      assert.ok(workspace !== undefined);
+      assert.equal("isVisible" in workspace, false);
+      assert.equal(envelope.data.nextCursor, page.nextCursor);
+    }
 
     await assertUserHasWorkspaceAccess(userId, hidden);
     const pullInput = parseSyncPullInput({ installationId, platform: "web", afterHotChangeId: 0, limit: 100 });
     const emptyPull = await processSyncPull(hidden, userId, pullInput);
     assert.ok(emptyPull !== undefined);
     assert.equal((await listUserWorkspacesForSelectedWorkspace(userId, null)).some((row) => row.workspaceId === hidden), false);
+    assert.equal((await listHumanPage({ limit: 1, cursor: null })).workspaces[0]?.isVisible, false);
     const cardId = randomUUID();
     const snapshot = {
       cardId, frontText: "Demo prompt", backText: "Demo answer", cardType: "basic", tags: ["demo"],
@@ -153,6 +234,7 @@ test("starter omission preserves complete membership, runtime defaults and late 
     await push(snapshot);
     assert.equal((await owner.query("SELECT org.workspace_is_unused_starter($1) AS unused", [hidden])).rows[0].unused, true);
     assert.equal((await listUserWorkspacesForSelectedWorkspace(userId, null)).some((row) => row.workspaceId === hidden), false);
+    assert.equal((await listHumanPage({ limit: 1, cursor: null })).workspaces[0]?.isVisible, false);
     for (const origin of ["unknown", "explicit"]) {
       const preservedId = randomUUID();
       await owner.query("BEGIN");
@@ -305,6 +387,10 @@ test("starter omission preserves complete membership, runtime defaults and late 
     const { metadata: demoMetadata, ...legacySnapshot } = snapshot;
     assert.ok(demoMetadata.onboardingDemo !== undefined);
     await push({ ...legacySnapshot, backText: "A real late offline answer" });
+    assert.deepEqual((await listHumanPage({ limit: 1, cursor: null })).workspaces, [{
+      workspaceId: hidden, name: "Personal", createdAt: "2026-01-01T00:00:00.000Z",
+      isSelected: false, isVisible: true,
+    }]);
     assert.equal((await listUserWorkspacesForSelectedWorkspace(userId, null)).some((row) => row.workspaceId === hidden), true);
     const latePull = await processSyncPull(hidden, userId, pullInput);
     assert.ok(latePull.changes.some((change) => change.entityId === cardId));
@@ -312,6 +398,9 @@ test("starter omission preserves complete membership, runtime defaults and late 
     await assertUserHasWorkspaceAccess(userId, hidden);
     await assert.rejects(assertUserHasWorkspaceAccess(foreignId, hidden), { code: "WORKSPACE_NOT_FOUND" });
   } finally {
+    if (previousAuthMode === undefined) delete process.env.AUTH_MODE;
+    else process.env.AUTH_MODE = previousAuthMode;
+    resetAuthConfigForTests();
     try {
       await Promise.all([owner.query("ROLLBACK"), backend.query("ROLLBACK"), auth.query("ROLLBACK")]);
       await owner.query("DELETE FROM catalog.packages WHERE package_id = $1", [catalogPackageId]);
