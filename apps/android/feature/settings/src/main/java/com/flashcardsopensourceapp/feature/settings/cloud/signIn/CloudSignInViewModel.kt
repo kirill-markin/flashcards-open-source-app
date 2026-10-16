@@ -460,7 +460,6 @@ class CloudSignInViewModel(
             val linkContext = if (repository != null) repository.verifyEmailCode(
                 challenge = challenge,
                 code = draftState.value.code,
-                rememberSignIn = providerSignIn.uiState.value.remember,
                 onVerificationStarted = { verificationInvoked = true },
                 onVerified = verified
             ) else cloudAccountRepository.verifyCode(

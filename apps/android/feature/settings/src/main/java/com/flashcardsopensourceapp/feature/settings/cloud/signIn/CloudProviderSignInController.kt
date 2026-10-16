@@ -43,7 +43,6 @@ data class CloudProviderSignInUiState(
     val hint: CloudSuccessfulSignInHint?,
     val step: CloudSignInEntryStep,
     val busy: Boolean,
-    val remember: Boolean,
     val email: String,
     val code: String,
     val codeRequested: Boolean,
@@ -62,7 +61,7 @@ class CloudProviderSignInController internal constructor(
     private val onPrepared: (String, AnalyticsAuthMethod, CloudWorkspaceLinkContext, CloudWorkspaceLinkSelection?) -> Unit
 ) {
     private val mutableState = MutableStateFlow(CloudProviderSignInUiState(
-        methods = null, hint = null, step = CloudSignInEntryStep.METHODS, busy = false, remember = true,
+        methods = null, hint = null, step = CloudSignInEntryStep.METHODS, busy = false,
         email = "", code = "", codeRequested = false, requiresRestart = false, error = "", prepared = false
     ))
     val uiState = mutableState.asStateFlow()
@@ -80,7 +79,6 @@ class CloudProviderSignInController internal constructor(
         }
     }
 
-    fun remember(value: Boolean) { mutableState.update { it.copy(remember = value) } }
     fun email(value: String) { mutableState.update { it.copy(email = value) } }
     fun code(value: String) { mutableState.update { it.copy(code = value.filter { character -> character in '0'..'9' }.take(8)) } }
     fun consumePrepared() { mutableState.update { it.copy(prepared = false) } }
@@ -103,11 +101,6 @@ class CloudProviderSignInController internal constructor(
         mutableState.update { it.copy(step = CloudSignInEntryStep.EMAIL, error = "", prepared = false) }
     }
 
-    fun forget() = runOperation {
-        repository.forgetRememberedSignIn()
-        mutableState.update { it.copy(hint = null) }
-    }
-
     fun anotherMethod() = runOperation {
         cancelPending()
         resetEntry()
@@ -118,7 +111,7 @@ class CloudProviderSignInController internal constructor(
         val method = requireNotNull(mutableState.value.methods).google
         require(method is CloudSocialProviderAvailability.Native && method.nonce == CloudSocialNonce.RAW)
         analytics.track(AnalyticsEvent.AuthMethodSelected(AnalyticsAuthMethod.GOOGLE, surface))
-        val current = repository.beginGoogleLogin(mutableState.value.remember)
+        val current = repository.beginGoogleLogin()
         pending = current
         val token = try {
             requestCloudGoogleCredential(context, method.audience, requireNotNull(current.nonce)) {
@@ -158,7 +151,7 @@ class CloudProviderSignInController internal constructor(
     fun apple(launch: (String) -> Unit) = runOperation {
         cancelPending()
         analytics.track(AnalyticsEvent.AuthMethodSelected(AnalyticsAuthMethod.APPLE, surface))
-        val browser = repository.beginAppleLogin(mutableState.value.remember)
+        val browser = repository.beginAppleLogin()
         pending = repository.resumePendingSignIn()
         launch(browser.url)
         analytics.track(AnalyticsEvent.AuthProviderRequested(AnalyticsAuthProvider.APPLE, surface))

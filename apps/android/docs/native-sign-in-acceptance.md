@@ -17,8 +17,8 @@ Automation suppresses client product facts and cannot establish their positive d
 separately authorized real collection-enabled session for those observations.
 
 1. Open sign-in from Settings, review prompt, catalog import and the credential-recovery gate.
-   Confirm one sign-in/create-account entry, Google first and primary, envelope Email second,
-   and Apple third only when server browser metadata and an installed browser make it usable.
+   Confirm one sign-in/create-account entry, Google first, envelope Email second with comparable
+   sizing and neutral Material styling, and Apple third only when server browser metadata and an installed browser make it usable.
    Test large text, TalkBack, RTL, keyboard focus and a small phone with its keyboard visible.
 2. On a registered Play/debug/CI-upload signing identity, invoke Google Credential Manager.
    Have the operator verify the actual Google-signed server audience, raw nonce and registered
@@ -66,27 +66,27 @@ separately authorized real collection-enabled session for those observations.
    completion, not merely credentials or a workspace-selection screen.
    Refresh/relaunch, use cards/reviews/workspaces offline and sync after reconnecting; existing
    purchases must remain attached to the intended account.
-9. Opt in to remembering and finish each method. Expect a small Last used badge floating
+9. Finish each method; successful sign-in automatically remembers the method and known email.
+   Expect a small Last used badge floating
    above/across the existing successful button's upper-right edge, without increasing button
    height, shifting logo/label, reordering or duplicating methods. In the actual scrolling Column,
    inspect and tap its upper half; the previous row's lower-right area must not intercept it or
-   activate the wrong method. Deliberate hover, keyboard navigation and badge tap/keyboard activation
+   activate the wrong method. Deliberate badge hover, tap and keyboard activation
    show only compact masked known-email text, with no Show, Copy, Forget or other hint controls.
    Initial/programmatic focus and focus restored after provider cancellation must not open it.
    Check Back/Escape, outside dismissal and restored keyboard focus. Badge activation must not
-   authenticate; ordinary method taps must. Unknown email stays absent. Keep optional Remember
-   and explicit Forget outside the hint. Inspect narrow widths, large text, TalkBack and RTL.
+   authenticate; ordinary method taps must. Unknown email stays absent. No Remember or Forget
+   controls are shown. Inspect narrow widths, large text, TalkBack and RTL.
    Cancel or fail at verification, workspace selection and initial sync: preserve the prior hint.
    Restart after Email credentials are installed but before initial sync finishes: the encrypted
    deferred hint retains only the actual verified identity, bound to that session and server.
    Kill during a guest upgrade after credentials install and before hydration succeeds. On restart,
-   finish real recovery and check the badge only after successful hydration. Repeat with remembering
-   off (clear the prior badge only after success), and Forget before completion (never revive it).
+   finish real recovery and check the badge only after successful hydration. Resume an older
+   pending sign-in with remembering disabled: success still saves its actual method and known email.
    A different server or refresh session must not consume the deferred record.
-10. Opt out and finish successfully: the previous hint clears only after completion. Ordinary
-    sign-out retains an opted-in hint; Forget, Sign out and forget, account deletion and local
-    erase clear it. Explicit Forget during pending completion must not be undone on resume.
-    Fail the protected clear: require an actionable error and no forgotten confirmation.
+10. Sign out normally: sessions end and the last successful hint remains. Sign in with another
+    method and confirm its hint replaces the prior hint only after completion. Account deletion
+    and local erase clear the hint. Fail the protected clear: require an actionable error.
 11. With collection enabled, inspect the existing factual event stream for actual method selection,
     SDK/browser launch, verified provider result, code request/submission/result, accepted stored
     session, guest upgrade and account ready. Ordinary workspace completion must not emit an
@@ -155,8 +155,8 @@ and deployed API, without demo identities or manufactured provider credentials.
 6. Kill during begin, provider submission, mailbox send/verify, link redemption, unlink and
    re-enable; interrupt after server success before disk completion too. Confirm no replay after
    restart, no duplicate confirmed-mutation callback from restoration, and no hint/session writes.
-   Cancel or Forget during a suspended call; change account, server, workspace or installation;
-   sign out normally and sign out/forget. Deliver the late Apple return after each action: it
+   Cancel during a suspended call; change account, server, workspace or installation;
+   sign out normally. Deliver the late Apple return after each action: it
    cannot restore the cancelled proof, dispatch to login, reopen sign-in or change recovery steps.
    Repeat with no pending purpose and with a storage retry whose protected purpose changed.
    Finally repeat ordinary Google/Apple/Email, guest recovery, hints and login callback storage
