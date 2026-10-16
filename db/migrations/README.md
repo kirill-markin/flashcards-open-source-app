@@ -29,6 +29,14 @@ Private account-connection proof reservations and exact session/transport receip
 [`accountConnectionProofs.postgres.integration.ts`](../../apps/backend/src/auth/accountConnectionProofs.postgres.integration.ts).
 The owner-only [proof services](../../apps/auth/src/server/social/accountConnectionProof.ts) have no public coordinator or union grant.
 
+Private saved-collision capture/adoption, durable historical workspace baselines and bounded cleanup
+are defined in [`0212_account_connection_readiness.sql`](0212_account_connection_readiness.sql).
+The real module/PostgreSQL boundary is
+[`accountConnectionPreparation.postgres.integration.ts`](../../apps/backend/src/auth/accountConnectionPreparation.postgres.integration.ts).
+The [private preparation module](../../apps/auth/src/server/social/accountConnectionPreparation.ts) requires
+the original login browser secret/PKCE verifier through adoption and confirmation; it provides no public action
+or consent/union writer.
+
 ## Corrections to applied migrations
 
 An applied migration is immutable. `scripts/deploy/migrate.sh` records every migration by filename

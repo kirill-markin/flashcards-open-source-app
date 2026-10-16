@@ -8,17 +8,26 @@ export type ConnectionSqlParameters = readonly [string, string, string, number |
 export type ConnectionState = "collecting" | "proved" | "cancelled" | "committed";
 export type ConnectionReceipt = Readonly<{
   operation: string;
+  operationId: string;
   state: ConnectionState;
   account: string;
   targetAccount: string | null;
   expiresAt: string;
 }>;
 export type ConnectionRow = Readonly<{
-  state: ConnectionState; source_account: string; target_account: string | null; expires_at: Date;
+  operation_id: string; state: ConnectionState; source_account: string; target_account: string | null; expires_at: Date;
 }>;
 export type ConnectionEmailRow = ConnectionRow & Readonly<{
   email_claim: string; target_subject: string; target_username: string; target_email: string;
   challenge_ciphertext: string;
+}>;
+export type ConnectionSuggestion = Readonly<{ suggestion: string; expiresAt: string }>;
+export type ConnectionChoices = Readonly<{
+  operationId: string;
+  omittedWorkspaceIds: readonly string[];
+  historicalBaselines: Readonly<Record<string, object>>;
+  preview: object;
+  digest: string;
 }>;
 export type ConnectionReplay = Readonly<{ consentDigest: string; result: string }>;
 
