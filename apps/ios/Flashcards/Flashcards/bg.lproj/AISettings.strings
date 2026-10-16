@@ -947,3 +947,6 @@
 "settings.account.methods.changed" = "Начинът е променен. Обновете начините и започнете отново.";
 "settings.account.methods.demo" = "Демо акаунтите не управляват начини за вход. Влезте със собствен акаунт.";
 "settings.account.methods.refreshFailed" = "Начините не бяха обновени. Обновете ги преди нова промяна.";
+
+"settings.account.cloudSignIn.continueGoogle" = "Продължаване с Google";
+"settings.account.cloudSignIn.appleCleanupPending" = "Apple завършва актуализация на сигурността. Опитайте отново с Apple след малко или изберете друг начин за вход.";

@@ -947,3 +947,6 @@
 "settings.account.methods.changed" = "Veids ir mainījies. Atsvaidziniet veidus un sāciet no jauna.";
 "settings.account.methods.demo" = "Demonstrācijas konti nevar pārvaldīt pierakstīšanās veidus. Pierakstieties savā kontā.";
 "settings.account.methods.refreshFailed" = "Neizdevās atsvaidzināt veidus. Atsvaidziniet pirms jaunas izmaiņas.";
+
+"settings.account.cloudSignIn.continueGoogle" = "Turpināt ar Google";
+"settings.account.cloudSignIn.appleCleanupPending" = "Apple pabeidz drošības atjauninājumu. Pēc brīža mēģiniet vēlreiz ar Apple vai izvēlieties citu pierakstīšanās veidu.";

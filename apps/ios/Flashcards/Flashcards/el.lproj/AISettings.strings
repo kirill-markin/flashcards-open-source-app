@@ -947,3 +947,6 @@
 "settings.account.methods.changed" = "Ο τρόπος άλλαξε. Ανανεώστε τους τρόπους και ξεκινήστε ξανά.";
 "settings.account.methods.demo" = "Οι δοκιμαστικοί λογαριασμοί δεν διαχειρίζονται τρόπους σύνδεσης. Συνδεθείτε με τον δικό σας.";
 "settings.account.methods.refreshFailed" = "Δεν ήταν δυνατή η ανανέωση. Ανανεώστε πριν από νέα αλλαγή.";
+
+"settings.account.cloudSignIn.continueGoogle" = "Συνέχεια με Google";
+"settings.account.cloudSignIn.appleCleanupPending" = "Η Apple ολοκληρώνει μια ενημέρωση ασφαλείας. Δοκίμασε ξανά με την Apple σε λίγο ή επίλεξε άλλον τρόπο σύνδεσης.";

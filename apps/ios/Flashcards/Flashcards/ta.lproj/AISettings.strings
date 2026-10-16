@@ -947,3 +947,6 @@
 "settings.account.methods.changed" = "முறை மாறியுள்ளது. முறைகளைப் புதுப்பித்து மீண்டும் தொடங்கவும்.";
 "settings.account.methods.demo" = "மாதிரிக் கணக்குகளால் உள்நுழைவு முறைகளை நிர்வகிக்க முடியாது. உங்கள் கணக்கில் உள்நுழையவும்.";
 "settings.account.methods.refreshFailed" = "முறைகளைப் புதுப்பிக்க முடியவில்லை. புதிய மாற்றத்திற்கு முன் புதுப்பிக்கவும்.";
+
+"settings.account.cloudSignIn.continueGoogle" = "Google மூலம் தொடரவும்";
+"settings.account.cloudSignIn.appleCleanupPending" = "Apple பாதுகாப்புப் புதுப்பிப்பை முடித்துக்கொண்டிருக்கிறது. சிறிது நேரத்திற்குப் பிறகு Apple மூலம் மீண்டும் முயலவும் அல்லது உள்நுழைய வேறு முறையைத் தேர்ந்தெடுக்கவும்.";

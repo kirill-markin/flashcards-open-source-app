@@ -39,9 +39,28 @@ func technicalErrorPresentationSource(error: Error) -> Error {
     return error
 }
 
+enum CloudAuthInlinePresentationRole: Equatable {
+    case error
+    case information
+}
+
 struct CloudAuthInlineErrorPresentation {
+    let role: CloudAuthInlinePresentationRole
     let message: String
     let technicalError: TechnicalErrorAction?
+}
+
+func isAppleSignInCleanupPending(error: Error) -> Bool {
+    guard case CloudAuthError.invalidResponse(let details, let statusCode) = technicalErrorPresentationSource(error: error),
+          statusCode == 409 else { return false }
+    return details.code == "APPLE_REVOCATION_PENDING"
+}
+
+func appleSignInCleanupPendingMessage() -> String {
+    aiSettingsLocalized(
+        "settings.account.cloudSignIn.appleCleanupPending",
+        "Apple is finishing a security update. Try Apple again shortly, or choose another sign-in method."
+    )
 }
 
 enum TechnicalErrorCapturePolicy: Equatable {
@@ -480,6 +499,7 @@ func makeCloudAuthInlineErrorPresentation(
 ) -> CloudAuthInlineErrorPresentation {
     if isUserActionableCloudAuthFailure(error: error) {
         return CloudAuthInlineErrorPresentation(
+            role: .error,
             message: errorMessage(error: error),
             technicalError: nil
         )
@@ -487,6 +507,7 @@ func makeCloudAuthInlineErrorPresentation(
 
     if isSilentlyIgnorableNetworkTransportFailure(error: error) {
         return CloudAuthInlineErrorPresentation(
+            role: .error,
             message: makeCloudAuthTransportFailureMessage(context: context),
             technicalError: nil
         )
@@ -494,6 +515,7 @@ func makeCloudAuthInlineErrorPresentation(
 
     if isCloudAuthTransportFailure(error: error) {
         return CloudAuthInlineErrorPresentation(
+            role: .error,
             message: makeCloudAuthTransportFailureMessage(context: context),
             technicalError: TechnicalErrorAction(
                 error: error,
@@ -503,6 +525,7 @@ func makeCloudAuthInlineErrorPresentation(
     }
 
     return CloudAuthInlineErrorPresentation(
+        role: .error,
         message: makeCloudAuthTechnicalFailureMessage(context: context),
         technicalError: TechnicalErrorAction(
             error: error,

@@ -1,11 +1,10 @@
-import AuthenticationServices
-import GoogleSignIn
 import SwiftUI
 
 struct CloudNativeSignInOptions: View {
     @Environment(FlashcardsStore.self) private var store: FlashcardsStore
     let screen: AnalyticsSurface
     let onVerified: (CloudVerifiedAuthContext) -> Void
+    @ScaledMetric(relativeTo: .body) private var buttonHeight: CGFloat = 48
     @State private var hintError: String?
     @State private var metadataError: String?
     @State private var metadataRequest = UUID()
@@ -31,6 +30,7 @@ struct CloudNativeSignInOptions: View {
                 }
                 CloudEmailSignInButton {
                     guard !self.store.cloudSignInAttempt.isMethodChangeBlocked else { return }
+                    self.store.cloudSignInAttempt.authErrorPresentation = nil
                     self.store.cloudNativeSignIn.resetPendingSignIn()
                     self.store.cloudSignInAttempt.usesNativeSession = false
                     self.store.cloudSignInAttempt.isEmailSelected = true
@@ -38,7 +38,7 @@ struct CloudNativeSignInOptions: View {
                     Analytics.track(.authMethodSelected(method: .email, screen: self.screen))
                 }
                 .frame(maxWidth: .infinity)
-                .frame(height: 48)
+                .frame(height: self.buttonHeight)
                 .accessibilityIdentifier(UITestIdentifier.cloudSignInEmailMethodButton)
                 .modifier(CloudLastSignInBadge(method: .email))
                 if self.store.cloudSignInAttempt.isNativeRequestInFlight {
@@ -147,8 +147,12 @@ struct CloudNativeSignInOptions: View {
                 if isRequestCancellationError(error: error) { return }
                 recordNativeAccountLinkError(error, method: CloudSignInMethod(provider: provider).analyticsMethod, screen: self.screen)
                 self.store.reportCloudSignInFailure(reason: analyticsSignInFailureReason(error: error))
+                let isCleanupPending = isAppleSignInCleanupPending(error: error)
                 self.store.cloudSignInAttempt.authErrorPresentation = CloudAuthInlineErrorPresentation(
-                    message: aiSettingsLocalized("settings.account.cloudSignIn.freshAttempt", "Sign-in did not finish. Start again to continue."),
+                    role: isCleanupPending ? .information : .error,
+                    message: isCleanupPending
+                        ? appleSignInCleanupPendingMessage()
+                        : aiSettingsLocalized("settings.account.cloudSignIn.freshAttempt", "Sign-in did not finish. Start again to continue."),
                     technicalError: self.store.makeTechnicalErrorAction(error: error, captureContext: captureContext))
             }
         }
@@ -157,118 +161,6 @@ struct CloudNativeSignInOptions: View {
     private func presentHintError(_ error: Error) {
         self.hintError = aiSettingsLocalized("settings.account.cloudSignIn.hintFailed", "The remembered sign-in could not be updated. Try again.")
         self.store.presentTechnicalError(error)
-    }
-}
-
-struct CloudBrandedProviderButton: View {
-    let provider: CloudAuthProvider
-    let onPress: (UIViewController) -> Void
-
-    var body: some View {
-        CloudNativeProviderControl(provider: self.provider, onPress: self.onPress)
-            .frame(maxWidth: .infinity)
-            .frame(height: 48)
-            .background {
-                // The Google SDK draws a 40-point surface inset inside its 48-point control.
-                RoundedRectangle(cornerRadius: 2).fill(.white).padding(4)
-            }
-    }
-}
-
-private struct CloudNativeProviderControl: UIViewRepresentable {
-    let provider: CloudAuthProvider
-    let onPress: (UIViewController) -> Void
-
-    func makeUIView(context: Context) -> UIControl {
-        let button: UIControl
-        switch self.provider {
-        case .apple:
-            let apple = ASAuthorizationAppleIDButton(type: .continue, style: .white)
-            apple.cornerRadius = 2
-            let container = UIButton(type: .custom)
-            container.configuration = .plain()
-            container.accessibilityLabel = apple.accessibilityLabel
-            apple.isAccessibilityElement = false
-            apple.isUserInteractionEnabled = false
-            container.configurationUpdateHandler = { button in
-                apple.isHighlighted = button.isHighlighted
-                apple.isEnabled = button.isEnabled
-            }
-            apple.translatesAutoresizingMaskIntoConstraints = false
-            container.addSubview(apple)
-            NSLayoutConstraint.activate([
-                apple.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: 4),
-                apple.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -4),
-                apple.topAnchor.constraint(equalTo: container.topAnchor, constant: 4),
-                apple.bottomAnchor.constraint(equalTo: container.bottomAnchor, constant: -4),
-            ])
-            button = container
-        case .google:
-            let google = GIDSignInButton()
-            google.style = .wide
-            google.colorScheme = .light
-            button = google
-        }
-        button.addTarget(context.coordinator, action: #selector(Coordinator.pressed(_:)), for: .touchUpInside)
-        return button
-    }
-
-    func updateUIView(_ view: UIControl, context: Context) {
-        view.isEnabled = context.environment.isEnabled
-        context.coordinator.onPress = self.onPress
-    }
-    func makeCoordinator() -> Coordinator { Coordinator(onPress: self.onPress) }
-
-    @MainActor
-    final class Coordinator: NSObject {
-        var onPress: (UIViewController) -> Void
-        init(onPress: @escaping (UIViewController) -> Void) { self.onPress = onPress }
-        @objc func pressed(_ sender: UIControl) {
-            guard var presenter = sender.window?.rootViewController else { return }
-            while let presented = presenter.presentedViewController { presenter = presented }
-            self.onPress(presenter)
-        }
-    }
-}
-
-private struct CloudEmailSignInButton: UIViewRepresentable {
-    let onPress: () -> Void
-
-    func makeUIView(context: Context) -> UIButton {
-        let button = UIButton(type: .system)
-        var configuration = UIButton.Configuration.filled()
-        configuration.title = aiSettingsLocalized("settings.account.cloudSignIn.continueEmail", "Continue with Email")
-        configuration.titleLineBreakMode = .byWordWrapping
-        configuration.image = UIImage(systemName: "envelope")
-        configuration.imagePadding = 8
-        configuration.contentInsets = NSDirectionalEdgeInsets(top: 0, leading: 12, bottom: 0, trailing: 12)
-        configuration.cornerStyle = .fixed
-        configuration.background.cornerRadius = 2
-        configuration.background.backgroundInsets = NSDirectionalEdgeInsets(top: 4, leading: 4, bottom: 4, trailing: 4)
-        button.configuration = configuration
-        button.titleLabel?.numberOfLines = 2
-        button.configurationUpdateHandler = { button in
-            var configuration = button.configuration
-            configuration?.baseBackgroundColor = button.isHighlighted ? UIColor(white: 0.9, alpha: 1) : .white
-            configuration?.baseForegroundColor = button.isEnabled ? .black : .darkGray
-            button.configuration = configuration
-        }
-        button.addTarget(context.coordinator, action: #selector(Coordinator.pressed), for: .touchUpInside)
-        return button
-    }
-
-    func updateUIView(_ view: UIButton, context: Context) {
-        view.isEnabled = context.environment.isEnabled
-        context.coordinator.onPress = self.onPress
-    }
-
-    func makeCoordinator() -> Coordinator { Coordinator(onPress: self.onPress) }
-
-    @MainActor
-    final class Coordinator: NSObject {
-        var onPress: () -> Void
-        init(onPress: @escaping () -> Void) { self.onPress = onPress }
-        @objc func pressed() { self.onPress() }
     }
 }
 
