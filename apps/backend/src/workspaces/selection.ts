@@ -1,6 +1,7 @@
 import {
   queryWithUserScope,
   transactionWithUserScope,
+  transactionWithUserScopeReadOnly,
   type DatabaseExecutor,
 } from "../database";
 import { HttpError } from "../shared/errors";
@@ -12,6 +13,7 @@ import {
 import {
   assertUserHasWorkspaceMembershipInExecutor,
   listUserWorkspaceIdsInExecutor,
+  listVisibleUserWorkspaceIdsInExecutor,
   listUserWorkspacesForSelectedWorkspace,
   loadWorkspaceSummaryInExecutor,
 } from "./queries";
@@ -51,7 +53,8 @@ export async function ensureUserSelectedWorkspaceInExecutor(
     return selectedWorkspaceId;
   }
 
-  const earliestWorkspaceId = workspaceIds[0];
+  const visibleWorkspaceIds = await listVisibleUserWorkspaceIdsInExecutor(executor);
+  const earliestWorkspaceId = visibleWorkspaceIds[0];
   if (earliestWorkspaceId === undefined) {
     throw createWorkspaceInvariantError(
       "Workspace selection could not be recovered because no accessible workspace was found.",
@@ -156,19 +159,27 @@ export async function assertUserHasWorkspaceAccess(userId: string, workspaceId: 
   }
 }
 
+async function selectedWorkspaceIsAccessible(
+  userId: string,
+  selectedWorkspaceId: string | null,
+): Promise<boolean> {
+  if (selectedWorkspaceId === null) return false;
+  return transactionWithUserScopeReadOnly({ userId }, async (executor) => {
+    const workspaceIds = await listUserWorkspaceIdsInExecutor(executor, userId);
+    return workspaceIds.includes(selectedWorkspaceId);
+  });
+}
+
 export async function ensureApiKeyWorkspaceSelection(
   userId: string,
   connectionId: string,
   selectedWorkspaceId: string | null,
 ): Promise<string | null> {
-  const workspaces = await listUserWorkspacesForSelectedWorkspace(userId, selectedWorkspaceId);
-  const selectedWorkspaceIsAccessible = selectedWorkspaceId !== null
-    && workspaces.some((workspace) => workspace.workspaceId === selectedWorkspaceId);
-
-  if (selectedWorkspaceIsAccessible) {
+  if (await selectedWorkspaceIsAccessible(userId, selectedWorkspaceId)) {
     return selectedWorkspaceId;
   }
 
+  const workspaces = await listUserWorkspacesForSelectedWorkspace(userId, null);
   if (workspaces.length === 0) {
     const workspace = await createWorkspaceForApiKeyConnection(userId, connectionId, {
       name: AUTO_CREATED_WORKSPACE_NAME,
@@ -202,14 +213,11 @@ export async function ensureMcpConnectionWorkspaceSelection(
   connectionId: string,
   selectedWorkspaceId: string | null,
 ): Promise<string | null> {
-  const workspaces = await listUserWorkspacesForSelectedWorkspace(userId, selectedWorkspaceId);
-  const selectedWorkspaceIsAccessible = selectedWorkspaceId !== null
-    && workspaces.some((workspace) => workspace.workspaceId === selectedWorkspaceId);
-
-  if (selectedWorkspaceIsAccessible) {
+  if (await selectedWorkspaceIsAccessible(userId, selectedWorkspaceId)) {
     return selectedWorkspaceId;
   }
 
+  const workspaces = await listUserWorkspacesForSelectedWorkspace(userId, null);
   if (workspaces.length === 0) {
     const workspace = await createWorkspaceForOAuthConnection(userId, connectionId, {
       name: AUTO_CREATED_WORKSPACE_NAME,
