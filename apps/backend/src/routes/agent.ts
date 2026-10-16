@@ -207,7 +207,7 @@ export function createAgentRoutes(options: AgentRoutesOptions): Hono<AppEnv> {
     const workspace = await createWorkspaceForApiKeyConnection(
       requestContext.userId,
       connectionId,
-      expectNonEmptyString(body.name, "name"),
+      { name: expectNonEmptyString(body.name, "name"), cause: "explicit" },
     );
 
     return context.json(createAgentWorkspaceReadyEnvelope(context.req.url, workspace), 201);
