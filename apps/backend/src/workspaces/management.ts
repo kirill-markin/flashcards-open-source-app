@@ -228,7 +228,10 @@ async function prepareSelectedWorkspaceForDeletionInExecutor(
 
   const accessibleWorkspaceIds = await listUserWorkspaceIdsInExecutor(executor, userId);
   const replacementWorkspaceId = accessibleWorkspaceIds.find((workspaceId) => workspaceId !== deletedWorkspaceId)
-    ?? await createWorkspaceInExecutorWithObservationScope(executor, userId, AUTO_CREATED_WORKSPACE_NAME, observationScope);
+    ?? await createWorkspaceInExecutorWithObservationScope(executor, userId, {
+      name: AUTO_CREATED_WORKSPACE_NAME,
+      cause: "automatic_starter",
+    }, observationScope);
   await persistSelectedWorkspaceForUserInExecutor(executor, userId, replacementWorkspaceId);
 
   return {
