@@ -74,6 +74,11 @@ function createRequestContext(
 ): RequestContext {
   return {
     userId: "user-1",
+    clientAccountIdentity: {
+      originalClientUserId: "user-1",
+      canonicalAccountId: "user-1",
+      linkedAccountIds: ["user-1"],
+    },
     subjectUserId: "subject-1",
     selectedWorkspaceId: "workspace-1",
     email: "user@example.com",
