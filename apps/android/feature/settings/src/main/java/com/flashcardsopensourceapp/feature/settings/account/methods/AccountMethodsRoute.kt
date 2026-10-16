@@ -109,7 +109,7 @@ fun AccountMethodsRoute(viewModel: AccountMethodsViewModel, onBack: () -> Unit) 
                         it.active && !it.revocationPending && it.target.provider.signInMethod() == method
                     } == true }.forEach { method ->
                         CloudSignInMethodButton(method, null, state.busy || state.methods == null,
-                            { viewModel.reauthenticate(method, context, launchApple) }, {})
+                            { viewModel.reauthenticate(method, context, launchApple) })
                     }
                 }
                 !state.restartRequired && pending.phase == CloudAccountMethodPhase.PROOF_READY -> {
@@ -120,7 +120,7 @@ fun AccountMethodsRoute(viewModel: AccountMethodsViewModel, onBack: () -> Unit) 
                         if (listed?.isEmpty() == true && usable) {
                             Text(stringResource(R.string.settings_methods_link))
                             CloudSignInMethodButton(provider.signInMethod(), null, state.busy,
-                                { viewModel.link(provider, context, launchApple) }, {})
+                                { viewModel.link(provider, context, launchApple) })
                         }
                         listed?.forEach { method ->
                             if (method.revocationPending) Text(stringResource(R.string.settings_methods_cleanup))
@@ -128,7 +128,7 @@ fun AccountMethodsRoute(viewModel: AccountMethodsViewModel, onBack: () -> Unit) 
                             else if (usable) {
                                 Text(stringResource(R.string.settings_methods_reenable))
                                 CloudSignInMethodButton(provider.signInMethod(), null, state.busy,
-                                    { viewModel.reenable(method.target, context, launchApple) }, {})
+                                    { viewModel.reenable(method.target, context, launchApple) })
                             }
                         }
                     }

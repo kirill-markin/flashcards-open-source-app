@@ -50,7 +50,7 @@ class LocalCloudSocialSignInRepository(
         socialGateway.loadAuthMethods(preferencesStore.currentServerConfiguration().authBaseUrl)
     }
 
-    override suspend fun beginGoogleLogin(rememberSignIn: Boolean): CloudPendingSocialSignIn {
+    override suspend fun beginGoogleLogin(): CloudPendingSocialSignIn {
         return operationCoordinator.runExclusive {
             requireAccountIsNotDeleting()
             val configuration = preferencesStore.currentServerConfiguration()
@@ -73,7 +73,6 @@ class LocalCloudSocialSignInRepository(
                 binding = CloudSocialAttemptBinding(attempt = attempt, codeVerifier = verifier),
                 appleBrowser = null,
                 originalReauthenticationBinding = null,
-                rememberSignIn = rememberSignIn,
                 mailboxReason = null,
                 mailboxCodeRequested = false,
                 mailboxRequestInFlight = false,
@@ -91,7 +90,7 @@ class LocalCloudSocialSignInRepository(
         }
     }
 
-    override suspend fun beginAppleLogin(rememberSignIn: Boolean): CloudAppleBrowserLaunch {
+    override suspend fun beginAppleLogin(): CloudAppleBrowserLaunch {
         return operationCoordinator.runExclusive {
             requireAccountIsNotDeleting()
             val configuration = preferencesStore.currentServerConfiguration()
@@ -119,7 +118,6 @@ class LocalCloudSocialSignInRepository(
                 binding = null,
                 appleBrowser = CloudAppleBrowserBinding(localId, verifier, null),
                 originalReauthenticationBinding = null,
-                rememberSignIn = rememberSignIn,
                 mailboxReason = null,
                 mailboxCodeRequested = false,
                 mailboxRequestInFlight = false,
@@ -165,7 +163,6 @@ class LocalCloudSocialSignInRepository(
     override suspend fun verifyEmailCode(
         challenge: CloudOtpChallenge,
         code: String,
-        rememberSignIn: Boolean,
         onVerificationStarted: () -> Unit,
         onVerified: () -> Unit
     ): CloudWorkspaceLinkContext = operationCoordinator.runExclusive {
@@ -175,7 +172,7 @@ class LocalCloudSocialSignInRepository(
             onVerified()
             withContext(NonCancellable + Dispatchers.IO) {
                 preferencesStore.socialAuthStore.stageEmailSession(PendingCloudEmailSignIn(
-                    configuration, session.credentials.refreshToken, session.signInHint, rememberSignIn
+                    configuration, session.credentials.refreshToken, session.signInHint
                 ))
             }
         }
@@ -310,7 +307,6 @@ class LocalCloudSocialSignInRepository(
                 linked
             }
             withContext(NonCancellable + Dispatchers.IO) {
-                // Re-read so an explicit forget cannot be undone by a resumed acceptance.
                 val completed = requireNotNull(preferencesStore.socialAuthStore.loadPending()) {
                     "The completed social sign-in no longer has local attempt state."
                 }
@@ -345,19 +341,6 @@ class LocalCloudSocialSignInRepository(
     override suspend fun rememberedSignIn(): CloudSuccessfulSignInHint? = operationCoordinator.runExclusive {
         withContext(Dispatchers.IO) {
             preferencesStore.socialAuthStore.loadHint(preferencesStore.currentServerConfiguration())
-        }
-    }
-
-    override suspend fun forgetRememberedSignIn() {
-        operationCoordinator.runExclusive {
-            withContext(Dispatchers.IO) { preferencesStore.socialAuthStore.forgetHint() }
-        }
-    }
-
-    override suspend fun signOutAndForget() {
-        operationCoordinator.runExclusive {
-            withContext(Dispatchers.IO) { preferencesStore.clearCredentials() }
-            accountRepository.logout()
         }
     }
 

@@ -50,7 +50,6 @@ class AccountStatusRouteTest : FirebaseAppInstrumentationTimeoutTest() {
                     onRequestLogout = {},
                     onDismissLogoutConfirmation = {},
                     onConfirmLogout = {},
-                    onConfirmLogoutAndForget = {},
                     onBack = {}
                 )
             }

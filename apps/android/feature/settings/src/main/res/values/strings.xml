@@ -888,7 +888,7 @@
     <string name="settings_accent_update_failed">Could not save your accent color. Check your connection and try again.</string>
     <string name="settings_methods_title">Sign-in methods</string>
     <string name="settings_methods_refresh">Refresh methods</string>
-    <string name="settings_methods_refresh_failed">Methods or protected proof could not be refreshed. Refresh before another change; if protected storage remains unavailable, use Sign out and forget from Account status.</string>
+    <string name="settings_methods_refresh_failed">Methods or protected proof could not be refreshed. Refresh before another change; if protected storage remains unavailable, sign out from Account status.</string>
     <string name="settings_methods_sign_in">Sign in to manage your account’s sign-in methods.</string>
     <string name="settings_methods_active">Active</string>
     <string name="settings_methods_disabled">Disabled</string>

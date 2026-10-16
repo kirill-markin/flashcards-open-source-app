@@ -12,14 +12,13 @@ import com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspaceSummary
 
 interface CloudSocialSignInRepository {
     suspend fun loadAuthMethods(): CloudAuthMethods
-    suspend fun beginGoogleLogin(rememberSignIn: Boolean): CloudPendingSocialSignIn
-    suspend fun beginAppleLogin(rememberSignIn: Boolean): CloudAppleBrowserLaunch
+    suspend fun beginGoogleLogin(): CloudPendingSocialSignIn
+    suspend fun beginAppleLogin(): CloudAppleBrowserLaunch
     suspend fun canAcceptAppleBrowserReturn(returned: CloudAppleBrowserReturn): Boolean
     suspend fun acceptAppleBrowserReturn(returned: CloudAppleBrowserReturn): CloudPendingSocialSignIn?
     suspend fun verifyEmailCode(
         challenge: CloudOtpChallenge,
         code: String,
-        rememberSignIn: Boolean,
         onVerificationStarted: () -> Unit,
         onVerified: () -> Unit
     ): CloudWorkspaceLinkContext
@@ -34,6 +33,4 @@ interface CloudSocialSignInRepository {
     suspend fun completeSignInHint(attempt: String)
     suspend fun cancelSignIn(attempt: String)
     suspend fun rememberedSignIn(): CloudSuccessfulSignInHint?
-    suspend fun forgetRememberedSignIn()
-    suspend fun signOutAndForget()
 }
