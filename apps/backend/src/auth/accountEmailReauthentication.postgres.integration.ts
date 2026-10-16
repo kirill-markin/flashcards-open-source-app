@@ -56,7 +56,7 @@ test("enrolled email proof keeps the initiating session distinct across real Pos
     const proved = await finish();
     const verifying = await begin();
     const lease = (await auth.query(claim, claimParameters(verifying))).rows[0].claim_id;
-    const method = (await owner.query("SELECT activated_at FROM auth.provider_login_methods WHERE provider_subject = $1", [provider])).rows[0];
+    const method = (await owner.query<{ activated_at: string }>("SELECT activated_at::text AS activated_at FROM auth.provider_login_methods WHERE provider_subject = $1", [provider])).rows[0];
     await mutation();
     try {
       await assert.rejects(auth.query(claim, claimParameters(handle)), { code: "23514" });
@@ -134,7 +134,7 @@ test("enrolled email proof keeps the initiating session distinct across real Pos
     ]) await assert.rejects(auth.query(complete, [handle, lease, ...wrong, opaque()]), { code: "23514" });
     const receipt = opaque();
     await auth.query(complete, [handle, lease, q, usernames[1], email, Math.floor(Date.now() / 1_000), receipt]);
-    const generation = (await owner.query("SELECT activated_at FROM auth.provider_login_methods WHERE provider_subject = $1", [provider])).rows[0].activated_at;
+    const generation = (await owner.query<{ activated_at: string }>("SELECT activated_at::text AS activated_at FROM auth.provider_login_methods WHERE provider_subject = $1", [provider])).rows[0].activated_at;
     const action = "SELECT auth.unlink_account_provider_method($1,$2,$3,'google',$4,$5,$6,$7,'ios',NULL)";
     await assert.rejects(auth.query(action, [p, usernames[0], originalTime + 1, provider, generation, receipt, binding]), { code: "23514" });
     await auth.query(action, [p, usernames[0], originalTime, provider, generation, receipt, binding]);
