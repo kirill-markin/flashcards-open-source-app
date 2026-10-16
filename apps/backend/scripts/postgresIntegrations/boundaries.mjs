@@ -69,11 +69,16 @@ export const createdRolesByMigration = new Map([
   ["0024_auth_runtime_roles.sql", Object.freeze(["backend_app", "auth_app"])],
   ["0044_reporting_readonly_role.sql", Object.freeze(["reporting_readonly"])],
 ]);
+// Runtime consumers use the schema their common account scope requires. SQL-only historical
+// migration contracts retain their original cutoffs.
 export const boundaryDefinitions = Object.freeze([
   Object.freeze({
-    migrationFileName: "0196_workspace_creation_origin.sql",
-    expectedMigrationCount: 198,
+    migrationFileName: "0197_account_combination_lifecycle.sql",
+    expectedMigrationCount: 199,
     testFiles: Object.freeze([
+      "src/auth/accountRetirement.postgres.integration.ts",
+      "src/admin/authz.postgres.integration.ts",
+      "src/productAnalytics/dailyVisitorHash.postgres.integration.ts",
       "src/agent/reviews.postgres.integration.ts",
       "src/auth/stableClientAccountIdentity.postgres.integration.ts",
       "src/auth/surrogateUserId.postgres.integration.ts",
@@ -81,6 +86,35 @@ export const boundaryDefinitions = Object.freeze([
       "src/aiConsent/consent.postgres.integration.ts",
       "src/auth/appleLifecycle.postgres.integration.ts",
       "src/routes/system/account/accountPreferences.postgres.integration.ts",
+      "src/auth/principalSessions.postgres.integration.ts",
+      "src/chat/cardImages/operation.postgres.integration.ts",
+      "src/chat/runs/generatedImageAttemptBudget.postgres.integration.ts",
+      "src/chat/store/historyService.postgres.integration.ts",
+      "src/billing/entitlement.postgres.integration.ts",
+      "src/chat/cardImages/promotion/jobsSettlement.postgres.integration.ts",
+      "src/productAnalytics/serverFacts/authoringUpdates.postgres.integration.ts",
+      "src/productAnalytics/writer.postgres.integration.ts",
+      "src/sync/freshBootstrap.postgres.integration.ts",
+      "src/catalog/distribution/install/install.postgres.integration.ts",
+      "src/cards/managedMedia/managedImageSnapshotMerge.postgres.integration.ts",
+      "src/cards/onboardingDemo.postgres.integration.ts",
+      "src/chat/cardImages/generationBudget.postgres.integration.ts",
+      "src/chat/cardImages/promotion/jobsLeasing.postgres.integration.ts",
+      "src/chat/cardImages/promotion/jobsRevocation.postgres.integration.ts",
+      "src/mediaAssets/blobLifecycle/cleanup/reconciliation.postgres.integration.ts",
+      "src/aiUsage/aiUsage.postgres.integration.ts",
+      "src/mediaAssets/blobLifecycle/lifecycle.postgres.integration.ts",
+      "src/mediaAssets/ingestion/directIngestionApply.postgres.integration.ts",
+      "src/catalog/authoring/lockOrder.postgres.integration.ts",
+      "src/catalog/authoring/versions/publishedVersionAlignment.postgres.integration.ts",
+      "src/catalog/distribution/public/public.postgres.integration.ts",
+      "src/mediaAssets/blobLifecycle/cleanup/sharedProvenance.postgres.integration.ts",
+      "src/mediaAssets/multipart/creation/atomicWriterCreation.postgres.integration.ts",
+      "src/mediaAssets/multipart/completion/atomicWriterCompletion.postgres.integration.ts",
+      "src/mediaAssets/multipart/writerLifecycle/atomicWriterLease.postgres.integration.ts",
+      "src/cards/managedMedia/generatedImageAppend.postgres.integration.ts",
+      "src/mediaAssets/multipart/creation/uploadSessionCreation.postgres.integration.ts",
+      "src/mediaAssets/multipart/completion/completionReconciliation.postgres.integration.ts",
     ]),
   }),
   Object.freeze({
@@ -109,13 +143,6 @@ export const boundaryDefinitions = Object.freeze([
     expectedMigrationCount: 193,
     testFiles: Object.freeze([
       "src/auth/emailAuthAttempt.postgres.integration.ts",
-    ]),
-  }),
-  Object.freeze({
-    migrationFileName: "0190_principal_session_invalidation.sql",
-    expectedMigrationCount: 192,
-    testFiles: Object.freeze([
-      "src/auth/principalSessions.postgres.integration.ts",
     ]),
   }),
   Object.freeze({
@@ -158,28 +185,6 @@ export const boundaryDefinitions = Object.freeze([
     expectedMigrationCount: 183,
     testFiles: Object.freeze([
       "src/admin/reportingDb.postgres.integration.ts",
-      "src/chat/cardImages/operation.postgres.integration.ts",
-      "src/chat/runs/generatedImageAttemptBudget.postgres.integration.ts",
-      "src/chat/store/historyService.postgres.integration.ts",
-    ]),
-  }),
-  Object.freeze({
-    migrationFileName: "0176_client_os_name_device_type.sql",
-    expectedMigrationCount: 178,
-    testFiles: Object.freeze([
-      "src/billing/entitlement.postgres.integration.ts",
-      "src/chat/cardImages/promotion/jobsSettlement.postgres.integration.ts",
-      "src/productAnalytics/serverFacts/authoringUpdates.postgres.integration.ts",
-      "src/productAnalytics/writer.postgres.integration.ts",
-      "src/sync/freshBootstrap.postgres.integration.ts",
-    ]),
-  }),
-  Object.freeze({
-    migrationFileName: "0175_analytics_os_name_device_type.sql",
-    expectedMigrationCount: 177,
-    testFiles: Object.freeze([
-      "src/catalog/distribution/install/install.postgres.integration.ts",
-      "src/productAnalytics/dailyVisitorHash.postgres.integration.ts",
     ]),
   }),
   Object.freeze({
@@ -190,55 +195,12 @@ export const boundaryDefinitions = Object.freeze([
     ]),
   }),
   Object.freeze({
-    migrationFileName: "0167_stripe_email_deliveries.sql",
-    expectedMigrationCount: 169,
-    testFiles: Object.freeze([
-      "src/cards/managedMedia/managedImageSnapshotMerge.postgres.integration.ts",
-      "src/cards/onboardingDemo.postgres.integration.ts",
-    ]),
-  }),
-  Object.freeze({
-    migrationFileName: "0162_generated_media_promotion_job_user_supplied_key.sql",
-    expectedMigrationCount: 164,
-    testFiles: Object.freeze([
-      "src/chat/cardImages/generationBudget.postgres.integration.ts",
-      "src/chat/cardImages/promotion/jobsLeasing.postgres.integration.ts",
-      "src/chat/cardImages/promotion/jobsRevocation.postgres.integration.ts",
-      "src/mediaAssets/blobLifecycle/cleanup/reconciliation.postgres.integration.ts",
-    ]),
-  }),
-  Object.freeze({
-    migrationFileName: "0161_ai_usage_user_supplied_key.sql",
-    expectedMigrationCount: 163,
-    testFiles: Object.freeze([
-      "src/aiUsage/aiUsage.postgres.integration.ts",
-    ]),
-  }),
-  Object.freeze({
-    migrationFileName: "0132_direct_writer_absolute_lease_target.sql",
-    expectedMigrationCount: 134,
-    testFiles: Object.freeze([
-      "src/mediaAssets/blobLifecycle/lifecycle.postgres.integration.ts",
-      "src/mediaAssets/ingestion/directIngestionApply.postgres.integration.ts",
-    ]),
-  }),
-  // 0131 needs its own boundary rather than an extra test file on 0130's: it turns
-  // educational_subject NOT NULL, and 0130's database stops one migration short of that schema. The
-  // two row shapes that would abort that ALTER exist only here - the delisted 0105 test fixture
-  // 0130 deliberately never reached, and the in-flight version row this boundary's own seed hook
-  // creates just before the migration runs.
-  Object.freeze({
     migrationFileName: "0131_require_catalog_educational_subject.sql",
     expectedMigrationCount: 133,
     testFiles: Object.freeze([
       "src/catalog/authoring/versions/requiredEducationalSubject.postgres.integration.ts",
     ]),
   }),
-  // 0130 needs its own boundary rather than an extra test file on 0129's: it writes the educational
-  // alignment columns of every published version of the package 0129's seed hook creates, including
-  // version 4, whose untouched updated_at is exactly what
-  // legacyLanguageTagCorrection.postgres.integration.ts asserts. Boundaries stop at their own
-  // migration, so 0129's database never sees this file.
   Object.freeze({
     migrationFileName: "0130_backfill_catalog_educational_alignment.sql",
     expectedMigrationCount: 132,
@@ -254,16 +216,6 @@ export const boundaryDefinitions = Object.freeze([
     ]),
   }),
   Object.freeze({
-    migrationFileName: "0128_catalog_educational_alignment.sql",
-    expectedMigrationCount: 130,
-    testFiles: Object.freeze([
-      "src/catalog/authoring/lockOrder.postgres.integration.ts",
-      "src/catalog/authoring/versions/publishedVersionAlignment.postgres.integration.ts",
-      "src/catalog/distribution/public/public.postgres.integration.ts",
-      "src/mediaAssets/blobLifecycle/cleanup/sharedProvenance.postgres.integration.ts",
-    ]),
-  }),
-  Object.freeze({
     migrationFileName: "0123_backfill_live_review_answered_platform.sql",
     expectedMigrationCount: 125,
     testFiles: Object.freeze([
@@ -271,20 +223,9 @@ export const boundaryDefinitions = Object.freeze([
     ]),
   }),
   Object.freeze({
-    migrationFileName: "0108_multipart_absolute_lease_target.sql",
-    expectedMigrationCount: 110,
-    testFiles: Object.freeze([
-      "src/admin/authz.postgres.integration.ts",
-      "src/mediaAssets/multipart/creation/atomicWriterCreation.postgres.integration.ts",
-      "src/mediaAssets/multipart/completion/atomicWriterCompletion.postgres.integration.ts",
-      "src/mediaAssets/multipart/writerLifecycle/atomicWriterLease.postgres.integration.ts",
-    ]),
-  }),
-  Object.freeze({
     migrationFileName: "0107_catalog_test_collection.sql",
     expectedMigrationCount: 109,
     testFiles: Object.freeze([
-      "src/cards/managedMedia/generatedImageAppend.postgres.integration.ts",
       "src/database/aiChatInitiatingAuthClassification.postgres.integration.ts",
     ]),
   }),
@@ -300,7 +241,6 @@ export const boundaryDefinitions = Object.freeze([
     expectedMigrationCount: 102,
     testFiles: Object.freeze([
       "src/mediaAssets/multipart/creation/replacementCreationClaim.postgres.integration.ts",
-      "src/mediaAssets/multipart/creation/uploadSessionCreation.postgres.integration.ts",
     ]),
   }),
   Object.freeze({
@@ -308,7 +248,6 @@ export const boundaryDefinitions = Object.freeze([
     expectedMigrationCount: 101,
     testFiles: Object.freeze([
       "src/database/deadline.postgres.integration.ts",
-      "src/mediaAssets/multipart/completion/completionReconciliation.postgres.integration.ts",
       "src/mediaAssets/multipart/writerLifecycle/writerAbortReplay.postgres.integration.ts",
     ]),
   }),

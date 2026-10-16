@@ -17,7 +17,7 @@ type CognitoIdentityMappingRow = Readonly<{
 }>;
 
 const loadCognitoIdentityMappingSql = [
-  "SELECT provider_subject, user_id, original_client_user_id",
+  "SELECT provider_subject, auth.canonical_account_id(user_id) AS user_id, original_client_user_id",
   "FROM auth.user_identities",
   "WHERE provider_type = 'cognito' AND provider_subject = $1",
   "LIMIT 1",
@@ -83,6 +83,19 @@ export async function loadCognitoIdentityMappingInExecutor(
   );
   const row = result.rows[0];
   return row === undefined ? null : mapCognitoIdentityMapping(row);
+}
+
+/** Resolve only trusted server/credential handles; callers still fence the returned SQL scope. */
+export async function resolveCanonicalAccountIdInExecutor(
+  executor: DatabaseExecutor,
+  userId: string,
+): Promise<string> {
+  const result = await executor.query<Readonly<{ user_id: string }>>(
+    "SELECT auth.canonical_account_id($1) AS user_id", [userId],
+  );
+  const canonicalUserId = result.rows[0]?.user_id;
+  if (canonicalUserId === undefined) throw new Error("Canonical account lookup returned no result");
+  return canonicalUserId;
 }
 
 export async function bindCognitoIdentityMappingInExecutor(

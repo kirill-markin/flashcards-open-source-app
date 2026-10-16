@@ -1,13 +1,3 @@
-/**
- * Agent-only OTP completion route. A short opaque OTP handle is resolved to
- * the server-side Cognito session, then exchanged for a long-lived API key.
- *
- * TODO(mcp-oauth): This bespoke email_otp_then_api_key agent flow (issuing a
- * long-lived fca_ API key) is the precursor to the standardized OAuth 2.1
- * /authorize + /token endpoints added for the MCP connector. Long term, MCP can
- * become the single agent surface for both naive and smart clients, and this
- * flow may fold into the standard OAuth path.
- */
 import { Hono } from "hono";
 import { PrincipalSessionError } from "../../server/social/principalSessions.js";
 import { IssuedSessionValidationError } from "../../server/browserSession.js";
@@ -36,7 +26,7 @@ import {
   type OtpVerifyAttemptState,
   type OtpVerifyFailureRecordResult,
 } from "../../server/otp/otpVerifyAttempts.js";
-import { isTransientDatabaseError } from "../../server/databaseErrors.js";
+import { getDatabaseErrorSqlState, isTransientDatabaseError } from "../../server/databaseErrors.js";
 
 const CODE_RE = /^\d{8}$/;
 const DEMO_AGENT_PLACEHOLDER_CODE = "00000000";
@@ -345,12 +335,15 @@ export function createAgentVerifyCodeApp(dependencies: AgentVerifyCodeDependenci
           410,
         );
       }
+      const accountScopeChanged = getDatabaseErrorSqlState(error) === "P0A01";
       const isTransient = isTransientDatabaseError(error);
-      const statusCode = isTransient ? 503 : 500;
-      const code = isTransient ? "SERVICE_UNAVAILABLE" : "INTERNAL_ERROR";
-      const message = isTransient
-        ? "Authentication could not be completed after the code was accepted."
-        : "Agent authentication request failed after the code was accepted.";
+      const statusCode = accountScopeChanged ? 409 : isTransient ? 503 : 500;
+      const code = accountScopeChanged ? "ACCOUNT_SCOPE_CHANGED" : isTransient ? "SERVICE_UNAVAILABLE" : "INTERNAL_ERROR";
+      const message = accountScopeChanged
+        ? "Account ownership changed during authentication. Start a fresh sign-in."
+        : isTransient
+          ? "Authentication could not be completed after the code was accepted."
+          : "Agent authentication request failed after the code was accepted.";
       log({
         domain: "auth",
         action: "agent_verify_code_error",

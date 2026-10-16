@@ -262,6 +262,10 @@ export function isTransientDatabaseError(error: unknown): boolean {
 }
 
 export function toDatabaseBoundaryError(error: unknown): unknown {
+  // This refusal requires fresh authorization; the transient retry loop must not replay it.
+  if (getErrorCode(error) === "P0A01") {
+    return new HttpError(409, "Account ownership changed or is busy. Reload the account and retry the request.", "ACCOUNT_SCOPE_CHANGED", undefined, error);
+  }
   if (!isTransientDatabaseError(error)) {
     return error;
   }

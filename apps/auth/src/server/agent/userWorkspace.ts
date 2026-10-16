@@ -35,7 +35,7 @@ const upsertUserSettingsSql = [
 ].join(" ");
 
 const selectIdentityMappingSql = [
-  "SELECT user_id",
+  "SELECT auth.canonical_account_id(user_id) AS user_id",
   "FROM auth.user_identities",
   "WHERE provider_type = 'cognito' AND provider_subject = $1",
   "LIMIT 1",
