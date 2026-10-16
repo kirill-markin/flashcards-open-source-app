@@ -69,3 +69,14 @@ export async function loadCognitoPrincipalInExecutor(
     cognitoUsername: row.cognito_username,
   };
 }
+
+/** First operation before reconnect, method or attempt locks; a changed binding requires restart. */
+export async function lockProviderEmailEnrollmentInExecutor(
+  executor: DatabaseExecutor, provider: IdentityProvider, providerSubject: string, emailSubject: string | null,
+): Promise<string | null> {
+  const result = await executor.query<Readonly<{ bound_subject: string | null }>>(
+    "SELECT auth.lock_provider_email_enrollment($1,$2,$3) AS bound_subject", [provider, providerSubject, emailSubject],
+  );
+  if (result.rows[0] === undefined) throw new Error("Provider email enrollment lock returned no result");
+  return result.rows[0].bound_subject;
+}
