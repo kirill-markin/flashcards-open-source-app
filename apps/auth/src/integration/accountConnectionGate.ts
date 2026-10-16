@@ -64,7 +64,7 @@ export async function checkAccountConnection(runtime: pg.Client, owner: pg.Clien
     const target = (await runtime.query("SELECT * FROM auth.begin_connection_email_target($1,$2,$3,$4,$5,$6,$7,$8,$8,$9)",
       [...parameters, subjects[1], emails[1]])).rows[0];
     await runtime.query("SELECT auth.ready_connection_email_proof($1,$2,'fixture')", [authHandleHash(operation), target.email_claim]);
-    const claimed = (await runtime.query("SELECT * FROM auth.claim_connection_email_proof($1,$2,$3,$4,$5,$6,$7)", parameters)).rows[0];
+    const claimed = (await runtime.query("SELECT * FROM auth.claim_connection_email_proof($1,$2,$3,$4,$5,$6,$7)", [...parameters])).rows[0];
     await runtime.query("SELECT * FROM auth.record_connection_email_proof($1,$2,$3,$4,$5,$6,$7,$8,$9,$9,$10,floor(extract(epoch FROM clock_timestamp()))::bigint)",
       [...parameters, claimed.email_claim, subjects[1], emails[1]]);
   };
@@ -110,10 +110,10 @@ export async function checkAccountConnection(runtime: pg.Client, owner: pg.Clien
       [...authority, claimed.claim_id])).rows[0];
     assert.equal(result.state, sameOwner ? "cancelled" : "proved");
     assert.equal(result.terminal_outcome, sameOwner ? "already_connected" : null);
-    const resumed = (await runtime.query("SELECT * FROM auth.read_account_connection($1,$2,$3,$4,$5,$6,$7)", parameters)).rows[0];
+    const resumed = (await runtime.query("SELECT * FROM auth.read_account_connection($1,$2,$3,$4,$5,$6,$7)", [...parameters])).rows[0];
     assert.equal(resumed.state, result.state);
     assert.equal((await owner.query("SELECT phase FROM auth.social_attempts WHERE attempt_sha256=$1", [authority[1]])).rows[0].phase, "provider_proved");
-    if (!sameOwner) await runtime.query("SELECT auth.cancel_account_connection($1,$2,$3,$4,$5,$6,$7)", parameters);
+    if (!sameOwner) await runtime.query("SELECT auth.cancel_account_connection($1,$2,$3,$4,$5,$6,$7)", [...parameters]);
   };
   const adoptCollision = async (): Promise<string> => {
     const handle = randomBytes(32).toString("base64url");
@@ -167,9 +167,9 @@ export async function checkAccountConnection(runtime: pg.Client, owner: pg.Clien
       await callbackProof({ client: "web", purpose: "reauth", browserSecret: randomBytes(32).toString("base64url"), origin: authOrigin }, authOrigin, true);
     }
     const cancelled = await prepare(binding);
-    await runtime.query("SELECT auth.cancel_account_connection($1,$2,$3,$4,$5,$6,$7)", connectionParameters(cancelled, current, binding));
+    await runtime.query("SELECT auth.cancel_account_connection($1,$2,$3,$4,$5,$6,$7)", [...connectionParameters(cancelled, current, binding)]);
     assert.equal((await runtime.query("SELECT * FROM auth.read_account_connection($1,$2,$3,$4,$5,$6,$7)",
-      connectionParameters(cancelled, current, binding))).rows[0].state, "cancelled");
+      [...connectionParameters(cancelled, current, binding)])).rows[0].state, "cancelled");
     assert.equal((await owner.query("SELECT 1 FROM auth.account_retirements WHERE retired_user_id=$1", [accounts[1]])).rowCount, 0);
     const noop = await prepare(binding);
     const same = (await runtime.query("SELECT * FROM auth.begin_connection_email_target($1,$2,$3,$4,$5,$6,$7,$8,$8,$9)",
@@ -178,7 +178,7 @@ export async function checkAccountConnection(runtime: pg.Client, owner: pg.Clien
     assert.equal(same.target_account, null);
     const emailProof = await prepare(binding);
     await prove(emailProof);
-    await runtime.query("SELECT auth.cancel_account_connection($1,$2,$3,$4,$5,$6,$7)", connectionParameters(emailProof, current, binding));
+    await runtime.query("SELECT auth.cancel_account_connection($1,$2,$3,$4,$5,$6,$7)", [...connectionParameters(emailProof, current, binding)]);
     const operation = await adoptCollision();
     const preview = parseAccountConnectionAction({ action: "preview", client: "ios", operation, omittedWorkspaceIds: [] });
     assert.equal(preview.action, "preview");
