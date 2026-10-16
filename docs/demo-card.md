@@ -13,6 +13,22 @@ scheduling, progress, and streaks like any other card. The one special case is t
 guest-upgrade cleanup in [Guest upgrade](#guest-upgrade); there is no other special-case behavior
 for it anywhere in the product, and no client may add any.
 
+## Server provenance
+
+New client seeds may carry optional `metadata.onboardingDemo`, defined by
+[`OnboardingDemoMetadata`](../apps/backend/src/cards/types.ts) and normalized in
+[`onboardingDemo.ts`](../apps/backend/src/cards/onboardingDemo.ts). Metadata remains version 1
+with its existing `source`. The demo object has its own version 1 and the original normalized
+front/back text, sorted unique tags and card type, plus optional sticky `wasEdited`.
+
+Only the first server insertion establishes the baseline. Later winning writes keep that baseline,
+including when released clients omit it, and latch `wasEdited` for content, type or source changes.
+Local editors must also latch it to retain an edit reverted before the server observes it.
+Sync, first-link forks and actual guest transfers retain provenance; arbitrary package copies strip
+it and keep ordinary source attribution. Missing, invalid or unknown provenance means ordinary
+preserved content. Never infer it from text, tags, IDs or current locale, or retrofit existing cards.
+This additive server contract does not change seeding, cleanup or workspace visibility.
+
 ## Who gets it
 
 New users, plus the empty workspace a mobile reset leaves behind. The seed is client-side on every
