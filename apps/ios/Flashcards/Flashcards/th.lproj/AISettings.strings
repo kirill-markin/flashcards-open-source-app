@@ -923,11 +923,9 @@
 "ai.consent.withdrawalFailed" = "การแชร์ข้อมูลกับ AI ปิดอยู่บนอุปกรณ์นี้ การเลือกของคุณยังไม่ซิงค์ โปรดลองอีกครั้งเมื่อเชื่อมต่อแล้ว";
 "ai.consent.retrySync" = "ลองบันทึกการเลือกอีกครั้ง";
 "settings.account.cloudSignIn.unifiedTitle" = "ลงชื่อเข้าหรือสร้างบัญชี";
-"settings.account.cloudSignIn.remember" = "จำการลงชื่อเข้านี้บนอุปกรณ์นี้";
+"settings.account.cloudSignIn.continueEmail" = "ดำเนินการต่อด้วยอีเมล";
 "settings.account.cloudSignIn.lastUsed" = "ใช้ล่าสุด";
 "settings.account.cloudSignIn.showEmail" = "แสดงอีเมล";
-"settings.account.cloudSignIn.forget" = "ลืมการลงชื่อเข้านี้";
-"settings.account.cloudSignIn.signOutForget" = "ออกจากระบบและลืม";
 "settings.account.cloudSignIn.mailboxPrompt" = "ยืนยันการเข้าถึงอีเมลของคุณ ป้อนรหัส 6–8 หลัก และตรวจสอบสแปมหากจำเป็น";
 "settings.account.cloudSignIn.freshAttempt" = "ลงชื่อเข้าไม่สำเร็จ โปรดเริ่มใหม่เพื่อดำเนินการต่อ";
 "settings.account.cloudSignIn.restart" = "เริ่มใหม่";

@@ -923,11 +923,9 @@
 "ai.consent.withdrawalFailed" = "Andmete jagamine tehisintellektiga on selles seadmes välja lülitatud. Sinu valik pole veel sünkroonitud; proovi uuesti, kui ühendus on olemas.";
 "ai.consent.retrySync" = "Proovi valik uuesti salvestada";
 "settings.account.cloudSignIn.unifiedTitle" = "Logi sisse või loo konto";
-"settings.account.cloudSignIn.remember" = "Jäta see sisselogimine seadmes meelde";
+"settings.account.cloudSignIn.continueEmail" = "Jätka e-postiga";
 "settings.account.cloudSignIn.lastUsed" = "Viimati kasutatud";
 "settings.account.cloudSignIn.showEmail" = "Näita e-posti aadressi";
-"settings.account.cloudSignIn.forget" = "Unusta see sisselogimine";
-"settings.account.cloudSignIn.signOutForget" = "Logi välja ja unusta";
 "settings.account.cloudSignIn.mailboxPrompt" = "Kinnita juurdepääs oma e-postile. Sisesta 6–8-kohaline kood. Vajadusel kontrolli rämpsposti.";
 "settings.account.cloudSignIn.freshAttempt" = "Sisselogimine ei lõppenud. Jätkamiseks alusta uuesti.";
 "settings.account.cloudSignIn.restart" = "Alusta uuesti";

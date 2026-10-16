@@ -923,11 +923,9 @@
 "ai.consent.withdrawalFailed" = "Duomenų bendrinimas su DI šiame įrenginyje išjungtas. Jūsų pasirinkimas dar nesinchronizuotas; bandykite dar kartą, kai prisijungsite.";
 "ai.consent.retrySync" = "Bandyti išsaugoti pasirinkimą dar kartą";
 "settings.account.cloudSignIn.unifiedTitle" = "Prisijunkite arba sukurkite paskyrą";
-"settings.account.cloudSignIn.remember" = "Prisiminti šį prisijungimą įrenginyje";
+"settings.account.cloudSignIn.continueEmail" = "Tęsti el. paštu";
 "settings.account.cloudSignIn.lastUsed" = "Naudota paskutinį kartą";
 "settings.account.cloudSignIn.showEmail" = "Rodyti el. pašto adresą";
-"settings.account.cloudSignIn.forget" = "Pamiršti šį prisijungimą";
-"settings.account.cloudSignIn.signOutForget" = "Atsijungti ir pamiršti";
 "settings.account.cloudSignIn.mailboxPrompt" = "Patvirtinkite prieigą prie el. pašto. Įveskite 6–8 skaitmenų kodą. Jei reikia, patikrinkite šlamštą.";
 "settings.account.cloudSignIn.freshAttempt" = "Prisijungimas nebaigtas. Norėdami tęsti, pradėkite iš naujo.";
 "settings.account.cloudSignIn.restart" = "Pradėti iš naujo";

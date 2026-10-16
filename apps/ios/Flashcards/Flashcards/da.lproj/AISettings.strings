@@ -923,11 +923,9 @@
 "ai.consent.withdrawalFailed" = "Datadeling med AI er slået fra på denne enhed. Dit valg er endnu ikke synkroniseret; prøv igen, når du har forbindelse.";
 "ai.consent.retrySync" = "Prøv at gemme valget igen";
 "settings.account.cloudSignIn.unifiedTitle" = "Log ind eller opret en konto";
-"settings.account.cloudSignIn.remember" = "Husk dette login på enheden";
+"settings.account.cloudSignIn.continueEmail" = "Fortsæt med e-mail";
 "settings.account.cloudSignIn.lastUsed" = "Sidst brugt";
 "settings.account.cloudSignIn.showEmail" = "Vis e-mailadresse";
-"settings.account.cloudSignIn.forget" = "Glem dette login";
-"settings.account.cloudSignIn.signOutForget" = "Log ud og glem";
 "settings.account.cloudSignIn.mailboxPrompt" = "Bekræft adgang til din e-mail. Indtast koden på 6–8 cifre. Tjek spam om nødvendigt.";
 "settings.account.cloudSignIn.freshAttempt" = "Login blev ikke fuldført. Start forfra for at fortsætte.";
 "settings.account.cloudSignIn.restart" = "Start forfra";
