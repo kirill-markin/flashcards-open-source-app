@@ -373,10 +373,14 @@ export function authGateway(scope: Construct, props: AuthGatewayProps): AuthGate
       resourceName: props.userPoolId,
     })],
   }));
+  authFn.addToRolePolicy(new cdk.aws_iam.PolicyStatement({
+    actions: ["lambda:InvokeFunction"],
+    resources: [authFn.functionArn],
+  }));
   const appleRevocationRule = new events.Rule(scope, "AppleRevocationDrainRule", {
     ruleName: appleRevocationRuleName,
     schedule: events.Schedule.rate(cdk.Duration.minutes(1)),
-    description: "Drain one durable principal signout or Apple credential step on the existing auth Lambda",
+    description: "Retry bounded durable principal signout and Apple credential cleanup on the existing auth Lambda",
   });
   appleRevocationRule.addTarget(new eventTargets.LambdaFunction(authFn, {
     retryAttempts: 0,

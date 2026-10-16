@@ -23,3 +23,17 @@ export function isAppleRevocationScheduledEvent(event: object): event is AppleRe
     && value.detail !== undefined && value.detail !== null && typeof value.detail === "object"
     && !Array.isArray(value.detail) && Object.keys(value.detail).length === 0;
 }
+
+export type AppleRevocationWakeEvent = Readonly<{
+  source: "nibomo.auth";
+  action: "drain-apple-revocations";
+  version: 1;
+}>;
+
+/** Direct IAM invocation only; no HTTP envelope or caller-selected job/identity is accepted. */
+export function isAppleRevocationWakeEvent(event: object): event is AppleRevocationWakeEvent {
+  if ("requestContext" in event || "httpMethod" in event || "rawPath" in event || Array.isArray(event)) return false;
+  const value = event as Partial<AppleRevocationWakeEvent>;
+  return Object.keys(event).length === 3 && value.source === "nibomo.auth"
+    && value.action === "drain-apple-revocations" && value.version === 1;
+}
