@@ -3,7 +3,7 @@ import type { LoginPageLocale } from "../routes/browser/loginPageLocale.js";
 import { getPublicAuthMethods } from "../server/social/publicMethods.js";
 import { browserHintStorageScript } from "./browserHints.js";
 import { BROWSER_HINT_COPY } from "./browserHintCopy.js";
-import { browserHintControlsScript, browserHintControlsStyles, renderBrowserHintControls, renderBrowserHintFeedback } from "./browserHintControls.js";
+import { browserHintControlsScript, browserHintControlsStyles, renderBrowserHintFeedback } from "./browserHintControls.js";
 import { AUTH_ENTRY_COPY } from "./authEntryCopy.js";
 
 const googleIcon = `<svg viewBox="0 0 48 48" aria-hidden="true" focusable="false">
@@ -24,15 +24,17 @@ export const authEntryStyles = `
   .auth-methods form { margin: 0; }
   .auth-method {
     position: relative; display: flex; align-items: center; justify-content: center; gap: 12px;
-    width: 100%; min-height: 44px; padding: 12px; border: 1px solid #8e8e93;
-    border-radius: 999px; background: #2c2c2e; color: #f6f6f8;
-    font: 600 14px/1.4 system-ui, sans-serif; cursor: pointer;
+    width: 100%; min-height: 48px; padding: 12px; border: 1px solid #747775;
+    border-radius: 12px; background: #fff; color: #1f1f1f;
+    font: 500 14px/1.4 system-ui, sans-serif; cursor: pointer;
+    transition: background 140ms ease, opacity 140ms ease;
   }
   .auth-method svg { flex: 0 0 20px; width: 20px; height: 20px; }
-  .auth-google { background: #fff; color: #1f1f1f; border-color: #747775; font-family: Arial, sans-serif; font-weight: 500; }
-  .auth-apple { background: #000; color: #fff; border-color: #fff; }
   .auth-method:focus-visible, .auth-other-methods:focus-visible { outline: 2px solid #8e8e93; outline-offset: 3px; }
-  .auth-method:active { opacity: .75; }
+  @media (hover: hover) and (pointer: fine) {
+    .auth-method:hover:not(:disabled) { background: #f2f2f4; }
+  }
+  .auth-method:active:not(:disabled) { background: #e2e2e6; }
   .auth-method:disabled { opacity: .5; cursor: default; }
   .auth-other-methods { margin-top: 16px; width: 100%; min-height: 44px; padding: 8px;
     border: 0; background: transparent; color: var(--text-secondary); font: inherit; cursor: pointer; }
@@ -66,7 +68,6 @@ export function renderAuthMethods(locale: LoginPageLocale): string {
   return `<div id="step-methods" class="auth-methods hidden">
     ${providers}
     <div class="auth-method-option"><button id="signin-email" class="auth-method" type="button">${emailIcon}<span>${copy.email}</span></button>${hint("email")}</div>
-    ${renderBrowserHintControls(locale)}
     <p id="provider-status" class="auth-opening" role="status" aria-live="polite"></p>
   </div>${renderBrowserHintFeedback(locale)}`;
 }

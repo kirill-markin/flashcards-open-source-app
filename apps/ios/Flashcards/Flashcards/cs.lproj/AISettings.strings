@@ -923,11 +923,9 @@
 "ai.consent.withdrawalFailed" = "Sdílení dat s AI je na tomto zařízení vypnuté. Vaše volba se ještě nesynchronizovala; zkuste to znovu, až budete připojeni.";
 "ai.consent.retrySync" = "Zkusit volbu uložit znovu";
 "settings.account.cloudSignIn.unifiedTitle" = "Přihlásit se nebo vytvořit účet";
-"settings.account.cloudSignIn.remember" = "Zapamatovat si toto přihlášení na zařízení";
+"settings.account.cloudSignIn.continueEmail" = "Pokračovat e-mailem";
 "settings.account.cloudSignIn.lastUsed" = "Naposledy použito";
 "settings.account.cloudSignIn.showEmail" = "Zobrazit e-mail";
-"settings.account.cloudSignIn.forget" = "Zapomenout toto přihlášení";
-"settings.account.cloudSignIn.signOutForget" = "Odhlásit se a zapomenout";
 "settings.account.cloudSignIn.mailboxPrompt" = "Ověřte přístup k e-mailu. Zadejte kód se 6–8 číslicemi. Případně zkontrolujte spam.";
 "settings.account.cloudSignIn.freshAttempt" = "Přihlášení nebylo dokončeno. Pro pokračování začněte znovu.";
 "settings.account.cloudSignIn.restart" = "Začít znovu";

@@ -1529,12 +1529,6 @@ const daCatalog: TranslationCatalog = {
     changed: "Metoden er ændret. Opdatér metoderne og start igen.",
     codePrompt: "Bekræft adgang til din e-mail. Indtast koden på 6–8 cifre. Tjek spam om nødvendigt.",
   },
-  browserSignInPrivacy: {
-    forget: "Glem loginoplysninger",
-    signOutForget: "Log ud og glem",
-    forgotten: "Loginoplysninger er glemt.",
-    error: "Loginoplysninger kunne ikke ændres. Tillad webstedsdata for loginwebstedet, og prøv igen.",
-  },
   accountStatus: {
     title: "Kontostatus",
     subtitle: "Se den konto, du er logget ind med, og browsersessionen.",

@@ -211,12 +211,6 @@ struct CloudSignInSheet: View {
                         try await self.store.signOutCloudAccountFromPressedControl(screen: .signin)
                     }
                 }
-                Button(aiSettingsLocalized("settings.account.cloudSignIn.signOutForget", "Sign out and forget"), role: .destructive) {
-                    self.logoutAndDismiss {
-                        try await self.store.signOutCloudAccountAndForgetFromPressedControl(screen: .signin)
-                    }
-                }
-                .accessibilityIdentifier("cloudSignIn.signOutForget")
             } message: {
                 Text(aiSettingsLocalized("settings.account.status.logoutAlertMessage", "All local workspaces and synced data will be removed from this device."))
             }

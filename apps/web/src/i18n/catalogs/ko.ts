@@ -1529,12 +1529,6 @@ const koCatalog: TranslationCatalog = {
     changed: "방법이 변경되었습니다. 방법을 새로 고친 후 다시 시작하세요.",
     codePrompt: "이메일 접근 권한을 확인하세요. 6~8자리 코드를 입력하세요. 필요한 경우 스팸함을 확인하세요.",
   },
-  browserSignInPrivacy: {
-    forget: "로그인 정보 잊기",
-    signOutForget: "로그아웃하고 잊기",
-    forgotten: "로그인 정보를 삭제했습니다.",
-    error: "로그인 정보를 변경할 수 없습니다. 인증 사이트의 데이터 저장을 허용하고 다시 시도하세요.",
-  },
   accountStatus: {
     title: "계정 상태",
     subtitle: "현재 로그인한 계정과 브라우저 세션을 확인하세요.",

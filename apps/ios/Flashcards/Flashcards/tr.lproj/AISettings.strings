@@ -923,11 +923,9 @@
 "ai.consent.withdrawalFailed" = "Yapay zekâ için veri paylaşımı bu cihazda kapalı. Seçiminiz henüz eşzamanlanmadı; bağlantınız olduğunda tekrar deneyin.";
 "ai.consent.retrySync" = "Seçimi kaydetmeyi tekrar dene";
 "settings.account.cloudSignIn.unifiedTitle" = "Giriş yap veya hesap oluştur";
-"settings.account.cloudSignIn.remember" = "Bu girişi bu cihazda hatırla";
+"settings.account.cloudSignIn.continueEmail" = "E-posta ile devam et";
 "settings.account.cloudSignIn.lastUsed" = "Son kullanılan";
 "settings.account.cloudSignIn.showEmail" = "E-postayı göster";
-"settings.account.cloudSignIn.forget" = "Bu girişi unut";
-"settings.account.cloudSignIn.signOutForget" = "Çıkış yap ve unut";
 "settings.account.cloudSignIn.mailboxPrompt" = "E-postanıza erişimi doğrulayın. 6–8 haneli kodu girin. Gerekirse spam klasörünü kontrol edin.";
 "settings.account.cloudSignIn.freshAttempt" = "Giriş tamamlanmadı. Devam etmek için yeniden başlayın.";
 "settings.account.cloudSignIn.restart" = "Yeniden başla";
