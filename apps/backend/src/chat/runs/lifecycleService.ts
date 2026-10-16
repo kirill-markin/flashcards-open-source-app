@@ -57,6 +57,7 @@ import type {
 } from "../../productAnalytics/catalog";
 import { CHAT_RUN_HEARTBEAT_INTERVAL_MS, isChatRunHeartbeatStale } from "../worker/lease";
 import { getChatRunClaimStateWithExecutor } from "./claimFence";
+import { transactionWithChatWorkerOwnerScope } from "./ownerScope";
 import {
   createDiagnostics,
   finalizeCancelledRunWithExecutor,
@@ -299,8 +300,7 @@ export async function claimChatRun(
   workspaceId: string,
   runId: string,
 ): Promise<ClaimedChatRun | null> {
-  return transactionWithWorkspaceScope({ userId, workspaceId }, async (executor) => {
-    const scope = { userId, workspaceId };
+  return transactionWithChatWorkerOwnerScope(userId, workspaceId, async (executor, scope) => {
     const run = await selectChatRunForUpdateWithExecutor(executor, scope, runId);
     if (run === null) {
       return null;
@@ -358,8 +358,8 @@ export async function claimChatRun(
       claimToken,
       sessionId: claimedRun.session_id,
       requestId: claimedRun.request_id,
-      userId,
-      workspaceId,
+      userId: scope.userId,
+      workspaceId: scope.workspaceId,
       timezone: claimedRun.timezone,
       uiLocale: claimedRun.ui_locale,
       modelId: runtimeConfig.modelId,
@@ -681,8 +681,7 @@ export async function markQueuedChatRunDispatchFailed(
   runId: string,
   errorMessage: string,
 ): Promise<void> {
-  return transactionWithWorkspaceScope({ userId, workspaceId }, async (executor) => {
-    const scope = { userId, workspaceId };
+  return transactionWithChatWorkerOwnerScope(userId, workspaceId, async (executor, scope) => {
     const run = await selectChatRunForUpdateWithExecutor(executor, scope, runId);
     if (run === null || run.status !== "queued") {
       return;
@@ -703,8 +702,7 @@ export async function failQueuedChatRun(
   runId: string,
   errorMessage: string,
 ): Promise<boolean> {
-  return transactionWithWorkspaceScope({ userId, workspaceId }, async (executor) => {
-    const scope = { userId, workspaceId };
+  return transactionWithChatWorkerOwnerScope(userId, workspaceId, async (executor, scope) => {
     const run = await selectChatRunForUpdateWithExecutor(executor, scope, runId);
     if (run === null || run.status !== "queued") {
       return false;
