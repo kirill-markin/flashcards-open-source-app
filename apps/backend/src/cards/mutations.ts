@@ -23,6 +23,7 @@ import {
   mergeManagedImageReferencesIntoCardSnapshot,
   type ManagedImageRestoreLedger,
 } from "./managedMedia/managedImageSnapshotMerge";
+import { establishOnboardingDemoMetadata, mergeOnboardingDemoMetadata } from "./onboardingDemo";
 import { assertConsistentFsrsState } from "./review/fsrs";
 import {
   authoredTagsChanged,
@@ -233,7 +234,10 @@ async function insertCardRowForSnapshotInExecutor(
   metadata: CardMutationMetadata,
 ): Promise<CardRow | null> {
   const cardType = input.cardType ?? "basic";
-  const cardMetadata = input.metadata ?? createDefaultCardMetadata(input.createdAt);
+  const cardMetadata = establishOnboardingDemoMetadata(
+    input.metadata ?? createDefaultCardMetadata(input.createdAt),
+    { ...input, cardType },
+  );
   const result = await executor.query<CardRow>(
     [
       "INSERT INTO content.cards",
@@ -429,7 +433,15 @@ export async function upsertCardSnapshotInExecutor(
       mergedCardWrite.frontText,
       mergedCardWrite.backText,
       normalizedInput.cardType ?? existingCard.cardType,
-      JSON.stringify(normalizedInput.metadata ?? existingCard.metadata),
+      JSON.stringify(mergeOnboardingDemoMetadata(
+        existingCard,
+        normalizedInput.metadata ?? existingCard.metadata,
+        {
+          ...mergedCardWrite,
+          cardType: normalizedInput.cardType ?? existingCard.cardType,
+          tags: normalizedInput.tags,
+        },
+      )),
       normalizedInput.tags,
       normalizedInput.dueAt,
       normalizedInput.reps,
@@ -565,7 +577,10 @@ export async function createCardInExecutor(
       normalizedInput.frontText,
       normalizedInput.backText,
       normalizedInput.cardType ?? "basic",
-      JSON.stringify(normalizedInput.metadata ?? createDefaultCardMetadata(createdAt)),
+      JSON.stringify(establishOnboardingDemoMetadata(
+        normalizedInput.metadata ?? createDefaultCardMetadata(createdAt),
+        { ...normalizedInput, cardType: normalizedInput.cardType ?? "basic" },
+      )),
       normalizedInput.tags,
       createdAt,
       normalizedMetadata.clientUpdatedAt,
@@ -632,11 +647,28 @@ export async function updateCardInExecutor(
   const normalizedInput = normalizeUpdateCardInput(input);
   const normalizedMetadata = normalizeCardMutationMetadata(metadata);
 
-  const updateParts = buildCardUpdateQueryParts(normalizedInput);
-
-  if (updateParts.assignments.length === 0) {
+  if (buildCardUpdateQueryParts(normalizedInput).assignments.length === 0) {
     throw new HttpError(400, "At least one editable field must be provided");
   }
+
+  const existingRow = await loadCardRowForMutation(executor, workspaceId, cardId);
+  if (existingRow === undefined || existingRow.deleted_at !== null) {
+    throw new HttpError(404, "Card not found");
+  }
+  const existingCard = mapCard(existingRow);
+  const updateParts = buildCardUpdateQueryParts({
+    ...normalizedInput,
+    metadata: mergeOnboardingDemoMetadata(
+      existingCard,
+      normalizedInput.metadata ?? existingCard.metadata,
+      {
+        frontText: normalizedInput.frontText ?? existingCard.frontText,
+        backText: normalizedInput.backText ?? existingCard.backText,
+        cardType: normalizedInput.cardType ?? existingCard.cardType,
+        tags: normalizedInput.tags ?? existingCard.tags,
+      },
+    ),
+  });
 
   const params = [
     ...updateParts.params,
@@ -651,26 +683,6 @@ export async function updateCardInExecutor(
   const cardIdParam = `$${params.length}`;
   const result = await executor.query<UpdatedCardRow>(
     [
-      // The authored fields as the row held them before this write, captured by the same statement
-      // that does the write rather than by a second read of the row. That is the whole reason for
-      // the CTE: this path serves the agent surfaces, where one SQL batch can update a hundred
-      // cards, and a preceding SELECT per card would be a hundred extra round trips to answer an
-      // analytics question.
-      //
-      // The CTE reads the row under the statement's own snapshot, so it is genuinely the previous
-      // version and not the one this UPDATE leaves. It cannot go stale under a concurrent writer
-      // either: every path that UPDATEs a row of content.cards first takes
-      // sync.workspace_sync_metadata FOR UPDATE for the workspace
-      // (lockWorkspaceSyncMetadataForHotChangesInExecutor, called above), so those writers are
-      // serialized per workspace and none of them can change this row between the CTE and the
-      // UPDATE. Exactly one writer stands outside that lock and it cannot make this read wrong:
-      // guest-workspace teardown (../guestAuth/store/deletion.ts) DELETEs the workspace's cards
-      // wholesale under the workspace access-lifecycle lock instead, and a row it removed makes
-      // this UPDATE match nothing, which is the 404 below rather than a stale previous value.
-      //
-      // Every selected column is aliased, which is what keeps CARD_COLUMNS usable unqualified in
-      // RETURNING: front_text, back_text, tags and card_id would otherwise be ambiguous across the
-      // join.
       "WITH previous AS (",
       "SELECT card_id AS previous_card_id, front_text AS previous_front_text,",
       "back_text AS previous_back_text, tags AS previous_tags",

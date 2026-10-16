@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { normalizeOnboardingDemo } from "../../cards/onboardingDemo";
 import { HttpError } from "../../shared/errors";
 import type {
   HttpErrorDetails,
@@ -180,6 +181,7 @@ const cardSourceMetadataSchema = z.object({
 export const cardMetadataSchema = z.object({
   version: z.literal(1),
   source: cardSourceMetadataSchema.nullable(),
+  onboardingDemo: z.unknown().transform(normalizeOnboardingDemo).optional(),
 });
 
 const deckFilterDefinitionSchema = z.object({
