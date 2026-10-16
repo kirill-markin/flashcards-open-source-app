@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import { applyUserDatabaseScopeInExecutor, type DatabaseExecutor } from "../../database";
 import type { GoogleNotification } from "./notifications";
 import type { AccountKind } from "../limits";
+import { resolveBillingOwnerInExecutor } from "../identity";
 import type { PurchaseStatus } from "../resolver";
 import { GoogleBillingError, type GoogleAcknowledgementState, type GoogleEnvironment, type GooglePurchaseState } from "./contracts";
 
@@ -36,7 +37,8 @@ export type LockedGooglePurchase = Readonly<{
   accounts: ReadonlyArray<GoogleAccount>;
   ownerUserId: string | null;
 }>;
-const purchaseColumns = `purchase_id, provider_purchase_id, user_id, status, is_trial, will_renew,
+const purchaseColumns = `purchase_id, provider_purchase_id, auth.canonical_account_id(user_id) AS user_id,
+  status, is_trial, will_renew,
   linked_from_purchase_id, invalidated_at, account_deleted_at, environment, until,
   provider_status_raw, google_latest_order_id, google_last_paid_order_id, google_acknowledgement_state,
   google_verified_at`;
@@ -87,14 +89,11 @@ async function mappedGoogleOwner(executor: DatabaseExecutor, state: GooglePurcha
   const accountId = state.obfuscatedExternalAccountId
     ?? state.outOfAppPurchaseContext?.expiredObfuscatedExternalAccountId ?? null;
   if (accountId === null) return null;
-  // A merged guest can retain its handle when the destination already has a different one.
   const result = await executor.query<{ user_id: string }>(`
-    SELECT COALESCE(upgrade.target_user_id, state.user_id) AS user_id
-    FROM billing.user_billing_state AS state
-    LEFT JOIN LATERAL (SELECT target_user_id FROM auth.guest_upgrade_history
-      WHERE source_guest_user_id = state.user_id ORDER BY merged_at DESC LIMIT 1) AS upgrade ON true
-    WHERE state.google_obfuscated_account_id = $1`, [accountId]);
-  return result.rows[0]?.user_id ?? null;
+    SELECT user_id FROM billing.user_billing_state
+    WHERE google_obfuscated_account_id = $1`, [accountId]);
+  const originalUserId = result.rows[0]?.user_id;
+  return originalUserId === undefined ? null : resolveBillingOwnerInExecutor(executor, originalUserId);
 }
 
 export async function lockGooglePurchaseTokens(
