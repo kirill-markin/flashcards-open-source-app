@@ -124,8 +124,8 @@ test("catalog review transitions use the package-status enum parameter consisten
     await client.query(
       [
         "INSERT INTO catalog.packages",
-        "(package_id, author_id, slug, title, summary, description, language_tags, license)",
-        "VALUES ($1, $2, $3, $4, $5, $6, $7, $8)",
+        "(package_id, author_id, slug, title, summary, description, language_tags, license, educational_subject)",
+        "VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)",
       ].join(" "),
       [
         packageId,
@@ -136,14 +136,15 @@ test("catalog review transitions use the package-status enum parameter consisten
         "Review status description",
         ["en"],
         "CC-BY-4.0",
+        "Review status subject",
       ],
     );
     await client.query(
       [
         "INSERT INTO catalog.package_versions",
         "(package_version_id, package_id, version_number, slug, title, summary, description,",
-        "language_tags, license, card_count, created_by_admin_email)",
-        "VALUES ($1, $2, 1, $3, $4, $5, $6, $7, $8, 0, $9)",
+        "language_tags, license, card_count, created_by_admin_email, educational_subject)",
+        "VALUES ($1, $2, 1, $3, $4, $5, $6, $7, $8, 0, $9, $10)",
       ].join(" "),
       [
         packageVersionId,
@@ -155,6 +156,7 @@ test("catalog review transitions use the package-status enum parameter consisten
         ["en"],
         "CC-BY-4.0",
         adminEmail,
+        "Review status subject",
       ],
     );
 
@@ -234,8 +236,8 @@ test("catalog package-card snapshot ID conflicts are actionable and atomic", asy
     await pool.query(
       [
         "INSERT INTO catalog.packages",
-        "(package_id, author_id, slug, title, summary, description, language_tags, license)",
-        "VALUES ($1, $2, $3, $4, $5, $6, $7, $8)",
+        "(package_id, author_id, slug, title, summary, description, language_tags, license, educational_subject)",
+        "VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)",
       ].join(" "),
       [
         packageId,
@@ -246,14 +248,15 @@ test("catalog package-card snapshot ID conflicts are actionable and atomic", asy
         "Package card conflict description",
         ["en"],
         "CC-BY-4.0",
+        "Package card conflict subject",
       ],
     );
     await pool.query(
       [
         "INSERT INTO catalog.package_versions",
         "(package_version_id, package_id, version_number, status, slug, title, summary, description,",
-        "language_tags, license, card_count, created_by_admin_email)",
-        "VALUES ($1, $2, 1, 'rejected', $3, $4, $5, $6, $7, $8, 1, $9)",
+        "language_tags, license, card_count, created_by_admin_email, educational_subject)",
+        "VALUES ($1, $2, 1, 'rejected', $3, $4, $5, $6, $7, $8, 1, $9, $10)",
       ].join(" "),
       [
         originalPackageVersionId,
@@ -265,6 +268,7 @@ test("catalog package-card snapshot ID conflicts are actionable and atomic", asy
         ["en"],
         "CC-BY-4.0",
         adminEmail,
+        "Package card conflict subject",
       ],
     );
     await pool.query(
@@ -455,8 +459,9 @@ test("catalog package update locks the package before its selected author", asyn
     await pool.query(
       [
         "INSERT INTO catalog.packages",
-        "(package_id, author_id, slug, title, summary, description, language_tags, license, status, published_at)",
-        "VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'published', now())",
+        "(package_id, author_id, slug, title, summary, description, language_tags, license, status, published_at,",
+        "educational_subject)",
+        "VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'published', now(), $9)",
       ].join(" "),
       [
         packageId,
@@ -467,14 +472,16 @@ test("catalog package update locks the package before its selected author", asyn
         "Lock order description",
         ["en"],
         "CC-BY-4.0",
+        "Lock order subject",
       ],
     );
     await pool.query(
       [
         "INSERT INTO catalog.package_versions",
         "(package_version_id, package_id, version_number, status, slug, title, summary, description,",
-        "language_tags, license, card_count, created_by_admin_email, reviewed_by_admin_email, submitted_at, reviewed_at)",
-        "VALUES ($1, $2, 1, 'approved', $3, $4, $5, $6, $7, $8, 0, $9, $9, now(), now())",
+        "language_tags, license, card_count, created_by_admin_email, reviewed_by_admin_email, submitted_at, reviewed_at,",
+        "educational_subject)",
+        "VALUES ($1, $2, 1, 'approved', $3, $4, $5, $6, $7, $8, 0, $9, $9, now(), now(), $10)",
       ].join(" "),
       [
         packageVersionId,
@@ -486,6 +493,7 @@ test("catalog package update locks the package before its selected author", asyn
         ["en"],
         "CC-BY-4.0",
         "catalog-lock-order@example.test",
+        "Lock order subject",
       ],
     );
 

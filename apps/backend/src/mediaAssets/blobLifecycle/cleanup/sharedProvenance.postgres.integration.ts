@@ -75,8 +75,8 @@ test("catalog image admission stays fenced across reverse-SHA package and collec
       await fixture.ownerPool.query(
         `INSERT INTO catalog.packages(
            package_id,author_id,slug,title,summary,description,
-           language_tags,license
-         ) VALUES($1,$2,$3,'Images','Summary','Description',ARRAY['en'],'CC-BY-4.0')`,
+           language_tags,license,educational_subject
+         ) VALUES($1,$2,$3,'Images','Summary','Description',ARRAY['en'],'CC-BY-4.0','Images')`,
         [packageId, authorId, `image-package-${slug}`],
       );
       const admissionParams = (
