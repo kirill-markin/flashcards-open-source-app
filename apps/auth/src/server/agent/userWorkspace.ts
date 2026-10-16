@@ -252,15 +252,6 @@ async function createWorkspaceInExecutor(
   return workspaceId;
 }
 
-/**
- * Ensures org.user_settings for the user and resolves the workspace a new
- * connection should be scoped to: the only existing workspace when there is
- * exactly one, an auto-created Personal workspace when there are none, or null
- * (unscoped, caller must select later) when the user belongs to several.
- *
- * Must run inside a user-scoped transaction so the workspace bootstrap and the
- * caller's connection insert share one atomic unit.
- */
 export async function ensureUserSettingsAndSelectWorkspace(
   executor: DatabaseExecutor,
   userId: string,
@@ -273,11 +264,9 @@ export async function ensureUserSettingsAndSelectWorkspace(
   const membershipResult = await executor.query<WorkspaceMembershipRow>(
     [
       "SELECT workspace_id",
-      "FROM org.workspace_memberships",
-      "WHERE user_id = $1",
-      "ORDER BY created_at ASC, workspace_id ASC",
+      "FROM org.visible_workspace_ids(NULL)",
     ].join(" "),
-    [userId],
+    [],
   );
 
   if (membershipResult.rows.length === 0) {

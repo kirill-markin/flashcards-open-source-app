@@ -21,6 +21,7 @@ import { lockWorkspaceAccessLifecycleInExecutor } from "./accessLocks";
 import { createWorkspaceInExecutorWithObservationScope } from "./create";
 import {
   listUserWorkspaceIdsInExecutor,
+  listVisibleUserWorkspaceIdsInExecutor,
   loadActiveCardCountInExecutor,
   loadResettableCardCountInExecutor,
   loadResettableCardRowsInExecutor,
@@ -227,7 +228,9 @@ async function prepareSelectedWorkspaceForDeletionInExecutor(
   }
 
   const accessibleWorkspaceIds = await listUserWorkspaceIdsInExecutor(executor, userId);
-  const replacementWorkspaceId = accessibleWorkspaceIds.find((workspaceId) => workspaceId !== deletedWorkspaceId)
+  const visibleWorkspaceIds = await listVisibleUserWorkspaceIdsInExecutor(executor);
+  const replacementWorkspaceId = visibleWorkspaceIds.find((workspaceId) => workspaceId !== deletedWorkspaceId)
+    ?? accessibleWorkspaceIds.find((workspaceId) => workspaceId !== deletedWorkspaceId)
     ?? await createWorkspaceInExecutorWithObservationScope(executor, userId, {
       name: AUTO_CREATED_WORKSPACE_NAME,
       cause: "automatic_starter",
