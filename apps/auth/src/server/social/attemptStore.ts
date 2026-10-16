@@ -5,6 +5,7 @@ import type { verifyCurrentAccountSession } from "../browserSession.js";
 import { exchangeAppleAuthorizationCode } from "./apple.js";
 import { exchangeGoogleAuthorizationCode, verifyGoogleIdentityToken } from "./google.js";
 import { beginEnrollmentMailboxOtp, normalizeEnrollmentEmail, type MailboxProofBinding } from "./mailboxProof.js";
+import type { ConnectionSqlParameters } from "./accountConnectionContract.js";
 import type { ProviderEnrollmentProof } from "./principalEnrollment.js";
 import { browserAttemptBinding, type BrowserCallbackState } from "./browserState.js";
 import { appleRequestNonce, assertProviderCallback, socialAuthOrigins, SocialProofError } from "./providers.js";
@@ -181,6 +182,23 @@ export async function claimAuthAttempt(
   if (row === undefined) throw new AuthAttemptError("AUTH_ATTEMPT_RESTART_REQUIRED");
   return { [claimedAttemptBrand]: true, handle, claimId: row.claim_id, provider: row.provider_type, client: row.client_type, purpose: row.purpose,
     redirectUri: row.redirect_uri, secrets: openSecrets(handle, row.secret_ciphertext), phase: row.phase };
+}
+
+/** Only the operation-owned SQL claim can issue this capability for a reserved login attempt. */
+export async function claimConnectionProviderAttempt(
+  handle: string, operationParameters: ConnectionSqlParameters,
+): Promise<ClaimedAuthAttempt> {
+  requireAuthHandle(handle);
+  const result = await query<AttemptRow>(
+    "SELECT * FROM auth.claim_connection_provider_attempt($1,$2,$3,$4,$5,$6,$7,$8)",
+    [...operationParameters, authHandleHash(handle)]);
+  const row = result.rows[0];
+  if (row === undefined || row.purpose !== "login" || row.phase !== "provider_claimed") {
+    throw new AuthAttemptError("AUTH_ATTEMPT_RESTART_REQUIRED");
+  }
+  return { [claimedAttemptBrand]: true, handle, claimId: row.claim_id, provider: row.provider_type,
+    client: row.client_type, purpose: row.purpose, redirectUri: row.redirect_uri,
+    secrets: openSecrets(handle, row.secret_ciphertext), phase: row.phase };
 }
 
 /** The opaque handle selects an existing app-authorized attempt, never a new browser authority. */
