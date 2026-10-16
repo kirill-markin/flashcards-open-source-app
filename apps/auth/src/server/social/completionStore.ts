@@ -1,3 +1,5 @@
+import { captureConnectionSuggestionInExecutor } from "./accountConnectionPreparation.js";
+import type { ConnectionSuggestion } from "./accountConnectionContract.js";
 import { randomBytes } from "node:crypto";
 import type { CognitoEmailPrincipal } from "../cognito/cognitoAuth.js";
 import { log, logWarning } from "../logger.js";
@@ -21,7 +23,7 @@ import {
 
 async function persistCompletion(
   executor: DatabaseExecutor, attempt: Pick<ClaimedAuthAttempt, "handle" | "claimId" | "purpose" | "provider">,
-  enrolled: EnrolledProviderPrincipal,
+  enrolled: EnrolledProviderPrincipal, suggestion: ConnectionSuggestion | null,
 ): Promise<AuthCompletionResponse> {
   const completion = randomBytes(32).toString("base64url");
   const parameters = [authHandleHash(attempt.handle), attempt.claimId, enrolled.principal.cognitoSubject,
@@ -29,7 +31,7 @@ async function persistCompletion(
   const result = attempt.purpose === "login"
     ? await executor.query<Readonly<{ expires_at: Date }>>(
       "SELECT auth.complete_social_sign_in($1,$2,$3,$4,$5,$6) AS expires_at",
-      [...parameters, encryptSignInHint(completion, createProviderSignInHint(attempt.provider, enrolled))],
+      [...parameters, encryptSignInHint(completion, { ...createProviderSignInHint(attempt.provider, enrolled), ...(suggestion === null ? {} : { connectionSuggestion: suggestion }) })],
     )
     : await executor.query<Readonly<{ expires_at: Date }>>(
       "SELECT auth.complete_social_attempt($1,$2,$3,$4,$5) AS expires_at", parameters,
@@ -70,9 +72,10 @@ export async function completeAuthoritativeLoginInExecutor(
     ? await reconcileAppleLoginEmailInExecutor(executor, attempt, proof, boundSubject, principal) : null;
   const enrolled = await enrollLockedAuthoritativeLoginPrincipalInExecutor(
     executor, proof, emailEnrollment !== null || proof.provider === "apple" && boundSubject !== null
-      && boundAppleMethod === null ? null : principal, boundSubject);
+      && boundAppleMethod === null || proof.provider === "google" && boundSubject !== null ? null : principal, boundSubject);
   if (enrolled.status === "verification_required") return { status: "verification_required", enrollment: enrolled };
-  return { status: "completed", response: await persistCompletion(executor, { ...attempt, purpose: "login" }, enrolled),
+  const suggestion = await captureConnectionSuggestionInExecutor(executor, attempt, proof, principal);
+  return { status: "completed", response: await persistCompletion(executor, { ...attempt, purpose: "login" }, enrolled, suggestion),
     reconnected, emailEnrollment };
 }
 
@@ -119,7 +122,7 @@ export async function completeAuthoritativeAuthAttempt(attempt: ClaimedAuthAttem
     logMailboxVerificationRequired(attempt, proof, enrolled);
     return { status: "verification_required", enrollment: enrolled, attempt: mailboxAttempt };
   }
-  const response = await transaction((executor) => persistCompletion(executor, attempt, enrolled));
+  const response = await transaction((executor) => persistCompletion(executor, attempt, enrolled, null));
   return { status: "completed", response };
 }
 
@@ -131,7 +134,7 @@ export async function completeMailboxAuthAttempt(attempt: ClaimedAuthAttempt, co
   const mailboxProof = await verifyEnrollmentMailboxOtp(mailbox.binding, code, mailbox.session);
   const enrolled = await transaction((executor) =>
     enrollProviderPrincipalWithMailboxProofInExecutor(executor, proof, mailboxProof, mailbox.binding));
-  return transaction((executor) => persistCompletion(executor, attempt, enrolled));
+  return transaction((executor) => persistCompletion(executor, attempt, enrolled, null));
 }
 
 type CompletionRow = Readonly<{
