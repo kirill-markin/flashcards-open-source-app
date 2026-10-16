@@ -38,8 +38,11 @@ data class CardSourceMetadata(
 
 data class CardMetadata(
     val version: Int,
-    val source: CardSourceMetadata?
-)
+    val source: CardSourceMetadata?,
+    val onboardingDemo: OnboardingDemoMetadata?
+) {
+    constructor(version: Int, source: CardSourceMetadata?) : this(version, source, null)
+}
 
 // Keep in sync with apps/backend/src/cards/types.ts::Card, apps/web/src/types.ts::Card, and apps/ios/Flashcards/Flashcards/Cards/Model/CardDeckTypes.swift::Card.
 data class CardSummary(
@@ -64,11 +67,37 @@ data class CardSummary(
     val deletedAtMillis: Long?
 )
 
-data class CardDraft(
+data class OnboardingDemoMetadata(
+    val version: Int,
     val frontText: String,
     val backText: String,
-    val tags: List<String>
+    val tags: List<String>,
+    val cardType: String,
+    val wasEdited: Boolean
 )
+
+data class CardDraft private constructor(
+    val frontText: String,
+    val backText: String,
+    val tags: List<String>,
+    val onboardingDemo: OnboardingDemoMetadata?
+) {
+    constructor(frontText: String, backText: String, tags: List<String>) : this(frontText, backText, tags, null)
+
+    companion object {
+        fun onboardingDemo(frontText: String, backText: String, tags: List<String>): CardDraft {
+            return CardDraft(
+                frontText = frontText,
+                backText = backText,
+                tags = tags,
+                onboardingDemo = makeOnboardingDemoMetadata(
+                    frontText = frontText, backText = backText, tags = tags,
+                    cardType = defaultCardType, wasEdited = false
+                )
+            )
+        }
+    }
+}
 
 data class CardFilter(
     val tags: List<String>
