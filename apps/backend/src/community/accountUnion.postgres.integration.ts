@@ -86,7 +86,7 @@ test("private community union preserves review facts, private graph winners, fla
       await client.query(`INSERT INTO content.review_events
         (review_event_id, workspace_id, card_id, replica_id, client_event_id, rating,
          reviewed_by_user_id, reviewed_at_client, reviewed_time_zone, reviewed_local_date, reviewed_time_zone_source)
-        VALUES ($1, $2, $3, $4, $1::text, $5, $6, '2040-01-01T12:00:00Z', $7, $8, $9)`,
+        VALUES ($1::uuid, $2, $3, $4, $1::text, $5, $6, '2040-01-01T12:00:00Z', $7, $8, $9)`,
       [eventId, workspaceId, cardId, replicaId, index, author,
         index === 3 ? null : index === 0 ? "America/New_York" : "UTC",
         index === 3 ? null : index === 2 ? "2040-01-02" : "2040-01-01", index === 3 ? null : "client"]);
