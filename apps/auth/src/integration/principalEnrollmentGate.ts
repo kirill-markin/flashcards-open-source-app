@@ -7,6 +7,7 @@ import { enrollAuthoritativeLoginPrincipalInExecutor, type ProviderEnrollmentPro
 import { completeAuthoritativeLoginInExecutor, redeemSocialSignInInExecutor } from "../server/social/completionStore.js";
 import { authAttemptBindingHash, authHandleHash } from "../server/social/attemptStore.js";
 import { encryptAppleCredential } from "../server/social/appleCredential.js";
+import { createProviderSignInHint, encryptSignInHint } from "../server/social/signInHint.js";
 
 function executorFor(client: pg.Client): DatabaseExecutor {
   return { query: (text, parameters) => client.query(text, [...parameters]) };
@@ -121,7 +122,7 @@ export async function checkAtomicAuthoritativeLogin(runtime: pg.Client, owner: p
   const verifier = randomBytes(32).toString("base64url");
   const binding = { client: "ios", purpose: "login", codeVerifier: verifier } as const;
   const attempts: Array<string> = [];
-  const notificationReceipts: Array<string> = [];
+  const failures: Array<unknown> = [];
   const previousKey = process.env.SESSION_ENCRYPTION_KEY;
   process.env.SESSION_ENCRYPTION_KEY = randomBytes(32).toString("hex");
   const beginVerifying = async (provider: "google" | "apple") => {
@@ -195,12 +196,19 @@ export async function checkAtomicAuthoritativeLogin(runtime: pg.Client, owner: p
     await owner.query("INSERT INTO org.user_settings(user_id,email) VALUES ($1,$2)", [appleAccount, relay]);
     await owner.query("SELECT auth.bind_cognito_account($1,$2)", [appleSubject, appleAccount]);
     const appleAttempt = await prepare("apple", appleProvider);
-    const appleCompleted = await inTransaction(runtime, (executor) =>
-      completeAuthoritativeLoginInExecutor(executor, appleAttempt, appleProof, applePrincipal));
-    assert.equal(appleCompleted.status, "completed");
-    if (appleCompleted.status !== "completed") throw new Error("Expected Apple relay completion");
+    const appleCompletion = randomBytes(32).toString("base64url");
+    // 0189 owns enrollment plus encrypted completion SQL; the Apple orchestration requires 0194.
+    await inTransaction(runtime, async (executor) => {
+      const enrolled = await enrollAuthoritativeLoginPrincipalInExecutor(executor, appleProof, applePrincipal);
+      assert.equal(enrolled.status, "enrolled");
+      if (enrolled.status !== "enrolled") throw new Error("Expected Apple relay enrollment");
+      await executor.query("SELECT auth.complete_social_sign_in($1,$2,$3,$4,$5,$6)", [
+        authHandleHash(appleAttempt.handle), appleAttempt.claimId, appleSubject, appleSubject,
+        authHandleHash(appleCompletion), encryptSignInHint(appleCompletion, createProviderSignInHint("apple", enrolled)),
+      ]);
+    });
     const appleRedeemed = await inTransaction(runtime, (executor) =>
-      redeemSocialSignInInExecutor(executor, appleCompleted.response.completion, binding));
+      redeemSocialSignInInExecutor(executor, appleCompletion, binding));
     assert.equal(appleRedeemed.cognitoSubject, appleSubject);
     assert.equal(appleRedeemed.signInHint.providerEmail, relay);
     assert.equal(appleRedeemed.signInHint.recoveryEmail, relay);
@@ -211,8 +219,77 @@ export async function checkAtomicAuthoritativeLogin(runtime: pg.Client, owner: p
     await assert.rejects(inTransaction(runtime, (executor) =>
       enrollAuthoritativeLoginPrincipalInExecutor(executor, appleProof, applePrincipal)), { code: "APPLE_REVOCATION_PENDING" });
     assert.equal((await owner.query("SELECT ciphertext FROM auth.apple_revocation_credentials WHERE provider_subject = $1", [appleProvider])).rows[0].ciphertext, credential);
+  } catch (error) {
+    failures.push(error);
+    throw error;
+  } finally {
+    if (previousKey === undefined) delete process.env.SESSION_ENCRYPTION_KEY;
+    else process.env.SESSION_ENCRYPTION_KEY = previousKey;
+    try {
+      await owner.query("DELETE FROM auth.social_attempts WHERE attempt_sha256 = ANY($1::text[])", [attempts]);
+      await owner.query("DELETE FROM auth.apple_revocation_jobs WHERE provider_subject IN (SELECT provider_subject FROM auth.provider_identities WHERE cognito_subject = $1)", [appleSubject]);
+      await owner.query("DELETE FROM auth.apple_revocation_credentials WHERE cognito_subject = $1", [appleSubject]);
+      await owner.query("DELETE FROM org.user_settings WHERE user_id = ANY($1::text[])", [[account, appleAccount]]);
+      await owner.query("DELETE FROM auth.cognito_principals WHERE cognito_subject = ANY($1::text[])", [[subject, failedSubject, appleSubject]]);
+    } catch (error) {
+      throw new AggregateError([...failures, error], "0189 atomic login fixture cleanup failed");
+    }
+  }
+}
 
-    await owner.query("DELETE FROM auth.apple_revocation_jobs WHERE provider_subject = $1", [appleProvider]);
+export async function checkAppleConsentReconnect(runtime: pg.Client, owner: pg.Client): Promise<void> {
+  const subject = randomUUID();
+  const appleSubject = randomUUID();
+  const account = randomUUID();
+  const appleAccount = randomUUID();
+  const email = randomUUID() + "@mail.test";
+  const relay = randomUUID() + "@privaterelay.appleid.com";
+  const appleProvider = "apple-reconnect-" + randomUUID();
+  const appleClientId = "postgres-apple-client";
+  const binding = { client: "ios", purpose: "login", codeVerifier: randomBytes(32).toString("base64url") } as const;
+  const attempts: Array<string> = [];
+  const notificationReceipts: Array<string> = [];
+  const failures: Array<unknown> = [];
+  const previousKey = process.env.SESSION_ENCRYPTION_KEY;
+  process.env.SESSION_ENCRYPTION_KEY = randomBytes(32).toString("hex");
+  const beginVerifying = async () => {
+    const handle = randomBytes(32).toString("base64url");
+    const hash = authHandleHash(handle);
+    attempts.push(hash);
+    await runtime.query("SELECT auth.create_social_attempt($1,'apple','ios','login',$2,NULL,NULL,NULL,NULL,'module-fixture',NULL,NULL,NULL,NULL)",
+      [hash, authAttemptBindingHash(binding)]);
+    const claimId = (await runtime.query("SELECT * FROM auth.claim_social_attempt($1,$2,'login','ios',NULL,'provider_ready')",
+      [hash, authAttemptBindingHash(binding)])).rows[0].claim_id as string;
+    await runtime.query("SELECT auth.advance_social_attempt($1,$2,'provider_claimed','provider_verifying','module-fixture',NULL)", [hash, claimId]);
+    return { handle, claimId, provider: "apple" as const };
+  };
+  try {
+    for (const [id, address] of [[account, email], [appleAccount, relay]]) {
+      await owner.query("INSERT INTO org.user_settings(user_id,email) VALUES ($1,$2)", [id, address]);
+    }
+    for (const [id, product] of [[subject, account], [appleSubject, appleAccount]]) {
+      await owner.query("SELECT auth.bind_cognito_account($1,$2)", [id, product]);
+    }
+    await inTransaction(runtime, (executor) => enrollAuthoritativeLoginPrincipalInExecutor(executor,
+      googleProof("shared-email-" + randomUUID(), email), { cognitoSubject: subject, cognitoUsername: subject, email }));
+    const appleProof: ProviderEnrollmentProof = { provider: "apple", issuedAt: Math.floor(Date.now() / 1_000), identity: {
+      provider: "apple", subject: appleProvider, clientId: appleClientId,
+      email: { address: relay, authority: "provider", privateRelay: true },
+    }, credential: encryptAppleCredential(appleProvider, appleClientId, "module-credential-fixture") };
+    const initial = await beginVerifying();
+    await runtime.query("SELECT auth.record_apple_login_proof($1,$2,'module-fixture',$3,$4)",
+      [authHandleHash(initial.handle), initial.claimId, appleProvider, appleProof.issuedAt]);
+    await runtime.query("SELECT auth.advance_social_attempt($1,$2,'provider_proved','provider_enrolling','module-fixture',$3)",
+      [authHandleHash(initial.handle), initial.claimId, appleProvider]);
+    const completed = await inTransaction(runtime, (executor) => completeAuthoritativeLoginInExecutor(executor, initial,
+      appleProof, { cognitoSubject: appleSubject, cognitoUsername: appleSubject, email: relay }));
+    assert.equal(completed.status, "completed");
+    if (completed.status !== "completed") throw new Error("Expected ordinary Apple relay completion");
+    assert.equal(completed.reconnected, false);
+    const ordinary = await inTransaction(runtime, (executor) => redeemSocialSignInInExecutor(executor, completed.response.completion, binding));
+    assert.equal(ordinary.cognitoSubject, appleSubject);
+    assert.equal(ordinary.signInHint.recoveryEmail, relay);
+    assert.equal(ordinary.signInHint.providerEmail, relay);
     await owner.query("UPDATE auth.provider_login_methods SET activated_at = clock_timestamp() - INTERVAL '2 minutes' WHERE provider_subject = $1", [appleProvider]);
     const revokedAt = new Date(Date.now() - 60_000);
     const notification = async (type: "consent-revoked" | "account-deleted", eventAt: Date) => {
@@ -227,7 +304,7 @@ export async function checkAtomicAuthoritativeLogin(runtime: pg.Client, owner: p
     const record = (attempt: Awaited<ReturnType<typeof beginVerifying>>, issuedAt: number) => runtime.query(
       "SELECT auth.record_apple_login_proof($1,$2,'module-fixture',$3,$4)",
       [authHandleHash(attempt.handle), attempt.claimId, appleProvider, issuedAt]);
-    const pending = await beginVerifying("apple");
+    const pending = await beginVerifying();
     await assert.rejects(record(pending, Math.floor(Date.now() / 1_000) + 2), { code: "P4102" });
     // Only fixture cleanup is simulated; provider revocation/signout acceptance remains a real-device check.
     const finishCleanup = async () => {
@@ -236,13 +313,18 @@ export async function checkAtomicAuthoritativeLogin(runtime: pg.Client, owner: p
       await owner.query("UPDATE auth.apple_session_revocation_jobs SET completed_at = clock_timestamp(), cognito_subject = NULL, lease_id = NULL, lease_until = NULL WHERE subject_sha256 = $1 AND completed_at IS NULL", [authHandleHash(appleSubject)]);
     };
     await finishCleanup();
-    const stale = await beginVerifying("apple");
+    const stale = await beginVerifying();
     await assert.rejects(record(stale, Math.floor(revokedAt.getTime() / 1_000)), { code: "P4103" });
+    const fence = (await owner.query<{ minimum_auth_time: string }>(
+      "SELECT minimum_auth_time::text FROM auth.principal_session_fences WHERE subject_sha256 = $1", [authHandleHash(appleSubject)],
+    )).rows[0].minimum_auth_time;
+    const fenced = await beginVerifying();
+    await assert.rejects(record(fenced, Number(fence) - 1), { code: "P4103" });
     const freshIssuedAt = Math.floor(Date.now() / 1_000) + 2;
     const reconnectProof: ProviderEnrollmentProof = { ...appleProof, issuedAt: freshIssuedAt,
       identity: { ...appleProof.identity, email: { address: email, authority: "provider", privateRelay: false } } };
     const prepareReconnect = async () => {
-      const attempt = await beginVerifying("apple");
+      const attempt = await beginVerifying();
       await record(attempt, freshIssuedAt);
       await runtime.query("SELECT auth.advance_social_attempt($1,$2,'provider_proved','provider_enrolling','module-fixture',$3)",
         [authHandleHash(attempt.handle), attempt.claimId, appleProvider]);
@@ -284,31 +366,38 @@ export async function checkAtomicAuthoritativeLogin(runtime: pg.Client, owner: p
 
     await runtime.query("SELECT auth.stage_apple_method_revocation($1,$2)", [appleSubject, appleProvider]);
     await finishCleanup();
-    const unlinked = await beginVerifying("apple");
+    const unlinked = await beginVerifying();
     await assert.rejects(record(unlinked, freshIssuedAt + 2), { code: "P4101" });
     await owner.query("UPDATE auth.provider_login_methods SET disabled_reason = NULL WHERE provider_subject = $1", [appleProvider]);
-    const unknown = await beginVerifying("apple");
+    const unknown = await beginVerifying();
     await assert.rejects(record(unknown, freshIssuedAt + 2), { code: "P4101" });
     assert.equal((await notification("account-deleted", new Date((freshIssuedAt + 2) * 1_000))).outcome, "applied");
     await finishCleanup();
-    const appleDeleted = await beginVerifying("apple");
+    const appleDeleted = await beginVerifying();
     await assert.rejects(record(appleDeleted, freshIssuedAt + 3), { code: "P4101" });
     await owner.query("INSERT INTO auth.deleted_accounts(user_id_sha256) VALUES ($1)", [authHandleHash(appleAccount)]);
-    const appDeleted = await beginVerifying("apple");
+    const appDeleted = await beginVerifying();
     await assert.rejects(record(appDeleted, freshIssuedAt + 3), { code: "23514" });
     await owner.query("DELETE FROM auth.deleted_accounts WHERE user_id_sha256 = $1", [authHandleHash(appleAccount)]);
-
+  } catch (error) {
+    failures.push(error);
+    throw error;
   } finally {
     if (previousKey === undefined) delete process.env.SESSION_ENCRYPTION_KEY;
     else process.env.SESSION_ENCRYPTION_KEY = previousKey;
-    await owner.query("DELETE FROM auth.social_attempts WHERE attempt_sha256 = ANY($1::text[])", [attempts]);
-    await owner.query("DELETE FROM auth.apple_notification_receipts WHERE notification_sha256 = ANY($1::text[])", [notificationReceipts]);
-    await owner.query("DELETE FROM auth.apple_session_revocation_jobs WHERE subject_sha256 = $1", [authHandleHash(appleSubject)]);
-    await owner.query("DELETE FROM auth.principal_session_fences WHERE subject_sha256 = $1", [authHandleHash(appleSubject)]);
-    await owner.query("DELETE FROM auth.deleted_accounts WHERE user_id_sha256 = $1", [authHandleHash(appleAccount)]);
-    await owner.query("DELETE FROM auth.apple_revocation_jobs WHERE provider_subject IN (SELECT provider_subject FROM auth.provider_identities WHERE cognito_subject = $1)", [appleSubject]);
-    await owner.query("DELETE FROM auth.apple_revocation_credentials WHERE cognito_subject = $1", [appleSubject]);
-    await owner.query("DELETE FROM org.user_settings WHERE user_id = ANY($1::text[])", [[account, appleAccount]]);
-    await owner.query("DELETE FROM auth.cognito_principals WHERE cognito_subject = ANY($1::text[])", [[subject, failedSubject, appleSubject]]);
+    try {
+      await owner.query("DELETE FROM auth.social_attempts WHERE attempt_sha256 = ANY($1::text[])", [attempts]);
+      await owner.query("DELETE FROM auth.apple_notification_receipts WHERE notification_sha256 = ANY($1::text[])", [notificationReceipts]);
+      await owner.query("DELETE FROM auth.apple_session_revocation_jobs WHERE subject_sha256 = $1", [authHandleHash(appleSubject)]);
+      await owner.query("DELETE FROM auth.principal_session_fences WHERE subject_sha256 = $1", [authHandleHash(appleSubject)]);
+      await owner.query("DELETE FROM auth.apple_relay_delivery WHERE email_sha256 = $1", [authHandleHash(relay)]);
+      await owner.query("DELETE FROM auth.deleted_accounts WHERE user_id_sha256 = $1", [authHandleHash(appleAccount)]);
+      await owner.query("DELETE FROM auth.apple_revocation_jobs WHERE provider_subject IN (SELECT provider_subject FROM auth.provider_identities WHERE cognito_subject = $1)", [appleSubject]);
+      await owner.query("DELETE FROM auth.apple_revocation_credentials WHERE cognito_subject = $1", [appleSubject]);
+      await owner.query("DELETE FROM org.user_settings WHERE user_id = ANY($1::text[])", [[account, appleAccount]]);
+      await owner.query("DELETE FROM auth.cognito_principals WHERE cognito_subject = ANY($1::text[])", [[subject, appleSubject]]);
+    } catch (error) {
+      throw new AggregateError([...failures, error], "0194 Apple consent reconnect fixture cleanup failed");
+    }
   }
 }
