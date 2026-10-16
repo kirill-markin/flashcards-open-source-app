@@ -472,7 +472,10 @@ export async function createGuestSessionInExecutor(
   const sessionId = randomUUID().toLowerCase();
 
   await applyUserDatabaseScopeInExecutor(executor, { userId });
-  const workspaceId = await createWorkspaceInExecutor(executor, userId, AUTO_CREATED_WORKSPACE_NAME);
+  const workspaceId = await createWorkspaceInExecutor(executor, userId, {
+    name: AUTO_CREATED_WORKSPACE_NAME,
+    cause: "automatic_starter",
+  });
   await executor.query(
     "UPDATE org.user_settings SET workspace_id = $1 WHERE user_id = $2",
     [workspaceId, userId],

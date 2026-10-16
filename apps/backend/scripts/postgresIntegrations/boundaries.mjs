@@ -71,8 +71,8 @@ export const createdRolesByMigration = new Map([
 ]);
 export const boundaryDefinitions = Object.freeze([
   Object.freeze({
-    migrationFileName: "0195_stable_client_account_identity.sql",
-    expectedMigrationCount: 197,
+    migrationFileName: "0196_workspace_creation_origin.sql",
+    expectedMigrationCount: 198,
     testFiles: Object.freeze([
       "src/agent/reviews.postgres.integration.ts",
       "src/auth/stableClientAccountIdentity.postgres.integration.ts",
@@ -80,6 +80,7 @@ export const boundaryDefinitions = Object.freeze([
       "src/guestAuth/upgrade/boundGuestSession.postgres.integration.ts",
       "src/aiConsent/consent.postgres.integration.ts",
       "src/auth/appleLifecycle.postgres.integration.ts",
+      "src/routes/system/account/accountPreferences.postgres.integration.ts",
     ]),
   }),
   Object.freeze({
@@ -150,13 +151,6 @@ export const boundaryDefinitions = Object.freeze([
     expectedMigrationCount: 186,
     testFiles: Object.freeze([
       "src/auth/nativeProofGrant.postgres.integration.ts",
-    ]),
-  }),
-  Object.freeze({
-    migrationFileName: "0183_verified_auth_identity_lifecycle.sql",
-    expectedMigrationCount: 185,
-    testFiles: Object.freeze([
-      "src/routes/system/account/accountPreferences.postgres.integration.ts",
     ]),
   }),
   Object.freeze({

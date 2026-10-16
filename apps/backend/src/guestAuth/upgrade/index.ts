@@ -344,7 +344,10 @@ async function resolveGuestUpgradeTargetInExecutor(
     : await (async (): Promise<string> => {
       const guestWorkspaceName = await loadWorkspaceNameInExecutor(executor, guestUserId, guestWorkspaceId);
       const nextWorkspaceName = guestWorkspaceName === "" ? AUTO_CREATED_WORKSPACE_NAME : guestWorkspaceName;
-      const nextWorkspaceId = await createWorkspaceInExecutor(executor, targetUserId, nextWorkspaceName);
+      const nextWorkspaceId = await createWorkspaceInExecutor(executor, targetUserId, {
+        name: nextWorkspaceName,
+        cause: "explicit",
+      });
       await selectWorkspaceForUserInExecutor(executor, targetUserId, nextWorkspaceId);
       return nextWorkspaceId;
     })();
