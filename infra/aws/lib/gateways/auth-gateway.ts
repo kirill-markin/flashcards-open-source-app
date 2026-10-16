@@ -373,10 +373,17 @@ export function authGateway(scope: Construct, props: AuthGatewayProps): AuthGate
       resourceName: props.userPoolId,
     })],
   }));
-  authFn.addToRolePolicy(new cdk.aws_iam.PolicyStatement({
-    actions: ["lambda:InvokeFunction"],
-    resources: [authFn.functionArn],
-  }));
+  if (authFn.role === undefined) {
+    throw new Error("AuthHandler must have an execution role for self-invocation");
+  }
+  // Keep the self ARN outside the role subtree that the Lambda depends on.
+  new cdk.aws_iam.Policy(scope, "AuthHandlerSelfInvokePolicy", {
+    roles: [authFn.role],
+    statements: [new cdk.aws_iam.PolicyStatement({
+      actions: ["lambda:InvokeFunction"],
+      resources: [authFn.functionArn],
+    })],
+  });
   const appleRevocationRule = new events.Rule(scope, "AppleRevocationDrainRule", {
     ruleName: appleRevocationRuleName,
     schedule: events.Schedule.rate(cdk.Duration.minutes(1)),
