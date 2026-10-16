@@ -2,6 +2,8 @@ import assert from "node:assert/strict";
 import { createHash, randomUUID } from "node:crypto";
 import test from "node:test";
 import type pg from "pg";
+import { setTimeout as delay } from "node:timers/promises";
+import { createBackendObservationScope } from "../../../observability/sentry";
 import {
   type PostgresIntegrationFixture,
   withPostgresIntegrationFixture,
@@ -17,6 +19,8 @@ import {
   MultipartCompletionFailureReportLeaseLostError,
   MultipartCompletionReconciliationLeaseLostError,
   readMultipartCompletionReconciliationOutcome,
+  processClaimedMultipartCompletionReconciliationWithDependencies,
+  runMultipartCompletionReconciliationBatchWithDependencies,
   renewMultipartCompletionReconciliationLease,
   rescheduleMultipartCompletionReconciliation,
   type ClaimedMultipartCompletionFailureReport,
@@ -464,8 +468,8 @@ test("migration 0099 fences durable handoff, replay, retry, revocation, and appl
     )).rows[0];
     assert.deepEqual(baseline, {
       major: 18,
-      migrations: 205,
-      latest: "0203_multipart_creation_claim_owner.sql",
+      migrations: 206,
+      latest: "0204_multipart_reconciliation_owner.sql",
     });
     const security = (await fixture.ownerPool.query<Readonly<{
       backend_claim: boolean;
@@ -2119,5 +2123,211 @@ test("migration 0099 fences stale reporters before and after durable recovery", 
       (details) => emittedEventIds.push(details.failureEventId),
     );
     assert.deepEqual(emittedEventIds, [currentReport.failureEventId]);
+  });
+});
+
+test("scheduled multipart reconciliation keeps original evidence under canonical ownership", async () => {
+  await withPostgresIntegrationFixture(async (fixture) => {
+    const target = randomUUID();
+    const foreign = randomUUID();
+    const later = randomUUID();
+    const contender = await fixture.ownerPool.connect();
+    const runtime = await fixture.runtimePool.connect();
+    try {
+      await fixture.ownerPool.query(
+        "INSERT INTO org.user_settings(user_id) VALUES ($1),($2),($3)", [target, foreign, later],
+      );
+      const applicable = await createHandedOffAttempt(fixture);
+      const failed = await createHandedOffAttempt(fixture);
+      const invalid = await createHandedOffAttempt(fixture);
+      const revokedPayload = createPayload(fixture);
+      const revokedToken = randomUUID();
+      await insertSession(fixture.ownerPool, revokedPayload);
+      const revoked = await beginAttempt(fixture, revokedToken, revokedPayload);
+      assert.equal(revoked.attempt_status, "acquired");
+      const handoffRevoked = (payload: MultipartPayload) => fixture.runtimePool.query<StatusRow>(
+        "SELECT content.handoff_media_upload_session_completion_attempt_after_access_revocation($1,$2,"
+          + multipartRow + ") AS status",
+        [revokedToken, revoked.reservation_token, ...payloadValues(payload)],
+      );
+      await contender.query("BEGIN");
+      await contender.query("SELECT auth.record_account_retirement($1,$2,$3)", [fixture.userId, target, randomUUID()]);
+      await contender.query(
+        "UPDATE org.workspace_memberships SET user_id=$2 WHERE workspace_id=$1 AND user_id=$3",
+        [fixture.workspaceId, target, fixture.userId],
+      );
+      await contender.query("UPDATE sync.workspace_replicas SET user_id=$2 WHERE replica_id=$1", [fixture.replicaId, target]);
+      await contender.query("COMMIT");
+      assert.equal((await handoffRevoked({ ...revokedPayload, userId: foreign })).rows[0].status, "ownership_mismatch");
+      assert.equal((await handoffRevoked({ ...revokedPayload, partsFingerprint: digest() })).rows[0].status, "stale_attempt");
+      assert.equal((await handoffRevoked(revokedPayload)).rows[0].status, "handed_off");
+      const jobs = await claimMultipartCompletionReconciliations({
+        leaseOwner: "canonical-scheduled-worker", leaseDurationMs: 60_000,
+        limit: 100, deadlineAtMs: Date.now() + 30_000,
+      });
+      const job = jobs.find((candidate) => candidate.attemptToken === applicable.attemptToken);
+      const failedJob = jobs.find((candidate) => candidate.attemptToken === failed.attemptToken);
+      assert.ok(job);
+      assert.ok(failedJob);
+      assert.equal(job.userId, fixture.userId);
+      assert.equal(job.reservationToken, applicable.reservationToken);
+      assert.equal(job.completedPartsFingerprint, applicable.payload.partsFingerprint);
+      assert.equal(job.stagingStorageKey, applicable.payload.stagingStorageKey);
+      assert.equal(job.s3UploadId, applicable.payload.s3UploadId);
+      assert.equal(job.blobStorageKey, applicable.payload.blobStorageKey);
+      await assert.rejects(
+        applyMultipartCompletionReconciliation({ ...job, leaseToken: randomUUID() }, Date.now() + 30_000),
+        MultipartCompletionReconciliationLeaseLostError,
+      );
+
+      // The canonical access lock serializes the scheduler with replica revocation.
+      await contender.query("BEGIN");
+      await contender.query(
+        "SELECT pg_advisory_xact_lock(hashtextextended($1 || ':' || $2::text,0::bigint))",
+        [target, fixture.workspaceId],
+      );
+      await runtime.query("BEGIN");
+      const runtimePid = (await runtime.query<{ pid: number }>("SELECT pg_backend_pid() AS pid")).rows[0].pid;
+      const waitingScope = runtime.query<StatusRow>(
+        "SELECT content.apply_media_upload_session_completion_reconciliation_scope($1,$2) AS status",
+        [job.attemptToken, job.leaseToken],
+      );
+      try {
+        let blocked = false;
+        for (let attempt = 0; attempt < 100 && !blocked; attempt += 1) {
+          blocked = (await fixture.ownerPool.query<{ blocked: boolean }>(
+            "SELECT EXISTS (SELECT 1 FROM pg_stat_activity WHERE pid=$1 AND wait_event_type='Lock') AS blocked",
+            [runtimePid],
+          )).rows[0].blocked;
+          if (!blocked) await delay(10);
+        }
+        assert.equal(blocked, true);
+        await contender.query("UPDATE sync.workspace_replicas SET user_id=$2 WHERE replica_id=$1", [fixture.replicaId, foreign]);
+      } finally {
+        await contender.query("COMMIT");
+      }
+      assert.equal((await waitingScope).rows[0].status, "replica_revoked");
+      await runtime.query("ROLLBACK");
+      assert.equal((await state(fixture, job.attemptToken)).reconciliation_state, "leased");
+      await fixture.ownerPool.query("UPDATE sync.workspace_replicas SET user_id=$2 WHERE replica_id=$1", [fixture.replicaId, target]);
+      assert.equal(await scopedAs(
+        fixture, foreign, fixture.workspaceId,
+        async (client) => (await client.query<StatusRow>(
+          "SELECT content.finish_media_upload_session_completion_reconciliation($1,$2,$3) AS status",
+          [job.attemptToken, job.leaseToken, 3_600_000],
+        )).rows[0].status,
+      ), "access_revoked");
+      await runtime.query("BEGIN");
+      assert.equal((await runtime.query<StatusRow>(
+        "SELECT content.apply_media_upload_session_completion_reconciliation_scope($1,$2) AS status",
+        [job.attemptToken, job.leaseToken],
+      )).rows[0].status, "scoped");
+      assert.equal((await runtime.query<{ user_id: string }>(
+        "SELECT security.current_user_id() AS user_id",
+      )).rows[0].user_id, target);
+      await assert.rejects(
+        contender.query("SELECT auth.record_account_retirement($1,$2,$3)", [target, later, randomUUID()]),
+        { code: "P0A01" },
+      );
+      await runtime.query("ROLLBACK");
+      const input = {
+        leaseOwner: "canonical-scheduled-worker", leaseDurationMs: 60_000, maximumJobs: 1,
+        deadlineAtMs: Date.now() + 30_000, signal: AbortSignal.timeout(30_000),
+        observationScope: createBackendObservationScope(
+          "backend-api", randomUUID(), "/scheduled/multipart-reconciliation", "POST",
+          target, fixture.workspaceId, null, null, null, null, null,
+        ),
+      };
+      const dependencies = {
+        claimJobsFn: claimMultipartCompletionReconciliations,
+        reconcileStorageFn: async () => {},
+        renewLeaseFn: renewMultipartCompletionReconciliationLease,
+        applyJobFn: applyMultipartCompletionReconciliation,
+        rescheduleJobFn: rescheduleMultipartCompletionReconciliation,
+        failJobFn: failMultipartCompletionReconciliation,
+        readJobOutcomeFn: readMultipartCompletionReconciliationOutcome,
+        nowFn: Date.now,
+      };
+      const beforeRefusal = (await fixture.ownerPool.query(
+        "SELECT to_jsonb(attempts) AS snapshot FROM content.media_blob_writer_attempts AS attempts WHERE workspace_id=$1 ORDER BY attempt_token",
+        [fixture.workspaceId],
+      )).rows;
+      await contender.query("BEGIN");
+      await contender.query("SELECT auth.lock_account_retirement($1,$2)", [target, later]);
+      await assert.rejects(
+        processClaimedMultipartCompletionReconciliationWithDependencies(job, input, dependencies),
+        { code: "ACCOUNT_SCOPE_CHANGED", statusCode: 409 },
+      );
+      await assert.rejects(
+        failMultipartCompletionReconciliation(failedJob, input.deadlineAtMs, { code: "STORAGE_MISSING", message: "Multipart object is missing." }),
+        { code: "ACCOUNT_SCOPE_CHANGED", statusCode: 409 },
+      );
+      await assert.rejects(handoffRevoked(revokedPayload), { code: "P0A01" });
+      assert.deepEqual((await fixture.ownerPool.query(
+        "SELECT to_jsonb(attempts) AS snapshot FROM content.media_blob_writer_attempts AS attempts WHERE workspace_id=$1 ORDER BY attempt_token",
+        [fixture.workspaceId],
+      )).rows, beforeRefusal);
+      await contender.query("ROLLBACK");
+
+      // A claim refusal must leave invalid-job quarantine and failure reporting untouched.
+      await fixture.ownerPool.query(
+        "UPDATE content.media_blob_writer_attempts SET last_operation_id=$2,"
+          + " reconciliation_lease_expires_at=reconciliation_handed_off_at + interval '1 microsecond',"
+          + " reconciliation_updated_at=reconciliation_handed_off_at,"
+          + " reconciliation_last_error_code='INVALID_RECONCILIATION_PAYLOAD',"
+          + " reconciliation_last_error_message='Durable multipart completion payload is invalid.' WHERE attempt_token=$1",
+        [invalid.attemptToken, "legacy\u00a0operation"],
+      );
+      const invalidBefore = (await fixture.ownerPool.query(
+        "SELECT to_jsonb(attempts) AS snapshot FROM content.media_blob_writer_attempts AS attempts WHERE attempt_token=$1", [invalid.attemptToken],
+      )).rows;
+      await contender.query("BEGIN");
+      await contender.query("SELECT auth.lock_account_retirement($1,$2)", [target, later]);
+      await assert.rejects(
+        runMultipartCompletionReconciliationBatchWithDependencies(input, dependencies),
+        { code: "ACCOUNT_SCOPE_CHANGED", statusCode: 409 },
+      );
+      assert.deepEqual((await fixture.ownerPool.query(
+        "SELECT to_jsonb(attempts) AS snapshot FROM content.media_blob_writer_attempts AS attempts WHERE attempt_token=$1", [invalid.attemptToken],
+      )).rows, invalidBefore);
+      await contender.query("ROLLBACK");
+      assert.deepEqual(await claimMultipartCompletionReconciliations({
+        leaseOwner: input.leaseOwner, leaseDurationMs: input.leaseDurationMs,
+        limit: 1, deadlineAtMs: input.deadlineAtMs,
+      }), []);
+      assert.equal((await state(fixture, invalid.attemptToken)).reconciliation_state, "failed");
+      assert.equal(await failMultipartCompletionReconciliation(
+        failedJob, input.deadlineAtMs, { code: "STORAGE_MISSING", message: "Multipart object is missing." },
+      ), "failed");
+      assert.equal(await applyMultipartCompletionReconciliation(job, input.deadlineAtMs), "applied");
+      assert.equal(await applyMultipartCompletionReconciliation(job, input.deadlineAtMs), "already_applied");
+      const owners = (await fixture.ownerPool.query<{
+        attempt_owner: string; snapshot_owner: string; replica_owner: string; source_memberships: number;
+      }>(
+        "SELECT attempts.user_id AS attempt_owner, snapshots.user_id AS snapshot_owner,"
+          + " replicas.user_id AS replica_owner,"
+          + " (SELECT count(*)::int FROM org.workspace_memberships WHERE user_id=$2) AS source_memberships"
+          + " FROM content.media_blob_writer_attempts AS attempts"
+          + " JOIN content.media_blob_writer_owner_snapshots AS snapshots USING (reservation_token)"
+          + " JOIN sync.workspace_replicas AS replicas ON replicas.replica_id=attempts.replica_id"
+          + " WHERE attempts.attempt_token=$1", [job.attemptToken, fixture.userId],
+      )).rows[0];
+      assert.deepEqual(owners, {
+        attempt_owner: fixture.userId, snapshot_owner: fixture.userId,
+        replica_owner: target, source_memberships: 0,
+      });
+    } finally {
+      await runtime.query("ROLLBACK");
+      runtime.release();
+      await contender.query("ROLLBACK");
+      contender.release();
+      await fixture.ownerPool.query("DELETE FROM auth.account_retirements WHERE retired_user_id=$1", [fixture.userId]);
+      await fixture.ownerPool.query("UPDATE sync.workspace_replicas SET user_id=$2 WHERE replica_id=$1", [fixture.replicaId, fixture.userId]);
+      await fixture.ownerPool.query(
+        "UPDATE org.workspace_memberships SET user_id=$2 WHERE workspace_id=$1 AND user_id=$3",
+        [fixture.workspaceId, fixture.userId, target],
+      );
+      await fixture.ownerPool.query("DELETE FROM org.user_settings WHERE user_id=ANY($1::text[])", [[target, foreign, later]]);
+    }
   });
 });

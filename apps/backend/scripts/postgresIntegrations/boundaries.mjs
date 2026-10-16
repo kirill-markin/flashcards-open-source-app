@@ -73,13 +73,20 @@ export const createdRolesByMigration = new Map([
 // migration contracts retain their original cutoffs.
 export const boundaryDefinitions = Object.freeze([
   Object.freeze({
+    migrationFileName: "0204_multipart_reconciliation_owner.sql",
+    expectedMigrationCount: 206,
+    testFiles: Object.freeze([
+      "src/mediaAssets/multipart/completion/completionReconciliation.postgres.integration.ts",
+      "src/mediaAssets/multipart/completion/atomicWriterCompletion.postgres.integration.ts",
+      "src/mediaAssets/multipart/writerLifecycle/atomicWriterLease.postgres.integration.ts",
+    ]),
+  }),
+  Object.freeze({
     migrationFileName: "0203_multipart_creation_claim_owner.sql",
     expectedMigrationCount: 205,
     testFiles: Object.freeze([
       "src/mediaAssets/multipart/creation/creationClaimOwner.postgres.integration.ts",
       "src/mediaAssets/multipart/creation/uploadSessionCreation.postgres.integration.ts",
-      "src/mediaAssets/multipart/completion/atomicWriterCompletion.postgres.integration.ts",
-      "src/mediaAssets/multipart/completion/completionReconciliation.postgres.integration.ts",
     ]),
   }),
   Object.freeze({
@@ -88,7 +95,6 @@ export const boundaryDefinitions = Object.freeze([
     testFiles: Object.freeze([
       "src/mediaAssets/multipart/writerLifecycle/canonicalOwner.postgres.integration.ts",
       "src/mediaAssets/multipart/creation/atomicWriterCreation.postgres.integration.ts",
-      "src/mediaAssets/multipart/writerLifecycle/atomicWriterLease.postgres.integration.ts",
     ]),
   }),
   Object.freeze({
