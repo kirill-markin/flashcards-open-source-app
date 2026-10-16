@@ -282,6 +282,7 @@ function terminalError(error: unknown): SafeGeneratedMediaPromotionJobError | nu
     };
   }
   if (error instanceof HttpError) {
+    if (error.code === "ACCOUNT_SCOPE_CHANGED") return null;
     return {
       code: "IMMUTABLE_CONFLICT",
       message: "The durable generated-media job conflicts with current card or media state.",
