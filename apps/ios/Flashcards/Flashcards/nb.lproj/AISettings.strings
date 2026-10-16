@@ -923,11 +923,9 @@
 "ai.consent.withdrawalFailed" = "Datadeling med KI er slått av på denne enheten. Valget ditt er ikke synkronisert ennå; prøv igjen når du har forbindelse.";
 "ai.consent.retrySync" = "Prøv å lagre valget igjen";
 "settings.account.cloudSignIn.unifiedTitle" = "Logg inn eller opprett en konto";
-"settings.account.cloudSignIn.remember" = "Husk denne innloggingen på enheten";
+"settings.account.cloudSignIn.continueEmail" = "Fortsett med e-post";
 "settings.account.cloudSignIn.lastUsed" = "Sist brukt";
 "settings.account.cloudSignIn.showEmail" = "Vis e-postadresse";
-"settings.account.cloudSignIn.forget" = "Glem denne innloggingen";
-"settings.account.cloudSignIn.signOutForget" = "Logg ut og glem";
 "settings.account.cloudSignIn.mailboxPrompt" = "Bekreft tilgang til e-posten din. Skriv inn koden på 6–8 sifre. Sjekk søppelpost ved behov.";
 "settings.account.cloudSignIn.freshAttempt" = "Innloggingen ble ikke fullført. Start på nytt for å fortsette.";
 "settings.account.cloudSignIn.restart" = "Start på nytt";

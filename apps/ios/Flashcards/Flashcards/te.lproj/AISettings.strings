@@ -923,11 +923,9 @@
 "ai.consent.withdrawalFailed" = "ఈ పరికరంలో AIతో డేటా షేరింగ్ ఆఫ్‌లో ఉంది. మీ ఎంపిక ఇంకా సింక్ కాలేదు; కనెక్షన్ ఉన్నప్పుడు మళ్లీ ప్రయత్నించండి.";
 "ai.consent.retrySync" = "ఎంపికను సేవ్ చేయడానికి మళ్లీ ప్రయత్నించు";
 "settings.account.cloudSignIn.unifiedTitle" = "సైన్ ఇన్ చేయండి లేదా ఖాతా సృష్టించండి";
-"settings.account.cloudSignIn.remember" = "ఈ పరికరంలో ఈ సైన్ ఇన్‌ను గుర్తుంచుకో";
+"settings.account.cloudSignIn.continueEmail" = "ఇమెయిల్‌తో కొనసాగించండి";
 "settings.account.cloudSignIn.lastUsed" = "చివరిగా వాడినది";
 "settings.account.cloudSignIn.showEmail" = "ఇమెయిల్ చూపించు";
-"settings.account.cloudSignIn.forget" = "ఈ సైన్ ఇన్‌ను మర్చిపో";
-"settings.account.cloudSignIn.signOutForget" = "సైన్ అవుట్ చేసి మర్చిపో";
 "settings.account.cloudSignIn.mailboxPrompt" = "మీ ఇమెయిల్ యాక్సెస్‌ను నిర్ధారించండి. 6–8 అంకెల కోడ్ నమోదు చేయండి. అవసరమైతే స్పామ్ చూడండి.";
 "settings.account.cloudSignIn.freshAttempt" = "సైన్ ఇన్ పూర్తవలేదు. కొనసాగడానికి మళ్లీ ప్రారంభించండి.";
 "settings.account.cloudSignIn.restart" = "మళ్లీ ప్రారంభించు";

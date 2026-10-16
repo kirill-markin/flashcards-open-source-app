@@ -923,11 +923,9 @@
 "ai.consent.withdrawalFailed" = "Partajarea datelor cu IA este dezactivată pe acest dispozitiv. Alegerea ta nu s-a sincronizat încă; încearcă din nou când ai conexiune.";
 "ai.consent.retrySync" = "Reîncearcă salvarea alegerii";
 "settings.account.cloudSignIn.unifiedTitle" = "Conectează-te sau creează un cont";
-"settings.account.cloudSignIn.remember" = "Reține această conectare pe dispozitiv";
+"settings.account.cloudSignIn.continueEmail" = "Continuă cu e-mail";
 "settings.account.cloudSignIn.lastUsed" = "Folosit ultima dată";
 "settings.account.cloudSignIn.showEmail" = "Arată adresa de e-mail";
-"settings.account.cloudSignIn.forget" = "Uită această conectare";
-"settings.account.cloudSignIn.signOutForget" = "Deconectează-te și uită";
 "settings.account.cloudSignIn.mailboxPrompt" = "Confirmă accesul la e-mail. Introdu codul din 6–8 cifre. Verifică spamul dacă este nevoie.";
 "settings.account.cloudSignIn.freshAttempt" = "Conectarea nu s-a încheiat. Începe din nou pentru a continua.";
 "settings.account.cloudSignIn.restart" = "Începe din nou";

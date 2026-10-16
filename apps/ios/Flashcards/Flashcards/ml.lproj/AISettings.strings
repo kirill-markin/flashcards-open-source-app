@@ -923,11 +923,9 @@
 "ai.consent.withdrawalFailed" = "ഈ ഉപകരണത്തിൽ AI-യുമായി ഡാറ്റ പങ്കിടുന്നത് ഓഫാണ്. നിങ്ങളുടെ തിരഞ്ഞെടുപ്പ് ഇതുവരെ സിങ്ക് ചെയ്തിട്ടില്ല; കണക്ഷൻ ലഭിക്കുമ്പോൾ വീണ്ടും ശ്രമിക്കുക.";
 "ai.consent.retrySync" = "തിരഞ്ഞെടുപ്പ് സംരക്ഷിക്കാൻ വീണ്ടും ശ്രമിക്കുക";
 "settings.account.cloudSignIn.unifiedTitle" = "സൈൻ ഇൻ ചെയ്യുക അല്ലെങ്കിൽ അക്കൗണ്ട് സൃഷ്ടിക്കുക";
-"settings.account.cloudSignIn.remember" = "ഈ ഉപകരണത്തിൽ ഈ സൈൻ ഇൻ ഓർക്കുക";
+"settings.account.cloudSignIn.continueEmail" = "ഇമെയിൽ ഉപയോഗിച്ച് തുടരുക";
 "settings.account.cloudSignIn.lastUsed" = "അവസാനം ഉപയോഗിച്ചത്";
 "settings.account.cloudSignIn.showEmail" = "ഇമെയിൽ കാണിക്കുക";
-"settings.account.cloudSignIn.forget" = "ഈ സൈൻ ഇൻ മറക്കുക";
-"settings.account.cloudSignIn.signOutForget" = "സൈൻ ഔട്ട് ചെയ്ത് മറക്കുക";
 "settings.account.cloudSignIn.mailboxPrompt" = "നിങ്ങളുടെ ഇമെയിലിലേക്കുള്ള പ്രവേശനം സ്ഥിരീകരിക്കുക. 6–8 അക്ക കോഡ് നൽകുക. ആവശ്യമെങ്കിൽ സ്പാം പരിശോധിക്കുക.";
 "settings.account.cloudSignIn.freshAttempt" = "സൈൻ ഇൻ പൂർത്തിയായില്ല. തുടരാൻ വീണ്ടും ആരംഭിക്കുക.";
 "settings.account.cloudSignIn.restart" = "വീണ്ടും ആരംഭിക്കുക";
