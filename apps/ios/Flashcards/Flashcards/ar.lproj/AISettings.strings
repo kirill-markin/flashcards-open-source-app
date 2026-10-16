@@ -951,11 +951,9 @@
 "ai.consent.withdrawalFailed" = "مشاركة البيانات مع الذكاء الاصطناعي متوقفة على هذا الجهاز. لم تتم مزامنة اختيارك بعد؛ حاول مرة أخرى عند الاتصال.";
 "ai.consent.retrySync" = "إعادة محاولة حفظ الاختيار";
 "settings.account.cloudSignIn.unifiedTitle" = "تسجيل الدخول أو إنشاء حساب";
-"settings.account.cloudSignIn.remember" = "تذكّر تسجيل الدخول على هذا الجهاز";
+"settings.account.cloudSignIn.continueEmail" = "المتابعة باستخدام البريد الإلكتروني";
 "settings.account.cloudSignIn.lastUsed" = "آخر استخدام";
 "settings.account.cloudSignIn.showEmail" = "إظهار البريد الإلكتروني";
-"settings.account.cloudSignIn.forget" = "نسيان تسجيل الدخول هذا";
-"settings.account.cloudSignIn.signOutForget" = "تسجيل الخروج والنسيان";
 "settings.account.cloudSignIn.mailboxPrompt" = "أكّد الوصول إلى بريدك الإلكتروني. أدخل الرمز المكوّن من 6 إلى 8 أرقام. تحقّق من الرسائل غير المرغوب فيها عند الحاجة.";
 "settings.account.cloudSignIn.freshAttempt" = "لم يكتمل تسجيل الدخول. ابدأ من جديد للمتابعة.";
 "settings.account.cloudSignIn.restart" = "البدء من جديد";

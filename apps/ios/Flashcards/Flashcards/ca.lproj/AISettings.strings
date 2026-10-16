@@ -923,11 +923,9 @@
 "ai.consent.withdrawalFailed" = "La compartició amb la IA està desactivada en aquest dispositiu. La teva tria encara no s’ha sincronitzat; torna-ho a provar quan tinguis connexió.";
 "ai.consent.retrySync" = "Torna a desar la tria";
 "settings.account.cloudSignIn.unifiedTitle" = "Inicia sessió o crea un compte";
-"settings.account.cloudSignIn.remember" = "Recorda aquest inici de sessió al dispositiu";
+"settings.account.cloudSignIn.continueEmail" = "Continua amb el correu electrònic";
 "settings.account.cloudSignIn.lastUsed" = "Últim ús";
 "settings.account.cloudSignIn.showEmail" = "Mostra el correu electrònic";
-"settings.account.cloudSignIn.forget" = "Oblida aquest inici de sessió";
-"settings.account.cloudSignIn.signOutForget" = "Tanca la sessió i oblida";
 "settings.account.cloudSignIn.mailboxPrompt" = "Verifica l’accés al correu. Introdueix el codi de 6 a 8 dígits. Revisa el correu brossa si cal.";
 "settings.account.cloudSignIn.freshAttempt" = "No s’ha completat l’inici de sessió. Torna a començar per continuar.";
 "settings.account.cloudSignIn.restart" = "Torna a començar";

@@ -236,12 +236,6 @@ struct AccountStatusView: View {
                 }
             }
             .accessibilityIdentifier(UITestIdentifier.accountStatusLogoutConfirmButton)
-            Button(aiSettingsLocalized("settings.account.cloudSignIn.signOutForget", "Sign out and forget"), role: .destructive) {
-                self.logoutCloudAccount {
-                    try await self.store.signOutCloudAccountAndForgetFromPressedControl(screen: .settings)
-                }
-            }
-            .accessibilityIdentifier("accountStatus.signOutForget")
         } message: {
             Text(
                 aiSettingsLocalized(
