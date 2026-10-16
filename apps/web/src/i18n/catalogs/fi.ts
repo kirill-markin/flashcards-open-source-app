@@ -1529,12 +1529,6 @@ const fiCatalog: TranslationCatalog = {
     changed: "Tapa muuttui. Päivitä tavat ja aloita uudelleen.",
     codePrompt: "Vahvista sähköpostin käyttöoikeus. Syötä 6–8-numeroinen koodi. Tarkista tarvittaessa roskaposti.",
   },
-  browserSignInPrivacy: {
-    forget: "Unohda kirjautumistiedot",
-    signOutForget: "Kirjaudu ulos ja unohda",
-    forgotten: "Kirjautumistiedot on unohdettu.",
-    error: "Kirjautumistietoja ei voitu muuttaa. Salli kirjautumissivuston tiedot ja yritä uudelleen.",
-  },
   accountStatus: {
     title: "Tilin tila",
     subtitle: "Tarkastele nykyistä kirjautunutta tiliä ja selainistuntoa.",

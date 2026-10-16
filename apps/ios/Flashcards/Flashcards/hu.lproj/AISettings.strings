@@ -923,11 +923,9 @@
 "ai.consent.withdrawalFailed" = "Az MI-adatmegosztás ki van kapcsolva ezen az eszközön. A választásod még nincs szinkronizálva; próbáld újra, amikor van kapcsolat.";
 "ai.consent.retrySync" = "Választás mentésének újrapróbálása";
 "settings.account.cloudSignIn.unifiedTitle" = "Bejelentkezés vagy fiók létrehozása";
-"settings.account.cloudSignIn.remember" = "Bejelentkezés megjegyzése ezen az eszközön";
+"settings.account.cloudSignIn.continueEmail" = "Folytatás e-maillel";
 "settings.account.cloudSignIn.lastUsed" = "Legutóbb használt";
 "settings.account.cloudSignIn.showEmail" = "E-mail-cím megjelenítése";
-"settings.account.cloudSignIn.forget" = "Bejelentkezés elfelejtése";
-"settings.account.cloudSignIn.signOutForget" = "Kijelentkezés és elfelejtés";
 "settings.account.cloudSignIn.mailboxPrompt" = "Igazold az e-mail-hozzáférést. Add meg a 6–8 számjegyű kódot. Szükség esetén nézd meg a levélszemét mappát.";
 "settings.account.cloudSignIn.freshAttempt" = "A bejelentkezés nem fejeződött be. A folytatáshoz kezdd újra.";
 "settings.account.cloudSignIn.restart" = "Újrakezdés";

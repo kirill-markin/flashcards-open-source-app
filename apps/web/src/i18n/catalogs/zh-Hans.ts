@@ -1529,12 +1529,6 @@ export const zhHansCatalog = {
     changed: "此方式已更改。请刷新登录方式并重新开始。",
     codePrompt: "请验证邮箱访问权限。输入 6–8 位数字验证码，必要时检查垃圾邮件。",
   },
-  browserSignInPrivacy: {
-    forget: "忘记登录信息",
-    signOutForget: "退出并忘记",
-    forgotten: "已忘记登录信息。",
-    error: "无法更新登录信息。请允许认证网站存储数据后重试。",
-  },
   accountStatus: {
     title: "账户状态",
     subtitle: "查看当前已登录账户和浏览器会话。",

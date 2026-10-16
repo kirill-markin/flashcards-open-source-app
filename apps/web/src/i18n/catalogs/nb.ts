@@ -1529,12 +1529,6 @@ const nbCatalog: TranslationCatalog = {
     changed: "Metoden er endret. Oppdater metodene og start på nytt.",
     codePrompt: "Bekreft tilgang til e-posten din. Skriv inn koden på 6–8 sifre. Sjekk søppelpost ved behov.",
   },
-  browserSignInPrivacy: {
-    forget: "Glem innloggingsinformasjon",
-    signOutForget: "Logg ut og glem",
-    forgotten: "Innloggingsinformasjonen er glemt.",
-    error: "Kunne ikke endre innloggingsinformasjon. Tillat nettstedsdata for innloggingssiden og prøv igjen.",
-  },
   accountStatus: {
     title: "Kontostatus",
     subtitle: "Se kontoen du er logget inn med nå, og nettleserøkten.",

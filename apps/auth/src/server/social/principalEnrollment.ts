@@ -15,7 +15,7 @@ import type { VerifiedProviderIdentity } from "./providers.js";
 
 export type ProviderEnrollmentProof =
   | Readonly<{ provider: "google"; identity: VerifiedProviderIdentity }>
-  | Readonly<{ provider: "apple"; identity: VerifiedProviderIdentity; credential: EncryptedAppleCredential }>;
+  | Readonly<{ provider: "apple"; identity: VerifiedProviderIdentity; issuedAt: number; credential: EncryptedAppleCredential }>;
 
 export type EnrolledProviderPrincipal = Readonly<{
   status: "enrolled";

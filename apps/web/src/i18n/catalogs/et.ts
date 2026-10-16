@@ -1529,12 +1529,6 @@ const etCatalog: TranslationCatalog = {
     changed: "Viis on muutunud. Värskenda viise ja alusta uuesti.",
     codePrompt: "Kinnita juurdepääs oma e-postile. Sisesta 6–8-kohaline kood. Vajadusel kontrolli rämpsposti.",
   },
-  browserSignInPrivacy: {
-    forget: "Unusta sisselogimisteave",
-    signOutForget: "Logi välja ja unusta",
-    forgotten: "Sisselogimisteave on unustatud.",
-    error: "Sisselogimisteavet ei saanud muuta. Luba autentimissaidi andmed ja proovi uuesti.",
-  },
   accountStatus: {
     title: "Konto olek",
     subtitle: "Vaata praegust sisselogitud kontot ja brauseriseanssi.",

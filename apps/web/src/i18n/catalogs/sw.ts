@@ -1529,12 +1529,6 @@ const swCatalog: TranslationCatalog = {
     changed: "Njia imebadilika. Onyesha njia upya na uanze tena.",
     codePrompt: "Thibitisha ufikiaji wa barua pepe yako. Weka msimbo wa tarakimu 6–8. Angalia barua taka ikihitajika.",
   },
-  browserSignInPrivacy: {
-    forget: "Sahau taarifa za kuingia",
-    signOutForget: "Ondoka na usahau",
-    forgotten: "Taarifa za kuingia zimesahaulika.",
-    error: "Taarifa za kuingia hazikuweza kubadilishwa. Ruhusu data ya tovuti ya uthibitishaji na ujaribu tena.",
-  },
   accountStatus: {
     title: "Hali ya Akaunti",
     subtitle: "Kagua akaunti iliyoingia sasa na kipindi cha kivinjari.",

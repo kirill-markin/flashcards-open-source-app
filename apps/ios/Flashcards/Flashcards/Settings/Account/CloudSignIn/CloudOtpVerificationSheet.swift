@@ -251,8 +251,7 @@ struct CloudOtpVerificationSheet: View {
                 Analytics.track(.authCodeSubmitted(method: .email, screen: self.signInStepSurface))
                 let verifiedContext = try await self.store.cloudNativeSignIn.verifyEmailCode(
                     challenge: currentChallenge, code: nextCode,
-                    configuration: try self.store.currentCloudServiceConfiguration(),
-                    remember: self.store.cloudSignInAttempt.rememberSignIn
+                    configuration: try self.store.currentCloudServiceConfiguration()
                 )
                 // The verify request outlives this sheet, so its result belongs to the attempt it was
                 // started for and is spent against neither the screen state nor the post-auth work of
