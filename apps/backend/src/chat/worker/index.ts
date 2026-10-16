@@ -1,7 +1,3 @@
-/**
- * Worker entrypoint for backend-owned chat runs.
- * The HTTP route prepares and persists the run; the worker claims it and executes the model loop independently of the client connection.
- */
 import { claimChatRun, failQueuedChatRun, recordAiRunFailedAnalytics } from "../runs";
 import { runPersistedChatSession, type ChatWorkerRunResult } from "../runtime";
 import {
@@ -9,10 +5,13 @@ import {
   createPublicTerminalErrorMessage,
 } from "../runtime/providerErrors";
 import { logChatWorkerLifecycleEvent } from "./logging";
+import { assertTrustedChatWorkerInvocation } from "./invoke";
+import { resolveTrustedChatWorkerOwner } from "../runs/ownerScope";
 import { resolveAiUsageTierForFacts } from "../../aiUsage";
 import { resolveAccountKindForSignedInAuth } from "../../billing/snapshot";
 import { convertLegacyChatSessionAttachments } from "../../chatFiles";
 import { runDatabaseOperationsWithPerCallCap } from "../../database";
+import { HttpError } from "../../shared/errors";
 import {
   createBackendObservationScope,
   type BackendTraceCarrier,
@@ -52,13 +51,11 @@ type ChatWorkerExecutionContext = Readonly<{
   getRemainingTimeInMillis: () => number;
 }>;
 
-/**
- * Claims and executes one persisted chat run if it is still pending.
- */
 export async function handleChatWorkerEvent(
   event: ChatWorkerEvent,
   executionContext: ChatWorkerExecutionContext,
 ): Promise<void> {
+  assertTrustedChatWorkerInvocation(event);
   return runDatabaseOperationsWithPerCallCap(
     CHAT_WORKER_DATABASE_CALL_CAP_MS,
     async () => claimAndRunChatWorkerEvent(event, executionContext),
@@ -66,17 +63,18 @@ export async function handleChatWorkerEvent(
 }
 
 /**
- * Runs before the claim, because the claim builds the replayed history from the stored rows. A failure
- * fails the still-queued run with the public message the claimed run's failure path would store, instead
- * of leaving it queued until stale-run recovery interrupts it, and is rethrown for the handler to report.
+ * Runs before the claim, because the claim builds the replayed history from the stored rows. Conversion
+ * failures terminalize the queued run; an account-scope refusal leaves it queued for a fresh delivery.
+ * Both are rethrown for the handler to report.
  */
-async function convertLegacyAttachmentsBeforeClaim(
+export async function convertLegacyAttachmentsBeforeClaim(
   event: ChatWorkerEvent,
+  userId: string,
   executionContext: ChatWorkerExecutionContext,
 ): Promise<void> {
   try {
     await convertLegacyChatSessionAttachments(
-      event.userId,
+      userId,
       event.workspaceId,
       event.runId,
       createBackendObservationScope(
@@ -84,7 +82,7 @@ async function convertLegacyAttachmentsBeforeClaim(
         executionContext.lambdaRequestId,
         null,
         null,
-        event.userId,
+        userId,
         event.workspaceId,
         event.chatRequestId ?? null,
         event.runId,
@@ -94,15 +92,18 @@ async function convertLegacyAttachmentsBeforeClaim(
       ),
     );
   } catch (error) {
+    if (error instanceof HttpError && error.statusCode === 409 && error.code === "ACCOUNT_SCOPE_CHANGED") {
+      throw error;
+    }
     const failed = await failQueuedChatRun(
-      event.userId,
+      userId,
       event.workspaceId,
       event.runId,
       createPublicTerminalErrorMessage(error),
     );
     if (failed) {
       await recordAiRunFailedAnalytics(
-        event.userId,
+        userId,
         event.workspaceId,
         event.runId,
         classifyChatRunFailureCategory(error),
@@ -117,7 +118,10 @@ async function claimAndRunChatWorkerEvent(
   executionContext: ChatWorkerExecutionContext,
 ): Promise<void> {
   const userOpenAIApiKey = wrapWorkerPayloadUserOpenAIApiKey(event.userOpenAIApiKey);
-  await convertLegacyAttachmentsBeforeClaim(event, executionContext);
+  const userId = await resolveTrustedChatWorkerOwner(
+    event.userId, event.workspaceId, event.runId, event.sessionId ?? null, event.chatRequestId ?? null,
+  );
+  if (userId !== null) await convertLegacyAttachmentsBeforeClaim(event, userId, executionContext);
   const claimedRun = await claimChatRun(event.userId, event.workspaceId, event.runId);
   if (claimedRun === null) {
     logChatWorkerLifecycleEvent("chat_worker_skip", {
