@@ -464,8 +464,8 @@ test("migration 0099 fences durable handoff, replay, retry, revocation, and appl
     )).rows[0];
     assert.deepEqual(baseline, {
       major: 18,
-      migrations: 101,
-      latest: "0099_durable_multipart_completion_reconciliation.sql",
+      migrations: 199,
+      latest: "0197_account_combination_lifecycle.sql",
     });
     const security = (await fixture.ownerPool.query<Readonly<{
       backend_claim: boolean;
