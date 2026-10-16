@@ -10,6 +10,7 @@ import {
   type AuthAttemptResponse, type AuthProviderSubmission, type AuthReauthenticationBinding,
 } from "./attemptContract.js";
 import { appleRequestNonce } from "./providers.js";
+import { wakeAppleRevocations } from "./appleRevocationWake.js";
 import type { IdentityProvider } from "./identityStore.js";
 
 export type AccountProviderMethod = Readonly<{
@@ -78,6 +79,7 @@ export async function unlinkAccountProviderMethod(
   await query("SELECT auth.unlink_account_provider_method($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)",
     [current.subject, current.username, current.authTime, target.provider, target.providerSubject,
       target.generation, ...proofParameters(proof)]);
+  await wakeAppleRevocations();
 }
 
 export async function beginAccountProviderReauthentication(

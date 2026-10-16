@@ -4,7 +4,10 @@ import { initializeAuthSentry } from "./server/sentry.js";
 import { createApp } from "./app.js";
 import { runWithSocialRequestSource } from "./server/social/requestSource.js";
 import { drainAppleRevocations } from "./server/social/appleLifecycle.js";
-import { isAppleRevocationScheduledEvent, type AppleRevocationScheduledEvent } from "./server/social/appleRevocationEvent.js";
+import {
+  isAppleRevocationScheduledEvent, isAppleRevocationWakeEvent,
+  type AppleRevocationScheduledEvent, type AppleRevocationWakeEvent,
+} from "./server/social/appleRevocationEvent.js";
 
 initializeAuthSentry();
 
@@ -14,12 +17,13 @@ const httpHandler = handle(app);
 type HttpEvent = Parameters<typeof httpHandler>[0];
 type LambdaContext = NonNullable<Parameters<typeof httpHandler>[1]>;
 
-export const handler = Sentry.wrapHandler(async (event: HttpEvent | AppleRevocationScheduledEvent, context: LambdaContext) => {
-  if (event !== null && typeof event === "object" && isAppleRevocationScheduledEvent(event)) {
+export const handler = Sentry.wrapHandler(async (event: HttpEvent | AppleRevocationScheduledEvent | AppleRevocationWakeEvent, context: LambdaContext) => {
+  if (event !== null && typeof event === "object"
+    && (isAppleRevocationScheduledEvent(event) || isAppleRevocationWakeEvent(event))) {
     return drainAppleRevocations(context.awsRequestId, () => context.getRemainingTimeInMillis());
   }
   if (event === null || typeof event !== "object" || !("requestContext" in event)) {
-    throw new Error("Unsupported auth Lambda event; expected API Gateway request or the configured revocation schedule");
+    throw new Error("Unsupported auth Lambda event; expected API Gateway request, the configured revocation schedule, or an internal cleanup wake");
   }
   return runWithSocialRequestSource(event as HttpEvent, () => httpHandler(event as HttpEvent, context));
 });
