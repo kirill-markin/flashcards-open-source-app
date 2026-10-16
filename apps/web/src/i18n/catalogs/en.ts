@@ -1528,12 +1528,6 @@ const enCatalog = {
     changed: "This method changed. Refresh methods and start again.",
     codePrompt: "Verify access to your email. Enter the 6–8 digit code. Check spam if needed.",
   },
-  browserSignInPrivacy: {
-    forget: "Forget sign-in information",
-    signOutForget: "Sign out and forget",
-    forgotten: "Sign-in information forgotten.",
-    error: "Could not update sign-in information. Allow auth site data and retry.",
-  },
   accountStatus: {
     title: "Account Status",
     subtitle: "Review the current signed-in account and browser session.",

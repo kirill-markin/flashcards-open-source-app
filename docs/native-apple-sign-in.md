@@ -12,7 +12,7 @@ claims, Catalyst private Keychain access or these acceptance results.
    selection. Exercise the chooser on iPhone, iPad and both iPhone Duo displays;
    repeat the focused flows below on signed Catalyst on the latest macOS.
    For essential compatibility, repeat chooser, email OTP, returning Apple,
-   ordinary sign-out and hint forgetting on iOS/iPadOS 18 and macOS 15.
+   ordinary sign-out and local erasure on iOS/iPadOS 18 and macOS 15.
 3. Open sign-in from Settings and credential recovery. Require one localized
    sign-in/create-account title and fixed primary Apple → Google → Email order with
    official provider controls and an envelope. Only configured native providers
@@ -39,29 +39,31 @@ claims, Catalyst private Keychain access or these acceptance results.
    request must not update a replacement attempt or start background linking.
    Swipe away a slow email verify/resend: method choices must stay disabled until
    it finishes, and a successful consumed OTP must retain Email attribution.
-   Make hint loading fail: require an actionable error/Forget control and still
-   usable configured providers after metadata loads.
+   Make hint loading fail: require an actionable error/Retry control and still
+   usable configured providers after metadata loads. A successful sign-in replaces the hint.
 6. With guest cards present, complete both bound and merge-required guest upgrades,
    including explicit destination selection. Interrupt preparation/completion,
    relaunch and exercise existing recovery. Require the intended stable mapping,
    preserved local data and completed linking before the normal ready account.
    Refresh/relaunch, then use cards, reviews and workspaces offline and sync after reconnecting;
    existing purchases must remain attached to the intended account.
-7. Opt into remembering, complete sign-in, then sign out normally and relaunch.
+7. Complete sign-in, then sign out normally and relaunch. Repeat from a device that
+   previously left remembering off; every successful sign-in saves the hint automatically.
    Require a small localized Last used badge floating above/across the successful button's
    upper-right edge, without increasing button height, shifting its logo/label or changing order.
-   Inside the actual SwiftUI Form, inspect and tap the badge's upper half; the previous row's
-   lower-right area must not intercept it or activate the wrong method. Deliberate pointer hover,
+   Inside the chooser's single separator-free SwiftUI Form row, inspect and tap the badge's
+   upper half; the preceding button must not intercept it or activate the wrong method.
+   Require equal 48-point touch areas and aligned 40-point light surfaces with 2-point corners,
+   readable disabled states, and an envelope with the full localized Continue with Email label. Deliberate pointer hover,
    keyboard navigation and badge activation expose only compact masked known-email text, with
    no Show, Copy, Forget or other hint controls. Unknown email stays absent. Initial/programmatic
    focus and focus restoration after provider cancellation must not open the hint. On iPad and
    Catalyst, navigate the actual UIKit provider control and the separate badge; check Escape,
    outside dismissal and restored focus. Badge activation must not sign in; an ordinary method
    tap must. Source focus modifiers and overlay offsets do not prove focus, visibility or hit-testing.
-   Preserve optional Remember and Forget outside the hint. Check remember off, explicit Forget,
-   Sign out and forget, local erase and deletion; clear success must remove the hint, while a
-   failed clear must show an error and never confirm forgotten. Remembered presentation data
-   contains no credentials.
+   Remember, Forget and Sign out and forget controls must be absent. Ordinary logout must
+   end authentication and preserve the hint. Local erase and account deletion must remove the
+   hint; a failed clear must show an error. Remembered presentation data contains no credentials.
 8. Simulate hint-storage failure after account completion from both Settings and
    credential recovery. The recovery presenter must remain until Retry or Close
    finishes the attempt, even after its actual recovery authority clears. Retry

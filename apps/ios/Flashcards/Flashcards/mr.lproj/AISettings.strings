@@ -923,11 +923,9 @@
 "ai.consent.withdrawalFailed" = "या डिव्हाइसवर AI सोबत डेटा शेअर करणे बंद आहे. तुमची निवड अजून सिंक झाली नाही; कनेक्शन मिळाल्यावर पुन्हा प्रयत्न करा.";
 "ai.consent.retrySync" = "निवड जतन करण्याचा पुन्हा प्रयत्न करा";
 "settings.account.cloudSignIn.unifiedTitle" = "साइन इन करा किंवा खाते तयार करा";
-"settings.account.cloudSignIn.remember" = "या डिव्हाइसवर हे साइन इन लक्षात ठेवा";
+"settings.account.cloudSignIn.continueEmail" = "ईमेलने पुढे जा";
 "settings.account.cloudSignIn.lastUsed" = "शेवटी वापरलेले";
 "settings.account.cloudSignIn.showEmail" = "ईमेल दाखवा";
-"settings.account.cloudSignIn.forget" = "हे साइन इन विसरा";
-"settings.account.cloudSignIn.signOutForget" = "साइन आउट करा आणि विसरा";
 "settings.account.cloudSignIn.mailboxPrompt" = "तुमच्या ईमेलचा प्रवेश पडताळा. 6–8 अंकी कोड टाका. गरज असल्यास स्पॅम तपासा.";
 "settings.account.cloudSignIn.freshAttempt" = "साइन इन पूर्ण झाले नाही. पुढे जाण्यासाठी पुन्हा सुरू करा.";
 "settings.account.cloudSignIn.restart" = "पुन्हा सुरू करा";

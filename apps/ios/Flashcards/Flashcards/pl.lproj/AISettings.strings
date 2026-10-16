@@ -923,11 +923,9 @@
 "ai.consent.withdrawalFailed" = "Udostępnianie danych AI jest wyłączone na tym urządzeniu. Twój wybór nie został jeszcze zsynchronizowany; spróbuj ponownie, gdy masz połączenie.";
 "ai.consent.retrySync" = "Ponów zapis wyboru";
 "settings.account.cloudSignIn.unifiedTitle" = "Zaloguj się lub utwórz konto";
-"settings.account.cloudSignIn.remember" = "Zapamiętaj to logowanie na urządzeniu";
+"settings.account.cloudSignIn.continueEmail" = "Kontynuuj przez e-mail";
 "settings.account.cloudSignIn.lastUsed" = "Ostatnio używane";
 "settings.account.cloudSignIn.showEmail" = "Pokaż adres e-mail";
-"settings.account.cloudSignIn.forget" = "Zapomnij to logowanie";
-"settings.account.cloudSignIn.signOutForget" = "Wyloguj się i zapomnij";
 "settings.account.cloudSignIn.mailboxPrompt" = "Potwierdź dostęp do poczty. Wpisz kod złożony z 6–8 cyfr. W razie potrzeby sprawdź spam.";
 "settings.account.cloudSignIn.freshAttempt" = "Logowanie nie zostało ukończone. Zacznij ponownie, aby kontynuować.";
 "settings.account.cloudSignIn.restart" = "Zacznij ponownie";

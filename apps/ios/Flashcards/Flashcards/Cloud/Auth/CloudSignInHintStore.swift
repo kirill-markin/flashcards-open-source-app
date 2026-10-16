@@ -8,7 +8,7 @@ enum CloudSignInHintStoreError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .invalidStoredHint:
-            return "The remembered sign-in hint in Keychain is invalid. Forget it before remembering another sign-in."
+            return "The remembered sign-in hint in Keychain is invalid. Sign in again to replace it."
         case .unexpectedStatus(let status, let operation):
             return "Keychain could not \(operation) (status \(status))."
         }

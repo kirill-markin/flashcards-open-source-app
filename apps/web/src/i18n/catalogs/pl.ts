@@ -1544,12 +1544,6 @@ const plCatalog: TranslationCatalog = {
     changed: "Metoda się zmieniła. Odśwież metody i zacznij ponownie.",
     codePrompt: "Potwierdź dostęp do poczty. Wpisz kod złożony z 6–8 cyfr. W razie potrzeby sprawdź spam.",
   },
-  browserSignInPrivacy: {
-    forget: "Zapomnij informacje o logowaniu",
-    signOutForget: "Wyloguj i zapomnij",
-    forgotten: "Zapomniano informacje o logowaniu.",
-    error: "Nie można zmienić informacji o logowaniu. Zezwól na dane witryny uwierzytelniania i spróbuj ponownie.",
-  },
   accountStatus: {
     title: "Status konta",
     subtitle: "Sprawdź aktualnie zalogowane konto i sesję przeglądarki.",
