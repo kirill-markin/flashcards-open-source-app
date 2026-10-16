@@ -225,14 +225,6 @@ class AccountStatusViewModel(
      * cannot be separated by one.
      */
     fun confirmLogout() {
-        startLogout(cloudAccountRepository::logout)
-    }
-
-    fun confirmLogoutAndForget(repository: com.flashcardsopensourceapp.data.local.repository.CloudSocialSignInRepository) {
-        startLogout(repository::signOutAndForget)
-    }
-
-    private fun startLogout(action: suspend () -> Unit) {
         // Read from the draft, which this ViewModel writes directly, rather than from `uiState`.
         // `uiState` is a `combine(...).stateIn(...)` whose emission is dispatched on
         // [viewModelScope], so it lags a draft write by a dispatch even while it is being collected,
@@ -254,11 +246,11 @@ class AccountStatusViewModel(
         }
 
         viewModelScope.launch {
-            runLogout(action)
+            runLogout()
         }
     }
 
-    private suspend fun runLogout(action: suspend () -> Unit) {
+    private suspend fun runLogout() {
         draftState.update { state ->
             state.copy(
                 isSubmitting = true,
@@ -289,7 +281,7 @@ class AccountStatusViewModel(
                 )
             }
             analytics.drainBeforeIdentityTeardown()
-            action()
+            cloudAccountRepository.logout()
             draftState.update { state -> state.copy(isSubmitting = false, errorMessage = "") }
             messageController.showMessage(
                 message = strings.get(R.string.settings_account_status_logged_out_message)
@@ -330,7 +322,6 @@ class AccountStatusViewModel(
 
 private const val maxAnalyticsSyncFailureCauseDepth: Int = 8
 
-/** Maps a manual sync failure onto the closed reason set the server catalog declares. */
 private fun analyticsSettingsSyncFailureReason(error: Throwable): AnalyticsSyncFailureReason {
     var currentError: Throwable? = error
     var depth = 0

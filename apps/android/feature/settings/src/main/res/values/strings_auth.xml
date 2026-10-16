@@ -3,13 +3,7 @@
     <string name="settings_auth_google">Sign in with Google</string>
     <string name="settings_auth_email">Continue with email</string>
     <string name="settings_auth_apple">Sign in with Apple</string>
-    <string name="settings_auth_remember">Remember my sign-in method on this device</string>
     <string name="settings_auth_last_used">Last used</string>
-    <string name="settings_auth_reveal_email">Show email</string>
-    <string name="settings_auth_hide_email">Hide email</string>
-    <string name="settings_auth_copy_email">Copy email</string>
-    <string name="settings_auth_forget">Forget this sign-in hint</string>
-    <string name="settings_auth_sign_out_forget">Sign out and forget</string>
     <string name="settings_auth_cancelled">Google sign-in was cancelled. Choose a method to try again.</string>
     <string name="settings_auth_google_failed">Google sign-in could not finish on this device. Try again, or choose Email to continue.</string>
     <string name="settings_auth_fresh_attempt">Sign-in could not finish. Start again with a fresh attempt, or choose another method.</string>
