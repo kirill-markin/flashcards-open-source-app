@@ -86,6 +86,7 @@ export const boundaryDefinitions = Object.freeze([
     expectedMigrationCount: 200,
     testFiles: Object.freeze([
       "src/auth/accountRetirement.postgres.integration.ts",
+      "src/chat/runs/canonicalOwner.postgres.integration.ts",
     ]),
   }),
   Object.freeze({

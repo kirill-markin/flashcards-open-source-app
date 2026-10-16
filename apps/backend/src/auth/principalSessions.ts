@@ -1,4 +1,6 @@
-import { unsafeQuery } from "../database/unsafe";
+import { unsafeQuery, unsafeTransaction } from "../database/unsafe";
+import { applyUserDatabaseScopeInExecutor } from "../database";
+import { resolveCanonicalAccountIdInExecutor } from "./userIdentities";
 import { HttpError } from "../shared/errors";
 
 type PrincipalSessionStatus = "valid" | "pending" | "revoked" | "deleted";
@@ -37,11 +39,17 @@ export async function assertVerifiedAccountDeletionSession(payload: VerifiedPrin
   if (status !== "deleted") assertSessionStatus(status);
 }
 
-export async function assertAccountLiveSession(userId: string, originalIssuedAt: number): Promise<void> {
-  const result = await unsafeQuery<Readonly<{ status: PrincipalSessionStatus }>>(
-    "SELECT auth.account_live_session_status($1, $2) AS status", [userId, originalIssuedAt],
-  );
-  const status = result.rows[0]?.status;
-  if (status === undefined) throw new Error("Chat live session validation returned no result");
-  assertSessionStatus(status);
+/** Validate the original signed account/time before returning mutable authorization ownership. */
+export async function assertAccountLiveSession(userId: string, originalIssuedAt: number): Promise<string> {
+  return unsafeTransaction(async (executor) => {
+    const result = await executor.query<Readonly<{ status: PrincipalSessionStatus }>>(
+      "SELECT auth.account_live_session_status($1, $2) AS status", [userId, originalIssuedAt],
+    );
+    const status = result.rows[0]?.status;
+    if (status === undefined) throw new Error("Chat live session validation returned no result");
+    assertSessionStatus(status);
+    const canonicalUserId = await resolveCanonicalAccountIdInExecutor(executor, userId);
+    await applyUserDatabaseScopeInExecutor(executor, { userId: canonicalUserId });
+    return canonicalUserId;
+  });
 }

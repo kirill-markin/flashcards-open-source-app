@@ -1,6 +1,7 @@
 import { randomBytes } from "node:crypto";
 import type { EntitlementTier } from "../billing/tiers";
-import { unsafeQuery } from "../database/unsafe";
+import { unsafeTransaction } from "../database/unsafe";
+import { resolveAiUsageOwnerInExecutor } from "./identity";
 import {
   captureBackendRuntimeWarning,
   createBackendRuntimeObservationScope,
@@ -182,9 +183,12 @@ export async function appendAiUsageEvent(event: AiUsageEvent): Promise<void> {
       });
     }
 
-    await unsafeQuery<NoReturnedRow>(APPEND_AI_USAGE_EVENT_SQL, [
-      createAiUsageEventId(event.occurredAt.getTime()),
-      event.userId,
+    const usageEventId = createAiUsageEventId(event.occurredAt.getTime());
+    await unsafeTransaction(async (executor) => {
+      const userId = await resolveAiUsageOwnerInExecutor(executor, event.userId);
+      await executor.query<NoReturnedRow>(APPEND_AI_USAGE_EVENT_SQL, [
+      usageEventId,
+      userId,
       event.workspaceId,
       event.occurredAt.toISOString(),
       event.surface,
@@ -202,7 +206,8 @@ export async function appendAiUsageEvent(event: AiUsageEvent): Promise<void> {
       event.imageSize,
       event.imageQuality,
       event.userSuppliedKey,
-    ]);
+      ]);
+    });
   } catch (error) {
     const errorDetails = getBackendErrorLogDetails(error);
     captureBackendRuntimeWarning({

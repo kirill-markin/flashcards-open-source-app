@@ -24,6 +24,7 @@ export type ChatLiveStreamEnvelope = Readonly<{
 }>;
 
 type VerifiedChatLiveAuth = Readonly<{
+  originalUserId: string;
   userId: string;
   workspaceId: string;
   sessionId: string;
@@ -194,10 +195,11 @@ export async function verifyChatLiveAuthorizationHeader(
     throw new HttpError(401, "Chat live auth run mismatch", "CHAT_LIVE_AUTH_INVALID");
   }
 
-  await assertAccountLiveSession(payload.userId, Math.floor((payload.expiresAt - CHAT_LIVE_AUTH_TTL_MS) / 1_000));
+  const userId = await assertAccountLiveSession(payload.userId, Math.floor((payload.expiresAt - CHAT_LIVE_AUTH_TTL_MS) / 1_000));
 
   return {
-    userId: payload.userId,
+    originalUserId: payload.userId,
+    userId,
     workspaceId: payload.workspaceId,
     sessionId: payload.sessionId,
     runId: payload.runId,

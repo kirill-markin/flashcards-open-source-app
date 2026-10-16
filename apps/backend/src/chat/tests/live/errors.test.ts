@@ -86,6 +86,7 @@ test("handleLiveRequest rejects a signed live token when the run is no longer ac
           throw new Error("ensureUserProfileFn should not run for Live auth");
         },
         verifyChatLiveAuthorizationHeaderFn: async () => ({
+          originalUserId: "user-1",
           userId: "user-1",
           workspaceId: "workspace-1",
           sessionId: "session-1",
