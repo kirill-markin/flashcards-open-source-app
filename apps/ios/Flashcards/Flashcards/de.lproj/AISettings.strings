@@ -975,3 +975,6 @@
 "settings.account.methods.changed" = "Diese Methode hat sich geändert. Aktualisiere die Methoden und beginne erneut.";
 "settings.account.methods.demo" = "Demokonten können keine Anmeldemethoden verwalten. Melde dich mit deinem eigenen Konto an.";
 "settings.account.methods.refreshFailed" = "Die Methoden konnten nicht aktualisiert werden. Aktualisiere sie vor einer neuen Änderung.";
+
+"settings.account.cloudSignIn.continueGoogle" = "Mit Google fortfahren";
+"settings.account.cloudSignIn.appleCleanupPending" = "Apple schließt eine Sicherheitsaktualisierung ab. Versuche es in Kürze erneut mit Apple oder wähle eine andere Anmeldemethode.";

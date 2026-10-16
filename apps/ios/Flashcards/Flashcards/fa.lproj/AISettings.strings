@@ -947,3 +947,6 @@
 "settings.account.methods.changed" = "روش تغییر کرده است. روش‌ها را تازه‌سازی کرده و دوباره شروع کنید.";
 "settings.account.methods.demo" = "حساب نمایشی نمی‌تواند روش‌های ورود را مدیریت کند. با حساب خود وارد شوید.";
 "settings.account.methods.refreshFailed" = "تازه‌سازی روش‌ها انجام نشد. پیش از تغییر جدید تازه‌سازی کنید.";
+
+"settings.account.cloudSignIn.continueGoogle" = "ادامه با Google";
+"settings.account.cloudSignIn.appleCleanupPending" = "Apple در حال تکمیل یک به‌روزرسانی امنیتی است. کمی بعد دوباره با Apple تلاش کنید یا روش دیگری برای ورود انتخاب کنید.";

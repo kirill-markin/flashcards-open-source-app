@@ -947,3 +947,6 @@
 "settings.account.methods.changed" = "Indlela isishintshile. Vuselela izindlela bese uqala futhi.";
 "settings.account.methods.demo" = "Ama-akhawunti edemo awakwazi ukuphatha izindlela zokungena. Ngena nge-akhawunti yakho.";
 "settings.account.methods.refreshFailed" = "Izindlela azikwazanga ukuvuselelwa. Vuselela ngaphambi koshintsho olusha.";
+
+"settings.account.cloudSignIn.continueGoogle" = "Qhubeka nge-Google";
+"settings.account.cloudSignIn.appleCleanupPending" = "I-Apple iqedela isibuyekezo sokuvikeleka. Zama futhi nge-Apple maduze, noma ukhethe enye indlela yokungena ngemvume.";

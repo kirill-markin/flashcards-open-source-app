@@ -947,3 +947,6 @@
 "settings.account.methods.changed" = "A mód megváltozott. Frissítsd a módokat, és kezdd újra.";
 "settings.account.methods.demo" = "A demófiókok nem kezelhetnek bejelentkezési módokat. Jelentkezz be saját fiókoddal.";
 "settings.account.methods.refreshFailed" = "Nem sikerült frissíteni a módokat. Új módosítás előtt frissíts.";
+
+"settings.account.cloudSignIn.continueGoogle" = "Folytatás Google-lel";
+"settings.account.cloudSignIn.appleCleanupPending" = "Az Apple egy biztonsági frissítést fejez be. Próbáld újra az Apple-lel rövidesen, vagy válassz másik bejelentkezési módot.";

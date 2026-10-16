@@ -947,3 +947,6 @@
 "settings.account.methods.changed" = "Metoden har ändrats. Uppdatera metoderna och börja om.";
 "settings.account.methods.demo" = "Demokonton kan inte hantera inloggningsmetoder. Logga in med ditt eget konto.";
 "settings.account.methods.refreshFailed" = "Metoderna kunde inte uppdateras. Uppdatera före en ny ändring.";
+
+"settings.account.cloudSignIn.continueGoogle" = "Fortsätt med Google";
+"settings.account.cloudSignIn.appleCleanupPending" = "Apple slutför en säkerhetsuppdatering. Försök igen med Apple om en stund eller välj en annan inloggningsmetod.";

@@ -947,3 +947,6 @@
 "settings.account.methods.changed" = "El mètode ha canviat. Actualitza els mètodes i torna a començar.";
 "settings.account.methods.demo" = "Els comptes de demostració no gestionen mètodes d’accés. Entra amb el teu compte.";
 "settings.account.methods.refreshFailed" = "No s’han pogut actualitzar els mètodes. Actualitza’ls abans d’un canvi nou.";
+
+"settings.account.cloudSignIn.continueGoogle" = "Continua amb Google";
+"settings.account.cloudSignIn.appleCleanupPending" = "Apple està acabant una actualització de seguretat. Torna-ho a provar amb Apple d’aquí a una estona o tria un altre mètode d’inici de sessió.";

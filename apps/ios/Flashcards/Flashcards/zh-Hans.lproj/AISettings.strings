@@ -975,3 +975,6 @@
 "settings.account.methods.changed" = "此方式已更改。请刷新登录方式并重新开始。";
 "settings.account.methods.demo" = "演示账户无法管理登录方式。请使用您自己的账户登录。";
 "settings.account.methods.refreshFailed" = "无法刷新登录方式。新的更改前请先刷新。";
+
+"settings.account.cloudSignIn.continueGoogle" = "使用 Google 继续";
+"settings.account.cloudSignIn.appleCleanupPending" = "Apple 正在完成安全更新。请稍后再次尝试通过 Apple 登录，或选择其他登录方式。";

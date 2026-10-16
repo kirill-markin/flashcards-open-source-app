@@ -947,3 +947,6 @@
 "settings.account.methods.changed" = "Tapa muuttui. Päivitä tavat ja aloita uudelleen.";
 "settings.account.methods.demo" = "Demotilit eivät voi hallita kirjautumistapoja. Kirjaudu omalla tililläsi.";
 "settings.account.methods.refreshFailed" = "Tapoja ei voitu päivittää. Päivitä ennen uutta muutosta.";
+
+"settings.account.cloudSignIn.continueGoogle" = "Jatka Googlella";
+"settings.account.cloudSignIn.appleCleanupPending" = "Apple viimeistelee tietoturvapäivitystä. Kokeile hetken kuluttua uudelleen Applella tai valitse toinen kirjautumistapa.";

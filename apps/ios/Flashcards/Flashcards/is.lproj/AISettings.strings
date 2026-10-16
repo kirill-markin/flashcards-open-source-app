@@ -947,3 +947,6 @@
 "settings.account.methods.changed" = "Aðferðin breyttist. Endurnýjaðu aðferðir og byrjaðu aftur.";
 "settings.account.methods.demo" = "Sýnisreikningar geta ekki stjórnað innskráningaraðferðum. Skráðu þig inn á eigin reikning.";
 "settings.account.methods.refreshFailed" = "Ekki tókst að endurnýja aðferðir. Endurnýjaðu fyrir nýja breytingu.";
+
+"settings.account.cloudSignIn.continueGoogle" = "Halda áfram með Google";
+"settings.account.cloudSignIn.appleCleanupPending" = "Apple er að ljúka öryggisuppfærslu. Reyndu aftur með Apple eftir stutta stund eða veldu aðra innskráningaraðferð.";
