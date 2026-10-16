@@ -1,9 +1,12 @@
 import {
-  applyWorkspaceDatabaseScopeInExecutor,
   transactionWithWorkspaceScope,
   type DatabaseExecutor,
 } from "../../database";
 import { unsafeTransaction } from "../../database/unsafe";
+import {
+  applyMultipartWriterOwnerScopeInExecutor,
+  transactionWithMultipartWriterOwnerScope,
+} from "../multipart/writerLifecycle/ownerScope";
 import {
   assertMediaBlobWriterReservationToken,
   mediaBlobCleanupDelayMs,
@@ -102,7 +105,7 @@ export function closeMediaAssetUploadSessionCurrentBlobWriter(
   input: MediaAssetUploadSessionWriterClosureInput,
 ): Promise<MediaAssetUploadSessionCurrentWriterClosure> {
   return unsafeTransaction(async (executor) => {
-    await applyWorkspaceDatabaseScopeInExecutor(
+    await applyMultipartWriterOwnerScopeInExecutor(
       executor,
       { userId: input.userId, workspaceId: input.workspaceId },
     );
@@ -118,7 +121,7 @@ export function closeMediaAssetUploadSessionBlobWriterAttempt(
 ): Promise<MultipartMediaBlobWriterAttemptClosureStatus> {
   const snapshot = snapshotMultipartAttemptExactInput(input);
   return unsafeTransaction(async (executor) => {
-    await applyWorkspaceDatabaseScopeInExecutor(
+    await applyMultipartWriterOwnerScopeInExecutor(
       executor,
       { userId: snapshot.userId, workspaceId: snapshot.workspaceId },
     );
@@ -197,7 +200,7 @@ export function handoffMediaAssetUploadSessionCompletionAttemptAfterAccessRevoca
 export async function reserveMediaAssetUploadSessionBlobWriterWithOwner(
   userId: string, workspaceId: string, sessionId: string,
 ): Promise<MediaBlobWriterReservation> {
-  return transactionWithWorkspaceScope({ userId, workspaceId }, async (executor) => {
+  return transactionWithMultipartWriterOwnerScope({ userId, workspaceId }, async (executor) => {
     const result = await executor.query<OwnedMultipartReservationRow>(
       `SELECT reservation_token, reservation_state, reservation_status, normalization_version FROM content.reserve_media_upload_session_blob_writer_with_owner($1,$2,$3,$4)`,
       [userId, workspaceId, sessionId, passthroughMediaBlobNormalizationVersion],
