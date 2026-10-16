@@ -1,5 +1,6 @@
 import { createCipheriv, createDecipheriv, createHash, hkdfSync, randomBytes } from "node:crypto";
 import { query, transaction, type DatabaseExecutor } from "../../db.js";
+import { log } from "../logger.js";
 import type { verifyCurrentAccountSession } from "../browserSession.js";
 import { exchangeAppleAuthorizationCode } from "./apple.js";
 import { exchangeGoogleAuthorizationCode, verifyGoogleIdentityToken } from "./google.js";
@@ -290,6 +291,8 @@ export async function verifyClaimedAuthAttempt(
   if (submission.provider === "apple") {
     const result = await exchangeAppleAuthorizationCode({ client: attempt.client, identityToken: submission.identityToken,
       authorizationCode: submission.authorizationCode, rawNonce: attempt.secrets.nonce, redirectUri: attempt.redirectUri });
+    log({ domain: "auth", action: "apple_identity_verified", attemptHash: authHandleHash(attempt.handle),
+      provider: "apple", client: attempt.client, purpose: attempt.purpose, appleProof: result.proofFacts });
     proof = { provider: "apple", identity: result.identity, issuedAt: result.identity.issuedAt, credential: result.credential };
   } else if (submission.authorizationCode !== null) {
     if (attempt.client !== "web" || attempt.redirectUri === null) throw new AuthAttemptError("AUTH_ATTEMPT_INVALID");
