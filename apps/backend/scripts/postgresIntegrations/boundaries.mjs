@@ -71,6 +71,13 @@ export const createdRolesByMigration = new Map([
 ]);
 export const boundaryDefinitions = Object.freeze([
   Object.freeze({
+    migrationFileName: "0194_apple_consent_reconnect.sql",
+    expectedMigrationCount: 196,
+    testFiles: Object.freeze([
+      "src/auth/appleConsentReconnect.postgres.integration.ts",
+    ]),
+  }),
+  Object.freeze({
     migrationFileName: "0193_account_provider_browser_handoffs.sql",
     expectedMigrationCount: 195,
     testFiles: Object.freeze([
