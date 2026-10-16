@@ -176,6 +176,7 @@ export function parseWorkspacePackageCardsJsonV1(value: unknown): WorkspacePacka
   throw new TypeError(`Invalid workspace package cards.json: ${JSON.stringify(issues)}`);
 }
 
+// Portable copies carry source attribution, never onboarding disposability.
 export function normalizeWorkspacePackageCardMetadataV1(
   metadata: WorkspacePackageCardMetadataInputV1,
 ): WorkspacePackageCardMetadataV1 {
