@@ -40,6 +40,11 @@ import {
 import type { TimestampValue } from "./shared";
 import type { WorkspaceSummary } from "./types";
 
+type WorkspaceCreationInput = Readonly<{
+  name: string;
+  cause: "automatic_starter" | "explicit";
+}>;
+
 type WorkspaceCreateFailureStage =
   | "create_workspace_row"
   | "create_bootstrap_replica"
@@ -127,15 +132,15 @@ function handleWorkspaceCreateFailure(
 export async function createWorkspaceInExecutor(
   executor: DatabaseExecutor,
   userId: string,
-  name: string,
+  input: WorkspaceCreationInput,
 ): Promise<string> {
-  return createWorkspaceInExecutorWithObservationScope(executor, userId, name, null);
+  return createWorkspaceInExecutorWithObservationScope(executor, userId, input, null);
 }
 
 export async function createWorkspaceInExecutorWithObservationScope(
   executor: DatabaseExecutor,
   userId: string,
-  name: string,
+  input: WorkspaceCreationInput,
   observationScope: BackendObservationScope | null,
 ): Promise<string> {
   await ensureUserSettingsRowInExecutor(executor, userId);
@@ -157,11 +162,11 @@ export async function createWorkspaceInExecutorWithObservationScope(
       [
         "INSERT INTO org.workspaces",
         "(",
-        "workspace_id, name, fsrs_client_updated_at, fsrs_last_modified_by_replica_id, fsrs_last_operation_id",
+        "workspace_id, name, fsrs_client_updated_at, fsrs_last_modified_by_replica_id, fsrs_last_operation_id, creation_origin",
         ")",
-        "VALUES ($1, $2, $3, $4, $5)",
+        "VALUES ($1, $2, $3, $4, $5, $6)",
       ].join(" "),
-      [workspaceId, name, bootstrapTimestamp, bootstrapReplicaId, bootstrapOperationId],
+      [workspaceId, input.name, bootstrapTimestamp, bootstrapReplicaId, bootstrapOperationId, input.cause],
     );
 
     stage = "create_membership";
@@ -239,7 +244,10 @@ export async function createWorkspaceForUserWithObservationScope(
   observationScope: BackendObservationScope | null,
 ): Promise<WorkspaceSummary> {
   return transactionWithUserScope({ userId }, async (executor) => {
-    const workspaceId = await createWorkspaceInExecutorWithObservationScope(executor, userId, name, observationScope);
+    const workspaceId = await createWorkspaceInExecutorWithObservationScope(executor, userId, {
+      name,
+      cause: "explicit",
+    }, observationScope);
     let stage: WorkspaceCreateFailureStage = "select_workspace";
 
     try {
@@ -256,19 +264,19 @@ export async function createWorkspaceForUserWithObservationScope(
 export async function createWorkspaceForApiKeyConnection(
   userId: string,
   connectionId: string,
-  name: string,
+  input: WorkspaceCreationInput,
 ): Promise<WorkspaceSummary> {
-  return createWorkspaceForApiKeyConnectionWithObservationScope(userId, connectionId, name, null);
+  return createWorkspaceForApiKeyConnectionWithObservationScope(userId, connectionId, input, null);
 }
 
 export async function createWorkspaceForApiKeyConnectionWithObservationScope(
   userId: string,
   connectionId: string,
-  name: string,
+  input: WorkspaceCreationInput,
   observationScope: BackendObservationScope | null,
 ): Promise<WorkspaceSummary> {
   return transactionWithUserScope({ userId }, async (executor) => {
-    const workspaceId = await createWorkspaceInExecutorWithObservationScope(executor, userId, name, observationScope);
+    const workspaceId = await createWorkspaceInExecutorWithObservationScope(executor, userId, input, observationScope);
     let stage: WorkspaceCreateFailureStage = "select_workspace";
 
     try {
@@ -285,19 +293,19 @@ export async function createWorkspaceForApiKeyConnectionWithObservationScope(
 export async function createWorkspaceForOAuthConnection(
   userId: string,
   connectionId: string,
-  name: string,
+  input: WorkspaceCreationInput,
 ): Promise<WorkspaceSummary> {
-  return createWorkspaceForOAuthConnectionWithObservationScope(userId, connectionId, name, null);
+  return createWorkspaceForOAuthConnectionWithObservationScope(userId, connectionId, input, null);
 }
 
 export async function createWorkspaceForOAuthConnectionWithObservationScope(
   userId: string,
   connectionId: string,
-  name: string,
+  input: WorkspaceCreationInput,
   observationScope: BackendObservationScope | null,
 ): Promise<WorkspaceSummary> {
   return transactionWithUserScope({ userId }, async (executor) => {
-    const workspaceId = await createWorkspaceInExecutorWithObservationScope(executor, userId, name, observationScope);
+    const workspaceId = await createWorkspaceInExecutorWithObservationScope(executor, userId, input, observationScope);
     let stage: WorkspaceCreateFailureStage = "select_workspace";
 
     try {

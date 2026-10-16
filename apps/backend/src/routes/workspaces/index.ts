@@ -201,7 +201,7 @@ export function createWorkspaceRoutes(options: WorkspaceRoutesOptions): Hono<App
             ? await createWorkspaceForApiKeyConnectionWithObservationScopeFn(
               currentRequestContext.userId,
               requireAgentConnectionId(currentRequestContext),
-              workspaceName,
+              { name: workspaceName, cause: "explicit" },
               scope,
             )
             : await createWorkspaceForUserWithObservationScopeFn(currentRequestContext.userId, workspaceName, scope);

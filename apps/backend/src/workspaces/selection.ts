@@ -39,7 +39,10 @@ export async function ensureUserSelectedWorkspaceInExecutor(
   const workspaceIds = await listUserWorkspaceIdsInExecutor(executor, userId);
 
   if (workspaceIds.length === 0) {
-    const autoCreatedWorkspaceId = await createWorkspaceInExecutor(executor, userId, AUTO_CREATED_WORKSPACE_NAME);
+    const autoCreatedWorkspaceId = await createWorkspaceInExecutor(executor, userId, {
+      name: AUTO_CREATED_WORKSPACE_NAME,
+      cause: "automatic_starter",
+    });
     await persistSelectedWorkspaceForUserInExecutor(executor, userId, autoCreatedWorkspaceId);
     return autoCreatedWorkspaceId;
   }
@@ -167,7 +170,10 @@ export async function ensureApiKeyWorkspaceSelection(
   }
 
   if (workspaces.length === 0) {
-    const workspace = await createWorkspaceForApiKeyConnection(userId, connectionId, AUTO_CREATED_WORKSPACE_NAME);
+    const workspace = await createWorkspaceForApiKeyConnection(userId, connectionId, {
+      name: AUTO_CREATED_WORKSPACE_NAME,
+      cause: "automatic_starter",
+    });
     return workspace.workspaceId;
   }
 
@@ -205,7 +211,10 @@ export async function ensureMcpConnectionWorkspaceSelection(
   }
 
   if (workspaces.length === 0) {
-    const workspace = await createWorkspaceForOAuthConnection(userId, connectionId, AUTO_CREATED_WORKSPACE_NAME);
+    const workspace = await createWorkspaceForOAuthConnection(userId, connectionId, {
+      name: AUTO_CREATED_WORKSPACE_NAME,
+      cause: "automatic_starter",
+    });
     return workspace.workspaceId;
   }
 
