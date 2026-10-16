@@ -947,3 +947,6 @@
 "settings.account.methods.changed" = "પદ્ધતિ બદલાઈ છે. પદ્ધતિઓ રિફ્રેશ કરીને ફરી શરૂ કરો.";
 "settings.account.methods.demo" = "ડેમો ખાતાં સાઇન-ઇન પદ્ધતિઓ સંભાળી શકતાં નથી. તમારા ખાતામાં સાઇન ઇન કરો.";
 "settings.account.methods.refreshFailed" = "પદ્ધતિઓ રિફ્રેશ થઈ નથી. નવા ફેરફાર પહેલાં રિફ્રેશ કરો.";
+
+"settings.account.cloudSignIn.continueGoogle" = "Google સાથે આગળ વધો";
+"settings.account.cloudSignIn.appleCleanupPending" = "Apple સુરક્ષા અપડેટ પૂર્ણ કરી રહ્યું છે. થોડી વાર પછી ફરી Apple સાથે પ્રયાસ કરો અથવા સાઇન ઇન કરવાની બીજી રીત પસંદ કરો.";

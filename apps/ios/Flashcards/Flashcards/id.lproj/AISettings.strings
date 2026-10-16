@@ -947,3 +947,6 @@
 "settings.account.methods.changed" = "Metode ini berubah. Segarkan metode dan mulai lagi.";
 "settings.account.methods.demo" = "Akun demo tidak dapat mengelola metode masuk. Masuk dengan akun Anda sendiri.";
 "settings.account.methods.refreshFailed" = "Metode tidak dapat disegarkan. Segarkan sebelum perubahan baru.";
+
+"settings.account.cloudSignIn.continueGoogle" = "Lanjutkan dengan Google";
+"settings.account.cloudSignIn.appleCleanupPending" = "Apple sedang menyelesaikan pembaruan keamanan. Coba lagi dengan Apple sebentar lagi, atau pilih metode masuk lain.";

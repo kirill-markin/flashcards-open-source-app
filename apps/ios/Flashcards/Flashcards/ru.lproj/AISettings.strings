@@ -975,3 +975,6 @@
 "settings.account.methods.changed" = "Способ изменился. Обновите способы и начните заново.";
 "settings.account.methods.demo" = "Демоаккаунты не могут управлять способами входа. Войдите в свой аккаунт.";
 "settings.account.methods.refreshFailed" = "Не удалось обновить способы. Обновите список перед новым изменением.";
+
+"settings.account.cloudSignIn.continueGoogle" = "Продолжить с Google";
+"settings.account.cloudSignIn.appleCleanupPending" = "Apple завершает обновление безопасности. Попробуйте снова войти через Apple чуть позже или выберите другой способ входа.";

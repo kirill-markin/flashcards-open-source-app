@@ -947,3 +947,6 @@
 "settings.account.methods.changed" = "Viis on muutunud. Värskenda viise ja alusta uuesti.";
 "settings.account.methods.demo" = "Demokontod ei halda sisselogimisviise. Logi sisse oma kontoga.";
 "settings.account.methods.refreshFailed" = "Viise ei saanud värskendada. Värskenda enne uut muudatust.";
+
+"settings.account.cloudSignIn.continueGoogle" = "Jätka Google’iga";
+"settings.account.cloudSignIn.appleCleanupPending" = "Apple lõpetab turvavärskendust. Proovi mõne aja pärast uuesti Apple’iga või vali mõni muu sisselogimisviis.";

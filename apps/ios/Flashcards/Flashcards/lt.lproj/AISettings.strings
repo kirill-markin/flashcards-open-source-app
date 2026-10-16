@@ -947,3 +947,6 @@
 "settings.account.methods.changed" = "Būdas pasikeitė. Atnaujinkite būdus ir pradėkite iš naujo.";
 "settings.account.methods.demo" = "Demonstracinės paskyros negali valdyti prisijungimo būdų. Prisijunkite savo paskyra.";
 "settings.account.methods.refreshFailed" = "Nepavyko atnaujinti būdų. Atnaujinkite prieš naują pakeitimą.";
+
+"settings.account.cloudSignIn.continueGoogle" = "Tęsti su Google";
+"settings.account.cloudSignIn.appleCleanupPending" = "Apple užbaigia saugos atnaujinimą. Netrukus bandykite dar kartą su Apple arba pasirinkite kitą prisijungimo būdą.";

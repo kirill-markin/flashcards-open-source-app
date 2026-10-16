@@ -947,3 +947,6 @@
 "settings.account.methods.changed" = "पद्धत बदलली आहे. पद्धती रिफ्रेश करून पुन्हा सुरुवात करा.";
 "settings.account.methods.demo" = "डेमो खाती साइन-इन पद्धती हाताळू शकत नाहीत. स्वतःच्या खात्यात साइन इन करा.";
 "settings.account.methods.refreshFailed" = "पद्धती रिफ्रेश करता आल्या नाहीत. नव्या बदलापूर्वी रिफ्रेश करा.";
+
+"settings.account.cloudSignIn.continueGoogle" = "Google सह पुढे जा";
+"settings.account.cloudSignIn.appleCleanupPending" = "Apple सुरक्षा अपडेट पूर्ण करत आहे. थोड्या वेळाने Apple सह पुन्हा प्रयत्न करा किंवा साइन इन करण्याची दुसरी पद्धत निवडा.";

@@ -1,0 +1,14 @@
+Google sign-in branding resources
+
+Google G: https://developers.google.com/static/identity/images/g-logo.png
+Resized proportionally to 20 points high at 3x; colors and aspect ratio preserved.
+Used only on the Google sign-in button under Google Identity branding guidelines:
+https://developers.google.com/identity/branding-guidelines
+Google brand features remain Google LLC trademarks; they are not covered by the
+application source license.
+
+Google Sans variable font, unmodified:
+https://github.com/google/fonts/blob/main/ofl/googlesans/GoogleSans%5BGRAD%2Copsz%2Cwght%5D.ttf
+Copyright 2025 The Google Sans Project Authors
+https://github.com/googlefonts/googlesans
+Licensed under SIL Open Font License 1.1; see GoogleSans-OFL.txt.

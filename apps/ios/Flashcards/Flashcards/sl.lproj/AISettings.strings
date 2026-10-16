@@ -947,3 +947,6 @@
 "settings.account.methods.changed" = "Način se je spremenil. Osvežite načine in začnite znova.";
 "settings.account.methods.demo" = "Predstavitveni računi ne upravljajo načinov prijave. Prijavite se s svojim računom.";
 "settings.account.methods.refreshFailed" = "Načinov ni bilo mogoče osvežiti. Osvežite pred novo spremembo.";
+
+"settings.account.cloudSignIn.continueGoogle" = "Nadaljuj z Googlom";
+"settings.account.cloudSignIn.appleCleanupPending" = "Apple zaključuje varnostno posodobitev. Kmalu poskusite znova z Applom ali izberite drug način prijave.";

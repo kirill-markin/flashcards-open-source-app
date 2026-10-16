@@ -947,3 +947,6 @@
 "settings.account.methods.changed" = "השיטה השתנתה. יש לרענן את השיטות ולהתחיל מחדש.";
 "settings.account.methods.demo" = "חשבונות הדגמה אינם יכולים לנהל שיטות כניסה. יש להיכנס לחשבון שלך.";
 "settings.account.methods.refreshFailed" = "לא ניתן לרענן את השיטות. יש לרענן לפני שינוי חדש.";
+
+"settings.account.cloudSignIn.continueGoogle" = "המשך עם Google";
+"settings.account.cloudSignIn.appleCleanupPending" = "Apple מסיימת עדכון אבטחה. אפשר לנסות שוב עם Apple בעוד זמן קצר, או לבחור שיטת התחברות אחרת.";
