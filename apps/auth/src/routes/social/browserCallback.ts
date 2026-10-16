@@ -1,3 +1,4 @@
+import { completeConnectionBrowserProof } from "../../server/social/accountConnectionProof.js";
 import { browserManagementError, browserManagementFailure, managementReturnUri } from "./browserManagementReturn.js";
 import { isCognitoTypedError } from "../../server/cognito/cognitoErrors.js";
 import { randomBytes } from "node:crypto";
@@ -111,6 +112,28 @@ async function providerCallback(c: Context<AuthAppEnv>): Promise<Response> {
       return appleCallbackContinuation(c, parameters, state);
     }
     if (state.client === "web" && state.intent !== "login") await requireAccountSession(c, "web");
+    if (state.connectionOperation !== undefined) {
+      claimedState = state;
+      if (parameters.has("error")) {
+        clearBrowserState(c, state);
+        if (state.client === "android") return c.redirect(androidReturn("denied", state.attempt), 303);
+        const denied = new URL(state.redirectUri);
+        denied.hash = new URLSearchParams({ status: "denied", attempt: state.attempt }).toString();
+        return c.redirect(denied.toString(), 303);
+      }
+      const code = oneParameter(parameters, "code", 4096);
+      const identityToken = provider === "apple" && parameters.has("id_token") ? oneParameter(parameters, "id_token", 16_384) : null;
+      const receipt = await completeConnectionBrowserProof(state, provider === "google"
+        ? { provider, authorizationCode: code, identityToken: null } : { provider, authorizationCode: code, identityToken },
+      state.client === "web" ? await requireAccountSession(c, "web") : null);
+      clearBrowserState(c, state);
+      events.push({ createEvent: createAuthAnalyticsFactEventFactory({ eventName: "auth_account_connection",
+        action: "proof", outcome: receipt.outcome === "already_connected" ? "already_connected" : "succeeded" }), occurredAt: Date.now() });
+      if (state.client === "android") return c.redirect(androidReturn("provider_proved", state.attempt), 303);
+      const destination = new URL(state.redirectUri);
+      destination.hash = new URLSearchParams({ status: "provider_proved", attempt: state.attempt }).toString();
+      return c.redirect(destination.toString(), 303);
+    }
     const claimed = await claimBrowserAuthAttempt(state);
     claimedState = state;
     if (parameters.has("error")) {
@@ -177,6 +200,11 @@ async function providerCallback(c: Context<AuthAppEnv>): Promise<Response> {
       eventName: "auth_account_link_finished", method: claimedState.provider, outcome: "server_error",
     }), occurredAt: Date.now() });
     if (claimedState !== null) clearBrowserState(c, claimedState);
+    if (claimedState?.connectionOperation !== undefined) {
+      events.push({ createEvent: createAuthAnalyticsFactEventFactory({ eventName: "auth_account_connection",
+        action: "proof", outcome: "failed" }), occurredAt: Date.now() });
+      return socialErrorResponse(c, error);
+    }
     if (managementState !== null) return browserManagementFailure(c, managementState, error);
     return browserSignInErrorResponse(c, socialErrorResponse(c, error), recovery);
   } finally {

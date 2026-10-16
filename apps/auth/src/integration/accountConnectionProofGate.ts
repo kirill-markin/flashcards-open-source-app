@@ -174,7 +174,7 @@ export async function checkAccountConnectionProofs(runtime: pg.Client, owner: pg
       [completion, binding]), { code: "23514" });
     await assert.rejects(runtime.query("SELECT auth.create_social_attempt($1,'google','ios','link',$2,NULL,NULL,$3,$4,'fixture',$5,$2,'ios',NULL)",
       [authHandleHash(randomBytes(32).toString("base64url")), binding, source, accounts[0], completion]), { code: "23514" });
-    await assert.rejects(runtime.query("SELECT * FROM auth.load_account_connection($1,$2,$3,$4,$5,$6,$7)", session), { code: "42501" });
+    await assert.rejects(runtime.query("SELECT * FROM auth.claim_account_connection_proofs($1,$2,$3,$4,$5,$6,$7)", session), { code: "42501" });
     for (const changed of [
       [operation, third, source, 1, binding, "ios", null],
       [operation, source, "changed", 1, binding, "ios", null],

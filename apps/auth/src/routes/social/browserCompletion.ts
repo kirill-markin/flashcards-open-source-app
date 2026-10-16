@@ -8,7 +8,7 @@ import { continueBrowserSignIn } from "../../server/social/completeSignIn.js";
 import { getSocialRequestSource } from "../../server/social/requestSource.js";
 import { requireSocialRateLimit } from "../../server/social/rateLimit.js";
 import type { ProviderSignInHint } from "../../server/social/signInHint.js";
-import { requireAccountSession } from "./accountTransport.js";
+import { preserveAccountLoginContext, requireAccountSession } from "./accountTransport.js";
 
 export type BrowserLoginCompletion = Readonly<{ ok: true; redirectUri: string; signInHint: ProviderSignInHint; acceptedSession?: BrowserSessionPresentation }>;
 export type BrowserCompletion = BrowserLoginCompletion
@@ -48,6 +48,8 @@ export async function acceptBrowserCompletion(
     binding: { ...binding, purpose: "login" } }, source);
   if (!("signInHint" in response)) throw new AuthAttemptError("AUTH_COMPLETION_INVALID");
   setBrowserSessionCookies(c, response.idToken, response.refreshToken);
+  const suggestion = response.signInHint.connectionSuggestion;
+  if (suggestion !== undefined) preserveAccountLoginContext(c, suggestion.suggestion, state.browserSecret, state.redirectUri);
   clearBrowserState(c, state);
   return { ok: true, redirectUri: state.redirectUri, signInHint: response.signInHint,
     acceptedSession: response[verifiedBrowserSession] };

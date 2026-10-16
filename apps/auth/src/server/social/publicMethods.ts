@@ -18,6 +18,8 @@ export type PublicAuthMethods = Readonly<{
   }>;
   endpoints: Readonly<{ attempt: string; complete: string; browserComplete: string; sendCode: string; verifyCode: string }>;
   account: Readonly<{ methods: string; providerMethod: string; unlink: string; emailReauth: string;
+    connection: string; connectionCapability: "canonical-account-v1";
+    connectionActions: readonly ["begin", "adopt", "provider_begin", "provider_complete", "email_send", "email_verify", "load", "preview", "confirm", "cancel"];
     nativeAttempt: string; nativeComplete: string; freshProofSeconds: 120; emailRecovery: "read_only" }>;
   completion: Readonly<{ codeChallengeMethod: "S256"; tokenEnvelope: "TokenResult"; productAccountProvisioned: false }>;
 }>;
@@ -49,6 +51,8 @@ export function getPublicAuthMethods(client: SocialClient): PublicAuthMethods {
       sendCode: "/api/send-code", verifyCode: "/api/verify-code" },
     account: { methods: "/api/account/login-methods", providerMethod: "/api/account/provider-methods/link",
       unlink: "/api/account/provider-methods/unlink", emailReauth: "/api/account/reauth/email",
+      connection: "/api/account/connection", connectionCapability: "canonical-account-v1",
+      connectionActions: ["begin", "adopt", "provider_begin", "provider_complete", "email_send", "email_verify", "load", "preview", "confirm", "cancel"],
       nativeAttempt: "/api/social/attempt", nativeComplete: "/api/social/complete", freshProofSeconds: 120, emailRecovery: "read_only" },
     completion: { codeChallengeMethod: "S256", tokenEnvelope: "TokenResult", productAccountProvisioned: false },
   };

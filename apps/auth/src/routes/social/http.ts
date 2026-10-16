@@ -1,3 +1,4 @@
+import { AccountConnectionError } from "../../server/social/accountConnectionContract.js";
 import type { Context } from "hono";
 import type { ContentfulStatusCode } from "hono/utils/http-status";
 import { type AuthAppEnv, jsonAuthError } from "../../server/apiErrors.js";
@@ -55,6 +56,12 @@ export async function readSocialJson(c: Context<AuthAppEnv>): Promise<unknown> {
 }
 
 export function socialErrorResponse(c: Context<AuthAppEnv>, error: unknown): Response {
+  if (error instanceof AccountConnectionError) {
+    return jsonAuthError(c, error.code === "ACCOUNT_CONNECTION_INVALID" ? 400 : error.code === "ACCOUNT_CONNECTION_RATE_LIMITED" ? 429 : 409,
+      error.code, error.code === "ACCOUNT_CONNECTION_INVALID" ? "Invalid account connection action or binding."
+        : error.code === "ACCOUNT_CONNECTION_RATE_LIMITED" ? "Too many mailbox requests. Start a fresh connection later."
+          : "The connection proof expired or changed. Verify the accounts again.");
+  }
   if (error instanceof AccountTransportError) return jsonAuthError(c, error.code === "SESSION_REQUIRED" ? 401 : 503, error.code, error.message);
   if (error instanceof AuthAttemptError) {
     if (error.code === "AUTH_RATE_LIMITED") {
@@ -93,6 +100,13 @@ export function socialErrorResponse(c: Context<AuthAppEnv>, error: unknown): Res
   }
   const state = getDatabaseErrorSqlState(error);
   const message = getDatabaseErrorMessage(error);
+  if (state === "P4201" || state === "P4202" || (c.req.path.includes("/api/account/connection")
+    && ["23514", "54000", "P0A01", "55P03", "57014"].includes(state ?? ""))) {
+    return jsonAuthError(c, 409, state === "P4202" ? "ACCOUNT_CONNECTION_PREVIEW_CHANGED" : "ACCOUNT_CONNECTION_RESTART_REQUIRED",
+      state === "P4202" ? "The preview or choices changed. Reload the preview and explicitly confirm it again."
+        : state === "54000" ? "This account exceeds the supported connection budget. Contact support."
+          : "The connection expired, changed or is busy. Obtain fresh account proofs and review the preview.");
+  }
   if (state === "P4101" || (state === "23514" && [
     "Verified provider method is disabled; start again",
     "Apple login method is disabled; explicit reauthorization is required",
