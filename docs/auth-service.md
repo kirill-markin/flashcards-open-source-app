@@ -59,10 +59,10 @@ and cloud checks from actual provider, signed-device, mailbox and lifecycle resu
     request context, so it applies the `410 ACCOUNT_DELETED` gate itself, and it resolves the account
     user id from `auth.user_identities` in its own transaction rather than trusting the id on the
     request.
-    - Client ordering obligation: the account's `auth.user_identities` row is written by the first
-      request that loads a request context after sign-in, such as `GET /v1/me`. Nothing sequences
-      that for you. Await one such call before calling this route; two requests fired in parallel
-      right after a first-ever sign-in can let the link reach the database first.
+    - Client ordering obligation: when sign-in creates only metadata, the first request that loads
+      a request context, such as `GET /v1/me`, writes the account's identity mapping.
+      Await one such call before calling this route; two parallel requests after a first sign-in
+      can let the link reach the database before that binding exists.
     - Upgrade ordering obligation: never send a guest token here that may still need
       `POST /v1/guest-auth/upgrade/prepare` or `POST /v1/guest-auth/upgrade/complete`. This route
       revokes the guest session, and both upgrade routes refuse a revoked token with
@@ -140,8 +140,11 @@ with [Cognito triggers](../apps/auth/src/triggers/nativeProof.ts) and
 [atomic grants](../db/migrations/0184_cognito_native_proof_grants.sql).
 Only server code that freshly verified a provider proof may call the bridge after registering its
 principal. Native login routes compose [attempts and completion](../apps/auth/src/routes/social/)
-with the existing bridge. Metadata registration and session issuance create no product
-rows, so native guest prepare/complete must still precede generic account provisioning.
+with the existing bridge. Ordinary first provider enrollment creates only auth metadata.
+A returning, already-bound Apple principal may receive a profile-only account while enrolling its newly shared real Email login;
+[the claimed composition](../db/migrations/0208_provider_email_reconciliation.sql) selects an existing
+Email owner first and creates no workspace or demo. Native guest prepare/complete still precedes
+generic provisioning and uses the existing `merge_required` transfer when this profile exists.
 The [private cloud gate](../scripts/checks/check-native-proof-bridge.sh) runs automatically in the AWS
 deployment job before release success. It uses the existing configured review account and tests the
 Cognito/database boundary, not Apple/Google proof validation or email delivery.

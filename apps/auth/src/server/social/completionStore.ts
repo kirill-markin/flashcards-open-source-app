@@ -1,12 +1,15 @@
 import { randomBytes } from "node:crypto";
 import type { CognitoEmailPrincipal } from "../cognito/cognitoAuth.js";
-import { log } from "../logger.js";
+import { log, logWarning } from "../logger.js";
+import { getDatabaseErrorSqlState } from "../databaseErrors.js";
+import { reconcileAppleLoginEmailInExecutor, type ProviderEmailEnrollmentOutcome } from "./providerEmailEnrollment.js";
 import { createProviderSignInHint, encryptSignInHint, decryptSignInHint, type ProviderSignInHint } from "./signInHint.js";
 import { transaction, type DatabaseExecutor } from "../../db.js";
-import { verifyEnrollmentMailboxOtp } from "./mailboxProof.js";
+import { PrincipalEnrollmentError, verifyEnrollmentMailboxOtp } from "./mailboxProof.js";
+import { loadProviderLoginMethodInExecutor } from "./loginMethodStore.js";
 import {
   enrollAuthoritativeProviderPrincipal, enrollProviderPrincipalWithMailboxProofInExecutor,
-  prepareAuthoritativeLoginPrincipal, enrollAuthoritativeLoginPrincipalInExecutor,
+  prepareAuthoritativeLoginPrincipal, lockAuthoritativeLoginPrincipalsInExecutor, enrollLockedAuthoritativeLoginPrincipalInExecutor,
   type EnrolledProviderPrincipal, type PrincipalEnrollmentResult, type ProviderEnrollmentProof,
 } from "./principalEnrollment.js";
 import {
@@ -41,7 +44,7 @@ export type AuthoritativeAttemptResult =
   | Readonly<{ status: "verification_required"; enrollment: Exclude<PrincipalEnrollmentResult, EnrolledProviderPrincipal>; attempt: ClaimedAuthAttempt }>;
 
 type AuthoritativeLoginResult =
-  | Readonly<{ status: "completed"; response: AuthCompletionResponse; reconnected: boolean }>
+  | Readonly<{ status: "completed"; response: AuthCompletionResponse; reconnected: boolean; emailEnrollment: ProviderEmailEnrollmentOutcome | null }>
   | Readonly<{ status: "verification_required"; enrollment: Exclude<PrincipalEnrollmentResult, EnrolledProviderPrincipal> }>;
 
 /** Caller owns the transaction so a refused/expired completion rolls back new provider metadata. */
@@ -50,13 +53,26 @@ export async function completeAuthoritativeLoginInExecutor(
   proof: ProviderEnrollmentProof, principal: CognitoEmailPrincipal | null,
 ): Promise<AuthoritativeLoginResult> {
   if (attempt.provider !== proof.provider) throw new AuthAttemptError("AUTH_ATTEMPT_INVALID");
+  const boundSubject = await lockAuthoritativeLoginPrincipalsInExecutor(executor, proof, principal);
   const reconnect = proof.provider === "apple"
     ? await executor.query<Readonly<{ reconnected: boolean }>>("SELECT auth.reconnect_apple_login_attempt($1,$2,$3) AS reconnected",
       [authHandleHash(attempt.handle), attempt.claimId, proof.identity.subject]) : null;
   const reconnected = reconnect?.rows[0]?.reconnected ?? false;
-  const enrolled = await enrollAuthoritativeLoginPrincipalInExecutor(executor, proof, principal);
+  const boundAppleMethod = proof.provider === "apple" && boundSubject !== null
+    ? await loadProviderLoginMethodInExecutor(executor, "apple", proof.identity.subject) : null;
+  if (boundAppleMethod !== null && proof.identity.email?.authority === "provider"
+    && !proof.identity.email.privateRelay
+    && !/@(privaterelay\.appleid\.com|private\.icloud\.com)$/.test(proof.identity.email.address) && principal === null) {
+    throw new PrincipalEnrollmentError("PROVIDER_ENROLLMENT_CONFLICT");
+  }
+  const emailEnrollment = boundAppleMethod !== null && boundSubject !== null && principal !== null
+    ? await reconcileAppleLoginEmailInExecutor(executor, attempt, proof, boundSubject, principal) : null;
+  const enrolled = await enrollLockedAuthoritativeLoginPrincipalInExecutor(
+    executor, proof, emailEnrollment !== null || proof.provider === "apple" && boundSubject !== null
+      && boundAppleMethod === null ? null : principal, boundSubject);
   if (enrolled.status === "verification_required") return { status: "verification_required", enrollment: enrolled };
-  return { status: "completed", response: await persistCompletion(executor, { ...attempt, purpose: "login" }, enrolled), reconnected };
+  return { status: "completed", response: await persistCompletion(executor, { ...attempt, purpose: "login" }, enrolled),
+    reconnected, emailEnrollment };
 }
 
 function logMailboxVerificationRequired(
@@ -73,9 +89,21 @@ export async function completeAuthoritativeAuthAttempt(attempt: ClaimedAuthAttem
   if (proof === null) throw new AuthAttemptError("AUTH_ATTEMPT_INVALID");
   await beginAuthAttemptEnrollment(attempt);
   if (attempt.purpose === "login") {
-    const principal = await prepareAuthoritativeLoginPrincipal(proof);
-    const result = await transaction((executor) => completeAuthoritativeLoginInExecutor(executor, attempt, proof, principal));
+    let result: AuthoritativeLoginResult;
+    try {
+      const principal = await prepareAuthoritativeLoginPrincipal(proof);
+      result = await transaction((executor) => completeAuthoritativeLoginInExecutor(executor, attempt, proof, principal));
+    } catch (error) {
+      if (proof.provider === "apple" && proof.identity.email?.authority === "provider" && !proof.identity.email.privateRelay
+        && !/@(privaterelay\.appleid\.com|private\.icloud\.com)$/.test(proof.identity.email.address)) {
+        logWarning({ domain: "auth", action: "provider_email_enrollment_error", provider: proof.provider,
+          client: attempt.client, purpose: attempt.purpose, sqlState: getDatabaseErrorSqlState(error) });
+      }
+      throw error;
+    }
     if (result.status === "completed") {
+      if (result.emailEnrollment !== null) log({ domain: "auth", action: "provider_email_enrollment",
+        provider: proof.provider, client: attempt.client, purpose: attempt.purpose, emailEnrollment: result.emailEnrollment });
       if (result.reconnected) log({ domain: "auth", action: "provider_reconnected", provider: proof.provider,
         client: attempt.client, purpose: attempt.purpose });
       return result;

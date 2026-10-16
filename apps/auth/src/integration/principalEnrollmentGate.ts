@@ -197,7 +197,6 @@ export async function checkAtomicAuthoritativeLogin(runtime: pg.Client, owner: p
     await owner.query("SELECT auth.bind_cognito_account($1,$2)", [appleSubject, appleAccount]);
     const appleAttempt = await prepare("apple", appleProvider);
     const appleCompletion = randomBytes(32).toString("base64url");
-    // 0189 owns enrollment plus encrypted completion SQL; the Apple orchestration requires 0194.
     await inTransaction(runtime, async (executor) => {
       const enrolled = await enrollAuthoritativeLoginPrincipalInExecutor(executor, appleProof, applePrincipal);
       assert.equal(enrolled.status, "enrolled");
@@ -350,9 +349,10 @@ export async function checkAppleConsentReconnect(runtime: pg.Client, owner: pg.C
         [authHandleHash(attempt.handle), attempt.claimId, appleProvider]);
       return attempt;
     };
+    const sharedEmailPrincipal = { cognitoSubject: subject, cognitoUsername: subject, email };
     const failedReconnect = await prepareReconnect();
     await assert.rejects(inTransaction(runtime, async (executor) => {
-      const result = await completeAuthoritativeLoginInExecutor(executor, failedReconnect, reconnectProof, null);
+      const result = await completeAuthoritativeLoginInExecutor(executor, failedReconnect, reconnectProof, sharedEmailPrincipal);
       assert.equal(result.status, "completed");
       throw new Error("module-reconnect-rollback");
     }), { message: "module-reconnect-rollback" });
@@ -362,10 +362,11 @@ export async function checkAppleConsentReconnect(runtime: pg.Client, owner: pg.C
 
     const reconnectAttempt = await prepareReconnect();
     const reconnected = await inTransaction(runtime, (executor) =>
-      completeAuthoritativeLoginInExecutor(executor, reconnectAttempt, reconnectProof, null));
+      completeAuthoritativeLoginInExecutor(executor, reconnectAttempt, reconnectProof, sharedEmailPrincipal));
     assert.equal(reconnected.status, "completed");
     if (reconnected.status !== "completed") throw new Error("Expected Apple reconnection completion");
     assert.equal(reconnected.reconnected, true);
+    assert.equal(reconnected.emailEnrollment, "foreign_account");
     const recovered = await inTransaction(runtime, (executor) =>
       redeemSocialSignInInExecutor(executor, reconnected.response.completion, binding));
     assert.equal(recovered.cognitoSubject, appleSubject);
@@ -378,7 +379,7 @@ export async function checkAppleConsentReconnect(runtime: pg.Client, owner: pg.C
     await assert.rejects(inTransaction(runtime, (executor) =>
       redeemSocialSignInInExecutor(executor, reconnected.response.completion, binding)), { code: "AUTH_COMPLETION_INVALID" });
     await assert.rejects(inTransaction(runtime, (executor) =>
-      completeAuthoritativeLoginInExecutor(executor, failedReconnect, reconnectProof, null)), { code: "P4103" });
+      completeAuthoritativeLoginInExecutor(executor, failedReconnect, reconnectProof, sharedEmailPrincipal)), { code: "P4103" });
     const delayed = await notification("consent-revoked", new Date(freshIssuedAt * 1_000));
     assert.equal(delayed.outcome, "ignored_stale");
     assert.equal((await delayed.replay()).rows[0].outcome, "ignored_stale");

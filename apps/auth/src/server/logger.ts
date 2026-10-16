@@ -1,3 +1,4 @@
+import type { ProviderEmailEnrollmentOutcome } from "./social/providerEmailEnrollment.js";
 import type { AuthTraceId } from "./sentry.js";
 import type { AuthPurpose } from "./social/attemptContract.js";
 import type { IdentityProvider } from "./social/identityStore.js";
@@ -35,6 +36,8 @@ type AuthAction =
   | "apple_identity_verified"
   | "provider_mailbox_verification_required"
   | "provider_reconnected"
+  | "provider_email_enrollment"
+  | "provider_email_enrollment_error"
   | "error";
 
 type AppleEmailCategory = "missing" | "relay" | "real";
@@ -72,6 +75,7 @@ export type AuthLogEvent = Readonly<{
   purpose?: AuthPurpose;
   attemptHash?: string;
   appleProof?: AppleIdentityProofFacts;
+  emailEnrollment?: ProviderEmailEnrollmentOutcome;
   emailAuthority?: ProviderEmail["authority"] | null;
   privateRelay?: boolean | null;
   maskedEmail?: string;
