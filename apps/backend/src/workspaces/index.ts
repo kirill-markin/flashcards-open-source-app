@@ -2,6 +2,8 @@ export {
   AUTO_CREATED_WORKSPACE_NAME,
   deleteWorkspaceConfirmationText,
   resetWorkspaceProgressConfirmationText,
+  type AuthorizedWorkspaceSummary,
+  type AuthorizedWorkspaceSummaryPage,
   type DeleteWorkspaceResult,
   type ResetWorkspaceProgressResult,
   type WorkspaceDeletePreview,
@@ -12,6 +14,7 @@ export {
 } from "./types";
 
 export {
+  listAuthorizedUserWorkspacesPageForSelectedWorkspace,
   listUserWorkspacesForSelectedWorkspace,
   listUserWorkspacesPageForSelectedWorkspace,
   listUserWorkspacesWithStatsForSelectedWorkspace,
