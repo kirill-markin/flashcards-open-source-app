@@ -192,6 +192,9 @@ export async function checkAccountConnectionPreparation(runtime: pg.Client, owne
       [authHandleHash(receipt.operation), digest, JSON.stringify(unionResult)]);
     assert.deepEqual(await replayAccountConnectionInExecutor(executor(owner), receipt.operation, current, connectionBinding, digest),
       { consentDigest: digest, result: JSON.stringify(unionResult) });
+    assert.equal((await owner.query("SELECT * FROM auth.replay_account_connection($1,$2,$3,$4,$5,$6,$7,$8)",
+      [authHandleHash(receipt.operation), current.subject, current.username, current.authTime,
+        authAttemptBindingHash(connectionBinding), connectionBinding.client, "https://wrong-origin.test", digest])).rowCount, 0);
     await assert.rejects(replayAccountConnectionInExecutor(executor(owner), receipt.operation, current, connectionBinding, authHandleHash("changed-consent")), { code: "23514" });
     const expiredReplay = randomBytes(32).toString("base64url");
     const retainedReplay = randomBytes(32).toString("base64url");
