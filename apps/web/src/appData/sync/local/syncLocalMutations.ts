@@ -1,3 +1,4 @@
+import { makeDefaultCardMetadata } from "../../domain/cardMetadata";
 import { computeReviewSchedule, type ReviewRating } from "../../../../../backend/src/scheduling";
 import { loadCardById, putCard } from "../../../localDb/cards/cards";
 import { loadCloudSettings } from "../../../localDb/sync/cloudSettings";
@@ -7,6 +8,7 @@ import { putReviewEvent } from "../../../localDb/reviews/reviews";
 import { loadWorkspaceSettings } from "../../../localDb/cards/workspace";
 import type {
   Card,
+  CardMetadata,
   CreateCardInput,
   CreateDeckInput,
   Deck,
@@ -118,6 +120,35 @@ export async function createCardLocally(
   input: CreateCardLocallyInput,
   indexedDbOpenRecoveryState: IndexedDbOpenRecoveryState,
 ): Promise<LocalCardMutationResult> {
+  return createCardWithMetadataLocally(
+    input,
+    makeDefaultCardMetadata(input.clientUpdatedAt),
+    indexedDbOpenRecoveryState,
+  );
+}
+
+export async function createOnboardingDemoCardLocally(
+  input: CreateCardLocallyInput,
+  indexedDbOpenRecoveryState: IndexedDbOpenRecoveryState,
+): Promise<LocalCardMutationResult> {
+  const normalizedInput = normalizeCreateCardInput(input.input);
+  return createCardWithMetadataLocally(input, {
+    ...makeDefaultCardMetadata(input.clientUpdatedAt),
+    onboardingDemo: {
+      version: 1,
+      ...normalizedInput,
+      tags: [...new Set(normalizedInput.tags)].sort(),
+      cardType: "basic",
+      wasEdited: false,
+    },
+  }, indexedDbOpenRecoveryState);
+}
+
+async function createCardWithMetadataLocally(
+  input: CreateCardLocallyInput,
+  metadata: CardMetadata,
+  indexedDbOpenRecoveryState: IndexedDbOpenRecoveryState,
+): Promise<LocalCardMutationResult> {
   indexedDbOpenRecoveryState.throwIfFailed();
   const normalizedInput = normalizeCreateCardInput(input.input);
   const operationId = crypto.randomUUID().toLowerCase();
@@ -125,7 +156,7 @@ export async function createCardLocally(
     loadRequiredCloudInstallationId,
     indexedDbOpenRecoveryState,
   );
-  const nextCard = buildInitialCard(normalizedInput, input.clientUpdatedAt, installationId, operationId);
+  const nextCard = { ...buildInitialCard(normalizedInput, input.clientUpdatedAt, installationId, operationId), metadata };
   const didChangeReviewSchedule = doesCardMutationAffectReviewSchedule(null, nextCard);
   const nextOutboxRecord: PersistedOutboxRecord = {
     operationId,

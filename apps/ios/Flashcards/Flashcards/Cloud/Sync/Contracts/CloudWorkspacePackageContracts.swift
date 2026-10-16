@@ -320,12 +320,27 @@ struct WorkspacePackageImportConfirmOptions: Codable, Hashable, Sendable {
     let operationIdPrefix: String
 }
 
+struct WorkspacePackageCardMetadata: Codable, Hashable, Sendable {
+    let version: Int
+    let source: CardSourceMetadata?
+
+    init(from decoder: Decoder) throws {
+        let metadata = try CardMetadata(from: decoder)
+        self.version = metadata.version
+        self.source = metadata.source
+    }
+
+    func encode(to encoder: Encoder) throws {
+        try CardMetadata(source: self.source).encode(to: encoder)
+    }
+}
+
 struct WorkspacePackageImportedCard: Codable, Hashable, Sendable {
     let cardId: String
     let frontText: String
     let backText: String
     let cardType: String
-    let metadata: CardMetadata
+    let metadata: WorkspacePackageCardMetadata
     let tags: [String]
     let dueAt: String?
     let createdAt: String

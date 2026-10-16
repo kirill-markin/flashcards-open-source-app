@@ -1,3 +1,4 @@
+import { normalizeCardMetadata } from "../../../appData/domain/cardMetadata";
 import type {
   Card,
   QueryCardsInput,
@@ -74,7 +75,7 @@ function toCard(record: StoredCard): Card {
     frontText: record.frontText,
     backText: record.backText,
     cardType: record.cardType,
-    metadata: record.metadata,
+    metadata: normalizeCardMetadata(record.metadata, record.createdAt),
     tags: record.tags,
     // TODO: Drop boundary-facing legacy dueAt after the domain/wire split.
     dueAt: record.dueAt ?? null,
