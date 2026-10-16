@@ -25,6 +25,7 @@ import androidx.compose.material.icons.outlined.Email
 import androidx.compose.material3.Badge
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -105,7 +106,21 @@ fun CloudSignInEntryRoute(
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             if (state.busy) CircularProgressIndicator(modifier = Modifier.testTag("cloud_sign_in_loading"))
-            if (state.error.isNotEmpty()) Text(state.error, color = MaterialTheme.colorScheme.error)
+            if (state.error.isNotEmpty()) {
+                if (state.cleanupPending) {
+                    Card(modifier = Modifier.fillMaxWidth().testTag("cloud_sign_in_cleanup_pending")) {
+                        Text(state.error, modifier = Modifier.padding(20.dp))
+                    }
+                } else Text(state.error, color = MaterialTheme.colorScheme.error)
+                val technicalDetails = state.errorTechnicalDetails
+                val reportId = state.errorTechnicalDetailsReportId
+                if (technicalDetails != null && reportId != null) {
+                    TextButton(onClick = { onShowTechnicalDetails(technicalDetails, reportId) },
+                        modifier = Modifier.testTag("cloud_sign_in_provider_error_details")) {
+                        Text(stringResource(R.string.settings_sign_in_error_show_details))
+                    }
+                }
+            }
             if (state.step == CloudSignInEntryStep.MAILBOX) {
                 Text(stringResource(R.string.settings_auth_mailbox_body))
                 OutlinedTextField(

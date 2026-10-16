@@ -124,6 +124,7 @@ private func cloudRoundedSignInButtonConfiguration(
     return configuration
 }
 
+@MainActor
 private func updateCloudSignInButtonFont(_ button: UIButton, font: UIFont) {
     let scaledFont = UIFontMetrics(forTextStyle: .body).scaledFont(for: font, compatibleWith: button.traitCollection)
     button.configuration?.titleTextAttributesTransformer = UIConfigurationTextAttributesTransformer { incoming in
