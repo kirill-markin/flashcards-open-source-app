@@ -73,6 +73,15 @@ export const createdRolesByMigration = new Map([
 // migration contracts retain their original cutoffs.
 export const boundaryDefinitions = Object.freeze([
   Object.freeze({
+    migrationFileName: "0205_account_email_reauthentication.sql",
+    expectedMigrationCount: 207,
+    testFiles: Object.freeze([
+      "src/auth/accountEmailReauthentication.postgres.integration.ts",
+      "src/auth/emailAuthAttempt.postgres.integration.ts",
+      "src/auth/accountProviderMethods.postgres.integration.ts",
+    ]),
+  }),
+  Object.freeze({
     migrationFileName: "0204_multipart_reconciliation_owner.sql",
     expectedMigrationCount: 206,
     testFiles: Object.freeze([
@@ -179,20 +188,6 @@ export const boundaryDefinitions = Object.freeze([
     expectedMigrationCount: 195,
     testFiles: Object.freeze([
       "src/auth/accountProviderBrowserHandoffs.postgres.integration.ts",
-    ]),
-  }),
-  Object.freeze({
-    migrationFileName: "0192_account_provider_methods.sql",
-    expectedMigrationCount: 194,
-    testFiles: Object.freeze([
-      "src/auth/accountProviderMethods.postgres.integration.ts",
-    ]),
-  }),
-  Object.freeze({
-    migrationFileName: "0191_email_auth_attempt_proofs.sql",
-    expectedMigrationCount: 193,
-    testFiles: Object.freeze([
-      "src/auth/emailAuthAttempt.postgres.integration.ts",
     ]),
   }),
   Object.freeze({

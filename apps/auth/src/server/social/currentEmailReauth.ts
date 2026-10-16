@@ -2,7 +2,8 @@ import { randomBytes } from "node:crypto";
 import { query } from "../../db.js";
 import { verifyCurrentAccountSession } from "../browserSession.js";
 import { initiateCurrentEmailOtp, verifyCurrentEmailOtpPrincipal } from "../cognito/cognitoAuth.js";
-import { normalizeEnrollmentEmail } from "./mailboxProof.js";
+import { resolveAccountRecoveryEmail } from "./accountMethods.js";
+import { decideOtpRateLimit, recordOtpSendDecision } from "../otp/otpRateLimit.js";
 import { authAttemptBindingHash, authHandleHash, openAuthAttemptState, sealAuthAttemptState } from "./attemptStore.js";
 import {
   AuthAttemptError, requireAuthHandle, type AuthCompletionResponse, type AuthReauthenticationBinding,
@@ -11,7 +12,7 @@ import {
 
 type EmailAttemptRow = Readonly<{
   claim_id: string;
-  current_subject: string;
+  snapshot_subject: string;
   snapshot_username: string;
   email_address: string;
   secret_ciphertext: string;
@@ -21,14 +22,16 @@ type EmailAttemptRow = Readonly<{
 /** No caller-provided email, principal, account or authentication timestamp can authorize this flow. */
 export async function beginCurrentEmailReauthentication(
   sessionToken: string, request: EmailAuthAttemptRequest, browser: Readonly<{ origin: string; secret: string }> | null,
+  source: string,
 ): Promise<EmailAuthAttemptResponse> {
   if (request.method !== "email" || request.purpose !== "reauth"
     || !["web", "android", "ios", "ios-development", "macos", "macos-development"].includes(request.client)
     || (request.client === "web") !== (browser !== null)
     || (request.client === "web") !== (request.codeChallenge === null)) throw new AuthAttemptError("AUTH_ATTEMPT_INVALID");
   const current = await verifyCurrentAccountSession(sessionToken);
-  if (!current.emailVerified) throw new AuthAttemptError("AUTH_ATTEMPT_INVALID");
-  const email = normalizeEnrollmentEmail(current.email);
+  const recovery = await resolveAccountRecoveryEmail(current.subject, current.username, current.authTime,
+    current.emailVerified ? current.email : null);
+  if (recovery === null) throw new AuthAttemptError("AUTH_ATTEMPT_INVALID");
   let binding: string;
   if (browser !== null) {
     binding = authAttemptBindingHash({ client: "web", purpose: "reauth", origin: browser.origin, browserSecret: browser.secret });
@@ -39,18 +42,26 @@ export async function beginCurrentEmailReauthentication(
     binding = Buffer.from(request.codeChallenge, "base64url").toString("hex");
   }
   const handle = randomBytes(32).toString("base64url");
-  const result = await query<EmailAttemptRow>(
-    "SELECT * FROM auth.create_email_auth_attempt($1,$2,$3,$4,$5,$6,$7,$8,$9)",
-    [authHandleHash(handle), request.client, binding, browser?.origin ?? null, current.subject, current.username,
-      email, current.authTime, sealAuthAttemptState(handle, JSON.stringify({ session: null }))],
-  );
+  const parameters = [authHandleHash(handle), request.client, binding, browser?.origin ?? null, current.subject, current.username,
+    recovery.email, current.authTime, sealAuthAttemptState(handle, JSON.stringify({ session: null }))];
+  const result = recovery.enrollment === "registered"
+    ? await query<EmailAttemptRow>("SELECT * FROM auth.create_email_auth_attempt($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)",
+      [...parameters, recovery.cognitoSubject, recovery.cognitoUsername])
+    : await query<EmailAttemptRow>("SELECT * FROM auth.create_email_auth_attempt($1,$2,$3,$4,$5,$6,$7,$8,$9)", parameters);
   const attempt = result.rows[0];
   if (attempt === undefined) throw new Error("Email reauthentication creation returned no attempt");
-  const challenge = await initiateCurrentEmailOtp(email, current.username);
+  const decision = await decideOtpRateLimit(attempt.email_address, source);
+  if (decision.kind !== "send") {
+    await recordOtpSendDecision(attempt.email_address, source,
+      decision.kind === "block_ip_limit" ? "blocked_ip_limit" : "suppressed_email_limit", null);
+    throw new AuthAttemptError("AUTH_RATE_LIMITED");
+  }
+  const challenge = await initiateCurrentEmailOtp(attempt.email_address, attempt.snapshot_username);
   await query("SELECT auth.ready_email_auth_attempt($1,$2,$3)", [
     authHandleHash(handle), attempt.claim_id, sealAuthAttemptState(handle, JSON.stringify(challenge)),
   ]);
-  return { attempt: handle, expiresAt: attempt.expires_at.toISOString() };
+  await recordOtpSendDecision(attempt.email_address, source, "sent", null);
+  return { attempt: handle, expiresAt: attempt.expires_at.toISOString(), email: attempt.email_address };
 }
 
 /** Claim commits before the one external step; any ambiguous outcome requires a fresh attempt. */
@@ -60,13 +71,12 @@ export async function completeCurrentEmailReauthentication(
   requireAuthHandle(handle);
   if (binding.purpose !== "reauth" || !/^[0-9]{6,8}$/.test(code)) throw new AuthAttemptError("AUTH_ATTEMPT_INVALID");
   const current = await verifyCurrentAccountSession(sessionToken);
-  if (!current.emailVerified) throw new AuthAttemptError("AUTH_ATTEMPT_INVALID");
   const result = await query<EmailAttemptRow>("SELECT * FROM auth.claim_email_auth_attempt($1,$2,$3,$4,$5,$6,$7)", [
     authHandleHash(handle), authAttemptBindingHash(binding), binding.client, binding.client === "web" ? binding.origin : null,
     current.subject, current.username, current.authTime,
   ]);
   const attempt = result.rows[0];
-  if (attempt === undefined || attempt.email_address !== normalizeEnrollmentEmail(current.email)) {
+  if (attempt === undefined) {
     throw new AuthAttemptError("AUTH_ATTEMPT_RESTART_REQUIRED");
   }
   const state = JSON.parse(openAuthAttemptState(handle, attempt.secret_ciphertext)) as Readonly<{ session: string }>;
