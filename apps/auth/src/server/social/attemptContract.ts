@@ -23,7 +23,7 @@ export type EmailAuthAttemptRequest = Readonly<{
   purpose: "reauth";
   codeChallenge: string | null;
 }>;
-export type EmailAuthAttemptResponse = Readonly<{ attempt: string; expiresAt: string }>;
+export type EmailAuthAttemptResponse = Readonly<{ attempt: string; expiresAt: string; email: string }>;
 export type AuthAttemptResponse = Readonly<{
   attempt: string;
   nonce: string;
