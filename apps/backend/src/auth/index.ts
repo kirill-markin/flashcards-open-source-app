@@ -19,7 +19,7 @@ import { HttpError } from "../shared/errors";
 import { authenticateGuestSession } from "../guestAuth/session/index";
 import type { AnalyticsConsentChoice } from "./ensureUser";
 import type { GuestSessionPlatform } from "../guestAuth/types";
-import { loadCognitoIdentityMapping } from "./userIdentities";
+import { loadCognitoIdentityMapping, type ClientAccountIdentity } from "./userIdentities";
 import { assertVerifiedPrincipalSession, assertVerifiedAccountDeletionSession, type VerifiedPrincipalSessionClaims } from "./principalSessions";
 
 export type AuthTransport = "none" | "bearer" | "session" | "api_key" | "guest";
@@ -29,6 +29,7 @@ export const authVerificationRetryAfterSeconds = 10;
 
 export type AuthResult = Readonly<{
   userId: string;
+  clientAccountIdentity?: ClientAccountIdentity;
   email: string | null;
   cognitoUsername: string | null;
   subjectUserId: string;
@@ -348,6 +349,7 @@ async function authenticateRequestWithDependencies(
     );
     return {
       userId: auth.userId,
+      clientAccountIdentity: auth.clientAccountIdentity,
       email: null,
       cognitoUsername: null,
       subjectUserId: auth.userId,
