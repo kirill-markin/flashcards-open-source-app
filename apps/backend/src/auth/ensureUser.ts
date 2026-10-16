@@ -119,7 +119,11 @@ export async function ensureUserProfile(userId: string, email: string | null): P
   return unsafeTransaction(async (executor) => {
     const canonicalUserId = await resolveCanonicalAccountIdInExecutor(executor, userId);
     await applyUserDatabaseScopeInExecutor(executor, { userId: canonicalUserId });
-    return ensureUserProfileInExecutor(executor, canonicalUserId, email);
+    const profile = await ensureUserProfileInExecutor(executor, canonicalUserId, email);
+    return {
+      ...profile,
+      clientAccountIdentity: await loadClientAccountIdentityInExecutor(executor, canonicalUserId, userId),
+    };
   });
 }
 

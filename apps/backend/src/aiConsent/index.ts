@@ -3,6 +3,7 @@ import {
   type DatabaseExecutor,
 } from "../database";
 import { HttpError } from "../shared/errors";
+import { activeGuestSessionOwnerPredicateSql } from "../guestAuth/shared";
 import { currentAiDisclosureVersion, type AiConsentInput, type AiConsentReceipt } from "./input";
 
 type ConsentEventRow = Readonly<{
@@ -60,8 +61,8 @@ export async function recordAiConsentInExecutor(
   }
   if (guestSessionId !== null) {
     const session = await executor.query<Readonly<{ session_id: string }>>(
-      "SELECT session_id FROM auth.guest_sessions WHERE user_id = $1 AND session_id = $2 AND revoked_at IS NULL",
-      [userId, guestSessionId],
+      `SELECT session_id FROM auth.guest_sessions WHERE ${activeGuestSessionOwnerPredicateSql} FOR SHARE`,
+      [guestSessionId, userId],
     );
     if (session.rows.length === 0) {
       throw new HttpError(410, "The guest consent credential has been retired. Sign in again before submitting decisions.", "AI_CONSENT_IDENTITY_DELETED");

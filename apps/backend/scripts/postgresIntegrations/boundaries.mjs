@@ -73,6 +73,17 @@ export const createdRolesByMigration = new Map([
 // migration contracts retain their original cutoffs.
 export const boundaryDefinitions = Object.freeze([
   Object.freeze({
+    migrationFileName: "0210_proved_account_union.sql",
+    expectedMigrationCount: 212,
+    testFiles: Object.freeze([
+      "src/auth/provedAccountUnion.postgres.integration.ts",
+      "src/auth/appleLifecycle.postgres.integration.ts",
+      "src/aiConsent/consent.postgres.integration.ts",
+      "src/routes/system/account/accountPreferences.postgres.integration.ts",
+      "src/productAnalytics/writer.postgres.integration.ts",
+    ]),
+  }),
+  Object.freeze({
     migrationFileName: "0209_account_community_union.sql",
     expectedMigrationCount: 211,
     testFiles: Object.freeze([
@@ -183,15 +194,11 @@ export const boundaryDefinitions = Object.freeze([
       "src/productAnalytics/dailyVisitorHash.postgres.integration.ts",
       "src/auth/surrogateUserId.postgres.integration.ts",
       "src/guestAuth/upgrade/boundGuestSession.postgres.integration.ts",
-      "src/aiConsent/consent.postgres.integration.ts",
-      "src/auth/appleLifecycle.postgres.integration.ts",
-      "src/routes/system/account/accountPreferences.postgres.integration.ts",
       "src/auth/principalSessions.postgres.integration.ts",
       "src/chat/cardImages/operation.postgres.integration.ts",
       "src/chat/runs/generatedImageAttemptBudget.postgres.integration.ts",
       "src/chat/store/historyService.postgres.integration.ts",
       "src/productAnalytics/serverFacts/authoringUpdates.postgres.integration.ts",
-      "src/productAnalytics/writer.postgres.integration.ts",
       "src/sync/freshBootstrap.postgres.integration.ts",
       "src/catalog/distribution/install/install.postgres.integration.ts",
       "src/cards/managedMedia/managedImageSnapshotMerge.postgres.integration.ts",

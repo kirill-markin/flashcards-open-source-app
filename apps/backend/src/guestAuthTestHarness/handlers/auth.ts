@@ -13,6 +13,10 @@ export function handleAuthExecutorQuery<Row extends pg.QueryResultRow>(
 ): pg.QueryResult<Row> | null {
   const { state } = context;
 
+  if (text === "SELECT auth.canonical_account_id($1) AS user_id") {
+    return createQueryResult<Row>([{ user_id: String(params[0]) } as unknown as Row]);
+  }
+
   if (text === "SELECT auth.linked_client_account_ids() AS linked_account_ids") {
     return createQueryResult<Row>([{ linked_account_ids: [state.currentUserId] } as unknown as Row]);
   }
@@ -97,6 +101,7 @@ export function handleAuthExecutorQuery<Row extends pg.QueryResultRow>(
       source_guest_session_id: guestUpgradeHistory.source_guest_session_id,
       target_subject_user_id: guestUpgradeHistory.target_subject_user_id,
       target_user_id: guestUpgradeHistory.target_user_id,
+      canonical_target_user_id: guestUpgradeHistory.target_user_id,
       target_workspace_id: guestUpgradeHistory.target_workspace_id,
       dropped_entities: guestUpgradeHistory.dropped_entities,
     } as unknown as Row];
@@ -116,6 +121,7 @@ export function handleAuthExecutorQuery<Row extends pg.QueryResultRow>(
       source_guest_session_id: guestUpgradeHistory.source_guest_session_id,
       target_subject_user_id: guestUpgradeHistory.target_subject_user_id,
       target_user_id: guestUpgradeHistory.target_user_id,
+      canonical_target_user_id: guestUpgradeHistory.target_user_id,
       target_workspace_id: guestUpgradeHistory.target_workspace_id,
       dropped_entities: guestUpgradeHistory.dropped_entities,
     } as unknown as Row];

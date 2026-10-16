@@ -169,13 +169,13 @@ async function loadAuthenticatedRequestContext(
     email: userProfile.email,
     locale: userProfile.locale,
     userSettingsCreatedAt: userProfile.createdAt,
-    // A guest's analytics decisions live on the guest session, so the org.user_settings columns the
-    // profile carries are not that person's answers and would report an opt-out as unanswered.
     preferences: auth.transport === "guest"
       ? {
         ...userProfile.preferences,
-        analyticsConsent: auth.guestAnalyticsConsent,
-        productAnalyticsEnabled: auth.guestProductAnalyticsEnabled,
+        analyticsConsent: userProfile.preferences.analyticsConsent === "declined"
+          ? "declined" : auth.guestAnalyticsConsent,
+        productAnalyticsEnabled: userProfile.preferences.productAnalyticsEnabled === false
+          ? false : auth.guestProductAnalyticsEnabled,
       }
       : userProfile.preferences,
     transport: auth.transport,
@@ -421,7 +421,7 @@ export function requireAgentConnectionId(requestContext: RequestContext): string
 
 /** Credential presentation must never become a database or resource owner. */
 export function getClientAccountIdentity(requestContext: RequestContext): ClientAccountIdentity {
-  if (requestContext.transport === "guest" || requestContext.transport === "none") {
+  if (requestContext.transport === "none") {
     return {
       originalClientUserId: requestContext.userId,
       canonicalAccountId: requestContext.userId,
