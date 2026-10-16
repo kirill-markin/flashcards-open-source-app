@@ -3,8 +3,6 @@ import type { AuthAppEnv } from "../../server/apiErrors.js";
 import { beginCurrentEmailReauthentication, completeCurrentEmailReauthentication } from "../../server/social/currentEmailReauth.js";
 import { AuthAttemptError, type AuthReauthenticationBinding } from "../../server/social/attemptContract.js";
 import { parseCompletionHandle, parseSocialClient, parseSocialObject } from "../../server/social/publicContract.js";
-import { verifyCurrentAccountSession } from "../../server/browserSession.js";
-import { decideOtpRateLimit, recordOtpSendDecision } from "../../server/otp/otpRateLimit.js";
 import { getSocialRequestSource } from "../../server/social/requestSource.js";
 import { requireSocialRateLimit } from "../../server/social/rateLimit.js";
 import { accountBinding, accountTransport } from "./accountTransport.js";
@@ -24,16 +22,9 @@ app.post("/api/account/reauth/email", async (c) => {
       }
       const source = getSocialRequestSource();
       await requireSocialRateLimit("mailbox_send", source);
-      const current = await verifyCurrentAccountSession(transport.sessionToken);
-      const decision = await decideOtpRateLimit(current.email, source);
-      if (decision.kind !== "send") {
-        await recordOtpSendDecision(current.email, source, decision.kind === "block_ip_limit" ? "blocked_ip_limit" : "suppressed_email_limit", null);
-        throw new AuthAttemptError("AUTH_RATE_LIMITED");
-      }
       const response = await beginCurrentEmailReauthentication(transport.sessionToken,
         { method: "email", purpose: "reauth", client, codeChallenge: challenge },
-        transport.browser === null ? null : { origin: transport.browser.authOrigin, secret: transport.browser.secret });
-      await recordOtpSendDecision(current.email, source, "sent", null);
+        transport.browser === null ? null : { origin: transport.browser.authOrigin, secret: transport.browser.secret }, source);
       return c.json(response);
     }
     if (fields.action !== "complete" || typeof fields.code !== "string" || !/^[0-9]{6,8}$/.test(fields.code)) {
