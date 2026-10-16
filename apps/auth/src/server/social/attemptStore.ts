@@ -290,7 +290,7 @@ export async function verifyClaimedAuthAttempt(
   if (submission.provider === "apple") {
     const result = await exchangeAppleAuthorizationCode({ client: attempt.client, identityToken: submission.identityToken,
       authorizationCode: submission.authorizationCode, rawNonce: attempt.secrets.nonce, redirectUri: attempt.redirectUri });
-    proof = { provider: "apple", identity: result.identity, credential: result.credential };
+    proof = { provider: "apple", identity: result.identity, issuedAt: result.identity.issuedAt, credential: result.credential };
   } else if (submission.authorizationCode !== null) {
     if (attempt.client !== "web" || attempt.redirectUri === null) throw new AuthAttemptError("AUTH_ATTEMPT_INVALID");
     proof = { provider: "google", identity: await exchangeGoogleAuthorizationCode(submission.authorizationCode,
@@ -300,7 +300,15 @@ export async function verifyClaimedAuthAttempt(
     proof = { provider: "google", identity: await verifyGoogleIdentityToken(submission.identityToken, attempt.secrets.nonce, attempt.client) };
   }
   const secrets = { ...attempt.secrets, proof };
-  await transaction((executor) => advanceAuthAttemptInExecutor(executor, attempt, "provider_verifying", "provider_proved", secrets));
+  await transaction(async (executor) => {
+    if (proof.provider === "apple" && attempt.purpose === "login") {
+      await executor.query("SELECT auth.record_apple_login_proof($1,$2,$3,$4,$5)", [
+        authHandleHash(attempt.handle), attempt.claimId, sealSecrets(attempt.handle, secrets), proof.identity.subject, proof.issuedAt,
+      ]);
+    } else {
+      await advanceAuthAttemptInExecutor(executor, attempt, "provider_verifying", "provider_proved", secrets);
+    }
+  });
   return { ...attempt, secrets, phase: "provider_proved" };
 }
 
