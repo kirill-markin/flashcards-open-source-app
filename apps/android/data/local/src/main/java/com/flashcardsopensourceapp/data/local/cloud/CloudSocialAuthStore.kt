@@ -65,7 +65,6 @@ internal data class PendingCloudSocialSignIn(
     val binding: CloudSocialAttemptBinding?,
     val appleBrowser: CloudAppleBrowserBinding?,
     val originalReauthenticationBinding: CloudSocialAttemptBinding?,
-    val rememberSignIn: Boolean,
     val mailboxReason: CloudSocialMailboxReason?,
     val mailboxCodeRequested: Boolean,
     val mailboxRequestInFlight: Boolean,
@@ -119,8 +118,7 @@ internal data class PendingCloudSocialSignIn(
 internal data class PendingCloudEmailSignIn(
     val configuration: CloudServiceConfiguration,
     val refreshToken: String,
-    val hint: CloudSuccessfulSignInHint?,
-    val rememberSignIn: Boolean
+    val hint: CloudSuccessfulSignInHint?
 )
 
 @Serializable
@@ -174,11 +172,8 @@ internal class CloudSocialAuthStore(private val credentialStore: CloudCredential
             "Remembering a sign-in requires an accepted Nibomo session."
         }
         credentialStore.update { secrets ->
-            secrets.copy(pendingSocialSignIn = null, pendingEmailSignIn = null, successfulSignInHint = if (pending.rememberSignIn) {
-                Json.encodeToString(StoredCloudSignInHint(pending.configuration, accepted.hint.successfulHint()))
-            } else {
-                null
-            })
+            secrets.copy(pendingSocialSignIn = null, pendingEmailSignIn = null, successfulSignInHint =
+                Json.encodeToString(StoredCloudSignInHint(pending.configuration, accepted.hint.successfulHint())))
         }
     }
 
@@ -192,31 +187,19 @@ internal class CloudSocialAuthStore(private val credentialStore: CloudCredential
     fun completeEmailSession(configuration: CloudServiceConfiguration, refreshToken: String) {
         credentialStore.update { secrets ->
             val value = secrets.pendingEmailSignIn ?: return@update secrets
-            val pending = decodeSocialAuthState { Json.decodeFromString<PendingCloudEmailSignIn>(value) }
+            val pending = decodeSocialAuthState {
+                val fields = Json.parseToJsonElement(value) as? JsonObject
+                    ?: throw SerializationException("Pending email sign-in must be an object.")
+                Json.decodeFromJsonElement<PendingCloudEmailSignIn>(JsonObject(fields - "rememberSignIn"))
+            }
             if (pending.configuration != configuration || pending.refreshToken != refreshToken ||
                 secrets.refreshToken != refreshToken) {
                 return@update secrets
             }
             secrets.copy(pendingEmailSignIn = null, successfulSignInHint = when {
-                !pending.rememberSignIn -> null
                 pending.hint != null -> Json.encodeToString(StoredCloudSignInHint(configuration, pending.hint))
                 else -> secrets.successfulSignInHint
             })
-        }
-    }
-
-    fun forgetHint() {
-        credentialStore.update { secrets ->
-            val pending = secrets.pendingSocialSignIn?.let { value ->
-                decodePending(value)
-            }
-            secrets.copy(
-                successfulSignInHint = null,
-                pendingAccountMethod = null,
-                accountMethodEpoch = java.util.UUID.randomUUID().toString(),
-                pendingEmailSignIn = null,
-                pendingSocialSignIn = pending?.let { Json.encodeToString(it.copy(rememberSignIn = false)) }
-            )
         }
     }
 }
@@ -226,9 +209,9 @@ private fun <Result> decodeSocialAuthState(decode: () -> Result): Result {
         return decode()
     } catch (_: SerializationException) {
         // A serialization cause can contain plaintext credentials or email.
-        throw IllegalStateException("Encrypted social sign-in state is invalid. Sign out and forget to clear it before trying again.")
+        throw IllegalStateException("Encrypted social sign-in state is invalid. Sign out to clear it before trying again.")
     } catch (_: IllegalArgumentException) {
-        throw IllegalStateException("Encrypted social sign-in state is unsupported. Sign out and forget to clear it before trying again.")
+        throw IllegalStateException("Encrypted social sign-in state is unsupported. Sign out to clear it before trying again.")
     }
 }
 
@@ -238,7 +221,7 @@ private fun decodePending(value: String): PendingCloudSocialSignIn = decodeSocia
     val pending = Json.decodeFromJsonElement<PendingCloudSocialSignIn>(JsonObject(mapOf(
         "appleBrowser" to JsonNull, "mailboxCodeRequested" to JsonPrimitive(false),
         "mailboxRequestInFlight" to JsonPrimitive(false), "providerCredentialObserved" to JsonPrimitive(false)
-    ) + fields))
+    ) + (fields - "rememberSignIn")))
     // Legacy mailbox records cannot prove whether a one-use request was already launched.
     if ("mailboxRequestInFlight" !in fields && pending.snapshot().phase == CloudSocialSignInPhase.MAILBOX) {
         pending.copy(mailboxRequestInFlight = true)

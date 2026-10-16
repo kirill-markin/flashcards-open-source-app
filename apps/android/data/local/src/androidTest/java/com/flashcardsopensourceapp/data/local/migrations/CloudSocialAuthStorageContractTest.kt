@@ -118,7 +118,6 @@ class CloudSocialAuthStorageContractTest {
             binding = null,
             appleBrowser = browser,
             originalReauthenticationBinding = null,
-            rememberSignIn = true,
             mailboxReason = null,
             mailboxCodeRequested = false,
             mailboxRequestInFlight = false,
@@ -161,7 +160,7 @@ class CloudSocialAuthStorageContractTest {
         val emailHint = requireNotNull(parseCloudEmailSignInHint(JSONObject().put("signInHint",
             JSONObject().put("method", "email").put("email", "proved@example.com"))))
         restarted.socialAuthStore.stageEmailSession(PendingCloudEmailSignIn(
-            configuration, "session-refresh", emailHint, true
+            configuration, "session-refresh", emailHint
         ))
         val emailRestarted = CloudPreferencesStore(context, database)
         assertNull(emailRestarted.socialAuthStore.loadHint(configuration))
@@ -173,23 +172,23 @@ class CloudSocialAuthStorageContractTest {
         emailRestarted.socialAuthStore.completeEmailSession(configuration, "session-refresh")
         assertEquals(emailHint, restarted.socialAuthStore.loadHint(configuration))
         restarted.socialAuthStore.stageEmailSession(PendingCloudEmailSignIn(
-            configuration, "session-refresh", emailHint, false
+            configuration, "session-refresh", emailHint
         ))
+        CloudCredentialStore(context).update { secrets ->
+            secrets.copy(pendingEmailSignIn = JSONObject(requireNotNull(secrets.pendingEmailSignIn))
+                .put("rememberSignIn", false).toString())
+        }
         emailRestarted.socialAuthStore.completeEmailSession(configuration, "session-refresh")
-        assertNull(restarted.socialAuthStore.loadHint(configuration))
-        restarted.socialAuthStore.stageEmailSession(PendingCloudEmailSignIn(
-            configuration, "session-refresh", emailHint, true
-        ))
-        emailRestarted.socialAuthStore.completeEmailSession(configuration, "session-refresh")
+        assertEquals(emailHint, restarted.socialAuthStore.loadHint(configuration))
         restarted.clearCredentialsRetainingSignInHint()
         val signedOut = CloudPreferencesStore(context, database)
         assertNull(signedOut.loadCredentials())
         assertNull(signedOut.socialAuthStore.loadPending())
         assertEquals(emailHint, signedOut.socialAuthStore.loadHint(configuration))
         signedOut.socialAuthStore.stageEmailSession(PendingCloudEmailSignIn(
-            configuration, "session-refresh", emailHint, true
+            configuration, "session-refresh", emailHint
         ))
-        signedOut.socialAuthStore.forgetHint()
+        signedOut.clearCredentials()
         signedOut.saveCredentials(StoredCloudCredentials("session-refresh", "session-id", Long.MAX_VALUE))
         restarted.socialAuthStore.completeEmailSession(configuration, "session-refresh")
         assertNull(restarted.socialAuthStore.loadHint(configuration))
@@ -228,7 +227,6 @@ class CloudSocialAuthStorageContractTest {
             ),
             appleBrowser = null,
             originalReauthenticationBinding = originalBinding,
-            rememberSignIn = true,
             mailboxReason = null,
             mailboxCodeRequested = false,
             mailboxRequestInFlight = false,
@@ -270,11 +268,14 @@ class CloudSocialAuthStorageContractTest {
         store.socialAuthStore.clearPending()
         assertEquals(hint.successfulHint(), restarted.socialAuthStore.loadHint(configuration))
         store.socialAuthStore.savePending(pending)
-        restarted.socialAuthStore.forgetHint()
-        val forgotten = requireNotNull(store.socialAuthStore.loadPending())
-        assertFalse(forgotten.rememberSignIn)
-        store.socialAuthStore.completeAcceptedSession(forgotten)
-        assertNull(restarted.socialAuthStore.loadHint(configuration))
+        CloudCredentialStore(context).update { secrets ->
+            secrets.copy(pendingSocialSignIn = JSONObject(requireNotNull(secrets.pendingSocialSignIn))
+                .put("rememberSignIn", false).toString())
+        }
+        val restored = requireNotNull(restarted.socialAuthStore.loadPending())
+        assertEquals(pending, restored)
+        store.socialAuthStore.completeAcceptedSession(restored)
+        assertEquals(hint.successfulHint(), restarted.socialAuthStore.loadHint(configuration))
         assertEquals(installed, store.loadCredentials())
         store.clearCredentials()
         assertNull(CloudCredentialStore(context).load().pendingSocialSignIn)

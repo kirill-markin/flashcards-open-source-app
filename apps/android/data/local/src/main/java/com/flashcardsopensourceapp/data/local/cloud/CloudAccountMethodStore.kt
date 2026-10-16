@@ -78,9 +78,9 @@ internal class CloudAccountMethodStore(private val credentialStore: CloudCredent
         try {
             return Json.decodeFromString(value)
         } catch (_: SerializationException) {
-            throw IllegalStateException("Encrypted account proof is invalid. Sign out and forget before trying again.")
+            throw IllegalStateException("Encrypted account proof is invalid. Sign out before trying again.")
         } catch (_: IllegalArgumentException) {
-            throw IllegalStateException("Encrypted account proof is unsupported. Sign out and forget before trying again.")
+            throw IllegalStateException("Encrypted account proof is unsupported. Sign out before trying again.")
         }
     }
 }
