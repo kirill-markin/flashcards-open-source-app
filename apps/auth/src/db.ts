@@ -132,7 +132,7 @@ async function applyDatabaseScopeInExecutor(
 ): Promise<void> {
   await executor.query(
     [
-      "SELECT",
+      "SELECT auth.assert_account_write_scope($1),",
       "set_config('app.user_id', $1, true),",
       "set_config('app.workspace_id', $2, true)",
     ].join(" "),
