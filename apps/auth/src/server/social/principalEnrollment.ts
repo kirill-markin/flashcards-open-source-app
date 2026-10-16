@@ -1,6 +1,6 @@
 import { transaction, type DatabaseExecutor } from "../../db.js";
 import { getDatabaseErrorSqlState } from "../databaseErrors.js";
-import { createProvedEmailPrincipal, loadExistingEmailPrincipal, type CognitoEmailPrincipal } from "../cognito/cognitoAuth.js";
+import { createProvedEmailPrincipal, loadAvailableEmailPrincipal, loadExistingEmailPrincipal, type CognitoEmailPrincipal } from "../cognito/cognitoAuth.js";
 import { storeAppleCredentialInExecutor, type EncryptedAppleCredential } from "./appleCredential.js";
 import { loadProviderCognitoSubjectInExecutor, lockProviderEmailEnrollmentInExecutor } from "./identityStore.js";
 import {
@@ -111,12 +111,22 @@ export async function enrollAuthoritativeProviderPrincipal(proof: ProviderEnroll
   return transaction((executor) => bindEnrollment(executor, proof, principal, new Date()));
 }
 
+export function authoritativeRealProviderEmail(proof: ProviderEnrollmentProof): string | null {
+  const email = proof.identity.email;
+  return email?.authority === "provider" && !email.privateRelay
+    && !/@(privaterelay\.appleid\.com|private\.icloud\.com)$/.test(email.address) ? email.address : null;
+}
+
 export async function prepareAuthoritativeLoginPrincipal(proof: ProviderEnrollmentProof): Promise<CognitoEmailPrincipal | null> {
   const identity = checkProof(proof);
   const boundSubject = await transaction((executor) =>
     loadProviderCognitoSubjectInExecutor(executor, proof.provider, identity.subject));
   if (identity.email === null || identity.email.authority !== "provider") return null;
-  if (boundSubject !== null && (proof.provider !== "apple" || identity.email.privateRelay
+  if (boundSubject !== null && proof.provider === "google") {
+    const email = authoritativeRealProviderEmail(proof);
+    return email === null ? null : loadAvailableEmailPrincipal(email);
+  }
+  if (boundSubject !== null && (identity.email.privateRelay
     || /@(privaterelay\.appleid\.com|private\.icloud\.com)$/.test(identity.email.address))) return null;
   const principal = await createProvedEmailPrincipal(identity.email.address) ?? await loadExistingEmailPrincipal(identity.email.address);
   if (boundSubject !== null && principal === null) throw new PrincipalEnrollmentError("PROVIDER_ENROLLMENT_CONFLICT");

@@ -73,9 +73,17 @@ export const createdRolesByMigration = new Map([
 // migration contracts retain their original cutoffs.
 export const boundaryDefinitions = Object.freeze([
   Object.freeze({
-    migrationFileName: "0211_account_connection_proofs.sql",
-    expectedMigrationCount: 213,
+    migrationFileName: "0212_account_connection_readiness.sql",
+    expectedMigrationCount: 214,
     testFiles: Object.freeze([
+      "src/auth/accountConnectionPreparation.postgres.integration.ts",
+      "src/auth/appleLifecycle.postgres.integration.ts",
+      "src/aiConsent/consent.postgres.integration.ts",
+      "src/routes/system/account/accountPreferences.postgres.integration.ts",
+      "src/productAnalytics/writer.postgres.integration.ts",
+      "src/workspaces/starterVisibility.postgres.integration.ts",
+      "src/agent/reviews.postgres.integration.ts",
+      "src/auth/stableClientAccountIdentity.postgres.integration.ts",
       "src/auth/accountConnectionProofs.postgres.integration.ts",
       "src/auth/provedAccountUnion.postgres.integration.ts",
       "src/auth/principalEnrollment.postgres.integration.ts",
@@ -85,16 +93,6 @@ export const boundaryDefinitions = Object.freeze([
       "src/auth/emailAuthAttempt.postgres.integration.ts",
       "src/auth/accountProviderMethods.postgres.integration.ts",
       "src/auth/accountProviderBrowserHandoffs.postgres.integration.ts",
-    ]),
-  }),
-  Object.freeze({
-    migrationFileName: "0210_proved_account_union.sql",
-    expectedMigrationCount: 212,
-    testFiles: Object.freeze([
-      "src/auth/appleLifecycle.postgres.integration.ts",
-      "src/aiConsent/consent.postgres.integration.ts",
-      "src/routes/system/account/accountPreferences.postgres.integration.ts",
-      "src/productAnalytics/writer.postgres.integration.ts",
     ]),
   }),
   Object.freeze({
@@ -163,15 +161,6 @@ export const boundaryDefinitions = Object.freeze([
       "src/chat/cardImages/promotion/jobsSettlement.postgres.integration.ts",
       "src/chat/cardImages/promotion/jobsLeasing.postgres.integration.ts",
       "src/chat/cardImages/promotion/jobsRevocation.postgres.integration.ts",
-    ]),
-  }),
-  Object.freeze({
-    migrationFileName: "0199_starter_workspace_visibility.sql",
-    expectedMigrationCount: 201,
-    testFiles: Object.freeze([
-      "src/workspaces/starterVisibility.postgres.integration.ts",
-      "src/agent/reviews.postgres.integration.ts",
-      "src/auth/stableClientAccountIdentity.postgres.integration.ts",
     ]),
   }),
   Object.freeze({

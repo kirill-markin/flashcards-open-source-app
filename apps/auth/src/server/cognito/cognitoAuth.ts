@@ -215,8 +215,11 @@ export async function createProvedEmailPrincipal(email: string): Promise<Cognito
   }
 }
 
-/** Resolves identity only: fresh authoritative provider proof must supply mailbox ownership. */
-export async function loadExistingEmailPrincipal(email: string): Promise<CognitoEmailPrincipal | null> {
+type ExistingEmailPrincipalLookup =
+  | Readonly<{ status: "available"; principal: CognitoEmailPrincipal }>
+  | Readonly<{ status: "unavailable" }>;
+
+async function lookupExistingEmailPrincipal(email: string): Promise<ExistingEmailPrincipalLookup | null> {
   try {
     const result = await getProvisioningClient().send(new AdminGetUserCommand({
       UserPoolId: getUserPoolId(), Username: email,
@@ -232,15 +235,31 @@ export async function loadExistingEmailPrincipal(email: string): Promise<Cognito
       throw new Error("Cognito AdminGetUser did not return the exact email and immutable principal");
     }
     if (result.Enabled !== true || result.UserStatus !== "CONFIRMED") {
-      throw createCognitoTypedError({ operation: "AdminGetUser", providerStatusCode: 400,
-        cognitoType: "NotAuthorizedException", reasonCode: null,
-        message: "Cognito email principal must be enabled and confirmed for provider sign-in" });
+      return { status: "unavailable" };
     }
-    return { cognitoSubject: subject, cognitoUsername: result.Username, email };
+    return { status: "available", principal: { cognitoSubject: subject, cognitoUsername: result.Username, email } };
   } catch (error) {
     if (error instanceof CognitoIdentityProviderServiceException && error.name === "UserNotFoundException") return null;
     rethrowProvisioningError(error, "AdminGetUser");
   }
+}
+
+/** Resolves identity only: fresh authoritative provider proof must supply mailbox ownership. */
+export async function loadExistingEmailPrincipal(email: string): Promise<CognitoEmailPrincipal | null> {
+  const result = await lookupExistingEmailPrincipal(email);
+  if (result === null) return null;
+  if (result.status === "unavailable") {
+    throw createCognitoTypedError({ operation: "AdminGetUser", providerStatusCode: 400,
+      cognitoType: "NotAuthorizedException", reasonCode: null,
+      message: "Cognito email principal must be enabled and confirmed for provider sign-in" });
+  }
+  return result.principal;
+}
+
+/** Optional collision evidence cannot prevent an established provider method from signing in. */
+export async function loadAvailableEmailPrincipal(email: string): Promise<CognitoEmailPrincipal | null> {
+  const result = await lookupExistingEmailPrincipal(email);
+  return result?.status === "available" ? result.principal : null;
 }
 
 let emailPrincipalVerifier: ReturnType<typeof CognitoJwtVerifier.create> | undefined;
