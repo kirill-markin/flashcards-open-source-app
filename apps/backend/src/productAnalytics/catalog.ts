@@ -827,6 +827,14 @@ export const productAnalyticsEventCatalog = {
     },
   },
   // The client observed its guest-data upgrade finish; backend guest_upgrade_completed stays authoritative.
+  auth_account_connection: {
+    serverOnly: false,
+    requiresScreen: true,
+    properties: {
+      action: { kind: "enum", values: ["begin", "proof", "preview", "consent", "completion", "cancel"] },
+      outcome: { kind: "enum", values: ["succeeded", "failed", "already_connected", "cancelled"] },
+    },
+  },
   auth_guest_upgrade_finished: {
     serverOnly: false,
     requiresScreen: true,

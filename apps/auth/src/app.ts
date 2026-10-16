@@ -1,3 +1,4 @@
+import accountConnection from "./routes/social/accountConnection.js";
 import authFact from "./routes/browser/authFact.js";
 import { randomUUID } from "node:crypto";
 import { PrincipalSessionError } from "./server/social/principalSessions.js";
@@ -322,7 +323,8 @@ function createMountedApp(basePath: string): Hono<AuthAppEnv> {
     const secFetchSite = c.req.header("sec-fetch-site");
     const providerStartNavigation = secFetchSite === "cross-site"
       && c.req.method === "GET"
-      && (routePath === "/api/social/google/start" || routePath === "/api/social/apple/start")
+      && (routePath === "/api/social/google/start" || routePath === "/api/social/apple/start"
+        || routePath === "/api/account/connection/provider-start")
       && c.req.header("sec-fetch-mode") === "navigate"
       && c.req.header("sec-fetch-dest") === "document";
     // `app.<domain>` refreshes the browser session through `auth.<domain>`,
@@ -352,6 +354,7 @@ function createMountedApp(basePath: string): Hono<AuthAppEnv> {
   app.route("/", linkMethod);
   app.route("/", unlinkMethod);
   app.route("/", currentEmailReauth);
+  app.route("/", accountConnection);
   app.route("/", socialAttempt);
   app.route("/", socialComplete);
   app.route("/", socialBrowserStart);

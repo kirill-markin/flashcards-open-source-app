@@ -6,13 +6,14 @@ import { normalizeEnrollmentEmail } from "./mailboxProof.js";
 import { requireAuthHandle, type AuthAttemptRequest, type AuthAttemptResponse, type AuthProviderSubmission } from "./attemptContract.js";
 import {
   authHandleHash, claimConnectionProviderAttempt, prepareAuthAttempt, sealAuthAttemptState, openAuthAttemptState,
-  verifyClaimedAuthAttempt,
+  verifyClaimedAuthAttempt, claimConnectionBrowserAttempt, connectionCallbackParameters,
 } from "./attemptStore.js";
-import { connectionParameters, connectionReceipt } from "./accountConnectionStore.js";
+import { connectionParameters, connectionReceipt, loadAccountConnectionProofs } from "./accountConnectionStore.js";
 import {
   AccountConnectionError, type ConnectionBinding, type ConnectionReceipt, type ConnectionRow, type ConnectionEmailRow,
 } from "./accountConnectionContract.js";
 import { appleRequestNonce } from "./providers.js";
+import { browserAttemptBinding, type BrowserCallbackState } from "./browserState.js";
 import { createHash } from "node:crypto";
 
 export async function beginConnectionProviderProof(
@@ -50,7 +51,7 @@ export async function completeConnectionProviderProof(
     && !/@(privaterelay\.appleid\.com|private\.icloud\.com)$/.test(email.address)
     ? await loadExistingEmailPrincipal(email.address) : null;
   const result = await query<ConnectionRow>(
-    "SELECT * FROM auth.record_connection_provider_proof($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)",
+    "SELECT * FROM auth.record_connection_target($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)",
     [...connectionParameters(operation, current, binding), authHandleHash(attemptHandle), attempt.claimId,
       mailbox?.cognitoSubject ?? null, mailbox?.cognitoUsername ?? null, mailbox?.email ?? null]);
   return connectionReceipt(operation, result.rows[0]);
@@ -58,7 +59,7 @@ export async function completeConnectionProviderProof(
 
 export async function beginConnectionEmailProof(
   sessionToken: string, operation: string, binding: ConnectionBinding, email: string, source: string,
-): Promise<Readonly<{ email: string; expiresAt: string }>> {
+): Promise<Readonly<{ email: string; expiresAt: string }> | ConnectionReceipt> {
   const current = await verifyCurrentAccountSession(sessionToken);
   // Authenticate the operation before a provider lookup, rate-limit record or message delivery.
   const loaded = await query<ConnectionRow>("SELECT * FROM auth.load_account_connection($1,$2,$3,$4,$5,$6,$7)", connectionParameters(operation, current, binding));
@@ -67,10 +68,11 @@ export async function beginConnectionEmailProof(
   const principal = await loadExistingEmailPrincipal(normalized);
   if (principal === null) throw new AccountConnectionError("ACCOUNT_CONNECTION_INVALID");
   const result = await query<ConnectionEmailRow>(
-    "SELECT * FROM auth.begin_connection_email_proof($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)",
+    "SELECT * FROM auth.begin_connection_email_target($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)",
     [...connectionParameters(operation, current, binding), principal.cognitoSubject, principal.cognitoUsername, principal.email]);
   const row = result.rows[0];
   if (row === undefined) throw new AccountConnectionError("ACCOUNT_CONNECTION_RESTART_REQUIRED");
+  if (row.terminal_outcome === "already_connected") return connectionReceipt(operation, row);
   const decision = await decideOtpRateLimit(row.target_email, source);
   if (decision.kind !== "send") {
     await recordOtpSendDecision(row.target_email, source,
@@ -103,4 +105,35 @@ export async function completeConnectionEmailProof(
     [...connectionParameters(operation, current, binding), row.email_claim,
       principal.cognitoSubject, principal.cognitoUsername, principal.email, principal.authTime]);
   return connectionReceipt(operation, completed.rows[0]);
+}
+
+export async function completeConnectionBrowserProof(
+  state: BrowserCallbackState, submission: AuthProviderSubmission, sessionToken: string | null,
+): Promise<ConnectionReceipt> {
+  if (state.connectionOperation === undefined) throw new AccountConnectionError("ACCOUNT_CONNECTION_INVALID");
+  if (state.client === "web") {
+    if (sessionToken === null) throw new AccountConnectionError("ACCOUNT_CONNECTION_INVALID");
+    await loadAccountConnectionProofs(sessionToken, state.connectionOperation, { ...browserAttemptBinding(state), purpose: "reauth" });
+  }
+  const claimed = await claimConnectionBrowserAttempt(state);
+  const verified = await verifyClaimedAuthAttempt(claimed, submission);
+  return recordVerifiedConnectionCallback(state, verified);
+}
+
+/** The verifier's branded claim and signed callback state are the only callback authority. */
+export async function recordVerifiedConnectionCallback(
+  state: BrowserCallbackState, verified: import("./attemptStore.js").ClaimedAuthAttempt,
+): Promise<ConnectionReceipt> {
+  const proof = verified.secrets.proof;
+  if (state.connectionOperation === undefined || verified.handle !== state.attempt || verified.phase !== "provider_proved"
+    || verified.provider !== state.provider || proof === null) throw new AccountConnectionError("ACCOUNT_CONNECTION_INVALID");
+  const email = proof.identity.email;
+  const mailbox = email?.authority === "provider" && !email.privateRelay
+    && !/@(privaterelay\.appleid\.com|private\.icloud\.com)$/.test(email.address)
+    ? await loadExistingEmailPrincipal(email.address) : null;
+  const result = await query<ConnectionRow>(
+    "SELECT * FROM auth.record_connection_callback($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)",
+    [...connectionCallbackParameters(state), verified.claimId, mailbox?.cognitoSubject ?? null,
+      mailbox?.cognitoUsername ?? null, mailbox?.email ?? null]);
+  return connectionReceipt(state.connectionOperation, result.rows[0]);
 }

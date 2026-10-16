@@ -29,7 +29,8 @@ export type AuthAnalyticsEventName =
   | "auth_session_accepted"
   | "auth_account_ready"
   | "auth_account_link_finished"
-  | "auth_guest_upgrade_finished";
+  | "auth_guest_upgrade_finished"
+  | "auth_account_connection";
 
 /**
  * The `signin_failed.reason` values this origin can produce. The catalog also declares `offline` and
@@ -96,7 +97,11 @@ export type AuthAnalyticsGuestUpgradeOutcome =
   | "storage_error"
   | "server_error";
 
+export type ConnectionAnalyticsAction = "begin" | "proof" | "preview" | "consent" | "completion" | "cancel";
+export type ConnectionAnalyticsOutcome = "succeeded" | "failed" | "already_connected" | "cancelled";
+
 export type AuthAnalyticsFact =
+  | Readonly<{ eventName: "auth_account_connection"; action: ConnectionAnalyticsAction; outcome: ConnectionAnalyticsOutcome }>
   | Readonly<{ eventName: "auth_method_selected"; method: AuthAnalyticsMethod; }>
   | Readonly<{ eventName: "auth_code_form_shown"; method: AuthAnalyticsMethod; }>
   | Readonly<{ eventName: "auth_code_submitted"; method: AuthAnalyticsMethod; }>
@@ -132,6 +137,7 @@ export type AuthAnalyticsFact =
   }>;
 
 export type AuthAnalyticsEventProperties =
+  | Readonly<{ action: ConnectionAnalyticsAction; outcome: ConnectionAnalyticsOutcome }>
   | Readonly<{ reason: AuthSignInFailureReason; method?: AuthAnalyticsMethod }>
   | Readonly<{ method: AuthAnalyticsMethod }>
   | Readonly<{
@@ -314,6 +320,8 @@ export function createSignInFailedEventFactory(reason: AuthSignInFailureReason):
 
 function buildAuthAnalyticsFactProperties(fact: AuthAnalyticsFact): AuthAnalyticsEventProperties {
   switch (fact.eventName) {
+    case "auth_account_connection":
+      return { action: fact.action, outcome: fact.outcome };
     case "auth_method_selected":
       return { method: fact.method };
     case "auth_code_form_shown":
@@ -343,7 +351,7 @@ function buildAuthAnalyticsFactProperties(fact: AuthAnalyticsFact): AuthAnalytic
 
 export function createAuthAnalyticsFactEventFactory(fact: AuthAnalyticsFact): AuthAnalyticsEventFactory {
   return (anonymousId, nowMs, uiLocale) => createAuthAnalyticsEvent(
-    { eventName: fact.eventName, screen: "signin", properties: buildAuthAnalyticsFactProperties(fact) },
+    { eventName: fact.eventName, screen: fact.eventName === "auth_account_connection" ? "settings" : "signin", properties: buildAuthAnalyticsFactProperties(fact) },
     anonymousId,
     nowMs,
     uiLocale,
