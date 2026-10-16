@@ -17,6 +17,9 @@ private configuration live alongside it. No purchase routes or entitlement chang
 Public profile alias storage and live leaderboard participation reads are defined in
 [`0207_community_profile_aliases.sql`](0207_community_profile_aliases.sql).
 
+Private established-account community transfer and invitation writer fencing are defined in
+[`0209_account_community_union.sql`](0209_account_community_union.sql).
+
 ## Corrections to applied migrations
 
 An applied migration is immutable. `scripts/deploy/migrate.sh` records every migration by filename
