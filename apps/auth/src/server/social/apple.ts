@@ -1,4 +1,5 @@
 import { sign } from "node:crypto";
+import type { AppleIdentityProofFacts } from "../logger.js";
 import { getAppleSignInConfig, loadAppleSigningSecret, type AppleSignInConfig, type AppleSigningSecret } from "./config.js";
 import { decryptAppleCredential, encryptAppleCredential, type EncryptedAppleCredential } from "./appleCredential.js";
 import {
@@ -59,8 +60,14 @@ export type AppleAuthorizationProof = Readonly<{
   redirectUri: string | null;
 }>;
 
+function appleEmailCategory(identity: VerifiedProviderIdentity): AppleIdentityProofFacts["exchangedEmailCategory"] {
+  if (identity.email === null) return "missing";
+  return identity.email.privateRelay ? "relay" : "real";
+}
+
 export async function exchangeAppleAuthorizationCode(proof: AppleAuthorizationProof): Promise<Readonly<{
   identity: VerifiedProviderIdentity & Readonly<{ issuedAt: number }>; credential: EncryptedAppleCredential;
+  proofFacts: AppleIdentityProofFacts;
 }>> {
   const config = getAppleSignInConfig();
   if (config === null) throw new SocialProofError("PROVIDER_UNAVAILABLE");
@@ -80,9 +87,25 @@ export async function exchangeAppleAuthorizationCode(proof: AppleAuthorizationPr
   form.set("client_secret", appleClientSecret(secret, clientId));
   const payload = parseProviderObject(await postProviderForm("apple", "https://appleid.apple.com/auth/token", form), "PROVIDER_PROOF_INVALID");
   if (typeof payload.id_token !== "string" || typeof payload.refresh_token !== "string") throw new SocialProofError("PROVIDER_PROOF_INVALID");
-  const identity = await verifyAppleIdentityToken(payload.id_token, proof.rawNonce, proof.client);
-  if (suppliedIdentity !== null && suppliedIdentity.subject !== identity.subject) throw new SocialProofError("PROVIDER_PROOF_INVALID");
-  return { identity, credential: encryptAppleCredential(identity.subject, clientId, payload.refresh_token) };
+  const exchangedIdentity = await verifyAppleIdentityToken(payload.id_token, proof.rawNonce, proof.client);
+  if (suppliedIdentity !== null && suppliedIdentity.subject !== exchangedIdentity.subject) throw new SocialProofError("PROVIDER_PROOF_INVALID");
+  let identity = exchangedIdentity;
+  let identitySource: AppleIdentityProofFacts["identitySource"] = "exchange";
+  if (proof.client !== "web" && proof.client !== "android" && suppliedIdentity !== null) {
+    identity = suppliedIdentity;
+    identitySource = "native";
+  }
+  const proofFacts: AppleIdentityProofFacts = {
+    identitySource,
+    suppliedEmailCategory: suppliedIdentity === null ? null : appleEmailCategory(suppliedIdentity),
+    suppliedEmailVerified: suppliedIdentity === null || suppliedIdentity.email === null ? null : suppliedIdentity.email.authority === "provider",
+    suppliedPrivateRelay: suppliedIdentity?.email?.privateRelay ?? null,
+    exchangedEmailCategory: appleEmailCategory(exchangedIdentity),
+    exchangedEmailVerified: exchangedIdentity.email === null ? null : exchangedIdentity.email.authority === "provider",
+    exchangedPrivateRelay: exchangedIdentity.email?.privateRelay ?? null,
+    emailMismatch: suppliedIdentity === null ? null : suppliedIdentity.email?.address !== exchangedIdentity.email?.address,
+  };
+  return { identity, credential: encryptAppleCredential(exchangedIdentity.subject, clientId, payload.refresh_token), proofFacts };
 }
 
 export async function revokeAppleCredential(credential: EncryptedAppleCredential): Promise<void> {
