@@ -77,8 +77,8 @@ test("private community union preserves review facts, private graph winners, fla
       (replica_id, workspace_id, user_id, actor_kind, actor_key, platform)
       VALUES ($1, $2, $3, 'workspace_seed', 'seed', 'system')`, [replicaId, workspaceId, source]);
     await client.query(`INSERT INTO content.cards
-      (card_id, workspace_id, front_text, back_text, metadata, client_updated_at, last_modified_by_replica_id, last_operation_id)
-      VALUES ($1, $2, 'Question', 'Answer', '{"version":1,"source":null}', now(), $3, 'seed')`, [cardId, workspaceId, replicaId]);
+      (card_id, workspace_id, front_text, back_text, metadata, created_at, client_updated_at, last_modified_by_replica_id, last_operation_id)
+      VALUES ($1, $2, 'Question', 'Answer', '{"version":1,"source":null}', now(), now(), $3, 'seed')`, [cardId, workspaceId, replicaId]);
     const cardBefore = (await client.query("SELECT to_jsonb(card) AS retained FROM content.cards AS card WHERE card_id = $1", [cardId])).rows;
     for (const [index, eventId] of eventIds.entries()) {
       const author = index === 1 ? target : source;
