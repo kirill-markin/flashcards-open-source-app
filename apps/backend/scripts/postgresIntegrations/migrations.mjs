@@ -73,6 +73,24 @@ async function assertHistoricalSeedBoundary(client) {
   }
 }
 
+async function seedMigration0195LegacyClientIdentity(client) {
+  await client.query("INSERT INTO org.user_settings(user_id) VALUES ('stable-client-backfill')");
+  await client.query("SELECT auth.bind_cognito_account('stable-client-backfill-subject', 'stable-client-backfill')");
+  await client.query(
+    "INSERT INTO auth.agent_api_keys(connection_id,user_id,label,key_id,key_hash) "
+      + "VALUES ('19500000-0000-4000-8000-000000000001','stable-client-backfill','legacy key','12345678',"
+      + "encode(sha256(convert_to(repeat('A',26),'UTF8')),'hex'))",
+  );
+  await client.query(
+    "INSERT INTO auth.oauth_clients(client_id,redirect_uris,token_endpoint_auth_method) "
+      + "VALUES ('stable-client-backfill-client',ARRAY['https://client.test/callback'],'none')",
+  );
+  await client.query(
+    "INSERT INTO auth.oauth_connections(connection_id,user_id,client_id,label) "
+      + "VALUES ('19500000-0000-4000-8000-000000000002','stable-client-backfill','stable-client-backfill-client','legacy oauth')",
+  );
+}
+
 async function seedMigration0099LegacyInvalidMediaAsset(client) {
   const userId = "migration-0099-legacy-invalid-media-asset";
   const workspaceId = "09900000-0000-4000-8000-000000000001";
@@ -645,6 +663,13 @@ async function applySingleMigration(
           await client.query("BEGIN");
           transactionStarted = true;
           await seedMigration0131InFlightCatalogAlignment(client);
+          await client.query("COMMIT");
+          transactionStarted = false;
+        }
+        if (fileName === "0195_stable_client_account_identity.sql") {
+          await client.query("BEGIN");
+          transactionStarted = true;
+          await seedMigration0195LegacyClientIdentity(client);
           await client.query("COMMIT");
           transactionStarted = false;
         }

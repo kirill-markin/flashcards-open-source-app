@@ -12,6 +12,8 @@ import {
   loadCognitoIdentityMappingInExecutor,
   lockCognitoIdentityLifecycleInExecutor,
   lockAccountLifecyclesInExecutor,
+  loadClientAccountIdentityInExecutor,
+  type ClientAccountIdentity,
 } from "./userIdentities";
 
 /** A recorded analytics consent decision. No decision is null, never a third choice value. */
@@ -32,6 +34,7 @@ export type AccountPreferences = Readonly<{
 
 export type UserProfile = Readonly<{
   userId: string;
+  clientAccountIdentity?: ClientAccountIdentity;
   selectedWorkspaceId: string | null;
   email: string | null;
   locale: string;
@@ -147,7 +150,10 @@ export async function ensureCognitoUserProfileInExecutor(
     await lockAccountLifecyclesInExecutor(executor, [existingMapping.userId]);
     await assertSubjectIsNotDeletedInExecutor(executor, subjectUserId);
     await applyUserDatabaseScopeInExecutor(executor, { userId: existingMapping.userId });
-    return ensureUserProfileInExecutor(executor, existingMapping.userId, email);
+    const profile = await ensureUserProfileInExecutor(executor, existingMapping.userId, email);
+    return { ...profile, clientAccountIdentity: await loadClientAccountIdentityInExecutor(
+      executor, existingMapping.userId, existingMapping.originalClientUserId,
+    ) };
   }
 
   // An account can be stored under the subject itself with no mapping row until something binds
@@ -156,7 +162,9 @@ export async function ensureCognitoUserProfileInExecutor(
   if (await userSettingsRowExistsInExecutor(executor, subjectUserId)) {
     const adoptedProfile = await ensureUserProfileInExecutor(executor, subjectUserId, email);
     await bindCognitoIdentityMappingInExecutor(executor, subjectUserId, subjectUserId);
-    return adoptedProfile;
+    return { ...adoptedProfile, clientAccountIdentity: await loadClientAccountIdentityInExecutor(
+      executor, subjectUserId, subjectUserId,
+    ) };
   }
 
   const mintedUserId = randomUUID();
@@ -174,7 +182,9 @@ export async function ensureCognitoUserProfileInExecutor(
   const mintedProfile = await ensureUserProfileInExecutor(executor, mintedUserId, email);
   await bindCognitoIdentityMappingInExecutor(executor, subjectUserId, mintedUserId);
 
-  return mintedProfile;
+  return { ...mintedProfile, clientAccountIdentity: await loadClientAccountIdentityInExecutor(
+    executor, mintedUserId, mintedUserId,
+  ) };
 }
 
 export async function ensureCognitoUserProfile(

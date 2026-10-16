@@ -7,15 +7,17 @@ import { unsafeQuery, unsafeTransactionWithDeadline } from "../database/unsafe";
 export type CognitoIdentityMapping = Readonly<{
   providerSubject: string;
   userId: string;
+  originalClientUserId: string;
 }>;
 
 type CognitoIdentityMappingRow = Readonly<{
   provider_subject: string;
   user_id: string;
+  original_client_user_id: string;
 }>;
 
 const loadCognitoIdentityMappingSql = [
-  "SELECT provider_subject, user_id",
+  "SELECT provider_subject, user_id, original_client_user_id",
   "FROM auth.user_identities",
   "WHERE provider_type = 'cognito' AND provider_subject = $1",
   "LIMIT 1",
@@ -25,6 +27,7 @@ function mapCognitoIdentityMapping(row: CognitoIdentityMappingRow): CognitoIdent
   return {
     providerSubject: row.provider_subject,
     userId: row.user_id,
+    originalClientUserId: row.original_client_user_id,
   };
 }
 
@@ -154,5 +157,34 @@ export async function linkProvedCognitoPrincipalInExecutor(
   );
   const row = result.rows[0];
   if (row === undefined) throw new Error("Identity linking returned no product account.");
-  return { providerSubject: newSubject, userId: row.user_id };
+  const mapping = await loadCognitoIdentityMappingInExecutor(executor, newSubject);
+  if (mapping === null || mapping.userId !== row.user_id) {
+    throw new Error("Identity linking did not preserve the proved principal binding");
+  }
+  return mapping;
+}
+
+export type ClientAccountIdentity = Readonly<{
+  originalClientUserId: string;
+  canonicalAccountId: string;
+  linkedAccountIds: ReadonlyArray<string>;
+}>;
+
+export async function loadClientAccountIdentityInExecutor(
+  executor: DatabaseExecutor,
+  userId: string,
+  originalClientUserId: string | undefined,
+): Promise<ClientAccountIdentity> {
+  if (originalClientUserId === undefined || originalClientUserId === "") {
+    throw new Error("Authenticated credential is missing its original client user ID");
+  }
+  const result = await executor.query<Readonly<{ linked_account_ids: Array<string> }>>(
+    "SELECT auth.linked_client_account_ids() AS linked_account_ids", [],
+  );
+  const linkedAccountIds = result.rows[0]?.linked_account_ids;
+  if (linkedAccountIds === undefined || !linkedAccountIds.includes(userId)
+      || !linkedAccountIds.includes(originalClientUserId)) {
+    throw new Error("Authenticated credential original identity does not belong to its canonical account");
+  }
+  return { originalClientUserId, canonicalAccountId: userId, linkedAccountIds };
 }
