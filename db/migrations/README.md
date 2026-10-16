@@ -331,3 +331,11 @@ a call "resolves to exactly one of them by its argument count".
 `0179_drop_four_argument_claim_installation.sql` drops that overload, so the six-argument function `0176`
 adds is the only `sync.claim_installation`, and `0179` records why the drop waited for a separate deploy.
 `0168`'s handling of concurrent first claims lives on unchanged in that six-argument definition.
+
+- [0214 account connection consent](0214_account_connection_consent.sql) (migration count 216) exposes authenticated
+  operation-bound proof, exact preview/consent and atomic reserved-proof consumption with the
+  existing private account union. Its real PostgreSQL/coordinator and API refusal fixture is
+  [accountConnectionGate.ts](../../apps/auth/src/integration/accountConnectionGate.ts).
+  Public request/result and continuation contracts live in
+  [publicContract.ts](../../apps/auth/src/server/social/publicContract.ts) and
+  [accountConnection.ts](../../apps/auth/src/server/social/accountConnection.ts).
