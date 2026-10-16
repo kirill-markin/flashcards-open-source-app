@@ -145,6 +145,7 @@ export type AccountProviderAttemptResult =
 export type AccountLoginMethodsResult = Readonly<{
   methods: ReadonlyArray<AccountProviderMethod>;
   verifiedRecoveryEmails: ReadonlyArray<string>;
+  reauthenticationEmail: string | null;
   emailRecovery: "read_only";
   csrfToken: string | null;
 }>;
@@ -156,6 +157,9 @@ export type AccountCurrentEmailInput =
   | Readonly<{ action: "complete"; client: NativeSocialClient; codeVerifier: string; attempt: string; code: string }>
   | Readonly<{ action: "begin"; client: "web"; csrfToken: string }>
   | Readonly<{ action: "complete"; client: "web"; csrfToken: string; attempt: string; code: string }>;
+
+export type AccountCurrentEmailResult = import("./attemptContract.js").EmailAuthAttemptResponse
+  | import("./attemptContract.js").AuthCompletionResponse;
 
 // The original proof binding belongs to the initiating reauth request; a new link has its own PKCE/browser binding.
 export type AccountNativeCompletionInput =

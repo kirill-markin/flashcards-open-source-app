@@ -1,6 +1,8 @@
 import { createHash } from "node:crypto";
 import { query, transaction, type DatabaseExecutor } from "../../db.js";
 import { verifyCurrentAccountSession } from "../browserSession.js";
+import { loadExistingEmailPrincipal, type CognitoEmailPrincipal } from "../cognito/cognitoAuth.js";
+import { normalizeEnrollmentEmail } from "./mailboxProof.js";
 import {
   authAttemptBindingHash, authHandleHash, claimAuthAttempt, createAuthAttempt, prepareAuthAttempt,
   loadProvedAccountProviderReenable, sealAuthAttemptState, verifyClaimedAuthAttempt, type ClaimedAuthAttempt,
@@ -38,17 +40,21 @@ function proofParameters(proof: AccountMethodProof): readonly [string, string, s
 type AccountLoginMethods = Readonly<{
   methods: ReadonlyArray<AccountProviderMethod>;
   verifiedRecoveryEmails: ReadonlyArray<string>;
+  reauthenticationEmail: string | null;
 }>;
 
 export async function listAccountLoginMethods(sessionToken: string): Promise<AccountLoginMethods> {
   const current = await verifyCurrentAccountSession(sessionToken);
-  return transaction((executor) => listAccountLoginMethodsInExecutor(executor,
+  const methods = await transaction((executor) => listAccountLoginMethodsInExecutor(executor,
     current.subject, current.username, current.authTime));
+  const recovery = await resolveAccountRecoveryEmail(current.subject, current.username, current.authTime,
+    current.emailVerified ? current.email : null);
+  return { ...methods, reauthenticationEmail: recovery?.email ?? null };
 }
 
 export async function listAccountLoginMethodsInExecutor(
   executor: DatabaseExecutor, subject: string, username: string, originalAuthTime: number | null,
-): Promise<AccountLoginMethods> {
+): Promise<Omit<AccountLoginMethods, "reauthenticationEmail">> {
   const parameters: readonly [string, string, number | null] = [subject, username, originalAuthTime];
   const result = await executor.query<ProviderMethodRow>("SELECT * FROM auth.list_account_provider_methods($1,$2,$3)", parameters);
   const account = await executor.query<Readonly<{ account_id: string }>>(
@@ -70,6 +76,29 @@ export async function listAccountLoginMethodsInExecutor(
       status: row.status, generation: row.generation, revocationPending: row.revocation_pending })),
     verifiedRecoveryEmails: emails.rows.map((row) => row.email),
   };
+}
+
+export type AccountRecoveryEmail = CognitoEmailPrincipal & Readonly<{ enrollment: "registered" | "current_session" }>;
+
+/** Legacy email sessions prove their own address; profile/contact metadata never selects a principal. */
+export async function resolveAccountRecoveryEmail(
+  subject: string, username: string, originalAuthTime: number | null, verifiedCurrentEmail: string | null,
+): Promise<AccountRecoveryEmail | null> {
+  const result = await query<Readonly<{ cognito_subject: string; cognito_username: string; email: string }>>(
+    "SELECT * FROM auth.account_recovery_email($1,$2,$3)", [subject, username, originalAuthTime]);
+  const target = result.rows[0];
+  const destination = target === undefined
+    ? verifiedCurrentEmail === null ? null
+      : { cognito_subject: subject, cognito_username: username, email: normalizeEnrollmentEmail(verifiedCurrentEmail) }
+    : target;
+  if (destination === null) return null;
+  const principal = await loadExistingEmailPrincipal(destination.email);
+  if (principal === null || principal.cognitoSubject !== destination.cognito_subject
+    || principal.cognitoUsername !== destination.cognito_username || principal.email !== destination.email) {
+    if (target === undefined) return null;
+    throw new AuthAttemptError("AUTH_ATTEMPT_RESTART_REQUIRED");
+  }
+  return { ...principal, enrollment: target === undefined ? "current_session" : "registered" };
 }
 
 export async function unlinkAccountProviderMethod(
