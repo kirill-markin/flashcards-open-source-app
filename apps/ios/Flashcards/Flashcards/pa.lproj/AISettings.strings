@@ -947,3 +947,6 @@
 "settings.account.methods.changed" = "ਢੰਗ ਬਦਲ ਗਿਆ ਹੈ। ਢੰਗ ਰਿਫ੍ਰੈਸ਼ ਕਰਕੇ ਮੁੜ ਸ਼ੁਰੂ ਕਰੋ।";
 "settings.account.methods.demo" = "ਡੈਮੋ ਖਾਤੇ ਸਾਈਨ-ਇਨ ਢੰਗ ਨਹੀਂ ਸੰਭਾਲ ਸਕਦੇ। ਆਪਣੇ ਖਾਤੇ ਵਿੱਚ ਸਾਈਨ ਇਨ ਕਰੋ।";
 "settings.account.methods.refreshFailed" = "ਢੰਗ ਰਿਫ੍ਰੈਸ਼ ਨਹੀਂ ਹੋਏ। ਨਵੇਂ ਬਦਲਾਅ ਤੋਂ ਪਹਿਲਾਂ ਰਿਫ੍ਰੈਸ਼ ਕਰੋ।";
+
+"settings.account.cloudSignIn.continueGoogle" = "Google ਨਾਲ ਜਾਰੀ ਰੱਖੋ";
+"settings.account.cloudSignIn.appleCleanupPending" = "Apple ਇੱਕ ਸੁਰੱਖਿਆ ਅੱਪਡੇਟ ਪੂਰਾ ਕਰ ਰਿਹਾ ਹੈ। ਥੋੜ੍ਹੀ ਦੇਰ ਬਾਅਦ Apple ਨਾਲ ਦੁਬਾਰਾ ਕੋਸ਼ਿਸ਼ ਕਰੋ ਜਾਂ ਸਾਈਨ ਇਨ ਕਰਨ ਦਾ ਕੋਈ ਹੋਰ ਤਰੀਕਾ ਚੁਣੋ।";

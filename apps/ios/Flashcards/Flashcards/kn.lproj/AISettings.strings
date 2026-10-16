@@ -947,3 +947,6 @@
 "settings.account.methods.changed" = "ವಿಧಾನ ಬದಲಾಗಿದೆ. ವಿಧಾನಗಳನ್ನು ರಿಫ್ರೆಶ್ ಮಾಡಿ ಮತ್ತೆ ಪ್ರಾರಂಭಿಸಿ.";
 "settings.account.methods.demo" = "ಡೆಮೊ ಖಾತೆಗಳು ಸೈನ್-ಇನ್ ವಿಧಾನಗಳನ್ನು ನಿರ್ವಹಿಸಲಾರವು. ನಿಮ್ಮ ಖಾತೆಗೆ ಸೈನ್ ಇನ್ ಮಾಡಿ.";
 "settings.account.methods.refreshFailed" = "ವಿಧಾನಗಳನ್ನು ರಿಫ್ರೆಶ್ ಮಾಡಲಾಗಲಿಲ್ಲ. ಹೊಸ ಬದಲಾವಣೆಗೆ ಮೊದಲು ರಿಫ್ರೆಶ್ ಮಾಡಿ.";
+
+"settings.account.cloudSignIn.continueGoogle" = "Google ಮೂಲಕ ಮುಂದುವರಿಯಿರಿ";
+"settings.account.cloudSignIn.appleCleanupPending" = "Apple ಭದ್ರತಾ ನವೀಕರಣವನ್ನು ಪೂರ್ಣಗೊಳಿಸುತ್ತಿದೆ. ಸ್ವಲ್ಪ ಸಮಯದ ನಂತರ Apple ಮೂಲಕ ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ ಅಥವಾ ಸೈನ್ ಇನ್ ಮಾಡಲು ಬೇರೆ ವಿಧಾನವನ್ನು ಆಯ್ಕೆಮಾಡಿ.";

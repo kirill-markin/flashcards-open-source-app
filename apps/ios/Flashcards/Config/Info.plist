@@ -71,6 +71,10 @@
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
 	<string>$(MARKETING_VERSION)</string>
+	<key>UIAppFonts</key>
+	<array>
+		<string>GoogleSans.ttf</string>
+	</array>
 	<key>GIDClientID</key>
 	<string>$(GOOGLE_SIGN_IN_CLIENT_ID)</string>
 	<key>CFBundleURLTypes</key>

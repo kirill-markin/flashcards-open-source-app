@@ -7,7 +7,7 @@ struct CloudAuthInlineErrorView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text(self.presentation.message)
-                .foregroundStyle(.red)
+                .foregroundStyle(self.presentation.role == .information ? Color.secondary : Color.red)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .textSelection(.enabled)
                 .accessibilityIdentifier(UITestIdentifier.cloudSignInInlineAuthErrorMessage)
@@ -30,8 +30,6 @@ struct CloudAuthInlineErrorView: View {
 }
 
 /**
- * The log out button shared by the two post-auth sheets that offer one.
- *
  * The log out behind it waits for the analytics queue to drain before it clears the credentials,
  * and the sheet stays on screen for that wait, so the button has to say it is working.
  */

@@ -947,3 +947,6 @@
 "settings.account.methods.changed" = "Metoda s-a schimbat. Reîmprospătează metodele și începe din nou.";
 "settings.account.methods.demo" = "Conturile demonstrative nu gestionează metodele de conectare. Conectează-te cu propriul cont.";
 "settings.account.methods.refreshFailed" = "Metodele nu au putut fi reîmprospătate. Reîmprospătează înainte de o modificare nouă.";
+
+"settings.account.cloudSignIn.continueGoogle" = "Continuă cu Google";
+"settings.account.cloudSignIn.appleCleanupPending" = "Apple finalizează o actualizare de securitate. Încearcă din nou cu Apple în scurt timp sau alege altă metodă de conectare.";

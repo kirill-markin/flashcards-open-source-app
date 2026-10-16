@@ -947,3 +947,6 @@
 "settings.account.methods.changed" = "Metoda się zmieniła. Odśwież metody i zacznij ponownie.";
 "settings.account.methods.demo" = "Konta demonstracyjne nie zarządzają metodami logowania. Zaloguj się na własne konto.";
 "settings.account.methods.refreshFailed" = "Nie udało się odświeżyć metod. Odśwież przed nową zmianą.";
+
+"settings.account.cloudSignIn.continueGoogle" = "Kontynuuj z Google";
+"settings.account.cloudSignIn.appleCleanupPending" = "Apple kończy aktualizację zabezpieczeń. Spróbuj ponownie z Apple za chwilę lub wybierz inną metodę logowania.";

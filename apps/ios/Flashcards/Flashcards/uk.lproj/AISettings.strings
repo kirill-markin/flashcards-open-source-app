@@ -947,3 +947,6 @@
 "settings.account.methods.changed" = "Спосіб змінився. Оновіть способи й почніть знову.";
 "settings.account.methods.demo" = "Демоакаунти не можуть керувати способами входу. Увійдіть у власний обліковий запис.";
 "settings.account.methods.refreshFailed" = "Не вдалося оновити способи. Оновіть список перед новою зміною.";
+
+"settings.account.cloudSignIn.continueGoogle" = "Продовжити з Google";
+"settings.account.cloudSignIn.appleCleanupPending" = "Apple завершує оновлення безпеки. Спробуйте знову ввійти через Apple трохи згодом або виберіть інший спосіб входу.";

@@ -975,3 +975,6 @@
 "settings.account.methods.changed" = "この方法は変更されました。方法を更新してやり直してください。";
 "settings.account.methods.demo" = "デモアカウントではログイン方法を管理できません。ご自身のアカウントでログインしてください。";
 "settings.account.methods.refreshFailed" = "方法を更新できませんでした。新しい変更の前に更新してください。";
+
+"settings.account.cloudSignIn.continueGoogle" = "Google で続ける";
+"settings.account.cloudSignIn.appleCleanupPending" = "Apple がセキュリティの更新を完了しています。しばらくしてから Apple で再度お試しいただくか、別のログイン方法を選んでください。";
