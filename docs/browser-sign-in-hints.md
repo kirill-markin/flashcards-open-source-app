@@ -3,16 +3,16 @@
 The auth-origin [storage core](../apps/auth/src/templates/browserHints.ts) and
 [bridge document](../apps/auth/src/routes/browser/browserHints.ts) provide presentation metadata.
 The [web client](../apps/web/src/api/browserHints.ts) exposes only accepted-method consumption and
-explicit forgetting. Call consumption after the actual account and workspace are ready. Keep
-forgetting in the privacy lifecycle even when the session is absent.
+deletion cleanup. Call consumption after the actual account and workspace are ready. Keep
+deletion cleanup available even when the session is absent.
 
-The [auth controls](../apps/auth/src/templates/browserHintControls.ts) expose explicit remembering,
-small last-used method badges and compact masked-email hints. The web
-[account privacy controls](../apps/web/src/screens/settings/account/BrowserSignInPrivacy.tsx) and
-[deletion cleanup](../apps/web/src/appData/session/browserSessionRecovery.ts) use the existing bridge.
-Ordinary logout, account switch and reauthentication cleanup retain the opted-in hint. Deletion and
-explicit Forget clear it; there is no separate user-facing local-erase feature. Optional hint errors
-keep the accepted session and offer continuation; a failed clear never confirms that data is gone.
+The [auth controls](../apps/auth/src/templates/browserHintControls.ts) expose small last-used method
+badges and compact masked-email hints. Successful sign-in saves its hint automatically, regardless
+of a previous remember preference. Ordinary logout ends the session while retaining the hint;
+account switch and reauthentication cleanup also retain it. The existing
+[deletion cleanup](../apps/web/src/appData/session/browserSessionRecovery.ts) clears it through the
+bridge. Optional hint errors keep the accepted session and offer continuation; a failed deletion
+clear never confirms that data is gone.
 
 [UI facts](../apps/auth/src/routes/browser/authFact.ts) use the existing auth producer and live shared
 consent cookies. [Email request/verification facts](../apps/auth/src/routes/browser/emailAuthFacts.ts)
@@ -45,14 +45,14 @@ database fixtures cannot establish positive acceptance. Keep private evidence ou
    as a different principal before consumption: the obsolete context must yield absence. A legacy
    response without accepted-session metadata must also yield absence, with no profile or saved
    hint inference. Failed or cancelled attempts must leave an earlier successful hint unchanged.
-3. Without opting in, complete sign-in and inspect auth-origin local storage: no personal hint or
-   remember preference is written. With the remembering checkbox, verify only the successful email or
-   provider hint is stored; provider email and recovery email remain distinct, and a missing
-   provider email stays missing. Ordinary sign-out retains the opted-in hint.
-4. Forget while signed out and confirm all hint, preference and same-tab context keys disappear.
-   Start a sign-in in a second auth tab, forget in the first, then finish the older sign-in: no
-   hint or accepted context may reappear. Repeat with forgetting and success both pending on the
-   native storage lock. Start a fresh sign-in after forgetting and verify it records normally.
+3. Complete each successful sign-in and inspect auth-origin local storage: the successful method
+   and email hint are saved automatically, including with an old disabled remember preference.
+   No new remember preference is written. Provider email and recovery email remain distinct, and a
+   missing provider email stays missing. Ordinary sign-out ends the session and retains the hint.
+4. Delete an authorized disposable account and confirm its hint, legacy preference and same-tab
+   context disappear. With a second auth tab holding an older attempt, finish it after deletion
+   cleanup: no old hint or accepted context may reappear. Repeat with deletion cleanup and success
+   both pending on the native storage lock. A fresh sign-in must record its own hint normally.
 5. Inspect the bridge's CSP: only its exact paired configured app origin may frame it. Marketing,
    admin, a foreign site and the other domain family must be denied. All other auth document
    framing policies remain unchanged. Configured localhost acceptance uses ports 3000 and 8081.
@@ -62,13 +62,14 @@ database fixtures cannot establish positive acceptance. Keep private evidence ou
    from the actual auth frame must reject explicitly. Inspect traffic: exact destination origins,
    bounded method/status messages, no email, subject, credentials or analytics identifiers.
 7. Block auth site storage, block its iframe, and interrupt connectivity separately. Optional hint
-   storage must report its actionable error while sign-in still completes. Explicit consume/forget
-   must fail clearly, including the eight-second bridge timeout; no cookie or URL fallback occurs.
+   storage must report its actionable error while sign-in still completes. Consumption and deletion
+   cleanup must fail clearly, including the eight-second bridge timeout; no cookie or URL fallback
+   occurs.
    Retry after restoring access. Test the browser's normal privacy/storage partitioning settings,
    especially Safari and Chrome, in both permanent host families.
 8. On both login and OAuth authorization entry, including Safari, verify one localized
    sign-in/create-account screen with Google → Apple → Email
-   with the envelope icon. Opt in, complete each actual method, sign out normally, and verify a
+   with the envelope icon. Complete each actual method, sign out normally, and verify a
    small localized Last used badge floating above/across the upper-right edge of only the successful
    method. It must not increase button height, shift its label/logo, reorder or duplicate actions.
    Failed/cancelled attempts preserve it. Deliberately hover, navigate with Tab/Shift-Tab, and tap
@@ -77,13 +78,14 @@ database fixtures cannot establish positive acceptance. Keep private evidence ou
    Initial/programmatic focus and focus restored after provider cancellation must not open it.
    Escape, outside click and leaving keyboard focus dismiss it; restoration must not reopen it.
    Badge activation must not authenticate; ordinary method-button taps must authenticate.
-   Keep optional Remember and explicit Forget outside the hint. Check narrow widths, large text,
+   No Remember or Forget controls appear on the entry screen. Check narrow widths, large text,
    screen-reader labels and UI locales including RTL.
-9. In Settings → Account Status, use Forget, then Sign out and forget. Block the auth frame/site
-   storage and retry each: display an actionable error with no forgotten confirmation or sign-out.
-   Restore access and retry. Delete an authorized disposable account through the existing flow and
-   inspect that its hint is cleared, including deletion recovery. A confirmed account switch or
-   ordinary cache/reauth cleanup must retain the opted-in hint.
+9. In Settings → Account Status, verify only ordinary Sign out is offered. It must end the session
+   and retain the hint, including while the hint bridge is blocked. Delete an authorized disposable
+   account through the existing flow and inspect that its hint is cleared, including deletion
+   recovery. Block the auth frame/site storage during deletion cleanup: require its actionable
+   error, then restore access and retry. A confirmed account switch or ordinary cache/reauth
+   cleanup must retain the hint.
 10. Inspect actual facts with collection off, absent shared consent/visitor cookies, and withdrawal
     during provider authorization. No disabled-collection fact should be sent or retained. With
     collection enabled, observe method selection, code form/submission, explicit email resend,

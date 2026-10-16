@@ -1529,12 +1529,6 @@ const zuCatalog: TranslationCatalog = {
     changed: "Indlela isishintshile. Vuselela izindlela bese uqala futhi.",
     codePrompt: "Qinisekisa ukufinyelela ku-imeyili yakho. Faka ikhodi enamadijithi angu-6–8. Hlola ugaxekile uma kudingeka.",
   },
-  browserSignInPrivacy: {
-    forget: "Khohlwa ulwazi lokungena",
-    signOutForget: "Phuma bese ukhohlwa",
-    forgotten: "Ulwazi lokungena selukhohliwe.",
-    error: "Ulwazi lokungena alukwazanga ukushintshwa. Vumela idatha yesayithi lokuqinisekisa bese uzama futhi.",
-  },
   accountStatus: {
     title: "Isimo se-akhawunti",
     subtitle: "Buyekeza i-akhawunti ongene ngayo manje neseshini yesiphequluli.",

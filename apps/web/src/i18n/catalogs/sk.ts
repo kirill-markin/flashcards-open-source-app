@@ -1544,12 +1544,6 @@ const skCatalog: TranslationCatalog = {
     changed: "Spôsob sa zmenil. Obnovte spôsoby a začnite znova.",
     codePrompt: "Overte prístup k e-mailu. Zadajte kód so 6–8 číslicami. V prípade potreby skontrolujte spam.",
   },
-  browserSignInPrivacy: {
-    forget: "Zabudnúť prihlasovacie údaje",
-    signOutForget: "Odhlásiť a zabudnúť",
-    forgotten: "Prihlasovacie údaje boli zabudnuté.",
-    error: "Prihlasovacie údaje sa nepodarilo zmeniť. Povoľte údaje prihlasovacieho webu a skúste to znova.",
-  },
   accountStatus: {
     title: "Stav účtu",
     subtitle: "Pozrite si aktuálne prihlásený účet a reláciu prehliadača.",
