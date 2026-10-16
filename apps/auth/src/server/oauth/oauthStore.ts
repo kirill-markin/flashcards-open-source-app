@@ -12,7 +12,7 @@
  * helpers rather than the RLS-scoped variants.
  */
 import { hasOAuthScope } from "./scopes.js";
-import { signOidcIdToken } from "./oidcSigning.js";
+import { signOidcIdToken, type OidcClaims } from "./oidcSigning.js";
 import { randomUUID } from "node:crypto";
 import { query, transaction, transactionWithUserScope, type DatabaseExecutor } from "../../db.js";
 import { verifySessionTokenIdentity } from "../browserSession.js";
@@ -383,44 +383,48 @@ export async function consumeAuthorizationCodeAndIssueTokens(
   issuer: string,
   nowMs: number,
 ): Promise<IssuedTokens | null> {
-  const codeHash = hashOpaqueToken(code);
-
   return transaction(async (executor) => {
-    const consumed = await executor.query<OAuthAuthorizationCodeRow & Readonly<{ user_id: string }>>(
-      [
-        "UPDATE auth.oauth_authorization_codes",
-        "SET consumed_at = now()",
-        "WHERE code_hash = $1 AND consumed_at IS NULL AND expires_at > now()",
-        // Gate minting on an active connection, matching the refresh path: a
-        // connection revoked between code issuance and redemption must not mint.
-        "AND connection_id IN (",
-        "SELECT connection_id FROM auth.oauth_connections WHERE revoked_at IS NULL",
-        ")",
-        "RETURNING client_id, connection_id, redirect_uri, code_challenge, code_challenge_method,",
-        "scope, resource, expires_at, consumed_at, nonce, identity_email, identity_email_verified,",
-        "(SELECT user_id FROM auth.oauth_connections WHERE connection_id = auth.oauth_authorization_codes.connection_id) AS user_id",
-      ].join(" "),
-      [codeHash],
-    );
-    const row = consumed.rows[0];
-    if (row === undefined) {
-      return null;
-    }
-
-    const idToken = hasOAuthScope(row.scope, "openid")
-      ? await signOidcIdToken({
-        iss: issuer,
-        sub: row.user_id,
-        aud: row.client_id,
-        iat: Math.floor(nowMs / 1000),
-        exp: Math.floor(nowMs / 1000) + ACCESS_TOKEN_TTL_SECONDS,
-        ...(row.nonce !== null ? { nonce: row.nonce } : {}),
-        ...getEmailClaims(row.scope, row.identity_email, row.identity_email_verified),
-      })
-      : null;
-    const tokens = await issueTokensInExecutor(executor, mapGrantContext(row), nowMs);
+    const consumed = await consumeAuthorizationCodeGrantInExecutor(executor, code, issuer, nowMs);
+    if (consumed === null) return null;
+    const idToken = consumed.idTokenClaims === null ? null : await signOidcIdToken(consumed.idTokenClaims);
+    const tokens = await issueTokensInExecutor(executor, consumed.grant, nowMs);
     return { ...tokens, idToken };
   });
+}
+
+export async function consumeAuthorizationCodeGrantInExecutor(
+  executor: DatabaseExecutor,
+  code: string,
+  issuer: string,
+  nowMs: number,
+): Promise<Readonly<{ grant: GrantContext; idTokenClaims: OidcClaims | null }> | null> {
+  const consumed = await executor.query<OAuthAuthorizationCodeRow & Readonly<{ original_client_user_id: string }>>(
+    [
+      "UPDATE auth.oauth_authorization_codes",
+      "SET consumed_at = now()",
+      "WHERE code_hash = $1 AND consumed_at IS NULL AND expires_at > now()",
+      "AND connection_id IN (",
+      "SELECT connection_id FROM auth.oauth_connections WHERE revoked_at IS NULL",
+      ")",
+      "RETURNING client_id, connection_id, redirect_uri, code_challenge, code_challenge_method,",
+      "scope, resource, expires_at, consumed_at, nonce, identity_email, identity_email_verified,",
+      "(SELECT original_client_user_id FROM auth.oauth_connections",
+      "WHERE connection_id = auth.oauth_authorization_codes.connection_id) AS original_client_user_id",
+    ].join(" "),
+    [hashOpaqueToken(code)],
+  );
+  const row = consumed.rows[0];
+  if (row === undefined) return null;
+  const idTokenClaims: OidcClaims | null = hasOAuthScope(row.scope, "openid") ? {
+    iss: issuer,
+    sub: row.original_client_user_id,
+    aud: row.client_id,
+    iat: Math.floor(nowMs / 1000),
+    exp: Math.floor(nowMs / 1000) + ACCESS_TOKEN_TTL_SECONDS,
+    ...(row.nonce !== null ? { nonce: row.nonce } : {}),
+    ...getEmailClaims(row.scope, row.identity_email, row.identity_email_verified),
+  } : null;
+  return { grant: mapGrantContext(row), idTokenClaims };
 }
 
 /**
@@ -501,13 +505,21 @@ function getEmailClaims(
 export type OidcUserInfo = Readonly<{ sub: string; email?: string; email_verified?: boolean }>;
 
 export async function getOidcUserInfo(token: string, nowMs: number): Promise<OidcUserInfo | "insufficient_scope" | null> {
+  return getOidcUserInfoInExecutor({ query }, token, nowMs);
+}
+
+export async function getOidcUserInfoInExecutor(
+  executor: DatabaseExecutor,
+  token: string,
+  nowMs: number,
+): Promise<OidcUserInfo | "insufficient_scope" | null> {
   const secret = parseToken(ACCESS_TOKEN_PREFIX, token);
   if (secret === null) {
     return null;
   }
-  const result = await query<GrantContextRow & Readonly<{ user_id: string }>>(
+  const result = await executor.query<GrantContextRow & Readonly<{ original_client_user_id: string }>>(
     [
-      "SELECT c.user_id, t.connection_id, t.resource, t.scope, t.identity_email, t.identity_email_verified",
+      "SELECT c.original_client_user_id, t.connection_id, t.resource, t.scope, t.identity_email, t.identity_email_verified",
       "FROM auth.oauth_access_tokens t",
       "JOIN auth.oauth_connections c ON c.connection_id = t.connection_id",
       "WHERE t.token_hash = $1 AND t.expires_at > $2 AND c.revoked_at IS NULL",
@@ -521,5 +533,5 @@ export async function getOidcUserInfo(token: string, nowMs: number): Promise<Oid
   if (!hasOAuthScope(row.scope, "openid")) {
     return "insufficient_scope";
   }
-  return { sub: row.user_id, ...getEmailClaims(row.scope, row.identity_email, row.identity_email_verified) };
+  return { sub: row.original_client_user_id, ...getEmailClaims(row.scope, row.identity_email, row.identity_email_verified) };
 }

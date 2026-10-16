@@ -1,6 +1,7 @@
 import { createHash, randomUUID, timingSafeEqual } from "node:crypto";
 import { queryWithUserScope, transactionWithUserScope } from "../database";
 import { unsafeQuery } from "../database/unsafe";
+import { loadClientAccountIdentityInExecutor, type ClientAccountIdentity } from "../auth/userIdentities";
 import { HttpError } from "../shared/errors";
 import {
   decodeOpaqueCursor,
@@ -52,6 +53,7 @@ export type AgentApiKeyConnectionPage = Readonly<{
 
 export type AuthenticatedAgentApiKey = Readonly<{
   userId: string;
+  clientAccountIdentity?: ClientAccountIdentity;
   connectionId: string;
   selectedWorkspaceId: string | null;
 }>;
@@ -192,8 +194,16 @@ export async function authenticateAgentApiKey(apiKey: string): Promise<Authentic
     );
   }
 
+  const clientAccountIdentity = await transactionWithUserScope({ userId: row.user_id }, async (executor) => {
+    const identity = await executor.query<Readonly<{ original_client_user_id: string }>>(
+      "SELECT original_client_user_id FROM auth.agent_api_keys WHERE connection_id = $1 AND user_id = $2",
+      [row.connection_id, row.user_id],
+    );
+    return loadClientAccountIdentityInExecutor(executor, row.user_id, identity.rows[0]?.original_client_user_id);
+  });
   return {
     userId: row.user_id,
+    clientAccountIdentity,
     connectionId: row.connection_id,
     selectedWorkspaceId,
   };

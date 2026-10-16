@@ -1,3 +1,4 @@
+import type { ClientAccountIdentity } from "../auth/userIdentities";
 import {
   authenticateRequest,
   authenticateRequestWithAbortSignal,
@@ -29,6 +30,7 @@ import { getAllowedBrowserOrigins } from "./browserCors";
 
 export type RequestContext = Readonly<{
   userId: string;
+  clientAccountIdentity?: ClientAccountIdentity;
   subjectUserId: string;
   selectedWorkspaceId: string | null;
   email: string | null;
@@ -155,6 +157,9 @@ async function loadAuthenticatedRequestContext(
 
   return {
     userId: userProfile.userId,
+    clientAccountIdentity: auth.transport === "api_key"
+      ? auth.clientAccountIdentity
+      : userProfile.clientAccountIdentity,
     subjectUserId,
     selectedWorkspaceId,
     email: userProfile.email,
@@ -408,4 +413,20 @@ export function requireAgentConnectionId(requestContext: RequestContext): string
   }
 
   return requestContext.connectionId;
+}
+
+/** Credential presentation must never become a database or resource owner. */
+export function getClientAccountIdentity(requestContext: RequestContext): ClientAccountIdentity {
+  if (requestContext.transport === "guest" || requestContext.transport === "none") {
+    return {
+      originalClientUserId: requestContext.userId,
+      canonicalAccountId: requestContext.userId,
+      linkedAccountIds: [requestContext.userId],
+    };
+  }
+  const identity = requestContext.clientAccountIdentity;
+  if (identity === undefined || identity.canonicalAccountId !== requestContext.userId) {
+    throw new Error("Authenticated request is missing its canonical client identity projection");
+  }
+  return identity;
 }
