@@ -12,6 +12,7 @@ extension CardStore {
     func saveCard(
         workspaceId: String,
         input: CardEditorInput,
+        initialMetadata: CardMetadata?,
         cardId: String?,
         installationId: String,
         operationId: String,
@@ -25,16 +26,21 @@ extension CardStore {
         let tagsJson = try self.core.encodeJsonString(value: normalizedInput.tags)
 
         if let cardId {
+            let currentCard = try self.loadCard(workspaceId: workspaceId, cardId: cardId)
+            let metadataJson = try self.core.encodeJsonString(
+                value: cardMetadataAfterAuthoredEdit(card: currentCard, input: normalizedInput)
+            )
             let updatedRows = try self.core.execute(
                 sql: """
                 UPDATE cards
-                SET front_text = ?, back_text = ?, tags_json = ?, client_updated_at = ?, last_modified_by_replica_id = ?, last_operation_id = ?, updated_at = ?
+                SET front_text = ?, back_text = ?, tags_json = ?, metadata_json = ?, client_updated_at = ?, last_modified_by_replica_id = ?, last_operation_id = ?, updated_at = ?
                 WHERE workspace_id = ? AND card_id = ? AND deleted_at IS NULL
                 """,
                 values: [
                     .text(normalizedInput.frontText),
                     .text(normalizedInput.backText),
                     .text(tagsJson),
+                    .text(metadataJson),
                     .text(now),
                     .text(installationId),
                     .text(operationId),
@@ -58,7 +64,7 @@ extension CardStore {
         }
 
         let newCardId = UUID().uuidString.lowercased()
-        let metadataJson = try self.core.encodeJsonString(value: makeDefaultCardMetadata(createdAt: now))
+        let metadataJson = try self.core.encodeJsonString(value: initialMetadata ?? makeDefaultCardMetadata(createdAt: now))
         try self.core.execute(
             sql: """
             INSERT INTO cards (

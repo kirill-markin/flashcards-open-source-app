@@ -8,7 +8,7 @@ import type {
   ReviewEvent,
   WorkspaceSchedulerSettings,
 } from "../types";
-import { makeDefaultCardMetadata } from "../appData/domain/cardMetadata";
+import { makeDefaultCardMetadata, normalizeOnboardingDemoMetadata } from "../appData/domain/cardMetadata";
 import { appendLegacyEffortTag } from "../legacyEffort";
 import {
   joinPath,
@@ -62,7 +62,9 @@ function parseCardSourceMetadata(value: unknown, endpoint: string, path: string)
 
 function parseCardMetadata(value: unknown, endpoint: string, path: string): CardMetadata {
   const objectValue = parseObject(value, endpoint, path);
+  const onboardingDemo = normalizeOnboardingDemoMetadata(objectValue.onboardingDemo);
   return {
+    ...(onboardingDemo === undefined ? {} : { onboardingDemo }),
     version: parseLiteral(parseRequiredField(objectValue, "version", endpoint, path, parseNumber), endpoint, joinPath(path, "version"), 1),
     source: parseRequiredField(objectValue, "source", endpoint, path, parseCardSourceMetadata),
   };
