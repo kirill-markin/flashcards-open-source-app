@@ -200,6 +200,7 @@ export const boundaryDefinitions = Object.freeze([
     expectedMigrationCount: 169,
     testFiles: Object.freeze([
       "src/cards/managedMedia/managedImageSnapshotMerge.postgres.integration.ts",
+      "src/cards/onboardingDemo.postgres.integration.ts",
     ]),
   }),
   Object.freeze({
