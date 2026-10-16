@@ -20,6 +20,10 @@ Public profile alias storage and live leaderboard participation reads are define
 Private established-account community transfer and invitation writer fencing are defined in
 [`0209_account_community_union.sql`](0209_account_community_union.sql).
 
+Private bounded account union, exact receipts and scoped retired-shell deletion are defined in
+[`0210_proved_account_union.sql`](0210_proved_account_union.sql). The real PostgreSQL boundary is
+[`provedAccountUnion.postgres.integration.ts`](../../apps/backend/src/auth/provedAccountUnion.postgres.integration.ts).
+
 ## Corrections to applied migrations
 
 An applied migration is immutable. `scripts/deploy/migrate.sh` records every migration by filename
