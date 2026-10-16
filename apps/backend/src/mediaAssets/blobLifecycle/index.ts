@@ -1,7 +1,6 @@
 import {
   applyWorkspaceDatabaseScopeInExecutor,
   transactionWithWorkspaceScope,
-  transactionWithWorkspaceScopeDeadline,
   type DatabaseExecutor,
 } from "../../database";
 import { unsafeTransaction, unsafeTransactionWithDeadline } from "../../database/unsafe";
@@ -439,11 +438,31 @@ export async function reserveDirectMediaBlobWriterWithOwnerInExecutor(
   return { reservationToken: row.reservation_token, state: row.reservation_state,
     normalizationVersion: requireNormalizationVersion(row.normalization_version) };
 }
+export async function applyDirectMediaBlobWriterScopeInExecutor(
+  executor: DatabaseExecutor,
+  input: Readonly<{ userId: string; workspaceId: string }>,
+): Promise<void> {
+  const result = await executor.query<{ user_id: string }>(
+    "SELECT auth.canonical_account_id($1) AS user_id",
+    [input.userId],
+  );
+  const userId = result.rows[0]?.user_id;
+  if (typeof userId !== "string" || userId === "") {
+    throw new TypeError("Direct writer canonical account was not returned.");
+  }
+  await applyWorkspaceDatabaseScopeInExecutor(executor, {
+    userId,
+    workspaceId: input.workspaceId,
+  });
+}
+
 export async function reserveDirectMediaBlobWriterWithOwner(
   input: DirectMediaBlobWriterReservationInput,
 ): Promise<MediaBlobWriterReservation> {
-  return transactionWithWorkspaceScope( { userId: input.userId, workspaceId: input.workspaceId },
-    (executor) => reserveDirectMediaBlobWriterWithOwnerInExecutor(executor, input));
+  return unsafeTransaction(async (executor) => {
+    await applyDirectMediaBlobWriterScopeInExecutor(executor, input);
+    return reserveDirectMediaBlobWriterWithOwnerInExecutor(executor, input);
+  });
 }
 async function beginDirectMediaBlobWriterAttemptSnapshotInExecutor(
   executor: DatabaseExecutor,
@@ -531,13 +550,10 @@ export function beginDirectMediaBlobWriterAttemptWithOwner(
 ): Promise<DirectMediaBlobWriterAttemptResult> {
   const snapshot = snapshotDirectAttemptInput(input);
   const leaseSnapshot = snapshotDirectAttemptLease(lease);
-  return transactionWithWorkspaceScopeDeadline(
-    { userId: snapshot.userId, workspaceId: snapshot.workspaceId },
-    leaseSnapshot.operationDeadlineAtMs,
-    (executor) => beginDirectMediaBlobWriterAttemptSnapshotInExecutor(
-      executor, snapshot, leaseSnapshot,
-    ),
-  );
+  return unsafeTransactionWithDeadline(leaseSnapshot.operationDeadlineAtMs, async (executor) => {
+    await applyDirectMediaBlobWriterScopeInExecutor(executor, snapshot);
+    return beginDirectMediaBlobWriterAttemptSnapshotInExecutor(executor, snapshot, leaseSnapshot);
+  });
 }
 async function queryDirectAttemptStatus<Status extends string>(
   executor: DatabaseExecutor,
@@ -602,10 +618,10 @@ export function transactionWithDirectMediaBlobWriterApplyDeadline<Result>(
 ): Promise<Result> {
   const snapshot = snapshotDirectAttemptExactInput(input);
   const deadline = snapshotDirectAttemptOperationDeadline(operationDeadlineAt);
-  return transactionWithWorkspaceScopeDeadline(
-    { userId: snapshot.userId, workspaceId: snapshot.workspaceId },
+  return unsafeTransactionWithDeadline(
     deadline.operationDeadlineAtMs,
     async (executor) => {
+      await applyDirectMediaBlobWriterScopeInExecutor(executor, snapshot);
       const applyExecutor = createDirectMediaBlobWriterApplyExecutor(
         executor, snapshot, deadline,
       );
@@ -660,17 +676,19 @@ export function resolveDirectMediaBlobWriterAttemptFailureWithOwner(
 ): Promise<DirectMediaBlobWriterAttemptFailureStatus> {
   const snapshot = snapshotDirectAttemptExactInput(input);
   const deadline = snapshotDirectAttemptOperationDeadline(operationDeadlineAt);
-  return transactionWithWorkspaceScopeDeadline(
-    { userId: snapshot.userId, workspaceId: snapshot.workspaceId },
+  return unsafeTransactionWithDeadline(
     deadline.operationDeadlineAtMs,
-    (executor) => queryDirectAttemptStatus(
-      executor,
-      `SELECT content.resolve_direct_media_blob_writer_attempt_failure_with_owner(
-         $1,$2,ROW($3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15)
-         ::content.direct_media_blob_writer_attempt_payload,$16
-       ) AS attempt_status`,
-      snapshot, cleanupDelayMs, directAttemptFailureStatuses, "resolve_direct_writer_attempt_failure",
-    ),
+    async (executor) => {
+      await applyDirectMediaBlobWriterScopeInExecutor(executor, snapshot);
+      return queryDirectAttemptStatus(
+        executor,
+        `SELECT content.resolve_direct_media_blob_writer_attempt_failure_with_owner(
+           $1,$2,ROW($3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15)
+           ::content.direct_media_blob_writer_attempt_payload,$16
+         ) AS attempt_status`,
+        snapshot, cleanupDelayMs, directAttemptFailureStatuses, "resolve_direct_writer_attempt_failure",
+      );
+    },
   );
 }
 export function resolveDirectMediaBlobWriterAttemptAfterAccessRevocation(
@@ -681,10 +699,7 @@ export function resolveDirectMediaBlobWriterAttemptAfterAccessRevocation(
   const snapshot = snapshotDirectAttemptExactInput(input);
   const deadline = snapshotDirectAttemptOperationDeadline(operationDeadlineAt);
   return unsafeTransactionWithDeadline(deadline.operationDeadlineAtMs, async (executor) => {
-    await applyWorkspaceDatabaseScopeInExecutor(
-      executor,
-      { userId: snapshot.userId, workspaceId: snapshot.workspaceId },
-    );
+    await applyDirectMediaBlobWriterScopeInExecutor(executor, snapshot);
     return queryDirectAttemptStatus(
       executor,
       `SELECT content.resolve_direct_media_blob_writer_attempt_after_access_revocation(
