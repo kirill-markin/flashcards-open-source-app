@@ -719,6 +719,9 @@ export async function ingestImageMediaAssetWithDependencies(
         deadline.getRemainingInvocationTimeMs,
       );
     } catch (error) {
+      if (hasSqlState(error, "P0A01") || hasSqlState(error, "ACCOUNT_SCOPE_CHANGED")) {
+        throw error;
+      }
       let resolution: DirectWriterStatus;
       try {
         resolution = await resolveDirectWriterFailure(

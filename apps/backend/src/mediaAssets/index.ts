@@ -5,9 +5,11 @@ import {
   transactionWithWorkspaceScopeReadOnly,
   type DatabaseExecutor,
 } from "../database";
+import { unsafeTransactionWithDeadline } from "../database/unsafe";
 import { HttpError } from "../shared/errors";
 import { findSyncConflictWorkspaceIdInExecutor } from "../sync/conflicts/fork";
 import {
+  applyDirectMediaBlobWriterScopeInExecutor,
   fenceDirectMediaBlobWriterAttemptApplyWithOwnerInExecutor,
   finishDirectMediaBlobWriterAttemptApplyWithOwnerInExecutor,
   mediaBlobCleanupDelayMs,
@@ -169,7 +171,8 @@ export async function loadReusableImageMediaBlobForWorkspace(
   deadlineAtMs: number,
 ): Promise<MediaBlob | null> {
   const normalizedInput = normalizeMediaAssetSnapshotInput(toMediaAssetSnapshotInputFromNormalizedImage(input));
-  return transactionWithWorkspaceScopeDeadline({ userId, workspaceId }, deadlineAtMs, async (executor) => {
+  return unsafeTransactionWithDeadline(deadlineAtMs, async (executor) => {
+    await applyDirectMediaBlobWriterScopeInExecutor(executor, { userId, workspaceId });
     const row = await findMediaBlobRowBySha256InExecutor(executor, normalizedInput.sha256);
     if (row === null) {
       return null;
@@ -256,13 +259,20 @@ export async function applyImageNormalizedMediaAssetWithDirectWriterForWorkspace
   writer: DirectMediaBlobWriterAttemptExactInput,
   operationDeadlineAt: string,
 ): Promise<MediaAssetMutationResult> {
-  if (userId !== writer.userId || workspaceId !== writer.workspaceId) {
+  if (workspaceId !== writer.workspaceId) {
     throw new MediaBlobWriterFenceError("direct_apply_scope");
   }
   return transactionWithDirectMediaBlobWriterApplyDeadline(
     writer,
     operationDeadlineAt,
     async (executor, snapshot, exactOperationDeadlineAt) => {
+      const scope = await executor.query<{ matches: boolean }>(
+        "SELECT security.current_user_id() = auth.canonical_account_id($1) AS matches",
+        [userId],
+      );
+      if (scope.rows[0]?.matches !== true) {
+        throw new MediaBlobWriterFenceError("direct_apply_scope");
+      }
       const fence = await fenceDirectMediaBlobWriterAttemptApplyWithOwnerInExecutor(
         executor,
         snapshot,
@@ -346,16 +356,10 @@ export async function replayImageNormalizedMediaAssetForWorkspace(
   status: "already_applied" | "live_applied" | "referenced" | "peer_conflict",
   requestDeadlineAtMs: number,
 ): Promise<MediaAssetMutationResult> {
-  return transactionWithWorkspaceScopeDeadline(
-    { userId, workspaceId },
-    requestDeadlineAtMs,
-    (executor) => loadReplayedImageNormalizedMediaAssetInExecutor(
-      executor,
-      workspaceId,
-      input,
-      status,
-    ),
-  );
+  return unsafeTransactionWithDeadline(requestDeadlineAtMs, async (executor) => {
+    await applyDirectMediaBlobWriterScopeInExecutor(executor, { userId, workspaceId });
+    return loadReplayedImageNormalizedMediaAssetInExecutor(executor, workspaceId, input, status);
+  });
 }
 
 export async function loadMediaAssetForWorkspace(
