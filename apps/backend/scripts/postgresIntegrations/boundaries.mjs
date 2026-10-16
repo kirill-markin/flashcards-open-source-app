@@ -71,6 +71,18 @@ export const createdRolesByMigration = new Map([
 ]);
 export const boundaryDefinitions = Object.freeze([
   Object.freeze({
+    migrationFileName: "0195_stable_client_account_identity.sql",
+    expectedMigrationCount: 197,
+    testFiles: Object.freeze([
+      "src/agent/reviews.postgres.integration.ts",
+      "src/auth/stableClientAccountIdentity.postgres.integration.ts",
+      "src/auth/surrogateUserId.postgres.integration.ts",
+      "src/guestAuth/upgrade/boundGuestSession.postgres.integration.ts",
+      "src/aiConsent/consent.postgres.integration.ts",
+      "src/auth/appleLifecycle.postgres.integration.ts",
+    ]),
+  }),
+  Object.freeze({
     migrationFileName: "0194_apple_consent_reconnect.sql",
     expectedMigrationCount: 196,
     testFiles: Object.freeze([
@@ -120,13 +132,6 @@ export const boundaryDefinitions = Object.freeze([
     ]),
   }),
   Object.freeze({
-    migrationFileName: "0187_apple_provider_lifecycle.sql",
-    expectedMigrationCount: 189,
-    testFiles: Object.freeze([
-      "src/auth/appleLifecycle.postgres.integration.ts",
-    ]),
-  }),
-  Object.freeze({
     migrationFileName: "0186_real_email_principal_enrollment.sql",
     expectedMigrationCount: 188,
     testFiles: Object.freeze([
@@ -151,11 +156,7 @@ export const boundaryDefinitions = Object.freeze([
     migrationFileName: "0183_verified_auth_identity_lifecycle.sql",
     expectedMigrationCount: 185,
     testFiles: Object.freeze([
-      "src/auth/surrogateUserId.postgres.integration.ts",
-      "src/guestAuth/upgrade/boundGuestSession.postgres.integration.ts",
-      "src/aiConsent/consent.postgres.integration.ts",
       "src/routes/system/account/accountPreferences.postgres.integration.ts",
-      "src/agent/reviews.postgres.integration.ts",
     ]),
   }),
   Object.freeze({
@@ -199,6 +200,7 @@ export const boundaryDefinitions = Object.freeze([
     expectedMigrationCount: 169,
     testFiles: Object.freeze([
       "src/cards/managedMedia/managedImageSnapshotMerge.postgres.integration.ts",
+      "src/cards/onboardingDemo.postgres.integration.ts",
     ]),
   }),
   Object.freeze({

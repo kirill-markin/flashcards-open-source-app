@@ -69,6 +69,11 @@ const testUnselectedWorkspaceSummary: WorkspaceSummary = {
 };
 const testApiKeyRequestContext: RequestContext = {
   userId: "user-1",
+  clientAccountIdentity: {
+    originalClientUserId: "user-1",
+    canonicalAccountId: "user-1",
+    linkedAccountIds: ["user-1"],
+  },
   subjectUserId: "subject-user-1",
   selectedWorkspaceId: testWorkspaceSummary.workspaceId,
   email: "user@example.com",

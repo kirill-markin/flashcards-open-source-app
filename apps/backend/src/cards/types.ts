@@ -21,9 +21,19 @@ export type CardSourceMetadata = Readonly<{
   importId: string | null;
 }>;
 
+export type OnboardingDemoMetadata = Readonly<{
+  version: 1;
+  frontText: string;
+  backText: string;
+  tags: ReadonlyArray<string>;
+  cardType: string;
+  wasEdited?: boolean;
+}>;
+
 export type CardMetadata = Readonly<{
   version: 1;
   source: CardSourceMetadata | null;
+  onboardingDemo?: OnboardingDemoMetadata;
 }>;
 
 export type CardRow = Readonly<{
