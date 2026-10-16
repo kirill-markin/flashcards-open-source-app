@@ -63,6 +63,10 @@ const placeholderTerminalStateMigrationSql = readFileSync(resolve(
   __dirname,
   "../../../../../../db/migrations/0104_generated_image_placeholder_terminal_state.sql",
 ), "utf8");
+const generatedAccountOwnerMigrationSql = readFileSync(resolve(
+  __dirname,
+  "../../../../../../db/migrations/0200_generated_media_account_owner.sql",
+), "utf8");
 
 function immutablePayloadMismatches(
   job: ClaimedGeneratedMediaPromotionJob,
@@ -626,6 +630,7 @@ test("protocol activation fences lifecycle jobs from pre-change workers", async 
 
       await client.query("BEGIN");
       await client.query(placeholderTerminalStateMigrationSql);
+      await client.query(generatedAccountOwnerMigrationSql);
       await client.query("COMMIT");
     } catch (error) {
       await client.query("ROLLBACK");
