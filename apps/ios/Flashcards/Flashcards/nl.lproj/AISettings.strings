@@ -947,3 +947,6 @@
 "settings.account.methods.changed" = "De methode is gewijzigd. Vernieuw de methoden en begin opnieuw.";
 "settings.account.methods.demo" = "Demoaccounts kunnen geen aanmeldmethoden beheren. Meld je aan met je eigen account.";
 "settings.account.methods.refreshFailed" = "De methoden konden niet worden vernieuwd. Vernieuw vóór een nieuwe wijziging.";
+
+"settings.account.cloudSignIn.continueGoogle" = "Doorgaan met Google";
+"settings.account.cloudSignIn.appleCleanupPending" = "Apple rondt een beveiligingsupdate af. Probeer het zo nog eens met Apple of kies een andere aanmeldmethode.";

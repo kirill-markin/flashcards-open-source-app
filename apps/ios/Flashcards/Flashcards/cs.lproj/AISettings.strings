@@ -947,3 +947,6 @@
 "settings.account.methods.changed" = "Způsob se změnil. Obnovte způsoby a začněte znovu.";
 "settings.account.methods.demo" = "Ukázkové účty nemohou spravovat způsoby přihlášení. Přihlaste se vlastním účtem.";
 "settings.account.methods.refreshFailed" = "Způsoby se nepodařilo obnovit. Před novou změnou je obnovte.";
+
+"settings.account.cloudSignIn.continueGoogle" = "Pokračovat přes Google";
+"settings.account.cloudSignIn.appleCleanupPending" = "Apple dokončuje aktualizaci zabezpečení. Za chvíli to zkuste znovu přes Apple nebo zvolte jiný způsob přihlášení.";

@@ -947,3 +947,6 @@
 "settings.account.methods.changed" = "طریقہ بدل گیا ہے۔ طریقے تازہ کرکے دوبارہ شروع کریں۔";
 "settings.account.methods.demo" = "ڈیمو اکاؤنٹ سائن ان طریقے سنبھال نہیں سکتے۔ اپنے اکاؤنٹ میں سائن ان کریں۔";
 "settings.account.methods.refreshFailed" = "طریقے تازہ نہیں ہو سکے۔ نئی تبدیلی سے پہلے تازہ کریں۔";
+
+"settings.account.cloudSignIn.continueGoogle" = "Google کے ساتھ جاری رکھیں";
+"settings.account.cloudSignIn.appleCleanupPending" = "Apple ایک سیکیورٹی اپ ڈیٹ مکمل کر رہا ہے۔ تھوڑی دیر بعد Apple کے ساتھ دوبارہ کوشش کریں، یا سائن ان کرنے کا کوئی دوسرا طریقہ منتخب کریں۔";

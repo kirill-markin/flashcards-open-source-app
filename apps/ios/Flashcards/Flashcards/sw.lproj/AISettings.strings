@@ -947,3 +947,6 @@
 "settings.account.methods.changed" = "Njia imebadilika. Onyesha njia upya na uanze tena.";
 "settings.account.methods.demo" = "Akaunti za majaribio haziwezi kudhibiti njia za kuingia. Ingia kwa akaunti yako.";
 "settings.account.methods.refreshFailed" = "Njia hazikuweza kuonyeshwa upya. Onyesha upya kabla ya mabadiliko mapya.";
+
+"settings.account.cloudSignIn.continueGoogle" = "Endelea kwa Google";
+"settings.account.cloudSignIn.appleCleanupPending" = "Apple inakamilisha sasisho la usalama. Jaribu tena kwa Apple baada ya muda mfupi, au chagua njia nyingine ya kuingia.";

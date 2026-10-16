@@ -975,3 +975,6 @@
 "settings.account.methods.changed" = "تغيّرت الطريقة. حدّث الطرق وابدأ مجددًا.";
 "settings.account.methods.demo" = "لا تدير الحسابات التجريبية طرق الدخول. سجّل الدخول بحسابك.";
 "settings.account.methods.refreshFailed" = "تعذّر تحديث الطرق. حدّثها قبل تغيير جديد.";
+
+"settings.account.cloudSignIn.continueGoogle" = "المتابعة باستخدام Google";
+"settings.account.cloudSignIn.appleCleanupPending" = "تُنهي Apple تحديثًا أمنيًا. حاول مجددًا باستخدام Apple بعد قليل، أو اختر طريقة أخرى لتسجيل الدخول.";
