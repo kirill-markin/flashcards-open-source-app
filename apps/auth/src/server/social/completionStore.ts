@@ -1,5 +1,6 @@
 import { randomBytes } from "node:crypto";
 import type { CognitoEmailPrincipal } from "../cognito/cognitoAuth.js";
+import { log } from "../logger.js";
 import { createProviderSignInHint, encryptSignInHint, decryptSignInHint, type ProviderSignInHint } from "./signInHint.js";
 import { transaction, type DatabaseExecutor } from "../../db.js";
 import { verifyEnrollmentMailboxOtp } from "./mailboxProof.js";
@@ -54,6 +55,15 @@ export async function completeAuthoritativeLoginInExecutor(
   return { status: "completed", response: await persistCompletion(executor, { ...attempt, purpose: "login" }, enrolled) };
 }
 
+function logMailboxVerificationRequired(
+  attempt: Pick<ClaimedAuthAttempt, "client" | "purpose">, proof: ProviderEnrollmentProof,
+  enrollment: Exclude<PrincipalEnrollmentResult, EnrolledProviderPrincipal>,
+): void {
+  log({ domain: "auth", action: "provider_mailbox_verification_required", mailboxReason: enrollment.reason,
+    provider: proof.provider, client: attempt.client, purpose: attempt.purpose,
+    emailAuthority: proof.identity.email?.authority ?? null, privateRelay: proof.identity.email?.privateRelay ?? null });
+}
+
 export async function completeAuthoritativeAuthAttempt(attempt: ClaimedAuthAttempt): Promise<AuthoritativeAttemptResult> {
   const proof = attempt.secrets.proof;
   if (proof === null) throw new AuthAttemptError("AUTH_ATTEMPT_INVALID");
@@ -61,12 +71,16 @@ export async function completeAuthoritativeAuthAttempt(attempt: ClaimedAuthAttem
   if (attempt.purpose === "login") {
     const principal = await prepareAuthoritativeLoginPrincipal(proof);
     const result = await transaction((executor) => completeAuthoritativeLoginInExecutor(executor, attempt, proof, principal));
-    return result.status === "completed" ? result
-      : { ...result, attempt: await recordAuthAttemptMailboxRequired(attempt) };
+    if (result.status === "completed") return result;
+    const mailboxAttempt = await recordAuthAttemptMailboxRequired(attempt);
+    logMailboxVerificationRequired(attempt, proof, result.enrollment);
+    return { ...result, attempt: mailboxAttempt };
   }
   const enrolled = await enrollAuthoritativeProviderPrincipal(proof);
   if (enrolled.status === "verification_required") {
-    return { status: "verification_required", enrollment: enrolled, attempt: await recordAuthAttemptMailboxRequired(attempt) };
+    const mailboxAttempt = await recordAuthAttemptMailboxRequired(attempt);
+    logMailboxVerificationRequired(attempt, proof, enrolled);
+    return { status: "verification_required", enrollment: enrolled, attempt: mailboxAttempt };
   }
   const response = await transaction((executor) => persistCompletion(executor, attempt, enrolled));
   return { status: "completed", response };

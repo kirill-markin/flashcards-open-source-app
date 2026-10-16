@@ -1,4 +1,8 @@
 import type { AuthTraceId } from "./sentry.js";
+import type { AuthPurpose } from "./social/attemptContract.js";
+import type { IdentityProvider } from "./social/identityStore.js";
+import type { PrincipalEnrollmentResult, EnrolledProviderPrincipal } from "./social/principalEnrollment.js";
+import type { ProviderEmail, SocialClient } from "./social/providers.js";
 
 type AuthAction =
   | "send_code"
@@ -27,6 +31,7 @@ type AuthAction =
   | "request_error"
   | "apple_revocation_drain"
   | "apple_notification"
+  | "provider_mailbox_verification_required"
   | "error";
 
 export type AuthLogEvent = Readonly<{
@@ -46,6 +51,12 @@ export type AuthLogEvent = Readonly<{
   errorClass?: string;
   errorMessage?: string;
   reasonCategory?: string;
+  mailboxReason?: Exclude<PrincipalEnrollmentResult, EnrolledProviderPrincipal>["reason"];
+  provider?: IdentityProvider;
+  client?: SocialClient;
+  purpose?: AuthPurpose;
+  emailAuthority?: ProviderEmail["authority"] | null;
+  privateRelay?: boolean | null;
   maskedEmail?: string;
   ipAddress?: string;
   error?: string;
