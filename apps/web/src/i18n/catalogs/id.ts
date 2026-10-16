@@ -1529,12 +1529,6 @@ const idCatalog: TranslationCatalog = {
     changed: "Metode ini berubah. Segarkan metode dan mulai lagi.",
     codePrompt: "Verifikasi akses ke email Anda. Masukkan kode 6–8 digit. Periksa spam jika perlu.",
   },
-  browserSignInPrivacy: {
-    forget: "Lupakan informasi login",
-    signOutForget: "Keluar dan lupakan",
-    forgotten: "Informasi login dilupakan.",
-    error: "Informasi login tidak dapat diubah. Izinkan data situs autentikasi lalu coba lagi.",
-  },
   accountStatus: {
     title: "Status Akun",
     subtitle: "Tinjau akun yang sedang masuk dan sesi peramban.",

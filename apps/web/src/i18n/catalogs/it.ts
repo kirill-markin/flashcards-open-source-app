@@ -1529,12 +1529,6 @@ const itCatalog: TranslationCatalog = {
     changed: "Questo metodo è cambiato. Aggiorna i metodi e ricomincia.",
     codePrompt: "Verifica l’accesso alla tua e-mail. Inserisci il codice di 6–8 cifre. Controlla lo spam se necessario.",
   },
-  browserSignInPrivacy: {
-    forget: "Dimentica le informazioni di accesso",
-    signOutForget: "Esci e dimentica",
-    forgotten: "Informazioni di accesso dimenticate.",
-    error: "Impossibile modificare le informazioni di accesso. Consenti i dati del sito di autenticazione e riprova.",
-  },
   accountStatus: {
     title: "Stato dell’account",
     subtitle: "Consulta l’account attualmente connesso e la sessione del browser.",

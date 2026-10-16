@@ -1529,12 +1529,6 @@ const viCatalog: TranslationCatalog = {
     changed: "Phương thức đã thay đổi. Làm mới phương thức và bắt đầu lại.",
     codePrompt: "Xác minh quyền truy cập email. Nhập mã gồm 6–8 chữ số. Kiểm tra thư rác nếu cần.",
   },
-  browserSignInPrivacy: {
-    forget: "Quên thông tin đăng nhập",
-    signOutForget: "Đăng xuất và quên",
-    forgotten: "Đã quên thông tin đăng nhập.",
-    error: "Không thể đổi thông tin đăng nhập. Cho phép dữ liệu trang xác thực rồi thử lại.",
-  },
   accountStatus: {
     title: "Trạng thái tài khoản",
     subtitle: "Xem tài khoản đang đăng nhập và phiên trình duyệt hiện tại.",

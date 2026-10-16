@@ -1529,12 +1529,6 @@ const deCatalog: TranslationCatalog = {
     changed: "Diese Methode hat sich geändert. Aktualisiere die Methoden und beginne erneut.",
     codePrompt: "Bestätige den Zugriff auf deine E-Mail. Gib den 6- bis 8-stelligen Code ein. Prüfe bei Bedarf den Spamordner.",
   },
-  browserSignInPrivacy: {
-    forget: "Anmeldeinformationen vergessen",
-    signOutForget: "Abmelden und vergessen",
-    forgotten: "Anmeldeinformationen vergessen.",
-    error: "Anmeldeinformationen konnten nicht geändert werden. Erlaube Websitedaten für die Anmeldeseite und versuche es erneut.",
-  },
   accountStatus: {
     title: "Kontostatus",
     subtitle: "Prüfe das aktuell angemeldete Konto und die Browser-Sitzung.",
