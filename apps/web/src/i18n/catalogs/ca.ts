@@ -1529,12 +1529,6 @@ const caCatalog: TranslationCatalog = {
     changed: "El mètode ha canviat. Actualitza els mètodes i torna a començar.",
     codePrompt: "Verifica l’accés al correu. Introdueix el codi de 6 a 8 dígits. Revisa el correu brossa si cal.",
   },
-  browserSignInPrivacy: {
-    forget: "Oblida la informació d’inici de sessió",
-    signOutForget: "Tanca la sessió i oblida",
-    forgotten: "S’ha oblidat la informació d’inici de sessió.",
-    error: "No s’ha pogut canviar la informació d’inici de sessió. Permet les dades del lloc d’autenticació i torna-ho a provar.",
-  },
   accountStatus: {
     title: "Estat del compte",
     subtitle: "Consulta el compte que té la sessió iniciada i la sessió del navegador.",

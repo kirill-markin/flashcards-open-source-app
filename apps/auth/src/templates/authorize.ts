@@ -1,4 +1,3 @@
-import { BROWSER_HINT_COPY } from "./browserHintCopy.js";
 import { AUTH_ENTRY_COPY } from "./authEntryCopy.js";
 import { authEntryScript, authEntryStyles, renderAuthMethods, renderOtherMethods } from "./authEntry.js";
 import { hasOAuthScope } from "../server/oauth/scopes.js";
@@ -265,7 +264,6 @@ export const renderAuthorizePage = (
     (function() {
       var request = ${toScriptJson(request)};
       var copy = ${toScriptJson(copy)};
-      var hintCopy = ${JSON.stringify(BROWSER_HINT_COPY[locale])};
       var entryCopy = ${toScriptJson(entryCopy)};
       var uiLocale = ${toScriptJson(locale)};
       var collectionDisabled = new URLSearchParams(window.location.search).get("analytics_collection") === "off";

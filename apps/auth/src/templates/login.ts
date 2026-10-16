@@ -1,4 +1,3 @@
-import { BROWSER_HINT_COPY } from "./browserHintCopy.js";
 import { AUTH_ENTRY_COPY } from "./authEntryCopy.js";
 import { authEntryScript, authEntryStyles, renderAuthMethods, renderOtherMethods } from "./authEntry.js";
 import { getLoginPageLocaleDirection, type LoginPageLocale } from "../routes/browser/loginPageLocale.js";
@@ -1164,7 +1163,6 @@ export const renderLoginPage = (
     (function() {
       var redirectUri = ${JSON.stringify(redirectUri).replace(/</g, "\\u003c")};
       var copy = ${JSON.stringify(copy)};
-      var hintCopy = ${JSON.stringify(BROWSER_HINT_COPY[locale])};
       var entryCopy = ${JSON.stringify(entryCopy)};
       var uiLocale = ${JSON.stringify(locale)};
       var collectionDisabled = new URLSearchParams(window.location.search).get("analytics_collection") === "off";

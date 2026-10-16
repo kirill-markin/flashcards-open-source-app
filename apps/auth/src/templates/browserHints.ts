@@ -9,7 +9,7 @@ export const browserHintStorageScript = `
     const lifetimeMs = 30 * 60 * 1000;
 
     function storageError() {
-      return new Error("Browser sign-in hints could not access site storage. Allow site data for this auth origin, then retry remembering or forgetting.");
+      return new Error("Browser sign-in hints could not access site storage. Allow site data for this auth origin, then sign in again.");
     }
 
     function read(storage, key) {
@@ -35,12 +35,12 @@ export const browserHintStorageScript = `
     function generation() {
       const value = read(local(), generationKey);
       if (value === null) return "initial";
-      if (!/^[a-f0-9-]{36}$/.test(value)) throw new Error("Browser sign-in hint generation is invalid. Forget saved sign-in information and retry.");
+      if (!/^[a-f0-9-]{36}$/.test(value)) throw new Error("Browser sign-in hint generation is invalid. Clear site data for this auth origin and sign in again.");
       return value;
     }
 
     function parse(value) {
-      try { return JSON.parse(value); } catch { throw new Error("Browser sign-in information is damaged. Forget saved sign-in information and retry."); }
+      try { return JSON.parse(value); } catch { throw new Error("Browser sign-in information is damaged. Clear site data for this auth origin and sign in again."); }
     }
 
     function method(value) {
@@ -77,18 +77,12 @@ export const browserHintStorageScript = `
       if (value === null) return null;
       const stored = parse(value);
       if (!stored || stored.generation !== generation()) return null;
-      if (!validHint(stored.hint)) throw new Error("Saved sign-in hint is invalid. Forget saved sign-in information and retry.");
+      if (!validHint(stored.hint)) throw new Error("Saved sign-in hint is invalid. Clear site data for this auth origin and sign in again.");
       return copyHint(stored.hint);
     }
 
-    function isRemembering() { return read(local(), preferenceKey) === generation(); }
-
-    function enableRemembering() {
-      return exclusive(function() { write(local(), preferenceKey, generation()); });
-    }
-
     async function exclusive(action) {
-      if (!navigator.locks) throw new Error("This browser cannot safely remember or forget sign-in hints across tabs. Update the browser and retry.");
+      if (!navigator.locks) throw new Error("This browser cannot safely store sign-in hints across tabs. Update the browser and retry.");
       const controller = new AbortController();
       const timeout = window.setTimeout(function() { controller.abort(); }, 2000);
       try { return await navigator.locks.request("nibomo-auth-hints-v1", { signal: controller.signal }, action); }
@@ -120,9 +114,7 @@ export const browserHintStorageScript = `
       const accepted = { generation: attempt.generation, method: attempt.method,
         subject: result.acceptedSession.subject, authTime: result.acceptedSession.authTime, acceptedAt: Date.now() };
       write(session(), acceptedKey, JSON.stringify(accepted));
-      if (read(local(), preferenceKey) === attempt.generation) {
-        write(local(), hintKey, JSON.stringify({ generation: attempt.generation, hint: copyHint(result.signInHint) }));
-      }
+      write(local(), hintKey, JSON.stringify({ generation: attempt.generation, hint: copyHint(result.signInHint) }));
     }
 
     function accept(result) { return exclusive(function() { acceptStored(result); }); }
@@ -134,7 +126,7 @@ export const browserHintStorageScript = `
       const accepted = parse(raw);
       if (!accepted || accepted.generation !== generation()) return null;
       if (!method(accepted.method) || !validBinding(accepted) || !Number.isSafeInteger(accepted.acceptedAt)) {
-        throw new Error("Pending sign-in context is invalid. Forget saved sign-in information and retry.");
+        throw new Error("Pending sign-in context is invalid. Clear site data for this auth origin and sign in again.");
       }
       if (!validBinding(current) || accepted.subject !== current.subject || accepted.authTime !== current.authTime
         || accepted.acceptedAt > Date.now() || Date.now() - accepted.acceptedAt > lifetimeMs) return null;
@@ -173,6 +165,6 @@ export const browserHintStorageScript = `
       try { await accept(result); return true; } catch (error) { reportFailure(error); return false; }
     }
 
-    return { readHint, isRemembering, enableRemembering, beginAttempt, accept, consume, forget, beginOptional, acceptOptional };
+    return { readHint, beginAttempt, accept, consume, forget, beginOptional, acceptOptional };
   })();
 `;
