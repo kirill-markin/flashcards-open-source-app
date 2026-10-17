@@ -21,9 +21,12 @@ struct CloudSignInSheet: View {
         self.presentationContext = presentationContext
     }
 
-    var body: some View {
-        @Bindable var store = self.store
+    private enum SignInStep: Hashable {
+        case email
+        case code
+    }
 
+    var body: some View {
         ZStack {
             if self.store.cloudSignInAttempt.postAuthLoadingState != nil {
                 CloudPostAuthLoadingSheet()
@@ -68,23 +71,6 @@ struct CloudSignInSheet: View {
                     onVerified: { self.handleVerifiedAuthContext($0, attemptId: attemptId) }
                 )
                 .environment(self.store)
-            } else if self.store.cloudSignInAttempt.otpSheetState != nil {
-                let attemptId = self.store.cloudSignInAttempt.id
-                CloudOtpVerificationSheet(
-                    attemptId: attemptId,
-                    signInStepSurface: self.presentationContext.signInStepSurface,
-                    otpSheetState: $store.cloudSignInAttempt.otpSheetState,
-                    onVerified: { self.handleVerifiedAuthContext($0, attemptId: attemptId) },
-                    onReturnToEmail: {
-                        self.cancelPostAuthTasksAndClearInFlightState()
-                        self.store.cloudSignInAttempt.otpSheetState = nil
-                        self.store.cloudSignInAttempt.workspaceLinkContext = nil
-                        self.store.cloudSignInAttempt.postAuthRecoveryNeededState = nil
-                        self.store.cloudSignInAttempt.postAuthFailureState = nil
-                        self.scheduleEmailFieldFocus()
-                    }
-                )
-                .environment(self.store)
             } else {
                 self.signInForm
             }
@@ -127,95 +113,145 @@ struct CloudSignInSheet: View {
         }
         .onAppear {
             self.recordSurfacePresenceIfNeeded()
-            self.scheduleEmailFieldFocusIfShowingEmailForm()
-        }
-        .onChange(of: self.store.cloudSignInAttempt.isEmailSelected) { _, selected in
-            if selected { self.scheduleEmailFieldFocusIfShowingEmailForm() }
         }
         .onDisappear {
             self.clearSurfacePresenceIfNeeded()
         }
     }
 
-    private var signInForm: some View {
-        @Bindable var store = self.store
+    private var signInPath: Binding<[SignInStep]> {
+        Binding(
+            get: {
+                guard self.store.cloudSignInAttempt.isEmailSelected else { return [] }
+                return self.store.cloudSignInAttempt.otpSheetState == nil ? [.email] : [.email, .code]
+            },
+            set: { path in
+                guard !self.store.cloudSignInAttempt.isMethodChangeBlocked else { return }
+                if !path.contains(.code) {
+                    self.store.cloudSignInAttempt.otpSheetState = nil
+                }
+                self.store.cloudSignInAttempt.isEmailSelected = path.contains(.email)
+                if !self.store.cloudSignInAttempt.isEmailSelected {
+                    self.isEmailFieldFocused = false
+                }
+            }
+        )
+    }
 
-        return NavigationStack {
+    private var signInForm: some View {
+        NavigationStack(path: self.signInPath) {
             ReadableContentLayout(
                 maxWidth: flashcardsReadableFormMaxWidth,
                 horizontalPadding: 0
             ) {
                 Form {
-                    if let authErrorPresentation = self.store.cloudSignInAttempt.authErrorPresentation {
-                        Section {
-                            CloudAuthInlineErrorView(
-                                presentation: authErrorPresentation,
-                                onTechnicalError: { technicalError in
-                                    self.presentTechnicalError(technicalError)
-                                }
-                            )
-                        }
-                    }
-
+                    self.authErrorSection
                     CloudNativeSignInOptions(
                         screen: self.presentationContext.signInStepSurface,
                         onVerified: { context in
                             self.handleVerifiedAuthContext(context, attemptId: self.store.cloudSignInAttempt.id)
                         }
                     )
-
-                    if self.store.cloudSignInAttempt.isEmailSelected {
-                        Section {
-                            Button(aiSettingsLocalized("common.back", "Back")) {
-                                self.isEmailFieldFocused = false
-                                self.store.cloudSignInAttempt.isEmailSelected = false
-                            }
-                            .disabled(self.store.cloudSignInAttempt.isMethodChangeBlocked)
-                            .accessibilityIdentifier("cloudSignIn.anotherMethod")
-                        }
-
-                        Section(aiSettingsLocalized("common.email", "Email")) {
-                            TextField(aiSettingsLocalized("settings.account.cloudSignIn.emailPlaceholder", "Your email"), text: $store.cloudSignInAttempt.email)
-                                .textInputAutocapitalization(.never)
-                                .autocorrectionDisabled()
-                                .keyboardType(.emailAddress)
-                                .textContentType(.emailAddress)
-                                .submitLabel(.send)
-                                .focused(self.$isEmailFieldFocused)
-                                .accessibilityIdentifier(UITestIdentifier.cloudSignInEmailField)
-                                .onSubmit {
-                                    self.sendCode()
-                                }
-                        }
-                        .disabled(self.store.cloudSignInAttempt.isMethodChangeBlocked)
-
-                        Section {
-                            Button(aiSettingsLocalized("settings.account.cloudSignIn.sendOneTimeCode", "Send one-time code")) {
-                                self.sendCode()
-                            }
-                            .disabled(
-                                self.store.cloudSignInAttempt.isMethodChangeBlocked
-                                    || isValidCloudEmail(self.store.cloudSignInAttempt.email) == false
-                            )
-                            .accessibilityIdentifier(UITestIdentifier.cloudSignInSendCodeButton)
-                        }
-                    }
                 }
             }
             .navigationTitle(aiSettingsLocalized("settings.account.cloudSignIn.unifiedTitle", "Sign in or create an account"))
             .navigationBarTitleDisplayMode(.inline)
             .accessibilityIdentifier(UITestIdentifier.cloudSignInScreen)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button(aiSettingsLocalized("common.close", "Close")) {
-                        self.dismiss()
+            .toolbar { self.closeToolbar }
+            .navigationDestination(for: SignInStep.self) { step in
+                switch step {
+                case .email:
+                    self.emailForm
+                case .code:
+                    self.codeForm
+                }
+            }
+        }
+    }
+
+    private var closeToolbar: some ToolbarContent {
+        ToolbarItem(placement: .topBarTrailing) {
+            Button(aiSettingsLocalized("common.close", "Close")) {
+                self.dismiss()
+            }
+            .disabled(
+                self.store.cloudSignInAttempt.isSendingCode
+                    || self.store.cloudSignInAttempt.isNativeRequestInFlight
+                    || self.store.cloudSignInAttempt.isVerifyingOtpCode
+                    || self.store.cloudSignInAttempt.isResendingOtpCode
+                    || self.store.cloudSignInAttempt.isPostAuthActionInFlight
+            )
+        }
+    }
+
+    private var emailForm: some View {
+        @Bindable var store = self.store
+
+        return ReadableContentLayout(
+            maxWidth: flashcardsReadableFormMaxWidth,
+            horizontalPadding: 0
+        ) {
+            Form {
+                self.authErrorSection
+                Section(aiSettingsLocalized("common.email", "Email")) {
+                    TextField(aiSettingsLocalized("settings.account.cloudSignIn.emailPlaceholder", "Your email"), text: $store.cloudSignInAttempt.email)
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled()
+                        .keyboardType(.emailAddress)
+                        .textContentType(.emailAddress)
+                        .submitLabel(.send)
+                        .focused(self.$isEmailFieldFocused)
+                        .accessibilityIdentifier(UITestIdentifier.cloudSignInEmailField)
+                        .onSubmit {
+                            self.sendCode()
+                        }
+                }
+                .disabled(self.store.cloudSignInAttempt.isMethodChangeBlocked)
+
+                Section {
+                    Button(aiSettingsLocalized("settings.account.cloudSignIn.sendOneTimeCode", "Send one-time code")) {
+                        self.sendCode()
                     }
                     .disabled(
-                        self.store.cloudSignInAttempt.isSendingCode
-                            || self.store.cloudSignInAttempt.isNativeRequestInFlight
-                            || self.store.cloudSignInAttempt.isPostAuthActionInFlight
+                        self.store.cloudSignInAttempt.isMethodChangeBlocked
+                            || isValidCloudEmail(self.store.cloudSignInAttempt.email) == false
                     )
+                    .accessibilityIdentifier(UITestIdentifier.cloudSignInSendCodeButton)
                 }
+            }
+        }
+        .navigationTitle(aiSettingsLocalized("common.email", "Email"))
+        .navigationBarTitleDisplayMode(.inline)
+        .navigationBarBackButtonHidden(self.store.cloudSignInAttempt.isMethodChangeBlocked)
+        .toolbar { self.closeToolbar }
+        .onAppear {
+            self.scheduleEmailFieldFocusIfShowingEmailForm()
+        }
+    }
+
+    private var codeForm: some View {
+        @Bindable var store = self.store
+        let attemptId = self.store.cloudSignInAttempt.id
+
+        return CloudOtpVerificationSheet(
+            attemptId: attemptId,
+            signInStepSurface: self.presentationContext.signInStepSurface,
+            otpSheetState: $store.cloudSignInAttempt.otpSheetState,
+            onVerified: { self.handleVerifiedAuthContext($0, attemptId: attemptId) }
+        )
+        .toolbar { self.closeToolbar }
+    }
+
+    @ViewBuilder
+    private var authErrorSection: some View {
+        if let authErrorPresentation = self.store.cloudSignInAttempt.authErrorPresentation {
+            Section {
+                CloudAuthInlineErrorView(
+                    presentation: authErrorPresentation,
+                    onTechnicalError: { technicalError in
+                        self.presentTechnicalError(technicalError)
+                    }
+                )
             }
         }
     }
