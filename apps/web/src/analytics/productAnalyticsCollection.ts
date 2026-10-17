@@ -96,12 +96,15 @@ export function readProductAnalyticsCollectionDecision(): boolean | null {
     lastSharedCollectionDecision = sharedDecision;
   }
   hasSeededCollectionDecision = true;
+  // An off is a necessary setting, kept even while the identifier question is open; an on waits for
+  // that question, because unanswered already means on.
   if (collectionDecision !== null && storedDecision !== collectionDecision
     && (collectionDecision === false || isAwaitingAnalyticsConsentDecision() === false)) {
     writeStoredProductAnalyticsCollection(collectionDecision);
     lastStoredCollectionDecision = readStoredProductAnalyticsCollection();
   }
 
+  // An explicit answer is published at once; the default-on value only once that question settles.
   if (hasPublishedInitialCollectionPreference === false
     && (collectionDecision !== null || isAwaitingAnalyticsConsentDecision() === false)) {
     hasPublishedInitialCollectionPreference = true;

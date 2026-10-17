@@ -13,8 +13,8 @@
  *
  * That shape check is also the only mitigation against cookie shadowing: any sibling host under the
  * base domain can overwrite `analytics_visitor`, and a planted value that happens to be a UUID is
- * accepted as this browser's id. This is stated plainly in docs/analytics-visitor-identity.md rather
- * than defended against, because no mechanism available to a cookie can distinguish the two writers.
+ * accepted as this browser's id. That is tolerated rather than defended against, because no mechanism
+ * available to a cookie can distinguish the two writers.
  *
  * Sessions are deliberately not in this cookie. Nothing on the server observes the events that would
  * advance a session, so every client owns its own rotation under the shared 30-minute rule

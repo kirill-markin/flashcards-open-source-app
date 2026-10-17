@@ -1,505 +1,142 @@
 # Analytics visitor identity
 
-One browser visitor identity for the whole product domain, minted by the backend API because the web
-app is a static bundle with no server of its own. The auth origin reads this same cookie and mints
-none of its own.
+One browser visitor identity for the whole product domain, minted only by the backend API because the
+web app is a static bundle with no server of its own. The auth origin reads the same cookie and mints
+none of its own, so `app.` and `auth.` measure one visitor.
 
 | Property | Value |
 | --- | --- |
 | Cookie name | `analytics_visitor` |
-| Scope | `Domain=.<domain>`, `Path=/`, so every host under that domain reads one visitor. Which domain is resolved per request from the caller's `Host` against the `COOKIE_DOMAIN` candidates ([`apps/backend/src/shared/cookieDomain.ts`](../apps/backend/src/shared/cookieDomain.ts)) |
-| Attributes | `Secure`, `SameSite=Lax`, no `HttpOnly`: browser code has to read the id to attach it to events |
-| Lifetime | 13 months, extended on every call that returns an id |
-| Value | A plain random UUID, unsigned. No secret is involved and the server validates the shape only |
-| Sessions | Not carried here. Each client rotates its own session under the shared 30-minute rule |
+| Scope | `Domain=.<domain>`, `Path=/`; the domain is resolved per request from the caller's `Host` against the `COOKIE_DOMAIN` candidates ([`cookieDomain.ts`](../apps/backend/src/shared/cookieDomain.ts)) |
+| Attributes | `Secure`, `SameSite=Lax`, no `HttpOnly` |
+| Value | A plain random UUID, unsigned; the server validates the shape only |
+| Lifetime | 13 months, re-stamped on every call that returns an id. The web app calls only when it finds no readable cookie, so a web visitor id expires 13 months after it was minted |
+| Sessions | Not carried here; each client rotates its own under the shared 30-minute rule |
 
-Minted by: the backend API Lambda only. The one write a browser makes itself is the web app
-adopting the `anonymous_id` earlier builds kept in `localStorage`, and it makes it only after this
-route has already given that browser an identity on the same call, so what may hold one stays
-decided here.
-
-The lifetime above extends only on a call, and the web app calls only when it finds no readable
-cookie: it never asks again for a browser that already holds one. So a web visitor id expires 13
-months after it was minted, not 13 months after the browser was last seen. The re-stamp exists for
-the clients that do ask on every visit.
-
-- [Cookie mint, read and clear](../apps/backend/src/analyticsVisitor/cookie.ts)
-- [Consent jurisdictions](../apps/backend/src/analyticsVisitor/consentJurisdiction.ts)
-- [`GET`/`POST /v1/analytics/visitor`](../apps/backend/src/routes/analyticsVisitor.ts)
-- [Caller country lookup](../apps/backend/src/geolocation/requestCountry.ts) and
+- [Cookie mint, read and clear](../apps/backend/src/analyticsVisitor/cookie.ts), including why it is
+  unsigned
+- [`GET`/`POST /v1/analytics/visitor`](../apps/backend/src/routes/analyticsVisitor.ts), its
+  [origin allowlist](../apps/backend/src/server/app.ts) and
+  [gateway preflight](../infra/aws/lib/gateways/api-gateway.ts)
+- [Consent jurisdictions](../apps/backend/src/analyticsVisitor/consentJurisdiction.ts), the
+  [caller country lookup](../apps/backend/src/geolocation/requestCountry.ts) and
   [GeoLite operations](geolite-country.md)
-- [Route registration](../infra/aws/lib/gateways/api-gateway.ts)
-- [Web client identity, session rotation and the one-time adoption](../apps/web/src/analytics/identity.ts)
+- Web: [identity, session rotation and the browser-side cookie writes](../apps/web/src/analytics/identity.ts),
+  [identity resolution](../apps/web/src/analytics/visitorIdentity.ts),
+  [consent state](../apps/web/src/analytics/consent.ts) and
+  [the gate the delivery runtime applies](../apps/web/src/analytics/deliveryRuntime.ts)
+- Auth: [the shared-cookie reader](../apps/auth/src/server/analytics/visitorSession.ts) and
+  [sign-in funnel](../apps/auth/src/server/analytics/signInFunnel.ts)
+- What an event carrying the id is sent to: [anonymous client analytics](anonymous-client-analytics.md)
 
-## Which origins can obtain it
+## Route contract
 
-Every method on the route refuses a request another site could have driven. A request marked
-`sec-fetch-site: cross-site` is rejected, and the `Origin` — or the `Referer`, when a navigation
-sends no `Origin` — must be on the allowlist the route is built with. That is the check already used
-for session requests,
-[`enforceAllowedBrowserOrigin`](../apps/backend/src/auth/requestSecurity.ts). CORS alone does not do
-this: `cors()` adds response headers and never refuses a request, so the handler runs either way.
+- `GET` answers `consentRequired`: must this browser be asked before it may be given an identity. A
+  browser already holding the cookie is answered `false`, because the cookie is the record that it
+  was allowed one. Otherwise the id is minted only where the caller's country requires no consent,
+  and an unresolved country counts as requiring it.
+- `POST {"granted": boolean}` is the only call that records a grant. There `consentRequired`
+  reports the jurisdiction, not whether the banner is still needed: the grant succeeded exactly when
+  the answer carries a `visitorId`. A decline clears the cookie and stores nothing on the server.
+- `visitorId` is returned whether or not the browser kept the `Set-Cookie`, so a caller treats the
+  identity as present only when it reads the cookie back; otherwise a cookie-blocking browser would
+  count as a new visitor on every page load.
+- Every method is origin-restricted rather than authenticated: a `sec-fetch-site: cross-site` request
+  is refused before the allowlist is consulted, and so is a request with neither `Origin` nor
+  `Referer`.
 
-Two things the guard stops. A cross-site top-level `GET` navigation is the case `SameSite=Lax` does
-let the minted cookie be stored from, so one link or redirect would otherwise plant a 13-month
-identity on a visitor who never saw a banner. And `POST` is unauthenticated and has a server-side
-effect of its own: a cross-site `{"granted": false}` reaches `clearAnalyticsVisitor`, whose deletion
-`Set-Cookie` carries no explicit `SameSite` at all, unlike the explicit `Lax` on the mint.
+Testing it: plain `curl`, smoke scripts and harnesses get `403` unless they send an allowed `Origin`.
+A locally-run web app pointed at the deployed API is cross-site and refused even though the CORS
+preflight passes; point it at a local backend instead.
 
-The allowlist is this route's own, built in
-[`apps/backend/src/server/app.ts`](../apps/backend/src/server/app.ts): the list the shared browser
-CORS middleware carries — the web app origin, the admin origin and the two local development
-origins — plus the marketing site origin, which is on this route and on no other. The site needs an
-identity and has no other way to obtain one, and now that the browser hosts are under `nibomo.com` a
-cookie scoped there spans the site and the app; widening the shared list instead would have handed
-the site every credentialed route in the API. The API Gateway preflight for the path carries the
-same extra origin ([`infra/aws/lib/gateways/api-gateway.ts`](../infra/aws/lib/gateways/api-gateway.ts)),
-because the browser's `OPTIONS` is answered at the edge and never reaches the route.
+## Consent gate
 
-Being on that allowlist is necessary and not sufficient. The `sec-fetch-site: cross-site` refusal
-above happens before any allowlist is consulted, so the marketing site obtains an identity only
-through the API host on its own registrable domain — `api.nibomo.com` for a site on `nibomo.com`.
-The same call to the legacy API host is cross-site and answers `403` however the origin is
-allowlisted, and no cookie the legacy host could set would be stored on the site's domain anyway.
+- Where consent is required, until the browser answers nothing identifying or collected is written
+  to the device — the analytics database is not even created — and nothing that names this browser
+  leaves it. A refusal keeps that for the browser: it is given no identifier, and nothing analytics
+  collects is written to the device
+  ([`isAnalyticsDeviceStorageAllowed`](../apps/web/src/analytics/deliveryRuntime.ts)). The one
+  exception to the device rule is the product-analytics answer, a necessary setting: an explicit one
+  is stored and shared with auth as soon as it is given, and only the default-on value waits for the
+  question to settle ([when](../apps/web/src/analytics/productAnalyticsCollection.ts)). The auth
+  origin stays inside this gate without a banner of its own, because it mints nothing and reports
+  nothing for a browser that holds no cookie.
+- Refusing the identifier is not refusing analytics. What a refusing browser reports, and the
+  identity-free `consent_prompt_shown` the banner sends before any answer, is in
+  [identity-free events](anonymous-client-analytics.md#identity-free-events).
+- The route keeps no record of a refusal, and `GET` mints wherever consent is not required. A
+  refusal therefore holds only through the stored answers, which is why the browser's answers
+  survive a logout, a local data clear and an account deletion
+  ([`browserSessionRecovery.ts`](../apps/web/src/appData/session/browserSessionRecovery.ts)).
+- The published privacy policy promises withdrawal "in the web app settings" with no regional
+  qualifier. The one [switch](../apps/web/src/analytics/AnalyticsConsentToggleCard.tsx) is therefore
+  offered in every region: at `/settings/analytics`
+  ([screen](../apps/web/src/screens/settings/AnalyticsSettingsScreen.tsx)) for a signed-in person,
+  and as a [corner link](../apps/web/src/analytics/PublicAnalyticsConsentLink.tsx) on the public
+  catalog, invite and share routes. The [banner](../apps/web/src/analytics/AnalyticsConsentBanner.tsx)
+  asks on both.
 
-The two local origins serve the ordinary local setup, a local web app calling a local backend, which
-is same-site and unaffected. A locally-run web app pointed at the **deployed** API is a different
-registrable site, so the browser marks the request `sec-fetch-site: cross-site` and the route refuses
-it even though CORS preflight succeeds. That is intended, and the session path already behaves the
-same way for unsafe methods.
+## Two separate decisions
 
-A request carrying neither `Origin` nor `Referer` is refused as well, which is every plain `curl`,
-smoke script and integration harness. That is deliberate and has no exemption: this route exists
-only to hand a browser a cookie, and a browser names its origin on the cross-origin call the web app
-makes. Test it from a browser, or send an allowed `Origin` header with the request: the check reads
-the headers, so a non-browser caller that sends one passes it.
+The cookie consent decides only whether this browser may carry `analytics_visitor`. The
+product-analytics off switch decides whether the person is measured at all; it is on unless turned
+off, because the basis is legitimate interest. Neither is ever derived from the other, so a person
+who refused the cookie keeps analytics on
+([column contracts](../db/migrations/0149_product_analytics_off_switch.sql)).
 
-## Why there is no signature
+| | Cookie consent | Off switch |
+| --- | --- | --- |
+| Account | `org.user_settings.analytics_consent` | `org.user_settings.product_analytics_enabled` |
+| Guest session | `auth.guest_sessions.analytics_consent`, which no client writes | `auth.guest_sessions.product_analytics_enabled`, written by the iOS and Android off switches |
+| Signed-out browser | Browser storage only; the web guest credential is refused on both endpoints ([gate](../apps/backend/src/guestAuth/webPlatform.ts)) | Browser storage and the shared collection cookie below |
+| Clients that write it | Web only: no mobile surface asks the cookie question | Web, iOS and Android |
 
-The value grants no authority. The analytics ingest route accepts any `anonymousId` a caller sends
-without verifying it, so a signature here would protect a value the very next hop takes on trust, and
-it would mean handing this function a signing key it has no other use for.
+Both are read on `GET /v1/me` and written on `PATCH /v1/me/preferences`, where the transport picks
+the account or the guest-session column
+([route](../apps/backend/src/routes/system/account/accountPreferences.ts)). A guest upgrade copies a
+recorded answer only onto an account column still holding NULL
+([upgrade](../apps/backend/src/guestAuth/upgrade/index.ts)). Where the off switch is enforced:
+[anonymous client analytics](anonymous-client-analytics.md#identity-free-events).
 
-The consequence is stated rather than mitigated: any sibling host under the base domain can overwrite
-`analytics_visitor`, and a planted value that is a syntactically valid UUID is accepted as this
-browser's id. The UUID shape check is the only thing standing in the way, and nothing available to a
-cookie can tell the two writers apart.
+### Write origin
 
-## Consent
+Each analytics field on that `PATCH` carries its own origin, the same rule on every client:
+`user_action` for the press being handled now, the default when omitted, and `reconciliation` for any
+later delivery of an answer the client is carrying, however recent or often retried. On the account
+columns a `reconciliation` never loosens a stored refusal; the route owns that rule and why the guest
+columns are unguarded. Each client's reconciliation:
 
-On `GET`, `consentRequired` answers "must this browser be asked before it may be given an identity".
-A browser that already holds the cookie is answered `false` without a country lookup, because the
-cookie is itself the record that it was allowed one.
+- Web: the account answer wins where both exist, an account holding none adopts the browser's, and
+  the off switch crosses in either direction only toward less collection
+  ([`accountAnalyticsPreferences.ts`](../apps/web/src/analytics/accountAnalyticsPreferences.ts))
+- iOS: the answer given on the device wins on the device
+  ([`ProductAnalyticsPreference.swift`](../apps/ios/Flashcards/Flashcards/Analytics/ProductAnalyticsPreference.swift),
+  [delivery](../apps/ios/Flashcards/Flashcards/Cloud/Store/Account/FlashcardsStore+AccountPreferences.swift))
+- Android: the same rule
+  ([repository](../apps/android/data/local/src/main/java/com/flashcardsopensourceapp/data/local/repository/cloudsync/account/LocalCloudAccountRepository.kt),
+  [store](../apps/android/data/local/src/main/java/com/flashcardsopensourceapp/data/local/cloud/CloudAccountPreferencesStore.kt))
 
-On `POST` the same field means something narrower: it reports the jurisdiction answer for the
-caller's country, not whether this browser still has to be asked. It is computed the same way on
-every call and returned unchanged beside a freshly minted id, so a granting EU browser is answered
-`{ "consentRequired": true, "visitorId": "..." }` on the grant itself and `false` on the very next
-`GET`. A client must not read `true` there as "the banner is still needed": on `POST` the grant
-succeeded exactly when the answer carries a `visitorId`.
+### Shared collection cookie
 
-`GET` never records a grant, only `POST` does. That is defence in depth rather than the defence:
-what stops another site from planting an identity on a visitor who never saw a banner, or from
-forcing the decline branch and wiping the id of one who did, is the origin check above. A grant
-reachable through a safe method would additionally sit one link or redirect away from any page,
-which is why it stays on `POST`.
-
-A signed-in person's own answer is kept on the account in `org.user_settings.analytics_consent`,
-read on `GET /v1/me` and written on `PATCH /v1/me/preferences`
-([route](../apps/backend/src/routes/system/account/accountPreferences.ts)), so it travels with the
-person to another browser or device. The cookie stays the per-browser record, and the two are
-reconciled at sign-in by the client rather than by either store: the account answer wins where both
-exist, and an account that has none adopts the browser's
-([web sync](../apps/web/src/analytics/accountAnalyticsPreferences.ts)).
-
-A guest of the iOS or Android app answers on the same two endpoints, and the answer is kept on the
-guest session in `auth.guest_sessions.analytics_consent` instead: the transport picks the column, so
-each caller reads and writes whichever of the two they own. Upgrading such a guest into an account
-copies a recorded answer onto `org.user_settings.analytics_consent`, unless the account already
-holds one of its own ([upgrade](../apps/backend/src/guestAuth/upgrade/index.ts)). A signed-out
-browser is not part of this: its guest credential is refused on both endpoints
-([refusal](../apps/backend/src/guestAuth/webPlatform.ts)), and its answer stays in the cookie above.
-
-The banner is shown only to a browser that has stored no answer of its own, so the banner on a
-public catalog, invite or share route produces a first decision and never a change of one; changing
-it there is the withdrawal link's job, and that link appears only once the banner's question has
-been answered. The reconciliation already carries the first decision: the account holding none
-adopts it at the next sign-in.
-The banner writes the account directly only where a verified session owner is published on the load
-that answered it, which is inside the authenticated app; on the public routes it records the
-browser's answer and nothing else.
-
-The web has no guest upgrade path at all: the credential refused above is refused by guest upgrade
-too, so no upgrade ever runs for a browser and nothing is copied in either direction. A browser's
-answer reaches an account only through the client sync above, on the terms stated there: an account
-that already answered keeps its own answer, and an account that has none adopts the browser's. It is
-decided there rather than in an upgrade because the browser's own answer is the record that survives
-every account boundary, including the one a person crosses by signing in somewhere they never were a
-guest.
-
-A caller whose country cannot be resolved is treated as consent-required, so a browser reaching the
-API without an API Gateway source address — the local dev server, for instance — is never minted
-without an explicit grant. A browser that blocks cookies gets no persistent identity and no
-fallback. The mint answer still carries a fresh id each time, because the server cannot see whether
-the browser accepted its `Set-Cookie`. A caller that finds the returned id absent from
-`document.cookie` afterwards must therefore treat the identity as unavailable rather than count a
-new visitor on every page load.
-
-### The analytics off switch is a second, separate decision
-
-Everything above is one decision: whether this browser may carry the shared `analytics_visitor`
-identifier. Refusing it is not refusing analytics. The banner's own copy says so, and a refusing
-browser keeps reporting — identity-free while signed out, under the account once signed in.
-
-The second decision is the product-analytics off switch,
-`org.user_settings.product_analytics_enabled` and `auth.guest_sessions.product_analytics_enabled`
-([migration](../db/migrations/0149_product_analytics_off_switch.sql)). It is on unless a person
-explicitly turns it off, because the basis is legitimate interest rather than consent, so NULL —
-every row until someone answers — reads as on, and nothing prompts for it. It covers
-client-reported product analytics only: error and crash reporting and the server-derived facts in
-[`serverFacts/`](../apps/backend/src/productAnalytics/serverFacts/) are outside it.
-
-The two are stored apart and neither is derived from the other, so a person who already refused the
-cookie keeps analytics on. Both are read on `GET /v1/me` and written on `PATCH /v1/me/preferences`,
-and the transport picks the account column or the guest-session one in the same way for both. They
-are reconciled with the account on different terms: the consent answer follows the account, while
-the off switch crosses in either direction only toward less collection, so an account holding `true`
-never re-enables a browser that has turned it off
-([web sync](../apps/web/src/analytics/accountAnalyticsPreferences.ts)).
-
-The web shares the effective collection decision with auth in the non-identifying
-`product_analytics_collection` preference cookie (`1` for on, `0` for off), with the visitor
-cookie's parent-domain scope, `Path=/`, `SameSite=Lax` and 13-month lifetime (`Secure` on HTTPS).
-The default-on value is published only once the identifier-consent question has settled; an
-explicit collection preference can be persisted as a necessary setting independently of that
-question. The browser's stored off and the shared cookie's off both win during reconciliation;
-only an explicit re-enable changes an off preference to on. Account preference application uses
-the same writer, so an account opt-out reaches auth as soon as the web applies it.
-
-Auth requires this cookie to say `1`, the login-page marker, a shared visitor id and a browser
-`User-Agent` before reporting. Missing or invalid collection preference is unmeasured, including a
-direct auth-first visit; auth mints neither a visitor identity nor this preference. The web login
-URL also carries an off-only hint, forwarded by the login page as `X-Product-Analytics-Enabled: 0`,
-so a browser whose preference-cookie write failed can still suppress its sign-in reports. The
-header never enables collection or overrides a stored off. Identifier consent remains a separate
-gate: collection-on without a visitor cookie produces no auth funnel rows. Auth reads no account
-preference before the existing web account reconciliation, and retains its 150 ms reporting budget
-and credential-free transport without analytics-schema grants.
-
-Turning the switch off also stops this browser asking for the shared identifier: the id exists only
-to attribute product-analytics rows, so a web client with the switch off mints no new cookie, on any
-tick or connectivity change, and asks again only when the switch goes back on. A cookie it already
-carries is left alone. A cookie grant given while the switch is off is recorded for the browser and
-carried to the account as any other grant is — it is an answer, not a failure — and only its mint
-waits for the switch. What is owed is read rather than remembered: a stored `granted`, no visitor
-cookie and no identity settled yet is a browser owing that `POST`, so the switch going back on, any
-later page load, an `online` event and the periodic tick each reattempt it — the `online` event and
-the periodic tick under a minimum spacing, so a failing browser does not ask a route that can pay a
-GeoLite download once a minute, while the switch going back on drops that window and a new page load
-starts with none — and an attempt that fails is not lost with the page that made it. While a mint is
-owed nothing answers it with the plain `GET` instead, not even a tick the spacing is still holding
-back: that `GET` settles the identity for a browser the server holds no consent record for, which
-would end the owed mint for the rest of the load and degrade a granting browser to the per-tab id.
-
-On the device the off switch takes everything it finds: the stored queue, the owner record naming
-the account that claimed it, the events held in memory, and the stored session id. The owner record
-is released here and deliberately not on the operator kill switch, which leaves a browser that is
-measurable again the moment an operator turns analytics back on, where this one leaves a person who
-asked to be measured no more. It matters most on a fresh browser signing into an account that
-already holds `false`: the claim that creates the analytics database runs before the account answer
-arrives and is legitimate when it does, so without the release such a browser would end the load
-holding an analytics store naming an account that opted out.
-
-Turning the switch off stops future collection. It writes no tombstone and erases none of the
-`analytics.product_events` rows already collected, and nothing erases those rows later either:
-account deletion anonymizes them in place
-([account deletion](../apps/backend/src/auth/accountDeletion.ts)), as the section below describes.
-That holds for this one table: the same deletion does erase the installation profiles and identity
-links beside it, which is what keeps the anonymization one-way. The backend enforces the switch at
-ingest —
-[`POST /v1/analytics/events`](../apps/backend/src/routes/productAnalytics.ts) drops an opted-out
-credential's batch and still answers `200`, so a client released before the switch existed retires
-its queue instead of redelivering. The credential-free collector cannot enforce it and does not try;
-see [anonymous client analytics](anonymous-client-analytics.md).
-
-On Android the switch is Settings → Product analytics
-([route](../apps/android/feature/settings/src/main/java/com/flashcardsopensourceapp/feature/settings/privacy/ProductAnalyticsRoute.kt)).
-The client stores the answer on the device first, so an offline device and a cold start that
-precedes any sync both honor it, and delivers it to the account or the guest session on the next
-account refresh that finds a credential
-([repository](../apps/android/data/local/src/main/java/com/flashcardsopensourceapp/data/local/repository/cloudsync/account/LocalCloudAccountRepository.kt)).
-
-### Neither answer is overwritten by a client reconciling an older one
-
-Both decisions above are stored on an account that several devices read and write, and neither
-column carries a timestamp, so two answers that disagree cannot be ordered. A device that read the
-account before a withdrawal taken on another device would otherwise carry its older answer back in
-silently, on every device the account has — undoing the off switch resumes collection outright,
-because ingest reads that column, while undoing a cookie refusal restores the shared identifier and
-nothing else, exactly as the two sections above keep them apart.
-
-`PATCH /v1/me/preferences` therefore takes an optional origin beside each of the two values,
-`analyticsConsentOrigin` and `productAnalyticsEnabledOrigin`, each `user_action` or
-`reconciliation` ([route](../apps/backend/src/routes/system/account/accountPreferences.ts)). A
-`reconciliation` is a client carrying over an answer it read somewhere earlier; `user_action` is the
-person answering on the client that sends it. Two fields rather than one, because a single PATCH can
-carry a person's press on one decision and a reconciled answer on the other, and one shared origin
-would have to be wrong about one of them.
-
-On an account, and on the account columns only, a reconciliation cannot loosen a stored refusal: a
-stored `analytics_consent = 'declined'` survives a `reconciliation` `granted`, and a stored
-`product_analytics_enabled = FALSE` survives a `reconciliation` `TRUE`. Everything else is stored as
-sent. A `user_action` always wins, so both switches stay reversible by the control that moved them.
-A reconciliation in the restrictive direction is stored too, because under-collection is the
-direction to err in against an append-only table. And a column still holding NULL — nobody has
-answered on this account — adopts whatever arrives including a reconciled answer, which is the only
-way an answer given before signing in ever reaches the account. The route answers with what is
-stored after the write, so a client whose value was refused learns the stored one from its own write
-rather than from a later read.
-
-Omitting an origin means `user_action`, which is what every client sent before the fields existed,
-so a released client keeps exactly the behaviour it was written against.
-
-No client drops the origin and retries against a server that rejects it, and that is deliberate.
-`parseAccountPreferencesInput` rejects an unknown key outright, so a backend older than these fields
-answers `400` `ACCOUNT_PREFERENCES_FIELD_UNKNOWN` to any body naming one — which a self-hosted server
-can still be. But that check has rejected every key it does not know since the route was written
-(`f219cf210`, 2026-06-07, when `reviewReactionAnimationsEnabled` was the only key it took), and
-`productAnalyticsEnabled` (`d1cc10efb`) and the origins (`38c05fd4d`) landed on `main` five and a
-half hours apart on 2026-09-23. So a server old enough to reject an origin is, outside that window,
-old enough to reject `productAnalyticsEnabled` beside it: it cannot store this setting at all, and
-the same body with the origin dropped earns the same `400` one request later. A self-hosted backend
-older than the off switch simply has nowhere to put this answer, and Android recording that as a
-refusal — telling the person it saved locally and will not retry on its own — is the correct outcome
-there rather than a bug.
-
-Which origin a client sends is decided by the path the write comes from, never by how many attempts
-an answer has had or how long it has been waiting. A press being handled right now, with the control
-still waiting on the result, is `user_action`; an answer the client is carrying from earlier is
-`reconciliation`, whether the delivery is seconds after the press or days after it — what makes
-"a person is asking for this, now" false is that they may have answered again on another device
-since, and no elapsed time makes that safer. The browser sync sends `reconciliation` for everything
-it writes, because that is all it ever does
-([web](../apps/web/src/analytics/accountAnalyticsPreferences.ts)). The iOS and Android off switches
-send `user_action` for the press itself and `reconciliation` for every later delivery of an answer
-still owed — including one re-owed to the credential an identity reset leaves the install with,
-which a person did give on that device but never for that account
-([iOS](../apps/ios/Flashcards/Flashcards/Cloud/Store/Account/FlashcardsStore+AccountPreferences.swift),
-[Android](../apps/android/data/local/src/main/java/com/flashcardsopensourceapp/data/local/repository/cloudsync/account/LocalCloudAccountRepository.kt)).
-What they re-owe at that boundary is not the same on the two: iOS carries the answer across in
-either direction, Android carries only an opt-out and drops the marker for an opt-in
-([Android store](../apps/android/data/local/src/main/java/com/flashcardsopensourceapp/data/local/cloud/CloudPreferencesStore.kt)).
-Both keep such an answer owed when the route refuses it, rather than retiring it: it is undelivered
-rather than doomed, so the next press carries it as `user_action` and the account takes it as soon
-as it is no longer the looser answer.
-
-Neither mobile client writes `analytics_consent` at all — there is no cookie question on a mobile
-surface, and neither client's preferences model carries the field — so nothing there needs an origin
-for it yet.
-
-The guest-session copies of both columns are not guarded
-([guest write](../apps/backend/src/guestAuth/store/session.ts)). A guest session row is reachable
-only by the credential that owns it, and that credential lives on one device, so there is no second
-writer here for the guard to order an answer against. `product_analytics_enabled` is written this
-way by the iOS and Android off switches, which fall back to the guest credential when the install
-has no account to store the answer on. `analytics_consent` has no client writer on the guest row at
-all: it is the cookie question, asked only where there is a cookie banner, and the only guest
-credential a browser can hold is a `web` one, which is refused before the route by the default-deny
-platform gate ([web guest gate](../apps/backend/src/guestAuth/webPlatform.ts)). That was true on
-2026-09-23 and stops being true the day a mobile surface asks the cookie question.
-
-What one writer does not settle is where that writer got the value. A device can write a value it
-merely adopted somewhere else — off an account it has since signed out of, among them — and on
-`product_analytics_enabled` republishing such an answer over a stricter stored one resumes ingest
-immediately rather than only restoring an identifier. So the rule for this column is about
-provenance, not about which client is speaking. The mobile clients already send the origin on this
-path, and the guard has not moved with it — but the reason it is still safe is a different one on
-each client, and neither reason covers both.
-
-On iOS every re-owe clears the stored credentials and the guest session before re-arming the debt,
-so the answer is handed to a credential minted afterwards; its other re-owe fires only where a `/me`
-read just reported no answer for that identity. Either way the row it reaches holds NULL, and the
-direction it re-owes in does not matter. On Android the row can already hold an answer:
-`resetInvalidCloudCredentialRecoveryState` disconnects through
-`disconnectCloudIdentityPreservingLocalState`, which preserves the stored guest session on purpose —
-unlike its deleted-account sibling, which clears it because that one is an identity boundary — so
-the debt goes out on the surviving analytics guest credential, whose row may already hold an
-explicit `true`. That is not even the row the answer was read from; the marker is re-armed off the
-account preferences being cleared. Android's other re-arm, the one a `/me` read triggers when the
-account reports no answer, lands the same way and is safe for the same reason — it too fires only
-for a stored `false`. Nor does it help that the push resolves its own credential: the account read
-goes through `loadActiveGuestSessionOrNull` and the push through
-`loadProductAnalyticsGuestSessionOrNull`, which pick different stored sessions when there is more
-than one, so the row a re-arm was decided on need not be the row the body reaches. What makes
-Android safe is only the direction: it re-owes only an opt-out, and an opt-out loosens nothing.
-
-So the day the same CASE belongs here is the day Android — or any client — re-owes an opt-**in**, or
-the day iOS re-owes onto a credential that outlived the identity the answer was made under. The
-provenance it would need is already on the wire.
-
-The guest upgrade cannot revert an account answer on either column: both carries write only where
-the account column is still NULL ([upgrade](../apps/backend/src/guestAuth/upgrade/index.ts)).
-
-The web sends both origins, and it is the only client that writes `analytics_consent` at all. Its
-one reconciliation — the carry described in the two sections above, and the only write in the client
-that is not a person pressing something — names itself `reconciliation` on both fields
-([web sync](../apps/web/src/analytics/accountAnalyticsPreferences.ts)). On the collection column
-that carry can only ever be an opt-out, which the guard permits anyway; the field is still sent,
-because it says who asked rather than what was asked for.
-
-Every other write of either column omits the origin and takes the `user_action` default. On the web
-those are the controls a person presses: the analytics settings screen, the consent banner, and the
-public panel with its off switch and its withdrawal link. The iOS and Android off switches store the
-answer on the device first and owe it to an identity until that identity acknowledges it, so what
-they send is an answer a person gave on that device, delivered late rather than reconciled. Neither
-mobile client writes `analytics_consent` at all.
-
-Late delivery is where that default stops being free, and this one is a gap rather than a settled
-contract. The debt outlives the process and carries no clock, so an owed answer can be retried
-against a column another surface has moved in the meantime, in either direction: turn the switch on
-on a phone that is offline, turn it off on the web days later, and the phone's retry arrives as
-`user_action`, which the guard is required to honor, and ingest resumes on the account. On Android
-it is not even a race, because the owed answer is pushed before `/me` is read, so the newer value
-cannot be seen first. Closing this is client work and nothing here does it today: a client must name
-a retried owed answer `reconciliation`, keeping `user_action` for the press that created the debt.
-Until one does, the guard defends `product_analytics_enabled` against a reconciliation that says so
-and not against a stale answer that calls itself a press — and this is the column where that means
-collection restarts rather than an identifier coming back.
-
-On iOS the identity a debt is owed to can also change without anyone answering again. Adopting a
-server answer re-owes a device-given answer to an identity that reported none of its own, and an
-identity reset re-owes it to the guest credential
-([iOS preference](../apps/ios/Flashcards/Flashcards/Analytics/ProductAnalyticsPreference.swift)), so
-an answer given under one account can be delivered to another. Two things bound that. The value is
-always one a person gave on this device and never a mirror, because a reported answer is stored only
-on the branch where nothing was answered here and that branch arms no debt. And the account it is
-redirected onto is one that reported no answer, so the write lands on a NULL column, which adopts
-any origin anyway — it bites only if that account was answered between the read and the `PATCH`.
+The web app shares its effective off-switch answer with the auth origin in the non-identifying
+`product_analytics_collection` cookie: `1` for on, `0` for off, with the visitor cookie's domain,
+`Path=/`, `SameSite=Lax` and lifetime, `Secure` on HTTPS. Only the web writes it
+([writer](../apps/web/src/analytics/sharedCollectionPreference.ts),
+[when](../apps/web/src/analytics/productAnalyticsCollection.ts)). Auth reports only when it reads `1`
+and holds a shared visitor id, so a missing or invalid value and a direct auth-first visit are
+unmeasured. The web login URL also carries `analytics_collection=off` while collection is off, which
+the login page forwards as `X-Product-Analytics-Enabled: 0`; that header can only deny collection
+([login URL](../apps/web/src/api/authUrls.ts),
+[auth check](../apps/auth/src/server/analytics/visitorSession.ts)).
 
 ## Account deletion
 
-The identity survives a logout by design and does not survive the deletion of the account it was
-measured alongside. The browser expires the cookie at the moment the server confirms the deletion,
-so the next page load finds none, asks the mint route again and continues as a new anonymous
-visitor.
-
-Nothing on the server clears it at that moment. `POST /v1/me/delete` answers a bearer caller as
-readily as a session one, so an iOS, Android or agent API deletion has no browser on the other end
-for a cookie header to reach. The web flow does pass through the auth origin's `/logout-local`
-afterwards, which is on this domain and already clears two cookie families of its own, and this one
-is deliberately not among them: reaching that route is a navigation the IndexedDB open-recovery
-guard can abort the deletion cleanup before, and a browser left stuck on that abort is exactly the
-one that must already be rid of the identifier.
-
-So the clear is paired with the confirmation instead, at the two places a browser learns the account
-is gone — the deletion it submitted
-([gate](../apps/web/src/accountDeletion/AccountDeletionRecoveryGate.tsx)), and the `ACCOUNT_DELETED`
-raised by the next `getSession()` after a deletion it dispatched but never saw answered
-([lifecycle](../apps/web/src/appData/session/lifecycle/useWorkspaceLifecycle.ts)). Both run
-synchronously, before the guard check that follows, so an abort cannot skip either. The load
-returning from the logout redirect clears nothing: it has already minted the fresh id this browser
-is meant to continue under, and expiring that one would leave the rest of the load reporting under a
-per-tab id no later load can see.
-
-The guarantee is therefore per-browser, not per-person: a deletion started on another device cannot
-expire this browser's cookie, and no mechanism here claims otherwise. Such a browser keeps its id
-until the cookie expires or the person clears it — neither clear above is within its reach, because the
-`ACCOUNT_DELETED` it meets has no deletion of its own behind it, and a later sign-in to a different
-account is an account switch, which the identity survives like every other boundary.
-
-Neither stored answer is cleared with it. They are the browser's answers rather than the account's —
-a visitor with no account gives them — and discarding them would return a browser that refused to
-undecided, askable and re-mintable again, which is the same thing the kill switch is kept from doing
-above, and a browser that turned product analytics off to unanswered, which reads as on.
-
-Already-collected rows are not this cookie's concern: the deletion anonymizes the history attributed
-to the person's user ids in the same transaction it removes the account
-([account deletion](../apps/backend/src/auth/accountDeletion.ts)). Events reported while signed out
-carry none of those ids, so the rewrite — keyed on the user id — never reaches them, and they keep
-the `anonymous_id` they were written with whether or not a link to the account was ever recorded for
-it. Where one was, the deletion removes the link row, so nothing resolves that `anonymous_id` back to
-the account afterwards. What the clear decides is only the identifier this browser reports under from
-then on.
-
-## The banner
-
-Where the answer above comes from, on the web: a strip at the bottom of the app, shown only where
-`GET` says this browser has to be asked, with `Allow` and `Decline` one click apart on the same
-layer. Until it is answered, nothing is written to the device and nothing that names this browser
-leaves it — the events wait in memory rather than in the queue, because obtaining a session id or
-appending to the queue is itself a write. One row does go out before the answer, and only one:
-`consent_prompt_shown`, which is `identityFree` by construction and carries the locale and its date
-and nothing else — not even the surface it was shown on. The promise on the strip covers this origin
-only: it says that this app stores nothing on this device and sends nothing identifying — not that
-nothing at all is sent.
-A refusal keeps that shape permanently: the
-browser is given no identifier at all, and what it reports is rows carrying none
-([anonymous client analytics](anonymous-client-analytics.md)).
-
-The auth origin is inside this gate without a banner of its own, because it mints nothing. Its
-server-side sign-in funnel reports under this cookie and reports nothing at all for a browser that
-holds none, so a browser this gate withheld an identity from stays unmeasured there too
-([sign-in funnel](../apps/auth/src/server/analytics/signInFunnel.ts)). It writes no analytics cookie
-of its own at all: its rows go to the credential-free collector, which needs none. The host-only
-`__Host-analytics_guest` it used to set is written by nothing now, read by nothing that reports, and
-deleted from the browsers that still hold one by their next sign-in, sign-out or token revoke.
-
-A signed-in person who refuses is the one case where rows still carry a name, and it is the
-account's rather than the browser's: their events go out on their own credential and are stored
-under their `user_id`, with no `anonymous_id` and no session id, straight from memory. Nothing is
-queued and nothing is written to the device, including the analytics database itself — the queue
-owner claim the session layer would make is deferred until this browser is allowed one, and a
-refusal that finds no store never opens one.
-
-"Finds no store" is the load-bearing part, and it is not the same as "cannot see one". Firefox
-implements no `IDBFactory.databases()`, so on it the question has no answer, and the two readings
-part company: a browser that was never allowed an identity is left alone, because opening the store
-is what creates it and that browser was promised nothing would be written to it; a browser that was
-allowed one — it granted, or it holds the visitor cookie — is opened and emptied, because leaving a
-previous load's identity-bearing queue on disk through a withdrawal keeps exactly what the person
-just asked to be rid of. Creating an empty database on such a browser is the smaller cost of the
-two.
-
-The stored browser answer shares the `flashcards-analytics-enabled` key with the operator kill
-switch rather than sitting beside it, and the switch carries the answer across itself in both
-directions: a browser that refused stays refused when an operator turns analytics off and on again,
-instead of returning to undecided and becoming askable and mintable in between.
-
-Everything on this page is one decision, and it is not the decision to be measured. Whether the
-person is measured at all is `productAnalyticsEnabled`, a separate answer on the same two endpoints
-with its own switch beside this one, and the two are never read into each other: somebody who
-refused the cookie keeps analytics on, exactly as the banner copy told them, and no stored refusal
-here is ever migrated into that field
-([web decision](../apps/web/src/analytics/productAnalyticsCollection.ts)).
-
-The cookie withdrawal control is the same switch on two surfaces, and it is offered in every region,
-not only where the banner is shown, because the published privacy policy states withdrawal without a
-regional qualifier. A signed-in person has it on the settings screen at `/settings/analytics`, which
-is the route the privacy policy names ("in the web app settings"). The public catalog, invite and
-share routes carry it as a link in the corner, so a visitor who answered the banner there and has no
-account takes the answer back where it was given rather than by clearing browser storage.
-
-The public surface is a link rendering the switch in place, not a second route onto the settings
-screen. `/settings/analytics` is served by `AuthenticatedApp`, so a signed-out visitor opening it is
-redirected to the auth origin, and a route declared above `AuthenticatedApp` to fix that would win
-for everyone and take the settings screen away from the signed-in person it already serves.
-
-The public link carries the answer to the account on the same terms as the banner does from the same
-position above the app data provider: it reads the verified owner from the analytics runtime, which
-is module-level state outliving the session layer, so a person who signed in and then reached a
-public route writes both records there. Without that write an account holding `granted` would undo
-the withdrawal at the next verified session. A visitor who never signed in publishes no owner, and
-the browser's own decision is the whole write.
-
-Consent is not retroactive either way. What a browser collected while a refusal stood is discarded
-when it later grants, rather than adopted into the queue and stamped with the visitor id the grant
-has just minted.
-
-- [Consent state, and what it allows](../apps/web/src/analytics/consent.ts)
-- [The separate product-analytics decision](../apps/web/src/analytics/productAnalyticsCollection.ts)
-  and its [switch](../apps/web/src/analytics/ProductAnalyticsCollectionToggleCard.tsx)
-- [Banner](../apps/web/src/analytics/AnalyticsConsentBanner.tsx), the shared cookie
-  [withdrawal switch](../apps/web/src/analytics/AnalyticsConsentToggleCard.tsx), its
-  [settings surface](../apps/web/src/screens/settings/AnalyticsSettingsScreen.tsx) and its
-  [public-route link](../apps/web/src/analytics/PublicAnalyticsConsentLink.tsx)
-- [The gate the delivery runtime applies](../apps/web/src/analytics/deliveryRuntime.ts)
+The identity survives a logout and an account switch, and ends in this browser when the browser
+confirms the deletion of the account it was measured alongside, so the next load continues as a new
+visitor. The server never clears the cookie, because `POST /v1/me/delete` also serves bearer callers
+with no browser behind them. The browser expires it at the two places it learns the account is gone
+([gate](../apps/web/src/accountDeletion/AccountDeletionRecoveryGate.tsx),
+[lifecycle](../apps/web/src/appData/session/lifecycle/useWorkspaceLifecycle.ts)). The guarantee is
+per browser: a deletion started on another device cannot reach this browser's cookie. Rows already
+collected are anonymized by the deletion itself
+([account deletion](../apps/backend/src/auth/accountDeletion.ts)).

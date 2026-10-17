@@ -178,7 +178,7 @@ export function AccountDeletionRecoveryGate(props: AccountDeletionRecoveryGatePr
             // reporting under the identity the deleted account was measured with. Only a visitor
             // `GET` that threw is asked again, so what this load has left ships either under the
             // per-tab id a cookie-blocked browser already degrades to or under an id minted fresh
-            // after this point, never under the retired one (docs/analytics-visitor-identity.md).
+            // after this point, never under the retired one.
             //
             // The session goes with the identity, because the swap is otherwise bridged: the
             // `anonymous_id` is stamped at flush time, but the session id outlives the clear in

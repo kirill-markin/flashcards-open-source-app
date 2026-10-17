@@ -1852,7 +1852,9 @@ export function createAnalyticsDeliveryRuntime(
       // then adopts an empty queue instead of inheriting one. Until one is confirmed the events this
       // browser reports next are the signed-out visitor's, and they go out credential-free under the
       // shared visitor id, which is deliberately the same id across the boundary: it belongs to the
-      // browser rather than to whoever was signed in.
+      // browser rather than to whoever was signed in. So nothing here clears it: on the deletion path
+      // it was already expired where the deletion was confirmed, and any id the returning load
+      // reports under is one it mints itself, which a clear here would only retire.
       confirmedOwnerId = null;
       isQueueOwnerReconciled = false;
       isQueueOwnerClaimDeferred = false;
