@@ -237,7 +237,7 @@ export function createAppData(): AppDataContextValue {
     setErrorMessage: vi.fn(),
     setAccountPreferences: vi.fn(),
     refreshAccountPreferences: vi.fn(async () => ({
-      accentColor: "#C44B2D",
+      accentColor: "#FF6719",
       reviewReactionAnimationsEnabled: true,
     })),
     refreshConnectedAccount: vi.fn(async (): Promise<void> => undefined),

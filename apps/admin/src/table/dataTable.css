@@ -21,9 +21,9 @@
    the table's `aria-busy` is what assistive technology reads. */
 .data-table-loading {
   padding: 3px 9px;
-  border: 1px solid rgba(214, 90, 56, 0.42);
+  border: 1px solid rgba(255, 122, 61, 0.42);
   border-radius: 999px;
-  background: rgba(196, 75, 45, 0.16);
+  background: rgba(255, 103, 25, 0.16);
   color: var(--text);
   font-size: 12px;
   font-weight: 700;

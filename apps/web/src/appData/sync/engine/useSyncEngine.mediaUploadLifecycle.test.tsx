@@ -85,7 +85,7 @@ const session: SessionInfo = {
   authTransport: "cookie",
   csrfToken: "csrf-token-1",
   preferences: {
-    accentColor: "#C44B2D",
+    accentColor: "#FF6719",
     reviewReactionAnimationsEnabled: true,
     analyticsConsent: null,
     productAnalyticsEnabled: null,

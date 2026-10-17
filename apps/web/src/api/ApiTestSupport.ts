@@ -122,7 +122,7 @@ export function createSessionResponse(overrides: SessionResponseOverrides | null
     createdAt: "2026-04-10T00:00:00.000Z",
   };
   const basePreferences: SessionResponsePreferences = {
-    accentColor: "#C44B2D",
+    accentColor: "#FF6719",
     reviewReactionAnimationsEnabled: true,
     analyticsConsent: null,
     productAnalyticsEnabled: null,

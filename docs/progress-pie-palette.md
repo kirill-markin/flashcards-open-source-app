@@ -19,7 +19,7 @@ Ordered by `ReviewScheduleBucketKey.stableOrder`:
 | 7 | `years1To2`     | `#3F7CC8` | Steel blue                            |
 | 8 | `later`         | `#7A8088` | Slate graphite — neutral / archived   |
 
-Properties: 8 distinct hues arranged so that **adjacent** buckets alternate warm/cool families and sit ≥ 56° apart on the hue wheel — the goal is sharp contrast between every neighbouring legend row and donut wedge, not a smooth gradient. The legend swatch wraps each fill in a thin neutral outline so that high-luminance hues like sunglow stay defined against pale surfaces (`box-shadow` on Web, `Color.primary.opacity(0.08)` on iOS, `outlineVariant` on Android). Brand orange (`#C44B2D`) is intentionally **not** in the palette so wedges don't blend into surrounding accents (titles, buttons). The accent color returns only as the *selection emphasis ring*.
+Properties: 8 distinct hues arranged so that **adjacent** buckets alternate warm/cool families and sit ≥ 56° apart on the hue wheel — the goal is sharp contrast between every neighbouring legend row and donut wedge, not a smooth gradient. The legend swatch wraps each fill in a thin neutral outline so that high-luminance hues like sunglow stay defined against pale surfaces (`box-shadow` on Web, `Color.primary.opacity(0.08)` on iOS, `outlineVariant` on Android). Brand orange (`#FF6719`) is intentionally **not** in the palette so wedges don't blend into surrounding accents (titles, buttons). The accent color returns only as the *selection emphasis ring*.
 
 ## Selection emphasis
 

@@ -50,7 +50,7 @@ export function renderBrowserDocument(
       label { display: block; margin-bottom: 6px; }
       input, button, .continue { font: inherit; min-height: 44px; width: 100%; border-radius: 10px; padding: 10px 12px; }
       input { margin-bottom: 16px; border: 1px solid #8e8e93; color: inherit; background: #2c2c2e; }
-      button, .continue { display: block; border: 0; border-radius: 999px; background: #c44b2d; color: #fff5f2; cursor: pointer; text-align: center; }
+      button, .continue { display: block; border: 0; border-radius: 999px; background: #ff6719; color: #fff5f2; cursor: pointer; text-align: center; }
       button:disabled { opacity: .5; cursor: default; }
       a { color: #f6f6f8; overflow-wrap: anywhere; }
       :focus-visible { outline: 2px solid #8e8e93; outline-offset: 3px; }

@@ -398,17 +398,17 @@
 .settings-danger-card {
   display: grid;
   gap: 16px;
-  background: rgba(196, 75, 45, 0.12);
+  background: rgba(255, 103, 25, 0.12);
 }
 
 .settings-danger-btn {
-  border-color: rgba(196, 75, 45, 0.45);
+  border-color: rgba(255, 103, 25, 0.45);
   color: #ffb8a6;
 }
 
 .settings-danger-btn:hover:not(:disabled) {
-  border-color: rgba(196, 75, 45, 0.7);
-  background: rgba(196, 75, 45, 0.14);
+  border-color: rgba(255, 103, 25, 0.7);
+  background: rgba(255, 103, 25, 0.14);
 }
 
 .settings-connection-header,

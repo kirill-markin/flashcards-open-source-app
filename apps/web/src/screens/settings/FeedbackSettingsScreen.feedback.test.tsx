@@ -67,7 +67,7 @@ function createAppData(): Mutable<AppDataContextValue> {
       authTransport: "session",
       csrfToken: "csrf-token-1",
       preferences: {
-        accentColor: "#C44B2D",
+        accentColor: "#FF6719",
         reviewReactionAnimationsEnabled: true,
       },
       profile: {
@@ -103,7 +103,7 @@ function createAppData(): Mutable<AppDataContextValue> {
     setErrorMessage: vi.fn(),
     setAccountPreferences: vi.fn(),
     refreshAccountPreferences: vi.fn(async () => ({
-      accentColor: "#C44B2D",
+      accentColor: "#FF6719",
       reviewReactionAnimationsEnabled: true,
     })),
     refreshConnectedAccount: vi.fn(async (): Promise<void> => undefined),

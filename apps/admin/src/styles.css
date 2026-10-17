@@ -7,8 +7,8 @@
   --text: #f6f6f8;
   --muted: rgba(235, 235, 245, 0.7);
   --muted-soft: rgba(235, 235, 245, 0.42);
-  --accent: #c44b2d;
-  --accent-strong: #d65a38;
+  --accent: #ff6719;
+  --accent-strong: #ff7a3d;
   --grid: rgba(255, 255, 255, 0.08);
   --tooltip-bg: rgba(20, 20, 24, 0.96);
   --tooltip-text: #f6f6f8;
@@ -245,7 +245,7 @@ h2 {
   flex-wrap: wrap;
   margin-top: 24px;
   padding: 16px 18px;
-  border: 1px solid rgba(214, 90, 56, 0.62);
+  border: 1px solid rgba(255, 122, 61, 0.62);
   border-radius: 18px;
   background: #2a1613;
   color: #ffb6a6;
@@ -278,15 +278,15 @@ h2 {
    `position: fixed` inside these sections, and any of those would make this element their containing
    block and place every tooltip against it instead of the viewport. */
 .report-sections-stale .dashboard-section {
-  border-top-color: rgba(214, 90, 56, 0.55);
-  background: rgba(196, 75, 45, 0.07);
+  border-top-color: rgba(255, 122, 61, 0.55);
+  background: rgba(255, 103, 25, 0.07);
 }
 
 .report-sections-stale .dashboard-section-header::before {
   content: "Stale - last successful load";
   justify-self: start;
   padding: 6px 12px;
-  border: 1px dashed rgba(214, 90, 56, 0.75);
+  border: 1px dashed rgba(255, 122, 61, 0.75);
   border-radius: 999px;
   color: #ffb6a6;
   font-size: 12px;
@@ -498,14 +498,14 @@ h2 {
 }
 
 .funnel-step-selected .funnel-step-hit {
-  fill: rgba(196, 75, 45, 0.12);
+  fill: rgba(255, 103, 25, 0.12);
   stroke: var(--accent-strong);
   stroke-width: 1.5;
 }
 
 /* Same specificity as the plain hover rule and later, so hovering the anchor deepens its fill instead of dropping it. */
 .funnel-step-selected:hover .funnel-step-hit {
-  fill: rgba(196, 75, 45, 0.18);
+  fill: rgba(255, 103, 25, 0.18);
 }
 
 /* A separate inset ring, so focus never replaces the anchor's accent stroke. */
@@ -687,9 +687,9 @@ h2 {
 
 .filter-status.active {
   padding: 7px 11px;
-  border: 1px solid rgba(214, 90, 56, 0.42);
+  border: 1px solid rgba(255, 122, 61, 0.42);
   border-radius: 999px;
-  background: rgba(196, 75, 45, 0.16);
+  background: rgba(255, 103, 25, 0.16);
   color: var(--text);
 }
 
@@ -728,8 +728,8 @@ h2 {
 }
 
 .filter-menu-button.filtered {
-  border-color: rgba(214, 90, 56, 0.48);
-  background: rgba(196, 75, 45, 0.14);
+  border-color: rgba(255, 122, 61, 0.48);
+  background: rgba(255, 103, 25, 0.14);
 }
 
 /* The one mark a closed button carries besides its name: it says the field is filtered, and its
@@ -1024,12 +1024,12 @@ h2 {
 }
 
 .calendar-day.in-range {
-  background: rgba(196, 75, 45, 0.18);
+  background: rgba(255, 103, 25, 0.18);
 }
 
 .calendar-day.range-start,
 .calendar-day.range-end {
-  border-color: rgba(214, 90, 56, 0.62);
+  border-color: rgba(255, 122, 61, 0.62);
   background: var(--accent);
 }
 
@@ -1146,8 +1146,8 @@ h2 {
 }
 
 .filter-checkbox-option.selected {
-  border-color: rgba(214, 90, 56, 0.62);
-  background: rgba(196, 75, 45, 0.14);
+  border-color: rgba(255, 122, 61, 0.62);
+  background: rgba(255, 103, 25, 0.14);
 }
 
 .filter-checkbox-option input {
@@ -1184,8 +1184,8 @@ h2 {
 }
 
 .filter-threshold-option.selected {
-  border-color: rgba(214, 90, 56, 0.62);
-  background: rgba(196, 75, 45, 0.14);
+  border-color: rgba(255, 122, 61, 0.62);
+  background: rgba(255, 103, 25, 0.14);
 }
 
 .filter-threshold-option input {
@@ -1314,8 +1314,8 @@ h2 {
 }
 
 .user-filter-option.selected {
-  border-color: rgba(214, 90, 56, 0.62);
-  background: rgba(196, 75, 45, 0.14);
+  border-color: rgba(255, 122, 61, 0.62);
+  background: rgba(255, 103, 25, 0.14);
 }
 
 .user-filter-option input {
