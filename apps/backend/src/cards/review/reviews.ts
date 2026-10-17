@@ -257,7 +257,7 @@ export async function submitReview(
   input: SubmitReviewInput,
   metadata: CardMutationMetadata,
 ): Promise<ReviewResult> {
-  // Keep in sync with apps/ios/Flashcards/Flashcards/LocalDatabase.swift::submitReview(workspaceId:reviewSubmission:).
+  // Keep in sync with apps/ios/Flashcards/Flashcards/Database/LocalDatabase/LocalDatabase+Review.swift::submitReview(workspaceId:reviewSubmission:).
   const reviewedAtClient = new Date(input.reviewedAtClient);
   if (Number.isNaN(reviewedAtClient.getTime())) {
     throw new HttpError(400, "reviewedAtClient must be a valid ISO timestamp");

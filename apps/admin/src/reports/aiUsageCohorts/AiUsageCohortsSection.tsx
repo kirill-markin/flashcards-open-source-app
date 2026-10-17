@@ -225,7 +225,7 @@ export function AiUsageCohortsSection(props: Readonly<{
                   <li>
                     <strong>Medians:</strong> vertical over everybody in the panel, horizontal only over the people who reviewed at all
                     <ul>
-                      <li>The true median review rate has been zero in every period so far, and a line in the zero strip would say nothing about how the people who study are studying</li>
+                      <li>Most people in a panel never review, so the true median review rate is zero, and a line in the zero strip would say nothing about how the people who study are studying</li>
                     </ul>
                   </li>
                 </ul>
