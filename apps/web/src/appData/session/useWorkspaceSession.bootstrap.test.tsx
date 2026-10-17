@@ -32,7 +32,7 @@ import {
 import { ApiNetworkError } from "../../api";
 import { INSTALLATION_ID_STORAGE_KEY } from "../../clientIdentity";
 import { LOCALE_PREFERENCE_STORAGE_KEY } from "../../i18n/runtime";
-import { loadCloudSettings } from "../../localDb/sync/cloudSettings";
+import { loadCloudSettings, putCloudSettings } from "../../localDb/sync/cloudSettings";
 import type { WorkspaceSummary } from "../../types";
 import { loadWarmStartSnapshot, WARM_START_SNAPSHOT_STORAGE_KEY } from "./activation/warmStart";
 import { captureWorkspaceTransitionError } from "./observation/workspaceSessionObservation";
@@ -282,6 +282,12 @@ describe("useWorkspaceSession bootstrap", () => {
   it("keeps expected bootstrap workspace selection failures inline without technical details", async () => {
     seedBrowserStorage();
     await seedIndexedDbState();
+    await putCloudSettings({
+      ...seededCloudSettings,
+      cloudState: "linking-ready",
+      linkedWorkspaceId: null,
+      onboardingCompleted: false,
+    });
 
     const workspaceNotFoundMessage = "Workspace not found";
     const fetchMock = vi.fn<(...args: Array<unknown>) => Promise<Response>>()
@@ -712,7 +718,10 @@ describe("useWorkspaceSession bootstrap", () => {
     await vi.waitFor(() => {
       expect(runSyncForWorkspaceMock).toHaveBeenCalledTimes(1);
     });
-    expect(runSyncForWorkspaceMock).toHaveBeenLastCalledWith(seededWorkspace);
+    expect(runSyncForWorkspaceMock).toHaveBeenLastCalledWith({
+      ...seededWorkspace,
+      isVisible: true,
+    });
     expect(getWorkspaceTransitionEventNames()).toContain("workspace_activate_bootstrap_deferred");
     expect(getWorkspaceTransitionEventNames()).not.toContain("workspace_activate_bootstrap_succeeded");
     initialVerifiedSyncDeferred.resolve();

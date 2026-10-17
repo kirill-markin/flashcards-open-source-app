@@ -9,7 +9,10 @@ import {
   type ReactElement,
   type SetStateAction,
 } from "react";
-import { revalidateSession } from "../../api";
+import { listWorkspaces, revalidateSession } from "../../api";
+import { loadCloudSettings, putCloudSettings } from "../../localDb/sync/cloudSettings";
+import { buildLinkedCloudSettings } from "../session/cloud/workspaceSessionCloud";
+
 import { useAppErrorDialog } from "../../appError/AppErrorContext";
 import { useI18n } from "../../i18n";
 import { readEntitlementIdentityGeneration } from "../../premium/entitlementStore";
@@ -23,7 +26,7 @@ import type {
   WorkspaceSchedulerSettings,
   WorkspaceSummary,
 } from "../../types";
-import { ALL_CARDS_REVIEW_FILTER, isReviewFilterEqual, normalizeReviewFilter } from "../domain";
+import { ALL_CARDS_REVIEW_FILTER, isReviewFilterEqual, markSelectedWorkspaces, normalizeReviewFilter } from "../domain";
 import type { AppDataContextValue, Props, SessionLoadState } from "./types";
 import { useProgressInvalidationRefresh } from "../progress/invalidation/progressInvalidation";
 import { isTestSeedBridgeEnabled, type AppDataTestSeedBridge } from "../sync/local/testSeedBridge";
@@ -58,6 +61,8 @@ function mergeRefreshedAccountSession(
 ): SessionInfo {
   return {
     ...previousSession,
+    canonicalAccountId: refreshedSession.canonicalAccountId,
+    linkedAccountIds: refreshedSession.linkedAccountIds,
     selectedWorkspaceId: refreshedSession.selectedWorkspaceId,
     authTransport: refreshedSession.authTransport,
     csrfToken: refreshedSession.csrfToken,
@@ -72,6 +77,8 @@ function mergeRefreshedAccountSessionWithoutPreferences(
 ): SessionInfo {
   return {
     ...previousSession,
+    canonicalAccountId: refreshedSession.canonicalAccountId,
+    linkedAccountIds: refreshedSession.linkedAccountIds,
     selectedWorkspaceId: refreshedSession.selectedWorkspaceId,
     authTransport: refreshedSession.authTransport,
     csrfToken: refreshedSession.csrfToken,
@@ -447,6 +454,39 @@ export function AppDataProvider(props: Props): ReactElement {
     setSessionErrorMessage,
   ]);
 
+  const refreshConnectedAccount = useCallback(async function refreshConnectedAccount(): Promise<void> {
+    const userId = session?.userId ?? null;
+    const workspaceId = activeWorkspace?.workspaceId ?? null;
+    if (userId === null || workspaceId === null || sessionLoadState !== "ready" || sessionVerificationState !== "verified") {
+      throw new Error(t("app.sessionRestoringActionLocked"));
+    }
+    const generation = readEntitlementIdentityGeneration();
+    const preferenceWriteVersion = readAccountPreferencesWriteVersion();
+    const [freshSession, workspaces] = await Promise.all([revalidateSession(), listWorkspaces()]);
+    indexedDbOpenRecoveryState.throwIfFailed();
+    const retainedWorkspace = workspaces.find((workspace) => workspace.workspaceId === workspaceId);
+    const persisted = await loadCloudSettings();
+    indexedDbOpenRecoveryState.throwIfFailed();
+    if (generation !== readEntitlementIdentityGeneration() || freshSession.userId !== userId
+      || workspaceReviewFilterStateRef.current.activeWorkspace?.workspaceId !== workspaceId
+      || retainedWorkspace === undefined || persisted?.linkedUserId !== userId || persisted.linkedWorkspaceId !== workspaceId) {
+      throw new Error(t("app.sessionUnavailable"));
+    }
+    const retainedSettings = buildLinkedCloudSettings(freshSession, workspaceId, persisted);
+    await putCloudSettings(retainedSettings);
+    indexedDbOpenRecoveryState.throwIfFailed();
+    if (generation !== readEntitlementIdentityGeneration()
+      || workspaceReviewFilterStateRef.current.activeWorkspace?.workspaceId !== workspaceId) {
+      throw new Error(t("app.sessionUnavailable"));
+    }
+    setCloudSettings(retainedSettings);
+    setAvailableWorkspaces(markSelectedWorkspaces(workspaces, workspaceId));
+    setActiveWorkspace({ ...retainedWorkspace, isSelected: true });
+    setSession((previous): SessionInfo | null => previous?.userId === userId
+      ? mergeRefreshedSessionPreferences(previous, { ...freshSession, selectedWorkspaceId: workspaceId }, preferenceWriteVersion)
+      : previous);
+  }, [activeWorkspace?.workspaceId, indexedDbOpenRecoveryState, session?.userId, sessionLoadState, sessionVerificationState, setActiveWorkspace, t]);
+
   const {
     initialize,
     chooseWorkspace,
@@ -505,6 +545,7 @@ export function AppDataProvider(props: Props): ReactElement {
     setErrorMessage,
     setAccountPreferences,
     refreshAccountPreferences,
+    refreshConnectedAccount,
     initialize,
     chooseWorkspace,
     createWorkspace,

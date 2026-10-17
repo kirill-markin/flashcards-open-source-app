@@ -33,7 +33,8 @@ function isWorkspaceSummary(value: unknown): value is WorkspaceSummary {
     && value.workspaceId !== ""
     && typeof value.name === "string"
     && typeof value.createdAt === "string"
-    && typeof value.isSelected === "boolean";
+    && typeof value.isSelected === "boolean"
+    && (value.isVisible === undefined || typeof value.isVisible === "boolean");
 }
 
 function isSessionInfo(value: unknown): value is SessionInfo {
