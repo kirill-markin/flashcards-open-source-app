@@ -39,6 +39,8 @@ if (violations.length > 0) {
 }
 console.log("Repository size policy passed.", { trackedFiles: tracked.length, marketingBytes, maxFileBytes, maxMarketingBytes });
 
+// History introduced since the PR base is checked too, not only the tip: merging a pre-cleanup
+// branch would make the removed media history reachable again even if its tip deletes the files.
 const baseRef = `origin/${process.env.PR_BASE_REF?.trim() || "main"}`;
 const introducedObjects = execFileSync("git", ["rev-list", "--objects", `${baseRef}..HEAD`], { cwd: root, encoding: "utf8", maxBuffer: 32 * 1024 * 1024 })
   .split("\n").filter(Boolean).map(line => {

@@ -12,6 +12,8 @@ import * as ts from "typescript";
 import { infraAwsNodejsProjectPaths, resolveFromRepoRoot } from "./nodejs-project-paths";
 
 interface CachedFunctionProps extends lambdaNodejs.NodejsFunctionProps {
+  // Files a command hook copies into the bundle. The cache key sees only the esbuild graph and
+  // these paths, so a hook that copies an undeclared file reuses a stale asset.
   readonly copiedAssetPaths?: ReadonlyArray<string>;
 }
 

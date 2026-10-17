@@ -3,196 +3,41 @@
 ## System overview
 
 ```
-Web browser         -> Cloudflare -> app.<domain>  -> CloudFront + S3 web SPA
-Admin browser       -> Cloudflare -> admin.<domain> -> CloudFront + S3 admin SPA
-Browser auth        -> Cloudflare -> auth.<domain> -> API Gateway -> Auth Lambda -> Cognito EMAIL_OTP
-iOS app             -> Cloudflare -> auth.<domain> -> API Gateway -> Auth Lambda -> Cognito EMAIL_OTP
-iOS + web sync/API  -> Cloudflare -> api.<domain>  -> API Gateway -> Lambda backend -> Postgres
-AI chat v2 worker   -> Cloudflare -> api.<domain>  -> API Gateway -> backend Lambda -> detached chat worker Lambda -> model provider APIs
-Agent bootstrap     -> Cloudflare -> auth.<domain> -> API Gateway -> Auth Lambda -> Cognito EMAIL_OTP -> API key
-Apex fallback       -> Cloudflare -> <domain>      -> CloudFront redirect -> app.<domain>
+Web browser          -> Cloudflare -> app.<domain>   -> CloudFront + S3 web SPA
+Admin browser        -> Cloudflare -> admin.<domain> -> CloudFront + S3 admin SPA
+Browser/native auth  -> Cloudflare -> auth.<domain>  -> API Gateway -> Auth Lambda -> Cognito
+Web/iOS/Android API  -> Cloudflare -> api.<domain>   -> API Gateway -> backend Lambda -> Postgres
+AI chat              -> api.<domain> backend Lambda -> detached chat worker Lambda -> model provider APIs
+MCP clients          -> Cloudflare -> mcp.<domain>   -> API Gateway -> MCP Lambda -> Postgres
+Agent bootstrap      -> Cloudflare -> auth.<domain>  -> Auth Lambda -> Cognito EMAIL_OTP -> API key
+Apex fallback        -> Cloudflare -> <domain>       -> CloudFront redirect -> app.<domain>
 ```
 
-The repository currently implements three public service surfaces:
+- `app.<domain>` serves the web SPA from `apps/web`, and `admin.<domain>` the admin SPA from `apps/admin`; both derive their API and auth hosts from the current hostname.
+- `auth.<domain>` (`apps/auth`) owns sign-in: email OTP, Apple and Google, session and token refresh, agent OTP bootstrap and the OAuth authorization server for MCP.
+- `api.<domain>` (`apps/backend`) serves the human app API, sync, AI chat and the machine-facing agent API; `mcp.<domain>/mcp` serves the same tool inventory over MCP.
+- The apex `<domain>` is an optional CloudFront redirect to `app.<domain>`.
 
-- `app.<domain>` for the web SPA in `apps/web`
-- `admin.<domain>` for the admin SPA in `apps/admin`
-- `auth.<domain>` for OTP login, session refresh, token refresh, and agent OTP bootstrap in `apps/auth`
-- `api.<domain>` for the main backend, sync API, AI chat transport, and the machine-facing agent API in `apps/backend`
+The CDK app in [`infra/aws`](../infra/aws/README.md) provisions all of it, including networking, the database, monitoring, backups and CI/CD roles; [`api-gateway.ts`](../infra/aws/lib/gateways/api-gateway.ts) and [`auth-gateway.ts`](../infra/aws/lib/gateways/auth-gateway.ts) show which Lambdas sit behind each host. The backend, auth and migration Lambdas run in the VPC; Postgres (RDS) sits in private subnets.
 
-The apex `<domain>` is an optional CloudFront redirect to `app.<domain>`.
+## Database roles
 
-## Monorepo shape
-
-- `apps/backend`: Hono backend for human clients and agents
-- `apps/auth`: Hono auth service for browser, native, and agent OTP flows
-- `apps/web`: React + Vite web app with IndexedDB local storage
-- `apps/admin`: React + Vite admin app with server-side analytics data loading
-- `apps/ios`: SwiftUI iOS app with SQLite local storage
-- `db/migrations`: PostgreSQL schema, security, and runtime-role migrations
-- `db/views`: SQL views applied after migrations
-- `infra/aws`: CDK stack for networking, database, auth, API, web hosting, CI/CD, backups, and monitoring
-- `infra/docker`: local migration container assets
-
-## Deployment architecture
-
-### Web
-
-- `infra/aws/lib/web.ts` deploys the web app to S3 behind CloudFront.
-- SPA routing is handled by serving `index.html` for `403` and `404`.
-- The web app derives `api.<domain>/v1` and `auth.<domain>` from the current hostname unless local overrides are provided.
-
-### Admin
-
-- `infra/aws/lib/admin.ts` deploys the admin app to S3 behind CloudFront.
-- The admin app derives `api.<domain>/v1` and `auth.<domain>` from the current `admin.<domain>` hostname.
-- The supported admin browser entrypoints are `http://localhost:3001` and `https://admin.<domain>`.
-- Admin report data is loaded from backend-owned `/v1/admin/*` routes, not from direct browser access to Postgres.
-
-### Auth service
-
-- `infra/aws/lib/gateways/auth-gateway.ts` deploys a dedicated API Gateway + Lambda for auth.
-- The auth Lambda runs in the VPC, reads its own DB secret, and talks to Cognito.
-- Browser and native sign-in use the same passwordless email OTP foundation, but different session handling:
-  - Web uses signed cookies plus session refresh.
-  - iOS receives tokens in JSON and stores refresh credentials locally.
-  - Agents use a separate OTP bootstrap flow that ends with a long-lived API key.
-
-### Backend API
-
-- `infra/aws/lib/gateways/api-gateway.ts` deploys the main API Gateway and two backend Lambda entrypoints:
-  - a buffered backend Lambda for normal JSON endpoints
-  - a detached worker Lambda for backend-owned chat runs
-- The backend Lambda runs in the VPC, reads the backend DB secret, verifies Cognito ID tokens, and can optionally read model-provider secrets.
-- The detached chat worker Lambda uses the same backend runtime environment, but it is invoked asynchronously by the main backend Lambda and is not published through API Gateway.
-- API Gateway predeclares the public route tree, including the system/root documents, `agent`, `workspaces`, `agent-api-keys`, `admin`, `cards`, `guest-auth`, `chat`, `sync`, and the single global metrics route `GET /v1/global/snapshot`.
-
-### Database and operations
-
-- `infra/aws/lib/database.ts` deploys PostgreSQL 18 on RDS in private subnets.
-- A separate migration runner Lambda applies SQL migrations and views, then configures runtime role passwords for `backend_app` and `auth_app`.
-- Monitoring, backups, and CI/CD are provisioned from the same CDK stack.
-
-### Database roles
-
-- The migration runner connects with the database owner credentials and is the only component that applies schema migrations and view updates.
-- `backend_app` is the main runtime database role for `apps/backend`.
-  - It has the runtime grants needed for human API traffic, sync, cards, workspaces, account deletion, and agent SQL execution.
-  - Its row-level-security policies are the canonical runtime policies for app data in `org`, `content`, and `sync`.
-- `auth_app` is the narrower runtime database role for `apps/auth`.
-  - It is limited to the auth and bootstrap paths needed for OTP verification, token refresh side effects, user bootstrap, and initial device/workspace creation.
-- Legacy `app` was the original shared runtime database role before the split into `backend_app` and `auth_app`.
-  - It was removed by [`db/migrations/0025_remove_legacy_app_role.sql`](../db/migrations/0025_remove_legacy_app_role.sql).
-  - Older migrations still mention `app` because they are historical schema steps.
-  - New migrations must not add grants, policies, or dependencies for `app`.
-
-## Backend runtime structure
-
-`apps/backend/src/server/app.ts` mounts route modules:
-
-- `system`: runtime discovery, source-discovery probes, health, session/account inspection, and account deletion
-- `agent`: machine-facing source-discovery aliases, workspace bootstrap, and SQL endpoints
-- `workspaces`: list/create/select workspaces, workspace lifecycle actions, and human-session agent API key management
-- `admin`: admin session and report query endpoints
-- `cards`: workspace card query and tag summary endpoints
-- `globalSnapshot`: one public route, `GET /v1/global/snapshot`
-- `guestAuth`: guest session and upgrade endpoints
-- `aiConsent`: native AI consent receipts ([contract and verification](ai-consent.md))
-- `chatTranscriptions`: transcription upload endpoint
-- `chat`: backend-owned chat control-plane endpoints
-- `sync`: offline-first push, pull, bootstrap, and review-history endpoints
-
-The backend is Hono-based in local dev and in Lambda. In local dev it serves on `http://localhost:8080/v1`.
-
-## Client architecture
-
-### Web app
-
-- React 19 SPA in `apps/web`
-- Local source of truth is IndexedDB, not the network
-- IndexedDB stores:
-  - `cards`
-  - `cardTags`
-  - `decks`
-  - `reviewEvents`
-  - `workspaceSettings`
-  - `outbox`
-  - `meta`
-- The app loads `/me`, resolves the selected workspace, persists cloud-link metadata locally, then syncs
-- Browser auth recovery is automatic through `POST /api/refresh-session` on the auth host
-
-### iOS app
-
-- SwiftUI app in `apps/ios`
-- Local source of truth is SQLite via `LocalDatabase`
-- Persistence is split into dedicated stores such as `CardStore`, `DeckStore`, `OutboxStore`, `SyncApplier`, and `WorkspaceSettingsStore`
-- Cloud linking stores Cognito refresh credentials locally and refreshes ID tokens through the auth service
-- The iOS app mirrors backend FSRS scheduling and local AI-tool behavior closely
+- The migration runner connects as the database owner and is the only component that applies schema migrations and views; it then configures the runtime role passwords.
+- `backend_app` is the runtime role for `apps/backend`; its row-level-security policies are the canonical runtime policies for app data in `org`, `content`, and `sync`.
+- `auth_app` is the narrower runtime role for `apps/auth`, limited to the auth and bootstrap paths.
+- `reporting_readonly` is the read-only role for admin reports and operators ([analytics DB access](analytics-db-access.md)).
+- Older migrations still mention the removed shared `app` role; it is not a runtime role, and new migrations must not depend on it.
 
 ## Authentication model
 
-### Human users
+- Production auth verifies Cognito ID tokens; local dev can run with `AUTH_MODE=none` ([`.env.example`](../.env.example)). The account id is a product-owned surrogate, not the Cognito subject ([auth service](auth-service.md)).
+- Browser sign-in ends with signed session cookies on the shared cookie domain plus session refresh; native clients receive tokens in JSON and refresh them through the auth service.
+- Agents authenticate through the auth service's OTP endpoints and receive a long-lived API key (`Authorization: ApiKey ...`) that stores its own selected workspace, independent of the human session selection. MCP clients use OAuth against the same auth host.
+- The backend always runs request auth before loading app data, and the first authenticated request provisions the account's profile and a selected workspace ([`ensureUser.ts`](../apps/backend/src/auth/ensureUser.ts)).
 
-- Production auth mode is Cognito ID-token verification.
-- Local dev can run with `AUTH_MODE=none`.
-- Browser login flow:
-  1. `POST /api/send-code` on `auth.<domain>`
-  2. `POST /api/verify-code`
-  3. auth service sets signed browser session cookies
-  4. web app calls `GET /v1/me`
-- Native login flow:
-  1. `POST /api/send-code`
-  2. `POST /api/verify-code`
-  3. auth service returns `idToken` and `refreshToken` in JSON
-  4. iOS refreshes through `POST /api/refresh-token`
+## Client storage
 
-### Agents
-
-- `GET /v1/` and `GET /v1/agent` return the machine discovery envelope.
-- Agents authenticate through auth-service OTP endpoints:
-  - `POST /api/agent/send-code`
-  - `POST /api/agent/verify-code`
-- Successful agent verification creates a long-lived API key stored in `auth.agent_api_keys`.
-- Agent requests use `Authorization: ApiKey ...`.
-- Each API key stores its own selected workspace, independent of the human session selection.
-
-### User bootstrap
-
-- The backend always runs request auth before loading app data.
-- The first authenticated human request auto-provisions:
-  - `org.user_settings`
-  - a default `Personal` workspace if none exists
-  - the selected workspace pointer
-- Agent API keys also auto-provision or auto-select a workspace when possible.
-
-## Data model
-
-The Postgres schema is split by responsibility:
-
-- `org`: users, workspaces, memberships, user settings
-- `content`: cards, decks, review events
-- `sync`: devices, hot-state change metadata, workspace sync metadata, idempotency ledger
-- `auth`: agent OTP challenges, API keys, OTP rate-limit state, deleted subjects
-- `security`: helpers for runtime database context
-
-Important tables and responsibilities:
-
-- `org.user_settings`: human profile metadata, selected workspace, and account preferences,
-  including the two separate analytics decisions read on `GET /v1/me` and written on
-  `PATCH /v1/me/preferences` — the cookie-banner consent and the product-analytics off switch
-  ([analytics visitor identity](analytics-visitor-identity.md)) — and `locale`, the interface
-  language clients save through the same `PATCH`, which the server resolves to a supported
-  locale where it needs one
-- `org.workspaces`: workspace metadata and persisted FSRS scheduler settings
-- `org.workspace_memberships`: workspace access control
-- `content.cards`: card state, including persisted FSRS fields
-- `content.decks`: saved deck filters
-- `content.review_events`: append-only review history
-- `sync.devices`: known client devices per workspace
-- `sync.applied_operations_current`: bounded idempotency ledger for batched push requests
-- `sync.hot_changes`: compact hot-state change metadata for mutable roots
-- `sync.workspace_sync_metadata`: per-workspace sync retention and bootstrap metadata
-- `auth.agent_api_keys`: long-lived terminal/agent connections
+Each client keeps its local source of truth and syncs it: the web app in IndexedDB, iOS and Android in SQLite. The web app loads `/me`, resolves the selected workspace and persists cloud-link metadata locally before it syncs.
 
 ## Offline-first sync
 
@@ -208,108 +53,40 @@ The sync contract is the same across web, iOS, and Android:
 
 Implemented sync behavior:
 
-- Operations are scoped to a workspace and device.
-- Push is idempotent through `sync.applied_operations_current`.
-- Push is processed in batches instead of one transaction per operation.
-- Cards, decks, and workspace scheduler settings use last-writer-wins metadata:
-  - `clientUpdatedAt`
-  - `lastModifiedByDeviceId`
-  - `lastOperationId`
-- Media asset registry metadata and tombstones can be emitted by pull/bootstrap reads when clients opt into `includeMediaAssets`, but clients create or update media assets only through the media upload API. File bytes move only through the media upload/download URL APIs.
-- Cards reference logical `content.media_assets` by media asset id; those workspace-scoped rows enforce access and point to deduplicated backend-internal `content.media_blobs` rows that own SHA-256, MIME type, size, and object storage keys.
-- Review events are append-only and deduplicated by `(workspace_id, device_id, client_event_id)`.
-- Review events use the normal `POST /v1/workspaces/:workspaceId/sync/push` contract for both live and historical submissions. For `review_event` operations, `clientUpdatedAt` must equal `payload.reviewedAtClient`.
-- Mutable state and review history are synchronized through separate lanes:
-  - hot mutable roots use `sync.hot_changes` plus direct materialization from canonical tables
-  - review history uses `content.review_events.review_sequence`
-- Local sync state keeps separate cursors for hot state and review history instead of one global checkpoint.
+- Operations are scoped to a workspace and an installation's workspace replica ([sync identity model](sync-identity-model.md)).
+- Push is idempotent through `sync.applied_operations_current` and processed in batches rather than one transaction per operation.
+- Cards, decks, and workspace scheduler settings resolve conflicts last-writer-wins ([`lww.ts`](../apps/backend/src/sync/conflicts/lww.ts)).
+- Review events are append-only and deduplicated by `(workspace_id, replica_id, client_event_id)`. Live and historical submissions both use the normal push contract; for `review_event` operations, `clientUpdatedAt` must equal `payload.reviewedAtClient`.
+- Mutable state and review history sync through separate lanes with separate local cursors: hot mutable roots use `sync.hot_changes` plus direct materialization from canonical tables, and review history uses `content.review_events.review_sequence`.
 - Progress, streaks, and chart day buckets are derived from `content.review_events.reviewed_at_client` in the requested timezone, not from server ingest time.
 
 ### Client media transfer
 
 Client card content and media byte transfer are intentionally separate:
 
-- Card Markdown references media as `fcasset:<mediaAssetId>`.
-- Clients sync logical `media_assets` rows through the normal sync/bootstrap reads, but create or update media assets through the media upload API instead of the JSON sync outbox.
-- File bytes do not move through the JSON sync outbox. Clients use local upload/download queue rows as operational state, request backend-authorized signed upload/download URLs from the media API, and transfer bytes through those transient URLs.
-- Signed URLs are short-lived transport credentials, not persisted user content. Public CDN delivery remains a future optimization; current first-party clients request authorized signed URLs from the backend.
-- Each client may keep a local device cache keyed by blob `sha256`. Queue rows and cache entries are local operational state and are not synced as user content.
+- Card Markdown references media as `fcasset:<mediaAssetId>`. A card references a workspace-scoped `content.media_assets` row, which enforces access and points to a deduplicated backend-internal `content.media_blobs` row.
+- Clients read `media_assets` rows through sync pull/bootstrap when they opt into `includeMediaAssets`, but create or update them only through the media upload API, never the JSON sync outbox.
+- File bytes move only through short-lived signed upload/download URLs the backend authorizes. They are transport credentials, not persisted user content; public CDN delivery is a possible later optimization.
+- Upload/download queue rows and a local cache keyed by blob `sha256` are local operational state and are not synced as user content.
 
 ## Scheduling architecture
 
-- FSRS scheduling is persisted on the card row and workspace scheduler settings.
-- Review submission is compute-on-write:
-  - append a review event
-  - recompute the card schedule
-  - update the card snapshot
-  - emit sync changes
-- Review eligibility is compute-on-read: due cards use `due_at <= now()`, new cards use `due_at IS NULL`, and future or malformed due values stay out of the active queue.
-- Backend, iOS, and Android maintain mirrored scheduling logic and state validation.
-- The web app computes review submissions locally too, but it does not keep a fourth standalone scheduler copy in `apps/web`.
-- Instead, the web review flow reuses the backend scheduler module directly from `apps/backend/src/scheduling/index.ts` when it needs the next local `dueAt` and FSRS state.
-
-There is no separate background scheduler worker.
+- FSRS state is persisted on the card row and the workspace scheduler settings. Review submission is compute-on-write (append the review event, recompute and store the card schedule, emit sync changes); review eligibility is compute-on-read. There is no background scheduler worker.
+- Backend, iOS, and Android maintain mirrored scheduling logic; the web app reuses the backend module [`apps/backend/src/scheduling`](../apps/backend/src/scheduling/index.ts) directly. The rules are in [FSRS scheduling logic](fsrs-scheduling-logic.md).
 
 ## AI chat architecture
 
-All current first-party clients use the backend-owned chat surface:
-  - `GET /v1/chat`
-  - `POST /v1/chat`
-  - `DELETE /v1/chat`
-  - `POST /v1/chat/stop`
-  - `POST /v1/chat/files/uploads`
-  - `POST /v1/chat/transcriptions`
-  - `GET /v1/chat/sessions`
-  - `POST /v1/chat/sessions/{sessionId}/rename`
-  - `POST /v1/chat/sessions/{sessionId}/archive`
-- The `/v1/chat/sessions` routes are the shared chat history contract used by web, iOS, and Android; see [`apps/backend/src/chat/http/handlers.ts`](../apps/backend/src/chat/http/handlers.ts) and [`apps/backend/src/chat/store/historyService.ts`](../apps/backend/src/chat/store/historyService.ts).
-- The backend-owned chat stores canonical sessions, transcript items, and detached run state in Postgres under the `ai` schema.
-- A chat attachment is a file of its session: bytes in the media assets bucket, a row in `ai.chat_files`, and a reference in the transcript; see [`apps/backend/src/chatFiles/`](../apps/backend/src/chatFiles/index.ts).
-- Deleting a chat file row, directly or through a cascade such as account deletion, deletes its object from the bucket shortly after; see [`apps/backend/src/chatFiles/cleanup.ts`](../apps/backend/src/chatFiles/cleanup.ts).
-- Attachment bytes can travel outside the `POST /v1/chat` body: `POST /v1/chat/files/uploads` returns a pre-signed S3 PUT for a staged object, and the turn names it in an `upload` content part; limits, error codes, and ingest live in [`apps/backend/src/chatFiles/uploads.ts`](../apps/backend/src/chatFiles/uploads.ts), request shapes in [`apps/backend/src/chat/http/contract.ts`](../apps/backend/src/chat/http/contract.ts).
-- V2 is intentionally server-owned: the backend owns session ids, run state, transcript history, run execution, cancellation, and recovery behavior.
-- `POST /v1/chat` creates a persisted run and asynchronously dispatches the detached worker.
-- `POST /v1/chat` accepts new turns only for the current (latest) session; older sessions are read-only and answer `409 CHAT_SESSION_NOT_CURRENT`.
-- `GET /v1/chat` reads the persisted snapshot and is the canonical recovery path for v2 progress.
-- The model-facing tools a chat run can call come from the shared agent tool registry, apart from the generated-image tool the chat appends itself for a signed-in run; see [agent tool surfaces](agent-tool-surfaces.md).
+- Chat is server-owned: the backend owns session ids, run state, transcript history, run execution, cancellation, and recovery, stored in Postgres under the `ai` schema. Every first-party client uses the same backend surface ([`handlers.ts`](../apps/backend/src/chat/http/handlers.ts), [`contract.ts`](../apps/backend/src/chat/http/contract.ts)).
+- `POST /v1/chat` creates a persisted run and asynchronously dispatches the detached worker; `GET /v1/chat` reads the persisted snapshot and is the canonical recovery path for run progress.
+- A chat attachment is a file of its session: bytes in the media assets bucket, a row in `ai.chat_files`, and a reference in the transcript ([`chatFiles`](../apps/backend/src/chatFiles/index.ts)).
+- The model-facing tools come from the shared agent tool registry, apart from the generated-image tool the chat appends itself for a signed-in run ([agent tool surfaces](agent-tool-surfaces.md)).
 
 ## Agent API architecture
 
-The machine-facing API is intentionally narrower than the human app API:
-
-- discovery at `GET /v1/` and `GET /v1/agent`
-- account context at `GET /v1/agent/me`
-- workspace listing and bootstrap at `GET/POST /v1/agent/workspaces`
-- workspace selection at `POST /v1/agent/workspaces/{workspaceId}/select`
-- conversational review at `POST /v1/agent/reviews/next`, `/reveal`, and `/submit`, mirrored by MCP `next_review_card`, `reveal_answer`, and `submit_review`; see [the review contract](conversational-reviews.md)
-- SQL reads at `POST /v1/agent/sql/query` (read-only) and SQL writes at `POST /v1/agent/sql/execute`; both accept an optional `workspaceId` in the JSON body, the same argument as the `sql_query` and `sql_execute` MCP tools
-- one reference guide at a time at `GET /v1/agent/guide/{topic}`, serving the same bodies as the MCP `get_guide` tool
-- the caller's tier, its limits, and this month's AI consumption at `GET /v1/agent/usage-limits`, the same payload as the MCP `get_usage_limits` tool
-- conventional document probes at `GET /v1/openapi.json`, `GET /v1/swagger.json`, `GET /v1/agent/openapi.json`, and `GET /v1/agent/swagger.json`; all four return the same concise source-discovery JSON linking to the open-source repository and the relevant backend and auth route source files, not an OpenAPI document
-
-The SQL dialect is not full PostgreSQL. It is a constrained contract implemented in `apps/backend/src/aiTools`.
-
-How this surface relates to the MCP server and the in-app chat, and which contract modules all three share, is [agent tool surfaces](agent-tool-surfaces.md).
+The machine-facing API is intentionally narrower than the human app API. Discovery starts at `GET /v1/` (also `GET /v1/agent`); the route list is [`routes/agent.ts`](../apps/backend/src/routes/agent.ts) plus the discovery and document-probe routes in [`routes/system/index.ts`](../apps/backend/src/routes/system/index.ts), and how the routes relate to MCP and the in-app chat is [agent tool surfaces](agent-tool-surfaces.md). The SQL dialect is not full PostgreSQL but a constrained contract implemented in `apps/backend/src/aiTools`.
 
 ## Security model
 
-- Cloudflare is the public DNS and edge TLS layer.
-- RDS is private and reachable only from the VPC.
-- Lambda functions connect with dedicated security groups and per-service secrets.
-- Browser OTP state is HMAC-signed and expires after 3 minutes.
-- Browser session-authenticated unsafe API requests require CSRF validation plus allowed-origin checks.
-- The backend derives the browser CSRF token from the session JWT using a dedicated secret, so it does not need extra CSRF database state.
-- PostgreSQL row-level security is enabled for the runtime tables.
-- Backend and auth DB access is scoped through runtime roles plus `app.user_id` and `app.workspace_id` session settings.
-- Runtime role split:
-  - `backend_app` is the default runtime role for application reads and writes.
-  - `auth_app` is the restricted runtime role for auth-service flows.
-  - Legacy `app` is not a valid runtime role anymore and exists only in historical migrations.
-
-## Local development entrypoints
-
-- web: `http://localhost:3000`
-- backend: `http://localhost:8080/v1`
-- auth: `http://localhost:8081`
-
-These local URLs are wired into the app config and the agent/auth discovery helpers.
+- Cloudflare is the public DNS and edge TLS layer; RDS is private and reachable only from the VPC; Lambda functions connect with dedicated security groups and per-service secrets.
+- Browser session-authenticated unsafe API requests require CSRF validation plus allowed-origin checks. The backend derives the CSRF token from the session JWT with a dedicated secret, so CSRF needs no database state.
+- PostgreSQL row-level security is enabled for the runtime tables, and backend and auth access is scoped through the runtime roles plus `app.user_id` and `app.workspace_id` session settings.

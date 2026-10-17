@@ -1,18 +1,15 @@
 # Add a Language
 
 Every surface a new product language touches, in delivery order. Each step names
-the decision and links to the guide that owns it. Nothing here repeats those
-guides.
+the decision and links to the guide that owns it.
 
 A new app language lands on every product surface: auth, iOS, the web app,
 Android, and the marketing website. Auth, iOS, and the web app use the same
 tags, with separate `es-ES` and `es-MX`; Android and the website use one
-generic tag per language. iOS bundle coverage is owned by
-[iOS localization](ios-localization.md#supported-app-locales). The App Store
-source covers 42 locales (41 languages). Repository resources, generated
-screenshots, editable Store drafts, and the released binary are separate
-delivery states. Backend name pools stay narrower; do not widen them without an
-explicit scope decision.
+generic tag per language. Repository resources, generated screenshots, editable
+Store drafts, and the released binary are separate delivery states. The backend's
+[anonymous display-name pools](../apps/backend/src/community/anonymousDisplayNames.ts)
+stay narrower; do not widen them without an explicit scope decision.
 
 The website deliberately translates less than the app, and this is permanent,
 not a backlog: interface, home, features, pricing, and catalog chrome are
@@ -22,10 +19,10 @@ site locale has catalog pages and appears in catalog filters; its catalog can
 be empty until decks exist. The website derives each locale's translated routes
 from its content files in `src/data/contentRegistry.ts`.
 
-Read the current locale sets from each surface's source below and its linked
-guide. The sets can differ intentionally; reconcile each requested rollout
-against them instead of assuming a shared count. Listing-only Android work uses
-the [Play listing localization runbook](../apps/android/docs/play-store-localization-runbook.md)
+The surfaces' locale sets can differ intentionally; reconcile each requested
+rollout against each surface's source instead of assuming a shared count.
+Listing-only Android work uses the
+[Play listing localization runbook](../apps/android/docs/play-store-localization-runbook.md)
 without changing shipping app languages.
 
 ## The locale lists are hand-maintained and mostly not type-checked
@@ -47,15 +44,12 @@ Independent locale inventories include:
 - [apps/auth/src/routes/browser/loginPageLocale.ts](../apps/auth/src/routes/browser/loginPageLocale.ts) — `SUPPORTED_LOGIN_PAGE_LOCALES`
 - [apps/backend/src/community/anonymousDisplayNames.ts](../apps/backend/src/community/anonymousDisplayNames.ts) — `supportedAnonymousDisplayNameLocales`
 - [apps/android/app/src/main/res/xml/locales_config.xml](../apps/android/app/src/main/res/xml/locales_config.xml)
-- iOS registration and `REQUIRED_LOCALES`, owned by [iOS localization](ios-localization.md#source-of-truth)
+- iOS registration and `REQUIRED_LOCALES`, owned by [iOS localization](ios-localization.md#add-a-new-language)
 - Store metadata and screenshot mappings, owned by [App Store metadata](app-store-connect-metadata.md)
 
-Two more backend lists are hand-maintained and nothing fails when they drift:
-`catalogAudienceLocales` in [apps/backend/src/catalog/types.ts](../apps/backend/src/catalog/types.ts),
-which must be changed together with the website's `src/lib/localeConfig.ts`
-(a backend test pins only that its entries are unique lowercase two-letter
-tags, because the website routes decks by generic tag), and
-`INITIAL_CHAT_COMPOSER_SUGGESTION_TEXTS_BY_LOCALE` in
+Nothing fails when these two backend lists drift:
+`catalogAudienceLocales` in [apps/backend/src/catalog/types.ts](../apps/backend/src/catalog/types.ts)
+and `INITIAL_CHAT_COMPOSER_SUGGESTION_TEXTS_BY_LOCALE` in
 [apps/backend/src/chat/composerSuggestions.ts](../apps/backend/src/chat/composerSuggestions.ts).
 
 ## Order
@@ -78,13 +72,19 @@ resources and fixtures land. Android screenshot-only overlays do not require
 a new shipping app language. Website images depend on captures only when a
 website update is in scope.
 
+The App Store metadata upload updates an editable draft; App Review submission
+remains a separate [iOS release step](release/ios.md#ios). Fixture availability
+does not prove that screenshot PNGs were regenerated: inspect the actual output
+for the intended source revision, locale, and screen before upload. Updating iOS
+screenshots does not refresh Android screenshots or the website's copied
+composites; handle those only within their own approved scope and runbooks.
+
 ## Auth and backend dependencies
 
 Auth has a separate locale inventory from the full web app. Update all three:
 
 - [loginPageLocale.ts](../apps/auth/src/routes/browser/loginPageLocale.ts):
-  supported locales, language fallback/alias resolution, and direction. `ar`,
-  `he`, `fa`, and `ur` use RTL; Norwegian `no` resolves to `nb`.
+  supported locales, language fallback/alias resolution, and direction.
 - [templates/login.ts](../apps/auth/src/templates/login.ts): the complete login
   dictionary, including errors and OTP states.
 - [authorizePageLocale.ts](../apps/auth/src/routes/oauth/authorizePageLocale.ts):
@@ -94,12 +94,10 @@ Keep deliberately unsupported-language fixtures in the existing
 [login tests](../apps/auth/src/routes/browser/loginPage.test.ts) unsupported when
 expanding coverage. Verify sign-in and consent in the new locale, including RTL.
 
-Check [composerSuggestions.ts](../apps/backend/src/chat/composerSuggestions.ts)
-for initial suggestion copy and accepted aliases; it resolves iOS/auth `nb` to
-its `no` category. Preserve regional Spanish handling. The
-[anonymous display-name pools](../apps/backend/src/community/anonymousDisplayNames.ts)
-intentionally fall back to English for languages without curated native pools;
-adding an app language does not authorize machine-translated pools.
+Add initial suggestion copy and accepted aliases to
+[composerSuggestions.ts](../apps/backend/src/chat/composerSuggestions.ts),
+preserving regional Spanish handling. Adding an app language does not authorize
+machine-translated [display-name pools](../apps/backend/src/community/anonymousDisplayNames.ts).
 
 ## Locale tags per surface
 
@@ -107,27 +105,25 @@ These shared-language examples show why tags differ by surface. For the complete
 iOS-to-Store map, use [App Store metadata](app-store-connect-metadata.md). Pick
 the right spelling in each column rather than reusing one.
 
-| Language | Web, auth, iOS | Backend pools | Android app | Play listing | iOS screenshots | Website |
-| --- | --- | --- | --- | --- | --- | --- |
-| English | `en` | `en` | `en` | `en-US` | `en-US` (alias `en`) | `en` |
-| French | `fr` | `fr` | `fr` | `fr-FR` | `fr` (alias `fr-FR`) | `fr` |
-| Portuguese (Brazil) | `pt-BR` | `pt` | `pt` | `pt-BR` | `pt-BR` (alias `pt`) | `pt` |
-| Spanish (Spain) | `es-ES` | `es-ES` | `es` | `es-ES` | `es-ES` | `es` |
-| Spanish (Mexico) | `es-MX` | `es-MX` | `es` | `es-419` | `es-MX` (alias `es-419`) | — |
-| Chinese (Simplified) | `zh-Hans` | `zh-Hans` | `zh-CN` | `zh-CN` | `zh-Hans` (alias `zh-CN`) | `zh` |
-| Arabic | `ar` | `ar` | `ar` | `ar` | `ar` | `ar` |
-| German | `de` | `de` | `de` | `de-DE` | `de` (alias `de-DE`) | `de` |
-| Hindi | `hi` | `hi` | `hi` | `hi-IN` | `hi` (alias `hi-IN`) | `hi` |
-| Japanese | `ja` | `ja` | `ja` | `ja-JP` | `ja` (alias `ja-JP`) | `ja` |
-| Russian | `ru` | `ru` | `ru` | `ru-RU` | `ru` (alias `ru-RU`) | `ru` |
-| Norwegian | `nb` | — | `no` | `no-NO` | `nb` (alias `no`) | `nb` |
+| Language | Web, auth, iOS | Android app | Play listing | iOS screenshots | Website |
+| --- | --- | --- | --- | --- | --- |
+| English | `en` | `en` | `en-US` | `en-US` (alias `en`) | `en` |
+| French | `fr` | `fr` | `fr-FR` | `fr` (alias `fr-FR`) | `fr` |
+| Portuguese (Brazil) | `pt-BR` | `pt` | `pt-BR` | `pt-BR` (alias `pt`) | `pt` |
+| Spanish (Spain) | `es-ES` | `es` | `es-ES` | `es-ES` | `es` |
+| Spanish (Mexico) | `es-MX` | `es` | `es-419` | `es-MX` (alias `es-419`) | — |
+| Chinese (Simplified) | `zh-Hans` | `zh-CN` | `zh-CN` | `zh-Hans` (alias `zh-CN`) | `zh` |
+| Arabic | `ar` | `ar` | `ar` | `ar` | `ar` |
+| German | `de` | `de` | `de-DE` | `de` (alias `de-DE`) | `de` |
+| Hindi | `hi` | `hi` | `hi-IN` | `hi` (alias `hi-IN`) | `hi` |
+| Japanese | `ja` | `ja` | `ja-JP` | `ja` (alias `ja-JP`) | `ja` |
+| Russian | `ru` | `ru` | `ru-RU` | `ru` (alias `ru-RU`) | `ru` |
+| Norwegian | `nb` | `no` | `no-NO` | `nb` (alias `no`) | `nb` |
 
 Notes that are easy to get wrong:
 
 - The website has no `es-MX`. Its single `es` is served by the `es-ES` app
   composite, so an `es-MX` capture is never a website asset.
-- Backend name pools spell Brazilian Portuguese `pt`, not `pt-BR`; `es-MX` and
-  `es-ES` both resolve to one shared Spanish pool file.
 - Play carries an `es-US` listing with no matching product locale.
 - The website's `public/home/app-screens-showcase-<website-tag>.png` files come
   from the composites produced by `scripts/ios/build-ios-marketing-materials.sh`,
@@ -135,31 +131,12 @@ Notes that are easy to get wrong:
   tag. Each live file is frozen at the build run that produced it, so it need not
   match this repository's current composite byte for byte.
 
-## Store delivery
-
-- Enable the language for translation in Google Play Console App strings. The
-  repository owns only the base English strings and the advertised locale list;
-  the translated Android copy never enters this repository.
-- Upload App Store metadata and both screenshot families using the procedure in
-  [App Store metadata](app-store-connect-metadata.md). That command updates an
-  editable draft; App Review submission remains a separate
-  [iOS release step](release/ios.md#ios).
-
-## Screenshot and website freshness
-
-Use [iOS marketing screenshots](../apps/ios/docs/marketing-screenshots.md) for the
-capture inventory and both device families. Fixture availability does not prove
-that the PNGs were regenerated: inspect the actual output for the intended
-source revision, locale, and screen before upload. Updating iOS screenshots does
-not refresh Android screenshots or the website's copied composites; handle those
-only within their own approved scope and linked platform runbooks.
-
 ## Identify stale marketing screenshots
 
 Download the pinned PNGs using [Media assets](media-assets.md), then inspect
 them against the structural markers below. Android has
-current French and Brazilian Portuguese sets plus the 39 additional locales in
-the [JSON loader map](../apps/android/app/src/androidTest/java/com/flashcardsopensourceapp/app/marketing/screenshots/MarketingScreenshotLocaleLoader.kt);
+current French and Brazilian Portuguese sets plus the locales in the
+[JSON loader map](../apps/android/app/src/androidTest/java/com/flashcardsopensourceapp/app/marketing/screenshots/MarketingScreenshotLocaleLoader.kt);
 do not classify every other language as April-era content.
 
 The remaining legacy Android sets to check are `en`, `ar`, `de-DE`, `es-ES`,
@@ -182,11 +159,9 @@ marker that holds on both platforms and in every locale:
   section, and the freeze indicator needs a loaded summary — so decide on that
   half and treat the other one as optional.
 
-Do not use the streak number or the chart's date range to date a capture. The
-streak number is a per-platform fixture value — the current iOS captures read
-12, while the current Android captures read 8, which is also the stale iOS
-number — and the chart's date range follows the locale's week start, so
-Sunday-first locales never show the Monday-first range.
+Do not use the streak number or the chart's date range to date a capture: the
+streak number is a per-platform fixture value, and the chart's date range
+follows the locale's week start.
 
 [scripts/android/pull-marketing-screenshot.sh](../scripts/android/pull-marketing-screenshot.sh)
 rejects a stale, empty, truncated, or non-PNG pull. Still open the PNG: the

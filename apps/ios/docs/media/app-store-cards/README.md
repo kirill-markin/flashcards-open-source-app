@@ -4,8 +4,9 @@ Download these finished cards and review previews using the
 [media archive procedure](../../../../../docs/media-assets.md). Open `index.html` to select a language and inspect the full-size cards.
 
 The [processing guide](../../../../../docs/store-screenshot-processing.md#approved-delivery)
-owns the inventory, store-upload status, source and processing provenance, and
-links to the manual refresh procedure.
+owns the inventory, store-upload status and links to the manual refresh
+procedure. This README and the manifests it names record source and processing
+provenance.
 
 The current `export-manifest.json` contains 210 Mac cards at processing
 HEAD `4fb044b41043b4c0344ef6763253f8e3d2c0bb0f`, 210 landscape iPad

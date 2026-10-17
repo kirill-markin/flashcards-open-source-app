@@ -33,20 +33,11 @@ and cloud checks from actual provider, signed-device, mailbox and lifecycle resu
   `POST /v1/analytics/events` alone. It is requested by the browser, lazily on a signed-out
   visitor's first real interaction. This service requests none of its own: its sign-in funnel posts
   to the credential-free collector instead (`Login facts` below).
-  - The route's own ingest contract lives in the source:
-    `apps/backend/src/routes/productAnalytics.ts` owns its HTTP surface, accepted transports,
-    and the `accepted`/`rejected` envelope; `apps/backend/src/productAnalytics/validation.ts`
-    owns batch and per-event validation and the rejection reasons;
-    `apps/backend/src/productAnalytics/catalog.ts` owns the frozen event catalog and property
-    specs every client mirrors; `apps/backend/src/productAnalytics/writer.ts` owns the
-    analytics connection pool and its `429 ANALYTICS_WRITER_BUSY`.
-  - `apps/backend/src/guestAuth/webPlatform.ts` is the single gate. Every authenticated route builds
-    its context through `loadRequestContextFromRequest`, which refuses a `web` guest platform with
-    `403 GUEST_WEB_PLATFORM_UNSUPPORTED` unless the route opts in; analytics ingest is the only
-    caller that does. The chat surface repeats the check because it spends AI quota, and the chat
-    live stream Lambda applies it on its own auth path.
-  - Guest upgrade takes the token from the request body, so it enforces the same rule against the
-    loaded session record and answers `403 GUEST_UPGRADE_WEB_PLATFORM_UNSUPPORTED`.
+  - The ingest contract is in the [route](../apps/backend/src/routes/productAnalytics.ts) and
+    [`productAnalytics/`](../apps/backend/src/productAnalytics/catalog.ts).
+  - Every other guest surface refuses a `web` guest with `403 GUEST_WEB_PLATFORM_UNSUPPORTED`, and
+    guest upgrade with `403 GUEST_UPGRADE_WEB_PLATFORM_UNSUPPORTED`
+    ([the gate](../apps/backend/src/guestAuth/webPlatform.ts)).
   - Only the literal `web` is refused. A `null` platform is a pre-1.7.0 iOS/Android guest session and
     keeps every guest surface it has today.
   - `POST /v1/guest-auth/session` and `POST /v1/guest-auth/session/delete` stay open to it: they are
@@ -55,10 +46,8 @@ and cloud checks from actual provider, signed-device, mailbox and lifecycle resu
     token from its body, so it accepts a `web` guest. It links that guest identity to the account for
     analytics and revokes the guest session. An unknown or already-revoked token is a successful
     no-op, and so is a guest session that already belongs to the signed-in account after a bound
-    upgrade: that credential is neither linked nor revoked. Like the upgrade routes it does not load a
-    request context, so it applies the `410 ACCOUNT_DELETED` gate itself, and it resolves the account
-    user id from `auth.user_identities` in its own transaction rather than trusting the id on the
-    request.
+    upgrade: that credential is neither linked nor revoked. A deleted account gets
+    `410 ACCOUNT_DELETED` ([route](../apps/backend/src/guestAuth/identityLink/index.ts)).
     - Client ordering obligation: when sign-in creates only metadata, the first request that loads
       a request context, such as `GET /v1/me`, writes the account's identity mapping.
       Await one such call before calling this route; two parallel requests after a first sign-in
@@ -99,16 +88,11 @@ and cloud checks from actual provider, signed-device, mailbox and lifecycle resu
 - `POST /v1/guest-auth/session` accepts an optional `idempotencyKey`. A retry carrying a key that
   still names a live session rotates that session's secret and returns the same guest user and
   workspace, so a lost response cannot leave one device with two guest identities. Client contract:
-  the key must be 32 to 200 lowercase hexadecimal characters, generated from a cryptographic random
-  source once per creation attempt and dropped once that attempt succeeds. Anything outside that
-  shape is refused with `400 GUEST_SESSION_IDEMPOTENCY_KEY_INVALID`, and an omitted key or an
-  explicit JSON `null` both mean no key at all, which keeps today's behaviour of a fresh guest per
-  call. The shape check is a floor, not a guarantee: it rejects obviously non-random values such as a
-  fixed label or an install id in canonical UUID form, but a hyphen-stripped install id and any other
-  32-character lowercase-hex constant pass it. Generating the key randomly per attempt and dropping
-  it on success therefore remain client obligations, and they matter: rotation hands whoever presents
-  the key a fresh valid token for that guest's user and workspace, so a key that is stable across
-  attempts or guessable is a bearer credential for that guest identity.
+  generate the key from a cryptographic random source once per creation attempt and drop it once
+  that attempt succeeds, because a stable or guessable key is a bearer credential for that guest
+  identity. The server checks only its shape (`400 GUEST_SESSION_IDEMPOTENCY_KEY_INVALID`), and an
+  omitted key or an explicit JSON `null` means a fresh guest per call
+  ([`guestAuth.ts`](../apps/backend/src/routes/guestAuth.ts)).
 - Auth Lambda serves the auth UI/API on `auth.<domain>` and `/v1` execute-api stage paths
 - Backend Lambda verifies JWTs with `aws-jwt-verify`. Authenticated Cognito requests, browser
   sessions, and refreshed token results also consult the durable
@@ -132,7 +116,7 @@ and cloud checks from actual provider, signed-device, mailbox and lifecycle resu
   - `apps/backend/src/auth/index.ts`: JWT verification middleware
   - `apps/backend/src/auth/ensureUser.ts`: auto-provisions `user_settings` and `workspace` on first request
   - `infra/aws/lib/auth.ts`: CDK Cognito User Pool construct
-  - `db/migrations/0002_user_settings.sql`: `user_settings` table
+  - `db/migrations/0001_initial_schema.sql`: `org.user_settings` table
 
 The native provider session bridge is implemented in
 [`nativeProofBridge.ts`](../apps/auth/src/server/social/nativeProofBridge.ts),
@@ -155,9 +139,7 @@ The [provider modules](../apps/auth/src/server/social/) verify proofs and exchan
 Apple and Google sign-in. [Configuration](../apps/auth/src/server/social/config.ts)
 requires each provider JSON and Secrets Manager ARN together; omitted providers remain unavailable.
 Use the four `CDK_GOOGLE_SIGN_IN_CONFIG`, `CDK_GOOGLE_SIGN_IN_SECRET_ARN`,
-`CDK_APPLE_SIGN_IN_CONFIG`, `CDK_APPLE_SIGN_IN_SECRET_ARN` GitHub variables. CI maps them through
-`CDK_CONTEXT_*` to `googleSignInConfig`, `googleSignInSecretArn`, `appleSignInConfig`,
-`appleSignInSecretArn`; the auth Lambda receives the same names without `CDK_`.
+`CDK_APPLE_SIGN_IN_CONFIG`, `CDK_APPLE_SIGN_IN_SECRET_ARN` GitHub variables.
 The [.env example](../.env.example) and source types define JSON fields and secret contracts.
 Only auth receives permission to read these existing secrets; no provider secrets enter browser config.
 

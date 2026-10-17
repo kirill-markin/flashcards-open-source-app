@@ -3,12 +3,13 @@
 Store campaign links use coarse campaign buckets. Do not create per-user,
 per-page, per-button, or per-deck store campaign values.
 
-Current campaign buckets:
+Current campaign buckets; the web app's store links are in
+[storeLinks.ts](../apps/web/src/appPlatformLinks/storeLinks.ts):
 
 | Bucket | Use |
 | ------ | --- |
 | `marketing_site` | Marketing landing pages and public content. |
-| `share_app` | Future app share pages. |
+| `share_app` | App share page in the web app. |
 | `share_deck` | Future deck share pages, grouped across decks. |
 | `marketplace` | Reserved for future catalog browsing surfaces; its use is not decided yet. |
 | `web_review_mobile_prompt` | Web review mobile app promotion prompt. |

@@ -4,11 +4,12 @@ Download these finished cards and review previews using the
 [media archive procedure](../../../../../docs/media-assets.md). Open `index.html` to select a language and inspect the full-size cards.
 
 The [processing guide](../../../../../docs/store-screenshot-processing.md#approved-delivery)
-owns the inventory, store-upload status, original source/export provenance and
-links to the manual refresh procedure.
+owns the inventory, store-upload status and links to the manual refresh
+procedure.
 
 `export-manifest.json` and `source-manifest.json` are retained from the approved
-delivery; their revision and hashes describe that original package.
+delivery and record its original source/export provenance; their revision and
+hashes describe that original package.
 Reusable design assets, copy and locale maps are in the
 [processor assets](../../../../../scripts/store-screenshots/assets/).
 

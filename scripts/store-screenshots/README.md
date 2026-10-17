@@ -72,19 +72,19 @@ builder (which can regenerate native captures).
 | iOS | `apps/ios/docs/media/app-store-screenshots/` | `apps/ios/docs/media/app-store-cards/` |
 | Android | `apps/android/docs/media/play-store-screenshots/` | `apps/android/docs/media/play-store-cards/` |
 
-Supported native input dimensions and output geometry are in
-the [format profiles](../../docs/store-screenshot-processing.md#format-profiles).
+Supported native input dimensions are `nativeDimensions` in
+[`render-ios.mts`](render-ios.mts) and the native source check in
+[`render-android.mts`](render-android.mts); the renderers also hold the output geometry.
 iPad processing accepts only 2752 × 2064 landscape captures. iPad, Duo inner
 and Mac cards match their complete native screenshot's proportions with equal
 frame-color padding on all four sides and no internal letterboxing. Duo outer
 retains its portrait profile. Mac accepts the four genuine native 16:10 sizes
-listed in the format profiles and exports 2880 × 1800 cards.
+listed in `nativeDimensions` and exports 2880 × 1800 cards.
 
 Duo and Mac processing reads matching `iphone-duo-outer/`, `iphone-duo-inner/`
 or `macos/` folders under the iOS input root. Explicit selection fails if the
 folder, any of the five screenshots, or the required native dimensions are
-missing. These families are excluded from the default `all` run. Mac originals
-and cards are available for all 42 Store locales.
+missing. These families are excluded from the default `all` run.
 
 Open `index.html` in either output directory to review available languages and
 devices. `previews/` contains five-card overviews. Full cards are under:
@@ -96,13 +96,10 @@ devices. `previews/` contains five-card overviews. Full cards are under:
 - Android: `ready/<Play-listing-locale>/phoneScreenshots/<card>_<slug>.png`.
 
 Both output directories contain ignored public release images and tracked text metadata.
-See [Media assets](../../docs/media-assets.md) to download or publish a snapshot. The approved inventory
-contains 885 Apple cards (210 iPhone Store cards, 210 prepared landscape iPad cards,
-210 prepared Mac cards, 210 uploaded Duo inner cards, five prepared English Duo
-outer cards, and 40 additional-language iPhone cards) and 255 Android phone
-cards. Store-upload status
-and original delivery provenance are recorded in the
-[processing guide](../../docs/store-screenshot-processing.md#approved-delivery).
+See [Media assets](../../docs/media-assets.md) to download or publish a snapshot. The approved
+inventory and store-upload status are in the
+[processing guide](../../docs/store-screenshot-processing.md#approved-delivery); each
+output's `README.md` names the manifests that record its delivery provenance.
 
 The independent **Process Store Screenshots** GitHub Actions workflow runs for
 processor and pinned-media-manifest pull requests, and on manual dispatch.

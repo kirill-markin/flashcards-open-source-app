@@ -1,6 +1,9 @@
 import XCTest
 
 extension LiveSmokeTestCase {
+    /// Smoke assertions match visible English labels, so the default launch pins
+    /// English; a new app language needs no smoke change, and a locale-specific
+    /// run passes its localization explicitly.
     @MainActor
     func launchApplication(
         launchScenario: LiveSmokeLaunchScenario?,
