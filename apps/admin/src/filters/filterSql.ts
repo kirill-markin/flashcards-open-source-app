@@ -169,9 +169,8 @@ export function buildExcludedActorReasonSql(actorIdSqlExpression: string): strin
  * an identity had one. Applying this predicate there would empty the report, because the
  * marketing-site page view and click are credential-free by construction. It stays out because what
  * the funnel counts is browser visitor identities arriving at a deck, which is what it calls them on
- * screen and in `docs/admin-app.md`; that number is never merged into a count of people, and the one
- * place inside the funnel that does decide a person - `install_actor_first_event` - is in the applied
- * list above.
+ * screen; that number is never merged into a count of people, and the one place inside the funnel
+ * that does decide a person - `install_actor_first_event` - is in the applied list above.
  *
  * That funnel's `surface_events` is not an entry either, one step further on. It derives per-actor
  * step facts over `screen_viewed`, which is not `serverOnly`, and reads the import screens at every
@@ -504,7 +503,7 @@ export function buildConnectionCountriesFilterSql(
  * THE KEY IS NOT NARROWED BY `buildConnectionCountriesFilterSql`. That filter keeps a person when
  * ANY of their samples matches the selection, while this places them at the alphabetically first of
  * all of them, so a person kept by a `DE` selection can be grouped under an `AT` they were also seen
- * in. A report that shows both says so where it shows them; `docs/admin-app.md` states it too.
+ * in. A report that shows both says so where it shows them.
  */
 export function buildActorConnectionCountrySql(dateRange: AnalyticsDateRange): string {
   return [

@@ -1,5 +1,9 @@
 // Financial reporting intentionally has no actor join: erasure, grants and analytics exclusions
 // cannot remove a provider's production sale. Classification uses all retained chronology.
+// Google orders of one subscription are `<root>`, `<root>..0`, `<root>..1`, ...; one is classified only
+// when the root and every earlier suffix are retained with known charge evidence, and after a free-trial
+// root the first positive suffix, even `..0`, is the first payment. Protobuf omits a zero `units`/`nanos`, read as 0, while an
+// absent `total` is unknown.
 export function buildPaymentHistoryCtesSql(): string {
   return `history_runs AS (
   SELECT run_id, provider, source, scope_kind, subject_id, requested_from, requested_to,
