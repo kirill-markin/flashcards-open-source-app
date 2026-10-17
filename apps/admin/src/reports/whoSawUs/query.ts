@@ -158,6 +158,9 @@ export async function loadWhoSawUsAvailableRange(config: AdminAppConfig): Promis
  * count. `google-play` is our package's store listing visitors of the per-country performance file. Both are
  * sums over the store's breakdown rows, so a visitor seen in two of them counts twice. Apple's value
  * strings are matched case-insensitively because no imported file has confirmed their exact case.
+ *
+ * TODO: someone who reaches the store page from our website, by a store badge or the site's QR code,
+ * counts in both `web` and `app-store` or `google-play`. Removing that overlap is a known later task.
  */
 export function buildWhoSawUsSql(dateRange: AnalyticsDateRange): string {
   const range = assertValidDateRange(dateRange, reportLabel);

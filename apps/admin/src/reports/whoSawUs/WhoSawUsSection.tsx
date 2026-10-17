@@ -186,6 +186,7 @@ export function WhoSawUsSection(
                 <strong>Caveats</strong>
                 <ul>
                   <li>Stores count per breakdown row, and the three surfaces overlap, so one person can be counted more than once</li>
+                  <li>Someone who opens a store page from our website, by a store badge or the site's QR code, counts in both Web and App Store or Google Play; removing this overlap is a planned follow-up</li>
                   <li>No store bar on a day = data missing, not zero; the tooltip says No data</li>
                   <li>Store numbers right of the dashed line are not final; Google Play can lag up to a week</li>
                 </ul>
