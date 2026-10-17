@@ -517,7 +517,8 @@ class AppGraph(
         socialGateway = cloudRemoteService,
         remoteGateway = cloudRemoteService,
         operationCoordinator = cloudOperationCoordinator,
-        resetCoordinator = cloudIdentityResetCoordinator
+        resetCoordinator = cloudIdentityResetCoordinator,
+        accountRepository = localCloudAccountRepository
     )
     val accentColorViewModelStoreOwner: ViewModelStoreOwner = object : ViewModelStoreOwner {
         override val viewModelStore: ViewModelStore = ViewModelStore()

@@ -9,6 +9,13 @@ import com.flashcardsopensourceapp.data.local.model.cloud.CloudAccountMethodLaun
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudAppleBrowserReturn
 
 interface CloudAccountMethodsRepository {
+    suspend fun beginConnection(localId: String): CloudPendingAccountMethod
+    suspend fun adoptConnection(localId: String): CloudPendingAccountMethod
+    suspend fun beginConnectionProvider(localId: String, provider: CloudSocialProvider): CloudPendingAccountMethod
+    suspend fun sendConnectionEmail(localId: String, email: String): CloudPendingAccountMethod
+    suspend fun previewConnection(localId: String, omittedWorkspaceIds: List<String>): CloudPendingAccountMethod
+    suspend fun confirmConnection(localId: String): CloudPendingAccountMethod
+    suspend fun loadConnection(localId: String): CloudPendingAccountMethod
     suspend fun loadMethods(): CloudAccountMethods
     suspend fun resume(): CloudPendingAccountMethod?
     suspend fun beginReauthentication(method: CloudSignInMethod, onEmailCodeRequestStarted: () -> Unit, onEmailCodeRequested: () -> Unit): CloudPendingAccountMethod

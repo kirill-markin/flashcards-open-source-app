@@ -103,6 +103,8 @@ fun AccountMethodsRoute(viewModel: AccountMethodsViewModel, onBack: () -> Unit) 
                 modifier = Modifier.testTag("account_methods_confirmed"))
             if (state.restartRequired) Text(stringResource(R.string.settings_methods_fresh))
             when {
+                pending?.connection != null -> AccountConnectionContent(state, viewModel, available,
+                    { provider -> viewModel.connectionProvider(provider, context, launchApple) })
                 pending == null -> {
                     Text(stringResource(R.string.settings_methods_verify_current))
                     available.filter { method -> method == CloudSignInMethod.EMAIL || state.methods?.methods?.any {
@@ -114,6 +116,12 @@ fun AccountMethodsRoute(viewModel: AccountMethodsViewModel, onBack: () -> Unit) 
                 }
                 !state.restartRequired && pending.phase == CloudAccountMethodPhase.PROOF_READY -> {
                     Text(stringResource(R.string.settings_methods_choose_change))
+                    if (state.availability?.account?.connectionSupported == true) {
+                        OutlinedButton(onClick = viewModel::connect, enabled = !state.busy,
+                            modifier = Modifier.fillMaxWidth().testTag("account_connection_begin")) {
+                            Text(stringResource(R.string.settings_connection_begin))
+                        }
+                    }
                     listOf(CloudSocialProvider.GOOGLE, CloudSocialProvider.APPLE).forEach { provider ->
                         val listed = state.methods?.methods?.filter { it.target.provider == provider }
                         val usable = provider.signInMethod() in available

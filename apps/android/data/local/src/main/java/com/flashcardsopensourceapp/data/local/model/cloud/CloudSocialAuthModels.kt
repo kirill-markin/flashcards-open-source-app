@@ -64,8 +64,13 @@ data class CloudSocialAccountEndpoints(
     val nativeAttempt: String,
     val nativeComplete: String,
     val freshProofSeconds: Int,
-    val emailRecovery: String
-)
+    val emailRecovery: String,
+    val connectionSupported: Boolean
+) {
+    constructor(methods: String, providerMethod: String, unlink: String, emailReauth: String, nativeAttempt: String,
+        nativeComplete: String, freshProofSeconds: Int, emailRecovery: String) :
+        this(methods, providerMethod, unlink, emailReauth, nativeAttempt, nativeComplete, freshProofSeconds, emailRecovery, false)
+}
 
 data class CloudSocialCompletionContract(
     val codeChallengeMethod: String,
@@ -122,5 +127,6 @@ data class CloudProviderSignInHint(
 data class CloudSocialLoginSession(
     val credentials: StoredCloudCredentials,
     val accessToken: String,
-    val signInHint: CloudProviderSignInHint
+    val signInHint: CloudProviderSignInHint,
+    val connectionSuggestion: CloudConnectionSuggestion?
 )
