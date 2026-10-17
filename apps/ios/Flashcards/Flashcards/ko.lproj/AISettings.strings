@@ -950,3 +950,23 @@
 
 "settings.account.cloudSignIn.continueGoogle" = "Google로 계속하기";
 "settings.account.cloudSignIn.appleCleanupPending" = "Apple에서 보안 업데이트를 마무리하고 있습니다. 잠시 후 Apple로 다시 시도하거나 다른 로그인 방법을 선택하세요.";
+
+"settings.account.connection.title" = "계정 연결";
+"settings.account.connection.suggestion" = "제안된 계정 연결 검토";
+"settings.account.connection.data" = "카드, 복습, 작업 공간은 유지됩니다. 멤버십은 합쳐지며 소유권이 우선합니다.";
+"settings.account.connection.settings" = "대상 계정의 설정과 공개 프로필을 더 엄격한 개인정보 보호와 함께 적용합니다. 실제 기본 이메일을 유지하거나 증명된 실제 이메일을 사용합니다.";
+"settings.account.connection.billing" = "구매, 권한, 사용량, 통합 서비스 인증 정보는 연결된 계정으로 이어집니다. 구독과 원래 체험 기록은 변경되지 않습니다.";
+"settings.account.connection.destination" = "선택된 대상";
+"settings.account.connection.hidden" = "워크스페이스 선택 항목에서 숨김";
+"settings.account.connection.omit" = "자격이 있으면 제외 요청";
+"settings.account.connection.preserve" = "조건을 충족하는 초기 워크스페이스만 숨길 수 있습니다. 원본 데이터와 다른 워크스페이스는 유지됩니다.";
+"settings.account.connection.confirm" = "계정 연결 확인";
+"settings.account.connection.connected" = "계정이 연결되었습니다.";
+"settings.account.connection.alreadyConnected" = "이 계정들은 이미 연결되어 있습니다.";
+"settings.account.connection.cancelled" = "연결이 취소되었습니다.";
+"settings.account.connection.uncertain" = "확인을 보냈지만 결과를 알 수 없습니다. 동일한 확인으로 결과를 확인하세요.";
+"settings.account.connection.replay" = "확인 결과 조회";
+"settings.account.connection.preview" = "연결 미리보기 새로 고침";
+"settings.account.connection.previewChanged" = "미리보기가 변경되었습니다. 새로 고침한 뒤 새 미리보기를 명시적으로 확인하세요.";
+"settings.account.connection.restart" = "증명이 만료되었거나 사용되었습니다. 새 증명으로 다시 시작하세요.";
+"settings.account.connection.restorePaused" = "계정이 연결되었습니다. 로컬 새로 고침이 일시 중지되었으며 오프라인 데이터는 유지됩니다.";

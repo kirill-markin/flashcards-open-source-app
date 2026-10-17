@@ -950,3 +950,23 @@
 
 "settings.account.cloudSignIn.continueGoogle" = "Google ಮೂಲಕ ಮುಂದುವರಿಯಿರಿ";
 "settings.account.cloudSignIn.appleCleanupPending" = "Apple ಭದ್ರತಾ ನವೀಕರಣವನ್ನು ಪೂರ್ಣಗೊಳಿಸುತ್ತಿದೆ. ಸ್ವಲ್ಪ ಸಮಯದ ನಂತರ Apple ಮೂಲಕ ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ ಅಥವಾ ಸೈನ್ ಇನ್ ಮಾಡಲು ಬೇರೆ ವಿಧಾನವನ್ನು ಆಯ್ಕೆಮಾಡಿ.";
+
+"settings.account.connection.title" = "ಖಾತೆಗಳನ್ನು ಸಂಪರ್ಕಿಸಿ";
+"settings.account.connection.suggestion" = "ಸೂಚಿಸಿದ ಸಂಪರ್ಕವನ್ನು ಪರಿಶೀಲಿಸಿ";
+"settings.account.connection.data" = "ಕಾರ್ಡ್‌ಗಳು, ಪುನರಾವರ್ತನೆಗಳು ಮತ್ತು ಕಾರ್ಯಸ್ಥಳಗಳು ಉಳಿಯುತ್ತವೆ. ಸದಸ್ಯತ್ವಗಳು ಸೇರುತ್ತವೆ; ಮಾಲೀಕತ್ವಕ್ಕೆ ಆದ್ಯತೆ ಇರುತ್ತದೆ.";
+"settings.account.connection.settings" = "ಗಮ್ಯದ ಸೆಟ್ಟಿಂಗ್‌ಗಳು ಮತ್ತು ಸಾರ್ವಜನಿಕ ಪ್ರೊಫೈಲ್ ಹೆಚ್ಚು ಕಟ್ಟುನಿಟ್ಟಿನ ಗೌಪ್ಯತೆಯೊಂದಿಗೆ ಅನ್ವಯಿಸುತ್ತವೆ. ನಿಜವಾದ ಮುಖ್ಯ ಇಮೇಲ್ ಉಳಿಯುತ್ತದೆ ಅಥವಾ ಸಾಬೀತಾದ ನಿಜ ಇಮೇಲ್ ಬಳಸಲಾಗುತ್ತದೆ.";
+"settings.account.connection.billing" = "ಖರೀದಿಗಳು, ಹಕ್ಕುಗಳು, ಬಳಕೆ ಮತ್ತು ಏಕೀಕರಣದ ರುಜುವಾತುಗಳು ಸಂಪರ್ಕಿತ ಖಾತೆಗೆ ಸೇರುತ್ತವೆ. ಚಂದಾದಾರಿಕೆಗಳು ಮತ್ತು ಮೂಲ ಪ್ರಯೋಗ ಇತಿಹಾಸ ಬದಲಾಗುವುದಿಲ್ಲ.";
+"settings.account.connection.destination" = "ಆಯ್ದ ಗಮ್ಯ";
+"settings.account.connection.hidden" = "ಕಾರ್ಯಸ್ಥಳದ ಆಯ್ಕೆಗಳಲ್ಲಿ ಮರೆಮಾಡಲಾಗಿದೆ";
+"settings.account.connection.omit" = "ಅರ್ಹವಾಗಿದ್ದರೆ ಹೊರಗಿಡಲು ವಿನಂತಿಸಿ";
+"settings.account.connection.preserve" = "ಅರ್ಹ ಆರಂಭಿಕ ಕಾರ್ಯಸ್ಥಳಗಳನ್ನು ಮಾತ್ರ ಮರೆಮಾಡಬಹುದು. ಮೂಲ ಡೇಟಾ ಮತ್ತು ಇತರ ಕಾರ್ಯಸ್ಥಳಗಳು ಉಳಿಯುತ್ತವೆ.";
+"settings.account.connection.confirm" = "ಖಾತೆ ಸಂಪರ್ಕವನ್ನು ದೃಢೀಕರಿಸಿ";
+"settings.account.connection.connected" = "ಖಾತೆಗಳು ಸಂಪರ್ಕಗೊಂಡಿವೆ.";
+"settings.account.connection.alreadyConnected" = "ಈ ಖಾತೆಗಳು ಈಗಾಗಲೇ ಸಂಪರ್ಕಗೊಂಡಿವೆ.";
+"settings.account.connection.cancelled" = "ಸಂಪರ್ಕ ರದ್ದಾಗಿದೆ.";
+"settings.account.connection.uncertain" = "ದೃಢೀಕರಣ ಕಳುಹಿಸಲಾಗಿದೆ, ಆದರೆ ಫಲಿತಾಂಶ ತಿಳಿದಿಲ್ಲ. ಅದೇ ದೃಢೀಕರಣದಿಂದ ಪರಿಶೀಲಿಸಿ.";
+"settings.account.connection.replay" = "ದೃಢೀಕರಣ ಫಲಿತಾಂಶ ಪರಿಶೀಲಿಸಿ";
+"settings.account.connection.preview" = "ಸಂಪರ್ಕ ಮುನ್ನೋಟವನ್ನು ನವೀಕರಿಸಿ";
+"settings.account.connection.previewChanged" = "ಮುನ್ನೋಟ ಬದಲಾಗಿದೆ. ನವೀಕರಿಸಿ ಹೊಸ ಮುನ್ನೋಟವನ್ನು ಸ್ಪಷ್ಟವಾಗಿ ದೃಢೀಕರಿಸಿ.";
+"settings.account.connection.restart" = "ಪುರಾವೆ ಅವಧಿ ಮೀರಿದೆ ಅಥವಾ ಬಳಕೆಯಾಗಿದೆ. ಹೊಸ ಪುರಾವೆಯೊಂದಿಗೆ ಮತ್ತೆ ಆರಂಭಿಸಿ.";
+"settings.account.connection.restorePaused" = "ಖಾತೆಗಳು ಸಂಪರ್ಕಗೊಂಡಿವೆ. ಸ್ಥಳೀಯ ನವೀಕರಣ ತಾತ್ಕಾಲಿಕವಾಗಿ ನಿಂತಿದೆ; ನಿಮ್ಮ ಆಫ್‌ಲೈನ್ ಡೇಟಾ ಉಳಿದಿದೆ.";

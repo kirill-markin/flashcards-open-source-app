@@ -950,3 +950,23 @@
 
 "settings.account.cloudSignIn.continueGoogle" = "Jätka Google’iga";
 "settings.account.cloudSignIn.appleCleanupPending" = "Apple lõpetab turvavärskendust. Proovi mõne aja pärast uuesti Apple’iga või vali mõni muu sisselogimisviis.";
+
+"settings.account.connection.title" = "Ühenda kontod";
+"settings.account.connection.suggestion" = "Vaata soovitatud ühendamist";
+"settings.account.connection.data" = "Kaardid, kordamised ja tööruumid säilivad. Liikmesused ühendatakse; omandiõigus on ülimuslik.";
+"settings.account.connection.settings" = "Kehtivad sihtkonto seaded ja avalik profiil rangema privaatsusega. Ehtne põhiaadress säilib või kasutatakse tõendatud päris e-posti aadressi.";
+"settings.account.connection.billing" = "Ostud, õigused, kasutus ja integratsioonide pääsuandmed liiguvad ühendatud kontole. Tellimused ja algne prooviperioodide ajalugu ei muutu.";
+"settings.account.connection.destination" = "Valitud sihtkoht";
+"settings.account.connection.hidden" = "Tööruumide valikust peidetud";
+"settings.account.connection.omit" = "Taotle väljajätmist, kui lubatud";
+"settings.account.connection.preserve" = "Peita saab ainult sobivaid algseid tööruume. Andmed ja teised tööruumid säilivad.";
+"settings.account.connection.confirm" = "Kinnita ühendamine";
+"settings.account.connection.connected" = "Kontod ühendatud.";
+"settings.account.connection.alreadyConnected" = "Need kontod on juba ühendatud.";
+"settings.account.connection.cancelled" = "Ühendamine tühistatud.";
+"settings.account.connection.uncertain" = "Kinnitus saadeti, kuid tulemus pole teada. Kontrolli seda sama kinnitusega.";
+"settings.account.connection.replay" = "Kontrolli tulemust";
+"settings.account.connection.preview" = "Värskenda eelvaadet";
+"settings.account.connection.previewChanged" = "Eelvaade muutus. Värskenda seda ja kinnita uus eelvaade selgesõnaliselt.";
+"settings.account.connection.restart" = "Tõend aegus või kasutati ära. Alusta uuesti uue tõendiga.";
+"settings.account.connection.restorePaused" = "Kontod ühendatud. Kohalik värskendamine on peatatud; sinu võrguühenduseta andmed säilivad.";

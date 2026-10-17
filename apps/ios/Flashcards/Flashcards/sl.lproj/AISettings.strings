@@ -950,3 +950,23 @@
 
 "settings.account.cloudSignIn.continueGoogle" = "Nadaljuj z Googlom";
 "settings.account.cloudSignIn.appleCleanupPending" = "Apple zaključuje varnostno posodobitev. Kmalu poskusite znova z Applom ali izberite drug način prijave.";
+
+"settings.account.connection.title" = "Poveži račune";
+"settings.account.connection.suggestion" = "Preglej predlagano povezavo";
+"settings.account.connection.data" = "Kartice, ponavljanja in delovni prostori ostanejo. Članstva se združijo; lastništvo ima prednost.";
+"settings.account.connection.settings" = "Uporabijo se nastavitve in javni profil cilja s strožjo zasebnostjo. Pravi primarni e-naslov ostane, sicer se uporabi dokazani pravi naslov.";
+"settings.account.connection.billing" = "Nakupi, pravice, uporaba in poverilnice integracij sledijo povezanemu računu. Naročnine in prvotna zgodovina preizkusov se ne spremenijo.";
+"settings.account.connection.destination" = "Izbrani cilj";
+"settings.account.connection.hidden" = "Skrito iz izbire delovnih prostorov";
+"settings.account.connection.omit" = "Zahtevaj izpustitev, če je dovoljena";
+"settings.account.connection.preserve" = "Skriti je mogoče le ustrezne začetne prostore. Podatki in drugi delovni prostori se ohranijo.";
+"settings.account.connection.confirm" = "Potrdi povezavo";
+"settings.account.connection.connected" = "Računi so povezani.";
+"settings.account.connection.alreadyConnected" = "Ti računi so že povezani.";
+"settings.account.connection.cancelled" = "Povezava preklicana.";
+"settings.account.connection.uncertain" = "Potrditev je bila poslana, rezultat pa ni znan. Preveri ga z isto potrditvijo.";
+"settings.account.connection.replay" = "Preveri rezultat";
+"settings.account.connection.preview" = "Osveži predogled";
+"settings.account.connection.previewChanged" = "Predogled se je spremenil. Osveži ga in izrecno potrdi novi predogled.";
+"settings.account.connection.restart" = "Dokaz je potekel ali bil uporabljen. Začni znova z novim dokazom.";
+"settings.account.connection.restorePaused" = "Računi so povezani. Lokalna osvežitev je začasno ustavljena; podatki brez povezave so ohranjeni.";

@@ -950,3 +950,23 @@
 
 "settings.account.cloudSignIn.continueGoogle" = "Continuă cu Google";
 "settings.account.cloudSignIn.appleCleanupPending" = "Apple finalizează o actualizare de securitate. Încearcă din nou cu Apple în scurt timp sau alege altă metodă de conectare.";
+
+"settings.account.connection.title" = "Conectează conturile";
+"settings.account.connection.suggestion" = "Examinează conexiunea sugerată";
+"settings.account.connection.data" = "Cardurile, recapitulările și spațiile rămân. Apartenențele se reunesc; proprietatea are prioritate.";
+"settings.account.connection.settings" = "Se aplică setările și profilul public de destinație cu confidențialitate mai strictă. Se păstrează e-mailul principal autentic sau se folosește o adresă reală verificată.";
+"settings.account.connection.billing" = "Achizițiile, drepturile, utilizarea și acreditările integrărilor urmează contul conectat. Abonamentele și istoricul inițial al probelor nu se schimbă.";
+"settings.account.connection.destination" = "Destinație selectată";
+"settings.account.connection.hidden" = "Ascuns din opțiunile spațiilor de lucru";
+"settings.account.connection.omit" = "Solicită omiterea dacă este permisă";
+"settings.account.connection.preserve" = "Pot fi ascunse doar spațiile inițiale eligibile. Datele și celelalte spații de lucru se păstrează.";
+"settings.account.connection.confirm" = "Confirmă conexiunea";
+"settings.account.connection.connected" = "Conturi conectate.";
+"settings.account.connection.alreadyConnected" = "Aceste conturi sunt deja conectate.";
+"settings.account.connection.cancelled" = "Conexiune anulată.";
+"settings.account.connection.uncertain" = "Confirmarea a fost trimisă, dar rezultatul este necunoscut. Verifică-l folosind aceeași confirmare.";
+"settings.account.connection.replay" = "Verifică rezultatul";
+"settings.account.connection.preview" = "Actualizează previzualizarea";
+"settings.account.connection.previewChanged" = "Previzualizarea s-a schimbat. Actualizeaz-o și confirmă explicit noua previzualizare.";
+"settings.account.connection.restart" = "Dovada a expirat sau a fost folosită. Reîncepe cu o dovadă nouă.";
+"settings.account.connection.restorePaused" = "Conturi conectate. Actualizarea locală este suspendată; datele offline sunt păstrate.";

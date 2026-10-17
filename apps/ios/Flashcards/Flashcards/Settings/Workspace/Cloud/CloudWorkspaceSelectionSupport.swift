@@ -13,7 +13,7 @@ func makeCloudWorkspaceSelectionItems(
     workspaces: [CloudWorkspaceSummary],
     localWorkspaceName: String?
 ) -> [CloudWorkspaceSelectionItem] {
-    let existingWorkspaceItems = workspaces.map { workspace in
+    let existingWorkspaceItems = workspaces.filter { $0.isVisible }.map { workspace in
         CloudWorkspaceSelectionItem(
             id: workspace.workspaceId,
             title: workspace.name,
