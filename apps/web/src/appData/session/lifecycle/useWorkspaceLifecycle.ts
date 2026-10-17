@@ -1,4 +1,7 @@
 import { consumeAcceptedBrowserSignInMethod, readBrowserSignInInformationGeneration } from "../../../api/browserHints";
+import { readPendingConnection, storePendingConnection } from "../../../screens/settings/account/accountConnectionPending";
+import { getAppConfig } from "../../../config";
+import { projectSessionToLocalOwner } from "../../../api/transport/sessionIdentity";
 import { mergeRefreshedSessionPreferences, readAccountPreferencesWriteVersion } from "../accentColorWrite";
 import { clearEntitlementState, readEntitlementIdentityGeneration, setEntitlementIdentity } from "../../../premium/entitlementStore";
 import { useCallback, useEffect, useRef } from "react";
@@ -167,7 +170,13 @@ export function useWorkspaceLifecycle(params: UseWorkspaceLifecycleParams): Work
       if (!isCurrent()) return;
       const verified = await revalidateSessionRequest();
       if (!isCurrent() || verified.userId !== userId) return;
-      const method = await consumeAcceptedBrowserSignInMethod();
+      const method = await consumeAcceptedBrowserSignInMethod((suggestion) => {
+        if (!isCurrent()) return;
+        if (readPendingConnection(userId) !== null) return;
+        storePendingConnection({ userId, phase: "suggestion", suggestion: suggestion.suggestion,
+          csrfToken: suggestion.suggestion, expiresAt: Date.parse(suggestion.expiresAt) });
+        window.location.assign(getAppConfig().appBaseUrl + "/settings/account-status");
+      });
       if (method === null || !isCurrent()) return;
       track({ name: "auth_session_accepted", screen: "signin", method });
       track({ name: "auth_account_ready", screen: "signin", method });
@@ -303,10 +312,6 @@ export function useWorkspaceLifecycle(params: UseWorkspaceLifecycleParams): Work
         return;
       }
 
-      if (setEntitlementIdentity(currentSession.userId, entitlementGeneration) === false) {
-        throw createSessionAccountSwitchError(sessionInitializationInvalidatedMessage);
-      }
-      setWebObservabilityUser({ id: currentSession.userId });
       const persistedCloudSettings = await loadCloudSettings();
       if (indexedDbOpenRecoveryState.hasFailed()) {
         return;
@@ -316,6 +321,11 @@ export function useWorkspaceLifecycle(params: UseWorkspaceLifecycleParams): Work
         throw createSessionAccountSwitchError(sessionInitializationInvalidatedMessage);
       }
 
+      currentSession = projectSessionToLocalOwner(currentSession, persistedCloudSettings?.linkedUserId ?? null);
+      if (setEntitlementIdentity(currentSession.userId, entitlementGeneration) === false) {
+        throw createSessionAccountSwitchError(sessionInitializationInvalidatedMessage);
+      }
+      setWebObservabilityUser({ id: currentSession.userId });
       const localDataCleanupReason = resolveLocalDataCleanupReasonForVerifiedSession(
         persistedCloudSettings,
         currentSession,
@@ -331,7 +341,10 @@ export function useWorkspaceLifecycle(params: UseWorkspaceLifecycleParams): Work
       }
 
       clearBrowserReauthRequired();
-      const linkingReadyCloudSettings = buildLinkingReadyCloudSettings(currentSession);
+      const linkingReadyCloudSettings = buildLinkingReadyCloudSettings(
+        currentSession,
+        localDataCleanupReason === null ? persistedCloudSettings : null,
+      );
       await putCloudSettings(linkingReadyCloudSettings);
       if (indexedDbOpenRecoveryState.hasFailed()) {
         return;
@@ -474,7 +487,7 @@ export function useWorkspaceLifecycle(params: UseWorkspaceLifecycleParams): Work
     const entitlementGeneration = readEntitlementIdentityGeneration();
     const preferenceWriteVersion = readAccountPreferencesWriteVersion();
     try {
-      const currentSession = await revalidateSessionRequest();
+      const verifiedSession = await revalidateSessionRequest();
       if (indexedDbOpenRecoveryState.hasFailed()) {
         return false;
       }
@@ -483,6 +496,11 @@ export function useWorkspaceLifecycle(params: UseWorkspaceLifecycleParams): Work
         return false;
       }
 
+      const persistedCloudSettings = await loadCloudSettings();
+      if (indexedDbOpenRecoveryState.hasFailed()) {
+        return false;
+      }
+      const currentSession = projectSessionToLocalOwner(verifiedSession, persistedCloudSettings?.linkedUserId ?? null);
       if (currentSession.userId !== session.userId) {
         try {
           setWebObservabilityUser({ id: currentSession.userId });
@@ -493,7 +511,7 @@ export function useWorkspaceLifecycle(params: UseWorkspaceLifecycleParams): Work
 
           const restoredGeneration = await restoreEntitlementIdentityAfterCleanup(currentSession.userId);
           clearBrowserReauthRequired();
-          const linkingReadyCloudSettings = buildLinkingReadyCloudSettings(currentSession);
+          const linkingReadyCloudSettings = buildLinkingReadyCloudSettings(currentSession, null);
           await putCloudSettings(linkingReadyCloudSettings);
           if (indexedDbOpenRecoveryState.hasFailed()) {
             return false;
@@ -540,18 +558,13 @@ export function useWorkspaceLifecycle(params: UseWorkspaceLifecycleParams): Work
         }
       }
 
-      const persistedCloudSettings = await loadCloudSettings();
-      if (indexedDbOpenRecoveryState.hasFailed()) {
-        return false;
-      }
-
       // A long-lived tab can lose the persisted cloud settings record after
       // startup (storage eviction, another tab clearing browser data). Restore
       // it here so sync keeps a verified installation id without a reload.
       if (persistedCloudSettings === null) {
         const repairedCloudSettings = activeWorkspaceId === null
-          ? buildLinkingReadyCloudSettings(currentSession)
-          : buildLinkedCloudSettings(currentSession, activeWorkspaceId);
+          ? buildLinkingReadyCloudSettings(currentSession, null)
+          : buildLinkedCloudSettings(currentSession, activeWorkspaceId, null);
         await putCloudSettings(repairedCloudSettings);
         if (indexedDbOpenRecoveryState.hasFailed()) {
           return false;

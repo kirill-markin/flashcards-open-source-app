@@ -950,3 +950,23 @@
 
 "settings.account.cloudSignIn.continueGoogle" = "Fortsätt med Google";
 "settings.account.cloudSignIn.appleCleanupPending" = "Apple slutför en säkerhetsuppdatering. Försök igen med Apple om en stund eller välj en annan inloggningsmetod.";
+
+"settings.account.connection.title" = "Anslut konton";
+"settings.account.connection.suggestion" = "Granska föreslagen anslutning";
+"settings.account.connection.data" = "Kort, repetitioner och arbetsytor behålls. Medlemskap förenas; ägarskap har företräde.";
+"settings.account.connection.settings" = "Målets inställningar och offentliga profil används med striktare integritet. Den äkta primära e-postadressen behålls, annars används en verifierad äkta adress.";
+"settings.account.connection.billing" = "Köp, rättigheter, användning och integrationsuppgifter följer det anslutna kontot. Prenumerationer och ursprunglig provhistorik är oförändrade.";
+"settings.account.connection.destination" = "Vald destination";
+"settings.account.connection.hidden" = "Dolt i valet av arbetsytor";
+"settings.account.connection.omit" = "Begär utelämning om tillåtet";
+"settings.account.connection.preserve" = "Endast kvalificerade startytor kan döljas. Data och övriga arbetsytor bevaras.";
+"settings.account.connection.confirm" = "Bekräfta anslutning";
+"settings.account.connection.connected" = "Konton anslutna.";
+"settings.account.connection.alreadyConnected" = "Dessa konton är redan anslutna.";
+"settings.account.connection.cancelled" = "Anslutningen avbröts.";
+"settings.account.connection.uncertain" = "Bekräftelsen skickades, men resultatet är okänt. Kontrollera det med samma bekräftelse.";
+"settings.account.connection.replay" = "Kontrollera resultat";
+"settings.account.connection.preview" = "Uppdatera förhandsvisning";
+"settings.account.connection.previewChanged" = "Förhandsvisningen har ändrats. Uppdatera den och bekräfta uttryckligen den nya visningen.";
+"settings.account.connection.restart" = "Beviset har gått ut eller använts. Börja om med ett nytt bevis.";
+"settings.account.connection.restorePaused" = "Konton anslutna. Lokal uppdatering är pausad; dina offlinedata behålls.";

@@ -950,3 +950,23 @@
 
 "settings.account.cloudSignIn.continueGoogle" = "Jatka Googlella";
 "settings.account.cloudSignIn.appleCleanupPending" = "Apple viimeistelee tietoturvapäivitystä. Kokeile hetken kuluttua uudelleen Applella tai valitse toinen kirjautumistapa.";
+
+"settings.account.connection.title" = "Yhdistä tilit";
+"settings.account.connection.suggestion" = "Tarkista ehdotettu yhdistäminen";
+"settings.account.connection.data" = "Kortit, kertaukset ja työtilat säilyvät. Jäsenyydet yhdistetään; omistajuus on etusijalla.";
+"settings.account.connection.settings" = "Kohteen asetukset ja julkinen profiili otetaan käyttöön tiukemmalla yksityisyydellä. Aito ensisijainen sähköposti säilyy, tai käytetään todennettua aitoa osoitetta.";
+"settings.account.connection.billing" = "Ostot, oikeudet, käyttö ja integraatioiden tunnukset siirtyvät yhdistetylle tilille. Tilaukset ja alkuperäinen kokeiluhistoria eivät muutu.";
+"settings.account.connection.destination" = "Valittu kohde";
+"settings.account.connection.hidden" = "Piilotettu työtilavalinnoista";
+"settings.account.connection.omit" = "Pyydä pois jättämistä, jos sallittu";
+"settings.account.connection.preserve" = "Vain ehdot täyttäviä aloitustyötiloja voidaan piilottaa. Tiedot ja muut työtilat säilyvät.";
+"settings.account.connection.confirm" = "Vahvista yhdistäminen";
+"settings.account.connection.connected" = "Tilit yhdistetty.";
+"settings.account.connection.alreadyConnected" = "Nämä tilit on jo yhdistetty.";
+"settings.account.connection.cancelled" = "Yhdistäminen peruttu.";
+"settings.account.connection.uncertain" = "Vahvistus lähetettiin, mutta tulosta ei tiedetä. Tarkista se samalla vahvistuksella.";
+"settings.account.connection.replay" = "Tarkista tulos";
+"settings.account.connection.preview" = "Päivitä esikatselu";
+"settings.account.connection.previewChanged" = "Esikatselu muuttui. Päivitä se ja vahvista uusi esikatselu erikseen.";
+"settings.account.connection.restart" = "Todiste vanheni tai käytettiin. Aloita uudelleen uudella todisteella.";
+"settings.account.connection.restorePaused" = "Tilit yhdistetty. Paikallinen päivitys on keskeytetty; offline-tietosi säilyvät.";

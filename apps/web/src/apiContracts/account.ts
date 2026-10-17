@@ -21,8 +21,10 @@ import {
   parseNullableString,
   parseNumber,
   parseObject,
+  parseOptionalField,
   parseRequiredField,
   parseString,
+  parseStringArray,
 } from "./core";
 
 export type WorkspacesEnvelope = Readonly<{
@@ -86,6 +88,7 @@ function parseWorkspaceSummary(value: unknown, endpoint: string, path: string): 
     name: parseRequiredField(objectValue, "name", endpoint, path, parseString),
     createdAt: parseRequiredField(objectValue, "createdAt", endpoint, path, parseString),
     isSelected: parseRequiredField(objectValue, "isSelected", endpoint, path, parseBoolean),
+    isVisible: objectValue.isVisible === undefined ? true : parseRequiredField(objectValue, "isVisible", endpoint, path, parseBoolean),
   };
 }
 
@@ -115,9 +118,13 @@ function parseAgentApiKeyConnectionArray(
 export function parseSessionInfoResponse(value: unknown, endpoint: string): SessionInfo {
   const objectValue = parseObject(value, endpoint, "");
   const profileValue = parseRequiredField(objectValue, "profile", endpoint, "", parseObject);
+  const canonicalAccountId = parseOptionalField(objectValue, "canonicalAccountId", endpoint, "", parseString);
+  const linkedAccountIds = parseOptionalField(objectValue, "linkedAccountIds", endpoint, "", parseStringArray);
 
   return {
     userId: parseRequiredField(objectValue, "userId", endpoint, "", parseString),
+    ...(canonicalAccountId === undefined ? {} : { canonicalAccountId }),
+    ...(linkedAccountIds === undefined ? {} : { linkedAccountIds }),
     selectedWorkspaceId: parseRequiredField(objectValue, "selectedWorkspaceId", endpoint, "", parseNullableString),
     authTransport: parseRequiredField(objectValue, "authTransport", endpoint, "", parseString),
     csrfToken: parseRequiredField(objectValue, "csrfToken", endpoint, "", parseNullableString),

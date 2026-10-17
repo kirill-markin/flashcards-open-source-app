@@ -233,7 +233,7 @@ extension FlashcardsStore {
         self.cloudSignInAttempt.nativeTask?.cancel()
         self.cloudNativeSignIn.onStageChanged = nil
         self.cloudNativeSignIn.onProviderRequested = nil
-        self.cloudNativeSignIn.resetPendingSignIn()
+        self.cloudNativeSignIn.finishPresentation()
         self.cloudSignInAttempt = CloudSignInAttemptState()
         self.isCloudSignInAttemptOpen = false
         self.cloudSignInOriginSurface = nil

@@ -950,3 +950,23 @@
 
 "settings.account.cloudSignIn.continueGoogle" = "Continua amb Google";
 "settings.account.cloudSignIn.appleCleanupPending" = "Apple està acabant una actualització de seguretat. Torna-ho a provar amb Apple d’aquí a una estona o tria un altre mètode d’inici de sessió.";
+
+"settings.account.connection.title" = "Connecta comptes";
+"settings.account.connection.suggestion" = "Revisa la connexió suggerida";
+"settings.account.connection.data" = "Es conserven les targetes, els repassos i els espais. Les pertinences s’uneixen; la propietat té prioritat.";
+"settings.account.connection.settings" = "S’apliquen els ajustos i el perfil públic de destinació amb més privadesa. Es conserva el correu principal autèntic o s’utilitza un correu real verificat.";
+"settings.account.connection.billing" = "Les compres, els permisos, l’ús i les credencials d’integració segueixen el compte connectat. Les subscripcions i l’historial original de proves no canvien.";
+"settings.account.connection.destination" = "Destinació seleccionada";
+"settings.account.connection.hidden" = "Ocult a les opcions d’espais de treball";
+"settings.account.connection.omit" = "Demana omissió si escau";
+"settings.account.connection.preserve" = "Només es poden ocultar els espais inicials que compleixin els requisits. Es conserven les dades i la resta d’espais.";
+"settings.account.connection.confirm" = "Confirma la connexió";
+"settings.account.connection.connected" = "Comptes connectats.";
+"settings.account.connection.alreadyConnected" = "Aquests comptes ja estan connectats.";
+"settings.account.connection.cancelled" = "Connexió cancel·lada.";
+"settings.account.connection.uncertain" = "S’ha enviat la confirmació, però el resultat és desconegut. Comprova’l amb la mateixa confirmació.";
+"settings.account.connection.replay" = "Comprova el resultat";
+"settings.account.connection.preview" = "Actualitza la previsualització";
+"settings.account.connection.previewChanged" = "La previsualització ha canviat. Actualitza-la i confirma explícitament la nova previsualització.";
+"settings.account.connection.restart" = "La prova ha caducat o s’ha utilitzat. Torna a començar amb una prova nova.";
+"settings.account.connection.restorePaused" = "Comptes connectats. L’actualització local està aturada; les dades sense connexió es conserven.";

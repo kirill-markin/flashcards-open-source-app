@@ -332,7 +332,8 @@ a call "resolves to exactly one of them by its argument count".
 adds is the only `sync.claim_installation`, and `0179` records why the drop waited for a separate deploy.
 `0168`'s handling of concurrent first claims lives on unchanged in that six-argument definition.
 
-- [0214 account connection consent](0214_account_connection_consent.sql) (migration count 216) exposes authenticated
+- [0214 account connection consent](0214_account_connection_consent.sql) with
+  [0215 preview binding](0215_account_connection_preview_binding.sql) (migration count 217) exposes authenticated
   operation-bound proof, exact preview/consent and atomic reserved-proof consumption with the
   existing private account union. Its real PostgreSQL/coordinator and API refusal fixture is
   [accountConnectionGate.ts](../../apps/auth/src/integration/accountConnectionGate.ts).

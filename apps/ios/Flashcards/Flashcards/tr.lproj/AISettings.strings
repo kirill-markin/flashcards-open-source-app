@@ -950,3 +950,23 @@
 
 "settings.account.cloudSignIn.continueGoogle" = "Google ile devam et";
 "settings.account.cloudSignIn.appleCleanupPending" = "Apple bir güvenlik güncellemesini tamamlıyor. Biraz sonra Apple ile tekrar deneyin veya başka bir giriş yöntemi seçin.";
+
+"settings.account.connection.title" = "Hesapları bağla";
+"settings.account.connection.suggestion" = "Önerilen bağlantıyı incele";
+"settings.account.connection.data" = "Kartlar, tekrarlar ve çalışma alanları korunur. Üyelikler birleşir; sahiplik önceliklidir.";
+"settings.account.connection.settings" = "Hedefin ayarları ve herkese açık profili daha sıkı gizlilikle uygulanır. Gerçek birincil e-posta korunur veya kanıtlanmış gerçek bir adres kullanılır.";
+"settings.account.connection.billing" = "Satın almalar, haklar, kullanım ve entegrasyon kimlik bilgileri bağlı hesaba geçer. Abonelikler ve ilk deneme geçmişi değişmez.";
+"settings.account.connection.destination" = "Seçili hedef";
+"settings.account.connection.hidden" = "Çalışma alanı seçeneklerinden gizlendi";
+"settings.account.connection.omit" = "Uygunsa dışarıda bırakmayı iste";
+"settings.account.connection.preserve" = "Yalnızca uygun başlangıç alanları gizlenebilir. Veriler ve diğer çalışma alanları korunur.";
+"settings.account.connection.confirm" = "Bağlantıyı onayla";
+"settings.account.connection.connected" = "Hesaplar bağlandı.";
+"settings.account.connection.alreadyConnected" = "Bu hesaplar zaten bağlı.";
+"settings.account.connection.cancelled" = "Bağlantı iptal edildi.";
+"settings.account.connection.uncertain" = "Onay gönderildi ancak sonuç bilinmiyor. Aynı onayla sonucu kontrol edin.";
+"settings.account.connection.replay" = "Onay sonucunu kontrol et";
+"settings.account.connection.preview" = "Bağlantı önizlemesini yenile";
+"settings.account.connection.previewChanged" = "Önizleme değişti. Yenileyin ve yeni önizlemeyi açıkça onaylayın.";
+"settings.account.connection.restart" = "Kanıtın süresi doldu veya kullanıldı. Yeni kanıtla baştan başlayın.";
+"settings.account.connection.restorePaused" = "Hesaplar bağlandı. Yerel yenileme duraklatıldı; çevrimdışı verileriniz korunuyor.";
