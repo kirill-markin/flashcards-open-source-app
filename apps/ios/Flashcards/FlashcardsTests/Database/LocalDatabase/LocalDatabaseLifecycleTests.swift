@@ -524,7 +524,7 @@ final class LocalDatabaseLifecycleTests: LocalDatabaseTestCase {
     }
 
     private func tinyTransparentPNGData() throws -> Data {
-        let base64 = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII="
+        let base64 = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR4nGNgYAAAAAMAAbitOmMAAAAASUVORK5CYII="
         guard let data = Data(base64Encoded: base64) else {
             throw LocalStoreError.validation("Tiny managed image test fixture is invalid")
         }
