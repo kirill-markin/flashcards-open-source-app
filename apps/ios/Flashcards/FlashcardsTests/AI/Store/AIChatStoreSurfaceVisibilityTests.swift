@@ -11,7 +11,7 @@ final class AIChatStoreSurfaceVisibilityTests: XCTestCase {
 
         try context.configureGuestCloudSession()
         let store = context.makeStore()
-        store.acceptExternalProviderConsent()
+        try context.acknowledgeExternalProviderConsent()
         store.updateSurface(
             activity: AIChatSurfaceActivity(
                 isSceneActive: true,
@@ -42,7 +42,7 @@ final class AIChatStoreSurfaceVisibilityTests: XCTestCase {
 
         try context.configureLinkedCloudSession()
         let store = context.makeStore()
-        store.acceptExternalProviderConsent()
+        try context.acknowledgeExternalProviderConsent()
         let visibleActivity = self.makeLinkedSurfaceActivity(context: context, isVisible: true)
         let hiddenActivity = self.makeLinkedSurfaceActivity(context: context, isVisible: false)
         context.chatService.createNewSessionHandler = { request in
@@ -129,7 +129,7 @@ final class AIChatStoreSurfaceVisibilityTests: XCTestCase {
 
         try context.configureLinkedCloudSession()
         let store = context.makeStore()
-        store.acceptExternalProviderConsent()
+        try context.acknowledgeExternalProviderConsent()
         let visibleActivity = self.makeLinkedSurfaceActivity(context: context, isVisible: true)
         let hiddenActivity = self.makeLinkedSurfaceActivity(context: context, isVisible: false)
         context.chatService.createNewSessionHandler = { request in
