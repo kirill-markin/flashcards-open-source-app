@@ -61,6 +61,8 @@ def gcloud(args: list[str], destination: Path, diagnostics: Path) -> None:
     raise ValueError(f"Google evidence operation failed with exit {result.returncode}; inspect private collector diagnostics")
 
 
+# The expected latest inventory comes from the checked-out declarations, never from passing results, so a
+# test that silently never ran still fails the gate; unsupported declaration forms fail instead of being guessed.
 def inventory() -> tuple[set[str], set[str]]:
     selected: set[str] = set()
     excluded: set[str] = set()

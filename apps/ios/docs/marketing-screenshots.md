@@ -332,9 +332,9 @@ FLASHCARDS_MARKETING_SCREENSHOT_LOCALE=zh-Hans bash scripts/ios/capture-ios-mark
 ### Separate store-card processing
 
 The approved orange/yellow store cards have their own independent
-[processing flow](../../../docs/store-screenshot-processing.md). Its
-[format profiles](../../../docs/store-screenshot-processing.md#format-profiles)
-describe the supported native dimensions and frames. It reads saved native
+[processing flow](../../../docs/store-screenshot-processing.md).
+[`render-ios.mts`](../../../scripts/store-screenshots/render-ios.mts) holds the
+supported native dimensions (`nativeDimensions`) and frames. It reads saved native
 PNGs and writes `apps/ios/docs/media/app-store-cards/`, without invoking
 XCUITest, guest cleanup, this horizontal builder, or store upload:
 
