@@ -1,4 +1,12 @@
 #!/usr/bin/env python3
+"""Proves the deployed MCP dispatcher's worker admission on a run-owned fixture stack.
+
+The fixture reuses the shipped dispatcher artifact with its own worker, lease table and API, so the
+check exercises what deployed while production resources, credentials and data stay untouched.
+Probes carry no bearer token, so they bypass the per-token limit and test worker admission only.
+The fixture worker's reserved concurrency of zero forces the capacity refusal; raising it to one
+lets the proxy probes reach the worker.
+"""
 
 import json
 import os

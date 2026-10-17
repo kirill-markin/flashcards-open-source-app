@@ -100,6 +100,7 @@ export function ProgressReviewScheduleSection(props: ProgressReviewScheduleSecti
                   type="button"
                   className="progress-review-schedule-row-button"
                   disabled={!isInteractive}
+                  // The focused legend button is what toggles, so its pressed state announces the selection.
                   aria-pressed={isInteractive ? isSelected : undefined}
                   onClick={(event) => {
                     event.stopPropagation();

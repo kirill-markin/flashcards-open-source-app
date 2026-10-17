@@ -4,10 +4,11 @@
  * defaults on those fsrs_* columns must stay aligned with
  * defaultWorkspaceSchedulerConfig used by tests and fixtures.
  *
- * This file mirrors the local iOS scheduler-settings implementation in
- * `apps/ios/Flashcards/Flashcards/LocalDatabase.swift`.
+ * This file mirrors the local scheduler-settings implementations in
+ * `apps/ios/Flashcards/Flashcards/Database/Workspace/WorkspaceSettingsStore.swift` and
+ * `apps/android/data/local/src/main/java/com/flashcardsopensourceapp/data/local/model/scheduling/WorkspaceSchedulerSettingsSupport.kt`.
  * If you change scheduler-settings validation or persistence here, make the
- * same change in the iOS mirror and update docs/fsrs-scheduling-logic.md.
+ * same change in the iOS and Android mirrors and update docs/fsrs-scheduling-logic.md.
  *
  * Source-of-truth docs: docs/fsrs-scheduling-logic.md
  */
@@ -71,7 +72,7 @@ function toIsoString(value: Date | string): string {
   return value instanceof Date ? value.toISOString() : new Date(value).toISOString();
 }
 
-// Keep in sync with apps/ios/Flashcards/Flashcards/LocalDatabase.swift::validateSchedulerStepList(values:fieldName:).
+// Keep in sync with apps/ios/Flashcards/Flashcards/Database/Workspace/WorkspaceSettingsStore.swift::validateSchedulerStepList(values:fieldName:).
 function parseSteps(value: unknown, fieldName: string): ReadonlyArray<number> {
   if (!Array.isArray(value)) {
     throw new Error(`${fieldName} must be an array`);
@@ -98,7 +99,7 @@ function parseSteps(value: unknown, fieldName: string): ReadonlyArray<number> {
   return steps;
 }
 
-// Keep in sync with apps/ios/Flashcards/Flashcards/LocalDatabase.swift::loadWorkspaceSchedulerSettings(workspaceId:).
+// Keep in sync with apps/ios/Flashcards/Flashcards/Database/Workspace/WorkspaceSettingsStore.swift::loadWorkspaceSchedulerSettings(workspaceId:).
 function mapWorkspaceSchedulerSettings(row: WorkspaceSchedulerSettingsRow): WorkspaceSchedulerSettings {
   if (row.fsrs_algorithm !== "fsrs-6") {
     throw new Error(`Unsupported scheduler algorithm: ${row.fsrs_algorithm}`);
@@ -118,7 +119,7 @@ function mapWorkspaceSchedulerSettings(row: WorkspaceSchedulerSettingsRow): Work
   };
 }
 
-// Keep in sync with apps/ios/Flashcards/Flashcards/LocalDatabase.swift::loadWorkspaceSchedulerSettings(workspaceId:).
+// Keep in sync with apps/ios/Flashcards/Flashcards/Database/Workspace/WorkspaceSettingsStore.swift::loadWorkspaceSchedulerSettings(workspaceId:).
 function toWorkspaceSchedulerConfig(settings: WorkspaceSchedulerSettings): WorkspaceSchedulerConfig {
   return {
     algorithm: settings.algorithm,
@@ -176,7 +177,7 @@ function normalizeWorkspaceSchedulerMutationMetadata(
 export function validateWorkspaceSchedulerSettingsInput(
   input: UpdateWorkspaceSchedulerSettingsInput,
 ): WorkspaceSchedulerConfig {
-  // Keep in sync with apps/ios/Flashcards/Flashcards/LocalDatabase.swift::validateWorkspaceSchedulerSettingsInput(desiredRetention:learningStepsMinutes:relearningStepsMinutes:maximumIntervalDays:enableFuzz:).
+  // Keep in sync with apps/ios/Flashcards/Flashcards/Database/Workspace/WorkspaceSettingsStore.swift::validateWorkspaceSchedulerSettingsInput(desiredRetention:learningStepsMinutes:relearningStepsMinutes:maximumIntervalDays:enableFuzz:).
   if (input.desiredRetention <= 0 || input.desiredRetention >= 1) {
     throw new HttpError(400, "desiredRetention must be greater than 0 and less than 1");
   }
@@ -208,7 +209,7 @@ export async function getWorkspaceSchedulerSettings(
   userId: string,
   workspaceId: string,
 ): Promise<WorkspaceSchedulerSettings> {
-  // Keep in sync with apps/ios/Flashcards/Flashcards/LocalDatabase.swift::loadWorkspaceSchedulerSettings(workspaceId:).
+  // Keep in sync with apps/ios/Flashcards/Flashcards/Database/Workspace/WorkspaceSettingsStore.swift::loadWorkspaceSchedulerSettings(workspaceId:).
   const result = await queryWithWorkspaceScopeReadOnly<WorkspaceSchedulerSettingsRow>(
     { userId, workspaceId },
     [
@@ -234,7 +235,7 @@ export async function getWorkspaceSchedulerConfig(
   executor: DatabaseExecutor,
   workspaceId: string,
 ): Promise<WorkspaceSchedulerConfig> {
-  // Keep in sync with apps/ios/Flashcards/Flashcards/LocalDatabase.swift::loadWorkspaceSchedulerSettings(workspaceId:).
+  // Keep in sync with apps/ios/Flashcards/Flashcards/Database/Workspace/WorkspaceSettingsStore.swift::loadWorkspaceSchedulerSettings(workspaceId:).
   const result = await executor.query<WorkspaceSchedulerSettingsRow>(
     [
       "SELECT",
@@ -262,7 +263,7 @@ export async function updateWorkspaceSchedulerSettings(
   input: UpdateWorkspaceSchedulerSettingsInput,
   metadata: WorkspaceSchedulerSettingsMutationMetadata,
 ): Promise<WorkspaceSchedulerSettings> {
-  // Keep in sync with apps/ios/Flashcards/Flashcards/LocalDatabase.swift::updateWorkspaceSchedulerSettings(workspaceId:desiredRetention:learningStepsMinutes:relearningStepsMinutes:maximumIntervalDays:enableFuzz:).
+  // Keep in sync with apps/ios/Flashcards/Flashcards/Database/LocalDatabase/LocalDatabase+Review.swift::updateWorkspaceSchedulerSettings(workspaceId:desiredRetention:learningStepsMinutes:relearningStepsMinutes:maximumIntervalDays:enableFuzz:).
   const snapshotInput: WorkspaceSchedulerSettingsSnapshotInput = {
     algorithm: "fsrs-6",
     desiredRetention: input.desiredRetention,

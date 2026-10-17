@@ -1,12 +1,13 @@
 # Android CI/CD
 
-Android CI/CD runs in GitHub Actions, fully independent from the AWS/Web release workflow:
+This repository uses one reusable Android validation workflow, called only by the manual release, and a publisher-only recovery entrypoint:
 
-- [android-ci-reusable.yml](../.github/workflows/android-ci-reusable.yml) is the Android validation itself: unit tests, debug builds and lint, plus `data:local` instrumentation on a GitHub-hosted emulator. The emulator job deliberately has no `needs: build`: it does its own checkout and Gradle build, so a failing build neither prevents nor cancels the emulator run
-- [pr-checks.yml](../.github/workflows/pr-checks.yml) calls it for Android-impacting pull requests and folds the result into the required `Repository static checks` aggregate; the emulator job runs only when the Android data layer, `:core:observability`, or shared Gradle configuration changes
-- [android-ci.yml](../.github/workflows/android-ci.yml) is the post-merge `data:local` emulator backstop on `push main`
+- GitHub Actions is the primary Android CI/CD entrypoint
+- [android-ci-reusable.yml](../.github/workflows/android-ci-reusable.yml) is the Android validation itself: unit tests, debug builds and lint, plus `data:local` instrumentation on a GitHub-hosted emulator. It intentionally does not make the emulator job depend on the build job, because the emulator job does its own checkout and Gradle build, so a failing build does not prevent or cancel the emulator run
+- pull requests and pushes to `main` run no Android CI: `main` reaches users only through an Android release, which runs every check, so `main` can fail to compile for Android unnoticed until the next release; fix forward
 - [android-release.yml](../.github/workflows/android-release.yml) is the manual release: the validation gate, four sequential Device Run sessions on Google-managed devices, the signed bundle with its R8 coverage gate, and a Google Play production-track draft; follow [the Android release procedure](release/android.md)
 - [android-release-upload-recovery.yml](../.github/workflows/android-release-upload-recovery.yml) recovers only a failed publisher for a pinned, already-tested signed bundle ([exact-bundle recovery](release/android.md#exact-bundle-upload-recovery))
+- the manual Android release is fully independent from the AWS/Web release workflow
 - read-only operations: [Device Run diagnostics](android-device-run-diagnostics.md) and [Play release status](android-play-status.md)
 - [cloudbuild.android.yaml](../cloudbuild.android.yaml) is an optional Google-native entrypoint ([setup](#cloud-build-trigger-setup))
 
@@ -14,11 +15,7 @@ The R8 coverage gate enforces Google Play's 25% minimum in each R8 category on t
 
 We treat the managed-device app instrumentation suite as the closest CI signal to production behavior, while GitHub-hosted jobs keep the fast unit/build/lint checks and the smaller `data:local` instrumentation gate. Google access uses Workload Identity Federation, never a long-lived service account key.
 
-What a green run means:
-
-- `Repository static checks` on a pull request: the applicable build, unit tests, lint, and pull-request emulator gate passed; nothing was submitted to Device Run or Google Play.
-- automatic `Android CI`: the post-merge `data:local` emulator backstop passed for that SHA. After pushing to `main`, watch it separately when Android-impacting files changed. It does not mean Device Run was submitted, a Google Play draft was uploaded, or a release is ready to publish.
-- manual `Android Release`: the GitHub-hosted Android gate and all four Device Run sessions, jobs and executions passed, and CI uploaded a Play draft. Inspect named cases through [the results procedure](#device-run-results-and-release-correlation). Translation review, Play-delivered build verification, and final publication still happen later in Play Console. A non-green run means one of the required release stages failed or was skipped by a failed dependency.
+A green manual `Android Release` run means the GitHub-hosted Android gate and all four Device Run sessions, jobs and executions passed, and CI uploaded a Play draft. Inspect named cases through [the results procedure](#device-run-results-and-release-correlation). Translation review, Play-delivered build verification, and final publication still happen later in Play Console. A non-green `Android Release` run means one of the required release stages failed or was skipped by a failed dependency.
 
 ## GitHub configuration
 

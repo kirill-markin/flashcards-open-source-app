@@ -25,12 +25,7 @@ private const val demoCardProductName: String = "Nibomo"
  *
  * The Markdown lives here rather than in the translatable strings: the back
  * text carries exactly the bold product name and the inline-code rating
- * label. The backticks are load-bearing, not decoration.
- * `classifyReviewContentPresentation` only switches to Markdown on a backtick
- * or a block-level cue, and inline emphasis alone never switches the mode
- * (see docs/review-markdown-rendering.md). Removing the backticks would demote
- * this multi-paragraph card to plain text and show the `**` literally, so
- * whoever removes them must also remove the bold.
+ * label.
  */
 fun buildDemoCardDraft(context: Context): CardDraft {
     val productName: String = "**$demoCardProductName**"
