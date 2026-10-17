@@ -232,7 +232,7 @@ extension LiveSmokeTestCase {
         ]
         let sources = sourceIdentifiers.map { identifier in
             self.app.descendants(matching: .any).matching(identifier: identifier).firstMatch
-        }.filter { $0.exists && $0.isHittable }
+        }.filter(\.exists)
         guard sources.count <= 1 else {
             throw LiveSmokeFailure.unexpectedAccountState(
                 message: "Expected one active Settings detail before native back gesture; found \(sources.map(\.identifier)).",
@@ -240,7 +240,24 @@ extension LiveSmokeTestCase {
                 step: self.currentStepTitle
             )
         }
-        return sources.first
+        guard let source = sources.first else {
+            return nil
+        }
+
+        let timeout = LiveSmokeConfiguration.shortUiTimeoutSeconds
+        let deadline = Date().addingTimeInterval(timeout)
+        while Date() < deadline {
+            if source.exists && source.isHittable {
+                return source
+            }
+            RunLoop.current.run(until: Date(timeIntervalSinceNow: liveSmokeFocusPollIntervalSeconds))
+        }
+
+        throw LiveSmokeFailure.unexpectedAccountState(
+            message: "Recognized Settings detail \(source.identifier) did not become hittable within \(timeout)s before native back gesture.",
+            screen: self.currentScreenSummary(),
+            step: self.currentStepTitle
+        )
     }
 
     @MainActor
