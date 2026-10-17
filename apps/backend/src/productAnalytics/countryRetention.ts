@@ -1,5 +1,6 @@
 import { unsafeQueryWithDeadline } from "../database/unsafe";
 
+// Readers apply this cutoff themselves: the daily cleanup can lag one interval, or stop and alarm.
 export const countryObservationRetentionDays = 90;
 const retentionBatchSize = 1_000;
 const retentionMaxBatches = 100;

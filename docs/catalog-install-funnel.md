@@ -1,110 +1,24 @@
 # Catalog install facts
 
-What the marketing-site to web-app catalog import flow records. These are independent facts: nothing
-is minted at write time to hold one report together, and any funnel over them is a query assembled at
-analysis time. No guest user, workspace, or durable visitor identity is created here. The canonical
-rows live in `analytics.product_events`.
+What the marketing-site to web-app catalog import flow records: independent facts in `analytics.product_events`, with any funnel over them assembled at analysis time. The flow creates no guest user, workspace or visitor identity of its own.
 
-## Sources
+- Event catalog, owning every fact's properties and the retired names still accepted: [`catalog.ts`](../apps/backend/src/productAnalytics/catalog.ts)
+- Collector: [anonymous client analytics](anonymous-client-analytics.md); browser identity: [analytics visitor identity](analytics-visitor-identity.md)
+- Web producer: [`catalogInstall.ts`](../apps/web/src/analytics/catalogInstall.ts); server install fact: [`install/index.ts`](../apps/backend/src/catalog/distribution/install/index.ts); database contract: [`0134`](../db/migrations/0134_catalog_install_journey_analytics.sql)
+- Admin deck funnel: [its query](../apps/admin/src/reports/catalogInstallFunnel/query.ts), which also defines its engagement and new-installer columns
 
-- Event catalog: [`apps/backend/src/productAnalytics/catalog.ts`](../apps/backend/src/productAnalytics/catalog.ts)
-- Collector envelope, route and identity rules: [anonymous client analytics](anonymous-client-analytics.md)
-- Browser identity every client fact carries: [analytics visitor identity](analytics-visitor-identity.md)
-- Web producer: [`catalogInstall.ts`](../apps/web/src/analytics/catalogInstall.ts)
-- Server-confirmed install fact: [`apps/backend/src/catalog/distribution/install/index.ts`](../apps/backend/src/catalog/distribution/install/index.ts)
-- Database contract: [`db/migrations/0134_catalog_install_journey_analytics.sql`](../db/migrations/0134_catalog_install_journey_analytics.sql)
+The facts are the site's `catalog_install_clicked` and deck-page `site_page_viewed`, the web app's `catalog_install_preview_ready`, `catalog_install_failed` and `catalog_deck_install_started`, and the server's `catalog_deck_installed`, each carrying `package_version_id`. Entry into the import screen is `screen_viewed`, and sign-in is the generic `signin_*` facts.
 
-## The facts
-
-| Event | Origin | What it records | Additional properties |
-| --- | --- | --- | --- |
-| `catalog_install_clicked` | marketing site | a catalog install CTA was clicked | `placement`, `source`, `device_category` |
-| `catalog_install_preview_ready` | web app | the install preview loaded for a signed-in person | none |
-| `catalog_install_failed` | web app | the flow failed at a named point | `stage`, `reason` |
-| `catalog_deck_install_started` | web app | install intent, through the general collector | `package_slug` |
-| `catalog_deck_installed` | server | the installation completed | `package_slug`, `card_count` |
-
-Every one of them carries `package_version_id`, and so does the site's `site_page_viewed` on a deck
-page ([marketing site facts](anonymous-client-analytics.md#the-marketing-site-facts)). Entry into the
-import screen is `screen_viewed`, and the sign-in steps are the generic `signin_code_requested`,
-`signin_succeeded` and `signin_failed` facts; none of those is duplicated here.
-
-Failure stages are `landing`, `signin`, `preview`, `preinstall_sync`, `install`, and
-`postinstall_sync`. Failure reasons are `invalid_link`, `package_unavailable`,
-`workspace_unavailable`, `invalid_code`, `expired_code`, `code_already_used`, `rate_limited`,
-`offline`, `timeout`, `network_error`, `unauthorized`, `conflict`, `storage_error`, `contract_error`,
-`server_error`, and `cancelled`.
-
-Producers must never send a raw URL, referrer, email, user or workspace identifier, free text, or
-identity-link input. Convert acquisition data to the `source` enum before sending it. A telemetry
-timeout or rejection must be logged with only the event name, stage/reason when present, response
-status/code, and request ID; it must never block or delay navigation, authentication, preview,
-synchronization, or installation.
-
-## `install_journey_id` is historical
-
-`install_journey_id` was a UUID minted per install attempt and carried through navigation so one
-report could join across the two domains. Nothing mints or forwards it any more: the web app does not
-create it, the auth login page does not read it, and the server install fact does not carry it.
-
-Two things survive, both for compatibility with clients already in the wild:
-
-- The collector still accepts the property on every catalog install event, and still stores it as
-  `anonymous_id` when the body claims no `anonymousId`.
-- `POST /v1/workspaces/{workspaceId}/catalog/package-versions/{packageVersionId}/install` still
-  accepts the optional `installJourneyId` body field, and ignores it.
-
-It also still accepts `catalog_install_landed`, `catalog_install_signin_started`,
-`catalog_install_signin_code_requested` and `catalog_install_signin_succeeded`, which no producer
-sends any more.
-
-The admin app reads the journey id only in `buildCatalogInstallAttributionSql` in
-[`filterSql.ts`](../apps/admin/src/filters/filterSql.ts).
+Producers never send a raw URL, referrer, email, user or workspace identifier, free text, or identity-link input, and a telemetry failure never blocks or delays navigation, authentication, preview, synchronization or installation.
 
 ## Reporting
 
-Use `occurred_at`, never the client clock columns, for time ranges. Only
-`origin = 'server' AND event_name = 'catalog_deck_installed'` is a completed installation; client
-`catalog_deck_install_started` is intent, not success. Acquisition device context comes from
-`catalog_install_clicked` (`device_category`, `device_locale`, and `platform = 'web'`), not from the
-server fact. Server facts keep `platform` null because the install request headers are not a trusted
-replica fact. There is no historical click backfill and no historical conversion claim.
-
-What joins these facts into a flow is `analytics.product_events_resolved.actor_id`, nothing on the
-events themselves. A row sent with no account credential carries the
-[analytics visitor identity](analytics-visitor-identity.md) as `anonymous_id`, and resolves onto the
-account once the web app records an `authenticated_client` identity link for it; the signed-in app's
-rows and the server install carry the account already. So the deck page's `site_page_viewed`, the
-site click, the import flow's `screen_viewed` rows and the server install resolve onto one identity. The auth origin's sign-in
-rows split by when they were written. The `guest_client` rows it delivered until it stopped minting a
-guest session were posted on a guest credential whose `user_id` outranks the visitor cookie, and
-reach the account only through the `server_derived` link written after `signin_succeeded` inside a
-budget a first-ever sign-in usually overruns, so they cannot reliably be joined to the rest. The
-`anonymous_client` rows it writes now carry no `user_id` and no `server_derived` link: they resolve
-through `first_anonymous_link` on the same shared visitor id as the rows above, so they do join, and
-what keeps them out of a report is the trusted-actor rule rather than an unreachable identity.
-A sign-in is read instead from the web app's first screen view that the same browser sends with an
-account credential. The sequence is assembled at analysis time
-from that identity and `occurred_at`; the admin deck funnel over it is
-[its query](../apps/admin/src/reports/catalogInstallFunnel/query.ts). **Only a click sent with the visitor identity joins anything:**
-a click body that claims no `anonymousId` is stored under its per-attempt `install_journey_id`, which
-matches no later row, and that is every click made before the site and the app shared one
-registrable domain.
-
-Three limits bound what any such join can say. `screen_viewed` carries no properties at all, so a
-step read from it names no deck version. A browser that refused consent is given no identifier, so
-its rows resolve to a NULL actor and belong to no identity at all rather than to a missing one. And a
-report wanting the preview moment on the account's side of the flow reads the `catalog_import_confirm`
-screen view, which marks the same moment and is reported by the signed-in app with the account's own
-credential, while `catalog_install_preview_ready` goes out on the credential-free collector and
-reaches the account only through the identity link for its visitor cookie.
-
-Post-install engagement is reportable only on an install whose server `catalog_deck_installed` row
-exists, because that is where the install is a fact rather than an intent. `review_answered` carries
-no deck or card identity, so those reviews are the person's reviews anywhere in the product and never
-deck-level retention; say so wherever they are shown. The admin deck funnel's engagement and
-new-installer columns are defined on `CatalogInstallFunnelVisit` in
-[its query](../apps/admin/src/reports/catalogInstallFunnel/query.ts).
+- Use `occurred_at` for time ranges. Only the server's `catalog_deck_installed` is a completed installation; `catalog_deck_install_started` is intent. Acquisition device context comes from the click, never from the server fact.
+- Facts join only through `analytics.product_events_resolved.actor_id`. A credential-free row carries the visitor identity as `anonymous_id` and resolves onto the account once the web app records an `authenticated_client` link for it; signed-in rows and the server install carry the account already. So the deck page view, the click, the import screen views and the install resolve to one identity, and a sign-in is read from the first screen view the same browser sends with an account credential.
+- The auth origin's current `anonymous_client` sign-in rows join through the same visitor id but stay out of reports by the [trusted-actor rule](../apps/admin/src/filters/filterSql.ts); its older `guest_client` rows reach the account only through a best-effort link and cannot reliably be joined.
+- A click stored with no `anonymousId` sits under its per-attempt `install_journey_id`, which matches no later row; that is every click made before the site and the app shared one registrable domain.
+- `screen_viewed` names no deck version, and a browser that refused consent resolves to a NULL actor. The preview moment on the account's side is the `catalog_import_confirm` screen view, because `catalog_install_preview_ready` reaches the account only through the visitor link.
+- Post-install engagement exists only for an install with a server `catalog_deck_installed` row. `review_answered` carries no deck or card identity, so those reviews are the person's reviews anywhere in the product, never deck-level retention; say so wherever they are shown.
 
 ## Manual acceptance
 
