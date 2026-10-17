@@ -155,6 +155,12 @@ extension LiveSmokeTestCase {
         let navigationBarButton = self.app.navigationBars.buttons["BackButton"].firstMatch
         let toolbarBackButton = self.app.toolbars.buttons["BackButton"].firstMatch
         try self.runWithInlineRawScreenStateOnFailure(action: "tap_back_button.navigation.backButton") {
+            #if !targetEnvironment(macCatalyst)
+            if #unavailable(iOS 26.0), let source = try self.iOS18SettingsBackSource() {
+                try self.swipeBackToSettingsRoot(from: source)
+                return
+            }
+            #endif
             let timeout = LiveSmokeConfiguration.shortUiTimeoutSeconds
             self.logSmokeBreadcrumb(
                 event: "wait_start",
@@ -204,6 +210,67 @@ extension LiveSmokeTestCase {
             )
         }
     }
+
+    #if !targetEnvironment(macCatalyst)
+    @MainActor
+    private func iOS18SettingsBackSource() throws -> XCUIElement? {
+        let sourceIdentifiers: [String] = [
+            LiveSmokeIdentifier.accountStatusScreen,
+            LiveSmokeIdentifier.currentWorkspaceScreen,
+            LiveSmokeIdentifier.reviewAnimationsSettingsScreen,
+            LiveSmokeIdentifier.aiChatSuggestionsSettingsScreen,
+            LiveSmokeIdentifier.notificationsSettingsScreen,
+            LiveSmokeIdentifier.leaderboardParticipationSettingsScreen,
+            LiveSmokeIdentifier.languageSettingsScreen,
+            LiveSmokeIdentifier.accessSettingsScreen,
+            LiveSmokeIdentifier.schedulerSettingsScreen,
+            LiveSmokeIdentifier.serverSettingsScreen,
+            LiveSmokeIdentifier.thisDeviceSettingsScreen,
+            LiveSmokeIdentifier.resetStudyProgressScreen,
+            LiveSmokeIdentifier.deleteCurrentWorkspaceScreen,
+            LiveSmokeIdentifier.dangerZoneScreen
+        ]
+        let sources = sourceIdentifiers.map { identifier in
+            self.app.descendants(matching: .any).matching(identifier: identifier).firstMatch
+        }.filter { $0.exists && $0.isHittable }
+        guard sources.count <= 1 else {
+            throw LiveSmokeFailure.unexpectedAccountState(
+                message: "Expected one active Settings detail before native back gesture; found \(sources.map(\.identifier)).",
+                screen: self.currentScreenSummary(),
+                step: self.currentStepTitle
+            )
+        }
+        return sources.first
+    }
+
+    @MainActor
+    private func swipeBackToSettingsRoot(from source: XCUIElement) throws {
+        let settingsRoot = self.app.collectionViews[LiveSmokeIdentifier.settingsScreen].firstMatch
+        let navigationBars = self.elements(query: self.app.navigationBars).filter(\.isHittable)
+        guard settingsRoot.exists == false,
+              self.app.alerts.count == 0,
+              self.app.sheets.count == 0,
+              navigationBars.count == 1,
+              source.frame.isEmpty == false else {
+            throw LiveSmokeFailure.unexpectedAccountState(
+                message: "Native Settings back gesture requires an active detail, one navigation bar, and no sheet or alert. Source: \(source.identifier).",
+                screen: self.currentScreenSummary(),
+                step: self.currentStepTitle
+            )
+        }
+
+        let sourceIdentifier = source.identifier
+        let isRightToLeft = self.currentLaunchLocalization == .arabic
+        let edgeInset = 1 / source.frame.width
+        let start = source.coordinate(withNormalizedOffset: CGVector(dx: isRightToLeft ? 1 - edgeInset : edgeInset, dy: 0.5))
+        let end = source.coordinate(withNormalizedOffset: CGVector(dx: isRightToLeft ? 0.25 : 0.75, dy: 0.5))
+        self.logActionStart(action: "swipe_back", identifier: sourceIdentifier)
+        start.press(forDuration: 0.05, thenDragTo: end)
+        try self.assertElementDoesNotExist(identifier: sourceIdentifier, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+        try self.assertScreenVisible(screen: .settings, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+        self.logActionEnd(action: "swipe_back", identifier: sourceIdentifier, result: "success", note: "native edge back reached Settings")
+    }
+    #endif
 
     @MainActor
     func tapButton(
