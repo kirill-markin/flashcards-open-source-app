@@ -2,7 +2,8 @@ import assert from "node:assert/strict";
 import { randomBytes, randomUUID } from "node:crypto";
 import type pg from "pg";
 import type { DatabaseExecutor } from "../db.js";
-import type { CognitoEmailPrincipal } from "../server/cognito/cognitoAuth.js";
+import type { CognitoEmailPrincipal, TokenResult } from "../server/cognito/cognitoAuth.js";
+import { createNativeSignInTokenResponse, type NativeSignInTokenResponse } from "../server/social/completeSignIn.js";
 import { encryptAppleCredential } from "../server/social/appleCredential.js";
 import { authAttemptBindingHash, authHandleHash } from "../server/social/attemptStore.js";
 import { completeAuthoritativeLoginInExecutor, redeemSocialSignInInExecutor } from "../server/social/completionStore.js";
@@ -83,7 +84,23 @@ export async function checkAccountConnectionPreparation(runtime: pg.Client, owne
     assert.equal(redeemed.cognitoSubject, subjects[0]);
     assert.equal(redeemed.signInHint.recoveryEmail, emails[0]);
     assert.equal((await owner.query("SELECT phase,secret_ciphertext,result_ciphertext FROM auth.social_attempts WHERE attempt_sha256=$1", [hash])).rows[0].phase, "redeemed");
-    return { suggestion: redeemed.signInHint.connectionSuggestion, attempt: hash, completion: completed.response.completion };
+    const tokens: TokenResult = { idToken: "module-boundary-id", accessToken: "module-boundary-access",
+      refreshToken: "module-boundary-refresh", expiresIn: 3600 };
+    const response: NativeSignInTokenResponse = JSON.parse(JSON.stringify(createNativeSignInTokenResponse(tokens, redeemed.signInHint)));
+    assert.equal(response.ok, true);
+    assert.equal(response.idToken, tokens.idToken);
+    assert.equal(response.accessToken, tokens.accessToken);
+    assert.equal(response.refreshToken, tokens.refreshToken);
+    assert.equal(response.expiresIn, tokens.expiresIn);
+    assert.deepEqual(response.signInHint, redeemed.signInHint);
+    if (redeemed.signInHint.connectionSuggestion === undefined) {
+      assert.equal(Object.hasOwn(response, "connectionSuggestion"), false);
+    } else {
+      assert.ok(response.connectionSuggestion);
+      assert.equal(response.connectionSuggestion.suggestion, redeemed.signInHint.connectionSuggestion.suggestion);
+      assert.equal(response.connectionSuggestion.expiresAt, redeemed.signInHint.connectionSuggestion.expiresAt);
+    }
+    return { suggestion: response.connectionSuggestion, attempt: hash, completion: completed.response.completion };
   };
   const login = (provider: "google" | "apple") => completeLogin(provider,
     { cognitoSubject: subjects[1], cognitoUsername: subjects[1], email: emails[1] });
