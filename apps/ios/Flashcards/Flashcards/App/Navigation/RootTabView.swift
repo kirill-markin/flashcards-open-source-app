@@ -356,7 +356,9 @@ struct RootTabView: View {
 
     @ViewBuilder
     private var uiTestLaunchPreparationStatusMarker: some View {
-        if let uiTestLaunchPreparationValue = store.uiTestLaunchPreparationStatus.accessibilityValue {
+        if AutomationRun.current.isUITestLaunch {
+            let preparationValue = store.uiTestLaunchPreparationStatus.accessibilityValue ?? "state=notRequested;launchScenario=none"
+            let automationValue = "event=automation_run_decided;isAutomation=\(AutomationRun.current.isAutomation)"
             Text("ui-test-launch-preparation-status")
                 .font(.system(size: 1))
                 .foregroundStyle(.clear)
@@ -364,7 +366,7 @@ struct RootTabView: View {
                 .accessibilityElement(children: .ignore)
                 .accessibilityIdentifier(UITestIdentifier.uiTestLaunchPreparationStatus)
                 .accessibilityLabel("UI test launch preparation status")
-                .accessibilityValue(uiTestLaunchPreparationValue)
+                .accessibilityValue("\(preparationValue);\(automationValue)")
         }
     }
 

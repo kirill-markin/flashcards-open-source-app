@@ -1,7 +1,5 @@
 import XCTest
 
-private let liveSmokeTextInputCharacterIntervalSeconds: TimeInterval = 0.05
-
 extension LiveSmokeTestCase {
     @MainActor
     func typeTextSafely(
@@ -116,12 +114,7 @@ extension LiveSmokeTestCase {
         _ text: String,
         intoElement element: XCUIElement
     ) {
-        for character in text {
-            element.typeText(String(character))
-            RunLoop.current.run(
-                until: Date(timeIntervalSinceNow: liveSmokeTextInputCharacterIntervalSeconds)
-            )
-        }
+        element.typeText(text)
     }
 
     @MainActor

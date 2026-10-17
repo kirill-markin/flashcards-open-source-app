@@ -152,7 +152,7 @@ extension LiveSmokeTestCase {
 
     @MainActor
     func tapFirstNavigationBackButton() throws {
-        let navigationBarButton = self.app.navigationBars.buttons.firstMatch
+        let navigationBarButton = self.app.navigationBars.buttons["BackButton"].firstMatch
         let toolbarBackButton = self.app.toolbars.buttons["BackButton"].firstMatch
         try self.runWithInlineRawScreenStateOnFailure(action: "tap_back_button.navigation.backButton") {
             let timeout = LiveSmokeConfiguration.shortUiTimeoutSeconds
@@ -169,11 +169,11 @@ extension LiveSmokeTestCase {
             let deadline = startedAt.addingTimeInterval(timeout)
             var backButton: XCUIElement?
             while Date() < deadline {
-                if navigationBarButton.exists {
+                if navigationBarButton.exists && navigationBarButton.isEnabled && navigationBarButton.isHittable {
                     backButton = navigationBarButton
                     break
                 }
-                if toolbarBackButton.exists {
+                if toolbarBackButton.exists && toolbarBackButton.isEnabled && toolbarBackButton.isHittable {
                     backButton = toolbarBackButton
                     break
                 }
