@@ -124,7 +124,6 @@ final class AIChatStoreRunToolCallTrackingBootstrapTests: XCTestCase {
         }
 
         try context.configureLinkedCloudSession()
-        try context.acknowledgeExternalProviderConsent()
         await context.historyStore.saveState(
             state: AIChatPersistedState(
                 messages: [AIChatStoreTestSupport.makeAssistantTextMessage(itemId: "item-1")],
@@ -136,6 +135,7 @@ final class AIChatStoreRunToolCallTrackingBootstrapTests: XCTestCase {
         )
 
         let store = context.makeStore()
+        try context.acknowledgeExternalProviderConsent()
         AIChatStoreTestSupport.setAISurfaceVisibility(store: store, isVisible: true)
         let syncExpectation = XCTestExpectation(description: "Linked sync started once after resumed run terminal")
         context.cloudSyncService.syncExpectation = syncExpectation
