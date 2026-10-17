@@ -157,7 +157,7 @@ extension LiveSmokeTestCase {
         try self.runWithInlineRawScreenStateOnFailure(action: "tap_back_button.navigation.backButton") {
             #if !targetEnvironment(macCatalyst)
             if #unavailable(iOS 26.0), let source = try self.iOS18SettingsBackSource() {
-                try self.swipeBackToSettingsRoot(from: source)
+                try self.tapBackToSettingsRoot(from: source)
                 return
             }
             #endif
@@ -235,7 +235,7 @@ extension LiveSmokeTestCase {
         }.filter(\.exists)
         guard sources.count <= 1 else {
             throw LiveSmokeFailure.unexpectedAccountState(
-                message: "Expected one active Settings detail before native back gesture; found \(sources.map(\.identifier)).",
+                message: "Expected one active Settings detail before native back tap; found \(sources.map(\.identifier)).",
                 screen: self.currentScreenSummary(),
                 step: self.currentStepTitle
             )
@@ -254,14 +254,14 @@ extension LiveSmokeTestCase {
         }
 
         throw LiveSmokeFailure.unexpectedAccountState(
-            message: "Recognized Settings detail \(source.identifier) did not become hittable within \(timeout)s before native back gesture.",
+            message: "Recognized Settings detail \(source.identifier) did not become hittable within \(timeout)s before native back tap.",
             screen: self.currentScreenSummary(),
             step: self.currentStepTitle
         )
     }
 
     @MainActor
-    private func swipeBackToSettingsRoot(from source: XCUIElement) throws {
+    private func tapBackToSettingsRoot(from source: XCUIElement) throws {
         let settingsRoot = self.app.collectionViews[LiveSmokeIdentifier.settingsScreen].firstMatch
         let navigationBars = self.elements(query: self.app.navigationBars).filter(\.isHittable)
         guard settingsRoot.exists == false,
@@ -270,22 +270,39 @@ extension LiveSmokeTestCase {
               navigationBars.count == 1,
               source.frame.isEmpty == false else {
             throw LiveSmokeFailure.unexpectedAccountState(
-                message: "Native Settings back gesture requires an active detail, one navigation bar, and no sheet or alert. Source: \(source.identifier).",
+                message: "Native Settings back tap requires an active detail, one navigation bar, and no sheet or alert. Source: \(source.identifier).",
                 screen: self.currentScreenSummary(),
                 step: self.currentStepTitle
             )
         }
 
         let sourceIdentifier = source.identifier
-        let isRightToLeft = self.currentLaunchLocalization == .arabic
-        let edgeInset = 1 / source.frame.width
-        let start = source.coordinate(withNormalizedOffset: CGVector(dx: isRightToLeft ? 1 - edgeInset : edgeInset, dy: 0.5))
-        let end = source.coordinate(withNormalizedOffset: CGVector(dx: isRightToLeft ? 0.25 : 0.75, dy: 0.5))
-        self.logActionStart(action: "swipe_back", identifier: sourceIdentifier)
-        start.press(forDuration: 0.05, thenDragTo: end)
+        let buttons = navigationBars[0].buttons
+        guard buttons.count == 1 else {
+            throw LiveSmokeFailure.unexpectedAccountState(
+                message: "Native Settings back tap requires exactly one navigation button; found \(buttons.count). Source: \(sourceIdentifier).",
+                screen: self.currentScreenSummary(),
+                step: self.currentStepTitle
+            )
+        }
+        let backButton = buttons.element(boundBy: 0)
+        let timeout = LiveSmokeConfiguration.shortUiTimeoutSeconds
+        let deadline = Date().addingTimeInterval(timeout)
+        while Date() < deadline && (backButton.exists == false || backButton.isEnabled == false || backButton.isHittable == false) {
+            RunLoop.current.run(until: Date(timeIntervalSinceNow: liveSmokeFocusPollIntervalSeconds))
+        }
+        guard buttons.count == 1, backButton.exists, backButton.isEnabled, backButton.isHittable else {
+            throw LiveSmokeFailure.unexpectedAccountState(
+                message: "Expected exactly one enabled, hittable native Settings back button within \(timeout)s; found \(buttons.count) buttons. Source: \(sourceIdentifier).",
+                screen: self.currentScreenSummary(),
+                step: self.currentStepTitle
+            )
+        }
+        self.logActionStart(action: "tap_back", identifier: sourceIdentifier)
+        backButton.tap()
         try self.assertElementDoesNotExist(identifier: sourceIdentifier, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
         try self.assertScreenVisible(screen: .settings, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
-        self.logActionEnd(action: "swipe_back", identifier: sourceIdentifier, result: "success", note: "native edge back reached Settings")
+        self.logActionEnd(action: "tap_back", identifier: sourceIdentifier, result: "success", note: "native back button reached Settings")
     }
     #endif
 
