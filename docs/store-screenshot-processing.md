@@ -1,10 +1,7 @@
 # Nibomo store-card design and independent processing
 
-Mariia approved this design on 2026-10-09. This guide transfers the rules, code,
-approved visual assets, localized text and image-editing prompts from the
-marketing-site workspace into the app repository.
-
-The flow is explicitly separate from native screenshot generation:
+Mariia approved this design on 2026-10-09. The flow is explicitly separate from
+native screenshot generation:
 
 1. Run the existing iOS or Android native capture flow when screenshots need to
    change. That flow continues to own simulators/emulators, fixture content,
@@ -37,30 +34,18 @@ The approved inventory is:
 | `apps/ios/docs/media/app-store-cards/additional-languages/iphone/` | 40 | Prepared; these languages have no separate App Store listing |
 | `apps/android/docs/media/play-store-cards/ready/*/phoneScreenshots/` | 255 | Uploaded to Google Play, including Zulu |
 
-The archived inventory contains 1140 cards: 885 Apple and 255 Android. The 210
-iPad cards use the current 2752 × 2064 native landscape inputs, and the 210 Mac
-cards use genuine 1440 × 900 native Catalyst windows. The 935 cards present
-before the localized Duo inner delivery retain their exact bytes. The current
-`export-manifest.json` records output/source SHA-256
-hashes, row-level processing provenance and rendering measurements.
-`source-manifest.json` pins the original native-source package to public app
-revision `8ad37887e71cb946a6697a9ad657ef0ab61ce6bd`; it is historical provenance,
-not the input inventory for the current iPad render. The
+Each output's `export-manifest.json` records output/source SHA-256 hashes,
+row-level processing provenance and rendering measurements. The
 [iOS card provenance](../apps/ios/docs/media/app-store-cards/README.md) records the
-current processing invocation. The separate
+current processing invocation and links the native-source manifests, including
 [`duo-source-manifest.json`](../apps/ios/docs/media/app-store-cards/duo-source-manifest.json)
-owns genuine Duo capture provenance. All 42 Store locales have inner assets;
-only `en-US` has outer assets. [`macos-source-manifest.json`](../apps/ios/docs/media/app-store-cards/macos-source-manifest.json)
-records all 210 native Mac originals captured on 2026-10-12, the isolated signed
-build, toolchain, hashes and processing recipe. Every Mac original and full-size
-card was visually inspected. The 2880 × 1800 cards preserve the complete window
-and have 29 solid grey border pixels on all four sides.
+and [`macos-source-manifest.json`](../apps/ios/docs/media/app-store-cards/macos-source-manifest.json).
+Every Mac original and full-size card was visually inspected.
 
 The processor owns reusable backgrounds, copy, locale maps and image-generation
 provenance under `scripts/store-screenshots/assets/`; output folders do not carry
 redundant copies. Android gallery feature-graphic links point at the canonical
-`play-store-feature-graphic/` files. Its package summary counts linked banners,
-not extra banner files in `ready/`.
+`play-store-feature-graphic/` files.
 
 Use the [manual refresh procedure](../scripts/store-screenshots/README.md#manual-refresh-after-native-capture)
 to render candidates in cloud, review them, and publish an updated media snapshot.
@@ -70,13 +55,9 @@ before merge. Store upload remains separately authorized.
 
 ## Approved five-card contract
 
-| Output card | Role | Native screenshot index | English heading | English caption |
-| --- | --- | --- | --- | --- |
-| 01 | AI creation | 4 | Nibomo App | Create flashcards with AI |
-| 02 | Review question | 1 | Start Learning | Recall the answer yourself |
-| 03 | Answer and intervals | 2 | Smart Reviews | Review at the right time |
-| 04 | Progress | 3 | Your Progress | Track your study days |
-| 05 | Card library | 5 | Your Cards | All your cards in one place |
+The five cards are, in order: AI creation, review question, answer and intervals,
+progress, and card library. Their native screenshot order and slugs are in the
+renderers, and their copy in `scripts/store-screenshots/assets/localized-copy.json`.
 
 Preserve these requirements:
 
@@ -94,58 +75,25 @@ Preserve these requirements:
 - Shorten copy when it does not fit. Never shrink one card's font independently.
 - Retain RTL text direction; card 01's brand remains LTR and the number pill's
   content remains LTR. Keep the whole heading group centered in either direction.
+- Export opaque lossless **RGB PNGs**, not indexed/palette or alpha images.
 
-The full original references are in
+The full original references are
 `scripts/store-screenshots/assets/app-store/reference/01.png` through `05.png`.
-They are 519 × 1122 reference images. The clean header plates are separate from
-them. The formatter overlays new editable typography and the real native capture;
-the reference's old header text and old app screen are not used as the output UI.
+The formatter overlays new editable typography and the real native capture on
+separate clean header plates; the reference's old header text and old app screen
+are not used as the output UI.
 
 ## Format profiles
 
-| Profile | Output size | Native input size | Shared font scale |
-| --- | --- | --- | --- |
-| iPhone | 1284 × 2778 | 1284 × 2778 | width / 519 |
-| iPad | 2752 × 2064 landscape | 2752 × 2064 landscape | height / 1122 × 1.35 |
-| iPhone Duo outer | 1398 × 2034 | 1398 × 2034 portrait | height / 1122 × 1.35 |
-| iPhone Duo inner | 2853 × 2007 landscape | 2853 × 2007 landscape | height / 1122 × 1.35 |
-| Mac Catalyst | 2880 × 1800 landscape | 1280 × 800, 1440 × 900, 2560 × 1600, or 2880 × 1800 | height / 1122 × 1.35 |
-| Android phone | 1080 × 1920 | 1080 × 2400 | width / 519 |
-
-The base heading is Arial/sans-serif 44 px, weight 700, line height 53 px. The
-base caption is 24 px, weight 400, line height 28 px. The base number capsule is
-50 × 30 px with 20 px text, 15 px radius and a 16 px gap to the heading. The
-format scale multiplies those text measurements uniformly.
-
-iPhone and Duo outer retain the approved portrait geometry: heading row top
-`63 × scale`, caption top `141 × scale`, frame top `212 × scale` and frame
-height `860 × scale`.
-
-iPad, Duo inner and Mac Catalyst use a landscape canvas and an inner frame box
-matching the genuine source aspect ratio. The complete native screen has equal
-`18 × scale` frame-color padding on all four sides, without internal letterboxing.
-The heading, caption and frame start at `45 × scale`, `125 × scale` and
-`175 × scale`. Frame width is `420 × canvas width / 519`, constrained by a
-50 px bottom margin. The exact CSS and measured audits are in `render-ios.mts`
-and the export manifest. Portrait iPad inputs are rejected.
-
-Duo and Mac profiles reuse the five backgrounds, copy, and card order. They read
-only genuine native PNGs from their matching family folder under the iOS input
-root and write separate `ready/<family>/` folders. Select them explicitly with
-`--platform ios --family iphone-duo-outer|iphone-duo-inner|macos`, plus optional
-`--locales`. The default `--family all` processes only iPhone and iPad. The 42
-existing App Store locales supply iPad, Duo and Mac copy. Capture and store upload
-remain separate operations.
-
-Android uses a separate 9:16 canvas. Its heading row starts at 110 px, caption at
-260 px and frame at 370 px. The entire native 1080 × 2400 capture is displayed
-at 652.5 × 1450, with 30 px brown padding and a centered 712.5 × 1510 frame.
-The marketing header occupies less than 20% of image height. The exact CSS is
-in `render-android.mts`.
-
-Export opaque **RGB PNGs**, not indexed/palette or alpha images. The processor
-uses lossless PNG compression and does not apply the older horizontal builder's
-`pngquant` palette-reduction step to store cards.
+The profiles are iPhone, iPad (landscape), iPhone Duo outer, iPhone Duo inner
+(landscape) and Mac Catalyst (landscape) in
+[`render-ios.mts`](../scripts/store-screenshots/render-ios.mts), and Android phone in
+[`render-android.mts`](../scripts/store-screenshots/render-android.mts). Each
+renderer holds its accepted native input sizes, output size and the exact CSS
+geometry, and each export manifest records the measured result. iPad, Duo inner
+and Mac cards keep the complete native screen in its own aspect ratio with equal
+frame padding on all four sides; Android uses a separate 9:16 canvas whose
+marketing header stays under 20% of the image height.
 
 Format references checked on 2026-10-09:
 
@@ -164,17 +112,9 @@ and checked for fit; a layout check is not a native-language editorial review.
 
 Store copy has one shared source: five `[heading, caption]` pairs per canonical
 capture tag in `assets/localized-copy.json`. Android listing variants select that
-copy through their `copyTag` mapping. Platform listing maps are tracked separately
-in each `store-locales.json`. These are marketing strings, not app-internal localization
+copy through their `copyTag` mapping, and each platform's listing map is its own
+`store-locales.json`. These are marketing strings, not app-internal localization
 resources. Keep the existing platform localization ownership intact.
-
-The transfer contains 50 iOS capture tags (49 languages, with two Spanish regions)
-and 51 Android listing variants (49 languages, with three Spanish regions).
-The iOS mapping separates 42 listing locales from eight iPhone-only non-Store
-languages. Android uses `en` as the raw capture prefix for listing `en-US` and
-retains the app's existing exact Play listing codes. Zulu availability was verified
-in this app's Play Console during the phone upload; its mapping and gallery use
-`consoleAvailability: verified-in-play-console`.
 
 LLM work is **authoring only**, outside the renderer:
 
@@ -206,19 +146,13 @@ Regenerating those assets is a design change, not a normal screenshot-refresh
 step. Keep the existing gradients, produce background-only plates, and never ask
 image generation to redraw the real app screen or final marketing typography.
 
-## Validation and visual review
+## Visual review
 
-The real browser layout checks group/caption centering to 0.1 px, safe margins,
-single-line copy, shared font styles/positions, complete screen/frame bounds and
-native proportions. It reads actual platform fonts on a localized heading and
-rejects `LastResort` missing-glyph substitution. Browser requests are blocked;
-HTML and images are supplied in memory.
-
-The gallery builder then checks image hashes, translated pairs, complete five-card
-sets and RGB dimensions. Incremental reruns retain other sets and verify them
-again. The source-file hashes in the export manifest describe the exact saved
-native PNGs that were processed; the formatter does not infer their capture date
-or regenerate them to make them look fresh.
+The renderers check the layout in a real browser and reject missing-glyph
+substitution, and the gallery builders check every packaged set. The source-file
+hashes in the export manifest describe the exact saved native PNGs that were
+processed; the formatter does not infer their capture date or regenerate them to
+make them look fresh.
 
 Before a design update or browser/font-environment change, process representative
 English, Russian, RTL, CJK and Indic sets. Review all five full-size cards on
