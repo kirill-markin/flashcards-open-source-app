@@ -296,13 +296,13 @@ export async function checkAccountConnectionHttp(): Promise<void> {
     assert.equal(browser.headers.get("set-cookie"), null);
     const contexts = new Hono<AuthAppEnv>();
     contexts.get("/context", (c) => c.json({ csrfToken: createAccountBrowserContext(c) }));
+    contexts.get("/retain", (c) => { preserveAccountConnectionContext(c, original); return c.body(null, 204); });
     const created = await contexts.request(origin + "/context", { headers: { Origin: origin } });
     const { csrfToken } = await created.json() as Readonly<{ csrfToken: string }>;
     assert.match(created.headers.get("set-cookie")!, /(?:^|; )Max-Age=600(?:;|$)/i);
     const initialCookie = created.headers.get("set-cookie")!.split(";")[0];
     type BrowserContext = Parameters<typeof preserveAccountConnectionContext>[1] & Readonly<{ expiresAt: number }>;
     const original = JSON.parse(verify(initialCookie.slice(initialCookie.indexOf("=") + 1))) as BrowserContext;
-    contexts.get("/retain", (c) => { preserveAccountConnectionContext(c, original); return c.body(null, 204); });
     const retained = await contexts.request(origin + "/retain", { headers: { Origin: origin } });
     assert.match(retained.headers.get("set-cookie")!, /(?:^|; )Max-Age=86400(?:;|$)/i);
     const retainedCookie = retained.headers.get("set-cookie")!.split(";")[0];
