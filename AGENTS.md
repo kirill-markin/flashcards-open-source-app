@@ -145,6 +145,7 @@ Details and key files: [docs/auth-service.md](docs/auth-service.md).
 - Prefer pure functions for domain logic.
 - Use strict typing across services.
 - Keep changes minimal and scoped.
+- Store each fact once: in code; if code cannot say it, in the shortest comment beside the code that enforces it; only short high-level information no code can hold (how parts combine, product and business decisions, procedures a human runs) goes in `docs/`, once. Everything else links to it, and a repeat needs a reason. Marketing and published content (store and connector listings, website articles) is content, not code documentation, and is exempt.
 - Offline-first clients may apply narrow local overlays for pending changes, but complex product/domain rules must stay server-owned unless explicitly required; do not reimplement full backend algorithms in clients.
 - The conventional machine API document probes (`GET /v1/openapi.json`, `GET /v1/swagger.json`, `GET /v1/agent/openapi.json`, and `GET /v1/agent/swagger.json`) return concise source-discovery JSON that links to the open-source repository and relevant backend and auth route source files; they do not publish OpenAPI documents.
 - The in-app chat and the MCP server serve one tool inventory from a shared registry, and the Agent REST API re-implements the same capabilities as HTTP routes over the same shared contract modules; before changing any of those three surfaces, read [docs/agent-tool-surfaces.md](docs/agent-tool-surfaces.md).
