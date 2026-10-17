@@ -1,0 +1,42 @@
+{
+  "configurations": [
+    {
+      "id": "AF880B6A-4DC6-4341-ADB9-4D44113DB72D",
+      "name": "Acceptance",
+      "options": {}
+    }
+  ],
+  "defaultOptions": {
+    "diagnosticCollectionPolicy": "Never",
+    "environmentVariableEntries": [
+      {
+        "key": "FLASHCARDS_AUTOMATION_RUN",
+        "value": "1"
+      },
+      {
+        "key": "FLASHCARDS_SENTRY_ENVIRONMENT_OVERRIDE",
+        "value": "ci-simulator"
+      }
+    ],
+    "targetForVariableExpansion": {
+      "containerPath": "container:Flashcards Open Source App.xcodeproj",
+      "identifier": "A10000000000000000000004",
+      "name": "Flashcards Open Source App"
+    }
+  },
+  "testTargets": [
+    {
+      "parallelizable": false,
+      "target": {
+        "containerPath": "container:Flashcards Open Source App.xcodeproj",
+        "identifier": "A10000000000000000000035",
+        "name": "Flashcards Open Source App UI Tests"
+      },
+      "selectedTests": [
+        "LiveSmokeIPadTests",
+        "LiveSmokeAIConsentTests/testWideCompanionAndCardHandoffStayBlockedAfterWithdrawal()"
+      ]
+    }
+  ],
+  "version": 1
+}
