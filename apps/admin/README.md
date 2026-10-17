@@ -51,6 +51,17 @@ Local defaults:
 
 The local backend and auth allowlists must include both `http://localhost:3000` and `http://localhost:3001`.
 
+### Local admin on production data (read-only)
+
+```bash
+make local-admin
+```
+
+[The script](../../scripts/local/admin-prod-readonly.sh) needs no login and no root `.env`, only the `flashcards-open-source-app` AWS profile and the `session-manager-plugin`. It resolves a fresh access bundle, opens the [SSM tunnel](../../docs/analytics-db-access.md#operator-path-ssm-port-forwarding) on `127.0.0.1:15432`, and starts the backend with `AUTH_MODE=none` plus this app on `http://localhost:3001`.
+
+- Safety: every backend database connection uses the `reporting_readonly` role; the password is never stored or printed; the backend and this app listen on `127.0.0.1` only, because the auth bypass trusts the client-supplied `Host` header; Ctrl-C stops both servers and terminates the SSM session.
+- Limits: anything that writes fails; the role's [connection limit](../../docs/analytics-db-access.md#database-role-reporting_readonly) is shared with production admin and operator tunnels; it shares port `8080` with `make local-app`, so run one at a time; CloudFront rewrites and the minified production build are not covered.
+
 ## Auth flow
 
 - The app calls `GET /v1/admin/session` on load.
