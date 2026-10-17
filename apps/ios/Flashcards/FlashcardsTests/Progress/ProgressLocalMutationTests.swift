@@ -54,7 +54,7 @@ final class ProgressLocalMutationTests: ProgressStoreTestCase {
         XCTAssertEqual(1, context.cloudSyncService.loadProgressSummaryCallCount)
         XCTAssertEqual(1, context.cloudSyncService.loadProgressSeriesCallCount)
         let progressSnapshot = try XCTUnwrap(context.store.progressSnapshot)
-        XCTAssertEqual(.serverBaseWithPendingLocalOverlay, progressSnapshot.summarySourceState)
+        XCTAssertEqual(initialSnapshot.summarySourceState, progressSnapshot.summarySourceState)
         XCTAssertEqual(.serverBaseWithPendingLocalOverlay, progressSnapshot.seriesSourceState)
         XCTAssertFalse(progressSnapshot.isApproximate)
         XCTAssertEqual(3, progressReviewCount(snapshot: progressSnapshot, localDate: requestRange.to))
@@ -68,7 +68,7 @@ final class ProgressLocalMutationTests: ProgressStoreTestCase {
         let database = try self.makeDatabase()
         let workspace = try database.workspaceSettingsStore.loadWorkspace()
         let cloudSettings = try database.workspaceSettingsStore.loadCloudSettings()
-        let timeZone = try XCTUnwrap(TimeZone(identifier: "UTC"))
+        let timeZone = TimeZone.current
         let now = try XCTUnwrap(parseIsoTimestamp(value: "2026-04-18T12:00:00.000Z"))
         let requestRange = try makeTestProgressRequestRange(
             now: now,
@@ -362,8 +362,13 @@ final class ProgressLocalMutationTests: ProgressStoreTestCase {
         let database = try self.makeDatabase()
         let workspace = try database.workspaceSettingsStore.loadWorkspace()
         let cloudSettings = try database.workspaceSettingsStore.loadCloudSettings()
-        let timeZone = try XCTUnwrap(TimeZone(identifier: "UTC"))
-        let now = try XCTUnwrap(parseIsoTimestamp(value: "2026-04-18T12:00:00.000Z"))
+        let timeZone = TimeZone.current
+        let nowTimestamp = try makeReviewedAtClientForTests(
+            localDate: "2026-04-18",
+            hour: 12,
+            timeZoneIdentifier: timeZone.identifier
+        )
+        let now = try XCTUnwrap(parseIsoTimestamp(value: nowTimestamp))
         let requestRange = try makeTestProgressRequestRange(
             now: now,
             timeZone: timeZone,
@@ -372,12 +377,12 @@ final class ProgressLocalMutationTests: ProgressStoreTestCase {
         let serverSeries = try makeTestProgressSeries(
             requestRange: requestRange,
             reviewCountsByDate: [:],
-            generatedAt: "2026-04-18T11:59:00.000Z"
+            generatedAt: formatIsoTimestamp(date: now.addingTimeInterval(-60))
         )
         let serverSummary = try makeTestProgressSummary(
             timeZone: requestRange.timeZone,
             reviewDates: [],
-            generatedAt: "2026-04-18T11:59:00.000Z"
+            generatedAt: formatIsoTimestamp(date: now.addingTimeInterval(-60))
         )
         let context = try self.makeProgressStoreContext(
             database: database,
@@ -402,7 +407,7 @@ final class ProgressLocalMutationTests: ProgressStoreTestCase {
                 hour: 12,
                 timeZoneIdentifier: requestRange.timeZone
             ),
-            reviewedTimeZone: "UTC",
+            reviewedTimeZone: requestRange.timeZone,
             rating: .good
         )
 
@@ -421,7 +426,7 @@ final class ProgressLocalMutationTests: ProgressStoreTestCase {
         let database = try self.makeDatabase()
         let workspace = try database.workspaceSettingsStore.loadWorkspace()
         let cloudSettings = try database.workspaceSettingsStore.loadCloudSettings()
-        let timeZone = try XCTUnwrap(TimeZone(identifier: "UTC"))
+        let timeZone = TimeZone.current
         let now = try XCTUnwrap(parseIsoTimestamp(value: "2026-04-18T12:00:00.000Z"))
         let requestRange = try makeTestProgressRequestRange(
             now: now,

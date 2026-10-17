@@ -275,6 +275,19 @@ final class ProgressSyncCompletionTests: ProgressStoreTestCase {
             workspaceId: workspace.workspaceId,
             reviewedAtClient: "2026-04-02T15:50:57.000Z"
         )
+        let setupOutboxEntries = try database.loadOutboxEntries(
+            workspaceId: workspace.workspaceId,
+            limit: Int.max
+        )
+        try database.deleteOutboxEntries(
+            operationIds: setupOutboxEntries.filter { $0.operation.entityType == .card }.map(\.operationId)
+        )
+        let pendingReviewEntries = try database.loadOutboxEntries(
+            workspaceId: workspace.workspaceId,
+            limit: Int.max
+        )
+        XCTAssertEqual([.reviewEvent], pendingReviewEntries.map { $0.operation.entityType })
+        XCTAssertFalse(pendingReviewEntries.contains { $0.reviewScheduleImpact })
 
         let now = try XCTUnwrap(parseIsoTimestamp(value: "2026-04-18T12:00:00.000Z"))
         let requestRange = try makeTestProgressRequestRange(
@@ -395,6 +408,19 @@ final class ProgressSyncCompletionTests: ProgressStoreTestCase {
             workspaceId: workspace.workspaceId,
             reviewedAtClient: "2026-04-02T15:50:57.000Z"
         )
+        let setupOutboxEntries = try database.loadOutboxEntries(
+            workspaceId: workspace.workspaceId,
+            limit: Int.max
+        )
+        try database.deleteOutboxEntries(
+            operationIds: setupOutboxEntries.filter { $0.operation.entityType == .card }.map(\.operationId)
+        )
+        let pendingReviewEntries = try database.loadOutboxEntries(
+            workspaceId: workspace.workspaceId,
+            limit: Int.max
+        )
+        XCTAssertEqual([.reviewEvent], pendingReviewEntries.map { $0.operation.entityType })
+        XCTAssertFalse(pendingReviewEntries.contains { $0.reviewScheduleImpact })
 
         let now = try XCTUnwrap(parseIsoTimestamp(value: "2026-04-18T12:00:00.000Z"))
         let requestRange = try makeTestProgressRequestRange(
@@ -832,7 +858,7 @@ final class ProgressSyncCompletionTests: ProgressStoreTestCase {
         XCTAssertEqual(initialSummaryCallCount, context.cloudSyncService.loadProgressSummaryCallCount)
         XCTAssertEqual(initialSeriesCallCount, context.cloudSyncService.loadProgressSeriesCallCount)
         let progressSnapshot = try XCTUnwrap(context.store.progressSnapshot)
-        XCTAssertEqual(2, progressSnapshot.summary.activeReviewDays)
-        XCTAssertEqual("2026-04-02", progressSnapshot.summary.lastReviewedOn)
+        XCTAssertEqual(1, progressSnapshot.summary.activeReviewDays)
+        XCTAssertEqual("2026-04-01", progressSnapshot.summary.lastReviewedOn)
     }
 }

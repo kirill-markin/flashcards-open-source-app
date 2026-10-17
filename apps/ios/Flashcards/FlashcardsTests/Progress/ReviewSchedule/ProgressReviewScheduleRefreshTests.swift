@@ -107,8 +107,12 @@ final class ProgressReviewScheduleRefreshTests: ProgressStoreTestCase {
 
         let localReviewScheduleSnapshot = try XCTUnwrap(context.store.reviewScheduleSnapshot)
         XCTAssertEqual(.localOnly, localReviewScheduleSnapshot.sourceState)
+        XCTAssertEqual(
+            localizedProgressReviewScheduleRefreshErrorMessage(),
+            context.store.progressErrorState.reviewScheduleRefreshMessage
+        )
         XCTAssertTrue(
-            context.store.progressErrorState.reviewScheduleRefreshMessage.contains(
+            try XCTUnwrap(context.store.presentedTechnicalError).technicalDetails.contains(
                 "Review schedule server refresh failed"
             )
         )
@@ -336,17 +340,6 @@ final class ProgressReviewScheduleRefreshTests: ProgressStoreTestCase {
             ]
         )
 
-        // Two caches need to be invalidated to force a fresh local-fallback
-        // evaluation:
-        //   1. handleReviewScheduleLocalCardStateDidChange bumps the local
-        //      revision so the local-fallback cache key (keyed on
-        //      progressReviewScheduleLocalRevision) misses. Direct SQL
-        //      bypasses saveCard, which is the production path that fires
-        //      this hook; we mirror it explicitly here.
-        //   2. invalidateProgressReviewSchedule drops the server-base cache
-        //      and persisted server snapshot for this scope, ensuring the
-        //      next prepare falls back to the local computation we want to
-        //      surface as an error.
         context.store.handleReviewScheduleLocalCardStateDidChange(now: now)
         context.store.invalidateProgressReviewSchedule(scopeKey: scheduleScopeKey)
         XCTAssertNoThrow(try context.store.prepareProgressSnapshot(now: now))
@@ -359,8 +352,12 @@ final class ProgressReviewScheduleRefreshTests: ProgressStoreTestCase {
         XCTAssertTrue(context.store.progressErrorState.summaryRefreshMessage.isEmpty)
         XCTAssertTrue(context.store.progressErrorState.seriesRefreshMessage.isEmpty)
         XCTAssertTrue(context.store.progressErrorState.reviewScheduleRefreshMessage.isEmpty)
+        XCTAssertEqual(
+            localizedProgressReviewScheduleRenderErrorMessage(),
+            context.store.progressErrorState.reviewScheduleRenderMessage
+        )
         XCTAssertTrue(
-            context.store.progressErrorState.reviewScheduleRenderMessage.contains(
+            try XCTUnwrap(context.store.presentedTechnicalError).technicalDetails.contains(
                 "Review schedule cannot bucket 1 active cards"
             )
         )
