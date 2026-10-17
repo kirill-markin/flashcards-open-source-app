@@ -96,7 +96,7 @@ For Xcode Cloud workflows that select linked-workspace login smokes, also set:
 
 `FLASHCARDS_LIVE_REVIEW_EMAIL` is required in the UI-test runner for login
 smokes. Guest-only runs do not need it. For local CLI injection, see the
-[iOS 18 compatibility smoke](#ios-18-compatibility-smoke) below.
+[local native acceptance](#local-native-acceptance) below.
 
 ## Local App Store archive
 
@@ -179,8 +179,7 @@ distribution.
 ## Local Testing Rules
 
 The iOS Xcode project is file-synchronized, so new Swift files can be added without manual `project.pbxproj` edits.
-iOS full test runs can take a bit more than 2 minutes locally, and that is normal.
-Run the full existing smoke selection on one latest iPhone simulator runtime that is already downloaded locally. Use one additional iOS 18 destination only for the compatibility selection below.
+Use the [repository testing policy](../AGENTS.md#testing-philosophy) and the acceptance plans below. Record measured build/test durations.
 Prefer an already booted local iPhone simulator on the selected iOS runtime. Reuse that exact device instead of booting a different one when possible.
 Prefer the background CLI flow over opening heavy Xcode UI: `xcrun simctl bootstatus`, then `xcodebuild test`.
 Do not open a visible iOS Simulator window for test runs unless the user explicitly asks for a visible simulator at that time.
@@ -189,79 +188,86 @@ If an iOS test fails, inspect the generated `.xcresult` bundle and read the rele
 If a suitable simulator is already warmed, keep using it and avoid rebuilding unnecessarily.
 If no suitable local iPhone simulator runtime is already available, downloading one is slow and large, so tell the user before starting that download.
 For iOS, `My Mac` can be used only for iOS compile smoke-checks such as `build` or `build-for-testing`, not as a reliable destination for app-hosted unit tests.
-Preferred local CLI examples:
+
+## Local native acceptance
+
+For every new release, complete the unsigned device Release archive in [the release procedure](release/ios.md#ios) and all three local test gates below on the accepted native inputs. Run one destination per invocation, sequentially; latest iPhone and iPad must use the same latest supported iOS major. Pin device UUID/model, actual OS, Xcode/SDK, exact source SHA, scheme, test plan, test-plan configuration and build configuration in the [ledger](release/evidence.md#release-ledger).
+
+Use shared scheme **Flashcards Native Acceptance**, `-only-test-configuration Acceptance` (the test-plan configuration), and Debug build configuration. The original **Flashcards Open Source App** scheme remains the archive/Catalyst scheme; invoking it without an explicit acceptance plan does not establish these local gates.
+
+| Gate / plan | Exactly one destination | Required inventory |
+| --- | --- | --- |
+| `local-full` / `LocalFull` | Latest iPhone | Entire existing `Flashcards Open Source App Tests` non-UI bundle and all eligible `Flashcards Open Source App UI Tests` flows. UI coverage includes Review, Cards, AI, Settings, own-key persistence, ordinary iPhone, RTL and the four phone-eligible consent flows. |
+| `local-ipad` / `LocalIPad` | Latest iPad | `LiveSmokeIPadTests/testIPadCompanionPreservesDraftAndRevealedReviewAcrossSections()`, `LiveSmokeIPadTests/testIPadReviewHardwareKeysRespectFilterAndRateCards()`, `LiveSmokeAIConsentTests/testWideCompanionAndCardHandoffStayBlockedAfterWithdrawal()` |
+| `local-ios18` / `IOS18Compatibility` | Actual iOS/iPadOS 18.x iPhone or iPad | `LiveSmokeSettingsTests/testLiveSmokeGuestNavigationFlow()`, `LiveSmokeReviewTests/testLiveSmokeManualCardReviewFlow()`, `LiveSmokeSettingsTests/testLiveSmokeLoginAndLinkedWorkspaceFlow()` |
+| `cloud-smoke` / `CloudSmoke` | One latest Cloud iPhone | The same three methods as `IOS18Compatibility`; Cloud archive/signing remains independent. |
+
+The full phone plan excludes `MarketingScreenshotsTests`, `LiveSmokeIPadTests`, `LiveSmokeMacCatalystTests` and only the wide-companion consent method. The iPad plan selects both iPad methods and that consent method; the compatibility and Cloud plans select exactly the three named methods. These are plan exclusions, not passing or skipped test results. Independently establish the full expected discovered inventory from the pinned scheme, plan, source and Xcode selection before inspecting passes; retain every selected non-UI/UI method and its native result. Do not infer completeness from these descriptions or a fixed count. Record unexpected skips, failures, missing or unselected required methods as blocking; acceptance requires every configured required case to execute and pass.
+
+Configure the review email in the UI-test runner for all plans. `TEST_RUNNER_` passes the variable to the runner with that prefix removed; setting it only in the app process or a separately invoked `ci_post_clone.sh` does not satisfy `configuredReviewEmail()`. The plans and UI launcher set `FLASHCARDS_AUTOMATION_RUN=1`; verify `automation_run_decided` reports `isAutomation=true` before app interaction. Keep software keyboard input available.
+
+After local configuration setup, inspect installed runtimes/devices and substitute actual UUIDs and unique result paths. Run from the repository root; each command has one explicit plan and one destination. Keep `set -o pipefail` when using `tee`, so logging cannot hide a failure:
 
 ```bash
+set -o pipefail
+mkdir -p tmp
+xcrun simctl list runtimes
 xcrun simctl list devices available
-xcrun simctl bootstatus <device-uuid> -b
-xcodebuild -project "apps/ios/Flashcards/Flashcards Open Source App.xcodeproj" -scheme "Flashcards Open Source App" -derivedDataPath "tmp/ios-derived-data" -destination 'platform=iOS Simulator,id=<device-uuid>' test
-xcodebuild -project "apps/ios/Flashcards/Flashcards Open Source App.xcodeproj" -scheme "Flashcards Open Source App" -derivedDataPath "tmp/ios-derived-data" -destination 'platform=iOS Simulator,id=<device-uuid>' -only-testing:'Flashcards Open Source App UI Tests/LiveSmokeSettingsTests/testLiveSmokeLocalNavigationFlow' test
+xcrun simctl bootstatus <latest-iphone-uuid> -b
+TEST_RUNNER_FLASHCARDS_LIVE_REVIEW_EMAIL=apple-review@example.com \
+xcodebuild \
+  -project "apps/ios/Flashcards/Flashcards Open Source App.xcodeproj" \
+  -scheme "Flashcards Native Acceptance" \
+  -configuration Debug -testPlan LocalFull -only-test-configuration Acceptance \
+  -derivedDataPath "tmp/ios-derived-data" \
+  -destination 'platform=iOS Simulator,id=<latest-iphone-uuid>' \
+  -parallel-testing-enabled NO \
+  -resultBundlePath "tmp/ios-local-full-<unique-run>.xcresult" \
+  CODE_SIGNING_ALLOWED=YES CODE_SIGN_IDENTITY=- test \
+  2>&1 | tee "tmp/ios-local-full-<unique-run>.log"
+
+xcrun simctl bootstatus <latest-ipad-uuid> -b
+TEST_RUNNER_FLASHCARDS_LIVE_REVIEW_EMAIL=apple-review@example.com \
+xcodebuild \
+  -project "apps/ios/Flashcards/Flashcards Open Source App.xcodeproj" \
+  -scheme "Flashcards Native Acceptance" \
+  -configuration Debug -testPlan LocalIPad -only-test-configuration Acceptance \
+  -derivedDataPath "tmp/ios-derived-data" \
+  -destination 'platform=iOS Simulator,id=<latest-ipad-uuid>' \
+  -parallel-testing-enabled NO \
+  -resultBundlePath "tmp/ios-local-ipad-<unique-run>.xcresult" \
+  CODE_SIGNING_ALLOWED=YES CODE_SIGN_IDENTITY=- test \
+  2>&1 | tee "tmp/ios-local-ipad-<unique-run>.log"
 ```
+
+The ad-hoc signing overrides enable simulator app/runner signing and their Keychain access. Inspect full logs, named results and `.xcresult` attachments even after a successful command. The plans' `diagnosticCollectionPolicy=Never` leaves ordinary XCTest logs/results and explicit screenshot/hierarchy attachments available; retain failure artifacts before rerunning. Record measured durations and evidence sizes separately from targets.
+
+During diagnosis, append `-only-testing:'<target>/<class>/<method>'` before `test` to rerun an affected selected method. Such filtered results are diagnostic evidence, not a complete acceptance gate. After fixes, require a complete all-green affected plan on accepted inputs; retain successful unchanged gates only under [bounded source equivalence](release/evidence.md#resume-and-artifact-reuse). Do not force new native runs for docs-only/unrelated changes when that comparison proves all relevant native inputs unchanged. Do not reuse failed or interrupted results as passes.
 
 ## iOS 18 compatibility smoke
 
-Every new iOS release requires these three existing native smokes on one actual
-18.x destination, independently of the full latest-OS Xcode Cloud suite. Use
-Cloud only when the [selected toolchain's catalog and independent selection](ios-ci-cd.md#supported-os-destinations)
-permit it; otherwise this local run is mandatory before cloud release dispatch.
-Retain valid evidence only under the [existing source comparison and reuse rules](release/evidence.md#resume-and-artifact-reuse).
+Every new release requires the `IOS18Compatibility` plan on one actual 18.x destination locally, in addition to latest-iPhone full acceptance and focused latest-iPad acceptance. The small Cloud backstop stays on one latest iPhone.
 
-Use the current Xcode/SDK and pinned packages with deployment target 18.0.
-Inspect `xcrun simctl list runtimes` and `xcrun simctl list devices available`;
-select one device whose runtime is actually iOS 18.x. If absent, install an
-18.x runtime only if the selected Xcode supports it, or use a physical iPhone
-or iPad actually running 18.x. Do not count a newer runtime or `My Mac` as
-18 evidence. When local execution is required and neither is available, record
-the exact runtime/toolchain restriction and block the new release until resolved.
-Tell the user before downloading a runtime; source implementation does not
-require provisioning it.
-
-After the configuration setup above, run from the repository root. The login
-smoke requires the configured review-account email in the UI-test runner.
-Replace the example email below if your review account differs. The
-`TEST_RUNNER_` prefix makes `xcodebuild` pass `FLASHCARDS_LIVE_REVIEW_EMAIL`
-to the runner with the prefix removed; setting it only for the app process
-does not satisfy `configuredReviewEmail()`. Running `ci_post_clone.sh`
-separately generates build configuration but cannot export its loaded `.env`
-values into this command's environment.
+Use the current Xcode/SDK and pinned packages with deployment target 18.0. Inspect installed runtimes/devices; if no supported 18.x simulator is available, use a physical iPhone or iPad actually running 18.x. Tell the user before downloading a runtime. A newer runtime or `My Mac` provides no 18.x evidence. If neither eligible simulator nor hardware is available, record the exact toolchain/runtime restriction and block release.
 
 ```bash
+set -o pipefail
+mkdir -p tmp
 xcrun simctl bootstatus <ios-18-device-uuid> -b
 TEST_RUNNER_FLASHCARDS_LIVE_REVIEW_EMAIL=apple-review@example.com \
 xcodebuild \
   -project "apps/ios/Flashcards/Flashcards Open Source App.xcodeproj" \
-  -scheme "Flashcards Open Source App" \
+  -scheme "Flashcards Native Acceptance" \
+  -configuration Debug -testPlan IOS18Compatibility -only-test-configuration Acceptance \
   -derivedDataPath "tmp/ios-derived-data" \
   -destination 'platform=iOS Simulator,id=<ios-18-device-uuid>' \
-  -resultBundlePath "tmp/ios-18-smoke-<unique-run>.xcresult" \
-  -only-testing:'Flashcards Open Source App UI Tests/LiveSmokeSettingsTests/testLiveSmokeGuestNavigationFlow' \
-  -only-testing:'Flashcards Open Source App UI Tests/LiveSmokeReviewTests/testLiveSmokeManualCardReviewFlow' \
-  -only-testing:'Flashcards Open Source App UI Tests/LiveSmokeSettingsTests/testLiveSmokeLoginAndLinkedWorkspaceFlow' \
-  CODE_SIGNING_ALLOWED=YES \
-  CODE_SIGN_IDENTITY=- \
-  test
+  -parallel-testing-enabled NO \
+  -resultBundlePath "tmp/ios-local-ios18-<unique-run>.xcresult" \
+  CODE_SIGNING_ALLOWED=YES CODE_SIGN_IDENTITY=- test \
+  2>&1 | tee "tmp/ios-local-ios18-<unique-run>.log"
 ```
 
-The simulator signing overrides enable ad-hoc signing for the app and UI-test
-runner, including their keychain access.
-
-For hardware, omit `simctl` and use `-destination 'platform=iOS,id=<device-uuid>'`.
-Use a trusted device with Developer Mode enabled and a development team that
-can provision both the app and UI-test runner. Keep the same `TEST_RUNNER_`
-email injection and add `-allowProvisioningUpdates`, `CODE_SIGNING_ALLOWED=YES`
-and `DEVELOPMENT_TEAM=<team-id>` to the `xcodebuild` command before `test`.
-Replace the simulator-only `CODE_SIGN_IDENTITY=-` with a real installed
-Apple Development signing identity for that team.
-The command-line signing override is required because the UI-test target sets
-`CODE_SIGNING_ALLOWED=NO` in both Debug and Release; setting only a development
-team does not enable runner signing. Keep the software keyboard available.
-Do not create a duplicate suite
-or relax stable accessibility identifiers to accommodate older presentation.
-Inspect the `.xcresult` and require all three tests to execute and pass; skipped
-or unselected tests provide no evidence. Record the exact source SHA, Xcode/SDK,
-device and OS version, selected tests, named results, full logs and result
-bundle/run link in the existing [release ledger](release/evidence.md#release-ledger),
-with manual results when required. Keep the latest full existing Cloud smoke gate independently.
+For hardware, omit `simctl`, use `-destination 'platform=iOS,id=<device-uuid>'`, and replace `CODE_SIGN_IDENTITY=-` with a real installed Apple Development identity. Use a trusted device with Developer Mode, add `-allowProvisioningUpdates` and `DEVELOPMENT_TEAM=<team-id>`, and retain `CODE_SIGNING_ALLOWED=YES`: the test targets disable iOS signing by default, so a team alone does not enable runner signing. Keep runner email injection and the same plan/configuration. Require all three named tests to execute and pass, and record exact source/toolchain/destination, selection, logs and result bundle in the ledger. Do not create a duplicate suite or relax stable identifiers for older presentation.
 
 For the first public release expanding support to iOS/iPadOS 18, or changes
 affecting OS-specific behavior, also complete this short manual checklist on

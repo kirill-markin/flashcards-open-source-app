@@ -69,13 +69,13 @@ Do not mix destination-based `NavigationLink { ... }` pushes with value-based or
 
 ## Testing Rule
 
-Keep the full existing smoke selection on the latest supported iOS runtime. For iOS 18, use only the [minimum compatibility smoke and manual checklist](../../docs/ios-local-setup.md#ios-18-compatibility-smoke). Apple testing stays in Xcode Cloud or local Xcode.
+Follow the [local native acceptance procedure](../../docs/ios-local-setup.md#local-native-acceptance): full latest-iPhone UI and existing non-UI tests, focused latest-iPad tests, and the minimum iOS 18 compatibility selection. The [Cloud backstop](../../docs/ios-ci-cd.md#native-release-gate) uses its own small plan. Apple testing stays in Xcode Cloud or local Xcode; local execution follows the [repository testing policy](../../AGENTS.md#testing-philosophy).
 
 - Do not try to cover the iOS app exhaustively with tests
 - Do not add isolated unit tests by default
 - Prefer native integration, parity, or UI tests when they validate a real module boundary or user flow
 - Use narrow native availability handling for iOS 18; do not duplicate screens or business logic
-- Use one latest runtime and one iOS 18 destination for the selected compatibility flows
+- Use one latest iPhone, one latest iPad and one actual iOS 18 destination for their respective plans
 - Prefer an already booted local iPhone simulator on the selected runtime
 - Prefer background CLI runs with `simctl` and `xcodebuild` instead of opening heavy Xcode UI flows
 - Do not open a visible Simulator window for test runs unless the user explicitly asks for a visible simulator at that time
@@ -88,23 +88,7 @@ The most trusted iOS checks are the simulator-backed native smoke flows because 
 
 ## Local Test Workflow
 
-For a local iOS simulator-backed test run, prefer this sequence:
-
-1. Reuse an already booted iPhone simulator when available.
-2. Wait for that simulator with `xcrun simctl bootstatus <device-uuid> -b`.
-3. Run the requested suite or individual test with `xcodebuild ... test`.
-4. If the run fails, inspect the `.xcresult` failure artifacts before attempting a fix.
-
-For simulator-backed XCUITest runs that edit text inputs, keep the software keyboard available and do not rely on `Connect Hardware Keyboard`. Text entry is materially less stable when the simulator does not surface the on-screen keyboard.
-
-Preferred command pattern:
-
-```bash
-xcrun simctl list devices available
-xcrun simctl bootstatus <device-uuid> -b
-xcodebuild -project "apps/ios/Flashcards/Flashcards Open Source App.xcodeproj" -scheme "Flashcards Open Source App" -derivedDataPath "tmp/ios-derived-data" -destination 'platform=iOS Simulator,id=<device-uuid>' test
-xcodebuild -project "apps/ios/Flashcards/Flashcards Open Source App.xcodeproj" -scheme "Flashcards Open Source App" -derivedDataPath "tmp/ios-derived-data" -destination 'platform=iOS Simulator,id=<device-uuid>' -only-testing:'Flashcards Open Source App UI Tests/LiveSmokeSettingsTests/testLiveSmokeLocalNavigationFlow' test
-```
+Use the exact scheme, plans, configuration, signing overrides and single-destination commands in [iOS Local Setup](../../docs/ios-local-setup.md#local-native-acceptance). Reuse warmed simulators, wait for `simctl bootstatus`, and inspect failure artifacts before fixing code. Keep the software keyboard available for text-entry flows.
 
 ## Native Test Stack
 
@@ -116,7 +100,7 @@ The iOS app uses native Apple test tooling only:
 
 An accessibility identifier reaches XCUITest only on an accessibility element, usually a leaf such as `Text`, `Button`, or `TextField`, or a plain container whose descendants inherit it. A system container such as `ContentUnavailableView` can merge its subtree and drop the identifier, even from a `Text` inside it, so the smoke query silently finds nothing. `.accessibilityElement(children: .contain)` is the container pattern, used in `apps/ios/Flashcards/Flashcards/AI/Views/Transcript/AIChatMessageViews.swift`, but on some surfaces it fails to expose the identifier or crashes the app outright, so confirm a new identifier on a simulator before a live smoke flow uses it.
 
-The iOS release-gate smoke coverage is split into independent grouped flows across Review, Cards, AI, and Settings. Only one grouped smoke signs into the linked review account and verifies linked workspace lifecycle. The remaining grouped smokes stay guest/local and do not perform login.
+The iOS release-gate smoke coverage is split into independent grouped flows across Review, Cards, AI, and Settings. The linked workspace and AI consent-transfer flows sign into the configured review account; retain the complete plan inventory, including guest/local flows.
 
 Guest AI availability is part of the iOS release contract. The guest AI smoke must pass without login, and a guest-AI-disabled or guest-quota-exhausted response is a real release-gate failure.
 
@@ -144,7 +128,7 @@ for explicit downloads. Normal app builds need no media download.
 iOS CI/CD is documented in [`docs/ios-ci-cd.md`](../../docs/ios-ci-cd.md).
 Native sign-in acceptance is documented in [Native Apple sign-in](../../docs/native-apple-sign-in.md).
 Release notes and release authorization are documented in [Release All Platforms](../../docs/release/README.md).
-Follow the [iOS release procedure](../../docs/release/ios.md#ios) for parallel Xcode Cloud build/test runs and App Review submission.
+Follow the [iOS release procedure](../../docs/release/ios.md#ios) for full local acceptance, parallel Xcode Cloud archive/small-smoke runs and App Review submission.
 
 ## Respect Existing Code
 

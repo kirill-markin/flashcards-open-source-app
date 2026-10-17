@@ -102,9 +102,7 @@ Machine/provider setup, legal acceptance and runtime provisioning are setup work
 repeat them only when missing or newly required. Older-OS manual walkthroughs
 apply to first support expansion or affected OS-specific changes, as defined in
 [iOS](ios.md) and [Android](android.md#first-release-api-30-walkthrough).
-For every new iOS release, the [three automated iOS 18 smokes](../ios-local-setup.md#ios-18-compatibility-smoke)
-still run locally when Cloud cannot provide that independent selection.
-Keep the full latest-OS suite and Android's four sequential Device Run sessions.
+For every new iOS release, complete [full local native acceptance](../ios-local-setup.md#local-native-acceptance) on latest iPhone, focused latest iPad and actual iOS 18, then retain Cloud archive/signing and the small latest-iPhone backstop. Android retains its four sequential Device Run sessions.
 
 ## Release Inventory and Completion
 
