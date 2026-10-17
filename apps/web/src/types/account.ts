@@ -55,6 +55,8 @@ export type AccountPreferencesEnvelope = Readonly<{
 
 export type SessionInfo = Readonly<{
   userId: string;
+  canonicalAccountId?: string;
+  linkedAccountIds?: ReadonlyArray<string>;
   selectedWorkspaceId: string | null;
   authTransport: string;
   csrfToken: string | null;
@@ -73,6 +75,7 @@ export type WorkspaceSummary = Readonly<{
   name: string;
   createdAt: string;
   isSelected: boolean;
+  isVisible?: boolean;
 }>;
 
 export type WorkspaceDeletePreview = Readonly<{
