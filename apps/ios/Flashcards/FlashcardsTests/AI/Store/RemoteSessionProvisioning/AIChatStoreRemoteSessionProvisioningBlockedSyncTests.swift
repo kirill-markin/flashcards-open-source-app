@@ -11,7 +11,7 @@ final class AIChatStoreRemoteSessionProvisioningBlockedSyncTests: XCTestCase {
 
         try context.configureLinkedCloudSession()
         let store = context.makeStore()
-        store.acceptExternalProviderConsent()
+        try context.acknowledgeExternalProviderConsent()
         let blockedMessage = "Sync is blocked until account status is resolved."
         context.flashcardsStore.syncStatus = .blocked(message: blockedMessage)
 
