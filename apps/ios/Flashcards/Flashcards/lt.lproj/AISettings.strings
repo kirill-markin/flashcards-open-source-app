@@ -950,3 +950,23 @@
 
 "settings.account.cloudSignIn.continueGoogle" = "Tęsti su Google";
 "settings.account.cloudSignIn.appleCleanupPending" = "Apple užbaigia saugos atnaujinimą. Netrukus bandykite dar kartą su Apple arba pasirinkite kitą prisijungimo būdą.";
+
+"settings.account.connection.title" = "Sujungti paskyras";
+"settings.account.connection.suggestion" = "Peržiūrėti siūlomą sujungimą";
+"settings.account.connection.data" = "Kortelės, kartojimai ir darbo sritys išlieka. Narystės sujungiamos; nuosavybė turi pirmenybę.";
+"settings.account.connection.settings" = "Taikomi paskirties nustatymai ir viešasis profilis su griežtesniu privatumu. Tikras pagrindinis el. paštas išlieka arba naudojamas patvirtintas tikras adresas.";
+"settings.account.connection.billing" = "Pirkiniai, teisės, naudojimas ir integracijų prisijungimo duomenys pereina į sujungtą paskyrą. Prenumeratos ir pradinė bandomųjų laikotarpių istorija nesikeičia.";
+"settings.account.connection.destination" = "Pasirinkta paskirtis";
+"settings.account.connection.hidden" = "Paslėpta darbo sričių pasirinkime";
+"settings.account.connection.omit" = "Prašyti praleisti, jei leidžiama";
+"settings.account.connection.preserve" = "Galima paslėpti tik reikalavimus atitinkančias pradines sritis. Duomenys ir kitos darbo sritys išlieka.";
+"settings.account.connection.confirm" = "Patvirtinti sujungimą";
+"settings.account.connection.connected" = "Paskyros sujungtos.";
+"settings.account.connection.alreadyConnected" = "Šios paskyros jau sujungtos.";
+"settings.account.connection.cancelled" = "Sujungimas atšauktas.";
+"settings.account.connection.uncertain" = "Patvirtinimas išsiųstas, bet rezultatas nežinomas. Patikrinkite jį tuo pačiu patvirtinimu.";
+"settings.account.connection.replay" = "Tikrinti rezultatą";
+"settings.account.connection.preview" = "Atnaujinti peržiūrą";
+"settings.account.connection.previewChanged" = "Peržiūra pasikeitė. Atnaujinkite ją ir aiškiai patvirtinkite naują peržiūrą.";
+"settings.account.connection.restart" = "Įrodymas nebegalioja arba panaudotas. Pradėkite iš naujo su nauju įrodymu.";
+"settings.account.connection.restorePaused" = "Paskyros sujungtos. Vietinis atnaujinimas pristabdytas; jūsų neprisijungus naudojami duomenys išsaugoti.";

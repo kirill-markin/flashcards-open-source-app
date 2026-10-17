@@ -950,3 +950,23 @@
 
 "settings.account.cloudSignIn.continueGoogle" = "Googleతో కొనసాగించండి";
 "settings.account.cloudSignIn.appleCleanupPending" = "Apple భద్రతా అప్‌డేట్‌ను పూర్తి చేస్తోంది. కొద్దిసేపటి తర్వాత Appleతో మళ్లీ ప్రయత్నించండి లేదా సైన్ ఇన్ చేయడానికి మరో పద్ధతిని ఎంచుకోండి.";
+
+"settings.account.connection.title" = "ఖాతాలను కలపండి";
+"settings.account.connection.suggestion" = "సూచించిన కలయికను పరిశీలించండి";
+"settings.account.connection.data" = "కార్డులు, పునశ్చరణలు మరియు కార్యస్థలాలు అలాగే ఉంటాయి. సభ్యత్వాలు కలుస్తాయి; యాజమాన్యానికి ప్రాధాన్యం ఉంటుంది.";
+"settings.account.connection.settings" = "గమ్యం సెట్టింగ్‌లు మరియు పబ్లిక్ ప్రొఫైల్ మరింత కఠినమైన గోప్యతతో వర్తిస్తాయి. నిజమైన ప్రధాన ఇమెయిల్ ఉంటుంది లేదా నిరూపించిన నిజమైన ఇమెయిల్ ఉపయోగిస్తారు.";
+"settings.account.connection.billing" = "కొనుగోళ్లు, హక్కులు, వినియోగం మరియు అనుసంధానాల ఆధారాలు కలిపిన ఖాతాకు వెళ్తాయి. చందాలు మరియు అసలు ట్రయల్ చరిత్ర మారవు.";
+"settings.account.connection.destination" = "ఎంచుకున్న గమ్యం";
+"settings.account.connection.hidden" = "వర్క్‌స్పేస్ ఎంపికలలో దాచబడింది";
+"settings.account.connection.omit" = "అర్హత ఉంటే మినహాయించమని కోరండి";
+"settings.account.connection.preserve" = "అర్హమైన ప్రారంభ వర్క్‌స్పేస్‌లను మాత్రమే దాచవచ్చు. అసలు డేటా, ఇతర వర్క్‌స్పేస్‌లు అలాగే ఉంటాయి.";
+"settings.account.connection.confirm" = "ఖాతాల కలయికను నిర్ధారించండి";
+"settings.account.connection.connected" = "ఖాతాలు కలిశాయి.";
+"settings.account.connection.alreadyConnected" = "ఈ ఖాతాలు ఇప్పటికే కలిపి ఉన్నాయి.";
+"settings.account.connection.cancelled" = "కలయిక రద్దయింది.";
+"settings.account.connection.uncertain" = "నిర్ధారణ పంపబడింది, కానీ ఫలితం తెలియదు. అదే నిర్ధారణతో తనిఖీ చేయండి.";
+"settings.account.connection.replay" = "నిర్ధారణ ఫలితాన్ని తనిఖీ చేయండి";
+"settings.account.connection.preview" = "కలయిక ముందస్తు వీక్షణను తాజాపరచండి";
+"settings.account.connection.previewChanged" = "ముందస్తు వీక్షణ మారింది. తాజాపరచి కొత్త వీక్షణను స్పష్టంగా నిర్ధారించండి.";
+"settings.account.connection.restart" = "ఆధారం గడువు ముగిసింది లేదా ఉపయోగించబడింది. కొత్త ఆధారంతో మళ్లీ ప్రారంభించండి.";
+"settings.account.connection.restorePaused" = "ఖాతాలు కలిశాయి. స్థానిక నవీకరణ నిలిపివేయబడింది; మీ ఆఫ్‌లైన్ డేటా భద్రంగా ఉంది.";

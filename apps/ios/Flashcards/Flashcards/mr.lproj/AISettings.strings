@@ -950,3 +950,23 @@
 
 "settings.account.cloudSignIn.continueGoogle" = "Google सह पुढे जा";
 "settings.account.cloudSignIn.appleCleanupPending" = "Apple सुरक्षा अपडेट पूर्ण करत आहे. थोड्या वेळाने Apple सह पुन्हा प्रयत्न करा किंवा साइन इन करण्याची दुसरी पद्धत निवडा.";
+
+"settings.account.connection.title" = "खाती जोडा";
+"settings.account.connection.suggestion" = "सुचवलेली जोडणी तपासा";
+"settings.account.connection.data" = "कार्ड, उजळणी आणि कार्यस्थळे कायम राहतात. सदस्यत्वे एकत्र होतात; मालकीला प्राधान्य असते.";
+"settings.account.connection.settings" = "गंतव्याची सेटिंग्ज आणि सार्वजनिक प्रोफाइल अधिक कडक गोपनीयतेसह लागू होतात. खरा मुख्य ईमेल कायम राहतो किंवा सिद्ध केलेला खरा ईमेल वापरला जातो.";
+"settings.account.connection.billing" = "खरेदी, अधिकार, वापर आणि एकत्रीकरणाची प्रवेशमाहिती जोडलेल्या खात्याकडे जाते. सदस्यता योजना आणि मूळ चाचणी इतिहास बदलत नाहीत.";
+"settings.account.connection.destination" = "निवडलेले गंतव्य";
+"settings.account.connection.hidden" = "वर्कस्पेस पर्यायांमधून लपवलेले";
+"settings.account.connection.omit" = "पात्र असल्यास वगळण्याची विनंती करा";
+"settings.account.connection.preserve" = "केवळ पात्र सुरुवातीचे वर्कस्पेस लपवता येतात. मूळ डेटा आणि इतर वर्कस्पेस कायम राहतात.";
+"settings.account.connection.confirm" = "खाती जोडण्याची पुष्टी करा";
+"settings.account.connection.connected" = "खाती जोडली.";
+"settings.account.connection.alreadyConnected" = "ही खाती आधीच जोडलेली आहेत.";
+"settings.account.connection.cancelled" = "जोडणी रद्द केली.";
+"settings.account.connection.uncertain" = "पुष्टी पाठवली, पण परिणाम अज्ञात आहे. त्याच पुष्टीने परिणाम तपासा.";
+"settings.account.connection.replay" = "पुष्टीचा परिणाम तपासा";
+"settings.account.connection.preview" = "जोडणीचे पूर्वावलोकन ताजे करा";
+"settings.account.connection.previewChanged" = "पूर्वावलोकन बदलले. ते ताजे करा आणि नव्या पूर्वावलोकनाची स्पष्ट पुष्टी करा.";
+"settings.account.connection.restart" = "पुरावा कालबाह्य झाला किंवा वापरला गेला. नव्या पुराव्यासह पुन्हा सुरू करा.";
+"settings.account.connection.restorePaused" = "खाती जोडली. स्थानिक अपडेट थांबवले आहे; तुमचा ऑफलाइन डेटा जतन केला आहे.";

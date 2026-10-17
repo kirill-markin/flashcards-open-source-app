@@ -30,6 +30,13 @@ private struct AccountManagementContext {
 @MainActor
 @Observable
 final class CloudAccountMethodCoordinator {
+    private(set) var isConnecting = false
+    private(set) var connectionPreview: CloudConnectionPreview?
+    private(set) var connectionEmail: String?
+    private(set) var connectionOutcome: CloudConnectionOutcome?
+    private(set) var connectionOperation: String?
+    private(set) var connectionConfirmation: CloudConnectionPreview?
+    @ObservationIgnored private var connectionBinding: CloudAuthAttemptBinding?
     private(set) var stage: CloudAccountMethodStage = .idle
     private(set) var isWorking = false
     private(set) var methods: CloudAccountLoginMethods?
@@ -69,6 +76,13 @@ final class CloudAccountMethodCoordinator {
     }
 
     func cancel() {
+        self.isConnecting = false
+        self.connectionPreview = nil
+        self.connectionEmail = nil
+        self.connectionOutcome = nil
+        self.connectionOperation = nil
+        self.connectionConfirmation = nil
+        self.connectionBinding = nil
         self.epoch = UUID()
         self.operationId = nil
         self.isWorking = false
@@ -92,7 +106,7 @@ final class CloudAccountMethodCoordinator {
         }
     }
 
-    func beginProviderReauthentication(provider: CloudAuthProvider, operation: CloudAccountMethodOperation,
+    func beginProviderReauthentication(provider: CloudAuthProvider, operation: CloudAccountMethodOperation?,
         presentation: CloudNativeAuthPresentation
     ) async throws {
         try await self.perform { epoch in
@@ -113,7 +127,7 @@ final class CloudAccountMethodCoordinator {
         }
     }
 
-    func beginCurrentEmailReauthentication(operation: CloudAccountMethodOperation) async throws {
+    func beginCurrentEmailReauthentication(operation: CloudAccountMethodOperation?) async throws {
         try await self.perform { epoch in
             try await self.prepareReauthentication(operation: operation, epoch: epoch)
             guard self.canReauthenticateWithCurrentEmail else { throw CloudAccountMethodError.currentEmailUnavailable }
@@ -249,13 +263,175 @@ final class CloudAccountMethodCoordinator {
         }
     }
 
-    private func prepareReauthentication(operation: CloudAccountMethodOperation, epoch: UUID) async throws {
+    func selectConnection() throws {
+        guard !self.isWorking else { throw CloudNativeAuthError.alreadyInProgress }
+        _ = try self.checkCurrent(self.epoch)
+        self.isConnecting = true
+        self.operation = nil
+        self.clearProof()
+        self.stage = .ready
+    }
+
+    func beginConnection() async throws {
+        try await self.perform { epoch in
+            guard self.isConnecting, case .proofReady = self.stage, let receipt = self.receipt else {
+                throw CloudAccountMethodError.invalidPhase
+            }
+            self.receipt = nil
+            self.connectionBinding = receipt.binding
+            try await self.requireConnectionCapability(epoch: epoch)
+            try await self.acceptConnection(self.connectionRequest(.begin(receipt.completion)), epoch: epoch)
+        }
+    }
+
+    func adoptConnectionSuggestion() async throws {
+        try await self.perform { epoch in
+            guard let suggestion = self.store.cloudNativeSignIn.availableConnectionSuggestion(store: self.store) else {
+                throw CloudAccountMethodError.freshAttemptRequired
+            }
+            self.isConnecting = true
+            self.connectionBinding = suggestion.binding
+            try await self.requireConnectionCapability(epoch: epoch)
+            try await self.acceptConnection(self.connectionRequest(.adopt(suggestion.suggestion.suggestion)), epoch: epoch)
+        }
+    }
+
+    func proveConnectionProvider(_ provider: CloudAuthProvider, presentation: CloudNativeAuthPresentation) async throws {
+        try await self.perform { epoch in
+            let context = try self.checkCurrent(epoch)
+            let metadata = try await self.social.metadata(client: .currentNative, authBaseUrl: context.configuration.authBaseUrl)
+            _ = try self.checkCurrent(epoch)
+            let response = try await self.connectionRequest(.providerBegin(provider))
+            _ = try self.checkCurrent(epoch)
+            guard case .providerRequired(let proof) = response, let binding = self.connectionBinding else {
+                throw CloudAccountMethodError.invalidPhase
+            }
+            let pattern = provider == .apple ? "^[a-f0-9]{64}$" : "^[A-Za-z0-9_-]{43}$"
+            try requireCloudSocialContract(proof.nonce.range(of: pattern, options: .regularExpression) != nil,
+                "Invalid connection provider nonce")
+            let attempt = CloudAccountProviderAttempt(provider: provider, purpose: .reauth, binding: binding, response: proof)
+            let credential = try await self.authorize(attempt: attempt, metadata: metadata, presentation: presentation, epoch: epoch)
+            try await self.acceptConnection(self.connectionRequest(.providerComplete(provider, proof.attempt, credential)), epoch: epoch)
+        }
+    }
+
+    func sendConnectionEmail(_ email: String) async throws {
+        try await self.perform { epoch in
+            try requireCloudSocialContract(cloudAccountMailboxIsValid(email), "Invalid connection mailbox")
+            try await self.acceptConnection(self.connectionRequest(.emailSend(email)), epoch: epoch)
+        }
+    }
+
+    func verifyConnectionEmail(_ code: String) async throws {
+        try await self.perform { epoch in
+            try self.validateCode(code)
+            self.connectionEmail = nil
+            try await self.acceptConnection(self.connectionRequest(.emailVerify(code)), epoch: epoch)
+        }
+    }
+
+    func previewConnection(omittedWorkspaceIds: [String]) async throws {
+        try await self.perform { epoch in
+            self.connectionPreview = nil
+            self.connectionConfirmation = nil
+            try await self.acceptConnection(self.connectionRequest(.preview(omittedWorkspaceIds)), epoch: epoch)
+        }
+    }
+
+    func confirmConnection() async throws {
+        try await self.perform { epoch in
+            guard let preview = self.connectionPreview ?? self.connectionConfirmation else { throw CloudAccountMethodError.invalidPhase }
+            self.connectionConfirmation = preview
+            self.connectionPreview = nil
+            try await self.acceptConnection(self.connectionRequest(.confirm(preview)), epoch: epoch)
+        }
+    }
+
+    func cancelConnection() async throws {
+        try await self.perform { epoch in
+            try await self.acceptConnection(self.connectionRequest(.cancel), epoch: epoch)
+        }
+    }
+
+    private func requireConnectionCapability(epoch: UUID) async throws {
+        let context = try self.checkCurrent(epoch)
+        let metadata = try await self.social.metadata(client: .currentNative, authBaseUrl: context.configuration.authBaseUrl)
+        _ = try self.checkCurrent(epoch)
+        try requireCloudSocialContract(metadata.supportsAccountConnection, "Account connection is unavailable on this server")
+    }
+
+    private func connectionRequest(_ action: CloudConnectionAction) async throws -> CloudConnectionResponse {
+        let context = try self.checkCurrent(self.epoch)
+        guard let binding = self.connectionBinding else { throw CloudAccountMethodError.invalidPhase }
+        self.stage = .mutating
+        return try await self.service.connection(CloudConnectionRequest(binding: binding,
+            operation: self.connectionOperation, action: action), authBaseUrl: context.configuration.authBaseUrl,
+            bearer: context.credentials.idToken)
+    }
+
+    private func acceptConnection(_ response: CloudConnectionResponse, epoch: UUID) async throws {
+        let context = try self.checkCurrent(epoch)
+        switch response {
+        case .proofRequired(let operation): self.connectionOperation = operation
+        case .proved(let operation):
+            self.connectionOperation = operation
+            try await self.acceptConnection(self.connectionRequest(.preview([])), epoch: epoch)
+            return
+        case .emailRequired(let email): self.connectionEmail = email
+        case .preview(let preview):
+            guard preview.operation == self.connectionOperation else { throw CloudAccountMethodError.invalidPhase }
+            self.connectionPreview = preview
+        case .connected(let result):
+            guard result.operationId == self.connectionConfirmation?.choices.operationId else {
+                throw CloudAccountMethodError.invalidPhase
+            }
+            self.connectionOutcome = .connected
+            self.store.cloudNativeSignIn.clearConnectionSuggestion()
+            self.connectionBinding = nil
+            self.connectionConfirmation = nil
+            self.connectionOperation = nil
+            let verified = CloudVerifiedAuthContext(apiBaseUrl: context.configuration.apiBaseUrl, credentials: context.credentials)
+            let account = try await self.store.cloudRuntime.fetchCloudAccount(verifiedContext: verified)
+            _ = try self.checkCurrent(epoch)
+            guard account.userId == context.userId, let aliases = account.identity.linkedAccountIds,
+                  let canonical = account.identity.canonicalAccountId,
+                  aliases.contains(canonical), aliases.contains(account.identity.originalUserId), aliases.contains(context.userId),
+                  aliases.contains(result.sourceUserId), aliases.contains(result.canonicalAccountId) else {
+                throw CloudAccountMethodError.currentAccountChanged
+            }
+            // The full authorized collection retains hidden roots and their pending offline work.
+            guard let workspace = account.workspaces.first(where: { $0.workspaceId == self.store.workspace?.workspaceId }) else {
+                throw CloudAccountMethodError.currentAccountChanged
+            }
+            let link = CloudWorkspaceLinkContext(userId: account.userId, email: account.email,
+                apiBaseUrl: verified.apiBaseUrl, credentials: verified.credentials, workspaces: [workspace],
+                preferences: account.preferences, guestUpgradeMode: nil, postAuthRecoveryRoute: .none)
+            try await self.store.completeCloudLink(linkContext: link, selection: .existing(workspaceId: workspace.workspaceId))
+            _ = try self.checkCurrent(epoch)
+            try await self.refreshMethods(epoch: epoch)
+        case .alreadyConnected, .cancelled:
+            if case .alreadyConnected = response { self.connectionOutcome = .alreadyConnected }
+            else { self.connectionOutcome = .cancelled }
+            self.store.cloudNativeSignIn.clearConnectionSuggestion()
+            self.connectionBinding = nil
+            self.connectionOperation = nil
+            self.connectionConfirmation = nil
+            self.connectionPreview = nil
+            self.connectionEmail = nil
+            self.clearProof()
+        case .providerRequired: throw CloudAccountMethodError.invalidPhase
+        }
+        self.stage = .ready
+    }
+
+    private func prepareReauthentication(operation: CloudAccountMethodOperation?, epoch: UUID) async throws {
         self.clearProof()
         self.operation = operation
+        self.isConnecting = operation == nil
         self.confirmedOperation = nil
         self.stage = .preparingReauthentication
         try await self.refreshMethods(epoch: epoch)
-        try self.validateTarget(operation)
+        if let operation { try self.validateTarget(operation) }
     }
 
     private func validateTarget(_ operation: CloudAccountMethodOperation) throws {
@@ -455,6 +631,21 @@ final class CloudAccountMethodCoordinator {
         } catch {
             guard self.epoch == epoch else { throw error }
             self.clearProof()
+            if case CloudAuthError.invalidResponse(let details, _) = error {
+                if details.code == "ACCOUNT_CONNECTION_PREVIEW_CHANGED" {
+                    self.connectionPreview = nil
+                    self.connectionConfirmation = nil
+                }
+                if ["ACCOUNT_CONNECTION_RESTART_REQUIRED", "ACCOUNT_CONNECTION_INVALID", "AUTH_ATTEMPT_RESTART_REQUIRED",
+                    "SESSION_REQUIRED", "SESSION_REVOKED", "PRINCIPAL_SIGNOUT_PENDING", "ACCOUNT_DELETED"].contains(details.code ?? "") {
+                    self.connectionBinding = nil
+                    self.connectionOperation = nil
+                    self.connectionPreview = nil
+                    self.connectionConfirmation = nil
+                    self.connectionEmail = nil
+                    self.store.cloudNativeSignIn.clearConnectionSuggestion()
+                }
+            }
             self.stage = .failed(error)
             // A lost response may have committed; only a new list may describe the actual outcome.
             do { try await self.refreshMethods(epoch: epoch) }

@@ -950,3 +950,23 @@
 
 "settings.account.cloudSignIn.continueGoogle" = "Google দিয়ে চালিয়ে যান";
 "settings.account.cloudSignIn.appleCleanupPending" = "Apple একটি নিরাপত্তা আপডেট সম্পন্ন করছে। কিছুক্ষণ পরে আবার Apple দিয়ে চেষ্টা করুন, অথবা সাইন ইন করার অন্য পদ্ধতি বেছে নিন।";
+
+"settings.account.connection.title" = "অ্যাকাউন্ট যুক্ত করুন";
+"settings.account.connection.suggestion" = "প্রস্তাবিত সংযোগ পর্যালোচনা করুন";
+"settings.account.connection.data" = "কার্ড, পুনরালোচনা ও কর্মক্ষেত্র রাখা হয়। সদস্যপদ একত্র হয়; মালিকানা অগ্রাধিকার পায়।";
+"settings.account.connection.settings" = "গন্তব্যের সেটিংস ও প্রকাশ্য প্রোফাইল কঠোর গোপনীয়তাসহ প্রযোজ্য হয়। আসল প্রধান ইমেল থাকে অথবা প্রমাণিত প্রকৃত ইমেল ব্যবহৃত হয়।";
+"settings.account.connection.billing" = "কেনাকাটা, অধিকার, ব্যবহার ও ইন্টিগ্রেশনের পরিচয়পত্র যুক্ত অ্যাকাউন্টে যায়। সাবস্ক্রিপশন ও মূল পরীক্ষামূলক ব্যবহারের ইতিহাস বদলায় না।";
+"settings.account.connection.destination" = "নির্বাচিত গন্তব্য";
+"settings.account.connection.hidden" = "ওয়ার্কস্পেসের বিকল্পে লুকানো";
+"settings.account.connection.omit" = "যোগ্য হলে বাদ দেওয়ার অনুরোধ করুন";
+"settings.account.connection.preserve" = "শুধু যোগ্য প্রাথমিক ওয়ার্কস্পেস লুকানো যাবে। মূল ডেটা ও অন্য ওয়ার্কস্পেসগুলো থাকবে।";
+"settings.account.connection.confirm" = "অ্যাকাউন্ট সংযোগ নিশ্চিত করুন";
+"settings.account.connection.connected" = "অ্যাকাউন্ট যুক্ত হয়েছে।";
+"settings.account.connection.alreadyConnected" = "এই অ্যাকাউন্টগুলো আগেই যুক্ত আছে।";
+"settings.account.connection.cancelled" = "সংযোগ বাতিল হয়েছে।";
+"settings.account.connection.uncertain" = "নিশ্চিতকরণ পাঠানো হয়েছে, তবে ফল অজানা। একই নিশ্চিতকরণ দিয়ে ফল দেখুন।";
+"settings.account.connection.replay" = "নিশ্চিতকরণের ফল দেখুন";
+"settings.account.connection.preview" = "সংযোগের পূর্বরূপ হালনাগাদ করুন";
+"settings.account.connection.previewChanged" = "পূর্বরূপ বদলেছে। হালনাগাদ করে নতুন পূর্বরূপ স্পষ্টভাবে নিশ্চিত করুন।";
+"settings.account.connection.restart" = "প্রমাণের মেয়াদ শেষ বা ব্যবহৃত হয়েছে। নতুন প্রমাণ দিয়ে আবার শুরু করুন।";
+"settings.account.connection.restorePaused" = "অ্যাকাউন্ট যুক্ত হয়েছে। স্থানীয় হালনাগাদ স্থগিত; আপনার অফলাইন ডেটা সংরক্ষিত আছে।";

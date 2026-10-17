@@ -950,3 +950,23 @@
 
 "settings.account.cloudSignIn.continueGoogle" = "Fortsæt med Google";
 "settings.account.cloudSignIn.appleCleanupPending" = "Apple er ved at afslutte en sikkerhedsopdatering. Prøv igen med Apple om lidt, eller vælg en anden loginmetode.";
+
+"settings.account.connection.title" = "Forbind konti";
+"settings.account.connection.suggestion" = "Gennemgå foreslået forbindelse";
+"settings.account.connection.data" = "Kort, gentagelser og arbejdsområder bevares. Medlemskaber samles; ejerskab har forrang.";
+"settings.account.connection.settings" = "Målets indstillinger og offentlige profil gælder med strengere privatliv. Den ægte primære e-mail bevares, ellers bruges en bekræftet ægte adresse.";
+"settings.account.connection.billing" = "Køb, rettigheder, forbrug og integrationsoplysninger følger den forbundne konto. Abonnementer og oprindelig prøvehistorik er uændrede.";
+"settings.account.connection.destination" = "Valgt destination";
+"settings.account.connection.hidden" = "Skjult i valget af arbejdsområder";
+"settings.account.connection.omit" = "Anmod om udeladelse, hvis tilladt";
+"settings.account.connection.preserve" = "Kun egnede startområder kan skjules. Data og øvrige arbejdsområder bevares.";
+"settings.account.connection.confirm" = "Bekræft forbindelse";
+"settings.account.connection.connected" = "Konti forbundet.";
+"settings.account.connection.alreadyConnected" = "Disse konti er allerede forbundet.";
+"settings.account.connection.cancelled" = "Forbindelse annulleret.";
+"settings.account.connection.uncertain" = "Bekræftelsen blev sendt, men resultatet er ukendt. Kontrollér det med samme bekræftelse.";
+"settings.account.connection.replay" = "Kontrollér resultat";
+"settings.account.connection.preview" = "Opdater forhåndsvisning";
+"settings.account.connection.previewChanged" = "Forhåndsvisningen er ændret. Opdater den og bekræft udtrykkeligt den nye visning.";
+"settings.account.connection.restart" = "Beviset er udløbet eller brugt. Start igen med et nyt bevis.";
+"settings.account.connection.restorePaused" = "Konti forbundet. Lokal opdatering er sat på pause; dine offlinedata bevares.";

@@ -950,3 +950,23 @@
 
 "settings.account.cloudSignIn.continueGoogle" = "Pokračovať cez Google";
 "settings.account.cloudSignIn.appleCleanupPending" = "Apple dokončuje aktualizáciu zabezpečenia. O chvíľu to skúste znova cez Apple alebo vyberte iný spôsob prihlásenia.";
+
+"settings.account.connection.title" = "Prepojiť účty";
+"settings.account.connection.suggestion" = "Pozrieť navrhnuté prepojenie";
+"settings.account.connection.data" = "Karty, opakovania a pracovné priestory zostávajú. Členstvá sa spoja; vlastníctvo má prednosť.";
+"settings.account.connection.settings" = "Použijú sa nastavenia a verejný profil cieľa s prísnejším súkromím. Skutočný hlavný e-mail zostane, inak sa použije preukázaná skutočná adresa.";
+"settings.account.connection.billing" = "Nákupy, oprávnenia, využitie a prihlasovacie údaje integrácií prejdú na prepojený účet. Predplatné a pôvodná história skúšok sa nemenia.";
+"settings.account.connection.destination" = "Vybraný cieľ";
+"settings.account.connection.hidden" = "Skryté vo výbere pracovných priestorov";
+"settings.account.connection.omit" = "Požiadať o vynechanie, ak je povolené";
+"settings.account.connection.preserve" = "Skryť možno len oprávnené počiatočné priestory. Údaje aj ostatné pracovné priestory zostávajú zachované.";
+"settings.account.connection.confirm" = "Potvrdiť prepojenie";
+"settings.account.connection.connected" = "Účty prepojené.";
+"settings.account.connection.alreadyConnected" = "Tieto účty sú už prepojené.";
+"settings.account.connection.cancelled" = "Prepojenie zrušené.";
+"settings.account.connection.uncertain" = "Potvrdenie bolo odoslané, ale výsledok nie je známy. Overte ho rovnakým potvrdením.";
+"settings.account.connection.replay" = "Overiť výsledok";
+"settings.account.connection.preview" = "Obnoviť náhľad";
+"settings.account.connection.previewChanged" = "Náhľad sa zmenil. Obnovte ho a výslovne potvrďte nový náhľad.";
+"settings.account.connection.restart" = "Dôkaz vypršal alebo bol použitý. Začnite znova s novým dôkazom.";
+"settings.account.connection.restorePaused" = "Účty prepojené. Miestne obnovenie je pozastavené; vaše offline údaje zostávajú zachované.";
