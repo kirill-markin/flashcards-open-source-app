@@ -8,11 +8,18 @@ import { escapeHtml, formatGeneratedAt } from "../../charts/formatting";
 import type { AdminAppConfig } from "../../config";
 import { ExplanationTip } from "../../explanations/ExplanationTip";
 import type { AnalyticsDateRange } from "../../filters/analyticsFilters";
+import {
+  findInProgressBucketKey,
+  formatReportBucketTick,
+  formatReportBucketTitle,
+  reportPeriodAxisLabels,
+  type ReportPeriod,
+} from "../levelOneMetrics/reportPeriod";
 import { formatCalendarDate } from "../reportValues";
 import {
   loadWhoSawUsReport,
   whoSawUsSeriesKeys,
-  type WhoSawUsDay,
+  type WhoSawUsBucket,
   type WhoSawUsReport,
   type WhoSawUsSeriesKey,
 } from "./query";
@@ -40,12 +47,15 @@ type LoadState =
   | Readonly<{ status: "ready"; report: WhoSawUsReport }>;
 
 type WhoSawUsChartModel = Readonly<{
-  dates: ReadonlyArray<string>;
-  tickDates: ReadonlyArray<string>;
+  period: ReportPeriod;
+  keys: ReadonlyArray<string>;
+  tickKeys: ReadonlyArray<string>;
   matrix: ReadonlyArray<MatrixChartEntry>;
-  dayByDate: ReadonlyMap<string, WhoSawUsDay>;
-  peakDailyTotal: number;
+  bucketByKey: ReadonlyMap<string, WhoSawUsBucket>;
+  peakTotal: number;
   lastFinalDate: string;
+  firstNotFinalKey: string | null;
+  inProgressKey: string | null;
 }>;
 
 function getSeriesKey(key: string): WhoSawUsSeriesKey {
@@ -57,11 +67,11 @@ function getSeriesKey(key: string): WhoSawUsSeriesKey {
   return seriesKey;
 }
 
-function getDayTotal(day: WhoSawUsDay): number {
-  return d3.sum(whoSawUsSeriesKeys, (key) => day.visitorsBySeries[key] ?? 0);
+function getBucketTotal(entry: WhoSawUsBucket): number {
+  return d3.sum(whoSawUsSeriesKeys, (key) => entry.visitorsBySeries[key] ?? 0);
 }
 
-function buildLastFinalDate(generatedAtUtc: string): string {
+function buildUtcDateDaysBefore(generatedAtUtc: string, dayCount: number): string {
   const generatedAt = new Date(generatedAtUtc);
   if (Number.isNaN(generatedAt.getTime())) {
     throw new Error(`Who saw us report generation time is invalid: ${generatedAtUtc}`);
@@ -70,37 +80,44 @@ function buildLastFinalDate(generatedAtUtc: string): string {
   return formatCalendarDate(new Date(Date.UTC(
     generatedAt.getUTCFullYear(),
     generatedAt.getUTCMonth(),
-    generatedAt.getUTCDate() - notFinalDayCount,
+    generatedAt.getUTCDate() - dayCount,
   )));
 }
 
 function buildWhoSawUsChartModel(report: WhoSawUsReport): WhoSawUsChartModel {
-  const dates = report.days.map((day) => day.date);
+  const keys = report.buckets.map((entry) => entry.bucket.key);
+  const lastFinalDate = buildUtcDateDaysBefore(report.generatedAtUtc, notFinalDayCount);
 
   return {
-    dates,
-    tickDates: createTickDates(dates),
-    matrix: report.days.map((day) => ({
-      date: day.date,
+    period: report.period,
+    keys,
+    tickKeys: createTickDates(keys),
+    matrix: report.buckets.map((entry) => ({
+      date: entry.bucket.key,
       valuesByKey: Object.fromEntries(
-        whoSawUsSeriesKeys.map((key) => [key, day.visitorsBySeries[key] ?? 0]),
+        whoSawUsSeriesKeys.map((key) => [key, entry.visitorsBySeries[key] ?? 0]),
       ),
     })),
-    dayByDate: new Map(report.days.map((day) => [day.date, day])),
-    peakDailyTotal: d3.max(report.days, getDayTotal) ?? 0,
-    lastFinalDate: buildLastFinalDate(report.generatedAtUtc),
+    bucketByKey: new Map(report.buckets.map((entry) => [entry.bucket.key, entry])),
+    peakTotal: d3.max(report.buckets, getBucketTotal) ?? 0,
+    lastFinalDate,
+    firstNotFinalKey: report.buckets.find((entry) => entry.bucket.to > lastFinalDate)?.bucket.key ?? null,
+    inProgressKey: findInProgressBucketKey(
+      report.buckets.map((entry) => entry.bucket),
+      buildUtcDateDaysBefore(report.generatedAtUtc, 0),
+    ),
   };
 }
 
-function buildDayTooltipMetricsHtml(day: WhoSawUsDay, lastFinalDate: string): string {
+function buildBucketTooltipMetricsHtml(entry: WhoSawUsBucket, lastFinalDate: string): string {
   return [
     ...whoSawUsSeriesKeys.map((key) => {
-      const value = day.visitorsBySeries[key];
+      const value = entry.visitorsBySeries[key];
       return `<div class="tooltip-metric"><span>${escapeHtml(whoSawUsSeriesLabels[key])}</span><strong>${value === null ? "No data" : numberFormatter(value)}</strong></div>`;
     }),
-    `<div class="tooltip-metric"><span>Day total</span><strong>${numberFormatter(getDayTotal(day))}</strong></div>`,
-    day.date > lastFinalDate
-      ? `<p class="tooltip-hint">Not final: store numbers for this day can still arrive or change.</p>`
+    `<div class="tooltip-metric"><span>Total</span><strong>${numberFormatter(getBucketTotal(entry))}</strong></div>`,
+    entry.bucket.to > lastFinalDate
+      ? `<p class="tooltip-hint">Not final: store numbers for these days can still arrive or change.</p>`
       : "",
   ].join("");
 }
@@ -109,6 +126,7 @@ export function WhoSawUsSection(
   props: Readonly<{
     config: AdminAppConfig;
     dateRange: AnalyticsDateRange;
+    period: ReportPeriod;
     onTerminalAdminError: (error: unknown, config: AdminAppConfig) => boolean;
   }>,
 ): JSX.Element {
@@ -120,14 +138,14 @@ export function WhoSawUsSection(
   useEffect(() => {
     let cancelled = false;
     setLoadState({ status: "loading" });
-    void loadWhoSawUsReport(props.config, props.dateRange).then((report) => {
+    void loadWhoSawUsReport(props.config, props.dateRange, props.period).then((report) => {
       if (!cancelled) setLoadState({ status: "ready", report });
     }).catch((error: unknown) => {
       if (cancelled || props.onTerminalAdminError(error, props.config)) return;
       setLoadState({ status: "error", message: error instanceof Error ? error.message : "Unexpected Who saw us query error." });
     });
     return () => { cancelled = true; };
-  }, [props.config, props.dateRange, props.onTerminalAdminError, revision]);
+  }, [props.config, props.dateRange, props.period, props.onTerminalAdminError, revision]);
 
   const chartModel = useMemo(
     () => (loadState.status === "ready" ? buildWhoSawUsChartModel(loadState.report) : null),
@@ -140,24 +158,29 @@ export function WhoSawUsSection(
       return;
     }
 
+    const getBucket = (key: string): WhoSawUsBucket => {
+      const entry = chartModel.bucketByKey.get(key);
+      if (entry === undefined) {
+        throw new Error(`Who saw us chart has no bucket for ${key}.`);
+      }
+
+      return entry;
+    };
+
     renderWhoSawUsChart({
       svgElement,
-      dates: chartModel.dates,
-      tickDates: chartModel.tickDates,
+      dates: chartModel.keys,
+      tickDates: chartModel.tickKeys,
       matrix: chartModel.matrix,
       keys: whoSawUsSeriesKeys,
       getKeyColor: (key) => whoSawUsSeriesColors[getSeriesKey(key)],
       getKeyLabel: (key) => whoSawUsSeriesLabels[getSeriesKey(key)],
-      peakDailyTotal: chartModel.peakDailyTotal,
-      lastFinalDate: chartModel.lastFinalDate,
-      buildTooltipMetricsHtml: (entry) => {
-        const day = chartModel.dayByDate.get(entry.date);
-        if (day === undefined) {
-          throw new Error(`Who saw us chart has no day for ${entry.date}.`);
-        }
-
-        return buildDayTooltipMetricsHtml(day, chartModel.lastFinalDate);
-      },
+      peakDailyTotal: chartModel.peakTotal,
+      xAxisLabel: reportPeriodAxisLabels[chartModel.period],
+      firstNotFinalDate: chartModel.firstNotFinalKey,
+      formatTickLabel: (key) => formatReportBucketTick(chartModel.period, key),
+      formatTitleLabel: (key) => `${formatReportBucketTitle(chartModel.period, getBucket(key).bucket)} UTC${key === chartModel.inProgressKey ? " · in progress" : ""}`,
+      buildTooltipMetricsHtml: (entry) => buildBucketTooltipMetricsHtml(getBucket(entry.date), chartModel.lastFinalDate),
       tooltipHandlers,
     });
   }, [chartModel, tooltipHandlers]);
@@ -170,7 +193,7 @@ export function WhoSawUsSection(
           <ExplanationTip label="What Who saw us shows" explanationId="who-saw-us-explanation">
             <ul>
               <li>
-                <strong>What it shows:</strong> approximate daily unique visitors per surface, stacked, grouped by UTC day
+                <strong>What it shows:</strong> approximate unique visitors per surface, stacked, per UTC day, week or month
                 <ul>
                   <li>
                     <strong>Web:</strong> identified site visitors after the shared exclusions, plus cookieless visitors (only automated traffic is dropped)
@@ -180,6 +203,7 @@ export function WhoSawUsSection(
                   </li>
                   <li><strong>App Store:</strong> product page views by unique count, plus apps.apple.com browser views (Apple reports those without a unique count)</li>
                   <li><strong>Google Play:</strong> store listing visitors</li>
+                  <li><strong>Weeks and months:</strong> an identified web visitor counts once per bar; cookieless and store visitors are summed over the bar's days, because the cookieless id changes every day and the stores send no visitor ids</li>
                 </ul>
               </li>
               <li>
@@ -187,7 +211,7 @@ export function WhoSawUsSection(
                 <ul>
                   <li>Stores count per breakdown row, and the three surfaces overlap, so one person can be counted more than once</li>
                   <li>Someone who opens a store page from our website, by a store badge or the site's QR code, counts in both Web and App Store or Google Play; removing this overlap is a planned follow-up</li>
-                  <li>No store bar on a day = data missing, not zero; the tooltip says No data</li>
+                  <li>No store bar = no data on any of its days, not zero; the tooltip says No data</li>
                   <li>Store numbers right of the dashed line are not final; Google Play can lag up to a week</li>
                 </ul>
               </li>
@@ -213,7 +237,7 @@ export function WhoSawUsSection(
         <section className="chart-column">
           <div className="chart-shell">
             <div className="chart-meta">
-              <span>Daily visitors · UTC</span>
+              <span>Visitors per {loadState.report.period} · UTC</span>
               <div className="chart-meta-right">
                 <ChartColorKey
                   ariaLabel="Who saw us color key"

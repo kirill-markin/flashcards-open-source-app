@@ -1,14 +1,16 @@
 import * as d3 from "d3";
 import { chartMargin, chartWidth, createTickDates, stackedChartHeight, type ChartTooltipHandlers } from "./chartPrimitives";
-import { formatCompactDateLabel } from "./formatting";
 
+/** `yTickValues` place both the grid lines and the left-axis labels, so no grid line goes unlabeled. */
 export function renderMeaningfulActivityFrame(
   svgElement: SVGSVGElement,
   dates: ReadonlyArray<string>,
   y: d3.ScaleLinear<number, number>,
+  yTickValues: ReadonlyArray<number>,
   yLabel: string,
   xLabel: string,
   formatValue: (value: number) => string,
+  formatTick: (date: string) => string,
 ): Readonly<{
   group: d3.Selection<SVGGElement, unknown, null, undefined>;
   x: d3.ScaleBand<string>;
@@ -22,12 +24,12 @@ export function renderMeaningfulActivityFrame(
   svg.attr("viewBox", `0 0 ${chartWidth} ${stackedChartHeight}`);
   const group = svg.append("g").attr("transform", `translate(${chartMargin.left},${chartMargin.top})`);
   group.append("g").attr("class", "grid")
-    .call(d3.axisLeft(y).ticks(6).tickSize(-innerWidth).tickFormat(() => ""))
+    .call(d3.axisLeft(y).tickValues(yTickValues).tickSize(-innerWidth).tickFormat(() => ""))
     .call((grid) => grid.select(".domain").remove());
   group.append("g").attr("class", "axis")
-    .call(d3.axisLeft(y).ticks(6).tickFormat((value) => formatValue(Number(value))));
+    .call(d3.axisLeft(y).tickValues(yTickValues).tickFormat((value) => formatValue(Number(value))));
   group.append("g").attr("class", "axis").attr("transform", `translate(0,${innerHeight})`)
-    .call(d3.axisBottom(x).tickValues(createTickDates(dates)).tickFormat(formatCompactDateLabel))
+    .call(d3.axisBottom(x).tickValues(createTickDates(dates)).tickFormat(formatTick))
     .call((axis) => axis.selectAll("text").attr("transform", "rotate(-32)").style("text-anchor", "end").attr("dy", "0.3em"));
   group.append("text").attr("class", "axis-label").attr("transform", "rotate(-90)")
     .attr("x", -innerHeight / 2).attr("y", -48).attr("text-anchor", "middle").text(yLabel);

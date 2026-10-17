@@ -8,10 +8,18 @@ import type { AdminAppConfig } from "../../config";
 import { ExplanationTip } from "../../explanations/ExplanationTip";
 import type { AnalyticsDateRange } from "../../filters/analyticsFilters";
 import {
+  findInProgressBucketKey,
+  formatReportBucketTick,
+  formatReportBucketTitle,
+  reportPeriodAxisLabels,
+  reportPeriodColumnLabels,
+  type ReportPeriod,
+} from "../levelOneMetrics/reportPeriod";
+import {
   loadDailyNewReturningReport,
   type DailyActivitySource,
-  type DailyNewReturningDay,
   type DailyNewReturningReport,
+  type NewReturningBucket,
 } from "./query";
 
 type LoadState =
@@ -20,15 +28,16 @@ type LoadState =
   | Readonly<{ status: "ready"; report: DailyNewReturningReport }>;
 const formatCount = d3.format(",d");
 
-function describeDay(day: DailyNewReturningDay, report: DailyNewReturningReport): string {
-  if (day.newUsers === null || day.returningUsers === null) return "Unavailable: day predates retained source history.";
-  return `${day.date === report.today ? "Today is in progress. " : ""}New: ${formatCount(day.newUsers)}; returning: ${formatCount(day.returningUsers)}; total: ${formatCount(day.newUsers + day.returningUsers)}.`;
+function describeBucket(entry: NewReturningBucket, report: DailyNewReturningReport): string {
+  if (entry.newUsers === null || entry.returningUsers === null) return "Unavailable: retained source history does not cover all of its days.";
+  return `${entry.bucket.to === report.today ? "In progress through today. " : ""}New: ${formatCount(entry.newUsers)}; returning: ${formatCount(entry.returningUsers)}; total: ${formatCount(entry.newUsers + entry.returningUsers)}.`;
 }
 
-/** One Level 1 daily chart of unique people, stacked new vs returning; `source` must be a stable constant. */
+/** One Level 1 chart of unique people per bucket, stacked new vs returning; `source` must be a stable constant. */
 export function DailyNewReturningSection(props: Readonly<{
   config: AdminAppConfig;
   dateRange: AnalyticsDateRange;
+  period: ReportPeriod;
   onTerminalAdminError: (error: unknown, config: AdminAppConfig) => boolean;
   title: string;
   testId: string;
@@ -46,31 +55,34 @@ export function DailyNewReturningSection(props: Readonly<{
     let cancelled = false;
     tooltipHandlers.hideTooltip();
     setState({ status: "loading" });
-    void loadDailyNewReturningReport(props.config, props.source, props.dateRange, reportLabel).then((report) => {
+    void loadDailyNewReturningReport(props.config, props.source, props.dateRange, props.period, reportLabel).then((report) => {
       if (!cancelled) setState({ status: "ready", report });
     }).catch((error: unknown) => {
       if (cancelled || props.onTerminalAdminError(error, props.config)) return;
       setState({ status: "error", message: error instanceof Error ? error.message : `Unexpected ${props.title} query error.` });
     });
     return () => { cancelled = true; };
-  }, [props.config, props.source, props.dateRange, props.onTerminalAdminError, props.title, reportLabel, revision, tooltipHandlers]);
-  const daysByDate = useMemo(() => new Map(state.status === "ready" ? state.report.days.map((day) => [day.date, day]) : []), [state]);
+  }, [props.config, props.source, props.dateRange, props.period, props.onTerminalAdminError, props.title, reportLabel, revision, tooltipHandlers]);
+  const bucketsByKey = useMemo(() => new Map(state.status === "ready" ? state.report.buckets.map((entry) => [entry.bucket.key, entry]) : []), [state]);
   useEffect(() => {
     if (chartRef.current === null || state.status !== "ready") return;
-    const getDay = (date: string): DailyNewReturningDay => {
-      const day = daysByDate.get(date);
-      if (day === undefined) throw new Error(`${props.title} chart has no day for ${date}.`);
-      return day;
+    const getBucket = (key: string): NewReturningBucket => {
+      const entry = bucketsByKey.get(key);
+      if (entry === undefined) throw new Error(`${props.title} chart has no bucket for ${key}.`);
+      return entry;
     };
+    const inProgressKey = findInProgressBucketKey(state.report.buckets.map((entry) => entry.bucket), state.report.today);
     renderDailyNewReturningChart({
       svgElement: chartRef.current,
-      days: state.report.days,
-      today: state.report.today,
-      getLabel: (date) => `${date} UTC. ${describeDay(getDay(date), state.report)}`,
-      getTooltipHtml: (date) => `<p class="tooltip-title">${escapeHtml(date)} UTC${date === state.report.today ? " · in progress" : ""}</p><p>${escapeHtml(describeDay(getDay(date), state.report))}</p>`,
+      buckets: state.report.buckets,
+      inProgressKey,
+      xLabel: reportPeriodAxisLabels[state.report.period],
+      formatTick: (key) => formatReportBucketTick(state.report.period, key),
+      getLabel: (key) => `${formatReportBucketTitle(state.report.period, getBucket(key).bucket)} UTC. ${describeBucket(getBucket(key), state.report)}`,
+      getTooltipHtml: (key) => `<p class="tooltip-title">${escapeHtml(formatReportBucketTitle(state.report.period, getBucket(key).bucket))} UTC${key === inProgressKey ? " · in progress" : ""}</p><p>${escapeHtml(describeBucket(getBucket(key), state.report))}</p>`,
       tooltipHandlers,
     });
-  }, [state, daysByDate, props.title, tooltipHandlers]);
+  }, [state, bucketsByKey, props.title, tooltipHandlers]);
   return (
     <section className="dashboard-section" data-testid={props.testId}>
       <header className="dashboard-section-header">
@@ -95,25 +107,25 @@ export function DailyNewReturningSection(props: Readonly<{
         <section className="chart-column">
           <div className="chart-shell">
             <div className="chart-meta">
-              <span>Daily unique people · UTC</span>
+              <span>Unique people per {state.report.period} · UTC</span>
               <div className="chart-meta-right"><UniqueUserCohortKey /></div>
             </div>
-            {state.report.days.every((day) => day.newUsers === null) ? <p className="report-state">Retained source history does not cover this range.</p> : null}
-            {state.report.days.some((day) => day.newUsers !== null) && state.report.days.every((day) => (day.newUsers ?? 0) + (day.returningUsers ?? 0) === 0) ? <p className="report-state">No people in the covered days after exclusions.</p> : null}
-            <div className="chart-scroll"><svg ref={chartRef} role="group" aria-label={`${props.title}: daily unique people, new and returning`} /></div>
+            {state.report.buckets.every((entry) => entry.newUsers === null) ? <p className="report-state">Retained source history does not cover this range.</p> : null}
+            {state.report.buckets.some((entry) => entry.newUsers !== null) && state.report.buckets.every((entry) => (entry.newUsers ?? 0) + (entry.returningUsers ?? 0) === 0) ? <p className="report-state">No people in the covered days after exclusions.</p> : null}
+            <div className="chart-scroll"><svg ref={chartRef} role="group" aria-label={`${props.title}: unique people per ${state.report.period}, new and returning`} /></div>
             <details className="activity-chart-table">
               <summary>Chart data and coverage</summary>
               <p className="activity-coverage-note">
                 {state.report.historyFrom === null ? "No retained source history." : `Recorded source history starts ${state.report.historyFrom}. Today (${state.report.today} UTC) is in progress.`}
               </p>
               <div className="chart-scroll"><table>
-                <caption>Daily unique people, UTC</caption>
-                <thead><tr><th scope="col">Date</th><th scope="col">New</th><th scope="col">Returning</th><th scope="col">Total / availability</th></tr></thead>
-                <tbody>{state.report.days.map((day) => <tr key={day.date}>
-                  <th scope="row">{day.date}{day.date === state.report.today ? " (in progress)" : ""}</th>
-                  <td>{day.newUsers === null ? "—" : formatCount(day.newUsers)}</td>
-                  <td>{day.returningUsers === null ? "—" : formatCount(day.returningUsers)}</td>
-                  <td>{day.newUsers === null || day.returningUsers === null ? describeDay(day, state.report) : formatCount(day.newUsers + day.returningUsers)}</td>
+                <caption>Unique people per {state.report.period}, UTC</caption>
+                <thead><tr><th scope="col">{reportPeriodColumnLabels[state.report.period]}</th><th scope="col">New</th><th scope="col">Returning</th><th scope="col">Total / availability</th></tr></thead>
+                <tbody>{state.report.buckets.map((entry) => <tr key={entry.bucket.key}>
+                  <th scope="row">{formatReportBucketTitle(state.report.period, entry.bucket)}{entry.bucket.to === state.report.today ? " (in progress)" : ""}</th>
+                  <td>{entry.newUsers === null ? "—" : formatCount(entry.newUsers)}</td>
+                  <td>{entry.returningUsers === null ? "—" : formatCount(entry.returningUsers)}</td>
+                  <td>{entry.newUsers === null || entry.returningUsers === null ? describeBucket(entry, state.report) : formatCount(entry.newUsers + entry.returningUsers)}</td>
                 </tr>)}</tbody>
               </table></div>
             </details>
