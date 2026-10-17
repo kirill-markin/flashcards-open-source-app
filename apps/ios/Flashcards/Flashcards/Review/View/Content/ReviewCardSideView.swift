@@ -11,6 +11,7 @@ struct ReviewCardSideView: View {
     let onToggleSpeech: () -> Void
     let showsSpeechButton: Bool
     let showsAiButton: Bool
+    let aiButtonAccentColor: AccountAccentColor
     let onOpenAi: () -> Void
     let surfaceStyle: ReviewCardSurfaceStyle
 
@@ -22,6 +23,7 @@ struct ReviewCardSideView: View {
         onToggleSpeech: @escaping () -> Void,
         showsSpeechButton: Bool,
         showsAiButton: Bool,
+        aiButtonAccentColor: AccountAccentColor,
         onOpenAi: @escaping () -> Void,
         surfaceStyle: ReviewCardSurfaceStyle
     ) {
@@ -32,6 +34,7 @@ struct ReviewCardSideView: View {
         self.onToggleSpeech = onToggleSpeech
         self.showsSpeechButton = showsSpeechButton
         self.showsAiButton = showsAiButton
+        self.aiButtonAccentColor = aiButtonAccentColor
         self.onOpenAi = onOpenAi
         self.surfaceStyle = surfaceStyle
     }
@@ -101,11 +104,11 @@ struct ReviewCardSideView: View {
                         Button(action: self.onOpenAi) {
                             Text(String(localized: "AI", table: reviewCardsStringsTableName))
                                 .font(.caption2.weight(.bold))
-                                .foregroundStyle(.white)
+                                .foregroundStyle(self.aiButtonAccentColor.contrastingForegroundColor)
                                 .padding(.vertical, 6)
                                 .padding(.horizontal, 11)
                                 .frame(minHeight: 32)
-                                .background(.tint, in: Capsule())
+                                .background(self.aiButtonAccentColor.color, in: Capsule())
                                 .frame(minWidth: 44, minHeight: 44)
                                 .contentShape(Rectangle())
                         }
