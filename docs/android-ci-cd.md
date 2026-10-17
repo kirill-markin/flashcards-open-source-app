@@ -1,15 +1,14 @@
 # Android CI/CD
 
-This repository uses one reusable Android validation workflow with automatic pull-request checks, automatic `push main`, manual release, and a publisher-only recovery entrypoint:
+This repository uses one reusable Android validation workflow, called only by the manual release, and a publisher-only recovery entrypoint:
 
-- GitHub Actions is the primary Android CI/CD entrypoint on `main`
+- GitHub Actions is the primary Android CI/CD entrypoint
 - `.github/workflows/android-ci-reusable.yml` contains the actual Android CI implementation
-- `.github/workflows/pr-checks.yml` contains the required aggregate pull-request gate and conditionally calls the Android validation jobs
-- `.github/workflows/android-ci.yml` is the automatic `push main` Android validation workflow
+- pull requests and pushes to `main` run no Android CI: `main` reaches users only through an Android release, which runs every check, so `main` can fail to compile for Android unnoticed until the next release; fix forward
 - `.github/workflows/android-release.yml` is the manual Android release workflow
 - `.github/workflows/android-release-upload-recovery.yml` recovers only a failed publisher for a pinned, already-tested signed bundle
 - GitHub submits Device Run only from the manual release workflow on Google-managed devices
-- automatic Android CI and manual Android release are fully independent from the AWS/Web release workflow
+- the manual Android release is fully independent from the AWS/Web release workflow
 - the manual Android release workflow uploads a production-track draft release to Google Play; final publication still happens later in Play Console
 - `cloudbuild.android.yaml` is the Google-native entrypoint for Cloud Build triggers in the Google Cloud console
 
@@ -57,28 +56,8 @@ This Android-specific sync is separate from the AWS deploy bootstrap script `bas
 
 ## What runs
 
-Pull-request GitHub Actions workflow: `.github/workflows/pr-checks.yml`
-
-- Starts on every `pull_request`, so the required `Repository static checks` context is always reported
-- Detects Android-impacting files while excluding `apps/android/README.md` and `apps/android/docs/**`
-- Calls `.github/workflows/android-ci-reusable.yml` for the pull-request merge commit with `run_data_local_instrumentation: false` when Android-impacting files changed, so unit tests, debug builds, and lint run before merge
-- Calls the reusable workflow separately with `run_build: false` and `run_data_local_instrumentation: true` only when files that can change the `:data:local` suite result change: `apps/android/data/**`, `apps/android/core/observability/**`, or shared Android Gradle configuration
-- The narrow filter exists because `:data:local` depends only on `:core:observability`, so `:app`, `:core:ui`, and `:feature:*` changes cannot change that suite result
-- Aggregates every conditional and unconditional PR job into `Repository static checks`; branch protection requires that context with strict up-to-date checks before merge
-- Does not upload a Google Play draft
-- Does not submit Device Run
-
-Automatic GitHub Actions workflow: `.github/workflows/android-ci.yml`
-
-- Starts on `push main` when Android-impacting files change
-- Calls `.github/workflows/android-ci-reusable.yml` with `run_build: false`, so only the `data:local` emulator instrumentation job runs
-- Is the post-merge emulator backstop and does not repeat the build, unit tests, or lint already enforced before merge
-- Does not upload a Google Play draft
-- Does not submit Device Run
-
 GitHub Actions reusable workflow: `.github/workflows/android-ci-reusable.yml`
 
-- Exposes two boolean inputs that both default to `true`: `run_build` gates the build, unit test, and lint job, and `run_data_local_instrumentation` gates the emulator `data:local` instrumentation job; the two conditional callers in `pr-checks.yml` each turn one off, `android-ci.yml` turns off the build job, and `android-release.yml` leaves both on
 - Runs `test` for the whole Android Gradle project
 - Builds `:app:assembleDebug`
 - Builds `:app:assembleDebugAndroidTest`
@@ -89,7 +68,7 @@ GitHub Actions reusable workflow: `.github/workflows/android-ci-reusable.yml`
 - Boots a headless Android 17 / API 37 emulator in GitHub Actions with `-gpu swiftshader`
 - Runs `:data:local:connectedDebugAndroidTest` on that emulator
 - Uploads `data:local` instrumentation reports from the emulator run when the Gradle task produced them
-- Intentionally does not make the emulator job depend on the build job, because the emulator job does its own checkout and Gradle build, so a failing build no longer prevents or cancels the emulator run
+- Intentionally does not make the emulator job depend on the build job, because the emulator job does its own checkout and Gradle build, so a failing build does not prevent or cancel the emulator run
 - Reuses the caller-provided `ANDROID_VERSION_CODE` across Android CI/build artifacts
 - Uses the Sentry release name `com.flashcardsopensourceapp.app@<versionName>+<versionCode>` for Android release artifact correlation; the workflow summary also prints the manager-readable Play release identifier, but runtime Sentry event tags/contexts are controlled by app runtime code
 
@@ -110,22 +89,6 @@ Top-level release workflow Play job: `.github/workflows/android-release.yml` job
 - Converts `noShrinkingPercentage`, `noOptimizationPercentage`, and `noObfuscationPercentage` into coverage percentages, prints them to the run summary, and fails the run when any category is below Google Play's 25% minimum
 - Fails loudly when the R8 metadata is missing or unreadable, so a silently unoptimized bundle cannot be published
 - Runs after the bundle artifact upload, so a failed gate still leaves the exact bundle attached to the run for debugging
-
-The pull-request Android flow is:
-
-1. `pr-checks.yml` starts on every pull request and detects the affected areas
-2. Android-impacting changes validate the pull-request merge commit with unit tests, debug builds, and lint
-3. Android data-layer, `:core:observability`, and shared Gradle configuration changes also run `data:local` emulator instrumentation in parallel
-4. The always-present `Repository static checks` aggregate succeeds only when every in-scope PR job succeeds and every out-of-scope conditional job is skipped
-5. Branch protection requires that aggregate against the latest `main`, so an outdated or failing pull request cannot merge
-6. The workflow stops there: no Device Run submission and no Google Play draft upload
-
-The automatic Android CI flow is:
-
-1. `android-ci.yml` starts on `push main` for Android-impacting changes
-2. `data:local` Android instrumentation runs on a GitHub-hosted Android 17 emulator
-3. The already-required build, unit tests, and lint do not repeat
-4. The workflow stops there: no Device Run submission and no Google Play draft upload
 
 The manual Android release flow is:
 
@@ -148,10 +111,6 @@ build/native gates, follow [exact-bundle recovery](release/android.md#exact-bund
 The separate notes artifact leaves signed-bundle and native-summary inventories
 unchanged; recovery restores the exact original notes with digest and attempt
 checks, while supporting legacy releases without notes evidence.
-
-After pushing to `main`, watch `Android CI` separately when Android-impacting files changed.
-
-For Android, a green automatic `Android CI` run means the post-merge `data:local` emulator backstop passed for that SHA. The required PR aggregate already enforced the applicable build, unit tests, lint, and pull-request emulator gate. A green automatic run does not mean Device Run was submitted, a Google Play draft was uploaded, or a release is ready to publish.
 
 A green manual `Android Release` run means the GitHub-hosted Android gate and all four Device Run sessions, jobs and executions passed, and CI uploaded a Play draft. Inspect named cases through the CLI/GCS procedure below. Translation review, Play-delivered build verification, and final publication still happen later in Play Console. A non-green `Android Release` run means one of the required release stages failed or was skipped by a failed dependency.
 
