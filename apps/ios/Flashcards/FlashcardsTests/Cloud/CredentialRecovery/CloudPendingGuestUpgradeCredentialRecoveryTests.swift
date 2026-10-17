@@ -119,24 +119,6 @@ final class CloudPendingGuestUpgradeCredentialRecoveryTests: CloudCredentialReco
             line: #line
         )
 
-        GuestCloudAuthServiceTestURLProtocol.requestHandler = { request in
-            let body = try guestCloudAuthServiceTestRequestBody(request: request)
-            let requestBody = try JSONDecoder().decode(
-                GuestUpgradePrepareRequestBody.self,
-                from: body
-            )
-            XCTAssertEqual("guest-token", requestBody.guestToken)
-            let response = try XCTUnwrap(
-                HTTPURLResponse(
-                    url: try XCTUnwrap(request.url),
-                    statusCode: 200,
-                    httpVersion: nil,
-                    headerFields: nil
-                )
-            )
-            return (response, Data(#"{"mode":"merge_required"}"#.utf8))
-        }
-
         let linkContext: CloudWorkspaceLinkContext = try await store.prepareCloudLink(
             verifiedContext: CloudVerifiedAuthContext(
                 apiBaseUrl: configuration.apiBaseUrl,
@@ -145,7 +127,7 @@ final class CloudPendingGuestUpgradeCredentialRecoveryTests: CloudCredentialReco
         )
 
         XCTAssertEqual(1, cloudSyncService.fetchCloudAccountCallCount)
-        XCTAssertEqual(1, GuestCloudAuthServiceTestURLProtocol.requestCount)
+        XCTAssertEqual(0, GuestCloudAuthServiceTestURLProtocol.requestCount)
         XCTAssertEqual(.mergeRequired, linkContext.guestUpgradeMode)
         XCTAssertEqual(.pendingGuestUpgradeRecovery, linkContext.postAuthRecoveryRoute)
         XCTAssertEqual("linked-user", linkContext.userId)

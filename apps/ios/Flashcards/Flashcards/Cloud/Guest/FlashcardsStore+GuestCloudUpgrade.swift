@@ -199,10 +199,10 @@ extension FlashcardsStore {
         guard self.cloudCredentialRecoveryState != nil else {
             return nil
         }
-        try self.throwIfCredentialRecoveryBlocksPendingGuestUpgrade()
         guard try self.matchingInFlightPendingGuestUpgradeState(apiBaseUrl: apiBaseUrl) != nil else {
             return nil
         }
+        try self.throwIfCredentialRecoveryBlocksPendingGuestUpgrade()
         guard try self.loadUsableGuestSessionForCurrentConfiguration() != nil else {
             try self.markPendingGuestUpgradeGuestSessionMissing(detectedAt: detectedAt)
             return .pendingGuestUpgradeMissingGuestSessionRecovery
