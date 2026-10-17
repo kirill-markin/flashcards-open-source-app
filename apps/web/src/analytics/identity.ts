@@ -152,10 +152,6 @@ export function readAnalyticsVisitorId(): string | null {
  * The mint answer's own `visitorId` is deliberately never adopted here. It is returned whether or
  * not the browser accepted the `Set-Cookie`, so a browser that blocks cookies would otherwise be
  * counted as one new visitor on every page load (docs/analytics-visitor-identity.md).
- *
- * The cookie is scoped to the current product base domain, so the planned move to `nibomo.com`
- * resets every visitor id on that day. That is knowingly accepted: no anonymous identity is carried
- * across the domain move.
  */
 export function readAnalyticsAnonymousId(): string | null {
   // Read before the cookie rather than after it, because a refusal does not guarantee the cookie is
@@ -199,8 +195,7 @@ function readSharedVisitorCookieDomain(): string | null {
  * rather than merely ignoring it. And an account deletion, where nothing on the server clears this
  * cookie at the moment the deletion is confirmed: `POST /v1/me/delete` answers bearer callers with
  * no browser behind them, and the auth origin's `/logout-local` — which does clear cookies of its
- * own, on this domain — is reached only by a navigation the deletion cleanup can abort before
- * (docs/analytics-visitor-identity.md).
+ * own, on this domain — is reached only by a navigation the deletion cleanup can abort before.
  */
 export function clearAnalyticsVisitorCookie(): void {
   const cookieDomain = readSharedVisitorCookieDomain();
