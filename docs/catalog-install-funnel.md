@@ -58,11 +58,8 @@ It also still accepts `catalog_install_landed`, `catalog_install_signin_started`
 `catalog_install_signin_code_requested` and `catalog_install_signin_succeeded`, which no producer
 sends any more.
 
-The admin Funnels area does not read the journey id: its catalog install funnel is keyed on the
-shared visitor identity below, and it does not read the four names above either. The General and
-Audience catalog click filters still do, through `buildCatalogInstallAttributionSql` in
-[`filterSql.ts`](../apps/admin/src/filters/filterSql.ts), which joins a click to a server install on
-it; the server install no longer carries it, so that join matches no install made since.
+The admin app reads the journey id only in `buildCatalogInstallAttributionSql` in
+[`filterSql.ts`](../apps/admin/src/filters/filterSql.ts).
 
 ## Reporting
 
@@ -88,9 +85,8 @@ through `first_anonymous_link` on the same shared visitor id as the rows above, 
 what keeps them out of a report is the trusted-actor rule rather than an unreachable identity.
 A sign-in is read instead from the web app's first screen view that the same browser sends with an
 account credential. The sequence is assembled at analysis time
-from that identity and `occurred_at`. The admin funnel over it counts people, starts at the deck page view and
-takes the click as its second step, so its history begins when the site began sending page views;
-what it can and cannot claim is [Admin app](admin-app.md). **Only a click sent with the visitor identity joins anything:**
+from that identity and `occurred_at`; the admin deck funnel over it is
+[its query](../apps/admin/src/reports/catalogInstallFunnel/query.ts). **Only a click sent with the visitor identity joins anything:**
 a click body that claims no `anonymousId` is stored under its per-attempt `install_journey_id`, which
 matches no later row, and that is every click made before the site and the app shared one
 registrable domain.
@@ -106,12 +102,9 @@ reaches the account only through the identity link for its visitor cookie.
 Post-install engagement is reportable only on an install whose server `catalog_deck_installed` row
 exists, because that is where the install is a fact rather than an intent. `review_answered` carries
 no deck or card identity, so those reviews are the person's reviews anywhere in the product and never
-deck-level retention; say so wherever they are shown. Whether the installing identity is new is that
-actor having no trusted `analytics.product_events_resolved` row at all before the deck page view, read
-with no lower bound and over every event name. Trusted is what
-[`buildTrustedActorRowsFilterSql`](../apps/admin/src/filters/filterSql.ts) defines and states in
-full, and it is load-bearing here: the anchoring page view is itself a credential-free row on the
-same identity, so without the rule no installer would ever read as new.
+deck-level retention; say so wherever they are shown. The admin deck funnel's engagement and
+new-installer columns are defined on `CatalogInstallFunnelVisit` in
+[its query](../apps/admin/src/reports/catalogInstallFunnel/query.ts).
 
 ## Manual acceptance
 
