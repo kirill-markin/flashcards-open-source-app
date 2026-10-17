@@ -8,7 +8,7 @@ final class ProgressSummarySeriesRefreshTests: ProgressStoreTestCase {
         let database = try self.makeDatabase()
         let workspace = try database.workspaceSettingsStore.loadWorkspace()
         let cloudSettings = try database.workspaceSettingsStore.loadCloudSettings()
-        let timeZone = try XCTUnwrap(TimeZone(identifier: "UTC"))
+        let timeZone = TimeZone.current
         let now = try XCTUnwrap(parseIsoTimestamp(value: "2026-04-18T12:00:00.000Z"))
         let requestRange = try makeTestProgressRequestRange(
             now: now,
@@ -90,7 +90,7 @@ final class ProgressSummarySeriesRefreshTests: ProgressStoreTestCase {
         let database = try self.makeDatabase()
         let workspace = try database.workspaceSettingsStore.loadWorkspace()
         let cloudSettings = try database.workspaceSettingsStore.loadCloudSettings()
-        let timeZone = try XCTUnwrap(TimeZone(identifier: "UTC"))
+        let timeZone = TimeZone.current
         try self.addReviewedCard(
             database: database,
             workspaceId: workspace.workspaceId,
@@ -98,12 +98,18 @@ final class ProgressSummarySeriesRefreshTests: ProgressStoreTestCase {
                 localDate: "2026-04-18",
                 hour: 9,
                 timeZoneIdentifier: timeZone.identifier
-            )
+            ),
+            reviewedTimeZone: timeZone.identifier
         )
         let outboxEntries = try database.loadOutboxEntries(workspaceId: workspace.workspaceId, limit: Int.max)
         try database.deleteOutboxEntries(operationIds: outboxEntries.map(\.operationId))
 
-        let now = try XCTUnwrap(parseIsoTimestamp(value: "2026-04-18T12:00:00.000Z"))
+        let nowTimestamp = try makeReviewedAtClientForTests(
+            localDate: "2026-04-18",
+            hour: 12,
+            timeZoneIdentifier: timeZone.identifier
+        )
+        let now = try XCTUnwrap(parseIsoTimestamp(value: nowTimestamp))
         let requestRange = try makeTestProgressRequestRange(
             now: now,
             timeZone: timeZone,
@@ -114,7 +120,7 @@ final class ProgressSummarySeriesRefreshTests: ProgressStoreTestCase {
             reviewCountsByDate: [
                 "2026-04-17": 1
             ],
-            generatedAt: "2026-04-18T11:59:00.000Z"
+            generatedAt: formatIsoTimestamp(date: now.addingTimeInterval(-60))
         )
         let serverSummary = UserProgressSummary(
             timeZone: requestRange.timeZone,
@@ -124,7 +130,7 @@ final class ProgressSummarySeriesRefreshTests: ProgressStoreTestCase {
                 lastReviewedOn: "2026-04-17",
                 activeReviewDays: 200
             ),
-            generatedAt: "2026-04-18T11:59:00.000Z",
+            generatedAt: formatIsoTimestamp(date: now.addingTimeInterval(-60)),
             reviewHistoryWatermarks: makeTestProgressReviewHistoryWatermarks(reviewSequenceId: 42)
         )
         let context = try self.makeProgressStoreContext(
@@ -155,7 +161,7 @@ final class ProgressSummarySeriesRefreshTests: ProgressStoreTestCase {
         let database = try self.makeDatabase()
         let workspace = try database.workspaceSettingsStore.loadWorkspace()
         let cloudSettings = try database.workspaceSettingsStore.loadCloudSettings()
-        let timeZone = try XCTUnwrap(TimeZone(identifier: "UTC"))
+        let timeZone = TimeZone.current
         try self.addReviewedCard(
             database: database,
             workspaceId: workspace.workspaceId,
@@ -163,7 +169,8 @@ final class ProgressSummarySeriesRefreshTests: ProgressStoreTestCase {
                 localDate: "2026-04-17",
                 hour: 9,
                 timeZoneIdentifier: timeZone.identifier
-            )
+            ),
+            reviewedTimeZone: timeZone.identifier
         )
         try self.addReviewedCard(
             database: database,
@@ -172,12 +179,18 @@ final class ProgressSummarySeriesRefreshTests: ProgressStoreTestCase {
                 localDate: "2026-04-18",
                 hour: 9,
                 timeZoneIdentifier: timeZone.identifier
-            )
+            ),
+            reviewedTimeZone: timeZone.identifier
         )
         let outboxEntries = try database.loadOutboxEntries(workspaceId: workspace.workspaceId, limit: Int.max)
         try database.deleteOutboxEntries(operationIds: outboxEntries.map(\.operationId))
 
-        let now = try XCTUnwrap(parseIsoTimestamp(value: "2026-04-18T12:00:00.000Z"))
+        let nowTimestamp = try makeReviewedAtClientForTests(
+            localDate: "2026-04-18",
+            hour: 12,
+            timeZoneIdentifier: timeZone.identifier
+        )
+        let now = try XCTUnwrap(parseIsoTimestamp(value: nowTimestamp))
         let requestRange = try makeTestProgressRequestRange(
             now: now,
             timeZone: timeZone,
@@ -188,7 +201,7 @@ final class ProgressSummarySeriesRefreshTests: ProgressStoreTestCase {
             reviewCountsByDate: [
                 "2026-04-16": 1
             ],
-            generatedAt: "2026-04-18T11:59:00.000Z"
+            generatedAt: formatIsoTimestamp(date: now.addingTimeInterval(-60))
         )
         let serverSummary = UserProgressSummary(
             timeZone: requestRange.timeZone,
@@ -198,7 +211,7 @@ final class ProgressSummarySeriesRefreshTests: ProgressStoreTestCase {
                 lastReviewedOn: "2026-04-16",
                 activeReviewDays: 200
             ),
-            generatedAt: "2026-04-18T11:59:00.000Z",
+            generatedAt: formatIsoTimestamp(date: now.addingTimeInterval(-60)),
             reviewHistoryWatermarks: makeTestProgressReviewHistoryWatermarks(reviewSequenceId: 42)
         )
         let context = try self.makeProgressStoreContext(
@@ -237,7 +250,7 @@ final class ProgressSummarySeriesRefreshTests: ProgressStoreTestCase {
         let database = try self.makeDatabase()
         let workspace = try database.workspaceSettingsStore.loadWorkspace()
         let cloudSettings = try database.workspaceSettingsStore.loadCloudSettings()
-        let timeZone = try XCTUnwrap(TimeZone(identifier: "UTC"))
+        let timeZone = TimeZone.current
         try self.addReviewedCard(
             database: database,
             workspaceId: workspace.workspaceId,
@@ -305,7 +318,7 @@ final class ProgressSummarySeriesRefreshTests: ProgressStoreTestCase {
         let database = try self.makeDatabase()
         let workspace = try database.workspaceSettingsStore.loadWorkspace()
         let cloudSettings = try database.workspaceSettingsStore.loadCloudSettings()
-        let timeZone = try XCTUnwrap(TimeZone(identifier: "UTC"))
+        let timeZone = TimeZone.current
 
         let now = try XCTUnwrap(parseIsoTimestamp(value: "2026-04-18T12:00:00.000Z"))
         let requestRange = try makeTestProgressRequestRange(
@@ -362,7 +375,7 @@ final class ProgressSummarySeriesRefreshTests: ProgressStoreTestCase {
         let database = try self.makeDatabase()
         let workspace = try database.workspaceSettingsStore.loadWorkspace()
         let cloudSettings = try database.workspaceSettingsStore.loadCloudSettings()
-        let timeZone = try XCTUnwrap(TimeZone(identifier: "UTC"))
+        let timeZone = TimeZone.current
         try self.addReviewedCard(
             database: database,
             workspaceId: workspace.workspaceId,
@@ -425,7 +438,7 @@ final class ProgressSummarySeriesRefreshTests: ProgressStoreTestCase {
         let database = try self.makeDatabase()
         let workspace = try database.workspaceSettingsStore.loadWorkspace()
         let cloudSettings = try database.workspaceSettingsStore.loadCloudSettings()
-        let timeZone = try XCTUnwrap(TimeZone(identifier: "UTC"))
+        let timeZone = TimeZone.current
         try self.addReviewedCard(
             database: database,
             workspaceId: workspace.workspaceId,
@@ -490,7 +503,7 @@ final class ProgressSummarySeriesRefreshTests: ProgressStoreTestCase {
         let database = try self.makeDatabase()
         let workspace = try database.workspaceSettingsStore.loadWorkspace()
         let cloudSettings = try database.workspaceSettingsStore.loadCloudSettings()
-        let timeZone = try XCTUnwrap(TimeZone(identifier: "UTC"))
+        let timeZone = TimeZone.current
         try self.addReviewedCard(
             database: database,
             workspaceId: workspace.workspaceId,
@@ -498,12 +511,18 @@ final class ProgressSummarySeriesRefreshTests: ProgressStoreTestCase {
                 localDate: "2026-04-18",
                 hour: 9,
                 timeZoneIdentifier: timeZone.identifier
-            )
+            ),
+            reviewedTimeZone: timeZone.identifier
         )
         let outboxEntries = try database.loadOutboxEntries(workspaceId: workspace.workspaceId, limit: Int.max)
         try database.deleteOutboxEntries(operationIds: outboxEntries.map(\.operationId))
 
-        let now = try XCTUnwrap(parseIsoTimestamp(value: "2026-04-18T12:00:00.000Z"))
+        let nowTimestamp = try makeReviewedAtClientForTests(
+            localDate: "2026-04-18",
+            hour: 12,
+            timeZoneIdentifier: timeZone.identifier
+        )
+        let now = try XCTUnwrap(parseIsoTimestamp(value: nowTimestamp))
         let requestRange = try makeTestProgressRequestRange(
             now: now,
             timeZone: timeZone,
@@ -514,7 +533,7 @@ final class ProgressSummarySeriesRefreshTests: ProgressStoreTestCase {
             reviewCountsByDate: [
                 "2026-04-18": 1
             ],
-            generatedAt: "2026-04-18T11:59:00.000Z"
+            generatedAt: formatIsoTimestamp(date: now.addingTimeInterval(-60))
         )
         let serverSummary = UserProgressSummary(
             timeZone: requestRange.timeZone,
@@ -524,7 +543,7 @@ final class ProgressSummarySeriesRefreshTests: ProgressStoreTestCase {
                 lastReviewedOn: "2026-04-18",
                 activeReviewDays: 200
             ),
-            generatedAt: "2026-04-18T11:59:00.000Z",
+            generatedAt: formatIsoTimestamp(date: now.addingTimeInterval(-60)),
             reviewHistoryWatermarks: makeTestProgressReviewHistoryWatermarks(reviewSequenceId: 42)
         )
         let context = try self.makeProgressStoreContext(
@@ -555,7 +574,7 @@ final class ProgressSummarySeriesRefreshTests: ProgressStoreTestCase {
         let database = try self.makeDatabase()
         let workspace = try database.workspaceSettingsStore.loadWorkspace()
         let cloudSettings = try database.workspaceSettingsStore.loadCloudSettings()
-        let timeZone = try XCTUnwrap(TimeZone(identifier: "UTC"))
+        let timeZone = TimeZone.current
         try self.addReviewedCard(
             database: database,
             workspaceId: workspace.workspaceId,
@@ -629,7 +648,7 @@ final class ProgressSummarySeriesRefreshTests: ProgressStoreTestCase {
         let database = try self.makeDatabase()
         let workspace = try database.workspaceSettingsStore.loadWorkspace()
         let cloudSettings = try database.workspaceSettingsStore.loadCloudSettings()
-        let timeZone = try XCTUnwrap(TimeZone(identifier: "UTC"))
+        let timeZone = TimeZone.current
         try self.addReviewedCard(
             database: database,
             workspaceId: workspace.workspaceId,
@@ -637,7 +656,8 @@ final class ProgressSummarySeriesRefreshTests: ProgressStoreTestCase {
                 localDate: "2026-04-17",
                 hour: 9,
                 timeZoneIdentifier: timeZone.identifier
-            )
+            ),
+            reviewedTimeZone: timeZone.identifier
         )
         try self.addReviewedCard(
             database: database,
@@ -646,12 +666,18 @@ final class ProgressSummarySeriesRefreshTests: ProgressStoreTestCase {
                 localDate: "2026-04-18",
                 hour: 9,
                 timeZoneIdentifier: timeZone.identifier
-            )
+            ),
+            reviewedTimeZone: timeZone.identifier
         )
         let outboxEntries = try database.loadOutboxEntries(workspaceId: workspace.workspaceId, limit: Int.max)
         try database.deleteOutboxEntries(operationIds: outboxEntries.map(\.operationId))
 
-        let now = try XCTUnwrap(parseIsoTimestamp(value: "2026-04-18T12:00:00.000Z"))
+        let nowTimestamp = try makeReviewedAtClientForTests(
+            localDate: "2026-04-18",
+            hour: 12,
+            timeZoneIdentifier: timeZone.identifier
+        )
+        let now = try XCTUnwrap(parseIsoTimestamp(value: nowTimestamp))
         let requestRange = try makeTestProgressRequestRange(
             now: now,
             timeZone: timeZone,
@@ -662,12 +688,12 @@ final class ProgressSummarySeriesRefreshTests: ProgressStoreTestCase {
             reviewCountsByDate: [
                 "2026-04-16": 1
             ],
-            generatedAt: "2026-04-18T11:59:00.000Z"
+            generatedAt: formatIsoTimestamp(date: now.addingTimeInterval(-60))
         )
         let serverSummary = try makeTestProgressSummary(
             timeZone: requestRange.timeZone,
             reviewDates: ["2026-04-16"],
-            generatedAt: "2026-04-18T11:59:00.000Z"
+            generatedAt: formatIsoTimestamp(date: now.addingTimeInterval(-60))
         )
         let context = try self.makeProgressStoreContext(
             database: database,
@@ -708,6 +734,19 @@ final class ProgressSummarySeriesRefreshTests: ProgressStoreTestCase {
             workspaceId: workspace.workspaceId,
             reviewedAtClient: "2026-04-02T15:50:57.000Z"
         )
+        let setupOutboxEntries = try database.loadOutboxEntries(
+            workspaceId: workspace.workspaceId,
+            limit: Int.max
+        )
+        try database.deleteOutboxEntries(
+            operationIds: setupOutboxEntries.filter { $0.operation.entityType == .card }.map(\.operationId)
+        )
+        let pendingReviewEntries = try database.loadOutboxEntries(
+            workspaceId: workspace.workspaceId,
+            limit: Int.max
+        )
+        XCTAssertEqual([.reviewEvent], pendingReviewEntries.map { $0.operation.entityType })
+        XCTAssertFalse(pendingReviewEntries.contains { $0.reviewScheduleImpact })
 
         let now = try XCTUnwrap(parseIsoTimestamp(value: "2026-04-18T12:00:00.000Z"))
         let requestRange = try makeTestProgressRequestRange(

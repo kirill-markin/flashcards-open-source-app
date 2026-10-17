@@ -4,17 +4,20 @@ import type { AnalyticsDateRange } from "../../filters/analyticsFilters";
 import { assertIsString, assertValidDateRange } from "../reportValues";
 import { buildWhoSawUsAvailableRangeSql } from "../whoSawUs/query";
 import { buildWhoPaidUsAvailableRangeSql } from "../whoPaidUs/query";
+import { buildAppOpenActivityCtesSql } from "../whoOpenedTheApp/appOpenActivitySql";
 import { buildMeaningfulActivityCtesSql } from "./meaningfulActivitySql";
 
 export function buildLevelOneMetricsAvailableRangeSql(): string {
-  return `WITH ${buildMeaningfulActivityCtesSql()}, sight_range AS (
+  return `WITH ${buildMeaningfulActivityCtesSql()}, ${buildAppOpenActivityCtesSql()}, sight_range AS (
 ${buildWhoSawUsAvailableRangeSql()}
 ), payment_range AS (
 ${buildWhoPaidUsAvailableRangeSql()}
 )
-SELECT to_char(LEAST(sight_range.from_date::date, activity_coverage.history_from, payment_range.history_from), 'YYYY-MM-DD') AS from_date,
+SELECT to_char(LEAST(sight_range.from_date::date, app_open_coverage.history_from, activity_coverage.history_from,
+    payment_range.history_from), 'YYYY-MM-DD') AS from_date,
   sight_range.to_date
 FROM sight_range
+CROSS JOIN app_open_coverage
 CROSS JOIN activity_coverage
 CROSS JOIN payment_range`;
 }

@@ -49,8 +49,8 @@ final class ProgressContextChangeTests: ProgressStoreTestCase {
 
         let initialScopeKey = try XCTUnwrap(context.store.progressObservedScopeKey)
         let initialSnapshot = try XCTUnwrap(context.store.progressSnapshot)
-        XCTAssertEqual(2, initialSnapshot.summary.activeReviewDays)
-        XCTAssertEqual("2026-04-02", initialSnapshot.summary.lastReviewedOn)
+        XCTAssertEqual(1, initialSnapshot.summary.activeReviewDays)
+        XCTAssertEqual("2026-04-01", initialSnapshot.summary.lastReviewedOn)
         XCTAssertEqual(1, context.cloudSyncService.loadProgressSummaryCallCount)
         XCTAssertEqual(1, context.cloudSyncService.loadProgressSeriesCallCount)
 
@@ -71,7 +71,8 @@ final class ProgressContextChangeTests: ProgressStoreTestCase {
         let updatedSnapshot = try XCTUnwrap(context.store.progressSnapshot)
         XCTAssertNotEqual(initialScopeKey, updatedScopeKey)
         XCTAssertNotEqual(initialScopeKey.workspaceMembershipKey, updatedScopeKey.workspaceMembershipKey)
-        XCTAssertEqual(3, updatedSnapshot.summary.activeReviewDays)
+        XCTAssertEqual(.localOnly, updatedSnapshot.summarySourceState)
+        XCTAssertEqual(2, updatedSnapshot.summary.activeReviewDays)
         XCTAssertEqual("2026-04-03", updatedSnapshot.summary.lastReviewedOn)
 
         await self.waitForProgressRefreshCallCounts(
@@ -398,8 +399,8 @@ final class ProgressContextChangeTests: ProgressStoreTestCase {
         await context.store.refreshProgressIfNeeded(now: now)
         let firstSnapshot = try XCTUnwrap(context.store.progressSnapshot)
         let firstScopeKey = try XCTUnwrap(context.store.progressObservedScopeKey)
-        XCTAssertEqual(3, firstSnapshot.summary.activeReviewDays)
-        XCTAssertEqual("2026-04-03", firstSnapshot.summary.lastReviewedOn)
+        XCTAssertEqual(1, firstSnapshot.summary.activeReviewDays)
+        XCTAssertEqual("2026-04-01", firstSnapshot.summary.lastReviewedOn)
         XCTAssertEqual(1, context.cloudSyncService.loadProgressSummaryCallCount)
         XCTAssertEqual(1, context.cloudSyncService.loadProgressSeriesCallCount)
 

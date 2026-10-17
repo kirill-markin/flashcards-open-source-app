@@ -11,7 +11,8 @@ import {
 import { buildPresetReportRange, lastSixtyDaysReportRangePreset } from "../reportValues";
 import { loadLevelOneMetricsAvailableRange } from "./query";
 import { WhoSawUsSection } from "../whoSawUs/WhoSawUsSection";
-import { WhoUsedUsSection } from "../whoUsedUs/WhoUsedUsSection";
+import { WhoOpenedTheAppSection } from "../whoOpenedTheApp/WhoOpenedTheAppSection";
+import { WhoStudiedSection } from "../whoStudied/WhoStudiedSection";
 import { WhoCameBackSection } from "../whoCameBack/WhoCameBackSection";
 import { WhoPaidUsSection } from "../whoPaidUs/WhoPaidUsSection";
 
@@ -154,7 +155,12 @@ export function LevelOneMetricsArea(
           dateRange={dateRange}
           onTerminalAdminError={props.onTerminalAdminError}
         />
-        <WhoUsedUsSection
+        <WhoOpenedTheAppSection
+          config={props.config}
+          dateRange={dateRange}
+          onTerminalAdminError={props.onTerminalAdminError}
+        />
+        <WhoStudiedSection
           config={props.config}
           dateRange={dateRange}
           onTerminalAdminError={props.onTerminalAdminError}

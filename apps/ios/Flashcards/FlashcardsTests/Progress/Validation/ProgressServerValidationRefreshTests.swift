@@ -219,7 +219,13 @@ final class ProgressServerValidationRefreshTests: ProgressStoreTestCase {
             key.hasPrefix("progress-series-server-base|")
         }
         XCTAssertTrue(persistedSeriesCacheKeys.isEmpty)
-        XCTAssertTrue(context.store.progressErrorMessage.contains("Progress series metadata mismatched"))
+        XCTAssertEqual(
+            localizedProgressSeriesRefreshErrorMessage(),
+            context.store.progressErrorState.seriesRefreshMessage
+        )
+        XCTAssertTrue(
+            try XCTUnwrap(context.store.presentedTechnicalError).technicalDetails.contains("Progress series metadata mismatched")
+        )
         XCTAssertEqual(1, context.cloudSyncService.loadProgressSummaryCallCount)
         XCTAssertEqual(1, context.cloudSyncService.loadProgressSeriesCallCount)
     }
@@ -293,7 +299,13 @@ final class ProgressServerValidationRefreshTests: ProgressStoreTestCase {
             key.hasPrefix("progress-series-server-base|")
         }
         XCTAssertTrue(persistedSeriesCacheKeys.isEmpty)
-        XCTAssertTrue(context.store.progressErrorMessage.contains("2026-02-31"))
+        XCTAssertEqual(
+            localizedProgressSeriesRefreshErrorMessage(),
+            context.store.progressErrorState.seriesRefreshMessage
+        )
+        XCTAssertTrue(
+            try XCTUnwrap(context.store.presentedTechnicalError).technicalDetails.contains("2026-02-31")
+        )
         XCTAssertEqual(1, context.cloudSyncService.loadProgressSummaryCallCount)
         XCTAssertEqual(1, context.cloudSyncService.loadProgressSeriesCallCount)
     }

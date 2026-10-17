@@ -2,8 +2,7 @@ import { runAdminQuery, type AdminQueryRow, type AdminQueryValue } from "../../a
 import type { AdminAppConfig } from "../../config";
 import type { AnalyticsDateRange } from "../../filters/analyticsFilters";
 import { escapeSqlStringLiteral } from "../../sql";
-import { assertIsString, assertValidDateRange, buildRequestedDateRange } from "../reportValues";
-import { parseActivityCount, parseActivityDate } from "../whoUsedUs/query";
+import { assertIsString, assertValidDateRange, buildRequestedDateRange, parseActivityCount, parseActivityDate } from "../reportValues";
 import { buildPaymentCoverageCtesSql, buildPaymentHistoryCtesSql } from "./paymentHistorySql";
 
 const reportLabel = "Who paid us report";

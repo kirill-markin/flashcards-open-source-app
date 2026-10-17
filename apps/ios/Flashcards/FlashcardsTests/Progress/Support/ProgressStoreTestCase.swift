@@ -34,6 +34,20 @@ class ProgressStoreTestCase: XCTestCase {
         workspaceId: String,
         reviewedAtClient: String
     ) throws {
+        try self.addReviewedCard(
+            database: database,
+            workspaceId: workspaceId,
+            reviewedAtClient: reviewedAtClient,
+            reviewedTimeZone: "UTC"
+        )
+    }
+
+    func addReviewedCard(
+        database: LocalDatabase,
+        workspaceId: String,
+        reviewedAtClient: String,
+        reviewedTimeZone: String
+    ) throws {
         let card = try database.saveCard(
             workspaceId: workspaceId,
             input: CardEditorInput(
@@ -50,7 +64,7 @@ class ProgressStoreTestCase: XCTestCase {
                 cardId: card.cardId,
                 rating: .good,
                 reviewedAtClient: reviewedAtClient,
-                reviewedTimeZone: "UTC"
+                reviewedTimeZone: reviewedTimeZone
             )
         )
     }
@@ -218,6 +232,15 @@ class ProgressStoreTestCase: XCTestCase {
             bundle: .main,
             userDefaults: userDefaults
         )
+        try database.updateCloudSettings(
+            cloudState: cloudState,
+            linkedUserId: "guest-user-1",
+            linkedWorkspaceId: workspaceId,
+            activeWorkspaceId: workspaceId,
+            linkedEmail: nil
+        )
+        let persistedCloudSettings = try database.workspaceSettingsStore.loadCloudSettings()
+        XCTAssertEqual(installationId, persistedCloudSettings.installationId)
         let store = FlashcardsStore(
             userDefaults: userDefaults,
             encoder: JSONEncoder(),
@@ -235,8 +258,9 @@ class ProgressStoreTestCase: XCTestCase {
             reviewQueueChunkLoader: defaultReviewQueueChunkLoader,
             reviewQueueWindowLoader: defaultReviewQueueWindowLoader,
             reviewTimelinePageLoader: defaultReviewTimelinePageLoader,
-            initialGlobalErrorMessage: ""
+            initialGlobalErrorMessage: "Test state is configured after initialization"
         )
+        store.globalErrorMessage = ""
         let configuration = try store.currentCloudServiceConfiguration()
         let guestSession = StoredGuestCloudSession(
             guestToken: "guest-token-1",
@@ -260,16 +284,7 @@ class ProgressStoreTestCase: XCTestCase {
             name: "Workspace",
             createdAt: "2026-04-01T00:00:00Z"
         )
-        store.cloudSettings = CloudSettings(
-            installationId: installationId,
-            cloudState: cloudState,
-            linkedUserId: guestSession.userId,
-            linkedWorkspaceId: guestSession.workspaceId,
-            activeWorkspaceId: guestSession.workspaceId,
-            linkedEmail: nil,
-            onboardingCompleted: true,
-            updatedAt: "2026-04-01T00:00:00Z"
-        )
+        store.cloudSettings = persistedCloudSettings
         if cloudState == .guest {
             store.cloudRuntime.setActiveCloudSession(
                 linkedSession: CloudLinkedSession(

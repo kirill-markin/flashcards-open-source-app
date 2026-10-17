@@ -21,7 +21,7 @@ final class ProgressLeaderboardBadgeRefreshTests: ProgressStoreTestCase {
             reviewedAtClient: "2026-06-10T14:31:00.000Z"
         )
 
-        let timeZone = try XCTUnwrap(TimeZone(identifier: "UTC"))
+        let timeZone = TimeZone.current
         let requestRange = try makeTestProgressRequestRange(
             now: now,
             timeZone: timeZone,
@@ -246,7 +246,7 @@ final class ProgressLeaderboardBadgeRefreshTests: ProgressStoreTestCase {
         let cloudSettings = try database.workspaceSettingsStore.loadCloudSettings()
 
         let now = try XCTUnwrap(parseIsoTimestamp(value: "2026-06-10T12:30:00.000Z"))
-        let timeZone = try XCTUnwrap(TimeZone(identifier: "UTC"))
+        let timeZone = TimeZone.current
         let requestRange = try makeTestProgressRequestRange(
             now: now,
             timeZone: timeZone,
