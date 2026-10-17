@@ -182,6 +182,32 @@ struct CloudWorkspaceSummary: Codable, Identifiable, Hashable, Sendable {
     let name: String
     let createdAt: String
     let isSelected: Bool
+    let isVisible: Bool
+
+    init(workspaceId: String, name: String, createdAt: String, isSelected: Bool) {
+        self.init(workspaceId: workspaceId, name: name, createdAt: createdAt, isSelected: isSelected, isVisible: true)
+    }
+
+    init(workspaceId: String, name: String, createdAt: String, isSelected: Bool, isVisible: Bool) {
+        self.workspaceId = workspaceId
+        self.name = name
+        self.createdAt = createdAt
+        self.isSelected = isSelected
+        self.isVisible = isVisible
+    }
+
+    private enum CodingKeys: String, CodingKey { case workspaceId, name, createdAt, isSelected, isVisible }
+
+    init(from decoder: Decoder) throws {
+        let fields = try decoder.container(keyedBy: CodingKeys.self)
+        self.init(
+            workspaceId: try fields.decode(String.self, forKey: .workspaceId),
+            name: try fields.decode(String.self, forKey: .name),
+            createdAt: try fields.decode(String.self, forKey: .createdAt),
+            isSelected: try fields.decode(Bool.self, forKey: .isSelected),
+            isVisible: try fields.decodeIfPresent(Bool.self, forKey: .isVisible) ?? true
+        )
+    }
 
     var id: String {
         workspaceId
