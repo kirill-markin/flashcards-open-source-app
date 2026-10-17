@@ -292,7 +292,7 @@ final class ReviewBackgroundWindowTests: ProgressStoreTestCase {
         refreshedWindow: [Card],
         hasMoreCards: Bool
     ) -> FlashcardsStore {
-        FlashcardsStore(
+        let store = FlashcardsStore(
             userDefaults: userDefaults,
             encoder: JSONEncoder(),
             decoder: JSONDecoder(),
@@ -320,8 +320,10 @@ final class ReviewBackgroundWindowTests: ProgressStoreTestCase {
                 )
             },
             reviewTimelinePageLoader: defaultReviewTimelinePageLoader,
-            initialGlobalErrorMessage: ""
+            initialGlobalErrorMessage: "Test state is configured after initialization"
         )
+        store.globalErrorMessage = ""
+        return store
     }
 }
 
