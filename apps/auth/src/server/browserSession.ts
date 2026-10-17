@@ -184,6 +184,9 @@ export async function verifySessionTokenIdentity(sessionToken: string): Promise<
   return extractVerifiedSessionIdentity(payload as VerifiedSessionTokenPayload);
 }
 
+// Domain cookies on the resolved cookie domain, not `__Host-` host-only ones: `app.<domain>` is a
+// static CloudFront/S3 SPA, and neither `auth.` nor `api.` can set a host-only cookie for it without
+// a proxy or edge layer in front of the app.
 export function setBrowserSessionCookies(
   context: Context,
   sessionToken: string,

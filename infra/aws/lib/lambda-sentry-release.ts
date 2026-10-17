@@ -1,6 +1,9 @@
 import * as cdk from "aws-cdk-lib";
 import * as lambda from "aws-cdk-lib/aws-lambda";
 
+// Keyed by function and code asset, not by Git SHA, so unchanged code keeps its Sentry release
+// across commits and deploy phases; the SHA stays in the workflow summary and the deployed-component
+// SSM records.
 export function getLambdaSentryRelease(fn: lambda.Function): string {
   const resource = fn.node.defaultChild;
   if (!(resource instanceof lambda.CfnFunction)) {

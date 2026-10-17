@@ -2,9 +2,11 @@
 
 Use this procedure before changing CloudFormation stack boundaries, resource
 ownership or deployment roles. Build, synthesize and deploy AWS artifacts only
-in CI/CD. The [release gates](release-gates.md) own ordinary release checks;
-the [monitoring ownership guide](monitoring-stack-migration.md) describes the
-completed split and its evidence.
+in CI/CD. The [release gates](release-gates.md) own ordinary release checks.
+The read-only validators of the completed monitoring split,
+`scripts/deploy/migrate-monitoring-stack.py` and its sibling
+`*monitoring-refactor*` and `reconcile-monitoring-*` modules, remain at commit
+`03cec0c55`.
 
 ## Prepare while ordinary releases remain possible
 
@@ -115,22 +117,15 @@ completed split and its evidence.
 
 ## Sanitized incident example
 
-A monitoring split moved CloudWatch alarms and Logs metric filters while keeping
-the database in core. The RDS endpoint in core outputs still required an RDS read.
-The first failed refactor encountered a null `AlarmName` error during rollback;
-`ResourcesToSkip` attempts did not restore deployment control. AWS performed
-internal recovery and restored both stack statuses to `UPDATE_ROLLBACK_COMPLETE`.
-Its recommendation that deployments could resume did not establish that another
-bulk move would succeed: the subsequent attempt failed with an unsupported Alarm
-tag-schema error and rolled back with resources preserved.
-
-An isolated 58-alarm native move reproduced the tag-schema error without RDS;
-2-, 10- and 25-alarm moves succeeded. Successive small moves also verified target
-reuse and stale-tag handling. These bounded experiments informed the successful
-production batches; they establish neither a universal resource limit, a proven
-root cause nor an AWS service patch. Production migration, physical preservation
-and restored ordinary deployment are verified separately in the
-[completion evidence](monitoring-stack-migration.md#verified-completion-evidence).
+Moving CloudWatch alarms and Logs metric filters out of the core stack, with the
+database staying in core, still required an RDS read for the core endpoint
+output. The first bulk refactor failed during rollback; `ResourcesToSkip`
+attempts did not restore deployment control, and AWS recovered both stacks
+internally. The next bulk attempt failed on an Alarm tag-schema error and
+rolled back with resources preserved. Isolated experiments reproduced that
+error on a large native move and not on small ones, and small production
+batches then succeeded; that bounds the experiment, not a universal limit or a
+proven root cause.
 
 A recovered stack status, an accepted rollback request and a successful small
 experiment answer different questions. Preserve evidence, bound experiments and

@@ -1,32 +1,17 @@
 # Resend Setup For Cognito OTP
 
-One-time setup for sending Cognito `EMAIL_OTP` emails through Resend with a Cognito `CustomEmailSender` Lambda.
+One-time setup for sending Cognito `EMAIL_OTP` emails through Resend with a Cognito `CustomEmailSender` Lambda. Cognito still issues the OTP; only delivery moves from AWS-managed email to Resend.
 
 This repository officially supports Resend for transactional auth email delivery. If you want a different provider, modify the custom sender Lambda in your own fork.
 
-## Default naming
+## Naming
 
-- Transactional email subdomain: `mail.<domain>`
-- Transactional sender: `no-reply@mail.<domain>`
-- Reserved future marketing subdomain: `updates.<domain>`
-
-`mail.<domain>` is intentionally dedicated to transactional auth traffic so future marketing traffic can live on a separate reputation domain.
+- Transactional sender: `no-reply@mail.<domain>`.
+- `mail.<domain>` is dedicated to transactional auth traffic so future marketing traffic, reserved for `updates.<domain>`, can live on a separate reputation domain.
 
 ## Prerequisites
 
-Keep these values in root `.env` or export them in the current shell:
-
-- `AWS_REGION`
-- `DOMAIN_NAME`
-- `RESEND_API_KEY`
-- `RESEND_ADMIN_API_KEY`
-- `CLOUDFLARE_API_TOKEN`
-- `CLOUDFLARE_ZONE_ID`
-
-Use two separate local Resend secrets:
-
-- `RESEND_API_KEY` is the send-only runtime key that gets copied into AWS Secrets Manager for the deployed Cognito custom sender Lambda.
-- `RESEND_ADMIN_API_KEY` is the admin key used only by the one-time local setup scripts for domain management.
+Keep `AWS_REGION`, `DOMAIN_NAME`, `RESEND_API_KEY`, `RESEND_ADMIN_API_KEY`, `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ZONE_ID` in root `.env` or export them in the current shell. `RESEND_API_KEY` is the send-only runtime key copied into AWS Secrets Manager; `RESEND_ADMIN_API_KEY` manages the domain and stays local ([`.env.example`](../.env.example)). Neither raw key is ever committed or stored in GitHub; CI/CD holds only the secret ARN and the sender email.
 
 ## One-time setup
 
@@ -36,23 +21,11 @@ Use two separate local Resend secrets:
 bash scripts/setup/setup-resend-secret.sh --region eu-central-1
 ```
 
-This creates or updates:
-
-- AWS secret `flashcards-open-source-app/resend-api-key`
-- derived deploy sender email `no-reply@mail.<domain>`
-
-2. Create or reuse the Resend transactional domain, write its DNS records to Cloudflare, and ask Resend to verify it:
+2. Create or reuse the Resend transactional domain, write its DNS records to Cloudflare, and ask Resend to verify it. Add `--dry-run` first to preview the DNS changes without mutating Resend or Cloudflare:
 
 ```bash
 bash scripts/setup/setup-resend-domain.sh --domain flashcards-open-source-app.com --subdomain mail
 ```
-
-This script:
-
-- creates or reuses `mail.<domain>` in Resend
-- fetches the required DNS records from Resend
-- upserts them in Cloudflare
-- triggers Resend domain verification
 
 3. Populate any missing deploy-time config in GitHub Actions:
 
@@ -61,18 +34,3 @@ bash scripts/setup/setup-github.sh
 ```
 
 4. Push the repo changes to `main` so CI/CD deploys the updated Cognito custom sender flow.
-
-## Safe validation
-
-Preview DNS changes without mutating Resend or Cloudflare:
-
-```bash
-bash scripts/setup/setup-resend-domain.sh --domain flashcards-open-source-app.com --subdomain mail --dry-run
-```
-
-## Notes
-
-- The raw `RESEND_API_KEY` and `RESEND_ADMIN_API_KEY` must never be committed to git, written to deploy config files, or stored in GitHub variables.
-- Only `RESEND_API_KEY` belongs in AWS Secrets Manager because it is the deployed runtime credential. `RESEND_ADMIN_API_KEY` stays local-only.
-- CI/CD stores only the AWS Secrets Manager ARN and sender email.
-- The deployed auth flow still uses Cognito `EMAIL_OTP`; only the delivery path changes from AWS-managed email to Resend via the Cognito trigger Lambda.
