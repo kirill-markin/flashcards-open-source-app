@@ -66,6 +66,15 @@ export const browserHintStorageScript = `
         && Number.isSafeInteger(value.authTime) && value.authTime >= 0;
     }
 
+    function connectionSuggestion(result) {
+      const value = result.signInHint.connectionSuggestion;
+      if (value === undefined) return undefined;
+      if (!value || typeof value !== "object" || typeof value.suggestion !== "string"
+        || !/^[A-Za-z0-9_-]{43}$/.test(value.suggestion) || typeof value.expiresAt !== "string"
+        || !Number.isFinite(Date.parse(value.expiresAt))) throw new Error("AUTH_COMPLETION_INVALID");
+      return { suggestion: value.suggestion, expiresAt: value.expiresAt, origin: new URL(result.redirectUri).origin };
+    }
+
     function copyHint(value) {
       return value.method === "email" ? { method: "email", email: value.email }
         : { method: value.method, recoveryEmail: value.recoveryEmail,
@@ -111,7 +120,8 @@ export const browserHintStorageScript = `
       // Older servers and legacy sessions provide no original authentication time.
       if (result.acceptedSession === undefined) return;
       if (!validBinding(result.acceptedSession)) throw new Error("Accepted sign-in context is invalid.");
-      const accepted = { generation: attempt.generation, method: attempt.method,
+      const suggestion = connectionSuggestion(result);
+      const accepted = { ...(suggestion === undefined ? {} : { connectionSuggestion: suggestion }), generation: attempt.generation, method: attempt.method,
         subject: result.acceptedSession.subject, authTime: result.acceptedSession.authTime, acceptedAt: Date.now() };
       write(session(), acceptedKey, JSON.stringify(accepted));
       write(local(), hintKey, JSON.stringify({ generation: attempt.generation, hint: copyHint(result.signInHint) }));
@@ -119,7 +129,7 @@ export const browserHintStorageScript = `
 
     function accept(result) { return exclusive(function() { acceptStored(result); }); }
 
-    function consume(current) {
+    function consume(current, origin) {
       const raw = read(session(), acceptedKey);
       if (raw === null) return null;
       remove(session(), acceptedKey);
@@ -130,7 +140,10 @@ export const browserHintStorageScript = `
       }
       if (!validBinding(current) || accepted.subject !== current.subject || accepted.authTime !== current.authTime
         || accepted.acceptedAt > Date.now() || Date.now() - accepted.acceptedAt > lifetimeMs) return null;
-      return accepted.method;
+      const suggestion = accepted.connectionSuggestion;
+      return { method: accepted.method, ...(suggestion === undefined || suggestion.origin !== origin ? {} : {
+        connectionSuggestion: { suggestion: suggestion.suggestion, expiresAt: suggestion.expiresAt },
+      }) };
     }
 
     function forgetStored() {

@@ -777,7 +777,7 @@ export function AppShell(): ReactElement {
           <h1 className="title">{t("app.chooseWorkspaceTitle")}</h1>
           <p className="subtitle">{t("app.chooseWorkspaceSubtitle")}</p>
           <div className="workspace-choice-list">
-            {availableWorkspaces.map((workspace) => (
+            {availableWorkspaces.filter((workspace) => workspace.isVisible !== false).map((workspace) => (
               <button
                 key={workspace.workspaceId}
                 className="workspace-choice-btn"
@@ -904,7 +904,7 @@ export function AppShell(): ReactElement {
                 <span className="mobile-nav-toggle-line" aria-hidden="true" />
               </button>
               <AccountMenu
-                workspaces={availableWorkspaces}
+                workspaces={availableWorkspaces.filter((workspace) => workspace.isVisible !== false)}
                 currentWorkspaceId={activeWorkspace?.workspaceId ?? ""}
                 currentWorkspaceName={activeWorkspace?.name ?? t("common.unavailable")}
                 isBusy={isChoosingWorkspace}

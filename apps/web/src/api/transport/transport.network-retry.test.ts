@@ -240,6 +240,7 @@ describe("API transport network retry", () => {
       name: "Default",
       createdAt: "2026-04-10T00:00:00.000Z",
       isSelected: true,
+      isVisible: true,
     }]);
 
     expect(fetchMock).toHaveBeenCalledTimes(2);
