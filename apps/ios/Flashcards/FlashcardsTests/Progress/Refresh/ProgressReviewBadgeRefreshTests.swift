@@ -73,9 +73,14 @@ final class ProgressReviewBadgeRefreshTests: ProgressStoreTestCase {
         let database = try self.makeDatabase()
         let workspace = try database.workspaceSettingsStore.loadWorkspace()
         let cloudSettings = try database.workspaceSettingsStore.loadCloudSettings()
-        let timeZone = try XCTUnwrap(TimeZone(identifier: "UTC"))
+        let timeZone = TimeZone.current
 
-        let now = try XCTUnwrap(parseIsoTimestamp(value: "2026-04-18T12:00:00.000Z"))
+        let nowTimestamp = try makeReviewedAtClientForTests(
+            localDate: "2026-04-18",
+            hour: 12,
+            timeZoneIdentifier: timeZone.identifier
+        )
+        let now = try XCTUnwrap(parseIsoTimestamp(value: nowTimestamp))
         let requestRange = try makeTestProgressRequestRange(
             now: now,
             timeZone: timeZone,
@@ -88,7 +93,8 @@ final class ProgressReviewBadgeRefreshTests: ProgressStoreTestCase {
                 localDate: "2026-04-18",
                 hour: 9,
                 timeZoneIdentifier: requestRange.timeZone
-            )
+            ),
+            reviewedTimeZone: requestRange.timeZone
         )
 
         let serverSeries = try makeTestProgressSeries(
@@ -96,7 +102,7 @@ final class ProgressReviewBadgeRefreshTests: ProgressStoreTestCase {
             reviewCountsByDate: [
                 "2026-04-17": 1
             ],
-            generatedAt: "2026-04-18T11:59:00.000Z"
+            generatedAt: formatIsoTimestamp(date: now.addingTimeInterval(-60))
         )
         let serverSummary = UserProgressSummary(
             timeZone: requestRange.timeZone,
@@ -106,7 +112,7 @@ final class ProgressReviewBadgeRefreshTests: ProgressStoreTestCase {
                 lastReviewedOn: "2026-04-17",
                 activeReviewDays: 200
             ),
-            generatedAt: "2026-04-18T11:59:00.000Z",
+            generatedAt: formatIsoTimestamp(date: now.addingTimeInterval(-60)),
             reviewHistoryWatermarks: makeTestProgressReviewHistoryWatermarks(reviewSequenceId: 42)
         )
         let context = try self.makeProgressStoreContext(
@@ -144,7 +150,7 @@ final class ProgressReviewBadgeRefreshTests: ProgressStoreTestCase {
         let database = try self.makeDatabase()
         let workspace = try database.workspaceSettingsStore.loadWorkspace()
         let cloudSettings = try database.workspaceSettingsStore.loadCloudSettings()
-        let timeZone = try XCTUnwrap(TimeZone(identifier: "UTC"))
+        let timeZone = TimeZone.current
         try self.addReviewedCard(
             database: database,
             workspaceId: workspace.workspaceId,
@@ -152,12 +158,18 @@ final class ProgressReviewBadgeRefreshTests: ProgressStoreTestCase {
                 localDate: "2026-04-18",
                 hour: 9,
                 timeZoneIdentifier: timeZone.identifier
-            )
+            ),
+            reviewedTimeZone: timeZone.identifier
         )
         let outboxEntries = try database.loadOutboxEntries(workspaceId: workspace.workspaceId, limit: Int.max)
         try database.deleteOutboxEntries(operationIds: outboxEntries.map(\.operationId))
 
-        let now = try XCTUnwrap(parseIsoTimestamp(value: "2026-04-18T12:00:00.000Z"))
+        let nowTimestamp = try makeReviewedAtClientForTests(
+            localDate: "2026-04-18",
+            hour: 12,
+            timeZoneIdentifier: timeZone.identifier
+        )
+        let now = try XCTUnwrap(parseIsoTimestamp(value: nowTimestamp))
         let requestRange = try makeTestProgressRequestRange(
             now: now,
             timeZone: timeZone,
@@ -168,7 +180,7 @@ final class ProgressReviewBadgeRefreshTests: ProgressStoreTestCase {
             reviewCountsByDate: [
                 "2026-04-17": 1
             ],
-            generatedAt: "2026-04-18T11:59:00.000Z"
+            generatedAt: formatIsoTimestamp(date: now.addingTimeInterval(-60))
         )
         let serverSummary = UserProgressSummary(
             timeZone: requestRange.timeZone,
@@ -178,7 +190,7 @@ final class ProgressReviewBadgeRefreshTests: ProgressStoreTestCase {
                 lastReviewedOn: "2026-04-17",
                 activeReviewDays: 200
             ),
-            generatedAt: "2026-04-18T11:59:00.000Z",
+            generatedAt: formatIsoTimestamp(date: now.addingTimeInterval(-60)),
             reviewHistoryWatermarks: makeTestProgressReviewHistoryWatermarks(reviewSequenceId: 42)
         )
         let context = try self.makeProgressStoreContext(
@@ -216,7 +228,7 @@ final class ProgressReviewBadgeRefreshTests: ProgressStoreTestCase {
         let database = try self.makeDatabase()
         let workspace = try database.workspaceSettingsStore.loadWorkspace()
         let cloudSettings = try database.workspaceSettingsStore.loadCloudSettings()
-        let timeZone = try XCTUnwrap(TimeZone(identifier: "UTC"))
+        let timeZone = TimeZone.current
         try self.addReviewedCard(
             database: database,
             workspaceId: workspace.workspaceId,
