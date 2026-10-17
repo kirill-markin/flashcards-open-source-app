@@ -978,3 +978,23 @@
 
 "settings.account.cloudSignIn.continueGoogle" = "Continuar con Google";
 "settings.account.cloudSignIn.appleCleanupPending" = "Apple está terminando una actualización de seguridad. Vuelve a intentarlo con Apple en unos instantes o elige otro método para iniciar sesión.";
+
+"settings.account.connection.title" = "Conectar cuentas";
+"settings.account.connection.suggestion" = "Revisar la conexión sugerida";
+"settings.account.connection.data" = "Se conservan las tarjetas, los repasos y los espacios. Las membresías se unen; la propiedad tiene prioridad.";
+"settings.account.connection.settings" = "Se aplican los ajustes y el perfil público de destino con mayor privacidad. Se conserva el correo principal auténtico o se usa un correo real verificado.";
+"settings.account.connection.billing" = "Las compras, los permisos, el uso y las credenciales de integración siguen a la cuenta conectada. Las suscripciones y el historial original de pruebas no cambian.";
+"settings.account.connection.destination" = "Destino seleccionado";
+"settings.account.connection.hidden" = "Oculto en las opciones de espacios de trabajo";
+"settings.account.connection.omit" = "Solicitar omisión si procede";
+"settings.account.connection.preserve" = "Solo se pueden ocultar los espacios iniciales que cumplan los requisitos. Se conservan los datos y los demás espacios.";
+"settings.account.connection.confirm" = "Confirmar conexión";
+"settings.account.connection.connected" = "Cuentas conectadas.";
+"settings.account.connection.alreadyConnected" = "Estas cuentas ya están conectadas.";
+"settings.account.connection.cancelled" = "Conexión cancelada.";
+"settings.account.connection.uncertain" = "Se envió la confirmación, pero se desconoce el resultado. Revísalo con la misma confirmación.";
+"settings.account.connection.replay" = "Revisar resultado";
+"settings.account.connection.preview" = "Actualizar vista previa";
+"settings.account.connection.previewChanged" = "La vista previa cambió. Actualízala y confirma expresamente la nueva vista previa.";
+"settings.account.connection.restart" = "La prueba venció o ya se utilizó. Comienza de nuevo con una prueba nueva.";
+"settings.account.connection.restorePaused" = "Cuentas conectadas. La actualización local está en pausa; se conservan tus datos sin conexión.";

@@ -950,3 +950,23 @@
 
 "settings.account.cloudSignIn.continueGoogle" = "Qhubeka nge-Google";
 "settings.account.cloudSignIn.appleCleanupPending" = "I-Apple iqedela isibuyekezo sokuvikeleka. Zama futhi nge-Apple maduze, noma ukhethe enye indlela yokungena ngemvume.";
+
+"settings.account.connection.title" = "Xhumanisa ama-akhawunti";
+"settings.account.connection.suggestion" = "Buyekeza ukuxhumanisa okuphakanyisiwe";
+"settings.account.connection.data" = "Amakhadi, izibuyekezo nezindawo zokusebenza kuyagcinwa. Ubulungu buyahlanganiswa; ubunikazi buhamba phambili.";
+"settings.account.connection.settings" = "Izilungiselelo nephrofayela yomphakathi yendawo okuyiwa kuyo kuyasebenza ngobumfihlo obuqinile. I-imeyili eyinhloko yangempela iyagcinwa noma kusetshenziswa eyangempela eqinisekisiwe.";
+"settings.account.connection.billing" = "Okuthengiwe, amalungelo, ukusetshenziswa nemininingwane yokungena yokuhlanganiswa kulandela i-akhawunti exhunyiwe. Ukubhalisa nomlando wokuqala wezivivinyo akushintshi.";
+"settings.account.connection.destination" = "Indawo ekhethiwe";
+"settings.account.connection.hidden" = "Ifihliwe ezinkethweni zezindawo zokusebenza";
+"settings.account.connection.omit" = "Cela ukushiywa uma kuvumelekile";
+"settings.account.connection.preserve" = "Yizindawo zokuqala ezifanelekayo kuphela ezingafihlwa. Idatha nezinye izindawo zokusebenza kuyagcinwa.";
+"settings.account.connection.confirm" = "Qinisekisa ukuxhumanisa";
+"settings.account.connection.connected" = "Ama-akhawunti axhunyiwe.";
+"settings.account.connection.alreadyConnected" = "Lawa ma-akhawunti asexhunyiwe kakade.";
+"settings.account.connection.cancelled" = "Ukuxhumanisa kukhanseliwe.";
+"settings.account.connection.uncertain" = "Isiqinisekiso sithunyelwe kodwa umphumela awaziwa. Wuhlole ngesiqinisekiso esifanayo.";
+"settings.account.connection.replay" = "Hlola umphumela";
+"settings.account.connection.preview" = "Vuselela ukubuka kuqala";
+"settings.account.connection.previewChanged" = "Ukubuka kuqala kushintshile. Kuvuselele bese uqinisekisa ukubuka okusha ngokusobala.";
+"settings.account.connection.restart" = "Ubufakazi buphelelwe isikhathi noma busetshenzisiwe. Qala kabusha ngobufakazi obusha.";
+"settings.account.connection.restorePaused" = "Ama-akhawunti axhunyiwe. Ukuvuselela kwasendaweni kumisiwe; idatha yakho engaxhunyiwe iyagcinwa.";

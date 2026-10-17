@@ -950,3 +950,23 @@
 
 "settings.account.cloudSignIn.continueGoogle" = "Google ഉപയോഗിച്ച് തുടരുക";
 "settings.account.cloudSignIn.appleCleanupPending" = "Apple ഒരു സുരക്ഷാ അപ്‌ഡേറ്റ് പൂർത്തിയാക്കുകയാണ്. അൽപ്പസമയത്തിനുശേഷം Apple ഉപയോഗിച്ച് വീണ്ടും ശ്രമിക്കുക, അല്ലെങ്കിൽ സൈൻ ഇൻ ചെയ്യാൻ മറ്റൊരു മാർഗം തിരഞ്ഞെടുക്കുക.";
+
+"settings.account.connection.title" = "അക്കൗണ്ടുകൾ ബന്ധിപ്പിക്കുക";
+"settings.account.connection.suggestion" = "നിർദേശിച്ച ബന്ധിപ്പിക്കൽ പരിശോധിക്കുക";
+"settings.account.connection.data" = "കാർഡുകളും ആവർത്തനങ്ങളും വർക്ക്‌സ്‌പേസുകളും നിലനിൽക്കും. അംഗത്വങ്ങൾ ഒന്നിക്കും; ഉടമസ്ഥതയ്ക്കാണ് മുൻഗണന.";
+"settings.account.connection.settings" = "ലക്ഷ്യത്തിന്റെ ക്രമീകരണങ്ങളും പൊതു പ്രൊഫൈലും കൂടുതൽ കർശനമായ സ്വകാര്യതയോടെ ബാധകമാകും. യഥാർഥ പ്രധാന ഇമെയിൽ നിലനിൽക്കും, അല്ലെങ്കിൽ തെളിയിച്ച യഥാർഥ ഇമെയിൽ ഉപയോഗിക്കും.";
+"settings.account.connection.billing" = "വാങ്ങലുകൾ, അവകാശങ്ങൾ, ഉപയോഗം, സംയോജനങ്ങളുടെ പ്രവേശന വിവരങ്ങൾ എന്നിവ ബന്ധിപ്പിച്ച അക്കൗണ്ടിലേക്കു മാറും. സബ്‌സ്‌ക്രിപ്ഷനുകളും ആദ്യ ട്രയൽ ചരിത്രവും മാറില്ല.";
+"settings.account.connection.destination" = "തിരഞ്ഞെടുത്ത ലക്ഷ്യം";
+"settings.account.connection.hidden" = "വർക്ക്‌സ്‌പേസ് തിരഞ്ഞെടുപ്പുകളിൽ മറച്ചിരിക്കുന്നു";
+"settings.account.connection.omit" = "യോഗ്യമെങ്കിൽ ഒഴിവാക്കാൻ അഭ്യർഥിക്കുക";
+"settings.account.connection.preserve" = "യോഗ്യമായ പ്രാരംഭ വർക്ക്‌സ്‌പേസുകൾ മാത്രമേ മറയ്ക്കാനാകൂ. അടിസ്ഥാന ഡാറ്റയും മറ്റ് വർക്ക്‌സ്‌പേസുകളും നിലനിൽക്കും.";
+"settings.account.connection.confirm" = "അക്കൗണ്ട് ബന്ധിപ്പിക്കൽ സ്ഥിരീകരിക്കുക";
+"settings.account.connection.connected" = "അക്കൗണ്ടുകൾ ബന്ധിപ്പിച്ചു.";
+"settings.account.connection.alreadyConnected" = "ഈ അക്കൗണ്ടുകൾ ഇതിനകം ബന്ധിപ്പിച്ചിരിക്കുന്നു.";
+"settings.account.connection.cancelled" = "ബന്ധിപ്പിക്കൽ റദ്ദാക്കി.";
+"settings.account.connection.uncertain" = "സ്ഥിരീകരണം അയച്ചു, പക്ഷേ ഫലം അറിയില്ല. അതേ സ്ഥിരീകരണം ഉപയോഗിച്ച് പരിശോധിക്കുക.";
+"settings.account.connection.replay" = "സ്ഥിരീകരണ ഫലം പരിശോധിക്കുക";
+"settings.account.connection.preview" = "ബന്ധിപ്പിക്കൽ പ്രിവ്യൂ പുതുക്കുക";
+"settings.account.connection.previewChanged" = "പ്രിവ്യൂ മാറി. പുതുക്കിയ ശേഷം പുതിയ പ്രിവ്യൂ വ്യക്തമായി സ്ഥിരീകരിക്കുക.";
+"settings.account.connection.restart" = "തെളിവ് കാലഹരണപ്പെട്ടു അല്ലെങ്കിൽ ഉപയോഗിച്ചു. പുതിയ തെളിവുമായി വീണ്ടും ആരംഭിക്കുക.";
+"settings.account.connection.restorePaused" = "അക്കൗണ്ടുകൾ ബന്ധിപ്പിച്ചു. പ്രാദേശിക പുതുക്കൽ നിർത്തിയിരിക്കുന്നു; നിങ്ങളുടെ ഓഫ്‌ലൈൻ ഡാറ്റ നിലനിൽക്കും.";
