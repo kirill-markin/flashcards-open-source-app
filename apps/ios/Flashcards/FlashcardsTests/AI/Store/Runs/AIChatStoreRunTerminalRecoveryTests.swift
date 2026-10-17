@@ -10,29 +10,30 @@ final class AIChatStoreRunTerminalRecoveryTests: XCTestCase {
         }
 
         try context.configureLinkedCloudSession()
-        try context.acknowledgeExternalProviderConsent()
         let store = context.makeStore()
+        try context.acknowledgeExternalProviderConsent()
         let bootstrapGate = AIChatStoreTestSupport.AsyncGate()
         context.chatService.loadBootstrapGate = bootstrapGate
+        let fixtureTimestamp = Int(Date().timeIntervalSince1970 * 1_000)
 
         let baselineMessages = [
             AIChatStoreTestSupport.makeUserTextMessage(
                 id: "message-previous-user",
                 text: "Explain this card.",
-                timestamp: "2026-04-08T10:01:00Z"
+                timestamp: isoTimestampFromMilliseconds(fixtureTimestamp - 71_000)
             ),
             AIChatStoreTestSupport.makeAssistantTextMessage(
                 id: "message-previous-assistant",
                 itemId: "item-previous",
                 text: "Earlier answer.",
-                timestamp: "2026-04-08T10:01:05Z"
+                timestamp: isoTimestampFromMilliseconds(fixtureTimestamp - 66_000)
             )
         ]
         let optimisticUserMessage = AIChatMessage(
             id: "message-local-user",
             role: .user,
             content: [.text("Explain this card.")],
-            timestamp: "2026-04-08T10:02:00Z",
+            timestamp: isoTimestampFromMilliseconds(fixtureTimestamp - 11_000),
             isError: false,
             isStopped: false,
             cursor: nil,
@@ -42,7 +43,7 @@ final class AIChatStoreRunTerminalRecoveryTests: XCTestCase {
             id: "message-local-assistant",
             role: .assistant,
             content: [],
-            timestamp: "2026-04-08T10:02:01Z",
+            timestamp: isoTimestampFromMilliseconds(fixtureTimestamp - 10_000),
             isError: false,
             isStopped: false,
             cursor: nil,
@@ -52,16 +53,28 @@ final class AIChatStoreRunTerminalRecoveryTests: XCTestCase {
             AIChatStoreTestSupport.makeUserTextMessage(
                 id: "message-current-user",
                 text: "Explain this card.",
-                timestamp: "2026-04-08T10:02:10Z"
+                timestamp: isoTimestampFromMilliseconds(fixtureTimestamp - 1_000)
             ),
             AIChatStoreTestSupport.makeAssistantTextMessage(
                 id: "message-current-assistant",
                 itemId: "item-current",
                 text: "Final answer.",
-                timestamp: "2026-04-08T10:02:11Z"
+                timestamp: isoTimestampFromMilliseconds(fixtureTimestamp)
             )
         ]
-        let activeRun = AIChatStoreTestSupport.makeActiveRun()
+        let activeRun = AIChatActiveRun(
+            runId: "run-1",
+            status: "running",
+            live: AIChatActiveRunLive(
+                cursor: "cursor-1",
+                stream: AIChatLiveStreamEnvelope(
+                    url: "https://example.com/live",
+                    authorization: "Bearer token",
+                    expiresAt: fixtureTimestamp + 60_000
+                )
+            ),
+            lastHeartbeatAt: fixtureTimestamp - 10_000
+        )
 
         store.messages = [
             baselineMessages[0],
@@ -189,8 +202,8 @@ final class AIChatStoreRunTerminalRecoveryTests: XCTestCase {
         }
 
         try context.configureLinkedCloudSession()
-        try context.acknowledgeExternalProviderConsent()
         let store = context.makeStore()
+        try context.acknowledgeExternalProviderConsent()
         let baselineMessages = [
             AIChatStoreTestSupport.makeUserTextMessage(
                 id: "message-previous-user",
@@ -292,8 +305,8 @@ final class AIChatStoreRunTerminalRecoveryTests: XCTestCase {
         }
 
         try context.configureLinkedCloudSession()
-        try context.acknowledgeExternalProviderConsent()
         let store = context.makeStore()
+        try context.acknowledgeExternalProviderConsent()
         let visibleBaselineMessages = [
             AIChatStoreTestSupport.makeUserTextMessage(
                 id: "message-visible-user",
