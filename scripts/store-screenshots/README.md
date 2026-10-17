@@ -95,18 +95,19 @@ devices. `previews/` contains five-card overviews. Full cards are under:
 - Additional iPhone languages: `additional-languages/iphone/`.
 - Android: `ready/<Play-listing-locale>/phoneScreenshots/<card>_<slug>.png`.
 
-Both output directories are ordinary tracked Git files. The approved inventory
+Both output directories contain ignored public release images and tracked text metadata.
+See [Media assets](../../docs/media-assets.md) to download or publish a snapshot. The approved inventory
 contains 885 Apple cards (210 iPhone Store cards, 210 prepared landscape iPad cards,
 210 prepared Mac cards, 210 uploaded Duo inner cards, five prepared English Duo
 outer cards, and 40 additional-language iPhone cards) and 255 Android phone
 cards. Store-upload status
 and original delivery provenance are recorded in the
-[processing guide](../../docs/store-screenshot-processing.md#tracked-approved-delivery).
+[processing guide](../../docs/store-screenshot-processing.md#approved-delivery).
 
 The independent **Process Store Screenshots** GitHub Actions workflow runs for
-processor, native-input and finished-output pull requests, and on manual dispatch.
+processor and pinned-media-manifest pull requests, and on manual dispatch.
 It typechecks the processor, runs the real export/gallery smoke, and renders the
-selected current committed native sources into runner-temporary directories.
+selected current pinned native sources into runner-temporary directories.
 Pull requests render all five cards for representative `en-US,ru,ar,zh-Hans,hi`
 sets on iPhone, iPad, and Android, covering English, Russian, RTL, CJK, and Indic.
 Manual dispatch renders the full default inventory when locales are empty and
@@ -126,15 +127,16 @@ candidate subset. To replace the existing platform delivery, render that platfor
 with family `all` and empty locales so its export manifest and gallery cover the
 existing inventory. Download its artifact, review all five full-size cards and previews
 for each changed set, and copy the approved complete platform output into the
-corresponding tracked output directory. A subset artifact is not a complete
+corresponding ignored output directory. A subset artifact is not a complete
 replacement manifest or gallery. Retain original delivery source/export manifests
-as provenance before replacing export metadata; commit reviewed PNGs, export
-metadata and gallery changes together. Keep native capture provenance separate
+as provenance before replacing export metadata; publish reviewed PNGs through the
+[media archive procedure](../../docs/media-assets.md#publish-a-new-media-snapshot)
+and commit the pinned media manifest, export metadata and gallery changes together. Keep native capture provenance separate
 from the processing checkout revision.
 Do not treat a successful render or a Git commit as evidence of a store upload.
 Use `--output-root` for a separate candidate directory when running the processor
 commands above; rendering at the default path explicitly replaces selected
-tracked output files.
+ignored output files.
 
 Canonical backgrounds, translations and locale mappings remain under `assets/`.
 Android feature graphics remain in `apps/android/docs/media/play-store-feature-graphic/`;

@@ -148,22 +148,17 @@ Android app-internal translations are Play-first.
 
 ## Media Assets
 
-Store committed Android marketing assets and reference screenshots in `apps/android/docs/media/`.
+Store local Android marketing assets and reference screenshots in
+`apps/android/docs/media/`. Images are ignored and published as public release
+assets; gallery HTML, JSON provenance, and feature-graphic source HTML remain
+in Git. Read [Media assets](../../docs/media-assets.md) to download or publish
+those assets. Normal app builds require no download.
 
-Use that directory for assets such as:
+- Feature graphic source: `apps/android/docs/media/play-store-feature-graphic/index.html`
+- Exported PNGs: `apps/android/docs/media/play-store-feature-graphic/<locale>-feature-graphic.png`
+- Supported locales: [the batch exporter](../../scripts/android/export-android-feature-graphics.sh)
 
-- Google Play screenshots
-- feature graphic source files
-- exported PNGs used in store listings
-
-Current committed Android feature graphic files:
-
-- source HTML template: `apps/android/docs/media/play-store-feature-graphic/index.html`
-- exported store PNGs: `apps/android/docs/media/play-store-feature-graphic/<locale>-feature-graphic.png`
-- supported locales: the canonical list in [the batch exporter](../../scripts/android/export-android-feature-graphics.sh)
-
-These files are updated manually and are part of the repository on purpose.
-Media-only changes inside `apps/android/docs/media/` must not trigger Android CI builds.
+Media metadata changes inside `apps/android/docs/media/` do not trigger Android CI builds.
 
 When it is faster, ask an LLM to create or capture these assets directly on a local virtual Android device.
 That workflow works well for:

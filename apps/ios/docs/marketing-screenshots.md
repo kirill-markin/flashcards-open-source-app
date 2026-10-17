@@ -10,8 +10,8 @@ The generator is a small manual pipeline built from:
 - one marketing-material wrapper in `scripts/ios/`
 - deterministic localized fixture data used by both the UI tests and app-side UI-test seeding
 
-It writes into the directories used for committed App Store marketing PNG assets and derived marketing compositions, but it is not part of CI or release-gate validation.
-This generator drives local iOS simulator-backed XCUITest flows and regenerates the committed screenshot assets.
+It writes into the directories used for local App Store marketing PNG assets and derived marketing compositions, but it is not part of CI or release-gate validation.
+This generator drives local iOS simulator-backed XCUITest flows and regenerates the local screenshot assets.
 
 ## What is included
 
@@ -19,8 +19,8 @@ The capture catalog supports 50 capture tags (49 languages): the 42 Store locale
 plus `bg`, `et`, `fa`, `is`, `lt`, `lv`, `sw`, and `zu`. The expected raw
 inventory is five screenshots per tag per captured device family: 250 iPhone PNGs
 and 210 iPad PNGs, because the eight non-Store tags are captured on iPhone only.
-The optional iPhone Duo inner family has 210 tracked native PNGs for the 42
-Store locales. The outer family has five tracked English native PNGs; its
+The optional iPhone Duo inner family has 210 archived native PNGs for the 42
+Store locales. The outer family has five archived English native PNGs; its
 remaining locales have not been captured. Their capture provenance is in
 the separate
 [`duo-source-manifest.json`](media/app-store-cards/duo-source-manifest.json).
@@ -173,7 +173,7 @@ This means:
 
 The scripts do not boot or switch simulators for you. They only resolve a booted simulator, wait for `bootstatus`, and run the selected manual test.
 
-Use these canonical targets for committed App Store assets:
+Use these canonical targets for App Store assets:
 
 | Family | Simulator | Capture pixels | Upload display slot |
 | --- | --- | --- | --- |
@@ -342,9 +342,11 @@ XCUITest, guest cleanup, this horizontal builder, or store upload:
 npm run render --prefix scripts/store-screenshots -- --platform ios
 ```
 
-Approved outputs in `app-store-cards/` are tracked Git files. For the
+Approved outputs in `app-store-cards/` are ignored public release assets.
+Download inputs with `python3 scripts/media/download.py ios-native` from the
+repository root; see [Media assets](../../../docs/media-assets.md). For the
 finished inventory, upload status and reviewed refresh procedure, use the
-[processing guide](../../../docs/store-screenshot-processing.md#tracked-approved-delivery).
+[processing guide](../../../docs/store-screenshot-processing.md#approved-delivery).
 
 Install the processor dependencies once using its
 [README](../../../scripts/store-screenshots/README.md). Native capture and
@@ -494,7 +496,7 @@ per locale, captured on 2026-10-12 from
 landscape store cards were visually inspected. The separate
 [`macos-source-manifest.json`](media/app-store-cards/macos-source-manifest.json)
 records the genuine capture-only build identity, toolchain and original hashes;
-the [processing guide](../../../docs/store-screenshot-processing.md#tracked-approved-delivery)
+the [processing guide](../../../docs/store-screenshot-processing.md#approved-delivery)
 owns decorated inventory and upload status.
 
 Prepare the gitignored `Config/Local.xcconfig` with the service values from

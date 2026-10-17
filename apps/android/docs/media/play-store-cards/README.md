@@ -1,9 +1,9 @@
 # Approved Nibomo Google Play cards
 
-These finished cards and review previews are ordinary tracked Git files.
-Open `index.html` to select a language and inspect the full-size cards.
+Download these finished cards and review previews using the
+[media archive procedure](../../../../../docs/media-assets.md). Open `index.html` to select a language and inspect the full-size cards.
 
-The [processing guide](../../../../../docs/store-screenshot-processing.md#tracked-approved-delivery)
+The [processing guide](../../../../../docs/store-screenshot-processing.md#approved-delivery)
 owns the inventory, store-upload status, original source/export provenance and
 links to the manual refresh procedure.
 

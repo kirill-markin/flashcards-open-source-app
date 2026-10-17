@@ -1,9 +1,9 @@
 # Approved Nibomo App Store cards
 
-These finished cards and review previews are ordinary tracked Git files.
-Open `index.html` to select a language and inspect the full-size cards.
+Download these finished cards and review previews using the
+[media archive procedure](../../../../../docs/media-assets.md). Open `index.html` to select a language and inspect the full-size cards.
 
-The [processing guide](../../../../../docs/store-screenshot-processing.md#tracked-approved-delivery)
+The [processing guide](../../../../../docs/store-screenshot-processing.md#approved-delivery)
 owns the inventory, store-upload status, source and processing provenance, and
 links to the manual refresh procedure.
 
@@ -23,7 +23,7 @@ records its own provenance. The localized inner cards were assembled from
 previously reviewed outputs, without a new render.
 
 The iPad delivery is 42 Store locales × five 2752 × 2064 opaque RGB cards, using
-the committed native landscape package from
+the archived native landscape package from
 `d7496a1c3be51f2b4a9fc134ca9e7e732c164e8a`. Production command:
 
 ```bash

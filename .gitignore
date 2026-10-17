@@ -53,3 +53,15 @@ temp/
 # Private MaxMind databases
 **/*.mmdb
 **/GeoLite2-*.tar.gz
+
+# Public marketing media is downloaded explicitly; keep its text metadata in Git.
+/apps/ios/docs/media/**
+!/apps/ios/docs/media/**/
+!/apps/ios/docs/media/**/*.md
+!/apps/ios/docs/media/**/*.json
+!/apps/ios/docs/media/**/*.html
+/apps/android/docs/media/**
+!/apps/android/docs/media/**/
+!/apps/android/docs/media/**/*.md
+!/apps/android/docs/media/**/*.json
+!/apps/android/docs/media/**/*.html

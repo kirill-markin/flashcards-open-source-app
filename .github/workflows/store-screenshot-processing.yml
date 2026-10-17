@@ -6,6 +6,8 @@ on:
       - .github/workflows/store-screenshot-processing.yml
       - .gitignore
       - scripts/store-screenshots/**
+      - scripts/media/**
+      - docs/media-assets.md
       - docs/store-screenshot-processing.md
       - apps/ios/docs/marketing-screenshots.md
       - apps/ios/docs/media/app-store-screenshots/**
@@ -60,6 +62,11 @@ jobs:
           node-version: 24
           cache: npm
           cache-dependency-path: scripts/store-screenshots/package-lock.json
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - name: Download pinned native captures and gallery banners
+        run: python3 scripts/media/download.py ios-native android-native android-feature-graphics
       - name: Install processor dependencies
         run: npm ci --prefix scripts/store-screenshots
       - name: Install pinned rendering browser
