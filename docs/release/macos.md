@@ -30,59 +30,55 @@ authorize dispatch, signed local execution, submission or publication.
 
 3. Require the normal strict `Repository static checks` gate on merged
    preparation/fixes. Pin intended `main` SHA with no uncommitted source changes.
-   Inspect both saved [Mac workflows](../macos-ci-cd.md#xcode-cloud) API-first:
-   main-only manual start eligibility, SCM repository/ref, shared project/scheme,
-   current Xcode/SDK and latest builder macOS destination, unfiltered scheme
-   selection, Release App Store archive/managed signing and internal-testers
-   postaction, and required Mac Test action using scheme settings. Verify
-   production service values, secure-value presence, review-account access and
-   Sentry archive hooks under [Cloud inputs](../ios-ci-cd.md#xcode-cloud-inputs).
-   Preserve iOS configuration and masked secrets. Check disk for retained
-   exports/results; diagnose API access before browser fallback. Resolve missing
-   declarations/access with the user instead of guessing.
-4. During an authorized release, start `macos-build-workflow` and
-   `macos-tests-workflow` independently on that `main` SHA and monitor both.
-   Save workflow/run/action IDs, source SHA, Xcode/SDK/OS, selected destination,
-   configurations and times from actual resources. Verify accepted runs resolved
-   the intended SHA. Archive/upload success never proves test success; the
-   internal-testers postaction never proves App Review or public availability.
-5. Require successful Cloud archive, signing, upload and processing, and a
-   complete passing native test gate. Inspect full logs, every action, paginated
-   `ciTestResults` and native `.xcresult` evidence under
-   [Cloud data access](../xcode-cloud-data-access.md). Independently enumerate
-   the full configured inventory at its source from the shared scheme,
-   selected UI bundle and source declarations, including Catalyst-only methods,
-   inherited cases, configurations, guards and manual marketing cases. Do not
-   freeze a historical case count or derive inventory from green results.
-   Record every named pass/fail/skip/pending result per destination, exact skip
-   reason and counts; reconcile native exports and API pages. Every eligible
-   required case must execute and pass. Keep deliberate marketing exclusions
-   and the source-guarded phone-only skip distinct; neither is a passed test.
-   Investigate unexpected skips, missing cases and interrupted actions; they
-   block readiness. Inspect retained screenshots, attachments and diagnostics,
-   including the [Mac formula/focus evidence](../macos-ci-cd.md#native-smoke-evidence).
-   Adjudicate warnings under [release policy](README.md#release-warning-policy).
-6. Retain failed Cloud results unchanged. Only a diagnosed restricted private
-   Keychain failure caused by Cloud's ad hoc Mac Test signing may use the
-   [genuinely signed local native alternative](../macos-ci-cd.md#signed-local-native-alternative)
-   within applicable local-execution authorization. Save the actual entitlement,
-   profile, signing and Keychain error evidence establishing that limitation;
-   an arbitrary test/signing failure does not qualify. Run the unchanged full
-   selection on a real Mac with current Xcode and latest supported macOS,
-   production values and a
-   genuine authorized development certificate/profile, original generated
-   `.xctestrun` and same built products. Retain the full `.xcresult`, named cases,
-   skips, diagnostics and attachment inspection. No fabricated app identity,
-   Keychain/security bypass, test filtering, Apple Firebase testing or rewritten
-   Cloud status is permitted. The record must say Cloud failed and the separate
-   local native gate passed. Cloud distribution archive remains mandatory.
-   If the full local suite cannot pass, block submission. Recheck Cloud testing
-   on each future release rather than making the local route unconditional.
-7. Fix all other source/build/test failures through normal PR/CI and repeat the
+   Inspect saved [Mac workflow configuration](../macos-ci-cd.md#xcode-cloud)
+   API-first: **macOS Release Build** enabled, main-only manual eligibility,
+   SCM repository/ref, current Xcode/SDK, shared project and original
+   **Flashcards Open Source App** scheme, required `Archive - macOS` action,
+   App Store eligible Release/managed signing and internal-testers postaction.
+   Verify only the two [Apple release builds](../ios-ci-cd.md#native-release-gate)
+   are enabled; preserve disabled test workflows/configuration/history.
+   Verify production service values, secure-value presence, review-account access
+   and Sentry archive hooks under [Cloud inputs](../ios-ci-cd.md#xcode-cloud-inputs).
+   Preserve iOS configuration and masked secrets. Check disk, actual execution
+   macOS and genuine local development certificate/profile before native work.
+   Record host OS separately from SDK; a current SDK does not establish latest
+   host OS. Diagnose API access before browser fallback; resolve missing factual
+   declarations/access with the user.
+4. Before Cloud dispatch, complete the [signed local native acceptance](../macos-ci-cd.md#signed-local-native-acceptance)
+   on a registered real Mac with supported macOS and current Xcode.
+   Use **Flashcards Native Acceptance** / **LocalMac** / **Acceptance**, Debug,
+   production service values, genuine authorized development certificate/profile,
+   original generated `.xctestrun` and the same built products. Require the full
+   existing non-UI bundle and all Mac-eligible UI flows. Independently discover
+   the full inventory from source, plan, target/configuration and destination;
+   never infer it from green results or freeze a historical count.
+   Every selected required case must execute and pass. Retain full logs,
+   `.xcresult`, named non-UI/UI results, diagnostics and inspected
+   [formula/focus screenshots](../macos-ci-cd.md#native-smoke-evidence).
+   Missing cases, unexpected skips, failures or interrupted runs block dispatch.
+   Keep genuine app provisioning, automatic test-runner signing, sandbox and
+   private Keychain storage; do not fabricate identities, disable signing or
+   filter required tests. Verify the app-process automation marker before
+   interaction under [the testing rule](../../AGENTS.md#testing-philosophy).
+5. During an authorized release, start only **macOS Release Build**
+   (`9d704b65-5254-4f04-be24-bebc0f0cfc7d`) on that accepted `main` SHA.
+   Save workflow/run/Archive action IDs, source SHA, Xcode/SDK/OS, configuration
+   and times from actual resources; require successful archive, signing,
+   hooks, upload and processing. Inspect full logs, actions, warnings and artifacts
+   under [Cloud data access](../xcode-cloud-data-access.md). Apply the
+   [warning policy](README.md#release-warning-policy). Archive/upload success
+   never proves local test success; the TestFlight internal-testers postaction
+   is distribution, not XCTest, App Review or proof of a current uploaded build.
+6. Keep Cloud test workflows disabled; neither a prior Cloud failure nor a new
+   retry is a prerequisite for local acceptance. Retain historical Cloud failures
+   and signing/Keychain diagnoses unchanged, separately from current local
+   evidence; no old failure becomes a pass. If full signed local acceptance
+   cannot pass, block release. Cloud distribution archive remains mandatory.
+7. Fix all source/build/test failures through normal PR/CI and repeat the
    affected gates at corrected SHA. Retain a successful archive only under
    [bounded source equivalence](evidence.md#resume-and-artifact-reuse): compare
-   app code/resources/localizations, dependencies/lockfiles, project/scheme,
-   settings, hooks, remote workflow values, toolchain/signing/distribution inputs.
+   app code/resources/localizations, dependencies/lockfiles, project/scheme/test plans,
+   settings, relevant test source/selection, hooks, remote workflow values, toolchain/signing/distribution inputs.
    Save original archive SHA/run and corrected test SHA/run, exact scope/diff
    and why each retained gate applies. Test-only fixes still require a fresh
    complete native suite; equivalence never changes a failure to a pass.
@@ -112,7 +108,7 @@ authorize dispatch, signed local execution, submission or publication.
    metadata. Missing export/provenance or a mismatch blocks attachment for review.
 9. Complete and record the [manual Mac checklist](../macos-ci-cd.md#manual-checklist-on-the-verified-mac-artifact)
    on the verified signed release app, with artifact/source/version/build, OS,
-   steps and outcomes: resizing/dark layout, pointer/keyboard/composer focus,
+   steps and outcomes. Launch with `bash scripts/ios/launch-macos-test-app.sh "<path/Nibomo.app>"` and verify `automation_run_decided` reports `isAutomation=true` before interaction, including TestFlight. Cover resizing/dark layout, pointer/keyboard/composer focus,
    math, editor/speech, offline relaunch/sync, AI media/dictation permissions,
    notifications and sandbox subscriptions/purchase/restore/manage. Record
    unexecuted permission/payment checks and their coverage limits honestly;
