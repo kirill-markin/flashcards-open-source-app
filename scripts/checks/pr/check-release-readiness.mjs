@@ -150,6 +150,59 @@ try {
     changed.results[0].cases.find((entry) => entry.id === test.id).status = status;
     assert.ok(cloudReport(changed).errors.includes(`case ${test.id} is ${status}`));
   }
+  // Contract-only CLI inputs; these are not captured native acceptance evidence.
+  const uiTarget = "Flashcards Open Source App UI Tests";
+  const nonUiTarget = "Flashcards Open Source App Tests";
+  const smokeTests = JSON.parse(readFileSync(new URL("../../../apps/ios/Flashcards/CloudSmoke.xctestplan", import.meta.url), "utf8")).testTargets[0].selectedTests;
+  const ipadTests = ["LiveSmokeIPadTests/testIPadCompanionPreservesDraftAndRevealedReviewAcrossSections()", "LiveSmokeIPadTests/testIPadReviewHardwareKeysRespectFilterAndRateCards()", "LiveSmokeAIConsentTests/testWideCompanionAndCardHandoffStayBlockedAfterWithdrawal()"];
+  const plans = { "local-full": "LocalFull", "local-ipad": "LocalIPad", "local-ios18": "IOS18Compatibility", "cloud-smoke": "CloudSmoke" };
+  const localCloud = structuredClone(manifest);
+  localCloud.schemaVersion = 3;
+  localCloud.results = [];
+  localCloud.gates = ["local-archive", ...Object.keys(plans).slice(0, 3), "cloud-archive", "cloud-smoke"].map((id) => {
+    const base = { ...structuredClone(manifest.gates[0]), id, cases: [] };
+    const testPlan = plans[id];
+    if (testPlan === undefined) return base;
+    const destination = { id: `${id}-device`, model: id === "local-ipad" ? "iPad" : "iPhone", osVersion: id === "local-ios18" ? "18.7" : "27.0", kind: id === "local-ipad" ? "ipad" : "iphone" };
+    const tests = id === "local-ipad" ? ipadTests : smokeTests;
+    base.selection = { scheme: "Flashcards Native Acceptance", testPlan, configuration: "Acceptance", destination };
+    base.cases = tests.map((test) => ({ id: `${test}@${destination.id}`, target: uiTarget, disposition: "required" }));
+    if (id === "local-full") base.cases.push({ id: `FsrsSchedulerParityTests/testFullFsrsVectors()@${destination.id}`, target: nonUiTarget, disposition: "required" });
+    return base;
+  });
+  const partial = invoke(localCloud);
+  assert.equal(partial.exitCode, 1);
+  assert.equal(partial.report.gates.length, 6);
+  assert.ok(partial.report.gates.every((gate) => !gate.ready && gate.errors.includes("missing recorded gate evidence")));
+  const cloudIndex = localCloud.gates.findIndex((gate) => gate.id === "cloud-smoke");
+  const selectedCloud = localCloud.gates[cloudIndex];
+  localCloud.results = [{ ...structuredClone(manifest.results[0]), gateId: selectedCloud.id, identity: structuredClone(selectedCloud.identity), status: "passed", warningReview: "complete", warnings: [], cases: selectedCloud.cases.map((test) => ({ id: test.id, status: "passed" })) }];
+  assert.equal(invoke(localCloud).report.gates[cloudIndex].ready, true);
+  for (const status of ["failed", "pending", "skipped"]) {
+    const changed = structuredClone(localCloud);
+    Object.assign(changed.results[0].cases[0], { status, reason: "Unexpected native skip" });
+    assert.equal(invoke(changed).report.gates[cloudIndex].ready, false);
+  }
+  const missingSmoke = structuredClone(localCloud);
+  missingSmoke.results[0].cases.pop();
+  assert.equal(invoke(missingSmoke).report.gates[cloudIndex].counts.missing, 1);
+  for (const key of ["sourceSha", "version", "build", "artifactId", "runId"]) {
+    const changed = structuredClone(localCloud);
+    changed.results[0].identity[key] = key === "sourceSha" ? "f".repeat(40) : "different-identity";
+    assert.equal(invoke(changed).report.gates[cloudIndex].ready, false);
+  }
+  const wrongDestination = structuredClone(localCloud);
+  wrongDestination.gates[cloudIndex].selection.destination.id = "unselected-device";
+  expectInvalid(wrongDestination, `manifest.gates[${cloudIndex}].cases[0].id`);
+  const missingNonUi = structuredClone(localCloud);
+  missingNonUi.gates[1].cases = missingNonUi.gates[1].cases.filter((test) => test.target !== nonUiTarget);
+  expectInvalid(missingNonUi, "manifest.gates[1].cases");
+  const narrowed = structuredClone(localCloud);
+  narrowed.gates[cloudIndex].cases.pop();
+  expectInvalid(narrowed, `manifest.gates[${cloudIndex}].cases`);
+  const wrongPlan = structuredClone(localCloud);
+  wrongPlan.gates[cloudIndex].selection.testPlan = "LocalFull";
+  expectInvalid(wrongPlan, `manifest.gates[${cloudIndex}].selection.testPlan`);
   console.log("Mobile readiness CLI replayed captured Xcode Cloud 606, 603 and the complete 614 destination matrix; absent gates and invalid counterpart evidence remain blocked.");
 } finally {
   rmSync(directory, { recursive: true, force: true });

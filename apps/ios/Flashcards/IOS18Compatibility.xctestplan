@@ -1,0 +1,43 @@
+{
+  "configurations": [
+    {
+      "id": "1A00F9FC-C56C-4041-8CEF-76B8528A2208",
+      "name": "Acceptance",
+      "options": {}
+    }
+  ],
+  "defaultOptions": {
+    "diagnosticCollectionPolicy": "Never",
+    "environmentVariableEntries": [
+      {
+        "key": "FLASHCARDS_AUTOMATION_RUN",
+        "value": "1"
+      },
+      {
+        "key": "FLASHCARDS_SENTRY_ENVIRONMENT_OVERRIDE",
+        "value": "ci-simulator"
+      }
+    ],
+    "targetForVariableExpansion": {
+      "containerPath": "container:Flashcards Open Source App.xcodeproj",
+      "identifier": "A10000000000000000000004",
+      "name": "Flashcards Open Source App"
+    }
+  },
+  "testTargets": [
+    {
+      "parallelizable": false,
+      "target": {
+        "containerPath": "container:Flashcards Open Source App.xcodeproj",
+        "identifier": "A10000000000000000000035",
+        "name": "Flashcards Open Source App UI Tests"
+      },
+      "selectedTests": [
+        "LiveSmokeSettingsTests/testLiveSmokeGuestNavigationFlow()",
+        "LiveSmokeReviewTests/testLiveSmokeManualCardReviewFlow()",
+        "LiveSmokeSettingsTests/testLiveSmokeLoginAndLinkedWorkspaceFlow()"
+      ]
+    }
+  ],
+  "version": 1
+}
