@@ -155,10 +155,14 @@ export async function checkAccountConnection(runtime: pg.Client, owner: pg.Clien
       await runtime.query("SELECT auth.enroll_proved_email_principal($1,$1,$2,clock_timestamp())", [subjects[index], emails[index]]);
     }
     for (const [index, workspace] of workspaces.entries()) {
-      await owner.query("INSERT INTO org.workspaces(workspace_id,name,fsrs_client_updated_at,fsrs_last_modified_by_device_id,fsrs_last_operation_id) VALUES($1,'Personal',clock_timestamp(),$2,$3)",
-        [workspace, randomUUID(), randomUUID()]);
-      await owner.query("INSERT INTO org.workspace_memberships(workspace_id,user_id,role) VALUES($1,$2,'owner')", [workspace, accounts[index]]);
-      await owner.query("UPDATE org.user_settings SET workspace_id=$2 WHERE user_id=$1", [accounts[index], workspace]);
+      await transaction(owner, async () => {
+        await owner.query(`INSERT INTO org.workspaces(workspace_id,name,fsrs_client_updated_at,
+          fsrs_last_modified_by_replica_id,fsrs_last_operation_id) VALUES($1,'Personal',now(),$1,'seed')`, [workspace]);
+        await owner.query(`INSERT INTO sync.workspace_replicas(replica_id,workspace_id,user_id,actor_kind,actor_key,platform)
+          VALUES($1,$1,$2,'workspace_seed','seed','system')`, [workspace, accounts[index]]);
+        await owner.query("INSERT INTO org.workspace_memberships(workspace_id,user_id,role) VALUES($1,$2,'owner')", [workspace, accounts[index]]);
+        await owner.query("UPDATE org.user_settings SET workspace_id=$2 WHERE user_id=$1", [accounts[index], workspace]);
+      });
     }
     await runtime.query("SELECT auth.activate_proved_provider_method('apple',$1,$2,$3)", [providerSubjects.apple, subjects[1], emails[1]]);
     await runtime.query("SELECT auth.activate_proved_provider_method('google',$1,$2,$3)", [providerSubjects.google, subjects[0], emails[0]]);
