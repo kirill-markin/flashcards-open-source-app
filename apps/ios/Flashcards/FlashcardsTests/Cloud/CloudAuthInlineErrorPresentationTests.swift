@@ -56,7 +56,7 @@ final class CloudAuthInlineErrorPresentationTests: XCTestCase {
 
         XCTAssertEqual(
             presentation.message,
-            "Invalid code. Try again."
+            String(localized: "cloud_auth.error.otp_code_invalid", table: "Foundation")
         )
         XCTAssertNil(presentation.technicalError)
     }

@@ -627,7 +627,7 @@ final class CloudGuestCredentialRecoveryTests: CloudCredentialRecoveryTestCase {
         XCTAssertEqual(
             aiSettingsLocalized(
                 "settings.account.cloudSignIn.guestLocalRecovery.recovering.message",
-                "Keep this screen open while iOS reconnects local data on this device to your recovered workspace."
+                "Keep this screen open while the app reconnects local data on this device to your recovered workspace."
             ),
             syncPresentation.message
         )
