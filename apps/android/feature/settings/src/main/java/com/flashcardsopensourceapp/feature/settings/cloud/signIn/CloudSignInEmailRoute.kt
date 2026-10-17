@@ -12,6 +12,8 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -31,6 +33,9 @@ fun CloudSignInEmailRoute(
     onShowTechnicalDetails: (String, String) -> Unit,
     onBack: () -> Unit
 ) {
+    val focusManager = LocalFocusManager.current
+    val keyboardController = LocalSoftwareKeyboardController.current
+
     SettingsScreenScaffold(
         title = stringResource(R.string.settings_sign_in_title),
         onBack = onBack,
@@ -83,7 +88,11 @@ fun CloudSignInEmailRoute(
 
             item {
                 Button(
-                    onClick = onSendCode,
+                    onClick = {
+                        focusManager.clearFocus()
+                        keyboardController?.hide()
+                        onSendCode()
+                    },
                     enabled = uiState.isSendingCode.not(),
                     modifier = Modifier
                         .fillMaxWidth()
