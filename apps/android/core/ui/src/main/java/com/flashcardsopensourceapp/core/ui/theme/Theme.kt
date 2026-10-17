@@ -4,10 +4,11 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 
 private val FlashcardsDarkColorScheme = darkColorScheme(
     primary = FlashcardsOrange,
-    onPrimary = FlashcardsOnSurface,
+    onPrimary = Color.Black,
     secondary = FlashcardsOrange,
     tertiary = FlashcardsOrange,
     background = FlashcardsBackground,
@@ -28,6 +29,7 @@ fun FlashcardsTheme(accentColor: Color, content: @Composable () -> Unit) {
     MaterialTheme(
         colorScheme = FlashcardsDarkColorScheme.copy(
             primary = accentColor,
+            onPrimary = if (accentColor.luminance() > 0.179f) Color.Black else Color.White,
             secondary = accentColor,
             tertiary = accentColor
         ),
