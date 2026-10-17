@@ -73,7 +73,7 @@ If any path fails, capture:
 
 ## Generated Image Chat Tool
 
-After this change is merged and deployed, make the next permitted real image request from a signed-in production chat:
+After a release that changes the generated-image tool is deployed, make the next permitted real image request from a signed-in production chat:
 
 - Explicitly request one teaching-relevant image and confirm the assistant
   inspects the card first and names the card and side.
@@ -103,31 +103,13 @@ After this change is merged and deployed, make the next permitted real image req
 
 ### Generation ceilings
 
-Three independent ceilings apply to one generated-image request. The per-run
-ceiling is checked first, and between the two windows the monthly one is checked
-and reported first, because its reset is never earlier:
-
-- Per run: attempts inside one assistant turn, reserved one at a time and
-  derived from the operations already stored on that run's assistant item
-  (`apps/backend/src/chat/runs/generatedImageAttemptRepository.ts`), so a failed
-  attempt counts. Exhaustion answers the model with `limit_reached`.
-- Per workspace sync replica, per UTC day.
-- Per workspace, per UTC calendar month.
-
-A generation paid with the person's own OpenAI key replaces both windows with one
-own-key ceiling per workspace, per UTC calendar month. That ceiling counts every
-generation, while the two windows count only those paid with the platform key.
-
-The two window ceilings and their numbers live in
-`apps/backend/src/chat/cardImages/generationBudget.ts`. Exhausting either raises
-`GENERATED_CARD_IMAGE_GENERATION_LIMIT_REACHED`, carrying which ceiling was hit,
-its limit, and when the window resets. Both windows are UTC wall-clock and do
-not depend on the session TimeZone. They count promotion jobs, which exist only
-once a generation has been staged, so a paid generation that never reached
-staging is uncounted and concurrent operations in one scope can end past a
-limit. The grant that lets the runtime read those timestamps is
-`db/migrations/0135_generated_media_promotion_job_created_at_select.sql`, whose
-header explains why no index accompanies it.
+Three independent ceilings apply to one generated-image request: attempts per
+run, checked first; per workspace sync replica per UTC day; and per workspace per
+UTC calendar month. A generation paid with the person's own OpenAI key replaces
+both windows with one own-key monthly ceiling per workspace. The numbers, their
+order and what they count are in
+[`generationBudget.ts`](../apps/backend/src/chat/cardImages/generationBudget.ts)
+and [`generatedImageAttemptRepository.ts`](../apps/backend/src/chat/runs/generatedImageAttemptRepository.ts).
 
 A card that was deleted between the model reading it and the request reaching
 the backend comes back as the `card_not_found` tool result instead of failing

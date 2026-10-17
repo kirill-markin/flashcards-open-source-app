@@ -12,6 +12,7 @@ For using Nibomo, see the [user guides](https://nibomo.com/docs/).
 ## Architecture and integrations
 
 - [Architecture](architecture.md)
+- [Auth service](auth-service.md)
 - [FSRS card scheduling](fsrs-scheduling-logic.md)
 - [MCP client setup](mcp-connector.md)
 - [Shared agent tool contracts](agent-tool-surfaces.md)

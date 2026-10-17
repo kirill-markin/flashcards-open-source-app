@@ -1,6 +1,6 @@
 # Sync Identity Model
 
-The sync layer now treats installation identity and workspace actor identity as two different concepts.
+The sync layer treats installation identity and workspace actor identity as two different concepts. The tables, columns and actor kinds are defined in [0035](../db/migrations/0035_sync_installations_and_workspace_replicas.sql) and the migrations that follow it.
 
 ## Installation Id
 
@@ -13,49 +13,19 @@ The sync layer now treats installation identity and workspace actor identity as 
 
 `sync.installations` stores this global client identity. These rows are not historical actors and must never be used as foreign keys from cards, decks, review events, scheduler settings, or sync logs. It also carries the automation marker a client declares about itself, documented in [Audience analytics](analytics-audience.md).
 
-Native clients may also report `osName` and `deviceType` on sync requests; the installation keeps the latest reported values, as [the migration that adds them](../db/migrations/0176_client_os_name_device_type.sql) describes.
-
 ## Replica Id
 
-`replicaId` is an immutable actor inside one workspace.
+`replicaId` is an immutable actor inside one workspace, stored in `sync.workspace_replicas`.
 
 - Client replicas are derived from `(workspaceId, installationId)`.
-- System replicas are derived from `(workspaceId, actorKind, actorKey)`.
+- System replicas are derived from `(workspaceId, actorKind, actorKey)`; `workspace_reset`, for example, lets destructive scheduler-state resets stay workspace-scoped and auditable without pretending to be a client installation.
 - History points to replicas, never to mutable installation rows.
-
-`sync.workspace_replicas` is the canonical actor table for:
-
-- `content.cards.last_modified_by_replica_id`
-- `content.decks.last_modified_by_replica_id`
-- `org.workspaces.fsrs_last_modified_by_replica_id`
-- `content.review_events.replica_id`
-- `sync.hot_changes.replica_id`
-- `sync.applied_operations_current.replica_id`
-
-## Actor Kinds
-
-`sync.workspace_replicas.actor_kind` is one of:
-
-- `client_installation`
-- `workspace_seed`
-- `workspace_reset`
-- `agent_connection`
-- `ai_chat`
-
-`workspace_reset` is a deterministic system actor per workspace. The reset-progress flow uses it so destructive scheduler-state resets remain workspace-scoped and auditable without pretending to be a client installation.
 
 Client-authenticated writes never send actor ids in payloads. The backend resolves the active workspace replica from `(workspaceId, installationId)` and stamps the canonical `replicaId` into stored rows and sync logs.
 
 ## Why The Split Exists
 
-The old `sync.devices` model let one mutable row move between workspaces. That broke historical integrity because cards, review history, scheduler metadata, and hot changes pointed at a row whose workspace ownership could later change.
-
-The new model fixes that by keeping:
-
-- installations global and movable
-- replicas immutable and workspace-scoped
-
-This lets one physical installation switch users, switch workspaces, return later, upgrade guest sessions, and delete workspaces without rewriting historical actor ownership.
+A single mutable device row that could move between workspaces broke historical integrity: cards, review history, scheduler metadata, and hot changes pointed at a row whose workspace ownership could later change. Keeping installations global and movable and replicas immutable and workspace-scoped lets one physical installation switch users, switch workspaces, return later, upgrade guest sessions, and delete workspaces without rewriting historical actor ownership.
 
 ## Entity Id Rules
 
@@ -63,7 +33,7 @@ Cards, decks, and review events use globally keyed ids. Guest upgrade and true w
 
 Guest upgrade preserves ids and merges already-synced guest cloud state into the selected destination workspace. Before calling `/guest-auth/upgrade/complete`, clients fully sync the guest workspace with guest authentication and verify that the local guest outbox is empty. Completion does not carry pending local operations through linked migration, does not depend on entity-id alias mappings, and clients must not fork guest ids before or after linked sync. After upgrade, clients continue syncing the same card, deck, review event, and media asset ids. Media assets merge as workspace-scoped `content.media_assets` registry rows only: each row keeps pointing at the same deduplicated `content.media_blobs` row, so no object storage bytes are copied or re-keyed.
 
-True workspace copy/fork flows create a separate copy of the data and must deterministically fork every globally keyed entity id. Reusing the original ids in an independent workspace copy is invalid because these tables are keyed globally, not by `(workspace_id, entity_id)`.
+True workspace copy/fork flows create a separate copy of the data and must deterministically fork every globally keyed entity id. Reusing the original ids in an independent workspace copy is invalid because these tables are keyed globally, not by `(workspace_id, entity_id)`. The fork contract is these UUID v5 namespaces. [iOS](../apps/ios/Flashcards/Flashcards/Database/Workspace/WorkspaceIdentityForking.swift) implements all four; [Android](../apps/android/data/local/src/main/java/com/flashcardsopensourceapp/data/local/cloud/identity/WorkspaceIdentityFork.kt) matches card, deck and review event, but its `mediaAssetIdentityForkNamespace` differs — an open cross-client mismatch:
 
 - Fork card ids with UUID v5 namespace `5b0c7f2e-6f2a-4b7e-9e1b-2b5f0a4a91b1`
 - Fork deck ids with UUID v5 namespace `98e66f2c-d3c7-4e3f-a7df-55d8e19ad2b4`

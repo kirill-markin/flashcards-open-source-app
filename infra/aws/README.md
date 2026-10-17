@@ -1,124 +1,20 @@
 # AWS Deployment (CDK)
 
-This stack deploys v1 backend infrastructure for `flashcards-open-source-app`.
-
-## What gets created
-
-- VPC with private subnets
-- RDS Postgres 18
-- Cognito User Pool (Essentials tier, EMAIL_OTP passwordless auth)
-- API Gateway (REST API) for backend + API Gateway (REST API) for auth + backend/auth/worker/email Lambdas
-- S3 bucket + CloudFront distribution for the web app
-- Secrets Manager — DB credentials (auto-generated), backend/auth DB passwords, session encryption key
-- Optional Secrets Manager secrets for Resend, the review/demo auth password, and AI provider API keys
-- CloudWatch alarms + SNS notifications
-- AWS Backup plan for RDS
-- GitHub Actions OIDC deployment role
+The CDK app ([`bin/app.ts`](bin/app.ts)) deploys the core stack ([`lib/stack.ts`](lib/stack.ts)) and its monitoring stack. AWS deploys run only through CI/CD; first deploys, second hosts and GitHub variables are in [Backend and Web Deployment](../../docs/backend-web-deployment.md), and the system shape in [Architecture](../../docs/architecture.md).
 
 ## Deploy config model
 
 Deploy-time config is split across three places:
 
-- Root `.env` is the local operator input for scripts.
+- Root `.env` is the local operator input for scripts; [`.env.example`](../../.env.example) lists the base values, and the second-host inputs are read by [`generate-cdk-context.sh`](../../scripts/generate/generate-cdk-context.sh).
 - AWS Secrets Manager is the source of truth for deployed runtime secrets.
 - GitHub repository variables are the source of truth for non-secret deploy config used by CI/CD.
 
-Local CDK commands assemble `infra/aws/cdk.context.local.json` immediately before invoking CDK, and GitHub Actions assembles the same context inside the workflow job.
-
-## Local operator config
-
-Keep these values in root `.env` before running setup or deploy scripts:
-
-- `AWS_REGION`
-- `DOMAIN_NAME`
-- `ALERT_EMAIL`
-- `GITHUB_REPO`
-- `CLOUDFLARE_API_TOKEN`
-- `CLOUDFLARE_ZONE_ID`
-- `RESEND_API_KEY`
-- `RESEND_ADMIN_API_KEY`
-- `OPENAI_API_KEY` when needed
-- Required backend Sentry setup:
-  `SENTRY_DSN` for bootstrap-created AWS secret `flashcards-open-source-app/sentry-dsn`, or `SENTRY_DSN_SECRET_ARN` for an existing AWS Secrets Manager secret; `SENTRY_ENVIRONMENT`; `SENTRY_RELEASE` (required legacy context input; CI supplies the GitHub SHA, while Lambda release labels use the emitted code asset hash); `SENTRY_TRACES_SAMPLE_RATE`; `SENTRY_ORG`; `SENTRY_BACKEND_PROJECT`; and `SENTRY_AUTH_TOKEN` for backend source map uploads
-- Optional web Sentry setup:
-  `VITE_SENTRY_DSN`; `VITE_SENTRY_TRACES_SAMPLE_RATE`; and `SENTRY_WEB_PROJECT` for web source map uploads. Web source map uploads reuse `SENTRY_ORG` and `SENTRY_AUTH_TOKEN`.
-- `DEMO_EMAIL_DOSTIP` and `DEMO_PASSWORD_DOSTIP` when review/demo bypass is enabled
-- `GLOBAL_METRICS_VISIBLE` when you want `GET /v1/global/snapshot` exposed externally; use the exact raw string `true`, and leave it unset or use any other value to keep the endpoint hidden
-- `ADMIN_EMAILS` for initial bootstrap admin-grant setup
-- optional `ANALYTICS_ACCESS_ENABLED` when you want to remove the analytical bastion; it is enabled by default, and only the exact strings `true` and `false` are accepted
-
-Certificate ARNs and secret ARNs are discovered from AWS. They are not meant to be typed into local context by hand.
-
-## Deploy
-
-Preferred flow from the repo root:
-
-```bash
-bash scripts/deploy/first-deploy.sh \
-  --region eu-central-1 \
-  --domain flashcards-open-source-app.com \
-  --alert-email alerts@example.com
-```
-
-That flow:
-
-- creates or updates the required AWS Secrets Manager secrets from root `.env`
-- stores optional AI and demo auth secrets when configured
-- requests ACM certificates for API, auth, MCP, web, and apex redirect when needed
-- requests the ACM certificate for `admin.<domain>` when needed
-- generates `infra/aws/cdk.context.local.json` for the local CDK invocation
-- bootstraps and deploys CDK
-- uploads web and admin assets
-- optionally configures Cloudflare DNS
-- populates missing deploy config in GitHub Actions variables without overwriting existing values
-
-Before direct CDK synthesis, run `bash scripts/deploy/prepare-lambda-build-inputs.sh` from the repo root to fetch and validate the required RDS CA bundle. The release workflow and `bootstrap.sh` (also invoked by `first-deploy.sh`) prepare this input before CDK runs. The local helper scripts assemble the CDK context file before the CDK step.
-
-## Lambda Sentry releases
-
-New Lambda bundles receive deterministic source-map debug IDs before staging. Each configured Lambda uses `lambda-<CDK unique function ID>@<code asset hash>` as its Sentry release, so unchanged code retains its release across commits and deployment phases. Runtime configuration still updates through the Lambda environment independently. After the last deployment phase succeeds, `scripts/deploy/upload-lambda-source-maps.py` reads the final cloud assembly, matches each template’s release and S3 code key to its asset manifest, verifies matching JavaScript/map debug IDs, and uploads only that bundle pair. Sentry credentials are provided only to this upload step. Git SHA provenance remains in the workflow summary and deployed-component SSM records.
+Certificate ARNs and secret ARNs are discovered from AWS, not typed into local context by hand. Local CDK commands assemble `infra/aws/cdk.context.local.json` immediately before invoking CDK, and GitHub Actions assembles the same context inside the workflow job. Before direct CDK synthesis, run `bash scripts/deploy/prepare-lambda-build-inputs.sh` from the repo root to fetch the RDS CA bundle; the release workflow and `bootstrap.sh` do this themselves.
 
 ## Lambda asset cache
 
-The AWS release workflow prepares the RDS CA once per job, restores verified asset directories, and saves only Lambda assets referenced by the final assembly. Cache schema v1 lives under `.cache/lambda-assets/v1`; its manifest contains asset names and integrity digests. CloudFormation templates, context and credentials stay outside the cache. Runner architectures have separate caches. Cache hits do not replace deployment or smoke gates; the Docker bundling image is built only when a bundle misses the cache.
-
-The implementation is in [lambda-input-cache.ts](lib/lambda-input-cache.ts) and [lambda-asset-cache.py](../../scripts/deploy/lambda-asset-cache.py). New hooks that copy runtime files must declare `copiedAssetPaths`. Nonliteral application imports, linked/local npm dependencies, extended tsconfigs, extra bundling options and host Sentry CLI overrides require explicit input support before use.
-
-For cloud verification on a migration-changing release, the only one deployed in two phases, compare the `lambda_asset_cache` JSON records in the first and second deploy phases: identical inputs must report `reused` in phase two. On the next platform release, compare asset identities per function; a private handler edit should rebuild only its dependents, while shared source, SQL, CA, lockfile or architecture changes should change the affected identities. Confirm the final source-map uploader and ordinary deployment/smoke gates pass. A corrupt or incomplete restored asset fails synthesis; delete the affected GitHub Actions cache and rerun to rebuild it.
-
-## Secret setup helpers
-
-- `bash scripts/setup/setup-resend-secret.sh --region <aws-region>`
-  Stores `RESEND_API_KEY` in AWS Secrets Manager and derives `no-reply@mail.<domain>` from `DOMAIN_NAME`.
-- `bash scripts/setup/setup-ai-secrets.sh --region <aws-region>`
-  Stores optional AI provider keys in AWS Secrets Manager.
-- `bash scripts/setup/setup-auth-secrets.sh --region <aws-region>`
-  Stores the shared insecure review/demo password in AWS Secrets Manager when `DEMO_PASSWORD_DOSTIP` is set.
-
-These scripts do not write back into repo config files. They only update AWS state.
-
-## GitHub Actions config
-
-Run:
-
-```bash
-bash scripts/setup/setup-github.sh
-```
-
-This script:
-
-- reads operator config from root `.env`
-- discovers AWS secret ARNs and ACM certificate ARNs
-- writes missing non-secret deploy config to GitHub repository variables
-- writes missing `AWS_DEPLOY_ROLE_ARN` and `SENTRY_AUTH_TOKEN` GitHub secrets; `SENTRY_AUTH_TOKEN` is required for backend source map uploads and for web source map uploads when `VITE_SENTRY_DSN` is set
-- leaves existing GitHub variables and secrets untouched
-
-The deploy workflow assembles its own `cdk.context.local.json` from those GitHub variables inside CI.
-Backend source map uploads use `SENTRY_BACKEND_PROJECT`; web source map uploads use `SENTRY_WEB_PROJECT` when `VITE_SENTRY_DSN` enables web Sentry.
-
-`bash scripts/setup/setup-github.sh` is intentionally bootstrap-oriented: it sets missing GitHub Actions variables and secrets, but it does not remove values that already exist in GitHub. If you need to disable an optional feature that was previously enabled through a GitHub variable, delete that GitHub variable explicitly and then redeploy.
-This also applies to `CDK_ADMIN_EMAILS`: root `.env` is not the deployed CI source of truth after bootstrap, so later changes to the deployed bootstrap admin list must be made manually in GitHub and then redeployed.
-This same write-once bootstrap behavior applies to `GLOBAL_METRICS_VISIBLE` -> `CDK_GLOBAL_METRICS_VISIBLE`: only the exact raw string `true` exposes `GET /v1/global/snapshot`, and changing deployed visibility later requires manually updating or deleting `CDK_GLOBAL_METRICS_VISIBLE` in GitHub before redeploying.
+The release workflow reuses verified Lambda assets between runs ([lambda-input-cache.ts](lib/lambda-input-cache.ts), [lambda-asset-cache.py](../../scripts/deploy/lambda-asset-cache.py)). A corrupt or incomplete restored asset fails synthesis; delete the affected GitHub Actions cache and rerun to rebuild it.
 
 ## Analytical DB access
 
@@ -161,39 +57,7 @@ the shared secret while any concurrent review remains active.
 ## Post-deploy
 
 1. Confirm the SNS subscription in the `ALERT_EMAIL` inbox.
-2. Configure Resend DNS with `bash scripts/setup/setup-resend-domain.sh --domain <base-domain> --subdomain mail`.
+2. Configure Resend DNS with `bash scripts/setup/setup-resend-domain.sh --domain <base-domain> --subdomain mail` ([Resend setup](../../docs/resend-setup.md)).
 3. Configure Cloudflare public DNS with `bash scripts/cloudflare/setup-dns.sh --stack-name FlashcardsOpenSourceApp --domain <base-domain>`.
 4. Populate any missing GitHub Actions config with `bash scripts/setup/setup-github.sh`.
 5. Run `bash scripts/checks/check-public-endpoints.sh --stack-name FlashcardsOpenSourceApp` after DNS changes.
-
-The supported deployed admin browser entrypoint is `https://admin.<domain>` only.
-
-## Auth flow
-
-1. Mobile app or browser login page calls `POST https://auth.<domain>/api/send-code` with `{ email }`.
-2. Auth Lambda calls Cognito `InitiateAuth` (EMAIL_OTP), stores session in HMAC-signed cookie, returns CSRF token.
-3. Cognito invokes the custom email sender Lambda, which decrypts the Cognito code and delivers it through Resend from `no-reply@mail.<domain>`.
-4. Mobile app or browser login page calls `POST https://auth.<domain>/api/verify-code` with `{ code, csrfToken }`.
-5. Auth Lambda calls Cognito `RespondToAuthChallenge`, returns `{ idToken, refreshToken, expiresIn }` in response body.
-6. Browser app reuses the shared domain `session` cookie for SSO and loads a session-bound CSRF token from `GET https://api.<domain>/v1/me`.
-7. Browser mutating requests to `https://api.<domain>/v1/*` send `X-CSRF-Token`; backend checks exact allowed `Origin` (or `Referer` fallback), rejects explicit `Sec-Fetch-Site: cross-site`, and validates the HMAC-derived token with a dedicated Secrets Manager secret.
-8. Mobile app stores tokens locally, sends `Authorization: Bearer <idToken>` on sync requests.
-9. Backend Lambda verifies JWT via `aws-jwt-verify`, extracts `sub` as userId.
-10. Host-only `__Host-` app cookies are intentionally not used in v1 because `app.<domain>` is served as a static CloudFront/S3 SPA and `api.<domain>` cannot set an `app.<domain>` host-only cookie without adding a proxy or edge layer.
-11. `POST https://auth.<domain>/api/refresh-token` exchanges refresh token for a new id token.
-12. `POST https://auth.<domain>/api/revoke-token` revokes the refresh token.
-13. `GET https://auth.<domain>/login?redirect_uri=...` serves the browser login page.
-
-The REST API and the auth API can each answer on one more host outside `<domain>` in the same way, through `CDK_API_ALTERNATE_DOMAIN_NAME`, `CDK_AUTH_ALTERNATE_DOMAIN_NAME` and their certificate variables, with the CNAME taken from the `ApiAlternateCustomDomainTarget` and `AuthAlternateCustomDomainTarget` outputs. A second browser cookie domain is added separately, through `CDK_COOKIE_DOMAIN`; it never replaces `<domain>`, and each request picks the candidate its host sits under. See [docs/backend-web-deployment.md](../../docs/backend-web-deployment.md#optional-second-api-and-auth-host).
-
-## MCP host
-
-The MCP server is exposed on its own `mcp.<domain>` subdomain, backed by a dedicated API Gateway and Lambda (`apps/backend/src/entrypoints/lambda-mcp.ts`). The canonical MCP resource is `https://mcp.<domain>/mcp` (no `/v1` prefix on the custom domain).
-
-- `GET https://mcp.<domain>/.well-known/oauth-protected-resource` returns the OAuth Protected Resource Metadata, pointing at the authorization server `https://auth.<domain>`.
-- `https://mcp.<domain>/mcp` without a valid `Authorization: Bearer` token returns `401` with a `WWW-Authenticate: Bearer resource_metadata="..."` challenge.
-- `GET https://mcp.<domain>/health` returns `200`.
-
-Provision the certificate and DNS the same way as the other subdomains: `bash scripts/cloudflare/setup-mcp-domain.sh --domain <base-domain> --region <aws-region>` requests the ACM certificate (`first-deploy.sh` runs this when needed), and `bash scripts/cloudflare/setup-dns.sh` creates the `mcp.<domain>` Cloudflare CNAME from the `McpCustomDomainTarget` stack output.
-
-The same API can additionally answer on one host outside `<domain>`, set through the optional `CDK_MCP_ALTERNATE_DOMAIN_NAME` and `CDK_MCP_ALTERNATE_CERTIFICATE_ARN` repository variables, with a manual certificate and a manual CNAME from the `McpAlternateCustomDomainTarget` output. A third variable, `CDK_MCP_ALTERNATE_HOST_LIVE`, is flipped afterwards to put the host under the heartbeat and the post-deploy smoke. See the go-live order in [docs/backend-web-deployment.md](../../docs/backend-web-deployment.md#optional-second-mcp-host).
