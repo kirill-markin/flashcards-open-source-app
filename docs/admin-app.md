@@ -11,7 +11,7 @@ Each serves `/analytics/level-1-metrics`, the landing page that `/` and `/analyt
 
 ## Scope
 
-`Level 1 metrics` opens on its own last-60-days date range. Its responsive grid has `Who saw us` at the upper left, `Who used us` at the upper right, `Who came back` at the lower left and `Who paid us` at the lower right. [The Level 1 contract](../apps/admin/README.md#level-1-metrics) defines sources, meaningful activity, identity resolution, rolling unique users, W1/W4 cohort maturity, native financial-event classification and retained-history/merchant-coverage limits. The [area](../apps/admin/src/reports/levelOneMetrics/LevelOneMetricsArea.tsx) coordinates only the date selection, while each chart loads and retries independently.
+`Level 1 metrics` opens on its own last-60-days date range. Its responsive grid has `Who saw us`, `Who opened the app`, `Who studied`, `Who came back` and `Who paid us` in funnel order. [The Level 1 contract](../apps/admin/README.md#level-1-metrics) defines sources, app-open and review activity, identity resolution, daily new and returning people, W1/W4 cohort maturity, native financial-event classification and retained-history/merchant-coverage limits. The [area](../apps/admin/src/reports/levelOneMetrics/LevelOneMetricsArea.tsx) coordinates only the date selection, while each chart loads and retries independently.
 
 `General` contains these four report sections, in page order:
 
@@ -292,17 +292,17 @@ The admin frontend fails fast on any other non-local hostname. Do not serve the 
 - `https://admin.<domain>` returns `200`
 - unauthenticated access redirects to the login flow
 - a listed admin email opening `https://admin.<domain>/` lands on `/analytics/level-1-metrics` with Back not returning to `/`, sees the `Who saw us` chart in the left half of a full-width page on the last 60 days, with a dashed `Not final →` line after the day three days before today, and a tooltip listing every series, `No data` where a source has no row, and the day total
-- Level 1 metrics also shows rolling seven-day usage at the upper right, W1/W4 retention at the lower left and the three payment series at the lower right; hover or keyboard-focus a date to read counts, and open each chart's data table
-- choose a single complete day and confirm usage includes its six preceding days; switching the selection must not turn existing users into new users
-- choose early retained history and today-only ranges; incomplete rolling windows show unavailable rather than zero
+- Level 1 metrics also shows daily app openers and studiers, W1/W4 retention and the three payment series, in that order after Who saw us; hover or keyboard-focus a date to read counts, and open each chart's data table
+- choose a single complete day and confirm switching the selection does not turn existing people into new people in Who opened the app or Who studied
+- choose early retained history and today-only ranges; days before retained history show unavailable rather than zero, and today shows in progress
 - choose recent cohorts and confirm immature W1/W4 rates are unavailable; choose an older cohort ending before its return window and confirm later returns still count
-- compare one attachment-only user chat and an upgraded guest's review/chat history; meaningful usage counts the resolved person once, while assistant-only and background activity alone do not qualify
+- compare an upgraded guest's app opens and reviews; both daily charts count the resolved person once per day, and AI chat activity alone does not count in Who studied
 - an empty matured cohort has no rate, and a matured cohort with no returns shows 0% with exact 0 / base counts; narrow edge weeks name the selected first-use days
 - in Who paid us, hover and keyboard-focus a date: the tooltip names all three event series, each provider, the recorded total and unavailable classifications; expand its table and compare exact counts and coverage windows
 - through the [read-only SSM workflow](analytics-db-access.md#manual-local-workflow), reconcile [native order/transaction/payment rows and import runs](billing-history.md) against the payment query from the browser's `POST /v1/admin/reports/query` request; use actual provider UTC times, and verify Google free-root/first-positive-`..0` chains, refunded positive charges and Stripe multiple payments for one invoice
 - select today alone: verified first payments stay visible and today says in progress; a failed Google sales inventory must show its sanitized failure and retain known payments, while missing Apple history and unknown classifications are unavailable rather than zero
 - confirm a complete Stripe production subscriptions/invoices/payments inventory yields zero only for fully covered UTC days, and successful Apple/Google subset scans remain partial merchant history; production sales attributed to an admin, excluded actor or erased/unattributed account remain countable, with sandbox/gifts absent
-- widen All time and confirm it includes the earliest native financial event even when it predates website/usage history; on a narrow viewport all four sections appear in order in one column
+- widen All time and confirm it includes the earliest native financial event even when it predates website/usage history; on a narrow viewport all five sections appear in order in one column
 - change the range during loading or retry a failed chart; the other Level 1 sections and date controls keep working, while terminal authorization errors follow the existing page-level handling
 - a listed admin email loads `https://admin.<domain>/analytics/general`, where the shared hero and filter row sit above titled report sections, each separated by a divider
 - General still contains every existing chart; Funnels opens separately with a shared bar of date range, client platform, connection country and app interface language, Mobile first launch, Home page to web app, Deck page to install, Blog article to platform choice, Blog article to web app and Paywall to purchase appear in that order, and only Deck page to install carries a filter row of its own, with its deck and catalog-click filters
