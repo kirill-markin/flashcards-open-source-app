@@ -1,21 +1,17 @@
 import type { DatabaseExecutor } from "../database";
 
-/**
- * The statements that rewrite which person a billing row belongs to: one for account deletion, one for
- * a guest upgrade. Nothing here decides anything about entitlement, and nothing here is derived.
- *
- * Four of the five tables carry no `DELETE` for this role by design, because their rows are stamped
- * rather than removed (`db/migrations/0151_billing_schema.sql`), so erasure is an `UPDATE` throughout.
- * `billing.entitlement_snapshots` is the exception in both directions: it is the one table with `DELETE`,
- * and it is a cache, so neither flow carries a row of it anywhere. Dropping the retired person's row is
- * enough - the next resolution recomputes the destination's from the purchases and grants that just
- * moved, behind its own row lock (`snapshot.ts`), which is also why nothing here has to invalidate that
- * row or emit an entitlement fact.
- *
- * No database scope is applied, for the reason `store.ts` gives: these rows are keyed by person but their
- * row-level security policies are unrestricted, because the rest of the billing layer is written by
- * provider callbacks, reconciliation and operator actions that run outside any request.
- */
+/** Provider handles can outlive both a guest upgrade and a later account retirement. */
+export async function resolveBillingOwnerInExecutor(
+  executor: DatabaseExecutor,
+  originalUserId: string,
+): Promise<string> {
+  const result = await executor.query<Readonly<{ user_id: string }>>(
+    "SELECT billing.canonical_owner_id($1) AS user_id", [originalUserId],
+  );
+  const userId = result.rows[0]?.user_id;
+  if (userId === undefined) throw new Error("Billing owner lookup returned no result");
+  return userId;
+}
 
 type BillingStateRow = Readonly<{
   trial_consumed_at: Date | null;

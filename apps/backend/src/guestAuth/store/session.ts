@@ -12,7 +12,7 @@ import {
 } from "../../workspaces/state";
 import { guestSessionAnalyticsConsentColumnExistsInExecutor } from "../analyticsConsentColumn";
 import { guestSessionPlatformColumnExistsInExecutor } from "../platformColumn";
-import { hashGuestToken } from "../shared";
+import { activeGuestSessionOwnerPredicateSql, hashGuestToken } from "../shared";
 import type { GuestSessionPlatform } from "../types";
 
 type GuestSessionRow = Readonly<{
@@ -151,12 +151,10 @@ type GuestSessionAnalyticsConsentRow = Readonly<{
   analytics_consent: AnalyticsConsentChoice | null;
 }>;
 
-/** The write below sets a non-null value, so what it returns cannot be NULL. */
 type StoredGuestSessionAnalyticsConsentRow = Readonly<{
   analytics_consent: AnalyticsConsentChoice;
 }>;
 
-/** The write below sets a non-null value, so what it returns cannot be NULL. */
 type StoredGuestSessionProductAnalyticsEnabledRow = Readonly<{
   product_analytics_enabled: boolean;
 }>;
@@ -202,7 +200,7 @@ async function setGuestSessionAnalyticsConsentInExecutor(
     [
       "UPDATE auth.guest_sessions",
       "SET analytics_consent = $3::TEXT",
-      "WHERE session_id = $1 AND user_id = $2 AND revoked_at IS NULL",
+      `WHERE ${activeGuestSessionOwnerPredicateSql}`,
       "RETURNING analytics_consent",
     ].join(" "),
     [guestSessionId, guestUserId, analyticsConsent],
@@ -232,7 +230,7 @@ async function setGuestSessionProductAnalyticsEnabledInExecutor(
     [
       "UPDATE auth.guest_sessions",
       "SET product_analytics_enabled = $3::BOOLEAN",
-      "WHERE session_id = $1 AND user_id = $2 AND revoked_at IS NULL",
+      `WHERE ${activeGuestSessionOwnerPredicateSql}`,
       "RETURNING product_analytics_enabled",
     ].join(" "),
     [guestSessionId, guestUserId, productAnalyticsEnabled],

@@ -99,7 +99,8 @@ function buildBulkCreateCardItem(
       backText: plannedCard.backText,
       tags: plannedCard.tags,
       cardType: plannedCard.cardType,
-      metadata: plannedCard.metadata,
+      // Imports create user-owned cards even if a caller retained an exported demo claim.
+      metadata: { version: 1, source: plannedCard.metadata.source },
     },
     metadata: {
       clientUpdatedAt: input.clientUpdatedAt,

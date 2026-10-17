@@ -144,7 +144,10 @@ describe("useWorkspaceSession workspace deletion", () => {
 
     expect(discardWorkspaceSyncMock).toHaveBeenCalledWith("workspace-1");
     expect(runSyncForWorkspaceMock).toHaveBeenCalledTimes(2);
-    expect(runSyncForWorkspaceMock).toHaveBeenLastCalledWith(replacementWorkspace);
+    expect(runSyncForWorkspaceMock).toHaveBeenLastCalledWith({
+      ...replacementWorkspace,
+      isVisible: true,
+    });
     expect(discardWorkspaceSyncMock.mock.invocationCallOrder[0]).toBeLessThan(
       runSyncForWorkspaceMock.mock.invocationCallOrder[1],
     );

@@ -20,6 +20,8 @@ test("GET /me includes account preferences", async () => {
   assert.equal(response.status, 200);
   assert.deepEqual(await response.json(), {
     userId: "user-1",
+    canonicalAccountId: "user-1",
+    linkedAccountIds: ["user-1"],
     selectedWorkspaceId: "workspace-1",
     authTransport: "session",
     csrfToken: null,

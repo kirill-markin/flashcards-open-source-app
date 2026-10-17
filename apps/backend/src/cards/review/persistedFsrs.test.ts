@@ -251,7 +251,7 @@ test("submitReview fails invalid persisted fsrs state without repairing the card
 
     assert.deepEqual(queries.map((query) => query.text), [
       "BEGIN",
-      "SELECT set_config('app.user_id', $1, true), set_config('app.workspace_id', $2, true)",
+      "SELECT auth.assert_account_write_scope($1), set_config('app.user_id', $1, true), set_config('app.workspace_id', $2, true)",
       "INSERT INTO sync.workspace_sync_metadata (workspace_id, min_available_hot_change_id, updated_at) VALUES ($1, 0, now()) ON CONFLICT (workspace_id) DO NOTHING",
       "SELECT workspace_id FROM sync.workspace_sync_metadata WHERE workspace_id = $1 FOR UPDATE",
       [

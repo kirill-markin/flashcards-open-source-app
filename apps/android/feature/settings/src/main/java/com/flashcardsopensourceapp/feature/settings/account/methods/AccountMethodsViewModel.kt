@@ -138,6 +138,31 @@ class AccountMethodsViewModel(
         launchProvider(pending, context, launchApple)
     }
 
+    fun connect() = runOperation { presentConnection(repository.beginConnection(current().localId)) }
+    fun adoptConnection() = runOperation { presentConnection(repository.adoptConnection(current().localId)) }
+    fun connectionProvider(provider: CloudSocialProvider, context: Context, launchApple: (String) -> Unit) = runOperation {
+        val pending = repository.beginConnectionProvider(current().localId, provider)
+        present(pending)
+        launchProvider(pending, context, launchApple)
+    }
+    fun sendConnectionEmail() = runOperation {
+        presentConnection(repository.sendConnectionEmail(current().localId, state.value.email))
+    }
+    fun previewConnection(omittedWorkspaceIds: List<String>) = runOperation {
+        present(repository.previewConnection(current().localId, omittedWorkspaceIds))
+    }
+    fun confirmConnection() = runOperation {
+        present(repository.confirmConnection(current().localId))
+        refreshAfterMutation()
+    }
+    fun loadConnection() = runOperation { presentConnection(repository.loadConnection(requireNotNull(state.value.pending).localId)) }
+
+    private suspend fun presentConnection(pending: CloudPendingAccountMethod) {
+        present(pending)
+        if (pending.connection?.proved == true && pending.phase == CloudAccountMethodPhase.CONNECTION_TARGET)
+            present(repository.previewConnection(pending.localId, emptyList()))
+    }
+
     fun reenable(target: CloudProviderMethodTarget, context: Context, launchApple: (String) -> Unit) = runOperation {
         val original = current()
         val pending = repository.beginReenable(original.localId, target) { currentAccountProofConfirmed(original) }
@@ -167,7 +192,11 @@ class AccountMethodsViewModel(
         // Re-read protected state: a queued callback cannot restore a cancelled or changed account.
         try {
             val retained = repository.resume()
-            if (retained?.localId == candidate.localId) present(retained)
+            if (retained?.localId == candidate.localId) {
+                val pending = if (retained.intent == CloudAccountMethodIntent.CONNECT &&
+                    retained.phase == CloudAccountMethodPhase.PROVIDER) repository.loadConnection(retained.localId) else retained
+                presentConnection(pending)
+            }
         } finally { onConsumed() }
     }
 
@@ -194,7 +223,7 @@ class AccountMethodsViewModel(
         analytics.track(AnalyticsEvent.AuthCodeSubmitted(method, AnalyticsSurface.SETTINGS))
         var verified = false
         try {
-            present(repository.verifyCode(pending.localId, state.value.code) {
+            presentConnection(repository.verifyCode(pending.localId, state.value.code) {
                 verified = true
                 analytics.track(AnalyticsEvent.AuthCodeVerificationFinished(method,
                     AnalyticsAuthCodeVerificationOutcome.VERIFIED, AnalyticsSurface.SETTINGS))
@@ -244,7 +273,7 @@ class AccountMethodsViewModel(
                     providerFinished(AnalyticsAuthProvider.GOOGLE, AnalyticsAuthProviderOutcome.INVALID_RESPONSE)
                     throw error
                 }
-                present(repository.submitGoogleCredential(pending.localId, token,
+                presentConnection(repository.submitGoogleCredential(pending.localId, token,
                     onProviderReturned = { providerReceived(AnalyticsAuthProvider.GOOGLE) },
                     onMutationConfirmed = { mutation(pending) }))
                 if (state.value.pending?.phase == CloudAccountMethodPhase.MUTATED) refreshAfterMutation()
@@ -302,7 +331,10 @@ class AccountMethodsViewModel(
                     val methods = repository.loadMethods()
                     state.update { it.copy(methods = methods) }
                     val retained = repository.resume()
-                    state.update { it.copy(pending = retained, restartRequired = true) }
+                    val recoverable = retained?.connection != null && retained.phase in setOf(
+                        CloudAccountMethodPhase.CONNECTION_TARGET, CloudAccountMethodPhase.CONNECTION_PREVIEW,
+                        CloudAccountMethodPhase.CONNECTION_CONFIRMING, CloudAccountMethodPhase.CONNECTED)
+                    state.update { it.copy(pending = retained, restartRequired = !recoverable) }
                 } catch (refreshError: CancellationException) { throw refreshError }
                 catch (_: Exception) { state.update { it.copy(error = it.error + "\n" +
                     strings.get(R.string.settings_methods_refresh_failed)) } }
@@ -320,12 +352,18 @@ private fun CloudSignInMethod.analyticsMethod(): AnalyticsAuthMethod = when (thi
 private fun accountMethodError(error: Exception): Int = when {
     error is GetCredentialCancellationException -> R.string.settings_auth_cancelled
     error is GetCredentialException -> R.string.settings_auth_google_failed
+    error is com.flashcardsopensourceapp.data.local.model.cloud.CloudConnectionWorkspaceUnavailableException ->
+        R.string.settings_connection_workspace_required
     error is IOException -> R.string.settings_auth_network_restart
     error is CloudRemoteException -> when (error.errorCode) {
         "LAST_USABLE_METHOD" -> R.string.settings_methods_last_usable
         "PROVIDER_METHOD_CHANGED" -> R.string.settings_methods_changed
         "PROVIDER_METHOD_CLEANUP_REQUIRED", "APPLE_REVOCATION_PENDING" -> R.string.settings_methods_cleanup
         "PROVIDER_ENROLLMENT_CONFLICT" -> R.string.settings_methods_conflict
+        "ACCOUNT_CONNECTION_PREVIEW_CHANGED" -> R.string.settings_connection_changed
+        "ACCOUNT_CONNECTION_RESTART_REQUIRED" -> R.string.settings_connection_restart
+        "ACCOUNT_CONNECTION_RATE_LIMITED" -> R.string.settings_connection_rate_limited
+        "ACCOUNT_CONNECTION_INVALID" -> R.string.settings_connection_invalid
         else -> R.string.settings_methods_fresh
     }
     else -> R.string.settings_methods_fresh

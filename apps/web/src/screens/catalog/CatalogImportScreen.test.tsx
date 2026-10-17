@@ -267,6 +267,7 @@ function createAppData(workspaces: ReadonlyArray<WorkspaceSummary>): Mutable<App
     setErrorMessage: vi.fn(),
     setAccountPreferences: vi.fn(),
     refreshAccountPreferences: vi.fn(async () => ({ accentColor: "#C44B2D", reviewReactionAnimationsEnabled: true })),
+    refreshConnectedAccount: vi.fn(async (): Promise<void> => undefined),
     initialize: vi.fn(async (): Promise<void> => undefined),
     chooseWorkspace: vi.fn(async (_workspaceId: string): Promise<void> => undefined),
     createWorkspace: vi.fn(async (_name: string): Promise<void> => undefined),

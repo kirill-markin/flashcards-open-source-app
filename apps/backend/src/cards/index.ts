@@ -25,6 +25,7 @@ export type {
   CardTextSide,
   CreateCardInput,
   DeckSummary,
+  OnboardingDemoMetadata,
   QueryCardsInput,
   QueryCardsPage,
   ReviewEvent,

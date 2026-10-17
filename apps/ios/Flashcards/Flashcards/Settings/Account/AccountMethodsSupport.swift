@@ -52,6 +52,8 @@ func accountMethodErrorMessage(_ error: Error) -> String {
     }
     if case CloudAuthError.invalidResponse(let details, _) = error {
         switch details.code {
+        case "ACCOUNT_CONNECTION_PREVIEW_CHANGED": return connectionCopy(.previewChanged)
+        case "ACCOUNT_CONNECTION_RESTART_REQUIRED", "ACCOUNT_CONNECTION_INVALID": return connectionCopy(.restart)
         case "LAST_USABLE_METHOD": return accountMethodCopy(.lastUsable)
         case "PROVIDER_METHOD_CHANGED": return accountMethodCopy(.changed)
         case "PROVIDER_METHOD_CLEANUP_REQUIRED", "APPLE_REVOCATION_PENDING": return accountMethodCopy(.cleanup)
@@ -84,6 +86,15 @@ func recordAccountMethodObservation(_ observation: CloudAccountMethodObservation
     }
 }
 
+enum AccountMethodsEntry {
+    case methods, suggestedConnection
+}
+
+enum AccountMethodDestination: String, Hashable {
+    case currentAccount, providerAccount, code, mailbox
+    case connectionProvider, connectionEmail, connectionPreview, outcome
+}
+
 struct AccountMethodViewIdentity: Hashable {
     let configuration: CloudServiceConfiguration?
     let userId: String?
@@ -96,4 +107,35 @@ struct AccountMethodPresenter: UIViewControllerRepresentable {
     func updateUIViewController(_ controller: UIViewController, context: Context) {
         DispatchQueue.main.async { self.onReady(controller) }
     }
+}
+
+enum ConnectionCopy: String {
+    case title, suggestion, data, settings, billing, destination, hidden, omit, preserve, confirm
+    case connected, alreadyConnected, cancelled, uncertain, replay, preview, previewChanged, restart, restorePaused
+}
+
+func connectionCopy(_ copy: ConnectionCopy) -> String {
+    let english: String
+    switch copy {
+    case .title: english = "Connect accounts"
+    case .suggestion: english = "Review suggested account connection"
+    case .data: english = "Cards, reviews and workspaces stay. Memberships combine; ownership takes precedence."
+    case .settings: english = "Destination settings and public profile apply with stricter privacy. Keep the genuine primary email, or use a proved real email."
+    case .billing: english = "Purchases, grants, usage and integration credentials follow the connected account. Subscriptions and original trial history stay unchanged."
+    case .destination: english = "Selected destination"
+    case .hidden: english = "Hidden from workspace choices"
+    case .omit: english = "Request omission if eligible"
+    case .preserve: english = "Only eligible starters may be hidden. Backing data stays; other workspaces remain."
+    case .confirm: english = "Confirm account connection"
+    case .restorePaused: english = "Accounts connected. Local refresh is paused; your offline data is retained."
+    case .connected: english = "Accounts connected."
+    case .alreadyConnected: english = "These accounts are already connected."
+    case .cancelled: english = "Connection cancelled."
+    case .uncertain: english = "Confirmation was sent, but its result is unknown. Check it using the same confirmation."
+    case .replay: english = "Check confirmation result"
+    case .preview: english = "Refresh connection preview"
+    case .previewChanged: english = "The preview changed. Refresh it and confirm the new preview explicitly."
+    case .restart: english = "Connection proof expired or was consumed. Start again with fresh proof."
+    }
+    return aiSettingsLocalized("settings.account.connection.\(copy.rawValue)", english)
 }

@@ -1,20 +1,3 @@
-/**
- * Shared identity -> workspace resolution used when minting a first-party
- * connection from a freshly verified Cognito ID token. Both the long-lived
- * agent API key flow (agentApiKeys.ts) and the OAuth authorization-code flow
- * (server/oauth/oauthStore.ts) resolve or create the same canonical user, ensure
- * org.user_settings, and select-or-bootstrap the connection's workspace, so the
- * logic lives here to stay identical across both paths.
- *
- * An agent API key or an OAuth connection can be a person's first touch of the
- * product, so this module creates accounts. It is not the only path that does:
- * whichever path first sees a Cognito subject may have to create the account
- * behind it, so no path may assume it is the first, and every one of them must
- * adopt an account that already exists rather than mint a second. The backend's
- * first authenticated request (apps/backend/src/auth/ensureUser.ts) is one other
- * such path. They agree because they all serialize on one advisory lock per
- * subject, which this module takes too.
- */
 import { createHash, randomUUID } from "node:crypto";
 import {
   applyUserDatabaseScopeInExecutor,
@@ -52,7 +35,7 @@ const upsertUserSettingsSql = [
 ].join(" ");
 
 const selectIdentityMappingSql = [
-  "SELECT user_id",
+  "SELECT auth.canonical_account_id(user_id) AS user_id",
   "FROM auth.user_identities",
   "WHERE provider_type = 'cognito' AND provider_subject = $1",
   "LIMIT 1",
@@ -207,12 +190,6 @@ async function createOrAdoptAccountForSubject(
   });
 }
 
-/**
- * Resolves the canonical user id for a verified Cognito subject, creating the account when this
- * connection is the person's first touch of the product. A created account gets a minted surrogate
- * id, never the subject, and the auth.user_identities row the backend would otherwise write on the
- * next request (apps/backend/src/auth/ensureUser.ts).
- */
 export async function resolveOrCreateCanonicalUserId(
   providerSubject: string,
   email: string,
@@ -241,9 +218,9 @@ async function createWorkspaceInExecutor(
     [
       "INSERT INTO org.workspaces",
       "(",
-      "workspace_id, name, fsrs_client_updated_at, fsrs_last_modified_by_replica_id, fsrs_last_operation_id",
+      "workspace_id, name, fsrs_client_updated_at, fsrs_last_modified_by_replica_id, fsrs_last_operation_id, creation_origin",
       ")",
-      "VALUES ($1, $2, $3, $4, $5)",
+      "VALUES ($1, $2, $3, $4, $5, 'automatic_starter')",
     ].join(" "),
     [workspaceId, AUTO_CREATED_WORKSPACE_NAME, bootstrapTimestamp, bootstrapReplicaId, bootstrapOperationId],
   );
@@ -275,15 +252,6 @@ async function createWorkspaceInExecutor(
   return workspaceId;
 }
 
-/**
- * Ensures org.user_settings for the user and resolves the workspace a new
- * connection should be scoped to: the only existing workspace when there is
- * exactly one, an auto-created Personal workspace when there are none, or null
- * (unscoped, caller must select later) when the user belongs to several.
- *
- * Must run inside a user-scoped transaction so the workspace bootstrap and the
- * caller's connection insert share one atomic unit.
- */
 export async function ensureUserSettingsAndSelectWorkspace(
   executor: DatabaseExecutor,
   userId: string,
@@ -296,11 +264,9 @@ export async function ensureUserSettingsAndSelectWorkspace(
   const membershipResult = await executor.query<WorkspaceMembershipRow>(
     [
       "SELECT workspace_id",
-      "FROM org.workspace_memberships",
-      "WHERE user_id = $1",
-      "ORDER BY created_at ASC, workspace_id ASC",
+      "FROM org.visible_workspace_ids(NULL)",
     ].join(" "),
-    [userId],
+    [],
   );
 
   if (membershipResult.rows.length === 0) {

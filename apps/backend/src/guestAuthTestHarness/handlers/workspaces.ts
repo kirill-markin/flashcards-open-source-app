@@ -164,7 +164,7 @@ export function handleWorkspaceExecutorQuery<Row extends pg.QueryResultRow>(
 
   if (
     text
-      === "INSERT INTO org.workspaces ( workspace_id, name, fsrs_client_updated_at, fsrs_last_modified_by_replica_id, fsrs_last_operation_id ) VALUES ($1, $2, $3, $4, $5)"
+      === "INSERT INTO org.workspaces ( workspace_id, name, fsrs_client_updated_at, fsrs_last_modified_by_replica_id, fsrs_last_operation_id, creation_origin ) VALUES ($1, $2, $3, $4, $5, $6)"
   ) {
     const workspaceId = String(params[0]);
     const name = String(params[1]);

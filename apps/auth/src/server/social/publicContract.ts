@@ -145,6 +145,7 @@ export type AccountProviderAttemptResult =
 export type AccountLoginMethodsResult = Readonly<{
   methods: ReadonlyArray<AccountProviderMethod>;
   verifiedRecoveryEmails: ReadonlyArray<string>;
+  reauthenticationEmail: string | null;
   emailRecovery: "read_only";
   csrfToken: string | null;
 }>;
@@ -156,6 +157,9 @@ export type AccountCurrentEmailInput =
   | Readonly<{ action: "complete"; client: NativeSocialClient; codeVerifier: string; attempt: string; code: string }>
   | Readonly<{ action: "begin"; client: "web"; csrfToken: string }>
   | Readonly<{ action: "complete"; client: "web"; csrfToken: string; attempt: string; code: string }>;
+
+export type AccountCurrentEmailResult = import("./attemptContract.js").EmailAuthAttemptResponse
+  | import("./attemptContract.js").AuthCompletionResponse;
 
 // The original proof binding belongs to the initiating reauth request; a new link has its own PKCE/browser binding.
 export type AccountNativeCompletionInput =
@@ -171,3 +175,55 @@ export type AccountNativeCompletionInput =
 export type AccountProviderLinkCompleteInput = Readonly<{
   action: "complete"; client: NativeSocialClient; purpose: "link"; codeVerifier: string; completion: string;
 }>;
+
+export type AccountConnectionInput = (
+  | Readonly<{ client: NativeSocialClient; codeVerifier: string }>
+  | Readonly<{ client: "web"; csrfToken: string }>
+) & import("./accountConnectionContract.js").ConnectionAction & Readonly<{ redirectUri?: string }>;
+export type AccountConnectionResult = import("./accountConnectionContract.js").ConnectionActionResult
+  | Readonly<{ status: "provider_required"; authorizationUrl: string; expiresAt: string }>
+  | Readonly<{ status: "provider_required"; proof: import("./attemptContract.js").AuthAttemptResponse; browserStart: string | null }>;
+
+export function parseAccountConnectionAction(value: unknown): import("./accountConnectionContract.js").ConnectionAction {
+  const fields = parseSocialObject(value);
+  const client = parseSocialClient(fields.client);
+  if (fields.action === "begin" || fields.action === "adopt") {
+    if (fields.capability !== "canonical-account-v1") throw new AuthAttemptError("AUTH_ATTEMPT_INVALID");
+    return fields.action === "begin"
+      ? { action: "begin", sourceCompletion: parseCompletionHandle(fields.sourceCompletion), capability: fields.capability }
+      : { action: "adopt", suggestion: parseCompletionHandle(fields.suggestion), capability: fields.capability };
+  }
+  const operation = parseCompletionHandle(fields.operation);
+  if (fields.action === "load" || fields.action === "cancel") return { action: fields.action, operation };
+  if (fields.action === "provider_begin") {
+    if (fields.provider !== "apple" && fields.provider !== "google") throw new AuthAttemptError("AUTH_ATTEMPT_INVALID");
+    const codeChallenge = client === "web" ? null : stringField(fields, "codeChallenge", 43, 43);
+    if (codeChallenge !== null && !/^[A-Za-z0-9_-]{43}$/.test(codeChallenge)) throw new AuthAttemptError("AUTH_ATTEMPT_INVALID");
+    return { action: fields.action, operation, provider: fields.provider, codeChallenge };
+  }
+  if (fields.action === "provider_complete") {
+    if (client === "web") throw new AuthAttemptError("AUTH_ATTEMPT_INVALID");
+    const submission = parseSocialObject(fields.submission);
+    const parsed = parseNativeSignIn({ ...submission, client, codeVerifier: fields.codeVerifier,
+      attempt: fields.attempt, action: "provider", purpose: "login" });
+    if (parsed.action !== "provider") throw new AuthAttemptError("AUTH_ATTEMPT_INVALID");
+    return { action: fields.action, operation, attempt: parsed.attempt, submission: parsed.submission };
+  }
+  if (fields.action === "email_send") return { action: fields.action, operation, email: stringField(fields, "email", 3, 254) };
+  if (fields.action === "email_verify") {
+    const code = stringField(fields, "code", 6, 8);
+    if (!/^[0-9]{6,8}$/.test(code)) throw new AuthAttemptError("AUTH_ATTEMPT_INVALID");
+    return { action: fields.action, operation, code };
+  }
+  if (fields.action !== "preview" && fields.action !== "confirm") throw new AuthAttemptError("AUTH_ATTEMPT_INVALID");
+  if (!Array.isArray(fields.omittedWorkspaceIds) || fields.omittedWorkspaceIds.length > 256
+    || !fields.omittedWorkspaceIds.every((id: unknown): id is string => typeof id === "string"
+      && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id))) {
+    throw new AuthAttemptError("AUTH_ATTEMPT_INVALID");
+  }
+  const omittedWorkspaceIds: readonly string[] = fields.omittedWorkspaceIds;
+  if (fields.action === "preview") return { action: fields.action, operation, omittedWorkspaceIds };
+  const previewDigest = stringField(fields, "previewDigest", 64, 64);
+  if (!/^[0-9a-f]{64}$/.test(previewDigest) || fields.accepted !== true) throw new AuthAttemptError("AUTH_ATTEMPT_INVALID");
+  return { action: fields.action, operation, omittedWorkspaceIds, previewDigest, accepted: true };
+}

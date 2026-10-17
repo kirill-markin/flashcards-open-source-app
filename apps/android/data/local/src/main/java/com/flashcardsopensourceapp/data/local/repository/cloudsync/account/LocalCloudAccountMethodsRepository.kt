@@ -1,5 +1,8 @@
 package com.flashcardsopensourceapp.data.local.repository.cloudsync.account
 
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudAccountConnection
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudConnectionAction
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudConnectionResponse
 import android.util.Base64
 import com.flashcardsopensourceapp.data.local.cloud.CloudPreferencesStore
 import com.flashcardsopensourceapp.data.local.cloud.PendingCloudAccountMethod
@@ -41,7 +44,8 @@ class LocalCloudAccountMethodsRepository(
     private val socialGateway: CloudSocialAuthGateway,
     remoteGateway: CloudRemoteGateway,
     private val operationCoordinator: CloudOperationCoordinator,
-    resetCoordinator: CloudIdentityResetCoordinator
+    resetCoordinator: CloudIdentityResetCoordinator,
+    private val accountRepository: LocalCloudAccountRepository
 ) : CloudAccountMethodsRepository {
     private val sessionProvider = CloudSessionProvider(preferencesStore, remoteGateway, operationCoordinator, resetCoordinator)
 
@@ -57,7 +61,8 @@ class LocalCloudAccountMethodsRepository(
         val pending = load() ?: return@runExclusive null
         requireContext(pending)
         val expiry = pending.snapshot().expiresAtMillis
-        if (expiry > 0 && expiry <= System.currentTimeMillis() && pending.phase != CloudAccountMethodPhase.MUTATED) {
+        if (expiry > 0 && expiry <= System.currentTimeMillis() && pending.phase !in setOf(
+            CloudAccountMethodPhase.MUTATED, CloudAccountMethodPhase.CONNECTION_CONFIRMING, CloudAccountMethodPhase.CONNECTED)) {
             update(pending, pending.copy(phase = CloudAccountMethodPhase.RESTART_REQUIRED))
         } else pending.snapshot()
     }
@@ -77,6 +82,136 @@ class LocalCloudAccountMethodsRepository(
             onEmailCodeRequested()
             update(pending, pending.copy(attempt = attempt, phase = CloudAccountMethodPhase.EMAIL_CODE))
         } else beginProvider(pending, session) {}
+    }
+
+    override suspend fun beginConnection(localId: String): CloudPendingAccountMethod = operationCoordinator.runExclusive {
+        val pending = requireProof(localId)
+        val session = sessionFor(pending)
+        requireConnectionCapability(pending)
+        val submitting = pending.copy(intent = CloudAccountMethodIntent.CONNECT, phase = CloudAccountMethodPhase.SUBMITTING)
+        save(pending, submitting)
+        receiveConnection(submitting, gateway.accountConnection(session.transport(), pending.verifier,
+            CloudConnectionAction.Begin(requireNotNull(pending.originalProof).receipt.completion)))
+    }
+
+    override suspend fun adoptConnection(localId: String): CloudPendingAccountMethod = operationCoordinator.runExclusive {
+        val pending = requirePending(localId)
+        require(pending.phase == CloudAccountMethodPhase.CONNECTION_SUGGESTED)
+        val session = sessionFor(pending)
+        requireConnectionCapability(pending)
+        val submitting = checkpoint(pending)
+        receiveConnection(submitting, gateway.accountConnection(session.transport(), pending.verifier,
+            CloudConnectionAction.Adopt(requireNotNull(pending.connection?.suggestion).suggestion)))
+    }
+
+    override suspend fun beginConnectionProvider(localId: String, provider: CloudSocialProvider): CloudPendingAccountMethod = operationCoordinator.runExclusive {
+        val pending = requireConnection(localId)
+        require(pending.phase == CloudAccountMethodPhase.CONNECTION_TARGET)
+        val session = sessionFor(pending)
+        val methods = socialGateway.loadAuthMethods(pending.configuration.authBaseUrl)
+        requireRetained(pending)
+        val availability = if (provider == CloudSocialProvider.GOOGLE) methods.google else methods.apple
+        require(if (provider == CloudSocialProvider.GOOGLE) availability is CloudSocialProviderAvailability.Native
+            else availability is CloudSocialProviderAvailability.Browser)
+        val submitting = pending.copy(method = provider.method(), phase = CloudAccountMethodPhase.SUBMITTING,
+            googleAudience = (availability as? CloudSocialProviderAvailability.Native)?.audience,
+            mailboxEmail = null, mailboxCodeRequested = false)
+        save(pending, submitting)
+        receiveConnection(submitting, gateway.accountConnection(session.transport(), pending.verifier,
+            CloudConnectionAction.ProviderBegin(requireNotNull(pending.connection?.operation), provider, challenge(pending.verifier))))
+    }
+
+    override suspend fun sendConnectionEmail(localId: String, email: String): CloudPendingAccountMethod = operationCoordinator.runExclusive {
+        val pending = requireConnection(localId)
+        require(pending.phase == CloudAccountMethodPhase.CONNECTION_TARGET)
+        val session = sessionFor(pending)
+        val submitting = checkpoint(pending)
+        receiveConnection(submitting, gateway.accountConnection(session.transport(), pending.verifier,
+            CloudConnectionAction.EmailSend(requireNotNull(pending.connection?.operation), email.trim().lowercase(java.util.Locale.ROOT))))
+    }
+
+    override suspend fun previewConnection(localId: String, omittedWorkspaceIds: List<String>): CloudPendingAccountMethod = operationCoordinator.runExclusive {
+        val pending = requireConnection(localId)
+        require(pending.connection?.proved == true && pending.phase in setOf(
+            CloudAccountMethodPhase.CONNECTION_TARGET, CloudAccountMethodPhase.CONNECTION_PREVIEW))
+        require(preferencesStore.currentCloudSettings().activeWorkspaceId !in omittedWorkspaceIds) {
+            "The current offline workspace must be retained."
+        }
+        val session = sessionFor(pending)
+        val submitting = checkpoint(pending)
+        receiveConnection(submitting, gateway.accountConnection(session.transport(), pending.verifier,
+            CloudConnectionAction.Preview(requireNotNull(pending.connection?.operation), omittedWorkspaceIds)))
+    }
+
+    override suspend fun confirmConnection(localId: String): CloudPendingAccountMethod = operationCoordinator.runExclusive {
+        val pending = requireConnection(localId)
+        require(pending.phase in setOf(CloudAccountMethodPhase.CONNECTION_PREVIEW, CloudAccountMethodPhase.CONNECTION_CONFIRMING))
+        val session = sessionFor(pending)
+        val preview = requireNotNull(pending.connection?.preview)
+        val submitting = pending.copy(phase = CloudAccountMethodPhase.CONNECTION_CONFIRMING)
+        save(pending, submitting)
+        try {
+            receiveConnection(submitting, gateway.accountConnection(session.transport(), pending.verifier,
+                CloudConnectionAction.Confirm(requireNotNull(pending.connection?.operation), preview)))
+        } catch (error: com.flashcardsopensourceapp.data.local.cloud.remote.CloudRemoteException) {
+            if (error.errorCode == "ACCOUNT_CONNECTION_PREVIEW_CHANGED") {
+                save(submitting, submitting.copy(phase = CloudAccountMethodPhase.CONNECTION_TARGET,
+                    connection = requireNotNull(submitting.connection).copy(preview = null)))
+            }
+            throw error
+        }
+    }
+
+    override suspend fun loadConnection(localId: String): CloudPendingAccountMethod = operationCoordinator.runExclusive {
+        val pending = requireConnection(localId)
+        require(pending.phase != CloudAccountMethodPhase.CONNECTION_CONFIRMING) {
+            "Keep the exact confirmation for an explicit replay."
+        }
+        val session = sessionFor(pending)
+        receiveConnection(pending, gateway.accountConnection(session.transport(), pending.verifier,
+            CloudConnectionAction.Load(requireNotNull(pending.connection?.operation))))
+    }
+
+    private suspend fun requireConnectionCapability(pending: PendingCloudAccountMethod) {
+        check(socialGateway.loadAuthMethods(pending.configuration.authBaseUrl).account.connectionSupported) {
+            "Account connection is not available on this server."
+        }
+        requireRetained(pending)
+    }
+
+    private suspend fun requireConnection(localId: String): PendingCloudAccountMethod =
+        requirePending(localId).also { require(it.intent == CloudAccountMethodIntent.CONNECT && it.connection?.operation != null) }
+
+    private suspend fun receiveConnection(pending: PendingCloudAccountMethod, response: CloudConnectionResponse): CloudPendingAccountMethod {
+        val prior = pending.connection
+        val updated = when (response) {
+            is CloudConnectionResponse.Receipt -> pending.copy(phase = CloudAccountMethodPhase.CONNECTION_TARGET,
+                connection = CloudAccountConnection(response.operation, response.expiresAtMillis, response.proved, null, null, null),
+                attempt = null, mailboxEmail = null, mailboxCodeRequested = false)
+            is CloudConnectionResponse.Provider -> pending.copy(phase = CloudAccountMethodPhase.PROVIDER, attempt = response.proof)
+            is CloudConnectionResponse.Email -> pending.copy(method = CloudSignInMethod.EMAIL, phase = CloudAccountMethodPhase.EMAIL_CODE,
+                mailboxEmail = response.email, mailboxCodeRequested = true,
+                connection = requireNotNull(prior).copy(expiresAtMillis = response.expiresAtMillis))
+            is CloudConnectionResponse.Preview -> {
+                check(prior?.operation == response.operation)
+                pending.copy(phase = CloudAccountMethodPhase.CONNECTION_PREVIEW, connection = requireNotNull(prior).copy(preview = response.choices))
+            }
+            is CloudConnectionResponse.Connected -> return withContext(NonCancellable) {
+                check(response.result.operationId == prior?.preview?.operationId)
+                val committed = pending.copy(connection = requireNotNull(prior).copy(committed = response.result))
+                save(pending, committed)
+                accountRepository.reconcileConnectedAccount(response.result)
+                val current = preferencesStore.currentCloudSettings()
+                val reconciled = committed.copy(phase = CloudAccountMethodPhase.CONNECTED,
+                    workspaceId = current.linkedWorkspaceId, activeWorkspaceId = current.activeWorkspaceId)
+                save(committed, reconciled)
+                reconciled.snapshot()
+            }
+            is CloudConnectionResponse.AlreadyConnected -> pending.copy(phase = CloudAccountMethodPhase.ALREADY_CONNECTED,
+                connection = CloudAccountConnection(response.operation, prior?.expiresAtMillis ?: 0L, false, null, null, null))
+            is CloudConnectionResponse.Cancelled -> pending.copy(phase = CloudAccountMethodPhase.RESTART_REQUIRED)
+        }
+        return update(pending, updated)
     }
 
     override suspend fun beginLink(localId: String, provider: CloudSocialProvider,
@@ -119,6 +254,9 @@ class LocalCloudAccountMethodsRepository(
         val session = sessionFor(pending)
         onProviderReturned()
         val submitting = checkpoint(pending)
+        if (pending.intent == CloudAccountMethodIntent.CONNECT) return@runExclusive receiveConnection(submitting,
+            gateway.accountConnection(session.transport(), pending.verifier, CloudConnectionAction.GoogleComplete(
+                requireNotNull(pending.connection?.operation), requireNotNull(pending.attempt).attempt, identityToken)))
         val result = gateway.submitAccountGoogle(session.transport(), pending.intent, requireNotNull(pending.attempt).attempt,
             pending.verifier, identityToken)
         if (result == CloudAccountMethodResult.Mutated) onMutationConfirmed()
@@ -151,6 +289,12 @@ class LocalCloudAccountMethodsRepository(
         }
         val session = sessionFor(pending)
         val submitting = checkpoint(pending)
+        if (pending.intent == CloudAccountMethodIntent.CONNECT) {
+            val response = gateway.accountConnection(session.transport(), pending.verifier, CloudConnectionAction.EmailVerify(
+                requireNotNull(pending.connection?.operation), code))
+            onProofConfirmed()
+            return@runExclusive receiveConnection(submitting, response)
+        }
         val receipt = if (pending.method == CloudSignInMethod.EMAIL) {
             gateway.completeEmailReauthentication(session.transport(), requireNotNull(pending.attempt).attempt, pending.verifier, code)
         } else gateway.verifyAccountMailbox(session.transport(), pending.purpose, requireNotNull(pending.attempt).attempt, pending.verifier, code)
@@ -172,6 +316,16 @@ class LocalCloudAccountMethodsRepository(
             !pending.mailboxCodeRequested) { "This account-management browser attempt cannot accept another return. Start fresh verification." }
         requireNotExpired(pending)
         val attempt = requireNotNull(pending.attempt)
+        if (pending.intent == CloudAccountMethodIntent.CONNECT) {
+            require(returned.handle == attempt.attempt && returned.status in setOf(
+                CloudAppleBrowserStatus.PROVIDER_PROVED, CloudAppleBrowserStatus.DENIED)) {
+                "Apple return does not match its protected account connection."
+            }
+            if (returned.status == CloudAppleBrowserStatus.DENIED)
+                return@runExclusive update(pending, pending.copy(phase = CloudAccountMethodPhase.DENIED))
+            // The browser return is only a candidate; the ViewModel loads server proof with the retained verifier.
+            return@runExclusive pending.snapshot()
+        }
         val updated = when (returned.status) {
             CloudAppleBrowserStatus.COMPLETED -> {
                 require(pending.intent != CloudAccountMethodIntent.REENABLE) { "Apple re-enable requires its original proved attempt." }
@@ -235,7 +389,13 @@ class LocalCloudAccountMethodsRepository(
     }
 
     override suspend fun cancel(localId: String) {
-        // Clearing does not wait behind an in-flight request; its later checkpoint cannot restore proof.
+        val connectionPending = load()?.takeIf { it.localId == localId && it.connection?.operation != null &&
+            it.phase !in setOf(CloudAccountMethodPhase.CONNECTED, CloudAccountMethodPhase.ALREADY_CONNECTED) }
+        if (connectionPending != null) operationCoordinator.runExclusive {
+            val session = sessionFor(connectionPending)
+            gateway.accountConnection(session.transport(), connectionPending.verifier,
+                CloudConnectionAction.Cancel(requireNotNull(connectionPending.connection?.operation)))
+        }
         withContext(Dispatchers.IO) {
             val pending = load() ?: return@withContext
             require(pending.localId == localId) { "A different account proof is active." }
@@ -295,7 +455,12 @@ class LocalCloudAccountMethodsRepository(
     }
 
     private fun requireNotExpired(pending: PendingCloudAccountMethod) {
-        val expiry = when (pending.phase) {
+        if (pending.phase in setOf(CloudAccountMethodPhase.CONNECTION_CONFIRMING, CloudAccountMethodPhase.CONNECTED)) return
+        if (pending.phase == CloudAccountMethodPhase.PROVIDER) check(
+            requireNotNull(pending.attempt).expiresAtMillis > System.currentTimeMillis()) {
+            "Provider proof expired. Start fresh account verification."
+        }
+        val expiry = pending.connection?.expiresAtMillis ?: when (pending.phase) {
             CloudAccountMethodPhase.PROOF_READY -> pending.originalProof?.receipt?.expiresAtMillis
             CloudAccountMethodPhase.LINK_READY -> pending.linkReceipt?.expiresAtMillis
             else -> pending.attempt?.expiresAtMillis
@@ -330,7 +495,7 @@ class LocalCloudAccountMethodsRepository(
         return PendingCloudAccountMethod(UUID.randomUUID().toString(), epoch, current.installationId, session.accountSnapshot.userId,
             current.linkedWorkspaceId, current.activeWorkspaceId, digest(session.credentials.refreshToken), session.configuration,
             method, CloudAccountMethodIntent.REAUTH, CloudAccountMethodPhase.SUBMITTING, verifier(), null, null, null,
-            null, null, null, null, false, null)
+            null, null, null, null, false, null, null)
     }
 
     private fun requireContext(pending: PendingCloudAccountMethod) {

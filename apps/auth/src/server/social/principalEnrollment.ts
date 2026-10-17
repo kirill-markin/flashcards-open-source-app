@@ -1,8 +1,8 @@
 import { transaction, type DatabaseExecutor } from "../../db.js";
 import { getDatabaseErrorSqlState } from "../databaseErrors.js";
-import { createProvedEmailPrincipal, loadExistingEmailPrincipal, type CognitoEmailPrincipal } from "../cognito/cognitoAuth.js";
+import { createProvedEmailPrincipal, loadAvailableEmailPrincipal, loadExistingEmailPrincipal, type CognitoEmailPrincipal } from "../cognito/cognitoAuth.js";
 import { storeAppleCredentialInExecutor, type EncryptedAppleCredential } from "./appleCredential.js";
-import { loadProviderCognitoSubjectInExecutor } from "./identityStore.js";
+import { loadProviderCognitoSubjectInExecutor, lockProviderEmailEnrollmentInExecutor } from "./identityStore.js";
 import {
   activateProvedProviderMethodInExecutor, loadProviderLoginMethodInExecutor,
   registerProvedEmailPrincipalInExecutor, type ProviderLoginMethod,
@@ -70,9 +70,7 @@ async function loadExistingEnrollment(
 ): Promise<PrincipalEnrollmentResult | null> {
   const method = await loadProviderLoginMethodInExecutor(executor, proof.provider, proof.identity.subject);
   if (method !== null) {
-    const result = enrolledResult(method, proof.identity);
-    await persistAppleCredential(executor, proof, method.cognitoSubject);
-    return result;
+    return enrolledResult(method, proof.identity);
   }
   const subject = await loadProviderCognitoSubjectInExecutor(executor, proof.provider, proof.identity.subject);
   return subject === null ? null : {
@@ -95,10 +93,13 @@ async function bindEnrollment(
   }
 }
 
-/** Consume only fresh provider verification results. No product provisioning, principal linking or session issuance. */
 export async function enrollAuthoritativeProviderPrincipal(proof: ProviderEnrollmentProof): Promise<PrincipalEnrollmentResult> {
   const identity = checkProof(proof);
-  const existing = await transaction((executor) => loadExistingEnrollment(executor, proof));
+  const existing = await transaction(async (executor) => {
+    const enrolled = await loadExistingEnrollment(executor, proof);
+    if (enrolled?.status === "enrolled") await persistAppleCredential(executor, proof, enrolled.principal.cognitoSubject);
+    return enrolled;
+  });
   if (existing !== null) return existing;
   if (identity.email === null || identity.email.authority !== "provider") {
     return { status: "verification_required", reason: "mailbox_required", providerEmail: identity.email?.address ?? null };
@@ -110,44 +111,72 @@ export async function enrollAuthoritativeProviderPrincipal(proof: ProviderEnroll
   return transaction((executor) => bindEnrollment(executor, proof, principal, new Date()));
 }
 
-/** External Cognito calls stay outside the atomic login enrollment/completion transaction. */
+export function authoritativeRealProviderEmail(proof: ProviderEnrollmentProof): string | null {
+  const email = proof.identity.email;
+  return email?.authority === "provider" && !email.privateRelay
+    && !/@(privaterelay\.appleid\.com|private\.icloud\.com)$/.test(email.address) ? email.address : null;
+}
+
 export async function prepareAuthoritativeLoginPrincipal(proof: ProviderEnrollmentProof): Promise<CognitoEmailPrincipal | null> {
   const identity = checkProof(proof);
   const boundSubject = await transaction((executor) =>
     loadProviderCognitoSubjectInExecutor(executor, proof.provider, identity.subject));
-  if (boundSubject !== null || identity.email === null || identity.email.authority !== "provider") return null;
-  return await createProvedEmailPrincipal(identity.email.address) ?? await loadExistingEmailPrincipal(identity.email.address);
+  if (identity.email === null || identity.email.authority !== "provider") return null;
+  if (boundSubject !== null && proof.provider === "google") {
+    const email = authoritativeRealProviderEmail(proof);
+    return email === null ? null : loadAvailableEmailPrincipal(email);
+  }
+  if (boundSubject !== null && (identity.email.privateRelay
+    || /@(privaterelay\.appleid\.com|private\.icloud\.com)$/.test(identity.email.address))) return null;
+  const principal = await createProvedEmailPrincipal(identity.email.address) ?? await loadExistingEmailPrincipal(identity.email.address);
+  if (boundSubject !== null && principal === null) throw new PrincipalEnrollmentError("PROVIDER_ENROLLMENT_CONFLICT");
+  return principal;
+}
+
+export async function lockAuthoritativeLoginPrincipalsInExecutor(
+  executor: DatabaseExecutor, proof: ProviderEnrollmentProof, principal: CognitoEmailPrincipal | null,
+): Promise<string | null> {
+  const identity = checkProof(proof);
+  if (principal !== null && (identity.email?.authority !== "provider" || identity.email.address !== principal.email
+    || principal.cognitoSubject.trim() === "" || principal.cognitoUsername.trim() === "")) {
+    throw new PrincipalEnrollmentError("PROVIDER_ENROLLMENT_CONFLICT");
+  }
+  return lockProviderEmailEnrollmentInExecutor(executor, proof.provider, identity.subject, principal?.cognitoSubject ?? null);
 }
 
 export async function enrollAuthoritativeLoginPrincipalInExecutor(
   executor: DatabaseExecutor, proof: ProviderEnrollmentProof, principal: CognitoEmailPrincipal | null,
 ): Promise<PrincipalEnrollmentResult> {
+  const boundSubject = await lockAuthoritativeLoginPrincipalsInExecutor(executor, proof, principal);
+  return enrollLockedAuthoritativeLoginPrincipalInExecutor(executor, proof, principal, boundSubject);
+}
+
+/** The caller prelocks P/Q before reconnect can acquire method/attempt/credential locks. */
+export async function enrollLockedAuthoritativeLoginPrincipalInExecutor(
+  executor: DatabaseExecutor, proof: ProviderEnrollmentProof, principal: CognitoEmailPrincipal | null, boundSubject: string | null,
+): Promise<PrincipalEnrollmentResult> {
   const identity = checkProof(proof);
-  if (principal === null) {
-    const existing = await loadExistingEnrollment(executor, proof);
-    return existing ?? { status: "verification_required",
-      reason: identity.email?.authority === "provider" ? "existing_email" : "mailbox_required",
-      providerEmail: identity.email?.address ?? null };
-  }
-  if (identity.email?.authority !== "provider" || identity.email.address !== principal.email
-    || principal.cognitoSubject.trim() === "" || principal.cognitoUsername.trim() === "") {
-    throw new PrincipalEnrollmentError("PROVIDER_ENROLLMENT_CONFLICT");
-  }
-  await executor.query("SELECT auth.lock_principal_login_lifecycle($1)", [principal.cognitoSubject]);
-  // Recheck ownership before the method loader could acquire any other principal/account lock.
-  const boundSubject = await loadProviderCognitoSubjectInExecutor(executor, proof.provider, identity.subject);
-  if (boundSubject !== null && boundSubject !== principal.cognitoSubject) {
-    throw new PrincipalEnrollmentError("PROVIDER_ENROLLMENT_CONFLICT");
-  }
+  const currentSubject = await loadProviderCognitoSubjectInExecutor(executor, proof.provider, identity.subject);
+  if (currentSubject !== boundSubject) throw new PrincipalEnrollmentError("PROVIDER_ENROLLMENT_CONFLICT");
   if (boundSubject !== null) {
     const existing = await loadExistingEnrollment(executor, proof);
     if (existing === null) throw new PrincipalEnrollmentError("PROVIDER_ENROLLMENT_CONFLICT");
-    if (existing.status === "enrolled" && (existing.principal.cognitoSubject !== principal.cognitoSubject
+    if (existing.status !== "enrolled") {
+      if (principal !== null && principal.cognitoSubject !== boundSubject) {
+        throw new PrincipalEnrollmentError("PROVIDER_ENROLLMENT_CONFLICT");
+      }
+      return existing;
+    }
+    if (principal !== null && (existing.principal.cognitoSubject !== principal.cognitoSubject
       || existing.principal.cognitoUsername !== principal.cognitoUsername || existing.principal.email !== principal.email)) {
       throw new PrincipalEnrollmentError("PROVIDER_ENROLLMENT_CONFLICT");
     }
+    await persistAppleCredential(executor, proof, existing.principal.cognitoSubject);
     return existing;
   }
+  if (principal === null) return { status: "verification_required",
+    reason: identity.email?.authority === "provider" ? "existing_email" : "mailbox_required",
+    providerEmail: identity.email?.address ?? null };
   return bindEnrollment(executor, proof, principal, new Date());
 }
 

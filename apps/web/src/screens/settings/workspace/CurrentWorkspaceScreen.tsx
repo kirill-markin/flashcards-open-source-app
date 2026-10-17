@@ -382,7 +382,7 @@ export function CurrentWorkspaceScreen(): ReactElement {
         onDismiss={closeChangeDialog}
       >
         <div className="settings-workspace-choice-list">
-          {availableWorkspaces.map((workspace) => {
+          {availableWorkspaces.filter((workspace) => workspace.isVisible !== false).map((workspace) => {
             const isCurrentWorkspace = workspace.workspaceId === activeWorkspace?.workspaceId;
             return (
               <button

@@ -280,7 +280,10 @@ describe("useWorkspaceSession reauth resume", () => {
     expect(observabilityMocks.setWebObservabilityUserMock).toHaveBeenCalledWith({ id: "user-2" });
     expect(runSyncSilentlyMock).not.toHaveBeenCalled();
     expect(runSyncForWorkspaceMock).toHaveBeenCalledTimes(2);
-    expect(runSyncForWorkspaceMock).toHaveBeenLastCalledWith(replacementWorkspace);
+    expect(runSyncForWorkspaceMock).toHaveBeenLastCalledWith({
+      ...replacementWorkspace,
+      isVisible: true,
+    });
     expect(window.localStorage.getItem(WARM_START_SNAPSHOT_STORAGE_KEY)).toBeNull();
     await expect(loadCloudSettings()).resolves.toEqual(expect.objectContaining({
       linkedUserId: "user-2",
@@ -366,7 +369,9 @@ describe("useWorkspaceSession reauth resume", () => {
       await vi.advanceTimersByTimeAsync(60_000);
     });
 
-    expect(discardAllSyncWorkMock).toHaveBeenCalledTimes(1);
+    await vi.waitFor(() => {
+      expect(discardAllSyncWorkMock).toHaveBeenCalledTimes(1);
+    });
     expect(runSyncMock).not.toHaveBeenCalled();
     expect(runSyncSilentlyMock).not.toHaveBeenCalled();
     expect(runSyncForWorkspaceMock).not.toHaveBeenCalled();
@@ -387,7 +392,10 @@ describe("useWorkspaceSession reauth resume", () => {
     expect(discardAllSyncWorkMock.mock.invocationCallOrder[0]).toBeLessThan(
       deleteDatabaseSpy.mock.invocationCallOrder[0] ?? 0,
     );
-    expect(runSyncForWorkspaceMock).toHaveBeenCalledWith(replacementWorkspace);
+    expect(runSyncForWorkspaceMock).toHaveBeenCalledWith({
+      ...replacementWorkspace,
+      isVisible: true,
+    });
 
     await act(async () => {
       await vi.advanceTimersByTimeAsync(60_000);

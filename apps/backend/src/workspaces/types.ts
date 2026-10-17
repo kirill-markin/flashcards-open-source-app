@@ -23,6 +23,15 @@ export type WorkspaceSummaryPage = Readonly<{
   nextCursor: string | null;
 }>;
 
+export type AuthorizedWorkspaceSummary = WorkspaceSummary & Readonly<{
+  isVisible: boolean;
+}>;
+
+export type AuthorizedWorkspaceSummaryPage = Readonly<{
+  workspaces: ReadonlyArray<AuthorizedWorkspaceSummary>;
+  nextCursor: string | null;
+}>;
+
 export type WorkspaceDeletePreview = Readonly<{
   workspaceId: string;
   workspaceName: string;

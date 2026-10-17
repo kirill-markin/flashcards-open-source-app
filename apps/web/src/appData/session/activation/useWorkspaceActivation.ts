@@ -13,7 +13,8 @@ import {
 } from "../../../accountDeletion";
 import { reset as resetAnalytics } from "../../../analytics";
 import type { IndexedDbOpenRecoveryState } from "../../../appError/AppErrorContext";
-import { putCloudSettings } from "../../../localDb/sync/cloudSettings";
+import { loadCloudSettings, putCloudSettings } from "../../../localDb/sync/cloudSettings";
+import { projectSessionToLocalOwner } from "../../../api/transport/sessionIdentity";
 import type {
   SessionInfo,
   WorkspaceSummary,
@@ -352,7 +353,7 @@ export function useWorkspaceActivation(params: UseWorkspaceActivationParams): Wo
   ]);
 
   const activateWorkspace = useCallback(async function activateWorkspace(
-    currentSession: SessionInfo,
+    verifiedSession: SessionInfo,
     currentWorkspaces: ReadonlyArray<WorkspaceSummary>,
     workspace: WorkspaceSummary,
   ): Promise<void> {
@@ -360,12 +361,15 @@ export function useWorkspaceActivation(params: UseWorkspaceActivationParams): Wo
       return;
     }
 
+    const persistedCloudSettings = await loadCloudSettings();
+    indexedDbOpenRecoveryState.throwIfFailed();
+    const currentSession = projectSessionToLocalOwner(verifiedSession, persistedCloudSettings?.linkedUserId ?? null);
     logWorkspaceTransition("workspace_activate_started", {
       workspaceId: workspace.workspaceId,
       selectedWorkspaceId: currentSession.selectedWorkspaceId,
       availableWorkspaceIds: currentWorkspaces.map((currentWorkspace) => currentWorkspace.workspaceId),
     });
-    const linkedCloudSettings = buildLinkedCloudSettings(currentSession, workspace.workspaceId);
+    const linkedCloudSettings = buildLinkedCloudSettings(currentSession, workspace.workspaceId, persistedCloudSettings);
     try {
       await putCloudSettings(linkedCloudSettings);
     } catch (error) {
@@ -405,12 +409,15 @@ export function useWorkspaceActivation(params: UseWorkspaceActivationParams): Wo
   ]);
 
   const resolveInitialWorkspace = useCallback(async function resolveInitialWorkspace(
-    currentSession: SessionInfo,
+    verifiedSession: SessionInfo,
   ): Promise<void> {
     if (indexedDbOpenRecoveryState.hasFailed()) {
       return;
     }
 
+    const persistedCloudSettings = await loadCloudSettings();
+    indexedDbOpenRecoveryState.throwIfFailed();
+    const currentSession = projectSessionToLocalOwner(verifiedSession, persistedCloudSettings?.linkedUserId ?? null);
     const workspaces = await listWorkspaces();
     if (indexedDbOpenRecoveryState.hasFailed()) {
       return;
@@ -486,20 +493,29 @@ export function useWorkspaceActivation(params: UseWorkspaceActivationParams): Wo
       return;
     }
 
+    const continuityWorkspace = persistedCloudSettings?.linkedUserId === currentSession.userId
+      ? findWorkspaceById(workspaces, persistedCloudSettings?.linkedWorkspaceId ?? null)
+      : null;
+    if (continuityWorkspace !== null) {
+      await activateWorkspace(currentSession, workspaces, continuityWorkspace);
+      return;
+    }
+
     const selectedWorkspace = findWorkspaceById(workspaces, currentSession.selectedWorkspaceId);
     if (selectedWorkspace !== null) {
       await activateWorkspace(currentSession, workspaces, selectedWorkspace);
       return;
     }
 
-    if (workspaces.length === 1) {
-      const onlyWorkspace = workspaces[0];
+    const offeredWorkspaces = workspaces.filter((workspace) => workspace.isVisible !== false);
+    if (offeredWorkspaces.length === 1) {
+      const onlyWorkspace = offeredWorkspaces[0];
       const selectedOnlyWorkspace = await selectWorkspace(onlyWorkspace.workspaceId);
       if (indexedDbOpenRecoveryState.hasFailed()) {
         return;
       }
 
-      await activateWorkspace(currentSession, [selectedOnlyWorkspace], selectedOnlyWorkspace);
+      await activateWorkspace(currentSession, markSelectedWorkspaces(workspaces, selectedOnlyWorkspace.workspaceId), selectedOnlyWorkspace);
       return;
     }
 

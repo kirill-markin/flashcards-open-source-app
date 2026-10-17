@@ -9,6 +9,7 @@ import com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspaceLinkCont
 import com.flashcardsopensourceapp.data.local.model.cloud.StoredCloudCredentials
 import com.flashcardsopensourceapp.data.local.model.cloud.shouldRefreshCloudIdToken
 import com.flashcardsopensourceapp.data.local.model.sync.CloudAccountSnapshot
+import com.flashcardsopensourceapp.data.local.model.sync.preservingLocalAccountIdentity
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.account.CloudIdentityResetCoordinator
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
@@ -122,6 +123,8 @@ internal class CloudSessionProvider(
         return remoteService.fetchCloudAccount(
             apiBaseUrl = configuration.apiBaseUrl,
             authorizationHeader = "Bearer ${credentials.idToken}"
+        ).preservingLocalAccountIdentity(
+            settings = preferencesStore.currentCloudSettings()
         )
     }
 

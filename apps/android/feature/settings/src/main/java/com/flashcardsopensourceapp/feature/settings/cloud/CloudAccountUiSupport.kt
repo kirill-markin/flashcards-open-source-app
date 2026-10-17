@@ -42,7 +42,8 @@ internal fun buildCurrentWorkspaceItems(
         activeWorkspaceId = activeWorkspaceId,
         workspaces = workspaces
     )
-    val items = workspaces.sortedByDescending(CloudWorkspaceSummary::createdAtMillis).map { workspace ->
+    val items = workspaces.filter(CloudWorkspaceSummary::isVisible)
+        .sortedByDescending(CloudWorkspaceSummary::createdAtMillis).map { workspace ->
         CurrentWorkspaceItemUiState(
             workspaceId = workspace.workspaceId,
             title = workspace.name,
@@ -108,7 +109,8 @@ internal fun buildCloudPostAuthWorkspaceItems(
         CloudWorkspaceLinkSelection.CreateNew,
         null -> null
     }
-    val items = workspaces.sortedByDescending(CloudWorkspaceSummary::createdAtMillis).map { workspace ->
+    val items = workspaces.filter(CloudWorkspaceSummary::isVisible)
+        .sortedByDescending(CloudWorkspaceSummary::createdAtMillis).map { workspace ->
         CurrentWorkspaceItemUiState(
             workspaceId = workspace.workspaceId,
             title = workspace.name,
@@ -150,17 +152,18 @@ internal fun buildAutomaticWorkspaceSelection(
         }
     }
 
-    if (workspaces.isEmpty()) {
+    val visibleWorkspaces = workspaces.filter(CloudWorkspaceSummary::isVisible)
+    if (visibleWorkspaces.isEmpty()) {
         return CloudWorkspaceLinkSelection.CreateNew
     }
 
-    if (workspaces.size == 1) {
+    if (visibleWorkspaces.size == 1) {
         return CloudWorkspaceLinkSelection.Existing(
-            workspaceId = workspaces.first().workspaceId
+            workspaceId = visibleWorkspaces.first().workspaceId
         )
     }
 
-    val selectedWorkspaceIds = workspaces.filter(CloudWorkspaceSummary::isSelected)
+    val selectedWorkspaceIds = visibleWorkspaces.filter(CloudWorkspaceSummary::isSelected)
         .map(CloudWorkspaceSummary::workspaceId)
         .distinct()
     if (selectedWorkspaceIds.size == 1) {

@@ -14,6 +14,7 @@ import type {
   ReviewHistoryRow,
   TimestampValue,
 } from "./types";
+import { normalizeOnboardingDemo } from "./onboardingDemo";
 import type { LegacyEffortLevel } from "../sync/contracts/legacyEffort";
 
 /**
@@ -160,9 +161,11 @@ export function normalizeCardMetadata(metadata: unknown): CardMetadata {
     throw new Error("metadata.version must be 1");
   }
 
+  const onboardingDemo = normalizeOnboardingDemo(record.onboardingDemo);
   return {
     version: 1,
     source: normalizeCardSourceMetadata(record.source),
+    ...(onboardingDemo === undefined ? {} : { onboardingDemo }),
   };
 }
 

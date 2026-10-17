@@ -14,6 +14,31 @@ merge and erasure. The creation/recovery transaction and lock contract lives in
 [`identityStore.ts`](../../apps/backend/src/billing/stripe/identityStore.ts); provider primitives and
 private configuration live alongside it. No purchase routes or entitlement changes are activated.
 
+Public profile alias storage and live leaderboard participation reads are defined in
+[`0207_community_profile_aliases.sql`](0207_community_profile_aliases.sql).
+
+Private established-account community transfer and invitation writer fencing are defined in
+[`0209_account_community_union.sql`](0209_account_community_union.sql).
+
+Private bounded account union, exact receipts and scoped retired-shell deletion are defined in
+[`0210_proved_account_union.sql`](0210_proved_account_union.sql). The real PostgreSQL boundary is
+[`provedAccountUnion.postgres.integration.ts`](../../apps/backend/src/auth/provedAccountUnion.postgres.integration.ts).
+
+Private account-connection proof reservations and exact session/transport receipts are defined in
+[`0211_account_connection_proofs.sql`](0211_account_connection_proofs.sql), with the real PostgreSQL/module boundary in
+[`accountConnectionProofs.postgres.integration.ts`](../../apps/backend/src/auth/accountConnectionProofs.postgres.integration.ts).
+The owner-only [proof services](../../apps/auth/src/server/social/accountConnectionProof.ts) have no public coordinator or union grant.
+
+Private saved-collision capture/adoption, durable historical workspace baselines and bounded cleanup
+are defined in [`0212_account_connection_readiness.sql`](0212_account_connection_readiness.sql).
+Private replay origin binding is defined in
+[`0213_account_connection_replay_origin.sql`](0213_account_connection_replay_origin.sql), at migration count 215.
+The real module/PostgreSQL boundary is
+[`accountConnectionPreparation.postgres.integration.ts`](../../apps/backend/src/auth/accountConnectionPreparation.postgres.integration.ts).
+The [private preparation module](../../apps/auth/src/server/social/accountConnectionPreparation.ts) requires
+the original login browser secret/PKCE verifier through adoption and confirmation; it provides no public action
+or consent/union writer.
+
 ## Corrections to applied migrations
 
 An applied migration is immutable. `scripts/deploy/migrate.sh` records every migration by filename
@@ -306,3 +331,12 @@ a call "resolves to exactly one of them by its argument count".
 `0179_drop_four_argument_claim_installation.sql` drops that overload, so the six-argument function `0176`
 adds is the only `sync.claim_installation`, and `0179` records why the drop waited for a separate deploy.
 `0168`'s handling of concurrent first claims lives on unchanged in that six-argument definition.
+
+- [0214 account connection consent](0214_account_connection_consent.sql) with
+  [0215 preview binding](0215_account_connection_preview_binding.sql) (migration count 217) exposes authenticated
+  operation-bound proof, exact preview/consent and atomic reserved-proof consumption with the
+  existing private account union. Its real PostgreSQL/coordinator and API refusal fixture is
+  [accountConnectionGate.ts](../../apps/auth/src/integration/accountConnectionGate.ts).
+  Public request/result and continuation contracts live in
+  [publicContract.ts](../../apps/auth/src/server/social/publicContract.ts) and
+  [accountConnection.ts](../../apps/auth/src/server/social/accountConnection.ts).

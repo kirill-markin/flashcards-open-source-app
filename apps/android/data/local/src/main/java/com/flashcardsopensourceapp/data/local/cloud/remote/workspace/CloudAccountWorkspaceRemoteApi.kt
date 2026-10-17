@@ -10,9 +10,12 @@ import com.flashcardsopensourceapp.data.local.cloud.wire.requireCloudIsoTimestam
 import com.flashcardsopensourceapp.data.local.cloud.wire.requireCloudNullableString
 import com.flashcardsopensourceapp.data.local.cloud.wire.requireCloudObject
 import com.flashcardsopensourceapp.data.local.cloud.wire.requireCloudString
+import com.flashcardsopensourceapp.data.local.cloud.wire.toCloudStringList
+import com.flashcardsopensourceapp.data.local.cloud.wire.CloudContractMismatchException
 import com.flashcardsopensourceapp.data.local.model.sync.AccountPreferences
 import com.flashcardsopensourceapp.data.local.model.sync.AccountPreferencesUpdate
 import com.flashcardsopensourceapp.data.local.model.sync.CloudAccountSnapshot
+import com.flashcardsopensourceapp.data.local.model.sync.CloudAuthenticatedAccountIdentity
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspaceDeletePreview
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspaceDeleteResult
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspaceResetProgressPreview
@@ -59,11 +62,13 @@ internal class CloudAccountWorkspaceRemoteApi(
             nextCursor = nextPage.nextCursor
         }
 
+        val userId: String = meResponse.requireCloudString("userId", "me.userId")
         return CloudAccountSnapshot(
-            userId = meResponse.requireCloudString("userId", "me.userId"),
+            userId = userId,
             email = profile.requireCloudNullableString("email", "me.profile.email"),
             preferences = preferences,
-            workspaces = workspaces
+            workspaces = workspaces,
+            authenticatedIdentity = parseAuthenticatedAccountIdentity(response = meResponse, userId = userId)
         )
     }
 
@@ -71,26 +76,11 @@ internal class CloudAccountWorkspaceRemoteApi(
         return fetchCloudAccount(apiBaseUrl = apiBaseUrl, authorizationHeader = "Bearer $bearerToken").workspaces
     }
 
-    /**
-     * `PATCH /me/preferences`. The write origin goes out beside the value it speaks for, with no
-     * fallback for a server that rejects the key.
-     *
-     * `parseAccountPreferencesInput` has answered `400` `ACCOUNT_PREFERENCES_FIELD_UNKNOWN` to any
-     * key it does not know since the route was written, long before either analytics field existed,
-     * and `productAnalyticsEnabled` and the origins landed on `main` five and a half hours apart on
-     * one day. So a backend old enough to reject an origin rejects `productAnalyticsEnabled` in the
-     * same body and cannot store this setting at all; re-sending without the origin would earn the
-     * same `400` one request later. The caller recording that as a refusal, and telling the person
-     * the app will not retry on its own, is the correct outcome against such a server rather than a
-     * bug (`docs/analytics-visitor-identity.md`).
-     */
     suspend fun updateAccountPreferences(
         apiBaseUrl: String,
         authorizationHeader: String,
         update: AccountPreferencesUpdate
     ): AccountPreferences {
-        // Only the fields this update carries: the server keeps the stored value of every field the
-        // body leaves out.
         val body = JSONObject()
         update.accentColor?.let { color ->
             body.put("accentColor", color)
@@ -101,8 +91,6 @@ internal class CloudAccountWorkspaceRemoteApi(
         update.productAnalyticsEnabled?.let { enabled ->
             body.put("productAnalyticsEnabled", enabled)
         }
-        // Sent only beside the value it speaks for: an origin alone writes nothing and the route
-        // refuses a body with no writable field in it.
         update.productAnalyticsEnabledOrigin?.let { origin ->
             body.put("productAnalyticsEnabledOrigin", origin.wireValue)
         }
@@ -279,6 +267,21 @@ private data class CloudWorkspacePage(
     val nextCursor: String?
 )
 
+private fun parseAuthenticatedAccountIdentity(response: JSONObject, userId: String): CloudAuthenticatedAccountIdentity? {
+    if (!response.has("canonicalAccountId") && !response.has("linkedAccountIds")) {
+        return null
+    }
+    val canonicalAccountId: String = response.requireCloudString("canonicalAccountId", "me.canonicalAccountId")
+    val linkedAccountIds: List<String> = response.requireCloudArray("linkedAccountIds", "me.linkedAccountIds")
+        .toCloudStringList(fieldPath = "me.linkedAccountIds")
+    if (canonicalAccountId.isBlank() || linkedAccountIds.any(String::isBlank) ||
+        canonicalAccountId !in linkedAccountIds || userId !in linkedAccountIds
+    ) {
+        throw CloudContractMismatchException("Cloud account identity must include the credential and canonical account IDs.")
+    }
+    return CloudAuthenticatedAccountIdentity(userId, canonicalAccountId, linkedAccountIds)
+}
+
 internal fun parseCloudWorkspace(
     workspace: JSONObject,
     isSelected: Boolean,
@@ -288,7 +291,12 @@ internal fun parseCloudWorkspace(
         workspaceId = workspace.requireCloudString("workspaceId", "$fieldPath.workspaceId"),
         name = workspace.requireCloudString("name", "$fieldPath.name"),
         createdAtMillis = workspace.requireCloudIsoTimestampMillis("createdAt", "$fieldPath.createdAt"),
-        isSelected = isSelected
+        isSelected = isSelected,
+        isVisible = if (workspace.has("isVisible")) {
+            workspace.requireCloudBoolean("isVisible", "$fieldPath.isVisible")
+        } else {
+            true
+        }
     )
 }
 

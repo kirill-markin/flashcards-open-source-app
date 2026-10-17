@@ -196,11 +196,25 @@ extension FlashcardsStore {
             email: account.email,
             apiBaseUrl: verifiedContext.apiBaseUrl,
             credentials: verifiedContext.credentials,
-            workspaces: account.workspaces,
+            workspaces: try self.workspacesForCloudCredentialReplacement(account: account),
             preferences: account.preferences,
             guestUpgradeMode: guestUpgradeMode,
             postAuthRecoveryRoute: postAuthRecoveryRoute
         )
+    }
+
+    private func workspacesForCloudCredentialReplacement(account: CloudAccountSnapshot) throws -> [CloudWorkspaceSummary] {
+        guard self.cloudSettings?.cloudState == .linked,
+            self.cloudSettings?.linkedUserId == account.userId else {
+            return account.workspaces.filter { $0.isVisible }
+        }
+        guard let workspaceId = self.cloudSettings?.activeWorkspaceId ?? self.cloudSettings?.linkedWorkspaceId,
+            let workspace = account.workspaces.first(where: { $0.workspaceId == workspaceId }) else {
+            throw LocalStoreError.validation(localizedCloudCredentialRecoveryBlockedMessage(reason: .linkedWorkspaceUnavailable))
+        }
+
+        // Visibility cannot discard a linked workspace or its pending outbox.
+        return [workspace]
     }
 
     private func prepareLinkedCredentialRecoveryLink(

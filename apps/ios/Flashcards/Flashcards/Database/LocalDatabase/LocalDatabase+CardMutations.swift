@@ -15,6 +15,7 @@ extension LocalDatabase {
             let persistedCard = try self.persistCardMutation(
                 workspaceId: workspaceId,
                 input: input,
+                initialMetadata: nil,
                 cardId: cardId,
                 cloudSettings: cloudSettings,
                 now: now
@@ -46,6 +47,7 @@ extension LocalDatabase {
                     try self.persistCardMutation(
                         workspaceId: workspaceId,
                         input: input,
+                        initialMetadata: nil,
                         cardId: nil,
                         cloudSettings: cloudSettings,
                         now: now
@@ -90,6 +92,7 @@ extension LocalDatabase {
                     try self.persistCardMutation(
                         workspaceId: workspaceId,
                         input: update.input,
+                        initialMetadata: nil,
                         cardId: update.cardId,
                         cloudSettings: cloudSettings,
                         now: now
@@ -125,9 +128,10 @@ extension LocalDatabase {
         }
     }
 
-    private func persistCardMutation(
+    func persistCardMutation(
         workspaceId: String,
         input: CardEditorInput,
+        initialMetadata: CardMetadata?,
         cardId: String?,
         cloudSettings: CloudSettings,
         now: String
@@ -141,6 +145,7 @@ extension LocalDatabase {
         let persistedCard = try self.cardStore.saveCard(
             workspaceId: workspaceId,
             input: input,
+            initialMetadata: initialMetadata,
             cardId: cardId,
             installationId: cloudSettings.installationId,
             operationId: operationId,

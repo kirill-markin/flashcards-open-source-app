@@ -8,6 +8,7 @@ import {
   loadCognitoIdentityMappingInExecutor,
   lockCognitoIdentityLifecycleInExecutor,
   lockAccountLifecyclesInExecutor,
+  resolveCanonicalAccountIdInExecutor,
 } from "../../auth/userIdentities";
 import { assertSubjectIsNotDeletedInExecutor } from "../../auth/deletedSubjects";
 import { transferAiUsageToUpgradedAccountInExecutor } from "../../aiUsage/identity";
@@ -116,6 +117,15 @@ function assertGuestWorkspaceSyncedAndOutboxDrained(
  * A guest user bound to a Cognito subject is that subject's account. A leftover guest token must
  * neither bind a second subject to it nor merge it into another account, which deletes it.
  */
+async function assertGuestOwnerIsNotRetiredInExecutor(
+  executor: DatabaseExecutor,
+  guestUserId: string,
+): Promise<void> {
+  if (await resolveCanonicalAccountIdInExecutor(executor, guestUserId) !== guestUserId) {
+    throw new HttpError(401, "Guest account ownership changed. Continue with the signed-in account.", "GUEST_AUTH_INVALID");
+  }
+}
+
 async function assertGuestUserIsNotAnAccountInExecutor(
   executor: DatabaseExecutor,
   guestUserId: string,
@@ -221,6 +231,7 @@ async function createGuestUpgradeReplayCompletionInExecutor(
     sourceGuestSessionId: string;
     targetSubjectUserId: string;
     targetUserId: string;
+    canonicalTargetUserId: string;
     targetWorkspaceId: string;
     droppedEntities?: GuestUpgradeDroppedEntities;
   }>,
@@ -233,7 +244,7 @@ async function createGuestUpgradeReplayCompletionInExecutor(
   return {
     workspace: await loadWorkspaceSummaryInExecutor(
       executor,
-      replay.targetUserId,
+      replay.canonicalTargetUserId,
       replay.targetWorkspaceId,
     ),
     outcome: "idempotent_replay",
@@ -283,7 +294,7 @@ async function resolveRevokedGuestUpgradeReplayInExecutor(
   }
 
   const mapping = await loadCognitoIdentityMappingInExecutor(executor, cognitoSubject);
-  if (mapping === null || mapping.userId !== replay.targetUserId) {
+  if (mapping === null || mapping.userId !== replay.canonicalTargetUserId) {
     logSuspiciousGuestUpgradeReplay(
       "revoked_session_subject_mismatch",
       guestSessionId,
@@ -312,7 +323,7 @@ async function resolveDeletedGuestUpgradeReplayInExecutor(
   }
 
   const mapping = await loadCognitoIdentityMappingInExecutor(executor, cognitoSubject);
-  if (mapping === null || mapping.userId !== replay.targetUserId) {
+  if (mapping === null || mapping.userId !== replay.canonicalTargetUserId) {
     logSuspiciousGuestUpgradeReplay(
       "deleted_session_subject_mismatch",
       replay.sourceGuestSessionId,
@@ -344,7 +355,10 @@ async function resolveGuestUpgradeTargetInExecutor(
     : await (async (): Promise<string> => {
       const guestWorkspaceName = await loadWorkspaceNameInExecutor(executor, guestUserId, guestWorkspaceId);
       const nextWorkspaceName = guestWorkspaceName === "" ? AUTO_CREATED_WORKSPACE_NAME : guestWorkspaceName;
-      const nextWorkspaceId = await createWorkspaceInExecutor(executor, targetUserId, nextWorkspaceName);
+      const nextWorkspaceId = await createWorkspaceInExecutor(executor, targetUserId, {
+        name: nextWorkspaceName,
+        cause: "explicit",
+      });
       await selectWorkspaceForUserInExecutor(executor, targetUserId, nextWorkspaceId);
       return nextWorkspaceId;
     })();
@@ -386,6 +400,7 @@ export async function prepareGuestUpgradeInExecutor(
   const unlockedSession = await loadGuestSessionRecordInExecutor(executor, guestToken, false);
   if (unlockedSession === null) throw new HttpError(401, "Guest session is invalid.", "GUEST_AUTH_INVALID");
   assertGuestUpgradeSupportedPlatform(unlockedSession.platform);
+  await assertGuestOwnerIsNotRetiredInExecutor(executor, unlockedSession.userId);
   const existingMapping = await loadCognitoIdentityMappingInExecutor(executor, cognitoSubject);
   await lockAccountLifecyclesInExecutor(executor, [unlockedSession.userId, existingMapping?.userId ?? cognitoSubject]);
   await assertSubjectIsNotDeletedInExecutor(executor, cognitoSubject);
@@ -471,6 +486,7 @@ export async function completeGuestUpgradeInExecutor(
   }
 
   assertGuestUpgradeSupportedPlatform(unlockedGuestSession.platform);
+  await assertGuestOwnerIsNotRetiredInExecutor(executor, unlockedGuestSession.userId);
 
   // Phase 2: resolve the mapped target user.
   if (targetMapping === null) {

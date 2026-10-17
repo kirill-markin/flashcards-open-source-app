@@ -950,3 +950,23 @@
 
 "settings.account.cloudSignIn.continueGoogle" = "Google સાથે આગળ વધો";
 "settings.account.cloudSignIn.appleCleanupPending" = "Apple સુરક્ષા અપડેટ પૂર્ણ કરી રહ્યું છે. થોડી વાર પછી ફરી Apple સાથે પ્રયાસ કરો અથવા સાઇન ઇન કરવાની બીજી રીત પસંદ કરો.";
+
+"settings.account.connection.title" = "ખાતાં જોડો";
+"settings.account.connection.suggestion" = "સૂચવેલું જોડાણ તપાસો";
+"settings.account.connection.data" = "કાર્ડ, પુનરાવર્તન અને કાર્યસ્થળો રહે છે. સભ્યપદો જોડાય છે; માલિકીને પ્રાથમિકતા મળે છે.";
+"settings.account.connection.settings" = "ગંતવ્યનાં સેટિંગ્સ અને જાહેર પ્રોફાઇલ વધુ કડક ગોપનીયતા સાથે લાગુ થાય છે. સાચો મુખ્ય ઇમેલ રહે છે અથવા પ્રમાણિત સાચો ઇમેલ વપરાય છે.";
+"settings.account.connection.billing" = "ખરીદી, અધિકારો, વપરાશ અને એકીકરણનાં ઓળખપત્રો જોડાયેલા ખાતા સાથે જાય છે. સબ્સ્ક્રિપ્શન અને મૂળ અજમાયશ ઇતિહાસ બદલાતા નથી.";
+"settings.account.connection.destination" = "પસંદ કરેલું ગંતવ્ય";
+"settings.account.connection.hidden" = "વર્કસ્પેસની પસંદગીઓમાં છુપાયેલું";
+"settings.account.connection.omit" = "પાત્ર હોય તો બાદ કરવાની વિનંતી કરો";
+"settings.account.connection.preserve" = "ફક્ત પાત્ર શરૂઆતનાં વર્કસ્પેસ છુપાવી શકાય છે. મૂળ ડેટા અને અન્ય વર્કસ્પેસ યથાવત્ રહે છે.";
+"settings.account.connection.confirm" = "ખાતાં જોડવાની પુષ્ટિ કરો";
+"settings.account.connection.connected" = "ખાતાં જોડાયાં.";
+"settings.account.connection.alreadyConnected" = "આ ખાતાં પહેલેથી જોડાયેલાં છે.";
+"settings.account.connection.cancelled" = "જોડાણ રદ થયું.";
+"settings.account.connection.uncertain" = "પુષ્ટિ મોકલાઈ, પરંતુ પરિણામ અજ્ઞાત છે. એ જ પુષ્ટિથી પરિણામ તપાસો.";
+"settings.account.connection.replay" = "પુષ્ટિનું પરિણામ તપાસો";
+"settings.account.connection.preview" = "જોડાણનું પૂર્વાવલોકન તાજું કરો";
+"settings.account.connection.previewChanged" = "પૂર્વાવલોકન બદલાયું. તેને તાજું કરો અને નવા પૂર્વાવલોકનની સ્પષ્ટ પુષ્ટિ કરો.";
+"settings.account.connection.restart" = "પુરાવાની મુદત પૂરી થઈ અથવા તેનો ઉપયોગ થઈ ગયો. નવા પુરાવા સાથે ફરી શરૂ કરો.";
+"settings.account.connection.restorePaused" = "ખાતાં જોડાયાં. સ્થાનિક અપડેટ અટકાવેલું છે; તમારો ઑફલાઇન ડેટા જળવાયેલો છે.";

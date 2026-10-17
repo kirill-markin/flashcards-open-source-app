@@ -2,10 +2,12 @@ import { getAppConfig } from "../config";
 
 export const browserHintsBridgePath = "/browser-hints";
 export type AcceptedBrowserSignInMethod = "email" | "google" | "apple";
+export type BrowserConnectionSuggestion = Readonly<{ suggestion: string; expiresAt: string }>;
+
 let informationGeneration = 0;
 type BridgeOperation = "consume" | "forget";
 type BridgeReply = Readonly<{ protocol: "nibomo-auth-hints-v1"; requestId: string }> & (
-  | Readonly<{ status: "accepted"; method: AcceptedBrowserSignInMethod }>
+  | Readonly<{ status: "accepted"; method: AcceptedBrowserSignInMethod; connectionSuggestion?: BrowserConnectionSuggestion }>
   | Readonly<{ status: "absent" | "forgotten" }>
   | Readonly<{ status: "error"; code: "storage_unavailable" | "session_unavailable" }>
 );
@@ -29,8 +31,17 @@ function decodeReply(value: unknown, requestId: string): BridgeReply {
   if (value === null || typeof value !== "object" || Array.isArray(value)) throw new Error("Browser sign-in hint bridge returned an invalid response. Reload and retry.");
   const reply = value as Readonly<Record<string, unknown>>;
   if (reply.protocol !== "nibomo-auth-hints-v1" || reply.requestId !== requestId) throw new Error("Browser sign-in hint bridge response did not match the request. Reload and retry.");
-  if (reply.status === "accepted" && Object.keys(reply).length === 4
-    && (reply.method === "email" || reply.method === "google" || reply.method === "apple")) return reply as BridgeReply;
+  if (reply.status === "accepted" && (Object.keys(reply).length === 4 || Object.keys(reply).length === 5)
+    && (reply.method === "email" || reply.method === "google" || reply.method === "apple")) {
+    if (reply.connectionSuggestion === undefined) {
+      if (Object.keys(reply).length === 4) return reply as BridgeReply;
+    } else if (reply.method !== "email" && typeof reply.connectionSuggestion === "object" && reply.connectionSuggestion !== null) {
+      const suggestion = reply.connectionSuggestion as Readonly<Record<string, unknown>>;
+      if (Object.keys(suggestion).length === 2 && typeof suggestion.suggestion === "string"
+        && /^[A-Za-z0-9_-]{43}$/.test(suggestion.suggestion) && typeof suggestion.expiresAt === "string"
+        && Number.isFinite(Date.parse(suggestion.expiresAt))) return reply as BridgeReply;
+    }
+  }
   if ((reply.status === "absent" || reply.status === "forgotten") && Object.keys(reply).length === 3) return reply as BridgeReply;
   if (reply.status === "error" && Object.keys(reply).length === 4
     && (reply.code === "storage_unavailable" || reply.code === "session_unavailable")) return reply as BridgeReply;
@@ -89,12 +100,17 @@ export function readBrowserSignInInformationGeneration(): number {
 }
 
 /** Call only after the real account/workspace acceptance completes. Missing historical context has no attribution. */
-export async function consumeAcceptedBrowserSignInMethod(): Promise<AcceptedBrowserSignInMethod | null> {
+export async function consumeAcceptedBrowserSignInMethod(
+  onSuggestion: (suggestion: BrowserConnectionSuggestion) => void,
+): Promise<AcceptedBrowserSignInMethod | null> {
   const generation = informationGeneration;
   const reply = await requestBridge("consume");
   if (generation !== informationGeneration) return null;
   requireSuccess(reply);
-  if (reply.status === "accepted") return reply.method;
+  if (reply.status === "accepted") {
+    if (reply.connectionSuggestion !== undefined) onSuggestion(reply.connectionSuggestion);
+    return reply.method;
+  }
   if (reply.status === "absent") return null;
   throw new Error("Browser sign-in hint bridge returned an unexpected consume result. Reload and retry.");
 }

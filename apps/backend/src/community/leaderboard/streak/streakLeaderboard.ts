@@ -537,6 +537,7 @@ async function readStreakLeaderboardSnapshotEntriesInExecutor(
       "entries.base_sort_position AS base_sort_position",
       "FROM community.streak_leaderboard_snapshot_entries AS entries",
       "WHERE entries.snapshot_id = $1::uuid",
+      "AND community.public_profile_participates(entries.public_profile_id)",
       "ORDER BY entries.base_sort_position ASC",
     ].join(" "),
     [snapshotId],

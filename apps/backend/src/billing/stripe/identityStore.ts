@@ -64,7 +64,7 @@ export async function lockStripeAccountInExecutor(
 export async function listStripeCustomerIdentitiesInExecutor(
   executor: DatabaseExecutor, userId: string, environment: StripeEnvironment,
 ): Promise<ReadonlyArray<StripeCustomerIdentity>> {
-  const result = await executor.query<IdentityRow>(`SELECT identity_id, environment, user_id, customer_id,
+  const result = await executor.query<IdentityRow>(`SELECT identity_id, environment, auth.canonical_account_id(user_id) AS user_id, customer_id,
     is_primary, created_at, account_deleted_at FROM billing.stripe_customer_identities
     WHERE user_id = $1 AND environment = $2 ORDER BY identity_id`, [userId, environment]);
   return result.rows.map(toIdentity);
@@ -73,7 +73,7 @@ export async function listStripeCustomerIdentitiesInExecutor(
 export async function findStripeCustomerIdentityInExecutor(
   executor: DatabaseExecutor, environment: StripeEnvironment, customerId: string,
 ): Promise<StripeCustomerIdentity | null> {
-  const result = await executor.query<IdentityRow>(`SELECT identity_id, environment, user_id, customer_id,
+  const result = await executor.query<IdentityRow>(`SELECT identity_id, environment, auth.canonical_account_id(user_id) AS user_id, customer_id,
     is_primary, created_at, account_deleted_at FROM billing.stripe_customer_identities
     WHERE environment = $1 AND customer_id = $2`, [environment, customerId]);
   return result.rows[0] === undefined ? null : toIdentity(result.rows[0]);
@@ -94,7 +94,7 @@ export async function getOrCreateStripeCustomer(
   });
   return unsafeTransaction(async (executor) => {
     await lockStripeAccountInExecutor(executor, subject, userId);
-    const result = await executor.query<IdentityRow>(`SELECT identity_id, environment, user_id, customer_id,
+    const result = await executor.query<IdentityRow>(`SELECT identity_id, environment, auth.canonical_account_id(user_id) AS user_id, customer_id,
       is_primary, created_at, account_deleted_at FROM billing.stripe_customer_identities
       WHERE identity_id = $1 AND environment = $2 FOR UPDATE`, [identity.identityId, provider.environment]);
     const row = result.rows[0];
@@ -117,6 +117,24 @@ export async function hasStripeTrialConsumptionInExecutor(
   return result.rows.length > 0;
 }
 
+// Only future offers use the combined account history. Existing frozen offers keep customer semantics.
+export async function getStripeAccountTrialEligibilityInExecutor(
+  executor: DatabaseExecutor, userId: string, environment: StripeEnvironment,
+): Promise<boolean | null> {
+  const result = await executor.query<{
+    customer_id: string | null; is_primary: boolean; trial_consumed: boolean;
+  }>(`SELECT owned.customer_id, owned.is_primary AND owned.account_deleted_at IS NULL AS is_primary,
+    consumed.identity_id IS NOT NULL AS trial_consumed
+    FROM billing.stripe_customer_identities AS owned
+    LEFT JOIN billing.stripe_trial_consumptions AS consumed
+      ON consumed.identity_id = owned.identity_id AND consumed.environment = owned.environment
+    WHERE auth.canonical_account_id(owned.user_id) = auth.canonical_account_id($1)
+      AND owned.environment = $2`, [userId, environment]);
+  if (result.rows.some((identity) => identity.trial_consumed)) return false;
+  const primary = result.rows.find((identity) => identity.is_primary);
+  return primary === undefined ? true : primary.customer_id === null ? null : true;
+}
+
 // Only a verified provider trial start consumes the trial; an abandoned Checkout never does.
 export async function recordStripeTrialConsumptionInExecutor(
   executor: DatabaseExecutor, identityId: string, environment: StripeEnvironment,
@@ -127,7 +145,8 @@ export async function recordStripeTrialConsumptionInExecutor(
     ON CONFLICT (identity_id, environment) DO NOTHING`, [identityId, environment, subscriptionId, consumedAt]);
 }
 
-const checkoutColumns = `attempt.attempt_id, attempt.identity_id, attempt.environment, attempt.user_id,
+const checkoutColumns = `attempt.attempt_id, attempt.identity_id, attempt.environment,
+  auth.canonical_account_id(attempt.user_id) AS user_id,
   identity.customer_id, attempt.session_id, attempt.status, attempt.trial_days, attempt.locale,
   attempt.expires_at, attempt.created_at, attempt.account_deleted_at`;
 
@@ -146,7 +165,7 @@ export async function loadStripeCheckoutAttemptInExecutor(
 export async function reserveStripeCheckoutAttemptInExecutor(
   executor: DatabaseExecutor, identity: StripeCustomerIdentity, locale: Stripe.Checkout.SessionCreateParams.Locale,
 ): Promise<StripeCheckoutAttempt> {
-  const identities = await executor.query<IdentityRow>(`SELECT identity_id, environment, user_id, customer_id,
+  const identities = await executor.query<IdentityRow>(`SELECT identity_id, environment, auth.canonical_account_id(user_id) AS user_id, customer_id,
     is_primary, created_at, account_deleted_at FROM billing.stripe_customer_identities
     WHERE identity_id = $1 AND environment = $2 FOR UPDATE`, [identity.identityId, identity.environment]);
   const row = identities.rows[0];
@@ -159,7 +178,7 @@ export async function reserveStripeCheckoutAttemptInExecutor(
     const attempt = await loadStripeCheckoutAttemptInExecutor(executor, pending.rows[0].attempt_id, identity.environment);
     return attempt ?? storageConflict();
   }
-  const trialDays = await hasStripeTrialConsumptionInExecutor(executor, identity.identityId, identity.environment) ? 0 : 7;
+  const trialDays = await getStripeAccountTrialEligibilityInExecutor(executor, identity.userId, identity.environment) ? 7 : 0;
   const attemptId = randomUUID();
   await executor.query(`INSERT INTO billing.stripe_checkout_attempts
     (attempt_id, identity_id, environment, user_id, trial_days, locale, expires_at)
@@ -205,7 +224,7 @@ export async function abandonStripeCheckoutAttemptInExecutor(
 export async function lockStripePersonIdentitiesInExecutor(
   executor: DatabaseExecutor, userIds: ReadonlyArray<string>,
 ): Promise<ReadonlyArray<StripeCustomerIdentity>> {
-  const identities = await executor.query<IdentityRow>(`SELECT identity_id, environment, user_id, customer_id,
+  const identities = await executor.query<IdentityRow>(`SELECT identity_id, environment, auth.canonical_account_id(user_id) AS user_id, customer_id,
     is_primary, created_at, account_deleted_at FROM billing.stripe_customer_identities
     WHERE user_id = ANY($1::text[]) AND account_deleted_at IS NULL
     ORDER BY identity_id FOR UPDATE`, [userIds]);

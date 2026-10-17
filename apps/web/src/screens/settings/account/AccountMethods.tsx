@@ -1,17 +1,18 @@
-import { useEffect, useRef, useState, type ReactElement } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactElement } from "react";
 import { buildLoginUrl, getPreferredAuthUiLocale } from "../../../api/authUrls";
 import { track } from "../../../analytics";
 import { useAppData } from "../../../appData";
 import { getAppConfig } from "../../../config";
 import { useI18n, type TranslationKey } from "../../../i18n";
 import { clearAccountMethodReturn, readAccountMethodReturn } from "../../../api/accountMethodReturn";
-import { AccountMethodError, beginEmailMethod, beginProviderMethod, completeEmailMethod, getAccountMethods, getBrowserProviders,
+import { AccountMethodError, beginEmailMethod, beginProviderMethod, completeEmailMethod, getAccountMethods, getBrowserAccountOptions,
   unlinkProviderMethod, verifyAccountMethodOwner, type AccountMethods as Methods, type AccountProvider, type MethodOperation, type MethodProof } from "../../../api/accountMethods";
 import { clearPendingMethod, readPendingMethod, storePendingMethod } from "./accountMethodPending";
+import { AccountConnection } from "./AccountConnection";
 import { AccountMethodButton } from "./AccountMethodButton";
 
 type Proof = Readonly<{ value: MethodProof; expiresAt: number }>;
-type EmailChallenge = Readonly<{ attempt: string; csrfToken: string; expiresAt: number }>;
+type EmailChallenge = Readonly<{ attempt: string; csrfToken: string; expiresAt: number; email: string }>;
 function errorKey(code: string): TranslationKey {
   switch (code) {
     case "SESSION_REQUIRED": case "SESSION_REVOKED": case "ACCOUNT_DELETED": return "app.signInAgain";
@@ -26,10 +27,12 @@ function errorKey(code: string): TranslationKey {
 function providerName(provider: AccountProvider): string { return provider === "google" ? "Google" : "Apple"; }
 
 export function AccountMethods(): ReactElement {
-  const { session } = useAppData();
+  const { session, refreshConnectedAccount } = useAppData();
   const { t } = useI18n();
   const [methods, setMethods] = useState<Methods | null>(null);
   const [available, setAvailable] = useState<ReadonlyArray<AccountProvider>>([]);
+  const [connectionAvailable, setConnectionAvailable] = useState<boolean>(false);
+  const [connecting, setConnecting] = useState<boolean>(false);
   const [operation, setOperation] = useState<MethodOperation | null>(null);
   const [proof, setProof] = useState<Proof | null>(null);
   const [challenge, setChallenge] = useState<EmailChallenge | null>(null);
@@ -46,16 +49,17 @@ export function AccountMethods(): ReactElement {
     const current = new AbortController();
     controller.current = current;
     running.current = true;
-    setBusy(true); setMethods(null); setAvailable([]); setOperation(null); setProof(null); setChallenge(null); setCode(""); setError(null); setCompleted(false); setAlreadyLinked(false);
+    setBusy(true); setMethods(null); setAvailable([]); setConnectionAvailable(false); setConnecting(false); setOperation(null); setProof(null); setChallenge(null); setCode(""); setError(null); setCompleted(false); setAlreadyLinked(false);
     if (userId === null) { setBusy(false); running.current = false; return () => current.abort(); }
     void (async () => {
       try {
         await verifyAccountMethodOwner(userId, current.signal);
-        const [loaded, providers] = await Promise.all([getAccountMethods(current.signal), getBrowserProviders(current.signal)]);
+        const [loaded, providers] = await Promise.all([getAccountMethods(current.signal), getBrowserAccountOptions(current.signal)]);
         if (current.signal.aborted) return;
-        setMethods(loaded); setAvailable(providers);
+        setMethods(loaded); setAvailable(providers.providers); setConnectionAvailable(providers.connectionAvailable);
         const returned = readAccountMethodReturn();
         const pending = readPendingMethod(userId);
+        if (returned?.connection === true) return;
         if (pending !== null) {
           if (returned?.status === "reauthenticated" && returned.completion !== null && pending.phase === "reauth") {
             setOperation(pending.operation);
@@ -121,20 +125,29 @@ export function AccountMethods(): ReactElement {
     } finally { if (!current.signal.aborted) { running.current = false; setBusy(false); } }
   }
 
+  const refreshConnection = useCallback(async function refreshConnection(signal: AbortSignal): Promise<void> {
+    await refreshConnectedAccount();
+    if (signal.aborted) return;
+    if (userId === null) throw new AccountMethodError("SESSION_REQUIRED");
+    await verifyAccountMethodOwner(userId, signal);
+    const loaded = await getAccountMethods(signal);
+    if (!signal.aborted) setMethods(loaded);
+  }, [refreshConnectedAccount, userId]);
+
   function select(next: MethodOperation): void {
-    if (running.current) return;
+    if (running.current || connecting) return;
     setOperation(next); setProof(null); setChallenge(null); setCode(""); setError(null); setCompleted(false); setAlreadyLinked(false);
   }
   function reset(): void {
-    if (running.current) return;
+    if (running.current || connecting) return;
     setOperation(null); setProof(null); setChallenge(null); setCode("");
     clearAccountMethodReturn();
     void run(async (signal) => {
       clearPendingMethod();
       setMethods(null);
-      const [loaded, providers] = await Promise.all([getAccountMethods(signal), getBrowserProviders(signal)]);
+      const [loaded, providers] = await Promise.all([getAccountMethods(signal), getBrowserAccountOptions(signal)]);
       if (signal.aborted) return;
-      setMethods(loaded); setAvailable(providers);
+      setMethods(loaded); setAvailable(providers.providers); setConnectionAvailable(providers.connectionAvailable);
     });
   }
   function reauthenticate(provider: AccountProvider): void {
@@ -201,6 +214,9 @@ export function AccountMethods(): ReactElement {
   }
 
   return <section className="content-card" data-testid="account-methods" aria-busy={busy}>
+    {methods === null || !connectionAvailable ? null : <AccountConnection userId={userId} methods={methods} providers={available}
+      disabled={busy || operation !== null} onActiveChange={setConnecting} onCommitted={refreshConnection}/>}
+    <fieldset disabled={connecting} style={{ border: 0, padding: 0, margin: 0, minWidth: 0 }}>
     <h2 className="panel-subtitle">{t("accountMethods.title")}</h2>
     {busy ? <p role="status">{t("common.loading")}</p> : null}
     {methods?.methods.map((method, index) => <div key={`${method.provider}:${method.providerSubject}:${method.generation}`}>
@@ -228,6 +244,7 @@ export function AccountMethods(): ReactElement {
             : <AccountMethodButton provider={operation.provider} label={providerName(operation.provider)} disabled={busy}
               onClick={mutate} testId="account-methods-confirm-provider"/>}
         </> : challenge !== null ? <form onSubmit={(event) => { event.preventDefault(); verifyEmail(); }}>
+          <p role="status">{t("accountConnection.destination", { email: challenge.email })}</p>
           <label htmlFor="account-method-code">{t("accountMethods.codePrompt")}</label>
           <input id="account-method-code" data-testid="account-methods-code" value={code} disabled={busy} required
             autoComplete="one-time-code" inputMode="numeric" pattern="[0-9]{6,8}" minLength={6} maxLength={8}
@@ -251,5 +268,6 @@ export function AccountMethods(): ReactElement {
     {completed ? <p role="status">{t("common.ok")}</p> : null}
     {alreadyLinked ? <p role="status" data-testid="account-methods-already-linked">{t("accountMethods.alreadyLinked")}</p> : null}
     <button type="button" className="ghost-btn" disabled={busy} onClick={reset} data-testid="account-methods-refresh">{t("common.refresh")}</button>
+    </fieldset>
   </section>;
 }

@@ -950,3 +950,23 @@
 
 "settings.account.cloudSignIn.continueGoogle" = "Продовжити з Google";
 "settings.account.cloudSignIn.appleCleanupPending" = "Apple завершує оновлення безпеки. Спробуйте знову ввійти через Apple трохи згодом або виберіть інший спосіб входу.";
+
+"settings.account.connection.title" = "Об’єднати облікові записи";
+"settings.account.connection.suggestion" = "Переглянути запропоноване об’єднання";
+"settings.account.connection.data" = "Картки, повторення й простори зберігаються. Участь об’єднується; права власника мають пріоритет.";
+"settings.account.connection.settings" = "Застосовуються налаштування та публічний профіль цільового запису зі суворішою приватністю. Зберігається справжня основна адреса або використовується перевірена справжня адреса.";
+"settings.account.connection.billing" = "Покупки, права, використання й облікові дані інтеграцій переходять до об’єднаного запису. Підписки й початкова історія пробних періодів не змінюються.";
+"settings.account.connection.destination" = "Вибране призначення";
+"settings.account.connection.hidden" = "Приховано зі списку робочих просторів";
+"settings.account.connection.omit" = "Запросити виключення, якщо дозволено";
+"settings.account.connection.preserve" = "Можна приховати лише відповідні початкові простори. Дані та інші робочі простори зберігаються.";
+"settings.account.connection.confirm" = "Підтвердити об’єднання";
+"settings.account.connection.connected" = "Облікові записи об’єднано.";
+"settings.account.connection.alreadyConnected" = "Ці облікові записи вже об’єднано.";
+"settings.account.connection.cancelled" = "Об’єднання скасовано.";
+"settings.account.connection.uncertain" = "Підтвердження надіслано, але результат невідомий. Перевірте його з тим самим підтвердженням.";
+"settings.account.connection.replay" = "Перевірити результат";
+"settings.account.connection.preview" = "Оновити попередній перегляд";
+"settings.account.connection.previewChanged" = "Перегляд змінився. Оновіть його та явно підтвердьте новий перегляд.";
+"settings.account.connection.restart" = "Доказ доступу прострочено або використано. Почніть знову з новим доказом.";
+"settings.account.connection.restorePaused" = "Облікові записи об’єднано. Локальне оновлення призупинено; ваші офлайн-дані збережено.";

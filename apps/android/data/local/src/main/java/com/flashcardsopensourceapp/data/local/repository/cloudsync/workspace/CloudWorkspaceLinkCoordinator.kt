@@ -241,6 +241,11 @@ internal class CloudWorkspaceLinkCoordinator(
         }
     }
 
+    suspend fun retainConnectedAccount(session: AuthenticatedCloudSession, selectedWorkspaceId: String) {
+        operationCoordinator.requireExclusiveOperation(operationName = "Connected account reconciliation")
+        transitionCoordinator.retainConnectedAccount(session.accountSnapshot, selectedWorkspaceId)
+    }
+
     suspend fun completeLinkedWorkspaceTransition(
         selection: CloudWorkspaceLinkSelection
     ): CloudWorkspaceSummary {

@@ -1,7 +1,6 @@
 import { randomUUID } from "node:crypto";
 import {
   applyUserDatabaseScopeInExecutor,
-  transactionWithUserScope,
   type DatabaseExecutor,
 } from "../database";
 import { unsafeTransaction } from "../database/unsafe";
@@ -12,6 +11,9 @@ import {
   loadCognitoIdentityMappingInExecutor,
   lockCognitoIdentityLifecycleInExecutor,
   lockAccountLifecyclesInExecutor,
+  loadClientAccountIdentityInExecutor,
+  resolveCanonicalAccountIdInExecutor,
+  type ClientAccountIdentity,
 } from "./userIdentities";
 
 /** A recorded analytics consent decision. No decision is null, never a third choice value. */
@@ -32,6 +34,7 @@ export type AccountPreferences = Readonly<{
 
 export type UserProfile = Readonly<{
   userId: string;
+  clientAccountIdentity?: ClientAccountIdentity;
   selectedWorkspaceId: string | null;
   email: string | null;
   locale: string;
@@ -113,7 +116,15 @@ export async function ensureUserProfileInExecutor(
 }
 
 export async function ensureUserProfile(userId: string, email: string | null): Promise<UserProfile> {
-  return transactionWithUserScope({ userId }, async (executor) => ensureUserProfileInExecutor(executor, userId, email));
+  return unsafeTransaction(async (executor) => {
+    const canonicalUserId = await resolveCanonicalAccountIdInExecutor(executor, userId);
+    await applyUserDatabaseScopeInExecutor(executor, { userId: canonicalUserId });
+    const profile = await ensureUserProfileInExecutor(executor, canonicalUserId, email);
+    return {
+      ...profile,
+      clientAccountIdentity: await loadClientAccountIdentityInExecutor(executor, canonicalUserId, userId),
+    };
+  });
 }
 
 /** Reads under the caller's scope, so the caller applies the scope of the id it is asking about. */
@@ -147,7 +158,10 @@ export async function ensureCognitoUserProfileInExecutor(
     await lockAccountLifecyclesInExecutor(executor, [existingMapping.userId]);
     await assertSubjectIsNotDeletedInExecutor(executor, subjectUserId);
     await applyUserDatabaseScopeInExecutor(executor, { userId: existingMapping.userId });
-    return ensureUserProfileInExecutor(executor, existingMapping.userId, email);
+    const profile = await ensureUserProfileInExecutor(executor, existingMapping.userId, email);
+    return { ...profile, clientAccountIdentity: await loadClientAccountIdentityInExecutor(
+      executor, existingMapping.userId, existingMapping.originalClientUserId,
+    ) };
   }
 
   // An account can be stored under the subject itself with no mapping row until something binds
@@ -156,7 +170,9 @@ export async function ensureCognitoUserProfileInExecutor(
   if (await userSettingsRowExistsInExecutor(executor, subjectUserId)) {
     const adoptedProfile = await ensureUserProfileInExecutor(executor, subjectUserId, email);
     await bindCognitoIdentityMappingInExecutor(executor, subjectUserId, subjectUserId);
-    return adoptedProfile;
+    return { ...adoptedProfile, clientAccountIdentity: await loadClientAccountIdentityInExecutor(
+      executor, subjectUserId, subjectUserId,
+    ) };
   }
 
   const mintedUserId = randomUUID();
@@ -174,7 +190,9 @@ export async function ensureCognitoUserProfileInExecutor(
   const mintedProfile = await ensureUserProfileInExecutor(executor, mintedUserId, email);
   await bindCognitoIdentityMappingInExecutor(executor, subjectUserId, mintedUserId);
 
-  return mintedProfile;
+  return { ...mintedProfile, clientAccountIdentity: await loadClientAccountIdentityInExecutor(
+    executor, mintedUserId, mintedUserId,
+  ) };
 }
 
 export async function ensureCognitoUserProfile(

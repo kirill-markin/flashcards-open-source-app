@@ -950,3 +950,23 @@
 
 "settings.account.cloudSignIn.continueGoogle" = "Kontynuuj z Google";
 "settings.account.cloudSignIn.appleCleanupPending" = "Apple kończy aktualizację zabezpieczeń. Spróbuj ponownie z Apple za chwilę lub wybierz inną metodę logowania.";
+
+"settings.account.connection.title" = "Połącz konta";
+"settings.account.connection.suggestion" = "Sprawdź sugerowane połączenie";
+"settings.account.connection.data" = "Karty, powtórki i przestrzenie pozostają. Członkostwa łączą się; własność ma pierwszeństwo.";
+"settings.account.connection.settings" = "Obowiązują ustawienia i profil publiczny konta docelowego z większą prywatnością. Prawdziwy główny e-mail pozostaje lub używany jest potwierdzony prawdziwy adres.";
+"settings.account.connection.billing" = "Zakupy, uprawnienia, użycie i dane integracji przechodzą do połączonego konta. Subskrypcje i pierwotna historia prób pozostają bez zmian.";
+"settings.account.connection.destination" = "Wybrane miejsce docelowe";
+"settings.account.connection.hidden" = "Ukryty na liście wyboru przestrzeni roboczych";
+"settings.account.connection.omit" = "Poproś o pominięcie, jeśli dozwolone";
+"settings.account.connection.preserve" = "Można ukryć tylko kwalifikujące się początkowe przestrzenie. Dane i pozostałe przestrzenie robocze zostają zachowane.";
+"settings.account.connection.confirm" = "Potwierdź połączenie";
+"settings.account.connection.connected" = "Konta połączone.";
+"settings.account.connection.alreadyConnected" = "Te konta są już połączone.";
+"settings.account.connection.cancelled" = "Połączenie anulowane.";
+"settings.account.connection.uncertain" = "Potwierdzenie wysłano, ale wynik jest nieznany. Sprawdź go tym samym potwierdzeniem.";
+"settings.account.connection.replay" = "Sprawdź wynik";
+"settings.account.connection.preview" = "Odśwież podgląd";
+"settings.account.connection.previewChanged" = "Podgląd się zmienił. Odśwież go i wyraźnie potwierdź nowy podgląd.";
+"settings.account.connection.restart" = "Dowód wygasł lub został użyty. Zacznij ponownie z nowym dowodem.";
+"settings.account.connection.restorePaused" = "Konta połączone. Lokalne odświeżanie jest wstrzymane; dane offline są zachowane.";

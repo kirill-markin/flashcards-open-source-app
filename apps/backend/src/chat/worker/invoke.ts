@@ -1,7 +1,3 @@
-/**
- * Backend-owned chat worker dispatch helpers.
- * The route layer persists the run first, then this module triggers the worker so the run survives client disconnects.
- */
 import { InvokeCommand, LambdaClient } from "@aws-sdk/client-lambda";
 import {
   captureBackendException,
@@ -42,6 +38,22 @@ export type ChatWorkerInvocation = Readonly<{
   traceContext: BackendTraceCarrier | null;
 }>;
 
+/** Lambda dispatch is trusted; keep its original account and immutable run identifiers intact. */
+export function assertTrustedChatWorkerInvocation(
+  payload: Readonly<{ userId: string; workspaceId: string; runId: string; sessionId?: string | null; chatRequestId?: string | null }>,
+): void {
+  for (const value of [payload.userId, payload.workspaceId, payload.runId]) {
+    if (typeof value !== "string" || value.trim() === "") {
+      throw new Error("Trusted chat worker dispatch is missing an account, workspace or run identifier");
+    }
+  }
+  for (const value of [payload.sessionId, payload.chatRequestId]) {
+    if (value !== undefined && value !== null && (typeof value !== "string" || value.trim() === "")) {
+      throw new Error("Trusted chat worker dispatch contains an invalid session or request identifier");
+    }
+  }
+}
+
 type ChatWorkerInvocationDependencies = Readonly<{
   getTraceCarrier: () => BackendTraceCarrier | null;
   getFunctionName: () => string;
@@ -61,9 +73,6 @@ type ChatWorkerDispatchFailureDependencies = Readonly<{
 
 let lambdaClient: LambdaClient | null = null;
 
-/**
- * Returns the process-local Lambda client used to trigger chat workers.
- */
 function getLambdaClient(): LambdaClient {
   if (lambdaClient === null) {
     lambdaClient = new LambdaClient({});
@@ -72,9 +81,6 @@ function getLambdaClient(): LambdaClient {
   return lambdaClient;
 }
 
-/**
- * Reads the Lambda function name that owns backend-owned chat execution.
- */
 function getChatWorkerFunctionName(): string {
   const functionName = process.env.CHAT_WORKER_FUNCTION_NAME;
   if (functionName === undefined || functionName === "") {
@@ -121,14 +127,12 @@ export async function invokeChatWorkerWithDependencies(
   payload: ChatWorkerDispatch,
   dependencies: ChatWorkerInvocationDependencies,
 ): Promise<void> {
+  assertTrustedChatWorkerInvocation(payload);
   const invocation = createChatWorkerInvocation(payload, dependencies.getTraceCarrier());
   const command = createChatWorkerInvokeCommand(dependencies.getFunctionName(), invocation);
   await dependencies.sendCommand(command);
 }
 
-/**
- * Dispatches a persisted chat run to the asynchronous worker without waiting for completion.
- */
 export async function invokeChatWorker(
   payload: ChatWorkerDispatch,
 ): Promise<void> {
@@ -204,9 +208,6 @@ export async function invokeChatWorkerOrPersistFailureWithDependencies(
   }
 }
 
-/**
- * Dispatches a persisted chat run and marks it as failed if worker invocation itself fails.
- */
 export async function invokeChatWorkerOrPersistFailure(
   payload: ChatWorkerDispatch,
 ): Promise<void> {

@@ -1,10 +1,14 @@
 import { setTimeout as wait } from "node:timers/promises";
 import {
-  applyWorkspaceDatabaseScopeInExecutor,
   transactionWithWorkspaceScope,
   type DatabaseExecutor,
 } from "../../database";
 import { unsafeTransaction } from "../../database/unsafe";
+import { resolveCanonicalAccountIdInExecutor } from "../../auth/userIdentities";
+import {
+  applyMultipartWriterOwnerScopeInExecutor,
+  transactionWithMultipartWriterOwnerScope,
+} from "../multipart/writerLifecycle/ownerScope";
 import { HttpError } from "../../shared/errors";
 import {
   assertMediaBlobWriterReservationToken,
@@ -225,16 +229,18 @@ export async function completeMediaAssetUploadSessionForWorkspace(
   writer: MultipartMediaBlobWriterAttemptExactInput,
 ): Promise<MediaAssetMutationResult> {
   if (
-    userId !== writer.userId
-    || workspaceId !== writer.workspaceId
+    workspaceId !== writer.workspaceId
     || sessionId !== writer.sessionId
   ) {
     throw new MediaBlobWriterFenceError("multipart_apply_scope");
   }
   const exactWriter = snapshotMultipartAttemptExactInput(writer);
-  const outcome = await transactionWithWorkspaceScope(
-    { userId, workspaceId },
-    async (executor) => {
+  const outcome = await transactionWithMultipartWriterOwnerScope(
+    { userId: exactWriter.userId, workspaceId },
+    async (executor, scope) => {
+      if (await resolveCanonicalAccountIdInExecutor(executor, userId) !== scope.userId) {
+        throw new MediaBlobWriterFenceError("multipart_apply_scope");
+      }
       const fence =
         await fenceMediaAssetUploadSessionCompletionAttemptApplyWithOwnerInExecutor(
           executor,
@@ -366,11 +372,11 @@ export async function checkMediaAssetUploadSessionCompletionPendingForWorkspace(
   sessionId: string,
   mediaAssetId: string,
 ): Promise<boolean> {
-  return transactionWithWorkspaceScope(
+  return transactionWithMultipartWriterOwnerScope(
     { userId, workspaceId },
-    (executor) => checkMediaAssetUploadSessionCompletionPendingInExecutor(
+    (executor, scope) => checkMediaAssetUploadSessionCompletionPendingInExecutor(
       executor,
-      userId,
+      scope.userId,
       workspaceId,
       sessionId,
       mediaAssetId,
@@ -658,9 +664,9 @@ export async function beginMediaAssetUploadSessionCompletionAttemptAtLeaseTarget
       `leaseTargetAtMs must be more than ${multipartAttemptAbsoluteLeaseGrantPaddingMs}ms and at most ${maximumMultipartAttemptLeaseDurationMs}ms in the future.`,
     );
   }
-  return transactionWithWorkspaceScope(
+  return transactionWithMultipartWriterOwnerScope(
     { userId: snapshot.userId, workspaceId: snapshot.workspaceId },
-    async (executor) => {
+    async (executor, scope) => {
       await executor.query(
         `SELECT pg_catalog.pg_advisory_xact_lock(
            pg_catalog.hashtextextended(
@@ -668,7 +674,7 @@ export async function beginMediaAssetUploadSessionCompletionAttemptAtLeaseTarget
              0::BIGINT
            )
          )`,
-        [snapshot.userId, snapshot.workspaceId],
+        [scope.userId, scope.workspaceId],
       );
       const result = await executor.query<MultipartAttemptBeginRow>(
         `SELECT attempt_status, reservation_token, normalization_version, lease_expires_at
@@ -827,7 +833,7 @@ export function resolveMediaAssetUploadSessionCompletionAttemptFailureWithOwner(
   input: MultipartMediaBlobWriterAttemptExactInput,
 ): Promise<MultipartMediaBlobWriterAttemptFailureStatus> {
   const snapshot = snapshotMultipartAttemptExactInput(input);
-  return transactionWithWorkspaceScope(
+  return transactionWithMultipartWriterOwnerScope(
     { userId: snapshot.userId, workspaceId: snapshot.workspaceId },
     (executor) => queryMultipartAttemptStatus(
       executor,
@@ -843,7 +849,7 @@ export function resolveMediaAssetUploadSessionCompletionAttemptAfterAccessRevoca
 ): Promise<MultipartMediaBlobWriterAttemptRevocationStatus> {
   const snapshot = snapshotMultipartAttemptExactInput(input);
   return unsafeTransaction(async (executor) => {
-    await applyWorkspaceDatabaseScopeInExecutor(
+    await applyMultipartWriterOwnerScopeInExecutor(
       executor,
       { userId: snapshot.userId, workspaceId: snapshot.workspaceId },
     );
