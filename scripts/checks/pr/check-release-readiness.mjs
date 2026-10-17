@@ -176,7 +176,7 @@ try {
   assert.ok(partial.report.gates.every((gate) => !gate.ready && gate.errors.includes("missing recorded gate evidence")));
   const cloudIndex = localCloud.gates.findIndex((gate) => gate.id === "cloud-smoke");
   const selectedCloud = localCloud.gates[cloudIndex];
-  localCloud.results = [{ ...structuredClone(manifest.results[0]), gateId: selectedCloud.id, identity: selectedCloud.identity, status: "passed", warningReview: "complete", warnings: [], cases: selectedCloud.cases.map((test) => ({ id: test.id, status: "passed" })) }];
+  localCloud.results = [{ ...structuredClone(manifest.results[0]), gateId: selectedCloud.id, identity: structuredClone(selectedCloud.identity), status: "passed", warningReview: "complete", warnings: [], cases: selectedCloud.cases.map((test) => ({ id: test.id, status: "passed" })) }];
   assert.equal(invoke(localCloud).report.gates[cloudIndex].ready, true);
   for (const status of ["failed", "pending", "skipped"]) {
     const changed = structuredClone(localCloud);
