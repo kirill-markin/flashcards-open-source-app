@@ -145,13 +145,6 @@ private func onboardingDemoCardFrontText() -> String {
  localized. The three assembled paragraphs carry exactly two kinds of Markdown,
  both added here rather than in the localized values: bold around the product
  name and inline code around the rating label.
-
- The backticks are load-bearing. `classifyReviewContentPresentation` switches a
- card side to Markdown only on a backtick or a block-level cue, and inline
- emphasis alone never switches the mode (`docs/review-markdown-rendering.md`).
- Without the backticks this multi-paragraph text classifies as `paragraphPlain`,
- which renders verbatim, so the reader would see the literal `**` around the
- product name. Whoever removes the backticks must also remove the bold.
  */
 private func onboardingDemoCardBackText() -> String {
     let againRatingLabel = "`\(String(localized: "Again", table: reviewCardsStringsTableName))`"

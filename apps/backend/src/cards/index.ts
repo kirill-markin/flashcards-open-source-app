@@ -1,7 +1,7 @@
 /**
  * Card domain barrel. Review persistence and persisted FSRS state validation
- * live in ./review. Those modules enforce the invariants
- * described in docs/fsrs-scheduling-logic.md.
+ * live in ./review; ./review/fsrs.ts::getInvalidFsrsStateReason holds the
+ * persisted card-state invariants.
  */
 export type {
   AppendManagedImageToCardSideInput,

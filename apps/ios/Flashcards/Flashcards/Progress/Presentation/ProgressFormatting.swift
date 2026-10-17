@@ -157,8 +157,9 @@ func progressReviewScheduleBucketTitle(key: ReviewScheduleBucketKey) -> String {
     }
 }
 
-// Canonical palette, see docs/progress-pie-palette.md.
-// Keep the hex values in sync with the Android and Web clients.
+// Palette decisions: docs/progress-pie-palette.md. Keep the hex values in sync with
+// apps/android/feature/progress/src/main/java/com/flashcardsopensourceapp/feature/progress/sections/ProgressReviewScheduleSection.kt::reviewScheduleBucketColors
+// and apps/web/src/screens/progress/reviewSchedule/progressReviewScheduleModel.ts::reviewScheduleBucketColors.
 func progressReviewScheduleBucketColor(key: ReviewScheduleBucketKey) -> Color {
     switch key {
     case .new:
