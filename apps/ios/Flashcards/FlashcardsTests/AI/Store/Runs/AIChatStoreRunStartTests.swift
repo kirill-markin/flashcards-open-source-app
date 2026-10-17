@@ -207,7 +207,7 @@ final class AIChatStoreRunStartTests: XCTestCase {
         let store = context.makeStore()
         let syncGate = AIChatStoreTestSupport.AsyncGate()
         context.cloudSyncService.runLinkedSyncGate = syncGate
-        store.acceptExternalProviderConsent()
+        try context.acknowledgeExternalProviderConsent()
         store.bootstrapPhase = .ready
         store.chatSessionId = "session-1"
         store.conversationScopeId = "session-1"
@@ -276,8 +276,9 @@ final class AIChatStoreRunStartTests: XCTestCase {
             ).suppressDraftRestore
         )
 
-        context.userDefaults.removeObject(forKey: aiChatExternalProviderConsentUserDefaultsKey)
+        try context.flashcardsStore.aiConsent.resetIdentity()
         let restartedStore = context.makeStore()
+        XCTAssertFalse(restartedStore.hasExternalProviderConsent)
         XCTAssertEqual(restartedStore.inputText, persistedDraft.inputText)
         XCTAssertEqual(restartedStore.pendingAttachments, persistedDraft.pendingAttachments)
         XCTAssertEqual(
@@ -328,7 +329,7 @@ final class AIChatStoreRunStartTests: XCTestCase {
 
         try context.configureLinkedCloudSession()
         let store = context.makeStore()
-        store.acceptExternalProviderConsent()
+        try context.acknowledgeExternalProviderConsent()
         store.bootstrapPhase = .ready
         store.chatSessionId = "session-1"
         store.conversationScopeId = "session-1"
@@ -407,8 +408,9 @@ final class AIChatStoreRunStartTests: XCTestCase {
             )
         )
 
-        context.userDefaults.removeObject(forKey: aiChatExternalProviderConsentUserDefaultsKey)
+        try context.flashcardsStore.aiConsent.resetIdentity()
         let restartedStore = context.makeStore()
+        XCTAssertFalse(restartedStore.hasExternalProviderConsent)
 
         XCTAssertEqual(restartedStore.inputText, "")
         XCTAssertTrue(restartedStore.pendingAttachments.isEmpty)
@@ -443,7 +445,7 @@ final class AIChatStoreRunStartTests: XCTestCase {
             voiceRecorder: AIChatDisabledVoiceRecorder(),
             audioTranscriber: AIChatDisabledAudioTranscriber()
         )
-        store.acceptExternalProviderConsent()
+        try context.acknowledgeExternalProviderConsent()
         store.bootstrapPhase = .ready
         store.chatSessionId = "session-1"
         store.conversationScopeId = "session-1"
@@ -512,7 +514,7 @@ final class AIChatStoreRunStartTests: XCTestCase {
         let store = context.makeStore()
         let syncGate = AIChatStoreTestSupport.AsyncGate()
         context.cloudSyncService.runLinkedSyncGate = syncGate
-        store.acceptExternalProviderConsent()
+        try context.acknowledgeExternalProviderConsent()
         store.bootstrapPhase = .ready
         store.chatSessionId = "session-1"
         store.conversationScopeId = "session-1"
@@ -532,11 +534,13 @@ final class AIChatStoreRunStartTests: XCTestCase {
         XCTAssertEqual(store.inputText, "")
         XCTAssertTrue(store.pendingAttachments.isEmpty)
         XCTAssertEqual(store.messages.count, 2)
-        XCTAssertEqual(store.messages[0].role, .user)
-        XCTAssertEqual(store.messages[0].content, [.text("Help me review this card.")])
-        XCTAssertEqual(store.messages[1].role, .assistant)
-        XCTAssertTrue(isOptimisticAIChatStatusContent(content: store.messages[1].content))
-        XCTAssertEqual(store.activeStreamingMessageId, store.messages[1].id)
+        let optimisticUserMessage = try XCTUnwrap(store.messages.first)
+        let optimisticAssistantMessage = try XCTUnwrap(store.messages.dropFirst().first)
+        XCTAssertEqual(optimisticUserMessage.role, .user)
+        XCTAssertEqual(optimisticUserMessage.content, [.text("Help me review this card.")])
+        XCTAssertEqual(optimisticAssistantMessage.role, .assistant)
+        XCTAssertTrue(isOptimisticAIChatStatusContent(content: optimisticAssistantMessage.content))
+        XCTAssertEqual(store.activeStreamingMessageId, optimisticAssistantMessage.id)
         XCTAssertNil(store.activeStreamingItemId)
         XCTAssertEqual(store.composerPhase, .preparingSend)
         XCTAssertNotNil(store.activeSendTask)
@@ -553,7 +557,7 @@ final class AIChatStoreRunStartTests: XCTestCase {
 
         try context.configureLinkedCloudSession()
         let store = context.makeStore()
-        store.acceptExternalProviderConsent()
+        try context.acknowledgeExternalProviderConsent()
         store.bootstrapPhase = .ready
         store.chatSessionId = "session-explicit"
         store.conversationScopeId = "session-explicit"

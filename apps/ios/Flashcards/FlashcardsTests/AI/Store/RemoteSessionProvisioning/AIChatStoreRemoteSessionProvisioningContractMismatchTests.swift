@@ -11,7 +11,7 @@ final class AIChatStoreRemoteSessionProvisioningContractMismatchTests: XCTestCas
 
         try context.configureLinkedCloudSession()
         let store = context.makeStore()
-        store.acceptExternalProviderConsent()
+        try context.acknowledgeExternalProviderConsent()
         context.chatService.createNewSessionHandler = { request in
             guard let sessionId = request.sessionId, sessionId.isEmpty == false else {
                 throw LocalStoreError.validation("Expected an explicit AI chat session id before bootstrap validation.")
@@ -56,7 +56,7 @@ final class AIChatStoreRemoteSessionProvisioningContractMismatchTests: XCTestCas
 
         try context.configureLinkedCloudSession()
         let store = context.makeStore()
-        store.acceptExternalProviderConsent()
+        try context.acknowledgeExternalProviderConsent()
         store.chatSessionId = "session-1"
         store.conversationScopeId = "session-1"
         let expectedMessage = AIChatStoreTestSupport.makeAssistantTextMessage(
@@ -95,7 +95,7 @@ final class AIChatStoreRemoteSessionProvisioningContractMismatchTests: XCTestCas
 
         try context.configureLinkedCloudSession()
         let store = context.makeStore()
-        store.acceptExternalProviderConsent()
+        try context.acknowledgeExternalProviderConsent()
         store.chatSessionId = "session-1"
         store.conversationScopeId = "session-1"
         let expectedMessage = AIChatStoreTestSupport.makeAssistantTextMessage(

@@ -52,13 +52,15 @@ final class AIChatStoreRunRestorationTests: XCTestCase {
         XCTAssertNil(store.activeStreamingItemId)
     }
 
-    func testRestoredLiveDeltaReplacesOptimisticPlaceholder() {
+    func testRestoredLiveDeltaReplacesOptimisticPlaceholder() throws {
         let context = AIChatStoreTestSupport.Context.make()
         defer {
             context.tearDown()
         }
 
+        try context.configureLinkedCloudSession()
         let store = context.makeStore()
+        try context.acknowledgeExternalProviderConsent()
         let optimisticUserMessage = AIChatMessage(
             id: "message-local-user",
             role: .user,
@@ -133,13 +135,15 @@ final class AIChatStoreRunRestorationTests: XCTestCase {
         XCTAssertNil(store.currentOptimisticOutgoingTurn())
     }
 
-    func testRestoredEmptyFirstLiveDeltaKeepsOptimisticPlaceholderUntilRenderableTextArrives() {
+    func testRestoredEmptyFirstLiveDeltaKeepsOptimisticPlaceholderUntilRenderableTextArrives() throws {
         let context = AIChatStoreTestSupport.Context.make()
         defer {
             context.tearDown()
         }
 
+        try context.configureLinkedCloudSession()
         let store = context.makeStore()
+        try context.acknowledgeExternalProviderConsent()
         let optimisticUserMessage = AIChatMessage(
             id: "message-local-user",
             role: .user,
