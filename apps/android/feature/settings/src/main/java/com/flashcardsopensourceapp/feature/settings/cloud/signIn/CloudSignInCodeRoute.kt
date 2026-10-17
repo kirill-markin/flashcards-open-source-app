@@ -14,6 +14,8 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -31,6 +33,9 @@ fun CloudSignInCodeRoute(
     onShowTechnicalDetails: (String, String) -> Unit,
     onBack: () -> Unit
 ) {
+    val focusManager = LocalFocusManager.current
+    val keyboardController = LocalSoftwareKeyboardController.current
+
     LaunchedEffect(Unit) { onShown() }
     SettingsScreenScaffold(
         title = stringResource(R.string.settings_sign_in_verify_title),
@@ -88,7 +93,11 @@ fun CloudSignInCodeRoute(
 
             item {
                 Button(
-                    onClick = onVerifyCode,
+                    onClick = {
+                        focusManager.clearFocus()
+                        keyboardController?.hide()
+                        onVerifyCode()
+                    },
                     enabled = !uiState.isVerifyingCode && uiState.challengeEmail != null && uiState.code.length == 8,
                     modifier = Modifier.fillMaxWidth().testTag("cloud_sign_in_verify_button")
                 ) {
