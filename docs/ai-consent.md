@@ -74,7 +74,7 @@ The cloud PostgreSQL runner selects
 [`consent.postgres.integration.ts`](../apps/backend/src/aiConsent/consent.postgres.integration.ts)
 at migration `0180` in
 [`boundaries.mjs`](../apps/backend/scripts/postgresIntegrations/boundaries.mjs). AWS/Web Release
-runs it against PostgreSQL 18 before deployment. It exercises real guest-authenticated HTTP and
+runs it against PostgreSQL 18 alongside each platform deployment. It exercises real guest-authenticated HTTP and
 the runtime role, immutable timestamp replay, ownership isolation, out-of-order withdrawal,
 regrant, chat-run receipt persistence, readable history/stop, tied guest/destination sequences through
 guest merge and higher-decision recovery, and deletion cascades.

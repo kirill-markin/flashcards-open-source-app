@@ -21,6 +21,23 @@ const supportedBundlingOptions = new Set([
 ]);
 const repoRoot = resolveFromRepoRoot();
 
+// DockerImage.fromBuild builds eagerly, which costs a base-image pull even when
+// every bundle is a cache hit. This carries fromBuild's tag and hash, so asset
+// hashes are unchanged, and builds only when CDK actually bundles.
+class OnDemandDockerImage extends cdk.DockerImage {
+  constructor(
+    private readonly buildPath: string,
+    private readonly buildOptions: cdk.DockerBuildOptions,
+  ) {
+    const hash = cdk.FileSystem.fingerprint(buildPath, { extraHash: JSON.stringify(buildOptions) });
+    super(`cdk-${hash}`, hash);
+  }
+
+  public override run(options: cdk.DockerRunOptions): void {
+    cdk.DockerImage.fromBuild(this.buildPath, this.buildOptions).run(options);
+  }
+}
+
 interface NpmLockfile {
   readonly lockfileVersion: number;
   readonly packages: Readonly<Record<string, { readonly resolved?: string; readonly link?: boolean }>>;
@@ -200,7 +217,7 @@ export function createCachedNodejsFunction(
       externalModules,
       ...(bundling.forceDockerBundling
         ? {
-            dockerImage: cdk.DockerImage.fromBuild(resolveFromRepoRoot("infra", "aws", "docker", "lambda-nodejs"), {
+            dockerImage: new OnDemandDockerImage(resolveFromRepoRoot("infra", "aws", "docker", "lambda-nodejs"), {
               buildArgs: { IMAGE: props.runtime.bundlingImage.image, ESBUILD_VERSION: esbuild.version },
               platform: (props.architecture ?? lambda.Architecture.X86_64).dockerPlatform,
             }),

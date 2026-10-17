@@ -1,6 +1,11 @@
 {
   "app": "npx ts-node bin/app.ts",
   "context": {
-    "@aws-cdk/core:defaultCrossStackReferences": "strong"
+    "@aws-cdk/core:defaultCrossStackReferences": "strong",
+    "availability-zones:account=506210661494:region=eu-central-1": [
+      "eu-central-1a",
+      "eu-central-1b",
+      "eu-central-1c"
+    ]
   }
 }
