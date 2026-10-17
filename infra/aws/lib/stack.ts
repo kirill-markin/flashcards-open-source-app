@@ -635,6 +635,7 @@ export class FlashcardsOpenSourceAppStack extends cdk.Stack {
     const geoLiteCountryBucket = geoLiteCountry(this, api.backendFn);
     addDatabaseMigrationDependency(api.backendFn, migrationGate);
     addDatabaseMigrationDependency(api.directImageIngestionFn, migrationGate);
+    addDatabaseMigrationDependency(mcpApi.mcpFn, migrationGate);
     // The worker reads the product database on every run. The API waiting for the worker
     // (gateways/api-gateway.ts) does not hold the worker back, so it needs its own gate.
     addDatabaseMigrationDependency(api.chatWorkerFn, migrationGate);
