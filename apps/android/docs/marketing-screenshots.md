@@ -73,7 +73,7 @@ They run `:app:connectedMarketingScreenshotAndroidTest`, not the normal debug in
 The wrapper verifies initial guest cleanup, capture, and final guest cleanup separately using fresh AGP test reports. It publishes the staged PNGs only after all three stages pass and attempts cleanup from an exit trap on failure. Keep the emulator’s owning session alive until the wrapper has exited; follow the [runbook](marketing-screenshot-runbook.md) for result evidence and shutdown sequencing.
 The screenshot reset flow remains as an in-test defense: it deletes the guest cloud session remotely before it clears local screenshot state so the seeded guest workspace does not remain on the backend after the run.
 
-The unified wrapper script runs one manual-only entrypoint, seeds one guest workspace, saves screenshots 1, 2, 3, 4, and 5 into `/sdcard/Download/flashcards-marketing-screenshots/`, and then pulls those files into the committed marketing media directory.
+The unified wrapper script runs one manual-only entrypoint, seeds one guest workspace, saves screenshots 1, 2, 3, 4, and 5 into `/sdcard/Download/flashcards-marketing-screenshots/`, and then pulls those files into the ignored marketing media directory.
 
 ## JSON locale packs
 

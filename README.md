@@ -2,7 +2,7 @@
 
 AI-powered, open-source flashcards for iPhone, iPad, Mac, Android, and the web.
 
-![Nibomo screenshots](apps/ios/docs/media/marketing-materials/iphone/en-US-1-2-3-4-5-horizontal-dark-gray.png)
+![Nibomo screenshots](https://github.com/kirill-markin/flashcards-open-source-app/releases/download/media-archive-20261017/readme-screenshots.png)
 
 Prepare for exams, learn vocabulary, and memorize technical terms and facts. Create and improve cards with AI, study offline on mobile, and review with FSRS spaced repetition.
 
