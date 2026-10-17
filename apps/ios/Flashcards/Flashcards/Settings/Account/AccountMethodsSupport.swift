@@ -86,6 +86,15 @@ func recordAccountMethodObservation(_ observation: CloudAccountMethodObservation
     }
 }
 
+enum AccountMethodsEntry {
+    case methods, suggestedConnection
+}
+
+enum AccountMethodDestination: String, Hashable {
+    case currentAccount, providerAccount, code, mailbox
+    case connectionProvider, connectionEmail, connectionPreview, outcome
+}
+
 struct AccountMethodViewIdentity: Hashable {
     let configuration: CloudServiceConfiguration?
     let userId: String?

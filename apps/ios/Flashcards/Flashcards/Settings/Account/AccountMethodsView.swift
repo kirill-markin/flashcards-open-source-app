@@ -14,14 +14,34 @@ struct AccountMethodsView: View {
     @State private var email = ""
     @State private var code = ""
     @State private var proofMethod: AnalyticsAuthMethod = .email
+    @State private var path: [AccountMethodDestination] = []
+    @State private var hasHandledEntry = false
+    let entry: AccountMethodsEntry
 
-    init(store: FlashcardsStore) {
+    init(store: FlashcardsStore, entry: AccountMethodsEntry) {
+        self.entry = entry
         self._coordinator = State(initialValue: CloudAccountMethodCoordinator(
             service: CloudAccountMethodService(session: .shared),
             social: CloudSocialAuthService(session: .shared), store: store))
     }
 
     var body: some View {
+        NavigationStack(path: self.$path) {
+            self.methodsList
+                .navigationDestination(for: AccountMethodDestination.self) { destination in
+                    self.operationScreen(destination)
+                }
+        }
+        .task(id: self.identity) { self.startOver() }
+        .onDisappear { self.stop() }
+        .onChange(of: self.path) { previous, current in
+            if current.count < previous.count && (self.operation != nil || self.coordinator.isConnecting) {
+                self.startOver()
+            }
+        }
+    }
+
+    private var methodsList: some View {
         List {
             if self.isDemo {
                 Text(accountMethodCopy(.demo))
@@ -76,41 +96,107 @@ struct AccountMethodsView: View {
                         }
                     }.disabled(self.busy)
                 }
-                if self.coordinator.isConnecting {
-                    Section(connectionCopy(.title)) { self.connectionControls }
-                        .disabled(self.busy)
-                }
-                if let operation = self.operation {
-                    Section {
-                        Text("\(accountMethodOperationTitle(operation)): \(operation.provider.displayName)")
-                            .font(.headline)
-                        self.proofControls(operation)
-                    }
-                    .disabled(self.busy)
-                }
-                if let message = self.message { Text(message).foregroundStyle(.red).accessibilityIdentifier("accountMethods.error") }
-                if self.coordinator.refreshError != nil { Text(accountMethodCopy(.refreshFailed)).foregroundStyle(.red) }
-                if self.coordinator.activeReenableMethodAfterFailure != nil {
-                    Text(aiSettingsLocalized("common.on", "On"))
-                }
-                if self.coordinator.confirmedOperation != nil { Text(aiSettingsLocalized("common.done", "Done")) }
-                if self.busy { ProgressView().accessibilityIdentifier("accountMethods.progress") }
-                Button(self.operation == nil && !self.coordinator.isConnecting ? aiSettingsLocalized("common.retry", "Retry")
-                    : aiSettingsLocalized("settings.account.cloudSignIn.restart", "Start again")) { self.startOver() }
-                    .disabled(self.busy)
-                    .accessibilityIdentifier("accountMethods.refresh")
+                self.statusControls
             }
         }
         .navigationTitle(accountMethodCopy(.title))
         .accessibilityIdentifier("accountMethods.screen")
-        .background(AccountMethodPresenter(onReady: { if self.presenter !== $0 { self.presenter = $0 } }).frame(width: 0, height: 0))
         .toolbar {
             ToolbarItem(placement: .cancellationAction) {
                 Button(aiSettingsLocalized("common.close", "Close")) { self.stop(); self.dismiss() }
             }
         }
-        .task(id: self.identity) { self.startOver() }
-        .onDisappear { self.stop() }
+    }
+
+    private func operationScreen(_ destination: AccountMethodDestination) -> some View {
+        List {
+            Section {
+                if destination == .currentAccount, let email = self.store.cloudRuntime.activeCloudSession()?.email {
+                    Label(email, systemImage: "envelope").textSelection(.enabled)
+                }
+                if self.coordinator.isConnecting {
+                    self.connectionControls
+                } else {
+                    self.proofControls(self.operation)
+                }
+            }
+            .disabled(self.busy)
+            self.statusControls
+        }
+        .navigationTitle(self.stepTitle(destination))
+        .navigationBarTitleDisplayMode(.inline)
+        .navigationBarBackButtonHidden(self.busy)
+        .accessibilityIdentifier("accountMethods.step.\(destination.rawValue)")
+        .background(AccountMethodPresenter(onReady: { controller in
+            guard self.path.last == destination else { return }
+            if self.presenter !== controller { self.presenter = controller }
+        }).frame(width: 0, height: 0))
+        .toolbar {
+            ToolbarItem(placement: .cancellationAction) {
+                Button(aiSettingsLocalized("common.close", "Close")) { self.stop(); self.dismiss() }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var statusControls: some View {
+        if let message = self.message { Text(message).foregroundStyle(.red).accessibilityIdentifier("accountMethods.error") }
+        if self.coordinator.refreshError != nil { Text(accountMethodCopy(.refreshFailed)).foregroundStyle(.red) }
+        if self.coordinator.activeReenableMethodAfterFailure != nil {
+            Text(aiSettingsLocalized("common.on", "On"))
+        }
+        if self.coordinator.confirmedOperation != nil { Text(aiSettingsLocalized("common.done", "Done")) }
+        if self.busy { ProgressView().accessibilityIdentifier("accountMethods.progress") }
+        Button(self.operation == nil && !self.coordinator.isConnecting ? aiSettingsLocalized("common.retry", "Retry")
+            : aiSettingsLocalized("settings.account.cloudSignIn.restart", "Start again")) { self.startOver() }
+            .disabled(self.busy)
+            .accessibilityIdentifier("accountMethods.refresh")
+    }
+
+    private func stepTitle(_ destination: AccountMethodDestination) -> String {
+        switch destination {
+        case .currentAccount:
+            return aiSettingsLocalized("settings.account.cloudSignIn.section.cloudAccount", "Cloud account")
+        case .code, .mailbox, .connectionEmail:
+            return aiSettingsLocalized("settings.account.cloudSignIn.verifyCodeTitle", "Verify code")
+        case .connectionProvider:
+            return connectionCopy(.title)
+        case .connectionPreview:
+            return connectionCopy(.suggestion)
+        case .providerAccount, .outcome:
+            return self.operation.map { "\(accountMethodOperationTitle($0)): \($0.provider.displayName)" }
+                ?? connectionCopy(.title)
+        }
+    }
+
+    private func showStep(_ destination: AccountMethodDestination) {
+        guard self.path.last != destination else { return }
+        self.path.append(destination)
+    }
+
+    private func showCurrentStep() {
+        if self.coordinator.isConnecting {
+            if self.coordinator.connectionOutcome != nil { self.showStep(.outcome) }
+            else if self.coordinator.connectionPreview != nil || self.coordinator.connectionConfirmation != nil {
+                self.showStep(.connectionPreview)
+            } else if self.coordinator.connectionEmail != nil { self.showStep(.connectionEmail) }
+            else if self.coordinator.connectionOperation != nil { self.showStep(.connectionProvider) }
+            else {
+                switch self.coordinator.stage {
+                case .currentEmailCodeSent, .mailboxCodeSent: self.showStep(.code)
+                case .mailboxRequired: self.showStep(.mailbox)
+                default: self.showStep(.currentAccount)
+                }
+            }
+        } else if self.operation != nil {
+            switch self.coordinator.stage {
+            case .proofReady: self.showStep(.providerAccount)
+            case .currentEmailCodeSent, .mailboxCodeSent: self.showStep(.code)
+            case .mailboxRequired: self.showStep(.mailbox)
+            case .finished: self.showStep(.outcome)
+            default: break
+            }
+        }
     }
 
     @ViewBuilder
@@ -291,6 +377,7 @@ struct AccountMethodsView: View {
         self.message = nil
         self.code = ""
         self.email = ""
+        self.showStep(.currentAccount)
     }
 
     private func stop() {
@@ -300,11 +387,15 @@ struct AccountMethodsView: View {
         self.coordinator.onObservation = nil
         self.coordinator.cancel()
         self.availability = nil
+        self.presenter = nil
         self.busy = false
     }
 
     private func startOver() {
+        let adoptSuggestion = self.entry == .suggestedConnection && !self.hasHandledEntry
+        self.hasHandledEntry = true
         self.stop()
+        self.path = []
         self.operation = nil
         self.code = ""
         self.email = ""
@@ -316,6 +407,7 @@ struct AccountMethodsView: View {
             guard self.epoch == epoch, self.identity == identity, !Task.isCancelled else { return }
             recordAccountMethodObservation(observation)
         }
+        if adoptSuggestion { self.showStep(.connectionPreview) }
         self.run {
             try await self.coordinator.load()
             let configuration = try self.store.currentCloudServiceConfiguration()
@@ -324,6 +416,9 @@ struct AccountMethodsView: View {
             guard self.epoch == epoch, !Task.isCancelled,
                   try self.store.currentCloudServiceConfiguration() == configuration else { throw CancellationError() }
             self.availability = availability
+            if adoptSuggestion {
+                try await self.coordinator.adoptConnectionSuggestion()
+            }
         }
     }
 
@@ -378,6 +473,7 @@ struct AccountMethodsView: View {
                 try Task.checkCancellation()
                 try await action()
                 guard self.epoch == epoch, self.identity == identity else { return }
+                self.showCurrentStep()
                 if case .mailboxRequired = self.coordinator.stage {
                     self.code = ""
                     self.email = self.coordinator.mailboxChallenge?.providerEmail ?? ""
