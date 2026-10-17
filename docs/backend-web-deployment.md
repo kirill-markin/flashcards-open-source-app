@@ -365,7 +365,7 @@ Cross-client live smoke references:
 
 After pushing to `main`, watch `AWS/Web Release` until the release either finishes green or fails clearly after deploy. This pipeline is intentionally fix-forward only: a failed post-deploy smoke leaves the deployed AWS/Web release in place, marks that run failed, and the next push must still be allowed to deploy.
 
-The workflow does not perform an automated production admin login smoke in v1. Use the manual checklist in [docs/admin-app.md](./admin-app.md) after deploy.
+The workflow does not perform an automated production admin login smoke in v1. Use the [admin manual smoke checklist](./admin-app.md#manual-smoke-checklist) after deploy.
 
 The monthly AI allowance is not configured per environment. It is resolved in backend code
 (`apps/backend/src/billing/limits.ts`), so changing it is a deploy and needs no variable in local

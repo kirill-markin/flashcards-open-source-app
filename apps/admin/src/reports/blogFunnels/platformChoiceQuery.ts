@@ -155,7 +155,8 @@ function buildGroupCountSqlLines(
  * THE HOME PAGE VIEW IS A STEP RATHER THAN ONE WAY OF REACHING THE CLICK. The blog's calls to action all
  * lead to the home page, so that is the designed path, and a reader who somehow clicks a platform badge
  * without ever seeing the home page is deliberately outside this funnel rather than widening step two
- * into a union of every route to a platform.
+ * into a union of every route to a platform. It never reads `site_internal_cta_clicked`: the home page
+ * view that click produces is the step, so a site bundle that stops reporting the click cannot move it.
  *
  * THE STEPS JOIN ON THE VISITOR IDENTITY ALONE AND NEVER ON `source`. The site classifies a page view's
  * source from the page previously reported, while a click on that same page classifies it from the

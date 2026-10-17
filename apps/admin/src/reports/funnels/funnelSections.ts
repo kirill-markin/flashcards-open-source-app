@@ -98,8 +98,8 @@ export type FunnelSectionDefinition = Readonly<{
  * views before consenting and cookie-bearing ones after, so on that day they can be one hashed person
  * and one identified person at the same step, and the two are added. Step one of the deck funnel is
  * "viewed any deck page", and a site funnel's step one is an entry page, so either can hold a person
- * on both sides of their own consent click. No SQL here can subtract that overlap; the sections and
- * `docs/admin-app.md` state it wherever they show the split.
+ * on both sides of their own consent click. No SQL here can subtract that overlap; every section that
+ * shows the split states it.
  *
  * Each funnel also counts entries only from a fixed start date in its query, so no selection shows a
  * partial first day, and warns while some entries are still inside their seven-day window.

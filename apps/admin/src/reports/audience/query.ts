@@ -70,6 +70,9 @@ export type AudienceReport = Readonly<{
 // sessions cascaded with it while their `app_opened` rows keep them in the cohort, so they report as
 // no answer recorded even if they answered; and a signed-out browser, whose switch is enforced in
 // that browser because a web guest credential never holds a value here.
+// `reporting_readonly` reads the two guest columns only through their own grants,
+// `0150_reporting_readonly_guest_product_analytics.sql` and `0147_guest_session_analytics_consent.sql`;
+// without `0150` deployed the whole section fails as HTTP 500 `INTERNAL_ERROR`.
 export function buildAudienceSql(filters: AnalyticsFilterState): string {
   const dateRange = assertValidDateRange(filters.dateRange, "Audience");
   const userSelection = buildUsersFilterSql("history.actor_id::text", filters.users);

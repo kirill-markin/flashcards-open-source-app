@@ -356,6 +356,12 @@ export function buildReviewEventsByDateAvailableRangeSql(): string {
 // this report, and the expression the cohort filter is applied to.
 const reviewCohortSqlExpression = "CASE WHEN review_answers.review_date = actor_first_review_date.first_review_date THEN 'new' ELSE 'returning' END";
 
+/**
+ * The email join folds the stored side with `pg_catalog.lower` because `actor_id` renders canonical
+ * lowercase hex while `org.user_settings.user_id` is an unconstrained TEXT key, so an unfolded join would
+ * miss an uppercase-hex row. An actor with no settings row, such as a deleted account's anonymized
+ * history, is counted as `(no email)`.
+ */
 export function buildReviewEventsByDateSql(filters: AnalyticsFilterState): string {
   const dateRange = assertValidDateRange(filters.dateRange, "Review events report");
   const from = dateRange.from;
