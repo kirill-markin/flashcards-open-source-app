@@ -62,7 +62,7 @@ const requestContext: RequestContext = {
   locale: "en",
   userSettingsCreatedAt: testTimestamp,
   preferences: {
-    accentColor: "#C44B2D",
+    accentColor: "#FF6719",
     reviewReactionAnimationsEnabled: true,
     analyticsConsent: null,
     productAnalyticsEnabled: null,

@@ -64,7 +64,7 @@ function createRequestContext(transport: RequestContext["transport"]): RequestCo
     locale: "en",
     userSettingsCreatedAt: "2026-04-17T00:00:00.000Z",
     preferences: {
-      accentColor: "#C44B2D",
+      accentColor: "#FF6719",
       reviewReactionAnimationsEnabled: true,
       analyticsConsent: null,
       productAnalyticsEnabled: null,

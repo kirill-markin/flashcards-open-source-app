@@ -250,7 +250,7 @@ test("guest merge adopts a guest accent only for a default destination and prese
   const userIds: Array<string> = [];
   const workspaceIds: Array<string> = [];
   try {
-    for (const targetColor of ["#C44B2D", "#4D8DFF"]) {
+    for (const targetColor of ["#FF6719", "#4D8DFF", "#C44B2D"]) {
       const guest = await createGuestSession("android", null);
       userIds.push(guest.userId);
       workspaceIds.push(guest.workspaceId);
@@ -268,7 +268,7 @@ test("guest merge adopts a guest accent only for a default destination and prese
       assert.equal((await prepareGuestUpgrade(guest.guestToken, subject, null)).mode, "merge_required");
       const selection = { type: "existing", workspaceId: targetWorkspaceId } as const;
       await completeGuestUpgrade(guest.guestToken, subject, selection, UPGRADE_CAPABILITIES);
-      const expectedColor = targetColor === "#C44B2D" ? "#F472B6" : targetColor;
+      const expectedColor = targetColor === "#FF6719" ? "#F472B6" : targetColor;
       assert.equal((await ensureCognitoUserProfile(subject, null)).preferences.accentColor, expectedColor);
 
       await updateAccountPreferences(target.userId, parseAccountPreferencesInput({ accentColor: "#EAB308" }));

@@ -61,7 +61,7 @@ function toUuidFromSeedForTest(seed: string): string {
 
 export function createUserSettingsState(userId: string, workspaceId: string | null, email: string | null): UserSettingsState {
   return {
-    accent_color: "#C44B2D",
+    accent_color: "#FF6719",
     user_id: userId,
     workspace_id: workspaceId,
     email,

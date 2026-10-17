@@ -348,7 +348,7 @@ export async function checkProviderEmailEnrollment(runtime: pg.Client, owner: pg
     assert.deepEqual(adoptedSnapshot, { ...originalSnapshot, snapshot_account: mintedAccount });
     assert.deepEqual((await owner.query("SELECT workspace_id,email,locale,review_reaction_animations_enabled,analytics_consent,product_analytics_enabled,accent_color FROM org.user_settings WHERE user_id = $1",
       [mintedAccount])).rows[0], { workspace_id: null, email: returnEmail.email, locale: "en",
-      review_reaction_animations_enabled: true, analytics_consent: null, product_analytics_enabled: null, accent_color: "#C44B2D" });
+      review_reaction_animations_enabled: true, analytics_consent: null, product_analytics_enabled: null, accent_color: "#FF6719" });
     assert.equal((await owner.query("SELECT 1 FROM org.workspace_memberships WHERE user_id = $1", [mintedAccount])).rowCount, 0);
     assert.equal((await owner.query("SELECT 1 FROM org.user_settings WHERE user_id = ANY($1::text[])",
       [[unprovisionedSubject, returnEmail.cognitoSubject]])).rowCount, 0);

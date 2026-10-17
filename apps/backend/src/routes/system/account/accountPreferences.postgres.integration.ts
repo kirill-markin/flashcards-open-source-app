@@ -10,14 +10,24 @@ import { createSystemRoutes } from "../index";
 import { parseAccountPreferencesInput } from "../support";
 import { updateAccountPreferences } from "./accountPreferences";
 
-test("accent preference persists through account reads and older PATCH bodies", async () => {
+test("accent migration preserves custom colors and preferences persist through account reads and older PATCH bodies", async () => {
   const ownerPool = new pg.Pool({ connectionString: requireOwnerDatabaseUrl() });
   const userId = randomUUID();
   let workspaceId: string | null = null;
   try {
+    const migrated = await ownerPool.query<Readonly<{ user_id: string; accent_color: string }>>(
+      "SELECT user_id, accent_color FROM org.user_settings WHERE user_id = ANY($1::text[]) ORDER BY user_id",
+      [["accent-migration-default", "accent-migration-old-selection", "accent-migration-custom", "accent-migration-new-selection"]],
+    );
+    assert.deepEqual(migrated.rows, [
+      { user_id: "accent-migration-custom", accent_color: "#4D8DFF" },
+      { user_id: "accent-migration-default", accent_color: "#FF6719" },
+      { user_id: "accent-migration-new-selection", accent_color: "#FF6719" },
+      { user_id: "accent-migration-old-selection", accent_color: "#FF6719" },
+    ]);
     const profile = await ensureUserProfile(userId, null);
     workspaceId = profile.selectedWorkspaceId;
-    assert.equal(profile.preferences.accentColor, "#C44B2D");
+    assert.equal(profile.preferences.accentColor, "#FF6719");
     const selected = await updateAccountPreferences(
       userId,
       parseAccountPreferencesInput({ accentColor: "#0aB19f" }),
@@ -40,6 +50,17 @@ test("accent preference persists through account reads and older PATCH bodies", 
       analyticsConsent: "declined",
       productAnalyticsEnabled: false,
     });
+    const oldOrangeSelection = await updateAccountPreferences(
+      userId,
+      parseAccountPreferencesInput({ accentColor: "#c44b2d" }),
+    );
+    assert.equal(oldOrangeSelection.accentColor, "#C44B2D");
+    const preservedOldOrange = await updateAccountPreferences(
+      userId,
+      parseAccountPreferencesInput({ reviewReactionAnimationsEnabled: true }),
+    );
+    assert.equal(preservedOldOrange.accentColor, "#C44B2D");
+    assert.equal((await ensureUserProfile(userId, null)).preferences.accentColor, "#C44B2D");
     for (const invalid of [null, "#abc", "#12345678", "123456", "#GG0000", "#123456\n"]) {
       await assert.rejects(
         ownerPool.query("UPDATE org.user_settings SET accent_color = $2 WHERE user_id = $1", [userId, invalid]),

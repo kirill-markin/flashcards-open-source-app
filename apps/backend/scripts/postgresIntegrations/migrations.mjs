@@ -666,6 +666,21 @@ async function applySingleMigration(
           await client.query("COMMIT");
           transactionStarted = false;
         }
+        if (fileName === "0217_default_accent_color.sql") {
+          await client.query("BEGIN");
+          transactionStarted = true;
+          await client.query(
+            "INSERT INTO org.user_settings(user_id) VALUES ('accent-migration-default')",
+          );
+          await client.query(
+            "INSERT INTO org.user_settings(user_id, accent_color) VALUES"
+              + " ('accent-migration-old-selection', '#C44B2D'),"
+              + " ('accent-migration-custom', '#4D8DFF'),"
+              + " ('accent-migration-new-selection', '#FF6719')",
+          );
+          await client.query("COMMIT");
+          transactionStarted = false;
+        }
         if (fileName === "0195_stable_client_account_identity.sql") {
           await client.query("BEGIN");
           transactionStarted = true;
