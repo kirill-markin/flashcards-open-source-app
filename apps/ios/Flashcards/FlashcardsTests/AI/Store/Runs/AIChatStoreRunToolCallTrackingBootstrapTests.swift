@@ -124,6 +124,7 @@ final class AIChatStoreRunToolCallTrackingBootstrapTests: XCTestCase {
         }
 
         try context.configureLinkedCloudSession()
+        try context.acknowledgeExternalProviderConsent()
         await context.historyStore.saveState(
             state: AIChatPersistedState(
                 messages: [AIChatStoreTestSupport.makeAssistantTextMessage(itemId: "item-1")],
@@ -211,12 +212,14 @@ final class AIChatStoreRunToolCallTrackingBootstrapTests: XCTestCase {
         XCTAssertFalse(store.hasPendingToolRunPostSync())
     }
 
-    func testHandleLiveEventMarksRunWhenToolCallStarts() {
+    func testHandleLiveEventMarksRunWhenToolCallStarts() throws {
         let context = AIChatStoreTestSupport.Context.make()
         defer {
             context.tearDown()
         }
 
+        try context.configureLinkedCloudSession()
+        try context.acknowledgeExternalProviderConsent()
         let store = context.makeStore()
         let activeRun = AIChatStoreTestSupport.makeActiveRun()
         let envelope = AIChatStoreTestSupport.makeConversationEnvelope(
