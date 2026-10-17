@@ -950,3 +950,23 @@
 
 "settings.account.cloudSignIn.continueGoogle" = "Продължаване с Google";
 "settings.account.cloudSignIn.appleCleanupPending" = "Apple завършва актуализация на сигурността. Опитайте отново с Apple след малко или изберете друг начин за вход.";
+
+"settings.account.connection.title" = "Свързване на акаунти";
+"settings.account.connection.suggestion" = "Преглед на предложеното свързване";
+"settings.account.connection.data" = "Картите, преговорите и пространствата се запазват. Членствата се обединяват; собствеността има предимство.";
+"settings.account.connection.settings" = "Прилагат се настройките и публичният профил на целта с по-строга поверителност. Истинският основен имейл се запазва или се използва доказан реален адрес.";
+"settings.account.connection.billing" = "Покупките, правата, използването и данните за интеграции следват свързания акаунт. Абонаментите и първоначалната история на пробните периоди не се променят.";
+"settings.account.connection.destination" = "Избрана цел";
+"settings.account.connection.hidden" = "Скрито от избора на работни пространства";
+"settings.account.connection.omit" = "Заявка за пропускане, ако е допустимо";
+"settings.account.connection.preserve" = "Могат да се скриват само подходящи начални пространства. Данните се запазват, както и другите работни пространства.";
+"settings.account.connection.confirm" = "Потвърждаване на свързването";
+"settings.account.connection.connected" = "Акаунтите са свързани.";
+"settings.account.connection.alreadyConnected" = "Тези акаунти вече са свързани.";
+"settings.account.connection.cancelled" = "Свързването е отменено.";
+"settings.account.connection.uncertain" = "Потвърждението е изпратено, но резултатът е неизвестен. Проверете го със същото потвърждение.";
+"settings.account.connection.replay" = "Проверка на резултата";
+"settings.account.connection.preview" = "Обновяване на прегледа";
+"settings.account.connection.previewChanged" = "Прегледът е променен. Обновете го и изрично потвърдете новия преглед.";
+"settings.account.connection.restart" = "Доказателството е изтекло или е използвано. Започнете отново с ново доказателство.";
+"settings.account.connection.restorePaused" = "Акаунтите са свързани. Локалното обновяване е спряно; офлайн данните ви са запазени.";

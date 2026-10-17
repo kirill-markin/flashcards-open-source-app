@@ -950,3 +950,23 @@
 
 "settings.account.cloudSignIn.continueGoogle" = "Tiếp tục với Google";
 "settings.account.cloudSignIn.appleCleanupPending" = "Apple đang hoàn tất bản cập nhật bảo mật. Hãy thử lại với Apple sau giây lát hoặc chọn phương thức đăng nhập khác.";
+
+"settings.account.connection.title" = "Kết nối tài khoản";
+"settings.account.connection.suggestion" = "Xem kết nối được đề xuất";
+"settings.account.connection.data" = "Thẻ, lượt ôn tập và không gian được giữ lại. Tư cách thành viên được hợp nhất; quyền sở hữu được ưu tiên.";
+"settings.account.connection.settings" = "Áp dụng cài đặt và hồ sơ công khai của đích với quyền riêng tư chặt chẽ hơn. Giữ email chính thực hoặc dùng email thực đã được chứng minh.";
+"settings.account.connection.billing" = "Giao dịch mua, quyền, mức sử dụng và thông tin xác thực tích hợp theo tài khoản đã kết nối. Đăng ký và lịch sử dùng thử gốc không đổi.";
+"settings.account.connection.destination" = "Đích đã chọn";
+"settings.account.connection.hidden" = "Ẩn khỏi các lựa chọn không gian làm việc";
+"settings.account.connection.omit" = "Yêu cầu bỏ qua nếu đủ điều kiện";
+"settings.account.connection.preserve" = "Chỉ có thể ẩn các không gian khởi đầu đủ điều kiện. Dữ liệu và các không gian làm việc khác được giữ nguyên.";
+"settings.account.connection.confirm" = "Xác nhận kết nối";
+"settings.account.connection.connected" = "Đã kết nối tài khoản.";
+"settings.account.connection.alreadyConnected" = "Các tài khoản này đã được kết nối.";
+"settings.account.connection.cancelled" = "Đã hủy kết nối.";
+"settings.account.connection.uncertain" = "Đã gửi xác nhận nhưng chưa rõ kết quả. Kiểm tra bằng chính xác nhận đó.";
+"settings.account.connection.replay" = "Kiểm tra kết quả xác nhận";
+"settings.account.connection.preview" = "Làm mới bản xem trước";
+"settings.account.connection.previewChanged" = "Bản xem trước đã đổi. Hãy làm mới và xác nhận rõ ràng bản xem trước mới.";
+"settings.account.connection.restart" = "Bằng chứng đã hết hạn hoặc được dùng. Bắt đầu lại với bằng chứng mới.";
+"settings.account.connection.restorePaused" = "Đã kết nối tài khoản. Làm mới cục bộ đang tạm dừng; dữ liệu ngoại tuyến được giữ lại.";

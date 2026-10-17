@@ -978,3 +978,23 @@
 
 "settings.account.cloudSignIn.continueGoogle" = "Google से जारी रखें";
 "settings.account.cloudSignIn.appleCleanupPending" = "Apple सुरक्षा अपडेट पूरा कर रहा है। थोड़ी देर बाद Apple से फिर कोशिश करें या साइन इन करने का कोई दूसरा तरीका चुनें।";
+
+"settings.account.connection.title" = "खाते जोड़ें";
+"settings.account.connection.suggestion" = "सुझाया गया खाता जोड़ना देखें";
+"settings.account.connection.data" = "कार्ड, दोहराव और कार्यस्थान बने रहते हैं। सदस्यताएँ मिलती हैं; स्वामित्व को प्राथमिकता मिलती है।";
+"settings.account.connection.settings" = "गंतव्य की सेटिंग और सार्वजनिक प्रोफ़ाइल अधिक सख्त गोपनीयता के साथ लागू होती हैं। असली मुख्य ईमेल बना रहता है या प्रमाणित वास्तविक ईमेल उपयोग होता है।";
+"settings.account.connection.billing" = "खरीद, अधिकार, उपयोग और एकीकरण के क्रेडेंशियल जुड़े खाते के साथ जाते हैं। सदस्यता योजनाएँ और मूल परीक्षण इतिहास नहीं बदलते।";
+"settings.account.connection.destination" = "चुना गया गंतव्य";
+"settings.account.connection.hidden" = "वर्कस्पेस विकल्पों में छिपा हुआ";
+"settings.account.connection.omit" = "पात्र होने पर छोड़ने का अनुरोध करें";
+"settings.account.connection.preserve" = "सिर्फ योग्य शुरुआती वर्कस्पेस छिपाए जा सकते हैं। मूल डेटा और अन्य वर्कस्पेस बने रहते हैं।";
+"settings.account.connection.confirm" = "खाते जोड़ने की पुष्टि करें";
+"settings.account.connection.connected" = "खाते जुड़ गए।";
+"settings.account.connection.alreadyConnected" = "ये खाते पहले से जुड़े हैं।";
+"settings.account.connection.cancelled" = "खाते जोड़ना रद्द हुआ।";
+"settings.account.connection.uncertain" = "पुष्टि भेजी गई, लेकिन परिणाम अज्ञात है। उसी पुष्टि से परिणाम जाँचें।";
+"settings.account.connection.replay" = "पुष्टि का परिणाम जाँचें";
+"settings.account.connection.preview" = "जोड़ने का पूर्वावलोकन ताज़ा करें";
+"settings.account.connection.previewChanged" = "पूर्वावलोकन बदल गया। उसे ताज़ा करें और नए पूर्वावलोकन की स्पष्ट पुष्टि करें।";
+"settings.account.connection.restart" = "प्रमाण की अवधि समाप्त हो गई या उसका उपयोग हो चुका है। नए प्रमाण के साथ फिर शुरू करें।";
+"settings.account.connection.restorePaused" = "खाते जुड़ गए। स्थानीय अपडेट रुका है; आपका ऑफ़लाइन डेटा सुरक्षित है।";

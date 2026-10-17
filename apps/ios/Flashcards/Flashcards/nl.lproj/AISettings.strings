@@ -950,3 +950,23 @@
 
 "settings.account.cloudSignIn.continueGoogle" = "Doorgaan met Google";
 "settings.account.cloudSignIn.appleCleanupPending" = "Apple rondt een beveiligingsupdate af. Probeer het zo nog eens met Apple of kies een andere aanmeldmethode.";
+
+"settings.account.connection.title" = "Accounts verbinden";
+"settings.account.connection.suggestion" = "Voorgestelde verbinding bekijken";
+"settings.account.connection.data" = "Kaarten, herhalingen en werkruimten blijven. Lidmaatschappen worden verenigd; eigenaarschap heeft voorrang.";
+"settings.account.connection.settings" = "De instellingen en het openbare profiel van het doel gelden met strengere privacy. Het echte primaire e-mailadres blijft, of er wordt een bewezen echt adres gebruikt.";
+"settings.account.connection.billing" = "Aankopen, rechten, gebruik en integratiegegevens volgen het verbonden account. Abonnementen en oorspronkelijke proefgeschiedenis blijven ongewijzigd.";
+"settings.account.connection.destination" = "Geselecteerde bestemming";
+"settings.account.connection.hidden" = "Verborgen in de werkruimtekeuze";
+"settings.account.connection.omit" = "Weglating aanvragen indien toegestaan";
+"settings.account.connection.preserve" = "Alleen geschikte oorspronkelijke werkruimten kunnen worden verborgen. De gegevens en overige werkruimten blijven behouden.";
+"settings.account.connection.confirm" = "Verbinding bevestigen";
+"settings.account.connection.connected" = "Accounts verbonden.";
+"settings.account.connection.alreadyConnected" = "Deze accounts zijn al verbonden.";
+"settings.account.connection.cancelled" = "Verbinding geannuleerd.";
+"settings.account.connection.uncertain" = "De bevestiging is verzonden, maar het resultaat is onbekend. Controleer het met dezelfde bevestiging.";
+"settings.account.connection.replay" = "Resultaat controleren";
+"settings.account.connection.preview" = "Verbindingsvoorbeeld vernieuwen";
+"settings.account.connection.previewChanged" = "Het voorbeeld is gewijzigd. Vernieuw het en bevestig het nieuwe voorbeeld uitdrukkelijk.";
+"settings.account.connection.restart" = "Het bewijs is verlopen of gebruikt. Begin opnieuw met nieuw bewijs.";
+"settings.account.connection.restorePaused" = "Accounts verbonden. De lokale vernieuwing is gepauzeerd; je offlinegegevens blijven behouden.";

@@ -950,3 +950,23 @@
 
 "settings.account.cloudSignIn.continueGoogle" = "Google کے ساتھ جاری رکھیں";
 "settings.account.cloudSignIn.appleCleanupPending" = "Apple ایک سیکیورٹی اپ ڈیٹ مکمل کر رہا ہے۔ تھوڑی دیر بعد Apple کے ساتھ دوبارہ کوشش کریں، یا سائن ان کرنے کا کوئی دوسرا طریقہ منتخب کریں۔";
+
+"settings.account.connection.title" = "اکاؤنٹس جوڑیں";
+"settings.account.connection.suggestion" = "تجویز کردہ ربط کا جائزہ لیں";
+"settings.account.connection.data" = "کارڈز، دہرائیاں اور ورک اسپیس برقرار رہتے ہیں۔ رکنیتیں یکجا ہوتی ہیں؛ ملکیت کو ترجیح حاصل ہے۔";
+"settings.account.connection.settings" = "منزل کی ترتیبات اور عوامی پروفائل زیادہ سخت رازداری کے ساتھ لاگو ہوتے ہیں۔ اصل بنیادی ای میل برقرار رہتی ہے یا ثابت شدہ حقیقی ای میل استعمال ہوتی ہے۔";
+"settings.account.connection.billing" = "خریداری، حقوق، استعمال اور انضمام کی اسناد منسلک اکاؤنٹ کے ساتھ جاتی ہیں۔ رکنیتیں اور آزمائشوں کی اصل تاریخ نہیں بدلتی۔";
+"settings.account.connection.destination" = "منتخب منزل";
+"settings.account.connection.hidden" = "ورک اسپیس کے اختیارات سے پوشیدہ";
+"settings.account.connection.omit" = "اہل ہونے پر اخراج کی درخواست کریں";
+"settings.account.connection.preserve" = "صرف اہل ابتدائی ورک اسپیس چھپائی جا سکتی ہیں۔ اصل ڈیٹا اور دیگر ورک اسپیس برقرار رہتی ہیں۔";
+"settings.account.connection.confirm" = "اکاؤنٹس جوڑنے کی تصدیق کریں";
+"settings.account.connection.connected" = "اکاؤنٹس جڑ گئے۔";
+"settings.account.connection.alreadyConnected" = "یہ اکاؤنٹس پہلے ہی جڑے ہوئے ہیں۔";
+"settings.account.connection.cancelled" = "ربط منسوخ ہو گیا۔";
+"settings.account.connection.uncertain" = "تصدیق بھیج دی گئی، مگر نتیجہ نامعلوم ہے۔ اسی تصدیق سے اسے جانچیں۔";
+"settings.account.connection.replay" = "تصدیق کا نتیجہ جانچیں";
+"settings.account.connection.preview" = "ربط کا پیش منظر تازہ کریں";
+"settings.account.connection.previewChanged" = "پیش منظر بدل گیا۔ اسے تازہ کریں اور نئے پیش منظر کی واضح تصدیق کریں۔";
+"settings.account.connection.restart" = "ثبوت کی مدت ختم ہو گئی یا استعمال ہو چکا ہے۔ نئے ثبوت کے ساتھ دوبارہ شروع کریں۔";
+"settings.account.connection.restorePaused" = "اکاؤنٹس جڑ گئے۔ مقامی تازہ کاری رکی ہوئی ہے؛ آپ کا آف لائن ڈیٹا محفوظ ہے۔";

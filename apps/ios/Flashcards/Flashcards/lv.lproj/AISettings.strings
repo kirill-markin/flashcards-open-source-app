@@ -950,3 +950,23 @@
 
 "settings.account.cloudSignIn.continueGoogle" = "Turpināt ar Google";
 "settings.account.cloudSignIn.appleCleanupPending" = "Apple pabeidz drošības atjauninājumu. Pēc brīža mēģiniet vēlreiz ar Apple vai izvēlieties citu pierakstīšanās veidu.";
+
+"settings.account.connection.title" = "Savienot kontus";
+"settings.account.connection.suggestion" = "Pārskatīt ieteikto savienojumu";
+"settings.account.connection.data" = "Kartītes, atkārtojumi un darbvietas saglabājas. Dalība tiek apvienota; īpašumtiesībām ir priekšroka.";
+"settings.account.connection.settings" = "Tiek lietoti mērķa iestatījumi un publiskais profils ar stingrāku privātumu. Īstā primārā e-pasta adrese saglabājas vai tiek izmantota pierādīta īsta adrese.";
+"settings.account.connection.billing" = "Pirkumi, tiesības, lietojums un integrāciju akreditācijas dati pāriet uz savienoto kontu. Abonementi un sākotnējā izmēģinājumu vēsture nemainās.";
+"settings.account.connection.destination" = "Atlasītais mērķis";
+"settings.account.connection.hidden" = "Paslēpts darbvietu izvēlē";
+"settings.account.connection.omit" = "Pieprasīt izlaišanu, ja atļauts";
+"settings.account.connection.preserve" = "Var paslēpt tikai prasībām atbilstošas sākotnējās darbvietas. Dati un pārējās darbvietas tiek saglabātas.";
+"settings.account.connection.confirm" = "Apstiprināt savienošanu";
+"settings.account.connection.connected" = "Konti savienoti.";
+"settings.account.connection.alreadyConnected" = "Šie konti jau ir savienoti.";
+"settings.account.connection.cancelled" = "Savienošana atcelta.";
+"settings.account.connection.uncertain" = "Apstiprinājums nosūtīts, taču rezultāts nav zināms. Pārbaudiet to ar to pašu apstiprinājumu.";
+"settings.account.connection.replay" = "Pārbaudīt rezultātu";
+"settings.account.connection.preview" = "Atsvaidzināt priekšskatījumu";
+"settings.account.connection.previewChanged" = "Priekšskatījums ir mainījies. Atsvaidziniet to un skaidri apstipriniet jauno priekšskatījumu.";
+"settings.account.connection.restart" = "Pierādījums ir beidzies vai izmantots. Sāciet vēlreiz ar jaunu pierādījumu.";
+"settings.account.connection.restorePaused" = "Konti savienoti. Vietējā atsvaidzināšana ir apturēta; jūsu bezsaistes dati ir saglabāti.";

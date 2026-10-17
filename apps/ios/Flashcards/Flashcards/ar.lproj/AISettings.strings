@@ -978,3 +978,23 @@
 
 "settings.account.cloudSignIn.continueGoogle" = "المتابعة باستخدام Google";
 "settings.account.cloudSignIn.appleCleanupPending" = "تُنهي Apple تحديثًا أمنيًا. حاول مجددًا باستخدام Apple بعد قليل، أو اختر طريقة أخرى لتسجيل الدخول.";
+
+"settings.account.connection.title" = "ربط الحسابات";
+"settings.account.connection.suggestion" = "مراجعة الربط المقترح";
+"settings.account.connection.data" = "تبقى البطاقات والمراجعات ومساحات العمل. تُجمع العضويات وتكون الأولوية للملكية.";
+"settings.account.connection.settings" = "تُطبق إعدادات الوجهة وملفها العام بخصوصية أشد. يبقى البريد الأساسي الحقيقي أو يُستخدم بريد حقيقي ثبت امتلاكه.";
+"settings.account.connection.billing" = "تتبع المشتريات والصلاحيات والاستخدام وبيانات اعتماد التكامل الحساب المرتبط. لا تتغير الاشتراكات وسجل الفترات التجريبية الأصلي.";
+"settings.account.connection.destination" = "الوجهة المحددة";
+"settings.account.connection.hidden" = "مخفي من خيارات مساحات العمل";
+"settings.account.connection.omit" = "طلب الاستبعاد إذا كان مسموحًا";
+"settings.account.connection.preserve" = "يمكن إخفاء مساحات البدء المؤهلة فقط. تبقى البيانات الأساسية وتُحفظ مساحات العمل الأخرى.";
+"settings.account.connection.confirm" = "تأكيد ربط الحسابات";
+"settings.account.connection.connected" = "تم ربط الحسابات.";
+"settings.account.connection.alreadyConnected" = "هذه الحسابات مرتبطة بالفعل.";
+"settings.account.connection.cancelled" = "تم إلغاء الربط.";
+"settings.account.connection.uncertain" = "أُرسل التأكيد لكن النتيجة غير معروفة. تحقق منها باستخدام التأكيد نفسه.";
+"settings.account.connection.replay" = "التحقق من نتيجة التأكيد";
+"settings.account.connection.preview" = "تحديث معاينة الربط";
+"settings.account.connection.previewChanged" = "تغيرت المعاينة. حدّثها وأكد المعاينة الجديدة صراحةً.";
+"settings.account.connection.restart" = "انتهت صلاحية الإثبات أو استُخدم. ابدأ مجددًا بإثبات جديد.";
+"settings.account.connection.restorePaused" = "تم ربط الحسابات. تحديث البيانات المحلية متوقف مؤقتًا؛ بياناتك دون اتصال محفوظة.";

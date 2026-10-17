@@ -28,6 +28,7 @@ enum CloudSyncError: LocalizedError {
 
 struct CloudAccountSnapshot: Hashable {
     let userId: String
+    let identity: CloudAccountIdentity
     let email: String?
     let workspaces: [CloudWorkspaceSummary]
     let preferences: AccountPreferences
@@ -38,7 +39,24 @@ struct CloudAccountSnapshot: Hashable {
         workspaces: [CloudWorkspaceSummary],
         preferences: AccountPreferences
     ) {
+        self.init(
+            userId: userId,
+            identity: CloudAccountIdentity(originalUserId: userId, canonicalAccountId: nil, linkedAccountIds: nil),
+            email: email,
+            workspaces: workspaces,
+            preferences: preferences
+        )
+    }
+
+    init(
+        userId: String,
+        identity: CloudAccountIdentity,
+        email: String?,
+        workspaces: [CloudWorkspaceSummary],
+        preferences: AccountPreferences
+    ) {
         self.userId = userId
+        self.identity = identity
         self.email = email
         self.workspaces = workspaces
         self.preferences = preferences
@@ -60,13 +78,39 @@ struct CloudAccountSnapshot: Hashable {
 
 struct CloudAccountContext: Hashable, Sendable {
     let userId: String
+    let identity: CloudAccountIdentity
     let email: String?
     let preferences: AccountPreferences
+
+    init(userId: String, email: String?, preferences: AccountPreferences) {
+        self.init(
+            userId: userId,
+            identity: CloudAccountIdentity(originalUserId: userId, canonicalAccountId: nil, linkedAccountIds: nil),
+            email: email,
+            preferences: preferences
+        )
+    }
+
+    init(userId: String, identity: CloudAccountIdentity, email: String?, preferences: AccountPreferences) {
+        self.userId = userId
+        self.identity = identity
+        self.email = email
+        self.preferences = preferences
+    }
 }
 
-private func makeCloudAccountContext(meResponse: MeResponse) -> CloudAccountContext {
-    CloudAccountContext(
-        userId: meResponse.userId,
+private func makeCloudAccountContext(
+    meResponse: MeResponse,
+    cloudSettings: CloudSettings
+) -> CloudAccountContext {
+    let identity = CloudAccountIdentity(
+        originalUserId: meResponse.userId,
+        canonicalAccountId: meResponse.canonicalAccountId,
+        linkedAccountIds: meResponse.linkedAccountIds
+    )
+    return CloudAccountContext(
+        userId: identity.localContinuityUserId(cloudSettings: cloudSettings),
+        identity: identity,
         email: meResponse.profile.email,
         preferences: AccountPreferences(
             reviewReactionAnimationsEnabled: meResponse.preferences.reviewReactionAnimationsEnabled,
@@ -96,7 +140,10 @@ final class CloudSyncService: @unchecked Sendable {
             method: "GET",
             body: Optional<String>.none
         )
-        return makeCloudAccountContext(meResponse: meResponse)
+        return try makeCloudAccountContext(
+            meResponse: meResponse,
+            cloudSettings: self.database.workspaceSettingsStore.loadCloudSettings()
+        )
     }
 
     func fetchCloudAccount(apiBaseUrl: String, bearerToken: String) async throws -> CloudAccountSnapshot {
@@ -123,18 +170,23 @@ final class CloudSyncService: @unchecked Sendable {
         let meResponse = try await meResponseTask
         let workspacesResponse = try await workspacesResponseTask
         let selectedWorkspaceId = meResponse.selectedWorkspaceId
-        let accountContext = makeCloudAccountContext(meResponse: meResponse)
+        let accountContext = try makeCloudAccountContext(
+            meResponse: meResponse,
+            cloudSettings: self.database.workspaceSettingsStore.loadCloudSettings()
+        )
         let workspaces = workspacesResponse.map { workspace in
             CloudWorkspaceSummary(
                 workspaceId: workspace.workspaceId,
                 name: workspace.name,
                 createdAt: workspace.createdAt,
-                isSelected: workspace.workspaceId == selectedWorkspaceId
+                isSelected: workspace.workspaceId == selectedWorkspaceId,
+                isVisible: workspace.isVisible
             )
         }
 
         let snapshot = CloudAccountSnapshot(
             userId: accountContext.userId,
+            identity: accountContext.identity,
             email: accountContext.email,
             workspaces: workspaces,
             preferences: accountContext.preferences

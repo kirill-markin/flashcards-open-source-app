@@ -950,3 +950,23 @@
 
 "settings.account.cloudSignIn.continueGoogle" = "המשך עם Google";
 "settings.account.cloudSignIn.appleCleanupPending" = "Apple מסיימת עדכון אבטחה. אפשר לנסות שוב עם Apple בעוד זמן קצר, או לבחור שיטת התחברות אחרת.";
+
+"settings.account.connection.title" = "חיבור חשבונות";
+"settings.account.connection.suggestion" = "בדיקת החיבור המוצע";
+"settings.account.connection.data" = "הכרטיסים, החזרות וסביבות העבודה נשמרים. החברויות מתאחדות; לבעלות יש עדיפות.";
+"settings.account.connection.settings" = "ההגדרות והפרופיל הציבורי של היעד חלים עם פרטיות מחמירה יותר. כתובת הדוא״ל הראשית האמיתית נשמרת, או שנעשה שימוש בכתובת אמיתית שהוכחה.";
+"settings.account.connection.billing" = "רכישות, הרשאות, שימוש ופרטי הזדהות לשילובים עוברים לחשבון המחובר. המינויים והיסטוריית הניסיון המקורית אינם משתנים.";
+"settings.account.connection.destination" = "היעד שנבחר";
+"settings.account.connection.hidden" = "מוסתר מאפשרויות סביבות העבודה";
+"settings.account.connection.omit" = "בקשת השמטה אם מותר";
+"settings.account.connection.preserve" = "ניתן להסתיר רק סביבות התחלתיות שעומדות בתנאים. הנתונים ושאר סביבות העבודה נשמרים.";
+"settings.account.connection.confirm" = "אישור חיבור החשבונות";
+"settings.account.connection.connected" = "החשבונות חוברו.";
+"settings.account.connection.alreadyConnected" = "החשבונות האלה כבר מחוברים.";
+"settings.account.connection.cancelled" = "החיבור בוטל.";
+"settings.account.connection.uncertain" = "האישור נשלח אך התוצאה אינה ידועה. יש לבדוק אותה באמצעות אותו אישור.";
+"settings.account.connection.replay" = "בדיקת תוצאת האישור";
+"settings.account.connection.preview" = "רענון תצוגת החיבור";
+"settings.account.connection.previewChanged" = "התצוגה המקדימה השתנתה. יש לרענן ולאשר במפורש את התצוגה החדשה.";
+"settings.account.connection.restart" = "ההוכחה פגה או נוצלה. יש להתחיל מחדש עם הוכחה חדשה.";
+"settings.account.connection.restorePaused" = "החשבונות חוברו. הרענון המקומי מושהה; הנתונים הלא מקוונים שלך נשמרים.";

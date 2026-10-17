@@ -46,6 +46,20 @@ struct CloudAuthMethods: Decodable {
     let methods: Methods
     let endpoints: Endpoints
     let completion: Completion
+    let account: Account?
+
+    struct Account: Decodable {
+        let connection: String?
+        let connectionCapability: String?
+        let connectionActions: [String]?
+    }
+
+    var supportsAccountConnection: Bool {
+        self.account?.connection == "/api/account/connection"
+            && self.account?.connectionCapability == "canonical-account-v1"
+            && self.account?.connectionActions == ["begin", "adopt", "provider_begin", "provider_complete",
+                "email_send", "email_verify", "load", "preview", "confirm", "cancel"]
+    }
 
     struct Methods: Decodable {
         let email: Email
@@ -213,6 +227,7 @@ struct CloudSocialSignInHint: Decodable {
 struct CloudSocialSession {
     let credentials: StoredCloudCredentials
     let signInHint: CloudSocialSignInHint
+    let connectionSuggestion: CloudConnectionSuggestion?
 }
 
 struct CloudSocialTokenResponse: Decodable {
@@ -222,14 +237,16 @@ struct CloudSocialTokenResponse: Decodable {
     let refreshToken: String
     let expiresIn: Int
     let signInHint: CloudSocialSignInHint
+    let connectionSuggestion: CloudConnectionSuggestion?
 
     func session(provider: CloudAuthProvider, now: Date) throws -> CloudSocialSession {
         try requireCloudSocialContract(self.ok && !self.idToken.isEmpty && !self.accessToken.isEmpty
             && !self.refreshToken.isEmpty && self.expiresIn > 0 && self.signInHint.method == provider,
             "Invalid redeemed native login session")
+        try self.connectionSuggestion?.validate()
         return CloudSocialSession(credentials: StoredCloudCredentials(refreshToken: self.refreshToken,
             idToken: self.idToken, idTokenExpiresAt: makeIdTokenExpiryTimestamp(now: now, expiresInSeconds: self.expiresIn)),
-            signInHint: self.signInHint)
+            signInHint: self.signInHint, connectionSuggestion: self.connectionSuggestion)
     }
 }
 
