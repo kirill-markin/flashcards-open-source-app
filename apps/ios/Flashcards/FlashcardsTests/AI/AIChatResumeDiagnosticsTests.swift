@@ -163,11 +163,13 @@ final class AIChatResumeDiagnosticsTests: XCTestCase {
             session: self.makeURLSession(),
             encoder: JSONEncoder(),
             decoder: makeFlashcardsRemoteJSONDecoder(),
-            ownOpenAIKeyStore: makeDisabledOwnOpenAIKeyStore()
+            ownOpenAIKeyStore: makeDisabledOwnOpenAIKeyStore(),
+            consentReceiptProvider: self.makeConsentReceiptProvider()
         )
         AIChatTestURLProtocol.requestHandler = { request in
             XCTAssertEqual(request.httpMethod, "POST")
             XCTAssertEqual(request.url?.path, "/chat")
+            XCTAssertEqual(request.value(forHTTPHeaderField: aiConsentIdHeader), Self.consentReceiptId)
             let body = try XCTUnwrap(aiChatRequestBodyData(request: request))
             let payload = try JSONDecoder().decode(AIChatEncodedStartRunRequest.self, from: body)
             XCTAssertEqual(payload.sessionId, "session-1")
@@ -296,11 +298,13 @@ final class AIChatResumeDiagnosticsTests: XCTestCase {
         let transcriptionService = AIChatTranscriptionService(
             session: self.makeURLSession(),
             decoder: makeFlashcardsRemoteJSONDecoder(),
-            ownOpenAIKeyStore: makeDisabledOwnOpenAIKeyStore()
+            ownOpenAIKeyStore: makeDisabledOwnOpenAIKeyStore(),
+            consentReceiptProvider: self.makeConsentReceiptProvider()
         )
         AIChatTestURLProtocol.requestHandler = { request in
             XCTAssertEqual(request.httpMethod, "POST")
             XCTAssertEqual(request.url?.path, "/chat/transcriptions")
+            XCTAssertEqual(request.value(forHTTPHeaderField: aiConsentIdHeader), Self.consentReceiptId)
             let body = try XCTUnwrap(aiChatRequestBodyData(request: request))
             let multipartBody = String(decoding: body, as: UTF8.self)
             XCTAssertTrue(multipartBody.contains("name=\"sessionId\"\r\n\r\nsession-1\r\n"))
@@ -481,6 +485,18 @@ final class AIChatResumeDiagnosticsTests: XCTestCase {
                 "Resume Attempt: 4",
             ].joined(separator: "\n")
         )
+    }
+
+    private static let consentReceiptId = "10000000-0000-4000-8000-000000000001"
+
+    private func makeConsentReceiptProvider() -> AIConsentReceiptProvider {
+        let actor = AIConsentActor(session: self.makeLinkedSession())
+        return { session in
+            guard AIConsentActor(session: session) == actor else {
+                throw AIConsentError.identityChanged
+            }
+            return Self.consentReceiptId
+        }
     }
 
     private func makeURLSession() -> URLSession {

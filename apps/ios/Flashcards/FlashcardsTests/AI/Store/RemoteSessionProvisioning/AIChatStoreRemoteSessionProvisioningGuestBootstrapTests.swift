@@ -11,7 +11,7 @@ final class AIChatStoreRemoteSessionProvisioningGuestBootstrapTests: XCTestCase 
 
         try context.configureGuestCloudSession()
         let store = context.makeStore()
-        store.acceptExternalProviderConsent()
+        try context.acknowledgeExternalProviderConsent()
         var createAttempts: Int = 0
         context.chatService.createNewSessionHandler = { request in
             guard let sessionId = request.sessionId, sessionId.isEmpty == false else {
@@ -63,7 +63,7 @@ final class AIChatStoreRemoteSessionProvisioningGuestBootstrapTests: XCTestCase 
         context.flashcardsStore.syncStatus = .failed(message: "Previous guest setup sync failed.")
         context.cloudSyncService.runLinkedSyncErrors = [URLError(.timedOut)]
         let store = context.makeStore()
-        store.acceptExternalProviderConsent()
+        try context.acknowledgeExternalProviderConsent()
         context.chatService.createNewSessionHandler = { request in
             XCTAssertEqual(context.cloudSyncService.runLinkedSyncCallCount, 2)
             guard let sessionId = request.sessionId, sessionId.isEmpty == false else {

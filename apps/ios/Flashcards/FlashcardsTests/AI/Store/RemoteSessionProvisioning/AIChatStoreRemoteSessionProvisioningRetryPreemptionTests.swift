@@ -11,7 +11,7 @@ final class AIChatStoreRemoteSessionProvisioningRetryPreemptionTests: XCTestCase
 
         try context.configureLinkedCloudSession()
         let store = context.makeStore()
-        store.acceptExternalProviderConsent()
+        try context.acknowledgeExternalProviderConsent()
         store.activeAlert = .generalError(title: "Stale", message: "Previous failure")
         context.chatService.createNewSessionHandler = { request in
             guard let sessionId = request.sessionId, sessionId.isEmpty == false else {
@@ -64,7 +64,7 @@ final class AIChatStoreRemoteSessionProvisioningRetryPreemptionTests: XCTestCase
 
         try context.configureGuestCloudSession()
         let store = context.makeStore()
-        store.acceptExternalProviderConsent()
+        try context.acknowledgeExternalProviderConsent()
         store.bootstrapPhase = .ready
         store.chatSessionId = ""
         store.conversationScopeId = ""
@@ -117,7 +117,7 @@ final class AIChatStoreRemoteSessionProvisioningRetryPreemptionTests: XCTestCase
 
         try context.configureLinkedCloudSession()
         let store = context.makeStore()
-        store.acceptExternalProviderConsent()
+        try context.acknowledgeExternalProviderConsent()
         var createAttempts = 0
         context.chatService.createNewSessionHandler = { request in
             guard let sessionId = request.sessionId, sessionId.isEmpty == false else {
@@ -159,7 +159,7 @@ final class AIChatStoreRemoteSessionProvisioningRetryPreemptionTests: XCTestCase
 
         try context.configureLinkedCloudSession()
         let store = context.makeStore()
-        store.acceptExternalProviderConsent()
+        try context.acknowledgeExternalProviderConsent()
         context.chatService.createNewSessionHandler = { request in
             guard request.sessionId?.isEmpty == false else {
                 throw LocalStoreError.validation("Expected an explicit AI chat session id during new chat provisioning.")
@@ -207,7 +207,7 @@ final class AIChatStoreRemoteSessionProvisioningRetryPreemptionTests: XCTestCase
 
         try context.configureLinkedCloudSession()
         let store = context.makeStore()
-        store.acceptExternalProviderConsent()
+        try context.acknowledgeExternalProviderConsent()
         let expectedAttachment = AIChatAttachment(
             id: "attachment-1",
             payload: .localFile(
@@ -271,7 +271,7 @@ final class AIChatStoreRemoteSessionProvisioningRetryPreemptionTests: XCTestCase
 
         try context.configureLinkedCloudSession()
         let store = context.makeStore()
-        store.acceptExternalProviderConsent()
+        try context.acknowledgeExternalProviderConsent()
         let expectedAttachment = AIChatAttachment(
             id: "attachment-1",
             payload: .localFile(
@@ -341,10 +341,10 @@ final class AIChatStoreRemoteSessionProvisioningRetryPreemptionTests: XCTestCase
         }
 
         try context.configureLinkedCloudSession()
+        let store = context.makeStore()
+        try context.acknowledgeExternalProviderConsent()
         context.flashcardsStore.cloudRuntime.disconnectSession()
         context.cloudSyncService.runLinkedSyncErrors = [URLError(.timedOut)]
-        let store = context.makeStore()
-        store.acceptExternalProviderConsent()
         context.chatService.createNewSessionHandler = { request in
             XCTAssertEqual(context.cloudSyncService.runLinkedSyncCallCount, 2)
             guard let sessionId = request.sessionId, sessionId.isEmpty == false else {
@@ -377,7 +377,7 @@ final class AIChatStoreRemoteSessionProvisioningRetryPreemptionTests: XCTestCase
 
         try context.configureGuestCloudSession()
         let store = context.makeStore()
-        store.acceptExternalProviderConsent()
+        try context.acknowledgeExternalProviderConsent()
         store.bootstrapPhase = .ready
         var createAttempts: Int = 0
         context.chatService.createNewSessionHandler = { request in

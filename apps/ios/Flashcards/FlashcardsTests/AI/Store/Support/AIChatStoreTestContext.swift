@@ -1,4 +1,5 @@
 import Foundation
+import XCTest
 @testable import Flashcards
 
 
@@ -85,6 +86,32 @@ extension AIChatStoreTestSupport {
                 voiceRecorder: voiceRecorder,
                 audioTranscriber: audioTranscriber
             )
+        }
+
+        @MainActor
+        func acknowledgeExternalProviderConsent() throws {
+            let session = try XCTUnwrap(self.flashcardsStore.cloudRuntime.activeCloudSession())
+            let consentStore = self.flashcardsStore.aiConsent
+            try consentStore.record(
+                action: .grant,
+                disclosure: .current(),
+                actor: AIConsentActor(session: session)
+            )
+            var ledger = try XCTUnwrap(consentStore.ledger)
+            let decisionIndex = try XCTUnwrap(ledger.decisions.indices.last)
+            let evidence = ledger.decisions[decisionIndex].evidence
+            ledger.decisions[decisionIndex].receipt = AIConsentReceipt(
+                eventId: evidence.eventId,
+                installationId: evidence.installationId,
+                action: evidence.action,
+                decisionSequence: evidence.decisionSequence,
+                disclosureVersion: evidence.disclosureVersion,
+                occurredAt: evidence.occurredAt,
+                receivedAt: aiConsentActionTime()
+            )
+            self.userDefaults.set(try JSONEncoder().encode(ledger), forKey: aiConsentStateUserDefaultsKey)
+            self.flashcardsStore.cachedAIConsentStore = AIConsentStore(userDefaults: self.userDefaults)
+            _ = try self.flashcardsStore.aiConsent.requireReceipt(session: session)
         }
 
         @MainActor
