@@ -16,7 +16,7 @@ final class AIChatStoreRemoteSessionProvisioningDictationTests: XCTestCase {
             voiceRecorder: voiceRecorder,
             audioTranscriber: transcriber
         )
-        store.acceptExternalProviderConsent()
+        try context.acknowledgeExternalProviderConsent()
         store.chatSessionId = ""
         store.conversationScopeId = ""
         store.dictationState = .recording

@@ -11,7 +11,7 @@ final class AIChatStoreRemoteSessionProvisioningFirstSendTests: XCTestCase {
 
         try context.configureGuestCloudSession()
         let store = context.makeStore()
-        store.acceptExternalProviderConsent()
+        try context.acknowledgeExternalProviderConsent()
         store.chatSessionId = ""
         store.conversationScopeId = ""
         store.inputText = "Help me review this."
@@ -54,7 +54,7 @@ final class AIChatStoreRemoteSessionProvisioningFirstSendTests: XCTestCase {
         let store = context.makeStore()
         let syncGate = AIChatStoreTestSupport.AsyncGate()
         context.cloudSyncService.runLinkedSyncGate = syncGate
-        store.acceptExternalProviderConsent()
+        try context.acknowledgeExternalProviderConsent()
         store.bootstrapPhase = .ready
         store.chatSessionId = ""
         store.conversationScopeId = ""

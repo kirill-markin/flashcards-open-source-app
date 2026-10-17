@@ -92,6 +92,7 @@ struct ThisDeviceSettingsView: View {
         }
         .listStyle(.insetGrouped)
         .navigationTitle(aiSettingsLocalized("settings.thisDevice.title", "Device"))
+        .accessibilityIdentifier(UITestIdentifier.thisDeviceSettingsScreen)
     }
 
     private func handleAppVersionTap(now: Date) {

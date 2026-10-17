@@ -170,6 +170,7 @@ struct ServerSettingsView: View {
             }
         }
         .navigationTitle(aiSettingsLocalized("settings.account.advanced.server", "Server"))
+        .accessibilityIdentifier(UITestIdentifier.serverSettingsScreen)
         .alert(self.confirmationTitle, isPresented: self.$isConfirmationPresented) {
             Button(aiSettingsLocalized("common.cancel", "Cancel"), role: .cancel) {
                 self.confirmationAction = nil

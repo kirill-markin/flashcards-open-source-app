@@ -11,7 +11,7 @@ final class AIChatStoreComposerCapabilityTests: XCTestCase {
 
         try context.configureGuestCloudSession()
         let store = context.makeStore()
-        store.acceptExternalProviderConsent()
+        try context.acknowledgeExternalProviderConsent()
 
         XCTAssertTrue(store.canEditDraftText)
         XCTAssertTrue(store.canEditDraft)
@@ -63,7 +63,7 @@ final class AIChatStoreComposerCapabilityTests: XCTestCase {
 
         try context.configureGuestCloudSession()
         let store = context.makeStore()
-        store.acceptExternalProviderConsent()
+        try context.acknowledgeExternalProviderConsent()
 
         store.transitionToStartingRun()
         store.startDictation()
@@ -102,7 +102,7 @@ final class AIChatStoreComposerCapabilityTests: XCTestCase {
 
             try context.configureGuestCloudSession()
             let store = context.makeStore()
-            store.acceptExternalProviderConsent()
+            try context.acknowledgeExternalProviderConsent()
             store.applyComposerSuggestions([
                 AIChatComposerSuggestion(
                     id: "suggestion-1",
@@ -155,7 +155,7 @@ final class AIChatStoreComposerCapabilityTests: XCTestCase {
 
         try context.configureGuestCloudSession()
         let store = context.makeStore()
-        store.acceptExternalProviderConsent()
+        try context.acknowledgeExternalProviderConsent()
         store.transitionToStreaming(activeRun: makeAIChatCapabilityTestActiveRunSession())
 
         let didApply = store.prepareCardHandoff(
@@ -181,7 +181,7 @@ final class AIChatStoreComposerCapabilityTests: XCTestCase {
 
         try context.configureGuestCloudSession()
         let store = context.makeStore()
-        store.acceptExternalProviderConsent()
+        try context.acknowledgeExternalProviderConsent()
         store.serverChatConfig = AIChatServerConfig(
             features: AIChatFeatureFlags(
                 dictationEnabled: aiChatDefaultServerConfig.features.dictationEnabled,
