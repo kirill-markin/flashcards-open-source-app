@@ -1,0 +1,50 @@
+{
+  "configurations": [
+    {
+      "id": "A617D3C3-55AE-4BBC-8591-8B1B2F11CE17",
+      "name": "Acceptance",
+      "options": {}
+    }
+  ],
+  "defaultOptions": {
+    "diagnosticCollectionPolicy": "Never",
+    "environmentVariableEntries": [
+      {
+        "key": "FLASHCARDS_AUTOMATION_RUN",
+        "value": "1"
+      },
+      {
+        "key": "FLASHCARDS_SENTRY_ENVIRONMENT_OVERRIDE",
+        "value": "ci-simulator"
+      }
+    ],
+    "targetForVariableExpansion": {
+      "containerPath": "container:Flashcards Open Source App.xcodeproj",
+      "identifier": "A10000000000000000000004",
+      "name": "Flashcards Open Source App"
+    }
+  },
+  "testTargets": [
+    {
+      "parallelizable": false,
+      "target": {
+        "containerPath": "container:Flashcards Open Source App.xcodeproj",
+        "identifier": "A10000000000000000000022",
+        "name": "Flashcards Open Source App Tests"
+      }
+    },
+    {
+      "parallelizable": false,
+      "target": {
+        "containerPath": "container:Flashcards Open Source App.xcodeproj",
+        "identifier": "A10000000000000000000035",
+        "name": "Flashcards Open Source App UI Tests"
+      },
+      "skippedTests": [
+        "MarketingScreenshotsTests",
+        "LiveSmokeOrdinaryIPhoneTests"
+      ]
+    }
+  ],
+  "version": 1
+}

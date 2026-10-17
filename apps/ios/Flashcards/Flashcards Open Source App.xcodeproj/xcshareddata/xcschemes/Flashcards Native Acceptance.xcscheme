@@ -74,6 +74,8 @@
       <TestPlans>
          <TestPlanReference reference = "container:LocalFull.xctestplan" default = "YES">
          </TestPlanReference>
+         <TestPlanReference reference = "container:LocalMac.xctestplan">
+         </TestPlanReference>
          <TestPlanReference reference = "container:LocalIPad.xctestplan">
          </TestPlanReference>
          <TestPlanReference reference = "container:IOS18Compatibility.xctestplan">
