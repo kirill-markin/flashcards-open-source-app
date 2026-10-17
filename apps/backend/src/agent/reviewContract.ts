@@ -46,6 +46,8 @@ export const submitReviewSchema = revealAnswerSchema.extend({
     .describe(
       "Agent-assessed or manual learner rating: Again=any factual error or failed recall; Hard=correct but clearly uncertain about recall; Good=ordinary correct answer, including rough expression or modest hesitation; Easy=correct, confident, clear first attempt without evident extra thought. For a correct answer with unclear effort/confidence, use Good. Spoken aliases require learner agreement.",
     ),
+  // Required, and the only clock value the caller owns: the server stamps the instant, while the
+  // local day it counts toward has no other source for a user who never opened a first-party app.
   reviewedTimeZone: z
     .string()
     .trim()

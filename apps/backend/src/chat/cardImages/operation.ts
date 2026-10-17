@@ -277,7 +277,8 @@ async function assertGeneratedCardImagePreconditions(
       );
       if (cardResult.rows[0] === undefined) {
         // Coded so the chat tool can single this pre-generation 404 out: the identical 404 raised
-        // after the provider was paid carries no code and must keep failing the run.
+        // after the provider was paid carries no code and must keep failing the run. The code itself
+        // stays internal: the model sees `card_not_found`.
         throw new HttpError(404, "Card not found", "GENERATED_CARD_IMAGE_CARD_NOT_FOUND");
       }
       await assertReplicaBelongsToWorkspaceInExecutor(
@@ -599,8 +600,8 @@ export async function generateCardImage(input: GeneratedCardImageInput): Promise
  * TODO(external-image-surface): The planned external image surface (MCP and the Agent REST API).
  * Nothing calls it today, by decision: image generation stays chat-only until the open choice
  * between a synchronous call that accepts a timeout tail inside the MCP gateway's 29-second
- * integration timeout and an asynchronous worker is settled, on the measured provider latency
- * recorded in `docs/agent-tool-surfaces.md`.
+ * integration timeout and an asynchronous worker is settled, on end-to-end provider latency freshly
+ * measured from the chat worker's production logs.
  */
 export async function generateRunlessCardImage(
   input: RunlessGeneratedCardImageInput,
