@@ -1,9 +1,10 @@
 type Platform = "ios" | "android";
 type Status = "passed" | "failed" | "skipped" | "pending";
 type Identity = { sourceSha: string; version: string; build: string; artifactId: string; runId: string };
-type InventoryCase = { id: string; disposition: "required" | "manual-exclusion" | "destination-exclusion"; reason: string; evidenceRef: string; requiredCaseId: string };
+type TestSelection = { scheme: string; testPlan: string; configuration: string; destination: { id: string; model: string; osVersion: string; kind: "iphone" | "ipad" } };
+type InventoryCase = { target: string; id: string; disposition: "required" | "manual-exclusion" | "destination-exclusion"; reason: string; evidenceRef: string; requiredCaseId: string };
 type Gate = {
-  id: string; identity: Identity; inventorySourceSha: string;
+  id: string; identity: Identity; inventorySourceSha: string; selection: TestSelection | null;
   inventoryRef: string; inventoryReviewedBy: string; inventoryComplete: true; cases: InventoryCase[];
 };
 type Warning = {
@@ -22,9 +23,9 @@ type Equivalence = {
 export type Manifest = {
   target: { sourceSha: string; version: string; build: string; artifactId: string };
   gates: Gate[]; results: Result[]; equivalences: Equivalence[];
-} & ({ schemaVersion: 1; platform: Platform } | { schemaVersion: 2; platform: "android" });
+} & ({ schemaVersion: 1; platform: Platform } | { schemaVersion: 2; platform: "android" } | { schemaVersion: 3; platform: "ios" });
 type GateReport = {
-  id: string; ready: boolean; expectedIdentity: Identity; recordedIdentity: Identity | null;
+  id: string; ready: boolean; selection: TestSelection | null; expectedIdentity: Identity; recordedIdentity: Identity | null;
   evidenceRef: string | null; inventoryRef: string; errors: string[];
   cases: { id: string; status: Status; disposition: string; exclusionRef: string | null; requiredCaseId: string | null }[];
   counts: { passed: number; failed: number; skipped: number; pending: number; missing: number };
@@ -37,7 +38,13 @@ const SCHEMA_1_GATES: Record<Platform, readonly string[]> = {
   android: ["local-ci", "local-release", "local-smoke", "cloud-release", "firebase-tests"],
 };
 const ANDROID_CLOUD_GATES: readonly string[] = ["cloud-release", "firebase-tests"];
-const TEST_GATES = new Set(["local-ci", "local-smoke", "cloud-tests", "firebase-tests"]);
+const IOS_LOCAL_CLOUD_GATES = ["local-archive", "local-full", "local-ipad", "local-ios18", "cloud-archive", "cloud-smoke"] as const;
+const IOS_PLANS: Record<string, string> = { "local-full": "LocalFull", "local-ipad": "LocalIPad", "local-ios18": "IOS18Compatibility", "cloud-smoke": "CloudSmoke" };
+const IOS_UI_TARGET = "Flashcards Open Source App UI Tests";
+const IOS_NON_UI_TARGET = "Flashcards Open Source App Tests";
+const IOS_SMOKE_CASES = ["LiveSmokeSettingsTests/testLiveSmokeGuestNavigationFlow()", "LiveSmokeReviewTests/testLiveSmokeManualCardReviewFlow()", "LiveSmokeSettingsTests/testLiveSmokeLoginAndLinkedWorkspaceFlow()"];
+const IOS_IPAD_CASES = ["LiveSmokeIPadTests/testIPadCompanionPreservesDraftAndRevealedReviewAcrossSections()", "LiveSmokeIPadTests/testIPadReviewHardwareKeysRespectFilterAndRateCards()", "LiveSmokeAIConsentTests/testWideCompanionAndCardHandoffStayBlockedAfterWithdrawal()"];
+const TEST_GATES = new Set(["local-ci", "local-smoke", "cloud-tests", "firebase-tests", ...Object.keys(IOS_PLANS)]);
 const STATUSES = ["passed", "failed", "skipped", "pending"] as const;
 
 // Error messages contain field paths only: untrusted evidence may contain credentials or URLs.
@@ -80,10 +87,11 @@ function identity(value: unknown, path: string): Identity {
     build: token(item.build, `${path}.build`), artifactId: token(item.artifactId, `${path}.artifactId`), runId: token(item.runId, `${path}.runId`),
   };
 }
-function inventoryCase(value: unknown, path: string): InventoryCase {
+function inventoryCase(value: unknown, path: string, schemaVersion: number): InventoryCase {
   const item = object(value, path);
   const disposition = choice(item.disposition, ["required", "manual-exclusion", "destination-exclusion"], `${path}.disposition`);
   return {
+    target: schemaVersion === 3 ? token(item.target, `${path}.target`) : "",
     id: token(item.id, `${path}.id`), disposition,
     reason: disposition !== "required" ? text(item.reason, `${path}.reason`) : "",
     evidenceRef: disposition !== "required" ? token(item.evidenceRef, `${path}.evidenceRef`) : "",
@@ -95,13 +103,25 @@ function destinationCaseIdentity(id: string, path: string): { test: string; dest
   if (match === null || match[2].trim().length === 0) invalid(path, "expected Class/method()@destination identity");
   return { test: match[1], destination: match[2] };
 }
-function gate(value: unknown, path: string): Gate {
+function selection(value: unknown, path: string): TestSelection {
+  const item = object(value, path);
+  const destination = object(item.destination, `${path}.destination`);
+  const osVersion = text(destination.osVersion, `${path}.destination.osVersion`);
+  if (!/^\d+\.\d+(?:\.\d+)?$/.test(osVersion)) invalid(`${path}.destination.osVersion`, "expected actual numeric iOS version");
+  return {
+    scheme: choice(item.scheme, ["Flashcards Native Acceptance"], `${path}.scheme`),
+    testPlan: token(item.testPlan, `${path}.testPlan`), configuration: choice(item.configuration, ["Acceptance"], `${path}.configuration`),
+    destination: { id: token(destination.id, `${path}.destination.id`), model: token(destination.model, `${path}.destination.model`), osVersion, kind: choice(destination.kind, ["iphone", "ipad"], `${path}.destination.kind`) },
+  };
+}
+function gate(value: unknown, path: string, schemaVersion: number): Gate {
   const item = object(value, path);
   if (item.inventoryComplete !== true) invalid(`${path}.inventoryComplete`, "operator must attest the full configured inventory is represented");
-  const cases = array(item.cases, `${path}.cases`).map((entry, index) => inventoryCase(entry, `${path}.cases[${index}]`));
+  const cases = array(item.cases, `${path}.cases`).map((entry, index) => inventoryCase(entry, `${path}.cases[${index}]`, schemaVersion));
   unique(cases.map((entry) => entry.id), `${path}.cases`);
   return {
     id: token(item.id, `${path}.id`), identity: identity(item.identity, `${path}.identity`), inventoryComplete: true, cases,
+    selection: schemaVersion === 3 && item.selection !== undefined ? selection(item.selection, `${path}.selection`) : null,
     inventorySourceSha: sha(item.inventorySourceSha, `${path}.inventorySourceSha`),
     inventoryRef: token(item.inventoryRef, `${path}.inventoryRef`),
     inventoryReviewedBy: token(item.inventoryReviewedBy, `${path}.inventoryReviewedBy`),
@@ -148,12 +168,13 @@ function equivalence(value: unknown, path: string): Equivalence {
 export function parseManifest(value: unknown): Manifest {
   const item = object(value, "manifest");
   const schemaVersion = item.schemaVersion;
-  if (schemaVersion !== 1 && schemaVersion !== 2) invalid("manifest.schemaVersion", "expected 1 or 2");
+  if (schemaVersion !== 1 && schemaVersion !== 2 && schemaVersion !== 3) invalid("manifest.schemaVersion", "expected 1, 2 or 3");
   const platform = choice(item.platform, ["ios", "android"], "manifest.platform");
-  if (schemaVersion === 2 && platform !== "android") invalid("manifest.platform", "schema 2 requires android; iOS uses schema 1");
-  const requiredGates = schemaVersion === 1 ? SCHEMA_1_GATES[platform] : ANDROID_CLOUD_GATES;
+  if (schemaVersion === 2 && platform !== "android") invalid("manifest.platform", "schema 2 requires android; iOS uses schema 1 or 3");
+  if (schemaVersion === 3 && platform !== "ios") invalid("manifest.platform", "schema 3 requires ios");
+  const requiredGates: readonly string[] = schemaVersion === 1 ? SCHEMA_1_GATES[platform] : schemaVersion === 2 ? ANDROID_CLOUD_GATES : IOS_LOCAL_CLOUD_GATES;
   const target = object(item.target, "manifest.target");
-  const gates = array(item.gates, "manifest.gates").map((entry, index) => gate(entry, `manifest.gates[${index}]`));
+  const gates = array(item.gates, "manifest.gates").map((entry, index) => gate(entry, `manifest.gates[${index}]`, schemaVersion));
   const results = array(item.results, "manifest.results").map((entry, index) => result(entry, `manifest.results[${index}]`));
   const equivalences = array(item.equivalences, "manifest.equivalences").map((entry, index) => equivalence(entry, `manifest.equivalences[${index}]`));
   unique(gates.map((entry) => entry.id), "manifest.gates");
@@ -161,6 +182,7 @@ export function parseManifest(value: unknown): Manifest {
   if (gates.length !== requiredGates.length || gates.some((entry) => !requiredGates.includes(entry.id))) invalid("manifest.gates", `must declare exactly ${requiredGates.join(", ")}`);
   if (results.some((entry) => !requiredGates.includes(entry.gateId))) invalid("manifest.results", "unknown gate");
   for (const [index, entry] of gates.entries()) {
+    if (schemaVersion === 3) validateIosSelection(entry, `manifest.gates[${index}]`);
     if (TEST_GATES.has(entry.id) && !entry.cases.some((test) => test.disposition === "required")) invalid(`manifest.gates[${index}].cases`, "test gate needs a nonempty required inventory");
     if (!TEST_GATES.has(entry.id) && entry.cases.length !== 0) invalid(`manifest.gates[${index}].cases`, "build gate inventory must be empty");
     for (const [caseIndex, test] of entry.cases.entries()) {
@@ -180,7 +202,31 @@ export function parseManifest(value: unknown): Manifest {
     target: { sourceSha: sha(target.sourceSha, "manifest.target.sourceSha"), version: token(target.version, "manifest.target.version"), build: token(target.build, "manifest.target.build"), artifactId: token(target.artifactId, "manifest.target.artifactId") },
     gates, results, equivalences,
   };
-  return schemaVersion === 1 ? { ...contents, schemaVersion, platform } : { ...contents, schemaVersion, platform: "android" };
+  return schemaVersion === 1 ? { ...contents, schemaVersion, platform } : schemaVersion === 2 ? { ...contents, schemaVersion, platform: "android" } : { ...contents, schemaVersion, platform: "ios" };
+}
+
+function validateIosSelection(gate: Gate, path: string): void {
+  if (!TEST_GATES.has(gate.id)) {
+    if (gate.selection !== null) invalid(`${path}.selection`, "build gates do not select tests");
+    return;
+  }
+  const selected = gate.selection;
+  if (selected === null) invalid(`${path}.selection`, "schema 3 requires explicit native plan and actual destination provenance");
+  if (selected.testPlan !== IOS_PLANS[gate.id]) invalid(`${path}.selection.testPlan`, "must match the gate native test plan");
+  const expectedKind = gate.id === "local-ipad" ? "ipad" : "iphone";
+  if (gate.id !== "local-ios18" && selected.destination.kind !== expectedKind) invalid(`${path}.selection.destination.kind`, "wrong destination family for the selected plan");
+  const major = Number(selected.destination.osVersion.split(".")[0]);
+  if (gate.id === "local-ios18" ? major !== 18 : major <= 18) invalid(`${path}.selection.destination.osVersion`, "requires iOS 18 for compatibility, current latest iOS for other plans");
+  for (const [index, test] of gate.cases.entries()) {
+    const at = `${path}.cases[${index}]`;
+    if (test.disposition !== "required") invalid(`${at}.disposition`, "schema 3 inventories contain only selected required tests; use the destination-specific native plans");
+    if (![IOS_UI_TARGET, IOS_NON_UI_TARGET].includes(test.target) || (gate.id !== "local-full" && test.target !== IOS_UI_TARGET)) invalid(`${at}.target`, "must identify the selected native test bundle");
+    if (destinationCaseIdentity(test.id, `${at}.id`).destination !== selected.destination.id) invalid(`${at}.id`, "must match the actual selected destination id");
+  }
+  const requiredTests = gate.id === "local-ipad" ? IOS_IPAD_CASES : IOS_SMOKE_CASES;
+  const tests = gate.cases.filter((test) => test.target === IOS_UI_TARGET).map((test) => destinationCaseIdentity(test.id, path).test);
+  if (requiredTests.some((test) => !tests.includes(test)) || (gate.id !== "local-full" && tests.length !== requiredTests.length)) invalid(`${path}.cases`, "must include the complete selected native plan inventory");
+  if (gate.id === "local-full" && !gate.cases.some((test) => test.target === IOS_NON_UI_TARGET)) invalid(`${path}.cases`, "LocalFull must include the existing non-UI bundle inventory");
 }
 
 function checkGate(gate: Gate, manifest: Manifest): GateReport {
@@ -221,7 +267,7 @@ function checkGate(gate: Gate, manifest: Manifest): GateReport {
     if (test.disposition === "destination-exclusion" && !result?.cases.some((entry) => entry.id === test.requiredCaseId && entry.status === "passed")) errors.push(`case ${test.id} requires passed counterpart ${test.requiredCaseId}`);
   }
   return {
-    id: gate.id, ready: errors.length === 0, expectedIdentity: gate.identity, recordedIdentity: result?.identity ?? null,
+    id: gate.id, ready: errors.length === 0, selection: gate.selection, expectedIdentity: gate.identity, recordedIdentity: result?.identity ?? null,
     evidenceRef: result?.evidenceRef ?? null, inventoryRef: gate.inventoryRef, errors, counts,
     cases: (result?.cases ?? []).map((test) => {
       const expected = gate.cases.find((entry) => entry.id === test.id);
@@ -240,6 +286,10 @@ export function checkReadiness(manifest: Manifest): {
   const errors: string[] = [];
   for (const [index, entry] of manifest.equivalences.entries()) {
     if (entry.toSha !== manifest.target.sourceSha || entry.fromSha === entry.toSha || entry.gateIds.some((id) => manifest.gates.find((gate) => gate.id === id)?.identity.sourceSha !== entry.fromSha)) errors.push(`equivalences[${index}] does not match the declared gate sources and target`);
+  }
+  if (manifest.schemaVersion === 3) {
+    const latest = manifest.gates.filter((gate) => ["local-full", "local-ipad", "cloud-smoke"].includes(gate.id));
+    if (new Set(latest.map((gate) => gate.selection!.destination.osVersion.split(".")[0])).size !== 1) errors.push("latest local iPhone, iPad and Cloud smoke must use the same latest iOS major");
   }
   if (manifest.platform === "android") {
     const release = manifest.gates.find((gate) => gate.id === "cloud-release")!;
