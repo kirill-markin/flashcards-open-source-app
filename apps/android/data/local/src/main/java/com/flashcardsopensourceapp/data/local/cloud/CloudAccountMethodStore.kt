@@ -15,7 +15,6 @@ import com.flashcardsopensourceapp.data.local.model.cloud.CloudAccountMethodLaun
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.encodeToString
-import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.json.Json
 
 @Serializable
@@ -40,7 +39,8 @@ internal data class PendingCloudAccountMethod(
     val providerEmail: String?,
     val mailboxEmail: String?,
     val mailboxCodeRequested: Boolean,
-    val target: CloudProviderMethodTarget?
+    val target: CloudProviderMethodTarget?,
+    val connection: com.flashcardsopensourceapp.data.local.model.cloud.CloudAccountConnection?
 ) {
     val purpose: CloudAccountMethodPurpose get() = if (intent == CloudAccountMethodIntent.REAUTH)
         CloudAccountMethodPurpose.REAUTH else CloudAccountMethodPurpose.LINK
@@ -57,7 +57,7 @@ internal data class PendingCloudAccountMethod(
             else -> attempt?.expiresAtMillis
         }
         return CloudPendingAccountMethod(localId, method, intent, phase, launch, mailboxReason, providerEmail, mailboxEmail,
-            mailboxCodeRequested, expiry ?: 0L, target)
+            mailboxCodeRequested, connection?.expiresAtMillis ?: expiry ?: 0L, target, connection, activeWorkspaceId)
     }
 }
 
@@ -76,7 +76,10 @@ internal class CloudAccountMethodStore(private val credentialStore: CloudCredent
 
     private fun decode(value: String): PendingCloudAccountMethod {
         try {
-            return Json.decodeFromString(value)
+            val fields = Json.parseToJsonElement(value) as? kotlinx.serialization.json.JsonObject
+                ?: throw SerializationException("Account proof must be an object.")
+            return Json.decodeFromJsonElement(PendingCloudAccountMethod.serializer(),
+                 kotlinx.serialization.json.JsonObject(mapOf("connection" to kotlinx.serialization.json.JsonNull) + fields))
         } catch (_: SerializationException) {
             throw IllegalStateException("Encrypted account proof is invalid. Sign out before trying again.")
         } catch (_: IllegalArgumentException) {

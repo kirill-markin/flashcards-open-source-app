@@ -1,5 +1,7 @@
 package com.flashcardsopensourceapp.data.local.repository.cloudsync.account
 
+import com.flashcardsopensourceapp.data.local.model.sync.preservingLocalAccountIdentity
+
 import com.flashcardsopensourceapp.data.local.ai.store.GuestAiSessionStore
 import com.flashcardsopensourceapp.data.local.cloud.CloudPreferencesStore
 import com.flashcardsopensourceapp.data.local.cloud.CloudSocialGuestBinding
@@ -658,6 +660,18 @@ class LocalCloudAccountRepository(
         return workspaceOperationsCoordinator.listLinkedWorkspaces()
     }
 
+    internal suspend fun reconcileConnectedAccount(result: com.flashcardsopensourceapp.data.local.model.cloud.CloudConnectionCommit) {
+        operationCoordinator.runExclusive {
+            val session = sessionProvider.authenticatedSession()
+            val identity = requireNotNull(session.accountSnapshot.authenticatedIdentity) {
+                "Connected account metadata is not available. Refresh the account before continuing."
+            }
+            check(result.canonicalAccountId in identity.linkedAccountIds &&
+                result.sourceUserId in identity.linkedAccountIds)
+            workspaceLinkCoordinator.retainConnectedAccount(session, result.selectedWorkspaceId)
+        }
+    }
+
     override suspend fun switchLinkedWorkspace(selection: CloudWorkspaceLinkSelection): CloudWorkspaceSummary {
         return workspaceLinkCoordinator.completeLinkedWorkspaceTransition(selection = selection)
     }
@@ -720,6 +734,8 @@ class LocalCloudAccountRepository(
         val accountSnapshot = remoteService.fetchCloudAccount(
             apiBaseUrl = session.apiBaseUrl,
             authorizationHeader = session.authorizationHeader
+        ).preservingLocalAccountIdentity(
+            settings = preferencesStore.currentCloudSettings()
         )
         persistAccountSnapshotForCurrentCloudIdentity(accountSnapshot = accountSnapshot)
     }

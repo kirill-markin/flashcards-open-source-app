@@ -323,7 +323,26 @@ class LocalCloudSocialSignInRepository(
             val pending = requirePending(attempt)
             check(pending.completedWorkspace != null) { "Remembering sign-in requires the completed workspace." }
             withContext(NonCancellable + Dispatchers.IO) {
-                preferencesStore.socialAuthStore.completeAcceptedSession(pending)
+                val accepted = requireNotNull(pending.acceptedSession)
+                val settings = preferencesStore.currentCloudSettings()
+                val suggestion = accepted.connectionSuggestion?.takeIf { it.expiresAtMillis > System.currentTimeMillis() }
+                val connection = suggestion?.let {
+                    com.flashcardsopensourceapp.data.local.cloud.PendingCloudAccountMethod(
+                        UUID.randomUUID().toString(), preferencesStore.accountMethodStore.epoch(), settings.installationId,
+                        requireNotNull(settings.linkedUserId), settings.linkedWorkspaceId, settings.activeWorkspaceId,
+                        Base64.encodeToString(MessageDigest.getInstance("SHA-256").digest(
+                            accepted.credentials.refreshToken.toByteArray(Charsets.UTF_8)),
+                            Base64.URL_SAFE or Base64.NO_PADDING or Base64.NO_WRAP),
+                        pending.configuration, if (pending.provider == CloudSocialProvider.GOOGLE)
+                            com.flashcardsopensourceapp.data.local.model.cloud.CloudSignInMethod.GOOGLE
+                            else com.flashcardsopensourceapp.data.local.model.cloud.CloudSignInMethod.APPLE,
+                        com.flashcardsopensourceapp.data.local.model.cloud.CloudAccountMethodIntent.CONNECT,
+                        com.flashcardsopensourceapp.data.local.model.cloud.CloudAccountMethodPhase.CONNECTION_SUGGESTED,
+                        pending.codeVerifier, null, null, null, null, null, null, null, false, null,
+                        com.flashcardsopensourceapp.data.local.model.cloud.CloudAccountConnection(
+                            null, it.expiresAtMillis, false, null, null, it))
+                }
+                preferencesStore.socialAuthStore.completeAcceptedSession(pending, connection)
             }
         }
     }
@@ -354,7 +373,7 @@ class LocalCloudSocialSignInRepository(
         )
         require(session.signInHint.method == pending.provider) { "The accepted session belongs to a different sign-in method." }
         if (pending.provider == CloudSocialProvider.APPLE && !pending.providerCredentialObserved) onCredentialReceived()
-        val accepted = pending.copy(acceptedSession = CloudAcceptedSocialSession(session.credentials, session.signInHint),
+        val accepted = pending.copy(acceptedSession = CloudAcceptedSocialSession(session.credentials, session.signInHint, session.connectionSuggestion),
             providerCredentialObserved = true)
         // Retain the real session before any guest/workspace calls; redemption is single-use.
         withContext(NonCancellable + Dispatchers.IO) {

@@ -39,6 +39,9 @@ internal class CloudLinkedWorkspaceTransitionCoordinator(
         selectedWorkspace: CloudWorkspaceSummary
     ) {
         operationCoordinator.requireExclusiveOperation(operationName = "Linked workspace application")
+        if (retainCurrentLinkedWorkspace(accountSnapshot = accountSnapshot, selectedWorkspace = selectedWorkspace)) {
+            return
+        }
         val remoteWorkspaceIsEmpty: Boolean = resolveRemoteWorkspaceEmptiness(
             bearerToken = bearerToken,
             selectedWorkspace = selectedWorkspace
@@ -55,6 +58,9 @@ internal class CloudLinkedWorkspaceTransitionCoordinator(
         selectedWorkspace: CloudWorkspaceSummary
     ) {
         operationCoordinator.requireExclusiveOperation(operationName = "Linked workspace application")
+        if (retainCurrentLinkedWorkspace(accountSnapshot = accountSnapshot, selectedWorkspace = selectedWorkspace)) {
+            return
+        }
         migrateLocalShellToLinkedWorkspace(
             accountSnapshot = accountSnapshot,
             selectedWorkspace = selectedWorkspace,
@@ -220,6 +226,43 @@ internal class CloudLinkedWorkspaceTransitionCoordinator(
                 cloudSettings = cloudSettings
             )
         }
+    }
+
+    suspend fun retainConnectedAccount(accountSnapshot: CloudAccountSnapshot, selectedWorkspaceId: String) {
+        operationCoordinator.requireExclusiveOperation(operationName = "Connected account reconciliation")
+        val settings = preferencesStore.currentCloudSettings()
+        check(settings.cloudState == CloudAccountState.LINKED && settings.linkedUserId == accountSnapshot.userId)
+        val selected = accountSnapshot.workspaces.firstOrNull { it.workspaceId == settings.activeWorkspaceId }
+            ?: throw com.flashcardsopensourceapp.data.local.model.cloud.CloudConnectionWorkspaceUnavailableException(selectedWorkspaceId)
+        check(retainCurrentLinkedWorkspace(accountSnapshot, selected)) {
+            "Connected account cannot replace the current offline workspace."
+        }
+    }
+
+    private suspend fun retainCurrentLinkedWorkspace(
+        accountSnapshot: CloudAccountSnapshot,
+        selectedWorkspace: CloudWorkspaceSummary
+    ): Boolean {
+        val settings: CloudSettings = preferencesStore.currentCloudSettings()
+        if (settings.cloudState != CloudAccountState.LINKED || settings.linkedUserId != accountSnapshot.userId ||
+            settings.activeWorkspaceId != selectedWorkspace.workspaceId ||
+            settings.linkedWorkspaceId != selectedWorkspace.workspaceId
+        ) {
+            return false
+        }
+        require(accountSnapshot.workspaces.any { workspace -> workspace.workspaceId == selectedWorkspace.workspaceId }) {
+            "The preserved linked workspace is unavailable for this account. Start sign-in again."
+        }
+        requireTransitionInvariant(stage = "before linked credential replacement", expectedWorkspaceId = selectedWorkspace.workspaceId)
+        preferencesStore.updateCloudSettings(
+            cloudState = CloudAccountState.LINKED,
+            linkedUserId = settings.linkedUserId,
+            linkedWorkspaceId = settings.linkedWorkspaceId,
+            linkedEmail = accountSnapshot.email,
+            activeWorkspaceId = settings.activeWorkspaceId
+        )
+        preferencesStore.saveAccountPreferences(preferences = accountSnapshot.preferences)
+        return true
     }
 
     private suspend fun migrateLocalShellToLinkedWorkspace(
