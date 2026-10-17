@@ -46,6 +46,7 @@ type ChartFrameParams = Readonly<{
   x: d3.ScaleBand<string>;
   y: d3.ScaleLinear<number, number>;
   tickDates: ReadonlyArray<string>;
+  formatTickLabel: (date: string) => string;
   yAxisLabel: string;
   xAxisLabel: string;
 }>;
@@ -90,6 +91,8 @@ type KeyedStackedBarChartParams = Readonly<{
   peakStackedValue: number;
   yAxisLabel: string;
   xAxisLabel: string;
+  formatTickLabel: (date: string) => string;
+  formatTitleLabel: (date: string) => string;
   buildTooltipMetricsHtml: (entry: StackedChartRectEntry) => string;
   tooltipHandlers: ChartTooltipHandlers;
 }>;
@@ -324,7 +327,7 @@ function renderChartFrame(
     .call(
       d3.axisBottom(params.x)
         .tickValues(params.tickDates)
-        .tickFormat((value) => formatCompactDateLabel(value)),
+        .tickFormat((value) => params.formatTickLabel(value)),
     )
     .call((axis) => axis.selectAll("text")
       .attr("transform", "rotate(-32)")
@@ -363,6 +366,7 @@ function renderUserStackedBarChart<User extends ChartUser>(params: UserStackedBa
     x,
     y,
     tickDates: params.tickDates,
+    formatTickLabel: formatCompactDateLabel,
     yAxisLabel: params.yAxisLabel,
     xAxisLabel: params.xAxisLabel,
   });
@@ -434,6 +438,7 @@ function renderUniqueUserCohortChart(params: UniqueUserCohortChartParams): void 
     x,
     y,
     tickDates: params.tickDates,
+    formatTickLabel: formatCompactDateLabel,
     yAxisLabel: params.yAxisLabel,
     xAxisLabel: params.xAxisLabel,
   });
@@ -529,6 +534,7 @@ function renderDailyTotalBarChart(params: DailyTotalBarChartParams): void {
     x,
     y,
     tickDates: params.tickDates,
+    formatTickLabel: formatCompactDateLabel,
     yAxisLabel: params.yAxisLabel,
     xAxisLabel: params.xAxisLabel,
   });
@@ -642,6 +648,7 @@ function renderKeyedGroupedUsersChart(params: KeyedGroupedUsersChartParams): voi
     x,
     y,
     tickDates: params.tickDates,
+    formatTickLabel: formatCompactDateLabel,
     yAxisLabel: params.yAxisLabel,
     xAxisLabel: params.xAxisLabel,
   });
@@ -708,6 +715,7 @@ function renderKeyedStackedBarChart(params: KeyedStackedBarChartParams): KeyedSt
     x,
     y,
     tickDates: params.tickDates,
+    formatTickLabel: params.formatTickLabel,
     yAxisLabel: params.yAxisLabel,
     xAxisLabel: params.xAxisLabel,
   });
@@ -738,7 +746,7 @@ function renderKeyedStackedBarChart(params: KeyedStackedBarChartParams): KeyedSt
     .on("mousemove", (event, entry: StackedChartRectEntry) => {
       params.tooltipHandlers.showTooltip(
         [
-          `<p class="tooltip-title">${escapeHtml(formatDateRangeLabel(entry.date))}</p>`,
+          `<p class="tooltip-title">${escapeHtml(params.formatTitleLabel(entry.date))}</p>`,
           `<p class="tooltip-subtitle">${escapeHtml(params.getKeyLabel(entry.key))}</p>`,
           params.buildTooltipMetricsHtml(entry),
         ].join(""),
@@ -766,6 +774,8 @@ function renderDailyActiveUsersOverlappingStackChart(params: DailyActiveUsersOve
     peakStackedValue: params.peakDailyValue,
     yAxisLabel: "Active users",
     xAxisLabel: "Date",
+    formatTickLabel: formatCompactDateLabel,
+    formatTitleLabel: formatDateRangeLabel,
     buildTooltipMetricsHtml: (entry) => [
       `<div class="tooltip-metric"><span>${escapeHtml(params.segmentMetricLabel)}</span><strong>${numberFormatter(entry.value)}</strong></div>`,
       `<div class="tooltip-metric"><span>Unique active users on this date</span><strong>${numberFormatter(params.dailyActiveUsersByDate.get(entry.date) ?? 0)}</strong></div>`,
@@ -874,6 +884,8 @@ export function renderPlatformReviewEventsChart(params: RenderPlatformReviewEven
     peakStackedValue: params.peakDailyPlatformReviewEvents,
     yAxisLabel: "Review events",
     xAxisLabel: "Review date",
+    formatTickLabel: formatCompactDateLabel,
+    formatTitleLabel: formatDateRangeLabel,
     buildTooltipMetricsHtml: (entry) => [
       `<div class="tooltip-metric"><span>Review events</span><strong>${numberFormatter(entry.value)}</strong></div>`,
       `<div class="tooltip-metric"><span>All platforms on this date</span><strong>${numberFormatter(params.totalPlatformReviewEventsByDate.get(entry.date) ?? 0)}</strong></div>`,
@@ -897,6 +909,8 @@ export function renderCatalogInstallsByPackageChart(params: RenderCatalogInstall
     peakStackedValue: params.peakDailyInstalls,
     yAxisLabel: "Installs",
     xAxisLabel: "Install date",
+    formatTickLabel: formatCompactDateLabel,
+    formatTitleLabel: formatDateRangeLabel,
     buildTooltipMetricsHtml: (entry) => [
       `<div class="tooltip-metric"><span>Installs of this deck</span><strong>${numberFormatter(entry.value)}</strong></div>`,
       `<div class="tooltip-metric"><span>All decks on this date</span><strong>${numberFormatter(params.totalInstallsByDate.get(entry.date) ?? 0)}</strong></div>`,
@@ -915,8 +929,11 @@ export type RenderWhoSawUsChartParams = Readonly<{
   getKeyColor: (key: string) => string;
   getKeyLabel: (key: string) => string;
   peakDailyTotal: number;
-  /** The days after this one are not final yet, and a dashed line marks where they start. */
-  lastFinalDate: string;
+  xAxisLabel: string;
+  /** The first bar that is not final yet, where a dashed line marks the start; null when every bar is final. */
+  firstNotFinalDate: string | null;
+  formatTickLabel: (date: string) => string;
+  formatTitleLabel: (date: string) => string;
   buildTooltipMetricsHtml: (entry: StackedChartRectEntry) => string;
   tooltipHandlers: ChartTooltipHandlers;
 }>;
@@ -932,17 +949,18 @@ export function renderWhoSawUsChart(params: RenderWhoSawUsChartParams): void {
     getKeyLabel: params.getKeyLabel,
     peakStackedValue: params.peakDailyTotal,
     yAxisLabel: "Visitors",
-    xAxisLabel: "Date",
+    xAxisLabel: params.xAxisLabel,
+    formatTickLabel: params.formatTickLabel,
+    formatTitleLabel: params.formatTitleLabel,
     buildTooltipMetricsHtml: params.buildTooltipMetricsHtml,
     tooltipHandlers: params.tooltipHandlers,
   });
-  const firstNotFinalDate = params.dates.find((date) => date > params.lastFinalDate);
-  if (firstNotFinalDate === undefined) {
+  if (params.firstNotFinalDate === null) {
     return;
   }
 
   // In the middle of the gap before the first not-final bar, so the line never covers a bar.
-  const lineX = (frame.x(firstNotFinalDate) ?? 0) - (frame.x.step() - frame.x.bandwidth()) / 2;
+  const lineX = (frame.x(params.firstNotFinalDate) ?? 0) - (frame.x.step() - frame.x.bandwidth()) / 2;
   const marker = frame.group.append("g").attr("class", "not-final-marker");
   marker.append("line")
     .attr("x1", lineX)
