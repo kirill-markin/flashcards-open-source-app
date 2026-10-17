@@ -528,7 +528,21 @@ extension LiveSmokeTestCase {
         while Date() < deadline {
             if createButton.exists && createButton.isHittable {
                 let buttonFrame = createButton.frame
+                #if targetEnvironment(macCatalyst)
+                let chooserWindows = self.app.children(matching: .window)
+                    .containing(.any, identifier: LiveSmokeIdentifier.cloudWorkspaceChooserScreen)
+                let chooserWindowCount = chooserWindows.count
+                guard chooserWindowCount == 1 else {
+                    throw LiveSmokeFailure.unexpectedAccountState(
+                        message: "Expected one top-level native window containing '\(LiveSmokeIdentifier.cloudWorkspaceChooserScreen)' for the workspace chooser viewport; found \(chooserWindowCount).",
+                        screen: self.currentScreenSummary(),
+                        step: self.currentStepTitle
+                    )
+                }
+                let chooserViewport = chooserList.frame.intersection(chooserWindows.element.frame)
+                #else
                 let chooserViewport = chooserList.frame.intersection(self.app.frame)
+                #endif
                 if buttonFrame.isEmpty == false && chooserViewport.contains(buttonFrame) {
                     return
                 }
