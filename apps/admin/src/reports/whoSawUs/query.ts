@@ -1,4 +1,4 @@
-import { runAdminQuery, type AdminQueryResultSet, type AdminQueryValue } from "../../adminApi";
+import { runAdminQuery, type AdminQueryResultSet } from "../../adminApi";
 import type { AdminAppConfig } from "../../config";
 import type { AnalyticsDateRange } from "../../filters/analyticsFilters";
 import { buildExcludedActorSqlLines } from "../../filters/filterSql";
@@ -9,11 +9,14 @@ import {
   buildHashedVisitorDaySql,
 } from "../funnels/funnelAudienceSql";
 import {
-  assertIsString,
-  assertValidDateRange,
-  buildRequestedDateRange,
-  toInteger,
-} from "../reportValues";
+  buildReportBucketColumnsSql,
+  buildReportBucketSql,
+  buildReportBucketsCteSql,
+  parseReportBucket,
+  type ReportBucket,
+  type ReportPeriod,
+} from "../levelOneMetrics/reportPeriod";
+import { assertIsString, assertValidDateRange, parseActivityCount } from "../reportValues";
 import { buildSiteFactSql } from "../siteEntryFunnel/query";
 
 const reportLabel = "Who saw us report";
@@ -29,29 +32,20 @@ export const whoSawUsSeriesKeys = ["web", "app-store", "google-play"] as const;
 
 export type WhoSawUsSeriesKey = (typeof whoSawUsSeriesKeys)[number];
 
-export type WhoSawUsDay = Readonly<{
-  date: string;
-  /** NULL where the source has no row for the day, which is absence rather than a reported zero. */
+export type WhoSawUsBucket = Readonly<{
+  bucket: ReportBucket;
+  /** NULL where the source has no row for any day of the bucket, which is absence rather than a reported zero. */
   visitorsBySeries: Readonly<Record<WhoSawUsSeriesKey, number | null>>;
 }>;
 
 export type WhoSawUsReport = Readonly<{
   generatedAtUtc: string;
+  period: ReportPeriod;
   from: string;
   to: string;
-  /** Every day of the range, oldest first. */
-  days: ReadonlyArray<WhoSawUsDay>;
+  /** Every bucket of the range, oldest first. */
+  buckets: ReadonlyArray<WhoSawUsBucket>;
 }>;
-
-function assertSeriesKey(value: AdminQueryValue, fieldName: string): WhoSawUsSeriesKey {
-  const seriesKey = assertIsString(value, reportLabel, fieldName);
-  const knownSeriesKey = whoSawUsSeriesKeys.find((candidate) => candidate === seriesKey);
-  if (knownSeriesKey === undefined) {
-    throw new Error(`${reportLabel} field "${fieldName}" must be a known series. Got "${seriesKey}".`);
-  }
-
-  return knownSeriesKey;
-}
 
 function getSingleResultSet(
   resultSets: ReadonlyArray<AdminQueryResultSet>,
@@ -145,13 +139,15 @@ export async function loadWhoSawUsAvailableRange(config: AdminAppConfig): Promis
 }
 
 /**
- * One row per series and day that has data, each an approximate count of unique visitors.
+ * One row per bucket of the range, each series an approximate count of unique visitors or NULL.
  *
- * `web` is the marketing site: distinct identified visitors per UTC day of `occurred_at`, through the
- * shared actor exclusion rule, which also drops every actor with an automated collector row, plus
- * distinct cookieless visitors per UTC day of the hash's salt, keyed as the funnels key them in
- * `../funnels/funnelAudienceSql.ts`. The two cohorts can hold one human on the same day, before and
- * after consent, and are added anyway.
+ * `web` is the marketing site: distinct identified visitors per bucket of the UTC day of `occurred_at`,
+ * through the shared actor exclusion rule, which also drops every actor with an automated collector
+ * row, plus distinct cookieless visitors per UTC day of the hash's salt, keyed as the funnels key them
+ * in `../funnels/funnelAudienceSql.ts`. The two cohorts can hold one human on the same day, before and
+ * after consent, and are added anyway. The salt rotates daily and no hash links two days, so the
+ * cookieless daily counts are summed into the bucket, as are the stores' daily values, which carry no
+ * visitor id at all.
  *
  * `app-store` is our app's product page views of the Discovery and Engagement report, by unique count, plus
  * the browser views of the apps.apple.com page from the Web Preview report, which has no unique
@@ -162,16 +158,19 @@ export async function loadWhoSawUsAvailableRange(config: AdminAppConfig): Promis
  * TODO: someone who reaches the store page from our website, by a store badge or the site's QR code,
  * counts in both `web` and `app-store` or `google-play`. Removing that overlap is a known later task.
  */
-export function buildWhoSawUsSql(dateRange: AnalyticsDateRange): string {
+export function buildWhoSawUsSql(dateRange: AnalyticsDateRange, period: ReportPeriod): string {
   const range = assertValidDateRange(dateRange, reportLabel);
   const fromSql = `${escapeSqlStringLiteral(range.from)}::date`;
   const toSql = `${escapeSqlStringLiteral(range.to)}::date`;
   const hashedVisitorDaySql = buildHashedVisitorDaySql("hashed_view");
+  const identifiedBucketSql = buildReportBucketSql(period, "(site_view.occurred_at AT TIME ZONE 'UTC')::date");
+  const appleBucketSql = buildReportBucketSql(period, "apple_visitors.visit_date");
+  const playBucketSql = buildReportBucketSql(period, "play_visitors.visit_date");
 
   return [
-    "WITH identified_site_visitors AS (",
+    `WITH ${buildReportBucketsCteSql(period, range)}, identified_site_visitors AS (`,
     "  SELECT",
-    "    (site_view.occurred_at AT TIME ZONE 'UTC')::date AS visit_date,",
+    `    ${identifiedBucketSql} AS bucket_date,`,
     "    COUNT(DISTINCT site_view.actor_id) AS visitor_count",
     "  FROM analytics.product_events_resolved AS site_view",
     `  WHERE ${buildSiteFactSql("site_view", "site_page_viewed")}`,
@@ -181,7 +180,7 @@ export function buildWhoSawUsSql(dateRange: AnalyticsDateRange): string {
     `    AND site_view.occurred_at >= (${fromSql})::timestamp AT TIME ZONE 'UTC'`,
     `    AND site_view.occurred_at < (${toSql} + INTERVAL '1 day')::timestamp AT TIME ZONE 'UTC'`,
     ...buildExcludedActorSqlLines("site_view.actor_id::text"),
-    "  GROUP BY (site_view.occurred_at AT TIME ZONE 'UTC')::date",
+    `  GROUP BY ${identifiedBucketSql}`,
     "), hashed_site_visitors AS (",
     "  SELECT",
     `    ${hashedVisitorDaySql} AS visit_date,`,
@@ -191,9 +190,10 @@ export function buildWhoSawUsSql(dateRange: AnalyticsDateRange): string {
     `    AND ${buildHashedVisitorDayRangeSqlLines("hashed_view", range.from, range.to).join("\n    AND ")}`,
     `  GROUP BY ${hashedVisitorDaySql}`,
     "), site_visitors AS (",
-    "  SELECT identified.visit_date, identified.visitor_count FROM identified_site_visitors AS identified",
+    "  SELECT identified.bucket_date, identified.visitor_count FROM identified_site_visitors AS identified",
     "  UNION ALL",
-    "  SELECT hashed.visit_date, hashed.visitor_count FROM hashed_site_visitors AS hashed",
+    `  SELECT ${buildReportBucketSql(period, "hashed.visit_date")} AS bucket_date, hashed.visitor_count`,
+    "  FROM hashed_site_visitors AS hashed",
     "), apple_visitors AS (",
     "  SELECT engagement.report_date AS visit_date, engagement.unique_counts AS visitor_count",
     "  FROM store_analytics.apple_discovery_engagement AS engagement",
@@ -212,51 +212,39 @@ export function buildWhoSawUsSql(dateRange: AnalyticsDateRange): string {
     `  WHERE ${buildPlayListingVisitorRowSqlLines("performance").join("\n    AND ")}`,
     `    AND performance.report_date >= ${fromSql}`,
     `    AND performance.report_date <= ${toSql}`,
+    "), web_buckets AS (",
+    "  SELECT site_visitors.bucket_date, SUM(site_visitors.visitor_count)::bigint AS visitor_count",
+    "  FROM site_visitors",
+    "  GROUP BY site_visitors.bucket_date",
+    "), apple_buckets AS (",
+    `  SELECT ${appleBucketSql} AS bucket_date, ROUND(SUM(apple_visitors.visitor_count))::bigint AS visitor_count`,
+    "  FROM apple_visitors",
+    `  GROUP BY ${appleBucketSql}`,
+    "), play_buckets AS (",
+    `  SELECT ${playBucketSql} AS bucket_date, ROUND(SUM(play_visitors.visitor_count))::bigint AS visitor_count`,
+    "  FROM play_visitors",
+    `  GROUP BY ${playBucketSql}`,
     ")",
     "SELECT",
-    "  'web' AS series,",
-    "  to_char(site_visitors.visit_date, 'YYYY-MM-DD') AS visit_date,",
-    "  SUM(site_visitors.visitor_count)::bigint AS visitor_count",
-    "FROM site_visitors",
-    "GROUP BY site_visitors.visit_date",
-    "UNION ALL",
-    "SELECT",
-    "  'app-store' AS series,",
-    "  to_char(apple_visitors.visit_date, 'YYYY-MM-DD') AS visit_date,",
-    "  ROUND(SUM(apple_visitors.visitor_count))::bigint AS visitor_count",
-    "FROM apple_visitors",
-    "GROUP BY apple_visitors.visit_date",
-    "UNION ALL",
-    "SELECT",
-    "  'google-play' AS series,",
-    "  to_char(play_visitors.visit_date, 'YYYY-MM-DD') AS visit_date,",
-    "  ROUND(SUM(play_visitors.visitor_count))::bigint AS visitor_count",
-    "FROM play_visitors",
-    "GROUP BY play_visitors.visit_date",
-    "ORDER BY series, visit_date",
+    `  ${buildReportBucketColumnsSql("buckets")},`,
+    "  web.visitor_count AS web_visitors,",
+    "  apple.visitor_count AS app_store_visitors,",
+    "  play.visitor_count AS google_play_visitors",
+    "FROM report_buckets AS buckets",
+    "LEFT JOIN web_buckets AS web ON web.bucket_date = buckets.bucket_date",
+    "LEFT JOIN apple_buckets AS apple ON apple.bucket_date = buckets.bucket_date",
+    "LEFT JOIN play_buckets AS play ON play.bucket_date = buckets.bucket_date",
+    "ORDER BY buckets.bucket_date",
   ].join("\n");
 }
 
-function buildWhoSawUsDays(
-  resultSet: AdminQueryResultSet,
-  dates: ReadonlyArray<string>,
-): ReadonlyArray<WhoSawUsDay> {
-  const visitorsBySeriesDate = new Map<string, number>();
-  for (const row of resultSet.rows) {
-    const seriesKey = assertSeriesKey(row.series ?? null, "series");
-    const date = assertIsString(row.visit_date ?? null, reportLabel, "visit_date");
-    visitorsBySeriesDate.set(
-      `${seriesKey}:${date}`,
-      toInteger(row.visitor_count ?? null, reportLabel, "visitor_count"),
-    );
-  }
-
-  return dates.map((date) => ({
-    date,
+function buildWhoSawUsBuckets(resultSet: AdminQueryResultSet): ReadonlyArray<WhoSawUsBucket> {
+  return resultSet.rows.map((row) => ({
+    bucket: parseReportBucket(row, reportLabel),
     visitorsBySeries: {
-      web: visitorsBySeriesDate.get(`web:${date}`) ?? null,
-      "app-store": visitorsBySeriesDate.get(`app-store:${date}`) ?? null,
-      "google-play": visitorsBySeriesDate.get(`google-play:${date}`) ?? null,
+      web: parseActivityCount(row.web_visitors ?? null, reportLabel, "web_visitors"),
+      "app-store": parseActivityCount(row.app_store_visitors ?? null, reportLabel, "app_store_visitors"),
+      "google-play": parseActivityCount(row.google_play_visitors ?? null, reportLabel, "google_play_visitors"),
     },
   }));
 }
@@ -264,14 +252,16 @@ function buildWhoSawUsDays(
 export async function loadWhoSawUsReport(
   config: AdminAppConfig,
   dateRange: AnalyticsDateRange,
+  period: ReportPeriod,
 ): Promise<WhoSawUsReport> {
-  const response = await runAdminQuery(config, buildWhoSawUsSql(dateRange));
+  const response = await runAdminQuery(config, buildWhoSawUsSql(dateRange, period));
   const resultSet = getSingleResultSet(response.resultSets, reportLabel);
 
   return {
     generatedAtUtc: response.executedAtUtc,
+    period,
     from: dateRange.from,
     to: dateRange.to,
-    days: buildWhoSawUsDays(resultSet, buildRequestedDateRange(dateRange.from, dateRange.to, reportLabel)),
+    buckets: buildWhoSawUsBuckets(resultSet),
   };
 }

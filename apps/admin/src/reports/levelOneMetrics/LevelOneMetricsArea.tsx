@@ -15,8 +15,10 @@ import { WhoOpenedTheAppSection } from "../whoOpenedTheApp/WhoOpenedTheAppSectio
 import { WhoStudiedSection } from "../whoStudied/WhoStudiedSection";
 import { WhoCameBackSection } from "../whoCameBack/WhoCameBackSection";
 import { WhoPaidUsSection } from "../whoPaidUs/WhoPaidUsSection";
+import { parseReportPeriod, reportPeriodLabels, reportPeriods, type ReportPeriod } from "./reportPeriod";
 
 const levelOneMetricsReportLabel = "Level 1 metrics";
+const levelOneMetricsGroupByFieldId = "level-1-metrics-group-by";
 
 const noOptions: ReadonlyArray<never> = [];
 const noUserColorScale = getUserColorScale([]);
@@ -60,6 +62,7 @@ export function LevelOneMetricsArea(
   const [rangeLoadRevision, setRangeLoadRevision] = useState<number>(0);
   const [dateRange, setDateRange] = useState<AnalyticsDateRange | null>(null);
   const [dateRangeError, setDateRangeError] = useState<string>("");
+  const [period, setPeriod] = useState<ReportPeriod>("day");
 
   useEffect(() => {
     let cancelled = false;
@@ -149,30 +152,52 @@ export function LevelOneMetricsArea(
         onNavigate={props.onNavigate}
       />
 
+      <div className="funnel-group-by-row">
+        <div className="funnel-group-by">
+          <label htmlFor={levelOneMetricsGroupByFieldId}>Group by</label>
+          <select
+            id={levelOneMetricsGroupByFieldId}
+            className="funnel-group-by-select"
+            data-testid={levelOneMetricsGroupByFieldId}
+            value={period}
+            onChange={(event) => setPeriod(parseReportPeriod(event.target.value))}
+          >
+            {reportPeriods.map((option) => (
+              <option key={option} value={option}>{reportPeriodLabels[option]}</option>
+            ))}
+          </select>
+        </div>
+      </div>
+
       <div className="level-1-metrics-grid">
         <WhoSawUsSection
           config={props.config}
           dateRange={dateRange}
+          period={period}
           onTerminalAdminError={props.onTerminalAdminError}
         />
         <WhoOpenedTheAppSection
           config={props.config}
           dateRange={dateRange}
+          period={period}
           onTerminalAdminError={props.onTerminalAdminError}
         />
         <WhoStudiedSection
           config={props.config}
           dateRange={dateRange}
+          period={period}
           onTerminalAdminError={props.onTerminalAdminError}
         />
         <WhoCameBackSection
           config={props.config}
           dateRange={dateRange}
+          period={period}
           onTerminalAdminError={props.onTerminalAdminError}
         />
         <WhoPaidUsSection
           config={props.config}
           dateRange={dateRange}
+          period={period}
           onTerminalAdminError={props.onTerminalAdminError}
         />
       </div>

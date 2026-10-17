@@ -11,7 +11,7 @@ Each serves `/analytics/level-1-metrics`, the landing page that `/` and `/analyt
 
 ## Scope
 
-`Level 1 metrics` opens on its own last-60-days date range. Its responsive grid has `Who saw us`, `Who opened the app`, `Who studied`, `Who came back` and `Who paid us` in funnel order. [The Level 1 contract](../apps/admin/README.md#level-1-metrics) defines sources, app-open and review activity, identity resolution, daily new and returning people, W1/W4 cohort maturity, native financial-event classification and retained-history/merchant-coverage limits. The [area](../apps/admin/src/reports/levelOneMetrics/LevelOneMetricsArea.tsx) coordinates only the date selection, while each chart loads and retries independently.
+`Level 1 metrics` opens on its own last-60-days date range. Its responsive grid has `Who saw us`, `Who opened the app`, `Who studied`, `Who came back` and `Who paid us` in funnel order. [The Level 1 contract](../apps/admin/README.md#level-1-metrics) defines sources, app-open and review activity, identity resolution, new and returning people, W1/W4 cohort maturity, native financial-event classification and retained-history/merchant-coverage limits. The [area](../apps/admin/src/reports/levelOneMetrics/LevelOneMetricsArea.tsx) coordinates only the date selection and one `Group by` switch, Days, Weeks or Months, while each chart loads and retries independently. Each chart buckets [by that period](../apps/admin/src/reports/levelOneMetrics/reportPeriod.ts) in SQL, so a people count is the unique people in its bucket, never a sum of daily bars, wherever an identifier spans days.
 
 `General` contains these four report sections, in page order:
 

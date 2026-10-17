@@ -1,8 +1,14 @@
 import { runAdminQuery, type AdminQueryRow, type AdminQueryValue } from "../../adminApi";
 import type { AdminAppConfig } from "../../config";
 import type { AnalyticsDateRange } from "../../filters/analyticsFilters";
-import { escapeSqlStringLiteral } from "../../sql";
-import { assertIsString, assertValidDateRange, buildRequestedDateRange, parseActivityCount, parseActivityDate } from "../reportValues";
+import {
+  buildReportBucketColumnsSql,
+  buildReportBucketsCteSql,
+  parseReportBucket,
+  type ReportBucket,
+  type ReportPeriod,
+} from "../levelOneMetrics/reportPeriod";
+import { assertIsString, assertValidDateRange, parseActivityCount, parseActivityDate } from "../reportValues";
 import { buildPaymentCoverageCtesSql, buildPaymentHistoryCtesSql } from "./paymentHistorySql";
 
 const reportLabel = "Who paid us report";
@@ -18,15 +24,15 @@ export type PaymentSeries = (typeof paymentSeries)[number];
 export const paymentProviderLabels = { apple: "Apple", google: "Google", stripe: "Stripe" } as const;
 export const paymentSeriesLabels = { trial: "Trial starts", first: "First payments", recurring: "Recurring payments" } as const;
 
-export type ProviderPaymentDay = Readonly<{
+export type ProviderPaymentBucket = Readonly<{
   counts: Readonly<Record<PaymentSeries, number | null>>;
   complete: boolean;
   unclassified: number;
   nativeRepurchases: number;
 }>;
-export type WhoPaidUsDay = Readonly<{
-  date: string;
-  providers: Readonly<Record<PaymentProvider, ProviderPaymentDay>>;
+export type WhoPaidUsBucket = Readonly<{
+  bucket: ReportBucket;
+  providers: Readonly<Record<PaymentProvider, ProviderPaymentBucket>>;
 }>;
 export type PaymentSourceCoverage = Readonly<{
   provider: PaymentProvider;
@@ -41,8 +47,9 @@ export type PaymentSourceCoverage = Readonly<{
 }>;
 export type WhoPaidUsReport = Readonly<{
   generatedAtUtc: string;
+  period: ReportPeriod;
   today: string;
-  days: ReadonlyArray<WhoPaidUsDay>;
+  buckets: ReadonlyArray<WhoPaidUsBucket>;
   sources: ReadonlyArray<PaymentSourceCoverage>;
 }>;
 
@@ -51,41 +58,41 @@ export function buildWhoPaidUsAvailableRangeSql(): string {
 SELECT (MIN(event_at) AT TIME ZONE 'UTC')::date AS history_from FROM payment_events`;
 }
 
-export function buildWhoPaidUsSql(dateRange: AnalyticsDateRange): string {
+// Events summed per bucket, since they are events rather than people. A bucket is complete only when
+// every latest Stripe catalog scan succeeded and covers all of its selected days.
+export function buildWhoPaidUsSql(dateRange: AnalyticsDateRange, period: ReportPeriod): string {
   const range = assertValidDateRange(dateRange, reportLabel);
-  return `WITH ${buildPaymentHistoryCtesSql()}, ${buildPaymentCoverageCtesSql()}, days AS (
-  SELECT day::date AS report_date FROM generate_series(${escapeSqlStringLiteral(range.from)}::timestamp,
-    ${escapeSqlStringLiteral(range.to)}::timestamp, INTERVAL '1 day') AS day
-), providers(provider) AS (VALUES ('apple'), ('google'), ('stripe')),
-daily AS (
-  SELECT days.report_date, providers.provider,
+  return `WITH ${buildPaymentHistoryCtesSql()}, ${buildPaymentCoverageCtesSql()}, ${buildReportBucketsCteSql(period, range)},
+providers(provider) AS (VALUES ('apple'), ('google'), ('stripe')),
+bucketed AS (
+  SELECT buckets.bucket_date, buckets.selected_from, buckets.selected_to, providers.provider,
     COUNT(*) FILTER (WHERE event.series = 'trial') AS trial,
     COUNT(*) FILTER (WHERE event.series = 'first') AS first,
     COUNT(*) FILTER (WHERE event.series = 'recurring') AS recurring,
     COUNT(*) FILTER (WHERE event.series = 'unclassified') AS unclassified,
     COUNT(*) FILTER (WHERE event.series = 'recurring' AND event.native_purchase) AS native_repurchases
-  FROM days CROSS JOIN providers
+  FROM report_buckets AS buckets CROSS JOIN providers
   LEFT JOIN payment_events AS event ON event.provider = providers.provider
-    AND event.event_at >= days.report_date::timestamp AT TIME ZONE 'UTC'
-    AND event.event_at < (days.report_date + 1)::timestamp AT TIME ZONE 'UTC'
-  GROUP BY days.report_date, providers.provider
+    AND event.event_at >= buckets.selected_from::timestamp AT TIME ZONE 'UTC'
+    AND event.event_at < (buckets.selected_to + 1)::timestamp AT TIME ZONE 'UTC'
+  GROUP BY buckets.bucket_date, buckets.selected_from, buckets.selected_to, providers.provider
 ), covered AS (
-  SELECT daily.*,
-    daily.provider = 'stripe' AND NOT EXISTS (
-      SELECT 1 FROM latest_sources AS source WHERE source.provider = daily.provider
+  SELECT bucketed.*,
+    bucketed.provider = 'stripe' AND NOT EXISTS (
+      SELECT 1 FROM latest_sources AS source WHERE source.provider = bucketed.provider
         AND (source.status IS DISTINCT FROM 'succeeded'
-          OR source.covered_from > daily.report_date::timestamp AT TIME ZONE 'UTC'
-          OR source.covered_to < (daily.report_date + 1)::timestamp AT TIME ZONE 'UTC')
+          OR source.covered_from > bucketed.selected_from::timestamp AT TIME ZONE 'UTC'
+          OR source.covered_to < (bucketed.selected_to + 1)::timestamp AT TIME ZONE 'UTC')
     ) AS complete
-  FROM daily
+  FROM bucketed
 )
-SELECT to_char(report_date, 'YYYY-MM-DD') AS report_date, provider, complete,
+SELECT ${buildReportBucketColumnsSql("covered")}, provider, complete,
   to_char((now() AT TIME ZONE 'UTC')::date, 'YYYY-MM-DD') AS today,
   CASE WHEN trial > 0 OR complete THEN trial END AS trial,
   CASE WHEN first > 0 OR (complete AND unclassified = 0) THEN first END AS first,
   CASE WHEN recurring > 0 OR (complete AND unclassified = 0) THEN recurring END AS recurring,
   unclassified, native_repurchases
-FROM covered ORDER BY report_date, provider;
+FROM covered ORDER BY covered.bucket_date, provider;
 WITH ${buildPaymentCoverageCtesSql()}
 SELECT provider, source, COALESCE(status, 'missing') AS status,
   to_char(started_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') AS started_at,
@@ -114,30 +121,35 @@ function parseRequiredCount(row: AdminQueryRow, field: string): number {
   return value;
 }
 
-export function getPaymentSeriesTotal(day: WhoPaidUsDay, series: PaymentSeries): number | null {
-  const counts = paymentProviders.map((provider) => day.providers[provider].counts[series]);
+export function getPaymentSeriesTotal(entry: WhoPaidUsBucket, series: PaymentSeries): number | null {
+  const counts = paymentProviders.map((provider) => entry.providers[provider].counts[series]);
   const recorded = counts.reduce<number>((sum, count) => sum + (count ?? 0), 0);
   return recorded > 0 || counts.every((count) => count !== null) ? recorded : null;
 }
 
-export async function loadWhoPaidUsReport(config: AdminAppConfig, dateRange: AnalyticsDateRange): Promise<WhoPaidUsReport> {
-  const response = await runAdminQuery(config, buildWhoPaidUsSql(dateRange));
-  const daily = response.resultSets[0];
+export async function loadWhoPaidUsReport(
+  config: AdminAppConfig,
+  dateRange: AnalyticsDateRange,
+  period: ReportPeriod,
+): Promise<WhoPaidUsReport> {
+  const response = await runAdminQuery(config, buildWhoPaidUsSql(dateRange, period));
+  const bucketed = response.resultSets[0];
   const coverage = response.resultSets[1];
-  const firstRow = daily?.rows[0];
-  const dates = buildRequestedDateRange(dateRange.from, dateRange.to, reportLabel);
-  if (response.resultSets.length !== 2 || daily === undefined || coverage === undefined || firstRow === undefined
-    || daily.rows.length !== dates.length * paymentProviders.length || coverage.rows.length !== 5) {
-    throw new Error(`${reportLabel} must return each day/provider and five source coverage rows.`);
+  const firstRow = bucketed?.rows[0];
+  if (response.resultSets.length !== 2 || bucketed === undefined || coverage === undefined || firstRow === undefined
+    || bucketed.rows.length % paymentProviders.length !== 0 || coverage.rows.length !== 5) {
+    throw new Error(`${reportLabel} must return each bucket/provider and five source coverage rows.`);
   }
-  const rowsByKey = new Map<string, ProviderPaymentDay>();
-  for (const row of daily.rows) {
-    const date = parseActivityDate(row.report_date ?? null, reportLabel, "report_date");
+  const bucketsByKey = new Map<string, ReportBucket>();
+  const rowsByKey = new Map<string, ProviderPaymentBucket>();
+  for (const row of bucketed.rows) {
+    const bucket = parseReportBucket(row, reportLabel);
     const provider = parseProvider(row.provider ?? null);
-    if (typeof row.complete !== "boolean" || !dates.includes(date) || rowsByKey.has(`${date}:${provider}`)) {
-      throw new Error(`${reportLabel} returned invalid daily coverage or a duplicate day/provider.`);
+    if (typeof row.complete !== "boolean" || rowsByKey.has(`${bucket.key}:${provider}`)) {
+      throw new Error(`${reportLabel} returned invalid bucket coverage or a duplicate bucket/provider.`);
     }
-    rowsByKey.set(`${date}:${provider}`, {
+    bucketsByKey.set(bucket.key, bucket);
+    rowsByKey.set(`${bucket.key}:${provider}`, {
       counts: {
         trial: parseActivityCount(row.trial ?? null, reportLabel, "trial"),
         first: parseActivityCount(row.first ?? null, reportLabel, "first"),
@@ -148,17 +160,18 @@ export async function loadWhoPaidUsReport(config: AdminAppConfig, dateRange: Ana
       nativeRepurchases: parseRequiredCount(row, "native_repurchases"),
     });
   }
-  const getProviderDay = (date: string, provider: PaymentProvider): ProviderPaymentDay => {
-    const day = rowsByKey.get(`${date}:${provider}`);
-    if (day === undefined) throw new Error(`${reportLabel} is missing a day/provider.`);
-    return day;
+  const getProviderBucket = (key: string, provider: PaymentProvider): ProviderPaymentBucket => {
+    const entry = rowsByKey.get(`${key}:${provider}`);
+    if (entry === undefined) throw new Error(`${reportLabel} is missing a bucket/provider.`);
+    return entry;
   };
   const seenSources = new Set<string>();
   return {
     generatedAtUtc: response.executedAtUtc,
+    period,
     today: parseActivityDate(firstRow.today ?? null, reportLabel, "today"),
-    days: dates.map((date) => ({ date, providers: {
-      apple: getProviderDay(date, "apple"), google: getProviderDay(date, "google"), stripe: getProviderDay(date, "stripe"),
+    buckets: [...bucketsByKey.values()].map((bucket) => ({ bucket, providers: {
+      apple: getProviderBucket(bucket.key, "apple"), google: getProviderBucket(bucket.key, "google"), stripe: getProviderBucket(bucket.key, "stripe"),
     } })),
     sources: coverage.rows.map((row) => {
       const provider = parseProvider(row.provider ?? null);
