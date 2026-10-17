@@ -54,7 +54,9 @@ export type AgentReviewResult = Readonly<{
   rating: AgentReviewInput["rating"];
   reviewedAt: string;
   dueAt: string;
+  /** The exact delay from the review to `dueAt`, learning steps included. */
   intervalSeconds: number;
+  /** The scheduler's stored day interval, which can be zero for a minutes-long learning step. */
   scheduledDays: number;
   state: FsrsCardState;
   reps: number;
@@ -218,6 +220,8 @@ function buildNextReviewCardQuery(tagFilter: string): string {
   ].join(" ");
 }
 
+/** Stateless on purpose: no reservation, lease or cursor, so a reconnecting voice client has no
+ * session to lose and a repeated read can return the same card. */
 export async function nextReviewCard(
   context: AgentReviewContext,
   filter: AgentReviewCardFilter,
@@ -250,6 +254,7 @@ export async function nextReviewCard(
   };
 }
 
+/** An explicit step of the review flow, not an authorization boundary: SQL reads return both sides. */
 export async function revealAnswer(
   context: AgentReviewContext,
   cardId: string,

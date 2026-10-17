@@ -1,11 +1,10 @@
 # Connector submission operations runbook
 
-Operational, no-code prerequisites for listing the remote MCP server in
-connector directories. This is the operator-facing companion to
-[connector-directory-submission.md](connector-directory-submission.md): that
-file owns the public listing copy and the reviewer walkthrough, while this file
-covers the actions an operator performs (enabling the reviewer demo account,
-verifying the OAuth/DCR flow end-to-end, and the OpenAI-side prerequisites).
+Operational prerequisites for listing the remote MCP server in connector
+directories: enabling the reviewer demo account, verifying OAuth/DCR end to
+end, and the OpenAI-side prerequisites. The public listing copy and reviewer
+walkthrough are in
+[connector-directory-submission.md](connector-directory-submission.md).
 
 Active reviewer emails, passwords, and tokens are never committed here. Share
 access details only through the directory's private submission portal.
@@ -40,17 +39,19 @@ Do not submit to any directory until all checks pass.
 
   Pass requires an unauthorized response with a `WWW-Authenticate` Bearer
   challenge that points clients to the protected-resource metadata.
-- Protected-resource metadata returns valid JSON for both the root well-known
-  path and the `/mcp` path-aware variant, and the resource value is
-  `https://mcp.nibomo.com/mcp`:
+- Protected-resource metadata (RFC 9728) returns valid JSON for both the root
+  well-known path and the `/mcp` path-aware variant, with `resource`
+  `https://mcp.nibomo.com/mcp` and its `authorization_servers`
+  ([`mcp/hosts.ts`](../apps/backend/src/mcp/hosts.ts)):
 
   ```bash
   curl -fsS https://mcp.nibomo.com/.well-known/oauth-protected-resource | jq .
   curl -fsS https://mcp.nibomo.com/.well-known/oauth-protected-resource/mcp | jq .
   ```
 
-- Authorization-server metadata returns valid JSON with the expected OAuth and
-  Dynamic Client Registration endpoints:
+- Authorization-server metadata returns valid JSON with the registration,
+  authorization and token endpoints, PKCE `S256` and public-client token
+  authentication ([`metadata.ts`](../apps/auth/src/routes/oauth/metadata.ts)):
 
   ```bash
   curl -fsS https://auth.flashcards-open-source-app.com/.well-known/oauth-authorization-server | jq .
@@ -61,6 +62,10 @@ Do not submit to any directory until all checks pass.
   reviewer walkthrough.
 - Active reviewer access details stay out of public listing copy, screenshots,
   repository files, and PRs. Share them only through the private submission portal.
+- Domain ownership of `nibomo.com`, which covers both the listing metadata URLs
+  and the MCP server host, is demonstrable, and ownership of
+  `flashcards-open-source-app.com` is available if a directory asks: the OAuth
+  authorization server stays on `auth.flashcards-open-source-app.com`.
 
 ## Reviewer demo account
 
@@ -72,50 +77,39 @@ email, so treat each active email as an access credential. Use a separate
 synthetic account for each directory review, with only disposable data and no
 access to real users' workspaces.
 
-### Wiring already exists (no infra code needed)
-
-The infrastructure to deliver the demo configuration to the Lambdas is already
-in place. Enabling the demo account is a configuration/secret task, not a code
-change.
-
-- `infra/aws/lib/gateways/auth-gateway.ts` sets `DEMO_EMAIL_DOSTIP` and
-  `DEMO_PASSWORD_SECRET_ARN` on the auth Lambda.
-- `infra/aws/lib/gateways/api-gateway.ts` sets `DEMO_EMAIL_DOSTIP` on the agent
-  surface.
-- `.github/workflows/aws-web-release.yml` forwards the repository secret
-  `CDK_DEMO_EMAIL_DOSTIP` and variable `CDK_DEMO_PASSWORD_SECRET_ARN` into CDK
-  context for both the auth and API stacks. The allowlist is a secret so GitHub
-  masks it in release step headers.
-- AWS secret name: `flashcards-open-source-app/demo-password-dostip`
-  (see [infra/aws/README.md](../infra/aws/README.md), "Review/demo accounts").
+The deployment wiring already exists, so enabling an account is configuration,
+not code: `AWS/Web Release` passes the repository secret `CDK_DEMO_EMAIL_DOSTIP`
+(a secret so GitHub masks the allowlist in release step headers) and the
+variable `CDK_DEMO_PASSWORD_SECRET_ARN`, which names the Secrets Manager secret
+`flashcards-open-source-app/demo-password-dostip`, as CDK context, consumed in
+[`infra/aws/lib/stack.ts`](../infra/aws/lib/stack.ts)
+([infra/aws/README.md](../infra/aws/README.md#reviewdemo-accounts)).
 
 ### Operational enablement (operator only — AWS deploys via CI/CD)
 
 AWS is never deployed locally. Make the configuration changes, push to `main`,
 and let CI/CD deploy.
 
-Before switching an existing deployment from the GitHub variable to the
-secret, privately reconcile that variable with the canonical root `.env` and
-deployed auth/API allowlists. Populate the same-named repository secret with
-that exact list before merging the workflow change. Keep the variable while
-older workflow runs may still need it; remove it only after the new release
-succeeds and its deployed list and public-log masking are verified. Preserve
-the existing accounts and shared password throughout this transition.
+A deployment that still carries the allowlist in the older same-named GitHub
+variable: populate the secret with that exact list, privately reconciled with
+the root `.env` and the deployed auth/API allowlists, before the first release
+that reads it, and delete the variable only after that release's deployed list
+and log masking are verified. Preserve the existing accounts and shared
+password throughout.
 
 1. Privately compare deployed auth/API `DEMO_EMAIL_DOSTIP` with the canonical
    `DEMO_EMAIL_DOSTIP` in the main checkout's ignored root `.env`. GitHub cannot
    return secret plaintext, so reconcile those readable sources before editing.
    Preserve every existing entry, including accounts serving Apple, Google, and
    OpenAI reviews. Choose a new synthetic `@example.com` email for the directory.
-2. Reuse the deployed Secrets Manager secret
-   `flashcards-open-source-app/demo-password-dostip` and its existing password.
+2. Reuse the deployed Secrets Manager secret and its existing password.
    Preserve `CDK_DEMO_PASSWORD_SECRET_ARN`. Never replace or rotate the shared
    password while any review is active; do not run a secret setup helper with a
    new password merely to add an account.
 3. Manually create the new Cognito user in the deployed user pool with the
    selected email and a permanent password equal to that existing shared
    password. Suppress invitation email and mark the synthetic email verified;
-   it cannot receive mail. These settings do not provision Cognito users.
+   it cannot receive mail. The allowlist settings do not provision Cognito users.
 4. Append the selected email to the canonical local allowlist, preserving the
    complete existing list. Keep local `DEMO_PASSWORD_DOSTIP` aligned with the
    existing AWS secret. Update the GitHub repository secret
@@ -148,19 +142,11 @@ account identifiers and verification output private.
 
 ### Seed the demo workspace
 
-The Cognito user must already exist (see step 3). The first authenticated
-sign-in then auto-provisions the application-level default workspace for that
-account. Once the workspace exists, seed throwaway demo data so reviewer
-`SELECT`s return meaningful rows. Insert decks and cards through the agent SQL
-write surface — either `POST /v1/agent/sql/execute` or the `sql_execute` MCP
-tool — using the demo account's own API key/connection. `review_events` cannot be
-seeded this way (it is immutable/append-only and rejects `INSERT` — the write
-surface only accepts `INSERT`/`UPDATE`/`DELETE` on `cards` and `decks`); to
-populate review history, review some of the seeded cards in a client.
-
-Honor the flashcard side contract: `front_text` is a question/review prompt only
-(never the answer) and `back_text` holds the answer. Keep the dataset small and
-treat the whole workspace as disposable.
+The first authenticated sign-in of the Cognito user from step 3 provisions its
+default workspace. Seed small, disposable decks and cards through `sql_execute`
+or `POST /v1/agent/sql/execute` on the demo account's own connection, honoring
+the front/back card contract, so reviewer `SELECT`s return meaningful rows. SQL
+cannot write review history: review some seeded cards to populate it.
 
 ### Reviewer access cheatsheet (paste into the PRIVATE submission portal only)
 
@@ -192,6 +178,8 @@ private submission portal.
 - When no active review needs an account, remove only its entry from the GitHub
   secret and local allowlists and redeploy through CI/CD, or disable/delete that
   Cognito user. Preserve all other accounts, their data, and the shared secret.
+  Never empty the allowlist or unset the secret ARN: synthesis fails without
+  both ([`native-proof-gate.ts`](../infra/aws/lib/native-proof-gate.ts)).
 - Keep the seeded workspace disposable and replace it before future submissions
   if it accumulates irrelevant data.
 - The demo account only ever sees its own workspace (per-user workspace
@@ -201,63 +189,30 @@ private submission portal.
 
 ## OAuth / DCR verification
 
-Verify the discovery documents and the live connect flow before submitting.
-
-### Authorization-server metadata
-
-`GET https://auth.flashcards-open-source-app.com/.well-known/oauth-authorization-server`
-must return `registration_endpoint`, `authorization_endpoint`, `token_endpoint`,
-PKCE `code_challenge_methods_supported: ["S256"]`, and
-`token_endpoint_auth_methods_supported: ["none"]`
-(`apps/auth/src/routes/oauth/metadata.ts`):
-
-```bash
-curl -fsS https://auth.flashcards-open-source-app.com/.well-known/oauth-authorization-server \
-  | jq '.registration_endpoint, .code_challenge_methods_supported, .token_endpoint_auth_methods_supported'
-```
-
-### Protected-resource metadata (RFC 9728)
-
-`GET https://mcp.nibomo.com/.well-known/oauth-protected-resource`
-and the `/mcp` path-aware variant both return `resource`
-(`https://mcp.nibomo.com/mcp`) and `authorization_servers`:
-
-```bash
-curl -fsS https://mcp.nibomo.com/.well-known/oauth-protected-resource \
-  | jq '.resource, .authorization_servers'
-```
-
-### End-to-end live connect
-
-Add the connector pointed at `https://mcp.nibomo.com/mcp` in both clients and
-confirm the full DCR → `/register` → `/authorize` → `/token` → tool-call flow
-completes using the demo account. Record the result inline:
+After the [pre-submit gate](#pre-submit-gate) metadata checks pass, add the
+connector pointed at `https://mcp.nibomo.com/mcp` in both clients and confirm
+the full DCR → `/register` → `/authorize` → `/token` → tool-call flow completes
+using the demo account. Record the result inline:
 
 - **Claude (custom connector):** _pass / fail — date, notes_
 - **ChatGPT (developer mode):** _pass / fail — date, notes_
 
 ## OpenAI prerequisites
 
-Follow the companion's [canonical OpenAI ZIP procedure](https://github.com/kirill-markin/nibomo-plugins/blob/main/docs/publishing.md#openai)
-for the existing plugin and the [app release gate](release/mcp-and-plugins.md#openai)
-for coordinated releases. Before an applicable update/submission:
+Publisher login, plugin, identity and the update procedure are in the
+[OpenAI release gate](release/mcp-and-plugins.md#openai) and the companion's
+[canonical OpenAI ZIP procedure](https://github.com/kirill-markin/nibomo-plugins/blob/main/docs/publishing.md#openai).
+Before an applicable update/submission, also:
 
-- Use publisher login `kirill@kirill-markin.com` and the existing owning
-  organization/project, plugin `asdk_app_6ab77a6e971c81918b9e9185a6a19d58`, and
-  verified **SAMO DANNI EOOD** developer identity. Confirm organization-owner
-  access or **Apps Management Write**; preserve existing pending review.
-- Keep this publisher login separate from the dedicated Nibomo reviewer demo
-  account. Supply private reviewer credentials and sign-in instructions only
-  through **Review details**, keeping the account and sample data available for
-  subsequent reviews under the canonical procedure.
+- Confirm organization-owner access or **Apps Management Write** in the owning
+  organization.
+- Supply private reviewer credentials and sign-in instructions only through
+  **Review details**, keeping the account and sample data available for
+  subsequent reviews.
 - Ensure the MCP-review project is **not** set to EU data residency (global
   only), as required by [OpenAI app review](https://developers.openai.com/plugins/deploy/app-review).
   Use the [current submission guide](https://developers.openai.com/plugins/deploy/submission)
   for the actual package/update flow.
-- Confirm demonstrable domain ownership of `nibomo.com`, which covers both the
-  listing metadata URLs and the MCP server host.
-- Keep domain ownership of `flashcards-open-source-app.com` available too: the
-  OAuth authorization server stays on `auth.flashcards-open-source-app.com`.
 
 CIMD (Client ID Metadata Documents) is optional: the implemented Dynamic Client
 Registration already satisfies the requirement, so add CIMD only if OpenAI
