@@ -236,9 +236,11 @@ Do not introduce aligned literals, overrides, or fallbacks for either Apple app 
 Under the current release process, the shared repo-tracked Apple build number is intentionally left alone during normal version bumps. Xcode Cloud handles signed archive and distribution separately, and the repository documentation does not define an in-repo build-number bump workflow.
 
 iOS and macOS share the target, bundle ID and marketing-version source, but
-use independent Xcode Cloud workflows, archive/test runs, uploaded platform
-build IDs and App Review drafts. Cloud run numbers are not distribution build
-numbers. Record each exact build identity; never attach an iOS build to the
+use independent Xcode Cloud release-build workflows, local native acceptance
+runs, uploaded platform build IDs and App Review drafts. Only **iOS Release Build**
+and **macOS Release Build** stay enabled; retain disabled test workflows and history. Cloud run numbers are not distribution build
+numbers. Record local test source/configuration separately from the exact Cloud
+run → Archive action → uploaded app/platform/version/build ID and signed export provenance; TestFlight internal distribution does not prove tests or a new build. Record each exact build identity; never attach an iOS build to the
 `MAC_OS` draft or replace another platform's pending submission. Follow the
 [Mac procedure](macos.md) without changing the iOS gate contract.
 

@@ -14,7 +14,7 @@ Debug selects `com.flashcards-open-source-app.app.development` after loading thi
 isolating its data and private credentials from Release. Physical-device signing must
 provision that development App ID. Release uses the configured production identity.
 External capture signing overrides remain explicit; see the
-[signed Mac procedure](macos-ci-cd.md#signed-local-native-alternative).
+[signed Mac procedure](macos-ci-cd.md#signed-local-native-acceptance).
 
 If you want local signed archives to reuse the same values as Xcode Cloud, keep
 the `XCODE_CLOUD_*` keys in the repo-root `.env` and regenerate
@@ -193,16 +193,15 @@ For iOS, `My Mac` can be used only for iOS compile smoke-checks such as `build` 
 
 For every new release, complete the unsigned device Release archive in [the release procedure](release/ios.md#ios) and all three local test gates below on the accepted native inputs. Run one destination per invocation, sequentially; latest iPhone and iPad must use the same latest supported iOS major. Pin device UUID/model, actual OS, Xcode/SDK, exact source SHA, scheme, test plan, test-plan configuration and build configuration in the [ledger](release/evidence.md#release-ledger).
 
-Use shared scheme **Flashcards Native Acceptance**, `-only-test-configuration Acceptance` (the test-plan configuration), and Debug build configuration. The original **Flashcards Open Source App** scheme remains the archive/Catalyst scheme; invoking it without an explicit acceptance plan does not establish these local gates.
+Use shared scheme **Flashcards Native Acceptance**, `-only-test-configuration Acceptance` (the test-plan configuration), and Debug build configuration. The original **Flashcards Open Source App** archive scheme does not establish these local gates. Catalyst acceptance uses the explicit [LocalMac plan](macos-ci-cd.md#signed-local-native-acceptance).
 
 | Gate / plan | Exactly one destination | Required inventory |
 | --- | --- | --- |
 | `local-full` / `LocalFull` | Latest iPhone | Entire existing `Flashcards Open Source App Tests` non-UI bundle and all eligible `Flashcards Open Source App UI Tests` flows. UI coverage includes Review, Cards, AI, Settings, own-key persistence, ordinary iPhone, RTL and the four phone-eligible consent flows. |
 | `local-ipad` / `LocalIPad` | Latest iPad | `LiveSmokeIPadTests/testIPadCompanionPreservesDraftAndRevealedReviewAcrossSections()`, `LiveSmokeIPadTests/testIPadReviewHardwareKeysRespectFilterAndRateCards()`, `LiveSmokeAIConsentTests/testWideCompanionAndCardHandoffStayBlockedAfterWithdrawal()` |
 | `local-ios18` / `IOS18Compatibility` | Actual iOS/iPadOS 18.x iPhone or iPad | `LiveSmokeSettingsTests/testLiveSmokeGuestNavigationFlow()`, `LiveSmokeReviewTests/testLiveSmokeManualCardReviewFlow()`, `LiveSmokeSettingsTests/testLiveSmokeLoginAndLinkedWorkspaceFlow()` |
-| `cloud-smoke` / `CloudSmoke` | One latest Cloud iPhone | The same three methods as `IOS18Compatibility`; Cloud archive/signing remains independent. |
 
-The full phone plan excludes `MarketingScreenshotsTests`, `LiveSmokeIPadTests`, `LiveSmokeMacCatalystTests` and only the wide-companion consent method. The iPad plan selects both iPad methods and that consent method; the compatibility and Cloud plans select exactly the three named methods. These are plan exclusions, not passing or skipped test results. Independently establish the full expected discovered inventory from the pinned scheme, plan, source and Xcode selection before inspecting passes; retain every selected non-UI/UI method and its native result. Do not infer completeness from these descriptions or a fixed count. Record unexpected skips, failures, missing or unselected required methods as blocking; acceptance requires every configured required case to execute and pass.
+The full phone plan excludes `MarketingScreenshotsTests`, `LiveSmokeIPadTests`, `LiveSmokeMacCatalystTests` and only the wide-companion consent method. The iPad plan selects both iPad methods and that consent method; the compatibility plan selects exactly the three named methods. `CloudSmoke` is retained for historical evidence and disabled Cloud test configuration; it is not a new release gate. These are plan exclusions, not passing or skipped test results. Independently establish the full expected discovered inventory from the pinned scheme, plan, source and Xcode selection before inspecting passes; retain every selected non-UI/UI method and its native result. Do not infer completeness from these descriptions or a fixed count. Record unexpected skips, failures, missing or unselected required methods as blocking; acceptance requires every configured required case to execute and pass.
 
 Configure the review email in the UI-test runner for all plans. `TEST_RUNNER_` passes the variable to the runner with that prefix removed; setting it only in the app process or a separately invoked `ci_post_clone.sh` does not satisfy `configuredReviewEmail()`. The plans and UI launcher set `FLASHCARDS_AUTOMATION_RUN=1`; verify `automation_run_decided` reports `isAutomation=true` before app interaction. Keep software keyboard input available.
 
@@ -246,7 +245,7 @@ During diagnosis, append `-only-testing:'<target>/<class>/<method>'` before `tes
 
 ## iOS 18 compatibility smoke
 
-Every new release requires the `IOS18Compatibility` plan on one actual 18.x destination locally, in addition to latest-iPhone full acceptance and focused latest-iPad acceptance. The small Cloud backstop stays on one latest iPhone.
+Every new release requires the `IOS18Compatibility` plan on one actual 18.x destination locally, in addition to latest-iPhone full acceptance and focused latest-iPad acceptance. Cloud test workflows remain disabled.
 
 Use the current Xcode/SDK and pinned packages with deployment target 18.0. Inspect installed runtimes/devices; if no supported 18.x simulator is available, use a physical iPhone or iPad actually running 18.x. Tell the user before downloading a runtime. A newer runtime or `My Mac` provides no 18.x evidence. If neither eligible simulator nor hardware is available, record the exact toolchain/runtime restriction and block release.
 
@@ -271,7 +270,7 @@ For hardware, omit `simctl`, use `-destination 'platform=iOS,id=<device-uuid>'`,
 
 For the first public release expanding support to iOS/iPadOS 18, or changes
 affecting OS-specific behavior, also complete this short manual checklist on
-that same 18.x destination using an isolated workspace and disposable cards:
+that same 18.x destination using an isolated workspace and disposable cards. Set `FLASHCARDS_AUTOMATION_RUN=1` in the app process and verify `automation_run_decided` reports `isAutomation=true` before interacting:
 
 1. Open AI, type with the software keyboard, send/stop a response, dismiss and
    reopen the keyboard. Verify the composer, transcript and Done button remain

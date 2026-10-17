@@ -65,9 +65,9 @@ Use this routine checklist; the linked procedures own the detailed gates.
    CI, [verify them](versioning.md#verify-the-release-version), pin both SHAs and
    prepare reusable [release notes](release-notes.md) in the chat. Keep that version through fixes.
 4. **Run platform flows in parallel.** Follow the [platform procedures](#required-reading):
-   complete required iOS local gates before Xcode Cloud dispatch, use Android's
-   [cloud-first gate](evidence.md#android-cloud-release-gate), and run the independent
-   [macOS archive and full native test flow](macos.md). Prepare metadata while builds run.
+   complete required iOS and signed `LocalMac` gates before their Xcode Cloud release-build dispatches, use Android's
+   [cloud-first gate](evidence.md#android-cloud-release-gate), and follow the independent
+   [macOS local acceptance and Cloud archive flow](macos.md). Prepare metadata while builds run.
 5. **Verify results and artifacts.** Inspect native results, warnings, source/build
    correlation, uploaded binaries and saved metadata under those procedures;
    retain [readiness evidence](evidence.md#release-ledger) before new Apple or Android submission/publication.
@@ -88,11 +88,10 @@ If a fix affects an already published artifact, ask the user how to handle that 
 - Before required local Xcode work or runtime downloads, check available disk
   against the actual archive/result/runtime needs; there is no universal free-space threshold.
   Inspect installed [iOS runtimes/devices](../ios-local-setup.md#local-testing-rules)
-  and the actual [Cloud catalog](../ios-ci-cd.md#supported-os-destinations).
-- For macOS, inspect the [saved Mac workflows and latest builder destination](macos.md#preflight-and-cloud-gates),
+  and the actual supported OS versions under [destination requirements](../ios-ci-cd.md#supported-os-destinations).
+- For macOS, inspect the [saved Mac release workflow and local destination](macos.md#preflight-and-cloud-gates),
   shared Apple version and separate `MAC_OS` build/draft. Reserve disk for the
-  exact export and native evidence; inspect local signing resources only if the
-  diagnosed Keychain alternative is needed. Preserve pending iOS submissions.
+  exact export and full local native evidence; inspect the required genuine local development certificate/profile and actual host macOS before testing. Preserve pending iOS submissions.
 - Verify authenticated access for the remaining provider/store actions and the
   [saved Xcode Cloud configuration](../ios-ci-cd.md#cloud-configuration-preflight).
   Check all four configured [Device Run destinations](../android-ci-cd.md#choose-the-device-run-devices)
@@ -102,7 +101,7 @@ Machine/provider setup, legal acceptance and runtime provisioning are setup work
 repeat them only when missing or newly required. Older-OS manual walkthroughs
 apply to first support expansion or affected OS-specific changes, as defined in
 [iOS](ios.md) and [Android](android.md#first-release-api-30-walkthrough).
-For every new iOS release, complete [full local native acceptance](../ios-local-setup.md#local-native-acceptance) on latest iPhone, focused latest iPad and actual iOS 18, then retain Cloud archive/signing and the small latest-iPhone backstop. Android retains its four sequential Device Run sessions.
+For every new iOS release, complete [full local native acceptance](../ios-local-setup.md#local-native-acceptance) on latest iPhone, focused latest iPad and actual iOS 18, then retain Cloud archive/signing. Mac requires full signed `LocalMac` acceptance before its Cloud archive. Only **iOS Release Build** and **macOS Release Build** stay enabled; do not routinely dispatch disabled test workflows. Android retains its four sequential Device Run sessions.
 
 ## Release Inventory and Completion
 
@@ -155,9 +154,7 @@ Before a new publication/submission, fix release errors, failed required tests,
 applicable security vulnerabilities, and actionable first-party, configuration,
 build, compiler, lint, and toolchain warnings. A known failure blocks that action.
 All existing build, test, security, and publication gates remain mandatory.
-For the diagnosed Mac Cloud Keychain limitation, only the [Mac procedure](macos.md)
-permits a separately passing full signed local native gate; preserve the failed
-Cloud action and diagnosis. This is not a warning waiver or a Cloud pass.
+The [Mac procedure](macos.md) requires full signed local native acceptance; retain historical failed Cloud actions and diagnoses unchanged. Disabled Cloud test workflows are not current gates, and local evidence never converts a Cloud failure to a pass.
 Only the bounded warning exceptions below may remain.
 
 Vendor-owned, non-actionable deprecation, tool, or runtime notices may remain

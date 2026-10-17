@@ -23,7 +23,7 @@ type Equivalence = {
 export type Manifest = {
   target: { sourceSha: string; version: string; build: string; artifactId: string };
   gates: Gate[]; results: Result[]; equivalences: Equivalence[];
-} & ({ schemaVersion: 1; platform: Platform } | { schemaVersion: 2; platform: "android" } | { schemaVersion: 3; platform: "ios" });
+} & ({ schemaVersion: 1; platform: Platform } | { schemaVersion: 2; platform: "android" } | { schemaVersion: 3; platform: "ios" } | { schemaVersion: 4; platform: "ios" });
 type GateReport = {
   id: string; ready: boolean; selection: TestSelection | null; expectedIdentity: Identity; recordedIdentity: Identity | null;
   evidenceRef: string | null; inventoryRef: string; errors: string[];
@@ -39,6 +39,7 @@ const SCHEMA_1_GATES: Record<Platform, readonly string[]> = {
 };
 const ANDROID_CLOUD_GATES: readonly string[] = ["cloud-release", "firebase-tests"];
 const IOS_LOCAL_CLOUD_GATES = ["local-archive", "local-full", "local-ipad", "local-ios18", "cloud-archive", "cloud-smoke"] as const;
+const IOS_LOCAL_ACCEPTANCE_GATES = ["local-archive", "local-full", "local-ipad", "local-ios18", "cloud-archive"] as const;
 const IOS_PLANS: Record<string, string> = { "local-full": "LocalFull", "local-ipad": "LocalIPad", "local-ios18": "IOS18Compatibility", "cloud-smoke": "CloudSmoke" };
 const IOS_UI_TARGET = "Flashcards Open Source App UI Tests";
 const IOS_NON_UI_TARGET = "Flashcards Open Source App Tests";
@@ -91,7 +92,7 @@ function inventoryCase(value: unknown, path: string, schemaVersion: number): Inv
   const item = object(value, path);
   const disposition = choice(item.disposition, ["required", "manual-exclusion", "destination-exclusion"], `${path}.disposition`);
   return {
-    target: schemaVersion === 3 ? token(item.target, `${path}.target`) : "",
+    target: schemaVersion >= 3 ? token(item.target, `${path}.target`) : "",
     id: token(item.id, `${path}.id`), disposition,
     reason: disposition !== "required" ? text(item.reason, `${path}.reason`) : "",
     evidenceRef: disposition !== "required" ? token(item.evidenceRef, `${path}.evidenceRef`) : "",
@@ -121,7 +122,7 @@ function gate(value: unknown, path: string, schemaVersion: number): Gate {
   unique(cases.map((entry) => entry.id), `${path}.cases`);
   return {
     id: token(item.id, `${path}.id`), identity: identity(item.identity, `${path}.identity`), inventoryComplete: true, cases,
-    selection: schemaVersion === 3 && item.selection !== undefined ? selection(item.selection, `${path}.selection`) : null,
+    selection: schemaVersion >= 3 && item.selection !== undefined ? selection(item.selection, `${path}.selection`) : null,
     inventorySourceSha: sha(item.inventorySourceSha, `${path}.inventorySourceSha`),
     inventoryRef: token(item.inventoryRef, `${path}.inventoryRef`),
     inventoryReviewedBy: token(item.inventoryReviewedBy, `${path}.inventoryReviewedBy`),
@@ -168,11 +169,12 @@ function equivalence(value: unknown, path: string): Equivalence {
 export function parseManifest(value: unknown): Manifest {
   const item = object(value, "manifest");
   const schemaVersion = item.schemaVersion;
-  if (schemaVersion !== 1 && schemaVersion !== 2 && schemaVersion !== 3) invalid("manifest.schemaVersion", "expected 1, 2 or 3");
+  if (schemaVersion !== 1 && schemaVersion !== 2 && schemaVersion !== 3 && schemaVersion !== 4) invalid("manifest.schemaVersion", "expected 1, 2, 3 or 4");
   const platform = choice(item.platform, ["ios", "android"], "manifest.platform");
-  if (schemaVersion === 2 && platform !== "android") invalid("manifest.platform", "schema 2 requires android; iOS uses schema 1 or 3");
+  if (schemaVersion === 2 && platform !== "android") invalid("manifest.platform", "schema 2 requires android; iOS uses schema 1, 3 or 4");
   if (schemaVersion === 3 && platform !== "ios") invalid("manifest.platform", "schema 3 requires ios");
-  const requiredGates: readonly string[] = schemaVersion === 1 ? SCHEMA_1_GATES[platform] : schemaVersion === 2 ? ANDROID_CLOUD_GATES : IOS_LOCAL_CLOUD_GATES;
+  if (schemaVersion === 4 && platform !== "ios") invalid("manifest.platform", "schema 4 requires ios");
+  const requiredGates: readonly string[] = schemaVersion === 1 ? SCHEMA_1_GATES[platform] : schemaVersion === 2 ? ANDROID_CLOUD_GATES : schemaVersion === 3 ? IOS_LOCAL_CLOUD_GATES : IOS_LOCAL_ACCEPTANCE_GATES;
   const target = object(item.target, "manifest.target");
   const gates = array(item.gates, "manifest.gates").map((entry, index) => gate(entry, `manifest.gates[${index}]`, schemaVersion));
   const results = array(item.results, "manifest.results").map((entry, index) => result(entry, `manifest.results[${index}]`));
@@ -182,7 +184,7 @@ export function parseManifest(value: unknown): Manifest {
   if (gates.length !== requiredGates.length || gates.some((entry) => !requiredGates.includes(entry.id))) invalid("manifest.gates", `must declare exactly ${requiredGates.join(", ")}`);
   if (results.some((entry) => !requiredGates.includes(entry.gateId))) invalid("manifest.results", "unknown gate");
   for (const [index, entry] of gates.entries()) {
-    if (schemaVersion === 3) validateIosSelection(entry, `manifest.gates[${index}]`);
+    if (schemaVersion >= 3) validateIosSelection(entry, `manifest.gates[${index}]`, schemaVersion);
     if (TEST_GATES.has(entry.id) && !entry.cases.some((test) => test.disposition === "required")) invalid(`manifest.gates[${index}].cases`, "test gate needs a nonempty required inventory");
     if (!TEST_GATES.has(entry.id) && entry.cases.length !== 0) invalid(`manifest.gates[${index}].cases`, "build gate inventory must be empty");
     for (const [caseIndex, test] of entry.cases.entries()) {
@@ -205,13 +207,13 @@ export function parseManifest(value: unknown): Manifest {
   return schemaVersion === 1 ? { ...contents, schemaVersion, platform } : schemaVersion === 2 ? { ...contents, schemaVersion, platform: "android" } : { ...contents, schemaVersion, platform: "ios" };
 }
 
-function validateIosSelection(gate: Gate, path: string): void {
+function validateIosSelection(gate: Gate, path: string, schemaVersion: number): void {
   if (!TEST_GATES.has(gate.id)) {
     if (gate.selection !== null) invalid(`${path}.selection`, "build gates do not select tests");
     return;
   }
   const selected = gate.selection;
-  if (selected === null) invalid(`${path}.selection`, "schema 3 requires explicit native plan and actual destination provenance");
+  if (selected === null) invalid(`${path}.selection`, `schema ${schemaVersion} requires explicit native plan and actual destination provenance`);
   if (selected.testPlan !== IOS_PLANS[gate.id]) invalid(`${path}.selection.testPlan`, "must match the gate native test plan");
   const expectedKind = gate.id === "local-ipad" ? "ipad" : "iphone";
   if (gate.id !== "local-ios18" && selected.destination.kind !== expectedKind) invalid(`${path}.selection.destination.kind`, "wrong destination family for the selected plan");
@@ -219,7 +221,7 @@ function validateIosSelection(gate: Gate, path: string): void {
   if (gate.id === "local-ios18" ? major !== 18 : major <= 18) invalid(`${path}.selection.destination.osVersion`, "requires iOS 18 for compatibility, current latest iOS for other plans");
   for (const [index, test] of gate.cases.entries()) {
     const at = `${path}.cases[${index}]`;
-    if (test.disposition !== "required") invalid(`${at}.disposition`, "schema 3 inventories contain only selected required tests; use the destination-specific native plans");
+    if (test.disposition !== "required") invalid(`${at}.disposition`, `schema ${schemaVersion} inventories contain only selected required tests; use the destination-specific native plans`);
     if (![IOS_UI_TARGET, IOS_NON_UI_TARGET].includes(test.target) || (gate.id !== "local-full" && test.target !== IOS_UI_TARGET)) invalid(`${at}.target`, "must identify the selected native test bundle");
     if (destinationCaseIdentity(test.id, `${at}.id`).destination !== selected.destination.id) invalid(`${at}.id`, "must match the actual selected destination id");
   }
@@ -290,6 +292,10 @@ export function checkReadiness(manifest: Manifest): {
   if (manifest.schemaVersion === 3) {
     const latest = manifest.gates.filter((gate) => ["local-full", "local-ipad", "cloud-smoke"].includes(gate.id));
     if (new Set(latest.map((gate) => gate.selection!.destination.osVersion.split(".")[0])).size !== 1) errors.push("latest local iPhone, iPad and Cloud smoke must use the same latest iOS major");
+  }
+  if (manifest.schemaVersion === 4) {
+    const latest = manifest.gates.filter((gate) => ["local-full", "local-ipad"].includes(gate.id));
+    if (new Set(latest.map((gate) => gate.selection!.destination.osVersion.split(".")[0])).size !== 1) errors.push("latest local iPhone and iPad must use the same latest iOS major");
   }
   if (manifest.platform === "android") {
     const release = manifest.gates.find((gate) => gate.id === "cloud-release")!;

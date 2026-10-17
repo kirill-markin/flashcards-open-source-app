@@ -2,7 +2,7 @@
 
 This guide explains how to connect to Xcode Cloud data for this repository, which data formats Apple returns, which artifacts are useful, and how to extract actionable timing insights from cloud test runs.
 
-Use this guide when you need to inspect cloud-native iOS test runs directly instead of relying only on the Xcode Cloud web UI.
+Use this guide for release-archive provenance and inspection of retained Cloud test history. Only [iOS Release Build and macOS Release Build](ios-ci-cd.md#native-release-gate) stay enabled; both test workflows remain disabled and are not routine release gates. Historical test inspection below does not authorize a dispatch or change failed results.
 
 ## When to use this
 
@@ -114,7 +114,7 @@ can refer to a different, older build.
    ID through `GET /v1/builds/{buildId}` and its app and `preReleaseVersion`
    relationships. Match the app/bundle ID, marketing version, build number
    (`builds.attributes.version`), upload time and processing state to the
-   archive evidence. The cloud run number and uploaded build number are
+   archive evidence, including the intended platform (`IOS` or `MAC_OS`) and signing/export provenance. The cloud run number and uploaded build number are
    separate identities; do not assume they are equal. Follow pagination when
    needed. If the relationship is empty during processing, wait and re-read;
    an unresolved mismatch blocks attaching or reusing that build.

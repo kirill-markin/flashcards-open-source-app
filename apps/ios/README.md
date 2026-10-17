@@ -69,7 +69,7 @@ Do not mix destination-based `NavigationLink { ... }` pushes with value-based or
 
 ## Testing Rule
 
-Follow the [local native acceptance procedure](../../docs/ios-local-setup.md#local-native-acceptance): full latest-iPhone UI and existing non-UI tests, focused latest-iPad tests, and the minimum iOS 18 compatibility selection. The [Cloud backstop](../../docs/ios-ci-cd.md#native-release-gate) uses its own small plan. Apple testing stays in Xcode Cloud or local Xcode; local execution follows the [repository testing policy](../../AGENTS.md#testing-philosophy).
+Follow the [local native acceptance procedure](../../docs/ios-local-setup.md#local-native-acceptance): full latest-iPhone UI and existing non-UI tests, focused latest-iPad tests, and the minimum iOS 18 compatibility selection. Mac releases require the full signed [LocalMac acceptance](../../docs/macos-ci-cd.md#signed-local-native-acceptance). Xcode Cloud provides [release archives](../../docs/ios-ci-cd.md#native-release-gate); its test workflows remain disabled. Apple testing stays in Xcode Cloud or local Xcode; local execution follows the [repository testing policy](../../AGENTS.md#testing-philosophy).
 
 - Do not try to cover the iOS app exhaustively with tests
 - Do not add isolated unit tests by default
@@ -128,7 +128,7 @@ for explicit downloads. Normal app builds need no media download.
 iOS CI/CD is documented in [`docs/ios-ci-cd.md`](../../docs/ios-ci-cd.md).
 Native sign-in acceptance is documented in [Native Apple sign-in](../../docs/native-apple-sign-in.md).
 Release notes and release authorization are documented in [Release All Platforms](../../docs/release/README.md).
-Follow the [iOS release procedure](../../docs/release/ios.md#ios) for full local acceptance, parallel Xcode Cloud archive/small-smoke runs and App Review submission.
+Follow the [iOS release procedure](../../docs/release/ios.md#ios) for full local acceptance, the Xcode Cloud release archive and App Review submission.
 
 ## Respect Existing Code
 

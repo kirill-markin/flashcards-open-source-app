@@ -2,24 +2,31 @@
 
 The dedicated Mac Catalyst app uses the [Mac cloud and release procedure](macos-ci-cd.md).
 
-This repository uses full local native acceptance followed by explicitly dispatched Xcode Cloud archive/signing and a small runtime backstop for iOS releases. The GitHub-side AWS/Web release workflow does not start or wait for Xcode Cloud on `main`.
+This repository uses full local native acceptance followed by explicitly dispatched Xcode Cloud archive/signing for iOS releases. The GitHub-side AWS/Web release workflow does not start or wait for Xcode Cloud on `main`.
 We do not aim for exhaustive iOS test coverage in this pipeline. The most trusted automated signal is the native simulator-backed live smoke because it exercises the real app closest to production behavior, while any non-smoke tests should stay targeted to important native contracts.
 
 ## Native release gate
 
-Complete the [local native acceptance](ios-local-setup.md#local-native-acceptance) and unsigned device Release archive before dispatch. Then run the separate Cloud test and archive workflows in parallel for the accepted source under the [iOS release procedure](release/ios.md#ios). All required local and Cloud results must pass before App Review submission; the small Cloud selection cannot replace full local acceptance.
+Complete the [local native acceptance](ios-local-setup.md#local-native-acceptance) and unsigned device Release archive before dispatching **iOS Release Build** under the [iOS release procedure](release/ios.md#ios). Require all five schema-4 gates before App Review submission. Mac releases require their full [signed local acceptance](macos-ci-cd.md#signed-local-native-acceptance).
 
-The iOS **CloudSmoke - iOS** action selects shared scheme **Flashcards Native Acceptance**, test plan **CloudSmoke**, test-plan configuration **Acceptance**, on exactly one latest iPhone. Its three required methods are the guest navigation, manual card review and linked-workspace login flows listed in the [plan contract](ios-local-setup.md#local-native-acceptance). Do not select all scheme plans, a second destination or the full local plan in Cloud. Preserve its deliberately non-required setting so TestFlight can receive builds even when tests fail; a failed smoke still blocks App Review submission.
+Exactly two Cloud workflows remain enabled:
 
-The archive workflow's required **Archive - iOS** action retains **Flashcards Open Source App**, Release configuration, signing and distribution. The test workflow requires **Build - iOS**. The original shared scheme and both Catalyst workflows retain their existing selections. Native plan files live beside the project under `apps/ios/Flashcards`; the acceptance scheme lives under its `xcshareddata/xcschemes` directory.
+| Workflow | ID | Required action |
+| --- | --- | --- |
+| `iOS Release Build` | `97ECE547-B59E-4970-ACFA-52ED8F6F7B29` | `Archive - iOS`, platform `IOS` |
+| `macOS Release Build` | `9d704b65-5254-4f04-be24-bebc0f0cfc7d` | `Archive - macOS`, platform `MACOS` |
+
+Both retain **Flashcards Open Source App**, Release configuration, App Store eligible preparation, managed signing, service/secrets, manual-main start settings and TestFlight internal-testers postactions. TestFlight distribution is neither XCTest nor proof of the exact new uploaded build. Do not create version-specific workflow copies.
+
+`tests-workflow` (`d16e0e37-0c3a-4b2e-841f-669b636ba3e8`) and `macos-tests-workflow` (`b737acb2-4548-45bb-a7a3-8ac26bc8f111`) remain disabled with configuration and history intact. Do not dispatch them routinely or require them for new release readiness. Retain the original `CloudSmoke` plan and historical schema contracts, including failures; disabling a workflow never changes a recorded result.
 
 Guest AI availability remains part of full local acceptance: guest AI must pass without login, and disabled/quota-exhausted responses are release failures. Cross-client live-smoke references are in [Release Gates](release-gates.md).
 
-All four acceptance plans set `diagnosticCollectionPolicy` to `Never`, disabling automatic diagnostic collection. This does not remove ordinary XCTest result/log records or the smoke harness's screenshot, hierarchy and diagnostic attachments; retain and inspect those in `.xcresult`, including failures. Record actual local/Cloud elapsed times and diagnostic/export sizes in the release record. Cloud runtime savings remain unmeasured until an authorized run of the saved small selection completes; do not promise a fixed duration.
+The acceptance plans set `diagnosticCollectionPolicy` to `Never`, disabling automatic diagnostic collection. This does not remove ordinary XCTest result/log records or the smoke harness's screenshot, hierarchy and diagnostic attachments; retain and inspect those in `.xcresult`, including failures. Record actual local-test/Cloud-archive elapsed times and diagnostic/export sizes in the release record.
 
 ## Supported OS destinations
 
-The app supports iOS/iPadOS 18.0 onward with the current SDK and pinned packages. Local acceptance uses one latest iPhone, one latest iPad on the same latest iOS major, and one actual iOS 18.x iPhone or iPad for compatibility. Cloud uses only one latest iPhone on that same latest major. Verify the latest supported OS against the actual local runtime and saved Cloud catalog; an installed local runtime does not establish Cloud availability. If a required local destination is unavailable, block release until it is available; a newer runtime or `My Mac` cannot substitute for iOS 18 evidence. Do not downgrade Xcode/SDK or expand Cloud into an older-device/locale matrix.
+The app supports iOS/iPadOS 18.0 onward with the current SDK and pinned packages. Local acceptance uses one latest iPhone, one latest iPad on the same latest iOS major, and one actual iOS 18.x iPhone or iPad for compatibility. Verify latest-OS eligibility against the actual local runtimes; an SDK version does not establish the destination OS. If a required local destination is unavailable, block release until it is available; a newer runtime or `My Mac` cannot substitute for iOS 18 evidence. Do not downgrade Xcode/SDK or add a routine Cloud test matrix.
 
 Static PR checks establish neither native compilation nor runtime behavior. Every new release requires recorded complete native evidence and the [binary compatibility checks](release/ios.md#ios). The [iOS 18 manual checklist](ios-local-setup.md#ios-18-compatibility-smoke) applies to the first support expansion or changes affecting OS-specific behavior.
 
@@ -63,7 +70,7 @@ Recommended value for this repository:
 
 This keeps the login smoke path pinned to the intended review account instead of relying on the default value embedded in the UI test code.
 
-`FLASHCARDS_LIVE_REVIEW_EMAIL` is required in the UI-test runner when the selected plan includes login; all four acceptance plans do. See [local injection](ios-local-setup.md#local-native-acceptance).
+`FLASHCARDS_LIVE_REVIEW_EMAIL` is required in the UI-test runner when the selected plan includes login; the local acceptance plans do. See [local injection](ios-local-setup.md#local-native-acceptance).
 
 ## Cloud configuration preflight
 
@@ -77,23 +84,14 @@ switching to the browser for an access failure.
 1. Verify the intended SCM repository, branch/tag ref and resolved release SHA.
    Check that the workflow is enabled and its manual start conditions allow
    that ref; a push branch filter does not establish manual-start eligibility.
-2. Check the selected Xcode/macOS toolchain, supported test destinations,
-   project container, action-specific scheme, explicit `CloudSmoke`/`Acceptance` selection and exactly one latest iPhone against the repository's
-   [iOS baseline](../apps/ios/README.md#platform-baseline). Verify the required
-   **Archive - iOS** action in the archive workflow and required **Build - iOS**
-   and deliberately non-required **CloudSmoke - iOS** actions in the test workflow. The non-required setting allows TestFlight delivery; successful
-   complete local acceptance and Cloud smoke evidence is still mandatory before App Review submission.
+2. Verify the saved IDs/names/enabled states in [the workflow inventory](#native-release-gate): only the two release builds are enabled, and both test workflows remain disabled. Check the selected Xcode/macOS toolchain, project container, **Flashcards Open Source App** scheme, required platform-specific Archive action and App Store eligible preparation. Preserve the TestFlight internal-testers postaction; it does not establish native acceptance or uploaded-build identity.
 3. Verify the production Release configuration, signing/distribution settings,
    and presence of the [required environment values](#xcode-cloud-inputs) for
    each workflow. Inspect non-secret service values for the intended production
    environment. Check any explicit `SENTRY_URL` against the endpoint that issued
    `SENTRY_AUTH_TOKEN`; do not print token contents, DSNs or other secrets, or
    replace masked secrets with empty values while editing unrelated settings.
-4. Record workflow IDs, secret-free saved configuration readback, inspected settings and secret-presence results in the release ledger. When adopting the small plan, change only the iOS Test action's scheme, plan/configuration selection and destination count; preserve required Build, archive/signing, all other actions/fields, branch/start settings, environment/secrets and Catalyst workflows. Read back the saved values before any authorized dispatch. If temporary manual branch/tag-filter edits are necessary
-   within the authorized release, record the exact original and temporary
-   filters, change only those filters, and read back the saved configuration
-   before dispatch. Preserve all other fields and secrets. Do not make tests
-   required or enable automatic push builds as a shortcut.
+4. Record workflow IDs, secret-free saved configuration readback, inspected settings and secret-presence results in the release ledger. Preserve actions, scheme, signing/distribution, environment/secrets and start settings. If temporary manual branch/tag-filter edits are necessary within the authorized release, record original and temporary filters, change only those filters and read back saved values before dispatch. Do not enable test workflows or automatic push builds as a shortcut.
 5. Record the accepted run IDs and verify their source SHAs. After all accepted
    runs using the temporary filters finish, restore the original filters and
    verify saved readback; record restoration in the ledger. If dispatch fails
@@ -108,11 +106,7 @@ automation and the backend then refuses to emit product analytics for them, perm
 declaration is described in [`analytics-audience.md`](analytics-audience.md#automation-installations)
 and decided in `apps/ios/Flashcards/Flashcards/App/AutomationRun.swift`.
 
-The process decision and preference protection are documented in
-[audience analytics](analytics-audience.md#automation-installations). For manual real-analytics
-verification outside UI tests, `FLASHCARDS_AUTOMATION_RUN=0`, `false` or `no` overrides Debug
-and simulator detection (trimmed, case-insensitive). It cannot override a recognized UI-test launch.
-Use a fresh installation before its first sync: the backend marker is permanent.
+The process decision and preference protection are documented in [audience analytics](analytics-audience.md#automation-installations). For every manual or automated Apple check, including signed Release/TestFlight, set `FLASHCARDS_AUTOMATION_RUN=1` in the app process and verify `automation_run_decided` reports `isAutomation=true` before interaction. On Mac, use `bash scripts/ios/launch-macos-test-app.sh "<path/Nibomo.app>"`. A launch without verified marking is not test evidence.
 
 The repository's own XCUITest harnesses set that variable through `XCUIApplication.launchEnvironment`
 in `LiveSmokeLaunching.swift` and `MarketingManualScreenshotTestCase.swift`, so it reaches the app on
