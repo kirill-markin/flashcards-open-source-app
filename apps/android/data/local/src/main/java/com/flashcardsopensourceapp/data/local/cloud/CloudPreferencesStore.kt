@@ -802,6 +802,7 @@ private fun encodeWorkspace(workspace: CloudWorkspaceSummary): JSONObject {
         .put("name", workspace.name)
         .put("createdAtMillis", workspace.createdAtMillis)
         .put("isSelected", workspace.isSelected)
+        .put("isVisible", workspace.isVisible)
 }
 
 private fun decodeWorkspace(jsonObject: JSONObject): CloudWorkspaceSummary {
@@ -809,7 +810,8 @@ private fun decodeWorkspace(jsonObject: JSONObject): CloudWorkspaceSummary {
         workspaceId = jsonObject.getString("workspaceId"),
         name = jsonObject.getString("name"),
         createdAtMillis = jsonObject.getLong("createdAtMillis"),
-        isSelected = jsonObject.getBoolean("isSelected")
+        isSelected = jsonObject.getBoolean("isSelected"),
+        isVisible = if (jsonObject.has("isVisible")) jsonObject.getBoolean("isVisible") else true
     )
 }
 

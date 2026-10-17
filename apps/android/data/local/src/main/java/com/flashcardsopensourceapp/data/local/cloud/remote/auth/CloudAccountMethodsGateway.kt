@@ -1,5 +1,8 @@
 package com.flashcardsopensourceapp.data.local.cloud.remote.auth
 
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudConnectionAction
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudConnectionResponse
+
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudAccountMethods
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudAccountMethodAttempt
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudAccountMethodReceipt
@@ -13,6 +16,7 @@ import com.flashcardsopensourceapp.data.local.model.cloud.CloudAccountMethodPurp
 data class CloudAccountMethodSession(val authBaseUrl: String, val authorizationHeader: String)
 
 interface CloudAccountMethodsGateway {
+    suspend fun accountConnection(session: CloudAccountMethodSession, verifier: String, action: CloudConnectionAction): CloudConnectionResponse
     suspend fun loadAccountMethods(session: CloudAccountMethodSession): CloudAccountMethods
     suspend fun beginEmailReauthentication(session: CloudAccountMethodSession, codeChallenge: String): CloudAccountMethodAttempt
     suspend fun completeEmailReauthentication(session: CloudAccountMethodSession, attempt: String, codeVerifier: String, code: String): CloudAccountMethodReceipt

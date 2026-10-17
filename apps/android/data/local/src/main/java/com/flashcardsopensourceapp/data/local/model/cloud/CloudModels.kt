@@ -60,7 +60,8 @@ data class CloudWorkspaceSummary(
     val workspaceId: String,
     val name: String,
     val createdAtMillis: Long,
-    val isSelected: Boolean
+    val isSelected: Boolean,
+    val isVisible: Boolean = true
 )
 
 @Serializable

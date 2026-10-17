@@ -1,5 +1,8 @@
 package com.flashcardsopensourceapp.data.local.cloud.remote
 
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudConnectionAction
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudConnectionResponse
+
 import com.flashcardsopensourceapp.core.observability.AppObservability
 import com.flashcardsopensourceapp.core.observability.ClientDeviceType
 import com.flashcardsopensourceapp.data.local.cloud.remote.billing.CloudGoogleBillingGateway
@@ -154,6 +157,9 @@ class CloudRemoteService private constructor(
         clientDeviceTypeProvider = clientDeviceTypeProvider
     )
     private val workspacePackageApi = CloudWorkspacePackageRemoteApi(httpClient = httpClient)
+
+    override suspend fun accountConnection(session: CloudAccountMethodSession, verifier: String, action: CloudConnectionAction): CloudConnectionResponse =
+        accountMethodsApi.accountConnection(session, verifier, action)
 
     override suspend fun loadAccountMethods(session: CloudAccountMethodSession): CloudAccountMethods = accountMethodsApi.loadAccountMethods(session)
     override suspend fun beginEmailReauthentication(session: CloudAccountMethodSession, codeChallenge: String): CloudAccountMethodAttempt =
