@@ -3,6 +3,7 @@ package com.flashcardsopensourceapp.data.local.model.sync
 import com.flashcardsopensourceapp.data.local.model.cards.DeckFilterDefinition
 import com.flashcardsopensourceapp.data.local.model.cards.CardMetadata
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudAccountState
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudSettings
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspaceSummary
 
 enum class SyncEntityType {
@@ -123,8 +124,35 @@ data class CloudAccountSnapshot(
     val userId: String,
     val email: String?,
     val preferences: AccountPreferences,
-    val workspaces: List<CloudWorkspaceSummary>
+    val workspaces: List<CloudWorkspaceSummary>,
+    val authenticatedIdentity: CloudAuthenticatedAccountIdentity?
+) {
+    constructor(
+        userId: String,
+        email: String?,
+        preferences: AccountPreferences,
+        workspaces: List<CloudWorkspaceSummary>
+    ) : this(userId, email, preferences, workspaces, null)
+}
+
+data class CloudAuthenticatedAccountIdentity(
+    val originalClientUserId: String,
+    val canonicalAccountId: String,
+    val linkedAccountIds: List<String>
 )
+
+/** Only freshly authenticated metadata can project a credential onto the persisted local owner. */
+fun CloudAccountSnapshot.preservingLocalAccountIdentity(settings: CloudSettings): CloudAccountSnapshot {
+    if (settings.cloudState != CloudAccountState.LINKED) {
+        return this
+    }
+    val identity: CloudAuthenticatedAccountIdentity = authenticatedIdentity ?: return this
+    val localUserId: String? = settings.linkedUserId
+    if (localUserId.isNullOrBlank() || localUserId !in identity.linkedAccountIds) {
+        return this
+    }
+    return copy(userId = localUserId)
+}
 
 data class CardSyncPayload(
     val cardId: String,

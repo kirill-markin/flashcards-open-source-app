@@ -160,6 +160,13 @@ internal class CloudSignInCoordinator(
             credentials = credentials,
             configuration = configuration
         )
+        val currentSettings: CloudSettings = preferencesStore.currentCloudSettings()
+        val retainedWorkspaceId: String? = currentSettings.activeWorkspaceId?.takeIf { workspaceId ->
+            currentSettings.cloudState == CloudAccountState.LINKED &&
+                currentSettings.linkedUserId == accountSnapshot.userId &&
+                currentSettings.linkedWorkspaceId == workspaceId &&
+                accountSnapshot.workspaces.any { workspace -> workspace.workspaceId == workspaceId }
+        }
         return CloudWorkspaceLinkContext(
             userId = accountSnapshot.userId,
             email = accountSnapshot.email,
@@ -167,7 +174,8 @@ internal class CloudSignInCoordinator(
             workspaces = accountSnapshot.workspaces,
             postAuthRoute = CloudWorkspacePostAuthRoute.NONE,
             guestUpgradeMode = guestUpgradeMode,
-            preferredWorkspaceId = resolvePreferredPostAuthWorkspaceId(workspaces = accountSnapshot.workspaces)
+            preferredWorkspaceId = retainedWorkspaceId
+                ?: resolvePreferredPostAuthWorkspaceId(workspaces = accountSnapshot.workspaces.filter(CloudWorkspaceSummary::isVisible))
         )
     }
 
@@ -213,7 +221,7 @@ internal class CloudSignInCoordinator(
                 workspaces = accountSnapshot.workspaces,
                 postAuthRoute = CloudWorkspacePostAuthRoute.GUEST_LOCAL_RECOVERY,
                 guestUpgradeMode = null,
-                preferredWorkspaceId = resolvePreferredPostAuthWorkspaceId(workspaces = accountSnapshot.workspaces)
+                preferredWorkspaceId = resolvePreferredPostAuthWorkspaceId(workspaces = accountSnapshot.workspaces.filter(CloudWorkspaceSummary::isVisible))
             )
 
             CloudCredentialRecoveryReason.INVALID_STORED_STATE -> error(

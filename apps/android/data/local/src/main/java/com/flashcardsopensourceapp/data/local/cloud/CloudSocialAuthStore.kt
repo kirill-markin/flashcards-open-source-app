@@ -36,8 +36,11 @@ internal data class CloudSocialAttemptBinding(
 @Serializable
 internal data class CloudAcceptedSocialSession(
     val credentials: StoredCloudCredentials,
-    val hint: CloudProviderSignInHint
-)
+    val hint: CloudProviderSignInHint,
+    val connectionSuggestion: com.flashcardsopensourceapp.data.local.model.cloud.CloudConnectionSuggestion?
+) {
+    constructor(credentials: StoredCloudCredentials, hint: CloudProviderSignInHint) : this(credentials, hint, null)
+}
 
 @Serializable
 internal data class CloudSocialGuestBinding(
@@ -168,11 +171,20 @@ internal class CloudSocialAuthStore(private val credentialStore: CloudCredential
     }
 
     fun completeAcceptedSession(pending: PendingCloudSocialSignIn) {
+        completeAcceptedSession(pending, null)
+    }
+
+    fun completeAcceptedSession(pending: PendingCloudSocialSignIn, connection: PendingCloudAccountMethod?) {
         val accepted = requireNotNull(pending.acceptedSession) {
             "Remembering a sign-in requires an accepted Nibomo session."
         }
         credentialStore.update { secrets ->
-            secrets.copy(pendingSocialSignIn = null, pendingEmailSignIn = null, successfulSignInHint =
+            check(connection == null || secrets.refreshToken == accepted.credentials.refreshToken) {
+                "The completed connection suggestion belongs to a different installed session."
+            }
+            secrets.copy(pendingSocialSignIn = null, pendingEmailSignIn = null,
+                pendingAccountMethod = connection?.let { Json.encodeToString(it.copy(epoch = secrets.accountMethodEpoch)) },
+                successfulSignInHint =
                 Json.encodeToString(StoredCloudSignInHint(pending.configuration, accepted.hint.successfulHint())))
         }
     }
@@ -218,10 +230,13 @@ private fun <Result> decodeSocialAuthState(decode: () -> Result): Result {
 private fun decodePending(value: String): PendingCloudSocialSignIn = decodeSocialAuthState {
     val fields = Json.parseToJsonElement(value) as? JsonObject
         ?: throw SerializationException("Pending social sign-in must be an object.")
+    val accepted = fields["acceptedSession"] as? JsonObject
+    val compatible = if (accepted == null) fields else JsonObject(fields + ("acceptedSession" to
+        JsonObject(mapOf("connectionSuggestion" to JsonNull) + accepted)))
     val pending = Json.decodeFromJsonElement<PendingCloudSocialSignIn>(JsonObject(mapOf(
         "appleBrowser" to JsonNull, "mailboxCodeRequested" to JsonPrimitive(false),
         "mailboxRequestInFlight" to JsonPrimitive(false), "providerCredentialObserved" to JsonPrimitive(false)
-    ) + (fields - "rememberSignIn")))
+    ) + (compatible - "rememberSignIn")))
     // Legacy mailbox records cannot prove whether a one-use request was already launched.
     if ("mailboxRequestInFlight" !in fields && pending.snapshot().phase == CloudSocialSignInPhase.MAILBOX) {
         pending.copy(mailboxRequestInFlight = true)

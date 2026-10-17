@@ -1,5 +1,8 @@
 package com.flashcardsopensourceapp.data.local.cloud.remote.auth
 
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudConnectionAction
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudConnectionResponse
+
 import com.flashcardsopensourceapp.data.local.cloud.remote.transport.CloudJsonHttpClient
 import com.flashcardsopensourceapp.data.local.cloud.wire.parseCloudAccountMethods
 import com.flashcardsopensourceapp.data.local.cloud.wire.validateSocialChallenge
@@ -29,6 +32,11 @@ import com.flashcardsopensourceapp.data.local.model.cloud.CloudAccountMethodPurp
 import org.json.JSONObject
 
 internal class CloudAccountMethodsRemoteApi(private val httpClient: CloudJsonHttpClient) : CloudAccountMethodsGateway {
+    override suspend fun accountConnection(session: CloudAccountMethodSession, verifier: String, action: CloudConnectionAction): CloudConnectionResponse =
+        com.flashcardsopensourceapp.data.local.cloud.wire.parseConnectionResponse(
+            post(session, "/api/account/connection", com.flashcardsopensourceapp.data.local.cloud.wire.connectionBody(action, verifier)),
+            session.authBaseUrl, action)
+
     override suspend fun loadAccountMethods(session: CloudAccountMethodSession): CloudAccountMethods =
         parseCloudAccountMethods(httpClient.getJson(session.authBaseUrl, "/api/account/login-methods?client=android", session.authorizationHeader))
 

@@ -14,10 +14,10 @@ data class CloudAccountMethods(val methods: List<CloudAccountProviderMethod>, va
 enum class CloudAccountMethodPurpose { REAUTH, LINK }
 
 @Serializable
-enum class CloudAccountMethodIntent { REAUTH, LINK, REENABLE, UNLINK }
+enum class CloudAccountMethodIntent { REAUTH, LINK, REENABLE, UNLINK, CONNECT }
 
 @Serializable
-enum class CloudAccountMethodPhase { PROVIDER, EMAIL_CODE, MAILBOX, PROOF_READY, LINK_READY, APPLE_PROVED, SUBMITTING, MUTATED, DENIED, RESTART_REQUIRED }
+enum class CloudAccountMethodPhase { PROVIDER, EMAIL_CODE, MAILBOX, PROOF_READY, LINK_READY, APPLE_PROVED, SUBMITTING, MUTATED, DENIED, RESTART_REQUIRED, CONNECTION_SUGGESTED, CONNECTION_TARGET, CONNECTION_PREVIEW, CONNECTION_CONFIRMING, CONNECTED, ALREADY_CONNECTED }
 
 @Serializable
 data class CloudAccountMethodAttempt(
@@ -55,5 +55,7 @@ data class CloudPendingAccountMethod(
     val mailboxEmail: String?,
     val mailboxCodeRequested: Boolean,
     val expiresAtMillis: Long,
-    val target: CloudProviderMethodTarget?
+    val target: CloudProviderMethodTarget?,
+    val connection: CloudAccountConnection?,
+    val retainedWorkspaceId: String?
 )
