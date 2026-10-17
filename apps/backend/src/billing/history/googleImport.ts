@@ -129,6 +129,7 @@ async function openAttempt(
         AND status = 'running' ORDER BY started_at DESC LIMIT 1`, [source, environment, scopeHash]);
   const dates = unfinished.rows[0];
   const snapshotAt = new Date();
+  // The one-millisecond snapshot window only identifies this poll; it never claims historical state coverage.
   const input: HistoryImportInput = { source, environment, scope: { kind: "provider", key },
     requestedFrom: dates?.requested_from ?? (source === "google_orders" ? new Date(0) : snapshotAt),
     requestedTo: dates?.requested_to ?? (source === "google_orders" ? snapshotAt : new Date(snapshotAt.getTime() + 1)) };

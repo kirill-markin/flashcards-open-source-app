@@ -131,6 +131,10 @@ export function normalizeStripePurchase(
     .reduce((amount, refund) => amount + refund.amount, 0), 0);
   const disputed = financial.payments.some((payment) => payment.disputes
     .some((dispute) => dispute.status !== "won"));
+  // Revocation covers the current paid period only: a succeeded full refund or an unresolved or lost
+  // dispute of this invoice revokes it, while a partial or unsettled refund, an event about an older
+  // period, or a won dispute leaves access to the subscription status. A later period is judged by its
+  // own payment, so a healthy renewal after a refund grants again.
   const revokedReason = isTrial ? null : disputed ? "chargeback"
     : invoice !== null && invoice.amount_paid > 0 && refunded >= invoice.amount_paid ? "refund" : null;
   if (revokedReason !== null) status = "revoked";

@@ -82,6 +82,8 @@ export const googleSubscriptionHistorySchema = z.object({
 });
 export type GoogleSubscriptionHistory = z.infer<typeof googleSubscriptionHistorySchema>;
 
+// Callers pass only responses read through authenticated Publisher transport for this package and token.
+// Orders carry no environment flag, so the caller supplies one proven by verified purchase evidence.
 export async function persistGoogleOrderInExecutor(
   executor: DatabaseExecutor, purchaseToken: string, input: GoogleOrderHistory, observation: HistoryObservation,
 ): Promise<HistoryWriteResult> {
@@ -96,6 +98,8 @@ export async function persistGoogleOrderInExecutor(
   });
 }
 
+// A retried read reuses its observation id: the RTDN delivery id, or one id per polled token and read.
+// An observation is subscription state, never a paid order.
 export async function persistGoogleSubscriptionObservationInExecutor(
   executor: DatabaseExecutor, purchaseToken: string, observationId: string,
   input: GoogleSubscriptionHistory, observation: HistoryObservation,

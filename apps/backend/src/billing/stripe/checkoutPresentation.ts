@@ -67,6 +67,8 @@ const hostedLocales = new Set(["bg", "cs", "da", "de", "el", "en", "et", "fi", "
   "hu", "id", "it", "ja", "ko", "lt", "lv", "nb", "nl", "pl", "pt-BR", "ro", "ru", "sk",
   "sl", "sv", "th", "tr", "vi"]);
 
+// Explicit rather than Checkout's `auto`, which follows the browser, not the persisted app language.
+// An app language Checkout lacks gets English hosted pages while Nibomo's own copy stays translated.
 export function stripeHostedLocale(locale: string): Stripe.Checkout.SessionCreateParams.Locale {
   if (locale === "es-ES") return "es";
   if (locale === "es-MX") return "es-419";
