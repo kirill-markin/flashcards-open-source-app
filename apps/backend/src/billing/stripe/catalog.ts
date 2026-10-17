@@ -18,11 +18,11 @@ export const stripeCatalog: Readonly<Record<StripeEnvironment, StripeCatalog>> =
   sandbox: {
     accountId: "acct_1UMQBkCVkVWAch1V", livemode: false,
     productId: "prod_VNApGSuXOif51N", priceId: "price_1UMQUDCVkVWAch1VJzr1hELW",
-    portalConfigurationId: "bpc_1UMQUECVkVWAch1VcQK8QOoM", iconFileId: "file_1UMQUBCVkVWAch1V4xlvzrLX",
+    portalConfigurationId: "bpc_1UMQUECVkVWAch1VcQK8QOoM", iconFileId: "file_1URfr3CVkVWAch1VLvRCSVUi",
   },
   production: {
     accountId: "acct_1KrGW6E3K3xV54Nr", livemode: true,
     productId: "prod_VNAqU0IRKOL0TD", priceId: "price_1UMQUtE3K3xV54NrvU8rT8ef",
-    portalConfigurationId: "bpc_1UMQUtE3K3xV54NruoEezugO", iconFileId: "file_1UMQUqE3K3xV54NruG41UVFn",
+    portalConfigurationId: "bpc_1UMQUtE3K3xV54NruoEezugO", iconFileId: "file_1URfr6E3K3xV54Nrdw0XAXLm",
   },
 };
