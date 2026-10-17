@@ -2,7 +2,7 @@ package com.flashcardsopensourceapp.core.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
-val FlashcardsOrange = Color(0xFFC44B2D)
+val FlashcardsOrange = Color(0xFFFF6719)
 val FlashcardsBackground = Color(0xFF101417)
 val FlashcardsSurface = Color(0xFF171D21)
 val FlashcardsSurfaceVariant = Color(0xFF222A30)

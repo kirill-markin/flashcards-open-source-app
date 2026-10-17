@@ -2,7 +2,7 @@ import Foundation
 import SwiftUI
 
 struct AccountAccentColor: Codable, Hashable, Sendable {
-    static let defaultColor = AccountAccentColor(rgb: 0xC44B2D)
+    static let defaultColor = AccountAccentColor(rgb: 0xFF6719)
 
     let rgb: UInt32
 
@@ -18,6 +18,17 @@ struct AccountAccentColor: Codable, Hashable, Sendable {
             blue: Double(self.rgb & 0xFF) / 255,
             opacity: 1
         )
+    }
+
+    var contrastingForegroundColor: Color {
+        let channels: [Double] = [16, 8, 0].map { shift in
+            let channel = Double((self.rgb >> shift) & 0xFF) / 255
+            return channel <= 0.04045
+                ? channel / 12.92
+                : pow((channel + 0.055) / 1.055, 2.4)
+        }
+        let luminance = 0.2126 * channels[0] + 0.7152 * channels[1] + 0.0722 * channels[2]
+        return luminance > 0.179 ? .black : .white
     }
 
     init(rgb: UInt32) {

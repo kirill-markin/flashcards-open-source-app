@@ -40,7 +40,7 @@ data class SyncStatusSnapshot(
     val lastErrorMessage: String
 )
 
-const val defaultAccentColor: String = "#C44B2D"
+const val defaultAccentColor: String = "#FF6719"
 
 data class AccountPreferences(
     val accentColor: String,

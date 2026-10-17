@@ -772,6 +772,7 @@ struct ReviewView: View {
                 },
                 showsSpeechButton: preparedRevealState.frontSpeakableText.isEmpty == false,
                 showsAiButton: false,
+                aiButtonAccentColor: self.store.effectiveAccountAccentColor,
                 onOpenAi: {},
                 surfaceStyle: .front
             )
@@ -790,6 +791,7 @@ struct ReviewView: View {
                     },
                     showsSpeechButton: preparedRevealState.backSpeakableText.isEmpty == false,
                     showsAiButton: true,
+                    aiButtonAccentColor: self.store.effectiveAccountAccentColor,
                     onOpenAi: {
                         self.navigation.openAICardHandoff(card: makeAIChatCardReference(card: card))
                     },
