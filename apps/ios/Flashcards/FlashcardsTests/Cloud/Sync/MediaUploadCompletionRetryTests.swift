@@ -97,21 +97,22 @@ final class MediaUploadCompletionRetryTests: LocalWorkspaceSyncTestCase {
         XCTAssertEqual(snapshot.partPutCount, 1)
         XCTAssertEqual(snapshot.completeSessionIds, [sessionId, sessionId, sessionId])
         XCTAssertEqual(snapshot.completeBodies.count, 3)
-        XCTAssertTrue(snapshot.completeBodies.allSatisfy { body in body == snapshot.completeBodies.first })
-        let completionRequest = try JSONDecoder().decode(
-            MediaUploadCompletionTestRequest.self,
-            from: try XCTUnwrap(snapshot.completeBodies.first)
-        )
-        XCTAssertEqual(
-            completionRequest.parts,
-            [
-                MediaUploadCompletionTestPart(
-                    partNumber: 1,
-                    eTag: "\"etag-1\"",
-                    sha256: helloWorldSha256
-                )
-            ]
-        )
+        for body in snapshot.completeBodies {
+            let completionRequest = try JSONDecoder().decode(
+                MediaUploadCompletionTestRequest.self,
+                from: body
+            )
+            XCTAssertEqual(
+                completionRequest.parts,
+                [
+                    MediaUploadCompletionTestPart(
+                        partNumber: 1,
+                        eTag: "\"etag-1\"",
+                        sha256: helloWorldSha256
+                    )
+                ]
+            )
+        }
         XCTAssertEqual(snapshot.abortCount, 0)
         XCTAssertEqual(try self.loadTransferState(database: context.database).status, "succeeded")
     }
@@ -353,7 +354,10 @@ final class MediaUploadCompletionRetryTests: LocalWorkspaceSyncTestCase {
         let transferState = try self.loadTransferState(database: context.database)
         XCTAssertEqual(transferState.status, "failed")
         XCTAssertEqual(transferState.nextAttemptAt, mediaUploadPermanentFailureNextAttemptAt)
-        XCTAssertTrue(transferState.lastError?.contains("MEDIA_ASSET_UPLOAD_PROOF_MISMATCH") == true)
+        XCTAssertEqual(
+            transferState.lastError,
+            "Completion payload is invalid Reference: completion-request-terminal"
+        )
     }
 
     @MainActor
