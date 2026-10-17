@@ -9,9 +9,9 @@ We do not aim for exhaustive iOS test coverage in this pipeline. The most truste
 
 Complete the [local native acceptance](ios-local-setup.md#local-native-acceptance) and unsigned device Release archive before dispatch. Then run the separate Cloud test and archive workflows in parallel for the accepted source under the [iOS release procedure](release/ios.md#ios). All required local and Cloud results must pass before App Review submission; the small Cloud selection cannot replace full local acceptance.
 
-The iOS **Test - iOS** action selects shared scheme **Flashcards Native Acceptance**, test plan **CloudSmoke**, test-plan configuration **Acceptance**, on exactly one latest iPhone. Its three required methods are the guest navigation, manual card review and linked-workspace login flows listed in the [plan contract](ios-local-setup.md#local-native-acceptance). Do not select all scheme plans, a second destination or the full local plan in Cloud. Preserve its deliberately non-required setting so TestFlight can receive builds even when tests fail; a failed smoke still blocks App Review submission.
+The iOS **CloudSmoke - iOS** action selects shared scheme **Flashcards Native Acceptance**, test plan **CloudSmoke**, test-plan configuration **Acceptance**, on exactly one latest iPhone. Its three required methods are the guest navigation, manual card review and linked-workspace login flows listed in the [plan contract](ios-local-setup.md#local-native-acceptance). Do not select all scheme plans, a second destination or the full local plan in Cloud. Preserve its deliberately non-required setting so TestFlight can receive builds even when tests fail; a failed smoke still blocks App Review submission.
 
-The required **Build - iOS** archive action retains **Flashcards Open Source App**, Release configuration, signing and distribution. The original shared scheme and both Catalyst workflows retain their existing selections. Native plan files live beside the project under `apps/ios/Flashcards`; the acceptance scheme lives under its `xcshareddata/xcschemes` directory.
+The archive workflow's required **Archive - iOS** action retains **Flashcards Open Source App**, Release configuration, signing and distribution. The test workflow requires **Build - iOS**. The original shared scheme and both Catalyst workflows retain their existing selections. Native plan files live beside the project under `apps/ios/Flashcards`; the acceptance scheme lives under its `xcshareddata/xcschemes` directory.
 
 Guest AI availability remains part of full local acceptance: guest AI must pass without login, and disabled/quota-exhausted responses are release failures. Cross-client live-smoke references are in [Release Gates](release-gates.md).
 
@@ -80,8 +80,8 @@ switching to the browser for an access failure.
 2. Check the selected Xcode/macOS toolchain, supported test destinations,
    project container, action-specific scheme, explicit `CloudSmoke`/`Acceptance` selection and exactly one latest iPhone against the repository's
    [iOS baseline](../apps/ios/README.md#platform-baseline). Verify the required
-   **Build - iOS** archive action and deliberately non-required **Test - iOS**
-   action. The non-required setting allows TestFlight delivery; successful
+   **Archive - iOS** action in the archive workflow and required **Build - iOS**
+   and deliberately non-required **CloudSmoke - iOS** actions in the test workflow. The non-required setting allows TestFlight delivery; successful
    complete local acceptance and Cloud smoke evidence is still mandatory before App Review submission.
 3. Verify the production Release configuration, signing/distribution settings,
    and presence of the [required environment values](#xcode-cloud-inputs) for
