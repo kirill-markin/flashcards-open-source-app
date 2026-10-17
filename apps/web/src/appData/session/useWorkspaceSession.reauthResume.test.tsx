@@ -369,7 +369,9 @@ describe("useWorkspaceSession reauth resume", () => {
       await vi.advanceTimersByTimeAsync(60_000);
     });
 
-    expect(discardAllSyncWorkMock).toHaveBeenCalledTimes(1);
+    await vi.waitFor(() => {
+      expect(discardAllSyncWorkMock).toHaveBeenCalledTimes(1);
+    });
     expect(runSyncMock).not.toHaveBeenCalled();
     expect(runSyncSilentlyMock).not.toHaveBeenCalled();
     expect(runSyncForWorkspaceMock).not.toHaveBeenCalled();
