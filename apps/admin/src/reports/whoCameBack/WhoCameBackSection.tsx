@@ -71,11 +71,11 @@ export function WhoCameBackSection(props: Readonly<{
           <h2>Who came back</h2>
           <ExplanationTip label="What Who came back shows" explanationId="who-came-back-explanation">
             <ul>
-              <li>Cohorts are Monday–Sunday UTC weeks of first-ever recorded meaningful use, using the same review or user-authored hosted AI message contract and actor exclusions as Who used us.</li>
-              <li>W1 is any meaningful return on days 7–13 after each person’s first-use day; W4 is days 28–34. The tooltip and table show returned users / cohort users.</li>
+              <li>Cohorts are Monday–Sunday UTC weeks of each person’s first-ever answered review, with any rating, using the same review history and actor exclusions as Who studied. Cohorts and returns count answered reviews only.</li>
+              <li>W1 is any answered review on days 7–13 after each person’s first-use day; W4 is days 28–34. The tooltip and table show returned users / cohort users.</li>
               <li>A rate appears only after every possible first-use day of the cohort week has its full return window. Recent or uncovered cohorts are unavailable, never zero.</li>
               <li>The date range selects first-use dates; edge weeks include only selected days. Returns after the selection end count through the latest complete UTC day.</li>
-              <li>First use reads the full retained source history. Deleted chat history and reviews never recorded in analytics cannot be reconstructed.</li>
+              <li>First use reads the full retained review history. Reviews never recorded in analytics cannot be reconstructed.</li>
               {state.status === "ready" ? <li>Generated {formatGeneratedAt(state.report.generatedAtUtc)}.</li> : null}
             </ul>
           </ExplanationTip>
@@ -102,7 +102,7 @@ export function WhoCameBackSection(props: Readonly<{
             <details className="activity-chart-table">
               <summary>Chart data and coverage</summary>
               <p className="activity-coverage-note">
-                {state.report.historyFrom === null ? "No retained meaningful-use history." : `Recorded source history starts ${state.report.historyFrom}. Returns observed through ${state.report.latestCompleteDate} UTC.`}
+                {state.report.historyFrom === null ? "No retained review history." : `Recorded source history starts ${state.report.historyFrom}. Returns observed through ${state.report.latestCompleteDate} UTC.`}
               </p>
               <div className="chart-scroll"><table>
                 <caption>Weekly first-use cohort retention, UTC; returned / base counts</caption>

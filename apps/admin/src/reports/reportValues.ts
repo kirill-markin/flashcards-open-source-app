@@ -189,6 +189,21 @@ export function toInteger(
   throw new Error(`${reportLabel} field "${fieldName}" must be an integer.`);
 }
 
+export function parseActivityDate(value: AdminQueryValue, label: string, field: string): string {
+  const date = assertIsString(value, label, field);
+  parseCalendarDate(date, label);
+  return date;
+}
+
+export function parseActivityCount(value: AdminQueryValue, label: string, field: string): number | null {
+  if (value === null) return null;
+  const count = toInteger(value, label, field);
+  if (count < 0 || !Number.isSafeInteger(count)) {
+    throw new Error(`${label} field "${field}" must be a non-negative safe integer.`);
+  }
+  return count;
+}
+
 export function assertPlatform(
   value: AdminQueryValue,
   reportLabel: string,

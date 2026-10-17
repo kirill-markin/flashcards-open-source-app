@@ -3,8 +3,7 @@ import type { AdminAppConfig } from "../../config";
 import type { AnalyticsDateRange } from "../../filters/analyticsFilters";
 import { escapeSqlStringLiteral } from "../../sql";
 import { buildMeaningfulActivityCtesSql } from "../levelOneMetrics/meaningfulActivitySql";
-import { assertValidDateRange } from "../reportValues";
-import { parseActivityCount, parseActivityDate } from "../whoUsedUs/query";
+import { assertValidDateRange, parseActivityCount, parseActivityDate } from "../reportValues";
 
 const reportLabel = "Who came back report";
 
@@ -36,6 +35,7 @@ export function buildWhoCameBackSql(dateRange: AnalyticsDateRange): string {
   SELECT actor_id, first_use_date, date_trunc('week', first_use_date::timestamp)::date AS cohort_week
   FROM actor_first_use
   WHERE first_use_date BETWEEN ${fromSql} AND ${toSql}
+    AND first_use_date <= (SELECT latest_complete_date FROM activity_clock)
 ), member_returns AS (
   SELECT members.actor_id, members.cohort_week,
     COALESCE(bool_or(activity.activity_date BETWEEN members.first_use_date + 7 AND members.first_use_date + 13), false) AS w1_returned,

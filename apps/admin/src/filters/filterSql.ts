@@ -68,16 +68,18 @@ export function buildExcludedActorReasonSql(actorIdSqlExpression: string): strin
  * kept: `server_derived` and `backfill_derived` are the server's own observations, and
  * `authenticated_client` and `guest_client` are claims made on an authenticated request.
  *
- * APPLIED EVERYWHERE IT CAN DECIDE A PERSON, AND THIS IS THE WHOLE LIST. Twenty-three entries below
- * derive an actor-level fact from `analytics.product_events_resolved`, twenty-two in this package
+ * APPLIED EVERYWHERE IT CAN DECIDE A PERSON, AND THIS IS THE WHOLE LIST. Twenty-four entries below
+ * derive an actor-level fact from `analytics.product_events_resolved`, twenty-three in this package
  * and one outside it. Each is APPLIED or UNREACHABLE, and the two are not interchangeable: adding this
  * predicate to an UNREACHABLE entry is a no-op, and reading one as an omission produces a
  * remediation that converts the entries it happens to have been told about and stops. A shared
  * fragment is one entry, listed where it is written, with its readers named.
  *
- * APPLIED (14).
+ * APPLIED (15).
  *   - `reports/dailyActiveUsers/query.ts`, the `app_opens` CTE and the first-active-date cohort it
  *     feeds.
+ *   - `reports/whoOpenedTheApp/appOpenActivitySql.ts`, `app_open_rows` and the first-open cohort it
+ *     feeds, read by Who opened the app and by the Level 1 available range.
  *   - `reports/audience/query.ts`, the `history` CTE and the cohort it feeds.
  *   - `reports/audience/query.ts`, `language_events`: the per-actor language and `unknown` coverage
  *     of an already-counted actor, over every event name.
