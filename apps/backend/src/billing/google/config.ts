@@ -27,6 +27,8 @@ export function loadGoogleAuthClient(): AwsClient {
       environment_id: "aws1",
       regional_cred_verification_url: "https://sts.{region}.amazonaws.com?Action=GetCallerIdentity&Version=2011-06-15",
     },
+    // Bounds Publisher and impersonation requests only: the library's STS exchange keeps its default
+    // transport inside the enclosing Lambda deadline. Accepted; do not patch the SDK internals.
     transporterOptions: {
       // gaxios defaults to node-fetch, whose timeout abort carries no TimeoutError code and is never retried.
       fetchImplementation: fetch,

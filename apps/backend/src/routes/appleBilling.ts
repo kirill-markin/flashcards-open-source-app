@@ -61,6 +61,9 @@ export function createAppleBillingRoutes(options: Readonly<{ allowedOrigins: Rea
     const userId = await loadAppleBillingUserId(context.req.raw, options.allowedOrigins);
     const body = await parseAppleBody(context.req.raw);
     const signedTransaction = expectNonEmptyString(body.signedTransaction, "signedTransaction");
+    // Omitted intent stays explicit for released clients that send none. Only an explicit Purchase or
+    // Restore moves a purchase to the caller; `passive` automatic replay preserves the attached owner.
+    // `{attached: true}` acknowledges processing, not ownership: sync supplies the caller's entitlement.
     const intent = body.intent;
     if (intent !== undefined && intent !== "passive" && intent !== "explicit") {
       throw new HttpError(400, "intent must be passive or explicit when provided.", "APPLE_INTENT_INVALID");

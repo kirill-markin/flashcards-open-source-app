@@ -102,11 +102,9 @@ While a person cannot customize, choosing the default writes nothing, so the ret
 Unknown or offline entitlement follows the [cached local-feature policy](premium-entitlements.md#offline-behaviour).
 Client setting and display boundaries gate usage; the backend adds no billing gate for storing a
 selection. Accent color and Review Animations are account-wide; AI Chat Suggestions and App icon are
-stored per device. On iOS the Home Screen icon follows the displayed App icon while the app is
-active, so a confirmed downgrade or a resubscription switches it by the next app open, behind the
-system's confirmation alert. Android switches the App icon by enabling one launcher `activity-alias`
-in the [manifest](../apps/android/app/src/main/AndroidManifest.xml) and disabling the other, only
-once the person has left the app.
+stored per device. The launcher icon follows the displayed App icon on
+[iOS](../apps/ios/Flashcards/Flashcards/Store/FlashcardsStore+AppIcon.swift) and
+[Android](../apps/android/app/src/main/java/com/flashcardsopensourceapp/app/appicon/LauncherAppIcon.kt).
 
 ### Accent color
 
@@ -115,8 +113,6 @@ Accent color offers Default `#FF6719`, Blue `#4D8DFF`, Purple `#A78BFA`, Pink `#
 RGB is used without contrast correction; alpha is unsupported. Default remains available to everyone.
 Card themes are outside this feature.
 
-The wire contract lives in [account preference parsing](../apps/backend/src/routes/system/support.ts)
-and [persistence](../apps/backend/src/routes/system/account/accountPreferences.ts): `accentColor` is
-canonical uppercase `#RRGGBB`, and an omitted PATCH field preserves the stored selection. Guest
-binding retains its row; [guest merge](../apps/backend/src/guestAuth/store/identity.ts) carries the
-guest color only when the destination still has Default.
+The wire contract is [account preference parsing](../apps/backend/src/routes/system/support.ts) and
+[persistence](../apps/backend/src/routes/system/account/accountPreferences.ts);
+[guest merge](../apps/backend/src/guestAuth/store/identity.ts) states which color an upgraded guest keeps.

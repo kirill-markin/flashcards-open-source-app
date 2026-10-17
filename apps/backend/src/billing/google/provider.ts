@@ -125,6 +125,7 @@ function purchaseState(purchaseToken: string, subscription: GoogleSubscription, 
     throw new GoogleBillingError("GOOGLE_RESPONSE_INVALID", false, null,
       "Google completed subscription is missing startTime or expiryTime.");
   }
+  // CANCELED only stops renewal: access runs to expiryTime (docs/premium-entitlements.md, "Access status").
   const grantsAccess = providerStatus === "SUBSCRIPTION_STATE_ACTIVE"
     || providerStatus === "SUBSCRIPTION_STATE_CANCELED" || providerStatus === "SUBSCRIPTION_STATE_IN_GRACE_PERIOD";
   if (grantsAccess && currentPhase === "unknown") {

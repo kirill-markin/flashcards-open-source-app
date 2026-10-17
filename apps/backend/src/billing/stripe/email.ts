@@ -24,6 +24,8 @@ type Delivery = Readonly<{
   last_error: string | null;
 }>;
 const deliveryColumns = "identity_id, request_body, notice, first_attempt_at, sent_at, stopped_at, last_error";
+// Resend deduplicates an idempotency key for 24 hours; stopping an hour earlier keeps every automatic
+// retry inside that window, so anything unresolved later needs operator reconciliation, never a new key.
 const safeRetryWindowMs = 23 * 60 * 60 * 1000;
 // Stripe charge units differ from Intl currency display precision for ISK/UGX and HUF/TWD.
 const zeroDecimalCurrencies = new Set(["bif", "clp", "djf", "gnf", "jpy", "kmf", "krw", "mga",

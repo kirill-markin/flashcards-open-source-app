@@ -7,46 +7,30 @@ Google Play locales in [Subscription store metadata](subscription-store-metadata
 
 ## Readiness
 
-Verified snapshot as of 2026-10-04; federation readback at 06:47:38 UTC.
-Android billing and the backend are implemented; production acceptance remains
-incomplete. The passing CI bundle is available to internal testers and the catalog
-is active; genuine Play purchase acceptance and public production rollout remain pending.
-Record later outcomes with their evidence and timestamp before updating a gate.
+Readback as of 2026-10-04. Android billing and the backend are implemented and deployed; the
+catalog is active and the billing build is available to internal testers. Record later outcomes
+with their evidence and timestamp before updating a gate.
 
-| State | Readback |
+| Area | Readback |
 | --- | --- |
-| Console setup saved | SAMO DANNI EOOD merchant setup and 15% service-fee enrollment, app-scoped billing permissions, license testing and restricted AWS federation are saved. Company EUR bank verification remains pending. |
-| Backend deployed | [AWS run 37130395075](https://github.com/kirill-markin/flashcards-open-source-app/actions/runs/37130395075) succeeded in all 10 jobs, including migrations, deployment and smoke gates. Its platform/web/admin SSM deployment markers read `01d6cc2e7c98693bde8ac9bcdb8ed43ab0050bde`. The live Google reconciliation rule in `eu-central-1` is `ENABLED` with `rate(15 minutes)`. |
-| Federation and negative probe verified | Provider `aws-backend` in `nibomo-aws-billing` is ACTIVE with the normalized subject below; the exact AWS account/BackendHandler condition and attribute-based service-account grant are unchanged, with the same policy etag. The October 3 probe failed at STS HTTP 400 before Publisher; an opaque account ID alone proves no Google authentication. The October 4 probe recorded STS HTTP 200, then an actual Publisher `subscriptionsv2.get` HTTP 400 for a deliberately invalid token, demonstrating impersonation sufficient to call Publisher. Genuine purchase, Restore and acknowledgment acceptance remain pending. This external configuration repair has no Lambda release/commit boundary; the documentation commit is not a runtime fix. |
-| Android candidate verified | Candidate `9073c12f7ad75723b3993c79b6e41a096b27fbae` ([PR 2243](https://github.com/kirill-markin/flashcards-open-source-app/pull/2243)) passed [PR Checks 37182381237](https://github.com/kirill-markin/flashcards-open-source-app/actions/runs/37182381237) and [Android CI 37182780393](https://github.com/kirill-markin/flashcards-open-source-app/actions/runs/37182780393). Local CI parity passed in 4m 7s; optimized signed `validationRelease` passed in 3m 53s. Full LiveSmoke passed at 06:46:42 UTC: 7 passed, 0 failed, 0 skipped, 6m 21s. Its validation AAB version code 1 is not publishable. |
-| Release passed; production draft only | [Android Release 37183902617](https://github.com/kirill-markin/flashcards-open-source-app/actions/runs/37183902617) passed all GitHub jobs for `9073c12f7ad75723b3993c79b6e41a096b27fbae`. The Play API accepted version `1.29.0`, code `23870952`, as production draft `main-draft-vc23870952-r37183902617a1-s9073c12f`; it is not submitted or publicly published. The earlier Croatian translation upload failure did not recur. |
-| Firebase result verified | Actual matrix `matrix-kwf46fn1wqq0a` on Pixel 11 (`cubs`)/API 37 finished `SUCCESS`: 82 passed, 0 failed, 82 total, including both formerly failing workspace cases. [Firebase results](https://console.firebase.google.com/project/flashcards-open-source-app/testlab/histories/bh.f2d5f1386dbab916/matrices/5632459922240459317) correlate with the release run/SHA; test duration was 836 seconds, processing 32 seconds. Submission success alone is not a passing matrix. |
-| Internal release published | `test-vc23870952-r37183902617a1-s9073c12f` contains only code `23870952` and 51 release notes; the paused track was resumed and its latest release reads Available to internal testers. Catalog setup is unlocked. Failed candidate `23866012` was superseded, not published. |
-| Publishable artifact verified | The CI-signed AAB is 21,098,266 bytes, SHA-256 `b84c079be1125d889d4d5954688a433ba3a92166fd857df35564eea8887e53c1`. The original registered upload certificate is preserved without reset. The local validation bundle is not publishable. |
-| Catalog active | `premium` has all 51 locales from [store metadata](subscription-store-metadata.md#google-play-texts): Name, Benefit 1 (1000 AI messages per month), and Description; all 153 field values matched after browser reload. Base plan `monthly` and offer `free-trial-7d` were reopened and verified ACTIVE. Device product details, offer token and pricing phases remain unverified. |
-| Monthly settings verified | Monthly auto-renewal covers 175 countries/regions, with new countries/regions included. USD 6.99 base generated US USD 6.99, Bulgaria/Germany EUR 7.49, UK GBP 6.49 and India INR 790.00 through Play conversion, rounding and taxes. Grace is 7 days; automatically calculated account hold is 53 days (60 combined). Base-plan/offer changes charge at next billing date; resubscribe is allowed. No annual/lifetime sales. |
-| Trial settings verified | `free-trial-7d` covers all 175 base-plan regions: one seven-day free-trial phase, then the base plan. New customer acquisition uses Google's “Never had this subscription” (`premium`) eligibility; no developer-determined eligibility or additional discount phases. |
-| Notifications verified for test delivery | Authenticated Push and the resource-only Token Creator grant are saved. Play's official test reached BackendHandler at 2026-10-03 17:18:40.819 UTC and was processed/acknowledged. Unsigned requests return HTTP 401 `GOOGLE_PUSH_UNAUTHORIZED`. Real purchase lifecycle delivery remains pending. |
-| Console translations reviewed | App Strings covers 49 languages, with automatic translation ON. On October 4, 47 Premium rows were reviewed and three timing/quota errors corrected in Croatian, Tamil and Kannada. This is not verification of translations delivered by the native app. |
-| Privacy published; Data Safety in review | Privacy and account-deletion pages are published. Publishing overview lists only App content / Data Safety as IN REVIEW; no new production version is in review. See [Privacy and reviewer access](#privacy-and-reviewer-access) for privacy deployment evidence. |
-| Store acceptance pending | The Play emulator is running with an empty Google login form; owner login and the device/tester account match remain pending. No Play-installed billing candidate or completed purchase matrix is recorded. Complete the gates below before requesting public sales. |
+| Console | SAMO DANNI EOOD merchant setup and 15% service-fee enrollment, app-scoped billing permissions, license testing and restricted AWS federation are saved. |
+| Backend | The Google reconciliation rule runs every 15 minutes. Federation is ACTIVE; a deliberately invalid Publisher `subscriptionsv2.get` returned HTTP 400 after STS HTTP 200, proving impersonation reaches Publisher. |
+| Catalog | `premium` has all 51 locales from [store metadata](subscription-store-metadata.md#google-play-texts). Base plan `monthly` covers 175 countries/regions with new ones included, USD 6.99 base with Play-converted regional prices, 7-day grace and a 53-day account hold (60 combined), charge-at-next-billing-date changes and resubscribe allowed. Offer `free-trial-7d` covers the same regions with Google's “Never had this subscription” eligibility and no further phases. |
+| Notifications | Authenticated Push and the resource-only Token Creator grant are saved; Play's official test was processed and acknowledged, and unsigned requests return HTTP 401 `GOOGLE_PUSH_UNAUTHORIZED`. |
+| Console translations | App Strings covers 49 languages with automatic translation ON; the Premium rows were reviewed. This is not verification of translations delivered by the native app. |
+| Privacy | Privacy and account-deletion pages are published; the Data Safety declaration is IN REVIEW. |
+| Pending | Company EUR bank verification; device product details, offer token and pricing phases; genuine purchase, Restore, acknowledgment and real lifecycle delivery; the owner login and device/tester account match on the Play device; public production rollout. Complete the gates below before requesting public sales. |
 
 ## Implemented contract and source
 
-The offer is Premium: 1000 platform-key AI messages per UTC calendar month,
-USD 6.99/month base price, and a Google-controlled seven-day trial. Prices and
-eligible phases displayed on Android come from Play. This work does not sell
-annual/lifetime products; existing lifetime gifts and highest-rank entitlement
-resolution remain intact.
-
-| Boundary | Source and contract |
-| --- | --- |
-| Authenticated account and purchase API | [Routes](../apps/backend/src/routes/googleBilling.ts): `GET /v1/billing/google/account` returns `{ obfuscatedAccountId }`; `POST /v1/billing/google/purchases` takes `{ purchaseToken, intent }`, with required `explicit` or `passive` intent. Guest, Bearer and Session authentication are supported. |
-| Ownership and acknowledgment | [Service](../apps/backend/src/billing/google/service.ts), [store](../apps/backend/src/billing/google/store.ts), and [provider](../apps/backend/src/billing/google/provider.ts) verify authoritative Play state and linked tokens, persist ownership, acknowledge completed purchases and read back acknowledgment. Explicit purchase/Restore attaches to the current authenticated identity; passive startup/resume/replay preserves an attached owner. |
-| Android completion and recovery | [Connector](../apps/android/app/src/main/java/com/flashcardsopensourceapp/app/store/GooglePlaySubscriptionConnector.kt) and [repository](../apps/android/data/local/src/main/java/com/flashcardsopensourceapp/data/local/repository/billing/GooglePlayBillingRepository.kt) persist pending verification and require a fresh synced entitlement. `{ attached: true }` is a processing receipt, not permission to unlock Premium. |
-| Native offer and Settings | [Premium controls](../apps/android/app/src/main/java/com/flashcardsopensourceapp/app/premium/PremiumBillingControls.kt), [offer terms](../apps/android/app/src/main/java/com/flashcardsopensourceapp/app/premium/PremiumOfferDetails.kt), and [Subscription route](../apps/android/feature/settings/src/main/java/com/flashcardsopensourceapp/feature/settings/subscription/SubscriptionRoute.kt) own loading, unavailable, pending, recovery, Restore and management states. Unknown entitlement blocks checkout while refresh remains available. |
-| Notifications and missed updates | [Notifications](../apps/backend/src/billing/google/notifications.ts), [reconciliation](../apps/backend/src/billing/google/reconcile.ts), [schedule](../infra/aws/lib/gateways/api-gateway.ts), and [durable Google metadata](../db/migrations/0166_google_reconciliation.sql) own authenticated processing, duplicate handling, terminal correlation, acknowledgment retries and scheduled repair. |
-| Entitlements and reporting | [Shared contract](premium-entitlements.md), [Google facts](../apps/backend/src/billing/google/facts.ts), and [limits](../apps/backend/src/billing/limits.ts). Sandbox purchases grant real access; production revenue reports exclude them. Google decides trial eligibility. |
+[Routes](../apps/backend/src/routes/googleBilling.ts),
+[service](../apps/backend/src/billing/google/service.ts),
+[notifications](../apps/backend/src/billing/google/notifications.ts),
+[reconciliation](../apps/backend/src/billing/google/reconcile.ts) and the Android
+[repository](../apps/android/data/local/src/main/java/com/flashcardsopensourceapp/data/local/repository/billing/GooglePlayBillingRepository.kt)
+own ownership, acknowledgment, recovery and the native offer states. `{ attached: true }` is a
+processing receipt, not permission to unlock Premium: Android unlocks only on a fresh synced
+entitlement.
 
 ## Public configuration identities
 
@@ -85,8 +69,7 @@ Never expires, and restricted to Nibomo. The selected app permissions are:
   cancellation capability.
 
 No administrator, release, store-presence, or account-wide permissions were
-granted. Reopen the invitation and verify its scope when diagnosing access. The
-October 4 negative-path probe above reached Publisher through impersonation. Google's
+granted. Reopen the invitation and verify its scope when diagnosing access. Google's
 [Developer API setup](https://developers.google.com/android-publisher/getting_started)
 documents the billing permissions. Do not add catalog or release permissions to
 this runtime identity to perform an operator's setup task.
@@ -105,9 +88,8 @@ assertion.arn.contains('assumed-role') ? assertion.arn.extract('{account_arn}ass
 ```
 
 Google's [federation troubleshooting](https://cloud.google.com/iam/docs/troubleshooting-workload-identity-federation)
-documents the 127-byte subject limit. The normalized role is 103 ASCII bytes;
-the observed full Lambda session ARN was 163. The October 3 evidence establishes
-STS HTTP 400, not Google's exact error description. The service account's saved
+documents the 127-byte subject limit, which the full Lambda session ARN exceeds
+and the normalized role fits. The service account's saved
 Workload Identity User (`roles/iam.workloadIdentityUser`) grant selects only this attribute value:
 
 ```text
@@ -133,11 +115,8 @@ credentials into Android. Google's
 [AWS federation procedure](https://cloud.google.com/iam/docs/workload-identity-federation-with-other-clouds)
 is the operator reference when access or the allowed role changes.
 
-Accepted transport limitation: `google-auth-library` 11.1 bounds Publisher and
-impersonation requests, but its STS exchange uses the vendor's default transport
-within the enclosing Lambda/client request deadlines. Do not claim one global
-SDK timeout or patch unsupported SDK internals. A real test purchase and its
-acknowledgment readback are still required to complete provider acceptance.
+A real test purchase and its acknowledgment readback are still required to complete provider
+acceptance.
 
 ## Notifications
 
@@ -169,12 +148,9 @@ keys. Read back the saved configuration using Google's
    Verify sanitized processing/acknowledgment records and the resulting server
    entitlement. Never expose the request body, token or Authorization header.
 
-The handler validates the signed Google ID token, audience, verified service
-account email and subject, subscription resource, package and wrapped payload.
-Success returns 204; processing failures remain retryable by Pub/Sub. Scheduled
-reconciliation invokes the same BackendHandler identity every 15 minutes, with
-bounded batches and durable attempt/stop metadata. Inspect
-`google_notification_failed`, `google_purchase_acknowledgement_failed` and
+The [handler](../apps/backend/src/billing/google/notifications.ts) returns 204 on success and
+leaves processing failures retryable by Pub/Sub; scheduled reconciliation repairs missed updates.
+Inspect `google_notification_failed`, `google_purchase_acknowledgement_failed` and
 `google_reconciliation_completed`/`google_reconciliation_purchase_failed` when
 delivery or access diverges. A green deployment or an empty reconciliation run
 does not prove purchase recovery; record actual affected-purchase readbacks.
@@ -186,10 +162,9 @@ does not prove purchase recovery; record actual affected-purchase readbacks.
    verification prompt and read back the verified status. Follow
    [Verify bank account](https://support.google.com/googleplay/android-developer/answer/7161378?hl=en);
    retain financial evidence privately.
-2. Reopen the internal track and confirm the published release and version code
-   in the readiness table. For later releases, follow [Android CI/CD](android-ci-cd.md)
-   and the [release authorization runbook](release/README.md); keep the
-   failed `23866012` candidate superseded and public production in draft.
+2. Reopen the internal track and confirm its latest release is the intended billing
+   build. For later releases, follow [Android CI/CD](android-ci-cd.md) and the
+   [release authorization runbook](release/README.md); keep public production in draft.
 3. In **Monetize with Play > Products > Subscriptions**, reopen `premium`,
    `monthly` and `free-trial-7d`; compare their settings with the snapshot above.
    Maintain all 51 [Google Play locale texts](subscription-store-metadata.md#google-play-texts).
@@ -215,17 +190,10 @@ remains unchecked. Reconcile the whole form with
 [audience analytics](analytics-audience.md), [billing deletion rules](premium-entitlements.md#guest-upgrade-reaping-and-deletion),
 and Google's [Data Safety guidance](https://support.google.com/googleplay/android-developer/answer/10787469?hl=en)
 when maintaining the declaration. IN REVIEW does not mean approved or publicly published.
-The [Privacy Policy](https://nibomo.com/privacy/) includes the Google billing
-disclosures. [Website PR 508](https://github.com/kirill-markin/flashcards-open-source-app-website/pull/508)
-merged as `566f4dcb201448fa4e733cb317d3f93a04103b74` at 15:21:11 UTC on
-2026-10-03, after successful preview and
-[Catalog checks](https://github.com/kirill-markin/flashcards-open-source-app-website/actions/runs/37132775111).
-The [post-merge Catalog run](https://github.com/kirill-markin/flashcards-open-source-app-website/actions/runs/37132942106)
-and [production Vercel deployment](https://vercel.com/kirill-markins-projects/flashcards-open-source-app-website/ZL1JUMGevk9G3SDXpZn11PVzjfNn)
-succeeded; Vercel completed at 15:26:52 UTC. Rendered English HTML returned HTTP
-200 at 15:27:51 UTC with Google payment handling, server billing events, Google
-as recipient, retained billing history, and the account-deletion cancellation
-notice linking to [Play subscription management](https://play.google.com/store/account/subscriptions).
+The published [Privacy Policy](https://nibomo.com/privacy/) includes the Google billing
+disclosures: Google payment handling, server billing events, Google as recipient, retained billing
+history, and the account-deletion cancellation notice linking to
+[Play subscription management](https://play.google.com/store/account/subscriptions).
 
 For Play reviewer access instructions, describe the actual build: launch as a
 guest or sign in, open **Settings > Subscription**, then the Premium offer.
