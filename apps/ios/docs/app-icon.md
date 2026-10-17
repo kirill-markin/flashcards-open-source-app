@@ -17,9 +17,9 @@ same Clear and Tinted specializations. The canvas uses root
 `fill-specializations` with an explicit `dark` entry because a plain root
 `fill` falls back to the system background in the Dark appearance.
 
-| Default | Dark | Light alternate |
-| --- | --- | --- |
-| ![Default icon](https://github.com/kirill-markin/flashcards-open-source-app/releases/download/media-archive-20261017/app-icon-default.png) | ![Dark icon](https://github.com/kirill-markin/flashcards-open-source-app/releases/download/media-archive-20261017/app-icon-dark.png) | ![Light alternate icon](https://github.com/kirill-markin/flashcards-open-source-app/releases/download/media-archive-20261017/app-icon-light.png) |
+| Default / Dark | Light alternate |
+| --- | --- |
+| ![Default and Dark icon](../Flashcards/Flashcards/Assets.xcassets/AppIconPreviewDefault.imageset/app_icon_preview_default.png) | ![Light alternate icon](../Flashcards/Flashcards/Assets.xcassets/AppIconPreviewLight.imageset/app_icon_preview_light.png) |
 
 `ASSETCATALOG_COMPILER_APPICON_NAME` is `AppIcon`. The app's synchronized
 source group includes the `.icon` packages automatically, and Xcode generates
@@ -47,12 +47,13 @@ To export an appearance directly from the native renderer:
 
 Use `Dark`, `ClearLight`, `ClearDark`, `TintedLight`, or `TintedDark` for the other
 appearances, and `AppIcon-Light.icon` for the light alternate. The previews
-above are `Default` and `Dark` of `AppIcon.icon` and `Default` of
-`AppIcon-Light.icon` at 256 px. Use `--design-generation 26` to review the
+above are the tracked Settings images: the shared `Default`/`Dark` appearance
+of `AppIcon.icon` and `Default` of `AppIcon-Light.icon` at 256 px.
+Use `--design-generation 26` to review the
 previous rendering; Apple documents that refraction has no visible effect
 before OS 27. The Settings previews in
-`Assets.xcassets/AppIconPreview*.imageset` are copies of `default.png` and
-`light.png`; refresh them whenever an icon changes.
+`Assets.xcassets/AppIconPreview*.imageset` should be refreshed from these
+native exports whenever an icon changes.
 
 References: [Apple's Icon Composer workflow](https://developer.apple.com/documentation/xcode/creating-your-app-icon-using-icon-composer),
 [App icon HIG](https://developer.apple.com/design/human-interface-guidelines/app-icons),
