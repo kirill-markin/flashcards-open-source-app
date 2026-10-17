@@ -119,7 +119,8 @@ extension FlashcardsStore {
             }
 
             try self.publishReviewProgressBadgeState(scopeKey: observedScopeKey)
-            guard self.progressSeriesInvalidatedScopeKeys.contains(observedScopeKey) == false else {
+            guard self.progressSnapshot != nil,
+                  self.progressSeriesInvalidatedScopeKeys.contains(observedScopeKey) == false else {
                 return
             }
 
