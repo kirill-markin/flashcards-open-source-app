@@ -978,3 +978,23 @@
 
 "settings.account.cloudSignIn.continueGoogle" = "Mit Google fortfahren";
 "settings.account.cloudSignIn.appleCleanupPending" = "Apple schließt eine Sicherheitsaktualisierung ab. Versuche es in Kürze erneut mit Apple oder wähle eine andere Anmeldemethode.";
+
+"settings.account.connection.title" = "Konten verbinden";
+"settings.account.connection.suggestion" = "Vorgeschlagene Verbindung prüfen";
+"settings.account.connection.data" = "Karten, Wiederholungen und Arbeitsbereiche bleiben erhalten. Mitgliedschaften werden vereint; Eigentümerrechte haben Vorrang.";
+"settings.account.connection.settings" = "Einstellungen und öffentliches Profil des Zielkontos gelten mit strengerem Datenschutz. Die echte primäre E-Mail bleibt erhalten, sonst wird eine nachgewiesene echte Adresse verwendet.";
+"settings.account.connection.billing" = "Käufe, Berechtigungen, Nutzung und Zugangsdaten für Integrationen folgen dem verbundenen Konto. Abonnements und bisheriger Testverlauf bleiben unverändert.";
+"settings.account.connection.destination" = "Ausgewähltes Ziel";
+"settings.account.connection.hidden" = "In der Arbeitsbereichsauswahl ausgeblendet";
+"settings.account.connection.omit" = "Auslassung bei Eignung anfragen";
+"settings.account.connection.preserve" = "Nur geeignete anfängliche Arbeitsbereiche können ausgeblendet werden. Die Daten und alle anderen Arbeitsbereiche bleiben erhalten.";
+"settings.account.connection.confirm" = "Verbindung bestätigen";
+"settings.account.connection.connected" = "Konten verbunden.";
+"settings.account.connection.alreadyConnected" = "Diese Konten sind bereits verbunden.";
+"settings.account.connection.cancelled" = "Verbindung abgebrochen.";
+"settings.account.connection.uncertain" = "Die Bestätigung wurde gesendet, aber ihr Ergebnis ist unbekannt. Prüfe es mit derselben Bestätigung.";
+"settings.account.connection.replay" = "Ergebnis prüfen";
+"settings.account.connection.preview" = "Verbindungsvorschau aktualisieren";
+"settings.account.connection.previewChanged" = "Die Vorschau hat sich geändert. Aktualisiere sie und bestätige die neue Vorschau ausdrücklich.";
+"settings.account.connection.restart" = "Der Nachweis ist abgelaufen oder wurde verwendet. Beginne mit einem neuen Nachweis.";
+"settings.account.connection.restorePaused" = "Konten verbunden. Die lokale Aktualisierung ist pausiert; deine Offlinedaten bleiben erhalten.";

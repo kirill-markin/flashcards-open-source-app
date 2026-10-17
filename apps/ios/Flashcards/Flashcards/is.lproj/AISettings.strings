@@ -950,3 +950,23 @@
 
 "settings.account.cloudSignIn.continueGoogle" = "Halda áfram með Google";
 "settings.account.cloudSignIn.appleCleanupPending" = "Apple er að ljúka öryggisuppfærslu. Reyndu aftur með Apple eftir stutta stund eða veldu aðra innskráningaraðferð.";
+
+"settings.account.connection.title" = "Tengja reikninga";
+"settings.account.connection.suggestion" = "Skoða tillögu að tengingu";
+"settings.account.connection.data" = "Spjöld, upprifjanir og vinnusvæði varðveitast. Aðildir sameinast; eignarhald hefur forgang.";
+"settings.account.connection.settings" = "Stillingar og opinber prófíll áfangareiknings gilda með strangari persónuvernd. Raunverulegt aðalnetfang helst, annars er notað staðfest raunverulegt netfang.";
+"settings.account.connection.billing" = "Kaup, réttindi, notkun og auðkenni samþættinga fylgja tengda reikningnum. Áskriftir og upprunalegur prufutímaferill haldast óbreytt.";
+"settings.account.connection.destination" = "Valinn áfangastaður";
+"settings.account.connection.hidden" = "Falið í vali á vinnusvæðum";
+"settings.account.connection.omit" = "Óska eftir útilokun ef leyfilegt";
+"settings.account.connection.preserve" = "Aðeins má fela upphafssvæði sem uppfylla skilyrðin. Gögn og önnur vinnusvæði varðveitast.";
+"settings.account.connection.confirm" = "Staðfesta tengingu";
+"settings.account.connection.connected" = "Reikningar tengdir.";
+"settings.account.connection.alreadyConnected" = "Þessir reikningar eru þegar tengdir.";
+"settings.account.connection.cancelled" = "Hætt við tengingu.";
+"settings.account.connection.uncertain" = "Staðfestingin var send en niðurstaðan er óþekkt. Athugaðu hana með sömu staðfestingu.";
+"settings.account.connection.replay" = "Athuga niðurstöðu";
+"settings.account.connection.preview" = "Uppfæra forskoðun";
+"settings.account.connection.previewChanged" = "Forskoðunin breyttist. Uppfærðu hana og staðfestu nýju forskoðunina sérstaklega.";
+"settings.account.connection.restart" = "Sönnunin rann út eða var notuð. Byrjaðu aftur með nýja sönnun.";
+"settings.account.connection.restorePaused" = "Reikningar tengdir. Staðbundin uppfærsla er í bið; ótengd gögn þín varðveitast.";

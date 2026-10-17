@@ -204,6 +204,7 @@ extension CloudSyncServing {
         )
         return CloudAccountContext(
             userId: account.userId,
+            identity: account.identity,
             email: account.email,
             preferences: account.preferences
         )

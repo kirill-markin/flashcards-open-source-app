@@ -167,6 +167,11 @@ final class CloudAccountMethodService {
         try self.validateMutation(result, purpose: nil)
     }
 
+    func connection(_ request: CloudConnectionRequest, authBaseUrl: String, bearer: String) async throws -> CloudConnectionResponse {
+        try await self.request(authBaseUrl: authBaseUrl, bearer: bearer, path: "/api/account/connection",
+            body: self.encoder.encode(request))
+    }
+
     private func mailboxBody(attempt: CloudAccountProviderAttempt, action: String, email: String?, code: String?) throws -> Data {
         try self.encoder.encode(AccountProviderComplete(action: action, purpose: attempt.purpose, client: attempt.binding.client,
             codeVerifier: attempt.binding.codeVerifier, attempt: attempt.response.attempt, provider: nil,

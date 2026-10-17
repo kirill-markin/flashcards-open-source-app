@@ -17,6 +17,8 @@ struct MeResponse: Decodable {
     }
 
     let userId: String
+    let canonicalAccountId: String?
+    let linkedAccountIds: [String]?
     let selectedWorkspaceId: String?
     let profile: Profile
     let preferences: Preferences
@@ -57,4 +59,32 @@ struct DeleteAccountResponse: Decodable {
 
 struct UpdateAccountPreferencesResponse: Decodable {
     let preferences: AccountPreferences
+}
+
+struct CloudAccountIdentity: Hashable, Sendable {
+    let originalUserId: String
+    let canonicalAccountId: String?
+    let linkedAccountIds: [String]?
+
+    func localContinuityUserId(cloudSettings: CloudSettings) -> String {
+        guard cloudSettings.cloudState == .linked,
+            let localUserId = cloudSettings.linkedUserId,
+            localUserId.isEmpty == false else {
+            return self.originalUserId
+        }
+        if localUserId == self.originalUserId {
+            return localUserId
+        }
+
+        // Only the authenticated /me alias set can preserve a different local owner.
+        guard let canonicalAccountId = self.canonicalAccountId,
+            canonicalAccountId.isEmpty == false,
+            let linkedAccountIds = self.linkedAccountIds,
+            linkedAccountIds.contains(self.originalUserId),
+            linkedAccountIds.contains(canonicalAccountId),
+            linkedAccountIds.contains(localUserId) else {
+            return self.originalUserId
+        }
+        return localUserId
+    }
 }

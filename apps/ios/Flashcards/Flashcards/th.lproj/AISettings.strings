@@ -950,3 +950,23 @@
 
 "settings.account.cloudSignIn.continueGoogle" = "ดำเนินการต่อด้วย Google";
 "settings.account.cloudSignIn.appleCleanupPending" = "Apple กำลังดำเนินการอัปเดตความปลอดภัยให้เสร็จสิ้น โปรดลองอีกครั้งด้วย Apple ในอีกสักครู่ หรือเลือกวิธีลงชื่อเข้าใช้อื่น";
+
+"settings.account.connection.title" = "เชื่อมบัญชี";
+"settings.account.connection.suggestion" = "ตรวจสอบการเชื่อมบัญชีที่แนะนำ";
+"settings.account.connection.data" = "การ์ด การทบทวน และพื้นที่ทำงานยังอยู่ สมาชิกจะรวมกัน โดยสิทธิ์เจ้าของมีลำดับสูงสุด";
+"settings.account.connection.settings" = "ใช้การตั้งค่าและโปรไฟล์สาธารณะของบัญชีปลายทางพร้อมความเป็นส่วนตัวที่เข้มงวดขึ้น คงอีเมลหลักจริงไว้หรือใช้อีเมลจริงที่พิสูจน์แล้ว";
+"settings.account.connection.billing" = "การซื้อ สิทธิ์ การใช้งาน และข้อมูลรับรองการเชื่อมต่อจะตามบัญชีที่เชื่อม การสมัครสมาชิกและประวัติทดลองใช้เดิมไม่เปลี่ยน";
+"settings.account.connection.destination" = "ปลายทางที่เลือก";
+"settings.account.connection.hidden" = "ซ่อนจากตัวเลือกพื้นที่ทำงาน";
+"settings.account.connection.omit" = "ขอละเว้นหากเข้าเกณฑ์";
+"settings.account.connection.preserve" = "ซ่อนได้เฉพาะพื้นที่เริ่มต้นที่เข้าเกณฑ์เท่านั้น ข้อมูลและพื้นที่ทำงานอื่นจะยังคงอยู่";
+"settings.account.connection.confirm" = "ยืนยันการเชื่อมบัญชี";
+"settings.account.connection.connected" = "เชื่อมบัญชีแล้ว";
+"settings.account.connection.alreadyConnected" = "บัญชีเหล่านี้เชื่อมกันแล้ว";
+"settings.account.connection.cancelled" = "ยกเลิกการเชื่อมแล้ว";
+"settings.account.connection.uncertain" = "ส่งคำยืนยันแล้วแต่ยังไม่ทราบผล ตรวจสอบด้วยคำยืนยันเดิม";
+"settings.account.connection.replay" = "ตรวจสอบผลการยืนยัน";
+"settings.account.connection.preview" = "รีเฟรชตัวอย่างการเชื่อม";
+"settings.account.connection.previewChanged" = "ตัวอย่างเปลี่ยนแล้ว โปรดรีเฟรชและยืนยันตัวอย่างใหม่อย่างชัดเจน";
+"settings.account.connection.restart" = "หลักฐานหมดอายุหรือถูกใช้แล้ว โปรดเริ่มใหม่ด้วยหลักฐานใหม่";
+"settings.account.connection.restorePaused" = "เชื่อมบัญชีแล้ว การรีเฟรชในเครื่องหยุดชั่วคราว ข้อมูลออฟไลน์ของคุณยังคงอยู่";
