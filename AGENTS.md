@@ -71,7 +71,7 @@ Rule: read production, write locally. Both commands open on `localhost` without 
 
 Release and check workflows use independent AWS/web, Android, and iOS streams.
 Pull-request checks stay deliberately light and fast: do not add heavy mobile build or test jobs to pull-request workflows.
-Android jobs inside `.github/workflows/pr-checks.yml` are an accepted exception: build, unit tests, and lint run for every Android-impacting pull request, and the GitHub-hosted `data:local` emulator instrumentation runs only when the Android data layer or shared Android Gradle configuration changes. `Repository static checks` is the strict required aggregate PR gate; Device Run stays out of pull requests.
+Android CI scope and its tradeoff: [Android CI/CD](docs/android-ci-cd.md). `Repository static checks` is the strict required aggregate PR gate.
 Infra-changing pull requests synthesize the CDK app and fail at 470 resources per stack, 30 below CloudFormation's hard limit.
 Auto-merge is enabled but never updates a `BEHIND` branch, so it cannot rescue a pull request on its own: update the branch once server-side, then queue `gh pr merge --auto` so the merge lands unattended once the gate passes instead of racing `main` with repeated updates, and still watch the post-merge deploy to completion.
 `PR Checks` runs static iOS checks; full local native acceptance is required before release under the [iOS release procedure](docs/release/ios.md#ios).

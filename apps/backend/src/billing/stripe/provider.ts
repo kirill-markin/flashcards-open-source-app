@@ -219,6 +219,7 @@ export class StripeProvider {
   ): Promise<Stripe.BillingPortal.Session> {
     requireMatch(z.uuid().safeParse(operationId).success);
     await this.retrieveCustomer(customerId);
+    // Named explicitly: the live Nibomo portal configuration is not the account's shared default.
     const session = await callStripe("create portal", () => this.#client.billingPortal.sessions.create({
       customer: customerId, configuration: this.#catalog.portalConfigurationId, locale,
       return_url: `${stripeSubscriptionReturnUrl}?portal=returned`,

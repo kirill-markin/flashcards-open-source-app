@@ -187,22 +187,12 @@ Three representative prompts and their expected outcomes.
 ## Submission targets
 
 The official MCP Registry entry is published under `com.nibomo/flashcards`
-and advertises `https://mcp.nibomo.com/mcp`. Verify that entry first, then
-submit or refresh the remaining directories in this order.
-PulseMCP builds on upstream registry entries and its ingestion/re-enrichment
-runs on daily/weekly cycles, so downstream discovery
+and advertises `https://mcp.nibomo.com/mcp`. Pass the operations
+[pre-submit gate](connector-submission-operations.md#pre-submit-gate), which
+verifies that entry, then submit or refresh the remaining directories in this
+order. PulseMCP builds on upstream registry entries and its
+ingestion/re-enrichment runs on daily/weekly cycles, so downstream discovery
 works best after the official entry is live.
-
-Verify the official registry entry before submitting to the other directories:
-
-```bash
-curl -fsS 'https://registry.modelcontextprotocol.io/v0.1/servers/com.nibomo%2Fflashcards/versions/latest'
-```
-
-Success means the command returns a JSON entry for
-`com.nibomo/flashcards`. Failure means the submission is not
-ready for downstream directories; a `404 Server not found` response means the
-server name is wrong or the registry publish failed.
 
 | Order | Target | Required URL | Auth / review notes | What to paste |
 | --- | --- | --- | --- | --- |
@@ -215,62 +205,17 @@ server name is wrong or the registry publish failed.
 | 6 | MCP.Directory | https://mcp.directory/submit | Submitter account and manual moderation may be required. | Reuse name, tagline, categories, icon, docs, privacy, support, terms, source URL, and MCP server URL. |
 | 7 | mcpservers.org | https://mcpservers.org/submit | Submitter account and manual moderation may be required. | Reuse the same listing metadata and source URL. |
 | 8 | mcp.so | https://mcp.so/ | Use the site's current submit/claim flow if available. | Reuse the same listing metadata and source URL. |
-| 9 | Anthropic Connectors Directory | https://claude.com/docs/connectors/building/submission | Review-heavy product directory: OAuth, tool annotations, policy checks, and reviewer access are evaluated. | Paste listing metadata, tool inventory, allowed links if requested, and private reviewer credentials only in the submission portal. |
-| 10 | OpenAI Plugins Directory | https://developers.openai.com/plugins/deploy/submission | Update existing plugin `asdk_app_6ab77a6e971c81918b9e9185a6a19d58` under publisher `kirill@kirill-markin.com`, its owning organization/project and verified developer identity; global MCP-review project, OAuth and required scans. | Follow the [canonical complete-ZIP procedure](https://github.com/kirill-markin/nibomo-plugins/blob/main/docs/publishing.md#openai), with [reference-copy mapping](openai-plugin-metadata.md); private reviewer access only in **Review details**. |
+| 9 | Anthropic Connectors Directory | https://claude.com/docs/connectors/building/submission | Review-heavy product directory: OAuth, tool annotations, policy checks, and reviewer access are evaluated. | Follow [Claude connector submission](claude-connector-submission.md); private reviewer credentials only in the submission portal. |
+| 10 | OpenAI Plugins Directory | https://developers.openai.com/plugins/deploy/submission | Update the existing plugin under the [OpenAI release gate](release/mcp-and-plugins.md#openai) and the [OpenAI prerequisites](connector-submission-operations.md#openai-prerequisites). | Follow the [canonical complete-ZIP procedure](https://github.com/kirill-markin/nibomo-plugins/blob/main/docs/publishing.md#openai), with [reference-copy mapping](openai-plugin-metadata.md); private reviewer access only in **Review details**. |
 
 ## Per-directory submission checklist
 
-Single place for the human submitter to track directory-specific requirements.
-These mirror the directories' published expectations; confirm current
-requirements against each directory's own documentation at submission time.
+Confirm current requirements against each directory's own documentation at
+submission time. Every directory needs the operations
+[pre-submit gate](connector-submission-operations.md#pre-submit-gate) and
+[OAuth/DCR verification](connector-submission-operations.md#oauth--dcr-verification).
 
-### Anthropic Connectors Directory
-
-- [ ] Remote MCP server reachable at the published HTTPS URL with valid TLS.
-- [ ] OAuth 2.1 authorization-code + PKCE + Dynamic Client Registration verified
-      end-to-end from a fresh client.
-- [ ] Tool annotations accurate (`readOnlyHint` / `destructiveHint` match real
-      behavior).
-- [ ] Listing metadata, icon, and the privacy / terms / support / docs URLs
-      above provided.
-- [ ] Domain ownership demonstrable for `nibomo.com`, which covers both the
-      listing metadata URLs and the MCP server host.
-- [ ] Domain ownership for `flashcards-open-source-app.com` also available if
-      the directory asks: the OAuth authorization server stays on
-      `auth.flashcards-open-source-app.com`.
-- [ ] Reviewer test account / walkthrough above shared with the reviewer.
-
-### OpenAI Plugins Directory
-
-Use the companion's [canonical OpenAI procedure](https://github.com/kirill-markin/nibomo-plugins/blob/main/docs/publishing.md#openai)
-for operator steps and the [release gate](release/mcp-and-plugins.md#openai)
-for completion and evidence.
-
-- [ ] Existing plugin and [public listing](https://chatgpt.com/plugins/plugin_asdk_app_6ab77a6e971c81918b9e9185a6a19d58)
-      inspected under publisher `kirill@kirill-markin.com`, the existing owning
-      organization/project and verified **SAMO DANNI EOOD** identity; required
-      permissions and global/non-EU MCP-review project confirmed.
-- [ ] Hosted endpoint, OAuth, domain verification, required MCP scans and actual
-      live tools checked independently of package state.
-- [ ] Complete exact-source CI ZIP reconciled with maintained companion
-      `plugin.json`, `mcp.json`, intended skills, references and assets; required
-      metadata/skill scans and applicable focused checks passed.
-- [ ] Listing and review copy mapped using the [metadata guide](openai-plugin-metadata.md);
-      imported values, review cases/demo and translation limitations checked.
-      Dedicated Nibomo reviewer credentials/instructions supplied only through
-      secure **Review details**; publisher credentials kept separate.
-- [ ] Domain ownership demonstrable for `nibomo.com`, including the MCP host,
-      and `flashcards-open-source-app.com` available if requested for the OAuth
-      authorization server on `auth.flashcards-open-source-app.com`.
-- [ ] MCP deployed SHA/scanned/live state and package source/version/digest,
-      decision, accepted requests, review/publication and observed public
-      installed version/skills recorded separately in the
-      [ledger](release/evidence.md#release-ledger), with actual next actions.
-      Legacy MCP-only availability or private imports do not prove public
-      companion-skill installation.
-
-## Registry manifest
-
-The official MCP Registry entry for the remote server is published from the
-companion [`server.json`](https://github.com/kirill-markin/nibomo-plugins/blob/main/server.json). See
-[the canonical publisher procedure](https://github.com/kirill-markin/nibomo-plugins/blob/main/docs/mcp-registry-publishing.md) for the publish flow.
+- Anthropic Connectors Directory: [Claude connector submission](claude-connector-submission.md).
+- OpenAI Plugins Directory: the [OpenAI release gate](release/mcp-and-plugins.md#openai)
+  for completion and evidence, and the
+  [OpenAI prerequisites](connector-submission-operations.md#openai-prerequisites).

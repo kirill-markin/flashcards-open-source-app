@@ -14,18 +14,8 @@ inventory of uploaded file IDs, public file links, dimensions and integrity hash
 | Arabic web offer | [stripe-sandbox-offer-ar.png](stripe-sandbox-offer-ar.png) | Actual Arabic subscription page after the refund/cleanup flow; document language Arabic and direction RTL |
 | Genuine refund replay | [stripe-sandbox-refund-replay.jpg](stripe-sandbox-refund-replay.jpg) | Actual Stripe Dashboard delivery; manually resent original Sandbox refund, pinned API version and HTTP 204, with request/customer fields outside the viewport |
 
-Both uploaded PNGs were retrieved and their decoded pixels matched the repository
-source exactly at 512 × 512. Stripe's optimized PNG has a different byte hash;
-that is not a pixel mismatch. The accepted file IDs and public URLs belong to their
-respective environments. Product image readback does not prove future Checkout
-Session or portal branding.
-
-All captures are from actual rendered pages on 2026-10-03. The hosted Checkout
-capture precedes entry of billing details. The captures contain no email address,
-entered card data, customer identifier or credential. No image was edited to
-change a result. Portal and receipt pages carried customer information and were
-verified privately without adding screenshots.
-
-The acceptance flow later cancelled the test subscription and expired the repeat
-Checkout. Current results and the limits of these images are in the
-[acceptance record](../../stripe-subscriptions.md#observed-sandbox-acceptance).
+The captures are unedited renders from 2026-10-03 and contain no email address, entered card data,
+customer identifier or credential. Portal and receipt pages carried customer information and were
+verified privately without screenshots. The Arabic capture does not prove a persisted server locale
+or the hosted English fallback, and the product readback does not prove future Checkout or Portal
+branding.

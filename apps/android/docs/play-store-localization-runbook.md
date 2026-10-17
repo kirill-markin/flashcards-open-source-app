@@ -94,8 +94,8 @@ when reusing older assets. Check current [Google preview-asset requirements](htt
 Review the complete text/source/image diff, commit the intended files, and merge
 the PR into `main` after applicable CI passes. Follow the repository's
 [release gates](../../../docs/release-gates.md) and watch any triggered post-merge
-CI. Capture inputs or script changes can trigger Android checks even though
-docs/media paths alone are excluded from Android builds.
+CI. No Android checks run after merge; see
+[Android CI/CD](../../../docs/android-ci-cd.md).
 
 Use those reviewed, merged files for the final Play submission. Identify the
 merge commit and each locale's filenames/order; use SHA-256 checksums when copies,

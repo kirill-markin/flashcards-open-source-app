@@ -14,6 +14,8 @@ export type HistorySource = z.infer<typeof historySourceSchema>;
 export type HistoryImportScope =
   | Readonly<{ kind: "provider"; key: string }>
   | Readonly<{ kind: "subject"; sourceId: string }>;
+// A provider scope claims the provider's whole named inventory, so a known-purchase subset must use
+// subject scopes instead. The window is half-open UTC.
 export type HistoryImportInput = Readonly<{
   source: HistorySource;
   environment: HistoryEnvironment;
@@ -21,6 +23,9 @@ export type HistoryImportInput = Readonly<{
   requestedFrom: Date;
   requestedTo: Date;
 }>;
+// Coverage is proven only by a finished run: `succeeded` covers the whole requested window, `partial`
+// only its verified continuous subwindow, and missing, running or failed coverage is unavailable, never
+// zero. A completed empty scan proves zero only inside its own source, scope and window.
 export type HistoryImportRun = Readonly<{
   run_id: string;
   status: "running" | "succeeded" | "partial" | "failed";
@@ -60,6 +65,9 @@ function scopeHash(scope: HistoryImportScope): string {
   return historyScopeHash(scope.kind + ":" + nativeHash);
 }
 
+// Commit the begun run before any provider request, and run collectors for one scope and window one at
+// a time. After a page rolls back, record the failure via failHistoryImportInExecutor in a fresh
+// transaction with a sanitized uppercase code.
 export async function beginHistoryImportInExecutor(
   executor: DatabaseExecutor, input: HistoryImportInput,
 ): Promise<string> {
@@ -98,6 +106,7 @@ function requireRunningImport(rowCount: number | null): void {
 }
 
 // Commit each page's native writes and its absolute count/checkpoint in the SAME transaction.
+// The count is absolute for the attempt, so a retried page reuses it. Checkpoints can hold bearer data.
 export async function checkpointHistoryImportInExecutor(
   executor: DatabaseExecutor, input: Readonly<{ runId: string; recordCount: number; checkpoint: string | null }>,
 ): Promise<void> {

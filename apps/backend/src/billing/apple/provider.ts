@@ -266,6 +266,7 @@ export class AppleProvider {
     if (transaction.originalTransactionId !== identity.originalTransactionId) {
       throw new AppleBillingError("APPLE_IDENTITY_MISMATCH", false, "Apple status transaction identifies another purchase.");
     }
+    // Billing retry (3) has ended access although Apple may still recover the charge; billing grace (4) has not.
     const statuses = { 1: "active", 2: "expired", 3: "expired", 4: "in_grace", 5: "revoked" } as const;
     const status = z.union([z.literal(1), z.literal(2), z.literal(3), z.literal(4), z.literal(5)]).safeParse(item.status);
     if (!status.success) throw new AppleBillingError("APPLE_STATUS_INVALID", false, "Apple returned an unsupported subscription status.");

@@ -38,6 +38,7 @@ export const appleTransactionHistorySchema = z.object({
 });
 export type AppleTransactionHistory = z.infer<typeof appleTransactionHistorySchema>;
 
+// Callers pass only a transaction the existing Apple verifier has already verified.
 export async function persistAppleTransactionInExecutor(
   executor: DatabaseExecutor, input: AppleTransactionHistory, observation: HistoryObservation,
 ): Promise<HistoryWriteResult> {
