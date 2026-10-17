@@ -19,7 +19,7 @@ same Clear and Tinted specializations. The canvas uses root
 
 | Default | Dark | Light alternate |
 | --- | --- | --- |
-| ![Default icon](media/app-icon/default.png) | ![Dark icon](media/app-icon/dark.png) | ![Light alternate icon](media/app-icon/light.png) |
+| ![Default icon](https://github.com/kirill-markin/flashcards-open-source-app/releases/download/media-archive-20261017/app-icon-default.png) | ![Dark icon](https://github.com/kirill-markin/flashcards-open-source-app/releases/download/media-archive-20261017/app-icon-dark.png) | ![Light alternate icon](https://github.com/kirill-markin/flashcards-open-source-app/releases/download/media-archive-20261017/app-icon-light.png) |
 
 `ASSETCATALOG_COMPILER_APPICON_NAME` is `AppIcon`. The app's synchronized
 source group includes the `.icon` packages automatically, and Xcode generates

@@ -2,7 +2,7 @@
 
 This document explains how to run the manual Android marketing screenshot flows reliably on a local machine.
 
-Use this runbook when you want to regenerate one or more Play Store screenshots from the Android app and then review them before committing the resulting PNGs.
+Use this runbook when you want to regenerate one or more Play Store screenshots from the Android app and then review them before publishing the resulting PNGs to the public media archive.
 
 ## Goal
 
@@ -25,9 +25,11 @@ and never starts instrumentation or guest cleanup:
 npm run render --prefix scripts/store-screenshots -- --platform android
 ```
 
-Approved portrait outputs in `play-store-cards/` are tracked Git files. For the
+Approved portrait outputs in `play-store-cards/` are ignored public release assets.
+Download inputs with `python3 scripts/media/download.py android-native android-feature-graphics`
+from the repository root; see [Media assets](../../../docs/media-assets.md). For the
 finished inventory, upload status and reviewed refresh procedure, use the
-[processing guide](../../../docs/store-screenshot-processing.md#tracked-approved-delivery).
+[processing guide](../../../docs/store-screenshot-processing.md#approved-delivery).
 
 Install its dependencies once using the
 [processor README](../../../scripts/store-screenshots/README.md). The capture
@@ -185,7 +187,7 @@ Each wrapper script does the following:
 2. Sets the device locale and dark mode, then dismisses blocking system dialogs.
 3. Verifies initial guest cleanup, then runs the manual capture class through `:app:connectedMarketingScreenshotAndroidTest`.
 4. Pulls all five PNGs from `/sdcard/Download/flashcards-marketing-screenshots/` into staging.
-5. Verifies final guest cleanup, then replaces the committed locale files.
+5. Verifies final guest cleanup, then replaces the local locale files.
 
 The screenshot capture step explicitly collapses the Android status bar before running `screencap`.
 That prevents an already-open notification shade from being captured on top of an otherwise-correct app screen.
@@ -211,7 +213,7 @@ The screenshot variant suppresses the guest sign-in prompt. The robot rejects an
 Compose dialog before each capture. The wrapper removes the expected device files
 before the run, checks their nonzero size and modification time against the device's
 run-start clock, and verifies each pulled file's size, timestamp, and PNG signature.
-It stages all five files before replacing the committed outputs; a failed capture,
+It stages all five files before replacing the local outputs; a failed capture,
 pull, or final cleanup leaves the previous set in place.
 
 Each stage removes previous instrumentation results and requires fresh aggregate

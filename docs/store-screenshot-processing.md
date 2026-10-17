@@ -20,10 +20,12 @@ is no network fetch of replacement screenshots and no generated app UI. See the
 [processor README](../scripts/store-screenshots/README.md) for setup, selection,
 paths, manual GitHub Actions dispatch and regeneration commands.
 
-## Tracked approved delivery
+## Approved delivery
 
-The finished output directories are ordinary Git files, alongside the independent
-processor and its canonical design assets. The approved inventory is:
+The finished images are public release assets; text metadata, the independent
+processor and its canonical design inputs remain in Git. Download the relevant
+bundles using [Media assets](media-assets.md) before reviewing or uploading.
+The approved inventory is:
 
 | Directory | Cards | Store status |
 | --- | --- | --- |
@@ -35,7 +37,7 @@ processor and its canonical design assets. The approved inventory is:
 | `apps/ios/docs/media/app-store-cards/additional-languages/iphone/` | 40 | Prepared; these languages have no separate App Store listing |
 | `apps/android/docs/media/play-store-cards/ready/*/phoneScreenshots/` | 255 | Uploaded to Google Play, including Zulu |
 
-The tracked inventory contains 1140 cards: 885 Apple and 255 Android. The 210
+The archived inventory contains 1140 cards: 885 Apple and 255 Android. The 210
 iPad cards use the current 2752 × 2064 native landscape inputs, and the 210 Mac
 cards use genuine 1440 × 900 native Catalyst windows. The 935 cards present
 before the localized Duo inner delivery retain their exact bytes. The current
@@ -61,8 +63,8 @@ redundant copies. Android gallery feature-graphic links point at the canonical
 not extra banner files in `ready/`.
 
 Use the [manual refresh procedure](../scripts/store-screenshots/README.md#manual-refresh-after-native-capture)
-to render candidates in cloud, review them, and commit approved replacements.
-Cloud checks render current tracked native sources into temporary output and do
+to render candidates in cloud, review them, and publish an updated media snapshot.
+Cloud checks download pinned native sources, render into temporary output and do
 not replace approved files. Require **Format existing native captures** to pass
 before merge. Store upload remains separately authorized.
 

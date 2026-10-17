@@ -156,13 +156,14 @@ only within their own approved scope and linked platform runbooks.
 
 ## Identify stale marketing screenshots
 
-Inspect the committed PNGs against the structural markers below. Android has
+Download the pinned PNGs using [Media assets](media-assets.md), then inspect
+them against the structural markers below. Android has
 current French and Brazilian Portuguese sets plus the 39 additional locales in
 the [JSON loader map](../apps/android/app/src/androidTest/java/com/flashcardsopensourceapp/app/marketing/screenshots/MarketingScreenshotLocaleLoader.kt);
 do not classify every other language as April-era content.
 
 The remaining legacy Android sets to check are `en`, `ar`, `de-DE`, `es-ES`,
-`es-419`, `es-US`, `hi-IN`, `ja-JP`, `ru-RU`, and `zh-CN`. The committed English
+`es-419`, `es-US`, `hi-IN`, `ja-JP`, `ru-RU`, and `zh-CN`. The archived English
 prefix is `en`; capturing `en-US` creates a second set instead of replacing it.
 Android's `es-US` has no iOS counterpart, so a
 regeneration pass driven by the iOS list alone misses it.

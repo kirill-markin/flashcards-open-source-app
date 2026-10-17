@@ -7,8 +7,9 @@ text and images. For a new shipping Android UI language, use the separate
 ## 1. Confirm the surface and locale set
 
 - Google Play App strings/Gemini owns shipping translated Android UI copy.
-- The repository owns authored listing text, feature graphics, native marketing
-  screenshots, and their source inputs.
+- The repository owns authored listing text and media source inputs. Feature
+  graphics and native marketing screenshots are public release assets; see
+  [Media assets](../../../docs/media-assets.md).
 - `marketingScreenshot` XML overlays translate only the screenshot build. They
   do not establish shipping language support. Listing-only work changes neither
   the advertised app locales nor the AAB and does not require `Android Release`.
@@ -26,7 +27,7 @@ every filename or Android qualifier. Use these existing maps:
 
 - [Screenshot catalog](../app/src/androidTest/java/com/flashcardsopensourceapp/app/marketing/screenshots/MarketingScreenshotCatalog.kt)
   for built-in configurations: English app `en` uses Play listing `en-US`, while
-  the committed screenshot prefix is `en` (the catalog also accepts `en-US`).
+  the archived screenshot prefix is `en` (the catalog also accepts `en-US`).
 - [JSON loader](../app/src/androidTest/java/com/flashcardsopensourceapp/app/marketing/screenshots/MarketingScreenshotLocaleLoader.kt)
   for accepted additional Play codes and their `appLocaleTag` values.
 - [Screenshot resource rules](marketing-screenshots.md#json-locale-packs) and
