@@ -20,7 +20,6 @@ struct CloudOtpVerificationSheet: View {
     let signInStepSurface: AnalyticsSurface
     @Binding var otpSheetState: CloudOtpSheetState?
     let onVerified: (CloudVerifiedAuthContext) -> Void
-    let onReturnToEmail: () -> Void
 
     @State private var technicalErrorPresentation: TechnicalErrorPresentation?
     @FocusState private var isCodeFieldFocused: Bool
@@ -29,20 +28,18 @@ struct CloudOtpVerificationSheet: View {
         attemptId: String,
         signInStepSurface: AnalyticsSurface,
         otpSheetState: Binding<CloudOtpSheetState?>,
-        onVerified: @escaping (CloudVerifiedAuthContext) -> Void,
-        onReturnToEmail: @escaping () -> Void
+        onVerified: @escaping (CloudVerifiedAuthContext) -> Void
     ) {
         self.attemptId = attemptId
         self.signInStepSurface = signInStepSurface
         self._otpSheetState = otpSheetState
         self.onVerified = onVerified
-        self.onReturnToEmail = onReturnToEmail
     }
 
     var body: some View {
         @Bindable var store = self.store
 
-        NavigationStack {
+        Group {
             ReadableContentLayout(
                 maxWidth: flashcardsReadableFormMaxWidth,
                 horizontalPadding: 0
@@ -133,14 +130,7 @@ struct CloudOtpVerificationSheet: View {
                 }
                 self.scheduleCodeFieldFocusIfCodeEntryVisible()
             }
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button(aiSettingsLocalized("common.back", "Back")) {
-                        self.onReturnToEmail()
-                    }
-                    .disabled(self.isRequestInFlight || self.currentChallenge == nil)
-                }
-            }
+            .navigationBarBackButtonHidden(self.isRequestInFlight || self.currentChallenge == nil)
             .nativeBottomBar(alignment: .trailing) {
                 if self.isCodeFieldFocused {
                     Button(aiSettingsLocalized("common.done", "Done")) {
