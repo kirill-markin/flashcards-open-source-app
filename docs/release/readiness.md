@@ -24,7 +24,7 @@ availability. Inspect native diagnostics, signing, store processing, uploaded
 binary localizations, metadata, release settings, submission and publication
 under the existing procedures. All gates required by the platform's recorded
 contract, native checks and store procedure remain mandatory. New Android
-records use schema 2's cloud-first gates; new iOS records use schema 3's full local acceptance and small Cloud backstop. Schema-1 historical records retain their original gates.
+records use schema 2's cloud-first gates; new iOS records use schema 4's full local acceptance and Cloud archive. Historical schema-1/3 records retain their original gates and failed history; do not relabel them to remove a requirement.
 Already-published artifacts follow the [historical reuse rule](evidence.md#reuse-existing-artifacts),
 without reconstructing evidence merely to turn this report green.
 
@@ -51,7 +51,7 @@ selected attempt or evidence changes.
    Gradle/instrumentation selection, source test declarations, selected devices,
    configurations and any exclusions in the release record. Include all selected
    cases and destinations, including failing, manually excluded and platform-guarded cases. For
-   new iOS records, include the complete `LocalFull` non-UI and eligible UI inventory, the three `LocalIPad` flows, three `IOS18Compatibility` flows and three `CloudSmoke` flows on their actual selected destinations. Use the [native plan inventory](../ios-local-setup.md#local-native-acceptance). Retained schema-1 iOS records include their original local smoke and full selected Cloud UI suite. Android
+   new iOS records, include the complete `LocalFull` non-UI and eligible UI inventory, the three `LocalIPad` flows and three `IOS18Compatibility` flows on their actual selected destinations. Retained schema-3 records additionally require their three `CloudSmoke` flows. Use the [native plan inventory](../ios-local-setup.md#local-native-acceptance). Retained schema-1 iOS records include their original local smoke and full selected Cloud UI suite. Android
    Device Run includes its entire configured selection. Retained schema-1
    Android records also include their selected local CI and smoke cases.
    Account for inherited/parameterized tests and filters. A source grep
@@ -87,11 +87,11 @@ selected attempt or evidence changes.
 
 The runtime-validated contract and checks live in
 [`mobile-readiness.ts`](../../scripts/release/mobile-readiness.ts). Supply one
-JSON object per platform. Use schema 3 for new iOS and schema 2 for new Android records. Schema 1 remains supported with its original gates for retained historical iOS/Android records; do not relabel retained evidence to change its contract. Schema 2 is Android-only. Schema 3 is iOS-only and adds explicit native plan/destination provenance and per-case target identity. Identity, diagnostic and warning checks remain mandatory. Keep supplementary Android local diagnostic results in the ledger, outside schema 2's mandatory gate arrays.
+JSON object per platform. Use schema 4 for new iOS and schema 2 for new Android records. Schema 1 remains supported with its original gates for retained historical iOS/Android records; schema 3 retains the original six iOS gates, including Cloud smoke. Do not relabel retained evidence to change its contract. Schema 2 is Android-only. Schemas 3/4 are iOS-only and require explicit native plan/destination provenance and per-case target identity; schema 4 has no Cloud test gate. Identity, diagnostic and warning checks remain mandatory. Keep supplementary Android local diagnostic results in the ledger, outside schema 2's mandatory gate arrays.
 
 | Field | Required value |
 | --- | --- |
-| `schemaVersion` | Integer `3` (new iOS), `2` (new Android), or `1` (retained historical iOS/Android) |
+| `schemaVersion` | Integer `4` (new iOS), `2` (new Android), `3` (historical iOS), or `1` (historical iOS/Android) |
 | `platform` | `ios` or `android` |
 | `target` | `{sourceSha, version, build, artifactId}` for the intended release |
 | `gates` | Exactly the platform's mandatory gate definitions below |
@@ -110,14 +110,17 @@ and retain a reference to it. The checker does not fetch or resolve references.
 
 | Platform / schema | Mandatory gate IDs | Gate inventories that must contain required cases |
 | --- | --- | --- |
-| iOS / 3 | `local-archive`, `local-full`, `local-ipad`, `local-ios18`, `cloud-archive`, `cloud-smoke` | `local-full`, `local-ipad`, `local-ios18`, `cloud-smoke` |
+| iOS / 4 | `local-archive`, `local-full`, `local-ipad`, `local-ios18`, `cloud-archive` | `local-full`, `local-ipad`, `local-ios18` |
+| Historical iOS / 3 | `local-archive`, `local-full`, `local-ipad`, `local-ios18`, `cloud-archive`, `cloud-smoke` | `local-full`, `local-ipad`, `local-ios18`, `cloud-smoke` |
 | Historical iOS / 1 | `local-archive`, `local-smoke`, `cloud-archive`, `cloud-tests` | `local-smoke`, `cloud-tests` |
 | Android / 2 | `cloud-release`, `firebase-tests` | `firebase-tests` |
 | Historical Android / 1 | `local-ci`, `local-release`, `local-smoke`, `cloud-release`, `firebase-tests` | `local-ci`, `local-smoke`, `firebase-tests` |
 
-### iOS local acceptance (schema 3)
+<a id="ios-local-acceptance-schema-3"></a>
 
-Each test gate requires `selection` with scheme `Flashcards Native Acceptance`, the gate's exact `testPlan` (`LocalFull`, `LocalIPad`, `IOS18Compatibility`, or `CloudSmoke`), configuration `Acceptance`, and exactly one actual destination. Build gates omit `selection` and have empty `cases`. The plan configuration is separate from the scheme's Debug build configuration; retain both in native evidence.
+### iOS local acceptance (schema 4)
+
+Each test gate requires `selection` with scheme `Flashcards Native Acceptance`, the gate's exact `testPlan` (`LocalFull`, `LocalIPad` or `IOS18Compatibility`), configuration `Acceptance`, and exactly one actual destination. Build gates omit `selection` and have empty `cases`. The plan configuration is separate from the scheme's Debug build configuration; retain both in native evidence.
 
 For example, add this selection to `local-full`, substituting actual collected values:
 
@@ -145,15 +148,15 @@ The destination ID is the actual simulator/device/Cloud destination identity, no
 }
 ```
 
-Every selected case is `required`; schema 3 accepts neither manual nor destination exclusions. Keep configured plan exclusions in inventory provenance, outside the selected case array. Every selected required result must execute and pass; missing, skipped, failed, pending or unexpected cases block readiness. Preserve original failed attempts and failure artifacts separately rather than converting them into exclusions.
+Every selected case is `required`; schemas 3/4 accept neither manual nor destination exclusions. Keep configured plan exclusions in inventory provenance, outside the selected case array. Every selected required result must execute and pass; missing, skipped, failed, pending or unexpected cases block readiness. Preserve original failed attempts and failure artifacts separately rather than converting them into exclusions.
 
-`local-full` requires one latest iPhone, the complete existing non-UI bundle and all eligible UI methods; the CLI requires the three base smoke methods and a nonempty non-UI inventory, but cannot prove that the remaining full inventory was included. `local-ipad` requires one latest iPad and exactly its three eligible methods. `local-ios18` requires one actual 18.x iPhone or iPad and exactly the three compatibility methods. `cloud-smoke` requires one latest iPhone and exactly the three Cloud methods. The [canonical plan table](../ios-local-setup.md#local-native-acceptance) names all focused methods and the full-plan exclusions. Independently freeze the entire discovered inventory at the recorded source/configuration before inspecting pass results; never reduce it to the CLI's minimum required names.
+`local-full` requires one latest iPhone, the complete existing non-UI bundle and all eligible UI methods; the CLI requires the three base smoke methods and a nonempty non-UI inventory, but cannot prove that the remaining full inventory was included. `local-ipad` requires one latest iPad and exactly its three eligible methods. `local-ios18` requires one actual 18.x iPhone or iPad and exactly the three compatibility methods. Only retained schema 3 additionally requires `cloud-smoke` on one latest iPhone with exactly the three Cloud methods; new schema 4 rejects that gate. The disabled workflow and `CloudSmoke` plan remain intact for history. The [canonical plan table](../ios-local-setup.md#local-native-acceptance) names all focused methods and the full-plan exclusions. Independently freeze the entire discovered inventory at the recorded source/configuration before inspecting pass results; never reduce it to the CLI's minimum required names.
 
-The checker requires local-full, local-ipad and cloud-smoke OS majors to match and be greater than 18; local-ios18 must report major 18. It does not discover which OS is currently latest or verify device/runtime truth. The operator must establish actual latest-OS eligibility from native configuration and saved Cloud catalog, retain scheme/plan/source/discovery evidence, and attest `inventoryComplete` only after reconciling every selected case and native count. One gate selection cannot represent a second destination or an all-plans run.
+Schema 4 requires local-full and local-ipad OS majors to match and be greater than 18; local-ios18 must report major 18. Historical schema 3 additionally requires cloud-smoke to share that latest major. It does not discover which OS is currently latest or verify device/runtime truth. The operator must establish actual latest-OS eligibility from actual native destinations (and the recorded Cloud catalog for historical schema 3), retain scheme/plan/source/discovery evidence, and attest `inventoryComplete` only after reconciling every selected case and native count. One gate selection cannot represent a second destination or an all-plans run.
 
 ### Common gate fields and historical schema-1 example
 
-Build-only gate inventories are empty. Every gate retains the fields illustrated below. This schema-1 `cloud-tests` excerpt demonstrates historical manual exclusions; new schema-3 test gates additionally require the selection and per-case target fields above and contain required selected cases only:
+Build-only gate inventories are empty. Every gate retains the fields illustrated below. This schema-1 `cloud-tests` excerpt demonstrates historical manual exclusions; schema-3/4 test gates additionally require the selection and per-case target fields above and contain required selected cases only:
 
 ```json
 {
@@ -304,7 +307,7 @@ two iPad-only methods have phone destination exclusions, one phone-only method
 has an iPad destination exclusion, and each remains required on its eligible
 destination. The two manual marketing methods remain separate manual exclusions
 on each destination. Keep every native status and count, including any failures.
-This historical disposition cannot satisfy schema-3 gates, the local smoke, iOS 18 compatibility or Android gates, or excuse a required latest-OS smoke that did not execute on its eligible destination.
+This historical disposition cannot satisfy schema-3/4 gates, the local smoke, iOS 18 compatibility or Android gates, or excuse a required latest-OS smoke that did not execute on its eligible destination.
 
 ## Bounded source equivalence
 
@@ -394,7 +397,7 @@ on copies in the private release record:
    Remove a warning's policy/owner/version/reason/evidence: expect `2`. Remove
    a gate definition or empty a test inventory: expect `2`; remove a gate
    result: expect `1`.
-7. For new iOS evidence, use schema 3 with all six gates, all four exact plan selections, actual single-destination provenance and the full named inventories. Missing complete-plan evidence must block readiness even if a diagnostic filtered run passed. On copies, use the wrong plan/configuration, omit the non-UI bundle, change a focused plan inventory, use the wrong device family or a non-18 compatibility OS: expect invalid input (`2`). A required skipped case, identity mismatch or latest-major disagreement must block readiness (`1`). The checker cannot detect an omitted full-plan method beyond its minimum-name checks if inventory and results are both cherry-picked; independent complete inventory review remains mandatory.
+7. For new iOS evidence, use schema 4 with all five gates and all three exact local plan selections, actual single-destination provenance and the full named inventories. Missing complete-plan evidence must block readiness even if a diagnostic filtered run passed. On copies, use the wrong plan/configuration, omit the non-UI bundle, change a focused plan inventory, use the wrong device family or a non-18 compatibility OS: expect invalid input (`2`). A required skipped case, identity mismatch or latest-major disagreement must block readiness (`1`). The checker cannot detect an omitted full-plan method beyond its minimum-name checks if inventory and results are both cherry-picked; independent complete inventory review remains mandatory. On a schema-4 copy, add a Cloud test gate or set `platform` to `android`: expect `2`. Retained schema 3 still requires all six gates and its Cloud plan/destination; removing that gate or changing only the schema on a five-gate record to 3 returns `2`. Never edit a retained manifest to bypass its original requirements.
 8. After any passing report, still follow the platform's manual/native/store
    verification and authorized submission/publication sequence. Never use a
    report to claim a submitted artifact is publicly live.

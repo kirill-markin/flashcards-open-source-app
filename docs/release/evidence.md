@@ -61,9 +61,7 @@ version/build, workflow/run/action/artifact and uploaded `MAC_OS` build IDs,
 export checksum, both architectures' signing/profile/capability evidence, full
 independently reviewed native inventory and named results, exact skip reasons,
 diagnostics/warning decisions, screenshot/manual-check results and gaps.
-Preserve any failed Cloud action and Keychain diagnosis separately from the
-genuinely signed full local native result; the Cloud failure never becomes a
-pass. Include bounded source comparisons, reviewer, inspection time and the
+Record **Flashcards Native Acceptance** / **LocalMac** / **Acceptance**, both non-UI/UI bundles, actual macOS/Xcode/SDK and genuine development profile/certificate. Full signed local acceptance is the normal required gate. Preserve historical failed Cloud actions and Keychain diagnoses separately; a Cloud failure never becomes a pass. Include bounded source comparisons, reviewer, inspection time and the
 submission/publication decision with durable private evidence references.
 
 ## Resume and Artifact Reuse
@@ -96,12 +94,12 @@ step; an approved or live binary does not need another build or submission.
 
 For an artifact awaiting a new publication/submission, retain the original
 gates and their recorded contract: recover required local preflight logs,
-cloud runs, artifact identity, and actual smoke/test results. New iOS artifacts use schema 3 with full local acceptance and a small Cloud backstop; new Android artifacts use schema 2 with the cloud-first gates below. Retained schema-1 readiness records keep their original local and cloud requirements. For Android, correlate the
+cloud runs, artifact identity, and actual smoke/test results. New iOS artifacts use schema 4 with full local acceptance and Cloud archive; new Android artifacts use schema 2 with the cloud-first gates below. Retained schema-1/3 readiness records keep their original local and Cloud requirements; never relabel historical evidence to erase a required gate or failed history. For Android, correlate the
 signed AAB, version code, GitHub
 run/attempt and all four exact completed Device Run sessions, job labels and named
-case results. For iOS, recover the complete local-plan results, Cloud archive/small-smoke workflows and uploaded build identity; historical records keep their recorded selection. For macOS, recover both archive and test workflows and its uploaded build identity. Mac additionally retains
+case results. For iOS, recover complete local-plan results, the Cloud release archive and uploaded build identity; historical records keep their recorded selection. For macOS, recover the Cloud release archive, full signed local acceptance and uploaded build identity. Mac additionally retains
 its exact export and [full native/manual evidence](macos.md), including any
-diagnosed Cloud signing limitation and authorized local alternative. Record
+historical Cloud signing diagnosis retained separately from current mandatory local acceptance. Record
 passed/failed/skipped cases,
 skip reasons, coverage limits, and inspected warnings. Investigate unexpected
 skips; a green summary or unexecuted test is not a pass.
@@ -141,7 +139,7 @@ local SDKs or build inputs block that platform's dispatch until resolved; do
 not silently substitute a cloud build for the local check.
 
 For iOS, local success does not replace any cloud gate in its platform procedure.
-Cloud signing/archive, build environments, the three-test latest-iPhone backstop, and store processing can fail independently;
+Cloud signing/archive, build environments and store processing can fail independently;
 still run and inspect them, including their errors and warnings. After cloud
 failures require source fixes, repeat the affected local preflight before
 retrying the cloud flow.

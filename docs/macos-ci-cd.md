@@ -2,7 +2,7 @@
 
 Release authorization, dispatch, App Review, publication and closeout belong to
 [macOS release](release/macos.md). This file owns the technical configuration,
-signing alternative and native/manual checklist.
+signed local acceptance and native/manual checklist.
 
 Nibomo's Mac app uses the existing Apple target, SwiftUI/UIKit iPad interface,
 SQLite, offline outbox, sync, authentication and StoreKit implementation under
@@ -36,37 +36,30 @@ invent it when editing the pin or move published tags/artifacts.
 
 ## Xcode Cloud
 
-The manual, main-only Mac workflows use the existing project container and
+The manual, main-only Mac release workflow uses the existing project container and
 shared **Flashcards Open Source App** scheme and
 [cloud inputs/hooks](ios-ci-cd.md#xcode-cloud-inputs), Sentry project and secure values.
-The scheme's Debug test configuration uses the development bundle identity below.
+Local Debug acceptance uses the development bundle identity below.
 Archives use Release and managed App Store signing. Mac test bundles enable
 signing only for `macosx`; iOS test signing settings remain unchanged.
 
-| Workflow | ID | Actions |
+| Workflow | ID | State / actions |
 | --- | --- | --- |
-| `macos-build-workflow` | `9d704b65-5254-4f04-be24-bebc0f0cfc7d` | Archive: macOS / Any Mac Catalyst, App Store eligible; internal testers postaction |
-| `macos-tests-workflow` | `b737acb2-4548-45bb-a7a3-8ac26bc8f111` | Build: Any Mac Catalyst; required Test: Mac (Mac Catalyst), latest builder OS, use scheme settings |
+| `macOS Release Build` | `9d704b65-5254-4f04-be24-bebc0f0cfc7d` | Enabled; Archive: macOS / Any Mac Catalyst, App Store eligible; internal testers postaction |
+| `macos-tests-workflow` | `b737acb2-4548-45bb-a7a3-8ac26bc8f111` | Disabled; Build/Test configuration and history retained |
 
-Inspect saved settings through [Xcode Cloud access](xcode-cloud-data-access.md);
-the [macOS release procedure](release/macos.md) owns preflight and dispatch.
-Preserve the iOS workflows and masked secrets.
+Inspect saved settings through [Xcode Cloud access](xcode-cloud-data-access.md); the [macOS release procedure](release/macos.md) owns preflight and dispatch. Only the two [Apple release builds](ios-ci-cd.md#native-release-gate) stay enabled; preserve disabled test workflows and masked secrets. TestFlight internal distribution is not XCTest or proof of the new uploaded build.
 
-Xcode Cloud owns distribution archives. PR static checks cannot establish
-Catalyst compatibility. Inspect exact logs, warnings, named test results and
-`.xcresult` artifacts from both runs. Cloud's Mac Test action can inject an
-ad hoc identity that cannot authorize the app's private Keychain identity;
-[Apple DTS describes the restricted-entitlement limitation](https://developer.apple.com/forums/thread/724812).
-Retain failed Cloud results and their signing diagnosis. For this limitation,
-use the signed local native route below; other failures require a narrow
-reviewed fix and fresh native evidence for the resulting SHA.
+Xcode Cloud owns distribution archives. Full signed local acceptance below is the normal mandatory pre-dispatch path; PR static checks cannot establish Catalyst compatibility. Do not retry Cloud tests each release. Retain historical failed Cloud results and their signing diagnosis: Cloud's ad hoc Mac Test identity can fail to authorize the private Keychain identity ([Apple DTS](https://developer.apple.com/forums/thread/724812)). Local evidence never rewrites that failure.
 
-### Signed local native alternative
+<a id="signed-local-native-alternative"></a>
+
+### Signed local native acceptance
 
 Run only within the session's local-execution authorization. Prepare the
 existing [local configuration](ios-local-setup.md#after-cloning) with the same
 production service values. Use the current Xcode and a registered execution
-Mac, with an installed Apple Development certificate and private key.
+Mac on a supported macOS, with an installed Apple Development certificate and private key. Record the actual host OS separately from Xcode/SDK.
 [Create and install a genuine Mac development profile](https://developer.apple.com/help/account/provisioning-profiles/create-a-development-provisioning-profile)
 for `com.flashcards-open-source-app.app.development`, that certificate and that Mac
 (`MAC_CATALYST_APP_DEVELOPMENT` for Catalyst). A certificate alone is insufficient.
@@ -92,19 +85,20 @@ UI-test resets affect that development installation. Release keeps the productio
 identity. External marketing-capture signing configuration retains its explicit
 capture-only bundle override. Do not override ordinary Debug tests to production.
 
-Build the unchanged shared scheme's full selection, then use its original
-generated `.xctestrun` under `tmp/macos-derived-data/Build/Products`:
+Build shared scheme **Flashcards Native Acceptance**, plan **LocalMac**, test-plan configuration **Acceptance**, Debug. The plan includes the entire existing **Flashcards Open Source App Tests** non-UI bundle and all Mac-eligible **Flashcards Open Source App UI Tests** flows, excluding only marketing capture and the phone-only class. Independently discover the complete selected inventory from the pinned source, plan and actual Xcode destination before reviewing results; do not freeze a historical count or use the original archive scheme's UI-only selection.
+
+Use the original generated `.xctestrun` under `tmp/macos-derived-data/Build/Products` for the same built products:
 
 ```bash
+set -o pipefail
+mkdir -p tmp
 xcodebuild -project "apps/ios/Flashcards/Flashcards Open Source App.xcodeproj" \
-  -scheme "Flashcards Open Source App" -configuration Debug \
+  -scheme "Flashcards Native Acceptance" -configuration Debug \
+  -testPlan LocalMac -only-test-configuration Acceptance \
   -destination 'platform=macOS,variant=Mac Catalyst,id=<registered-mac-id>' \
   -derivedDataPath "tmp/macos-derived-data" -xcconfig '<external-signing-xcconfig>' \
-  DEVELOPMENT_TEAM='<team-id>' CODE_SIGN_IDENTITY='Apple Development' build-for-testing
-TEST_RUNNER_FLASHCARDS_LIVE_REVIEW_EMAIL='<configured-review-email>' \
-xcodebuild -xctestrun '<generated-xctestrun>' \
-  -destination 'platform=macOS,variant=Mac Catalyst,id=<registered-mac-id>' \
-  -resultBundlePath 'tmp/macos-smoke-<unique-run>.xcresult' test-without-building
+  DEVELOPMENT_TEAM='<team-id>' CODE_SIGN_IDENTITY='Apple Development' build-for-testing \
+  2>&1 | tee 'tmp/macos-build-for-testing-<unique-run>.log'
 ```
 
 Before testing, inspect the built app with `codesign -d --entitlements :- '<built-app>'`
@@ -113,22 +107,27 @@ and decode its embedded profile with `security cms -D -i '<embedded-profile>'`. 
 profile-authorized private app identity. Confirm the profile includes the
 current signing certificate and execution Mac.
 An absent explicit Keychain access group is valid for default private access.
+
+```bash
+TEST_RUNNER_FLASHCARDS_LIVE_REVIEW_EMAIL='<configured-review-email>' \
+xcodebuild -xctestrun '<generated-LocalMac-xctestrun>' \
+  -only-test-configuration Acceptance \
+  -destination 'platform=macOS,variant=Mac Catalyst,id=<registered-mac-id>' \
+  -parallel-testing-enabled NO \
+  -resultBundlePath 'tmp/macos-acceptance-<unique-run>.xcresult' test-without-building \
+  2>&1 | tee 'tmp/macos-acceptance-<unique-run>.log'
+```
+
 Keep the sandbox and secure storage; do not add sharing, fabricate identifiers,
 disable signing or bypass Keychain cleanup. Keep the same Xcode and built
-products for both phases; do not edit the scheme/manifest or filter tests.
+products for both phases; do not edit the generated manifest or add test filters.
 Inspect the completed `.xcresult`, every selected named result, warnings and
 attachments. Build/signature success, partial or interrupted runs do not count
-as a passing suite. Save actual local evidence alongside failed Cloud results
-in the [release ledger](release/evidence.md#release-ledger).
+as a passing suite. Every selected required non-UI/UI case must execute and pass; unexpected skips, missing cases or failures block release. Save actual local evidence, retaining any historical failed Cloud results separately, in the [release ledger](release/evidence.md#release-ledger).
 
 ## Native smoke evidence
 
-The shared scheme keeps its full existing UI smoke selection, with no new unit
-selection or heavy GitHub PR jobs. Mac reuses real guest card creation/review,
-guest AI, Settings/Progress, notification routing, own-key persistence and
-linked account/workspace sync flows. The phone-only flow skips on the iPad
-idiom; existing iPad keyboard and companion flows apply. The notification
-foreground-return smoke uses Command-H instead of the unavailable Home button.
+The `LocalMac` plan selects the full existing non-UI bundle and every Mac-eligible UI flow without adding tests or heavy GitHub PR jobs. Mac reuses real guest card creation/review, guest AI, Settings/Progress, notification routing, own-key persistence and linked account/workspace sync flows. The plan excludes the phone-only class and marketing capture; existing iPad keyboard, companion and wide consent flows apply. These exclusions are not skipped/passed results. The notification foreground-return smoke uses Command-H instead of the unavailable Home button.
 
 `LiveSmokeMacCatalystTests` compiles only for Catalyst and adds:
 
@@ -141,7 +140,7 @@ foreground-return smoke uses Command-H instead of the unavailable Home button.
 
 The shared launcher passes `FLASHCARDS_AUTOMATION_RUN=1` to the app process.
 Catalyst runs on a real Mac, so simulator detection alone is insufficient.
-Keep the existing non-production Sentry override for these tests.
+Verify `automation_run_decided` reports `isAutomation=true` before interaction. Keep the existing non-production Sentry override for these tests.
 
 Successful Mac smokes retain `mac-review-formulas` and
 `mac-ai-companion-focus` window/screen image attachments. Inspect rendered
@@ -163,7 +162,7 @@ profile above. Record SHA, bundle/signature, OS, UTC start/end and native result
 Static CI does not establish these outcomes.
 
 1. Keep a production installation with a synced card, sign-in and analytics preference.
-   Launch ordinary Debug with no automation environment variable: require
+   Launch Debug with `bash scripts/ios/launch-macos-test-app.sh "<path/Nibomo.app>"`; verify `automation_run_decided` before interaction and require
    `isDebugBuild=true`, `isSimulator=false`, `isUITestLaunch=false`, `isAutomation=true`
    in the `automation_run` log. Development must start with separate local data and
    credentials; production must retain its card, sign-in and preference after testing.
@@ -198,22 +197,12 @@ Static CI does not establish these outcomes.
    compare its `org.user_settings.product_analytics_enabled` before/after and require
    no change. Do not count unrelated server producers as a marker failure; see
    [automation coverage](analytics-audience.md#automation-installations).
-4. Run the full existing signed native smoke selection and retain every named result.
-   A recognized UI-test launch must remain automation even with
-   `FLASHCARDS_AUTOMATION_RUN=0`. The authorized Xcode Cloud Mac Test action may
-   provide this evidence after merge; retain any private-Keychain signing limitation.
-5. For intentional real-analytics verification, launch outside UI tests with
-   `FLASHCARDS_AUTOMATION_RUN=0` before a fresh disposable installation's first sync.
-   Require `isAutomation=false` and normal preference behavior. An installation
-   already marked remains marked on the backend, so it cannot verify real server facts.
-   On real hardware, ordinary Release without the flag must also decide false;
-   Release with `FLASHCARDS_AUTOMATION_RUN=1` must decide true and record nothing locally.
-   Release UI tests and simulator launches remain protected automatically.
+4. Run the complete signed `LocalMac` selection above and retain every named non-UI/UI result, logs and attachments. All manual/automated checks use `FLASHCARDS_AUTOMATION_RUN=1` and verified `isAutomation=true`; do not generate real product analytics for test activity.
 
 ## Manual checklist on the verified Mac artifact
 
 Record version/build, SHA, OS, steps and results alongside native smoke evidence
-before App Review. These checks exercise the signed app and actual services.
+before App Review. Use the actual correlated signed release/TestFlight artifact, preserving its archive/export provenance; a Debug acceptance app does not satisfy these checks. Launch with `bash scripts/ios/launch-macos-test-app.sh "<path/Nibomo.app>"` and verify `automation_run_decided` reports `isAutomation=true` before interaction. Reapply the flag and verify every new process, including relaunch/notification checks; stop if marking cannot be established. These short checks exercise the signed app and actual services.
 
 1. Confirm the installed bundle is `Nibomo.app`, its `CFBundleName` and
    `CFBundleDisplayName` are `Nibomo`, and its `CFBundleExecutable` is `Nibomo`.
