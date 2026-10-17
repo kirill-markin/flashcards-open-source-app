@@ -578,7 +578,7 @@ private final class MediaUploadRunnerRequestRecorder: @unchecked Sendable {
                   "uploadSession": {
                     "sessionId": "\(MediaUploadCompletionRetryTests.sessionId)",
                     "expiresAt": "9999-12-31T23:59:59.999Z",
-                    "partSizeBytes": 8388608,
+                    "partSizeBytes": 11,
                     "partCount": 1
                   }
                 }
