@@ -43,23 +43,28 @@ marker, so a passing "re-run failed jobs" attempt still records its SHA. When a
 rerun of an older run finds a newer value already recorded, it clears the
 parameter instead, and the next run deploys that component in full.
 
-Platform releases require both native ARM pre-deploy checks/synthesis and the
-independent PostgreSQL integration job before deployment. They run concurrently.
-The two ARM jobs reuse only the integrity-checked Lambda asset cache; each job
-regenerates its private CDK context and templates. Build-stage summaries report
-elapsed seconds, restored cache keys, and built/reused Lambda counts.
+The release does not repeat the lint, build, test and synth checks: the strict
+`Repository static checks` PR gate already ran them on the same tree. The
+PostgreSQL integration job runs beside the deploy. A release whose platform diff
+touches migrations or the migration runner waits for it before CDK applies them,
+because an applied migration cannot be rolled back; other releases deploy
+without waiting. A failure turns the release red and clears the platform SHA, so
+the next run redeploys the platform. Seeding and post-deploy checks run beside
+the smokes, and a failure clears every selected SHA, like a failed deploy. The deploy job
+reuses only the integrity-checked Lambda asset cache and regenerates its private
+CDK context and templates. Build-stage summaries report elapsed seconds,
+restored cache keys, and built/reused Lambda counts.
 
-The same cumulative platform diff selects cleanup staging and the isolated MCP
-capacity experiment. The exact conservative path classes live in
-`scripts/deploy/select-release-components.sh`. Migration, cleanup, shared backend,
-infrastructure and pipeline changes retain disable -> migrate/verify -> enable;
-isolated reporting/transport changes can deploy once with cleanup enabled.
-Both paths keep the CloudFormation migration dependency and latest-migration
-verification. Full/manual/unknown platform selections retain staging and capacity
-checks. Every platform release still checks monitoring ownership and the deployed
-MCP endpoint contract; selected capacity experiments must also pass proxy/capacity
-probes and temporary-stack cleanup. Pure web/admin uploads skip the platform
-ownership check and PostgreSQL job.
+The same cumulative platform diff selects the migration gates and the isolated
+MCP capacity experiment. The exact conservative path classes live in
+`scripts/deploy/select-release-components.sh`. A release that changes migrations
+also stages cleanup as disable -> migrate/verify -> enable, so old cleanup code
+never deletes media against the new schema; every other release deploys once
+with cleanup enabled. Both paths keep the CloudFormation migration dependency
+and latest-migration verification. Full/manual/unknown platform selections
+retain the migration gates and capacity checks. Every platform release still
+checks the deployed MCP endpoint contract; selected capacity experiments must
+also pass proxy/capacity probes and temporary-stack cleanup. Pure web/admin uploads skip the PostgreSQL job.
 
 Repository variables such as `vars.CDK_*` and `vars.VITE_SENTRY_*` never appear
 in a diff, so a change to one ships with no push. Set the variable first, then

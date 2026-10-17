@@ -343,17 +343,16 @@ The same split applies to Sentry projects: backend source map uploads use `SENTR
 
 For AWS-backed changes, the main-branch order is:
 
-1. select the `platform`, `web`, and `admin` components that changed since their last successful release ([component selection](./release-gates.md#component-selection))
-2. run the selected components' pre-deploy build/test checks inside `AWS/Web Release`, including the auth route tests when auth changed
-3. deploy the platform through CDK when selected
-4. publish `apps/web` and `apps/admin` assets when selected
-5. run the deployed API health check when the platform deployed, and the public custom-domain checks, including the hosted web and admin roots, on every run that deploys a component
-6. run the native Playwright live smoke in `apps/web/e2e/live-smoke.spec.ts` when web or the platform deployed
-7. run the external agent API and MCP smokes when the platform deployed
-8. record each component's released SHA and finish green only if the selected post-deploy checks pass
-9. finish red if a post-deploy smoke fails, without rolling production back
+1. select the `platform`, `web`, and `admin` components that changed since their last successful release ([component selection](./release-gates.md#component-selection)); build and test checks already ran in the strict PR gate
+2. deploy the platform through CDK when selected, while the PostgreSQL integration checks run beside it; a release that changes migrations waits for them before applying
+3. publish `apps/web` and `apps/admin` assets when selected, and run the deployed API health check when the platform deployed
+4. seed release data and run the post-deploy checks, including the public custom-domain checks of the hosted web and admin roots on every run that deploys a component
+5. run the native Playwright live smoke in `apps/web/e2e/live-smoke.spec.ts` when web or the platform deployed
+6. run the external agent API and MCP smokes when the platform deployed
+7. record each component's released SHA and finish green only if the PostgreSQL checks and the selected post-deploy checks pass
+8. finish red if any of them fails, without rolling production back
 
-Manual `workflow_dispatch` runs deploy every component after the same embedded pre-deploy checks.
+Manual `workflow_dispatch` runs deploy every component.
 
 This repository does not try to prove backend and web correctness with exhaustive test coverage before deploy. The highest-confidence automated signals are the real Playwright web smoke, which drives the merge commit's web client against the deployed backend and auth, and the real agent API smoke, which calls the deployed API directly; see [docs/release-gates.md](./release-gates.md) for the exact scope of each. Any additional non-smoke tests should stay targeted to important module boundaries or contracts.
 

@@ -651,6 +651,7 @@ export class FlashcardsOpenSourceAppStack extends cdk.Stack {
     addDatabaseMigrationDependency(probableAndroidBurstRefreshResult.refreshFunction, migrationGate);
     addDatabaseMigrationDependency(storeAnalyticsImportResult.importFunction, migrationGate);
     addDatabaseMigrationDependency(generatedMediaPromotionResult.promotionFunction, migrationGate);
+    addDatabaseMigrationDependency(multipartCompletionReconciliationResult.reconciliationFunction, migrationGate);
     const web = webApp(this, {
       baseDomain,
       hosts: webHosts,

@@ -65,7 +65,7 @@ components_for_path() {
       echo "web" ;;
     apps/admin/*|scripts/deploy/deploy-admin.sh)
       echo "admin" ;;
-    scripts/geolite/*|scripts/deploy/migrate-aws.sh|scripts/deploy/prepare-monitoring-refactor.py|scripts/deploy/migrate-monitoring-stack.py|scripts/deploy/reconcile-monitoring-retry.py|scripts/deploy/reconcile-monitoring-preview.py|scripts/deploy/monitoring-refactor-batches.py|scripts/generate/write-ci-cdk-context.py|scripts/deploy/report-cloudformation-budget.py|scripts/deploy/upload-lambda-source-maps.py|scripts/deploy/prepare-lambda-build-inputs.sh|scripts/deploy/lambda-asset-cache.py)
+    scripts/geolite/*|scripts/deploy/migrate-aws.sh|scripts/generate/write-ci-cdk-context.py|scripts/deploy/report-cloudformation-budget.py|scripts/deploy/upload-lambda-source-maps.py|scripts/deploy/prepare-lambda-build-inputs.sh|scripts/deploy/lambda-asset-cache.py)
       echo "platform" ;;
     scripts/generate/generate-catalog-dump.sh|scripts/generate/generate-global-metrics-snapshot.sh)
       echo "platform" ;;
@@ -145,8 +145,8 @@ select_component() {
   printf '%s' "${matched_paths}"
 }
 
-# Prints "true" when the platform must run the pre-deploy checks of one area.
-# A full deploy, or a change to the pipeline itself, runs all of them.
+# Prints "true" when the platform diff touches one area. A full deploy, or a
+# change to the pipeline itself, counts as touching every area.
 platform_area_changed() {
   local platform_selection="$1"
   local area_pattern="$2"
@@ -162,32 +162,6 @@ platform_area_changed() {
   else
     echo "false"
   fi
-}
-
-# Shared cleanup imports span most backend domains. Only isolated reporting
-# and HTTP transport modules bypass staging; new/unknown backend paths stage.
-# Keep this exclusion list disjoint from migration/promotion/cleanup imports.
-staged_platform_required() {
-  local selection="$1"
-  if [[ "$(platform_area_changed "${selection}" 'db/|infra/|scripts/deploy/|scripts/generate/write-ci-cdk-context\.py$|scripts/checks/check-multipart-completion-reconciliation-schedule\.sh$')" == "true" ]]; then
-    echo "true"
-    return
-  fi
-  local paths
-  paths="$(printf '%s\n' "${selection}" | sed '1d')"
-  local path
-  while IFS= read -r path; do
-    case "${path}" in
-      apps/backend/src/admin/*|apps/backend/src/analyticsVisitor/*|apps/backend/src/feedback/*|apps/backend/src/globalMetrics/*|apps/backend/src/mcp/*)
-        continue ;;
-      apps/backend/src/entrypoints/lambda-mcp.ts|apps/backend/src/entrypoints/lambda-mcp-dispatcher.ts|apps/backend/src/routes/admin.ts|apps/backend/src/routes/analyticsVisitor.ts|apps/backend/src/routes/anonymousAnalytics.ts|apps/backend/src/routes/feedback.ts|apps/backend/src/routes/globalSnapshot.ts)
-        continue ;;
-      apps/backend/*)
-        echo "true"
-        return ;;
-    esac
-  done <<< "${paths}"
-  echo "false"
 }
 
 platform_selection="$(select_component platform "${PLATFORM_DEPLOYED_SHA}")"
@@ -207,16 +181,14 @@ if [[ "${deploy_platform}" == "true" || "${deploy_web}" == "true" || "${deploy_a
   deploy_any="true"
 fi
 
-auth_changed="false"
-backend_changed="false"
-infra_changed="false"
 staged_platform="false"
 mcp_capacity="false"
+migrations_changed="false"
 if [[ "${deploy_platform}" == "true" ]]; then
-  auth_changed="$(platform_area_changed "${platform_selection}" 'apps/auth/')"
-  backend_changed="$(platform_area_changed "${platform_selection}" 'apps/backend/')"
-  infra_changed="$(platform_area_changed "${platform_selection}" 'infra/')"
-  staged_platform="$(staged_platform_required "${platform_selection}")"
+  migrations_changed="$(platform_area_changed "${platform_selection}" 'db/|apps/backend/src/database/migrationRunner\.ts$|apps/backend/src/entrypoints/migrate-lambda\.ts$')"
+  # Old cleanup code must not delete media against a new schema; without a
+  # migration, one deploy with cleanup enabled is equivalent.
+  staged_platform="${migrations_changed}"
   # The fixture exercises dispatcher capacity/proxy contracts, while the
   # ordinary MCP smoke still covers every platform release's real worker.
   mcp_capacity="$(platform_area_changed "${platform_selection}" 'infra/|apps/backend/(package[^/]*$|tsconfig[^/]*$|\.npmrc$|src/(entrypoints/lambda-mcp[^/]*$|mcp/|agent/|aiTools/|auth/|server/|shared/|observability/|database/|aws/))|scripts/deploy/|scripts/generate/write-ci-cdk-context\.py$|scripts/checks/check-mcp(-capacity)?-smoke\.(sh|py)$')"
@@ -227,11 +199,9 @@ fi
   echo "deploy_web=${deploy_web}"
   echo "deploy_admin=${deploy_admin}"
   echo "deploy_any=${deploy_any}"
-  echo "auth_changed=${auth_changed}"
-  echo "backend_changed=${backend_changed}"
-  echo "infra_changed=${infra_changed}"
   echo "staged_platform=${staged_platform}"
   echo "mcp_capacity=${mcp_capacity}"
+  echo "migrations_changed=${migrations_changed}"
 } >> "${GITHUB_OUTPUT}"
 
 summarize_component() {
@@ -281,7 +251,7 @@ summarize_paths() {
   summarize_component web "${WEB_DEPLOYED_SHA}" "${web_selection}"
   summarize_component admin "${ADMIN_DEPLOYED_SHA}" "${admin_selection}"
   echo ""
-  echo "- Staged platform deployment: \`${staged_platform}\`"
+  echo "- Migrations changed (staged deploy, waits for PostgreSQL checks): \`${migrations_changed}\`"
   echo "- Isolated MCP capacity smoke: \`${mcp_capacity}\`"
   echo "- Both decisions use the platform diff above; full/unknown states retain both gates."
   summarize_paths platform "${platform_selection}"

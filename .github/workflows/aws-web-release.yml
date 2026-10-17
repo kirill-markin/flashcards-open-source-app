@@ -21,11 +21,6 @@ on:
       - 'scripts/deploy/deploy-admin.sh'
       - 'scripts/deploy/deploy-web.sh'
       - 'scripts/deploy/select-release-components.sh'
-      - 'scripts/deploy/prepare-monitoring-refactor.py'
-      - 'scripts/deploy/migrate-monitoring-stack.py'
-      - 'scripts/deploy/reconcile-monitoring-retry.py'
-      - 'scripts/deploy/reconcile-monitoring-preview.py'
-      - 'scripts/deploy/monitoring-refactor-batches.py'
       - 'scripts/deploy/report-cloudformation-budget.py'
       - 'scripts/deploy/upload-lambda-source-maps.py'
       - 'scripts/deploy/prepare-lambda-build-inputs.sh'
@@ -62,11 +57,9 @@ jobs:
       deploy_web: ${{ steps.select.outcome == 'success' && steps.select.outputs.deploy_web || 'true' }}
       deploy_admin: ${{ steps.select.outcome == 'success' && steps.select.outputs.deploy_admin || 'true' }}
       deploy_any: ${{ steps.select.outcome == 'success' && steps.select.outputs.deploy_any || 'true' }}
-      auth_changed: ${{ steps.select.outcome == 'success' && steps.select.outputs.auth_changed || 'true' }}
-      backend_changed: ${{ steps.select.outcome == 'success' && steps.select.outputs.backend_changed || 'true' }}
-      infra_changed: ${{ steps.select.outcome == 'success' && steps.select.outputs.infra_changed || 'true' }}
       staged_platform: ${{ steps.select.outcome == 'success' && steps.select.outputs.staged_platform || 'true' }}
       mcp_capacity: ${{ steps.select.outcome == 'success' && steps.select.outputs.mcp_capacity || 'true' }}
+      migrations_changed: ${{ steps.select.outcome == 'success' && steps.select.outputs.migrations_changed || 'true' }}
       # The values read at selection time; the record job writes a new SHA only
       # while SSM still holds them.
       platform_read_sha: ${{ steps.deployed.outputs.platform_sha || 'unreadable' }}
@@ -236,192 +229,10 @@ jobs:
           POSTGRES_INTEGRATION_ADMIN_URL: postgresql://postgres_integration:postgres-integration-${{ github.run_id }}-${{ github.run_attempt }}@127.0.0.1:5432/postgres?sslmode=disable
         run: npm run test:postgres-integration --prefix apps/backend
 
-  pre_deploy_checks:
-    name: Pre-deploy checks
-    needs: changes
-    if: ${{ needs.changes.outputs.deploy_any == 'true' }}
-    runs-on: ubuntu-24.04-arm
-    timeout-minutes: 45
-    steps:
-      - uses: actions/checkout@v7
-
-      - uses: actions/setup-node@v7
-        with:
-          node-version: 24
-          cache: npm
-          cache-dependency-path: |
-            apps/auth/package-lock.json
-            apps/backend/package-lock.json
-            apps/web/package-lock.json
-            apps/admin/package-lock.json
-            infra/aws/package-lock.json
-
-      - name: Install platform dependencies
-        if: ${{ needs.changes.outputs.deploy_platform == 'true' }}
-        run: |
-          npm ci --prefix apps/auth
-          npm ci --prefix apps/backend
-          npm ci --prefix infra/aws
-
-      - name: Install web dependencies
-        if: ${{ needs.changes.outputs.deploy_web == 'true' }}
-        run: npm ci --prefix apps/web
-
-      - name: Install admin dependencies
-        if: ${{ needs.changes.outputs.deploy_admin == 'true' }}
-        run: npm ci --prefix apps/admin
-
-      - name: Build auth app
-        if: ${{ needs.changes.outputs.auth_changed == 'true' }}
-        run: npm run build --prefix apps/auth
-
-      - name: Test auth app
-        if: ${{ needs.changes.outputs.auth_changed == 'true' }}
-        run: npm run test --prefix apps/auth
-
-      - name: Lint backend
-        if: ${{ needs.changes.outputs.backend_changed == 'true' }}
-        run: npm run lint --prefix apps/backend
-
-      - name: Build backend
-        if: ${{ needs.changes.outputs.backend_changed == 'true' }}
-        run: npm run build --prefix apps/backend
-
-      - name: Test backend MCP protocol
-        if: ${{ needs.changes.outputs.backend_changed == 'true' }}
-        run: npm run test:mcp --prefix apps/backend
-
-      - name: Build web app
-        if: ${{ needs.changes.outputs.deploy_web == 'true' }}
-        run: npm run build --prefix apps/web
-
-      - name: Build admin app
-        if: ${{ needs.changes.outputs.deploy_admin == 'true' }}
-        run: npm run build --prefix apps/admin
-
-      - name: Build infra
-        if: ${{ needs.changes.outputs.infra_changed == 'true' }}
-        run: npm run build --prefix infra/aws
-
-      - name: Test infra
-        if: ${{ needs.changes.outputs.infra_changed == 'true' }}
-        run: npm run test --prefix infra/aws
-
-      - name: Restore Lambda asset cache
-        id: lambda_cache
-        if: ${{ needs.changes.outputs.deploy_platform == 'true' }}
-        uses: actions/cache/restore@v6.1.0
-        with:
-          path: .cache/lambda-assets/v1
-          key: lambda-assets-v1-${{ runner.os }}-${{ runner.arch }}-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}-prechecks
-          restore-keys: |
-            lambda-assets-v1-${{ runner.os }}-${{ runner.arch }}-
-
-      - name: Prepare exact Lambda copied inputs
-        if: ${{ needs.changes.outputs.deploy_platform == 'true' }}
-        run: bash scripts/deploy/prepare-lambda-build-inputs.sh
-
-      - name: Configure AWS credentials (OIDC)
-        if: ${{ needs.changes.outputs.deploy_platform == 'true' }}
-        uses: aws-actions/configure-aws-credentials@v6.3.0
-        with:
-          role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
-          aws-region: ${{ env.AWS_REGION }}
-
-      # CDK bundling pulls public.ecr.aws/sam/build-nodejs24.x on a Lambda input
-      # cache miss. The action authenticates ECR Public in us-east-1 itself.
-      - name: Log in to Amazon ECR Public
-        if: ${{ needs.changes.outputs.deploy_platform == 'true' }}
-        uses: aws-actions/amazon-ecr-login@v2.1.7
-        with:
-          registry-type: public
-
-      - name: Synthesize infra
-        if: ${{ needs.changes.outputs.deploy_platform == 'true' }}
-        working-directory: infra/aws
-        env:
-          AWS_DEPLOY_ROLE_ARN: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
-          CDK_CONTEXT_ALERT_EMAIL: ${{ vars.CDK_ALERT_EMAIL }}
-          CDK_CONTEXT_ANALYTICS_ACCESS_ENABLED: ${{ vars.CDK_ANALYTICS_ACCESS_ENABLED }}
-          CDK_CONTEXT_ANTHROPIC_API_KEY_SECRET_ARN: ${{ vars.CDK_ANTHROPIC_API_KEY_SECRET_ARN }}
-          CDK_CONTEXT_APPLE_SIGN_IN_CONFIG: ${{ vars.CDK_APPLE_SIGN_IN_CONFIG }}
-          CDK_CONTEXT_APPLE_SIGN_IN_SECRET_ARN: ${{ vars.CDK_APPLE_SIGN_IN_SECRET_ARN }}
-          CDK_CONTEXT_GOOGLE_SIGN_IN_CONFIG: ${{ vars.CDK_GOOGLE_SIGN_IN_CONFIG }}
-          CDK_CONTEXT_GOOGLE_SIGN_IN_SECRET_ARN: ${{ vars.CDK_GOOGLE_SIGN_IN_SECRET_ARN }}
-          CDK_CONTEXT_APPLE_IAP_SECRET_ARN: ${{ vars.CDK_APPLE_IAP_SECRET_ARN }}
-          CDK_CONTEXT_STRIPE_BILLING_SECRET_ARN: ${{ vars.CDK_STRIPE_BILLING_SECRET_ARN }}
-          CDK_CONTEXT_STRIPE_CHECKOUT_LIVE_ENABLED: ${{ vars.CDK_STRIPE_CHECKOUT_LIVE_ENABLED }}
-          CDK_CONTEXT_API_CERTIFICATE_ARN: ${{ vars.CDK_API_CERTIFICATE_ARN }}
-          CDK_CONTEXT_APEX_REDIRECT_CERTIFICATE_ARN_US_EAST_1: ${{ vars.CDK_APEX_REDIRECT_CERTIFICATE_ARN_US_EAST_1 }}
-          CDK_CONTEXT_AUTH_CERTIFICATE_ARN: ${{ vars.CDK_AUTH_CERTIFICATE_ARN }}
-          CDK_CONTEXT_API_ALTERNATE_DOMAIN_NAME: ${{ vars.CDK_API_ALTERNATE_DOMAIN_NAME }}
-          CDK_CONTEXT_API_ALTERNATE_CERTIFICATE_ARN: ${{ vars.CDK_API_ALTERNATE_CERTIFICATE_ARN }}
-          CDK_CONTEXT_AUTH_ALTERNATE_DOMAIN_NAME: ${{ vars.CDK_AUTH_ALTERNATE_DOMAIN_NAME }}
-          CDK_CONTEXT_AUTH_ALTERNATE_CERTIFICATE_ARN: ${{ vars.CDK_AUTH_ALTERNATE_CERTIFICATE_ARN }}
-          CDK_CONTEXT_API_ALTERNATE_HOST_LIVE: ${{ vars.CDK_API_ALTERNATE_HOST_LIVE }}
-          CDK_CONTEXT_AUTH_ALTERNATE_HOST_LIVE: ${{ vars.CDK_AUTH_ALTERNATE_HOST_LIVE }}
-          CDK_CONTEXT_COOKIE_DOMAIN: ${{ vars.CDK_COOKIE_DOMAIN }}
-          CDK_CONTEXT_MCP_CERTIFICATE_ARN: ${{ vars.CDK_MCP_CERTIFICATE_ARN }}
-          CDK_CONTEXT_MCP_ALTERNATE_DOMAIN_NAME: ${{ vars.CDK_MCP_ALTERNATE_DOMAIN_NAME }}
-          CDK_CONTEXT_MCP_ALTERNATE_CERTIFICATE_ARN: ${{ vars.CDK_MCP_ALTERNATE_CERTIFICATE_ARN }}
-          CDK_CONTEXT_MCP_ALTERNATE_HOST_LIVE: ${{ vars.CDK_MCP_ALTERNATE_HOST_LIVE }}
-          CDK_CONTEXT_ADMIN_CERTIFICATE_ARN_US_EAST_1: ${{ vars.CDK_ADMIN_CERTIFICATE_ARN_US_EAST_1 }}
-          CDK_CONTEXT_ADMIN_ADDITIONAL_DOMAIN_NAME: ${{ vars.CDK_ADMIN_ADDITIONAL_DOMAIN_NAME }}
-          CDK_CONTEXT_ADMIN_ADDITIONAL_CERTIFICATE_ARN_US_EAST_1: ${{ vars.CDK_ADMIN_ADDITIONAL_CERTIFICATE_ARN_US_EAST_1 }}
-          CDK_CONTEXT_ADMIN_EMAILS: ${{ vars.CDK_ADMIN_EMAILS }}
-          CDK_CONTEXT_DEMO_EMAIL_DOSTIP: ${{ secrets.CDK_DEMO_EMAIL_DOSTIP }}
-          CDK_CONTEXT_DEMO_PASSWORD_SECRET_ARN: ${{ vars.CDK_DEMO_PASSWORD_SECRET_ARN }}
-          CDK_CONTEXT_DOMAIN_NAME: ${{ vars.CDK_DOMAIN_NAME }}
-          CDK_CONTEXT_GITHUB_REPO: ${{ vars.CDK_GITHUB_REPO }}
-          CDK_CONTEXT_GLOBAL_METRICS_VISIBLE: ${{ vars.CDK_GLOBAL_METRICS_VISIBLE }}
-          CDK_CONTEXT_OPENAI_API_KEY_SECRET_ARN: ${{ vars.CDK_OPENAI_API_KEY_SECRET_ARN }}
-          CDK_CONTEXT_REGION: ${{ vars.AWS_REGION }}
-          CDK_CONTEXT_RESEND_API_KEY_SECRET_ARN: ${{ vars.CDK_RESEND_API_KEY_SECRET_ARN }}
-          CDK_CONTEXT_RESEND_SENDER_EMAIL: ${{ vars.CDK_RESEND_SENDER_EMAIL }}
-          CDK_CONTEXT_SENTRY_DSN_SECRET_ARN: ${{ vars.CDK_SENTRY_DSN_SECRET_ARN }}
-          CDK_CONTEXT_SENTRY_ENVIRONMENT: ${{ vars.CDK_SENTRY_ENVIRONMENT }}
-          CDK_CONTEXT_SENTRY_RELEASE: ${{ github.sha }}
-          CDK_CONTEXT_SENTRY_TRACES_SAMPLE_RATE: ${{ vars.CDK_SENTRY_TRACES_SAMPLE_RATE }}
-          CDK_CONTEXT_SITE_BASE_URL: ${{ vars.CDK_SITE_BASE_URL }}
-          CDK_CONTEXT_API_BASE_URL: ${{ vars.CDK_API_BASE_URL }}
-          CDK_CONTEXT_WEB_CERTIFICATE_ARN_US_EAST_1: ${{ vars.CDK_WEB_CERTIFICATE_ARN_US_EAST_1 }}
-          CDK_CONTEXT_WEB_ADDITIONAL_DOMAIN_NAME: ${{ vars.CDK_WEB_ADDITIONAL_DOMAIN_NAME }}
-          CDK_CONTEXT_WEB_ADDITIONAL_CERTIFICATE_ARN_US_EAST_1: ${{ vars.CDK_WEB_ADDITIONAL_CERTIFICATE_ARN_US_EAST_1 }}
-          CDK_CONTEXT_WEB_PRIMARY_HOST_RETIRED: ${{ vars.CDK_WEB_PRIMARY_HOST_RETIRED }}
-        run: |
-          set -euo pipefail
-          stage_started="$(date +%s)"
-          python3 ../../scripts/generate/write-ci-cdk-context.py \
-            --output cdk.context.local.json \
-            --aws-deploy-role-arn "${AWS_DEPLOY_ROLE_ARN}"
-          python3 ../../scripts/deploy/lambda-asset-cache.py restore cdk.out
-          npx cdk synth --all --quiet 2>&1 | tee "${RUNNER_TEMP}/lambda-prechecks.log"
-          python3 ../../scripts/deploy/lambda-asset-cache.py save cdk.out
-          python3 ../../scripts/deploy/report-cloudformation-budget.py cdk.out
-          {
-            echo "## Lambda assets: native prechecks"
-            echo ""
-            echo "- Stage seconds: $(( $(date +%s) - stage_started ))"
-            echo "- Cache restored: ${{ steps.lambda_cache.outputs.cache-matched-key }}"
-            awk '/"event":"lambda_asset_cache"/ && /"result":"built"/ { built++ }
-                 /"event":"lambda_asset_cache"/ && /"result":"reused"/ { reused++ }
-                 END { printf "- Built: %d; reused: %d\n", built, reused }' "${RUNNER_TEMP}/lambda-prechecks.log"
-          } >> "${GITHUB_STEP_SUMMARY}"
-
-      - name: Save current Lambda assets
-        if: ${{ needs.changes.outputs.deploy_platform == 'true' }}
-        uses: actions/cache/save@v6.1.0
-        with:
-          path: .cache/lambda-assets/v1
-          key: lambda-assets-v1-${{ runner.os }}-${{ runner.arch }}-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}-prechecks
-
   aws_deploy:
     name: Deploy AWS release
-    needs:
-      - changes
-      - pre_deploy_checks
-      - postgres_checks
-    if: ${{ !cancelled() && needs.changes.result == 'success' && needs.changes.outputs.deploy_any == 'true' && needs.pre_deploy_checks.result == 'success' && (needs.postgres_checks.result == 'success' || (needs.changes.outputs.deploy_platform != 'true' && needs.postgres_checks.result == 'skipped')) }}
+    needs: changes
+    if: ${{ needs.changes.outputs.deploy_any == 'true' }}
     runs-on: ubuntu-24.04-arm
     timeout-minutes: 180
 
@@ -487,35 +298,41 @@ jobs:
         with:
           registry-type: public
 
-      - name: Pin AWS CLI for monitoring ownership reads
-        if: ${{ needs.changes.outputs.deploy_platform == 'true' }}
-        run: |
-          set -euo pipefail
-          curl --fail --silent --show-error --location \
-            https://awscli.amazonaws.com/awscli-exe-linux-aarch64-2.36.24.zip \
-            --output "${RUNNER_TEMP}/monitoring-awscli.zip"
-          unzip -q "${RUNNER_TEMP}/monitoring-awscli.zip" -d "${RUNNER_TEMP}/monitoring-awscli"
-          "${RUNNER_TEMP}/monitoring-awscli/aws/install" \
-            --install-dir "${RUNNER_TEMP}/monitoring-aws" --bin-dir "${RUNNER_TEMP}/monitoring-bin"
-          echo "${RUNNER_TEMP}/monitoring-bin" >> "${GITHUB_PATH}"
-
-      - name: Verify completed monitoring ownership before deployment
-        if: ${{ needs.changes.outputs.deploy_platform == 'true' }}
-        run: python3 scripts/deploy/migrate-monitoring-stack.py ownership
-
       - name: Restore Lambda asset cache
         id: lambda_cache
         if: ${{ needs.changes.outputs.deploy_platform == 'true' }}
         uses: actions/cache/restore@v6.1.0
         with:
           path: .cache/lambda-assets/v1
-          key: lambda-assets-v1-${{ runner.os }}-${{ runner.arch }}-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}-prechecks
+          key: lambda-assets-v1-${{ runner.os }}-${{ runner.arch }}-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}-deployed
           restore-keys: |
             lambda-assets-v1-${{ runner.os }}-${{ runner.arch }}-
 
       - name: Prepare exact Lambda copied inputs
         if: ${{ needs.changes.outputs.deploy_platform == 'true' }}
         run: bash scripts/deploy/prepare-lambda-build-inputs.sh
+
+      # An applied migration cannot be rolled back, so a release that changes
+      # migrations waits for the PostgreSQL checks before CDK applies them.
+      # Other releases deploy while those checks still run.
+      - name: Wait for PostgreSQL checks before applying migrations
+        if: ${{ needs.changes.outputs.migrations_changed == 'true' }}
+        timeout-minutes: 45
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          while true; do
+            conclusion="$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}/jobs" --paginate \
+              --jq '.jobs[] | select(.name == "PostgreSQL integration checks") | .conclusion // "pending"')"
+            case "${conclusion}" in
+              success) exit 0 ;;
+              ""|pending) sleep 10 ;;
+              *)
+                echo "::error::PostgreSQL integration checks ended '${conclusion}', so this release does not apply its migrations."
+                exit 1 ;;
+            esac
+          done
 
       - name: CDK deploy with selected cleanup state
         if: ${{ needs.changes.outputs.deploy_platform == 'true' }}
@@ -631,13 +448,22 @@ jobs:
                  END { printf "- Built: %d; reused: %d\n", built, reused }' "${RUNNER_TEMP}/lambda-enable.log"
           } >> "${GITHUB_STEP_SUMMARY}"
 
-      - name: Upload deployed Lambda source maps
+      # Uploads in the background while the steps below publish assets; nothing
+      # rewrites cdk.out after the last CDK deploy above. "Finish Lambda source
+      # map upload" waits for it and fails the job if it failed.
+      - name: Start Lambda source map upload
         if: ${{ needs.changes.outputs.deploy_platform == 'true' }}
         env:
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
           SENTRY_ORG: ${{ vars.SENTRY_ORG }}
           SENTRY_PROJECT: ${{ vars.SENTRY_BACKEND_PROJECT }}
-        run: python3 scripts/deploy/upload-lambda-source-maps.py infra/aws/cdk.out
+        run: |
+          (
+            status=0
+            python3 scripts/deploy/upload-lambda-source-maps.py infra/aws/cdk.out \
+              > "${RUNNER_TEMP}/source-maps.log" 2>&1 || status=$?
+            echo "${status}" > "${RUNNER_TEMP}/source-maps.exit"
+          ) &
 
       - name: Save current Lambda assets
         if: ${{ needs.changes.outputs.deploy_platform == 'true' }}
@@ -646,36 +472,12 @@ jobs:
           path: .cache/lambda-assets/v1
           key: lambda-assets-v1-${{ runner.os }}-${{ runner.arch }}-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}-deployed
 
-      - name: Verify cleanup-capable reconciliation schedules are enabled
-        if: ${{ needs.changes.outputs.deploy_platform == 'true' }}
-        run: |
-          bash scripts/checks/check-multipart-completion-reconciliation-schedule.sh \
-            --stack-name ${{ env.STACK_NAME }} \
-            --region ${{ env.AWS_REGION }}
-
       - name: Ensure fresh private GeoLite Country database
         if: ${{ needs.changes.outputs.deploy_platform == 'true' }}
         env:
           MAXMIND_ACCOUNT_ID: ${{ secrets.MAXMIND_ACCOUNT_ID }}
           MAXMIND_LICENSE_KEY: ${{ secrets.MAXMIND_LICENSE_KEY }}
         run: bash scripts/geolite/ensure-country.sh
-
-      - name: Check demo Cognito users
-        if: ${{ needs.changes.outputs.deploy_platform == 'true' }}
-        run: bash scripts/checks/check-demo-cognito-users.sh --stack-name ${{ env.STACK_NAME }} --region ${{ env.AWS_REGION }}
-
-      - name: Verify private Cognito native proof bridge
-        if: ${{ needs.changes.outputs.deploy_platform == 'true' }}
-        run: bash scripts/checks/check-native-proof-bridge.sh --stack-name ${{ env.STACK_NAME }} --region ${{ env.AWS_REGION }}
-
-      - name: Seed global metrics snapshot
-        if: ${{ needs.changes.outputs.deploy_platform == 'true' }}
-        run: bash scripts/generate/generate-global-metrics-snapshot.sh --stack-name ${{ env.STACK_NAME }}
-
-      # No schedule rebuilds the dump; only catalog publication events do, so
-      # every release reseeds it whatever the components.
-      - name: Seed public catalog dump
-        run: bash scripts/generate/generate-catalog-dump.sh --stack-name ${{ env.STACK_NAME }}
 
       - name: Deploy web assets
         if: ${{ needs.changes.outputs.deploy_web == 'true' }}
@@ -689,11 +491,15 @@ jobs:
         if: ${{ needs.changes.outputs.deploy_platform == 'true' }}
         run: bash scripts/checks/check-api-health.sh --stack-name ${{ env.STACK_NAME }}
 
-      # Runs for every component: it is the only probe of the hosted web and
-      # admin roots, and it reads the existing stack outputs, so it needs no
-      # platform deploy in this run.
-      - name: Check public custom domains
-        run: bash scripts/checks/check-public-endpoints.sh --stack-name ${{ env.STACK_NAME }}
+      - name: Finish Lambda source map upload
+        if: ${{ needs.changes.outputs.deploy_platform == 'true' }}
+        timeout-minutes: 10
+        run: |
+          while [[ ! -f "${RUNNER_TEMP}/source-maps.exit" ]]; do
+            sleep 2
+          done
+          cat "${RUNNER_TEMP}/source-maps.log"
+          exit "$(cat "${RUNNER_TEMP}/source-maps.exit")"
 
       - name: Summarize deployed release
         run: |
@@ -709,6 +515,79 @@ jobs:
               echo "Manual admin smoke remains required for \`https://admin.<domain>\`."
             fi
           } >> "${GITHUB_STEP_SUMMARY}"
+
+  # Seeding and checks that need the deployed release run beside the smokes
+  # instead of delaying them. A failure clears the selected SHAs like a failed
+  # deploy does.
+  post_deploy_seeding:
+    name: Seed release data and check public domains
+    needs:
+      - changes
+      - aws_deploy
+    if: ${{ !cancelled() && needs.aws_deploy.result == 'success' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v6.3.0
+        with:
+          role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Seed global metrics snapshot
+        if: ${{ needs.changes.outputs.deploy_platform == 'true' }}
+        run: bash scripts/generate/generate-global-metrics-snapshot.sh --stack-name ${{ env.STACK_NAME }}
+
+      # No schedule rebuilds the dump; only catalog publication events do, so
+      # every release reseeds it whatever the components.
+      - name: Seed public catalog dump
+        run: bash scripts/generate/generate-catalog-dump.sh --stack-name ${{ env.STACK_NAME }}
+
+      # Runs for every component: it is the only probe of the hosted web and
+      # admin roots, and it reads the existing stack outputs, so it needs no
+      # platform deploy in this run.
+      - name: Check public custom domains
+        run: bash scripts/checks/check-public-endpoints.sh --stack-name ${{ env.STACK_NAME }}
+
+  post_deploy_checks:
+    name: Post-deploy checks
+    needs:
+      - changes
+      - aws_deploy
+    if: ${{ !cancelled() && needs.aws_deploy.result == 'success' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v6.3.0
+        with:
+          role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Verify cleanup-capable reconciliation schedules are enabled
+        if: ${{ needs.changes.outputs.deploy_platform == 'true' }}
+        run: |
+          bash scripts/checks/check-multipart-completion-reconciliation-schedule.sh \
+            --stack-name ${{ env.STACK_NAME }} \
+            --region ${{ env.AWS_REGION }}
+
+      - name: Check demo Cognito users
+        if: ${{ needs.changes.outputs.deploy_platform == 'true' }}
+        run: bash scripts/checks/check-demo-cognito-users.sh --stack-name ${{ env.STACK_NAME }} --region ${{ env.AWS_REGION }}
+
+      - name: Verify private Cognito native proof bridge
+        if: ${{ needs.changes.outputs.deploy_platform == 'true' }}
+        run: bash scripts/checks/check-native-proof-bridge.sh --stack-name ${{ env.STACK_NAME }} --region ${{ env.AWS_REGION }}
 
   # Scope note: this job never loads the deployed web assets. It builds `dist`
   # from the merge commit, points `app.nibomo.com` at 127.0.0.1 through
@@ -993,8 +872,9 @@ jobs:
             echo "- Isolated capacity, proxy success/500 and cleanup: \`${{ steps.mcp_capacity.outcome }}\`"
           } >> "${GITHUB_STEP_SUMMARY}"
 
-  # A component's SHA advances only after its deploy and its smokes pass. The
-  # platform needs the agent API, MCP and web smokes; web needs the web smoke.
+  # A component's SHA advances only after its deploy, the post-deploy seeding
+  # and checks, and its smokes pass. The platform also needs the PostgreSQL
+  # checks and the agent API, MCP and web smokes; web needs the web smoke.
   # The main-release concurrency group serializes runs, including reruns, so
   # the next run reads these values only after this job has finished.
   #
@@ -1003,7 +883,8 @@ jobs:
   # "cleared-by-run:<run id>", so the next run deploys it in full. Keeping the
   # old SHA would be wrong, because reverting the bad commit makes the tree
   # equal that SHA again and the diff would select nothing. This
-  # covers a failed smoke and an `aws_deploy` job that failed or was cancelled
+  # covers a failed smoke, failed PostgreSQL checks, which block only releases
+  # that change migrations, and an `aws_deploy` job that failed or was cancelled
   # after its deploy steps may have run. When `changes` fails, `aws_deploy`
   # cannot run and nothing reached production, so this job is skipped.
   #
@@ -1019,6 +900,8 @@ jobs:
       - changes
       - postgres_checks
       - aws_deploy
+      - post_deploy_seeding
+      - post_deploy_checks
       - web_smoke
       - agent_api_smoke
       - mcp_smoke
@@ -1039,6 +922,8 @@ jobs:
           DEPLOY_ADMIN: ${{ needs.changes.outputs.deploy_admin }}
           POSTGRES_CHECKS_RESULT: ${{ needs.postgres_checks.result }}
           AWS_DEPLOY_RESULT: ${{ needs.aws_deploy.result }}
+          POST_DEPLOY_SEEDING_RESULT: ${{ needs.post_deploy_seeding.result }}
+          POST_DEPLOY_CHECKS_RESULT: ${{ needs.post_deploy_checks.result }}
           WEB_SMOKE_RESULT: ${{ needs.web_smoke.result }}
           AGENT_API_SMOKE_RESULT: ${{ needs.agent_api_smoke.result }}
           MCP_SMOKE_RESULT: ${{ needs.mcp_smoke.result }}
@@ -1097,6 +982,14 @@ jobs:
             local component="$1"
             if [[ "${AWS_DEPLOY_RESULT}" != "success" ]]; then
               echo "deploy job ended \`${AWS_DEPLOY_RESULT}\`, so production may run an unverified build"
+              return
+            fi
+            if [[ "${POST_DEPLOY_SEEDING_RESULT}" != "success" ]]; then
+              echo "release data seeding or the public custom-domain check did not pass (\`${POST_DEPLOY_SEEDING_RESULT}\`)"
+              return
+            fi
+            if [[ "${POST_DEPLOY_CHECKS_RESULT}" != "success" ]]; then
+              echo "post-deploy checks did not pass (\`${POST_DEPLOY_CHECKS_RESULT}\`)"
               return
             fi
             case "${component}" in
@@ -1183,24 +1076,23 @@ jobs:
             exit 1
           fi
 
-  aws_release_status:
-    name: Resolve AWS release outcome
+  release_summary:
+    name: AWS/Web release summary
+    if: ${{ always() }}
     needs:
       - changes
-      - pre_deploy_checks
       - postgres_checks
       - aws_deploy
+      - post_deploy_seeding
+      - post_deploy_checks
       - web_smoke
       - agent_api_smoke
       - mcp_smoke
       - record_deployed_shas
-    if: ${{ always() }}
     runs-on: ubuntu-24.04
-    outputs:
-      aws_release_status: ${{ steps.resolve.outputs.aws_release_status }}
 
     steps:
-      # A smoke skipped because its component was not selected is not a failure.
+      # A job skipped because its component was not selected is not a failure.
       - name: Resolve AWS release status
         id: resolve
         run: |
@@ -1213,12 +1105,14 @@ jobs:
           if [[ "${{ needs.changes.result }}" != "success" ]]; then
             aws_release_status="component_selection_failed"
           elif [[ "${{ needs.changes.outputs.deploy_any }}" == "true" ]]; then
-            if [[ "${{ needs.pre_deploy_checks.result }}" != "success" ]]; then
-              aws_release_status="pre_deploy_checks_failed"
-            elif [[ "${deploy_platform}" == "true" && "${{ needs.postgres_checks.result }}" != "success" ]]; then
+            if [[ "${deploy_platform}" == "true" && "${{ needs.postgres_checks.result }}" != "success" ]]; then
               aws_release_status="postgres_checks_failed"
             elif [[ "${{ needs.aws_deploy.result }}" != "success" ]]; then
               aws_release_status="deployment_failed"
+            elif [[ "${{ needs.post_deploy_seeding.result }}" != "success" ]]; then
+              aws_release_status="post_deploy_seeding_failed"
+            elif [[ "${{ needs.post_deploy_checks.result }}" != "success" ]]; then
+              aws_release_status="post_deploy_checks_failed"
             elif [[ ( "${deploy_web}" == "true" || "${deploy_platform}" == "true" ) && "${{ needs.web_smoke.result }}" != "success" ]]; then
               aws_release_status="web_smoke_failed"
             elif [[ "${deploy_platform}" == "true" && "${{ needs.agent_api_smoke.result }}" != "success" ]]; then
@@ -1234,44 +1128,21 @@ jobs:
 
           echo "aws_release_status=${aws_release_status}" >> "${GITHUB_OUTPUT}"
 
-      - name: Summarize AWS release outcome
-        run: |
-          {
-            echo "## AWS release outcome"
-            echo ""
-            echo "- AWS release status: \`${{ steps.resolve.outputs.aws_release_status }}\`"
-          } >> "${GITHUB_STEP_SUMMARY}"
-
-  release_summary:
-    name: AWS/Web release summary
-    if: ${{ always() }}
-    needs:
-      - changes
-      - pre_deploy_checks
-      - postgres_checks
-      - aws_deploy
-      - web_smoke
-      - agent_api_smoke
-      - mcp_smoke
-      - record_deployed_shas
-      - aws_release_status
-    runs-on: ubuntu-24.04
-
-    steps:
       - name: Summarize release outcome
         run: |
           {
             echo "## AWS/Web release summary"
             echo ""
-            echo "- Staged platform deploy: \`${{ needs.changes.outputs.staged_platform }}\`"
+            echo "- AWS release status: \`${{ steps.resolve.outputs.aws_release_status }}\`"
+            echo "- Migrations changed (staged deploy, waited for PostgreSQL checks): \`${{ needs.changes.outputs.migrations_changed }}\`"
             echo "- Isolated MCP capacity selected: \`${{ needs.changes.outputs.mcp_capacity }}\`"
             echo "- Platform selected: \`${{ needs.changes.outputs.deploy_platform }}\`"
             echo "- Web selected: \`${{ needs.changes.outputs.deploy_web }}\`"
             echo "- Admin selected: \`${{ needs.changes.outputs.deploy_admin }}\`"
             echo "- PostgreSQL integration job: \`${{ needs.postgres_checks.result }}\`"
-            echo "- Pre-deploy checks job: \`${{ needs.pre_deploy_checks.result }}\`"
-            echo "- AWS release status: \`${{ needs.aws_release_status.outputs.aws_release_status }}\`"
             echo "- AWS deploy job: \`${{ needs.aws_deploy.result }}\`"
+            echo "- Seed release data and check public domains job: \`${{ needs.post_deploy_seeding.result }}\`"
+            echo "- Post-deploy checks job: \`${{ needs.post_deploy_checks.result }}\`"
             echo "- Web smoke job: \`${{ needs.web_smoke.result }}\`"
             echo "- Agent API smoke job: \`${{ needs.agent_api_smoke.result }}\`"
             echo "- MCP smoke job: \`${{ needs.mcp_smoke.result }}\`"
@@ -1283,7 +1154,7 @@ jobs:
         run: |
           set -euo pipefail
 
-          aws_release_status="${{ needs.aws_release_status.outputs.aws_release_status }}"
+          aws_release_status="${{ steps.resolve.outputs.aws_release_status }}"
 
           if [[ "${aws_release_status}" != "no_aws_changes" ]] && [[ "${aws_release_status}" != "released" ]]; then
             echo "AWS release finished in non-healthy state: ${aws_release_status}" >&2

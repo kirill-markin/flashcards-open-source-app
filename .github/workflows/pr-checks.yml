@@ -77,7 +77,7 @@ jobs:
               admin_changed=true
             fi
 
-            if grep -Eq '^(infra/|scripts/generate/write-ci-cdk-context\.py$|scripts/deploy/(prepare-lambda-build-inputs\.sh|lambda-asset-cache\.py|report-cloudformation-budget\.py)$|\.github/workflows/pr-checks\.yml$)' "${changed_files_path}"; then
+            if grep -Eq '^(infra/|scripts/generate/write-ci-cdk-context\.py$|scripts/deploy/(prepare-lambda-build-inputs\.sh|lambda-asset-cache\.py|report-cloudformation-budget\.py|bootstrap\.sh)$|scripts/checks/check-multipart-completion-reconciliation-schedule\.sh$|\.github/workflows/(pr-checks|aws-web-release)\.yml$)' "${changed_files_path}"; then
               infra_changed=true
             fi
 
@@ -217,6 +217,10 @@ jobs:
       - name: Build backend
         if: ${{ needs.changes.outputs.backend_changed == 'true' }}
         run: npm run build --prefix apps/backend
+
+      - name: Test backend MCP protocol
+        if: ${{ needs.changes.outputs.backend_changed == 'true' }}
+        run: npm run test:mcp --prefix apps/backend
 
       - name: Build web app
         if: ${{ needs.changes.outputs.web_changed == 'true' }}

@@ -4,7 +4,7 @@ Use this procedure before changing CloudFormation stack boundaries, resource
 ownership or deployment roles. Build, synthesize and deploy AWS artifacts only
 in CI/CD. The [release gates](release-gates.md) own ordinary release checks;
 the [monitoring ownership guide](monitoring-stack-migration.md) describes the
-completed split and links its current read-only evidence validators.
+completed split and its evidence.
 
 ## Prepare while ordinary releases remain possible
 
