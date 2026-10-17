@@ -10,6 +10,7 @@ final class AIChatStoreRunTerminalRecoveryTests: XCTestCase {
         }
 
         try context.configureLinkedCloudSession()
+        try context.acknowledgeExternalProviderConsent()
         let store = context.makeStore()
         let bootstrapGate = AIChatStoreTestSupport.AsyncGate()
         context.chatService.loadBootstrapGate = bootstrapGate
@@ -188,6 +189,7 @@ final class AIChatStoreRunTerminalRecoveryTests: XCTestCase {
         }
 
         try context.configureLinkedCloudSession()
+        try context.acknowledgeExternalProviderConsent()
         let store = context.makeStore()
         let baselineMessages = [
             AIChatStoreTestSupport.makeUserTextMessage(
@@ -290,6 +292,7 @@ final class AIChatStoreRunTerminalRecoveryTests: XCTestCase {
         }
 
         try context.configureLinkedCloudSession()
+        try context.acknowledgeExternalProviderConsent()
         let store = context.makeStore()
         let visibleBaselineMessages = [
             AIChatStoreTestSupport.makeUserTextMessage(
