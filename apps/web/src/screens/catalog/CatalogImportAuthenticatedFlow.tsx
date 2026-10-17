@@ -239,7 +239,7 @@ function CatalogImportWorkspaceChooser(props: Readonly<{
       <strong className="panel-subtitle">{t("catalogImport.workspaceTitle")}</strong>
       <p className="subtitle">{t("catalogImport.workspaceDescription")}</p>
       <div className="workspace-choice-list">
-        {availableWorkspaces.map((workspace) => {
+        {availableWorkspaces.filter((workspace) => workspace.isVisible !== false).map((workspace) => {
           const isActiveWorkspace = workspace.workspaceId === activeWorkspace?.workspaceId;
           return (
             <button
@@ -320,7 +320,7 @@ function CatalogImportAuthenticatedContent(props: Readonly<{ catalogContext: Cat
   } = useAppData();
   const { indexedDbOpenRecoveryState, showCapturedTechnicalError } = useAppErrorDialog();
   const { messages, t, formatCount, formatNumber } = useI18n();
-  const isWorkspaceChoiceAvailable = availableWorkspaces.length > 1;
+  const isWorkspaceChoiceAvailable = availableWorkspaces.filter((workspace) => workspace.isVisible !== false).length > 1;
   const [step, setStep] = useState<CatalogImportStep>(() => (isWorkspaceChoiceAvailable ? "workspace" : "confirm"));
   const [hasWorkspaceStep, setHasWorkspaceStep] = useState<boolean>(isWorkspaceChoiceAvailable);
   const [preview, setPreview] = useState<CatalogPackageInstallPreviewResponse | null>(null);

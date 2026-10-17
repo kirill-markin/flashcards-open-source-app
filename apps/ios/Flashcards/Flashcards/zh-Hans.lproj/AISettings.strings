@@ -978,3 +978,23 @@
 
 "settings.account.cloudSignIn.continueGoogle" = "使用 Google 继续";
 "settings.account.cloudSignIn.appleCleanupPending" = "Apple 正在完成安全更新。请稍后再次尝试通过 Apple 登录，或选择其他登录方式。";
+
+"settings.account.connection.title" = "关联账号";
+"settings.account.connection.suggestion" = "查看建议的账号关联";
+"settings.account.connection.data" = "卡片、复习和工作区会保留。成员关系将合并，所有者权限优先。";
+"settings.account.connection.settings" = "采用目标账号的设置和公开资料，并执行更严格的隐私限制。保留真实主邮箱，或使用已证明的真实邮箱。";
+"settings.account.connection.billing" = "购买、授权、用量和集成凭据将归入关联后的账号。订阅和原始试用记录保持不变。";
+"settings.account.connection.destination" = "所选目标";
+"settings.account.connection.hidden" = "从工作区选项中隐藏";
+"settings.account.connection.omit" = "符合条件时申请排除";
+"settings.account.connection.preserve" = "只有符合条件的初始工作区可以隐藏。底层数据和其他工作区均会保留。";
+"settings.account.connection.confirm" = "确认关联账号";
+"settings.account.connection.connected" = "账号已关联。";
+"settings.account.connection.alreadyConnected" = "这些账号已经关联。";
+"settings.account.connection.cancelled" = "已取消关联。";
+"settings.account.connection.uncertain" = "确认已发送，但结果未知。请用同一份确认查询结果。";
+"settings.account.connection.replay" = "查询确认结果";
+"settings.account.connection.preview" = "刷新关联预览";
+"settings.account.connection.previewChanged" = "预览已更改。请刷新并明确确认新的预览。";
+"settings.account.connection.restart" = "证明已过期或已使用。请重新提供证明后再试。";
+"settings.account.connection.restorePaused" = "账号已关联。本地刷新已暂停；你的离线数据已保留。";

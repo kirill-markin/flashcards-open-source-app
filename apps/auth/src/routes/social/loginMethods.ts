@@ -11,9 +11,9 @@ app.get("/api/account/login-methods", async (c) => {
     await requireSocialRequest(c, "manage");
     const client = parseSocialClient(c.req.query("client"));
     const session = await requireAccountSession(c, client === "web" ? "web" : "native");
-    const { methods, verifiedRecoveryEmails } = await listAccountLoginMethods(session);
+    const { methods, verifiedRecoveryEmails, reauthenticationEmail } = await listAccountLoginMethods(session);
     const csrfToken = client === "web" ? createAccountBrowserContext(c) : null;
-    return c.json({ methods, verifiedRecoveryEmails, emailRecovery: "read_only", csrfToken });
+    return c.json({ methods, verifiedRecoveryEmails, reauthenticationEmail, emailRecovery: "read_only", csrfToken });
   } catch (error) {
     return socialErrorResponse(c, error);
   }

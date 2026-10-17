@@ -382,7 +382,7 @@ export function isGuestUpgradeMergeOnlyExecutorQuery(text: string): boolean {
     || text.startsWith("DELETE FROM org.workspaces")
     || text === "DELETE FROM org.user_settings WHERE user_id = $1"
     || text
-      === "INSERT INTO org.workspaces ( workspace_id, name, fsrs_client_updated_at, fsrs_last_modified_by_replica_id, fsrs_last_operation_id ) VALUES ($1, $2, $3, $4, $5)"
+      === "INSERT INTO org.workspaces ( workspace_id, name, fsrs_client_updated_at, fsrs_last_modified_by_replica_id, fsrs_last_operation_id, creation_origin ) VALUES ($1, $2, $3, $4, $5, $6)"
     || text === "INSERT INTO org.workspace_memberships (workspace_id, user_id, role) VALUES ($1, $2, 'owner')"
     || text
       === "INSERT INTO sync.workspace_sync_metadata (workspace_id, min_available_hot_change_id, updated_at) VALUES ($1, 0, now()) ON CONFLICT (workspace_id) DO NOTHING"

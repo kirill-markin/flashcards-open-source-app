@@ -1,3 +1,4 @@
+import accountConnection from "./routes/social/accountConnection.js";
 import authFact from "./routes/browser/authFact.js";
 import { randomUUID } from "node:crypto";
 import { PrincipalSessionError } from "./server/social/principalSessions.js";
@@ -43,7 +44,7 @@ import {
 import { getAppleSignInConfig, getGoogleSignInConfig } from "./server/social/config.js";
 import { getDemoEmailAccessConfig } from "./server/demoEmailAccess.js";
 import { createAgentErrorEnvelope } from "./server/agent/agentEnvelope.js";
-import { isTransientDatabaseError } from "./server/databaseErrors.js";
+import { getDatabaseErrorSqlState, isTransientDatabaseError } from "./server/databaseErrors.js";
 import { log } from "./server/logger.js";
 import { continueAuthTrace } from "./server/sentry.js";
 
@@ -164,6 +165,16 @@ export function registerAuthErrorHandler(app: Hono<AuthAppEnv>): void {
         socialCompletion
           ? "Session validation could not complete after authentication. Start a new provider sign-in; the previous proof was consumed."
           : "Session validation could not complete after Cognito returned tokens. Retry refreshing shortly.");
+    }
+    if (getDatabaseErrorSqlState(error) === "P0A01") {
+      const code = "ACCOUNT_SCOPE_CHANGED";
+      const message = "Account ownership changed or is busy. Reload the account and retry the request.";
+      logger({ domain: "auth", action: "request_error", requestId, traceId, route: c.req.path,
+        statusCode: 409, code, error: error.message });
+      if (routeKind === "agent") {
+        return c.json(createAgentErrorEnvelope(c.req.url, code, message, "Reload the account and retry."), 409);
+      }
+      return jsonAuthError(c, 409, code, message);
     }
     if (isTransientDatabaseError(error)) {
       const statusCode = 503;
@@ -312,7 +323,8 @@ function createMountedApp(basePath: string): Hono<AuthAppEnv> {
     const secFetchSite = c.req.header("sec-fetch-site");
     const providerStartNavigation = secFetchSite === "cross-site"
       && c.req.method === "GET"
-      && (routePath === "/api/social/google/start" || routePath === "/api/social/apple/start")
+      && (routePath === "/api/social/google/start" || routePath === "/api/social/apple/start"
+        || routePath === "/api/account/connection/provider-start")
       && c.req.header("sec-fetch-mode") === "navigate"
       && c.req.header("sec-fetch-dest") === "document";
     // `app.<domain>` refreshes the browser session through `auth.<domain>`,
@@ -342,6 +354,7 @@ function createMountedApp(basePath: string): Hono<AuthAppEnv> {
   app.route("/", linkMethod);
   app.route("/", unlinkMethod);
   app.route("/", currentEmailReauth);
+  app.route("/", accountConnection);
   app.route("/", socialAttempt);
   app.route("/", socialComplete);
   app.route("/", socialBrowserStart);

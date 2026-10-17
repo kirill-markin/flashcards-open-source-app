@@ -11,6 +11,7 @@ import {
   type DatabaseBoundaryErrorFields,
 } from "../database/transient";
 import { HttpError } from "../shared/errors";
+import { activeGuestSessionOwnerPredicateSql } from "../guestAuth/shared";
 import {
   findProductAnalyticsEventDefinition,
   parseProductAnalyticsExperimentAssignments,
@@ -470,7 +471,7 @@ async function lockInstallationOwnerInTransaction(
   if (installation.guestSessionId !== null) {
     const session = await client.query(
       `SELECT session_id FROM auth.guest_sessions
-       WHERE session_id = $1::uuid AND user_id = $2 AND revoked_at IS NULL
+       WHERE ${activeGuestSessionOwnerPredicateSql}
        FOR SHARE`,
       [installation.guestSessionId, installation.userId],
     );

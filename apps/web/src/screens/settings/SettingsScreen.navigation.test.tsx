@@ -168,6 +168,7 @@ function createAppData(): Mutable<AppDataContextValue> {
       accentColor: "#C44B2D",
       reviewReactionAnimationsEnabled: true,
     })),
+    refreshConnectedAccount: vi.fn(async (): Promise<void> => undefined),
     initialize: vi.fn(async (): Promise<void> => undefined),
     chooseWorkspace: vi.fn(async (_workspaceId: string): Promise<void> => undefined),
     createWorkspace: vi.fn(async (_name: string): Promise<void> => undefined),

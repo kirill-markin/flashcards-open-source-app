@@ -1,4 +1,5 @@
 import type {
+  Card,
   WorkspacePackageImportedMediaAsset,
   WorkspacePackageImportConfirmResponse,
   WorkspacePackageImportConfirmSummary,
@@ -151,6 +152,11 @@ export function parseWorkspacePackageImportPreviewResponse(
   };
 }
 
+function parseImportedCard(value: unknown, endpoint: string, path: string): Card {
+  const card = parseCard(value, endpoint, path);
+  return { ...card, metadata: { version: 1, source: card.metadata.source } };
+}
+
 export function parseWorkspacePackageImportConfirmResponse(
   value: unknown,
   endpoint: string,
@@ -162,7 +168,7 @@ export function parseWorkspacePackageImportConfirmResponse(
       "cards",
       endpoint,
       "",
-      (cardsValue, cardsEndpoint, cardsPath) => parseArray(cardsValue, cardsEndpoint, cardsPath, parseCard),
+      (cardsValue, cardsEndpoint, cardsPath) => parseArray(cardsValue, cardsEndpoint, cardsPath, parseImportedCard),
     ),
     importedMediaAssets: parseRequiredField(
       objectValue,

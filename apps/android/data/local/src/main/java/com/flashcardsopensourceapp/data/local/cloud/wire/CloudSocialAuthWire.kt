@@ -61,7 +61,8 @@ internal fun parseCloudAuthMethods(json: JSONObject): CloudAuthMethods {
             nativeAttempt = account.socialLiteral("nativeAttempt", "/api/social/attempt"),
             nativeComplete = account.socialLiteral("nativeComplete", "/api/social/complete"),
             freshProofSeconds = 120,
-            emailRecovery = account.socialLiteral("emailRecovery", "read_only")
+            emailRecovery = account.socialLiteral("emailRecovery", "read_only"),
+            connectionSupported = parseConnectionCapability(account)
         ),
         completion = CloudSocialCompletionContract(
             codeChallengeMethod = completion.socialLiteral("codeChallengeMethod", "S256"),
@@ -155,7 +156,12 @@ internal fun parseCloudSocialLoginSession(json: JSONObject): CloudSocialLoginSes
             idTokenExpiresAtMillis = makeIdTokenExpiryTimestampMillis(System.currentTimeMillis(), expiresIn)
         ),
         accessToken = accessToken,
-        signInHint = hint
+        signInHint = hint,
+        connectionSuggestion = if (!json.has("connectionSuggestion") || json.isNull("connectionSuggestion")) null else {
+            val suggestion = json.requireCloudObject("connectionSuggestion", "socialLogin.connectionSuggestion")
+            com.flashcardsopensourceapp.data.local.model.cloud.CloudConnectionSuggestion(suggestion.socialHandle("suggestion"),
+                suggestion.requireCloudIsoTimestampMillis("expiresAt", "socialLogin.connectionSuggestion.expiresAt"))
+        }
     )
 }
 
@@ -254,4 +260,16 @@ internal fun parseCloudEmailSignInHint(response: JSONObject): CloudSuccessfulSig
     val email = hint.requireCloudString("email", "emailSession.signInHint.email")
     socialContract(validSocialEmail(email), "emailSession.signInHint.email")
     return CloudSuccessfulSignInHint(CloudSignInMethod.EMAIL, email, null, null)
+}
+
+
+private fun parseConnectionCapability(account: JSONObject): Boolean {
+    if (!account.has("connection")) return false
+    account.socialLiteral("connection", "/api/account/connection")
+    account.socialLiteral("connectionCapability", "canonical-account-v1")
+    val actions = account.requireCloudArray("connectionActions", "authMethods.account.connectionActions")
+        .toCloudStringList("authMethods.account.connectionActions")
+    socialContract(actions == listOf("begin", "adopt", "provider_begin", "provider_complete", "email_send",
+        "email_verify", "load", "preview", "confirm", "cancel"), "authMethods.account.connectionActions")
+    return true
 }

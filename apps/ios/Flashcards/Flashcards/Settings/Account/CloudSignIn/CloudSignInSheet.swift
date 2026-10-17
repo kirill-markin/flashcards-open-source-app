@@ -21,228 +21,239 @@ struct CloudSignInSheet: View {
         self.presentationContext = presentationContext
     }
 
-    var body: some View {
-        @Bindable var store = self.store
+    private enum SignInStep: Hashable {
+        case email
+        case code
+    }
 
-        NavigationStack {
+    var body: some View {
+        ZStack {
+            if self.store.cloudSignInAttempt.postAuthLoadingState != nil {
+                CloudPostAuthLoadingSheet()
+            } else if self.store.cloudSignInAttempt.postAuthGuestLocalRecoveryPreparationState != nil {
+                CloudPostAuthGuestLocalRecoveryPreparationSheet()
+            } else if let syncState = self.store.cloudSignInAttempt.postAuthSyncState {
+                CloudPostAuthSyncSheet(operation: syncState.operation)
+            } else if let failureState = self.store.cloudSignInAttempt.postAuthFailureState {
+                CloudPostAuthFailureSheet(
+                    state: failureState,
+                    isRetryDisabled: self.store.cloudSignInAttempt.isPostAuthActionInFlight,
+                    allowsCloseAction: failureState.allowsAccountExitActions
+                        || self.presentationContext == .credentialRecoveryGate,
+                    allowsLogoutAction: failureState.allowsAccountExitActions && self.isStandardPresentation,
+                    isLogoutInFlight: self.isLoggingOut,
+                    onRetry: { self.retryPostAuthFailure(failureState) },
+                    onClose: { self.dismiss() },
+                    onLogout: { self.isLogoutConfirmationPresented = true }
+                )
+                .environment(self.store)
+            } else if let recoveryState = self.store.cloudSignInAttempt.postAuthRecoveryNeededState {
+                CloudPostAuthRecoveryNeededSheet(
+                    state: recoveryState,
+                    allowsLogoutAction: self.isStandardPresentation,
+                    isLogoutInFlight: self.isLoggingOut,
+                    onClose: { self.dismiss() },
+                    onLogout: { self.isLogoutConfirmationPresented = true }
+                )
+            } else if let linkContext = self.store.cloudSignInAttempt.workspaceLinkContext {
+                CloudWorkspaceSelectionSheet(
+                    linkContext: linkContext,
+                    isSelectionDisabled: self.store.cloudSignInAttempt.isPostAuthActionInFlight,
+                    onSelection: { self.completeLink(linkContext: linkContext, selection: $0) },
+                    onCancelled: { self.store.cloudSignInAttempt.workspaceLinkContext = nil }
+                )
+                .environment(self.store)
+            } else if self.store.cloudSignInAttempt.isMailboxPresented {
+                let attemptId = self.store.cloudSignInAttempt.id
+                CloudMailboxVerificationSheet(
+                    attemptId: attemptId,
+                    screen: self.presentationContext.signInStepSurface,
+                    onVerified: { self.handleVerifiedAuthContext($0, attemptId: attemptId) }
+                )
+                .environment(self.store)
+            } else {
+                self.signInForm
+            }
+        }
+        .accessibilityIdentifier(UITestIdentifier.cloudSignInScreen)
+        .interactiveDismissDisabled(
+            self.store.cloudSignInAttempt.isPostAuthActionInFlight || self.isLoggingOut
+                || (self.store.cloudSignInAttempt.isMailboxPresented && self.store.cloudSignInAttempt.isNativeRequestInFlight)
+                || self.store.cloudSignInAttempt.postAuthFailureState?.kind == .guestLocalRecovery
+        )
+        .onChange(of: self.store.cloudSignInAttempt.isMailboxPresented) { _, isPresented in
+            if !isPresented && !self.store.cloudSignInAttempt.usesNativeSession {
+                self.store.cloudNativeSignIn.resetPendingSignIn()
+            }
+        }
+        .alert(aiSettingsLocalized("settings.account.status.logoutAlertTitle", "Log out and clear this device?"), isPresented: self.$isLogoutConfirmationPresented) {
+            Button(aiSettingsLocalized("common.cancel", "Cancel"), role: .cancel) {}
+            Button(aiSettingsLocalized("settings.account.status.logOut", "Log out"), role: .destructive) {
+                self.logoutAndDismiss {
+                    try await self.store.signOutCloudAccountFromPressedControl(screen: .signin)
+                }
+            }
+        } message: {
+            Text(aiSettingsLocalized("settings.account.status.logoutAlertMessage", "All local workspaces and synced data will be removed from this device."))
+        }
+        .sheet(item: self.$technicalErrorPresentation) { presentation in
+            TechnicalErrorSheet(
+                presentation: presentation,
+                onClose: {
+                    self.technicalErrorPresentation = nil
+                }
+            )
+        }
+        .onChange(of: self.store.cloudSignInAttempt.isCompleted, initial: true) { _, isCompleted in
+            guard isCompleted else {
+                return
+            }
+
+            self.dismiss()
+        }
+        .onAppear {
+            self.recordSurfacePresenceIfNeeded()
+        }
+        .onDisappear {
+            self.clearSurfacePresenceIfNeeded()
+        }
+    }
+
+    private var signInPath: Binding<[SignInStep]> {
+        Binding(
+            get: {
+                guard self.store.cloudSignInAttempt.isEmailSelected else { return [] }
+                return self.store.cloudSignInAttempt.otpSheetState == nil ? [.email] : [.email, .code]
+            },
+            set: { path in
+                guard !self.store.cloudSignInAttempt.isMethodChangeBlocked else { return }
+                if !path.contains(.code) {
+                    self.store.cloudSignInAttempt.otpSheetState = nil
+                }
+                self.store.cloudSignInAttempt.isEmailSelected = path.contains(.email)
+                if !self.store.cloudSignInAttempt.isEmailSelected {
+                    self.isEmailFieldFocused = false
+                }
+            }
+        )
+    }
+
+    private var signInForm: some View {
+        NavigationStack(path: self.signInPath) {
             ReadableContentLayout(
                 maxWidth: flashcardsReadableFormMaxWidth,
                 horizontalPadding: 0
             ) {
                 Form {
-                    if let authErrorPresentation = self.store.cloudSignInAttempt.authErrorPresentation {
-                        Section {
-                            CloudAuthInlineErrorView(
-                                presentation: authErrorPresentation,
-                                onTechnicalError: { technicalError in
-                                    self.presentTechnicalError(technicalError)
-                                }
-                            )
-                        }
-                    }
-
+                    self.authErrorSection
                     CloudNativeSignInOptions(
                         screen: self.presentationContext.signInStepSurface,
                         onVerified: { context in
                             self.handleVerifiedAuthContext(context, attemptId: self.store.cloudSignInAttempt.id)
                         }
                     )
-
-                    if self.store.cloudSignInAttempt.isEmailSelected {
-                        Section {
-                            Button(aiSettingsLocalized("common.back", "Back")) {
-                                self.isEmailFieldFocused = false
-                                self.store.cloudSignInAttempt.isEmailSelected = false
-                            }
-                            .disabled(self.store.cloudSignInAttempt.isMethodChangeBlocked)
-                            .accessibilityIdentifier("cloudSignIn.anotherMethod")
-                        }
-
-                        Section(aiSettingsLocalized("common.email", "Email")) {
-                            TextField(aiSettingsLocalized("settings.account.cloudSignIn.emailPlaceholder", "Your email"), text: $store.cloudSignInAttempt.email)
-                                .textInputAutocapitalization(.never)
-                                .autocorrectionDisabled()
-                                .keyboardType(.emailAddress)
-                                .textContentType(.emailAddress)
-                                .submitLabel(.send)
-                                .focused(self.$isEmailFieldFocused)
-                                .accessibilityIdentifier(UITestIdentifier.cloudSignInEmailField)
-                                .onSubmit {
-                                    self.sendCode()
-                                }
-                        }
-                        .disabled(self.store.cloudSignInAttempt.isMethodChangeBlocked)
-
-                        Section {
-                            Button(aiSettingsLocalized("settings.account.cloudSignIn.sendOneTimeCode", "Send one-time code")) {
-                                self.sendCode()
-                            }
-                            .disabled(
-                                self.store.cloudSignInAttempt.isMethodChangeBlocked
-                                    || isValidCloudEmail(self.store.cloudSignInAttempt.email) == false
-                            )
-                            .accessibilityIdentifier(UITestIdentifier.cloudSignInSendCodeButton)
-                        }
-                    }
                 }
             }
             .navigationTitle(aiSettingsLocalized("settings.account.cloudSignIn.unifiedTitle", "Sign in or create an account"))
             .navigationBarTitleDisplayMode(.inline)
             .accessibilityIdentifier(UITestIdentifier.cloudSignInScreen)
-            .interactiveDismissDisabled(self.store.cloudSignInAttempt.isPostAuthActionInFlight)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button(aiSettingsLocalized("common.close", "Close")) {
-                        self.dismiss()
-                    }
-                    .disabled(
-                        self.store.cloudSignInAttempt.isSendingCode
-                            || self.store.cloudSignInAttempt.isNativeRequestInFlight
-                            || self.store.cloudSignInAttempt.isPostAuthActionInFlight
-                    )
+            .toolbar { self.closeToolbar }
+            .navigationDestination(for: SignInStep.self) { step in
+                switch step {
+                case .email:
+                    self.emailForm
+                case .code:
+                    self.codeForm
                 }
-            }
-            .sheet(isPresented: $store.cloudSignInAttempt.isMailboxPresented, onDismiss: {
-                if !self.store.cloudSignInAttempt.usesNativeSession {
-                    self.store.cloudNativeSignIn.resetPendingSignIn()
-                }
-            }) {
-                let attemptId = self.store.cloudSignInAttempt.id
-                CloudMailboxVerificationSheet(
-                    attemptId: attemptId,
-                    screen: self.presentationContext.signInStepSurface,
-                    onVerified: { context in self.handleVerifiedAuthContext(context, attemptId: attemptId) }
-                )
-                .environment(self.store)
-            }
-            .sheet(item: $store.cloudSignInAttempt.otpSheetState) { otpState in
-                // The code step's requests outlive it exactly as `sendCode`'s do — the OTP sheet has
-                // no `interactiveDismissDisabled`, so a slow verify can still be in flight when the
-                // person swipes it and the sign-in sheet away. Its write-backs carry the attempt they
-                // belong to for the same reason `sendCode` does.
-                let attemptId = self.store.cloudSignInAttempt.id
-
-                CloudOtpVerificationSheet(
-                    attemptId: attemptId,
-                    signInStepSurface: self.presentationContext.signInStepSurface,
-                    otpSheetState: $store.cloudSignInAttempt.otpSheetState,
-                    onVerified: { verifiedContext in
-                        self.handleVerifiedAuthContext(verifiedContext, attemptId: attemptId)
-                    },
-                    onReturnToEmail: {
-                        self.cancelPostAuthTasksAndClearInFlightState()
-                        self.store.cloudSignInAttempt.otpSheetState = nil
-                        self.store.cloudSignInAttempt.workspaceLinkContext = nil
-                        self.store.cloudSignInAttempt.postAuthRecoveryNeededState = nil
-                        self.store.cloudSignInAttempt.postAuthFailureState = nil
-                        self.scheduleEmailFieldFocus()
-                    }
-                )
-                .environment(self.store)
-            }
-            .sheet(item: $store.cloudSignInAttempt.postAuthLoadingState) { loadingState in
-                CloudPostAuthLoadingSheet()
-                    .interactiveDismissDisabled(true)
-            }
-            .sheet(item: $store.cloudSignInAttempt.postAuthGuestLocalRecoveryPreparationState) { recoveryState in
-                CloudPostAuthGuestLocalRecoveryPreparationSheet()
-                    .interactiveDismissDisabled(true)
-            }
-            .sheet(item: $store.cloudSignInAttempt.postAuthSyncState) { syncState in
-                CloudPostAuthSyncSheet(operation: syncState.operation)
-                    .interactiveDismissDisabled(true)
-            }
-            .sheet(item: $store.cloudSignInAttempt.workspaceLinkContext) { linkContext in
-                CloudWorkspaceSelectionSheet(
-                    linkContext: linkContext,
-                    isSelectionDisabled: self.store.cloudSignInAttempt.isPostAuthActionInFlight,
-                    onSelection: { selection in
-                        self.completeLink(linkContext: linkContext, selection: selection)
-                    },
-                    onCancelled: {
-                        self.store.cloudSignInAttempt.workspaceLinkContext = nil
-                    }
-                )
-                .environment(self.store)
-            }
-            .sheet(item: $store.cloudSignInAttempt.postAuthRecoveryNeededState) { recoveryState in
-                CloudPostAuthRecoveryNeededSheet(
-                    state: recoveryState,
-                    allowsLogoutAction: self.isStandardPresentation,
-                    isLogoutInFlight: self.isLoggingOut,
-                    onClose: {
-                        self.store.cloudSignInAttempt.postAuthRecoveryNeededState = nil
-                        self.dismiss()
-                    },
-                    onLogout: {
-                        self.isLogoutConfirmationPresented = true
-                    }
-                )
-            }
-            .sheet(item: $store.cloudSignInAttempt.postAuthFailureState) { failureState in
-                CloudPostAuthFailureSheet(
-                    state: failureState,
-                    isRetryDisabled: self.store.cloudSignInAttempt.isPostAuthActionInFlight,
-                    allowsCloseAction: failureState.allowsAccountExitActions
-                        || self.presentationContext == .credentialRecoveryGate,
-                    allowsLogoutAction: failureState.allowsAccountExitActions
-                        && self.isStandardPresentation,
-                    isLogoutInFlight: self.isLoggingOut,
-                    onRetry: {
-                        self.retryPostAuthFailure(failureState)
-                    },
-                    onClose: {
-                        self.store.cloudSignInAttempt.postAuthFailureState = nil
-                        self.dismiss()
-                    },
-                    onLogout: {
-                        self.isLogoutConfirmationPresented = true
-                    }
-                )
-                // Also while the sign-out runs: a swipe-dismiss there would take the sheet away
-                // while the credentials are still on the device.
-                .interactiveDismissDisabled(failureState.kind == .guestLocalRecovery || self.isLoggingOut)
-                .environment(self.store)
-            }
-            .alert(aiSettingsLocalized("settings.account.status.logoutAlertTitle", "Log out and clear this device?"), isPresented: self.$isLogoutConfirmationPresented) {
-                Button(aiSettingsLocalized("common.cancel", "Cancel"), role: .cancel) {}
-                Button(aiSettingsLocalized("settings.account.status.logOut", "Log out"), role: .destructive) {
-                    self.logoutAndDismiss {
-                        try await self.store.signOutCloudAccountFromPressedControl(screen: .signin)
-                    }
-                }
-            } message: {
-                Text(aiSettingsLocalized("settings.account.status.logoutAlertMessage", "All local workspaces and synced data will be removed from this device."))
-            }
-            .sheet(item: self.$technicalErrorPresentation) { presentation in
-                TechnicalErrorSheet(
-                    presentation: presentation,
-                    onClose: {
-                        self.technicalErrorPresentation = nil
-                    }
-                )
-            }
-            // The attempt decides when the presentation closes, because the work that finishes it
-            // may well have been started by a view instance that no longer exists.
-            .onChange(of: self.store.cloudSignInAttempt.isCompleted, initial: true) { _, isCompleted in
-                guard isCompleted else {
-                    return
-                }
-
-                self.dismiss()
-            }
-            .onAppear {
-                self.recordSurfacePresenceIfNeeded()
-                self.scheduleEmailFieldFocusIfShowingEmailForm()
-            }
-            .onChange(of: self.store.cloudSignInAttempt.isEmailSelected) { _, selected in
-                if selected { self.scheduleEmailFieldFocusIfShowingEmailForm() }
-            }
-            .onDisappear {
-                self.clearSurfacePresenceIfNeeded()
             }
         }
-        .accessibilityIdentifier(UITestIdentifier.cloudSignInScreen)
+    }
+
+    private var closeToolbar: some ToolbarContent {
+        ToolbarItem(placement: .topBarTrailing) {
+            Button(aiSettingsLocalized("common.close", "Close")) {
+                self.dismiss()
+            }
+            .disabled(
+                self.store.cloudSignInAttempt.isSendingCode
+                    || self.store.cloudSignInAttempt.isNativeRequestInFlight
+                    || self.store.cloudSignInAttempt.isVerifyingOtpCode
+                    || self.store.cloudSignInAttempt.isResendingOtpCode
+                    || self.store.cloudSignInAttempt.isPostAuthActionInFlight
+            )
+        }
+    }
+
+    private var emailForm: some View {
+        @Bindable var store = self.store
+
+        return ReadableContentLayout(
+            maxWidth: flashcardsReadableFormMaxWidth,
+            horizontalPadding: 0
+        ) {
+            Form {
+                self.authErrorSection
+                Section(aiSettingsLocalized("common.email", "Email")) {
+                    TextField(aiSettingsLocalized("settings.account.cloudSignIn.emailPlaceholder", "Your email"), text: $store.cloudSignInAttempt.email)
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled()
+                        .keyboardType(.emailAddress)
+                        .textContentType(.emailAddress)
+                        .submitLabel(.send)
+                        .focused(self.$isEmailFieldFocused)
+                        .accessibilityIdentifier(UITestIdentifier.cloudSignInEmailField)
+                        .onSubmit {
+                            self.sendCode()
+                        }
+                }
+                .disabled(self.store.cloudSignInAttempt.isMethodChangeBlocked)
+
+                Section {
+                    Button(aiSettingsLocalized("settings.account.cloudSignIn.sendOneTimeCode", "Send one-time code")) {
+                        self.sendCode()
+                    }
+                    .disabled(
+                        self.store.cloudSignInAttempt.isMethodChangeBlocked
+                            || isValidCloudEmail(self.store.cloudSignInAttempt.email) == false
+                    )
+                    .accessibilityIdentifier(UITestIdentifier.cloudSignInSendCodeButton)
+                }
+            }
+        }
+        .navigationTitle(aiSettingsLocalized("common.email", "Email"))
+        .navigationBarTitleDisplayMode(.inline)
+        .navigationBarBackButtonHidden(self.store.cloudSignInAttempt.isMethodChangeBlocked)
+        .toolbar { self.closeToolbar }
+        .onAppear {
+            self.scheduleEmailFieldFocusIfShowingEmailForm()
+        }
+    }
+
+    private var codeForm: some View {
+        @Bindable var store = self.store
+        let attemptId = self.store.cloudSignInAttempt.id
+
+        return CloudOtpVerificationSheet(
+            attemptId: attemptId,
+            signInStepSurface: self.presentationContext.signInStepSurface,
+            otpSheetState: $store.cloudSignInAttempt.otpSheetState,
+            onVerified: { self.handleVerifiedAuthContext($0, attemptId: attemptId) }
+        )
+        .toolbar { self.closeToolbar }
+    }
+
+    @ViewBuilder
+    private var authErrorSection: some View {
+        if let authErrorPresentation = self.store.cloudSignInAttempt.authErrorPresentation {
+            Section {
+                CloudAuthInlineErrorView(
+                    presentation: authErrorPresentation,
+                    onTechnicalError: { technicalError in
+                        self.presentTechnicalError(technicalError)
+                    }
+                )
+            }
+        }
     }
 
     private func cancelPostAuthTasksAndClearInFlightState() {
@@ -290,7 +301,6 @@ struct CloudSignInSheet: View {
     ) {
         self.store.cloudSignInAttempt.postAuthGuestLocalRecoveryPreparationTask?.task.cancel()
         let task = Task { @MainActor in
-            await Task.yield()
             await self.runGuestLocalRecoveryPreparation(recoveryState)
             self.clearPostAuthGuestLocalRecoveryPreparationTaskIfCurrent(stateId: recoveryState.id)
         }
@@ -685,7 +695,7 @@ struct CloudSignInSheet: View {
 
             self.recordStoredSessionIfNeeded(operation: syncState.operation, method: method)
             self.store.cloudSignInAttempt.postAuthFailureState = nil
-            self.store.cloudSignInAttempt.postAuthSyncState = nil
+            // Keep progress on screen until the presentation owner receives its dismissal.
             if !self.store.cloudSignInAttempt.hasRecordedAccountReady {
                 self.store.cloudSignInAttempt.hasRecordedAccountReady = true
                 self.recordAccountCompletion(operation: syncState.operation, method: method)
@@ -903,6 +913,7 @@ struct CloudSignInSheetModifier: ViewModifier {
 
     @Binding private var isPresented: Bool
     @State private var hasOpenedAttemptForCurrentPresentation: Bool = false
+    @State private var isConnectionSuggestionPresented = false
     private let presentationContext: CloudSignInPresentationContext
 
     init(isPresented: Binding<Bool>, presentationContext: CloudSignInPresentationContext) {
@@ -918,14 +929,21 @@ struct CloudSignInSheetModifier: ViewModifier {
             .sheet(
                 isPresented: self.$isPresented,
                 onDismiss: {
+                    let completed = self.store.cloudSignInAttempt.isCompleted
                     self.hasOpenedAttemptForCurrentPresentation = false
                     self.store.endCloudSignInAttempt()
+                    self.isConnectionSuggestionPresented = completed
+                        && self.store.cloudNativeSignIn.availableConnectionSuggestion(store: self.store) != nil
                 },
                 content: {
                     CloudSignInSheet(presentationContext: self.presentationContext)
                         .environment(self.store)
                 }
             )
+            .sheet(isPresented: self.$isConnectionSuggestionPresented) {
+                AccountMethodsView(store: self.store, entry: .suggestedConnection)
+                    .environment(self.store)
+            }
     }
 
     private func openAttemptForPresentationIfNeeded(isNowPresented: Bool) {

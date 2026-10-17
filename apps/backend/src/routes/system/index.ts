@@ -10,7 +10,7 @@ import { unsafeQuery } from "../../database/unsafe";
 import { updateGuestSessionAnalyticsPreferences } from "../../guestAuth/store/session";
 import { createSourceDiscoveryResponse } from "../../shared/sourceDiscovery";
 import { getSessionCsrfToken } from "../../auth/requestSecurity";
-import { loadRequestContextFromRequest } from "../../server/requestContext";
+import { getClientAccountIdentity, loadRequestContextFromRequest } from "../../server/requestContext";
 import type { AppEnv } from "../../server/app";
 import {
   registerAccountPreferencesRoutes,
@@ -89,8 +89,11 @@ export function createSystemRoutes(options: SystemRoutesOptions): Hono<AppEnv> {
       return context.json(createAgentAccountEnvelope(context.req.url, requestContext, agentWorkspaceReplicaId));
     }
 
+    const identity = getClientAccountIdentity(requestContext);
     return context.json({
-      userId: requestContext.userId,
+      userId: identity.originalClientUserId,
+      canonicalAccountId: identity.canonicalAccountId,
+      linkedAccountIds: identity.linkedAccountIds,
       selectedWorkspaceId: requestContext.selectedWorkspaceId,
       authTransport: requestContext.transport,
       csrfToken: requestContext.transport === "session" && requestAuthInputs.sessionToken !== undefined

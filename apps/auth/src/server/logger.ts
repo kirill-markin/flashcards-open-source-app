@@ -1,3 +1,4 @@
+import type { ProviderEmailEnrollmentOutcome } from "./social/providerEmailEnrollment.js";
 import type { AuthTraceId } from "./sentry.js";
 import type { AuthPurpose } from "./social/attemptContract.js";
 import type { IdentityProvider } from "./social/identityStore.js";
@@ -32,9 +33,24 @@ type AuthAction =
   | "apple_revocation_drain"
   | "apple_revocation_wake"
   | "apple_notification"
+  | "apple_identity_verified"
   | "provider_mailbox_verification_required"
   | "provider_reconnected"
+  | "provider_email_enrollment"
+  | "provider_email_enrollment_error"
   | "error";
+
+type AppleEmailCategory = "missing" | "relay" | "real";
+export type AppleIdentityProofFacts = Readonly<{
+  identitySource: "native" | "exchange";
+  suppliedEmailCategory: AppleEmailCategory | null;
+  suppliedEmailVerified: boolean | null;
+  suppliedPrivateRelay: boolean | null;
+  exchangedEmailCategory: AppleEmailCategory;
+  exchangedEmailVerified: boolean | null;
+  exchangedPrivateRelay: boolean | null;
+  emailMismatch: boolean | null;
+}>;
 
 export type AuthLogEvent = Readonly<{
   domain: "auth";
@@ -57,6 +73,9 @@ export type AuthLogEvent = Readonly<{
   provider?: IdentityProvider;
   client?: SocialClient;
   purpose?: AuthPurpose;
+  attemptHash?: string;
+  appleProof?: AppleIdentityProofFacts;
+  emailEnrollment?: ProviderEmailEnrollmentOutcome;
   emailAuthority?: ProviderEmail["authority"] | null;
   privateRelay?: boolean | null;
   maskedEmail?: string;

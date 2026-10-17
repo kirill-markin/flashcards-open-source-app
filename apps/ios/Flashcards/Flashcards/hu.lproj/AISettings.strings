@@ -950,3 +950,23 @@
 
 "settings.account.cloudSignIn.continueGoogle" = "Folytatás Google-lel";
 "settings.account.cloudSignIn.appleCleanupPending" = "Az Apple egy biztonsági frissítést fejez be. Próbáld újra az Apple-lel rövidesen, vagy válassz másik bejelentkezési módot.";
+
+"settings.account.connection.title" = "Fiókok összekapcsolása";
+"settings.account.connection.suggestion" = "Javasolt összekapcsolás áttekintése";
+"settings.account.connection.data" = "A kártyák, ismétlések és munkaterületek megmaradnak. A tagságok egyesülnek; a tulajdonjog elsőbbséget élvez.";
+"settings.account.connection.settings" = "A cél beállításai és nyilvános profilja érvényesülnek szigorúbb adatvédelemmel. A valódi elsődleges e-mail megmarad, vagy igazolt valódi cím kerül használatba.";
+"settings.account.connection.billing" = "A vásárlások, jogosultságok, használat és integrációs hitelesítő adatok az összekapcsolt fiókhoz kerülnek. Az előfizetések és az eredeti próbaelőzmények nem változnak.";
+"settings.account.connection.destination" = "Kiválasztott cél";
+"settings.account.connection.hidden" = "Elrejtve a munkaterület-választóból";
+"settings.account.connection.omit" = "Kihagyás kérése, ha megengedett";
+"settings.account.connection.preserve" = "Csak a feltételeknek megfelelő kezdeti munkaterületek rejthetők el. Az adatok és a többi munkaterület megmaradnak.";
+"settings.account.connection.confirm" = "Összekapcsolás megerősítése";
+"settings.account.connection.connected" = "Fiókok összekapcsolva.";
+"settings.account.connection.alreadyConnected" = "Ezek a fiókok már össze vannak kapcsolva.";
+"settings.account.connection.cancelled" = "Összekapcsolás megszakítva.";
+"settings.account.connection.uncertain" = "A megerősítés elküldve, de az eredmény ismeretlen. Ellenőrizze ugyanazzal a megerősítéssel.";
+"settings.account.connection.replay" = "Eredmény ellenőrzése";
+"settings.account.connection.preview" = "Előnézet frissítése";
+"settings.account.connection.previewChanged" = "Az előnézet megváltozott. Frissítse, és kifejezetten erősítse meg az új előnézetet.";
+"settings.account.connection.restart" = "A bizonyíték lejárt vagy felhasználták. Kezdje újra friss bizonyítékkal.";
+"settings.account.connection.restorePaused" = "Fiókok összekapcsolva. A helyi frissítés szünetel; az offline adatok megmaradnak.";

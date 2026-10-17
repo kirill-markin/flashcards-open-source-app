@@ -950,3 +950,23 @@
 
 "settings.account.cloudSignIn.continueGoogle" = "Endelea kwa Google";
 "settings.account.cloudSignIn.appleCleanupPending" = "Apple inakamilisha sasisho la usalama. Jaribu tena kwa Apple baada ya muda mfupi, au chagua njia nyingine ya kuingia.";
+
+"settings.account.connection.title" = "Unganisha akaunti";
+"settings.account.connection.suggestion" = "Kagua muunganisho uliopendekezwa";
+"settings.account.connection.data" = "Kadi, marudio na maeneo ya kazi yanabaki. Uanachama unaunganishwa; umiliki unatangulia.";
+"settings.account.connection.settings" = "Mipangilio na wasifu wa umma wa lengwa hutumika kwa faragha kali zaidi. Barua pepe kuu halisi hubaki au anwani halisi iliyothibitishwa hutumika.";
+"settings.account.connection.billing" = "Ununuzi, haki, matumizi na vitambulisho vya miunganisho hufuata akaunti iliyounganishwa. Usajili na historia ya awali ya majaribio havibadiliki.";
+"settings.account.connection.destination" = "Lengwa lililochaguliwa";
+"settings.account.connection.hidden" = "Imefichwa katika chaguo za nafasi za kazi";
+"settings.account.connection.omit" = "Omba kuacha ikiwa inaruhusiwa";
+"settings.account.connection.preserve" = "Ni nafasi za mwanzo zinazostahiki tu zinazoweza kufichwa. Data na nafasi nyingine za kazi zinahifadhiwa.";
+"settings.account.connection.confirm" = "Thibitisha muunganisho";
+"settings.account.connection.connected" = "Akaunti zimeunganishwa.";
+"settings.account.connection.alreadyConnected" = "Akaunti hizi tayari zimeunganishwa.";
+"settings.account.connection.cancelled" = "Muunganisho umeghairiwa.";
+"settings.account.connection.uncertain" = "Uthibitisho umetumwa lakini matokeo hayajulikani. Yakague kwa uthibitisho uleule.";
+"settings.account.connection.replay" = "Kagua matokeo";
+"settings.account.connection.preview" = "Onyesha hakiki mpya";
+"settings.account.connection.previewChanged" = "Hakiki imebadilika. Ionyeshe upya na uthibitishe hakiki mpya waziwazi.";
+"settings.account.connection.restart" = "Ushahidi umeisha muda au umetumika. Anza tena kwa ushahidi mpya.";
+"settings.account.connection.restorePaused" = "Akaunti zimeunganishwa. Usasishaji wa ndani umesitishwa; data yako ya nje ya mtandao imehifadhiwa.";

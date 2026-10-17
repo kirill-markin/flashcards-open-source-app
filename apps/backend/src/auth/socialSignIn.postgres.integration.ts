@@ -48,6 +48,11 @@ test("unbound provider proof storage enrolls, completes and redeems a one-use en
       checkAtomicAuthoritativeLogin: (runtime: pg.Client, owner: pg.Client | pg.Pool) => Promise<void>;
     }>;
     await gate.checkAtomicAuthoritativeLogin(runtime, owner);
+    const emailModuleUrl = pathToFileURL(resolve(__dirname, "../../../auth/src/integration/providerEmailEnrollmentGate.ts")).href;
+    const emailGate = await import(emailModuleUrl) as Readonly<{
+      checkProviderEmailEnrollment: (runtime: pg.Client, owner: pg.Client) => Promise<void>;
+    }>;
+    await emailGate.checkProviderEmailEnrollment(runtime, owner);
     // Exercise real storage authority, without supplying fabricated tokens to a provider verifier.
     const fresh = await proveStorage();
     const snapshot = await owner.query("SELECT snapshot_subject, snapshot_username, snapshot_account, snapshot_method_activated_at FROM auth.social_attempts WHERE attempt_sha256 = $1", [fresh.attempt]);

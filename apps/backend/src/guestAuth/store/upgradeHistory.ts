@@ -10,6 +10,7 @@ type GuestUpgradeHistoryReplayRow = Readonly<{
   source_guest_session_id: string;
   target_subject_user_id: string;
   target_user_id: string;
+  canonical_target_user_id: string;
   target_workspace_id: string;
   dropped_entities: GuestUpgradeDroppedEntities | null;
 }>;
@@ -19,6 +20,7 @@ export type GuestUpgradeReplayRecord = Readonly<{
   sourceGuestSessionId: string;
   targetSubjectUserId: string;
   targetUserId: string;
+  canonicalTargetUserId: string;
   targetWorkspaceId: string;
   droppedEntities?: GuestUpgradeDroppedEntities;
 }>;
@@ -29,6 +31,7 @@ function mapGuestUpgradeReplayRecord(row: GuestUpgradeHistoryReplayRow): GuestUp
     sourceGuestSessionId: row.source_guest_session_id,
     targetSubjectUserId: row.target_subject_user_id,
     targetUserId: row.target_user_id,
+    canonicalTargetUserId: row.canonical_target_user_id,
     targetWorkspaceId: row.target_workspace_id,
     ...(row.dropped_entities === null
       ? {}
@@ -40,12 +43,10 @@ export async function loadGuestUpgradeReplayInExecutor(
   executor: DatabaseExecutor,
   guestSessionId: string,
 ): Promise<GuestUpgradeReplayRecord | null> {
-  // Compatibility read path for released clients that retry
-  // `/guest-auth/upgrade/complete` after the merge committed and the original
-  // guest session was already revoked.
   const result = await executor.query<GuestUpgradeHistoryReplayRow>(
     [
-      "SELECT source_guest_user_id, source_guest_session_id, target_subject_user_id, target_user_id, target_workspace_id, dropped_entities",
+      "SELECT source_guest_user_id, source_guest_session_id, target_subject_user_id, target_user_id,",
+      "auth.canonical_account_id(target_user_id) AS canonical_target_user_id, target_workspace_id, dropped_entities",
       "FROM auth.guest_upgrade_history",
       "WHERE source_guest_session_id = $1",
       "LIMIT 1",
@@ -63,7 +64,8 @@ export async function loadGuestUpgradeReplayByGuestTokenInExecutor(
 ): Promise<GuestUpgradeReplayRecord | null> {
   const result = await executor.query<GuestUpgradeHistoryReplayRow>(
     [
-      "SELECT source_guest_user_id, source_guest_session_id, target_subject_user_id, target_user_id, target_workspace_id, dropped_entities",
+      "SELECT source_guest_user_id, source_guest_session_id, target_subject_user_id, target_user_id,",
+      "auth.canonical_account_id(target_user_id) AS canonical_target_user_id, target_workspace_id, dropped_entities",
       "FROM auth.guest_upgrade_history",
       "WHERE source_guest_session_secret_hash = $1",
       "LIMIT 1",

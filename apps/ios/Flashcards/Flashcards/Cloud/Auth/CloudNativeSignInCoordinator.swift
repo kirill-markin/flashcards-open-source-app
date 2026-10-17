@@ -43,6 +43,7 @@ final class CloudNativeSignInCoordinator {
     private(set) var mailboxChallenge: CloudSocialMailboxChallenge?
     private(set) var linkContext: CloudWorkspaceLinkContext?
     private(set) var completedAccount: CloudNativeSignInAccount?
+    private(set) var connectionSuggestion: CloudPendingConnectionSuggestion?
     private(set) var rememberedHint: CloudSuccessfulSignInHint?
     @ObservationIgnored private let social: CloudSocialAuthService
     @ObservationIgnored private let email: CloudAuthService
@@ -53,12 +54,30 @@ final class CloudNativeSignInCoordinator {
     @ObservationIgnored private var operationId: UUID?
     @ObservationIgnored private var configuration: CloudServiceConfiguration?
     @ObservationIgnored private var pending: CloudPendingNativeSession?
+    @ObservationIgnored private var pendingConnectionSuggestion: CloudPendingConnectionSuggestion?
     @ObservationIgnored private var acceptedHint: CloudSuccessfulSignInHint?
 
     init(social: CloudSocialAuthService, email: CloudAuthService, hintStore: CloudSignInHintStore) {
         self.social = social
         self.email = email
         self.hintStore = hintStore
+    }
+
+    func availableConnectionSuggestion(store: FlashcardsStore) -> CloudPendingConnectionSuggestion? {
+        guard let suggestion = self.connectionSuggestion,
+              suggestion.configuration == (try? store.currentCloudServiceConfiguration()),
+              suggestion.credentials == (try? store.cloudRuntime.loadCredentials()),
+              store.cloudSettings?.cloudState == .linked,
+              let expiry = parseIsoTimestamp(value: suggestion.suggestion.expiresAt), expiry > Date() else { return nil }
+        return suggestion
+    }
+
+    func clearConnectionSuggestion() { self.connectionSuggestion = nil }
+
+    func finishPresentation() {
+        let suggestion = self.completedAccount == nil ? nil : self.connectionSuggestion
+        self.resetPendingSignIn()
+        self.connectionSuggestion = suggestion
     }
 
     func loadRememberedHint() throws {
@@ -74,6 +93,8 @@ final class CloudNativeSignInCoordinator {
         self.epoch = UUID()
         self.operationId = nil
         self.isWorking = false
+        self.connectionSuggestion = nil
+        self.pendingConnectionSuggestion = nil
         self.configuration = nil
         self.pending = nil
         self.mailboxChallenge = nil
@@ -218,6 +239,8 @@ final class CloudNativeSignInCoordinator {
                 throw LocalStoreError.validation("The completed sign-in did not accept its linked account and workspace")
             }
             self.completedAccount = CloudNativeSignInAccount(userId: session.userId, workspaceId: session.workspaceId)
+            self.connectionSuggestion = self.pendingConnectionSuggestion
+            self.pendingConnectionSuggestion = nil
             self.acceptedHint = pending.hint
             self.pending = nil
             self.linkContext = nil
@@ -247,6 +270,10 @@ final class CloudNativeSignInCoordinator {
         let method = CloudSignInMethod(provider: completion.login.provider)
         self.pending = CloudPendingNativeSession(method: method, verifiedContext: context,
             hint: CloudSuccessfulSignInHint(social: session.signInHint))
+        self.pendingConnectionSuggestion = session.connectionSuggestion.map {
+            CloudPendingConnectionSuggestion(suggestion: $0, binding: completion.login.binding,
+                configuration: configuration, credentials: session.credentials)
+        }
         self.mailboxChallenge = nil
         self.stage = .sessionAccepted(method)
         return context

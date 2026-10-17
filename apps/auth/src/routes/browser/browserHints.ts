@@ -64,8 +64,8 @@ app.get(browserHintsBridgePath, async (c) => {
         } else if (bridge.verificationFailed) {
           result = { status: "error", code: "session_unavailable" };
         } else {
-          const method = browserHints.consume(bridge.current);
-          result = method === null ? { status: "absent" } : { status: "accepted", method };
+          const accepted = browserHints.consume(bridge.current, event.origin);
+          result = accepted === null ? { status: "absent" } : { status: "accepted", ...accepted };
         }
       } catch {
         result = { status: "error", code: "storage_unavailable" };

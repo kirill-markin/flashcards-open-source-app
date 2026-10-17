@@ -950,3 +950,23 @@
 
 "settings.account.cloudSignIn.continueGoogle" = "Fortsett med Google";
 "settings.account.cloudSignIn.appleCleanupPending" = "Apple fullfører en sikkerhetsoppdatering. Prøv igjen med Apple om litt, eller velg en annen innloggingsmetode.";
+
+"settings.account.connection.title" = "Koble sammen kontoer";
+"settings.account.connection.suggestion" = "Se foreslått sammenkobling";
+"settings.account.connection.data" = "Kort, repetisjoner og arbeidsområder beholdes. Medlemskap slås sammen; eierskap har forrang.";
+"settings.account.connection.settings" = "Målets innstillinger og offentlige profil brukes med strengere personvern. Den ekte primære e-postadressen beholdes, ellers brukes en bekreftet ekte adresse.";
+"settings.account.connection.billing" = "Kjøp, rettigheter, bruk og integrasjonsopplysninger følger den sammenkoblede kontoen. Abonnementer og opprinnelig prøvehistorikk er uendret.";
+"settings.account.connection.destination" = "Valgt mål";
+"settings.account.connection.hidden" = "Skjult i valget av arbeidsområder";
+"settings.account.connection.omit" = "Be om utelatelse hvis tillatt";
+"settings.account.connection.preserve" = "Bare kvalifiserte startområder kan skjules. Data og øvrige arbeidsområder beholdes.";
+"settings.account.connection.confirm" = "Bekreft sammenkobling";
+"settings.account.connection.connected" = "Kontoene er koblet sammen.";
+"settings.account.connection.alreadyConnected" = "Disse kontoene er allerede koblet sammen.";
+"settings.account.connection.cancelled" = "Sammenkobling avbrutt.";
+"settings.account.connection.uncertain" = "Bekreftelsen ble sendt, men resultatet er ukjent. Kontroller det med samme bekreftelse.";
+"settings.account.connection.replay" = "Kontroller resultat";
+"settings.account.connection.preview" = "Oppdater forhåndsvisning";
+"settings.account.connection.previewChanged" = "Forhåndsvisningen er endret. Oppdater den og bekreft den nye visningen uttrykkelig.";
+"settings.account.connection.restart" = "Beviset har utløpt eller er brukt. Start på nytt med et nytt bevis.";
+"settings.account.connection.restorePaused" = "Kontoer koblet sammen. Lokal oppdatering er satt på pause; frakoblede data beholdes.";

@@ -2,7 +2,7 @@ import type {
   ReviewableCardScheduleState,
 } from "../../../../backend/src/scheduling";
 import { canonicalizeDueAtForSync, parseDueAtMillis } from "./dueAt";
-import { makeDefaultCardMetadata } from "./cardMetadata";
+import { makeDefaultCardMetadata, metadataAfterCardEdit } from "./cardMetadata";
 import type {
   Card,
   CardFilter,
@@ -639,7 +639,7 @@ export function buildUpdatedCard(
   installationId: string,
   operationId: string,
 ): Card {
-  return {
+  const nextCard: Card = {
     ...card,
     frontText: input.frontText ?? card.frontText,
     backText: input.backText ?? card.backText,
@@ -649,6 +649,7 @@ export function buildUpdatedCard(
     lastOperationId: operationId,
     updatedAt: clientUpdatedAt,
   };
+  return { ...nextCard, metadata: metadataAfterCardEdit(card, nextCard) };
 }
 
 export function buildDeletedCard(

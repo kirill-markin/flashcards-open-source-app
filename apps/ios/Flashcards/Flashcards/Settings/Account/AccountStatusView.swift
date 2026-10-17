@@ -34,6 +34,7 @@ struct AccountStatusView: View {
     @Environment(FlashcardsStore.self) private var store: FlashcardsStore
 
     @State private var isAccountMethodsPresented = false
+    @State private var accountMethodsEntry: AccountMethodsEntry = .methods
     @State private var isCloudSignInPresented: Bool = false
     @State private var isLogoutConfirmationPresented: Bool = false
     @State private var isLoggingOut: Bool = false
@@ -178,7 +179,18 @@ struct AccountStatusView: View {
                             }
                             .accessibilityIdentifier(UITestIdentifier.accountStatusSignInButton)
                         case .linked:
-                            Button(accountMethodCopy(.title)) { self.isAccountMethodsPresented = true }
+                            if self.store.cloudNativeSignIn.availableConnectionSuggestion(store: self.store) != nil {
+                                Button(connectionCopy(.suggestion)) {
+                                    self.accountMethodsEntry = .suggestedConnection
+                                    self.isAccountMethodsPresented = true
+                                }
+                                    .disabled(self.isLoggingOut)
+                                    .accessibilityIdentifier("accountStatus.connectionSuggestion")
+                            }
+                            Button(accountMethodCopy(.title)) {
+                                self.accountMethodsEntry = .methods
+                                self.isAccountMethodsPresented = true
+                            }
                                 .disabled(self.isLoggingOut)
                                 .accessibilityIdentifier("accountStatus.methods")
 
@@ -222,7 +234,7 @@ struct AccountStatusView: View {
         .accessibilityIdentifier(UITestIdentifier.accountStatusScreen)
         .navigationTitle(aiSettingsLocalized("settings.account.status.title", "Account Status"))
         .sheet(isPresented: self.$isAccountMethodsPresented) {
-            NavigationStack { AccountMethodsView(store: self.store).environment(self.store) }
+            AccountMethodsView(store: self.store, entry: self.accountMethodsEntry).environment(self.store)
         }
         .cloudSignInSheet(
             isPresented: self.$isCloudSignInPresented,

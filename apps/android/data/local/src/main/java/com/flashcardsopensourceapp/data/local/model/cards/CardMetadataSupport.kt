@@ -1,5 +1,6 @@
 package com.flashcardsopensourceapp.data.local.model.cards
 
+import org.json.JSONArray
 import org.json.JSONException
 import org.json.JSONObject
 
@@ -39,9 +40,19 @@ fun encodeDefaultCardMetadataJson(createdAt: String): String {
 }
 
 fun buildCardMetadataJsonObject(metadata: CardMetadata): JSONObject {
-    return JSONObject()
+    val result = JSONObject()
         .put("version", metadata.version)
         .put("source", metadata.source?.let(::buildCardSourceMetadataJsonObject) ?: JSONObject.NULL)
+    metadata.onboardingDemo?.let { demo ->
+        result.put("onboardingDemo", JSONObject()
+            .put("version", demo.version)
+            .put("frontText", demo.frontText)
+            .put("backText", demo.backText)
+            .put("tags", JSONArray(demo.tags))
+            .put("cardType", demo.cardType)
+            .put("wasEdited", demo.wasEdited))
+    }
+    return result
 }
 
 fun decodeCardMetadataJson(metadataJson: String): CardMetadata {
@@ -72,7 +83,8 @@ fun decodeCardMetadataJsonObject(metadataObject: JSONObject): CardMetadata {
             null
         } else {
             decodeCardSourceMetadataJsonObject(metadataObject = metadataObject.getJSONObject("source"))
-        }
+        },
+        onboardingDemo = decodeOnboardingDemoMetadata(value = metadataObject.opt("onboardingDemo"))
     )
 }
 
@@ -111,4 +123,68 @@ private fun JSONObject.requireNullableString(key: String): String? {
         value is String -> value
         else -> throw IllegalArgumentException("Card metadata source $key must be a string or null.")
     }
+}
+
+private val onboardingWhitespace: Set<Char> = setOf(
+    '\u0009', '\u000A', '\u000B', '\u000C', '\u000D', '\u0020', '\u00A0', '\u1680',
+    '\u2000', '\u2001', '\u2002', '\u2003', '\u2004', '\u2005', '\u2006', '\u2007',
+    '\u2008', '\u2009', '\u200A', '\u2028', '\u2029', '\u202F', '\u205F', '\u3000', '\uFEFF'
+)
+
+private fun trimOnboardingText(text: String): String = text.trim { it in onboardingWhitespace }
+
+fun makeOnboardingDemoMetadata(
+    frontText: String,
+    backText: String,
+    tags: List<String>,
+    cardType: String,
+    wasEdited: Boolean
+): OnboardingDemoMetadata {
+    val trimmedType = trimOnboardingText(cardType)
+    return OnboardingDemoMetadata(
+        version = 1,
+        frontText = trimOnboardingText(frontText),
+        backText = trimOnboardingText(backText),
+        tags = tags.distinct().sorted(),
+        cardType = trimmedType.ifEmpty { defaultCardType },
+        wasEdited = wasEdited
+    )
+}
+
+fun decodeOnboardingDemoMetadata(value: Any?): OnboardingDemoMetadata? {
+    val demo = value as? JSONObject ?: return null
+    val version = demo.opt("version")
+    val front = demo.opt("frontText") as? String ?: return null
+    val back = demo.opt("backText") as? String ?: return null
+    val type = demo.opt("cardType") as? String ?: return null
+    val tags = demo.opt("tags") as? JSONArray ?: return null
+    val wasEdited = if (demo.has("wasEdited")) demo.opt("wasEdited") as? Boolean ?: return null else false
+    if (version !is Number || version.toDouble() != 1.0 || trimOnboardingText(front).isEmpty()) {
+        return null
+    }
+    val tagValues = (0 until tags.length()).map { index -> tags.opt(index) as? String ?: return null }
+    return makeOnboardingDemoMetadata(
+        frontText = front, backText = back, tags = tagValues, cardType = type, wasEdited = wasEdited
+    )
+}
+
+fun cardMetadataAfterAuthoredEdit(
+    metadata: CardMetadata,
+    frontText: String,
+    backText: String,
+    tags: List<String>,
+    cardType: String,
+    input: CardDraft
+): CardMetadata {
+    val demo = metadata.onboardingDemo ?: return metadata
+    val previous = makeOnboardingDemoMetadata(
+        frontText = frontText, backText = backText, tags = tags, cardType = cardType, wasEdited = false
+    )
+    val next = makeOnboardingDemoMetadata(
+        frontText = input.frontText, backText = input.backText, tags = input.tags,
+        cardType = cardType, wasEdited = false
+    )
+    return metadata.copy(onboardingDemo = demo.copy(
+        wasEdited = demo.wasEdited || previous != next || demo.copy(wasEdited = false) != next
+    ))
 }

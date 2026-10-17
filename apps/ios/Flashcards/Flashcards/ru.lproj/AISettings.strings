@@ -978,3 +978,23 @@
 
 "settings.account.cloudSignIn.continueGoogle" = "Продолжить с Google";
 "settings.account.cloudSignIn.appleCleanupPending" = "Apple завершает обновление безопасности. Попробуйте снова войти через Apple чуть позже или выберите другой способ входа.";
+
+"settings.account.connection.title" = "Объединить аккаунты";
+"settings.account.connection.suggestion" = "Проверить предложенное объединение";
+"settings.account.connection.data" = "Карточки, повторения и пространства сохраняются. Участники объединяются; права владельца имеют приоритет.";
+"settings.account.connection.settings" = "Применяются настройки и публичный профиль целевого аккаунта с более строгой приватностью. Сохраняется настоящий основной email либо используется подтверждённый настоящий адрес.";
+"settings.account.connection.billing" = "Покупки, права доступа, использование и ключи интеграций переходят к объединённому аккаунту. Подписки и исходная история пробных периодов не меняются.";
+"settings.account.connection.destination" = "Выбранное назначение";
+"settings.account.connection.hidden" = "Скрыто из списка рабочих пространств";
+"settings.account.connection.omit" = "Запросить исключение, если допустимо";
+"settings.account.connection.preserve" = "Можно скрыть только подходящие начальные пространства. Данные и остальные рабочие пространства сохраняются.";
+"settings.account.connection.confirm" = "Подтвердить объединение";
+"settings.account.connection.connected" = "Аккаунты объединены.";
+"settings.account.connection.alreadyConnected" = "Эти аккаунты уже объединены.";
+"settings.account.connection.cancelled" = "Объединение отменено.";
+"settings.account.connection.uncertain" = "Подтверждение отправлено, но результат неизвестен. Проверьте его с тем же подтверждением.";
+"settings.account.connection.replay" = "Проверить результат";
+"settings.account.connection.preview" = "Обновить предпросмотр объединения";
+"settings.account.connection.previewChanged" = "Предпросмотр изменился. Обновите его и явно подтвердите новый предпросмотр.";
+"settings.account.connection.restart" = "Подтверждение доступа истекло или использовано. Начните заново с новым подтверждением.";
+"settings.account.connection.restorePaused" = "Аккаунты объединены. Локальное обновление приостановлено; ваши офлайн-данные сохранены.";

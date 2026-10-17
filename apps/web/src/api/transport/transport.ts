@@ -1,6 +1,8 @@
 import { parseSessionInfoResponse } from "../../apiContracts/account";
 import { getAppConfig } from "../../config";
+import { loadCloudSettings } from "../../localDb/sync/cloudSettings";
 import type { SessionInfo } from "../../types";
+import { projectSessionToLocalOwner } from "./sessionIdentity";
 import {
   ApiNetworkError,
   AuthRedirectError,
@@ -466,8 +468,15 @@ async function loadSessionInfo(
   options: RequestOptions,
   signal: AbortSignal | null,
 ): Promise<SessionInfo> {
-  return parseContractResponse(await requestJson("/me", {
+  const session = parseContractResponse(await requestJson("/me", {
     method: "GET",
     ...(signal === null ? {} : { signal }),
   }, options), "GET /me", parseSessionInfoResponse);
+  if (session.canonicalAccountId === undefined || (session.linkedAccountIds?.length ?? 0) < 2) {
+    return session;
+  }
+
+  const persistedCloudSettings = await loadCloudSettings();
+  sessionRecovery.throwIfRequestAborted(signal);
+  return projectSessionToLocalOwner(session, persistedCloudSettings?.linkedUserId ?? null);
 }

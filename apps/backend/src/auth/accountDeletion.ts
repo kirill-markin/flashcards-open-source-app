@@ -76,8 +76,7 @@ function assertValidConfirmationText(confirmationText: string): void {
   }
 }
 
-// Both guest upgrades and explicit guest-identity links can connect a person's older identities.
-// Walk both server-owned edges; client-chosen anonymous IDs must never enter this namespace.
+// Client-chosen anonymous IDs must never enter the person namespace.
 async function loadAnalyticsUserIdsForPersonInExecutor(
   executor: DatabaseExecutor,
   appUserId: string,
@@ -91,7 +90,8 @@ async function loadAnalyticsUserIdsForPersonInExecutor(
       "SELECT anonymous_id::text, user_id::text FROM analytics.identity_links",
       "WHERE source = 'server_derived'",
       "), person_user_ids AS (",
-      "SELECT $1::text AS user_id, ARRAY[$1::text] AS visited_user_ids",
+      "SELECT seed.user_id, ARRAY[seed.user_id] AS visited_user_ids",
+      "FROM unnest(ARRAY[$1::text] || auth.account_retirement_aliases()) AS seed(user_id)",
       "UNION ALL",
       "SELECT edge.source_user_id,",
       "person_user_ids.visited_user_ids || edge.source_user_id",
@@ -299,10 +299,11 @@ async function deleteAccountDataInExecutor(
  * `DEMO_EMAIL_DOSTIP`. Those `@example.com` review accounts keep their Cognito
  * identity so they can be reused after their app data is cleared.
  */
-async function deleteRealAccountDataInExecutor(
+export async function deleteRealAccountDataInExecutor(
   executor: DatabaseExecutor,
   appUserId: string,
 ): Promise<void> {
+  await executor.query("SELECT auth.erase_retired_account_shells()", []);
   await deleteAccountDataInExecutor(executor, appUserId);
   // Reported before the sweep below, never after it: the analytics writer commits on its own
   // connection, so the row is already stored when the sweep runs and is collapsed onto the same

@@ -17,6 +17,7 @@ import {
   type TimestampValue,
 } from "./shared";
 import type {
+  AuthorizedWorkspaceSummaryPage,
   WorkspaceSummary,
   WorkspaceSummaryPage,
   WorkspaceSummaryWithStats,
@@ -26,6 +27,10 @@ type WorkspaceSummaryRow = Readonly<{
   workspace_id: string;
   name: string;
   created_at: TimestampValue;
+}>;
+
+type AuthorizedWorkspaceSummaryRow = WorkspaceSummaryRow & Readonly<{
+  is_visible: boolean;
 }>;
 
 type WorkspaceMembershipRow = Readonly<{
@@ -124,6 +129,16 @@ export async function listUserWorkspaceIdsInExecutor(
     [userId],
   );
 
+  return result.rows.map((row) => row.workspace_id);
+}
+
+export async function listVisibleUserWorkspaceIdsInExecutor(
+  executor: DatabaseExecutor,
+): Promise<ReadonlyArray<string>> {
+  const result = await executor.query<WorkspaceMembershipRow>(
+    "SELECT workspace_id FROM org.visible_workspace_ids(NULL)",
+    [],
+  );
   return result.rows.map((row) => row.workspace_id);
 }
 
@@ -292,15 +307,6 @@ export async function loadResettableCardRowsInExecutor(
   return result.rows;
 }
 
-/**
- * Returns the full visible workspace set for internal bootstrap decisions that
- * must reason about the entire collection at once.
- *
- * Keep this helper because `ensureApiKeyWorkspaceSelection()` needs the full
- * set to decide whether to auto-create, auto-select, clear selection, or keep
- * the current selection. Transport-facing API reads should use
- * `listUserWorkspacesPageForSelectedWorkspace()` instead.
- */
 export async function listUserWorkspacesForSelectedWorkspace(
   userId: string,
   selectedWorkspaceId: string | null,
@@ -315,18 +321,16 @@ export async function listUserWorkspacesForSelectedWorkspace(
       "FROM org.workspace_memberships memberships",
       "INNER JOIN org.workspaces workspaces ON workspaces.workspace_id = memberships.workspace_id",
       "WHERE memberships.user_id = $1",
+      "AND workspaces.workspace_id IN (SELECT workspace_id FROM org.visible_workspace_ids($2))",
       "ORDER BY workspaces.created_at ASC, workspaces.workspace_id ASC",
     ].join(" "),
-    [userId],
+    [userId, selectedWorkspaceId],
   );
 
   return result.rows.map((row) => mapWorkspaceSummary(row, selectedWorkspaceId));
 }
 
 /**
- * Lists the caller's workspaces (capped at the first 100 by created_at) with
- * per-workspace active card count and last-activity timestamp.
- *
  * `content.cards` and `content.review_events` enforce workspace-scoped RLS, so a
  * user-scoped JOIN onto `content.*` returns zero rows. The membership/name set
  * and `isSelected` come from the user-scoped org query; each stats aggregate
@@ -370,6 +374,60 @@ export async function listUserWorkspacesWithStatsForSelectedWorkspace(
   return workspacesWithStats;
 }
 
+export async function listAuthorizedUserWorkspacesPageForSelectedWorkspace(
+  userId: string,
+  selectedWorkspaceId: string | null,
+  input: CursorPageInput,
+): Promise<AuthorizedWorkspaceSummaryPage> {
+  if (input.limit < 1 || input.limit > maximumWorkspacePageSize) {
+    throw new HttpError(400, `limit must be an integer between 1 and ${maximumWorkspacePageSize}`);
+  }
+
+  const decodedCursor = input.cursor === null ? null : decodeWorkspacePageCursor(input.cursor);
+  const cursorClause = decodedCursor === null
+    ? ""
+    : "AND (workspaces.created_at > $2 OR (workspaces.created_at = $2 AND workspaces.workspace_id > $3))";
+  const params = decodedCursor === null
+    ? [userId, input.limit + 1, selectedWorkspaceId]
+    : [userId, new Date(decodedCursor.createdAt), decodedCursor.workspaceId, input.limit + 1, selectedWorkspaceId];
+  const limitParamIndex = decodedCursor === null ? 2 : 4;
+
+  // Human clients use presence as sync authority; visibility only controls workspace offers.
+  const result = await queryWithUserScopeReadOnly<AuthorizedWorkspaceSummaryRow>(
+    { userId },
+    [
+      "SELECT",
+      "workspaces.workspace_id,",
+      "workspaces.name,",
+      "workspaces.created_at,",
+      "visible.workspace_id IS NOT NULL AS is_visible",
+      "FROM org.workspace_memberships memberships",
+      "INNER JOIN org.workspaces workspaces ON workspaces.workspace_id = memberships.workspace_id",
+      `LEFT JOIN org.visible_workspace_ids($${limitParamIndex + 1}) visible ON visible.workspace_id = workspaces.workspace_id`,
+      "WHERE memberships.user_id = $1",
+      cursorClause,
+      "ORDER BY workspaces.created_at ASC, workspaces.workspace_id ASC",
+      `LIMIT $${limitParamIndex}`,
+    ].join(" "),
+    params,
+  );
+
+  const hasNextPage = result.rows.length > input.limit;
+  const pageRows = hasNextPage ? result.rows.slice(0, input.limit) : result.rows;
+  const nextRow = hasNextPage ? pageRows[pageRows.length - 1] : undefined;
+
+  return {
+    workspaces: pageRows.map((row) => ({
+      ...mapWorkspaceSummary(row, selectedWorkspaceId),
+      isVisible: row.is_visible,
+    })),
+    nextCursor: nextRow === undefined ? null : encodeOpaqueCursor([
+      toIsoString(nextRow.created_at),
+      nextRow.workspace_id,
+    ]),
+  };
+}
+
 export async function listUserWorkspacesPageForSelectedWorkspace(
   userId: string,
   selectedWorkspaceId: string | null,
@@ -384,8 +442,8 @@ export async function listUserWorkspacesPageForSelectedWorkspace(
     ? ""
     : "AND (workspaces.created_at > $2 OR (workspaces.created_at = $2 AND workspaces.workspace_id > $3))";
   const params = decodedCursor === null
-    ? [userId, input.limit + 1]
-    : [userId, new Date(decodedCursor.createdAt), decodedCursor.workspaceId, input.limit + 1];
+    ? [userId, input.limit + 1, selectedWorkspaceId]
+    : [userId, new Date(decodedCursor.createdAt), decodedCursor.workspaceId, input.limit + 1, selectedWorkspaceId];
   const limitParamIndex = decodedCursor === null ? 2 : 4;
 
   const result = await queryWithUserScopeReadOnly<WorkspaceSummaryRow>(
@@ -398,6 +456,7 @@ export async function listUserWorkspacesPageForSelectedWorkspace(
       "FROM org.workspace_memberships memberships",
       "INNER JOIN org.workspaces workspaces ON workspaces.workspace_id = memberships.workspace_id",
       "WHERE memberships.user_id = $1",
+      `AND workspaces.workspace_id IN (SELECT workspace_id FROM org.visible_workspace_ids($${limitParamIndex + 1}))`,
       cursorClause,
       "ORDER BY workspaces.created_at ASC, workspaces.workspace_id ASC",
       `LIMIT $${limitParamIndex}`,

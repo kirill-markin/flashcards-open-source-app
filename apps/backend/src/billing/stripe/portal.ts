@@ -8,7 +8,7 @@ import { lockStripeHumanAccountInExecutor, observeStripeAccountInExecutor,
   stripeSubscriptionCanBill, type StripeHumanActor } from "./checkout";
 import { StripeBillingError, type StripeEnvironment } from "./contracts";
 import { publishStripeTransitions } from "./facts";
-import { hasStripeTrialConsumptionInExecutor } from "./identityStore";
+import { getStripeAccountTrialEligibilityInExecutor } from "./identityStore";
 import { loadStripeProvider } from "./provider";
 
 export type StripeSubscriptionDetails = Readonly<{
@@ -42,10 +42,7 @@ export async function getStripeBillingDetails(actor: StripeHumanActor): Promise<
     const observations = await observeStripeAccountInExecutor(executor, context);
     const hasSubscription = observations.some((customer) => customer.subscriptions.some(stripeSubscriptionCanBill));
     const pending = observations.flatMap((customer) => customer.pending);
-    const primary = context.identities.find((identity) => identity.isPrimary && identity.environment === context.environment);
-    const trialEligible = primary === undefined ? true
-      : primary.customerId === null ? null
-      : !await hasStripeTrialConsumptionInExecutor(executor, primary.identityId, primary.environment);
+    const trialEligible = await getStripeAccountTrialEligibilityInExecutor(executor, actor.userId, context.environment);
     const price = context.checkoutEnabled ? await (await loadStripeProvider(context.environment)).retrieveKnownPrice() : null;
     let basePrice: StripeBillingDetails["basePrice"] = null;
     if (price !== null) {
