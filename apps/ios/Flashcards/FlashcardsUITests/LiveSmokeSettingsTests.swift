@@ -312,6 +312,10 @@ final class LiveSmokeSettingsTests: LiveSmokeTestCase {
                     identifier: LiveSmokeIdentifier.resetWorkspaceProgressButton,
                     timeout: LiveSmokeConfiguration.longUiTimeoutSeconds
                 )
+                try self.assertElementDoesNotExist(
+                    identifier: LiveSmokeIdentifier.resetWorkspaceProgressButton,
+                    timeout: LiveSmokeConfiguration.longUiTimeoutSeconds
+                )
                 try self.assertScreenVisible(screen: .resetStudyProgress, timeout: LiveSmokeConfiguration.longUiTimeoutSeconds)
                 try self.tapFirstNavigationBackButton()
                 try self.assertScreenVisible(screen: .settings, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)

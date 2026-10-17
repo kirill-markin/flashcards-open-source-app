@@ -247,6 +247,7 @@ extension LiveSmokeTestCase {
         self.logActionStart(action: action, identifier: "application")
         self.app.launch()
         try self.waitForApplicationToReachForeground(timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+        try self.verifyAutomationRunDecision(timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
         if let launchScenario = request.launchScenario {
             try self.waitForUITestLaunchPreparation(
                 launchScenario: launchScenario,
@@ -260,6 +261,34 @@ extension LiveSmokeTestCase {
             )
         }
         self.logActionEnd(action: action, identifier: "application", result: "success", note: note)
+    }
+
+    @MainActor
+    private func verifyAutomationRunDecision(timeout: TimeInterval) throws {
+        let marker = self.app.descendants(matching: .any)
+            .matching(identifier: LiveSmokeIdentifier.uiTestLaunchPreparationStatus)
+            .firstMatch
+        let expectedDecision = "event=automation_run_decided;isAutomation=true"
+        guard marker.waitForExistence(timeout: timeout) else {
+            throw LiveSmokeFailure.missingElement(
+                identifier: LiveSmokeIdentifier.uiTestLaunchPreparationStatus,
+                timeoutSeconds: timeout,
+                screen: self.currentScreenSummary(),
+                step: self.currentStepTitle
+            )
+        }
+        let value = self.elementValue(element: marker)
+        guard value.contains(expectedDecision) else {
+            throw LiveSmokeFailure.unexpectedElementValue(
+                identifier: LiveSmokeIdentifier.uiTestLaunchPreparationStatus,
+                expectedValue: expectedDecision,
+                actualValue: value,
+                timeoutSeconds: timeout,
+                screen: self.currentScreenSummary(),
+                step: self.currentStepTitle
+            )
+        }
+        self.add(self.makeTextAttachment(name: "automation-run-decision", text: value))
     }
 
     @MainActor

@@ -315,7 +315,7 @@ extension LiveSmokeTestCase {
             note: "wait begins"
         )
         let startedAt = Date()
-        let found = element.waitForExistence(timeout: timeout)
+        let found = element.exists || element.waitForExistence(timeout: timeout)
         let durationSeconds = Date().timeIntervalSince(startedAt)
         self.logSmokeBreadcrumb(
             event: "wait_end",
