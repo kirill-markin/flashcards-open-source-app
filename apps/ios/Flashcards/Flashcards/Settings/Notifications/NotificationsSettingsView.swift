@@ -204,6 +204,7 @@ struct NotificationsSettingsView: View {
         }
         .listStyle(.insetGrouped)
         .navigationTitle(aiSettingsLocalized("settings.notifications.title", "Notifications"))
+        .accessibilityIdentifier(UITestIdentifier.notificationsSettingsScreen)
         .task {
             await self.refreshPermissionStatus()
         }
