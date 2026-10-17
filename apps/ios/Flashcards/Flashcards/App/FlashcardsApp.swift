@@ -1,3 +1,4 @@
+import Combine
 import GoogleSignIn
 import SwiftUI
 import UIKit
@@ -265,16 +266,25 @@ struct FlashcardsApp: App {
                         }
                     }
                 }
-                .onReceive(NotificationCenter.default.publisher(for: .NSCalendarDayChanged)) { _ in
+                .onReceive(
+                    NotificationCenter.default.publisher(for: .NSCalendarDayChanged)
+                        .receive(on: DispatchQueue.main)
+                ) { _ in
                     self.handleProgressContextSystemChange()
                 }
-                .onReceive(NotificationCenter.default.publisher(for: .NSProcessInfoPowerStateDidChange)) { _ in
+                .onReceive(
+                    NotificationCenter.default.publisher(for: .NSProcessInfoPowerStateDidChange)
+                        .receive(on: DispatchQueue.main)
+                ) { _ in
                     self.refreshLowPowerModeState()
                 }
                 .onReceive(NotificationCenter.default.publisher(for: UIApplication.significantTimeChangeNotification)) { _ in
                     self.handleProgressContextSystemChange()
                 }
-                .onReceive(NotificationCenter.default.publisher(for: .NSSystemTimeZoneDidChange)) { _ in
+                .onReceive(
+                    NotificationCenter.default.publisher(for: .NSSystemTimeZoneDidChange)
+                        .receive(on: DispatchQueue.main)
+                ) { _ in
                     self.handleProgressContextSystemChange()
                 }
                 .onReceive(NotificationCenter.default.publisher(for: reviewReminderAttentionStateDidChangeNotificationName)) { _ in
