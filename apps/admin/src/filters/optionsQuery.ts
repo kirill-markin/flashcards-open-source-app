@@ -274,7 +274,7 @@ function buildAnalyticsFilterOptionCatalogAttributionSql(columnSqlName: string):
  * Every value one catalog click dimension carried on a click itself, for the Funnels bar.
  *
  * Funnels matches a click that never had to become anything, and its four predicates read the click's
- * own properties (`buildFunnelClickFilterSqlLines` in
+ * own properties (`buildInstallClickFilterSqlLines` in
  * `apps/admin/src/reports/catalogInstallFunnel/query.ts`), so this reads the same rows rather than the
  * install bridge the user-scoped areas read, which offers only the values of clicks attributed to a
  * completed install.
