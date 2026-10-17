@@ -199,7 +199,11 @@ const reviewQueueBuckets: ReadonlyArray<
  * idx_cards_workspace_due_active bounds both due buckets and supplies their leading due_at order.
  * UNION ALL evaluates the new-card bucket even when a due bucket already has a candidate. Its scan
  * runs to the first accepted new card in a later created_at group, else through every live card;
- * a rare tag switches it to a due_at bitmap over every new card (docs/fsrs-scheduling-logic.md). */
+ * a rare tag switches it to a due_at bitmap over every new card. That bucket has no partial index
+ * on purpose: measured as reporting_readonly, either plan's worst case is cheap even on the largest
+ * workspace, but as backend_app the RLS qual runs per visited row at an unmeasured cost. Measure
+ * as backend_app before adding (workspace_id, created_at, card_id) WHERE deleted_at IS NULL AND
+ * due_at IS NULL, and only once a workspace's accepted new cards are sparse. */
 function buildNextReviewCardQuery(tagFilter: string): string {
   const bucketQueries = reviewQueueBuckets.map((bucket, rank) =>
     [

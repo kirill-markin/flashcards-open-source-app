@@ -117,6 +117,7 @@ struct ProgressReviewScheduleSection: View {
         self.isDimmed(key) ? 0.35 : 1.0
     }
 
+    // The selected wedge pops out instead of taking an accent stroke, the native emphasis for a `SectorMark`.
     private func outerRadiusRatio(for key: ReviewScheduleBucketKey) -> Double {
         self.isDimmed(key) ? 0.94 : 1.0
     }

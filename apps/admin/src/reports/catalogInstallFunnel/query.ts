@@ -1067,15 +1067,14 @@ export function buildCatalogInstallFunnelSql(filters: AnalyticsFilterState): str
     // so a column joined only while its own dimension is selected would never be there to read.
     //
     // WHAT MAKES THAT AFFORDABLE IS THE MEMBERSHIP PREDICATE ON EACH OF THEM - but it bounds what
-    // survives rather than what is read. An `EXPLAIN (ANALYZE, BUFFERS)` against production on
-    // 2026-09-23 lands it as a post-scan `Filter` instead of pushing it through the source's own
-    // `GROUP BY` onto the scan beneath, so each source still passes over the whole selected range and
-    // its cost follows that range rather than this cohort: the two of them are ~200 ms of the
-    // dominant statement's 440 ms. What the predicate does buy is everything above those scans -
-    // unbounded, the country source cross-joins the retained connection samples to two endpoints each
-    // and hash-joins the view again, and the language source alone reaches 2,060 ms with every actor
-    // in the cohort - on a statement group whose 30 s timeout fails the visits, both no-visit
-    // diagnostics and the cookieless counts together.
+    // survives rather than what is read. The planner applies it as a post-scan `Filter` instead of
+    // pushing it through the source's own `GROUP BY` onto the scan beneath, so each source still
+    // passes over the whole selected range and its cost follows that range rather than this cohort.
+    // What the predicate does buy is everything above those scans - unbounded, the country source
+    // cross-joins the retained connection samples to two endpoints each and hash-joins the view
+    // again, and the language source alone materializes and hash-joins a row for every trusted actor
+    // in the selected range rather than for this cohort's - on a statement group whose 30 s timeout
+    // fails the visits, both no-visit diagnostics and the cookieless counts together.
     //
     // EACH SOURCE IS A `MATERIALIZED` CTE, computed once and joined here by a CTE scan. The planner
     // has no statistics for the JSONB predicates that build `eligible_visits` and can estimate it at

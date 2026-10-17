@@ -194,6 +194,7 @@ private fun ReviewScheduleDonutChart(
             }
             .semantics {
                 contentDescription = chartDescription
+                // TalkBack announces a selection change even while focus is on a legend row.
                 liveRegion = LiveRegionMode.Polite
             }
     ) {
@@ -332,8 +333,9 @@ private fun ReviewScheduleLegendRow(
     }
 }
 
-// Canonical palette - see docs/progress-pie-palette.md.
-// Keep the hex values in sync with the iOS and Web clients.
+// Palette decisions: docs/progress-pie-palette.md. Keep the hex values in sync with
+// apps/ios/Flashcards/Flashcards/Progress/Presentation/ProgressFormatting.swift::progressReviewScheduleBucketColor
+// and apps/web/src/screens/progress/reviewSchedule/progressReviewScheduleModel.ts::reviewScheduleBucketColors.
 private val reviewScheduleBucketColors: Map<ProgressReviewScheduleBucketKey, Color> = mapOf(
     ProgressReviewScheduleBucketKey.NEW to Color(0xFFF4C430),
     ProgressReviewScheduleBucketKey.TODAY to Color(0xFFD7263D),
