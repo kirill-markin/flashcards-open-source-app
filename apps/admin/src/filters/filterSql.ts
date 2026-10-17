@@ -189,10 +189,9 @@ export function buildExcludedActorReasonSql(actorIdSqlExpression: string): strin
  *
  * NOT ENTRIES, AND NOT OMISSIONS. The three available-range probes,
  * `buildReviewEventsByDateAvailableRangeSql`, `buildCatalogInstallFunnelAvailableRangeSql` and
- * `buildWhoSawUsAvailableRangeSql`, and the catalog install funnel's effective-start statement read
- * the same view but derive no actor fact at all - each is a `MIN(occurred_at)` over event names - so
- * none needs this predicate; the funnel's two read `anonymous_client` deck page views, and Who saw
- * us's reads every `site_page_viewed`, on purpose. The
+ * `buildWhoSawUsAvailableRangeSql` read the same view but derive no actor fact at all - each is a
+ * `MIN(occurred_at)` over event names - so none needs this predicate; the funnel's reads
+ * `anonymous_client` deck page views, and Who saw us's reads every `site_page_viewed`, on purpose. The
  * review-events one is still the one surface a credential-free `app_opened` row can move: it reads
  * that name with no trust predicate, so such a row pulls the earliest selectable date backwards.
  * That widens a date picker rather than deciding anything about a person, so it stays out of this

@@ -163,18 +163,17 @@ export const siteEntryPagePathColumnName = "entry_page_path";
  *
  * ONE DIMENSION, KEYED ON THE ENTRY ROW ITSELF rather than on a per-actor source joined beside the
  * cohort. The connection country and the app interface language of a person read trusted rows only,
- * and measured on production no entrant of this cohort has ever produced one: of the 201 actors that
- * have sent a site page view, none has any trusted row at all, so both would place every entrant in
- * `Unresolved` and are not offered here. It is that measurement and not the entry rule that rules
- * them out - the rule bars a trusted event only BEFORE the entry, so an entrant who signs in
- * afterwards does have trusted rows in the range and could in principle carry such a key. The mobile
- * and the deck funnels keep both dimensions, because their cohorts are identified. The locale the
- * entry page was viewed in is on a row the statement already reads, is a property of the person by
- * construction because one person enters on exactly one page view, and is NULL only for a client
- * that reported none, which the query folds into `Unresolved`. The client platform is not offered
- * either: the entry is a marketing-site page view and the site always reports as web, as the field
- * explanations in `../../filters/analyticsFilters.ts` state, so grouping by it would always draw one
- * bar.
+ * which a site page view never is and an entrant of this cohort rarely goes on to produce, so both
+ * would place nearly every entrant in `Unresolved` and are not offered here. It is that rarity and
+ * not the entry rule that rules them out - the rule bars a trusted event only BEFORE the entry, so
+ * an entrant who signs in afterwards does have trusted rows in the range and could in principle
+ * carry such a key. The mobile and the deck funnels keep both dimensions, because their cohorts are
+ * identified. The locale the entry page was viewed in is on a row the statement already reads, is a
+ * property of the person by construction because one person enters on exactly one page view, and is
+ * NULL only for a client that reported none, which the query folds into `Unresolved`. The client
+ * platform is not offered either: the entry is a marketing-site page view and the site always
+ * reports as web, as the field explanations in `../../filters/analyticsFilters.ts` state, so
+ * grouping by it would always draw one bar.
  */
 export const siteEntryFunnelGroupByDimensions: ReadonlyArray<FunnelGroupByDimension> = [
   {
