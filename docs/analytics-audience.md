@@ -3,144 +3,84 @@
 UI language belongs to the event and is captured before offline queuing. Device language,
 timezone, and current app/OS versions describe the installation at upload time. Country is
 a daily server observation of an installation, with sparse change periods; it must never
-be assigned retroactively to offline events. Missing values remain unknown. No account-global
-language inference is performed, and the only historical backfills are event `os_name` and
-`device_type`, filled where the event's stored platform and device model make them certain
-([rules](../db/migrations/0177_backfill_analytics_os_name_device_type.sql)), and installation
-profile `os_name`, `device_type` and `device_model`, filled where the installation's own events
-make them certain ([rules](../db/migrations/0178_backfill_installation_profiles_os_device.sql)).
+be assigned retroactively to offline events. Missing values remain unknown, and no account-global
+language is inferred. The only historical backfills are event `os_name` and `device_type`
+([rules](../db/migrations/0177_backfill_analytics_os_name_device_type.sql)) and installation
+profile `os_name`, `device_type` and `device_model`
+([rules](../db/migrations/0178_backfill_installation_profiles_os_device.sql)), each filled only
+where it is certain.
 
 - [Event and installation types](../apps/backend/src/productAnalytics/types.ts)
-- [Authenticated event wire validation](../apps/backend/src/productAnalytics/validation.ts):
-  optional per-event `uiLocale`; old queued events remain valid.
-- [Credential-free collector wire validation](../apps/backend/src/productAnalytics/anonymousEvent.ts):
-  optional `uiLocale`, independent of `deviceLocale`. See
-  [anonymous client analytics](anonymous-client-analytics.md).
-- [Request headers and installation identity](../apps/backend/src/routes/productAnalytics.ts):
-  batch `anonymousId` plus normalized header platform; catalog journey IDs are excluded.
+- [Authenticated event wire validation](../apps/backend/src/productAnalytics/validation.ts) and
+  [credential-free collector wire validation](../apps/backend/src/productAnalytics/anonymousEvent.ts);
+  see [anonymous client analytics](anonymous-client-analytics.md)
+- [Request headers and installation identity](../apps/backend/src/routes/productAnalytics.ts)
 - [Atomic persistence and metadata throttling](../apps/backend/src/productAnalytics/writer.ts)
 - [Trusted connection context](../apps/backend/src/geolocation/requestCountry.ts) and
   [daily country sampling](../apps/backend/src/productAnalytics/installationCountry.ts):
-  API Gateway source address only; no forwarded-address headers. Auth relays, agent/MCP
-  requests and batches without device context do not supply human geography.
+  the API Gateway source address only. Auth relays, agent/MCP requests and batches without device
+  context supply no human geography.
 - [SQL schema, reporting grants, and country-writer transaction contract](../db/migrations/0137_audience_context.sql)
 - [Account and linked-guest deletion](../apps/backend/src/auth/accountDeletion.ts)
 - [Country retention](../apps/backend/src/productAnalytics/countryRetention.ts),
   [daily schedule](../infra/aws/lib/scheduled-jobs/country-retention.ts) and
   [failure/staleness alarms](../infra/aws/lib/monitoring.ts)
 - [Synthetic actor detection](../apps/backend/src/productAnalytics/syntheticActorDetector.ts) and
-  its [daily schedule](../infra/aws/lib/scheduled-jobs/synthetic-actor-detector.ts): records
-  reviewing actors with no client-installation replica and no trusted app open into
-  [`analytics.excluded_actors`](../db/migrations/0140_analytics_excluded_actors.sql), one row per
-  matched analytics actor id, with a per-actor log record and a Sentry warning on an unusually
-  large run.
-- [Shared report classification](../db/migrations/0171_probable_android_burst_actors.sql): probable
-  Android test bursts, which the [shared exclusion rule](admin-app.md#who-counts-as-a-person) drops,
-  are read from a materialized view that an [hourly job](../infra/aws/lib/scheduled-jobs/probable-android-burst-refresh.ts)
-  refreshes, so every change below reaches reports at the next refresh. At least four unsigned-in
-  actors share one non-null device model/OS/app fingerprint within a rolling 24-hour window, with
-  each actor's whole trusted history shorter than 24 hours. No maturity delay or report-date bound
-  applies. Later sign-in under any resolved/raw/subject ID or a return at least 24 hours later
-  restores reporting automatically; a recorded human restore under any of those IDs overrides the
-  match. Exact automatic burst rows from the detector remain audit records and do not force an
-  exclusion. Manual rows and the other detector reason retain their existing effect.
-- [Feedback connection-country snapshot](../db/migrations/0138_feedback_connection_country.sql):
-  saved only with the initial submission; existing locale/timezone snapshots remain intact.
-- [Gateway access log fields](../infra/aws/lib/gateways/api-gateway-access-log.ts):
-  raw IP is excluded; request identifiers and operational error fields remain available.
+  its [daily schedule](../infra/aws/lib/scheduled-jobs/synthetic-actor-detector.ts), recording into
+  [`analytics.excluded_actors`](../db/migrations/0140_analytics_excluded_actors.sql)
+- [Probable Android test bursts](../db/migrations/0171_probable_android_burst_actors.sql), which the
+  [shared exclusion rule](admin-app.md#who-counts-as-a-person) drops, are a materialized view an
+  [hourly job](../infra/aws/lib/scheduled-jobs/probable-android-burst-refresh.ts) refreshes, so a
+  change reaches reports at the next refresh.
+- [Feedback connection-country snapshot](../db/migrations/0138_feedback_connection_country.sql)
+- [Gateway access log fields](../infra/aws/lib/gateways/api-gateway-access-log.ts): raw IP is excluded.
 
 Country supports aggregate audience analysis, not precise location. Detailed sparse periods
-expire by `last_seen` after 90 days; daily cleanup can lag by one scheduling interval and
-alerts when it cannot finish. Reads must apply the 90-day cutoff even before cleanup runs.
-The first known country stays on the installation profile until its deletion. Feedback
-country follows the feedback row's account-deletion lifecycle. IP addresses are used only
-in request memory for lookup, without analytics persistence.
+expire by the [retention cutoff](../apps/backend/src/productAnalytics/countryRetention.ts), which
+states what readers owe it. The first known country stays on the
+installation profile until its deletion, and feedback country follows the feedback row's
+account-deletion lifecycle. IP addresses are used only in request memory for lookup.
 
 Sparse periods are samples, not proof of continuous presence or a daily activity ledger.
 Do not infer location across unsampled gaps, assign upload country to offline events, or
 claim exact arbitrary-range country uniques from these periods or summed daily aggregates.
-Older detailed history is unavailable. Privacy notice and store declarations are a separate
-publication deliverable; this implementation makes no compliance or consent-exemption claim.
+Privacy notice and store declarations are a separate publication deliverable; this implementation
+makes no compliance or consent-exemption claim.
 
 ## Automation installations
 
-A client may declare that its installation runs under automation. The declaration is stored on the
-installation, is never cleared, and stops product analytics for every fact that resolves a replica -
-`review_answered`, and each of the card and deck creation, authoring-update and deletion facts -
-plus everything that installation uploads through the client ingest. The content facts are covered
-as a group rather than by name: `dropAutomationContentWrites` in
-[contentWrites.ts](../apps/backend/src/productAnalytics/serverFacts/contentWrites.ts) drops every
-write the producer collected whose replica carries the marker, whichever of the three it is. Those
-are the ones no in-app switch could prevent, because
-the backend derives them from synced data rather than from anything the client sends. Absence of the
-declaration and an explicit `false` are the same negative case, and only `true` marks anything, so a
-client that says nothing, or that always sends `false`, behaves exactly as before.
-
-Deliberately not covered, and still emitted for a marked installation: `ai_message_sent`,
-`ai_run_failed`, `ai_limit_reached`, `catalog_deck_installed`, `guest_upgrade_completed`,
-`friend_invitation_created`, `friendship_created`, and the account, workspace, package, agent-connection and feedback decisions
-in [decisionFacts.ts](../apps/backend/src/productAnalytics/serverFacts/decisionFacts.ts), none of
-which is attributed to a replica, and any review answered through
-an `ai_chat` or `agent_connection` replica, whose `installation_id` is NULL and which therefore
-carries no marker by design. A marked installation is not an installation that produces zero events;
-read residue as these producers rather than as a defect in the marker.
-
-Reports hide the actors that
+A client may declare that its installation runs under automation. Only `true` marks it, and the
+stored marker is never cleared ([where it is stored](../apps/backend/src/sync/identity/replica.ts),
+[migration](../db/migrations/0141_sync_installation_automation_marker.sql)). A marked installation
+stops product analytics for every server fact that resolves its replica, `review_answered` and the
+card and deck content facts ([review answers](../apps/backend/src/productAnalytics/serverFacts/reviewAnswers.ts),
+[content writes](../apps/backend/src/productAnalytics/serverFacts/contentWrites.ts)), and for
+everything it uploads through the [client ingest](../apps/backend/src/routes/productAnalytics.ts).
+Those are the facts no in-app switch could prevent, because the backend derives them from synced
+data. Reports also hide the actors
 [`automationInstallationActorIdsSqlLines`](../apps/backend/src/reviewMetricsSql.ts) selects from
-marked installations, these surviving server facts included. Raw events remain stored.
+marked installations; raw events stay stored.
 
-The eight billing facts in
-[billingFacts.ts](../apps/backend/src/productAnalytics/serverFacts/billingFacts.ts) -
-`entitlement_changed`, `trial_started`, `purchase_completed`, `subscription_renewed`, `subscription_revoked`,
-`autorenew_disabled`, `autorenew_enabled` and `billing_issue_started` - escape the marker by a decision rather than by omission, and that decision is
-recorded in the module's own header. A billing transition is not an action of any installation: it
-happens at a provider or at an operator's hand, and the only thing a device does is be the next one
-to sync, which is what makes the change visible. These producers therefore read no replica and no
-installation. Suppressing them by the marker would not drop a synthetic fact; it would make a real
-one depend on which of a person's devices pulled first, and the entitlement change is unrecoverable
-once the snapshot row is refreshed.
+A marked installation still produces events, so read residue as these producers rather than as a
+marker defect: server facts attributed to no replica, such as AI, catalog installs, guest upgrade,
+friendships and the [decision facts](../apps/backend/src/productAnalytics/serverFacts/decisionFacts.ts);
+reviews through an `ai_chat` or `agent_connection` replica, which has no installation; and the
+[billing facts](../apps/backend/src/productAnalytics/serverFacts/billingFacts.ts), exempt by the
+decision their module header records.
 
-Also accepted rather than fixed: `sync.claim_installation` hands an installation to whoever presents
-its id with the matching platform, so a takeover can mark an installation that was somebody's real
-device, and there is no unset path to undo it. That zeroes the replica-resolving facts for
-that installation permanently.
+Accepted rather than fixed: `sync.claim_installation` hands an installation to whoever presents its
+id with the matching platform, so a takeover can mark somebody's real device, and with no unset path
+that installation's replica-resolving facts stay suppressed permanently.
 
-- [Sync wire declaration](../apps/backend/src/sync/contracts/input.ts) and
-  [where it is stored](../apps/backend/src/sync/identity/replica.ts): only `true` marks anything,
-  persisted by the request that registers the installation and read back by every later claim.
-- [Column, stickiness rule and claim read-back](../db/migrations/0141_sync_installation_automation_marker.sql)
-- [Server-derived producers](../apps/backend/src/productAnalytics/serverFacts/replicaPlatforms.ts):
-  the marker is joined onto the replica and its facts are dropped before emission, in
-  [review answers](../apps/backend/src/productAnalytics/serverFacts/reviewAnswers.ts) and
-  [content writes](../apps/backend/src/productAnalytics/serverFacts/contentWrites.ts).
-- [Client ingest](../apps/backend/src/routes/productAnalytics.ts): a batch declaring
-  `isAutomation: true` is validated, answered, and stored nowhere;
-  `analytics_events_ingest_automation_dropped` records it. It is no longer the only breadcrumb for a
-  validated-but-unstored batch: a credential whose owner turned the product-analytics off switch off
-  ([`0149_product_analytics_off_switch.sql`](../db/migrations/0149_product_analytics_off_switch.sql))
-  is dropped the same way and records `analytics_events_ingest_analytics_off_dropped`. That check
-  runs first, so a batch that is both an automation run and an opt-out records only the second
-  action. Neither action is matched by the ingest metric filters in
-  [`product-analytics-monitoring.ts`](../infra/aws/lib/product-analytics-monitoring.ts).
-- [Android declaration](../apps/android/app/src/main/java/com/flashcardsopensourceapp/app/automation/AutomationEnvironment.kt):
-  emulator detection, an `isAutomation` instrumentation argument, the `firebase.test.lab` device
-  setting, or `ActivityManager.isRunningInUserTestHarness()`; decided and logged once per process as
-  `event=automation_environment_resolved` with each signal as its own field, then sent on every
-  sync body and analytics batch.
-  Test Harness Mode identifies device-farm harnesses but does not identify ordinary instrumentation
-  on a standard physical device, where the argument remains necessary.
-  Firebase Test Lab runs on real hardware, where the emulator check sees nothing. Its argument arrives from
-  [the submission script](../scripts/android/run-android-firebase-test-lab.sh), and the device
-  setting marks the run on its own if that argument is ever dropped on the way.
-- [Apple declaration](../apps/ios/Flashcards/Flashcards/App/AutomationRun.swift): Debug builds,
-  recognized UI-test launches, simulators or the `FLASHCARDS_AUTOMATION_RUN` environment signal.
-  An explicit negative value permits real analytics outside UI tests. The decision is fixed for
-  the process and sent through the existing sync/batch contract. Marked runs disable client
-  recording before startup and throughout preference refresh/toggle, without storing a forced
-  opt-out or pushing preferences onto the linked review account. Debug's development identity
-  isolates local data and private credentials; Release keeps its production identity and normal
-  preference behavior on unmarked real hardware. See [harness/logging](ios-ci-cd.md#automation-marker)
-  and [signed native/database verification](macos-ci-cd.md#development-analytics-verification).
-- [Web declaration](../apps/web/src/analytics/deliveryRuntime.ts): `navigator.webdriver`, decided
-  once per page load and sent on every authenticated analytics batch; web sync requests and
-  credential-free collector events carry no declaration.
+Declarations:
+
+- [Android](../apps/android/app/src/main/java/com/flashcardsopensourceapp/app/automation/AutomationEnvironment.kt),
+  sent on every sync body and analytics batch; Device Run sessions receive the argument from
+  [the submission script](../scripts/android/run-android-device-run.sh).
+- [Apple](../apps/ios/Flashcards/Flashcards/App/AutomationRun.swift), decided once per process and
+  sent through the same sync and batch contract. Marked runs disable client recording before startup
+  and throughout preference refresh and toggle, without storing a forced opt-out or pushing
+  preferences onto the linked review account; see [harness/logging](ios-ci-cd.md#automation-marker) and
+  [signed native/database verification](macos-ci-cd.md#development-analytics-verification).
+- [Web](../apps/web/src/analytics/deliveryRuntime.ts), on authenticated analytics batches only; web
+  sync requests and credential-free collector events carry no declaration.

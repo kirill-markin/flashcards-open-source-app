@@ -78,7 +78,7 @@ const retryBaseDelayMs = 1000;
 const retryMaxDelayMs = 60 * 60 * 1000;
 const sustainedFailureWindowMs = 60 * 60 * 1000;
 const periodicFlushIntervalMs = 60 * 1000;
-/** A browser under automation control, Playwright included; decided once per page load (docs/analytics-audience.md). */
+/** A browser under automation control, Playwright included; decided once per page load. */
 const isAutomationRun = navigator.webdriver === true;
 
 /**
