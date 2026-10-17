@@ -712,7 +712,10 @@ describe("useWorkspaceSession bootstrap", () => {
     await vi.waitFor(() => {
       expect(runSyncForWorkspaceMock).toHaveBeenCalledTimes(1);
     });
-    expect(runSyncForWorkspaceMock).toHaveBeenLastCalledWith(seededWorkspace);
+    expect(runSyncForWorkspaceMock).toHaveBeenLastCalledWith({
+      ...seededWorkspace,
+      isVisible: true,
+    });
     expect(getWorkspaceTransitionEventNames()).toContain("workspace_activate_bootstrap_deferred");
     expect(getWorkspaceTransitionEventNames()).not.toContain("workspace_activate_bootstrap_succeeded");
     initialVerifiedSyncDeferred.resolve();

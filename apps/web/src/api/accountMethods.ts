@@ -1,3 +1,5 @@
+import { parseSessionInfoResponse } from "../apiContracts/account";
+import { projectSessionToLocalOwner } from "./transport/sessionIdentity";
 import { getPreferredAuthUiLocale } from "./authUrls";
 import { getAppConfig } from "../config";
 import type { AnalyticsAuthCodeRequestOutcome, AnalyticsAuthCodeVerificationOutcome } from "../analytics/events";
@@ -39,7 +41,7 @@ export function parseMethodOperation(value: unknown): MethodOperation {
   if (target.provider !== fields.provider) throw new AccountMethodError("AUTH_COMPLETION_INVALID");
   return { kind: fields.kind, provider: fields.provider, target };
 }
-async function request(path: string, fields: Readonly<Record<string, unknown>> | null, signal: AbortSignal): Promise<Readonly<Record<string, unknown>>> {
+export async function requestAccountMethod(path: string, fields: Readonly<Record<string, unknown>> | null, signal: AbortSignal): Promise<Readonly<Record<string, unknown>>> {
   const response = await fetch(getAppConfig().authBaseUrl + path, { credentials: "include", cache: "no-store", signal,
     ...(fields === null ? {} : { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(fields) }) });
   const result = object(await response.json());
@@ -48,7 +50,7 @@ async function request(path: string, fields: Readonly<Record<string, unknown>> |
   return result;
 }
 export async function getAccountMethods(signal: AbortSignal): Promise<AccountMethods> {
-  const result = await request("/api/account/login-methods?client=web", null, signal);
+  const result = await requestAccountMethod("/api/account/login-methods?client=web", null, signal);
   if (!Array.isArray(result.methods) || !Array.isArray(result.verifiedRecoveryEmails) || result.emailRecovery !== "read_only") {
     throw new AccountMethodError("AUTH_COMPLETION_INVALID");
   }
@@ -62,15 +64,21 @@ export async function getAccountMethods(signal: AbortSignal): Promise<AccountMet
   return { methods: [...methods].sort((left, right) => left.provider === right.provider ? 0 : left.provider === "google" ? -1 : 1), verifiedRecoveryEmails: result.verifiedRecoveryEmails.map((value: unknown) => text(value, 254)),
     csrfToken: accountMethodHandle(result.csrfToken) };
 }
-export async function getBrowserProviders(signal: AbortSignal): Promise<ReadonlyArray<AccountProvider>> {
-  const result = await request("/api/auth-methods?client=web", null, signal);
+export async function getBrowserAccountOptions(signal: AbortSignal): Promise<Readonly<{ providers: ReadonlyArray<AccountProvider>; connectionAvailable: boolean }>> {
+  const result = await requestAccountMethod("/api/auth-methods?client=web", null, signal);
   const methods = object(result.methods);
-  return (["google", "apple"] as const).filter((provider) => {
+  const providers = (["google", "apple"] as const).filter((provider) => {
     const method = object(methods[provider]);
     if (typeof method.available !== "boolean") throw new AccountMethodError("AUTH_COMPLETION_INVALID");
     if (method.available && method.transport !== "browser") throw new AccountMethodError("AUTH_COMPLETION_INVALID");
     return method.available;
   });
+  const account = object(result.account);
+  return { providers, connectionAvailable: account.connection === "/api/account/connection"
+    && account.connectionCapability === "canonical-account-v1"
+    && Array.isArray(account.connectionActions)
+    && ["begin", "adopt", "provider_begin", "email_send", "email_verify", "load", "preview", "confirm", "cancel"]
+      .every((action) => account.connectionActions instanceof Array && account.connectionActions.includes(action)) };
 }
 function expiry(value: unknown): number {
   const expiresAt = Date.parse(text(value, 64));
@@ -79,7 +87,7 @@ function expiry(value: unknown): number {
 }
 export async function beginProviderMethod(provider: AccountProvider, csrfToken: string, operation: MethodOperation | null,
   proof: MethodProof | null, redirectUri: string, signal: AbortSignal): Promise<Readonly<{ authorizationUrl: string; expiresAt: number }>> {
-  const result = await request("/api/account/provider-methods/link", { action: "begin", client: "web", csrfToken, provider, redirectUri, locale: getPreferredAuthUiLocale(),
+  const result = await requestAccountMethod("/api/account/provider-methods/link", { action: "begin", client: "web", csrfToken, provider, redirectUri, locale: getPreferredAuthUiLocale(),
     ...(operation === null ? { purpose: "reauth" } : { purpose: "link", intent: operation.kind, proof,
       ...(operation.kind === "reenable" ? { target: operation.target } : {}) }) }, signal);
   const url = new URL(text(result.authorizationUrl, 8192));
@@ -123,9 +131,9 @@ async function requestEmailMethod(fields: Readonly<Record<string, unknown>>, sig
   return result;
 }
 export async function beginEmailMethod(csrfToken: string, signal: AbortSignal,
-  observe: (outcome: AnalyticsAuthCodeRequestOutcome) => void): Promise<Readonly<{ attempt: string; expiresAt: number }>> {
+  observe: (outcome: AnalyticsAuthCodeRequestOutcome) => void): Promise<Readonly<{ attempt: string; expiresAt: number; email: string }>> {
   const result = await requestEmailMethod({ action: "begin", client: "web", csrfToken }, signal, observe);
-  return { attempt: accountMethodHandle(result.attempt), expiresAt: expiry(result.expiresAt) };
+  return { attempt: accountMethodHandle(result.attempt), expiresAt: expiry(result.expiresAt), email: text(result.email, 254) };
 }
 export async function completeEmailMethod(csrfToken: string, attempt: string, code: string, signal: AbortSignal,
   observe: (outcome: AnalyticsAuthCodeVerificationOutcome) => void): Promise<Readonly<{ proof: MethodProof; expiresAt: number }>> {
@@ -134,11 +142,13 @@ export async function completeEmailMethod(csrfToken: string, attempt: string, co
   return { proof: { csrfToken, completion: accountMethodHandle(result.completion) }, expiresAt: expiry(result.expiresAt) };
 }
 export async function unlinkProviderMethod(csrfToken: string, target: ProviderTarget, proof: MethodProof, signal: AbortSignal): Promise<void> {
-  const result = await request("/api/account/provider-methods/unlink", { client: "web", csrfToken, target, proof }, signal);
+  const result = await requestAccountMethod("/api/account/provider-methods/unlink", { client: "web", csrfToken, target, proof }, signal);
   if (result.ok !== true) throw new AccountMethodError("AUTH_COMPLETION_INVALID");
 }
 
 export async function verifyAccountMethodOwner(userId: string, signal: AbortSignal): Promise<void> {
   const response = await fetch(getAppConfig().apiBaseUrl + "/me", { credentials: "include", cache: "no-store", signal });
-  if (!response.ok || object(await response.json()).userId !== userId) throw new AccountMethodError("SESSION_REQUIRED");
+  if (!response.ok) throw new AccountMethodError("SESSION_REQUIRED");
+  const verified = parseSessionInfoResponse(await response.json(), "/me");
+  if (projectSessionToLocalOwner(verified, userId).userId !== userId) throw new AccountMethodError("SESSION_REQUIRED");
 }
