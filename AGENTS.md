@@ -57,8 +57,15 @@ When proposing a test plan, treat "real testing" as one of these two options onl
 
 For iOS local testing details, see [docs/ios-local-setup.md](docs/ios-local-setup.md).
 For Android local testing details, see [docs/android-ci-cd.md](docs/android-ci-cd.md).
-Run useful local project checks, builds and tests during implementation and pre-release validation without additional approval; this repository rule overrides generic personal no-local-check defaults. Honor explicit static-only review instructions. AWS deployment and deployment-artifact restrictions above still apply.
+Run useful local project checks, builds and tests during implementation and pre-release validation without additional approval. Honor explicit static-only review instructions. AWS deployment and deployment-artifact restrictions above still apply.
 For every manual or automated Apple test, local or cloud, including Release/TestFlight, set `FLASHCARDS_AUTOMATION_RUN=1` in the app process and verify `automation_run_decided` reports `isAutomation=true` before interacting; on Mac, launch with `bash scripts/ios/launch-macos-test-app.sh "<path/Nibomo.app>"`.
+
+## Local development loop
+
+Rule: read production, write locally. Both commands open on `localhost` without login; check admin and web changes there before merge.
+
+- `make local-admin`: the admin app on `http://localhost:3001` reading production data read-only through `reporting_readonly`; details in [apps/admin/README.md](apps/admin/README.md#local-admin-on-production-data-read-only).
+- `make local-app`: the web app on `http://localhost:3000` against a local Docker Postgres, never production; details in [apps/web/README.md](apps/web/README.md#local-login-free-stack).
 
 ## Release Gates and Monitoring
 

@@ -121,6 +121,8 @@ aws ssm start-session \
 
 The session forwards `127.0.0.1:15432` to `<DbEndpoint>:5432` through the bastion, so local clients below connect as if the database were local.
 
+`make local-admin` ([scripts/local/admin-prod-readonly.sh](../scripts/local/admin-prod-readonly.sh)) opens this same tunnel for the local admin app and terminates the session on exit.
+
 The tunnel is not narrow. `AmazonSSMManagedInstanceCore` registers the bastion with Session Manager generally, so a principal holding `ssm:StartSession` on it also gets an interactive shell on the bastion and port forwarding to any host reachable from it. That is accepted here because the only principals holding `ssm:StartSession` in this account are already account administrators, so narrowing the session with a preferences document or an IAM condition would buy nothing real.
 
 ## Bastion behavior

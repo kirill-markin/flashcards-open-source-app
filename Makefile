@@ -57,3 +57,9 @@ web-dev:
 
 admin-dev:
 	cd apps/admin && node --env-file=../../.env ./node_modules/vite/bin/vite.js
+
+local-admin:
+	bash scripts/local/admin-prod-readonly.sh
+
+local-app:
+	bash scripts/local/app.sh

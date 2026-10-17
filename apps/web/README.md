@@ -87,6 +87,12 @@ The local smoke preflight fails fast if local auth or backend is unavailable, or
 
 `npm run test:e2e` and `npm run test:e2e:prod` remain the production/deployed smoke entrypoints. They must not point at localhost and are the paths used by CI/CD and post-deploy verification.
 
+### Local login-free stack
+
+`make local-app` checks a web change by hand before merge without Cognito or a root `.env`: [the script](../../scripts/local/app.sh) starts Docker Desktop if needed, local Postgres with migrations, then the backend with `AUTH_MODE=none`, the auth service in development mode, and the Vite dev server on `http://localhost:3000`, signed in as the local user. The database starts empty and normal onboarding seeds the [demo card](../../docs/demo-card.md); nothing touches production. Ctrl-C stops the servers and leaves Postgres running for `make db-down`. Sign-in flows need the Cognito-based `npm run test:e2e:local` above.
+
+AI chat does not work in this stack: the chat endpoints refuse `AUTH_MODE=none` and require Bearer, session, or guest auth ([`assertSupportedTransport`](../backend/src/chat/http/dependencies.ts)).
+
 ## Respect Existing Code
 
 Before making any change, read the existing components and modules in the area you are touching.

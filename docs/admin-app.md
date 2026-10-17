@@ -289,6 +289,8 @@ The admin frontend fails fast on any other non-local hostname. Do not serve the 
 
 ## Manual smoke checklist
 
+Run this checklist locally with `make local-admin` before merge, on `http://localhost:3001` instead of `https://admin.<domain>`; the login and redirect items apply only to the deployed host. A look at production after deploy is an optional final check.
+
 - `https://admin.<domain>` returns `200`
 - unauthenticated access redirects to the login flow
 - a listed admin email opening `https://admin.<domain>/` lands on `/analytics/level-1-metrics` with Back not returning to `/`, sees the `Who saw us` chart in the left half of a full-width page on the last 60 days, with a dashed `Not final →` line after the day three days before today, and a tooltip listing every series, `No data` where a source has no row, and the day total
