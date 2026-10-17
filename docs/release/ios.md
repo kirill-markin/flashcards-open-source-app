@@ -31,41 +31,16 @@ For a user-reserved final Submit, apply the [handoff and resume rules](#user-res
      archive
    ```
 
-   Use a fresh archive output path on retries. Prepare one supported iPhone
-   simulator using [Local Testing Rules](../ios-local-setup.md#local-testing-rules),
-   replace `<device-uuid>` below with its UUID, and run this smoke command from
-   the repository root; it also compiles the shared scheme's UI test bundle:
+   Use a fresh archive output path on retries and retain full build logs. The archive validates device Release compilation without upload; Cloud signing and distribution remain mandatory.
 
-   ```bash
-   xcrun simctl bootstatus <device-uuid> -b
-   xcodebuild \
-     -project "apps/ios/Flashcards/Flashcards Open Source App.xcodeproj" \
-     -scheme "Flashcards Open Source App" \
-     -derivedDataPath "tmp/ios-derived-data" \
-     -destination 'platform=iOS Simulator,id=<device-uuid>' \
-     -only-testing:'Flashcards Open Source App UI Tests/LiveSmokeSettingsTests/testLiveSmokeGuestNavigationFlow' \
-     test
-   ```
-
-   Inspect build logs and the `.xcresult` under the [shared local gate](evidence.md#local-mobile-release-gate). Require
-   `testLiveSmokeGuestNavigationFlow` to have executed and passed before cloud
-   dispatch; a skipped or unselected test does not satisfy this gate. The archive
-   validates device Release compilation without uploading anything; signing
-   and distribution remain mandatory Xcode Cloud checks.
-   For every new release, select an eligible iOS 18 destination under
-   [Supported OS destinations](../ios-ci-cd.md#supported-os-destinations).
-   When Cloud cannot run the independent minimum selection on 18.x, run the
-   canonical [three-test local command](../ios-local-setup.md#ios-18-compatibility-smoke)
-   before cloud dispatch, in place of the guest-only command above. Its passed
-   guest-navigation test also satisfies this local preflight. If neither local
-   18.x simulator nor physical device is available, block dispatch until resolved.
+   Complete all three [local native acceptance plans](../ios-local-setup.md#local-native-acceptance): `LocalFull` on one latest iPhone (full eligible UI plus the entire existing non-UI bundle), `LocalIPad` on one latest iPad (three eligible flows), and `IOS18Compatibility` on one actual 18.x iPhone or iPad (three compatibility flows). Use scheme `Flashcards Native Acceptance`, test-plan configuration `Acceptance`, and the exact commands/signing and runner-email setup there. Require complete all-green inventories before Cloud dispatch; filtered diagnostic reruns, unexpected skips and missing cases cannot satisfy acceptance. If a required destination is unavailable, block release. Record exact source, toolchain, plan/configuration, destinations, named results, logs and `.xcresult` evidence in the [ledger](evidence.md#release-ledger), applying the [local gate](evidence.md#local-mobile-release-gate) and warning policy. Valid unchanged evidence may be reused under step 5; a docs-only root SHA change alone does not force native reruns.
 2. Access the app and Xcode Cloud through the App Store Connect API using
    [local credentials](../xcode-cloud-data-access.md#required-local-secrets). Use
    the browser for unsupported operations or diagnosed API access blockers;
    ask the user to complete Apple login/MFA if needed, then resume.
 3. Identify the two configured workflows for release build/archive and tests.
    Complete the [cloud configuration preflight](../ios-ci-cd.md#cloud-configuration-preflight)
-   and the applicable local iOS 18 gate in step 1 before dispatch. Initially
+   and every local gate in step 1 before dispatch. Verify the saved Test action selects `Flashcards Native Acceptance` / `CloudSmoke` / `Acceptance` on exactly one latest iPhone, while the required Build/archive action and Catalyst workflows retain their settings. Initially
    start both for the same release SHA and monitor them in parallel. Record
    their run links and source commits; do not infer
    test success from the build. Retries may retain an unchanged successful
@@ -76,43 +51,13 @@ For a user-reserved final Submit, apply the [handoff and resume rules](#user-res
    follow [App Store metadata](../app-store-connect-metadata.md); its editable-draft
    requirements apply. Verify each saved field and required metadata; request
    help for missing declarations or unexpected store requirements.
-5. Require successful archive and test workflows, with complete test evidence.
-   Keep the full existing latest-OS smoke selection. Every new iOS release
-   also requires all three existing
-   [iOS 18 compatibility smokes](../ios-local-setup.md#ios-18-compatibility-smoke)
-   on an actual 18.x destination. Use one Cloud destination only when its saved
-   catalog and independent test selection preserve the full latest-OS suite;
-   otherwise require the local evidence from step 1. Record the exact source
-   SHA, destination/OS, Xcode/SDK, selected methods and native result evidence
-   in the [release ledger](evidence.md#release-ledger). All three must execute
-   and pass; skipped or unselected tests do not satisfy this gate. Complete the
-   linked manual checklist only for the first expanded release or changes
-   affecting OS-specific behavior. If no 18 destination is available, defer release;
-   a lower deployment setting or static PR success does not satisfy this gate.
-   Inspect the actual passed, failed, and skipped test results, plus errors and
-   warnings even if the overall run is green. Record skipped cases, their reasons, and the resulting coverage
-   limits. Distinguish deliberate [manual marketing exclusions](../../apps/ios/docs/marketing-screenshots.md#prerequisites)
-   from explicit [cloud destination guards](readiness.md#ios-cloud-destination-exclusions),
-   which retain the native skip and require the same method to pass on its eligible
-   destination in the complete run. Investigate unexpected skips rather than counting
-   them as passed. Fix code/build/test issues, merge and deploy
-   through normal CI, then repeat affected local and cloud gates for the
-   corrected release SHA. After test-only or docs-only fixes, retain the
-   original successful signed archive only when the
-   [shared source comparison](evidence.md#resume-and-artifact-reuse) proves its
-   production/archive inputs unchanged: app source, resources and localizations,
-   dependencies and lockfiles, project/settings/scheme, CI hooks, remote
-   workflow values, toolchain, signing, and distribution configuration. A
-   test-only filename or unchanged version is insufficient. Record the original
-   archive SHA/run/action and uploaded build identity, corrected test SHA/run,
-   comparison scope/diff, and why each retained gate still applies. Test fixes
-   require a corrected complete cloud test execution; failed or unexecuted tests
-   cannot be reused. Any production/archive-affecting change, or inability to
-   establish equivalence, requires a new archive and the appropriate tests and
-   local gates. Restore any temporary workflow filters after the accepted runs
-   finish, with saved readback as required by the configuration preflight.
-   Apply the [release warning policy](README.md#release-warning-policy) before
-   submission; ask for help when blocking issues cannot be resolved autonomously.
+5. Require all six [schema-3 readiness gates](readiness.md#ios-local-acceptance-schema-3): unsigned `local-archive`, `local-full`, `local-ipad`, `local-ios18`, signed `cloud-archive`, and the three-test `cloud-smoke`. Inspect every named native result, action status, error and warning even when the overall summary is green. The focused Cloud selection supplements complete local acceptance; it does not waive any local test. All selected required methods must execute and pass. Preserve failure artifacts and investigate unexpected skips or missing cases. The acceptance plans exclude marketing and ineligible device methods through explicit selection; do not invent passed/skipped records for unselected methods or use historical destination exclusions to excuse current required tests.
+
+   Complete the [iOS 18 manual checklist](../ios-local-setup.md#ios-18-compatibility-smoke) for the first expanded release or changes affecting OS-specific behavior. Fix blocking code/build/test issues through normal PR/CI, then repeat affected complete local plans before retrying affected Cloud gates. Targeted reruns help diagnosis but do not replace all-green complete acceptance on corrected inputs.
+
+   Reuse successful archives or test gates only under [bounded source comparison](evidence.md#resume-and-artifact-reuse): compare app source, resources/localizations, relevant test source and plan selections, dependencies/lockfiles, project/settings/schemes, CI hooks, remote workflow values, toolchain, signing and distribution inputs. Record original source/run/action/build/artifact identities, corrected source and exact comparison scope/diff, reviewer, and why each named gate remains valid. Docs-only/unrelated changes do not require native reruns when that comparison proves unchanged native inputs; a filename or version match alone is insufficient. Test-only changes may retain an unchanged signed archive, but require complete corrected affected test-plan evidence. Never rewrite old failures as passes. Production/archive changes or uncertain equivalence require a fresh archive and affected gates. Historical manifests retain their original contract under [readiness](readiness.md).
+
+   Restore any temporary workflow filters after the accepted runs finish, with saved readback under the configuration preflight. Apply the [release warning policy](README.md#release-warning-policy) before submission; ask for help when blocking issues cannot be resolved autonomously. Record measured elapsed times; Cloud runtime savings are unmeasured until the authorized small-plan run completes.
 6. Wait for the successful archive to finish processing in App Store Connect.
    Establish its exact [run/archive/uploaded-build correlation](../xcode-cloud-data-access.md#correlate-an-archive-with-the-uploaded-build).
    Verify its [uploaded binary localizations](../ios-localization.md#bundlebuild-validation)

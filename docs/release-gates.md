@@ -12,7 +12,7 @@ Pushes to `main` use independent release and check streams:
 - migration-bearing AWS failures are explicit fix-forward cases; the next push must still be allowed to run
 - when Android-impacting files changed, `.github/workflows/android-ci.yml` runs the post-merge `data:local` emulator backstop without repeating the PR build, unit tests, or lint and without uploading to Google Play or submitting Device Run
 - Android production draft upload is manual-only through `.github/workflows/android-release.yml`; that workflow requires terminal success from all four sequential Device Run sessions before the signed Play draft upload starts
-- for an iOS release, a human or authorized AI explicitly starts and monitors both Xcode Cloud workflows for the selected SHA under the [iOS release procedure](release/ios.md#ios)
+- for an iOS release, complete full local native acceptance (latest iPhone UI and existing non-UI, focused latest iPad, actual iOS 18) and unsigned device Release compilation, then explicitly start and monitor Cloud archive/signing and the three-test `CloudSmoke` backstop on one latest iPhone under the [iOS release procedure](release/ios.md#ios); require all local and Cloud gates green before App Review submission
 
 Automatic web/backend deployments continue between coordinated releases while
 source versions stay unchanged. Use deployed component SHAs and CI run/artifact

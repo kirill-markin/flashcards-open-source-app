@@ -96,13 +96,10 @@ step; an approved or live binary does not need another build or submission.
 
 For an artifact awaiting a new publication/submission, retain the original
 gates and their recorded contract: recover required local preflight logs,
-cloud runs, artifact identity, and actual smoke/test results. New Android
-artifacts use the cloud-first gates below; retained schema-1 readiness records
-keep their original local and cloud requirements. For Android, correlate the
+cloud runs, artifact identity, and actual smoke/test results. New iOS artifacts use schema 3 with full local acceptance and a small Cloud backstop; new Android artifacts use schema 2 with the cloud-first gates below. Retained schema-1 readiness records keep their original local and cloud requirements. For Android, correlate the
 signed AAB, version code, GitHub
 run/attempt and all four exact completed Device Run sessions, job labels and named
-case results. For iOS and macOS, recover both archive and test
-workflows and each platform's uploaded build identity. Mac additionally retains
+case results. For iOS, recover the complete local-plan results, Cloud archive/small-smoke workflows and uploaded build identity; historical records keep their recorded selection. For macOS, recover both archive and test workflows and its uploaded build identity. Mac additionally retains
 its exact export and [full native/manual evidence](macos.md), including any
 diagnosed Cloud signing limitation and authorized local alternative. Record
 passed/failed/skipped cases,
@@ -130,8 +127,8 @@ or diagnosed access blockers, including final store publication.
 
 Before dispatching an iOS cloud release, complete its local preflight in the
 [iOS](ios.md) procedure on the intended release SHA with no uncommitted source changes.
-Use the platform's supported SDK/toolchain and production build configuration.
-This local release gate is mandatory even when PR checks are already green.
+Use the supported SDK/toolchain and production service values: Release for the device archive, and the acceptance scheme's Debug build configuration for its test plans.
+This local release gate is mandatory even when PR checks are already green. Require the unsigned device Release archive, full latest-iPhone UI and existing non-UI plan, three focused latest-iPad flows, and three actual iOS 18 compatibility flows under the [canonical plan commands](../ios-local-setup.md#local-native-acceptance). All configured required cases must execute and pass; targeted diagnostic reruns do not replace complete acceptance. Preserve every failure artifact. Reuse only successful unchanged gates under [bounded source equivalence](#resume-and-artifact-reuse); proved docs-only/unrelated changes do not force native reruns.
 
 Keep full build logs and test reports; when piping output through `tee`, enable
 `set -o pipefail` so logging cannot hide a failed command. Inspect compiler,
@@ -144,8 +141,7 @@ local SDKs or build inputs block that platform's dispatch until resolved; do
 not silently substitute a cloud build for the local check.
 
 For iOS, local success does not replace any cloud gate in its platform procedure.
-Cloud signing, build
-environments, managed-device tests, and store processing can fail independently;
+Cloud signing/archive, build environments, the three-test latest-iPhone backstop, and store processing can fail independently;
 still run and inspect them, including their errors and warnings. After cloud
 failures require source fixes, repeat the affected local preflight before
 retrying the cloud flow.

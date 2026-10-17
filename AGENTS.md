@@ -57,7 +57,7 @@ When proposing a test plan, treat "real testing" as one of these two options onl
 
 For iOS local testing details, see [docs/ios-local-setup.md](docs/ios-local-setup.md).
 For Android local testing details, see [docs/android-ci-cd.md](docs/android-ci-cd.md).
-Local Gradle, `xcodebuild`, simulator, and emulator runs are unrestricted, so run them whenever they are useful without asking the user for approval.
+Run useful local project checks, builds and tests during implementation and pre-release validation without additional approval; this repository rule overrides generic personal no-local-check defaults. Honor explicit static-only review instructions. AWS deployment and deployment-artifact restrictions above still apply.
 For every manual or automated Apple test, local or cloud, including Release/TestFlight, set `FLASHCARDS_AUTOMATION_RUN=1` in the app process and verify `automation_run_decided` reports `isAutomation=true` before interacting; on Mac, launch with `bash scripts/ios/launch-macos-test-app.sh "<path/Nibomo.app>"`.
 
 ## Release Gates and Monitoring
@@ -67,7 +67,7 @@ Pull-request checks stay deliberately light and fast: do not add heavy mobile bu
 Android jobs inside `.github/workflows/pr-checks.yml` are an accepted exception: build, unit tests, and lint run for every Android-impacting pull request, and the GitHub-hosted `data:local` emulator instrumentation runs only when the Android data layer or shared Android Gradle configuration changes. `Repository static checks` is the strict required aggregate PR gate; Device Run stays out of pull requests.
 Infra-changing pull requests synthesize the CDK app and fail at 470 resources per stack, 30 below CloudFormation's hard limit.
 Auto-merge is enabled but never updates a `BEHIND` branch, so it cannot rescue a pull request on its own: update the branch once server-side, then queue `gh pr merge --auto` so the merge lands unattended once the gate passes instead of racing `main` with repeated updates, and still watch the post-merge deploy to completion.
-Nothing compiles iOS before merge by design, though `PR Checks` still runs the static iOS checks.
+`PR Checks` runs static iOS checks; full local native acceptance is required before release under the [iOS release procedure](docs/release/ios.md#ios).
 Run Apple builds and tests only in Xcode Cloud or local Xcode; never use Firebase for Apple tests. Xcode Cloud workflow definitions live in App Store Connect; its in-repo build inputs are documented in [docs/ios-ci-cd.md](docs/ios-ci-cd.md).
 Keep the Xcode Cloud `Test - iOS` action non-required on purpose so TestFlight can receive builds even when smoke tests fail.
 A request to execute the full release runbook authorizes its manual workflow dispatches and publication steps. Reading and monitoring Xcode Cloud runs, results, and artifacts is always allowed without asking, including outside a release. Outside a release request, dispatch Xcode Cloud workflows or trigger `Android Release` / `MCP Registry Publish` only when the user requests those actions; agents may monitor and fix automatically triggered GitHub Actions.
