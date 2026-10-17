@@ -76,13 +76,14 @@
     "loginPageEnabled": false
   },
   "icon": {
+    "verifiedAt": "2026-10-17",
     "purpose": "business_icon",
     "dimensions": [
       512,
       512
     ],
-    "sourceSha256": "8755550b1f888d6d8394cb6674899f01a707334891d9aa2b3a49d30ba2efdf19",
-    "stripePngSha256": "1eae1af980c899abe236312e9f6603219787fe915d419dde60733c30cf0df7d5",
+    "sourceSha256": "4f84ea0bc399784d0462d57c7dcf008da36a6c55d02a37fc725eb5feb6f46dc7",
+    "stripePngSha256": "bc8d16ece9796f39fb2abb2756f7024f9c44c445d54ca3b94fee3ca2019cc9e2",
     "decodedPixelsMatchSource": true
   },
   "environments": {
@@ -93,9 +94,9 @@
       "defaultPriceId": "price_1UMQUDCVkVWAch1VJzr1hELW",
       "portalConfigurationId": "bpc_1UMQUECVkVWAch1VcQK8QOoM",
       "portalIsDefault": true,
-      "iconFileId": "file_1UMQUBCVkVWAch1V4xlvzrLX",
-      "iconFileLinkId": "link_1UMQUBCVkVWAch1VDSx8V1nA",
-      "iconPublicUrl": "https://files.stripe.com/links/MDB8YWNjdF8xVU1RQmtDVmtWV0FjaDFWfGZsX3Rlc3RfcGt1d2VHanRad21RR2dWNjRjUUo4dEt300QSz6w2br",
+      "iconFileId": "file_1URfr3CVkVWAch1VLvRCSVUi",
+      "iconFileLinkId": "link_1URfr3CVkVWAch1VeCYgrM6I",
+      "iconPublicUrl": "https://files.stripe.com/links/MDB8YWNjdF8xVU1RQmtDVmtWV0FjaDFWfGZsX3Rlc3Rfdm1mbm9UTGhKTnBKR0J1eDU3c1EwcDND00TD0o3Ney",
       "webhookEndpointCount": 1,
       "taxStatus": "active",
       "registrations": [
@@ -138,9 +139,9 @@
       "defaultPriceId": "price_1UMQUtE3K3xV54NrvU8rT8ef",
       "portalConfigurationId": "bpc_1UMQUtE3K3xV54NruoEezugO",
       "portalIsDefault": false,
-      "iconFileId": "file_1UMQUqE3K3xV54NruG41UVFn",
-      "iconFileLinkId": "link_1UMQUqE3K3xV54NroPo0a3UU",
-      "iconPublicUrl": "https://files.stripe.com/links/MDB8YWNjdF8xS3JHVzZFM0szeFY1NE5yfGZsX2xpdmVfNHZaYkhveElLT1FLcldEQ1pVRFZSTXhD00fKTxU3r2",
+      "iconFileId": "file_1URfr6E3K3xV54Nrdw0XAXLm",
+      "iconFileLinkId": "link_1URfr6E3K3xV54Nr9q94OqVS",
+      "iconPublicUrl": "https://files.stripe.com/links/MDB8YWNjdF8xS3JHVzZFM0szeFY1NE5yfGZsX2xpdmVfU0drN3pncVhjWlpqTVc5N0FIZDFOU2c500NF2P7H05",
       "webhookEndpointCount": 1,
       "taxStatus": "active",
       "registrations": [
