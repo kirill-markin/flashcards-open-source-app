@@ -119,6 +119,7 @@ struct SchedulerSettingsDetailView: View {
         }
         .listStyle(.insetGrouped)
         .navigationTitle(aiSettingsLocalized("settings.workspace.scheduler.title", "Scheduler settings"))
+        .accessibilityIdentifier(UITestIdentifier.schedulerSettingsScreen)
         .nativeBottomBar(alignment: .trailing) {
             if self.focusedField != nil {
                 Button(aiSettingsLocalized("common.done", "Done")) {

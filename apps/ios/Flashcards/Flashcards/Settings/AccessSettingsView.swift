@@ -34,6 +34,7 @@ struct AccessSettingsView: View {
         }
         .listStyle(.insetGrouped)
         .navigationTitle(aiSettingsLocalized("settings.access.title", "Access"))
+        .accessibilityIdentifier(UITestIdentifier.accessSettingsScreen)
     }
 }
 
