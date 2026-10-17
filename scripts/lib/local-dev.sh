@@ -36,7 +36,8 @@ require_free_port() {
 
 # The local servers listen on loopback only: their insecure local auth trusts
 # the client-supplied Host header, so an all-interfaces bind would let any
-# machine on the network in.
+# machine on the network in. Read by the scripts that source this file.
+# shellcheck disable=SC2034
 LOCAL_DEV_BIND_HOST="127.0.0.1"
 
 # The backend and auth prefer a Secrets Manager credential over DATABASE_URL,
