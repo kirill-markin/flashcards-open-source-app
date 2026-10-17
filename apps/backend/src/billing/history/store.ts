@@ -6,6 +6,8 @@ export const historyEnvironmentSchema = z.enum(["production", "sandbox"]);
 export type HistoryEnvironment = z.infer<typeof historyEnvironmentSchema>;
 export type HistoryProvider = "apple" | "google" | "stripe";
 export type HistoryWriteResult = "stored" | "stale";
+// `observedAt` is the authoritative read time, or the original provider time for a webhook snapshot,
+// never a replay time: a stale observation must lose to the newer one it would otherwise overwrite.
 export type HistoryObservation = Readonly<{ environment: HistoryEnvironment; observedAt: Date }>;
 
 export class BillingHistoryError extends Error {

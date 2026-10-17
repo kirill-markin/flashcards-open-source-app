@@ -3,6 +3,7 @@ import {
   type DatabaseExecutor,
 } from "../../database";
 
+/** The guest's color lands only on an account still on Default, so an account's own choice wins. */
 export async function carryGuestAccentColorToAccountInExecutor(
   executor: DatabaseExecutor,
   guestUserId: string,

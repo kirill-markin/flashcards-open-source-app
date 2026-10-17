@@ -13,32 +13,9 @@ are the only source for the subscription's reviewer text.
 
 ## Backend sources
 
-- [HTTP routes](../apps/backend/src/routes/appleBilling.ts) and
-  [mounts](../apps/backend/src/server/app.ts).
-- [Provider service](../apps/backend/src/billing/apple/service.ts),
-  [Apple verification](../apps/backend/src/billing/apple/provider.ts), and
-  [secret configuration](../apps/backend/src/billing/apple/config.ts).
-- [Gateway and Lambda permissions](../infra/aws/lib/gateways/api-gateway.ts),
-  [CI context mapping](../scripts/generate/write-ci-cdk-context.py), and
-  [release workflow](../.github/workflows/aws-web-release.yml).
-- [StoreKit service](../apps/ios/Flashcards/Flashcards/Premium/AppleSubscriptionService.swift)
-  and [native transport](../apps/ios/Flashcards/Flashcards/Cloud/Sync/CloudSyncTransport+AppleBilling.swift).
-
-## Transaction intent
-
-`POST /v1/billing/apple/transactions` accepts optional `intent: "passive" | "explicit"`
-alongside `signedTransaction`. Omitted intent retains explicit attachment for existing
-clients. Unknown values, including `null`, return HTTP 400 before any billing service action.
-Both modes require the same human authentication and verified Apple transaction JWS.
-
-Purchase and Restore use explicit attachment: the last presenting account receives the
-purchase. Automatic foreground, current-entitlement, unfinished-transaction, and transaction
-update replay use passive reconciliation. It refreshes Apple's state under the existing
-original-transaction lock, preserving any attached server owner. Only an unowned purchase
-can be attributed by its verified `appAccountToken`.
-
-The existing `{"attached":true}` response acknowledges successful processing in both modes;
-it does not confirm that the caller owns the purchase. Sync supplies the caller's entitlement.
+[Routes](../apps/backend/src/routes/appleBilling.ts) (including the transaction `intent` contract),
+[provider](../apps/backend/src/billing/apple/), and on iOS the
+[StoreKit service](../apps/ios/Flashcards/Flashcards/Premium/AppleSubscriptionService.swift).
 
 ## Configure the catalog after merge
 
@@ -55,41 +32,20 @@ it does not confirm that the caller owns the purchase. Sync supplies the caller'
    node scripts/ios/configure-apple-subscription.mts --apply
    ```
 
-   The [writer](../scripts/ios/configure-apple-subscription.mts) validates all local text
-   inputs first, checks app `6760538964` and bundle `com.flashcards-open-source-app.app`,
-   and reads existing groups and products. It accepts only one `Premium` group and one
-   matching unsubmitted `premium_monthly` subscription. Missing resources are created;
-   existing localized text is updated to the canonical metadata.
-4. The operation resolves USA USD 6.99 through Apple's price-point API, obtains regional
-   equalizations, and creates missing prices and `FREE_TRIAL` / `ONE_WEEK` offers for all
-   storefronts returned by Apple's territories API. Availability covers that same inventory.
-   New territories are not enabled automatically. A changed territory inventory stops the
-   run for explicit catalog correction, so availability never outruns price and trial setup.
-5. Keep the final `apple_subscription_catalog_readback` output as the operational record.
+   The [writer](../scripts/ios/configure-apple-subscription.mts) creates what is missing,
+   updates localized text to the canonical metadata, and sets prices, trials and availability
+   for every storefront Apple returns. A changed territory inventory stops the run for
+   explicit catalog correction.
+4. Keep the final `apple_subscription_catalog_readback` output as the operational record.
    Confirm the public IDs match
    [the metadata configuration table](subscription-store-metadata.md#app-store-connect).
    Keep user, sandbox-account, and transaction data out of that file.
 
-The command requires `--apply`; importing the module performs no operation. It creates no
-annual or lifetime sale, enables no family sharing, changes no free-user allowance, and
-never calls review-submission or promoted-purchase APIs.
-
 ## Required readback
 
-A successful run performs fresh API reads and requires all of the following:
-
-- Exactly one `Premium` subscription group and one `premium_monthly` subscription named
-  `Premium Monthly`; `ONE_MONTH` duration and family sharing disabled.
-- Product state `MISSING_METADATA` or `READY_TO_SUBMIT`, with no submission made.
-- Exactly one current non-preserved price per supported storefront, matching Apple's
-  equalization of the unique USA USD 6.99 point. Scheduled changes or different prices stop
-  the operation.
-- Exactly one currently effective `FREE_TRIAL` / `ONE_WEEK` offer, one period, without an
-  end date, per supported storefront.
-- Availability matching the full supported storefront set and automatic new-territory
-  availability disabled.
-- Every canonical subscription name, description, and group display name matching in all
-  42 locales. Unknown, duplicate, missing, or overlong inputs fail explicitly.
+The writer finishes only when fresh API reads match everything it expects, and stops on any
+identity, duration, family-sharing, state, price, trial or availability drift and on any unexpected
+or missing locale; it never overwrites commercial drift automatically and never submits for review.
 
 A merged script is not evidence that any Apple product exists. A partial or failed run is
 not catalog completion. Product visibility in sandbox is a later operational check; do not
@@ -97,15 +53,10 @@ submit for review to make a sandbox lookup work.
 
 ## Failures and repeat runs
 
-The writer stops on identity, duration, family-sharing, state, price, trial, or availability
-drift and reports the affected resource. Inspect that difference before deciding whether a
-separate correction is authorized. It never overwrites commercial drift automatically.
-
-POST requests are not retried. If creation fails or its result is uncertain, the writer reads
-the corresponding remote collection and reports observed resource IDs before stopping.
-Inspect that readback and the original API error, then rerun with the same reviewed inputs.
-Matching resources are reused, so completed steps do not create duplicates. A readback error
-also stops the run; inspect Apple before trying again.
+Inspect a reported drift before deciding whether a separate correction is authorized. If creation
+fails or its result is uncertain, inspect the observed resource IDs it reports and the original API
+error, then rerun with the same reviewed inputs: matching resources are reused, so completed steps
+do not create duplicates. A readback error also stops the run; inspect Apple before trying again.
 
 For a permission or agreement error, retain the exact HTTP status and Apple's error response
 without credentials. Check the account's catalog permissions and active paid agreement. Use
@@ -150,7 +101,6 @@ price differs, stop for an explicit commercial correction instead of overwriting
    cookie, Authorization, Origin, or CSRF headers. Require a non-success Apple error rather
    than an account-authentication error. Valid signed delivery is verified below. Record
    only status, error code, request ID, deployment SHA, and UTC time in shared evidence.
-   The backend also mounts the legacy unversioned paths for its existing ingress shape.
 
 ## Configure and verify Notification V2
 
