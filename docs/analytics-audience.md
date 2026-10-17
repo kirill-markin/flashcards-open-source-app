@@ -35,17 +35,15 @@ make them certain ([rules](../db/migrations/0178_backfill_installation_profiles_
   matched analytics actor id, with a per-actor log record and a Sentry warning on an unusually
   large run.
 - [Shared report classification](../db/migrations/0171_probable_android_burst_actors.sql): probable
-  Android test bursts are filtered in admin reports/options and public v3, read from a materialized
-  view that an [hourly job](../infra/aws/lib/scheduled-jobs/probable-android-burst-refresh.ts)
+  Android test bursts, which the [shared exclusion rule](admin-app.md#who-counts-as-a-person) drops,
+  are read from a materialized view that an [hourly job](../infra/aws/lib/scheduled-jobs/probable-android-burst-refresh.ts)
   refreshes, so every change below reaches reports at the next refresh. At least four unsigned-in
   actors share one non-null device model/OS/app fingerprint within a rolling 24-hour window, with
   each actor's whole trusted history shorter than 24 hours. No maturity delay or report-date bound
   applies. Later sign-in under any resolved/raw/subject ID or a return at least 24 hours later
   restores reporting automatically; a recorded human restore under any of those IDs overrides the
   match. Exact automatic burst rows from the detector remain audit records and do not force an
-  exclusion. Manual rows and the other detector reason retain their existing effect. Events/Users
-  remain inspectable; the Users exclusion reason exposes the classification as of the last refresh. Public v2
-  retains its persisted-review identity and exclusion policy ([global metrics](global-metrics.md)).
+  exclusion. Manual rows and the other detector reason retain their existing effect.
 - [Feedback connection-country snapshot](../db/migrations/0138_feedback_connection_country.sql):
   saved only with the initial submission; existing locale/timezone snapshots remain intact.
 - [Gateway access log fields](../infra/aws/lib/gateways/api-gateway-access-log.ts):
@@ -87,10 +85,9 @@ an `ai_chat` or `agent_connection` replica, whose `installation_id` is NULL and 
 carries no marker by design. A marked installation is not an installation that produces zero events;
 read residue as these producers rather than as a defect in the marker.
 
-[Shared actor exclusions](../apps/backend/src/reviewMetricsSql.ts) hide current guest owners of
-marked installations at reporting time, including these surviving server facts. Raw events remain
-stored. A Cognito identity keeps its owner outside this installation-based exclusion; unmarked
-guests and guests without a registered installation are outside it too.
+Reports hide the actors that
+[`automationInstallationActorIdsSqlLines`](../apps/backend/src/reviewMetricsSql.ts) selects from
+marked installations, these surviving server facts included. Raw events remain stored.
 
 The eight billing facts in
 [billingFacts.ts](../apps/backend/src/productAnalytics/serverFacts/billingFacts.ts) -

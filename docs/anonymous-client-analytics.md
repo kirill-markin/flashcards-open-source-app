@@ -161,39 +161,10 @@ automated traffic therefore excludes
 
 ## How these rows are counted
 
-Every row this collector writes carries `trust_level = 'anonymous_client'`, and **a report that
-counts people excludes that trust level**. The reading is that an unverified anonymous claim is
-evidence an event happened and is not evidence a person exists: no credential stands behind the
-request, and `anonymous_id`, which `actor_id` falls back to, is a caller-supplied UUID this route
-verifies nothing about beyond its shape.
-
-`daily-active-users` and `Audience` apply it through
-[`buildTrustedActorRowsFilterSql`](../apps/admin/src/filters/filterSql.ts), which is where any
-further report must take it from; both are documented in [Admin app](admin-app.md). Every other
-actor-level derivation over the same view either applies it as well or cannot be reached by this
-collector at all, because every event it reads is server-derived or because it carries a trust
-predicate of its own. The helper's own comment carries the full list and says which of the two each
-entry is, and a remediation is scoped from there rather than from this page. Without the rule, the
-collector accepting `app_opened` like every other client-reportable name would make an ordinary
-signed-out marketing-site visitor a daily active user, on an append-only table that cannot be
-corrected afterwards.
-
-Funnels and event counts over these rows are unaffected: the rule is about counting actors, not about
-counting events.
-
-The Funnels area's `all` audience mode is the one surface that counts people out of these rows, and
-it does not break the rule above: it counts no actor at all. A cookieless site row is keyed on its
-`daily_visitor_hash` and the UTC day of that hash's salt, so one person there is one browser for one
-day and nobody the app can ever meet again, which is why those people appear only at the site steps
-and as a segment of their own. That cohort reads no `anonymous_id`, so the unverified claim this
-section is about decides nothing in it. It is also one of the reads where `automated_client` is read
-on the row rather than on the actor, because these rows have no actor to drop:
-[`funnelAudienceSql.ts`](../apps/admin/src/reports/funnels/funnelAudienceSql.ts) keeps a browser-day
-out of the cohort when its rows are marked `IS TRUE`. It is not the only one, and the whole list of
-them is the one the `buildNonAutomatedClientRowsFilterSql` comment in
-[`filterSql.ts`](../apps/admin/src/filters/filterSql.ts) carries; read it from there rather than from
-this page. Everywhere an actor does exist, the shared exclusion rule drops that actor instead
-([Admin app](admin-app.md)).
+Every row this collector writes carries `trust_level = 'anonymous_client'`. Which reads may count
+people out of these rows, and why, is the comment on `buildTrustedActorRowsFilterSql` in
+[`filterSql.ts`](../apps/admin/src/filters/filterSql.ts); which reads judge `automated_client` on the
+row rather than on the actor is the comment on `buildNonAutomatedClientRowsFilterSql` beside it.
 
 ## Identity-free events
 
