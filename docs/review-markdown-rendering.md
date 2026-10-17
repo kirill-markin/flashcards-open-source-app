@@ -1,19 +1,27 @@
 # Review Markdown Rendering
 
 This document is the cross-client semantic contract for Markdown on review card
-sides. Four surfaces are bound by it: the web app review screen, the iOS app
-review screen, the Android app review screen, and the public catalog website
-(`flashcards-open-source-app-website`, a sibling repository). Web keeps
-browser-native output, iOS keeps SwiftUI-native output, Android keeps Material
-3-native output, and the catalog website keeps its own web output. The rendered
-structure and behavior must match, but typography, spacing, and other platform
-styling do not need to be pixel-identical.
+sides. Four surfaces are bound by it: the web app review screen
+([presentation](../apps/web/src/screens/review/components/card/reviewContentPresentation.ts),
+[math](../apps/web/src/screens/review/components/card/reviewMathBlocks.ts)), the
+iOS app review screen
+([presentation](../apps/ios/Flashcards/Flashcards/Review/View/Content/ReviewContentPresentation.swift),
+[math](../apps/ios/Flashcards/Flashcards/Review/View/Content/ReviewMathBlocks.swift)),
+the Android app review screen
+([presentation](../apps/android/feature/review/src/main/java/com/flashcardsopensourceapp/feature/review/presentation/ReviewContentParser.kt),
+[math](../apps/android/feature/review/src/main/java/com/flashcardsopensourceapp/feature/review/presentation/ReviewMathBlocks.kt)),
+and the public catalog website (`flashcards-open-source-app-website`, a sibling
+repository). Web keeps browser-native output, iOS keeps SwiftUI-native output,
+Android keeps Material 3-native output, and the catalog website keeps its own
+web output. The rendered structure and behavior must match, but typography,
+spacing, and other platform styling do not need to be pixel-identical.
 
-The three apps render math with RaTeX 0.1.14; the catalog website renders it
-with KaTeX (`katex` through `rehype-katex`). The segmentation rules below bind
-all four identically. Where two engines can legitimately disagree on the same
-accepted formula source, only surfaces that share an engine owe each other
-identical output, and this document says so at the point where it matters.
+The three apps render math with the same pinned RaTeX version; the catalog
+website renders it with KaTeX (`katex` through `rehype-katex`). The segmentation
+rules below bind all four identically. Where two engines can legitimately
+disagree on the same accepted formula source, only surfaces that share an engine
+owe each other identical output, and this document says so at the point where it
+matters.
 
 ## Presentation selection
 
@@ -169,43 +177,16 @@ In particular:
   whose body is empty and whose `meta` is `E = mc^2`, which would render an
   empty formula, and this product rejects it rather than rendering nothing.
 
-The source-level rules above are the single normative test for display math. The
-three paragraphs that follow are informative: they describe what a `remark-math`
-client receives, so that such a client can implement the test, and they add no
-rule.
-
-`remark-math` never produces a flow math node for a `$$` run that opens and
-closes on one line; micromark reads that shape as text math instead, so
-`$$E = mc^2$$` alone in its own block arrives as a paragraph holding a single
-`inlineMath` child whose delimited source opens and closes with a run of two or
-more `$`. Such a client promotes that node to display math when, and only when,
-the source-level rules above accept the source it came from, and keeps every
-other `$$`-delimited text-math node literal, delimiters included. The node shape
-is a consequence of those rules rather than a second test of them, and it is a
-looser shape than they are: micromark also yields `inlineMath` children for
-`$$E = mc^2$$` followed by a text line, for `$$A$$` and `$$B$$` on consecutive
-lines, and for `$$E=mc^2$$ $$F=ma$$` on one line, and the source-level rules
-reject all three, so a client keeps all three literal. Already published card
-sides depend on single-line display math, so the rule must not be weakened.
-
-On the multiple-line shape a client is handed real flow math nodes, and upstream
-is looser than this contract there in three specific ways, so a client that
-trusts the node it was handed renders all three wrongly. Flow math interrupts a
-paragraph, so a `$$` line directly after a text line still yields a math node.
-Flow math accepts a closing run longer than the opening run. Two multiple-line
-constructs with no blank line between them yield two math nodes. Each of the
-three is caught only by re-reading the source around the node — the blank line
-before the opening run, and the length of the closing run — never by the node
-itself.
-
-The same holds for every math node upstream hands over, `$`-delimited as well as
-`$$`-delimited: text math is produced for boundaries the guards above reject, so
+The source-level rules in this section are the single normative test for math.
+Upstream `remark-math` node boundaries are never authoritative, so a client
+built on it re-validates every math node it is handed against the source,
+`$`-delimited as well as `$$`-delimited. Beyond the upstream differences noted above, micromark
+reads a single-line `$$…$$` as an `inlineMath` node rather than flow math, which
+a client promotes to display math only when the source rules accept it, and it
+produces text math for boundaries the inline guards reject, so
 `Cost is $x and$$E$$ here$m$ ok.` arrives with an `inlineMath` node holding
-`x and$$E$$ here`, which item 25 forbids, and `$$a $ b$$` alone in its block
-arrives as an `inlineMath` node holding `a $ b`, whose closing run is one `$`
-where the opening run held two. Every math node must be re-validated against the
-source rules above, and upstream node boundaries are never authoritative on
-their own.
+`x and$$E$$ here`. Already published card sides depend on single-line display
+math, so that rule must not be weakened.
 
 Outside code, `\$` produces a literal dollar sign and cannot open or close math.
 Escaping stays the reliable way to write currency, for example `\$5` and `\$10`.
@@ -242,7 +223,7 @@ Math recognition does not reinterpret link or image destinations, including
 managed-media parsing and rendering behavior are unchanged.
 
 Applications maintain no LaTeX command allowlist. Every expression the surface's
-math engine accepts is eligible to render: RaTeX 0.1.14 on the web, iOS, and
+math engine accepts is eligible to render: RaTeX on the web, iOS, and
 Android review screens, and KaTeX on the catalog website. This does not extend
 support to full TeX documents or commands and syntax the engine does not
 support.
@@ -321,28 +302,17 @@ asset ID.
     display math and renders as one horizontally scrollable display-style
     block, exactly like item 2.
 13. `Earned value is $80,000 and actual cost is $100,000.` stays entirely
-    literal. The first `$` opens a candidate span, but the next `$` has a space
-    immediately to its left, so it cannot close the span and the first `$` stays
-    literal. Scanning resumes at that second `$`, which has no later `$` on the
-    line, so it stays literal too.
-14. `A $100 bond with yield $r$ pays` mixes currency and math on one line. The
-    first `$` cannot close on the second `$`, which has a space to its left, so
-    `A $100 bond with yield ` stays literal; scanning resumes at the second `$`,
-    which closes on the third and yields a text-style formula for `r`, followed
-    by literal ` pays`. The scan never skips the second `$` to close on the
-    third, so the formula body is never `100 bond with yield $r`, and the side
-    is never entirely literal.
-15. `The formula $$E=mc^2$$ is famous.` stays entirely literal. Each `$$` is a
-    display fence sequence rather than a pair of inline delimiters, and neither
-    sequence starts its own line, so no display block is eligible and no inline
-    span forms.
-16. The opening and closing runs must hold the same number of `$`. Three
-    sides, each alone in its own block: `$$$x$$$` is display math for `x`;
-    `$$$x$$`, whose closing run is one `$` short, stays entirely literal; and
-    `$$x$$$`, whose closing run is one `$` long, stays entirely literal too.
-    The long case is literal on purpose: `remark-math` produces no node at all
-    for it, so accepting it would put a hand-written scanner's output out of a
-    `remark-math` client's reach.
+    literal: the second `$` has a space to its left, so it cannot close, and
+    has no later `$` to close on.
+14. `A $100 bond with yield $r$ pays` keeps `A $100 bond with yield ` literal,
+    renders a text-style formula for `r`, and keeps ` pays` literal. The formula
+    body is never `100 bond with yield $r`, and the side is never entirely
+    literal.
+15. `The formula $$E=mc^2$$ is famous.` stays entirely literal: neither `$$`
+    run starts its own block, and neither is read as inline delimiters.
+16. Three sides, each alone in its own block: `$$$x$$$` is display math for
+    `x`; `$$$x$$`, whose closing run is one `$` short, and `$$x$$$`, whose
+    closing run is one `$` long, stay entirely literal.
 17. A `$$` fence with no closing fence stays literal, including the opening
     fence, and the rest of the side still parses as ordinary Markdown:
 
@@ -355,113 +325,74 @@ asset ID.
 
     The `$$` line and `E = mc^2` render as one literal paragraph, and
     `The **rest** of the side.` renders as a second paragraph with `rest` in
-    bold. Nothing after the unterminated fence is absorbed into a formula or
-    stripped of its Markdown.
-18. A single-line display construct never interrupts a paragraph. This complete
-    side yields no display block and keeps both `$$` runs literal inside the
-    paragraph, because the `$$` line follows a text line instead of starting its
-    own block:
+    bold.
+18. This complete side yields no display block and keeps both `$$` runs literal
+    inside the paragraph, because a single-line construct never interrupts a
+    paragraph:
 
     ```markdown
     Answer:
     $$E = mc^2$$
     ```
 
-    Item 29 is the multiple-line counterpart, where upstream does produce a
-    display node and the client has to reject it.
-
-19. This complete side stays entirely literal, because text between the opening
-    run and the end of its line is never a formula body, so the construct opens
-    no display fence:
+19. This complete side stays entirely literal and must not render as an empty
+    display block:
 
     ```markdown
     $$E = mc^2
     $$
     ```
 
-    It must not render as an empty display block, which is what the upstream
-    `meta` reading produces.
 20. `$$E=mc^2$$ where $m$ is mass.`, as its own block, keeps both `$$` runs
-    literal and renders a text-style formula for `m` on the same line. The
-    closing run is followed by more text on its line rather than by the end of
-    the line, so the single-line display shape fails; the runs are display fence
-    sequences and never inline delimiters, so they open no inline span; and
-    inline scanning continues past them and accepts `$m$`. The side is never
-    entirely literal.
-21. `Cost: $ x$` stays entirely literal through the opening guard alone: the
-    first `$` has a space immediately to its right and the second has the end of
-    the line to its right, so neither opens a candidate span. An implementation
-    missing that guard renders a formula for ` x` instead, because the closer's
-    left character `x` and its end-of-line right context both satisfy the
-    closing guard. Only the opening guard decides this item.
-22. `Prices are $20$30` stays entirely literal through the digit clause of the
-    closing guard: the second `$` has a non-space character to its left but is
-    followed immediately by `3`, so it cannot close, and the line holds no later
-    `$`. An implementation missing that clause renders a formula for `20`
-    instead.
+    literal and renders a text-style formula for `m` on the same line. The side
+    is never entirely literal.
+21. `Cost: $ x$` stays entirely literal. This item isolates the opening guard:
+    without it, an implementation renders a formula for ` x`.
+22. `Prices are $20$30` stays entirely literal. This item isolates the digit
+    clause of the closing guard: without it, an implementation renders a
+    formula for `20`.
 23. Guard spaces are ASCII only. Build a side whose text is `Total is $`, a
     non-breaking space (U+00A0), `x`, a second non-breaking space, then
     `$ today.`; insert both code points literally rather than typing ordinary
-    spaces. U+00A0 is a non-space character for these guards, so both guards
-    hold and the inline pair is recognized math whose source is the two
+    spaces. The inline pair is recognized math whose source is the two
     non-breaking spaces around `x`. Two renderings pass: a formula rendered on
     the baseline with no `$` visible anywhere on the side, or the delimited
     source shown together with the visible localized render error of item 11.
     Look for that error affordance specifically; it is the only thing that
     separates the second passing rendering from the failing one, where the two
     `$` characters render as ordinary text and no error appears anywhere on the
-    side. Every surface passes this item on its own by landing on either passing
-    rendering. The web, iOS, and Android review screens share RaTeX 0.1.14, so
-    those three must land on the same one of the two: record which one the first
-    of them produces and require the other two to match it. The catalog website
-    renders with KaTeX, which makes its own decision about U+00A0 in math mode,
-    so it owes the three apps no parity here and passes on either rendering. An
-    implementation that reaches for a general whitespace predicate here keeps
-    the whole side literal and fails this item.
-24. Inline math never spans lines. This complete side keeps both `$` literal,
-    because neither line holds a later `$`:
+    side, which is what a general whitespace predicate produces. The web, iOS,
+    and Android review screens share RaTeX, so those three must land on the same
+    one of the two: record which one the first of them produces and require the
+    other two to match it. The catalog website renders with KaTeX, so it owes
+    the three apps no parity here and passes on either rendering.
+24. This complete side keeps both `$` literal, because inline math never spans
+    lines:
 
     ```markdown
     Mass is $m
     and energy is$E today.
     ```
 
-    An implementation that continues the scan onto the next line closes the
-    first `$` on the second one, whose left character `s` and right character
-    `E` both satisfy the closing guard, and wrongly renders a formula holding
-    `m`, the line break, and `and energy is`.
 25. `Cost is $x and$$E$$ here$m$ ok.` keeps `Cost is $x and$$E$$ here` literal,
-    renders a text-style formula for `m`, and keeps ` ok.` literal. The first
-    `$` opens a candidate span, the scan
-    reaches the `$$` run, and the attempt fails there. The scan neither closes
-    on a `$` that belongs to a run of two or more nor skips the run to close on
-    the `$` before `m`, either of which would render a formula for `x and` or
-    for `x and$$E$$ here`.
-26. The single-line display shape needs the whole block to itself. Each of these
-    three complete sides stays entirely literal, with every `$` visible as
-    ordinary text and no display block anywhere:
+    renders a text-style formula for `m`, and keeps ` ok.` literal. It never
+    renders a formula for `x and` or for `x and$$E$$ here`.
+26. Each of these three complete sides stays entirely literal, with every `$`
+    visible as ordinary text and no display block anywhere:
 
     - `$$E = mc^2$$` on the first line and `Answer text.` on the second, with no
-      blank line between them: the `$$` line does not end its block, so both
-      lines render as one literal paragraph.
+      blank line between them;
     - `$$A$$` on the first line and `$$B$$` on the second, with no blank line
-      between them: the first line does not end its block and the second does
-      not start one, so all four runs stay literal in one paragraph.
-    - `$$E=mc^2$$ $$F=ma$$` alone on its own line: the closing run is the first
-      later run on the line, and more text follows it there, so the shape fails.
-      The body is never `E=mc^2$$ $$F=ma`, and the second construct is not
-      display math either.
+      between them;
+    - `$$E=mc^2$$ $$F=ma$$` alone on its own line; the body is never
+      `E=mc^2$$ $$F=ma`.
 
-    A `remark-math` client is handed `inlineMath` nodes on all three sides and
-    must keep every one of them literal.
+    A `remark-math` client is handed `inlineMath` nodes on all three sides.
 27. `where $m$ is mass and $c$ is the speed of light` becomes one line of text
-    in one paragraph: a text-style formula for `m` and another for `c`, both on
-    the same baseline as the surrounding words. Scanning continues after a
-    successful close, so an implementation that stops at the first accepted span
-    leaves `$c$` literal and fails this item.
-28. Display math inside a container block stays literal. This complete side
-    renders as an ordinary list whose single item shows `$$`, `E = mc^2`, and
-    `$$` as text, with no display block anywhere:
+    in one paragraph, with a text-style formula for `m` and another for `c`.
+28. This complete side renders as an ordinary list whose single item shows
+    `$$`, `E = mc^2`, and `$$` as text, with no display block anywhere, because
+    the `$$` line is not a direct top-level block:
 
     ```markdown
     - Item:
@@ -471,13 +402,8 @@ asset ID.
       $$
     ```
 
-    The `$$` line carries fewer than four leading spaces and is preceded by a
-    blank line, so it passes the two line-level tests in isolation. It is still
-    literal, because the line is not a direct top-level block of the card side.
-29. The multiple-line shape needs the blank-line check written into the client,
-    because upstream does not supply it. This complete side stays entirely
-    literal, as one paragraph showing `Answer:`, `$$`, `E = mc^2`, and `$$` as
-    text, with no display block anywhere:
+29. This complete side stays entirely literal, as one paragraph showing
+    `Answer:`, `$$`, `E = mc^2`, and `$$` as text:
 
     ```markdown
     Answer:
@@ -486,15 +412,10 @@ asset ID.
     $$
     ```
 
-    Unlike its single-line counterpart in item 18, this side arrives from
-    `remark-parse` with `remark-math` as a paragraph holding `Answer:` plus a
-    valid flow math node holding `E = mc^2`, because flow math interrupts a
-    paragraph. A client that renders the node it was handed produces a display
-    block and fails this item; only a source check for the blank line before the
-    opening `$$` keeps it literal.
-30. The multiple-line shape needs the equal-length check written into the client
-    too. This complete side stays entirely literal, as one paragraph showing
-    `$$`, `X`, and `$$$` as text:
+    Upstream hands over a valid flow math node here; only the client's own
+    check for the blank line before the opening `$$` keeps it literal.
+30. This complete side stays entirely literal, as one paragraph showing `$$`,
+    `X`, and `$$$` as text:
 
     ```markdown
     $$
@@ -502,12 +423,10 @@ asset ID.
     $$$
     ```
 
-    Unlike the single-line long-run case of item 16, upstream hands over a valid
-    flow math node holding `X` here, so there is a node to render and only the
-    client's own comparison of the two run lengths rejects it.
-31. Two multiple-line constructs need a blank line between them. This complete
-    side renders one horizontally scrollable display block for `A`, followed by
-    an ordinary paragraph showing `$$`, `B`, and `$$` as text:
+    Upstream hands over a valid flow math node here; only the client's own
+    comparison of the two run lengths rejects it.
+31. This complete side renders one horizontally scrollable display block for
+    `A`, followed by an ordinary paragraph showing `$$`, `B`, and `$$` as text:
 
     ```markdown
     $$
@@ -518,17 +437,14 @@ asset ID.
     $$
     ```
 
-    Upstream hands over two valid flow math nodes. The second opening run is
-    preceded by the first closing run rather than by a blank line, so only the
-    client's own source check keeps the second construct literal. Inserting a
-    blank line between the two constructs makes both of them display blocks.
+    Upstream hands over two valid flow math nodes; only the client's own source
+    check keeps the second construct literal. Inserting a blank line between the
+    two constructs makes both of them display blocks.
 
 Speech and accessibility expose `x`, `\int_0^1 x^2\,dx = \frac{1}{3}`, and
-other recognized formula sources without delimiters. The web app review screen,
-the iOS app review screen, the Android app review screen, and the public catalog
-website implement the rendering contract above. Transport escaping and read-back
-authoring rules use the canonical shared AI authoring contract in
-`apps/backend/src/aiTools/toolContract/sqlToolContract.ts`.
+other recognized formula sources without delimiters. Transport escaping and
+read-back authoring rules use the canonical shared AI authoring contract in
+[`sqlToolContract.ts`](../apps/backend/src/aiTools/toolContract/sqlToolContract.ts).
 
 ## Managed media
 

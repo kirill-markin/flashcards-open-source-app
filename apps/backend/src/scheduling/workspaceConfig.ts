@@ -14,7 +14,7 @@ export type WorkspaceSchedulerSettings = Readonly<{
   updatedAt: string;
 }>;
 
-// Keep in sync with apps/ios/Flashcards/Flashcards/LocalDatabase.swift::ValidatedWorkspaceSchedulerSettingsInput and validation flow.
+// Keep in sync with apps/ios/Flashcards/Flashcards/Database/Workspace/WorkspaceSettingsStore.swift::ValidatedWorkspaceSchedulerSettingsInput and validation flow.
 export type WorkspaceSchedulerConfig = Readonly<{
   algorithm: SchedulerAlgorithm;
   desiredRetention: number;
