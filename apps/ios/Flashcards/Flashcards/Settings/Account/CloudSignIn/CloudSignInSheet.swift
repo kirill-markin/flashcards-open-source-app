@@ -140,7 +140,7 @@ struct CloudSignInSheet: View {
     private var signInForm: some View {
         @Bindable var store = self.store
 
-        NavigationStack {
+        return NavigationStack {
             ReadableContentLayout(
                 maxWidth: flashcardsReadableFormMaxWidth,
                 horizontalPadding: 0
