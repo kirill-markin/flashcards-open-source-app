@@ -22,7 +22,7 @@ export async function carryGuestAccentColorToAccountInExecutor(
   const targetResult = await executor.query(
     [
       "UPDATE org.user_settings",
-      "SET accent_color = CASE WHEN accent_color = '#C44B2D' THEN $2::TEXT ELSE accent_color END",
+      "SET accent_color = CASE WHEN accent_color = '#FF6719' THEN $2::TEXT ELSE accent_color END",
       "WHERE user_id = $1",
       "RETURNING user_id",
     ].join(" "),

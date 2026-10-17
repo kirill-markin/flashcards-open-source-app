@@ -115,7 +115,7 @@ export function handleUserSettingsExecutorQuery<Row extends pg.QueryResultRow>(
   }
 
   if (
-    text === "UPDATE org.user_settings SET accent_color = CASE WHEN accent_color = '#C44B2D'"
+    text === "UPDATE org.user_settings SET accent_color = CASE WHEN accent_color = '#FF6719'"
       + " THEN $2::TEXT ELSE accent_color END WHERE user_id = $1 RETURNING user_id"
   ) {
     const userId = String(params[0]);
@@ -126,7 +126,7 @@ export function handleUserSettingsExecutorQuery<Row extends pg.QueryResultRow>(
     }
     state.userSettings.set(userId, {
       ...current,
-      accent_color: current.accent_color === "#C44B2D" ? String(params[1]) : current.accent_color,
+      accent_color: current.accent_color === "#FF6719" ? String(params[1]) : current.accent_color,
     });
     return createQueryResult<Row>([{ user_id: userId } as unknown as Row]);
   }

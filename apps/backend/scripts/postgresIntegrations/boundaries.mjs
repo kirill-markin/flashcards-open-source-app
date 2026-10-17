@@ -73,13 +73,21 @@ export const createdRolesByMigration = new Map([
 // migration contracts retain their original cutoffs.
 export const boundaryDefinitions = Object.freeze([
   Object.freeze({
+    migrationFileName: "0217_default_accent_color.sql",
+    expectedMigrationCount: 219,
+    testFiles: Object.freeze([
+      "src/routes/system/account/accountPreferences.postgres.integration.ts",
+      "src/guestAuth/upgrade/boundGuestSession.postgres.integration.ts",
+      "src/auth/socialSignIn.postgres.integration.ts",
+    ]),
+  }),
+  Object.freeze({
     migrationFileName: "0215_account_connection_preview_binding.sql",
     expectedMigrationCount: 217,
     testFiles: Object.freeze([
       "src/auth/accountConnection.postgres.integration.ts",
       "src/auth/accountConnectionProofs.postgres.integration.ts",
       "src/auth/principalEnrollment.postgres.integration.ts",
-      "src/auth/socialSignIn.postgres.integration.ts",
       "src/auth/appleConsentReconnect.postgres.integration.ts",
       "src/auth/accountEmailReauthentication.postgres.integration.ts",
       "src/auth/emailAuthAttempt.postgres.integration.ts",
@@ -101,7 +109,6 @@ export const boundaryDefinitions = Object.freeze([
     testFiles: Object.freeze([
       "src/auth/appleLifecycle.postgres.integration.ts",
       "src/aiConsent/consent.postgres.integration.ts",
-      "src/routes/system/account/accountPreferences.postgres.integration.ts",
       "src/workspaces/starterVisibility.postgres.integration.ts",
       "src/agent/reviews.postgres.integration.ts",
       "src/auth/stableClientAccountIdentity.postgres.integration.ts",
@@ -191,7 +198,6 @@ export const boundaryDefinitions = Object.freeze([
       "src/admin/authz.postgres.integration.ts",
       "src/productAnalytics/dailyVisitorHash.postgres.integration.ts",
       "src/auth/surrogateUserId.postgres.integration.ts",
-      "src/guestAuth/upgrade/boundGuestSession.postgres.integration.ts",
       "src/auth/principalSessions.postgres.integration.ts",
       "src/chat/cardImages/operation.postgres.integration.ts",
       "src/chat/runs/generatedImageAttemptBudget.postgres.integration.ts",
