@@ -62,7 +62,8 @@ export type TranslationValues = Readonly<Record<string, number | string>>;
 
 export type DateTimeValue = Date | number | string;
 
-// `two` and `few` are filled only by languages whose CLDR rules need them; absent forms fall back to `other`.
+// `two` and `few` are filled only by languages whose CLDR rules need them; absent forms and `many` render
+// `other`, so `other` must also read correctly for those counts.
 export type PluralCountLabels = Readonly<{
   zero?: string;
   one: string;

@@ -90,6 +90,8 @@ jobs:
                   ;;
               esac
 
+              # :data:local depends only on :core:observability, so :app, :core:ui and :feature:* changes
+              # cannot change its instrumentation result.
               case "${changed_file}" in
                 apps/android/data/*|apps/android/core/observability/*|apps/android/build.gradle.kts|apps/android/settings.gradle.kts|apps/android/gradle.properties|apps/android/gradle/*|.github/workflows/android-ci-reusable.yml|.github/workflows/pr-checks.yml)
                   android_data_local_changed=true

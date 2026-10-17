@@ -4,11 +4,13 @@ import Foundation
 //
 // The Sentry Cocoa SDK deliberately skips frequently changing context such as
 // free memory when it writes a watchdog termination event, but it does replay
-// the persisted breadcrumb ring buffer onto that event. Carrying these values
-// on our own breadcrumbs is therefore the only way a later
-// `WatchdogTermination` can answer whether the OS killed the app for running
-// out of memory. Everything here runs on every breadcrumb, so it must stay
-// allocation-free, must not log, and must not touch Sentry.
+// the persisted breadcrumb ring buffer onto that event. It persists that buffer
+// on a utility queue, so a kill under memory pressure can lose the newest
+// breadcrumbs or all of them. Carrying these values on our own breadcrumbs is
+// still the only way a later `WatchdogTermination` can answer whether the OS
+// killed the app for running out of memory. Everything here runs on every
+// breadcrumb, so it must stay allocation-free, must not log, and must not touch
+// Sentry.
 
 private final class AppUptimeReferenceStorage: @unchecked Sendable {
     private let lock: NSLock
