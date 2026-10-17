@@ -370,7 +370,21 @@ extension LiveSmokeTestCase {
                 if accountStatusRow.exists && accountStatusRow.isHittable {
                     let navigationBar = self.app.navigationBars.firstMatch
                     let tabBar = self.app.tabBars.firstMatch
+                    #if targetEnvironment(macCatalyst)
+                    let settingsWindows = self.app.children(matching: .window)
+                        .containing(.any, identifier: LiveSmokeIdentifier.settingsScreen)
+                    let settingsWindowCount = settingsWindows.count
+                    guard settingsWindowCount == 1 else {
+                        throw LiveSmokeFailure.unexpectedAccountState(
+                            message: "Expected one top-level native window containing '\(LiveSmokeIdentifier.settingsScreen)' for the Settings viewport; found \(settingsWindowCount).",
+                            screen: self.currentScreenSummary(),
+                            step: self.currentStepTitle
+                        )
+                    }
+                    let viewportFrame = settingsList.frame.intersection(settingsWindows.element.frame)
+                    #else
                     let viewportFrame = settingsList.frame.intersection(self.app.frame)
+                    #endif
                     let viewportTop = max(viewportFrame.minY, navigationBar.exists ? navigationBar.frame.maxY : viewportFrame.minY)
                     let viewportBottom = tabBar.exists && tabBar.frame.minY > viewportTop
                         ? min(viewportFrame.maxY, tabBar.frame.minY)
@@ -398,7 +412,7 @@ extension LiveSmokeTestCase {
             }
 
             throw LiveSmokeFailure.unexpectedAccountState(
-                message: "'\(LiveSmokeIdentifier.settingsAccountStatusRow)' did not become hittable inside the Settings viewport below its navigation bar within \(formatDuration(seconds: timeout)).",
+                message: "'\(LiveSmokeIdentifier.settingsAccountStatusRow)' did not become hittable fully inside the Settings viewport below its navigation bar within \(formatDuration(seconds: timeout)).",
                 screen: self.currentScreenSummary(),
                 step: self.currentStepTitle
             )
