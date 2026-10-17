@@ -11,20 +11,30 @@ import { requireNativeProvider, requireSignInProvider } from "./publicMethods.js
 import type { NativeSignInRequest, SignInContinuationRequest, AccountProviderContinuation } from "./publicContract.js";
 import type { TokenResult } from "../cognito/cognitoAuth.js";
 import type { ProviderSignInHint } from "./signInHint.js";
+import type { ConnectionSuggestion } from "./accountConnectionContract.js";
 import type { IdentityProvider } from "./identityStore.js";
 import { decideOtpRateLimit, recordOtpSendDecision } from "../otp/otpRateLimit.js";
+
+export type NativeSignInTokenResponse = Readonly<{
+  ok: true; signInHint: ProviderSignInHint; connectionSuggestion?: ConnectionSuggestion;
+} & TokenResult>;
 
 export type NativeSignInResponse =
   | Readonly<{ status: "completed" } & AuthCompletionResponse>
   | Readonly<{ status: "verification_required"; reason: "mailbox_required" | "existing_email" | "historical_binding"; providerEmail: string | null }>
   | Readonly<{ status: "mailbox_code_sent" }>
-  | Readonly<{ ok: true; signInHint: ProviderSignInHint } & TokenResult>;
+  | NativeSignInTokenResponse;
 
 export type AccountProviderContinuationResult = Readonly<{
-  response: Exclude<NativeSignInResponse, Readonly<{ ok: true; signInHint: ProviderSignInHint } & TokenResult>>;
+  response: Exclude<NativeSignInResponse, NativeSignInTokenResponse>;
   method: IdentityProvider;
 }>;
 type NativeSignInResult = Readonly<{ response: NativeSignInResponse; method: IdentityProvider }>;
+
+export function createNativeSignInTokenResponse(tokens: TokenResult, signInHint: ProviderSignInHint): NativeSignInTokenResponse {
+  return { ok: true, ...tokens, signInHint,
+    ...(signInHint.connectionSuggestion === undefined ? {} : { connectionSuggestion: signInHint.connectionSuggestion }) };
+}
 
 /** Guest prepare/complete precedes generic provisioning, including a bound Apple return with an early profile. */
 export async function completeNativeSignIn(request: NativeSignInRequest, trustedIp: string): Promise<NativeSignInResult> {
@@ -50,7 +60,7 @@ async function completeSignIn(request: NativeSignInRequest | SignInContinuationR
     const principal = await transaction((executor) => redeemSocialSignInInExecutor(executor, request.completion, request.binding));
     requireSignInProvider(principal.signInHint.method, request.binding.client);
     const tokens = await exchangeVerifiedPrincipalForTokens(principal);
-    return { response: { ok: true, ...tokens, signInHint: principal.signInHint }, method: principal.signInHint.method };
+    return { response: createNativeSignInTokenResponse(tokens, principal.signInHint), method: principal.signInHint.method };
   }
   if (request.action === "provider") {
     requireNativeProvider(request.submission.provider, request.binding.client);
