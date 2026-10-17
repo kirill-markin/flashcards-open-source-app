@@ -27,7 +27,7 @@ export function AccountAccentTheme(): ReactElement | null {
     style.setProperty("--accent", effectiveColor);
     style.setProperty("--accent-rgb", channels.join(", "));
     const hoverColor = effectiveColor === defaultAccentColor
-      ? "#D65A38"
+      ? "#FF7A3D"
       : `rgb(${channels.map((channel) => Math.round(channel + (255 - channel) * 0.12)).join(", ")})`;
     style.setProperty("--accent-strong", hoverColor);
     return (): void => {

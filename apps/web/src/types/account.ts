@@ -3,7 +3,7 @@ import type { Locale } from "../i18n/types";
 /** A recorded analytics consent decision. No decision at all is null, never a third choice value. */
 export type AnalyticsConsentChoice = "granted" | "declined";
 
-export const defaultAccentColor = "#C44B2D";
+export const defaultAccentColor = "#FF6719";
 
 export type AccountPreferences = Readonly<{
   accentColor: string;

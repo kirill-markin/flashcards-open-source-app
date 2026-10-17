@@ -272,7 +272,7 @@ function createAppData(state: ReviewScreenTestState): ReviewScreenAppData {
     setErrorMessage: vi.fn(),
     setAccountPreferences: vi.fn(),
     refreshAccountPreferences: vi.fn(async () => ({
-      accentColor: "#C44B2D",
+      accentColor: "#FF6719",
       reviewReactionAnimationsEnabled: true,
     })),
     runSync: vi.fn(async (): Promise<void> => undefined),

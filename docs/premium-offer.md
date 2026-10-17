@@ -110,7 +110,7 @@ once the person has left the app.
 
 ### Accent color
 
-Accent color offers Default `#C44B2D`, Blue `#4D8DFF`, Purple `#A78BFA`, Pink `#F472B6`, Teal
+Accent color offers Default `#FF6719`, Blue `#4D8DFF`, Purple `#A78BFA`, Pink `#F472B6`, Teal
 `#2DD4BF`, Gold `#EAB308`, or an arbitrary opaque RGB color with explicit HEX entry. The exact chosen
 RGB is used without contrast correction; alpha is unsupported. Default remains available to everyone.
 Card themes are outside this feature.

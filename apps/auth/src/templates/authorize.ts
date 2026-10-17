@@ -11,7 +11,7 @@ import {
 } from "../routes/oauth/authorizePageLocale.js";
 
 const AUTH_FAVICON_URL =
-  "data:image/svg+xml,%3Csvg%20xmlns=%22http://www.w3.org/2000/svg%22%20width=%22512%22%20height=%22512%22%20viewBox=%220%200%20512%20512%22%3E%3Crect%20width=%22512%22%20height=%22512%22%20rx=%2296%22%20fill=%22%23232323%22/%3E%3Crect%20x=%22104%22%20y=%2292%22%20width=%22184%22%20height=%22264%22%20rx=%2232%22%20fill=%22%23f8f3ec%22/%3E%3Crect%20x=%22212%22%20y=%22156%22%20width=%22196%22%20height=%22272%22%20rx=%2232%22%20fill=%22%23c44b2d%22/%3E%3C/svg%3E";
+  "data:image/svg+xml,%3Csvg%20width%3D%221024%22%20height%3D%221024%22%20viewBox%3D%220%200%201024%201024%22%20fill%3D%22none%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%0A%3Crect%20width%3D%221024%22%20height%3D%221024%22%20fill%3D%22%23161718%22%2F%3E%0A%3Crect%20x%3D%22220%22%20y%3D%22201%22%20width%3D%22367%22%20height%3D%22490%22%20rx%3D%2271.3019%22%20fill%3D%22white%22%2F%3E%0A%3Crect%20x%3D%22437%22%20y%3D%22334%22%20width%3D%22367%22%20height%3D%22490%22%20rx%3D%2271.3019%22%20fill%3D%22%23FF6719%22%2F%3E%0A%3C%2Fsvg%3E%0A";
 
 /**
  * The validated authorization request echoed into the page and posted back on
@@ -71,8 +71,8 @@ export const renderAuthorizePage = (
       --surface-muted-hover: #3a3a3c;
       --text: #f6f6f8;
       --text-secondary: rgba(235, 235, 245, 0.66);
-      --accent: #c44b2d;
-      --accent-strong: #d65a38;
+      --accent: #ff6719;
+      --accent-strong: #ff7a3d;
       --border-strong: #8e8e93;
       --danger: #ff4d57;
       --radius-sm: 10px;
@@ -98,7 +98,7 @@ export const renderAuthorizePage = (
       text-rendering: optimizeLegibility;
     }
 
-    ::selection { background: rgba(196, 75, 45, 0.34); color: var(--text); }
+    ::selection { background: rgba(255, 103, 25, 0.34); color: var(--text); }
 
     .login-page {
       position: relative;
