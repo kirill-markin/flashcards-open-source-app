@@ -1,181 +1,26 @@
 # Agent SQL and MCP Telemetry
 
-Every agent SQL execution emits exactly one structured CloudWatch record, on
-success and on failure alike, so the failure rate of foreign models against our
-SQL dialect is measurable. Every authenticated `/mcp` request emits one more
-record, so the MCP traffic that runs no SQL is measurable too.
+Every agent SQL execution emits one `agent_sql` CloudWatch record, on success and on failure alike, so the failure rate of foreign models against our SQL dialect is measurable; every authenticated `/mcp` request emits one `mcp_request` record, so MCP traffic that runs no SQL is measurable too. What each field means is owned by `AgentSqlDetails` and `McpRequestDetails` in [`operations.ts`](../apps/backend/src/observability/sentry/events/operations.ts); the emitters are `withAgentSqlTelemetry` in [`agentSql.ts`](../apps/backend/src/aiTools/agentSql.ts) and the `/mcp` route in [`lambda-mcp.ts`](../apps/backend/src/entrypoints/lambda-mcp.ts).
 
-The record is emitted by `withAgentSqlTelemetry` in
-`apps/backend/src/aiTools/agentSql.ts`, which wraps `runSqlQuery`,
-`runSqlExecute`, `runChatSqlQuery`, and `runChatSqlExecute`. It sits below the MCP tool handlers' own
-`catch`, which answers with a `CallToolResult` and therefore never reaches
-`app.onError`: without this record an MCP dialect rejection produces no record
-of its SQL detail and no Sentry event. The `mcp_request`
-record the same request emits reports the transport's own `statusCode` 200,
-because a rejected tool call is a successful JSON-RPC response, and carries only
-the tool's `toolErrorCode`.
+## Reading the records
 
-## Record envelope
-
-Every backend Lambda is created with `backendStructuredLoggingProps`
-(`infra/aws/lib/backend-lambda-logging.ts`), which puts it on the Lambda JSON
-log format, and `writeCloudWatchRecord`
-(`apps/backend/src/observability/cloudWatch.ts`) hands the record to `console`
-as an object rather than as pre-serialized JSON. The runtime therefore nests the
-record under `message` and the whole log event is one JSON document:
-
-```json
-{
-  "timestamp": "2026-08-27T09:15:00.000Z",
-  "level": "INFO",
-  "requestId": "<Lambda invocation id>",
-  "message": { "domain": "backend", "action": "agent_sql", "...": "..." }
-}
-```
-
-Two consequences run through everything below.
-
-- Every field named in this document lives one level down. Address it as
-  `message.<field>` in Logs Insights and as `$.message.<field>` in a CloudWatch
-  metric filter, which is what makes a metric filter over these records possible
-  at all.
-- The envelope's own `requestId` is the Lambda invocation id. For agent SQL and
-  authenticated MCP records, `message.requestId` is the `X-Request-Id` response
-  header and joins a record to its Sentry captures. Dispatcher correlation is
-  described in [Dispatcher admission outcomes and timings](#dispatcher-admission-outcomes-and-timings).
-
-`level` follows the severity the record was emitted at: `INFO` for a breadcrumb,
-`WARN` for a warning, `ERROR` for an exception. The shape is the same on every
-backend surface, which is what makes querying the log groups together valid.
+- Every backend Lambda uses the Lambda JSON log format ([`backend-lambda-logging.ts`](../infra/aws/lib/backend-lambda-logging.ts)), so the record sits under `message`: address a field as `message.<field>` in Logs Insights and as `$.message.<field>` in a metric filter.
+- The envelope's own `requestId` is the Lambda invocation id. `message.requestId` is the `X-Request-Id` response header on the MCP worker, and joins `mcp_request`, the `agent_sql` records under it and the request's Sentry captures; REST and chat `agent_sql` records carry null. Dispatcher records carry the API Gateway request id there instead ([joining them to the worker](#dispatcher-admission-outcomes-and-timings)).
+- Raw SQL and error messages are never recorded, so group failures by `sqlFingerprint`, `errorCode` and `dialectReason`, and read a specific failure in Sentry.
+- `workspaceId` is the workspace the call targeted, so chat SQL grouped by workspace can show workspaces the chat session did not have open.
+- If a log group renders `message.succeeded`, `message.rowsOmitted`, `message.rowsTruncated`, `message.toolExecuted` or `message.toolIsError` as `true`/`false` instead of `1`/`0`, compare against `"true"` and `"false"` in the queries below.
 
 ## Where the records are
 
-- `action = "agent_sql"`, `domain = "backend"`
-- surface `agent-rest`: backend API Lambda log group
-  (`/aws/lambda/<BackendFunctionName>`, `service = "backend-api"`)
-- surface `mcp`: MCP Lambda log group (`/aws/lambda/<McpFunctionName>`,
-  `service = "backend-api"`)
-- surface `chat-tool`: chat worker Lambda log group
-  (`/aws/lambda/<ChatWorkerFunctionName>`, `service = "chat-worker"`)
-- surface `chat-sandbox`: backend API Lambda log group, because the chat
-  sandbox's SQL bridge route runs there (`service = "backend-api"`)
+- Backend API Lambda log group (`service = "backend-api"`): `agent_sql` on surfaces `agent-rest` and `chat-sandbox`, because the chat sandbox's SQL bridge runs there.
+- MCP Lambda log group (`service = "backend-api"`): `agent_sql` on surface `mcp`, and `mcp_request`.
+- Chat worker Lambda log group (`service = "chat-worker"`): `agent_sql` on surface `chat-tool`.
 
-The function names are the `BackendFunctionName`, `McpFunctionName`, and
-`ChatWorkerFunctionName` CDK stack outputs. Query the three log groups together
-to compare surfaces.
-
-Retention on the backend API group is owned by CDK, not by the console.
-`infra/aws/lib/product-analytics-monitoring.ts` reads `backendFn.logGroup` to attach the product
-analytics metric filters, which makes the stack declare that group's retention,
-and what it declares is never-expire. It is not re-asserted on every deploy:
-the retention is applied by a CloudFormation custom resource, and CloudFormation
-re-invokes one only when that resource's own properties change. A finite
-retention set on the group by hand therefore keeps working, silently diverging
-from the stack, until something next changes that resource, at which point it is
-reverted with no signal that it happened. A cost-driven retention change has to
-be made in the stack. The MCP and chat worker groups are not managed this way.
-
-## Record fields
-
-| Field | Meaning |
-| --- | --- |
-| `surface` | `chat-tool`, `chat-sandbox`, `agent-rest`, or `mcp` |
-| `caller` | Calling client label; `null` on every surface except MCP |
-| `connectionId` | Agent connection the execution ran under |
-| `succeeded` | Outcome; the denominator for any failure ratio |
-| `statementType` | `select`, `insert`, `batch`, and so on; `null` on failure |
-| `resource` | `cards`, `decks`, and so on; `null` for batches and on failure |
-| `statementCount` | Statements in the submitted SQL; `null` on failure |
-| `rowOrAffectedCount` | Rows read or records affected; `null` on failure |
-| `resultChars` | Characters of the emitted agent envelope, as measured against the result-size budget; `null` on failure and on `chat-tool` and `chat-sandbox`, which build no envelope |
-| `rowsOmitted` | `true` when a committed write's rows were dropped to fit that budget; `null` on failure |
-| `rowsTruncated` | `true` when an oversized single `SELECT` answered with only the leading rows that fit that budget; `null` on a mutation, on a batch, and on failure |
-| `durationMs` | Wall-clock duration of the execution |
-| `sqlLength` | Character length of the submitted SQL |
-| `sqlFingerprint` | SHA-256 hex digest of the submitted SQL |
-| `errorCode` | `HttpError` code on failure, else `null` |
-| `dialectReason` | First validation-issue code on failure, else `null` |
-| `errorClass` | `error.name` on failure, else `null`; coarse by design, so group failures by `errorCode` and `dialectReason` |
-
-`userId`, `workspaceId`, and the synthetic route `agent-sql/<surface>` come from
-the shared observation scope on every record, and so does the record's own
-`requestId`: the MCP surface publishes one per transport request, so `agent_sql`
-records emitted there carry it and the REST and chat surfaces record null.
-
-`workspaceId` is the workspace the call targeted, not the workspace the caller
-has selected. On `chat-tool` and `chat-sandbox` those differ whenever the model
-or its code passes an explicit `workspaceId`, so grouping chat SQL by workspace
-can surface workspaces the chat session did not have open.
-
-Raw SQL text is never logged. `sqlFingerprint` plus `errorCode` and
-`dialectReason` are what make repeated failures groupable, the same choice the
-admin reporting query records already make.
-
-The error message is not recorded either. Dialect and batch errors quote the
-offending SQL fragment verbatim, so the message carries flashcard content that
-no delimiter heuristic can strip reliably. Unexpected failures still reach
-Sentry with their full message and stack, so use Sentry when a specific failure
-needs to be read rather than counted.
-
-`dialectReason` is recorded as an opaque value. The SQL dialect owns that
-vocabulary, defined by the `SqlDialectReason` union in
-`apps/backend/src/aiTools/sqlErrors.ts`; nothing in this record depends on
-which values appear.
-
-A write whose result overflowed the budget still succeeds: `sql_execute` shrinks
-the already committed write's payload instead of failing it, so such an
-execution is recorded as `succeeded = 1`. It tries the echoed statement text
-first, shortening it to a preview only when that makes the emitted payload
-smaller, a reduction the emitted payload marks as `data.sqlOmitted` and this
-record has no field of its own for, and drops the returned rows when the payload
-is still over budget, which is what sets `rowsOmitted = 1`. A short statement
-with large returned rows is shrunk by the rows alone, so `rowsOmitted = 1` with
-`data.sqlOmitted` false is an ordinary degraded write rather than a lever that
-failed. Reads never omit rows, so `rowsOmitted = 0` on every one of them. An
-oversized single `SELECT` is not always a failure either: whenever dropping rows
-leaves at least one row that fits it comes back truncated to the rows that fit
-and is recorded as `succeeded = 1` with `rowsTruncated = 1`, the same reduction
-the emitted payload marks as `data.rowsTruncated`. A single read emitted whole
-records `rowsTruncated = 0`, and a mutation or a batch records `null`, because
-neither can be truncated. On such a read `rowOrAffectedCount` counts only the
-rows that survived truncation, and the count of rows the statement produced in
-total, i.e. after WHERE, UNNEST, and any GROUP BY, which the payload reports as
-`data.totalRowCount`, still has no field here, so the record says that an answer
-was cut short without saying how much of it was dropped. Every other oversized
-read still fails with `errorCode = "QUERY_RESULT_TOO_LARGE"`, including a read
-batch, `SHOW TABLES`, `DESCRIBE`, and a single `SELECT` whose one row is over
-budget on its own. `resultChars` is the same measurement the budget enforces,
-taken on the payload that was actually emitted, so it is the post-reduction size
-on a degraded write and the post-truncation size on a truncated read. The
-`chat-tool` and `chat-sandbox` surfaces build no envelope and apply none of this,
-so their single reads record `rowsTruncated = 0` and their read batches `null`,
-like every other batch: the chat tool truncates its own tool output separately,
-after this record is emitted, and that truncation is not recorded anywhere, and
-the SQL bridge refuses a read whose answer would exceed 4 MiB with
-`QUERY_RESULT_TOO_LARGE` after this record already says `succeeded = 1`; its
-own record below says `succeeded = 0`.
+The function names are the `BackendFunctionName`, `McpFunctionName`, and `ChatWorkerFunctionName` stack outputs; query the three log groups together to compare surfaces. The stack declares the backend API group's retention through a CloudFormation custom resource that is re-applied only when its own properties change, so a retention set by hand silently diverges until it is reverted; change retention in the stack.
 
 ## The chat sandbox SQL record
 
-Code a chat `bash` command runs calls agent SQL through the SQL bridge
-(`apps/backend/src/chatSandbox/sqlBridge/route.ts`), and every call emits one
-`action = "chat_sandbox_sql"` record into the backend API log group beside its
-`agent_sql` one. Unlike `agent_sql` it carries the statement text, cut to its
-first 64,000 characters with `sqlChars` counting the whole statement, so the
-sandbox's activity can be read back call by call; it never carries the rows a
-call read or returned. Its scope names `runId`, `sessionId`, `userId`, and the
-session's `workspaceId`, and `explicitWorkspaceId` the workspace the call asked
-for, if any. `kind` is `query` or `execute`, and the outcome fields are the
-chat tool's own SQL telemetry: `succeeded`, `statementType`, `statementCount`,
-`rowOrAffectedCount`, `durationMs`, `errorCode`, `dialectReason`, and
-`errorClass`. A call the bridge refuses before running it, for an invalid or
-expired capability, an invalid body, or a run that is no longer running, emits
-only the `request_error` record, which names its status and code.
-
-The command itself is the `chat_sandbox_command` record in the chat worker log
-group, whose `sqlCallCount` and `sqlExecuteCallCount` count the calls its code
-sent. The sandbox Lambda logs a `chat_sandbox_sql_retried` warning for every
-retried call.
+Every SQL bridge call from a chat `bash` command also emits one `chat_sandbox_sql` record into the backend API log group, carrying the statement text but never the rows ([route](../apps/backend/src/chatSandbox/sqlBridge/route.ts)). The bridge refuses a read whose answer is too large after `agent_sql` already recorded it as succeeded ([limit](../apps/backend/src/chat/openai/tools/tools.ts)), so trust `chat_sandbox_sql` for the call's outcome. The command itself is the `chat_sandbox_command` record in the chat worker log group.
 
 ```
 filter message.action = "chat_sandbox_sql"
@@ -186,79 +31,11 @@ filter message.action = "chat_sandbox_sql"
 
 ## The MCP caller label
 
-On the MCP surface `caller` is the request `User-Agent`, trimmed and capped at
-120 characters, and `null` when the client sends no `User-Agent`. The
-post-deploy smoke (`scripts/checks/check-mcp-smoke.sh`) sends
-`User-Agent: nibomo-mcp-smoke/1`, and its deliberate failures are excluded
-from the failure queries below.
-
-The `initialize` clientInfo is not used because it is not reachable: the MCP
-Lambda runs the transport statelessly (`sessionIdGenerator: undefined` in
-`apps/backend/src/entrypoints/lambda-mcp.ts`), so a `tools/call` arrives as its
-own HTTP request on a freshly built server that never saw the client's
-`initialize`. Reaching clientInfo would mean restructuring the entrypoint into a
-session-bearing transport.
+On the MCP surface `caller` is the normalized request `User-Agent` ([why not clientInfo](../apps/backend/src/mcp/server.ts)). The post-deploy smoke ([`check-mcp-smoke.sh`](../scripts/checks/check-mcp-smoke.sh)) sends `User-Agent: nibomo-mcp-smoke/1`, and the failure queries below exclude its deliberate failures.
 
 ## The MCP request record
 
-`agent_sql` only sees SQL, so MCP requests that run none were invisible. The
-rule rather than a list, because the tool inventory grows: only `sql_query` and
-`sql_execute` produce an `agent_sql` record, because `logAgentSqlEvent` is
-reached from exactly one place — `withAgentSqlTelemetry` in
-`apps/backend/src/aiTools/agentSql.ts`, which wraps those two on every surface
-and nothing else. `initialize`, `tools/list`, and every other tool produce
-none, whatever the registry holds at the time. Each authenticated `/mcp`
-request therefore emits exactly one `action = "mcp_request"` record into the
-MCP Lambda log group (`service = "backend-api"`), from the `/mcp` route in
-`apps/backend/src/entrypoints/lambda-mcp.ts`. Every branch that answers an
-authenticated client emits it once: the transport response, a transport fault,
-and the 405 that rejects a non-POST request alike.
-
-Requests that never authenticate emit none, because the Bearer 401 challenge and
-an auth-layer failure have no connection to record. So the record count is the
-authenticated request count on this surface, not the total request count.
-Observing a request can only degrade a field of its record, never remove the
-record: a response body that could not be measured is recorded as a `null`
-`responseChars`.
-
-| Field | Meaning |
-| --- | --- |
-| `protocolVersion` | `MCP-Protocol-Version` request header; `null` when the client sends none, which includes the `initialize` request that negotiates it |
-| `jsonRpcMethod` | `Mcp-Method` request header, so `initialize`, `tools/list`, `tools/call`; `null` on clients older than MCP revision 2026-07-28, which is where the header became REQUIRED |
-| `toolName` | Tool the request ran, observed in process from the tool handler, so it is present for a tool call whatever the client's protocol revision is; when no handler ran it falls back to the tool the `tools/call` body names and then to the client's own unvalidated `Mcp-Name` header, so a `tools/call` the SDK rejected before any handler is still named; `null` when the request named no tool, and always `null` on a non-POST request |
-| `toolExecuted` | `true` when a tool handler ran, `false` when a tool was named but no handler ran, `null` when the request named no tool. The SDK validates a call's arguments against the tool's input schema ahead of the handler, so an unknown tool, a wrong enum spelling, or a missing required argument answers the client with `-32602` and never reaches our code: those attempts are `toolExecuted = false`, and without this field they are indistinguishable from a client that never called the tool at all |
-| `toolIsError` | `true` when the tool handler answered with an error result, `false` when it answered with a result, `null` when no handler ran. A failed tool call is still a successful JSON-RPC response, so `statusCode` is 200 either way |
-| `toolErrorCode` | The `error.code` that error result sent the client, which is `INTERNAL_ERROR` for an unexpected failure; `null` unless `toolIsError` is `true`. The error message is never recorded |
-| `caller` | Calling client label, normalized like the `agent_sql` one |
-| `connectionId` | Agent connection the request ran under |
-| `statusCode` | HTTP status the client received, including the 405 a non-POST request gets |
-| `durationMs` | Wall-clock duration of serving the request after authentication |
-| `responseChars` | Character length of the response body; `null` when the body was not a buffered JSON document, when reading it failed, and on the transport-fault branch, where the record is emitted before `app.onError` builds the body the client receives |
-
-`requestId`, `userId`, `workspaceId`, the route `mcp`, and `method` (the
-request's own HTTP method, so non-POST traffic is groupable) come from the
-shared observation scope, and are read as `message.requestId` and so on. Every
-`/mcp` response returns that id as the `X-Request-Id` response header, error
-responses included, because the entrypoint sets it before the handler runs. The
-same id is carried by every `agent_sql` record and every Sentry capture the
-request produced, which is what joins them to this record.
-
-Header values are client-controlled, so they are trimmed, capped at 120
-characters, and recorded as `null` when absent or empty. They are never
-validated: a missing or unexpected header changes nothing about how the request
-is served.
-
-Of the JSON-RPC body, which belongs to the transport, only a `tools/call` tool
-name is read, capped and normalized like a header value. Nothing else of it is:
-tool arguments and results carry flashcard content and are never recorded, and
-`responseChars` is a length measured off the response and never any of what it
-contains.
-
-A `message.method = "GET"` row is a client trying to open the standalone SSE
-stream that MCP revisions 2025-03-26 through 2025-11-25 allow and revision
-2026-07-28 removed. This surface runs the transport statelessly and answers 405,
-which those clients accept, so a run of such rows is a client-compatibility
-signal rather than an incident.
+Requests that never authenticate emit none, so the record count is the authenticated request count, not the total. A `message.method = "GET"` row is a client trying to open the standalone SSE stream that MCP revisions 2025-03-26 through 2025-11-25 allow; this stateless surface answers 405, which those clients accept, so a run of such rows is a client-compatibility signal rather than an incident.
 
 ## Dispatcher admission outcomes and timings
 
@@ -275,46 +52,14 @@ filter message.action in ["mcp_worker_completed", "mcp_worker_capacity_rejected"
   by bin(5m), message.action, message.method, message.statusCode
 ```
 
-`mcp_worker_completed` means the worker returned a valid proxy response,
-including 401, 405 and 5xx responses. The dispatcher re-invokes a worker that
-refused admission up to 4 times, with roughly 1.5–3 s of jittered waits in total
-(`apps/backend/src/entrypoints/lambda-mcp-dispatcher.ts`), so
-`mcp_worker_capacity_rejected` means those retries were exhausted and the client
-received HTTP 429. `mcp_client_capacity_rejected` is a 429 returned before any
-Invoke (`attempts` 0) because that bearer token already holds its share of
-in-flight requests; it says one client is busy, not that the shared worker pool
-is full. It also carries `tokenHashPrefix`, the first 12 hex characters of the
-token's SHA-256, and `userAgent`, normalized like the
-[MCP caller label](#the-mcp-caller-label).
-`mcp_dispatch_failed` means the dispatcher returned 502, with
-`phase` identifying where it failed. `attempts` counts Invoke calls; above 1 on
-a completion means admission throttles were absorbed. HTTP methods are restricted
-to standard method names or `OTHER`.
+The [dispatcher](../apps/backend/src/entrypoints/lambda-mcp-dispatcher.ts) owns these records:
 
-The MCP capacity alarm in `infra/aws/lib/monitoring.ts` counts
-`mcp_worker_capacity_rejected` records, so it fires only on 429s clients
-received for shared worker capacity, never on per-token rejections. The worker
-Lambda's `Throttles` metric still counts every refused attempt, including
-absorbed ones.
+- `mcp_worker_completed`: the worker returned a valid proxy response, including 401, 405 and 5xx. `attempts` above 1 means admission throttles were absorbed.
+- `mcp_worker_capacity_rejected`: the admission retries were exhausted and the client received 429 for shared worker capacity; the MCP capacity alarm in [`monitoring.ts`](../infra/aws/lib/monitoring.ts) counts only these. The worker's `Throttles` metric also counts absorbed attempts.
+- `mcp_client_capacity_rejected`: a 429 before any Invoke, because that bearer token already holds its share of in-flight requests; one client is busy, not the pool.
+- `mcp_dispatch_failed`: the dispatcher returned 502, with `phase` naming where.
 
-All four measure `durationMs` from dispatcher handler entry to the decoded
-response or caught failure, before logging, including admission waits.
-Completion duration includes worker authentication, cold starts and synchronous
-Invoke overhead; it is an elapsed occupancy estimate, not the post-authentication
-`mcp_request.durationMs` or an exact Lambda execution duration. It excludes dispatcher cold start and cannot
-measure work continuing after an Invoke timeout. Refused attempts and admission
-waits consume no worker slot; exclude rejected records when estimating worker
-occupancy, and expect completions with `attempts` above 1 to overstate it.
-
-For one completion, inspect `message.requestId` (API Gateway request ID),
-`message.dispatcherRequestId` (dispatcher Lambda invocation) and
-`message.invocationRequestId` (AWS Invoke request). Join
-`message.workerRequestId` to the worker's `message.requestId` in `mcp_request`
-or `agent_sql`; it is the worker's UUID `X-Request-Id` response header, or
-`null` when absent or not a UUID. The dispatcher records no authenticated
-identity, protocol method, tool name or request/response content, and never the
-token itself: `tokenHashPrefix` identifies an unverified bearer token, not a
-user.
+`durationMs` runs from dispatcher handler entry, admission waits included, so it is an occupancy estimate rather than the worker's post-authentication `mcp_request.durationMs`. Exclude rejected records when estimating worker occupancy, and expect completions with `attempts` above 1 to overstate it. To follow one completion into the worker, join `message.workerRequestId` to the worker's `message.requestId` in `mcp_request` or `agent_sql`. `tokenHashPrefix` identifies an unverified bearer token, not a user.
 
 To tell one busy client from many, group per-token rejections:
 
@@ -337,14 +82,7 @@ filter message.domain = "backend" and message.action = "mcp_request"
 | limit 20
 ```
 
-`jsonRpcMethod` is `null` for every client older than MCP revision 2026-07-28,
-so today the split is carried by the other fields: a tool call is named by
-`toolName` and its outcome by `toolExecuted`, an `initialize`, or any request
-from a client that sends no `MCP-Protocol-Version`, is a row with no
-`protocolVersion`, a non-POST `method` is the rejected stream attempt above, and
-the remaining protocol traffic (`tools/list`, `ping`,
-`notifications/initialized`) shares one unnamed bucket until callers start
-sending `Mcp-Method`.
+`jsonRpcMethod` is `null` for every client older than MCP revision 2026-07-28, so the split is carried by the other fields: a tool call by `toolName` and `toolExecuted`, an `initialize` or a client sending no `MCP-Protocol-Version` by a missing `protocolVersion`, and a non-POST `method` by the rejected stream attempt above; the remaining protocol traffic shares one unnamed bucket.
 
 ## Tool calls refused before the handler
 
@@ -356,12 +94,7 @@ filter message.domain = "backend" and message.action = "mcp_request"
 | limit 20
 ```
 
-A row here named a tool and never ran one, so the tool itself did not fail. It
-is almost always the SDK answering `-32602` before the handler -- an unknown
-tool name, or arguments its input schema rejects -- which is a client or model
-getting the contract wrong; `statusCode` separates the rarer case of a request
-that faulted before reaching the handler. Compare it against the same tool's
-executed calls to see whether one client is failing systematically.
+A row here named a tool and never ran one: almost always the SDK answering `-32602` for an unknown tool or arguments its input schema rejects, which is a client or model getting the contract wrong. `statusCode` separates the rarer request that faulted before the handler. Compare against the same tool's executed calls to see whether one client fails systematically.
 
 ## Tool calls that returned an error
 
@@ -374,10 +107,7 @@ filter message.domain = "backend" and message.action = "mcp_request"
 | limit 20
 ```
 
-A row here ran its handler and answered with an error result. Divide by the
-same tool's `toolExecuted = 1` count for its failure share. For `sql_query` and
-`sql_execute`, the `agent_sql` record with the same `requestId` carries the
-dialect detail.
+Divide by the same tool's `toolExecuted = 1` count for its failure share. For `sql_query` and `sql_execute`, the `agent_sql` record with the same `requestId` carries the dialect detail.
 
 ## Failure share by surface
 
@@ -420,17 +150,4 @@ filter message.domain = "backend" and message.action = "agent_sql"
   by message.surface
 ```
 
-`degradedWrites` counts successful writes that answered without their rows, and
-`truncatedReads` successful single `SELECT`s that answered with only the leading
-rows that fit the budget. The percentiles skip the `chat-tool` and
-`chat-sandbox` surfaces, whose `resultChars` is always `null`, and
-`truncatedReads` is always `0` there, for the same reason: those surfaces apply
-no envelope budget. An over-budget write
-first tries shortening its echoed statement text, applies that only when it
-makes the emitted payload smaller, and keeps its rows whenever the payload fits
-the budget without dropping them, so `rowsOmitted = 0` does not by itself mean
-the payload was emitted untouched or above the 48,000-character budget.
-
-If a log group renders `message.succeeded`, `message.rowsOmitted`, and
-`message.rowsTruncated` as `true`/`false` instead of `1`/`0`, compare them
-against `"true"` and `"false"` in the queries above.
+A degraded write or a truncated read still succeeded; how the result-size budget shrinks each is in [`resultBudget.ts`](../apps/backend/src/aiTools/agentSql/resultBudget.ts). The `chat-tool` and `chat-sandbox` surfaces apply no envelope budget, so their `resultChars` is `null` and `truncatedReads` is always `0`.
