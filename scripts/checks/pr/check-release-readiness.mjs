@@ -203,7 +203,146 @@ try {
   const wrongPlan = structuredClone(localCloud);
   wrongPlan.gates[cloudIndex].selection.testPlan = "LocalFull";
   expectInvalid(wrongPlan, `manifest.gates[${cloudIndex}].selection.testPlan`);
-  console.log("Mobile readiness CLI replayed captured Xcode Cloud 606, 603 and the complete 614 destination matrix; absent gates and invalid counterpart evidence remain blocked.");
+  const completeLocalCloud = structuredClone(localCloud);
+  completeLocalCloud.results = completeLocalCloud.gates.map((gate) => ({
+    ...structuredClone(localCloud.results[0]), gateId: gate.id, identity: structuredClone(gate.identity),
+    cases: gate.cases.map((test) => ({ id: test.id, status: "passed" })),
+  }));
+  assert.equal(invoke(completeLocalCloud).exitCode, 0);
+  const localOnly = structuredClone(completeLocalCloud);
+  localOnly.schemaVersion = 4;
+  localOnly.gates = localOnly.gates.filter((gate) => gate.id !== "cloud-smoke");
+  localOnly.results = localOnly.results.filter((result) => result.gateId !== "cloud-smoke");
+  const readyLocal = invoke(localOnly);
+  assert.equal(readyLocal.exitCode, 0);
+  assert.equal(readyLocal.report.ready, true);
+  assert.equal(readyLocal.report.schemaVersion, 4);
+  assert.deepEqual(readyLocal.report.gates.map((gate) => gate.id), ["local-archive", "local-full", "local-ipad", "local-ios18", "cloud-archive"]);
+  const historicalWithoutSmoke = structuredClone(localOnly);
+  historicalWithoutSmoke.schemaVersion = 3;
+  expectInvalid(historicalWithoutSmoke, "manifest.gates");
+  const androidLocalOnly = structuredClone(localOnly);
+  androidLocalOnly.platform = "android";
+  expectInvalid(androidLocalOnly, "manifest.platform");
+  const extraCloudGate = structuredClone(completeLocalCloud);
+  extraCloudGate.schemaVersion = 4;
+  expectInvalid(extraCloudGate, "manifest.gates");
+  const extraCloudResult = structuredClone(localOnly);
+  extraCloudResult.results.push(structuredClone(localCloud.results[0]));
+  expectInvalid(extraCloudResult, "manifest.results");
+  for (const [index, gate] of localOnly.gates.entries()) {
+    const absent = structuredClone(localOnly);
+    absent.gates.splice(index, 1);
+    expectInvalid(absent, "manifest.gates");
+    const unrecorded = structuredClone(localOnly);
+    unrecorded.results.splice(index, 1);
+    const blocked = invoke(unrecorded);
+    assert.equal(blocked.exitCode, 1);
+    assert.ok(blocked.report.gates[index].errors.includes("missing recorded gate evidence"));
+    for (const status of ["failed", "pending", "skipped"]) {
+      const changed = structuredClone(localOnly);
+      changed.results[index].status = status;
+      assert.equal(invoke(changed).exitCode, 1);
+      if (gate.cases.length === 0) continue;
+      changed.results[index].status = "passed";
+      Object.assign(changed.results[index].cases[0], { status, reason: "Unexpected native skip" });
+      const failedCase = invoke(changed);
+      assert.equal(failedCase.exitCode, 1);
+      assert.equal(failedCase.report.gates[index].counts[status], 1);
+    }
+    for (const key of ["sourceSha", "version", "build", "artifactId", "runId"]) {
+      const changed = structuredClone(localOnly);
+      changed.results[index].identity[key] = key === "sourceSha" ? "f".repeat(40) : "different-identity";
+      assert.equal(invoke(changed).exitCode, 1);
+    }
+    const unreviewed = structuredClone(localOnly);
+    unreviewed.results[index].warningReview = "pending";
+    assert.equal(invoke(unreviewed).exitCode, 1);
+    const wrongInventorySource = structuredClone(localOnly);
+    wrongInventorySource.gates[index].inventorySourceSha = "f".repeat(40);
+    assert.equal(invoke(wrongInventorySource).exitCode, 1);
+    const unattested = structuredClone(localOnly);
+    unattested.gates[index].inventoryComplete = false;
+    expectInvalid(unattested, `manifest.gates[${index}].inventoryComplete`);
+    for (const field of ["inventoryRef", "inventoryReviewedBy"]) {
+      const changed = structuredClone(localOnly);
+      delete changed.gates[index][field];
+      expectInvalid(changed, `manifest.gates[${index}].${field}`);
+    }
+    const unexpectedCase = structuredClone(localOnly);
+    unexpectedCase.results[index].cases.push({ id: "UnexpectedTests/testUnexpected()@unselected-device", status: "passed" });
+    assert.equal(invoke(unexpectedCase).exitCode, 1);
+    if (gate.cases.length === 0) {
+      const buildSelection = structuredClone(localOnly);
+      buildSelection.gates[index].selection = structuredClone(localOnly.gates[1].selection);
+      expectInvalid(buildSelection, `manifest.gates[${index}].selection`);
+      const buildInventory = structuredClone(localOnly);
+      buildInventory.gates[index].cases = structuredClone(localOnly.gates[1].cases);
+      expectInvalid(buildInventory, `manifest.gates[${index}].cases`);
+      continue;
+    }
+    const missing = structuredClone(localOnly);
+    missing.results[index].cases.pop();
+    const missingCase = invoke(missing);
+    assert.equal(missingCase.exitCode, 1);
+    assert.equal(missingCase.report.gates[index].counts.missing, 1);
+    const absentSelection = structuredClone(localOnly);
+    delete absentSelection.gates[index].selection;
+    expectInvalid(absentSelection, `manifest.gates[${index}].selection`);
+    for (const [field, value] of [["scheme", "Flashcards"], ["testPlan", "CloudSmoke"], ["configuration", "Debug"]]) {
+      const changed = structuredClone(localOnly);
+      changed.gates[index].selection[field] = value;
+      expectInvalid(changed, `manifest.gates[${index}].selection.${field}`);
+    }
+    for (const [field, value] of [["id", "unselected-device"], ["osVersion", gate.id === "local-ios18" ? "27.0" : "18.7"], ["osVersion", "Latest"]]) {
+      const changed = structuredClone(localOnly);
+      changed.gates[index].selection.destination[field] = value;
+      expectInvalid(changed, field === "id" ? `manifest.gates[${index}].cases[0].id` : `manifest.gates[${index}].selection.destination.${field}`);
+    }
+    for (const [field, value] of [["target", nonUiTarget], ["disposition", "manual-exclusion"]]) {
+      const changed = structuredClone(localOnly);
+      Object.assign(changed.gates[index].cases[0], { [field]: value, reason: "Unexpected exclusion", evidenceRef: "contract/exclusion" });
+      expectInvalid(changed, gate.id === "local-full" && field === "target" ? `manifest.gates[${index}].cases` : `manifest.gates[${index}].cases[0].${field}`);
+    }
+    const narrowedLocal = structuredClone(localOnly);
+    narrowedLocal.gates[index].cases.pop();
+    expectInvalid(narrowedLocal, `manifest.gates[${index}].cases`);
+    const wrongFamily = structuredClone(localOnly);
+    wrongFamily.gates[index].selection.destination.kind = "mac";
+    expectInvalid(wrongFamily, `manifest.gates[${index}].selection.destination.kind`);
+    if (gate.id !== "local-ios18") {
+      wrongFamily.gates[index].selection.destination.kind = gate.id === "local-ipad" ? "iphone" : "ipad";
+      expectInvalid(wrongFamily, `manifest.gates[${index}].selection.destination.kind`);
+    }
+  }
+  const mismatchedLatest = structuredClone(localOnly);
+  mismatchedLatest.gates[2].selection.destination.osVersion = "26.1";
+  assert.equal(invoke(mismatchedLatest).exitCode, 1);
+  const acceptedWarning = structuredClone(localOnly);
+  acceptedWarning.results[0].warnings = [{ id: "vendor-notice", decision: "accepted", notice: "Vendor runtime notice", owner: "vendor", version: "27.0", reason: "Inspected vendor diagnostic", policyRef: "release/warning-policy", evidenceRef: "contract/warning-review" }];
+  assert.equal(invoke(acceptedWarning).exitCode, 0);
+  for (const decision of ["blocking", "unreviewed"]) {
+    const changed = structuredClone(acceptedWarning);
+    changed.results[0].warnings[0].decision = decision;
+    assert.equal(invoke(changed).exitCode, 1);
+  }
+  for (const key of ["build", "artifactId"]) {
+    const changed = structuredClone(localOnly);
+    changed.target[key] = "different-uploaded-archive";
+    assert.equal(invoke(changed).exitCode, 1);
+  }
+  const changedSource = structuredClone(localOnly);
+  changedSource.target.sourceSha = "f".repeat(40);
+  assert.equal(invoke(changedSource).exitCode, 1);
+  changedSource.equivalences = [{ fromSha: localOnly.target.sourceSha, toSha: changedSource.target.sourceSha, gateIds: localOnly.gates.map((gate) => gate.id), comparedInputs: ["apps/ios"], reviewedBy: "contract-reviewer", reason: "Native inputs unchanged", evidenceRef: "contract/source-comparison" }];
+  assert.equal(invoke(changedSource).exitCode, 0);
+  const duplicateEquivalence = structuredClone(changedSource);
+  duplicateEquivalence.equivalences.push(structuredClone(changedSource.equivalences[0]));
+  assert.equal(invoke(duplicateEquivalence).exitCode, 1);
+  const smokeEquivalence = structuredClone(changedSource);
+  smokeEquivalence.equivalences[0].gateIds.push("cloud-smoke");
+  expectInvalid(smokeEquivalence, "manifest.equivalences[0].gateIds");
+  console.log("Mobile readiness CLI replayed captured Xcode Cloud 606, 603 and the complete 614 destination matrix; historical gates and schema 4 local acceptance enforce complete evidence.");
 } finally {
   rmSync(directory, { recursive: true, force: true });
 }
