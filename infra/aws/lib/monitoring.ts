@@ -361,9 +361,9 @@ export function monitoring(scope: Construct, props: MonitoringProps): void {
   // This alarm needs two consecutive periods. A saturated authHandlerReservedConcurrency
   // reservation surfaces as an API Gateway 500 whose integrationStatus is 429, which
   // infra/aws/lib/gateways/api-gateway.ts documents as the intended bounded rejection protecting the
-  // Postgres connection budget, so a throttle burst contained in one five-minute period and below
-  // AuthLambdaThrottleAlarm's threshold is that bound working rather than an incident; a larger burst
-  // pages through AuthLambdaThrottleAlarm. Auth failure that outlasts a burst still pages here, and an
+  // Postgres connection budget, so a throttle burst contained in one five-minute period is that bound
+  // working rather than an incident; throttling that persists across two consecutive periods pages
+  // through AuthLambdaThrottleAlarm. Auth failure that outlasts a burst still pages here, and an
   // auth host that stops serving pages through the public-endpoint heartbeat alarm on
   // auth.<baseDomain> within fifteen minutes.
   notifyAlertTopic(new cloudwatch.Alarm(scope, "AuthApiGateway5xxAlarm", {
@@ -500,18 +500,19 @@ export function monitoring(scope: Construct, props: MonitoringProps): void {
     treatMissingData: cloudwatch.TreatMissingData.NOT_BREACHING,
   }), alertTopic);
 
-  // Each throttle is a client-visible 500 on the auth REST API. Ten in five minutes separates a
-  // sustained capacity problem from a brief agent-fleet burst, and the OAuth discovery GETs such
-  // fleets send are answered by API Gateway without reaching this Lambda
-  // (infra/aws/lib/gateways/auth-gateway.ts).
+  // Each throttle is a client-visible 500 on the auth REST API. Ten in each of two consecutive
+  // five-minute periods separates a sustained capacity problem from a one-period scanner or
+  // agent-fleet burst, and the OAuth discovery GETs such fleets send are answered by API Gateway
+  // without reaching this Lambda (infra/aws/lib/gateways/auth-gateway.ts).
   notifyAlertTopic(new cloudwatch.Alarm(scope, "AuthLambdaThrottleAlarm", {
     metric: props.authFn.metricThrottles({
       period: cdk.Duration.minutes(5),
       statistic: "Sum",
     }),
     threshold: 10,
-    evaluationPeriods: 1,
-    alarmDescription: "Auth Lambda was throttled 10+ times in a 5-minute period",
+    evaluationPeriods: 2,
+    datapointsToAlarm: 2,
+    alarmDescription: "Auth Lambda was throttled 10+ times in each of two consecutive 5-minute periods",
     treatMissingData: cloudwatch.TreatMissingData.NOT_BREACHING,
   }), alertTopic);
 
