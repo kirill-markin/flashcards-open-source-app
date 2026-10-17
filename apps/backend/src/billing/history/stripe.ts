@@ -107,6 +107,9 @@ function assertStripeEnvironment(livemode: boolean, observation: HistoryObservat
   }
 }
 
+// Every persistStripe* helper below (subscription, invoice, payment, refund) takes only objects verified
+// against the Nibomo catalog and customer scope through the Stripe provider, with the verified parent
+// invoice or charge for a payment or refund.
 export async function persistStripeSubscriptionInExecutor(
   executor: DatabaseExecutor, input: StripeSubscriptionHistory, observation: HistoryObservation,
 ): Promise<HistoryWriteResult> {

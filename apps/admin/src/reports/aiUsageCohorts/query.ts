@@ -95,8 +95,9 @@ function buildAudiencePredicateSql(audience: AiUsageAudience): string {
  * Attachments, file uploads, tool calls and reasoning summaries are excluded by the column itself.
  * This is not a detail to be tidied away in a tooltip: measuring the serialized content array
  * instead, which is overwhelmingly attachment bytes on the person's side and tool traffic on the
- * model's, put the per-period medians out by a factor of eleven to eighteen. The vertical axis is
- * therefore conversation volume, and it is deliberately not a proxy for provider cost or tokens.
+ * model's, would make the per-period medians measure those bytes rather than the conversation. The
+ * vertical axis is therefore conversation volume, and it is deliberately not a proxy for provider
+ * cost or tokens.
  *
  * THE PER-PERSON WORK RUNS OVER THE PEOPLE WHO GET A DOT, AND NOTHING WIDER. `active_actors` is
  * taken from the period join, and the exclusion anti-joins, the email lookup and the registration

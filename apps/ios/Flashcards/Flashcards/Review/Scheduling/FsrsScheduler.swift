@@ -4,11 +4,12 @@ import Foundation
  Full FSRS scheduler with persisted card state and workspace-level settings.
 
  This file is a full Swift copy of the scheduler implemented in
- `apps/backend/src/scheduling/index.ts`.
+ `apps/backend/src/scheduling/index.ts` and
+ `apps/android/data/local/src/main/java/com/flashcardsopensourceapp/data/local/model/scheduling/FsrsScheduler.kt`.
  If you change algorithm behavior here, you must make the same change in the
- backend copy, update `docs/fsrs-scheduling-logic.md`, and keep
- `tests/fsrs-full-vectors.json` plus both scheduler test suites aligned in the
- same PR.
+ backend and Android copies, update `docs/fsrs-scheduling-logic.md`, and keep
+ `tests/fsrs-full-vectors.json` plus all three scheduler test suites aligned in
+ the same PR.
 
  Reference sources:
  - official open-spaced-repetition ts-fsrs 5.2.3 scheduler flow mirrored here:

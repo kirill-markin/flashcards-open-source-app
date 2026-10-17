@@ -22,8 +22,9 @@ export type ReviewScheduleDonutSegment = Readonly<{
   pathD: string;
 }>;
 
-// Canonical palette — see docs/progress-pie-palette.md.
-// Keep the hex values in sync with the iOS and Android clients.
+// Palette decisions: docs/progress-pie-palette.md. Keep the hex values in sync with
+// apps/ios/Flashcards/Flashcards/Progress/Presentation/ProgressFormatting.swift::progressReviewScheduleBucketColor
+// and apps/android/feature/progress/src/main/java/com/flashcardsopensourceapp/feature/progress/sections/ProgressReviewScheduleSection.kt::reviewScheduleBucketColors.
 const reviewScheduleBucketColors: Readonly<Record<ProgressReviewScheduleBucketKey, string>> = {
   new: "#F4C430",
   today: "#D7263D",

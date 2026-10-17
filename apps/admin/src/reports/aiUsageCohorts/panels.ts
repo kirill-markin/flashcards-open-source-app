@@ -27,10 +27,10 @@ export type AiUsagePanel = Readonly<{
   /**
    * The median review rate among the people who reviewed at all, or `null` when nobody did.
    *
-   * It is deliberately not the median over everyone: that is zero in every period measured so far, so
-   * the line would sit in the zero strip of every panel and say nothing about how the people who do
-   * study are studying. The panel caption says which population it is over, because a median with an
-   * unstated population is not a number a reader can use.
+   * It is deliberately not the median over everyone: most people in a panel never review, so that is
+   * zero and the line would sit in the zero strip of every panel and say nothing about how the people
+   * who do study are studying. The panel caption says which population it is over, because a median
+   * with an unstated population is not a number a reader can use.
    */
   medianReviewRateAmongReviewers: number | null;
   /** The median character rate over everyone in the panel, zeros included, or `null` when it is empty. */

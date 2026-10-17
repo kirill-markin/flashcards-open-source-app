@@ -51,14 +51,6 @@ async function buildDemoCardText(): Promise<DemoCardText> {
   // The rating label comes from the catalog the review screen already uses, so the card
   // always names the button exactly as it is rendered. Like the bold product name, the
   // inline-code backticks are added here so the catalogs stay free of markup.
-  //
-  // The backticks are load-bearing. classifyReviewContentPresentation in
-  // ../../../screens/review/components/card/reviewContentPresentation.ts (mirrored on iOS and
-  // Android) switches a card side to markdown only on a backtick or a block-level cue, and
-  // docs/review-markdown-rendering.md states that inline emphasis alone never switches the
-  // mode. This text carries no block-level cue, so without the backticks the card would
-  // classify as paragraphPlain and every new user would see a literal ** around the product
-  // name. Whoever removes the backticks must also remove the bold.
   const values = {
     appName: demoCardAppName,
     againLabel: asInlineCode(translateMessage(locale, "reviewScreen.ratings.again", undefined)),

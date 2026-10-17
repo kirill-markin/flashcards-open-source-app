@@ -608,6 +608,11 @@ function createOperationSignals(
   };
 }
 
+/**
+ * An expected product outcome comes back as an `{ ok: false, code }` result, so the turn stays alive
+ * and the model can recover; a non-null `stopReason` ends the turn before the model sees the result
+ * (`executeToolCalls` in `apps/backend/src/chat/openai/loop/modelCall.ts`), and a rethrow ends the run.
+ */
 async function executeGeneratedImageToolCall(
   rawArguments: string,
   context: OpenAIToolContext,
@@ -772,6 +777,10 @@ async function executeGeneratedImageToolCall(
     ) {
       throw error;
     }
+    // Below the outcome-unknown rethrows, whose errors carry an outcome the run must not lose even
+    // when aborted, and above the deadline branch, so that when both signals have aborted the run
+    // ends by its own abort reason: a user cancellation stays cancelled instead of becoming a
+    // deadline interruption (`apps/backend/src/chat/runtime/executor.ts`).
     context.signal?.throwIfAborted();
     if (error instanceof TransientDatabaseHttpError) {
       throw error;
@@ -919,7 +928,8 @@ function buildChatAgentToolContext(
       // workspace's AI-chat replica, the same sync actor the chat's SQL writes carry. Binding the
       // review write without one would attribute every chat review to the placeholder connection id
       // above, which names no connection at all. That replica names no device, so the review's
-      // analytics device is the one this run was started from.
+      // analytics device is the one this run was started from. It is shared by every member and
+      // session of the workspace, so one reviewId namespace covers all of them.
       submitAgentReview: async (reviewContext, request) => dependencies.submitAgentReview(
         reviewContext,
         request,
