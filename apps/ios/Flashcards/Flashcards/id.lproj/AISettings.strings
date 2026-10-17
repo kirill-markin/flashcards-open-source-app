@@ -950,3 +950,23 @@
 
 "settings.account.cloudSignIn.continueGoogle" = "Lanjutkan dengan Google";
 "settings.account.cloudSignIn.appleCleanupPending" = "Apple sedang menyelesaikan pembaruan keamanan. Coba lagi dengan Apple sebentar lagi, atau pilih metode masuk lain.";
+
+"settings.account.connection.title" = "Hubungkan akun";
+"settings.account.connection.suggestion" = "Tinjau hubungan yang disarankan";
+"settings.account.connection.data" = "Kartu, ulasan, dan ruang kerja tetap ada. Keanggotaan digabung; kepemilikan diutamakan.";
+"settings.account.connection.settings" = "Pengaturan dan profil publik tujuan diterapkan dengan privasi lebih ketat. Email utama asli dipertahankan atau email nyata yang terbukti digunakan.";
+"settings.account.connection.billing" = "Pembelian, hak, penggunaan, dan kredensial integrasi mengikuti akun terhubung. Langganan dan riwayat uji coba awal tidak berubah.";
+"settings.account.connection.destination" = "Tujuan terpilih";
+"settings.account.connection.hidden" = "Disembunyikan dari pilihan ruang kerja";
+"settings.account.connection.omit" = "Minta penghilangan jika memenuhi syarat";
+"settings.account.connection.preserve" = "Hanya ruang kerja awal yang memenuhi syarat yang dapat disembunyikan. Data dan ruang kerja lainnya tetap tersimpan.";
+"settings.account.connection.confirm" = "Konfirmasi hubungan";
+"settings.account.connection.connected" = "Akun terhubung.";
+"settings.account.connection.alreadyConnected" = "Akun ini sudah terhubung.";
+"settings.account.connection.cancelled" = "Hubungan dibatalkan.";
+"settings.account.connection.uncertain" = "Konfirmasi dikirim, tetapi hasilnya belum diketahui. Periksa dengan konfirmasi yang sama.";
+"settings.account.connection.replay" = "Periksa hasil konfirmasi";
+"settings.account.connection.preview" = "Perbarui pratinjau hubungan";
+"settings.account.connection.previewChanged" = "Pratinjau berubah. Perbarui dan konfirmasikan pratinjau baru secara tegas.";
+"settings.account.connection.restart" = "Bukti kedaluwarsa atau telah digunakan. Mulai lagi dengan bukti baru.";
+"settings.account.connection.restorePaused" = "Akun terhubung. Pembaruan lokal dijeda; data offline Anda tetap disimpan.";

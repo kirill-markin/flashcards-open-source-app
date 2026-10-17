@@ -950,3 +950,23 @@
 
 "settings.account.cloudSignIn.continueGoogle" = "ادامه با Google";
 "settings.account.cloudSignIn.appleCleanupPending" = "Apple در حال تکمیل یک به‌روزرسانی امنیتی است. کمی بعد دوباره با Apple تلاش کنید یا روش دیگری برای ورود انتخاب کنید.";
+
+"settings.account.connection.title" = "پیوند حساب‌ها";
+"settings.account.connection.suggestion" = "بررسی پیوند پیشنهادی";
+"settings.account.connection.data" = "کارت‌ها، مرورها و فضاهای کاری حفظ می‌شوند. عضویت‌ها ترکیب می‌شوند؛ مالکیت اولویت دارد.";
+"settings.account.connection.settings" = "تنظیمات و نمایهٔ عمومی مقصد با حریم خصوصی سخت‌گیرانه‌تر اعمال می‌شوند. ایمیل اصلی واقعی حفظ می‌شود یا ایمیل واقعی اثبات‌شده به کار می‌رود.";
+"settings.account.connection.billing" = "خریدها، مجوزها، مصرف و اطلاعات ورود یکپارچه‌سازی‌ها به حساب پیوندخورده منتقل می‌شوند. اشتراک‌ها و سابقهٔ اولیهٔ دوره‌های آزمایشی تغییر نمی‌کنند.";
+"settings.account.connection.destination" = "مقصد انتخاب‌شده";
+"settings.account.connection.hidden" = "در گزینه‌های فضای کاری پنهان است";
+"settings.account.connection.omit" = "درخواست حذف از نمایش در صورت مجاز بودن";
+"settings.account.connection.preserve" = "فقط فضاهای کاری اولیهٔ واجد شرایط را می‌توان پنهان کرد. داده‌ها و دیگر فضاهای کاری حفظ می‌شوند.";
+"settings.account.connection.confirm" = "تأیید پیوند حساب‌ها";
+"settings.account.connection.connected" = "حساب‌ها پیوند خوردند.";
+"settings.account.connection.alreadyConnected" = "این حساب‌ها قبلاً پیوند خورده‌اند.";
+"settings.account.connection.cancelled" = "پیوند لغو شد.";
+"settings.account.connection.uncertain" = "تأیید ارسال شد اما نتیجه نامشخص است. آن را با همان تأیید بررسی کنید.";
+"settings.account.connection.replay" = "بررسی نتیجهٔ تأیید";
+"settings.account.connection.preview" = "تازه‌سازی پیش‌نمایش پیوند";
+"settings.account.connection.previewChanged" = "پیش‌نمایش تغییر کرد. آن را تازه کنید و پیش‌نمایش جدید را صریحاً تأیید کنید.";
+"settings.account.connection.restart" = "مدرک منقضی یا مصرف شده است. با مدرک تازه دوباره شروع کنید.";
+"settings.account.connection.restorePaused" = "حساب‌ها پیوند خوردند. تازه‌سازی محلی متوقف است؛ داده‌های آفلاین شما حفظ می‌شوند.";

@@ -978,3 +978,23 @@
 
 "settings.account.cloudSignIn.continueGoogle" = "Continuer avec Google";
 "settings.account.cloudSignIn.appleCleanupPending" = "Apple termine une mise à jour de sécurité. Réessayez avec Apple dans un instant ou choisissez une autre méthode de connexion.";
+
+"settings.account.connection.title" = "Relier les comptes";
+"settings.account.connection.suggestion" = "Examiner la liaison suggérée";
+"settings.account.connection.data" = "Les cartes, révisions et espaces restent. Les adhésions sont réunies ; le rôle de propriétaire prévaut.";
+"settings.account.connection.settings" = "Les réglages et le profil public de destination s’appliquent avec une confidentialité renforcée. L’adresse principale authentique reste, sinon une adresse réelle vérifiée est utilisée.";
+"settings.account.connection.billing" = "Achats, droits, utilisation et identifiants d’intégration suivent le compte relié. Abonnements et historique des essais restent inchangés.";
+"settings.account.connection.destination" = "Destination sélectionnée";
+"settings.account.connection.hidden" = "Masqué dans le choix des espaces";
+"settings.account.connection.omit" = "Demander l’omission si admissible";
+"settings.account.connection.preserve" = "Seuls les espaces initiaux admissibles peuvent être masqués. Les données et les autres espaces sont conservés.";
+"settings.account.connection.confirm" = "Confirmer la liaison";
+"settings.account.connection.connected" = "Comptes reliés.";
+"settings.account.connection.alreadyConnected" = "Ces comptes sont déjà reliés.";
+"settings.account.connection.cancelled" = "Liaison annulée.";
+"settings.account.connection.uncertain" = "La confirmation a été envoyée, mais son résultat est inconnu. Vérifiez-le avec la même confirmation.";
+"settings.account.connection.replay" = "Vérifier le résultat";
+"settings.account.connection.preview" = "Actualiser l’aperçu de liaison";
+"settings.account.connection.previewChanged" = "L’aperçu a changé. Actualisez-le et confirmez explicitement le nouvel aperçu.";
+"settings.account.connection.restart" = "La preuve a expiré ou a été utilisée. Recommencez avec une nouvelle preuve.";
+"settings.account.connection.restorePaused" = "Comptes reliés. L’actualisation locale est suspendue ; vos données hors ligne sont conservées.";

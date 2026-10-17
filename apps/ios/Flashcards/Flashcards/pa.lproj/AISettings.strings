@@ -950,3 +950,23 @@
 
 "settings.account.cloudSignIn.continueGoogle" = "Google ਨਾਲ ਜਾਰੀ ਰੱਖੋ";
 "settings.account.cloudSignIn.appleCleanupPending" = "Apple ਇੱਕ ਸੁਰੱਖਿਆ ਅੱਪਡੇਟ ਪੂਰਾ ਕਰ ਰਿਹਾ ਹੈ। ਥੋੜ੍ਹੀ ਦੇਰ ਬਾਅਦ Apple ਨਾਲ ਦੁਬਾਰਾ ਕੋਸ਼ਿਸ਼ ਕਰੋ ਜਾਂ ਸਾਈਨ ਇਨ ਕਰਨ ਦਾ ਕੋਈ ਹੋਰ ਤਰੀਕਾ ਚੁਣੋ।";
+
+"settings.account.connection.title" = "ਖਾਤੇ ਜੋੜੋ";
+"settings.account.connection.suggestion" = "ਸੁਝਾਏ ਜੋੜ ਦਾ ਜਾਇਜ਼ਾ ਲਓ";
+"settings.account.connection.data" = "ਕਾਰਡ, ਦੁਹਰਾਈਆਂ ਅਤੇ ਵਰਕਸਪੇਸ ਕਾਇਮ ਰਹਿੰਦੇ ਹਨ। ਮੈਂਬਰਸ਼ਿਪਾਂ ਇਕੱਠੀਆਂ ਹੁੰਦੀਆਂ ਹਨ; ਮਾਲਕੀ ਨੂੰ ਪਹਿਲ ਮਿਲਦੀ ਹੈ।";
+"settings.account.connection.settings" = "ਮੰਜ਼ਿਲ ਦੀਆਂ ਸੈਟਿੰਗਾਂ ਅਤੇ ਜਨਤਕ ਪ੍ਰੋਫਾਈਲ ਸਖ਼ਤ ਪਰਦੇਦਾਰੀ ਨਾਲ ਲਾਗੂ ਹੁੰਦੇ ਹਨ। ਅਸਲ ਮੁੱਖ ਈਮੇਲ ਰਹਿੰਦੀ ਹੈ ਜਾਂ ਸਾਬਤ ਕੀਤੀ ਅਸਲ ਈਮੇਲ ਵਰਤੀ ਜਾਂਦੀ ਹੈ।";
+"settings.account.connection.billing" = "ਖਰੀਦਾਂ, ਹੱਕ, ਵਰਤੋਂ ਅਤੇ ਏਕੀਕਰਨ ਦੇ ਪ੍ਰਮਾਣ ਪੱਤਰ ਜੁੜੇ ਖਾਤੇ ਨਾਲ ਜਾਂਦੇ ਹਨ। ਸਬਸਕ੍ਰਿਪਸ਼ਨਾਂ ਅਤੇ ਅਸਲ ਅਜ਼ਮਾਇਸ਼ ਇਤਿਹਾਸ ਨਹੀਂ ਬਦਲਦੇ।";
+"settings.account.connection.destination" = "ਚੁਣੀ ਮੰਜ਼ਿਲ";
+"settings.account.connection.hidden" = "ਵਰਕਸਪੇਸ ਚੋਣਾਂ ਵਿੱਚ ਲੁਕਾਇਆ ਗਿਆ";
+"settings.account.connection.omit" = "ਯੋਗ ਹੋਣ ਉੱਤੇ ਛੱਡਣ ਦੀ ਬੇਨਤੀ ਕਰੋ";
+"settings.account.connection.preserve" = "ਸਿਰਫ਼ ਯੋਗ ਸ਼ੁਰੂਆਤੀ ਵਰਕਸਪੇਸ ਲੁਕਾਏ ਜਾ ਸਕਦੇ ਹਨ। ਮੂਲ ਡੇਟਾ ਅਤੇ ਹੋਰ ਵਰਕਸਪੇਸ ਬਰਕਰਾਰ ਰਹਿੰਦੇ ਹਨ।";
+"settings.account.connection.confirm" = "ਖਾਤੇ ਜੋੜਨ ਦੀ ਪੁਸ਼ਟੀ ਕਰੋ";
+"settings.account.connection.connected" = "ਖਾਤੇ ਜੁੜ ਗਏ।";
+"settings.account.connection.alreadyConnected" = "ਇਹ ਖਾਤੇ ਪਹਿਲਾਂ ਹੀ ਜੁੜੇ ਹਨ।";
+"settings.account.connection.cancelled" = "ਜੋੜ ਰੱਦ ਹੋ ਗਿਆ।";
+"settings.account.connection.uncertain" = "ਪੁਸ਼ਟੀ ਭੇਜੀ ਗਈ ਪਰ ਨਤੀਜਾ ਅਣਜਾਣ ਹੈ। ਉਸੇ ਪੁਸ਼ਟੀ ਨਾਲ ਜਾਂਚੋ।";
+"settings.account.connection.replay" = "ਪੁਸ਼ਟੀ ਦਾ ਨਤੀਜਾ ਜਾਂਚੋ";
+"settings.account.connection.preview" = "ਜੋੜ ਦੀ ਝਲਕ ਤਾਜ਼ਾ ਕਰੋ";
+"settings.account.connection.previewChanged" = "ਝਲਕ ਬਦਲ ਗਈ। ਇਸ ਨੂੰ ਤਾਜ਼ਾ ਕਰੋ ਅਤੇ ਨਵੀਂ ਝਲਕ ਦੀ ਸਪਸ਼ਟ ਪੁਸ਼ਟੀ ਕਰੋ।";
+"settings.account.connection.restart" = "ਸਬੂਤ ਦੀ ਮਿਆਦ ਮੁੱਕ ਗਈ ਜਾਂ ਵਰਤਿਆ ਗਿਆ। ਨਵੇਂ ਸਬੂਤ ਨਾਲ ਮੁੜ ਸ਼ੁਰੂ ਕਰੋ।";
+"settings.account.connection.restorePaused" = "ਖਾਤੇ ਜੁੜ ਗਏ। ਸਥਾਨਕ ਅੱਪਡੇਟ ਰੁਕਿਆ ਹੈ; ਤੁਹਾਡਾ ਆਫ਼ਲਾਈਨ ਡਾਟਾ ਸੁਰੱਖਿਅਤ ਹੈ।";

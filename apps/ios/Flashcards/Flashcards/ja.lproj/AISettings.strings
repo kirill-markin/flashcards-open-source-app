@@ -978,3 +978,23 @@
 
 "settings.account.cloudSignIn.continueGoogle" = "Google で続ける";
 "settings.account.cloudSignIn.appleCleanupPending" = "Apple がセキュリティの更新を完了しています。しばらくしてから Apple で再度お試しいただくか、別のログイン方法を選んでください。";
+
+"settings.account.connection.title" = "アカウントを連携";
+"settings.account.connection.suggestion" = "提案された連携を確認";
+"settings.account.connection.data" = "カード、復習、ワークスペースは保持されます。メンバーシップは統合され、所有権が優先されます。";
+"settings.account.connection.settings" = "連携先の設定と公開プロフィールを、より厳しいプライバシーで適用します。実際のメインメールを保持するか、証明済みの実在するメールを使用します。";
+"settings.account.connection.billing" = "購入、権利、使用量、連携サービスの認証情報は連携後のアカウントに引き継がれます。定期購入と元の試用履歴は変わりません。";
+"settings.account.connection.destination" = "選択された連携先";
+"settings.account.connection.hidden" = "ワークスペースの選択肢から非表示";
+"settings.account.connection.omit" = "対象の場合に除外を申請";
+"settings.account.connection.preserve" = "条件を満たす初期ワークスペースのみ非表示にできます。元のデータと他のワークスペースは保持されます。";
+"settings.account.connection.confirm" = "アカウント連携を確定";
+"settings.account.connection.connected" = "アカウントを連携しました。";
+"settings.account.connection.alreadyConnected" = "これらのアカウントはすでに連携されています。";
+"settings.account.connection.cancelled" = "連携をキャンセルしました。";
+"settings.account.connection.uncertain" = "確定要求を送信しましたが、結果は不明です。同じ確定要求で結果を確認してください。";
+"settings.account.connection.replay" = "確定結果を確認";
+"settings.account.connection.preview" = "連携プレビューを更新";
+"settings.account.connection.previewChanged" = "プレビューが変更されました。更新して新しいプレビューを明示的に確定してください。";
+"settings.account.connection.restart" = "証明が期限切れか使用済みです。新しい証明で最初からやり直してください。";
+"settings.account.connection.restorePaused" = "アカウントを連携しました。ローカル更新は一時停止中です。オフラインデータは保持されています。";

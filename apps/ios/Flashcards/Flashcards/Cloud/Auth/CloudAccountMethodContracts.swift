@@ -70,11 +70,14 @@ enum CloudAccountMethodMutation { case link, unlink, reenable }
 enum CloudAccountProofPurpose: String, Encodable { case reauth, link }
 
 struct CloudAccountReauthenticationReceipt: Encodable {
+    let binding: CloudAuthAttemptBinding
+    private enum CodingKeys: String, CodingKey { case completion, client, codeVerifier }
     let completion: String
     let client: CloudAuthClient
     let codeVerifier: String
 
     init(completion: String, binding: CloudAuthAttemptBinding) {
+        self.binding = binding
         self.completion = completion
         self.client = binding.client
         self.codeVerifier = binding.codeVerifier

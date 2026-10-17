@@ -178,6 +178,11 @@ struct AccountStatusView: View {
                             }
                             .accessibilityIdentifier(UITestIdentifier.accountStatusSignInButton)
                         case .linked:
+                            if self.store.cloudNativeSignIn.availableConnectionSuggestion(store: self.store) != nil {
+                                Button(connectionCopy(.suggestion)) { self.isAccountMethodsPresented = true }
+                                    .disabled(self.isLoggingOut)
+                                    .accessibilityIdentifier("accountStatus.connectionSuggestion")
+                            }
                             Button(accountMethodCopy(.title)) { self.isAccountMethodsPresented = true }
                                 .disabled(self.isLoggingOut)
                                 .accessibilityIdentifier("accountStatus.methods")

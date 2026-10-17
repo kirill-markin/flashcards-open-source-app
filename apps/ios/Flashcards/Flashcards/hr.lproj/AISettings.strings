@@ -950,3 +950,23 @@
 
 "settings.account.cloudSignIn.continueGoogle" = "Nastavi s Googleom";
 "settings.account.cloudSignIn.appleCleanupPending" = "Apple dovršava sigurnosno ažuriranje. Pokušajte ponovno s Appleom uskoro ili odaberite drugi način prijave.";
+
+"settings.account.connection.title" = "Poveži račune";
+"settings.account.connection.suggestion" = "Pregledaj predloženo povezivanje";
+"settings.account.connection.data" = "Kartice, ponavljanja i radni prostori ostaju. Članstva se spajaju; vlasništvo ima prednost.";
+"settings.account.connection.settings" = "Primjenjuju se postavke i javni profil odredišta uz strožu privatnost. Zadržava se stvarna primarna e-adresa ili se koristi dokazana stvarna adresa.";
+"settings.account.connection.billing" = "Kupnje, prava, upotreba i vjerodajnice integracija slijede povezani račun. Pretplate i izvorna povijest probnih razdoblja ostaju nepromijenjene.";
+"settings.account.connection.destination" = "Odabrano odredište";
+"settings.account.connection.hidden" = "Skriveno iz izbora radnih prostora";
+"settings.account.connection.omit" = "Zatraži izostavljanje ako je dopušteno";
+"settings.account.connection.preserve" = "Mogu se sakriti samo početni prostori koji ispunjavaju uvjete. Podaci i ostali radni prostori ostaju sačuvani.";
+"settings.account.connection.confirm" = "Potvrdi povezivanje";
+"settings.account.connection.connected" = "Računi su povezani.";
+"settings.account.connection.alreadyConnected" = "Ovi su računi već povezani.";
+"settings.account.connection.cancelled" = "Povezivanje je otkazano.";
+"settings.account.connection.uncertain" = "Potvrda je poslana, ali rezultat nije poznat. Provjeri ga istom potvrdom.";
+"settings.account.connection.replay" = "Provjeri rezultat";
+"settings.account.connection.preview" = "Osvježi pregled povezivanja";
+"settings.account.connection.previewChanged" = "Pregled se promijenio. Osvježi ga i izričito potvrdi novi pregled.";
+"settings.account.connection.restart" = "Dokaz je istekao ili je iskorišten. Počni ponovno s novim dokazom.";
+"settings.account.connection.restorePaused" = "Računi su povezani. Lokalno osvježavanje je pauzirano; vaši izvanmrežni podaci su sačuvani.";

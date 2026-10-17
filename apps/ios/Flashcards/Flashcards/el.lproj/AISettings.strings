@@ -950,3 +950,23 @@
 
 "settings.account.cloudSignIn.continueGoogle" = "Συνέχεια με Google";
 "settings.account.cloudSignIn.appleCleanupPending" = "Η Apple ολοκληρώνει μια ενημέρωση ασφαλείας. Δοκίμασε ξανά με την Apple σε λίγο ή επίλεξε άλλον τρόπο σύνδεσης.";
+
+"settings.account.connection.title" = "Σύνδεση λογαριασμών";
+"settings.account.connection.suggestion" = "Έλεγχος προτεινόμενης σύνδεσης";
+"settings.account.connection.data" = "Κάρτες, επαναλήψεις και χώροι διατηρούνται. Οι συμμετοχές ενώνονται· η ιδιοκτησία έχει προτεραιότητα.";
+"settings.account.connection.settings" = "Ισχύουν οι ρυθμίσεις και το δημόσιο προφίλ προορισμού με αυστηρότερο απόρρητο. Διατηρείται το γνήσιο κύριο email ή χρησιμοποιείται αποδεδειγμένο πραγματικό email.";
+"settings.account.connection.billing" = "Αγορές, δικαιώματα, χρήση και διαπιστευτήρια ενσωματώσεων ακολουθούν τον συνδεδεμένο λογαριασμό. Συνδρομές και αρχικό ιστορικό δοκιμών δεν αλλάζουν.";
+"settings.account.connection.destination" = "Επιλεγμένος προορισμός";
+"settings.account.connection.hidden" = "Κρυφό από τις επιλογές χώρων εργασίας";
+"settings.account.connection.omit" = "Αίτημα παράλειψης αν επιτρέπεται";
+"settings.account.connection.preserve" = "Μόνο οι επιλέξιμοι αρχικοί χώροι μπορούν να κρυφτούν. Τα δεδομένα και οι υπόλοιποι χώροι εργασίας διατηρούνται.";
+"settings.account.connection.confirm" = "Επιβεβαίωση σύνδεσης";
+"settings.account.connection.connected" = "Οι λογαριασμοί συνδέθηκαν.";
+"settings.account.connection.alreadyConnected" = "Αυτοί οι λογαριασμοί είναι ήδη συνδεδεμένοι.";
+"settings.account.connection.cancelled" = "Η σύνδεση ακυρώθηκε.";
+"settings.account.connection.uncertain" = "Η επιβεβαίωση στάλθηκε, αλλά το αποτέλεσμα είναι άγνωστο. Ελέγξτε το με την ίδια επιβεβαίωση.";
+"settings.account.connection.replay" = "Έλεγχος αποτελέσματος";
+"settings.account.connection.preview" = "Ανανέωση προεπισκόπησης";
+"settings.account.connection.previewChanged" = "Η προεπισκόπηση άλλαξε. Ανανεώστε την και επιβεβαιώστε ρητά τη νέα προεπισκόπηση.";
+"settings.account.connection.restart" = "Η απόδειξη έληξε ή χρησιμοποιήθηκε. Ξεκινήστε ξανά με νέα απόδειξη.";
+"settings.account.connection.restorePaused" = "Οι λογαριασμοί συνδέθηκαν. Η τοπική ανανέωση έχει παύσει· τα δεδομένα εκτός σύνδεσης διατηρούνται.";
