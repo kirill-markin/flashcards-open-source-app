@@ -16,7 +16,8 @@ const enCatalog = {
   },
   stripe: createStripeCatalog(stripeCopy),
   paywall: {
-    heading: "Learning belongs to everyone.",
+    heading: "Learning belongs to <em>everyone.</em>",
+    alwaysFree: "Always free",
     freeTitle: "Free",
     freeDescription: "Created for students without a job. Open to everyone. Your backpack just got lighter.",
     freeBenefit: "Core reviews, offline learning & sync",
@@ -24,7 +25,7 @@ const enCatalog = {
     creatorSupport: "Your subscription helps Nibomo’s creator, {{creator}}, pay for servers and fuel the next update with coffee and pizza.",
     basePrice: "Base price: {{price}} / month",
     startTrial: "Start 7-day free trial",
-    trialPrice: "7 days free, then a monthly base price of {{price}}. A payment method is required. Cancel before the trial ends to avoid the first charge.",
+    trialPrice: "7 days free, then {{price}}/month base. Payment method required; cancel before the trial ends to avoid the first charge.",
     checkoutPrice: "Stripe confirms the final price and billing currency at checkout.",
   },
   accentColorSettings: {

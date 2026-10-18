@@ -17,7 +17,8 @@ const ltCatalog: TranslationCatalog = {
   },
   stripe: createStripeCatalog(stripeCopy),
   paywall: {
-    heading: "Mokymasis priklauso visiems.",
+    heading: "Mokymasis priklauso <em>visiems.</em>",
+    alwaysFree: "Visada nemokamai",
     freeTitle: "Nemokamai",
     freeDescription: "Sukurta darbo neturintiems studentams. Atvira visiems. Tavo kuprinė ką tik palengvėjo.",
     freeBenefit: "Pagrindiniai kartojimai, mokymasis neprisijungus ir sinchronizavimas",
@@ -25,7 +26,7 @@ const ltCatalog: TranslationCatalog = {
     creatorSupport: "Tavo prenumerata padeda Nibomo kūrėjui {{creator}} apmokėti serverius ir su kava bei pica rengti kitą atnaujinimą.",
     basePrice: "Bazinė kaina: {{price}} / mėn.",
     startTrial: "Pradėti nemokamą 7 dienų bandomąjį laikotarpį",
-    trialPrice: "7 dienos nemokamai, paskui mėnesio bazinė kaina {{price}}. Reikalingas mokėjimo būdas. Atšauk iki bandomojo laikotarpio pabaigos, kad išvengtum pirmojo mokesčio.",
+    trialPrice: "7 dienos nemokamai, vėliau bazinė kaina {{price}}/mėn. Būtinas mokėjimo būdas; atšaukite iki bandomojo laikotarpio pabaigos, kad išvengtumėte pirmojo mokesčio.",
     checkoutPrice: "Stripe atsiskaitant patvirtina galutinę kainą ir mokėjimo valiutą.",
   },
   accentColorSettings: {

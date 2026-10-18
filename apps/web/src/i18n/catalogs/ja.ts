@@ -17,7 +17,8 @@ export const jaCatalog = {
   },
   stripe: createStripeCatalog(stripeCopy),
   paywall: {
-    heading: "学びは、みんなのもの。",
+    heading: "学びは、<em>みんな</em>のもの。",
+    alwaysFree: "ずっと無料",
     freeTitle: "無料",
     freeDescription: "仕事をしていない学生のために。誰もが使えます。リュックが少し軽くなりました。",
     freeBenefit: "基本の復習、オフライン学習と同期",
@@ -25,7 +26,7 @@ export const jaCatalog = {
     creatorSupport: "サブスクリプションは Nibomo の作者 {{creator}} のサーバー代を支え、コーヒーとピザで次のアップデートを後押しします。",
     basePrice: "基本価格：{{price}} / 月",
     startTrial: "7日間の無料体験を始める",
-    trialPrice: "7日間無料、その後は月額基本価格 {{price}}。お支払い方法の登録が必要です。初回請求を避けるには無料体験終了前にキャンセルしてください。",
+    trialPrice: "7日間無料。その後は月額基本料金{{price}}。支払い方法の登録が必要です。初回請求を避けるには、無料体験終了前に解約してください。",
     checkoutPrice: "最終価格と請求通貨は Stripe の決済画面で確認できます。",
   },
   accentColorSettings: {

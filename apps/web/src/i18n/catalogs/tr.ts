@@ -17,7 +17,8 @@ const trCatalog: TranslationCatalog = {
   },
   stripe: createStripeCatalog(stripeCopy),
   paywall: {
-    heading: "Öğrenmek herkesin hakkı.",
+    heading: "Öğrenmek <em>herkesin</em> hakkı.",
+    alwaysFree: "Her zaman ücretsiz",
     freeTitle: "Ücretsiz",
     freeDescription: "İşi olmayan öğrenciler için oluşturuldu. Herkese açık. Sırt çantan biraz daha hafifledi.",
     freeBenefit: "Temel tekrarlar, çevrimdışı öğrenme ve eşitleme",
@@ -25,7 +26,7 @@ const trCatalog: TranslationCatalog = {
     creatorSupport: "Aboneliğin, Nibomo’nun yaratıcısı {{creator}}’in sunucuları ödemesine ve bir sonraki güncellemeyi kahve ve pizzayla hazırlamasına yardımcı olur.",
     basePrice: "Taban fiyat: {{price}} / ay",
     startTrial: "7 günlük ücretsiz denemeyi başlat",
-    trialPrice: "7 gün ücretsiz, ardından aylık {{price}} taban fiyat. Bir ödeme yöntemi gereklidir. İlk ödemeyi önlemek için deneme bitmeden iptal et.",
+    trialPrice: "7 gün ücretsiz, ardından aylık temel fiyat {{price}}. Ödeme yöntemi gerekir; ilk ücretten kaçınmak için deneme bitmeden iptal edin.",
     checkoutPrice: "Stripe, son fiyatı ve faturalandırma para birimini ödeme sırasında onaylar.",
   },
   accentColorSettings: {

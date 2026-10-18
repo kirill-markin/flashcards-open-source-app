@@ -17,7 +17,8 @@ const arCatalog: TranslationCatalog = {
   },
   stripe: createStripeCatalog(stripeCopy),
   paywall: {
-    heading: "التعلّم حق للجميع.",
+    heading: "التعلّم حق <em>للجميع.</em>",
+    alwaysFree: "مجاني دائمًا",
     freeTitle: "مجاني",
     freeDescription: "صُمّم للطلاب الذين لا يعملون. متاح للجميع. أصبحت حقيبتك أخفّ قليلًا.",
     freeBenefit: "المراجعات الأساسية والتعلّم دون اتصال والمزامنة",
@@ -25,7 +26,7 @@ const arCatalog: TranslationCatalog = {
     creatorSupport: "يساعد اشتراكك منشئ Nibomo، {{creator}}، في دفع تكاليف الخوادم والعمل على التحديث التالي مع القهوة والبيتزا.",
     basePrice: "السعر الأساسي: {{price}} / شهريًا",
     startTrial: "ابدأ تجربة مجانية لمدة 7 أيام",
-    trialPrice: "7 أيام مجانًا، ثم سعر أساسي شهري قدره {{price}}. يلزم توفير وسيلة دفع. ألغِ قبل انتهاء التجربة لتجنّب أول دفعة.",
+    trialPrice: "7 أيام مجانًا، ثم سعر أساسي قدره {{price}} شهريًا. يلزم توفير وسيلة دفع؛ ألغِ قبل انتهاء التجربة لتجنّب أول دفعة.",
     checkoutPrice: "يؤكد Stripe السعر النهائي وعملة الفوترة عند إتمام الدفع.",
   },
   accentColorSettings: {

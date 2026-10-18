@@ -17,7 +17,8 @@ const etCatalog: TranslationCatalog = {
   },
   stripe: createStripeCatalog(stripeCopy),
   paywall: {
-    heading: "Õppimine kuulub kõigile.",
+    heading: "Õppimine kuulub <em>kõigile.</em>",
+    alwaysFree: "Alati tasuta",
     freeTitle: "Tasuta",
     freeDescription: "Loodud tööta üliõpilastele. Avatud kõigile. Sinu seljakott muutus just kergemaks.",
     freeBenefit: "Põhikordused, võrguühenduseta õppimine ja sünkroonimine",
@@ -25,7 +26,7 @@ const etCatalog: TranslationCatalog = {
     creatorSupport: "Sinu tellimus aitab Nibomo loojal {{creator}} maksta serverite eest ning valmistada kohvi ja pitsa toel ette järgmist uuendust.",
     basePrice: "Baashind: {{price}} / kuu",
     startTrial: "Alusta 7-päevast tasuta prooviperioodi",
-    trialPrice: "7 päeva tasuta, seejärel igakuine baashind {{price}}. Vajalik on makseviis. Esimese makse vältimiseks tühista enne prooviperioodi lõppu.",
+    trialPrice: "7 päeva tasuta, seejärel baashind {{price}} kuus. Makseviis on nõutav; esimese makse vältimiseks tühista enne prooviperioodi lõppu.",
     checkoutPrice: "Stripe kinnitab lõpliku hinna ja arveldusvaluuta maksmisel.",
   },
   accentColorSettings: {
