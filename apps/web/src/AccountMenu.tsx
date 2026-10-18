@@ -5,7 +5,6 @@ import {
 } from "./appError/AppErrorContext";
 import { AnchoredFloatingOverlay, useAnchoredFloatingOutsidePointerDismiss } from "./floating";
 import { useI18n } from "./i18n";
-import { useAppData } from "./appData";
 import { SignOutLink } from "./SignOutLink";
 import type { WorkspaceSummary } from "./types";
 import { useTransientMessage } from "./useTransientMessage";
@@ -44,7 +43,6 @@ export function AccountMenu(props: Props): ReactElement {
   } = props;
   const { indexedDbOpenRecoveryState, showCapturedTechnicalError } = useAppErrorDialog();
   const { t, formatDateTime } = useI18n();
-  const isGuest = useAppData().session?.browserGuestCapabilities?.isGuest === true;
   const [isOpen, setIsOpen] = useState<boolean>(false);
   const [isCreating, setIsCreating] = useState<boolean>(false);
   const [newWorkspaceName, setNewWorkspaceName] = useState<string>("");
@@ -268,11 +266,11 @@ export function AccountMenu(props: Props): ReactElement {
         <a className="account-menu-item account-menu-link" href={accountSettingsUrl}>
           {t("navigation.settings")}
         </a>
-        {isGuest ? null : <SignOutLink
+        <SignOutLink
           className="account-menu-item account-menu-link"
           href={logoutUrl}
           label={t("accountMenu.logout")}
-        />}
+        />
       </AnchoredFloatingOverlay>
     </div>
   );

@@ -3,8 +3,9 @@ import { buildLoginUrl } from "../../../../api";
 import { useAppData } from "../../../../appData";
 import { beginGuestSignIn } from "../../../../appData/session/guest/browserGuestConversion";
 import { useI18n } from "../../../../i18n";
+import { GuestAccountAttentionBadge } from "./GuestAccountAttentionBadge";
 
-export function GuestSignIn(props: Readonly<{ label: string; testId: string; returnUrl?: string; onStarted?: () => void }>): ReactElement {
+export function GuestSignIn(props: Readonly<{ label: string; testId: string; returnUrl?: string; onStarted?: () => void; guestAccountAttention?: boolean }>): ReactElement {
   const { session, activeWorkspace, isSessionVerified, drainGuestWorkspace, setErrorMessage } = useAppData();
   const { locale, t } = useI18n();
   const [busy, setBusy] = useState(false);
@@ -26,8 +27,11 @@ export function GuestSignIn(props: Readonly<{ label: string; testId: string; ret
     }
   }
   return <span className="guest-sign-in-control">
-    <button type="button" className="primary-btn" data-testid={props.testId} disabled={busy || !isSessionVerified}
-      aria-busy={busy} onClick={() => void signIn()}>{busy ? t("accentColorSettings.saving") : props.label}</button>
+    <button type="button" className={`primary-btn${props.guestAccountAttention ? " guest-account-attention-target" : ""}`} data-testid={props.testId} disabled={busy || !isSessionVerified}
+      aria-busy={busy} onClick={() => void signIn()}>
+      {busy ? t("accentColorSettings.saving") : props.label}
+      {props.guestAccountAttention ? <GuestAccountAttentionBadge /> : null}
+    </button>
     {error === "" ? null : <span role="alert" className="error-banner">{error}</span>}
   </span>;
 }

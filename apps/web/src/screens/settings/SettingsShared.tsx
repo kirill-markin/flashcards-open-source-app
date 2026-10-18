@@ -1,5 +1,6 @@
 import type { ReactElement, ReactNode } from "react";
 import { Link } from "react-router";
+import { GuestAccountAttentionBadge } from "./account/guest/GuestAccountAttentionBadge";
 
 type SettingsTab = "general" | "current-workspace" | "workspace" | "account" | "device" | "access" | "test";
 
@@ -17,6 +18,7 @@ type SettingsNavigationCardProps = Readonly<{
   value: string | null;
   to: string;
   testId?: string;
+  guestAccountAttention?: boolean;
 }>;
 
 type SettingsActionCardProps = Readonly<{
@@ -66,15 +68,16 @@ export function SettingsShell(props: SettingsShellProps): ReactElement {
 }
 
 export function SettingsNavigationCard(props: SettingsNavigationCardProps): ReactElement {
-  const { title, description, value, to, testId } = props;
+  const { title, description, value, to, testId, guestAccountAttention } = props;
 
   return (
-    <Link className="settings-nav-card content-card" to={to} data-testid={testId}>
+    <Link className={`settings-nav-card content-card${guestAccountAttention ? " guest-account-attention-target" : ""}`} to={to} data-testid={testId}>
       <div className="settings-nav-card-copy">
         <strong className="panel-subtitle">{title}</strong>
         <p className="subtitle">{description}</p>
       </div>
       {value === null ? null : <span className="badge">{value}</span>}
+      {guestAccountAttention ? <GuestAccountAttentionBadge /> : null}
     </Link>
   );
 }
