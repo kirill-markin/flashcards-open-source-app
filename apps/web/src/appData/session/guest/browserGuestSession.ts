@@ -1,4 +1,3 @@
-import { ApiError } from "../../../api/transport/errors";
 import { createBrowserGuestSession, probeBrowserGuestSession } from "../../../api/endpoints/guestAuth";
 import { getOptionalSession, getSession, pauseBrowserGuestSession, readBrowserGuestVerificationGeneration, recoverRegisteredCredentialForProbe, resumeVerifiedBrowserSession } from "../../../api/transport/transport";
 import type { BrowserGuestProbe } from "../../../apiContracts/guestAuth";
@@ -6,6 +5,7 @@ import { closeDatabaseAfter, getAllFromStore } from "../../../localDb/core/datab
 import { loadCloudSettings } from "../../../localDb/sync/cloudSettings";
 import type { CloudSettings, SessionInfo } from "../../../types";
 import { hasLoggedInCookie } from "../activation/warmStart";
+import { probeBrowserGuestSessionWithRegisteredRecovery } from "./browserGuestProbe";
 import { readBrowserGuestState, runWithBrowserGuestLock, writeBrowserGuestState, type PendingGuestConversion } from "./browserGuestStorage";
 
 export class GuestConversionRequiredError extends Error {
@@ -66,19 +66,7 @@ export async function loadBrowserProductSession(): Promise<SessionInfo> {
     const persisted = await loadCloudSettings();
     const saved = readBrowserGuestState();
     if (saved !== null || persisted?.cloudState === "guest") pauseBrowserGuestSession();
-    let probe: BrowserGuestProbe;
-    try {
-      probe = await probeBrowserGuestSession();
-    } catch (error) {
-      // Only a browser that previously held registered credentials may enter registered refresh.
-      if (error instanceof ApiError && error.statusCode === 401 && saved === null
-        && ((persisted !== null && persisted.cloudState !== "guest") || hasLoggedInCookie())) {
-        await recoverRegisteredCredentialForProbe();
-        probe = await probeBrowserGuestSession();
-      } else {
-        throw error;
-      }
-    }
+    let probe = await probeBrowserGuestSessionWithRegisteredRecovery();
     const guest = probe.guestSession;
     const pending = saved?.status === "owned" ? saved.owner.pending : null;
     if (pending?.phase === "completed" && pending.result !== null && probe.registeredSession.present) {
