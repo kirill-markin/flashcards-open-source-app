@@ -330,6 +330,7 @@ test("deleteAccountForAuthenticatedUser rereads the mapping under the identity l
         || text.includes("UPDATE billing.stripe_email_deliveries")
         || text.includes("DELETE FROM billing.entitlement_snapshots")
         || text.includes("UPDATE ai.usage_events")
+        || text === "SELECT ai.anonymize_browser_guest_trial($1::text[], $2)"
       ) {
         return createQueryResult<Row>([]);
       }
