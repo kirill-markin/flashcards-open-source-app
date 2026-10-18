@@ -1,6 +1,10 @@
 package com.flashcardsopensourceapp.data.local.repository.review
 
 import android.net.Uri
+import androidx.room.withTransaction
+import com.flashcardsopensourceapp.core.observability.analytics.Analytics
+import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsEvent
+import com.flashcardsopensourceapp.core.observability.analytics.FirstReviewOnboardingSource
 import com.flashcardsopensourceapp.data.local.cloud.CloudPreferencesStore
 import com.flashcardsopensourceapp.data.local.cloud.sync.SyncLocalStore
 import com.flashcardsopensourceapp.data.local.database.core.AppDatabase
@@ -44,7 +48,6 @@ import com.flashcardsopensourceapp.data.local.repository.ReviewRepository
 import com.flashcardsopensourceapp.data.local.repository.cards.toCardSummary
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.workspace.loadCurrentWorkspaceOrNull
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.workspace.observeCurrentWorkspace
-import com.flashcardsopensourceapp.data.local.repository.cloudsync.sync.runLocalOutboxMutationTransaction
 import com.flashcardsopensourceapp.data.local.repository.decks.toDeckSummary
 import com.flashcardsopensourceapp.data.local.repository.progress.cache.LocalProgressCacheStore
 import com.flashcardsopensourceapp.data.local.repository.shared.TimeProvider
@@ -76,7 +79,10 @@ class LocalReviewRepository(
     private val timeProvider: TimeProvider,
     private val mediaAssetFileCacheRootDirectory: File,
     private val mediaAssetDownloadUrlLoader: ReviewMediaAssetDownloadUrlLoader,
-    private val mediaAssetDownloader: ReviewMediaAssetDownloader
+    private val mediaAssetDownloader: ReviewMediaAssetDownloader,
+    private val analytics: Analytics,
+    private val onFirstReviewOnboardingPersistenceFailed: (Exception) -> Unit,
+    private val onFirstReviewOnboardingSaved: () -> Unit
 ) : ReviewRepository {
     private val mediaAssetDownloadLocksMutex = Mutex()
     private val mediaAssetDownloadLocks: MutableMap<String, Mutex> = mutableMapOf()
@@ -596,80 +602,90 @@ class LocalReviewRepository(
     }
 
     override suspend fun recordReview(cardId: String, rating: ReviewRating, reviewedAtMillis: Long) {
-        runLocalOutboxMutationTransaction(
-            database = database,
-            preferencesStore = preferencesStore
-        ) {
-            val card: CardEntity = requireNotNull(database.cardDao().loadCard(cardId = cardId)) {
-                "Cannot review missing card: $cardId"
-            }
-            val schedulerSettingsEntity: WorkspaceSchedulerSettingsEntity = requireNotNull(
-                database.workspaceSchedulerSettingsDao().loadWorkspaceSchedulerSettings(
-                    workspaceId = card.workspaceId
+        preferencesStore.runWithLocalOutboxMutationAllowed {
+            val onboardingOwner = preferencesStore.firstReviewOnboardingOwner()
+            database.withTransaction {
+                val card: CardEntity = requireNotNull(database.cardDao().loadCard(cardId = cardId)) {
+                    "Cannot review missing card: $cardId"
+                }
+                val schedulerSettingsEntity: WorkspaceSchedulerSettingsEntity = requireNotNull(
+                    database.workspaceSchedulerSettingsDao().loadWorkspaceSchedulerSettings(
+                        workspaceId = card.workspaceId
+                    )
+                ) {
+                    "Scheduler settings are required before reviewing card: $cardId"
+                }
+                val cardWithRelations: CardWithRelations = requireNotNull(
+                    database.cardDao().observeCardWithRelations(cardId = cardId).first()
+                ) {
+                    "Cannot load review card relations for card: $cardId"
+                }
+                val cardSummary: CardSummary = toCardSummary(cardWithRelations)
+                val schedule: ReviewSchedule = computeReviewSchedule(
+                    card = cardSummary,
+                    settings = toWorkspaceSchedulerSettings(schedulerSettingsEntity),
+                    rating = rating,
+                    reviewedAtMillis = reviewedAtMillis
                 )
-            ) {
-                "Scheduler settings are required before reviewing card: $cardId"
-            }
-            val cardWithRelations: CardWithRelations = requireNotNull(
-                database.cardDao().observeCardWithRelations(cardId = cardId).first()
-            ) {
-                "Cannot load review card relations for card: $cardId"
-            }
-            val cardSummary: CardSummary = toCardSummary(cardWithRelations)
-            val schedule: ReviewSchedule = computeReviewSchedule(
-                card = cardSummary,
-                settings = toWorkspaceSchedulerSettings(schedulerSettingsEntity),
-                rating = rating,
-                reviewedAtMillis = reviewedAtMillis
-            )
 
-            database.cardDao().updateCard(
-                card = card.copy(
-                    dueAtMillis = schedule.dueAtMillis,
-                    updatedAtMillis = reviewedAtMillis,
-                    reps = schedule.reps,
-                    lapses = schedule.lapses,
-                    fsrsCardState = schedule.fsrsCardState,
-                    fsrsStepIndex = schedule.fsrsStepIndex,
-                    fsrsStability = schedule.fsrsStability,
-                    fsrsDifficulty = schedule.fsrsDifficulty,
-                    fsrsLastReviewedAtMillis = schedule.fsrsLastReviewedAtMillis,
-                    fsrsScheduledDays = schedule.fsrsScheduledDays
+                database.cardDao().updateCard(
+                    card = card.copy(
+                        dueAtMillis = schedule.dueAtMillis,
+                        updatedAtMillis = reviewedAtMillis,
+                        reps = schedule.reps,
+                        lapses = schedule.lapses,
+                        fsrsCardState = schedule.fsrsCardState,
+                        fsrsStepIndex = schedule.fsrsStepIndex,
+                        fsrsStability = schedule.fsrsStability,
+                        fsrsDifficulty = schedule.fsrsDifficulty,
+                        fsrsLastReviewedAtMillis = schedule.fsrsLastReviewedAtMillis,
+                        fsrsScheduledDays = schedule.fsrsScheduledDays
+                    )
                 )
-            )
-            val reviewLog: ReviewLogEntity = ReviewLogEntity(
-                reviewLogId = UUID.randomUUID().toString(),
-                workspaceId = card.workspaceId,
-                cardId = cardId,
-                replicaId = preferencesStore.currentCloudSettings().installationId,
-                clientEventId = UUID.randomUUID().toString(),
-                rating = rating,
-                reviewedAtMillis = reviewedAtMillis,
-                reviewedAtServerIso = formatIsoTimestamp(reviewedAtMillis),
-                reviewedTimeZone = timeProvider.currentZoneId().id
-            )
-            database.reviewLogDao().insertReviewLog(reviewLog = reviewLog)
-            localProgressCacheStore.recordReviewInTransaction(
-                reviewLog = reviewLog,
-                updatedAtMillis = reviewedAtMillis
-            )
-            syncLocalStore.enqueueReviewEventAppend(reviewLog)
-            syncLocalStore.enqueueCardUpsert(
-                card = card.copy(
-                    dueAtMillis = schedule.dueAtMillis,
-                    updatedAtMillis = reviewedAtMillis,
-                    reps = schedule.reps,
-                    lapses = schedule.lapses,
-                    fsrsCardState = schedule.fsrsCardState,
-                    fsrsStepIndex = schedule.fsrsStepIndex,
-                    fsrsStability = schedule.fsrsStability,
-                    fsrsDifficulty = schedule.fsrsDifficulty,
-                    fsrsLastReviewedAtMillis = schedule.fsrsLastReviewedAtMillis,
-                    fsrsScheduledDays = schedule.fsrsScheduledDays
-                ),
-                tags = cardSummary.tags,
-                affectsReviewSchedule = true
-            )
+                val reviewLog: ReviewLogEntity = ReviewLogEntity(
+                    reviewLogId = UUID.randomUUID().toString(),
+                    workspaceId = card.workspaceId,
+                    cardId = cardId,
+                    replicaId = preferencesStore.currentCloudSettings().installationId,
+                    clientEventId = UUID.randomUUID().toString(),
+                    rating = rating,
+                    reviewedAtMillis = reviewedAtMillis,
+                    reviewedAtServerIso = formatIsoTimestamp(reviewedAtMillis),
+                    reviewedTimeZone = timeProvider.currentZoneId().id
+                )
+                database.reviewLogDao().insertReviewLog(reviewLog = reviewLog)
+                localProgressCacheStore.recordReviewInTransaction(
+                    reviewLog = reviewLog,
+                    updatedAtMillis = reviewedAtMillis
+                )
+                syncLocalStore.enqueueReviewEventAppend(reviewLog)
+                syncLocalStore.enqueueCardUpsert(
+                    card = card.copy(
+                        dueAtMillis = schedule.dueAtMillis,
+                        updatedAtMillis = reviewedAtMillis,
+                        reps = schedule.reps,
+                        lapses = schedule.lapses,
+                        fsrsCardState = schedule.fsrsCardState,
+                        fsrsStepIndex = schedule.fsrsStepIndex,
+                        fsrsStability = schedule.fsrsStability,
+                        fsrsDifficulty = schedule.fsrsDifficulty,
+                        fsrsLastReviewedAtMillis = schedule.fsrsLastReviewedAtMillis,
+                        fsrsScheduledDays = schedule.fsrsScheduledDays
+                    ),
+                    tags = cardSummary.tags,
+                    affectsReviewSchedule = true
+                )
+            }
+            try {
+                if (preferencesStore.saveFirstReviewOnboardingCompletedForOwner(true, onboardingOwner)) {
+                    analytics.track(AnalyticsEvent.FirstReviewOnboardingCompleted(FirstReviewOnboardingSource.REVIEW))
+                }
+                if (preferencesStore.pendingFirstReviewOnboardingEdit() != null) {
+                    onFirstReviewOnboardingSaved()
+                }
+            } catch (error: Exception) {
+                onFirstReviewOnboardingPersistenceFailed(error)
+            }
         }
     }
 

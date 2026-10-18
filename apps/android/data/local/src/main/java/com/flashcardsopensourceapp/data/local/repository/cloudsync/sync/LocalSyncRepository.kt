@@ -201,6 +201,11 @@ class LocalSyncRepository(
             var syncTarget: CloudSyncTarget? = null
             try {
                 syncTarget = resolveSyncTarget(cloudSettings = cloudSettings)
+                preferencesStore.pushPendingFirstReviewOnboarding(
+                    remoteService = remoteService,
+                    apiBaseUrl = syncTarget.session.apiBaseUrl,
+                    authorizationHeader = syncTarget.session.authorizationHeader
+                )
                 runCloudSyncCore(
                     cloudSettings = cloudSettings,
                     workspaceId = syncTarget.workspaceId,

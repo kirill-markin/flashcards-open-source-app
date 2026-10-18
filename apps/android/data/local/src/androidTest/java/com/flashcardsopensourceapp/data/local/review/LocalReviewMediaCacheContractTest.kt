@@ -192,7 +192,10 @@ class LocalReviewMediaCacheContractTest {
             timeProvider = SystemTimeProvider,
             mediaAssetFileCacheRootDirectory = cacheRootDirectory,
             mediaAssetDownloadUrlLoader = downloadUrlLoader,
-            mediaAssetDownloader = downloader
+            mediaAssetDownloader = downloader,
+            analytics = com.flashcardsopensourceapp.core.observability.analytics.NoOpAnalytics,
+            onFirstReviewOnboardingPersistenceFailed = { throw it },
+            onFirstReviewOnboardingSaved = {}
         )
     }
 

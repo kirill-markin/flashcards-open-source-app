@@ -353,6 +353,7 @@ class SettingsRootRouteTest : FirebaseAppInstrumentationTimeoutTest() {
                         friendInviteAvailability = friendInviteAvailability,
                         reviewReactionAnimationsEnabled = true,
                         productAnalyticsEnabled = true,
+                        firstReviewOnboardingCompleted = false,
                         aiChatComposerSuggestionsEnabled = true,
                         ownOpenAiKeyEnabled = false,
                         canManageAccountPreferences = canManageAccountPreferences,
@@ -400,6 +401,7 @@ class SettingsRootRouteTest : FirebaseAppInstrumentationTimeoutTest() {
                     onOpenLeaderboardParticipation = {
                         clickedRows += "leaderboard_participation"
                     },
+                    onOpenFirstReviewOnboarding = {},
                     onOpenProductAnalytics = {
                         clickedRows += "product_analytics"
                     },
