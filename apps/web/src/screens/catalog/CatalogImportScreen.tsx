@@ -3,11 +3,8 @@ import { useParams } from "react-router";
 import {
   reportCatalogInstallFailure,
   toCatalogInstallFailureReason,
-  useAnalyticsScreenView,
 } from "../../analytics";
 import {
-  buildLoginUrl,
-  getOptionalSession,
   isAuthRedirectError,
   loadPublicCatalogPackageVersion,
 } from "../../api";
@@ -16,17 +13,15 @@ import {
   useAppErrorDialog,
 } from "../../appError/AppErrorContext";
 import { useI18n } from "../../i18n";
-import type { SessionInfo } from "../../types";
 import { CatalogImportAuthenticatedFlow } from "./CatalogImportAuthenticatedFlow";
 import {
-  CatalogImportContextCard,
   CatalogImportStatePanel,
   getCatalogImportErrorMessage,
   isCatalogPublicVersionNotFoundError,
   type CatalogImportContext,
 } from "./catalogImportShared";
 
-type CatalogImportLoadState = "loading" | "error" | "not_found" | "signed_out" | "signed_in";
+type CatalogImportLoadState = "loading" | "error" | "not_found" | "ready";
 
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
@@ -38,30 +33,6 @@ function parsePackageVersionId(value: string | undefined): string | null {
   return value.toLowerCase();
 }
 
-function CatalogImportSignedOutScreen(props: Readonly<{ catalogContext: CatalogImportContext }>): ReactElement {
-  const { catalogContext } = props;
-  const { locale, t } = useI18n();
-  // The gate is rendered only while it is the screen, so mounting it is the entry into it.
-  useAnalyticsScreenView("catalog_import_signin");
-
-  return (
-    <main className="invite-page" data-testid="catalog-import-signed-out">
-      <CatalogImportContextCard catalogContext={catalogContext} accountEmail={null} />
-      <section className="content-card invite-panel">
-        <h2 className="panel-subtitle">{t("catalogImport.signInTitle")}</h2>
-        <p className="subtitle">{t("catalogImport.signInBody")}</p>
-        <a
-          className="primary-btn"
-          href={buildLoginUrl(window.location.href, locale)}
-          data-testid="catalog-import-sign-in"
-        >
-          {t("catalogImport.signInAction")}
-        </a>
-      </section>
-    </main>
-  );
-}
-
 export function CatalogImportScreen(): ReactElement {
   const { packageVersionId: routePackageVersionId } = useParams();
   const packageVersionId = parsePackageVersionId(routePackageVersionId);
@@ -70,7 +41,6 @@ export function CatalogImportScreen(): ReactElement {
   const [loadState, setLoadState] = useState<CatalogImportLoadState>("loading");
   const [catalogContext, setCatalogContext] = useState<CatalogImportContext | null>(null);
   const [errorMessage, setErrorMessage] = useState<string>("");
-  const [session, setSession] = useState<SessionInfo | null>(null);
   const loadRequestGenerationRef = useRef<number>(0);
   const technicalErrorMessage = t("appError.technicalError.message");
 
@@ -89,7 +59,6 @@ export function CatalogImportScreen(): ReactElement {
 
     setLoadState("loading");
     setCatalogContext(null);
-    setSession(null);
     setErrorMessage("");
     try {
       indexedDbOpenRecoveryState.throwIfFailed();
@@ -99,19 +68,13 @@ export function CatalogImportScreen(): ReactElement {
         return;
       }
 
-      const optionalSession = await getOptionalSession();
-      indexedDbOpenRecoveryState.throwIfFailed();
-      if (loadRequestGenerationRef.current !== requestGeneration) {
-        return;
-      }
       setCatalogContext({
         packageVersionId: packageVersion.packageVersionId,
         title: packageVersion.title,
         cardCount: packageVersion.cardCount,
         authorDisplayName: packageVersion.author.displayName,
       });
-      setSession(optionalSession);
-      setLoadState(optionalSession === null ? "signed_out" : "signed_in");
+      setLoadState("ready");
     } catch (error) {
       const indexedDbRecoveryFailed = markIndexedDbOpenRecoveryFailureAndCheckActive(
         indexedDbOpenRecoveryState,
@@ -201,10 +164,6 @@ export function CatalogImportScreen(): ReactElement {
 
   if (catalogContext === null) {
     throw new Error("Catalog import context is missing after a successful load");
-  }
-
-  if (loadState === "signed_out" || session === null) {
-    return <CatalogImportSignedOutScreen catalogContext={catalogContext} />;
   }
 
   return <CatalogImportAuthenticatedFlow catalogContext={catalogContext} />;

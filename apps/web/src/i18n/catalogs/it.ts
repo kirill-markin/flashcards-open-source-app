@@ -3,6 +3,18 @@ import { createStripeCatalog } from "../stripeCatalog";
 import type { TranslationCatalog } from "../catalogTypes";
 
 const itCatalog: TranslationCatalog = {
+  guest: {
+    title: "Ospite",
+    signIn: "Accedi",
+    saveProgress: "Salva i tuoi progressi",
+    reminder: "Accedi con l’email per non perdere queste schede e i progressi dei ripassi.",
+    later: "Più avanti",
+    warning: "Accedi per mantenere l’accesso su altri dispositivi. Cancellare i dati del sito può far perdere l’accesso ospite.",
+    mergeExplanation: "Le carte e la cronologia dei ripassi saranno conservate. Scegli uno spazio di lavoro dell’account o creane uno nuovo.",
+    aiSignIn: "Accedi per usare l’IA di Nibomo oppure usa la tua chiave OpenAI.",
+    recovery: "L’accesso ospite non è verificato. Le carte nella cache sono di sola lettura. Ripristina la sessione originale o la connessione e riprova.",
+    cleanupFailed: "Accesso riuscito, ma non è stato possibile rimuovere la carta dimostrativa.",
+  },
   stripe: createStripeCatalog(stripeCopy),
   paywall: {
     heading: "Imparare è per tutti.",

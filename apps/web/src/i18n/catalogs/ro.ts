@@ -3,6 +3,18 @@ import { createStripeCatalog } from "../stripeCatalog";
 import type { TranslationCatalog } from "../catalogTypes";
 
 const roCatalog: TranslationCatalog = {
+  guest: {
+    title: "Vizitator",
+    signIn: "Autentifică-te",
+    saveProgress: "Salvează-ți progresul",
+    reminder: "Autentifică-te prin e-mail pentru a nu pierde aceste fișe și progresul recapitulărilor.",
+    later: "Mai târziu",
+    warning: "Autentifică-te pentru a păstra accesul pe alte dispozitive. Ștergerea datelor site-ului poate duce la pierderea accesului de oaspete.",
+    mergeExplanation: "Cardurile și istoricul recapitulărilor vor fi păstrate. Alege un spațiu de lucru din cont sau creează unul nou.",
+    aiSignIn: "Autentifică-te pentru a folosi AI Nibomo sau utilizează propria cheie OpenAI.",
+    recovery: "Accesul de oaspete nu este verificat. Cardurile din cache pot fi doar citite. Restabilește sesiunea inițială sau conexiunea și încearcă din nou.",
+    cleanupFailed: "Autentificarea a reușit, dar cardul demonstrativ nu a putut fi șters.",
+  },
   stripe: createStripeCatalog(stripeCopy),
   paywall: {
     heading: "Învățarea este pentru toți.",

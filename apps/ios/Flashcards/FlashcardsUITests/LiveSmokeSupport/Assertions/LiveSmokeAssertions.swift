@@ -435,7 +435,7 @@ extension LiveSmokeTestCase {
 
     @MainActor
     private func exactVisibleText(_ text: String) -> XCUIElementQuery {
-        let predicate = NSPredicate(format: "label == %@ OR identifier == %@", text, text)
+        let predicate = NSPredicate(format: "label == %@ OR identifier == %@ OR value == %@", text, text, text)
         return self.app.descendants(matching: .any).matching(predicate)
     }
 }

@@ -3,6 +3,18 @@ import { createStripeCatalog } from "../stripeCatalog";
 import type { TranslationCatalog } from "../catalogTypes";
 
 const viCatalog: TranslationCatalog = {
+  guest: {
+    title: "Khách",
+    signIn: "Đăng nhập",
+    saveProgress: "Lưu tiến độ của bạn",
+    reminder: "Đăng nhập bằng email để không mất các thẻ và tiến độ ôn tập này.",
+    later: "Sau đó",
+    warning: "Đăng nhập để tiếp tục truy cập trên thiết bị khác. Xóa dữ liệu trang web có thể làm mất quyền truy cập khách.",
+    mergeExplanation: "Thẻ và lịch sử ôn tập của bạn sẽ được giữ lại. Chọn không gian làm việc trong tài khoản hoặc tạo mới.",
+    aiSignIn: "Đăng nhập để dùng AI Nibomo hoặc dùng khóa OpenAI của riêng bạn.",
+    recovery: "Quyền truy cập khách chưa được xác minh. Thẻ lưu đệm chỉ có thể đọc. Khôi phục phiên gốc hoặc kết nối rồi thử lại.",
+    cleanupFailed: "Đăng nhập thành công nhưng không thể xóa thẻ mẫu.",
+  },
   stripe: createStripeCatalog(stripeCopy),
   paywall: {
     heading: "Học tập dành cho tất cả mọi người.",

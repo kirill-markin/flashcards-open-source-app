@@ -3,6 +3,18 @@ import { createStripeCatalog } from "../stripeCatalog";
 import type { TranslationCatalog } from "../catalogTypes";
 
 const paCatalog: TranslationCatalog = {
+  guest: {
+    title: "ਮਹਿਮਾਨ",
+    signIn: "ਸਾਈਨ ਇਨ ਕਰੋ",
+    saveProgress: "ਆਪਣੀ ਤਰੱਕੀ ਸੰਭਾਲੋ",
+    reminder: "ਈਮੇਲ ਨਾਲ ਸਾਈਨ ਇਨ ਕਰੋ ਤਾਂ ਜੋ ਇਹ ਕਾਰਡ ਅਤੇ ਦੁਹਰਾਈ ਦੀ ਤਰੱਕੀ ਗੁੰਮ ਨਾ ਹੋਣ।",
+    later: "ਬਾਅਦ ਵਿੱਚ",
+    warning: "ਹੋਰ ਡਿਵਾਈਸਾਂ ਉੱਤੇ ਪਹੁੰਚ ਬਣਾਈ ਰੱਖਣ ਲਈ ਸਾਈਨ ਇਨ ਕਰੋ। ਸਾਈਟ ਦਾ ਡਾਟਾ ਮਿਟਾਉਣ ਨਾਲ ਮਹਿਮਾਨ ਪਹੁੰਚ ਗੁੰਮ ਹੋ ਸਕਦੀ ਹੈ।",
+    mergeExplanation: "ਤੁਹਾਡੇ ਕਾਰਡ ਅਤੇ ਦੁਹਰਾਈ ਦਾ ਇਤਿਹਾਸ ਸੁਰੱਖਿਅਤ ਰਹਿਣਗੇ। ਖਾਤੇ ਵਿੱਚ ਵਰਕਸਪੇਸ ਚੁਣੋ ਜਾਂ ਨਵਾਂ ਬਣਾਓ।",
+    aiSignIn: "Nibomo AI ਲਈ ਸਾਈਨ ਇਨ ਕਰੋ ਜਾਂ ਆਪਣੀ OpenAI ਕੁੰਜੀ ਵਰਤੋ।",
+    recovery: "ਮਹਿਮਾਨ ਪਹੁੰਚ ਦੀ ਪੁਸ਼ਟੀ ਨਹੀਂ ਹੋਈ। ਕੈਸ਼ ਕੀਤੇ ਕਾਰਡ ਸਿਰਫ਼ ਪੜ੍ਹੇ ਜਾ ਸਕਦੇ ਹਨ। ਮੂਲ ਸੈਸ਼ਨ ਜਾਂ ਕਨੈਕਸ਼ਨ ਬਹਾਲ ਕਰਕੇ ਮੁੜ ਕੋਸ਼ਿਸ਼ ਕਰੋ।",
+    cleanupFailed: "ਸਾਈਨ ਇਨ ਹੋ ਗਿਆ, ਪਰ ਡੈਮੋ ਕਾਰਡ ਹਟਾਇਆ ਨਹੀਂ ਜਾ ਸਕਿਆ।",
+  },
   stripe: createStripeCatalog(stripeCopy),
   paywall: {
     heading: "ਸਿੱਖਣਾ ਹਰ ਕਿਸੇ ਦਾ ਹੱਕ ਹੈ।",

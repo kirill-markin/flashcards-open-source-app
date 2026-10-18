@@ -1,5 +1,6 @@
 import type {
   AccountPreferences,
+  BrowserGuestCapabilities,
   AccountPreferencesEnvelope,
   AgentApiKeyConnection,
   AnalyticsConsentChoice,
@@ -115,6 +116,17 @@ function parseAgentApiKeyConnectionArray(
   return parseArray(value, endpoint, path, parseAgentApiKeyConnection);
 }
 
+export function parseBrowserGuestCapabilities(value: unknown, endpoint: string, path: string): BrowserGuestCapabilities | null {
+  if (value === null) return null;
+  const object = parseObject(value, endpoint, path);
+  return {
+    isGuest: parseLiteral(object.isGuest, endpoint, `${path}.isGuest`, true),
+    platformFundedAi: parseLiteral(object.platformFundedAi, endpoint, `${path}.platformFundedAi`, false),
+    ownKeyAi: parseLiteral(object.ownKeyAi, endpoint, `${path}.ownKeyAi`, true),
+    requiresAccountLinking: parseLiteral(object.requiresAccountLinking, endpoint, `${path}.requiresAccountLinking`, true),
+  };
+}
+
 export function parseSessionInfoResponse(value: unknown, endpoint: string): SessionInfo {
   const objectValue = parseObject(value, endpoint, "");
   const profileValue = parseRequiredField(objectValue, "profile", endpoint, "", parseObject);
@@ -126,6 +138,7 @@ export function parseSessionInfoResponse(value: unknown, endpoint: string): Sess
     ...(canonicalAccountId === undefined ? {} : { canonicalAccountId }),
     ...(linkedAccountIds === undefined ? {} : { linkedAccountIds }),
     selectedWorkspaceId: parseRequiredField(objectValue, "selectedWorkspaceId", endpoint, "", parseNullableString),
+    browserGuestCapabilities: parseRequiredField(objectValue, "browserGuestCapabilities", endpoint, "", parseBrowserGuestCapabilities),
     authTransport: parseRequiredField(objectValue, "authTransport", endpoint, "", parseString),
     csrfToken: parseRequiredField(objectValue, "csrfToken", endpoint, "", parseNullableString),
     preferences: parseRequiredField(objectValue, "preferences", endpoint, "", parseAccountPreferences),

@@ -10,6 +10,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.State
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -47,6 +48,18 @@ internal fun NavGraphBuilder.registerReviewNavGraph(
     reviewReactionLottieConfigurationStore: ReviewReactionLottieConfigurationStore,
     reviewReactionAnimationsEnabledState: State<Boolean>
 ) {
+    fun isReviewSurfaceAvailable(): Boolean {
+        return appGraph.reviewPaywallScheduler.isAppAvailable &&
+            !appGraph.reviewPaywallScheduler.isReviewSurfaceBusy &&
+            appGraph.premiumPresenter.reason == null &&
+            !appGraph.guestSignInAfterReviewPromptController.observeUiState().value.isVisible &&
+            !appGraph.feedbackPromptController.observeUiState().value.isVisible
+    }
+
+    fun isOptionalReviewPromptAvailable(): Boolean {
+        return isReviewSurfaceAvailable() && !appGraph.reviewPaywallScheduler.isStoreReviewInProgress
+    }
+
     fun handleNotificationPermissionGranted() {
         appGraph.reviewNotificationsManager.reconcileCurrentWorkspaceReviewNotifications(
             trigger = ReviewNotificationsReconcileTrigger.PERMISSION_CHANGED,
@@ -116,25 +129,44 @@ internal fun NavGraphBuilder.registerReviewNavGraph(
                         )
                     },
                     onSuccessfulReviewRecorded = { reviewedAtMillis ->
+                        appGraph.feedbackPromptController.cancelAutomaticReevaluation()
                         appGraph.reviewReminderAttentionController.clearAfterSuccessfulReview()
                         appGraph.strictRemindersManager.recordSuccessfulReview(
                             reviewedAtMillis = reviewedAtMillis,
                             nowMillis = System.currentTimeMillis()
                         )
-                        appGraph.guestSignInAfterReviewPromptController.requestReevaluation()
                     },
                     onStoreReviewOpportunity = {
-                        val currentActivity = appGraph.storeReviewActivityProvider.currentActivity()
-                        if (currentActivity == null) {
-                            false
+                        if (appGraph.reviewPaywallScheduler.consumeReviewOpportunity()) {
+                            true
                         } else {
-                            appGraph.storeReviewRequestManager.requestStoreReviewIfEligible(
-                                activity = currentActivity
-                            )
+                            val currentActivity = appGraph.storeReviewActivityProvider.currentActivity()
+                            if (currentActivity == null) {
+                                false
+                            } else {
+                                appGraph.reviewPaywallScheduler.isStoreReviewInProgress = true
+                                try {
+                                    appGraph.storeReviewRequestManager.requestStoreReviewIfEligible(
+                                        activity = currentActivity,
+                                        canPresent = ::isReviewSurfaceAvailable
+                                    )
+                                } finally {
+                                    appGraph.reviewPaywallScheduler.isStoreReviewInProgress = false
+                                }
+                            }
                         }
                     },
                     onAutomaticFeedbackPromptCandidate = {
-                        appGraph.feedbackPromptController.requestAutomaticReevaluation()
+                        if (isOptionalReviewPromptAvailable() &&
+                            !appGraph.guestSignInAfterReviewPromptController.tryShowAfterReview(
+                                canPresent = ::isOptionalReviewPromptAvailable
+                            ) &&
+                            isOptionalReviewPromptAvailable()
+                        ) {
+                            appGraph.feedbackPromptController.requestAutomaticReevaluation(
+                                canPresent = ::isOptionalReviewPromptAvailable
+                            )
+                        }
                     },
                     onNotificationPermissionGranted = ::handleNotificationPermissionGranted,
                     reviewPreferencesStore = appGraph.reviewPreferencesStore,
@@ -143,6 +175,15 @@ internal fun NavGraphBuilder.registerReviewNavGraph(
                     workspaceRepository = appGraph.workspaceRepository
                 )
             )
+            SideEffect {
+                reviewViewModel.updateAppPresentationAvailability {
+                    appGraph.reviewPaywallScheduler.isAppAvailable &&
+                        !appGraph.reviewPaywallScheduler.isStoreReviewInProgress &&
+                        appGraph.premiumPresenter.reason == null &&
+                        !appGraph.guestSignInAfterReviewPromptController.observeUiState().value.isVisible &&
+                        !appGraph.feedbackPromptController.observeUiState().value.isVisible
+                }
+            }
             val uiState by reviewViewModel.uiState.collectAsStateWithLifecycle()
             val workspaceId by reviewViewModel.workspaceId.collectAsStateWithLifecycle()
             val reviewFilterRequest by appGraph.appHandoffCoordinator.observeReviewFilter().collectAsStateWithLifecycle()
@@ -256,7 +297,12 @@ internal fun NavGraphBuilder.registerReviewNavGraph(
                         destination = ProgressDestination
                     )
                 },
-                onScreenVisible = reviewViewModel::onScreenVisible
+                onScreenVisible = reviewViewModel::onScreenVisible,
+                onReviewSurfaceBusyChanged = { isBusy ->
+                    reviewViewModel.updateReviewSurfaceBusy(isBusy)
+                    appGraph.reviewPaywallScheduler.isReviewSurfaceBusy = isBusy
+                    if (isBusy) appGraph.feedbackPromptController.cancelAutomaticReevaluation()
+                }
             )
         }
 
@@ -286,25 +332,44 @@ internal fun NavGraphBuilder.registerReviewNavGraph(
                         )
                     },
                     onSuccessfulReviewRecorded = { reviewedAtMillis ->
+                        appGraph.feedbackPromptController.cancelAutomaticReevaluation()
                         appGraph.reviewReminderAttentionController.clearAfterSuccessfulReview()
                         appGraph.strictRemindersManager.recordSuccessfulReview(
                             reviewedAtMillis = reviewedAtMillis,
                             nowMillis = System.currentTimeMillis()
                         )
-                        appGraph.guestSignInAfterReviewPromptController.requestReevaluation()
                     },
                     onStoreReviewOpportunity = {
-                        val currentActivity = appGraph.storeReviewActivityProvider.currentActivity()
-                        if (currentActivity == null) {
-                            false
+                        if (appGraph.reviewPaywallScheduler.consumeReviewOpportunity()) {
+                            true
                         } else {
-                            appGraph.storeReviewRequestManager.requestStoreReviewIfEligible(
-                                activity = currentActivity
-                            )
+                            val currentActivity = appGraph.storeReviewActivityProvider.currentActivity()
+                            if (currentActivity == null) {
+                                false
+                            } else {
+                                appGraph.reviewPaywallScheduler.isStoreReviewInProgress = true
+                                try {
+                                    appGraph.storeReviewRequestManager.requestStoreReviewIfEligible(
+                                        activity = currentActivity,
+                                        canPresent = ::isReviewSurfaceAvailable
+                                    )
+                                } finally {
+                                    appGraph.reviewPaywallScheduler.isStoreReviewInProgress = false
+                                }
+                            }
                         }
                     },
                     onAutomaticFeedbackPromptCandidate = {
-                        appGraph.feedbackPromptController.requestAutomaticReevaluation()
+                        if (isOptionalReviewPromptAvailable() &&
+                            !appGraph.guestSignInAfterReviewPromptController.tryShowAfterReview(
+                                canPresent = ::isOptionalReviewPromptAvailable
+                            ) &&
+                            isOptionalReviewPromptAvailable()
+                        ) {
+                            appGraph.feedbackPromptController.requestAutomaticReevaluation(
+                                canPresent = ::isOptionalReviewPromptAvailable
+                            )
+                        }
                     },
                     onNotificationPermissionGranted = ::handleNotificationPermissionGranted,
                     reviewPreferencesStore = appGraph.reviewPreferencesStore,
@@ -313,6 +378,15 @@ internal fun NavGraphBuilder.registerReviewNavGraph(
                     workspaceRepository = appGraph.workspaceRepository
                 )
             )
+            SideEffect {
+                reviewViewModel.updateAppPresentationAvailability {
+                    appGraph.reviewPaywallScheduler.isAppAvailable &&
+                        !appGraph.reviewPaywallScheduler.isStoreReviewInProgress &&
+                        appGraph.premiumPresenter.reason == null &&
+                        !appGraph.guestSignInAfterReviewPromptController.observeUiState().value.isVisible &&
+                        !appGraph.feedbackPromptController.observeUiState().value.isVisible
+                }
+            }
             val uiState by reviewViewModel.uiState.collectAsStateWithLifecycle()
 
             ReviewPreviewRoute(

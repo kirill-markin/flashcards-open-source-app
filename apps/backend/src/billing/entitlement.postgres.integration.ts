@@ -89,6 +89,7 @@ function createSyncPullApp(userId: string, workspaceId: string): Hono<AppEnv> {
     preferences: {
       accentColor: "#FF6719",
       reviewReactionAnimationsEnabled: true,
+      firstReviewOnboardingCompleted: false,
       analyticsConsent: null,
       productAnalyticsEnabled: null,
     },

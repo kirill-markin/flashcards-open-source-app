@@ -1,0 +1,152 @@
+import { expect, type Page } from "@playwright/test";
+import { trackedClick, trackedFill, trackedGoto } from "../../live-smoke.actions";
+import { createLiveSmokeDiagnostics } from "../../live-smoke.diagnostics";
+import { buildWorkspaceRoute, cardsRoute, reviewRoute } from "../../../src/routes";
+import { databaseName } from "../../../src/localDb/core/databaseSchema";
+import { externalUiTimeoutMs, liveSmokeBrowserLocale } from "../config";
+import type { LiveSmokeSession } from "../types";
+
+type GuestSnapshot = Readonly<{
+  cards: ReadonlyArray<Readonly<{ cardId: string; deletedAt: string | null; tags: ReadonlyArray<string>; reps: number }>>;
+  reviewIds: ReadonlyArray<string>;
+  outboxCount: number;
+}>;
+
+async function snapshot(page: Page): Promise<GuestSnapshot> {
+  return page.evaluate(async (name) => {
+    const database = await new Promise<IDBDatabase>((resolve, reject) => {
+      const request = indexedDB.open(name);
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(new Error("Guest smoke database could not be opened"));
+    });
+    try {
+      const read = <T,>(store: string): Promise<ReadonlyArray<T>> => new Promise((resolve, reject) => {
+        const request = database.transaction(store, "readonly").objectStore(store).getAll();
+        request.onsuccess = () => resolve(request.result as ReadonlyArray<T>);
+        request.onerror = () => reject(new Error("Guest smoke database read failed"));
+      });
+      const [cards, reviews, outbox] = await Promise.all([
+        read<{ cardId: string; deletedAt: string | null; tags: ReadonlyArray<string>; reps: number }>("cards"),
+        read<{ reviewEventId: string }>("reviewEvents"), read<{ operationId: string }>("outbox"),
+      ]);
+      return { cards: cards.map(({ cardId, deletedAt, tags, reps }) => ({ cardId, deletedAt, tags, reps })),
+        reviewIds: reviews.map((review) => review.reviewEventId), outboxCount: outbox.length };
+    } finally { database.close(); }
+  }, databaseName);
+}
+
+async function createGuestCard(session: LiveSmokeSession): Promise<Readonly<{ workspaceId: string; demoId: string; cardId: string }>> {
+  const { page, diagnostics, baseUrl } = session;
+  await trackedGoto(page, diagnostics, "open the app as a fresh guest", baseUrl, externalUiTimeoutMs);
+  await expect(page.getByTestId("guest-sign-in")).toBeVisible({ timeout: externalUiTimeoutMs });
+  const workspaceId = await page.getByTestId("topbar-active-workspace").getAttribute("data-workspace-id");
+  if (!workspaceId) throw new Error("Guest workspace id is unavailable");
+  await expect.poll(async () => (await snapshot(page)).cards.length, { timeout: externalUiTimeoutMs }).toBe(1);
+  const demoId = (await snapshot(page)).cards[0]!.cardId;
+  await trackedClick(diagnostics, "reveal the guest demo answer", page.getByTestId("review-reveal-answer"));
+  await trackedClick(diagnostics, "review the guest demo", page.getByTestId("review-rate-good"));
+  await expect.poll(async () => (await snapshot(page)).reviewIds.length, { timeout: externalUiTimeoutMs }).toBe(1);
+  await trackedGoto(page, diagnostics, "open guest cards", baseUrl + buildWorkspaceRoute(workspaceId, cardsRoute), externalUiTimeoutMs);
+  await trackedClick(diagnostics, "create a real guest card", page.getByTestId("cards-new-card"));
+  await trackedFill(diagnostics, "enter the guest card question", page.getByTestId("card-form-front-text"), "Guest smoke question");
+  await trackedFill(diagnostics, "enter the guest card answer", page.getByTestId("card-form-back-text"), "Guest smoke answer");
+  await trackedClick(diagnostics, "save the guest card", page.getByTestId("card-form-save"));
+  await expect.poll(async () => (await snapshot(page)).cards.length, { timeout: externalUiTimeoutMs }).toBe(2);
+  const cardId = (await snapshot(page)).cards.find((card) => card.cardId !== demoId)!.cardId;
+  await expect.poll(async () => (await snapshot(page)).outboxCount, { timeout: externalUiTimeoutMs }).toBe(0);
+  return { workspaceId, demoId, cardId };
+}
+
+async function authenticateGuest(session: LiveSmokeSession): Promise<void> {
+  const { page, diagnostics } = session;
+  await trackedClick(diagnostics, "begin optional guest sign-in after draining writes", page.getByTestId("guest-sign-in"));
+  await trackedClick(diagnostics, "choose email sign-in", page.locator("#signin-email"));
+  await trackedFill(diagnostics, "enter the configured review account", page.locator('input[type="email"]').first(), session.reviewEmail);
+  await trackedClick(diagnostics, "submit the configured review account", page.locator("#send-btn"));
+  await expect(page.getByTestId("guest-destinations").or(page.locator("nav.nav"))).toBeVisible({ timeout: externalUiTimeoutMs });
+}
+
+async function waitForRegisteredDestination(page: Page): Promise<void> {
+  await expect(page.getByTestId("guest-conversion")).toHaveCount(0, { timeout: externalUiTimeoutMs });
+  await expect(page.locator("nav.nav")).toBeVisible({ timeout: externalUiTimeoutMs });
+  await expect(page.getByTestId("guest-sign-in")).toHaveCount(0);
+  await expect.poll(() => page.evaluate(() => localStorage.getItem("flashcards-browser-guest-owner")),
+    { timeout: externalUiTimeoutMs }).toBeNull();
+}
+
+export async function runGuestConversionFlow(session: LiveSmokeSession): Promise<void> {
+  const { page, diagnostics, baseUrl } = session;
+  const guest = await createGuestCard(session);
+  const before = await snapshot(page);
+  await diagnostics.runAction("reload the guest without losing cards or reviews", async () => { await page.reload(); });
+  await expect(page.getByTestId("guest-sign-in")).toBeVisible({ timeout: externalUiTimeoutMs });
+  expect((await snapshot(page)).cards.map((card) => card.cardId).sort()).toEqual(before.cards.map((card) => card.cardId).sort());
+  await expect.poll(async () => (await snapshot(page)).reviewIds, { timeout: externalUiTimeoutMs }).toEqual(before.reviewIds);
+  await diagnostics.runAction("remove only IndexedDB while retaining browser guest cookies and metadata", async () => {
+    const resetUrl = baseUrl + "/__e2e_guest_cache_reset";
+    await page.route(resetUrl, async (route) => { await route.fulfill({ status: 200, contentType: "text/html", body: "<!doctype html><title>Cache reset</title>" }); });
+    try {
+      await page.goto(resetUrl);
+      await page.evaluate(async (name) => new Promise<void>((resolve, reject) => {
+        const request = indexedDB.deleteDatabase(name);
+        request.onsuccess = () => resolve();
+        request.onerror = () => reject(new Error("Could not clear the guest cache"));
+        request.onblocked = () => reject(new Error("Guest cache deletion is blocked"));
+      }), databaseName);
+    } finally { await page.unroute(resetUrl); }
+    await page.goto(baseUrl);
+  });
+  await expect(page.getByTestId("guest-sign-in")).toBeVisible({ timeout: externalUiTimeoutMs });
+  await expect(page.getByTestId("topbar-active-workspace")).toHaveAttribute("data-workspace-id", guest.workspaceId);
+  await expect.poll(async () => (await snapshot(page)).cards.map((card) => card.cardId).sort(),
+    { timeout: externalUiTimeoutMs }).toEqual(before.cards.map((card) => card.cardId).sort());
+  await expect.poll(async () => (await snapshot(page)).reviewIds, { timeout: externalUiTimeoutMs }).toEqual(before.reviewIds);
+
+  await authenticateGuest(session);
+  if (await page.getByTestId("guest-destinations").isVisible()) {
+    await trackedClick(diagnostics, "keep the demo by creating a new destination workspace", page.getByTestId("guest-create-workspace"));
+  }
+  await waitForRegisteredDestination(page);
+  const destinationId = await page.getByTestId("topbar-active-workspace").getAttribute("data-workspace-id");
+  if (!destinationId) throw new Error("Converted workspace id is unavailable");
+  session.ownedWorkspaceId = destinationId;
+  session.cleanupRequested = true;
+  expect((await snapshot(page)).cards.find((card) => card.cardId === guest.demoId)?.deletedAt).toBeNull();
+  expect((await snapshot(page)).cards.some((card) => card.cardId === guest.cardId)).toBe(true);
+  expect((await snapshot(page)).reviewIds).toEqual(before.reviewIds);
+
+  const browser = session.context.browser();
+  if (browser === null) throw new Error("Guest smoke requires a browser context");
+  for (const resume of [false, true]) {
+    const context = await browser.newContext({ ignoreHTTPSErrors: true, locale: liveSmokeBrowserLocale });
+    await context.addInitScript(() => { localStorage.setItem("flashcards-analytics-enabled", "granted"); });
+    const guestPage = await context.newPage();
+    const guestSession: LiveSmokeSession = { ...session, context, page: guestPage, diagnostics: createLiveSmokeDiagnostics(guestPage) };
+    try {
+      const merging = await createGuestCard(guestSession);
+      await authenticateGuest(guestSession);
+      if (resume) {
+        await guestPage.route("**/guest-auth/browser/upgrade/complete", async (route) => {
+          await route.fetch();
+          await route.abort("failed");
+        });
+      }
+      await trackedClick(guestSession.diagnostics, "merge guest work into the owned existing workspace",
+        guestPage.locator(`[data-testid="guest-destination"][data-workspace-id="${destinationId}"]`));
+      if (resume) {
+        await expect(guestPage.getByTestId("guest-conversion-error")).toBeVisible({ timeout: externalUiTimeoutMs });
+        await guestPage.unroute("**/guest-auth/browser/upgrade/complete");
+        await guestPage.reload();
+      }
+      await waitForRegisteredDestination(guestPage);
+      await expect(guestPage.getByTestId("topbar-active-workspace")).toHaveAttribute("data-workspace-id", destinationId);
+      const merged = await snapshot(guestPage);
+      expect(merged.cards.find((card) => card.cardId === merging.cardId)?.deletedAt).toBeNull();
+      expect(merged.cards.find((card) => card.cardId === merging.demoId)?.deletedAt === null).toBe(resume);
+      expect(merged.cards.find((card) => card.cardId === guest.demoId)?.deletedAt).toBeNull();
+      expect(merged.cards.find((card) => card.cardId === merging.demoId)?.reps).toBe(1);
+      expect(merged.reviewIds.length).toBe(resume ? 3 : 2);
+    } finally { await context.close(); }
+  }
+  await trackedGoto(page, diagnostics, "return to the converted workspace", baseUrl + buildWorkspaceRoute(destinationId, reviewRoute), externalUiTimeoutMs);
+}

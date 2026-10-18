@@ -328,6 +328,12 @@ data class AnalyticsPaywallPresentation(
     val entryPoint: AnalyticsPaywallEntryPoint
 )
 
+enum class AnalyticsReviewPaywallTrigger(val wireValue: String) {
+    INITIAL(wireValue = "initial"),
+    DAY3(wireValue = "day3"),
+    WEEKLY(wireValue = "weekly")
+}
+
 enum class AnalyticsPaywallChoice(val wireValue: String) {
     FREE(wireValue = "free"),
     PREMIUM(wireValue = "premium"),
@@ -839,8 +845,17 @@ sealed interface AnalyticsEvent {
         val localDate: String,
         val timeZone: String,
         val contentVersion: String,
-        override val screen: AnalyticsSurface?
+        override val screen: AnalyticsSurface?,
+        val reviewTrigger: AnalyticsReviewPaywallTrigger?
     ) : AnalyticsEvent {
+        constructor(
+            presentation: AnalyticsPaywallPresentation,
+            localDate: String,
+            timeZone: String,
+            contentVersion: String,
+            screen: AnalyticsSurface?
+        ) : this(presentation, localDate, timeZone, contentVersion, screen, null)
+
         override val eventName: String = "paywall_shown"
         override val properties: Map<String, AnalyticsPropertyValue> = mapOf(
             "entry_point" to AnalyticsPropertyValue.Text(value = presentation.entryPoint.wireValue),
@@ -848,7 +863,9 @@ sealed interface AnalyticsEvent {
             "local_date" to AnalyticsPropertyValue.Text(value = localDate),
             "time_zone" to AnalyticsPropertyValue.Text(value = timeZone),
             "content_version" to AnalyticsPropertyValue.Text(value = contentVersion)
-        )
+        ) + (reviewTrigger?.let {
+            mapOf("review_trigger" to AnalyticsPropertyValue.Text(value = it.wireValue))
+        } ?: emptyMap())
     }
 
     data class PaywallChoice(

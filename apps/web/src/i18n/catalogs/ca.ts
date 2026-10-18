@@ -3,6 +3,18 @@ import { createStripeCatalog } from "../stripeCatalog";
 import type { TranslationCatalog } from "../catalogTypes";
 
 const caCatalog: TranslationCatalog = {
+  guest: {
+    title: "Convidat",
+    signIn: "Inicia la sessió",
+    saveProgress: "Guarda el teu progrés",
+    reminder: "Inicia la sessió amb el correu electrònic per no perdre aquestes targetes i el progrés dels repassos.",
+    later: "Més tard",
+    warning: "Inicia sessió per conservar l’accés en altres dispositius. Esborrar les dades del lloc pot fer perdre l’accés de convidat.",
+    mergeExplanation: "Es conservaran les targetes i l’historial de repàs. Tria un espai de treball del compte o crea’n un de nou.",
+    aiSignIn: "Inicia sessió per utilitzar la IA de Nibomo o fes servir la teva clau d’OpenAI.",
+    recovery: "L’accés de convidat no està verificat. Les targetes de la memòria cau són de només lectura. Restaura la sessió original o la connexió i torna-ho a provar.",
+    cleanupFailed: "La sessió s’ha iniciat, però no s’ha pogut eliminar la targeta de demostració.",
+  },
   stripe: createStripeCatalog(stripeCopy),
   paywall: {
     heading: "Aprendre és per a tothom.",

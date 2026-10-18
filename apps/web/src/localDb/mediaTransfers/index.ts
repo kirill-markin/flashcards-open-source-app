@@ -21,6 +21,7 @@ export {
   markMediaUploadTransferDueForRetry,
   recoverStaleInProgressMediaTransfersByKind,
   renewInProgressMediaTransferClaim,
+  requireWorkspaceMediaUploadsCompleted,
 } from "./transferQueue";
 export type {
   EnqueueMediaTransferDownloadInput,

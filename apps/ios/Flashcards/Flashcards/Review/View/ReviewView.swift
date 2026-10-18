@@ -719,12 +719,12 @@ struct ReviewView: View {
                 ) {
                     activeCardContentView(card: card, preparedRevealState: preparedRevealState)
                         .padding(.vertical, 20)
+                        .background(ReviewOutsideTextTapReceiver(onTap: self.focusReviewKeyboard))
                 }
             }
             .modifier(ReviewHardwareKeyboardModifier(
                 isFocused: self.$isReviewKeyboardFocused,
-                onKeyPress: self.handleReviewKeyPress,
-                onTap: self.focusReviewKeyboard
+                onKeyPress: self.handleReviewKeyPress
             ))
             .onChange(of: isAnswerVisible) { wasVisible, isVisible in
                 guard wasVisible == false, isVisible else {
@@ -773,6 +773,7 @@ struct ReviewView: View {
             ReviewCardSideView(
                 label: String(localized: "Front", table: reviewCardsStringsTableName),
                 content: preparedRevealState.frontContent,
+                sourceText: card.frontText,
                 onSelectText: {
                     self.openReviewTextSelection(card: card, side: .front)
                 },
@@ -786,12 +787,14 @@ struct ReviewView: View {
                 onOpenAi: {},
                 surfaceStyle: .front
             )
+            .id(card.cardId)
             .id(ReviewCardScrollTarget.front)
 
             if isAnswerVisible {
                 ReviewCardSideView(
                     label: String(localized: "Back", table: reviewCardsStringsTableName),
                     content: preparedRevealState.backContent,
+                    sourceText: card.backText,
                     onSelectText: {
                         self.openReviewTextSelection(card: card, side: .back)
                     },
@@ -807,6 +810,7 @@ struct ReviewView: View {
                     },
                     surfaceStyle: .back
                 )
+                .id(card.cardId)
                 .id(ReviewCardScrollTarget.back)
             }
 
@@ -1394,12 +1398,11 @@ private func reviewRepetitionBadge(reps: Int) -> some View {
 private struct ReviewHardwareKeyboardModifier: ViewModifier {
     var isFocused: FocusState<Bool>.Binding
     var onKeyPress: (KeyPress) -> KeyPress.Result
-    var onTap: () -> Void
 
     @ViewBuilder
     func body(content: Content) -> some View {
         #if targetEnvironment(macCatalyst)
-        content.simultaneousGesture(TapGesture().onEnded(self.onTap))
+        content
         #else
         if UIDevice.current.userInterfaceIdiom == .pad {
             content
@@ -1407,10 +1410,78 @@ private struct ReviewHardwareKeyboardModifier: ViewModifier {
                 .focusEffectDisabled()
                 .focused(self.isFocused)
                 .onKeyPress(keys: [.space, "1", "2", "3", "4"], phases: .down, action: self.onKeyPress)
-                .simultaneousGesture(TapGesture().onEnded(self.onTap))
         } else {
             content
         }
         #endif
+    }
+}
+
+private struct ReviewOutsideTextTapReceiver: UIViewRepresentable {
+    let onTap: () -> Void
+
+    func makeUIView(context: Context) -> ReviewOutsideTextTapView {
+        let view = ReviewOutsideTextTapView()
+        view.isUserInteractionEnabled = false
+        view.onTap = self.onTap
+        return view
+    }
+
+    func updateUIView(_ view: ReviewOutsideTextTapView, context: Context) {
+        view.onTap = self.onTap
+    }
+
+    static func dismantleUIView(_ view: ReviewOutsideTextTapView, coordinator: Void) {
+        view.removeOutsideTapGesture()
+    }
+}
+
+private final class ReviewOutsideTextTapView: UIView, UIGestureRecognizerDelegate {
+    var onTap: (() -> Void)?
+    private lazy var outsideTap = UITapGestureRecognizer(target: self, action: #selector(self.returnToStudy))
+
+    override func didMoveToWindow() {
+        super.didMoveToWindow()
+        self.removeOutsideTapGesture()
+        guard self.window != nil else { return }
+        var ancestor = self.superview
+        while let view = ancestor {
+            if view is UIScrollView {
+                self.outsideTap.cancelsTouchesInView = false
+                self.outsideTap.delegate = self
+                view.addGestureRecognizer(self.outsideTap)
+                break
+            }
+            ancestor = view.superview
+        }
+    }
+
+    func removeOutsideTapGesture() {
+        self.outsideTap.view?.removeGestureRecognizer(self.outsideTap)
+    }
+
+    func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer, shouldReceive touch: UITouch) -> Bool {
+        var ancestor = touch.view
+        while let view = ancestor {
+            if view is UITextInput || view is UIControl { return false }
+            if view === gestureRecognizer.view { break }
+            ancestor = view.superview
+        }
+        return true
+    }
+
+    func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer, shouldRecognizeSimultaneouslyWith otherGestureRecognizer: UIGestureRecognizer) -> Bool {
+        true
+    }
+
+    @objc private func returnToStudy() {
+        func resignSelection(in view: UIView) {
+            if let selector = view as? ReviewSelectionTextView, selector.isFirstResponder {
+                selector.resignFirstResponder()
+            }
+            for child in view.subviews { resignSelection(in: child) }
+        }
+        if let surface = self.outsideTap.view { resignSelection(in: surface) }
+        self.onTap?()
     }
 }

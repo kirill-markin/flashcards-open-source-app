@@ -1,4 +1,5 @@
 import { useEffect, useState, type ReactElement } from "react";
+import { GuestSignIn } from "./guest/GuestSignIn";
 import { useAppData } from "../../../appData";
 import {
   deleteAccountConfirmationText,
@@ -10,7 +11,7 @@ import { useI18n } from "../../../i18n";
 import { SettingsShell } from "../SettingsShared";
 
 export function DangerZoneScreen(): ReactElement {
-  const { isSessionVerified } = useAppData();
+  const { isSessionVerified, session } = useAppData();
   const { t } = useI18n();
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState<boolean>(false);
   const [deleteConfirmationValue, setDeleteConfirmationValue] = useState<string>("");
@@ -50,6 +51,10 @@ export function DangerZoneScreen(): ReactElement {
     storeAccountDeletionCsrfToken(getCachedSessionCsrfToken());
     setAccountDeletionPending(true);
   }
+
+  if (session?.browserGuestCapabilities?.isGuest === true) return <SettingsShell title={t("guest.title")} subtitle={t("guest.warning")} activeTab="account">
+    <GuestSignIn label={t("guest.signIn")} testId="danger-guest-sign-in" />
+  </SettingsShell>;
 
   const isDeleteConfirmationMatched = deleteConfirmationValue === deleteAccountConfirmationText;
 

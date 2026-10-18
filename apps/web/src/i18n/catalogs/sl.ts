@@ -3,6 +3,18 @@ import { createStripeCatalog } from "../stripeCatalog";
 import type { TranslationCatalog } from "../catalogTypes";
 
 const slCatalog: TranslationCatalog = {
+  guest: {
+    title: "Gost",
+    signIn: "Prijava",
+    saveProgress: "Shranite napredek",
+    reminder: "Prijavite se z e-pošto, da se te kartice in napredek pri ponavljanju ne izgubijo.",
+    later: "Pozneje",
+    warning: "Prijavite se, da ohranite dostop na drugih napravah. Brisanje podatkov spletnega mesta lahko povzroči izgubo gostujočega dostopa.",
+    mergeExplanation: "Vaše kartice in zgodovina ponavljanja bodo ohranjene. Izberite delovni prostor računa ali ustvarite novega.",
+    aiSignIn: "Prijavite se za uporabo Nibomo AI ali uporabite svoj ključ OpenAI.",
+    recovery: "Gostujoči dostop ni preverjen. Predpomnjene kartice so samo za branje. Obnovite prvotno sejo ali povezavo in poskusite znova.",
+    cleanupFailed: "Prijava je uspela, vendar predstavitvene kartice ni bilo mogoče odstraniti.",
+  },
   stripe: createStripeCatalog(stripeCopy),
   paywall: {
     heading: "Učenje pripada vsem.",

@@ -47,6 +47,7 @@ test("accent migration preserves custom colors and preferences persist through a
     assert.deepEqual(reloaded.preferences, {
       accentColor: "#0AB19F",
       reviewReactionAnimationsEnabled: false,
+      firstReviewOnboardingCompleted: false,
       analyticsConsent: "declined",
       productAnalyticsEnabled: false,
     });
@@ -207,6 +208,7 @@ test("a reconciliation grant cannot overwrite a stored declined and a stored nul
     const afterReconciliation = await updateAccountPreferences(declinedUserId, {
       accentColor: null,
       reviewReactionAnimationsEnabled: null,
+      firstReviewOnboardingCompleted: null,
       analyticsConsent: "granted",
       analyticsConsentOrigin: "reconciliation",
       productAnalyticsEnabled: null,
@@ -219,6 +221,7 @@ test("a reconciliation grant cannot overwrite a stored declined and a stored nul
     const afterUserAction = await updateAccountPreferences(reversedUserId, {
       accentColor: null,
       reviewReactionAnimationsEnabled: null,
+      firstReviewOnboardingCompleted: null,
       analyticsConsent: "granted",
       analyticsConsentOrigin: "user_action",
       productAnalyticsEnabled: null,
@@ -233,6 +236,7 @@ test("a reconciliation grant cannot overwrite a stored declined and a stored nul
     const afterUnanswered = await updateAccountPreferences(unansweredUserId, {
       accentColor: null,
       reviewReactionAnimationsEnabled: null,
+      firstReviewOnboardingCompleted: null,
       analyticsConsent: "granted",
       analyticsConsentOrigin: "reconciliation",
       productAnalyticsEnabled: null,
@@ -283,6 +287,7 @@ test("a reconciliation cannot switch product analytics back on and a stored null
     const afterReconciliation = await updateAccountPreferences(optedOutUserId, {
       accentColor: null,
       reviewReactionAnimationsEnabled: null,
+      firstReviewOnboardingCompleted: null,
       analyticsConsent: null,
       analyticsConsentOrigin: "user_action",
       productAnalyticsEnabled: true,
@@ -295,6 +300,7 @@ test("a reconciliation cannot switch product analytics back on and a stored null
     const afterUserAction = await updateAccountPreferences(reversedUserId, {
       accentColor: null,
       reviewReactionAnimationsEnabled: null,
+      firstReviewOnboardingCompleted: null,
       analyticsConsent: null,
       analyticsConsentOrigin: "user_action",
       productAnalyticsEnabled: true,
@@ -310,6 +316,7 @@ test("a reconciliation cannot switch product analytics back on and a stored null
     const afterUnanswered = await updateAccountPreferences(unansweredUserId, {
       accentColor: null,
       reviewReactionAnimationsEnabled: null,
+      firstReviewOnboardingCompleted: null,
       analyticsConsent: null,
       analyticsConsentOrigin: "user_action",
       productAnalyticsEnabled: true,
@@ -358,6 +365,7 @@ test("a reconciliation still switches product analytics off, and one PATCH carri
     const afterReconciledOptOut = await updateAccountPreferences(optedInUserId, {
       accentColor: null,
       reviewReactionAnimationsEnabled: null,
+      firstReviewOnboardingCompleted: null,
       analyticsConsent: null,
       analyticsConsentOrigin: "user_action",
       productAnalyticsEnabled: false,
@@ -372,6 +380,7 @@ test("a reconciliation still switches product analytics off, and one PATCH carri
     const afterMixedOrigins = await updateAccountPreferences(mixedOriginUserId, {
       accentColor: null,
       reviewReactionAnimationsEnabled: null,
+      firstReviewOnboardingCompleted: null,
       analyticsConsent: "granted",
       analyticsConsentOrigin: "reconciliation",
       productAnalyticsEnabled: true,

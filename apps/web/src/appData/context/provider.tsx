@@ -65,6 +65,7 @@ function mergeRefreshedAccountSession(
     linkedAccountIds: refreshedSession.linkedAccountIds,
     selectedWorkspaceId: refreshedSession.selectedWorkspaceId,
     authTransport: refreshedSession.authTransport,
+    browserGuestCapabilities: refreshedSession.browserGuestCapabilities,
     csrfToken: refreshedSession.csrfToken,
     preferences: refreshedSession.preferences,
     profile: refreshedSession.profile,
@@ -81,6 +82,7 @@ function mergeRefreshedAccountSessionWithoutPreferences(
     linkedAccountIds: refreshedSession.linkedAccountIds,
     selectedWorkspaceId: refreshedSession.selectedWorkspaceId,
     authTransport: refreshedSession.authTransport,
+    browserGuestCapabilities: refreshedSession.browserGuestCapabilities,
     csrfToken: refreshedSession.csrfToken,
     profile: refreshedSession.profile,
   };
@@ -554,6 +556,7 @@ export function AppDataProvider(props: Props): ReactElement {
     loadWorkspaceResetProgressPreview,
     resetWorkspaceProgress,
     runSync: syncEngine.runSync,
+    drainGuestWorkspace: syncEngine.drainGuestWorkspace,
     runMediaUploadTransfers: syncEngine.runMediaUploadTransfers,
     refreshLocalData: syncEngine.refreshLocalData,
     getCardById: syncEngine.getCardById,

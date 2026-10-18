@@ -22,7 +22,7 @@ interface TranslationCatalogNode {
 }
 
 type BrowserLocaleSource = "fallback" | "navigator.language" | "navigator.languages";
-type ResolvedLocaleSource = BrowserLocaleSource | "storage";
+type ResolvedLocaleSource = BrowserLocaleSource | "storage" | "entry";
 
 type BrowserLanguageCandidate = Readonly<{
   languageTag: string;
@@ -49,6 +49,8 @@ export type ResolvedLocaleState = Readonly<{
 }>;
 
 export const LOCALE_PREFERENCE_STORAGE_KEY = "flashcards-web-locale-preference";
+const websiteEntryLocale = typeof window === "undefined" ? null
+  : resolveSupportedLocale(new URLSearchParams(window.location.search).get("locale") ?? "");
 
 function buildBrowserLanguageCandidates(snapshot: BrowserLanguageSnapshot): ReadonlyArray<BrowserLanguageCandidate> {
   const candidates: Array<BrowserLanguageCandidate> = [];
@@ -288,6 +290,9 @@ export function resolveLocaleState(localePreference: LocalePreference): Resolved
     };
   }
 
+  const hasRegisteredSessionHint = typeof document !== "undefined" && document.cookie.split(";").some((cookie) => cookie.trim() === "logged_in=1");
+  const entryLocale = hasRegisteredSessionHint ? null : websiteEntryLocale;
+  if (entryLocale !== null) return { locale: entryLocale, direction: getLocaleDirection(entryLocale), localePreference, matchedBrowserLanguageTag: null, source: "entry" };
   const browserLocale = resolveBrowserLocale();
 
   return {

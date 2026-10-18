@@ -6,6 +6,10 @@ import androidx.lifecycle.ProcessLifecycleOwner
 import androidx.lifecycle.ViewModelStore
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.ViewModelStoreOwner
+import com.flashcardsopensourceapp.app.premium.PremiumPresenter
+import com.flashcardsopensourceapp.app.premium.PremiumReviewScheduler
+import com.flashcardsopensourceapp.data.local.cloud.PaywallStateStore
+import com.flashcardsopensourceapp.data.local.repository.billing.LocalPaywallRepository
 import com.flashcardsopensourceapp.app.AutoSyncController
 import com.flashcardsopensourceapp.app.appicon.syncLauncherAppIcon
 import com.flashcardsopensourceapp.app.TestTechnicalErrorDialogPreviewController
@@ -221,6 +225,8 @@ class AppGraph(
         }
     val appHandoffCoordinator = AppHandoffCoordinator()
     val database: AppDatabase = buildAppDatabase(context = context)
+    private val paywallStateStore = PaywallStateStore(context)
+    internal val premiumPresenter = PremiumPresenter { paywallRepository.currentIdentity() }
     private val cloudPreferencesStore = CloudPreferencesStore(context = context, database = database)
     private val clientDeviceTypeProvider: () -> ClientDeviceType = {
         currentClientDeviceType(context = applicationContext)
@@ -422,6 +428,7 @@ class AppGraph(
             //   not a person leaving — the same reasoning that keeps the guest-to-account upgrade
             //   off this hook, where the `anonymous_id` has to carry through for
             //   `analytics.identity_links` to join the guest and the account at all.
+            paywallStateStore.clearForIdentityReset()
             analytics.reset()
             // Released here rather than at the control that set it. By the time this hook runs,
             // `CloudIdentityResetCoordinator` has already cleared the stored credentials — before
@@ -597,8 +604,22 @@ class AppGraph(
         currentUiLocaleTag = { currentAppUiLocaleTag(context = context) ?: "und" },
         currentClientDeviceType = clientDeviceTypeProvider
     )
+    private val paywallRepository = LocalPaywallRepository(
+        preferencesStore = cloudPreferencesStore,
+        store = paywallStateStore,
+        remoteService = cloudRemoteService,
+        operationCoordinator = cloudOperationCoordinator,
+        resetCoordinator = cloudIdentityResetCoordinator,
+        guestCoordinator = cloudGuestSessionCoordinator
+    )
+    internal val reviewPaywallScheduler = PremiumReviewScheduler(
+        repository = paywallRepository,
+        preferencesStore = cloudPreferencesStore,
+        reviewLogDao = database.reviewLogDao(),
+        presenter = premiumPresenter,
+        appScope = appScope
+    )
     val guestSignInAfterReviewPromptController = GuestSignInAfterReviewPromptController(
-        appScope = appScope,
         cloudAccountRepository = cloudAccountRepository,
         reviewRepository = reviewRepository,
         promptStore = guestSignInAfterReviewPromptStore,
@@ -669,7 +690,10 @@ class AppGraph(
             startProductAnalyticsPreferenceObserver()
         }
         analyticsNetworkMonitor.startObservingConnectivityRestored(
-            onConnectivityRestored = analytics::onConnectivityRestored
+            onConnectivityRestored = {
+                analytics.onConnectivityRestored()
+                reviewPaywallScheduler.requestSynchronization()
+            }
         )
         startReviewHistoryAppliedObserver()
         startStartup()
@@ -678,7 +702,14 @@ class AppGraph(
     private fun startCloudIdentityObserver() {
         cloudIdentityObserverJob?.cancel()
         cloudIdentityObserverJob = appScope.launch {
+            var previousPaywallIdentity: Pair<CloudAccountState, String?>? = null
             cloudPreferencesStore.observeCloudSettings().collect { cloudSettings ->
+                val paywallIdentity = cloudSettings.cloudState to paywallRepository.currentIdentity()
+                if (paywallIdentity != previousPaywallIdentity) {
+                    paywallRepository.updateIdentity(cloudSettings)
+                    previousPaywallIdentity = paywallIdentity
+                    reviewPaywallScheduler.requestSynchronization()
+                }
                 val identity = createCloudObservationIdentity(
                     cloudSettings = cloudSettings,
                     appPackageInfo = appPackageInfo

@@ -28,6 +28,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
@@ -64,7 +65,6 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.flashcardsopensourceapp.app.analytics.analyticsSurfaceForRoute
 import com.flashcardsopensourceapp.app.analytics.analyticsSyncFailureReason
-import com.flashcardsopensourceapp.app.premium.PremiumPresenter
 import com.flashcardsopensourceapp.app.premium.PremiumPresentationHost
 import com.flashcardsopensourceapp.app.di.AppGraph
 import com.flashcardsopensourceapp.app.di.AppStartupState
@@ -348,7 +348,7 @@ fun FlashcardsApp(
                 navController.navigate(SettingsAccountMethodsDestination.route) { launchSingleTop = true }
             }
         }
-        val premiumPresenter = remember(appGraph) { PremiumPresenter() }
+        val premiumPresenter = appGraph.premiumPresenter
         DisposableEffect(premiumPresenter) {
             onDispose { premiumPresenter.dismiss() }
         }
@@ -445,6 +445,19 @@ fun FlashcardsApp(
                 isTechnicalErrorVisible = displayedTechnicalError != null
             )
         )
+
+        SideEffect {
+            appGraph.reviewPaywallScheduler.isAppAvailable =
+                BuildConfig.BUILD_TYPE != "marketingScreenshot" &&
+                isAppResumed && currentRoute == ReviewDestination.route &&
+                accountDeletionState == AccountDeletionState.Hidden &&
+                displayedTechnicalError == null &&
+                !guestSignInAfterReviewPromptUiState.isVisible &&
+                !feedbackPromptUiState.isVisible
+        }
+        DisposableEffect(appGraph.reviewPaywallScheduler) {
+            onDispose { appGraph.reviewPaywallScheduler.isAppAvailable = false }
+        }
 
         LaunchedEffect(currentVisibleAppScreen) {
             appGraph.visibleAppScreenController.updateVisibleAppScreen(

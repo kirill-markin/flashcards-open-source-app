@@ -3,7 +3,6 @@ import { createPortal } from "react-dom";
 import { trackScreenViewedOnDismiss, useAnalyticsScreenView, type AnalyticsSurface } from "../../analytics";
 import {
   ApiError,
-  buildLoginUrl,
   createFriendInvitation,
   isAuthRedirectError,
 } from "../../api";
@@ -14,6 +13,7 @@ import {
   useAppErrorDialog,
 } from "../../appError/AppErrorContext";
 import { useI18n } from "../../i18n";
+import { GuestSignIn } from "../settings/account/guest/GuestSignIn";
 import type { FriendInvitationCreateResponse } from "../../types";
 import { validateFriendInvitationDisplayName } from "../invite/friendInvitationDisplayName";
 
@@ -48,10 +48,12 @@ function isExpectedFriendInvitationCreateError(error: unknown): boolean {
 }
 
 export function FriendInviteCreateDialog(props: FriendInviteCreateDialogProps): ReactElement {
-  const { authRedirectUrl, canCreateInvite, onClose, presentedOverSurface } = props;
-  const { activeWorkspace, cloudSettings, session } = useAppData();
+  const { authRedirectUrl, onClose, presentedOverSurface } = props;
+  const { activeWorkspace, cloudSettings, session, isSessionVerified } = useAppData();
+  const canCreateInvite = props.canCreateInvite && isSessionVerified && session !== null
+    && session.browserGuestCapabilities?.isGuest !== true;
   const { indexedDbOpenRecoveryState, showTechnicalError } = useAppErrorDialog();
-  const { locale, t, formatDateTime } = useI18n();
+  const { t, formatDateTime } = useI18n();
   const [friendDisplayName, setFriendDisplayName] = useState<string>("");
   const [fieldErrorMessage, setFieldErrorMessage] = useState<string>("");
   const [errorMessage, setErrorMessage] = useState<string>("");
@@ -88,6 +90,7 @@ export function FriendInviteCreateDialog(props: FriendInviteCreateDialogProps): 
   }
 
   async function submitInviteCreate(): Promise<void> {
+    if (!canCreateInvite) return;
     if (indexedDbOpenRecoveryState.hasFailed()) {
       return;
     }
@@ -324,9 +327,8 @@ export function FriendInviteCreateDialog(props: FriendInviteCreateDialogProps): 
         ) : (
           <div className="progress-leaderboard-placeholder" data-testid="progress-leaderboard-invite-sign-in">
             <p className="subtitle">{t("progressScreen.leaderboard.invite.signInBody")}</p>
-            <a className="primary-btn" href={buildLoginUrl(authRedirectUrl, locale)}>
-              {t("progressScreen.leaderboard.signIn")}
-            </a>
+            <GuestSignIn label={t("progressScreen.leaderboard.signIn")} testId="progress-leaderboard-invite-sign-in-button"
+              returnUrl={authRedirectUrl} />
           </div>
         )}
 

@@ -3,6 +3,18 @@ import { createStripeCatalog } from "../stripeCatalog";
 import type { TranslationCatalog } from "../catalogTypes";
 
 const koCatalog: TranslationCatalog = {
+  guest: {
+    title: "게스트",
+    signIn: "로그인",
+    saveProgress: "진행 상황 저장",
+    reminder: "카드와 복습 진행 상황을 잃지 않도록 이메일로 로그인하세요.",
+    later: "이후",
+    warning: "다른 기기에서도 계속 이용하려면 로그인하세요. 사이트 데이터를 지우면 게스트 접근 권한을 잃을 수 있습니다.",
+    mergeExplanation: "카드와 복습 기록은 유지됩니다. 계정의 작업 공간을 선택하거나 새로 만드세요.",
+    aiSignIn: "Nibomo AI를 사용하려면 로그인하거나 본인의 OpenAI 키를 사용하세요.",
+    recovery: "게스트 접근이 확인되지 않았습니다. 캐시된 카드는 읽기 전용입니다. 원래 세션이나 연결을 복원한 후 다시 시도하세요.",
+    cleanupFailed: "로그인했지만 데모 카드를 삭제하지 못했습니다.",
+  },
   stripe: createStripeCatalog(stripeCopy),
   paywall: {
     heading: "배움은 모두의 것입니다.",

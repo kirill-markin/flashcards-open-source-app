@@ -6,6 +6,7 @@ let reviewContentSurfaceCornerRadius: CGFloat = 24
 struct ReviewCardSideView: View {
     let label: String
     let content: ReviewRenderedContent
+    let sourceText: String
     let onSelectText: () -> Void
     let isSpeechPlaying: Bool
     let onToggleSpeech: () -> Void
@@ -18,6 +19,7 @@ struct ReviewCardSideView: View {
     init(
         label: String,
         content: ReviewRenderedContent,
+        sourceText: String,
         onSelectText: @escaping () -> Void,
         isSpeechPlaying: Bool,
         onToggleSpeech: @escaping () -> Void,
@@ -29,6 +31,7 @@ struct ReviewCardSideView: View {
     ) {
         self.label = label
         self.content = content
+        self.sourceText = sourceText
         self.onSelectText = onSelectText
         self.isSpeechPlaying = isSpeechPlaying
         self.onToggleSpeech = onToggleSpeech
@@ -66,7 +69,9 @@ struct ReviewCardSideView: View {
                 comment: "Accessibility hint for opening a card side in the native text selection sheet"
             ))
 
-            contentView
+            ReviewSelectableTextView(sourceText: self.sourceText, content: self.content, surfaceStyle: self.surfaceStyle)
+                .accessibilityIdentifier(self.surfaceStyle == .front
+                    ? UITestIdentifier.reviewFrontSelectableText : UITestIdentifier.reviewBackSelectableText)
                 .frame(maxWidth: .infinity, alignment: .leading)
 
             if self.showsSpeechButton || self.showsAiButton {
@@ -124,80 +129,12 @@ struct ReviewCardSideView: View {
         .background(backgroundStyle, in: RoundedRectangle(cornerRadius: reviewContentSurfaceCornerRadius, style: .continuous))
     }
 
-    @ViewBuilder
-    private var contentView: some View {
-        switch content {
-        case .shortPlain(let text):
-            Text(text)
-                .font(shortPlainFont)
-                .multilineTextAlignment(.center)
-                .frame(maxWidth: .infinity, alignment: .center)
-        case .paragraphPlain(let text):
-            Text(text)
-                .font(.body)
-                .lineSpacing(3)
-                .textRenderer(ReviewParagraphTextRenderer())
-                .fixedSize(horizontal: false, vertical: true)
-                .frame(maxWidth: .infinity, alignment: .topLeading)
-        case .markdown(let markdownContent):
-            ReviewMarkdownText(
-                markdownContent: markdownContent,
-                surfaceStyle: surfaceStyle
-            )
-            .frame(maxWidth: .infinity, alignment: .topLeading)
-        case .managedMarkdown(let managedMarkdownContent):
-            VStack(alignment: .leading, spacing: 12) {
-                ForEach(managedMarkdownContent.blocks.indices, id: \.self) { index in
-                    switch managedMarkdownContent.blocks[index] {
-                    case .markdown(let markdownContent, let inlineMath):
-                        ReviewMarkdownText(
-                            markdownContent: markdownContent,
-                            surfaceStyle: surfaceStyle,
-                            inlineMath: inlineMath
-                        )
-                        .frame(maxWidth: .infinity, alignment: .topLeading)
-                    case .formula(let formula):
-                        ReviewMathFormulaView(
-                            formula: formula,
-                            surfaceStyle: surfaceStyle
-                        )
-                        .id(formula.originalSource)
-                    case .managedMedia(let reference):
-                        ReviewManagedMediaView(
-                            reference: reference,
-                            surfaceStyle: surfaceStyle
-                        )
-                    }
-                }
-            }
-            .frame(maxWidth: .infinity, alignment: .topLeading)
-        }
-    }
-
-    private var shortPlainFont: Font {
-        switch surfaceStyle {
-        case .front:
-            return .title2.weight(.semibold)
-        case .back:
-            return .title3.weight(.medium)
-        }
-    }
-
     private var backgroundStyle: AnyShapeStyle {
         switch surfaceStyle {
         case .front:
             return AnyShapeStyle(.thinMaterial)
         case .back:
             return AnyShapeStyle(.regularMaterial)
-        }
-    }
-}
-
-// Draw the same native line layout used for sizing, including its hyphenation.
-private struct ReviewParagraphTextRenderer: TextRenderer {
-    func draw(layout: Text.Layout, in context: inout GraphicsContext) {
-        for line in layout {
-            context.draw(line)
         }
     }
 }
