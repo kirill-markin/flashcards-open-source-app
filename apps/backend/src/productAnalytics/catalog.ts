@@ -961,6 +961,19 @@ export const productAnalyticsEventCatalog = {
       method: { kind: "enum", values: productAnalyticsAuthMethods, optional: true },
     },
   },
+  // Persisted client-local false→true and true→false actions only; remote reads and backfills emit neither.
+  first_review_onboarding_completed: {
+    serverOnly: false,
+    requiresScreen: false,
+    properties: {
+      source: { kind: "enum", values: ["review", "settings"] },
+    },
+  },
+  first_review_onboarding_reset: {
+    serverOnly: false,
+    requiresScreen: false,
+    properties: {},
+  },
   // The card flip. It never reaches the backend on its own, so only a client can report it, and it
   // is the denominator `review_answered` is read against: the gap between the two is the person who
   // looked at the answer and walked away.

@@ -96,6 +96,7 @@ export function assertFriendInvitationPublicPreviewTransport(request: Request): 
 const accountPreferenceFieldNames: ReadonlyArray<string> = [
   "accentColor",
   "reviewReactionAnimationsEnabled",
+  "firstReviewOnboardingCompleted",
   "analyticsConsent",
   "productAnalyticsEnabled",
   "locale",
@@ -169,6 +170,9 @@ export function parseAccountPreferencesInput(body: Record<string, unknown>): Acc
     reviewReactionAnimationsEnabled: "reviewReactionAnimationsEnabled" in body
       ? expectBoolean(body.reviewReactionAnimationsEnabled, "reviewReactionAnimationsEnabled")
       : null,
+    firstReviewOnboardingCompleted: "firstReviewOnboardingCompleted" in body
+      ? expectBoolean(body.firstReviewOnboardingCompleted, "firstReviewOnboardingCompleted")
+      : null,
     analyticsConsent: "analyticsConsent" in body
       ? expectAnalyticsConsentChoice(body.analyticsConsent, "analyticsConsent")
       : null,
@@ -195,6 +199,7 @@ export function parseAccountPreferencesInput(body: Record<string, unknown>): Acc
   if (
     update.accentColor === null
     && update.reviewReactionAnimationsEnabled === null
+    && update.firstReviewOnboardingCompleted === null
     && update.analyticsConsent === null
     && update.productAnalyticsEnabled === null
     && update.locale === null

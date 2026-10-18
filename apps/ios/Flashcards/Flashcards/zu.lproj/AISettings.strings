@@ -970,3 +970,16 @@
 "settings.account.connection.previewChanged" = "Ukubuka kuqala kushintshile. Kuvuselele bese uqinisekisa ukubuka okusha ngokusobala.";
 "settings.account.connection.restart" = "Ubufakazi buphelelwe isikhathi noma busetshenzisiwe. Qala kabusha ngobufakazi obusha.";
 "settings.account.connection.restorePaused" = "Ama-akhawunti axhunyiwe. Ukuvuselela kwasendaweni kumisiwe; idatha yakho engaxhunyiwe iyagcinwa.";
+
+"premium.offer.heading" = "Ukufunda kungokwawo wonke umuntu.";
+"premium.offer.free" = "Mahhala";
+"premium.offer.freeDescription" = "Kwenzelwe abafundi abangasebenzi. Kuvulekele wonke umuntu. Ubhaka wakho usulula manje.";
+"premium.offer.freeBenefits" = "Ukubuyekeza okuyisisekelo, ukufunda ungaxhunyiwe nokuvumelanisa";
+"premium.offer.continueFree" = "Qhubeka mahhala";
+"premium.offer.monthlyAI" = "Imilayezo ye-AI engu-%@ njalo ngenyanga";
+"premium.offer.unlimitedAI" = "Imilayezo ye-AI engenamkhawulo wanyanga zonke";
+"premium.offer.styles" = "Imibala nezitayela ozikhethela zona";
+"premium.offer.creatorSupport" = "Ukubhalisa kwakho kusiza umdali we-Nibomo, [Kirill Markin](https://kirill-markin.com/), ukukhokhela amaseva nokulungiselela isibuyekezo esilandelayo ngekhofi ne-pizza.";
+"premium.offer.subscribe" = "Bhalisa";
+"premium.offer.startTrial" = "Qala isivivinyo samahhala: %@";
+"premium.offer.view" = "Buka i-Premium";

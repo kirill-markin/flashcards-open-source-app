@@ -33,6 +33,7 @@ test("catalog install route rejects unauthorized workspace access before install
         preferences: {
           accentColor: "#FF6719",
           reviewReactionAnimationsEnabled: true,
+          firstReviewOnboardingCompleted: false,
           analyticsConsent: null,
           productAnalyticsEnabled: null,
         },
@@ -94,6 +95,7 @@ test("catalog install route rejects unsafe operation prefixes without sanitizing
         preferences: {
           accentColor: "#FF6719",
           reviewReactionAnimationsEnabled: true,
+          firstReviewOnboardingCompleted: false,
           analyticsConsent: null,
           productAnalyticsEnabled: null,
         },

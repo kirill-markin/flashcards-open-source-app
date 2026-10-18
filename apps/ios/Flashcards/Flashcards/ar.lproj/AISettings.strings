@@ -998,3 +998,16 @@
 "settings.account.connection.previewChanged" = "تغيرت المعاينة. حدّثها وأكد المعاينة الجديدة صراحةً.";
 "settings.account.connection.restart" = "انتهت صلاحية الإثبات أو استُخدم. ابدأ مجددًا بإثبات جديد.";
 "settings.account.connection.restorePaused" = "تم ربط الحسابات. تحديث البيانات المحلية متوقف مؤقتًا؛ بياناتك دون اتصال محفوظة.";
+
+"premium.offer.heading" = "التعلّم للجميع.";
+"premium.offer.free" = "مجاني";
+"premium.offer.freeDescription" = "صُمّم للطلاب الذين لا يعملون. متاح للجميع. أصبحت حقيبتك أخفّ.";
+"premium.offer.freeBenefits" = "المراجعات الأساسية والتعلّم بلا اتصال والمزامنة";
+"premium.offer.continueFree" = "المتابعة مجانًا";
+"premium.offer.monthlyAI" = "%@ رسالة ذكاء اصطناعي كل شهر";
+"premium.offer.unlimitedAI" = "رسائل ذكاء اصطناعي بلا حد شهري";
+"premium.offer.styles" = "ألوان وأنماط مخصّصة";
+"premium.offer.creatorSupport" = "يساعد اشتراكك مبتكر Nibomo، [Kirill Markin](https://kirill-markin.com/)، على دفع تكاليف الخوادم وإعداد التحديث القادم مع القهوة والبيتزا.";
+"premium.offer.subscribe" = "اشتراك";
+"premium.offer.startTrial" = "بدء تجربة مجانية: %@";
+"premium.offer.view" = "عرض Premium";

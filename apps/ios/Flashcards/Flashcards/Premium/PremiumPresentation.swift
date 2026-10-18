@@ -28,12 +28,18 @@ struct PremiumPresentationRequest: Identifiable, Equatable {
     /// `nil` only for the test-settings previews, which report nothing.
     let analyticsEntryPoint: AnalyticsPaywallEntryPoint?
     let identity: AppleSubscriptionIdentity?
+
+    var analyticsPresentation: AnalyticsPaywallPresentation? {
+        self.analyticsEntryPoint.map { AnalyticsPaywallPresentation(id: self.id, entryPoint: $0) }
+    }
 }
 
 enum PremiumPresentationOutcome: Equatable {
     case dismissed
+    case continuedFree
     case accessGranted
     case identityChanged
+    case superseded
 }
 
 struct PremiumPresentationResult: Equatable {
@@ -49,6 +55,7 @@ final class PremiumPresenter {
     private var awaitingAppleRequestId: UUID?
     private var awaitingAppleIdentity: AppleSubscriptionIdentity?
     @ObservationIgnored private var shownRequestId: UUID?
+    @ObservationIgnored private var shownScreen: AnalyticsSurface?
     private(set) var result: PremiumPresentationResult? = nil
 
     @discardableResult
@@ -58,7 +65,7 @@ final class PremiumPresenter {
         entitlement: CloudEntitlement?,
         identity: AppleSubscriptionIdentity?
     ) -> UUID {
-        self.finish(outcome: .dismissed)
+        self.finish(outcome: .superseded)
         let request = PremiumPresentationRequest(
             id: UUID(),
             reason: reason,
@@ -90,13 +97,30 @@ final class PremiumPresenter {
         }
     }
 
-    /// Reports `paywall_shown` the first time the request's sheet appears. A sheet hidden behind
-    /// another modal and shown again is still the same presentation.
     func recordShown(requestId: UUID, screen: AnalyticsSurface) {
-        guard let request = self.request, request.id == requestId, self.shownRequestId != requestId else { return }
+        guard let request = self.request, request.id == requestId, self.shownRequestId != requestId,
+              let presentation = request.analyticsPresentation else { return }
         self.shownRequestId = requestId
-        guard let entryPoint = request.analyticsEntryPoint else { return }
-        Analytics.track(.paywallShown(entryPoint: entryPoint), screen: screen)
+        self.shownScreen = screen
+        let formatter = DateFormatter()
+        formatter.calendar = Calendar(identifier: .gregorian)
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.timeZone = .current
+        formatter.dateFormat = "yyyy-MM-dd"
+        Analytics.track(
+            .paywallShown(
+                presentation: presentation,
+                localDate: formatter.string(from: Date()),
+                timeZone: TimeZone.current.identifier
+            ),
+            screen: screen
+        )
+    }
+
+    func recordChoice(requestId: UUID, outcome: AnalyticsPaywallChoiceOutcome) {
+        guard let request = self.request, request.id == requestId,
+              self.shownRequestId == requestId, let presentation = request.analyticsPresentation else { return }
+        Analytics.track(.paywallChoice(presentation: presentation, outcome: outcome), screen: self.shownScreen)
     }
 
     func awaitAppleConfirmation(requestId: UUID, identity: AppleSubscriptionIdentity?) {
@@ -129,6 +153,9 @@ final class PremiumPresenter {
     func finish(outcome: PremiumPresentationOutcome) {
         guard let request = self.request else {
             return
+        }
+        if outcome == .dismissed {
+            self.recordChoice(requestId: request.id, outcome: .dismissed)
         }
         self.request = nil
         self.awaitingAppleRequestId = nil

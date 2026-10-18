@@ -970,3 +970,16 @@
 "settings.account.connection.previewChanged" = "Podgląd się zmienił. Odśwież go i wyraźnie potwierdź nowy podgląd.";
 "settings.account.connection.restart" = "Dowód wygasł lub został użyty. Zacznij ponownie z nowym dowodem.";
 "settings.account.connection.restorePaused" = "Konta połączone. Lokalne odświeżanie jest wstrzymane; dane offline są zachowane.";
+
+"premium.offer.heading" = "Nauka jest dla każdego.";
+"premium.offer.free" = "Bezpłatnie";
+"premium.offer.freeDescription" = "Stworzone dla studentów bez pracy. Otwarte dla wszystkich. Twój plecak właśnie stał się lżejszy.";
+"premium.offer.freeBenefits" = "Powtórki, nauka offline i synchronizacja";
+"premium.offer.continueFree" = "Kontynuuj bezpłatnie";
+"premium.offer.monthlyAI" = "%@ wiadomości AI co miesiąc";
+"premium.offer.unlimitedAI" = "Wiadomości AI bez miesięcznego limitu";
+"premium.offer.styles" = "Własne kolory i style";
+"premium.offer.creatorSupport" = "Twoja subskrypcja pomaga twórcy Nibomo, [Kirill Markin](https://kirill-markin.com/), opłacać serwery i przygotowywać kolejną aktualizację przy kawie i pizzy.";
+"premium.offer.subscribe" = "Subskrybuj";
+"premium.offer.startTrial" = "Rozpocznij bezpłatny okres próbny: %@";
+"premium.offer.view" = "Zobacz Premium";

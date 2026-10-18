@@ -970,3 +970,16 @@
 "settings.account.connection.previewChanged" = "Прегледът е променен. Обновете го и изрично потвърдете новия преглед.";
 "settings.account.connection.restart" = "Доказателството е изтекло или е използвано. Започнете отново с ново доказателство.";
 "settings.account.connection.restorePaused" = "Акаунтите са свързани. Локалното обновяване е спряно; офлайн данните ви са запазени.";
+
+"premium.offer.heading" = "Ученето е за всеки.";
+"premium.offer.free" = "Безплатно";
+"premium.offer.freeDescription" = "Създадено за студенти без работа. Отворено за всички. Раницата ви току-що олекна.";
+"premium.offer.freeBenefits" = "Преговор, учене офлайн и синхронизация";
+"premium.offer.continueFree" = "Продължи безплатно";
+"premium.offer.monthlyAI" = "%@ съобщения с ИИ всеки месец";
+"premium.offer.unlimitedAI" = "Съобщения с ИИ без месечен лимит";
+"premium.offer.styles" = "Персонализирани цветове и стилове";
+"premium.offer.creatorSupport" = "Абонаментът ви помага на създателя на Nibomo, [Kirill Markin](https://kirill-markin.com/), да плаща сървърите и да подготвя следващата актуализация с кафе и пица.";
+"premium.offer.subscribe" = "Абонирай се";
+"premium.offer.startTrial" = "Започни безплатен пробен период: %@";
+"premium.offer.view" = "Виж Premium";
