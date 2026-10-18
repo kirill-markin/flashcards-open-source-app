@@ -1,4 +1,5 @@
 import { useCallback, useRef, type Dispatch } from "react";
+import { BrowserGuestSessionInvalidatedError } from "../../../api/transport/transport";
 import { usePremiumPresenter } from "../../../premium/PremiumProvider";
 import {
   markIndexedDbOpenRecoveryFailureAndCheckActive,
@@ -411,6 +412,8 @@ export function useChatSessionActions(
         if (markIndexedDbOpenRecoveryFailureAndCheckActive(indexedDbOpenRecoveryState, error)) {
           return;
         }
+
+        if (error instanceof BrowserGuestSessionInvalidatedError) return;
 
         if (isFreshSessionEnsureCurrent(sessionId, requestSequence, requestLocale) === false) {
           return;
