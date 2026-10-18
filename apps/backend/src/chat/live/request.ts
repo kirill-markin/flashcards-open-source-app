@@ -165,10 +165,7 @@ export async function handleLiveRequest(
     authorizationHeader: effectiveAuth,
     sessionToken: undefined,
   });
-  // The live stream Lambda authenticates on its own path instead of building a request context, so
-  // the default-deny gate in server/requestContext.ts does not cover it. A web guest cannot start a
-  // chat run, but that is an argument the refusal upstream is working, not a reason to accept its
-  // token here.
+  // Browser guests attach with run-scoped Live credentials, never their long-lived cookie or token.
   assertGuestPlatformSupportsSurface(authResult.guestPlatform);
 
   const userProfile: UserProfile | null = authResult.transport === "api_key"

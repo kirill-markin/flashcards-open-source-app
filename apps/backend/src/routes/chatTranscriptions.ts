@@ -1,5 +1,5 @@
-/** The monthly AI allowance never refuses dictation. */
 import { Hono } from "hono";
+import { assertGuestAiFundingAllowed } from "../guestAuth/webPlatform";
 import { assertAiConsentReceiptActive } from "../aiConsent";
 import { readAiConsentIdHeader } from "../aiConsent/input";
 import { isChatSessionRequestedSessionIdConflictError } from "../chat/errors";
@@ -104,9 +104,10 @@ export function createChatTranscriptionsRoutes(options: ChatTranscriptionsRoutes
 
   app.post("/chat/transcriptions", async (context) => {
     const { requestContext } = await loadRequestContextFromRequestFn(context.req.raw, options.allowedOrigins);
+    const userOpenAIApiKey = readUserOpenAIApiKeyHeader(context.req.raw);
+    assertGuestAiFundingAllowed(requestContext, userOpenAIApiKey);
     const aiConsentId = readAiConsentIdHeader(context.req.raw);
     await assertAiConsentReceiptActive(requestContext.userId, aiConsentId);
-    const userOpenAIApiKey = readUserOpenAIApiKeyHeader(context.req.raw);
     const upload = await parseChatTranscriptionUpload(context.req.raw);
     const workspaceId = await resolveAccessibleAiDictationWorkspaceIdFn(requestContext, upload.workspaceId);
     const sessionId = await resolveChatTranscriptionSessionId(
