@@ -73,6 +73,11 @@ export function FirstReviewOnboardingOverlay(props: Props): ReactPortal {
         && bounds.top >= top && bounds.bottom <= bottom;
       overlay.hidden = !visible;
       if (!visible) return;
+      const contentClip = { left, top, right, bottom };
+      left = viewport?.offsetLeft ?? 0;
+      top = viewport?.offsetTop ?? 0;
+      right = left + (viewport?.width ?? window.innerWidth);
+      bottom = top + (viewport?.height ?? window.innerHeight);
       const width = right - left;
       const height = bottom - top;
       Object.assign(overlay.style, { left: `${left}px`, top: `${top}px`, width: `${width}px`, height: `${height}px` });
@@ -89,8 +94,8 @@ export function FirstReviewOnboardingOverlay(props: Props): ReactPortal {
       ].filter((rect) => rect.width > 0 && rect.height > 0);
       const controlBounds = controlRects.map(relativeRect);
       const contentBounds = measureContent(content).map((rect): PencilGuideRect => {
-        let visibleTop = Math.max(top, rect.top);
-        let visibleBottom = Math.min(bottom, rect.bottom);
+        let visibleTop = Math.max(contentClip.top, rect.top);
+        let visibleBottom = Math.min(contentClip.bottom, rect.bottom);
         // Sticky buttons paint over card text, but their gaps remain visible.
         for (const control of [bounds, ...controlRects]) {
           if (control.left <= rect.left && control.right >= rect.right
@@ -99,8 +104,8 @@ export function FirstReviewOnboardingOverlay(props: Props): ReactPortal {
             else visibleBottom = Math.min(visibleBottom, control.top);
           }
         }
-        return { left: Math.max(left, rect.left) - left, top: visibleTop - top,
-          right: Math.min(right, rect.right) - left, bottom: visibleBottom - top };
+        return { left: Math.max(contentClip.left, rect.left) - left, top: visibleTop - top,
+          right: Math.min(contentClip.right, rect.right) - left, bottom: visibleBottom - top };
       }).filter((rect) => rect.left < rect.right && rect.top < rect.bottom);
       [firstFrameRef.current, secondFrameRef.current].forEach((canvas, frame) => {
         if (canvas === null) return;

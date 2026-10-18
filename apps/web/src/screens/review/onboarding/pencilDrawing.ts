@@ -100,12 +100,10 @@ export type PencilGuideBounds = Readonly<{
   controlBounds: ReadonlyArray<PencilGuideRect>;
 }>;
 
-// Covers the polygon nib, strand drift and both complete-frame contrast shadows.
 const strokeInset = 14;
-// Includes the scaled nib and three blur radii from each full-frame contrast shadow.
 const compactStrokeInset = 8.5;
 
-function fitLoop(outline: ReadonlyArray<Point>, bounds: PencilGuideBounds): ReadonlyArray<Point> {
+function centerLoop(outline: ReadonlyArray<Point>, bounds: PencilGuideBounds): ReadonlyArray<Point> {
   const minX = Math.min(...outline.map((point) => point[0]));
   const maxX = Math.max(...outline.map((point) => point[0]));
   const minY = Math.min(...outline.map((point) => point[1]));
@@ -114,29 +112,9 @@ function fitLoop(outline: ReadonlyArray<Point>, bounds: PencilGuideBounds): Read
   const outlineCenterY = (minY + maxY) / 2;
   const centerX = bounds.left + bounds.width / 2;
   const centerY = bounds.top + bounds.height / 2;
-  const desiredHalfWidth = (maxX - minX) / 2;
-  const desiredHalfHeight = (maxY - minY) / 2;
-  let availableLeft = 0;
-  let availableTop = 0;
-  let availableRight = bounds.surfaceWidth;
-  let availableBottom = bounds.surfaceHeight;
-  for (const control of bounds.controlBounds) {
-    if (control.top < centerY + desiredHalfHeight + strokeInset
-      && control.bottom > centerY - desiredHalfHeight - strokeInset) {
-      if (control.right <= bounds.left) availableLeft = Math.max(availableLeft, control.right);
-      if (control.left >= bounds.left + bounds.width) availableRight = Math.min(availableRight, control.left);
-    }
-    if (control.left < centerX + desiredHalfWidth + strokeInset
-      && control.right > centerX - desiredHalfWidth - strokeInset) {
-      if (control.bottom <= bounds.top) availableTop = Math.max(availableTop, control.bottom);
-      if (control.top >= bounds.top + bounds.height) availableBottom = Math.min(availableBottom, control.top);
-    }
-  }
-  const halfWidth = Math.min(desiredHalfWidth, centerX - availableLeft - strokeInset, availableRight - centerX - strokeInset);
-  const halfHeight = Math.min(desiredHalfHeight, centerY - availableTop - strokeInset, availableBottom - centerY - strokeInset);
   return outline.map(([x, y]): Point => [
-    centerX + (x - outlineCenterX) * halfWidth / desiredHalfWidth,
-    centerY + (y - outlineCenterY) * halfHeight / desiredHalfHeight,
+    centerX + x - outlineCenterX,
+    centerY + y - outlineCenterY,
   ]);
 }
 
@@ -185,19 +163,19 @@ function chooseArrowRoute(bounds: PencilGuideBounds, outline: ReadonlyArray<Poin
       }
     }
   }
-  // A full-width phone rating leaves only the narrow lane beside the answer text.
   for (const side of [-1, 1]) {
     const nearbyContent = bounds.contentBounds.filter((rect) => rect.top < bounds.top && rect.bottom > bounds.top - 140);
-    // The target edge is inside the lane: its rounded corner is not occupied text.
     const contentEdge = side === -1
       ? Math.min(bounds.left + bounds.width, ...nearbyContent.map((rect) => rect.left))
       : Math.max(bounds.left, ...nearbyContent.map((rect) => rect.right));
-    const tipX = side === -1 ? contentEdge / 2 : (contentEdge + bounds.surfaceWidth) / 2;
-    const ringEdgeX = side === -1
-      ? Math.min(...outline.map((point) => point[0]))
-      : Math.max(...outline.map((point) => point[0]));
-    const ringX = side === -1 ? Math.max(tipX, ringEdgeX) : Math.min(tipX, ringEdgeX);
-    const ringTop = Math.min(...outline.filter((point) => Math.abs(point[0] - ringX) < 3).map((point) => point[1]));
+    const ringLeft = Math.min(...outline.map((point) => point[0]));
+    const ringRight = Math.max(...outline.map((point) => point[0]));
+    const laneLeft = Math.max(0, ringLeft, side === -1 ? ringLeft : contentEdge);
+    const laneRight = Math.min(bounds.surfaceWidth, ringRight, side === -1 ? contentEdge : ringRight);
+    const headReach = 13 * Math.sin(.18);
+    if (laneRight - laneLeft < (compactStrokeInset + headReach) * 2) continue;
+    const tipX = (laneLeft + laneRight) / 2;
+    const ringTop = Math.min(...outline.filter((point) => Math.abs(point[0] - tipX) < 3).map((point) => point[1]));
     const apex: Point = [tipX, ringTop - 17.5];
     for (const length of [64, 48, 36]) {
       const route: ArrowRoute = {
@@ -222,12 +200,12 @@ export function drawPencilGuide(
   frame: number,
 ): void {
   const { left, top, width, height, radius } = bounds;
-  const padding = 11.5;
+  const padding = 16;
   const random = seededRandom(frame === 0 ? 7823 : 48191);
   const wobble = frame === 0 ? 0 : 1.5;
   context.fillStyle = accent;
   context.strokeStyle = accent;
-  const outline = fitLoop(oblongOutline(left - padding, top - padding, width + padding * 2, height + padding * 2, radius + padding, frame), bounds);
+  const outline = centerLoop(oblongOutline(left - padding, top - padding, width + padding * 2, height + padding * 2, radius + padding, frame), bounds);
   pencilStroke(context, outline, random, 6.5, () => 1);
   const tailOffset = width > height * 2 ? 53 : 96;
   const route = chooseArrowRoute(bounds, outline, tailOffset, wobble);
