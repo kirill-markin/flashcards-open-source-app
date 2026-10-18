@@ -507,7 +507,8 @@ export class OpenAIGeneratedCardImageProvider {
   }
 
   public async generate(input: OpenAIImageGenerationInput): Promise<GeneratedProviderImage> {
-    for (let attempt = 1; attempt <= generatedCardImageMaximumProviderAttempts; attempt += 1) {
+    const maximumAttempts = input.maximumAttempts ?? generatedCardImageMaximumProviderAttempts;
+    for (let attempt = 1; attempt <= maximumAttempts; attempt += 1) {
       input.signal.throwIfAborted();
       const attemptStartedAt = Date.now();
       const requestTimeoutMs = providerRequestTimeoutMs(input.operationDeadlineMs);
@@ -519,6 +520,8 @@ export class OpenAIGeneratedCardImageProvider {
 
       try {
         await assertAiConsentReceiptActive(input.userId, input.aiConsentId ?? null);
+        requestSignal.throwIfAborted();
+        await input.beforeProviderAttempt?.();
         requestSignal.throwIfAborted();
         const providerRequest = this.#client.images.generate(
           {
@@ -601,7 +604,7 @@ export class OpenAIGeneratedCardImageProvider {
         }
 
         if (
-          attempt < generatedCardImageMaximumProviderAttempts
+          attempt < maximumAttempts
           && isTransientProviderFailure(error, metadata)
         ) {
           const delayMs = retryDelayForFailureMs(error, attempt);

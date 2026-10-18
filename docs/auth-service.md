@@ -90,10 +90,9 @@ only the browser creation entrypoint mints `browser_product`, constrained to `we
 Neither a client purpose/platform field nor `Authorization: Guest` can promote a legacy credential.
 Product APIs admit only browser-product cookie guests; legacy web tokens stay analytics-only.
 Browser guests can study and sync without signing in, including with product analytics off.
-AI funded by Nibomo requires sign-in; their own OpenAI key permits chat, dictation, and card images
-under the existing own-key rules. Stripe and account-only operations still require linking an account.
+Nibomo-funded chat, dictation and images follow the [browser trial policy](premium-offer.md#browser-guest-ai-trial);
+their own OpenAI key follows the existing own-key rules. Stripe and account-only operations still require linking an account.
 Browser-product identities follow native guest retention and are excluded from the analytics-only reaper.
-No shipped frontend calls this lifecycle yet.
 
 Use credentialed requests to the same API host throughout the lifecycle.
 The API stores only the random token's hash and sends the token only as

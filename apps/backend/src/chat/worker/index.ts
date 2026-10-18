@@ -1,3 +1,4 @@
+import type { BrowserGuestTrialContext } from "../../aiUsage/browserGuestTrial/policy";
 import { claimChatRun, failQueuedChatRun, recordAiRunFailedAnalytics } from "../runs";
 import { runPersistedChatSession, type ChatWorkerRunResult } from "../runtime";
 import {
@@ -26,6 +27,7 @@ export type ChatWorkerEvent = Readonly<{
   userId: string;
   workspaceId: string;
   initiatingAuthIsSignedIn?: boolean;
+  browserGuestSessionId?: string | null;
   userOpenAIApiKey?: string | null;
   routeRequestId?: string | null;
   chatRequestId?: string | null;
@@ -33,7 +35,6 @@ export type ChatWorkerEvent = Readonly<{
   traceContext?: BackendTraceCarrier | null;
 }>;
 
-/** Card images need a signed-in account, unless the run pays with the person's own key. */
 export function isGeneratedImageEligibleForWorker(
   event: ChatWorkerEvent,
   initiatingAuthIsSignedIn: boolean,
@@ -205,7 +206,12 @@ async function claimAndRunChatWorkerEvent(
     assistantItemId: claimedRun.assistantItemId,
     localMessages: claimedRun.localMessages,
     turnInput: claimedRun.turnInput,
-    generatedImageEligible: isGeneratedImageEligibleForWorker(
+    browserGuestTrial: claimedRun.browserGuestAiTrial === true && userOpenAIApiKey === null ? {
+      userId: claimedRun.userId, transport: "guest", guestPlatform: "web",
+      guestSessionPurpose: "browser_product", guestCredentialSource: "cookie",
+      guestSessionId: event.browserGuestSessionId ?? null,
+    } satisfies BrowserGuestTrialContext : undefined,
+    generatedImageEligible: claimedRun.browserGuestAiTrial === true || isGeneratedImageEligibleForWorker(
       event,
       claimedRun.initiatingAuthIsSignedIn,
       userOpenAIApiKey,

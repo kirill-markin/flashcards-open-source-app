@@ -20,9 +20,9 @@ workspace before opening the auth UI. An existing account can merge into any acc
 or create a new one. Keep this browser’s site data until conversion finishes: guest access depends
 on its essential cookie, and clearing all site data can lose that access. An unverified guest cache
 opens read-only until its original session can be verified. Stripe purchases require sign-in.
-Nibomo-funded AI requires sign-in while the browser trial is disabled. AI refusals invite sign-in inside the
-conversation and preserve the draft; chat, dictation and images use independent server allowances
-when both the trial and funded capability are enabled. Guest key entry is deferred until sign-in;
+Nibomo-funded chat, dictation and images follow the [browser trial policy](../../docs/premium-offer.md#browser-guest-ai-trial).
+AI refusals invite sign-in inside the conversation and preserve the draft; each feature has an independent
+server allowance. Guest key entry is deferred until sign-in;
 an already saved key remains available. Funded guest dictation stops at the smaller of 120 seconds
 and the remaining personal allowance, then uploads 16 kHz mono 16-bit PCM WAV with one stable
 operation ID per recording. Other dictation keeps its existing format.

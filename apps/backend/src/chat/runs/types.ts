@@ -39,6 +39,7 @@ export type ChatRunActor = Readonly<{
 }>;
 
 export type PreparedChatRun = Readonly<{
+  browserGuestAiTrial?: boolean;
   sessionId: string;
   runId: string;
   clientRequestId: string;
@@ -63,6 +64,7 @@ export type ChatRunDiagnostics = Readonly<{
 }>;
 
 export type ClaimedChatRun = Readonly<{
+  browserGuestAiTrial?: boolean;
   aiConsentId?: string | null;
   runId: string;
   claimToken: ChatRunClaimToken;

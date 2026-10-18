@@ -14,6 +14,7 @@ export type ChatWorkerDispatch = Readonly<{
   runId: string;
   userId: string;
   workspaceId: string;
+  browserGuestSessionId?: string | null;
   initiatingAuthIsSignedIn: boolean;
   userOpenAIApiKey: UserOpenAIApiKey | null;
   routeRequestId?: string | null;
@@ -25,6 +26,7 @@ export type ChatWorkerInvocation = Readonly<{
   runId: string;
   userId: string;
   workspaceId: string;
+  browserGuestSessionId?: string | null;
   initiatingAuthIsSignedIn?: boolean;
   /**
    * The person's own key in the clear, the only place it leaves the request that carried it. The invoke is
@@ -99,6 +101,7 @@ function createChatWorkerInvocation(
     userId: payload.userId,
     workspaceId: payload.workspaceId,
     initiatingAuthIsSignedIn: payload.initiatingAuthIsSignedIn,
+    ...(payload.browserGuestSessionId == null ? {} : { browserGuestSessionId: payload.browserGuestSessionId }),
     userOpenAIApiKey: payload.userOpenAIApiKey === null ? null : payload.userOpenAIApiKey.revealRawValue(),
     routeRequestId: payload.routeRequestId ?? null,
     chatRequestId: payload.chatRequestId ?? null,

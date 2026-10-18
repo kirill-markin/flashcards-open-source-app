@@ -94,7 +94,7 @@ test("browser guest budgets atomically reserve, bind replays, preserve daily con
       const initial = await inScope(fixture.runtimePool, guest,
         (executor) => readBrowserGuestAiTrialInExecutor(executor, guest));
       assert.equal(initial.version, 1);
-      assert.equal(initial.enabled, false);
+      assert.equal(initial.enabled, true);
       assert.equal(initial.maxRecordingSeconds, 120);
       assert.deepEqual(initial.chat, { lifetimeLimit: 5, lifetimeRemaining: 5,
         sharedDailyLimit: 100, sharedAvailable: true });

@@ -1,3 +1,4 @@
+import type { BrowserGuestTrialContext } from "../../../aiUsage/browserGuestTrial/policy";
 import type OpenAI from "openai";
 import {
   createBackendObservationScope,
@@ -21,6 +22,7 @@ export async function runOneToolCall(
     runId: string;
     sessionId: string;
     operationKey: string;
+    browserGuestTrial?: BrowserGuestTrialContext;
     generatedImageEligible: boolean;
     claimToken: ChatRunClaimToken;
     userId: string;
@@ -43,6 +45,7 @@ export async function runOneToolCall(
       sessionId: params.sessionId,
       toolCallId: params.item.call_id,
       operationKey: params.operationKey,
+      browserGuestTrial: params.browserGuestTrial,
       generatedImageEligible: params.generatedImageEligible,
       userId: params.userId,
       workspaceId: params.workspaceId,

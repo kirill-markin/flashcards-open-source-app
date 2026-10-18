@@ -1,3 +1,4 @@
+import type { BrowserGuestTrialContext } from "../../../aiUsage/browserGuestTrial/policy";
 import OpenAI from "openai";
 import {
   buildChatCompletionInput,
@@ -111,6 +112,7 @@ export type StartOpenAILoopParams = Readonly<{
   userId: string;
   workspaceId: string;
   sessionId: string;
+  browserGuestTrial?: BrowserGuestTrialContext;
   generatedImageEligible: boolean;
   generatedImageOperationDeadlineMs: number;
   clientPlatform: ProductAnalyticsClientReportablePlatform | null;
@@ -445,6 +447,7 @@ async function runLoopWithDeps(
         requestId: params.requestId,
         runId: params.runId,
         sessionId: params.sessionId,
+        browserGuestTrial: params.browserGuestTrial,
         generatedImageEligible: params.generatedImageEligible,
         claimToken: params.claimToken,
         userId: params.userId,

@@ -27,6 +27,8 @@ surface has them:
 - `add_generated_image_to_card`: appended by `buildOpenAIChatTools` in `tools.ts`
   for the runs `isGeneratedImageEligibleForWorker`
   ([`chat/worker/index.ts`](../apps/backend/src/chat/worker/index.ts)) admits.
+  Funded browser guests additionally require the persisted trial marker and exact authenticated session
+  at the provider boundary; see the [browser trial policy](premium-offer.md#browser-guest-ai-trial).
   Image generation is chat-only by decision; extending it to MCP and REST is the
   planned TODO at `generateRunlessCardImage` in
   [`cardImages/operation.ts`](../apps/backend/src/chat/cardImages/operation.ts).

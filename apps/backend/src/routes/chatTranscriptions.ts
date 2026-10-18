@@ -1,5 +1,9 @@
+import { transactionWithUserScope } from "../database";
+import { createBrowserGuestTrialOperation, reserveNewBrowserGuestTrialOperation,
+  resolveFundedBrowserGuestTrial, startBrowserGuestTrialProvider } from "../aiUsage/browserGuestTrial/admission";
+import { readGuestPcmAudio } from "../chat/guestPcmAudio";
 import { Hono } from "hono";
-import { assertGuestAiFundingAllowed } from "../guestAuth/webPlatform";
+import { assertGuestRequestSupportsProduct } from "../guestAuth/webPlatform";
 import { assertAiConsentReceiptActive } from "../aiConsent";
 import { readAiConsentIdHeader } from "../aiConsent/input";
 import { isChatSessionRequestedSessionIdConflictError } from "../chat/errors";
@@ -105,7 +109,8 @@ export function createChatTranscriptionsRoutes(options: ChatTranscriptionsRoutes
   app.post("/chat/transcriptions", async (context) => {
     const { requestContext } = await loadRequestContextFromRequestFn(context.req.raw, options.allowedOrigins);
     const userOpenAIApiKey = readUserOpenAIApiKeyHeader(context.req.raw);
-    assertGuestAiFundingAllowed(requestContext, userOpenAIApiKey);
+    assertGuestRequestSupportsProduct(requestContext);
+    const browserGuestTrial = resolveFundedBrowserGuestTrial(requestContext, userOpenAIApiKey !== null);
     const aiConsentId = readAiConsentIdHeader(context.req.raw);
     await assertAiConsentReceiptActive(requestContext.userId, aiConsentId);
     const upload = await parseChatTranscriptionUpload(context.req.raw);
@@ -142,11 +147,24 @@ export function createChatTranscriptionsRoutes(options: ChatTranscriptionsRoutes
       });
     };
 
+    const trialOperation = browserGuestTrial === undefined ? undefined : await (async () => {
+      if (upload.operationId === undefined || !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(upload.operationId)) {
+        throw new HttpError(400, "Guest dictation requires a lowercase UUID operationId.", "BROWSER_GUEST_AI_TRIAL_OPERATION_ID_INVALID");
+      }
+      const audio = await readGuestPcmAudio(upload.file);
+      const operation = createBrowserGuestTrialOperation("dictation", upload.operationId, audio.seconds, audio.bytes);
+      await transactionWithUserScope({ userId: requestContext.userId }, async (executor) => {
+        await reserveNewBrowserGuestTrialOperation(executor, browserGuestTrial, operation);
+      });
+      return operation;
+    })();
     let transcription: ChatTranscriptionResult;
     try {
       await assertAiConsentReceiptActive(requestContext.userId, aiConsentId);
       transcription = await transcribeAudioFn(upload, {
         aiConsent: { userId: requestContext.userId, eventId: aiConsentId },
+        beforeProviderCall: browserGuestTrial === undefined || trialOperation === undefined ? undefined
+          : async () => startBrowserGuestTrialProvider(browserGuestTrial, trialOperation),
         requestId: context.get("requestId"),
         sessionId,
         userOpenAIApiKey,

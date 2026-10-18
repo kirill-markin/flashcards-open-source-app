@@ -31,7 +31,7 @@ release still renders and gates correctly.
 A guest is an account without an email (`apps/backend/src/guestAuth/`). It is a property of the
 account, orthogonal to the tier: a guest can hold `premium`. Limits are therefore keyed by tier and
 account kind ([`limits.ts`](../apps/backend/src/billing/limits.ts)). The browser guest
-[AI access policy](premium-offer.md#limits) is request-specific and does not change the entitlement
+[AI trial policy](premium-offer.md#browser-guest-ai-trial) is request-specific and does not change the entitlement
 snapshot or its numeric limits. `/me` and `/me/ai-usage` publish `browserGuestCapabilities` alongside
 their existing fields so clients can distinguish access from allowance.
 

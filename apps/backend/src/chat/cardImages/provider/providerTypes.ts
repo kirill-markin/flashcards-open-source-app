@@ -9,6 +9,8 @@ export type GeneratedProviderImage = Readonly<{
 }>;
 
 export type OpenAIImageGenerationInput = Readonly<{
+  maximumAttempts?: 1;
+  beforeProviderAttempt?: () => Promise<void>;
   aiConsentId?: string | null;
   userId: string;
   imagePrompt: string;

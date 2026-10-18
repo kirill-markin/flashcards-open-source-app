@@ -363,6 +363,7 @@ export function ChatPanel(props: Props): ReactElement {
       ? aiUsage.browserGuestAiTrial.chat.lifetimeRemaining : null
     : aiUsage !== null && isHeldAiUsageCurrent(aiUsage) ? aiUsage.usage.remainingMessages : null;
   const remainingAiMessagesNotice = remainingAiMessages !== null
+    && isBrowserGuest === false
     && remainingAiMessages <= 3
     && hasOwnOpenAIKey === false
     ? remainingAiMessages

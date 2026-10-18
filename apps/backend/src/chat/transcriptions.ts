@@ -57,10 +57,12 @@ export type ChatTranscriptionUpload = Readonly<{
   source: ChatTranscriptionSource;
   sessionId?: string;
   workspaceId?: string;
+  operationId?: string;
 }>;
 
 export type ChatTranscriptionRequestContext = Readonly<{
   aiConsent?: Readonly<{ userId: string; eventId: string | null }>;
+  beforeProviderCall?: () => Promise<void>;
   requestId: string;
   sessionId: string;
   /** The person's own OpenAI key, which pays for this one transcription instead of the platform key. */
@@ -194,6 +196,7 @@ export async function parseChatTranscriptionUpload(request: Request): Promise<Ch
   const sessionId = typeof sessionValue === "string" && sessionValue.trim() !== ""
     ? sessionValue.trim()
     : undefined;
+  const operationValue = formData.get("operationId");
   const workspaceValue = formData.get("workspaceId");
   const workspaceId = workspaceValue === null
     ? undefined
@@ -204,6 +207,7 @@ export async function parseChatTranscriptionUpload(request: Request): Promise<Ch
     source: sourceValue,
     sessionId,
     workspaceId,
+    ...(typeof operationValue === "string" ? { operationId: operationValue } : {}),
   };
 }
 
@@ -383,12 +387,13 @@ export async function transcribeChatAudioUploadWithDependencies(
     if (receipt !== undefined) {
       await assertAiConsentReceiptActive(receipt.userId, receipt.eventId);
     }
+    await requestContext.beforeProviderCall?.();
     try {
       // OpenAI transcription requests do not expose an end-user safety identifier field.
       const result = await transcriptionClient.audio.transcriptions.create({
         file,
         model: CHAT_TRANSCRIPTION_MODEL,
-      }, receipt?.eventId == null ? undefined : { maxRetries: 0 });
+      }, receipt?.eventId == null && requestContext.beforeProviderCall === undefined ? undefined : { maxRetries: 0 });
       const usageCounters = toOpenAITranscriptionUsageCounters(result.usage);
       const trimmedText = result.text.trim();
       if (trimmedText === "") {
@@ -396,7 +401,8 @@ export async function transcribeChatAudioUploadWithDependencies(
       }
       return { text: trimmedText, usageCounters };
     } catch (error) {
-      const retryDelayMs = receipt?.eventId == null ? null : getReceiptProviderRetryDelayMs(error, attempt);
+      const retryDelayMs = receipt?.eventId == null || requestContext.beforeProviderCall !== undefined
+        ? null : getReceiptProviderRetryDelayMs(error, attempt);
       if (retryDelayMs !== null && error instanceof OpenAI.APIError) {
         writeCloudWatchRecord({
           action: "chat_transcription_provider_call_retried",
