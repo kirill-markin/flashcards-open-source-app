@@ -73,21 +73,26 @@ export const createdRolesByMigration = new Map([
 // migration contracts retain their original cutoffs.
 export const boundaryDefinitions = Object.freeze([
   Object.freeze({
-    migrationFileName: "0219_paywall_display_state.sql",
-    expectedMigrationCount: 221,
+    migrationFileName: "0220_first_review_onboarding.sql",
+    expectedMigrationCount: 222,
     testFiles: Object.freeze([
       "src/guestAuth/upgrade/boundGuestSession.postgres.integration.ts",
       "src/aiConsent/consent.postgres.integration.ts",
+      "src/routes/system/account/accountPreferences.postgres.integration.ts",
+      "src/workspaces/starterVisibility.postgres.integration.ts",
+      "src/auth/provedAccountUnion.postgres.integration.ts",
+      "src/auth/appleLifecycle.postgres.integration.ts",
+      "src/agent/reviews.postgres.integration.ts",
+      "src/auth/stableClientAccountIdentity.postgres.integration.ts",
+      "src/auth/accountRetirement.postgres.integration.ts",
+      "src/auth/surrogateUserId.postgres.integration.ts",
     ]),
   }),
   Object.freeze({
     migrationFileName: "0218_browser_guest_sessions.sql",
     expectedMigrationCount: 220,
     testFiles: Object.freeze([
-      "src/routes/system/account/accountPreferences.postgres.integration.ts",
       "src/auth/socialSignIn.postgres.integration.ts",
-      "src/workspaces/starterVisibility.postgres.integration.ts",
-      "src/auth/provedAccountUnion.postgres.integration.ts",
     ]),
   }),
   Object.freeze({
@@ -110,15 +115,6 @@ export const boundaryDefinitions = Object.freeze([
     expectedMigrationCount: 215,
     testFiles: Object.freeze([
       "src/auth/accountConnectionPreparation.postgres.integration.ts",
-    ]),
-  }),
-  Object.freeze({
-    migrationFileName: "0212_account_connection_readiness.sql",
-    expectedMigrationCount: 214,
-    testFiles: Object.freeze([
-      "src/auth/appleLifecycle.postgres.integration.ts",
-      "src/agent/reviews.postgres.integration.ts",
-      "src/auth/stableClientAccountIdentity.postgres.integration.ts",
     ]),
   }),
   Object.freeze({
@@ -193,7 +189,6 @@ export const boundaryDefinitions = Object.freeze([
     migrationFileName: "0198_account_snapshot_scope_fence.sql",
     expectedMigrationCount: 200,
     testFiles: Object.freeze([
-      "src/auth/accountRetirement.postgres.integration.ts",
       "src/chat/runs/canonicalOwner.postgres.integration.ts",
     ]),
   }),
@@ -203,7 +198,6 @@ export const boundaryDefinitions = Object.freeze([
     testFiles: Object.freeze([
       "src/admin/authz.postgres.integration.ts",
       "src/productAnalytics/dailyVisitorHash.postgres.integration.ts",
-      "src/auth/surrogateUserId.postgres.integration.ts",
       "src/auth/principalSessions.postgres.integration.ts",
       "src/chat/cardImages/operation.postgres.integration.ts",
       "src/chat/runs/generatedImageAttemptBudget.postgres.integration.ts",
