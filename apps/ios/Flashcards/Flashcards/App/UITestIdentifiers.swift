@@ -221,6 +221,8 @@ enum UITestIdentifier {
     static let reviewShowAnswerButton: String = "review.showAnswerButton"
     static let reviewFrontTextSelectionButton: String = "review.frontTextSelectionButton"
     static let reviewBackTextSelectionButton: String = "review.backTextSelectionButton"
+    static let reviewFrontSelectableText: String = "review.frontSelectableText"
+    static let reviewBackSelectableText: String = "review.backSelectableText"
     static let reviewTextSelectionTextView: String = "review.textSelection.textView"
     static let reviewTextSelectionDoneButton: String = "review.textSelection.doneButton"
     static let reviewAiButton: String = "review.aiButton"
