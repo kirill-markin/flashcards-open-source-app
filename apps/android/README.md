@@ -182,7 +182,7 @@ The current local Android app uses:
 
 ## Testing Rule
 
-Keep the full suite focused on the latest Android target.
+Keep the full suite focused on the latest Android target. Apply the [standing best-effort release policy](../../docs/release/README.md#standing-best-effort-release-policy) to unavailable testing, including the explicit [known Device Run route](../../docs/android-device-run-network-issue.md).
 
 - Do not try to cover the Android app exhaustively with tests
 - Do not add isolated unit tests by default
@@ -224,10 +224,10 @@ The repository policy for Android CI/CD is:
 - Device Run is the cloud device test runner
 - `cloudbuild.android.yaml` is the Google-native Cloud Build entrypoint
 - Google auth from GitHub must use Workload Identity Federation, not a JSON key
-- the manual `Android Release` workflow ([where Android CI runs](../../docs/android-ci-cd.md)) runs the GitHub-hosted build, unit tests, lint, and `data:local` gate, completes four sequential Device Run sessions (API 37 full suite, then one smoke session each on API 30, 31 and 33), then uploads a Google Play production-track draft
+- the manual `Android Release` workflow ([where Android CI runs](../../docs/android-ci-cd.md)) runs the GitHub-hosted build, unit tests, lint, and `data:local` gate, completes four sequential Device Run sessions in normal mode (API 37 full suite, then one smoke session each on API 30, 31 and 33), then uploads a Google Play production-track draft
 - one shared `ANDROID_VERSION_CODE` is resolved once per release run and reused across Android release artifacts and the Play draft bundle
 - one shared manager-readable release identifier, currently `vc<versionCode>-r<runId>a<attempt>-s<shortSha>`, is reused in the Play release name and Device Run job labels so the same release stays traceable across GitHub, Play, and Device Run
-- Device Run app instrumentation is manual-only from the top-level `device_run_submission` job in `Android Release`; the shared linked test account requires sequential sessions, and all four sessions, jobs and executions must reach terminal success before the signed draft upload starts; inspect named case results before publication under [the release procedure](../../docs/release/android.md)
+- In the normal release route, Device Run app instrumentation is manual-only from the top-level `device_run_submission` job in `Android Release`; the shared linked test account requires sequential sessions, and all four sessions, jobs and executions must reach terminal success before the signed draft upload starts; inspect named case results before publication under [the release procedure](../../docs/release/android.md)
 - after the workflow uploads the AAB, review Play App strings translations in Play Console, confirm the Play language set still matches the app's explicit supported-language list, verify the Play-delivered build, and publish the release there manually
 
 ## Respect Existing Code

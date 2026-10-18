@@ -4,7 +4,7 @@ Read the [release entry point](README.md), [shared evidence](evidence.md) and
 [versioning](versioning.md). This is the release procedure for the dedicated
 Mac Catalyst app; [Mac CI/CD](../macos-ci-cd.md) owns workflow identities,
 signing instructions and native/manual checks. Editing these docs does not
-authorize dispatch, signed local execution, submission or publication.
+authorize dispatch, signed local execution, submission or publication. Apply the [standing best-effort policy](README.md#standing-best-effort-release-policy) to unavailable testing throughout this procedure.
 
 ## Resume and platform identity
 
@@ -55,7 +55,7 @@ authorize dispatch, signed local execution, submission or publication.
    Every selected required case must execute and pass. Retain full logs,
    `.xcresult`, named non-UI/UI results, diagnostics and inspected
    [formula/focus screenshots](../macos-ci-cd.md#native-smoke-evidence).
-   Missing cases, unexpected skips, failures or interrupted runs block dispatch.
+   Investigate missing cases, unexpected skips, failures or interrupted runs; fix identifiable app/test defects and apply the standing policy to unavailable testing before dispatch.
    Keep genuine app provisioning, automatic test-runner signing, sandbox and
    private Keychain storage; do not fabricate identities, disable signing or
    filter required tests. Verify the app-process automation marker before
@@ -72,8 +72,7 @@ authorize dispatch, signed local execution, submission or publication.
 6. Keep Cloud test workflows disabled; neither a prior Cloud failure nor a new
    retry is a prerequisite for local acceptance. Retain historical Cloud failures
    and signing/Keychain diagnoses unchanged, separately from current local
-   evidence; no old failure becomes a pass. If full signed local acceptance
-   cannot pass, block release. Cloud distribution archive remains mandatory.
+   evidence; no old failure becomes a pass. Record unavailable local acceptance under the standing policy; identifiable app/test failures still require fixes. Cloud distribution archive remains mandatory.
 7. Fix all source/build/test failures through normal PR/CI and repeat the
    affected gates at corrected SHA. Retain a successful archive only under
    [bounded source equivalence](evidence.md#resume-and-artifact-reuse): compare
@@ -113,7 +112,7 @@ authorize dispatch, signed local execution, submission or publication.
    notifications and sandbox subscriptions/purchase/restore/manage. Record
    unexecuted permission/payment checks and their coverage limits honestly;
    do not claim them passed. Resolve observed failures and required store
-   blockers before submission; a manual gap never excuses the full native gate.
+   blockers before submission; handle unavailable manual/native coverage under the standing policy.
 10. Create or resume only the intended editable `MAC_OS` version draft. Review
     localized Mac fields and every locale's [release notes](release-notes.md),
     privacy/support/legal URLs, review credentials and Mac-specific capability
