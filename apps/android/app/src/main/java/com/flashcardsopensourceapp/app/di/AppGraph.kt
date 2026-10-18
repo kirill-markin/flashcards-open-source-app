@@ -84,6 +84,7 @@ import com.flashcardsopensourceapp.data.local.notifications.ReviewNotificationsR
 import com.flashcardsopensourceapp.data.local.notifications.SharedPreferencesReviewNotificationsStore
 import com.flashcardsopensourceapp.data.local.notifications.StrictRemindersReconcileTrigger
 import com.flashcardsopensourceapp.data.local.notifications.StrictRemindersStore
+import com.flashcardsopensourceapp.data.local.model.ai.AiUsageStatus
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudAccountState
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudCredentialRecoveryState
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudSettings
@@ -1105,6 +1106,42 @@ class AppGraph(
         return AppGuestCloudSession(
             workspaceId = guestSession.workspaceId
         )
+    }
+
+    internal suspend fun loadPremiumPreviewAiUsage(): AiUsageStatus = cloudOperationCoordinator.runExclusive {
+        withContext(Dispatchers.IO) {
+            check(cloudPreferencesStore.loadCloudCredentialRecoveryState() == null) {
+                "Premium preview requires an established cloud session. Restore your session and retry."
+            }
+            val settings = cloudPreferencesStore.currentCloudSettings()
+            val configuration = cloudPreferencesStore.currentServerConfiguration()
+            val authorizationHeader = when (settings.cloudState) {
+                CloudAccountState.LINKED -> {
+                    aiChatRepository.warmUpLinkedSession()
+                    val credentials = checkNotNull(cloudPreferencesStore.loadCredentials()) {
+                        "Premium preview cannot load the current account credentials. Sign in and retry."
+                    }
+                    "Bearer ${credentials.idToken}"
+                }
+                CloudAccountState.GUEST -> {
+                    val workspaceId = checkNotNull(settings.activeWorkspaceId ?: settings.linkedWorkspaceId) {
+                        "Premium preview requires the current guest workspace. Reopen your workspace and retry."
+                    }
+                    val session = checkNotNull(guestAiSessionStore.loadSession(workspaceId, configuration)) {
+                        "Premium preview cannot load the current guest credentials. Restore your session and retry."
+                    }
+                    check(session.userId == settings.linkedUserId && !session.isAnalyticsOnly) {
+                        "Premium preview guest credentials do not match the current account. Restore your session and retry."
+                    }
+                    "Guest ${session.guestToken}"
+                }
+                else -> error("Premium preview requires an established cloud session. Connect your account and retry.")
+            }
+            aiChatRemoteService.loadAiUsage(
+                apiBaseUrl = configuration.apiBaseUrl,
+                authorizationHeader = authorizationHeader
+            )
+        }
     }
 
     suspend fun deleteStoredGuestCloudSessionIfPresent() {
