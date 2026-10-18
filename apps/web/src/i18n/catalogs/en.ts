@@ -15,6 +15,18 @@ const enCatalog = {
     cleanupFailed: "Sign-in succeeded, but the demo card could not be removed.",
   },
   stripe: createStripeCatalog(stripeCopy),
+  paywall: {
+    heading: "Learning belongs to everyone.",
+    freeTitle: "Free",
+    freeDescription: "Created for students without a job. Open to everyone. Your backpack just got lighter.",
+    freeBenefit: "Core reviews, offline learning & sync",
+    continueFree: "Continue free",
+    creatorSupport: "Your subscription helps Nibomo’s creator, {{creator}}, pay for servers and fuel the next update with coffee and pizza.",
+    basePrice: "Base price: {{price}} / month",
+    startTrial: "Start 7-day free trial",
+    trialPrice: "7 days free, then a monthly base price of {{price}}. A payment method is required. Cancel before the trial ends to avoid the first charge.",
+    checkoutPrice: "Stripe confirms the final price and billing currency at checkout.",
+  },
   accentColorSettings: {
     title: "Accent color",
     subtitle: "Choose the app’s accent color.",

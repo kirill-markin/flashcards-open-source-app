@@ -16,6 +16,18 @@ const isCatalog: TranslationCatalog = {
     cleanupFailed: "Innskráning tókst en ekki tókst að fjarlægja sýnispjaldið.",
   },
   stripe: createStripeCatalog(stripeCopy),
+  paywall: {
+    heading: "Nám er fyrir alla.",
+    freeTitle: "Ókeypis",
+    freeDescription: "Búið til fyrir námsfólk án vinnu. Opið öllum. Bakpokinn þinn varð rétt í þessu léttari.",
+    freeBenefit: "Grunnupprifjun, nám án nettengingar og samstilling",
+    continueFree: "Halda áfram ókeypis",
+    creatorSupport: "Áskriftin þín hjálpar höfundi Nibomo, {{creator}}, að greiða fyrir netþjóna og vinna að næstu uppfærslu með kaffi og pítsu.",
+    basePrice: "Grunnverð: {{price}} / mánuði",
+    startTrial: "Hefja 7 daga ókeypis prufu",
+    trialPrice: "7 dagar ókeypis, síðan mánaðarlegt grunnverð {{price}}. Greiðslumáta er krafist. Segðu upp áður en prufunni lýkur til að forðast fyrstu greiðsluna.",
+    checkoutPrice: "Stripe staðfestir lokaverð og gjaldmiðil við greiðslu.",
+  },
   accentColorSettings: {
     title: "Áherslulitur",
     subtitle: "Veldu áherslulit appsins.",

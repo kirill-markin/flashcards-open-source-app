@@ -16,6 +16,18 @@ const esEsCatalog: TranslationCatalog = {
     cleanupFailed: "Has iniciado sesión, pero no se ha podido eliminar la tarjeta de demostración.",
   },
   stripe: createStripeCatalog(stripeCopy),
+  paywall: {
+    heading: "Aprender es para todos.",
+    freeTitle: "Gratis",
+    freeDescription: "Creado para estudiantes sin trabajo. Abierto a todos. Tu mochila acaba de aligerarse.",
+    freeBenefit: "Repasos esenciales, aprendizaje sin conexión y sincronización",
+    continueFree: "Continuar gratis",
+    creatorSupport: "Tu suscripción ayuda al creador de Nibomo, {{creator}}, a pagar los servidores y preparar la próxima actualización con café y pizza.",
+    basePrice: "Precio base: {{price}} / mes",
+    startTrial: "Empezar la prueba gratuita de 7 días",
+    trialPrice: "7 días gratis y después un precio base mensual de {{price}}. Se requiere un método de pago. Cancela antes de que termine la prueba para evitar el primer cobro.",
+    checkoutPrice: "Stripe confirma el precio final y la moneda de facturación al pagar.",
+  },
   accentColorSettings: {
     title: "Color de acento",
     subtitle: "Elige el color de acento de la aplicación.",

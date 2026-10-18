@@ -16,6 +16,18 @@ const daCatalog: TranslationCatalog = {
     cleanupFailed: "Du er logget ind, men demokortet kunne ikke fjernes.",
   },
   stripe: createStripeCatalog(stripeCopy),
+  paywall: {
+    heading: "Læring er for alle.",
+    freeTitle: "Gratis",
+    freeDescription: "Skabt til studerende uden job. Åbent for alle. Din rygsæk blev lige lettere.",
+    freeBenefit: "Grundlæggende repetition, offline læring og synkronisering",
+    continueFree: "Fortsæt gratis",
+    creatorSupport: "Dit abonnement hjælper Nibomos skaber, {{creator}}, med at betale serverne og arbejde på den næste opdatering med kaffe og pizza.",
+    basePrice: "Basispris: {{price}} / måned",
+    startTrial: "Start 7 dages gratis prøveperiode",
+    trialPrice: "7 dage gratis, derefter en månedlig basispris på {{price}}. En betalingsmetode er påkrævet. Opsig før prøveperioden slutter for at undgå den første opkrævning.",
+    checkoutPrice: "Stripe bekræfter den endelige pris og faktureringsvaluta ved betaling.",
+  },
   accentColorSettings: {
     title: "Accentfarve",
     subtitle: "Vælg appens accentfarve.",

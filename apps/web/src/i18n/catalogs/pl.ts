@@ -16,6 +16,18 @@ const plCatalog: TranslationCatalog = {
     cleanupFailed: "Logowanie powiodło się, ale nie udało się usunąć fiszki demonstracyjnej.",
   },
   stripe: createStripeCatalog(stripeCopy),
+  paywall: {
+    heading: "Nauka jest dla każdego.",
+    freeTitle: "Bezpłatnie",
+    freeDescription: "Stworzone dla studentów bez pracy. Otwarte dla wszystkich. Twój plecak właśnie stał się lżejszy.",
+    freeBenefit: "Podstawowe powtórki, nauka offline i synchronizacja",
+    continueFree: "Kontynuuj bezpłatnie",
+    creatorSupport: "Twoja subskrypcja pomaga twórcy Nibomo, {{creator}}, opłacać serwery i przygotowywać kolejną aktualizację przy kawie i pizzy.",
+    basePrice: "Cena bazowa: {{price}} / miesiąc",
+    startTrial: "Rozpocznij 7-dniowy bezpłatny okres próbny",
+    trialPrice: "7 dni bezpłatnie, potem miesięczna cena bazowa {{price}}. Wymagana jest metoda płatności. Anuluj przed końcem okresu próbnego, aby uniknąć pierwszego obciążenia.",
+    checkoutPrice: "Stripe potwierdzi ostateczną cenę i walutę rozliczenia przy płatności.",
+  },
   accentColorSettings: {
     title: "Kolor akcentu",
     subtitle: "Wybierz kolor akcentu aplikacji.",

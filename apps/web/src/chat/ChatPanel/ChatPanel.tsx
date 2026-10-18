@@ -8,6 +8,8 @@ import {
   markIndexedDbOpenRecoveryFailureAndCheckActive,
   useAppErrorDialog,
 } from "../../appError/AppErrorContext";
+import { useEntitlementSnapshot } from "../../premium/entitlementStore";
+import { hasPremiumAccess, usePremiumPresenter } from "../../premium/PremiumProvider";
 import { useI18n } from "../../i18n";
 import type { WebAppOperation } from "../../observability/webObservability";
 import { useChatDraft } from "../composer/drafts/ChatDraftContext";
@@ -49,6 +51,8 @@ export function ChatPanel(props: Props): ReactElement {
   const { mode } = props;
   const appData = useAppData();
   const workspacePath = useWorkspacePath();
+  const entitlement = useEntitlementSnapshot(appData.session?.userId ?? null);
+  const presentPremium = usePremiumPresenter();
   const { indexedDbOpenRecoveryState, showCapturedTechnicalError, showTechnicalError } = useAppErrorDialog();
   const { t, formatCount, formatDate, formatNumber, messages: translationMessages } = useI18n();
   const { aiChatComposerSuggestionsEnabled } = useAIChatPreferences();
@@ -285,7 +289,6 @@ export function ChatPanel(props: Props): ReactElement {
   const remainingAiMessages = aiUsage !== null && isHeldAiUsageCurrent(aiUsage)
     ? aiUsage.usage.remainingMessages
     : null;
-  // The monthly limit does not apply to requests on the person's own key.
   const remainingAiMessagesNotice = remainingAiMessages !== null
     && remainingAiMessages <= 3
     && hasOwnOpenAIKey === false && !fundedAiNeedsSignIn
@@ -521,6 +524,10 @@ export function ChatPanel(props: Props): ReactElement {
             {t("chatPanel.aiUsage.remaining", {
               count: formatCount(remainingAiMessagesNotice, translationMessages.chatPanel.aiUsage.countLabels.aiMessage),
             })}
+            {entitlement !== null && !hasPremiumAccess(entitlement, 20) && presentPremium !== null ? <>{" "}
+              <button type="button" className="ghost-btn" data-testid="chat-ai-low-balance-premium"
+                onClick={() => presentPremium({ reason: "offer", entryPoint: "ai_low_balance" })}>{t("premium.offer")}</button>
+            </> : null}
           </p>
         ) : null}
 
