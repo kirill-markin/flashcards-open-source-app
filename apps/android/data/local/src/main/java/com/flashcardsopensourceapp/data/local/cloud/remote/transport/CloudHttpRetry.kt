@@ -1,14 +1,20 @@
 package com.flashcardsopensourceapp.data.local.cloud.remote.transport
 
+import okhttp3.Protocol
 import org.json.JSONObject
+import java.io.IOException
+import java.net.SocketTimeoutException
 import kotlin.random.Random
 
 internal const val cloudHttpTransientRetryMaxAttemptCount: Int = 4
 internal const val cloudHttpRetryHttpResponseStage: String = "http_response"
 internal const val cloudHttpRetryIoExceptionStage: String = "io_exception"
+internal const val cloudHttpIoAwaitingResponseHeadersPhase: String = "awaiting_response_headers"
 
 private const val cloudHttpTransientRetryBaseDelayMs: Long = 250L
 private const val cloudHttpTransientRetryMaxDelayMs: Long = 2_000L
+// OkHttp gives a timed-out HTTP/2 connection one second to answer its degraded ping.
+private const val cloudHttp2DegradedPingGraceMs: Long = 1_000L
 private val transientCloudHttpStatusCodes: Set<Int> = setOf(408, 429, 500, 502, 503, 504)
 
 internal fun isTransientCloudHttpRetryEligible(
@@ -60,5 +66,23 @@ internal fun calculateCloudHttpTransientRetryDelayMs(attemptNumber: Int): Long {
         0L
     } else {
         Random.nextLong(until = cappedDelayMs)
+    }
+}
+
+internal fun calculateCloudHttpIoRetryDelayMs(
+    attemptNumber: Int,
+    error: IOException,
+    connectionProtocol: String?,
+    ioPhase: String
+): Long {
+    val jitterDelayMs = calculateCloudHttpTransientRetryDelayMs(attemptNumber = attemptNumber)
+    return if (
+        error is SocketTimeoutException &&
+        connectionProtocol == Protocol.HTTP_2.toString() &&
+        ioPhase == cloudHttpIoAwaitingResponseHeadersPhase
+    ) {
+        cloudHttp2DegradedPingGraceMs + jitterDelayMs
+    } else {
+        jitterDelayMs
     }
 }

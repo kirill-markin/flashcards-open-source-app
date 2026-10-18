@@ -28,7 +28,6 @@ import java.util.concurrent.TimeUnit
 
 private val cloudJsonMediaType = "application/json".toMediaType()
 private val cloudZipMediaType = "application/zip".toMediaType()
-private const val cloudHttpIoAwaitingResponseHeadersPhase: String = "awaiting_response_headers"
 private const val cloudHttpIoReadingResponseBodyPhase: String = "reading_response_body"
 
 internal enum class CloudHttpMethod(
@@ -436,8 +435,13 @@ internal class CloudJsonHttpClient(
                         attemptNumber = attemptNumber
                     )
                 ) {
-                    val delayMs = calculateCloudHttpTransientRetryDelayMs(attemptNumber)
                     val connectionSnapshot = connectionObservation.snapshot()
+                    val delayMs = calculateCloudHttpIoRetryDelayMs(
+                        attemptNumber = attemptNumber,
+                        error = error,
+                        connectionProtocol = connectionSnapshot.connectionProtocol,
+                        ioPhase = ioPhase
+                    )
                     captureCloudHttpTransientRetryObservation(
                         observability = observability,
                         observationVersions = observationVersions,
@@ -628,8 +632,13 @@ internal class CloudJsonHttpClient(
                         attemptNumber = attemptNumber
                     )
                 ) {
-                    val delayMs = calculateCloudHttpTransientRetryDelayMs(attemptNumber)
                     val connectionSnapshot = connectionObservation.snapshot()
+                    val delayMs = calculateCloudHttpIoRetryDelayMs(
+                        attemptNumber = attemptNumber,
+                        error = error,
+                        connectionProtocol = connectionSnapshot.connectionProtocol,
+                        ioPhase = ioPhase
+                    )
                     captureCloudHttpTransientRetryObservation(
                         observability = observability,
                         observationVersions = observationVersions,
