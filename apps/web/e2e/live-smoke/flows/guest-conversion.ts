@@ -4,6 +4,7 @@ import { createLiveSmokeDiagnostics } from "../../live-smoke.diagnostics";
 import { buildWorkspaceRoute, cardsRoute, reviewRoute } from "../../../src/routes";
 import { databaseName } from "../../../src/localDb/core/databaseSchema";
 import type { BrowserGuestOwner, BrowserGuestStoredState } from "../../../src/appData/session/guest/browserGuestStorage";
+import type { BrowserGuestUpgradeResult } from "../../../src/apiContracts/guestAuth";
 import { externalUiTimeoutMs, liveSmokeBrowserLocale, reviewPostSubmitTimeoutMs } from "../config";
 import type { LiveSmokeSession } from "../types";
 
@@ -46,7 +47,7 @@ async function snapshot(page: Page): Promise<GuestSnapshot> {
   }, databaseName);
 }
 
-async function createGuestCard(session: LiveSmokeSession): Promise<Readonly<{ workspaceId: string; demoId: string; cardId: string }>> {
+async function reviewGuestDemo(session: LiveSmokeSession): Promise<Readonly<{ workspaceId: string; demoId: string }>> {
   const { page, diagnostics, baseUrl } = session;
   await trackedGoto(page, diagnostics, "open the app as a fresh guest", baseUrl, externalUiTimeoutMs);
   await expect(page.getByTestId("guest-sign-in")).toBeVisible({ timeout: externalUiTimeoutMs });
@@ -73,6 +74,12 @@ async function createGuestCard(session: LiveSmokeSession): Promise<Readonly<{ wo
   await diagnostics.runAction("drain the guest demo review outbox before navigation", async () => {
     await expect.poll(async () => (await snapshot(page)).outboxCount, { timeout: externalUiTimeoutMs }).toBe(0);
   });
+  return { workspaceId, demoId };
+}
+
+async function createGuestCard(session: LiveSmokeSession): Promise<Readonly<{ workspaceId: string; demoId: string; cardId: string }>> {
+  const { page, diagnostics, baseUrl } = session;
+  const { workspaceId, demoId } = await reviewGuestDemo(session);
   await trackedGoto(page, diagnostics, "open guest cards", baseUrl + buildWorkspaceRoute(workspaceId, cardsRoute), externalUiTimeoutMs);
   await trackedClick(diagnostics, "create a real guest card", page.getByTestId("cards-new-card"));
   await trackedFill(diagnostics, "enter the guest card question", page.getByTestId("card-form-front-text"), "Guest smoke question");
@@ -90,7 +97,7 @@ async function authenticateGuest(session: LiveSmokeSession): Promise<void> {
   await trackedClick(diagnostics, "choose email sign-in", page.locator("#signin-email"));
   await trackedFill(diagnostics, "enter the configured review account", page.locator('input[type="email"]').first(), session.reviewEmail);
   await trackedClick(diagnostics, "submit the configured review account", page.locator("#send-btn"));
-  await expect(page.getByTestId("guest-destinations").or(page.locator("nav.nav"))).toBeVisible({ timeout: externalUiTimeoutMs });
+  await expect(page.getByTestId("guest-destinations").or(page.getByTestId("guest-conversion-error")).or(page.locator("nav.nav"))).toBeVisible({ timeout: externalUiTimeoutMs });
 }
 
 async function waitForRegisteredDestination(page: Page): Promise<void> {
@@ -152,6 +159,7 @@ export async function runGuestConversionFlow(session: LiveSmokeSession): Promise
   expect((await snapshot(page)).cards.find((card) => card.cardId === guest.demoId)?.deletedAt).toBeNull();
   expect((await snapshot(page)).cards.some((card) => card.cardId === guest.cardId)).toBe(true);
   expect((await snapshot(page)).reviewIds).toEqual(before.reviewIds);
+  let registeredBefore = await snapshot(page);
 
   const browser = session.context.browser();
   if (browser === null) throw new Error("Guest smoke requires a browser context");
@@ -184,6 +192,75 @@ export async function runGuestConversionFlow(session: LiveSmokeSession): Promise
       expect(merged.cards.find((card) => card.cardId === guest.demoId)?.deletedAt).toBeNull();
       expect(merged.cards.find((card) => card.cardId === merging.demoId)?.reps).toBe(1);
       expect(merged.reviewIds.length).toBe(resume ? 3 : 2);
+      registeredBefore = merged;
+    } finally { await context.close(); }
+  }
+  for (const recovery of ["none", "retry", "reload"] as const) {
+    const context = await browser.newContext({ ignoreHTTPSErrors: true, locale: liveSmokeBrowserLocale });
+    await context.addInitScript(() => {
+      localStorage.setItem("flashcards-analytics-enabled", "granted");
+      new MutationObserver((mutations) => {
+        if (mutations.some((mutation) => Array.from(mutation.addedNodes).some((node) => node instanceof Element
+          && (node.matches('[data-testid="guest-destinations"]') || node.querySelector('[data-testid="guest-destinations"]') !== null)))) {
+          document.documentElement.dataset.guestTransferChooserSeen = "true";
+        }
+      }).observe(document, { childList: true, subtree: true });
+    });
+    const guestPage = await context.newPage();
+    const guestSession: LiveSmokeSession = { ...session, context, page: guestPage, diagnostics: createLiveSmokeDiagnostics(guestPage) };
+    try {
+      const demoOnly = await reviewGuestDemo(guestSession);
+      const demoBefore = await snapshot(guestPage);
+      expect(demoBefore.cards.map((card) => card.cardId)).toEqual([demoOnly.demoId]);
+      expect(demoBefore.reviewIds).toHaveLength(1);
+      const selection = { type: "existing", workspaceId: destinationId, discardDemoOnly: true };
+      let loseCompletion = recovery !== "none";
+      let completionCount = 0;
+      await guestPage.route("**/guest-auth/browser/upgrade/complete", async (route) => {
+        const pending = (await guestOwner(guestPage)).pending;
+        expect(pending?.phase).toBe("completing");
+        expect(pending?.selection).toEqual(selection);
+        expect(pending?.destinationUserId).not.toBeNull();
+        expect(route.request().postDataJSON()).toEqual({
+          selection, guestWorkspaceSyncedAndOutboxDrained: true, supportsDroppedEntities: true,
+        });
+        const response = await route.fetch();
+        expect(response.status()).toBe(200);
+        const result = await response.json() as BrowserGuestUpgradeResult;
+        expect(result.workspace.workspaceId).toBe(destinationId);
+        expect(result.droppedEntities?.cardIds).toEqual([demoOnly.demoId]);
+        expect(result.droppedEntities?.reviewEventIds.slice().sort()).toEqual(demoBefore.reviewIds.slice().sort());
+        completionCount += 1;
+        if (loseCompletion) await route.abort("failed");
+        else await route.fulfill({ response });
+      });
+      await authenticateGuest(guestSession);
+      await expect(guestPage.getByTestId("guest-destinations")).toHaveCount(0);
+      expect(await guestPage.evaluate(() => document.documentElement.dataset.guestTransferChooserSeen)).toBeUndefined();
+      if (recovery !== "none") {
+        await expect(guestPage.getByTestId("guest-conversion-error")).toBeVisible({ timeout: externalUiTimeoutMs });
+        expect((await guestOwner(guestPage)).pending?.selection).toEqual(selection);
+        loseCompletion = false;
+        if (recovery === "retry") {
+          await trackedClick(guestSession.diagnostics, "retry the committed demo-only completion with its saved selection",
+            guestPage.getByTestId("guest-conversion-retry"));
+        } else {
+          await guestSession.diagnostics.runAction("reload after losing the committed demo-only completion", async () => { await guestPage.reload(); });
+        }
+      }
+      await waitForRegisteredDestination(guestPage);
+      expect(completionCount).toBeGreaterThanOrEqual(recovery === "none" ? 1 : 2);
+      await expect(guestPage.getByTestId("topbar-active-workspace")).toHaveAttribute("data-workspace-id", destinationId);
+      expect(await guestPage.evaluate(() => document.documentElement.dataset.guestTransferChooserSeen)).toBeUndefined();
+      const completed = await snapshot(guestPage);
+      expect(completed.cards.slice().sort((left, right) => left.cardId.localeCompare(right.cardId)))
+        .toEqual(registeredBefore.cards.slice().sort((left, right) => left.cardId.localeCompare(right.cardId)));
+      expect(completed.reviewIds.slice().sort()).toEqual(registeredBefore.reviewIds.slice().sort());
+      expect(completed.outboxCount).toBe(0);
+      await guestSession.diagnostics.runAction("reload the registered account after demo disposal", async () => { await guestPage.reload(); });
+      await waitForRegisteredDestination(guestPage);
+      expect((await snapshot(guestPage)).cards.some((card) => card.cardId === demoOnly.demoId)).toBe(false);
+      expect((await snapshot(guestPage)).reviewIds.some((id) => demoBefore.reviewIds.includes(id))).toBe(false);
     } finally { await context.close(); }
   }
   await trackedGoto(page, diagnostics, "return to the converted workspace", baseUrl + buildWorkspaceRoute(destinationId, reviewRoute), externalUiTimeoutMs);

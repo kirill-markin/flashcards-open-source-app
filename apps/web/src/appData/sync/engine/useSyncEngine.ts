@@ -611,6 +611,11 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
         if (cloudSettings?.linkedUserId !== session.userId) throw new Error("Local sync owner differs from the verified session; preserve local data and reload.");
         const installationId = requireCloudInstallationId(cloudSettings);
         syncInstallationId = installationId;
+        const pendingConversion = readPendingGuestConversion();
+        const isDemoOnlyConversionDestination = pendingConversion?.destinationUserId === session.userId
+          && pendingConversion.selection?.type === "existing"
+          && pendingConversion.selection.discardDemoOnly === true
+          && pendingConversion.selection.workspaceId === workspaceId;
         const syncFlags = await waitForRecoveryGuardedSyncPhase(runWorkspaceRemoteSync({
           userId: session.userId,
           workspaceId,
@@ -620,6 +625,7 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
           hasFailed: indexedDbOpenRecoveryState.hasFailed,
           indexedDbOpenRecoveryState,
           isOnlyWorkspaceForUser: isOnlyWorkspaceOfAccount(availableWorkspacesRef.current, workspaceId)
+            && !isDemoOnlyConversionDestination
             && (session.browserGuestCapabilities?.isGuest !== true || allowBrowserGuestInitialSeed(session.userId)),
           requireWorkspaceSyncNotDiscarded: requireCurrentWorkspaceSync,
           publishWorkspaceSettings: publishCurrentWorkspaceSettings,
