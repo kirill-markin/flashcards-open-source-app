@@ -49,16 +49,16 @@ export function GuestCachedCardsRecovery(props: Props): ReactElement {
   return (
     <main className="page-state" data-testid="guest-cache-recovery">
       <section className="panel state-panel">
-        <h1 className="title">{t("cards.title")}</h1>
+        <h1 className="title">{t("cardsScreen.title")}</h1>
         <p className="error-banner" role="status">{errorMessage}</p>
         <button className="primary-btn" type="button" onClick={() => void retry()}>{t("common.retry")}</button>
         {readError !== "" && <p className="error-banner">{readError}</p>}
         {isLoading && <p>{t("loading.generic")}</p>}
         {cards.map((card) => (
           <article className="panel" key={card.cardId} data-testid="guest-cached-card">
-            <h2>{t("cards.table.front")}</h2>
+            <h2>{t("cardsScreen.table.front")}</h2>
             <pre style={{ whiteSpace: "pre-wrap", overflowWrap: "anywhere" }}>{card.frontText}</pre>
-            <h2>{t("cards.table.back")}</h2>
+            <h2>{t("cardsScreen.table.back")}</h2>
             <pre style={{ whiteSpace: "pre-wrap", overflowWrap: "anywhere" }}>{card.backText}</pre>
           </article>
         ))}
