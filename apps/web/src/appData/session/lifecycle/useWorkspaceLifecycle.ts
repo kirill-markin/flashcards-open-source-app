@@ -1,7 +1,7 @@
 import { retireEntryWorkspaceAddress } from "../activation/workspaceActivationHelpers";
 import { clearWebSyncCacheForLocalBrowserDataCleanup } from "../../../localDb/cache";
 import { requireWorkspaceMediaUploadsCompleted } from "../../../localDb/mediaTransfers";
-import { pauseBrowserGuestSession } from "../../../api/transport/transport";
+import { isBrowserGuestSessionVerified, pauseBrowserGuestSession } from "../../../api/transport/transport";
 import { GuestConversionRequiredError, loadBrowserProductSession, loadCachedBrowserGuestOwner } from "../guest/browserGuestSession";
 import { invalidateBrowserGuestOwnership, readBrowserGuestState, readPendingGuestConversion, runWithBrowserGuestLock, subscribeToBrowserGuestChanges } from "../guest/browserGuestStorage";
 import { consumeAcceptedBrowserSignInMethod, readBrowserSignInInformationGeneration } from "../../../api/browserHints";
@@ -10,7 +10,7 @@ import { getAppConfig } from "../../../config";
 import { projectSessionToLocalOwner } from "../../../api/transport/sessionIdentity";
 import { mergeRefreshedSessionPreferences, readAccountPreferencesWriteVersion } from "../accentColorWrite";
 import { clearEntitlementState, readEntitlementIdentityGeneration, setEntitlementIdentity } from "../../../premium/entitlementStore";
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   ApiError,
   buildLogoutLocalUrl,
@@ -157,6 +157,7 @@ export function useWorkspaceLifecycle(params: UseWorkspaceLifecycleParams): Work
   // One-use method consumption must survive a ready-to-ready workspace switch.
   const hasReadyWorkspace = activeWorkspaceId !== null;
   const sessionUserId = session?.userId ?? null;
+  const [guestConversionPending, setGuestConversionPending] = useState(() => readPendingGuestConversion() !== null);
   const initializePromiseRef = useRef<Promise<void> | null>(null);
   const resumePromiseRef = useRef<Promise<void> | null>(null);
   const analyticsReadyRef = useRef<Readonly<{ userId: string; ready: Promise<void> }> | null>(null);
@@ -226,19 +227,32 @@ export function useWorkspaceLifecycle(params: UseWorkspaceLifecycleParams): Work
 
   useEffect(() => {
     let hadPending = readPendingGuestConversion() !== null;
+    setGuestConversionPending(hadPending);
     return subscribeToBrowserGuestChanges(() => {
       const saved = readBrowserGuestState();
       const wasPending = hadPending;
       hadPending = saved?.status === "owned" && saved.owner.pending !== null;
+      setGuestConversionPending(hadPending);
       if (session?.browserGuestCapabilities?.isGuest !== true) return;
-      if (saved?.status === "owned" && saved.owner.pending === null && saved.owner.userId === session.userId) {
-        if (wasPending) void initializeRef.current();
+      if (saved?.status === "owned" && saved.owner.pending === null && saved.owner.userId === session.userId
+        && saved.owner.workspaceId === session.selectedWorkspaceId) {
+        if (wasPending || isBrowserGuestSessionVerified(saved.owner.userId, saved.owner.workspaceId) === false) {
+          setSessionVerificationState("unverified");
+        }
         return;
       }
       setSessionVerificationState("unverified");
-      if (saved === null) void initializeRef.current();
     });
   }, [session, setSessionVerificationState]);
+
+  useEffect(() => {
+    if (session?.browserGuestCapabilities?.isGuest === true
+      && (sessionLoadState === "ready" || sessionLoadState === "guest_conversion")
+      && sessionVerificationState === "unverified" && guestConversionPending === false
+      && readPendingGuestConversion() === null) {
+      void initializeRef.current();
+    }
+  }, [guestConversionPending, session, sessionLoadState, sessionVerificationState]);
 
   const resumeConfirmedAccountDeletion = useCallback(async function resumeConfirmedAccountDeletion(): Promise<void> {
     await runWithAccountDeletionLock(
@@ -696,6 +710,14 @@ export function useWorkspaceLifecycle(params: UseWorkspaceLifecycleParams): Work
     } catch (error) {
       indexedDbOpenRecoveryState.markFailed(error);
       indexedDbOpenRecoveryState.throwIfFailed();
+      if (error instanceof GuestConversionRequiredError) {
+        setSessionVerificationState("unverified");
+        setSessionLoadState("guest_conversion");
+        setSessionErrorMessage("");
+        setSessionTechnicalError(null);
+        setTechnicalError(null);
+        return false;
+      }
       if (session?.browserGuestCapabilities?.isGuest === true && await showCachedGuestRecovery(normalizeCaughtError(error))) return false;
       if (isAuthRedirectError(error)) {
         return false;

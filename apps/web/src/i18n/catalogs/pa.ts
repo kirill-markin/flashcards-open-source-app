@@ -17,7 +17,8 @@ const paCatalog: TranslationCatalog = {
   },
   stripe: createStripeCatalog(stripeCopy),
   paywall: {
-    heading: "ਸਿੱਖਣਾ ਹਰ ਕਿਸੇ ਦਾ ਹੱਕ ਹੈ।",
+    heading: "ਸਿੱਖਣਾ <em>ਹਰ ਕਿਸੇ</em> ਦਾ ਹੱਕ ਹੈ।",
+    alwaysFree: "ਹਮੇਸ਼ਾ ਮੁਫ਼ਤ",
     freeTitle: "ਮੁਫ਼ਤ",
     freeDescription: "ਨੌਕਰੀ ਤੋਂ ਬਿਨਾਂ ਵਿਦਿਆਰਥੀਆਂ ਲਈ ਬਣਾਇਆ। ਸਭ ਲਈ ਖੁੱਲ੍ਹਾ। ਤੁਹਾਡਾ ਬੈਗ ਹੁਣ ਥੋੜ੍ਹਾ ਹਲਕਾ ਹੋ ਗਿਆ।",
     freeBenefit: "ਬੁਨਿਆਦੀ ਦੁਹਰਾਈ, ਆਫ਼ਲਾਈਨ ਸਿੱਖਿਆ ਅਤੇ ਸਿੰਕ",
@@ -25,7 +26,7 @@ const paCatalog: TranslationCatalog = {
     creatorSupport: "ਤੁਹਾਡੀ ਮੈਂਬਰਸ਼ਿਪ Nibomo ਦੇ ਸਿਰਜਣਹਾਰ {{creator}} ਨੂੰ ਸਰਵਰਾਂ ਦੇ ਖ਼ਰਚੇ ਭਰਨ ਅਤੇ ਕੌਫ਼ੀ ਤੇ ਪੀਜ਼ੇ ਨਾਲ ਅਗਲਾ ਅੱਪਡੇਟ ਤਿਆਰ ਕਰਨ ਵਿੱਚ ਮਦਦ ਕਰਦੀ ਹੈ।",
     basePrice: "ਮੂਲ ਕੀਮਤ: {{price}} / ਮਹੀਨਾ",
     startTrial: "7 ਦਿਨਾਂ ਦੀ ਮੁਫ਼ਤ ਅਜ਼ਮਾਇਸ਼ ਸ਼ੁਰੂ ਕਰੋ",
-    trialPrice: "7 ਦਿਨ ਮੁਫ਼ਤ, ਫਿਰ ਮਹੀਨਾਵਾਰ ਮੂਲ ਕੀਮਤ {{price}}। ਭੁਗਤਾਨ ਦਾ ਤਰੀਕਾ ਲੋੜੀਂਦਾ ਹੈ। ਪਹਿਲੀ ਵਸੂਲੀ ਤੋਂ ਬਚਣ ਲਈ ਅਜ਼ਮਾਇਸ਼ ਮੁੱਕਣ ਤੋਂ ਪਹਿਲਾਂ ਰੱਦ ਕਰੋ।",
+    trialPrice: "7 ਦਿਨ ਮੁਫ਼ਤ, ਫਿਰ ਮਹੀਨਾਵਾਰ ਮੂਲ ਕੀਮਤ {{price}}। ਭੁਗਤਾਨ ਵਿਧੀ ਲਾਜ਼ਮੀ ਹੈ; ਪਹਿਲੇ ਚਾਰਜ ਤੋਂ ਬਚਣ ਲਈ ਟ੍ਰਾਇਲ ਖਤਮ ਹੋਣ ਤੋਂ ਪਹਿਲਾਂ ਰੱਦ ਕਰੋ।",
     checkoutPrice: "Stripe ਚੈੱਕਆਉਟ ਵੇਲੇ ਅੰਤਿਮ ਕੀਮਤ ਅਤੇ ਬਿਲਿੰਗ ਮੁਦਰਾ ਦੀ ਪੁਸ਼ਟੀ ਕਰਦਾ ਹੈ।",
   },
   accentColorSettings: {

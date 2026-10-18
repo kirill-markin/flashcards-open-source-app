@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useEffectEvent, useRef, type Dispatch } from "react";
+import { BrowserGuestSessionInvalidatedError } from "../../../api/transport/transport";
 import {
   markIndexedDbOpenRecoveryFailureAndCheckActive,
   type IndexedDbOpenRecoveryState,
@@ -219,6 +220,7 @@ export function useChatSessionHydrationLifecycle(
     void (async (): Promise<void> => {
       try {
         const ensuredSessionId = initialHydrationSessionId ?? await ensureRemoteSessionForHydration();
+        if (isDisposedRef.current || indexedDbOpenRecoveryState.hasFailed()) return;
         const snapshot = await loadAndApplySnapshot(
           ensuredSessionId,
           true,
@@ -239,7 +241,7 @@ export function useChatSessionHydrationLifecycle(
           return;
         }
 
-        if (isDisposedRef.current) {
+        if (isDisposedRef.current || error instanceof BrowserGuestSessionInvalidatedError) {
           return;
         }
 
