@@ -239,21 +239,19 @@ class GooglePlaySubscriptionConnector(
                 failurePhase = GooglePlaySubscriptionFailurePhase.PURCHASE_RECOVERY
                 launchedAccount = account
                 operationState.value = GooglePlaySubscriptionOperationState.Purchasing(account.identity)
-                val result = billingClient.launchBillingFlow(
-                    activity,
-                    BillingFlowParams.newBuilder()
-                        .setObfuscatedAccountId(account.obfuscatedAccountId)
-                        .setProductDetailsParamsList(listOf(BillingFlowParams.ProductDetailsParams.newBuilder()
-                            .setProductDetails(displayedOffer.productDetails)
-                            .setOfferToken(displayedOffer.offerToken).build()))
-                        .build()
-                )
+                val billingFlowParams = BillingFlowParams.newBuilder()
+                    .setObfuscatedAccountId(account.obfuscatedAccountId)
+                    .setProductDetailsParamsList(listOf(BillingFlowParams.ProductDetailsParams.newBuilder()
+                        .setProductDetails(displayedOffer.productDetails)
+                        .setOfferToken(displayedOffer.offerToken).build()))
+                    .build()
+                analytics.track(event = AnalyticsEvent.PurchaseStarted(
+                    offerType = purchaseOfferType(displayedOffer),
+                    presentation = presentation,
+                    screen = analyticsSurface
+                ))
+                val result = billingClient.launchBillingFlow(activity, billingFlowParams)
                 if (result.responseCode == BillingResponseCode.OK) {
-                    analytics.track(event = AnalyticsEvent.PurchaseStarted(
-                        offerType = purchaseOfferType(displayedOffer),
-                        presentation = presentation,
-                        screen = analyticsSurface
-                    ))
                     // The sheet opened. Its outcome reaches the purchases listener, whose operation
                     // waits for this one's lock, so the report is in place before it runs.
                     pendingPurchaseReport = GooglePlayPurchaseReport(analyticsSurface = analyticsSurface, presentation = presentation)

@@ -106,6 +106,8 @@ internal fun PremiumStoreOffer(
     val operation by connector.operation.collectAsStateWithLifecycle()
     var hasRequestedOffer by remember(connector) { mutableStateOf(false) }
     var showPreviewPurchaseNotice by remember(connector, isTestOfferPreview) { mutableStateOf(false) }
+    var isRequestingPurchase by remember(connector, presentation) { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
     val showsCatalog = isTestOfferPreview || presentation != null
     val canLoadOffer = isTestOfferPreview || !isBillingOperationBusy(operation)
     val details = (offerState as? GooglePlaySubscriptionOfferState.Available)?.let {
@@ -189,14 +191,22 @@ internal fun PremiumStoreOffer(
                                         showPreviewPurchaseNotice = true
                                     } else {
                                         activity?.let {
-                                            onChoosePremium()
-                                            connector.purchase(it, state.offer, analyticsSurface, presentation)
+                                            if (!isRequestingPurchase && !isBillingOperationBusy(connector.operation.value) &&
+                                                !requiresPurchaseVerification(connector.operation.value)
+                                            ) {
+                                                isRequestingPurchase = true
+                                                onChoosePremium()
+                                                val purchase = connector.purchase(it, state.offer, analyticsSurface, presentation)
+                                                scope.launch {
+                                                    try { purchase.join() } finally { isRequestingPurchase = false }
+                                                }
+                                            }
                                         }
                                     }
                                 },
                                 enabled = allowance is PremiumAllowanceState.Available &&
                                     (isTestOfferPreview || (activity != null && entitlement != null &&
-                                        !hasPremiumAccess(entitlement) && !isBillingOperationBusy(operation) &&
+                                        !hasPremiumAccess(entitlement) && !isRequestingPurchase && !isBillingOperationBusy(operation) &&
                                         !requiresPurchaseVerification(operation))),
                                 modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp).testTag("premium_purchase")
                             ) { PremiumActionLabel(text = details.purchaseLabel) }

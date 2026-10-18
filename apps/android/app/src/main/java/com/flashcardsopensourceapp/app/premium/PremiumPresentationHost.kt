@@ -33,6 +33,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
@@ -46,8 +47,12 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.flashcardsopensourceapp.app.R
 import com.flashcardsopensourceapp.app.di.AppGraph
 import com.flashcardsopensourceapp.app.store.googlePlaySubscriptionManagementUrl
+import com.flashcardsopensourceapp.app.store.GooglePlaySubscriptionOfferState
+import com.flashcardsopensourceapp.app.store.googlePlaySubscriptionOfferHasFreeTrial
 import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsEvent
 import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsPaywallChoice
+import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsPaywallAccountKind
+import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsPurchaseOfferType
 import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsSubscriptionManagementDestination
 import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsSurface
 import com.flashcardsopensourceapp.data.local.ai.diagnostics.AiChatDiagnosticsLogger
@@ -97,16 +102,27 @@ internal fun PremiumPresentationHost(
     val hasAccess = !isTestOfferPreview && presentation != null && hasPremiumAccess(entitlement = presenter.entitlement)
     val isOfferVisible = !hasAccess && (!isAiLimit || presenter.entitlement != null)
     val billingOperation by appGraph.googlePlaySubscriptionConnector.operation.collectAsStateWithLifecycle()
+    val offerState by appGraph.googlePlaySubscriptionConnector.offer.collectAsStateWithLifecycle()
+    val resources = LocalResources.current
+    val displayedOffer = (offerState as? GooglePlaySubscriptionOfferState.Available)?.offer
+    val displayedOfferType = displayedOffer?.takeIf {
+        isOfferVisible && premiumOfferDetails(it, resources) != null
+    }?.let {
+        if (googlePlaySubscriptionOfferHasFreeTrial(it)) AnalyticsPurchaseOfferType.FREE_TRIAL
+        else AnalyticsPurchaseOfferType.STANDARD
+    }
     val locale = LocalConfiguration.current.locales[0]
     val context = LocalContext.current
     val reportChoice: (AnalyticsPaywallChoice) -> Unit = { outcome ->
-        if (presentation != null && hasReportedShown) {
-            appGraph.analytics.track(AnalyticsEvent.PaywallChoice(presentation, outcome, originSurface))
+        if (presentation != null && presenter.presentation == presentation && hasReportedShown) {
+            appGraph.analytics.track(AnalyticsEvent.PaywallChoice(presentation, outcome, originSurface, displayedOfferType))
         }
     }
     val dismiss: () -> Unit = {
-        reportChoice(AnalyticsPaywallChoice.DISMISSED)
-        presenter.dismiss()
+        if (presenter.reason == reason && presenter.presentation == presentation) {
+            reportChoice(AnalyticsPaywallChoice.DISMISSED)
+            presenter.dismiss()
+        }
     }
 
     LaunchedEffect(presentation, isOfferVisible, sheetState.isVisible, isEditingOwnKey, lifecycleState) {
@@ -135,7 +151,13 @@ internal fun PremiumPresentationHost(
                     timeZone = zone.id,
                     contentVersion = "union-v1",
                     screen = originSurface,
-                    reviewTrigger = presenter.reviewTrigger
+                    reviewTrigger = presenter.reviewTrigger,
+                    accountKind = when (cloudSettings.cloudState) {
+                        CloudAccountState.GUEST -> AnalyticsPaywallAccountKind.GUEST
+                        CloudAccountState.LINKED -> AnalyticsPaywallAccountKind.REGISTERED
+                        else -> null
+                    },
+                    offerType = displayedOfferType
                 )
             )
         }
@@ -254,8 +276,10 @@ internal fun PremiumPresentationHost(
                     }
                     if (isOfferVisible) {
                         PremiumFreePlan(onContinueFree = {
-                            reportChoice(AnalyticsPaywallChoice.FREE)
-                            presenter.dismiss()
+                            if (presenter.reason == reason && presenter.presentation == presentation) {
+                                reportChoice(AnalyticsPaywallChoice.FREE)
+                                presenter.dismiss()
+                            }
                         })
                         PremiumStoreOffer(
                             connector = appGraph.googlePlaySubscriptionConnector,

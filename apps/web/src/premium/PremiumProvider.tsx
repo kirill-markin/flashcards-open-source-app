@@ -53,13 +53,13 @@ export function PremiumProvider(props: Readonly<{ children: ReactNode }>): React
 }
 
 function PremiumSession(props: Readonly<{ children: ReactNode }>): ReactElement {
-  const userId = useAppData().session?.userId ?? null;
+  const { session } = useAppData();
+  const userId = session?.userId ?? null;
   const billingGeneration = readStripeBillingGeneration();
   const entitlement = useEntitlementSnapshot(userId);
   const [presentation, setPresentation] = useState<Presentation | null>(null);
   const pendingRef = useRef<Presentation | null>(null);
   const shownRef = useRef<Presentation | null>(null);
-  const chosenRef = useRef<Presentation | null>(null);
   const revisionRef = useRef(0);
   const currentUserIdRef = useRef(userId);
   currentUserIdRef.current = userId;
@@ -74,6 +74,9 @@ function PremiumSession(props: Readonly<{ children: ReactNode }>): ReactElement 
     setPresentation(null);
   }, []);
   const billing = useAccountStripeBilling(consumePendingOfferContinuation);
+  const displayedOfferType = billing.offer?.checkoutAvailable === true && billing.offer.basePrice !== null
+    && entitlement !== null && !hasPremiumAccess(entitlement, 20)
+    ? session?.profile.email === null || billing.offer.trialEligible === true ? "free_trial" : "standard" : undefined;
   const paywallState = useReviewPaywallState();
   const billingBusyRef = useRef(billing.busy);
   billingBusyRef.current = billing.busy;
@@ -104,7 +107,6 @@ function PremiumSession(props: Readonly<{ children: ReactNode }>): ReactElement 
     revisionRef.current += 1;
     const next = { userId, billingGeneration, request, analytics, functionalPresentationId, revision: revisionRef.current };
     shownRef.current = null;
-    chosenRef.current = null;
     pendingRef.current = next;
     setPresentation(next);
     return request.reason === "offer" && !isPreview && hasPremiumAccess(entitlement, 20) ? "granted" : "presented";
@@ -127,7 +129,9 @@ function PremiumSession(props: Readonly<{ children: ReactNode }>): ReactElement 
     // Email linking resumes the analytics exposure, but is another actual functional appearance.
     if (pending.request.reason === "offer" && pending.request.presentation !== null && pending.request.presentation !== undefined) return;
     track({ name: "paywall_shown", ...pending.analytics, localDate, timeZone,
-      ...(reviewTrigger === null ? {} : { reviewTrigger }), contentVersion: "union-v1" });
+      ...(reviewTrigger === null ? {} : { reviewTrigger }), contentVersion: "union-v1",
+      accountKind: session?.profile.email === null ? "guest" : "registered",
+      ...(displayedOfferType === undefined ? {} : { offerType: displayedOfferType }) });
   }
 
   const isReviewPaywallBusy = useCallback((): boolean => pendingRef.current !== null || billingBusyRef.current
@@ -141,9 +145,10 @@ function PremiumSession(props: Readonly<{ children: ReactNode }>): ReactElement 
   function reportChoice(outcome: "free" | "premium" | "dismissed"): void {
     const pending = pendingRef.current;
     if (pending?.analytics !== null && pending?.analytics !== undefined && shownRef.current === pending
-      && chosenRef.current !== pending && canCollectPaywallAnalytics()) {
-      chosenRef.current = pending;
-      track({ name: "paywall_choice", ...pending.analytics, outcome });
+      && pending.userId === currentUserIdRef.current && pending.billingGeneration === readStripeBillingGeneration()
+      && canCollectPaywallAnalytics()) {
+      track({ name: "paywall_choice", ...pending.analytics, outcome,
+        ...(displayedOfferType === undefined ? {} : { offerType: displayedOfferType }) });
     }
     if (outcome !== "premium") dismiss();
   }

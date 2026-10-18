@@ -64,6 +64,7 @@ final class PremiumPresenter {
     private var awaitingAppleIdentity: AppleSubscriptionIdentity?
     @ObservationIgnored private var shownRequestId: UUID?
     @ObservationIgnored private var shownScreen: AnalyticsSurface?
+    @ObservationIgnored private var displayedOfferType: AnalyticsPurchaseOfferType?
     private(set) var result: PremiumPresentationResult? = nil
 
     @discardableResult
@@ -80,6 +81,7 @@ final class PremiumPresenter {
             analyticsEntryPoint: analyticsEntryPoint,
             identity: identity
         )
+        self.displayedOfferType = nil
         self.hadPremiumAccessAtPresentation = hasPremiumAccess(entitlement: entitlement)
         self.result = nil
         self.request = request
@@ -118,17 +120,24 @@ final class PremiumPresenter {
                 .paywallShown(
                     presentation: presentation,
                     localDate: paywallLocalDate(now: now, timeZone: timeZone),
-                    timeZone: timeZone.identifier
+                    timeZone: timeZone.identifier,
+                    accountKind: request.identity.map { $0.isGuest ? .guest : .registered },
+                    offerType: self.displayedOfferType
                 ),
                 screen: screen
             )
         }
     }
 
+    func updateDisplayedOffer(requestId: UUID, offerType: AnalyticsPurchaseOfferType?) {
+        guard self.request?.id == requestId else { return }
+        self.displayedOfferType = offerType
+    }
+
     func recordChoice(requestId: UUID, outcome: AnalyticsPaywallChoiceOutcome) {
         guard let request = self.request, request.id == requestId,
               self.shownRequestId == requestId, let presentation = request.analyticsPresentation else { return }
-        Analytics.track(.paywallChoice(presentation: presentation, outcome: outcome), screen: self.shownScreen)
+        Analytics.track(.paywallChoice(presentation: presentation, outcome: outcome, offerType: self.displayedOfferType), screen: self.shownScreen)
     }
 
     func awaitAppleConfirmation(requestId: UUID, identity: AppleSubscriptionIdentity?) {
