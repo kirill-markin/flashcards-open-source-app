@@ -16,6 +16,18 @@ const skCatalog: TranslationCatalog = {
     cleanupFailed: "Prihlásenie bolo úspešné, ale ukážkovú kartičku sa nepodarilo odstrániť.",
   },
   stripe: createStripeCatalog(stripeCopy),
+  paywall: {
+    heading: "Učenie patrí všetkým.",
+    freeTitle: "Zadarmo",
+    freeDescription: "Vytvorené pre študentov bez práce. Otvorené pre všetkých. Tvoj batoh je práve ľahší.",
+    freeBenefit: "Základné opakovanie, učenie offline a synchronizácia",
+    continueFree: "Pokračovať zadarmo",
+    creatorSupport: "Tvoje predplatné pomáha tvorcovi Nibomo, {{creator}}, platiť servery a pripravovať ďalšiu aktualizáciu s kávou a pizzou.",
+    basePrice: "Základná cena: {{price}} / mesiac",
+    startTrial: "Začať 7-dňové skúšobné obdobie zadarmo",
+    trialPrice: "7 dní zadarmo, potom mesačná základná cena {{price}}. Vyžaduje sa spôsob platby. Zruš pred koncom skúšobného obdobia, aby sa neúčtovala prvá platba.",
+    checkoutPrice: "Stripe pri platbe potvrdí konečnú cenu a menu účtovania.",
+  },
   accentColorSettings: {
     title: "Farba zvýraznenia",
     subtitle: "Vyberte farbu zvýraznenia aplikácie.",

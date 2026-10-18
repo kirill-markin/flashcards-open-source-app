@@ -16,6 +16,18 @@ const csCatalog: TranslationCatalog = {
     cleanupFailed: "Přihlášení proběhlo úspěšně, ale ukázkovou kartičku se nepodařilo smazat.",
   },
   stripe: createStripeCatalog(stripeCopy),
+  paywall: {
+    heading: "Učení patří všem.",
+    freeTitle: "Zdarma",
+    freeDescription: "Vytvořeno pro studenty bez práce. Otevřeno všem. Tvůj batoh je právě o něco lehčí.",
+    freeBenefit: "Základní opakování, učení offline a synchronizace",
+    continueFree: "Pokračovat zdarma",
+    creatorSupport: "Tvé předplatné pomáhá tvůrci Nibomo, {{creator}}, platit servery a připravovat další aktualizaci s kávou a pizzou.",
+    basePrice: "Základní cena: {{price}} / měsíc",
+    startTrial: "Začít 7denní zkušební období zdarma",
+    trialPrice: "7 dní zdarma, poté měsíční základní cena {{price}}. Je vyžadována platební metoda. Zruš před koncem zkušebního období, aby se neúčtovala první platba.",
+    checkoutPrice: "Stripe při placení potvrdí konečnou cenu a měnu účtování.",
+  },
   accentColorSettings: {
     title: "Barva zvýraznění",
     subtitle: "Vyberte barvu zvýraznění aplikace.",

@@ -16,6 +16,18 @@ const ltCatalog: TranslationCatalog = {
     cleanupFailed: "Prisijungta, bet nepavyko pašalinti demonstracinės kortelės.",
   },
   stripe: createStripeCatalog(stripeCopy),
+  paywall: {
+    heading: "Mokymasis priklauso visiems.",
+    freeTitle: "Nemokamai",
+    freeDescription: "Sukurta darbo neturintiems studentams. Atvira visiems. Tavo kuprinė ką tik palengvėjo.",
+    freeBenefit: "Pagrindiniai kartojimai, mokymasis neprisijungus ir sinchronizavimas",
+    continueFree: "Tęsti nemokamai",
+    creatorSupport: "Tavo prenumerata padeda Nibomo kūrėjui {{creator}} apmokėti serverius ir su kava bei pica rengti kitą atnaujinimą.",
+    basePrice: "Bazinė kaina: {{price}} / mėn.",
+    startTrial: "Pradėti nemokamą 7 dienų bandomąjį laikotarpį",
+    trialPrice: "7 dienos nemokamai, paskui mėnesio bazinė kaina {{price}}. Reikalingas mokėjimo būdas. Atšauk iki bandomojo laikotarpio pabaigos, kad išvengtum pirmojo mokesčio.",
+    checkoutPrice: "Stripe atsiskaitant patvirtina galutinę kainą ir mokėjimo valiutą.",
+  },
   accentColorSettings: {
     title: "Akcento spalva",
     subtitle: "Pasirinkite programėlės akcento spalvą.",

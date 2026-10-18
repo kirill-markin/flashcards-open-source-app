@@ -11,9 +11,9 @@ import { parseStripeSessionId, parseStripeUuid, type StripeCheckout, type Stripe
 import { useAppData } from "../appData";
 import { queueAccentColorWrite } from "../appData/session/accentColorWrite";
 import { readEntitlementIdentityGeneration, readEntitlementSnapshot, subscribeToEntitlement } from "./entitlementStore";
-import { activateVerifiedStripeBillingSession, consumeStripeIntent, isCurrentStripeIntent, isStripeBillingInvalidated,
+import { activateVerifiedStripeBillingSession, consumeStripeContinuation, consumeStripeIntent, isCurrentStripeIntent, isStripeBillingInvalidated,
   readStripeBillingGeneration, readStripeIntent, storeStripeIntent,
-  subscribeToStripeBillingInvalidation, type PremiumContinuation, type StripeIntent } from "./stripeIntent";
+  subscribeToStripeBillingInvalidation, type PaywallPresentation, type PremiumContinuation, type StripeIntent } from "./stripeIntent";
 
 type BillingIdentity = StripeRequestIdentity & Readonly<{ entitlementGeneration: number; billingGeneration: number }>;
 
@@ -22,7 +22,8 @@ export type StripeBilling = Readonly<{
   offer: StripeOffer | null; details: StripeDetails | null; error: unknown;
   status: BillingStatus; busy: boolean;
   refresh: () => Promise<void>;
-  purchase: (continuation: PremiumContinuation | null) => Promise<void>;
+  resumePremiumContinuation: (continuation: PremiumContinuation) => void;
+  purchase: (continuation: PremiumContinuation | null, presentation: PaywallPresentation | null) => Promise<void>;
   manage: (identityId: string) => Promise<void>;
 }>;
 export const StripeBillingContext = createContext<StripeBilling | null>(null);
@@ -33,7 +34,7 @@ export function useStripeBilling(): StripeBilling {
   return billing;
 }
 
-export function useAccountStripeBilling(): StripeBilling {
+export function useAccountStripeBilling(consumePendingOfferContinuation: (continuation: PremiumContinuation) => void): StripeBilling {
   const { session, isSessionVerified, runSync, setAccountPreferences } = useAppData();
   const userId = session?.userId ?? null;
   const csrfToken = session?.csrfToken ?? null;
@@ -94,6 +95,41 @@ export function useAccountStripeBilling(): StripeBilling {
     }
   }, [isCurrent, userId]);
 
+  const applyPremiumContinuation = useCallback((identity: BillingIdentity, continuation: PremiumContinuation): void => {
+    const entitlement = readEntitlementSnapshot(identity.userId);
+    const currentSession = sessionRef.current;
+    if (!isCurrent(identity) || entitlement === null || entitlement.status === "none"
+      || entitlement.tierRank < continuation.requiredRank || currentSession?.userId !== identity.userId) return;
+    const intent = readStripeIntent(identity.userId);
+    if (intent?.continuation?.accentColor === continuation.accentColor
+      && intent.continuation.requiredRank === continuation.requiredRank) consumeStripeContinuation(intent);
+    consumePendingOfferContinuation(continuation);
+    queueAccentColorWrite(identity.userId, continuation.accentColor, currentSession.preferences.accentColor, {
+      apply: (accentColor): void => { if (isCurrent(identity)) setAccountPreferences(identity.userId, { accentColor }); },
+      save: async (accentColor, signal): Promise<string> => {
+        if (!isCurrent(identity)) throw new DOMException("Billing identity changed", "AbortError");
+        const controller = new AbortController();
+        const unsubscribe = subscribeToStripeBillingInvalidation(() => controller.abort());
+        const combined = combineAbortSignals([signal, controller.signal]);
+        try {
+          const response = await updateAccountPreferences({ accentColor }, { userId: identity.userId, signal: combined.signal });
+          if (!isCurrent(identity)) throw new DOMException("Billing identity changed", "AbortError");
+          return response.preferences.accentColor;
+        } finally {
+          combined.dispose();
+          unsubscribe();
+        }
+      },
+      onError: (caught): void => { if (isCurrent(identity)) report(caught); },
+    });
+  }, [consumePendingOfferContinuation, isCurrent, setAccountPreferences]);
+
+  const resumePremiumContinuation = useCallback((continuation: PremiumContinuation): void => {
+    if (userId === null || generationRef.current !== readEntitlementIdentityGeneration()) return;
+    applyPremiumContinuation({ userId, signal: new AbortController().signal,
+      entitlementGeneration: readEntitlementIdentityGeneration(), billingGeneration: readStripeBillingGeneration() }, continuation);
+  }, [applyPremiumContinuation, userId]);
+
   const refreshOwned = useCallback(async (identity: BillingIdentity): Promise<void> => {
     const query = new URLSearchParams(window.location.search);
     const onSubscription = window.location.pathname.endsWith("/settings/subscription");
@@ -111,8 +147,12 @@ export function useAccountStripeBilling(): StripeBilling {
       if (intent === null || intent.attemptId !== query.get("checkout_attempt_id") || intent.reportedReturn === returnKey) return;
       // The mark is analytics state: while the consent question is open nothing may be written to the device,
       // so a reload then may report again rather than lose the still-unsent event for good.
-      if (!isAwaitingAnalyticsConsentDecision() && isCurrentStripeIntent(intent)) storeStripeIntent({ ...intent, reportedReturn: returnKey });
-      track({ name: "purchase_finished", outcome });
+      const currentIntent = readStripeIntent(identity.userId);
+      if (!isAwaitingAnalyticsConsentDecision() && currentIntent !== null
+        && currentIntent.attemptId === intent.attemptId && currentIntent.sessionId === intent.sessionId) {
+        storeStripeIntent({ ...currentIntent, reportedReturn: returnKey });
+      }
+      track({ name: "purchase_finished", outcome, ...intent.presentation });
     };
     let complete = false;
     let expired = false;
@@ -144,34 +184,17 @@ export function useAccountStripeBilling(): StripeBilling {
     if (!isCurrent(identity)) return;
     const entitlement = readEntitlementSnapshot(identity.userId);
     const hasAccess = entitlement !== null && entitlement.status !== "none" && entitlement.tierRank >= 20;
+    const currentIntent = readStripeIntent(identity.userId);
+    const matchingIntent = intent !== null && intent.attemptId === attemptId && intent.sessionId === sessionId
+      && currentIntent?.attemptId === attemptId && currentIntent.sessionId === sessionId ? currentIntent : null;
     if (complete && hasAccess && entitlement !== null) {
       // A copied return link cannot acquire the continuation of a different attempt.
-      const consumed = intent !== null && intent.attemptId === attemptId && intent.sessionId === sessionId ? consumeStripeIntent(intent) : null;
+      const consumed = matchingIntent === null ? null : consumeStripeIntent(matchingIntent);
       const continuation = consumed?.continuation ?? null;
-      const currentSession = sessionRef.current;
-      if (continuation !== null && entitlement.tierRank >= continuation.requiredRank && currentSession?.userId === identity.userId) {
-        queueAccentColorWrite(identity.userId, continuation.accentColor, currentSession.preferences.accentColor, {
-          apply: (accentColor): void => { if (isCurrent(identity)) setAccountPreferences(identity.userId, { accentColor }); },
-          save: async (accentColor, signal): Promise<string> => {
-            if (!isCurrent(identity)) throw new DOMException("Billing identity changed", "AbortError");
-            const controller = new AbortController();
-            const unsubscribe = subscribeToStripeBillingInvalidation(() => controller.abort());
-            const combined = combineAbortSignals([signal, controller.signal]);
-            try {
-              const response = await updateAccountPreferences({ accentColor }, { userId: identity.userId, signal: combined.signal });
-              if (!isCurrent(identity)) throw new DOMException("Billing identity changed", "AbortError");
-              return response.preferences.accentColor;
-            } finally {
-              combined.dispose();
-              unsubscribe();
-            }
-          },
-          onError: (caught): void => { if (isCurrent(identity)) report(caught); },
-        });
-      }
+      if (continuation !== null) applyPremiumContinuation(identity, continuation);
       setStatus("confirmed");
     } else if ((cancelled || expired) && returnError === null) {
-      if (intent !== null && intent.attemptId === attemptId && intent.sessionId === sessionId) consumeStripeIntent(intent);
+      if (matchingIntent !== null) consumeStripeIntent(matchingIntent);
       setStatus("interrupted");
     } else {
       setStatus(attemptId !== null || next.pendingCheckouts.length > 0 ? "delayed" : "idle");
@@ -185,34 +208,37 @@ export function useAccountStripeBilling(): StripeBilling {
       const search = query.toString();
       void navigateRef.current({ pathname: window.location.pathname, search: search === "" ? "" : `?${search}`, hash: window.location.hash }, { replace: true });
     }
-  }, [isCurrent, setAccountPreferences]);
+  }, [applyPremiumContinuation, isCurrent]);
 
   const refresh = useCallback((): Promise<void> => runOperation("confirming", refreshOwned), [refreshOwned, runOperation]);
 
-  const purchase = useCallback((continuation: PremiumContinuation | null): Promise<void> => runOperation("opening", async (identity) => {
+  const purchase = useCallback((continuation: PremiumContinuation | null, presentation: PaywallPresentation | null): Promise<void> => runOperation("opening", async (identity) => {
     const previous = readStripeIntent(identity.userId);
-    const pending: StripeIntent = { userId: identity.userId, attemptId: previous?.attemptId ?? null, sessionId: previous?.sessionId ?? null, continuation: continuation ?? previous?.continuation ?? null, reportedReturn: previous?.reportedReturn ?? null };
+    const pending: StripeIntent = { userId: identity.userId, presentation: presentation ?? previous?.presentation ?? null, attemptId: previous?.attemptId ?? null, sessionId: previous?.sessionId ?? null, continuation: continuation ?? previous?.continuation ?? null, reportedReturn: previous?.reportedReturn ?? null };
     storeStripeIntent(pending);
     let result: StripeCheckout;
     try {
       result = await createStripeCheckout(identity);
     } catch (caught) {
-      if (isCurrent(identity) && !isAuthRedirectError(caught)) track({ name: "purchase_finished", outcome: "failed" });
+      if (isCurrent(identity) && !isAuthRedirectError(caught)) track({ name: "purchase_finished", outcome: "failed", ...pending.presentation });
       throw caught;
     }
     if (!isCurrent(identity)) return;
+    const currentPending = readStripeIntent(identity.userId);
+    if (currentPending === null || (!isCurrentStripeIntent(pending)
+      && !(currentPending.continuation === null && isCurrentStripeIntent({ ...pending, continuation: null })))) return;
     if (result.outcome === "existing_subscription") {
-      if (consumeStripeIntent(pending) === null) return;
+      if (consumeStripeIntent(currentPending) === null) return;
       await refreshOwned(identity);
       return;
     }
-    if (!isCurrentStripeIntent(pending)) return;
-    const pendingContinuation = continuation ?? (previous?.attemptId === result.attemptId ? previous.continuation : null);
-    storeStripeIntent({ userId: identity.userId, attemptId: result.attemptId, sessionId: result.sessionId, continuation: pendingContinuation, reportedReturn: null });
+    const pendingContinuation = continuation !== null || previous?.attemptId === result.attemptId ? currentPending.continuation : null;
+    storeStripeIntent({ userId: identity.userId, presentation: pending.presentation ?? null, attemptId: result.attemptId, sessionId: result.sessionId, continuation: pendingContinuation, reportedReturn: null });
     if (result.outcome === "checkout") {
-      track({ name: "purchase_started", offerType: result.trialDays > 0 ? "free_trial" : "standard" });
+      track({ name: "purchase_started", ...pending.presentation, offerType: result.trialDays > 0 ? "free_trial" : "standard" });
       window.location.assign(result.url);
     } else {
+      track({ name: "purchase_finished", outcome: "completed", ...pending.presentation });
       const query = new URLSearchParams(window.location.search);
       for (const key of ["checkout", "checkout_attempt_id", "checkout_session_id", "portal"]) query.delete(key);
       void navigateRef.current({ pathname: window.location.pathname, search: query.toString(), hash: window.location.hash }, { replace: true });
@@ -264,5 +290,5 @@ export function useAccountStripeBilling(): StripeBilling {
     };
   }, [canLoad, csrfToken, isCurrent, isSessionVerified, refreshOwned, runOperation, userId]);
 
-  return { offer, details, error, status, busy, refresh, purchase, manage };
+  return { offer, details, error, status, busy, refresh, resumePremiumContinuation, purchase, manage };
 }

@@ -16,6 +16,18 @@ const urCatalog: TranslationCatalog = {
     cleanupFailed: "سائن ان کامیاب رہا، لیکن ڈیمو کارڈ ہٹایا نہیں جا سکا۔",
   },
   stripe: createStripeCatalog(stripeCopy),
+  paywall: {
+    heading: "سیکھنا سب کا حق ہے۔",
+    freeTitle: "مفت",
+    freeDescription: "بے روزگار طلبہ کے لیے بنایا گیا۔ سب کے لیے کھلا ہے۔ آپ کا بستہ ذرا ہلکا ہو گیا۔",
+    freeBenefit: "بنیادی دہرائی، آف لائن سیکھنا اور ہم وقت سازی",
+    continueFree: "مفت جاری رکھیں",
+    creatorSupport: "آپ کی رکنیت Nibomo کے تخلیق کار، {{creator}}، کو سرورز کے اخراجات ادا کرنے اور کافی اور پیزا کے ساتھ اگلی اپ ڈیٹ تیار کرنے میں مدد دیتی ہے۔",
+    basePrice: "بنیادی قیمت: {{price}} / ماہ",
+    startTrial: "7 دن کی مفت آزمائش شروع کریں",
+    trialPrice: "7 دن مفت، پھر ماہانہ بنیادی قیمت {{price}}۔ ادائیگی کا طریقہ درکار ہے۔ پہلی ادائیگی سے بچنے کے لیے آزمائش ختم ہونے سے پہلے منسوخ کریں۔",
+    checkoutPrice: "Stripe ادائیگی کے وقت حتمی قیمت اور بل کی کرنسی کی تصدیق کرتا ہے۔",
+  },
   accentColorSettings: {
     title: "نمایاں رنگ",
     subtitle: "ایپ کا نمایاں رنگ منتخب کریں۔",

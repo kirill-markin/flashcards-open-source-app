@@ -16,6 +16,18 @@ const hrCatalog: TranslationCatalog = {
     cleanupFailed: "Prijava je uspjela, ali pokazna kartica nije se mogla ukloniti.",
   },
   stripe: createStripeCatalog(stripeCopy),
+  paywall: {
+    heading: "Učenje pripada svima.",
+    freeTitle: "Besplatno",
+    freeDescription: "Stvoreno za studente bez posla. Otvoreno svima. Tvoj je ruksak upravo postao lakši.",
+    freeBenefit: "Osnovno ponavljanje, učenje izvan mreže i sinkronizacija",
+    continueFree: "Nastavi besplatno",
+    creatorSupport: "Tvoja pretplata pomaže tvorcu Niboma, {{creator}}, platiti poslužitelje i pripremiti sljedeće ažuriranje uz kavu i pizzu.",
+    basePrice: "Osnovna cijena: {{price}} / mjesec",
+    startTrial: "Započni besplatno probno razdoblje od 7 dana",
+    trialPrice: "7 dana besplatno, zatim mjesečna osnovna cijena {{price}}. Potreban je način plaćanja. Otkaži prije kraja probnog razdoblja da izbjegneš prvo terećenje.",
+    checkoutPrice: "Stripe pri plaćanju potvrđuje konačnu cijenu i valutu naplate.",
+  },
   accentColorSettings: {
     title: "Boja naglaska",
     subtitle: "Odaberite boju naglaska aplikacije.",

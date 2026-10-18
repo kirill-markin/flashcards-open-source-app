@@ -16,6 +16,18 @@ const huCatalog: TranslationCatalog = {
     cleanupFailed: "A bejelentkezés sikerült, de a bemutatókártyát nem lehetett törölni.",
   },
   stripe: createStripeCatalog(stripeCopy),
+  paywall: {
+    heading: "A tanulás mindenkié.",
+    freeTitle: "Ingyenes",
+    freeDescription: "Munka nélküli diákoknak készült. Mindenki előtt nyitva áll. A hátizsákod épp könnyebb lett.",
+    freeBenefit: "Alapvető ismétlés, offline tanulás és szinkronizálás",
+    continueFree: "Folytatás ingyenesen",
+    creatorSupport: "Előfizetésed segít a Nibomo készítőjének, {{creator}}, kifizetni a szervereket, és kávéval meg pizzával dolgozni a következő frissítésen.",
+    basePrice: "Alapár: {{price}} / hó",
+    startTrial: "7 napos ingyenes próba indítása",
+    trialPrice: "7 nap ingyenes, utána havi {{price}} alapár. Fizetési mód megadása szükséges. Az első terhelés elkerüléséhez mondd le a próbaidő vége előtt.",
+    checkoutPrice: "A Stripe a fizetéskor megerősíti a végleges árat és a számlázási pénznemet.",
+  },
   accentColorSettings: {
     title: "Kiemelőszín",
     subtitle: "Válaszd ki az alkalmazás kiemelőszínét.",

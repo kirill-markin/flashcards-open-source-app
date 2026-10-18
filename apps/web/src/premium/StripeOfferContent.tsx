@@ -1,57 +1,84 @@
 import type { ReactElement } from "react";
+import { isAwaitingAnalyticsConsentDecision } from "../analytics";
 import { GuestSignIn } from "../screens/settings/account/guest/GuestSignIn";
 import { useAppData } from "../appData";
 import { useI18n } from "../i18n";
-import type { PremiumContinuation } from "./stripeIntent";
+import { canCollectPaywallAnalytics, type PaywallPresentation, type PremiumContinuation } from "./stripeIntent";
 import { StripeBillingFeedback } from "./StripeBillingFeedback";
 import { useStripeBilling } from "./useStripeBilling";
 
-export function StripeOfferContent(props: Readonly<{ continuation: PremiumContinuation | null }>): ReactElement {
+type StripeOfferContentProps = Readonly<{
+  continuation: PremiumContinuation | null;
+  presentation: PaywallPresentation | null;
+  isPreview: boolean;
+  onContinueFree: () => void;
+  onChoosePremium: () => void;
+}>;
+
+export function StripeOfferContent(props: StripeOfferContentProps): ReactElement {
   const { t, formatNumber } = useI18n();
   const { session, isSessionVerified } = useAppData();
   const billing = useStripeBilling();
   const offer = billing.offer;
   const guest = session?.profile.email === null;
   const price = offer?.basePrice === null || offer?.basePrice === undefined ? null
-    : formatNumber(offer.basePrice.unitAmount / 100, { style: "currency", currency: offer.basePrice.currency.toUpperCase() });
+    : formatNumber(offer.basePrice.unitAmount / 100, { style: "currency", currency: offer.basePrice.currency.toUpperCase(), currencyDisplay: "code" });
+  const returnUrl = new URL("/settings/subscription?premium=offer", window.location.origin);
+  if (props.presentation !== null && !props.isPreview && canCollectPaywallAnalytics() && !isAwaitingAnalyticsConsentDecision()) {
+    returnUrl.searchParams.set("premium_presentation_id", props.presentation.presentationId);
+    returnUrl.searchParams.set("premium_entry_point", props.presentation.entryPoint);
+  }
+  if (props.continuation !== null) returnUrl.searchParams.set("premium_accent_color", props.continuation.accentColor);
+  const creatorCopy = t("paywall.creatorSupport").split("{{creator}}");
+  const isPurchasing = !props.isPreview && billing.busy && billing.status === "opening";
+  const canPurchase = offer?.checkoutAvailable === true && price !== null;
   return <section className="premium-offer" data-testid="stripe-offer">
-    <h3 className="panel-subtitle">{t("stripe.offer.title")}</h3>
-    <p className="subtitle">{t("stripe.offer.description")}</p>
-    <ul>
-      {offer?.premiumAiMonthlyMessages === undefined || offer.premiumAiMonthlyMessages === null ? null : <li>
-        {t("stripe.offer.aiBenefit", { count: formatNumber(offer.premiumAiMonthlyMessages) })}
-      </li>}
-      <li>{t("stripe.offer.accentBenefit")}</li>
-    </ul>
-    <p className="subtitle">{t("stripe.offer.syncClarification")}</p>
-    <p className="subtitle">{t("stripe.offer.allowanceWindow")}</p>
-    {guest ? <>
-      <p className="subtitle">{t("stripe.offer.guestExplanation")}</p>
-      <GuestSignIn label={t("stripe.offer.addEmail")} testId="premium-add-email"
-        returnUrl={`${window.location.origin}/settings/subscription?premium=offer`} />
-    </> : <>
-      {price === null ? null : <>
-        <p className="premium-price" data-testid="premium-price">{t(offer?.trialEligible === true ? "stripe.offer.trial" : "stripe.offer.price", { price })}</p>
-        <p className="subtitle">{t("stripe.offer.taxDisclosure")}</p>
-        {offer?.trialEligible === true ? <p className="subtitle">{t("stripe.offer.trialDisclosure", { price })}</p> : null}
-        <p className="subtitle">{t("stripe.offer.trialEligibility")}</p>
-        <p className="subtitle">{t("stripe.offer.renewalDisclosure")}</p>
+    <section className="premium-plan premium-free-plan" aria-labelledby="premium-free-title">
+      <h3 id="premium-free-title" className="panel-subtitle">{t("paywall.freeTitle")}</h3>
+      <p>{t("paywall.freeDescription")}</p>
+      <p className="premium-benefit">{t("paywall.freeBenefit")}</p>
+      <button type="button" className="premium-plan-button premium-free-button" data-testid="premium-continue-free" disabled={isPurchasing} onClick={props.onContinueFree}>
+        {t("paywall.continueFree")}
+      </button>
+    </section>
+    <section className="premium-plan premium-paid-plan" aria-labelledby="premium-paid-title">
+      <h3 id="premium-paid-title" className="panel-subtitle">{t("stripe.offer.title")} <span aria-hidden="true">✦</span></h3>
+      {price === null ? null : <p className="premium-price" data-testid="premium-price">{t("paywall.basePrice", { price })}</p>}
+      <ul>
+        {offer?.premiumAiMonthlyMessages === undefined || offer.premiumAiMonthlyMessages === null ? null : <li>
+          {t("stripe.offer.aiBenefit", { count: formatNumber(offer.premiumAiMonthlyMessages) })}
+        </li>}
+        <li>{t("stripe.offer.accentBenefit")}</li>
+      </ul>
+      <p className="premium-creator-support">{creatorCopy[0]}<a href="https://kirill-markin.com/" target="_blank" rel="noreferrer">Kirill Markin</a>{creatorCopy[1]}</p>
+      {guest ? <>
+        <p>{t("stripe.offer.guestExplanation")}</p>
+        {props.isPreview || !isSessionVerified ? <button type="button" className="premium-plan-button premium-paid-button" disabled>{t("stripe.offer.addEmail")}</button> :
+          <GuestSignIn label={t("stripe.offer.addEmail")} testId="premium-add-email"
+            returnUrl={returnUrl.toString()} onStarted={props.onChoosePremium} />}
+      </> : <>
+        {canPurchase ? <button type="button" className="premium-plan-button premium-paid-button"
+          disabled={props.isPreview || billing.busy || !isSessionVerified} data-testid="premium-purchase"
+          onClick={() => { props.onChoosePremium(); void billing.purchase(props.continuation, props.presentation); }}>
+          {t(offer?.trialEligible === true ? "paywall.startTrial" : "stripe.offer.subscribe")}
+        </button> : <p data-testid="premium-purchase-unavailable" role="status">
+          {t(billing.busy ? "common.loading" : offer?.checkoutUnavailableReason === "checkout_pending" ? "stripe.checkout.delayed"
+            : offer?.checkoutUnavailableReason === "existing_subscription" ? "stripe.portal.headline" : "common.unavailable")}
+        </p>}
+        {price === null ? null : <>
+          {offer?.trialEligible === true ? <p className="premium-renewal">{t("paywall.trialPrice", { price })}</p> : null}
+          <p className="premium-renewal">{t("paywall.checkoutPrice")}</p>
+          <p className="premium-renewal">{t("stripe.offer.renewalDisclosure")}</p>
+        </>}
+        {props.isPreview ? null : <StripeBillingFeedback />}
       </>}
-      {offer?.checkoutAvailable === true && price !== null ? <button type="button" className="primary-btn"
-        disabled={billing.busy || !isSessionVerified} data-testid="premium-purchase"
-        onClick={() => void billing.purchase(props.continuation)}>
-        {t(offer.trialEligible === true ? "stripe.offer.startTrial" : "stripe.offer.subscribe")}
-      </button> : <p className="subtitle" data-testid="premium-purchase-unavailable">
-        {t(offer?.checkoutUnavailableReason === "checkout_pending" ? "stripe.checkout.delayed"
-          : offer?.checkoutUnavailableReason === "existing_subscription" ? "stripe.portal.headline" : "common.unavailable")}
-      </p>}
-      <StripeBillingFeedback />
-      <div className="screen-actions">
-        <button type="button" className="ghost-btn" data-testid="premium-refresh" disabled={billing.busy || !isSessionVerified}
-          onClick={() => void billing.refresh()}>{t("stripe.subscription.refresh")}</button>
-        <a className="ghost-btn" href="/settings/subscription" data-testid="premium-subscription-settings">{t("premium.subscription")}</a>
-      </div>
-    </>}
+      <p className="premium-allowance">{t("stripe.offer.allowanceWindow")}</p>
+    </section>
+    {guest ? null : <div className="screen-actions">
+      <button type="button" className="ghost-btn" data-testid="premium-refresh" disabled={props.isPreview || billing.busy || !isSessionVerified}
+        onClick={() => void billing.refresh()}>{t("stripe.subscription.refresh")}</button>
+      {props.isPreview ? null : <a className="ghost-btn" href="/settings/subscription" data-testid="premium-subscription-settings">{t("premium.subscription")}</a>}
+    </div>}
     <nav className="premium-legal">
       <a href="https://nibomo.com/terms/" target="_blank" rel="noreferrer" data-testid="premium-terms">{t("stripe.legal.terms")}</a>
       <a href="https://nibomo.com/privacy/" target="_blank" rel="noreferrer" data-testid="premium-privacy">{t("stripe.legal.privacy")}</a>
