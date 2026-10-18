@@ -180,10 +180,13 @@ export async function retireGuestCredential(destinationUserId: string): Promise<
     }
     const probe = await probeBrowserGuestSessionWithRegisteredRecovery();
     const session = await getOptionalSession();
-    if (session?.userId !== pending.destinationUserId) throw new Error("The signed-in account changed before credential retirement.");
+    if (session?.authTransport !== "session" || session.browserGuestCapabilities !== null
+      || session.userId !== pending.destinationUserId) throw new Error("The signed-in account changed before credential retirement.");
     await forgetBrowserGuestSession(probe.guestSession.csrfToken ?? probe.registeredSession.csrfToken);
     window.localStorage.removeItem(browserGuestStorageKey);
     window.dispatchEvent(new Event(browserGuestStorageKey));
+    // The ownership event resets transport before the conversion gate releases registered consumers.
+    resumeVerifiedBrowserSession(session);
   });
 }
 
