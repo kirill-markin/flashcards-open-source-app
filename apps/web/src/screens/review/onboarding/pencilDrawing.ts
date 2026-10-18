@@ -39,6 +39,7 @@ function oblongOutline(left: number, top: number, width: number, height: number,
   ];
 }
 function pencilStroke(context: CanvasRenderingContext2D, points: ReadonlyArray<Point>, random: () => number, width: number, pressureProfile: (point: Point) => number): void {
+  const nibScale = width / 6.5;
   for (let index = 1; index < points.length - 1; index += 1) {
     const previous = points[index - 1];
     const next = points[index + 1];
@@ -48,15 +49,15 @@ function pencilStroke(context: CanvasRenderingContext2D, points: ReadonlyArray<P
     const normal = [-tangent[1], tangent[0]];
     const taper = pressureProfile(points[index]);
     const pressure = (.78 + .13 * Math.sin(index * .062) + random() * .19) * taper;
-    const drift = (Math.sin(index * .12) * .5 + (random() - .5) * .7) * taper;
+    const drift = (Math.sin(index * .12) * .5 + (random() - .5) * .7) * taper * nibScale;
     for (let strand = 0; strand < 4; strand += 1) {
       if (random() < .14) continue;
-      const across = ((strand / 3 - .5) * width * pressure) + drift + (random() - .5) * 1.2 * taper;
+      const across = ((strand / 3 - .5) * width * pressure) + drift + (random() - .5) * 1.2 * taper * nibScale;
       const centerX = points[index][0] + normal[0] * across;
       const centerY = points[index][1] + normal[1] * across;
-      const nibLength = (1.1 + random() * 2.4) * (.35 + .65 * taper);
-      const nibWidth = (.35 + random() * .85) * taper;
-      const chip = random() * .6;
+      const nibLength = (1.1 + random() * 2.4) * (.35 + .65 * taper) * nibScale;
+      const nibWidth = (.35 + random() * .85) * taper * nibScale;
+      const chip = random() * .6 * nibScale;
       context.globalAlpha = .38 + random() * .57;
       context.beginPath();
       context.moveTo(centerX - tangent[0] * nibLength, centerY - tangent[1] * nibLength);
@@ -70,7 +71,7 @@ function pencilStroke(context: CanvasRenderingContext2D, points: ReadonlyArray<P
     if (index % 7 === 0 && random() > .3 && taper > .85) {
       const across = (random() - .5) * width;
       context.globalAlpha = .25 + random() * .4;
-      context.lineWidth = .35 + random() * .35;
+      context.lineWidth = (.35 + random() * .35) * nibScale;
       context.beginPath();
       context.moveTo(points[index][0] + normal[0] * across, points[index][1] + normal[1] * across);
       for (let run = 1; run < 8 && index + run < points.length; run += 1) context.lineTo(points[index + run][0] + normal[0] * across, points[index + run][1] + normal[1] * across);
@@ -99,35 +100,43 @@ export type PencilGuideBounds = Readonly<{
   controlBounds: ReadonlyArray<PencilGuideRect>;
 }>;
 
-// Covers the polygon nib, strand drift and contrasting shadow, in either frame.
-const strokeInset = 9;
+// Covers the polygon nib, strand drift and both complete-frame contrast shadows.
+const strokeInset = 14;
+// Includes the scaled nib and three blur radii from each full-frame contrast shadow.
+const compactStrokeInset = 8.5;
 
 function fitLoop(outline: ReadonlyArray<Point>, bounds: PencilGuideBounds): ReadonlyArray<Point> {
+  const minX = Math.min(...outline.map((point) => point[0]));
+  const maxX = Math.max(...outline.map((point) => point[0]));
+  const minY = Math.min(...outline.map((point) => point[1]));
+  const maxY = Math.max(...outline.map((point) => point[1]));
+  const outlineCenterX = (minX + maxX) / 2;
+  const outlineCenterY = (minY + maxY) / 2;
+  const centerX = bounds.left + bounds.width / 2;
+  const centerY = bounds.top + bounds.height / 2;
+  const desiredHalfWidth = (maxX - minX) / 2;
+  const desiredHalfHeight = (maxY - minY) / 2;
   let availableLeft = 0;
   let availableTop = 0;
   let availableRight = bounds.surfaceWidth;
   let availableBottom = bounds.surfaceHeight;
   for (const control of bounds.controlBounds) {
-    if (control.top < bounds.top + bounds.height && control.bottom > bounds.top) {
+    if (control.top < centerY + desiredHalfHeight + strokeInset
+      && control.bottom > centerY - desiredHalfHeight - strokeInset) {
       if (control.right <= bounds.left) availableLeft = Math.max(availableLeft, control.right);
       if (control.left >= bounds.left + bounds.width) availableRight = Math.min(availableRight, control.left);
     }
-    if (control.left < bounds.left + bounds.width && control.right > bounds.left) {
+    if (control.left < centerX + desiredHalfWidth + strokeInset
+      && control.right > centerX - desiredHalfWidth - strokeInset) {
       if (control.bottom <= bounds.top) availableTop = Math.max(availableTop, control.bottom);
       if (control.top >= bounds.top + bounds.height) availableBottom = Math.min(availableBottom, control.top);
     }
   }
-  const minX = Math.min(...outline.map((point) => point[0]));
-  const maxX = Math.max(...outline.map((point) => point[0]));
-  const minY = Math.min(...outline.map((point) => point[1]));
-  const maxY = Math.max(...outline.map((point) => point[1]));
-  const left = Math.max(minX, availableLeft + strokeInset);
-  const right = Math.min(maxX, availableRight - strokeInset);
-  const top = Math.max(minY, availableTop + strokeInset);
-  const bottom = Math.min(maxY, availableBottom - strokeInset);
+  const halfWidth = Math.min(desiredHalfWidth, centerX - availableLeft - strokeInset, availableRight - centerX - strokeInset);
+  const halfHeight = Math.min(desiredHalfHeight, centerY - availableTop - strokeInset, availableBottom - centerY - strokeInset);
   return outline.map(([x, y]): Point => [
-    left + (x - minX) * (right - left) / (maxX - minX),
-    top + (y - minY) * (bottom - top) / (maxY - minY),
+    centerX + (x - outlineCenterX) * halfWidth / desiredHalfWidth,
+    centerY + (y - outlineCenterY) * halfHeight / desiredHalfHeight,
   ]);
 }
 
@@ -184,17 +193,21 @@ function chooseArrowRoute(bounds: PencilGuideBounds, outline: ReadonlyArray<Poin
       ? Math.min(bounds.left + bounds.width, ...nearbyContent.map((rect) => rect.left))
       : Math.max(bounds.left, ...nearbyContent.map((rect) => rect.right));
     const tipX = side === -1 ? contentEdge / 2 : (contentEdge + bounds.surfaceWidth) / 2;
-    const ringTop = Math.min(...outline.filter((point) => Math.abs(point[0] - tipX) < 3).map((point) => point[1]));
+    const ringEdgeX = side === -1
+      ? Math.min(...outline.map((point) => point[0]))
+      : Math.max(...outline.map((point) => point[0]));
+    const ringX = side === -1 ? Math.max(tipX, ringEdgeX) : Math.min(tipX, ringEdgeX);
+    const ringTop = Math.min(...outline.filter((point) => Math.abs(point[0] - ringX) < 3).map((point) => point[1]));
     const apex: Point = [tipX, ringTop - 17.5];
     for (const length of [64, 48, 36]) {
       const route: ArrowRoute = {
         apex,
         shaft: sampleCubic([tipX + side * .7, apex[1] - length + wobble * .3],
           [tipX - side * 1.2, apex[1] - length - 2], [tipX, apex[1] - 22], apex),
-        legA: sampleLine([tipX - 13 * Math.sin(.23), apex[1] - 13 * Math.cos(.23)], apex),
-        legB: sampleLine([tipX + 13 * Math.sin(.23), apex[1] - 13 * Math.cos(.23) + wobble * .2], apex),
-        width: 3,
-        inset: 8,
+        legA: sampleLine([tipX - 13 * Math.sin(.18), apex[1] - 13 * Math.cos(.18)], apex),
+        legB: sampleLine([tipX + 13 * Math.sin(.18), apex[1] - 13 * Math.cos(.18) + wobble * .2], apex),
+        width: 2,
+        inset: compactStrokeInset,
       };
       if (arrowFits(route, bounds)) return route;
     }
