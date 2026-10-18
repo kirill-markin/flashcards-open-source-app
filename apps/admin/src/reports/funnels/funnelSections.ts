@@ -31,6 +31,11 @@ import {
   paywallFunnelTitle,
 } from "../paywallFunnel/PaywallFunnelSection";
 import {
+  SignInFunnelSection,
+  signInFunnelAnchor,
+  signInFunnelTitle,
+} from "../signInFunnel/SignInFunnelSection";
+import {
   HomeToWebAppFunnelSection,
   homeToWebAppFunnelAnchor,
   homeToWebAppFunnelTitle,
@@ -58,10 +63,6 @@ export type FunnelSectionDefinition = Readonly<{
 }>;
 
 /**
- * Every funnel on the Funnels area, top to bottom. The order is fixed: mobile first launch, home page
- * to web app, deck page to install, blog article to platform choice, blog article to web app, paywall
- * to purchase. A new funnel is inserted here at its place and nowhere else.
- *
  * THE FUNNEL RULE, which every funnel here follows: each step grows by at most one per person, and a
  * person counts at a step only if the same person reached every earlier step.
  *
@@ -134,6 +135,12 @@ export const funnelSections: ReadonlyArray<FunnelSectionDefinition> = [
     title: blogToWebAppFunnelTitle,
     filterFields: [],
     Section: BlogToWebAppFunnelSection,
+  },
+  {
+    anchor: signInFunnelAnchor,
+    title: signInFunnelTitle,
+    filterFields: [],
+    Section: SignInFunnelSection,
   },
   {
     anchor: paywallFunnelAnchor,
