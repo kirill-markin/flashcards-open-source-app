@@ -413,7 +413,7 @@ protocol GuestCloudAuthServing {
         apiBaseUrl: String,
         bearerToken: String,
         guestToken: String
-    ) async throws -> CloudGuestUpgradeMode
+    ) async throws -> CloudGuestUpgradePreparation
     func completeGuestUpgrade(
         apiBaseUrl: String,
         bearerToken: String,

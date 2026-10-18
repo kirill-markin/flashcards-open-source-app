@@ -30,7 +30,6 @@ private struct GuestSessionEnvelope: Decodable {
 
 private struct GuestSessionCreateRequest: Encodable {
     let platform: String
-    /// Omitted when absent, which is the unbound creation every shipped version performs.
     let idempotencyKey: String?
 }
 
@@ -52,12 +51,14 @@ private struct GuestUpgradePrepareRequest: Encodable {
 
 private struct GuestUpgradePrepareEnvelope: Decodable {
     let mode: CloudGuestUpgradeMode
+    let demoOnlyDestinationWorkspaceId: String?
 }
 
 private struct GuestUpgradeCompleteRequest: Encodable {
     struct Selection: Encodable {
         let type: String
         let workspaceId: String?
+        let discardDemoOnly: Bool?
     }
 
     let guestToken: String
@@ -205,7 +206,7 @@ final class GuestCloudAuthService {
         apiBaseUrl: String,
         bearerToken: String,
         guestToken: String
-    ) async throws -> CloudGuestUpgradeMode {
+    ) async throws -> CloudGuestUpgradePreparation {
         let response: GuestUpgradePrepareEnvelope = try await self.request(
             apiBaseUrl: apiBaseUrl,
             authorizationHeader: "Bearer \(bearerToken)",
@@ -213,7 +214,15 @@ final class GuestCloudAuthService {
             method: "POST",
             body: GuestUpgradePrepareRequest(guestToken: guestToken)
         )
-        return response.mode
+        if let workspaceId = response.demoOnlyDestinationWorkspaceId {
+            guard response.mode == .mergeRequired, UUID(uuidString: workspaceId) != nil else {
+                throw GuestCloudAuthError.invalidResponseBody("Invalid demo-only guest upgrade destination: \(workspaceId)")
+            }
+        }
+        return CloudGuestUpgradePreparation(
+            mode: response.mode,
+            demoOnlyDestinationWorkspaceId: response.demoOnlyDestinationWorkspaceId
+        )
     }
 
     func completeGuestUpgrade(
@@ -229,12 +238,20 @@ final class GuestCloudAuthService {
         case .existing(let workspaceId):
             requestSelection = GuestUpgradeCompleteRequest.Selection(
                 type: "existing",
-                workspaceId: workspaceId
+                workspaceId: workspaceId,
+                discardDemoOnly: nil
+            )
+        case .discardDemoOnly(let workspaceId):
+            requestSelection = GuestUpgradeCompleteRequest.Selection(
+                type: "existing",
+                workspaceId: workspaceId,
+                discardDemoOnly: true
             )
         case .createNew:
             requestSelection = GuestUpgradeCompleteRequest.Selection(
                 type: "create_new",
-                workspaceId: nil
+                workspaceId: nil,
+                discardDemoOnly: nil
             )
         }
 

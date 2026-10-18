@@ -132,6 +132,7 @@ final class GuestCloudUpgradePendingResumeTests: XCTestCase {
             workspaces: [],
             preferences: makeDefaultAccountPreferences(),
             guestUpgradeMode: .mergeRequired,
+            demoOnlyDestinationWorkspaceId: nil,
             postAuthRecoveryRoute: .none
         )
 

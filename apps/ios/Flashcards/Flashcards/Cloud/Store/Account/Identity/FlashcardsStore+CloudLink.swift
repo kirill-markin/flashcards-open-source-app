@@ -170,7 +170,7 @@ extension FlashcardsStore {
             prevalidatedAccount = nil
         }
 
-        let guestUpgradeMode = try await self.prepareGuestUpgradeModeIfNeeded(
+        let guestUpgradePreparation = try await self.prepareGuestUpgradeIfNeeded(
             verifiedContext: verifiedContext,
             detectedAt: detectedAt
         )
@@ -198,7 +198,8 @@ extension FlashcardsStore {
             credentials: verifiedContext.credentials,
             workspaces: try self.workspacesForCloudCredentialReplacement(account: account),
             preferences: account.preferences,
-            guestUpgradeMode: guestUpgradeMode,
+            guestUpgradeMode: guestUpgradePreparation?.mode,
+            demoOnlyDestinationWorkspaceId: guestUpgradePreparation?.demoOnlyDestinationWorkspaceId,
             postAuthRecoveryRoute: postAuthRecoveryRoute
         )
     }
@@ -236,6 +237,7 @@ extension FlashcardsStore {
             workspaces: [expectedWorkspace],
             preferences: account.preferences,
             guestUpgradeMode: nil,
+            demoOnlyDestinationWorkspaceId: nil,
             postAuthRecoveryRoute: .linkedCredentialRestore
         )
     }
@@ -255,6 +257,7 @@ extension FlashcardsStore {
             workspaces: account.workspaces,
             preferences: account.preferences,
             guestUpgradeMode: nil,
+            demoOnlyDestinationWorkspaceId: nil,
             postAuthRecoveryRoute: postAuthRecoveryRoute
         )
     }
@@ -645,6 +648,7 @@ extension FlashcardsStore {
             workspaces: linkContext.workspaces,
             preferences: linkContext.preferences,
             guestUpgradeMode: linkContext.guestUpgradeMode,
+            demoOnlyDestinationWorkspaceId: linkContext.demoOnlyDestinationWorkspaceId,
             postAuthRecoveryRoute: linkContext.postAuthRecoveryRoute
         )
     }
@@ -753,7 +757,12 @@ extension FlashcardsStore {
             workspaces: account.workspaces,
             preferences: account.preferences,
             guestUpgradeMode: nil,
+            demoOnlyDestinationWorkspaceId: nil,
             postAuthRecoveryRoute: .pendingGuestUpgradeRecovery
+        )
+        try self.validatePendingGuestUpgradeAccountIfNeeded(
+            userId: account.userId,
+            apiBaseUrl: verifiedContext.apiBaseUrl
         )
         try self.validateCloudCredentialRecoveryAccountBeforeIdentityReset(
             account: account,
@@ -766,6 +775,9 @@ extension FlashcardsStore {
                 localizedCloudCredentialRecoveryInterruptedUpgradeAccountMessage()
             )
         }
+        guard account.workspaces.contains(where: { $0.workspaceId == completedGuestUpgradeWorkspace.workspaceId }) else {
+            throw LocalStoreError.validation(localizedCloudCredentialRecoveryBlockedMessage(reason: .linkedWorkspaceUnavailable))
+        }
         try self.resetLocalStateIfLinkedUserDiffers(nextUserId: account.userId)
 
         self.globalErrorMessage = ""
@@ -777,6 +789,7 @@ extension FlashcardsStore {
             workspaces: [completedGuestUpgradeWorkspace],
             preferences: account.preferences,
             guestUpgradeMode: nil,
+            demoOnlyDestinationWorkspaceId: nil,
             postAuthRecoveryRoute: .pendingGuestUpgradeRecovery
         )
     }

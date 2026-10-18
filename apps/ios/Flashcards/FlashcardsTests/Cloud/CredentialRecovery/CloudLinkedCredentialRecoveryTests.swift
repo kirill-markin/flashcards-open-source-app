@@ -381,7 +381,7 @@ final class CloudLinkedCredentialRecoveryTests: CloudCredentialRecoveryTestCase 
         XCTAssertEqual([expectedWorkspace], linkContext.workspaces)
         XCTAssertEqual(
             .autoLink(.existing(workspaceId: expectedWorkspace.workspaceId)),
-            makeCloudWorkspacePostAuthRoute(linkContext: linkContext)
+            makeCloudWorkspacePostAuthRoute(linkContext: linkContext, pendingGuestUpgradeState: nil)
         )
 
         try await store.completeCloudLink(
@@ -526,6 +526,7 @@ final class CloudLinkedCredentialRecoveryTests: CloudCredentialRecoveryTestCase 
             workspaces: [expectedWorkspace],
             preferences: makeDefaultAccountPreferences(),
             guestUpgradeMode: nil,
+            demoOnlyDestinationWorkspaceId: nil,
             postAuthRecoveryRoute: .none
         )
         let completionTask: Task<Void, Error> = Task { @MainActor in
@@ -768,6 +769,7 @@ final class CloudLinkedCredentialRecoveryTests: CloudCredentialRecoveryTestCase 
             ],
             preferences: makeDefaultAccountPreferences(),
             guestUpgradeMode: nil,
+            demoOnlyDestinationWorkspaceId: nil,
             postAuthRecoveryRoute: .linkedCredentialRestore
         )
 

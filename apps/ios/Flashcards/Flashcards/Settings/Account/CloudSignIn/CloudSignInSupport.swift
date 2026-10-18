@@ -460,7 +460,12 @@ func makeCloudPostAuthFailurePresentation(
         return CloudPostAuthFailurePresentation(
             title: aiSettingsLocalized("settings.account.cloudSignIn.failure.accountUpgradeFailed", "Signed in, but account upgrade failed."),
             message: nil,
-            retryAction: .completeGuestLink(linkContext: linkContext, selection: selection),
+            retryAction: linkContext.demoOnlyDestinationWorkspaceId == nil
+                ? .completeGuestLink(linkContext: linkContext, selection: selection)
+                : .prepareLink(verifiedContext: CloudVerifiedAuthContext(
+                    apiBaseUrl: linkContext.apiBaseUrl,
+                    credentials: linkContext.credentials
+                )),
             kind: .standard
         )
     case .syncOnly:
@@ -508,17 +513,22 @@ func isSafeCloudPostAuthDomainFailure(error: Error) -> Bool {
 private enum SafeCloudPostAuthDomainFailure {
     case bootstrapEligibility(String)
     case credentialRecovery(String)
+    case guestUpgradeEligibility(String)
 
     var message: String {
         switch self {
         case .bootstrapEligibility(let message),
-             .credentialRecovery(let message):
+             .credentialRecovery(let message),
+             .guestUpgradeEligibility(let message):
             return message
         }
     }
 }
 
 private func safeCloudPostAuthDomainFailure(error: Error) -> SafeCloudPostAuthDomainFailure? {
+    if isDemoOnlyGuestUpgradeEligibilityRefusal(error: error) {
+        return .guestUpgradeEligibility(error.localizedDescription)
+    }
     if let bootstrapError = error as? CloudBootstrapEligibilityError {
         switch bootstrapError {
         case .remoteWorkspaceIsNotEmpty:
@@ -695,7 +705,10 @@ enum CloudWorkspacePostAuthRoute: Equatable {
     case guestLocalRecoveryNeeded
 }
 
-func makeCloudWorkspacePostAuthRoute(linkContext: CloudWorkspaceLinkContext) -> CloudWorkspacePostAuthRoute {
+func makeCloudWorkspacePostAuthRoute(
+    linkContext: CloudWorkspaceLinkContext,
+    pendingGuestUpgradeState: PendingGuestUpgradeState?
+) -> CloudWorkspacePostAuthRoute {
     switch linkContext.postAuthRecoveryRoute {
     case .guestLocalRecovery:
         return .autoLink(.createNew)
@@ -709,6 +722,17 @@ func makeCloudWorkspacePostAuthRoute(linkContext: CloudWorkspaceLinkContext) -> 
         return .autoLink(.existing(workspaceId: workspace.workspaceId))
     case .none, .pendingGuestUpgradeRecovery:
         break
+    }
+
+    if let workspaceId = linkContext.demoOnlyDestinationWorkspaceId {
+        return .autoLink(.existing(workspaceId: workspaceId))
+    }
+    if let pendingGuestUpgradeState,
+       case .selectionRequired = pendingGuestUpgradeState,
+       pendingGuestUpgradeState.common.userId == linkContext.userId,
+       pendingGuestUpgradeState.common.apiBaseUrl == linkContext.apiBaseUrl,
+       linkContext.guestUpgradeMode == .mergeRequired {
+        return .chooseWorkspace
     }
 
     let workspaces = linkContext.workspaces

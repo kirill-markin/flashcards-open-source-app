@@ -470,14 +470,17 @@ struct CloudSignInSheet: View {
         self.store.cloudSignInAttempt.isSendingCode = false
     }
 
-    private func handlePreparedLinkContext(_ linkContext: CloudWorkspaceLinkContext) {
+    private func handlePreparedLinkContext(_ linkContext: CloudWorkspaceLinkContext) throws {
         self.store.cloudSignInAttempt.authErrorPresentation = nil
         self.store.cloudSignInAttempt.postAuthLoadingState = nil
         self.store.cloudSignInAttempt.postAuthGuestLocalRecoveryPreparationState = nil
         self.store.cloudSignInAttempt.postAuthRecoveryNeededState = nil
         self.store.cloudSignInAttempt.postAuthFailureState = nil
 
-        switch makeCloudWorkspacePostAuthRoute(linkContext: linkContext) {
+        switch makeCloudWorkspacePostAuthRoute(
+            linkContext: linkContext,
+            pendingGuestUpgradeState: try self.store.loadPendingGuestUpgradeState()
+        ) {
         case .autoLink(let selection):
             if linkContext.postAuthRecoveryRoute == .guestLocalRecovery {
                 let nextState = CloudPostAuthGuestLocalRecoveryPreparationState(
@@ -549,7 +552,7 @@ struct CloudSignInSheet: View {
                 return
             }
             self.store.cloudSignInAttempt.postAuthFailureState = nil
-            self.handlePreparedLinkContext(linkContext)
+            try self.handlePreparedLinkContext(linkContext)
         } catch {
             guard self.store.cloudSignInAttempt.postAuthLoadingState?.id == loadingState.id else {
                 return
@@ -738,7 +741,7 @@ struct CloudSignInSheet: View {
             if self.store.cloudSignInAttempt.usesNativeSession {
                 switch syncState.operation {
                 case .completeLink(let context, let selection): retryAction = .completeLink(linkContext: context, selection: selection)
-                case .completeGuestLink(let context, let selection): retryAction = .completeGuestLink(linkContext: context, selection: selection)
+                case .completeGuestLink: retryAction = failurePresentation.retryAction
                 case .syncOnly: retryAction = .syncOnly
                 }
             } else {
