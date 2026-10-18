@@ -4,6 +4,18 @@ import type { TranslationCatalog } from "../catalogTypes";
 
 const zuCatalog: TranslationCatalog = {
   stripe: createStripeCatalog(stripeCopy),
+  paywall: {
+    heading: "Ukufunda kungokwawo wonke umuntu.",
+    freeTitle: "Mahhala",
+    freeDescription: "Kwenzelwe abafundi abangasebenzi. Kuvulekele wonke umuntu. Ubhaka wakho usulula manje.",
+    freeBenefit: "Ukubuyekeza okuyisisekelo, ukufunda ungaxhunyiwe nokuvumelanisa",
+    continueFree: "Qhubeka mahhala",
+    creatorSupport: "Ukubhalisa kwakho kusiza umdali we-Nibomo, {{creator}}, ukukhokhela amaseva nokulungiselela isibuyekezo esilandelayo ngekhofi ne-pizza.",
+    basePrice: "Intengo eyisisekelo: {{price}} / ngenyanga",
+    startTrial: "Qala isivivinyo samahhala sezinsuku eziyi-7",
+    trialPrice: "Izinsuku eziyi-7 mahhala, bese kuba intengo eyisisekelo yanyanga zonke engu-{{price}}. Kudingeka indlela yokukhokha. Khansela ngaphambi kokuphela kwesivivinyo ukuze ugweme inkokhelo yokuqala.",
+    checkoutPrice: "I-Stripe iqinisekisa intengo yokugcina nemali ozokhokha ngayo lapho ukhokha.",
+  },
   accentColorSettings: {
     title: "Umbala wokugqamisa",
     subtitle: "Khetha umbala wokugqamisa wohlelo lokusebenza.",

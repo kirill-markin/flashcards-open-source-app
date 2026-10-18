@@ -327,7 +327,8 @@ internal class FakeAiChatRepository : AiChatRepository {
     var aiUsageStatus: AiUsageStatus = AiUsageStatus(
         monthEndsAtMillis = 0L,
         remainingMessages = null,
-        ownKeyMessages = 0
+        ownKeyMessages = 0,
+        premiumAiMonthlyMessages = 1000
     )
     val bootstrapResponses: ArrayDeque<AiChatBootstrapResponse> = ArrayDeque()
     val loadBootstrapGates: ArrayDeque<CompletableDeferred<Unit>> = ArrayDeque()

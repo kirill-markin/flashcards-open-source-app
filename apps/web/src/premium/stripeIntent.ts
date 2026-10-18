@@ -1,3 +1,4 @@
+import { isAnalyticsEnabledForCurrentRuntime, isAwaitingAnalyticsConsentDecision, isProductAnalyticsCollectionEnabled, type AnalyticsPaywallEntryPoint } from "../analytics";
 import { ApiContractError, parseObject, parseString } from "../apiContracts/core";
 import { parseStripeSessionId, parseStripeUuid } from "../apiContracts/stripeBilling";
 import type { SessionInfo } from "../types";
@@ -51,12 +52,46 @@ if (typeof window !== "undefined") {
   });
 }
 
+export function canCollectPaywallAnalytics(): boolean {
+  return isAnalyticsEnabledForCurrentRuntime() && isProductAnalyticsCollectionEnabled();
+}
+
+export type PaywallPresentation = Readonly<{ presentationId: string; entryPoint: AnalyticsPaywallEntryPoint }>;
+
+export function parsePaywallPresentation(presentationId: unknown, entryPoint: unknown): PaywallPresentation {
+  const entries: ReadonlyArray<AnalyticsPaywallEntryPoint> = ["subscription_settings", "ai_limit", "accent_color", "review_animations", "ai_chat_suggestions", "app_icon", "guest_return", "review", "ai_low_balance"];
+  if (typeof entryPoint !== "string" || !entries.includes(entryPoint as AnalyticsPaywallEntryPoint)) {
+    throw new ApiContractError("Premium return", "entryPoint", "paywall entry point");
+  }
+  return { presentationId: parseStripeUuid(presentationId, "Premium return", "presentationId"), entryPoint: entryPoint as AnalyticsPaywallEntryPoint };
+}
+
+export function readPaywallReturn(query: URLSearchParams): PaywallPresentation | null {
+  if (!canCollectPaywallAnalytics() || !query.has("premium_presentation_id")) return null;
+  return parsePaywallPresentation(query.get("premium_presentation_id"), query.get("premium_entry_point"));
+}
+
 export type PremiumContinuation = Readonly<{ accentColor: string; requiredRank: number }>;
+
+function parsePremiumContinuation(value: unknown): PremiumContinuation {
+  const pending = parseObject(value, "Premium continuation", "continuation");
+  const color = parseString(pending.accentColor, "Premium continuation", "accentColor");
+  if (!/^#[0-9A-F]{6}$/.test(color) || pending.requiredRank !== 20) {
+    throw new ApiContractError("Premium continuation", "continuation", "accent color Premium intent");
+  }
+  return { accentColor: color, requiredRank: 20 };
+}
+
+export function readPremiumReturnContinuation(query: URLSearchParams): PremiumContinuation | null {
+  return query.has("premium_accent_color")
+    ? parsePremiumContinuation({ accentColor: query.get("premium_accent_color"), requiredRank: 20 }) : null;
+}
 export type StripeIntent = Readonly<{
   userId: string;
   attemptId: string | null;
   sessionId: string | null;
   continuation: PremiumContinuation | null;
+  presentation?: PaywallPresentation | null;
   // The `checkout:attemptId` return already reported as `purchase_finished` for this attempt.
   reportedReturn: string | null;
 }>;
@@ -66,7 +101,7 @@ export function clearStripeIntent(): void {
 }
 
 export function storeStripeIntent(intent: StripeIntent): void {
-  window.localStorage.setItem(intentKey, JSON.stringify(intent));
+  window.localStorage.setItem(intentKey, JSON.stringify({ ...intent, presentation: canCollectPaywallAnalytics() && !isAwaitingAnalyticsConsentDecision() ? intent.presentation : null }));
 }
 
 export function readStripeIntent(userId: string): StripeIntent | null {
@@ -84,18 +119,15 @@ export function readStripeIntent(userId: string): StripeIntent | null {
     }
     let continuation: PremiumContinuation | null = null;
     if (value.continuation !== null) {
-      const pending = parseObject(value.continuation, "localStorage", "stripeIntent.continuation");
-      const color = parseString(pending.accentColor, "localStorage", "stripeIntent.accentColor");
-      if (!/^#[0-9A-F]{6}$/.test(color) || pending.requiredRank !== 20) {
-        throw new ApiContractError("localStorage", "stripeIntent.continuation", "accent color Premium intent");
-      }
-      continuation = { accentColor: color, requiredRank: 20 };
+      continuation = parsePremiumContinuation(value.continuation);
     }
     return {
       userId, continuation,
+      presentation: value.presentation === undefined || value.presentation === null || !canCollectPaywallAnalytics() ? null
+        : parsePaywallPresentation(parseObject(value.presentation, "localStorage", "stripeIntent.presentation").presentationId,
+          parseObject(value.presentation, "localStorage", "stripeIntent.presentation").entryPoint),
       attemptId: value.attemptId === null ? null : parseStripeUuid(value.attemptId, "localStorage", "stripeIntent.attemptId"),
       sessionId: value.sessionId === null ? null : parseStripeSessionId(value.sessionId, "localStorage", "stripeIntent.sessionId"),
-      // Absent on an intent stored by an earlier build before its checkout returned.
       reportedReturn: value.reportedReturn === undefined || value.reportedReturn === null
         ? null : parseString(value.reportedReturn, "localStorage", "stripeIntent.reportedReturn"),
     };
@@ -116,4 +148,10 @@ export function consumeStripeIntent(expected: StripeIntent): StripeIntent | null
   if (!isCurrentStripeIntent(expected)) return null;
   clearStripeIntent();
   return expected;
+}
+
+export function consumeStripeContinuation(expected: StripeIntent): PremiumContinuation | null {
+  if (!isCurrentStripeIntent(expected)) return null;
+  storeStripeIntent({ ...expected, continuation: null });
+  return expected.continuation;
 }

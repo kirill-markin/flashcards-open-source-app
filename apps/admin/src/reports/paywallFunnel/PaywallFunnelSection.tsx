@@ -13,6 +13,7 @@ import {
 import { FunnelMaturingWarning } from "../funnels/FunnelMaturingWarning";
 import type { FunnelSectionProps } from "../funnels/funnelSections";
 import { FunnelStepsChart, type FunnelStage } from "../funnels/FunnelStepsChart";
+import { PaywallPresentations } from "./PaywallPresentations";
 import {
   loadPaywallFunnelReport,
   paywallFunnelGroupByDimensions,
@@ -32,7 +33,6 @@ type FunnelLoadState =
     dimension: FunnelGroupByDimension | null;
   }>;
 
-/** The three funnel steps in chart order; `buildStages` takes its order from this list. */
 const funnelStepIds = ["paywall-shown", "purchase-started", "converted"] as const;
 
 type FunnelStepId = (typeof funnelStepIds)[number];
@@ -48,7 +48,6 @@ function getErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : "Unexpected paywall funnel error.";
 }
 
-/** The short note shown when the selected range starts before `paywallFunnelStartDate`, or `null`. */
 function buildStartDateNote(dateRange: AnalyticsFilterState["dateRange"]): string | null {
   if (dateRange.to < paywallFunnelStartDate) {
     return `Paywall entries count from ${paywallFunnelStartDate}, the first day the paywall events could be reported, so the selected range has no data.`;
@@ -59,9 +58,7 @@ function buildStartDateNote(dateRange: AnalyticsFilterState["dateRange"]): strin
     : null;
 }
 
-/** The three steps of one group. There are no cookieless people here, so every `hashedCount` is zero. */
 function buildStages(counts: PaywallFunnelCounts): ReadonlyArray<FunnelStage<FunnelStepId>> {
-  // Keyed by id, so the compiler demands every step exactly once; the order comes from `funnelStepIds`.
   const stages: Readonly<
     Record<FunnelStepId, Readonly<{ label: string; count: number; hashedCount: number }>>
   > = {
@@ -142,9 +139,6 @@ export function PaywallFunnelSection(props: FunnelSectionProps): JSX.Element {
     [report],
   );
   const stages = useMemo(() => (totals === null ? [] : buildStages(totals)), [totals]);
-  // The loaded dimension rather than the selected one decides whether there are groups to draw, for
-  // the reason `MobileFirstLaunchFunnelSection` gives: for one render after a pick the report in hand
-  // is still the previous dimension's.
   const groups = useMemo<ReadonlyArray<FunnelGroup<FunnelStepId>> | null>(() => {
     const loadedDimension = readyState === null ? null : readyState.dimension;
     if (readyState === null || loadedDimension === null || loadedDimension !== groupByDimension) {
@@ -209,6 +203,8 @@ export function PaywallFunnelSection(props: FunnelSectionProps): JSX.Element {
           <p><strong>Group by</strong> splits those people by the platform or the entry point of their first paywall in range, so the groups sum back to the numbers above, and measures each group from its own first step. A first paywall that carried no value is kept in <strong>Unresolved</strong>.</p>
         </details>
       ) : null}
+
+      <PaywallPresentations {...props} />
     </section>
   );
 }

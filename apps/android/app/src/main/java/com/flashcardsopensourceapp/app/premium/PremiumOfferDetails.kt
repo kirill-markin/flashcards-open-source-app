@@ -53,10 +53,16 @@ internal fun premiumOfferDetails(offer: GooglePlaySubscriptionOffer, resources: 
     val firstPhase = phases.first()
     val hasFreeTrial = googlePlaySubscriptionOfferHasFreeTrial(offer)
     val purchaseLabel = if (hasFreeTrial) {
-        resources.getString(
-            R.string.premium_start_trial,
-            formatOfferPeriodTotal(firstPhase.billingPeriod, firstPhase.billingCycleCount, resources) ?: return null
-        )
+        if (firstPhase.billingCycleCount == 1 &&
+            firstPhase.billingPeriod in setOf("P7D", "P1W")
+        ) {
+            resources.getString(R.string.premium_start_seven_day_trial)
+        } else {
+            resources.getString(
+                R.string.premium_start_trial,
+                formatOfferPeriodTotal(firstPhase.billingPeriod, firstPhase.billingCycleCount, resources) ?: return null
+            )
+        }
     } else {
         resources.getString(R.string.premium_subscribe, firstPhase.formattedPrice)
     }

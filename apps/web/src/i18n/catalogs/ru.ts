@@ -4,6 +4,18 @@ import type { TranslationCatalog } from "../catalogTypes";
 
 export const ruCatalog = {
   stripe: createStripeCatalog(stripeCopy),
+  paywall: {
+    heading: "Учёба доступна каждому.",
+    freeTitle: "Бесплатно",
+    freeDescription: "Создано для студентов без работы. Открыто для всех. Ваш рюкзак только что стал легче.",
+    freeBenefit: "Повторение карточек, учёба офлайн и синхронизация",
+    continueFree: "Продолжить бесплатно",
+    creatorSupport: "Ваша подписка помогает создателю Nibomo, {{creator}}, оплачивать серверы и готовить следующее обновление с кофе и пиццей.",
+    basePrice: "Базовая цена: {{price}} в месяц",
+    startTrial: "Начать 7-дневный бесплатный период",
+    trialPrice: "7 дней бесплатно, затем базовая цена {{price}} в месяц. Нужен способ оплаты. Отмените подписку до конца пробного периода, чтобы избежать первого списания.",
+    checkoutPrice: "Stripe подтвердит итоговую цену и валюту оплаты при оформлении.",
+  },
   accentColorSettings: {
     title: "Акцентный цвет",
     subtitle: "Выберите акцентный цвет приложения.",

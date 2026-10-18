@@ -1,6 +1,7 @@
 import type { Hono } from "hono";
 import { getBrowserGuestCapabilities } from "../../guestAuth/webPlatform";
 import type { loadAiUsageStatus } from "../../aiUsage";
+import { resolveEntitlementLimits } from "../../billing/limits";
 import { resolveAccountKindForTransport } from "../../billing/snapshot";
 import type { AppEnv } from "../../server/app";
 import type { loadRequestContextFromRequest } from "../../server/requestContext";
@@ -13,8 +14,7 @@ type AiUsageRouteOptions = Readonly<{
 }>;
 
 /**
- * The app-facing read of the caller's tier, limits and this month's AI usage: the same payload the
- * agent surfaces serve as `get_usage_limits`. The account kind is read from the transport exactly as the
+ * The account kind is read from the transport exactly as the
  * chat route reads it when it enforces the allowance, so the count reported here is the one enforced.
  */
 export function registerAiUsageRoute(
@@ -29,13 +29,15 @@ export function registerAiUsageRoute(
 
     assertAiUsageHumanTransport(requestContext.transport);
 
+    const accountKind = resolveAccountKindForTransport(requestContext.transport);
     const status = await options.loadAiUsageStatusFn(
       requestContext.userId,
-      resolveAccountKindForTransport(requestContext.transport),
+      accountKind,
       new Date(),
     );
     return context.json({
       ...status,
+      premiumAiMonthlyMessages: resolveEntitlementLimits("premium", accountKind).aiMonthlyMessages,
       browserGuestCapabilities: getBrowserGuestCapabilities(requestContext),
     });
   });
