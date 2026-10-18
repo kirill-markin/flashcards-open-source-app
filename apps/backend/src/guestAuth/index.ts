@@ -1,4 +1,4 @@
-import { runDatabaseOperationsWithDeadline } from "../database";
+import { type DatabaseExecutor, runDatabaseOperationsWithDeadline } from "../database";
 import { unsafeTransaction } from "../database/unsafe";
 // Report through `observability/runtime`, never through `observability/sentry`, for the reason the
 // product analytics producers spell out: `initializeBackendSentry` installs `captureBackendWarning`
@@ -34,6 +34,8 @@ import {
 import {
   completeGuestUpgradeInExecutor,
   prepareGuestUpgradeInExecutor,
+  completeBrowserGuestUpgradeInExecutor,
+  prepareBrowserGuestUpgradeInExecutor,
 } from "./upgrade/index";
 import type {
   GuestUpgradeCompleteCapabilities,
@@ -114,6 +116,16 @@ export async function prepareGuestUpgrade(
 ): Promise<GuestUpgradePreparation> {
   return unsafeTransaction(
     async (executor) => prepareGuestUpgradeInExecutor(executor, guestToken, cognitoSubject, email),
+  );
+}
+
+export function prepareBrowserGuestUpgrade(
+  guestToken: string,
+  cognitoSubject: string,
+  email: string | null,
+): Promise<GuestUpgradePreparation> {
+  return unsafeTransaction(
+    (executor) => prepareBrowserGuestUpgradeInExecutor(executor, guestToken, cognitoSubject, email),
   );
 }
 
@@ -238,11 +250,18 @@ async function recordGuestUpgradeCompletedAnalytics(
   });
 }
 
-export async function completeGuestUpgrade(
+async function runGuestUpgradeCompletion(
   guestToken: string,
   cognitoSubject: string,
   selection: GuestUpgradeSelection,
   capabilities: GuestUpgradeCompleteCapabilities,
+  completeInExecutor: (
+    executor: DatabaseExecutor,
+    guestToken: string,
+    cognitoSubject: string,
+    selection: GuestUpgradeSelection,
+    capabilities: GuestUpgradeCompleteCapabilities,
+  ) => Promise<GuestUpgradeCompletion>,
 ): Promise<GuestUpgradeCompletion> {
   // This request reports four analytics operations after its transaction commits - the content
   // creations drain, the review answers drain, and the two writes below - so they share one
@@ -285,7 +304,7 @@ export async function completeGuestUpgrade(
       (committed) => committed.result.targetUserId,
       analyticsBudget,
     ),
-    async (executor) => completeGuestUpgradeInExecutor(
+    async (executor) => completeInExecutor(
       executor,
       guestToken,
       cognitoSubject,
@@ -298,6 +317,24 @@ export async function completeGuestUpgrade(
   }
 
   return completion;
+}
+
+export function completeGuestUpgrade(
+  guestToken: string,
+  cognitoSubject: string,
+  selection: GuestUpgradeSelection,
+  capabilities: GuestUpgradeCompleteCapabilities,
+): Promise<GuestUpgradeCompletion> {
+  return runGuestUpgradeCompletion(guestToken, cognitoSubject, selection, capabilities, completeGuestUpgradeInExecutor);
+}
+
+export function completeBrowserGuestUpgrade(
+  guestToken: string,
+  cognitoSubject: string,
+  selection: GuestUpgradeSelection,
+  capabilities: GuestUpgradeCompleteCapabilities,
+): Promise<GuestUpgradeCompletion> {
+  return runGuestUpgradeCompletion(guestToken, cognitoSubject, selection, capabilities, completeBrowserGuestUpgradeInExecutor);
 }
 
 export async function deleteGuestSession(guestToken: string): Promise<void> {

@@ -2,6 +2,7 @@ import { hasCognitoIdentityMappingForUserInExecutor, resolveCanonicalAccountIdIn
 import { unsafeTransaction } from "../../database/unsafe";
 import { createBrowserGuestSessionInExecutor } from "../session";
 import { loadGuestSessionRecordInExecutor } from "../store/session";
+import { loadGuestUpgradeReplayByGuestTokenInExecutor } from "../store/upgradeHistory";
 import { loadGuestWorkspaceIdOrNullInExecutor } from "../store/workspace";
 import type { GuestSessionSnapshot } from "../types";
 
@@ -14,6 +15,15 @@ export type BrowserGuestSession =
     workspaceId: string | null;
     purpose: "browser_product";
     platform: "web";
+  }>
+  | Readonly<{
+    status: "pending_upgrade";
+    sessionId: string;
+    userId: string;
+    workspaceId: null;
+    purpose: null;
+    platform: null;
+    replayOnly: true;
   }>;
 
 export function loadBrowserGuestSession(guestToken: string | undefined): Promise<BrowserGuestSession> {
@@ -22,7 +32,21 @@ export function loadBrowserGuestSession(guestToken: string | undefined): Promise
   }
   return unsafeTransaction<BrowserGuestSession>(async (executor) => {
     const session = await loadGuestSessionRecordInExecutor(executor, guestToken, false);
-    if (session === null || session.purpose !== "browser_product" || session.platform !== "web") {
+    if (session === null) {
+      // History proves only a committed conversion, never a live product credential.
+      const replay = await loadGuestUpgradeReplayByGuestTokenInExecutor(executor, guestToken);
+      if (replay === null) return { status: "invalid" };
+      return {
+        status: "pending_upgrade",
+        sessionId: replay.sourceGuestSessionId,
+        userId: replay.sourceGuestUserId,
+        workspaceId: null,
+        purpose: null,
+        platform: null,
+        replayOnly: true,
+      };
+    }
+    if (session.purpose !== "browser_product" || session.platform !== "web") {
       return { status: "invalid" };
     }
     if (session.revokedAt !== null) {
