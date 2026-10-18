@@ -971,7 +971,7 @@
 "settings.account.connection.restart" = "Het bewijs is verlopen of gebruikt. Begin opnieuw met nieuw bewijs.";
 "settings.account.connection.restorePaused" = "Accounts verbonden. De lokale vernieuwing is gepauzeerd; je offlinegegevens blijven behouden.";
 
-"premium.offer.heading" = "Leren is voor iedereen.";
+"premium.offer.heading" = "Leren is voor **iedereen**.";
 "premium.offer.free" = "Gratis";
 "premium.offer.freeDescription" = "Gemaakt voor studenten zonder baan. Open voor iedereen. Je rugzak is net wat lichter geworden.";
 "premium.offer.freeBenefits" = "Herhalen, offline leren en synchroniseren";
@@ -987,3 +987,5 @@
 
 "settings.firstReviewOnboarding.title" = "Uitleg voor de eerste herhaling voltooid";
 "settings.firstReviewOnboarding.note" = "Schakel uit om de uitleg opnieuw te zien wanneer je een kaart herhaalt.";
+"premium.offer.alwaysFree" = "Altijd gratis";
+"settings.subscription.allowanceReset" = "Je tegoed voor AI-berichten wordt op de eerste dag van elke maand om 00:00 UTC opnieuw ingesteld.";

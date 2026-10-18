@@ -971,7 +971,7 @@
 "settings.account.connection.restart" = "ਸਬੂਤ ਦੀ ਮਿਆਦ ਮੁੱਕ ਗਈ ਜਾਂ ਵਰਤਿਆ ਗਿਆ। ਨਵੇਂ ਸਬੂਤ ਨਾਲ ਮੁੜ ਸ਼ੁਰੂ ਕਰੋ।";
 "settings.account.connection.restorePaused" = "ਖਾਤੇ ਜੁੜ ਗਏ। ਸਥਾਨਕ ਅੱਪਡੇਟ ਰੁਕਿਆ ਹੈ; ਤੁਹਾਡਾ ਆਫ਼ਲਾਈਨ ਡਾਟਾ ਸੁਰੱਖਿਅਤ ਹੈ।";
 
-"premium.offer.heading" = "ਸਿੱਖਣਾ ਸਾਰਿਆਂ ਦਾ ਹੱਕ ਹੈ।";
+"premium.offer.heading" = "ਸਿੱਖਣਾ **ਸਾਰਿਆਂ** ਦਾ ਹੱਕ ਹੈ।";
 "premium.offer.free" = "ਮੁਫ਼ਤ";
 "premium.offer.freeDescription" = "ਬਿਨਾਂ ਨੌਕਰੀ ਵਾਲੇ ਵਿਦਿਆਰਥੀਆਂ ਲਈ ਬਣਾਇਆ। ਸਾਰਿਆਂ ਲਈ ਖੁੱਲ੍ਹਾ। ਤੁਹਾਡਾ ਬਸਤਾ ਹੁਣ ਹਲਕਾ ਹੋ ਗਿਆ।";
 "premium.offer.freeBenefits" = "ਜ਼ਰੂਰੀ ਦੁਹਰਾਈ, ਆਫ਼ਲਾਈਨ ਪੜ੍ਹਾਈ ਅਤੇ ਸਿੰਕ";
@@ -987,3 +987,5 @@
 
 "settings.firstReviewOnboarding.title" = "ਪਹਿਲੀ ਦੁਹਰਾਈ ਦੀ ਜਾਣ-ਪਛਾਣ ਪੂਰੀ ਹੋਈ";
 "settings.firstReviewOnboarding.note" = "ਕਾਰਡ ਦੀ ਦੁਹਰਾਈ ਕਰਦੇ ਸਮੇਂ ਗਾਈਡ ਦੁਬਾਰਾ ਦੇਖਣ ਲਈ ਇਸਨੂੰ ਬੰਦ ਕਰੋ।";
+"premium.offer.alwaysFree" = "ਹਮੇਸ਼ਾ ਮੁਫ਼ਤ";
+"settings.subscription.allowanceReset" = "ਤੁਹਾਡੀ AI ਸੁਨੇਹਿਆਂ ਦੀ ਸੀਮਾ ਹਰ ਮਹੀਨੇ ਦੇ ਪਹਿਲੇ ਦਿਨ 00:00 UTC ਵਜੇ ਰੀਸੈੱਟ ਹੁੰਦੀ ਹੈ।";

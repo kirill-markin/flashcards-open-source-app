@@ -971,7 +971,7 @@
 "settings.account.connection.restart" = "Pierādījums ir beidzies vai izmantots. Sāciet vēlreiz ar jaunu pierādījumu.";
 "settings.account.connection.restorePaused" = "Konti savienoti. Vietējā atsvaidzināšana ir apturēta; jūsu bezsaistes dati ir saglabāti.";
 
-"premium.offer.heading" = "Mācīšanās ir visiem.";
+"premium.offer.heading" = "Mācīšanās ir **visiem**.";
 "premium.offer.free" = "Bezmaksas";
 "premium.offer.freeDescription" = "Radīts studentiem bez darba. Atvērts visiem. Tava mugursoma tikko kļuva vieglāka.";
 "premium.offer.freeBenefits" = "Atkārtošana, mācības bezsaistē un sinhronizācija";
@@ -987,3 +987,5 @@
 
 "settings.firstReviewOnboarding.title" = "Pirmās atkārtošanas pamācība pabeigta";
 "settings.firstReviewOnboarding.note" = "Izslēdziet, lai, atkārtojot kartīti, atkal redzētu pamācību.";
+"premium.offer.alwaysFree" = "Vienmēr bez maksas";
+"settings.subscription.allowanceReset" = "Jūsu MI ziņojumu limits tiek atjaunots katra mēneša pirmajā dienā plkst. 00.00 UTC.";

@@ -971,7 +971,7 @@
 "settings.account.connection.restart" = "ಪುರಾವೆ ಅವಧಿ ಮೀರಿದೆ ಅಥವಾ ಬಳಕೆಯಾಗಿದೆ. ಹೊಸ ಪುರಾವೆಯೊಂದಿಗೆ ಮತ್ತೆ ಆರಂಭಿಸಿ.";
 "settings.account.connection.restorePaused" = "ಖಾತೆಗಳು ಸಂಪರ್ಕಗೊಂಡಿವೆ. ಸ್ಥಳೀಯ ನವೀಕರಣ ತಾತ್ಕಾಲಿಕವಾಗಿ ನಿಂತಿದೆ; ನಿಮ್ಮ ಆಫ್‌ಲೈನ್ ಡೇಟಾ ಉಳಿದಿದೆ.";
 
-"premium.offer.heading" = "ಕಲಿಕೆ ಎಲ್ಲರಿಗೂ ಸೇರಿದ್ದು.";
+"premium.offer.heading" = "ಕಲಿಕೆ **ಎಲ್ಲರಿಗೂ** ಸೇರಿದ್ದು.";
 "premium.offer.free" = "ಉಚಿತ";
 "premium.offer.freeDescription" = "ಕೆಲಸವಿಲ್ಲದ ವಿದ್ಯಾರ್ಥಿಗಳಿಗಾಗಿ ರಚಿಸಲಾಗಿದೆ. ಎಲ್ಲರಿಗೂ ಮುಕ್ತ. ನಿಮ್ಮ ಚೀಲ ಈಗ ಹಗುರವಾಗಿದೆ.";
 "premium.offer.freeBenefits" = "ಮುಖ್ಯ ಪುನರಾವರ್ತನೆ, ಆಫ್‌ಲೈನ್ ಕಲಿಕೆ ಮತ್ತು ಸಿಂಕ್";
@@ -987,3 +987,5 @@
 
 "settings.firstReviewOnboarding.title" = "ಮೊದಲ ಮರುಅಭ್ಯಾಸದ ಪರಿಚಯ ಪೂರ್ಣಗೊಂಡಿದೆ";
 "settings.firstReviewOnboarding.note" = "ಕಾರ್ಡ್ ಮರುಅಭ್ಯಾಸ ಮಾಡುವಾಗ ಮಾರ್ಗದರ್ಶಿಯನ್ನು ಮತ್ತೆ ನೋಡಲು ಇದನ್ನು ಆಫ್ ಮಾಡಿ.";
+"premium.offer.alwaysFree" = "ಯಾವಾಗಲೂ ಉಚಿತ";
+"settings.subscription.allowanceReset" = "ನಿಮ್ಮ AI ಸಂದೇಶಗಳ ಮಿತಿ ಪ್ರತಿ ತಿಂಗಳ ಮೊದಲ ದಿನ 00:00 UTC ಸಮಯಕ್ಕೆ ಮರುಹೊಂದಿಸಲಾಗುತ್ತದೆ.";

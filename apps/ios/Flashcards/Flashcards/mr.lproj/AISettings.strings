@@ -971,7 +971,7 @@
 "settings.account.connection.restart" = "पुरावा कालबाह्य झाला किंवा वापरला गेला. नव्या पुराव्यासह पुन्हा सुरू करा.";
 "settings.account.connection.restorePaused" = "खाती जोडली. स्थानिक अपडेट थांबवले आहे; तुमचा ऑफलाइन डेटा जतन केला आहे.";
 
-"premium.offer.heading" = "शिकणे सर्वांसाठी आहे.";
+"premium.offer.heading" = "शिकणे **सर्वांसाठी** आहे.";
 "premium.offer.free" = "मोफत";
 "premium.offer.freeDescription" = "नोकरी नसलेल्या विद्यार्थ्यांसाठी तयार केलेले. सर्वांसाठी खुले. तुमचे दप्तर आता हलके झाले.";
 "premium.offer.freeBenefits" = "आवश्यक उजळणी, ऑफलाइन शिक्षण आणि सिंक";
@@ -987,3 +987,5 @@
 
 "settings.firstReviewOnboarding.title" = "पहिल्या उजळणीचा परिचय पूर्ण झाला";
 "settings.firstReviewOnboarding.note" = "कार्डची उजळणी करताना मार्गदर्शक पुन्हा पाहण्यासाठी हे बंद करा.";
+"premium.offer.alwaysFree" = "नेहमी मोफत";
+"settings.subscription.allowanceReset" = "तुमच्या AI संदेशांची मर्यादा प्रत्येक महिन्याच्या पहिल्या दिवशी 00:00 UTC वाजता रीसेट होते.";

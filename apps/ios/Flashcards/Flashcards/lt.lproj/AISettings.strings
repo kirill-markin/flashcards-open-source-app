@@ -971,7 +971,7 @@
 "settings.account.connection.restart" = "Įrodymas nebegalioja arba panaudotas. Pradėkite iš naujo su nauju įrodymu.";
 "settings.account.connection.restorePaused" = "Paskyros sujungtos. Vietinis atnaujinimas pristabdytas; jūsų neprisijungus naudojami duomenys išsaugoti.";
 
-"premium.offer.heading" = "Mokytis gali visi.";
+"premium.offer.heading" = "Mokytis gali **visi**.";
 "premium.offer.free" = "Nemokamai";
 "premium.offer.freeDescription" = "Sukurta nedirbantiems studentams. Atvira visiems. Tavo kuprinė ką tik palengvėjo.";
 "premium.offer.freeBenefits" = "Kartojimas, mokymasis be interneto ir sinchronizavimas";
@@ -987,3 +987,5 @@
 
 "settings.firstReviewOnboarding.title" = "Pirmojo kartojimo vadovas baigtas";
 "settings.firstReviewOnboarding.note" = "Išjunkite, kad kartodami kortelę vėl matytumėte vadovą.";
+"premium.offer.alwaysFree" = "Visada nemokamai";
+"settings.subscription.allowanceReset" = "Jūsų DI žinučių limitas atnaujinamas kiekvieno mėnesio pirmą dieną 00:00 UTC.";

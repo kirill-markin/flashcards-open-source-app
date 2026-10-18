@@ -971,7 +971,7 @@
 "settings.account.connection.restart" = "ההוכחה פגה או נוצלה. יש להתחיל מחדש עם הוכחה חדשה.";
 "settings.account.connection.restorePaused" = "החשבונות חוברו. הרענון המקומי מושהה; הנתונים הלא מקוונים שלך נשמרים.";
 
-"premium.offer.heading" = "הלמידה שייכת לכולם.";
+"premium.offer.heading" = "הלמידה שייכת **לכולם**.";
 "premium.offer.free" = "חינם";
 "premium.offer.freeDescription" = "נוצר לסטודנטים ללא עבודה. פתוח לכולם. התרמיל שלך נעשה קל יותר.";
 "premium.offer.freeBenefits" = "חזרות בסיסיות, למידה ללא חיבור וסנכרון";
@@ -987,3 +987,5 @@
 
 "settings.firstReviewOnboarding.title" = "ההדרכה לחזרה הראשונה הושלמה";
 "settings.firstReviewOnboarding.note" = "כבו כדי לראות שוב את ההדרכה בזמן חזרה על כרטיסייה.";
+"premium.offer.alwaysFree" = "תמיד בחינם";
+"settings.subscription.allowanceReset" = "מכסת הודעות ה-AI שלך מתאפסת ביום הראשון של כל חודש בשעה 00:00 UTC.";

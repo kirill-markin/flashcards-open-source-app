@@ -999,7 +999,7 @@
 "settings.account.connection.restart" = "Подтверждение доступа истекло или использовано. Начните заново с новым подтверждением.";
 "settings.account.connection.restorePaused" = "Аккаунты объединены. Локальное обновление приостановлено; ваши офлайн-данные сохранены.";
 
-"premium.offer.heading" = "Учиться может каждый.";
+"premium.offer.heading" = "Учиться может **каждый**.";
 "premium.offer.free" = "Бесплатно";
 "premium.offer.freeDescription" = "Создано для студентов без работы. Открыто для всех. Ваш рюкзак стал легче.";
 "premium.offer.freeBenefits" = "Повторение, обучение офлайн и синхронизация";
@@ -1015,3 +1015,5 @@
 
 "settings.firstReviewOnboarding.title" = "Обучение первому повторению завершено";
 "settings.firstReviewOnboarding.note" = "Выключите, чтобы снова увидеть подсказки при повторении карточки.";
+"premium.offer.alwaysFree" = "Всегда бесплатно";
+"settings.subscription.allowanceReset" = "Лимит сообщений ИИ обновляется в первый день каждого месяца в 00:00 UTC.";

@@ -971,7 +971,7 @@
 "settings.account.connection.restart" = "Доказ доступу прострочено або використано. Почніть знову з новим доказом.";
 "settings.account.connection.restorePaused" = "Облікові записи об’єднано. Локальне оновлення призупинено; ваші офлайн-дані збережено.";
 
-"premium.offer.heading" = "Навчання доступне кожному.";
+"premium.offer.heading" = "Навчання доступне **кожному**.";
 "premium.offer.free" = "Безкоштовно";
 "premium.offer.freeDescription" = "Створено для студентів без роботи. Відкрито для всіх. Ваш рюкзак став легшим.";
 "premium.offer.freeBenefits" = "Повторення, навчання офлайн і синхронізація";
@@ -987,3 +987,5 @@
 
 "settings.firstReviewOnboarding.title" = "Навчання першому повторенню завершено";
 "settings.firstReviewOnboarding.note" = "Вимкніть, щоб знову побачити підказки під час повторення картки.";
+"premium.offer.alwaysFree" = "Завжди безкоштовно";
+"settings.subscription.allowanceReset" = "Ліміт повідомлень ШІ оновлюється першого дня кожного місяця о 00:00 UTC.";
