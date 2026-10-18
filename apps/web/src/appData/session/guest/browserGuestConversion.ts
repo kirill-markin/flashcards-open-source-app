@@ -1,6 +1,7 @@
 import { deliverFirstReviewOnboarding } from "../firstReviewOnboardingWrite";
 import { completeBrowserGuestUpgrade, forgetBrowserGuestSession, prepareBrowserGuestUpgrade, probeBrowserGuestSession } from "../../../api/endpoints/guestAuth";
 import { getOptionalSession, primeGuestSession, resumeVerifiedBrowserSession } from "../../../api/transport/transport";
+import { ApiError } from "../../../api/transport/errors";
 import type { BrowserGuestProbe, BrowserGuestUpgradeResult, GuestUpgradeSelection } from "../../../apiContracts/guestAuth";
 import { closeDatabaseAfterWrite, getAllFromStore, getFromStore, runReadwrite, type ProgressCacheStateRecord } from "../../../localDb/core/database";
 import { markProgressCacheDirtyInTransaction } from "../../../localDb/progress/progress";
@@ -113,7 +114,10 @@ export async function resumePendingGuestConversion(): Promise<Readonly<{
     const session = await getOptionalSession();
     if (session === null || session.authTransport !== "session" || session.browserGuestCapabilities !== null) throw new Error("Registered account could not be verified after guest preparation.");
     if (pending.destinationUserId !== null && pending.destinationUserId !== session.userId) throw new Error("The signed-in account differs from the saved conversion destination.");
-    const verified = { ...next, destinationUserId: session.userId };
+    const selection: GuestUpgradeSelection | null = pending.selection ?? (prepared.demoOnlyDestinationWorkspaceId === undefined ? null : {
+      type: "existing", workspaceId: prepared.demoOnlyDestinationWorkspaceId, discardDemoOnly: true,
+    });
+    const verified = { ...next, destinationUserId: session.userId, selection };
     savePending(verified);
     return { ...prepared, session: resumeVerifiedBrowserSession(session), pending: verified };
   });
@@ -131,7 +135,16 @@ export async function completePendingGuestConversion(selection: GuestUpgradeSele
     const session = await getOptionalSession();
     if (session?.userId !== destinationUserId) throw new Error("The signed-in account changed before guest conversion.");
     savePending({ ...pending, phase: "completing", selection });
-    const result = await completeBrowserGuestUpgrade(csrf, selection, pending.guestWorkspaceSyncedAndOutboxDrained);
+    let result: BrowserGuestUpgradeResult;
+    try {
+      result = await completeBrowserGuestUpgrade(csrf, selection, pending.guestWorkspaceSyncedAndOutboxDrained);
+    } catch (error) {
+      if (selection.type === "existing" && selection.discardDemoOnly === true
+        && error instanceof ApiError && error.statusCode === 409 && error.code === "GUEST_UPGRADE_DEMO_ONLY_NOT_ELIGIBLE") {
+        savePending({ ...pending, phase: "prepared", selection: null });
+      }
+      throw error;
+    }
     savePending({ ...pending, phase: "completed", selection, result });
     return result;
   });

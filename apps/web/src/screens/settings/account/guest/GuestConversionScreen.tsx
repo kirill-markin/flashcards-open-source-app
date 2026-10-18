@@ -43,7 +43,7 @@ export function GuestConversionScreen(props: Readonly<{ returnUrl: string }>): R
   async function complete(selection: GuestUpgradeSelection): Promise<void> {
     if (destination.current === null) throw new Error("Verified conversion destination is unavailable.");
     const pending = readPendingGuestConversion();
-    if (fresh.current && pending?.phase === "prepared") {
+    if (fresh.current && pending?.phase === "prepared" && !(selection.type === "existing" && selection.discardDemoOnly === true)) {
       try {
         demo.current = await runWithBrowserGuestLock("exclusive", () => captureGuestDemoCards(pending.sourceWorkspaceId));
       } catch (failure) { reportCleanupFailure(failure); }
@@ -82,7 +82,6 @@ export function GuestConversionScreen(props: Readonly<{ returnUrl: string }>): R
       const prepared = await resumePendingGuestConversion();
       destination.current = prepared.session.userId;
       if (prepared.mode === "bound" || prepared.pending.selection !== null) {
-        // Binding preserves the guest workspace. A replay keeps its exact saved selection.
         if (prepared.mode === "bound") fresh.current = false;
         await complete(prepared.pending.selection ?? { type: "create_new" });
       } else {

@@ -16,8 +16,9 @@ The top-level product scope matches the other clients:
 ## Optional sign-in
 
 The browser opens a cloud-synced guest workspace immediately. **Guest · Sign in** saves the current
-workspace before opening the auth UI. An existing account can merge into any accessible workspace
-or create a new one. Keep this browser’s site data until conversion finishes: guest access depends
+workspace before opening the auth UI. Eligible [demo-only sign-in](../../docs/demo-card.md#guest-upgrade)
+enters an existing account automatically. Other guest content can merge into any accessible workspace
+or a new one. Keep this browser’s site data until conversion finishes: guest access depends
 on its essential cookie, and clearing all site data can lose that access. An unverified guest cache
 opens read-only until its original session can be verified. Stripe purchases require sign-in.
 Nibomo-funded chat, dictation and images follow the [browser trial policy](../../docs/premium-offer.md#browser-guest-ai-trial).
@@ -28,8 +29,10 @@ and the remaining personal allowance, then uploads 16 kHz mono 16-bit PCM WAV wi
 operation ID per recording. Other dictation keeps its existing format.
 
 The live smoke starts with guest authoring/review, reload and IndexedDB-only restoration, then covers
-conversion, fresh-merge demo cleanup and an interrupted completion replay using the configured review
-account. A dedicated new-account bind can also be checked manually against a fresh local Cognito-backed
+authored-card transfer, legacy demo cleanup and interrupted completion replay using the configured review
+account. It also checks reviewed demo-only sign-in without any transfer chooser, including a committed
+completion whose response is lost, followed by in-page retry or reload. A dedicated new-account bind
+can also be checked manually against a fresh local Cognito-backed
 database or a disposable, previously unmapped account:
 
 1. Open the app with a fresh browser profile, record the guest user/workspace/card IDs from local
@@ -39,11 +42,23 @@ database or a disposable, previously unmapped account:
    event IDs, the demo stays active, and the workspace list has no extra workspace.
 3. Reload and check the same cards and review progress. Confirm the pending conversion metadata is
    gone only after destination hot state and review history have loaded, and ordinary writes work.
-4. With another fresh guest and the now-existing account, choose an owned workspace with an existing
-   card (a tombstone also counts). Confirm the guest’s exact current-language demo becomes an ordinary
-   tombstone even when that guest authored other cards; an edited demo stays. Selecting an empty or
-   new workspace keeps the demo. Interrupt completion and reload to check the saved selection is
-   replayed without a second workspace and resumed conversion keeps the demo.
+4. With another fresh guest, author a real card or edit the demo, then sign in to the existing account.
+   Confirm the transfer chooser appears and the authored or edited content survives the selected
+   transfer, including after reload. Check demo retention against the [canonical contract](../../docs/demo-card.md#guest-upgrade).
+5. With a fresh guest holding only its unchanged demo, review it, wait for sync and sign in to the
+   existing account. Confirm no transfer chooser appears, the destination account keeps its data,
+   and the guest demo and its reviews are absent after sign-in and reload.
+6. Repeat step 5 while interrupting completion, then retry or reload. Confirm the saved automatic
+   selection is replayed and pending ownership clears only after destination hydration and dropped-entity
+   reconciliation. The live smoke injects loss of the actual committed server response for this check.
+7. On the isolated Cognito-backed local stack, use an already-mapped existing-account fixture with
+   exactly one workspace and no card or review rows, including tombstones. Do not open that account
+   in the registered web app before this scenario, and do not empty a production account to prepare it.
+   Repeat step 5 and both recovery variants in step 6 against this fixture, starting each run with a
+   fresh guest browser profile. Confirm the original single workspace is selected, no transfer chooser
+   appears, IndexedDB and the local backend still contain zero cards and reviews (including any newly
+   seeded demo), and the outbox is empty after completion and another reload. Pending ownership must
+   clear only after hydration. After all three runs, confirm a normal authored card saves and syncs.
 
 Never publish cookies, CSRF tokens, keys, auth responses, or full storage dumps in diagnostics.
 

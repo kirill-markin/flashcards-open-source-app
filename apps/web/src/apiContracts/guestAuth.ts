@@ -17,7 +17,8 @@ export type BrowserGuestProbe = Readonly<{
   registeredSession: Readonly<{ present: boolean; csrfToken: string | null }>;
   guestSession: BrowserGuestSession;
 }>;
-export type GuestUpgradeSelection = Readonly<{ type: "existing"; workspaceId: string }> | Readonly<{ type: "create_new" }>;
+export type BrowserGuestUpgradePreparation = Readonly<{ mode: "bound" | "merge_required"; demoOnlyDestinationWorkspaceId?: string }>;
+export type GuestUpgradeSelection = Readonly<{ type: "existing"; workspaceId: string; discardDemoOnly?: boolean }> | Readonly<{ type: "create_new" }>;
 export type BrowserGuestUpgradeResult = Readonly<{
   workspace: WorkspaceSummary;
   droppedEntities?: Readonly<{ cardIds: ReadonlyArray<string>; deckIds: ReadonlyArray<string>; reviewEventIds: ReadonlyArray<string>; mediaAssetIds?: ReadonlyArray<string> }>;
@@ -60,9 +61,15 @@ export function parseBrowserGuestProbe(value: unknown, endpoint: string): Browse
   return { registeredSession, guestSession: { ...metadata, ...identity, ...provenance, status, workspaceId: parseString(guest.workspaceId, endpoint, "guestSession.workspaceId") } };
 }
 
-export function parseBrowserGuestPrepare(value: unknown, endpoint: string): Readonly<{ mode: "bound" | "merge_required" }> {
+export function parseBrowserGuestPrepare(value: unknown, endpoint: string): BrowserGuestUpgradePreparation {
   const object = parseObject(value, endpoint, "");
-  return { mode: parseEnum(object.mode, endpoint, "mode", ["bound", "merge_required"] as const) };
+  const mode = parseEnum(object.mode, endpoint, "mode", ["bound", "merge_required"] as const);
+  if (object.demoOnlyDestinationWorkspaceId === undefined) return { mode };
+  const workspaceId = parseString(object.demoOnlyDestinationWorkspaceId, endpoint, "demoOnlyDestinationWorkspaceId");
+  if (mode !== "merge_required" || workspaceId.trim() === "") {
+    throw new ApiContractError(endpoint, "demoOnlyDestinationWorkspaceId", "non-empty workspace ID in merge_required mode");
+  }
+  return { mode, demoOnlyDestinationWorkspaceId: workspaceId };
 }
 
 export function parseBrowserGuestUpgradeResult(value: unknown, endpoint: string): BrowserGuestUpgradeResult {

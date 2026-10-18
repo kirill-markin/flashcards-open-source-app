@@ -1,6 +1,6 @@
 import type { BrowserGuestUpgradeResult, GuestUpgradeSelection } from "../../../apiContracts/guestAuth";
 import { parseBrowserGuestUpgradeResult } from "../../../apiContracts/guestAuth";
-import { parseBoolean, parseEnum, parseNullableString, parseObject, parseString } from "../../../apiContracts/core";
+import { ApiContractError, parseBoolean, parseEnum, parseNullableString, parseObject, parseString } from "../../../apiContracts/core";
 
 export const browserGuestStorageKey = "flashcards-browser-guest-owner";
 export const browserGuestLockName = "flashcards-browser-guest-lifecycle";
@@ -37,7 +37,14 @@ export function readBrowserGuestState(): BrowserGuestStoredState | null {
     if (saved.selection !== null) {
       const selected = parseObject(saved.selection, "browser guest storage", "selection");
       const type = parseEnum(selected.type, "browser guest storage", "selection.type", ["existing", "create_new"] as const);
-      selection = type === "existing" ? { type, workspaceId: parseString(selected.workspaceId, "browser guest storage", "selection.workspaceId") } : { type };
+      selection = type === "existing" ? {
+        type, workspaceId: parseString(selected.workspaceId, "browser guest storage", "selection.workspaceId"),
+        ...(selected.discardDemoOnly === undefined ? {} : { discardDemoOnly: parseBoolean(selected.discardDemoOnly, "browser guest storage", "selection.discardDemoOnly") }),
+      } : { type };
+      if ((selection.type === "existing" && selection.workspaceId.trim() === "")
+        || (selection.type === "create_new" && selected.discardDemoOnly !== undefined)) {
+        throw new ApiContractError("browser guest storage", "selection", "existing non-empty workspace ID or create_new without demo disposal");
+      }
     }
     pending = {
       phase: parseEnum(saved.phase, "browser guest storage", "phase", ["draining", "awaiting_auth", "prepared", "completing", "completed"] as const),

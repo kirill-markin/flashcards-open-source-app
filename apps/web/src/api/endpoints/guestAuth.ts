@@ -1,5 +1,5 @@
 import { parseContractResponse } from "../transport/response";
-import { parseBrowserGuestProbe, parseBrowserGuestPrepare, parseBrowserGuestUpgradeResult, type BrowserGuestProbe, type BrowserGuestUpgradeResult, type GuestUpgradeSelection } from "../../apiContracts/guestAuth";
+import { parseBrowserGuestProbe, parseBrowserGuestPrepare, parseBrowserGuestUpgradeResult, type BrowserGuestProbe, type BrowserGuestUpgradePreparation, type BrowserGuestUpgradeResult, type GuestUpgradeSelection } from "../../apiContracts/guestAuth";
 import { requestBrowserCookieJson, requestJson, skipAuthRecoveryWithTransientNetworkRetry } from "../transport/transport";
 
 /** Bounds the background task; the caller retries on its own schedule after a failure. */
@@ -34,7 +34,7 @@ export async function createBrowserGuestSession(idempotencyKey: string): Promise
   }, skipAuthRecoveryWithTransientNetworkRetry), "POST /guest-auth/browser/session", parseBrowserGuestProbe);
 }
 
-export async function prepareBrowserGuestUpgrade(csrfToken: string, guestWorkspaceSyncedAndOutboxDrained: boolean): Promise<Readonly<{ mode: "bound" | "merge_required" }>> {
+export async function prepareBrowserGuestUpgrade(csrfToken: string, guestWorkspaceSyncedAndOutboxDrained: boolean): Promise<BrowserGuestUpgradePreparation> {
   return parseContractResponse(await requestBrowserCookieJson("/guest-auth/browser/upgrade/prepare", {
     method: "POST", headers: { "X-CSRF-Token": csrfToken }, body: JSON.stringify({ guestWorkspaceSyncedAndOutboxDrained }),
   }, skipAuthRecoveryWithTransientNetworkRetry), "POST /guest-auth/browser/upgrade/prepare", parseBrowserGuestPrepare);
