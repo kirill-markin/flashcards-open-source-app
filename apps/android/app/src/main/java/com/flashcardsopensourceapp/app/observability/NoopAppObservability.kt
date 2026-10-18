@@ -92,6 +92,18 @@ private fun renderNoopLogLine(
             "connectionId=${sanitizeSentryIdentifier(value = event.connectionId) ?: "null"} " +
             "connectionProtocol=${sanitizeSentryLogValue(fieldName = "connectionProtocol", value = event.connectionProtocol)} " +
             "requestHeadersCompleted=${event.requestHeadersCompleted?.toString() ?: "null"}"
+    } else if (event is AndroidBreadcrumbEvent.HttpAttemptFinished) {
+        logLine +
+            " endpointName=${sanitizeSentryLogValue(fieldName = "endpointName", value = event.endpointName)} " +
+            "method=${sanitizeSentryLogValue(fieldName = "method", value = event.method)} " +
+            "callId=${sanitizeSentryIdentifier(value = event.callId) ?: "null"} attemptNumber=${event.attemptNumber} " +
+            "attemptElapsedMs=${event.attemptElapsedMs} ioPhase=${sanitizeSentryLogValue(fieldName = "ioPhase", value = event.ioPhase)} " +
+            "exceptionClass=${sanitizeSentryLogValue(fieldName = "exceptionClass", value = event.exceptionClass)} " +
+            "cancelled=${event.cancelled} responseBodyRead=${event.responseBodyRead} " +
+            "responseProtocol=${sanitizeSentryLogValue(fieldName = "responseProtocol", value = event.responseProtocol)} " +
+            "connectionId=${sanitizeSentryIdentifier(value = event.connectionId) ?: "null"} " +
+            "connectionProtocol=${sanitizeSentryLogValue(fieldName = "connectionProtocol", value = event.connectionProtocol)} " +
+            "requestHeadersCompleted=${event.requestHeadersCompleted}"
     } else {
         logLine
     }
