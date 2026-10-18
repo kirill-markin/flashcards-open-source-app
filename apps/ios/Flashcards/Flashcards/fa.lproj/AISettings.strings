@@ -984,3 +984,6 @@
 "premium.offer.subscribe" = "اشتراک";
 "premium.offer.startTrial" = "شروع دورهٔ آزمایشی رایگان: %@";
 "premium.offer.view" = "مشاهدهٔ Premium";
+
+"settings.firstReviewOnboarding.title" = "راهنمای نخستین مرور تکمیل شد";
+"settings.firstReviewOnboarding.note" = "خاموش کنید تا هنگام مرور کارت، راهنما دوباره نمایش داده شود.";

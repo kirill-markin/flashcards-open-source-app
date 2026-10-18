@@ -984,3 +984,6 @@
 "premium.offer.subscribe" = "구독하기";
 "premium.offer.startTrial" = "무료 체험 시작: %@";
 "premium.offer.view" = "Premium 보기";
+
+"settings.firstReviewOnboarding.title" = "첫 복습 안내 완료";
+"settings.firstReviewOnboarding.note" = "카드를 복습할 때 안내를 다시 보려면 끄세요.";

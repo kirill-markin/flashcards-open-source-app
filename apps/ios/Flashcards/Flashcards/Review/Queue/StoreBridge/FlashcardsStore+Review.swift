@@ -557,6 +557,8 @@ extension FlashcardsStore {
             return
         }
 
+        let onboardingOwnerUserId = self.cloudSettings?.linkedUserId
+        let onboardingInstallationId = self.cloudSettings?.installationId
         do {
             try self.assertLocalOutboxMutationAllowedDuringPendingGuestUpgrade()
             _ = try await reviewSubmissionExecutor.submitReview(
@@ -571,6 +573,12 @@ extension FlashcardsStore {
         } catch {
             await self.handleReviewSubmissionFailure(request: request, submissionError: error)
             return
+        }
+
+        let retainsOnboardingOwner = self.cloudSettings?.linkedUserId == onboardingOwnerUserId
+            || (onboardingOwnerUserId == nil && self.cloudSettings?.cloudState == .guest)
+        if self.cloudSettings?.installationId == onboardingInstallationId, retainsOnboardingOwner {
+            self.applySavedFirstReviewOnboarding(reviewToken: "\(request.cardId)|\(request.reviewedAtClient)")
         }
 
         let now = Date()

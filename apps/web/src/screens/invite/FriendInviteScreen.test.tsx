@@ -70,6 +70,7 @@ function createSession(): SessionInfo {
     preferences: {
       accentColor: "#FF6719",
       reviewReactionAnimationsEnabled: true,
+      firstReviewOnboardingCompleted: true,
       analyticsConsent: null,
       productAnalyticsEnabled: null,
     },

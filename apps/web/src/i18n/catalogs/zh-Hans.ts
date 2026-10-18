@@ -949,6 +949,10 @@ export const zhHansCatalog = {
     paragraphTwo: "提醒会自动使用该移动应用中当前所选工作区的卡片和活动。",
     paragraphThree: "Web 应用不会发送或管理这些通知，因此此界面没有通知控制项。",
   },
+  firstReviewOnboardingSettings: {
+    title: "首次复习引导已完成",
+    description: "关闭后，复习卡片时会再次显示引导。",
+  },
   reviewAnimationsSettings: {
     title: "复习动画",
     subtitle: "控制给卡片评分后的反应动画。",

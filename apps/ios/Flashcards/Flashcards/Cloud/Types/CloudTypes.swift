@@ -76,30 +76,62 @@ struct AccountPreferences: Codable, Hashable, Sendable {
     /// snapshot would bypass both.
     let productAnalyticsEnabled: Bool?
     let accentColor: AccountAccentColor
+    let firstReviewOnboardingCompleted: Bool?
+    // Local provenance travels with persisted snapshots, never with preference PATCH bodies.
+    var firstReviewOnboardingSnapshotGeneration: String?
 
-    init(reviewReactionAnimationsEnabled: Bool, productAnalyticsEnabled: Bool?, accentColor: AccountAccentColor) {
+    init(reviewReactionAnimationsEnabled: Bool, productAnalyticsEnabled: Bool?, accentColor: AccountAccentColor, firstReviewOnboardingCompleted: Bool?) {
         self.reviewReactionAnimationsEnabled = reviewReactionAnimationsEnabled
         self.productAnalyticsEnabled = productAnalyticsEnabled
         self.accentColor = accentColor
+        self.firstReviewOnboardingCompleted = firstReviewOnboardingCompleted
+        self.firstReviewOnboardingSnapshotGeneration = nil
     }
 
     private enum CodingKeys: String, CodingKey {
-        case reviewReactionAnimationsEnabled, productAnalyticsEnabled, accentColor
+        case reviewReactionAnimationsEnabled, productAnalyticsEnabled, accentColor, firstReviewOnboardingCompleted
+        case firstReviewOnboardingSnapshotGeneration
     }
 
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         self.reviewReactionAnimationsEnabled = try container.decode(Bool.self, forKey: .reviewReactionAnimationsEnabled)
         self.productAnalyticsEnabled = try container.decodeIfPresent(Bool.self, forKey: .productAnalyticsEnabled)
-        // Account caches and pending guest upgrades written before this setting have no color field.
+        self.firstReviewOnboardingCompleted = try container.decode(Bool.self, forKey: .firstReviewOnboardingCompleted)
+        self.firstReviewOnboardingSnapshotGeneration = nil
         self.accentColor = container.contains(.accentColor)
             ? try container.decode(AccountAccentColor.self, forKey: .accentColor)
             : .defaultColor
     }
 }
 
+/// Only persisted snapshots may predate the deployed wire contract.
+struct LegacyCachedAccountPreferences: Decodable {
+    var preferences: AccountPreferences
+
+    private enum CodingKeys: String, CodingKey {
+        case reviewReactionAnimationsEnabled, productAnalyticsEnabled, accentColor, firstReviewOnboardingCompleted
+        case firstReviewOnboardingSnapshotGeneration
+    }
+
+    init(from decoder: Decoder) throws {
+        let fields = try decoder.container(keyedBy: CodingKeys.self)
+        self.preferences = AccountPreferences(
+            reviewReactionAnimationsEnabled: try fields.decode(Bool.self, forKey: .reviewReactionAnimationsEnabled),
+            productAnalyticsEnabled: try fields.decodeIfPresent(Bool.self, forKey: .productAnalyticsEnabled),
+            accentColor: fields.contains(.accentColor)
+                ? try fields.decode(AccountAccentColor.self, forKey: .accentColor) : .defaultColor,
+            firstReviewOnboardingCompleted: fields.contains(.firstReviewOnboardingCompleted)
+                ? try fields.decode(Bool.self, forKey: .firstReviewOnboardingCompleted) : nil
+        )
+        self.preferences.firstReviewOnboardingSnapshotGeneration = try fields.decodeIfPresent(
+            String.self, forKey: .firstReviewOnboardingSnapshotGeneration
+        )
+    }
+}
+
 func makeDefaultAccountPreferences() -> AccountPreferences {
-    AccountPreferences(reviewReactionAnimationsEnabled: true, productAnalyticsEnabled: nil, accentColor: .defaultColor)
+    AccountPreferences(reviewReactionAnimationsEnabled: true, productAnalyticsEnabled: nil, accentColor: .defaultColor, firstReviewOnboardingCompleted: nil)
 }
 
 /**
@@ -122,6 +154,7 @@ enum AnalyticsPreferenceWriteOrigin: String, Encodable, Hashable, Sendable {
 
 /// One PATCH /me/preferences body. A nil field is left out of the JSON and keeps its stored value.
 struct AccountPreferencesPatchRequest: Encodable, Hashable, Sendable {
+    var firstReviewOnboardingCompleted: Bool?
     var accentColor: AccountAccentColor?
     var reviewReactionAnimationsEnabled: Bool?
     var productAnalyticsEnabled: Bool?

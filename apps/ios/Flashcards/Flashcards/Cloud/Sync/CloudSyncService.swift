@@ -101,22 +101,26 @@ struct CloudAccountContext: Hashable, Sendable {
 
 private func makeCloudAccountContext(
     meResponse: MeResponse,
-    cloudSettings: CloudSettings
+    cloudSettings: CloudSettings,
+    firstReviewOnboardingSnapshotGeneration: String
 ) -> CloudAccountContext {
     let identity = CloudAccountIdentity(
         originalUserId: meResponse.userId,
         canonicalAccountId: meResponse.canonicalAccountId,
         linkedAccountIds: meResponse.linkedAccountIds
     )
+    var preferences = AccountPreferences(
+        reviewReactionAnimationsEnabled: meResponse.preferences.reviewReactionAnimationsEnabled,
+        productAnalyticsEnabled: meResponse.preferences.productAnalyticsEnabled,
+        accentColor: meResponse.preferences.accentColor,
+        firstReviewOnboardingCompleted: meResponse.preferences.firstReviewOnboardingCompleted
+    )
+    preferences.firstReviewOnboardingSnapshotGeneration = firstReviewOnboardingSnapshotGeneration
     return CloudAccountContext(
         userId: identity.localContinuityUserId(cloudSettings: cloudSettings),
         identity: identity,
         email: meResponse.profile.email,
-        preferences: AccountPreferences(
-            reviewReactionAnimationsEnabled: meResponse.preferences.reviewReactionAnimationsEnabled,
-            productAnalyticsEnabled: meResponse.preferences.productAnalyticsEnabled,
-            accentColor: meResponse.preferences.accentColor
-        )
+        preferences: preferences
     )
 }
 
@@ -133,6 +137,9 @@ final class CloudSyncService: @unchecked Sendable {
         apiBaseUrl: String,
         authorizationHeader: String
     ) async throws -> CloudAccountContext {
+        let firstReviewGeneration = try await MainActor.run {
+            try self.database.readFirstReviewOnboardingGeneration()
+        }
         let meResponse: MeResponse = try await self.transport.request(
             apiBaseUrl: apiBaseUrl,
             authorizationHeader: authorizationHeader,
@@ -142,7 +149,8 @@ final class CloudSyncService: @unchecked Sendable {
         )
         return try makeCloudAccountContext(
             meResponse: meResponse,
-            cloudSettings: self.database.workspaceSettingsStore.loadCloudSettings()
+            cloudSettings: self.database.workspaceSettingsStore.loadCloudSettings(),
+            firstReviewOnboardingSnapshotGeneration: firstReviewGeneration
         )
     }
 
@@ -154,6 +162,9 @@ final class CloudSyncService: @unchecked Sendable {
     }
 
     func fetchCloudAccount(apiBaseUrl: String, authorizationHeader: String) async throws -> CloudAccountSnapshot {
+        let firstReviewGeneration = try await MainActor.run {
+            try self.database.readFirstReviewOnboardingGeneration()
+        }
         logCloudFlowPhase(phase: .workspaceList, outcome: "start")
         async let meResponseTask: MeResponse = self.transport.request(
             apiBaseUrl: apiBaseUrl,
@@ -172,7 +183,8 @@ final class CloudSyncService: @unchecked Sendable {
         let selectedWorkspaceId = meResponse.selectedWorkspaceId
         let accountContext = try makeCloudAccountContext(
             meResponse: meResponse,
-            cloudSettings: self.database.workspaceSettingsStore.loadCloudSettings()
+            cloudSettings: self.database.workspaceSettingsStore.loadCloudSettings(),
+            firstReviewOnboardingSnapshotGeneration: firstReviewGeneration
         )
         let workspaces = workspacesResponse.map { workspace in
             CloudWorkspaceSummary(
@@ -204,6 +216,9 @@ final class CloudSyncService: @unchecked Sendable {
         authorizationHeader: String,
         patch: AccountPreferencesPatchRequest
     ) async throws -> AccountPreferences {
+        let firstReviewGeneration = try await MainActor.run {
+            try self.database.readFirstReviewOnboardingGeneration()
+        }
         let response: UpdateAccountPreferencesResponse = try await self.transport.request(
             apiBaseUrl: apiBaseUrl,
             authorizationHeader: authorizationHeader,
@@ -211,7 +226,9 @@ final class CloudSyncService: @unchecked Sendable {
             method: "PATCH",
             body: patch
         )
-        return response.preferences
+        var preferences = response.preferences
+        preferences.firstReviewOnboardingSnapshotGeneration = firstReviewGeneration
+        return preferences
     }
 
     func loadProgressSummary(

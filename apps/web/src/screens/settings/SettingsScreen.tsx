@@ -99,6 +99,8 @@ export function SettingsScreen(): ReactElement {
   const {
     activeWorkspace,
     cloudSettings,
+    firstReviewOnboardingCompleted,
+    setFirstReviewOnboardingCompleted,
     isSessionVerified,
     refreshAccountPreferences,
     session,
@@ -114,16 +116,31 @@ export function SettingsScreen(): ReactElement {
   const reviewReactionAnimationsEnabled = useEffectiveReviewReactionAnimationsEnabled();
   const { isEnabled: isOwnOpenAIKeyEnabled } = useOwnOpenAIKeySetting();
   const { isTestModeEnabled } = useTestMode();
+  const [isOnboardingSaving, setIsOnboardingSaving] = useState(false);
   const [isInviteDialogOpen, setIsInviteDialogOpen] = useState<boolean>(false);
   const [shareStatusMessage, setShareStatusMessage] = useState<string>("");
   const [shareErrorMessage, setShareErrorMessage] = useState<string>("");
   const currentWorkspaceName = activeWorkspace?.name ?? t("common.unavailable");
   const isGuest = session?.browserGuestCapabilities?.isGuest === true;
-  const accountStatus = isGuest ? `${t("guest.title")} · ${t("guest.signIn")} · 1` : accountStatusValue(cloudSettings?.linkedEmail ?? session?.profile.email ?? null, t("common.unavailable"));
+  const accountStatus = isGuest ? `${t("guest.title")} · ${t("guest.signIn")}` : accountStatusValue(cloudSettings?.linkedEmail ?? session?.profile.email ?? null, t("common.unavailable"));
   const languagePreferenceLabel = formatLocalePreferenceLabel(localePreference, t);
   const schedulerValue = workspaceSettings === null ? t("common.unavailable") : workspaceSettings.algorithm.toUpperCase();
   const canCreateInvite = canLoadProgressServerBase(sessionVerificationState, cloudSettings);
   const appShareUrl = `${getAppConfig().appBaseUrl}${shareRoute}`;
+
+  async function toggleFirstReviewOnboarding(): Promise<void> {
+    if (firstReviewOnboardingCompleted === null || indexedDbOpenRecoveryState.hasFailed()) return;
+    setIsOnboardingSaving(true);
+    try {
+      await setFirstReviewOnboardingCompleted(!firstReviewOnboardingCompleted);
+    } catch (error) {
+      if (!markIndexedDbOpenRecoveryFailureAndCheckActive(indexedDbOpenRecoveryState, error)) {
+        setErrorMessage(error instanceof Error ? error.message : String(error));
+      }
+    } finally {
+      setIsOnboardingSaving(false);
+    }
+  }
 
   function openInviteDialog(): void {
     if (indexedDbOpenRecoveryState.hasFailed()) {
@@ -269,6 +286,7 @@ export function SettingsScreen(): ReactElement {
             value={accountStatus}
             to={workspacePath(accountStatusRoute)}
             testId="settings-row-account-status"
+            guestAccountAttention={isGuest}
           />
           <SettingsNavigationCard
             title={t("settingsCurrentWorkspace.title")}
@@ -409,6 +427,26 @@ export function SettingsScreen(): ReactElement {
 
       <SettingsGroup title={t("settingsHome.groups.advanced")}>
         <div className="settings-nav-list">
+          <article className="content-card settings-toggle-card" data-testid="first-review-onboarding-settings-card">
+            <div className="settings-nav-card-copy">
+              <strong className="panel-subtitle">{t("firstReviewOnboardingSettings.title")}</strong>
+              <p className="subtitle">{t("firstReviewOnboardingSettings.description")}</p>
+            </div>
+            <button className="settings-toggle-control" type="button" role="switch"
+              aria-label={t("firstReviewOnboardingSettings.title")}
+              aria-checked={firstReviewOnboardingCompleted === true}
+              disabled={isOnboardingSaving || firstReviewOnboardingCompleted === null || session === null
+                || (isGuest && !isSessionVerified)}
+              data-state={firstReviewOnboardingCompleted === true ? "on" : "off"}
+              data-testid="first-review-onboarding-toggle"
+              onClick={() => { void toggleFirstReviewOnboarding(); }}>
+              <span className="settings-toggle-track" aria-hidden="true"><span className="settings-toggle-thumb" /></span>
+              <span className="settings-toggle-value">
+                {firstReviewOnboardingCompleted === null ? t("common.unavailable")
+                  : firstReviewOnboardingCompleted ? t("common.on") : t("common.off")}
+              </span>
+            </button>
+          </article>
           <SettingsNavigationCard
             title={t("ownOpenAIKeySettings.title")}
             description={t("ownOpenAIKeySettings.subtitle")}

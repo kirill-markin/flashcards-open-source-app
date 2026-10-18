@@ -984,3 +984,6 @@
 "premium.offer.subscribe" = "Předplatit";
 "premium.offer.startTrial" = "Zahájit bezplatné zkušební období: %@";
 "premium.offer.view" = "Zobrazit Premium";
+
+"settings.firstReviewOnboarding.title" = "Průvodce prvním opakováním dokončen";
+"settings.firstReviewOnboarding.note" = "Vypněte, pokud chcete při opakování karty znovu zobrazit průvodce.";

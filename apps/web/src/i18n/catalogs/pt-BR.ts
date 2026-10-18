@@ -949,6 +949,10 @@ const ptBrCatalog: TranslationCatalog = {
     paragraphTwo: "Os lembretes usam automaticamente os cartões e a atividade do espaço de trabalho selecionado naquele app do celular.",
     paragraphThree: "O app web não entrega nem gerencia essas notificações, por isso não há controles de notificação nesta tela.",
   },
+  firstReviewOnboardingSettings: {
+    title: "Guia da primeira revisão concluído",
+    description: "Desative para ver o guia novamente ao revisar um cartão.",
+  },
   reviewAnimationsSettings: {
     title: "Animações da revisão",
     subtitle: "Controle as animações de reação mostradas depois de avaliar os cartões.",

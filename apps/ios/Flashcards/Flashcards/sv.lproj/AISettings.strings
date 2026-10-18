@@ -984,3 +984,6 @@
 "premium.offer.subscribe" = "Prenumerera";
 "premium.offer.startTrial" = "Starta gratis provperiod: %@";
 "premium.offer.view" = "Visa Premium";
+
+"settings.firstReviewOnboarding.title" = "Introduktion till första repetitionen klar";
+"settings.firstReviewOnboarding.note" = "Stäng av för att se guiden igen när du repeterar ett kort.";

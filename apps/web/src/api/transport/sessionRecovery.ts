@@ -14,6 +14,13 @@ import {
 import { readAbortError, waitForTransportDelay } from "./transportSignals";
 
 type SessionCsrfState = "unknown" | "session" | "guest" | "non-session";
+export class BrowserGuestSessionInvalidatedError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "BrowserGuestSessionInvalidatedError";
+  }
+}
+
 type RefreshBrowserSessionResult = "refreshed" | "reconciled" | "unauthorized";
 export type AuthRecoveryMode = "allow" | "skip";
 export type NetworkRetryMode = "none" | "transient";
@@ -44,6 +51,9 @@ export type SessionRecovery = Readonly<{
   createSessionHeaders: (headers: Headers, method: string) => Headers;
   getCachedSessionCsrfToken: () => string | null;
   getOptionalSession: () => Promise<SessionInfo | null>;
+  loadVerifiedBrowserGuestSession: (userId: string, workspaceId: string) => Promise<SessionInfo>;
+  isBrowserGuestSessionVerified: (userId: string, workspaceId: string) => boolean;
+  subscribeToBrowserGuestVerification: (listener: () => void) => () => void;
   getSession: () => Promise<SessionInfo>;
   primeSessionCsrfToken: (csrfToken: string) => void;
   primeGuestSession: (userId: string, csrfToken: string) => void;
@@ -167,6 +177,8 @@ export function createSessionRecovery(loadSessionInfo: LoadSessionInfo): Session
   let browserGuestVerificationGeneration = 0;
   let sessionCsrfToken: string | null = null;
   let sessionUserId: string | null = null;
+  let verifiedBrowserGuestOwner: Readonly<{ userId: string; workspaceId: string | null }> | null = null;
+  const browserGuestVerificationListeners = new Set<() => void>();
   let sessionCsrfState: SessionCsrfState = "unknown";
   let sessionRecoveryPromise: Promise<void> | null = null;
   let sessionRecoveryNetworkRetryMode: NetworkRetryMode | null = null;
@@ -186,17 +198,26 @@ export function createSessionRecovery(loadSessionInfo: LoadSessionInfo): Session
   let navigationHandler: NavigateToUrl | null = null;
   let indexedDbOpenRecoverySignal: AbortSignal | null = null;
 
+  function readGuestBoundary(): string {
+    const saved = readBrowserGuestState();
+    const owner = saved?.status === "owned" ? `${saved.owner.userId}:${saved.owner.workspaceId}:${saved.owner.pending?.phase ?? "active"}` : saved?.status ?? "absent";
+    return `${owner}:${readBrowserGuestOwnershipGeneration() ?? ""}`;
+  }
+
+  function publishBrowserGuestVerification(): void {
+    for (const listener of browserGuestVerificationListeners) listener();
+  }
+
   let guestBoundary = "";
   if (typeof window !== "undefined") subscribeToBrowserGuestChanges(() => {
-    const saved = readBrowserGuestState();
-    const owner = saved?.status === "owned" ? `${saved.owner.userId}:${saved.owner.pending?.phase ?? "active"}` : saved?.status ?? "absent";
-    const next = `${owner}:${readBrowserGuestOwnershipGeneration() ?? ""}`;
+    const next = readGuestBoundary();
     if (guestBoundary === next) return;
     guestBoundary = next;
     browserGuestVerificationGeneration += 1;
-    identityController.abort(new Error("Browser guest identity boundary changed; reload session before writing."));
+    identityController.abort(new BrowserGuestSessionInvalidatedError("Browser guest identity boundary changed; reload session before writing."));
     identityController = new AbortController();
     resetSessionState();
+    publishBrowserGuestVerification();
   });
 
   function bindIndexedDbOpenRecoverySignal(signal: AbortSignal): () => void {
@@ -292,11 +313,12 @@ export function createSessionRecovery(loadSessionInfo: LoadSessionInfo): Session
   function resetSessionState(): void {
     sessionCsrfToken = null;
     sessionUserId = null;
+    verifiedBrowserGuestOwner = null;
     sessionCsrfState = "unknown";
   }
 
   function requireBrowserGuestSessionNotPaused(): void {
-    if (browserGuestSessionPaused) throw new Error("Browser guest session is unverified; remote work is paused until owner verification succeeds.");
+    if (browserGuestSessionPaused) throw new BrowserGuestSessionInvalidatedError("Browser guest session is unverified; remote work is paused until owner verification succeeds.");
   }
 
   function createSessionHeaders(headers: Headers, method: string): Headers {
@@ -769,6 +791,7 @@ export function createSessionRecovery(loadSessionInfo: LoadSessionInfo): Session
     browserGuestVerificationGeneration = 0;
     sessionCsrfToken = null;
     sessionUserId = null;
+    verifiedBrowserGuestOwner = null;
     sessionCsrfState = "unknown";
     sessionRecoveryPromise = null;
     sessionRecoveryNetworkRetryMode = null;
@@ -783,6 +806,23 @@ export function createSessionRecovery(loadSessionInfo: LoadSessionInfo): Session
 
   return {
     attachRecoverySignal,
+    isBrowserGuestSessionVerified: (userId: string, workspaceId: string): boolean => browserGuestSessionPaused === false
+      && sessionCsrfState === "guest" && sessionUserId === userId
+      && verifiedBrowserGuestOwner?.userId === userId && verifiedBrowserGuestOwner.workspaceId === workspaceId,
+    subscribeToBrowserGuestVerification: (listener: () => void): (() => void) => {
+      browserGuestVerificationListeners.add(listener);
+      return () => { browserGuestVerificationListeners.delete(listener); };
+    },
+    loadVerifiedBrowserGuestSession: async (userId: string, workspaceId: string): Promise<SessionInfo> => {
+      const signal = identityController.signal;
+      const session = await loadSessionInfo(browserSessionVerificationOptions, signal);
+      throwIfRequestAborted(signal);
+      if (session.browserGuestCapabilities?.isGuest !== true || session.userId !== userId
+        || session.selectedWorkspaceId !== workspaceId) {
+        throw new Error("Browser guest account does not match the verified cookie workspace. Local data has been preserved.");
+      }
+      return session;
+    },
     bindIndexedDbOpenRecoverySignal,
     createSessionHeaders,
     getCachedSessionCsrfToken: (): string | null => sessionCsrfState === "session" || sessionCsrfState === "guest" ? sessionCsrfToken : null,
@@ -809,19 +849,33 @@ export function createSessionRecovery(loadSessionInfo: LoadSessionInfo): Session
     pauseBrowserGuestSession: (): void => {
       browserGuestSessionPaused = true;
       browserGuestVerificationGeneration += 1;
-      identityController.abort(new Error("Browser guest session is unverified; remote work is paused."));
+      identityController.abort(new BrowserGuestSessionInvalidatedError("Browser guest session is unverified; remote work is paused."));
       identityController = new AbortController();
       resetSessionState();
+      publishBrowserGuestVerification();
     },
     resumeVerifiedBrowserSession: (session: SessionInfo): void => {
+      const isSameOwner = browserGuestSessionPaused === false && sessionCsrfState === "guest"
+        && session.browserGuestCapabilities?.isGuest === true && sessionUserId === session.userId
+        && verifiedBrowserGuestOwner?.userId === session.userId
+        && verifiedBrowserGuestOwner.workspaceId === session.selectedWorkspaceId;
       setSessionCsrfToken(session);
       browserGuestSessionPaused = false;
-      browserGuestVerificationGeneration += 1;
+      verifiedBrowserGuestOwner = session.browserGuestCapabilities?.isGuest === true
+        ? { userId: session.userId, workspaceId: session.selectedWorkspaceId } : null;
+      guestBoundary = readGuestBoundary();
+      redirectInFlight = false;
+      if (isSameOwner === false) browserGuestVerificationGeneration += 1;
+      publishBrowserGuestVerification();
     },
     readBrowserGuestVerificationGeneration: (userId: string): number | null => browserGuestSessionPaused === false
-      && sessionCsrfState === "guest" && sessionUserId === userId ? browserGuestVerificationGeneration : null,
+      && sessionCsrfState === "guest" && sessionUserId === userId
+      && verifiedBrowserGuestOwner?.userId === userId ? browserGuestVerificationGeneration : null,
     primeGuestSession: (userId: string, csrfToken: string): void => {
       sessionUserId = userId;
+      const saved = readBrowserGuestState();
+      verifiedBrowserGuestOwner = saved?.status === "owned" && saved.owner.userId === userId
+        ? { userId, workspaceId: saved.owner.workspaceId } : null;
       sessionCsrfToken = csrfToken;
       sessionCsrfState = "guest";
     },

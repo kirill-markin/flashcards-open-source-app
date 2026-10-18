@@ -984,3 +984,6 @@
 "premium.offer.subscribe" = "Jisajili";
 "premium.offer.startTrial" = "Anza jaribio la bure: %@";
 "premium.offer.view" = "Tazama Premium";
+
+"settings.firstReviewOnboarding.title" = "Mwongozo wa marudio ya kwanza umekamilika";
+"settings.firstReviewOnboarding.note" = "Zima ili kuona mwongozo tena unaporudia kadi.";

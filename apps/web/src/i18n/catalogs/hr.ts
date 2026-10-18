@@ -958,6 +958,10 @@ const hrCatalog: TranslationCatalog = {
     paragraphTwo: "Podsjetnici automatski koriste kartice i aktivnost iz radnog prostora koji je trenutačno odabran u toj mobilnoj aplikaciji.",
     paragraphThree: "Web-aplikacija ne isporučuje ove obavijesti niti njima upravlja, pa na ovom zaslonu nema kontrola obavijesti.",
   },
+  firstReviewOnboardingSettings: {
+    title: "Uvod u prvo ponavljanje dovršen",
+    description: "Isključite da biste ponovno vidjeli vodič pri ponavljanju kartice.",
+  },
   reviewAnimationsSettings: {
     title: "Animacije ponavljanja",
     subtitle: "Upravljajte animacijama reakcije koje se prikazuju nakon ocjenjivanja kartica.",
