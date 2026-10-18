@@ -140,7 +140,7 @@ class LocalCloudAccountMethodsRepository(
         val session = sessionFor(pending)
         val submitting = checkpoint(pending)
         receiveConnection(submitting, gateway.accountConnection(session.transport(), pending.verifier,
-            CloudConnectionAction.Preview(requireNotNull(pending.connection?.operation), omittedWorkspaceIds)))
+            CloudConnectionAction.Preview(requireNotNull(pending.connection.operation), omittedWorkspaceIds)))
     }
 
     override suspend fun confirmConnection(localId: String): CloudPendingAccountMethod = operationCoordinator.runExclusive {
@@ -152,7 +152,7 @@ class LocalCloudAccountMethodsRepository(
         save(pending, submitting)
         try {
             receiveConnection(submitting, gateway.accountConnection(session.transport(), pending.verifier,
-                CloudConnectionAction.Confirm(requireNotNull(pending.connection?.operation), preview)))
+                CloudConnectionAction.Confirm(requireNotNull(pending.connection.operation), preview)))
         } catch (error: com.flashcardsopensourceapp.data.local.cloud.remote.CloudRemoteException) {
             if (error.errorCode == "ACCOUNT_CONNECTION_PREVIEW_CHANGED") {
                 save(submitting, submitting.copy(phase = CloudAccountMethodPhase.CONNECTION_TARGET,

@@ -35,6 +35,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.PlainTooltip
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.TooltipAnchorPosition
 import androidx.compose.material3.TooltipBox
 import androidx.compose.material3.TooltipDefaults
 import androidx.compose.material3.rememberTooltipState
@@ -223,7 +224,9 @@ internal fun CloudSignInMethodButton(
         CloudSignInMethod.EMAIL -> MaterialTheme.colorScheme.onSurface
     }
     TooltipBox(
-        positionProvider = TooltipDefaults.rememberPlainTooltipPositionProvider(),
+        positionProvider = TooltipDefaults.rememberTooltipPositionProvider(
+            positioning = TooltipAnchorPosition.Above
+        ),
         state = tooltip,
         enableUserInput = false,
         modifier = Modifier.fillMaxWidth().zIndex(if (remembered != null) 1f else 0f),

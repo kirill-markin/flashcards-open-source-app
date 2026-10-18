@@ -438,7 +438,7 @@ class LocalCloudSocialSignInRepository(
         val upgrade = preferencesStore.loadPendingGuestUpgrade()
         val upgradeWorkspace = upgrade?.takeIf {
             it.configuration == pending.configuration && it.accountSnapshot.userId == pending.acceptedUserId &&
-                it.guestSession.userId == guest?.userId && it.guestSession.workspaceId == guest?.workspaceId &&
+                it.guestSession.userId == guest?.userId && it.guestSession.workspaceId == guest.workspaceId &&
                 it.selection == pending.workspaceSelection && it.guestUpgradeMode == pending.preparedContext?.guestUpgradeMode
         }?.completion?.workspace
         val completedWorkspace = pending.completedWorkspace ?: pending.linkingWorkspace ?: upgradeWorkspace
