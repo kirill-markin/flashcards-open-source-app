@@ -330,7 +330,7 @@ describe("ReviewScreen mobile app promotion", () => {
     expect(getContainer().textContent).not.toContain("Mobile promo answer 2");
   });
 
-  it("serializes overlapping mobile promotion checks for the same local date", async () => {
+  it("defers overlapping mobile promotion checks until the next saved review", async () => {
     const summaryDeferred = createDeferredPromise<Readonly<{ hasMobileReviewEvent: boolean }>>();
     apiMocks.loadReviewPlatformSummaryMock.mockImplementation(
       async (): Promise<Readonly<{ hasMobileReviewEvent: boolean }>> => summaryDeferred.promise,
@@ -359,11 +359,20 @@ describe("ReviewScreen mobile app promotion", () => {
     await flushReviewPromptPromises();
 
     expect(apiMocks.loadReviewPlatformSummaryMock).toHaveBeenCalledTimes(1);
+    expect(mobileAppPromotionMocks.storeMobileAppPromotionPromptShownMock).not.toHaveBeenCalled();
+    expect(queryMobileAppPromotionDialog()).toBeNull();
+    expect(queryFeedbackDialog()).toBeNull();
+    expect(apiMocks.loadFeedbackStateMock).not.toHaveBeenCalled();
+
+    await submitGoodReview();
+    await flushReviewPromptPromises();
+
+    expect(apiMocks.loadReviewPlatformSummaryMock).toHaveBeenCalledTimes(2);
     expect(mobileAppPromotionMocks.storeMobileAppPromotionPromptShownMock).toHaveBeenCalledTimes(1);
     expect(queryMobileAppPromotionDialog()).not.toBeNull();
   });
 
-  it("does not open automatic feedback while an overlapping mobile promotion check later succeeds", async () => {
+  it("does not open automatic feedback when an overlapping mobile promotion check becomes stale", async () => {
     const summaryDeferred = createDeferredPromise<Readonly<{ hasMobileReviewEvent: boolean }>>();
     apiMocks.loadReviewPlatformSummaryMock.mockImplementation(
       async (): Promise<Readonly<{ hasMobileReviewEvent: boolean }>> => summaryDeferred.promise,
@@ -393,14 +402,23 @@ describe("ReviewScreen mobile app promotion", () => {
     });
     await flushReviewPromptPromises();
 
-    expect(queryMobileAppPromotionDialog()).not.toBeNull();
+    expect(queryMobileAppPromotionDialog()).toBeNull();
     expect(queryFeedbackDialog()).toBeNull();
     expect(apiMocks.loadReviewPlatformSummaryMock).toHaveBeenCalledTimes(1);
+    expect(mobileAppPromotionMocks.storeMobileAppPromotionPromptShownMock).not.toHaveBeenCalled();
+    expect(apiMocks.loadFeedbackStateMock).not.toHaveBeenCalled();
+
+    await submitGoodReview();
+    await flushReviewPromptPromises();
+
+    expect(queryMobileAppPromotionDialog()).not.toBeNull();
+    expect(queryFeedbackDialog()).toBeNull();
+    expect(apiMocks.loadReviewPlatformSummaryMock).toHaveBeenCalledTimes(2);
     expect(mobileAppPromotionMocks.storeMobileAppPromotionPromptShownMock).toHaveBeenCalledTimes(1);
     expect(apiMocks.loadFeedbackStateMock).not.toHaveBeenCalled();
   });
 
-  it("starts a new mobile promotion check when the workspace changes while another check is pending", async () => {
+  it("waits for the next saved review after a workspace change cancels a pending mobile promotion check", async () => {
     const firstSummaryDeferred = createDeferredPromise<Readonly<{ hasMobileReviewEvent: boolean }>>();
     const secondSummaryDeferred = createDeferredPromise<Readonly<{ hasMobileReviewEvent: boolean }>>();
     apiMocks.loadReviewPlatformSummaryMock
@@ -424,11 +442,13 @@ describe("ReviewScreen mobile app promotion", () => {
     };
     await rerenderReviewScreen();
     await submitGoodReview();
+    await flushReviewPromptPromises();
 
-    await vi.waitFor(() => {
-      expect(apiMocks.loadReviewPlatformSummaryMock).toHaveBeenCalledTimes(2);
-    });
+    expect(apiMocks.loadReviewPlatformSummaryMock).toHaveBeenCalledTimes(1);
     expect(mobileAppPromotionMocks.storeMobileAppPromotionPromptShownMock).not.toHaveBeenCalled();
+    expect(queryFeedbackDialog()).toBeNull();
+    expect(queryMobileAppPromotionDialog()).toBeNull();
+    expect(apiMocks.loadFeedbackStateMock).not.toHaveBeenCalled();
 
     await act(async () => {
       firstSummaryDeferred.resolve({
@@ -440,7 +460,18 @@ describe("ReviewScreen mobile app promotion", () => {
 
     expect(queryFeedbackDialog()).toBeNull();
     expect(queryMobileAppPromotionDialog()).toBeNull();
+    expect(apiMocks.loadReviewPlatformSummaryMock).toHaveBeenCalledTimes(1);
     expect(mobileAppPromotionMocks.storeMobileAppPromotionPromptShownMock).not.toHaveBeenCalled();
+    expect(apiMocks.loadFeedbackStateMock).not.toHaveBeenCalled();
+
+    await submitGoodReview();
+
+    await vi.waitFor(() => {
+      expect(apiMocks.loadReviewPlatformSummaryMock).toHaveBeenCalledTimes(2);
+    });
+    expect(mobileAppPromotionMocks.storeMobileAppPromotionPromptShownMock).not.toHaveBeenCalled();
+    expect(queryFeedbackDialog()).toBeNull();
+    expect(queryMobileAppPromotionDialog()).toBeNull();
 
     await act(async () => {
       secondSummaryDeferred.resolve({

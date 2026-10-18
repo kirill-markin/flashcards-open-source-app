@@ -137,7 +137,10 @@ internal fun createTestReviewRepository(runtime: LocalDatabaseTestRuntime): Revi
         timeProvider = SystemTimeProvider,
         mediaAssetFileCacheRootDirectory = File(runtime.context.filesDir, "managed-media-test-cache"),
         mediaAssetDownloadUrlLoader = UnsupportedTestReviewMediaAssetDownloadUrlLoader,
-        mediaAssetDownloader = UnsupportedTestReviewMediaAssetDownloader
+        mediaAssetDownloader = UnsupportedTestReviewMediaAssetDownloader,
+        analytics = com.flashcardsopensourceapp.core.observability.analytics.NoOpAnalytics,
+        onFirstReviewOnboardingPersistenceFailed = { throw it },
+        onFirstReviewOnboardingSaved = {}
     )
 }
 

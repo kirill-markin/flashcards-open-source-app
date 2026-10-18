@@ -3,7 +3,10 @@ import Foundation
 @MainActor
 extension FlashcardsStore {
     var isAutomaticFeedbackPromptBlockedByModal: Bool {
-        self.feedbackPresentation != nil
+        self.isSavedReviewPromptSurfaceAvailable == false
+            || self.isPremiumPresentationActive
+            || self.pendingStoreReviewRequestAttempt != nil
+            || self.feedbackPresentation != nil
             || self.isGuestSignInAfterReviewPromptPresented
             || self.activeCloudSignInSheetCount > 0
             || self.accountDeletionState != .hidden
@@ -104,6 +107,7 @@ extension FlashcardsStore {
             return
         }
 
+        let opportunityId = self.savedReviewPromptOpportunity?.id
         let task = Task { @MainActor [weak self] in
             guard let self else {
                 return
@@ -111,7 +115,7 @@ extension FlashcardsStore {
             defer {
                 self.activeAutomaticFeedbackPromptTask = nil
             }
-            await self.runAutomaticFeedbackPromptCheck(now: now)
+            await self.runAutomaticFeedbackPromptCheck(now: now, opportunityId: opportunityId)
         }
         self.activeAutomaticFeedbackPromptTask = task
     }
@@ -137,7 +141,7 @@ extension FlashcardsStore {
         )
     }
 
-    private func runAutomaticFeedbackPromptCheck(now: Date) async {
+    private func runAutomaticFeedbackPromptCheck(now: Date, opportunityId: UUID?) async {
         var failureStage: String = "start"
         do {
             failureStage = "resolve_workspace"
@@ -172,6 +176,8 @@ extension FlashcardsStore {
             if shouldFetchFeedbackServerState(promptState: self.feedbackPromptState, now: now) {
                 failureStage = "load_feedback_state"
                 let feedbackState = try await self.loadFeedbackStateFromServer()
+                try Task.checkCancellation()
+                guard self.savedReviewPromptOpportunity?.id == opportunityId else { return }
                 self.updateFeedbackPromptState(
                     state: applyFeedbackServerState(
                         promptState: self.feedbackPromptState,
@@ -180,6 +186,8 @@ extension FlashcardsStore {
                     )
                 )
             }
+            try Task.checkCancellation()
+            guard self.savedReviewPromptOpportunity?.id == opportunityId else { return }
             failureStage = "post_server_cooldown_gate"
             guard isFeedbackAutomaticCooldownExpired(promptState: self.feedbackPromptState, now: Date()) else {
                 return
@@ -189,16 +197,6 @@ extension FlashcardsStore {
                 return
             }
 
-            failureStage = "record_prompt_shown"
-            let shownAt = Date()
-            let feedbackState = try await self.recordAutomaticFeedbackPromptShown(now: shownAt)
-            self.updateFeedbackPromptState(
-                state: makeFeedbackPromptStateAfterAutomaticPromptShown(
-                    promptState: self.feedbackPromptState,
-                    feedbackState: feedbackState,
-                    shownAt: shownAt
-                )
-            )
             failureStage = "present_sheet"
             self.nextAutomaticFeedbackPromptRetryAt = nil
             self.presentFeedbackSheet(trigger: .automatic)
@@ -229,19 +227,49 @@ extension FlashcardsStore {
         }
     }
 
-    private func recordAutomaticFeedbackPromptShown(now: Date) async throws -> FeedbackState {
+    func recordAutomaticFeedbackPromptShownAfterPresentation(presentation: FeedbackPresentation) {
+        guard presentation.trigger == .automatic,
+              self.feedbackPresentation?.id == presentation.id else { return }
+        let shownAt = Date()
+        let identityKey = self.feedbackPromptIdentityKey
+        self.updateFeedbackPromptState(state: PersistedFeedbackPromptState(
+            lastAutomaticPromptShownAt: shownAt,
+            lastFeedbackSubmittedAt: self.feedbackPromptState.lastFeedbackSubmittedAt,
+            serverNextAutomaticPromptAt: self.feedbackPromptState.serverNextAutomaticPromptAt,
+            lastServerStateFetchedAt: self.feedbackPromptState.lastServerStateFetchedAt
+        ))
         let request = makeFeedbackPromptEventRequest(
             workspaceId: self.workspace?.workspaceId,
             installationId: self.cloudSettings?.installationId,
             eventType: .automaticPromptShown,
-            now: now
+            now: shownAt
         )
-        return try await self.withFeedbackCloudSession { cloudSyncService, session in
-            try await cloudSyncService.recordFeedbackPromptEvent(
-                apiBaseUrl: session.apiBaseUrl,
-                authorizationHeader: session.authorizationHeaderValue,
-                request: request
-            )
+        Task { @MainActor [weak self] in
+            guard let self, self.feedbackPromptIdentityKey == identityKey else { return }
+            do {
+                let feedbackState = try await self.withFeedbackCloudSession { cloudSyncService, session in
+                    guard self.feedbackPromptIdentityKey == identityKey else { throw CancellationError() }
+                    return try await cloudSyncService.recordFeedbackPromptEvent(
+                        apiBaseUrl: session.apiBaseUrl,
+                        authorizationHeader: session.authorizationHeaderValue,
+                        request: request
+                    )
+                }
+                guard self.feedbackPromptIdentityKey == identityKey else { return }
+                self.updateFeedbackPromptState(state: applyFeedbackServerState(
+                    promptState: self.feedbackPromptState,
+                    feedbackState: feedbackState,
+                    fetchedAt: Date()
+                ))
+            } catch is CancellationError {
+                return
+            } catch {
+                self.captureFeedbackSilentFailure(
+                    error: error,
+                    action: "automatic_feedback_prompt_check",
+                    stage: "record_prompt_shown"
+                )
+            }
         }
     }
 

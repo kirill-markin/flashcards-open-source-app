@@ -91,3 +91,7 @@ fun workspacePackageExportIncludedTagToggleTag(tag: String): String {
 }
 
 const val settingsAccentColorRowTag: String = "settings.accentColor"
+
+const val settingsFirstReviewOnboardingRowTag: String = "settings_row_first_review_onboarding"
+const val settingsFirstReviewOnboardingScreenTag: String = "settings_first_review_onboarding_screen"
+const val settingsFirstReviewOnboardingToggleTag: String = "settings_first_review_onboarding_toggle"

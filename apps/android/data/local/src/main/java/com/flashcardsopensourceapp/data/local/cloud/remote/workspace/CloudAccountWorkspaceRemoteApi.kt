@@ -94,6 +94,9 @@ internal class CloudAccountWorkspaceRemoteApi(
         update.productAnalyticsEnabledOrigin?.let { origin ->
             body.put("productAnalyticsEnabledOrigin", origin.wireValue)
         }
+        update.firstReviewOnboardingCompleted?.let { completed ->
+            body.put("firstReviewOnboardingCompleted", completed)
+        }
         update.locale?.let { locale ->
             body.put("locale", locale)
         }
@@ -314,6 +317,9 @@ internal fun parseAccountPreferences(
         productAnalyticsEnabled = preferences.optCloudBooleanOrNull(
             "productAnalyticsEnabled",
             "$fieldPath.productAnalyticsEnabled"
+        ),
+        firstReviewOnboardingCompleted = preferences.requireCloudBoolean(
+            "firstReviewOnboardingCompleted", "$fieldPath.firstReviewOnboardingCompleted"
         )
     )
 }

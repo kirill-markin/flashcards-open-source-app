@@ -18,11 +18,18 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.layout.LayoutCoordinates
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -50,6 +57,8 @@ import com.flashcardsopensourceapp.feature.review.reaction.appendReviewReactionE
 import com.flashcardsopensourceapp.feature.review.reaction.makeRandomReadyReviewReactionEvent
 import com.flashcardsopensourceapp.feature.review.reaction.reviewReactionMaximumActiveEvents
 import com.flashcardsopensourceapp.feature.review.reaction.reviewReactionMotionModeFromAnimatorSettings
+import com.flashcardsopensourceapp.feature.review.onboarding.FirstReviewOnboardingOverlay
+import com.flashcardsopensourceapp.feature.review.reaction.ReviewReactionMotionMode
 import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -59,6 +68,8 @@ fun ReviewRoute(
     workspaceId: String?,
     reviewReactionLottieConfigurationStore: ReviewReactionLottieConfigurationStore,
     reviewReactionAnimationsEnabled: Boolean,
+    firstReviewOnboardingCompleted: Boolean?,
+    isFirstReviewOnboardingSurfaceAvailable: Boolean,
     observability: AppObservability,
     onSelectFilter: (String, ReviewFilter, ReviewFilter) -> Unit,
     onOpenPreview: () -> Unit,
@@ -111,7 +122,34 @@ fun ReviewRoute(
     val configuration = LocalConfiguration.current
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
+    val lifecycleState by lifecycleOwner.lifecycle.currentStateFlow.collectAsState()
+    val view = LocalView.current
+    var hasWindowFocus by remember(view) { mutableStateOf(view.hasWindowFocus()) }
+    DisposableEffect(view) {
+        val observer = android.view.ViewTreeObserver.OnWindowFocusChangeListener { focused -> hasWindowFocus = focused }
+        view.viewTreeObserver.addOnWindowFocusChangeListener(observer)
+        onDispose { view.viewTreeObserver.removeOnWindowFocusChangeListener(observer) }
+    }
     val reviewReactionMotionMode = reviewReactionMotionModeFromAnimatorSettings()
+    var guideRoot by remember { mutableStateOf<LayoutCoordinates?>(null) }
+    var guideTarget by remember(workspaceId, uiState.preparedCurrentCard?.card?.cardId, uiState.isAnswerVisible) {
+        mutableStateOf<LayoutCoordinates?>(null)
+    }
+    var guideBounds by remember(workspaceId, uiState.preparedCurrentCard?.card?.cardId, uiState.isAnswerVisible) {
+        mutableStateOf<Rect?>(null)
+    }
+    var guideViewport by remember { mutableStateOf(Size.Zero) }
+    fun updateGuideBounds() {
+        val root = guideRoot
+        val target = guideTarget
+        guideBounds = if (root != null && target != null && root.isAttached && target.isAttached) {
+            val bounds = root.localBoundingBoxOf(target, clipBounds = false)
+            val viewport = Rect(0f, 0f, root.size.width.toFloat(), root.size.height.toFloat())
+            bounds.takeIf { it.width > 0f && it.height > 0f && viewport.contains(it.topLeft) && viewport.contains(it.bottomRight) }
+        } else {
+            null
+        }
+    }
     val reviewSpeechFallbackLanguageTag =
         (configuration.locales[0] ?: Locale.getDefault()).toLanguageTag()
     val currentScreenVisibleAction = rememberUpdatedState(newValue = onScreenVisible)
@@ -306,6 +344,11 @@ fun ReviewRoute(
         Box(
             modifier = Modifier
                 .fillMaxSize()
+                .onGloballyPositioned { coordinates ->
+                    guideRoot = coordinates
+                    guideViewport = Size(coordinates.size.width.toFloat(), coordinates.size.height.toFloat())
+                    updateGuideBounds()
+                }
                 .pointerInput(Unit) {
                     awaitEachGesture {
                         awaitFirstDown(
@@ -391,10 +434,30 @@ fun ReviewRoute(
                     isAnswerVisible = uiState.isAnswerVisible,
                     bottomInsetPadding = innerPadding.calculateBottomPadding() + reviewBottomOverlayBottomPadding,
                     onRevealAnswer = onRevealAnswer,
+                    onGuideTargetPositioned = { coordinates ->
+                        guideTarget = coordinates
+                        updateGuideBounds()
+                    },
                     onRateAgain = onRateAgainWithReaction,
                     onRateHard = onRateHardWithReaction,
                     onRateGood = onRateGoodWithReaction,
                     onRateEasy = onRateEasyWithReaction
+                )
+            }
+
+            val targetBounds = guideBounds
+            if (firstReviewOnboardingCompleted == false && !uiState.isLoading &&
+                uiState.preparedCurrentCard != null && !isReviewSurfaceBusy &&
+                isFirstReviewOnboardingSurfaceAvailable && hasWindowFocus &&
+                lifecycleState == androidx.lifecycle.Lifecycle.State.RESUMED &&
+                guideTarget?.isAttached == true && targetBounds != null
+            ) {
+                FirstReviewOnboardingOverlay(
+                    target = targetBounds,
+                    viewport = guideViewport,
+                    availableTop = with(LocalDensity.current) { (innerPadding.calculateTopPadding() + 8.dp).toPx() },
+                    animationsEnabled = reviewReactionMotionMode == ReviewReactionMotionMode.STANDARD,
+                    modifier = Modifier.matchParentSize()
                 )
             }
 

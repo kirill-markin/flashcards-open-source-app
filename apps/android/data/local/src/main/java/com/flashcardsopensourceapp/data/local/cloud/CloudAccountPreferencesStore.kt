@@ -19,6 +19,7 @@ private const val productAnalyticsEnabledPushRefusedKey: String = "product-analy
 internal class CloudAccountPreferencesStore(
     private val metadataPreferences: SharedPreferences
 ) {
+    private val onboardingStore = FirstReviewOnboardingPreferencesStore(metadataPreferences)
     private val accountPreferencesState = MutableStateFlow(loadAccountPreferences())
     /**
      * One lock over every product-analytics answer mutation.
@@ -112,7 +113,10 @@ internal class CloudAccountPreferencesStore(
                 remoteProductAnalyticsEnabled ?: storedProductAnalyticsEnabled
             }
             val resolvedPreferences: AccountPreferences =
-                preferences.copy(productAnalyticsEnabled = resolvedProductAnalyticsEnabled)
+                preferences.copy(
+                    productAnalyticsEnabled = resolvedProductAnalyticsEnabled,
+                    firstReviewOnboardingCompleted = onboardingStore.reconcile(preferences.firstReviewOnboardingCompleted)
+                )
             // An answer the server already refused for good is not re-armed: re-issuing the same
             // doomed push on every account read is what the refusal record exists to stop.
             val shouldRearmPendingPush: Boolean = rearmUndeliveredOptOut
@@ -261,6 +265,13 @@ internal class CloudAccountPreferencesStore(
      */
     fun clearAccountPreferences() {
         synchronized(productAnalyticsAnswerLock) {
+            onboardingStore.clear()
+            clearAccountPreferencesForCredentialLoss()
+        }
+    }
+
+    fun clearAccountPreferencesForCredentialLoss() {
+        synchronized(productAnalyticsAnswerLock) {
             val carriedProductAnalyticsEnabled: Boolean? = currentAccountPreferences().productAnalyticsEnabled
             metadataPreferences.edit(commit = true) {
                 remove(accentColorKey)
@@ -272,13 +283,58 @@ internal class CloudAccountPreferencesStore(
                 }
             }
             accountPreferencesState.value = defaultAccountPreferences().copy(
-                productAnalyticsEnabled = carriedProductAnalyticsEnabled
+                productAnalyticsEnabled = carriedProductAnalyticsEnabled,
+                firstReviewOnboardingCompleted = onboardingStore.currentValue()
             )
         }
     }
 
+    fun firstReviewOnboardingOwner(): String? {
+        return synchronized(productAnalyticsAnswerLock) { onboardingStore.currentOwner() }
+    }
+
+    fun initializeFirstReviewOnboarding(owner: String, hasHistory: Boolean, isLocalGuest: Boolean) {
+        synchronized(productAnalyticsAnswerLock) {
+            onboardingStore.initialize(owner, hasHistory, isLocalGuest)
+            publishFirstReviewOnboarding()
+        }
+    }
+
+    fun changeFirstReviewOnboardingOwner(owner: String, isNewGuestBinding: Boolean) {
+        synchronized(productAnalyticsAnswerLock) {
+            onboardingStore.changeOwner(owner, isNewGuestBinding)
+            publishFirstReviewOnboarding()
+        }
+    }
+
+    fun saveFirstReviewOnboardingCompleted(completed: Boolean, owner: String): Boolean {
+        synchronized(productAnalyticsAnswerLock) {
+            check(onboardingStore.isOwner(owner)) {
+                "Account changed before the first review onboarding preference could be saved."
+            }
+            val changed = onboardingStore.save(completed)
+            publishFirstReviewOnboarding()
+            return changed
+        }
+    }
+
+    fun pendingFirstReviewOnboardingEdit(): PendingFirstReviewOnboardingEdit? {
+        return synchronized(productAnalyticsAnswerLock) { onboardingStore.pendingEdit() }
+    }
+
+    fun acknowledgeFirstReviewOnboarding(edit: PendingFirstReviewOnboardingEdit) {
+        synchronized(productAnalyticsAnswerLock) { onboardingStore.acknowledge(edit) }
+    }
+
+    private fun publishFirstReviewOnboarding() {
+        accountPreferencesState.value = currentAccountPreferences().copy(
+            firstReviewOnboardingCompleted = onboardingStore.currentValue()
+        )
+    }
+
     private fun loadAccountPreferences(): AccountPreferences {
         return AccountPreferences(
+            firstReviewOnboardingCompleted = onboardingStore.currentValue(),
             accentColor = requireNotNull(metadataPreferences.getString(accentColorKey, defaultAccentColor)),
             reviewReactionAnimationsEnabled = metadataPreferences.getBoolean(
                 reviewReactionAnimationsEnabledKey,

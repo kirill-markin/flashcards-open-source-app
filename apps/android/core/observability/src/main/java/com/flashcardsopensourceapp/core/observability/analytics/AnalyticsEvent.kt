@@ -721,6 +721,20 @@ sealed interface AnalyticsEvent {
      * a defaulted parameter would only let a future one inherit `review` from somewhere the person
      * is not, which is the same hazard [PermissionPromptAnswered] refuses a default for.
      */
+    data class FirstReviewOnboardingCompleted(val source: FirstReviewOnboardingSource) : AnalyticsEvent {
+        override val eventName: String = "first_review_onboarding_completed"
+        override val screen: AnalyticsSurface = source.screen
+        override val properties: Map<String, AnalyticsPropertyValue> = mapOf(
+            "source" to AnalyticsPropertyValue.Text(source.wireValue)
+        )
+    }
+
+    data object FirstReviewOnboardingReset : AnalyticsEvent {
+        override val eventName: String = "first_review_onboarding_reset"
+        override val screen: AnalyticsSurface = AnalyticsSurface.SETTINGS
+        override val properties: Map<String, AnalyticsPropertyValue> = emptyMap()
+    }
+
     data object ReviewCardRevealed : AnalyticsEvent {
         override val eventName: String = "review_card_revealed"
         override val screen: AnalyticsSurface = AnalyticsSurface.REVIEW
@@ -1003,4 +1017,10 @@ sealed interface AnalyticsEvent {
  */
 private fun nonNegativeAnalyticsCount(value: Long): Int {
     return value.coerceIn(0L, Int.MAX_VALUE.toLong()).toInt()
+}
+
+
+enum class FirstReviewOnboardingSource(val wireValue: String, val screen: AnalyticsSurface) {
+    REVIEW("review", AnalyticsSurface.REVIEW),
+    SETTINGS("settings", AnalyticsSurface.SETTINGS)
 }

@@ -350,6 +350,7 @@ export type AnalyticsQueueFailureDetails = Readonly<{
 
 export type WebAppOperation =
   | "entitlement_cache"
+  | "paywall_state_sync"
   | "session_resume"
   | "account_deletion_submit"
   | "access_permission_request"
