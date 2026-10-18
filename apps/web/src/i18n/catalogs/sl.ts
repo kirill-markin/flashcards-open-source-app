@@ -17,7 +17,8 @@ const slCatalog: TranslationCatalog = {
   },
   stripe: createStripeCatalog(stripeCopy),
   paywall: {
-    heading: "Učenje pripada vsem.",
+    heading: "Učenje pripada <em>vsem.</em>",
+    alwaysFree: "Vedno brezplačno",
     freeTitle: "Brezplačno",
     freeDescription: "Ustvarjeno za študente brez službe. Odprto vsem. Tvoj nahrbtnik je pravkar postal lažji.",
     freeBenefit: "Osnovno ponavljanje, učenje brez povezave in sinhronizacija",
@@ -25,7 +26,7 @@ const slCatalog: TranslationCatalog = {
     creatorSupport: "Tvoja naročnina pomaga ustvarjalcu Niboma, {{creator}}, plačevati strežnike in pripravljati naslednjo posodobitev ob kavi in pici.",
     basePrice: "Osnovna cena: {{price}} / mesec",
     startTrial: "Začni 7-dnevno brezplačno preskusno obdobje",
-    trialPrice: "7 dni brezplačno, nato mesečna osnovna cena {{price}}. Zahtevan je način plačila. Odpovej pred koncem preskusnega obdobja, da se izogneš prvi bremenitvi.",
+    trialPrice: "7 dni brezplačno, nato osnovna cena {{price}} na mesec. Potreben je način plačila; prekličite pred koncem preizkusa, da se izognete prvi bremenitvi.",
     checkoutPrice: "Stripe ob plačilu potrdi končno ceno in valuto obračuna.",
   },
   accentColorSettings: {

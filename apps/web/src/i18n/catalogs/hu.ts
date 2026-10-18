@@ -17,7 +17,8 @@ const huCatalog: TranslationCatalog = {
   },
   stripe: createStripeCatalog(stripeCopy),
   paywall: {
-    heading: "A tanulás mindenkié.",
+    heading: "A tanulás <em>mindenkié.</em>",
+    alwaysFree: "Mindig ingyenes",
     freeTitle: "Ingyenes",
     freeDescription: "Munka nélküli diákoknak készült. Mindenki előtt nyitva áll. A hátizsákod épp könnyebb lett.",
     freeBenefit: "Alapvető ismétlés, offline tanulás és szinkronizálás",
@@ -25,7 +26,7 @@ const huCatalog: TranslationCatalog = {
     creatorSupport: "Előfizetésed segít a Nibomo készítőjének, {{creator}}, kifizetni a szervereket, és kávéval meg pizzával dolgozni a következő frissítésen.",
     basePrice: "Alapár: {{price}} / hó",
     startTrial: "7 napos ingyenes próba indítása",
-    trialPrice: "7 nap ingyenes, utána havi {{price}} alapár. Fizetési mód megadása szükséges. Az első terhelés elkerüléséhez mondd le a próbaidő vége előtt.",
+    trialPrice: "7 nap ingyen, utána {{price}}/hó alapár. Fizetési mód szükséges; az első terhelés elkerüléséhez mondd le a próbaidőszak vége előtt.",
     checkoutPrice: "A Stripe a fizetéskor megerősíti a végleges árat és a számlázási pénznemet.",
   },
   accentColorSettings: {

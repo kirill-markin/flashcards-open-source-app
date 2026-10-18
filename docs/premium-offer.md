@@ -22,6 +22,10 @@ What is still open is listed in
 Server-enforced limits are the paid AI axis. Custom styles are the local premium cosmetic specified
 below.
 
+The standard shared offer stays compact; allowance-reset details live in Subscription settings,
+and the own-key explanation and action appear in the offer only for an AI-limit request (see
+[Own OpenAI key](#own-openai-key)).
+
 ## The AI limit counts messages
 
 One message is one chat turn that reached the model on the platform key. Only in-app chat turns

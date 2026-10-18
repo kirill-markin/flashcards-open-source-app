@@ -17,7 +17,8 @@ const koCatalog: TranslationCatalog = {
   },
   stripe: createStripeCatalog(stripeCopy),
   paywall: {
-    heading: "배움은 모두의 것입니다.",
+    heading: "배움은 <em>모두</em>의 것입니다.",
+    alwaysFree: "언제나 무료",
     freeTitle: "무료",
     freeDescription: "일자리가 없는 학생을 위해 만들었습니다. 누구나 사용할 수 있습니다. 배낭이 조금 더 가벼워졌네요.",
     freeBenefit: "기본 복습, 오프라인 학습 및 동기화",
@@ -25,7 +26,7 @@ const koCatalog: TranslationCatalog = {
     creatorSupport: "구독은 Nibomo 제작자 {{creator}}의 서버 비용을 지원하고, 커피와 피자로 다음 업데이트를 준비할 힘을 보탭니다.",
     basePrice: "기본 가격: {{price}} / 월",
     startTrial: "7일 무료 체험 시작",
-    trialPrice: "7일 무료 체험 후 월 기본 가격 {{price}}가 적용됩니다. 결제 수단이 필요합니다. 첫 결제를 피하려면 체험이 끝나기 전에 취소하세요.",
+    trialPrice: "7일 무료, 이후 월 기본 요금 {{price}}. 결제 수단이 필요합니다. 첫 청구를 피하려면 체험 종료 전에 해지하세요.",
     checkoutPrice: "Stripe 결제 화면에서 최종 가격과 청구 통화를 확인할 수 있습니다.",
   },
   accentColorSettings: {

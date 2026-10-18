@@ -17,7 +17,8 @@ const skCatalog: TranslationCatalog = {
   },
   stripe: createStripeCatalog(stripeCopy),
   paywall: {
-    heading: "Učenie patrí všetkým.",
+    heading: "Učenie patrí <em>všetkým.</em>",
+    alwaysFree: "Vždy zadarmo",
     freeTitle: "Zadarmo",
     freeDescription: "Vytvorené pre študentov bez práce. Otvorené pre všetkých. Tvoj batoh je práve ľahší.",
     freeBenefit: "Základné opakovanie, učenie offline a synchronizácia",
@@ -25,7 +26,7 @@ const skCatalog: TranslationCatalog = {
     creatorSupport: "Tvoje predplatné pomáha tvorcovi Nibomo, {{creator}}, platiť servery a pripravovať ďalšiu aktualizáciu s kávou a pizzou.",
     basePrice: "Základná cena: {{price}} / mesiac",
     startTrial: "Začať 7-dňové skúšobné obdobie zadarmo",
-    trialPrice: "7 dní zadarmo, potom mesačná základná cena {{price}}. Vyžaduje sa spôsob platby. Zruš pred koncom skúšobného obdobia, aby sa neúčtovala prvá platba.",
+    trialPrice: "7 dní zadarmo, potom základná cena {{price}} mesačne. Vyžaduje sa spôsob platby; zrušte pred koncom skúšobnej doby, aby ste sa vyhli prvej platbe.",
     checkoutPrice: "Stripe pri platbe potvrdí konečnú cenu a menu účtovania.",
   },
   accentColorSettings: {

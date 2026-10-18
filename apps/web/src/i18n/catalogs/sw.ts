@@ -17,7 +17,8 @@ const swCatalog: TranslationCatalog = {
   },
   stripe: createStripeCatalog(stripeCopy),
   paywall: {
-    heading: "Kujifunza ni kwa kila mtu.",
+    heading: "Kujifunza ni kwa <em>kila mtu.</em>",
+    alwaysFree: "Bure daima",
     freeTitle: "Bure",
     freeDescription: "Imetengenezwa kwa wanafunzi wasio na kazi. Iko wazi kwa kila mtu. Mkoba wako umekuwa mwepesi zaidi.",
     freeBenefit: "Marudio ya msingi, kujifunza bila intaneti na kusawazisha",
@@ -25,7 +26,7 @@ const swCatalog: TranslationCatalog = {
     creatorSupport: "Usajili wako unamsaidia mtengenezaji wa Nibomo, {{creator}}, kulipia seva na kuandaa sasisho lijalo kwa kahawa na piza.",
     basePrice: "Bei ya msingi: {{price}} / mwezi",
     startTrial: "Anza jaribio la bure la siku 7",
-    trialPrice: "Siku 7 bila malipo, kisha bei ya msingi ya {{price}} kwa mwezi. Njia ya malipo inahitajika. Ghairi kabla ya jaribio kuisha ili kuepuka malipo ya kwanza.",
+    trialPrice: "Siku 7 bila malipo, kisha bei ya msingi ya {{price}}/mwezi. Njia ya malipo inahitajika; ghairi kabla ya jaribio kuisha ili kuepuka malipo ya kwanza.",
     checkoutPrice: "Stripe inathibitisha bei ya mwisho na sarafu ya malipo wakati wa kulipa.",
   },
   accentColorSettings: {

@@ -17,7 +17,8 @@ const idCatalog: TranslationCatalog = {
   },
   stripe: createStripeCatalog(stripeCopy),
   paywall: {
-    heading: "Belajar adalah hak semua orang.",
+    heading: "Belajar adalah hak <em>semua orang.</em>",
+    alwaysFree: "Selalu gratis",
     freeTitle: "Gratis",
     freeDescription: "Dibuat untuk pelajar yang belum bekerja. Terbuka untuk semua. Ranselmu kini lebih ringan.",
     freeBenefit: "Ulasan inti, belajar offline & sinkronisasi",
@@ -25,7 +26,7 @@ const idCatalog: TranslationCatalog = {
     creatorSupport: "Langgananmu membantu pembuat Nibomo, {{creator}}, membayar server dan menyiapkan pembaruan berikutnya dengan kopi dan pizza.",
     basePrice: "Harga dasar: {{price}} / bulan",
     startTrial: "Mulai uji coba gratis 7 hari",
-    trialPrice: "Gratis 7 hari, lalu harga dasar bulanan {{price}}. Metode pembayaran diperlukan. Batalkan sebelum uji coba berakhir agar tidak dikenai tagihan pertama.",
+    trialPrice: "Gratis 7 hari, lalu harga dasar {{price}}/bulan. Metode pembayaran diperlukan; batalkan sebelum uji coba berakhir untuk menghindari tagihan pertama.",
     checkoutPrice: "Stripe mengonfirmasi harga akhir dan mata uang tagihan saat checkout.",
   },
   accentColorSettings: {

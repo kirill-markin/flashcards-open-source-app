@@ -34,6 +34,7 @@ export function PremiumOffer(props: PremiumOfferProps): ReactElement {
   const isPurchasing = !isPreview && billing.busy && billing.status === "opening";
   const isAiLimit = request.reason === "ai-limit";
   const showOffer = isPreview || (entitlement !== null && !hasPremiumAccess(entitlement, 20));
+  const [headingBefore, headingEmphasis, headingAfter] = t("paywall.heading").split(/<em>|<\/em>/);
 
   useEffect(() => {
     const dialog = dialogRef.current;
@@ -76,9 +77,10 @@ export function PremiumOffer(props: PremiumOfferProps): ReactElement {
       onCancel={(event) => { event.preventDefault(); if (!isPurchasing) onDismiss(); }}
     >
       <div className="premium-header">
-        <h2 id={titleId} className="title">
-          {isEditingKey ? t("ownOpenAIKeySettings.title") : showOffer ? t("paywall.heading") : isAiLimit ? t("premium.limitTitle") : t("stripe.offer.title")}
-        </h2>
+        <div className="premium-brand">
+          <img src="/icon.svg" alt="" width="28" height="28" />
+          <span>{t("app.title")}</span>
+        </div>
         <button
           ref={closeRef}
           type="button"
@@ -91,6 +93,11 @@ export function PremiumOffer(props: PremiumOfferProps): ReactElement {
           <span aria-hidden="true">×</span>
         </button>
       </div>
+      <h2 id={titleId} className="title premium-heading">
+        {isEditingKey ? t("ownOpenAIKeySettings.title") : showOffer
+          ? <>{headingBefore}<em>{headingEmphasis}</em>{headingAfter}</>
+          : isAiLimit ? t("premium.limitTitle") : t("stripe.offer.title")}
+      </h2>
       {isEditingKey ? (
         <>
           <p id={bodyId} className="subtitle">{t("ownOpenAIKeySettings.subtitle")}</p>
@@ -116,14 +123,14 @@ export function PremiumOffer(props: PremiumOfferProps): ReactElement {
           {showOffer ? <StripeOfferContent continuation={request.reason === "ai-limit" ? null : request.continuation ?? null}
             presentation={props.presentation} isPreview={isPreview} onContinueFree={props.onContinueFree}
             onChoosePremium={props.onChoosePremium} /> : null}
-          <p className="subtitle">{t("stripe.ownKey.explanation")}</p>
-          <button type="button" className="ghost-btn" data-testid="premium-own-key" disabled={isPreview || isPurchasing} onClick={() => setIsEditingKey(true)}>
-            {t("stripe.ownKey.action")}
-          </button>
           {isAiLimit ? (
-            <>
+            <div className="premium-key-context">
+              <p className="subtitle">{t("stripe.ownKey.explanation")}</p>
+              <button type="button" className="ghost-btn" data-testid="premium-own-key" disabled={isPreview || isPurchasing} onClick={() => setIsEditingKey(true)}>
+                {t("stripe.ownKey.action")}
+              </button>
               <p className="subtitle">{t("premium.retryManually")}</p>
-            </>
+            </div>
           ) : null}
         </>
       )}

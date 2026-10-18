@@ -68,6 +68,7 @@ export function SubscriptionSettingsScreen(): ReactElement {
               ) : null}
             </>
           )}
+          <p className="subtitle">{t("stripe.offer.allowanceWindow")}</p>
         </article>
         <StripeSubscriptions entitlement={entitlement} />
         <StripeBillingFeedback />

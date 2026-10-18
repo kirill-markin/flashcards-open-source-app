@@ -17,7 +17,8 @@ const heCatalog: TranslationCatalog = {
   },
   stripe: createStripeCatalog(stripeCopy),
   paywall: {
-    heading: "הלמידה שייכת לכולם.",
+    heading: "הלמידה שייכת <em>לכולם.</em>",
+    alwaysFree: "תמיד בחינם",
     freeTitle: "חינם",
     freeDescription: "נוצר לסטודנטים בלי עבודה. פתוח לכולם. התיק שלך הרגע נהיה קל יותר.",
     freeBenefit: "חזרות בסיסיות, למידה ללא חיבור וסנכרון",
@@ -25,7 +26,7 @@ const heCatalog: TranslationCatalog = {
     creatorSupport: "המינוי שלך עוזר ליוצר של Nibomo, {{creator}}, לשלם על שרתים ולהכין את העדכון הבא עם קפה ופיצה.",
     basePrice: "מחיר בסיס: {{price}} / חודש",
     startTrial: "התחלת ניסיון חינם ל-7 ימים",
-    trialPrice: "7 ימים חינם, ואז מחיר בסיס חודשי של {{price}}. נדרש אמצעי תשלום. יש לבטל לפני תום הניסיון כדי להימנע מהחיוב הראשון.",
+    trialPrice: "7 ימים בחינם, ואז מחיר בסיס של {{price}} לחודש. נדרש אמצעי תשלום; יש לבטל לפני סיום הניסיון כדי להימנע מהחיוב הראשון.",
     checkoutPrice: "Stripe מאשר את המחיר הסופי ואת מטבע החיוב בקופה.",
   },
   accentColorSettings: {

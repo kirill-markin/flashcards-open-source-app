@@ -17,7 +17,8 @@ const svCatalog: TranslationCatalog = {
   },
   stripe: createStripeCatalog(stripeCopy),
   paywall: {
-    heading: "Lärande är för alla.",
+    heading: "Lärande är för <em>alla.</em>",
+    alwaysFree: "Alltid gratis",
     freeTitle: "Gratis",
     freeDescription: "Skapat för studenter utan jobb. Öppet för alla. Din ryggsäck blev just lättare.",
     freeBenefit: "Grundläggande repetition, offlinestudier och synkronisering",
@@ -25,7 +26,7 @@ const svCatalog: TranslationCatalog = {
     creatorSupport: "Din prenumeration hjälper Nibomos skapare, {{creator}}, att betala servrarna och arbeta med nästa uppdatering med kaffe och pizza.",
     basePrice: "Baspris: {{price}} / månad",
     startTrial: "Starta 7 dagars gratis provperiod",
-    trialPrice: "7 dagar gratis, därefter ett månatligt baspris på {{price}}. En betalningsmetod krävs. Avsluta före provperiodens slut för att undvika den första debiteringen.",
+    trialPrice: "7 dagar gratis, sedan ett grundpris på {{price}}/månad. Betalningsmetod krävs; säg upp innan provperioden slutar för att undvika första debiteringen.",
     checkoutPrice: "Stripe bekräftar slutpriset och faktureringsvalutan i kassan.",
   },
   accentColorSettings: {
