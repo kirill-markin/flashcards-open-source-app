@@ -949,6 +949,10 @@ const huCatalog: TranslationCatalog = {
     paragraphTwo: "Az emlékeztetők automatikusan az adott mobilalkalmazásban kiválasztott munkaterület kártyáit és aktivitását használják.",
     paragraphThree: "A webalkalmazás nem küldi és nem kezeli ezeket az értesítéseket, ezért ezen a képernyőn nincsenek értesítési beállítások.",
   },
+  firstReviewOnboardingSettings: {
+    title: "Az első ismétlés útmutatója befejezve",
+    description: "Kapcsold ki, ha egy kártya ismétlésekor újra szeretnéd látni az útmutatót.",
+  },
   reviewAnimationsSettings: {
     title: "Ismétlési animációk",
     subtitle: "Szabályozd a kártyák értékelése után megjelenő reakcióanimációkat.",

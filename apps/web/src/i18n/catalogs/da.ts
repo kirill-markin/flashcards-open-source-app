@@ -949,6 +949,10 @@ const daCatalog: TranslationCatalog = {
     paragraphTwo: "Påmindelser bruger automatisk kort og aktivitet fra det arbejdsområde, der er valgt i den mobilapp.",
     paragraphThree: "Webappen sender og styrer ikke disse notifikationer, så der er ingen notifikationsindstillinger på denne skærm.",
   },
+  firstReviewOnboardingSettings: {
+    title: "Introduktion til første repetition fuldført",
+    description: "Slå fra for at se guiden igen, når du repeterer et kort.",
+  },
   reviewAnimationsSettings: {
     title: "Repetitionsanimationer",
     subtitle: "Styr de reaktionsanimationer, der vises, når du har vurderet et kort.",

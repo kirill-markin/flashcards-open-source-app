@@ -958,6 +958,10 @@ const skCatalog: TranslationCatalog = {
     paragraphTwo: "Pripomienky automaticky používajú karty a aktivitu z pracovného priestoru, ktorý je práve vybraný v danej mobilnej aplikácii.",
     paragraphThree: "Webová aplikácia tieto hlásenia nedoručuje ani nespravuje, preto na tejto obrazovke nie sú žiadne ovládacie prvky hlásení.",
   },
+  firstReviewOnboardingSettings: {
+    title: "Sprievodca prvým opakovaním dokončený",
+    description: "Vypnite, ak chcete pri opakovaní karty znova zobraziť sprievodcu.",
+  },
   reviewAnimationsSettings: {
     title: "Animácie pri opakovaní",
     subtitle: "Ovládajte animácie reakcie zobrazované po ohodnotení kariet.",

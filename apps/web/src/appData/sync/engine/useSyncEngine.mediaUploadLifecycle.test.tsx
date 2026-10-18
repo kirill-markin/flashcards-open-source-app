@@ -87,6 +87,7 @@ const session: SessionInfo = {
   preferences: {
     accentColor: "#FF6719",
     reviewReactionAnimationsEnabled: true,
+    firstReviewOnboardingCompleted: true,
     analyticsConsent: null,
     productAnalyticsEnabled: null,
   },
@@ -113,6 +114,7 @@ function renderSyncEngineHarness(): Readonly<{
     const [, setErrorMessage] = useState<string>("");
     const [, setTechnicalError] = useState<Error | null>(null);
     latestApi = useSyncEngine({
+      onReviewSaved: vi.fn(async (): Promise<void> => undefined),
       sessionLoadState: "ready",
       sessionVerificationState: "verified",
       session,

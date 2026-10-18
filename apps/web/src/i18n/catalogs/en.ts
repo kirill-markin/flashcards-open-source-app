@@ -948,6 +948,10 @@ const enCatalog = {
     paragraphTwo: "Reminders automatically use cards and activity from the workspace currently selected in that mobile app.",
     paragraphThree: "The web app does not deliver or manage these notifications, so there are no notification controls on this screen.",
   },
+  firstReviewOnboardingSettings: {
+    title: "First review onboarding completed",
+    description: "Turn off to see the guide again when you review a card.",
+  },
   reviewAnimationsSettings: {
     title: "Review Animations",
     subtitle: "Control the reaction animations shown after rating cards.",

@@ -71,6 +71,7 @@ function parseAccountPreferences(value: unknown, endpoint: string, path: string)
       path,
       parseBoolean,
     ),
+    firstReviewOnboardingCompleted: parseRequiredField(objectValue, "firstReviewOnboardingCompleted", endpoint, path, parseBoolean),
     analyticsConsent: parseRequiredField(objectValue, "analyticsConsent", endpoint, path, parseAnalyticsConsent),
     productAnalyticsEnabled: parseRequiredField(
       objectValue,
