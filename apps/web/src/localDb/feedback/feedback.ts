@@ -45,6 +45,11 @@ type AutomaticPromptShownInput = Readonly<{
   nextAutomaticFeedbackPromptAt: string | null;
 }>;
 
+type AutomaticPromptShownChange = Readonly<{
+  previousState: FeedbackPromptState;
+  shownState: FeedbackPromptState;
+}>;
+
 const feedbackPromptStateKeyPrefix = "feedback_prompt_state:";
 
 export const emptyFeedbackPromptState: FeedbackPromptState = {
@@ -259,25 +264,89 @@ export async function storeFeedbackSubmittedAt(
 export async function storeAutomaticFeedbackPromptShownAt(
   input: AutomaticPromptShownInput,
   throwIfIndexedDbOpenRecoveryFailed: () => void,
-): Promise<FeedbackPromptState> {
+): Promise<AutomaticPromptShownChange> {
   throwIfIndexedDbOpenRecoveryFailed();
-  const currentState = await loadFeedbackPromptState(input.identityKey);
+  const change = await closeDatabaseAfter((database) => new Promise<AutomaticPromptShownChange>((resolve, reject) => {
+    const transaction = database.transaction("meta", "readwrite");
+    const store = transaction.objectStore("meta");
+    const request = store.get(buildFeedbackPromptStateKey(input.identityKey));
+    let shownChange: AutomaticPromptShownChange | null = null;
+    let operationError: unknown = null;
+    transaction.onabort = () => reject(operationError ?? transaction.error
+      ?? new Error("Failed to store feedback prompt state: transaction aborted"));
+    transaction.onerror = () => reject(transaction.error
+      ?? new Error("Failed to store feedback prompt state"));
+    transaction.oncomplete = () => {
+      if (shownChange === null) {
+        reject(new Error("Failed to store feedback prompt state: state change was not captured"));
+        return;
+      }
+      resolve(shownChange);
+    };
+    request.onsuccess = () => {
+      try {
+        throwIfIndexedDbOpenRecoveryFailed();
+        const currentState = request.result === undefined ? emptyFeedbackPromptState
+          : parseFeedbackPromptStateRecord(request.result, input.identityKey).state;
+        const nextState: FeedbackPromptState = {
+          ...currentState,
+          lastAutomaticFeedbackPromptShownAt: getLaterNullableIsoTimestamp(
+            currentState.lastAutomaticFeedbackPromptShownAt,
+            input.shownAt,
+            "lastAutomaticFeedbackPromptShownAt",
+          ),
+          nextAutomaticFeedbackPromptAt: getLaterNullableIsoTimestamp(
+            currentState.nextAutomaticFeedbackPromptAt,
+            input.nextAutomaticFeedbackPromptAt,
+            "nextAutomaticFeedbackPromptAt",
+          ),
+        };
+        shownChange = { previousState: currentState, shownState: nextState };
+        store.put(buildFeedbackPromptStateRecord(input.identityKey, nextState));
+      } catch (error) {
+        operationError = error;
+        transaction.abort();
+      }
+    };
+  }));
   throwIfIndexedDbOpenRecoveryFailed();
-  const nextState: FeedbackPromptState = {
-    ...currentState,
-    lastAutomaticFeedbackPromptShownAt: getLaterNullableIsoTimestamp(
-      currentState.lastAutomaticFeedbackPromptShownAt,
-      input.shownAt,
-      "lastAutomaticFeedbackPromptShownAt",
-    ),
-    nextAutomaticFeedbackPromptAt: getLaterNullableIsoTimestamp(
-      currentState.nextAutomaticFeedbackPromptAt,
-      input.nextAutomaticFeedbackPromptAt,
-      "nextAutomaticFeedbackPromptAt",
-    ),
-  };
+  return change;
+}
+
+export async function restoreAutomaticFeedbackPromptShownIfCurrent(
+  identityKey: FeedbackPromptIdentityKey,
+  change: AutomaticPromptShownChange,
+  throwIfIndexedDbOpenRecoveryFailed: () => void,
+): Promise<void> {
   throwIfIndexedDbOpenRecoveryFailed();
-  await putFeedbackPromptState(input.identityKey, nextState);
+  await closeDatabaseAfterWrite((database) => new Promise<void>((resolve, reject) => {
+    const transaction = database.transaction("meta", "readwrite");
+    const store = transaction.objectStore("meta");
+    const request = store.get(buildFeedbackPromptStateKey(identityKey));
+    let operationError: unknown = null;
+    transaction.onabort = () => reject(operationError ?? transaction.error
+      ?? new Error("Failed to restore cancelled feedback prompt state: transaction aborted"));
+    transaction.onerror = () => reject(transaction.error
+      ?? new Error("Failed to restore cancelled feedback prompt state"));
+    transaction.oncomplete = () => resolve();
+    request.onsuccess = () => {
+      try {
+        throwIfIndexedDbOpenRecoveryFailed();
+        if (request.result === undefined) return;
+        const currentState = parseFeedbackPromptStateRecord(request.result, identityKey).state;
+        if (currentState.lastAutomaticFeedbackPromptShownAt !== change.shownState.lastAutomaticFeedbackPromptShownAt) return;
+        store.put(buildFeedbackPromptStateRecord(identityKey, {
+          ...currentState,
+          lastAutomaticFeedbackPromptShownAt: change.previousState.lastAutomaticFeedbackPromptShownAt,
+          nextAutomaticFeedbackPromptAt: currentState.nextAutomaticFeedbackPromptAt === change.shownState.nextAutomaticFeedbackPromptAt
+            ? change.previousState.nextAutomaticFeedbackPromptAt
+            : currentState.nextAutomaticFeedbackPromptAt,
+        }));
+      } catch (error) {
+        operationError = error;
+        transaction.abort();
+      }
+    };
+  }));
   throwIfIndexedDbOpenRecoveryFailed();
-  return nextState;
 }

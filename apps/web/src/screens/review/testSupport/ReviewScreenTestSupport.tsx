@@ -85,6 +85,7 @@ vi.mock("../../../localDb/cards/workspace", () => ({
 vi.mock("../../../localDb/feedback/feedback", () => ({
   buildFeedbackPromptIdentityKey: buildFeedbackPromptIdentityKeyMock,
   loadFeedbackPromptState: loadFeedbackPromptStateMock,
+  restoreAutomaticFeedbackPromptShownIfCurrent: vi.fn().mockResolvedValue(undefined),
   storeAutomaticFeedbackPromptShownAt: storeAutomaticFeedbackPromptShownAtMock,
   storeFeedbackSubmittedAt: storeFeedbackSubmittedAtMock,
   storeFetchedFeedbackState: storeFetchedFeedbackStateMock,
@@ -621,7 +622,10 @@ export function setupReviewScreenTest(): ReviewScreenTestHarness {
     useReviewProgressBadgeMock.mockImplementation(() => state.reviewProgressBadge);
     buildFeedbackPromptIdentityKeyMock.mockReturnValue("test-feedback-prompt-identity");
     loadFeedbackPromptStateMock.mockResolvedValue(feedbackPromptStateForTest);
-    storeAutomaticFeedbackPromptShownAtMock.mockResolvedValue(feedbackPromptStateForTest);
+    storeAutomaticFeedbackPromptShownAtMock.mockResolvedValue({
+      previousState: feedbackPromptStateForTest,
+      shownState: feedbackPromptStateForTest,
+    });
     storeFeedbackSubmittedAtMock.mockResolvedValue(feedbackPromptStateForTest);
     storeFetchedFeedbackStateMock.mockResolvedValue(feedbackPromptStateForTest);
     hasHydratedHotStateMock.mockResolvedValue(true);
