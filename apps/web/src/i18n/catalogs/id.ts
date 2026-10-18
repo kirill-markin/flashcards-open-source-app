@@ -63,6 +63,7 @@ const idCatalog: TranslationCatalog = {
     limitTitle: "Batas pesan AI tercapai",
     previewOffer: "Pratinjau penawaran Premium",
     previewAi: "Pratinjau batas AI",
+    previewNoPurchase: "Mode uji: tidak ada pembelian yang dilakukan dan Anda tidak akan dikenai biaya.",
     retryManually: "Kembali ke chat dan kirim ulang pesan saat Anda siap. Pengaturan kunci Anda disimpan otomatis.",
   },
   common: {
@@ -947,6 +948,10 @@ const idCatalog: TranslationCatalog = {
     paragraphOne: "Pengaturan notifikasi melekat pada tiap instalasi aplikasi seluler, bukan pada ruang kerja atau akun Anda.",
     paragraphTwo: "Pengingat otomatis memakai kartu dan aktivitas dari ruang kerja yang sedang dipilih di aplikasi seluler tersebut.",
     paragraphThree: "Aplikasi web tidak mengirim atau mengelola notifikasi ini, jadi tidak ada kontrol notifikasi di layar ini.",
+  },
+  firstReviewOnboardingSettings: {
+    title: "Panduan ulasan pertama selesai",
+    description: "Nonaktifkan untuk melihat panduan lagi saat mengulas kartu.",
   },
   reviewAnimationsSettings: {
     title: "Animasi Tinjauan",

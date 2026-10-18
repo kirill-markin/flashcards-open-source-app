@@ -63,6 +63,7 @@ const slCatalog: TranslationCatalog = {
     limitTitle: "Dosežena omejitev sporočil UI",
     previewOffer: "Predogled ponudbe Premium",
     previewAi: "Predogled omejitve UI",
+    previewNoPurchase: "Preizkusni način: nakup ne bo opravljen in nič vam ne bo zaračunano.",
     retryManually: "Vrnite se v klepet in znova pošljite sporočilo, ko boste pripravljeni. Nastavitve ključa se shranijo samodejno.",
   },
   common: {
@@ -965,6 +966,10 @@ const slCatalog: TranslationCatalog = {
     paragraphOne: "Nastavitve obvestil pripadajo vsaki namestitvi mobilne aplikacije, ne delovnemu prostoru ali vašemu računu.",
     paragraphTwo: "Opomniki samodejno uporabijo kartice in dejavnost iz delovnega prostora, ki je trenutno izbran v tej mobilni aplikaciji.",
     paragraphThree: "Spletna aplikacija teh obvestil ne pošilja in jih ne upravlja, zato na tem zaslonu ni kontrolnikov obvestil.",
+  },
+  firstReviewOnboardingSettings: {
+    title: "Uvod v prvo ponavljanje je končan",
+    description: "Izklopite, da pri ponavljanju kartice znova vidite navodila.",
   },
   reviewAnimationsSettings: {
     title: "Animacije pri ponavljanju",

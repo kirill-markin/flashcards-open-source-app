@@ -257,6 +257,10 @@ internal class FakeCloudAccountRepository : CloudAccountRepository {
     override suspend fun refreshAccountContext() {
     }
 
+    override suspend fun updateFirstReviewOnboardingCompleted(completed: Boolean) {
+        accountPreferences.value = accountPreferences.value.copy(firstReviewOnboardingCompleted = completed)
+    }
+
     override suspend fun updateAccountPreferences(update: AccountPreferencesUpdate): AccountPreferences {
         accountPreferences.value = applyAccountPreferencesUpdate(
             preferences = accountPreferences.value,

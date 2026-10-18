@@ -1008,6 +1008,7 @@
 "premium.offer.unlimitedAI" = "AI メッセージの月間上限なし";
 "premium.offer.styles" = "色とスタイルのカスタマイズ";
 "premium.offer.creatorSupport" = "サブスクリプションは、Nibomo の制作者 [Kirill Markin](https://kirill-markin.com/) のサーバー代を支え、コーヒーとピザで次のアップデートを作る力になります。";
+"premium.offer.previewPurchaseMessage" = "これはテスト用プレビューです。購入は行われません。";
 "premium.offer.subscribe" = "登録する";
 "premium.offer.startTrial" = "無料トライアルを開始：%@";
 "premium.offer.view" = "Premium を見る";

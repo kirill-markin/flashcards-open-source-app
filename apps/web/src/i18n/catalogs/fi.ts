@@ -63,6 +63,7 @@ const fiCatalog: TranslationCatalog = {
     limitTitle: "Tekoälyviestien raja saavutettu",
     previewOffer: "Premium-tarjouksen esikatselu",
     previewAi: "Tekoälyrajan esikatselu",
+    previewNoPurchase: "Testitila: ostosta ei tehdä eikä sinulta veloiteta mitään.",
     retryManually: "Palaa keskusteluun ja lähetä viesti uudelleen, kun olet valmis. Avaimen asetukset tallennetaan automaattisesti.",
   },
   common: {
@@ -947,6 +948,10 @@ const fiCatalog: TranslationCatalog = {
     paragraphOne: "Ilmoitusasetukset kuuluvat kullekin mobiilisovelluksen asennukselle, eivät työtilalle tai tilillesi.",
     paragraphTwo: "Muistutukset käyttävät automaattisesti sen työtilan kortteja ja toimintaa, joka on valittuna kyseisessä mobiilisovelluksessa.",
     paragraphThree: "Verkkosovellus ei lähetä eikä hallitse näitä ilmoituksia, joten tässä näkymässä ei ole ilmoitusasetuksia.",
+  },
+  firstReviewOnboardingSettings: {
+    title: "Ensimmäisen kertauksen opastus suoritettu",
+    description: "Poista käytöstä, jos haluat nähdä oppaan uudelleen korttia kerratessasi.",
   },
   reviewAnimationsSettings: {
     title: "Kertausanimaatiot",

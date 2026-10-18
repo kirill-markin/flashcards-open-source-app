@@ -63,6 +63,7 @@ const deCatalog: TranslationCatalog = {
     limitTitle: "KI-Nachrichtenlimit erreicht",
     previewOffer: "Premium-Angebot ansehen",
     previewAi: "KI-Limit ansehen",
+    previewNoPurchase: "Testmodus: Es wird kein Kauf getätigt und dir wird nichts berechnet.",
     retryManually: "Kehre zum Chat zurück und sende deine Nachricht erneut, wenn du bereit bist. Deine Schlüsseleinstellungen werden automatisch gespeichert.",
   },
   common: {
@@ -947,6 +948,10 @@ const deCatalog: TranslationCatalog = {
     paragraphOne: "Die Benachrichtigungseinstellungen gehören zur jeweiligen Installation der Mobile-App, nicht zu einem Arbeitsbereich oder deinem Konto.",
     paragraphTwo: "Erinnerungen verwenden automatisch die Karten und Aktivitäten aus dem Arbeitsbereich, der aktuell in dieser Mobile-App ausgewählt ist.",
     paragraphThree: "Die Web-App stellt diese Benachrichtigungen weder zu noch verwaltet sie, daher gibt es auf diesem Bildschirm keine Benachrichtigungssteuerung.",
+  },
+  firstReviewOnboardingSettings: {
+    title: "Einführung zur ersten Wiederholung abgeschlossen",
+    description: "Ausschalten, um die Anleitung beim Wiederholen einer Karte erneut zu sehen.",
   },
   reviewAnimationsSettings: {
     title: "Wiederholungsanimationen",

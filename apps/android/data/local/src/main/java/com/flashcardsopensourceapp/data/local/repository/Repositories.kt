@@ -245,6 +245,7 @@ interface CloudAccountRepository {
     suspend fun retryPendingAccountDeletion()
     suspend fun refreshAccountContext()
     suspend fun updateAccountPreferences(update: AccountPreferencesUpdate): AccountPreferences
+    suspend fun updateFirstReviewOnboardingCompleted(completed: Boolean)
 
     /**
      * Saves [locale], the interface language the app displays, unless this install already saved
@@ -428,3 +429,8 @@ interface AiChatRepository {
     ): AiChatSessionHistorySummary
     suspend fun archiveChatSession(workspaceId: String, sessionId: String)
 }
+
+class FirstReviewOnboardingPushPendingException(cause: Exception) : IllegalStateException(
+    "The first review onboarding change is saved on this device and is pending cloud delivery.",
+    cause
+)

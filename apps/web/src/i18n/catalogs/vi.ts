@@ -63,6 +63,7 @@ const viCatalog: TranslationCatalog = {
     limitTitle: "Đã đạt giới hạn tin nhắn AI",
     previewOffer: "Xem trước ưu đãi Premium",
     previewAi: "Xem trước giới hạn AI",
+    previewNoPurchase: "Chế độ thử nghiệm: không có giao dịch mua nào được thực hiện và bạn sẽ không bị tính phí.",
     retryManually: "Quay lại cuộc trò chuyện và gửi lại tin nhắn khi bạn sẵn sàng. Cài đặt khóa được lưu tự động.",
   },
   common: {
@@ -947,6 +948,10 @@ const viCatalog: TranslationCatalog = {
     paragraphOne: "Cài đặt thông báo thuộc về từng bản cài đặt ứng dụng di động, không thuộc về không gian làm việc hay tài khoản của bạn.",
     paragraphTwo: "Lời nhắc tự động dùng thẻ và hoạt động từ không gian làm việc đang chọn trong ứng dụng di động đó.",
     paragraphThree: "Ứng dụng web không gửi và không quản lý các thông báo này, nên màn hình này không có tùy chọn thông báo nào.",
+  },
+  firstReviewOnboardingSettings: {
+    title: "Đã hoàn tất hướng dẫn ôn tập đầu tiên",
+    description: "Tắt để xem lại hướng dẫn khi ôn tập một thẻ.",
   },
   reviewAnimationsSettings: {
     title: "Hoạt ảnh khi ôn tập",

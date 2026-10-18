@@ -63,6 +63,7 @@ const lvCatalog: TranslationCatalog = {
     limitTitle: "Sasniegts MI ziņojumu limits",
     previewOffer: "Premium piedāvājuma priekšskatījums",
     previewAi: "MI limita priekšskatījums",
+    previewNoPurchase: "Testa režīms: pirkums netiek veikts un no jums netiks iekasēta maksa.",
     retryManually: "Atgriezieties tērzēšanā un nosūtiet ziņojumu vēlreiz, kad būsiet gatavs. Atslēgas iestatījumi tiek saglabāti automātiski.",
   },
   common: {
@@ -947,6 +948,10 @@ const lvCatalog: TranslationCatalog = {
     paragraphOne: "Paziņojumu iestatījumi attiecas uz katru mobilās lietotnes instalāciju, nevis uz darbvietu vai jūsu kontu.",
     paragraphTwo: "Atgādinājumi automātiski izmanto kartītes un aktivitāti no darbvietas, kas pašlaik atlasīta attiecīgajā mobilajā lietotnē.",
     paragraphThree: "Tīmekļa lietotne šos paziņojumus nepiegādā un nepārvalda, tāpēc šajā ekrānā paziņojumu vadīklu nav.",
+  },
+  firstReviewOnboardingSettings: {
+    title: "Pirmās atkārtošanas pamācība pabeigta",
+    description: "Izslēdziet, lai, atkārtojot kartīti, atkal redzētu pamācību.",
   },
   reviewAnimationsSettings: {
     title: "Atkārtošanas animācijas",

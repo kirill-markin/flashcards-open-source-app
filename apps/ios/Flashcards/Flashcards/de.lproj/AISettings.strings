@@ -1008,6 +1008,7 @@
 "premium.offer.unlimitedAI" = "KI-Nachrichten ohne monatliches Limit";
 "premium.offer.styles" = "Eigene Farben und Stile";
 "premium.offer.creatorSupport" = "Dein Abo hilft dem Nibomo-Entwickler [Kirill Markin](https://kirill-markin.com/), die Server zu bezahlen und das nächste Update mit Kaffee und Pizza voranzubringen.";
+"premium.offer.previewPurchaseMessage" = "Dies ist eine Testvorschau. Es wird kein Kauf getätigt.";
 "premium.offer.subscribe" = "Abonnieren";
 "premium.offer.startTrial" = "Kostenlos testen: %@";
 "premium.offer.view" = "Premium ansehen";

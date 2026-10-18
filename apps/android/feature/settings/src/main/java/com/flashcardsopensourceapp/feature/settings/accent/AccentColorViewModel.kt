@@ -107,7 +107,8 @@ class AccentColorViewModel(
                                 accentColor = requested.color,
                                 reviewReactionAnimationsEnabled = null,
                                 productAnalyticsEnabled = null,
-                                locale = null
+                                locale = null,
+                                firstReviewOnboardingCompleted = null
                             )
                         )
                     }

@@ -63,6 +63,7 @@ const ptBrCatalog: TranslationCatalog = {
     limitTitle: "Limite de mensagens de IA atingido",
     previewOffer: "Prévia da oferta Premium",
     previewAi: "Prévia do limite de IA",
+    previewNoPurchase: "Modo de teste: nenhuma compra será feita e você não será cobrado.",
     retryManually: "Volte ao chat e envie sua mensagem novamente quando quiser. As configurações da sua chave são salvas automaticamente.",
   },
   common: {
@@ -947,6 +948,10 @@ const ptBrCatalog: TranslationCatalog = {
     paragraphOne: "As configurações de notificação pertencem a cada instalação do app no celular, e não a um espaço de trabalho ou à sua conta.",
     paragraphTwo: "Os lembretes usam automaticamente os cartões e a atividade do espaço de trabalho selecionado naquele app do celular.",
     paragraphThree: "O app web não entrega nem gerencia essas notificações, por isso não há controles de notificação nesta tela.",
+  },
+  firstReviewOnboardingSettings: {
+    title: "Guia da primeira revisão concluído",
+    description: "Desative para ver o guia novamente ao revisar um cartão.",
   },
   reviewAnimationsSettings: {
     title: "Animações da revisão",

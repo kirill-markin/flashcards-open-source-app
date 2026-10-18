@@ -20,6 +20,8 @@ import type { SessionVerificationState } from "../session/workspaceSessionTypes"
 export type SessionLoadState = "loading" | "ready" | "redirecting" | "selecting_workspace" | "error" | "guest_recovery" | "guest_conversion" | "deleted" | "storage_unavailable";
 
 export type AppDataContextValue = Readonly<{
+  firstReviewOnboardingCompleted: boolean | null;
+  setFirstReviewOnboardingCompleted: (completed: boolean) => Promise<void>;
   sessionLoadState: SessionLoadState;
   sessionVerificationState: SessionVerificationState;
   isSessionVerified: boolean;

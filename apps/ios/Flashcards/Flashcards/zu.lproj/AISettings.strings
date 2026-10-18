@@ -980,6 +980,7 @@
 "premium.offer.unlimitedAI" = "Imilayezo ye-AI engenamkhawulo wanyanga zonke";
 "premium.offer.styles" = "Imibala nezitayela ozikhethela zona";
 "premium.offer.creatorSupport" = "Ukubhalisa kwakho kusiza umdali we-Nibomo, [Kirill Markin](https://kirill-markin.com/), ukukhokhela amaseva nokulungiselela isibuyekezo esilandelayo ngekhofi ne-pizza.";
+"premium.offer.previewPurchaseMessage" = "Lokhu ukubuka kuqala kokuhlola. Akukho kuthenga okuzokwenziwa.";
 "premium.offer.subscribe" = "Bhalisa";
 "premium.offer.startTrial" = "Qala isivivinyo samahhala: %@";
 "premium.offer.view" = "Buka i-Premium";

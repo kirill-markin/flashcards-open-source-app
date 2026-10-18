@@ -63,6 +63,7 @@ const csCatalog: TranslationCatalog = {
     limitTitle: "Dosažen limit zpráv AI",
     previewOffer: "Náhled nabídky Premium",
     previewAi: "Náhled limitu AI",
+    previewNoPurchase: "Testovací režim: žádný nákup se neprovede a nic vám nebude účtováno.",
     retryManually: "Vraťte se do chatu a až budete připraveni, odešlete zprávu znovu. Nastavení klíče se ukládá automaticky.",
   },
   common: {
@@ -956,6 +957,10 @@ const csCatalog: TranslationCatalog = {
     paragraphOne: "Nastavení oznámení patří ke každé instalaci mobilní aplikace, ne k pracovnímu prostoru ani k vašemu účtu.",
     paragraphTwo: "Připomínky automaticky používají kartičky a aktivitu z pracovního prostoru, který je v dané mobilní aplikaci právě vybraný.",
     paragraphThree: "Webová aplikace tato oznámení nedoručuje ani nespravuje, proto na této obrazovce žádné ovládání oznámení není.",
+  },
+  firstReviewOnboardingSettings: {
+    title: "Průvodce prvním opakováním dokončen",
+    description: "Vypněte, pokud chcete při opakování karty znovu zobrazit průvodce.",
   },
   reviewAnimationsSettings: {
     title: "Animace při opakování",

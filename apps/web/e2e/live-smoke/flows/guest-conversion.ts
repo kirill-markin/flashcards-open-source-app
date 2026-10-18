@@ -3,7 +3,7 @@ import { trackedClick, trackedFill, trackedGoto } from "../../live-smoke.actions
 import { createLiveSmokeDiagnostics } from "../../live-smoke.diagnostics";
 import { buildWorkspaceRoute, cardsRoute, reviewRoute } from "../../../src/routes";
 import { databaseName } from "../../../src/localDb/core/databaseSchema";
-import { externalUiTimeoutMs, liveSmokeBrowserLocale } from "../config";
+import { externalUiTimeoutMs, liveSmokeBrowserLocale, reviewPostSubmitTimeoutMs } from "../config";
 import type { LiveSmokeSession } from "../types";
 
 type GuestSnapshot = Readonly<{
@@ -45,7 +45,23 @@ async function createGuestCard(session: LiveSmokeSession): Promise<Readonly<{ wo
   const demoId = (await snapshot(page)).cards[0]!.cardId;
   await trackedClick(diagnostics, "reveal the guest demo answer", page.getByTestId("review-reveal-answer"));
   await trackedClick(diagnostics, "review the guest demo", page.getByTestId("review-rate-good"));
+  await diagnostics.runAction("confirm the guest demo review finishes saving before navigation", async () => {
+    const reviewPane = page.getByTestId("review-pane");
+    await expect.poll(async () => ({
+      submitState: await reviewPane.getAttribute("data-review-submit-state"),
+      cardId: await reviewPane.getAttribute("data-review-last-submitted-card-id"),
+      rating: await reviewPane.getAttribute("data-review-last-submitted-rating"),
+    }), { timeout: reviewPostSubmitTimeoutMs }).toEqual({
+      submitState: "settled",
+      cardId: demoId,
+      rating: "2",
+    });
+    expect((await snapshot(page)).cards.find((card) => card.cardId === demoId)?.reps).toBe(1);
+  });
   await expect.poll(async () => (await snapshot(page)).reviewIds.length, { timeout: externalUiTimeoutMs }).toBe(1);
+  await diagnostics.runAction("drain the guest demo review outbox before navigation", async () => {
+    await expect.poll(async () => (await snapshot(page)).outboxCount, { timeout: externalUiTimeoutMs }).toBe(0);
+  });
   await trackedGoto(page, diagnostics, "open guest cards", baseUrl + buildWorkspaceRoute(workspaceId, cardsRoute), externalUiTimeoutMs);
   await trackedClick(diagnostics, "create a real guest card", page.getByTestId("cards-new-card"));
   await trackedFill(diagnostics, "enter the guest card question", page.getByTestId("card-form-front-text"), "Guest smoke question");

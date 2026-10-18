@@ -980,6 +980,7 @@
 "premium.offer.unlimitedAI" = "AI poruke bez mjesečnog ograničenja";
 "premium.offer.styles" = "Prilagođene boje i stilovi";
 "premium.offer.creatorSupport" = "Vaša pretplata pomaže tvorcu Niboma, [Kirill Markin](https://kirill-markin.com/), plaćati poslužitelje i pripremati sljedeće ažuriranje uz kavu i pizzu.";
+"premium.offer.previewPurchaseMessage" = "Ovo je testni pretpregled. Kupnja se neće izvršiti.";
 "premium.offer.subscribe" = "Pretplati se";
 "premium.offer.startTrial" = "Pokreni besplatno probno razdoblje: %@";
 "premium.offer.view" = "Pogledaj Premium";

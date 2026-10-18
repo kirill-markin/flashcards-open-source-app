@@ -63,6 +63,7 @@ const nbCatalog: TranslationCatalog = {
     limitTitle: "Grensen for AI-meldinger er nådd",
     previewOffer: "Forhåndsvis Premium-tilbud",
     previewAi: "Forhåndsvis AI-grense",
+    previewNoPurchase: "Testmodus: ingen kjøp blir gjennomført, og du blir ikke belastet.",
     retryManually: "Gå tilbake til chatten og send meldingen på nytt når du er klar. Nøkkelinnstillingene lagres automatisk.",
   },
   common: {
@@ -947,6 +948,10 @@ const nbCatalog: TranslationCatalog = {
     paragraphOne: "Varselinnstillingene hører til hver enkelt installasjon av mobilappen, ikke til et arbeidsområde eller kontoen din.",
     paragraphTwo: "Påminnelsene bruker automatisk kort og aktivitet fra arbeidsområdet som er valgt i den mobilappen.",
     paragraphThree: "Nettappen sender ikke og styrer ikke disse varslene, så det finnes ingen varselinnstillinger på denne skjermen.",
+  },
+  firstReviewOnboardingSettings: {
+    title: "Veiledning for første repetisjon fullført",
+    description: "Slå av for å se veiledningen igjen når du repeterer et kort.",
   },
   reviewAnimationsSettings: {
     title: "Repetisjonsanimasjoner",

@@ -63,6 +63,7 @@ const isCatalog: TranslationCatalog = {
     limitTitle: "Hámarki gervigreindarskilaboða náð",
     previewOffer: "Forskoða Premium-tilboð",
     previewAi: "Forskoða gervigreindarmörk",
+    previewNoPurchase: "Prófunarhamur: engin kaup fara fram og ekkert verður rukkað.",
     retryManually: "Farðu aftur í spjallið og sendu skilaboðin aftur þegar þú ert tilbúin(n). Stillingar lykilsins vistast sjálfkrafa.",
   },
   common: {
@@ -947,6 +948,10 @@ const isCatalog: TranslationCatalog = {
     paragraphOne: "Tilkynningastillingar tilheyra hverri uppsetningu farsímaforritsins, ekki vinnusvæði eða aðganginum þínum.",
     paragraphTwo: "Áminningar nota sjálfkrafa spjöld og virkni úr vinnusvæðinu sem er valið í því farsímaforriti.",
     paragraphThree: "Vefforritið sendir hvorki né stjórnar þessum tilkynningum og því eru engar tilkynningastillingar á þessum skjá.",
+  },
+  firstReviewOnboardingSettings: {
+    title: "Leiðsögn fyrir fyrstu upprifjun lokið",
+    description: "Slökktu til að sjá leiðsögnina aftur þegar þú rifjar upp spjald.",
   },
   reviewAnimationsSettings: {
     title: "Hreyfimyndir í upprifjun",

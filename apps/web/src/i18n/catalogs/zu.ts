@@ -63,6 +63,7 @@ const zuCatalog: TranslationCatalog = {
     limitTitle: "Umkhawulo wemiyalezo ye-AI ufinyelelwe",
     previewOffer: "Buka kuqala okunikezwa yi-Premium",
     previewAi: "Buka kuqala umkhawulo we-AI",
+    previewNoPurchase: "Imodi yokuhlola: akukho kuthenga okuzokwenziwa futhi ngeke ukhokhiswe.",
     retryManually: "Buyela engxoxweni bese uthumela umyalezo futhi uma usulungile. Izilungiselelo zokhiye wakho zigcinwa ngokuzenzakalelayo.",
   },
   common: {
@@ -947,6 +948,10 @@ const zuCatalog: TranslationCatalog = {
     paragraphOne: "Izilungiselelo zezaziso zingezokufakwa ngakunye kohlelo lokusebenza lweselula, hhayi ezendawo yokusebenza noma ze-akhawunti yakho.",
     paragraphTwo: "Izikhumbuzo zisebenzisa ngokuzenzakalelayo amakhadi nomsebenzi wendawo yokusebenza ekhethwe manje kulolo hlelo lokusebenza lweselula.",
     paragraphThree: "Uhlelo lokusebenza lwewebhu aluthumeli futhi aluziphathi lezi zaziso, ngakho azikho izilawuli zezaziso kulesi sikrini.",
+  },
+  firstReviewOnboardingSettings: {
+    title: "Umhlahlandlela wokubuyekeza kokuqala uqediwe",
+    description: "Vala ukuze ubone umhlahlandlela futhi lapho ubuyekeza ikhadi.",
   },
   reviewAnimationsSettings: {
     title: "Opopayi bokubukeza",

@@ -91,7 +91,8 @@ internal fun PremiumPresentationHost(
     var hasRequestedEntitlement by remember(presentation, reason) { mutableStateOf(false) }
     var hasReportedShown by remember(presentation, reason) { mutableStateOf(presenter.hasReportedShown) }
     val isAiLimit = reason is PremiumReason.AiLimit || reason == PremiumReason.AiLimitPreview
-    val hasAccess = presentation != null && hasPremiumAccess(entitlement = presenter.entitlement)
+    val isTestOfferPreview = reason == PremiumReason.TestOfferPreview
+    val hasAccess = !isTestOfferPreview && presentation != null && hasPremiumAccess(entitlement = presenter.entitlement)
     val isOfferVisible = !hasAccess && (!isAiLimit || presenter.entitlement != null)
     val billingOperation by appGraph.googlePlaySubscriptionConnector.operation.collectAsStateWithLifecycle()
     val locale = LocalConfiguration.current.locales[0]
@@ -147,11 +148,15 @@ internal fun PremiumPresentationHost(
         }
     }
 
-    LaunchedEffect(presentation, usageRequestVersion) {
-        if (presentation == null) return@LaunchedEffect
+    LaunchedEffect(presentation, reason, usageRequestVersion) {
+        if (presentation == null && !isTestOfferPreview) return@LaunchedEffect
         allowance = PremiumAllowanceState.Loading
         try {
-            val usage = appGraph.aiChatRepository.loadAiUsage(workspaceId = cloudSettings.activeWorkspaceId)
+            val usage = if (isTestOfferPreview) {
+                appGraph.loadPremiumPreviewAiUsage()
+            } else {
+                appGraph.aiChatRepository.loadAiUsage(workspaceId = cloudSettings.activeWorkspaceId)
+            }
             renewalAtMillis = usage.monthEndsAtMillis.takeIf { it > System.currentTimeMillis() }
             allowance = PremiumAllowanceState.Available(usage.premiumAiMonthlyMessages)
         } catch (error: CancellationException) {
@@ -253,6 +258,7 @@ internal fun PremiumPresentationHost(
                             entitlement = presenter.entitlement,
                             analyticsSurface = originSurface,
                             presentation = presentation,
+                            isTestOfferPreview = isTestOfferPreview,
                             allowance = allowance,
                             onRetryAllowance = { usageRequestVersion += 1 },
                             onChoosePremium = { reportChoice(AnalyticsPaywallChoice.PREMIUM) }

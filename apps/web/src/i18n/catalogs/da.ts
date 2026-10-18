@@ -63,6 +63,7 @@ const daCatalog: TranslationCatalog = {
     limitTitle: "Grænsen for AI-beskeder er nået",
     previewOffer: "Forhåndsvis Premium-tilbud",
     previewAi: "Forhåndsvis AI-grænse",
+    previewNoPurchase: "Testtilstand: der foretages intet køb, og du bliver ikke opkrævet noget.",
     retryManually: "Vend tilbage til chatten, og send din besked igen, når du er klar. Dine nøgleindstillinger gemmes automatisk.",
   },
   common: {
@@ -947,6 +948,10 @@ const daCatalog: TranslationCatalog = {
     paragraphOne: "Notifikationsindstillinger hører til den enkelte installation af mobilappen, ikke til et arbejdsområde eller din konto.",
     paragraphTwo: "Påmindelser bruger automatisk kort og aktivitet fra det arbejdsområde, der er valgt i den mobilapp.",
     paragraphThree: "Webappen sender og styrer ikke disse notifikationer, så der er ingen notifikationsindstillinger på denne skærm.",
+  },
+  firstReviewOnboardingSettings: {
+    title: "Introduktion til første repetition fuldført",
+    description: "Slå fra for at se guiden igen, når du repeterer et kort.",
   },
   reviewAnimationsSettings: {
     title: "Repetitionsanimationer",

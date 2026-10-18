@@ -980,6 +980,7 @@
 "premium.offer.unlimitedAI" = "AI-berichten zonder maandlimiet";
 "premium.offer.styles" = "Eigen kleuren en stijlen";
 "premium.offer.creatorSupport" = "Je abonnement helpt de maker van Nibomo, [Kirill Markin](https://kirill-markin.com/), de servers te betalen en met koffie en pizza aan de volgende update te werken.";
+"premium.offer.previewPurchaseMessage" = "Dit is een testvoorbeeld. Er wordt geen aankoop gedaan.";
 "premium.offer.subscribe" = "Abonneren";
 "premium.offer.startTrial" = "Gratis proefperiode starten: %@";
 "premium.offer.view" = "Premium bekijken";

@@ -980,6 +980,7 @@
 "premium.offer.unlimitedAI" = "MI ziņojumi bez mēneša ierobežojuma";
 "premium.offer.styles" = "Pielāgotas krāsas un stili";
 "premium.offer.creatorSupport" = "Tavs abonements palīdz Nibomo veidotājam [Kirill Markin](https://kirill-markin.com/) apmaksāt serverus un ar kafiju un picu gatavot nākamo atjauninājumu.";
+"premium.offer.previewPurchaseMessage" = "Šis ir testa priekšskatījums. Pirkums netiks veikts.";
 "premium.offer.subscribe" = "Abonēt";
 "premium.offer.startTrial" = "Sākt bezmaksas izmēģinājumu: %@";
 "premium.offer.view" = "Skatīt Premium";

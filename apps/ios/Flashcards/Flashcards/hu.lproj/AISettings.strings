@@ -980,6 +980,7 @@
 "premium.offer.unlimitedAI" = "AI-üzenetek havi korlát nélkül";
 "premium.offer.styles" = "Egyéni színek és stílusok";
 "premium.offer.creatorSupport" = "Előfizetésed segít a Nibomo készítőjének, [Kirill Markin](https://kirill-markin.com/), fizetni a szervereket, és kávéval, pizzával készülni a következő frissítésre.";
+"premium.offer.previewPurchaseMessage" = "Ez egy tesztelőnézet. Nem történik vásárlás.";
 "premium.offer.subscribe" = "Előfizetés";
 "premium.offer.startTrial" = "Ingyenes próba indítása: %@";
 "premium.offer.view" = "Premium megtekintése";

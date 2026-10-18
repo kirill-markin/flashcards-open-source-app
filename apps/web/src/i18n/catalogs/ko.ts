@@ -63,6 +63,7 @@ const koCatalog: TranslationCatalog = {
     limitTitle: "AI 메시지 한도에 도달했습니다",
     previewOffer: "Premium 혜택 미리 보기",
     previewAi: "AI 한도 미리 보기",
+    previewNoPurchase: "테스트 모드: 구매가 진행되지 않으며 요금이 청구되지 않습니다.",
     retryManually: "준비가 되면 채팅으로 돌아가 메시지를 다시 보내세요. 키 설정은 자동으로 저장됩니다.",
   },
   common: {
@@ -947,6 +948,10 @@ const koCatalog: TranslationCatalog = {
     paragraphOne: "알림 설정은 워크스페이스나 계정이 아니라 각 모바일 앱 설치마다 따로 저장됩니다.",
     paragraphTwo: "알림은 해당 모바일 앱에서 현재 선택된 워크스페이스의 카드와 활동을 자동으로 사용합니다.",
     paragraphThree: "웹 앱은 이 알림을 보내거나 관리하지 않으므로 이 화면에는 알림 설정이 없습니다.",
+  },
+  firstReviewOnboardingSettings: {
+    title: "첫 복습 안내 완료",
+    description: "끄면 카드를 복습할 때 안내가 다시 표시됩니다.",
   },
   reviewAnimationsSettings: {
     title: "복습 애니메이션",

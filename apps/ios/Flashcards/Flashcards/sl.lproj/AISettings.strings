@@ -980,6 +980,7 @@
 "premium.offer.unlimitedAI" = "Sporočila UI brez mesečne omejitve";
 "premium.offer.styles" = "Barve in slogi po meri";
 "premium.offer.creatorSupport" = "Vaša naročnina pomaga ustvarjalcu Nibomo, [Kirill Markin](https://kirill-markin.com/), plačevati strežnike in ob kavi ter pici pripravljati naslednjo posodobitev.";
+"premium.offer.previewPurchaseMessage" = "To je testni predogled. Nakup ne bo izveden.";
 "premium.offer.subscribe" = "Naroči se";
 "premium.offer.startTrial" = "Začni brezplačni preizkus: %@";
 "premium.offer.view" = "Ogled Premium";

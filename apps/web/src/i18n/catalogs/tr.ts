@@ -63,6 +63,7 @@ const trCatalog: TranslationCatalog = {
     limitTitle: "Yapay zekâ mesaj sınırına ulaşıldı",
     previewOffer: "Premium teklifini önizle",
     previewAi: "Yapay zekâ sınırını önizle",
+    previewNoPurchase: "Test modu: satın alma yapılmaz ve sizden ücret alınmaz.",
     retryManually: "Sohbete dönün ve hazır olduğunuzda mesajınızı yeniden gönderin. Anahtar ayarlarınız otomatik olarak kaydedilir.",
   },
   common: {
@@ -947,6 +948,10 @@ const trCatalog: TranslationCatalog = {
     paragraphOne: "Bildirim ayarları her mobil uygulama kurulumuna aittir; çalışma alanına veya hesabınıza değil.",
     paragraphTwo: "Hatırlatıcılar otomatik olarak o mobil uygulamada seçili olan çalışma alanının kartlarını ve etkinliğini kullanır.",
     paragraphThree: "Web uygulaması bu bildirimleri göndermez ve yönetmez; bu yüzden bu ekranda bildirim denetimi yoktur.",
+  },
+  firstReviewOnboardingSettings: {
+    title: "İlk tekrar rehberi tamamlandı",
+    description: "Bir kartı tekrar ederken rehberi yeniden görmek için kapatın.",
   },
   reviewAnimationsSettings: {
     title: "Tekrar Animasyonları",

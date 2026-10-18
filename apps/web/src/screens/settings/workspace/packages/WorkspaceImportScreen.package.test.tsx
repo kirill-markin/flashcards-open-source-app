@@ -154,6 +154,7 @@ function createAppData(): Mutable<AppDataContextValue> {
       preferences: {
         accentColor: "#FF6719",
         reviewReactionAnimationsEnabled: true,
+        firstReviewOnboardingCompleted: true,
       },
       profile: {
         email: "user@example.com",
@@ -187,7 +188,9 @@ function createAppData(): Mutable<AppDataContextValue> {
     technicalError: null,
     setErrorMessage: vi.fn(),
     setAccountPreferences: vi.fn(),
-    refreshAccountPreferences: vi.fn(async () => ({ accentColor: "#FF6719", reviewReactionAnimationsEnabled: true })),
+    firstReviewOnboardingCompleted: true,
+    setFirstReviewOnboardingCompleted: vi.fn(async (): Promise<void> => undefined),
+    refreshAccountPreferences: vi.fn(async () => ({ accentColor: "#FF6719", reviewReactionAnimationsEnabled: true, firstReviewOnboardingCompleted: true })),
     refreshConnectedAccount: vi.fn(async (): Promise<void> => undefined),
     initialize: vi.fn(async (): Promise<void> => undefined),
     chooseWorkspace: vi.fn(async (_workspaceId: string): Promise<void> => undefined),

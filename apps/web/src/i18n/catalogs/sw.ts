@@ -63,6 +63,7 @@ const swCatalog: TranslationCatalog = {
     limitTitle: "Kikomo cha ujumbe wa AI kimefikiwa",
     previewOffer: "Hakiki ofa ya Premium",
     previewAi: "Hakiki kikomo cha AI",
+    previewNoPurchase: "Hali ya majaribio: hakuna ununuzi utakaofanywa na hutatozwa malipo.",
     retryManually: "Rudi kwenye gumzo na utume ujumbe tena ukiwa tayari. Mipangilio ya ufunguo wako huhifadhiwa kiotomatiki.",
   },
   common: {
@@ -947,6 +948,10 @@ const swCatalog: TranslationCatalog = {
     paragraphOne: "Mipangilio ya arifa ni ya kila usakinishaji wa programu ya simu, si ya nafasi ya kazi wala akaunti yako.",
     paragraphTwo: "Vikumbusho hutumia kiotomatiki kadi na shughuli kutoka nafasi ya kazi iliyochaguliwa sasa katika programu hiyo ya simu.",
     paragraphThree: "Programu ya wavuti haitumi wala haidhibiti arifa hizi, kwa hiyo hakuna vidhibiti vya arifa kwenye skrini hii.",
+  },
+  firstReviewOnboardingSettings: {
+    title: "Mwongozo wa marudio ya kwanza umekamilika",
+    description: "Zima ili kuona mwongozo tena unapopitia kadi.",
   },
   reviewAnimationsSettings: {
     title: "Uhuishaji wa Marudio",

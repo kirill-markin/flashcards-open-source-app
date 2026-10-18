@@ -980,6 +980,7 @@
 "premium.offer.unlimitedAI" = "Pesan AI tanpa batas bulanan";
 "premium.offer.styles" = "Warna dan gaya khusus";
 "premium.offer.creatorSupport" = "Langgananmu membantu pembuat Nibomo, [Kirill Markin](https://kirill-markin.com/), membayar server dan menyiapkan pembaruan berikutnya dengan kopi dan pizza.";
+"premium.offer.previewPurchaseMessage" = "Ini adalah pratinjau uji coba. Tidak ada pembelian yang akan dilakukan.";
 "premium.offer.subscribe" = "Berlangganan";
 "premium.offer.startTrial" = "Mulai uji coba gratis: %@";
 "premium.offer.view" = "Lihat Premium";

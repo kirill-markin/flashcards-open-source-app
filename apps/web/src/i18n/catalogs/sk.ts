@@ -63,6 +63,7 @@ const skCatalog: TranslationCatalog = {
     limitTitle: "Dosiahnutý limit správ AI",
     previewOffer: "Náhľad ponuky Premium",
     previewAi: "Náhľad limitu AI",
+    previewNoPurchase: "Testovací režim: nákup sa neuskutoční a nič vám nebude účtované.",
     retryManually: "Vráťte sa do chatu a keď budete pripravení, odošlite správu znova. Nastavenia kľúča sa ukladajú automaticky.",
   },
   common: {
@@ -956,6 +957,10 @@ const skCatalog: TranslationCatalog = {
     paragraphOne: "Nastavenia hlásení patria ku každej inštalácii mobilnej aplikácie, nie k pracovnému priestoru ani k vášmu účtu.",
     paragraphTwo: "Pripomienky automaticky používajú karty a aktivitu z pracovného priestoru, ktorý je práve vybraný v danej mobilnej aplikácii.",
     paragraphThree: "Webová aplikácia tieto hlásenia nedoručuje ani nespravuje, preto na tejto obrazovke nie sú žiadne ovládacie prvky hlásení.",
+  },
+  firstReviewOnboardingSettings: {
+    title: "Sprievodca prvým opakovaním dokončený",
+    description: "Vypnite, ak chcete pri opakovaní karty znova zobraziť sprievodcu.",
   },
   reviewAnimationsSettings: {
     title: "Animácie pri opakovaní",

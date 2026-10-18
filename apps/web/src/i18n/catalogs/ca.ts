@@ -63,6 +63,7 @@ const caCatalog: TranslationCatalog = {
     limitTitle: "Límit de missatges d’IA assolit",
     previewOffer: "Previsualitza l’oferta Premium",
     previewAi: "Previsualitza el límit d’IA",
+    previewNoPurchase: "Mode de prova: no es farà cap compra ni se’t cobrarà res.",
     retryManually: "Torna al xat i envia el missatge de nou quan vulguis. La configuració de la clau es desa automàticament.",
   },
   common: {
@@ -947,6 +948,10 @@ const caCatalog: TranslationCatalog = {
     paragraphOne: "La configuració de notificacions pertany a cada instal·lació de l'app mòbil, no a un espai de treball ni al teu compte.",
     paragraphTwo: "Els recordatoris fan servir automàticament les targetes i l'activitat de l'espai de treball seleccionat en aquella app mòbil.",
     paragraphThree: "L'app web no envia ni gestiona aquestes notificacions, així que en aquesta pantalla no hi ha controls de notificacions.",
+  },
+  firstReviewOnboardingSettings: {
+    title: "Guia de la primera revisió completada",
+    description: "Desactiva-ho per tornar a veure la guia quan revisis una targeta.",
   },
   reviewAnimationsSettings: {
     title: "Animacions de repàs",

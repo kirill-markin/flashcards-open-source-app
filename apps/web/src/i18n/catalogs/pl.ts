@@ -63,6 +63,7 @@ const plCatalog: TranslationCatalog = {
     limitTitle: "Osiągnięto limit wiadomości AI",
     previewOffer: "Podgląd oferty Premium",
     previewAi: "Podgląd limitu AI",
+    previewNoPurchase: "Tryb testowy: zakup nie zostanie dokonany i nie zostaną naliczone żadne opłaty.",
     retryManually: "Wróć do czatu i wyślij wiadomość ponownie, gdy zechcesz. Ustawienia klucza są zapisywane automatycznie.",
   },
   common: {
@@ -956,6 +957,10 @@ const plCatalog: TranslationCatalog = {
     paragraphOne: "Ustawienia powiadomień należą do konkretnej instalacji aplikacji mobilnej, a nie do przestrzeni roboczej czy konta.",
     paragraphTwo: "Przypomnienia automatycznie korzystają z kart i aktywności w przestrzeni roboczej wybranej w tej aplikacji mobilnej.",
     paragraphThree: "Aplikacja webowa nie wysyła tych powiadomień ani nimi nie zarządza, więc na tym ekranie nie ma ich ustawień.",
+  },
+  firstReviewOnboardingSettings: {
+    title: "Wprowadzenie do pierwszej powtórki ukończone",
+    description: "Wyłącz, aby ponownie zobaczyć wskazówki podczas powtarzania karty.",
   },
   reviewAnimationsSettings: {
     title: "Animacje powtórek",

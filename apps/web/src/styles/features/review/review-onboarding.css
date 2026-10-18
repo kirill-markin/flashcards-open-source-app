@@ -1,0 +1,47 @@
+.first-review-onboarding {
+  position: fixed;
+  z-index: 8;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.first-review-onboarding[hidden] {
+  display: none;
+}
+
+.first-review-pencil {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  filter: drop-shadow(0 1px 0.8px light-dark(#00000050, #000000b0)) drop-shadow(0 0 0.5px light-dark(#ffffff95, #ffffff42));
+}
+
+.first-review-pencil-a {
+  animation: first-review-pencil-a 470ms steps(1, end) infinite;
+}
+
+.first-review-pencil-b {
+  animation: first-review-pencil-b 470ms steps(1, end) infinite;
+}
+
+@keyframes first-review-pencil-a {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+@keyframes first-review-pencil-b {
+  0%, 100% { opacity: 0; }
+  50% { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .first-review-pencil-a,
+  .first-review-pencil-b {
+    animation: none;
+  }
+
+  .first-review-pencil-b {
+    opacity: 0;
+  }
+}

@@ -63,6 +63,7 @@ const etCatalog: TranslationCatalog = {
     limitTitle: "Tehisaru sõnumite limiit on täis",
     previewOffer: "Premiumi pakkumise eelvaade",
     previewAi: "Tehisaru limiidi eelvaade",
+    previewNoPurchase: "Testrežiim: ostu ei tehta ja teilt ei võeta tasu.",
     retryManually: "Naase vestlusse ja saada sõnum uuesti, kui oled valmis. Võtme seaded salvestatakse automaatselt.",
   },
   common: {
@@ -947,6 +948,10 @@ const etCatalog: TranslationCatalog = {
     paragraphOne: "Teavitusseaded kuuluvad iga mobiilirakenduse installi juurde, mitte tööruumile ega sinu kontole.",
     paragraphTwo: "Meeldetuletused kasutavad automaatselt kaarte ja tegevust tööruumist, mis on selles mobiilirakenduses praegu valitud.",
     paragraphThree: "Veebirakendus neid teavitusi ei saada ega halda, seega pole sellel kuval teavituste juhtelemente.",
+  },
+  firstReviewOnboardingSettings: {
+    title: "Esimese kordamise juhend läbitud",
+    description: "Lülita välja, et näha juhendit kaardi kordamisel uuesti.",
   },
   reviewAnimationsSettings: {
     title: "Kordamise animatsioonid",

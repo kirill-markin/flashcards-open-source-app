@@ -63,6 +63,7 @@ const roCatalog: TranslationCatalog = {
     limitTitle: "Limita de mesaje IA a fost atinsă",
     previewOffer: "Previzualizează oferta Premium",
     previewAi: "Previzualizează limita IA",
+    previewNoPurchase: "Mod de testare: nu se efectuează nicio achiziție și nu vi se va percepe nicio taxă.",
     retryManually: "Revino la chat și trimite mesajul din nou când ești gata. Setările cheii sunt salvate automat.",
   },
   common: {
@@ -956,6 +957,10 @@ const roCatalog: TranslationCatalog = {
     paragraphOne: "Setările pentru notificări aparțin fiecărei instalări a aplicației mobile, nu unui spațiu de lucru sau contului tău.",
     paragraphTwo: "Mementourile folosesc automat fișele și activitatea din spațiul de lucru selectat în acel moment în aplicația mobilă.",
     paragraphThree: "Aplicația web nu livrează și nu gestionează aceste notificări, deci pe acest ecran nu există comenzi pentru notificări.",
+  },
+  firstReviewOnboardingSettings: {
+    title: "Ghidul primei recapitulări finalizat",
+    description: "Dezactivează pentru a vedea din nou ghidul când recapitulezi un card.",
   },
   reviewAnimationsSettings: {
     title: "Animații de recapitulare",

@@ -63,6 +63,7 @@ const hrCatalog: TranslationCatalog = {
     limitTitle: "Dosegnuto ograničenje AI poruka",
     previewOffer: "Pregled ponude Premium",
     previewAi: "Pregled ograničenja AI-ja",
+    previewNoPurchase: "Testni način: kupnja se ne izvršava i ništa vam se neće naplatiti.",
     retryManually: "Vratite se u razgovor i ponovno pošaljite poruku kad budete spremni. Postavke ključa spremaju se automatski.",
   },
   common: {
@@ -956,6 +957,10 @@ const hrCatalog: TranslationCatalog = {
     paragraphOne: "Postavke obavijesti pripadaju svakoj instalaciji mobilne aplikacije, a ne radnom prostoru ili vašem računu.",
     paragraphTwo: "Podsjetnici automatski koriste kartice i aktivnost iz radnog prostora koji je trenutačno odabran u toj mobilnoj aplikaciji.",
     paragraphThree: "Web-aplikacija ne isporučuje ove obavijesti niti njima upravlja, pa na ovom zaslonu nema kontrola obavijesti.",
+  },
+  firstReviewOnboardingSettings: {
+    title: "Uvod u prvo ponavljanje dovršen",
+    description: "Isključite da biste ponovno vidjeli vodič pri ponavljanju kartice.",
   },
   reviewAnimationsSettings: {
     title: "Animacije ponavljanja",

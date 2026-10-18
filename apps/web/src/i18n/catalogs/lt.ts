@@ -63,6 +63,7 @@ const ltCatalog: TranslationCatalog = {
     limitTitle: "Pasiektas DI žinučių limitas",
     previewOffer: "Premium pasiūlymo peržiūra",
     previewAi: "DI limito peržiūra",
+    previewNoPurchase: "Bandymo režimas: pirkimas nebus atliktas ir mokestis nebus taikomas.",
     retryManually: "Grįžkite į pokalbį ir vėl išsiųskite žinutę, kai būsite pasiruošę. Rakto nustatymai išsaugomi automatiškai.",
   },
   common: {
@@ -956,6 +957,10 @@ const ltCatalog: TranslationCatalog = {
     paragraphOne: "Pranešimų nustatymai priklauso kiekvienam mobiliosios programėlės įdiegimui, o ne darbo sričiai ar jūsų paskyrai.",
     paragraphTwo: "Priminimai automatiškai naudoja korteles ir veiklą iš darbo srities, šiuo metu pasirinktos toje mobiliojoje programėlėje.",
     paragraphThree: "Žiniatinklio programėlė šių pranešimų nesiunčia ir netvarko, todėl šiame ekrane pranešimų valdiklių nėra.",
+  },
+  firstReviewOnboardingSettings: {
+    title: "Pirmojo kartojimo vadovas baigtas",
+    description: "Išjunkite, jei norite vėl matyti vadovą kartodami kortelę.",
   },
   reviewAnimationsSettings: {
     title: "Kartojimo animacijos",

@@ -63,6 +63,7 @@ const huCatalog: TranslationCatalog = {
     limitTitle: "Elérted az MI-üzenetek korlátját",
     previewOffer: "Premium-ajánlat előnézete",
     previewAi: "MI-korlát előnézete",
+    previewNoPurchase: "Tesztmód: nem történik vásárlás, és nem számítunk fel díjat.",
     retryManually: "Térj vissza a csevegéshez, és küldd el újra az üzenetet, amikor készen állsz. A kulcsbeállítások automatikusan mentődnek.",
   },
   common: {
@@ -947,6 +948,10 @@ const huCatalog: TranslationCatalog = {
     paragraphOne: "Az értesítési beállítások az egyes mobilalkalmazás-telepítésekhez tartoznak, nem a munkaterülethez vagy a fiókodhoz.",
     paragraphTwo: "Az emlékeztetők automatikusan az adott mobilalkalmazásban kiválasztott munkaterület kártyáit és aktivitását használják.",
     paragraphThree: "A webalkalmazás nem küldi és nem kezeli ezeket az értesítéseket, ezért ezen a képernyőn nincsenek értesítési beállítások.",
+  },
+  firstReviewOnboardingSettings: {
+    title: "Az első ismétlés útmutatója befejezve",
+    description: "Kapcsold ki, ha egy kártya ismétlésekor újra szeretnéd látni az útmutatót.",
   },
   reviewAnimationsSettings: {
     title: "Ismétlési animációk",

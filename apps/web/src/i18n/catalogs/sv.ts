@@ -63,6 +63,7 @@ const svCatalog: TranslationCatalog = {
     limitTitle: "Gränsen för AI-meddelanden har nåtts",
     previewOffer: "Förhandsvisa Premium-erbjudandet",
     previewAi: "Förhandsvisa AI-gränsen",
+    previewNoPurchase: "Testläge: inget köp görs och du debiteras inte.",
     retryManually: "Gå tillbaka till chatten och skicka ditt meddelande igen när du är redo. Dina nyckelinställningar sparas automatiskt.",
   },
   common: {
@@ -947,6 +948,10 @@ const svCatalog: TranslationCatalog = {
     paragraphOne: "Aviseringsinställningarna hör till varje installation av mobilappen, inte till en arbetsyta eller ditt konto.",
     paragraphTwo: "Påminnelserna använder automatiskt kort och aktivitet från den arbetsyta som är vald i mobilappen.",
     paragraphThree: "Webbappen skickar inte och hanterar inte de här aviseringarna, så det finns inga aviseringsreglage på den här skärmen.",
+  },
+  firstReviewOnboardingSettings: {
+    title: "Introduktion till första repetitionen slutförd",
+    description: "Stäng av för att se guiden igen när du repeterar ett kort.",
   },
   reviewAnimationsSettings: {
     title: "Repetitionsanimationer",

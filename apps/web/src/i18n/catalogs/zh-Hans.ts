@@ -63,6 +63,7 @@ export const zhHansCatalog = {
     limitTitle: "已达到 AI 消息上限",
     previewOffer: "预览 Premium 方案",
     previewAi: "预览 AI 上限",
+    previewNoPurchase: "测试模式：不会进行购买，也不会向你收费。",
     retryManually: "准备好后，返回聊天并重新发送消息。密钥设置会自动保存。",
   },
   common: {
@@ -947,6 +948,10 @@ export const zhHansCatalog = {
     paragraphOne: "通知设置属于每次移动应用安装，而不属于工作区或您的账户。",
     paragraphTwo: "提醒会自动使用该移动应用中当前所选工作区的卡片和活动。",
     paragraphThree: "Web 应用不会发送或管理这些通知，因此此界面没有通知控制项。",
+  },
+  firstReviewOnboardingSettings: {
+    title: "首次复习引导已完成",
+    description: "关闭后，复习卡片时会再次显示引导。",
   },
   reviewAnimationsSettings: {
     title: "复习动画",

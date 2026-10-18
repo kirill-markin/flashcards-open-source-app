@@ -63,6 +63,7 @@ const itCatalog: TranslationCatalog = {
     limitTitle: "Limite di messaggi IA raggiunto",
     previewOffer: "Anteprima dell’offerta Premium",
     previewAi: "Anteprima del limite IA",
+    previewNoPurchase: "Modalità di test: non verrà effettuato alcun acquisto e non ti verrà addebitato nulla.",
     retryManually: "Torna alla chat e invia di nuovo il messaggio quando vuoi. Le impostazioni della chiave vengono salvate automaticamente.",
   },
   common: {
@@ -947,6 +948,10 @@ const itCatalog: TranslationCatalog = {
     paragraphOne: "Le impostazioni di notifica appartengono a ogni installazione dell’app mobile, non a un’area di lavoro o al tuo account.",
     paragraphTwo: "I promemoria usano automaticamente le carte e l’attività dell’area di lavoro selezionata in quell’app mobile.",
     paragraphThree: "L’app web non invia né gestisce queste notifiche, quindi in questa schermata non ci sono controlli per le notifiche.",
+  },
+  firstReviewOnboardingSettings: {
+    title: "Guida al primo ripasso completata",
+    description: "Disattiva per rivedere la guida quando ripassi una scheda.",
   },
   reviewAnimationsSettings: {
     title: "Animazioni dei ripassi",

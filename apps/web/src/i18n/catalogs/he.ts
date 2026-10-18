@@ -63,6 +63,7 @@ const heCatalog: TranslationCatalog = {
     limitTitle: "הגעת למגבלת הודעות ה-AI",
     previewOffer: "תצוגה מקדימה של הצעת Premium",
     previewAi: "תצוגה מקדימה של מגבלת AI",
+    previewNoPurchase: "מצב בדיקה: לא תתבצע רכישה ולא ייגבה ממך תשלום.",
     retryManually: "אפשר לחזור לצ׳אט ולשלוח שוב את ההודעה כשמוכנים. הגדרות המפתח נשמרות אוטומטית.",
   },
   common: {
@@ -947,6 +948,10 @@ const heCatalog: TranslationCatalog = {
     paragraphOne: "הגדרות ההתראות שייכות לכל התקנה של אפליקציית הנייד, ולא לסביבת עבודה או לחשבון שלך.",
     paragraphTwo: "התזכורות משתמשות אוטומטית בכרטיסים ובפעילות מסביבת העבודה שנבחרה כרגע באותה אפליקציית נייד.",
     paragraphThree: "אפליקציית הרשת לא שולחת ולא מנהלת את ההתראות האלה, ולכן אין במסך הזה פקדי התראות.",
+  },
+  firstReviewOnboardingSettings: {
+    title: "ההדרכה לחזרה הראשונה הושלמה",
+    description: "כבו כדי לראות שוב את ההדרכה בזמן חזרה על כרטיס.",
   },
   reviewAnimationsSettings: {
     title: "אנימציות חזרה",

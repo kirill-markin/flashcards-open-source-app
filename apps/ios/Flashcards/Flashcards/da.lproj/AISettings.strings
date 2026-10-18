@@ -980,6 +980,7 @@
 "premium.offer.unlimitedAI" = "AI-beskeder uden månedlig grænse";
 "premium.offer.styles" = "Egne farver og stilarter";
 "premium.offer.creatorSupport" = "Dit abonnement hjælper Nibomos skaber, [Kirill Markin](https://kirill-markin.com/), med at betale serverne og lave næste opdatering med kaffe og pizza.";
+"premium.offer.previewPurchaseMessage" = "Dette er en testvisning. Der foretages intet køb.";
 "premium.offer.subscribe" = "Abonner";
 "premium.offer.startTrial" = "Start gratis prøveperiode: %@";
 "premium.offer.view" = "Se Premium";

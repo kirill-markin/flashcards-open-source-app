@@ -980,6 +980,7 @@
 "premium.offer.unlimitedAI" = "ข้อความ AI ไม่จำกัดรายเดือน";
 "premium.offer.styles" = "สีและสไตล์ที่กำหนดเอง";
 "premium.offer.creatorSupport" = "การสมัครของคุณช่วยให้ผู้สร้าง Nibomo อย่าง [Kirill Markin](https://kirill-markin.com/) จ่ายค่าเซิร์ฟเวอร์และเตรียมอัปเดตถัดไปพร้อมกาแฟและพิซซ่า";
+"premium.offer.previewPurchaseMessage" = "นี่คือหน้าตัวอย่างสำหรับทดสอบ จะไม่มีการซื้อใด ๆ";
 "premium.offer.subscribe" = "สมัครสมาชิก";
 "premium.offer.startTrial" = "เริ่มทดลองใช้ฟรี: %@";
 "premium.offer.view" = "ดู Premium";

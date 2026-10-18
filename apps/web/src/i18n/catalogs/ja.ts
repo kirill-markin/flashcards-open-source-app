@@ -63,6 +63,7 @@ export const jaCatalog = {
     limitTitle: "AIメッセージの上限に達しました",
     previewOffer: "Premiumオファーのプレビュー",
     previewAi: "AI上限のプレビュー",
+    previewNoPurchase: "テストモード：購入は行われず、料金も請求されません。",
     retryManually: "準備ができたらチャットに戻り、メッセージを再送信してください。キーの設定は自動保存されます。",
   },
   common: {
@@ -947,6 +948,10 @@ export const jaCatalog = {
     paragraphOne: "通知設定はモバイルアプリのインストールごとに保存され、ワークスペースやアカウントには属しません。",
     paragraphTwo: "リマインダーでは、そのモバイルアプリで現在選択されているワークスペースのカードと学習状況が自動的に使用されます。",
     paragraphThree: "Web アプリはこれらの通知の配信や管理を行わないため、この画面には通知の設定項目はありません。",
+  },
+  firstReviewOnboardingSettings: {
+    title: "初回復習ガイドを完了",
+    description: "オフにすると、カードを復習するときにガイドが再び表示されます。",
   },
   reviewAnimationsSettings: {
     title: "復習アニメーション",

@@ -63,6 +63,7 @@ const esEsCatalog: TranslationCatalog = {
     limitTitle: "Límite de mensajes de IA alcanzado",
     previewOffer: "Vista previa de la oferta Premium",
     previewAi: "Vista previa del límite de IA",
+    previewNoPurchase: "Modo de prueba: no se realizará ninguna compra ni se te cobrará.",
     retryManually: "Vuelve al chat y envía tu mensaje de nuevo cuando quieras. Los ajustes de tu clave se guardan automáticamente.",
   },
   common: {
@@ -947,6 +948,10 @@ const esEsCatalog: TranslationCatalog = {
     paragraphOne: "Los ajustes de las notificaciones pertenecen a cada instalación de la app móvil, no a un espacio de trabajo ni a tu cuenta.",
     paragraphTwo: "Los recordatorios usan automáticamente las tarjetas y la actividad del espacio de trabajo seleccionado en ese momento en esa app móvil.",
     paragraphThree: "La app web no envía ni gestiona estas notificaciones, así que no hay controles de notificaciones en esta pantalla.",
+  },
+  firstReviewOnboardingSettings: {
+    title: "Guía del primer repaso completada",
+    description: "Desactiva esta opción para volver a ver la guía al repasar una tarjeta.",
   },
   reviewAnimationsSettings: {
     title: "Animaciones de repaso",

@@ -63,6 +63,7 @@ const nlCatalog: TranslationCatalog = {
     limitTitle: "Limiet voor AI-berichten bereikt",
     previewOffer: "Premium-aanbod bekijken",
     previewAi: "AI-limiet bekijken",
+    previewNoPurchase: "Testmodus: er wordt geen aankoop gedaan en er worden geen kosten in rekening gebracht.",
     retryManually: "Ga terug naar de chat en stuur je bericht opnieuw wanneer je klaar bent. Je sleutelinstellingen worden automatisch opgeslagen.",
   },
   common: {
@@ -947,6 +948,10 @@ const nlCatalog: TranslationCatalog = {
     paragraphOne: "Meldingsinstellingen horen bij elke installatie van de mobiele app, niet bij een werkruimte of bij je account.",
     paragraphTwo: "Herinneringen gebruiken automatisch de kaarten en activiteit uit de werkruimte die in die mobiele app is geselecteerd.",
     paragraphThree: "De web-app levert en beheert deze meldingen niet, dus er staan geen meldingsinstellingen op dit scherm.",
+  },
+  firstReviewOnboardingSettings: {
+    title: "Uitleg voor de eerste herhaling voltooid",
+    description: "Schakel uit om de uitleg opnieuw te zien wanneer je een kaart herhaalt.",
   },
   reviewAnimationsSettings: {
     title: "Herhalingsanimaties",

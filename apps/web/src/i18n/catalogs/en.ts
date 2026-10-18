@@ -62,6 +62,7 @@ const enCatalog = {
     limitTitle: "AI message limit reached",
     previewOffer: "Preview Premium offer",
     previewAi: "Preview AI limit",
+    previewNoPurchase: "Test mode: no purchase is made and you will not be charged.",
     retryManually: "Return to chat and send your message again when ready. Your key settings are saved automatically.",
   },
   common: {
@@ -946,6 +947,10 @@ const enCatalog = {
     paragraphOne: "Notification settings belong to each mobile app installation, not to a workspace or your account.",
     paragraphTwo: "Reminders automatically use cards and activity from the workspace currently selected in that mobile app.",
     paragraphThree: "The web app does not deliver or manage these notifications, so there are no notification controls on this screen.",
+  },
+  firstReviewOnboardingSettings: {
+    title: "First review onboarding completed",
+    description: "Turn off to see the guide again when you review a card.",
   },
   reviewAnimationsSettings: {
     title: "Review Animations",
