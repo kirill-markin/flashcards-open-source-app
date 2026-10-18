@@ -1054,6 +1054,7 @@ const faCatalog: TranslationCatalog = {
     searchPlaceholder: "جست‌وجوی دسته‌ها یا برچسب‌ها",
   },
   reviewScreen: {
+    copyAriaLabel: "کپی {{side}}",
     selectTextAriaLabel: "انتخاب و کپی متن: {{side}}",
     actions: {
       createCard: "ساخت کارت",
@@ -1100,6 +1101,8 @@ const faCatalog: TranslationCatalog = {
       snapshot: "نمایش یک تصویر محلی اخیر...",
     },
     media: {
+      privateImage: "تصویر خصوصی",
+      privateAttachment: "پیوست خصوصی",
       attachmentLabel: "پیوست",
       audioLabel: "پیوست صوتی",
       imageAlt: "تصویر مدیریت‌شده",

@@ -1064,6 +1064,7 @@ const ukCatalog: TranslationCatalog = {
     searchPlaceholder: "Пошук колод або тегів",
   },
   reviewScreen: {
+    copyAriaLabel: "Копіювати: {{side}}",
     selectTextAriaLabel: "Виділити й скопіювати текст: {{side}}",
     actions: {
       createCard: "Створити картку",
@@ -1110,6 +1111,8 @@ const ukCatalog: TranslationCatalog = {
       snapshot: "Показуємо останній локальний знімок...",
     },
     media: {
+      privateImage: "Приватне зображення",
+      privateAttachment: "Приватне вкладення",
       attachmentLabel: "Вкладення",
       audioLabel: "Аудіовкладення",
       imageAlt: "Кероване зображення",

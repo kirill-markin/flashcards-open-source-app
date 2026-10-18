@@ -1054,6 +1054,7 @@ const guCatalog: TranslationCatalog = {
     searchPlaceholder: "ડેક કે ટૅગ શોધો",
   },
   reviewScreen: {
+    copyAriaLabel: "{{side}} કૉપિ કરો",
     selectTextAriaLabel: "લખાણ પસંદ કરો અને કૉપિ કરો: {{side}}",
     actions: {
       createCard: "કાર્ડ બનાવો",
@@ -1100,6 +1101,8 @@ const guCatalog: TranslationCatalog = {
       snapshot: "તાજેતરનો સ્થાનિક સ્નૅપશૉટ બતાવાઈ રહ્યો છે...",
     },
     media: {
+      privateImage: "ખાનગી છબી",
+      privateAttachment: "ખાનગી જોડાણ",
       attachmentLabel: "જોડાણ",
       audioLabel: "ઑડિયો જોડાણ",
       imageAlt: "સંચાલિત છબી",

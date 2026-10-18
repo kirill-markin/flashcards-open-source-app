@@ -1054,6 +1054,7 @@ const knCatalog: TranslationCatalog = {
     searchPlaceholder: "ಡೆಕ್ ಅಥವಾ ಟ್ಯಾಗ್ ಹುಡುಕಿ",
   },
   reviewScreen: {
+    copyAriaLabel: "{{side}} ನಕಲಿಸಿ",
     selectTextAriaLabel: "ಪಠ್ಯವನ್ನು ಆಯ್ಕೆಮಾಡಿ ಮತ್ತು ನಕಲಿಸಿ: {{side}}",
     actions: {
       createCard: "ಕಾರ್ಡ್ ರಚಿಸಿ",
@@ -1100,6 +1101,8 @@ const knCatalog: TranslationCatalog = {
       snapshot: "ಇತ್ತೀಚಿನ ಸ್ಥಳೀಯ ಸ್ನ್ಯಾಪ್‌ಶಾಟ್ ತೋರಿಸಲಾಗುತ್ತಿದೆ...",
     },
     media: {
+      privateImage: "ಖಾಸಗಿ ಚಿತ್ರ",
+      privateAttachment: "ಖಾಸಗಿ ಲಗತ್ತು",
       attachmentLabel: "ಲಗತ್ತು",
       audioLabel: "ಆಡಿಯೊ ಲಗತ್ತು",
       imageAlt: "ನಿರ್ವಹಿತ ಚಿತ್ರ",

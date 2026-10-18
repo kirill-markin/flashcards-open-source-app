@@ -1064,6 +1064,7 @@ export const ruCatalog = {
     searchPlaceholder: "Искать колоды или теги",
   },
   reviewScreen: {
+    copyAriaLabel: "Копировать: {{side}}",
     selectTextAriaLabel: "Выделить и скопировать текст: {{side}}",
     actions: {
       createCard: "Создать карточку",
@@ -1110,6 +1111,8 @@ export const ruCatalog = {
       snapshot: "Показываем недавний локальный снимок...",
     },
     media: {
+      privateImage: "Приватное изображение",
+      privateAttachment: "Приватное вложение",
       attachmentLabel: "Вложение",
       audioLabel: "Аудиовложение",
       imageAlt: "Управляемое изображение",

@@ -1064,6 +1064,7 @@ const skCatalog: TranslationCatalog = {
     searchPlaceholder: "Hľadať balíčky alebo značky",
   },
   reviewScreen: {
+    copyAriaLabel: "Kopírovať: {{side}}",
     selectTextAriaLabel: "Vybrať a skopírovať text: {{side}}",
     actions: {
       createCard: "Vytvoriť kartu",
@@ -1110,6 +1111,8 @@ const skCatalog: TranslationCatalog = {
       snapshot: "Zobrazuje sa nedávny miestny stav...",
     },
     media: {
+      privateImage: "Súkromný obrázok",
+      privateAttachment: "Súkromná príloha",
       attachmentLabel: "Príloha",
       audioLabel: "Zvuková príloha",
       imageAlt: "Spravovaný obrázok",

@@ -1054,6 +1054,7 @@ const urCatalog: TranslationCatalog = {
     searchPlaceholder: "ڈیکس یا ٹیگز تلاش کریں",
   },
   reviewScreen: {
+    copyAriaLabel: "{{side}} کاپی کریں",
     selectTextAriaLabel: "متن منتخب کریں اور کاپی کریں: {{side}}",
     actions: {
       createCard: "کارڈ بنائیں",
@@ -1100,6 +1101,8 @@ const urCatalog: TranslationCatalog = {
       snapshot: "حالیہ مقامی اسنیپ شاٹ دکھایا جا رہا ہے...",
     },
     media: {
+      privateImage: "نجی تصویر",
+      privateAttachment: "نجی منسلکہ",
       attachmentLabel: "منسلکہ",
       audioLabel: "آڈیو منسلکہ",
       imageAlt: "منظم تصویر",

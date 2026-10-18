@@ -1054,6 +1054,7 @@ const esMxCatalog: TranslationCatalog = {
     searchPlaceholder: "Buscar mazos o etiquetas",
   },
   reviewScreen: {
+    copyAriaLabel: "Copiar {{side}}",
     selectTextAriaLabel: "Seleccionar y copiar texto: {{side}}",
     actions: {
       createCard: "Crear tarjeta",
@@ -1100,6 +1101,8 @@ const esMxCatalog: TranslationCatalog = {
       snapshot: "Mostrando una instantánea local reciente...",
     },
     media: {
+      privateImage: "Imagen privada",
+      privateAttachment: "Archivo adjunto privado",
       attachmentLabel: "Adjunto",
       audioLabel: "Adjunto de audio",
       imageAlt: "Imagen gestionada",

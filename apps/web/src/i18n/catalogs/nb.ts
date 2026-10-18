@@ -1054,6 +1054,7 @@ const nbCatalog: TranslationCatalog = {
     searchPlaceholder: "Søk i kortstokker eller tagger",
   },
   reviewScreen: {
+    copyAriaLabel: "Kopier {{side}}",
     selectTextAriaLabel: "Marker og kopier tekst: {{side}}",
     actions: {
       createCard: "Lag kort",
@@ -1100,6 +1101,8 @@ const nbCatalog: TranslationCatalog = {
       snapshot: "Viser et nylig lokalt øyeblikksbilde...",
     },
     media: {
+      privateImage: "Privat bilde",
+      privateAttachment: "Privat vedlegg",
       attachmentLabel: "Vedlegg",
       audioLabel: "Lydvedlegg",
       imageAlt: "Administrert bilde",

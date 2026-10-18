@@ -1054,6 +1054,7 @@ const viCatalog: TranslationCatalog = {
     searchPlaceholder: "Tìm bộ thẻ hoặc nhãn",
   },
   reviewScreen: {
+    copyAriaLabel: "Sao chép {{side}}",
     selectTextAriaLabel: "Chọn và sao chép văn bản: {{side}}",
     actions: {
       createCard: "Tạo thẻ",
@@ -1100,6 +1101,8 @@ const viCatalog: TranslationCatalog = {
       snapshot: "Đang hiển thị bản chụp cục bộ gần đây...",
     },
     media: {
+      privateImage: "Hình ảnh riêng tư",
+      privateAttachment: "Tệp đính kèm riêng tư",
       attachmentLabel: "Tệp đính kèm",
       audioLabel: "Âm thanh đính kèm",
       imageAlt: "Hình ảnh được quản lý",

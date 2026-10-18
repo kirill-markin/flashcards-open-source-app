@@ -1054,6 +1054,7 @@ const elCatalog: TranslationCatalog = {
     searchPlaceholder: "Αναζήτηση δεσμών ή ετικετών",
   },
   reviewScreen: {
+    copyAriaLabel: "Αντιγραφή: {{side}}",
     selectTextAriaLabel: "Επιλογή και αντιγραφή κειμένου: {{side}}",
     actions: {
       createCard: "Δημιουργία κάρτας",
@@ -1100,6 +1101,8 @@ const elCatalog: TranslationCatalog = {
       snapshot: "Εμφανίζεται ένα πρόσφατο τοπικό στιγμιότυπο...",
     },
     media: {
+      privateImage: "Ιδιωτική εικόνα",
+      privateAttachment: "Ιδιωτικό συνημμένο",
       attachmentLabel: "Συνημμένο",
       audioLabel: "Συνημμένο ήχου",
       imageAlt: "Διαχειριζόμενη εικόνα",

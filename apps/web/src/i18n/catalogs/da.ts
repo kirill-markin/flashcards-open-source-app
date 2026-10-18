@@ -1054,6 +1054,7 @@ const daCatalog: TranslationCatalog = {
     searchPlaceholder: "Søg i bunker eller tags",
   },
   reviewScreen: {
+    copyAriaLabel: "Kopiér {{side}}",
     selectTextAriaLabel: "Markér og kopiér tekst: {{side}}",
     actions: {
       createCard: "Opret kort",
@@ -1100,6 +1101,8 @@ const daCatalog: TranslationCatalog = {
       snapshot: "Viser et nyligt lokalt øjebliksbillede...",
     },
     media: {
+      privateImage: "Privat billede",
+      privateAttachment: "Privat vedhæftning",
       attachmentLabel: "Vedhæftning",
       audioLabel: "Lydvedhæftning",
       imageAlt: "Administreret billede",

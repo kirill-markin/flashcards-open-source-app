@@ -154,6 +154,7 @@ function renderReviewCardSide(
         <ReviewCardSide
           aiButtonAriaLabel={null}
           contentClassName="review-front"
+          copySource={null}
           isSpeaking={false}
           label="Front"
           localReadVersion={localReadVersion}

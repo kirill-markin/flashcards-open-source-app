@@ -1053,6 +1053,7 @@ const enCatalog = {
     searchPlaceholder: "Search decks or tags",
   },
   reviewScreen: {
+    copyAriaLabel: "Copy {{side}}",
     selectTextAriaLabel: "Select and copy text: {{side}}",
     actions: {
       createCard: "Create card",
@@ -1099,6 +1100,8 @@ const enCatalog = {
       snapshot: "Showing a recent local snapshot...",
     },
     media: {
+      privateImage: "Private image",
+      privateAttachment: "Private attachment",
       attachmentLabel: "Attachment",
       audioLabel: "Audio attachment",
       imageAlt: "Managed image",

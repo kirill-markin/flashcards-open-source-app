@@ -1054,6 +1054,7 @@ const isCatalog: TranslationCatalog = {
     searchPlaceholder: "Leita að stokkum eða merkjum",
   },
   reviewScreen: {
+    copyAriaLabel: "Afrita {{side}}",
     selectTextAriaLabel: "Velja og afrita texta: {{side}}",
     actions: {
       createCard: "Búa til spjald",
@@ -1100,6 +1101,8 @@ const isCatalog: TranslationCatalog = {
       snapshot: "Sýni nýlega staðbundna mynd...",
     },
     media: {
+      privateImage: "Einkamynd",
+      privateAttachment: "Einkaviðhengi",
       attachmentLabel: "Viðhengi",
       audioLabel: "Hljóðviðhengi",
       imageAlt: "Stýrð mynd",

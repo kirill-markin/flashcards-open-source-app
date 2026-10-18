@@ -1054,6 +1054,7 @@ const idCatalog: TranslationCatalog = {
     searchPlaceholder: "Cari dek atau tag",
   },
   reviewScreen: {
+    copyAriaLabel: "Salin {{side}}",
     selectTextAriaLabel: "Pilih dan salin teks: {{side}}",
     actions: {
       createCard: "Buat kartu",
@@ -1100,6 +1101,8 @@ const idCatalog: TranslationCatalog = {
       snapshot: "Menampilkan snapshot lokal terbaru...",
     },
     media: {
+      privateImage: "Gambar pribadi",
+      privateAttachment: "Lampiran pribadi",
       attachmentLabel: "Lampiran",
       audioLabel: "Lampiran audio",
       imageAlt: "Gambar terkelola",

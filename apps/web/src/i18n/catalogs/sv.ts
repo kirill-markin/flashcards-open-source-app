@@ -1054,6 +1054,7 @@ const svCatalog: TranslationCatalog = {
     searchPlaceholder: "Sök kortlekar eller taggar",
   },
   reviewScreen: {
+    copyAriaLabel: "Kopiera {{side}}",
     selectTextAriaLabel: "Markera och kopiera text: {{side}}",
     actions: {
       createCard: "Skapa kort",
@@ -1100,6 +1101,8 @@ const svCatalog: TranslationCatalog = {
       snapshot: "Visar en färsk lokal ögonblicksbild...",
     },
     media: {
+      privateImage: "Privat bild",
+      privateAttachment: "Privat bilaga",
       attachmentLabel: "Bilaga",
       audioLabel: "Ljudbilaga",
       imageAlt: "Hanterad bild",

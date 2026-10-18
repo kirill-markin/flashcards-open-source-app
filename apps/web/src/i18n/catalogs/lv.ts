@@ -1054,6 +1054,7 @@ const lvCatalog: TranslationCatalog = {
     searchPlaceholder: "Meklēt kavas vai birkas",
   },
   reviewScreen: {
+    copyAriaLabel: "Kopēt: {{side}}",
     selectTextAriaLabel: "Atlasīt un kopēt tekstu: {{side}}",
     actions: {
       createCard: "Izveidot kartīti",
@@ -1100,6 +1101,8 @@ const lvCatalog: TranslationCatalog = {
       snapshot: "Rāda neseno vietējo momentuzņēmumu...",
     },
     media: {
+      privateImage: "Privāts attēls",
+      privateAttachment: "Privāts pielikums",
       attachmentLabel: "Pielikums",
       audioLabel: "Audio pielikums",
       imageAlt: "Pārvaldīts attēls",

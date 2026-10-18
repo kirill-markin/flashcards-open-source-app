@@ -1054,6 +1054,7 @@ const huCatalog: TranslationCatalog = {
     searchPlaceholder: "Paklik vagy címkék keresése",
   },
   reviewScreen: {
+    copyAriaLabel: "Másolás: {{side}}",
     selectTextAriaLabel: "Szöveg kijelölése és másolása: {{side}}",
     actions: {
       createCard: "Kártya létrehozása",
@@ -1100,6 +1101,8 @@ const huCatalog: TranslationCatalog = {
       snapshot: "Friss helyi pillanatképet mutatunk...",
     },
     media: {
+      privateImage: "Privát kép",
+      privateAttachment: "Privát melléklet",
       attachmentLabel: "Melléklet",
       audioLabel: "Hangmelléklet",
       imageAlt: "Kezelt kép",

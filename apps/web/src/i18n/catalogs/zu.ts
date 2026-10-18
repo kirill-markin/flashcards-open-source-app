@@ -1054,6 +1054,7 @@ const zuCatalog: TranslationCatalog = {
     searchPlaceholder: "Sesha izinqwaba noma amathegi",
   },
   reviewScreen: {
+    copyAriaLabel: "Kopisha {{side}}",
     selectTextAriaLabel: "Khetha futhi ukopishe umbhalo: {{side}}",
     actions: {
       createCard: "Dala ikhadi",
@@ -1100,6 +1101,8 @@ const zuCatalog: TranslationCatalog = {
       snapshot: "Kuboniswa isithombe sasendaweni sakamuva...",
     },
     media: {
+      privateImage: "Isithombe sangasese",
+      privateAttachment: "Okunamathiselwe kwangasese",
       attachmentLabel: "Okunamathiselwe",
       audioLabel: "Umsindo onamathiselwe",
       imageAlt: "Isithombe esiphethwe uhlelo",

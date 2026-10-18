@@ -1064,6 +1064,7 @@ const ltCatalog: TranslationCatalog = {
     searchPlaceholder: "Ieškoti kaladžių arba žymų",
   },
   reviewScreen: {
+    copyAriaLabel: "Kopijuoti: {{side}}",
     selectTextAriaLabel: "Pažymėti ir kopijuoti tekstą: {{side}}",
     actions: {
       createCard: "Sukurti kortelę",
@@ -1110,6 +1111,8 @@ const ltCatalog: TranslationCatalog = {
       snapshot: "Rodoma naujausia vietinė momentinė kopija...",
     },
     media: {
+      privateImage: "Privatus vaizdas",
+      privateAttachment: "Privatus priedas",
       attachmentLabel: "Priedas",
       audioLabel: "Garso priedas",
       imageAlt: "Tvarkomas paveikslėlis",

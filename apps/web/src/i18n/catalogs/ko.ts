@@ -1054,6 +1054,7 @@ const koCatalog: TranslationCatalog = {
     searchPlaceholder: "덱 또는 태그 검색",
   },
   reviewScreen: {
+    copyAriaLabel: "{{side}} 복사",
     selectTextAriaLabel: "텍스트 선택 및 복사: {{side}}",
     actions: {
       createCard: "카드 만들기",
@@ -1100,6 +1101,8 @@ const koCatalog: TranslationCatalog = {
       snapshot: "최근 로컬 스냅샷을 표시하는 중...",
     },
     media: {
+      privateImage: "비공개 이미지",
+      privateAttachment: "비공개 첨부 파일",
       attachmentLabel: "첨부 파일",
       audioLabel: "오디오 첨부 파일",
       imageAlt: "관리 이미지",

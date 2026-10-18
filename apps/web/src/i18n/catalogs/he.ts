@@ -1054,6 +1054,7 @@ const heCatalog: TranslationCatalog = {
     searchPlaceholder: "חפש חפיסות או תגיות",
   },
   reviewScreen: {
+    copyAriaLabel: "העתקת {{side}}",
     selectTextAriaLabel: "בחירה והעתקה של טקסט: {{side}}",
     actions: {
       createCard: "יצירת כרטיס",
@@ -1100,6 +1101,8 @@ const heCatalog: TranslationCatalog = {
       snapshot: "מציג תמונת מצב מקומית אחרונה...",
     },
     media: {
+      privateImage: "תמונה פרטית",
+      privateAttachment: "קובץ מצורף פרטי",
       attachmentLabel: "קובץ מצורף",
       audioLabel: "קובץ אודיו מצורף",
       imageAlt: "תמונה מנוהלת",
