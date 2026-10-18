@@ -5,7 +5,7 @@ import { useI18n } from "../../i18n";
 import { useEntitlementSnapshot } from "../../premium/entitlementStore";
 import { hasPremiumAccess, usePremiumPresenter } from "../../premium/PremiumProvider";
 import { StripeBillingFeedback } from "../../premium/StripeBillingFeedback";
-import { readPaywallReturn, readPremiumReturnContinuation } from "../../premium/stripeIntent";
+import { clearStripeIntent, consumeGuestStripeCheckout, readPaywallReturn, readPremiumReturnContinuation, readStripeIntent } from "../../premium/stripeIntent";
 import { StripeSubscriptions } from "../../premium/StripeSubscriptions";
 import { useStripeBilling } from "../../premium/useStripeBilling";
 import { SettingsGroup, SettingsShell } from "./SettingsShared";
@@ -27,6 +27,22 @@ export function SubscriptionSettingsScreen(): ReactElement {
   const handledReturnRef = useRef<string | null>(null);
   const showOffer = entitlement !== null && !hasPremiumAccess(entitlement, 20);
   useEffect(() => {
+    if (searchParams.get("premium") === "checkout") {
+      if (entitlement === null || !isSessionVerified || session?.profile.email == null || userId === null
+        || billing.busy || billing.details === null || billing.error !== null) return;
+      const intent = consumeGuestStripeCheckout(userId, searchParams.get("premium_checkout_token"));
+      const next = new URLSearchParams(searchParams);
+      for (const key of ["premium", "premium_checkout_token", "premium_presentation_id", "premium_entry_point", "premium_accent_color"]) next.delete(key);
+      setSearchParams(next, { replace: true });
+      if (intent === null) return;
+      if (hasPremiumAccess(entitlement, 20)) {
+        clearStripeIntent();
+        if (intent.continuation !== null) billing.resumePremiumContinuation(intent.continuation);
+      } else {
+        void billing.purchase(intent.continuation, intent.presentation ?? null);
+      }
+      return;
+    }
     if (searchParams.get("premium") !== "offer" || entitlement === null || !isSessionVerified || presentPremium === null) return;
     const returnKey = `${userId}:${searchParams.toString()}`;
     if (handledReturnRef.current === returnKey) return;
@@ -40,7 +56,7 @@ export function SubscriptionSettingsScreen(): ReactElement {
     nextSearchParams.delete("premium_entry_point");
     nextSearchParams.delete("premium_accent_color");
     setSearchParams(nextSearchParams, { replace: true });
-  }, [entitlement, isSessionVerified, presentPremium, searchParams, setSearchParams, userId]);
+  }, [billing, entitlement, isSessionVerified, presentPremium, searchParams, session?.profile.email, setSearchParams, userId]);
 
   return (
     <SettingsShell title={t("premium.subscription")} subtitle={t("premium.subscriptionDescription")} activeTab="account">
@@ -72,6 +88,12 @@ export function SubscriptionSettingsScreen(): ReactElement {
         </article>
         <StripeSubscriptions entitlement={entitlement} />
         <StripeBillingFeedback />
+        {billing.error !== null && userId !== null && readStripeIntent(userId)?.attemptId === null ? (
+          <button type="button" className="primary-btn" data-testid="stripe-retry-checkout" disabled={billing.busy || !isSessionVerified}
+            onClick={() => { const intent = readStripeIntent(userId); void billing.purchase(intent?.continuation ?? null, intent?.presentation ?? null); }}>
+            {t("common.retry")}
+          </button>
+        ) : null}
         <button type="button" className="ghost-btn" data-testid="subscription-refresh" disabled={billing.busy || !isSessionVerified}
           onClick={() => void billing.refresh()}>{t("stripe.subscription.refresh")}</button>
         <div className="content-card content-card-section">

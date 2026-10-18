@@ -2,17 +2,20 @@ import { createContext, useCallback, useContext, useEffect, useRef, useState } f
 import { useNavigate } from "react-router";
 import { combineAbortSignals } from "../abortSignals";
 import { isAwaitingAnalyticsConsentDecision, track, type AnalyticsPurchaseOutcome } from "../analytics";
-import { ApiError, isAuthRedirectError, updateAccountPreferences } from "../api";
+import { ApiError, buildLoginUrl, isAuthRedirectError, updateAccountPreferences } from "../api";
 import {
   createStripeCheckout, createStripePortal, loadStripeOffer, loadStripeSubscriptions,
   reconcileStripeCheckoutReturn, type StripeRequestIdentity,
 } from "../api/endpoints/stripeBilling";
 import { parseStripeSessionId, parseStripeUuid, type StripeCheckout, type StripeDetails, type StripeOffer } from "../apiContracts/stripeBilling";
 import { useAppData } from "../appData";
+import { beginGuestSignIn } from "../appData/session/guest/browserGuestConversion";
+import { readPendingGuestConversion } from "../appData/session/guest/browserGuestStorage";
+import { useI18n } from "../i18n";
 import { queueAccentColorWrite } from "../appData/session/accentColorWrite";
 import { readEntitlementIdentityGeneration, readEntitlementSnapshot, subscribeToEntitlement } from "./entitlementStore";
-import { activateVerifiedStripeBillingSession, consumeStripeContinuation, consumeStripeIntent, isCurrentStripeIntent, isStripeBillingInvalidated,
-  readStripeBillingGeneration, readStripeIntent, storeStripeIntent,
+import { activateVerifiedStripeBillingSession, cancelGuestStripeCheckout, consumeStripeContinuation, consumeStripeIntent, isCurrentStripeIntent, isStripeBillingInvalidated,
+  guestStripeCheckoutReturnUrl, readStripeBillingGeneration, readStripeIntent, storeGuestStripeCheckout, storeStripeIntent,
   subscribeToStripeBillingInvalidation, type PaywallPresentation, type PremiumContinuation, type StripeIntent } from "./stripeIntent";
 
 type BillingIdentity = StripeRequestIdentity & Readonly<{ entitlementGeneration: number; billingGeneration: number }>;
@@ -35,12 +38,16 @@ export function useStripeBilling(): StripeBilling {
 }
 
 export function useAccountStripeBilling(consumePendingOfferContinuation: (continuation: PremiumContinuation) => void): StripeBilling {
-  const { session, isSessionVerified, runSync, setAccountPreferences } = useAppData();
+  const { session, activeWorkspace, isSessionVerified, runSync, drainGuestWorkspace, setAccountPreferences, setErrorMessage } = useAppData();
+  const { locale } = useI18n();
+  const guestSignInRef = useRef({ activeWorkspace, drainGuestWorkspace, locale, setErrorMessage });
+  guestSignInRef.current = { activeWorkspace, drainGuestWorkspace, locale, setErrorMessage };
   const userId = session?.userId ?? null;
   const csrfToken = session?.csrfToken ?? null;
   const sessionRef = useRef(session);
   sessionRef.current = session;
-  const canLoad = isSessionVerified && session !== null && session.profile.email !== null;
+  const canLoad = isSessionVerified && session !== null;
+  const isRegistered = session !== null && session.profile.email !== null;
   const [offer, setOffer] = useState<StripeOffer | null>(null);
   const [details, setDetails] = useState<StripeDetails | null>(null);
   const [error, setError] = useState<unknown>(null);
@@ -210,9 +217,55 @@ export function useAccountStripeBilling(consumePendingOfferContinuation: (contin
     }
   }, [applyPremiumContinuation, isCurrent]);
 
-  const refresh = useCallback((): Promise<void> => runOperation("confirming", refreshOwned), [refreshOwned, runOperation]);
+  const refresh = useCallback((): Promise<void> => runOperation("confirming", async (identity) => {
+    if (sessionRef.current?.profile.email != null) {
+      await refreshOwned(identity);
+    } else {
+      const next = await loadStripeOffer(identity);
+      if (isCurrent(identity)) { setOffer(next); setStatus("idle"); }
+    }
+  }), [isCurrent, refreshOwned, runOperation]);
 
   const purchase = useCallback((continuation: PremiumContinuation | null, presentation: PaywallPresentation | null): Promise<void> => runOperation("opening", async (identity) => {
+    const currentSession = sessionRef.current;
+    if (currentSession === null) throw new Error("A verified session is required to start Premium.");
+    if (currentSession.profile.email === null) {
+      const guest = guestSignInRef.current;
+      if (currentSession.browserGuestCapabilities?.isGuest !== true || guest.activeWorkspace === null) {
+        throw new Error("A verified browser guest workspace is required to start Premium sign-in.");
+      }
+      const token = storeGuestStripeCheckout(identity.userId, continuation, presentation);
+      try {
+        const returnUrl = guestStripeCheckoutReturnUrl(identity.userId);
+        if (returnUrl === null) throw new Error("The Premium sign-in choice could not be saved. Retry sign-in.");
+        await beginGuestSignIn(identity.userId, guest.activeWorkspace.workspaceId, guest.drainGuestWorkspace);
+        const conversion = readPendingGuestConversion();
+        // The conversion gate replaces this provider after draining; its owned intent authorizes the handoff.
+        if (isStripeBillingInvalidated() || identity.billingGeneration !== readStripeBillingGeneration()
+          || conversion?.sourceUserId !== identity.userId || conversion.phase !== "awaiting_auth"
+          || readStripeIntent(identity.userId)?.checkoutAfterSignIn !== token) {
+          throw new Error("The Premium sign-in owner changed. Resume the current guest conversion.");
+        }
+        window.location.assign(buildLoginUrl(returnUrl, guest.locale));
+      } catch (caught) {
+        guest.setErrorMessage(caught instanceof Error ? caught.message : String(caught));
+        cancelGuestStripeCheckout(identity.userId);
+        throw caught;
+      }
+      return;
+    }
+    await syncRef.current();
+    if (!isCurrent(identity)) return;
+    const access = readEntitlementSnapshot(identity.userId);
+    if (access === null) throw new Error("Refresh the account entitlement before opening Stripe Checkout.");
+    if (access.status !== "none" && access.tierRank >= 20) {
+      const stored = readStripeIntent(identity.userId);
+      const pendingContinuation = continuation ?? stored?.continuation ?? null;
+      if (stored !== null) consumeStripeIntent(stored);
+      if (pendingContinuation !== null) applyPremiumContinuation(identity, pendingContinuation);
+      setStatus("confirmed");
+      return;
+    }
     const previous = readStripeIntent(identity.userId);
     const pending: StripeIntent = { userId: identity.userId, presentation: presentation ?? previous?.presentation ?? null, attemptId: previous?.attemptId ?? null, sessionId: previous?.sessionId ?? null, continuation: continuation ?? previous?.continuation ?? null, reportedReturn: previous?.reportedReturn ?? null };
     storeStripeIntent(pending);
@@ -230,6 +283,7 @@ export function useAccountStripeBilling(consumePendingOfferContinuation: (contin
     if (result.outcome === "existing_subscription") {
       if (consumeStripeIntent(currentPending) === null) return;
       await refreshOwned(identity);
+      if (pending.continuation !== null) applyPremiumContinuation(identity, pending.continuation);
       return;
     }
     const pendingContinuation = continuation !== null || previous?.attemptId === result.attemptId ? currentPending.continuation : null;
@@ -244,7 +298,7 @@ export function useAccountStripeBilling(consumePendingOfferContinuation: (contin
       void navigateRef.current({ pathname: window.location.pathname, search: query.toString(), hash: window.location.hash }, { replace: true });
       await refreshOwned(identity);
     }
-  }), [isCurrent, refreshOwned, runOperation]);
+  }), [applyPremiumContinuation, isCurrent, refreshOwned, runOperation]);
 
   const manage = useCallback((identityId: string): Promise<void> => runOperation("loading", async (identity) => {
     const result = await createStripePortal(identity, identityId);
@@ -273,7 +327,7 @@ export function useAccountStripeBilling(consumePendingOfferContinuation: (contin
     if (canLoad) {
       void runOperation("loading", async (identity) => {
         readStripeIntent(identity.userId);
-        if (window.location.pathname.endsWith("/settings/subscription")) {
+        if (isRegistered && window.location.pathname.endsWith("/settings/subscription")) {
           await refreshOwned(identity);
         } else {
           const next = await loadStripeOffer(identity);
@@ -288,7 +342,7 @@ export function useAccountStripeBilling(consumePendingOfferContinuation: (contin
       unsubscribe();
       unsubscribeInvalidation();
     };
-  }, [canLoad, csrfToken, isCurrent, isSessionVerified, refreshOwned, runOperation, userId]);
+  }, [canLoad, csrfToken, isCurrent, isRegistered, isSessionVerified, refreshOwned, runOperation, userId]);
 
   return { offer, details, error, status, busy, refresh, resumePremiumContinuation, purchase, manage };
 }

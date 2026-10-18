@@ -194,8 +194,7 @@
   color: var(--premium-orange);
 }
 
-.premium-plan-button,
-.premium-guest-action .primary-btn {
+.premium-plan-button {
   position: relative;
   display: flex;
   justify-content: center;
@@ -237,15 +236,13 @@
   background: var(--surface-pressed);
 }
 
-.premium-paid-button,
-.premium-guest-action .primary-btn {
+.premium-paid-button {
   border-color: var(--premium-orange);
   background: var(--premium-orange);
   color: #170b04;
 }
 
-.premium-paid-button:hover,
-.premium-guest-action .primary-btn:hover {
+.premium-paid-button:hover {
   background: #ff7a3d;
   color: #170b04;
 }
@@ -253,34 +250,6 @@
 .premium-plan-button:disabled {
   opacity: 0.6;
   cursor: default;
-}
-
-.premium-guest-action {
-  display: grid;
-  min-width: 0;
-  color: #170b04;
-}
-
-.premium-guest-action .guest-sign-in-control {
-  display: contents;
-}
-
-.premium-guest-action .primary-btn,
-.premium-guest-action > .premium-action-arrow {
-  grid-area: 1 / 1;
-}
-
-.premium-guest-action > .premium-action-arrow {
-  position: static;
-  align-self: center;
-  justify-self: end;
-  margin-inline-end: 14px;
-  transform: none;
-  z-index: 1;
-}
-
-.premium-guest-action .error-banner {
-  margin-block-start: 8px;
 }
 
 .premium-creator-support a {
