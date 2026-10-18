@@ -1,5 +1,7 @@
 import SwiftUI
 
+let firstReviewPencilContrastWidth: CGFloat = 3
+
 struct FirstReviewPencilMark {
     let path: Path
     let opacity: Double
@@ -102,23 +104,70 @@ private func firstReviewPencilMarks(
     return marks
 }
 
-func makeFirstReviewOnboardingDrawing(target: CGRect, size: CGSize, frame: Int) -> [FirstReviewPencilMark] {
+private func firstReviewOutlineTransform(
+    marks: [FirstReviewPencilMark], target: CGRect, size: CGSize, neighboringButtons: [CGRect]
+) -> CGAffineTransform {
+    let bounds = marks.reduce(CGRect.null) { bounds, mark in
+        let strokeInset = (mark.lineWidth ?? 0) / 2
+        return bounds.union(mark.path.boundingRect.insetBy(dx: -strokeInset, dy: -strokeInset))
+    }
+    let contrastInset = firstReviewPencilContrastWidth / 2
+    let edgeInset: CGFloat = 2
+    var radiusX = min(bounds.width / 2, target.midX - edgeInset - contrastInset,
+                      size.width - target.midX - edgeInset - contrastInset)
+    var radiusY = min(bounds.height / 2, target.midY - edgeInset - contrastInset,
+                      size.height - target.midY - edgeInset - contrastInset)
+    for neighbor in neighboringButtons {
+        if neighbor.minX >= target.maxX {
+            radiusX = min(radiusX, neighbor.minX - target.midX - edgeInset - contrastInset)
+        } else if neighbor.maxX <= target.minX {
+            radiusX = min(radiusX, target.midX - neighbor.maxX - edgeInset - contrastInset)
+        }
+        if neighbor.minY >= target.maxY {
+            radiusY = min(radiusY, neighbor.minY - target.midY - edgeInset - contrastInset)
+        } else if neighbor.maxY <= target.minY {
+            radiusY = min(radiusY, target.midY - neighbor.maxY - edgeInset - contrastInset)
+        }
+    }
+    // Fit the entire textured stroke and its contrast rim about the actual button center.
+    let scaleX = max(0, radiusX) * 2 / bounds.width
+    let scaleY = max(0, radiusY) * 2 / bounds.height
+    return CGAffineTransform(
+        a: scaleX, b: 0, c: 0, d: scaleY,
+        tx: target.midX - bounds.midX * scaleX, ty: target.midY - bounds.midY * scaleY
+    )
+}
+
+func makeFirstReviewOnboardingDrawing(
+    target: CGRect, size: CGSize, neighboringButtons: [CGRect], frame: Int
+) -> [FirstReviewPencilMark] {
     var random = FirstReviewPencilRandom(bits: frame == 0 ? 7823 : 48191)
     let wobble: CGFloat = frame == 0 ? 0 : 1.5
     let wide = target.width > target.height * 2
     let tipX = target.minX + target.width * (wide ? 0.63 : 0.5) + wobble
-    let outline = firstReviewOblong(target: target, frame: frame)
-    var marks = firstReviewPencilMarks(points: outline, apex: nil, random: &random)
+    let originalOutline = firstReviewOblong(target: target, frame: frame)
+    let originalMarks = firstReviewPencilMarks(points: originalOutline, apex: nil, random: &random)
+    let transform = firstReviewOutlineTransform(
+        marks: originalMarks, target: target, size: size, neighboringButtons: neighboringButtons
+    )
+    let outline = originalOutline.map { $0.applying(transform) }
+    var marks = originalMarks.map { mark in
+        FirstReviewPencilMark(
+            path: mark.path.applying(transform), opacity: mark.opacity,
+            lineWidth: mark.lineWidth.map { $0 * min(transform.a, transform.d) }
+        )
+    }
     guard let ringTop = outline.filter({ abs($0.x-tipX) < 10 }).map(\.y).min() else { return marks }
     let apex = CGPoint(x: tipX, y: ringTop - 17.5)
-    // The controls keep their existing layout; the arrow uses only the space above its real anchor.
-    guard apex.y > 30 else { return marks }
-    let tailY = max(12, apex.y - 94)
+    // Ten points contain the widest pencil dab and its contrast rim.
+    let arrowInset: CGFloat = 10
+    guard apex.y > arrowInset + 26 else { return marks }
+    let tailY = max(arrowInset + 7, apex.y - 94)
     let tailX = min(size.width - 25, tipX + (wide ? 53 : 96))
     let bendX = max(15, tipX - (wide ? 28 : 16))
     let arrow = sampleFirstReviewCubic(
-        CGPoint(x: tailX, y: tailY+wobble), CGPoint(x: bendX+wobble, y: max(4, tailY-7)),
-        CGPoint(x: apex.x, y: apex.y-min(33, apex.y-4)), apex
+        CGPoint(x: tailX, y: tailY+wobble), CGPoint(x: bendX+wobble, y: max(arrowInset, tailY-7)),
+        CGPoint(x: apex.x, y: max(arrowInset, apex.y-33)), apex
     )
     marks += firstReviewPencilMarks(points: arrow, apex: apex, random: &random)
     for side in [CGFloat(-1), CGFloat(1)] {
