@@ -514,6 +514,7 @@ extension FlashcardsStore {
         self.clearCloudCredentialRecoveryState()
         self.globalErrorMessage = ""
         self.retryAIConsentSync()
+        self.triggerFirstReviewOnboardingPush()
     }
 
     private func blockGuestUpgradeLocalOutboxMutationsBeforeDrain() async {

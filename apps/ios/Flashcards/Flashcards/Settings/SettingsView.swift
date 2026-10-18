@@ -297,6 +297,25 @@ struct SettingsView: View {
             }
 
             Section(aiSettingsLocalized("settings.section.advanced", "Advanced")) {
+                Toggle(isOn: Binding(
+                    get: { self.store.firstReviewOnboardingCompleted ?? true },
+                    set: { completed in
+                        do {
+                            try self.store.updateFirstReviewOnboardingCompleted(completed: completed)
+                        } catch {
+                            self.store.presentTechnicalError(error)
+                        }
+                    }
+                )) {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(aiSettingsLocalized("settings.firstReviewOnboarding.title", "First review onboarding completed"))
+                        Text(aiSettingsLocalized("settings.firstReviewOnboarding.note", "Turn off to see the guide again when you review a card."))
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                .accessibilityIdentifier(UITestIdentifier.settingsFirstReviewOnboardingToggle)
+
                 NavigationLink(value: SettingsNavigationDestination.ownOpenAIKey) {
                     SettingsNavigationRow(
                         title: aiSettingsLocalized("settings.ownOpenAIKey.title", "Your OpenAI key"),

@@ -949,6 +949,10 @@ const lvCatalog: TranslationCatalog = {
     paragraphTwo: "Atgādinājumi automātiski izmanto kartītes un aktivitāti no darbvietas, kas pašlaik atlasīta attiecīgajā mobilajā lietotnē.",
     paragraphThree: "Tīmekļa lietotne šos paziņojumus nepiegādā un nepārvalda, tāpēc šajā ekrānā paziņojumu vadīklu nav.",
   },
+  firstReviewOnboardingSettings: {
+    title: "Pirmās atkārtošanas pamācība pabeigta",
+    description: "Izslēdziet, lai, atkārtojot kartīti, atkal redzētu pamācību.",
+  },
   reviewAnimationsSettings: {
     title: "Atkārtošanas animācijas",
     subtitle: "Pārvaldiet reakciju animācijas, kas tiek rādītas pēc kartīšu novērtēšanas.",

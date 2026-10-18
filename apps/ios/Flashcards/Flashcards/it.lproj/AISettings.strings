@@ -984,3 +984,6 @@
 "premium.offer.subscribe" = "Abbonati";
 "premium.offer.startTrial" = "Inizia la prova gratuita: %@";
 "premium.offer.view" = "Scopri Premium";
+
+"settings.firstReviewOnboarding.title" = "Guida al primo ripasso completata";
+"settings.firstReviewOnboarding.note" = "Disattiva per rivedere la guida quando ripassi una scheda.";

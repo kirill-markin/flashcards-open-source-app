@@ -1,7 +1,7 @@
 import Foundation
 
 enum LocalDatabaseSchema {
-    static let currentVersion: Int = 24
+    static let currentVersion: Int = 25
 
     static var baseMigrationSQL: String {
         let defaultEnableFuzzValue: Int = defaultSchedulerSettingsConfig.enableFuzz ? 1 : 0
@@ -165,6 +165,16 @@ enum LocalDatabaseSchema {
             updated_at TEXT NOT NULL -- last time the local pull cursor state changed
         );
 
+        CREATE TABLE IF NOT EXISTS first_review_onboarding (
+            settings_id INTEGER PRIMARY KEY CHECK (settings_id = 1),
+            owner_user_id TEXT,
+            completed INTEGER NOT NULL CHECK (completed IN (0, 1)),
+            is_known INTEGER NOT NULL CHECK (is_known IN (0, 1)),
+            pending INTEGER NOT NULL CHECK (pending IN (0, 1)),
+            generation TEXT NOT NULL,
+            completion_review_tokens_json TEXT NOT NULL DEFAULT '[]'
+        );
+
         CREATE TABLE IF NOT EXISTS app_local_settings (
             settings_id INTEGER PRIMARY KEY CHECK (settings_id = 1),
             installation_id TEXT NOT NULL,
@@ -255,6 +265,7 @@ enum LocalDatabaseSchema {
     DROP TABLE IF EXISTS cards;
     DROP TABLE IF EXISTS workspace_scheduler_settings;
     DROP TABLE IF EXISTS user_settings;
+    DROP TABLE IF EXISTS first_review_onboarding;
     DROP TABLE IF EXISTS app_local_settings;
     DROP TABLE IF EXISTS workspaces;
     PRAGMA user_version = 0;

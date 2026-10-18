@@ -967,6 +967,10 @@ const slCatalog: TranslationCatalog = {
     paragraphTwo: "Opomniki samodejno uporabijo kartice in dejavnost iz delovnega prostora, ki je trenutno izbran v tej mobilni aplikaciji.",
     paragraphThree: "Spletna aplikacija teh obvestil ne pošilja in jih ne upravlja, zato na tem zaslonu ni kontrolnikov obvestil.",
   },
+  firstReviewOnboardingSettings: {
+    title: "Uvod v prvo ponavljanje je končan",
+    description: "Izklopite, da pri ponavljanju kartice znova vidite navodila.",
+  },
   reviewAnimationsSettings: {
     title: "Animacije pri ponavljanju",
     subtitle: "Upravljajte animacije odziva, prikazane po ocenjevanju kartic.",

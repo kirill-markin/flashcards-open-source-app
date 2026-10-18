@@ -984,3 +984,6 @@
 "premium.offer.subscribe" = "Előfizetés";
 "premium.offer.startTrial" = "Ingyenes próba indítása: %@";
 "premium.offer.view" = "Premium megtekintése";
+
+"settings.firstReviewOnboarding.title" = "Az első ismétlés útmutatója befejezve";
+"settings.firstReviewOnboarding.note" = "Kapcsold ki, ha egy kártya ismétlésekor újra látni szeretnéd az útmutatót.";

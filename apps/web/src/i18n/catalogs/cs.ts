@@ -958,6 +958,10 @@ const csCatalog: TranslationCatalog = {
     paragraphTwo: "Připomínky automaticky používají kartičky a aktivitu z pracovního prostoru, který je v dané mobilní aplikaci právě vybraný.",
     paragraphThree: "Webová aplikace tato oznámení nedoručuje ani nespravuje, proto na této obrazovce žádné ovládání oznámení není.",
   },
+  firstReviewOnboardingSettings: {
+    title: "Průvodce prvním opakováním dokončen",
+    description: "Vypněte, pokud chcete při opakování karty znovu zobrazit průvodce.",
+  },
   reviewAnimationsSettings: {
     title: "Animace při opakování",
     subtitle: "Nastavte reakční animace zobrazené po ohodnocení kartiček.",

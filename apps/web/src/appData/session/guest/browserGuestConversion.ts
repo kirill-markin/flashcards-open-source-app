@@ -1,3 +1,4 @@
+import { deliverFirstReviewOnboarding } from "../firstReviewOnboardingWrite";
 import { completeBrowserGuestUpgrade, forgetBrowserGuestSession, prepareBrowserGuestUpgrade, probeBrowserGuestSession } from "../../../api/endpoints/guestAuth";
 import { getOptionalSession, primeGuestSession, resumeVerifiedBrowserSession } from "../../../api/transport/transport";
 import type { BrowserGuestProbe, BrowserGuestUpgradeResult, GuestUpgradeSelection } from "../../../apiContracts/guestAuth";
@@ -20,21 +21,30 @@ function savePending(pending: PendingGuestConversion): void {
 }
 
 export async function beginGuestSignIn(userId: string, workspaceId: string, drainGuestWorkspace: () => Promise<void>): Promise<PendingGuestConversion> {
-  await runWithBrowserGuestLock("exclusive", async () => {
+  const guestSession = await runWithBrowserGuestLock("exclusive", async () => {
     const state = readBrowserGuestState();
     if (state?.status !== "owned" || state.owner.userId !== userId || state.owner.workspaceId !== workspaceId || state.owner.pending !== null) {
       throw new Error("The active guest does not own this workspace or already has a pending sign-in.");
     }
     const probe = await probeBrowserGuestSession();
-    if (probe.registeredSession.present || probe.guestSession.status !== "active" || probe.guestSession.userId !== userId || probe.guestSession.csrfToken === null) {
+    if (probe.registeredSession.present || probe.guestSession.status !== "active" || probe.guestSession.userId !== userId
+      || probe.guestSession.workspaceId !== workspaceId || !probe.guestSession.cookieRoundTripVerified || probe.guestSession.csrfToken === null) {
       throw new Error("Guest sign-in must start under the original active guest cookie.");
+    }
+    const session = await getOptionalSession();
+    if (session?.userId !== userId || session.browserGuestCapabilities?.isGuest !== true || session.selectedWorkspaceId !== workspaceId) {
+      throw new Error("Guest preference owner differs from the verified sign-in workspace.");
     }
     savePending({ phase: "draining", sourceUserId: userId, sourceWorkspaceId: workspaceId,
       guestWorkspaceSyncedAndOutboxDrained: false, destinationUserId: null, selection: null, result: null });
     primeGuestSession(userId, probe.guestSession.csrfToken);
+    return session;
   });
   try {
-    await drainBrowserGuestInThisTab(drainGuestWorkspace);
+    await drainBrowserGuestInThisTab(async () => {
+      await drainGuestWorkspace();
+      await deliverFirstReviewOnboarding(guestSession, new AbortController().signal);
+    });
   } catch (error) {
     await resumeGuestAfterCancelledSignIn();
     throw error;

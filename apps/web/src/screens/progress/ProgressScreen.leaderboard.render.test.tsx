@@ -160,6 +160,7 @@ describe("ProgressScreen leaderboard", () => {
         preferences: {
           accentColor: "#FF6719",
           reviewReactionAnimationsEnabled: true,
+          firstReviewOnboardingCompleted: true,
           analyticsConsent: null,
           productAnalyticsEnabled: null,
         },

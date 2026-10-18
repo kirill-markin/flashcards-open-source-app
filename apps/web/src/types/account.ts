@@ -8,6 +8,7 @@ export const defaultAccentColor = "#FF6719";
 export type AccountPreferences = Readonly<{
   accentColor: string;
   reviewReactionAnimationsEnabled: boolean;
+  firstReviewOnboardingCompleted: boolean;
   analyticsConsent: AnalyticsConsentChoice | null;
   /**
    * Whether this person is measured at all, or null where nobody has answered. Null reads as on:
@@ -33,6 +34,7 @@ export type AnalyticsPreferenceWriteOrigin = "user_action" | "reconciliation";
 export type AccountPreferencesUpdate = Readonly<{
   accentColor?: string;
   reviewReactionAnimationsEnabled?: boolean;
+  firstReviewOnboardingCompleted?: boolean;
   analyticsConsent?: AnalyticsConsentChoice;
   productAnalyticsEnabled?: boolean;
   /** The interface language on screen, the same tag analytics events carry as `uiLocale`. */

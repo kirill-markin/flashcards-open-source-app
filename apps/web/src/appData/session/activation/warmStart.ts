@@ -12,6 +12,7 @@ export type { SessionVerificationState } from "../workspaceSessionTypes";
 
 export type WarmStartSnapshot = Readonly<{
   version: 1;
+  firstReviewOnboardingKnown?: boolean;
   session: SessionInfo;
   activeWorkspace: WorkspaceSummary;
   availableWorkspaces: ReadonlyArray<WorkspaceSummary>;
@@ -50,6 +51,7 @@ function isSessionInfo(value: unknown): value is SessionInfo {
     && value.preferences.accentColor.length === 7
     && /^#[0-9A-F]{6}$/.test(value.preferences.accentColor)
     && typeof value.preferences.reviewReactionAnimationsEnabled === "boolean"
+    && typeof value.preferences.firstReviewOnboardingCompleted === "boolean"
     && (value.preferences.analyticsConsent === null
       || value.preferences.analyticsConsent === "granted"
       || value.preferences.analyticsConsent === "declined")
@@ -69,7 +71,7 @@ function parseWarmStartSnapshot(rawValue: string | null): WarmStartSnapshot | nu
   try {
     const storedValue = JSON.parse(rawValue) as unknown;
     // Only an absent local field is migrated; wire responses stay strict.
-    const parsedValue = isRecord(storedValue)
+    const migratedAccentValue = isRecord(storedValue)
       && isRecord(storedValue.session)
       && isRecord(storedValue.session.preferences)
       && !("accentColor" in storedValue.session.preferences)
@@ -81,6 +83,16 @@ function parseWarmStartSnapshot(rawValue: string | null): WarmStartSnapshot | nu
         },
       }
       : storedValue;
+    const firstReviewOnboardingKnown = isRecord(storedValue)
+      && storedValue.firstReviewOnboardingKnown !== false
+      && isRecord(storedValue.session) && isRecord(storedValue.session.preferences)
+      && typeof storedValue.session.preferences.firstReviewOnboardingCompleted === "boolean";
+    const parsedValue = isRecord(migratedAccentValue) && isRecord(migratedAccentValue.session)
+      && isRecord(migratedAccentValue.session.preferences)
+      && !("firstReviewOnboardingCompleted" in migratedAccentValue.session.preferences)
+      ? { ...migratedAccentValue, session: { ...migratedAccentValue.session,
+        preferences: { ...migratedAccentValue.session.preferences, firstReviewOnboardingCompleted: true } } }
+      : migratedAccentValue;
     if (
       isRecord(parsedValue) === false
       || parsedValue.version !== WARM_START_SNAPSHOT_VERSION
@@ -104,6 +116,7 @@ function parseWarmStartSnapshot(rawValue: string | null): WarmStartSnapshot | nu
 
     return {
       version: 1,
+      firstReviewOnboardingKnown,
       session: parsedValue.session,
       activeWorkspace,
       availableWorkspaces,
@@ -220,6 +233,7 @@ export function storeWarmStartSnapshot(snapshot: WarmStartSnapshot): void {
     if (storedSnapshot !== null && storedSnapshot.session.userId === snapshot.session.userId) {
       browserStorage.setItem(WARM_START_SNAPSHOT_STORAGE_KEY, JSON.stringify({
         ...storedSnapshot,
+        firstReviewOnboardingKnown: snapshot.firstReviewOnboardingKnown,
         session: { ...storedSnapshot.session, csrfToken: null, preferences: snapshot.session.preferences },
       }));
     }

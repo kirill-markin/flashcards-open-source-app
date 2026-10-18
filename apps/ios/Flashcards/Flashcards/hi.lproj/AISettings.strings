@@ -1012,3 +1012,6 @@
 "premium.offer.subscribe" = "सदस्यता लें";
 "premium.offer.startTrial" = "मुफ़्त ट्रायल शुरू करें: %@";
 "premium.offer.view" = "Premium देखें";
+
+"settings.firstReviewOnboarding.title" = "पहली समीक्षा का परिचय पूरा हुआ";
+"settings.firstReviewOnboarding.note" = "कार्ड की समीक्षा करते समय गाइड फिर से देखने के लिए इसे बंद करें।";

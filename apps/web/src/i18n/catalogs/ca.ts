@@ -949,6 +949,10 @@ const caCatalog: TranslationCatalog = {
     paragraphTwo: "Els recordatoris fan servir automàticament les targetes i l'activitat de l'espai de treball seleccionat en aquella app mòbil.",
     paragraphThree: "L'app web no envia ni gestiona aquestes notificacions, així que en aquesta pantalla no hi ha controls de notificacions.",
   },
+  firstReviewOnboardingSettings: {
+    title: "Guia de la primera revisió completada",
+    description: "Desactiva-ho per tornar a veure la guia quan revisis una targeta.",
+  },
   reviewAnimationsSettings: {
     title: "Animacions de repàs",
     subtitle: "Controla les animacions de reacció que es mostren després de valorar les targetes.",

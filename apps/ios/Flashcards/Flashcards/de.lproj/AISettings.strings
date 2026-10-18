@@ -1012,3 +1012,6 @@
 "premium.offer.subscribe" = "Abonnieren";
 "premium.offer.startTrial" = "Kostenlos testen: %@";
 "premium.offer.view" = "Premium ansehen";
+
+"settings.firstReviewOnboarding.title" = "Einführung zur ersten Wiederholung abgeschlossen";
+"settings.firstReviewOnboarding.note" = "Deaktivieren, um die Anleitung beim Wiederholen einer Karte erneut zu sehen.";

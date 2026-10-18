@@ -984,3 +984,6 @@
 "premium.offer.subscribe" = "Abonneren";
 "premium.offer.startTrial" = "Gratis proefperiode starten: %@";
 "premium.offer.view" = "Premium bekijken";
+
+"settings.firstReviewOnboarding.title" = "Uitleg voor de eerste herhaling voltooid";
+"settings.firstReviewOnboarding.note" = "Schakel uit om de uitleg opnieuw te zien wanneer je een kaart herhaalt.";
