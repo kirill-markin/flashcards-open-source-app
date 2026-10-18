@@ -71,6 +71,7 @@ import com.flashcardsopensourceapp.feature.settings.notifications.NotificationDi
 import com.flashcardsopensourceapp.feature.settings.notifications.NotificationDiagnosticsUiState
 import com.flashcardsopensourceapp.feature.settings.openExternalUrl
 import com.flashcardsopensourceapp.feature.settings.privacy.ProductAnalyticsRoute
+import com.flashcardsopensourceapp.feature.settings.review.FirstReviewOnboardingSettingsScreen
 import com.flashcardsopensourceapp.feature.settings.review.ReviewAnimationsRoute
 import com.flashcardsopensourceapp.feature.settings.settingsInviteFriendDisplayNameFieldTag
 import com.flashcardsopensourceapp.feature.settings.shareFlashcardsApp
@@ -207,6 +208,9 @@ internal fun NavGraphBuilder.registerSettingsRootDestinations(
             },
             onOpenLeaderboardParticipation = {
                 navController.navigate(route = SettingsLeaderboardParticipationDestination.route)
+            },
+            onOpenFirstReviewOnboarding = {
+                navController.navigate(route = SettingsFirstReviewOnboardingDestination.route)
             },
             onOpenProductAnalytics = {
                 navController.navigate(route = SettingsProductAnalyticsDestination.route)
@@ -470,6 +474,36 @@ internal fun NavGraphBuilder.registerSettingsRootDestinations(
             uiState = uiState,
             onUpdateEnabled = ownOpenAiKeyViewModel::updateEnabled,
             onUpdateApiKey = ownOpenAiKeyViewModel::updateApiKey,
+            onBack = {
+                navController.popBackStack()
+            }
+        )
+    }
+
+    composable(route = SettingsFirstReviewOnboardingDestination.route) { backStackEntry ->
+        val context = LocalContext.current
+        val settingsRootBackStackEntry = settingsRootBackStackEntry(
+            navController = navController,
+            currentBackStackEntry = backStackEntry
+        ) ?: return@composable
+        val settingsViewModel = viewModel<com.flashcardsopensourceapp.feature.settings.SettingsViewModel>(
+            viewModelStoreOwner = settingsRootBackStackEntry,
+            factory = createSettingsViewModelFactory(
+                workspaceRepository = appGraph.workspaceRepository,
+                cloudAccountRepository = appGraph.cloudAccountRepository,
+                aiChatRepository = appGraph.aiChatRepository,
+                autoSyncEventRepository = appGraph.autoSyncEventRepository,
+                messageController = appGraph.appMessageBus,
+                testModeStore = appGraph.testModeStore,
+                visibleAppScreenRepository = appGraph.visibleAppScreenController,
+                applicationContext = context.applicationContext
+            )
+        )
+        val uiState by settingsViewModel.uiState.collectAsStateWithLifecycle()
+
+        FirstReviewOnboardingSettingsScreen(
+            completed = uiState.firstReviewOnboardingCompleted,
+            onCompletedChanged = settingsViewModel::updateFirstReviewOnboardingCompleted,
             onBack = {
                 navController.popBackStack()
             }

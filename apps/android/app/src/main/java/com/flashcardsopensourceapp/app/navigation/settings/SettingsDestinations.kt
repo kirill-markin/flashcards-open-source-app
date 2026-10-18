@@ -212,3 +212,7 @@ data object SettingsAccessDetailDestination {
         return "$routePrefix/$capability"
     }
 }
+
+data object SettingsFirstReviewOnboardingDestination {
+    const val route: String = "settings/first-review-onboarding"
+}
