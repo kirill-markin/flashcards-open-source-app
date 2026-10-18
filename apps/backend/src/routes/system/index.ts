@@ -1,5 +1,6 @@
 import { Hono } from "hono";
 import { createAgentDiscoveryEnvelope } from "../../agent/discovery";
+import { getBrowserGuestCapabilities } from "../../guestAuth/webPlatform";
 import { loadAiUsageStatus } from "../../aiUsage";
 import {
   createAgentAccountEnvelope,
@@ -96,6 +97,7 @@ export function createSystemRoutes(options: SystemRoutesOptions): Hono<AppEnv> {
       linkedAccountIds: identity.linkedAccountIds,
       selectedWorkspaceId: requestContext.selectedWorkspaceId,
       authTransport: requestContext.transport,
+      browserGuestCapabilities: getBrowserGuestCapabilities(requestContext),
       csrfToken: requestContext.transport === "session" && requestAuthInputs.sessionToken !== undefined
         ? await getSessionCsrfToken(requestAuthInputs.sessionToken)
         : requestContext.guestCredentialSource === "cookie" && requestAuthInputs.guestSessionToken !== undefined

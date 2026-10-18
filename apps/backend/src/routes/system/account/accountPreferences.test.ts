@@ -24,6 +24,7 @@ test("GET /me includes account preferences", async () => {
     linkedAccountIds: ["user-1"],
     selectedWorkspaceId: "workspace-1",
     authTransport: "session",
+    browserGuestCapabilities: null,
     csrfToken: null,
     profile: {
       email: "user@example.com",

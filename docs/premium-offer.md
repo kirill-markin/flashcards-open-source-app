@@ -45,6 +45,10 @@ All limits are per person per month, in the [UTC monthly window](premium-entitle
 Weighted tokens are not refused. A person's monthly total of 5,000,000 weighted tokens on the
 platform key raises a Sentry warning.
 
+Browser-product cookie guests must sign in before using AI funded by Nibomo, including dictation
+and composer follow-ups. This access policy is separate from the allowance table; native guests keep
+their existing access. See [browser guest credentials](auth-service.md#browser-guest-credentials).
+
 ## Own OpenAI key
 
 - Any person, guest included, may enter their own key on each client.

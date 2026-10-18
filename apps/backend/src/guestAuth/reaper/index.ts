@@ -24,21 +24,7 @@ import {
   loadGuestWorkspaceIdOrNullInExecutor,
 } from "../store/index";
 
-/**
- * Permanent removal of web guest identities that never became an account and stopped being seen.
- *
- * A web guest is an analytics credential a signed-out browser mints on its first interaction. It is
- * refused on every authenticated surface except analytics ingest, so its auto-created workspace is
- * empty by construction and the four rows it owns only accumulate. `ios` and `android` guests own a
- * real offline workspace and can be upgraded into an account, so they are deliberately never
- * candidates here, and neither is the `NULL` platform that pre-1.7.0 mobile clients still write.
- *
- * `auth.guest_sessions.last_seen_at` is not a liveness signal: no code path ever updates it and it
- * always equals `created_at`. Liveness is the newest server clock reading on the guest's
- * `analytics.product_events` rows, falling back to when its newest session was created if it
- * produced no events at all.
- */
-
+// Session last_seen_at is not updated; analytics ingest clocks determine legacy guest liveness.
 const webGuestInactivityThresholdDays = 90;
 
 const minimumBatchSize = 1;
@@ -238,6 +224,7 @@ async function loadWebGuestReaperCandidatesInExecutor(
       // guests own a syncable workspace and an upgrade path, and NULL is what pre-1.7.0 mobile
       // clients still write, so neither may ever reach the deletion loop below.
       "WHERE guest_sessions.platform = 'web'",
+      "AND guest_sessions.purpose = 'legacy'",
       "AND guest_sessions.created_at < $1::timestamptz",
       "GROUP BY guest_sessions.user_id",
       "),",
@@ -258,6 +245,7 @@ async function loadWebGuestReaperCandidatesInExecutor(
       "WHERE other_sessions.user_id = sessions.guest_user_id",
       "AND (",
       "other_sessions.platform IS DISTINCT FROM 'web'",
+      "OR other_sessions.purpose <> 'legacy'",
       "OR other_sessions.created_at >= $1::timestamptz",
       ")",
       ")",
@@ -365,6 +353,7 @@ async function webGuestIsStillReapableInExecutor(
       "WHERE guest_sessions.user_id = $1",
       "AND (",
       "guest_sessions.platform IS DISTINCT FROM 'web'",
+      "OR guest_sessions.purpose <> 'legacy'",
       "OR guest_sessions.created_at >= $4::timestamptz",
       ")",
       ")",
