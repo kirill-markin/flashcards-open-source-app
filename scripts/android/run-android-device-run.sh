@@ -13,6 +13,7 @@ LABELS=""
 TEST_TARGETS=()
 SESSION_OUTPUT=""
 ASYNC_SUBMISSION="false"
+INCLUDE_MANUAL_ONLY="false"
 SESSION_ID=""
 SESSION_ACTIVE="false"
 
@@ -29,6 +30,7 @@ while [[ $# -gt 0 ]]; do
     --test-targets) TEST_TARGETS+=("$2"); shift 2 ;;
     --session-output) SESSION_OUTPUT="$2"; shift 2 ;;
     --async) ASYNC_SUBMISSION="true"; shift ;;
+    --include-manual-only) INCLUDE_MANUAL_ONLY="true"; shift ;;
     *) echo "Unknown argument: $1" >&2; exit 1 ;;
   esac
 done
@@ -105,6 +107,11 @@ trap cleanup_on_exit EXIT
 trap 'exit 130' INT
 trap 'exit 143' TERM
 
+additional_test_options="clearPackageData=true,isAutomation=true"
+if [[ "${INCLUDE_MANUAL_ONLY}" == "true" ]]; then
+  additional_test_options+=",includeManualOnly=true"
+fi
+
 submit_args=(
   beta device-run sessions submit instrumentation
   --project "${PROJECT_ID}" --location global
@@ -113,7 +120,7 @@ submit_args=(
   --instrumentation-timeout "${TEST_TIMEOUT}"
   --orchestrator-version auto
   # The runner needs this argument before Application.onCreate on physical devices.
-  --additional-test-options "clearPackageData=true,isAutomation=true"
+  --additional-test-options "${additional_test_options}"
   --locale en-US --orientation portrait
   --video always
   --async --quiet
@@ -171,7 +178,7 @@ expected_labels="$(jq -cn --arg labels "${LABELS}" '
   end
 ')"
 if ! jq -e --arg id "${SESSION_ID}" --arg bucket "${RESULTS_BUCKET}" --argjson devices "${expected_devices}" \
-  --argjson targets "${expected_targets}" --argjson labels "${expected_labels}" '
+  --argjson targets "${expected_targets}" --argjson labels "${expected_labels}" --arg manual "${INCLUDE_MANUAL_ONLY}" '
   (.name | endswith("/locations/global/sessions/" + $id)) and
   (.sessionConfig.outputDirectoryConfig.gcsOutputDirectory.path == ("gs://" + $bucket + "/automation/sessions")) and
   ([.sessionConfig.jobConfigs[].allocationConfig.deviceConfigs[].requirement.deviceId] | sort == $devices) and
@@ -180,7 +187,8 @@ if ! jq -e --arg id "${SESSION_ID}" --arg bucket "${RESULTS_BUCKET}" --argjson d
     (.action.androidInstrumentationTest |
       ((.testTargets // []) | sort == $targets) and
       .additionalTestOptions.clearPackageData == "true" and
-      .additionalTestOptions.isAutomation == "true"))
+      .additionalTestOptions.isAutomation == "true" and
+      (if $manual == "true" then .additionalTestOptions.includeManualOnly == "true" else true end)))
 ' "${SESSION_OUTPUT}" >/dev/null; then
   echo "ERROR: Device Run returned an unexpected session identity, results directory, devices, targets, labels, or instrumentation options: ${SESSION_OUTPUT}." >&2
   cat "${SESSION_OUTPUT}" >&2

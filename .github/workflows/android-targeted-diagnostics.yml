@@ -1,0 +1,250 @@
+name: Android Targeted Diagnostics
+
+on:
+  workflow_dispatch:
+    inputs:
+      target_ref:
+        description: Explicit source SHA or ref to build (resolved to an immutable commit)
+        required: true
+        type: string
+      run_selected_tests:
+        description: Run only the selected existing native tests on one Device Run device
+        required: false
+        default: false
+        type: boolean
+      device:
+        description: Exact Device Run catalog ID; required only for selected tests
+        required: false
+        type: string
+      test_selections:
+        description: Newline-separated fully qualified class or class#method names (maximum 10 selections / 20 methods)
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build source-bound debug APKs
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    outputs:
+      source_sha: ${{ steps.source.outputs.sha }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.sha }}
+          path: diagnostic-tools
+
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.target_ref }}
+          path: source
+
+      - name: Resolve source and require bounded explicit selections
+        id: source
+        working-directory: source
+        env:
+          RUN_SELECTED_TESTS: ${{ inputs.run_selected_tests }}
+          DEVICE: ${{ inputs.device }}
+          TEST_SELECTIONS: ${{ inputs.test_selections }}
+          TARGET_REF: ${{ inputs.target_ref }}
+        run: |
+          set -euo pipefail
+          source_sha="$(git rev-parse --verify 'HEAD^{commit}')"
+          echo "sha=${source_sha}" >> "${GITHUB_OUTPUT}"
+          export SOURCE_SHA="${source_sha}"
+          mkdir -p ../diagnostic-apks
+          python3 - <<'PY'
+          import json
+          import os
+          import re
+          import runpy
+          from pathlib import Path
+
+          selected = os.environ["RUN_SELECTED_TESTS"] == "true"
+          device = os.environ["DEVICE"]
+          selections = os.environ["TEST_SELECTIONS"].splitlines()
+          if not os.environ["TARGET_REF"].strip():
+              raise SystemExit("target_ref must be supplied explicitly")
+          if not selected and (device or selections):
+              raise SystemExit("Build-only mode requires empty device and test_selections")
+          if selected:
+              if not re.fullmatch(r"[A-Za-z0-9_-]+", device) or not 1 <= len(selections) <= 10:
+                  raise SystemExit("Selected tests require one catalog ID and 1–10 newline-separated selections")
+              regular, manual = runpy.run_path("../diagnostic-tools/scripts/android/collect-device-run-evidence.py")["inventory"]()
+              inventory = regular | manual
+              methods: set[str] = set()
+              for selection in selections:
+                  if not re.fullmatch(r"com\.flashcardsopensourceapp\.app\.(?:[A-Za-z_][A-Za-z0-9_]*\.)*[A-Za-z_][A-Za-z0-9_]*(?:#[A-Za-z_][A-Za-z0-9_]*)?", selection):
+                      raise SystemExit("Selections must be fully qualified class or class#method names; packages are forbidden")
+                  matches = {method for method in inventory if method == selection or method.startswith(selection + "#")}
+                  if not matches:
+                      raise SystemExit("Every selection must match existing native test declarations in the target source")
+                  methods.update(matches)
+              if len(methods) > 20:
+                  raise SystemExit("Selected diagnostics are limited to 20 native test methods")
+          provenance = {"source_sha": os.environ["SOURCE_SHA"], "workflow_sha": os.environ["GITHUB_SHA"],
+                        "github_run_id": os.environ["GITHUB_RUN_ID"], "github_run_attempt": os.environ["GITHUB_RUN_ATTEMPT"],
+                        "selected_tests_requested": selected, "device": device, "test_selections": selections}
+          Path("../diagnostic-apks/provenance.json").write_text(json.dumps(provenance, indent=2) + "\n")
+          PY
+
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: gradle/actions/setup-gradle@v6.4.0
+
+      - name: Install Android SDK packages
+        env:
+          ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
+        run: |
+          "${ANDROID_SDK_ROOT}/cmdline-tools/latest/bin/sdkmanager" \
+            "platform-tools" "platforms;android-37.0" "build-tools;37.0.0" "ndk;28.2.13676358"
+
+      - name: Build debug app and instrumentation APKs only
+        id: build
+        working-directory: source/apps/android
+        run: ./gradlew --no-daemon :app:assembleDebug :app:assembleDebugAndroidTest
+
+      - name: Retain APK identity and checksums
+        if: ${{ always() && steps.build.outcome == 'success' }}
+        run: |
+          set -euo pipefail
+          cp source/apps/android/app/build/outputs/apk/debug/app-debug.apk diagnostic-apks/
+          cp source/apps/android/app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk diagnostic-apks/
+          cp source/apps/android/app/build/outputs/apk/debug/output-metadata.json diagnostic-apks/
+          python3 - <<'PY'
+          import hashlib
+          import json
+          from pathlib import Path
+
+          root = Path("diagnostic-apks")
+          provenance = json.loads((root / "provenance.json").read_text())
+          metadata = json.loads((root / "output-metadata.json").read_text())["elements"]
+          if len(metadata) != 1:
+              raise SystemExit("Expected exactly one debug APK version record")
+          provenance.update({"version_code": metadata[0]["versionCode"], "version_name": metadata[0]["versionName"]})
+          hashes: dict[str, str] = {}
+          for name in ("app-debug.apk", "app-debug-androidTest.apk"):
+              with (root / name).open("rb") as stream:
+                  hashes[name] = hashlib.file_digest(stream, "sha256").hexdigest()
+          provenance["apk_sha256"] = hashes
+          (root / "provenance.json").write_text(json.dumps(provenance, indent=2) + "\n")
+          (root / "SHA256SUMS").write_text("".join(f"{sha}  {name}\n" for name, sha in hashes.items()))
+          PY
+          cat diagnostic-apks/provenance.json >> "${GITHUB_STEP_SUMMARY}"
+
+      - name: Upload debug APK pair and provenance
+        if: ${{ always() && steps.build.outcome == 'success' }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: android-targeted-debug-apks
+          if-no-files-found: error
+          path: diagnostic-apks/
+
+  selected_tests:
+    name: Run explicitly selected native diagnostics
+    needs: build
+    if: ${{ inputs.run_selected_tests }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    concurrency:
+      group: android-release-device-run-shared-account
+      cancel-in-progress: false
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      GCP_PROJECT_ID: ${{ vars.GCP_PROJECT_ID }}
+      ANDROID_DEVICE_RUN_RESULTS_BUCKET: ${{ vars.ANDROID_DEVICE_RUN_RESULTS_BUCKET }}
+      DEVICE_RUN_TARGETED_DEVICE: ${{ inputs.device }}
+      DEVICE_RUN_SOURCE_SHA: ${{ needs.build.outputs.source_sha }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.sha }}
+
+      - uses: actions/download-artifact@v8
+        with:
+          name: android-targeted-debug-apks
+          path: diagnostic-apks
+
+      - name: Require existing Device Run identity and private bucket
+        env:
+          WIF_PROVIDER: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          SERVICE_ACCOUNT: ${{ vars.GCP_SERVICE_ACCOUNT_EMAIL }}
+        run: |
+          set -euo pipefail
+          for variable_name in GCP_PROJECT_ID ANDROID_DEVICE_RUN_RESULTS_BUCKET WIF_PROVIDER SERVICE_ACCOUNT; do
+            if [[ -z "${!variable_name}" ]]; then
+              printf 'Missing repository variable for selected diagnostics: %s\n' "${variable_name}" >&2
+              exit 1
+            fi
+          done
+          cd diagnostic-apks
+          sha256sum --check SHA256SUMS
+
+      - uses: google-github-actions/auth@v3
+        with:
+          workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.GCP_SERVICE_ACCOUNT_EMAIL }}
+          project_id: ${{ vars.GCP_PROJECT_ID }}
+
+      - uses: google-github-actions/setup-gcloud@v3
+        with:
+          project_id: ${{ vars.GCP_PROJECT_ID }}
+          version: '589.0.0'
+          install_components: beta
+
+      - name: Require selected destination in current catalog and archive diagnostics
+        run: |
+          export DEVICE_RUN_SESSION_ID=""
+          python3 scripts/android/read-device-run-diagnostics.py
+
+      - name: Run selected tests to terminal success
+        id: submit
+        run: |
+          set -euo pipefail
+          private="${RUNNER_TEMP}/device-run-diagnostics-private"
+          : > "${private}/submission.log"
+          cp diagnostic-apks/provenance.json "${private}/apk-provenance.json"
+          mapfile -t selections < <(jq -r '.test_selections[]' diagnostic-apks/provenance.json)
+          targets=()
+          for selection in "${selections[@]}"; do
+            targets+=(--test-targets "class ${selection}")
+          done
+          set +e
+          bash scripts/android/run-android-device-run.sh \
+            --project-id "${GCP_PROJECT_ID}" --device "${DEVICE_RUN_TARGETED_DEVICE}" \
+            --app-path diagnostic-apks/app-debug.apk --test-path diagnostic-apks/app-debug-androidTest.apk \
+            --results-bucket "${ANDROID_DEVICE_RUN_RESULTS_BUCKET}" \
+            --timeout 15m --max-session-duration 20m --include-manual-only \
+            --labels "target_sha=${DEVICE_RUN_SOURCE_SHA},github_run_id=${GITHUB_RUN_ID},github_run_attempt=${GITHUB_RUN_ATTEMPT},suite=targeted" \
+            "${targets[@]}" --session-output "${private}/submitted-session.json" > "${private}/submission.log" 2>&1
+          exit_code=$?
+          set -e
+          echo "exit_code=${exit_code}" >> "${GITHUB_OUTPUT}"
+          echo "Selected Device Run helper exited ${exit_code}; raw details remain in the private archive."
+          exit "${exit_code}"
+
+      - name: Archive exact submitted session and private helper output
+        if: ${{ always() && steps.submit.outcome != 'skipped' }}
+        env:
+          DEVICE_RUN_SUBMISSION_EXIT_CODE: ${{ steps.submit.outputs.exit_code }}
+        run: |
+          set -euo pipefail
+          DEVICE_RUN_SESSION_ID="$(sed -nE 's/.*Creating session \[(session-[a-f0-9-]+)\] in location \[global\].*/\1/p' "${RUNNER_TEMP}/device-run-diagnostics-private/submission.log")"
+          export DEVICE_RUN_SESSION_ID
+          python3 scripts/android/read-device-run-diagnostics.py
+
+      - name: Retain public-safe diagnostics summary
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: android-targeted-device-run-diagnostics
+          if-no-files-found: ignore
+          path: ${{ runner.temp }}/device-run-diagnostics-public/summary.json

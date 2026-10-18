@@ -86,9 +86,9 @@ def session_summary(report: Json, session_id: str, project: str) -> Json:
             "named_cases_verified": False, "named_result_evidence": "JUnit references only; XML and expected inventory were not reconciled"}
 
 
-def catalog_summary(catalog: list[Json], devices: list[str]) -> list[Json]:
+def catalog_summary(catalog: list[Json], devices: list[str], expected_apis: list[str]) -> list[Json]:
     results: list[Json] = []
-    for device, api in zip(devices, ("37", "30", "31", "33")):
+    for device, api in zip(devices, expected_apis):
         matches = [item for item in catalog if isinstance(item.get("name"), str) and cast(str, item["name"]).rsplit("/", 1)[-1] == device]
         if len(matches) > 1:
             raise ValueError("Configured device has duplicate catalog matches; inspect private catalog")
@@ -107,7 +107,7 @@ def catalog_summary(catalog: list[Json], devices: list[str]) -> list[Json]:
                         "access_denied_count": len(denied), "automation": automation,
                         "availability": token(availability.get("available", "NOT_REPORTED"), r"[A-Z_]+"),
                         "capacity": token(availability.get("capacity", "NOT_REPORTED"), r"[A-Z_]+"),
-                        "suitable": actual_api == api and platform == "ANDROID" and lifecycle == "ACTIVE" and not denied and automation})
+                        "suitable": (not api or actual_api == api) and platform == "ANDROID" and lifecycle == "ACTIVE" and not denied and automation})
         results.append(row)
     return results
 
@@ -121,12 +121,18 @@ def main() -> None:
     session_id = os.environ["DEVICE_RUN_SESSION_ID"]
     if session_id:
         token(session_id, r"session-[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}")
-    compat = json.loads(os.environ["ANDROID_DEVICE_RUN_COMPAT_DEVICES"])
-    if not isinstance(compat, list) or len(compat) != 3:
-        raise ValueError("Compatibility configuration must contain three IDs ordered by API 30, 31, 33")
-    devices = [token(value, r"[A-Za-z0-9_-]+") for value in [os.environ["ANDROID_DEVICE_RUN_DEVICE"], *compat]]
-    if len(set(devices)) != 4:
-        raise ValueError("All four configured Device Run catalog IDs must be distinct")
+    targeted_device = os.environ.get("DEVICE_RUN_TARGETED_DEVICE", "")
+    if targeted_device:
+        devices = [token(targeted_device, r"[A-Za-z0-9_-]+")]
+        expected_apis = [""]
+    else:
+        compat = json.loads(os.environ["ANDROID_DEVICE_RUN_COMPAT_DEVICES"])
+        if not isinstance(compat, list) or len(compat) != 3:
+            raise ValueError("Compatibility configuration must contain three IDs ordered by API 30, 31, 33")
+        devices = [token(value, r"[A-Za-z0-9_-]+") for value in [os.environ["ANDROID_DEVICE_RUN_DEVICE"], *compat]]
+        if len(set(devices)) != 4:
+            raise ValueError("All four configured Device Run catalog IDs must be distinct")
+        expected_apis = ["37", "30", "31", "33"]
     temporary = Path(os.environ["RUNNER_TEMP"])
     private = temporary / "device-run-diagnostics-private"
     public = temporary / "device-run-diagnostics-public"
@@ -136,6 +142,11 @@ def main() -> None:
     archive_uri = f"gs://{bucket}/diagnostics/device-run/{sha}/r{run_id}a{attempt}/raw.tar.gz"
     summary: Json = {"project": project, "location": "global", "workflow_sha": sha, "github_run_id": run_id,
                      "github_run_attempt": attempt, "private_archive": archive_uri, "private_archive_uploaded": False}
+    if targeted_device:
+        summary["source_sha"] = token(os.environ["DEVICE_RUN_SOURCE_SHA"], r"[a-f0-9]{40}")
+        exit_code = os.environ.get("DEVICE_RUN_SUBMISSION_EXIT_CODE", "")
+        if exit_code:
+            summary["submission_exit_code"] = int(token(exit_code, r"[0-9]+"))
     failed = False
     try:
         catalog = private / "catalog.json"
@@ -143,7 +154,7 @@ def main() -> None:
         gcloud(["beta", "device-run", "devices", "list", "--project", project, "--location", "global", "--format=json"], catalog, diagnostics)
         summary["catalog_report"] = {"member": catalog.name, "sha256": digest(catalog)}
         summary["stage"] = "catalog_parse"
-        destinations = catalog_summary(records(json.loads(catalog.read_text())), devices)
+        destinations = catalog_summary(records(json.loads(catalog.read_text())), devices, expected_apis)
         summary["catalog"] = destinations
         if session_id:
             report = private / "session-full.json"
