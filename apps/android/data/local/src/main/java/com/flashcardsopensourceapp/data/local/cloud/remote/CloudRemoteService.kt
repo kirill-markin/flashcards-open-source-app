@@ -5,6 +5,9 @@ import com.flashcardsopensourceapp.data.local.model.cloud.CloudConnectionRespons
 
 import com.flashcardsopensourceapp.core.observability.AppObservability
 import com.flashcardsopensourceapp.core.observability.ClientDeviceType
+import com.flashcardsopensourceapp.data.local.cloud.remote.billing.CloudPaywallRemoteApi
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudPaywallState
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudPaywallImpression
 import com.flashcardsopensourceapp.data.local.cloud.remote.billing.CloudGoogleBillingGateway
 import com.flashcardsopensourceapp.data.local.cloud.remote.billing.CloudGoogleBillingRemoteApi
 import com.flashcardsopensourceapp.data.local.cloud.remote.billing.GooglePurchaseIntent
@@ -143,6 +146,7 @@ class CloudRemoteService private constructor(
     private val authApi = CloudAuthRemoteApi(httpClient = httpClient)
     private val socialAuthApi = CloudSocialAuthRemoteApi(httpClient = httpClient)
     private val accountMethodsApi = CloudAccountMethodsRemoteApi(httpClient)
+    private val paywallApi = CloudPaywallRemoteApi(httpClient)
     private val googleBillingApi = CloudGoogleBillingRemoteApi(httpClient = httpClient)
     private val guestUpgradeApi = CloudGuestUpgradeRemoteApi(httpClient = httpClient)
     private val accountWorkspaceApi = CloudAccountWorkspaceRemoteApi(httpClient = httpClient)
@@ -157,6 +161,16 @@ class CloudRemoteService private constructor(
         clientDeviceTypeProvider = clientDeviceTypeProvider
     )
     private val workspacePackageApi = CloudWorkspacePackageRemoteApi(httpClient = httpClient)
+
+    suspend fun loadPaywallState(apiBaseUrl: String, authorizationHeader: String): CloudPaywallState =
+        paywallApi.load(apiBaseUrl, authorizationHeader)
+
+    suspend fun recordPaywallShown(
+        apiBaseUrl: String,
+        authorizationHeader: String,
+        impression: CloudPaywallImpression
+    ): CloudPaywallState =
+        paywallApi.record(apiBaseUrl, authorizationHeader, impression)
 
     override suspend fun accountConnection(session: CloudAccountMethodSession, verifier: String, action: CloudConnectionAction): CloudConnectionResponse =
         accountMethodsApi.accountConnection(session, verifier, action)

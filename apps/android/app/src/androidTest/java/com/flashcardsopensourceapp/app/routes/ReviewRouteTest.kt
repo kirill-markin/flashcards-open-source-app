@@ -166,6 +166,7 @@ class ReviewRouteTest : FirebaseAppInstrumentationTimeoutTest() {
                     onScreenVisible = {
                         screenVisibleCalls += 1
                     },
+                    onReviewSurfaceBusyChanged = {},
                     onRevealAnswer = {},
                     onRateAgain = {},
                     onRateHard = {},
@@ -493,7 +494,8 @@ private fun ReviewRouteTestContent(
             onContinueNotificationPermissionPrompt = {},
             onOpenLeaderboard = {},
             onOpenProgress = {},
-            onScreenVisible = onScreenVisible
+            onScreenVisible = onScreenVisible,
+            onReviewSurfaceBusyChanged = {}
         )
     }
 }

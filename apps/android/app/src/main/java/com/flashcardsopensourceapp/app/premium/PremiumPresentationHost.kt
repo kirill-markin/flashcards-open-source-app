@@ -27,6 +27,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
@@ -34,6 +35,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.ViewModelStore
 import androidx.lifecycle.ViewModelStoreOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -54,7 +57,6 @@ import com.flashcardsopensourceapp.feature.settings.ai.OwnOpenAiKeyViewModel
 import com.flashcardsopensourceapp.feature.settings.ai.createOwnOpenAiKeyViewModelFactory
 import com.flashcardsopensourceapp.feature.settings.openExternalUrl
 import java.time.Instant
-import java.time.LocalDate
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
@@ -76,6 +78,10 @@ internal fun PremiumPresentationHost(
     onOpenSignIn: () -> Unit
 ) {
     val reason = presenter.reason ?: return
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val lifecycleState by LocalLifecycleOwner.current.lifecycle.currentStateFlow.collectAsStateWithLifecycle(
+        minActiveState = Lifecycle.State.CREATED
+    )
     val presentation = presenter.presentation
     val originSurface = remember(presentation, reason) { analyticsSurface }
     var isEditingOwnKey by remember(presentation, reason) { mutableStateOf(false) }
@@ -83,7 +89,7 @@ internal fun PremiumPresentationHost(
     var allowance: PremiumAllowanceState by remember(presentation, reason) { mutableStateOf(PremiumAllowanceState.Loading) }
     var usageRequestVersion by remember(presentation, reason) { mutableStateOf(0) }
     var hasRequestedEntitlement by remember(presentation, reason) { mutableStateOf(false) }
-    var hasReportedShown by remember(presentation, reason) { mutableStateOf(false) }
+    var hasReportedShown by remember(presentation, reason) { mutableStateOf(presenter.hasReportedShown) }
     val isAiLimit = reason is PremiumReason.AiLimit || reason == PremiumReason.AiLimitPreview
     val hasAccess = presentation != null && hasPremiumAccess(entitlement = presenter.entitlement)
     val isOfferVisible = !hasAccess && (!isAiLimit || presenter.entitlement != null)
@@ -100,17 +106,33 @@ internal fun PremiumPresentationHost(
         presenter.dismiss()
     }
 
-    LaunchedEffect(presentation, isOfferVisible) {
-        if (presentation != null && isOfferVisible && !hasReportedShown) {
-            hasReportedShown = true
+    LaunchedEffect(presentation, isOfferVisible, sheetState.isVisible, isEditingOwnKey, lifecycleState) {
+        if (presentation != null && isOfferVisible && sheetState.isVisible && !isEditingOwnKey &&
+            lifecycleState.isAtLeast(Lifecycle.State.RESUMED) && !hasReportedShown
+        ) {
+            withFrameNanos { }
+            if (presenter.presentation != presentation || !sheetState.isVisible) return@LaunchedEffect
+            val now = Instant.now()
             val zone = ZoneId.systemDefault()
+            try {
+                appGraph.reviewPaywallScheduler.recordShown(presentation, now, zone)
+            } catch (error: Exception) {
+                AiChatDiagnosticsLogger.warn(
+                    event = "paywall_impression_persist_failed",
+                    fields = listOf("errorType" to error::class.java.name)
+                )
+                return@LaunchedEffect
+            }
+            presenter.markVisible(presentation.id)
+            hasReportedShown = true
             appGraph.analytics.track(
                 event = AnalyticsEvent.PaywallShown(
                     presentation = presentation,
-                    localDate = LocalDate.now(zone).toString(),
+                    localDate = now.atZone(zone).toLocalDate().toString(),
                     timeZone = zone.id,
                     contentVersion = "union-v1",
-                    screen = originSurface
+                    screen = originSurface,
+                    reviewTrigger = presenter.reviewTrigger
                 )
             )
         }
@@ -148,7 +170,7 @@ internal fun PremiumPresentationHost(
 
     ModalBottomSheet(
         onDismissRequest = dismiss,
-        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+        sheetState = sheetState,
         modifier = Modifier.testTag(tag = premiumSheetTag)
     ) {
         Column(

@@ -72,10 +72,13 @@ class StoreReviewRequestManager(
     private val reviewManager: ReviewManager = ReviewManagerFactory.create(context.applicationContext)
     private val mutex = Mutex()
 
-    suspend fun requestStoreReviewIfEligible(activity: ComponentActivity): Boolean {
+    suspend fun requestStoreReviewIfEligible(
+        activity: ComponentActivity,
+        canPresent: () -> Boolean
+    ): Boolean {
         return mutex.withLock {
             try {
-                requestStoreReviewIfEligibleNow(activity = activity)
+                requestStoreReviewIfEligibleNow(activity = activity, canPresent = canPresent)
             } catch (error: CancellationException) {
                 throw error
             } catch (error: Throwable) {
@@ -88,8 +91,11 @@ class StoreReviewRequestManager(
         }
     }
 
-    private suspend fun requestStoreReviewIfEligibleNow(activity: ComponentActivity): Boolean {
-        if (isStoreReviewActivityResumed(activity = activity).not()) {
+    private suspend fun requestStoreReviewIfEligibleNow(
+        activity: ComponentActivity,
+        canPresent: () -> Boolean
+    ): Boolean {
+        if (isStoreReviewActivityResumed(activity = activity).not() || !canPresent()) {
             return false
         }
 
@@ -105,16 +111,11 @@ class StoreReviewRequestManager(
         if (eligibility.isEligible.not()) {
             return false
         }
-        if (isStoreReviewActivityResumed(activity = activity).not()) {
+        if (isStoreReviewActivityResumed(activity = activity).not() || !canPresent()) {
             return false
         }
 
-        storeReviewRequestStore.saveRequestAttempt(
-            requestedAtMillis = nowMillis,
-            appVersion = appVersion
-        )
-        recordStoreReviewRequestedAnalytics(nowMillis = nowMillis)
-        launchGooglePlayReviewFlow(activity = activity)
+        launchGooglePlayReviewFlow(activity = activity, canPresent = canPresent)
         return true
     }
 
@@ -139,9 +140,12 @@ class StoreReviewRequestManager(
         }
     }
 
-    private suspend fun launchGooglePlayReviewFlow(activity: ComponentActivity) {
+    private suspend fun launchGooglePlayReviewFlow(
+        activity: ComponentActivity,
+        canPresent: () -> Boolean
+    ) {
         try {
-            requestAndLaunchGooglePlayReviewFlow(activity = activity)
+            requestAndLaunchGooglePlayReviewFlow(activity = activity, canPresent = canPresent)
         } catch (error: CancellationException) {
             throw error
         } catch (error: Throwable) {
@@ -152,13 +156,23 @@ class StoreReviewRequestManager(
         }
     }
 
-    private suspend fun requestAndLaunchGooglePlayReviewFlow(activity: ComponentActivity) {
+    private suspend fun requestAndLaunchGooglePlayReviewFlow(
+        activity: ComponentActivity,
+        canPresent: () -> Boolean
+    ) {
         withContext(Dispatchers.Main.immediate) {
             val reviewInfo = awaitReviewInfoTask(task = reviewManager.requestReviewFlow())
             if (isStoreReviewActivityResumed(activity = activity).not()) {
                 Log.w(storeReviewRequestLogTag, "event=store_review_activity_not_resumed_before_launch")
                 return@withContext
             }
+            if (!canPresent()) return@withContext
+            val nowMillis = currentTimeMillisProvider()
+            storeReviewRequestStore.saveRequestAttempt(
+                requestedAtMillis = nowMillis,
+                appVersion = appVersion
+            )
+            recordStoreReviewRequestedAnalytics(nowMillis = nowMillis)
             awaitReviewFlowCompletionTask(task = reviewManager.launchReviewFlow(activity, reviewInfo))
         }
     }
