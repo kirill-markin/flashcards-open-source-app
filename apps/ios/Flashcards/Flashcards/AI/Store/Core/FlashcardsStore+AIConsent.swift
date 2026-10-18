@@ -101,7 +101,7 @@ extension FlashcardsStore {
     }
 
     private func knownAIConsentActor() throws -> AIConsentActor? {
-        if let pendingUpgrade = try self.loadPendingGuestUpgradeState() {
+        if let pendingUpgrade = try self.loadPendingGuestUpgradeState(), pendingUpgrade.requiresCompletion {
             // The checkpoint follows the guest flush and binds later choices to the verified destination.
             return AIConsentActor(userId: pendingUpgrade.common.userId, apiBaseUrl: pendingUpgrade.common.apiBaseUrl)
         }

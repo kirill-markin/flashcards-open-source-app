@@ -52,7 +52,7 @@ final class CloudCredentialRecoveryResetTests: CloudCredentialRecoveryTestCase {
             configuration: configuration
         )
         try guestCredentialStore.saveGuestSession(session: guestSession)
-        let pendingState: PendingGuestUpgradeState = pendingGuestUpgradeInFlightState(
+        let pendingState: PendingGuestUpgradeState = try pendingGuestUpgradeInFlightState(
             linkContext: CloudWorkspaceLinkContext(
                 userId: "linked-user",
                 email: "user@example.com",
@@ -61,6 +61,7 @@ final class CloudCredentialRecoveryResetTests: CloudCredentialRecoveryTestCase {
                 workspaces: [],
                 preferences: makeDefaultAccountPreferences(),
                 guestUpgradeMode: .mergeRequired,
+                demoOnlyDestinationWorkspaceId: nil,
                 postAuthRecoveryRoute: .none
             ),
             configuration: configuration,
@@ -183,7 +184,7 @@ final class CloudCredentialRecoveryResetTests: CloudCredentialRecoveryTestCase {
             configuration: configuration
         )
         try guestCredentialStore.saveGuestSession(session: guestSession)
-        let pendingState: PendingGuestUpgradeState = pendingGuestUpgradeInFlightState(
+        let pendingState: PendingGuestUpgradeState = try pendingGuestUpgradeInFlightState(
             linkContext: CloudWorkspaceLinkContext(
                 userId: "linked-user",
                 email: "user@example.com",
@@ -192,6 +193,7 @@ final class CloudCredentialRecoveryResetTests: CloudCredentialRecoveryTestCase {
                 workspaces: [],
                 preferences: makeDefaultAccountPreferences(),
                 guestUpgradeMode: .mergeRequired,
+                demoOnlyDestinationWorkspaceId: nil,
                 postAuthRecoveryRoute: .none
             ),
             configuration: configuration,

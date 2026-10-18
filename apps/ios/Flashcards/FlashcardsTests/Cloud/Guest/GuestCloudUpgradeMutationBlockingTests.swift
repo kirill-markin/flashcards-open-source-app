@@ -144,6 +144,7 @@ final class GuestCloudUpgradeMutationBlockingTests: XCTestCase {
             workspaces: [],
             preferences: makeDefaultAccountPreferences(),
             guestUpgradeMode: .mergeRequired,
+            demoOnlyDestinationWorkspaceId: nil,
             postAuthRecoveryRoute: .none
         )
 
@@ -367,6 +368,7 @@ final class GuestCloudUpgradeMutationBlockingTests: XCTestCase {
             workspaces: [],
             preferences: makeDefaultAccountPreferences(),
             guestUpgradeMode: .mergeRequired,
+            demoOnlyDestinationWorkspaceId: nil,
             postAuthRecoveryRoute: .none
         )
         let upgradeTask = Task { @MainActor in
