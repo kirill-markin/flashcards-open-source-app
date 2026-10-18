@@ -980,6 +980,7 @@
 "premium.offer.unlimitedAI" = "Tekoälyviestit ilman kuukausirajaa";
 "premium.offer.styles" = "Omat värit ja tyylit";
 "premium.offer.creatorSupport" = "Tilauksesi auttaa Nibomon luojaa, [Kirill Markin](https://kirill-markin.com/), maksamaan palvelimet ja valmistelemaan seuraavaa päivitystä kahvin ja pizzan voimin.";
+"premium.offer.previewPurchaseMessage" = "Tämä on testiesikatselu. Ostosta ei tehdä.";
 "premium.offer.subscribe" = "Tilaa";
 "premium.offer.startTrial" = "Aloita ilmainen kokeilu: %@";
 "premium.offer.view" = "Näytä Premium";

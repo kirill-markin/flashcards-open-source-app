@@ -1008,6 +1008,7 @@
 "premium.offer.unlimitedAI" = "رسائل ذكاء اصطناعي بلا حد شهري";
 "premium.offer.styles" = "ألوان وأنماط مخصّصة";
 "premium.offer.creatorSupport" = "يساعد اشتراكك مبتكر Nibomo، [Kirill Markin](https://kirill-markin.com/)، على دفع تكاليف الخوادم وإعداد التحديث القادم مع القهوة والبيتزا.";
+"premium.offer.previewPurchaseMessage" = "هذه معاينة تجريبية. لن تُجرى أي عملية شراء.";
 "premium.offer.subscribe" = "اشتراك";
 "premium.offer.startTrial" = "بدء تجربة مجانية: %@";
 "premium.offer.view" = "عرض Premium";

@@ -980,6 +980,7 @@
 "premium.offer.unlimitedAI" = "הודעות AI ללא מכסה חודשית";
 "premium.offer.styles" = "צבעים וסגנונות מותאמים אישית";
 "premium.offer.creatorSupport" = "המינוי שלך עוזר ליוצר Nibomo, [Kirill Markin](https://kirill-markin.com/), לשלם על השרתים ולהכין את העדכון הבא עם קפה ופיצה.";
+"premium.offer.previewPurchaseMessage" = "זוהי תצוגה מקדימה לבדיקה. לא תתבצע רכישה.";
 "premium.offer.subscribe" = "להירשם למינוי";
 "premium.offer.startTrial" = "התחלת ניסיון חינם: %@";
 "premium.offer.view" = "הצגת Premium";

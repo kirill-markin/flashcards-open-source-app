@@ -980,6 +980,7 @@
 "premium.offer.unlimitedAI" = "মাসিক সীমা ছাড়াই AI বার্তা";
 "premium.offer.styles" = "নিজস্ব রং ও স্টাইল";
 "premium.offer.creatorSupport" = "আপনার সাবস্ক্রিপশন Nibomo-এর নির্মাতা [Kirill Markin](https://kirill-markin.com/)-কে সার্ভারের খরচ দিতে এবং কফি ও পিৎজা নিয়ে পরের আপডেট তৈরিতে সাহায্য করে।";
+"premium.offer.previewPurchaseMessage" = "এটি একটি পরীক্ষামূলক প্রিভিউ। কোনো কেনাকাটা করা হবে না।";
 "premium.offer.subscribe" = "সাবস্ক্রাইব করুন";
 "premium.offer.startTrial" = "বিনামূল্যে ট্রায়াল শুরু করুন: %@";
 "premium.offer.view" = "Premium দেখুন";

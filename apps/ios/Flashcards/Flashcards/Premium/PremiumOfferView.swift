@@ -22,11 +22,14 @@ struct PremiumOfferView: View {
     @State private var message: String?
     @State private var errorMessage: String?
     @State private var loadAttempt: Int = 0
+    @State private var isPreviewPurchaseAlertPresented: Bool = false
 
     private var isPreview: Bool { self.request.analyticsEntryPoint == nil }
+    private var isTestOfferPreview: Bool { self.isPreview && self.request.reason == .offerPreview }
     private var isAILimit: Bool { self.request.reason == .aiLimit }
     private var hasAccess: Bool { hasPremiumAccess(entitlement: self.store.cloudEntitlement) }
     private var canPurchase: Bool {
+        if self.isTestOfferPreview { return true }
         guard let identity = self.request.identity,
               identity == (try? self.store.appleSubscriptionIdentity()),
               self.store.cloudEntitlement != nil else { return false }
@@ -111,7 +114,7 @@ struct PremiumOfferView: View {
                         .foregroundStyle(.secondary)
                         .tint(Color.primary)
 
-                        if self.hasAccess, let entitlement = self.store.cloudEntitlement {
+                        if self.isTestOfferPreview == false, self.hasAccess, let entitlement = self.store.cloudEntitlement {
                             LabeledContent(aiSettingsLocalized("settings.subscription.plan", "Plan")) {
                                 Text(entitlement.tierDisplayName)
                             }
@@ -122,7 +125,7 @@ struct PremiumOfferView: View {
                                 Text(self.priceText).font(.title2.bold())
                                     .accessibilityIdentifier(UITestIdentifier.premiumPrice)
                             }
-                            if self.hasAccess == false {
+                            if self.isTestOfferPreview || self.hasAccess == false {
                                 Button {
                                     self.purchase()
                                 } label: {
@@ -203,6 +206,11 @@ struct PremiumOfferView: View {
             }
             .toolbar { self.closeToolbar }
         }
+        .alert(aiSettingsLocalized("settings.test.title", "Test"), isPresented: self.$isPreviewPurchaseAlertPresented) {
+            Button(aiSettingsLocalized("common.ok", "OK"), role: .cancel) {}
+        } message: {
+            Text(aiSettingsLocalized("premium.offer.previewPurchaseMessage", "This is a test preview. No purchase will be made."))
+        }
         .task(id: self.loadAttempt) {
             self.isLoading = true
             self.errorMessage = nil
@@ -213,6 +221,12 @@ struct PremiumOfferView: View {
                 guard self.presenter.request?.id == self.request.id else { return }
                 if self.isPreview {
                     try await self.loadStoreOffer()
+                    if self.isTestOfferPreview {
+                        guard let identity = self.request.identity else { throw AppleSubscriptionError.accountUnavailable }
+                        let allowance = try await self.store.loadPremiumAIAllowance(identity: identity)
+                        guard self.presenter.request?.id == self.request.id else { return }
+                        self.premiumAIAllowance = allowance
+                    }
                     return
                 }
                 guard let identity = self.request.identity else { throw AppleSubscriptionError.accountUnavailable }
@@ -283,6 +297,10 @@ struct PremiumOfferView: View {
         guard self.isPurchasing == false, self.isLoading == false, self.canPurchase,
               self.premiumAIAllowance != nil, let offer = self.offer,
               self.presenter.request?.id == self.request.id else { return }
+        if self.isTestOfferPreview {
+            self.isPreviewPurchaseAlertPresented = true
+            return
+        }
         self.presenter.recordChoice(requestId: self.request.id, outcome: .premium)
         self.isPurchasing = true
         self.message = nil

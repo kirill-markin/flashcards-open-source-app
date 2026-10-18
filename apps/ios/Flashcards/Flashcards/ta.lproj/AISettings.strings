@@ -980,6 +980,7 @@
 "premium.offer.unlimitedAI" = "மாதாந்திர வரம்பில்லாத AI செய்திகள்";
 "premium.offer.styles" = "விருப்ப நிறங்களும் பாணிகளும்";
 "premium.offer.creatorSupport" = "உங்கள் சந்தா Nibomo உருவாக்குநர் [Kirill Markin](https://kirill-markin.com/) சேவையகச் செலவுகளைச் செலுத்தவும் காபி மற்றும் பீட்சாவுடன் அடுத்த புதுப்பிப்பைத் தயாரிக்கவும் உதவுகிறது.";
+"premium.offer.previewPurchaseMessage" = "இது ஒரு சோதனை முன்னோட்டம். எந்தக் கொள்முதலும் செய்யப்படாது.";
 "premium.offer.subscribe" = "சந்தா பெறவும்";
 "premium.offer.startTrial" = "இலவச சோதனையைத் தொடங்கவும்: %@";
 "premium.offer.view" = "Premium பார்க்கவும்";

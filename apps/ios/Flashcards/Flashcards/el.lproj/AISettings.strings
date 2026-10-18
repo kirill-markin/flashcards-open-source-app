@@ -980,6 +980,7 @@
 "premium.offer.unlimitedAI" = "Μηνύματα AI χωρίς μηνιαίο όριο";
 "premium.offer.styles" = "Προσαρμοσμένα χρώματα και στυλ";
 "premium.offer.creatorSupport" = "Η συνδρομή σας βοηθά τον δημιουργό του Nibomo, [Kirill Markin](https://kirill-markin.com/), να πληρώνει τους διακομιστές και να ετοιμάζει την επόμενη ενημέρωση με καφέ και πίτσα.";
+"premium.offer.previewPurchaseMessage" = "Αυτή είναι μια δοκιμαστική προεπισκόπηση. Δεν θα πραγματοποιηθεί καμία αγορά.";
 "premium.offer.subscribe" = "Εγγραφή";
 "premium.offer.startTrial" = "Έναρξη δωρεάν δοκιμής: %@";
 "premium.offer.view" = "Προβολή Premium";

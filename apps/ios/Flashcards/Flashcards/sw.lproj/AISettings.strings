@@ -980,6 +980,7 @@
 "premium.offer.unlimitedAI" = "Ujumbe wa AI bila kikomo cha kila mwezi";
 "premium.offer.styles" = "Rangi na mitindo unayochagua";
 "premium.offer.creatorSupport" = "Usajili wako humsaidia muundaji wa Nibomo, [Kirill Markin](https://kirill-markin.com/), kulipia seva na kuandaa sasisho lijalo kwa kahawa na pizza.";
+"premium.offer.previewPurchaseMessage" = "Huu ni mwonekano wa majaribio. Hakuna ununuzi utakaofanywa.";
 "premium.offer.subscribe" = "Jisajili";
 "premium.offer.startTrial" = "Anza jaribio la bure: %@";
 "premium.offer.view" = "Tazama Premium";
