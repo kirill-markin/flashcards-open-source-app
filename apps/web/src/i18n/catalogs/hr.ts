@@ -31,8 +31,9 @@ const hrCatalog: TranslationCatalog = {
     creatorSupport: "Tvoja pretplata pomaže tvorcu Niboma, {{creator}}, platiti poslužitelje i pripremiti sljedeće ažuriranje uz kavu i pizzu.",
     basePrice: "Osnovna cijena: {{price}} / mjesec",
     startTrial: "Započni besplatno probno razdoblje od 7 dana",
-    trialPrice: "7 dana besplatno, zatim osnovna cijena {{price}} mjesečno. Potreban je način plaćanja; otkažite prije kraja probnog razdoblja da izbjegnete prvu naplatu.",
-    checkoutPrice: "Stripe pri plaćanju potvrđuje konačnu cijenu i valutu naplate.",
+    trialPrice: "7 dana besplatno, zatim osnovna cijena {{price}} mjesečno. Potreban je način plaćanja. Automatski se obnavlja; otkažite prije kraja probnog razdoblja u postavkama pretplate.",
+    checkoutPrice: "Konačna cijena i valuta pri plaćanju.",
+    renewalDisclosure: "Automatski se obnavlja; otkažite bilo kada u postavkama pretplate.",
   },
   accentColorSettings: {
     title: "Boja naglaska",

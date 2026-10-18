@@ -31,8 +31,9 @@ const isCatalog: TranslationCatalog = {
     creatorSupport: "Áskriftin þín hjálpar höfundi Nibomo, {{creator}}, að greiða fyrir netþjóna og vinna að næstu uppfærslu með kaffi og pítsu.",
     basePrice: "Grunnverð: {{price}} / mánuði",
     startTrial: "Hefja 7 daga ókeypis prufu",
-    trialPrice: "7 dagar ókeypis, síðan grunnverð {{price}} á mánuði. Greiðslumáta þarf; segðu upp áður en prufutímanum lýkur til að forðast fyrstu greiðsluna.",
-    checkoutPrice: "Stripe staðfestir lokaverð og gjaldmiðil við greiðslu.",
+    trialPrice: "7 dagar ókeypis, síðan grunnverð {{price}} á mánuði. Greiðslumáta þarf. Endurnýjast sjálfkrafa; segðu upp áður en prufutímanum lýkur í áskriftarstillingum.",
+    checkoutPrice: "Lokaverð og gjaldmiðill við greiðslu.",
+    renewalDisclosure: "Endurnýjast sjálfkrafa; segðu upp hvenær sem er í áskriftarstillingum.",
   },
   accentColorSettings: {
     title: "Áherslulitur",

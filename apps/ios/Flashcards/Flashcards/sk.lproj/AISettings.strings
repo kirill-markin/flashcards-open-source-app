@@ -897,8 +897,8 @@
 "settings.appIcon.systemAlertNote" = "iOS každú zmenu ikony potvrdí upozornením.";
 
 "premium.apple.monthlyProduct" = "%@ · Mesačne";
-"premium.apple.renewal" = "Automaticky sa obnovuje až do zrušenia. Spravujte alebo zrušte v predplatných App Storu.";
-"premium.apple.trial" = "Skúšobné obdobie zadarmo: %@. Potom:";
+"premium.apple.renewal" = "Automatické obnovenie. Spravujte alebo zrušte v predplatných App Storu.";
+"premium.apple.trial" = "%@ zadarmo, potom";
 "premium.apple.loadFailed" = "Ponuku App Storu sa nepodarilo načítať. Skontrolujte pripojenie a skúste to znova.";
 "premium.apple.pending" = "Čaká sa na potvrdenie od Apple alebo účtu. Na ďalší pokus obnovte nákupy.";
 "premium.apple.cancelled" = "Nákup bol zrušený. Nič vám nebolo účtované.";

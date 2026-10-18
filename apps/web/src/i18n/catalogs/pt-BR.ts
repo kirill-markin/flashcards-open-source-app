@@ -31,8 +31,9 @@ const ptBrCatalog: TranslationCatalog = {
     creatorSupport: "Sua assinatura ajuda o criador do Nibomo, {{creator}}, a pagar os servidores e preparar a próxima atualização com café e pizza.",
     basePrice: "Preço base: {{price}} / mês",
     startTrial: "Iniciar teste grátis de 7 dias",
-    trialPrice: "7 dias grátis; depois, preço base de {{price}}/mês. É necessária uma forma de pagamento; cancele antes do fim do teste para evitar a primeira cobrança.",
-    checkoutPrice: "O Stripe confirma o preço final e a moeda de cobrança na finalização do pagamento.",
+    trialPrice: "7 dias grátis; depois, preço base de {{price}}/mês. É necessária uma forma de pagamento. Renovação automática; cancele antes do fim do teste nas configurações de assinatura.",
+    checkoutPrice: "Preço final e moeda ao finalizar o pagamento.",
+    renewalDisclosure: "Renovação automática; cancele quando quiser nas configurações de assinatura.",
   },
   accentColorSettings: {
     title: "Cor de destaque",

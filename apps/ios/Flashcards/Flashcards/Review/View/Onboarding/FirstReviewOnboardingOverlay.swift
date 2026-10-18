@@ -19,17 +19,17 @@ struct FirstReviewOnboardingAnchors: PreferenceKey {
 private struct FirstReviewOnboardingDrawingKey: Equatable {
     let target: CGRect
     let size: CGSize
-    let neighboringButtons: [CGRect]
     let accent: AccountAccentColor
 }
 
 struct FirstReviewOnboardingOverlay: View {
+    @Environment(\.colorScheme) private var colorScheme
     let target: CGRect
     let size: CGSize
-    let neighboringButtons: [CGRect]
     let accent: AccountAccentColor
     let animates: Bool
     @State private var drawings: [[FirstReviewPencilMark]] = []
+    private let drawingBleed: CGFloat = 40
 
     var body: some View {
         TimelineView(.animation(minimumInterval: 0.235, paused: self.animates == false)) { timeline in
@@ -37,14 +37,32 @@ struct FirstReviewOnboardingOverlay: View {
                 ? Int(timeline.date.timeIntervalSinceReferenceDate / 0.235) % 2 : 0
             Canvas { context, _ in
                 guard self.drawings.indices.contains(frame) else { return }
-                context.drawLayer { contrast in
-                    contrast.opacity = 0.85
+                context.translateBy(x: self.drawingBleed, y: self.drawingBleed)
+                context.drawLayer { shadow in
+                    shadow.translateBy(x: 2, y: 3)
+                    shadow.opacity = 0.85
                     for mark in self.drawings[frame] {
                         if mark.lineWidth == nil {
-                            contrast.fill(mark.path, with: .color(self.accent.contrastingForegroundColor))
+                            shadow.fill(mark.path, with: .color(.black))
+                        }
+                        shadow.stroke(
+                            mark.path, with: .color(.black),
+                            style: StrokeStyle(
+                                lineWidth: (mark.lineWidth ?? 0) + 6,
+                                lineCap: .round, lineJoin: .round
+                            )
+                        )
+                    }
+                }
+                let contrastColor: Color = self.colorScheme == .dark ? .white : .black
+                context.drawLayer { contrast in
+                    contrast.opacity = 0.75
+                    for mark in self.drawings[frame] {
+                        if mark.lineWidth == nil {
+                            contrast.fill(mark.path, with: .color(contrastColor))
                         }
                         contrast.stroke(
-                            mark.path, with: .color(self.accent.contrastingForegroundColor),
+                            mark.path, with: .color(contrastColor),
                             style: StrokeStyle(
                                 lineWidth: (mark.lineWidth ?? 0) + firstReviewPencilContrastWidth,
                                 lineCap: .round, lineJoin: .round
@@ -60,13 +78,14 @@ struct FirstReviewOnboardingOverlay: View {
                     }
                 }
             }
+            .padding(-self.drawingBleed)
         }
         .onChange(of: FirstReviewOnboardingDrawingKey(
-            target: self.target, size: self.size, neighboringButtons: self.neighboringButtons, accent: self.accent
+            target: self.target, size: self.size, accent: self.accent
         ), initial: true) { _, key in
             self.drawings = (0..<2).map {
                 makeFirstReviewOnboardingDrawing(
-                    target: key.target, size: key.size, neighboringButtons: key.neighboringButtons, frame: $0
+                    target: key.target, size: key.size, frame: $0
                 )
             }
         }

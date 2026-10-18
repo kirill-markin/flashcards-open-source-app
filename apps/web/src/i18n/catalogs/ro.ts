@@ -31,8 +31,9 @@ const roCatalog: TranslationCatalog = {
     creatorSupport: "Abonamentul tău îl ajută pe creatorul Nibomo, {{creator}}, să plătească serverele și să pregătească următoarea actualizare cu cafea și pizza.",
     basePrice: "Preț de bază: {{price}} / lună",
     startTrial: "Începe proba gratuită de 7 zile",
-    trialPrice: "7 zile gratuite, apoi preț de bază {{price}}/lună. Este necesară o metodă de plată; anulează înainte de finalul perioadei de probă pentru a evita prima plată.",
-    checkoutPrice: "Stripe confirmă prețul final și moneda de facturare la plată.",
+    trialPrice: "7 zile gratuite, apoi preț de bază {{price}}/lună. Este necesară o metodă de plată. Se reînnoiește automat; anulează înainte de finalul perioadei de probă în setările abonamentului.",
+    checkoutPrice: "Preț final și monedă la plată.",
+    renewalDisclosure: "Se reînnoiește automat; anulează oricând în setările abonamentului.",
   },
   accentColorSettings: {
     title: "Culoare de accent",

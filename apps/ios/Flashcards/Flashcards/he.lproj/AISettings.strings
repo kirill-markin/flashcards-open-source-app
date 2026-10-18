@@ -897,8 +897,8 @@
 "settings.appIcon.systemAlertNote" = "מערכת iOS מאשרת כל שינוי סמל באמצעות התראה.";
 
 "premium.apple.monthlyProduct" = "%@ · חודשי";
-"premium.apple.renewal" = "מתחדש אוטומטית עד לביטול. אפשר לנהל או לבטל דרך המינויים ב-App Store.";
-"premium.apple.trial" = "תקופת ניסיון בחינם: %@. לאחר מכן:";
+"premium.apple.renewal" = "חידוש אוטומטי. ניהול או ביטול במינויים ב-App Store.";
+"premium.apple.trial" = "%@ בחינם, ואז";
 "premium.apple.loadFailed" = "לא ניתן לטעון את הצעת App Store. יש לבדוק את החיבור ולנסות שוב.";
 "premium.apple.pending" = "בהמתנה לאישור מ-Apple או של החשבון. יש לשחזר רכישות כדי לנסות שוב.";
 "premium.apple.cancelled" = "הרכישה בוטלה. לא בוצע חיוב.";

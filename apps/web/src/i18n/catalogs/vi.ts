@@ -31,8 +31,9 @@ const viCatalog: TranslationCatalog = {
     creatorSupport: "Gói đăng ký của bạn giúp người tạo ra Nibomo, {{creator}}, trả phí máy chủ và chuẩn bị bản cập nhật tiếp theo cùng cà phê và pizza.",
     basePrice: "Giá cơ bản: {{price}} / tháng",
     startTrial: "Bắt đầu dùng thử miễn phí 7 ngày",
-    trialPrice: "Miễn phí 7 ngày, sau đó giá cơ bản {{price}}/tháng. Cần phương thức thanh toán; hủy trước khi hết dùng thử để tránh khoản phí đầu tiên.",
-    checkoutPrice: "Stripe xác nhận giá cuối cùng và loại tiền thanh toán khi thanh toán.",
+    trialPrice: "Miễn phí 7 ngày, sau đó giá cơ bản {{price}}/tháng. Cần phương thức thanh toán. Tự động gia hạn; hủy trước khi hết dùng thử trong cài đặt Gói đăng ký.",
+    checkoutPrice: "Giá cuối cùng và loại tiền tại bước thanh toán.",
+    renewalDisclosure: "Tự động gia hạn; hủy bất cứ lúc nào trong cài đặt Gói đăng ký.",
   },
   accentColorSettings: {
     title: "Màu nhấn",

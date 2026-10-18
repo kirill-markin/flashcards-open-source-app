@@ -31,8 +31,9 @@ const ltCatalog: TranslationCatalog = {
     creatorSupport: "Tavo prenumerata padeda Nibomo kūrėjui {{creator}} apmokėti serverius ir su kava bei pica rengti kitą atnaujinimą.",
     basePrice: "Bazinė kaina: {{price}} / mėn.",
     startTrial: "Pradėti nemokamą 7 dienų bandomąjį laikotarpį",
-    trialPrice: "7 dienos nemokamai, vėliau bazinė kaina {{price}}/mėn. Būtinas mokėjimo būdas; atšaukite iki bandomojo laikotarpio pabaigos, kad išvengtumėte pirmojo mokesčio.",
-    checkoutPrice: "Stripe atsiskaitant patvirtina galutinę kainą ir mokėjimo valiutą.",
+    trialPrice: "7 dienos nemokamai, vėliau bazinė kaina {{price}}/mėn. Būtinas mokėjimo būdas. Pratęsiama automatiškai; atšaukite iki bandomojo laikotarpio pabaigos prenumeratos nustatymuose.",
+    checkoutPrice: "Galutinė kaina ir valiuta atsiskaitant.",
+    renewalDisclosure: "Pratęsiama automatiškai; atšaukite bet kada prenumeratos nustatymuose.",
   },
   accentColorSettings: {
     title: "Akcento spalva",

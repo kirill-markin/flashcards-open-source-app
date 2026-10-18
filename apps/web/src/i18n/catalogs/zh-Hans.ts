@@ -31,8 +31,9 @@ export const zhHansCatalog = {
     creatorSupport: "你的订阅帮助 Nibomo 的创作者 {{creator}} 支付服务器费用，并用咖啡和披萨为下一次更新补充能量。",
     basePrice: "基础价格：{{price}} / 月",
     startTrial: "开始 7 天免费试用",
-    trialPrice: "免费试用7天，之后每月基础价{{price}}。需提供付款方式；请在试用结束前取消，以免首次扣款。",
-    checkoutPrice: "Stripe 会在结账时确认最终价格和账单货币。",
+    trialPrice: "免费试用7天，之后每月基础价{{price}}。需提供付款方式。自动续订；请在试用结束前前往订阅设置取消。",
+    checkoutPrice: "最终价格和货币以结账页面为准。",
+    renewalDisclosure: "自动续订；可随时前往订阅设置取消。",
   },
   accentColorSettings: {
     title: "强调色",

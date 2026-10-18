@@ -897,8 +897,8 @@
 "settings.appIcon.systemAlertNote" = "iOS bevestigt elke icoonwijziging met een melding.";
 
 "premium.apple.monthlyProduct" = "%@ · Maandelijks";
-"premium.apple.renewal" = "Wordt automatisch verlengd tot je opzegt. Beheer of annuleer via je App Store-abonnementen.";
-"premium.apple.trial" = "Gratis proefperiode: %@. Daarna:";
+"premium.apple.renewal" = "Automatische verlenging. Beheer of annuleer via App Store-abonnementen.";
+"premium.apple.trial" = "%@ gratis, daarna";
 "premium.apple.loadFailed" = "De App Store-aanbieding kon niet worden geladen. Controleer je verbinding en probeer opnieuw.";
 "premium.apple.pending" = "Wachten op bevestiging van Apple of het account. Herstel aankopen om opnieuw te proberen.";
 "premium.apple.cancelled" = "Aankoop geannuleerd. Er is niets in rekening gebracht.";

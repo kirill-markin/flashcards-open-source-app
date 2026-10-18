@@ -31,8 +31,9 @@ const swCatalog: TranslationCatalog = {
     creatorSupport: "Usajili wako unamsaidia mtengenezaji wa Nibomo, {{creator}}, kulipia seva na kuandaa sasisho lijalo kwa kahawa na piza.",
     basePrice: "Bei ya msingi: {{price}} / mwezi",
     startTrial: "Anza jaribio la bure la siku 7",
-    trialPrice: "Siku 7 bila malipo, kisha bei ya msingi ya {{price}}/mwezi. Njia ya malipo inahitajika; ghairi kabla ya jaribio kuisha ili kuepuka malipo ya kwanza.",
-    checkoutPrice: "Stripe inathibitisha bei ya mwisho na sarafu ya malipo wakati wa kulipa.",
+    trialPrice: "Siku 7 bila malipo, kisha bei ya msingi ya {{price}}/mwezi. Njia ya malipo inahitajika. Hujisasisha kiotomatiki; ghairi kabla ya jaribio kuisha katika mipangilio ya Usajili.",
+    checkoutPrice: "Bei ya mwisho na sarafu wakati wa kulipa.",
+    renewalDisclosure: "Hujisasisha kiotomatiki; ghairi wakati wowote katika mipangilio ya Usajili.",
   },
   accentColorSettings: {
     title: "Rangi ya msisitizo",

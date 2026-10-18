@@ -897,8 +897,8 @@
 "settings.appIcon.systemAlertNote" = "iOS mengonfirmasi setiap perubahan ikon dengan peringatan.";
 
 "premium.apple.monthlyProduct" = "%@ · Bulanan";
-"premium.apple.renewal" = "Diperpanjang otomatis hingga dibatalkan. Kelola atau batalkan di langganan App Store Anda.";
-"premium.apple.trial" = "Uji coba gratis: %@. Setelah itu:";
+"premium.apple.renewal" = "Diperpanjang otomatis. Kelola atau batalkan di langganan App Store.";
+"premium.apple.trial" = "%@ gratis, lalu";
 "premium.apple.loadFailed" = "Penawaran App Store tidak dapat dimuat. Periksa koneksi Anda dan coba lagi.";
 "premium.apple.pending" = "Menunggu konfirmasi Apple atau akun. Pulihkan pembelian untuk mencoba lagi.";
 "premium.apple.cancelled" = "Pembelian dibatalkan. Anda tidak dikenakan biaya.";

@@ -30,8 +30,9 @@ const enCatalog = {
     creatorSupport: "Your subscription helps Nibomo’s creator, {{creator}}, pay for servers and fuel the next update with coffee and pizza.",
     basePrice: "Base price: {{price}} / month",
     startTrial: "Start 7-day free trial",
-    trialPrice: "7 days free, then {{price}}/month base. Payment method required; cancel before the trial ends to avoid the first charge.",
-    checkoutPrice: "Stripe confirms the final price and billing currency at checkout.",
+    trialPrice: "7 days free, then {{price}}/month base. Payment method required. Auto-renews; cancel before the trial ends in Subscription settings.",
+    checkoutPrice: "Final price and currency at checkout.",
+    renewalDisclosure: "Auto-renews; cancel anytime in Subscription settings.",
   },
   accentColorSettings: {
     title: "Accent color",

@@ -31,8 +31,9 @@ const fiCatalog: TranslationCatalog = {
     creatorSupport: "Tilauksesi auttaa Nibomon tekijää, {{creator}}, maksamaan palvelimet ja tekemään seuraavaa päivitystä kahvin ja pizzan voimalla.",
     basePrice: "Perushinta: {{price}} / kuukausi",
     startTrial: "Aloita 7 päivän ilmainen kokeilu",
-    trialPrice: "7 päivää ilmaiseksi, sitten perushinta {{price}}/kk. Maksutapa vaaditaan; peru ennen kokeilun päättymistä välttääksesi ensimmäisen veloituksen.",
-    checkoutPrice: "Stripe vahvistaa lopullisen hinnan ja laskutusvaluutan kassalla.",
+    trialPrice: "7 päivää ilmaiseksi, sitten perushinta {{price}}/kk. Maksutapa vaaditaan. Uusiutuu automaattisesti; peru ennen kokeilun päättymistä tilausasetuksissa.",
+    checkoutPrice: "Lopullinen hinta ja valuutta kassalla.",
+    renewalDisclosure: "Uusiutuu automaattisesti; peru milloin tahansa tilausasetuksissa.",
   },
   accentColorSettings: {
     title: "Korostusväri",

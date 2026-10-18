@@ -31,8 +31,9 @@ const svCatalog: TranslationCatalog = {
     creatorSupport: "Din prenumeration hjälper Nibomos skapare, {{creator}}, att betala servrarna och arbeta med nästa uppdatering med kaffe och pizza.",
     basePrice: "Baspris: {{price}} / månad",
     startTrial: "Starta 7 dagars gratis provperiod",
-    trialPrice: "7 dagar gratis, sedan ett grundpris på {{price}}/månad. Betalningsmetod krävs; säg upp innan provperioden slutar för att undvika första debiteringen.",
-    checkoutPrice: "Stripe bekräftar slutpriset och faktureringsvalutan i kassan.",
+    trialPrice: "7 dagar gratis, sedan ett grundpris på {{price}}/månad. Betalningsmetod krävs. Förnyas automatiskt; säg upp innan provperioden slutar i prenumerationsinställningarna.",
+    checkoutPrice: "Slutpris och valuta i kassan.",
+    renewalDisclosure: "Förnyas automatiskt; säg upp när som helst i prenumerationsinställningarna.",
   },
   accentColorSettings: {
     title: "Accentfärg",

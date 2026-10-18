@@ -31,8 +31,9 @@ const huCatalog: TranslationCatalog = {
     creatorSupport: "Előfizetésed segít a Nibomo készítőjének, {{creator}}, kifizetni a szervereket, és kávéval meg pizzával dolgozni a következő frissítésen.",
     basePrice: "Alapár: {{price}} / hó",
     startTrial: "7 napos ingyenes próba indítása",
-    trialPrice: "7 nap ingyen, utána {{price}}/hó alapár. Fizetési mód szükséges; az első terhelés elkerüléséhez mondd le a próbaidőszak vége előtt.",
-    checkoutPrice: "A Stripe a fizetéskor megerősíti a végleges árat és a számlázási pénznemet.",
+    trialPrice: "7 nap ingyen, utána {{price}}/hó alapár. Fizetési mód szükséges. Automatikusan megújul; mondd le a próbaidőszak vége előtt az előfizetés beállításaiban.",
+    checkoutPrice: "Végleges ár és pénznem a fizetéskor.",
+    renewalDisclosure: "Automatikusan megújul; bármikor lemondhatod az előfizetés beállításaiban.",
   },
   accentColorSettings: {
     title: "Kiemelőszín",

@@ -31,8 +31,9 @@ export const jaCatalog = {
     creatorSupport: "サブスクリプションは Nibomo の作者 {{creator}} のサーバー代を支え、コーヒーとピザで次のアップデートを後押しします。",
     basePrice: "基本価格：{{price}} / 月",
     startTrial: "7日間の無料体験を始める",
-    trialPrice: "7日間無料。その後は月額基本料金{{price}}。支払い方法の登録が必要です。初回請求を避けるには、無料体験終了前に解約してください。",
-    checkoutPrice: "最終価格と請求通貨は Stripe の決済画面で確認できます。",
+    trialPrice: "7日間無料。その後は月額基本料金{{price}}。支払い方法の登録が必要です。自動更新されます。無料体験終了前にサブスクリプション設定で解約してください。",
+    checkoutPrice: "最終価格と通貨は決済画面で確認できます。",
+    renewalDisclosure: "自動更新されます。サブスクリプション設定でいつでも解約できます。",
   },
   accentColorSettings: {
     title: "アクセントカラー",

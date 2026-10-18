@@ -31,8 +31,9 @@ const lvCatalog: TranslationCatalog = {
     creatorSupport: "Tavs abonements palīdz Nibomo veidotājam {{creator}} apmaksāt serverus un ar kafiju un picu gatavot nākamo atjauninājumu.",
     basePrice: "Bāzes cena: {{price}} / mēnesī",
     startTrial: "Sākt 7 dienu bezmaksas izmēģinājumu",
-    trialPrice: "7 dienas bez maksas, pēc tam pamatcena {{price}} mēnesī. Nepieciešams maksājuma veids; atceliet pirms izmēģinājuma beigām, lai izvairītos no pirmās maksas.",
-    checkoutPrice: "Stripe apmaksas laikā apstiprina galīgo cenu un norēķinu valūtu.",
+    trialPrice: "7 dienas bez maksas, pēc tam pamatcena {{price}} mēnesī. Nepieciešams maksājuma veids. Atjaunojas automātiski; atceliet pirms izmēģinājuma beigām abonementa iestatījumos.",
+    checkoutPrice: "Galīgā cena un valūta apmaksas laikā.",
+    renewalDisclosure: "Atjaunojas automātiski; atceliet jebkurā laikā abonementa iestatījumos.",
   },
   accentColorSettings: {
     title: "Akcenta krāsa",
