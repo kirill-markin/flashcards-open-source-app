@@ -73,12 +73,15 @@ export const createdRolesByMigration = new Map([
 // migration contracts retain their original cutoffs.
 export const boundaryDefinitions = Object.freeze([
   Object.freeze({
-    migrationFileName: "0217_default_accent_color.sql",
-    expectedMigrationCount: 219,
+    migrationFileName: "0218_browser_guest_sessions.sql",
+    expectedMigrationCount: 220,
     testFiles: Object.freeze([
       "src/routes/system/account/accountPreferences.postgres.integration.ts",
       "src/guestAuth/upgrade/boundGuestSession.postgres.integration.ts",
       "src/auth/socialSignIn.postgres.integration.ts",
+      "src/aiConsent/consent.postgres.integration.ts",
+      "src/workspaces/starterVisibility.postgres.integration.ts",
+      "src/auth/provedAccountUnion.postgres.integration.ts",
     ]),
   }),
   Object.freeze({
@@ -108,11 +111,8 @@ export const boundaryDefinitions = Object.freeze([
     expectedMigrationCount: 214,
     testFiles: Object.freeze([
       "src/auth/appleLifecycle.postgres.integration.ts",
-      "src/aiConsent/consent.postgres.integration.ts",
-      "src/workspaces/starterVisibility.postgres.integration.ts",
       "src/agent/reviews.postgres.integration.ts",
       "src/auth/stableClientAccountIdentity.postgres.integration.ts",
-      "src/auth/provedAccountUnion.postgres.integration.ts",
     ]),
   }),
   Object.freeze({
