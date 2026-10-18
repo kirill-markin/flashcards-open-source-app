@@ -11,9 +11,12 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.flashcardsopensourceapp.feature.settings.R
+
+const val cloudSignInErrorDetailsButtonTag: String = "cloud_sign_in_error_details_button"
 
 @Composable
 fun CloudSignInErrorCard(
@@ -46,7 +49,7 @@ fun CloudSignInErrorCard(
                             technicalDetailsReportId.orEmpty()
                         )
                     },
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth().testTag(tag = cloudSignInErrorDetailsButtonTag)
                 ) {
                     Text(
                         text = stringResource(R.string.settings_sign_in_error_show_details)
