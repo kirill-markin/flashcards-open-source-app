@@ -26,14 +26,13 @@ import {
 type FunnelLoadState =
   | Readonly<{ status: "loading" }>
   | Readonly<{ status: "error"; message: string }>
-  /** The report and the dimension it was loaded with, which are only meaningful together. */
   | Readonly<{
     status: "ready";
     report: PaywallFunnelReport;
     dimension: FunnelGroupByDimension | null;
   }>;
 
-const funnelStepIds = ["paywall-shown", "purchase-started", "converted"] as const;
+const funnelStepIds = ["paywall-shown", "premium-clicked", "purchase-started", "converted"] as const;
 
 type FunnelStepId = (typeof funnelStepIds)[number];
 
@@ -63,27 +62,47 @@ function buildStages(counts: PaywallFunnelCounts): ReadonlyArray<FunnelStage<Fun
     Record<FunnelStepId, Readonly<{ label: string; count: number; hashedCount: number }>>
   > = {
     "paywall-shown": { label: "Paywall shown", count: counts.paywallShownCount, hashedCount: 0 },
-    "purchase-started": { label: "Purchase started", count: counts.purchaseStartedCount, hashedCount: 0 },
-    converted: { label: "Trial or purchase", count: counts.convertedCount, hashedCount: 0 },
+    "premium-clicked": { label: "Premium clicked", count: counts.premiumCount, hashedCount: 0 },
+    "purchase-started": { label: "Checkout requested", count: counts.purchaseStartedCount, hashedCount: 0 },
+    converted: { label: "Server trial or first payment", count: counts.convertedCount, hashedCount: 0 },
   };
 
   return funnelStepIds.map((id) => ({ id, ...stages[id] }));
 }
 
-/** The funnel as a whole: the groups partition the cohort, so every funnel-wide figure is their sum. */
 function sumFunnelGroups(groups: ReadonlyArray<PaywallFunnelGroup>): PaywallFunnelCounts {
   return groups.reduce<PaywallFunnelCounts>((totals, group) => ({
     paywallShownCount: totals.paywallShownCount + group.paywallShownCount,
+    premiumCount: totals.premiumCount + group.premiumCount,
     purchaseStartedCount: totals.purchaseStartedCount + group.purchaseStartedCount,
     convertedCount: totals.convertedCount + group.convertedCount,
+    trialCount: totals.trialCount + group.trialCount,
+    paidCount: totals.paidCount + group.paidCount,
+    freeCount: totals.freeCount + group.freeCount,
+    dismissedCount: totals.dismissedCount + group.dismissedCount,
+    unknownChoiceCount: totals.unknownChoiceCount + group.unknownChoiceCount,
     maturingCount: totals.maturingCount + group.maturingCount,
   }), {
     paywallShownCount: 0,
+    premiumCount: 0,
     purchaseStartedCount: 0,
     convertedCount: 0,
+    trialCount: 0,
+    paidCount: 0,
+    freeCount: 0,
+    dismissedCount: 0,
+    unknownChoiceCount: 0,
     maturingCount: 0,
   });
 }
+
+const outcomeRows = [
+  ["trialCount", "Server-confirmed trial"],
+  ["paidCount", "Server-confirmed first payment"],
+  ["freeCount", "Chose Free"],
+  ["dismissedCount", "Dismissed"],
+  ["unknownChoiceCount", "No observed choice / unknown"],
+] as const;
 
 export function PaywallFunnelSection(props: FunnelSectionProps): JSX.Element {
   const [loadRevision, setLoadRevision] = useState<number>(0);
@@ -182,15 +201,29 @@ export function PaywallFunnelSection(props: FunnelSectionProps): JSX.Element {
       {totals !== null ? <FunnelMaturingWarning maturingCount={totals.maturingCount} entryCount={totals.paywallShownCount} /> : null}
 
       {totals !== null && totals.paywallShownCount > 0 ? (
-        <FunnelStepsChart
-          anchor={paywallFunnelAnchor}
-          stages={stages}
-          groups={groups ?? undefined}
-          countLabel="People"
-          tableCaption="Paywall funnel steps"
-          dateRange={props.filters.dateRange}
-          showsHashedSplit={false}
-        />
+        <>
+          <FunnelStepsChart
+            anchor={paywallFunnelAnchor}
+            stages={stages}
+            groups={groups ?? undefined}
+            countLabel="People"
+            tableCaption="Paywall funnel steps"
+            dateRange={props.filters.dateRange}
+            showsHashedSplit={false}
+          />
+          <div className="funnel-group-table-shell">
+            <table className="funnel-group-table">
+              <caption>Outcomes of the first paywall in range — people</caption>
+              <thead><tr><th scope="col">Observed outcome</th><th scope="col">People, out of {totals.paywallShownCount.toLocaleString("en-US")} shown</th></tr></thead>
+              <tbody>
+                {outcomeRows.map(([key, label]) => (
+                  <tr key={key}><th scope="row">{label}</th><td>{totals[key].toLocaleString("en-US")}</td></tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <p>Trial and first payment are separate outcomes after checkout, and can overlap; payment does not require a trial. Free, dismissed and unknown are alternative observations, not steps toward purchase. Explicit choices can overlap after retries.</p>
+        </>
       ) : null}
 
       {totals !== null ? (
@@ -198,7 +231,9 @@ export function PaywallFunnelSection(props: FunnelSectionProps): JSX.Element {
           <summary>How it&rsquo;s counted</summary>
           <div className="funnel-detail-row funnel-explainer-figure"><span>Paywall entries still inside 7-day window</span><strong>{totals.maturingCount.toLocaleString("en-US")}</strong></div>
           <p>Every step counts people: a person adds at most one to each step, and counts at a step only after reaching every step above it.</p>
-          <p>One row is one person, anchored at their first trusted <code>paywall_shown</code> in the selected UTC dates, counted only from {paywallFunnelStartDate}, the first day the paywall events could be reported. The later steps are that same person within seven days of it: a <code>purchase_started</code> at or after the paywall, then a <code>trial_started</code> or <code>purchase_completed</code> at or after that first start. <code>trial_started</code> and <code>purchase_completed</code> are the billing layer&rsquo;s own facts rather than what a client says the store answered, they carry no platform, and they count whichever of the person&rsquo;s devices the purchase was made on. A person still inside their seven-day window is not a confirmed drop-off.</p>
+          <p>One row is one canonical actor, anchored at their first trusted paywall presentation in the selected UTC dates, counted only from {paywallFunnelStartDate}. Guest activity and the account it becomes resolve to the same person. A Premium step requires an explicit <code>paywall_choice</code> with <code>outcome=premium</code> for that presentation, followed by its <code>purchase_started</code>. Both require the same presentation UUID, actor and platform, plus the entry point when reported. A later presentation cannot convert the first one. All steps must occur within seven days of the first paywall.</p>
+          <p>Checkout requested means the client reported <code>purchase_started</code>; it does not prove a provider sheet appeared or the request succeeded. The final step requires a server <code>trial_started</code> or <code>purchase_completed</code> after that checkout. These are billing facts, not client purchase results. Trials and first payments are counted independently, with each person counted once in their union. The outcomes table uses the same people shown as its denominator.</p>
+          <p>Billing attribution follows the presentation report&rsquo;s rule below, before filters. If the latest provider checkout is unlinked or belongs to another presentation, its fact cannot credit this paywall. Missing UUIDs or choice events stay unknown; a purchase never fills in a missing Premium click. Older clients and opted-out analytics can therefore leave a known purchase outside the sequenced funnel. An open seven-day window is not a confirmed drop-off, and delayed events can change past results.</p>
           <p>The date range, the client platform, the connection country and the app interface language are applied in SQL. The platform is the first paywall&rsquo;s, and one that carried none counts as unattributed; the country and language keep a person the way they do on General. An <code>@example.com</code> or <code>+test</code> account, an admin and an actor on the analytics exclusion list are excluded. <strong>Signed-in only</strong> keeps just the people who resolve to a real, non-guest account; <strong>All</strong> counts the same people as <strong>With anonymous ID</strong>, because there are no cookieless visitors on a paywall.</p>
           <p><strong>Group by</strong> splits those people by the platform or the entry point of their first paywall in range, so the groups sum back to the numbers above, and measures each group from its own first step. A first paywall that carried no value is kept in <strong>Unresolved</strong>.</p>
         </details>
