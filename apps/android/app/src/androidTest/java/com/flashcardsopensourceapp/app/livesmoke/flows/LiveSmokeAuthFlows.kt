@@ -6,12 +6,17 @@ import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
+import androidx.compose.ui.test.assertTextEquals
+import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasTestTag
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.isEnabled
+import androidx.compose.ui.test.isDisplayed
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performTextReplacement
 import com.flashcardsopensourceapp.app.livesmoke.diagnostics.clickTag
 import com.flashcardsopensourceapp.app.livesmoke.diagnostics.clickText
@@ -34,6 +39,8 @@ import com.flashcardsopensourceapp.app.livesmoke.support.internalUiTimeoutMillis
 import com.flashcardsopensourceapp.core.ui.components.appTechnicalErrorDetailsButtonTag
 import com.flashcardsopensourceapp.core.ui.components.appTechnicalErrorDetailsTextTag
 import com.flashcardsopensourceapp.core.ui.components.appTechnicalErrorDismissButtonTag
+import com.flashcardsopensourceapp.feature.settings.account.accountStatusScreenTag
+import com.flashcardsopensourceapp.feature.settings.account.accountStatusSyncNowButtonTag
 import com.flashcardsopensourceapp.feature.settings.cloud.cloudPostAuthExistingButtonTag
 import com.flashcardsopensourceapp.feature.settings.cloud.cloudPostAuthWorkspaceRowTag
 import com.flashcardsopensourceapp.feature.settings.cloud.cloudSignInEmailFieldTag
@@ -169,7 +176,7 @@ private fun LiveSmokeContext.waitForCloudSignInSendCodeOutcome(): CloudSignInSen
 }
 
 private fun LiveSmokeContext.isCloudSignInReadySurfaceVisible(): Boolean {
-    return hasVisibleText(text = accountStatusSyncNowButtonText, substring = false) ||
+    return composeRule.onNodeWithTag(testTag = accountStatusScreenTag).isDisplayed() ||
         hasVisibleText(text = cloudSyncChooserPrompt, substring = false) ||
         hasVisibleText(text = cloudPostAuthLinkingWorkspaceTitle, substring = false) ||
         hasVisibleText(text = cloudPostAuthSyncingWorkspaceTitle, substring = false) ||
@@ -229,8 +236,19 @@ private fun LiveSmokeContext.waitForLinkedAccountStatusAfterSignIn() {
                         "VisibleRows=${captureVisibleWorkspaceRows(rowTag = cloudPostAuthWorkspaceRowTag)}"
                 )
             }
-            hasVisibleText(text = accountStatusSyncNowButtonText, substring = false)
+            composeRule.onNodeWithTag(testTag = accountStatusScreenTag).isDisplayed() &&
+                composeRule.onNode(
+                    matcher = hasText(text = "Linked", substring = false)
+                        .and(hasAnyAncestor(hasTestTag(accountStatusScreenTag)))
+                ).isDisplayed()
         }
+        composeRule.onNodeWithTag(testTag = accountStatusScreenTag)
+            .performScrollToNode(matcher = hasTestTag(accountStatusSyncNowButtonTag))
+        composeRule.onNodeWithTag(testTag = accountStatusSyncNowButtonTag)
+            .performScrollTo()
+            .assertIsDisplayed()
+            .assertIsEnabled()
+            .assertTextEquals(accountStatusSyncNowButtonText)
     } catch (error: Throwable) {
         throw AssertionError(
             "Linked account status did not appear after sign-in. " +
