@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
@@ -82,6 +83,7 @@ internal fun PremiumStoreOffer(
     entitlement: CloudEntitlement?,
     analyticsSurface: AnalyticsSurface?,
     presentation: AnalyticsPaywallPresentation?,
+    isTestOfferPreview: Boolean,
     allowance: PremiumAllowanceState,
     onRetryAllowance: () -> Unit,
     onChoosePremium: () -> Unit
@@ -91,8 +93,11 @@ internal fun PremiumStoreOffer(
     val offerState by connector.offer.collectAsStateWithLifecycle()
     val operation by connector.operation.collectAsStateWithLifecycle()
     var hasRequestedOffer by remember(connector) { mutableStateOf(false) }
-    LaunchedEffect(connector, operation, presentation) {
-        if (presentation != null && !hasRequestedOffer && !isBillingOperationBusy(connector.operation.value)) {
+    var showPreviewPurchaseNotice by remember(connector, isTestOfferPreview) { mutableStateOf(false) }
+    val showsCatalog = isTestOfferPreview || presentation != null
+    val canLoadOffer = isTestOfferPreview || !isBillingOperationBusy(operation)
+    LaunchedEffect(connector, operation, showsCatalog, isTestOfferPreview) {
+        if (showsCatalog && !hasRequestedOffer && canLoadOffer) {
             hasRequestedOffer = true
             connector.loadOffer()
         }
@@ -106,7 +111,7 @@ internal fun PremiumStoreOffer(
     ) {
         Column(modifier = Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Text(text = stringResource(R.string.premium_title), style = MaterialTheme.typography.titleLarge)
-            if (presentation != null) when (allowance) {
+            if (showsCatalog) when (allowance) {
                 PremiumAllowanceState.Loading -> Text(stringResource(R.string.premium_allowance_loading))
                 PremiumAllowanceState.Failed -> {
                     Text(stringResource(R.string.premium_allowance_unavailable))
@@ -123,10 +128,10 @@ internal fun PremiumStoreOffer(
             }
             Text(stringResource(R.string.premium_benefits))
             PremiumCreatorSupport()
-            if (presentation == null) {
+            if (!showsCatalog) {
                 Text(stringResource(R.string.premium_preview_notice), modifier = Modifier.testTag("premium_preview"))
             } else {
-                if (entitlement == null) {
+                if (!isTestOfferPreview && entitlement == null) {
                     Text(stringResource(R.string.premium_entitlement_unknown), modifier = Modifier.testTag("premium_entitlement_unknown"))
                     if ((operation as? GooglePlaySubscriptionOperationState.Failed)?.phase !=
                         GooglePlaySubscriptionFailurePhase.ENTITLEMENT
@@ -145,33 +150,38 @@ internal fun PremiumStoreOffer(
                     }
                     GooglePlaySubscriptionOfferState.Unavailable -> {
                         Text(stringResource(R.string.premium_offer_unavailable), modifier = Modifier.testTag("premium_offer_unavailable"))
-                        OfferRetryButton(connector = connector, enabled = !isBillingOperationBusy(operation))
+                        OfferRetryButton(connector = connector, enabled = canLoadOffer)
                     }
                     is GooglePlaySubscriptionOfferState.Failed -> {
                         Text(stringResource(R.string.premium_store_unavailable), color = MaterialTheme.colorScheme.error)
-                        OfferRetryButton(connector = connector, enabled = !isBillingOperationBusy(operation))
+                        OfferRetryButton(connector = connector, enabled = canLoadOffer)
                     }
                     is GooglePlaySubscriptionOfferState.Available -> {
                         val details = premiumOfferDetails(state.offer, resources)
                         if (details == null) {
                             Text(stringResource(R.string.premium_offer_terms_unavailable))
-                            OfferRetryButton(connector = connector, enabled = !isBillingOperationBusy(operation))
+                            OfferRetryButton(connector = connector, enabled = canLoadOffer)
                         } else {
                             details.phaseDescriptions.forEach { description -> Text(description) }
                             val activity = findBillingActivity(context)
-                            if (activity == null) {
+                            if (!isTestOfferPreview && activity == null) {
                                 Text(stringResource(R.string.premium_activity_unavailable), color = MaterialTheme.colorScheme.error)
                             }
                             Button(
                                 onClick = {
-                                    activity?.let {
-                                        onChoosePremium()
-                                        connector.purchase(it, state.offer, analyticsSurface, presentation)
+                                    if (isTestOfferPreview) {
+                                        showPreviewPurchaseNotice = true
+                                    } else {
+                                        activity?.let {
+                                            onChoosePremium()
+                                            connector.purchase(it, state.offer, analyticsSurface, presentation)
+                                        }
                                     }
                                 },
-                                enabled = activity != null && entitlement != null && !hasPremiumAccess(entitlement) &&
-                                    allowance is PremiumAllowanceState.Available &&
-                                    !isBillingOperationBusy(operation) && !requiresPurchaseVerification(operation),
+                                enabled = allowance is PremiumAllowanceState.Available &&
+                                    (isTestOfferPreview || (activity != null && entitlement != null &&
+                                        !hasPremiumAccess(entitlement) && !isBillingOperationBusy(operation) &&
+                                        !requiresPurchaseVerification(operation))),
                                 modifier = Modifier.fillMaxWidth().testTag("premium_purchase")
                             ) { Text(details.purchaseLabel) }
                             Text(
@@ -184,6 +194,19 @@ internal fun PremiumStoreOffer(
                 }
             }
         }
+    }
+    if (showPreviewPurchaseNotice) {
+        AlertDialog(
+            onDismissRequest = { showPreviewPurchaseNotice = false },
+            title = { Text(stringResource(R.string.premium_title)) },
+            text = { Text(stringResource(R.string.premium_preview_purchase_notice)) },
+            confirmButton = {
+                TextButton(onClick = { showPreviewPurchaseNotice = false }) {
+                    Text(stringResource(android.R.string.ok))
+                }
+            },
+            modifier = Modifier.testTag("premium_preview_purchase_notice")
+        )
     }
 }
 
