@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -194,11 +195,12 @@ internal fun PremiumPresentationHost(
                 )
                 IconButton(
                     onClick = dismiss,
-                    modifier = Modifier.testTag(tag = premiumCloseButtonTag)
+                    modifier = Modifier.size(48.dp).testTag(tag = premiumCloseButtonTag)
                 ) {
                     Icon(
                         imageVector = Icons.Outlined.Close,
-                        contentDescription = stringResource(R.string.premium_close)
+                        contentDescription = stringResource(R.string.premium_close),
+                        modifier = Modifier.size(20.dp)
                     )
                 }
             }

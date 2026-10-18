@@ -10,7 +10,6 @@ import java.time.format.DateTimeParseException
 
 internal data class PremiumOfferDetails(
     val recurringPrice: String,
-    val introductoryPhaseDescriptions: List<String>,
     val purchaseLabel: String,
     val renewalDescription: String
 )
@@ -69,12 +68,12 @@ internal fun premiumOfferDetails(offer: GooglePlaySubscriptionOffer, resources: 
     }
     return PremiumOfferDetails(
         recurringPrice = descriptions.last(),
-        introductoryPhaseDescriptions = descriptions.dropLast(1),
         purchaseLabel = purchaseLabel,
         renewalDescription = resources.getString(
             if (hasFreeTrial) R.string.premium_trial_renewal_disclosure else R.string.premium_renewal_disclosure,
-            renewal.formattedPrice,
-            formatOfferPeriod(renewal.billingPeriod, resources) ?: return null
+            descriptions.reduce { previous, next ->
+                resources.getString(R.string.premium_phase_sequence, previous, next)
+            }
         )
     )
 }
