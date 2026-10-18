@@ -1055,6 +1055,7 @@ const trCatalog: TranslationCatalog = {
     searchPlaceholder: "Deste veya etiket ara",
   },
   reviewScreen: {
+    copyAriaLabel: "{{side}} kopyala",
     selectTextAriaLabel: "Metni seç ve kopyala: {{side}}",
     actions: {
       createCard: "Kart oluştur",
@@ -1101,6 +1102,8 @@ const trCatalog: TranslationCatalog = {
       snapshot: "Yakın tarihli yerel anlık görüntü gösteriliyor...",
     },
     media: {
+      privateImage: "Özel görsel",
+      privateAttachment: "Özel ek",
       attachmentLabel: "Ek",
       audioLabel: "Ses eki",
       imageAlt: "Yönetilen görsel",

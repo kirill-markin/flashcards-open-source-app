@@ -1055,6 +1055,7 @@ const deCatalog: TranslationCatalog = {
     searchPlaceholder: "Decks oder Tags suchen",
   },
   reviewScreen: {
+    copyAriaLabel: "{{side}} kopieren",
     selectTextAriaLabel: "Text auswählen und kopieren: {{side}}",
     actions: {
       createCard: "Karte erstellen",
@@ -1101,6 +1102,8 @@ const deCatalog: TranslationCatalog = {
       snapshot: "Ein aktueller lokaler Schnappschuss wird angezeigt...",
     },
     media: {
+      privateImage: "Privates Bild",
+      privateAttachment: "Privater Anhang",
       attachmentLabel: "Anhang",
       audioLabel: "Audioanhang",
       imageAlt: "Verwaltetes Bild",

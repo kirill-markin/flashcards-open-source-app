@@ -1055,6 +1055,7 @@ const thCatalog: TranslationCatalog = {
     searchPlaceholder: "ค้นหาเด็คหรือแท็ก",
   },
   reviewScreen: {
+    copyAriaLabel: "คัดลอก{{side}}",
     selectTextAriaLabel: "เลือกและคัดลอกข้อความ: {{side}}",
     actions: {
       createCard: "สร้างการ์ด",
@@ -1101,6 +1102,8 @@ const thCatalog: TranslationCatalog = {
       snapshot: "กำลังแสดงข้อมูลในเครื่องล่าสุด...",
     },
     media: {
+      privateImage: "รูปภาพส่วนตัว",
+      privateAttachment: "ไฟล์แนบส่วนตัว",
       attachmentLabel: "ไฟล์แนบ",
       audioLabel: "ไฟล์เสียงแนบ",
       imageAlt: "รูปภาพที่ระบบจัดการ",

@@ -1055,6 +1055,7 @@ const fiCatalog: TranslationCatalog = {
     searchPlaceholder: "Hae pakkoja tai tunnisteita",
   },
   reviewScreen: {
+    copyAriaLabel: "Kopioi {{side}}",
     selectTextAriaLabel: "Valitse ja kopioi teksti: {{side}}",
     actions: {
       createCard: "Luo kortti",
@@ -1101,6 +1102,8 @@ const fiCatalog: TranslationCatalog = {
       snapshot: "Näytetään tuore paikallinen tilannekuva...",
     },
     media: {
+      privateImage: "Yksityinen kuva",
+      privateAttachment: "Yksityinen liite",
       attachmentLabel: "Liite",
       audioLabel: "Ääniliite",
       imageAlt: "Hallittu kuva",

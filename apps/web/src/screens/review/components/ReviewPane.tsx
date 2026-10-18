@@ -177,6 +177,7 @@ function ReviewLoadingPane(props: ReviewLoadingPaneProps): ReactElement {
             aiButtonAriaLabel={null}
             text={loadingReviewCurrentCard.frontText}
             contentClassName="review-front"
+            copySource={null}
             isSpeaking={false}
             onOpenAi={null}
             onOpenTextSelection={() => onRequestTextSelection("front")}
@@ -386,6 +387,7 @@ function ReviewActiveCardPane(props: ReviewActiveCardPaneProps): ReactElement {
             aiButtonAriaLabel={null}
             text={selectedCard.frontText}
             contentClassName="review-front"
+            copySource={{ cardId: selectedCard.cardId, side: "front", sourceText: selectedCard.frontText }}
             isSpeaking={activeSpeechSide === "front"}
             onOpenAi={null}
             onOpenTextSelection={() => onRequestTextSelection("front")}
@@ -414,6 +416,7 @@ function ReviewActiveCardPane(props: ReviewActiveCardPaneProps): ReactElement {
               })}
               text={selectedCard.backText === "" ? t("common.noBackText") : selectedCard.backText}
               contentClassName="review-back"
+              copySource={{ cardId: selectedCard.cardId, side: "back", sourceText: selectedCard.backText }}
               isSpeaking={activeSpeechSide === "back"}
               onOpenAi={() => void onAiHandoff(selectedCard)}
               onOpenTextSelection={() => onRequestTextSelection("back")}

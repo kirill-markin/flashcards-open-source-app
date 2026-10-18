@@ -1055,6 +1055,7 @@ const etCatalog: TranslationCatalog = {
     searchPlaceholder: "Otsi pakke või silte",
   },
   reviewScreen: {
+    copyAriaLabel: "Kopeeri: {{side}}",
     selectTextAriaLabel: "Vali ja kopeeri tekst: {{side}}",
     actions: {
       createCard: "Loo kaart",
@@ -1101,6 +1102,8 @@ const etCatalog: TranslationCatalog = {
       snapshot: "Kuvatakse hiljutist kohalikku hetktõmmist...",
     },
     media: {
+      privateImage: "Privaatne pilt",
+      privateAttachment: "Privaatne manus",
       attachmentLabel: "Manus",
       audioLabel: "Helimanus",
       imageAlt: "Hallatav pilt",

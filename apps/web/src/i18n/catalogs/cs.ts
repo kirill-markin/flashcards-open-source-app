@@ -1065,6 +1065,7 @@ const csCatalog: TranslationCatalog = {
     searchPlaceholder: "Hledat balíčky nebo štítky",
   },
   reviewScreen: {
+    copyAriaLabel: "Kopírovat: {{side}}",
     selectTextAriaLabel: "Vybrat a zkopírovat text: {{side}}",
     actions: {
       createCard: "Vytvořit kartičku",
@@ -1111,6 +1112,8 @@ const csCatalog: TranslationCatalog = {
       snapshot: "Zobrazujeme nedávný místní snímek...",
     },
     media: {
+      privateImage: "Soukromý obrázek",
+      privateAttachment: "Soukromá příloha",
       attachmentLabel: "Příloha",
       audioLabel: "Zvuková příloha",
       imageAlt: "Spravovaný obrázek",

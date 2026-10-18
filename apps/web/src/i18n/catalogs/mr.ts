@@ -1055,6 +1055,7 @@ const mrCatalog: TranslationCatalog = {
     searchPlaceholder: "संच किंवा टॅग शोधा",
   },
   reviewScreen: {
+    copyAriaLabel: "{{side}} कॉपी करा",
     selectTextAriaLabel: "मजकूर निवडा आणि कॉपी करा: {{side}}",
     actions: {
       createCard: "कार्ड तयार करा",
@@ -1101,6 +1102,8 @@ const mrCatalog: TranslationCatalog = {
       snapshot: "अलीकडील स्थानिक स्नॅपशॉट दाखवत आहे...",
     },
     media: {
+      privateImage: "खाजगी प्रतिमा",
+      privateAttachment: "खाजगी संलग्नक",
       attachmentLabel: "जोडलेली फाइल",
       audioLabel: "जोडलेला ऑडिओ",
       imageAlt: "व्यवस्थापित प्रतिमा",

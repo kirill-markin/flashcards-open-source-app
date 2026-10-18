@@ -1065,6 +1065,7 @@ const roCatalog: TranslationCatalog = {
     searchPlaceholder: "Caută pachete sau etichete",
   },
   reviewScreen: {
+    copyAriaLabel: "Copiază {{side}}",
     selectTextAriaLabel: "Selectează și copiază textul: {{side}}",
     actions: {
       createCard: "Creează o fișă",
@@ -1111,6 +1112,8 @@ const roCatalog: TranslationCatalog = {
       snapshot: "Se afișează o copie locală recentă...",
     },
     media: {
+      privateImage: "Imagine privată",
+      privateAttachment: "Atașament privat",
       attachmentLabel: "Atașament",
       audioLabel: "Atașament audio",
       imageAlt: "Imagine gestionată",
