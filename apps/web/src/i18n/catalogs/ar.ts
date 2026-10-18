@@ -3,6 +3,18 @@ import { createStripeCatalog } from "../stripeCatalog";
 import type { TranslationCatalog } from "../catalogTypes";
 
 const arCatalog: TranslationCatalog = {
+  guest: {
+    title: "ضيف",
+    signIn: "تسجيل الدخول",
+    saveProgress: "احفظ تقدمك",
+    reminder: "سجّل الدخول بالبريد الإلكتروني حتى لا تفقد هذه البطاقات وتقدّم المراجعة.",
+    later: "لاحقًا",
+    warning: "سجّل الدخول للاحتفاظ بإمكانية الوصول على أجهزة أخرى. قد يؤدي مسح بيانات الموقع إلى فقدان وصول الضيف.",
+    mergeExplanation: "سيتم الاحتفاظ ببطاقاتك وسجل المراجعة. اختر مساحة عمل في حسابك أو أنشئ واحدة جديدة.",
+    aiSignIn: "سجّل الدخول لاستخدام ذكاء Nibomo الاصطناعي أو استخدم مفتاح OpenAI الخاص بك.",
+    recovery: "لم يتم التحقق من وصول الضيف. البطاقات المخزنة مؤقتًا للقراءة فقط. استعد الجلسة الأصلية أو الاتصال ثم أعد المحاولة.",
+    cleanupFailed: "تم تسجيل الدخول، لكن تعذّر حذف البطاقة التجريبية.",
+  },
   stripe: createStripeCatalog(stripeCopy),
   accentColorSettings: {
     title: "لون التمييز",

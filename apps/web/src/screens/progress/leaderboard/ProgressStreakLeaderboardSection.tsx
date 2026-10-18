@@ -1,6 +1,6 @@
 import { type ReactElement } from "react";
 import { Link } from "react-router";
-import { buildLoginUrl } from "../../../api";
+import { GuestSignIn } from "../../settings/account/guest/GuestSignIn";
 import { useI18n, type PluralCountLabels } from "../../../i18n";
 import { settingsLeaderboardParticipationRoute } from "../../../routes";
 import { useWorkspacePath } from "../../../useWorkspacePath";
@@ -25,14 +25,13 @@ type ProgressStreakLeaderboardSectionProps = Readonly<{
 }>;
 
 function ProgressStreakLeaderboardSignInPlaceholder(): ReactElement {
-  const { locale, t } = useI18n();
+  const { t } = useI18n();
 
   return (
     <div className="progress-leaderboard-placeholder" data-testid="progress-streak-leaderboard-guest">
       <p className="subtitle">{t("progressScreen.streakLeaderboard.guestBody")}</p>
-      <a className="primary-btn" href={buildLoginUrl(window.location.origin, locale)}>
-        {t("progressScreen.leaderboard.signIn")}
-      </a>
+      <GuestSignIn label={t("progressScreen.leaderboard.signIn")} testId="progress-streak-leaderboard-sign-in"
+        returnUrl={window.location.origin} />
     </div>
   );
 }

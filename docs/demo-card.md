@@ -9,7 +9,7 @@ One flashcard, tagged `demo`, seeded as onboarding into an empty workspace: for 
 mobile also for whoever uses the device next after a logout or other local reset.
 
 After it is seeded it is an ordinary card: editable, deletable, synced, and counted by FSRS
-scheduling, progress, and streaks like any other card. The one special case is the mobile
+scheduling, progress, and streaks like any other card. The one special case is the
 guest-upgrade cleanup in [Guest upgrade](#guest-upgrade); there is no other special-case behavior
 for it anywhere in the product, and no client may add any.
 
@@ -119,8 +119,8 @@ first-link path only one side's content ends up in the linked workspace:
 
 Guest upgrade merges the already-synced guest workspace into the destination workspace instead of
 choosing a side (see [docs/sync-identity-model.md](sync-identity-model.md)), so neither path above
-applies, and the guest device seeded its card before it knew about any account. Mobile resolves this
-in the client by upgrade mode:
+applies, and the guest device seeded its card before it knew about any account. The web and mobile clients resolve this
+by upgrade mode:
 
 - `bound` (new account): the card stays; the guest user is the account, so no other copy of the
   card can exist.
@@ -137,13 +137,14 @@ in the client by upgrade mode:
 
 Implementations:
 [iOS](../apps/ios/Flashcards/Flashcards/Cloud/Guest/FlashcardsStore+GuestUpgradeDemoCardCleanup.swift),
-[Android](../apps/android/data/local/src/main/java/com/flashcardsopensourceapp/data/local/repository/cloudsync/guest/GuestUpgradeDemoCardCleanup.kt).
+[Android](../apps/android/data/local/src/main/java/com/flashcardsopensourceapp/data/local/repository/cloudsync/guest/GuestUpgradeDemoCardCleanup.kt),
+[web](../apps/web/src/appData/session/guest/demoCardCleanup.ts).
 
 Accepted limits:
 
 - any upgrade finished through the pending-upgrade resume path skips the cleanup, so the card stays.
   That covers a relaunch or process death, and also an in-process retry, sign-in, or sync that
-  resumes after the fresh path failed and left the pending-upgrade record behind, on both platforms;
+  resumes after the fresh path failed and left the pending-upgrade record behind, on all three clients;
 - an app-language change between seed and upgrade means the text no longer matches, so the card
   stays;
 - a card written to the guest workspace server-side between the pre-upgrade drain and the server

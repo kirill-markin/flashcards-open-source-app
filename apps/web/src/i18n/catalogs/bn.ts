@@ -3,6 +3,18 @@ import { createStripeCatalog } from "../stripeCatalog";
 import type { TranslationCatalog } from "../catalogTypes";
 
 const bnCatalog: TranslationCatalog = {
+  guest: {
+    title: "অতিথি",
+    signIn: "সাইন ইন",
+    saveProgress: "আপনার অগ্রগতি সংরক্ষণ করুন",
+    reminder: "এই কার্ড ও পুনরালোচনার অগ্রগতি যাতে হারিয়ে না যায়, ইমেল দিয়ে সাইন ইন করুন।",
+    later: "পরে",
+    warning: "অন্য ডিভাইসেও প্রবেশাধিকার রাখতে সাইন ইন করুন। সাইটের ডেটা মুছে ফেললে অতিথি প্রবেশাধিকার হারাতে পারেন।",
+    mergeExplanation: "আপনার কার্ড ও পর্যালোচনার ইতিহাস রাখা হবে। অ্যাকাউন্টের একটি ওয়ার্কস্পেস বেছে নিন বা নতুন তৈরি করুন।",
+    aiSignIn: "Nibomo AI ব্যবহার করতে সাইন ইন করুন অথবা নিজের OpenAI কী ব্যবহার করুন।",
+    recovery: "অতিথি প্রবেশাধিকার যাচাই করা হয়নি। ক্যাশে থাকা কার্ড শুধু পড়া যাবে। মূল সেশন বা সংযোগ ফিরিয়ে এনে আবার চেষ্টা করুন।",
+    cleanupFailed: "সাইন ইন সফল হয়েছে, কিন্তু ডেমো কার্ড মুছে ফেলা যায়নি।",
+  },
   stripe: createStripeCatalog(stripeCopy),
   accentColorSettings: {
     title: "অ্যাকসেন্ট রং",

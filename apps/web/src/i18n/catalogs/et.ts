@@ -3,6 +3,18 @@ import { createStripeCatalog } from "../stripeCatalog";
 import type { TranslationCatalog } from "../catalogTypes";
 
 const etCatalog: TranslationCatalog = {
+  guest: {
+    title: "Külaline",
+    signIn: "Logi sisse",
+    saveProgress: "Salvesta oma edenemine",
+    reminder: "Logi sisse e-postiga, et need kaardid ja kordamise edenemine ei läheks kaotsi.",
+    later: "Hiljem",
+    warning: "Logi sisse, et säilitada juurdepääs teistes seadmetes. Saidiandmete kustutamine võib kaotada külalise juurdepääsu.",
+    mergeExplanation: "Sinu kaardid ja kordamiste ajalugu säilivad. Vali konto tööruum või loo uus.",
+    aiSignIn: "Nibomo tehisintellekti kasutamiseks logi sisse või kasuta oma OpenAI võtit.",
+    recovery: "Külalise juurdepääs on kinnitamata. Vahemällu salvestatud kaardid on kirjutuskaitstud. Taasta algne seanss või ühendus ja proovi uuesti.",
+    cleanupFailed: "Sisselogimine õnnestus, kuid näidiskaarti ei saanud eemaldada.",
+  },
   stripe: createStripeCatalog(stripeCopy),
   accentColorSettings: {
     title: "Rõhuvärv",

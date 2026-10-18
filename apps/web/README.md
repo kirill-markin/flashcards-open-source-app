@@ -13,6 +13,35 @@ The top-level product scope matches the other clients:
 - AI
 - Settings
 
+## Optional sign-in
+
+The browser opens a cloud-synced guest workspace immediately. **Guest · Sign in** saves the current
+workspace before opening the auth UI. An existing account can merge into any accessible workspace
+or create a new one. Keep this browser’s site data until conversion finishes: guest access depends
+on its essential cookie, and clearing all site data can lose that access. An unverified guest cache
+opens read-only until its original session can be verified. Nibomo-funded AI and Stripe purchases
+require sign-in; guests can use their own OpenAI key.
+
+The live smoke starts with guest authoring/review, reload and IndexedDB-only restoration, then covers
+conversion, fresh-merge demo cleanup and an interrupted completion replay using the configured review
+account. A dedicated new-account bind can also be checked manually against a fresh local Cognito-backed
+database or a disposable, previously unmapped account:
+
+1. Open the app with a fresh browser profile, record the guest user/workspace/card IDs from local
+   ownership metadata and IndexedDB, create a card, and review the demo. Wait for sync.
+2. Press **Guest · Sign in** and authenticate as the unmapped account. The bind finishes without a
+   destination chooser. Confirm the account keeps the same user ID, workspace ID, card IDs and review
+   event IDs, the demo stays active, and the workspace list has no extra workspace.
+3. Reload and check the same cards and review progress. Confirm the pending conversion metadata is
+   gone only after destination hot state and review history have loaded, and ordinary writes work.
+4. With another fresh guest and the now-existing account, choose an owned workspace with an existing
+   card (a tombstone also counts). Confirm the guest’s exact current-language demo becomes an ordinary
+   tombstone even when that guest authored other cards; an edited demo stays. Selecting an empty or
+   new workspace keeps the demo. Interrupt completion and reload to check the saved selection is
+   replayed without a second workspace and resumed conversion keeps the demo.
+
+Never publish cookies, CSRF tokens, keys, auth responses, or full storage dumps in diagnostics.
+
 ## Localization
 
 When adding a new web language, follow [docs/web-localization.md](../../docs/web-localization.md).

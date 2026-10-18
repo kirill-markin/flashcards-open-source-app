@@ -3,6 +3,18 @@ import { createStripeCatalog } from "../stripeCatalog";
 import type { TranslationCatalog } from "../catalogTypes";
 
 const thCatalog: TranslationCatalog = {
+  guest: {
+    title: "ผู้เยี่ยมชม",
+    signIn: "ลงชื่อเข้าใช้",
+    saveProgress: "บันทึกความคืบหน้า",
+    reminder: "ลงชื่อเข้าใช้ด้วยอีเมลเพื่อไม่ให้การ์ดและความคืบหน้าการทบทวนสูญหาย",
+    later: "ภายหลัง",
+    warning: "ลงชื่อเข้าใช้เพื่อเข้าถึงจากอุปกรณ์อื่นได้ต่อไป การล้างข้อมูลเว็บไซต์อาจทำให้สูญเสียสิทธิ์เข้าถึงของผู้เยี่ยมชม",
+    mergeExplanation: "บัตรและประวัติการทบทวนของคุณจะยังอยู่ เลือกพื้นที่ทำงานในบัญชีหรือสร้างใหม่",
+    aiSignIn: "ลงชื่อเข้าใช้เพื่อใช้ AI ของ Nibomo หรือใช้คีย์ OpenAI ของคุณเอง",
+    recovery: "ยังไม่ได้ยืนยันสิทธิ์เข้าถึงของผู้เยี่ยมชม บัตรที่แคชไว้อ่านได้อย่างเดียว กู้คืนเซสชันเดิมหรือเชื่อมต่อใหม่แล้วลองอีกครั้ง",
+    cleanupFailed: "ลงชื่อเข้าใช้สำเร็จ แต่ลบบัตรสาธิตไม่ได้",
+  },
   stripe: createStripeCatalog(stripeCopy),
   accentColorSettings: {
     title: "สีเน้น",

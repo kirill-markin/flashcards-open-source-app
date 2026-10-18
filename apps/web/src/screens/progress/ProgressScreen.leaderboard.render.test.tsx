@@ -109,7 +109,7 @@ function createLeaderboardWithSnapshotGeneratedAt(snapshotGeneratedAt: string): 
 describe("ProgressScreen leaderboard", () => {
   const progressScreen = createProgressScreenRenderTestContext();
 
-  it("renders the leaderboard guest placeholder with a sign-in link for unlinked accounts", async () => {
+  it("renders the leaderboard guest placeholder with a sign-in button for unlinked accounts", async () => {
     await progressScreen.renderProgressScreen();
     const container = progressScreen.getContainer();
 
@@ -119,11 +119,11 @@ describe("ProgressScreen leaderboard", () => {
     }
 
     expect(guestPlaceholder.textContent).toContain("Sign in to see how your review ratings rank alongside other learners.");
-    const signInLink = guestPlaceholder.querySelector("a");
-    if (!(signInLink instanceof HTMLAnchorElement)) {
-      throw new Error("Leaderboard guest sign-in link was not found");
+    const signInButton = guestPlaceholder.querySelector("[data-testid='progress-leaderboard-sign-in']");
+    if (!(signInButton instanceof HTMLButtonElement)) {
+      throw new Error("Leaderboard guest sign-in button was not found");
     }
-    expect(signInLink.textContent).toBe("Sign in");
+    expect(signInButton.textContent).toBe("Sign in");
     expect(container.querySelector("[data-testid='progress-leaderboard-row-viewer']")).toBeNull();
   });
 
@@ -145,7 +145,7 @@ describe("ProgressScreen leaderboard", () => {
       throw new Error("Leaderboard invite sign-in prompt was not found");
     }
 
-    expect(signInPrompt.querySelector("a")).not.toBeNull();
+    expect(signInPrompt.querySelector("[data-testid='progress-leaderboard-invite-sign-in-button']")).not.toBeNull();
   });
 
   it("requires a friend name before creating a leaderboard invite", async () => {

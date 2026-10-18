@@ -3,6 +3,18 @@ import { createStripeCatalog } from "../stripeCatalog";
 import type { TranslationCatalog } from "../catalogTypes";
 
 export const jaCatalog = {
+  guest: {
+    title: "ゲスト",
+    signIn: "サインイン",
+    saveProgress: "進捗を保存",
+    reminder: "メールでサインインして、これらのカードと復習の進捗を失わないようにしましょう。",
+    later: "後で",
+    warning: "他のデバイスでもアクセスを維持するにはサインインしてください。サイトデータを消去するとゲストとしてアクセスできなくなる場合があります。",
+    mergeExplanation: "カードと復習履歴は保持されます。アカウントのワークスペースを選択するか、新規作成してください。",
+    aiSignIn: "Nibomo AI を使うにはサインインするか、ご自身の OpenAI キーを使用してください。",
+    recovery: "ゲストアクセスは未確認です。キャッシュされたカードは読み取り専用です。元のセッションまたは接続を復元して再試行してください。",
+    cleanupFailed: "サインインしましたが、デモカードを削除できませんでした。",
+  },
   stripe: createStripeCatalog(stripeCopy),
   accentColorSettings: {
     title: "アクセントカラー",

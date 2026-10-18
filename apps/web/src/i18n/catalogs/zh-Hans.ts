@@ -3,6 +3,18 @@ import { createStripeCatalog } from "../stripeCatalog";
 import type { TranslationCatalog } from "../catalogTypes";
 
 export const zhHansCatalog = {
+  guest: {
+    title: "访客",
+    signIn: "登录",
+    saveProgress: "保存你的进度",
+    reminder: "使用电子邮件登录，以免这些卡片和复习进度丢失。",
+    later: "稍后",
+    warning: "登录后即可在其他设备上继续访问。清除网站数据可能导致访客访问权限丢失。",
+    mergeExplanation: "你的卡片和复习记录将被保留。请选择账户中的工作区或新建工作区。",
+    aiSignIn: "登录以使用 Nibomo AI，或使用你自己的 OpenAI 密钥。",
+    recovery: "访客访问尚未验证。缓存的卡片仅供阅读。请恢复原会话或重新连接后重试。",
+    cleanupFailed: "登录成功，但无法删除演示卡片。",
+  },
   stripe: createStripeCatalog(stripeCopy),
   accentColorSettings: {
     title: "强调色",

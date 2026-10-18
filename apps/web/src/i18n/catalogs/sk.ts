@@ -3,6 +3,18 @@ import { createStripeCatalog } from "../stripeCatalog";
 import type { TranslationCatalog } from "../catalogTypes";
 
 const skCatalog: TranslationCatalog = {
+  guest: {
+    title: "Hosť",
+    signIn: "Prihlásiť sa",
+    saveProgress: "Uložte si pokrok",
+    reminder: "Prihláste sa e-mailom, aby sa tieto karty a pokrok v opakovaní nestratili.",
+    later: "Neskôr",
+    warning: "Prihláste sa, aby ste si zachovali prístup na iných zariadeniach. Vymazaním údajov webu môžete stratiť prístup hosťa.",
+    mergeExplanation: "Vaše kartičky a história opakovania sa zachovajú. Vyberte pracovný priestor účtu alebo vytvorte nový.",
+    aiSignIn: "Prihláste sa na používanie AI Nibomo alebo použite vlastný kľúč OpenAI.",
+    recovery: "Prístup hosťa nie je overený. Kartičky vo vyrovnávacej pamäti sú len na čítanie. Obnovte pôvodnú reláciu alebo pripojenie a skúste to znova.",
+    cleanupFailed: "Prihlásenie bolo úspešné, ale ukážkovú kartičku sa nepodarilo odstrániť.",
+  },
   stripe: createStripeCatalog(stripeCopy),
   accentColorSettings: {
     title: "Farba zvýraznenia",

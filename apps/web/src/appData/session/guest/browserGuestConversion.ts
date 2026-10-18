@@ -1,6 +1,10 @@
 import { completeBrowserGuestUpgrade, forgetBrowserGuestSession, prepareBrowserGuestUpgrade, probeBrowserGuestSession } from "../../../api/endpoints/guestAuth";
-import { getOptionalSession, primeGuestSession } from "../../../api/transport/transport";
+import { getOptionalSession, primeGuestSession, resumeVerifiedBrowserSession } from "../../../api/transport/transport";
 import type { BrowserGuestProbe, BrowserGuestUpgradeResult, GuestUpgradeSelection } from "../../../apiContracts/guestAuth";
+import { closeDatabaseAfterWrite, getAllFromStore, getFromStore, runReadwrite, type ProgressCacheStateRecord } from "../../../localDb/core/database";
+import { markProgressCacheDirtyInTransaction } from "../../../localDb/progress/progress";
+import type { CardTagRecord } from "../../../localDb/cards/tags";
+import type { MediaTransferQueueRecord } from "../../../localDb/mediaTransfers/types";
 import { hasHydratedHotState, hasHydratedReviewHistory } from "../../../localDb/cards/workspace";
 import { loadCloudSettings } from "../../../localDb/sync/cloudSettings";
 import type { SessionInfo } from "../../../types";
@@ -100,7 +104,7 @@ export async function resumePendingGuestConversion(): Promise<Readonly<{
     if (pending.destinationUserId !== null && pending.destinationUserId !== session.userId) throw new Error("The signed-in account differs from the saved conversion destination.");
     const verified = { ...next, destinationUserId: session.userId };
     savePending(verified);
-    return { ...prepared, session, pending: verified };
+    return { ...prepared, session: resumeVerifiedBrowserSession(session), pending: verified };
   });
 }
 
@@ -133,11 +137,33 @@ export async function applyFinalizedGuestConversion(hydrateDestination: (session
     || !await hasHydratedHotState(pending.result.workspace.workspaceId) || !await hasHydratedReviewHistory(pending.result.workspace.workspaceId)) throw new Error("Destination workspace must be durably owned and hydrated before retiring the guest cookie.");
 }
 
-export async function retireGuestCredential(): Promise<void> {
+async function verifyRetiredDestination(destinationUserId: string | null): Promise<void> {
+  const settings = await loadCloudSettings();
+  const probe = await probeBrowserGuestSession();
+  const session = await getOptionalSession();
+  if (readPendingGuestConversion() !== null || !probe.registeredSession.present || probe.guestSession.status !== "absent"
+    || session?.authTransport !== "session" || session.browserGuestCapabilities !== null
+    || (destinationUserId !== null && session.userId !== destinationUserId)
+    || settings?.cloudState !== "linked" || settings.linkedUserId !== session.userId || settings.linkedWorkspaceId === null
+    || !await hasHydratedHotState(settings.linkedWorkspaceId) || !await hasHydratedReviewHistory(settings.linkedWorkspaceId)) {
+    throw new Error("The completed registered destination is not verified, durably installed and hydrated in this browser.");
+  }
+  resumeVerifiedBrowserSession(session);
+}
+
+export async function verifyRetiredGuestConversion(destinationUserId: string | null): Promise<void> {
+  await runWithBrowserGuestLock("exclusive", () => verifyRetiredDestination(destinationUserId));
+}
+
+export async function retireGuestCredential(destinationUserId: string): Promise<void> {
   return runWithBrowserGuestLock("exclusive", async () => {
-    const pending = requirePending();
+    const pending = readPendingGuestConversion();
+    if (pending === null) {
+      await verifyRetiredDestination(destinationUserId);
+      return;
+    }
     const settings = await loadCloudSettings();
-    if (pending.phase !== "completed" || pending.result === null || settings?.linkedUserId !== pending.destinationUserId
+    if (pending.destinationUserId !== destinationUserId || pending.phase !== "completed" || pending.result === null || settings?.linkedUserId !== pending.destinationUserId
       || settings?.linkedWorkspaceId !== pending.result.workspace.workspaceId || !await hasHydratedHotState(pending.result.workspace.workspaceId) || !await hasHydratedReviewHistory(pending.result.workspace.workspaceId)) {
       throw new Error("Keep the guest cookie until the finalized destination is durably hydrated.");
     }
@@ -147,5 +173,40 @@ export async function retireGuestCredential(): Promise<void> {
     await forgetBrowserGuestSession(probe.guestSession.csrfToken ?? probe.registeredSession.csrfToken);
     window.localStorage.removeItem(browserGuestStorageKey);
     window.dispatchEvent(new Event(browserGuestStorageKey));
+  });
+}
+
+export async function reconcileGuestConversionDrops(result: BrowserGuestUpgradeResult): Promise<void> {
+  const drops = result.droppedEntities;
+  if (drops === undefined) return;
+  await runWithBrowserGuestLock("exclusive", async () => {
+    const pending = requirePending();
+    const owner = await loadCloudSettings();
+    const workspaceId = result.workspace.workspaceId;
+    if (pending.phase !== "completed" || owner?.linkedUserId !== pending.destinationUserId
+      || owner?.linkedWorkspaceId !== workspaceId) throw new Error("Dropped entities require the installed conversion destination.");
+    await closeDatabaseAfterWrite(async (database) => {
+      const [tags, transfers, progress] = await Promise.all([
+        getAllFromStore<CardTagRecord>(database, "cardTags"),
+        getAllFromStore<MediaTransferQueueRecord>(database, "mediaTransferQueue"),
+        getFromStore<ProgressCacheStateRecord>(database, "meta", "progress_cache_state"),
+      ]);
+      const cardIds = new Set(drops.cardIds);
+      const mediaIds = new Set(drops.mediaAssetIds ?? []);
+      await runReadwrite(database, ["cards", "cardTags", "decks", "reviewEvents", "mediaAssets", "mediaTransferQueue", "meta"], (transaction) => {
+        for (const id of drops.cardIds) transaction.objectStore("cards").delete([workspaceId, id]);
+        for (const tag of tags) {
+          if (tag.workspaceId === workspaceId && cardIds.has(tag.cardId)) transaction.objectStore("cardTags").delete([workspaceId, tag.cardId, tag.tag]);
+        }
+        for (const id of drops.deckIds) transaction.objectStore("decks").delete([workspaceId, id]);
+        for (const id of drops.reviewEventIds) transaction.objectStore("reviewEvents").delete([workspaceId, id]);
+        for (const id of mediaIds) transaction.objectStore("mediaAssets").delete([workspaceId, id]);
+        for (const transfer of transfers) {
+          if (transfer.workspaceId === workspaceId && mediaIds.has(transfer.mediaAssetId)) transaction.objectStore("mediaTransferQueue").delete(transfer.transferId);
+        }
+        markProgressCacheDirtyInTransaction(transaction, progress?.timeZone ?? null);
+        return null;
+      });
+    });
   });
 }

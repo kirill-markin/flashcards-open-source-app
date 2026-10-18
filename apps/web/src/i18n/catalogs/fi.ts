@@ -3,6 +3,18 @@ import { createStripeCatalog } from "../stripeCatalog";
 import type { TranslationCatalog } from "../catalogTypes";
 
 const fiCatalog: TranslationCatalog = {
+  guest: {
+    title: "Vieras",
+    signIn: "Kirjaudu",
+    saveProgress: "Tallenna edistymisesi",
+    reminder: "Kirjaudu sähköpostilla, jotta nämä kortit ja kertausedistyminen eivät katoa.",
+    later: "Myöhemmin",
+    warning: "Kirjaudu sisään, jotta pääset tietoihin muillakin laitteilla. Sivustotietojen poistaminen voi viedä vieraskäyttöoikeuden.",
+    mergeExplanation: "Korttisi ja kertaushistoriasi säilyvät. Valitse tilin työtila tai luo uusi.",
+    aiSignIn: "Kirjaudu sisään käyttääksesi Nibomon tekoälyä tai käytä omaa OpenAI-avaintasi.",
+    recovery: "Vieraskäyttöä ei ole vahvistettu. Välimuistin kortit ovat vain luettavissa. Palauta alkuperäinen istunto tai yhteys ja yritä uudelleen.",
+    cleanupFailed: "Kirjautuminen onnistui, mutta esittelykorttia ei voitu poistaa.",
+  },
   stripe: createStripeCatalog(stripeCopy),
   accentColorSettings: {
     title: "Korostusväri",

@@ -3,6 +3,18 @@ import { createStripeCatalog } from "../stripeCatalog";
 import type { TranslationCatalog } from "../catalogTypes";
 
 export const ruCatalog = {
+  guest: {
+    title: "Гость",
+    signIn: "Войти",
+    saveProgress: "Сохраните свой прогресс",
+    reminder: "Войдите по электронной почте, чтобы не потерять эти карточки и прогресс повторения.",
+    later: "Позже",
+    warning: "Войдите, чтобы сохранить доступ на других устройствах. Очистка данных сайта может привести к потере гостевого доступа.",
+    mergeExplanation: "Ваши карточки и история повторений сохранятся. Выберите пространство в аккаунте или создайте новое.",
+    aiSignIn: "Войдите для использования ИИ Nibomo или укажите свой ключ OpenAI.",
+    recovery: "Гостевой доступ не подтверждён. Сохранённые карточки доступны только для чтения. Восстановите исходную сессию или подключение и повторите попытку.",
+    cleanupFailed: "Вход выполнен, но удалить демо-карточку не удалось.",
+  },
   stripe: createStripeCatalog(stripeCopy),
   accentColorSettings: {
     title: "Акцентный цвет",

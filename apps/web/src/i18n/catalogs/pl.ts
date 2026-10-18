@@ -3,6 +3,18 @@ import { createStripeCatalog } from "../stripeCatalog";
 import type { TranslationCatalog } from "../catalogTypes";
 
 const plCatalog: TranslationCatalog = {
+  guest: {
+    title: "Gość",
+    signIn: "Zaloguj się",
+    saveProgress: "Zapisz swoje postępy",
+    reminder: "Zaloguj się przez e-mail, aby nie stracić fiszek i postępów w powtórkach.",
+    later: "Później",
+    warning: "Zaloguj się, aby zachować dostęp na innych urządzeniach. Wyczyszczenie danych witryny może spowodować utratę dostępu gościa.",
+    mergeExplanation: "Twoje fiszki i historia powtórek zostaną zachowane. Wybierz obszar roboczy na koncie lub utwórz nowy.",
+    aiSignIn: "Zaloguj się, aby używać AI Nibomo, lub użyj własnego klucza OpenAI.",
+    recovery: "Dostęp gościa nie jest zweryfikowany. Fiszki w pamięci podręcznej są tylko do odczytu. Przywróć pierwotną sesję lub połączenie i spróbuj ponownie.",
+    cleanupFailed: "Logowanie powiodło się, ale nie udało się usunąć fiszki demonstracyjnej.",
+  },
   stripe: createStripeCatalog(stripeCopy),
   accentColorSettings: {
     title: "Kolor akcentu",

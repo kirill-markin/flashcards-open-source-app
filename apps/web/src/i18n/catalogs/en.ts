@@ -2,6 +2,18 @@ import stripeCopy from "../../../../backend/src/billing/stripe/copy/locales/en.j
 import { createStripeCatalog } from "../stripeCatalog";
 
 const enCatalog = {
+  guest: {
+    title: "Guest",
+    signIn: "Sign in",
+    saveProgress: "Save your progress",
+    reminder: "Sign in with email so these cards and review progress are not lost.",
+    later: "Later",
+    warning: "Sign in to keep access on other devices. Clearing site data can lose guest access.",
+    mergeExplanation: "Your cards and review history will be kept. Choose a workspace in your account or create a new one.",
+    aiSignIn: "Sign in to use Nibomo AI, or use your own OpenAI key.",
+    recovery: "Guest access is unverified. Cached cards are read-only. Restore the original session or reconnect, then retry.",
+    cleanupFailed: "Sign-in succeeded, but the demo card could not be removed.",
+  },
   stripe: createStripeCatalog(stripeCopy),
   accentColorSettings: {
     title: "Accent color",

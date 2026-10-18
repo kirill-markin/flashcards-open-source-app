@@ -25,7 +25,7 @@ export function GuestCachedCardsRecovery(props: Props): ReactElement {
       current = false;
       setCards([]);
       setIsLoading(false);
-      setReadError("Local guest ownership changed. Retry to verify the saved workspace.");
+      setReadError(t("guest.recovery"));
     });
     void runWithBrowserGuestLock("shared", async () => {
       const owner = await loadCachedBrowserGuestOwner();
@@ -44,12 +44,13 @@ export function GuestCachedCardsRecovery(props: Props): ReactElement {
       }
     });
     return () => { current = false; stopReading(); };
-  }, [userId, workspaceId]);
+  }, [userId, workspaceId, t]);
 
   return (
     <main className="page-state" data-testid="guest-cache-recovery">
       <section className="panel state-panel">
         <h1 className="title">{t("cardsScreen.title")}</h1>
+        <p>{t("guest.recovery")}</p>
         <p className="error-banner" role="status">{errorMessage}</p>
         <button className="primary-btn" type="button" onClick={() => void retry()}>{t("common.retry")}</button>
         {readError !== "" && <p className="error-banner">{readError}</p>}

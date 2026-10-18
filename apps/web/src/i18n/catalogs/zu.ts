@@ -3,6 +3,18 @@ import { createStripeCatalog } from "../stripeCatalog";
 import type { TranslationCatalog } from "../catalogTypes";
 
 const zuCatalog: TranslationCatalog = {
+  guest: {
+    title: "Isivakashi",
+    signIn: "Ngena",
+    saveProgress: "Londoloza inqubekelaphambili yakho",
+    reminder: "Ngena nge-imeyili ukuze la makhadi nenqubekelaphambili yokubukeza kungalahleki.",
+    later: "Kamuva",
+    warning: "Ngena ngemvume ukuze ugcine ukufinyelela kwamanye amadivayisi. Ukusula idatha yesayithi kungalahlekisa ukufinyelela kwesivakashi.",
+    mergeExplanation: "Amakhadi akho nomlando wokubuyekeza kuzogcinwa. Khetha indawo yokusebenza ku-akhawunti noma udale entsha.",
+    aiSignIn: "Ngena ngemvume ukuze usebenzise i-Nibomo AI, noma usebenzise ukhiye wakho we-OpenAI.",
+    recovery: "Ukufinyelela kwesivakashi akuqinisekisiwe. Amakhadi agcinwe kunqolobane angafundwa kuphela. Buyisela iseshini yokuqala noma uxhumano bese uzama futhi.",
+    cleanupFailed: "Ukungena ngemvume kuphumelele, kodwa ikhadi lesibonelo alikwazanga ukususwa.",
+  },
   stripe: createStripeCatalog(stripeCopy),
   accentColorSettings: {
     title: "Umbala wokugqamisa",

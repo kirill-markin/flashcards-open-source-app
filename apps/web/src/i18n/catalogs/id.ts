@@ -3,6 +3,18 @@ import { createStripeCatalog } from "../stripeCatalog";
 import type { TranslationCatalog } from "../catalogTypes";
 
 const idCatalog: TranslationCatalog = {
+  guest: {
+    title: "Tamu",
+    signIn: "Masuk",
+    saveProgress: "Simpan kemajuan Anda",
+    reminder: "Masuk dengan email agar kartu dan kemajuan pengulangan ini tidak hilang.",
+    later: "Nanti",
+    warning: "Masuk agar tetap dapat mengakses di perangkat lain. Menghapus data situs dapat menghilangkan akses tamu.",
+    mergeExplanation: "Kartu dan riwayat ulasan Anda akan tetap tersimpan. Pilih ruang kerja di akun atau buat yang baru.",
+    aiSignIn: "Masuk untuk menggunakan AI Nibomo, atau gunakan kunci OpenAI Anda sendiri.",
+    recovery: "Akses tamu belum terverifikasi. Kartu dalam cache hanya dapat dibaca. Pulihkan sesi asli atau koneksi, lalu coba lagi.",
+    cleanupFailed: "Berhasil masuk, tetapi kartu demo tidak dapat dihapus.",
+  },
   stripe: createStripeCatalog(stripeCopy),
   accentColorSettings: {
     title: "Warna aksen",

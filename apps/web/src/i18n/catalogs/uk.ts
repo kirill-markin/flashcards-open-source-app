@@ -3,6 +3,18 @@ import { createStripeCatalog } from "../stripeCatalog";
 import type { TranslationCatalog } from "../catalogTypes";
 
 const ukCatalog: TranslationCatalog = {
+  guest: {
+    title: "Гість",
+    signIn: "Увійти",
+    saveProgress: "Збережіть свій прогрес",
+    reminder: "Увійдіть через електронну пошту, щоб не втратити ці картки та прогрес повторень.",
+    later: "Пізніше",
+    warning: "Увійдіть, щоб зберегти доступ на інших пристроях. Очищення даних сайту може призвести до втрати гостьового доступу.",
+    mergeExplanation: "Ваші картки й історія повторень збережуться. Виберіть робочий простір в обліковому записі або створіть новий.",
+    aiSignIn: "Увійдіть для використання ШІ Nibomo або вкажіть власний ключ OpenAI.",
+    recovery: "Гостьовий доступ не підтверджено. Збережені картки доступні лише для читання. Відновіть початковий сеанс або з’єднання та повторіть спробу.",
+    cleanupFailed: "Вхід виконано, але видалити демонстраційну картку не вдалося.",
+  },
   stripe: createStripeCatalog(stripeCopy),
   accentColorSettings: {
     title: "Акцентний колір",

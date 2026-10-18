@@ -3,6 +3,18 @@ import { createStripeCatalog } from "../stripeCatalog";
 import type { TranslationCatalog } from "../catalogTypes";
 
 const heCatalog: TranslationCatalog = {
+  guest: {
+    title: "אורח",
+    signIn: "כניסה",
+    saveProgress: "שמירת ההתקדמות שלך",
+    reminder: "יש להיכנס עם דוא״ל כדי שהכרטיסיות וההתקדמות בחזרות לא יאבדו.",
+    later: "בהמשך",
+    warning: "יש להתחבר כדי לשמור על הגישה במכשירים אחרים. ניקוי נתוני האתר עלול לגרום לאובדן גישת האורח.",
+    mergeExplanation: "הכרטיסיות והיסטוריית החזרות יישמרו. אפשר לבחור סביבת עבודה בחשבון או ליצור חדשה.",
+    aiSignIn: "יש להתחבר כדי להשתמש בבינה המלאכותית של Nibomo, או להשתמש במפתח OpenAI משלך.",
+    recovery: "גישת האורח לא אומתה. הכרטיסיות שבמטמון זמינות לקריאה בלבד. יש לשחזר את ההפעלה המקורית או את החיבור ולנסות שוב.",
+    cleanupFailed: "ההתחברות הצליחה, אך לא ניתן היה להסיר את כרטיסיית ההדגמה.",
+  },
   stripe: createStripeCatalog(stripeCopy),
   accentColorSettings: {
     title: "צבע הדגשה",
