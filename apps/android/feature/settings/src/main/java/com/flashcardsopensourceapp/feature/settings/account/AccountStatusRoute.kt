@@ -32,6 +32,7 @@ import com.flashcardsopensourceapp.feature.settings.settingsScreenCardSpacing
 import com.flashcardsopensourceapp.feature.settings.settingsScreenContentPadding
 
 const val accountStatusScreenTag: String = "account_status_screen"
+const val accountStatusSyncNowButtonTag: String = "account_status_sync_now_button"
 
 @Composable
 fun AccountStatusRoute(
@@ -164,7 +165,7 @@ fun AccountStatusRoute(
                             Button(
                                 onClick = onSyncNow,
                                 enabled = uiState.isSubmitting.not() && uiState.isSyncBlocked.not(),
-                                modifier = Modifier.fillMaxWidth()
+                                modifier = Modifier.fillMaxWidth().testTag(tag = accountStatusSyncNowButtonTag)
                             ) {
                                 Text(
                                     if (uiState.isSubmitting) {
