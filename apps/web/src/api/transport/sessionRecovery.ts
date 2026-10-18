@@ -1,3 +1,4 @@
+import { readBrowserGuestOwnershipGeneration, readBrowserGuestState, requireBrowserGuestSyncReady, subscribeToBrowserGuestChanges } from "../../appData/session/guest/browserGuestStorage";
 import { combineAbortSignals } from "../../abortSignals";
 import { markBrowserReauthRequired } from "../../accountDeletion";
 import { track } from "../../analytics/client";
@@ -12,7 +13,7 @@ import {
 } from "./response";
 import { readAbortError, waitForTransportDelay } from "./transportSignals";
 
-type SessionCsrfState = "unknown" | "session" | "non-session";
+type SessionCsrfState = "unknown" | "session" | "guest" | "non-session";
 type RefreshBrowserSessionResult = "refreshed" | "reconciled" | "unauthorized";
 export type AuthRecoveryMode = "allow" | "skip";
 export type NetworkRetryMode = "none" | "transient";
@@ -45,6 +46,10 @@ export type SessionRecovery = Readonly<{
   getOptionalSession: () => Promise<SessionInfo | null>;
   getSession: () => Promise<SessionInfo>;
   primeSessionCsrfToken: (csrfToken: string) => void;
+  primeGuestSession: (userId: string, csrfToken: string) => void;
+  pauseBrowserGuestSession: () => void;
+  resumeVerifiedBrowserSession: (session: SessionInfo) => void;
+  readBrowserGuestVerificationGeneration: (userId: string) => number | null;
   requestResponse: (
     method: string,
     endpoint: string,
@@ -55,6 +60,7 @@ export type SessionRecovery = Readonly<{
   ) => Promise<Response>;
   resetApiClientStateForTests: () => void;
   revalidateSession: () => Promise<SessionInfo>;
+  recoverRegisteredCredentialForProbe: () => Promise<void>;
   setNavigationHandlerForTests: (handler: NavigateToUrl | null) => void;
   throwIfRequestAborted: (signal: AbortSignal | null) => void;
 }>;
@@ -97,6 +103,8 @@ export const allowAuthRecoveryWithTransientNetworkRetry: RequestOptions = {
 };
 
 export const skipAuthRecoveryWithTransientNetworkRetry: RequestOptions = createSkipAuthRecoveryOptions("transient");
+// Only explicit owner verification may read /me while ordinary protected work is paused.
+const browserSessionVerificationOptions: RequestOptions = createSkipAuthRecoveryOptions("transient");
 
 function createSkipAuthRecoveryOptions(networkRetryMode: NetworkRetryMode): RequestOptions {
   return {
@@ -154,6 +162,9 @@ function waitForRefreshSessionReconciliation(signal: AbortSignal | null): Promis
 }
 
 export function createSessionRecovery(loadSessionInfo: LoadSessionInfo): SessionRecovery {
+  let identityController = new AbortController();
+  let browserGuestSessionPaused = false;
+  let browserGuestVerificationGeneration = 0;
   let sessionCsrfToken: string | null = null;
   let sessionUserId: string | null = null;
   let sessionCsrfState: SessionCsrfState = "unknown";
@@ -175,6 +186,19 @@ export function createSessionRecovery(loadSessionInfo: LoadSessionInfo): Session
   let navigationHandler: NavigateToUrl | null = null;
   let indexedDbOpenRecoverySignal: AbortSignal | null = null;
 
+  let guestBoundary = "";
+  if (typeof window !== "undefined") subscribeToBrowserGuestChanges(() => {
+    const saved = readBrowserGuestState();
+    const owner = saved?.status === "owned" ? `${saved.owner.userId}:${saved.owner.pending?.phase ?? "active"}` : saved?.status ?? "absent";
+    const next = `${owner}:${readBrowserGuestOwnershipGeneration() ?? ""}`;
+    if (guestBoundary === next) return;
+    guestBoundary = next;
+    browserGuestVerificationGeneration += 1;
+    identityController.abort(new Error("Browser guest identity boundary changed; reload session before writing."));
+    identityController = new AbortController();
+    resetSessionState();
+  });
+
   function bindIndexedDbOpenRecoverySignal(signal: AbortSignal): () => void {
     const previousSignal = indexedDbOpenRecoverySignal;
     indexedDbOpenRecoverySignal = signal;
@@ -194,23 +218,8 @@ export function createSessionRecovery(loadSessionInfo: LoadSessionInfo): Session
     }
   }
 
-  const noRequestSignalDisposal = (): void => undefined;
-
   function mergeRequestSignal(lifecycleSignal: AbortSignal | null | undefined): RequestSignalBinding {
-    const recoverySignal = indexedDbOpenRecoverySignal;
-    if (recoverySignal === null) {
-      return {
-        signal: lifecycleSignal ?? undefined,
-        dispose: noRequestSignalDisposal,
-      };
-    }
-    if (lifecycleSignal === undefined || lifecycleSignal === null || lifecycleSignal === recoverySignal) {
-      return {
-        signal: recoverySignal,
-        dispose: noRequestSignalDisposal,
-      };
-    }
-    return combineAbortSignals([recoverySignal, lifecycleSignal]);
+    return combineAbortSignals([identityController.signal, ...(indexedDbOpenRecoverySignal === null ? [] : [indexedDbOpenRecoverySignal]), ...(lifecycleSignal == null ? [] : [lifecycleSignal])]);
   }
 
   function attachRecoverySignal(init: RequestInit): RequestInitBinding {
@@ -269,7 +278,8 @@ export function createSessionRecovery(loadSessionInfo: LoadSessionInfo): Session
   function setSessionCsrfToken(session: SessionInfo): void {
     sessionCsrfToken = session.csrfToken;
     sessionUserId = session.userId;
-    sessionCsrfState = session.authTransport === "session" ? "session" : "non-session";
+    sessionCsrfState = session.authTransport === "session" ? "session"
+      : session.browserGuestCapabilities?.isGuest === true ? "guest" : "non-session";
     if (sessionCsrfState === "session") {
       hasLoadedBrowserSession = true;
     }
@@ -285,13 +295,18 @@ export function createSessionRecovery(loadSessionInfo: LoadSessionInfo): Session
     sessionCsrfState = "unknown";
   }
 
+  function requireBrowserGuestSessionNotPaused(): void {
+    if (browserGuestSessionPaused) throw new Error("Browser guest session is unverified; remote work is paused until owner verification succeeds.");
+  }
+
   function createSessionHeaders(headers: Headers, method: string): Headers {
     if (isUnsafeMethod(method)) {
+      requireBrowserGuestSessionNotPaused();
       if (sessionCsrfState === "unknown") {
         throw new Error("Session must be loaded before sending mutating requests");
       }
 
-      if (sessionCsrfState === "session") {
+      if (sessionCsrfState === "session" || sessionCsrfState === "guest") {
         const csrfToken = sessionCsrfToken;
         if (csrfToken === null || csrfToken === "") {
           throw new Error("CSRF token is not loaded for this browser session");
@@ -476,6 +491,29 @@ export function createSessionRecovery(loadSessionInfo: LoadSessionInfo): Session
     throw new Error("Refresh session retry loop exited without a result");
   }
 
+  async function recoverRegisteredCredentialForProbe(): Promise<void> {
+    for (let attempt = 0; attempt < refreshSessionMaximumAttemptCount; attempt += 1) {
+      let response: Response;
+      try {
+        response = await fetch(`${getAppConfig().authBaseUrl}/api/refresh-session`, { method: "POST", credentials: "include" });
+      } catch (error) {
+        if (!hasRemainingRefreshAttempt(attempt)) throw createRefreshSessionNetworkError(error);
+        console.warn("Registered credential probe refresh retry", { attemptCount: attempt + 1 });
+        await waitForRefreshSessionRetry(attempt, null);
+        continue;
+      }
+      if (response.ok) return;
+      if (response.status === 401) await redirectToLogin(prepareForAuthRedirect);
+      if (isTransientRefreshSessionStatus(response.status) && hasRemainingRefreshAttempt(attempt)) {
+        console.warn("Registered credential probe refresh retry", { attemptCount: attempt + 1, statusCode: response.status });
+        await waitForRefreshSessionRetry(attempt, null);
+        continue;
+      }
+      throw await createRefreshSessionResponseError(response, null);
+    }
+    throw new Error("Registered credential probe refresh ended without a response");
+  }
+
   function shouldRetryAfterWeakerSessionRecovery(error: unknown, options: RequestOptions): boolean {
     return options.networkRetryMode === "transient" && error instanceof ApiNetworkError;
   }
@@ -484,6 +522,9 @@ export function createSessionRecovery(loadSessionInfo: LoadSessionInfo): Session
     options: RequestOptions,
     requestSignal: AbortSignal | null,
   ): Promise<void> {
+    if (sessionCsrfState === "guest" || readBrowserGuestState() !== null) {
+      throw new Error("The browser guest credential expired or changed. Local data has been preserved; restore the original cookie before syncing.");
+    }
     const authTaskSignal = selectSharedAuthTaskSignal(requestSignal);
     const recoveryTask = (async (): Promise<void> => {
       const refreshResult = await refreshBrowserSession(options.networkRetryMode, authTaskSignal);
@@ -558,6 +599,11 @@ export function createSessionRecovery(loadSessionInfo: LoadSessionInfo): Session
     options: RequestOptions,
     signal: AbortSignal | null,
   ): Promise<SessionInfo> {
+    const saved = readBrowserGuestState();
+    if (saved?.status === "owned" && saved.owner.pending !== null
+      && (saved.owner.pending.phase === "draining" || saved.owner.pending.phase === "awaiting_auth")) {
+      throw new Error("Prepare the pending guest conversion before loading the registered account.");
+    }
     const session = await loadSessionInfo({ ...options, expectedUserId: null }, signal);
     throwIfRequestAborted(signal);
     setSessionCsrfToken(session);
@@ -603,6 +649,7 @@ export function createSessionRecovery(loadSessionInfo: LoadSessionInfo): Session
     options: RequestOptions,
     requestSignal: AbortSignal | null,
   ): Promise<void> {
+    requireBrowserGuestSessionNotPaused();
     if (sessionCsrfState !== "unknown" && (options.expectedUserId === null || sessionUserId !== null)) {
       return;
     }
@@ -653,11 +700,13 @@ export function createSessionRecovery(loadSessionInfo: LoadSessionInfo): Session
   ): Promise<Response> {
     throwIfRequestAborted(requestSignal);
     if (isUnsafeMethod(method)) {
+      if (sessionCsrfState === "guest" && sessionUserId !== null) requireBrowserGuestSyncReady(sessionUserId);
       await ensureSessionTransportReadyForUnsafeRequest(options, requestSignal);
       throwIfRequestAborted(requestSignal);
     }
 
     function performAccountBoundRequest(): Promise<Response> {
+      if (options !== browserSessionVerificationOptions || endpoint !== "GET /me") requireBrowserGuestSessionNotPaused();
       if (options.expectedUserId !== null && options.expectedUserId !== sessionUserId) {
         throw new ApiError({
           statusCode: 0,
@@ -682,6 +731,7 @@ export function createSessionRecovery(loadSessionInfo: LoadSessionInfo): Session
     let didRecoverSessionCsrf: boolean = false;
     while (true) {
       if (response.status === 401) {
+        if (sessionCsrfState === "guest" || readBrowserGuestState() !== null) return response;
         if (didRecoverSession) {
           await redirectToLogin(options.prepareForAuthRedirect);
         }
@@ -715,6 +765,8 @@ export function createSessionRecovery(loadSessionInfo: LoadSessionInfo): Session
   }
 
   function resetApiClientStateForTests(): void {
+    browserGuestSessionPaused = false;
+    browserGuestVerificationGeneration = 0;
     sessionCsrfToken = null;
     sessionUserId = null;
     sessionCsrfState = "unknown";
@@ -733,10 +785,15 @@ export function createSessionRecovery(loadSessionInfo: LoadSessionInfo): Session
     attachRecoverySignal,
     bindIndexedDbOpenRecoverySignal,
     createSessionHeaders,
-    getCachedSessionCsrfToken: (): string | null => sessionCsrfState === "session" ? sessionCsrfToken : null,
+    getCachedSessionCsrfToken: (): string | null => sessionCsrfState === "session" || sessionCsrfState === "guest" ? sessionCsrfToken : null,
     getOptionalSession: async (): Promise<SessionInfo | null> => {
       try {
-        return await loadSessionInfoWithoutRecovery("transient", null);
+        const signal = identityController.signal;
+        const session = await loadSessionInfo(browserSessionVerificationOptions, signal);
+        throwIfRequestAborted(signal);
+        setSessionCsrfToken(session);
+        redirectInFlight = false;
+        return session;
       } catch (error) {
         if (error instanceof ApiError && error.statusCode === 401) {
           return null;
@@ -749,12 +806,32 @@ export function createSessionRecovery(loadSessionInfo: LoadSessionInfo): Session
       allowAuthRecoveryWithTransientNetworkRetry,
       null,
     ),
+    pauseBrowserGuestSession: (): void => {
+      browserGuestSessionPaused = true;
+      browserGuestVerificationGeneration += 1;
+      identityController.abort(new Error("Browser guest session is unverified; remote work is paused."));
+      identityController = new AbortController();
+      resetSessionState();
+    },
+    resumeVerifiedBrowserSession: (session: SessionInfo): void => {
+      setSessionCsrfToken(session);
+      browserGuestSessionPaused = false;
+      browserGuestVerificationGeneration += 1;
+    },
+    readBrowserGuestVerificationGeneration: (userId: string): number | null => browserGuestSessionPaused === false
+      && sessionCsrfState === "guest" && sessionUserId === userId ? browserGuestVerificationGeneration : null,
+    primeGuestSession: (userId: string, csrfToken: string): void => {
+      sessionUserId = userId;
+      sessionCsrfToken = csrfToken;
+      sessionCsrfState = "guest";
+    },
     primeSessionCsrfToken: (csrfToken: string): void => {
       sessionCsrfToken = csrfToken;
       sessionUserId = null;
       sessionCsrfState = "session";
     },
     requestResponse,
+    recoverRegisteredCredentialForProbe,
     resetApiClientStateForTests,
     revalidateSession: (): Promise<SessionInfo> => loadSessionInfoWithRecovery(
       allowAuthRecoveryWithTransientNetworkRetry,

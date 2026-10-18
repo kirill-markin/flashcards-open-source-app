@@ -3,6 +3,18 @@ import { createStripeCatalog } from "../stripeCatalog";
 import type { TranslationCatalog } from "../catalogTypes";
 
 const lvCatalog: TranslationCatalog = {
+  guest: {
+    title: "Viesis",
+    signIn: "Pierakstīties",
+    saveProgress: "Saglabājiet progresu",
+    reminder: "Pierakstieties ar e-pastu, lai nezaudētu šīs kartītes un atkārtošanas progresu.",
+    later: "Vēlāk",
+    warning: "Pierakstieties, lai saglabātu piekļuvi citās ierīcēs. Vietnes datu dzēšana var izraisīt viesa piekļuves zaudēšanu.",
+    mergeExplanation: "Jūsu kartītes un atkārtošanas vēsture tiks saglabāta. Izvēlieties konta darbvietu vai izveidojiet jaunu.",
+    aiSignIn: "Pierakstieties, lai izmantotu Nibomo MI, vai lietojiet savu OpenAI atslēgu.",
+    recovery: "Viesa piekļuve nav pārbaudīta. Kešatmiņā saglabātās kartītes var tikai lasīt. Atjaunojiet sākotnējo sesiju vai savienojumu un mēģiniet vēlreiz.",
+    cleanupFailed: "Pierakstīšanās izdevās, bet demonstrācijas kartīti neizdevās noņemt.",
+  },
   stripe: createStripeCatalog(stripeCopy),
   paywall: {
     heading: "Mācīšanās pieder visiem.",

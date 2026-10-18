@@ -1,4 +1,6 @@
-import { requestJson, skipAuthRecoveryWithTransientNetworkRetry } from "../transport/transport";
+import { parseContractResponse } from "../transport/response";
+import { parseBrowserGuestProbe, parseBrowserGuestPrepare, parseBrowserGuestUpgradeResult, type BrowserGuestProbe, type BrowserGuestUpgradeResult, type GuestUpgradeSelection } from "../../apiContracts/guestAuth";
+import { requestBrowserCookieJson, requestJson, skipAuthRecoveryWithTransientNetworkRetry } from "../transport/transport";
 
 /** Bounds the background task; the caller retries on its own schedule after a failure. */
 const linkWebGuestIdentityTimeoutMs = 10 * 1000;
@@ -19,5 +21,33 @@ export async function linkWebGuestIdentity(guestToken: string): Promise<void> {
     method: "POST",
     body: JSON.stringify({ guestToken }),
     signal: AbortSignal.timeout(linkWebGuestIdentityTimeoutMs),
+  }, skipAuthRecoveryWithTransientNetworkRetry);
+}
+
+export async function probeBrowserGuestSession(): Promise<BrowserGuestProbe> {
+  return parseContractResponse(await requestBrowserCookieJson("/guest-auth/browser/session", { method: "GET", cache: "no-store" }, skipAuthRecoveryWithTransientNetworkRetry), "GET /guest-auth/browser/session", parseBrowserGuestProbe);
+}
+
+export async function createBrowserGuestSession(idempotencyKey: string): Promise<BrowserGuestProbe> {
+  return parseContractResponse(await requestBrowserCookieJson("/guest-auth/browser/session", {
+    method: "POST", body: JSON.stringify({ idempotencyKey, hasLocalOwnership: false }),
+  }, skipAuthRecoveryWithTransientNetworkRetry), "POST /guest-auth/browser/session", parseBrowserGuestProbe);
+}
+
+export async function prepareBrowserGuestUpgrade(csrfToken: string, guestWorkspaceSyncedAndOutboxDrained: boolean): Promise<Readonly<{ mode: "bound" | "merge_required" }>> {
+  return parseContractResponse(await requestBrowserCookieJson("/guest-auth/browser/upgrade/prepare", {
+    method: "POST", headers: { "X-CSRF-Token": csrfToken }, body: JSON.stringify({ guestWorkspaceSyncedAndOutboxDrained }),
+  }, skipAuthRecoveryWithTransientNetworkRetry), "POST /guest-auth/browser/upgrade/prepare", parseBrowserGuestPrepare);
+}
+
+export async function completeBrowserGuestUpgrade(csrfToken: string, selection: GuestUpgradeSelection, guestWorkspaceSyncedAndOutboxDrained: boolean): Promise<BrowserGuestUpgradeResult> {
+  return parseContractResponse(await requestBrowserCookieJson("/guest-auth/browser/upgrade/complete", {
+    method: "POST", headers: { "X-CSRF-Token": csrfToken }, body: JSON.stringify({ selection, guestWorkspaceSyncedAndOutboxDrained, supportsDroppedEntities: true }),
+  }, skipAuthRecoveryWithTransientNetworkRetry), "POST /guest-auth/browser/upgrade/complete", parseBrowserGuestUpgradeResult);
+}
+
+export async function forgetBrowserGuestSession(csrfToken: string | null): Promise<void> {
+  await requestBrowserCookieJson("/guest-auth/browser/session/forget", {
+    method: "POST", ...(csrfToken === null ? {} : { headers: { "X-CSRF-Token": csrfToken } }),
   }, skipAuthRecoveryWithTransientNetworkRetry);
 }

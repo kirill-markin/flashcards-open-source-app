@@ -1,3 +1,7 @@
+import { allowBrowserGuestInitialSeed, markBrowserGuestHydrated, readBrowserGuestVerificationGeneration, requireBrowserGuestVerificationGeneration } from "../../session/guest/browserGuestSession";
+import { isDrainingBrowserGuestInThisTab, readBrowserGuestState, readPendingGuestConversion, requireBrowserGuestSyncReady, requireBrowserGuestWritesReady, runWithBrowserGuestLock, runWithBrowserGuestWorkLock, subscribeToBrowserGuestChanges } from "../../session/guest/browserGuestStorage";
+import { listOutboxRecords } from "../../../localDb/sync/outbox";
+import { requireWorkspaceMediaUploadsCompleted } from "../../../localDb/mediaTransfers";
 import {
   useCallback,
   useEffect,
@@ -102,6 +106,7 @@ type UseSyncEngineParams = Readonly<{
 
 type SyncEngine = Readonly<{
   runSync: () => Promise<void>;
+  drainGuestWorkspace: () => Promise<void>;
   runSyncSilently: () => Promise<void>;
   runSyncForWorkspace: (workspace: WorkspaceSummary) => Promise<void>;
   runMediaUploadTransfers: () => void;
@@ -517,16 +522,18 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
     workspace: WorkspaceSummary,
     reportSyncError: (report: SyncFailureReport) => void,
   ): Promise<void> {
-    // Local writes may happen during warm start, but remote sync stays paused
-    // until auth verification confirms which account owns this browser state.
     if (
       isDiscardingAllSyncWorkRef.current
       || indexedDbOpenRecoveryState.hasFailed()
       || session === null
-      || sessionVerificationState !== "verified"
+      || (sessionVerificationState !== "verified" && !isDrainingBrowserGuestInThisTab())
     ) {
       return;
     }
+
+    const guestVerificationGeneration = session.browserGuestCapabilities?.isGuest === true
+      ? readBrowserGuestVerificationGeneration(session.userId) : null;
+    if (session.browserGuestCapabilities?.isGuest === true && guestVerificationGeneration === null) return;
 
     const workspaceId = workspace.workspaceId;
     const syncGeneration = syncGenerationRef.current;
@@ -553,11 +560,12 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
     ]);
     syncAbortControllersRef.current.set(workspaceId, syncAbortController);
 
-    const syncTask = (async (): Promise<void> => {
+    const createSyncTask = async (): Promise<void> => {
       let syncInstallationId: string | null = null;
       const syncRunId = createSyncRunId();
       const requireCurrentWorkspaceSync = function requireCurrentWorkspaceSync(currentWorkspaceId: string): void {
         requireWorkspaceSyncNotDiscarded(currentWorkspaceId, syncGeneration, workspaceSyncGeneration);
+        if (guestVerificationGeneration !== null) requireBrowserGuestVerificationGeneration(session.userId, guestVerificationGeneration);
       };
       const publishCurrentWorkspaceSettings = function publishCurrentWorkspaceSettings(
         currentWorkspaceId: string,
@@ -590,6 +598,7 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
       };
 
       try {
+        if (session.browserGuestCapabilities?.isGuest === true) requireBrowserGuestSyncReady(session.userId);
         requireCurrentWorkspaceSync(workspaceId);
         const cloudSettings = await waitForRecoveryGuardedSyncPhase(loadCloudSettings());
         requireCurrentWorkspaceSync(workspaceId);
@@ -597,6 +606,7 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
           return;
         }
 
+        if (cloudSettings?.linkedUserId !== session.userId) throw new Error("Local sync owner differs from the verified session; preserve local data and reload.");
         const installationId = requireCloudInstallationId(cloudSettings);
         syncInstallationId = installationId;
         const syncFlags = await waitForRecoveryGuardedSyncPhase(runWorkspaceRemoteSync({
@@ -607,7 +617,8 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
           signal: syncSignal,
           hasFailed: indexedDbOpenRecoveryState.hasFailed,
           indexedDbOpenRecoveryState,
-          isOnlyWorkspaceForUser: isOnlyWorkspaceOfAccount(availableWorkspacesRef.current, workspaceId),
+          isOnlyWorkspaceForUser: isOnlyWorkspaceOfAccount(availableWorkspacesRef.current, workspaceId)
+            && (session.browserGuestCapabilities?.isGuest !== true || allowBrowserGuestInitialSeed(session.userId)),
           requireWorkspaceSyncNotDiscarded: requireCurrentWorkspaceSync,
           publishWorkspaceSettings: publishCurrentWorkspaceSettings,
           refreshWorkspaceView: refreshCurrentWorkspaceView,
@@ -633,6 +644,7 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
         // a healthy run is a new failure and is emitted, while repeats of an ongoing one stay
         // suppressed and another workspace's ongoing failure keeps its own suppression.
         observeSyncSuccess(workspaceId);
+        if (session.browserGuestCapabilities?.isGuest === true) markBrowserGuestHydrated(session.userId);
         runMediaUploadTransfersForWorkspace(workspace);
       } catch (error) {
         const normalizedError = normalizeCaughtError(error);
@@ -686,7 +698,10 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
           }
         }
       }
-    })();
+    };
+    const syncTask = session.browserGuestCapabilities?.isGuest === true
+      ? runWithBrowserGuestWorkLock(syncSignal, createSyncTask)
+      : createSyncTask();
 
     syncPromisesRef.current.set(workspaceId, syncTask);
     return syncTask;
@@ -836,12 +851,14 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
   }, [activeWorkspace, runLocalDataRead]);
 
   const requireLocalWorkspaceMutationReady = useCallback(function requireLocalWorkspaceMutationReady(): void {
-    if (isDiscardingAllSyncWorkRef.current) {
+    if (isDiscardingAllSyncWorkRef.current || session === null || sessionLoadState === "guest_recovery"
+      || (session.browserGuestCapabilities?.isGuest === true && (sessionVerificationState !== "verified"
+        || readBrowserGuestVerificationGeneration(session.userId) === null))) {
       throw new Error("Workspace is unavailable");
     }
 
     indexedDbOpenRecoveryState.throwIfFailed();
-  }, [indexedDbOpenRecoveryState]);
+  }, [indexedDbOpenRecoveryState, session, sessionLoadState, sessionVerificationState]);
 
   const runLocalWorkspaceMutation = useCallback(function runLocalWorkspaceMutation<T>(
     createMutationTask: () => Promise<T>,
@@ -849,7 +866,26 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
     requireLocalWorkspaceMutationReady();
     let mutationTask: Promise<T>;
     try {
-      mutationTask = createMutationTask();
+      if (session?.browserGuestCapabilities?.isGuest === true) {
+        requireBrowserGuestWritesReady(session.userId);
+        const generation = readBrowserGuestVerificationGeneration(session.userId);
+        if (generation === null) throw new Error("Browser guest session is unverified; local writes are paused.");
+        mutationTask = runWithBrowserGuestLock("shared", async () => {
+          requireBrowserGuestVerificationGeneration(session.userId, generation);
+          requireBrowserGuestWritesReady(session.userId);
+          return createMutationTask();
+        });
+      } else if (session !== null && readPendingGuestConversion()?.destinationUserId === session.userId) {
+        mutationTask = (async () => {
+          const settings = await loadCloudSettings();
+          if (settings?.linkedUserId !== session.userId || settings.linkedWorkspaceId !== activeWorkspaceId) {
+            throw new Error("The converted destination must be installed before writing workspace data.");
+          }
+          return createMutationTask();
+        })();
+      } else {
+        mutationTask = createMutationTask();
+      }
     } catch (error) {
       markIndexedDbOpenRecoveryFailure(error);
       indexedDbOpenRecoveryState.throwIfFailed();
@@ -871,7 +907,29 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
     });
     localMutationPromisesRef.current.add(trackedMutationTask);
     return trackedMutationTask;
-  }, [indexedDbOpenRecoveryState, markIndexedDbOpenRecoveryFailure, requireLocalWorkspaceMutationReady]);
+  }, [activeWorkspaceId, indexedDbOpenRecoveryState, markIndexedDbOpenRecoveryFailure, requireLocalWorkspaceMutationReady, session]);
+
+  const drainGuestWorkspace = useCallback(async function drainGuestWorkspace(): Promise<void> {
+    if (session?.browserGuestCapabilities?.isGuest !== true || activeWorkspace === null) throw new Error("An active guest workspace is required for sign-in drain.");
+    await Promise.all([...localMutationPromisesRef.current]);
+    await waitForWorkspaceSyncToSettle(activeWorkspace.workspaceId);
+    await runSyncForWorkspace(activeWorkspace);
+    await waitForWorkspaceSyncToSettle(activeWorkspace.workspaceId);
+    if ((await listOutboxRecords(activeWorkspace.workspaceId)).length !== 0) throw new Error("Guest outbox is not empty. Keep the guest session and retry sync before signing in.");
+    await requireWorkspaceMediaUploadsCompleted(activeWorkspace.workspaceId);
+  }, [activeWorkspace, runSyncForWorkspace, session, waitForWorkspaceSyncToSettle]);
+
+  useEffect(() => subscribeToBrowserGuestChanges(() => {
+    if (session?.browserGuestCapabilities?.isGuest !== true) return;
+    const state = readBrowserGuestState();
+    if (state?.status === "owned" && state.owner.userId === session.userId && state.owner.pending === null) return;
+    syncGenerationRef.current += 1;
+    abortAllWorkspaceRemoteSyncs(new Error("Browser guest ownership changed; sync is paused."));
+    syncPromisesRef.current.clear();
+    syncingWorkspaceIdsRef.current.clear();
+    needsResyncWorkspaceIdsRef.current.clear();
+    refreshSyncIndicator();
+  }), [abortAllWorkspaceRemoteSyncs, refreshSyncIndicator, session]);
 
   const createCardItem = useCallback(async function createCardItem(input: CreateCardInput): Promise<Card> {
     if (activeWorkspaceId === null || activeWorkspace === null) {
@@ -1087,6 +1145,7 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
 
   return {
     runSync,
+    drainGuestWorkspace,
     runSyncSilently,
     runSyncForWorkspace,
     runMediaUploadTransfers,

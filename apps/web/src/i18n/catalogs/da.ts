@@ -3,6 +3,18 @@ import { createStripeCatalog } from "../stripeCatalog";
 import type { TranslationCatalog } from "../catalogTypes";
 
 const daCatalog: TranslationCatalog = {
+  guest: {
+    title: "Gæst",
+    signIn: "Log ind",
+    saveProgress: "Gem dine fremskridt",
+    reminder: "Log ind med e-mail, så disse kort og dine fremskridt ikke går tabt.",
+    later: "Senere",
+    warning: "Log ind for at bevare adgang på andre enheder. Rydning af webstedsdata kan medføre tab af gæsteadgang.",
+    mergeExplanation: "Dine kort og din repetitionshistorik bevares. Vælg et arbejdsområde på kontoen eller opret et nyt.",
+    aiSignIn: "Log ind for at bruge Nibomo AI, eller brug din egen OpenAI-nøgle.",
+    recovery: "Gæsteadgangen er ikke bekræftet. Cachede kort er skrivebeskyttede. Gendan den oprindelige session eller forbindelsen, og prøv igen.",
+    cleanupFailed: "Du er logget ind, men demokortet kunne ikke fjernes.",
+  },
   stripe: createStripeCatalog(stripeCopy),
   paywall: {
     heading: "Læring er for alle.",

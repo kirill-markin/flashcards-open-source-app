@@ -29,20 +29,16 @@ const authorId = "33333333-3333-4333-8333-333333333333";
 const workspaceReplicaId = "45268888-5620-5912-9ed1-4bd6f2105aff";
 
 const {
-  buildLoginUrlMock,
   confirmCatalogPackageInstallMock,
-  getOptionalSessionMock,
   loadPublicCatalogPackageVersionMock,
   previewCatalogPackageInstallMock,
   useAppDataMock,
 } = vi.hoisted(() => ({
-  buildLoginUrlMock: vi.fn<(returnUrl: string, localeHint: string) => string>(),
   confirmCatalogPackageInstallMock: vi.fn<(
     workspaceId: string,
     requestedPackageVersionId: string,
     options: CatalogPackageInstallConfirmOptions,
   ) => Promise<CatalogPackageInstallConfirmResponse>>(),
-  getOptionalSessionMock: vi.fn<() => Promise<SessionInfo | null>>(),
   loadPublicCatalogPackageVersionMock: vi.fn<(
     requestedPackageVersionId: string,
   ) => Promise<CatalogPublicPackageVersion>>(),
@@ -57,9 +53,7 @@ vi.mock("../../api", async (importOriginal) => {
   const actual = await importOriginal<typeof import("../../api")>();
   return {
     ...actual,
-    buildLoginUrl: buildLoginUrlMock,
     confirmCatalogPackageInstall: confirmCatalogPackageInstallMock,
-    getOptionalSession: getOptionalSessionMock,
     isAuthRedirectError: (_error: unknown): boolean => false,
     loadPublicCatalogPackageVersion: loadPublicCatalogPackageVersionMock,
     previewCatalogPackageInstall: previewCatalogPackageInstallMock,
@@ -331,12 +325,8 @@ describe("CatalogImportScreen", () => {
     appData = createAppData([createWorkspace("workspace-1", "Primary", true)]);
     useAppDataMock.mockReset();
     useAppDataMock.mockImplementation(() => appData);
-    buildLoginUrlMock.mockReset();
-    buildLoginUrlMock.mockReturnValue("https://auth.example.test/login");
     loadPublicCatalogPackageVersionMock.mockReset();
     loadPublicCatalogPackageVersionMock.mockResolvedValue(createCatalogPackageVersion());
-    getOptionalSessionMock.mockReset();
-    getOptionalSessionMock.mockResolvedValue(createSession());
     previewCatalogPackageInstallMock.mockReset();
     previewCatalogPackageInstallMock.mockResolvedValue(createInstallPreview());
     confirmCatalogPackageInstallMock.mockReset();
@@ -395,21 +385,24 @@ describe("CatalogImportScreen", () => {
     await waitForCondition("Missing version state was not rendered", () => (
       container.querySelector("[data-testid='catalog-import-not-found']") !== null
     ));
-    expect(getOptionalSessionMock).not.toHaveBeenCalled();
+    expect(useAppDataMock).not.toHaveBeenCalled();
   });
 
-  it("preserves the complete exact-version return URL for signed-out users", async () => {
-    getOptionalSessionMock.mockResolvedValue(null);
+  it("preserves the complete exact-version URL when admitting a browser guest", async () => {
+    appData.session = { ...createSession(), authTransport: "guest", browserGuestCapabilities: {
+      isGuest: true, platformFundedAi: false, ownKeyAi: true, requiresAccountLinking: true,
+    } };
+    appData.cloudSettings = { ...appData.cloudSettings!, cloudState: "guest", linkedEmail: null };
 
     await renderRoute(`/catalog/import/${packageVersionId}`);
-    await waitForCondition("Signed-out catalog state was not rendered", () => (
-      container.querySelector("[data-testid='catalog-import-signed-out']") !== null
+    await waitForCondition("Guest catalog confirmation was not rendered", () => (
+      container.querySelector("[data-testid='catalog-import-confirm']") !== null
     ));
 
     expect(container.querySelector("[data-testid='catalog-import-package-summary']")?.textContent).toBe("тест — 2 cards");
-    expect(buildLoginUrlMock).toHaveBeenCalledWith(
+    expect(previewCatalogPackageInstallMock).toHaveBeenCalledWith("workspace-1", packageVersionId);
+    expect(window.location.href).toBe(
       `http://localhost:3000/catalog/import/${packageVersionId}?source=exact#install`,
-      "en",
     );
   });
 

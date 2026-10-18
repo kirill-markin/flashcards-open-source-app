@@ -1,6 +1,6 @@
 import { type ReactElement, type Ref } from "react";
 import { Link } from "react-router";
-import { buildLoginUrl } from "../../../api";
+import { GuestSignIn } from "../../settings/account/guest/GuestSignIn";
 import { resolveBestLeaderboardPlacement } from "../../../appData/progress/leaderboardPlacement";
 import { useI18n } from "../../../i18n";
 import { settingsLeaderboardParticipationRoute } from "../../../routes";
@@ -91,14 +91,13 @@ type ProgressLeaderboardSectionProps = ProgressLeaderboardBodyProps & Readonly<{
 }>;
 
 function ProgressLeaderboardSignInPlaceholder(): ReactElement {
-  const { locale, t } = useI18n();
+  const { t } = useI18n();
 
   return (
     <div className="progress-leaderboard-placeholder" data-testid="progress-leaderboard-guest">
       <p className="subtitle">{t("progressScreen.leaderboard.guestBody")}</p>
-      <a className="primary-btn" href={buildLoginUrl(window.location.origin, locale)}>
-        {t("progressScreen.leaderboard.signIn")}
-      </a>
+      <GuestSignIn label={t("progressScreen.leaderboard.signIn")} testId="progress-leaderboard-sign-in"
+        returnUrl={window.location.origin} />
     </div>
   );
 }

@@ -719,6 +719,7 @@ export function setupChatPanelTest(): ChatPanelTestHarness {
     putChatFileUploadMock.mockResolvedValue(undefined);
     loadAiUsageMock.mockResolvedValue({
       accountKind: "account",
+      browserGuestCapabilities: null,
       usage: {
         monthEndsAt: "2026-04-01T00:00:00.000Z",
         remainingMessages: null,

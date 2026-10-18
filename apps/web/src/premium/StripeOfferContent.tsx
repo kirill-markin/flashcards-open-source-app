@@ -1,6 +1,6 @@
 import type { ReactElement } from "react";
 import { isAwaitingAnalyticsConsentDecision } from "../analytics";
-import { buildLoginUrl } from "../api";
+import { GuestSignIn } from "../screens/settings/account/guest/GuestSignIn";
 import { useAppData } from "../appData";
 import { useI18n } from "../i18n";
 import { canCollectPaywallAnalytics, type PaywallPresentation, type PremiumContinuation } from "./stripeIntent";
@@ -16,7 +16,7 @@ type StripeOfferContentProps = Readonly<{
 }>;
 
 export function StripeOfferContent(props: StripeOfferContentProps): ReactElement {
-  const { t, formatNumber, locale } = useI18n();
+  const { t, formatNumber } = useI18n();
   const { session, isSessionVerified } = useAppData();
   const billing = useStripeBilling();
   const offer = billing.offer;
@@ -29,7 +29,6 @@ export function StripeOfferContent(props: StripeOfferContentProps): ReactElement
     returnUrl.searchParams.set("premium_entry_point", props.presentation.entryPoint);
   }
   if (props.continuation !== null) returnUrl.searchParams.set("premium_accent_color", props.continuation.accentColor);
-  const loginUrl = buildLoginUrl(returnUrl.toString(), locale);
   const creatorCopy = t("paywall.creatorSupport").split("{{creator}}");
   const isPurchasing = !props.isPreview && billing.busy && billing.status === "opening";
   const canPurchase = offer?.checkoutAvailable === true && price !== null;
@@ -55,7 +54,8 @@ export function StripeOfferContent(props: StripeOfferContentProps): ReactElement
       {guest ? <>
         <p>{t("stripe.offer.guestExplanation")}</p>
         {props.isPreview || !isSessionVerified ? <button type="button" className="premium-plan-button premium-paid-button" disabled>{t("stripe.offer.addEmail")}</button> :
-          <a className="premium-plan-button premium-paid-button" href={loginUrl} data-testid="premium-add-email" onClick={props.onChoosePremium}>{t("stripe.offer.addEmail")}</a>}
+          <GuestSignIn label={t("stripe.offer.addEmail")} testId="premium-add-email"
+            returnUrl={returnUrl.toString()} onStarted={props.onChoosePremium} />}
       </> : <>
         {canPurchase ? <button type="button" className="premium-plan-button premium-paid-button"
           disabled={props.isPreview || billing.busy || !isSessionVerified} data-testid="premium-purchase"

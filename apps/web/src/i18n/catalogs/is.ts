@@ -3,6 +3,18 @@ import { createStripeCatalog } from "../stripeCatalog";
 import type { TranslationCatalog } from "../catalogTypes";
 
 const isCatalog: TranslationCatalog = {
+  guest: {
+    title: "Gestur",
+    signIn: "Skrá inn",
+    saveProgress: "Vista framvindu þína",
+    reminder: "Skráðu þig inn með netfangi svo þessi spjöld og framvinda glatist ekki.",
+    later: "Síðar",
+    warning: "Skráðu þig inn til að halda aðgangi í öðrum tækjum. Hreinsun vefgagna getur valdið því að gestaaðgangur glatist.",
+    mergeExplanation: "Spjöldin þín og upprifjunarsagan varðveitast. Veldu vinnusvæði á reikningnum eða búðu til nýtt.",
+    aiSignIn: "Skráðu þig inn til að nota Nibomo AI eða notaðu eigin OpenAI-lykil.",
+    recovery: "Gestaaðgangur hefur ekki verið staðfestur. Spjöld í skyndiminni eru skrifvarin. Endurheimtu upprunalegu lotuna eða tenginguna og reyndu aftur.",
+    cleanupFailed: "Innskráning tókst en ekki tókst að fjarlægja sýnispjaldið.",
+  },
   stripe: createStripeCatalog(stripeCopy),
   paywall: {
     heading: "Nám er fyrir alla.",

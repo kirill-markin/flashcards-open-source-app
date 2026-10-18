@@ -3,6 +3,18 @@ import { createStripeCatalog } from "../stripeCatalog";
 import type { TranslationCatalog } from "../catalogTypes";
 
 const ltCatalog: TranslationCatalog = {
+  guest: {
+    title: "Svečias",
+    signIn: "Prisijungti",
+    saveProgress: "Išsaugokite pažangą",
+    reminder: "Prisijunkite el. paštu, kad neprarastumėte šių kortelių ir kartojimo pažangos.",
+    later: "Vėliau",
+    warning: "Prisijunkite, kad išlaikytumėte prieigą kituose įrenginiuose. Išvalę svetainės duomenis galite prarasti svečio prieigą.",
+    mergeExplanation: "Jūsų kortelės ir kartojimo istorija bus išsaugotos. Pasirinkite paskyros darbo sritį arba sukurkite naują.",
+    aiSignIn: "Prisijunkite, kad naudotumėte Nibomo DI, arba naudokite savo OpenAI raktą.",
+    recovery: "Svečio prieiga nepatvirtinta. Podėlyje esančias korteles galima tik skaityti. Atkurkite pradinį seansą arba ryšį ir bandykite dar kartą.",
+    cleanupFailed: "Prisijungta, bet nepavyko pašalinti demonstracinės kortelės.",
+  },
   stripe: createStripeCatalog(stripeCopy),
   paywall: {
     heading: "Mokymasis priklauso visiems.",

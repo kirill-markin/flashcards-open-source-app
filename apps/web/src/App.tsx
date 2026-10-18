@@ -94,6 +94,9 @@ import { ProgressScreen } from "./screens/progress/ProgressScreen";
 import { ReviewScreen } from "./screens/review/ReviewScreen";
 import { ShareAppScreen } from "./screens/share/ShareAppScreen";
 
+import { GuestConversionGate } from "./screens/settings/account/guest/GuestConversionGate";
+import { GuestSignIn } from "./screens/settings/account/guest/GuestSignIn";
+
 const SentryRoutes = wrapRoutesComponent(RouterRoutes);
 
 type PrimaryNavigationItem = {
@@ -489,8 +492,10 @@ function resolveRootGateReport(
 function resolveSessionRootGateReport(sessionLoadState: SessionLoadState): AnalyticsRootGate {
   switch (sessionLoadState) {
     case "selecting_workspace":
+    case "guest_conversion":
       return { status: "gated", surface: "signin" };
     case "deleted":
+    case "guest_recovery":
       return { status: "gated", surface: "credential_recovery" };
     case "loading":
     case "redirecting":
@@ -510,6 +515,7 @@ export function AppShell(): ReactElement {
   const {
     sessionLoadState,
     sessionVerificationState,
+    session,
     isSessionVerified,
     sessionErrorMessage,
     sessionTechnicalError,
@@ -524,6 +530,7 @@ export function AppShell(): ReactElement {
     createWorkspace,
     cloudSettings,
   } = useAppData();
+  const isGuest = session?.browserGuestCapabilities?.isGuest === true;
   const workspacePath = useWorkspacePath();
   const { indexedDbOpenRecoveryState } = useAppErrorDialog();
   const [isMobileNavigationOpen, setIsMobileNavigationOpen] = useState<boolean>(false);
@@ -728,7 +735,7 @@ export function AppShell(): ReactElement {
     );
   }
 
-  if (sessionLoadState === "error") {
+  if (sessionLoadState === "error" || sessionLoadState === "guest_recovery") {
     return (
       <main className="page-state">
         <section className="panel panel-center state-panel">
@@ -885,7 +892,7 @@ export function AppShell(): ReactElement {
             <nav className="nav" aria-label={t("shell.primaryNavigation")}>
               {primaryNavigationItems.map((item) => (
                 <NavLink key={item.route} className={({ isActive }) => `nav-link${isActive ? " nav-link-active" : ""}`} to={workspacePath(item.route)}>
-                  {t(item.labelKey)}
+                  {t(item.labelKey)}{isGuest && item.route === settingsHubRoute ? <span className="guest-attention" aria-label={t("guest.signIn")}>1</span> : null}
                 </NavLink>
               ))}
             </nav>
@@ -903,6 +910,7 @@ export function AppShell(): ReactElement {
                 <span className="mobile-nav-toggle-line" aria-hidden="true" />
                 <span className="mobile-nav-toggle-line" aria-hidden="true" />
               </button>
+              {isGuest ? <GuestSignIn label={`${t("guest.title")} · ${t("guest.signIn")}`} testId="guest-sign-in" /> : null}
               <AccountMenu
                 workspaces={availableWorkspaces.filter((workspace) => workspace.isVisible !== false)}
                 currentWorkspaceId={activeWorkspace?.workspaceId ?? ""}
@@ -979,6 +987,7 @@ function buildChatMainContentClassName(isFullscreenChat: boolean, isOpen: boolea
 }
 
 export function RoutedShell(): ReactElement {
+  const isGuest = useAppData().session?.browserGuestCapabilities?.isGuest === true;
   const location = useLocation();
   const { isOpen } = useChatLayout();
   const isFullscreenChat = normalizeRoutePath(splitWorkspaceRoutePath(location.pathname).appPath) === chatRoute;
@@ -1028,7 +1037,7 @@ export function RoutedShell(): ReactElement {
           <Route path={`${workspaceRoutePattern}${settingsAccentColorRoute}`} element={renderDeferredRoute(<AccentColorSettingsScreen />, "loading.settings")} />
           <Route path={`${workspaceRoutePattern}${settingsReviewAnimationsRoute}`} element={renderDeferredRoute(<ReviewAnimationsSettingsScreen />, "loading.settings")} />
           <Route path={`${workspaceRoutePattern}${settingsAIChatSuggestionsRoute}`} element={renderDeferredRoute(<AIChatSuggestionsSettingsScreen />, "loading.settings")} />
-          <Route path={`${workspaceRoutePattern}${settingsSubscriptionRoute}`} element={renderDeferredRoute(<SubscriptionSettingsScreen />, "loading.settings")} />
+          <Route path={`${workspaceRoutePattern}${settingsSubscriptionRoute}`} element={renderDeferredRoute(isGuest ? <AccountStatusScreen /> : <SubscriptionSettingsScreen />, "loading.settings")} />
           <Route path={`${workspaceRoutePattern}${settingsOwnOpenAIKeyRoute}`} element={renderDeferredRoute(<OwnOpenAIKeySettingsScreen />, "loading.settings")} />
           <Route path={`${workspaceRoutePattern}${settingsAnalyticsRoute}`} element={renderDeferredRoute(<AnalyticsSettingsScreen />, "loading.settings")} />
           <Route path={`${workspaceRoutePattern}${settingsSchedulerRoute}`} element={renderDeferredRoute(<WorkspaceSchedulerScreen />, "loading.schedulerSettings")} />
@@ -1086,7 +1095,7 @@ export function RoutedShell(): ReactElement {
           <Route path={`${workspaceRoutePattern}${accountLegalRoute}`} element={renderDeferredRoute(<LegalScreen />, "loading.legal")} />
           <Route path={`${workspaceRoutePattern}${accountSupportRoute}`} element={renderDeferredRoute(<SupportScreen />, "loading.support")} />
           <Route path={`${workspaceRoutePattern}${accountOpenSourceRoute}`} element={renderDeferredRoute(<OpenSourceSettingsScreen />, "loading.openSourceSettings")} />
-          <Route path={`${workspaceRoutePattern}${accountAgentConnectionsRoute}`} element={renderDeferredRoute(<AgentConnectionsScreen />, "loading.agentConnections")} />
+          <Route path={`${workspaceRoutePattern}${accountAgentConnectionsRoute}`} element={renderDeferredRoute(isGuest ? <AccountStatusScreen /> : <AgentConnectionsScreen />, "loading.agentConnections")} />
           <Route path={`${workspaceRoutePattern}${accountDangerZoneRoute}`} element={renderDeferredRoute(<DangerZoneScreen />, "loading.dangerZone")} />
           <Route
             path={`${workspaceRoutePattern}${chatRoute}`}
@@ -1114,20 +1123,22 @@ export function RoutedShell(): ReactElement {
 function AuthenticatedApp(): ReactElement {
   return (
     <AppDataProvider>
-      <PremiumProvider>
-        <AccountAccentTheme />
-        <AIChatPreferencesProvider>
-          <ChatLayoutProvider>
-            <ChatSessionControllerProvider>
-              <ChatDraftProvider>
-                <AccountDeletionRecoveryGate>
-                  <AppShell />
-                </AccountDeletionRecoveryGate>
-              </ChatDraftProvider>
-            </ChatSessionControllerProvider>
-          </ChatLayoutProvider>
-        </AIChatPreferencesProvider>
-      </PremiumProvider>
+      <GuestConversionGate returnUrl={window.location.origin + "/"}>
+        <PremiumProvider>
+          <AccountAccentTheme />
+          <AIChatPreferencesProvider>
+            <ChatLayoutProvider>
+              <ChatSessionControllerProvider>
+                <ChatDraftProvider>
+                  <AccountDeletionRecoveryGate>
+                    <AppShell />
+                  </AccountDeletionRecoveryGate>
+                </ChatDraftProvider>
+              </ChatSessionControllerProvider>
+            </ChatLayoutProvider>
+          </AIChatPreferencesProvider>
+        </PremiumProvider>
+      </GuestConversionGate>
     </AppDataProvider>
   );
 }

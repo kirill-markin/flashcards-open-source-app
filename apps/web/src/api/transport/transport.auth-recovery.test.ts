@@ -271,6 +271,7 @@ describe("session transport auth recovery", () => {
       .mockResolvedValueOnce(new Response(JSON.stringify({
         selectedWorkspaceId: "workspace-1",
         authTransport: "session",
+        browserGuestCapabilities: null,
         csrfToken: "csrf-token-1",
         code: "SESSION_CONTRACT_FAILED",
         requestId: "body-request-id",

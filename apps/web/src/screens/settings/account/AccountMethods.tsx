@@ -43,7 +43,7 @@ export function AccountMethods(): ReactElement {
   const [completed, setCompleted] = useState<boolean>(false);
   const controller = useRef<AbortController | null>(null);
   const running = useRef<boolean>(false);
-  const userId = session?.userId ?? null;
+  const userId = session?.browserGuestCapabilities?.isGuest === true ? null : session?.userId ?? null;
 
   useEffect(() => {
     const current = new AbortController();

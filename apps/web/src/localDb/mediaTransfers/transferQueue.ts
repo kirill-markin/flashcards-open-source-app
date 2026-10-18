@@ -4,6 +4,7 @@ import {
   closeDatabaseAfterWrite,
   describeIndexedDbError,
   getFromStore,
+  getAllFromStore,
   runReadwrite,
 } from "../core/database";
 import type {
@@ -22,6 +23,13 @@ import type {
 } from "./types";
 
 type ClaimableMediaTransferStatus = "queued" | "failed";
+
+export async function requireWorkspaceMediaUploadsCompleted(workspaceId: string): Promise<void> {
+  const transfers = await closeDatabaseAfter((database) => getAllFromStore<MediaTransferQueueRecord>(database, "mediaTransferQueue"));
+  if (transfers.some((transfer) => transfer.workspaceId === workspaceId && transfer.kind === "upload" && transfer.status !== "completed")) {
+    throw new Error("Guest images have unfinished uploads. Local image bytes are preserved. Finish or retry image uploads before signing in.");
+  }
+}
 
 export function createQueuedMediaTransferRecord(
   input: EnqueueMediaTransferDownloadInput | EnqueueMediaTransferUploadInput,

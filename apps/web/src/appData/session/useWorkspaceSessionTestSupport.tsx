@@ -26,6 +26,11 @@ const indexedDbOpenRecoveryState: IndexedDbOpenRecoveryState = {
   throwIfFailed: (): void => {},
 };
 
+vi.mock("./guest/browserGuestSession", async (importOriginal) => ({
+  ...await importOriginal<typeof import("./guest/browserGuestSession")>(),
+  loadBrowserProductSession: async () => (await import("../../api/transport/transport")).getSession(),
+}));
+
 const browserHintsMocks = vi.hoisted(() => ({
   consumeAcceptedBrowserSignInMethod: vi.fn(async (): Promise<null> => null),
 }));
@@ -119,6 +124,7 @@ export const seededSession: SessionInfo = {
   userId: "user-1",
   selectedWorkspaceId: "workspace-1",
   authTransport: "session",
+  browserGuestCapabilities: null,
   csrfToken: "csrf-seeded",
   preferences: {
     accentColor: "#FF6719",
@@ -212,6 +218,7 @@ export function buildSessionResponseForUser(userId: string, selectedWorkspaceId:
     userId,
     selectedWorkspaceId,
     authTransport: "session",
+    browserGuestCapabilities: null,
     csrfToken,
     preferences: {
       accentColor: "#FF6719",
