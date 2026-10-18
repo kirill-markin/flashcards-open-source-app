@@ -1,4 +1,5 @@
-import { createContext, useCallback, useContext, type ReactElement, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useSyncExternalStore, type ReactElement, type ReactNode } from "react";
+import { isBrowserGuestSessionVerified, subscribeToBrowserGuestVerification } from "../../api/transport/transport";
 import { useAppData } from "../../appData";
 import {
   markIndexedDbOpenRecoveryFailureAndCheckActive,
@@ -26,6 +27,10 @@ export function ChatSessionControllerProvider(props: Props): ReactElement {
   const activeWorkspaceId = appData.activeWorkspace?.workspaceId ?? null;
   const runSync = appData.runSync;
   const setAppErrorMessage = appData.setErrorMessage;
+  const guestUserId = appData.session?.browserGuestCapabilities?.isGuest === true ? appData.session.userId : null;
+  const readGuestRemoteReady = useCallback((): boolean => guestUserId === null
+    || (activeWorkspaceId !== null && isBrowserGuestSessionVerified(guestUserId, activeWorkspaceId)), [activeWorkspaceId, guestUserId]);
+  const isGuestRemoteReady = useSyncExternalStore(subscribeToBrowserGuestVerification, readGuestRemoteReady);
 
   const handleToolRunPostSyncRequested = useCallback(async (): Promise<void> => {
     try {
@@ -45,7 +50,7 @@ export function ChatSessionControllerProvider(props: Props): ReactElement {
   const controller = useChatSessionController({
     indexedDbOpenRecoveryState,
     workspaceId: activeWorkspaceId,
-    isRemoteReady: appData.sessionVerificationState === "verified",
+    isRemoteReady: appData.sessionVerificationState === "verified" && isGuestRemoteReady,
     uiLocale: locale,
     onToolRunPostSyncRequested: handleToolRunPostSyncRequested,
     uiMessages: {

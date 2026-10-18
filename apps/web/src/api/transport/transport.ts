@@ -35,6 +35,9 @@ export type BlobResponsePayload = Readonly<{
 }>;
 
 export {
+  BrowserGuestSessionInvalidatedError,
+} from "./sessionRecovery";
+export {
   allowAuthRecovery,
   allowAuthRecoveryWithTransientNetworkRetry,
   skipAuthRecoveryWithTransientNetworkRetry,
@@ -94,6 +97,18 @@ export function primeGuestSession(userId: string, csrfToken: string): void {
 
 export function pauseBrowserGuestSession(): void {
   sessionRecovery.pauseBrowserGuestSession();
+}
+
+export function isBrowserGuestSessionVerified(userId: string, workspaceId: string): boolean {
+  return sessionRecovery.isBrowserGuestSessionVerified(userId, workspaceId);
+}
+
+export function subscribeToBrowserGuestVerification(listener: () => void): () => void {
+  return sessionRecovery.subscribeToBrowserGuestVerification(listener);
+}
+
+export function loadVerifiedBrowserGuestSession(userId: string, workspaceId: string): Promise<SessionInfo> {
+  return sessionRecovery.loadVerifiedBrowserGuestSession(userId, workspaceId);
 }
 
 export function resumeVerifiedBrowserSession(session: SessionInfo): SessionInfo {
