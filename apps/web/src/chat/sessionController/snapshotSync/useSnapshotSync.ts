@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, type Dispatch, type MutableRefObject } from "react";
+import { BrowserGuestSessionInvalidatedError } from "../../../api/transport/transport";
 import {
   markIndexedDbOpenRecoveryFailureAndCheckActive,
   type IndexedDbOpenRecoveryState,
@@ -787,7 +788,7 @@ export function useChatSessionSnapshotSync(
     trigger: SnapshotRequestTrigger,
     resumeAttemptId: number | null,
   ): Promise<ChatSessionSnapshot | null> => {
-    if (indexedDbOpenRecoveryState.hasFailed()) {
+    if (indexedDbOpenRecoveryState.hasFailed() || isRemoteReady === false) {
       return null;
     }
 
@@ -853,7 +854,8 @@ export function useChatSessionSnapshotSync(
         return null;
       }
 
-      if (requestVersion !== snapshotRequestVersionRef.current) {
+      if (requestVersion !== snapshotRequestVersionRef.current || abortController.signal.aborted
+        || error instanceof BrowserGuestSessionInvalidatedError) {
         return null;
       }
 
@@ -875,6 +877,7 @@ export function useChatSessionSnapshotSync(
     dispatch,
     clearAssistantMessageDoneTerminalReconcileTimer,
     indexedDbOpenRecoveryState,
+    isRemoteReady,
     invalidatePendingSnapshotRequests,
     uiMessages,
     workspaceId,
@@ -968,6 +971,14 @@ export function useChatSessionSnapshotSync(
   useEffect(() => {
     reconcileTerminalSnapshotRef.current = reconcileTerminalSnapshot;
   }, [reconcileTerminalSnapshot]);
+
+  useEffect(() => {
+    if (isRemoteReady) return;
+    invalidatePendingSnapshotRequests();
+    abortPendingSnapshotRequests();
+    detachLiveStream(null, null);
+    clearAssistantMessageDoneTerminalReconcileTimer();
+  }, [abortPendingSnapshotRequests, clearAssistantMessageDoneTerminalReconcileTimer, detachLiveStream, invalidatePendingSnapshotRequests, isRemoteReady]);
 
   useEffect(() => () => {
     invalidatePendingSnapshotRequests();
