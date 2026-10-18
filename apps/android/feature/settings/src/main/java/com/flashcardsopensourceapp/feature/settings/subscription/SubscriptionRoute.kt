@@ -72,6 +72,19 @@ fun SubscriptionRoute(
                 }
             }
 
+            item {
+                Card(modifier = Modifier.fillMaxWidth()) {
+                    ListItem(
+                        headlineContent = {
+                            Text(stringResource(R.string.settings_subscription_ai_allowance_title))
+                        },
+                        supportingContent = {
+                            Text(stringResource(R.string.settings_subscription_ai_allowance_reset))
+                        }
+                    )
+                }
+            }
+
             item { billingActions() }
 
             item {

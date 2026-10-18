@@ -152,6 +152,8 @@
     <string name="settings_subscription_status_trial_format">Free trial. %1$s</string>
     <string name="settings_subscription_open_offer">Get Premium</string>
     <string name="settings_subscription_manage_button">Manage subscription</string>
+    <string name="settings_subscription_ai_allowance_title">AI message allowance</string>
+    <string name="settings_subscription_ai_allowance_reset">Your AI message allowance resets at the start of each calendar month in UTC, independently of your billing date.</string>
     <string name="settings_subscription_manage_body">Opens Google Play, where you can change or cancel your subscription.</string>
     <string name="settings_language_title">Language</string>
     <string name="settings_language_summary">Android system and per-app language settings</string>
