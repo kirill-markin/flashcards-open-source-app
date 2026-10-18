@@ -72,7 +72,7 @@ export function useChatSessionController(
   const bootstrap = bootstrapRef.current;
   const [state, dispatch] = useReducer(chatSessionControllerReducer, bootstrap.initialState);
   const history = useChatHistory(bootstrap.initialMessages);
-  const { aiUsage, readHeldAiUsage, refreshAiUsageInBackground } = useChatAiUsage({
+  const { aiUsage, aiUsageLoadStatus, readHeldAiUsage, refreshAiUsageInBackground } = useChatAiUsage({
     indexedDbOpenRecoveryState,
     workspaceId,
     isRemoteReady,
@@ -240,6 +240,7 @@ export function useChatSessionController(
     composerNotice: state.composerNotice,
     errorDialogMessage: state.errorDialogMessage,
     aiUsage,
+    aiUsageLoadStatus,
     refreshAiUsage: refreshAiUsageInBackground,
     dismissErrorDialog,
     acceptServerSessionId,

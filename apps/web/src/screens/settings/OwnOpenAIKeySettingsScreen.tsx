@@ -11,6 +11,7 @@ import {
 } from "../../chat/preferences/ownOpenAIKeyStorage";
 import { useI18n } from "../../i18n";
 import { captureAppOperationError } from "../../observability/appOperationObservation";
+import { GuestSignIn } from "./account/guest/GuestSignIn";
 import { SettingsGroup, SettingsShell } from "./SettingsShared";
 
 type OwnOpenAIKeyEditorProps = Readonly<{
@@ -160,13 +161,19 @@ export function OwnOpenAIKeyEditor(props: OwnOpenAIKeyEditorProps): ReactElement
 export function OwnOpenAIKeySettingsScreen(): ReactElement {
   const { t } = useI18n();
   const { showCapturedTechnicalError } = useAppErrorDialog();
+  const { session } = useAppData();
   return (
     <SettingsShell
       title={t("ownOpenAIKeySettings.title")}
       subtitle={t("ownOpenAIKeySettings.subtitle")}
       activeTab="general"
     >
-      <OwnOpenAIKeyEditor onCapturedTechnicalError={showCapturedTechnicalError} />
+      {session?.browserGuestCapabilities?.isGuest === true
+        ? <SettingsGroup><article className="content-card">
+          <p>{t("guest.ownKeySignIn")}</p>
+          <GuestSignIn label={t("guest.signIn")} testId="guest-own-key-sign-in" />
+        </article></SettingsGroup>
+        : <OwnOpenAIKeyEditor onCapturedTechnicalError={showCapturedTechnicalError} />}
     </SettingsShell>
   );
 }

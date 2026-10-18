@@ -1,10 +1,8 @@
 import type { DateTimeValue, TranslationKey, TranslationValues } from "../../i18n";
-import type { AiUsageAccountKind, AiUsageStatus } from "../../types";
+import { ApiError } from "../../api/transport/errors";
+import { parseBrowserGuestAiTrialQuota } from "../../apiContracts/aiUsage";
+import type { AiUsageAccountKind, AiUsageStatus, BrowserGuestAiRefusal, BrowserGuestAiTrialFeature, BrowserGuestCapabilities, ContentPart } from "../../types";
 
-// `AI_LIMIT_REACHED` is the code the backend raises when a signed-in account reaches its AI allowance.
-// `GUEST_AI_LIMIT_REACHED` is the backend's guest-only code; it cannot reach the web app,
-// whose guest credential is refused on every authenticated surface, and it stays matched only so a
-// deployed backend still raising it is handled the same way.
 export const AI_LIMIT_REACHED_CODE = "AI_LIMIT_REACHED";
 export const GUEST_AI_LIMIT_REACHED_CODE = "GUEST_AI_LIMIT_REACHED";
 
@@ -48,11 +46,6 @@ export function isHeldAiUsageCurrent(aiUsage: AiUsageStatus): boolean {
   return Date.parse(aiUsage.usage.monthEndsAt) > Date.now();
 }
 
-/**
- * The refusal is shown at once from the usage the chat already holds, never after a new read. With
- * none held yet, or only last month's, the account copy leaves out the renewal date, and the refusal
- * is an account's because web guest credentials are refused on every surface that can raise the limit.
- */
 export function formatAiLimitReachedMessageForHeldUsage(params: Readonly<{
   aiUsage: AiUsageStatus | null;
   t: (key: TranslationKey, values?: TranslationValues) => string;
@@ -65,4 +58,62 @@ export function formatAiLimitReachedMessageForHeldUsage(params: Readonly<{
     t,
     formatDate,
   });
+}
+
+export function getBrowserGuestAiErrorRefusal(error: unknown, feature: BrowserGuestAiTrialFeature): BrowserGuestAiRefusal | null {
+  if (!(error instanceof ApiError)) return null;
+  if (error.browserGuestAiTrialQuota !== null) return error.browserGuestAiTrialQuota;
+  return error.code === "GUEST_WEB_AI_SIGN_IN_REQUIRED"
+    ? { feature, scope: "sign_in", resetsAt: null }
+    : null;
+}
+
+export function getBrowserGuestAiAdmissionRefusal(
+  usage: AiUsageStatus | null,
+  capabilities: BrowserGuestCapabilities | null,
+  feature: BrowserGuestAiTrialFeature,
+): BrowserGuestAiRefusal | null {
+  if (capabilities === null) return null;
+  const trial = usage?.browserGuestAiTrial;
+  if (capabilities.platformFundedAi === false || trial?.enabled !== true) {
+    return { feature, scope: "sign_in", resetsAt: null };
+  }
+  if (trial[feature].lifetimeRemaining === 0) return { feature, scope: "guest", resetsAt: null };
+  if (trial[feature].sharedAvailable === false && Date.parse(trial.sharedResetsAt) > Date.now()) {
+    return { feature, scope: "shared", resetsAt: trial.sharedResetsAt };
+  }
+  return null;
+}
+
+export function readGuestImageRefusal(content: ReadonlyArray<ContentPart>): BrowserGuestAiRefusal | null {
+  for (const part of content) {
+    if (part.type !== "tool_call" || part.name !== "add_generated_image_to_card" || part.output === null) continue;
+    let output: unknown;
+    try {
+      output = JSON.parse(part.output) as unknown;
+    } catch {
+      continue; // Streaming tool JSON may still be incomplete.
+    }
+    if (typeof output !== "object" || output === null || !("ok" in output) || output.ok !== false
+      || !("code" in output) || output.code !== "BROWSER_GUEST_AI_TRIAL_QUOTA_REACHED") continue;
+    return parseBrowserGuestAiTrialQuota("details" in output ? output.details : null, "chat image tool");
+  }
+  return null;
+}
+
+export function reconcileBrowserGuestAiRefusal(
+  refusal: BrowserGuestAiRefusal,
+  refreshedUsage: AiUsageStatus | null,
+  capabilities: BrowserGuestCapabilities | null,
+): BrowserGuestAiRefusal | null {
+  if (refreshedUsage !== null) {
+    return getBrowserGuestAiAdmissionRefusal(refreshedUsage, capabilities, refusal.feature);
+  }
+  return refusal.scope === "shared" && refusal.resetsAt !== null && Date.parse(refusal.resetsAt) <= Date.now()
+    ? null : refusal;
+}
+
+export function formatBrowserGuestAiRefusal(refusal: BrowserGuestAiRefusal, t: AiLimitReachedMessageParams["t"]): string {
+  if (refusal.scope === "sign_in") return t("guest.aiSignIn");
+  return t(refusal.scope === "shared" ? "guest.aiTrialSharedExhausted" : "guest.aiTrialExhausted");
 }

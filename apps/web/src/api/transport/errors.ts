@@ -1,3 +1,5 @@
+import type { BrowserGuestAiTrialQuota } from "../../types/chat";
+
 export type ApiResponseBodyKind = "empty" | "json" | "text" | "invalid_json";
 export const apiNetworkErrorCode: string = "API_NETWORK_ERROR";
 
@@ -9,6 +11,7 @@ type ApiErrorParams = Readonly<{
   retryAfterMs: number | null;
   endpoint: string;
   responseBodyKind: ApiResponseBodyKind;
+  browserGuestAiTrialQuota?: BrowserGuestAiTrialQuota | null;
 }>;
 
 export class ApiError extends Error {
@@ -18,6 +21,7 @@ export class ApiError extends Error {
   readonly retryAfterMs: number | null;
   readonly endpoint: string;
   readonly responseBodyKind: ApiResponseBodyKind;
+  readonly browserGuestAiTrialQuota: BrowserGuestAiTrialQuota | null;
 
   constructor(params: ApiErrorParams) {
     super(params.message);
@@ -27,6 +31,7 @@ export class ApiError extends Error {
     this.retryAfterMs = params.retryAfterMs;
     this.endpoint = params.endpoint;
     this.responseBodyKind = params.responseBodyKind;
+    this.browserGuestAiTrialQuota = params.browserGuestAiTrialQuota ?? null;
   }
 }
 

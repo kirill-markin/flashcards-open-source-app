@@ -66,7 +66,7 @@ import {
   isAiChatRequestTooLargeError,
   toChatAttachmentLimitViolation,
 } from "../../shared/chatSizePolicy";
-import { isAiLimitReachedError } from "../../shared/chatAiLimitPolicy";
+import { getBrowserGuestAiErrorRefusal, isAiLimitReachedError } from "../../shared/chatAiLimitPolicy";
 import {
   formatOwnOpenAIKeyErrorMessage,
   isOwnOpenAIKeyError,
@@ -121,6 +121,8 @@ function isExpectedChatProductErrorCode(code: string | null): boolean {
     case "ACCOUNT_DELETED":
     case "AI_CHAT_V2_HUMAN_AUTH_REQUIRED":
     case "AI_LIMIT_REACHED":
+    case "BROWSER_GUEST_AI_TRIAL_QUOTA_REACHED":
+    case "GUEST_WEB_AI_SIGN_IN_REQUIRED":
     case "AUTH_UNAUTHORIZED":
     case "CHAT_ACTIVE_RUN_IN_PROGRESS":
     case "CHAT_ATTACHMENT_UNSUPPORTED_TYPE":
@@ -521,6 +523,11 @@ export function useChatSessionActions(
         return createRejectedSendResult(state.currentSessionId);
       }
 
+      const guestAiRefusal = getBrowserGuestAiErrorRefusal(error, "chat");
+      if (guestAiRefusal !== null) {
+        refreshAiUsageInBackground();
+        return { status: "rejected", accepted: false, sessionId: state.currentSessionId, guestAiRefusal };
+      }
       captureChatRunRequestError(error, workspaceId, {
         operation: "chat_remote_session_failed",
         sessionId: runtimeRefs.currentSessionIdRef.current,
@@ -723,6 +730,15 @@ export function useChatSessionActions(
     ): SendChatMessageResult => {
       if (indexedDbOpenRecoveryState.hasFailed()) {
         return createRejectedSendResult(resultSessionId);
+      }
+
+      const guestAiRefusal = getBrowserGuestAiErrorRefusal(error, "chat")
+        ?? (readHeldAiUsage()?.browserGuestCapabilities?.isGuest === true
+          && isChatApiError(error) && isAiLimitReachedError({ code: error.code })
+          ? { feature: "chat" as const, scope: "guest" as const, resetsAt: null } : null);
+      if (guestAiRefusal !== null) {
+        refreshAiUsageInBackground();
+        return { status: "rejected", accepted: false, sessionId: resultSessionId, guestAiRefusal };
       }
 
       if (isChatApiError(error) && error.code === "CHAT_ACTIVE_RUN_IN_PROGRESS") {

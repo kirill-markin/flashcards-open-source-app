@@ -1,3 +1,4 @@
+import { parseBrowserGuestAiTrialQuota } from "../../apiContracts/aiUsage";
 import {
   ApiContractError,
   enrichApiContractError,
@@ -193,6 +194,9 @@ export async function parseJsonPayload(
       retryAfterMs: payload.retryAfterMs,
       endpoint,
       responseBodyKind: payload.bodyKind,
+      browserGuestAiTrialQuota: response.status === 429 && payload.code === "BROWSER_GUEST_AI_TRIAL_QUOTA_REACHED"
+        ? parseBrowserGuestAiTrialQuota(isJsonObject(payload.value) ? payload.value.details : null, endpoint)
+        : null,
     });
   }
 

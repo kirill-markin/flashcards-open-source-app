@@ -10,12 +10,40 @@ export type ChatTranscriptionResponse = Readonly<{
 
 export type AiUsageAccountKind = "account" | "guest";
 
-/**
- * The part of `GET /me/ai-usage` this client reads. `remainingMessages` is `null` when no monthly
- * limit applies, and `monthEndsAt` is when the allowance renews.
- */
+export type BrowserGuestAiTrialFeature = "chat" | "dictation" | "images";
+
+export type BrowserGuestAiTrialQuota = Readonly<{
+  feature: BrowserGuestAiTrialFeature;
+  scope: "guest" | "shared";
+  resetsAt: string | null;
+}>;
+
+export type BrowserGuestAiRefusal = BrowserGuestAiTrialQuota | Readonly<{
+  feature: BrowserGuestAiTrialFeature;
+  scope: "sign_in";
+  resetsAt: null;
+}>;
+
+export type BrowserGuestAiTrialFeatureStatus = Readonly<{
+  lifetimeLimit: number;
+  lifetimeRemaining: number;
+  sharedDailyLimit: number;
+  sharedAvailable: boolean;
+}>;
+
+export type BrowserGuestAiTrialStatus = Readonly<{
+  version: 1;
+  enabled: boolean;
+  sharedResetsAt: string;
+  maxRecordingSeconds: number;
+  chat: BrowserGuestAiTrialFeatureStatus;
+  dictation: BrowserGuestAiTrialFeatureStatus;
+  images: BrowserGuestAiTrialFeatureStatus;
+}>;
+
 export type AiUsageStatus = Readonly<{
   accountKind: AiUsageAccountKind;
+  browserGuestAiTrial: BrowserGuestAiTrialStatus | null;
   browserGuestCapabilities?: BrowserGuestCapabilities | null;
   usage: Readonly<{
     monthEndsAt: string;

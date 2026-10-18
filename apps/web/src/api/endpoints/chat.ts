@@ -257,6 +257,7 @@ export async function transcribeChatAudio(
   sessionId: string,
   workspaceId: string,
   signal: AbortSignal,
+  operationId: string | null,
 ): Promise<ChatTranscriptionResponse> {
   const mediaType = normalizeAudioMediaType(blob.type === "" ? "audio/webm" : blob.type);
   const file = new File([blob], `chat-dictation.${extensionForAudioMediaType(mediaType)}`, { type: mediaType });
@@ -265,6 +266,7 @@ export async function transcribeChatAudio(
   formData.append("source", source);
   formData.append("sessionId", sessionId);
   formData.append("workspaceId", workspaceId);
+  if (operationId !== null) formData.append("operationId", operationId);
 
   return parseContractResponse(await requestJson("/chat/transcriptions", {
     method: "POST",

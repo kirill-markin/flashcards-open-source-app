@@ -1,7 +1,4 @@
 import { useEffect, useRef, useState, type ReactElement } from "react";
-import { Link } from "react-router";
-import { useWorkspacePath } from "../../useWorkspacePath";
-import { settingsOwnOpenAIKeyRoute } from "../../routes";
 import { GuestSignIn } from "../../screens/settings/account/guest/GuestSignIn";
 import { useAppData } from "../../appData";
 import {
@@ -11,6 +8,7 @@ import {
 import { useEntitlementSnapshot } from "../../premium/entitlementStore";
 import { hasPremiumAccess, usePremiumPresenter } from "../../premium/PremiumProvider";
 import { useI18n } from "../../i18n";
+import type { BrowserGuestAiRefusal } from "../../types";
 import type { WebAppOperation } from "../../observability/webObservability";
 import { useChatDraft } from "../composer/drafts/ChatDraftContext";
 import { useChatLayout } from "../layout/ChatLayoutContext";
@@ -22,6 +20,10 @@ import { formatCardAttachmentLabel } from "../attachments/chatCardParts";
 import { formatChatAttachmentLimitMessages } from "../shared/chatSizePolicy";
 import {
   formatAiLimitReachedMessageForHeldUsage,
+  formatBrowserGuestAiRefusal,
+  getBrowserGuestAiAdmissionRefusal,
+  readGuestImageRefusal,
+  reconcileBrowserGuestAiRefusal,
   isHeldAiUsageCurrent,
 } from "../shared/chatAiLimitPolicy";
 import { isOwnOpenAIKeyActive, useIsOwnOpenAIKeyActive } from "../preferences/ownOpenAIKeyStorage";
@@ -50,7 +52,6 @@ type Props = Readonly<{
 export function ChatPanel(props: Props): ReactElement {
   const { mode } = props;
   const appData = useAppData();
-  const workspacePath = useWorkspacePath();
   const entitlement = useEntitlementSnapshot(appData.session?.userId ?? null);
   const presentPremium = usePremiumPresenter();
   const { indexedDbOpenRecoveryState, showCapturedTechnicalError, showTechnicalError } = useAppErrorDialog();
@@ -87,6 +88,7 @@ export function ChatPanel(props: Props): ReactElement {
     composerNotice,
     errorDialogMessage,
     aiUsage,
+    aiUsageLoadStatus,
     refreshAiUsage,
     dismissErrorDialog,
     ensureRemoteSession,
@@ -104,6 +106,66 @@ export function ChatPanel(props: Props): ReactElement {
   const messagesContentRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+  const [guestAiRefusal, setGuestAiRefusal] = useState<BrowserGuestAiRefusal | null>(null);
+  const lastImageRefusalRef = useRef<string | null>(null);
+  const hasReviewedInitialImageHistoryRef = useRef(false);
+  const wasAssistantRunActiveRef = useRef(false);
+  const guestCapabilities = aiUsage?.browserGuestCapabilities ?? appData.session?.browserGuestCapabilities ?? null;
+  const isBrowserGuest = appData.session?.browserGuestCapabilities?.isGuest === true;
+  const isGuestUsageUnavailable = isBrowserGuest && !hasOwnOpenAIKey
+    && guestCapabilities?.platformFundedAi === true && aiUsage === null;
+  const visibleGuestAiRefusal = guestAiRefusal === null ? null
+    : reconcileBrowserGuestAiRefusal(guestAiRefusal, null, guestCapabilities);
+  const guestRecordingLimitSeconds = isBrowserGuest && !hasOwnOpenAIKey && aiUsage?.browserGuestAiTrial?.enabled
+    ? Math.min(120, aiUsage.browserGuestAiTrial.maxRecordingSeconds, aiUsage.browserGuestAiTrial.dictation.lifetimeRemaining)
+    : null;
+
+  function showGuestAiRefusal(refusal: BrowserGuestAiRefusal): void {
+    setGuestAiRefusal(reconcileBrowserGuestAiRefusal(refusal, null, guestCapabilities));
+    refreshAiUsage();
+  }
+
+  useEffect(() => {
+    setGuestAiRefusal(null);
+    lastImageRefusalRef.current = null;
+    hasReviewedInitialImageHistoryRef.current = false;
+    wasAssistantRunActiveRef.current = false;
+  }, [activeWorkspaceId, currentSessionId, isBrowserGuest]);
+
+  useEffect(() => {
+    if (aiUsage === null) return;
+    setGuestAiRefusal((refusal) => refusal === null ? null
+      : reconcileBrowserGuestAiRefusal(refusal, aiUsage, guestCapabilities));
+  }, [aiUsage, guestCapabilities]);
+
+  useEffect(() => {
+    const isHistoryReplay = !hasReviewedInitialImageHistoryRef.current
+      || (!isAssistantRunActive && !wasAssistantRunActiveRef.current);
+    hasReviewedInitialImageHistoryRef.current = isHistoryLoaded;
+    wasAssistantRunActiveRef.current = isAssistantRunActive;
+    if (!isBrowserGuest) return;
+    try {
+      for (const { message, part } of [...messages].reverse().flatMap(
+        (message) => message.content.map((part) => ({ message, part })),
+      )) {
+        if (part.type !== "tool_call") continue;
+        const refusal = readGuestImageRefusal([part]);
+        if (refusal === null) continue;
+        const identity = JSON.stringify([message.itemId, part.id, part.streamPosition?.outputIndex, refusal]);
+        if (lastImageRefusalRef.current !== identity) {
+          lastImageRefusalRef.current = identity;
+          if (isHistoryReplay) {
+            setGuestAiRefusal(reconcileBrowserGuestAiRefusal(refusal, aiUsage, guestCapabilities));
+          } else {
+            showGuestAiRefusal(refusal);
+          }
+        }
+        break;
+      }
+    } catch (error) {
+      showChatTechnicalError(error, "chat_send_prepare");
+    }
+  }, [messages, isBrowserGuest, isHistoryLoaded, isAssistantRunActive, aiUsage, guestCapabilities, refreshAiUsage]);
   const isHistoryPanelVisible = isHistoryOpen && activeWorkspaceId !== null;
 
   const { handleMessagesScroll } = useChatAutoScroll({
@@ -155,6 +217,8 @@ export function ChatPanel(props: Props): ReactElement {
     onTechnicalError: showChatTechnicalError,
     formatAiLimitReachedMessage: () => formatAiLimitReachedMessageForHeldUsage({ aiUsage, t, formatDate }),
     refreshAiUsage,
+    guestRecordingLimitSeconds,
+    onGuestAiRefusal: showGuestAiRefusal,
     t,
     textareaRef,
     updateInputText,
@@ -187,7 +251,11 @@ export function ChatPanel(props: Props): ReactElement {
     replacePendingAttachments,
     requestComposerFocusRestore,
     runSync: appData.runSync,
-    sendChatMessage,
+    sendChatMessage: async (params) => {
+      const result = await sendChatMessage(params);
+      if (!result.accepted && result.guestAiRefusal !== undefined) showGuestAiRefusal(result.guestAiRefusal);
+      return result;
+    },
     sendPhase,
     sessionRestoringMessage: t("chatPanel.transientErrors.sessionRestoring"),
     setAppErrorMessage: appData.setErrorMessage,
@@ -197,17 +265,21 @@ export function ChatPanel(props: Props): ReactElement {
   });
   const rootClassName = mode === "sidebar" ? "chat-sidebar" : "chat-sidebar-fullscreen";
   const isDictationVisible = dictationState !== "idle";
-  const fundedAiNeedsSignIn = appData.session?.browserGuestCapabilities?.platformFundedAi === false && !hasOwnOpenAIKey;
   const isChatActionLocked = appData.isSessionVerified === false || indexedDbOpenRecoveryState.hasFailed();
-  const isAiActionLocked = isChatActionLocked || fundedAiNeedsSignIn;
+  const isAiActionLocked = isChatActionLocked || isGuestUsageUnavailable;
   async function sendPendingMessage(): Promise<void> {
-    if (isChatActionLocked || !isHistoryLoaded || isStopping
-      || (appData.session?.browserGuestCapabilities?.platformFundedAi === false && !isOwnOpenAIKeyActive())) return;
+    if (isAiActionLocked || !isHistoryLoaded || isStopping) return;
+    const refusal = isOwnOpenAIKeyActive() ? null : getBrowserGuestAiAdmissionRefusal(aiUsage, guestCapabilities, "chat");
+    if (refusal !== null) {
+      showGuestAiRefusal(refusal);
+      return;
+    }
+    setGuestAiRefusal(null);
     await sendPreparedMessage();
   }
   useEffect(() => {
-    if (isAiActionLocked && dictationState !== "idle") discardDictation();
-  }, [isAiActionLocked, dictationState, discardDictation]);
+    if (isChatActionLocked && dictationState !== "idle") discardDictation();
+  }, [isChatActionLocked, dictationState, discardDictation]);
   const areAttachmentsEnabled = chatConfig.features.attachmentsEnabled;
   const isDictationEnabled = chatConfig.features.dictationEnabled;
   const isChatConversationReadyForAttachments = isHistoryLoaded && currentSessionId !== null;
@@ -286,12 +358,13 @@ export function ChatPanel(props: Props): ReactElement {
     sendPhase,
   });
   const visibleComposerSuggestions = canShowComposerSuggestions ? composerSuggestions : [];
-  const remainingAiMessages = aiUsage !== null && isHeldAiUsageCurrent(aiUsage)
-    ? aiUsage.usage.remainingMessages
-    : null;
+  const remainingAiMessages = isBrowserGuest
+    ? aiUsage?.browserGuestAiTrial?.enabled === true && guestCapabilities?.platformFundedAi === true
+      ? aiUsage.browserGuestAiTrial.chat.lifetimeRemaining : null
+    : aiUsage !== null && isHeldAiUsageCurrent(aiUsage) ? aiUsage.usage.remainingMessages : null;
   const remainingAiMessagesNotice = remainingAiMessages !== null
     && remainingAiMessages <= 3
-    && hasOwnOpenAIKey === false && !fundedAiNeedsSignIn
+    && hasOwnOpenAIKey === false
     ? remainingAiMessages
     : null;
   const microphoneAriaLabel = dictationState === "recording" ? t("chatPanel.dictation.stop") : t("chatPanel.dictation.start");
@@ -361,10 +434,6 @@ export function ChatPanel(props: Props): ReactElement {
       onDragOver={handleDragOver}
       onDrop={(event) => void handleDrop(event)}
     >
-      {fundedAiNeedsSignIn ? <section className="content-card" data-testid="guest-ai-sign-in">
-        <p>{t("guest.aiSignIn")}</p><GuestSignIn label={t("guest.signIn")} testId="guest-ai-sign-in-button" />
-        <Link className="ghost-btn" to={workspacePath(settingsOwnOpenAIKeyRoute)}>{t("ownOpenAIKeySettings.title")}</Link>
-      </section> : null}
       {isDragOver && canDropDraftFiles ? <div className="chat-drop-overlay">{t("chatPanel.dropFiles")}</div> : null}
       {mode === "sidebar" ? (
         <div
@@ -496,6 +565,12 @@ export function ChatPanel(props: Props): ReactElement {
               </div>
             );
           })}
+          {isBrowserGuest && visibleGuestAiRefusal !== null ? (
+            <section className="chat-guest-sign-in" role="status" data-testid="guest-ai-sign-in" data-feature={visibleGuestAiRefusal.feature} data-scope={visibleGuestAiRefusal.scope}>
+              <p>{formatBrowserGuestAiRefusal(visibleGuestAiRefusal, t)}</p>
+              <GuestSignIn label={t("guest.signIn")} testId="guest-ai-sign-in-button" />
+            </section>
+          ) : null}
         </div>
       </div>
 
@@ -513,6 +588,16 @@ export function ChatPanel(props: Props): ReactElement {
         data-draft-state={hasDraftContent ? "filled" : "empty"}
         data-can-send={canSendPendingMessage ? "true" : "false"}
       >
+        {isGuestUsageUnavailable ? (
+          <p className="chat-ai-usage-notice" role="status" data-testid="guest-ai-usage-status" data-load-status={aiUsageLoadStatus}>
+            {aiUsageLoadStatus === "error" ? <>
+              {t("chatPanel.errors.refreshFailedPrefix")}{" "}
+              <button type="button" className="ghost-btn" data-testid="guest-ai-usage-retry"
+                disabled={isChatActionLocked} onClick={refreshAiUsage}>{t("common.retry")}</button>
+            </> : t("common.loading")}
+          </p>
+        ) : null}
+
         {composerNotice !== null ? (
           <p className="chat-ai-usage-notice" role="status" data-testid="chat-composer-notice">
             {composerNotice}
@@ -524,7 +609,7 @@ export function ChatPanel(props: Props): ReactElement {
             {t("chatPanel.aiUsage.remaining", {
               count: formatCount(remainingAiMessagesNotice, translationMessages.chatPanel.aiUsage.countLabels.aiMessage),
             })}
-            {entitlement !== null && !hasPremiumAccess(entitlement, 20) && presentPremium !== null ? <>{" "}
+            {!isBrowserGuest && entitlement !== null && !hasPremiumAccess(entitlement, 20) && presentPremium !== null ? <>{" "}
               <button type="button" className="ghost-btn" data-testid="chat-ai-low-balance-premium"
                 onClick={() => presentPremium({ reason: "offer", entryPoint: "ai_low_balance" })}>{t("premium.offer")}</button>
             </> : null}
@@ -599,6 +684,8 @@ export function ChatPanel(props: Props): ReactElement {
               <span className="chat-dictation-bar" />
             </div>
             <span className="chat-dictation-label">{dictationStatusLabel}</span>
+            {dictationState === "recording" && guestRecordingLimitSeconds !== null
+              ? <span className="chat-dictation-label">{t("guest.aiRecordingLimit", { seconds: guestRecordingLimitSeconds })}</span> : null}
           </div>
         ) : (
           <textarea
@@ -640,7 +727,13 @@ export function ChatPanel(props: Props): ReactElement {
               aria-label={microphoneAriaLabel}
               onClick={() => {
                 if (indexedDbOpenRecoveryState.hasFailed() === false) {
-                  void handleMicrophoneClick(canStartDictation);
+                  const refusal = dictationState === "recording" || isOwnOpenAIKeyActive()
+                    ? null : getBrowserGuestAiAdmissionRefusal(aiUsage, guestCapabilities, "dictation");
+                  if (refusal !== null) showGuestAiRefusal(refusal);
+                  else {
+                    if (dictationState === "idle") setGuestAiRefusal(null);
+                    void handleMicrophoneClick(canStartDictation);
+                  }
                 }
               }}
               disabled={isDictationButtonDisabled}

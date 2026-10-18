@@ -1,11 +1,12 @@
 import type { Locale } from "../../../i18n/types";
-import type { AiUsageStatus, ChatConfig, ChatComposerSuggestion } from "../../../types";
+import type { AiUsageStatus, BrowserGuestAiRefusal, ChatConfig, ChatComposerSuggestion } from "../../../types";
 import type { ChatErrorFallbackMessages } from "../../shared/chatHelpers";
 import type { ChatAttachmentLimitMessages } from "../../shared/chatSizePolicy";
 import type { PendingAttachment } from "../../attachments/FileAttachment";
 import type { StoredMessage } from "../../history/useChatHistory";
 import type { ChatComposerAction, ChatRunState } from "../state/runState";
 import type { IndexedDbOpenRecoveryState } from "../../../appError/AppErrorContext";
+import type { ChatAiUsage } from "../aiUsage/useAiUsage";
 
 export type ChatSessionControllerUiMessages = Readonly<{
   activeRunInProgress: string;
@@ -49,7 +50,7 @@ export type SendChatMessageParams = Readonly<{
 
 export type SendChatMessageResult =
   | Readonly<{ status: "accepted"; accepted: true; sessionId: string }>
-  | Readonly<{ status: "rejected" | "stale"; accepted: false; sessionId: string | null }>;
+  | Readonly<{ status: "rejected" | "stale"; accepted: false; sessionId: string | null; guestAiRefusal?: BrowserGuestAiRefusal }>;
 
 export type ChatSessionController = Readonly<{
   messages: ReadonlyArray<StoredMessage>;
@@ -66,6 +67,7 @@ export type ChatSessionController = Readonly<{
   composerNotice: string | null;
   errorDialogMessage: string | null;
   aiUsage: AiUsageStatus | null;
+  aiUsageLoadStatus: ChatAiUsage["aiUsageLoadStatus"];
   refreshAiUsage: () => void;
   dismissErrorDialog: () => void;
   acceptServerSessionId: (sessionId: string) => void;

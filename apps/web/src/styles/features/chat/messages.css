@@ -134,3 +134,20 @@
 .chat-card-part-context-summary::-webkit-details-marker {
   display: none;
 }
+
+
+.chat-guest-sign-in {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  margin: 24px auto;
+  padding: 16px;
+  max-width: 360px;
+  text-align: center;
+}
+
+.chat-guest-sign-in p {
+  margin: 0;
+  color: var(--text-secondary);
+}
