@@ -8,6 +8,7 @@ import type { MediaTransferQueueRecord } from "../../../localDb/mediaTransfers/t
 import { hasHydratedHotState, hasHydratedReviewHistory } from "../../../localDb/cards/workspace";
 import { loadCloudSettings } from "../../../localDb/sync/cloudSettings";
 import type { SessionInfo } from "../../../types";
+import { probeBrowserGuestSessionWithRegisteredRecovery } from "./browserGuestProbe";
 import { browserGuestStorageKey, drainBrowserGuestInThisTab, readBrowserGuestState, readPendingGuestConversion, runWithBrowserGuestLock, writeBrowserGuestState, type PendingGuestConversion } from "./browserGuestStorage";
 
 function savePending(pending: PendingGuestConversion): void {
@@ -73,7 +74,7 @@ export type PendingGuestConversionProbe = Readonly<{
   pending: PendingGuestConversion | null;
 }>;
 export async function probePendingGuestConversion(): Promise<PendingGuestConversionProbe> {
-  return { probe: await probeBrowserGuestSession(), pending: readPendingGuestConversion() };
+  return { probe: await probeBrowserGuestSessionWithRegisteredRecovery(), pending: readPendingGuestConversion() };
 }
 
 export async function resumePendingGuestConversion(): Promise<Readonly<{
@@ -84,7 +85,7 @@ export async function resumePendingGuestConversion(): Promise<Readonly<{
   return runWithBrowserGuestLock("exclusive", async () => {
     const pending = requirePending();
     if (!pending.guestWorkspaceSyncedAndOutboxDrained) throw new Error("Guest writes were not drained before sign-in. Recover guest ownership before retrying.");
-    const probe = await probeBrowserGuestSession();
+    const probe = await probeBrowserGuestSessionWithRegisteredRecovery();
     const guest = probe.guestSession;
     const csrf = probe.registeredSession.csrfToken;
     if (!probe.registeredSession.present || csrf === null || (guest.status !== "active" && guest.status !== "pending_upgrade") || guest.userId !== pending.sourceUserId) {
@@ -114,7 +115,7 @@ export async function completePendingGuestConversion(selection: GuestUpgradeSele
     if (pending.destinationUserId !== destinationUserId || !pending.guestWorkspaceSyncedAndOutboxDrained
       || pending.phase === "awaiting_auth" || pending.phase === "draining") throw new Error("Prepare and verify the saved destination before completing guest conversion.");
     if (pending.selection !== null && JSON.stringify(pending.selection) !== JSON.stringify(selection)) throw new Error("The conversion selection differs from the saved destination.");
-    const probe = await probeBrowserGuestSession();
+    const probe = await probeBrowserGuestSessionWithRegisteredRecovery();
     const csrf = probe.registeredSession.csrfToken;
     if (!probe.registeredSession.present || csrf === null) throw new Error("Registered browser session is required to complete guest conversion.");
     const session = await getOptionalSession();
@@ -139,7 +140,7 @@ export async function applyFinalizedGuestConversion(hydrateDestination: (session
 
 async function verifyRetiredDestination(destinationUserId: string | null): Promise<void> {
   const settings = await loadCloudSettings();
-  const probe = await probeBrowserGuestSession();
+  const probe = await probeBrowserGuestSessionWithRegisteredRecovery();
   const session = await getOptionalSession();
   if (readPendingGuestConversion() !== null || !probe.registeredSession.present || probe.guestSession.status !== "absent"
     || session?.authTransport !== "session" || session.browserGuestCapabilities !== null
@@ -167,7 +168,7 @@ export async function retireGuestCredential(destinationUserId: string): Promise<
       || settings?.linkedWorkspaceId !== pending.result.workspace.workspaceId || !await hasHydratedHotState(pending.result.workspace.workspaceId) || !await hasHydratedReviewHistory(pending.result.workspace.workspaceId)) {
       throw new Error("Keep the guest cookie until the finalized destination is durably hydrated.");
     }
-    const probe = await probeBrowserGuestSession();
+    const probe = await probeBrowserGuestSessionWithRegisteredRecovery();
     const session = await getOptionalSession();
     if (session?.userId !== pending.destinationUserId) throw new Error("The signed-in account changed before credential retirement.");
     await forgetBrowserGuestSession(probe.guestSession.csrfToken ?? probe.registeredSession.csrfToken);
