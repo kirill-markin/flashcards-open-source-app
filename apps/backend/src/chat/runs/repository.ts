@@ -47,6 +47,7 @@ export type ChatRunRow = Readonly<{
   finished_at: string | null;
   last_error_message: string | null;
   initiating_auth_is_signed_in: boolean;
+  browser_guest_ai_trial?: boolean;
   live_attach_client_id: string | null;
   // BIGINT, which node-postgres hands back as a string.
   live_attach_seq: string;
@@ -79,6 +80,7 @@ export type InsertChatRunParams = Readonly<{
   uiLocale: ChatComposerSuggestionsLocale | null;
   turnInput: ReadonlyArray<ContentPart>;
   initiatingAuthIsSignedIn: boolean;
+  browserGuestAiTrial?: boolean;
   clientPlatform: ProductAnalyticsClientReportablePlatform | null;
   clientOsName: ProductAnalyticsOsName | null;
   clientDeviceType: ProductAnalyticsDeviceType | null;
@@ -137,6 +139,7 @@ const CHAT_RUN_COLUMNS_SQL = `
     finished_at,
     last_error_message,
     initiating_auth_is_signed_in,
+    browser_guest_ai_trial,
     live_attach_client_id,
     live_attach_seq
 `;
@@ -184,9 +187,10 @@ const INSERT_CHAT_RUN_SQL = `
     client_os_name,
     client_device_type,
     ai_consent_event_id,
+    browser_guest_ai_trial,
     updated_at
   )
-  VALUES ($1, $2, 'queued', $3, $4, $5, $6, $7, $8::jsonb, $9, $10, $11, $12, $13, now())
+  VALUES ($1, $2, 'queued', $3, $4, $5, $6, $7, $8::jsonb, $9, $10, $11, $12, $13, $14, now())
   RETURNING
 ${CHAT_RUN_COLUMNS_SQL}
 `;
@@ -493,6 +497,7 @@ export async function insertChatRunWithExecutor(
       params.clientOsName,
       params.clientDeviceType,
       params.aiConsentId ?? null,
+      params.browserGuestAiTrial === true,
     ]);
     return requireRunRow(rows[0], "insert");
   });

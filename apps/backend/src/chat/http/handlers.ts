@@ -1,5 +1,6 @@
+import { createBrowserGuestChatOperation, reserveNewBrowserGuestTrialOperation, resolveFundedBrowserGuestTrial } from "../../aiUsage/browserGuestTrial/admission";
 import type { Handler } from "hono";
-import { assertGuestAiFundingAllowed } from "../../guestAuth/webPlatform";
+import { assertGuestRequestSupportsProduct } from "../../guestAuth/webPlatform";
 import { assertAiConsentReceiptActive } from "../../aiConsent";
 import { readAiConsentIdHeader } from "../../aiConsent/input";
 import type { AppEnv } from "../../server/app";
@@ -206,7 +207,8 @@ export function createPostChatHandler(dependencies: ChatRouteDependencies): Hand
       dependencies,
     );
     const userOpenAIApiKey = readUserOpenAIApiKeyHeader(context.req.raw);
-    assertGuestAiFundingAllowed(requestContext, userOpenAIApiKey);
+    assertGuestRequestSupportsProduct(requestContext);
+    const browserGuestTrial = resolveFundedBrowserGuestTrial(requestContext, userOpenAIApiKey !== null);
     const aiConsentId = readAiConsentIdHeader(context.req.raw);
     await assertAiConsentReceiptActive(requestContext.userId, aiConsentId);
     const rawBody = await parseJsonBodyWithByteLimit(
@@ -257,17 +259,12 @@ export function createPostChatHandler(dependencies: ChatRouteDependencies): Hand
         readProductAnalyticsClientPlatform(context.get("clientPlatform") ?? null),
         readProductAnalyticsClientOsName(context.get("clientOsName") ?? null),
         readProductAnalyticsClientDeviceType(context.get("clientDeviceType") ?? null),
-        // The turn is refused before it is persisted, so a caller who has used their month's messages
-        // never starts a run the worker would then have to pay for. Every caller is checked the same way
-        // and the allowance resolved above decides; the model calls the run goes on to make append their
-        // facts without asking again, because a run admitted here is not abandoned halfway through.
-        // `prepareChatRun` runs this on the branch that inserts a run and not on a deduplicated replay,
-        // which is a retry of a turn already accepted rather than a next turn. A new turn therefore
-        // fails closed when the allowance could not be resolved at all, and a replay never depends on
-        // billing being readable. Nothing here writes, so the transaction it runs in stays free of any
-        // write but its own. A turn sent with the person's own OpenAI key is never refused: its usage
-        // does not count against the allowance.
-        async () => {
+        async (executor, sessionId) => {
+          if (browserGuestTrial !== undefined) {
+            await reserveNewBrowserGuestTrialOperation(executor, browserGuestTrial,
+              createBrowserGuestChatOperation(sessionId, body.clientRequestId));
+            return;
+          }
           if (userOpenAIApiKey !== null) {
             return;
           }
@@ -283,6 +280,7 @@ export function createPostChatHandler(dependencies: ChatRouteDependencies): Hand
           );
         },
         aiConsentId,
+        browserGuestTrial,
       ));
     } catch (error) {
       // Recorded here, outside the run transaction, and before the refusal reaches the client unchanged.
@@ -315,6 +313,12 @@ export function createPostChatHandler(dependencies: ChatRouteDependencies): Hand
       return mapStoreError(error);
     }
 
+    if (browserGuestTrial !== undefined && preparedRun.shouldInvokeWorker && preparedRun.browserGuestAiTrial !== true) {
+      throw new HttpError(409,
+        "This queued AI turn was admitted with your own key. Retry with that key or start a new turn.",
+        "BROWSER_GUEST_AI_TRIAL_RUN_NOT_ADMITTED");
+    }
+
     // The turn is committed once prepareChatRunFn returns, so the analytics write belongs here
     // rather than inside it: dispatching the worker first keeps the analytics write off the path
     // to generation, and `finally` still reports the turn the user did send when the dispatch
@@ -331,6 +335,7 @@ export function createPostChatHandler(dependencies: ChatRouteDependencies): Hand
           chatRequestId: body.clientRequestId,
           sessionId: preparedRun.sessionId,
           initiatingAuthIsSignedIn: preparedRun.initiatingAuthIsSignedIn,
+          ...(browserGuestTrial === undefined ? {} : { browserGuestSessionId: browserGuestTrial.guestSessionId }),
           userOpenAIApiKey,
         }));
       }

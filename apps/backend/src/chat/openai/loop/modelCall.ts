@@ -1,3 +1,4 @@
+import type { BrowserGuestTrialContext } from "../../../aiUsage/browserGuestTrial/policy";
 import OpenAI from "openai";
 import { assertAiConsentReceiptActive } from "../../../aiConsent";
 import { getReceiptProviderRetryDelayMs, waitForReceiptProviderRetry } from "../receiptRetry";
@@ -88,6 +89,7 @@ export type RunOneToolCall = (params: Readonly<{
   runId: string;
   sessionId: string;
   operationKey: string;
+  browserGuestTrial?: BrowserGuestTrialContext;
   generatedImageEligible: boolean;
   claimToken: ChatRunClaimToken;
   userId: string;
@@ -109,6 +111,7 @@ type ExecuteToolCallsParams = Readonly<{
   requestId: string;
   runId: string;
   sessionId: string;
+  browserGuestTrial?: BrowserGuestTrialContext;
   generatedImageEligible: boolean;
   claimToken: ChatRunClaimToken;
   userId: string;
@@ -393,6 +396,7 @@ export async function executeToolCalls(
         runId: params.runId,
         sessionId: params.sessionId,
         operationKey,
+        browserGuestTrial: params.browserGuestTrial,
         generatedImageEligible: params.generatedImageEligible,
         claimToken: params.claimToken,
         userId: params.userId,

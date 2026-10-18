@@ -1,3 +1,4 @@
+import type { BrowserGuestTrialContext } from "../../aiUsage/browserGuestTrial/policy";
 import {
   transactionWithWorkspaceScope,
   transactionWithWorkspaceScopeDeadline,
@@ -136,14 +137,6 @@ async function assertChatSessionAcceptsNewTurnsWithExecutor(
  * It runs inside the transaction and only on the branch that inserts a new run, so the run that crosses
  * the allowance is still the one that completes.
  *
- * What it is allowed to be is narrow, and the caller is what keeps it so: the comparison of an allowance
- * the caller already resolved against the usage facts already appended. `apps/backend/src/aiUsage/cap.ts`
- * splits that comparison from the resolution for this reason - resolving reads the billing tables and can
- * refresh `billing.entitlement_snapshots` in a transaction of its own, which would commit independently
- * of this one and survive a rollback. So: this closure reads `ai.usage_events`, on a pooled connection of
- * its own while this transaction holds the session row, and writes nothing. A refusal therefore rolls
- * back having written nothing, and anything added to this closure later has to keep that true.
- *
  * Attachments, inline or staged uploads, become session files on the branch that inserts a new run, after
  * the refusal, so the turn and its run store references and a replay or a refused turn uploads nothing.
  * Their objects are stored before their rows, so a failure anywhere after the upload, COMMIT included,
@@ -162,8 +155,9 @@ export async function prepareChatRun(
   clientPlatform: ProductAnalyticsClientReportablePlatform | null,
   clientOsName: ProductAnalyticsOsName | null,
   clientDeviceType: ProductAnalyticsDeviceType | null,
-  assertAiUsageAllowance: () => Promise<void>,
+  assertAiUsageAllowance: (executor: DatabaseExecutor, sessionId: string) => Promise<void>,
   aiConsentId?: string | null,
+  browserGuestTrial?: BrowserGuestTrialContext,
 ): Promise<PreparedChatRun> {
   const observationScope = createBackendObservationScope(
     "backend-api",
@@ -201,11 +195,12 @@ export async function prepareChatRun(
         deduplicated: true,
         shouldInvokeWorker: existingRun.status === "queued",
         initiatingAuthIsSignedIn: existingRun.initiating_auth_is_signed_in,
+        browserGuestAiTrial: existingRun.browser_guest_ai_trial === true,
       };
     }
 
     await assertChatSessionAcceptsNewTurnsWithExecutor(executor, scope, session.session_id, requestId);
-    await assertAiUsageAllowance();
+    await assertAiUsageAllowance(executor, session.session_id);
 
     if (lockedSession.status === "running") {
       const recovered = await recoverStaleRunWithExecutor(executor, scope, lockedSession);
@@ -247,6 +242,7 @@ export async function prepareChatRun(
       uiLocale,
       turnInput: storedContent,
       initiatingAuthIsSignedIn,
+      browserGuestAiTrial: browserGuestTrial !== undefined,
       clientPlatform,
       clientOsName,
       clientDeviceType,
@@ -285,6 +281,7 @@ export async function prepareChatRun(
       deduplicated: false,
       shouldInvokeWorker: true,
       initiatingAuthIsSignedIn: run.initiating_auth_is_signed_in,
+      browserGuestAiTrial: run.browser_guest_ai_trial === true,
     };
   }).catch((error: unknown) => {
     logOrphanedChatFileUploads(observationScope, uploadedAttachments, "write_failed", error);
@@ -368,6 +365,7 @@ export async function claimChatRun(
       localMessages: messages,
       turnInput: claimedRun.turn_input,
       initiatingAuthIsSignedIn: claimedRun.initiating_auth_is_signed_in,
+      browserGuestAiTrial: claimedRun.browser_guest_ai_trial === true,
       aiConsentId: claimedRun.ai_consent_event_id ?? null,
       clientPlatform: claimedRun.client_platform,
       clientOsName: claimedRun.client_os_name,

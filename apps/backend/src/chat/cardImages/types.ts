@@ -1,3 +1,4 @@
+import type { BrowserGuestTrialContext } from "../../aiUsage/browserGuestTrial/policy";
 import type { CardTextSide } from "../../cards";
 import type { EntitlementTier } from "../../billing/tiers";
 import type { ChatRunClaimToken } from "../runs";
@@ -5,6 +6,7 @@ import type { UserOpenAIApiKey } from "../userOpenAIApiKey";
 import type { GeneratedCardImageObservationContext } from "./providerTypes";
 
 export type GeneratedCardImageInput = Readonly<{
+  browserGuestTrial?: BrowserGuestTrialContext;
   aiConsentId?: string | null;
   runId: string;
   operationKey: string;

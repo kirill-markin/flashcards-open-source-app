@@ -31,7 +31,7 @@ and the own-key explanation and action appear in the offer only for an AI-limit 
 One message is one chat turn that reached the model on the platform key. Only in-app chat turns
 count.
 
-- Dictation is not limited.
+- Registered and native dictation is not limited; browser guests use the [browser trial](#browser-guest-ai-trial).
 - Card image generation keeps its own ceilings.
 - Composer suggestions never count.
 - A turn made with the person's own OpenAI key never counts.
@@ -49,9 +49,18 @@ All limits are per person per month, in the [UTC monthly window](premium-entitle
 Weighted tokens are not refused. A person's monthly total of 5,000,000 weighted tokens on the
 platform key raises a Sentry warning.
 
-Browser-product cookie guests must sign in before using AI funded by Nibomo, including dictation
-and composer follow-ups. This access policy is separate from the allowance table; native guests keep
-their existing access. See [browser guest credentials](auth-service.md#browser-guest-credentials).
+## Browser guest AI trial
+
+Authenticated browser-product cookie guests can use Nibomo-funded chat, dictation and card images
+under independent lifetime and shared UTC-day budgets. The authoritative limits live in
+[`ai.browser_guest_trial_policy`](../db/migrations/0221_browser_guest_ai_trial.sql); `/me/ai-usage`
+publishes their current availability separately from monthly usage. Only a new logical chat turn
+spends a message; dictation spends validated audio seconds rounded up. Paid failures and unknown
+provider outcomes retain spend. Image and dictation trials use one provider attempt per operation.
+Normal refusals invite sign-in inside the conversation without discarding drafts or disabling the
+other features. Analytics consent does not control access. Native, registered and own-key behavior
+is unchanged; legacy web tokens remain analytics-only. See
+[browser guest credentials](auth-service.md#browser-guest-credentials).
 
 ## Own OpenAI key
 

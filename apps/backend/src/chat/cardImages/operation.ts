@@ -1,7 +1,12 @@
+import type { BrowserGuestTrialContext } from "../../aiUsage/browserGuestTrial/policy";
+import { createBrowserGuestTrialOperation, reserveNewBrowserGuestTrialOperation } from "../../aiUsage/browserGuestTrial/admission";
+import { startBrowserGuestAiTrialProviderInExecutor } from "../../aiUsage/browserGuestTrial/repository";
+import type { BrowserGuestTrialOperation } from "../../aiUsage/browserGuestTrial/repository";
 import { createHash } from "node:crypto";
 import type { CardTextSide } from "../../cards";
 import {
   transactionWithWorkspaceScopeDeadline,
+  type DatabaseExecutor,
 } from "../../database";
 import { DatabaseCommitOutcomeUnknownError } from "../../database/transient";
 import { normalizeImageBytesForCard } from "../../mediaAssets/ingestion/imageNormalization";
@@ -182,6 +187,7 @@ function normalizeGeneratedCardImageInput(input: GeneratedCardImageInput): Gener
     replicaId: expectUuidString(input.replicaId, "replicaId"),
     tierAtCall: input.tierAtCall,
     userOpenAIApiKey: input.userOpenAIApiKey,
+    browserGuestTrial: input.browserGuestTrial,
     aiConsentId: input.aiConsentId ?? null,
     observationContext: input.observationContext,
     signal: input.signal,
@@ -204,6 +210,7 @@ function normalizeRunlessGeneratedCardImageInput(
     replicaId: expectUuidString(input.replicaId, "replicaId"),
     tierAtCall: input.tierAtCall,
     userOpenAIApiKey: input.userOpenAIApiKey,
+    browserGuestTrial: input.browserGuestTrial,
     aiConsentId: input.aiConsentId ?? null,
     observationContext: input.observationContext,
     signal: input.signal,
@@ -288,6 +295,30 @@ async function assertGeneratedCardImagePreconditions(
   );
 }
 
+async function withBrowserGuestImageAdmission(
+  input: GeneratedCardImageOperationInput,
+  action: (executor: DatabaseExecutor, trial: BrowserGuestTrialContext) => Promise<void>,
+): Promise<void> {
+  const trial = input.browserGuestTrial;
+  if (trial === undefined) return;
+  if (!isChatRunGeneratedCardImageInput(input) || input.userOpenAIApiKey !== null || trial.userId !== input.userId) {
+    throw new Error("Browser guest images require a funded, budgeted chat run owned by the authenticated guest");
+  }
+  await transactionWithWorkspaceScopeDeadline(
+    { userId: input.userId, workspaceId: input.workspaceId }, input.operationDeadlineMs,
+    async (executor) => {
+      await assertActiveChatRunClaimWithExecutor(executor, input);
+      const result = await executor.query<Readonly<{ browser_guest_ai_trial: boolean }>>(
+        "SELECT browser_guest_ai_trial FROM ai.chat_runs WHERE run_id = $1", [input.runId],
+      );
+      if (result.rows[0]?.browser_guest_ai_trial !== true) {
+        throw new Error("Browser guest image run has no trusted trial admission");
+      }
+      await action(executor, trial);
+    },
+  );
+}
+
 async function prepareStagedGeneratedCardImage(
   input: GeneratedCardImageOperationInput,
   operationMetadata: GeneratedCardImageOperationMetadata,
@@ -310,6 +341,13 @@ async function prepareStagedGeneratedCardImage(
   } else {
     await dependencies.assertOwnKeyGenerationBudgetAvailableFn(input);
   }
+  const trialOperation: BrowserGuestTrialOperation = createBrowserGuestTrialOperation(
+    "images", operationMetadata.operationId, 1,
+    JSON.stringify([input.workspaceId, input.cardId, input.targetSide, input.imagePrompt, input.altText]),
+  );
+  await withBrowserGuestImageAdmission(input, async (executor, trial) => {
+    await reserveNewBrowserGuestTrialOperation(executor, trial, trialOperation);
+  });
   // A fence written after the caller gave up makes every identical retry read previously_started
   // and fail as outcome-unknown, although nothing was ever paid.
   input.signal.throwIfAborted();
@@ -354,6 +392,12 @@ async function prepareStagedGeneratedCardImage(
   input.signal.throwIfAborted();
   const generatedImage = await dependencies.generateProviderImageFn({
     userId: input.userId, imagePrompt: input.imagePrompt,
+    maximumAttempts: input.browserGuestTrial === undefined ? undefined : 1,
+    beforeProviderAttempt: input.browserGuestTrial === undefined ? undefined : async () => {
+      await withBrowserGuestImageAdmission(input, async (executor, trial) => {
+        await startBrowserGuestAiTrialProviderInExecutor(executor, trial, trialOperation);
+      });
+    },
     aiConsentId: input.aiConsentId ?? null,
     observationContext: input.observationContext,
     signal: input.signal, operationDeadlineMs: input.operationDeadlineMs,

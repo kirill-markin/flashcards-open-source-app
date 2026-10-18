@@ -1,3 +1,4 @@
+import { createBrowserGuestChatOperation, startBrowserGuestTrialProvider } from "../../aiUsage/browserGuestTrial/admission";
 import {
   isDatabaseDeadlineExpiry,
   runDatabaseOperationsWithDeadline,
@@ -345,6 +346,9 @@ export async function runPersistedChatSessionWithDeps(
         return;
       }
 
+      if (params.browserGuestTrial !== undefined) {
+        await startBrowserGuestTrialProvider(params.browserGuestTrial, createBrowserGuestChatOperation(params.sessionId, params.requestId));
+      }
       logProviderCallStarted(logContext, new Date(), control.abortController.signal.aborted);
       const completion: OpenAILoopCompletion = await startBackendSpan(
         "chat.worker.openai_loop",
@@ -357,6 +361,7 @@ export async function runPersistedChatSessionWithDeps(
           userId: params.userId,
           workspaceId: params.workspaceId,
           sessionId: params.sessionId,
+          browserGuestTrial: params.browserGuestTrial,
           generatedImageEligible: params.generatedImageEligible,
           generatedImageOperationDeadlineMs,
           clientPlatform: params.clientPlatform,

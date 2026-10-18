@@ -1,3 +1,4 @@
+import type { BrowserGuestTrialContext } from "../../../aiUsage/browserGuestTrial/policy";
 import type OpenAI from "openai";
 import { z } from "zod";
 import { REVIEW_RATINGS } from "../../../agent/reviewContract";
@@ -95,6 +96,7 @@ export type OpenAIToolContext = Readonly<{
   workspaceId: string;
   claimToken: ChatRunClaimToken;
   operationKey: string;
+  browserGuestTrial?: BrowserGuestTrialContext;
   generatedImageEligible: boolean;
   signal: AbortSignal | null;
   generatedImageOperationDeadlineMs: number;
@@ -696,7 +698,7 @@ async function executeGeneratedImageToolCall(
       context.userId, context.generatedImageOperationDeadlineMs,
     );
     operationSignal.throwIfAborted();
-    if (signedIn === false && context.userOpenAIApiKey === null) {
+    if (signedIn === false && context.userOpenAIApiKey === null && context.browserGuestTrial === undefined) {
       return createGeneratedImageErrorResult(
         "sign_in_required",
         false,
@@ -731,6 +733,7 @@ async function executeGeneratedImageToolCall(
     );
     operationSignal.throwIfAborted();
     const result = await dependencies.generateCardImage({
+      browserGuestTrial: context.browserGuestTrial,
       runId: context.runId,
       sessionId: context.sessionId,
       claimToken: context.claimToken,
@@ -795,6 +798,12 @@ async function executeGeneratedImageToolCall(
         attempt,
         false,
         "deadline_reached",
+      );
+    }
+    if (error instanceof HttpError && error.code === "BROWSER_GUEST_AI_TRIAL_QUOTA_REACHED") {
+      return createGeneratedImageResult(
+        { ok: false, code: error.code, details: error.details, retryable: false },
+        { succeeded: false, isMutating: false, shouldInvalidateMainContent: false, stopReason: null },
       );
     }
     if (error instanceof GeneratedCardImageGenerationLimitReachedError) {

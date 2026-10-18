@@ -1,3 +1,4 @@
+import type { BrowserGuestTrialContext } from "../../aiUsage/browserGuestTrial/policy";
 import type {
   ChatComposerSuggestionsLocale,
 } from "../composerSuggestions";
@@ -51,6 +52,7 @@ export type StartPersistedChatRunParams = Readonly<{
   assistantItemId: string;
   localMessages: ReadonlyArray<ServerChatMessage>;
   turnInput: ReadonlyArray<ContentPart>;
+  browserGuestTrial?: BrowserGuestTrialContext;
   generatedImageEligible: boolean;
   clientPlatform: ProductAnalyticsClientReportablePlatform | null;
   clientOsName: ProductAnalyticsOsName | null;
