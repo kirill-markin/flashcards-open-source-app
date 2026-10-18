@@ -48,8 +48,10 @@ function isExpectedFriendInvitationCreateError(error: unknown): boolean {
 }
 
 export function FriendInviteCreateDialog(props: FriendInviteCreateDialogProps): ReactElement {
-  const { authRedirectUrl, canCreateInvite, onClose, presentedOverSurface } = props;
-  const { activeWorkspace, cloudSettings, session } = useAppData();
+  const { authRedirectUrl, onClose, presentedOverSurface } = props;
+  const { activeWorkspace, cloudSettings, session, isSessionVerified } = useAppData();
+  const canCreateInvite = props.canCreateInvite && isSessionVerified && session !== null
+    && session.browserGuestCapabilities?.isGuest !== true;
   const { indexedDbOpenRecoveryState, showTechnicalError } = useAppErrorDialog();
   const { t, formatDateTime } = useI18n();
   const [friendDisplayName, setFriendDisplayName] = useState<string>("");
@@ -88,6 +90,7 @@ export function FriendInviteCreateDialog(props: FriendInviteCreateDialogProps): 
   }
 
   async function submitInviteCreate(): Promise<void> {
+    if (!canCreateInvite) return;
     if (indexedDbOpenRecoveryState.hasFailed()) {
       return;
     }

@@ -4,7 +4,6 @@ import {
   ApiError,
   acceptFriendInvitation,
   buildLoginUrl,
-  getOptionalSession,
   isAuthRedirectError,
   previewFriendInvitation,
 } from "../../api";
@@ -18,6 +17,13 @@ import {
   markIndexedDbOpenRecoveryFailureAndCheckActive,
   useAppErrorDialog,
 } from "../../appError/AppErrorContext";
+import { useAppData } from "../../appData";
+import { hasLoggedInCookie } from "../../appData/session/activation/warmStart";
+import { hasSavedBrowserGuestOwnership } from "../../appData/session/guest/browserGuestStorage";
+import { probeBrowserGuestSession } from "../../api/endpoints/guestAuth";
+import { loadCloudSettings } from "../../localDb/sync/cloudSettings";
+import { PublicGuestAppDataProvider } from "../settings/account/guest/GuestConversionGate";
+import { GuestSignIn } from "../settings/account/guest/GuestSignIn";
 import { invalidateServerProgress } from "../../appData/progress/invalidation/progressInvalidation";
 import { clearPersistedProgressLeaderboard } from "../../appData/progress/storage/progressStorage";
 import { getAppConfig } from "../../config";
@@ -114,9 +120,7 @@ type FriendInviteRetryPanelProps = Readonly<{
   onRetry: () => void;
 }>;
 
-type FriendInviteSignedOutPanelProps = Readonly<{
-  loginHref: string;
-}>;
+type FriendInviteSignedOutPanelProps = Readonly<{ loginHref: string }> | Readonly<{ signInAction: ReactElement }>;
 
 type FriendInviteSuccessPanelProps = Readonly<{
   acceptedResponse: FriendInvitationAcceptResponse | null;
@@ -179,7 +183,7 @@ export function FriendInviteErrorPanel({ errorMessage, onRetry }: FriendInviteRe
   );
 }
 
-export function FriendInviteSignedOutPanel({ loginHref }: FriendInviteSignedOutPanelProps): ReactElement {
+export function FriendInviteSignedOutPanel(props: FriendInviteSignedOutPanelProps): ReactElement {
   const { t } = useI18n();
 
   return (
@@ -187,9 +191,9 @@ export function FriendInviteSignedOutPanel({ loginHref }: FriendInviteSignedOutP
       <section className="content-card invite-panel" data-testid="friend-invite-signed-out">
         <h1 className="title">{t("friendInvite.signInTitle")}</h1>
         <p className="subtitle">{t("friendInvite.signInBody")}</p>
-        <a className="primary-btn" href={loginHref}>
+        {"signInAction" in props ? props.signInAction : <a className="primary-btn" href={props.loginHref}>
           {t("friendInvite.signInButton")}
-        </a>
+        </a>}
       </section>
     </main>
   );
@@ -269,6 +273,38 @@ export function FriendInviteReadyPanel({
   );
 }
 
+async function needsInviteAppDataBoundary(): Promise<boolean> {
+  if (import.meta.env.VITE_LOCAL_AUTH_MODE === "none" || hasSavedBrowserGuestOwnership()
+    || hasLoggedInCookie() || await loadCloudSettings() !== null) return true;
+  try {
+    const probe = await probeBrowserGuestSession();
+    return probe.registeredSession.present || probe.guestSession.status !== "absent";
+  } catch (error) {
+    if (error instanceof ApiError && error.statusCode === 401) return true;
+    throw error;
+  }
+}
+
+function FriendInviteAccountPanel(props: Omit<FriendInviteReadyPanelProps, "onAccept"> & Readonly<{
+  onAccept: (session: SessionInfo) => void;
+}>): ReactElement {
+  const { session, sessionLoadState, isSessionVerified, sessionErrorMessage, sessionTechnicalError, initialize } = useAppData();
+  const { t } = useI18n();
+  if (sessionLoadState === "error" || sessionLoadState === "guest_recovery" || sessionLoadState === "deleted"
+    || sessionLoadState === "storage_unavailable") {
+    return <FriendInviteErrorPanel errorMessage={sessionLoadState === "storage_unavailable"
+      ? t("appError.storageUnavailable.message")
+      : sessionTechnicalError === null ? sessionErrorMessage : t("appError.technicalError.message")} onRetry={() => void initialize()} />;
+  }
+  if ((sessionLoadState !== "ready" && sessionLoadState !== "selecting_workspace")
+    || !isSessionVerified || session === null) return <FriendInviteLoadingPanel />;
+  if (session.browserGuestCapabilities?.isGuest === true) {
+    return <FriendInviteSignedOutPanel signInAction={<GuestSignIn label={t("friendInvite.signInButton")}
+      testId="friend-invite-sign-in" returnUrl={window.location.href} />} />;
+  }
+  return <FriendInviteReadyPanel {...props} onAccept={() => props.onAccept(session)} />;
+}
+
 export function FriendInviteScreen(): ReactElement {
   const { token } = useParams();
   const inviteToken = readInviteTokenParam(token);
@@ -276,7 +312,6 @@ export function FriendInviteScreen(): ReactElement {
   const { locale, t } = useI18n();
   const [loadState, setLoadState] = useState<InviteLoadState>("loading");
   const [preview, setPreview] = useState<FriendInvitationPreviewResponse | null>(null);
-  const [session, setSession] = useState<SessionInfo | null>(null);
   const [friendDisplayName, setFriendDisplayName] = useState<string>("");
   const [fieldErrorMessage, setFieldErrorMessage] = useState<string>("");
   const [errorMessage, setErrorMessage] = useState<string>("");
@@ -291,7 +326,6 @@ export function FriendInviteScreen(): ReactElement {
 
     setLoadState("loading");
     setPreview(null);
-    setSession(null);
     setErrorMessage("");
     setFieldErrorMessage("");
     setAcceptedResponse(null);
@@ -305,10 +339,9 @@ export function FriendInviteScreen(): ReactElement {
         return;
       }
 
-      const optionalSession = await getOptionalSession();
+      const needsAppData = await needsInviteAppDataBoundary();
       indexedDbOpenRecoveryState.throwIfFailed();
-      setSession(optionalSession);
-      setLoadState(optionalSession === null ? "signed_out" : "ready");
+      setLoadState(needsAppData ? "ready" : "signed_out");
     } catch (error) {
       if (markIndexedDbOpenRecoveryFailureAndCheckActive(indexedDbOpenRecoveryState, error)) {
         return;
@@ -340,14 +373,13 @@ export function FriendInviteScreen(): ReactElement {
     void loadInvite();
   }, [indexedDbOpenRecoveryState, inviteToken]);
 
-  async function submitInviteAcceptance(): Promise<void> {
+  async function submitInviteAcceptance(session: SessionInfo): Promise<void> {
     if (indexedDbOpenRecoveryState.hasFailed()) {
       return;
     }
 
-    if (session === null) {
+    if (session.browserGuestCapabilities?.isGuest === true) {
       setErrorMessage(t("friendInvite.signInBody"));
-      setLoadState("signed_out");
       return;
     }
 
@@ -427,12 +459,12 @@ export function FriendInviteScreen(): ReactElement {
     setFieldErrorMessage("");
   }
 
-  function acceptInvite(): void {
+  function acceptInvite(session: SessionInfo): void {
     if (indexedDbOpenRecoveryState.hasFailed()) {
       return;
     }
 
-    void submitInviteAcceptance();
+    void submitInviteAcceptance(session);
   }
 
   if (loadState === "loading") {
@@ -456,14 +488,16 @@ export function FriendInviteScreen(): ReactElement {
   }
 
   return (
-    <FriendInviteReadyPanel
-      friendDisplayName={friendDisplayName}
-      fieldErrorMessage={fieldErrorMessage}
-      errorMessage={errorMessage}
-      isSubmitting={isSubmitting}
-      canAccept={preview?.status === "active"}
-      onFriendDisplayNameChange={updateFriendDisplayName}
-      onAccept={acceptInvite}
-    />
+    <PublicGuestAppDataProvider>
+      <FriendInviteAccountPanel
+        friendDisplayName={friendDisplayName}
+        fieldErrorMessage={fieldErrorMessage}
+        errorMessage={errorMessage}
+        isSubmitting={isSubmitting}
+        canAccept={preview?.status === "active"}
+        onFriendDisplayNameChange={updateFriendDisplayName}
+        onAccept={acceptInvite}
+      />
+    </PublicGuestAppDataProvider>
   );
 }
