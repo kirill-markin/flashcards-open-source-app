@@ -971,7 +971,7 @@
 "settings.account.connection.restart" = "ثبوت کی مدت ختم ہو گئی یا استعمال ہو چکا ہے۔ نئے ثبوت کے ساتھ دوبارہ شروع کریں۔";
 "settings.account.connection.restorePaused" = "اکاؤنٹس جڑ گئے۔ مقامی تازہ کاری رکی ہوئی ہے؛ آپ کا آف لائن ڈیٹا محفوظ ہے۔";
 
-"premium.offer.heading" = "سیکھنا سب کا حق ہے۔";
+"premium.offer.heading" = "سیکھنا **سب** کا حق ہے۔";
 "premium.offer.free" = "مفت";
 "premium.offer.freeDescription" = "بے روزگار طلبہ کے لیے بنایا گیا۔ سب کے لیے دستیاب۔ آپ کا بستہ اب ہلکا ہو گیا۔";
 "premium.offer.freeBenefits" = "بنیادی دہرائی، آف لائن تعلیم اور ہم وقت سازی";
@@ -987,3 +987,5 @@
 
 "settings.firstReviewOnboarding.title" = "پہلی دہرائی کا تعارف مکمل ہو گیا";
 "settings.firstReviewOnboarding.note" = "کارڈ دہراتے وقت رہنما دوبارہ دیکھنے کے لیے اسے بند کریں۔";
+"premium.offer.alwaysFree" = "ہمیشہ مفت";
+"settings.subscription.allowanceReset" = "آپ کے AI پیغامات کی حد ہر مہینے کے پہلے دن 00:00 UTC پر دوبارہ شروع ہوتی ہے۔";

@@ -17,7 +17,8 @@ const caCatalog: TranslationCatalog = {
   },
   stripe: createStripeCatalog(stripeCopy),
   paywall: {
-    heading: "Aprendre és per a tothom.",
+    heading: "Aprendre és per a <em>tothom.</em>",
+    alwaysFree: "Sempre gratis",
     freeTitle: "Gratuït",
     freeDescription: "Creat per a estudiants sense feina. Obert a tothom. La teva motxilla s’acaba d’alleugerir.",
     freeBenefit: "Repassos essencials, aprenentatge sense connexió i sincronització",
@@ -25,7 +26,7 @@ const caCatalog: TranslationCatalog = {
     creatorSupport: "La teva subscripció ajuda el creador de Nibomo, {{creator}}, a pagar els servidors i preparar la pròxima actualització amb cafè i pizza.",
     basePrice: "Preu base: {{price}} / mes",
     startTrial: "Comença la prova gratuïta de 7 dies",
-    trialPrice: "7 dies gratis i després un preu base mensual de {{price}}. Cal un mètode de pagament. Cancel·la abans que acabi la prova per evitar el primer cobrament.",
+    trialPrice: "7 dies gratis, després un preu base de {{price}}/mes. Cal un mètode de pagament; cancel·la abans que acabi la prova per evitar el primer càrrec.",
     checkoutPrice: "Stripe confirma el preu final i la moneda de facturació en pagar.",
   },
   accentColorSettings: {

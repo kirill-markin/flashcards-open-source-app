@@ -971,7 +971,7 @@
 "settings.account.connection.restart" = "Ushahidi umeisha muda au umetumika. Anza tena kwa ushahidi mpya.";
 "settings.account.connection.restorePaused" = "Akaunti zimeunganishwa. Usasishaji wa ndani umesitishwa; data yako ya nje ya mtandao imehifadhiwa.";
 
-"premium.offer.heading" = "Kujifunza ni kwa kila mtu.";
+"premium.offer.heading" = "Kujifunza ni kwa **kila mtu**.";
 "premium.offer.free" = "Bure";
 "premium.offer.freeDescription" = "Imeundwa kwa wanafunzi wasio na kazi. Wazi kwa kila mtu. Begi lako limekuwa jepesi zaidi.";
 "premium.offer.freeBenefits" = "Marudio ya msingi, kujifunza bila mtandao na usawazishaji";
@@ -987,3 +987,5 @@
 
 "settings.firstReviewOnboarding.title" = "Mwongozo wa marudio ya kwanza umekamilika";
 "settings.firstReviewOnboarding.note" = "Zima ili kuona mwongozo tena unaporudia kadi.";
+"premium.offer.alwaysFree" = "Bure daima";
+"settings.subscription.allowanceReset" = "Kikomo chako cha ujumbe wa AI huanza upya siku ya kwanza ya kila mwezi saa 00:00 UTC.";

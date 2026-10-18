@@ -971,7 +971,7 @@
 "settings.account.connection.restart" = "Důkaz vypršel nebo byl použit. Začněte znovu s novým důkazem.";
 "settings.account.connection.restorePaused" = "Účty propojeny. Místní obnovení je pozastaveno; vaše offline data zůstávají zachována.";
 
-"premium.offer.heading" = "Učení patří všem.";
+"premium.offer.heading" = "Učení patří **všem**.";
 "premium.offer.free" = "Zdarma";
 "premium.offer.freeDescription" = "Vytvořeno pro studenty bez práce. Otevřeno všem. Váš batoh je právě o něco lehčí.";
 "premium.offer.freeBenefits" = "Opakování, učení offline a synchronizace";
@@ -987,3 +987,5 @@
 
 "settings.firstReviewOnboarding.title" = "Průvodce prvním opakováním dokončen";
 "settings.firstReviewOnboarding.note" = "Vypněte, pokud chcete při opakování karty znovu zobrazit průvodce.";
+"premium.offer.alwaysFree" = "Vždy zdarma";
+"settings.subscription.allowanceReset" = "Váš limit zpráv s AI se obnovuje první den každého měsíce v 00:00 UTC.";

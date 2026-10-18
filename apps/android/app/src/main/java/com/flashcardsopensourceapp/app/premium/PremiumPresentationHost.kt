@@ -34,6 +34,7 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
@@ -182,10 +183,15 @@ internal fun PremiumPresentationHost(
             modifier = if (isEditingOwnKey) Modifier.fillMaxHeight(0.9f) else Modifier.fillMaxWidth()
         ) {
             Row(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp),
-                horizontalArrangement = Arrangement.End,
+                modifier = Modifier.fillMaxWidth().padding(start = 24.dp, end = 8.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
+                Text(
+                    stringResource(R.string.app_name),
+                    style = MaterialTheme.typography.titleMedium,
+                    modifier = Modifier.weight(1f)
+                )
                 IconButton(
                     onClick = dismiss,
                     modifier = Modifier.testTag(tag = premiumCloseButtonTag)
@@ -205,15 +211,11 @@ internal fun PremiumPresentationHost(
                     modifier = Modifier
                         .fillMaxWidth()
                         .verticalScroll(rememberScrollState())
-                        .padding(start = 24.dp, end = 24.dp, bottom = 32.dp),
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                        .padding(start = 24.dp, end = 24.dp, bottom = 24.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     if (!hasAccess) {
-                        Text(
-                            text = stringResource(R.string.premium_heading),
-                            style = MaterialTheme.typography.headlineLarge,
-                            modifier = Modifier.testTag("premium_heading")
-                        )
+                        PremiumOfferHeading()
                     }
                     if (isAiLimit) {
                         Text(
@@ -270,23 +272,34 @@ internal fun PremiumPresentationHost(
                         )
                         Text(stringResource(R.string.premium_already_active))
                     }
-                    if (presentation != null) {
-                        PremiumBillingActions(
-                            connector = appGraph.googlePlaySubscriptionConnector,
-                            analyticsSurface = originSurface
+                    if (isOfferVisible) {
+                        Text(
+                            text = stringResource(R.string.premium_welcome),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.fillMaxWidth()
                         )
-                        TextButton(
-                            onClick = {
-                                openExternalUrl(context, googlePlaySubscriptionManagementUrl(context.packageName))
-                                appGraph.analytics.track(AnalyticsEvent.SubscriptionManagementOpened(
-                                    destination = AnalyticsSubscriptionManagementDestination.GOOGLE_PLAY,
-                                    screen = originSurface
-                                ))
-                            },
-                            modifier = Modifier.fillMaxWidth().testTag("premium_manage")
-                        ) { Text(stringResource(R.string.premium_manage)) }
                     }
-                    PremiumLegalLinks()
+                    Column {
+                        if (presentation != null) {
+                            PremiumBillingActions(
+                                connector = appGraph.googlePlaySubscriptionConnector,
+                                analyticsSurface = originSurface
+                            )
+                            TextButton(
+                                onClick = {
+                                    openExternalUrl(context, googlePlaySubscriptionManagementUrl(context.packageName))
+                                    appGraph.analytics.track(AnalyticsEvent.SubscriptionManagementOpened(
+                                        destination = AnalyticsSubscriptionManagementDestination.GOOGLE_PLAY,
+                                        screen = originSurface
+                                    ))
+                                },
+                                modifier = Modifier.fillMaxWidth().testTag("premium_manage")
+                            ) { Text(stringResource(R.string.premium_manage)) }
+                        }
+                        PremiumLegalLinks()
+                    }
                     if (isAiLimit) {
                         Text(stringResource(R.string.premium_own_key_help))
                         Button(

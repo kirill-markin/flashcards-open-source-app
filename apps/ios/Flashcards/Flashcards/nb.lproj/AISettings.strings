@@ -971,7 +971,7 @@
 "settings.account.connection.restart" = "Beviset har utløpt eller er brukt. Start på nytt med et nytt bevis.";
 "settings.account.connection.restorePaused" = "Kontoer koblet sammen. Lokal oppdatering er satt på pause; frakoblede data beholdes.";
 
-"premium.offer.heading" = "Læring er for alle.";
+"premium.offer.heading" = "Læring er for **alle**.";
 "premium.offer.free" = "Gratis";
 "premium.offer.freeDescription" = "Laget for studenter uten jobb. Åpent for alle. Sekken din ble nettopp lettere.";
 "premium.offer.freeBenefits" = "Repetisjon, læring uten nett og synkronisering";
@@ -987,3 +987,5 @@
 
 "settings.firstReviewOnboarding.title" = "Introduksjon til første repetisjon fullført";
 "settings.firstReviewOnboarding.note" = "Slå av for å se veiledningen igjen når du repeterer et kort.";
+"premium.offer.alwaysFree" = "Alltid gratis";
+"settings.subscription.allowanceReset" = "Kvoten din for KI-meldinger nullstilles den første dagen i hver måned kl. 00.00 UTC.";

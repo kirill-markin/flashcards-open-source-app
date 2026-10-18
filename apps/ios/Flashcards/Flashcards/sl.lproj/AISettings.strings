@@ -971,7 +971,7 @@
 "settings.account.connection.restart" = "Dokaz je potekel ali bil uporabljen. Začni znova z novim dokazom.";
 "settings.account.connection.restorePaused" = "Računi so povezani. Lokalna osvežitev je začasno ustavljena; podatki brez povezave so ohranjeni.";
 
-"premium.offer.heading" = "Učenje je za vse.";
+"premium.offer.heading" = "Učenje je za **vse**.";
 "premium.offer.free" = "Brezplačno";
 "premium.offer.freeDescription" = "Ustvarjeno za študente brez službe. Odprto vsem. Vaš nahrbtnik je pravkar postal lažji.";
 "premium.offer.freeBenefits" = "Ponavljanje, učenje brez povezave in sinhronizacija";
@@ -987,3 +987,5 @@
 
 "settings.firstReviewOnboarding.title" = "Uvod v prvo ponavljanje je končan";
 "settings.firstReviewOnboarding.note" = "Izklopite, da se pri ponavljanju kartice znova prikaže vodnik.";
+"premium.offer.alwaysFree" = "Vedno brezplačno";
+"settings.subscription.allowanceReset" = "Vaša omejitev sporočil z UI se ponastavi prvi dan vsakega meseca ob 00:00 UTC.";

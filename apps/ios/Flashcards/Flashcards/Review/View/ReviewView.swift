@@ -302,12 +302,15 @@ struct ReviewView: View {
                    self.shouldShowReviewLoader == false,
                    self.currentCard != nil,
                    self.store.firstReviewOnboardingCompleted == false,
-                   let anchor = anchors[self.isAnswerVisible ? .again : .showAnswer] {
+                   let anchor = anchors[self.isAnswerVisible ? .rating(.again) : .showAnswer] {
                     let target = geometry[anchor]
+                    let neighboringButtons = ReviewRating.allCases.filter { $0 != .again }.compactMap { rating in
+                        anchors[.rating(rating)].map { geometry[$0] }
+                    }
                     if target.width > 0, target.height > 0,
                        CGRect(origin: .zero, size: geometry.size).contains(target) {
                         FirstReviewOnboardingOverlay(
-                            target: target, size: geometry.size,
+                            target: target, size: geometry.size, neighboringButtons: neighboringButtons,
                             accent: self.store.effectiveAccountAccentColor,
                             animates: self.reduceMotion == false && self.isLowPowerModeEnabled == false
                         )
@@ -1291,7 +1294,7 @@ struct ReviewView: View {
         .disabled(store.isReviewPending(cardId: cardId))
         .accessibilityIdentifier(reviewAnswerButtonIdentifier(rating: option.rating))
         .anchorPreference(key: FirstReviewOnboardingAnchors.self, value: .bounds) {
-            option.rating == .again ? [.again: $0] : [:]
+            [.rating(option.rating): $0]
         }
     }
 

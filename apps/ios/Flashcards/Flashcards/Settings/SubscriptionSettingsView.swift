@@ -93,6 +93,11 @@ struct SubscriptionSettingsView: View {
                     .disabled(self.isPreparingAccount || (try? store.appleSubscriptionIdentity()) == nil)
                     .accessibilityIdentifier(UITestIdentifier.subscriptionSettingsPremiumButton)
                 }
+            } footer: {
+                Text(aiSettingsLocalized(
+                    "settings.subscription.allowanceReset",
+                    "Your AI message allowance resets on the first day of each month at 00:00 UTC."
+                ))
             }
 
             if self.isPreparingAccount {

@@ -971,7 +971,7 @@
 "settings.account.connection.restart" = "Bukti kedaluwarsa atau telah digunakan. Mulai lagi dengan bukti baru.";
 "settings.account.connection.restorePaused" = "Akun terhubung. Pembaruan lokal dijeda; data offline Anda tetap disimpan.";
 
-"premium.offer.heading" = "Belajar adalah hak semua orang.";
+"premium.offer.heading" = "Belajar adalah hak **semua orang**.";
 "premium.offer.free" = "Gratis";
 "premium.offer.freeDescription" = "Dibuat untuk pelajar yang belum bekerja. Terbuka untuk semua. Tasmu kini lebih ringan.";
 "premium.offer.freeBenefits" = "Ulasan inti, belajar offline & sinkronisasi";
@@ -987,3 +987,5 @@
 
 "settings.firstReviewOnboarding.title" = "Panduan ulasan pertama selesai";
 "settings.firstReviewOnboarding.note" = "Nonaktifkan untuk melihat panduan lagi saat mengulas kartu.";
+"premium.offer.alwaysFree" = "Selalu gratis";
+"settings.subscription.allowanceReset" = "Kuota pesan AI Anda direset pada hari pertama setiap bulan pukul 00.00 UTC.";

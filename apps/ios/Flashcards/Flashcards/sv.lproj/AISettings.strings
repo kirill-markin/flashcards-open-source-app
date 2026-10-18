@@ -971,7 +971,7 @@
 "settings.account.connection.restart" = "Beviset har gått ut eller använts. Börja om med ett nytt bevis.";
 "settings.account.connection.restorePaused" = "Konton anslutna. Lokal uppdatering är pausad; dina offlinedata behålls.";
 
-"premium.offer.heading" = "Lärande är för alla.";
+"premium.offer.heading" = "Lärande är för **alla**.";
 "premium.offer.free" = "Gratis";
 "premium.offer.freeDescription" = "Skapat för studenter utan jobb. Öppet för alla. Din ryggsäck blev just lättare.";
 "premium.offer.freeBenefits" = "Repetition, lärande offline och synkronisering";
@@ -987,3 +987,5 @@
 
 "settings.firstReviewOnboarding.title" = "Introduktion till första repetitionen klar";
 "settings.firstReviewOnboarding.note" = "Stäng av för att se guiden igen när du repeterar ett kort.";
+"premium.offer.alwaysFree" = "Alltid gratis";
+"settings.subscription.allowanceReset" = "Din kvot för AI-meddelanden återställs den första dagen i varje månad kl. 00.00 UTC.";

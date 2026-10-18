@@ -971,7 +971,7 @@
 "settings.account.connection.restart" = "مدرک منقضی یا مصرف شده است. با مدرک تازه دوباره شروع کنید.";
 "settings.account.connection.restorePaused" = "حساب‌ها پیوند خوردند. تازه‌سازی محلی متوقف است؛ داده‌های آفلاین شما حفظ می‌شوند.";
 
-"premium.offer.heading" = "یادگیری برای همه است.";
+"premium.offer.heading" = "یادگیری برای **همه** است.";
 "premium.offer.free" = "رایگان";
 "premium.offer.freeDescription" = "ساخته‌شده برای دانشجویان بدون شغل. در دسترس همه. کوله‌پشتی‌تان سبک‌تر شد.";
 "premium.offer.freeBenefits" = "مرورهای اصلی، یادگیری آفلاین و همگام‌سازی";
@@ -987,3 +987,5 @@
 
 "settings.firstReviewOnboarding.title" = "راهنمای نخستین مرور تکمیل شد";
 "settings.firstReviewOnboarding.note" = "خاموش کنید تا هنگام مرور کارت، راهنما دوباره نمایش داده شود.";
+"premium.offer.alwaysFree" = "همیشه رایگان";
+"settings.subscription.allowanceReset" = "سهمیهٔ پیام‌های هوش مصنوعی شما در روز اول هر ماه، ساعت ۰۰:۰۰ به وقت UTC، از نو برقرار می‌شود.";

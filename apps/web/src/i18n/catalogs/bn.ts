@@ -17,7 +17,8 @@ const bnCatalog: TranslationCatalog = {
   },
   stripe: createStripeCatalog(stripeCopy),
   paywall: {
-    heading: "শেখা সবার অধিকার।",
+    heading: "শেখা <em>সবার</em> অধিকার।",
+    alwaysFree: "সবসময় বিনামূল্যে",
     freeTitle: "বিনামূল্যে",
     freeDescription: "চাকরি নেই এমন শিক্ষার্থীদের জন্য তৈরি। সবার জন্য উন্মুক্ত। আপনার ব্যাগটা একটু হালকা হলো।",
     freeBenefit: "মূল রিভিউ, অফলাইনে শেখা ও সিঙ্ক",
@@ -25,7 +26,7 @@ const bnCatalog: TranslationCatalog = {
     creatorSupport: "আপনার সাবস্ক্রিপশন Nibomo-এর নির্মাতা {{creator}}-কে সার্ভারের খরচ মেটাতে এবং কফি ও পিৎজা নিয়ে পরের আপডেট তৈরি করতে সাহায্য করে।",
     basePrice: "মূল দাম: {{price}} / মাস",
     startTrial: "৭ দিনের বিনামূল্যের ট্রায়াল শুরু করুন",
-    trialPrice: "৭ দিন বিনামূল্যে, তারপর মাসিক মূল দাম {{price}}। একটি পেমেন্ট পদ্ধতি প্রয়োজন। প্রথম চার্জ এড়াতে ট্রায়াল শেষ হওয়ার আগে বাতিল করুন।",
+    trialPrice: "7 দিন বিনামূল্যে, তারপর মাসিক মূল দাম {{price}}। পেমেন্ট পদ্ধতি দিতে হবে; প্রথম চার্জ এড়াতে ট্রায়াল শেষ হওয়ার আগেই বাতিল করুন।",
     checkoutPrice: "Stripe চেকআউটে চূড়ান্ত দাম ও বিলের মুদ্রা নিশ্চিত করে।",
   },
   accentColorSettings: {

@@ -971,7 +971,7 @@
 "settings.account.connection.restart" = "Sönnunin rann út eða var notuð. Byrjaðu aftur með nýja sönnun.";
 "settings.account.connection.restorePaused" = "Reikningar tengdir. Staðbundin uppfærsla er í bið; ótengd gögn þín varðveitast.";
 
-"premium.offer.heading" = "Nám er fyrir alla.";
+"premium.offer.heading" = "Nám er fyrir **alla**.";
 "premium.offer.free" = "Ókeypis";
 "premium.offer.freeDescription" = "Búið til fyrir námsfólk án vinnu. Opið öllum. Bakpokinn þinn varð rétt í þessu léttari.";
 "premium.offer.freeBenefits" = "Upprifjun, nám án nettengingar og samstilling";
@@ -987,3 +987,5 @@
 
 "settings.firstReviewOnboarding.title" = "Leiðbeiningum fyrir fyrstu upprifjun lokið";
 "settings.firstReviewOnboarding.note" = "Slökktu til að sjá leiðbeiningarnar aftur þegar þú rifjar upp spjald.";
+"premium.offer.alwaysFree" = "Alltaf ókeypis";
+"settings.subscription.allowanceReset" = "Kvóti þinn fyrir gervigreindarskilaboð endurstillist fyrsta dag hvers mánaðar kl. 00:00 UTC.";

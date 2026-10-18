@@ -999,7 +999,7 @@
 "settings.account.connection.restart" = "Der Nachweis ist abgelaufen oder wurde verwendet. Beginne mit einem neuen Nachweis.";
 "settings.account.connection.restorePaused" = "Konten verbunden. Die lokale Aktualisierung ist pausiert; deine Offlinedaten bleiben erhalten.";
 
-"premium.offer.heading" = "Lernen ist für alle da.";
+"premium.offer.heading" = "Lernen ist für **alle** da.";
 "premium.offer.free" = "Kostenlos";
 "premium.offer.freeDescription" = "Für Studierende ohne Job entwickelt. Für alle offen. Dein Rucksack ist gerade leichter geworden.";
 "premium.offer.freeBenefits" = "Wiederholen, offline lernen und synchronisieren";
@@ -1015,3 +1015,5 @@
 
 "settings.firstReviewOnboarding.title" = "Einführung zur ersten Wiederholung abgeschlossen";
 "settings.firstReviewOnboarding.note" = "Deaktivieren, um die Anleitung beim Wiederholen einer Karte erneut zu sehen.";
+"premium.offer.alwaysFree" = "Immer kostenlos";
+"settings.subscription.allowanceReset" = "Dein Kontingent für KI-Nachrichten wird am ersten Tag jedes Monats um 00:00 Uhr UTC zurückgesetzt.";

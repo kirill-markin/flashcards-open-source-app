@@ -17,7 +17,8 @@ const itCatalog: TranslationCatalog = {
   },
   stripe: createStripeCatalog(stripeCopy),
   paywall: {
-    heading: "Imparare è per tutti.",
+    heading: "Imparare è per <em>tutti.</em>",
+    alwaysFree: "Sempre gratis",
     freeTitle: "Gratis",
     freeDescription: "Creato per studenti senza lavoro. Aperto a tutti. Il tuo zaino è appena diventato più leggero.",
     freeBenefit: "Ripassi essenziali, studio offline e sincronizzazione",
@@ -25,7 +26,7 @@ const itCatalog: TranslationCatalog = {
     creatorSupport: "Il tuo abbonamento aiuta il creatore di Nibomo, {{creator}}, a pagare i server e preparare il prossimo aggiornamento con caffè e pizza.",
     basePrice: "Prezzo base: {{price}} / mese",
     startTrial: "Inizia la prova gratuita di 7 giorni",
-    trialPrice: "7 giorni gratis, poi un prezzo base mensile di {{price}}. È richiesto un metodo di pagamento. Annulla prima della fine della prova per evitare il primo addebito.",
+    trialPrice: "7 giorni gratis, poi un prezzo base di {{price}}/mese. Serve un metodo di pagamento; annulla prima della fine della prova per evitare il primo addebito.",
     checkoutPrice: "Stripe conferma il prezzo finale e la valuta di fatturazione al pagamento.",
   },
   accentColorSettings: {

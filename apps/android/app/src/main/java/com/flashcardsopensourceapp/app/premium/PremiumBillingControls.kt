@@ -6,7 +6,9 @@ import android.content.ContextWrapper
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -33,6 +35,7 @@ import androidx.compose.ui.text.LinkAnnotation
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextLinkStyles
 import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.withLink
 import androidx.compose.ui.unit.dp
@@ -47,6 +50,7 @@ import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsPaywall
 import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsSurface
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudEntitlement
 import com.flashcardsopensourceapp.data.local.model.cloud.hasPremiumAccess
+import com.flashcardsopensourceapp.core.ui.theme.FlashcardsOrange
 import com.flashcardsopensourceapp.feature.settings.openExternalUrl
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
@@ -65,14 +69,21 @@ internal fun PremiumFreePlan(onContinueFree: () -> Unit) {
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
         modifier = Modifier.fillMaxWidth().testTag("premium_free_plan")
     ) {
-        Column(modifier = Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Text(stringResource(R.string.premium_free_title), style = MaterialTheme.typography.titleLarge)
-            Text(stringResource(R.string.premium_free_description))
-            Text(stringResource(R.string.premium_free_benefits), style = MaterialTheme.typography.bodyMedium)
+        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            PremiumPlanHeader(
+                title = stringResource(R.string.premium_free_title),
+                price = stringResource(R.string.premium_free_price)
+            )
+            Text(
+                stringResource(R.string.premium_free_description),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            PremiumBenefit(text = stringResource(R.string.premium_free_benefits), modifier = Modifier)
             OutlinedButton(
                 onClick = onContinueFree,
-                modifier = Modifier.fillMaxWidth().testTag("premium_continue_free")
-            ) { Text(stringResource(R.string.premium_continue_free)) }
+                modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp).testTag("premium_continue_free")
+            ) { PremiumActionLabel(text = stringResource(R.string.premium_continue_free)) }
         }
     }
 }
@@ -96,6 +107,9 @@ internal fun PremiumStoreOffer(
     var showPreviewPurchaseNotice by remember(connector, isTestOfferPreview) { mutableStateOf(false) }
     val showsCatalog = isTestOfferPreview || presentation != null
     val canLoadOffer = isTestOfferPreview || !isBillingOperationBusy(operation)
+    val details = (offerState as? GooglePlaySubscriptionOfferState.Available)?.let {
+        premiumOfferDetails(it.offer, resources)
+    }
     LaunchedEffect(connector, operation, showsCatalog, isTestOfferPreview) {
         if (showsCatalog && !hasRequestedOffer && canLoadOffer) {
             hasRequestedOffer = true
@@ -104,13 +118,16 @@ internal fun PremiumStoreOffer(
     }
     Surface(
         shape = MaterialTheme.shapes.extraLarge,
-        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.08f).compositeOver(MaterialTheme.colorScheme.surface),
+        color = FlashcardsOrange.copy(alpha = 0.06f).compositeOver(MaterialTheme.colorScheme.surface),
         contentColor = MaterialTheme.colorScheme.onSurface,
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary),
+        border = BorderStroke(1.dp, FlashcardsOrange.copy(alpha = 0.65f)),
         modifier = Modifier.fillMaxWidth().testTag("premium_paid_plan")
     ) {
-        Column(modifier = Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Text(text = stringResource(R.string.premium_title), style = MaterialTheme.typography.titleLarge)
+        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            PremiumPlanHeader(
+                title = stringResource(R.string.premium_title),
+                price = details?.recurringPrice.orEmpty()
+            )
             if (showsCatalog) when (allowance) {
                 PremiumAllowanceState.Loading -> Text(stringResource(R.string.premium_allowance_loading))
                 PremiumAllowanceState.Failed -> {
@@ -119,14 +136,14 @@ internal fun PremiumStoreOffer(
                         Text(stringResource(R.string.premium_retry))
                     }
                 }
-                is PremiumAllowanceState.Available -> Text(
+                is PremiumAllowanceState.Available -> PremiumBenefit(
                     text = allowance.monthlyMessages?.let { count ->
                         resources.getQuantityString(R.plurals.premium_ai_messages, count, count)
                     } ?: stringResource(R.string.premium_ai_unlimited),
                     modifier = Modifier.testTag("premium_ai_allowance")
                 )
             }
-            Text(stringResource(R.string.premium_benefits))
+            PremiumBenefit(text = stringResource(R.string.premium_benefits), modifier = Modifier)
             PremiumCreatorSupport()
             if (!showsCatalog) {
                 Text(stringResource(R.string.premium_preview_notice), modifier = Modifier.testTag("premium_preview"))
@@ -157,12 +174,10 @@ internal fun PremiumStoreOffer(
                         OfferRetryButton(connector = connector, enabled = canLoadOffer)
                     }
                     is GooglePlaySubscriptionOfferState.Available -> {
-                        val details = premiumOfferDetails(state.offer, resources)
                         if (details == null) {
                             Text(stringResource(R.string.premium_offer_terms_unavailable))
                             OfferRetryButton(connector = connector, enabled = canLoadOffer)
                         } else {
-                            details.phaseDescriptions.forEach { description -> Text(description) }
                             val activity = findBillingActivity(context)
                             if (!isTestOfferPreview && activity == null) {
                                 Text(stringResource(R.string.premium_activity_unavailable), color = MaterialTheme.colorScheme.error)
@@ -182,12 +197,23 @@ internal fun PremiumStoreOffer(
                                     (isTestOfferPreview || (activity != null && entitlement != null &&
                                         !hasPremiumAccess(entitlement) && !isBillingOperationBusy(operation) &&
                                         !requiresPurchaseVerification(operation))),
-                                modifier = Modifier.fillMaxWidth().testTag("premium_purchase")
-                            ) { Text(details.purchaseLabel) }
+                                modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp).testTag("premium_purchase")
+                            ) { PremiumActionLabel(text = details.purchaseLabel) }
+                            if (details.introductoryPhaseDescriptions.isNotEmpty()) {
+                                Text(
+                                    details.introductoryPhaseDescriptions.joinToString(" · "),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    textAlign = TextAlign.Center,
+                                    modifier = Modifier.fillMaxWidth()
+                                )
+                            }
                             Text(
                                 details.renewalDescription,
-                                style = MaterialTheme.typography.bodyMedium,
-                                modifier = Modifier.testTag("premium_renewal_terms")
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                textAlign = TextAlign.Center,
+                                modifier = Modifier.fillMaxWidth().testTag("premium_renewal_terms")
                             )
                         }
                     }
@@ -227,7 +253,11 @@ private fun PremiumCreatorSupport() {
             append(support.substring(nameStart + name.length))
         }
     }
-    Text(text, style = MaterialTheme.typography.bodyMedium)
+    Text(
+        text,
+        style = MaterialTheme.typography.bodyMedium,
+        color = MaterialTheme.colorScheme.onSurfaceVariant
+    )
 }
 
 @Composable
@@ -235,14 +265,19 @@ internal fun PremiumLegalLinks() {
     val context = LocalContext.current
     val termsUrl = stringResource(com.flashcardsopensourceapp.feature.settings.R.string.flashcards_terms_of_service_url)
     val privacyUrl = stringResource(com.flashcardsopensourceapp.feature.settings.R.string.flashcards_privacy_policy_url)
-    TextButton(
-        onClick = { openExternalUrl(context = context, url = termsUrl) },
-        modifier = Modifier.fillMaxWidth().testTag("premium_terms")
-    ) { Text(stringResource(R.string.premium_terms)) }
-    TextButton(
-        onClick = { openExternalUrl(context = context, url = privacyUrl) },
-        modifier = Modifier.fillMaxWidth().testTag("premium_privacy")
-    ) { Text(stringResource(R.string.premium_privacy)) }
+    FlowRow(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.Center
+    ) {
+        TextButton(
+            onClick = { openExternalUrl(context = context, url = termsUrl) },
+            modifier = Modifier.testTag("premium_terms")
+        ) { Text(stringResource(R.string.premium_terms)) }
+        TextButton(
+            onClick = { openExternalUrl(context = context, url = privacyUrl) },
+            modifier = Modifier.testTag("premium_privacy")
+        ) { Text(stringResource(R.string.premium_privacy)) }
+    }
 }
 
 @Composable
