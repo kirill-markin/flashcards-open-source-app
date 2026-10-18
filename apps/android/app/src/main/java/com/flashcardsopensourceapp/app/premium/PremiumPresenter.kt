@@ -11,6 +11,7 @@ import com.flashcardsopensourceapp.data.local.model.cloud.CloudSettings
 import com.flashcardsopensourceapp.data.local.model.cloud.canUseLocalPremiumFeatures
 import com.flashcardsopensourceapp.data.local.model.cloud.hasPremiumAccess
 import com.flashcardsopensourceapp.feature.ai.runtime.errors.AiAlertState
+import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsReviewPaywallTrigger
 import java.util.UUID
 
 internal sealed interface PremiumReason {
@@ -32,12 +33,18 @@ internal enum class PremiumResult {
     DISMISSED
 }
 
-internal class PremiumPresenter {
+internal class PremiumPresenter(private val accountIdentityProvider: () -> String?) {
     var reason: PremiumReason? by mutableStateOf(null)
         private set
     var presentation: AnalyticsPaywallPresentation? by mutableStateOf(null)
         private set
     var entitlement: CloudEntitlement? by mutableStateOf(null)
+        private set
+    var hasReportedShown: Boolean = false
+        private set
+    var reviewTrigger: AnalyticsReviewPaywallTrigger? = null
+        private set
+    var presentationIdentity: String? = null
         private set
     private var identity: CloudSettings? = null
     private var onFeatureResult: ((PremiumResult) -> Unit)? = null
@@ -48,6 +55,9 @@ internal class PremiumPresenter {
         if (previous == null) return
         val isNewGuest = previous.linkedUserId == null && settings.cloudState == CloudAccountState.GUEST &&
             previous.installationId == settings.installationId
+        if (isNewGuest) {
+            presentationIdentity = accountIdentityProvider()
+        }
         if (!isNewGuest && (previous.linkedUserId != settings.linkedUserId ||
                 previous.cloudState != settings.cloudState || previous.installationId != settings.installationId)
         ) {
@@ -58,8 +68,17 @@ internal class PremiumPresenter {
 
     fun showOfferPreview(paywallEntryPoint: AnalyticsPaywallEntryPoint?) {
         dismiss()
+        presentationIdentity = accountIdentityProvider()
         presentation = paywallEntryPoint?.let { AnalyticsPaywallPresentation(UUID.randomUUID().toString(), it) }
         reason = PremiumReason.OfferPreview(paywallEntryPoint = paywallEntryPoint)
+    }
+
+    fun showReviewOffer(trigger: AnalyticsReviewPaywallTrigger, accountIdentity: String) {
+        if (reason != null) return
+        presentationIdentity = accountIdentity
+        reviewTrigger = trigger
+        presentation = AnalyticsPaywallPresentation(UUID.randomUUID().toString(), AnalyticsPaywallEntryPoint.REVIEW)
+        reason = PremiumReason.OfferPreview(AnalyticsPaywallEntryPoint.REVIEW)
     }
 
     fun showAiLimitPreview() {
@@ -69,6 +88,7 @@ internal class PremiumPresenter {
 
     fun showAiLimit(refusal: AiAlertState.AiLimitReached) {
         dismiss()
+        presentationIdentity = accountIdentityProvider()
         presentation = AnalyticsPaywallPresentation(UUID.randomUUID().toString(), AnalyticsPaywallEntryPoint.AI_LIMIT)
         reason = PremiumReason.AiLimit(refusal = refusal)
     }
@@ -81,6 +101,7 @@ internal class PremiumPresenter {
             return
         }
         onFeatureResult = onResult
+        presentationIdentity = accountIdentityProvider()
         presentation = AnalyticsPaywallPresentation(UUID.randomUUID().toString(), paywallEntryPoint)
         reason = PremiumReason.Feature(paywallEntryPoint = paywallEntryPoint)
     }
@@ -102,6 +123,11 @@ internal class PremiumPresenter {
         }
     }
 
+    fun markVisible(presentationId: String) {
+        check(presentation?.id == presentationId) { "Paywall presentation changed before visibility recording." }
+        hasReportedShown = true
+    }
+
     fun dismiss() {
         finish(result = PremiumResult.DISMISSED)
     }
@@ -111,6 +137,9 @@ internal class PremiumPresenter {
         onFeatureResult = null
         reason = null
         presentation = null
+        hasReportedShown = false
+        presentationIdentity = null
+        reviewTrigger = null
         continuation?.invoke(result)
     }
 }
