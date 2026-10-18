@@ -980,6 +980,7 @@
 "premium.offer.unlimitedAI" = "AI-sõnumid ilma kuupiiranguta";
 "premium.offer.styles" = "Kohandatud värvid ja stiilid";
 "premium.offer.creatorSupport" = "Sinu tellimus aitab Nibomo loojal [Kirill Markin](https://kirill-markin.com/) tasuda serverite eest ja valmistada kohvi ning pitsa toel järgmist uuendust.";
+"premium.offer.previewPurchaseMessage" = "See on testieelvaade. Ühtegi ostu ei tehta.";
 "premium.offer.subscribe" = "Telli";
 "premium.offer.startTrial" = "Alusta tasuta prooviperioodi: %@";
 "premium.offer.view" = "Vaata Premiumi";

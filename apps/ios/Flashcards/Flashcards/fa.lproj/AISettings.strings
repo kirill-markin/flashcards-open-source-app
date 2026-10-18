@@ -980,6 +980,7 @@
 "premium.offer.unlimitedAI" = "پیام‌های هوش مصنوعی بدون سقف ماهانه";
 "premium.offer.styles" = "رنگ‌ها و سبک‌های دلخواه";
 "premium.offer.creatorSupport" = "اشتراک شما به سازندهٔ Nibomo، [Kirill Markin](https://kirill-markin.com/)، کمک می‌کند هزینهٔ سرورها را بپردازد و با قهوه و پیتزا به‌روزرسانی بعدی را آماده کند.";
+"premium.offer.previewPurchaseMessage" = "این یک پیش‌نمایش آزمایشی است. هیچ خریدی انجام نخواهد شد.";
 "premium.offer.subscribe" = "اشتراک";
 "premium.offer.startTrial" = "شروع دورهٔ آزمایشی رایگان: %@";
 "premium.offer.view" = "مشاهدهٔ Premium";

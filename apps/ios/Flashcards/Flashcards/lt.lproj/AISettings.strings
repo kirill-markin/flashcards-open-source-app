@@ -980,6 +980,7 @@
 "premium.offer.unlimitedAI" = "DI žinutės be mėnesio ribos";
 "premium.offer.styles" = "Pasirinktinės spalvos ir stiliai";
 "premium.offer.creatorSupport" = "Tavo prenumerata padeda Nibomo kūrėjui [Kirill Markin](https://kirill-markin.com/) mokėti už serverius ir su kava bei pica ruošti kitą atnaujinimą.";
+"premium.offer.previewPurchaseMessage" = "Tai bandomoji peržiūra. Pirkimas nebus atliktas.";
 "premium.offer.subscribe" = "Prenumeruoti";
 "premium.offer.startTrial" = "Pradėti nemokamą bandomąjį laikotarpį: %@";
 "premium.offer.view" = "Peržiūrėti Premium";

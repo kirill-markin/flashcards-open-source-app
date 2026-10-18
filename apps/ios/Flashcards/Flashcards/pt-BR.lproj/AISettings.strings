@@ -1008,6 +1008,7 @@
 "premium.offer.unlimitedAI" = "Mensagens de IA sem limite mensal";
 "premium.offer.styles" = "Cores e estilos personalizados";
 "premium.offer.creatorSupport" = "Sua assinatura ajuda o criador do Nibomo, [Kirill Markin](https://kirill-markin.com/), a pagar os servidores e preparar a próxima atualização com café e pizza.";
+"premium.offer.previewPurchaseMessage" = "Esta é uma prévia de teste. Nenhuma compra será realizada.";
 "premium.offer.subscribe" = "Assinar";
 "premium.offer.startTrial" = "Iniciar teste grátis: %@";
 "premium.offer.view" = "Ver Premium";
