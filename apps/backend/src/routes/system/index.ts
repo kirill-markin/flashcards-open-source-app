@@ -1,4 +1,5 @@
 import { Hono } from "hono";
+import { loadBrowserGuestAiTrialStatus } from "../../aiUsage/browserGuestTrial/repository";
 import { createAgentDiscoveryEnvelope } from "../../agent/discovery";
 import { getBrowserGuestCapabilities } from "../../guestAuth/webPlatform";
 import { loadAiUsageStatus } from "../../aiUsage";
@@ -127,6 +128,7 @@ export function createSystemRoutes(options: SystemRoutesOptions): Hono<AppEnv> {
     allowedOrigins: options.allowedOrigins,
     loadRequestContextFromRequestFn,
     loadAiUsageStatusFn,
+    loadBrowserGuestAiTrialStatusFn: options.loadBrowserGuestAiTrialStatusFn ?? loadBrowserGuestAiTrialStatus,
   });
   registerCommunityProfileRoutes(app, {
     allowedOrigins: options.allowedOrigins,
