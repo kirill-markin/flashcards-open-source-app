@@ -167,4 +167,5 @@
     <string name="ai_history_read_only_notice">Read-only: old chats can\'t be continued.</string>
     <string name="ai_history_reader_loading">Loading chat...</string>
     <string name="ai_history_reader_load_error">Couldn\'t load this chat.</string>
+    <string name="ai_view_premium">View Premium</string>
 </resources>

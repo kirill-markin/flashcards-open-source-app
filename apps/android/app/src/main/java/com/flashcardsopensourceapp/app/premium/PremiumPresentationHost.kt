@@ -40,7 +40,10 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.flashcardsopensourceapp.app.R
 import com.flashcardsopensourceapp.app.di.AppGraph
+import com.flashcardsopensourceapp.app.store.googlePlaySubscriptionManagementUrl
 import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsEvent
+import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsPaywallChoice
+import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsSubscriptionManagementDestination
 import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsSurface
 import com.flashcardsopensourceapp.data.local.ai.diagnostics.AiChatDiagnosticsLogger
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudAccountState
@@ -49,7 +52,9 @@ import com.flashcardsopensourceapp.data.local.model.cloud.hasPremiumAccess
 import com.flashcardsopensourceapp.feature.settings.ai.OwnOpenAiKeyRoute
 import com.flashcardsopensourceapp.feature.settings.ai.OwnOpenAiKeyViewModel
 import com.flashcardsopensourceapp.feature.settings.ai.createOwnOpenAiKeyViewModelFactory
+import com.flashcardsopensourceapp.feature.settings.openExternalUrl
 import java.time.Instant
+import java.time.LocalDate
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
@@ -71,24 +76,48 @@ internal fun PremiumPresentationHost(
     onOpenSignIn: () -> Unit
 ) {
     val reason = presenter.reason ?: return
-    var isEditingOwnKey by remember(reason) { mutableStateOf(false) }
-    var renewalAtMillis: Long? by remember(reason) { mutableStateOf(null) }
-    var usageRefreshFailed by remember(reason) { mutableStateOf(false) }
-    var hasRequestedEntitlement by remember(reason) { mutableStateOf(false) }
+    val presentation = presenter.presentation
+    val originSurface = remember(presentation, reason) { analyticsSurface }
+    var isEditingOwnKey by remember(presentation, reason) { mutableStateOf(false) }
+    var renewalAtMillis: Long? by remember(presentation, reason) { mutableStateOf(null) }
+    var allowance: PremiumAllowanceState by remember(presentation, reason) { mutableStateOf(PremiumAllowanceState.Loading) }
+    var usageRequestVersion by remember(presentation, reason) { mutableStateOf(0) }
+    var hasRequestedEntitlement by remember(presentation, reason) { mutableStateOf(false) }
+    var hasReportedShown by remember(presentation, reason) { mutableStateOf(false) }
     val isAiLimit = reason is PremiumReason.AiLimit || reason == PremiumReason.AiLimitPreview
+    val hasAccess = presentation != null && hasPremiumAccess(entitlement = presenter.entitlement)
+    val isOfferVisible = !hasAccess && (!isAiLimit || presenter.entitlement != null)
     val billingOperation by appGraph.googlePlaySubscriptionConnector.operation.collectAsStateWithLifecycle()
     val locale = LocalConfiguration.current.locales[0]
-
-    // Keyed on the reason alone, so a presentation reports once and names the surface it opened over.
-    LaunchedEffect(reason) {
-        val entryPoint = reason.paywallEntryPoint ?: return@LaunchedEffect
-        appGraph.analytics.track(
-            event = AnalyticsEvent.PaywallShown(entryPoint = entryPoint, screen = analyticsSurface)
-        )
+    val context = LocalContext.current
+    val reportChoice: (AnalyticsPaywallChoice) -> Unit = { outcome ->
+        if (presentation != null && hasReportedShown) {
+            appGraph.analytics.track(AnalyticsEvent.PaywallChoice(presentation, outcome, originSurface))
+        }
+    }
+    val dismiss: () -> Unit = {
+        reportChoice(AnalyticsPaywallChoice.DISMISSED)
+        presenter.dismiss()
     }
 
-    LaunchedEffect(reason, billingOperation) {
-        if (!isAiLimit && presenter.entitlement == null && !hasRequestedEntitlement &&
+    LaunchedEffect(presentation, isOfferVisible) {
+        if (presentation != null && isOfferVisible && !hasReportedShown) {
+            hasReportedShown = true
+            val zone = ZoneId.systemDefault()
+            appGraph.analytics.track(
+                event = AnalyticsEvent.PaywallShown(
+                    presentation = presentation,
+                    localDate = LocalDate.now(zone).toString(),
+                    timeZone = zone.id,
+                    contentVersion = "union-v1",
+                    screen = originSurface
+                )
+            )
+        }
+    }
+
+    LaunchedEffect(presentation, billingOperation) {
+        if (presentation != null && presenter.entitlement == null && !hasRequestedEntitlement &&
             !isBillingOperationBusy(billingOperation) && !requiresPurchaseVerification(billingOperation)
         ) {
             hasRequestedEntitlement = true
@@ -96,17 +125,17 @@ internal fun PremiumPresentationHost(
         }
     }
 
-    LaunchedEffect(reason) {
-        if (reason !is PremiumReason.AiLimit) {
-            return@LaunchedEffect
-        }
+    LaunchedEffect(presentation, usageRequestVersion) {
+        if (presentation == null) return@LaunchedEffect
+        allowance = PremiumAllowanceState.Loading
         try {
             val usage = appGraph.aiChatRepository.loadAiUsage(workspaceId = cloudSettings.activeWorkspaceId)
             renewalAtMillis = usage.monthEndsAtMillis.takeIf { it > System.currentTimeMillis() }
+            allowance = PremiumAllowanceState.Available(usage.premiumAiMonthlyMessages)
         } catch (error: CancellationException) {
             throw error
         } catch (error: Exception) {
-            usageRefreshFailed = true
+            allowance = PremiumAllowanceState.Failed
             AiChatDiagnosticsLogger.warn(
                 event = "premium_ai_usage_refresh_failed",
                 fields = listOf(
@@ -118,7 +147,7 @@ internal fun PremiumPresentationHost(
     }
 
     ModalBottomSheet(
-        onDismissRequest = presenter::dismiss,
+        onDismissRequest = dismiss,
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
         modifier = Modifier.testTag(tag = premiumSheetTag)
     ) {
@@ -131,7 +160,7 @@ internal fun PremiumPresentationHost(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 IconButton(
-                    onClick = presenter::dismiss,
+                    onClick = dismiss,
                     modifier = Modifier.testTag(tag = premiumCloseButtonTag)
                 ) {
                     Icon(
@@ -152,6 +181,13 @@ internal fun PremiumPresentationHost(
                         .padding(start = 24.dp, end = 24.dp, bottom = 32.dp),
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
+                    if (!hasAccess) {
+                        Text(
+                            text = stringResource(R.string.premium_heading),
+                            style = MaterialTheme.typography.headlineLarge,
+                            modifier = Modifier.testTag("premium_heading")
+                        )
+                    }
                     if (isAiLimit) {
                         Text(
                             text = stringResource(R.string.premium_ai_limit_title),
@@ -172,19 +208,32 @@ internal fun PremiumPresentationHost(
                                 )
                             )
                         }
-                        if (usageRefreshFailed) {
+                        if (allowance == PremiumAllowanceState.Failed) {
                             Text(
                                 text = stringResource(R.string.premium_ai_usage_unavailable),
                                 color = MaterialTheme.colorScheme.error
                             )
+                            if (!isOfferVisible) {
+                                TextButton(
+                                    onClick = { usageRequestVersion += 1 },
+                                    modifier = Modifier.testTag("premium_allowance_retry")
+                                ) { Text(stringResource(R.string.premium_retry)) }
+                            }
                         }
                     }
-                    val hasAccess = hasPremiumAccess(entitlement = presenter.entitlement)
-                    if (!hasAccess && (!isAiLimit || presenter.entitlement != null)) {
+                    if (isOfferVisible) {
+                        PremiumFreePlan(onContinueFree = {
+                            reportChoice(AnalyticsPaywallChoice.FREE)
+                            presenter.dismiss()
+                        })
                         PremiumStoreOffer(
                             connector = appGraph.googlePlaySubscriptionConnector,
                             entitlement = presenter.entitlement,
-                            analyticsSurface = analyticsSurface
+                            analyticsSurface = originSurface,
+                            presentation = presentation,
+                            allowance = allowance,
+                            onRetryAllowance = { usageRequestVersion += 1 },
+                            onChoosePremium = { reportChoice(AnalyticsPaywallChoice.PREMIUM) }
                         )
                     } else if (!isAiLimit) {
                         Text(
@@ -192,20 +241,34 @@ internal fun PremiumPresentationHost(
                             style = MaterialTheme.typography.headlineSmall
                         )
                         Text(stringResource(R.string.premium_already_active))
+                    }
+                    if (presentation != null) {
                         PremiumBillingActions(
                             connector = appGraph.googlePlaySubscriptionConnector,
-                            analyticsSurface = analyticsSurface
+                            analyticsSurface = originSurface
                         )
+                        TextButton(
+                            onClick = {
+                                openExternalUrl(context, googlePlaySubscriptionManagementUrl(context.packageName))
+                                appGraph.analytics.track(AnalyticsEvent.SubscriptionManagementOpened(
+                                    destination = AnalyticsSubscriptionManagementDestination.GOOGLE_PLAY,
+                                    screen = originSurface
+                                ))
+                            },
+                            modifier = Modifier.fillMaxWidth().testTag("premium_manage")
+                        ) { Text(stringResource(R.string.premium_manage)) }
                     }
+                    PremiumLegalLinks()
                     if (isAiLimit) {
                         Text(stringResource(R.string.premium_own_key_help))
                         Button(
                             onClick = { isEditingOwnKey = true },
+                            enabled = presentation != null,
                             modifier = Modifier.fillMaxWidth().testTag(tag = premiumOwnKeyButtonTag)
                         ) {
                             Text(stringResource(R.string.premium_own_key_action))
                         }
-                        if (cloudSettings.cloudState == CloudAccountState.GUEST) {
+                        if (presentation != null && cloudSettings.cloudState == CloudAccountState.GUEST) {
                             TextButton(
                                 onClick = {
                                     presenter.dismiss()
