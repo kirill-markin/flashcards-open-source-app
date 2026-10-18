@@ -28,6 +28,7 @@ import { type Locale, useI18n } from "../../i18n";
 import {
   buildFeedbackPromptIdentityKey,
   loadFeedbackPromptState,
+  restoreAutomaticFeedbackPromptShownIfCurrent,
   storeAutomaticFeedbackPromptShownAt,
   storeFeedbackSubmittedAt,
   storeFetchedFeedbackState,
@@ -40,6 +41,9 @@ import {
   storeMobileAppPromotionPromptShown,
   type MobileAppPromotionState,
 } from "../../localDb/mobileAppPromotion/mobileAppPromotion";
+import { readEntitlementSnapshot } from "../../premium/entitlementStore";
+import { useReviewPaywallPresenter } from "../../premium/PremiumProvider";
+import { dueReviewPaywall, isKnownFreeEntitlement, loadReviewPaywallActivity } from "../../premium/reviewPaywall/schedule";
 import { captureAppOperationError } from "../../observability/appOperationObservation";
 import type { FeedbackPromptEventType, FeedbackSubmissionRequest } from "../../types";
 import {
@@ -87,11 +91,13 @@ export type UsePostReviewPromptsParams = Readonly<{
   linkedUserId: string | null;
   locale: Locale;
   onFeedbackSubmitted: (message: string) => void;
+  reviewWorkspaceIds: ReadonlyArray<string>;
   userId: string | null;
   workspaceId: string | null;
 }>;
 
 export type UsePostReviewPromptsResult = Readonly<{
+  beginSavedReviewPromptOpportunity: () => void;
   feedbackDialogProps: FeedbackDialogProps;
   isFeedbackDialogOpen: boolean;
   isMobileAppPromotionDialogOpen: boolean;
@@ -111,10 +117,12 @@ export function usePostReviewPrompts(params: UsePostReviewPromptsParams): UsePos
     linkedUserId,
     locale,
     onFeedbackSubmitted,
+    reviewWorkspaceIds,
     userId,
     workspaceId,
   } = params;
   const { t } = useI18n();
+  const reviewPaywall = useReviewPaywallPresenter();
   const [isFeedbackDialogOpen, setIsFeedbackDialogOpen] = useState<boolean>(false);
   const [feedbackMessage, setFeedbackMessage] = useState<string>("");
   const [feedbackErrorMessage, setFeedbackErrorMessage] = useState<string>("");
@@ -136,6 +144,8 @@ export function usePostReviewPrompts(params: UsePostReviewPromptsParams): UsePos
     workspaceId: null,
   });
   const mobileAppPromotionCheckInFlightRef = useRef<MobileAppPromotionInFlightCheck | null>(null);
+  const postReviewCheckInFlightRef = useRef<boolean>(false);
+  const wasUiBlockedRef = useRef<boolean>(false);
   const feedbackPromptIdentityKey = buildFeedbackPromptIdentityKey({
     sessionUserId: userId,
     linkedUserId,
@@ -151,10 +161,12 @@ export function usePostReviewPrompts(params: UsePostReviewPromptsParams): UsePos
     isTextSelectionDialogOpen,
   };
 
+  const isUiBlocked = isReviewPromptUiBlocked();
   const currentPromptContext = promptContextRef.current;
   if (
     currentPromptContext.workspaceId !== workspaceId
     || currentPromptContext.identityKey !== feedbackPromptIdentityKey
+    || (isUiBlocked && !wasUiBlockedRef.current)
   ) {
     promptContextRef.current = {
       generation: currentPromptContext.generation + 1,
@@ -163,6 +175,8 @@ export function usePostReviewPrompts(params: UsePostReviewPromptsParams): UsePos
       workspaceId,
     };
   }
+
+  wasUiBlockedRef.current = isUiBlocked;
 
   function markIndexedDbOpenRecoveryFailure(error: unknown): boolean {
     return markIndexedDbOpenRecoveryFailureAndCheckActive(indexedDbOpenRecoveryState, error);
@@ -210,7 +224,8 @@ export function usePostReviewPrompts(params: UsePostReviewPromptsParams): UsePos
       || uiState.isMobileAppPromotionDialogOpen
       || uiState.isReviewFilterMenuOpen
       || uiState.isTagFilterDialogOpen
-      || uiState.isTextSelectionDialogOpen;
+      || uiState.isTextSelectionDialogOpen
+      || reviewPaywall?.isBusy() === true;
   }
 
   function isPromptContextCurrent(context: PostReviewPromptContext): boolean {
@@ -263,8 +278,8 @@ export function usePostReviewPrompts(params: UsePostReviewPromptsParams): UsePos
     }
   }
 
-  async function maybeOpenAutomaticFeedbackPrompt(): Promise<void> {
-    if (workspaceId === null || isReviewPromptUiBlocked()) {
+  async function maybeOpenAutomaticFeedbackPrompt(promptContext: PostReviewPromptContext): Promise<void> {
+    if (workspaceId === null || isReviewPromptUiBlocked() || !isPromptContextCurrent(promptContext)) {
       return;
     }
 
@@ -333,17 +348,26 @@ export function usePostReviewPrompts(params: UsePostReviewPromptsParams): UsePos
         return;
       }
 
-      if (isReviewPromptUiBlocked()) {
+      if (isReviewPromptUiBlocked() || !isPromptContextCurrent(promptContext)) {
         return;
       }
 
       const shownAt = new Date();
-      await storeAutomaticFeedbackPromptShownAt({
+      const shownChange = await storeAutomaticFeedbackPromptShownAt({
         identityKey: feedbackPromptIdentityKey,
         shownAt: shownAt.toISOString(),
         nextAutomaticFeedbackPromptAt: buildNextAutomaticFeedbackPromptAt(shownAt),
       }, indexedDbOpenRecoveryState.throwIfFailed);
       indexedDbOpenRecoveryState.throwIfFailed();
+      if (isReviewPromptUiBlocked() || !isPromptContextCurrent(promptContext)) {
+        await restoreAutomaticFeedbackPromptShownIfCurrent(
+          feedbackPromptIdentityKey,
+          shownChange,
+          indexedDbOpenRecoveryState.throwIfFailed,
+        );
+        indexedDbOpenRecoveryState.throwIfFailed();
+        return;
+      }
       setFeedbackMessage("");
       setFeedbackErrorMessage("");
       setIsFeedbackSubmitting(false);
@@ -553,21 +577,48 @@ export function usePostReviewPrompts(params: UsePostReviewPromptsParams): UsePos
     }
   }
 
-  async function maybeOpenPostReviewPrompt(): Promise<void> {
-    const promptContext = promptContextRef.current;
-    const mobileAppPromotionDecision = await maybeOpenMobileAppPromotion(promptContext);
-    if (
-      mobileAppPromotionDecision.kind === "cancelled"
-      || indexedDbOpenRecoveryState.hasFailed()
-    ) {
-      return;
+  async function maybeOpenReviewPaywall(promptContext: PostReviewPromptContext): Promise<boolean> {
+    if (reviewPaywall === null || !isKnownFreeEntitlement(readEntitlementSnapshot(userId))) return false;
+    try {
+      indexedDbOpenRecoveryState.throwIfFailed();
+      const activity = await loadReviewPaywallActivity(reviewWorkspaceIds, new Date());
+      indexedDbOpenRecoveryState.throwIfFailed();
+      if (!isPromptContextCurrent(promptContext) || isReviewPromptUiBlocked()) return true;
+      const state = reviewPaywall.readState();
+      if (state === null) return false;
+      const trigger = dueReviewPaywall(state, activity, new Date());
+      if (trigger === null) return false;
+      // A due offer owns this saved review even if its presenter just became unavailable.
+      reviewPaywall.present(trigger);
+      return true;
+    } catch (error) {
+      if (markIndexedDbOpenRecoveryFailure(error)) return true;
+      captureAppOperationError(error, {
+        feature: "review", operation: "paywall_state_sync", userId, workspaceId, installationId, entityId: null,
+      });
+      return true;
     }
+  }
 
-    if (
-      mobileAppPromotionDecision.kind === "skipped"
-      && isPromptContextCurrent(promptContext)
-    ) {
-      await maybeOpenAutomaticFeedbackPrompt();
+  function beginSavedReviewPromptOpportunity(): void {
+    const currentContext = promptContextRef.current;
+    promptContextRef.current = { ...currentContext, generation: currentContext.generation + 1 };
+  }
+
+  async function maybeOpenPostReviewPrompt(): Promise<void> {
+    if (postReviewCheckInFlightRef.current || isReviewPromptUiBlocked()) return;
+    const promptContext = promptContextRef.current;
+    postReviewCheckInFlightRef.current = true;
+    try {
+      if (await maybeOpenReviewPaywall(promptContext)) return;
+      if (!isPromptContextCurrent(promptContext) || isReviewPromptUiBlocked()) return;
+      const mobileAppPromotionDecision = await maybeOpenMobileAppPromotion(promptContext);
+      if (mobileAppPromotionDecision.kind === "cancelled" || indexedDbOpenRecoveryState.hasFailed()) return;
+      if (mobileAppPromotionDecision.kind === "skipped" && isPromptContextCurrent(promptContext)) {
+        await maybeOpenAutomaticFeedbackPrompt(promptContext);
+      }
+    } finally {
+      postReviewCheckInFlightRef.current = false;
     }
   }
 
@@ -677,6 +728,7 @@ export function usePostReviewPrompts(params: UsePostReviewPromptsParams): UsePos
   }, []);
 
   return {
+    beginSavedReviewPromptOpportunity,
     feedbackDialogProps: {
       isOpen: isFeedbackDialogOpen,
       message: feedbackMessage,

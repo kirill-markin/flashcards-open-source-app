@@ -608,6 +608,10 @@ extension FlashcardsStore {
             return
         }
 
+        self.reviewHardReminderRecentRatings = appendReviewHardReminderRating(
+            recentRatings: self.reviewHardReminderRecentRatings,
+            nextRating: request.rating
+        )
         self.applyReviewPublishedState(
             reviewState: self.reviewRuntime.completeReviewSubmission(
                 publishedState: self.currentReviewPublishedState(),
@@ -637,65 +641,14 @@ extension FlashcardsStore {
             )
         }
 
-        let shouldShowReviewNotificationPrePrompt = await self.resolveSuccessfulReviewNotificationPrePromptDecision(
-            reviewCount: reviewCount
+        self.pendingStoreReviewRequestAttempt = nil
+        self.activeAutomaticFeedbackPromptTask?.cancel()
+        self.savedReviewPromptOpportunity = SavedReviewPromptOpportunity(
+            id: UUID(), workspaceId: request.workspaceId,
+            rating: request.rating, reviewCount: reviewCount,
+            reviewFilter: request.reviewContext.selectedReviewFilter
         )
-        guard self.successfulReviewSubmissionPromptContextMatchesCurrentState(
-            request: request,
-            now: Date()
-        ) else {
-            triggerSuccessfulReviewCloudSync()
-            return
-        }
-
-        self.handleSuccessfulReviewHardReminder(
-            rating: request.rating,
-            now: now
-        )
-        let didShowReviewNotificationPrePrompt = self.isReviewHardReminderPresented == false
-            && shouldShowReviewNotificationPrePrompt
-            && self.presentReviewNotificationPrePromptIfAllowed()
-        if didShowReviewNotificationPrePrompt == false
-            && self.isReviewNotificationPrePromptPresented == false
-            && self.isReviewHardReminderPresented == false
-            && self.pendingStoreReviewRequestAttempt == nil {
-            self.prepareStoreReviewRequestAttemptAfterSuccessfulReview(now: now)
-        }
-        self.startAutomaticFeedbackPromptCheckAfterSuccessfulReview(now: now)
         triggerSuccessfulReviewCloudSync()
-    }
-
-    private func successfulReviewSubmissionPromptContextMatchesCurrentState(
-        request: ReviewSubmissionRequest,
-        now: Date
-    ) -> Bool {
-        guard let validationContext = self.makeReviewSubmissionRollbackValidationContext(now: now) else {
-            return false
-        }
-        let currentReviewState = self.currentReviewPublishedState()
-        guard request.workspaceId == validationContext.currentWorkspaceId else {
-            return false
-        }
-        guard request.reviewContext.selectedReviewFilter == currentReviewState.selectedReviewFilter else {
-            return false
-        }
-
-        let currentReviewContext = makeReviewSubmissionContext(
-            selectedReviewFilter: currentReviewState.selectedReviewFilter,
-            decks: validationContext.decks,
-            cards: validationContext.cards
-        )
-        guard currentReviewContext == request.reviewContext else {
-            return false
-        }
-
-        let currentReviewSessionSignature = makeReviewSessionSignature(
-            selectedReviewFilter: currentReviewState.selectedReviewFilter,
-            reviewQueue: self.reviewRuntime.effectiveReviewQueue(publishedState: currentReviewState),
-            schedulerSettings: validationContext.schedulerSettings,
-            seedQueueSize: reviewSeedQueueSize
-        )
-        return currentReviewSessionSignature == request.reviewSessionSignature
     }
 
     private func reviewSubmissionRequestMatchesCurrentContext(

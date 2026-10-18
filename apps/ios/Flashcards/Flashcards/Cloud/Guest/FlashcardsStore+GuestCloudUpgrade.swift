@@ -748,6 +748,7 @@ extension FlashcardsStore {
                 workspace: workspace
             )
 
+            self.transferGuestPaywallState(to: linkedSession)
             self.cloudRuntime.setActiveCloudSession(linkedSession: linkedSession)
             try self.reload()
             didCompleteLocalLink = true

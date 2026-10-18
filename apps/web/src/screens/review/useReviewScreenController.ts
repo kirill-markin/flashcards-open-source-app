@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from "react";
 import type { ReviewRating } from "../../../../backend/src/scheduling";
 import { track } from "../../analytics";
 import { useAppData, useReviewLeaderboardBadge, useReviewProgressBadge } from "../../appData";
+import { collectAccessibleWorkspaceIds } from "../../appData/progress/state/progressScope";
+import { useReviewPaywallPresenter } from "../../premium/PremiumProvider";
 import {
   markIndexedDbOpenRecoveryFailureAndCheckActive,
   useAppErrorDialog,
@@ -66,6 +68,7 @@ export function useReviewScreenController(
   const { reviewReactionAnimationsEnabled, isGuestSignInPromptVisible } = params;
   const {
     activeWorkspace,
+    availableWorkspaces,
     cloudSettings,
     errorMessage,
     selectedReviewFilter,
@@ -82,6 +85,7 @@ export function useReviewScreenController(
     deleteCardItem,
     setErrorMessage,
   } = useAppData();
+  const reviewPaywall = useReviewPaywallPresenter();
   const reviewLeaderboardBadge = useReviewLeaderboardBadge();
   const reviewProgressBadge = useReviewProgressBadge();
   const { formatCount, locale, messages, t } = useI18n();
@@ -220,6 +224,7 @@ export function useReviewScreenController(
   });
   const handoffCardToAi = useAiCardHandoff();
   const {
+    beginSavedReviewPromptOpportunity,
     feedbackDialogProps,
     isFeedbackDialogOpen,
     isMobileAppPromotionDialogOpen,
@@ -236,6 +241,7 @@ export function useReviewScreenController(
     linkedUserId: cloudSettings?.linkedUserId ?? null,
     locale,
     onFeedbackSubmitted: showReviewFeedbackMessage,
+    reviewWorkspaceIds: collectAccessibleWorkspaceIds(activeWorkspace?.workspaceId ?? null, availableWorkspaces),
     userId: session?.userId ?? null,
     workspaceId: activeWorkspace?.workspaceId ?? null,
   });
@@ -303,6 +309,7 @@ export function useReviewScreenController(
         return;
       }
 
+      beginSavedReviewPromptOpportunity();
       const nextRecentReviewRatings = appendRecentReviewRatings(recentReviewRatingsRef.current, rating);
       recentReviewRatingsRef.current = nextRecentReviewRatings;
 
@@ -542,7 +549,7 @@ export function useReviewScreenController(
     isGuestSignInPromptVisible,
     isMobileAppPromotionDialogOpen,
     isReviewFilterMenuOpen,
-    isSubmitting,
+    isSubmitting: isSubmitting || reviewPaywall?.isPresented === true,
     isTagFilterDialogOpen,
     isTextSelectionDialogOpen,
     onShortcutInputStart: dismissReviewReactions,

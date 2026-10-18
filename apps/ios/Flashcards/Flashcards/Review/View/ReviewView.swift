@@ -32,7 +32,7 @@ struct ReviewView: View {
     @Environment(\.isLowPowerModeEnabled) var isLowPowerModeEnabled: Bool
     @Environment(FlashcardsStore.self) var store: FlashcardsStore
     @Environment(AppNavigationModel.self) private var navigation: AppNavigationModel
-    @Environment(PremiumPresenter.self) private var premiumPresenter: PremiumPresenter
+    @Environment(PremiumPresenter.self) var premiumPresenter: PremiumPresenter
     @FocusState private var isReviewKeyboardFocused: Bool
     #if targetEnvironment(macCatalyst)
     @State private var reviewKeyboardFocusRequest: StudyKeyboardFocusRequest?
@@ -203,6 +203,15 @@ struct ReviewView: View {
             self.reviewSpeechController.stopSpeech()
             self.dismissReviewFilterPopoverIfContextDiverged()
         }
+        .onChange(of: self.canPresentSavedReviewPrompt, initial: true) { _, isAvailable in
+            self.store.isSavedReviewPromptSurfaceAvailable = isAvailable
+        }
+        .onChange(of: store.savedReviewPromptOpportunity) { _, opportunity in
+            guard let opportunity else { return }
+            Task { @MainActor in
+                await self.presentPromptAfterSavedReview(opportunity: opportunity)
+            }
+        }
         .onChange(of: store.reviewPresentationResetRevision) { _, _ in
             self.textSelection = nil
             self.isAnswerVisible = false
@@ -264,6 +273,7 @@ struct ReviewView: View {
             self.reviewKeyboardFocusRequest = nil
             #endif
             self.isReviewReactionScreenVisible = false
+            self.store.isSavedReviewPromptSurfaceAvailable = false
             self.reviewSpeechController.stopSpeech()
             self.cancelReviewReactionLottiePrewarm()
             self.dismissActiveReviewReactions(reason: "screen_disappeared")
@@ -1053,6 +1063,27 @@ struct ReviewView: View {
                 : String(localized: "Back", table: reviewCardsStringsTableName),
             sourceText: side == .front ? card.frontText : card.backText
         )
+    }
+
+    var canPresentSavedReviewPrompt: Bool {
+        self.isReviewReactionScreenVisible
+            && self.navigation.selectedTab == .review
+            && self.scenePhase == .active
+            && self.isEditorPresented == false
+            && self.textSelection == nil
+            && self.isQueuePreviewPresented == false
+            && self.isReviewFilterPopoverPresented == false
+            && self.reviewTagFilterRequest == nil
+            && self.store.reviewSubmissionFailure == nil
+            && self.store.isReviewHardReminderPresented == false
+            && self.store.isReviewNotificationPrePromptPresented == false
+            && self.store.isGuestSignInAfterReviewPromptPresented == false
+            && self.store.activeCloudSignInSheetCount == 0
+            && self.store.feedbackPresentation == nil
+            && self.store.presentedTechnicalError == nil
+            && self.store.accountDeletionState == .hidden
+            && self.store.accountDeletionSuccessMessage == nil
+            && self.premiumPresenter.request == nil
     }
 
     private var canUseReviewKeyboardShortcuts: Bool {

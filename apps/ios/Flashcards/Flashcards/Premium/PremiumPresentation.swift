@@ -20,6 +20,7 @@ enum PremiumPresentationReason: Equatable {
     case aiLimit
     case premiumFeature(requiredTierRank: Int)
     case offerPreview
+    case review(ReviewPaywallTrigger)
 }
 
 struct PremiumPresentationRequest: Identifiable, Equatable {
@@ -29,8 +30,15 @@ struct PremiumPresentationRequest: Identifiable, Equatable {
     let analyticsEntryPoint: AnalyticsPaywallEntryPoint?
     let identity: AppleSubscriptionIdentity?
 
+    var reviewTrigger: ReviewPaywallTrigger? {
+        if case .review(let trigger) = self.reason { return trigger }
+        return nil
+    }
+
     var analyticsPresentation: AnalyticsPaywallPresentation? {
-        self.analyticsEntryPoint.map { AnalyticsPaywallPresentation(id: self.id, entryPoint: $0) }
+        self.analyticsEntryPoint.map {
+            AnalyticsPaywallPresentation(id: self.id, entryPoint: $0, reviewTrigger: self.reviewTrigger)
+        }
     }
 }
 
@@ -87,7 +95,7 @@ final class PremiumPresenter {
             if entitlement.tierRank >= requiredTierRank {
                 self.finish(outcome: .accessGranted)
             }
-        case .aiLimit:
+        case .aiLimit, .review:
             // The AI screen keeps the refused draft; granting access never sends a billable turn.
             if self.hadPremiumAccessAtPresentation == false, hasPremiumAccess(entitlement: entitlement) {
                 self.finish(outcome: .accessGranted)
@@ -97,24 +105,24 @@ final class PremiumPresenter {
         }
     }
 
-    func recordShown(requestId: UUID, screen: AnalyticsSurface) {
+    func recordShown(requestId: UUID, screen: AnalyticsSurface, store: FlashcardsStore) {
         guard let request = self.request, request.id == requestId, self.shownRequestId != requestId,
-              let presentation = request.analyticsPresentation else { return }
+              request.analyticsEntryPoint != nil else { return }
         self.shownRequestId = requestId
         self.shownScreen = screen
-        let formatter = DateFormatter()
-        formatter.calendar = Calendar(identifier: .gregorian)
-        formatter.locale = Locale(identifier: "en_US_POSIX")
-        formatter.timeZone = .current
-        formatter.dateFormat = "yyyy-MM-dd"
-        Analytics.track(
-            .paywallShown(
-                presentation: presentation,
-                localDate: formatter.string(from: Date()),
-                timeZone: TimeZone.current.identifier
-            ),
-            screen: screen
-        )
+        let now = Date()
+        let timeZone = TimeZone.current
+        store.recordActualPaywallShown(request: request, now: now, timeZone: timeZone)
+        if let presentation = request.analyticsPresentation {
+            Analytics.track(
+                .paywallShown(
+                    presentation: presentation,
+                    localDate: paywallLocalDate(now: now, timeZone: timeZone),
+                    timeZone: timeZone.identifier
+                ),
+                screen: screen
+            )
+        }
     }
 
     func recordChoice(requestId: UUID, outcome: AnalyticsPaywallChoiceOutcome) {
@@ -141,7 +149,7 @@ final class PremiumPresenter {
               let identity, request.identity == identity, self.awaitingAppleIdentity == identity,
               hasPremiumAccess(entitlement: entitlement) else { return }
         switch request.reason {
-        case .premiumFeature, .aiLimit:
+        case .premiumFeature, .aiLimit, .review:
             self.reconcileAccess(entitlement: entitlement, identity: identity)
         case .offerPreview:
             if self.hadPremiumAccessAtPresentation == false {

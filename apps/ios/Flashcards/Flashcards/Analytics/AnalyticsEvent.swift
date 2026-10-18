@@ -481,9 +481,17 @@ enum AnalyticsPaywallEntryPoint: String, Sendable, Equatable {
 struct AnalyticsPaywallPresentation: Sendable, Equatable {
     let id: UUID
     let entryPoint: AnalyticsPaywallEntryPoint
+    let reviewTrigger: ReviewPaywallTrigger?
 
     var attributionProperties: [String: AnalyticsPropertyValue] {
-        ["presentation_id": .string(self.id.uuidString.lowercased()), "entry_point": .string(self.entryPoint.rawValue)]
+        var properties: [String: AnalyticsPropertyValue] = [
+            "presentation_id": .string(self.id.uuidString.lowercased()),
+            "entry_point": .string(self.entryPoint.rawValue)
+        ]
+        if let reviewTrigger = self.reviewTrigger {
+            properties["review_trigger"] = .string(reviewTrigger.rawValue)
+        }
+        return properties
     }
 }
 
