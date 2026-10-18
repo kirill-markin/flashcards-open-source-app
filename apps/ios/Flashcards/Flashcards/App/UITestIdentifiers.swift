@@ -220,6 +220,8 @@ enum UITestIdentifier {
     static let reviewProgressBadge: String = "review.progressBadge"
     static let reviewQueueButton: String = "review.queueButton"
     static let reviewShowAnswerButton: String = "review.showAnswerButton"
+    static let reviewFrontCopyButton: String = "review.frontCopyButton"
+    static let reviewBackCopyButton: String = "review.backCopyButton"
     static let reviewFrontTextSelectionButton: String = "review.frontTextSelectionButton"
     static let reviewBackTextSelectionButton: String = "review.backTextSelectionButton"
     static let reviewFrontSelectableText: String = "review.frontSelectableText"
