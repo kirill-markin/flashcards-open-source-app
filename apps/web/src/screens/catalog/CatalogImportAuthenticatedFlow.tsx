@@ -16,7 +16,8 @@ import {
   isAuthRedirectError,
   previewCatalogPackageInstall,
 } from "../../api";
-import { AppDataProvider, useAppData } from "../../appData";
+import { useAppData } from "../../appData";
+import { PublicGuestAppDataProvider } from "../settings/account/guest/GuestConversionGate";
 import { requireCloudInstallationId } from "../../appData/sync/local/syncCloudSettings";
 import { getSyncFailureObservationCaptureState } from "../../appData/sync/observation/syncErrorObservation";
 import {
@@ -351,7 +352,11 @@ function CatalogImportAuthenticatedContent(props: Readonly<{ catalogContext: Cat
   const technicalErrorMessage = t("appError.technicalError.message");
   const workspaceId = activeWorkspace?.workspaceId ?? null;
   const workspaceIdentity: CatalogWorkspaceIdentity | null = workspaceId !== null
-    && cloudSettings?.cloudState === "linked"
+    && session !== null
+    && cloudSettings?.linkedUserId === session.userId
+    && (session.browserGuestCapabilities?.isGuest === true
+      ? cloudSettings.cloudState === "guest" && session.selectedWorkspaceId === workspaceId
+      : cloudSettings.cloudState === "linked")
     && cloudSettings.linkedWorkspaceId === workspaceId
     && cloudSettings.installationId.trim() !== ""
     ? { workspaceId, installationId: cloudSettings.installationId }
@@ -888,6 +893,7 @@ function CatalogImportAuthenticatedContent(props: Readonly<{ catalogContext: Cat
   const isSessionPanelVisible = sessionLoadState === "loading"
     || sessionLoadState === "redirecting"
     || sessionLoadState === "error"
+    || sessionLoadState === "guest_recovery"
     || sessionLoadState === "deleted"
     || sessionLoadState === "storage_unavailable";
   // Called before the early returns below so it runs on every render, as a hook must.
@@ -927,7 +933,7 @@ function CatalogImportAuthenticatedContent(props: Readonly<{ catalogContext: Cat
     );
   }
 
-  if (sessionLoadState === "error" || sessionLoadState === "deleted") {
+  if (sessionLoadState === "error" || sessionLoadState === "guest_recovery" || sessionLoadState === "deleted") {
     return (
       <CatalogImportStatePanel
         testId="catalog-import-session-error"
@@ -1022,8 +1028,8 @@ function CatalogImportAuthenticatedContent(props: Readonly<{ catalogContext: Cat
 export function CatalogImportAuthenticatedFlow(props: Readonly<{ catalogContext: CatalogImportContext }>): ReactElement {
   const { catalogContext } = props;
   return (
-    <AppDataProvider>
+    <PublicGuestAppDataProvider>
       <CatalogImportAuthenticatedContent catalogContext={catalogContext} />
-    </AppDataProvider>
+    </PublicGuestAppDataProvider>
   );
 }

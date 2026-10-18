@@ -1,4 +1,4 @@
-import { Suspense, lazy, useCallback, useEffect, useRef, useState, useSyncExternalStore, type ReactElement, type ReactNode } from "react";
+import { Suspense, lazy, useCallback, useEffect, useRef, useState, useSyncExternalStore, type ReactElement } from "react";
 import { BrowserRouter, NavLink, Navigate, Route, Routes as RouterRoutes, useLocation, useNavigate, useParams } from "react-router";
 import { AccountAccentTheme } from "./premium/accentColor";
 import { PremiumProvider } from "./premium/PremiumProvider";
@@ -93,11 +93,9 @@ import { FriendInviteScreen } from "./screens/invite/FriendInviteScreen";
 import { ProgressScreen } from "./screens/progress/ProgressScreen";
 import { ReviewScreen } from "./screens/review/ReviewScreen";
 import { ShareAppScreen } from "./screens/share/ShareAppScreen";
-import { GuestCachedCardsRecovery } from "./appData/session/guest/GuestCachedCardsRecovery";
 
-import { GuestConversionScreen } from "./screens/settings/account/guest/GuestConversionScreen";
+import { GuestConversionGate } from "./screens/settings/account/guest/GuestConversionGate";
 import { GuestSignIn } from "./screens/settings/account/guest/GuestSignIn";
-import { readPendingGuestConversion, subscribeToBrowserGuestChanges } from "./appData/session/guest/browserGuestStorage";
 
 const SentryRoutes = wrapRoutesComponent(RouterRoutes);
 
@@ -737,12 +735,6 @@ export function AppShell(): ReactElement {
     );
   }
 
-  if (sessionLoadState === "guest_recovery" && cloudSettings?.linkedUserId !== null && cloudSettings?.linkedUserId !== undefined
-    && cloudSettings.linkedWorkspaceId !== null) {
-    return <GuestCachedCardsRecovery userId={cloudSettings.linkedUserId} workspaceId={cloudSettings.linkedWorkspaceId}
-      errorMessage={visibleSessionErrorMessage} retry={initialize} />;
-  }
-
   if (sessionLoadState === "error" || sessionLoadState === "guest_recovery") {
     return (
       <main className="page-state">
@@ -1128,19 +1120,10 @@ export function RoutedShell(): ReactElement {
   );
 }
 
-function GuestConversionGate(props: Readonly<{ children: ReactNode }>): ReactElement {
-  const { sessionLoadState } = useAppData();
-  const phase = useSyncExternalStore(subscribeToBrowserGuestChanges, () => readPendingGuestConversion()?.phase ?? null);
-  if ((phase !== null && phase !== "draining") || sessionLoadState === "guest_conversion") {
-    return <GuestConversionScreen />;
-  }
-  return <>{props.children}</>;
-}
-
 function AuthenticatedApp(): ReactElement {
   return (
     <AppDataProvider>
-      <GuestConversionGate>
+      <GuestConversionGate returnUrl={window.location.origin + "/"}>
         <PremiumProvider>
           <AccountAccentTheme />
           <AIChatPreferencesProvider>

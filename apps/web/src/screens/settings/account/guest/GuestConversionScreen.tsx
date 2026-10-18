@@ -15,7 +15,7 @@ function describeFailure(error: unknown): string {
   return error instanceof ApiError ? `${message} (${error.code ?? error.statusCode}; ${error.requestId ?? ""})` : message;
 }
 
-export function GuestConversionScreen(): ReactElement {
+export function GuestConversionScreen(props: Readonly<{ returnUrl: string }>): ReactElement {
   const app = useAppData();
   const latest = useRef(app); latest.current = app;
   const { locale, t } = useI18n();
@@ -170,7 +170,7 @@ export function GuestConversionScreen(): ReactElement {
       </div> : null}
       {phase === "auth" ? <div className="screen-actions">
         {readPendingGuestConversion()?.guestWorkspaceSyncedAndOutboxDrained === true ? <a className="primary-btn"
-          data-testid="guest-continue-auth" href={buildLoginUrl(window.location.origin + "/", locale)}>{t("guest.signIn")}</a> : null}
+          data-testid="guest-continue-auth" href={buildLoginUrl(props.returnUrl, locale)}>{t("guest.signIn")}</a> : null}
         <button className="ghost-btn" type="button" data-testid="guest-cancel-auth" onClick={() => void cancel()}>{t("common.cancel")}</button>
       </div> : null}
       {error === "" ? null : <p role="alert" className="error-banner" data-testid="guest-conversion-error">{error}</p>}

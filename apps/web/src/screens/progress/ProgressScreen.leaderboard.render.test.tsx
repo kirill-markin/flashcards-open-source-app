@@ -151,6 +151,24 @@ describe("ProgressScreen leaderboard", () => {
   it("requires a friend name before creating a leaderboard invite", async () => {
     useAppDataMock.mockReturnValue({
       ...createAppData(),
+      session: {
+        userId: "user-1",
+        selectedWorkspaceId: "workspace-1",
+        authTransport: "session",
+        browserGuestCapabilities: null,
+        csrfToken: "csrf-token-1",
+        preferences: {
+          accentColor: "#FF6719",
+          reviewReactionAnimationsEnabled: true,
+          analyticsConsent: null,
+          productAnalyticsEnabled: null,
+        },
+        profile: {
+          email: "user@example.com",
+          locale: "en",
+          createdAt: "2026-04-01T00:00:00.000Z",
+        },
+      },
       cloudSettings: linkedCloudSettings,
     });
     mockProgressSourceStateWithLeaderboard(createLeaderboardSourceState("ready", null));
