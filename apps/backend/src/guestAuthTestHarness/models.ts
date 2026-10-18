@@ -16,6 +16,11 @@ export type UserSettingsState = Readonly<{
   analytics_consent: "granted" | "declined" | null;
   product_analytics_enabled: boolean | null;
   progress_time_zone: string | null;
+  paywall_intro_shown_at: string | null;
+  paywall_intro_local_date: string | null;
+  paywall_intro_time_zone: string | null;
+  paywall_follow_up_shown_at: string | null;
+  paywall_last_shown_at: string | null;
 }>;
 
 export type WorkspaceState = Readonly<{
