@@ -73,7 +73,7 @@ class ReviewViewModel(
     private val onReviewNotificationsChanged: (ReviewNotificationsReconcileTrigger) -> Unit,
     private val onSuccessfulReviewRecorded: suspend (Long) -> Unit,
     private val onStoreReviewOpportunity: suspend () -> Boolean,
-    private val onAutomaticFeedbackPromptCandidate: () -> Unit,
+    private val onAutomaticFeedbackPromptCandidate: suspend () -> Unit,
     private val onNotificationPermissionGranted: () -> Unit,
     private val reviewPreferencesStore: ReviewPreferencesStore,
     private val analytics: Analytics,
@@ -81,6 +81,17 @@ class ReviewViewModel(
     workspaceRepository: WorkspaceRepository,
     private val textProvider: ReviewTextProvider
 ) : ViewModel() {
+    private var isReviewSurfaceBusy: Boolean = false
+    private var isAppPresentationAvailable: () -> Boolean = { true }
+
+    fun updateAppPresentationAvailability(isAvailable: () -> Boolean) {
+        isAppPresentationAvailable = isAvailable
+    }
+
+    fun updateReviewSurfaceBusy(isBusy: Boolean) {
+        isReviewSurfaceBusy = isBusy
+    }
+
     private val draftState = MutableStateFlow(
         value = makeWorkspaceScopedDraftState(reviewFilter = ReviewFilter.AllCards)
     )
@@ -531,7 +542,7 @@ class ReviewViewModel(
                 } else {
                     ownedReviewSubmissions - pendingReviewedCard
                 }
-                val didShowHardAnswerReminder = if (isCurrentSubmissionContext) {
+                val didShowHardAnswerReminder = if (isCurrentSubmissionContext && !isReviewSurfaceBusy && isAppPresentationAvailable()) {
                     updateHardAnswerReminderState(
                         rating = rating,
                         reviewedAtMillis = reviewedAtMillis
@@ -629,9 +640,6 @@ class ReviewViewModel(
         return true
     }
 
-    /**
-     * Records successful review bookkeeping and evaluates lightweight post-review prompts.
-     */
     private suspend fun handleSuccessfulReviewRecorded(
         reviewedAtMillis: Long,
         canEvaluatePostReviewPrompts: Boolean
@@ -651,8 +659,9 @@ class ReviewViewModel(
             return
         }
 
+        if (isReviewSurfaceBusy || !isAppPresentationAvailable() || visibleAppScreenState.value != VisibleAppScreen.REVIEW) return
         val didStartStoreReviewRequest = onStoreReviewOpportunity()
-        if (didStartStoreReviewRequest) {
+        if (didStartStoreReviewRequest || isReviewSurfaceBusy || !isAppPresentationAvailable() || isReviewPromptVisible()) {
             return
         }
 
@@ -1001,7 +1010,7 @@ fun createReviewViewModelFactory(
     onReviewNotificationsChanged: (ReviewNotificationsReconcileTrigger) -> Unit,
     onSuccessfulReviewRecorded: suspend (Long) -> Unit,
     onStoreReviewOpportunity: suspend () -> Boolean,
-    onAutomaticFeedbackPromptCandidate: () -> Unit,
+    onAutomaticFeedbackPromptCandidate: suspend () -> Unit,
     onNotificationPermissionGranted: () -> Unit,
     reviewPreferencesStore: ReviewPreferencesStore,
     analytics: Analytics,

@@ -15,6 +15,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.getValue
@@ -86,7 +87,8 @@ fun ReviewRoute(
     onContinueNotificationPermissionPrompt: () -> Unit,
     onOpenLeaderboard: () -> Unit,
     onOpenProgress: () -> Unit,
-    onScreenVisible: () -> Unit
+    onScreenVisible: () -> Unit,
+    onReviewSurfaceBusyChanged: (Boolean) -> Unit
 ) {
     var filterSheetTransaction by rememberSaveable(
         stateSaver = reviewFilterSheetTransactionSaver
@@ -120,6 +122,13 @@ fun ReviewRoute(
             observability = observability
         )
     }
+    val isReviewSurfaceBusy = filterSheetTransaction.isVisible || tagFilterRequest != null ||
+        uiState.isHardAnswerReminderVisible || uiState.isNotificationPermissionPromptVisible
+    SideEffect { onReviewSurfaceBusyChanged(isReviewSurfaceBusy) }
+    DisposableEffect(Unit) {
+        onDispose { onReviewSurfaceBusyChanged(true) }
+    }
+
     fun dismissReviewReactions(): Unit {
         if (activeReviewReactionEvents.isEmpty()) {
             return
