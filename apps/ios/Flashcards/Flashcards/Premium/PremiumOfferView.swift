@@ -213,6 +213,18 @@ struct PremiumOfferView: View {
         return heading
     }
 
+    private var creatorSupport: AttributedString {
+        var support = AttributedString(localized: String.LocalizationValue(stringLiteral: aiSettingsLocalized(
+            "premium.offer.creatorSupport",
+            "Your subscription helps Nibomo’s creator, [Kirill Markin](https://kirill-markin.com/), pay for servers and fuel the next update with coffee and pizza."
+        )))
+        for run in support.runs where run.link?.absoluteString == "https://kirill-markin.com/" {
+            support[run.range].foregroundColor = .white
+            support[run.range].underlineStyle = .single
+        }
+        return support
+    }
+
     private var freePlan: some View {
         VStack(alignment: .leading, spacing: 12) {
             ViewThatFits(in: .horizontal) {
@@ -295,13 +307,9 @@ struct PremiumOfferView: View {
             }
             .font(.subheadline)
 
-            Text(LocalizedStringKey(aiSettingsLocalized(
-                "premium.offer.creatorSupport",
-                "Your subscription helps Nibomo’s creator, [Kirill Markin](https://kirill-markin.com/), pay for servers and fuel the next update with coffee and pizza."
-            )))
+            Text(self.creatorSupport)
             .font(.subheadline)
             .foregroundStyle(.secondary)
-            .tint(Color.primary)
 
             if self.isTestOfferPreview == false, self.hasAccess, let entitlement = self.store.cloudEntitlement {
                 LabeledContent(aiSettingsLocalized("settings.subscription.plan", "Plan")) {
