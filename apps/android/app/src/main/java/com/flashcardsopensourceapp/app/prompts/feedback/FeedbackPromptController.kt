@@ -19,12 +19,11 @@ import java.time.ZoneId
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.collect
-import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
@@ -67,16 +66,8 @@ class FeedbackPromptController(
             isAppModalActive = false
         )
     )
-    private val automaticReevaluationRequests = Channel<Unit>(capacity = Channel.CONFLATED)
+    private var automaticReevaluationJob: Job? = null
     private val automaticPromptShownEventRecorded = AtomicBoolean(false)
-
-    init {
-        appScope.launch {
-            automaticReevaluationRequests.receiveAsFlow().collect {
-                reevaluateAutomaticPrompt()
-            }
-        }
-    }
 
     fun observeUiState(): StateFlow<FeedbackPromptUiState> {
         return uiStateMutable.asStateFlow()
@@ -88,6 +79,7 @@ class FeedbackPromptController(
             return
         }
 
+        automaticReevaluationJob?.cancel()
         val currentUiState = uiStateMutable.value
         if (
             currentUiState.isVisible.not() ||
@@ -107,8 +99,16 @@ class FeedbackPromptController(
         )
     }
 
-    fun requestAutomaticReevaluation() {
-        automaticReevaluationRequests.trySend(Unit)
+    fun cancelAutomaticReevaluation() {
+        automaticReevaluationJob?.cancel()
+    }
+
+    fun requestAutomaticReevaluation(canPresent: () -> Boolean) {
+        automaticReevaluationJob?.cancel()
+        if (!canPresent()) return
+        automaticReevaluationJob = appScope.launch(Dispatchers.Main.immediate) {
+            reevaluateAutomaticPrompt(canPresent = canPresent)
+        }
     }
 
     fun openSettingsFeedback() {
@@ -243,10 +243,10 @@ class FeedbackPromptController(
         }
     }
 
-    private suspend fun reevaluateAutomaticPrompt() {
+    private suspend fun reevaluateAutomaticPrompt(canPresent: () -> Boolean) {
         val nowMillis = System.currentTimeMillis()
         val context = contextMutable.value
-        if (uiStateMutable.value.isVisible) {
+        if (uiStateMutable.value.isVisible || !canPresent()) {
             return
         }
 
@@ -305,7 +305,7 @@ class FeedbackPromptController(
         ) {
             return
         }
-        if (uiStateMutable.value.isVisible) {
+        if (uiStateMutable.value.isVisible || !canPresent()) {
             return
         }
 
