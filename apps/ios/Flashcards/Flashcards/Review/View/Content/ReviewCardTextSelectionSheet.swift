@@ -38,9 +38,10 @@ private struct ReviewCardSelectableTextView: UIViewRepresentable {
     let accessibilityLabel: String
 
     func makeUIView(context: Context) -> UITextView {
-        let textView = UITextView()
+        let textView = ReviewSelectionTextView(usingTextLayoutManager: true)
         textView.isEditable = false
         textView.isSelectable = true
+        textView.delegate = textView
         textView.isScrollEnabled = true
         textView.font = UIFont.preferredFont(forTextStyle: .body)
         textView.adjustsFontForContentSizeCategory = true
