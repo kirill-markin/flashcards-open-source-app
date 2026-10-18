@@ -80,7 +80,7 @@ private enum ReviewCopySourceError: LocalizedError {
     case codeSourceRangeUnavailable
 
     var errorDescription: String? {
-        "Could not locate a Markdown code example in the card source. Edit the card and try copying again."
+        String(localized: "Could not locate a Markdown code example in the card source. Edit the card and try copying again.", table: "ReviewCards")
     }
 }
 

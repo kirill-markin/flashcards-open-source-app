@@ -49,7 +49,9 @@ data class AccountPreferences(
      * The product-analytics off switch. Null is "nobody answered", which reads as on: the basis is
      * legitimate interest and nothing prompts for it, so only an explicit false opts out.
      */
-    val productAnalyticsEnabled: Boolean?
+    val productAnalyticsEnabled: Boolean?,
+    /** Null is a legacy cache awaiting initialization; network snapshots require a boolean. */
+    val firstReviewOnboardingCompleted: Boolean?
 ) {
     init {
         require(Regex("^#[0-9A-F]{6}$").matches(accentColor)) {
@@ -87,7 +89,8 @@ data class AccountPreferencesUpdate(
      */
     val productAnalyticsEnabledOrigin: AnalyticsPreferenceWriteOrigin? = null,
     /** The interface language the app displays, as the BCP 47 tag analytics sends as `uiLocale`. */
-    val locale: String?
+    val locale: String?,
+    val firstReviewOnboardingCompleted: Boolean?
 )
 
 /** The app language this install last saved to `PATCH /v1/me/preferences`, and the user it was saved for. */
@@ -100,7 +103,8 @@ fun defaultAccountPreferences(): AccountPreferences {
     return AccountPreferences(
         accentColor = defaultAccentColor,
         reviewReactionAnimationsEnabled = true,
-        productAnalyticsEnabled = null
+        productAnalyticsEnabled = null,
+        firstReviewOnboardingCompleted = false
     )
 }
 
@@ -116,7 +120,8 @@ fun applyAccountPreferencesUpdate(
         accentColor = update.accentColor ?: preferences.accentColor,
         reviewReactionAnimationsEnabled = update.reviewReactionAnimationsEnabled
             ?: preferences.reviewReactionAnimationsEnabled,
-        productAnalyticsEnabled = update.productAnalyticsEnabled ?: preferences.productAnalyticsEnabled
+        productAnalyticsEnabled = update.productAnalyticsEnabled ?: preferences.productAnalyticsEnabled,
+        firstReviewOnboardingCompleted = update.firstReviewOnboardingCompleted ?: preferences.firstReviewOnboardingCompleted
     )
 }
 

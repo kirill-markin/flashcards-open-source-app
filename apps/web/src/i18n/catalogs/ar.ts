@@ -63,6 +63,7 @@ const arCatalog: TranslationCatalog = {
     limitTitle: "تم بلوغ حد رسائل الذكاء الاصطناعي",
     previewOffer: "معاينة عرض Premium",
     previewAi: "معاينة حد الذكاء الاصطناعي",
+    previewNoPurchase: "وضع الاختبار: لن يتم إجراء أي عملية شراء ولن تُفرض عليك أي رسوم.",
     retryManually: "عُد إلى المحادثة وأرسل رسالتك مجددًا عندما تكون مستعدًا. تُحفظ إعدادات مفتاحك تلقائيًا.",
   },
   common: {

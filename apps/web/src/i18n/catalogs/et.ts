@@ -63,6 +63,7 @@ const etCatalog: TranslationCatalog = {
     limitTitle: "Tehisaru sõnumite limiit on täis",
     previewOffer: "Premiumi pakkumise eelvaade",
     previewAi: "Tehisaru limiidi eelvaade",
+    previewNoPurchase: "Testrežiim: ostu ei tehta ja teilt ei võeta tasu.",
     retryManually: "Naase vestlusse ja saada sõnum uuesti, kui oled valmis. Võtme seaded salvestatakse automaatselt.",
   },
   common: {

@@ -63,6 +63,7 @@ const hrCatalog: TranslationCatalog = {
     limitTitle: "Dosegnuto ograničenje AI poruka",
     previewOffer: "Pregled ponude Premium",
     previewAi: "Pregled ograničenja AI-ja",
+    previewNoPurchase: "Testni način: kupnja se ne izvršava i ništa vam se neće naplatiti.",
     retryManually: "Vratite se u razgovor i ponovno pošaljite poruku kad budete spremni. Postavke ključa spremaju se automatski.",
   },
   common: {

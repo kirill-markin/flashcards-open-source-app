@@ -63,6 +63,7 @@ const isCatalog: TranslationCatalog = {
     limitTitle: "Hámarki gervigreindarskilaboða náð",
     previewOffer: "Forskoða Premium-tilboð",
     previewAi: "Forskoða gervigreindarmörk",
+    previewNoPurchase: "Prófunarhamur: engin kaup fara fram og ekkert verður rukkað.",
     retryManually: "Farðu aftur í spjallið og sendu skilaboðin aftur þegar þú ert tilbúin(n). Stillingar lykilsins vistast sjálfkrafa.",
   },
   common: {

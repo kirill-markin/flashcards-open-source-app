@@ -63,6 +63,7 @@ const trCatalog: TranslationCatalog = {
     limitTitle: "Yapay zekâ mesaj sınırına ulaşıldı",
     previewOffer: "Premium teklifini önizle",
     previewAi: "Yapay zekâ sınırını önizle",
+    previewNoPurchase: "Test modu: satın alma yapılmaz ve sizden ücret alınmaz.",
     retryManually: "Sohbete dönün ve hazır olduğunuzda mesajınızı yeniden gönderin. Anahtar ayarlarınız otomatik olarak kaydedilir.",
   },
   common: {
