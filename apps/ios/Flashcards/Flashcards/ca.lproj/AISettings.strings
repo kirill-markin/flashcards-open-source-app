@@ -897,8 +897,8 @@
 "settings.appIcon.systemAlertNote" = "iOS confirma cada canvi d’icona amb un avís.";
 
 "premium.apple.monthlyProduct" = "%@ · Mensual";
-"premium.apple.renewal" = "Es renova automàticament fins que la cancel·lis. Gestiona o cancel·la la subscripció a l’App Store.";
-"premium.apple.trial" = "Prova gratuïta: %@. Després:";
+"premium.apple.renewal" = "Renovació automàtica. Gestiona o cancel·la a les subscripcions de l’App Store.";
+"premium.apple.trial" = "%@ gratis, després";
 "premium.apple.loadFailed" = "No s’ha pogut carregar l’oferta de l’App Store. Comprova la connexió i torna-ho a provar.";
 "premium.apple.pending" = "S’espera la confirmació d’Apple o del compte. Restaura les compres per tornar-ho a provar.";
 "premium.apple.cancelled" = "Compra cancel·lada. No se t’ha cobrat res.";

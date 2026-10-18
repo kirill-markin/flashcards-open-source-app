@@ -925,8 +925,8 @@
 "settings.appIcon.systemAlertNote" = "يؤكد iOS كل تغيير للأيقونة بتنبيه.";
 
 "premium.apple.monthlyProduct" = "%@ · شهري";
-"premium.apple.renewal" = "يتجدد تلقائيًا حتى الإلغاء. يمكنك إدارته أو إلغاؤه من اشتراكات App Store.";
-"premium.apple.trial" = "تجربة مجانية: %@. ثم:";
+"premium.apple.renewal" = "يتجدد تلقائيًا. الإدارة أو الإلغاء من اشتراكات App Store.";
+"premium.apple.trial" = "%@ مجانًا، ثم";
 "premium.apple.loadFailed" = "تعذر تحميل عرض App Store. تحقق من اتصالك وأعد المحاولة.";
 "premium.apple.pending" = "في انتظار تأكيد Apple أو الحساب. استعد المشتريات لإعادة المحاولة.";
 "premium.apple.cancelled" = "تم إلغاء الشراء. لم يتم خصم أي مبلغ منك.";

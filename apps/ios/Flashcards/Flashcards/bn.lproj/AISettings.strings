@@ -897,8 +897,8 @@
 "settings.appIcon.systemAlertNote" = "প্রতিবার আইকন বদলালে iOS একটি সতর্কবার্তা দেখিয়ে তা নিশ্চিত করে।";
 
 "premium.apple.monthlyProduct" = "%@ · মাসিক";
-"premium.apple.renewal" = "বাতিল না করা পর্যন্ত স্বয়ংক্রিয়ভাবে নবায়ন হয়। আপনার App Store সাবস্ক্রিপশন থেকে পরিচালনা বা বাতিল করুন।";
-"premium.apple.trial" = "বিনামূল্যের ট্রায়াল: %@। এরপর:";
+"premium.apple.renewal" = "স্বয়ংক্রিয় নবায়ন। App Store সাবস্ক্রিপশনে পরিচালনা বা বাতিল করুন।";
+"premium.apple.trial" = "%@ বিনামূল্যে, এরপর";
 "premium.apple.loadFailed" = "App Store অফার লোড করা যায়নি। সংযোগ পরীক্ষা করে আবার চেষ্টা করুন।";
 "premium.apple.pending" = "Apple বা অ্যাকাউন্টের নিশ্চিতকরণের অপেক্ষায়। আবার চেষ্টা করতে কেনাকাটা পুনরুদ্ধার করুন।";
 "premium.apple.cancelled" = "কেনাকাটা বাতিল হয়েছে। আপনার কাছ থেকে কোনো অর্থ নেওয়া হয়নি।";

@@ -897,8 +897,8 @@
 "settings.appIcon.systemAlertNote" = "iOS kiekvieną piktogramos pakeitimą patvirtina pranešimu.";
 
 "premium.apple.monthlyProduct" = "%@ · Kas mėnesį";
-"premium.apple.renewal" = "Automatiškai atnaujinama iki atšaukimo. Tvarkykite arba atšaukite App Store prenumeratose.";
-"premium.apple.trial" = "Nemokamas bandomasis laikotarpis: %@. Tada:";
+"premium.apple.renewal" = "Automatinis atnaujinimas. Tvarkykite arba atšaukite App Store prenumeratose.";
+"premium.apple.trial" = "%@ nemokamai, tada";
 "premium.apple.loadFailed" = "Nepavyko įkelti App Store pasiūlymo. Patikrinkite ryšį ir bandykite dar kartą.";
 "premium.apple.pending" = "Laukiama Apple arba paskyros patvirtinimo. Atkurkite pirkimus ir bandykite dar kartą.";
 "premium.apple.cancelled" = "Pirkimas atšauktas. Mokestis nenuskaičiuotas.";

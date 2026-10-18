@@ -897,8 +897,8 @@
 "settings.appIcon.systemAlertNote" = "iOS staðfestir hverja breytingu á tákni með tilkynningu.";
 
 "premium.apple.monthlyProduct" = "%@ · Mánaðarlega";
-"premium.apple.renewal" = "Endurnýjast sjálfkrafa þar til sagt er upp. Stjórnaðu eða segðu upp í App Store-áskriftunum þínum.";
-"premium.apple.trial" = "Ókeypis prufutímabil: %@. Síðan:";
+"premium.apple.renewal" = "Endurnýjast sjálfkrafa. Stjórnaðu eða segðu upp í App Store-áskriftum.";
+"premium.apple.trial" = "%@ ókeypis, síðan";
 "premium.apple.loadFailed" = "Ekki tókst að hlaða App Store-tilboðinu. Athugaðu tenginguna og reyndu aftur.";
 "premium.apple.pending" = "Beðið er eftir staðfestingu frá Apple eða á aðgangi. Endurheimtu kaup til að reyna aftur.";
 "premium.apple.cancelled" = "Hætt við kaup. Ekkert hefur verið skuldfært.";

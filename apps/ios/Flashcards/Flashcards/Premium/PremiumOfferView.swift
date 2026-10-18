@@ -332,7 +332,7 @@ struct PremiumOfferView: View {
                     if self.canPurchase, let trialText {
                         Text("\(trialText) \(self.priceText)")
                     }
-                    Text(aiSettingsLocalized("premium.apple.renewal", "Automatically renews until cancelled. Manage or cancel in your App Store subscriptions."))
+                    Text(aiSettingsLocalized("premium.apple.renewal", "Auto-renews. Manage or cancel in App Store subscriptions."))
                 }
                 .font(.footnote)
                 .foregroundStyle(.secondary)
@@ -370,9 +370,14 @@ struct PremiumOfferView: View {
     @ToolbarContentBuilder
     private var closeToolbar: some ToolbarContent {
         ToolbarItem(placement: .topBarTrailing) {
-            Button(aiSettingsLocalized("common.close", "Close"), systemImage: "xmark") {
+            Button {
                 guard self.presenter.request?.id == self.request.id else { return }
                 self.presenter.finish(outcome: .dismissed)
+            } label: {
+                Label(aiSettingsLocalized("common.close", "Close"), systemImage: "xmark")
+                    .labelStyle(.iconOnly)
+                    .frame(minWidth: 44, minHeight: 44)
+                    .contentShape(Rectangle())
             }
             .accessibilityIdentifier(UITestIdentifier.premiumCloseButton)
         }
@@ -394,7 +399,7 @@ struct PremiumOfferView: View {
         var title = aiSettingsLocalized("premium.offer.subscribe", "Subscribe")
         if offer.includesFreeTrial, let intro = subscription.introductoryOffer {
             let duration = try appleSubscriptionPeriodText(period: intro.period, count: intro.periodCount)
-            trial = aiSettingsLocalizedFormat("premium.apple.trial", "Free trial: %@. Then:", duration)
+            trial = aiSettingsLocalizedFormat("premium.apple.trial", "%@ free, then", duration)
             title = aiSettingsLocalizedFormat("premium.offer.startTrial", "Start free trial: %@", duration)
         }
         guard self.presenter.request?.id == self.request.id else { return }
