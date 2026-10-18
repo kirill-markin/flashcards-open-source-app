@@ -88,7 +88,10 @@ private fun renderNoopLogLine(
             "ioPhase=${sanitizeSentryLogValue(fieldName = "ioPhase", value = event.ioPhase)} " +
             "exceptionClass=${sanitizeSentryLogValue(fieldName = "exceptionClass", value = event.exceptionClass)} " +
             "attemptElapsedMs=${event.attemptElapsedMs?.toString() ?: "null"} " +
-            "responseProtocol=${sanitizeSentryLogValue(fieldName = "responseProtocol", value = event.responseProtocol)}"
+            "responseProtocol=${sanitizeSentryLogValue(fieldName = "responseProtocol", value = event.responseProtocol)} " +
+            "connectionId=${sanitizeSentryIdentifier(value = event.connectionId) ?: "null"} " +
+            "connectionProtocol=${sanitizeSentryLogValue(fieldName = "connectionProtocol", value = event.connectionProtocol)} " +
+            "requestHeadersCompleted=${event.requestHeadersCompleted?.toString() ?: "null"}"
     } else {
         logLine
     }
