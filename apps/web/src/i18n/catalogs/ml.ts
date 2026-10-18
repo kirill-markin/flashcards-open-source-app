@@ -63,6 +63,7 @@ const mlCatalog: TranslationCatalog = {
     limitTitle: "AI സന്ദേശങ്ങളുടെ പരിധിയിലെത്തി",
     previewOffer: "Premium ഓഫർ പ്രിവ്യൂ",
     previewAi: "AI പരിധി പ്രിവ്യൂ",
+    previewNoPurchase: "ടെസ്റ്റ് മോഡ്: വാങ്ങൽ നടത്തുകയോ നിങ്ങളിൽ നിന്ന് പണം ഈടാക്കുകയോ ചെയ്യില്ല.",
     retryManually: "ചാറ്റിലേക്ക് മടങ്ങി തയ്യാറാകുമ്പോൾ സന്ദേശം വീണ്ടും അയയ്ക്കുക. കീ ക്രമീകരണങ്ങൾ സ്വയമേവ സംരക്ഷിക്കും.",
   },
   common: {

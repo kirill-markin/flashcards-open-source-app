@@ -63,6 +63,7 @@ const nbCatalog: TranslationCatalog = {
     limitTitle: "Grensen for AI-meldinger er nådd",
     previewOffer: "Forhåndsvis Premium-tilbud",
     previewAi: "Forhåndsvis AI-grense",
+    previewNoPurchase: "Testmodus: ingen kjøp blir gjennomført, og du blir ikke belastet.",
     retryManually: "Gå tilbake til chatten og send meldingen på nytt når du er klar. Nøkkelinnstillingene lagres automatisk.",
   },
   common: {

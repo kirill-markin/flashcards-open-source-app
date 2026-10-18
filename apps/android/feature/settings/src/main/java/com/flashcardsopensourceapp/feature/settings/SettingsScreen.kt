@@ -107,6 +107,7 @@ fun SettingsRoute(
     onOpenOwnOpenAiKey: () -> Unit,
     onOpenLeaderboardParticipation: () -> Unit,
     onOpenProductAnalytics: () -> Unit,
+    onOpenFirstReviewOnboarding: () -> Unit,
     onOpenLanguage: () -> Unit,
     onOpenAccess: () -> Unit,
     onOpenDecks: () -> Unit,
@@ -421,6 +422,16 @@ fun SettingsRoute(
                 SettingsRootSectionTitle(
                     title = stringResource(R.string.settings_section_advanced),
                     testTag = settingsAdvancedSectionTag
+                )
+            }
+
+            item {
+                SettingsRootRow(
+                    title = stringResource(R.string.settings_first_review_onboarding_title),
+                    summary = stringResource(R.string.settings_first_review_onboarding_body),
+                    attentionCount = null,
+                    testTag = settingsFirstReviewOnboardingRowTag,
+                    onClick = onOpenFirstReviewOnboarding
                 )
             }
 

@@ -27,6 +27,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.layout.LayoutCoordinates
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.flashcardsopensourceapp.data.local.model.review.ReviewRating
@@ -43,6 +45,7 @@ internal fun ReviewBottomActionOverlay(
     isAnswerVisible: Boolean,
     bottomInsetPadding: Dp,
     onRevealAnswer: () -> Unit,
+    onGuideTargetPositioned: (LayoutCoordinates) -> Unit,
     onRateAgain: () -> Unit,
     onRateHard: () -> Unit,
     onRateGood: () -> Unit,
@@ -75,6 +78,7 @@ internal fun ReviewBottomActionOverlay(
             if (isAnswerVisible) {
                 ReviewAnswerButtonGrid(
                     answerOptions = currentCard.answerOptions,
+                    onGuideTargetPositioned = onGuideTargetPositioned,
                     onRateAgain = onRateAgain,
                     onRateHard = onRateHard,
                     onRateGood = onRateGood,
@@ -87,6 +91,7 @@ internal fun ReviewBottomActionOverlay(
                         .fillMaxWidth()
                         .heightIn(min = reviewShowAnswerButtonMinHeight)
                         .testTag(reviewShowAnswerButtonTag)
+                        .onGloballyPositioned(onGuideTargetPositioned)
                 ) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
@@ -107,6 +112,7 @@ internal fun ReviewBottomActionOverlay(
 @Composable
 private fun ReviewAnswerButtonGrid(
     answerOptions: List<PreparedReviewAnswerOption>,
+    onGuideTargetPositioned: (LayoutCoordinates) -> Unit,
     onRateAgain: () -> Unit,
     onRateHard: () -> Unit,
     onRateGood: () -> Unit,
@@ -130,7 +136,11 @@ private fun ReviewAnswerButtonGrid(
                             ReviewRating.GOOD -> onRateGood
                             ReviewRating.EASY -> onRateEasy
                         },
-                        modifier = Modifier.weight(1f)
+                        modifier = if (option.rating == ReviewRating.AGAIN) {
+                            Modifier.weight(1f).onGloballyPositioned(onGuideTargetPositioned)
+                        } else {
+                            Modifier.weight(1f)
+                        }
                     )
                 }
 

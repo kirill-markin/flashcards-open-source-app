@@ -63,6 +63,7 @@ const bnCatalog: TranslationCatalog = {
     limitTitle: "AI বার্তার সীমা পূর্ণ হয়েছে",
     previewOffer: "Premium অফারের প্রিভিউ",
     previewAi: "AI সীমার প্রিভিউ",
+    previewNoPurchase: "পরীক্ষামূলক মোড: কোনো কেনাকাটা হবে না এবং আপনার কাছ থেকে কোনো অর্থ নেওয়া হবে না।",
     retryManually: "চ্যাটে ফিরে যান এবং প্রস্তুত হলে বার্তাটি আবার পাঠান। আপনার কী-এর সেটিংস স্বয়ংক্রিয়ভাবে সেভ হয়।",
   },
   common: {

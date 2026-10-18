@@ -63,6 +63,7 @@ const fiCatalog: TranslationCatalog = {
     limitTitle: "Tekoälyviestien raja saavutettu",
     previewOffer: "Premium-tarjouksen esikatselu",
     previewAi: "Tekoälyrajan esikatselu",
+    previewNoPurchase: "Testitila: ostosta ei tehdä eikä sinulta veloiteta mitään.",
     retryManually: "Palaa keskusteluun ja lähetä viesti uudelleen, kun olet valmis. Avaimen asetukset tallennetaan automaattisesti.",
   },
   common: {

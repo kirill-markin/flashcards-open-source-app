@@ -20,6 +20,7 @@ data class SettingsUiState(
     val reviewReactionAnimationsEnabled: Boolean,
     /** The resolved answer the switch shows: an unanswered account reads as on. */
     val productAnalyticsEnabled: Boolean,
+    val firstReviewOnboardingCompleted: Boolean?,
     /** Effective value, gated like [reviewReactionAnimationsEnabled]. */
     val aiChatComposerSuggestionsEnabled: Boolean,
     val ownOpenAiKeyEnabled: Boolean,

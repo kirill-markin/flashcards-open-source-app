@@ -63,6 +63,7 @@ const lvCatalog: TranslationCatalog = {
     limitTitle: "Sasniegts MI ziņojumu limits",
     previewOffer: "Premium piedāvājuma priekšskatījums",
     previewAi: "MI limita priekšskatījums",
+    previewNoPurchase: "Testa režīms: pirkums netiek veikts un no jums netiks iekasēta maksa.",
     retryManually: "Atgriezieties tērzēšanā un nosūtiet ziņojumu vēlreiz, kad būsiet gatavs. Atslēgas iestatījumi tiek saglabāti automātiski.",
   },
   common: {

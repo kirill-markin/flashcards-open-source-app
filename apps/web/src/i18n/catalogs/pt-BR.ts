@@ -63,6 +63,7 @@ const ptBrCatalog: TranslationCatalog = {
     limitTitle: "Limite de mensagens de IA atingido",
     previewOffer: "Prévia da oferta Premium",
     previewAi: "Prévia do limite de IA",
+    previewNoPurchase: "Modo de teste: nenhuma compra será feita e você não será cobrado.",
     retryManually: "Volte ao chat e envie sua mensagem novamente quando quiser. As configurações da sua chave são salvas automaticamente.",
   },
   common: {

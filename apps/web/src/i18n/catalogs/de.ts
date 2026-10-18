@@ -63,6 +63,7 @@ const deCatalog: TranslationCatalog = {
     limitTitle: "KI-Nachrichtenlimit erreicht",
     previewOffer: "Premium-Angebot ansehen",
     previewAi: "KI-Limit ansehen",
+    previewNoPurchase: "Testmodus: Es wird kein Kauf getätigt und dir wird nichts berechnet.",
     retryManually: "Kehre zum Chat zurück und sende deine Nachricht erneut, wenn du bereit bist. Deine Schlüsseleinstellungen werden automatisch gespeichert.",
   },
   common: {

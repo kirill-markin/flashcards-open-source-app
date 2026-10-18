@@ -63,6 +63,7 @@ const nlCatalog: TranslationCatalog = {
     limitTitle: "Limiet voor AI-berichten bereikt",
     previewOffer: "Premium-aanbod bekijken",
     previewAi: "AI-limiet bekijken",
+    previewNoPurchase: "Testmodus: er wordt geen aankoop gedaan en er worden geen kosten in rekening gebracht.",
     retryManually: "Ga terug naar de chat en stuur je bericht opnieuw wanneer je klaar bent. Je sleutelinstellingen worden automatisch opgeslagen.",
   },
   common: {

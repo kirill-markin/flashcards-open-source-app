@@ -63,6 +63,7 @@ const koCatalog: TranslationCatalog = {
     limitTitle: "AI 메시지 한도에 도달했습니다",
     previewOffer: "Premium 혜택 미리 보기",
     previewAi: "AI 한도 미리 보기",
+    previewNoPurchase: "테스트 모드: 구매가 진행되지 않으며 요금이 청구되지 않습니다.",
     retryManually: "준비가 되면 채팅으로 돌아가 메시지를 다시 보내세요. 키 설정은 자동으로 저장됩니다.",
   },
   common: {

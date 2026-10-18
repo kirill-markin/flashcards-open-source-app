@@ -63,6 +63,7 @@ const paCatalog: TranslationCatalog = {
     limitTitle: "AI ਸੁਨੇਹਿਆਂ ਦੀ ਸੀਮਾ ਪੂਰੀ ਹੋ ਗਈ",
     previewOffer: "Premium ਪੇਸ਼ਕਸ਼ ਦੀ ਝਲਕ",
     previewAi: "AI ਸੀਮਾ ਦੀ ਝਲਕ",
+    previewNoPurchase: "ਟੈਸਟ ਮੋਡ: ਕੋਈ ਖਰੀਦ ਨਹੀਂ ਕੀਤੀ ਜਾਵੇਗੀ ਅਤੇ ਤੁਹਾਡੇ ਤੋਂ ਕੋਈ ਖਰਚਾ ਨਹੀਂ ਲਿਆ ਜਾਵੇਗਾ।",
     retryManually: "ਚੈਟ ਵਿੱਚ ਵਾਪਸ ਜਾਓ ਅਤੇ ਤਿਆਰ ਹੋਣ ’ਤੇ ਸੁਨੇਹਾ ਦੁਬਾਰਾ ਭੇਜੋ। ਤੁਹਾਡੀ ਕੁੰਜੀ ਦੀਆਂ ਸੈਟਿੰਗਾਂ ਆਪਣੇ ਆਪ ਸੁਰੱਖਿਅਤ ਹੁੰਦੀਆਂ ਹਨ।",
   },
   common: {

@@ -63,6 +63,7 @@ const zuCatalog: TranslationCatalog = {
     limitTitle: "Umkhawulo wemiyalezo ye-AI ufinyelelwe",
     previewOffer: "Buka kuqala okunikezwa yi-Premium",
     previewAi: "Buka kuqala umkhawulo we-AI",
+    previewNoPurchase: "Imodi yokuhlola: akukho kuthenga okuzokwenziwa futhi ngeke ukhokhiswe.",
     retryManually: "Buyela engxoxweni bese uthumela umyalezo futhi uma usulungile. Izilungiselelo zokhiye wakho zigcinwa ngokuzenzakalelayo.",
   },
   common: {

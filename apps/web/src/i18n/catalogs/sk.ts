@@ -63,6 +63,7 @@ const skCatalog: TranslationCatalog = {
     limitTitle: "Dosiahnutý limit správ AI",
     previewOffer: "Náhľad ponuky Premium",
     previewAi: "Náhľad limitu AI",
+    previewNoPurchase: "Testovací režim: nákup sa neuskutoční a nič vám nebude účtované.",
     retryManually: "Vráťte sa do chatu a keď budete pripravení, odošlite správu znova. Nastavenia kľúča sa ukladajú automaticky.",
   },
   common: {

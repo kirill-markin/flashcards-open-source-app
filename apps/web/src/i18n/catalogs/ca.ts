@@ -63,6 +63,7 @@ const caCatalog: TranslationCatalog = {
     limitTitle: "Límit de missatges d’IA assolit",
     previewOffer: "Previsualitza l’oferta Premium",
     previewAi: "Previsualitza el límit d’IA",
+    previewNoPurchase: "Mode de prova: no es farà cap compra ni se’t cobrarà res.",
     retryManually: "Torna al xat i envia el missatge de nou quan vulguis. La configuració de la clau es desa automàticament.",
   },
   common: {

@@ -63,6 +63,7 @@ const ltCatalog: TranslationCatalog = {
     limitTitle: "Pasiektas DI žinučių limitas",
     previewOffer: "Premium pasiūlymo peržiūra",
     previewAi: "DI limito peržiūra",
+    previewNoPurchase: "Bandymo režimas: pirkimas nebus atliktas ir mokestis nebus taikomas.",
     retryManually: "Grįžkite į pokalbį ir vėl išsiųskite žinutę, kai būsite pasiruošę. Rakto nustatymai išsaugomi automatiškai.",
   },
   common: {

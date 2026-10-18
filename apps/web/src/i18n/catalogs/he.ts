@@ -63,6 +63,7 @@ const heCatalog: TranslationCatalog = {
     limitTitle: "הגעת למגבלת הודעות ה-AI",
     previewOffer: "תצוגה מקדימה של הצעת Premium",
     previewAi: "תצוגה מקדימה של מגבלת AI",
+    previewNoPurchase: "מצב בדיקה: לא תתבצע רכישה ולא ייגבה ממך תשלום.",
     retryManually: "אפשר לחזור לצ׳אט ולשלוח שוב את ההודעה כשמוכנים. הגדרות המפתח נשמרות אוטומטית.",
   },
   common: {

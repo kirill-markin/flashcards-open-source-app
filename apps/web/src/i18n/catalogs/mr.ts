@@ -63,6 +63,7 @@ const mrCatalog: TranslationCatalog = {
     limitTitle: "AI संदेशांची मर्यादा गाठली",
     previewOffer: "Premium ऑफरचे पूर्वावलोकन",
     previewAi: "AI मर्यादेचे पूर्वावलोकन",
+    previewNoPurchase: "चाचणी मोड: कोणतीही खरेदी केली जाणार नाही आणि तुमच्याकडून कोणतेही शुल्क आकारले जाणार नाही.",
     retryManually: "चॅटवर परत जा आणि तयार झाल्यावर संदेश पुन्हा पाठवा. तुमच्या कीची सेटिंग्ज आपोआप जतन होतात.",
   },
   common: {

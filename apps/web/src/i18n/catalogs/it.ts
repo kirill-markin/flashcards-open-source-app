@@ -63,6 +63,7 @@ const itCatalog: TranslationCatalog = {
     limitTitle: "Limite di messaggi IA raggiunto",
     previewOffer: "Anteprima dell’offerta Premium",
     previewAi: "Anteprima del limite IA",
+    previewNoPurchase: "Modalità di test: non verrà effettuato alcun acquisto e non ti verrà addebitato nulla.",
     retryManually: "Torna alla chat e invia di nuovo il messaggio quando vuoi. Le impostazioni della chiave vengono salvate automaticamente.",
   },
   common: {

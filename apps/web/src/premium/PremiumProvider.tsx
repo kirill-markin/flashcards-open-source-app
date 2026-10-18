@@ -12,10 +12,9 @@ import { PremiumOffer } from "./PremiumOffer";
 import { StripeBillingContext, useAccountStripeBilling } from "./useStripeBilling";
 import { canCollectPaywallAnalytics, isStripeBillingInvalidated, readStripeBillingGeneration, subscribeToStripeBillingInvalidation, type PaywallPresentation, type PremiumContinuation } from "./stripeIntent";
 
-/** A null entry point makes a test-settings preview display-only. */
 export type PremiumRequest =
-  | Readonly<{ reason: "offer"; entryPoint: AnalyticsPaywallEntryPoint | null; presentation?: PaywallPresentation | null; reviewTrigger?: ReviewPaywallTrigger; continuation?: PremiumContinuation | null }>
-  | Readonly<{ reason: "ai-limit"; entryPoint: AnalyticsPaywallEntryPoint | null; aiUsage: AiUsageStatus | null }>
+  | Readonly<{ reason: "offer"; isTestPreview?: true; entryPoint: AnalyticsPaywallEntryPoint | null; presentation?: PaywallPresentation | null; reviewTrigger?: ReviewPaywallTrigger; continuation?: PremiumContinuation | null }>
+  | Readonly<{ reason: "ai-limit"; isTestPreview?: true; entryPoint: AnalyticsPaywallEntryPoint | null; aiUsage: AiUsageStatus | null }>
   | Readonly<{
     reason: "feature";
     entryPoint: AnalyticsPaywallEntryPoint;
@@ -96,8 +95,9 @@ function PremiumSession(props: Readonly<{ children: ReactNode }>): ReactElement 
       request.onResult("granted");
       return "granted";
     }
+    const isPreview = request.reason !== "feature" && request.isTestPreview === true;
     const functionalPresentationId = crypto.randomUUID();
-    const analytics = request.entryPoint === null || !canCollectPaywallAnalytics() ? null
+    const analytics = isPreview || request.entryPoint === null || !canCollectPaywallAnalytics() ? null
       : request.reason === "offer" && request.presentation !== null && request.presentation !== undefined ? request.presentation
       : { presentationId: functionalPresentationId, entryPoint: request.entryPoint };
     revisionRef.current += 1;
@@ -105,7 +105,7 @@ function PremiumSession(props: Readonly<{ children: ReactNode }>): ReactElement 
     shownRef.current = null;
     pendingRef.current = next;
     setPresentation(next);
-    return request.reason === "offer" && hasPremiumAccess(entitlement, 20) ? "granted" : "presented";
+    return request.reason === "offer" && !isPreview && hasPremiumAccess(entitlement, 20) ? "granted" : "presented";
   }, [billingGeneration, dismiss, entitlement, userId]);
 
   function reportVisible(): void {
@@ -113,6 +113,7 @@ function PremiumSession(props: Readonly<{ children: ReactNode }>): ReactElement 
     if (pending === null || shownRef.current === pending || pending.userId !== currentUserIdRef.current
       || pending.billingGeneration !== readStripeBillingGeneration() || isStripeBillingInvalidated()) return;
     shownRef.current = pending;
+    if (pending.request.reason !== "feature" && pending.request.isTestPreview === true) return;
     const now = new Date();
     const { today: localDate, timeZone } = buildProgressDateContext(now);
     const reviewTrigger = pending.request.reason === "offer" ? pending.request.reviewTrigger ?? null : null;
@@ -155,12 +156,12 @@ function PremiumSession(props: Readonly<{ children: ReactNode }>): ReactElement 
       setPresentation(null);
       return;
     }
-    if (pending?.request.reason === "offer" && pending.request.reviewTrigger !== undefined && !isKnownFreeEntitlement(entitlement)) {
+    if (pending?.request.reason === "offer" && pending.request.isTestPreview !== true && pending.request.reviewTrigger !== undefined && !isKnownFreeEntitlement(entitlement)) {
       pendingRef.current = null;
       setPresentation(null);
       return;
     }
-    if (pending?.request.reason === "offer" && hasPremiumAccess(entitlement, 20)) {
+    if (pending?.request.reason === "offer" && pending.request.isTestPreview !== true && hasPremiumAccess(entitlement, 20)) {
       pendingRef.current = null;
       setPresentation(null);
       if (pending.request.continuation !== null && pending.request.continuation !== undefined) {
@@ -183,7 +184,7 @@ function PremiumSession(props: Readonly<{ children: ReactNode }>): ReactElement 
           {props.children}
         </ReviewPaywallContext.Provider>
         {presentation !== null && presentation.userId === userId
-          && (presentation.request.reason !== "offer" || (!hasPremiumAccess(entitlement, 20)
+          && (presentation.request.reason !== "offer" || presentation.request.isTestPreview === true || (!hasPremiumAccess(entitlement, 20)
             && (presentation.request.reviewTrigger === undefined || isKnownFreeEntitlement(entitlement)))) ? (
           <PremiumOffer key={presentation.revision} request={presentation.request} entitlement={entitlement}
             presentation={presentation.analytics} onVisible={reportVisible} onDismiss={() => reportChoice("dismissed")}

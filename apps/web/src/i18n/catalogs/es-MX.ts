@@ -63,6 +63,7 @@ const esMxCatalog: TranslationCatalog = {
     limitTitle: "Límite de mensajes de IA alcanzado",
     previewOffer: "Vista previa de la oferta Premium",
     previewAi: "Vista previa del límite de IA",
+    previewNoPurchase: "Modo de prueba: no se realizará ninguna compra ni se te cobrará.",
     retryManually: "Vuelve al chat y envía tu mensaje de nuevo cuando quieras. La configuración de tu clave se guarda automáticamente.",
   },
   common: {

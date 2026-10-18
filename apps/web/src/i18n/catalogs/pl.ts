@@ -63,6 +63,7 @@ const plCatalog: TranslationCatalog = {
     limitTitle: "Osiągnięto limit wiadomości AI",
     previewOffer: "Podgląd oferty Premium",
     previewAi: "Podgląd limitu AI",
+    previewNoPurchase: "Tryb testowy: zakup nie zostanie dokonany i nie zostaną naliczone żadne opłaty.",
     retryManually: "Wróć do czatu i wyślij wiadomość ponownie, gdy zechcesz. Ustawienia klucza są zapisywane automatycznie.",
   },
   common: {

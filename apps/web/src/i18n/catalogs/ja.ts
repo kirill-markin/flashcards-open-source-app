@@ -63,6 +63,7 @@ export const jaCatalog = {
     limitTitle: "AIメッセージの上限に達しました",
     previewOffer: "Premiumオファーのプレビュー",
     previewAi: "AI上限のプレビュー",
+    previewNoPurchase: "テストモード：購入は行われず、料金も請求されません。",
     retryManually: "準備ができたらチャットに戻り、メッセージを再送信してください。キーの設定は自動保存されます。",
   },
   common: {

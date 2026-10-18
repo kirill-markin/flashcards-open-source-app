@@ -63,6 +63,7 @@ const svCatalog: TranslationCatalog = {
     limitTitle: "Gränsen för AI-meddelanden har nåtts",
     previewOffer: "Förhandsvisa Premium-erbjudandet",
     previewAi: "Förhandsvisa AI-gränsen",
+    previewNoPurchase: "Testläge: inget köp görs och du debiteras inte.",
     retryManually: "Gå tillbaka till chatten och skicka ditt meddelande igen när du är redo. Dina nyckelinställningar sparas automatiskt.",
   },
   common: {

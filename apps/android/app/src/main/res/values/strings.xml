@@ -119,6 +119,7 @@
     <string name="premium_allowance_loading">Loading the monthly AI allowance…</string>
     <string name="premium_allowance_unavailable">Could not load the monthly AI allowance. Check your connection and retry.</string>
     <string name="premium_ai_unlimited">AI messages without a monthly cap</string>
+    <string name="premium_preview_purchase_notice">Test mode: no purchase was made. Your plan has not changed.</string>
     <string name="premium_preview_notice">Preview only. Open Premium from Subscription to see your Google Play offer.</string>
     <plurals name="premium_ai_messages">
         <item quantity="one">%1$d AI message every month</item>
