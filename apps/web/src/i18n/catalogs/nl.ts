@@ -26,8 +26,9 @@ const nlCatalog: TranslationCatalog = {
     creatorSupport: "Je abonnement helpt de maker van Nibomo, {{creator}}, de servers te betalen en met koffie en pizza aan de volgende update te werken.",
     basePrice: "Basisprijs: {{price}} / maand",
     startTrial: "Start een gratis proefperiode van 7 dagen",
-    trialPrice: "7 dagen gratis, daarna een basisprijs van {{price}}/maand. Betaalmethode vereist; zeg vóór het einde van de proefperiode op om de eerste afschrijving te voorkomen.",
-    checkoutPrice: "Stripe bevestigt de definitieve prijs en betaalvaluta bij het afrekenen.",
+    trialPrice: "7 dagen gratis, daarna een basisprijs van {{price}}/maand. Betaalmethode vereist. Wordt automatisch verlengd; zeg vóór het einde van de proefperiode op in de abonnementsinstellingen.",
+    checkoutPrice: "Definitieve prijs en valuta bij het afrekenen.",
+    renewalDisclosure: "Wordt automatisch verlengd; zeg op elk moment op in de abonnementsinstellingen.",
   },
   accentColorSettings: {
     title: "Accentkleur",

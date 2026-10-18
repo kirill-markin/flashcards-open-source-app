@@ -26,8 +26,9 @@ const koCatalog: TranslationCatalog = {
     creatorSupport: "구독은 Nibomo 제작자 {{creator}}의 서버 비용을 지원하고, 커피와 피자로 다음 업데이트를 준비할 힘을 보탭니다.",
     basePrice: "기본 가격: {{price}} / 월",
     startTrial: "7일 무료 체험 시작",
-    trialPrice: "7일 무료, 이후 월 기본 요금 {{price}}. 결제 수단이 필요합니다. 첫 청구를 피하려면 체험 종료 전에 해지하세요.",
-    checkoutPrice: "Stripe 결제 화면에서 최종 가격과 청구 통화를 확인할 수 있습니다.",
+    trialPrice: "7일 무료, 이후 월 기본 요금 {{price}}. 결제 수단이 필요합니다. 자동 갱신되며, 체험 종료 전에 구독 설정에서 해지하세요.",
+    checkoutPrice: "최종 가격과 통화는 결제 화면에서 확인하세요.",
+    renewalDisclosure: "자동 갱신되며, 구독 설정에서 언제든 해지할 수 있습니다.",
   },
   accentColorSettings: {
     title: "강조 색상",
