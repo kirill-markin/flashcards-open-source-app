@@ -85,6 +85,7 @@ extension FlashcardsStore {
         self.userDefaults.removeObject(forKey: aiChatExternalProviderConsentUserDefaultsKey)
         self.clearGuestSignInAfterReviewPromptState()
         self.clearFeedbackPromptState()
+        self.clearPaywallStateForCloudIdentityReset()
         self.resetAccountPreferencesForCloudIdentityReset()
         self.resetCloudEntitlementForCloudIdentityReset()
         self.aiUsageSnapshot = nil

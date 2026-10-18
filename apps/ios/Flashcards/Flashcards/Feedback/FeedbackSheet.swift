@@ -8,6 +8,7 @@ struct FeedbackSheet: View {
 
     @State private var message: String = ""
     @State private var hasLoadedDraft: Bool = false
+    @State private var hasRecordedAutomaticPromptShown: Bool = false
     @State private var isSubmitting: Bool = false
     @State private var errorMessage: String?
 
@@ -116,6 +117,11 @@ struct FeedbackSheet: View {
             }
         }
         .interactiveDismissDisabled(self.isSubmitting)
+        .onAppear {
+            guard self.hasRecordedAutomaticPromptShown == false else { return }
+            self.hasRecordedAutomaticPromptShown = true
+            self.store.recordAutomaticFeedbackPromptShownAfterPresentation(presentation: self.presentation)
+        }
         .task {
             self.loadDraftIfNeeded()
         }

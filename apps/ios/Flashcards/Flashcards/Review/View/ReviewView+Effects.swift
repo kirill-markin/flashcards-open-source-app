@@ -1,6 +1,45 @@
 import SwiftUI
 
 extension ReviewView {
+    func presentPromptAfterSavedReview(opportunity: SavedReviewPromptOpportunity) async {
+        guard self.store.savedReviewPromptOpportunity?.id == opportunity.id,
+              self.store.workspace?.workspaceId == opportunity.workspaceId,
+              self.store.selectedReviewFilter == opportunity.reviewFilter,
+              self.canPresentSavedReviewPrompt else { return }
+        let now = Date()
+        self.store.handleSuccessfulReviewHardReminder(rating: opportunity.rating, now: now)
+        guard self.store.isReviewHardReminderPresented == false else { return }
+        do {
+            if let trigger = try self.store.dueReviewPaywall(now: now) {
+                self.premiumPresenter.present(
+                    reason: .review(trigger), analyticsEntryPoint: .review,
+                    entitlement: self.store.cloudEntitlement,
+                    identity: try self.store.appleSubscriptionIdentity()
+                )
+                self.store.isPremiumPresentationActive = self.premiumPresenter.request != nil
+                return
+            }
+        } catch AppleSubscriptionError.accountUnavailable {
+            // A local-only installation has no known account entitlement yet.
+        } catch {
+            self.store.capturePaywallStateFailure(error: error, stage: "review_eligibility")
+            return
+        }
+        let showNotifications = await self.store.resolveSuccessfulReviewNotificationPrePromptDecision(
+            reviewCount: opportunity.reviewCount
+        )
+        guard self.store.savedReviewPromptOpportunity?.id == opportunity.id,
+              self.store.workspace?.workspaceId == opportunity.workspaceId,
+              self.store.selectedReviewFilter == opportunity.reviewFilter,
+              self.canPresentSavedReviewPrompt else { return }
+        if showNotifications && self.store.presentReviewNotificationPrePromptIfAllowed() { return }
+        self.store.prepareStoreReviewRequestAttemptAfterSuccessfulReview(now: now)
+        if self.store.pendingStoreReviewRequestAttempt != nil { return }
+        self.store.reconcileGuestSignInAfterReviewPrompt(isModalOrAuthFlowActive: false, now: now)
+        if self.store.isGuestSignInAfterReviewPromptPresented { return }
+        self.store.startAutomaticFeedbackPromptCheckAfterSuccessfulReview(now: now)
+    }
+
     func prewarmReviewReactionLottieAssets() {
         guard self.isReviewReactionScreenVisible, self.areReviewReactionAnimationsEnabled, self.scenePhase == .active else {
             return

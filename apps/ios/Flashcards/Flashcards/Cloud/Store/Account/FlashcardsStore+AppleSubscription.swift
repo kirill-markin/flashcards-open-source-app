@@ -133,7 +133,7 @@ extension FlashcardsStore {
         guard syncResult.entitlement != nil else { throw AppleSubscriptionError.entitlementNotConfirmed }
     }
 
-    private func withAppleSubscriptionSession<Result>(
+    func withAppleSubscriptionSession<Result>(
         identity: AppleSubscriptionIdentity,
         operation: (CloudLinkedSession) async throws -> Result
     ) async throws -> Result {
