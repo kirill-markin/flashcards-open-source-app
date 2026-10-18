@@ -304,13 +304,10 @@ struct ReviewView: View {
                    self.store.firstReviewOnboardingCompleted == false,
                    let anchor = anchors[self.isAnswerVisible ? .rating(.again) : .showAnswer] {
                     let target = geometry[anchor]
-                    let neighboringButtons = ReviewRating.allCases.filter { $0 != .again }.compactMap { rating in
-                        anchors[.rating(rating)].map { geometry[$0] }
-                    }
                     if target.width > 0, target.height > 0,
                        CGRect(origin: .zero, size: geometry.size).contains(target) {
                         FirstReviewOnboardingOverlay(
-                            target: target, size: geometry.size, neighboringButtons: neighboringButtons,
+                            target: target, size: geometry.size,
                             accent: self.store.effectiveAccountAccentColor,
                             animates: self.reduceMotion == false && self.isLowPowerModeEnabled == false
                         )
