@@ -971,7 +971,7 @@
 "settings.account.connection.restart" = "Tõend aegus või kasutati ära. Alusta uuesti uue tõendiga.";
 "settings.account.connection.restorePaused" = "Kontod ühendatud. Kohalik värskendamine on peatatud; sinu võrguühenduseta andmed säilivad.";
 
-"premium.offer.heading" = "Õppimine kuulub kõigile.";
+"premium.offer.heading" = "Õppimine kuulub **kõigile**.";
 "premium.offer.free" = "Tasuta";
 "premium.offer.freeDescription" = "Loodud tööta tudengitele. Avatud kõigile. Sinu seljakott muutus just kergemaks.";
 "premium.offer.freeBenefits" = "Kordamine, võrguühenduseta õpe ja sünkroonimine";
@@ -987,3 +987,5 @@
 
 "settings.firstReviewOnboarding.title" = "Esimese kordamise juhend on läbitud";
 "settings.firstReviewOnboarding.note" = "Lülita välja, et näha juhendit kaardi kordamisel uuesti.";
+"premium.offer.alwaysFree" = "Alati tasuta";
+"settings.subscription.allowanceReset" = "Sinu AI-sõnumite limiit lähtestatakse iga kuu esimesel päeval kell 00.00 UTC.";

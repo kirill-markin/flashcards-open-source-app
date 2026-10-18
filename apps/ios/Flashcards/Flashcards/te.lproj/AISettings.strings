@@ -971,7 +971,7 @@
 "settings.account.connection.restart" = "ఆధారం గడువు ముగిసింది లేదా ఉపయోగించబడింది. కొత్త ఆధారంతో మళ్లీ ప్రారంభించండి.";
 "settings.account.connection.restorePaused" = "ఖాతాలు కలిశాయి. స్థానిక నవీకరణ నిలిపివేయబడింది; మీ ఆఫ్‌లైన్ డేటా భద్రంగా ఉంది.";
 
-"premium.offer.heading" = "నేర్చుకోవడం అందరి హక్కు.";
+"premium.offer.heading" = "నేర్చుకోవడం **అందరి** హక్కు.";
 "premium.offer.free" = "ఉచితం";
 "premium.offer.freeDescription" = "ఉద్యోగం లేని విద్యార్థుల కోసం రూపొందించబడింది. అందరికీ అందుబాటులో ఉంది. మీ పుస్తకాల సంచి ఇప్పుడు తేలికైంది.";
 "premium.offer.freeBenefits" = "ముఖ్యమైన పునశ్చరణ, ఆఫ్‌లైన్ అభ్యాసం మరియు సింక్";
@@ -987,3 +987,5 @@
 
 "settings.firstReviewOnboarding.title" = "మొదటి పునశ్చరణ పరిచయం పూర్తయింది";
 "settings.firstReviewOnboarding.note" = "కార్డును పునశ్చరణ చేసేటప్పుడు మార్గదర్శిని మళ్లీ చూడటానికి దీన్ని ఆఫ్ చేయండి.";
+"premium.offer.alwaysFree" = "ఎల్లప్పుడూ ఉచితం";
+"settings.subscription.allowanceReset" = "మీ AI సందేశాల పరిమితి ప్రతి నెల మొదటి రోజు 00:00 UTC సమయానికి రీసెట్ అవుతుంది.";

@@ -971,7 +971,7 @@
 "settings.account.connection.restart" = "Доказателството е изтекло или е използвано. Започнете отново с ново доказателство.";
 "settings.account.connection.restorePaused" = "Акаунтите са свързани. Локалното обновяване е спряно; офлайн данните ви са запазени.";
 
-"premium.offer.heading" = "Ученето е за всеки.";
+"premium.offer.heading" = "Ученето е за **всеки**.";
 "premium.offer.free" = "Безплатно";
 "premium.offer.freeDescription" = "Създадено за студенти без работа. Отворено за всички. Раницата ви току-що олекна.";
 "premium.offer.freeBenefits" = "Преговор, учене офлайн и синхронизация";
@@ -987,3 +987,5 @@
 
 "settings.firstReviewOnboarding.title" = "Въвеждането в първия преговор е завършено";
 "settings.firstReviewOnboarding.note" = "Изключете, за да видите ръководството отново при преговор на карта.";
+"premium.offer.alwaysFree" = "Винаги безплатно";
+"settings.subscription.allowanceReset" = "Лимитът ви за съобщения с ИИ се подновява на първия ден от всеки месец в 00:00 UTC.";

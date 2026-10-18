@@ -999,7 +999,7 @@
 "settings.account.connection.restart" = "证明已过期或已使用。请重新提供证明后再试。";
 "settings.account.connection.restorePaused" = "账号已关联。本地刷新已暂停；你的离线数据已保留。";
 
-"premium.offer.heading" = "学习属于每一个人。";
+"premium.offer.heading" = "学习属于**每一个人**。";
 "premium.offer.free" = "免费";
 "premium.offer.freeDescription" = "为尚未就业的学生打造，向所有人开放。你的书包又轻了一点。";
 "premium.offer.freeBenefits" = "核心复习、离线学习和同步";
@@ -1015,3 +1015,5 @@
 
 "settings.firstReviewOnboarding.title" = "已完成首次复习引导";
 "settings.firstReviewOnboarding.note" = "关闭后，复习卡片时将再次显示引导。";
+"premium.offer.alwaysFree" = "始终免费";
+"settings.subscription.allowanceReset" = "你的 AI 消息额度会在每月第一天的 00:00（UTC）重置。";

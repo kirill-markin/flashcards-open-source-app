@@ -971,7 +971,7 @@
 "settings.account.connection.restart" = "หลักฐานหมดอายุหรือถูกใช้แล้ว โปรดเริ่มใหม่ด้วยหลักฐานใหม่";
 "settings.account.connection.restorePaused" = "เชื่อมบัญชีแล้ว การรีเฟรชในเครื่องหยุดชั่วคราว ข้อมูลออฟไลน์ของคุณยังคงอยู่";
 
-"premium.offer.heading" = "การเรียนรู้เป็นของทุกคน";
+"premium.offer.heading" = "การเรียนรู้เป็นของ**ทุกคน**";
 "premium.offer.free" = "ฟรี";
 "premium.offer.freeDescription" = "สร้างขึ้นเพื่อนักเรียนที่ยังไม่มีงานทำ เปิดรับทุกคน กระเป๋าของคุณเบาลงแล้ว";
 "premium.offer.freeBenefits" = "ทบทวนพื้นฐาน เรียนแบบออฟไลน์ และซิงค์";
@@ -987,3 +987,5 @@
 
 "settings.firstReviewOnboarding.title" = "แนะนำการทบทวนครั้งแรกเสร็จแล้ว";
 "settings.firstReviewOnboarding.note" = "ปิดเพื่อดูคำแนะนำอีกครั้งเมื่อทบทวนการ์ด";
+"premium.offer.alwaysFree" = "ฟรีเสมอ";
+"settings.subscription.allowanceReset" = "โควตาข้อความ AI ของคุณจะรีเซ็ตในวันแรกของแต่ละเดือน เวลา 00:00 UTC";

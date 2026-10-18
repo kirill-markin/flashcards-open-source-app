@@ -999,7 +999,7 @@
 "settings.account.connection.restart" = "A prova expirou ou foi usada. Recomece com uma nova prova.";
 "settings.account.connection.restorePaused" = "Contas conectadas. A atualização local está pausada; seus dados offline são mantidos.";
 
-"premium.offer.heading" = "Aprender é para todo mundo.";
+"premium.offer.heading" = "Aprender é para **todo mundo**.";
 "premium.offer.free" = "Grátis";
 "premium.offer.freeDescription" = "Criado para estudantes sem emprego. Aberto a todos. Sua mochila acabou de ficar mais leve.";
 "premium.offer.freeBenefits" = "Revisões essenciais, estudo offline e sincronização";
@@ -1015,3 +1015,5 @@
 
 "settings.firstReviewOnboarding.title" = "Guia da primeira revisão concluído";
 "settings.firstReviewOnboarding.note" = "Desative para ver o guia novamente ao revisar um cartão.";
+"premium.offer.alwaysFree" = "Sempre grátis";
+"settings.subscription.allowanceReset" = "Sua cota de mensagens de IA é reiniciada no primeiro dia de cada mês às 00:00 UTC.";

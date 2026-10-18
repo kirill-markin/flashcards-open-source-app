@@ -999,7 +999,7 @@
 "settings.account.connection.restart" = "La preuve a expiré ou a été utilisée. Recommencez avec une nouvelle preuve.";
 "settings.account.connection.restorePaused" = "Comptes reliés. L’actualisation locale est suspendue ; vos données hors ligne sont conservées.";
 
-"premium.offer.heading" = "Apprendre est un droit pour tous.";
+"premium.offer.heading" = "Apprendre est un droit pour **tous**.";
 "premium.offer.free" = "Gratuit";
 "premium.offer.freeDescription" = "Créé pour les étudiants sans emploi. Ouvert à tous. Votre sac vient de s’alléger.";
 "premium.offer.freeBenefits" = "Révisions essentielles, apprentissage hors ligne et synchronisation";
@@ -1015,3 +1015,5 @@
 
 "settings.firstReviewOnboarding.title" = "Guide de la première révision terminé";
 "settings.firstReviewOnboarding.note" = "Désactivez pour revoir le guide lorsque vous révisez une carte.";
+"premium.offer.alwaysFree" = "Toujours gratuit";
+"settings.subscription.allowanceReset" = "Votre quota de messages IA est réinitialisé le premier jour de chaque mois à 00:00 UTC.";

@@ -971,7 +971,7 @@
 "settings.account.connection.restart" = "Todiste vanheni tai käytettiin. Aloita uudelleen uudella todisteella.";
 "settings.account.connection.restorePaused" = "Tilit yhdistetty. Paikallinen päivitys on keskeytetty; offline-tietosi säilyvät.";
 
-"premium.offer.heading" = "Oppiminen kuuluu kaikille.";
+"premium.offer.heading" = "Oppiminen kuuluu **kaikille**.";
 "premium.offer.free" = "Ilmainen";
 "premium.offer.freeDescription" = "Luotu opiskelijoille, joilla ei ole työtä. Avoin kaikille. Reppusi keveni juuri.";
 "premium.offer.freeBenefits" = "Kertaus, offline-oppiminen ja synkronointi";
@@ -987,3 +987,5 @@
 
 "settings.firstReviewOnboarding.title" = "Ensimmäisen kertauksen opastus suoritettu";
 "settings.firstReviewOnboarding.note" = "Poista käytöstä, jos haluat nähdä opastuksen uudelleen korttia kerratessasi.";
+"premium.offer.alwaysFree" = "Aina ilmainen";
+"settings.subscription.allowanceReset" = "Tekoälyviestiesi kiintiö nollautuu kunkin kuukauden ensimmäisenä päivänä kello 00.00 UTC.";

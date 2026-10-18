@@ -999,7 +999,7 @@
 "settings.account.connection.restart" = "انتهت صلاحية الإثبات أو استُخدم. ابدأ مجددًا بإثبات جديد.";
 "settings.account.connection.restorePaused" = "تم ربط الحسابات. تحديث البيانات المحلية متوقف مؤقتًا؛ بياناتك دون اتصال محفوظة.";
 
-"premium.offer.heading" = "التعلّم للجميع.";
+"premium.offer.heading" = "التعلّم **للجميع**.";
 "premium.offer.free" = "مجاني";
 "premium.offer.freeDescription" = "صُمّم للطلاب الذين لا يعملون. متاح للجميع. أصبحت حقيبتك أخفّ.";
 "premium.offer.freeBenefits" = "المراجعات الأساسية والتعلّم بلا اتصال والمزامنة";
@@ -1015,3 +1015,5 @@
 
 "settings.firstReviewOnboarding.title" = "اكتمل دليل المراجعة الأولى";
 "settings.firstReviewOnboarding.note" = "أوقف هذا الخيار لرؤية الدليل مجددًا عند مراجعة بطاقة.";
+"premium.offer.alwaysFree" = "مجاني دائمًا";
+"settings.subscription.allowanceReset" = "يتجدد رصيد رسائل الذكاء الاصطناعي في اليوم الأول من كل شهر عند الساعة 00:00 بالتوقيت العالمي المنسق (UTC).";

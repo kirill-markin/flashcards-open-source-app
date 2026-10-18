@@ -971,7 +971,7 @@
 "settings.account.connection.restart" = "Kanıtın süresi doldu veya kullanıldı. Yeni kanıtla baştan başlayın.";
 "settings.account.connection.restorePaused" = "Hesaplar bağlandı. Yerel yenileme duraklatıldı; çevrimdışı verileriniz korunuyor.";
 
-"premium.offer.heading" = "Öğrenmek herkesin hakkı.";
+"premium.offer.heading" = "Öğrenmek **herkesin** hakkı.";
 "premium.offer.free" = "Ücretsiz";
 "premium.offer.freeDescription" = "İşi olmayan öğrenciler için tasarlandı. Herkese açık. Sırt çantanız biraz daha hafifledi.";
 "premium.offer.freeBenefits" = "Temel tekrarlar, çevrimdışı öğrenme ve eşitleme";
@@ -987,3 +987,5 @@
 
 "settings.firstReviewOnboarding.title" = "İlk tekrar rehberi tamamlandı";
 "settings.firstReviewOnboarding.note" = "Bir kartı tekrar ederken rehberi yeniden görmek için kapatın.";
+"premium.offer.alwaysFree" = "Her zaman ücretsiz";
+"settings.subscription.allowanceReset" = "Yapay zekâ mesaj hakkınız her ayın ilk günü saat 00:00 UTC’de yenilenir.";

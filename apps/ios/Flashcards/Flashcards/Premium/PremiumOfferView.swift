@@ -7,6 +7,7 @@ private enum PremiumNavigationDestination: Hashable {
 }
 
 struct PremiumOfferView: View {
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @Environment(FlashcardsStore.self) private var store: FlashcardsStore
     @Environment(PremiumPresenter.self) private var presenter: PremiumPresenter
     @Environment(AppleSubscriptionService.self) private var subscriptions: AppleSubscriptionService
@@ -59,7 +60,7 @@ struct PremiumOfferView: View {
 
                 if self.showsOffer {
                     Section {
-                        Text(aiSettingsLocalized("premium.offer.heading", "Learning belongs to everyone."))
+                        Text(self.offerHeading)
                             .font(.largeTitle.bold())
                             .fixedSize(horizontal: false, vertical: true)
                             .accessibilityAddTraits(.isHeader)
@@ -75,77 +76,14 @@ struct PremiumOfferView: View {
                     .listRowSeparator(.hidden)
 
                     Section {
-                        Text(aiSettingsLocalized("premium.offer.free", "Free"))
-                            .font(.title2.bold())
-                            .accessibilityAddTraits(.isHeader)
-                        Text(aiSettingsLocalized("premium.offer.freeDescription", "Created for students without a job. Open to everyone. Your backpack just got lighter."))
-                            .foregroundStyle(.secondary)
-                        Label(aiSettingsLocalized("premium.offer.freeBenefits", "Core reviews, offline learning & sync"), systemImage: "checkmark")
-                        Button(aiSettingsLocalized("premium.offer.continueFree", "Continue free")) {
-                            self.presenter.recordChoice(requestId: self.request.id, outcome: .free)
-                            self.presenter.finish(outcome: .continuedFree)
-                        }
-                        .buttonStyle(.bordered)
-                        .controlSize(.large)
-                        .accessibilityIdentifier(UITestIdentifier.premiumContinueFreeButton)
+                        self.freePlan
                     }
                     .listRowSeparator(.hidden)
 
                     Section {
-                        Label(premiumOfferTitle(), systemImage: "sparkles")
-                            .font(.title2.bold())
-                            .accessibilityAddTraits(.isHeader)
-                        if let allowance = self.premiumAIAllowance {
-                            Label(
-                                allowance.premiumAiMonthlyMessages.map { count in
-                                    aiSettingsLocalizedFormat("premium.offer.monthlyAI", "%@ AI messages every month", count.formatted())
-                                } ?? aiSettingsLocalized("premium.offer.unlimitedAI", "AI messages with no monthly cap"),
-                                systemImage: "checkmark"
-                            )
-                        }
-                        Label(aiSettingsLocalized("premium.offer.styles", "Custom colors and styles"), systemImage: "checkmark")
-                        if UIApplication.shared.supportsAlternateIcons {
-                            Label(aiSettingsLocalized("settings.appIcon.title", "App icon"), systemImage: "checkmark")
-                        }
-                        Text(LocalizedStringKey(aiSettingsLocalized(
-                            "premium.offer.creatorSupport",
-                            "Your subscription helps Nibomo’s creator, [Kirill Markin](https://kirill-markin.com/), pay for servers and fuel the next update with coffee and pizza."
-                        )))
-                        .foregroundStyle(.secondary)
-                        .tint(Color.primary)
-
-                        if self.isTestOfferPreview == false, self.hasAccess, let entitlement = self.store.cloudEntitlement {
-                            LabeledContent(aiSettingsLocalized("settings.subscription.plan", "Plan")) {
-                                Text(entitlement.tierDisplayName)
-                            }
-                        }
-                        if self.offer != nil {
-                            VStack(alignment: .leading, spacing: 4) {
-                                if self.canPurchase, let trialText { Text(trialText).font(.headline) }
-                                Text(self.priceText).font(.title2.bold())
-                                    .accessibilityIdentifier(UITestIdentifier.premiumPrice)
-                            }
-                            if self.isTestOfferPreview || self.hasAccess == false {
-                                Button {
-                                    self.purchase()
-                                } label: {
-                                    HStack {
-                                        Text(self.purchaseTitle)
-                                        if self.isPurchasing { ProgressView() }
-                                    }
-                                    .frame(maxWidth: .infinity)
-                                }
-                                .buttonStyle(.borderedProminent)
-                                .controlSize(.large)
-                                .disabled(self.isPurchasing || self.isLoading || self.canPurchase == false || self.premiumAIAllowance == nil)
-                                .accessibilityIdentifier(UITestIdentifier.premiumPurchaseButton)
-                            }
-                            Text(aiSettingsLocalized("premium.apple.renewal", "Automatically renews until cancelled. Manage or cancel in your App Store subscriptions."))
-                                .font(.footnote)
-                                .foregroundStyle(.secondary)
-                        }
+                        self.premiumPlan
                     }
-                    .listRowBackground(Color.accentColor.opacity(0.10))
+                    .listRowBackground(Color.orange.opacity(0.10))
                     .listRowSeparator(.hidden)
                 }
 
@@ -181,19 +119,28 @@ struct PremiumOfferView: View {
                 .disabled(self.isPurchasing || self.isPreview)
 
                 Section {
-                    if let privacyURL = URL(string: flashcardsPrivacyPolicyUrl) {
-                        Link(aiSettingsLocalized("common.privacyPolicy", "Privacy Policy"), destination: privacyURL)
-                            .accessibilityIdentifier(UITestIdentifier.premiumPrivacyLink)
+                    HStack(alignment: .top, spacing: 16) {
+                        if let privacyURL = URL(string: flashcardsPrivacyPolicyUrl) {
+                            Link(aiSettingsLocalized("common.privacyPolicy", "Privacy Policy"), destination: privacyURL)
+                                .accessibilityIdentifier(UITestIdentifier.premiumPrivacyLink)
+                        }
+                        if let eulaURL = URL(string: "https://www.apple.com/legal/internet-services/itunes/dev/stdeula/") {
+                            Link(aiSettingsLocalized("common.termsOfService", "Terms of Service"), destination: eulaURL)
+                                .accessibilityIdentifier(UITestIdentifier.premiumEULALink)
+                        }
                     }
-                    if let eulaURL = URL(string: "https://www.apple.com/legal/internet-services/itunes/dev/stdeula/") {
-                        Link(aiSettingsLocalized("common.termsOfService", "Terms of Service"), destination: eulaURL)
-                            .accessibilityIdentifier(UITestIdentifier.premiumEULALink)
-                    }
+                    .font(.footnote)
+                    .buttonStyle(.borderless)
+                    .fixedSize(horizontal: false, vertical: true)
                 }
+                .listRowBackground(Color.clear)
             }
             .listStyle(.insetGrouped)
             .listSectionSpacing(.compact)
             .contentMargins(.top, 8, for: .scrollContent)
+            .frame(maxWidth: 640)
+            .frame(maxWidth: .infinity)
+            .background(Color(uiColor: .systemGroupedBackground))
             .navigationTitle(self.isAILimit ? premiumAILimitTitle() : "Nibomo")
             .navigationBarTitleDisplayMode(.inline)
             .accessibilityIdentifier(UITestIdentifier.premiumOfferSheet)
@@ -253,6 +200,170 @@ struct PremiumOfferView: View {
         }
         .onChange(of: self.showsOffer) { _, showsOffer in
             if showsOffer, self.isLoading == false { self.loadAttempt += 1 }
+        }
+    }
+
+    private var offerHeading: AttributedString {
+        var heading = AttributedString(localized: String.LocalizationValue(stringLiteral: aiSettingsLocalized(
+            "premium.offer.heading", "Learning belongs to **everyone**."
+        )))
+        for run in heading.runs where run.inlinePresentationIntent?.contains(.stronglyEmphasized) == true {
+            heading[run.range].foregroundColor = .orange
+        }
+        return heading
+    }
+
+    private var freePlan: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            ViewThatFits(in: .horizontal) {
+                HStack(alignment: .firstTextBaseline) {
+                    self.freeTitle.fixedSize(horizontal: true, vertical: false)
+                    Spacer(minLength: 12)
+                    self.alwaysFreeText.fixedSize(horizontal: true, vertical: false)
+                }
+                VStack(alignment: .leading, spacing: 4) {
+                    self.freeTitle
+                    self.alwaysFreeText
+                }
+            }
+            Text(aiSettingsLocalized("premium.offer.freeDescription", "Created for students without a job. Open to everyone. Your backpack just got lighter."))
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+            Label(aiSettingsLocalized("premium.offer.freeBenefits", "Core reviews, offline learning & sync"), systemImage: "checkmark")
+                .font(.subheadline)
+            Button {
+                self.presenter.recordChoice(requestId: self.request.id, outcome: .free)
+                self.presenter.finish(outcome: .continuedFree)
+            } label: {
+                HStack {
+                    Text(aiSettingsLocalized("premium.offer.continueFree", "Continue free"))
+                        .frame(maxWidth: .infinity)
+                    Image(systemName: "arrow.forward").accessibilityHidden(true)
+                }
+            }
+            .buttonStyle(.bordered)
+            .controlSize(.large)
+            .accessibilityIdentifier(UITestIdentifier.premiumContinueFreeButton)
+        }
+        .padding(.vertical, 4)
+        .fixedSize(horizontal: false, vertical: true)
+    }
+
+    private var freeTitle: some View {
+        Text(aiSettingsLocalized("premium.offer.free", "Free"))
+            .font(.title3.bold())
+            .fixedSize(horizontal: false, vertical: true)
+            .accessibilityAddTraits(.isHeader)
+    }
+
+    private var alwaysFreeText: some View {
+        Text(aiSettingsLocalized("premium.offer.alwaysFree", "Always free"))
+            .font(.subheadline)
+            .foregroundStyle(.secondary)
+            .fixedSize(horizontal: false, vertical: true)
+    }
+
+    private var premiumPlan: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            if self.dynamicTypeSize.isAccessibilitySize {
+                VStack(alignment: .leading, spacing: 4) {
+                    self.premiumTitle
+                    self.recurringPrice
+                }
+            } else {
+                HStack(alignment: .firstTextBaseline, spacing: 12) {
+                    self.premiumTitle
+                    Spacer(minLength: 0)
+                    self.recurringPrice
+                        .multilineTextAlignment(.trailing)
+                }
+            }
+
+            VStack(alignment: .leading, spacing: 6) {
+                if let allowance = self.premiumAIAllowance {
+                    Label(
+                        allowance.premiumAiMonthlyMessages.map { count in
+                            aiSettingsLocalizedFormat("premium.offer.monthlyAI", "%@ AI messages every month", count.formatted())
+                        } ?? aiSettingsLocalized("premium.offer.unlimitedAI", "AI messages with no monthly cap"),
+                        systemImage: "checkmark"
+                    )
+                }
+                Label(aiSettingsLocalized("premium.offer.styles", "Custom colors and styles"), systemImage: "checkmark")
+                if UIApplication.shared.supportsAlternateIcons {
+                    Label(aiSettingsLocalized("settings.appIcon.title", "App icon"), systemImage: "checkmark")
+                }
+            }
+            .font(.subheadline)
+
+            Text(LocalizedStringKey(aiSettingsLocalized(
+                "premium.offer.creatorSupport",
+                "Your subscription helps Nibomo’s creator, [Kirill Markin](https://kirill-markin.com/), pay for servers and fuel the next update with coffee and pizza."
+            )))
+            .font(.subheadline)
+            .foregroundStyle(.secondary)
+            .tint(Color.primary)
+
+            if self.isTestOfferPreview == false, self.hasAccess, let entitlement = self.store.cloudEntitlement {
+                LabeledContent(aiSettingsLocalized("settings.subscription.plan", "Plan")) {
+                    Text(entitlement.tierDisplayName)
+                }
+            }
+            if self.offer != nil {
+                if self.isTestOfferPreview || self.hasAccess == false {
+                    Button {
+                        self.purchase()
+                    } label: {
+                        HStack {
+                            Text(self.purchaseTitle)
+                                .frame(maxWidth: .infinity)
+                            if self.isPurchasing {
+                                ProgressView()
+                            } else {
+                                Image(systemName: "arrow.forward").accessibilityHidden(true)
+                            }
+                        }
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .controlSize(.large)
+                    .disabled(self.isPurchasing || self.isLoading || self.canPurchase == false || self.premiumAIAllowance == nil)
+                    .accessibilityIdentifier(UITestIdentifier.premiumPurchaseButton)
+                }
+                VStack(spacing: 4) {
+                    if self.canPurchase, let trialText {
+                        Text("\(trialText) \(self.priceText)")
+                    }
+                    Text(aiSettingsLocalized("premium.apple.renewal", "Automatically renews until cancelled. Manage or cancel in your App Store subscriptions."))
+                }
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+                .frame(maxWidth: .infinity)
+            }
+        }
+        .padding(.vertical, 4)
+        .fixedSize(horizontal: false, vertical: true)
+    }
+
+    private var premiumTitle: some View {
+        HStack(spacing: 6) {
+            Text(premiumOfferTitle())
+            Image(systemName: "sparkles")
+                .foregroundStyle(.orange)
+                .accessibilityHidden(true)
+        }
+        .font(.title3.bold())
+        .fixedSize(horizontal: false, vertical: true)
+        .accessibilityElement(children: .combine)
+        .accessibilityAddTraits(.isHeader)
+    }
+
+    @ViewBuilder
+    private var recurringPrice: some View {
+        if self.offer != nil {
+            Text(self.priceText)
+                .font(.subheadline.bold())
+                .fixedSize(horizontal: false, vertical: true)
+                .accessibilityIdentifier(UITestIdentifier.premiumPrice)
         }
     }
 

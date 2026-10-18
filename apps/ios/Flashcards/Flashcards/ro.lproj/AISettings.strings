@@ -971,7 +971,7 @@
 "settings.account.connection.restart" = "Dovada a expirat sau a fost folosită. Reîncepe cu o dovadă nouă.";
 "settings.account.connection.restorePaused" = "Conturi conectate. Actualizarea locală este suspendată; datele offline sunt păstrate.";
 
-"premium.offer.heading" = "Învățarea este pentru toți.";
+"premium.offer.heading" = "Învățarea este pentru **toți**.";
 "premium.offer.free" = "Gratuit";
 "premium.offer.freeDescription" = "Creat pentru studenți fără un loc de muncă. Deschis tuturor. Rucsacul tău tocmai a devenit mai ușor.";
 "premium.offer.freeBenefits" = "Recapitulări, învățare offline și sincronizare";
@@ -987,3 +987,5 @@
 
 "settings.firstReviewOnboarding.title" = "Ghidul pentru prima recapitulare este finalizat";
 "settings.firstReviewOnboarding.note" = "Dezactivați pentru a vedea din nou ghidul când recapitulați o fișă.";
+"premium.offer.alwaysFree" = "Mereu gratuit";
+"settings.subscription.allowanceReset" = "Limita de mesaje AI se resetează în prima zi a fiecărei luni, la 00:00 UTC.";

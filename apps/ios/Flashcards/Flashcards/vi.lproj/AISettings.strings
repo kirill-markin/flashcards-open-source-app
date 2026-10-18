@@ -971,7 +971,7 @@
 "settings.account.connection.restart" = "Bằng chứng đã hết hạn hoặc được dùng. Bắt đầu lại với bằng chứng mới.";
 "settings.account.connection.restorePaused" = "Đã kết nối tài khoản. Làm mới cục bộ đang tạm dừng; dữ liệu ngoại tuyến được giữ lại.";
 
-"premium.offer.heading" = "Học tập dành cho tất cả mọi người.";
+"premium.offer.heading" = "Học tập dành cho **tất cả mọi người**.";
 "premium.offer.free" = "Miễn phí";
 "premium.offer.freeDescription" = "Được tạo cho sinh viên chưa có việc làm. Chào đón tất cả mọi người. Ba lô của bạn vừa nhẹ hơn rồi.";
 "premium.offer.freeBenefits" = "Ôn tập cơ bản, học ngoại tuyến và đồng bộ";
@@ -987,3 +987,5 @@
 
 "settings.firstReviewOnboarding.title" = "Đã hoàn tất hướng dẫn ôn tập đầu tiên";
 "settings.firstReviewOnboarding.note" = "Tắt để xem lại hướng dẫn khi ôn tập một thẻ.";
+"premium.offer.alwaysFree" = "Luôn miễn phí";
+"settings.subscription.allowanceReset" = "Hạn mức tin nhắn AI của bạn được đặt lại vào ngày đầu tiên mỗi tháng lúc 00:00 UTC.";
