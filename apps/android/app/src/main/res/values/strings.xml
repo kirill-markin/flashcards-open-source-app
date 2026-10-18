@@ -60,8 +60,8 @@
     <string name="premium_phase_once">%1$s for %2$s</string>
     <string name="premium_start_trial">Start free trial (%1$s)</string>
     <string name="premium_subscribe">Subscribe — %1$s</string>
-    <string name="premium_renewal_disclosure">Your subscription automatically renews at %1$s every %2$s until canceled, following the pricing phases shown above. Payment is charged to your Google Play account. Cancel in Google Play before the next renewal to avoid another charge.</string>
-    <string name="premium_trial_renewal_disclosure">After the free trial, your subscription automatically renews at %1$s every %2$s until canceled. Payment is charged to your Google Play account. Cancel in Google Play before the trial ends to avoid the first charge, or before a later renewal to avoid another charge.</string>
+    <string name="premium_renewal_disclosure">Renews automatically at %1$s every %2$s. Billed through Google Play. Cancel there before renewal to avoid the next charge.</string>
+    <string name="premium_trial_renewal_disclosure">After the trial and any introductory phases shown, renews automatically at %1$s every %2$s. Billed through Google Play. Cancel there before the trial ends to avoid the first charge, or before renewal to avoid the next charge.</string>
     <string name="premium_terms">Terms of Service</string>
     <string name="premium_privacy">Privacy Policy</string>
     <string name="premium_restore">Restore purchases</string>
@@ -107,8 +107,11 @@
     <string name="premium_own_key_help">Add your own OpenAI key, then return to this chat and send your message again when you’re ready. Your key enables AI usage; it doesn’t change your plan.</string>
     <string name="premium_own_key_action">Use your own OpenAI key</string>
     <string name="premium_sign_in">Create account or Log in</string>
-    <string name="premium_heading">Learning belongs to everyone.</string>
+    <string name="premium_heading">Learning belongs to <xliff:g id="everyone" example="everyone">%1$s</xliff:g>.</string>
+    <string name="premium_heading_everyone">everyone</string>
     <string name="premium_free_title">Free</string>
+    <string name="premium_free_price">Always free</string>
+    <string name="premium_welcome">Same app. Same welcome. Your choice.</string>
     <string name="premium_free_description">Created for students without a job. Open to everyone. Your backpack just got lighter.</string>
     <string name="premium_free_benefits">Core reviews, offline learning &amp; sync</string>
     <string name="premium_continue_free">Continue free</string>
