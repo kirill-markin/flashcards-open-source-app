@@ -28,6 +28,7 @@ export type AnalyticsConsentChoice = "granted" | "declined";
 export type AccountPreferences = Readonly<{
   accentColor: string;
   reviewReactionAnimationsEnabled: boolean;
+  firstReviewOnboardingCompleted: boolean;
   analyticsConsent: AnalyticsConsentChoice | null;
   productAnalyticsEnabled: boolean | null;
 }>;
@@ -48,6 +49,7 @@ type UserSettingsRow = Readonly<{
   email: string | null;
   locale: string;
   review_reaction_animations_enabled: boolean;
+  first_review_onboarding_completed: boolean;
   analytics_consent: AnalyticsConsentChoice | null;
   product_analytics_enabled: boolean | null;
   created_at: Date | string;
@@ -81,7 +83,7 @@ export async function ensureUserProfileInExecutor(
   const existing = await executor.query<UserSettingsRow>(
     [
       "SELECT workspace_id, email, locale, review_reaction_animations_enabled, analytics_consent,",
-      "product_analytics_enabled, accent_color, created_at",
+      "product_analytics_enabled, accent_color, first_review_onboarding_completed, created_at",
       "FROM org.user_settings",
       "WHERE user_id = $1",
       "FOR UPDATE",
@@ -109,6 +111,7 @@ export async function ensureUserProfileInExecutor(
     preferences: {
       accentColor: settings.accent_color,
       reviewReactionAnimationsEnabled: settings.review_reaction_animations_enabled,
+      firstReviewOnboardingCompleted: settings.first_review_onboarding_completed,
       analyticsConsent: settings.analytics_consent,
       productAnalyticsEnabled: settings.product_analytics_enabled,
     },

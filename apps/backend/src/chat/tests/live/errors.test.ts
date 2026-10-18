@@ -148,6 +148,7 @@ test("handleLiveRequest uses the authoritative Cognito profile for downstream ac
           preferences: {
             accentColor: "#FF6719",
             reviewReactionAnimationsEnabled: true,
+            firstReviewOnboardingCompleted: false,
             analyticsConsent: null,
             productAnalyticsEnabled: null,
           },
