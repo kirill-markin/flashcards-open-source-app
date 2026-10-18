@@ -28,10 +28,14 @@ import com.flashcardsopensourceapp.app.livesmoke.support.currentCloudSettingsSum
 import com.flashcardsopensourceapp.app.livesmoke.support.currentWorkspaceSummaryOrNull
 import com.flashcardsopensourceapp.app.livesmoke.support.externalUiTimeoutMillis
 import com.flashcardsopensourceapp.app.livesmoke.support.internalUiTimeoutMillis
+import com.flashcardsopensourceapp.core.ui.components.appTechnicalErrorDetailsButtonTag
+import com.flashcardsopensourceapp.core.ui.components.appTechnicalErrorDetailsTextTag
+import com.flashcardsopensourceapp.core.ui.components.appTechnicalErrorDismissButtonTag
 import com.flashcardsopensourceapp.feature.settings.cloud.cloudPostAuthExistingButtonTag
 import com.flashcardsopensourceapp.feature.settings.cloud.cloudPostAuthWorkspaceRowTag
 import com.flashcardsopensourceapp.feature.settings.cloud.cloudSignInEmailFieldTag
 import com.flashcardsopensourceapp.feature.settings.cloud.cloudSignInSendCodeButtonTag
+import com.flashcardsopensourceapp.feature.settings.cloud.signIn.cloudSignInErrorDetailsButtonTag
 import com.flashcardsopensourceapp.feature.settings.settingsAccountStatusRowTag
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
@@ -103,12 +107,32 @@ private fun LiveSmokeContext.sendReviewAccountCodeWithRetries(reviewEmail: Strin
         attemptNumber += 1
     }
 
-    throw AssertionError(
+    val failure = AssertionError(
         "Sign-in send-code failed after $sendCodeAttemptLimit attempts. " +
             "CloudSettings=${currentCloudSettingsSummary()} " +
             "CurrentWorkspace=${currentWorkspaceSummaryOrNull()} " +
             "SystemDialog=${currentBlockingSystemDialogSummaryOrNull()}"
     )
+    try {
+        if (
+            hasVisibleText(text = cloudSignInSendCodeTransportFailedText, substring = false) &&
+            composeRule.onAllNodesWithTag(cloudSignInErrorDetailsButtonTag).fetchSemanticsNodes().isNotEmpty()
+        ) {
+            composeRule.onNodeWithTag(cloudSignInErrorDetailsButtonTag).performClick()
+            composeRule.waitForIdle()
+            composeRule.onNodeWithTag(appTechnicalErrorDetailsButtonTag).performClick()
+            composeRule.waitForIdle()
+            val details = composeRule.onNodeWithTag(appTechnicalErrorDetailsTextTag)
+                .fetchSemanticsNode().config[SemanticsProperties.Text]
+                .joinToString(separator = "\n") { text -> text.text }
+            failure.addSuppressed(AssertionError("Send-code transport technical details: $details"))
+            composeRule.onNodeWithTag(appTechnicalErrorDismissButtonTag).performClick()
+            composeRule.waitForIdle()
+        }
+    } catch (error: Throwable) {
+        failure.addSuppressed(AssertionError("Could not capture send-code transport technical details.", error))
+    }
+    throw failure
 }
 
 private fun LiveSmokeContext.waitForCloudSignInSendCodeOutcome(): CloudSignInSendCodeOutcome {
