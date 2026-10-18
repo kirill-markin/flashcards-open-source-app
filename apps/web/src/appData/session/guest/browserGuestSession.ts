@@ -6,7 +6,7 @@ import { loadCloudSettings } from "../../../localDb/sync/cloudSettings";
 import type { CloudSettings, SessionInfo } from "../../../types";
 import { hasLoggedInCookie } from "../activation/warmStart";
 import { probeBrowserGuestSessionWithRegisteredRecovery } from "./browserGuestProbe";
-import { readBrowserGuestState, runWithBrowserGuestLock, writeBrowserGuestState, type PendingGuestConversion } from "./browserGuestStorage";
+import { readBrowserGuestOwnershipGeneration, readBrowserGuestState, readPendingGuestConversion, runWithBrowserGuestLock, writeBrowserGuestState, type PendingGuestConversion } from "./browserGuestStorage";
 
 export class GuestConversionRequiredError extends Error {
   readonly pending: PendingGuestConversion | null;
@@ -21,8 +21,8 @@ export class GuestConversionRequiredError extends Error {
 
 export { readBrowserGuestVerificationGeneration };
 
-export function requireBrowserGuestVerificationGeneration(userId: string, generation: number): void {
-  if (readBrowserGuestVerificationGeneration(userId) !== generation) {
+export function requireBrowserGuestVerificationGeneration(userId: string, generation: number | null): void {
+  if (generation === null || readBrowserGuestVerificationGeneration(userId) !== generation) {
     throw new Error("Browser guest verification changed; remote work is paused until the owner is verified again.");
   }
 }
@@ -124,6 +124,64 @@ export async function loadBrowserProductSession(): Promise<SessionInfo> {
       throw error;
     }
   });
+}
+
+export async function restoreBrowserGuestSessionAfterCleanup(
+  expectedSession: SessionInfo,
+  verificationGeneration: number | null,
+  clearLocalState: () => Promise<void>,
+): Promise<SessionInfo> {
+  requireBrowserGuestVerificationGeneration(expectedSession.userId, verificationGeneration);
+  const saved = readBrowserGuestState();
+  if (expectedSession.browserGuestCapabilities?.isGuest !== true || saved?.status !== "owned"
+    || saved.owner.userId !== expectedSession.userId || saved.owner.workspaceId !== expectedSession.selectedWorkspaceId
+    || saved.owner.pending !== null) {
+    throw new Error("Browser guest ownership changed or sign-in is pending. Local data has been preserved.");
+  }
+  const ownershipGeneration = readBrowserGuestOwnershipGeneration();
+  const requireUnchangedOwner = (): void => {
+    const current = readBrowserGuestState();
+    if (readBrowserGuestOwnershipGeneration() !== ownershipGeneration || current?.status !== "owned"
+      || current.owner.userId !== saved.owner.userId || current.owner.workspaceId !== saved.owner.workspaceId
+      || current.owner.pending !== null || current.owner.initialSeedAllowed !== saved.owner.initialSeedAllowed) {
+      throw new Error("Browser guest ownership changed before cleanup. Local data has been preserved.");
+    }
+  };
+
+  // Pause before queuing the lock so cleanup cannot wait on a local mutation queued behind it.
+  pauseBrowserGuestSession();
+  try {
+    return await runWithBrowserGuestLock("exclusive", async () => {
+      requireUnchangedOwner();
+      const probe = await probeBrowserGuestSessionWithRegisteredRecovery();
+      if (probe.registeredSession.present || probe.guestSession.status === "pending_upgrade") {
+        throw new GuestConversionRequiredError(probe, readPendingGuestConversion());
+      }
+      requireMatchingOwner(probe, expectedSession.userId);
+      requireUnchangedOwner();
+      await clearLocalState();
+      const cleanedGeneration = readBrowserGuestOwnershipGeneration();
+      if (readBrowserGuestState() !== null) throw new Error("Browser guest ownership changed during cleanup. Preserve local data before recovery.");
+      const restoredProbe = await probeBrowserGuestSessionWithRegisteredRecovery();
+      if (restoredProbe.registeredSession.present || restoredProbe.guestSession.status === "pending_upgrade") {
+        throw new GuestConversionRequiredError(restoredProbe, null);
+      }
+      requireMatchingOwner(restoredProbe, expectedSession.userId);
+      const guest = restoredProbe.guestSession;
+      if (guest.status !== "active" || guest.workspaceId !== saved.owner.workspaceId) {
+        throw new Error("Browser guest cookie changed workspace during cleanup. Restore the original session before syncing.");
+      }
+      const restoredSession = await loadVerifiedBrowserGuestSession(saved.owner.userId, saved.owner.workspaceId);
+      if (readBrowserGuestState() !== null || readBrowserGuestOwnershipGeneration() !== cleanedGeneration) {
+        throw new Error("Browser guest ownership changed during cleanup recovery. Preserve local data before retrying.");
+      }
+      writeBrowserGuestState(saved);
+      return resumeVerifiedBrowserSession(restoredSession);
+    });
+  } catch (error) {
+    pauseBrowserGuestSession();
+    throw error;
+  }
 }
 
 export function allowBrowserGuestInitialSeed(userId: string): boolean {
