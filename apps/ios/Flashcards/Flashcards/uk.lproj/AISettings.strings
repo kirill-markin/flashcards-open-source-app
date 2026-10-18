@@ -897,8 +897,8 @@
 "settings.appIcon.systemAlertNote" = "iOS підтверджує кожну зміну іконки сповіщенням.";
 
 "premium.apple.monthlyProduct" = "%@ · Щомісяця";
-"premium.apple.renewal" = "Поновлюється автоматично до скасування. Керувати підпискою або скасувати її можна в App Store.";
-"premium.apple.trial" = "Безкоштовний пробний період: %@. Потім:";
+"premium.apple.renewal" = "Автопоновлення. Керування та скасування в підписках App Store.";
+"premium.apple.trial" = "%@ безкоштовно, потім";
 "premium.apple.loadFailed" = "Не вдалося завантажити пропозицію App Store. Перевірте з’єднання та спробуйте ще раз.";
 "premium.apple.pending" = "Очікується підтвердження Apple або доступу до облікового запису. Відновіть покупки, щоб спробувати ще раз.";
 "premium.apple.cancelled" = "Покупку скасовано. Кошти не списано.";

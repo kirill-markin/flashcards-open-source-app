@@ -897,8 +897,8 @@
 "settings.appIcon.systemAlertNote" = "Το iOS επιβεβαιώνει κάθε αλλαγή εικονιδίου με μια ειδοποίηση.";
 
 "premium.apple.monthlyProduct" = "%@ · Μηνιαία";
-"premium.apple.renewal" = "Ανανεώνεται αυτόματα μέχρι να ακυρωθεί. Διαχειριστείτε ή ακυρώστε στις συνδρομές σας στο App Store.";
-"premium.apple.trial" = "Δωρεάν δοκιμή: %@. Έπειτα:";
+"premium.apple.renewal" = "Αυτόματη ανανέωση. Διαχείριση ή ακύρωση στις συνδρομές App Store.";
+"premium.apple.trial" = "%@ δωρεάν, έπειτα";
 "premium.apple.loadFailed" = "Δεν ήταν δυνατή η φόρτωση της προσφοράς του App Store. Ελέγξτε τη σύνδεσή σας και δοκιμάστε ξανά.";
 "premium.apple.pending" = "Αναμονή επιβεβαίωσης από την Apple ή του λογαριασμού. Επαναφέρετε τις αγορές για νέα προσπάθεια.";
 "premium.apple.cancelled" = "Η αγορά ακυρώθηκε. Δεν χρεωθήκατε.";

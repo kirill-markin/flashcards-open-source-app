@@ -897,8 +897,8 @@
 "settings.appIcon.systemAlertNote" = "I-iOS iqinisekisa ushintsho ngalunye lwesithonjana ngesexwayiso.";
 
 "premium.apple.monthlyProduct" = "%@ · Nyanga zonke";
-"premium.apple.renewal" = "Kuvuselelwa ngokuzenzakalelayo uze ukhansele. Phatha noma ukhansele ekubhaliseni kwakho kwe-App Store.";
-"premium.apple.trial" = "Isivivinyo samahhala: %@. Ngemva kwalokho:";
+"premium.apple.renewal" = "Kuvuselelwa ngokuzenzakalelayo. Phatha noma ukhansele ekubhaliseni kwe-App Store.";
+"premium.apple.trial" = "%@ mahhala, bese";
 "premium.apple.loadFailed" = "Ayikwazanga ukulayisha okunikezwa yi-App Store. Hlola uxhumano lwakho bese uzama futhi.";
 "premium.apple.pending" = "Kulindwe ukuqinisekiswa yi-Apple noma kwe-akhawunti. Buyisela okuthengiwe ukuze uzame futhi.";
 "premium.apple.cancelled" = "Ukuthenga kukhanseliwe. Awukhokhiswanga.";

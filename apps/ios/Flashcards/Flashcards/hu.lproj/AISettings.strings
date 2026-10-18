@@ -897,8 +897,8 @@
 "settings.appIcon.systemAlertNote" = "Az iOS minden ikonváltást egy figyelmeztetéssel erősít meg.";
 
 "premium.apple.monthlyProduct" = "%@ · Havi";
-"premium.apple.renewal" = "Lemondásig automatikusan megújul. Kezelje vagy mondja le az App Store-előfizetéseinél.";
-"premium.apple.trial" = "Ingyenes próbaidőszak: %@. Utána:";
+"premium.apple.renewal" = "Automatikus megújítás. Kezelés vagy lemondás az App Store-előfizetéseknél.";
+"premium.apple.trial" = "%@ ingyen, utána";
 "premium.apple.loadFailed" = "Nem sikerült betölteni az App Store ajánlatát. Ellenőrizze a kapcsolatot, és próbálja újra.";
 "premium.apple.pending" = "Várakozás az Apple vagy a fiók megerősítésére. Az újrapróbálkozáshoz állítsa vissza a vásárlásokat.";
 "premium.apple.cancelled" = "Vásárlás megszakítva. Nem számítottunk fel díjat.";

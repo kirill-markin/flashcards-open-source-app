@@ -897,8 +897,8 @@
 "settings.appIcon.systemAlertNote" = "iOS svaku promjenu ikone potvrđuje upozorenjem.";
 
 "premium.apple.monthlyProduct" = "%@ · Mjesečno";
-"premium.apple.renewal" = "Automatski se obnavlja do otkazivanja. Upravljajte ili otkažite u pretplatama App Storea.";
-"premium.apple.trial" = "Besplatno probno razdoblje: %@. Zatim:";
+"premium.apple.renewal" = "Automatska obnova. Upravljajte ili otkažite u pretplatama App Storea.";
+"premium.apple.trial" = "%@ besplatno, zatim";
 "premium.apple.loadFailed" = "Ponudu App Storea nije moguće učitati. Provjerite vezu i pokušajte ponovno.";
 "premium.apple.pending" = "Čeka se potvrda Applea ili računa. Obnovite kupnje za novi pokušaj.";
 "premium.apple.cancelled" = "Kupnja je otkazana. Ništa vam nije naplaćeno.";

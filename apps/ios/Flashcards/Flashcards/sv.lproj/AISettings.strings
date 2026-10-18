@@ -897,8 +897,8 @@
 "settings.appIcon.systemAlertNote" = "iOS bekräftar varje ikonbyte med ett meddelande.";
 
 "premium.apple.monthlyProduct" = "%@ · Månadsvis";
-"premium.apple.renewal" = "Förnyas automatiskt tills du säger upp det. Hantera eller avsluta under dina App Store-abonnemang.";
-"premium.apple.trial" = "Gratis provperiod: %@. Därefter:";
+"premium.apple.renewal" = "Förnyas automatiskt. Hantera eller avsluta under App Store-abonnemang.";
+"premium.apple.trial" = "%@ gratis, därefter";
 "premium.apple.loadFailed" = "Kunde inte läsa in App Store-erbjudandet. Kontrollera anslutningen och försök igen.";
 "premium.apple.pending" = "Väntar på bekräftelse från Apple eller av kontot. Återställ köp för att försöka igen.";
 "premium.apple.cancelled" = "Köpet avbröts. Du har inte debiterats.";

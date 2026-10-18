@@ -925,8 +925,8 @@
 "settings.appIcon.systemAlertNote" = "iOS हर आइकन बदलाव की पुष्टि एक अलर्ट से करता है।";
 
 "premium.apple.monthlyProduct" = "%@ · मासिक";
-"premium.apple.renewal" = "रद्द करने तक अपने आप नवीनीकृत होता है। अपनी App Store सदस्यताओं में इसे प्रबंधित या रद्द करें।";
-"premium.apple.trial" = "मुफ़्त परीक्षण: %@। उसके बाद:";
+"premium.apple.renewal" = "अपने आप नवीनीकृत होता है। App Store सदस्यताओं में प्रबंधित या रद्द करें।";
+"premium.apple.trial" = "%@ मुफ़्त, फिर";
 "premium.apple.loadFailed" = "App Store ऑफ़र लोड नहीं हो सका। अपना कनेक्शन जाँचें और फिर कोशिश करें।";
 "premium.apple.pending" = "Apple या खाते की पुष्टि का इंतज़ार है। फिर कोशिश करने के लिए खरीदारी बहाल करें।";
 "premium.apple.cancelled" = "खरीदारी रद्द हुई। आपसे कोई शुल्क नहीं लिया गया है।";
