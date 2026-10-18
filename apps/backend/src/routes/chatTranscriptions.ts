@@ -1,4 +1,5 @@
 import { transactionWithUserScope } from "../database";
+import { acquireBrowserGuestTrialLifecycleInExecutor } from "../aiUsage/browserGuestTrial/repository";
 import { createBrowserGuestTrialOperation, reserveNewBrowserGuestTrialOperation,
   resolveFundedBrowserGuestTrial, startBrowserGuestTrialProvider } from "../aiUsage/browserGuestTrial/admission";
 import { readGuestPcmAudio } from "../chat/guestPcmAudio";
@@ -154,6 +155,7 @@ export function createChatTranscriptionsRoutes(options: ChatTranscriptionsRoutes
       const audio = await readGuestPcmAudio(upload.file);
       const operation = createBrowserGuestTrialOperation("dictation", upload.operationId, audio.seconds, audio.bytes);
       await transactionWithUserScope({ userId: requestContext.userId }, async (executor) => {
+        await acquireBrowserGuestTrialLifecycleInExecutor(executor, browserGuestTrial);
         await reserveNewBrowserGuestTrialOperation(executor, browserGuestTrial, operation);
       });
       return operation;

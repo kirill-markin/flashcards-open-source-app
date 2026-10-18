@@ -1,6 +1,6 @@
 import type { BrowserGuestTrialContext } from "../../aiUsage/browserGuestTrial/policy";
 import { createBrowserGuestTrialOperation, reserveNewBrowserGuestTrialOperation } from "../../aiUsage/browserGuestTrial/admission";
-import { startBrowserGuestAiTrialProviderInExecutor } from "../../aiUsage/browserGuestTrial/repository";
+import { acquireBrowserGuestTrialLifecycleInExecutor, startBrowserGuestAiTrialProviderInExecutor } from "../../aiUsage/browserGuestTrial/repository";
 import type { BrowserGuestTrialOperation } from "../../aiUsage/browserGuestTrial/repository";
 import { createHash } from "node:crypto";
 import type { CardTextSide } from "../../cards";
@@ -307,6 +307,7 @@ async function withBrowserGuestImageAdmission(
   await transactionWithWorkspaceScopeDeadline(
     { userId: input.userId, workspaceId: input.workspaceId }, input.operationDeadlineMs,
     async (executor) => {
+      await acquireBrowserGuestTrialLifecycleInExecutor(executor, trial);
       await assertActiveChatRunClaimWithExecutor(executor, input);
       const result = await executor.query<Readonly<{ browser_guest_ai_trial: boolean }>>(
         "SELECT browser_guest_ai_trial FROM ai.chat_runs WHERE run_id = $1", [input.runId],
