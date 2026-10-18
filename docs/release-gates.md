@@ -3,6 +3,8 @@
 For AWS stack boundaries, resource ownership or deployment-role changes, follow
 the [AWS infrastructure change procedure](aws-infrastructure-changes.md).
 
+Apply the [standing best-effort release policy](release/README.md#standing-best-effort-release-policy) to unavailable testing in the normal gates below; preserve actual failures and coverage gaps.
+
 Pushes to `main` use independent release and check streams:
 
 - `.github/workflows/aws-web-release.yml` handles AWS/backend/web release work
@@ -112,7 +114,8 @@ New publication/submission actions retain every required gate and apply the
 [release warning policy](release/README.md#release-warning-policy).
 
 When a change lands on `main`, monitor `AWS/Web Release` for backend/web outcome when AWS-impacting files changed, including the post-deploy smoke jobs of the selected components. Reading and monitoring Xcode Cloud runs, results, and artifacts is always allowed; dispatching Xcode Cloud workflows requires a full-release request or an explicit request for those actions, as defined in the release runbook.
-For Android, a green manual `Android Release` means the GitHub-hosted gate and all four Device Run sessions, jobs and executions passed, and CI uploaded a production-track Play draft. Inspect all four sessions, configured destinations and named test results before publication under [the Android release procedure](release/android.md). Translation review, Play-delivered build verification and final publication remain in Play Console; a non-green workflow blocks publication.
+For Android, a green normal-mode manual `Android Release` means the GitHub-hosted gate and all four Device Run sessions, jobs and executions passed, and CI uploaded a production-track Play draft. Inspect all four sessions, configured destinations and named test results before publication under [the Android release procedure](release/android.md). Translation review, Play-delivered build verification and final publication remain in Play Console; a non-green workflow blocks publication.
+The explicit [known Device Run network route](android-device-run-network-issue.md) records physical sessions as waived/not executed and requires separate operator readiness under the standing policy.
 For Android release identity, session CLI/GCS inspection and named-case evidence, follow [Android CI/CD](android-ci-cd.md#device-run-results-and-release-correlation).
 For Xcode Cloud inspection, use `docs/xcode-cloud-data-access.md`. It documents the local `.env` secrets, App Store Connect API flow, example commands, returned data formats, artifact types, and how to extract timing/debugging insights from cloud test runs.
 

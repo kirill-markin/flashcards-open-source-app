@@ -18,11 +18,11 @@ We treat the managed-device app instrumentation suite as the closest CI signal t
 A green normal-mode `Android Release` run means the GitHub-hosted Android gate and all four Device Run sessions, jobs and executions passed, and CI uploaded a Play draft. Inspect named cases through [the results procedure](#device-run-results-and-release-correlation). Translation review, Play-delivered build verification, and final publication still happen later in Play Console. A non-green `Android Release` run means one of the required release stages failed or was skipped by a failed dependency.
 
 The explicit default-off `known_device_run_network_exception` input applies only
-under the [authorized 1.35.0 network exception](android-device-run-network-issue.md).
+under the [standing known-issue procedure](android-device-run-network-issue.md) and [best-effort release policy](release/README.md#standing-best-effort-release-policy).
 Its green workflow means physical sessions were waived/not executed and the
 remaining CI/signing/R8/guarded publisher succeeded, not that four sessions passed.
 Retain the policy artifact and separate operator readiness; normal configuration,
-session inspection and exact-bundle recovery contracts remain unchanged.
+session inspection and exact-bundle recovery contracts remain unchanged. Choose this route during preflight while the issue remains unresolved and unchanged; no repeated waiver or physical probe is required.
 
 ## GitHub configuration
 

@@ -1,7 +1,7 @@
 # Release Evidence
 
 Read the [release entry point](README.md) for authorization, completion, and
-required reading. These common gates apply to the linked platform procedures.
+required reading. These common gates apply to the linked platform procedures under the [standing best-effort policy](README.md#standing-best-effort-release-policy).
 
 ## Release Ledger
 
@@ -81,7 +81,7 @@ SHAs, the compared scope/diff, original artifact/run provenance, and why each
 affected gate's evidence still applies. A matching version string is insufficient.
 Source-affecting changes invalidate reuse for the new target and require its
 affected gates. Before a new publication/submission, resolve missing required
-evidence; never mark an unexecuted test passed. Apply the
+evidence or record unavailable testing under the standing policy; never mark an unexecuted test passed. Apply the
 [platform reuse rules](#reuse-existing-artifacts) to already-published artifacts.
 
 ## Reuse Existing Artifacts
@@ -112,7 +112,7 @@ retrospective preflight. Record the evidence honestly; do not reopen completed
 publication for optional tests. This does not waive fixes before the next
 release, or turn an identity mismatch into a matching artifact.
 
-Newly dispatched artifacts must still pass every required gate in their platform procedures.
+Newly dispatched artifacts follow their platform gates and the standing policy for unavailable testing.
 Before a new publication/submission, apply the
 [release warning policy](README.md#release-warning-policy), including its required
 evidence for qualifying notices. Reuse valid results when relevant inputs have
@@ -126,7 +126,7 @@ or diagnosed access blockers, including final store publication.
 Before dispatching an iOS cloud release, complete its local preflight in the
 [iOS](ios.md) procedure on the intended release SHA with no uncommitted source changes.
 Use the supported SDK/toolchain and production service values: Release for the device archive, and the acceptance scheme's Debug build configuration for its test plans.
-This local release gate is mandatory even when PR checks are already green. Require the unsigned device Release archive, full latest-iPhone UI and existing non-UI plan, three focused latest-iPad flows, and three actual iOS 18 compatibility flows under the [canonical plan commands](../ios-local-setup.md#local-native-acceptance). All configured required cases must execute and pass; targeted diagnostic reruns do not replace complete acceptance. Preserve every failure artifact. Reuse only successful unchanged gates under [bounded source equivalence](#resume-and-artifact-reuse); proved docs-only/unrelated changes do not force native reruns.
+This is the normal local release gate even when PR checks are already green; apply the standing policy when testing is unavailable. Require the unsigned device Release archive, full latest-iPhone UI and existing non-UI plan, three focused latest-iPad flows, and three actual iOS 18 compatibility flows under the [canonical plan commands](../ios-local-setup.md#local-native-acceptance). All configured required cases must execute and pass; targeted diagnostic reruns do not replace complete acceptance. Preserve every failure artifact. Reuse only successful unchanged gates under [bounded source equivalence](#resume-and-artifact-reuse); proved docs-only/unrelated changes do not force native reruns.
 
 Keep full build logs and test reports; when piping output through `tee`, enable
 `set -o pipefail` so logging cannot hide a failed command. Inspect compiler,
@@ -134,9 +134,7 @@ linker, Gradle, and lint warnings even after a successful exit. Apply the
 [release warning policy](README.md#release-warning-policy), fix blocking issues
 and smoke failures, merge fixes through normal CI, and repeat the
 affected local preflight on the corrected release SHA before cloud dispatch.
-Record the SHA, commands, toolchain versions, and results in the chat. Missing
-local SDKs or build inputs block that platform's dispatch until resolved; do
-not silently substitute a cloud build for the local check.
+Record the SHA, commands, toolchain versions, and results in the chat. Record unavailable local test tooling and any feasible alternative under the standing policy; a cloud archive does not establish a local test pass. Missing inputs needed to produce/sign the release artifact still block dispatch.
 
 For iOS, local success does not replace any cloud gate in its platform procedure.
 Cloud signing/archive, build environments and store processing can fail independently;
@@ -146,8 +144,8 @@ retrying the cloud flow.
 
 ## Android Cloud Release Gate
 
-Only the [authorized 1.35.0 Device Run network exception](../android-device-run-network-issue.md)
-may replace the four-session acceptance requirement in these shared rules.
+Use the [standing known Device Run network procedure](../android-device-run-network-issue.md)
+when preflight selects the alternative to the normal four-session acceptance requirement.
 Retain its explicit dispatch/policy provenance, truthful failed/skipped records
 and separate operator readiness decision alongside the unchanged mobile-readiness
 manifest/report. No native failure becomes a pass; other gates and public
@@ -170,7 +168,7 @@ available for diagnosis and OS-specific behavior that cloud selection does not
 cover. Local CI, Release builds and emulator smokes are not recurring
 pre-dispatch prerequisites; missing local Android SDKs or upload keys do not
 block cloud dispatch. Record any diagnostic execution and its outcome in the
-ledger. A known failure still blocks publication until resolved.
+ledger. Fix identifiable app/test defects before publication under the standing policy.
 
 After a source-affecting fix, merge through normal CI and repeat affected cloud
 gates for the corrected SHA under the reuse rules above. Repeat applicable
