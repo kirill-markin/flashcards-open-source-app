@@ -3,6 +3,7 @@ import { hashGuestToken } from "../shared";
 import type {
   GuestUpgradeDroppedEntities,
   GuestUpgradeHistoryWrite,
+  GuestUpgradeSelectionType,
 } from "../types";
 
 type GuestUpgradeHistoryReplayRow = Readonly<{
@@ -12,6 +13,7 @@ type GuestUpgradeHistoryReplayRow = Readonly<{
   target_user_id: string;
   canonical_target_user_id: string;
   target_workspace_id: string;
+  selection_type: GuestUpgradeSelectionType;
   dropped_entities: GuestUpgradeDroppedEntities | null;
 }>;
 
@@ -22,6 +24,7 @@ export type GuestUpgradeReplayRecord = Readonly<{
   targetUserId: string;
   canonicalTargetUserId: string;
   targetWorkspaceId: string;
+  selectionType: GuestUpgradeSelectionType;
   droppedEntities?: GuestUpgradeDroppedEntities;
 }>;
 
@@ -33,6 +36,7 @@ function mapGuestUpgradeReplayRecord(row: GuestUpgradeHistoryReplayRow): GuestUp
     targetUserId: row.target_user_id,
     canonicalTargetUserId: row.canonical_target_user_id,
     targetWorkspaceId: row.target_workspace_id,
+    selectionType: row.selection_type,
     ...(row.dropped_entities === null
       ? {}
       : { droppedEntities: row.dropped_entities }),
@@ -46,7 +50,7 @@ export async function loadGuestUpgradeReplayInExecutor(
   const result = await executor.query<GuestUpgradeHistoryReplayRow>(
     [
       "SELECT source_guest_user_id, source_guest_session_id, target_subject_user_id, target_user_id,",
-      "auth.canonical_account_id(target_user_id) AS canonical_target_user_id, target_workspace_id, dropped_entities",
+      "auth.canonical_account_id(target_user_id) AS canonical_target_user_id, target_workspace_id, selection_type, dropped_entities",
       "FROM auth.guest_upgrade_history",
       "WHERE source_guest_session_id = $1",
       "LIMIT 1",
@@ -65,7 +69,7 @@ export async function loadGuestUpgradeReplayByGuestTokenInExecutor(
   const result = await executor.query<GuestUpgradeHistoryReplayRow>(
     [
       "SELECT source_guest_user_id, source_guest_session_id, target_subject_user_id, target_user_id,",
-      "auth.canonical_account_id(target_user_id) AS canonical_target_user_id, target_workspace_id, dropped_entities",
+      "auth.canonical_account_id(target_user_id) AS canonical_target_user_id, target_workspace_id, selection_type, dropped_entities",
       "FROM auth.guest_upgrade_history",
       "WHERE source_guest_session_secret_hash = $1",
       "LIMIT 1",
@@ -81,8 +85,6 @@ export async function recordGuestUpgradeHistoryInExecutor(
   executor: DatabaseExecutor,
   history: GuestUpgradeHistoryWrite,
 ): Promise<void> {
-  // Legacy/idempotency-only audit record. Keep it while old clients can retry
-  // completion after session revocation; it is not a local-outbox replay layer.
   await executor.query(
     [
       "INSERT INTO auth.guest_upgrade_history",

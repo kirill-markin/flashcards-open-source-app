@@ -103,11 +103,14 @@ The API stores only the random token's hash and sends the token only as
   then repeat the probe. It never falls through to guest creation.
 - `guestSession.status` is `absent`, `invalid`, `revoked`, `active`, or `pending_upgrade`.
   All states carry `csrfToken` (null only without a guest cookie) and
-  `cookieRoundTripVerified`. Active/pending states also carry `sessionId`, `userId`,
+  `cookieRoundTripVerified`. Live active/pending states also carry `sessionId`, `userId`,
   `workspaceId` (nullable), `purpose: browser_product`, and `platform: web`.
   Pending means the credential's owner has become an account; it remains available
-  for conversion and cannot authenticate ordinary guest requests. A missing row,
-  including a removed conversion source, is `invalid` at this lifecycle stage.
+  for conversion and cannot authenticate ordinary guest requests. A removed source
+  with token-hash-matched conversion history also reports pending, with its original
+  session/user ids, null workspace/purpose/platform, and `replayOnly: true`;
+  it permits only authenticated completion replay.
+  A missing row without history is `invalid`.
 - `POST /v1/guest-auth/browser/session` reuses an active cookie before considering
   creation. With no cookie or registered session, creation requires JSON
   `{idempotencyKey, hasLocalOwnership: false}`. The key uses the legacy per-attempt
@@ -127,13 +130,44 @@ The API stores only the random token's hash and sends the token only as
   Keep the cookie until conversion completion and destination hydration are durable.
 
 Every browser lifecycle call requires an allowed Origin/Referer and refuses
-cross-site Fetch Metadata. Unsafe calls require the guest cookie's `X-CSRF-Token`
-when that cookie exists, otherwise the registered cookie's CSRF when present.
+cross-site Fetch Metadata. Unsafe creation/forget calls require the guest cookie's
+`X-CSRF-Token` when that cookie exists, otherwise the registered cookie's CSRF
+when present. Conversion uses the registered CSRF as described below.
 The probe supplies both independently; browser lifecycle routes refuse Authorization headers.
 All lifecycle responses are `no-store`. Ordinary auth prefers registered authentication,
 then guest auth, and records trusted guest purpose and source independently of transport `guest`.
 Initial creation has a separate aggregate API Gateway throttle (1 request/second, burst 5);
 it is not a per-person anti-farming boundary.
+
+## Browser guest conversion
+
+Before leaving for authentication, sync every guest write, drain the guest outbox,
+and freeze guest mutations through conversion. After sign-in, probe the browser
+session, then prepare before any normal account `/me` call can provision a profile.
+Both conversion POSTs use the registered cookie's `X-CSRF-Token` from
+`registeredSession.csrfToken`, allowed Origin/Referer, and cookies on the same API host;
+Authorization headers and JSON `guestToken` are refused.
+
+- `POST /v1/guest-auth/browser/upgrade/prepare` takes
+  `{guestWorkspaceSyncedAndOutboxDrained: true}`, returning
+  `{mode: bound | merge_required}`. A new principal binds to the guest's account id;
+  an existing account needs an explicit merge choice. A committed merge's retry
+  returns `merge_required` so the client can replay completion.
+- `POST /v1/guest-auth/browser/upgrade/complete` takes
+  `{selection, guestWorkspaceSyncedAndOutboxDrained, supportsDroppedEntities}`.
+  Selection is `{type: existing, workspaceId}` or `{type: create_new}`;
+  both capability fields are required booleans. Fresh completion requires a true
+  drain assertion. The response is `{workspace, droppedEntities?}`, using the
+  existing native transfer and dropped-entity contract, including media ids.
+- Keep the authenticated account and selection saved across retries. Completion
+  can replay after source cleanup; it checks the destination account and refuses
+  a different saved selection. It never re-merges or creates another workspace.
+  Replay still requires dropped-entity support when the stored result contains drops.
+- The guest cookie survives prepare, completion, and response loss. Only after
+  completion is durably recorded and the destination hydrated, explicitly call
+  `/guest-auth/browser/session/forget` with the guest CSRF from the probe.
+  Forget retires only that credential. Cancelled sign-in preserves guest data;
+  pending local writes after return require recovering guest ownership before retrying.
 
 ## Shared session contracts
 

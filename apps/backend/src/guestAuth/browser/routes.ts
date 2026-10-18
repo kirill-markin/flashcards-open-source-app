@@ -13,6 +13,7 @@ import { expectBoolean, expectRecord, parseJsonBody } from "../../server/request
 import { HttpError } from "../../shared/errors";
 import { parseGuestSessionIdempotencyKeyValue } from "../session/idempotencyKey";
 import { clearBrowserGuestCookie, writeBrowserGuestCookie } from "./cookie";
+import { createBrowserGuestUpgradeRoutes } from "./upgrade";
 import {
   createBrowserGuestSession,
   forgetBrowserGuestSession,
@@ -67,6 +68,8 @@ export function createBrowserGuestAuthRoutes(options: BrowserGuestRoutesOptions)
     context.header("Pragma", "no-cache");
     await next();
   });
+
+  app.route("/", createBrowserGuestUpgradeRoutes(options.allowedOrigins));
 
   app.get("/guest-auth/browser/session", async (context) => {
     const inputs = extractRequestAuthInputs(context.req.raw);

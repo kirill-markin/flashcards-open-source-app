@@ -54,7 +54,6 @@ import {
   webGuestUpgradeRefusal,
 } from "../webPlatform";
 import type {
-  GuestSessionPlatform,
   GuestUpgradeCompleteCapabilities,
   GuestUpgradeCompletion,
   GuestUpgradePreparation,
@@ -83,19 +82,19 @@ function createGuestUpgradeAccountRequiredError(): HttpError {
   return new HttpError(409, "Create or sign in to the destination account first.", "GUEST_UPGRADE_ACCOUNT_REQUIRED");
 }
 
-/**
- * A web guest session is an analytics credential and nothing else, and this whole module is shaped
- * around the mobile flow — it merges a synced guest workspace, records upgrade history and rekeys
- * replicas — so feeding a web guest token to it is not a supported path.
- *
- * Both upgrade routes take the guest token from the request body rather than from the credential on
- * the request, so the default-deny gate in `server/requestContext.ts` cannot see this platform. The
- * invariant is enforced here instead, where the session record is loaded, rather than left resting
- * on the absence of a web caller. `null` stays accepted through the shared helper: pre-1.7.0
- * iOS/Android guest sessions are created unbound and are upgraded through this path today.
- */
-function assertGuestUpgradeSupportedPlatform(platform: GuestSessionPlatform | null): void {
-  assertGuestPlatformSupportsSurface(platform, webGuestUpgradeRefusal);
+type GuestUpgradeAdmission = "native" | "browser";
+
+function assertGuestUpgradeSupportedSession(
+  session: GuestSessionRecord,
+  admission: GuestUpgradeAdmission,
+): void {
+  if (admission === "browser") {
+    if (session.purpose !== "browser_product" || session.platform !== "web") {
+      throw new HttpError(401, "This credential cannot convert a browser guest. Resume the original browser guest cookie.", "GUEST_AUTH_INVALID");
+    }
+    return;
+  }
+  assertGuestPlatformSupportsSurface(session.platform, webGuestUpgradeRefusal);
 }
 
 function toUniqueSortedUserIds(userIds: ReadonlyArray<string>): Array<string> {
@@ -129,8 +128,10 @@ async function assertGuestOwnerIsNotRetiredInExecutor(
 async function assertGuestUserIsNotAnAccountInExecutor(
   executor: DatabaseExecutor,
   guestUserId: string,
+  admission: GuestUpgradeAdmission,
 ): Promise<void> {
   if (await hasCognitoIdentityMappingForUserInExecutor(executor, guestUserId)) {
+    if (admission === "browser") throw createBrowserUpgradeIdentityMismatchError();
     throw new HttpError(401, "Guest session is invalid.", "GUEST_AUTH_INVALID");
   }
 }
@@ -263,14 +264,6 @@ async function createGuestUpgradeReplayCompletionInExecutor(
  * Replays the post-merge completion payload after the original guest session
  * has already been revoked.
  *
- * This is a temporary backend compatibility path for already released clients
- * that can retry `/guest-auth/upgrade/complete` after the server committed the
- * merge but before the client received the first 200 response. It replays only
- * the already-committed cloud-state merge result; it never accepts client local
- * outbox rows. Remove this path only after the minimum supported client
- * versions no longer rely on revoked-session replay semantics, and update the
- * related compatibility notes in the same change.
- *
  * Because this path only returns stored merge history and never accepts local
  * outbox rows, it intentionally does not require the fresh-merge guest drain
  * assertion. The only replay-time client capability gate is whether the stored
@@ -281,6 +274,7 @@ async function resolveRevokedGuestUpgradeReplayInExecutor(
   guestSessionId: string,
   cognitoSubject: string,
   capabilities: GuestUpgradeCompleteCapabilities,
+  browserSelection: GuestUpgradeSelection | null,
 ): Promise<GuestUpgradeCompletion> {
   const replay = await loadGuestUpgradeReplayInExecutor(executor, guestSessionId);
   if (replay === null) {
@@ -301,9 +295,13 @@ async function resolveRevokedGuestUpgradeReplayInExecutor(
       cognitoSubject,
       replay.targetSubjectUserId,
     );
+    if (browserSelection !== null) throw createBrowserUpgradeIdentityMismatchError();
     throw new HttpError(401, "Guest session is invalid.", "GUEST_AUTH_INVALID");
   }
 
+  if (browserSelection !== null) {
+    assertBrowserReplaySelection(replay, browserSelection);
+  }
   return createGuestUpgradeReplayCompletionInExecutor(executor, { ...replay, targetSubjectUserId: cognitoSubject }, capabilities);
 }
 
@@ -316,6 +314,7 @@ async function resolveDeletedGuestUpgradeReplayInExecutor(
   guestToken: string,
   cognitoSubject: string,
   capabilities: GuestUpgradeCompleteCapabilities,
+  browserSelection: GuestUpgradeSelection | null,
 ): Promise<GuestUpgradeCompletion> {
   const replay = await loadGuestUpgradeReplayByGuestTokenInExecutor(executor, guestToken);
   if (replay === null) {
@@ -330,9 +329,13 @@ async function resolveDeletedGuestUpgradeReplayInExecutor(
       cognitoSubject,
       replay.targetSubjectUserId,
     );
+    if (browserSelection !== null) throw createBrowserUpgradeIdentityMismatchError();
     throw new HttpError(401, "Guest session is invalid.", "GUEST_AUTH_INVALID");
   }
 
+  if (browserSelection !== null) {
+    assertBrowserReplaySelection(replay, browserSelection);
+  }
   return createGuestUpgradeReplayCompletionInExecutor(executor, { ...replay, targetSubjectUserId: cognitoSubject }, capabilities);
 }
 
@@ -389,17 +392,29 @@ async function persistGuestUpgradeTargetSelectionInExecutor(
  * destructive merge history. Only `merge_required` leads to guest cleanup and
  * history recording later during completion.
  */
-export async function prepareGuestUpgradeInExecutor(
+async function prepareGuestUpgradeWithAdmissionInExecutor(
   executor: DatabaseExecutor,
   guestToken: string,
   cognitoSubject: string,
   email: string | null,
+  admission: GuestUpgradeAdmission,
 ): Promise<GuestUpgradePreparation> {
   await lockCognitoIdentityLifecycleInExecutor(executor, cognitoSubject);
   await assertSubjectIsNotDeletedInExecutor(executor, cognitoSubject);
   const unlockedSession = await loadGuestSessionRecordInExecutor(executor, guestToken, false);
-  if (unlockedSession === null) throw new HttpError(401, "Guest session is invalid.", "GUEST_AUTH_INVALID");
-  assertGuestUpgradeSupportedPlatform(unlockedSession.platform);
+  if (unlockedSession === null) {
+    if (admission === "browser") {
+      const replay = await loadGuestUpgradeReplayByGuestTokenInExecutor(executor, guestToken);
+      if (replay !== null) {
+        await lockAccountLifecyclesInExecutor(executor, [replay.canonicalTargetUserId]);
+        await assertSubjectIsNotDeletedInExecutor(executor, cognitoSubject);
+        await assertBrowserReplayIdentityInExecutor(executor, replay.canonicalTargetUserId, cognitoSubject);
+        return { mode: "merge_required" };
+      }
+    }
+    throw new HttpError(401, "Guest session is invalid.", "GUEST_AUTH_INVALID");
+  }
+  assertGuestUpgradeSupportedSession(unlockedSession, admission);
   await assertGuestOwnerIsNotRetiredInExecutor(executor, unlockedSession.userId);
   const existingMapping = await loadCognitoIdentityMappingInExecutor(executor, cognitoSubject);
   await lockAccountLifecyclesInExecutor(executor, [unlockedSession.userId, existingMapping?.userId ?? cognitoSubject]);
@@ -417,7 +432,7 @@ export async function prepareGuestUpgradeInExecutor(
   // Every branch below either binds this subject to the guest user or leads to a merge that deletes
   // it. The subject that owns an already-bound guest user never gets here: its own mapping names
   // this guest user and returns `bound` above.
-  await assertGuestUserIsNotAnAccountInExecutor(executor, guestSession.userId);
+  await assertGuestUserIsNotAnAccountInExecutor(executor, guestSession.userId, admission);
 
   if (existingMapping !== null) {
     return {
@@ -453,18 +468,14 @@ export async function prepareGuestUpgradeInExecutor(
  * decks, or review events. Clients must sync the guest workspace and drain the
  * local guest outbox before calling this endpoint; pending local outbox rows are
  * never carried through this merge.
- *
- * The durable replay/history layer below is intentionally narrower than the
- * old V1 alias model from `main`, but it is still legacy compatibility code.
- * Keep it only until released clients no longer depend on idempotent replay
- * after session revocation or stale-client replica routing.
  */
-export async function completeGuestUpgradeInExecutor(
+async function completeGuestUpgradeWithAdmissionInExecutor(
   executor: DatabaseExecutor,
   guestToken: string,
   cognitoSubject: string,
   selection: GuestUpgradeSelection,
   capabilities: GuestUpgradeCompleteCapabilities,
+  admission: GuestUpgradeAdmission,
 ): Promise<GuestUpgradeCompletion> {
   await lockCognitoIdentityLifecycleInExecutor(executor, cognitoSubject);
   await assertSubjectIsNotDeletedInExecutor(executor, cognitoSubject);
@@ -482,10 +493,11 @@ export async function completeGuestUpgradeInExecutor(
       guestToken,
       cognitoSubject,
       capabilities,
+      admission === "browser" ? selection : null,
     );
   }
 
-  assertGuestUpgradeSupportedPlatform(unlockedGuestSession.platform);
+  assertGuestUpgradeSupportedSession(unlockedGuestSession, admission);
   await assertGuestOwnerIsNotRetiredInExecutor(executor, unlockedGuestSession.userId);
 
   // Phase 2: resolve the mapped target user.
@@ -502,6 +514,7 @@ export async function completeGuestUpgradeInExecutor(
         guestToken,
         cognitoSubject,
         capabilities,
+        admission === "browser" ? selection : null,
       );
     }
 
@@ -523,6 +536,7 @@ export async function completeGuestUpgradeInExecutor(
         guestToken,
         cognitoSubject,
         capabilities,
+        admission === "browser" ? selection : null,
       );
     }
 
@@ -531,7 +545,12 @@ export async function completeGuestUpgradeInExecutor(
       guestSession.sessionId,
       cognitoSubject,
       capabilities,
+      admission === "browser" ? selection : null,
     );
+  }
+
+  if (admission === "browser") {
+    assertGuestWorkspaceSyncedAndOutboxDrained(capabilities);
   }
 
   // Phase 4: short-circuit same-user bound completion.
@@ -554,6 +573,7 @@ export async function completeGuestUpgradeInExecutor(
         guestToken,
         cognitoSubject,
         capabilities,
+        admission === "browser" ? selection : null,
       );
     }
 
@@ -563,6 +583,7 @@ export async function completeGuestUpgradeInExecutor(
         guestSession.sessionId,
         cognitoSubject,
         capabilities,
+        admission === "browser" ? selection : null,
       );
     }
 
@@ -606,6 +627,7 @@ export async function completeGuestUpgradeInExecutor(
       guestToken,
       cognitoSubject,
       capabilities,
+      admission === "browser" ? selection : null,
     );
   }
 
@@ -615,12 +637,13 @@ export async function completeGuestUpgradeInExecutor(
       guestSession.sessionId,
       cognitoSubject,
       capabilities,
+      admission === "browser" ? selection : null,
     );
   }
 
   // The owning subject of a bound guest user returned in Phase 4, and a committed merge deleted its
   // guest user, so its replays returned above; only a different account reaches this refusal.
-  await assertGuestUserIsNotAnAccountInExecutor(executor, guestSession.userId);
+  await assertGuestUserIsNotAnAccountInExecutor(executor, guestSession.userId, admission);
 
   // Phase 6: enforce the merge precondition for clients that declare the new
   // drain protocol. Omitted capability fields are the legacy shipped-client
@@ -754,4 +777,67 @@ export async function completeGuestUpgradeInExecutor(
       ? {}
       : { droppedEntities: guestUpgradeMerge.history.droppedEntities }),
   };
+}
+
+async function assertBrowserReplayIdentityInExecutor(
+  executor: DatabaseExecutor,
+  targetUserId: string,
+  cognitoSubject: string,
+): Promise<void> {
+  const mapping = await loadCognitoIdentityMappingInExecutor(executor, cognitoSubject);
+  if (mapping === null || mapping.userId !== targetUserId) {
+    throw createBrowserUpgradeIdentityMismatchError();
+  }
+}
+
+function assertBrowserReplaySelection(
+  replay: Readonly<{ selectionType: GuestUpgradeSelection["type"]; targetWorkspaceId: string }>,
+  selection: GuestUpgradeSelection,
+): void {
+  if (selection.type !== replay.selectionType
+      || (selection.type === "existing" && selection.workspaceId !== replay.targetWorkspaceId)) {
+    throw new HttpError(409, "This guest conversion already completed with another destination. Retry the originally saved selection.", "GUEST_UPGRADE_SELECTION_MISMATCH");
+  }
+}
+
+export function prepareGuestUpgradeInExecutor(
+  executor: DatabaseExecutor,
+  guestToken: string,
+  cognitoSubject: string,
+  email: string | null,
+): Promise<GuestUpgradePreparation> {
+  return prepareGuestUpgradeWithAdmissionInExecutor(executor, guestToken, cognitoSubject, email, "native");
+}
+
+export function prepareBrowserGuestUpgradeInExecutor(
+  executor: DatabaseExecutor,
+  guestToken: string,
+  cognitoSubject: string,
+  email: string | null,
+): Promise<GuestUpgradePreparation> {
+  return prepareGuestUpgradeWithAdmissionInExecutor(executor, guestToken, cognitoSubject, email, "browser");
+}
+
+export function completeGuestUpgradeInExecutor(
+  executor: DatabaseExecutor,
+  guestToken: string,
+  cognitoSubject: string,
+  selection: GuestUpgradeSelection,
+  capabilities: GuestUpgradeCompleteCapabilities,
+): Promise<GuestUpgradeCompletion> {
+  return completeGuestUpgradeWithAdmissionInExecutor(executor, guestToken, cognitoSubject, selection, capabilities, "native");
+}
+
+export function completeBrowserGuestUpgradeInExecutor(
+  executor: DatabaseExecutor,
+  guestToken: string,
+  cognitoSubject: string,
+  selection: GuestUpgradeSelection,
+  capabilities: GuestUpgradeCompleteCapabilities,
+): Promise<GuestUpgradeCompletion> {
+  return completeGuestUpgradeWithAdmissionInExecutor(executor, guestToken, cognitoSubject, selection, capabilities, "browser");
+}
+
+function createBrowserUpgradeIdentityMismatchError(): HttpError {
+  return new HttpError(409, "Sign in to the account that owns this guest conversion, then retry the saved destination.", "GUEST_UPGRADE_IDENTITY_MISMATCH");
 }
