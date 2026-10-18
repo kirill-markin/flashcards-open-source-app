@@ -46,7 +46,6 @@ internal fun ReviewBottomActionOverlay(
     bottomInsetPadding: Dp,
     onRevealAnswer: () -> Unit,
     onGuideTargetPositioned: (LayoutCoordinates) -> Unit,
-    onGuideNeighborPositioned: (ReviewRating, LayoutCoordinates) -> Unit,
     onRateAgain: () -> Unit,
     onRateHard: () -> Unit,
     onRateGood: () -> Unit,
@@ -80,7 +79,6 @@ internal fun ReviewBottomActionOverlay(
                 ReviewAnswerButtonGrid(
                     answerOptions = currentCard.answerOptions,
                     onGuideTargetPositioned = onGuideTargetPositioned,
-                    onGuideNeighborPositioned = onGuideNeighborPositioned,
                     onRateAgain = onRateAgain,
                     onRateHard = onRateHard,
                     onRateGood = onRateGood,
@@ -115,7 +113,6 @@ internal fun ReviewBottomActionOverlay(
 private fun ReviewAnswerButtonGrid(
     answerOptions: List<PreparedReviewAnswerOption>,
     onGuideTargetPositioned: (LayoutCoordinates) -> Unit,
-    onGuideNeighborPositioned: (ReviewRating, LayoutCoordinates) -> Unit,
     onRateAgain: () -> Unit,
     onRateHard: () -> Unit,
     onRateGood: () -> Unit,
@@ -142,9 +139,7 @@ private fun ReviewAnswerButtonGrid(
                         modifier = if (option.rating == ReviewRating.AGAIN) {
                             Modifier.weight(1f).onGloballyPositioned(onGuideTargetPositioned)
                         } else {
-                            Modifier.weight(1f).onGloballyPositioned { coordinates ->
-                                onGuideNeighborPositioned(option.rating, coordinates)
-                            }
+                            Modifier.weight(1f)
                         }
                     )
                 }
