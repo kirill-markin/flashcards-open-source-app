@@ -3,6 +3,7 @@ import { trackedClick, trackedFill, trackedGoto } from "../../live-smoke.actions
 import { createLiveSmokeDiagnostics } from "../../live-smoke.diagnostics";
 import { buildWorkspaceRoute, cardsRoute, reviewRoute } from "../../../src/routes";
 import { databaseName } from "../../../src/localDb/core/databaseSchema";
+import type { BrowserGuestOwner, BrowserGuestStoredState } from "../../../src/appData/session/guest/browserGuestStorage";
 import { externalUiTimeoutMs, liveSmokeBrowserLocale, reviewPostSubmitTimeoutMs } from "../config";
 import type { LiveSmokeSession } from "../types";
 
@@ -11,6 +12,16 @@ type GuestSnapshot = Readonly<{
   reviewIds: ReadonlyArray<string>;
   outboxCount: number;
 }>;
+
+async function guestOwner(page: Page): Promise<BrowserGuestOwner> {
+  return page.evaluate(() => {
+    const raw = localStorage.getItem("flashcards-browser-guest-owner");
+    if (raw === null) throw new Error("Guest smoke ownership is unavailable");
+    const saved = JSON.parse(raw) as BrowserGuestStoredState;
+    if (saved.status !== "owned") throw new Error("Guest smoke ownership is not installed");
+    return saved.owner;
+  });
+}
 
 async function snapshot(page: Page): Promise<GuestSnapshot> {
   return page.evaluate(async (name) => {
@@ -98,17 +109,26 @@ export async function runGuestConversionFlow(session: LiveSmokeSession): Promise
   await expect(page.getByTestId("guest-sign-in")).toBeVisible({ timeout: externalUiTimeoutMs });
   expect((await snapshot(page)).cards.map((card) => card.cardId).sort()).toEqual(before.cards.map((card) => card.cardId).sort());
   await expect.poll(async () => (await snapshot(page)).reviewIds, { timeout: externalUiTimeoutMs }).toEqual(before.reviewIds);
-  await diagnostics.runAction("remove only IndexedDB while retaining browser guest cookies and metadata", async () => {
+  const originalOwner = await guestOwner(page);
+  expect(originalOwner.workspaceId).toBe(guest.workspaceId);
+  expect(originalOwner.initialSeedAllowed).toBe(false);
+  expect(originalOwner.pending).toBeNull();
+  await diagnostics.runAction("remove only IndexedDB while retaining guest ownership and a stale reauth marker", async () => {
     const resetUrl = baseUrl + "/__e2e_guest_cache_reset";
     await page.route(resetUrl, async (route) => { await route.fulfill({ status: 200, contentType: "text/html", body: "<!doctype html><title>Cache reset</title>" }); });
     try {
       await page.goto(resetUrl);
-      await page.evaluate(async (name) => new Promise<void>((resolve, reject) => {
-        const request = indexedDB.deleteDatabase(name);
-        request.onsuccess = () => resolve();
-        request.onerror = () => reject(new Error("Could not clear the guest cache"));
-        request.onblocked = () => reject(new Error("Guest cache deletion is blocked"));
-      }), databaseName);
+      await page.evaluate(async (name) => {
+        localStorage.setItem("flashcards-browser-reauth-required", "1");
+        await new Promise<void>((resolve, reject) => {
+          const request = indexedDB.deleteDatabase(name);
+          request.onsuccess = () => resolve();
+          request.onerror = () => reject(new Error("Could not clear the guest cache"));
+          request.onblocked = () => reject(new Error("Guest cache deletion is blocked"));
+        });
+      }, databaseName);
+      expect(await page.evaluate(() => localStorage.getItem("flashcards-browser-reauth-required"))).toBe("1");
+      expect(await guestOwner(page)).toEqual(originalOwner);
     } finally { await page.unroute(resetUrl); }
     await page.goto(baseUrl);
   });
@@ -117,6 +137,8 @@ export async function runGuestConversionFlow(session: LiveSmokeSession): Promise
   await expect.poll(async () => (await snapshot(page)).cards.map((card) => card.cardId).sort(),
     { timeout: externalUiTimeoutMs }).toEqual(before.cards.map((card) => card.cardId).sort());
   await expect.poll(async () => (await snapshot(page)).reviewIds, { timeout: externalUiTimeoutMs }).toEqual(before.reviewIds);
+  expect(await guestOwner(page)).toEqual(originalOwner);
+  expect(await page.evaluate(() => localStorage.getItem("flashcards-browser-reauth-required"))).toBeNull();
 
   await authenticateGuest(session);
   if (await page.getByTestId("guest-destinations").isVisible()) {

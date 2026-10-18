@@ -334,6 +334,11 @@ enum class AnalyticsReviewPaywallTrigger(val wireValue: String) {
     WEEKLY(wireValue = "weekly")
 }
 
+enum class AnalyticsPaywallAccountKind(val wireValue: String) {
+    GUEST(wireValue = "guest"),
+    REGISTERED(wireValue = "registered")
+}
+
 enum class AnalyticsPaywallChoice(val wireValue: String) {
     FREE(wireValue = "free"),
     PREMIUM(wireValue = "premium"),
@@ -860,7 +865,9 @@ sealed interface AnalyticsEvent {
         val timeZone: String,
         val contentVersion: String,
         override val screen: AnalyticsSurface?,
-        val reviewTrigger: AnalyticsReviewPaywallTrigger?
+        val reviewTrigger: AnalyticsReviewPaywallTrigger?,
+        val accountKind: AnalyticsPaywallAccountKind?,
+        val offerType: AnalyticsPurchaseOfferType?
     ) : AnalyticsEvent {
         constructor(
             presentation: AnalyticsPaywallPresentation,
@@ -868,7 +875,7 @@ sealed interface AnalyticsEvent {
             timeZone: String,
             contentVersion: String,
             screen: AnalyticsSurface?
-        ) : this(presentation, localDate, timeZone, contentVersion, screen, null)
+        ) : this(presentation, localDate, timeZone, contentVersion, screen, null, null, null)
 
         override val eventName: String = "paywall_shown"
         override val properties: Map<String, AnalyticsPropertyValue> = mapOf(
@@ -879,20 +886,27 @@ sealed interface AnalyticsEvent {
             "content_version" to AnalyticsPropertyValue.Text(value = contentVersion)
         ) + (reviewTrigger?.let {
             mapOf("review_trigger" to AnalyticsPropertyValue.Text(value = it.wireValue))
+        } ?: emptyMap()) + (accountKind?.let {
+            mapOf("account_kind" to AnalyticsPropertyValue.Text(value = it.wireValue))
+        } ?: emptyMap()) + (offerType?.let {
+            mapOf("offer_type" to AnalyticsPropertyValue.Text(value = it.wireValue))
         } ?: emptyMap())
     }
 
     data class PaywallChoice(
         val presentation: AnalyticsPaywallPresentation,
         val outcome: AnalyticsPaywallChoice,
-        override val screen: AnalyticsSurface?
+        override val screen: AnalyticsSurface?,
+        val offerType: AnalyticsPurchaseOfferType?
     ) : AnalyticsEvent {
         override val eventName: String = "paywall_choice"
         override val properties: Map<String, AnalyticsPropertyValue> = mapOf(
             "entry_point" to AnalyticsPropertyValue.Text(value = presentation.entryPoint.wireValue),
             "presentation_id" to AnalyticsPropertyValue.Text(value = presentation.id),
             "outcome" to AnalyticsPropertyValue.Text(value = outcome.wireValue)
-        )
+        ) + (offerType?.let {
+            mapOf("offer_type" to AnalyticsPropertyValue.Text(value = it.wireValue))
+        } ?: emptyMap())
     }
 
     data class PurchaseStarted(

@@ -2,7 +2,7 @@ import { retireEntryWorkspaceAddress } from "../activation/workspaceActivationHe
 import { clearWebSyncCacheForLocalBrowserDataCleanup } from "../../../localDb/cache";
 import { requireWorkspaceMediaUploadsCompleted } from "../../../localDb/mediaTransfers";
 import { isBrowserGuestSessionVerified, pauseBrowserGuestSession } from "../../../api/transport/transport";
-import { GuestConversionRequiredError, loadBrowserProductSession, loadCachedBrowserGuestOwner } from "../guest/browserGuestSession";
+import { GuestConversionRequiredError, loadBrowserProductSession, loadCachedBrowserGuestOwner, readBrowserGuestVerificationGeneration, requireBrowserGuestVerificationGeneration, restoreBrowserGuestSessionAfterCleanup } from "../guest/browserGuestSession";
 import { invalidateBrowserGuestOwnership, readBrowserGuestState, readPendingGuestConversion, runWithBrowserGuestLock, subscribeToBrowserGuestChanges } from "../guest/browserGuestStorage";
 import { consumeAcceptedBrowserSignInMethod, readBrowserSignInInformationGeneration } from "../../../api/browserHints";
 import { readPendingConnection, storePendingConnection } from "../../../screens/settings/account/accountConnectionPending";
@@ -124,6 +124,15 @@ async function restoreEntitlementIdentityAfterCleanup(userId: string): Promise<n
     throw createSessionAccountSwitchError(sessionInitializationInvalidatedMessage);
   }
   return generation;
+}
+
+function requireBrowserGuestOwnerForInitialization(session: SessionInfo, generation: number | null): void {
+  requireBrowserGuestVerificationGeneration(session.userId, generation);
+  const saved = readBrowserGuestState();
+  if (saved?.status !== "owned" || saved.owner.userId !== session.userId
+    || saved.owner.workspaceId !== session.selectedWorkspaceId || saved.owner.pending !== null) {
+    throw createSessionAccountSwitchError(sessionInitializationInvalidatedMessage);
+  }
 }
 
 export function useWorkspaceLifecycle(params: UseWorkspaceLifecycleParams): WorkspaceLifecycle {
@@ -377,6 +386,7 @@ export function useWorkspaceLifecycle(params: UseWorkspaceLifecycleParams): Work
         return;
       }
 
+      let guestVerificationGeneration = readBrowserGuestVerificationGeneration(currentSession.userId);
       let persistedCloudSettings = await loadCloudSettings();
       if (indexedDbOpenRecoveryState.hasFailed()) {
         return;
@@ -435,7 +445,18 @@ export function useWorkspaceLifecycle(params: UseWorkspaceLifecycleParams): Work
         wasBrowserReauthRequired,
       );
       if (localDataCleanupReason !== null) {
-        await clearConfirmedUserScopedState(localDataCleanupReason);
+        if (currentSession.browserGuestCapabilities?.isGuest === true) {
+          currentSession = await restoreBrowserGuestSessionAfterCleanup(currentSession, guestVerificationGeneration, async () => {
+            if (entitlementGeneration !== readEntitlementIdentityGeneration()) {
+              throw createSessionAccountSwitchError(sessionInitializationInvalidatedMessage);
+            }
+            await clearConfirmedUserScopedState(localDataCleanupReason);
+            indexedDbOpenRecoveryState.throwIfFailed();
+          });
+          guestVerificationGeneration = readBrowserGuestVerificationGeneration(currentSession.userId);
+        } else {
+          await clearConfirmedUserScopedState(localDataCleanupReason);
+        }
         if (indexedDbOpenRecoveryState.hasFailed()) {
           return;
         }
@@ -443,6 +464,9 @@ export function useWorkspaceLifecycle(params: UseWorkspaceLifecycleParams): Work
         entitlementGeneration = restoredGeneration;
       }
 
+      if (currentSession.browserGuestCapabilities?.isGuest === true) {
+        requireBrowserGuestOwnerForInitialization(currentSession, guestVerificationGeneration);
+      }
       clearBrowserReauthRequired();
       const linkingReadyCloudSettings = buildLinkingReadyCloudSettings(
         currentSession,
@@ -453,6 +477,9 @@ export function useWorkspaceLifecycle(params: UseWorkspaceLifecycleParams): Work
         return;
       }
 
+      if (currentSession.browserGuestCapabilities?.isGuest === true) {
+        requireBrowserGuestOwnerForInitialization(currentSession, guestVerificationGeneration);
+      }
       if (setEntitlementIdentity(currentSession.userId, entitlementGeneration) === false) {
         throw createSessionAccountSwitchError(sessionInitializationInvalidatedMessage);
       }

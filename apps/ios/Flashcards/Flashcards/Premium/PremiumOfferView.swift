@@ -36,6 +36,10 @@ struct PremiumOfferView: View {
               self.store.cloudEntitlement != nil else { return false }
         return self.hasAccess == false && self.isPreview == false
     }
+    private var displayedOfferType: AnalyticsPurchaseOfferType? {
+        guard self.showsOffer, self.isTestOfferPreview == false, self.hasAccess == false, let offer = self.offer else { return nil }
+        return offer.includesFreeTrial ? .freeTrial : .standard
+    }
     private var showsOffer: Bool {
         self.isAILimit == false || (self.store.cloudEntitlement != nil && self.hasAccess == false)
     }
@@ -153,6 +157,9 @@ struct PremiumOfferView: View {
             }
             .toolbar { self.closeToolbar }
         }
+        .onChange(of: self.displayedOfferType, initial: true) { _, offerType in
+            self.presenter.updateDisplayedOffer(requestId: self.request.id, offerType: offerType)
+        }
         .alert(aiSettingsLocalized("settings.test.title", "Test"), isPresented: self.$isPreviewPurchaseAlertPresented) {
             Button(aiSettingsLocalized("common.ok", "OK"), role: .cancel) {}
         } message: {
@@ -244,6 +251,7 @@ struct PremiumOfferView: View {
             Label(aiSettingsLocalized("premium.offer.freeBenefits", "Core reviews, offline learning & sync"), systemImage: "checkmark")
                 .font(.subheadline)
             Button {
+                guard self.presenter.request?.id == self.request.id else { return }
                 self.presenter.recordChoice(requestId: self.request.id, outcome: .free)
                 self.presenter.finish(outcome: .continuedFree)
             } label: {

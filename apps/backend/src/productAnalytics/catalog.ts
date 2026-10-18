@@ -1609,10 +1609,12 @@ export const productAnalyticsEventCatalog = {
       local_date: { kind: "localDate", optional: true },
       time_zone: { kind: "timeZone", optional: true },
       content_version: { kind: "string", pattern: productAnalyticsPaywallContentVersionPattern, optional: true },
+      account_kind: { kind: "enum", values: ["guest", "registered"], optional: true },
+      offer_type: { kind: "enum", values: ["free_trial", "standard"], optional: true },
     },
   },
   // Only an observed action: closing/back/swiping is dismissed, never an inferred free choice.
-  // A presentation with no observed action has no choice event.
+  // A presentation with no observed action has no choice event; accepted retries are separate actions.
   paywall_choice: {
     serverOnly: false,
     requiresScreen: false,
@@ -1620,11 +1622,12 @@ export const productAnalyticsEventCatalog = {
       presentation_id: { kind: "string", pattern: productAnalyticsUuidPattern },
       entry_point: { kind: "enum", values: productAnalyticsPaywallEntryPoints },
       outcome: { kind: "enum", values: ["free", "premium", "dismissed"] },
+      offer_type: { kind: "enum", values: ["free_trial", "standard"], optional: true },
     },
   },
-  // The person confirmed buying and the store sheet or Stripe Checkout was launched. `offer_type` is
-  // whether the offer being bought starts with a provider free trial; optional because released
-  // clients send none.
+  // Checkout launch was requested after client prerequisites, before the provider launch result.
+  // This does not establish that a sheet became visible or that a purchase succeeded.
+  // `offer_type` describes a known trial or standard offer; released clients may omit it.
   purchase_started: {
     serverOnly: false,
     requiresScreen: false,
