@@ -3,6 +3,7 @@ package com.flashcardsopensourceapp.feature.review
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.text.selection.DisableSelection
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -58,11 +59,13 @@ fun ReviewRenderedContentView(
                                 modifier = Modifier.fillMaxWidth()
                             )
 
-                            is ReviewManagedMarkdownBlock.ManagedMedia -> ReviewManagedMediaContent(
-                                reference = block.reference,
-                                onLoadManagedMediaFile = onLoadManagedMediaFile,
-                                onLoadManagedMediaDownloadUrl = onLoadManagedMediaDownloadUrl
-                            )
+                            is ReviewManagedMarkdownBlock.ManagedMedia -> DisableSelection {
+                                ReviewManagedMediaContent(
+                                    reference = block.reference,
+                                    onLoadManagedMediaFile = onLoadManagedMediaFile,
+                                    onLoadManagedMediaDownloadUrl = onLoadManagedMediaDownloadUrl
+                                )
+                            }
 
                             is ReviewManagedMarkdownBlock.Formula -> ReviewMathFormulaBlock(
                                 source = block.source,
