@@ -1,3 +1,4 @@
+import { readBrowserGuestState } from "../guest/browserGuestStorage";
 import { defaultAccentColor } from "../../../types/account";
 import { isBrowserReauthRequired } from "../../../accountDeletion";
 import type { SessionInfo, WorkspaceSummary } from "../../../types";
@@ -192,16 +193,18 @@ export function loadWarmStartSnapshot(): WarmStartSnapshot | null {
     return null;
   }
 
-  if (hasLoggedInCookie() === false) {
-    return null;
-  }
-
   const browserStorage = getBrowserStorage();
   if (browserStorage === null) {
     return null;
   }
 
   const snapshot = parseWarmStartSnapshot(browserStorage.getItem(WARM_START_SNAPSHOT_STORAGE_KEY));
+  const guest = readBrowserGuestState();
+  const isGuestSnapshot = snapshot?.session.browserGuestCapabilities?.isGuest === true;
+  if (isGuestSnapshot) {
+    if (guest?.status !== "owned" || guest.owner.userId !== snapshot?.session.userId
+      || guest.owner.workspaceId !== snapshot?.activeWorkspace.workspaceId || guest.owner.pending !== null) return null;
+  } else if (!hasLoggedInCookie()) return null;
   return snapshot === null ? null : alignSnapshotWithEntryWorkspace(snapshot);
 }
 
@@ -217,13 +220,13 @@ export function storeWarmStartSnapshot(snapshot: WarmStartSnapshot): void {
     if (storedSnapshot !== null && storedSnapshot.session.userId === snapshot.session.userId) {
       browserStorage.setItem(WARM_START_SNAPSHOT_STORAGE_KEY, JSON.stringify({
         ...storedSnapshot,
-        session: { ...storedSnapshot.session, preferences: snapshot.session.preferences },
+        session: { ...storedSnapshot.session, csrfToken: null, preferences: snapshot.session.preferences },
       }));
     }
     return;
   }
 
-  browserStorage.setItem(WARM_START_SNAPSHOT_STORAGE_KEY, JSON.stringify(snapshot));
+  browserStorage.setItem(WARM_START_SNAPSHOT_STORAGE_KEY, JSON.stringify({ ...snapshot, session: { ...snapshot.session, csrfToken: null } }));
 }
 
 export function clearWarmStartSnapshot(): void {

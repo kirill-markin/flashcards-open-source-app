@@ -12,6 +12,8 @@ import {
 } from "../../../localDb/mediaTransfers";
 import { isIndexedDbOpenRecoveryError } from "../../../localDb/core/indexedDbOpenRecovery";
 import { loadCloudSettings } from "../../../localDb/sync/cloudSettings";
+import { readBrowserGuestVerificationGeneration, requireBrowserGuestVerificationGeneration } from "../../session/guest/browserGuestSession";
+import { readPendingGuestConversion, requireBrowserGuestSyncReady, runWithBrowserGuestWorkLock } from "../../session/guest/browserGuestStorage";
 import type {
   MediaAsset,
   MediaAssetUploadSessionCreateResult,
@@ -544,6 +546,34 @@ export async function processDueMediaUploadTransfersForWorkspace(
   markFailed: (error: unknown) => void,
   throwIfFailed: () => void,
 ): Promise<void> {
+  const settings = await loadCloudSettings();
+  const run = (): Promise<void> => processDueMediaUploadsUnderOwner(workspaceId, signal, hasFailed, markFailed, throwIfFailed);
+  if (settings?.cloudState !== "guest" && readPendingGuestConversion() === null) return run();
+  const generation = settings === null || settings.linkedUserId === null
+    ? null : readBrowserGuestVerificationGeneration(settings.linkedUserId);
+  if (settings?.cloudState === "guest" && generation === null) {
+    throw new Error("Browser guest session is unverified; media uploads are paused.");
+  }
+  return runWithBrowserGuestWorkLock(signal, async () => {
+    const current = await loadCloudSettings();
+    if (current === null || current.linkedUserId === null || current.linkedUserId !== settings?.linkedUserId
+      || current.linkedWorkspaceId !== workspaceId) throw new Error("Media upload owner changed. Verify the workspace before retrying uploads.");
+    if (generation !== null) requireBrowserGuestVerificationGeneration(current.linkedUserId, generation);
+    if (current.cloudState === "guest") {
+      if (generation === null) throw new Error("Browser guest media upload has no verified session generation.");
+      requireBrowserGuestSyncReady(current.linkedUserId);
+    }
+    await run();
+  });
+}
+
+async function processDueMediaUploadsUnderOwner(
+  workspaceId: string,
+  signal: AbortSignal,
+  hasFailed: () => boolean,
+  markFailed: (error: unknown) => void,
+  throwIfFailed: () => void,
+): Promise<void> {
   if (isBrowserOnline() === false || signal.aborted || hasFailed()) {
     return;
   }
@@ -554,7 +584,7 @@ export async function processDueMediaUploadTransfersForWorkspace(
   }
   if (
     cloudSettings === null
-    || cloudSettings.cloudState !== "linked"
+    || (cloudSettings.cloudState !== "linked" && cloudSettings.cloudState !== "guest")
     || cloudSettings.linkedWorkspaceId !== workspaceId
   ) {
     return;

@@ -9,6 +9,9 @@ import {
   type MediaBlobCacheRecord,
 } from "../../../localDb/mediaTransfers";
 import type { MediaAsset } from "../../../types";
+import { getCachedSessionCsrfToken } from "../../../api/transport/transport";
+import { loadCloudSettings } from "../../../localDb/sync/cloudSettings";
+import { readPendingGuestConversion, requireBrowserGuestWritesReady, runWithBrowserGuestLock } from "../../../appData/session/guest/browserGuestStorage";
 
 export type CardImageMediaAuthoringInput = Readonly<{
   workspaceId: string;
@@ -83,6 +86,25 @@ function buildMediaBlobCacheRecord(
 }
 
 export async function prepareCardImageMediaAuthoring(
+  input: CardImageMediaAuthoringInput,
+  throwIfIndexedDbOpenRecoveryFailed: () => void,
+): Promise<CardMediaAuthoringResult> {
+  const settings = await loadCloudSettings();
+  if (settings?.cloudState !== "guest" && readPendingGuestConversion() === null) {
+    return prepareAndPersistCardImage(input, throwIfIndexedDbOpenRecoveryFailed);
+  }
+  return runWithBrowserGuestLock("shared", async () => {
+    const current = await loadCloudSettings();
+    if (current === null || current.linkedUserId === null || current.linkedUserId !== settings?.linkedUserId || current.linkedWorkspaceId !== input.workspaceId
+      || current.installationId !== input.installationId || getCachedSessionCsrfToken() === null) {
+      throw new Error("Verify the saved workspace session before preparing an image.");
+    }
+    if (current.cloudState === "guest") requireBrowserGuestWritesReady(current.linkedUserId);
+    return prepareAndPersistCardImage(input, throwIfIndexedDbOpenRecoveryFailed);
+  });
+}
+
+async function prepareAndPersistCardImage(
   input: CardImageMediaAuthoringInput,
   throwIfIndexedDbOpenRecoveryFailed: () => void,
 ): Promise<CardMediaAuthoringResult> {

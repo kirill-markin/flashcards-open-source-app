@@ -17,7 +17,7 @@ import type {
 } from "../../types";
 import type { SessionVerificationState } from "../session/workspaceSessionTypes";
 
-export type SessionLoadState = "loading" | "ready" | "redirecting" | "selecting_workspace" | "error" | "deleted" | "storage_unavailable";
+export type SessionLoadState = "loading" | "ready" | "redirecting" | "selecting_workspace" | "error" | "guest_recovery" | "deleted" | "storage_unavailable";
 
 export type AppDataContextValue = Readonly<{
   sessionLoadState: SessionLoadState;
@@ -49,6 +49,7 @@ export type AppDataContextValue = Readonly<{
   loadWorkspaceResetProgressPreview: (workspaceId: string) => Promise<WorkspaceResetProgressPreview>;
   resetWorkspaceProgress: (workspaceId: string, confirmationText: string) => Promise<ResetWorkspaceProgressResponse>;
   runSync: () => Promise<void>;
+  drainGuestWorkspace: () => Promise<void>;
   runMediaUploadTransfers: () => void;
   refreshLocalData: () => Promise<void>;
   getCardById: (cardId: string) => Promise<Card>;

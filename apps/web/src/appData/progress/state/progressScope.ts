@@ -112,7 +112,7 @@ export function canLoadProgressServerBase(
   sessionVerificationState: SessionVerificationState,
   cloudSettings: CloudSettings | null,
 ): boolean {
-  return sessionVerificationState === "verified" && cloudSettings?.cloudState === "linked";
+  return sessionVerificationState === "verified" && (cloudSettings?.cloudState === "linked" || cloudSettings?.cloudState === "guest");
 }
 
 export function buildProgressRefreshKey(

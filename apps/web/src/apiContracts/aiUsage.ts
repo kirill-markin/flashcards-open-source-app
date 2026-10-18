@@ -1,3 +1,4 @@
+import { parseBrowserGuestCapabilities } from "./account";
 import type { AiUsageAccountKind, AiUsageStatus } from "../types";
 import {
   parseEnum,
@@ -26,6 +27,7 @@ export function parseAiUsageStatusResponse(value: unknown, endpoint: string): Ai
   const usageValue = parseRequiredField(objectValue, "usage", endpoint, "", parseObject);
 
   return {
+    browserGuestCapabilities: parseRequiredField(objectValue, "browserGuestCapabilities", endpoint, "", parseBrowserGuestCapabilities),
     accountKind: parseRequiredField(objectValue, "accountKind", endpoint, "", parseAiUsageAccountKind),
     usage: {
       monthEndsAt: parseRequiredField(usageValue, "monthEndsAt", endpoint, "usage", parseString),
