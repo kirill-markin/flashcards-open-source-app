@@ -167,12 +167,13 @@ enum AnalyticsEvent: Sendable, Equatable {
     case catalogDeckInstallStarted(packageSlug: String)
     /// The premium offer sheet reaching the screen, once per presentation. The test-settings previews
     /// have no entry point and report nothing.
-    case paywallShown(entryPoint: AnalyticsPaywallEntryPoint)
+    case paywallShown(presentation: AnalyticsPaywallPresentation, localDate: String, timeZone: String)
+    case paywallChoice(presentation: AnalyticsPaywallPresentation, outcome: AnalyticsPaywallChoiceOutcome)
     /// The store purchase sheet being launched, after the account and offer checks passed.
-    case purchaseStarted(offerType: AnalyticsPurchaseOfferType)
+    case purchaseStarted(offerType: AnalyticsPurchaseOfferType, presentation: AnalyticsPaywallPresentation?)
     /// What StoreKit reported back for that sheet. `completed` is the client's view only; the
     /// server-derived `trial_started` and `purchase_completed` remain the truth about a sale.
-    case purchaseFinished(outcome: AnalyticsPurchaseOutcome)
+    case purchaseFinished(outcome: AnalyticsPurchaseOutcome, presentation: AnalyticsPaywallPresentation?)
     /// What the App Store returned for the restore. `restored` means it returned a premium
     /// transaction, whether or not the server then accepted it.
     case purchaseRestoreFinished(outcome: AnalyticsPurchaseRestoreOutcome)
@@ -473,6 +474,23 @@ enum AnalyticsPaywallEntryPoint: String, Sendable, Equatable {
     case reviewAnimations = "review_animations"
     case aiChatSuggestions = "ai_chat_suggestions"
     case appIcon = "app_icon"
+    case review
+    case aiLowBalance = "ai_low_balance"
+}
+
+struct AnalyticsPaywallPresentation: Sendable, Equatable {
+    let id: UUID
+    let entryPoint: AnalyticsPaywallEntryPoint
+
+    var attributionProperties: [String: AnalyticsPropertyValue] {
+        ["presentation_id": .string(self.id.uuidString.lowercased()), "entry_point": .string(self.entryPoint.rawValue)]
+    }
+}
+
+enum AnalyticsPaywallChoiceOutcome: String, Sendable, Equatable {
+    case free
+    case premium
+    case dismissed
 }
 
 /// Whether the offer being bought starts with an App Store free trial for this person.
@@ -606,6 +624,8 @@ extension AnalyticsEvent {
             return "catalog_deck_install_started"
         case .paywallShown:
             return "paywall_shown"
+        case .paywallChoice:
+            return "paywall_choice"
         case .purchaseStarted:
             return "purchase_started"
         case .purchaseFinished:
@@ -746,12 +766,18 @@ extension AnalyticsEvent {
             return ["reason": .string(reason.rawValue)]
         case .catalogDeckInstallStarted(let packageSlug):
             return ["package_slug": .string(packageSlug)]
-        case .paywallShown(let entryPoint):
-            return ["entry_point": .string(entryPoint.rawValue)]
-        case .purchaseStarted(let offerType):
-            return ["offer_type": .string(offerType.rawValue)]
-        case .purchaseFinished(let outcome):
-            return ["outcome": .string(outcome.rawValue)]
+        case .paywallShown(let presentation, let localDate, let timeZone):
+            return presentation.attributionProperties.merging([
+                "local_date": .string(localDate),
+                "time_zone": .string(timeZone),
+                "content_version": .string("union-v1")
+            ]) { _, value in value }
+        case .paywallChoice(let presentation, let outcome):
+            return presentation.attributionProperties.merging(["outcome": .string(outcome.rawValue)]) { _, value in value }
+        case .purchaseStarted(let offerType, let presentation):
+            return (presentation?.attributionProperties ?? [:]).merging(["offer_type": .string(offerType.rawValue)]) { _, value in value }
+        case .purchaseFinished(let outcome, let presentation):
+            return (presentation?.attributionProperties ?? [:]).merging(["outcome": .string(outcome.rawValue)]) { _, value in value }
         case .purchaseRestoreFinished(let outcome):
             return ["outcome": .string(outcome.rawValue)]
         case .subscriptionManagementOpened(let destination):

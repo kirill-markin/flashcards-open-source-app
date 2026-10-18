@@ -970,3 +970,16 @@
 "settings.account.connection.previewChanged" = "Eelvaade muutus. Värskenda seda ja kinnita uus eelvaade selgesõnaliselt.";
 "settings.account.connection.restart" = "Tõend aegus või kasutati ära. Alusta uuesti uue tõendiga.";
 "settings.account.connection.restorePaused" = "Kontod ühendatud. Kohalik värskendamine on peatatud; sinu võrguühenduseta andmed säilivad.";
+
+"premium.offer.heading" = "Õppimine kuulub kõigile.";
+"premium.offer.free" = "Tasuta";
+"premium.offer.freeDescription" = "Loodud tööta tudengitele. Avatud kõigile. Sinu seljakott muutus just kergemaks.";
+"premium.offer.freeBenefits" = "Kordamine, võrguühenduseta õpe ja sünkroonimine";
+"premium.offer.continueFree" = "Jätka tasuta";
+"premium.offer.monthlyAI" = "%@ AI-sõnumit kuus";
+"premium.offer.unlimitedAI" = "AI-sõnumid ilma kuupiiranguta";
+"premium.offer.styles" = "Kohandatud värvid ja stiilid";
+"premium.offer.creatorSupport" = "Sinu tellimus aitab Nibomo loojal [Kirill Markin](https://kirill-markin.com/) tasuda serverite eest ja valmistada kohvi ning pitsa toel järgmist uuendust.";
+"premium.offer.subscribe" = "Telli";
+"premium.offer.startTrial" = "Alusta tasuta prooviperioodi: %@";
+"premium.offer.view" = "Vaata Premiumi";

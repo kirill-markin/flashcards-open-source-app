@@ -970,3 +970,16 @@
 "settings.account.connection.previewChanged" = "پیش منظر بدل گیا۔ اسے تازہ کریں اور نئے پیش منظر کی واضح تصدیق کریں۔";
 "settings.account.connection.restart" = "ثبوت کی مدت ختم ہو گئی یا استعمال ہو چکا ہے۔ نئے ثبوت کے ساتھ دوبارہ شروع کریں۔";
 "settings.account.connection.restorePaused" = "اکاؤنٹس جڑ گئے۔ مقامی تازہ کاری رکی ہوئی ہے؛ آپ کا آف لائن ڈیٹا محفوظ ہے۔";
+
+"premium.offer.heading" = "سیکھنا سب کا حق ہے۔";
+"premium.offer.free" = "مفت";
+"premium.offer.freeDescription" = "بے روزگار طلبہ کے لیے بنایا گیا۔ سب کے لیے دستیاب۔ آپ کا بستہ اب ہلکا ہو گیا۔";
+"premium.offer.freeBenefits" = "بنیادی دہرائی، آف لائن تعلیم اور ہم وقت سازی";
+"premium.offer.continueFree" = "مفت جاری رکھیں";
+"premium.offer.monthlyAI" = "ہر ماہ %@ AI پیغامات";
+"premium.offer.unlimitedAI" = "ماہانہ حد کے بغیر AI پیغامات";
+"premium.offer.styles" = "اپنی پسند کے رنگ اور انداز";
+"premium.offer.creatorSupport" = "آپ کی رکنیت Nibomo کے تخلیق کار [Kirill Markin](https://kirill-markin.com/) کو سرورز کا خرچ ادا کرنے اور کافی اور پیزا کے ساتھ اگلی اپ ڈیٹ تیار کرنے میں مدد دیتی ہے۔";
+"premium.offer.subscribe" = "رکنیت لیں";
+"premium.offer.startTrial" = "مفت آزمائش شروع کریں: %@";
+"premium.offer.view" = "Premium دیکھیں";

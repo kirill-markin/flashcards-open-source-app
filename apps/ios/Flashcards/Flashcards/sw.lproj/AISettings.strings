@@ -970,3 +970,16 @@
 "settings.account.connection.previewChanged" = "Hakiki imebadilika. Ionyeshe upya na uthibitishe hakiki mpya waziwazi.";
 "settings.account.connection.restart" = "Ushahidi umeisha muda au umetumika. Anza tena kwa ushahidi mpya.";
 "settings.account.connection.restorePaused" = "Akaunti zimeunganishwa. Usasishaji wa ndani umesitishwa; data yako ya nje ya mtandao imehifadhiwa.";
+
+"premium.offer.heading" = "Kujifunza ni kwa kila mtu.";
+"premium.offer.free" = "Bure";
+"premium.offer.freeDescription" = "Imeundwa kwa wanafunzi wasio na kazi. Wazi kwa kila mtu. Begi lako limekuwa jepesi zaidi.";
+"premium.offer.freeBenefits" = "Marudio ya msingi, kujifunza bila mtandao na usawazishaji";
+"premium.offer.continueFree" = "Endelea bila malipo";
+"premium.offer.monthlyAI" = "Ujumbe %@ wa AI kila mwezi";
+"premium.offer.unlimitedAI" = "Ujumbe wa AI bila kikomo cha kila mwezi";
+"premium.offer.styles" = "Rangi na mitindo unayochagua";
+"premium.offer.creatorSupport" = "Usajili wako humsaidia muundaji wa Nibomo, [Kirill Markin](https://kirill-markin.com/), kulipia seva na kuandaa sasisho lijalo kwa kahawa na pizza.";
+"premium.offer.subscribe" = "Jisajili";
+"premium.offer.startTrial" = "Anza jaribio la bure: %@";
+"premium.offer.view" = "Tazama Premium";

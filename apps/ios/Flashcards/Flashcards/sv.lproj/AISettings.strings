@@ -970,3 +970,16 @@
 "settings.account.connection.previewChanged" = "Förhandsvisningen har ändrats. Uppdatera den och bekräfta uttryckligen den nya visningen.";
 "settings.account.connection.restart" = "Beviset har gått ut eller använts. Börja om med ett nytt bevis.";
 "settings.account.connection.restorePaused" = "Konton anslutna. Lokal uppdatering är pausad; dina offlinedata behålls.";
+
+"premium.offer.heading" = "Lärande är för alla.";
+"premium.offer.free" = "Gratis";
+"premium.offer.freeDescription" = "Skapat för studenter utan jobb. Öppet för alla. Din ryggsäck blev just lättare.";
+"premium.offer.freeBenefits" = "Repetition, lärande offline och synkronisering";
+"premium.offer.continueFree" = "Fortsätt gratis";
+"premium.offer.monthlyAI" = "%@ AI-meddelanden varje månad";
+"premium.offer.unlimitedAI" = "AI-meddelanden utan månadsgräns";
+"premium.offer.styles" = "Egna färger och stilar";
+"premium.offer.creatorSupport" = "Din prenumeration hjälper Nibomos skapare, [Kirill Markin](https://kirill-markin.com/), att betala servrarna och förbereda nästa uppdatering med kaffe och pizza.";
+"premium.offer.subscribe" = "Prenumerera";
+"premium.offer.startTrial" = "Starta gratis provperiod: %@";
+"premium.offer.view" = "Visa Premium";
