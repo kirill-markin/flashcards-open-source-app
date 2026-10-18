@@ -971,7 +971,7 @@
 "settings.account.connection.restart" = "Dokaz je istekao ili je iskorišten. Počni ponovno s novim dokazom.";
 "settings.account.connection.restorePaused" = "Računi su povezani. Lokalno osvježavanje je pauzirano; vaši izvanmrežni podaci su sačuvani.";
 
-"premium.offer.heading" = "Učenje pripada svima.";
+"premium.offer.heading" = "Učenje pripada **svima**.";
 "premium.offer.free" = "Besplatno";
 "premium.offer.freeDescription" = "Stvoreno za studente bez posla. Otvoreno svima. Vaš je ruksak upravo postao lakši.";
 "premium.offer.freeBenefits" = "Ponavljanje, učenje izvan mreže i sinkronizacija";
@@ -987,3 +987,5 @@
 
 "settings.firstReviewOnboarding.title" = "Uvod u prvo ponavljanje je dovršen";
 "settings.firstReviewOnboarding.note" = "Isključite za ponovni prikaz vodiča pri ponavljanju kartice.";
+"premium.offer.alwaysFree" = "Uvijek besplatno";
+"settings.subscription.allowanceReset" = "Vaše ograničenje AI poruka obnavlja se prvog dana svakog mjeseca u 00:00 UTC.";

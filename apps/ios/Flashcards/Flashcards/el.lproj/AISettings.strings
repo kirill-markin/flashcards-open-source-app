@@ -971,7 +971,7 @@
 "settings.account.connection.restart" = "Η απόδειξη έληξε ή χρησιμοποιήθηκε. Ξεκινήστε ξανά με νέα απόδειξη.";
 "settings.account.connection.restorePaused" = "Οι λογαριασμοί συνδέθηκαν. Η τοπική ανανέωση έχει παύσει· τα δεδομένα εκτός σύνδεσης διατηρούνται.";
 
-"premium.offer.heading" = "Η μάθηση είναι για όλους.";
+"premium.offer.heading" = "Η μάθηση είναι για **όλους**.";
 "premium.offer.free" = "Δωρεάν";
 "premium.offer.freeDescription" = "Δημιουργήθηκε για φοιτητές χωρίς δουλειά. Ανοιχτό σε όλους. Το σακίδιό σας μόλις ελάφρυνε.";
 "premium.offer.freeBenefits" = "Επαναλήψεις, μάθηση εκτός σύνδεσης και συγχρονισμός";
@@ -987,3 +987,5 @@
 
 "settings.firstReviewOnboarding.title" = "Η εισαγωγή στην πρώτη επανάληψη ολοκληρώθηκε";
 "settings.firstReviewOnboarding.note" = "Απενεργοποιήστε για να δείτε ξανά τον οδηγό όταν επαναλαμβάνετε μια κάρτα.";
+"premium.offer.alwaysFree" = "Πάντα δωρεάν";
+"settings.subscription.allowanceReset" = "Το όριο μηνυμάτων AI ανανεώνεται την πρώτη ημέρα κάθε μήνα στις 00:00 UTC.";

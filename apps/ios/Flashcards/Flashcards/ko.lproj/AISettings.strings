@@ -971,7 +971,7 @@
 "settings.account.connection.restart" = "증명이 만료되었거나 사용되었습니다. 새 증명으로 다시 시작하세요.";
 "settings.account.connection.restorePaused" = "계정이 연결되었습니다. 로컬 새로 고침이 일시 중지되었으며 오프라인 데이터는 유지됩니다.";
 
-"premium.offer.heading" = "배움은 모두의 것입니다.";
+"premium.offer.heading" = "배움은 **모두**의 것입니다.";
 "premium.offer.free" = "무료";
 "premium.offer.freeDescription" = "일자리가 없는 학생을 위해 만들었습니다. 누구에게나 열려 있습니다. 책가방이 조금 가벼워졌어요.";
 "premium.offer.freeBenefits" = "기본 복습, 오프라인 학습 및 동기화";
@@ -987,3 +987,5 @@
 
 "settings.firstReviewOnboarding.title" = "첫 복습 안내 완료";
 "settings.firstReviewOnboarding.note" = "카드를 복습할 때 안내를 다시 보려면 끄세요.";
+"premium.offer.alwaysFree" = "언제나 무료";
+"settings.subscription.allowanceReset" = "AI 메시지 한도는 매월 1일 00:00 UTC에 초기화됩니다.";

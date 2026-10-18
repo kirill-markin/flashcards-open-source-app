@@ -971,7 +971,7 @@
 "settings.account.connection.restart" = "La prova ha caducat o s’ha utilitzat. Torna a començar amb una prova nova.";
 "settings.account.connection.restorePaused" = "Comptes connectats. L’actualització local està aturada; les dades sense connexió es conserven.";
 
-"premium.offer.heading" = "Aprendre és per a tothom.";
+"premium.offer.heading" = "Aprendre és per a **tothom**.";
 "premium.offer.free" = "Gratuït";
 "premium.offer.freeDescription" = "Creat per a estudiants sense feina. Obert a tothom. La teva motxilla s’acaba d’alleugerir.";
 "premium.offer.freeBenefits" = "Repassos essencials, aprenentatge sense connexió i sincronització";
@@ -987,3 +987,5 @@
 
 "settings.firstReviewOnboarding.title" = "Guia del primer repàs completada";
 "settings.firstReviewOnboarding.note" = "Desactiva-ho per tornar a veure la guia quan repassis una targeta.";
+"premium.offer.alwaysFree" = "Sempre gratuït";
+"settings.subscription.allowanceReset" = "El límit de missatges d’IA es restableix el primer dia de cada mes a les 00:00 UTC.";

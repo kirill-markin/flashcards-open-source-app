@@ -971,7 +971,7 @@
 "settings.account.connection.restart" = "சான்று காலாவதியானது அல்லது பயன்படுத்தப்பட்டது. புதிய சான்றுடன் மீண்டும் தொடங்கவும்.";
 "settings.account.connection.restorePaused" = "கணக்குகள் இணைக்கப்பட்டன. உள்ளூர் புதுப்பிப்பு இடைநிறுத்தப்பட்டுள்ளது; உங்கள் ஆஃப்லைன் தரவு தக்கவைக்கப்பட்டுள்ளது.";
 
-"premium.offer.heading" = "கற்றல் அனைவருக்கும் உரியது.";
+"premium.offer.heading" = "கற்றல் **அனைவருக்கும்** உரியது.";
 "premium.offer.free" = "இலவசம்";
 "premium.offer.freeDescription" = "வேலை இல்லாத மாணவர்களுக்காக உருவாக்கப்பட்டது. அனைவருக்கும் திறந்தது. உங்கள் புத்தகப்பை இப்போது இலகுவானது.";
 "premium.offer.freeBenefits" = "முக்கிய மீள்பயிற்சி, இணையமில்லா கற்றல் மற்றும் ஒத்திசைவு";
@@ -987,3 +987,5 @@
 
 "settings.firstReviewOnboarding.title" = "முதல் மீள்பார்வை அறிமுகம் முடிந்தது";
 "settings.firstReviewOnboarding.note" = "அட்டையை மீள்பார்க்கும்போது வழிகாட்டியை மீண்டும் காண இதை அணைக்கவும்.";
+"premium.offer.alwaysFree" = "எப்போதும் இலவசம்";
+"settings.subscription.allowanceReset" = "உங்கள் AI செய்திகளின் வரம்பு ஒவ்வொரு மாதத்தின் முதல் நாளிலும் 00:00 UTC நேரத்தில் மீட்டமைக்கப்படும்.";

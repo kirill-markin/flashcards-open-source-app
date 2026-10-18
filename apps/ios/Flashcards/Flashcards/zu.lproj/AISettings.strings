@@ -971,7 +971,7 @@
 "settings.account.connection.restart" = "Ubufakazi buphelelwe isikhathi noma busetshenzisiwe. Qala kabusha ngobufakazi obusha.";
 "settings.account.connection.restorePaused" = "Ama-akhawunti axhunyiwe. Ukuvuselela kwasendaweni kumisiwe; idatha yakho engaxhunyiwe iyagcinwa.";
 
-"premium.offer.heading" = "Ukufunda kungokwawo wonke umuntu.";
+"premium.offer.heading" = "Ukufunda kungokwawo **wonke umuntu**.";
 "premium.offer.free" = "Mahhala";
 "premium.offer.freeDescription" = "Kwenzelwe abafundi abangasebenzi. Kuvulekele wonke umuntu. Ubhaka wakho usulula manje.";
 "premium.offer.freeBenefits" = "Ukubuyekeza okuyisisekelo, ukufunda ungaxhunyiwe nokuvumelanisa";
@@ -987,3 +987,5 @@
 
 "settings.firstReviewOnboarding.title" = "Isingeniso sokubuyekeza kokuqala siqediwe";
 "settings.firstReviewOnboarding.note" = "Vala ukuze ubone umhlahlandlela futhi lapho ubuyekeza ikhadi.";
+"premium.offer.alwaysFree" = "Kumahhala njalo";
+"settings.subscription.allowanceReset" = "Umkhawulo wakho wemiyalezo ye-AI uqala kabusha ngosuku lokuqala lwenyanga ngayinye ngo-00:00 UTC.";

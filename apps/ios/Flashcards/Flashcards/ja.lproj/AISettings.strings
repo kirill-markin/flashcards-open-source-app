@@ -999,7 +999,7 @@
 "settings.account.connection.restart" = "証明が期限切れか使用済みです。新しい証明で最初からやり直してください。";
 "settings.account.connection.restorePaused" = "アカウントを連携しました。ローカル更新は一時停止中です。オフラインデータは保持されています。";
 
-"premium.offer.heading" = "学びは、すべての人に。";
+"premium.offer.heading" = "学びは、**すべての人**に。";
 "premium.offer.free" = "無料";
 "premium.offer.freeDescription" = "仕事をしていない学生のために作りました。どなたでも使えます。バックパックが少し軽くなりました。";
 "premium.offer.freeBenefits" = "基本の復習、オフライン学習と同期";
@@ -1015,3 +1015,5 @@
 
 "settings.firstReviewOnboarding.title" = "初回復習ガイドを完了";
 "settings.firstReviewOnboarding.note" = "オフにすると、カードの復習時にガイドが再び表示されます。";
+"premium.offer.alwaysFree" = "ずっと無料";
+"settings.subscription.allowanceReset" = "AIメッセージの利用枠は、毎月1日の00:00（UTC）にリセットされます。";

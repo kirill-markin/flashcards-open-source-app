@@ -971,7 +971,7 @@
 "settings.account.connection.restart" = "Dowód wygasł lub został użyty. Zacznij ponownie z nowym dowodem.";
 "settings.account.connection.restorePaused" = "Konta połączone. Lokalne odświeżanie jest wstrzymane; dane offline są zachowane.";
 
-"premium.offer.heading" = "Nauka jest dla każdego.";
+"premium.offer.heading" = "Nauka jest dla **każdego**.";
 "premium.offer.free" = "Bezpłatnie";
 "premium.offer.freeDescription" = "Stworzone dla studentów bez pracy. Otwarte dla wszystkich. Twój plecak właśnie stał się lżejszy.";
 "premium.offer.freeBenefits" = "Powtórki, nauka offline i synchronizacja";
@@ -987,3 +987,5 @@
 
 "settings.firstReviewOnboarding.title" = "Wprowadzenie do pierwszej powtórki ukończone";
 "settings.firstReviewOnboarding.note" = "Wyłącz, aby ponownie zobaczyć przewodnik podczas powtarzania karty.";
+"premium.offer.alwaysFree" = "Zawsze bezpłatnie";
+"settings.subscription.allowanceReset" = "Twój limit wiadomości AI odnawia się pierwszego dnia każdego miesiąca o 00:00 UTC.";

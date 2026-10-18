@@ -971,7 +971,7 @@
 "settings.account.connection.restart" = "પુરાવાની મુદત પૂરી થઈ અથવા તેનો ઉપયોગ થઈ ગયો. નવા પુરાવા સાથે ફરી શરૂ કરો.";
 "settings.account.connection.restorePaused" = "ખાતાં જોડાયાં. સ્થાનિક અપડેટ અટકાવેલું છે; તમારો ઑફલાઇન ડેટા જળવાયેલો છે.";
 
-"premium.offer.heading" = "શીખવું દરેકનો અધિકાર છે.";
+"premium.offer.heading" = "શીખવું **દરેકનો** અધિકાર છે.";
 "premium.offer.free" = "મફત";
 "premium.offer.freeDescription" = "નોકરી ન કરતા વિદ્યાર્થીઓ માટે બનાવેલું. બધા માટે ખુલ્લું. તમારી બેગ હવે હળવી થઈ.";
 "premium.offer.freeBenefits" = "જરૂરી પુનરાવર્તન, ઑફલાઇન અભ્યાસ અને સિંક";
@@ -987,3 +987,5 @@
 
 "settings.firstReviewOnboarding.title" = "પહેલી સમીક્ષાનો પરિચય પૂર્ણ થયો";
 "settings.firstReviewOnboarding.note" = "કાર્ડની સમીક્ષા કરતી વખતે માર્ગદર્શિકા ફરી જોવા માટે આ બંધ કરો.";
+"premium.offer.alwaysFree" = "હંમેશા મફત";
+"settings.subscription.allowanceReset" = "તમારા AI સંદેશાઓની મર્યાદા દર મહિનાના પ્રથમ દિવસે 00:00 UTC વાગ્યે ફરી શરૂ થાય છે.";

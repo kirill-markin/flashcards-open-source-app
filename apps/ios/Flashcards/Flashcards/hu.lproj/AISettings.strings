@@ -971,7 +971,7 @@
 "settings.account.connection.restart" = "A bizonyíték lejárt vagy felhasználták. Kezdje újra friss bizonyítékkal.";
 "settings.account.connection.restorePaused" = "Fiókok összekapcsolva. A helyi frissítés szünetel; az offline adatok megmaradnak.";
 
-"premium.offer.heading" = "A tanulás mindenkié.";
+"premium.offer.heading" = "A tanulás **mindenkié**.";
 "premium.offer.free" = "Ingyenes";
 "premium.offer.freeDescription" = "Állás nélküli diákoknak készült. Mindenki előtt nyitva áll. A hátizsákod most könnyebb lett.";
 "premium.offer.freeBenefits" = "Ismétlés, offline tanulás és szinkronizálás";
@@ -987,3 +987,5 @@
 
 "settings.firstReviewOnboarding.title" = "Az első ismétlés útmutatója befejezve";
 "settings.firstReviewOnboarding.note" = "Kapcsold ki, ha egy kártya ismétlésekor újra látni szeretnéd az útmutatót.";
+"premium.offer.alwaysFree" = "Mindig ingyenes";
+"settings.subscription.allowanceReset" = "Az AI-üzenetkereted minden hónap első napján 00:00 UTC-kor újul meg.";

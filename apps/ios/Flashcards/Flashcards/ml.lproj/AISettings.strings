@@ -971,7 +971,7 @@
 "settings.account.connection.restart" = "തെളിവ് കാലഹരണപ്പെട്ടു അല്ലെങ്കിൽ ഉപയോഗിച്ചു. പുതിയ തെളിവുമായി വീണ്ടും ആരംഭിക്കുക.";
 "settings.account.connection.restorePaused" = "അക്കൗണ്ടുകൾ ബന്ധിപ്പിച്ചു. പ്രാദേശിക പുതുക്കൽ നിർത്തിയിരിക്കുന്നു; നിങ്ങളുടെ ഓഫ്‌ലൈൻ ഡാറ്റ നിലനിൽക്കും.";
 
-"premium.offer.heading" = "പഠനം എല്ലാവർക്കും അവകാശപ്പെട്ടതാണ്.";
+"premium.offer.heading" = "പഠനം **എല്ലാവർക്കും** അവകാശപ്പെട്ടതാണ്.";
 "premium.offer.free" = "സൗജന്യം";
 "premium.offer.freeDescription" = "ജോലിയില്ലാത്ത വിദ്യാർത്ഥികൾക്കായി സൃഷ്ടിച്ചത്. എല്ലാവർക്കും ലഭ്യം. നിങ്ങളുടെ ബാഗ് ഇപ്പോൾ ഭാരം കുറഞ്ഞു.";
 "premium.offer.freeBenefits" = "പ്രധാന ആവർത്തനം, ഓഫ്‌ലൈൻ പഠനം, സമന്വയം";
@@ -987,3 +987,5 @@
 
 "settings.firstReviewOnboarding.title" = "ആദ്യ ആവർത്തന പരിശീലനത്തിന്റെ ആമുഖം പൂർത്തിയായി";
 "settings.firstReviewOnboarding.note" = "കാർഡ് ആവർത്തിക്കുമ്പോൾ മാർഗ്ഗനിർദ്ദേശം വീണ്ടും കാണാൻ ഇത് ഓഫാക്കുക.";
+"premium.offer.alwaysFree" = "എപ്പോഴും സൗജന്യം";
+"settings.subscription.allowanceReset" = "നിങ്ങളുടെ AI സന്ദേശങ്ങളുടെ പരിധി ഓരോ മാസത്തിന്റെയും ആദ്യ ദിവസം 00:00 UTC-യിൽ പുനഃക്രമീകരിക്കുന്നു.";
