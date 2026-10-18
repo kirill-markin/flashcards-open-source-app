@@ -82,6 +82,7 @@ export type MutableCardFormScreenAppData = {
   cloudSettings: null;
   createCardItem: ReturnType<typeof vi.fn>;
   deleteCardItem: ReturnType<typeof vi.fn>;
+  isLocalWorkspaceMutationReady: boolean;
   localReadVersion: number;
   runMediaUploadTransfers: ReturnType<typeof vi.fn>;
   session: null;
@@ -213,6 +214,7 @@ export function setupCardFormScreenTest(): CardFormScreenTestHarness {
       cloudSettings: null,
       createCardItem: vi.fn(),
       deleteCardItem: mocks.deleteCardItemMock,
+      isLocalWorkspaceMutationReady: true,
       localReadVersion: 0,
       runMediaUploadTransfers: vi.fn(),
       session: null,

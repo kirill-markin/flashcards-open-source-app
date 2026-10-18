@@ -236,6 +236,7 @@ function createAppData(workspaces: ReadonlyArray<WorkspaceSummary>): Mutable<App
     sessionLoadState: activeWorkspace === null ? "selecting_workspace" : "ready",
     sessionVerificationState: "verified",
     isSessionVerified: true,
+    isLocalWorkspaceMutationReady: activeWorkspace !== null,
     sessionErrorMessage: "",
     sessionTechnicalError: null,
     session: createSession(),

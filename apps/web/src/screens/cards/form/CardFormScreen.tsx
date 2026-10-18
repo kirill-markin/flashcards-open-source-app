@@ -109,6 +109,7 @@ export function CardFormScreen(): ReactElement {
     createCardItem,
     updateCardItem,
     deleteCardItem,
+    isLocalWorkspaceMutationReady,
     setErrorMessage,
     localReadVersion,
     runMediaUploadTransfers,
@@ -941,7 +942,7 @@ export function CardFormScreen(): ReactElement {
             <button
               type="button"
               className="primary-btn"
-              disabled={isSaving || isDeleting || isAuthoringMedia || isSubmissionBlocked}
+              disabled={isLocalWorkspaceMutationReady === false || isSaving || isDeleting || isAuthoringMedia || isSubmissionBlocked}
               onClick={() => void handleSubmit()}
               data-testid="card-form-save"
             >

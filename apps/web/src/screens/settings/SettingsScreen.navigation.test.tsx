@@ -110,6 +110,7 @@ function createAppData(): Mutable<AppDataContextValue> {
     sessionLoadState: "ready",
     sessionVerificationState: "verified",
     isSessionVerified: true,
+    isLocalWorkspaceMutationReady: true,
     sessionErrorMessage: "",
     sessionTechnicalError: null,
     session: {

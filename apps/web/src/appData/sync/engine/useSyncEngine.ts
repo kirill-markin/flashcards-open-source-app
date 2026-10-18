@@ -105,6 +105,7 @@ type UseSyncEngineParams = Readonly<{
 }>;
 
 type SyncEngine = Readonly<{
+  isLocalWorkspaceMutationReady: boolean;
   runSync: () => Promise<void>;
   drainGuestWorkspace: () => Promise<void>;
   runSyncSilently: () => Promise<void>;
@@ -850,15 +851,21 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
     return runLocalDataRead(() => requireDeck(activeWorkspace.workspaceId, deckId));
   }, [activeWorkspace, runLocalDataRead]);
 
+  const isLocalWorkspaceMutationReady = useCallback(function isLocalWorkspaceMutationReady(): boolean {
+    return isDiscardingAllSyncWorkRef.current === false
+      && session !== null
+      && sessionLoadState !== "guest_recovery"
+      && (session.browserGuestCapabilities?.isGuest !== true || (sessionVerificationState === "verified"
+        && readBrowserGuestVerificationGeneration(session.userId) !== null));
+  }, [session, sessionLoadState, sessionVerificationState]);
+
   const requireLocalWorkspaceMutationReady = useCallback(function requireLocalWorkspaceMutationReady(): void {
-    if (isDiscardingAllSyncWorkRef.current || session === null || sessionLoadState === "guest_recovery"
-      || (session.browserGuestCapabilities?.isGuest === true && (sessionVerificationState !== "verified"
-        || readBrowserGuestVerificationGeneration(session.userId) === null))) {
+    if (isLocalWorkspaceMutationReady() === false) {
       throw new Error("Workspace is unavailable");
     }
 
     indexedDbOpenRecoveryState.throwIfFailed();
-  }, [indexedDbOpenRecoveryState, session, sessionLoadState, sessionVerificationState]);
+  }, [indexedDbOpenRecoveryState, isLocalWorkspaceMutationReady]);
 
   const runLocalWorkspaceMutation = useCallback(function runLocalWorkspaceMutation<T>(
     createMutationTask: () => Promise<T>,
@@ -1144,6 +1151,9 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
   ]);
 
   return {
+    isLocalWorkspaceMutationReady: activeWorkspace !== null
+      && indexedDbOpenRecoveryState.hasFailed() === false
+      && isLocalWorkspaceMutationReady(),
     runSync,
     drainGuestWorkspace,
     runSyncSilently,

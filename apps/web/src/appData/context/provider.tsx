@@ -530,6 +530,7 @@ export function AppDataProvider(props: Props): ReactElement {
     sessionLoadState,
     sessionVerificationState,
     isSessionVerified: sessionVerificationState === "verified",
+    isLocalWorkspaceMutationReady: syncEngine.isLocalWorkspaceMutationReady,
     sessionErrorMessage,
     sessionTechnicalError,
     session,

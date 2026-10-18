@@ -1,7 +1,7 @@
 import { retireEntryWorkspaceAddress } from "../activation/workspaceActivationHelpers";
 import { clearWebSyncCacheForLocalBrowserDataCleanup } from "../../../localDb/cache";
 import { requireWorkspaceMediaUploadsCompleted } from "../../../localDb/mediaTransfers";
-import { pauseBrowserGuestSession } from "../../../api/transport/transport";
+import { pauseBrowserGuestSession, readBrowserGuestVerificationGeneration } from "../../../api/transport/transport";
 import { GuestConversionRequiredError, loadBrowserProductSession, loadCachedBrowserGuestOwner } from "../guest/browserGuestSession";
 import { invalidateBrowserGuestOwnership, readBrowserGuestState, readPendingGuestConversion, runWithBrowserGuestLock, subscribeToBrowserGuestChanges } from "../guest/browserGuestStorage";
 import { consumeAcceptedBrowserSignInMethod, readBrowserSignInInformationGeneration } from "../../../api/browserHints";
@@ -177,12 +177,12 @@ export function useWorkspaceLifecycle(params: UseWorkspaceLifecycleParams): Work
     }
     if (owner === null) return false;
     pauseBrowserGuestSession();
+    setSessionVerificationState("unverified");
     await discardAllSyncWork(async () => {
       setSession(null);
       setActiveWorkspace(null);
       setAvailableWorkspaces([]);
       setCloudSettings(owner);
-      setSessionVerificationState("unverified");
       setSessionLoadState("guest_recovery");
       setSessionErrorMessage(`${t("guest.recovery")} ${getErrorMessage(error)}`);
       setSessionTechnicalError(error);
@@ -363,6 +363,7 @@ export function useWorkspaceLifecycle(params: UseWorkspaceLifecycleParams): Work
         return;
       }
 
+      const guestVerificationGeneration = readBrowserGuestVerificationGeneration(currentSession.userId);
       let persistedCloudSettings = await loadCloudSettings();
       if (indexedDbOpenRecoveryState.hasFailed()) {
         return;
@@ -449,6 +450,13 @@ export function useWorkspaceLifecycle(params: UseWorkspaceLifecycleParams): Work
       await resolveInitialWorkspace(currentSession);
       if (indexedDbOpenRecoveryState.hasFailed()) {
         return;
+      }
+
+      if (currentSession.browserGuestCapabilities?.isGuest === true
+        && (guestVerificationGeneration === null
+          || guestVerificationGeneration !== readBrowserGuestVerificationGeneration(currentSession.userId)
+          || readPendingGuestConversion() !== null)) {
+        throw createSessionAccountSwitchError(sessionInitializationInvalidatedMessage);
       }
 
       // Publishes the account this browser's credential belongs to. The analytics queue stores the
@@ -594,8 +602,10 @@ export function useWorkspaceLifecycle(params: UseWorkspaceLifecycleParams): Work
 
     const entitlementGeneration = readEntitlementIdentityGeneration();
     const preferenceWriteVersion = readAccountPreferencesWriteVersion();
+    if (session.browserGuestCapabilities?.isGuest === true) setSessionVerificationState("unverified");
     try {
       const verifiedSession = await loadBrowserProductSession();
+      const guestVerificationGeneration = readBrowserGuestVerificationGeneration(verifiedSession.userId);
       if (indexedDbOpenRecoveryState.hasFailed()) {
         return false;
       }
@@ -638,6 +648,12 @@ export function useWorkspaceLifecycle(params: UseWorkspaceLifecycleParams): Work
           // envelope still stored was the previous person's: `clearConfirmedUserScopedState` above
           // dropped it and advanced the guest identity generation, which also stops a link started
           // by `initialize` from binding it to the account being published on this line.
+          if (currentSession.browserGuestCapabilities?.isGuest === true
+            && (guestVerificationGeneration === null
+              || guestVerificationGeneration !== readBrowserGuestVerificationGeneration(currentSession.userId)
+              || readPendingGuestConversion() !== null)) {
+            throw createSessionAccountSwitchError(sessionInitializationInvalidatedMessage);
+          }
           setAnalyticsConfirmedOwner(currentSession.userId);
           analyticsReadyRef.current = { userId: currentSession.userId,
             ready: syncAnalyticsPreferencesWithAccount(currentSession.preferences) };
@@ -681,9 +697,16 @@ export function useWorkspaceLifecycle(params: UseWorkspaceLifecycleParams): Work
         setCloudSettings(repairedCloudSettings);
       }
 
+      if (currentSession.browserGuestCapabilities?.isGuest === true
+        && (guestVerificationGeneration === null
+          || guestVerificationGeneration !== readBrowserGuestVerificationGeneration(currentSession.userId)
+          || readPendingGuestConversion() !== null)) {
+        return false;
+      }
       if (setEntitlementIdentity(currentSession.userId, entitlementGeneration) === false) {
         return false;
       }
+      setSessionVerificationState("verified");
       setSession((previousSession): SessionInfo | null => previousSession === null
         ? null
         : mergeRefreshedSessionPreferences(previousSession, currentSession, preferenceWriteVersion));

@@ -251,6 +251,7 @@ function createAppData(state: ReviewScreenTestState): ReviewScreenAppData {
     sessionLoadState: "ready",
     sessionVerificationState: "verified",
     isSessionVerified: true,
+    isLocalWorkspaceMutationReady: true,
     sessionErrorMessage: "",
     sessionTechnicalError: null,
     session: null,

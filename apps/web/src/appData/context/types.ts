@@ -23,6 +23,7 @@ export type AppDataContextValue = Readonly<{
   sessionLoadState: SessionLoadState;
   sessionVerificationState: SessionVerificationState;
   isSessionVerified: boolean;
+  isLocalWorkspaceMutationReady: boolean;
   sessionErrorMessage: string;
   sessionTechnicalError: Error | null;
   session: SessionInfo | null;
