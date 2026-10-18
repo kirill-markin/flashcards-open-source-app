@@ -26,8 +26,9 @@ const csCatalog: TranslationCatalog = {
     creatorSupport: "Tvé předplatné pomáhá tvůrci Nibomo, {{creator}}, platit servery a připravovat další aktualizaci s kávou a pizzou.",
     basePrice: "Základní cena: {{price}} / měsíc",
     startTrial: "Začít 7denní zkušební období zdarma",
-    trialPrice: "7 dní zdarma, poté základní cena {{price}} měsíčně. Je nutná platební metoda; zrušte před koncem zkušební doby, abyste se vyhnuli první platbě.",
-    checkoutPrice: "Stripe při placení potvrdí konečnou cenu a měnu účtování.",
+    trialPrice: "7 dní zdarma, poté základní cena {{price}} měsíčně. Je nutná platební metoda. Automatické obnovení; zrušte před koncem zkušební doby v nastavení předplatného.",
+    checkoutPrice: "Konečná cena a měna při placení.",
+    renewalDisclosure: "Automatické obnovení; zrušte kdykoli v nastavení předplatného.",
   },
   accentColorSettings: {
     title: "Barva zvýraznění",

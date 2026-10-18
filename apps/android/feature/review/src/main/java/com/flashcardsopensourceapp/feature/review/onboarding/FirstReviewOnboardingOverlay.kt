@@ -17,6 +17,7 @@ import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.Fill
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.scale
+import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.clearAndSetSemantics
@@ -28,18 +29,16 @@ internal const val firstReviewOnboardingOverlayTag = "review_first_review_onboar
 @Composable
 internal fun FirstReviewOnboardingOverlay(
     target: Rect,
-    neighbors: List<Rect>,
     viewport: Size,
     availableTop: Float,
     animationsEnabled: Boolean,
     modifier: Modifier
 ) {
     val density = LocalDensity.current.density
-    val frames = remember(target, neighbors, viewport, availableTop, density) {
+    val frames = remember(target, viewport, availableTop, density) {
         val bounds = Rect(target.left / density, target.top / density, target.right / density, target.bottom / density)
         val size = Size(viewport.width / density, viewport.height / density)
-        val neighborBounds = neighbors.map { Rect(it.left / density, it.top / density, it.right / density, it.bottom / density) }
-        listOf(0, 1).map { firstReviewOnboardingDrawing(bounds, size, availableTop / density, neighborBounds, it) }
+        listOf(0, 1).map { firstReviewOnboardingDrawing(bounds, size, availableTop / density, it) }
     }
     var frame by remember { mutableIntStateOf(0) }
     LaunchedEffect(animationsEnabled) {
@@ -55,13 +54,27 @@ internal fun FirstReviewOnboardingOverlay(
     Canvas(modifier.clearAndSetSemantics { hideFromAccessibility() }.testTag(firstReviewOnboardingOverlayTag)) {
         scale(density, density, pivot = androidx.compose.ui.geometry.Offset.Zero) {
             val marks = frames[if (animationsEnabled) frame else 0]
-            marks.forEach { mark ->
-                if (mark.strokeWidth == null) {
-                    drawPath(mark.path, Color.Black, alpha = .72f)
+            translate(left = 1.5f, top = 3.5f) {
+                marks.forEach { mark ->
+                    if (mark.strokeWidth == null) {
+                        drawPath(mark.path, Color.Black, alpha = .92f)
+                    }
+                    drawPath(
+                        mark.path,
+                        Color.Black,
+                        alpha = .92f,
+                        style = Stroke(
+                            width = (mark.strokeWidth ?: 0f) + pencilShadowRadius * 2f,
+                            cap = StrokeCap.Round,
+                            join = StrokeJoin.Round
+                        )
+                    )
                 }
+            }
+            marks.forEach { mark ->
                 drawPath(
                     mark.path,
-                    Color.Black,
+                    Color.White,
                     alpha = .72f,
                     style = Stroke(
                         width = (mark.strokeWidth ?: 0f) + pencilContrastRadius * 2f,
