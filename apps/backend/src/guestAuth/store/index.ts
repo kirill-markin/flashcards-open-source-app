@@ -11,3 +11,4 @@ export * from "./scheduler";
 export * from "./session";
 export * from "./upgradeHistory";
 export * from "./workspace";
+export * from "./demoOnly";

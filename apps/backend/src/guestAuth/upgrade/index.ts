@@ -29,7 +29,7 @@ import {
   UserSettingsRowNotFoundError,
 } from "../../workspaces/state";
 import { cleanupGuestSessionSourceInExecutor } from "../delete/index";
-import { mergeGuestWorkspaceIntoTargetInExecutor } from "../merge/index";
+import { discardGuestDemoOnlyInExecutor, mergeGuestWorkspaceIntoTargetInExecutor } from "../merge/index";
 import {
   assertTargetWorkspaceAccessInExecutor,
   carryGuestAccentColorToAccountInExecutor,
@@ -40,6 +40,8 @@ import {
   loadGuestUpgradeReplayByGuestTokenInExecutor,
   loadGuestUpgradeReplayInExecutor,
   loadGuestWorkspaceIdInExecutor,
+  loadGuestDemoOnlyCardInExecutor,
+  loadDemoOnlyDestinationWorkspaceIdInExecutor,
   loadWorkspaceNameInExecutor,
   loadWorkspaceSummaryInExecutor,
   recordGuestUpgradeHistoryInExecutor,
@@ -275,7 +277,7 @@ async function resolveRevokedGuestUpgradeReplayInExecutor(
   guestSessionId: string,
   cognitoSubject: string,
   capabilities: GuestUpgradeCompleteCapabilities,
-  browserSelection: GuestUpgradeSelection | null,
+  requiredSelection: GuestUpgradeSelection | null,
 ): Promise<GuestUpgradeCompletion> {
   const replay = await loadGuestUpgradeReplayInExecutor(executor, guestSessionId);
   if (replay === null) {
@@ -296,12 +298,12 @@ async function resolveRevokedGuestUpgradeReplayInExecutor(
       cognitoSubject,
       replay.targetSubjectUserId,
     );
-    if (browserSelection !== null) throw createBrowserUpgradeIdentityMismatchError();
+    if (requiredSelection !== null) throw createBrowserUpgradeIdentityMismatchError();
     throw new HttpError(401, "Guest session is invalid.", "GUEST_AUTH_INVALID");
   }
 
-  if (browserSelection !== null) {
-    assertBrowserReplaySelection(replay, browserSelection);
+  if (requiredSelection !== null) {
+    assertGuestUpgradeReplaySelection(replay, requiredSelection);
   }
   return createGuestUpgradeReplayCompletionInExecutor(executor, { ...replay, targetSubjectUserId: cognitoSubject }, capabilities);
 }
@@ -315,7 +317,7 @@ async function resolveDeletedGuestUpgradeReplayInExecutor(
   guestToken: string,
   cognitoSubject: string,
   capabilities: GuestUpgradeCompleteCapabilities,
-  browserSelection: GuestUpgradeSelection | null,
+  requiredSelection: GuestUpgradeSelection | null,
 ): Promise<GuestUpgradeCompletion> {
   const replay = await loadGuestUpgradeReplayByGuestTokenInExecutor(executor, guestToken);
   if (replay === null) {
@@ -330,12 +332,12 @@ async function resolveDeletedGuestUpgradeReplayInExecutor(
       cognitoSubject,
       replay.targetSubjectUserId,
     );
-    if (browserSelection !== null) throw createBrowserUpgradeIdentityMismatchError();
+    if (requiredSelection !== null) throw createBrowserUpgradeIdentityMismatchError();
     throw new HttpError(401, "Guest session is invalid.", "GUEST_AUTH_INVALID");
   }
 
-  if (browserSelection !== null) {
-    assertBrowserReplaySelection(replay, browserSelection);
+  if (requiredSelection !== null) {
+    assertGuestUpgradeReplaySelection(replay, requiredSelection);
   }
   return createGuestUpgradeReplayCompletionInExecutor(executor, { ...replay, targetSubjectUserId: cognitoSubject }, capabilities);
 }
@@ -386,6 +388,21 @@ async function persistGuestUpgradeTargetSelectionInExecutor(
   await selectWorkspaceForUserInExecutor(executor, targetUserId, targetWorkspaceId);
 }
 
+async function prepareExistingAccountGuestUpgradeInExecutor(
+  executor: DatabaseExecutor,
+  guestUserId: string,
+  targetUserId: string,
+): Promise<GuestUpgradePreparation> {
+  const workspaceId = await loadGuestWorkspaceIdInExecutor(executor, guestUserId);
+  const demo = await loadGuestDemoOnlyCardInExecutor(executor, guestUserId, workspaceId);
+  if (demo === null) return { mode: "merge_required" };
+  const destination = await loadDemoOnlyDestinationWorkspaceIdInExecutor(executor, targetUserId);
+  return {
+    mode: "merge_required",
+    ...(destination === null ? {} : { demoOnlyDestinationWorkspaceId: destination }),
+  };
+}
+
 /**
  * Prepares one guest upgrade attempt using the already-open executor.
  *
@@ -404,14 +421,16 @@ async function prepareGuestUpgradeWithAdmissionInExecutor(
   await assertSubjectIsNotDeletedInExecutor(executor, cognitoSubject);
   const unlockedSession = await loadGuestSessionRecordInExecutor(executor, guestToken, false);
   if (unlockedSession === null) {
-    if (admission === "browser") {
-      const replay = await loadGuestUpgradeReplayByGuestTokenInExecutor(executor, guestToken);
-      if (replay !== null) {
-        await lockAccountLifecyclesInExecutor(executor, [replay.canonicalTargetUserId]);
-        await assertSubjectIsNotDeletedInExecutor(executor, cognitoSubject);
-        await assertBrowserReplayIdentityInExecutor(executor, replay.canonicalTargetUserId, cognitoSubject);
-        return { mode: "merge_required" };
-      }
+    const replay = await loadGuestUpgradeReplayByGuestTokenInExecutor(executor, guestToken);
+    if (replay !== null) {
+      await lockAccountLifecyclesInExecutor(executor, [replay.canonicalTargetUserId]);
+      await assertSubjectIsNotDeletedInExecutor(executor, cognitoSubject);
+      await assertBrowserReplayIdentityInExecutor(executor, replay.canonicalTargetUserId, cognitoSubject);
+      return {
+        mode: "merge_required",
+        ...(replay.selectionType === "existing"
+          ? { demoOnlyDestinationWorkspaceId: replay.targetWorkspaceId } : {}),
+      };
     }
     throw new HttpError(401, "Guest session is invalid.", "GUEST_AUTH_INVALID");
   }
@@ -436,9 +455,7 @@ async function prepareGuestUpgradeWithAdmissionInExecutor(
   await assertGuestUserIsNotAnAccountInExecutor(executor, guestSession.userId, admission);
 
   if (existingMapping !== null) {
-    return {
-      mode: "merge_required",
-    };
+    return prepareExistingAccountGuestUpgradeInExecutor(executor, guestSession.userId, existingMapping.userId);
   }
 
   await applyUserDatabaseScopeInExecutor(executor, { userId: cognitoSubject });
@@ -448,9 +465,7 @@ async function prepareGuestUpgradeWithAdmissionInExecutor(
   );
   if (fallbackProfile.rows[0] !== undefined) {
     await bindCognitoIdentityMappingInExecutor(executor, cognitoSubject, cognitoSubject);
-    return {
-      mode: "merge_required",
-    };
+    return prepareExistingAccountGuestUpgradeInExecutor(executor, guestSession.userId, cognitoSubject);
   }
 
   await bindCognitoIdentityMappingInExecutor(executor, cognitoSubject, guestSession.userId);
@@ -478,11 +493,27 @@ async function completeGuestUpgradeWithAdmissionInExecutor(
   capabilities: GuestUpgradeCompleteCapabilities,
   admission: GuestUpgradeAdmission,
 ): Promise<GuestUpgradeCompletion> {
+  const replaySelection = admission === "browser" || (selection.type === "existing" && selection.discardDemoOnly === true)
+    ? selection : null;
   await lockCognitoIdentityLifecycleInExecutor(executor, cognitoSubject);
   await assertSubjectIsNotDeletedInExecutor(executor, cognitoSubject);
   // Phase 1: load the guest session identity before taking user row locks.
   const unlockedGuestSession = await loadGuestSessionRecordInExecutor(executor, guestToken, false);
   const targetMapping = await loadCognitoIdentityMappingInExecutor(executor, cognitoSubject);
+  if (selection.type === "existing" && selection.discardDemoOnly === true
+      && unlockedGuestSession !== null && unlockedGuestSession.revokedAt === null
+      && targetMapping !== null && targetMapping.userId !== unlockedGuestSession.userId) {
+    // Fence every scoped guest writer before taking account/row locks; waiting here could
+    // deadlock a writer that already owns a shared scope and needs a lifecycle lock.
+    const fence = await executor.query<Readonly<{ locked: boolean }>>(
+      "SELECT pg_try_advisory_xact_lock(hashtextextended('auth.account_writer:' || $1::text, 2::bigint)) AS locked",
+      [unlockedGuestSession.userId],
+    );
+    if (fence.rows[0]?.locked !== true) {
+      throw new HttpError(409, "Guest writes are still active. Finish syncing the guest workspace and retry the saved destination.",
+        "GUEST_UPGRADE_GUEST_BUSY");
+    }
+  }
   await lockAccountLifecyclesInExecutor(executor, [
     ...(unlockedGuestSession === null ? [] : [unlockedGuestSession.userId]),
     ...(targetMapping === null ? [] : [targetMapping.userId]),
@@ -494,7 +525,7 @@ async function completeGuestUpgradeWithAdmissionInExecutor(
       guestToken,
       cognitoSubject,
       capabilities,
-      admission === "browser" ? selection : null,
+      replaySelection,
     );
   }
 
@@ -515,7 +546,7 @@ async function completeGuestUpgradeWithAdmissionInExecutor(
         guestToken,
         cognitoSubject,
         capabilities,
-        admission === "browser" ? selection : null,
+        replaySelection,
       );
     }
 
@@ -537,7 +568,7 @@ async function completeGuestUpgradeWithAdmissionInExecutor(
         guestToken,
         cognitoSubject,
         capabilities,
-        admission === "browser" ? selection : null,
+        replaySelection,
       );
     }
 
@@ -546,7 +577,7 @@ async function completeGuestUpgradeWithAdmissionInExecutor(
       guestSession.sessionId,
       cognitoSubject,
       capabilities,
-      admission === "browser" ? selection : null,
+      replaySelection,
     );
   }
 
@@ -574,7 +605,7 @@ async function completeGuestUpgradeWithAdmissionInExecutor(
         guestToken,
         cognitoSubject,
         capabilities,
-        admission === "browser" ? selection : null,
+        replaySelection,
       );
     }
 
@@ -584,7 +615,7 @@ async function completeGuestUpgradeWithAdmissionInExecutor(
         guestSession.sessionId,
         cognitoSubject,
         capabilities,
-        admission === "browser" ? selection : null,
+        replaySelection,
       );
     }
 
@@ -628,7 +659,7 @@ async function completeGuestUpgradeWithAdmissionInExecutor(
       guestToken,
       cognitoSubject,
       capabilities,
-      admission === "browser" ? selection : null,
+      replaySelection,
     );
   }
 
@@ -638,7 +669,7 @@ async function completeGuestUpgradeWithAdmissionInExecutor(
       guestSession.sessionId,
       cognitoSubject,
       capabilities,
-      admission === "browser" ? selection : null,
+      replaySelection,
     );
   }
 
@@ -650,6 +681,10 @@ async function completeGuestUpgradeWithAdmissionInExecutor(
   // drain protocol. Omitted capability fields are the legacy shipped-client
   // route shape and must remain compatible until those clients are out of support.
   assertGuestWorkspaceSyncedAndOutboxDrained(capabilities);
+  if (selection.type === "existing" && selection.discardDemoOnly === true) {
+    if (!capabilities.guestWorkspaceSyncedAndOutboxDrained) throw createGuestWorkspaceNotDrainedError();
+    if (!capabilities.supportsDroppedEntities) throw createDroppedEntitiesUnsupportedReplayError();
+  }
 
   // Phase 7: resolve explicit source and destination workspace ids.
   const guestUpgradeResolution = await resolveGuestUpgradeTargetInExecutor(
@@ -669,8 +704,9 @@ async function completeGuestUpgradeWithAdmissionInExecutor(
     guestUpgradeResolution.targetUserId,
   );
 
-  // Phase 8: merge already-synced guest cloud state into the destination workspace.
-  const guestUpgradeMerge = await mergeGuestWorkspaceIntoTargetInExecutor(
+  const mergeGuestWorkspace = selection.type === "existing" && selection.discardDemoOnly === true
+    ? discardGuestDemoOnlyInExecutor : mergeGuestWorkspaceIntoTargetInExecutor;
+  const guestUpgradeMerge = await mergeGuestWorkspace(
     executor,
     {
       guestSessionId: guestSession.sessionId,
@@ -797,7 +833,7 @@ async function assertBrowserReplayIdentityInExecutor(
   }
 }
 
-function assertBrowserReplaySelection(
+function assertGuestUpgradeReplaySelection(
   replay: Readonly<{ selectionType: GuestUpgradeSelection["type"]; targetWorkspaceId: string }>,
   selection: GuestUpgradeSelection,
 ): void {

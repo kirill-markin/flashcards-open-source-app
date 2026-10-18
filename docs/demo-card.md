@@ -26,7 +26,6 @@ Local editors must also latch it to retain an edit reverted before the server ob
 Sync, first-link forks and actual guest transfers retain provenance; arbitrary package copies strip
 it and keep ordinary source attribution. Missing, invalid or unknown provenance means ordinary
 preserved content. Never infer it from text, tags, IDs or current locale, or retrofit existing cards.
-This additive server contract does not change seeding, cleanup or workspace visibility.
 
 ## Who gets it
 
@@ -117,6 +116,42 @@ first-link path only one side's content ends up in the linked workspace:
 
 ### Guest upgrade
 
+The native and browser guest-upgrade endpoints share an additive demo-only protocol. Existing
+clients retain the explicit transfer and post-merge cleanup described below.
+
+For a guest whose entire stored content is one active, unchanged provenance-backed onboarding demo,
+preparation returns `mode: "merge_required"` and optional `demoOnlyDestinationWorkspaceId`. Reviews
+and scheduler state do not count as edits. Tombstones, other cards, decks, media, chat/history or
+other material workspace content prevent qualification; missing, invalid or edited provenance never
+authorizes disposal. The destination is the account's selected accessible visible workspace, or
+its earliest visible existing workspace. This shortcut never creates a workspace.
+
+A client supporting this path must finish guest sync and drain its outbox, persist
+`selection: { type: "existing", workspaceId: demoOnlyDestinationWorkspaceId, discardDemoOnly: true }`
+before completion, and send `guestWorkspaceSyncedAndOutboxDrained: true` and
+`supportsDroppedEntities: true`. It skips transfer selection. Completion fences guest writes,
+revalidates eligibility, and atomically deletes the demo and its reviews, records their IDs in
+durable `droppedEntities`, and completes the ordinary identity, billing, consent and preference
+transfers. It preserves the destination scheduler even when the guest's settings are newer.
+The destination may be empty. A `bound` new-account upgrade retains its demo and reviews.
+
+`GUEST_UPGRADE_DEMO_ONLY_NOT_ELIGIBLE` (409) means content changed: preserve guest data, prepare
+again and obtain an explicit transfer choice. Never turn this refusal into an automatic ordinary
+merge. `GUEST_UPGRADE_GUEST_BUSY` (409) means another guest writer is active: finish guest sync and
+retry the saved selection. Missing drain or reconciliation support is refused with the existing
+`GUEST_UPGRADE_GUEST_SYNC_NOT_DRAINED` or `GUEST_UPGRADE_DROPPED_ENTITIES_UNSUPPORTED` errors.
+
+After a lost completion response, process death or an in-process retry, complete with the saved
+selection and reconcile the replayed `droppedEntities` before resuming normal account sync.
+Preparation after an already-committed existing-workspace upgrade also returns the history's
+original destination as `demoOnlyDestinationWorkspaceId`; this is recovery information, not a
+new content qualification. It must never follow a later account workspace selection. Replays
+require a proved identity of the same canonical account, and browser or opt-in native completion
+refuses a changed destination with `GUEST_UPGRADE_SELECTION_MISMATCH`. If the saved destination
+is unavailable, surface recovery failure and preserve local data instead of choosing another one.
+
+#### Legacy explicit transfer
+
 Guest upgrade merges the already-synced guest workspace into the destination workspace instead of
 choosing a side (see [docs/sync-identity-model.md](sync-identity-model.md)), so neither path above
 applies, and the guest device seeded its card before it knew about any account. The web and mobile clients resolve this
@@ -151,15 +186,18 @@ Accepted limits:
   completion call is not among the captured guest ids and counts as an account card, so the card can
   be deleted from an account that had none of its own.
 
-This is the only cleanup; there is no other tag-based cleanup and no unlinking logic anywhere.
+Outside the opt-in demo-only protocol, this remains the only cleanup; there is no other
+tag-based cleanup or unlinking logic.
 
 ## Deletion
 
-Deleting the card, by the user or by the guest-upgrade cleanup, is an ordinary card deletion
-producing an ordinary tombstone. It must never be re-seeded into the workspace it was deleted from:
-the tombstone keeps every seed guard closed, and a card a later mobile reset seeds is discarded or
+User deletion and legacy post-merge cleanup are ordinary card deletions producing tombstones.
+The tombstone prevents re-seeding into that workspace, and a card a later mobile reset seeds is discarded or
 cleaned up on the way back into that workspace, within the guest-upgrade limits above. Linking into a
 different, empty workspace of the same account keeps it, as described above.
+
+Demo-only completion removes the source workspace and uses durable dropped-entity IDs for local
+reconciliation; it creates no card or review rows in the existing destination.
 
 ## Canonical English source text
 
