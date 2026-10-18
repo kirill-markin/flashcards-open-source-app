@@ -17,7 +17,8 @@ const roCatalog: TranslationCatalog = {
   },
   stripe: createStripeCatalog(stripeCopy),
   paywall: {
-    heading: "Învățarea este pentru toți.",
+    heading: "Învățarea este pentru <em>toți.</em>",
+    alwaysFree: "Mereu gratuit",
     freeTitle: "Gratuit",
     freeDescription: "Creat pentru studenții fără loc de muncă. Deschis tuturor. Rucsacul tău tocmai a devenit mai ușor.",
     freeBenefit: "Recapitulări de bază, învățare offline și sincronizare",
@@ -25,7 +26,7 @@ const roCatalog: TranslationCatalog = {
     creatorSupport: "Abonamentul tău îl ajută pe creatorul Nibomo, {{creator}}, să plătească serverele și să pregătească următoarea actualizare cu cafea și pizza.",
     basePrice: "Preț de bază: {{price}} / lună",
     startTrial: "Începe proba gratuită de 7 zile",
-    trialPrice: "7 zile gratuit, apoi un preț de bază lunar de {{price}}. Este necesară o metodă de plată. Anulează înainte de finalul perioadei de probă pentru a evita prima debitare.",
+    trialPrice: "7 zile gratuite, apoi preț de bază {{price}}/lună. Este necesară o metodă de plată; anulează înainte de finalul perioadei de probă pentru a evita prima plată.",
     checkoutPrice: "Stripe confirmă prețul final și moneda de facturare la plată.",
   },
   accentColorSettings: {

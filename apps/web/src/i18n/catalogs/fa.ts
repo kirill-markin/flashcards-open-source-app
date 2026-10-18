@@ -17,7 +17,8 @@ const faCatalog: TranslationCatalog = {
   },
   stripe: createStripeCatalog(stripeCopy),
   paywall: {
-    heading: "یادگیری برای همه است.",
+    heading: "یادگیری برای <em>همه</em> است.",
+    alwaysFree: "همیشه رایگان",
     freeTitle: "رایگان",
     freeDescription: "برای دانشجویان بدون شغل ساخته شده. در دسترس همه است. کوله‌پشتی‌ات کمی سبک‌تر شد.",
     freeBenefit: "مرورهای پایه، یادگیری آفلاین و همگام‌سازی",
@@ -25,7 +26,7 @@ const faCatalog: TranslationCatalog = {
     creatorSupport: "اشتراک شما به سازندهٔ Nibomo، {{creator}}، کمک می‌کند هزینهٔ سرورها را بپردازد و با قهوه و پیتزا به‌روزرسانی بعدی را آماده کند.",
     basePrice: "قیمت پایه: {{price}} / ماه",
     startTrial: "شروع دورهٔ آزمایشی رایگان ۷ روزه",
-    trialPrice: "۷ روز رایگان، سپس قیمت پایهٔ ماهانهٔ {{price}}. روش پرداخت لازم است. برای جلوگیری از اولین برداشت، پیش از پایان دوره لغو کنید.",
+    trialPrice: "7 روز رایگان، سپس قیمت پایهٔ {{price}} در ماه. روش پرداخت لازم است؛ برای جلوگیری از اولین برداشت، پیش از پایان دورهٔ آزمایشی لغو کنید.",
     checkoutPrice: "Stripe قیمت نهایی و ارز صورتحساب را هنگام پرداخت تأیید می‌کند.",
   },
   accentColorSettings: {
