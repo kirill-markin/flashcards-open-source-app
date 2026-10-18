@@ -73,9 +73,11 @@ export const createdRolesByMigration = new Map([
 // migration contracts retain their original cutoffs.
 export const boundaryDefinitions = Object.freeze([
   Object.freeze({
-    migrationFileName: "0220_first_review_onboarding.sql",
-    expectedMigrationCount: 222,
+    migrationFileName: "0221_browser_guest_ai_trial.sql",
+    expectedMigrationCount: 223,
     testFiles: Object.freeze([
+      "src/aiUsage/browserGuestTrial/budget.postgres.integration.ts",
+      "src/aiUsage/aiUsage.postgres.integration.ts",
       "src/guestAuth/upgrade/boundGuestSession.postgres.integration.ts",
       "src/aiConsent/consent.postgres.integration.ts",
       "src/routes/system/account/accountPreferences.postgres.integration.ts",
@@ -136,7 +138,6 @@ export const boundaryDefinitions = Object.freeze([
     expectedMigrationCount: 208,
     testFiles: Object.freeze([
       "src/billing/entitlement.postgres.integration.ts",
-      "src/aiUsage/aiUsage.postgres.integration.ts",
     ]),
   }),
   Object.freeze({
