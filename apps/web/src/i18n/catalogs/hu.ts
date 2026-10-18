@@ -63,6 +63,7 @@ const huCatalog: TranslationCatalog = {
     limitTitle: "Elérted az MI-üzenetek korlátját",
     previewOffer: "Premium-ajánlat előnézete",
     previewAi: "MI-korlát előnézete",
+    previewNoPurchase: "Tesztmód: nem történik vásárlás, és nem számítunk fel díjat.",
     retryManually: "Térj vissza a csevegéshez, és küldd el újra az üzenetet, amikor készen állsz. A kulcsbeállítások automatikusan mentődnek.",
   },
   common: {

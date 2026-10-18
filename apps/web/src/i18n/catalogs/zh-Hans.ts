@@ -63,6 +63,7 @@ export const zhHansCatalog = {
     limitTitle: "已达到 AI 消息上限",
     previewOffer: "预览 Premium 方案",
     previewAi: "预览 AI 上限",
+    previewNoPurchase: "测试模式：不会进行购买，也不会向你收费。",
     retryManually: "准备好后，返回聊天并重新发送消息。密钥设置会自动保存。",
   },
   common: {

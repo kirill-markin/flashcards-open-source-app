@@ -63,6 +63,7 @@ const hiCatalog: TranslationCatalog = {
     limitTitle: "AI संदेशों की सीमा पूरी हो गई",
     previewOffer: "Premium प्रस्ताव का पूर्वावलोकन",
     previewAi: "AI सीमा का पूर्वावलोकन",
+    previewNoPurchase: "टेस्ट मोड: कोई खरीदारी नहीं होगी और आपसे कोई शुल्क नहीं लिया जाएगा।",
     retryManually: "चैट पर लौटें और तैयार होने पर अपना संदेश फिर भेजें। आपकी कुंजी की सेटिंग अपने-आप सहेजी जाती हैं।",
   },
   common: {
