@@ -13,6 +13,7 @@ import {
 import { assertSubjectIsNotDeletedInExecutor } from "../../auth/deletedSubjects";
 import { transferAiUsageToUpgradedAccountInExecutor } from "../../aiUsage/identity";
 import { transferGuestAiConsentInExecutor } from "../../aiConsent";
+import { transferPaywallStateToUpgradedAccountInExecutor } from "../../paywallState";
 import { transferBillingToUpgradedAccountInExecutor } from "../../billing/identity";
 import { HttpError } from "../../shared/errors";
 import {
@@ -748,6 +749,12 @@ async function completeGuestUpgradeWithAdmissionInExecutor(
   );
 
   await carryGuestAccentColorToAccountInExecutor(
+    executor,
+    guestSession.userId,
+    guestUpgradeResolution.targetUserId,
+  );
+
+  await transferPaywallStateToUpgradedAccountInExecutor(
     executor,
     guestSession.userId,
     guestUpgradeResolution.targetUserId,

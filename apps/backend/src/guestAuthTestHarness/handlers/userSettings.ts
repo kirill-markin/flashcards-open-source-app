@@ -3,8 +3,33 @@ import { createUserSettingsState } from "../fixtures";
 import {
   type GuestUpgradeExecutorParam,
   type GuestUpgradeHandlerContext,
+  type UserSettingsState,
 } from "../models";
 import { createQueryResult } from "../queryResult";
+
+const paywallStateColumns = "paywall_intro_shown_at, paywall_intro_local_date::TEXT, "
+  + "paywall_intro_time_zone, paywall_follow_up_shown_at, paywall_last_shown_at";
+
+function createPaywallStateRow<Row extends pg.QueryResultRow>(settings: UserSettingsState): Row {
+  return {
+    paywall_intro_shown_at: settings.paywall_intro_shown_at,
+    paywall_intro_local_date: settings.paywall_intro_local_date,
+    paywall_intro_time_zone: settings.paywall_intro_time_zone,
+    paywall_follow_up_shown_at: settings.paywall_follow_up_shown_at,
+    paywall_last_shown_at: settings.paywall_last_shown_at,
+  } as unknown as Row;
+}
+
+function toNullableString(param: GuestUpgradeExecutorParam): string | null {
+  return param === null ? null : param instanceof Date ? param.toISOString() : String(param);
+}
+
+function paywallIntroOrderKey(shownAt: string, localDate: string | null, timeZone: string | null): string {
+  if (localDate === null || timeZone === null) {
+    throw new Error("Paywall intro must include its local date and time zone.");
+  }
+  return [new Date(shownAt).toISOString(), localDate, timeZone].join("\u0000");
+}
 
 export function handleUserSettingsExecutorQuery<Row extends pg.QueryResultRow>(
   context: GuestUpgradeHandlerContext,
@@ -12,6 +37,55 @@ export function handleUserSettingsExecutorQuery<Row extends pg.QueryResultRow>(
   params: ReadonlyArray<GuestUpgradeExecutorParam>,
 ): pg.QueryResult<Row> | null {
   const { scope, state } = context;
+
+  if (text === `SELECT ${paywallStateColumns} FROM org.user_settings WHERE user_id = $1`) {
+    const userId = String(params[0]);
+    scope.requireCurrentUserScope(userId);
+    const row = state.userSettings.get(userId);
+    return createQueryResult<Row>(row === undefined ? [] : [createPaywallStateRow<Row>(row)]);
+  }
+
+  if (
+    text.startsWith("UPDATE org.user_settings SET paywall_intro_shown_at = CASE WHEN ")
+    && text.endsWith(`WHERE user_id = $1 RETURNING ${paywallStateColumns}`)
+  ) {
+    const userId = String(params[0]);
+    scope.requireCurrentUserScope(userId);
+    const current = state.userSettings.get(userId);
+    if (current === undefined) {
+      return createQueryResult<Row>([]);
+    }
+    const introShownAt = toNullableString(params[1]);
+    const introLocalDate = toNullableString(params[2]);
+    const introTimeZone = toNullableString(params[3]);
+    const followUpShownAt = toNullableString(params[4]);
+    const lastShownAt = toNullableString(params[5]);
+    const incomingIntroWins = introShownAt !== null && (
+      current.paywall_intro_shown_at === null
+      || paywallIntroOrderKey(introShownAt, introLocalDate, introTimeZone)
+        < paywallIntroOrderKey(
+          current.paywall_intro_shown_at,
+          current.paywall_intro_local_date,
+          current.paywall_intro_time_zone,
+        )
+    );
+    const updated: UserSettingsState = {
+      ...current,
+      paywall_intro_shown_at: incomingIntroWins ? introShownAt : current.paywall_intro_shown_at,
+      paywall_intro_local_date: incomingIntroWins ? introLocalDate : current.paywall_intro_local_date,
+      paywall_intro_time_zone: incomingIntroWins ? introTimeZone : current.paywall_intro_time_zone,
+      paywall_follow_up_shown_at: followUpShownAt !== null && (
+        current.paywall_follow_up_shown_at === null
+        || Date.parse(followUpShownAt) < Date.parse(current.paywall_follow_up_shown_at)
+      ) ? followUpShownAt : current.paywall_follow_up_shown_at,
+      paywall_last_shown_at: lastShownAt !== null && (
+        current.paywall_last_shown_at === null
+        || Date.parse(lastShownAt) > Date.parse(current.paywall_last_shown_at)
+      ) ? lastShownAt : current.paywall_last_shown_at,
+    };
+    state.userSettings.set(userId, updated);
+    return createQueryResult<Row>([createPaywallStateRow<Row>(updated)]);
+  }
 
   if (text === "SELECT user_id FROM org.user_settings WHERE user_id = $1 LIMIT 1") {
     const userId = String(params[0]);
