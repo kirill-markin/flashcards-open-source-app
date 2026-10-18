@@ -980,6 +980,7 @@
 "premium.offer.unlimitedAI" = "Повідомлення ШІ без місячного ліміту";
 "premium.offer.styles" = "Власні кольори та стилі";
 "premium.offer.creatorSupport" = "Ваша підписка допомагає творцю Nibomo, [Kirill Markin](https://kirill-markin.com/), оплачувати сервери й готувати наступне оновлення з кавою та піцою.";
+"premium.offer.previewPurchaseMessage" = "Це тестовий попередній перегляд. Покупку не буде здійснено.";
 "premium.offer.subscribe" = "Підписатися";
 "premium.offer.startTrial" = "Почати безкоштовний пробний період: %@";
 "premium.offer.view" = "Переглянути Premium";

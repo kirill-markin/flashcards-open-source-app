@@ -980,6 +980,7 @@
 "premium.offer.unlimitedAI" = "Aylık sınır olmadan yapay zekâ mesajları";
 "premium.offer.styles" = "Özel renkler ve stiller";
 "premium.offer.creatorSupport" = "Aboneliğiniz, Nibomo’nun yaratıcısı [Kirill Markin](https://kirill-markin.com/) için sunucu masraflarını karşılamaya ve kahve ile pizza eşliğinde sonraki güncellemeyi hazırlamaya yardımcı olur.";
+"premium.offer.previewPurchaseMessage" = "Bu bir test önizlemesidir. Satın alma işlemi yapılmayacaktır.";
 "premium.offer.subscribe" = "Abone ol";
 "premium.offer.startTrial" = "Ücretsiz denemeyi başlat: %@";
 "premium.offer.view" = "Premium’u gör";

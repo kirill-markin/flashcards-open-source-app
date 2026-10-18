@@ -980,6 +980,7 @@
 "premium.offer.unlimitedAI" = "Správy AI bez mesačného limitu";
 "premium.offer.styles" = "Vlastné farby a štýly";
 "premium.offer.creatorSupport" = "Vaše predplatné pomáha tvorcovi Nibomo, [Kirill Markin](https://kirill-markin.com/), platiť servery a pripravovať ďalšiu aktualizáciu s kávou a pizzou.";
+"premium.offer.previewPurchaseMessage" = "Toto je testovací náhľad. Žiadny nákup sa nevykoná.";
 "premium.offer.subscribe" = "Predplatiť";
 "premium.offer.startTrial" = "Začať bezplatné skúšobné obdobie: %@";
 "premium.offer.view" = "Zobraziť Premium";

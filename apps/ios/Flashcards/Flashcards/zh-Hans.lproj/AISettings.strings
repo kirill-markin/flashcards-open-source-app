@@ -1008,6 +1008,7 @@
 "premium.offer.unlimitedAI" = "AI 消息无月度上限";
 "premium.offer.styles" = "自定义颜色和样式";
 "premium.offer.creatorSupport" = "你的订阅帮助 Nibomo 的创作者 [Kirill Markin](https://kirill-markin.com/) 支付服务器费用，也为下一次更新提供咖啡和披萨的动力。";
+"premium.offer.previewPurchaseMessage" = "这是测试预览，不会进行任何购买。";
 "premium.offer.subscribe" = "订阅";
 "premium.offer.startTrial" = "开始免费试用：%@";
 "premium.offer.view" = "查看 Premium";

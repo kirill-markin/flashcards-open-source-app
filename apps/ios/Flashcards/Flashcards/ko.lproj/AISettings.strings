@@ -980,6 +980,7 @@
 "premium.offer.unlimitedAI" = "월 제한 없는 AI 메시지";
 "premium.offer.styles" = "맞춤 색상과 스타일";
 "premium.offer.creatorSupport" = "구독은 Nibomo 제작자 [Kirill Markin](https://kirill-markin.com/)이 서버 비용을 내고 커피와 피자와 함께 다음 업데이트를 준비하는 데 도움이 됩니다.";
+"premium.offer.previewPurchaseMessage" = "테스트 미리보기입니다. 구매는 진행되지 않습니다.";
 "premium.offer.subscribe" = "구독하기";
 "premium.offer.startTrial" = "무료 체험 시작: %@";
 "premium.offer.view" = "Premium 보기";
