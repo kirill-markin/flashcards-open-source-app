@@ -4,6 +4,18 @@ import type { TranslationCatalog } from "../catalogTypes";
 
 const thCatalog: TranslationCatalog = {
   stripe: createStripeCatalog(stripeCopy),
+  paywall: {
+    heading: "การเรียนรู้เป็นของทุกคน",
+    freeTitle: "ฟรี",
+    freeDescription: "สร้างขึ้นเพื่อนักศึกษาที่ยังไม่มีงานทำ เปิดให้ทุกคนใช้ กระเป๋าของคุณเบาลงอีกนิดแล้ว",
+    freeBenefit: "ทบทวนพื้นฐาน เรียนแบบออฟไลน์ และซิงค์ข้อมูล",
+    continueFree: "ใช้งานฟรีต่อ",
+    creatorSupport: "การสมัครของคุณช่วยให้ผู้สร้าง Nibomo อย่าง {{creator}} จ่ายค่าเซิร์ฟเวอร์และเตรียมอัปเดตครั้งต่อไปด้วยกาแฟและพิซซ่า",
+    basePrice: "ราคาฐาน: {{price}} / เดือน",
+    startTrial: "เริ่มทดลองใช้ฟรี 7 วัน",
+    trialPrice: "ฟรี 7 วัน จากนั้นราคาฐานรายเดือน {{price}} ต้องระบุวิธีชำระเงิน ยกเลิกก่อนสิ้นสุดการทดลองเพื่อหลีกเลี่ยงการเรียกเก็บครั้งแรก",
+    checkoutPrice: "Stripe จะยืนยันราคาสุดท้ายและสกุลเงินที่เรียกเก็บในหน้าชำระเงิน",
+  },
   accentColorSettings: {
     title: "สีเน้น",
     subtitle: "เลือกสีเน้นของแอป",

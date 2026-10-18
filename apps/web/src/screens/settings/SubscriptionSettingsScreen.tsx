@@ -5,6 +5,7 @@ import { useI18n } from "../../i18n";
 import { useEntitlementSnapshot } from "../../premium/entitlementStore";
 import { hasPremiumAccess, usePremiumPresenter } from "../../premium/PremiumProvider";
 import { StripeBillingFeedback } from "../../premium/StripeBillingFeedback";
+import { readPaywallReturn, readPremiumReturnContinuation } from "../../premium/stripeIntent";
 import { StripeSubscriptions } from "../../premium/StripeSubscriptions";
 import { useStripeBilling } from "../../premium/useStripeBilling";
 import { SettingsGroup, SettingsShell } from "./SettingsShared";
@@ -23,14 +24,23 @@ export function SubscriptionSettingsScreen(): ReactElement {
   const presentPremium = usePremiumPresenter();
   const { t, formatDate, formatNumber } = useI18n();
   const [searchParams, setSearchParams] = useSearchParams();
+  const handledReturnRef = useRef<string | null>(null);
   const showOffer = entitlement !== null && !hasPremiumAccess(entitlement, 20);
   useEffect(() => {
     if (searchParams.get("premium") !== "offer" || entitlement === null || !isSessionVerified || presentPremium === null) return;
-    presentPremium({ reason: "offer", entryPoint: "guest_return" });
+    const returnKey = `${userId}:${searchParams.toString()}`;
+    if (handledReturnRef.current === returnKey) return;
+    const presentation = readPaywallReturn(searchParams);
+    const result = presentPremium({ reason: "offer", entryPoint: presentation?.entryPoint ?? "guest_return", presentation, continuation: readPremiumReturnContinuation(searchParams) });
+    if (result === "unavailable") return;
+    handledReturnRef.current = returnKey;
     const nextSearchParams = new URLSearchParams(searchParams);
     nextSearchParams.delete("premium");
+    nextSearchParams.delete("premium_presentation_id");
+    nextSearchParams.delete("premium_entry_point");
+    nextSearchParams.delete("premium_accent_color");
     setSearchParams(nextSearchParams, { replace: true });
-  }, [entitlement, isSessionVerified, presentPremium, searchParams, setSearchParams]);
+  }, [entitlement, isSessionVerified, presentPremium, searchParams, setSearchParams, userId]);
 
   return (
     <SettingsShell title={t("premium.subscription")} subtitle={t("premium.subscriptionDescription")} activeTab="account">

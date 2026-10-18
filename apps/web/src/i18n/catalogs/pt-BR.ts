@@ -4,6 +4,18 @@ import type { TranslationCatalog } from "../catalogTypes";
 
 const ptBrCatalog: TranslationCatalog = {
   stripe: createStripeCatalog(stripeCopy),
+  paywall: {
+    heading: "Aprender é para todos.",
+    freeTitle: "Grátis",
+    freeDescription: "Criado para estudantes sem emprego. Aberto a todos. Sua mochila acabou de ficar mais leve.",
+    freeBenefit: "Revisões essenciais, estudo offline e sincronização",
+    continueFree: "Continuar grátis",
+    creatorSupport: "Sua assinatura ajuda o criador do Nibomo, {{creator}}, a pagar os servidores e preparar a próxima atualização com café e pizza.",
+    basePrice: "Preço base: {{price}} / mês",
+    startTrial: "Iniciar teste grátis de 7 dias",
+    trialPrice: "7 dias grátis, depois o preço base mensal de {{price}}. É necessário um meio de pagamento. Cancele antes do fim do teste para evitar a primeira cobrança.",
+    checkoutPrice: "O Stripe confirma o preço final e a moeda de cobrança na finalização do pagamento.",
+  },
   accentColorSettings: {
     title: "Cor de destaque",
     subtitle: "Escolha a cor de destaque do aplicativo.",

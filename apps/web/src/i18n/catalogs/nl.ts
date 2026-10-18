@@ -4,6 +4,18 @@ import type { TranslationCatalog } from "../catalogTypes";
 
 const nlCatalog: TranslationCatalog = {
   stripe: createStripeCatalog(stripeCopy),
+  paywall: {
+    heading: "Leren is voor iedereen.",
+    freeTitle: "Gratis",
+    freeDescription: "Gemaakt voor studenten zonder baan. Voor iedereen toegankelijk. Je rugzak is zojuist lichter geworden.",
+    freeBenefit: "Basisherhalingen, offline leren en synchronisatie",
+    continueFree: "Gratis doorgaan",
+    creatorSupport: "Je abonnement helpt de maker van Nibomo, {{creator}}, de servers te betalen en met koffie en pizza aan de volgende update te werken.",
+    basePrice: "Basisprijs: {{price}} / maand",
+    startTrial: "Start een gratis proefperiode van 7 dagen",
+    trialPrice: "7 dagen gratis, daarna een maandelijkse basisprijs van {{price}}. Een betaalmethode is vereist. Zeg vóór het einde van de proefperiode op om de eerste afschrijving te voorkomen.",
+    checkoutPrice: "Stripe bevestigt de definitieve prijs en betaalvaluta bij het afrekenen.",
+  },
   accentColorSettings: {
     title: "Accentkleur",
     subtitle: "Kies de accentkleur van de app.",

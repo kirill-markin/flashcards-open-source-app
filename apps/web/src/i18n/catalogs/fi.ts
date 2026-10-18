@@ -4,6 +4,18 @@ import type { TranslationCatalog } from "../catalogTypes";
 
 const fiCatalog: TranslationCatalog = {
   stripe: createStripeCatalog(stripeCopy),
+  paywall: {
+    heading: "Oppiminen kuuluu kaikille.",
+    freeTitle: "Ilmainen",
+    freeDescription: "Luotu opiskelijoille ilman työpaikkaa. Avoin kaikille. Reppusi keveni juuri.",
+    freeBenefit: "Peruskertaukset, opiskelu offline-tilassa ja synkronointi",
+    continueFree: "Jatka ilmaiseksi",
+    creatorSupport: "Tilauksesi auttaa Nibomon tekijää, {{creator}}, maksamaan palvelimet ja tekemään seuraavaa päivitystä kahvin ja pizzan voimalla.",
+    basePrice: "Perushinta: {{price}} / kuukausi",
+    startTrial: "Aloita 7 päivän ilmainen kokeilu",
+    trialPrice: "7 päivää ilmaiseksi, sitten kuukausittainen perushinta {{price}}. Maksutapa vaaditaan. Peruuta ennen kokeilun päättymistä välttääksesi ensimmäisen veloituksen.",
+    checkoutPrice: "Stripe vahvistaa lopullisen hinnan ja laskutusvaluutan kassalla.",
+  },
   accentColorSettings: {
     title: "Korostusväri",
     subtitle: "Valitse sovelluksen korostusväri.",

@@ -217,7 +217,9 @@ export type AnalyticsPaywallEntryPoint =
   | "review_animations"
   | "ai_chat_suggestions"
   | "app_icon"
-  | "guest_return";
+  | "guest_return"
+  | "review"
+  | "ai_low_balance";
 
 export type AnalyticsPurchaseOfferType = "free_trial" | "standard";
 
@@ -459,14 +461,29 @@ export type AnalyticsEvent =
   | Readonly<{
     name: "paywall_shown";
     entryPoint: AnalyticsPaywallEntryPoint;
+    presentationId?: string;
+    reviewTrigger?: "initial" | "day3" | "weekly";
+    localDate?: string;
+    timeZone?: string;
+    contentVersion?: string;
+  }>
+  | Readonly<{
+    name: "paywall_choice";
+    presentationId: string;
+    entryPoint: AnalyticsPaywallEntryPoint;
+    outcome: "free" | "premium" | "dismissed";
   }>
   | Readonly<{
     name: "purchase_started";
     offerType: AnalyticsPurchaseOfferType;
+    presentationId?: string;
+    entryPoint?: AnalyticsPaywallEntryPoint;
   }>
   | Readonly<{
     name: "purchase_finished";
     outcome: AnalyticsPurchaseOutcome;
+    presentationId?: string;
+    entryPoint?: AnalyticsPaywallEntryPoint;
   }>
   | Readonly<{
     name: "subscription_management_opened";
@@ -609,11 +626,24 @@ export function buildAnalyticsEventProperties(event: AnalyticsEvent): AnalyticsE
     case "store_qr_shown":
       return { store: event.store, placement: event.placement };
     case "paywall_shown":
-      return { entry_point: event.entryPoint };
+      return {
+        entry_point: event.entryPoint,
+        ...(event.presentationId === undefined ? {} : { presentation_id: event.presentationId }),
+        ...(event.reviewTrigger === undefined ? {} : { review_trigger: event.reviewTrigger }),
+        ...(event.localDate === undefined ? {} : { local_date: event.localDate }),
+        ...(event.timeZone === undefined ? {} : { time_zone: event.timeZone }),
+        ...(event.contentVersion === undefined ? {} : { content_version: event.contentVersion }),
+      };
+    case "paywall_choice":
+      return { presentation_id: event.presentationId, entry_point: event.entryPoint, outcome: event.outcome };
     case "purchase_started":
-      return { offer_type: event.offerType };
+      return { offer_type: event.offerType,
+        ...(event.presentationId === undefined ? {} : { presentation_id: event.presentationId }),
+        ...(event.entryPoint === undefined ? {} : { entry_point: event.entryPoint }) };
     case "purchase_finished":
-      return { outcome: event.outcome };
+      return { outcome: event.outcome,
+        ...(event.presentationId === undefined ? {} : { presentation_id: event.presentationId }),
+        ...(event.entryPoint === undefined ? {} : { entry_point: event.entryPoint }) };
     case "subscription_management_opened":
       return { destination: event.destination };
     case "analytics_events_dropped":

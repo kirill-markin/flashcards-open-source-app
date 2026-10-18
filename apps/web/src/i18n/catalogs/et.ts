@@ -4,6 +4,18 @@ import type { TranslationCatalog } from "../catalogTypes";
 
 const etCatalog: TranslationCatalog = {
   stripe: createStripeCatalog(stripeCopy),
+  paywall: {
+    heading: "Õppimine kuulub kõigile.",
+    freeTitle: "Tasuta",
+    freeDescription: "Loodud tööta üliõpilastele. Avatud kõigile. Sinu seljakott muutus just kergemaks.",
+    freeBenefit: "Põhikordused, võrguühenduseta õppimine ja sünkroonimine",
+    continueFree: "Jätka tasuta",
+    creatorSupport: "Sinu tellimus aitab Nibomo loojal {{creator}} maksta serverite eest ning valmistada kohvi ja pitsa toel ette järgmist uuendust.",
+    basePrice: "Baashind: {{price}} / kuu",
+    startTrial: "Alusta 7-päevast tasuta prooviperioodi",
+    trialPrice: "7 päeva tasuta, seejärel igakuine baashind {{price}}. Vajalik on makseviis. Esimese makse vältimiseks tühista enne prooviperioodi lõppu.",
+    checkoutPrice: "Stripe kinnitab lõpliku hinna ja arveldusvaluuta maksmisel.",
+  },
   accentColorSettings: {
     title: "Rõhuvärv",
     subtitle: "Vali rakenduse rõhuvärv.",

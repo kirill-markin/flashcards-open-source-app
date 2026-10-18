@@ -4,6 +4,18 @@ import type { TranslationCatalog } from "../catalogTypes";
 
 const deCatalog: TranslationCatalog = {
   stripe: createStripeCatalog(stripeCopy),
+  paywall: {
+    heading: "Lernen ist für alle da.",
+    freeTitle: "Kostenlos",
+    freeDescription: "Für Studierende ohne Job entwickelt. Für alle offen. Dein Rucksack ist gerade leichter geworden.",
+    freeBenefit: "Grundlegendes Wiederholen, Offline-Lernen und Synchronisierung",
+    continueFree: "Kostenlos fortfahren",
+    creatorSupport: "Dein Abo hilft dem Nibomo-Entwickler {{creator}}, Server zu bezahlen und das nächste Update mit Kaffee und Pizza voranzubringen.",
+    basePrice: "Basispreis: {{price}} / Monat",
+    startTrial: "7 Tage kostenlos testen",
+    trialPrice: "7 Tage kostenlos, danach monatlich zum Basispreis von {{price}}. Eine Zahlungsmethode ist erforderlich. Kündige vor Ende des Tests, um die erste Abbuchung zu vermeiden.",
+    checkoutPrice: "Stripe bestätigt den endgültigen Preis und die Abrechnungswährung beim Checkout.",
+  },
   accentColorSettings: {
     title: "Akzentfarbe",
     subtitle: "Wähle die Akzentfarbe der App.",
