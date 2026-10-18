@@ -26,6 +26,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalResources
@@ -239,7 +240,7 @@ private fun PremiumCreatorSupport() {
             append(support.substring(0, nameStart))
             withLink(LinkAnnotation.Url(
                 url = "https://kirill-markin.com/",
-                styles = TextLinkStyles(style = SpanStyle(textDecoration = TextDecoration.Underline))
+                styles = TextLinkStyles(style = SpanStyle(color = Color.White, textDecoration = TextDecoration.Underline))
             )) { append(name) }
             append(support.substring(nameStart + name.length))
         }
