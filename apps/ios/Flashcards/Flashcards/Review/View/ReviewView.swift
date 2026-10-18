@@ -153,7 +153,7 @@ struct ReviewView: View {
         #endif
     }
 
-    private var reviewContentWithSheets: some View {
+    private var nativeReviewContent: some View {
         ZStack {
             Group {
                 if self.shouldShowReviewLoader {
@@ -292,6 +292,31 @@ struct ReviewView: View {
         ) {
             reviewBottomAccessory
         }
+    }
+
+    private var reviewContentWithOnboarding: some View {
+        self.nativeReviewContent
+        .overlayPreferenceValue(FirstReviewOnboardingAnchors.self) { anchors in
+            GeometryReader { geometry in
+                if self.canPresentSavedReviewPrompt,
+                   self.shouldShowReviewLoader == false,
+                   self.currentCard != nil,
+                   self.store.firstReviewOnboardingCompleted == false,
+                   let anchor = anchors[self.isAnswerVisible ? .again : .showAnswer] {
+                    let target = geometry[anchor]
+                    if target.width > 0, target.height > 0,
+                       CGRect(origin: .zero, size: geometry.size).contains(target) {
+                        FirstReviewOnboardingOverlay(
+                            target: target, size: geometry.size,
+                            accent: self.store.effectiveAccountAccentColor,
+                            animates: self.reduceMotion == false && self.isLowPowerModeEnabled == false
+                        )
+                    }
+                }
+            }
+            .allowsHitTesting(false)
+            .accessibilityHidden(true)
+        }
         .background {
             #if targetEnvironment(macCatalyst)
             MacStudyKeyboardReceiver(
@@ -334,6 +359,10 @@ struct ReviewView: View {
                 }
             }
         }
+    }
+
+    private var reviewContentWithSheets: some View {
+        self.reviewContentWithOnboarding
         // TODO: This preview is unreachable from Review while the queue toolbar shortcut is withheld.
         .fullScreenCover(isPresented: self.$isQueuePreviewPresented) {
             NavigationStack {
@@ -1195,6 +1224,9 @@ struct ReviewView: View {
         .nativeProminentActionButtonStyle()
         .reviewCardsShortcutHelp(key: String(localized: "Space", table: reviewCardsStringsTableName))
         .accessibilityIdentifier(UITestIdentifier.reviewShowAnswerButton)
+        .anchorPreference(key: FirstReviewOnboardingAnchors.self, value: .bounds) {
+            [.showAnswer: $0]
+        }
     }
 
     @ViewBuilder
@@ -1258,6 +1290,9 @@ struct ReviewView: View {
         .reviewCardsShortcutHelp(key: String(option.rating.rawValue + 1))
         .disabled(store.isReviewPending(cardId: cardId))
         .accessibilityIdentifier(reviewAnswerButtonIdentifier(rating: option.rating))
+        .anchorPreference(key: FirstReviewOnboardingAnchors.self, value: .bounds) {
+            option.rating == .again ? [.again: $0] : [:]
+        }
     }
 
     private func reviewActionErrorMessage(card: Card) -> String? {

@@ -983,3 +983,6 @@
 "premium.offer.subscribe" = "Pretplati se";
 "premium.offer.startTrial" = "Pokreni besplatno probno razdoblje: %@";
 "premium.offer.view" = "Pogledaj Premium";
+
+"settings.firstReviewOnboarding.title" = "Uvod u prvo ponavljanje je dovršen";
+"settings.firstReviewOnboarding.note" = "Isključite za ponovni prikaz vodiča pri ponavljanju kartice.";

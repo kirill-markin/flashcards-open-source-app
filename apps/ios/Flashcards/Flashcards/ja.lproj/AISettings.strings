@@ -1011,3 +1011,6 @@
 "premium.offer.subscribe" = "登録する";
 "premium.offer.startTrial" = "無料トライアルを開始：%@";
 "premium.offer.view" = "Premium を見る";
+
+"settings.firstReviewOnboarding.title" = "初回復習ガイドを完了";
+"settings.firstReviewOnboarding.note" = "オフにすると、カードの復習時にガイドが再び表示されます。";

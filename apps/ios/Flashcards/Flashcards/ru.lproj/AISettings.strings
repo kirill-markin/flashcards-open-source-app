@@ -1011,3 +1011,6 @@
 "premium.offer.subscribe" = "Подписаться";
 "premium.offer.startTrial" = "Начать бесплатный пробный период: %@";
 "premium.offer.view" = "Посмотреть Premium";
+
+"settings.firstReviewOnboarding.title" = "Обучение первому повторению завершено";
+"settings.firstReviewOnboarding.note" = "Выключите, чтобы снова увидеть подсказки при повторении карточки.";

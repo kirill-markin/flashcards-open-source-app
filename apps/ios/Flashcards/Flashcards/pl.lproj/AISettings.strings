@@ -983,3 +983,6 @@
 "premium.offer.subscribe" = "Subskrybuj";
 "premium.offer.startTrial" = "Rozpocznij bezpłatny okres próbny: %@";
 "premium.offer.view" = "Zobacz Premium";
+
+"settings.firstReviewOnboarding.title" = "Wprowadzenie do pierwszej powtórki ukończone";
+"settings.firstReviewOnboarding.note" = "Wyłącz, aby ponownie zobaczyć przewodnik podczas powtarzania karty.";

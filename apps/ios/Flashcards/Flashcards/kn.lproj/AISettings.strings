@@ -983,3 +983,6 @@
 "premium.offer.subscribe" = "ಚಂದಾದಾರರಾಗಿ";
 "premium.offer.startTrial" = "ಉಚಿತ ಪ್ರಯೋಗ ಪ್ರಾರಂಭಿಸಿ: %@";
 "premium.offer.view" = "Premium ನೋಡಿ";
+
+"settings.firstReviewOnboarding.title" = "ಮೊದಲ ಮರುಅಭ್ಯಾಸದ ಪರಿಚಯ ಪೂರ್ಣಗೊಂಡಿದೆ";
+"settings.firstReviewOnboarding.note" = "ಕಾರ್ಡ್ ಮರುಅಭ್ಯಾಸ ಮಾಡುವಾಗ ಮಾರ್ಗದರ್ಶಿಯನ್ನು ಮತ್ತೆ ನೋಡಲು ಇದನ್ನು ಆಫ್ ಮಾಡಿ.";

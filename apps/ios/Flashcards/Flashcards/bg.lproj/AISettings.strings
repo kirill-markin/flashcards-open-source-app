@@ -983,3 +983,6 @@
 "premium.offer.subscribe" = "Абонирай се";
 "premium.offer.startTrial" = "Започни безплатен пробен период: %@";
 "premium.offer.view" = "Виж Premium";
+
+"settings.firstReviewOnboarding.title" = "Въвеждането в първия преговор е завършено";
+"settings.firstReviewOnboarding.note" = "Изключете, за да видите ръководството отново при преговор на карта.";

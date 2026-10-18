@@ -1011,3 +1011,6 @@
 "premium.offer.subscribe" = "Suscribirse";
 "premium.offer.startTrial" = "Iniciar prueba gratis: %@";
 "premium.offer.view" = "Ver Premium";
+
+"settings.firstReviewOnboarding.title" = "Guía del primer repaso completada";
+"settings.firstReviewOnboarding.note" = "Desactiva esta opción para volver a ver la guía al repasar una tarjeta.";

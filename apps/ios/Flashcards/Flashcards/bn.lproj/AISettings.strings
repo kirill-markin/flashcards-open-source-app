@@ -983,3 +983,6 @@
 "premium.offer.subscribe" = "সাবস্ক্রাইব করুন";
 "premium.offer.startTrial" = "বিনামূল্যে ট্রায়াল শুরু করুন: %@";
 "premium.offer.view" = "Premium দেখুন";
+
+"settings.firstReviewOnboarding.title" = "প্রথম রিভিউয়ের পরিচিতি সম্পন্ন";
+"settings.firstReviewOnboarding.note" = "কার্ড রিভিউ করার সময় আবার নির্দেশিকা দেখতে এটি বন্ধ করুন।";

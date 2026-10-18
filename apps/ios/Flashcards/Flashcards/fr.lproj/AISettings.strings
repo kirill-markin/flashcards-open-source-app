@@ -1011,3 +1011,6 @@
 "premium.offer.subscribe" = "S’abonner";
 "premium.offer.startTrial" = "Commencer l’essai gratuit : %@";
 "premium.offer.view" = "Voir Premium";
+
+"settings.firstReviewOnboarding.title" = "Guide de la première révision terminé";
+"settings.firstReviewOnboarding.note" = "Désactivez pour revoir le guide lorsque vous révisez une carte.";

@@ -1011,3 +1011,6 @@
 "premium.offer.subscribe" = "اشتراك";
 "premium.offer.startTrial" = "بدء تجربة مجانية: %@";
 "premium.offer.view" = "عرض Premium";
+
+"settings.firstReviewOnboarding.title" = "اكتمل دليل المراجعة الأولى";
+"settings.firstReviewOnboarding.note" = "أوقف هذا الخيار لرؤية الدليل مجددًا عند مراجعة بطاقة.";

@@ -387,13 +387,15 @@ extension FlashcardsStore {
     func restoreGuestCloudSessionIfNeeded(
         trigger: CloudSyncTrigger
     ) async throws -> GuestCloudSessionRestoreResult {
-        try await self.cloudRuntime.prepareGuestCloudSession { [weak self] in
+        let result = try await self.cloudRuntime.prepareGuestCloudSession { [weak self] in
             guard let self else {
                 throw LocalStoreError.uninitialized("Flashcards store is unavailable")
             }
 
             return try await self.performRestoreGuestCloudSessionIfNeeded(trigger: trigger)
         }
+        self.triggerFirstReviewOnboardingPush()
+        return result
     }
 
     private func performRestoreGuestCloudSessionIfNeeded(
@@ -446,6 +448,7 @@ extension FlashcardsStore {
 
             try await self.performRestoreCloudLinkFromStoredCredentials(trigger: trigger)
         }
+        self.triggerFirstReviewOnboardingPush()
     }
 
     /**

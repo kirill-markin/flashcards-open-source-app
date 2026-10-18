@@ -983,3 +983,6 @@
 "premium.offer.subscribe" = "رکنیت لیں";
 "premium.offer.startTrial" = "مفت آزمائش شروع کریں: %@";
 "premium.offer.view" = "Premium دیکھیں";
+
+"settings.firstReviewOnboarding.title" = "پہلی دہرائی کا تعارف مکمل ہو گیا";
+"settings.firstReviewOnboarding.note" = "کارڈ دہراتے وقت رہنما دوبارہ دیکھنے کے لیے اسے بند کریں۔";

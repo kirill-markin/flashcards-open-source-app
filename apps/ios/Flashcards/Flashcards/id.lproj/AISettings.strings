@@ -983,3 +983,6 @@
 "premium.offer.subscribe" = "Berlangganan";
 "premium.offer.startTrial" = "Mulai uji coba gratis: %@";
 "premium.offer.view" = "Lihat Premium";
+
+"settings.firstReviewOnboarding.title" = "Panduan ulasan pertama selesai";
+"settings.firstReviewOnboarding.note" = "Nonaktifkan untuk melihat panduan lagi saat mengulas kartu.";

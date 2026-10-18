@@ -983,3 +983,6 @@
 "premium.offer.subscribe" = "Gerast áskrifandi";
 "premium.offer.startTrial" = "Hefja ókeypis prufu: %@";
 "premium.offer.view" = "Skoða Premium";
+
+"settings.firstReviewOnboarding.title" = "Leiðbeiningum fyrir fyrstu upprifjun lokið";
+"settings.firstReviewOnboarding.note" = "Slökktu til að sjá leiðbeiningarnar aftur þegar þú rifjar upp spjald.";

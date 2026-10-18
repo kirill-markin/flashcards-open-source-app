@@ -983,3 +983,6 @@
 "premium.offer.subscribe" = "Prenumeruoti";
 "premium.offer.startTrial" = "Pradėti nemokamą bandomąjį laikotarpį: %@";
 "premium.offer.view" = "Peržiūrėti Premium";
+
+"settings.firstReviewOnboarding.title" = "Pirmojo kartojimo vadovas baigtas";
+"settings.firstReviewOnboarding.note" = "Išjunkite, kad kartodami kortelę vėl matytumėte vadovą.";

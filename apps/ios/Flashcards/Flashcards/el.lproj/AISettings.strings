@@ -983,3 +983,6 @@
 "premium.offer.subscribe" = "Εγγραφή";
 "premium.offer.startTrial" = "Έναρξη δωρεάν δοκιμής: %@";
 "premium.offer.view" = "Προβολή Premium";
+
+"settings.firstReviewOnboarding.title" = "Η εισαγωγή στην πρώτη επανάληψη ολοκληρώθηκε";
+"settings.firstReviewOnboarding.note" = "Απενεργοποιήστε για να δείτε ξανά τον οδηγό όταν επαναλαμβάνετε μια κάρτα.";

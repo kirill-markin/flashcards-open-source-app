@@ -983,3 +983,6 @@
 "premium.offer.subscribe" = "להירשם למינוי";
 "premium.offer.startTrial" = "התחלת ניסיון חינם: %@";
 "premium.offer.view" = "הצגת Premium";
+
+"settings.firstReviewOnboarding.title" = "ההדרכה לחזרה הראשונה הושלמה";
+"settings.firstReviewOnboarding.note" = "כבו כדי לראות שוב את ההדרכה בזמן חזרה על כרטיסייה.";

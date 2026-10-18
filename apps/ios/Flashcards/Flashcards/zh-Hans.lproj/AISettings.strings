@@ -1011,3 +1011,6 @@
 "premium.offer.subscribe" = "订阅";
 "premium.offer.startTrial" = "开始免费试用：%@";
 "premium.offer.view" = "查看 Premium";
+
+"settings.firstReviewOnboarding.title" = "已完成首次复习引导";
+"settings.firstReviewOnboarding.note" = "关闭后，复习卡片时将再次显示引导。";

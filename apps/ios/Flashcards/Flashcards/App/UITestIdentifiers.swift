@@ -79,6 +79,7 @@ enum UITestIdentifier {
     static let settingsAppIconRow: String = "settings.appIconRow"
     static let settingsOwnOpenAIKeyRow: String = "settings.ownOpenAIKeyRow"
     static let settingsLeaderboardParticipationRow: String = "settings.leaderboardParticipationRow"
+    static let settingsFirstReviewOnboardingToggle: String = "settings.firstReviewOnboardingCompletedToggle"
     static let settingsProductAnalyticsRow: String = "settings.productAnalyticsRow"
     static let settingsLanguageRow: String = "settings.languageRow"
     static let settingsAccessRow: String = "settings.accessRow"

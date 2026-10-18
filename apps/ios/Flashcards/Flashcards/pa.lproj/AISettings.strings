@@ -983,3 +983,6 @@
 "premium.offer.subscribe" = "ਸਬਸਕ੍ਰਾਈਬ ਕਰੋ";
 "premium.offer.startTrial" = "ਮੁਫ਼ਤ ਅਜ਼ਮਾਇਸ਼ ਸ਼ੁਰੂ ਕਰੋ: %@";
 "premium.offer.view" = "Premium ਵੇਖੋ";
+
+"settings.firstReviewOnboarding.title" = "ਪਹਿਲੀ ਦੁਹਰਾਈ ਦੀ ਜਾਣ-ਪਛਾਣ ਪੂਰੀ ਹੋਈ";
+"settings.firstReviewOnboarding.note" = "ਕਾਰਡ ਦੀ ਦੁਹਰਾਈ ਕਰਦੇ ਸਮੇਂ ਗਾਈਡ ਦੁਬਾਰਾ ਦੇਖਣ ਲਈ ਇਸਨੂੰ ਬੰਦ ਕਰੋ।";

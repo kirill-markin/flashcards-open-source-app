@@ -983,3 +983,6 @@
 "premium.offer.subscribe" = "Abonner";
 "premium.offer.startTrial" = "Start gratis prøveperiode: %@";
 "premium.offer.view" = "Se Premium";
+
+"settings.firstReviewOnboarding.title" = "Introduktion til første repetition fuldført";
+"settings.firstReviewOnboarding.note" = "Slå fra for at se guiden igen, når du repeterer et kort.";

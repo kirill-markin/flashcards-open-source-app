@@ -983,3 +983,6 @@
 "premium.offer.subscribe" = "Subscriu-t’hi";
 "premium.offer.startTrial" = "Comença la prova gratuïta: %@";
 "premium.offer.view" = "Mostra Premium";
+
+"settings.firstReviewOnboarding.title" = "Guia del primer repàs completada";
+"settings.firstReviewOnboarding.note" = "Desactiva-ho per tornar a veure la guia quan repassis una targeta.";

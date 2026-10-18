@@ -983,3 +983,6 @@
 "premium.offer.subscribe" = "สมัครสมาชิก";
 "premium.offer.startTrial" = "เริ่มทดลองใช้ฟรี: %@";
 "premium.offer.view" = "ดู Premium";
+
+"settings.firstReviewOnboarding.title" = "แนะนำการทบทวนครั้งแรกเสร็จแล้ว";
+"settings.firstReviewOnboarding.note" = "ปิดเพื่อดูคำแนะนำอีกครั้งเมื่อทบทวนการ์ด";

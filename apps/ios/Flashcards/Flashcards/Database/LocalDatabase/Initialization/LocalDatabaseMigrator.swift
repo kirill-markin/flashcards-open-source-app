@@ -107,6 +107,9 @@ struct LocalDatabaseMigrator {
             case 23:
                 try self.migrateSchemaVersion23To24()
                 schemaVersion = 24
+            case 24:
+                try self.migrateSchemaVersion24To25()
+                schemaVersion = 25
             default:
                 throw LocalStoreError.database("Unsupported local schema version: \(schemaVersion)")
             }
@@ -1072,6 +1075,28 @@ struct LocalDatabaseMigrator {
             WHERE cards.deleted_at IS NULL AND tag_value.value IS NOT NULL AND tag_value.value <> ''
             """,
             values: []
+        )
+    }
+
+    private func migrateSchemaVersion24To25() throws {
+        try self.core.executeScript(
+            sql: """
+            CREATE TABLE IF NOT EXISTS first_review_onboarding (
+                settings_id INTEGER PRIMARY KEY CHECK (settings_id = 1),
+                owner_user_id TEXT,
+                completed INTEGER NOT NULL CHECK (completed IN (0, 1)),
+                is_known INTEGER NOT NULL CHECK (is_known IN (0, 1)),
+                pending INTEGER NOT NULL CHECK (pending IN (0, 1)),
+                generation TEXT NOT NULL,
+                completion_review_tokens_json TEXT NOT NULL DEFAULT '[]'
+            );
+            INSERT OR IGNORE INTO first_review_onboarding
+            SELECT 1, linked_user_id, EXISTS(SELECT 1 FROM review_events),
+                CASE WHEN cloud_state IN ('guest', 'linked') THEN 0 ELSE 1 END,
+                0, lower(hex(randomblob(16))), '[]'
+            FROM app_local_settings WHERE settings_id = 1;
+            """,
+            errorContext: "Failed to migrate first review onboarding"
         )
     }
 

@@ -983,3 +983,6 @@
 "premium.offer.subscribe" = "Abonēt";
 "premium.offer.startTrial" = "Sākt bezmaksas izmēģinājumu: %@";
 "premium.offer.view" = "Skatīt Premium";
+
+"settings.firstReviewOnboarding.title" = "Pirmās atkārtošanas pamācība pabeigta";
+"settings.firstReviewOnboarding.note" = "Izslēdziet, lai, atkārtojot kartīti, atkal redzētu pamācību.";

@@ -983,3 +983,6 @@
 "premium.offer.subscribe" = "Đăng ký";
 "premium.offer.startTrial" = "Bắt đầu dùng thử miễn phí: %@";
 "premium.offer.view" = "Xem Premium";
+
+"settings.firstReviewOnboarding.title" = "Đã hoàn tất hướng dẫn ôn tập đầu tiên";
+"settings.firstReviewOnboarding.note" = "Tắt để xem lại hướng dẫn khi ôn tập một thẻ.";

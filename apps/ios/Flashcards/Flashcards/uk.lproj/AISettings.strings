@@ -983,3 +983,6 @@
 "premium.offer.subscribe" = "Підписатися";
 "premium.offer.startTrial" = "Почати безкоштовний пробний період: %@";
 "premium.offer.view" = "Переглянути Premium";
+
+"settings.firstReviewOnboarding.title" = "Навчання першому повторенню завершено";
+"settings.firstReviewOnboarding.note" = "Вимкніть, щоб знову побачити підказки під час повторення картки.";
