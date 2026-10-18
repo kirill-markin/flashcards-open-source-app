@@ -3,6 +3,18 @@ import { createStripeCatalog } from "../stripeCatalog";
 import type { TranslationCatalog } from "../catalogTypes";
 
 const hiCatalog: TranslationCatalog = {
+  guest: {
+    title: "अतिथि",
+    signIn: "साइन इन करें",
+    saveProgress: "अपनी प्रगति सहेजें",
+    reminder: "ईमेल से साइन इन करें ताकि ये कार्ड और समीक्षा प्रगति खो न जाएँ।",
+    later: "बाद में",
+    warning: "दूसरे उपकरणों पर पहुँच बनाए रखने के लिए साइन इन करें। साइट का डेटा मिटाने से अतिथि पहुँच खो सकती है।",
+    mergeExplanation: "आपके कार्ड और समीक्षा इतिहास सुरक्षित रहेंगे। खाते में कार्यस्थान चुनें या नया बनाएँ।",
+    aiSignIn: "Nibomo AI के लिए साइन इन करें या अपनी OpenAI कुंजी इस्तेमाल करें।",
+    recovery: "अतिथि पहुँच सत्यापित नहीं है। कैश किए गए कार्ड केवल पढ़े जा सकते हैं। मूल सत्र या कनेक्शन बहाल करें, फिर दोबारा कोशिश करें।",
+    cleanupFailed: "साइन इन हो गया, लेकिन डेमो कार्ड हटाया नहीं जा सका।",
+  },
   stripe: createStripeCatalog(stripeCopy),
   accentColorSettings: {
     title: "एक्सेंट रंग",

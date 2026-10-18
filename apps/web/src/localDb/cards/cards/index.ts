@@ -725,6 +725,14 @@ export async function loadActiveCardCount(workspaceId: string): Promise<number> 
   return closeDatabaseAfter((database) => loadActiveCardCountWithDatabase(database, workspaceId));
 }
 
+export async function loadCardsIncludingDeleted(workspaceId: string): Promise<ReadonlyArray<Card>> {
+  return closeDatabaseAfter(async (database) => {
+    const cards: Array<Card> = [];
+    await iterateCardsByCreatedAtDesc(database, workspaceId, (card) => { cards.push(card); });
+    return cards;
+  });
+}
+
 export async function loadAllActiveCardsForSql(workspaceId: string): Promise<ReadonlyArray<Card>> {
   return closeDatabaseAfter((database) => loadActiveCardsForSqlWithDatabase(database, workspaceId));
 }

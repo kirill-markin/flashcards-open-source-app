@@ -3,6 +3,18 @@ import { createStripeCatalog } from "../stripeCatalog";
 import type { TranslationCatalog } from "../catalogTypes";
 
 const guCatalog: TranslationCatalog = {
+  guest: {
+    title: "અતિથિ",
+    signIn: "સાઇન-ઇન કરો",
+    saveProgress: "તમારી પ્રગતિ સાચવો",
+    reminder: "આ કાર્ડ અને પુનરાવર્તનની પ્રગતિ ખોવાઈ ન જાય તે માટે ઇમેઇલથી સાઇન-ઇન કરો.",
+    later: "પછી",
+    warning: "બીજા ઉપકરણો પર ઍક્સેસ જાળવવા સાઇન ઇન કરો. સાઇટનો ડેટા સાફ કરવાથી મહેમાન ઍક્સેસ ગુમાઈ શકે છે.",
+    mergeExplanation: "તમારા કાર્ડ અને સમીક્ષા ઇતિહાસ જળવાશે. ખાતામાં કાર્યસ્થળ પસંદ કરો અથવા નવું બનાવો.",
+    aiSignIn: "Nibomo AI માટે સાઇન ઇન કરો અથવા તમારી પોતાની OpenAI કી વાપરો.",
+    recovery: "મહેમાન ઍક્સેસ ચકાસાયેલ નથી. કૅશ કરેલા કાર્ડ ફક્ત વાંચી શકાય છે. મૂળ સત્ર અથવા કનેક્શન પુનઃસ્થાપિત કરીને ફરી પ્રયાસ કરો.",
+    cleanupFailed: "સાઇન ઇન સફળ થયું, પરંતુ ડેમો કાર્ડ દૂર કરી શકાયું નહીં.",
+  },
   stripe: createStripeCatalog(stripeCopy),
   accentColorSettings: {
     title: "ઍક્સેન્ટ રંગ",

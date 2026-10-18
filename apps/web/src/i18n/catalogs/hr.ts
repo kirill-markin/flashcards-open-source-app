@@ -3,6 +3,18 @@ import { createStripeCatalog } from "../stripeCatalog";
 import type { TranslationCatalog } from "../catalogTypes";
 
 const hrCatalog: TranslationCatalog = {
+  guest: {
+    title: "Gost",
+    signIn: "Prijavi se",
+    saveProgress: "Spremite svoj napredak",
+    reminder: "Prijavite se e-poštom kako se ove kartice i napredak ponavljanja ne bi izgubili.",
+    later: "Kasnije",
+    warning: "Prijavite se kako biste zadržali pristup na drugim uređajima. Brisanje podataka web-mjesta može dovesti do gubitka gostujućeg pristupa.",
+    mergeExplanation: "Vaše kartice i povijest ponavljanja bit će sačuvane. Odaberite radni prostor računa ili izradite novi.",
+    aiSignIn: "Prijavite se za korištenje Nibomo AI-ja ili upotrijebite vlastiti OpenAI ključ.",
+    recovery: "Gostujući pristup nije potvrđen. Kartice iz predmemorije dostupne su samo za čitanje. Vratite izvornu sesiju ili vezu pa pokušajte ponovno.",
+    cleanupFailed: "Prijava je uspjela, ali pokazna kartica nije se mogla ukloniti.",
+  },
   stripe: createStripeCatalog(stripeCopy),
   accentColorSettings: {
     title: "Boja naglaska",

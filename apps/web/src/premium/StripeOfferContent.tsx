@@ -1,5 +1,5 @@
 import type { ReactElement } from "react";
-import { buildLoginUrl } from "../api";
+import { GuestSignIn } from "../screens/settings/account/guest/GuestSignIn";
 import { useAppData } from "../appData";
 import { useI18n } from "../i18n";
 import type { PremiumContinuation } from "./stripeIntent";
@@ -7,14 +7,13 @@ import { StripeBillingFeedback } from "./StripeBillingFeedback";
 import { useStripeBilling } from "./useStripeBilling";
 
 export function StripeOfferContent(props: Readonly<{ continuation: PremiumContinuation | null }>): ReactElement {
-  const { t, formatNumber, locale } = useI18n();
+  const { t, formatNumber } = useI18n();
   const { session, isSessionVerified } = useAppData();
   const billing = useStripeBilling();
   const offer = billing.offer;
   const guest = session?.profile.email === null;
   const price = offer?.basePrice === null || offer?.basePrice === undefined ? null
     : formatNumber(offer.basePrice.unitAmount / 100, { style: "currency", currency: offer.basePrice.currency.toUpperCase() });
-  const loginUrl = buildLoginUrl(`${window.location.origin}/settings/subscription?premium=offer`, locale);
   return <section className="premium-offer" data-testid="stripe-offer">
     <h3 className="panel-subtitle">{t("stripe.offer.title")}</h3>
     <p className="subtitle">{t("stripe.offer.description")}</p>
@@ -28,7 +27,8 @@ export function StripeOfferContent(props: Readonly<{ continuation: PremiumContin
     <p className="subtitle">{t("stripe.offer.allowanceWindow")}</p>
     {guest ? <>
       <p className="subtitle">{t("stripe.offer.guestExplanation")}</p>
-      <a className="primary-btn" href={loginUrl} data-testid="premium-add-email">{t("stripe.offer.addEmail")}</a>
+      <GuestSignIn label={t("stripe.offer.addEmail")} testId="premium-add-email"
+        returnUrl={`${window.location.origin}/settings/subscription?premium=offer`} />
     </> : <>
       {price === null ? null : <>
         <p className="premium-price" data-testid="premium-price">{t(offer?.trialEligible === true ? "stripe.offer.trial" : "stripe.offer.price", { price })}</p>

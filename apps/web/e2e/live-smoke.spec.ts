@@ -39,7 +39,7 @@ test.describe.serial("live smoke flow uses the configured review account across 
     }
   });
 
-  test("configured review account creates and seeds a linked workspace", async ({ liveSmokeSession }) => {
+  test("guest work survives reload, restore, binding or merging, then seeds an isolated linked workspace", async ({ liveSmokeSession }) => {
     await runLinkedWorkspaceSetupFlow(liveSmokeSession);
   });
 

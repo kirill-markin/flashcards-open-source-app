@@ -118,7 +118,8 @@ export function SettingsScreen(): ReactElement {
   const [shareStatusMessage, setShareStatusMessage] = useState<string>("");
   const [shareErrorMessage, setShareErrorMessage] = useState<string>("");
   const currentWorkspaceName = activeWorkspace?.name ?? t("common.unavailable");
-  const accountStatus = accountStatusValue(cloudSettings?.linkedEmail ?? session?.profile.email ?? null, t("common.unavailable"));
+  const isGuest = session?.browserGuestCapabilities?.isGuest === true;
+  const accountStatus = isGuest ? `${t("guest.title")} · ${t("guest.signIn")} · 1` : accountStatusValue(cloudSettings?.linkedEmail ?? session?.profile.email ?? null, t("common.unavailable"));
   const languagePreferenceLabel = formatLocalePreferenceLabel(localePreference, t);
   const schedulerValue = workspaceSettings === null ? t("common.unavailable") : workspaceSettings.algorithm.toUpperCase();
   const canCreateInvite = canLoadProgressServerBase(sessionVerificationState, cloudSettings);
@@ -264,7 +265,7 @@ export function SettingsScreen(): ReactElement {
         <div className="settings-nav-list">
           <SettingsNavigationCard
             title={t("accountSettings.accountStatus.title")}
-            description={t("accountSettings.accountStatus.description")}
+            description={isGuest ? t("guest.warning") : t("accountSettings.accountStatus.description")}
             value={accountStatus}
             to={workspacePath(accountStatusRoute)}
             testId="settings-row-account-status"

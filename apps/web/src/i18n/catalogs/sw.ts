@@ -3,6 +3,18 @@ import { createStripeCatalog } from "../stripeCatalog";
 import type { TranslationCatalog } from "../catalogTypes";
 
 const swCatalog: TranslationCatalog = {
+  guest: {
+    title: "Mgeni",
+    signIn: "Ingia",
+    saveProgress: "Hifadhi maendeleo yako",
+    reminder: "Ingia kwa barua pepe ili kadi hizi na maendeleo ya marudio yasipotee.",
+    later: "Baadaye",
+    warning: "Ingia ili kudumisha ufikiaji kwenye vifaa vingine. Kufuta data ya tovuti kunaweza kupoteza ufikiaji wa mgeni.",
+    mergeExplanation: "Kadi zako na historia ya marudio zitahifadhiwa. Chagua nafasi ya kazi katika akaunti au unda mpya.",
+    aiSignIn: "Ingia ili kutumia AI ya Nibomo, au tumia ufunguo wako wa OpenAI.",
+    recovery: "Ufikiaji wa mgeni haujathibitishwa. Kadi zilizohifadhiwa kwenye akiba ni za kusoma tu. Rejesha kipindi cha awali au muunganisho kisha ujaribu tena.",
+    cleanupFailed: "Umeingia, lakini kadi ya mfano haikuweza kuondolewa.",
+  },
   stripe: createStripeCatalog(stripeCopy),
   accentColorSettings: {
     title: "Rangi ya msisitizo",

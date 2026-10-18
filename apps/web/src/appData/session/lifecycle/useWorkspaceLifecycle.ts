@@ -157,6 +157,7 @@ export function useWorkspaceLifecycle(params: UseWorkspaceLifecycleParams): Work
   // One-use method consumption must survive a ready-to-ready workspace switch.
   const hasReadyWorkspace = activeWorkspaceId !== null;
   const sessionUserId = session?.userId ?? null;
+  const initializePromiseRef = useRef<Promise<void> | null>(null);
   const resumePromiseRef = useRef<Promise<void> | null>(null);
   const analyticsReadyRef = useRef<Readonly<{ userId: string; ready: Promise<void> }> | null>(null);
 
@@ -183,12 +184,12 @@ export function useWorkspaceLifecycle(params: UseWorkspaceLifecycleParams): Work
       setCloudSettings(owner);
       setSessionVerificationState("unverified");
       setSessionLoadState("guest_recovery");
-      setSessionErrorMessage(`Guest session is unverified. Cached cards are read-only. Restore the original session or reconnect, then retry. ${getErrorMessage(error)}`);
+      setSessionErrorMessage(`${t("guest.recovery")} ${getErrorMessage(error)}`);
       setSessionTechnicalError(error);
       setTechnicalError(null);
     });
     return true;
-  }, [discardAllSyncWork, indexedDbOpenRecoveryState, setActiveWorkspace, setAvailableWorkspaces, setCloudSettings, setSession, setSessionErrorMessage, setSessionLoadState, setSessionTechnicalError, setSessionVerificationState, setTechnicalError]);
+  }, [discardAllSyncWork, indexedDbOpenRecoveryState, setActiveWorkspace, setAvailableWorkspaces, setCloudSettings, setSession, setSessionErrorMessage, setSessionLoadState, setSessionTechnicalError, setSessionVerificationState, setTechnicalError, t]);
 
   useEffect(() => {
     if (sessionLoadState !== "ready" || sessionVerificationState !== "verified"
@@ -235,6 +236,7 @@ export function useWorkspaceLifecycle(params: UseWorkspaceLifecycleParams): Work
         return;
       }
       setSessionVerificationState("unverified");
+      if (saved === null) void initializeRef.current();
     });
   }, [session, setSessionVerificationState]);
 
@@ -259,7 +261,7 @@ export function useWorkspaceLifecycle(params: UseWorkspaceLifecycleParams): Work
     indexedDbOpenRecoveryState.throwIfFailed();
   }, [clearConfirmedUserScopedState, indexedDbOpenRecoveryState]);
 
-  const initialize = useCallback(async function initialize(): Promise<void> {
+  const initializeSession = useCallback(async function initializeSession(): Promise<void> {
     if (indexedDbOpenRecoveryState.hasFailed()) {
       return;
     }
@@ -271,7 +273,7 @@ export function useWorkspaceLifecycle(params: UseWorkspaceLifecycleParams): Work
       && availableWorkspaces.length > 0;
 
     if (shouldPreserveWarmStartState === false) {
-      setSessionLoadState("loading");
+      if (sessionLoadState !== "guest_conversion") setSessionLoadState("loading");
       setActiveWorkspace(null);
       setAvailableWorkspaces([]);
     }
@@ -475,6 +477,13 @@ export function useWorkspaceLifecycle(params: UseWorkspaceLifecycleParams): Work
       );
       setSessionVerificationState("verified");
     } catch (error) {
+      if (error instanceof GuestConversionRequiredError) {
+        setSessionLoadState("guest_conversion");
+        setSessionErrorMessage("");
+        setSessionTechnicalError(null);
+        setTechnicalError(null);
+        return;
+      }
       const normalizedError = normalizeCaughtError(error);
       indexedDbOpenRecoveryState.markFailed(normalizedError);
       if (indexedDbOpenRecoveryState.hasFailed()) {
@@ -544,6 +553,15 @@ export function useWorkspaceLifecycle(params: UseWorkspaceLifecycleParams): Work
     setTechnicalError,
     showCachedGuestRecovery,
   ]);
+
+  const initialize = useCallback(function initialize(): Promise<void> {
+    if (initializePromiseRef.current !== null) return initializePromiseRef.current;
+    const initializing = initializeSession().finally(() => {
+      if (initializePromiseRef.current === initializing) initializePromiseRef.current = null;
+    });
+    initializePromiseRef.current = initializing;
+    return initializing;
+  }, [initializeSession]);
 
   const initializeRef = useRef(initialize);
 

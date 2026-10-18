@@ -3,6 +3,18 @@ import { createStripeCatalog } from "../stripeCatalog";
 import type { TranslationCatalog } from "../catalogTypes";
 
 const ptBrCatalog: TranslationCatalog = {
+  guest: {
+    title: "Convidado",
+    signIn: "Entrar",
+    saveProgress: "Salve seu progresso",
+    reminder: "Entre com e-mail para não perder estes cartões nem o seu progresso de revisão.",
+    later: "Depois",
+    warning: "Entre para manter o acesso em outros dispositivos. Limpar os dados do site pode causar a perda do acesso de visitante.",
+    mergeExplanation: "Seus cartões e histórico de revisão serão mantidos. Escolha um espaço de trabalho na conta ou crie um novo.",
+    aiSignIn: "Entre para usar a IA do Nibomo ou use sua própria chave OpenAI.",
+    recovery: "O acesso de visitante não foi verificado. Os cartões em cache são somente leitura. Restaure a sessão original ou a conexão e tente novamente.",
+    cleanupFailed: "Você entrou, mas não foi possível remover o cartão de demonstração.",
+  },
   stripe: createStripeCatalog(stripeCopy),
   accentColorSettings: {
     title: "Cor de destaque",

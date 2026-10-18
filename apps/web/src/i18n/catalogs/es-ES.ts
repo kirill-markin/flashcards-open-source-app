@@ -3,6 +3,18 @@ import { createStripeCatalog } from "../stripeCatalog";
 import type { TranslationCatalog } from "../catalogTypes";
 
 const esEsCatalog: TranslationCatalog = {
+  guest: {
+    title: "Invitado",
+    signIn: "Iniciar sesión",
+    saveProgress: "Guarda tu progreso",
+    reminder: "Inicia sesión con tu correo para que estas tarjetas y tu progreso de repaso no se pierdan.",
+    later: "Más tarde",
+    warning: "Inicia sesión para mantener el acceso en otros dispositivos. Borrar los datos del sitio puede hacerte perder el acceso de invitado.",
+    mergeExplanation: "Tus tarjetas y tu historial de repaso se conservarán. Elige un espacio de trabajo de tu cuenta o crea uno nuevo.",
+    aiSignIn: "Inicia sesión para usar la IA de Nibomo o utiliza tu propia clave de OpenAI.",
+    recovery: "El acceso de invitado no está verificado. Las tarjetas en caché son de solo lectura. Restaura la sesión original o la conexión y vuelve a intentarlo.",
+    cleanupFailed: "Has iniciado sesión, pero no se ha podido eliminar la tarjeta de demostración.",
+  },
   stripe: createStripeCatalog(stripeCopy),
   accentColorSettings: {
     title: "Color de acento",

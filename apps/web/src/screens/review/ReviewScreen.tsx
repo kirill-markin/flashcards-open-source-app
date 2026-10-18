@@ -1,4 +1,4 @@
-import { useEffect, type ReactElement } from "react";
+import { useEffect, useState, type ReactElement } from "react";
 import { useAppErrorDialog } from "../../appError/AppErrorContext";
 import { FeedbackDialog } from "../../feedback/FeedbackDialog";
 import { useEffectiveReviewReactionAnimationsEnabled } from "../../premium/styleSettings";
@@ -12,12 +12,14 @@ import { MobileAppPromotionDialog } from "./mobileAppPromo/MobileAppPromotionDia
 import { ReviewRatingReactionLayer } from "./reactions/ReviewRatingReactionLayer";
 import { startReviewReactionLottiePrewarm } from "./reactions/lottie/reviewReactionLottie";
 import { ReviewTagFilterDialog } from "./tagFilter/ReviewTagFilterDialog";
+import { GuestSignInAfterReviewPrompt } from "./guest/GuestSignInAfterReviewPrompt";
 import { useReviewScreenController } from "./useReviewScreenController";
 
 export { normalizeReviewMarkdownForWeb } from "./components/card/ReviewCardSide";
 
 export function ReviewScreen(): ReactElement {
   const { indexedDbOpenRecoveryState } = useAppErrorDialog();
+  const [isGuestSignInPromptVisible, setIsGuestSignInPromptVisible] = useState(false);
   const reviewReactionAnimationsEnabled = useEffectiveReviewReactionAnimationsEnabled();
   const {
     dismissReviewReactions,
@@ -34,6 +36,7 @@ export function ReviewScreen(): ReactElement {
     textSelectionDialogProps,
   } = useReviewScreenController({
     reviewReactionAnimationsEnabled,
+    isGuestSignInPromptVisible,
   });
 
   useEffect(() => {
@@ -65,6 +68,10 @@ export function ReviewScreen(): ReactElement {
         </div>
       </section>
 
+      <GuestSignInAfterReviewPrompt onVisibilityChange={setIsGuestSignInPromptVisible} blocked={editorModalProps.isEditorPresented || feedbackDialogProps.isOpen
+        || hardReminderDialogProps.isOpen || mobileAppPromotionDialogProps.isOpen
+        || tagFilterDialogProps.request !== null || textSelectionDialogProps.request !== null
+        || headerProps.filterMenuProps.isReviewFilterMenuOpen} />
       <ReviewEditorModal {...editorModalProps} />
       <FeedbackDialog {...feedbackDialogProps} />
       <ReviewHardReminderDialog {...hardReminderDialogProps} />

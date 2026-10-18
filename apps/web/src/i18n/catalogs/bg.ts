@@ -3,6 +3,18 @@ import { createStripeCatalog } from "../stripeCatalog";
 import type { TranslationCatalog } from "../catalogTypes";
 
 const bgCatalog: TranslationCatalog = {
+  guest: {
+    title: "Гост",
+    signIn: "Вход",
+    saveProgress: "Запазете напредъка си",
+    reminder: "Влезте с имейл, за да запазите тези карти и напредъка от преговорите.",
+    later: "По-късно",
+    warning: "Влезте, за да запазите достъпа на други устройства. Изчистването на данните на сайта може да загуби достъпа като гост.",
+    mergeExplanation: "Картите и историята на преговорите ви ще се запазят. Изберете работно пространство в профила или създайте ново.",
+    aiSignIn: "Влезте, за да използвате ИИ на Nibomo, или използвайте собствен OpenAI ключ.",
+    recovery: "Достъпът като гост не е потвърден. Кешираните карти са само за четене. Възстановете първоначалната сесия или връзката и опитайте отново.",
+    cleanupFailed: "Влизането е успешно, но демонстрационната карта не може да бъде изтрита.",
+  },
   stripe: createStripeCatalog(stripeCopy),
   accentColorSettings: {
     title: "Акцентен цвят",

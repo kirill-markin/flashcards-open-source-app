@@ -3,6 +3,18 @@ import { createStripeCatalog } from "../stripeCatalog";
 import type { TranslationCatalog } from "../catalogTypes";
 
 const nbCatalog: TranslationCatalog = {
+  guest: {
+    title: "Gjest",
+    signIn: "Logg inn",
+    saveProgress: "Lagre fremdriften din",
+    reminder: "Logg inn med e-post, slik at disse kortene og repetisjonsfremdriften ikke går tapt.",
+    later: "Senere",
+    warning: "Logg inn for å beholde tilgang på andre enheter. Sletting av nettstedsdata kan føre til at gjestetilgangen går tapt.",
+    mergeExplanation: "Kortene og repetisjonshistorikken din beholdes. Velg et arbeidsområde i kontoen eller opprett et nytt.",
+    aiSignIn: "Logg inn for å bruke Nibomo AI, eller bruk din egen OpenAI-nøkkel.",
+    recovery: "Gjestetilgangen er ikke bekreftet. Bufrede kort er skrivebeskyttet. Gjenopprett den opprinnelige økten eller tilkoblingen og prøv igjen.",
+    cleanupFailed: "Innloggingen lyktes, men demokortet kunne ikke fjernes.",
+  },
   stripe: createStripeCatalog(stripeCopy),
   accentColorSettings: {
     title: "Aksentfarge",

@@ -3,6 +3,18 @@ import { createStripeCatalog } from "../stripeCatalog";
 import type { TranslationCatalog } from "../catalogTypes";
 
 const nlCatalog: TranslationCatalog = {
+  guest: {
+    title: "Gast",
+    signIn: "Aanmelden",
+    saveProgress: "Sla je voortgang op",
+    reminder: "Meld je aan met e-mail zodat deze kaarten en je herhaalvoortgang niet verloren gaan.",
+    later: "Later",
+    warning: "Meld je aan om toegang op andere apparaten te behouden. Het wissen van websitegegevens kan je gasttoegang verwijderen.",
+    mergeExplanation: "Je kaarten en herhalingsgeschiedenis blijven bewaard. Kies een werkruimte in je account of maak een nieuwe.",
+    aiSignIn: "Meld je aan voor Nibomo-AI of gebruik je eigen OpenAI-sleutel.",
+    recovery: "Gasttoegang is niet geverifieerd. Kaarten in de cache zijn alleen-lezen. Herstel de oorspronkelijke sessie of verbinding en probeer opnieuw.",
+    cleanupFailed: "Aanmelden is gelukt, maar de demokaart kon niet worden verwijderd.",
+  },
   stripe: createStripeCatalog(stripeCopy),
   accentColorSettings: {
     title: "Accentkleur",

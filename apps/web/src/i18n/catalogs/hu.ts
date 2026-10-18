@@ -3,6 +3,18 @@ import { createStripeCatalog } from "../stripeCatalog";
 import type { TranslationCatalog } from "../catalogTypes";
 
 const huCatalog: TranslationCatalog = {
+  guest: {
+    title: "Vendég",
+    signIn: "Bejelentkezés",
+    saveProgress: "Haladás mentése",
+    reminder: "Jelentkezz be e-maillel, hogy a kártyáid és a tanulási haladásod ne vesszen el.",
+    later: "Később",
+    warning: "Jelentkezz be, hogy más eszközökön is megmaradjon a hozzáférésed. A webhelyadatok törlése elveszítheti a vendéghozzáférést.",
+    mergeExplanation: "A kártyáid és az ismétlési előzményeid megmaradnak. Válassz munkaterületet a fiókodban, vagy hozz létre újat.",
+    aiSignIn: "A Nibomo MI használatához jelentkezz be, vagy használd a saját OpenAI-kulcsodat.",
+    recovery: "A vendéghozzáférés nincs ellenőrizve. A gyorsítótárazott kártyák csak olvashatók. Állítsd vissza az eredeti munkamenetet vagy kapcsolatot, majd próbáld újra.",
+    cleanupFailed: "A bejelentkezés sikerült, de a bemutatókártyát nem lehetett törölni.",
+  },
   stripe: createStripeCatalog(stripeCopy),
   accentColorSettings: {
     title: "Kiemelőszín",

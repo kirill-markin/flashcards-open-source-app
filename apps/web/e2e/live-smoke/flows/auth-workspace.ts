@@ -6,13 +6,12 @@ import {
   trackedExpectText,
   trackedExpectVisible,
   trackedFill,
-  trackedGoto,
-  trackedIsVisible,
-  trackedWaitForUrl,
 } from "../../live-smoke.actions";
-import { reviewRoute, splitWorkspaceRoutePath, workspaceRoutePrefix } from "../../../src/routes";
+import { splitWorkspaceRoutePath } from "../../../src/routes";
 import { primaryNavigationLinkSelector } from "../navigation";
-import { authBaseUrl, externalUiTimeoutMs, localUiTimeoutMs } from "../config";
+import { externalUiTimeoutMs, localUiTimeoutMs } from "../config";
+import { runGuestConversionFlow } from "./guest-conversion";
+import { runWorkspaceCleanupFlow } from "./settings-cleanup";
 import { seedLinkedWorkspaceForTest } from "../seedBridge";
 import { runLiveSmokeStep } from "../steps";
 import type { LiveSmokeSession } from "../types";
@@ -21,8 +20,11 @@ const seededCardCreatedAt = "2024-02-01T09:00:00.000Z";
 const seededCardReviewedAt = "2024-02-01T09:10:00.000Z";
 
 export async function runLinkedWorkspaceSetupFlow(session: LiveSmokeSession): Promise<void> {
-  await runLiveSmokeStep(session, "sign in with the configured review account", async () => {
-    await signInWithReviewAccount(session);
+  await runLiveSmokeStep(session, "use a guest and convert it without losing cards or progress", async () => {
+    await runGuestConversionFlow(session);
+    await runWorkspaceCleanupFlow(session);
+    session.cleanupRequested = false;
+    session.ownedWorkspaceId = null;
   });
 
   await runLiveSmokeStep(session, "create an isolated linked workspace for this run", async () => {
@@ -37,56 +39,6 @@ export async function runLinkedWorkspaceSetupFlow(session: LiveSmokeSession): Pr
   await runLiveSmokeStep(session, "seed deterministic linked-workspace review data", async () => {
     await seedDeterministicWorkspaceData(session);
   });
-}
-
-async function signInWithReviewAccount(session: LiveSmokeSession): Promise<void> {
-  const { page, diagnostics, baseUrl, reviewEmail } = session;
-  await trackedGoto(
-    page,
-    diagnostics,
-    `open auth login page for ${reviewEmail}`,
-    buildLoginUrl(baseUrl),
-    externalUiTimeoutMs,
-  );
-  await trackedClick(diagnostics, "choose email sign-in", page.locator("#signin-email"));
-  await trackedFill(diagnostics, `fill review account email ${reviewEmail}`, page.locator('input[type="email"]').first(), reviewEmail);
-  await trackedClick(diagnostics, "submit review account email", page.locator("#send-btn"));
-  await trackedWaitForUrl(
-    page,
-    diagnostics,
-    "wait for review redirect after auth",
-    // The app moves the post-login landing under `/w/:workspaceId` once it knows the workspace.
-    new RegExp(`^${escapeRegExp(baseUrl)}(?:${escapeRegExp(`${workspaceRoutePrefix}/`)}[^/]+)?${escapeRegExp(reviewRoute)}`),
-    externalUiTimeoutMs,
-  );
-
-  const chooseWorkspaceHeading = page.locator(".workspace-choice-list");
-  const chooseWorkspaceVisible = await trackedIsVisible(
-    diagnostics,
-    "check whether auth restored into the workspace chooser",
-    chooseWorkspaceHeading,
-  );
-
-  if (chooseWorkspaceVisible) {
-    await trackedClick(
-      diagnostics,
-      "select the first linked workspace from the workspace chooser",
-      page.locator(".workspace-choice-btn").first(),
-    );
-  }
-
-  await trackedExpectVisible(
-    diagnostics,
-    "confirm primary navigation is visible after auth",
-    page.locator("nav.nav"),
-    externalUiTimeoutMs,
-  );
-  await trackedExpectVisible(
-    diagnostics,
-    "confirm review navigation link is visible after auth",
-    page.locator(primaryNavigationLinkSelector("/review")).first(),
-    externalUiTimeoutMs,
-  );
 }
 
 async function createEphemeralWorkspace(session: LiveSmokeSession): Promise<void> {
@@ -167,7 +119,7 @@ async function assertLinkedAccountStatus(session: LiveSmokeSession): Promise<voi
   );
   await trackedExpectText(
     diagnostics,
-    `confirm account status shows ${reviewEmail}`,
+    "confirm the linked account status",
     page.getByTestId("account-status-email-value"),
     reviewEmail,
     externalUiTimeoutMs,
@@ -214,11 +166,3 @@ async function seedDeterministicWorkspaceData(session: LiveSmokeSession): Promis
   }
 }
 
-function buildLoginUrl(appBaseUrl: string): string {
-  const redirectUri = `${appBaseUrl}/review`;
-  return `${authBaseUrl}/login?redirect_uri=${encodeURIComponent(redirectUri)}`;
-}
-
-function escapeRegExp(value: string): string {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-}
