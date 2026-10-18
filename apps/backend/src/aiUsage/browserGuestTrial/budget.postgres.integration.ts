@@ -3,7 +3,11 @@ import { randomUUID } from "node:crypto";
 import test from "node:test";
 import type pg from "pg";
 import { applyUserDatabaseScopeInExecutor, type DatabaseExecutor } from "../../database";
+import { ensureUserProfileInExecutor } from "../../auth/ensureUser";
 import { lockAccountLifecyclesInExecutor, bindCognitoIdentityMappingInExecutor } from "../../auth/userIdentities";
+import { prepareChatRun } from "../../chat/runs/lifecycleService";
+import type { PreparedChatRun } from "../../chat/runs/types";
+import { forgetBrowserGuestSession } from "../../guestAuth/browser/session";
 import { authenticateGuestSession } from "../../guestAuth/session";
 import { hashGuestToken } from "../../guestAuth/shared";
 import { deleteUserSettingsInExecutor } from "../../guestAuth/store/deletion";
@@ -15,7 +19,10 @@ import {
   transferAiUsageToUpgradedAccountInExecutor,
 } from "../identity";
 import type { BrowserGuestTrialContext } from "./policy";
+import type { BrowserGuestAiTrialStatus } from "./contract";
+import { createBrowserGuestChatOperation, reserveNewBrowserGuestTrialOperation, startBrowserGuestTrialProvider } from "./admission";
 import {
+  loadBrowserGuestAiTrialStatus,
   readBrowserGuestAiTrialInExecutor,
   reserveBrowserGuestAiTrialInExecutor,
   releaseBrowserGuestAiTrialOnProvenNoCallInExecutor,
@@ -77,6 +84,20 @@ function quota(scope: "guest" | "shared", feature: "chat" | "dictation" | "image
     else assert.match(details?.resetsAt ?? "", /T00:00:00\.000Z$/);
     return true;
   };
+}
+
+async function assertLifecycleWaiters(pool: pg.Pool, blockerPid: number, expected: number): Promise<void> {
+  let waiting = 0;
+  for (let attempt = 0; attempt < 100 && waiting !== expected; attempt += 1) {
+    const result = await pool.query<Readonly<{ waiting: number }>>(`SELECT count(*)::INTEGER AS waiting
+      FROM pg_stat_activity WHERE $1 = ANY(pg_blocking_pids(pid)) AND wait_event = 'advisory'
+      AND query LIKE 'SELECT pg_advisory_xact_lock_shared(hashtextextended(''auth.account:''%'
+      AND NOT EXISTS (SELECT 1 FROM pg_locks WHERE pg_locks.pid = pg_stat_activity.pid
+        AND locktype = 'relation' AND relation IN ('ai.chat_sessions'::regclass, 'ai.chat_runs'::regclass))`, [blockerPid]);
+    waiting = result.rows[0]?.waiting ?? 0;
+    if (waiting !== expected) await new Promise<void>((resolve) => setTimeout(resolve, 10));
+  }
+  assert.equal(waiting, expected, "Trial wrappers must wait on lifecycle before touching chat rows");
 }
 
 test("browser guest budgets atomically reserve, bind replays, preserve daily consumption and expose only scoped reads", async () => {
@@ -213,6 +234,92 @@ test("browser guest budgets atomically reserve, bind replays, preserve daily con
     } finally {
       await fixture.ownerPool.query("DELETE FROM ai.browser_guest_trial_reservations WHERE user_id=ANY($1::TEXT[])", [owners]);
       await fixture.ownerPool.query("DELETE FROM org.user_settings WHERE user_id=$1", [other.userId]);
+    }
+  });
+});
+
+test("ordinary guest profile contention waits before trial reads, provider starts and chat admission", async () => {
+  await withPostgresIntegrationFixture(async (fixture) => {
+    const guest = guestContext(fixture.userId);
+    const token = await insertGuestSession(fixture.ownerPool, guest);
+    const image = operation("images", 1);
+    const requestId = randomUUID();
+    let allowanceChecks = 0;
+    const reserveChat = async (executor: DatabaseExecutor, sessionId: string): Promise<void> => {
+      allowanceChecks += 1;
+      await reserveNewBrowserGuestTrialOperation(executor, guest, createBrowserGuestChatOperation(sessionId, requestId));
+    };
+    const prepare = (sessionId: string | undefined) => prepareChatRun(
+      guest.userId, fixture.workspaceId, sessionId, [{ type: "text", text: "Guest lifecycle contention" }],
+      requestId, "UTC", null, false, "web", null, null, reserveChat, null, guest,
+    );
+    const blocker = await fixture.runtimePool.connect();
+    const executor: DatabaseExecutor = { query: (text, params) => blocker.query(text, [...params]) };
+    const pending: Array<Promise<BrowserGuestAiTrialStatus | PreparedChatRun | null | void>> = [];
+    try {
+      await inScope(fixture.runtimePool, guest,
+        (scoped) => reserveBrowserGuestAiTrialInExecutor(scoped, guest, image));
+      await blocker.query("BEGIN");
+      await applyUserDatabaseScopeInExecutor(executor, { userId: guest.userId });
+      await ensureUserProfileInExecutor(executor, guest.userId, null);
+      const pid = (await blocker.query<Readonly<{ pid: number }>>("SELECT pg_backend_pid() AS pid")).rows[0]?.pid;
+      assert.ok(pid !== undefined);
+      const read = loadBrowserGuestAiTrialStatus(guest);
+      const start = startBrowserGuestTrialProvider(guest, image);
+      const admission = prepare(undefined);
+      pending.push(read, start, admission);
+      const settled = Promise.allSettled(pending);
+      await assertLifecycleWaiters(fixture.ownerPool, pid, 3);
+      assert.equal(allowanceChecks, 0);
+      const before = await fixture.ownerPool.query<Readonly<{ state: string }>>(
+        "SELECT state FROM ai.browser_guest_trial_reservations WHERE operation_id = $1", [image.operationId]);
+      assert.equal(before.rows[0]?.state, "reserved");
+      await blocker.query("COMMIT");
+      for (const result of await settled) {
+        if (result.status === "rejected") throw result.reason;
+      }
+      assert.ok(await read);
+      await start;
+      const run = await admission;
+      assert.equal(run.deduplicated, false);
+      assert.equal(run.browserGuestAiTrial, true);
+      assert.equal(allowanceChecks, 1);
+      const replay = await prepare(run.sessionId);
+      assert.equal(replay.runId, run.runId);
+      assert.equal(replay.deduplicated, true);
+      assert.equal(allowanceChecks, 1);
+      await assert.rejects(startBrowserGuestTrialProvider(guest, image),
+        { code: "BROWSER_GUEST_AI_TRIAL_PROVIDER_OUTCOME_UNKNOWN" });
+      const after = await loadBrowserGuestAiTrialStatus(guest);
+      assert.equal(after?.chat.lifetimeRemaining, 4);
+      assert.equal(after?.images.lifetimeRemaining, 4);
+      const receipts = await fixture.ownerPool.query<Readonly<{ total: number; started: number }>>(`SELECT
+        count(*)::INTEGER AS total, count(*) FILTER (WHERE state='provider_started')::INTEGER AS started
+        FROM ai.browser_guest_trial_reservations WHERE user_id = $1`, [guest.userId]);
+      assert.deepEqual(receipts.rows[0], { total: 2, started: 1 });
+
+      await blocker.query("BEGIN");
+      await applyUserDatabaseScopeInExecutor(executor, { userId: guest.userId });
+      await ensureUserProfileInExecutor(executor, guest.userId, null);
+      const forgottenRead = loadBrowserGuestAiTrialStatus(guest);
+      const forgottenStart = startBrowserGuestTrialProvider(guest, createBrowserGuestChatOperation(run.sessionId, requestId));
+      pending.push(forgottenRead, forgottenStart);
+      const refused = Promise.allSettled([forgottenRead, forgottenStart]);
+      await assertLifecycleWaiters(fixture.ownerPool, pid, 2);
+      await forgetBrowserGuestSession(token);
+      await blocker.query("COMMIT");
+      await refused;
+      await assert.rejects(forgottenRead, { code: "ACCOUNT_SCOPE_CHANGED" });
+      await assert.rejects(forgottenStart, { code: "ACCOUNT_SCOPE_CHANGED" });
+      assert.deepEqual((await fixture.ownerPool.query<Readonly<{ state: string }>>(
+        "SELECT state FROM ai.browser_guest_trial_reservations WHERE operation_id=$1",
+        [createBrowserGuestChatOperation(run.sessionId, requestId).operationId],
+      )).rows, [{ state: "reserved" }]);
+    } finally {
+      await blocker.query("ROLLBACK");
+      blocker.release();
+      await Promise.allSettled(pending);
+      await fixture.ownerPool.query("DELETE FROM ai.browser_guest_trial_reservations WHERE user_id=$1", [guest.userId]);
     }
   });
 });

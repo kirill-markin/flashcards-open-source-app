@@ -3,7 +3,7 @@ import { transactionWithUserScope, type DatabaseExecutor } from "../../database"
 import { assertGuestAiFundingAllowed, isBrowserProductGuest } from "../../guestAuth/webPlatform";
 import { HttpError } from "../../shared/errors";
 import { browserGuestAiTrialEnabled, type BrowserGuestAiTrialFeature, type BrowserGuestTrialContext } from "./policy";
-import { reserveBrowserGuestAiTrialInExecutor, startBrowserGuestAiTrialProviderInExecutor,
+import { acquireBrowserGuestTrialLifecycleInExecutor, reserveBrowserGuestAiTrialInExecutor, startBrowserGuestAiTrialProviderInExecutor,
   type BrowserGuestTrialOperation } from "./repository";
 
 export function resolveFundedBrowserGuestTrial(
@@ -48,6 +48,7 @@ export async function startBrowserGuestTrialProvider(
   operation: BrowserGuestTrialOperation,
 ): Promise<void> {
   await transactionWithUserScope({ userId: context.userId }, async (executor) => {
+    await acquireBrowserGuestTrialLifecycleInExecutor(executor, context);
     await startBrowserGuestAiTrialProviderInExecutor(executor, context, operation);
   });
 }

@@ -59,6 +59,19 @@ async function assertScopedOwner(executor: DatabaseExecutor, context: BrowserGue
   }
 }
 
+// Acquire before domain rows: upgrade/deletion take this lifecycle key before cascading those rows.
+// Eligibility is still checked by the budget SQL after the wait, under a fresh READ COMMITTED snapshot.
+export async function acquireBrowserGuestTrialLifecycleInExecutor(
+  executor: DatabaseExecutor,
+  context: BrowserGuestTrialContext,
+): Promise<void> {
+  await assertScopedOwner(executor, context);
+  await executor.query(
+    "SELECT pg_advisory_xact_lock_shared(hashtextextended('auth.account:' || $1, 2::BIGINT))",
+    [context.userId],
+  );
+}
+
 function featureStatus(row: BudgetRow): BrowserGuestAiTrialFeatureStatus {
   return {
     lifetimeLimit: row.lifetime_limit,
@@ -95,8 +108,10 @@ export async function loadBrowserGuestAiTrialStatus(
   context: BrowserGuestTrialContext,
 ): Promise<BrowserGuestAiTrialStatus | null> {
   if (!isBrowserProductGuest(context)) return null;
-  return transactionWithUserScope({ userId: context.userId },
-    async (executor) => readBrowserGuestAiTrialInExecutor(executor, context));
+  return transactionWithUserScope({ userId: context.userId }, async (executor) => {
+    await acquireBrowserGuestTrialLifecycleInExecutor(executor, context);
+    return readBrowserGuestAiTrialInExecutor(executor, context);
+  });
 }
 
 // Caller owns the transaction: reserve alongside run creation, before dispatch, without another pool client.

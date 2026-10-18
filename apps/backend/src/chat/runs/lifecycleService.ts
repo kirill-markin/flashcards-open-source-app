@@ -1,4 +1,5 @@
 import type { BrowserGuestTrialContext } from "../../aiUsage/browserGuestTrial/policy";
+import { acquireBrowserGuestTrialLifecycleInExecutor } from "../../aiUsage/browserGuestTrial/repository";
 import {
   transactionWithWorkspaceScope,
   transactionWithWorkspaceScopeDeadline,
@@ -174,6 +175,9 @@ export async function prepareChatRun(
   );
   let uploadedAttachments: ReadonlyArray<UploadedChatAttachment> = [];
   return transactionWithWorkspaceScope({ userId, workspaceId }, async (executor) => {
+    if (browserGuestTrial !== undefined) {
+      await acquireBrowserGuestTrialLifecycleInExecutor(executor, browserGuestTrial);
+    }
     const scope = { userId, workspaceId };
     const session = requestedSessionId === undefined
       ? await resolveLatestOrCreateChatSessionWithExecutor(executor, scope)
