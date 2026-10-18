@@ -4,11 +4,14 @@ package com.flashcardsopensourceapp.app.livesmoke.flows
 
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getOrNull
+import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.isEnabled
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextReplacement
 import com.flashcardsopensourceapp.app.livesmoke.diagnostics.clickTag
 import com.flashcardsopensourceapp.app.livesmoke.diagnostics.clickText
@@ -92,6 +95,10 @@ private fun LiveSmokeContext.sendReviewAccountCodeWithRetries(reviewEmail: Strin
                 ?.getOrNull(SemanticsProperties.EditableText)
                 ?.text == reviewEmail
         }
+        composeRule.onNodeWithTag(cloudSignInSendCodeButtonTag)
+            .performScrollTo()
+            .assertIsDisplayed()
+            .assertIsEnabled()
         clickTag(tag = cloudSignInSendCodeButtonTag, label = "Send code")
         when (waitForCloudSignInSendCodeOutcome()) {
             CloudSignInSendCodeOutcome.READY -> return
