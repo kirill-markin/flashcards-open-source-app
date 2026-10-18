@@ -76,6 +76,12 @@ internal class CloudJsonHttpClient(
     constructor() : this(okHttpClient = OkHttpClient())
 
     private val httpClient: OkHttpClient = okHttpClient.newBuilder()
+        .eventListenerFactory { call ->
+            val connectionObservation = requireNotNull(call.request().tag(CloudHttpConnectionObservation::class.java)) {
+                "Cloud HTTP call requires a per-attempt connection observation."
+            }
+            okHttpClient.eventListenerFactory.create(call) + connectionObservation
+        }
         .connectTimeout(15, TimeUnit.SECONDS)
         .writeTimeout(120, TimeUnit.SECONDS)
         .readTimeout(30, TimeUnit.SECONDS)
@@ -288,7 +294,12 @@ internal class CloudJsonHttpClient(
         var completedResponse: JSONObject? = null
 
         while (completedResponse == null) {
-            val call = httpClient.newCall(request)
+            val connectionObservation = CloudHttpConnectionObservation()
+            val call = httpClient.newCall(
+                request.newBuilder()
+                    .tag(CloudHttpConnectionObservation::class.java, connectionObservation)
+                    .build()
+            )
             val coroutineJob = currentCoroutineContext().job
             val cancellationRequested = AtomicBoolean(false)
             val cancellationHandle = coroutineJob.invokeOnCompletion(
@@ -352,7 +363,10 @@ internal class CloudJsonHttpClient(
                                 ioPhase = null,
                                 exceptionClass = null,
                                 attemptElapsedMs = null,
-                                responseProtocol = null
+                                responseProtocol = null,
+                                connectionId = null,
+                                connectionProtocol = null,
+                                requestHeadersCompleted = null
                             )
                             retryDelayMs = delayMs
                         } else {
@@ -423,6 +437,7 @@ internal class CloudJsonHttpClient(
                     )
                 ) {
                     val delayMs = calculateCloudHttpTransientRetryDelayMs(attemptNumber)
+                    val connectionSnapshot = connectionObservation.snapshot()
                     captureCloudHttpTransientRetryObservation(
                         observability = observability,
                         observationVersions = observationVersions,
@@ -438,7 +453,10 @@ internal class CloudJsonHttpClient(
                         ioPhase = ioPhase,
                         exceptionClass = error::class.java.name,
                         attemptElapsedMs = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - attemptStartedAtNanos),
-                        responseProtocol = receivedProtocol
+                        responseProtocol = receivedProtocol,
+                        connectionId = connectionSnapshot.connectionId,
+                        connectionProtocol = connectionSnapshot.connectionProtocol,
+                        requestHeadersCompleted = connectionSnapshot.requestHeadersCompleted
                     )
                     retryDelayMs = delayMs
                 } else {
@@ -476,7 +494,12 @@ internal class CloudJsonHttpClient(
         var completedResponse: CloudBinaryHttpResponse? = null
 
         while (completedResponse == null) {
-            val call = httpClient.newCall(request)
+            val connectionObservation = CloudHttpConnectionObservation()
+            val call = httpClient.newCall(
+                request.newBuilder()
+                    .tag(CloudHttpConnectionObservation::class.java, connectionObservation)
+                    .build()
+            )
             val coroutineJob = currentCoroutineContext().job
             val cancellationRequested = AtomicBoolean(false)
             val cancellationHandle = coroutineJob.invokeOnCompletion(
@@ -544,7 +567,10 @@ internal class CloudJsonHttpClient(
                                 ioPhase = null,
                                 exceptionClass = null,
                                 attemptElapsedMs = null,
-                                responseProtocol = null
+                                responseProtocol = null,
+                                connectionId = null,
+                                connectionProtocol = null,
+                                requestHeadersCompleted = null
                             )
                             retryDelayMs = delayMs
                         } else {
@@ -603,6 +629,7 @@ internal class CloudJsonHttpClient(
                     )
                 ) {
                     val delayMs = calculateCloudHttpTransientRetryDelayMs(attemptNumber)
+                    val connectionSnapshot = connectionObservation.snapshot()
                     captureCloudHttpTransientRetryObservation(
                         observability = observability,
                         observationVersions = observationVersions,
@@ -618,7 +645,10 @@ internal class CloudJsonHttpClient(
                         ioPhase = ioPhase,
                         exceptionClass = error::class.java.name,
                         attemptElapsedMs = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - attemptStartedAtNanos),
-                        responseProtocol = receivedProtocol
+                        responseProtocol = receivedProtocol,
+                        connectionId = connectionSnapshot.connectionId,
+                        connectionProtocol = connectionSnapshot.connectionProtocol,
+                        requestHeadersCompleted = connectionSnapshot.requestHeadersCompleted
                     )
                     retryDelayMs = delayMs
                 } else {

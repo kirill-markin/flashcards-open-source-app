@@ -206,7 +206,10 @@ private fun addBreadcrumbData(
                     ioPhase = sanitizeSentryContextValue(fieldName = "ioPhase", value = event.ioPhase),
                     exceptionClass = sanitizeSentryContextValue(fieldName = "exceptionClass", value = event.exceptionClass),
                     attemptElapsedMs = event.attemptElapsedMs,
-                    responseProtocol = sanitizeSentryContextValue(fieldName = "responseProtocol", value = event.responseProtocol)
+                    responseProtocol = sanitizeSentryContextValue(fieldName = "responseProtocol", value = event.responseProtocol),
+                    connectionId = sanitizeSentryIdentifier(value = event.connectionId),
+                    connectionProtocol = sanitizeSentryContextValue(fieldName = "connectionProtocol", value = event.connectionProtocol),
+                    requestHeadersCompleted = event.requestHeadersCompleted
                 )
             )
         }
@@ -1092,7 +1095,10 @@ private data class SentryHttpRetryContext(
     val ioPhase: String?,
     val exceptionClass: String?,
     val attemptElapsedMs: Long?,
-    val responseProtocol: String?
+    val responseProtocol: String?,
+    val connectionId: String?,
+    val connectionProtocol: String?,
+    val requestHeadersCompleted: Boolean?
 )
 
 private data class SentryAiContext(
