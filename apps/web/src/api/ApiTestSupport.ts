@@ -132,6 +132,7 @@ export function createSessionResponse(overrides: SessionResponseOverrides | null
     userId: "user-1",
     selectedWorkspaceId: "workspace-1",
     authTransport: "session",
+    browserGuestCapabilities: null,
     csrfToken: "csrf-token-1",
     ...overrides,
     preferences: {

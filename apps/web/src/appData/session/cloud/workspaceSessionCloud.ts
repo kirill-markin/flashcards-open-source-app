@@ -13,7 +13,7 @@ export function buildLinkingReadyCloudSettings(
     : null;
   return {
     installationId: sameOwnerSettings?.installationId ?? getStableInstallationId(),
-    cloudState: "linking-ready",
+    cloudState: session.browserGuestCapabilities?.isGuest === true ? "guest" : "linking-ready",
     linkedUserId: localSession.userId,
     linkedWorkspaceId: sameOwnerSettings?.linkedWorkspaceId ?? null,
     linkedEmail: session.profile.email,
@@ -32,7 +32,7 @@ export function buildLinkedCloudSettings(
     installationId: persistedCloudSettings?.linkedUserId === localSession.userId
       ? persistedCloudSettings.installationId
       : getStableInstallationId(),
-    cloudState: "linked",
+    cloudState: session.browserGuestCapabilities?.isGuest === true ? "guest" : "linked",
     linkedUserId: localSession.userId,
     linkedWorkspaceId: workspaceId,
     linkedEmail: session.profile.email,
@@ -59,6 +59,9 @@ export function resolveLocalDataCleanupReasonForVerifiedSession(
     return wasBrowserReauthRequired ? "reauth_owner_unknown" : null;
   }
 
+  if (persistedCloudSettings.cloudState === "guest") {
+    throw new Error("Guest ownership must be converted before replacing the local account data.");
+  }
   return "confirmed_account_switch";
 }
 

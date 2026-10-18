@@ -1,3 +1,5 @@
+import { hasSavedBrowserGuestOwnership } from "../appData/session/guest/browserGuestStorage";
+import { probeBrowserGuestSession } from "../api/endpoints/guestAuth";
 import {
   ApiError,
   getCachedSessionCsrfToken,
@@ -166,6 +168,7 @@ export function createAnalyticsDeliveryRuntime(
   readCurrentSurface: () => AnalyticsSurface | null,
 ): AnalyticsDeliveryRuntime {
   let isEnabled = readInitialEnabled();
+  let browserCredentialAbsenceVerified = false;
   let pendingRecords: Array<AnalyticsQueueRecord> = [];
   /**
    * What this browser collected while it could write nothing to the device: before it knew whether
@@ -676,6 +679,8 @@ export function createAnalyticsDeliveryRuntime(
       && queuedOwnerId === null
       && sessionOwnerPublisherCount === 0
       && hasLoggedInCookie() === false
+      && hasSavedBrowserGuestOwnership() === false
+      && browserCredentialAbsenceVerified
       && getCachedSessionCsrfToken() === null
       && hasResolvedAnalyticsVisitorIdentity();
   }
@@ -699,6 +704,8 @@ export function createAnalyticsDeliveryRuntime(
     return confirmedOwnerId !== null
       || sessionOwnerPublisherCount !== 0
       || hasLoggedInCookie()
+      || hasSavedBrowserGuestOwnership()
+      || browserCredentialAbsenceVerified === false
       || getCachedSessionCsrfToken() !== null;
   }
 
@@ -1374,13 +1381,21 @@ export function createAnalyticsDeliveryRuntime(
     }
 
     isFlushing = true;
+    browserCredentialAbsenceVerified = false;
     trackedSinceFlushCount = 0;
     try {
+      if (confirmedOwnerId === null && sessionOwnerPublisherCount === 0 && !hasLoggedInCookie()
+        && !hasSavedBrowserGuestOwnership() && getCachedSessionCsrfToken() === null) {
+        const credential = await probeBrowserGuestSession();
+        browserCredentialAbsenceVerified = !credential.registeredSession.present && credential.guestSession.status === "absent";
+        if (!browserCredentialAbsenceVerified) return;
+      }
       // A browser that refused consent never reaches the queue at all: its rows go straight out of
       // memory, so neither queued transport below has anything to read and the stored queue is left
       // exactly as the refusal discarded it. Which transport carries them is the only thing an
       // account credential decides — the account's own ingest, or the identity-free collector.
       if (readAnalyticsConsentDecision() === "declined") {
+        if (hasSavedBrowserGuestOwnership() && !hasSendableSessionCredential()) return;
         remainingFlushRequestCount = flushRequestBudget;
         drainDropReports();
         if (canDeliverHeldEventsWithoutIdentity()) {

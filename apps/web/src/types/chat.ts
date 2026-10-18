@@ -1,3 +1,4 @@
+import type { BrowserGuestCapabilities } from "./account";
 import type { Locale } from "../i18n/types";
 
 export type ChatTranscriptionSource = "ios" | "web";
@@ -15,6 +16,7 @@ export type AiUsageAccountKind = "account" | "guest";
  */
 export type AiUsageStatus = Readonly<{
   accountKind: AiUsageAccountKind;
+  browserGuestCapabilities?: BrowserGuestCapabilities | null;
   usage: Readonly<{
     monthEndsAt: string;
     remainingMessages: number | null;

@@ -93,6 +93,7 @@ import { FriendInviteScreen } from "./screens/invite/FriendInviteScreen";
 import { ProgressScreen } from "./screens/progress/ProgressScreen";
 import { ReviewScreen } from "./screens/review/ReviewScreen";
 import { ShareAppScreen } from "./screens/share/ShareAppScreen";
+import { GuestCachedCardsRecovery } from "./appData/session/guest/GuestCachedCardsRecovery";
 
 const SentryRoutes = wrapRoutesComponent(RouterRoutes);
 
@@ -491,6 +492,7 @@ function resolveSessionRootGateReport(sessionLoadState: SessionLoadState): Analy
     case "selecting_workspace":
       return { status: "gated", surface: "signin" };
     case "deleted":
+    case "guest_recovery":
       return { status: "gated", surface: "credential_recovery" };
     case "loading":
     case "redirecting":
@@ -728,7 +730,13 @@ export function AppShell(): ReactElement {
     );
   }
 
-  if (sessionLoadState === "error") {
+  if (sessionLoadState === "guest_recovery" && cloudSettings?.linkedUserId !== null && cloudSettings?.linkedUserId !== undefined
+    && cloudSettings.linkedWorkspaceId !== null) {
+    return <GuestCachedCardsRecovery userId={cloudSettings.linkedUserId} workspaceId={cloudSettings.linkedWorkspaceId}
+      errorMessage={visibleSessionErrorMessage} retry={initialize} />;
+  }
+
+  if (sessionLoadState === "error" || sessionLoadState === "guest_recovery") {
     return (
       <main className="page-state">
         <section className="panel panel-center state-panel">

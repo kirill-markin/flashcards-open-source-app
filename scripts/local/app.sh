@@ -99,6 +99,7 @@ run_auth() {
 }
 
 run_web() {
+  export VITE_LOCAL_AUTH_MODE=none
   cd "${ROOT_DIR}/apps/web"
   exec node ./node_modules/vite/bin/vite.js --host "$LOCAL_DEV_BIND_HOST"
 }
