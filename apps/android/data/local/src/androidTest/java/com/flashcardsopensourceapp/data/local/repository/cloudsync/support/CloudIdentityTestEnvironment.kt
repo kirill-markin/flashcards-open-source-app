@@ -124,6 +124,7 @@ internal class CloudIdentityTestEnvironment private constructor(
         onAnalyticsGuestIdentityLinkRequested: () -> Unit = {}
     ): LocalCloudAccountRepository {
         return LocalCloudAccountRepository(
+            analytics = com.flashcardsopensourceapp.core.observability.analytics.NoOpAnalytics,
             database = database,
             preferencesStore = cloudPreferencesStore,
             remoteService = remoteGateway,
@@ -169,6 +170,7 @@ internal class CloudIdentityTestEnvironment private constructor(
             timeProvider = SystemTimeProvider
         )
         val repository = LocalCloudAccountRepository(
+            analytics = com.flashcardsopensourceapp.core.observability.analytics.NoOpAnalytics,
             database = database,
             preferencesStore = restartedCloudPreferencesStore,
             remoteService = remoteGateway,

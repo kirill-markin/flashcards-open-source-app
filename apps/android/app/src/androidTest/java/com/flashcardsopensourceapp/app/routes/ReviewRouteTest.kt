@@ -135,6 +135,8 @@ class ReviewRouteTest : FirebaseAppInstrumentationTimeoutTest() {
                     workspaceId = "review-route-test-workspace",
                     reviewReactionLottieConfigurationStore = reviewReactionLottieConfigurationStore,
                     reviewReactionAnimationsEnabled = true,
+                    firstReviewOnboardingCompleted = true,
+                    isFirstReviewOnboardingSurfaceAvailable = true,
                     observability = remember { NoopAppObservability() },
                     onSelectFilter = { _, _, _ -> },
                     onOpenPreview = {
@@ -463,6 +465,8 @@ private fun ReviewRouteTestContent(
             workspaceId = workspaceId,
             reviewReactionLottieConfigurationStore = reviewReactionLottieConfigurationStore,
             reviewReactionAnimationsEnabled = false,
+            firstReviewOnboardingCompleted = true,
+            isFirstReviewOnboardingSurfaceAvailable = true,
             observability = remember { NoopAppObservability() },
             onSelectFilter = onSelectFilter,
             onOpenPreview = {},

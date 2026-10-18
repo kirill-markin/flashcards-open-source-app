@@ -453,7 +453,19 @@ class AppGraph(
             guestSessionStore = guestAiSessionStore,
             resetCoordinator = cloudIdentityResetCoordinator
         ),
-        mediaAssetDownloader = OkHttpReviewMediaAssetDownloader(okHttpClient = okHttpClient)
+        mediaAssetDownloader = OkHttpReviewMediaAssetDownloader(okHttpClient = okHttpClient),
+        analytics = analytics,
+        onFirstReviewOnboardingPersistenceFailed = { error ->
+            appMessageBus.showTechnicalError(
+                error = com.flashcardsopensourceapp.core.ui.makeAppTechnicalError(
+                    title = applicationContext.getString(com.flashcardsopensourceapp.feature.settings.R.string.settings_first_review_onboarding_title),
+                    message = applicationContext.getString(com.flashcardsopensourceapp.feature.settings.R.string.settings_first_review_onboarding_save_failed),
+                    throwable = error
+                ),
+                throwable = error
+            )
+        },
+        onFirstReviewOnboardingSaved = { refreshAccountContextInBackground(source = "first_review_onboarding") }
     )
     private val cloudGuestSessionCoordinator = CloudGuestSessionCoordinator(
         database = database,
@@ -497,6 +509,7 @@ class AppGraph(
         guestSessionStore = guestAiSessionStore,
         loadReviewMediaAssetFile = reviewRepository::loadReviewMediaAssetFile,
         appVersion = appPackageInfo.versionName,
+        analytics = analytics,
         demoCardDraftProvider = {
             buildDemoCardDraft(context = applicationContext)
         },
@@ -692,6 +705,7 @@ class AppGraph(
         analyticsNetworkMonitor.startObservingConnectivityRestored(
             onConnectivityRestored = {
                 analytics.onConnectivityRestored()
+                refreshAccountContextInBackground(source = "connectivity_restored")
                 reviewPaywallScheduler.requestSynchronization()
             }
         )

@@ -26,7 +26,9 @@ import com.flashcardsopensourceapp.data.local.model.cloud.StoredCloudCredentials
 import com.flashcardsopensourceapp.data.local.model.ai.StoredGuestAiSession
 import com.flashcardsopensourceapp.data.local.model.cloud.makeCustomCloudServiceConfiguration
 import com.flashcardsopensourceapp.data.local.model.cloud.makeOfficialCloudServiceConfiguration
+import com.flashcardsopensourceapp.data.local.cloud.remote.CloudRemoteGateway
 import com.flashcardsopensourceapp.data.local.model.sync.AccountPreferences
+import com.flashcardsopensourceapp.data.local.model.sync.AccountPreferencesUpdate
 import com.flashcardsopensourceapp.data.local.model.sync.SavedAppLocale
 import com.flashcardsopensourceapp.data.local.model.sync.defaultAccentColor
 import com.flashcardsopensourceapp.data.local.model.sync.defaultAccountPreferences
@@ -92,6 +94,7 @@ class CloudPreferencesStore(
     private val accountDeletionState = MutableStateFlow(loadAccountDeletionState())
     private val serverConfigurationState = MutableStateFlow(loadServerConfiguration())
     private val cloudCredentialRecoveryStateJson = MutableStateFlow(loadCloudCredentialRecoveryStateJsonFromPreferences())
+    private val firstReviewOnboardingDeliveryGate = Mutex()
     private val localOutboxWriteGate = Mutex()
     private var localOutboxWriteBlockReason: String? = null
     private var activeLocalOutboxMutationTransactions: Int = 0
@@ -212,6 +215,63 @@ class CloudPreferencesStore(
         }
     }
 
+    suspend fun initializeFirstReviewOnboarding() {
+        val settings = currentCloudSettings()
+        accountPreferencesStore.initializeFirstReviewOnboarding(
+            owner = firstReviewOnboardingOwner(),
+            hasHistory = database.reviewLogDao().countReviewLogs() > 0,
+            isLocalGuest = settings.cloudState == CloudAccountState.DISCONNECTED || settings.cloudState == CloudAccountState.GUEST
+        )
+    }
+
+    internal fun firstReviewOnboardingOwner(): String {
+        val settings = currentCloudSettings()
+        if (settings.cloudState == CloudAccountState.DISCONNECTED) {
+            // Session loss keeps the prior owner until a recovered identity can be compared.
+            accountPreferencesStore.firstReviewOnboardingOwner()?.let { return it }
+        }
+        return currentServerConfiguration().apiBaseUrl + ":" + (settings.linkedUserId ?: settings.installationId)
+    }
+
+    fun saveFirstReviewOnboardingCompletedForOwner(completed: Boolean, owner: String): Boolean {
+        return accountPreferencesStore.saveFirstReviewOnboardingCompleted(completed, owner)
+    }
+
+    internal fun pendingFirstReviewOnboardingEdit(): PendingFirstReviewOnboardingEdit? =
+        accountPreferencesStore.pendingFirstReviewOnboardingEdit()
+
+    internal suspend fun pushPendingFirstReviewOnboarding(
+        remoteService: CloudRemoteGateway,
+        apiBaseUrl: String,
+        authorizationHeader: String
+    ) {
+        firstReviewOnboardingDeliveryGate.lock()
+        try {
+            while (true) {
+                val edit = pendingFirstReviewOnboardingEdit() ?: return
+                if (edit.owner != firstReviewOnboardingOwner()) return
+                val preferences = remoteService.updateAccountPreferences(
+                    apiBaseUrl = apiBaseUrl,
+                    authorizationHeader = authorizationHeader,
+                    update = AccountPreferencesUpdate(
+                        accentColor = null,
+                        reviewReactionAnimationsEnabled = null,
+                        productAnalyticsEnabled = null,
+                        productAnalyticsEnabledOrigin = null,
+                        locale = null,
+                        firstReviewOnboardingCompleted = edit.completed
+                    )
+                )
+                check(preferences.firstReviewOnboardingCompleted == edit.completed) {
+                    "Cloud did not acknowledge the requested first review onboarding preference."
+                }
+                accountPreferencesStore.acknowledgeFirstReviewOnboarding(edit)
+            }
+        } finally {
+            firstReviewOnboardingDeliveryGate.unlock()
+        }
+    }
+
     fun saveAccountPreferences(preferences: AccountPreferences) {
         accountPreferencesStore.saveAccountPreferences(preferences = preferences)
     }
@@ -242,6 +302,13 @@ class CloudPreferencesStore(
 
     fun clearAccountPreferences() {
         accountPreferencesStore.clearAccountPreferences()
+        if (currentCloudSettings().cloudState == CloudAccountState.DISCONNECTED) {
+            accountPreferencesStore.initializeFirstReviewOnboarding(firstReviewOnboardingOwner(), false, true)
+        }
+    }
+
+    fun clearAccountPreferencesForCredentialLoss() {
+        accountPreferencesStore.clearAccountPreferencesForCredentialLoss()
     }
 
     /** Keyed by user rather than cleared at identity boundaries, so a new user id is always saved again. */
@@ -396,7 +463,9 @@ class CloudPreferencesStore(
 
     suspend fun hydrateCloudSettingsFromDatabase(): CloudSettings {
         val hydratedSettings = loadPersistedCloudSettingsEntity()
-        return persistInMemoryCloudSettings(settings = hydratedSettings)
+        val settings = persistInMemoryCloudSettings(settings = hydratedSettings)
+        initializeFirstReviewOnboarding()
+        return settings
     }
 
     suspend fun updateCloudSettings(
@@ -411,6 +480,15 @@ class CloudPreferencesStore(
         // The entitlement belongs to the user it was pulled for, so it never outlives a user change.
         if (currentSettings.linkedUserId != linkedUserId) {
             entitlementStore.clearEntitlement()
+            if (cloudState != CloudAccountState.DISCONNECTED) {
+                val installationOwner = currentServerConfiguration().apiBaseUrl + ":" + currentSettings.installationId
+                accountPreferencesStore.changeFirstReviewOnboardingOwner(
+                    owner = currentServerConfiguration().apiBaseUrl + ":" + (linkedUserId ?: currentSettings.installationId),
+                    isNewGuestBinding = currentSettings.linkedUserId == null &&
+                        cloudState == CloudAccountState.GUEST &&
+                        accountPreferencesStore.firstReviewOnboardingOwner() == installationOwner
+                )
+            }
         }
         val updatedSettings = currentSettings.copy(
             cloudState = cloudState.name,
@@ -422,6 +500,9 @@ class CloudPreferencesStore(
         )
         database.appLocalSettingsDao().insertSettings(updatedSettings)
         persistInMemoryCloudSettings(settings = updatedSettings)
+        if (cloudState == CloudAccountState.DISCONNECTED) {
+            accountPreferencesStore.initializeFirstReviewOnboarding(firstReviewOnboardingOwner(), false, true)
+        }
     }
 
     suspend fun updateActiveWorkspaceId(activeWorkspaceId: String?) {
@@ -478,6 +559,11 @@ class CloudPreferencesStore(
         )
         database.appLocalSettingsDao().insertSettings(updatedSettings)
         persistInMemoryCloudSettings(settings = updatedSettings)
+        accountPreferencesStore.initializeFirstReviewOnboarding(
+            owner = currentServerConfiguration().apiBaseUrl + ":" + installationId,
+            hasHistory = false,
+            isLocalGuest = true
+        )
         return installationId
     }
 
@@ -752,11 +838,12 @@ private fun encodeAccountPreferences(preferences: AccountPreferences): JSONObjec
     return JSONObject()
         .put("accentColor", preferences.accentColor)
         .put("reviewReactionAnimationsEnabled", preferences.reviewReactionAnimationsEnabled)
+        .put("firstReviewOnboardingCompleted", preferences.firstReviewOnboardingCompleted ?: JSONObject.NULL)
         .put("productAnalyticsEnabled", preferences.productAnalyticsEnabled ?: JSONObject.NULL)
 }
 
 private fun decodeAccountPreferences(jsonObject: JSONObject?): AccountPreferences {
-    jsonObject ?: return defaultAccountPreferences()
+    jsonObject ?: return defaultAccountPreferences().copy(firstReviewOnboardingCompleted = null)
     return AccountPreferences(
         accentColor = if (jsonObject.has("accentColor")) {
             jsonObject.getString("accentColor")
@@ -764,6 +851,13 @@ private fun decodeAccountPreferences(jsonObject: JSONObject?): AccountPreference
             defaultAccentColor
         },
         reviewReactionAnimationsEnabled = jsonObject.getBoolean("reviewReactionAnimationsEnabled"),
+        firstReviewOnboardingCompleted = if (
+            !jsonObject.has("firstReviewOnboardingCompleted") || jsonObject.isNull("firstReviewOnboardingCompleted")
+        ) {
+            null
+        } else {
+            jsonObject.getBoolean("firstReviewOnboardingCompleted")
+        },
         productAnalyticsEnabled = if (jsonObject.isNull("productAnalyticsEnabled")) {
             null
         } else {
@@ -774,7 +868,7 @@ private fun decodeAccountPreferences(jsonObject: JSONObject?): AccountPreference
 
 private fun decodeStoredAccountPreferences(jsonObject: JSONObject): AccountPreferences {
     return if (jsonObject.has("preferences").not() || jsonObject.isNull("preferences")) {
-        defaultAccountPreferences()
+        defaultAccountPreferences().copy(firstReviewOnboardingCompleted = null)
     } else {
         decodeAccountPreferences(jsonObject = jsonObject.getJSONObject("preferences"))
     }
