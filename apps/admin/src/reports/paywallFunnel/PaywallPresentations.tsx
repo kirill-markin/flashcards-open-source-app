@@ -14,10 +14,10 @@ type LoadState =
 const choiceColumns = [
   ["shownCount", "Impressions"],
   ["freeCount", "Free"],
-  ["premiumCount", "Premium"],
+  ["premiumCount", "Premium clicked"],
   ["dismissedCount", "Dismissed"],
-  ["unknownChoiceCount", "Choice unknown"],
-  ["checkoutCount", "Checkout"],
+  ["unknownChoiceCount", "No observed choice / unknown"],
+  ["checkoutCount", "Checkout requested"],
   ["convertedCount", "Server converted"],
   ["trialCount", "Trial"],
   ["paidCount", "Paid"],
@@ -103,7 +103,7 @@ export function PaywallPresentations(props: FunnelSectionProps): JSX.Element {
         <p className="eyebrow">Presentation report</p>
         <h3>Repeated paywall presentations</h3>
       </header>
-      <p>Recorded impressions, grouped by their own source and stage. Uses the shared filters above; the person funnel&rsquo;s Group by control applies only to its chart.</p>
+      <p>Counts presentations, including repeats by the same person, grouped by their own source and stage. Each row&rsquo;s Impressions count is its denominator. Uses the shared filters above; the person funnel&rsquo;s Group by control applies only to its chart.</p>
       {props.isRangeLoading || state.status === "loading" ? <div className="report-state" aria-live="polite">Loading paywall presentations…</div> : null}
       {props.isRangeLoading === false && state.status === "error" ? (
         <div className="report-state report-state-error">
@@ -126,8 +126,9 @@ export function PaywallPresentations(props: FunnelSectionProps): JSX.Element {
               <strong>{report.unlinkedFlowCount.toLocaleString("en-US")}</strong>
             </div>
             <p>One impression is one trusted <code>paywall_shown</code>. Repeated rows with the same presentation UUID and canonical actor count once at their earliest time. A legacy row without a UUID counts as its own unlinked impression. First, second and third+ mean observed exposure across that person&rsquo;s retained paywall history, before filtering dates or platforms; they cannot recover unrecorded history. Missing review stage or content version stays unknown.</p>
-            <p>Choices, checkout launches and client results require the same actor and presentation UUID, a matching entry point when reported, and a time from the impression through seven days later. Free and dismissed require their explicit choice event. No choice means unknown, including legacy rows; it does not imply dismissal or choosing free. Unmatched flow events above remain unattributed, including missing UUIDs, missing impressions and events outside that window.</p>
-            <p>Server converted counts a presentation once when it is credited a <code>trial_started</code> or <code>purchase_completed</code>. Each server fact is credited once to the latest preceding linked checkout within seven days of its impression, matching the provider to the checkout platform; a standard offer cannot receive a trial fact. Credit is decided across presentations before filters, so a fact cannot move to another presentation when dates or platforms change. Trial and Paid can overlap and must not be added. Client completed is a client result, never proof of a sale.</p>
+            <p>Choices, checkout requests and client results require the same canonical actor, presentation UUID and platform, a matching entry point when reported, and a time from the impression through seven days later. Free and dismissed require their explicit choice event. No choice means unknown, including legacy rows; it does not imply dismissal or choosing free. Unmatched flow events above remain unattributed, including missing UUIDs, missing impressions and events outside that window.</p>
+            <p>Server converted counts a presentation once when it is credited a server <code>trial_started</code> or <code>purchase_completed</code>. Each fact selects the same actor&rsquo;s latest preceding checkout request within seven days, matching Apple to iOS, Google to Android and Stripe to web. It receives credit only if that checkout links to an impression and the fact falls within seven days of that impression; an unlinked checkout cannot fall back to an older linked one. A standard offer cannot receive a trial fact. Credit is decided across presentations before filters, so a fact cannot move to another presentation when dates or platforms change. This is temporal provider attribution, not a transaction-level link between client and server events.</p>
+            <p>These columns are independent observations, unlike the sequenced person funnel: a recorded checkout or server conversion can appear here with a missing Premium choice. Checkout requested does not prove a provider sheet appeared or the request succeeded. Trial and Paid can overlap and must not be added; a payment does not require a trial. Client completed is a client result, never proof of a sale.</p>
             <p>These billing facts come from the production-only provider producers; sandbox sales do not enter them. Trusted canonical actors and the shared test, admin, automation and exclusion rules apply. Billing facts without a relevant linked checkout receive no presentation credit. Opted-out or missing client analytics cannot be reconstructed from billing facts.</p>
             <p>Reviewed means at least one server <code>review_answered</code> after the impression and within seven days. Returned means a trusted <code>app_opened</code> from 24 hours through seven days after it. These are observations on any device and any deck, not caused-by-paywall claims; overlapping presentation windows can share activity. Counts describe presentations with each fact, not event totals, and choices or client results can overlap after retries.</p>
             <p>Follow-ups can occur after the selected end date. An open seven-day window is right-censored, never a confirmed drop-off. Offline activity and delayed billing delivery can change past results after the window closes; billing attribution uses the fact&rsquo;s occurrence time rather than arrival time. Absence of a retained event is not proof that a person stopped using the app.</p>
