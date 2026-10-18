@@ -1073,7 +1073,11 @@ struct ReviewView: View {
         ) {
             content()
                 .padding(.top, reviewBottomBarTopPadding)
+                #if targetEnvironment(macCatalyst)
+                .padding(.bottom, 32)
+                #else
                 .padding(.bottom, self.usesPairedReviewSpacing ? 4 : reviewBottomBarBottomPadding)
+                #endif
         }
     }
 
