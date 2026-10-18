@@ -1,5 +1,9 @@
 package com.flashcardsopensourceapp.feature.review
 
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.os.Build
+import android.widget.Toast
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -24,6 +28,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.Label
 import androidx.compose.material.icons.automirrored.outlined.VolumeUp
 import androidx.compose.material.icons.outlined.Autorenew
+import androidx.compose.material.icons.outlined.ContentCopy
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.AssistChipDefaults
@@ -347,7 +352,6 @@ private fun ReviewCardContent(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.weight(1f)
             ) {
-                // A new card starts its tag row scrolled back to the first tag.
                 key(currentCard.card.cardId) {
                     ReviewCardTags(
                         tags = currentCard.card.tags,
@@ -394,6 +398,8 @@ private fun ReviewCardContent(
                     cardId = currentCard.card.cardId,
                     label = stringResource(id = R.string.review_front_label),
                     content = currentCard.frontContent,
+                    sourceText = currentCard.card.frontText,
+                    copyButtonTag = reviewCopyFrontTextButtonTag,
                     sectionModifier = Modifier,
                     labelModifier = Modifier
                         .bringIntoViewRequester(frontBringIntoViewRequester)
@@ -414,6 +420,8 @@ private fun ReviewCardContent(
                         cardId = currentCard.card.cardId,
                         label = stringResource(id = R.string.review_back_label),
                         content = currentCard.backContent,
+                        sourceText = currentCard.card.backText,
+                        copyButtonTag = reviewCopyBackTextButtonTag,
                         sectionModifier = Modifier.bringIntoViewRequester(
                             backBringIntoViewRequester
                         ),
@@ -480,6 +488,8 @@ private fun ReviewCardSideSection(
     cardId: String,
     label: String,
     content: ReviewRenderedContent,
+    sourceText: String,
+    copyButtonTag: String,
     sectionModifier: Modifier,
     labelModifier: Modifier,
     onSelectText: () -> Unit,
@@ -498,6 +508,17 @@ private fun ReviewCardSideSection(
         id = R.string.review_select_text_content_description,
         bidiWrap(text = label, locale = locale)
     )
+
+    val copyContentDescription = stringResource(
+        id = R.string.review_copy_markdown_content_description,
+        bidiWrap(text = label, locale = locale)
+    )
+    val copiedMessage = stringResource(id = R.string.review_markdown_copied)
+    val clipboardManager = remember(context) {
+        checkNotNull(context.getSystemService(ClipboardManager::class.java)) {
+            "ClipboardManager is not available."
+        }
+    }
 
     Column(
         verticalArrangement = Arrangement.spacedBy(12.dp),
@@ -523,70 +544,100 @@ private fun ReviewCardSideSection(
                 )
             }
         }
-        if (showSpeechButton || showAiButton) {
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.fillMaxWidth()
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Spacer(modifier = Modifier.weight(1f))
+
+            FilledIconButton(
+                onClick = {
+                    val markdown: String = reviewSideMarkdownForClipboard(
+                        sourceText = sourceText,
+                        privateMediaPlaceholder = { mediaLabel ->
+                            if (mediaLabel.isBlank()) {
+                                context.getString(R.string.review_copy_private_media)
+                            } else {
+                                context.getString(R.string.review_copy_private_media_label, mediaLabel)
+                            }
+                        }
+                    )
+                    clipboardManager.setPrimaryClip(ClipData.newPlainText(label, markdown))
+                    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
+                        Toast.makeText(context, copiedMessage, Toast.LENGTH_SHORT).show()
+                    }
+                },
+                colors = IconButtonDefaults.filledIconButtonColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceContainer,
+                    contentColor = MaterialTheme.colorScheme.onSurfaceVariant
+                ),
+                modifier = Modifier
+                    .size(reviewSpeechButtonSize)
+                    .testTag(copyButtonTag)
             ) {
-                Spacer(modifier = Modifier.weight(1f))
+                Icon(
+                    imageVector = Icons.Outlined.ContentCopy,
+                    contentDescription = copyContentDescription,
+                    modifier = Modifier.size(reviewSpeechIconSize)
+                )
+            }
 
-                if (showSpeechButton) {
-                    FilledIconButton(
-                        onClick = onToggleSpeech,
-                        colors = IconButtonDefaults.filledIconButtonColors(
-                            containerColor = if (isSpeechPlaying) {
-                                MaterialTheme.colorScheme.surfaceContainerHighest
-                            } else {
-                                MaterialTheme.colorScheme.surfaceContainer
-                            },
-                            contentColor = MaterialTheme.colorScheme.onSurfaceVariant
-                        ),
-                        modifier = Modifier.size(reviewSpeechButtonSize)
-                    ) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Outlined.VolumeUp,
-                            contentDescription = if (isSpeechPlaying) {
-                                stringResource(
-                                    id = R.string.review_stop_speech,
-                                    bidiWrap(
-                                        text = label,
-                                        locale = locale
-                                    )
+            if (showSpeechButton) {
+                FilledIconButton(
+                    onClick = onToggleSpeech,
+                    colors = IconButtonDefaults.filledIconButtonColors(
+                        containerColor = if (isSpeechPlaying) {
+                            MaterialTheme.colorScheme.surfaceContainerHighest
+                        } else {
+                            MaterialTheme.colorScheme.surfaceContainer
+                        },
+                        contentColor = MaterialTheme.colorScheme.onSurfaceVariant
+                    ),
+                    modifier = Modifier.size(reviewSpeechButtonSize)
+                ) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Outlined.VolumeUp,
+                        contentDescription = if (isSpeechPlaying) {
+                            stringResource(
+                                id = R.string.review_stop_speech,
+                                bidiWrap(
+                                    text = label,
+                                    locale = locale
                                 )
-                            } else {
-                                stringResource(
-                                    id = R.string.review_speak,
-                                    bidiWrap(
-                                        text = label,
-                                        locale = locale
-                                    )
+                            )
+                        } else {
+                            stringResource(
+                                id = R.string.review_speak,
+                                bidiWrap(
+                                    text = label,
+                                    locale = locale
                                 )
-                            },
-                            modifier = Modifier.size(reviewSpeechIconSize)
-                        )
-                    }
+                            )
+                        },
+                        modifier = Modifier.size(reviewSpeechIconSize)
+                    )
                 }
+            }
 
-                if (showAiButton) {
-                    val openAi = checkNotNull(onOpenAi)
-                    FilledIconButton(
-                        onClick = openAi,
-                        colors = IconButtonDefaults.filledIconButtonColors(
-                            containerColor = MaterialTheme.colorScheme.primary,
-                            contentColor = MaterialTheme.colorScheme.onPrimary
-                        ),
-                        modifier = Modifier
-                            .size(reviewSpeechButtonSize)
-                            .testTag(reviewAiCardButtonTag)
-                    ) {
-                        Text(
-                            text = "AI",
-                            style = MaterialTheme.typography.labelSmall,
-                            fontWeight = FontWeight.Bold,
-                            maxLines = 1
-                        )
-                    }
+            if (showAiButton) {
+                val openAi = checkNotNull(onOpenAi)
+                FilledIconButton(
+                    onClick = openAi,
+                    colors = IconButtonDefaults.filledIconButtonColors(
+                        containerColor = MaterialTheme.colorScheme.primary,
+                        contentColor = MaterialTheme.colorScheme.onPrimary
+                    ),
+                    modifier = Modifier
+                        .size(reviewSpeechButtonSize)
+                        .testTag(reviewAiCardButtonTag)
+                ) {
+                    Text(
+                        text = "AI",
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 1
+                    )
                 }
             }
         }
