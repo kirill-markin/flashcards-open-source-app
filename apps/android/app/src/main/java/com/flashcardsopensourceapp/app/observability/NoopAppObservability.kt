@@ -77,8 +77,17 @@ private fun renderNoopLogLine(
     prefix: String,
     event: AndroidObservationEvent
 ): String {
-    return "event=$prefix platform=android feature=${event.feature.tagValue} action=${event.action.tagValue} " +
+    val logLine = "event=$prefix platform=android feature=${event.feature.tagValue} action=${event.action.tagValue} " +
         renderNoopTags(tags = event.tags)
+    return if (event is AndroidBreadcrumbEvent.HttpTransientRetry) {
+        logLine +
+            " endpointName=${sanitizeSentryLogValue(fieldName = "endpointName", value = event.endpointName)} " +
+            "method=${sanitizeSentryLogValue(fieldName = "method", value = event.method)} " +
+            "stage=${sanitizeSentryLogValue(fieldName = "stage", value = event.stage)} " +
+            "attemptNumber=${event.attemptNumber} maxAttemptCount=${event.maxAttemptCount} delayMs=${event.delayMs}"
+    } else {
+        logLine
+    }
 }
 
 private fun renderNoopExceptionLogLine(event: AndroidExceptionIssueEvent): String {
