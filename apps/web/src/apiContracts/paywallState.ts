@@ -79,7 +79,7 @@ export function parsePaywallShownInput(value: unknown, endpoint: string, path: s
     localDate: parseRequiredField(object, "localDate", endpoint, path, parseString),
     timeZone: parseRequiredField(object, "timeZone", endpoint, path, parseString),
     reviewTrigger: parseRequiredField(object, "reviewTrigger", endpoint, path,
-      (field, source, fieldPath) => field === null ? null : parseEnum(field, source, fieldPath, ["initial", "day3", "weekly"])),
+      (field, source, fieldPath) => field === null ? null : parseEnum<ReviewPaywallTrigger>(field, source, fieldPath, ["initial", "day3", "weekly"])),
   };
   assertLocalDate(input.shownAt, input.localDate, input.timeZone, endpoint);
   return input;
