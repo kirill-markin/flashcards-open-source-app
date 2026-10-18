@@ -970,3 +970,16 @@
 "settings.account.connection.previewChanged" = "La previsualització ha canviat. Actualitza-la i confirma explícitament la nova previsualització.";
 "settings.account.connection.restart" = "La prova ha caducat o s’ha utilitzat. Torna a començar amb una prova nova.";
 "settings.account.connection.restorePaused" = "Comptes connectats. L’actualització local està aturada; les dades sense connexió es conserven.";
+
+"premium.offer.heading" = "Aprendre és per a tothom.";
+"premium.offer.free" = "Gratuït";
+"premium.offer.freeDescription" = "Creat per a estudiants sense feina. Obert a tothom. La teva motxilla s’acaba d’alleugerir.";
+"premium.offer.freeBenefits" = "Repassos essencials, aprenentatge sense connexió i sincronització";
+"premium.offer.continueFree" = "Continua gratis";
+"premium.offer.monthlyAI" = "%@ missatges d’IA cada mes";
+"premium.offer.unlimitedAI" = "Missatges d’IA sense límit mensual";
+"premium.offer.styles" = "Colors i estils personalitzats";
+"premium.offer.creatorSupport" = "La teva subscripció ajuda el creador de Nibomo, [Kirill Markin](https://kirill-markin.com/), a pagar els servidors i preparar la pròxima actualització amb cafè i pizza.";
+"premium.offer.subscribe" = "Subscriu-t’hi";
+"premium.offer.startTrial" = "Comença la prova gratuïta: %@";
+"premium.offer.view" = "Mostra Premium";

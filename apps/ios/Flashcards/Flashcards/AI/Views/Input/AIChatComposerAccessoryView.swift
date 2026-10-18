@@ -143,11 +143,25 @@ extension AIChatView {
                 }
 
                 if let remainingMessagesNotice = self.remainingMessagesNotice {
-                    Text(remainingMessagesNotice)
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
-                        .padding(.horizontal, 12)
-                        .accessibilityIdentifier(UITestIdentifier.aiRemainingMessagesNotice)
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(remainingMessagesNotice)
+                        if let entitlement = self.flashcardsStore.cloudEntitlement,
+                           hasPremiumAccess(entitlement: entitlement) == false {
+                            Button(aiSettingsLocalized("premium.offer.view", "View Premium")) {
+                                self.premiumPresenter.present(
+                                    reason: .premiumFeature(requiredTierRank: premiumTierRank),
+                                    analyticsEntryPoint: .aiLowBalance,
+                                    entitlement: entitlement,
+                                    identity: try? self.flashcardsStore.appleSubscriptionIdentity()
+                                )
+                            }
+                            .accessibilityIdentifier(UITestIdentifier.aiLowBalancePremiumButton)
+                        }
+                    }
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+                    .padding(.horizontal, 12)
+                    .accessibilityIdentifier(UITestIdentifier.aiRemainingMessagesNotice)
                 }
 
                 ZStack(alignment: .bottomTrailing) {
@@ -301,7 +315,8 @@ extension AIChatView {
     /// Hidden while the person's own key is active, because messages on that key have no monthly limit.
     var remainingMessagesNotice: String? {
         guard self.flashcardsStore.isOwnOpenAIKeyActive == false,
-              let usage = self.flashcardsStore.currentAIMonthlyUsage else {
+              let usage = self.flashcardsStore.currentAIMonthlyUsage,
+              usage.monthEndsAt > Date() else {
             return nil
         }
 

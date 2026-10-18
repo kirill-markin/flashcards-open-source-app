@@ -4,6 +4,18 @@ import type { TranslationCatalog } from "../catalogTypes";
 
 const trCatalog: TranslationCatalog = {
   stripe: createStripeCatalog(stripeCopy),
+  paywall: {
+    heading: "Öğrenmek herkesin hakkı.",
+    freeTitle: "Ücretsiz",
+    freeDescription: "İşi olmayan öğrenciler için oluşturuldu. Herkese açık. Sırt çantan biraz daha hafifledi.",
+    freeBenefit: "Temel tekrarlar, çevrimdışı öğrenme ve eşitleme",
+    continueFree: "Ücretsiz devam et",
+    creatorSupport: "Aboneliğin, Nibomo’nun yaratıcısı {{creator}}’in sunucuları ödemesine ve bir sonraki güncellemeyi kahve ve pizzayla hazırlamasına yardımcı olur.",
+    basePrice: "Taban fiyat: {{price}} / ay",
+    startTrial: "7 günlük ücretsiz denemeyi başlat",
+    trialPrice: "7 gün ücretsiz, ardından aylık {{price}} taban fiyat. Bir ödeme yöntemi gereklidir. İlk ödemeyi önlemek için deneme bitmeden iptal et.",
+    checkoutPrice: "Stripe, son fiyatı ve faturalandırma para birimini ödeme sırasında onaylar.",
+  },
   accentColorSettings: {
     title: "Vurgu rengi",
     subtitle: "Uygulamanın vurgu rengini seçin.",

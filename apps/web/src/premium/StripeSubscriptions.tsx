@@ -45,7 +45,7 @@ export function StripeSubscriptions(props: Readonly<{ entitlement: EntitlementSn
       <p className="subtitle">{t("stripe.checkout.delayed")}</p>
       {props.entitlement !== null && !hasPremiumAccess(props.entitlement, 20) ? (
         <button type="button" className="ghost-btn" disabled={billing.busy || !isSessionVerified} data-testid="stripe-resume-checkout"
-          onClick={() => void billing.purchase(null)}>{t("common.continue")}</button>
+          onClick={() => void billing.purchase(null, null)}>{t("common.continue")}</button>
       ) : null}
     </div> : null}
     <nav className="premium-legal" aria-label={t("stripe.subscription.manage")} data-testid="subscription-mobile-management">

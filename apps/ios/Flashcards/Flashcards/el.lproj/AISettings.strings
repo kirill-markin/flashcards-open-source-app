@@ -970,3 +970,16 @@
 "settings.account.connection.previewChanged" = "Η προεπισκόπηση άλλαξε. Ανανεώστε την και επιβεβαιώστε ρητά τη νέα προεπισκόπηση.";
 "settings.account.connection.restart" = "Η απόδειξη έληξε ή χρησιμοποιήθηκε. Ξεκινήστε ξανά με νέα απόδειξη.";
 "settings.account.connection.restorePaused" = "Οι λογαριασμοί συνδέθηκαν. Η τοπική ανανέωση έχει παύσει· τα δεδομένα εκτός σύνδεσης διατηρούνται.";
+
+"premium.offer.heading" = "Η μάθηση είναι για όλους.";
+"premium.offer.free" = "Δωρεάν";
+"premium.offer.freeDescription" = "Δημιουργήθηκε για φοιτητές χωρίς δουλειά. Ανοιχτό σε όλους. Το σακίδιό σας μόλις ελάφρυνε.";
+"premium.offer.freeBenefits" = "Επαναλήψεις, μάθηση εκτός σύνδεσης και συγχρονισμός";
+"premium.offer.continueFree" = "Συνέχεια δωρεάν";
+"premium.offer.monthlyAI" = "%@ μηνύματα AI κάθε μήνα";
+"premium.offer.unlimitedAI" = "Μηνύματα AI χωρίς μηνιαίο όριο";
+"premium.offer.styles" = "Προσαρμοσμένα χρώματα και στυλ";
+"premium.offer.creatorSupport" = "Η συνδρομή σας βοηθά τον δημιουργό του Nibomo, [Kirill Markin](https://kirill-markin.com/), να πληρώνει τους διακομιστές και να ετοιμάζει την επόμενη ενημέρωση με καφέ και πίτσα.";
+"premium.offer.subscribe" = "Εγγραφή";
+"premium.offer.startTrial" = "Έναρξη δωρεάν δοκιμής: %@";
+"premium.offer.view" = "Προβολή Premium";

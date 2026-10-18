@@ -6,11 +6,11 @@ import type { EntitlementSnapshot } from "../types/entitlement";
 import { useEntitlementSnapshot } from "./entitlementStore";
 import { PremiumOffer } from "./PremiumOffer";
 import { StripeBillingContext, useAccountStripeBilling } from "./useStripeBilling";
-import { isStripeBillingInvalidated, readStripeBillingGeneration, subscribeToStripeBillingInvalidation, type PremiumContinuation } from "./stripeIntent";
+import { canCollectPaywallAnalytics, isStripeBillingInvalidated, readStripeBillingGeneration, subscribeToStripeBillingInvalidation, type PaywallPresentation, type PremiumContinuation } from "./stripeIntent";
 
-/** `entryPoint` is null only for a test-settings preview, which reports no `paywall_shown`. */
+/** A null entry point makes a test-settings preview display-only. */
 export type PremiumRequest =
-  | Readonly<{ reason: "offer"; entryPoint: AnalyticsPaywallEntryPoint | null }>
+  | Readonly<{ reason: "offer"; entryPoint: AnalyticsPaywallEntryPoint | null; presentation?: PaywallPresentation | null; continuation?: PremiumContinuation | null }>
   | Readonly<{ reason: "ai-limit"; entryPoint: AnalyticsPaywallEntryPoint | null; aiUsage: AiUsageStatus | null }>
   | Readonly<{
     reason: "feature";
@@ -21,7 +21,7 @@ export type PremiumRequest =
     onResult: (result: "granted" | "dismissed") => void;
   }>;
 
-type Presentation = Readonly<{ userId: string; billingGeneration: number; request: PremiumRequest }>;
+type Presentation = Readonly<{ userId: string; billingGeneration: number; request: PremiumRequest; analytics: PaywallPresentation | null; revision: number }>;
 type PremiumPresenter = (request: PremiumRequest) => "granted" | "presented" | "unavailable";
 const PremiumContext = createContext<PremiumPresenter | null>(null);
 
@@ -40,13 +40,25 @@ export function PremiumProvider(props: Readonly<{ children: ReactNode }>): React
 
 function PremiumSession(props: Readonly<{ children: ReactNode }>): ReactElement {
   const userId = useAppData().session?.userId ?? null;
-  const billing = useAccountStripeBilling();
   const billingGeneration = readStripeBillingGeneration();
   const entitlement = useEntitlementSnapshot(userId);
   const [presentation, setPresentation] = useState<Presentation | null>(null);
   const pendingRef = useRef<Presentation | null>(null);
+  const shownRef = useRef<Presentation | null>(null);
+  const revisionRef = useRef(0);
   const currentUserIdRef = useRef(userId);
   currentUserIdRef.current = userId;
+
+  const consumePendingOfferContinuation = useCallback((continuation: PremiumContinuation): void => {
+    const pending = pendingRef.current;
+    if (pending === null || pending.userId !== currentUserIdRef.current
+      || pending.billingGeneration !== readStripeBillingGeneration()
+      || pending.request.reason !== "offer" || pending.request.continuation?.accentColor !== continuation.accentColor
+      || pending.request.continuation.requiredRank !== continuation.requiredRank) return;
+    pendingRef.current = null;
+    setPresentation(null);
+  }, []);
+  const billing = useAccountStripeBilling(consumePendingOfferContinuation);
 
   const dismiss = useCallback((): void => {
     const pending = pendingRef.current;
@@ -61,20 +73,42 @@ function PremiumSession(props: Readonly<{ children: ReactNode }>): ReactElement 
     if (isStripeBillingInvalidated() || billingGeneration !== readStripeBillingGeneration() || userId === null || userId !== currentUserIdRef.current) {
       return "unavailable";
     }
-    if (request.reason === "offer" && hasPremiumAccess(entitlement, 20)) {
-      return "unavailable";
-    }
     dismiss();
     if (request.reason === "feature" && hasPremiumAccess(entitlement, request.requiredRank)) {
       request.onResult("granted");
       return "granted";
     }
-    const next = { userId, billingGeneration, request };
+    const analytics = request.entryPoint === null || !canCollectPaywallAnalytics() ? null
+      : request.reason === "offer" && request.presentation !== null && request.presentation !== undefined ? request.presentation
+      : { presentationId: crypto.randomUUID(), entryPoint: request.entryPoint };
+    revisionRef.current += 1;
+    const next = { userId, billingGeneration, request, analytics, revision: revisionRef.current };
+    shownRef.current = null;
     pendingRef.current = next;
     setPresentation(next);
-    if (request.entryPoint !== null) track({ name: "paywall_shown", entryPoint: request.entryPoint });
-    return "presented";
+    return request.reason === "offer" && hasPremiumAccess(entitlement, 20) ? "granted" : "presented";
   }, [billingGeneration, dismiss, entitlement, userId]);
+
+  function reportVisible(): void {
+    const pending = pendingRef.current;
+    if (pending === null || shownRef.current === pending) return;
+    shownRef.current = pending;
+    if (pending.analytics === null || !canCollectPaywallAnalytics()) return;
+    // Email linking resumes the presentation whose exposure was already reported.
+    if (pending.request.reason === "offer" && pending.request.presentation !== null && pending.request.presentation !== undefined) return;
+    const now = new Date();
+    const localDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+    track({ name: "paywall_shown", ...pending.analytics, localDate,
+      timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone, contentVersion: "union-v1" });
+  }
+
+  function reportChoice(outcome: "free" | "premium" | "dismissed"): void {
+    const pending = pendingRef.current;
+    if (pending?.analytics !== null && pending?.analytics !== undefined && shownRef.current === pending && canCollectPaywallAnalytics()) {
+      track({ name: "paywall_choice", ...pending.analytics, outcome });
+    }
+    if (outcome !== "premium") dismiss();
+  }
 
   useEffect(() => subscribeToStripeBillingInvalidation(() => {
     pendingRef.current = null;
@@ -91,6 +125,9 @@ function PremiumSession(props: Readonly<{ children: ReactNode }>): ReactElement 
     if (pending?.request.reason === "offer" && hasPremiumAccess(entitlement, 20)) {
       pendingRef.current = null;
       setPresentation(null);
+      if (pending.request.continuation !== null && pending.request.continuation !== undefined) {
+        billing.resumePremiumContinuation(pending.request.continuation);
+      }
       return;
     }
     if (pending?.request.reason === "feature" && hasPremiumAccess(entitlement, pending.request.requiredRank)) {
@@ -99,7 +136,7 @@ function PremiumSession(props: Readonly<{ children: ReactNode }>): ReactElement 
       setPresentation(null);
       pending.request.onResult("granted");
     }
-  }, [entitlement, userId]);
+  }, [billing.resumePremiumContinuation, entitlement, presentation, userId]);
 
   return (
     <StripeBillingContext.Provider value={billing}>
@@ -107,7 +144,9 @@ function PremiumSession(props: Readonly<{ children: ReactNode }>): ReactElement 
         {props.children}
         {presentation !== null && presentation.userId === userId
           && (presentation.request.reason !== "offer" || !hasPremiumAccess(entitlement, 20)) ? (
-          <PremiumOffer request={presentation.request} entitlement={entitlement} onDismiss={dismiss} />
+          <PremiumOffer key={presentation.revision} request={presentation.request} entitlement={entitlement}
+            presentation={presentation.analytics} onVisible={reportVisible} onDismiss={() => reportChoice("dismissed")}
+            onContinueFree={() => reportChoice("free")} onChoosePremium={() => reportChoice("premium")} />
         ) : null}
       </PremiumContext.Provider>
     </StripeBillingContext.Provider>

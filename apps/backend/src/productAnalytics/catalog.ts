@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { validateIanaTimeZone } from "../progress/timeZone";
 
 // The product analytics contract. Every client mirrors this file by hand and the server
 // rejects anything that is not declared here, which is what keeps event_properties free of
@@ -181,6 +182,21 @@ const productAnalyticsSubscriptionPeriods = ["monthly", "annual"] as const;
 // A store product id (`premium_monthly`, `premium`, `prod_...`) and an ISO 4217 currency code.
 const productAnalyticsStoreProductIdPattern = /^[A-Za-z0-9._-]{1,128}$/u;
 const productAnalyticsCurrencyPattern = /^[A-Z]{3}$/u;
+
+const productAnalyticsPaywallEntryPoints = [
+  "subscription_settings",
+  "ai_limit",
+  "accent_color",
+  "review_animations",
+  "ai_chat_suggestions",
+  "app_icon",
+  "guest_return",
+  "review",
+  "ai_low_balance",
+] as const;
+
+const productAnalyticsPaywallContentVersionPattern = /^[a-z0-9](?:[a-z0-9._-]{0,62}[a-z0-9])?$/u;
+const productAnalyticsTimeZonePattern = /^[A-Za-z][A-Za-z0-9_.+-]*(?:\/[A-Za-z0-9_.+-]+){0,3}$/u;
 
 // Why a provider pulled a purchase. `unknown` is the honest answer for a provider that reports a
 // revoke and no cause - a Google RTDN `SUBSCRIPTION_REVOKED` carries none - and never a value a
@@ -491,6 +507,8 @@ type ProductAnalyticsPropertySpec =
     | Readonly<{ kind: "enum"; values: ReadonlyArray<string> }>
     // pattern is required, so a string property that would accept unbounded free text cannot compile.
     | Readonly<{ kind: "string"; pattern: RegExp }>
+    | Readonly<{ kind: "localDate" }>
+    | Readonly<{ kind: "timeZone" }>
     // Every numeric property in this catalog is a counter or a measure. The table is append-only, so a
     // client that writes -1 or 1.5 cannot be repaired afterwards; the contract admits neither.
     | Readonly<{ kind: "nonNegativeInteger" }>
@@ -942,6 +960,19 @@ export const productAnalyticsEventCatalog = {
     properties: {
       method: { kind: "enum", values: productAnalyticsAuthMethods, optional: true },
     },
+  },
+  // Persisted client-local false→true and true→false actions only; remote reads and backfills emit neither.
+  first_review_onboarding_completed: {
+    serverOnly: false,
+    requiresScreen: false,
+    properties: {
+      source: { kind: "enum", values: ["review", "settings"] },
+    },
+  },
+  first_review_onboarding_reset: {
+    serverOnly: false,
+    requiresScreen: false,
+    properties: {},
   },
   // The card flip. It never reaches the backend on its own, so only a client can report it, and it
   // is the denominator `review_answered` is read against: the gap between the two is the person who
@@ -1566,24 +1597,29 @@ export const productAnalyticsEventCatalog = {
   // evidence that anything was sold or granted. The surface beneath the paywall is stamped
   // ambiently, as on `card_create_started`.
   //
-  // The paywall reaching the screen. `guest_return` is the web app reopening it from
-  // `?premium=offer` after a guest signed in to buy.
+  // One UUID per actual visible presentation, retained with its original entry point across
+  // guest sign-in and provider redirects. guest_return names the web offer reopened after sign-in.
   paywall_shown: {
     serverOnly: false,
     requiresScreen: false,
     properties: {
-      entry_point: {
-        kind: "enum",
-        values: [
-          "subscription_settings",
-          "ai_limit",
-          "accent_color",
-          "review_animations",
-          "ai_chat_suggestions",
-          "app_icon",
-          "guest_return",
-        ],
-      },
+      entry_point: { kind: "enum", values: productAnalyticsPaywallEntryPoints },
+      presentation_id: { kind: "string", pattern: productAnalyticsUuidPattern, optional: true },
+      review_trigger: { kind: "enum", values: ["initial", "day3", "weekly"], optional: true },
+      local_date: { kind: "localDate", optional: true },
+      time_zone: { kind: "timeZone", optional: true },
+      content_version: { kind: "string", pattern: productAnalyticsPaywallContentVersionPattern, optional: true },
+    },
+  },
+  // Only an observed action: closing/back/swiping is dismissed, never an inferred free choice.
+  // A presentation with no observed action has no choice event.
+  paywall_choice: {
+    serverOnly: false,
+    requiresScreen: false,
+    properties: {
+      presentation_id: { kind: "string", pattern: productAnalyticsUuidPattern },
+      entry_point: { kind: "enum", values: productAnalyticsPaywallEntryPoints },
+      outcome: { kind: "enum", values: ["free", "premium", "dismissed"] },
     },
   },
   // The person confirmed buying and the store sheet or Stripe Checkout was launched. `offer_type` is
@@ -1594,6 +1630,8 @@ export const productAnalyticsEventCatalog = {
     requiresScreen: false,
     properties: {
       offer_type: { kind: "enum", values: ["free_trial", "standard"], optional: true },
+      presentation_id: { kind: "string", pattern: productAnalyticsUuidPattern, optional: true },
+      entry_point: { kind: "enum", values: productAnalyticsPaywallEntryPoints, optional: true },
     },
   },
   // What the store or checkout reported back to the client. `completed` is the client's view only;
@@ -1603,6 +1641,8 @@ export const productAnalyticsEventCatalog = {
     requiresScreen: false,
     properties: {
       outcome: { kind: "enum", values: ["completed", "cancelled", "failed", "pending"] },
+      presentation_id: { kind: "string", pattern: productAnalyticsUuidPattern, optional: true },
+      entry_point: { kind: "enum", values: productAnalyticsPaywallEntryPoints, optional: true },
     },
   },
   // A store restore finishing, which only the iOS and Android apps offer.
@@ -2241,6 +2281,16 @@ function createRequiredPropertySchema(spec: ProductAnalyticsPropertySpec) {
 
   if (spec.kind === "nonNegativeInteger") {
     return z.number().int().nonnegative();
+  }
+
+  if (spec.kind === "localDate") {
+    return z.iso.date();
+  }
+
+  if (spec.kind === "timeZone") {
+    return z.string().min(1).max(productAnalyticsPropertyStringMaxLength)
+      .regex(productAnalyticsTimeZonePattern)
+      .refine((value) => validateIanaTimeZone(value).ok);
   }
 
   return z.string().min(1).max(productAnalyticsPropertyStringMaxLength).regex(spec.pattern);

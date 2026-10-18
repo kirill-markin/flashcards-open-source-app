@@ -18,6 +18,8 @@ import com.flashcardsopensourceapp.feature.ai.runtime.errors.AiAlertState
 import com.flashcardsopensourceapp.app.navigation.AiDestination
 import com.flashcardsopensourceapp.app.navigation.rememberRouteBackStackEntry
 import com.flashcardsopensourceapp.app.navigation.settings.SettingsAccountSignInEmailDestination
+import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsPaywallEntryPoint
+import com.flashcardsopensourceapp.data.local.model.cloud.hasPremiumAccess
 import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsEvent
 import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsPermission
 import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsPermissionOutcome
@@ -164,6 +166,11 @@ internal fun NavGraphBuilder.registerAiNavGraph(
                     route = SettingsAccountSignInEmailDestination.createRoute(origin = AnalyticsSurface.AI)
                 )
             },
+            onViewPremium = if (premiumPresenter.entitlement != null &&
+                !hasPremiumAccess(premiumPresenter.entitlement)
+            ) {
+                { premiumPresenter.showOfferPreview(AnalyticsPaywallEntryPoint.AI_LOW_BALANCE) }
+            } else null,
             onDismissErrorMessage = aiViewModel::dismissErrorMessage,
             onDismissAlert = aiViewModel::dismissAlert,
             onAddPendingAttachment = aiViewModel::addPendingAttachment,

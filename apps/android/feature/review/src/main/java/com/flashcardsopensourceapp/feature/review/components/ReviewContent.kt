@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.relocation.BringIntoViewRequester
 import androidx.compose.foundation.relocation.bringIntoViewRequester
@@ -390,6 +391,7 @@ private fun ReviewCardContent(
                 modifier = Modifier.padding(20.dp)
             ) {
                 ReviewCardSideSection(
+                    cardId = currentCard.card.cardId,
                     label = stringResource(id = R.string.review_front_label),
                     content = currentCard.frontContent,
                     sectionModifier = Modifier,
@@ -409,6 +411,7 @@ private fun ReviewCardContent(
                 if (isAnswerVisible) {
                     HorizontalDivider()
                     ReviewCardSideSection(
+                        cardId = currentCard.card.cardId,
                         label = stringResource(id = R.string.review_back_label),
                         content = currentCard.backContent,
                         sectionModifier = Modifier.bringIntoViewRequester(
@@ -474,6 +477,7 @@ private fun ReviewRepetitionPill(
 
 @Composable
 private fun ReviewCardSideSection(
+    cardId: String,
     label: String,
     content: ReviewRenderedContent,
     sectionModifier: Modifier,
@@ -509,12 +513,16 @@ private fun ReviewCardSideSection(
                     contentDescription = selectTextContentDescription
                 }
         )
-        ReviewRenderedContentView(
-            content = content,
-            onLoadManagedMediaFile = onLoadManagedMediaFile,
-            onLoadManagedMediaDownloadUrl = onLoadManagedMediaDownloadUrl,
-            modifier = contentModifier
-        )
+        key(cardId) {
+            SelectionContainer {
+                ReviewRenderedContentView(
+                    content = content,
+                    onLoadManagedMediaFile = onLoadManagedMediaFile,
+                    onLoadManagedMediaDownloadUrl = onLoadManagedMediaDownloadUrl,
+                    modifier = contentModifier
+                )
+            }
+        }
         if (showSpeechButton || showAiButton) {
             Row(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),

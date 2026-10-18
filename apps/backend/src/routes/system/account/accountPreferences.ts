@@ -24,6 +24,7 @@ type AccountPreferencesRoutesOptions = Readonly<{
 type AccountPreferencesRow = Readonly<{
   accent_color: string;
   review_reaction_animations_enabled: boolean;
+  first_review_onboarding_completed: boolean;
   analytics_consent: AnalyticsConsentChoice | null;
   product_analytics_enabled: boolean | null;
 }>;
@@ -32,6 +33,7 @@ function mapAccountPreferencesRow(row: AccountPreferencesRow): AccountPreference
   return {
     accentColor: row.accent_color,
     reviewReactionAnimationsEnabled: row.review_reaction_animations_enabled,
+    firstReviewOnboardingCompleted: row.first_review_onboarding_completed,
     analyticsConsent: row.analytics_consent,
     productAnalyticsEnabled: row.product_analytics_enabled,
   };
@@ -91,9 +93,11 @@ export async function updateAccountPreferences(
       "THEN product_analytics_enabled",
       "ELSE $5::BOOLEAN END,",
       "accent_color = COALESCE($7::TEXT, accent_color),",
-      "locale = COALESCE($8::TEXT, locale)",
+      "locale = COALESCE($8::TEXT, locale),",
+      "first_review_onboarding_completed = COALESCE($9::BOOLEAN, first_review_onboarding_completed)",
       "WHERE user_id = $1",
-      "RETURNING review_reaction_animations_enabled, analytics_consent, product_analytics_enabled, accent_color",
+      "RETURNING review_reaction_animations_enabled, analytics_consent, product_analytics_enabled, accent_color,",
+      "first_review_onboarding_completed",
     ].join(" "),
     [
       userId,
@@ -104,6 +108,7 @@ export async function updateAccountPreferences(
       update.productAnalyticsEnabledOrigin === "reconciliation",
       update.accentColor,
       update.locale,
+      update.firstReviewOnboardingCompleted,
     ],
   );
 
@@ -212,6 +217,7 @@ export function registerAccountPreferencesRoutes(
 
     if (
       preferencesUpdate.reviewReactionAnimationsEnabled === null
+      && preferencesUpdate.firstReviewOnboardingCompleted === null
       && preferencesUpdate.accentColor === null
       && preferencesUpdate.locale === null
     ) {
@@ -227,6 +233,7 @@ export function registerAccountPreferencesRoutes(
     const accountPreferences = await options.updateAccountPreferencesFn(requestContext.userId, {
       accentColor: preferencesUpdate.accentColor,
       reviewReactionAnimationsEnabled: preferencesUpdate.reviewReactionAnimationsEnabled,
+      firstReviewOnboardingCompleted: preferencesUpdate.firstReviewOnboardingCompleted,
       // Both analytics columns are the guest session's on this branch, so neither is written here.
       // The origins ride along and decide nothing while the value beside them is null.
       analyticsConsent: null,

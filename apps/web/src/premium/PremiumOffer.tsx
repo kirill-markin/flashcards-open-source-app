@@ -7,12 +7,17 @@ import { OwnOpenAIKeyEditor } from "../screens/settings/OwnOpenAIKeySettingsScre
 import type { EntitlementSnapshot } from "../types/entitlement";
 import { hasPremiumAccess, type PremiumRequest } from "./PremiumProvider";
 import { StripeOfferContent } from "./StripeOfferContent";
+import type { PaywallPresentation } from "./stripeIntent";
 import { useStripeBilling } from "./useStripeBilling";
 
 type PremiumOfferProps = Readonly<{
   request: PremiumRequest;
   entitlement: EntitlementSnapshot | null;
+  presentation: PaywallPresentation | null;
+  onVisible: () => void;
   onDismiss: () => void;
+  onContinueFree: () => void;
+  onChoosePremium: () => void;
 }>;
 
 export function PremiumOffer(props: PremiumOfferProps): ReactElement {
@@ -25,7 +30,8 @@ export function PremiumOffer(props: PremiumOfferProps): ReactElement {
   const titleId = useId();
   const bodyId = useId();
   const billing = useStripeBilling();
-  const isPurchasing = billing.busy && billing.status === "opening";
+  const isPreview = request.entryPoint === null;
+  const isPurchasing = !isPreview && billing.busy && billing.status === "opening";
   const isAiLimit = request.reason === "ai-limit";
   const showOffer = entitlement !== null && !hasPremiumAccess(entitlement, 20);
 
@@ -37,6 +43,7 @@ export function PremiumOffer(props: PremiumOfferProps): ReactElement {
     const previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     const previousOverflow = document.body.style.overflow;
     dialog.showModal();
+    props.onVisible();
     document.body.style.overflow = "hidden";
     closeRef.current?.focus();
     return (): void => {
@@ -64,13 +71,13 @@ export function PremiumOffer(props: PremiumOfferProps): ReactElement {
       className="panel premium-dialog"
       dir={direction}
       aria-labelledby={titleId}
-      aria-describedby={bodyId}
+      aria-describedby={isEditingKey || isAiLimit || entitlement === null ? bodyId : undefined}
       data-testid="premium-dialog"
       onCancel={(event) => { event.preventDefault(); if (!isPurchasing) onDismiss(); }}
     >
       <div className="premium-header">
         <h2 id={titleId} className="title">
-          {isEditingKey ? t("ownOpenAIKeySettings.title") : isAiLimit ? t("premium.limitTitle") : t("stripe.offer.title")}
+          {isEditingKey ? t("ownOpenAIKeySettings.title") : showOffer ? t("paywall.heading") : isAiLimit ? t("premium.limitTitle") : t("stripe.offer.title")}
         </h2>
         <button
           ref={closeRef}
@@ -101,14 +108,16 @@ export function PremiumOffer(props: PremiumOfferProps): ReactElement {
         </>
       ) : (
         <>
-          <p id={bodyId} className="subtitle">
+          <p id={bodyId} className="subtitle" hidden={!isAiLimit && entitlement !== null}>
             {request.reason === "ai-limit"
               ? formatAiLimitReachedMessageForHeldUsage({ aiUsage: request.aiUsage, t, formatDate })
-              : entitlement === null ? t("premium.unknown") : t("stripe.offer.description")}
+              : entitlement === null ? t("premium.unknown") : null}
           </p>
-          {showOffer ? <StripeOfferContent continuation={request.reason === "feature" ? request.continuation : null} /> : null}
+          {showOffer ? <StripeOfferContent continuation={request.reason === "ai-limit" ? null : request.continuation ?? null}
+            presentation={props.presentation} isPreview={isPreview} onContinueFree={props.onContinueFree}
+            onChoosePremium={props.onChoosePremium} /> : null}
           <p className="subtitle">{t("stripe.ownKey.explanation")}</p>
-          <button type="button" className="ghost-btn" data-testid="premium-own-key" onClick={() => setIsEditingKey(true)}>
+          <button type="button" className="ghost-btn" data-testid="premium-own-key" disabled={isPreview || isPurchasing} onClick={() => setIsEditingKey(true)}>
             {t("stripe.ownKey.action")}
           </button>
           {isAiLimit ? (
