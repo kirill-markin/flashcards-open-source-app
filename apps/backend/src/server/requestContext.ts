@@ -6,7 +6,7 @@ import {
   type AuthTransport,
 } from "../auth";
 import type { GuestSessionPlatform, GuestSessionPurpose } from "../guestAuth/types";
-import { assertGuestPlatformSupportsSurface } from "../guestAuth/webPlatform";
+import { assertGuestRequestSupportsProduct } from "../guestAuth/webPlatform";
 import { isDeletedSubject } from "../auth/deletedSubjects";
 import { HttpError } from "../shared/errors";
 import {
@@ -47,14 +47,6 @@ export type RequestContext = Readonly<{
   guestCredentialSource?: "authorization" | "cookie" | null;
 }>;
 
-/**
- * Per-surface guest policy. Every authenticated HTTP route in this service builds its context here,
- * so this is the one place a `web` guest credential can be admitted or refused for all of them at
- * once, rather than through a transport check repeated in each route that happens to remember it.
- *
- * Default-deny: a surface that says nothing refuses `web`. The analytics ingest route is the only
- * caller that opts in, because a web guest session exists solely to authenticate its batches.
- */
 export type LoadRequestContextOptions = Readonly<{
   allowWebGuestPlatform?: boolean;
 }>;
@@ -136,11 +128,8 @@ async function loadAuthenticatedRequestContext(
   options: LoadRequestContextOptions,
 ): Promise<RequestContext> {
   assertRequestActive();
-  // Before the deleted-subject read and the profile write below, so a refused web guest costs
-  // nothing and leaves nothing behind. This is the choke point every guest request context is minted
-  // through, which is what makes the refusal hold for routes nobody has written yet.
   if (options.allowWebGuestPlatform !== true) {
-    assertGuestPlatformSupportsSurface(auth.guestPlatform);
+    assertGuestRequestSupportsProduct(auth);
   }
 
   const subjectUserId = auth.subjectUserId;

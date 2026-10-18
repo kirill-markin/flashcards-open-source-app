@@ -1,4 +1,5 @@
 import type { Hono } from "hono";
+import { getBrowserGuestCapabilities } from "../../guestAuth/webPlatform";
 import type { loadAiUsageStatus } from "../../aiUsage";
 import { resolveAccountKindForTransport } from "../../billing/snapshot";
 import type { AppEnv } from "../../server/app";
@@ -33,6 +34,9 @@ export function registerAiUsageRoute(
       resolveAccountKindForTransport(requestContext.transport),
       new Date(),
     );
-    return context.json(status);
+    return context.json({
+      ...status,
+      browserGuestCapabilities: getBrowserGuestCapabilities(requestContext),
+    });
   });
 }

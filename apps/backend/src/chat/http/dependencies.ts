@@ -5,7 +5,7 @@ import {
   resolveAiUsageAllowanceForEnforcement,
 } from "../../aiUsage";
 import { createChatFileUpload } from "../../chatFiles";
-import { assertGuestPlatformSupportsSurface } from "../../guestAuth/webPlatform";
+import { assertGuestRequestSupportsProduct } from "../../guestAuth/webPlatform";
 import { HttpError } from "../../shared/errors";
 import {
   loadRequestContextFromRequest,
@@ -91,15 +91,6 @@ export type ChatRouteDependencies = Readonly<{
   createChatFileUploadFn: typeof createChatFileUpload;
 }>;
 
-/**
- * Restricts the backend-owned chat surface to human-facing auth transports.
- *
- * `guest` here means a native guest session. The web guest platform is refused, and this repeats the
- * default-deny gate in `server/requestContext.ts` on purpose: chat is the guest surface that spends
- * money — every model call a run makes appends a usage fact to `ai.usage_events`, and every turn on the
- * platform key counts against the caller's monthly allowance — while the web guest token sits in `localStorage` where the visitor and
- * any script on the page can read it.
- */
 function assertSupportedTransport(requestContext: RequestContext): void {
   const supportedTransports = new Set<AuthTransport>(["bearer", "session", "guest"]);
   if (supportedTransports.has(requestContext.transport) === false) {
@@ -110,7 +101,7 @@ function assertSupportedTransport(requestContext: RequestContext): void {
     );
   }
 
-  assertGuestPlatformSupportsSurface(requestContext.guestPlatform);
+  assertGuestRequestSupportsProduct(requestContext);
 }
 
 export function createChatRouteDependencies(options: ChatRoutesOptions): ChatRouteDependencies {

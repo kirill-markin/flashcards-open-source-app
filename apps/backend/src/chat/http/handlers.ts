@@ -1,4 +1,5 @@
 import type { Handler } from "hono";
+import { assertGuestAiFundingAllowed } from "../../guestAuth/webPlatform";
 import { assertAiConsentReceiptActive } from "../../aiConsent";
 import { readAiConsentIdHeader } from "../../aiConsent/input";
 import type { AppEnv } from "../../server/app";
@@ -204,9 +205,10 @@ export function createPostChatHandler(dependencies: ChatRouteDependencies): Hand
       context.req.raw,
       dependencies,
     );
+    const userOpenAIApiKey = readUserOpenAIApiKeyHeader(context.req.raw);
+    assertGuestAiFundingAllowed(requestContext, userOpenAIApiKey);
     const aiConsentId = readAiConsentIdHeader(context.req.raw);
     await assertAiConsentReceiptActive(requestContext.userId, aiConsentId);
-    const userOpenAIApiKey = readUserOpenAIApiKeyHeader(context.req.raw);
     const rawBody = await parseJsonBodyWithByteLimit(
       context.req.raw,
       chatMaximumStartRunRequestBytes,

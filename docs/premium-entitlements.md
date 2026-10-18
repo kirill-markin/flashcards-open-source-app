@@ -30,7 +30,10 @@ release still renders and gates correctly.
 
 A guest is an account without an email (`apps/backend/src/guestAuth/`). It is a property of the
 account, orthogonal to the tier: a guest can hold `premium`. Limits are therefore keyed by tier and
-account kind ([`limits.ts`](../apps/backend/src/billing/limits.ts)).
+account kind ([`limits.ts`](../apps/backend/src/billing/limits.ts)). The browser guest
+[AI access policy](premium-offer.md#limits) is request-specific and does not change the entitlement
+snapshot or its numeric limits. `/me` and `/me/ai-usage` publish `browserGuestCapabilities` alongside
+their existing fields so clients can distinguish access from allowance.
 
 ## Access status
 
@@ -125,9 +128,10 @@ move with the workspace content, so upgrading never resets a monthly budget
 ([`completeGuestUpgradeInExecutor`](../apps/backend/src/guestAuth/upgrade/index.ts) states the
 ordering this needs).
 
-**Reaping.** A guest that ever made a purchase is never reaped; deleting it would destroy the only
-link between a paid transaction and its holder. Any job that can reach a purchaser applies the guard
-in [`createWebGuestEverPurchasedGuardSql`](../apps/backend/src/guestAuth/reaper/index.ts).
+**Reaping.** Browser-product retention follows the
+[browser guest policy](auth-service.md#browser-guest-credentials). A guest that ever made a purchase
+is never reaped; deleting it would destroy the only link between a paid transaction and its holder.
+Any job that can reach a purchaser applies the guard in [`createWebGuestEverPurchasedGuardSql`](../apps/backend/src/guestAuth/reaper/index.ts).
 
 **Deletion.** Account deletion anonymises billing history rather than deleting it, under the one
 pseudonym the analytics and AI usage rewrites share
