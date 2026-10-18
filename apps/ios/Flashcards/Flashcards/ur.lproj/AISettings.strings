@@ -897,8 +897,8 @@
 "settings.appIcon.systemAlertNote" = "iOS ہر آئیکن تبدیلی کی تصدیق ایک الرٹ سے کرتا ہے۔";
 
 "premium.apple.monthlyProduct" = "%@ · ماہانہ";
-"premium.apple.renewal" = "منسوخی تک خودکار تجدید ہوتی ہے۔ اپنی App Store سبسکرپشنز میں اس کا انتظام یا اسے منسوخ کریں۔";
-"premium.apple.trial" = "مفت آزمائش: %@۔ اس کے بعد:";
+"premium.apple.renewal" = "خودکار تجدید۔ App Store سبسکرپشنز میں انتظام یا منسوخ کریں۔";
+"premium.apple.trial" = "%@ مفت، پھر";
 "premium.apple.loadFailed" = "App Store کی پیشکش لوڈ نہیں ہو سکی۔ اپنا کنکشن چیک کریں اور دوبارہ کوشش کریں۔";
 "premium.apple.pending" = "Apple یا اکاؤنٹ کی تصدیق کا انتظار ہے۔ دوبارہ کوشش کرنے کے لیے خریداری بحال کریں۔";
 "premium.apple.cancelled" = "خریداری منسوخ ہو گئی۔ آپ سے کوئی رقم نہیں لی گئی۔";

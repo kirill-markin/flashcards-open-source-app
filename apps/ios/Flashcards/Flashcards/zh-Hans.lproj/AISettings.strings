@@ -925,8 +925,8 @@
 "settings.appIcon.systemAlertNote" = "每次更改图标时，iOS 都会弹出提示进行确认。";
 
 "premium.apple.monthlyProduct" = "%@ · 月度";
-"premium.apple.renewal" = "订阅会自动续期，直到取消。请在 App Store 订阅中管理或取消。";
-"premium.apple.trial" = "免费试用：%@。之后：";
+"premium.apple.renewal" = "自动续期。可在 App Store 订阅中管理或取消。";
+"premium.apple.trial" = "%@免费，之后";
 "premium.apple.loadFailed" = "无法加载 App Store 优惠。请检查网络连接后重试。";
 "premium.apple.pending" = "正在等待 Apple 或账户确认。请恢复购买以重试。";
 "premium.apple.cancelled" = "购买已取消。未向你收费。";

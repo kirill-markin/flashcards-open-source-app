@@ -897,8 +897,8 @@
 "settings.appIcon.systemAlertNote" = "प्रत्येक चिन्ह बदलाची पुष्टी iOS एका सूचनेद्वारे करते.";
 
 "premium.apple.monthlyProduct" = "%@ · मासिक";
-"premium.apple.renewal" = "रद्द करेपर्यंत आपोआप नूतनीकरण होते. तुमच्या App Store सदस्यतांमध्ये व्यवस्थापित करा किंवा रद्द करा.";
-"premium.apple.trial" = "मोफत चाचणी: %@. त्यानंतर:";
+"premium.apple.renewal" = "आपोआप नूतनीकरण होते. App Store सदस्यतांमध्ये व्यवस्थापित करा किंवा रद्द करा.";
+"premium.apple.trial" = "%@ मोफत, त्यानंतर";
 "premium.apple.loadFailed" = "App Store ऑफर लोड करता आली नाही. कनेक्शन तपासा आणि पुन्हा प्रयत्न करा.";
 "premium.apple.pending" = "Apple किंवा खात्याच्या पुष्टीची प्रतीक्षा आहे. पुन्हा प्रयत्न करण्यासाठी खरेदी पुनर्संचयित करा.";
 "premium.apple.cancelled" = "खरेदी रद्द झाली. तुमच्याकडून शुल्क आकारलेले नाही.";

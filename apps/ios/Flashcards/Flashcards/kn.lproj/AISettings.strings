@@ -897,8 +897,8 @@
 "settings.appIcon.systemAlertNote" = "ಪ್ರತಿ ಐಕಾನ್ ಬದಲಾವಣೆಯನ್ನು iOS ಒಂದು ಎಚ್ಚರಿಕೆಯ ಮೂಲಕ ದೃಢೀಕರಿಸುತ್ತದೆ.";
 
 "premium.apple.monthlyProduct" = "%@ · ಮಾಸಿಕ";
-"premium.apple.renewal" = "ರದ್ದು ಮಾಡುವವರೆಗೆ ಸ್ವಯಂಚಾಲಿತವಾಗಿ ನವೀಕರಣಗೊಳ್ಳುತ್ತದೆ. ನಿಮ್ಮ App Store ಚಂದಾದಾರಿಕೆಗಳಲ್ಲಿ ನಿರ್ವಹಿಸಿ ಅಥವಾ ರದ್ದುಮಾಡಿ.";
-"premium.apple.trial" = "ಉಚಿತ ಪ್ರಯೋಗ: %@. ನಂತರ:";
+"premium.apple.renewal" = "ಸ್ವಯಂಚಾಲಿತ ನವೀಕರಣ. App Store ಚಂದಾದಾರಿಕೆಗಳಲ್ಲಿ ನಿರ್ವಹಿಸಿ ಅಥವಾ ರದ್ದುಮಾಡಿ.";
+"premium.apple.trial" = "%@ ಉಚಿತ, ನಂತರ";
 "premium.apple.loadFailed" = "App Store ಕೊಡುಗೆಯನ್ನು ಲೋಡ್ ಮಾಡಲು ಆಗಲಿಲ್ಲ. ಸಂಪರ್ಕ ಪರಿಶೀಲಿಸಿ ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ.";
 "premium.apple.pending" = "Apple ಅಥವಾ ಖಾತೆಯ ದೃಢೀಕರಣಕ್ಕಾಗಿ ಕಾಯಲಾಗುತ್ತಿದೆ. ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಲು ಖರೀದಿಗಳನ್ನು ಮರುಸ್ಥಾಪಿಸಿ.";
 "premium.apple.cancelled" = "ಖರೀದಿ ರದ್ದಾಗಿದೆ. ನಿಮಗೆ ಶುಲ್ಕ ವಿಧಿಸಲಾಗಿಲ್ಲ.";
