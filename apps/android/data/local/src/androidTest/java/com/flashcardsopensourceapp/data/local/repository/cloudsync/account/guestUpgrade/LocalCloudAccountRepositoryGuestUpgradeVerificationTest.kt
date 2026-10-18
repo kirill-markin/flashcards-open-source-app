@@ -4,6 +4,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.flashcardsopensourceapp.data.local.cloud.remote.CloudRemoteGateway
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudAccountState
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudGuestUpgradeMode
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudGuestUpgradePreparation
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudServiceConfigurationMode
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspaceLinkSelection
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspacePostAuthRoute
@@ -84,15 +85,15 @@ class LocalCloudAccountRepositoryGuestUpgradeVerificationTest {
                 apiBaseUrl: String,
                 bearerToken: String,
                 guestToken: String
-            ): CloudGuestUpgradeMode {
+            ): CloudGuestUpgradePreparation {
                 accountEvents += "prepare"
-                val mode: CloudGuestUpgradeMode = baseGateway.prepareGuestUpgrade(
+                val preparation: CloudGuestUpgradePreparation = baseGateway.prepareGuestUpgrade(
                     apiBaseUrl = apiBaseUrl,
                     bearerToken = bearerToken,
                     guestToken = guestToken
                 )
                 guestUpgradePrepared = true
-                return mode
+                return preparation
             }
 
             override suspend fun fetchCloudAccount(

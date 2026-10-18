@@ -3,6 +3,7 @@ package com.flashcardsopensourceapp.data.local.repository.cloudsync.guest
 import com.flashcardsopensourceapp.data.local.ai.store.GuestAiSessionStore
 import com.flashcardsopensourceapp.data.local.cloud.CloudPreferencesStore
 import com.flashcardsopensourceapp.data.local.cloud.remote.CloudRemoteGateway
+import com.flashcardsopensourceapp.data.local.cloud.remote.CloudRemoteException
 import com.flashcardsopensourceapp.data.local.cloud.PendingGuestUpgradeState
 import com.flashcardsopensourceapp.data.local.cloud.sync.SyncLocalStore
 import com.flashcardsopensourceapp.data.local.database.core.AppDatabase
@@ -14,6 +15,7 @@ import com.flashcardsopensourceapp.data.local.model.cloud.CloudGuestUpgradeMode
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudServiceConfiguration
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudSettings
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspaceSummary
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspaceLinkSelection
 import com.flashcardsopensourceapp.data.local.model.cloud.StoredCloudCredentials
 import com.flashcardsopensourceapp.data.local.model.cloud.shouldRefreshCloudIdToken
 import com.flashcardsopensourceapp.data.local.repository.SyncBlockedException
@@ -26,6 +28,7 @@ import com.flashcardsopensourceapp.data.local.repository.cloudsync.workspace.req
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.workspace.toGuestUpgradeSelection
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.withContext
 
 internal suspend fun resumePendingGuestUpgradeRecoveryIfNeeded(
@@ -181,14 +184,26 @@ private suspend fun completePendingGuestUpgradeIfNeeded(
     }
 
     onGuestCompletionStarted()
-    val completion: CloudGuestUpgradeCompletion = remoteService.completeGuestUpgrade(
-        apiBaseUrl = pendingGuestUpgradeState.configuration.apiBaseUrl,
-        bearerToken = pendingGuestUpgradeState.credentials.idToken,
-        guestToken = pendingGuestUpgradeState.guestSession.guestToken,
-        selection = pendingGuestUpgradeState.selection.toGuestUpgradeSelection(),
-        guestWorkspaceSyncedAndOutboxDrained = true,
-        supportsDroppedEntities = pendingGuestUpgradeState.guestUpgradeMode == CloudGuestUpgradeMode.MERGE_REQUIRED
-    )
+    val completion: CloudGuestUpgradeCompletion = try {
+        remoteService.completeGuestUpgrade(
+            apiBaseUrl = pendingGuestUpgradeState.configuration.apiBaseUrl,
+            bearerToken = pendingGuestUpgradeState.credentials.idToken,
+            guestToken = pendingGuestUpgradeState.guestSession.guestToken,
+            selection = pendingGuestUpgradeState.selection.toGuestUpgradeSelection(),
+            guestWorkspaceSyncedAndOutboxDrained = true,
+            supportsDroppedEntities = pendingGuestUpgradeState.guestUpgradeMode == CloudGuestUpgradeMode.MERGE_REQUIRED
+        )
+    } catch (error: CloudRemoteException) {
+        val selection = pendingGuestUpgradeState.selection
+        if (selection is CloudWorkspaceLinkSelection.Existing && selection.discardDemoOnly &&
+            error.statusCode == 409 && error.errorCode == "GUEST_UPGRADE_DEMO_ONLY_NOT_ELIGIBLE") {
+            withContext(NonCancellable + Dispatchers.IO) {
+                preferencesStore.socialAuthStore.clearRejectedDemoOnlyUpgrade(pendingGuestUpgradeState)
+                preferencesStore.clearPendingGuestUpgrade()
+            }
+        }
+        throw error
+    }
     onGuestCompletionFinished()
     withContext(Dispatchers.IO) {
         preferencesStore.savePendingGuestUpgrade(

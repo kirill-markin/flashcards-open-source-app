@@ -18,7 +18,7 @@ class CloudRemoteMiscContractTest {
     fun buildGuestUpgradeCompleteRequestDeclaresDrainedGuestOutbox() {
         val request = buildGuestUpgradeCompleteRequest(
             guestToken = "guest-token",
-            selection = CloudGuestUpgradeSelection.Existing(workspaceId = "workspace-linked"),
+            selection = CloudGuestUpgradeSelection.Existing(workspaceId = "workspace-linked", discardDemoOnly = false),
             guestWorkspaceSyncedAndOutboxDrained = true,
             supportsDroppedEntities = true
         )

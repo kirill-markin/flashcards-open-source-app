@@ -12,6 +12,7 @@ import com.flashcardsopensourceapp.data.local.model.cloud.CloudGuestUpgradeCompl
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudGuestUpgradeDroppedEntity
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudGuestUpgradeDroppedEntityType
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudGuestUpgradeMode
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudGuestUpgradePreparation
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudGuestUpgradeReconciliation
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudGuestUpgradeSelection
 import org.json.JSONArray
@@ -57,17 +58,30 @@ internal class CloudGuestUpgradeRemoteApi(
         apiBaseUrl: String,
         bearerToken: String,
         guestToken: String
-    ): CloudGuestUpgradeMode {
+    ): CloudGuestUpgradePreparation {
         val response = httpClient.postJson(
             baseUrl = apiBaseUrl,
             path = "/guest-auth/upgrade/prepare",
             authorizationHeader = "Bearer $bearerToken",
             body = JSONObject().put("guestToken", guestToken)
         )
-        return parseGuestUpgradeMode(
+        val mode = parseGuestUpgradeMode(
             rawMode = response.requireCloudString("mode", "guestUpgradePrepare.mode"),
             fieldPath = "guestUpgradePrepare.mode"
         )
+        val destinationWorkspaceId = if (response.has("demoOnlyDestinationWorkspaceId")) {
+            response.requireCloudString("demoOnlyDestinationWorkspaceId", "guestUpgradePrepare.demoOnlyDestinationWorkspaceId")
+        } else {
+            null
+        }
+        if (destinationWorkspaceId != null &&
+            (mode != CloudGuestUpgradeMode.MERGE_REQUIRED || destinationWorkspaceId.isBlank())) {
+            throw CloudContractMismatchException(
+                "Cloud contract mismatch for guestUpgradePrepare.demoOnlyDestinationWorkspaceId: " +
+                    "expected a nonblank destination with merge_required mode."
+            )
+        }
+        return CloudGuestUpgradePreparation(mode = mode, demoOnlyDestinationWorkspaceId = destinationWorkspaceId)
     }
 
     suspend fun completeGuestUpgrade(
@@ -120,6 +134,7 @@ private fun encodeGuestUpgradeSelection(selection: CloudGuestUpgradeSelection): 
         is CloudGuestUpgradeSelection.Existing -> JSONObject()
             .put("type", "existing")
             .put("workspaceId", selection.workspaceId)
+            .put("discardDemoOnly", selection.discardDemoOnly)
 
         CloudGuestUpgradeSelection.CreateNew -> JSONObject()
             .put("type", "create_new")

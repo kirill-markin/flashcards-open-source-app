@@ -6,6 +6,7 @@ import androidx.core.content.edit
 import com.flashcardsopensourceapp.data.local.database.core.AppDatabase
 import com.flashcardsopensourceapp.data.local.database.entities.AppLocalSettingsEntity
 import com.flashcardsopensourceapp.data.local.cloud.wire.putNullableString
+import com.flashcardsopensourceapp.data.local.cloud.wire.requireCloudBoolean
 import com.flashcardsopensourceapp.data.local.model.cloud.AccountDeletionState
 import com.flashcardsopensourceapp.data.local.model.sync.CloudAccountSnapshot
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudAccountState
@@ -730,7 +731,14 @@ internal data class PendingGuestUpgradeState(
     val guestUpgradeMode: CloudGuestUpgradeMode,
     val selection: CloudWorkspaceLinkSelection,
     val completion: CloudGuestUpgradeCompletion?
-)
+) {
+    init {
+        require(selection !is CloudWorkspaceLinkSelection.Existing || !selection.discardDemoOnly ||
+            (guestUpgradeMode == CloudGuestUpgradeMode.MERGE_REQUIRED && selection.workspaceId.isNotBlank())) {
+            "Pending demo-only disposal requires a merge-required upgrade with an existing destination."
+        }
+    }
+}
 
 private fun AppLocalSettingsEntity.toCloudSettings(): CloudSettings {
     return CloudSettings(
@@ -933,6 +941,7 @@ private fun encodeWorkspaceLinkSelection(selection: CloudWorkspaceLinkSelection)
         is CloudWorkspaceLinkSelection.Existing -> JSONObject()
             .put("type", "existing")
             .put("workspaceId", selection.workspaceId)
+            .put("discardDemoOnly", selection.discardDemoOnly)
 
         CloudWorkspaceLinkSelection.CreateNew -> JSONObject()
             .put("type", "create_new")
@@ -942,7 +951,12 @@ private fun encodeWorkspaceLinkSelection(selection: CloudWorkspaceLinkSelection)
 private fun decodeWorkspaceLinkSelection(jsonObject: JSONObject): CloudWorkspaceLinkSelection {
     return when (val selectionType = jsonObject.getString("type")) {
         "existing" -> CloudWorkspaceLinkSelection.Existing(
-            workspaceId = jsonObject.getString("workspaceId")
+            workspaceId = jsonObject.getString("workspaceId"),
+            discardDemoOnly = if (jsonObject.has("discardDemoOnly")) {
+                jsonObject.requireCloudBoolean("discardDemoOnly", "pendingGuestUpgrade.selection.discardDemoOnly")
+            } else {
+                false
+            }
         )
         "create_new" -> CloudWorkspaceLinkSelection.CreateNew
         else -> throw IllegalStateException("Unknown pending guest upgrade selection type '$selectionType'.")
