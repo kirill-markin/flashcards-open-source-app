@@ -90,6 +90,7 @@ import type { SessionVerificationState } from "../../session/workspaceSessionTyp
 import { useMediaUploadLifecycle } from "./useMediaUploadLifecycle";
 
 type UseSyncEngineParams = Readonly<{
+  onReviewSaved: (userId: string) => Promise<void>;
   sessionLoadState: SessionLoadState;
   sessionVerificationState: SessionVerificationState;
   session: SessionInfo | null;
@@ -163,6 +164,7 @@ function isOnlyWorkspaceOfAccount(
 
 export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
   const {
+    onReviewSaved,
     sessionLoadState,
     sessionVerificationState,
     session,
@@ -1066,23 +1068,27 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
 
     const reviewedAtClient = nowIso();
     const reviewedTimeZone = getBrowserTimeZone();
-    const mutationResult = await runLocalWorkspaceMutation(() => submitReviewLocally(
-      {
-        workspaceId: activeWorkspaceId,
-        cardId,
-        rating,
-        reviewedAtClient,
-        reviewedTimeZone,
-      },
-      indexedDbOpenRecoveryState,
-    ));
+    const mutationResult = await runLocalWorkspaceMutation(async () => {
+      const result = await submitReviewLocally(
+        {
+          workspaceId: activeWorkspaceId,
+          cardId,
+          rating,
+          reviewedAtClient,
+          reviewedTimeZone,
+        },
+        indexedDbOpenRecoveryState,
+      );
+      if (session !== null) await onReviewSaved(session.userId);
+      return result;
+    });
     indexedDbOpenRecoveryState.throwIfFailed();
     bumpLocalReadVersion();
     invalidateLocalProgress();
     invalidateLocalReviewSchedule();
     runSyncInBackground(runSyncForWorkspace(activeWorkspace));
     return mutationResult.card;
-  }, [activeWorkspace, activeWorkspaceId, bumpLocalReadVersion, indexedDbOpenRecoveryState, runLocalWorkspaceMutation, runSyncForWorkspace]);
+  }, [activeWorkspace, activeWorkspaceId, bumpLocalReadVersion, indexedDbOpenRecoveryState, onReviewSaved, runLocalWorkspaceMutation, runSyncForWorkspace, session]);
 
   const seedLinkedWorkspace = useCallback(async function seedLinkedWorkspace(
     request: TestSeedRequest,

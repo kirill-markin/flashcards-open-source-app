@@ -82,6 +82,7 @@ function createSession(): SessionInfo {
     preferences: {
       accentColor: "#FF6719",
       reviewReactionAnimationsEnabled: true,
+      firstReviewOnboardingCompleted: true,
       analyticsConsent: null,
       productAnalyticsEnabled: null,
     },
@@ -260,7 +261,9 @@ function createAppData(workspaces: ReadonlyArray<WorkspaceSummary>): Mutable<App
     technicalError: null,
     setErrorMessage: vi.fn(),
     setAccountPreferences: vi.fn(),
-    refreshAccountPreferences: vi.fn(async () => ({ accentColor: "#FF6719", reviewReactionAnimationsEnabled: true })),
+    firstReviewOnboardingCompleted: true,
+    setFirstReviewOnboardingCompleted: vi.fn(async (): Promise<void> => undefined),
+    refreshAccountPreferences: vi.fn(async () => ({ accentColor: "#FF6719", reviewReactionAnimationsEnabled: true, firstReviewOnboardingCompleted: true })),
     refreshConnectedAccount: vi.fn(async (): Promise<void> => undefined),
     initialize: vi.fn(async (): Promise<void> => undefined),
     chooseWorkspace: vi.fn(async (_workspaceId: string): Promise<void> => undefined),

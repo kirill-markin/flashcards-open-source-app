@@ -949,6 +949,10 @@ const koCatalog: TranslationCatalog = {
     paragraphTwo: "알림은 해당 모바일 앱에서 현재 선택된 워크스페이스의 카드와 활동을 자동으로 사용합니다.",
     paragraphThree: "웹 앱은 이 알림을 보내거나 관리하지 않으므로 이 화면에는 알림 설정이 없습니다.",
   },
+  firstReviewOnboardingSettings: {
+    title: "첫 복습 안내 완료",
+    description: "끄면 카드를 복습할 때 안내가 다시 표시됩니다.",
+  },
   reviewAnimationsSettings: {
     title: "복습 애니메이션",
     subtitle: "카드를 평가한 뒤 나오는 리액션 애니메이션을 설정합니다.",

@@ -71,6 +71,8 @@ export function useReviewScreenController(
     availableWorkspaces,
     cloudSettings,
     errorMessage,
+    firstReviewOnboardingCompleted,
+    isSessionVerified,
     selectedReviewFilter,
     workspaceSettings,
     isSyncing,
@@ -679,6 +681,13 @@ export function useReviewScreenController(
       reviewSpeechMessage: reviewFeedbackMessage !== "" ? reviewFeedbackMessage : reviewSpeechMessage,
     },
     paneProps: {
+      showFirstReviewOnboarding: firstReviewOnboardingCompleted === false
+        && (session?.browserGuestCapabilities?.isGuest !== true || isSessionVerified)
+        && !isEditorPresented && !isFeedbackDialogOpen && !isHardReminderVisible
+        && !isGuestSignInPromptVisible && !isMobileAppPromotionDialogOpen
+        && !isReviewFilterMenuOpen && !isTagFilterDialogOpen && !isTextSelectionDialogOpen
+        && !isReviewQueuePanelOpen && reviewPaywall?.isPresented !== true
+        && !indexedDbOpenRecoveryState.isFailed,
       activeSpeechSide,
       hasCards,
       isAnswerVisible,
