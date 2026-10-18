@@ -5,7 +5,7 @@ import {
   type AuthResult,
   type AuthTransport,
 } from "../auth";
-import type { GuestSessionPlatform } from "../guestAuth/types";
+import type { GuestSessionPlatform, GuestSessionPurpose } from "../guestAuth/types";
 import { assertGuestPlatformSupportsSurface } from "../guestAuth/webPlatform";
 import { isDeletedSubject } from "../auth/deletedSubjects";
 import { HttpError } from "../shared/errors";
@@ -20,6 +20,8 @@ import {
   normalizeWorkspaceId,
 } from "../workspaces/identity";
 import {
+  enforceGuestCookieCsrfProtection,
+  enforceGuestCookieCsrfProtectionWithAbortSignal,
   enforceSessionCsrfProtection,
   enforceSessionCsrfProtectionWithAbortSignal,
   extractRequestAuthInputs,
@@ -41,6 +43,8 @@ export type RequestContext = Readonly<{
   connectionId: string | null;
   guestSessionId: string | null;
   guestPlatform: GuestSessionPlatform | null;
+  guestSessionPurpose?: GuestSessionPurpose | null;
+  guestCredentialSource?: "authorization" | "cookie" | null;
 }>;
 
 /**
@@ -182,6 +186,8 @@ async function loadAuthenticatedRequestContext(
     connectionId: auth.connectionId,
     guestSessionId: auth.guestSessionId,
     guestPlatform: auth.guestPlatform,
+    guestSessionPurpose: auth.guestSessionPurpose ?? null,
+    guestCredentialSource: auth.guestCredentialSource ?? null,
   };
 }
 
@@ -249,6 +255,8 @@ export async function loadRequestContextFromRequest(
 
   if (requestContext.transport === "session") {
     await enforceSessionCsrfProtection(request.method, requestAuthInputs, allowedOrigins);
+  } else if (requestContext.guestCredentialSource === "cookie") {
+    await enforceGuestCookieCsrfProtection(request.method, requestAuthInputs, allowedOrigins);
   }
 
   return {
@@ -277,6 +285,13 @@ export async function loadRequestContextFromRequestWithAbortSignal(
 
   if (requestContext.transport === "session") {
     await enforceSessionCsrfProtectionWithAbortSignal(
+      request.method,
+      requestAuthInputs,
+      allowedOrigins,
+      abortSignal,
+    );
+  } else if (requestContext.guestCredentialSource === "cookie") {
+    await enforceGuestCookieCsrfProtectionWithAbortSignal(
       request.method,
       requestAuthInputs,
       allowedOrigins,

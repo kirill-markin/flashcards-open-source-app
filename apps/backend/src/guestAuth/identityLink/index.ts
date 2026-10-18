@@ -98,6 +98,9 @@ export async function linkGuestAnalyticsIdentityInExecutor(
 
   const unlockedGuestSession = await loadGuestSessionRecordInExecutor(executor, guestToken, false);
   if (unlockedGuestSession === null || unlockedGuestSession.revokedAt !== null) return;
+  if (unlockedGuestSession.purpose === "browser_product") {
+    throw new HttpError(409, "Convert this browser guest through the browser upgrade flow.", "GUEST_IDENTITY_LINK_UPGRADE_REQUIRED");
+  }
   const accountMapping = await loadCognitoIdentityMappingInExecutor(executor, cognitoSubject);
   if (accountMapping === null) throw createGuestIdentityLinkAccountRequiredError();
   await lockAccountLifecyclesInExecutor(executor, [accountMapping.userId, unlockedGuestSession.userId]);

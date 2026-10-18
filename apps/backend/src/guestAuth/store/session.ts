@@ -13,12 +13,13 @@ import {
 import { guestSessionAnalyticsConsentColumnExistsInExecutor } from "../analyticsConsentColumn";
 import { guestSessionPlatformColumnExistsInExecutor } from "../platformColumn";
 import { activeGuestSessionOwnerPredicateSql, hashGuestToken } from "../shared";
-import type { GuestSessionPlatform } from "../types";
+import type { GuestSessionPlatform, GuestSessionPurpose } from "../types";
 
 type GuestSessionRow = Readonly<{
   session_id: string;
   user_id: string;
   platform: GuestSessionPlatform | null;
+  purpose: GuestSessionPurpose;
   revoked_at: Date | string | null;
 }>;
 
@@ -32,6 +33,7 @@ export type GuestSessionRecord = Readonly<{
   sessionId: string;
   userId: string;
   platform: GuestSessionPlatform | null;
+  purpose: GuestSessionPurpose;
   revokedAt: Date | string | null;
 }>;
 
@@ -44,6 +46,7 @@ function mapGuestSessionRecord(row: GuestSessionRow): GuestSessionRecord {
     sessionId: row.session_id,
     userId: row.user_id,
     platform: row.platform,
+    purpose: row.purpose,
     revokedAt: row.revoked_at,
   };
 }
@@ -53,6 +56,7 @@ function mapLegacyGuestSessionRecord(row: LegacyGuestSessionRow): GuestSessionRe
     sessionId: row.session_id,
     userId: row.user_id,
     platform: null,
+    purpose: "legacy",
     revokedAt: row.revoked_at,
   };
 }
@@ -67,7 +71,7 @@ export async function loadGuestSessionRecordInExecutor(
   if (await guestSessionPlatformColumnExistsInExecutor(executor)) {
     result = await executor.query<GuestSessionRow>(
       [
-        "SELECT session_id, user_id, platform, revoked_at",
+        "SELECT session_id, user_id, platform, purpose, revoked_at",
         "FROM auth.guest_sessions",
         "WHERE session_secret_hash = $1",
         lockForUpdate ? "FOR UPDATE" : "",

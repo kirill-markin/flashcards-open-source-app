@@ -28,7 +28,7 @@ and cloud checks from actual provider, signed-device, mailbox and lifecycle resu
     lock keyed by the subject, so only one of them ever gets to create.
   - This service refuses a subject in `auth.deleted_subjects` with `410 ACCOUNT_DELETED`, the code
     the backend answers it with, before it resolves, adopts, or creates an account for it.
-- Guest sessions (`POST /v1/guest-auth/session`) are bound to `ios`, `android`, or `web`. A `web`
+- Legacy guest sessions (`POST /v1/guest-auth/session`) are bound to `ios`, `android`, or `web`. A `web`
   guest session is an analytics credential only, sent as `Authorization: Guest <token>` to
   `POST /v1/analytics/events` alone. It is requested by the browser, lazily on a signed-out
   visitor's first real interaction. This service requests none of its own: its sign-in funnel posts
@@ -81,6 +81,62 @@ and cloud checks from actual provider, signed-device, mailbox and lifecycle resu
       timeout, a statement timeout and the 5s transaction budget running out are `500 INTERNAL_ERROR`.
       Neither `500` serves a delay. Retrying is safe: the link and the revoke share one commit, so a
       repeat either redoes a request that stored nothing or meets the already-revoked no-op above.
+## Browser guest credentials
+
+The browser-only lifecycle is separate from the legacy guest routes above.
+Migration [0218](../db/migrations/0218_browser_guest_sessions.sql) adds server-owned
+session purpose: existing and legacy-created sessions stay `legacy`;
+only the browser creation entrypoint mints `browser_product`, constrained to `web`.
+Neither a client purpose/platform field nor `Authorization: Guest` can promote a legacy credential.
+Product APIs still refuse web guests; no shipped frontend calls this lifecycle yet.
+
+Use credentialed requests to the same API host throughout the lifecycle.
+The API stores only the random token's hash and sends the token only as
+`__Host-nibomo_guest`: Secure, HttpOnly, Path=/, SameSite=Lax, no Domain, rolling
+180-day Max-Age renewed by a successful probe or reuse. This is no recovery guarantee.
+
+- `GET /v1/guest-auth/browser/session` never provisions an identity. Its response is
+  `{registeredSession: {present, csrfToken}, guestSession: {...}}`.
+  `registeredSession` verifies the registered cookie without `/me` or profile creation,
+  so it can run before conversion binds a new principal.
+  An expired/invalid registered cookie fails authentication; refresh or sign in again,
+  then repeat the probe. It never falls through to guest creation.
+- `guestSession.status` is `absent`, `invalid`, `revoked`, `active`, or `pending_upgrade`.
+  All states carry `csrfToken` (null only without a guest cookie) and
+  `cookieRoundTripVerified`. Active/pending states also carry `sessionId`, `userId`,
+  `workspaceId` (nullable), `purpose: browser_product`, and `platform: web`.
+  Pending means the credential's owner has become an account; it remains available
+  for conversion and cannot authenticate ordinary guest requests. A missing row,
+  including a removed conversion source, is `invalid` at this lifecycle stage.
+- `POST /v1/guest-auth/browser/session` reuses an active cookie before considering
+  creation. With no cookie or registered session, creation requires JSON
+  `{idempotencyKey, hasLocalOwnership: false}`. The key uses the legacy per-attempt
+  random-key protocol below and must be kept through response loss, then discarded
+  after successful cookie verification. Client-supplied purpose is ignored.
+  The response has the same envelope as the probe; fresh issuance sets
+  `cookieRoundTripVerified: false`. Await a probe reporting `active` and true
+  before persisting the new guest ownership or using it as a credential.
+  Local owner/workspace ids must match the resumed ids before hydrating or replacing data.
+- A present invalid/revoked cookie, or missing cookie with `hasLocalOwnership: true`,
+  refuses creation with `409 GUEST_BROWSER_RECOVERY_REQUIRED`. Preserve local data.
+  A registered session or pending upgrade refuses it with
+  `409 GUEST_BROWSER_UPGRADE_REQUIRED`; complete conversion instead.
+- `POST /v1/guest-auth/browser/session/forget` returns `{ok: true}` and revokes only
+  the guest credential, then expires its cookie. Missing/unknown/already-revoked
+  credentials are safe to forget. It never deletes a workspace or a linked account.
+  Keep the cookie until conversion completion and destination hydration are durable.
+
+Every browser lifecycle call requires an allowed Origin/Referer and refuses
+cross-site Fetch Metadata. Unsafe calls require the guest cookie's `X-CSRF-Token`
+when that cookie exists, otherwise the registered cookie's CSRF when present.
+The probe supplies both independently; browser lifecycle routes refuse Authorization headers.
+All lifecycle responses are `no-store`. Ordinary auth prefers registered authentication,
+then guest auth, and records trusted guest purpose and source independently of transport `guest`.
+Initial creation has a separate aggregate API Gateway throttle (1 request/second, burst 5);
+it is not a per-person anti-farming boundary.
+
+## Shared session contracts
+
 - A guest session whose user is bound in `auth.user_identities` is that account's.
   `Authorization: Guest` refuses it with `401 GUEST_AUTH_INVALID` 7 days after the binding, a grace
   for draining guest sync between upgrade `prepare` and `complete`; both upgrade routes refuse it at

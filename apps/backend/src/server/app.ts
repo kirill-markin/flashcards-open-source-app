@@ -45,6 +45,7 @@ import { createCatalogAdminRoutes } from "../routes/catalog/admin";
 import { createCatalogAdminImageIngestionRoutes } from "../routes/catalog/adminImageIngestion";
 import { createCatalogPublicRoutes } from "../routes/catalog/public";
 import { createCatalogInstallRoutes } from "../routes/catalog/install";
+import { createBrowserGuestAuthRoutes } from "../guestAuth/browser/routes";
 import { createGuestAuthRoutes } from "../routes/guestAuth";
 import { createWorkspaceRoutes } from "../routes/workspaces/index";
 import {
@@ -246,7 +247,11 @@ function getAnonymousAnalyticsCorsOrigin(
   return allowedOrigins.includes(origin) ? origin : null;
 }
 
-function createMountedApp(basePath: string, allowedOrigins: Array<string>): Hono<AppEnv> {
+function createMountedApp(
+  basePath: string,
+  allowedOrigins: Array<string>,
+  browserGuestSessionCreationPath: string,
+): Hono<AppEnv> {
   const app = new Hono<AppEnv>({ strict: false }).basePath(basePath);
   const anonymousAnalyticsAllowedOrigins = [
     ...getConfiguredAnonymousAnalyticsCorsOrigins(),
@@ -537,6 +542,10 @@ function createMountedApp(basePath: string, allowedOrigins: Array<string>): Hono
   }));
   app.route("/", createGlobalSnapshotRoutes({}));
   app.route("/", createGuestAuthRoutes());
+  app.route("/", createBrowserGuestAuthRoutes({
+    allowedOrigins,
+    sessionCreationPath: browserGuestSessionCreationPath,
+  }));
   app.route("/", createAiConsentRoutes({ allowedOrigins }));
   app.route("/", createChatTranscriptionsRoutes({ allowedOrigins }));
   app.route("/", createChatRoutes({ allowedOrigins }));
@@ -553,14 +562,15 @@ export function createApp(basePath: string): Hono<AppEnv> {
   getAuthConfig();
   validatePublicUrlConfiguration();
   const allowedOrigins = getAllowedOrigins();
+  const browserGuestSessionCreationPath = `${basePath}/guest-auth/browser/session`;
   const routeMountPaths = getRouteMountPaths(basePath);
   if (routeMountPaths.length === 1) {
-    return createMountedApp(routeMountPaths[0], allowedOrigins);
+    return createMountedApp(routeMountPaths[0], allowedOrigins, browserGuestSessionCreationPath);
   }
 
   const app = new Hono<AppEnv>({ strict: false });
   for (const routeMountPath of routeMountPaths) {
-    app.route("/", createMountedApp(routeMountPath, allowedOrigins));
+    app.route("/", createMountedApp(routeMountPath, allowedOrigins, browserGuestSessionCreationPath));
   }
 
   return app;

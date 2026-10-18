@@ -1,5 +1,6 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 import type { AuthRequest } from "./index";
+import { browserGuestCookieName } from "../guestAuth/browser/cookie";
 import { HttpError } from "../shared/errors";
 import {
   getBackendCsrfSecret,
@@ -19,6 +20,7 @@ export type RequestOriginHeaders = Readonly<{
 export type RequestAuthInputs = Readonly<{
   authorizationHeader: string | undefined;
   sessionToken: string | undefined;
+  guestSessionToken?: string | undefined;
   csrfTokenHeader: string | undefined;
   originHeader: string | undefined;
   refererHeader: string | undefined;
@@ -128,6 +130,7 @@ export function extractRequestAuthInputs(request: Request): RequestAuthInputs {
   return {
     authorizationHeader: getHeaderValue(request, "authorization"),
     sessionToken: getCookieValue(request, "session"),
+    guestSessionToken: getCookieValue(request, browserGuestCookieName),
     csrfTokenHeader: getHeaderValue(request, "x-csrf-token"),
     originHeader: getHeaderValue(request, "origin"),
     refererHeader: getHeaderValue(request, "referer"),
@@ -139,13 +142,11 @@ export function toAuthRequest(requestAuthInputs: RequestAuthInputs): AuthRequest
   return {
     authorizationHeader: requestAuthInputs.authorizationHeader,
     sessionToken: requestAuthInputs.sessionToken,
+    guestSessionToken: requestAuthInputs.guestSessionToken,
   };
 }
 
-/**
- * Derives a stateless CSRF token from the current session JWT. This keeps the
- * browser flow compatible with domain-wide SSO and avoids storing CSRF state.
- */
+/** HMAC binds CSRF proof to the actual registered or guest cookie credential. */
 export async function getSessionCsrfToken(sessionToken: string): Promise<string> {
   const csrfSecret = await getBackendCsrfSecret(getBackendCsrfSecretArn());
   return createSessionCsrfToken(sessionToken, csrfSecret);
@@ -253,4 +254,27 @@ async function enforceSessionCsrfProtectionWithSignal(
   if (!isMatchingToken(expectedToken, csrfToken)) {
     throw new HttpError(403, "Invalid X-CSRF-Token header", "SESSION_CSRF_TOKEN_INVALID");
   }
+}
+
+export function enforceGuestCookieCsrfProtection(
+  method: string,
+  requestAuthInputs: RequestAuthInputs,
+  allowedOrigins: ReadonlyArray<string>,
+): Promise<void> {
+  return enforceSessionCsrfProtection(method, {
+    ...requestAuthInputs,
+    sessionToken: requestAuthInputs.guestSessionToken,
+  }, allowedOrigins);
+}
+
+export function enforceGuestCookieCsrfProtectionWithAbortSignal(
+  method: string,
+  requestAuthInputs: RequestAuthInputs,
+  allowedOrigins: ReadonlyArray<string>,
+  abortSignal: AbortSignal,
+): Promise<void> {
+  return enforceSessionCsrfProtectionWithAbortSignal(method, {
+    ...requestAuthInputs,
+    sessionToken: requestAuthInputs.guestSessionToken,
+  }, allowedOrigins, abortSignal);
 }

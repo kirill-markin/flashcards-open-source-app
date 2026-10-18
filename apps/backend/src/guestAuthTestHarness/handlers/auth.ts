@@ -83,6 +83,7 @@ export function handleAuthExecutorQuery<Row extends pg.QueryResultRow>(
       session_id: guestSession.session_id,
       user_id: guestSession.user_id,
       platform: guestSession.platform,
+      purpose: "legacy",
       revoked_at: guestSession.revoked_at,
     } as unknown as Row] : [];
     return createQueryResult<Row>(rows);
