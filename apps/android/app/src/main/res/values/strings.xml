@@ -47,7 +47,7 @@
     <string name="review_notification_channel_name">Review reminders</string>
     <string name="review_notification_channel_description">Study reminders with cards from your review queue.</string>
     <string name="premium_title">Premium</string>
-    <string name="premium_benefits">1,000 AI messages per UTC calendar month, plus custom styles.</string>
+    <string name="premium_benefits">Custom colors, styles &amp; app icons</string>
     <string name="premium_already_active">Your plan already includes Premium benefits.</string>
     <string name="premium_offer_loading">Loading the offer from Google Play…</string>
     <string name="premium_offer_unavailable">Premium is not available from Google Play for this account right now. You can try again or restore an existing purchase.</string>
@@ -107,4 +107,21 @@
     <string name="premium_own_key_help">Add your own OpenAI key, then return to this chat and send your message again when you’re ready. Your key enables AI usage; it doesn’t change your plan.</string>
     <string name="premium_own_key_action">Use your own OpenAI key</string>
     <string name="premium_sign_in">Create account or Log in</string>
+    <string name="premium_heading">Learning belongs to everyone.</string>
+    <string name="premium_free_title">Free</string>
+    <string name="premium_free_description">Created for students without a job. Open to everyone. Your backpack just got lighter.</string>
+    <string name="premium_free_benefits">Core reviews, offline learning &amp; sync</string>
+    <string name="premium_continue_free">Continue free</string>
+    <string name="premium_creator_name" translatable="false">Kirill Markin</string>
+    <string name="premium_creator_support">Your subscription helps Nibomo’s creator, %1$s, pay for servers and fuel the next update with coffee and pizza.</string>
+    <string name="premium_start_seven_day_trial">Start 7-day free trial</string>
+    <string name="premium_manage">Manage subscription in Google Play</string>
+    <string name="premium_allowance_loading">Loading the monthly AI allowance…</string>
+    <string name="premium_allowance_unavailable">Could not load the monthly AI allowance. Check your connection and retry.</string>
+    <string name="premium_ai_unlimited">AI messages without a monthly cap</string>
+    <string name="premium_preview_notice">Preview only. Open Premium from Subscription to see your Google Play offer.</string>
+    <plurals name="premium_ai_messages">
+        <item quantity="one">%1$d AI message every month</item>
+        <item quantity="other">%1$d AI messages every month</item>
+    </plurals>
 </resources>

@@ -970,3 +970,16 @@
 "settings.account.connection.previewChanged" = "Önizleme değişti. Yenileyin ve yeni önizlemeyi açıkça onaylayın.";
 "settings.account.connection.restart" = "Kanıtın süresi doldu veya kullanıldı. Yeni kanıtla baştan başlayın.";
 "settings.account.connection.restorePaused" = "Hesaplar bağlandı. Yerel yenileme duraklatıldı; çevrimdışı verileriniz korunuyor.";
+
+"premium.offer.heading" = "Öğrenmek herkesin hakkı.";
+"premium.offer.free" = "Ücretsiz";
+"premium.offer.freeDescription" = "İşi olmayan öğrenciler için tasarlandı. Herkese açık. Sırt çantanız biraz daha hafifledi.";
+"premium.offer.freeBenefits" = "Temel tekrarlar, çevrimdışı öğrenme ve eşitleme";
+"premium.offer.continueFree" = "Ücretsiz devam et";
+"premium.offer.monthlyAI" = "Her ay %@ yapay zekâ mesajı";
+"premium.offer.unlimitedAI" = "Aylık sınır olmadan yapay zekâ mesajları";
+"premium.offer.styles" = "Özel renkler ve stiller";
+"premium.offer.creatorSupport" = "Aboneliğiniz, Nibomo’nun yaratıcısı [Kirill Markin](https://kirill-markin.com/) için sunucu masraflarını karşılamaya ve kahve ile pizza eşliğinde sonraki güncellemeyi hazırlamaya yardımcı olur.";
+"premium.offer.subscribe" = "Abone ol";
+"premium.offer.startTrial" = "Ücretsiz denemeyi başlat: %@";
+"premium.offer.view" = "Premium’u gör";

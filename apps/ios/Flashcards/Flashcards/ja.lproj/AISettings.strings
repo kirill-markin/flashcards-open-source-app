@@ -998,3 +998,16 @@
 "settings.account.connection.previewChanged" = "プレビューが変更されました。更新して新しいプレビューを明示的に確定してください。";
 "settings.account.connection.restart" = "証明が期限切れか使用済みです。新しい証明で最初からやり直してください。";
 "settings.account.connection.restorePaused" = "アカウントを連携しました。ローカル更新は一時停止中です。オフラインデータは保持されています。";
+
+"premium.offer.heading" = "学びは、すべての人に。";
+"premium.offer.free" = "無料";
+"premium.offer.freeDescription" = "仕事をしていない学生のために作りました。どなたでも使えます。バックパックが少し軽くなりました。";
+"premium.offer.freeBenefits" = "基本の復習、オフライン学習と同期";
+"premium.offer.continueFree" = "無料で続ける";
+"premium.offer.monthlyAI" = "毎月 %@ 件の AI メッセージ";
+"premium.offer.unlimitedAI" = "AI メッセージの月間上限なし";
+"premium.offer.styles" = "色とスタイルのカスタマイズ";
+"premium.offer.creatorSupport" = "サブスクリプションは、Nibomo の制作者 [Kirill Markin](https://kirill-markin.com/) のサーバー代を支え、コーヒーとピザで次のアップデートを作る力になります。";
+"premium.offer.subscribe" = "登録する";
+"premium.offer.startTrial" = "無料トライアルを開始：%@";
+"premium.offer.view" = "Premium を見る";

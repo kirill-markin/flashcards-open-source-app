@@ -52,9 +52,12 @@ class GooglePlayBillingRepository(
         ) { _, _ -> currentStoredIdentity() }.distinctUntilChanged()
     }
 
-    suspend fun preparePurchase(): GoogleBillingAccount = withContext(Dispatchers.IO) {
+    suspend fun preparePurchase(
+        onIdentityPrepared: suspend (GoogleBillingIdentity) -> Unit
+    ): GoogleBillingAccount = withContext(Dispatchers.IO) {
         operationCoordinator.runExclusive {
             val session = explicitSession()
+            onIdentityPrepared(session.identity)
             GoogleBillingAccount(
                 identity = session.identity,
                 obfuscatedAccountId = billingGateway.loadGoogleBillingAccount(

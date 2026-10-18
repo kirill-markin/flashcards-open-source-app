@@ -970,3 +970,16 @@
 "settings.account.connection.previewChanged" = "Priekšskatījums ir mainījies. Atsvaidziniet to un skaidri apstipriniet jauno priekšskatījumu.";
 "settings.account.connection.restart" = "Pierādījums ir beidzies vai izmantots. Sāciet vēlreiz ar jaunu pierādījumu.";
 "settings.account.connection.restorePaused" = "Konti savienoti. Vietējā atsvaidzināšana ir apturēta; jūsu bezsaistes dati ir saglabāti.";
+
+"premium.offer.heading" = "Mācīšanās ir visiem.";
+"premium.offer.free" = "Bezmaksas";
+"premium.offer.freeDescription" = "Radīts studentiem bez darba. Atvērts visiem. Tava mugursoma tikko kļuva vieglāka.";
+"premium.offer.freeBenefits" = "Atkārtošana, mācības bezsaistē un sinhronizācija";
+"premium.offer.continueFree" = "Turpināt bez maksas";
+"premium.offer.monthlyAI" = "%@ MI ziņojumu katru mēnesi";
+"premium.offer.unlimitedAI" = "MI ziņojumi bez mēneša ierobežojuma";
+"premium.offer.styles" = "Pielāgotas krāsas un stili";
+"premium.offer.creatorSupport" = "Tavs abonements palīdz Nibomo veidotājam [Kirill Markin](https://kirill-markin.com/) apmaksāt serverus un ar kafiju un picu gatavot nākamo atjauninājumu.";
+"premium.offer.subscribe" = "Abonēt";
+"premium.offer.startTrial" = "Sākt bezmaksas izmēģinājumu: %@";
+"premium.offer.view" = "Skatīt Premium";

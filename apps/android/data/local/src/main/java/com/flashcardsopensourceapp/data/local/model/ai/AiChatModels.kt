@@ -71,7 +71,8 @@ data class AiUsageStatus(
     val monthEndsAtMillis: Long,
     /** Null when no monthly AI cap is enforced, never a limit of zero. */
     val remainingMessages: Int?,
-    val ownKeyMessages: Int
+    val ownKeyMessages: Int,
+    val premiumAiMonthlyMessages: Int?
 )
 
 val aiChatSupportedFileExtensions: Set<String> = setOf(

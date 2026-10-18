@@ -970,3 +970,16 @@
 "settings.account.connection.previewChanged" = "L’anteprima è cambiata. Aggiornala e conferma esplicitamente la nuova anteprima.";
 "settings.account.connection.restart" = "La prova è scaduta o è stata usata. Ricomincia con una nuova prova.";
 "settings.account.connection.restorePaused" = "Account collegati. L’aggiornamento locale è in pausa; i tuoi dati offline sono conservati.";
+
+"premium.offer.heading" = "Imparare è per tutti.";
+"premium.offer.free" = "Gratis";
+"premium.offer.freeDescription" = "Creato per studenti senza lavoro. Aperto a tutti. Il tuo zaino è appena diventato più leggero.";
+"premium.offer.freeBenefits" = "Ripassi essenziali, studio offline e sincronizzazione";
+"premium.offer.continueFree" = "Continua gratis";
+"premium.offer.monthlyAI" = "%@ messaggi IA ogni mese";
+"premium.offer.unlimitedAI" = "Messaggi IA senza limite mensile";
+"premium.offer.styles" = "Colori e stili personalizzati";
+"premium.offer.creatorSupport" = "Il tuo abbonamento aiuta il creatore di Nibomo, [Kirill Markin](https://kirill-markin.com/), a pagare i server e preparare il prossimo aggiornamento con caffè e pizza.";
+"premium.offer.subscribe" = "Abbonati";
+"premium.offer.startTrial" = "Inizia la prova gratuita: %@";
+"premium.offer.view" = "Scopri Premium";

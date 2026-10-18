@@ -970,3 +970,16 @@
 "settings.account.connection.previewChanged" = "Predogled se je spremenil. Osveži ga in izrecno potrdi novi predogled.";
 "settings.account.connection.restart" = "Dokaz je potekel ali bil uporabljen. Začni znova z novim dokazom.";
 "settings.account.connection.restorePaused" = "Računi so povezani. Lokalna osvežitev je začasno ustavljena; podatki brez povezave so ohranjeni.";
+
+"premium.offer.heading" = "Učenje je za vse.";
+"premium.offer.free" = "Brezplačno";
+"premium.offer.freeDescription" = "Ustvarjeno za študente brez službe. Odprto vsem. Vaš nahrbtnik je pravkar postal lažji.";
+"premium.offer.freeBenefits" = "Ponavljanje, učenje brez povezave in sinhronizacija";
+"premium.offer.continueFree" = "Nadaljuj brezplačno";
+"premium.offer.monthlyAI" = "%@ sporočil UI vsak mesec";
+"premium.offer.unlimitedAI" = "Sporočila UI brez mesečne omejitve";
+"premium.offer.styles" = "Barve in slogi po meri";
+"premium.offer.creatorSupport" = "Vaša naročnina pomaga ustvarjalcu Nibomo, [Kirill Markin](https://kirill-markin.com/), plačevati strežnike in ob kavi ter pici pripravljati naslednjo posodobitev.";
+"premium.offer.subscribe" = "Naroči se";
+"premium.offer.startTrial" = "Začni brezplačni preizkus: %@";
+"premium.offer.view" = "Ogled Premium";

@@ -32,6 +32,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
@@ -71,6 +72,7 @@ private const val aiComposerMaximumLineCount = 5
 @Composable
 internal fun AiComposer(
     uiState: AiUiState,
+    onViewPremium: (() -> Unit)?,
     onDraftMessageChange: (String) -> Unit,
     onApplyComposerSuggestion: (com.flashcardsopensourceapp.data.local.model.ai.AiChatComposerSuggestion) -> Unit,
     onSendMessage: () -> Unit,
@@ -336,24 +338,30 @@ internal fun AiComposer(
                 }
             }
 
+            uiState.remainingAiMessagesNotice?.let { remainingMessages ->
+                Text(
+                    text = pluralStringResource(
+                        id = R.plurals.ai_remaining_messages_notice,
+                        count = remainingMessages,
+                        remainingMessages
+                    ),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.testTag(tag = aiComposerRemainingMessagesNoticeTag)
+                )
+                if (onViewPremium != null) {
+                    TextButton(
+                        onClick = onViewPremium,
+                        modifier = Modifier.testTag("ai_composer_view_premium")
+                    ) { Text(stringResource(R.string.ai_view_premium)) }
+                }
+            }
+
             Row(
                 horizontalArrangement = Arrangement.spacedBy(4.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.fillMaxWidth()
             ) {
-                uiState.remainingAiMessagesNotice?.let { remainingMessages ->
-                    Text(
-                        text = pluralStringResource(
-                            id = R.plurals.ai_remaining_messages_notice,
-                            count = remainingMessages,
-                            remainingMessages
-                        ),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.testTag(tag = aiComposerRemainingMessagesNoticeTag)
-                    )
-                }
-
                 Spacer(modifier = Modifier.weight(1f))
 
                 IconButton(

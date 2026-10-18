@@ -4,12 +4,14 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsPaywallEntryPoint
-import com.flashcardsopensourceapp.data.local.model.cloud.CloudEntitlement
+import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsPaywallPresentation
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudAccountState
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudEntitlement
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudSettings
 import com.flashcardsopensourceapp.data.local.model.cloud.canUseLocalPremiumFeatures
 import com.flashcardsopensourceapp.data.local.model.cloud.hasPremiumAccess
 import com.flashcardsopensourceapp.feature.ai.runtime.errors.AiAlertState
+import java.util.UUID
 
 internal sealed interface PremiumReason {
     /** Null only on the test-settings previews, which report no `paywall_shown`. */
@@ -33,6 +35,8 @@ internal enum class PremiumResult {
 internal class PremiumPresenter {
     var reason: PremiumReason? by mutableStateOf(null)
         private set
+    var presentation: AnalyticsPaywallPresentation? by mutableStateOf(null)
+        private set
     var entitlement: CloudEntitlement? by mutableStateOf(null)
         private set
     private var identity: CloudSettings? = null
@@ -54,6 +58,7 @@ internal class PremiumPresenter {
 
     fun showOfferPreview(paywallEntryPoint: AnalyticsPaywallEntryPoint?) {
         dismiss()
+        presentation = paywallEntryPoint?.let { AnalyticsPaywallPresentation(UUID.randomUUID().toString(), it) }
         reason = PremiumReason.OfferPreview(paywallEntryPoint = paywallEntryPoint)
     }
 
@@ -64,6 +69,7 @@ internal class PremiumPresenter {
 
     fun showAiLimit(refusal: AiAlertState.AiLimitReached) {
         dismiss()
+        presentation = AnalyticsPaywallPresentation(UUID.randomUUID().toString(), AnalyticsPaywallEntryPoint.AI_LIMIT)
         reason = PremiumReason.AiLimit(refusal = refusal)
     }
 
@@ -75,6 +81,7 @@ internal class PremiumPresenter {
             return
         }
         onFeatureResult = onResult
+        presentation = AnalyticsPaywallPresentation(UUID.randomUUID().toString(), paywallEntryPoint)
         reason = PremiumReason.Feature(paywallEntryPoint = paywallEntryPoint)
     }
 
@@ -103,6 +110,7 @@ internal class PremiumPresenter {
         val continuation = onFeatureResult
         onFeatureResult = null
         reason = null
+        presentation = null
         continuation?.invoke(result)
     }
 }

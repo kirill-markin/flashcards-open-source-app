@@ -104,6 +104,7 @@ internal fun AiRouteContent(
     onNewChat: () -> Unit,
     onOpenHistory: () -> Unit,
     onOpenAccountStatus: () -> Unit,
+    onViewPremium: (() -> Unit)?,
     onDismissErrorMessage: () -> Unit,
     onDismissAlert: () -> Unit,
     onAddPendingAttachment: (AiChatAttachment) -> Unit,
@@ -510,6 +511,7 @@ internal fun AiRouteContent(
                 if (showComposer) {
                     AiComposer(
                         uiState = uiState,
+                        onViewPremium = onViewPremium,
                         onDraftMessageChange = onDraftMessageChange,
                         onApplyComposerSuggestion = onApplyComposerSuggestion,
                         onSendMessage = {

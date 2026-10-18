@@ -8,7 +8,8 @@ import com.flashcardsopensourceapp.data.local.model.ai.AiUsageStatus
 import org.json.JSONObject
 
 internal fun decodeAiUsageStatus(payload: String): AiUsageStatus {
-    val usage = JSONObject(payload).requireCloudObject(key = "usage", fieldPath = "aiUsage.usage")
+    val root = JSONObject(payload)
+    val usage = root.requireCloudObject(key = "usage", fieldPath = "aiUsage.usage")
     return AiUsageStatus(
         monthEndsAtMillis = usage.requireCloudIsoTimestampMillis(
             key = "monthEndsAt",
@@ -21,6 +22,12 @@ internal fun decodeAiUsageStatus(payload: String): AiUsageStatus {
         ownKeyMessages = usage.requireCloudInt(
             key = "ownKeyMessages",
             fieldPath = "aiUsage.usage.ownKeyMessages"
-        )
+        ),
+        premiumAiMonthlyMessages = root.requireCloudNullableInt(
+            key = "premiumAiMonthlyMessages",
+            fieldPath = "aiUsage.premiumAiMonthlyMessages"
+        ).also { value ->
+            require(value == null || value >= 0) { "aiUsage.premiumAiMonthlyMessages must be nonnegative or null." }
+        }
     )
 }

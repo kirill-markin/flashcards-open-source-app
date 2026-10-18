@@ -106,6 +106,12 @@ extension FlashcardsStore {
         }
     }
 
+    func loadPremiumAIAllowance(identity: AppleSubscriptionIdentity) async throws -> PremiumAIUsageStatusResponse {
+        try await self.withAppleSubscriptionSession(identity: identity) { session in
+            try await loadPremiumAIUsageStatus(urlSession: URLSession.shared, session: session)
+        }
+    }
+
     func refreshAppleSubscriptionEntitlement(identity: AppleSubscriptionIdentity) async throws {
         await self.cloudRuntime.waitForActiveCloudSyncToSettle()
         try self.requireAppleSubscriptionIdentity(identity)

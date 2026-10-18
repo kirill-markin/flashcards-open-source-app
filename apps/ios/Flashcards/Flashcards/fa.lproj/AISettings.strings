@@ -970,3 +970,16 @@
 "settings.account.connection.previewChanged" = "پیش‌نمایش تغییر کرد. آن را تازه کنید و پیش‌نمایش جدید را صریحاً تأیید کنید.";
 "settings.account.connection.restart" = "مدرک منقضی یا مصرف شده است. با مدرک تازه دوباره شروع کنید.";
 "settings.account.connection.restorePaused" = "حساب‌ها پیوند خوردند. تازه‌سازی محلی متوقف است؛ داده‌های آفلاین شما حفظ می‌شوند.";
+
+"premium.offer.heading" = "یادگیری برای همه است.";
+"premium.offer.free" = "رایگان";
+"premium.offer.freeDescription" = "ساخته‌شده برای دانشجویان بدون شغل. در دسترس همه. کوله‌پشتی‌تان سبک‌تر شد.";
+"premium.offer.freeBenefits" = "مرورهای اصلی، یادگیری آفلاین و همگام‌سازی";
+"premium.offer.continueFree" = "ادامهٔ رایگان";
+"premium.offer.monthlyAI" = "%@ پیام هوش مصنوعی در هر ماه";
+"premium.offer.unlimitedAI" = "پیام‌های هوش مصنوعی بدون سقف ماهانه";
+"premium.offer.styles" = "رنگ‌ها و سبک‌های دلخواه";
+"premium.offer.creatorSupport" = "اشتراک شما به سازندهٔ Nibomo، [Kirill Markin](https://kirill-markin.com/)، کمک می‌کند هزینهٔ سرورها را بپردازد و با قهوه و پیتزا به‌روزرسانی بعدی را آماده کند.";
+"premium.offer.subscribe" = "اشتراک";
+"premium.offer.startTrial" = "شروع دورهٔ آزمایشی رایگان: %@";
+"premium.offer.view" = "مشاهدهٔ Premium";
