@@ -1,4 +1,5 @@
 import { Hono } from "hono";
+import { parseGuestSessionIdempotencyKeyValue } from "../guestAuth/session/idempotencyKey";
 import { authenticateRequest } from "../auth";
 import { HttpError } from "../shared/errors";
 import {
@@ -67,19 +68,6 @@ type GuestSessionCreateRequest = Readonly<{
   idempotencyKey: string | null;
 }>;
 
-// Rotation makes this key an effective bearer credential for one guest identity: whoever presents it
-// is handed a fresh valid token for that guest's user and workspace. That only holds while the key
-// is unguessable and per attempt, so the accepted shape is the shape of a random token: lowercase
-// hex, at least 128 bits of it. The check is a floor, not a guarantee. It rejects the obviously
-// non-random values — a fixed label, a device or install id in canonical UUID form — but it cannot
-// tell a random token from the same install id with its hyphens stripped, or from any other 32-char
-// lowercase-hex constant. Per-attempt randomness and dropping the key once the attempt succeeds stay
-// client obligations, stated for the client work in `docs/auth-service.md`. The upper bound keeps
-// the column from being used as storage. Beyond this shape the backend only ever compares the value.
-const guestSessionIdempotencyKeyMinimumLength = 32;
-const guestSessionIdempotencyKeyMaximumLength = 200;
-const guestSessionIdempotencyKeyPattern = /^[0-9a-f]+$/;
-
 function parseGuestSessionPlatformValue(value: unknown): GuestSessionPlatform | null {
   if (value === undefined) {
     // Pre-1.7.0 iOS/Android clients create guest sessions without platform.
@@ -99,42 +87,6 @@ function parseGuestSessionPlatformValue(value: unknown): GuestSessionPlatform | 
   }
 
   throw new HttpError(400, "platform must be ios, android, or web", "GUEST_SESSION_PLATFORM_INVALID");
-}
-
-/**
- * Reads the optional idempotency key of one guest session creation attempt.
- *
- * The key is opaque: beyond the token shape asserted here it is never trimmed, parsed, echoed back
- * or logged, because the only other thing the backend does with it is compare it. Clients must
- * generate it from a cryptographic random source once per creation attempt and drop it once that
- * attempt succeeds; `docs/auth-service.md` states that obligation for the client work that calls
- * this route. The shape check narrows the room for getting that wrong — a key derived from an
- * install id or a fixed label would be a stable, guessable credential for the guest identity it
- * names — but it cannot enforce the obligation, because a stable value can still be hex. An absent
- * key keeps the behaviour every shipped client relies on, which is a fresh guest identity per call.
- */
-function parseGuestSessionIdempotencyKeyValue(value: unknown): string | null {
-  // An explicit JSON null means absent, not invalid. Serializers that encode unset optional fields
-  // rather than omitting them — kotlinx.serialization does by default — send it on every no-key
-  // call, and that path must stay the shipped-client behaviour instead of a 400.
-  if (value === undefined || value === null) {
-    return null;
-  }
-
-  if (
-    typeof value !== "string"
-    || value.length < guestSessionIdempotencyKeyMinimumLength
-    || value.length > guestSessionIdempotencyKeyMaximumLength
-    || !guestSessionIdempotencyKeyPattern.test(value)
-  ) {
-    throw new HttpError(
-      400,
-      `idempotencyKey must be ${guestSessionIdempotencyKeyMinimumLength} to ${guestSessionIdempotencyKeyMaximumLength} lowercase hexadecimal characters generated randomly for one creation attempt`,
-      "GUEST_SESSION_IDEMPOTENCY_KEY_INVALID",
-    );
-  }
-
-  return value;
 }
 
 async function parseGuestSessionCreateRequest(request: Request): Promise<GuestSessionCreateRequest> {

@@ -157,6 +157,7 @@ interface DirectImageIngestionFunctionProps {
 }
 
 export const publicRestApiDefaultIntegrationTimeoutSeconds = 29;
+const browserGuestCreationMethodPath = "/guest-auth/browser/session/POST";
 // Product analytics ingest is the one route whose traffic scales with client instrumentation rather
 // than with product use, so it is throttled tighter than the stage-wide limit. The real protection
 // for the database is the analytics writer's own capped pool; this keeps a broken client release
@@ -1186,6 +1187,11 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
       throttlingRateLimit: 50,
       throttlingBurstLimit: 100,
       methodOptions: {
+        [browserGuestCreationMethodPath]: {
+          metricsEnabled: true,
+          throttlingRateLimit: 1,
+          throttlingBurstLimit: 5,
+        },
         // A per-method entry overrides the stage-wide `*/*` settings for this method instead of
         // merging with them, so metrics are restated here. Without it the method falls back to the
         // service default of no detailed metrics, and the analytics alarms in
@@ -1336,6 +1342,12 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
   const guestAuth = restApi.root.addResource("guest-auth");
   guestAuth.addMethod("ANY", integration);
   guestAuth.addResource("{proxy+}").addMethod("ANY", integration);
+  // Aggregate method throttle, independent of client-supplied network headers.
+  const guestAuthBrowser = guestAuth.addResource("browser");
+  const guestAuthBrowserSession = guestAuthBrowser.addResource("session");
+  guestAuthBrowserSession.addMethod("ANY", integration);
+  guestAuthBrowserSession.addMethod("POST", integration);
+
   const guestAuthIdentity = guestAuth.addResource("identity");
   guestAuthIdentity.addMethod("ANY", integration);
   const guestAuthIdentityLink = guestAuthIdentity.addResource("link");

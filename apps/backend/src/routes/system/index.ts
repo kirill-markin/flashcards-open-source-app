@@ -98,7 +98,9 @@ export function createSystemRoutes(options: SystemRoutesOptions): Hono<AppEnv> {
       authTransport: requestContext.transport,
       csrfToken: requestContext.transport === "session" && requestAuthInputs.sessionToken !== undefined
         ? await getSessionCsrfToken(requestAuthInputs.sessionToken)
-        : null,
+        : requestContext.guestCredentialSource === "cookie" && requestAuthInputs.guestSessionToken !== undefined
+          ? await getSessionCsrfToken(requestAuthInputs.guestSessionToken)
+          : null,
       profile: {
         email: requestContext.email,
         locale: requestContext.locale,

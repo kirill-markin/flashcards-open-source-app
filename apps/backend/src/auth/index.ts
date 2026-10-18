@@ -18,7 +18,7 @@ import { getAuthConfig } from "./config";
 import { HttpError } from "../shared/errors";
 import { authenticateGuestSession } from "../guestAuth/session/index";
 import type { AnalyticsConsentChoice } from "./ensureUser";
-import type { GuestSessionPlatform } from "../guestAuth/types";
+import type { GuestSessionPlatform, GuestSessionPurpose } from "../guestAuth/types";
 import { loadCognitoIdentityMapping, type ClientAccountIdentity } from "./userIdentities";
 import { assertVerifiedPrincipalSession, assertVerifiedAccountDeletionSession, type VerifiedPrincipalSessionClaims } from "./principalSessions";
 
@@ -38,6 +38,8 @@ export type AuthResult = Readonly<{
   selectedWorkspaceId: string | null;
   guestSessionId: string | null;
   guestPlatform: GuestSessionPlatform | null;
+  guestSessionPurpose?: GuestSessionPurpose | null;
+  guestCredentialSource?: "authorization" | "cookie" | null;
   // Only a guest carries one: a signed-in person's analytics decision is kept on the account and
   // arrives with the rest of the profile instead. The same holds for the switch below.
   guestAnalyticsConsent: AnalyticsConsentChoice | null;
@@ -47,6 +49,7 @@ export type AuthResult = Readonly<{
 export type AuthRequest = Readonly<{
   authorizationHeader: string | undefined;
   sessionToken: string | undefined;
+  guestSessionToken?: string | undefined;
 }>;
 
 type VerifiedIdTokenPayload = Readonly<{
@@ -337,6 +340,8 @@ async function authenticateRequestWithDependencies(
       selectedWorkspaceId: null,
       guestSessionId: null,
       guestPlatform: null,
+      guestSessionPurpose: null,
+      guestCredentialSource: null,
       guestAnalyticsConsent: null,
       guestProductAnalyticsEnabled: null,
     };
@@ -358,6 +363,8 @@ async function authenticateRequestWithDependencies(
       selectedWorkspaceId: auth.selectedWorkspaceId,
       guestSessionId: null,
       guestPlatform: null,
+      guestSessionPurpose: null,
+      guestCredentialSource: null,
       guestAnalyticsConsent: null,
       guestProductAnalyticsEnabled: null,
     };
@@ -379,27 +386,10 @@ async function authenticateRequestWithDependencies(
       selectedWorkspaceId: null,
       guestSessionId: null,
       guestPlatform: null,
+      guestSessionPurpose: null,
+      guestCredentialSource: null,
       guestAnalyticsConsent: null,
       guestProductAnalyticsEnabled: null,
-    };
-  }
-
-  if (parsedAuthorization.scheme === "guest") {
-    const guestSession = await runOperation(
-      () => dependencies.authenticateGuestSessionFn(parsedAuthorization.token),
-    );
-    return {
-      userId: guestSession.userId,
-      email: null,
-      cognitoUsername: null,
-      subjectUserId: guestSession.userId,
-      transport: "guest",
-      connectionId: null,
-      selectedWorkspaceId: null,
-      guestSessionId: guestSession.sessionId,
-      guestPlatform: guestSession.platform,
-      guestAnalyticsConsent: guestSession.analyticsConsent,
-      guestProductAnalyticsEnabled: guestSession.productAnalyticsEnabled,
     };
   }
 
@@ -420,8 +410,39 @@ async function authenticateRequestWithDependencies(
       selectedWorkspaceId: null,
       guestSessionId: null,
       guestPlatform: null,
+      guestSessionPurpose: null,
+      guestCredentialSource: null,
       guestAnalyticsConsent: null,
       guestProductAnalyticsEnabled: null,
+    };
+  }
+
+  const guestToken = parsedAuthorization.scheme === "guest"
+    ? parsedAuthorization.token
+    : request.guestSessionToken;
+  if (guestToken !== undefined) {
+    const guestSession = await runOperation(
+      () => dependencies.authenticateGuestSessionFn(guestToken),
+    );
+    const source = parsedAuthorization.scheme === "guest" ? "authorization" : "cookie";
+    if ((source === "authorization" && guestSession.purpose === "browser_product")
+        || (source === "cookie" && (guestSession.purpose !== "browser_product" || guestSession.platform !== "web"))) {
+      throw new HttpError(401, "Guest credential is not valid for this authentication source.", "GUEST_AUTH_INVALID");
+    }
+    return {
+      userId: guestSession.userId,
+      email: null,
+      cognitoUsername: null,
+      subjectUserId: guestSession.userId,
+      transport: "guest",
+      connectionId: null,
+      selectedWorkspaceId: null,
+      guestSessionId: guestSession.sessionId,
+      guestPlatform: guestSession.platform,
+      guestSessionPurpose: guestSession.purpose,
+      guestCredentialSource: source,
+      guestAnalyticsConsent: guestSession.analyticsConsent,
+      guestProductAnalyticsEnabled: guestSession.productAnalyticsEnabled,
     };
   }
 

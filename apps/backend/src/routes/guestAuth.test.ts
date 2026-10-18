@@ -37,6 +37,7 @@ type GuestAuthTestAppOptions = Readonly<{
 function createGuestSessionSnapshot(platform: GuestSessionPlatform | null): GuestSessionSnapshot {
   return {
     guestToken: "guest-token-create-route",
+    purpose: "legacy",
     userId: "guest-user-create-route",
     workspaceId: "guest-workspace-create-route",
     platform,

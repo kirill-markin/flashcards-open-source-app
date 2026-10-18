@@ -18,12 +18,14 @@ import { guestSessionAnalyticsConsentColumnExistsInExecutor } from "../analytics
 import { guestSessionPlatformColumnExistsInExecutor } from "../platformColumn";
 import { guestSessionBindingExpiredSql, hashGuestToken } from "../shared";
 import { loadGuestWorkspaceIdInExecutor } from "../store/index";
-import type { GuestSessionPlatform, GuestSessionSnapshot } from "../types";
+import type { GuestSessionPlatform, GuestSessionPurpose, GuestSessionSnapshot } from "../types";
 
 type GuestSessionRow = Readonly<{
   session_id: string;
   user_id: string;
   platform: GuestSessionPlatform | null;
+  purpose: GuestSessionPurpose;
+  bound_to_account: boolean;
   analytics_consent: AnalyticsConsentChoice | null;
   product_analytics_enabled: boolean | null;
   revoked_at: Date | string | null;
@@ -48,6 +50,8 @@ type LegacyGuestSessionRow = Readonly<{
 function toUndecidedGuestSessionRow(row: PreAnalyticsConsentGuestSessionRow): GuestSessionRow {
   return {
     ...row,
+    purpose: "legacy",
+    bound_to_account: false,
     analytics_consent: null,
     product_analytics_enabled: null,
   };
@@ -57,6 +61,8 @@ function toUnboundGuestSessionRow(row: LegacyGuestSessionRow): GuestSessionRow {
   return {
     ...row,
     platform: null,
+    purpose: "legacy",
+    bound_to_account: false,
     analytics_consent: null,
     product_analytics_enabled: null,
   };
@@ -81,8 +87,12 @@ async function loadGuestSessionRow(guestToken: string): Promise<GuestSessionRow 
       // column must never give.
       const result = await unsafeQuery<GuestSessionRow>(
         [
-          "SELECT session_id, user_id, platform, analytics_consent, product_analytics_enabled,",
+          "SELECT session_id, user_id, platform, purpose, analytics_consent, product_analytics_enabled,",
           "revoked_at,",
+          "(auth.canonical_account_id(user_id) <> user_id OR EXISTS (",
+          "SELECT 1 FROM auth.user_identities WHERE provider_type = 'cognito'",
+          "AND (original_client_user_id = guest_sessions.user_id OR user_id = guest_sessions.user_id)",
+          ")) AS bound_to_account,",
           `${guestSessionBindingExpiredSql} AS bound_past_grace_period`,
           "FROM auth.guest_sessions",
           "WHERE session_secret_hash = $1",
@@ -130,6 +140,7 @@ export async function authenticateGuestSession(guestToken: string): Promise<Read
   sessionId: string;
   userId: string;
   platform: GuestSessionPlatform | null;
+  purpose: GuestSessionPurpose;
   analyticsConsent: AnalyticsConsentChoice | null;
   productAnalyticsEnabled: boolean | null;
 }>> {
@@ -138,10 +149,15 @@ export async function authenticateGuestSession(guestToken: string): Promise<Read
     throw new HttpError(401, "Guest session is invalid.", "GUEST_AUTH_INVALID");
   }
 
+  if (row.purpose === "browser_product" && row.bound_to_account) {
+    throw new HttpError(409, "Finish browser guest conversion using the registered session.", "GUEST_BROWSER_UPGRADE_REQUIRED");
+  }
+
   return {
     sessionId: row.session_id,
     userId: row.user_id,
     platform: row.platform,
+    purpose: row.purpose,
     // A guest has no account to keep an analytics decision on, so both decisions ride in with the
     // credential that was read anyway rather than costing a second query per request. The
     // product-analytics switch is read on every guest request because analytics ingest has to
@@ -241,15 +257,16 @@ async function insertGuestSessionInExecutor(
   userId: string,
   platform: GuestSessionPlatform | null,
   creationIdempotencyKey: string | null,
+  purpose: GuestSessionPurpose,
 ): Promise<GuestSessionPlatform | null> {
   if (await guestSessionPlatformColumnExistsInExecutor(executor)) {
     await executor.query(
       [
         "INSERT INTO auth.guest_sessions",
-        "(session_id, session_secret_hash, user_id, platform, creation_idempotency_key)",
-        "VALUES ($1, $2, $3, $4, $5)",
+        "(session_id, session_secret_hash, user_id, platform, creation_idempotency_key, purpose)",
+        "VALUES ($1, $2, $3, $4, $5, $6)",
       ].join(" "),
-      [sessionId, hashGuestToken(guestToken), userId, platform, creationIdempotencyKey],
+      [sessionId, hashGuestToken(guestToken), userId, platform, creationIdempotencyKey, purpose],
     );
     return platform;
   }
@@ -269,13 +286,14 @@ async function insertGuestSessionInExecutor(
 }
 
 type RotatedGuestSessionRow = Readonly<{
+  purpose: GuestSessionPurpose;
   session_id: string;
   user_id: string;
   platform: GuestSessionPlatform | null;
 }>;
 
 const liveGuestSessionForCreationIdempotencyKeySql = [
-  "SELECT session_id, user_id, platform",
+  "SELECT session_id, user_id, platform, purpose",
   "FROM auth.guest_sessions",
   "WHERE creation_idempotency_key = $1 AND revoked_at IS NULL",
 ].join(" ");
@@ -316,58 +334,13 @@ async function lockGuestSessionCreationIdempotencyInExecutor(
   );
 }
 
-/**
- * Hands a retry back the guest identity its lost response already created, behind a new token.
- *
- * Only the hash of a per-attempt token is stored, so the token the lost response carried cannot be
- * read back and cannot be returned a second time. Rotating the secret costs nothing: no client ever
- * received the token being invalidated.
- *
- * Two kinds of session are deliberately never handed back, and both end in a fresh guest, so this
- * function keeps the server's own guarantee that creating a guest session never returns an identity
- * that belongs to a real account. That guarantee must not rest on clients that have yet to be
- * written, which is why the second case is enforced here rather than left as a client obligation.
- *
- * A revoked session is not matched at all. Upgrade and deletion retire a guest credential on
- * purpose, so a key that now names one is treated as absent.
- *
- * A live session whose user has since been bound to a real account is matched and disarmed: its key
- * is cleared and this call falls through to creation. The bound branch of
- * `/guest-auth/upgrade/complete` deliberately never revokes the guest session it converts, so after
- * a bound upgrade that row stays live with its key intact while its `user_id` is the account's own
- * id. Rotating it would answer a caller holding nothing but the key with a valid guest token for
- * that account, plus whatever workspace the account currently has selected, and a key is only ever
- * meant to buy back a guest identity, never an account's credential. The route's key format bounds
- * the shape of a key, not who can present one, and even a key generated randomly per attempt would
- * not make presenting one legitimate here. Treating the row as absent without clearing the key is
- * not enough either: the row is still live, so it still occupies
- * `idx_guest_sessions_active_creation_idempotency_key` and the insert below would violate it.
- * Clearing only the key leaves the session itself to `authenticateGuestSession`, which stops
- * accepting it once the binding is past its grace period, and retires a marker that stopped meaning
- * "one guest creation attempt" the moment the session stopped being a guest.
- * `deleteGuestSessionInExecutor`, `linkGuestAnalyticsIdentityInExecutor` and both guest upgrade
- * routes guard the same state with the same
- * `hasCognitoIdentityMappingForUserInExecutor` probe: on none of these paths may a guest session
- * whose user is already a real account be treated as an ordinary guest. Each path answers it
- * differently only because their safe answers differ — here a fresh guest, there a refusal.
- *
- * The check belongs here, next to the lookup, rather than at the call site: any future lookup that
- * resolves a session by something other than the token hash faces the same question.
- *
- * The two row locks are taken in the order every other guest path takes them: the guest's
- * `org.user_settings` row first, then the `auth.guest_sessions` row. That is why the key is read
- * once unlocked purely to learn which user to lock, exactly as
- * `loadGuestSessionRecordWithUserSettingsLockInExecutor` and
- * `lockGuestSessionAfterUserSettingsInExecutor` do, and re-read under `FOR UPDATE` afterwards. The
- * advisory key lock does not make the locked re-read redundant: it only serializes other creation
- * attempts for this key, while an upgrade, link or delete call for this same guest takes none of it
- * and could otherwise bind or retire the user between the two reads. A row that changed identity or
- * stopped being live in between is treated as absent and falls through to a fresh guest.
- */
+// The creation-key lock precedes user-settings then session-row locks. Re-read after the user
+// lock so a concurrent upgrade cannot rotate an account credential through a creation retry.
 async function rotateGuestSessionForCreationIdempotencyKeyInExecutor(
   executor: DatabaseExecutor,
   creationIdempotencyKey: string,
   guestToken: string,
+  purpose: GuestSessionPurpose,
 ): Promise<GuestSessionSnapshot | null> {
   const unlockedRow = await loadLiveGuestSessionForCreationIdempotencyKeyInExecutor(
     executor,
@@ -376,6 +349,9 @@ async function rotateGuestSessionForCreationIdempotencyKeyInExecutor(
   );
   if (unlockedRow === null) {
     return null;
+  }
+  if (unlockedRow.purpose !== purpose) {
+    throw new HttpError(409, "This creation attempt belongs to another credential type. Start a new creation attempt.", "GUEST_SESSION_PURPOSE_MISMATCH");
   }
 
   try {
@@ -418,25 +394,19 @@ async function rotateGuestSessionForCreationIdempotencyKeyInExecutor(
 
   return {
     guestToken,
+    purpose: row.purpose,
     userId: row.user_id,
     workspaceId: await loadGuestWorkspaceIdInExecutor(executor, row.user_id),
     platform: row.platform,
   };
 }
 
-export async function createGuestSessionInExecutor(
+async function createGuestSessionForPurposeInExecutor(
   executor: DatabaseExecutor,
   platform: GuestSessionPlatform | null,
   creationIdempotencyKey: string | null,
+  purpose: GuestSessionPurpose,
 ): Promise<GuestSessionSnapshot> {
-  // Guest session creation is intentionally always a fresh server-side
-  // identity. Clients clear stored guest sessions and regenerate their local
-  // installation identity on logout/account deletion before they can call
-  // this again, which keeps future guest-to-linked merges scoped to the
-  // current post-reset guest account only. An idempotency key narrows that to
-  // one fresh identity per key, so only a retry of the very same attempt is
-  // folded back onto the identity that attempt already created, and never onto
-  // an identity that has since been bound to a real account.
   const guestToken = randomBytes(32).toString("hex");
   if (creationIdempotencyKey !== null) {
     await lockGuestSessionCreationIdempotencyInExecutor(executor, creationIdempotencyKey);
@@ -444,6 +414,7 @@ export async function createGuestSessionInExecutor(
       executor,
       creationIdempotencyKey,
       guestToken,
+      purpose,
     );
     if (rotatedSession !== null) {
       return rotatedSession;
@@ -469,12 +440,29 @@ export async function createGuestSessionInExecutor(
     userId,
     platform,
     creationIdempotencyKey,
+    purpose,
   );
 
   return {
     guestToken,
+    purpose,
     userId,
     workspaceId,
     platform: storedPlatform,
   };
+}
+
+export function createGuestSessionInExecutor(
+  executor: DatabaseExecutor,
+  platform: GuestSessionPlatform | null,
+  creationIdempotencyKey: string | null,
+): Promise<GuestSessionSnapshot> {
+  return createGuestSessionForPurposeInExecutor(executor, platform, creationIdempotencyKey, "legacy");
+}
+
+export function createBrowserGuestSessionInExecutor(
+  executor: DatabaseExecutor,
+  creationIdempotencyKey: string,
+): Promise<GuestSessionSnapshot> {
+  return createGuestSessionForPurposeInExecutor(executor, "web", creationIdempotencyKey, "browser_product");
 }
