@@ -312,18 +312,26 @@ enum class AnalyticsCardCreateEntryPoint(val wireValue: String) {
     QUICK_ACTION(wireValue = "quick_action")
 }
 
-/**
- * Where the paywall was opened from. The catalog's `guest_return` is left out: it is the web app
- * reopening the paywall from its `?premium=offer` link after a guest signed in, and this app has no
- * such path.
- */
 enum class AnalyticsPaywallEntryPoint(val wireValue: String) {
     SUBSCRIPTION_SETTINGS(wireValue = "subscription_settings"),
     AI_LIMIT(wireValue = "ai_limit"),
     ACCENT_COLOR(wireValue = "accent_color"),
     REVIEW_ANIMATIONS(wireValue = "review_animations"),
     AI_CHAT_SUGGESTIONS(wireValue = "ai_chat_suggestions"),
-    APP_ICON(wireValue = "app_icon")
+    APP_ICON(wireValue = "app_icon"),
+    REVIEW(wireValue = "review"),
+    AI_LOW_BALANCE(wireValue = "ai_low_balance")
+}
+
+data class AnalyticsPaywallPresentation(
+    val id: String,
+    val entryPoint: AnalyticsPaywallEntryPoint
+)
+
+enum class AnalyticsPaywallChoice(val wireValue: String) {
+    FREE(wireValue = "free"),
+    PREMIUM(wireValue = "premium"),
+    DISMISSED(wireValue = "dismissed")
 }
 
 /** Whether the offer being bought starts with a Google Play free-trial phase. */
@@ -827,35 +835,63 @@ sealed interface AnalyticsEvent {
      * opens over several destinations.
      */
     data class PaywallShown(
-        val entryPoint: AnalyticsPaywallEntryPoint,
+        val presentation: AnalyticsPaywallPresentation,
+        val localDate: String,
+        val timeZone: String,
+        val contentVersion: String,
         override val screen: AnalyticsSurface?
     ) : AnalyticsEvent {
         override val eventName: String = "paywall_shown"
         override val properties: Map<String, AnalyticsPropertyValue> = mapOf(
-            "entry_point" to AnalyticsPropertyValue.Text(value = entryPoint.wireValue)
+            "entry_point" to AnalyticsPropertyValue.Text(value = presentation.entryPoint.wireValue),
+            "presentation_id" to AnalyticsPropertyValue.Text(value = presentation.id),
+            "local_date" to AnalyticsPropertyValue.Text(value = localDate),
+            "time_zone" to AnalyticsPropertyValue.Text(value = timeZone),
+            "content_version" to AnalyticsPropertyValue.Text(value = contentVersion)
         )
     }
 
-    /** The Google Play purchase sheet was launched. */
+    data class PaywallChoice(
+        val presentation: AnalyticsPaywallPresentation,
+        val outcome: AnalyticsPaywallChoice,
+        override val screen: AnalyticsSurface?
+    ) : AnalyticsEvent {
+        override val eventName: String = "paywall_choice"
+        override val properties: Map<String, AnalyticsPropertyValue> = mapOf(
+            "entry_point" to AnalyticsPropertyValue.Text(value = presentation.entryPoint.wireValue),
+            "presentation_id" to AnalyticsPropertyValue.Text(value = presentation.id),
+            "outcome" to AnalyticsPropertyValue.Text(value = outcome.wireValue)
+        )
+    }
+
     data class PurchaseStarted(
         val offerType: AnalyticsPurchaseOfferType,
+        val presentation: AnalyticsPaywallPresentation?,
         override val screen: AnalyticsSurface?
     ) : AnalyticsEvent {
         override val eventName: String = "purchase_started"
-        override val properties: Map<String, AnalyticsPropertyValue> = mapOf(
-            "offer_type" to AnalyticsPropertyValue.Text(value = offerType.wireValue)
-        )
+        override val properties: Map<String, AnalyticsPropertyValue> = buildMap {
+            put("offer_type", AnalyticsPropertyValue.Text(value = offerType.wireValue))
+            if (presentation != null) {
+                put("presentation_id", AnalyticsPropertyValue.Text(value = presentation.id))
+                put("entry_point", AnalyticsPropertyValue.Text(value = presentation.entryPoint.wireValue))
+            }
+        }
     }
 
-    /** What Google Play reported for the sheet [PurchaseStarted] launched, at most once per launch. */
     data class PurchaseFinished(
         val outcome: AnalyticsPurchaseOutcome,
+        val presentation: AnalyticsPaywallPresentation?,
         override val screen: AnalyticsSurface?
     ) : AnalyticsEvent {
         override val eventName: String = "purchase_finished"
-        override val properties: Map<String, AnalyticsPropertyValue> = mapOf(
-            "outcome" to AnalyticsPropertyValue.Text(value = outcome.wireValue)
-        )
+        override val properties: Map<String, AnalyticsPropertyValue> = buildMap {
+            put("outcome", AnalyticsPropertyValue.Text(value = outcome.wireValue))
+            if (presentation != null) {
+                put("presentation_id", AnalyticsPropertyValue.Text(value = presentation.id))
+                put("entry_point", AnalyticsPropertyValue.Text(value = presentation.entryPoint.wireValue))
+            }
+        }
     }
 
     /** What Google Play returned to a restore query, whether or not the server then grants access. */
