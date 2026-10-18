@@ -984,3 +984,6 @@
 "premium.offer.subscribe" = "சந்தா பெறவும்";
 "premium.offer.startTrial" = "இலவச சோதனையைத் தொடங்கவும்: %@";
 "premium.offer.view" = "Premium பார்க்கவும்";
+
+"settings.firstReviewOnboarding.title" = "முதல் மீள்பார்வை அறிமுகம் முடிந்தது";
+"settings.firstReviewOnboarding.note" = "அட்டையை மீள்பார்க்கும்போது வழிகாட்டியை மீண்டும் காண இதை அணைக்கவும்.";

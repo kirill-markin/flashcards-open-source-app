@@ -119,7 +119,7 @@ enum PendingGuestUpgradeState: Codable, Hashable {
             ),
             userId: try container.decode(String.self, forKey: .userId),
             email: try container.decodeIfPresent(String.self, forKey: .email),
-            preferences: try container.decodeIfPresent(AccountPreferences.self, forKey: .preferences)
+            preferences: try container.decodeIfPresent(LegacyCachedAccountPreferences.self, forKey: .preferences)?.preferences
                 ?? makeDefaultAccountPreferences()
         )
         // Schema versions 2 and 3 only persisted completed checkpoints and did

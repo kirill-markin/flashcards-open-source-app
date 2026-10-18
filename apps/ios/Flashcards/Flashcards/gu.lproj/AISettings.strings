@@ -984,3 +984,6 @@
 "premium.offer.subscribe" = "સબ્સ્ક્રાઇબ કરો";
 "premium.offer.startTrial" = "મફત અજમાયશ શરૂ કરો: %@";
 "premium.offer.view" = "Premium જુઓ";
+
+"settings.firstReviewOnboarding.title" = "પહેલી સમીક્ષાનો પરિચય પૂર્ણ થયો";
+"settings.firstReviewOnboarding.note" = "કાર્ડની સમીક્ષા કરતી વખતે માર્ગદર્શિકા ફરી જોવા માટે આ બંધ કરો.";

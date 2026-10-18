@@ -1,5 +1,10 @@
 import Foundation
 
+enum AnalyticsFirstReviewOnboardingSource: String, Sendable, Equatable {
+    case review
+    case settings
+}
+
 /**
  * Hand-written mirror of the backend product analytics catalog in
  * `apps/backend/src/productAnalytics/catalog.ts`. The server rejects anything it does not declare,
@@ -27,6 +32,8 @@ import Foundation
  * rejects them `retired_event_name`.
  */
 enum AnalyticsEvent: Sendable, Equatable {
+    case firstReviewOnboardingCompleted(source: AnalyticsFirstReviewOnboardingSource)
+    case firstReviewOnboardingReset
     case appOpened(launchType: AnalyticsLaunchType)
     case screenViewed(screen: AnalyticsSurface)
     /**
@@ -568,6 +575,10 @@ enum AnalyticsPropertyValue: Sendable, Equatable, Codable {
 extension AnalyticsEvent {
     var eventName: String {
         switch self {
+        case .firstReviewOnboardingCompleted:
+            return "first_review_onboarding_completed"
+        case .firstReviewOnboardingReset:
+            return "first_review_onboarding_reset"
         case .appOpened:
             return "app_opened"
         case .screenViewed:
@@ -706,6 +717,10 @@ extension AnalyticsEvent {
      */
     var properties: [String: AnalyticsPropertyValue] {
         switch self {
+        case .firstReviewOnboardingCompleted(let source):
+            return ["source": .string(source.rawValue)]
+        case .firstReviewOnboardingReset:
+            return [:]
         case .appOpened(let launchType):
             return ["launch_type": .string(launchType.rawValue)]
         case .screenViewed:

@@ -984,3 +984,6 @@
 "premium.offer.subscribe" = "Abonează-te";
 "premium.offer.startTrial" = "Începe perioada de probă gratuită: %@";
 "premium.offer.view" = "Vezi Premium";
+
+"settings.firstReviewOnboarding.title" = "Ghidul pentru prima recapitulare este finalizat";
+"settings.firstReviewOnboarding.note" = "Dezactivați pentru a vedea din nou ghidul când recapitulați o fișă.";

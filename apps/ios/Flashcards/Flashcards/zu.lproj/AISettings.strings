@@ -984,3 +984,6 @@
 "premium.offer.subscribe" = "Bhalisa";
 "premium.offer.startTrial" = "Qala isivivinyo samahhala: %@";
 "premium.offer.view" = "Buka i-Premium";
+
+"settings.firstReviewOnboarding.title" = "Isingeniso sokubuyekeza kokuqala siqediwe";
+"settings.firstReviewOnboarding.note" = "Vala ukuze ubone umhlahlandlela futhi lapho ubuyekeza ikhadi.";

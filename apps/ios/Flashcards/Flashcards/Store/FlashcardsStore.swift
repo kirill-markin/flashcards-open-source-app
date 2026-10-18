@@ -60,6 +60,7 @@ final class FlashcardsStore {
     var userSettings: UserSettings?
     var schedulerSettings: WorkspaceSchedulerSettings?
     var cloudSettings: CloudSettings?
+    var firstReviewOnboardingCompleted: Bool? = nil
     var accountPreferences: AccountPreferences
     var pendingAccentColor: PendingAccountAccentColor? = nil
     @ObservationIgnored var isAccentColorSaveScheduled: Bool = false

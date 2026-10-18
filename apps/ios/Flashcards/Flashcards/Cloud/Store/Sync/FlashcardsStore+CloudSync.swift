@@ -176,6 +176,7 @@ extension FlashcardsStore {
                 syncResult: nil,
                 error: nil
             )
+            self.triggerFirstReviewOnboardingPush()
             return
         }
         try self.throwIfCloudCredentialRecoveryRequired()
@@ -193,6 +194,7 @@ extension FlashcardsStore {
                 syncResult: nil,
                 error: nil
             )
+            self.triggerFirstReviewOnboardingPush()
             return
         }
         if case .blocked(let message) = self.syncStatus {
@@ -212,6 +214,7 @@ extension FlashcardsStore {
                         syncResult: nil,
                         error: nil
                     )
+                    self.triggerFirstReviewOnboardingPush()
                     return
                 }
             } else {
@@ -226,6 +229,7 @@ extension FlashcardsStore {
                     syncResult: nil,
                     error: nil
                 )
+                self.triggerFirstReviewOnboardingPush()
                 return
             }
         }
@@ -258,6 +262,7 @@ extension FlashcardsStore {
             // Re-arms the failure gate: this attempt is the same unit of work the catch below reports,
             // so a sync that got through is what ends the episode it opened.
             Analytics.recordSyncSucceeded()
+            self.triggerFirstReviewOnboardingPush()
             self.addCloudSyncForegroundOperationBreadcrumb(
                 stage: "sync_now",
                 phase: .success,
