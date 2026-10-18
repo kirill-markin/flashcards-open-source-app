@@ -948,6 +948,10 @@ const itCatalog: TranslationCatalog = {
     paragraphTwo: "I promemoria usano automaticamente le carte e l’attività dell’area di lavoro selezionata in quell’app mobile.",
     paragraphThree: "L’app web non invia né gestisce queste notifiche, quindi in questa schermata non ci sono controlli per le notifiche.",
   },
+  firstReviewOnboardingSettings: {
+    title: "Guida al primo ripasso completata",
+    description: "Disattiva per rivedere la guida quando ripassi una scheda.",
+  },
   reviewAnimationsSettings: {
     title: "Animazioni dei ripassi",
     subtitle: "Gestisci le animazioni di reazione mostrate dopo la valutazione delle carte.",

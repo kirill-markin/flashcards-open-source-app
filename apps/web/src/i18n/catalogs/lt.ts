@@ -957,6 +957,10 @@ const ltCatalog: TranslationCatalog = {
     paragraphTwo: "Priminimai automatiškai naudoja korteles ir veiklą iš darbo srities, šiuo metu pasirinktos toje mobiliojoje programėlėje.",
     paragraphThree: "Žiniatinklio programėlė šių pranešimų nesiunčia ir netvarko, todėl šiame ekrane pranešimų valdiklių nėra.",
   },
+  firstReviewOnboardingSettings: {
+    title: "Pirmojo kartojimo vadovas baigtas",
+    description: "Išjunkite, jei norite vėl matyti vadovą kartodami kortelę.",
+  },
   reviewAnimationsSettings: {
     title: "Kartojimo animacijos",
     subtitle: "Valdykite reakcijų animacijas, rodomas įvertinus korteles.",

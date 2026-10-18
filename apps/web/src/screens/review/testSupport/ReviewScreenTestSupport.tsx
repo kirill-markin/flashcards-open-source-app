@@ -272,9 +272,12 @@ function createAppData(state: ReviewScreenTestState): ReviewScreenAppData {
     technicalError: null,
     setErrorMessage: vi.fn(),
     setAccountPreferences: vi.fn(),
+    firstReviewOnboardingCompleted: true,
+    setFirstReviewOnboardingCompleted: vi.fn(async (): Promise<void> => undefined),
     refreshAccountPreferences: vi.fn(async () => ({
       accentColor: "#FF6719",
       reviewReactionAnimationsEnabled: true,
+      firstReviewOnboardingCompleted: true,
     })),
     runSync: vi.fn(async (): Promise<void> => undefined),
     runMediaUploadTransfers: vi.fn(),

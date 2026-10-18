@@ -948,6 +948,10 @@ const etCatalog: TranslationCatalog = {
     paragraphTwo: "Meeldetuletused kasutavad automaatselt kaarte ja tegevust tööruumist, mis on selles mobiilirakenduses praegu valitud.",
     paragraphThree: "Veebirakendus neid teavitusi ei saada ega halda, seega pole sellel kuval teavituste juhtelemente.",
   },
+  firstReviewOnboardingSettings: {
+    title: "Esimese kordamise juhend läbitud",
+    description: "Lülita välja, et näha juhendit kaardi kordamisel uuesti.",
+  },
   reviewAnimationsSettings: {
     title: "Kordamise animatsioonid",
     subtitle: "Halda reaktsioonianimatsioone, mida näidatakse pärast kaartide hindamist.",

@@ -948,6 +948,10 @@ const nbCatalog: TranslationCatalog = {
     paragraphTwo: "Påminnelsene bruker automatisk kort og aktivitet fra arbeidsområdet som er valgt i den mobilappen.",
     paragraphThree: "Nettappen sender ikke og styrer ikke disse varslene, så det finnes ingen varselinnstillinger på denne skjermen.",
   },
+  firstReviewOnboardingSettings: {
+    title: "Veiledning for første repetisjon fullført",
+    description: "Slå av for å se veiledningen igjen når du repeterer et kort.",
+  },
   reviewAnimationsSettings: {
     title: "Repetisjonsanimasjoner",
     subtitle: "Styr reaksjonsanimasjonene som vises etter at du har vurdert kort.",

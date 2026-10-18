@@ -948,6 +948,10 @@ const swCatalog: TranslationCatalog = {
     paragraphTwo: "Vikumbusho hutumia kiotomatiki kadi na shughuli kutoka nafasi ya kazi iliyochaguliwa sasa katika programu hiyo ya simu.",
     paragraphThree: "Programu ya wavuti haitumi wala haidhibiti arifa hizi, kwa hiyo hakuna vidhibiti vya arifa kwenye skrini hii.",
   },
+  firstReviewOnboardingSettings: {
+    title: "Mwongozo wa marudio ya kwanza umekamilika",
+    description: "Zima ili kuona mwongozo tena unapopitia kadi.",
+  },
   reviewAnimationsSettings: {
     title: "Uhuishaji wa Marudio",
     subtitle: "Dhibiti uhuishaji wa mwitikio unaoonyeshwa baada ya kukadiria kadi.",

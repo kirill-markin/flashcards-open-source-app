@@ -948,6 +948,10 @@ const viCatalog: TranslationCatalog = {
     paragraphTwo: "Lời nhắc tự động dùng thẻ và hoạt động từ không gian làm việc đang chọn trong ứng dụng di động đó.",
     paragraphThree: "Ứng dụng web không gửi và không quản lý các thông báo này, nên màn hình này không có tùy chọn thông báo nào.",
   },
+  firstReviewOnboardingSettings: {
+    title: "Đã hoàn tất hướng dẫn ôn tập đầu tiên",
+    description: "Tắt để xem lại hướng dẫn khi ôn tập một thẻ.",
+  },
   reviewAnimationsSettings: {
     title: "Hoạt ảnh khi ôn tập",
     subtitle: "Kiểm soát hoạt ảnh phản hồi hiển thị sau khi chấm thẻ.",

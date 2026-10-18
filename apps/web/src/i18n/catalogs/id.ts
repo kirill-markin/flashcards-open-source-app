@@ -948,6 +948,10 @@ const idCatalog: TranslationCatalog = {
     paragraphTwo: "Pengingat otomatis memakai kartu dan aktivitas dari ruang kerja yang sedang dipilih di aplikasi seluler tersebut.",
     paragraphThree: "Aplikasi web tidak mengirim atau mengelola notifikasi ini, jadi tidak ada kontrol notifikasi di layar ini.",
   },
+  firstReviewOnboardingSettings: {
+    title: "Panduan ulasan pertama selesai",
+    description: "Nonaktifkan untuk melihat panduan lagi saat mengulas kartu.",
+  },
   reviewAnimationsSettings: {
     title: "Animasi Tinjauan",
     subtitle: "Atur animasi reaksi yang muncul setelah menilai kartu.",

@@ -948,6 +948,10 @@ const zuCatalog: TranslationCatalog = {
     paragraphTwo: "Izikhumbuzo zisebenzisa ngokuzenzakalelayo amakhadi nomsebenzi wendawo yokusebenza ekhethwe manje kulolo hlelo lokusebenza lweselula.",
     paragraphThree: "Uhlelo lokusebenza lwewebhu aluthumeli futhi aluziphathi lezi zaziso, ngakho azikho izilawuli zezaziso kulesi sikrini.",
   },
+  firstReviewOnboardingSettings: {
+    title: "Umhlahlandlela wokubuyekeza kokuqala uqediwe",
+    description: "Vala ukuze ubone umhlahlandlela futhi lapho ubuyekeza ikhadi.",
+  },
   reviewAnimationsSettings: {
     title: "Opopayi bokubukeza",
     subtitle: "Lawula opopayi bokusabela ababoniswa ngemva kokukala amakhadi.",

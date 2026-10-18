@@ -948,6 +948,10 @@ const esMxCatalog: TranslationCatalog = {
     paragraphTwo: "Los recordatorios usan automáticamente las tarjetas y la actividad del espacio de trabajo seleccionado en ese momento en esa app móvil.",
     paragraphThree: "La app web no envía ni administra estas notificaciones, así que no hay controles de notificaciones en esta pantalla.",
   },
+  firstReviewOnboardingSettings: {
+    title: "Guía del primer repaso completada",
+    description: "Desactiva esta opción para volver a ver la guía al repasar una tarjeta.",
+  },
   reviewAnimationsSettings: {
     title: "Animaciones de repaso",
     subtitle: "Controla las animaciones de reacción después de calificar tarjetas.",

@@ -957,6 +957,10 @@ const roCatalog: TranslationCatalog = {
     paragraphTwo: "Mementourile folosesc automat fișele și activitatea din spațiul de lucru selectat în acel moment în aplicația mobilă.",
     paragraphThree: "Aplicația web nu livrează și nu gestionează aceste notificări, deci pe acest ecran nu există comenzi pentru notificări.",
   },
+  firstReviewOnboardingSettings: {
+    title: "Ghidul primei recapitulări finalizat",
+    description: "Dezactivează pentru a vedea din nou ghidul când recapitulezi un card.",
+  },
   reviewAnimationsSettings: {
     title: "Animații de recapitulare",
     subtitle: "Controlează animațiile de reacție afișate după evaluarea fișelor.",

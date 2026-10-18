@@ -948,6 +948,10 @@ const frCatalog: TranslationCatalog = {
     paragraphTwo: "Les rappels utilisent automatiquement les cartes et l'activité de l'espace de travail sélectionné dans cette application mobile.",
     paragraphThree: "L'application web ne délivre ni ne gère ces notifications, il n'y a donc aucun réglage de notification sur cet écran.",
   },
+  firstReviewOnboardingSettings: {
+    title: "Guide de la première révision terminé",
+    description: "Désactivez cette option pour revoir le guide lorsque vous révisez une carte.",
+  },
   reviewAnimationsSettings: {
     title: "Animations de révision",
     subtitle: "Contrôlez les animations de réaction affichées après l'évaluation des cartes.",

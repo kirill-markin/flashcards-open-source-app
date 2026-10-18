@@ -948,6 +948,10 @@ const fiCatalog: TranslationCatalog = {
     paragraphTwo: "Muistutukset käyttävät automaattisesti sen työtilan kortteja ja toimintaa, joka on valittuna kyseisessä mobiilisovelluksessa.",
     paragraphThree: "Verkkosovellus ei lähetä eikä hallitse näitä ilmoituksia, joten tässä näkymässä ei ole ilmoitusasetuksia.",
   },
+  firstReviewOnboardingSettings: {
+    title: "Ensimmäisen kertauksen opastus suoritettu",
+    description: "Poista käytöstä, jos haluat nähdä oppaan uudelleen korttia kerratessasi.",
+  },
   reviewAnimationsSettings: {
     title: "Kertausanimaatiot",
     subtitle: "Hallitse korttien arvioinnin jälkeen näytettäviä reaktioanimaatioita.",

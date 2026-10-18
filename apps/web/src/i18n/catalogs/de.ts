@@ -948,6 +948,10 @@ const deCatalog: TranslationCatalog = {
     paragraphTwo: "Erinnerungen verwenden automatisch die Karten und Aktivitäten aus dem Arbeitsbereich, der aktuell in dieser Mobile-App ausgewählt ist.",
     paragraphThree: "Die Web-App stellt diese Benachrichtigungen weder zu noch verwaltet sie, daher gibt es auf diesem Bildschirm keine Benachrichtigungssteuerung.",
   },
+  firstReviewOnboardingSettings: {
+    title: "Einführung zur ersten Wiederholung abgeschlossen",
+    description: "Ausschalten, um die Anleitung beim Wiederholen einer Karte erneut zu sehen.",
+  },
   reviewAnimationsSettings: {
     title: "Wiederholungsanimationen",
     subtitle: "Steuere Reaktionsanimationen nach Kartenbewertungen.",

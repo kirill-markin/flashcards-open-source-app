@@ -948,6 +948,10 @@ const isCatalog: TranslationCatalog = {
     paragraphTwo: "Áminningar nota sjálfkrafa spjöld og virkni úr vinnusvæðinu sem er valið í því farsímaforriti.",
     paragraphThree: "Vefforritið sendir hvorki né stjórnar þessum tilkynningum og því eru engar tilkynningastillingar á þessum skjá.",
   },
+  firstReviewOnboardingSettings: {
+    title: "Leiðsögn fyrir fyrstu upprifjun lokið",
+    description: "Slökktu til að sjá leiðsögnina aftur þegar þú rifjar upp spjald.",
+  },
   reviewAnimationsSettings: {
     title: "Hreyfimyndir í upprifjun",
     subtitle: "Stjórnaðu viðbragðshreyfimyndunum sem birtast eftir að spjöld eru metin.",

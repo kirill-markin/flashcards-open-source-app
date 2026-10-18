@@ -32,6 +32,7 @@ import { useProgressInvalidationRefresh } from "../progress/invalidation/progres
 import { isTestSeedBridgeEnabled, type AppDataTestSeedBridge } from "../sync/local/testSeedBridge";
 import { useSyncEngine } from "../sync/engine/useSyncEngine";
 import { mergeRefreshedSessionPreferences, readAccountPreferencesWriteVersion } from "../session/accentColorWrite";
+import { useFirstReviewOnboarding } from "../session/firstReviewOnboardingWrite";
 import { useAppLanguageSave } from "../session/useAppLanguageSave";
 import { useWorkspaceSession } from "../session/useWorkspaceSession";
 import type { SessionVerificationState } from "../session/workspaceSessionTypes";
@@ -224,7 +225,37 @@ export function AppDataProvider(props: Props): ReactElement {
     showCapturedTechnicalError(technicalError);
   }, [errorMessage, showCapturedTechnicalError, technicalError]);
 
+  const setAccountPreferences = useCallback(function setAccountPreferences(
+    userId: string,
+    preferences: Partial<AccountPreferences>,
+  ): void {
+    const generation = readEntitlementIdentityGeneration();
+    accountPreferencesMutationVersionRef.current += 1;
+    setSession((currentSession): SessionInfo | null => {
+      if (currentSession === null || currentSession.userId !== userId
+        || generation !== readEntitlementIdentityGeneration()) {
+        return currentSession;
+      }
+
+      return mergeSessionAccountPreferences(currentSession, preferences);
+    });
+  }, []);
+
+  const applyOnboardingCompleted = useCallback((userId: string, completed: boolean): void => {
+    setAccountPreferences(userId, { firstReviewOnboardingCompleted: completed });
+  }, [setAccountPreferences]);
+  const firstReviewOnboarding = useFirstReviewOnboarding({
+    session,
+    verified: sessionVerificationState === "verified",
+    writable: sessionLoadState === "ready",
+    cachedPreferenceKnown: warmStartSnapshot?.session.userId === session?.userId
+      && warmStartSnapshot?.firstReviewOnboardingKnown === true,
+    syncInProgress: isSyncing,
+    applyCompleted: applyOnboardingCompleted,
+  });
+
   const syncEngine = useSyncEngine({
+    onReviewSaved: firstReviewOnboarding.completeAfterReview,
     sessionLoadState,
     sessionVerificationState,
     session,
@@ -275,6 +306,7 @@ export function AppDataProvider(props: Props): ReactElement {
 
     storeWarmStartSnapshot({
       version: 1,
+      firstReviewOnboardingKnown: true,
       session,
       activeWorkspace,
       availableWorkspaces,
@@ -398,22 +430,6 @@ export function AppDataProvider(props: Props): ReactElement {
     }));
   }, [activeWorkspaceId]);
 
-  const setAccountPreferences = useCallback(function setAccountPreferences(
-    userId: string,
-    preferences: Partial<AccountPreferences>,
-  ): void {
-    const generation = readEntitlementIdentityGeneration();
-    accountPreferencesMutationVersionRef.current += 1;
-    setSession((currentSession): SessionInfo | null => {
-      if (currentSession === null || currentSession.userId !== userId
-        || generation !== readEntitlementIdentityGeneration()) {
-        return currentSession;
-      }
-
-      return mergeSessionAccountPreferences(currentSession, preferences);
-    });
-  }, []);
-
   const refreshAccountPreferences = useCallback(async function refreshAccountPreferences(): Promise<AccountPreferences> {
     const sessionUserId = session?.userId ?? null;
     if (sessionUserId === null) {
@@ -527,6 +543,8 @@ export function AppDataProvider(props: Props): ReactElement {
   });
 
   const value: AppDataContextValue = {
+    firstReviewOnboardingCompleted: firstReviewOnboarding.completed,
+    setFirstReviewOnboardingCompleted: (completed) => firstReviewOnboarding.setCompleted(completed, "settings"),
     sessionLoadState,
     sessionVerificationState,
     isSessionVerified: sessionVerificationState === "verified",

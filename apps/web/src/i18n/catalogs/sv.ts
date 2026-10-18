@@ -948,6 +948,10 @@ const svCatalog: TranslationCatalog = {
     paragraphTwo: "Påminnelserna använder automatiskt kort och aktivitet från den arbetsyta som är vald i mobilappen.",
     paragraphThree: "Webbappen skickar inte och hanterar inte de här aviseringarna, så det finns inga aviseringsreglage på den här skärmen.",
   },
+  firstReviewOnboardingSettings: {
+    title: "Introduktion till första repetitionen slutförd",
+    description: "Stäng av för att se guiden igen när du repeterar ett kort.",
+  },
   reviewAnimationsSettings: {
     title: "Repetitionsanimationer",
     subtitle: "Styr reaktionsanimationerna som visas efter att du betygsatt kort.",

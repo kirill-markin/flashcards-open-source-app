@@ -957,6 +957,10 @@ const plCatalog: TranslationCatalog = {
     paragraphTwo: "Przypomnienia automatycznie korzystają z kart i aktywności w przestrzeni roboczej wybranej w tej aplikacji mobilnej.",
     paragraphThree: "Aplikacja webowa nie wysyła tych powiadomień ani nimi nie zarządza, więc na tym ekranie nie ma ich ustawień.",
   },
+  firstReviewOnboardingSettings: {
+    title: "Wprowadzenie do pierwszej powtórki ukończone",
+    description: "Wyłącz, aby ponownie zobaczyć wskazówki podczas powtarzania karty.",
+  },
   reviewAnimationsSettings: {
     title: "Animacje powtórek",
     subtitle: "Zarządzaj animacjami reakcji pokazywanymi po ocenie karty.",

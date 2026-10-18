@@ -244,6 +244,8 @@ export type AnalyticsStorePlacement =
  * those; every other event is stamped with the surface the user is on when it is tracked.
  */
 export type AnalyticsEvent =
+  | Readonly<{ name: "first_review_onboarding_completed"; source: "review" | "settings" }>
+  | Readonly<{ name: "first_review_onboarding_reset" }>
   | Readonly<{
     name: "app_opened";
     launchType: AnalyticsLaunchType;
@@ -565,6 +567,10 @@ export const analyticsUuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[
 /** Catalog property names are snake_case on the wire; the union carries them as camelCase. */
 export function buildAnalyticsEventProperties(event: AnalyticsEvent): AnalyticsEventProperties | null {
   switch (event.name) {
+    case "first_review_onboarding_completed":
+      return { source: event.source };
+    case "first_review_onboarding_reset":
+      return null;
     case "app_opened":
       return { launch_type: event.launchType };
     case "screen_viewed":
