@@ -984,3 +984,6 @@
 "premium.offer.subscribe" = "Telli";
 "premium.offer.startTrial" = "Alusta tasuta prooviperioodi: %@";
 "premium.offer.view" = "Vaata Premiumi";
+
+"settings.firstReviewOnboarding.title" = "Esimese kordamise juhend on läbitud";
+"settings.firstReviewOnboarding.note" = "Lülita välja, et näha juhendit kaardi kordamisel uuesti.";

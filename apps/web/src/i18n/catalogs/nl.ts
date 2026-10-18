@@ -949,6 +949,10 @@ const nlCatalog: TranslationCatalog = {
     paragraphTwo: "Herinneringen gebruiken automatisch de kaarten en activiteit uit de werkruimte die in die mobiele app is geselecteerd.",
     paragraphThree: "De web-app levert en beheert deze meldingen niet, dus er staan geen meldingsinstellingen op dit scherm.",
   },
+  firstReviewOnboardingSettings: {
+    title: "Uitleg voor de eerste herhaling voltooid",
+    description: "Schakel uit om de uitleg opnieuw te zien wanneer je een kaart herhaalt.",
+  },
   reviewAnimationsSettings: {
     title: "Herhalingsanimaties",
     subtitle: "Bepaal welke reactieanimaties na het beoordelen van kaarten verschijnen.",

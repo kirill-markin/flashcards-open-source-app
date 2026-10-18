@@ -984,3 +984,6 @@
 "premium.offer.subscribe" = "സബ്സ്ക്രൈബ് ചെയ്യുക";
 "premium.offer.startTrial" = "സൗജന്യ ട്രയൽ തുടങ്ങുക: %@";
 "premium.offer.view" = "Premium കാണുക";
+
+"settings.firstReviewOnboarding.title" = "ആദ്യ ആവർത്തന പരിശീലനത്തിന്റെ ആമുഖം പൂർത്തിയായി";
+"settings.firstReviewOnboarding.note" = "കാർഡ് ആവർത്തിക്കുമ്പോൾ മാർഗ്ഗനിർദ്ദേശം വീണ്ടും കാണാൻ ഇത് ഓഫാക്കുക.";

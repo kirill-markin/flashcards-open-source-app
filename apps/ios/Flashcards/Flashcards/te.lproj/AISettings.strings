@@ -984,3 +984,6 @@
 "premium.offer.subscribe" = "సభ్యత్వం పొందండి";
 "premium.offer.startTrial" = "ఉచిత ట్రయల్ ప్రారంభించండి: %@";
 "premium.offer.view" = "Premium చూడండి";
+
+"settings.firstReviewOnboarding.title" = "మొదటి పునశ్చరణ పరిచయం పూర్తయింది";
+"settings.firstReviewOnboarding.note" = "కార్డును పునశ్చరణ చేసేటప్పుడు మార్గదర్శిని మళ్లీ చూడటానికి దీన్ని ఆఫ్ చేయండి.";

@@ -949,6 +949,10 @@ const trCatalog: TranslationCatalog = {
     paragraphTwo: "Hatırlatıcılar otomatik olarak o mobil uygulamada seçili olan çalışma alanının kartlarını ve etkinliğini kullanır.",
     paragraphThree: "Web uygulaması bu bildirimleri göndermez ve yönetmez; bu yüzden bu ekranda bildirim denetimi yoktur.",
   },
+  firstReviewOnboardingSettings: {
+    title: "İlk tekrar rehberi tamamlandı",
+    description: "Bir kartı tekrar ederken rehberi yeniden görmek için kapatın.",
+  },
   reviewAnimationsSettings: {
     title: "Tekrar Animasyonları",
     subtitle: "Kartları değerlendirdikten sonra gösterilen tepki animasyonlarını yönetin.",

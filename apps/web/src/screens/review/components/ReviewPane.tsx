@@ -1,4 +1,5 @@
-import { useLayoutEffect, useRef, type ReactElement } from "react";
+import { useLayoutEffect, useRef, useState, type ReactElement, type RefObject } from "react";
+import { FirstReviewOnboardingOverlay } from "../onboarding/FirstReviewOnboardingOverlay";
 import { Link } from "react-router";
 import type { ReviewRating } from "../../../../../backend/src/scheduling";
 import { track } from "../../../analytics";
@@ -33,6 +34,7 @@ const REVIEW_SCROLL_INTO_VIEW_OPTIONS = {
 } as const satisfies ScrollIntoViewOptions & { container: "nearest" };
 
 export type ReviewPaneProps = Readonly<{
+  showFirstReviewOnboarding: boolean;
   activeSpeechSide: ReviewSpeechSide | null;
   hasCards: boolean;
   isAnswerVisible: boolean;
@@ -77,6 +79,8 @@ type ReviewEmptyPaneProps = Readonly<{
 }>;
 
 type ReviewActiveCardPaneProps = Readonly<{
+  showFirstReviewOnboarding: boolean;
+  surfaceRef: RefObject<HTMLElement | null>;
   activeSpeechSide: ReviewSpeechSide | null;
   isAnswerVisible: boolean;
   isSubmitting: boolean;
@@ -98,6 +102,7 @@ type ReviewActiveCardPaneProps = Readonly<{
 }>;
 
 type ReviewRatingButtonColumnProps = Readonly<{
+  onAgainButton: (button: HTMLButtonElement | null) => void;
   isSubmitting: boolean;
   onReview: (rating: ReviewRating) => void;
   onShortcutButtonPointerEnter: ReviewShortcutPointerEnterHandler;
@@ -268,13 +273,14 @@ function ReviewEmptyPane(props: ReviewEmptyPaneProps): ReactElement {
 }
 
 function ReviewRatingButtonColumn(props: ReviewRatingButtonColumnProps): ReactElement {
-  const { isSubmitting, onReview, onShortcutButtonPointerEnter, options } = props;
+  const { isSubmitting, onReview, onShortcutButtonPointerEnter, options, onAgainButton } = props;
 
   return (
     <div className="rating-bar-column">
       {options.map((option) => (
         <button
           key={option.rating}
+          ref={option.rating === 0 ? onAgainButton : undefined}
           type="button"
           className="rating-btn"
           aria-keyshortcuts={reviewRatingShortcutKeys[option.rating]}
@@ -294,6 +300,8 @@ function ReviewRatingButtonColumn(props: ReviewRatingButtonColumnProps): ReactEl
 
 function ReviewActiveCardPane(props: ReviewActiveCardPaneProps): ReactElement {
   const {
+    showFirstReviewOnboarding,
+    surfaceRef,
     activeSpeechSide,
     isAnswerVisible,
     isSubmitting,
@@ -319,6 +327,11 @@ function ReviewActiveCardPane(props: ReviewActiveCardPaneProps): ReactElement {
   const repetitionValue = selectedCard.reps === 0 ? t("reviewScreen.repetitionBadgeNew") : formatNumber(selectedCard.reps);
   const leftReviewButtonOptions = reviewButtonOptions.slice(0, REVIEW_BUTTONS_PER_COLUMN);
   const rightReviewButtonOptions = reviewButtonOptions.slice(REVIEW_BUTTONS_PER_COLUMN, REVIEW_BUTTONS_PER_COLUMN * 2);
+  const [revealButton, setRevealButton] = useState<HTMLButtonElement | null>(null);
+  const [againButton, setAgainButton] = useState<HTMLButtonElement | null>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
+  const headerRef = useRef<HTMLDivElement>(null);
+  const controlsRef = useRef<HTMLDivElement>(null);
   const frontTargetRef = useRef<HTMLDivElement>(null);
   const backTargetRef = useRef<HTMLDivElement>(null);
   const previousCardIdRef = useRef<string | null>(null);
@@ -343,7 +356,7 @@ function ReviewActiveCardPane(props: ReviewActiveCardPaneProps): ReactElement {
 
   return (
     <>
-      <div className="review-pane-head">
+      <div className="review-pane-head" ref={headerRef}>
         <div className="review-pane-head-meta">
           <ReviewCardTags onRequestTagFilter={onRequestTagFilter} tags={selectedCard.tags} />
           <span className="badge review-metadata-chip">
@@ -366,7 +379,7 @@ function ReviewActiveCardPane(props: ReviewActiveCardPaneProps): ReactElement {
           </button>
         </div>
       </div>
-      <div className="review-card-stack">
+      <div className="review-card-stack" ref={contentRef}>
         <div className="review-card-scroll-target" ref={frontTargetRef}>
           <ReviewCardSide
             label={frontSideLabel}
@@ -419,13 +432,14 @@ function ReviewActiveCardPane(props: ReviewActiveCardPaneProps): ReactElement {
         ) : null}
       </div>
 
-      <div className="review-actions-dock">
+      <div className="review-actions-dock" ref={controlsRef}>
         {isAnswerVisible ? (
           reviewButtonErrorMessage !== "" ? (
             <p className="error-banner">{reviewButtonErrorMessage}</p>
           ) : (
             <div className="rating-bar">
               <ReviewRatingButtonColumn
+                onAgainButton={setAgainButton}
                 isSubmitting={isSubmitting}
                 onReview={(rating) => {
                   void onReview(selectedCard, rating);
@@ -434,6 +448,7 @@ function ReviewActiveCardPane(props: ReviewActiveCardPaneProps): ReactElement {
                 options={leftReviewButtonOptions}
               />
               <ReviewRatingButtonColumn
+                onAgainButton={setAgainButton}
                 isSubmitting={isSubmitting}
                 onReview={(rating) => {
                   void onReview(selectedCard, rating);
@@ -447,6 +462,7 @@ function ReviewActiveCardPane(props: ReviewActiveCardPaneProps): ReactElement {
           <button
             type="button"
             className="primary-btn review-reveal-btn"
+            ref={setRevealButton}
             aria-keyshortcuts={REVIEW_REVEAL_SHORTCUT_ARIA_KEY}
             onClick={onRevealAnswer}
             onPointerEnter={onShortcutButtonPointerEnter}
@@ -457,12 +473,24 @@ function ReviewActiveCardPane(props: ReviewActiveCardPaneProps): ReactElement {
           </button>
         )}
       </div>
+      {showFirstReviewOnboarding && !isSubmitting && reviewButtonErrorMessage === "" ? (
+        <FirstReviewOnboardingOverlay
+          target={isAnswerVisible ? againButton : revealButton}
+          surfaceRef={surfaceRef}
+          contentRef={contentRef}
+          headerRef={headerRef}
+          controlsRef={controlsRef}
+          stage={isAnswerVisible ? "again" : "reveal"}
+        />
+      ) : null}
     </>
   );
 }
 
 export function ReviewPane(props: ReviewPaneProps): ReactElement {
+  const surfaceRef = useRef<HTMLElement>(null);
   const {
+    showFirstReviewOnboarding,
     activeSpeechSide,
     hasCards,
     isAnswerVisible,
@@ -496,6 +524,7 @@ export function ReviewPane(props: ReviewPaneProps): ReactElement {
   return (
     <section
       className="review-pane"
+      ref={surfaceRef}
       data-testid="review-pane"
       data-review-pane-state={reviewPaneState}
       data-review-pane-empty-reason={reviewPaneEmptyReason}
@@ -523,6 +552,8 @@ export function ReviewPane(props: ReviewPaneProps): ReactElement {
       ) : null}
       {reviewPaneState === "card" && selectedCard !== null ? (
         <ReviewActiveCardPane
+          showFirstReviewOnboarding={showFirstReviewOnboarding}
+          surfaceRef={surfaceRef}
           activeSpeechSide={activeSpeechSide}
           isAnswerVisible={isAnswerVisible}
           isSubmitting={isSubmitting}

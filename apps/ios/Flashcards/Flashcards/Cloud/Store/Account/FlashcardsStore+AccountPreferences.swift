@@ -42,6 +42,19 @@ private final class AccountPreferencesUpdateOutcome {
 
 private struct PersistedAccountPreferencesCache: Codable, Hashable {
     var preferencesByIdentityKey: [String: AccountPreferences]
+
+    private enum CodingKeys: String, CodingKey { case preferencesByIdentityKey }
+
+    init(preferencesByIdentityKey: [String: AccountPreferences]) {
+        self.preferencesByIdentityKey = preferencesByIdentityKey
+    }
+
+    init(from decoder: Decoder) throws {
+        let fields = try decoder.container(keyedBy: CodingKeys.self)
+        self.preferencesByIdentityKey = try fields.decode(
+            [String: LegacyCachedAccountPreferences].self, forKey: .preferencesByIdentityKey
+        ).mapValues(\.preferences)
+    }
 }
 
 /**
@@ -115,6 +128,7 @@ extension FlashcardsStore {
         // identity with no answer of its own is handed the one this device holds just above, and an
         // identity with its own answer is left alone, because this device keeps its own either way.
         await self.pushPendingProductAnalyticsPreferenceIfNeeded(identity: refreshIdentity)
+        await self.pushPendingFirstReviewOnboardingIfNeeded()
     }
 
     func triggerCloudAccountContextRefreshIfActive(surfacesGlobalErrorMessage: Bool) {
@@ -471,7 +485,7 @@ extension FlashcardsStore {
     }
 
     // Share one slot because each response and rollback owns a complete preferences snapshot.
-    private func serializedAccountPreferencesUpdate(
+    func serializedAccountPreferencesUpdate(
         _ body: @escaping @Sendable @MainActor () async -> Void
     ) async {
         while let inFlight = self.accountPreferencesUpdateTask {
@@ -720,8 +734,10 @@ extension FlashcardsStore {
             self.accountPreferences = AccountPreferences(
                 reviewReactionAnimationsEnabled: isEnabled,
                 productAnalyticsEnabled: previousPreferences.productAnalyticsEnabled,
-                accentColor: previousPreferences.accentColor
+                accentColor: previousPreferences.accentColor,
+                firstReviewOnboardingCompleted: previousPreferences.firstReviewOnboardingCompleted
             )
+            self.accountPreferences.firstReviewOnboardingSnapshotGeneration = previousPreferences.firstReviewOnboardingSnapshotGeneration
 
             do {
                 let updateResult = try await self.updateCloudAccountPreferences(
@@ -900,6 +916,7 @@ extension FlashcardsStore {
     }
 
     func reloadCachedAccountPreferencesForCurrentIdentity() {
+        self.reloadFirstReviewOnboardingReportingFailure()
         let previousIdentityKey = self.accountPreferencesIdentityKey
         guard let identity = self.currentAccountPreferencesIdentity() else {
             self.accountPreferencesIdentityKey = nil
@@ -1184,6 +1201,7 @@ extension FlashcardsStore {
         identity: AccountPreferencesIdentity
     ) {
         let identityKey = identity.storageKey
+        self.adoptServerFirstReviewOnboarding(preferences: preferences, userId: identity.userId)
         self.accountPreferences = preferences
         self.accountPreferencesIdentityKey = identityKey
         self.cacheAccountPreferences(preferences: preferences, identityKey: identityKey)

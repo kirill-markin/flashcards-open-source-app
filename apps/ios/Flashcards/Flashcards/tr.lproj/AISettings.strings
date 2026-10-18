@@ -984,3 +984,6 @@
 "premium.offer.subscribe" = "Abone ol";
 "premium.offer.startTrial" = "Ücretsiz denemeyi başlat: %@";
 "premium.offer.view" = "Premium’u gör";
+
+"settings.firstReviewOnboarding.title" = "İlk tekrar rehberi tamamlandı";
+"settings.firstReviewOnboarding.note" = "Bir kartı tekrar ederken rehberi yeniden görmek için kapatın.";

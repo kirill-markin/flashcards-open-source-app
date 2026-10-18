@@ -61,6 +61,10 @@ extension LocalDatabase {
                 isInitialCreate: false,
                 reviewScheduleImpact: true
             )
+            try self.setFirstReviewOnboardingCompleted(
+                completed: true,
+                reviewToken: "\(reviewSubmission.cardId)|\(reviewSubmission.reviewedAtClient)"
+            )
             return updatedCard
         }
     }

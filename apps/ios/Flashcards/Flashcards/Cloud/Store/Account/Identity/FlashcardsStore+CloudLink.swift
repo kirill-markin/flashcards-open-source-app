@@ -425,6 +425,7 @@ extension FlashcardsStore {
             self.resumeAnalyticsGuestIdentityLinkIfNeeded()
             return linkedWorkspace
         }
+        self.triggerFirstReviewOnboardingPush()
     }
 
     private func completeGuestLocalRecoveryCloudLink(
@@ -526,6 +527,7 @@ extension FlashcardsStore {
             self.globalErrorMessage = ""
             return linkedWorkspace
         }
+        self.triggerFirstReviewOnboardingPush()
     }
 
     private func guestLocalRecoveryCredentials(
@@ -789,6 +791,7 @@ extension FlashcardsStore {
             try await self.performCloudLink(linkedSession: linkedSession, trigger: trigger)
         }
         self.triggerAppLanguageSaveIfNeeded()
+        self.triggerFirstReviewOnboardingPush()
     }
 
     private func performCloudLink(linkedSession: CloudLinkedSession, trigger: CloudSyncTrigger) async throws {
