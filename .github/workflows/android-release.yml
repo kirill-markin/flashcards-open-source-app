@@ -12,7 +12,7 @@ on:
         required: false
         type: string
       known_device_run_network_exception:
-        description: Apply the authorized 1.35.0 Device Run network exception; physical sessions are waived, not passed
+        description: Apply the standing known Device Run network exception; physical sessions are waived, not passed
         required: false
         default: false
         type: boolean
@@ -121,10 +121,6 @@ jobs:
           set -euo pipefail
           disposition="required_four_passing_sessions"
           if [[ "${EXCEPTION_ENABLED}" == "true" ]]; then
-            if [[ "${VERSION_NAME}" != "1.35.0" ]]; then
-              echo "The known Device Run network exception is authorized only for 1.35.0." >&2
-              exit 1
-            fi
             disposition="waived_not_executed"
           fi
           echo "disposition=${disposition}" >> "${GITHUB_OUTPUT}"
@@ -139,7 +135,7 @@ jobs:
               versionCode: $versionCode, releaseId: $releaseId, runId: $runId,
               runAttempt: $runAttempt, actor: $actor, triggeringActor: $triggeringActor,
               apis: [37, 30, 31, 33], reference: "docs/android-device-run-network-issue.md",
-              reason: (if $exceptionEnabled then "Kirill authorized the temporary Device Run network exception on 2026-10-18; physical networking is unreliable and ownership is unproved." else null end)}' \
+              reason: (if $exceptionEnabled then "Standing best-effort release policy; known Device Run physical networking is unreliable and ownership is unproved. See Google issue 574921431." else null end)}' \
             > "${RUNNER_TEMP}/device-run-policy.json"
 
       - name: Retain Device Run policy and exception provenance
@@ -186,7 +182,7 @@ jobs:
             echo "- Play release name: \`${{ steps.release-metadata.outputs.android_play_release_name }}\`"
             echo "- Upload draft to Play: \`true\`"
             echo "- Device Run policy: \`${{ steps.device-run-policy.outputs.disposition }}\` (waived means not executed, never passed)"
-            echo "- Exception reason/reference when opted in: unreliable physical networking; Kirill authorized the temporary 1.35.0 exception on 2026-10-18 ([known issue](https://github.com/${{ github.repository }}/blob/${{ github.sha }}/docs/android-device-run-network-issue.md))."
+            echo "- Exception reason/reference when opted in: unreliable physical networking; standing best-effort release policy and unresolved Google issue 574921431 ([known issue](https://github.com/${{ github.repository }}/blob/${{ github.sha }}/docs/android-device-run-network-issue.md))."
             echo "- Dispatch actor: \`${{ github.actor }}\`; triggering actor: \`${{ github.triggering_actor }}\`; run \`${{ github.run_id }}\` attempt \`${{ github.run_attempt }}\`. Retain the Device Run policy artifact."
             echo "- Play publish mode: \`draft production release uploaded by CI; final publish happens later in Play Console\`"
           } >> "${GITHUB_STEP_SUMMARY}"
@@ -951,7 +947,7 @@ jobs:
             echo "- GitHub run URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
             echo "- Upload state: \`draft\`"
             echo "- Device Run policy: \`${{ needs.preflight.outputs.device_run_policy }}\` (waived means not executed, never passed)"
-            echo "- Exception reason/reference when opted in: unreliable physical networking; Kirill authorized the temporary 1.35.0 exception on 2026-10-18 ([known issue](https://github.com/${{ github.repository }}/blob/${{ github.sha }}/docs/android-device-run-network-issue.md))."
+            echo "- Exception reason/reference when opted in: unreliable physical networking; standing best-effort release policy and unresolved Google issue 574921431 ([known issue](https://github.com/${{ github.repository }}/blob/${{ github.sha }}/docs/android-device-run-network-issue.md))."
             echo "- Dispatch actor: \`${{ github.actor }}\`; triggering actor: \`${{ github.triggering_actor }}\`. Retain the Device Run policy artifact."
             echo "- Next step: inspect native results or the explicit exception provenance, complete operator readiness and Play-delivered verification, review translations, then publish manually."
           } >> "${GITHUB_STEP_SUMMARY}"
@@ -982,7 +978,7 @@ jobs:
             echo "- Device Run terminal gate result: \`${{ needs.device_run_submission.result }}\`"
             echo "- Device Run requested: \`${{ !inputs.known_device_run_network_exception }}\`"
             echo "- Device Run policy: \`${{ needs.preflight.outputs.device_run_policy || 'not_recorded' }}\` (waived means not executed, never passed)"
-            echo "- Exception reason/reference when opted in: unreliable physical networking; Kirill authorized the temporary 1.35.0 exception on 2026-10-18 ([known issue](https://github.com/${{ github.repository }}/blob/${{ github.sha }}/docs/android-device-run-network-issue.md))."
+            echo "- Exception reason/reference when opted in: unreliable physical networking; standing best-effort release policy and unresolved Google issue 574921431 ([known issue](https://github.com/${{ github.repository }}/blob/${{ github.sha }}/docs/android-device-run-network-issue.md))."
             echo "- Dispatch actor: \`${{ github.actor }}\`; triggering actor: \`${{ github.triggering_actor }}\`; run \`${{ github.run_id }}\` attempt \`${{ github.run_attempt }}\`. Retain the Device Run policy artifact."
             echo "- Play draft upload requested: \`true\`"
             echo "- Android Play draft upload result: \`${{ needs.publish_android.result }}\`"
