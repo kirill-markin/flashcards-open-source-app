@@ -1148,6 +1148,22 @@ func loadAIMonthlyUsage(
     urlSession: URLSession,
     session: CloudLinkedSession
 ) async throws -> AIMonthlyUsage {
+    let data = try await loadAIUsageStatusData(urlSession: urlSession, session: session)
+    return try makeFlashcardsRemoteJSONDecoder().decode(AIUsageStatusResponse.self, from: data).usage
+}
+
+func loadPremiumAIUsageStatus(
+    urlSession: URLSession,
+    session: CloudLinkedSession
+) async throws -> PremiumAIUsageStatusResponse {
+    let data = try await loadAIUsageStatusData(urlSession: urlSession, session: session)
+    return try makeFlashcardsRemoteJSONDecoder().decode(PremiumAIUsageStatusResponse.self, from: data)
+}
+
+private func loadAIUsageStatusData(
+    urlSession: URLSession,
+    session: CloudLinkedSession
+) async throws -> Data {
     let trimmedBaseUrl = session.apiBaseUrl.hasSuffix("/") ? String(session.apiBaseUrl.dropLast()) : session.apiBaseUrl
     guard let url = URL(string: "\(trimmedBaseUrl)/me/ai-usage") else {
         throw AIUsageRequestError.invalidBaseUrl(session.apiBaseUrl)
@@ -1168,7 +1184,7 @@ func loadAIMonthlyUsage(
         )
     }
 
-    return try makeFlashcardsRemoteJSONDecoder().decode(AIUsageStatusResponse.self, from: data).usage
+    return data
 }
 
 private func extractChatRequestId(httpResponse: HTTPURLResponse) -> String? {

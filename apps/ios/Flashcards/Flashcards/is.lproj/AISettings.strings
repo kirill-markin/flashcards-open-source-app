@@ -970,3 +970,16 @@
 "settings.account.connection.previewChanged" = "Forskoðunin breyttist. Uppfærðu hana og staðfestu nýju forskoðunina sérstaklega.";
 "settings.account.connection.restart" = "Sönnunin rann út eða var notuð. Byrjaðu aftur með nýja sönnun.";
 "settings.account.connection.restorePaused" = "Reikningar tengdir. Staðbundin uppfærsla er í bið; ótengd gögn þín varðveitast.";
+
+"premium.offer.heading" = "Nám er fyrir alla.";
+"premium.offer.free" = "Ókeypis";
+"premium.offer.freeDescription" = "Búið til fyrir námsfólk án vinnu. Opið öllum. Bakpokinn þinn varð rétt í þessu léttari.";
+"premium.offer.freeBenefits" = "Upprifjun, nám án nettengingar og samstilling";
+"premium.offer.continueFree" = "Halda áfram ókeypis";
+"premium.offer.monthlyAI" = "%@ gervigreindarskilaboð á mánuði";
+"premium.offer.unlimitedAI" = "Gervigreindarskilaboð án mánaðarlegra takmarkana";
+"premium.offer.styles" = "Sérsniðnir litir og stílar";
+"premium.offer.creatorSupport" = "Áskriftin þín hjálpar höfundi Nibomo, [Kirill Markin](https://kirill-markin.com/), að greiða fyrir netþjóna og vinna að næstu uppfærslu með kaffi og pítsu.";
+"premium.offer.subscribe" = "Gerast áskrifandi";
+"premium.offer.startTrial" = "Hefja ókeypis prufu: %@";
+"premium.offer.view" = "Skoða Premium";

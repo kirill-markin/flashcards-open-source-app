@@ -970,3 +970,16 @@
 "settings.account.connection.previewChanged" = "ಮುನ್ನೋಟ ಬದಲಾಗಿದೆ. ನವೀಕರಿಸಿ ಹೊಸ ಮುನ್ನೋಟವನ್ನು ಸ್ಪಷ್ಟವಾಗಿ ದೃಢೀಕರಿಸಿ.";
 "settings.account.connection.restart" = "ಪುರಾವೆ ಅವಧಿ ಮೀರಿದೆ ಅಥವಾ ಬಳಕೆಯಾಗಿದೆ. ಹೊಸ ಪುರಾವೆಯೊಂದಿಗೆ ಮತ್ತೆ ಆರಂಭಿಸಿ.";
 "settings.account.connection.restorePaused" = "ಖಾತೆಗಳು ಸಂಪರ್ಕಗೊಂಡಿವೆ. ಸ್ಥಳೀಯ ನವೀಕರಣ ತಾತ್ಕಾಲಿಕವಾಗಿ ನಿಂತಿದೆ; ನಿಮ್ಮ ಆಫ್‌ಲೈನ್ ಡೇಟಾ ಉಳಿದಿದೆ.";
+
+"premium.offer.heading" = "ಕಲಿಕೆ ಎಲ್ಲರಿಗೂ ಸೇರಿದ್ದು.";
+"premium.offer.free" = "ಉಚಿತ";
+"premium.offer.freeDescription" = "ಕೆಲಸವಿಲ್ಲದ ವಿದ್ಯಾರ್ಥಿಗಳಿಗಾಗಿ ರಚಿಸಲಾಗಿದೆ. ಎಲ್ಲರಿಗೂ ಮುಕ್ತ. ನಿಮ್ಮ ಚೀಲ ಈಗ ಹಗುರವಾಗಿದೆ.";
+"premium.offer.freeBenefits" = "ಮುಖ್ಯ ಪುನರಾವರ್ತನೆ, ಆಫ್‌ಲೈನ್ ಕಲಿಕೆ ಮತ್ತು ಸಿಂಕ್";
+"premium.offer.continueFree" = "ಉಚಿತವಾಗಿ ಮುಂದುವರಿಸಿ";
+"premium.offer.monthlyAI" = "ಪ್ರತಿ ತಿಂಗಳು %@ AI ಸಂದೇಶಗಳು";
+"premium.offer.unlimitedAI" = "ಮಾಸಿಕ ಮಿತಿಯಿಲ್ಲದ AI ಸಂದೇಶಗಳು";
+"premium.offer.styles" = "ನಿಮ್ಮಿಷ್ಟದ ಬಣ್ಣಗಳು ಮತ್ತು ಶೈಲಿಗಳು";
+"premium.offer.creatorSupport" = "ನಿಮ್ಮ ಚಂದಾದಾರಿಕೆ Nibomo ಸೃಷ್ಟಿಕರ್ತ [Kirill Markin](https://kirill-markin.com/) ಅವರಿಗೆ ಸರ್ವರ್ ವೆಚ್ಚ ಭರಿಸಲು ಮತ್ತು ಕಾಫಿ ಹಾಗೂ ಪಿಜ್ಜಾದೊಂದಿಗೆ ಮುಂದಿನ ನವೀಕರಣ ಸಿದ್ಧಪಡಿಸಲು ನೆರವಾಗುತ್ತದೆ.";
+"premium.offer.subscribe" = "ಚಂದಾದಾರರಾಗಿ";
+"premium.offer.startTrial" = "ಉಚಿತ ಪ್ರಯೋಗ ಪ್ರಾರಂಭಿಸಿ: %@";
+"premium.offer.view" = "Premium ನೋಡಿ";

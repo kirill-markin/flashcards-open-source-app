@@ -970,3 +970,16 @@
 "settings.account.connection.previewChanged" = "Az előnézet megváltozott. Frissítse, és kifejezetten erősítse meg az új előnézetet.";
 "settings.account.connection.restart" = "A bizonyíték lejárt vagy felhasználták. Kezdje újra friss bizonyítékkal.";
 "settings.account.connection.restorePaused" = "Fiókok összekapcsolva. A helyi frissítés szünetel; az offline adatok megmaradnak.";
+
+"premium.offer.heading" = "A tanulás mindenkié.";
+"premium.offer.free" = "Ingyenes";
+"premium.offer.freeDescription" = "Állás nélküli diákoknak készült. Mindenki előtt nyitva áll. A hátizsákod most könnyebb lett.";
+"premium.offer.freeBenefits" = "Ismétlés, offline tanulás és szinkronizálás";
+"premium.offer.continueFree" = "Folytatás ingyen";
+"premium.offer.monthlyAI" = "%@ AI-üzenet havonta";
+"premium.offer.unlimitedAI" = "AI-üzenetek havi korlát nélkül";
+"premium.offer.styles" = "Egyéni színek és stílusok";
+"premium.offer.creatorSupport" = "Előfizetésed segít a Nibomo készítőjének, [Kirill Markin](https://kirill-markin.com/), fizetni a szervereket, és kávéval, pizzával készülni a következő frissítésre.";
+"premium.offer.subscribe" = "Előfizetés";
+"premium.offer.startTrial" = "Ingyenes próba indítása: %@";
+"premium.offer.view" = "Premium megtekintése";

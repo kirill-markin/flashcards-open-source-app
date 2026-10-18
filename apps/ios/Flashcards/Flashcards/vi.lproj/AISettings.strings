@@ -970,3 +970,16 @@
 "settings.account.connection.previewChanged" = "Bản xem trước đã đổi. Hãy làm mới và xác nhận rõ ràng bản xem trước mới.";
 "settings.account.connection.restart" = "Bằng chứng đã hết hạn hoặc được dùng. Bắt đầu lại với bằng chứng mới.";
 "settings.account.connection.restorePaused" = "Đã kết nối tài khoản. Làm mới cục bộ đang tạm dừng; dữ liệu ngoại tuyến được giữ lại.";
+
+"premium.offer.heading" = "Học tập dành cho tất cả mọi người.";
+"premium.offer.free" = "Miễn phí";
+"premium.offer.freeDescription" = "Được tạo cho sinh viên chưa có việc làm. Chào đón tất cả mọi người. Ba lô của bạn vừa nhẹ hơn rồi.";
+"premium.offer.freeBenefits" = "Ôn tập cơ bản, học ngoại tuyến và đồng bộ";
+"premium.offer.continueFree" = "Tiếp tục miễn phí";
+"premium.offer.monthlyAI" = "%@ tin nhắn AI mỗi tháng";
+"premium.offer.unlimitedAI" = "Tin nhắn AI không giới hạn theo tháng";
+"premium.offer.styles" = "Màu sắc và phong cách tùy chỉnh";
+"premium.offer.creatorSupport" = "Gói đăng ký của bạn giúp người tạo ra Nibomo, [Kirill Markin](https://kirill-markin.com/), trả phí máy chủ và chuẩn bị bản cập nhật tiếp theo với cà phê và pizza.";
+"premium.offer.subscribe" = "Đăng ký";
+"premium.offer.startTrial" = "Bắt đầu dùng thử miễn phí: %@";
+"premium.offer.view" = "Xem Premium";
