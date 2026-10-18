@@ -26,8 +26,9 @@ const itCatalog: TranslationCatalog = {
     creatorSupport: "Il tuo abbonamento aiuta il creatore di Nibomo, {{creator}}, a pagare i server e preparare il prossimo aggiornamento con caffè e pizza.",
     basePrice: "Prezzo base: {{price}} / mese",
     startTrial: "Inizia la prova gratuita di 7 giorni",
-    trialPrice: "7 giorni gratis, poi un prezzo base di {{price}}/mese. Serve un metodo di pagamento; annulla prima della fine della prova per evitare il primo addebito.",
-    checkoutPrice: "Stripe conferma il prezzo finale e la valuta di fatturazione al pagamento.",
+    trialPrice: "7 giorni gratis, poi un prezzo base di {{price}}/mese. Serve un metodo di pagamento. Rinnovo automatico; annulla prima della fine della prova nelle impostazioni dell’abbonamento.",
+    checkoutPrice: "Prezzo finale e valuta al pagamento.",
+    renewalDisclosure: "Rinnovo automatico; annulla quando vuoi nelle impostazioni dell’abbonamento.",
   },
   accentColorSettings: {
     title: "Colore di accento",

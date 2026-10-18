@@ -93,8 +93,10 @@ export function StripeOfferContent(props: StripeOfferContentProps): ReactElement
       </>}
       {price === null ? null : <div className="premium-disclosures">
         {offer?.trialEligible === true ? <p className="premium-renewal">{t("paywall.trialPrice", { price })}</p> : null}
-        <p className="premium-renewal">{t("paywall.checkoutPrice")}</p>
-        <p className="premium-renewal">{t("stripe.offer.renewalDisclosure")}</p>
+        <p className="premium-renewal">
+          {offer?.trialEligible === true ? null : <>{t("paywall.renewalDisclosure")} </>}
+          {t("paywall.checkoutPrice")}
+        </p>
       </div>}
       {guest ? null : <StripeBillingFeedback />}
       {showPreviewMessage ? <p role="status" data-testid="premium-preview-message">{t("premium.previewNoPurchase")}</p> : null}
