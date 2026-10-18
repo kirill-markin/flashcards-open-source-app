@@ -50,7 +50,12 @@ function parseBrowserUpgradeSelection(value: unknown): GuestUpgradeSelection {
   const type = expectNonEmptyString(body.type, "selection.type");
   if (type === "create_new") return { type };
   if (type === "existing") {
-    return { type, workspaceId: expectNonEmptyString(body.workspaceId, "selection.workspaceId") };
+    return {
+      type,
+      workspaceId: expectNonEmptyString(body.workspaceId, "selection.workspaceId"),
+      ...(body.discardDemoOnly === undefined ? {}
+        : { discardDemoOnly: expectBoolean(body.discardDemoOnly, "selection.discardDemoOnly") }),
+    };
   }
   throw new HttpError(400, "selection.type must be existing or create_new.", "GUEST_UPGRADE_SELECTION_INVALID");
 }
@@ -72,7 +77,7 @@ export function createBrowserGuestUpgradeRoutes(allowedOrigins: ReadonlyArray<st
       throw new HttpError(409, "Guest writes must be synced and the guest outbox empty before sign-in. Preserve local data and resume guest ownership before retrying.", "GUEST_UPGRADE_GUEST_SYNC_NOT_DRAINED");
     }
     const result = await prepareBrowserGuestUpgrade(guestToken, auth.subjectUserId, auth.email);
-    return context.json({ mode: result.mode });
+    return context.json(result);
   });
 
   app.post("/guest-auth/browser/upgrade/complete", async (context) => {

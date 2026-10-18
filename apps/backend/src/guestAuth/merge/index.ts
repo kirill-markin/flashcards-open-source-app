@@ -52,6 +52,7 @@ import {
   type GuestWorkspaceSchedulerRecord,
   loadGuestCardsInExecutor,
   loadGuestDecksInExecutor,
+  loadGuestDemoOnlyCardInExecutor,
   loadGuestMediaAssetsInExecutor,
   loadGuestReplicasInExecutor,
   loadGuestReviewEventsInExecutor,
@@ -949,6 +950,65 @@ export async function mergeGuestWorkspaceIntoTargetInExecutor(
       ...(finalizedDroppedEntities === undefined
         ? {}
         : { droppedEntities: finalizedDroppedEntities }),
+      replicaIdMap,
+    },
+  };
+}
+
+// Caller holds the exclusive guest account-writer fence before taking lifecycle locks.
+export async function discardGuestDemoOnlyInExecutor(
+  executor: DatabaseExecutor,
+  params: Readonly<{
+    guestSessionId: string;
+    sourceGuestSessionSecretHash: string;
+    guestUserId: string;
+    guestWorkspaceId: string;
+    targetSubjectUserId: string;
+    targetUserId: string;
+    targetWorkspaceId: string;
+  }>,
+): Promise<GuestMergeResult> {
+  await applyWorkspaceDatabaseScopeInExecutor(executor, {
+    userId: params.guestUserId,
+    workspaceId: params.guestWorkspaceId,
+  });
+  await lockWorkspaceAccessLifecycleInExecutor(executor, params.guestUserId, params.guestWorkspaceId);
+  // The account writer fence covers content; the workspace row also fences new memberships.
+  await executor.query("SELECT workspace_id FROM org.workspaces WHERE workspace_id = $1 FOR UPDATE", [params.guestWorkspaceId]);
+  const card = await loadGuestDemoOnlyCardInExecutor(executor, params.guestUserId, params.guestWorkspaceId);
+  if (card === null) {
+    throw new HttpError(409,
+      "Guest content changed or is not an unchanged onboarding demo. Preserve local data, prepare again and choose a transfer destination.",
+      "GUEST_UPGRADE_DEMO_ONLY_NOT_ELIGIBLE");
+  }
+  const reviews = await loadGuestReviewEventsInExecutor(executor, params.guestUserId, params.guestWorkspaceId);
+  const replicas = await loadGuestReplicasInExecutor(executor, params.guestUserId, params.guestWorkspaceId);
+  await applyWorkspaceDatabaseScopeInExecutor(executor, {
+    userId: params.targetUserId,
+    workspaceId: params.targetWorkspaceId,
+  });
+  await lockWorkspaceAccessLifecycleInExecutor(executor, params.targetUserId, params.targetWorkspaceId);
+  const replicaIdMap = await recreateGuestReplicasInExecutor(
+    executor, replicas, params.targetUserId, params.targetWorkspaceId,
+  );
+  await deleteGuestWorkspaceContentInExecutor(executor, params.guestUserId, params.guestWorkspaceId);
+  return {
+    history: {
+      upgradeId: randomUUID().toLowerCase(),
+      sourceGuestUserId: params.guestUserId,
+      sourceGuestWorkspaceId: params.guestWorkspaceId,
+      sourceGuestSessionId: params.guestSessionId,
+      sourceGuestSessionSecretHash: params.sourceGuestSessionSecretHash,
+      targetSubjectUserId: params.targetSubjectUserId,
+      targetUserId: params.targetUserId,
+      targetWorkspaceId: params.targetWorkspaceId,
+      selectionType: "existing",
+      droppedEntities: {
+        cardIds: [card.cardId],
+        deckIds: [],
+        reviewEventIds: reviews.map((review) => review.reviewEventId),
+        mediaAssetIds: [],
+      },
       replicaIdMap,
     },
   };

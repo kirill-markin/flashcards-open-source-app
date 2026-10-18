@@ -14,12 +14,14 @@ export type GuestSessionSnapshot = Readonly<{
 
 export type GuestUpgradePreparation = Readonly<{
   mode: GuestUpgradeMode;
+  demoOnlyDestinationWorkspaceId?: string;
 }>;
 
 export type GuestUpgradeSelection =
   | Readonly<{
     type: "existing";
     workspaceId: string;
+    discardDemoOnly?: boolean;
   }>
   | Readonly<{
     type: "create_new";

@@ -37,6 +37,7 @@ type GuestSessionEnvelope = Readonly<{
 
 type GuestUpgradePrepareEnvelope = Readonly<{
   mode: "bound" | "merge_required";
+  demoOnlyDestinationWorkspaceId?: string;
 }>;
 
 type GuestUpgradeCompleteEnvelope = Readonly<{
@@ -122,6 +123,8 @@ function parseGuestUpgradeSelection(value: unknown): GuestUpgradeSelection {
     return {
       type: "existing",
       workspaceId: expectNonEmptyString(body.workspaceId, "selection.workspaceId"),
+      ...(body.discardDemoOnly === undefined ? {}
+        : { discardDemoOnly: expectBoolean(body.discardDemoOnly, "selection.discardDemoOnly") }),
     };
   }
 
@@ -266,7 +269,7 @@ export function createGuestAuthRoutes(options: GuestAuthRoutesOptions = {}): Hon
     const guestToken = expectNonEmptyString(body.guestToken, "guestToken");
     const result = await prepareGuestUpgrade(guestToken, auth.subjectUserId, auth.email);
     return context.json({
-      mode: result.mode,
+      ...result,
     } satisfies GuestUpgradePrepareEnvelope);
   });
 
