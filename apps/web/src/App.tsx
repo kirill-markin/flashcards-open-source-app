@@ -96,6 +96,7 @@ import { ShareAppScreen } from "./screens/share/ShareAppScreen";
 
 import { GuestConversionGate } from "./screens/settings/account/guest/GuestConversionGate";
 import { GuestSignIn } from "./screens/settings/account/guest/GuestSignIn";
+import { GuestAccountAttentionBadge } from "./screens/settings/account/guest/GuestAccountAttentionBadge";
 
 const SentryRoutes = wrapRoutesComponent(RouterRoutes);
 
@@ -890,11 +891,14 @@ export function AppShell(): ReactElement {
               />
             </div>
             <nav className="nav" aria-label={t("shell.primaryNavigation")}>
-              {primaryNavigationItems.map((item) => (
-                <NavLink key={item.route} className={({ isActive }) => `nav-link${isActive ? " nav-link-active" : ""}`} to={workspacePath(item.route)}>
-                  {t(item.labelKey)}{isGuest && item.route === settingsHubRoute ? <span className="guest-attention" aria-label={t("guest.signIn")}>1</span> : null}
-                </NavLink>
-              ))}
+              <div className="nav-links">
+                {primaryNavigationItems.map((item) => (
+                  <NavLink key={item.route} className={({ isActive }) => `nav-link${isActive ? " nav-link-active" : ""}${item.route === settingsHubRoute ? " guest-account-attention-target" : ""}`} to={workspacePath(item.route)}>
+                    {t(item.labelKey)}
+                    {item.route === settingsHubRoute ? <GuestAccountAttentionBadge /> : null}
+                  </NavLink>
+                ))}
+              </div>
             </nav>
             <div className="topbar-actions">
               <button
@@ -910,8 +914,7 @@ export function AppShell(): ReactElement {
                 <span className="mobile-nav-toggle-line" aria-hidden="true" />
                 <span className="mobile-nav-toggle-line" aria-hidden="true" />
               </button>
-              {isGuest ? <GuestSignIn label={`${t("guest.title")} · ${t("guest.signIn")}`} testId="guest-sign-in" /> : null}
-              <AccountMenu
+              {isGuest ? <GuestSignIn label={`${t("guest.title")} · ${t("guest.signIn")}`} testId="guest-sign-in" /> : <AccountMenu
                 workspaces={availableWorkspaces.filter((workspace) => workspace.isVisible !== false)}
                 currentWorkspaceId={activeWorkspace?.workspaceId ?? ""}
                 currentWorkspaceName={activeWorkspace?.name ?? t("common.unavailable")}
@@ -922,7 +925,7 @@ export function AppShell(): ReactElement {
                 logoutUrl={buildLogoutUrl()}
                 onSelectWorkspace={chooseWorkspace}
                 onCreateWorkspace={createWorkspace}
-              />
+              />}
             </div>
           </div>
           <AnchoredFloatingOverlay
@@ -946,11 +949,12 @@ export function AppShell(): ReactElement {
             {primaryNavigationItems.map((item) => (
               <NavLink
                 key={item.route}
-                className={({ isActive }) => `mobile-nav-link${isActive ? " mobile-nav-link-active" : ""}`}
+                className={({ isActive }) => `mobile-nav-link${isActive ? " mobile-nav-link-active" : ""}${item.route === settingsHubRoute ? " guest-account-attention-target" : ""}`}
                 to={workspacePath(item.route)}
                 onClick={closeMobileNavigation}
               >
                 {t(item.labelKey)}
+                {item.route === settingsHubRoute ? <GuestAccountAttentionBadge /> : null}
               </NavLink>
             ))}
           </AnchoredFloatingOverlay>
