@@ -970,3 +970,16 @@
 "settings.account.connection.previewChanged" = "ตัวอย่างเปลี่ยนแล้ว โปรดรีเฟรชและยืนยันตัวอย่างใหม่อย่างชัดเจน";
 "settings.account.connection.restart" = "หลักฐานหมดอายุหรือถูกใช้แล้ว โปรดเริ่มใหม่ด้วยหลักฐานใหม่";
 "settings.account.connection.restorePaused" = "เชื่อมบัญชีแล้ว การรีเฟรชในเครื่องหยุดชั่วคราว ข้อมูลออฟไลน์ของคุณยังคงอยู่";
+
+"premium.offer.heading" = "การเรียนรู้เป็นของทุกคน";
+"premium.offer.free" = "ฟรี";
+"premium.offer.freeDescription" = "สร้างขึ้นเพื่อนักเรียนที่ยังไม่มีงานทำ เปิดรับทุกคน กระเป๋าของคุณเบาลงแล้ว";
+"premium.offer.freeBenefits" = "ทบทวนพื้นฐาน เรียนแบบออฟไลน์ และซิงค์";
+"premium.offer.continueFree" = "ใช้งานฟรีต่อ";
+"premium.offer.monthlyAI" = "ข้อความ AI %@ ข้อความทุกเดือน";
+"premium.offer.unlimitedAI" = "ข้อความ AI ไม่จำกัดรายเดือน";
+"premium.offer.styles" = "สีและสไตล์ที่กำหนดเอง";
+"premium.offer.creatorSupport" = "การสมัครของคุณช่วยให้ผู้สร้าง Nibomo อย่าง [Kirill Markin](https://kirill-markin.com/) จ่ายค่าเซิร์ฟเวอร์และเตรียมอัปเดตถัดไปพร้อมกาแฟและพิซซ่า";
+"premium.offer.subscribe" = "สมัครสมาชิก";
+"premium.offer.startTrial" = "เริ่มทดลองใช้ฟรี: %@";
+"premium.offer.view" = "ดู Premium";

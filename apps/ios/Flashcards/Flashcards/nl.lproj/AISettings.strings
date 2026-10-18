@@ -970,3 +970,16 @@
 "settings.account.connection.previewChanged" = "Het voorbeeld is gewijzigd. Vernieuw het en bevestig het nieuwe voorbeeld uitdrukkelijk.";
 "settings.account.connection.restart" = "Het bewijs is verlopen of gebruikt. Begin opnieuw met nieuw bewijs.";
 "settings.account.connection.restorePaused" = "Accounts verbonden. De lokale vernieuwing is gepauzeerd; je offlinegegevens blijven behouden.";
+
+"premium.offer.heading" = "Leren is voor iedereen.";
+"premium.offer.free" = "Gratis";
+"premium.offer.freeDescription" = "Gemaakt voor studenten zonder baan. Open voor iedereen. Je rugzak is net wat lichter geworden.";
+"premium.offer.freeBenefits" = "Herhalen, offline leren en synchroniseren";
+"premium.offer.continueFree" = "Gratis doorgaan";
+"premium.offer.monthlyAI" = "%@ AI-berichten per maand";
+"premium.offer.unlimitedAI" = "AI-berichten zonder maandlimiet";
+"premium.offer.styles" = "Eigen kleuren en stijlen";
+"premium.offer.creatorSupport" = "Je abonnement helpt de maker van Nibomo, [Kirill Markin](https://kirill-markin.com/), de servers te betalen en met koffie en pizza aan de volgende update te werken.";
+"premium.offer.subscribe" = "Abonneren";
+"premium.offer.startTrial" = "Gratis proefperiode starten: %@";
+"premium.offer.view" = "Premium bekijken";

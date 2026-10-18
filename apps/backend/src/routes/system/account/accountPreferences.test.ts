@@ -34,6 +34,7 @@ test("GET /me includes account preferences", async () => {
     preferences: {
       accentColor: "#FF6719",
       reviewReactionAnimationsEnabled: true,
+      firstReviewOnboardingCompleted: false,
       analyticsConsent: null,
       productAnalyticsEnabled: null,
     },
@@ -65,6 +66,8 @@ test("PATCH /me/preferences persists false and GET /me returns the updated prefe
         accentColor: update.accentColor ?? persistedPreferences.accentColor,
         reviewReactionAnimationsEnabled: update.reviewReactionAnimationsEnabled
           ?? persistedPreferences.reviewReactionAnimationsEnabled,
+        firstReviewOnboardingCompleted: update.firstReviewOnboardingCompleted
+          ?? persistedPreferences.firstReviewOnboardingCompleted,
         analyticsConsent: update.analyticsConsent ?? persistedPreferences.analyticsConsent,
         productAnalyticsEnabled: update.productAnalyticsEnabled
           ?? persistedPreferences.productAnalyticsEnabled,
@@ -78,6 +81,7 @@ test("PATCH /me/preferences persists false and GET /me returns the updated prefe
   assert.deepEqual((await initialResponse.json() as Readonly<{ preferences: AccountPreferences }>).preferences, {
     accentColor: "#FF6719",
     reviewReactionAnimationsEnabled: true,
+    firstReviewOnboardingCompleted: false,
     analyticsConsent: null,
     productAnalyticsEnabled: null,
   });
@@ -96,6 +100,7 @@ test("PATCH /me/preferences persists false and GET /me returns the updated prefe
     preferences: {
       accentColor: "#FF6719",
       reviewReactionAnimationsEnabled: false,
+      firstReviewOnboardingCompleted: false,
       analyticsConsent: null,
       productAnalyticsEnabled: null,
     },
@@ -106,6 +111,7 @@ test("PATCH /me/preferences persists false and GET /me returns the updated prefe
   assert.deepEqual((await updatedResponse.json() as Readonly<{ preferences: AccountPreferences }>).preferences, {
     accentColor: "#FF6719",
     reviewReactionAnimationsEnabled: false,
+    firstReviewOnboardingCompleted: false,
     analyticsConsent: null,
     productAnalyticsEnabled: null,
   });
@@ -185,6 +191,7 @@ test("PATCH /me/preferences from a guest stores the consent on the guest session
       return {
         accentColor: update.accentColor ?? "#FF6719",
         reviewReactionAnimationsEnabled: update.reviewReactionAnimationsEnabled ?? true,
+        firstReviewOnboardingCompleted: update.firstReviewOnboardingCompleted ?? false,
         analyticsConsent: null,
         productAnalyticsEnabled: null,
       };
@@ -211,6 +218,7 @@ test("PATCH /me/preferences from a guest stores the consent on the guest session
     preferences: {
       accentColor: "#FF6719",
       reviewReactionAnimationsEnabled: false,
+      firstReviewOnboardingCompleted: false,
       analyticsConsent: "declined",
       productAnalyticsEnabled: null,
     },
@@ -229,6 +237,7 @@ test("PATCH /me/preferences from a guest stores the consent on the guest session
   assert.deepEqual(accountUpdates, [{
     accentColor: null,
     reviewReactionAnimationsEnabled: false,
+    firstReviewOnboardingCompleted: null,
     analyticsConsent: null,
     analyticsConsentOrigin: "user_action",
     productAnalyticsEnabled: null,
@@ -267,6 +276,7 @@ test("PATCH /me/preferences from a guest with only a consent leaves org.user_set
     preferences: {
       accentColor: "#FF6719",
       reviewReactionAnimationsEnabled: true,
+      firstReviewOnboardingCompleted: false,
       analyticsConsent: "declined",
       productAnalyticsEnabled: null,
     },

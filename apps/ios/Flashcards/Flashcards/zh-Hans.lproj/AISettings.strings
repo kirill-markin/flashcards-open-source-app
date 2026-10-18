@@ -998,3 +998,16 @@
 "settings.account.connection.previewChanged" = "预览已更改。请刷新并明确确认新的预览。";
 "settings.account.connection.restart" = "证明已过期或已使用。请重新提供证明后再试。";
 "settings.account.connection.restorePaused" = "账号已关联。本地刷新已暂停；你的离线数据已保留。";
+
+"premium.offer.heading" = "学习属于每一个人。";
+"premium.offer.free" = "免费";
+"premium.offer.freeDescription" = "为尚未就业的学生打造，向所有人开放。你的书包又轻了一点。";
+"premium.offer.freeBenefits" = "核心复习、离线学习和同步";
+"premium.offer.continueFree" = "继续免费使用";
+"premium.offer.monthlyAI" = "每月 %@ 条 AI 消息";
+"premium.offer.unlimitedAI" = "AI 消息无月度上限";
+"premium.offer.styles" = "自定义颜色和样式";
+"premium.offer.creatorSupport" = "你的订阅帮助 Nibomo 的创作者 [Kirill Markin](https://kirill-markin.com/) 支付服务器费用，也为下一次更新提供咖啡和披萨的动力。";
+"premium.offer.subscribe" = "订阅";
+"premium.offer.startTrial" = "开始免费试用：%@";
+"premium.offer.view" = "查看 Premium";

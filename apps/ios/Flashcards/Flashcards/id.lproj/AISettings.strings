@@ -970,3 +970,16 @@
 "settings.account.connection.previewChanged" = "Pratinjau berubah. Perbarui dan konfirmasikan pratinjau baru secara tegas.";
 "settings.account.connection.restart" = "Bukti kedaluwarsa atau telah digunakan. Mulai lagi dengan bukti baru.";
 "settings.account.connection.restorePaused" = "Akun terhubung. Pembaruan lokal dijeda; data offline Anda tetap disimpan.";
+
+"premium.offer.heading" = "Belajar adalah hak semua orang.";
+"premium.offer.free" = "Gratis";
+"premium.offer.freeDescription" = "Dibuat untuk pelajar yang belum bekerja. Terbuka untuk semua. Tasmu kini lebih ringan.";
+"premium.offer.freeBenefits" = "Ulasan inti, belajar offline & sinkronisasi";
+"premium.offer.continueFree" = "Lanjutkan gratis";
+"premium.offer.monthlyAI" = "%@ pesan AI setiap bulan";
+"premium.offer.unlimitedAI" = "Pesan AI tanpa batas bulanan";
+"premium.offer.styles" = "Warna dan gaya khusus";
+"premium.offer.creatorSupport" = "Langgananmu membantu pembuat Nibomo, [Kirill Markin](https://kirill-markin.com/), membayar server dan menyiapkan pembaruan berikutnya dengan kopi dan pizza.";
+"premium.offer.subscribe" = "Berlangganan";
+"premium.offer.startTrial" = "Mulai uji coba gratis: %@";
+"premium.offer.view" = "Lihat Premium";

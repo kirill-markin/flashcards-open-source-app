@@ -157,9 +157,8 @@ final class AppleSubscriptionService {
         )
     }
 
-    func purchasePremium() async throws -> AppleSubscriptionPurchaseResult {
+    func purchasePremium(offer: AppleSubscriptionOffer, presentation: AnalyticsPaywallPresentation?) async throws -> AppleSubscriptionPurchaseResult {
         let identity = try self.store.appleSubscriptionIdentity()
-        let offer = try await self.loadOffer()
         let token = try await self.store.appleSubscriptionAccountToken(identity: identity, transport: self.transport)
         try await self.store.refreshAppleSubscriptionEntitlement(identity: identity)
         try self.store.requireAppleSubscriptionIdentity(identity)
@@ -170,17 +169,17 @@ final class AppleSubscriptionService {
             throw AppleSubscriptionError.premiumAlreadyAvailable
         }
         self.trackForCurrentIdentity(
-            .purchaseStarted(offerType: offer.includesFreeTrial ? .freeTrial : .standard),
+            .purchaseStarted(offerType: offer.includesFreeTrial ? .freeTrial : .standard, presentation: presentation),
             identity: identity
         )
         let purchase: ApplePremiumStorePurchase
         do {
             purchase = try await self.storePurchase(product: offer.product, token: token)
         } catch {
-            self.trackForCurrentIdentity(.purchaseFinished(outcome: .failed), identity: identity)
+            self.trackForCurrentIdentity(.purchaseFinished(outcome: .failed, presentation: presentation), identity: identity)
             throw error
         }
-        self.trackForCurrentIdentity(.purchaseFinished(outcome: purchase.analyticsOutcome), identity: identity)
+        self.trackForCurrentIdentity(.purchaseFinished(outcome: purchase.analyticsOutcome, presentation: presentation), identity: identity)
         try self.store.requireAppleSubscriptionIdentity(identity)
         switch purchase {
         case .pending:

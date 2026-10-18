@@ -970,3 +970,16 @@
 "settings.account.connection.previewChanged" = "Náhľad sa zmenil. Obnovte ho a výslovne potvrďte nový náhľad.";
 "settings.account.connection.restart" = "Dôkaz vypršal alebo bol použitý. Začnite znova s novým dôkazom.";
 "settings.account.connection.restorePaused" = "Účty prepojené. Miestne obnovenie je pozastavené; vaše offline údaje zostávajú zachované.";
+
+"premium.offer.heading" = "Učenie patrí všetkým.";
+"premium.offer.free" = "Zadarmo";
+"premium.offer.freeDescription" = "Vytvorené pre študentov bez práce. Otvorené všetkým. Váš batoh je práve o niečo ľahší.";
+"premium.offer.freeBenefits" = "Opakovanie, učenie offline a synchronizácia";
+"premium.offer.continueFree" = "Pokračovať zadarmo";
+"premium.offer.monthlyAI" = "%@ správ AI každý mesiac";
+"premium.offer.unlimitedAI" = "Správy AI bez mesačného limitu";
+"premium.offer.styles" = "Vlastné farby a štýly";
+"premium.offer.creatorSupport" = "Vaše predplatné pomáha tvorcovi Nibomo, [Kirill Markin](https://kirill-markin.com/), platiť servery a pripravovať ďalšiu aktualizáciu s kávou a pizzou.";
+"premium.offer.subscribe" = "Predplatiť";
+"premium.offer.startTrial" = "Začať bezplatné skúšobné obdobie: %@";
+"premium.offer.view" = "Zobraziť Premium";
