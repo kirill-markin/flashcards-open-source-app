@@ -146,6 +146,13 @@ retrying the cloud flow.
 
 ## Android Cloud Release Gate
 
+Only the [authorized 1.35.0 Device Run network exception](../android-device-run-network-issue.md)
+may replace the four-session acceptance requirement in these shared rules.
+Retain its explicit dispatch/policy provenance, truthful failed/skipped records
+and separate operator readiness decision alongside the unchanged mobile-readiness
+manifest/report. No native failure becomes a pass; other gates and public
+rollout completion remain mandatory. Exact-bundle recovery retains its original contract.
+
 For new Android artifacts, follow the [Android procedure](android.md) on the
 intended release SHA with no uncommitted source changes. Require the complete
 `Android Release` workflow, cloud checks and optimized signed Release AAB,

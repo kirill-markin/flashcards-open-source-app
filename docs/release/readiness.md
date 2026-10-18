@@ -28,6 +28,15 @@ records use schema 2's cloud-first gates; new iOS records use schema 4's full lo
 Already-published artifacts follow the [historical reuse rule](evidence.md#reuse-existing-artifacts),
 without reconstructing evidence merely to turn this report green.
 
+## Authorized Android network exception boundary
+
+The [temporary 1.35.0 Device Run exception](../android-device-run-network-issue.md)
+does not change this CLI, its schemas, required inventories or exit codes.
+Preserve failed/skipped/missing native evidence and the resulting blocked report;
+never manufacture a passing gate or relabel historical records. Publication
+under that explicit authority requires the separately retained operator
+readiness decision and all remaining gates in the Android procedure.
+
 ## macOS Readiness Boundary
 
 This CLI accepts only `ios` and `android`; no supported schema accepts macOS. Do not relabel Mac as iOS, add Mac gates to a mobile schema, or manufacture

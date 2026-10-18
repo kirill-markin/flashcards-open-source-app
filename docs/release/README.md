@@ -30,6 +30,11 @@ resolve. Pause the affected action until resolved; continue independent work.
 Do not guess store declarations or bypass failed gates. Skip a platform only
 when the user explicitly asks to skip it.
 
+The explicitly authorized [1.35.0 Device Run network exception](../android-device-run-network-issue.md)
+is the sole temporary alternative to Android's four physical-session gate.
+It requires an explicit default-off dispatch input and separate operator
+readiness; it does not waive other gates, change failed history or establish a CLI pass.
+
 ## Required Reading
 
 Before any release or version-only work, read this entry point's authorization,
