@@ -104,7 +104,11 @@ the real backend. Reports separate test purchases from revenue by filtering on `
 
 Apple and Google purchases use the shared native Premium offers on iOS and Android. Android
 shows an explicit unavailable state until Google Play returns an eligible catalog offer. The web
-uses the shared Stripe offer; new live purchases remain gated by backend configuration.
+uses the shared Stripe offer; new live purchases remain gated by backend configuration. Web guests
+see the full trial offer. Their Premium choice continues through sign-in and guest conversion directly
+to Stripe with the verified account email. Account trial history selects a trial or paid Checkout,
+with the charge shown before confirmation when the trial has been consumed. Existing Premium access skips
+Checkout and resumes any pending feature choice.
 
 ## Style settings
 

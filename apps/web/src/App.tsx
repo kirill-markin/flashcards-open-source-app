@@ -1127,7 +1127,7 @@ export function RoutedShell(): ReactElement {
 function AuthenticatedApp(): ReactElement {
   return (
     <AppDataProvider>
-      <GuestConversionGate returnUrl={window.location.origin + "/"}>
+      <GuestConversionGate returnUrl={window.location.href}>
         <PremiumProvider>
           <AccountAccentTheme />
           <AIChatPreferencesProvider>

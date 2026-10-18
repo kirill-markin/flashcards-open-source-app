@@ -3,10 +3,10 @@ import { Hono } from "hono";
 import { z } from "zod";
 import { createStripeCheckout, reconcileStripeCheckoutReturn, type StripeHumanActor } from "../billing/stripe/checkout";
 import { StripeBillingError, type StripeEnvironment } from "../billing/stripe/contracts";
-import { createStripePortal, getStripeBillingDetails, type StripeBillingDetails } from "../billing/stripe/portal";
+import { createStripePortal, getStripeBillingDetails, getStripeGuestOffer, type StripeBillingDetails, type StripeBillingOffer } from "../billing/stripe/portal";
 import { handleStripeWebhook } from "../billing/stripe/service";
 import type { AppEnv } from "../server/appEnv";
-import { loadRequestContextFromRequest } from "../server/requestContext";
+import { loadRequestContextFromRequest, type RequestContext } from "../server/requestContext";
 import { parseJsonBodyWithByteLimit } from "../server/requestParsing";
 import { HttpError } from "../shared/errors";
 
@@ -50,11 +50,9 @@ const billingDetailsSchema = z.object({
     status: z.enum(["pending", "open"]), expiresAt: dateSchema })),
 });
 
-export type StripeBillingOffer = Pick<StripeBillingDetails,
-  "environment" | "premiumAiMonthlyMessages" | "checkoutAvailable" | "checkoutUnavailableReason" | "basePrice" | "trialEligible">;
+export type { StripeBillingOffer } from "../billing/stripe/portal";
 
-async function loadStripeHumanActor(request: Request, allowedOrigins: ReadonlyArray<string>): Promise<StripeHumanActor> {
-  const { requestContext } = await loadRequestContextFromRequest(request, allowedOrigins, { allowWebGuestPlatform: true });
+function requireStripeHumanActor(requestContext: RequestContext): StripeHumanActor {
   if (requestContext.transport !== "bearer" && requestContext.transport !== "session") {
     throw new HttpError(403, "Link an email and sign in as a person to use Stripe billing.", "STRIPE_HUMAN_AUTH_REQUIRED");
   }
@@ -62,6 +60,11 @@ async function loadStripeHumanActor(request: Request, allowedOrigins: ReadonlyAr
     throw new HttpError(403, "Link an email before using Stripe billing.", "STRIPE_EMAIL_REQUIRED");
   }
   return { subject: requestContext.subjectUserId, userId: requestContext.userId };
+}
+
+async function loadStripeHumanActor(request: Request, allowedOrigins: ReadonlyArray<string>): Promise<StripeHumanActor> {
+  const { requestContext } = await loadRequestContextFromRequest(request, allowedOrigins, { allowWebGuestPlatform: true });
+  return requireStripeHumanActor(requestContext);
 }
 
 function stripeHttpError(error: unknown): HttpError {
@@ -172,7 +175,15 @@ export function createStripeBillingRoutes(options: Readonly<{ allowedOrigins: Re
     });
   }
   app.get("/billing/stripe/offer", async (context) => {
-    const actor = await loadStripeHumanActor(context.req.raw, options.allowedOrigins);
+    const { requestContext } = await loadRequestContextFromRequest(context.req.raw, options.allowedOrigins);
+    if (requestContext.transport === "guest") {
+      try {
+        return context.json(parsePublicResult<StripeBillingOffer>(billingDetailsSchema.pick({ environment: true,
+          premiumAiMonthlyMessages: true, checkoutAvailable: true, checkoutUnavailableReason: true,
+          basePrice: true, trialEligible: true }), await getStripeGuestOffer()));
+      } catch (error) { throw stripeHttpError(error); }
+    }
+    const actor = requireStripeHumanActor(requestContext);
     try {
       const details = parsePublicResult<StripeBillingDetails>(billingDetailsSchema, await getStripeBillingDetails(actor));
       const offer: StripeBillingOffer = {

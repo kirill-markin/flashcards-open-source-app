@@ -34,7 +34,27 @@ export type StripeBillingDetails = Readonly<{
     status: "pending" | "open"; expiresAt: string;
   }>>;
 }>;
+export type StripeBillingOffer = Pick<StripeBillingDetails,
+  "environment" | "premiumAiMonthlyMessages" | "checkoutAvailable" | "checkoutUnavailableReason" | "basePrice" | "trialEligible">;
+
 export type StripePortalResult = Readonly<{ url: string }>;
+
+async function getStripeOfferPrice(environment: StripeEnvironment): Promise<NonNullable<StripeBillingOffer["basePrice"]>> {
+  const price = await (await loadStripeProvider(environment)).retrieveKnownPrice();
+  if (price.unit_amount === null) throw new StripeBillingError("STRIPE_RESPONSE_INVALID", false,
+    "Stripe returned no verified base price amount.");
+  return { currency: price.currency, unitAmount: price.unit_amount, interval: "month", taxBehavior: "inclusive" };
+}
+
+export async function getStripeGuestOffer(): Promise<StripeBillingOffer> {
+  const checkoutEnabled = process.env.STRIPE_CHECKOUT_LIVE_ENABLED === "true";
+  return {
+    environment: "production", checkoutAvailable: checkoutEnabled,
+    checkoutUnavailableReason: checkoutEnabled ? null : "purchases_disabled",
+    premiumAiMonthlyMessages: resolveEntitlementLimits("premium", "account").aiMonthlyMessages,
+    basePrice: checkoutEnabled ? await getStripeOfferPrice("production") : null, trialEligible: null,
+  };
+}
 
 export async function getStripeBillingDetails(actor: StripeHumanActor): Promise<StripeBillingDetails> {
   const observed = await unsafeTransaction(async (executor) => {
@@ -43,14 +63,7 @@ export async function getStripeBillingDetails(actor: StripeHumanActor): Promise<
     const hasSubscription = observations.some((customer) => customer.subscriptions.some(stripeSubscriptionCanBill));
     const pending = observations.flatMap((customer) => customer.pending);
     const trialEligible = await getStripeAccountTrialEligibilityInExecutor(executor, actor.userId, context.environment);
-    const price = context.checkoutEnabled ? await (await loadStripeProvider(context.environment)).retrieveKnownPrice() : null;
-    let basePrice: StripeBillingDetails["basePrice"] = null;
-    if (price !== null) {
-      const unitAmount = price.unit_amount;
-      if (unitAmount === null) throw new StripeBillingError("STRIPE_RESPONSE_INVALID", false,
-        "Stripe returned no verified base price amount.");
-      basePrice = { currency: price.currency, unitAmount, interval: "month", taxBehavior: "inclusive" };
-    }
+    const basePrice = context.checkoutEnabled ? await getStripeOfferPrice(context.environment) : null;
     const customers = observations.map((customer): StripeSubscriptionDetails => ({
       identityId: customer.identity.identityId, environment: customer.identity.environment,
       managementAvailable: true,
