@@ -10,6 +10,7 @@ import { createBrowserGuestSession } from "../browser/session";
 import { linkProvedCognitoPrincipalInExecutor } from "../../auth/userIdentities";
 import { ensureCognitoUserProfile } from "../../auth/ensureUser";
 import { createWorkspaceInExecutor } from "../../workspaces/create";
+import { createFreshChatSessionWithExecutor } from "../../chat/store/sessionService";
 import {
   loadDemoOnlyDestinationWorkspaceIdInExecutor,
   loadGuestDemoOnlyCardInExecutor,
@@ -438,6 +439,12 @@ function withDemoUpgradeFixture(callback: (fixture: DemoUpgradeFixture) => Promi
   return withGuestUpgradeFixture(() => createGuestSession("ios", null), callback);
 }
 
+function createEmptyChatInFixture(fixture: DemoUpgradeFixture): Promise<string> {
+  return unsafeTransaction((executor) => createFreshChatSessionWithExecutor(executor, {
+    userId: fixture.guest.userId, workspaceId: fixture.guest.workspaceId,
+  }, undefined, null));
+}
+
 async function reviewDemoInFixture(fixture: DemoUpgradeFixture): Promise<string> {
   const reviewEventId = randomUUID();
   const reviewedAt = new Date(Date.now() + 1_000).toISOString();
@@ -489,6 +496,7 @@ test("demo-only runtime eligibility retains the selected suppressed starter besi
   await withDemoUpgradeFixture(async (fixture) => {
     const { ownerPool, guest, subject, targetUserId, targetWorkspaceId, snapshot } = fixture;
     await reviewDemoInFixture(fixture);
+    const sessionId = await createEmptyChatInFixture(fixture);
     const otherWorkspaceId = await unsafeTransaction((executor) =>
       createWorkspaceInExecutor(executor, targetUserId, { name: "Other workspace", cause: "explicit" }));
     try {
@@ -502,6 +510,12 @@ test("demo-only runtime eligibility retains the selected suppressed starter besi
         const executor: DatabaseExecutor = { query: (text, params) => backend.query(text, [...params]) };
         await applyWorkspaceDatabaseScopeInExecutor(executor, { userId: guest.userId, workspaceId: guest.workspaceId });
         assert.equal((await loadGuestDemoOnlyCardInExecutor(executor, guest.userId, guest.workspaceId))?.cardId, snapshot.cardId);
+        await backend.query(
+          `INSERT INTO ai.chat_items (session_id, item_kind, state, payload)
+           VALUES ($1, 'message', 'completed', '{"role":"user","content":[{"type":"text","text":"My question"}]}')`,
+          [sessionId],
+        );
+        assert.equal(await loadGuestDemoOnlyCardInExecutor(executor, guest.userId, guest.workspaceId), null);
         assert.equal(await loadDemoOnlyDestinationWorkspaceIdInExecutor(executor, targetUserId), targetWorkspaceId);
         assert.deepEqual((await backend.query<{ workspace_id: string }>("SELECT workspace_id FROM org.visible_workspace_ids(NULL)")).rows,
           [{ workspace_id: otherWorkspaceId }]);
@@ -523,6 +537,55 @@ test("demo-only runtime eligibility retains the selected suppressed starter besi
       await ownerPool.query("DELETE FROM org.workspaces WHERE workspace_id = $1", [otherWorkspaceId]);
     }
   });
+});
+
+test("demo-only qualification preserves chat content, files, authored history and active work", async () => {
+  const sessionChanges = [
+    ["running", "status = 'running'"], ["interrupted", "status = 'interrupted'"],
+    ["active run", "active_run_id = gen_random_uuid()"], ["heartbeat", "active_run_heartbeat_at = now()"],
+    ["title", "title = 'My chat'"], ["archived", "archived_at = now()"],
+    ["invalidated content", "main_content_invalidation_version = 1"],
+  ] as const;
+  for (const variant of [...sessionChanges.map(([label]) => label), "message", "file", "queued run", "completed run"]) {
+    await withDemoUpgradeFixture(async (fixture) => {
+      const { ownerPool, guest, subject, targetWorkspaceId } = fixture;
+      const sessionId = await createEmptyChatInFixture(fixture);
+      const selection = { type: "existing", workspaceId: targetWorkspaceId, discardDemoOnly: true } as const;
+      assert.equal((await prepareGuestUpgrade(guest.guestToken, subject, null)).demoOnlyDestinationWorkspaceId, targetWorkspaceId);
+      const sessionChange = sessionChanges.find(([label]) => label === variant);
+      if (sessionChange !== undefined) {
+        await ownerPool.query(`UPDATE ai.chat_sessions SET ${sessionChange[1]} WHERE session_id = $1`, [sessionId]);
+      } else if (variant === "file") {
+        await ownerPool.query(
+          `INSERT INTO ai.chat_files (file_id, session_id, user_id, workspace_id, path, origin, media_type, size_bytes, sha256, s3_key)
+           VALUES ($1, $2, $3, $4, '/files/notes.txt', 'attachment', 'text/plain', 1, repeat('a', 64), $5)`,
+          [randomUUID(), sessionId, guest.userId, guest.workspaceId, `postgres-integration/${randomUUID()}`],
+        );
+      } else {
+        const itemId = randomUUID();
+        await ownerPool.query(
+          `INSERT INTO ai.chat_items (item_id, session_id, item_kind, state, payload)
+           VALUES ($1, $2, 'message', $3, $4::jsonb)`,
+          [itemId, sessionId, variant === "queued run" ? "in_progress" : "completed", JSON.stringify({
+            role: variant === "message" ? "user" : "assistant",
+            content: variant === "queued run" ? [] : [{ type: "text", text: "Saved chat content" }],
+          })],
+        );
+        if (variant !== "message") {
+          await ownerPool.query(
+            `INSERT INTO ai.chat_runs (session_id, assistant_item_id, status, request_id, model_id, reasoning_effort, timezone, turn_input)
+             VALUES ($1, $2, $3, $4, 'gpt-5.6-terra', 'xhigh', 'Europe/Paris', '[]')`,
+            [sessionId, itemId, variant === "queued run" ? "queued" : "completed", randomUUID()],
+          );
+        }
+      }
+      assert.deepEqual(await prepareGuestUpgrade(guest.guestToken, subject, null), { mode: "merge_required" }, variant);
+      await assert.rejects(completeGuestUpgrade(guest.guestToken, subject, selection, UPGRADE_CAPABILITIES),
+        (error: unknown) => error instanceof HttpError && error.code === "GUEST_UPGRADE_DEMO_ONLY_NOT_ELIGIBLE", variant);
+      assert.equal((await readGuestAccountState(ownerPool, guest.userId, guest.workspaceId)).liveGuestSessionRows, 1, variant);
+      assert.equal((await ownerPool.query("SELECT session_id FROM ai.chat_sessions WHERE session_id = $1", [sessionId])).rowCount, 1, variant);
+    });
+  }
 });
 
 test("demo-only qualification preserves edited, ordinary, invalid, deleted and multiple-card guest content", async () => {
@@ -636,14 +699,20 @@ test("demo-only preparation recovers the ordinary existing workspace without cre
 });
 
 test("browser demo-only disposal and lost-response preparation replay the same stored destination", async () => {
-  await withGuestUpgradeFixture(() => createBrowserGuestSession(randomUUID()), async ({
-    guest, subject, snapshot, targetWorkspaceId,
-  }) => {
+  await withGuestUpgradeFixture(() => createBrowserGuestSession(randomUUID()), async (fixture) => {
+    const { guest, subject, snapshot, targetWorkspaceId, ownerPool } = fixture;
+    const reviewEventId = await reviewDemoInFixture(fixture);
+    const sessionId = await createEmptyChatInFixture(fixture);
     const preparation = await prepareBrowserGuestUpgrade(guest.guestToken, subject, null);
     assert.deepEqual(preparation, { mode: "merge_required", demoOnlyDestinationWorkspaceId: targetWorkspaceId });
     const selection = { type: "existing", workspaceId: targetWorkspaceId, discardDemoOnly: true } as const;
     const first = await completeBrowserGuestUpgrade(guest.guestToken, subject, selection, UPGRADE_CAPABILITIES);
     assert.deepEqual(first.droppedEntities?.cardIds, [snapshot.cardId]);
+    assert.deepEqual(first.droppedEntities?.reviewEventIds, [reviewEventId]);
+    assert.deepEqual(await readGuestAccountState(ownerPool, guest.userId, guest.workspaceId), {
+      userSettingsRows: 0, workspaceRows: 0, liveGuestSessionRows: 0,
+    });
+    assert.equal((await ownerPool.query("SELECT session_id FROM ai.chat_sessions WHERE session_id = $1", [sessionId])).rowCount, 0);
     assert.deepEqual(await prepareBrowserGuestUpgrade(guest.guestToken, subject, null), preparation);
     const replay = await completeBrowserGuestUpgrade(guest.guestToken, subject, selection, UPGRADE_CAPABILITIES);
     assert.equal(replay.outcome, "idempotent_replay");
