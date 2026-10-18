@@ -897,8 +897,8 @@
 "settings.appIcon.systemAlertNote" = "iOS ਹਰ ਆਈਕਨ ਤਬਦੀਲੀ ਦੀ ਪੁਸ਼ਟੀ ਇੱਕ ਸੂਚਨਾ ਨਾਲ ਕਰਦਾ ਹੈ।";
 
 "premium.apple.monthlyProduct" = "%@ · ਮਹੀਨਾਵਾਰ";
-"premium.apple.renewal" = "ਰੱਦ ਕਰਨ ਤੱਕ ਆਪਣੇ ਆਪ ਨਵਿਆਈ ਜਾਂਦੀ ਹੈ। ਆਪਣੀਆਂ App Store ਸਬਸਕ੍ਰਿਪਸ਼ਨਾਂ ਵਿੱਚ ਇਸਨੂੰ ਪ੍ਰਬੰਧਿਤ ਜਾਂ ਰੱਦ ਕਰੋ।";
-"premium.apple.trial" = "ਮੁਫ਼ਤ ਅਜ਼ਮਾਇਸ਼: %@। ਇਸ ਤੋਂ ਬਾਅਦ:";
+"premium.apple.renewal" = "ਆਪਣੇ ਆਪ ਨਵਿਆਈ ਜਾਂਦੀ ਹੈ। App Store ਸਬਸਕ੍ਰਿਪਸ਼ਨਾਂ ਵਿੱਚ ਪ੍ਰਬੰਧਿਤ ਜਾਂ ਰੱਦ ਕਰੋ।";
+"premium.apple.trial" = "%@ ਮੁਫ਼ਤ, ਫਿਰ";
 "premium.apple.loadFailed" = "App Store ਪੇਸ਼ਕਸ਼ ਲੋਡ ਨਹੀਂ ਹੋ ਸਕੀ। ਆਪਣਾ ਕਨੈਕਸ਼ਨ ਜਾਂਚੋ ਅਤੇ ਦੁਬਾਰਾ ਕੋਸ਼ਿਸ਼ ਕਰੋ।";
 "premium.apple.pending" = "Apple ਜਾਂ ਖਾਤੇ ਦੀ ਪੁਸ਼ਟੀ ਦੀ ਉਡੀਕ ਹੈ। ਦੁਬਾਰਾ ਕੋਸ਼ਿਸ਼ ਕਰਨ ਲਈ ਖਰੀਦਾਂ ਬਹਾਲ ਕਰੋ।";
 "premium.apple.cancelled" = "ਖਰੀਦ ਰੱਦ ਹੋਈ। ਤੁਹਾਡੇ ਤੋਂ ਕੋਈ ਰਕਮ ਨਹੀਂ ਲਈ ਗਈ।";

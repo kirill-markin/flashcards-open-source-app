@@ -897,8 +897,8 @@
 "settings.appIcon.systemAlertNote" = "iOS confirmă fiecare schimbare a pictogramei printr-o alertă.";
 
 "premium.apple.monthlyProduct" = "%@ · Lunar";
-"premium.apple.renewal" = "Se reînnoiește automat până la anulare. Gestionează sau anulează din abonamentele App Store.";
-"premium.apple.trial" = "Perioadă de probă gratuită: %@. Apoi:";
+"premium.apple.renewal" = "Reînnoire automată. Gestionează sau anulează din abonamentele App Store.";
+"premium.apple.trial" = "%@ gratuit, apoi";
 "premium.apple.loadFailed" = "Oferta App Store nu a putut fi încărcată. Verifică conexiunea și încearcă din nou.";
 "premium.apple.pending" = "Se așteaptă confirmarea Apple sau a contului. Restaurează achizițiile pentru a reîncerca.";
 "premium.apple.cancelled" = "Achiziție anulată. Nu ai fost taxat.";

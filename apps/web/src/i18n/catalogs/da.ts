@@ -26,8 +26,9 @@ const daCatalog: TranslationCatalog = {
     creatorSupport: "Dit abonnement hjælper Nibomos skaber, {{creator}}, med at betale serverne og arbejde på den næste opdatering med kaffe og pizza.",
     basePrice: "Basispris: {{price}} / måned",
     startTrial: "Start 7 dages gratis prøveperiode",
-    trialPrice: "7 dage gratis, derefter en basispris på {{price}}/måned. Betalingsmetode kræves; opsig inden prøveperioden slutter for at undgå første betaling.",
-    checkoutPrice: "Stripe bekræfter den endelige pris og faktureringsvaluta ved betaling.",
+    trialPrice: "7 dage gratis, derefter en basispris på {{price}}/måned. Betalingsmetode kræves. Fornyes automatisk; opsig inden prøveperioden slutter i abonnementsindstillingerne.",
+    checkoutPrice: "Endelig pris og valuta ved betaling.",
+    renewalDisclosure: "Fornyes automatisk; opsig når som helst i abonnementsindstillingerne.",
   },
   accentColorSettings: {
     title: "Accentfarve",

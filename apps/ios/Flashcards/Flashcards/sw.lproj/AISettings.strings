@@ -897,8 +897,8 @@
 "settings.appIcon.systemAlertNote" = "iOS huthibitisha kila badiliko la ikoni kwa arifa.";
 
 "premium.apple.monthlyProduct" = "%@ · Kila mwezi";
-"premium.apple.renewal" = "Hujisasisha kiotomatiki hadi utakapoighairi. Dhibiti au ghairi katika usajili wako wa App Store.";
-"premium.apple.trial" = "Jaribio la bure: %@. Kisha:";
+"premium.apple.renewal" = "Hujisasisha kiotomatiki. Dhibiti au ghairi katika usajili wa App Store.";
+"premium.apple.trial" = "%@ bila malipo, kisha";
 "premium.apple.loadFailed" = "Imeshindwa kupakia ofa ya App Store. Angalia muunganisho wako na ujaribu tena.";
 "premium.apple.pending" = "Inasubiri uthibitisho wa Apple au akaunti. Rejesha manunuzi ili ujaribu tena.";
 "premium.apple.cancelled" = "Ununuzi umeghairiwa. Hujatozwa.";

@@ -897,8 +897,8 @@
 "settings.appIcon.systemAlertNote" = "iOS هر تغییر نماد را با یک هشدار تأیید می‌کند.";
 
 "premium.apple.monthlyProduct" = "%@ · ماهانه";
-"premium.apple.renewal" = "تا زمان لغو، خودکار تمدید می‌شود. در بخش اشتراک‌های App Store آن را مدیریت یا لغو کنید.";
-"premium.apple.trial" = "دورهٔ آزمایشی رایگان: %@. سپس:";
+"premium.apple.renewal" = "تمدید خودکار. مدیریت یا لغو در اشتراک‌های App Store.";
+"premium.apple.trial" = "%@ رایگان، سپس";
 "premium.apple.loadFailed" = "پیشنهاد App Store بارگیری نشد. اتصال خود را بررسی کنید و دوباره تلاش کنید.";
 "premium.apple.pending" = "در انتظار تأیید Apple یا حساب. برای تلاش دوباره، خریدها را بازیابی کنید.";
 "premium.apple.cancelled" = "خرید لغو شد. هزینه‌ای از شما کسر نشده است.";

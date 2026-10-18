@@ -925,8 +925,8 @@
 "settings.appIcon.systemAlertNote" = "iOS confirme chaque changement d’icône par une alerte.";
 
 "premium.apple.monthlyProduct" = "%@ · Mensuel";
-"premium.apple.renewal" = "Renouvellement automatique jusqu’à résiliation. Gérez ou résiliez dans vos abonnements App Store.";
-"premium.apple.trial" = "Essai gratuit : %@. Puis :";
+"premium.apple.renewal" = "Renouvellement automatique. Gérez ou résiliez dans les abonnements App Store.";
+"premium.apple.trial" = "%@ sans frais, puis";
 "premium.apple.loadFailed" = "Impossible de charger l’offre App Store. Vérifiez votre connexion et réessayez.";
 "premium.apple.pending" = "En attente de confirmation d’Apple ou du compte. Restaurez les achats pour réessayer.";
 "premium.apple.cancelled" = "Achat annulé. Aucun montant n’a été débité.";

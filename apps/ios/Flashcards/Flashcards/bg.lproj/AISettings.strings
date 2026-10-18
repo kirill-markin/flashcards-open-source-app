@@ -897,8 +897,8 @@
 "settings.appIcon.systemAlertNote" = "iOS потвърждава всяка смяна на иконата с известие.";
 
 "premium.apple.monthlyProduct" = "%@ · Месечно";
-"premium.apple.renewal" = "Подновява се автоматично до отказване. Управлявайте или отменете в абонаментите си в App Store.";
-"premium.apple.trial" = "Безплатен пробен период: %@. След това:";
+"premium.apple.renewal" = "Автоматично подновяване. Управление или отказване в абонаментите в App Store.";
+"premium.apple.trial" = "%@ безплатно, след това";
 "premium.apple.loadFailed" = "Офертата от App Store не можа да се зареди. Проверете връзката си и опитайте отново.";
 "premium.apple.pending" = "Изчаква се потвърждение от Apple или за акаунта. Възстановете покупките, за да опитате отново.";
 "premium.apple.cancelled" = "Покупката е отменена. Не сте таксувани.";

@@ -199,15 +199,6 @@ internal fun PremiumStoreOffer(
                                         !requiresPurchaseVerification(operation))),
                                 modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp).testTag("premium_purchase")
                             ) { PremiumActionLabel(text = details.purchaseLabel) }
-                            if (details.introductoryPhaseDescriptions.isNotEmpty()) {
-                                Text(
-                                    details.introductoryPhaseDescriptions.joinToString(" · "),
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    textAlign = TextAlign.Center,
-                                    modifier = Modifier.fillMaxWidth()
-                                )
-                            }
                             Text(
                                 details.renewalDescription,
                                 style = MaterialTheme.typography.bodySmall,
