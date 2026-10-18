@@ -970,3 +970,16 @@
 "settings.account.connection.previewChanged" = "Esikatselu muuttui. Päivitä se ja vahvista uusi esikatselu erikseen.";
 "settings.account.connection.restart" = "Todiste vanheni tai käytettiin. Aloita uudelleen uudella todisteella.";
 "settings.account.connection.restorePaused" = "Tilit yhdistetty. Paikallinen päivitys on keskeytetty; offline-tietosi säilyvät.";
+
+"premium.offer.heading" = "Oppiminen kuuluu kaikille.";
+"premium.offer.free" = "Ilmainen";
+"premium.offer.freeDescription" = "Luotu opiskelijoille, joilla ei ole työtä. Avoin kaikille. Reppusi keveni juuri.";
+"premium.offer.freeBenefits" = "Kertaus, offline-oppiminen ja synkronointi";
+"premium.offer.continueFree" = "Jatka ilmaiseksi";
+"premium.offer.monthlyAI" = "%@ tekoälyviestiä kuukaudessa";
+"premium.offer.unlimitedAI" = "Tekoälyviestit ilman kuukausirajaa";
+"premium.offer.styles" = "Omat värit ja tyylit";
+"premium.offer.creatorSupport" = "Tilauksesi auttaa Nibomon luojaa, [Kirill Markin](https://kirill-markin.com/), maksamaan palvelimet ja valmistelemaan seuraavaa päivitystä kahvin ja pizzan voimin.";
+"premium.offer.subscribe" = "Tilaa";
+"premium.offer.startTrial" = "Aloita ilmainen kokeilu: %@";
+"premium.offer.view" = "Näytä Premium";

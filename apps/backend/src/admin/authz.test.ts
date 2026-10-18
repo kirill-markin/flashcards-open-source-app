@@ -290,6 +290,7 @@ test("requireCatalogAdminRequestWithDependencies preserves session profile recon
           preferences: {
             accentColor: "#FF6719",
             reviewReactionAnimationsEnabled: true,
+            firstReviewOnboardingCompleted: false,
             analyticsConsent: null,
             productAnalyticsEnabled: null,
           },
@@ -444,6 +445,7 @@ test("requireAdminRequestWithDependencies accepts signed-in admins and normalize
           preferences: {
             accentColor: "#FF6719",
             reviewReactionAnimationsEnabled: true,
+            firstReviewOnboardingCompleted: false,
             analyticsConsent: null,
             productAnalyticsEnabled: null,
           },

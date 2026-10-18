@@ -111,7 +111,9 @@ final class StudyKeyboardView: UIView {
         if case .automatic = request {
             guard self.isEnabled && hasEditableResponder(in: window) == false else { return }
         }
-        // A pointer rating can already have queued the next card before this explicit request arrives.
+        if case .study = request, hasEditableResponder(in: window) {
+            guard firstResponderView(in: window) is ReviewSelectionTextView else { return }
+        }
         guard self.becomeFirstResponder(), self.isFirstResponder else { return }
     }
     @objc private func studyInput(_ command: UIKeyCommand) {

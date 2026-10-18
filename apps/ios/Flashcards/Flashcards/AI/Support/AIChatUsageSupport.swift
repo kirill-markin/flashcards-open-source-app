@@ -38,6 +38,26 @@ struct AIUsageStatusResponse: Decodable, Sendable {
     let usage: AIMonthlyUsage
 }
 
+struct PremiumAIUsageStatusResponse: Decodable, Sendable {
+    let premiumAiMonthlyMessages: Int?
+
+    private enum CodingKeys: String, CodingKey {
+        case premiumAiMonthlyMessages
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        self.premiumAiMonthlyMessages = try container.decode(Int?.self, forKey: .premiumAiMonthlyMessages)
+        if let allowance = self.premiumAiMonthlyMessages, allowance < 0 {
+            throw DecodingError.dataCorruptedError(
+                forKey: .premiumAiMonthlyMessages,
+                in: container,
+                debugDescription: "Premium monthly AI messages must be nonnegative or null."
+            )
+        }
+    }
+}
+
 /// The usage last read for one user, so a different identity never sees it.
 struct AIUsageSnapshot: Hashable, Sendable {
     let userId: String

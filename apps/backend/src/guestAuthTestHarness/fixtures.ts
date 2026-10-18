@@ -67,6 +67,7 @@ export function createUserSettingsState(userId: string, workspaceId: string | nu
     email,
     analytics_consent: null,
     product_analytics_enabled: null,
+    first_review_onboarding_completed: false,
     progress_time_zone: null,
     paywall_intro_shown_at: null,
     paywall_intro_local_date: null,

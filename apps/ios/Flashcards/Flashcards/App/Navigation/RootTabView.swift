@@ -110,20 +110,21 @@ struct RootTabView: View {
         )
     }
 
+    private var canShowPremiumPresentation: Bool {
+        store.feedbackPresentation == nil
+            && store.presentedTechnicalError == nil
+            && store.activeCloudSignInSheetCount == 0
+            && self.isGuestSignInCloudSignInPresented == false
+            && store.isGuestSignInAfterReviewPromptPresented == false
+    }
+
     private var premiumPresentation: Binding<PremiumPresentationRequest?> {
         Binding(
             get: {
-                guard store.feedbackPresentation == nil,
-                      store.presentedTechnicalError == nil,
-                      store.activeCloudSignInSheetCount == 0,
-                      self.isGuestSignInCloudSignInPresented == false,
-                      store.isGuestSignInAfterReviewPromptPresented == false else {
-                    return nil
-                }
-                return self.premiumPresenter.request
+                self.canShowPremiumPresentation ? self.premiumPresenter.request : nil
             },
             set: { presentation in
-                if presentation == nil {
+                if presentation == nil, self.canShowPremiumPresentation {
                     self.premiumPresenter.finish(outcome: .dismissed)
                 }
             }
@@ -697,12 +698,6 @@ struct RootTabView: View {
             PremiumOfferView(request: request)
             .environment(store)
             .environment(self.premiumPresenter)
-            .onAppear {
-                self.premiumPresenter.recordShown(
-                    requestId: request.id,
-                    screen: analyticsSurface(tab: store.currentVisibleTab)
-                )
-            }
         }
         .sheet(item: self.feedbackPresentation) { presentation in
             FeedbackSheet(presentation: presentation)

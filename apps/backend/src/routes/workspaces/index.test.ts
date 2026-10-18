@@ -28,6 +28,7 @@ function createRequestContext(): RequestContext {
     preferences: {
       accentColor: "#FF6719",
       reviewReactionAnimationsEnabled: true,
+      firstReviewOnboardingCompleted: false,
       analyticsConsent: null,
       productAnalyticsEnabled: null,
     },
