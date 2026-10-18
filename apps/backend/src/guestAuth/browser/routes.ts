@@ -85,8 +85,16 @@ export function createBrowserGuestAuthRoutes(options: BrowserGuestRoutesOptions)
   });
 
   app.post("/guest-auth/browser/session", async (context) => {
-    // Reject aliases that would reach the root proxy outside this method's gateway throttle.
-    if (new URL(context.req.url).pathname !== options.sessionCreationPath) {
+    // Only the adapter's event identifies the throttled Gateway method, regardless of URL prefixes.
+    const gatewayEvent = context.env?.event;
+    const allowedCreationIngress = gatewayEvent === undefined
+      ? new URL(context.req.url).pathname === options.sessionCreationPath
+      : "resource" in gatewayEvent
+        && gatewayEvent.resource === "/guest-auth/browser/session"
+        && gatewayEvent.httpMethod === "POST"
+        && gatewayEvent.requestContext.resourcePath === "/guest-auth/browser/session"
+        && gatewayEvent.requestContext.httpMethod === "POST";
+    if (!allowedCreationIngress) {
       throw new HttpError(404, "Not found");
     }
     const inputs = extractRequestAuthInputs(context.req.raw);

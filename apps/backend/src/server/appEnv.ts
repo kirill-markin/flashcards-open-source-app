@@ -1,4 +1,9 @@
+import type { LambdaEvent } from "hono/aws-lambda";
+
 export type AppEnv = {
+  Bindings: {
+    event?: LambdaEvent;
+  };
   Variables: {
     requestId: string;
     clientAppVersion: string | null;
