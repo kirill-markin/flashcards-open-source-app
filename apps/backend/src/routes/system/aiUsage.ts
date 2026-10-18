@@ -1,4 +1,5 @@
 import type { Hono } from "hono";
+import { loadBrowserGuestAiTrialStatus } from "../../aiUsage/browserGuestTrial/repository";
 import { getBrowserGuestCapabilities } from "../../guestAuth/webPlatform";
 import type { loadAiUsageStatus } from "../../aiUsage";
 import { resolveEntitlementLimits } from "../../billing/limits";
@@ -11,6 +12,7 @@ type AiUsageRouteOptions = Readonly<{
   allowedOrigins: ReadonlyArray<string>;
   loadRequestContextFromRequestFn: typeof loadRequestContextFromRequest;
   loadAiUsageStatusFn: typeof loadAiUsageStatus;
+  loadBrowserGuestAiTrialStatusFn: typeof loadBrowserGuestAiTrialStatus;
 }>;
 
 /**
@@ -35,7 +37,9 @@ export function registerAiUsageRoute(
       accountKind,
       new Date(),
     );
+    const browserGuestAiTrial = await options.loadBrowserGuestAiTrialStatusFn(requestContext);
     return context.json({
+      browserGuestAiTrial,
       ...status,
       premiumAiMonthlyMessages: resolveEntitlementLimits("premium", accountKind).aiMonthlyMessages,
       browserGuestCapabilities: getBrowserGuestCapabilities(requestContext),

@@ -1,4 +1,5 @@
 import type { loadAiUsageStatus } from "../../aiUsage";
+import type { loadBrowserGuestAiTrialStatus } from "../../aiUsage/browserGuestTrial/repository";
 import type { AccountPreferences, AnalyticsConsentChoice } from "../../auth/ensureUser";
 import type {
   FriendInvitationAcceptInput,
@@ -26,6 +27,7 @@ export type SystemRoutesOptions = Readonly<{
   allowedOrigins: ReadonlyArray<string>;
   loadRequestContextFromRequestFn?: typeof loadRequestContextFromRequest;
   loadAiUsageStatusFn?: typeof loadAiUsageStatus;
+  loadBrowserGuestAiTrialStatusFn?: typeof loadBrowserGuestAiTrialStatus;
   loadReviewPlatformSummaryFn?: LoadReviewPlatformSummaryFn;
   loadUserProgressReviewScheduleFn?: typeof loadUserProgressReviewSchedule;
   loadUserProgressSeriesFn?: typeof loadUserProgressSeries;
