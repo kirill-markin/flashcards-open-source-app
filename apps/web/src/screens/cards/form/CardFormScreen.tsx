@@ -113,6 +113,7 @@ export function CardFormScreen(): ReactElement {
     localReadVersion,
     runMediaUploadTransfers,
     session,
+    isSessionVerified,
   } = useAppData();
   const { indexedDbOpenRecoveryState, showCapturedTechnicalError } = useAppErrorDialog();
   const cardFormFieldsRef = useRef<CardFormFieldsHandle | null>(null);
@@ -147,6 +148,8 @@ export function CardFormScreen(): ReactElement {
   const isCreateMode = cardId === undefined;
   const handoffCardToAi = useAiCardHandoff();
   const isAuthoringMedia = isCardFormManagedMediaProcessing(managedMediaState);
+  const isGuestSessionRestoring = session?.browserGuestCapabilities?.isGuest === true
+    && isSessionVerified === false;
   const isSubmissionBlocked = mediaLifecycleConflict !== null
     && isGeneratedMediaLifecycleConflictPresent(mediaLifecycleConflict, formState);
   observationIdentityRef.current = {
@@ -516,7 +519,7 @@ export function CardFormScreen(): ReactElement {
   }
 
   async function saveCurrentCard(): Promise<Card | null> {
-    if (indexedDbOpenRecoveryState.hasFailed() || isSubmissionAllowed() === false) {
+    if (indexedDbOpenRecoveryState.hasFailed() || isGuestSessionRestoring || isSubmissionAllowed() === false) {
       return null;
     }
 
@@ -573,7 +576,7 @@ export function CardFormScreen(): ReactElement {
   }
 
   async function handleSubmit(): Promise<void> {
-    if (indexedDbOpenRecoveryState.hasFailed()) {
+    if (indexedDbOpenRecoveryState.hasFailed() || isGuestSessionRestoring) {
       return;
     }
 
@@ -635,7 +638,7 @@ export function CardFormScreen(): ReactElement {
   }
 
   async function handleEditWithAi(): Promise<void> {
-    if (indexedDbOpenRecoveryState.hasFailed() || isAuthoringMedia) {
+    if (indexedDbOpenRecoveryState.hasFailed() || isAuthoringMedia || isGuestSessionRestoring) {
       return;
     }
 
@@ -920,7 +923,7 @@ export function CardFormScreen(): ReactElement {
               <button
                 type="button"
                 className="ghost-btn review-editor-ai-btn"
-                disabled={isSaving || isDeleting || isAuthoringMedia || isSubmissionBlocked}
+                disabled={isSaving || isDeleting || isAuthoringMedia || isSubmissionBlocked || isGuestSessionRestoring}
                 onClick={() => void handleEditWithAi()}
                 data-testid="card-form-edit-with-ai"
               >
@@ -941,7 +944,8 @@ export function CardFormScreen(): ReactElement {
             <button
               type="button"
               className="primary-btn"
-              disabled={isSaving || isDeleting || isAuthoringMedia || isSubmissionBlocked}
+              disabled={isSaving || isDeleting || isAuthoringMedia || isSubmissionBlocked || isGuestSessionRestoring}
+              aria-busy={isSaving || isGuestSessionRestoring}
               onClick={() => void handleSubmit()}
               data-testid="card-form-save"
             >
@@ -949,6 +953,8 @@ export function CardFormScreen(): ReactElement {
             </button>
           </div>
         </div>
+
+        {isGuestSessionRestoring ? <p className="subtitle" role="status">{t("loading.restoringSession")}</p> : null}
 
         <CardFormFields
           ref={cardFormFieldsRef}
