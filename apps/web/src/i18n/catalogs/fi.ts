@@ -17,7 +17,8 @@ const fiCatalog: TranslationCatalog = {
   },
   stripe: createStripeCatalog(stripeCopy),
   paywall: {
-    heading: "Oppiminen kuuluu kaikille.",
+    heading: "Oppiminen kuuluu <em>kaikille.</em>",
+    alwaysFree: "Aina ilmainen",
     freeTitle: "Ilmainen",
     freeDescription: "Luotu opiskelijoille ilman työpaikkaa. Avoin kaikille. Reppusi keveni juuri.",
     freeBenefit: "Peruskertaukset, opiskelu offline-tilassa ja synkronointi",
@@ -25,7 +26,7 @@ const fiCatalog: TranslationCatalog = {
     creatorSupport: "Tilauksesi auttaa Nibomon tekijää, {{creator}}, maksamaan palvelimet ja tekemään seuraavaa päivitystä kahvin ja pizzan voimalla.",
     basePrice: "Perushinta: {{price}} / kuukausi",
     startTrial: "Aloita 7 päivän ilmainen kokeilu",
-    trialPrice: "7 päivää ilmaiseksi, sitten kuukausittainen perushinta {{price}}. Maksutapa vaaditaan. Peruuta ennen kokeilun päättymistä välttääksesi ensimmäisen veloituksen.",
+    trialPrice: "7 päivää ilmaiseksi, sitten perushinta {{price}}/kk. Maksutapa vaaditaan; peru ennen kokeilun päättymistä välttääksesi ensimmäisen veloituksen.",
     checkoutPrice: "Stripe vahvistaa lopullisen hinnan ja laskutusvaluutan kassalla.",
   },
   accentColorSettings: {

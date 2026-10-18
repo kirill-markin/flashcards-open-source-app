@@ -12,10 +12,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.Fill
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.scale
-import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.clearAndSetSemantics
@@ -27,16 +28,18 @@ internal const val firstReviewOnboardingOverlayTag = "review_first_review_onboar
 @Composable
 internal fun FirstReviewOnboardingOverlay(
     target: Rect,
+    neighbors: List<Rect>,
     viewport: Size,
     availableTop: Float,
     animationsEnabled: Boolean,
     modifier: Modifier
 ) {
     val density = LocalDensity.current.density
-    val frames = remember(target, viewport, availableTop, density) {
+    val frames = remember(target, neighbors, viewport, availableTop, density) {
         val bounds = Rect(target.left / density, target.top / density, target.right / density, target.bottom / density)
         val size = Size(viewport.width / density, viewport.height / density)
-        listOf(0, 1).map { firstReviewOnboardingDrawing(bounds, size, availableTop / density, it) }
+        val neighborBounds = neighbors.map { Rect(it.left / density, it.top / density, it.right / density, it.bottom / density) }
+        listOf(0, 1).map { firstReviewOnboardingDrawing(bounds, size, availableTop / density, neighborBounds, it) }
     }
     var frame by remember { mutableIntStateOf(0) }
     LaunchedEffect(animationsEnabled) {
@@ -51,9 +54,24 @@ internal fun FirstReviewOnboardingOverlay(
     val accent = MaterialTheme.colorScheme.primary
     Canvas(modifier.clearAndSetSemantics { hideFromAccessibility() }.testTag(firstReviewOnboardingOverlayTag)) {
         scale(density, density, pivot = androidx.compose.ui.geometry.Offset.Zero) {
-            frames[if (animationsEnabled) frame else 0].forEach { mark ->
+            val marks = frames[if (animationsEnabled) frame else 0]
+            marks.forEach { mark ->
+                if (mark.strokeWidth == null) {
+                    drawPath(mark.path, Color.Black, alpha = .72f)
+                }
+                drawPath(
+                    mark.path,
+                    Color.Black,
+                    alpha = .72f,
+                    style = Stroke(
+                        width = (mark.strokeWidth ?: 0f) + pencilContrastRadius * 2f,
+                        cap = StrokeCap.Round,
+                        join = StrokeJoin.Round
+                    )
+                )
+            }
+            marks.forEach { mark ->
                 val style = mark.strokeWidth?.let { Stroke(width = it) } ?: Fill
-                translate(top = .8f) { drawPath(mark.path, Color.Black, alpha = mark.opacity * .18f, style = style) }
                 drawPath(mark.path, accent, alpha = mark.opacity, style = style)
             }
         }

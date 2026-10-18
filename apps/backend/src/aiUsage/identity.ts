@@ -16,6 +16,8 @@ export async function anonymizeAiUsageForDeletedPersonInExecutor(
     ].join(" "),
     [anonymizedUserId, personUserIds],
   );
+  await executor.query("SELECT ai.anonymize_browser_guest_trial($1::text[], $2)",
+    [personUserIds, anonymizedUserId]);
 }
 
 /** Guest upgrade also changes workspace attribution; account retirement must keep it intact. */
@@ -35,6 +37,7 @@ export async function transferAiUsageToUpgradedAccountInExecutor(
     ].join(" "),
     [guestUserId, guestWorkspaceId, targetUserId, targetWorkspaceId],
   );
+  await executor.query("SELECT ai.transfer_browser_guest_trial($1, $2)", [guestUserId, targetUserId]);
 }
 
 

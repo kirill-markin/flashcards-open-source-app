@@ -1,3 +1,4 @@
+import type { BrowserGuestAiTrialQuotaDetails } from "../aiUsage/browserGuestTrial/contract";
 import type { FsrsCardState } from "../scheduling";
 
 export type ValidationIssueSummary = Readonly<{
@@ -69,6 +70,7 @@ export type ReviewScheduleErrorDetails = Readonly<{
 }>;
 
 export type HttpErrorDetails = Readonly<{
+  browserGuestAiTrial?: BrowserGuestAiTrialQuotaDetails;
   validationIssues?: ReadonlyArray<ValidationIssueSummary>;
   syncConflict?: SyncConflictDetails;
   mediaAssetStorage?: MediaAssetStorageErrorDetails;
@@ -87,6 +89,7 @@ export type PublicSyncConflictDetails = Readonly<{
 }>;
 
 export type PublicHttpErrorDetails = Readonly<{
+  browserGuestAiTrial?: BrowserGuestAiTrialQuotaDetails;
   validationIssues?: ReadonlyArray<ValidationIssueSummary>;
   syncConflict?: PublicSyncConflictDetails;
   mediaAssetStorage?: PublicMediaAssetStorageErrorDetails;
@@ -109,12 +112,14 @@ export function createPublicHttpErrorDetails(details: HttpErrorDetails | null): 
     return null;
   }
 
+  const browserGuestAiTrial = details.browserGuestAiTrial;
   const validationIssues = details.validationIssues;
   const syncConflict = details.syncConflict;
   const mediaAssetStorage = details.mediaAssetStorage;
   const reviewSchedule = details.reviewSchedule;
   if (
-    validationIssues === undefined
+    browserGuestAiTrial === undefined
+    && validationIssues === undefined
     && syncConflict === undefined
     && mediaAssetStorage === undefined
     && reviewSchedule === undefined
@@ -123,6 +128,7 @@ export function createPublicHttpErrorDetails(details: HttpErrorDetails | null): 
   }
 
   return {
+    ...(browserGuestAiTrial === undefined ? {} : { browserGuestAiTrial }),
     ...(validationIssues === undefined ? {} : { validationIssues }),
     ...(syncConflict === undefined ? {} : { syncConflict: createPublicSyncConflictDetails(syncConflict) }),
     ...(mediaAssetStorage === undefined ? {} : {

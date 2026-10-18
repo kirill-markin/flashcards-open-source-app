@@ -1,5 +1,5 @@
 import { createBrowserGuestSession, probeBrowserGuestSession } from "../../../api/endpoints/guestAuth";
-import { getOptionalSession, getSession, pauseBrowserGuestSession, readBrowserGuestVerificationGeneration, recoverRegisteredCredentialForProbe, resumeVerifiedBrowserSession } from "../../../api/transport/transport";
+import { getOptionalSession, getSession, isBrowserGuestSessionVerified, loadVerifiedBrowserGuestSession, pauseBrowserGuestSession, readBrowserGuestVerificationGeneration, recoverRegisteredCredentialForProbe, resumeVerifiedBrowserSession } from "../../../api/transport/transport";
 import type { BrowserGuestProbe } from "../../../apiContracts/guestAuth";
 import { closeDatabaseAfter, getAllFromStore } from "../../../localDb/core/database";
 import { loadCloudSettings } from "../../../localDb/sync/cloudSettings";
@@ -65,55 +65,64 @@ export async function loadBrowserProductSession(): Promise<SessionInfo> {
   return runWithBrowserGuestLock("exclusive", async () => {
     const persisted = await loadCloudSettings();
     const saved = readBrowserGuestState();
-    if (saved !== null || persisted?.cloudState === "guest") pauseBrowserGuestSession();
-    let probe = await probeBrowserGuestSessionWithRegisteredRecovery();
-    const guest = probe.guestSession;
-    const pending = saved?.status === "owned" ? saved.owner.pending : null;
-    if (pending?.phase === "completed" && pending.result !== null && probe.registeredSession.present) {
-      const destination = await getOptionalSession();
-      if (destination?.userId !== pending.destinationUserId) throw new Error("The signed-in account differs from the completed conversion destination.");
-      return resumeVerifiedBrowserSession(destination);
-    }
-    if (pending !== null || guest.status === "pending_upgrade"
-      || (probe.registeredSession.present && (guest.status === "active" || persisted?.cloudState === "guest" || saved !== null))) {
-      throw new GuestConversionRequiredError(probe, pending);
-    }
-    if (probe.registeredSession.present) return resumeVerifiedBrowserSession(await getSession());
-    if (guest.status === "absent") {
-      if (saved !== null || persisted !== null || hasLoggedInCookie() || await hasUnownedLocalData()) {
-        if (saved === null && ((persisted !== null && persisted.cloudState !== "guest") || hasLoggedInCookie())) {
-          await recoverRegisteredCredentialForProbe();
-          const refreshed = await probeBrowserGuestSession();
-          if (refreshed.guestSession.status === "active" || refreshed.guestSession.status === "pending_upgrade") throw new GuestConversionRequiredError(refreshed, null);
-          return resumeVerifiedBrowserSession(await getSession());
+    const hasGuestOwnership = saved !== null || persisted?.cloudState === "guest";
+    const canRevalidateCurrentOwner = saved?.status === "owned" && saved.owner.pending === null
+      && persisted?.cloudState === "guest" && persisted.linkedUserId === saved.owner.userId
+      && persisted.linkedWorkspaceId === saved.owner.workspaceId
+      && isBrowserGuestSessionVerified(saved.owner.userId, saved.owner.workspaceId);
+    if (hasGuestOwnership && canRevalidateCurrentOwner === false) pauseBrowserGuestSession();
+    try {
+      let probe = await probeBrowserGuestSessionWithRegisteredRecovery();
+      const guest = probe.guestSession;
+      const pending = saved?.status === "owned" ? saved.owner.pending : null;
+      if (hasGuestOwnership && (probe.registeredSession.present || guest.status !== "active" || pending !== null)) {
+        pauseBrowserGuestSession();
+      }
+      if (pending?.phase === "completed" && pending.result !== null && probe.registeredSession.present) {
+        const destination = await getOptionalSession();
+        if (destination?.userId !== pending.destinationUserId) throw new Error("The signed-in account differs from the completed conversion destination.");
+        return resumeVerifiedBrowserSession(destination);
+      }
+      if (pending !== null || guest.status === "pending_upgrade"
+        || (probe.registeredSession.present && (guest.status === "active" || persisted?.cloudState === "guest" || saved !== null))) {
+        throw new GuestConversionRequiredError(probe, pending);
+      }
+      if (probe.registeredSession.present) return resumeVerifiedBrowserSession(await getSession());
+      if (guest.status === "absent") {
+        if (saved !== null || persisted !== null || hasLoggedInCookie() || await hasUnownedLocalData()) {
+          if (saved === null && ((persisted !== null && persisted.cloudState !== "guest") || hasLoggedInCookie())) {
+            await recoverRegisteredCredentialForProbe();
+            const refreshed = await probeBrowserGuestSession();
+            if (refreshed.guestSession.status === "active" || refreshed.guestSession.status === "pending_upgrade") throw new GuestConversionRequiredError(refreshed, null);
+            return resumeVerifiedBrowserSession(await getSession());
+          }
+          throw new Error("Browser credential is missing while local ownership exists. Local data has been preserved; restore the original session.");
         }
-        throw new Error("Browser credential is missing while local ownership exists. Local data has been preserved; restore the original session.");
+        // This marker survives a lost response without persisting the per-attempt bearer key.
+        writeBrowserGuestState({ status: "creating" });
+        const key = Array.from(crypto.getRandomValues(new Uint8Array(32)), (byte) => byte.toString(16).padStart(2, "0")).join("");
+        const created = await createBrowserGuestSession(key);
+        probe = await probeBrowserGuestSession();
+        requireMatchingOwner(probe, null);
+        if (created.guestSession.status !== "active" || probe.guestSession.status !== "active"
+          || created.guestSession.userId !== probe.guestSession.userId || created.guestSession.sessionId !== probe.guestSession.sessionId) {
+          throw new Error("Browser guest cookie round-trip changed identity. Preserve local state and retry recovery.");
+        }
       }
-      // This marker survives a lost response without persisting the per-attempt bearer key.
-      writeBrowserGuestState({ status: "creating" });
-      const key = Array.from(crypto.getRandomValues(new Uint8Array(32)), (byte) => byte.toString(16).padStart(2, "0")).join("");
-      const created = await createBrowserGuestSession(key);
-      probe = await probeBrowserGuestSession();
-      requireMatchingOwner(probe, null);
-      if (created.guestSession.status !== "active" || probe.guestSession.status !== "active"
-        || created.guestSession.userId !== probe.guestSession.userId || created.guestSession.sessionId !== probe.guestSession.sessionId) {
-        throw new Error("Browser guest cookie round-trip changed identity. Preserve local state and retry recovery.");
-      }
+      requireMatchingOwner(probe, persisted?.linkedUserId ?? null);
+      const activeGuest = probe.guestSession;
+      if (activeGuest.status !== "active") throw new Error("Active browser guest is required");
+      const session = await loadVerifiedBrowserGuestSession(activeGuest.userId, activeGuest.workspaceId);
+      writeBrowserGuestState({ status: "owned", owner: {
+        userId: activeGuest.userId, workspaceId: activeGuest.workspaceId,
+        initialSeedAllowed: saved?.status === "owned" ? saved.owner.initialSeedAllowed : saved?.status === "creating" || guest.status === "absent",
+        pending: null,
+      } });
+      return resumeVerifiedBrowserSession(session);
+    } catch (error) {
+      if (hasGuestOwnership || readBrowserGuestState() !== null) pauseBrowserGuestSession();
+      throw error;
     }
-    requireMatchingOwner(probe, persisted?.linkedUserId ?? null);
-    const activeGuest = probe.guestSession;
-    if (activeGuest.status !== "active") throw new Error("Active browser guest is required");
-    const session = await getOptionalSession();
-    if (session === null || session.browserGuestCapabilities?.isGuest !== true || session.userId !== activeGuest.userId
-      || session.selectedWorkspaceId !== activeGuest.workspaceId) {
-      throw new Error("Browser guest account does not match the verified cookie workspace. Local data has been preserved.");
-    }
-    writeBrowserGuestState({ status: "owned", owner: {
-      userId: activeGuest.userId, workspaceId: activeGuest.workspaceId,
-      initialSeedAllowed: saved?.status === "owned" ? saved.owner.initialSeedAllowed : saved?.status === "creating" || guest.status === "absent",
-      pending: null,
-    } });
-    return resumeVerifiedBrowserSession(session);
   });
 }
 

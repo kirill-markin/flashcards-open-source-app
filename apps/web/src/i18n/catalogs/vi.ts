@@ -17,7 +17,8 @@ const viCatalog: TranslationCatalog = {
   },
   stripe: createStripeCatalog(stripeCopy),
   paywall: {
-    heading: "Học tập dành cho tất cả mọi người.",
+    heading: "Học tập dành cho <em>tất cả mọi người.</em>",
+    alwaysFree: "Luôn miễn phí",
     freeTitle: "Miễn phí",
     freeDescription: "Được tạo cho sinh viên chưa có việc làm. Mở cửa cho tất cả. Ba lô của bạn vừa nhẹ đi một chút.",
     freeBenefit: "Ôn tập cơ bản, học ngoại tuyến và đồng bộ",
@@ -25,7 +26,7 @@ const viCatalog: TranslationCatalog = {
     creatorSupport: "Gói đăng ký của bạn giúp người tạo ra Nibomo, {{creator}}, trả phí máy chủ và chuẩn bị bản cập nhật tiếp theo cùng cà phê và pizza.",
     basePrice: "Giá cơ bản: {{price}} / tháng",
     startTrial: "Bắt đầu dùng thử miễn phí 7 ngày",
-    trialPrice: "Miễn phí 7 ngày, sau đó giá cơ bản hằng tháng là {{price}}. Cần có phương thức thanh toán. Hủy trước khi hết thời gian dùng thử để tránh khoản phí đầu tiên.",
+    trialPrice: "Miễn phí 7 ngày, sau đó giá cơ bản {{price}}/tháng. Cần phương thức thanh toán; hủy trước khi hết dùng thử để tránh khoản phí đầu tiên.",
     checkoutPrice: "Stripe xác nhận giá cuối cùng và loại tiền thanh toán khi thanh toán.",
   },
   accentColorSettings: {

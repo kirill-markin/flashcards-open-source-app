@@ -17,7 +17,8 @@ export const zhHansCatalog = {
   },
   stripe: createStripeCatalog(stripeCopy),
   paywall: {
-    heading: "学习属于每一个人。",
+    heading: "学习属于<em>每一个人。</em>",
+    alwaysFree: "永久免费",
     freeTitle: "免费",
     freeDescription: "为尚未工作的学生而创。向所有人开放。你的书包又轻了一点。",
     freeBenefit: "基础复习、离线学习与同步",
@@ -25,7 +26,7 @@ export const zhHansCatalog = {
     creatorSupport: "你的订阅帮助 Nibomo 的创作者 {{creator}} 支付服务器费用，并用咖啡和披萨为下一次更新补充能量。",
     basePrice: "基础价格：{{price}} / 月",
     startTrial: "开始 7 天免费试用",
-    trialPrice: "免费试用 7 天，之后每月基础价格为 {{price}}。需要提供付款方式。请在试用结束前取消，以免产生首次扣款。",
+    trialPrice: "免费试用7天，之后每月基础价{{price}}。需提供付款方式；请在试用结束前取消，以免首次扣款。",
     checkoutPrice: "Stripe 会在结账时确认最终价格和账单货币。",
   },
   accentColorSettings: {
