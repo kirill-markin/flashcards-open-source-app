@@ -19,6 +19,7 @@ import {
 } from "./account/accountPreferences";
 import { registerAccountDeletionRoute } from "./account/accountDeletion";
 import { registerAiUsageRoute } from "./aiUsage";
+import { registerPaywallRoutes } from "./paywall";
 import {
   ensurePublicProfileForUser,
   registerCommunityProfileRoutes,
@@ -117,6 +118,10 @@ export function createSystemRoutes(options: SystemRoutesOptions): Hono<AppEnv> {
     loadRequestContextFromRequestFn,
     updateAccountPreferencesFn,
     updateGuestSessionAnalyticsPreferencesFn,
+  });
+  registerPaywallRoutes(app, {
+    allowedOrigins: options.allowedOrigins,
+    loadRequestContextFromRequestFn,
   });
   registerAiUsageRoute(app, {
     allowedOrigins: options.allowedOrigins,

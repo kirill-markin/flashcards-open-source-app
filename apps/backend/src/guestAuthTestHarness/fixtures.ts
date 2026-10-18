@@ -68,6 +68,11 @@ export function createUserSettingsState(userId: string, workspaceId: string | nu
     analytics_consent: null,
     product_analytics_enabled: null,
     progress_time_zone: null,
+    paywall_intro_shown_at: null,
+    paywall_intro_local_date: null,
+    paywall_intro_time_zone: null,
+    paywall_follow_up_shown_at: null,
+    paywall_last_shown_at: null,
   };
 }
 

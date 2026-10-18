@@ -4,6 +4,18 @@ import type { TranslationCatalog } from "../catalogTypes";
 
 const nbCatalog: TranslationCatalog = {
   stripe: createStripeCatalog(stripeCopy),
+  paywall: {
+    heading: "Læring er for alle.",
+    freeTitle: "Gratis",
+    freeDescription: "Laget for studenter uten jobb. Åpent for alle. Sekken din ble nettopp lettere.",
+    freeBenefit: "Grunnleggende repetisjon, læring uten nett og synkronisering",
+    continueFree: "Fortsett gratis",
+    creatorSupport: "Abonnementet ditt hjelper Nibomos skaper, {{creator}}, med å betale for serverne og jobbe med neste oppdatering med kaffe og pizza.",
+    basePrice: "Grunnpris: {{price}} / måned",
+    startTrial: "Start 7 dagers gratis prøveperiode",
+    trialPrice: "7 dager gratis, deretter en månedlig grunnpris på {{price}}. En betalingsmåte kreves. Si opp før prøveperioden slutter for å unngå den første belastningen.",
+    checkoutPrice: "Stripe bekrefter endelig pris og faktureringsvaluta i kassen.",
+  },
   accentColorSettings: {
     title: "Aksentfarge",
     subtitle: "Velg appens aksentfarge.",
