@@ -1,4 +1,4 @@
-import { useState, type ReactElement } from "react";
+import { useRef, useState, type ReactElement } from "react";
 import { useAppData } from "../appData";
 import { useI18n } from "../i18n";
 import type { PaywallPresentation, PremiumContinuation } from "./stripeIntent";
@@ -18,6 +18,7 @@ export function StripeOfferContent(props: StripeOfferContentProps): ReactElement
   const { session, isSessionVerified } = useAppData();
   const billing = useStripeBilling();
   const [showPreviewMessage, setShowPreviewMessage] = useState(false);
+  const purchasePendingRef = useRef(false);
   const offer = billing.offer;
   const guest = session?.profile.email === null;
   const price = offer?.basePrice === null || offer?.basePrice === undefined ? null
@@ -37,8 +38,10 @@ export function StripeOfferContent(props: StripeOfferContentProps): ReactElement
       setShowPreviewMessage(true);
       return;
     }
+    if (purchasePendingRef.current || billing.busy || !isSessionVerified || !canPurchase) return;
+    purchasePendingRef.current = true;
     props.onChoosePremium();
-    void billing.purchase(props.continuation, props.presentation);
+    void billing.purchase(props.continuation, props.presentation).finally(() => { purchasePendingRef.current = false; });
   }
   return <section className="premium-offer" data-testid="stripe-offer">
     <section className="premium-plan premium-free-plan" aria-labelledby="premium-free-title">

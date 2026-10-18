@@ -174,8 +174,8 @@ enum AnalyticsEvent: Sendable, Equatable {
     case catalogDeckInstallStarted(packageSlug: String)
     /// The premium offer sheet reaching the screen, once per presentation. The test-settings previews
     /// have no entry point and report nothing.
-    case paywallShown(presentation: AnalyticsPaywallPresentation, localDate: String, timeZone: String)
-    case paywallChoice(presentation: AnalyticsPaywallPresentation, outcome: AnalyticsPaywallChoiceOutcome)
+    case paywallShown(presentation: AnalyticsPaywallPresentation, localDate: String, timeZone: String, accountKind: AnalyticsPaywallAccountKind?, offerType: AnalyticsPurchaseOfferType?)
+    case paywallChoice(presentation: AnalyticsPaywallPresentation, outcome: AnalyticsPaywallChoiceOutcome, offerType: AnalyticsPurchaseOfferType?)
     /// The store purchase sheet being launched, after the account and offer checks passed.
     case purchaseStarted(offerType: AnalyticsPurchaseOfferType, presentation: AnalyticsPaywallPresentation?)
     /// What StoreKit reported back for that sheet. `completed` is the client's view only; the
@@ -502,6 +502,11 @@ struct AnalyticsPaywallPresentation: Sendable, Equatable {
     }
 }
 
+enum AnalyticsPaywallAccountKind: String, Sendable, Equatable {
+    case guest
+    case registered
+}
+
 enum AnalyticsPaywallChoiceOutcome: String, Sendable, Equatable {
     case free
     case premium
@@ -789,14 +794,19 @@ extension AnalyticsEvent {
             return ["reason": .string(reason.rawValue)]
         case .catalogDeckInstallStarted(let packageSlug):
             return ["package_slug": .string(packageSlug)]
-        case .paywallShown(let presentation, let localDate, let timeZone):
-            return presentation.attributionProperties.merging([
-                "local_date": .string(localDate),
-                "time_zone": .string(timeZone),
-                "content_version": .string("union-v1")
-            ]) { _, value in value }
-        case .paywallChoice(let presentation, let outcome):
-            return presentation.attributionProperties.merging(["outcome": .string(outcome.rawValue)]) { _, value in value }
+        case .paywallShown(let presentation, let localDate, let timeZone, let accountKind, let offerType):
+            var properties = presentation.attributionProperties
+            properties["local_date"] = .string(localDate)
+            properties["time_zone"] = .string(timeZone)
+            properties["content_version"] = .string("union-v1")
+            if let accountKind { properties["account_kind"] = .string(accountKind.rawValue) }
+            if let offerType { properties["offer_type"] = .string(offerType.rawValue) }
+            return properties
+        case .paywallChoice(let presentation, let outcome, let offerType):
+            var properties = presentation.attributionProperties
+            properties["outcome"] = .string(outcome.rawValue)
+            if let offerType { properties["offer_type"] = .string(offerType.rawValue) }
+            return properties
         case .purchaseStarted(let offerType, let presentation):
             return (presentation?.attributionProperties ?? [:]).merging(["offer_type": .string(offerType.rawValue)]) { _, value in value }
         case .purchaseFinished(let outcome, let presentation):

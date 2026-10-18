@@ -468,16 +468,19 @@ export type AnalyticsEvent =
     localDate?: string;
     timeZone?: string;
     contentVersion?: string;
+    accountKind?: "guest" | "registered";
+    offerType?: AnalyticsPurchaseOfferType;
   }>
   | Readonly<{
     name: "paywall_choice";
     presentationId: string;
     entryPoint: AnalyticsPaywallEntryPoint;
     outcome: "free" | "premium" | "dismissed";
+    offerType?: AnalyticsPurchaseOfferType;
   }>
   | Readonly<{
     name: "purchase_started";
-    offerType: AnalyticsPurchaseOfferType;
+    offerType?: AnalyticsPurchaseOfferType;
     presentationId?: string;
     entryPoint?: AnalyticsPaywallEntryPoint;
   }>
@@ -639,11 +642,14 @@ export function buildAnalyticsEventProperties(event: AnalyticsEvent): AnalyticsE
         ...(event.localDate === undefined ? {} : { local_date: event.localDate }),
         ...(event.timeZone === undefined ? {} : { time_zone: event.timeZone }),
         ...(event.contentVersion === undefined ? {} : { content_version: event.contentVersion }),
+        ...(event.accountKind === undefined ? {} : { account_kind: event.accountKind }),
+        ...(event.offerType === undefined ? {} : { offer_type: event.offerType }),
       };
     case "paywall_choice":
-      return { presentation_id: event.presentationId, entry_point: event.entryPoint, outcome: event.outcome };
+      return { presentation_id: event.presentationId, entry_point: event.entryPoint, outcome: event.outcome,
+        ...(event.offerType === undefined ? {} : { offer_type: event.offerType }) };
     case "purchase_started":
-      return { offer_type: event.offerType,
+      return { ...(event.offerType === undefined ? {} : { offer_type: event.offerType }),
         ...(event.presentationId === undefined ? {} : { presentation_id: event.presentationId }),
         ...(event.entryPoint === undefined ? {} : { entry_point: event.entryPoint }) };
     case "purchase_finished":

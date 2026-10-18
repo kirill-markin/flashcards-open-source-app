@@ -271,6 +271,9 @@ export function useAccountStripeBilling(consumePendingOfferContinuation: (contin
     storeStripeIntent(pending);
     let result: StripeCheckout;
     try {
+      track({ name: "purchase_started", ...pending.presentation,
+        ...(offer?.trialEligible === null || offer?.trialEligible === undefined ? {}
+          : { offerType: offer.trialEligible ? "free_trial" : "standard" }) });
       result = await createStripeCheckout(identity);
     } catch (caught) {
       if (isCurrent(identity) && !isAuthRedirectError(caught)) track({ name: "purchase_finished", outcome: "failed", ...pending.presentation });
@@ -289,7 +292,6 @@ export function useAccountStripeBilling(consumePendingOfferContinuation: (contin
     const pendingContinuation = continuation !== null || previous?.attemptId === result.attemptId ? currentPending.continuation : null;
     storeStripeIntent({ userId: identity.userId, presentation: pending.presentation ?? null, attemptId: result.attemptId, sessionId: result.sessionId, continuation: pendingContinuation, reportedReturn: null });
     if (result.outcome === "checkout") {
-      track({ name: "purchase_started", ...pending.presentation, offerType: result.trialDays > 0 ? "free_trial" : "standard" });
       window.location.assign(result.url);
     } else {
       track({ name: "purchase_finished", outcome: "completed", ...pending.presentation });
@@ -298,7 +300,7 @@ export function useAccountStripeBilling(consumePendingOfferContinuation: (contin
       void navigateRef.current({ pathname: window.location.pathname, search: query.toString(), hash: window.location.hash }, { replace: true });
       await refreshOwned(identity);
     }
-  }), [applyPremiumContinuation, isCurrent, refreshOwned, runOperation]);
+  }), [applyPremiumContinuation, isCurrent, offer, refreshOwned, runOperation]);
 
   const manage = useCallback((identityId: string): Promise<void> => runOperation("loading", async (identity) => {
     const result = await createStripePortal(identity, identityId);
