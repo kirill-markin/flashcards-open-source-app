@@ -82,7 +82,11 @@ internal fun captureCloudHttpTransientRetryObservation(
     code: String?,
     stage: String,
     attemptNumber: Int,
-    delayMs: Long
+    delayMs: Long,
+    ioPhase: String?,
+    exceptionClass: String?,
+    attemptElapsedMs: Long?,
+    responseProtocol: String?
 ) {
     observability.addBreadcrumb(
         event = AndroidBreadcrumbEvent.HttpTransientRetry(
@@ -96,6 +100,10 @@ internal fun captureCloudHttpTransientRetryObservation(
             attemptNumber = attemptNumber,
             maxAttemptCount = cloudHttpTransientRetryMaxAttemptCount,
             delayMs = delayMs,
+            ioPhase = ioPhase,
+            exceptionClass = exceptionClass,
+            attemptElapsedMs = attemptElapsedMs,
+            responseProtocol = responseProtocol,
             appVersion = observationVersions.appVersion,
             clientVersion = observationVersions.clientVersion,
             versionCode = observationVersions.versionCode

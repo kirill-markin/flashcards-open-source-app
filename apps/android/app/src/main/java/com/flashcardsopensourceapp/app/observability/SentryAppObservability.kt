@@ -202,7 +202,11 @@ private fun addBreadcrumbData(
                 SentryHttpRetryContext(
                     attemptNumber = event.attemptNumber,
                     maxAttemptCount = event.maxAttemptCount,
-                    delayMs = event.delayMs
+                    delayMs = event.delayMs,
+                    ioPhase = sanitizeSentryContextValue(fieldName = "ioPhase", value = event.ioPhase),
+                    exceptionClass = sanitizeSentryContextValue(fieldName = "exceptionClass", value = event.exceptionClass),
+                    attemptElapsedMs = event.attemptElapsedMs,
+                    responseProtocol = sanitizeSentryContextValue(fieldName = "responseProtocol", value = event.responseProtocol)
                 )
             )
         }
@@ -1084,7 +1088,11 @@ private data class SentryHttpContext(
 private data class SentryHttpRetryContext(
     val attemptNumber: Int,
     val maxAttemptCount: Int,
-    val delayMs: Long
+    val delayMs: Long,
+    val ioPhase: String?,
+    val exceptionClass: String?,
+    val attemptElapsedMs: Long?,
+    val responseProtocol: String?
 )
 
 private data class SentryAiContext(

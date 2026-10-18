@@ -312,6 +312,10 @@ sealed interface AndroidBreadcrumbEvent : AndroidObservationEvent {
         val attemptNumber: Int,
         val maxAttemptCount: Int,
         val delayMs: Long,
+        val ioPhase: String?,
+        val exceptionClass: String?,
+        val attemptElapsedMs: Long?,
+        val responseProtocol: String?,
         val appVersion: String?,
         val clientVersion: String?,
         val versionCode: Int?

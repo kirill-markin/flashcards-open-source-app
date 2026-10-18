@@ -28,6 +28,8 @@ import java.util.concurrent.TimeUnit
 
 private val cloudJsonMediaType = "application/json".toMediaType()
 private val cloudZipMediaType = "application/zip".toMediaType()
+private const val cloudHttpIoAwaitingResponseHeadersPhase: String = "awaiting_response_headers"
+private const val cloudHttpIoReadingResponseBodyPhase: String = "reading_response_body"
 
 internal enum class CloudHttpMethod(
     val requestMethod: String
@@ -300,11 +302,19 @@ internal class CloudJsonHttpClient(
             }
             var retryDelayMs: Long? = null
             var successfulResponse: JSONObject? = null
+            var ioPhase: String = cloudHttpIoAwaitingResponseHeadersPhase
+            var receivedStatusCode: Int? = null
+            var receivedRequestId: String? = null
+            var receivedProtocol: String? = null
+            val attemptStartedAtNanos: Long = System.nanoTime()
 
             try {
                 call.awaitOkHttpResponse().use { response ->
                     val statusCode = response.code
                     val requestId = readCloudResponseRequestId(response = response)
+                    receivedStatusCode = statusCode
+                    receivedRequestId = requestId
+                    receivedProtocol = response.protocol.toString()
                     val retryAfterDelayMillis = parseCloudRetryAfterDelayMillis(
                         value = response.header("Retry-After")
                     )
@@ -312,6 +322,7 @@ internal class CloudJsonHttpClient(
                         ?.toString()
                         ?.trim()
                         ?.ifEmpty { null }
+                    ioPhase = cloudHttpIoReadingResponseBodyPhase
                     val responseBody = readCloudResponseBody(response = response)
                     if (response.isSuccessful.not()) {
                         val parsedError = parseCloudErrorPayloadWithHeaderRequestId(
@@ -337,7 +348,11 @@ internal class CloudJsonHttpClient(
                                 code = parsedError?.code,
                                 stage = cloudHttpRetryHttpResponseStage,
                                 attemptNumber = attemptNumber,
-                                delayMs = delayMs
+                                delayMs = delayMs,
+                                ioPhase = null,
+                                exceptionClass = null,
+                                attemptElapsedMs = null,
+                                responseProtocol = null
                             )
                             retryDelayMs = delayMs
                         } else {
@@ -414,12 +429,16 @@ internal class CloudJsonHttpClient(
                         request = request,
                         path = path,
                         method = method.requestMethod,
-                        requestId = null,
-                        statusCode = null,
+                        requestId = receivedRequestId,
+                        statusCode = receivedStatusCode,
                         code = null,
                         stage = cloudHttpRetryIoExceptionStage,
                         attemptNumber = attemptNumber,
-                        delayMs = delayMs
+                        delayMs = delayMs,
+                        ioPhase = ioPhase,
+                        exceptionClass = error::class.java.name,
+                        attemptElapsedMs = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - attemptStartedAtNanos),
+                        responseProtocol = receivedProtocol
                     )
                     retryDelayMs = delayMs
                 } else {
@@ -471,11 +490,19 @@ internal class CloudJsonHttpClient(
             }
             var retryDelayMs: Long? = null
             var successfulResponse: CloudBinaryHttpResponse? = null
+            var ioPhase: String = cloudHttpIoAwaitingResponseHeadersPhase
+            var receivedStatusCode: Int? = null
+            var receivedRequestId: String? = null
+            var receivedProtocol: String? = null
+            val attemptStartedAtNanos: Long = System.nanoTime()
 
             try {
                 call.awaitOkHttpResponse().use { response ->
                     val statusCode = response.code
                     val requestId = readCloudResponseRequestId(response = response)
+                    receivedStatusCode = statusCode
+                    receivedRequestId = requestId
+                    receivedProtocol = response.protocol.toString()
                     val retryAfterDelayMillis = parseCloudRetryAfterDelayMillis(
                         value = response.header("Retry-After")
                     )
@@ -486,6 +513,7 @@ internal class CloudJsonHttpClient(
                     val responseContentDisposition = response.header("Content-Disposition")
                         ?.trim()
                         ?.ifEmpty { null }
+                    ioPhase = cloudHttpIoReadingResponseBodyPhase
                     val responseBodyBytes = readCloudResponseBytes(response = response)
                     if (response.isSuccessful.not()) {
                         val responseBody = String(responseBodyBytes, StandardCharsets.UTF_8)
@@ -512,7 +540,11 @@ internal class CloudJsonHttpClient(
                                 code = parsedError?.code,
                                 stage = cloudHttpRetryHttpResponseStage,
                                 attemptNumber = attemptNumber,
-                                delayMs = delayMs
+                                delayMs = delayMs,
+                                ioPhase = null,
+                                exceptionClass = null,
+                                attemptElapsedMs = null,
+                                responseProtocol = null
                             )
                             retryDelayMs = delayMs
                         } else {
@@ -577,12 +609,16 @@ internal class CloudJsonHttpClient(
                         request = request,
                         path = path,
                         method = method.requestMethod,
-                        requestId = null,
-                        statusCode = null,
+                        requestId = receivedRequestId,
+                        statusCode = receivedStatusCode,
                         code = null,
                         stage = cloudHttpRetryIoExceptionStage,
                         attemptNumber = attemptNumber,
-                        delayMs = delayMs
+                        delayMs = delayMs,
+                        ioPhase = ioPhase,
+                        exceptionClass = error::class.java.name,
+                        attemptElapsedMs = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - attemptStartedAtNanos),
+                        responseProtocol = receivedProtocol
                     )
                     retryDelayMs = delayMs
                 } else {
