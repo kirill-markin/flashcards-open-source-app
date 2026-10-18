@@ -26,8 +26,9 @@ const plCatalog: TranslationCatalog = {
     creatorSupport: "Twoja subskrypcja pomaga twórcy Nibomo, {{creator}}, opłacać serwery i przygotowywać kolejną aktualizację przy kawie i pizzy.",
     basePrice: "Cena bazowa: {{price}} / miesiąc",
     startTrial: "Rozpocznij 7-dniowy bezpłatny okres próbny",
-    trialPrice: "7 dni za darmo, potem cena bazowa {{price}}/miesiąc. Wymagana metoda płatności; anuluj przed końcem okresu próbnego, aby uniknąć pierwszej opłaty.",
-    checkoutPrice: "Stripe potwierdzi ostateczną cenę i walutę rozliczenia przy płatności.",
+    trialPrice: "7 dni za darmo, potem cena bazowa {{price}}/miesiąc. Wymagana metoda płatności. Odnawia się automatycznie; anuluj przed końcem okresu próbnego w ustawieniach subskrypcji.",
+    checkoutPrice: "Ostateczna cena i waluta przy płatności.",
+    renewalDisclosure: "Odnawia się automatycznie; anuluj w dowolnej chwili w ustawieniach subskrypcji.",
   },
   accentColorSettings: {
     title: "Kolor akcentu",

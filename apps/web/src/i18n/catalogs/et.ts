@@ -26,8 +26,9 @@ const etCatalog: TranslationCatalog = {
     creatorSupport: "Sinu tellimus aitab Nibomo loojal {{creator}} maksta serverite eest ning valmistada kohvi ja pitsa toel ette järgmist uuendust.",
     basePrice: "Baashind: {{price}} / kuu",
     startTrial: "Alusta 7-päevast tasuta prooviperioodi",
-    trialPrice: "7 päeva tasuta, seejärel baashind {{price}} kuus. Makseviis on nõutav; esimese makse vältimiseks tühista enne prooviperioodi lõppu.",
-    checkoutPrice: "Stripe kinnitab lõpliku hinna ja arveldusvaluuta maksmisel.",
+    trialPrice: "7 päeva tasuta, seejärel baashind {{price}} kuus. Makseviis on nõutav. Uueneb automaatselt; tühista enne prooviperioodi lõppu tellimuse seadetes.",
+    checkoutPrice: "Lõplik hind ja valuuta maksmisel.",
+    renewalDisclosure: "Uueneb automaatselt; tühista igal ajal tellimuse seadetes.",
   },
   accentColorSettings: {
     title: "Rõhuvärv",

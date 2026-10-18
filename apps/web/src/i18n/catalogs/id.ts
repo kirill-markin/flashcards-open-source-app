@@ -26,8 +26,9 @@ const idCatalog: TranslationCatalog = {
     creatorSupport: "Langgananmu membantu pembuat Nibomo, {{creator}}, membayar server dan menyiapkan pembaruan berikutnya dengan kopi dan pizza.",
     basePrice: "Harga dasar: {{price}} / bulan",
     startTrial: "Mulai uji coba gratis 7 hari",
-    trialPrice: "Gratis 7 hari, lalu harga dasar {{price}}/bulan. Metode pembayaran diperlukan; batalkan sebelum uji coba berakhir untuk menghindari tagihan pertama.",
-    checkoutPrice: "Stripe mengonfirmasi harga akhir dan mata uang tagihan saat checkout.",
+    trialPrice: "Gratis 7 hari, lalu harga dasar {{price}}/bulan. Metode pembayaran diperlukan. Diperpanjang otomatis; batalkan sebelum uji coba berakhir di pengaturan Langganan.",
+    checkoutPrice: "Harga akhir dan mata uang saat checkout.",
+    renewalDisclosure: "Diperpanjang otomatis; batalkan kapan saja di pengaturan Langganan.",
   },
   accentColorSettings: {
     title: "Warna aksen",

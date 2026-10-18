@@ -26,8 +26,9 @@ const esMxCatalog: TranslationCatalog = {
     creatorSupport: "Tu suscripción ayuda al creador de Nibomo, {{creator}}, a pagar los servidores y preparar la próxima actualización con café y pizza.",
     basePrice: "Precio base: {{price}} / mes",
     startTrial: "Iniciar prueba gratis de 7 días",
-    trialPrice: "7 días gratis; después, un precio base de {{price}}/mes. Se requiere un método de pago; cancela antes de que termine la prueba para evitar el primer cobro.",
-    checkoutPrice: "Stripe confirma el precio final y la moneda de facturación al pagar.",
+    trialPrice: "7 días gratis; después, un precio base de {{price}}/mes. Se requiere un método de pago. Renovación automática; cancela antes de que termine la prueba en la configuración de suscripción.",
+    checkoutPrice: "Precio final y moneda al pagar.",
+    renewalDisclosure: "Renovación automática; cancela cuando quieras en la configuración de suscripción.",
   },
   accentColorSettings: {
     title: "Color de acento",
