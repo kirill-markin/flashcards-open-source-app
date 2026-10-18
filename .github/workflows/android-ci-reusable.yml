@@ -39,6 +39,7 @@ jobs:
             "ndk;28.2.13676358"
 
       - name: Run Android unit tests, build debug artifacts, and lint
+        id: android-build
         env:
           ANDROID_VERSION_CODE: ${{ inputs.android_version_code }}
         run: bash scripts/android/run-android-ci.sh
@@ -53,6 +54,7 @@ jobs:
             apps/android/app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk
 
       - name: Upload lint report
+        if: always() && (steps.android-build.outcome == 'success' || hashFiles('apps/android/app/build/reports/lint-results-debug.html') != '')
         uses: actions/upload-artifact@v7
         with:
           name: android-lint-report
@@ -60,6 +62,7 @@ jobs:
           path: apps/android/app/build/reports/lint-results-debug.html
 
       - name: Upload unit test reports
+        if: always() && (steps.android-build.outcome == 'success' || hashFiles('apps/android/**/build/reports/tests/**', 'apps/android/**/build/test-results/**') != '')
         uses: actions/upload-artifact@v7
         with:
           name: android-unit-test-reports
