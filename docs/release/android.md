@@ -14,6 +14,14 @@ matching release counts complete under the shared historical evidence rule;
 record its identity and rollout scope at step 9 without reconstructing old logs.
 Otherwise create a new artifact through every gate below.
 
+The [authorized 1.35.0 Device Run network exception](../android-device-run-network-issue.md)
+is the sole temporary alternative to the four-session requirements in steps
+3–4, session correlation in step 6, and completion below. Opt in explicitly at
+dispatch with `known_device_run_network_exception=true`; retain its policy
+artifact and separate operator readiness decision. All other steps/gates remain
+required. Do not claim a native or readiness-CLI pass; keep failed/skipped history.
+The exact-bundle upload recovery contract below is unchanged.
+
 1. Pin the intended release SHA and confirm its required
    `Repository static checks` passed. Use a checkout with no uncommitted source
    changes and apply the [cloud-first gate](evidence.md#android-cloud-release-gate).
