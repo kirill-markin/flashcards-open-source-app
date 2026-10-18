@@ -63,6 +63,7 @@ const urCatalog: TranslationCatalog = {
     limitTitle: "AI پیغامات کی حد پوری ہو گئی",
     previewOffer: "Premium پیشکش کا پیش منظر",
     previewAi: "AI حد کا پیش منظر",
+    previewNoPurchase: "ٹیسٹ موڈ: کوئی خریداری نہیں ہوگی اور آپ سے کوئی رقم وصول نہیں کی جائے گی۔",
     retryManually: "چیٹ میں واپس جائیں اور تیار ہونے پر اپنا پیغام دوبارہ بھیجیں۔ آپ کی کلید کی ترتیبات خودکار طور پر محفوظ ہوتی ہیں۔",
   },
   common: {

@@ -53,6 +53,7 @@ import com.flashcardsopensourceapp.data.local.model.workspace.WorkspacePackageIm
 import com.flashcardsopensourceapp.data.local.model.workspace.WorkspacePackageImportConfirmResult
 import com.flashcardsopensourceapp.data.local.model.workspace.WorkspacePackageImportPreview
 import com.flashcardsopensourceapp.data.local.repository.CloudAccountRepository
+import com.flashcardsopensourceapp.data.local.repository.FirstReviewOnboardingPushPendingException
 import com.flashcardsopensourceapp.data.local.repository.ProductAnalyticsPreferencePushPendingException
 import com.flashcardsopensourceapp.data.local.repository.ProductAnalyticsPreferencePushRefusedException
 import com.flashcardsopensourceapp.data.local.repository.ProductAnalyticsPreferencePushUndeliverableException
@@ -65,6 +66,9 @@ import com.flashcardsopensourceapp.data.local.repository.cloudsync.runtime.Cloud
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.workspace.CloudLinkedWorkspaceTransitionCoordinator
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.workspace.CloudWorkspaceLinkCoordinator
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.workspace.CloudWorkspaceOperationsCoordinator
+import com.flashcardsopensourceapp.core.observability.analytics.Analytics
+import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsEvent
+import com.flashcardsopensourceapp.core.observability.analytics.FirstReviewOnboardingSource
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
@@ -80,6 +84,7 @@ class LocalCloudAccountRepository(
     private val guestSessionStore: GuestAiSessionStore,
     private val loadReviewMediaAssetFile: suspend (String) -> ReviewMediaAssetFile,
     private val appVersion: String,
+    private val analytics: Analytics,
     /** The onboarding demo card in the current app language; `:app` owns its text. */
     private val demoCardDraftProvider: () -> CardDraft,
     /**
@@ -279,6 +284,35 @@ class LocalCloudAccountRepository(
         }
     }
 
+    override suspend fun updateFirstReviewOnboardingCompleted(completed: Boolean) {
+        val owner = preferencesStore.firstReviewOnboardingOwner()
+        if (preferencesStore.saveFirstReviewOnboardingCompletedForOwner(completed, owner)) {
+            analytics.track(if (completed) {
+                AnalyticsEvent.FirstReviewOnboardingCompleted(FirstReviewOnboardingSource.SETTINGS)
+            } else {
+                AnalyticsEvent.FirstReviewOnboardingReset
+            })
+        }
+        try {
+            operationCoordinator.runExclusive { pushPendingFirstReviewOnboardingLocked() }
+        } catch (error: CancellationException) {
+            throw error
+        } catch (error: Exception) {
+            throw FirstReviewOnboardingPushPendingException(error)
+        }
+    }
+
+    private suspend fun pushPendingFirstReviewOnboardingLocked() {
+        if (preferencesStore.currentAccountDeletionState() != AccountDeletionState.Hidden) return
+        if (preferencesStore.pendingFirstReviewOnboardingEdit() == null) return
+        val session = resolveAccountContextSessionLocked() ?: return
+        preferencesStore.pushPendingFirstReviewOnboarding(
+            remoteService = remoteService,
+            apiBaseUrl = session.apiBaseUrl,
+            authorizationHeader = session.authorizationHeader
+        )
+    }
+
     override suspend fun saveAppLocaleIfChanged(locale: String) {
         // Only the identity and session reads need the coordinator. The request goes out after it is
         // released, so sync and other exclusive work that follows a sign-in does not wait behind it.
@@ -293,7 +327,8 @@ class LocalCloudAccountRepository(
                 reviewReactionAnimationsEnabled = null,
                 productAnalyticsEnabled = null,
                 productAnalyticsEnabledOrigin = null,
-                locale = locale
+                locale = locale,
+                firstReviewOnboardingCompleted = null
             )
         )
         // A user who signed out or switched meanwhile has not had the language saved for them.
@@ -730,6 +765,7 @@ class LocalCloudAccountRepository(
         } catch (_: Exception) {
             // Deliberately continues to the account read below.
         }
+        pushPendingFirstReviewOnboardingLocked()
         val session = resolveAccountContextSessionLocked() ?: return
         val accountSnapshot = remoteService.fetchCloudAccount(
             apiBaseUrl = session.apiBaseUrl,
@@ -834,7 +870,8 @@ class LocalCloudAccountRepository(
                     reviewReactionAnimationsEnabled = null,
                     productAnalyticsEnabled = enabled,
                     productAnalyticsEnabledOrigin = origin,
-                    locale = null
+                    locale = null,
+                    firstReviewOnboardingCompleted = null
                 )
             )
         } catch (error: CloudRemoteException) {

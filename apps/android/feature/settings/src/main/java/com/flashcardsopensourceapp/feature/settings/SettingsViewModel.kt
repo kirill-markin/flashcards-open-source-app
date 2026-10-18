@@ -17,6 +17,7 @@ import com.flashcardsopensourceapp.data.local.model.sync.AccountPreferencesUpdat
 import com.flashcardsopensourceapp.data.local.model.sync.isProductAnalyticsEnabled
 import com.flashcardsopensourceapp.data.local.repository.AiChatRepository
 import com.flashcardsopensourceapp.data.local.repository.CloudAccountRepository
+import com.flashcardsopensourceapp.data.local.repository.FirstReviewOnboardingPushPendingException
 import com.flashcardsopensourceapp.data.local.repository.ProductAnalyticsPreferencePushRefusedException
 import com.flashcardsopensourceapp.data.local.repository.ProductAnalyticsPreferencePushUndeliverableException
 import com.flashcardsopensourceapp.data.local.repository.WorkspaceRepository
@@ -101,6 +102,7 @@ class SettingsViewModel(
             reviewReactionAnimationsEnabled = accountPreferences.canCustomizeStyle.not() ||
                 accountPreferences.preferences.reviewReactionAnimationsEnabled,
             productAnalyticsEnabled = isProductAnalyticsEnabled(preferences = accountPreferences.preferences),
+            firstReviewOnboardingCompleted = accountPreferences.preferences.firstReviewOnboardingCompleted,
             aiChatComposerSuggestionsEnabled = accountPreferences.canCustomizeStyle.not() ||
                 aiPreferences.composerSuggestionsEnabled,
             ownOpenAiKeyEnabled = aiPreferences.ownOpenAiKeyEnabled,
@@ -122,6 +124,7 @@ class SettingsViewModel(
             friendInviteAvailability = SettingsFriendInviteAvailability.LOADING,
             reviewReactionAnimationsEnabled = true,
             productAnalyticsEnabled = true,
+            firstReviewOnboardingCompleted = null,
             aiChatComposerSuggestionsEnabled = true,
             ownOpenAiKeyEnabled = aiChatRepository.currentOwnOpenAiKeySettings().isEnabled,
             canManageAccountPreferences = false,
@@ -153,7 +156,8 @@ class SettingsViewModel(
                         accentColor = null,
                         reviewReactionAnimationsEnabled = isEnabled,
                         productAnalyticsEnabled = null,
-                        locale = null
+                        locale = null,
+                        firstReviewOnboardingCompleted = null
                     )
                 )
             } catch (error: CancellationException) {
@@ -193,6 +197,20 @@ class SettingsViewModel(
      * interrupt with a verdict on an answer that is undelivered rather than doomed, and it stops
      * being refused the moment the account stops holding the stricter one.
      */
+    fun updateFirstReviewOnboardingCompleted(completed: Boolean) {
+        viewModelScope.launch {
+            try {
+                cloudAccountRepository.updateFirstReviewOnboardingCompleted(completed)
+            } catch (error: CancellationException) {
+                throw error
+            } catch (error: FirstReviewOnboardingPushPendingException) {
+                messageController.showMessage(message = strings.get(R.string.settings_first_review_onboarding_update_failed))
+            } catch (error: Exception) {
+                messageController.showMessage(message = strings.get(R.string.settings_first_review_onboarding_local_save_failed))
+            }
+        }
+    }
+
     fun updateProductAnalyticsEnabled(isEnabled: Boolean) {
         viewModelScope.launch {
             try {

@@ -186,6 +186,12 @@ internal fun NavGraphBuilder.registerReviewNavGraph(
             }
             val uiState by reviewViewModel.uiState.collectAsStateWithLifecycle()
             val workspaceId by reviewViewModel.workspaceId.collectAsStateWithLifecycle()
+            val guestReviewPrompt by appGraph.guestSignInAfterReviewPromptController.observeUiState().collectAsStateWithLifecycle()
+            val feedbackPrompt by appGraph.feedbackPromptController.observeUiState().collectAsStateWithLifecycle()
+            val technicalError by appGraph.appMessageBus.activeTechnicalError.collectAsStateWithLifecycle()
+            val accountPreferences by appGraph.cloudAccountRepository.observeAccountPreferences().collectAsStateWithLifecycle(
+                initialValue = com.flashcardsopensourceapp.data.local.model.sync.defaultAccountPreferences().copy(firstReviewOnboardingCompleted = null)
+            )
             val reviewFilterRequest by appGraph.appHandoffCoordinator.observeReviewFilter().collectAsStateWithLifecycle()
 
             LaunchedEffect(reviewFilterRequest?.requestId, uiState) {
@@ -201,6 +207,9 @@ internal fun NavGraphBuilder.registerReviewNavGraph(
                 workspaceId = workspaceId,
                 reviewReactionLottieConfigurationStore = reviewReactionLottieConfigurationStore,
                 reviewReactionAnimationsEnabled = reviewReactionAnimationsEnabledState.value,
+                firstReviewOnboardingCompleted = accountPreferences.firstReviewOnboardingCompleted,
+                isFirstReviewOnboardingSurfaceAvailable = !appGraph.reviewPaywallScheduler.isStoreReviewInProgress &&
+                    appGraph.premiumPresenter.reason == null && !guestReviewPrompt.isVisible && !feedbackPrompt.isVisible && technicalError == null,
                 observability = appGraph.observability,
                 onSelectFilter = reviewViewModel::selectFilterForWorkspaceIfUnchanged,
                 onOpenPreview = {

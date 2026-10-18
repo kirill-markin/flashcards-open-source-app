@@ -63,6 +63,7 @@ const swCatalog: TranslationCatalog = {
     limitTitle: "Kikomo cha ujumbe wa AI kimefikiwa",
     previewOffer: "Hakiki ofa ya Premium",
     previewAi: "Hakiki kikomo cha AI",
+    previewNoPurchase: "Hali ya majaribio: hakuna ununuzi utakaofanywa na hutatozwa malipo.",
     retryManually: "Rudi kwenye gumzo na utume ujumbe tena ukiwa tayari. Mipangilio ya ufunguo wako huhifadhiwa kiotomatiki.",
   },
   common: {

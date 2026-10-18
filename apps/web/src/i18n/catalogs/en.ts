@@ -62,6 +62,7 @@ const enCatalog = {
     limitTitle: "AI message limit reached",
     previewOffer: "Preview Premium offer",
     previewAi: "Preview AI limit",
+    previewNoPurchase: "Test mode: no purchase is made and you will not be charged.",
     retryManually: "Return to chat and send your message again when ready. Your key settings are saved automatically.",
   },
   common: {

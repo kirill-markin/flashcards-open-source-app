@@ -63,6 +63,7 @@ const viCatalog: TranslationCatalog = {
     limitTitle: "Đã đạt giới hạn tin nhắn AI",
     previewOffer: "Xem trước ưu đãi Premium",
     previewAi: "Xem trước giới hạn AI",
+    previewNoPurchase: "Chế độ thử nghiệm: không có giao dịch mua nào được thực hiện và bạn sẽ không bị tính phí.",
     retryManually: "Quay lại cuộc trò chuyện và gửi lại tin nhắn khi bạn sẵn sàng. Cài đặt khóa được lưu tự động.",
   },
   common: {

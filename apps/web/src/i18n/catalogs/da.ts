@@ -63,6 +63,7 @@ const daCatalog: TranslationCatalog = {
     limitTitle: "Grænsen for AI-beskeder er nået",
     previewOffer: "Forhåndsvis Premium-tilbud",
     previewAi: "Forhåndsvis AI-grænse",
+    previewNoPurchase: "Testtilstand: der foretages intet køb, og du bliver ikke opkrævet noget.",
     retryManually: "Vend tilbage til chatten, og send din besked igen, når du er klar. Dine nøgleindstillinger gemmes automatisk.",
   },
   common: {

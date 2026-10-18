@@ -63,6 +63,7 @@ const guCatalog: TranslationCatalog = {
     limitTitle: "AI સંદેશાની મર્યાદા પૂરી થઈ",
     previewOffer: "Premium ઑફરનું પૂર્વાવલોકન",
     previewAi: "AI મર્યાદાનું પૂર્વાવલોકન",
+    previewNoPurchase: "ટેસ્ટ મોડ: કોઈ ખરીદી કરવામાં આવશે નહીં અને તમારી પાસેથી કોઈ શુલ્ક લેવામાં આવશે નહીં.",
     retryManually: "ચેટ પર પાછા જાઓ અને તૈયાર થાઓ ત્યારે સંદેશ ફરી મોકલો. તમારી કીની સેટિંગ્સ આપમેળે સાચવાય છે.",
   },
   common: {

@@ -15,10 +15,12 @@ import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsReviewP
 import java.util.UUID
 
 internal sealed interface PremiumReason {
-    /** Null only on the test-settings previews, which report no `paywall_shown`. */
     val paywallEntryPoint: AnalyticsPaywallEntryPoint?
 
-    data class OfferPreview(override val paywallEntryPoint: AnalyticsPaywallEntryPoint?) : PremiumReason
+    data class OfferPreview(override val paywallEntryPoint: AnalyticsPaywallEntryPoint) : PremiumReason
+    data object TestOfferPreview : PremiumReason {
+        override val paywallEntryPoint: AnalyticsPaywallEntryPoint? = null
+    }
     data class Feature(override val paywallEntryPoint: AnalyticsPaywallEntryPoint) : PremiumReason
     data object AiLimitPreview : PremiumReason {
         override val paywallEntryPoint: AnalyticsPaywallEntryPoint? = null
@@ -70,7 +72,8 @@ internal class PremiumPresenter(private val accountIdentityProvider: () -> Strin
         dismiss()
         presentationIdentity = accountIdentityProvider()
         presentation = paywallEntryPoint?.let { AnalyticsPaywallPresentation(UUID.randomUUID().toString(), it) }
-        reason = PremiumReason.OfferPreview(paywallEntryPoint = paywallEntryPoint)
+        reason = paywallEntryPoint?.let { PremiumReason.OfferPreview(paywallEntryPoint = it) }
+            ?: PremiumReason.TestOfferPreview
     }
 
     fun showReviewOffer(trigger: AnalyticsReviewPaywallTrigger, accountIdentity: String) {
@@ -116,7 +119,7 @@ internal class PremiumPresenter(private val accountIdentityProvider: () -> Strin
             is PremiumReason.Feature -> true
             is PremiumReason.OfferPreview -> !previouslyHadAccess
             is PremiumReason.AiLimit -> previouslyKnownFree
-            PremiumReason.AiLimitPreview, null -> false
+            PremiumReason.TestOfferPreview, PremiumReason.AiLimitPreview, null -> false
         }
         if (hasPremiumAccess(entitlement = entitlement) && shouldReturnToAction) {
             finish(result = PremiumResult.ACCESS_GRANTED)

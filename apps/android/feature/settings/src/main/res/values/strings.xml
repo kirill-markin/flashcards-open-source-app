@@ -935,4 +935,10 @@
     <string name="settings_connection_rate_limited">Too many connection attempts. Wait, then start fresh verification.</string>
     <string name="settings_connection_invalid">This account connection could not be verified. Check the other account and start fresh verification.</string>
     <string name="settings_connection_workspace_required">The accounts are connected, but the current offline workspace is unavailable. Its local data is preserved. Choose how to resolve the workspace before continuing.</string>
+    <string name="settings_first_review_onboarding_title">First review onboarding</string>
+    <string name="settings_first_review_onboarding_completed">First review onboarding completed</string>
+    <string name="settings_first_review_onboarding_body">Turn off to see the guide again when you review a card.</string>
+    <string name="settings_first_review_onboarding_save_failed">Your review was saved, but the guide setting could not be saved on this device.</string>
+    <string name="settings_first_review_onboarding_local_save_failed">The guide setting could not be saved on this device. Please try again.</string>
+    <string name="settings_first_review_onboarding_update_failed">Could not update the guide setting. An offline change stays saved on this device and will sync when connected.</string>
 </resources>

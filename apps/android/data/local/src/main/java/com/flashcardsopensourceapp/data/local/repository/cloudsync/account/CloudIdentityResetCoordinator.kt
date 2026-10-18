@@ -161,6 +161,7 @@ class CloudIdentityResetCoordinator(
         withContext(Dispatchers.IO) {
             resetMutex.withLock {
                 disconnectCloudIdentityPreservingLocalStateLocked()
+                cloudPreferencesStore.clearAccountPreferences()
                 guestAiSessionStore.clearAllSessions()
                 ownOpenAiKeyStore.clear()
                 onCloudIdentityReset()
@@ -170,7 +171,7 @@ class CloudIdentityResetCoordinator(
 
     private suspend fun disconnectCloudIdentityPreservingLocalStateLocked() {
         cloudPreferencesStore.clearCredentials()
-        cloudPreferencesStore.clearAccountPreferences()
+        cloudPreferencesStore.clearAccountPreferencesForCredentialLoss()
         database.syncStateDao().clearBlockedSyncState()
         val activeWorkspaceId = ensureLocalWorkspaceShell(
             database = database,
