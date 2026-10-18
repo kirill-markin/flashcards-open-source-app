@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 enum FirstReviewOnboardingTarget: Hashable {
     case showAnswer
@@ -20,76 +21,119 @@ private struct FirstReviewOnboardingDrawingKey: Equatable {
     let target: CGRect
     let size: CGSize
     let accent: AccountAccentColor
+    let colorScheme: ColorScheme
+    let displayScale: CGFloat
+}
+
+private struct FirstReviewOnboardingDrawing {
+    let image: UIImage
+    let bounds: CGRect
 }
 
 struct FirstReviewOnboardingOverlay: View {
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.displayScale) private var displayScale
     let target: CGRect
     let size: CGSize
     let accent: AccountAccentColor
     let animates: Bool
-    @State private var drawings: [[FirstReviewPencilMark]] = []
+    @State private var drawings: [FirstReviewOnboardingDrawing] = []
     private let drawingBleed: CGFloat = 40
 
     var body: some View {
-        TimelineView(.animation(minimumInterval: 0.235, paused: self.animates == false)) { timeline in
+        let drawings = self.drawings
+        return TimelineView(.animation(minimumInterval: 0.235, paused: self.animates == false)) { timeline in
             let frame = self.animates
                 ? Int(timeline.date.timeIntervalSinceReferenceDate / 0.235) % 2 : 0
-            Canvas { context, _ in
-                guard self.drawings.indices.contains(frame) else { return }
-                context.translateBy(x: self.drawingBleed, y: self.drawingBleed)
-                context.drawLayer { shadow in
-                    shadow.translateBy(x: 2, y: 3)
-                    shadow.opacity = 0.85
-                    for mark in self.drawings[frame] {
-                        if mark.lineWidth == nil {
-                            shadow.fill(mark.path, with: .color(.black))
-                        }
-                        shadow.stroke(
-                            mark.path, with: .color(.black),
-                            style: StrokeStyle(
-                                lineWidth: (mark.lineWidth ?? 0) + 6,
-                                lineCap: .round, lineJoin: .round
-                            )
-                        )
-                    }
-                }
-                let contrastColor: Color = self.colorScheme == .dark ? .white : .black
-                context.drawLayer { contrast in
-                    contrast.opacity = 0.75
-                    for mark in self.drawings[frame] {
-                        if mark.lineWidth == nil {
-                            contrast.fill(mark.path, with: .color(contrastColor))
-                        }
-                        contrast.stroke(
-                            mark.path, with: .color(contrastColor),
-                            style: StrokeStyle(
-                                lineWidth: (mark.lineWidth ?? 0) + firstReviewPencilContrastWidth,
-                                lineCap: .round, lineJoin: .round
-                            )
-                        )
-                    }
-                }
-                for mark in self.drawings[frame] {
-                    if let width = mark.lineWidth {
-                        context.stroke(mark.path, with: .color(self.accent.color.opacity(mark.opacity)), lineWidth: width)
-                    } else {
-                        context.fill(mark.path, with: .color(self.accent.color.opacity(mark.opacity)))
-                    }
+            Color.clear.overlay(alignment: .topLeading) {
+                if drawings.indices.contains(frame) {
+                    let drawing = drawings[frame]
+                    Image(uiImage: drawing.image)
+                        .renderingMode(.original)
+                        .resizable()
+                        .frame(width: drawing.bounds.width, height: drawing.bounds.height)
+                        .offset(x: drawing.bounds.minX, y: drawing.bounds.minY)
                 }
             }
-            .padding(-self.drawingBleed)
         }
         .onChange(of: FirstReviewOnboardingDrawingKey(
-            target: self.target, size: self.size, accent: self.accent
+            target: self.target, size: self.size, accent: self.accent,
+            colorScheme: self.colorScheme, displayScale: self.displayScale
         ), initial: true) { _, key in
             self.drawings = (0..<2).map {
-                makeFirstReviewOnboardingDrawing(
-                    target: key.target, size: key.size, frame: $0
+                makeFirstReviewOnboardingImage(
+                    key: key, frame: $0, drawingBleed: self.drawingBleed
                 )
             }
         }
         .allowsHitTesting(false)
         .accessibilityHidden(true)
     }
+}
+
+@MainActor
+private func makeFirstReviewOnboardingImage(
+    key: FirstReviewOnboardingDrawingKey, frame: Int, drawingBleed: CGFloat
+) -> FirstReviewOnboardingDrawing {
+    let marks = makeFirstReviewOnboardingDrawing(target: key.target, size: key.size, frame: frame)
+    let bounds = marks.reduce(CGRect.null) { bounds, mark in
+        let strokeInset = (mark.lineWidth ?? 0) / 2
+        return bounds.union(mark.path.boundingRect.insetBy(dx: -strokeInset, dy: -strokeInset))
+    }.insetBy(dx: -drawingBleed, dy: -drawingBleed).integral
+    let format = UIGraphicsImageRendererFormat.preferred()
+    format.opaque = false
+    format.scale = key.displayScale
+    format.preferredRange = .standard
+    let image = UIGraphicsImageRenderer(size: bounds.size, format: format).image { renderer in
+        let context = renderer.cgContext
+        context.translateBy(x: -bounds.minX, y: -bounds.minY)
+        drawFirstReviewPencilBacking(
+            marks: marks, context: context, color: UIColor.black.cgColor,
+            opacity: 0.85, lineWidth: 6, offset: CGSize(width: 2, height: 3)
+        )
+        drawFirstReviewPencilBacking(
+            marks: marks, context: context,
+            color: (key.colorScheme == .dark ? UIColor.white : UIColor.black).cgColor,
+            opacity: 0.75, lineWidth: firstReviewPencilContrastWidth, offset: .zero
+        )
+        let accent = UIColor(key.accent.color).cgColor
+        context.setFillColor(accent)
+        context.setStrokeColor(accent)
+        for mark in marks {
+            context.setAlpha(CGFloat(mark.opacity))
+            context.addPath(mark.path.cgPath)
+            if let width = mark.lineWidth {
+                context.setLineWidth(width)
+                context.strokePath()
+            } else {
+                context.fillPath()
+            }
+        }
+    }
+    return FirstReviewOnboardingDrawing(image: image, bounds: bounds)
+}
+
+private func drawFirstReviewPencilBacking(
+    marks: [FirstReviewPencilMark], context: CGContext, color: CGColor,
+    opacity: CGFloat, lineWidth: CGFloat, offset: CGSize
+) {
+    context.saveGState()
+    context.beginTransparencyLayer(auxiliaryInfo: nil)
+    context.translateBy(x: offset.width, y: offset.height)
+    context.setAlpha(opacity)
+    context.setFillColor(color)
+    context.setStrokeColor(color)
+    context.setLineCap(.round)
+    context.setLineJoin(.round)
+    for mark in marks {
+        if mark.lineWidth == nil {
+            context.addPath(mark.path.cgPath)
+            context.fillPath()
+        }
+        context.addPath(mark.path.cgPath)
+        context.setLineWidth((mark.lineWidth ?? 0) + lineWidth)
+        context.strokePath()
+    }
+    context.endTransparencyLayer()
+    context.restoreGState()
 }
