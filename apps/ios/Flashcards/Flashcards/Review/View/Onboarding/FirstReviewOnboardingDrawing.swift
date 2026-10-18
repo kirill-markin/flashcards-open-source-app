@@ -1,6 +1,6 @@
 import SwiftUI
 
-let firstReviewPencilContrastWidth: CGFloat = 3
+let firstReviewPencilContrastWidth: CGFloat = 1.5
 
 struct FirstReviewPencilMark {
     let path: Path
@@ -33,7 +33,7 @@ private func sampleFirstReviewCubic(_ a: CGPoint, _ b: CGPoint, _ c: CGPoint, _ 
 }
 
 private func firstReviewOblong(target: CGRect, frame: Int) -> [CGPoint] {
-    let bounds = target.insetBy(dx: -11.5, dy: -11.5)
+    let bounds = target.insetBy(dx: -16, dy: -16)
     let x = bounds.minX + (frame == 0 ? 0 : -0.7)
     let y = bounds.minY + (frame == 0 ? 0 : 0.8)
     let w = bounds.width
@@ -105,41 +105,17 @@ private func firstReviewPencilMarks(
 }
 
 private func firstReviewOutlineTransform(
-    marks: [FirstReviewPencilMark], target: CGRect, size: CGSize, neighboringButtons: [CGRect]
+    marks: [FirstReviewPencilMark], target: CGRect
 ) -> CGAffineTransform {
     let bounds = marks.reduce(CGRect.null) { bounds, mark in
         let strokeInset = (mark.lineWidth ?? 0) / 2
         return bounds.union(mark.path.boundingRect.insetBy(dx: -strokeInset, dy: -strokeInset))
     }
-    let contrastInset = firstReviewPencilContrastWidth / 2
-    let edgeInset: CGFloat = 2
-    var radiusX = min(bounds.width / 2, target.midX - edgeInset - contrastInset,
-                      size.width - target.midX - edgeInset - contrastInset)
-    var radiusY = min(bounds.height / 2, target.midY - edgeInset - contrastInset,
-                      size.height - target.midY - edgeInset - contrastInset)
-    for neighbor in neighboringButtons {
-        if neighbor.minX >= target.maxX {
-            radiusX = min(radiusX, neighbor.minX - target.midX - edgeInset - contrastInset)
-        } else if neighbor.maxX <= target.minX {
-            radiusX = min(radiusX, target.midX - neighbor.maxX - edgeInset - contrastInset)
-        }
-        if neighbor.minY >= target.maxY {
-            radiusY = min(radiusY, neighbor.minY - target.midY - edgeInset - contrastInset)
-        } else if neighbor.maxY <= target.minY {
-            radiusY = min(radiusY, target.midY - neighbor.maxY - edgeInset - contrastInset)
-        }
-    }
-    // Fit the entire textured stroke and its contrast rim about the actual button center.
-    let scaleX = max(0, radiusX) * 2 / bounds.width
-    let scaleY = max(0, radiusY) * 2 / bounds.height
-    return CGAffineTransform(
-        a: scaleX, b: 0, c: 0, d: scaleY,
-        tx: target.midX - bounds.midX * scaleX, ty: target.midY - bounds.midY * scaleY
-    )
+    return CGAffineTransform(translationX: target.midX - bounds.midX, y: target.midY - bounds.midY)
 }
 
 func makeFirstReviewOnboardingDrawing(
-    target: CGRect, size: CGSize, neighboringButtons: [CGRect], frame: Int
+    target: CGRect, size: CGSize, frame: Int
 ) -> [FirstReviewPencilMark] {
     var random = FirstReviewPencilRandom(bits: frame == 0 ? 7823 : 48191)
     let wobble: CGFloat = frame == 0 ? 0 : 1.5
@@ -147,14 +123,12 @@ func makeFirstReviewOnboardingDrawing(
     let tipX = target.minX + target.width * (wide ? 0.63 : 0.5) + wobble
     let originalOutline = firstReviewOblong(target: target, frame: frame)
     let originalMarks = firstReviewPencilMarks(points: originalOutline, apex: nil, random: &random)
-    let transform = firstReviewOutlineTransform(
-        marks: originalMarks, target: target, size: size, neighboringButtons: neighboringButtons
-    )
+    let transform = firstReviewOutlineTransform(marks: originalMarks, target: target)
     let outline = originalOutline.map { $0.applying(transform) }
     var marks = originalMarks.map { mark in
         FirstReviewPencilMark(
             path: mark.path.applying(transform), opacity: mark.opacity,
-            lineWidth: mark.lineWidth.map { $0 * min(transform.a, transform.d) }
+            lineWidth: mark.lineWidth
         )
     }
     guard let ringTop = outline.filter({ abs($0.x-tipX) < 10 }).map(\.y).min() else { return marks }
