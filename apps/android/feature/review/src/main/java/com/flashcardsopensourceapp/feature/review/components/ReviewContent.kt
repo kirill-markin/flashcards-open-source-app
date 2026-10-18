@@ -28,7 +28,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.Label
 import androidx.compose.material.icons.automirrored.outlined.VolumeUp
 import androidx.compose.material.icons.outlined.Autorenew
-import androidx.compose.material.icons.outlined.ContentCopy
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.AssistChipDefaults
@@ -57,6 +56,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
@@ -577,7 +577,7 @@ private fun ReviewCardSideSection(
                     .testTag(copyButtonTag)
             ) {
                 Icon(
-                    imageVector = Icons.Outlined.ContentCopy,
+                    painter = painterResource(id = R.drawable.review_content_copy_rounded),
                     contentDescription = copyContentDescription,
                     modifier = Modifier.size(reviewSpeechIconSize)
                 )
