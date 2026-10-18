@@ -138,6 +138,12 @@ fun ReviewRoute(
     var guideBounds by remember(workspaceId, uiState.preparedCurrentCard?.card?.cardId, uiState.isAnswerVisible) {
         mutableStateOf<Rect?>(null)
     }
+    var guideNeighbors by remember(workspaceId, uiState.preparedCurrentCard?.card?.cardId, uiState.isAnswerVisible) {
+        mutableStateOf<Map<ReviewRating, LayoutCoordinates>>(emptyMap())
+    }
+    var guideNeighborBounds by remember(workspaceId, uiState.preparedCurrentCard?.card?.cardId, uiState.isAnswerVisible) {
+        mutableStateOf<List<Rect>>(emptyList())
+    }
     var guideViewport by remember { mutableStateOf(Size.Zero) }
     fun updateGuideBounds() {
         val root = guideRoot
@@ -148,6 +154,11 @@ fun ReviewRoute(
             bounds.takeIf { it.width > 0f && it.height > 0f && viewport.contains(it.topLeft) && viewport.contains(it.bottomRight) }
         } else {
             null
+        }
+        guideNeighborBounds = if (root != null && root.isAttached) {
+            guideNeighbors.values.filter { it.isAttached }.map { root.localBoundingBoxOf(it, clipBounds = false) }
+        } else {
+            emptyList()
         }
     }
     val reviewSpeechFallbackLanguageTag =
@@ -438,6 +449,10 @@ fun ReviewRoute(
                         guideTarget = coordinates
                         updateGuideBounds()
                     },
+                    onGuideNeighborPositioned = { rating, coordinates ->
+                        guideNeighbors = guideNeighbors + (rating to coordinates)
+                        updateGuideBounds()
+                    },
                     onRateAgain = onRateAgainWithReaction,
                     onRateHard = onRateHardWithReaction,
                     onRateGood = onRateGoodWithReaction,
@@ -446,14 +461,21 @@ fun ReviewRoute(
             }
 
             val targetBounds = guideBounds
+            val expectedGuideNeighbors = if (uiState.isAnswerVisible) {
+                uiState.preparedCurrentCard?.answerOptions?.count { it.rating != ReviewRating.AGAIN } ?: 0
+            } else {
+                0
+            }
             if (firstReviewOnboardingCompleted == false && !uiState.isLoading &&
                 uiState.preparedCurrentCard != null && !isReviewSurfaceBusy &&
                 isFirstReviewOnboardingSurfaceAvailable && hasWindowFocus &&
                 lifecycleState == androidx.lifecycle.Lifecycle.State.RESUMED &&
-                guideTarget?.isAttached == true && targetBounds != null
+                guideTarget?.isAttached == true && targetBounds != null &&
+                guideNeighborBounds.size == expectedGuideNeighbors
             ) {
                 FirstReviewOnboardingOverlay(
                     target = targetBounds,
+                    neighbors = guideNeighborBounds,
                     viewport = guideViewport,
                     availableTop = with(LocalDensity.current) { (innerPadding.calculateTopPadding() + 8.dp).toPx() },
                     animationsEnabled = reviewReactionMotionMode == ReviewReactionMotionMode.STANDARD,

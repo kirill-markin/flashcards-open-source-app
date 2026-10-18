@@ -4,10 +4,16 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Path
+import kotlin.math.abs
 import kotlin.math.ceil
 import kotlin.math.cos
 import kotlin.math.min
 import kotlin.math.sin
+
+internal const val pencilContrastRadius = 1.25f
+// Includes the widest pressure, drift, and nib vertex at any tangent angle.
+private const val pencilBrushRadius = 6.6f
+private const val pencilEnvelopeRadius = pencilBrushRadius + pencilContrastRadius
 
 internal data class PencilMark(val path: Path, val opacity: Float, val strokeWidth: Float?)
 
@@ -103,9 +109,46 @@ private fun pencilStroke(
     }
 }
 
-internal fun firstReviewOnboardingDrawing(target: Rect, viewport: Size, availableTop: Float, frame: Int): List<PencilMark> {
+private fun centeredOutline(
+    target: Rect,
+    viewport: Size,
+    availableTop: Float,
+    neighbors: List<Rect>,
+    frame: Int
+): List<Offset> {
+    val center = target.center
+    var horizontalRoom = min(center.x, viewport.width - center.x)
+    var verticalRoom = min(center.y - availableTop, viewport.height - center.y)
+    neighbors.forEach { neighbor ->
+        if (neighbor.top < target.bottom && neighbor.bottom > target.top) {
+            if (neighbor.left >= target.right) horizontalRoom = min(horizontalRoom, neighbor.left - center.x)
+            if (neighbor.right <= target.left) horizontalRoom = min(horizontalRoom, center.x - neighbor.right)
+        }
+        if (neighbor.left < target.right && neighbor.right > target.left) {
+            if (neighbor.top >= target.bottom) verticalRoom = min(verticalRoom, neighbor.top - center.y)
+            if (neighbor.bottom <= target.top) verticalRoom = min(verticalRoom, center.y - neighbor.bottom)
+        }
+    }
+    val frames = listOf(0, 1).map { oblong(target.inflate(11.5f), it) }
+    val points = frames.flatten()
+    val horizontalScale = ((horizontalRoom - pencilEnvelopeRadius - 1f).coerceAtLeast(0f) /
+        points.maxOf { abs(it.x - center.x) }).coerceAtMost(1f)
+    val verticalScale = ((verticalRoom - pencilEnvelopeRadius - 1f).coerceAtLeast(0f) /
+        points.maxOf { abs(it.y - center.y) }).coerceAtMost(1f)
+    return frames[frame].map { point ->
+        center + Offset((point.x - center.x) * horizontalScale, (point.y - center.y) * verticalScale)
+    }
+}
+
+internal fun firstReviewOnboardingDrawing(
+    target: Rect,
+    viewport: Size,
+    availableTop: Float,
+    neighbors: List<Rect>,
+    frame: Int
+): List<PencilMark> {
     val random = PencilRandom(if (frame == 0) 7823u else 48191u)
-    val outline = oblong(target.inflate(11.5f), frame)
+    val outline = centeredOutline(target, viewport, availableTop, neighbors, frame)
     val wide = target.width > target.height * 2
     val wobble = if (frame == 0) 0f else 1.5f
     val tipX = target.left + target.width * if (wide) .63f else .5f
@@ -116,11 +159,10 @@ internal fun firstReviewOnboardingDrawing(target: Rect, viewport: Size, availabl
     if (room < 18f) return outlineMarks
     val arrowScale = (room / 60f).coerceAtMost(1f)
     val finalControl = apex - Offset(0f, 33f * arrowScale)
-    val tailY = (apex.y - 94f).coerceAtLeast(availableTop + 8f)
+    val tailY = (apex.y - 94f).coerceAtLeast(availableTop + pencilEnvelopeRadius + 8f)
     val tailX = min(viewport.width - 25f, tipX + (if (wide) 53f else 96f) * arrowScale)
     val bendX = (tipX - (if (wide) 28f else 16f) * arrowScale).coerceAtLeast(15f)
     val headLength = 26f * arrowScale
-    // The shaft and both V legs share one downward-facing tapered apex.
     val legA = apex + Offset(-headLength * sin(.61f), -headLength * cos(.61f))
     val legBLength = headLength - wobble * .4f * arrowScale
     val legB = apex + Offset(legBLength * sin(.635f), -legBLength * cos(.635f))
