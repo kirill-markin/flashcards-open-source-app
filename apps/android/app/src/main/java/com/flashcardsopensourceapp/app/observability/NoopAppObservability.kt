@@ -84,7 +84,11 @@ private fun renderNoopLogLine(
             " endpointName=${sanitizeSentryLogValue(fieldName = "endpointName", value = event.endpointName)} " +
             "method=${sanitizeSentryLogValue(fieldName = "method", value = event.method)} " +
             "stage=${sanitizeSentryLogValue(fieldName = "stage", value = event.stage)} " +
-            "attemptNumber=${event.attemptNumber} maxAttemptCount=${event.maxAttemptCount} delayMs=${event.delayMs}"
+            "attemptNumber=${event.attemptNumber} maxAttemptCount=${event.maxAttemptCount} delayMs=${event.delayMs} " +
+            "ioPhase=${sanitizeSentryLogValue(fieldName = "ioPhase", value = event.ioPhase)} " +
+            "exceptionClass=${sanitizeSentryLogValue(fieldName = "exceptionClass", value = event.exceptionClass)} " +
+            "attemptElapsedMs=${event.attemptElapsedMs?.toString() ?: "null"} " +
+            "responseProtocol=${sanitizeSentryLogValue(fieldName = "responseProtocol", value = event.responseProtocol)}"
     } else {
         logLine
     }
