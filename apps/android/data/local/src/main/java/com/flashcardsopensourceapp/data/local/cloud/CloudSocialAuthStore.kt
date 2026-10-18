@@ -160,6 +160,20 @@ internal class CloudSocialAuthStore(private val credentialStore: CloudCredential
         savePending(pending.copy(completedWorkspace = workspace))
     }
 
+    fun clearRejectedDemoOnlyUpgrade(upgrade: PendingGuestUpgradeState) {
+        val pending = loadPending() ?: return
+        if (pending.configuration != upgrade.configuration ||
+            pending.acceptedUserId != upgrade.accountSnapshot.userId ||
+            pending.guestBinding != CloudSocialGuestBinding(upgrade.guestSession.userId, upgrade.guestSession.workspaceId) ||
+            pending.workspaceSelection != upgrade.selection) {
+            return
+        }
+        savePending(pending.copy(
+            workspaceSelection = null,
+            preparedContext = pending.preparedContext?.copy(demoOnlyDestinationWorkspaceId = null)
+        ))
+    }
+
     fun clearPending() {
         credentialStore.update { secrets -> secrets.copy(pendingSocialSignIn = null) }
     }

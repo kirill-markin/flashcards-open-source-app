@@ -9,7 +9,7 @@ import com.flashcardsopensourceapp.data.local.model.sync.CloudAccountSnapshot
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudAccountState
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudCredentialRecoveryReason
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudCredentialRecoveryState
-import com.flashcardsopensourceapp.data.local.model.cloud.CloudGuestUpgradeMode
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudGuestUpgradePreparation
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudEmailSession
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudOtpChallenge
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudSendCodeResult
@@ -21,6 +21,7 @@ import com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspaceSummary
 import com.flashcardsopensourceapp.data.local.model.cloud.StoredCloudCredentials
 import com.flashcardsopensourceapp.data.local.model.ai.StoredGuestAiSession
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.guest.loadActiveGuestSessionOrNull
+import com.flashcardsopensourceapp.data.local.repository.cloudsync.guest.drainGuestWorkspaceBeforeUpgrade
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.guest.resumePendingGuestUpgradeRecoveryIfNeeded
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.runtime.CloudOperationCoordinator
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.runtime.CloudSessionProvider
@@ -61,11 +62,7 @@ internal class CloudSignInCoordinator(
 
     suspend fun prepareSocialSignIn(credentials: StoredCloudCredentials): CloudWorkspaceLinkContext {
         return operationCoordinator.runExclusive {
-            val context = prepareVerifiedSignIn(credentials = credentials)
-            if (context.guestUpgradeMode != null) {
-                markGuestUpgradePreparationState()
-            }
-            context
+            prepareVerifiedSignIn(credentials = credentials)
         }
     }
 
@@ -106,14 +103,10 @@ internal class CloudSignInCoordinator(
                 authBaseUrl = configuration.authBaseUrl
             )
             onVerified(session)
-            val linkContext: CloudWorkspaceLinkContext = buildCloudWorkspaceLinkContext(
+            buildCloudWorkspaceLinkContext(
                 credentials = session.credentials,
                 configuration = configuration
             )
-            if (linkContext.guestUpgradeMode != null) {
-                markGuestUpgradePreparationState()
-            }
-            linkContext
         }
     }
 
@@ -147,14 +140,38 @@ internal class CloudSignInCoordinator(
             guestSessionStore = guestSessionStore,
             configuration = configuration
         )?.takeIf { session -> session.isAnalyticsOnly.not() }
-        val guestUpgradeMode: CloudGuestUpgradeMode? = if (guestSession == null) {
+        val localSettings: CloudSettings = preferencesStore.currentCloudSettings()
+        val guestUpgradePreparation: CloudGuestUpgradePreparation? = if (guestSession == null) {
             null
+        } else if ((localSettings.activeWorkspaceId ?: localSettings.linkedWorkspaceId) == guestSession.workspaceId &&
+            (localSettings.linkedUserId == null || localSettings.linkedUserId == guestSession.userId)) {
+            preferencesStore.runWithLocalOutboxWritesBlocked(
+                reason = "Guest sign-in is preparing. Wait for account linking before changing cards."
+            ) {
+                markGuestUpgradePreparationState()
+                drainGuestWorkspaceBeforeUpgrade(
+                    preferencesStore = preferencesStore,
+                    remoteService = remoteService,
+                    syncLocalStore = syncLocalStore,
+                    appVersion = appVersion,
+                    configuration = configuration,
+                    guestSession = guestSession
+                )
+                remoteService.prepareGuestUpgrade(
+                    apiBaseUrl = configuration.apiBaseUrl,
+                    bearerToken = credentials.idToken,
+                    guestToken = guestSession.guestToken
+                )
+            }
         } else {
-            remoteService.prepareGuestUpgrade(
+            val preparation = remoteService.prepareGuestUpgrade(
                 apiBaseUrl = configuration.apiBaseUrl,
                 bearerToken = credentials.idToken,
                 guestToken = guestSession.guestToken
             )
+            markGuestUpgradePreparationState()
+            // The server hint covers the remote guest, not a different local workspace.
+            preparation.copy(demoOnlyDestinationWorkspaceId = null)
         }
         val accountSnapshot: CloudAccountSnapshot = sessionProvider.fetchCloudAccount(
             credentials = credentials,
@@ -173,7 +190,8 @@ internal class CloudSignInCoordinator(
             credentials = credentials,
             workspaces = accountSnapshot.workspaces,
             postAuthRoute = CloudWorkspacePostAuthRoute.NONE,
-            guestUpgradeMode = guestUpgradeMode,
+            guestUpgradeMode = guestUpgradePreparation?.mode,
+            demoOnlyDestinationWorkspaceId = guestUpgradePreparation?.demoOnlyDestinationWorkspaceId,
             preferredWorkspaceId = retainedWorkspaceId
                 ?: resolvePreferredPostAuthWorkspaceId(workspaces = accountSnapshot.workspaces.filter(CloudWorkspaceSummary::isVisible))
         )

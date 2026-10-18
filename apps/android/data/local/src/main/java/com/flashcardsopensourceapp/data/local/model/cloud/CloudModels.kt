@@ -70,6 +70,11 @@ enum class CloudGuestUpgradeMode {
     MERGE_REQUIRED
 }
 
+data class CloudGuestUpgradePreparation(
+    val mode: CloudGuestUpgradeMode,
+    val demoOnlyDestinationWorkspaceId: String?
+)
+
 enum class CloudGuestUpgradeDroppedEntityType {
     CARD,
     DECK,
@@ -92,7 +97,8 @@ data class CloudGuestUpgradeCompletion(
 
 sealed interface CloudGuestUpgradeSelection {
     data class Existing(
-        val workspaceId: String
+        val workspaceId: String,
+        val discardDemoOnly: Boolean
     ) : CloudGuestUpgradeSelection
 
     data object CreateNew : CloudGuestUpgradeSelection
@@ -143,7 +149,8 @@ data class AgentApiKeyConnectionsResult(
 sealed interface CloudWorkspaceLinkSelection {
     @Serializable
     data class Existing(
-        val workspaceId: String
+        val workspaceId: String,
+        val discardDemoOnly: Boolean = false
     ) : CloudWorkspaceLinkSelection
 
     @Serializable
@@ -167,8 +174,19 @@ data class CloudWorkspaceLinkContext(
     val workspaces: List<CloudWorkspaceSummary>,
     val postAuthRoute: CloudWorkspacePostAuthRoute,
     val guestUpgradeMode: CloudGuestUpgradeMode?,
-    val preferredWorkspaceId: String?
-)
+    val preferredWorkspaceId: String?,
+    val demoOnlyDestinationWorkspaceId: String? = null
+) {
+    init {
+        require(demoOnlyDestinationWorkspaceId == null ||
+            (guestUpgradeMode == CloudGuestUpgradeMode.MERGE_REQUIRED &&
+                postAuthRoute == CloudWorkspacePostAuthRoute.NONE &&
+                demoOnlyDestinationWorkspaceId.isNotBlank() &&
+                workspaces.any { it.workspaceId == demoOnlyDestinationWorkspaceId })) {
+            "Demo-only guest upgrade requires an existing destination workspace and merge-required preparation."
+        }
+    }
+}
 
 data class CloudSettings(
     val installationId: String,

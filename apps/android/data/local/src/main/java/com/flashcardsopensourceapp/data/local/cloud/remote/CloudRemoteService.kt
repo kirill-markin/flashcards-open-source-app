@@ -66,7 +66,7 @@ import com.flashcardsopensourceapp.data.local.model.media.MediaAssetUploadSessio
 import com.flashcardsopensourceapp.data.local.model.media.MediaAssetUploadSessionCreateRequest
 import com.flashcardsopensourceapp.data.local.model.media.MediaAssetUploadSessionCreateResponse
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudGuestUpgradeCompletion
-import com.flashcardsopensourceapp.data.local.model.cloud.CloudGuestUpgradeMode
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudGuestUpgradePreparation
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudGuestUpgradeSelection
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudCommunityProfile
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudFriendInvitationCreateRequest
@@ -334,7 +334,7 @@ class CloudRemoteService private constructor(
         apiBaseUrl: String,
         bearerToken: String,
         guestToken: String
-    ): CloudGuestUpgradeMode {
+    ): CloudGuestUpgradePreparation {
         return guestUpgradeApi.prepareGuestUpgrade(
             apiBaseUrl = apiBaseUrl,
             bearerToken = bearerToken,

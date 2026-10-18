@@ -309,6 +309,8 @@ class LocalCloudAccountRepositoryGuestUpgradeMergeRequiredTest {
                 "push",
                 "pull",
                 "pull_review_history",
+                "pull",
+                "pull_review_history",
                 "bootstrap_pull",
                 "pull_review_history",
                 "pull",
@@ -389,13 +391,12 @@ class LocalCloudAccountRepositoryGuestUpgradeMergeRequiredTest {
                 userId = "guest-user"
             )
         )
-        val linkContext = repository.verifyCode(
-            challenge = createOtpChallenge(email = "user@example.com"),
-            code = "123456",
-            onVerified = { }
-        )
-
         try {
+            val linkContext = repository.verifyCode(
+                challenge = createOtpChallenge(email = "user@example.com"),
+                code = "123456",
+                onVerified = { }
+            )
             repository.completeGuestUpgrade(
                 linkContext = linkContext,
                 selection = CloudWorkspaceLinkSelection.Existing(workspaceId = selectedWorkspace.workspaceId),

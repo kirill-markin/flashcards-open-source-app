@@ -3,6 +3,7 @@ package com.flashcardsopensourceapp.feature.settings.cloud.credentialRecovery
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudAccountState
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudCredentialRecoveryReason
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudCredentialRecoveryRequiredException
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudGuestUpgradeMode
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspaceLinkContext
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspaceLinkSelection
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspacePostAuthRoute
@@ -14,10 +15,16 @@ internal fun buildCloudPostAuthPendingSelection(
     linkContext: CloudWorkspaceLinkContext
 ): CloudWorkspaceLinkSelection? {
     return when (linkContext.postAuthRoute) {
-        CloudWorkspacePostAuthRoute.NONE -> buildAutomaticWorkspaceSelection(
-            preferredWorkspaceId = linkContext.preferredWorkspaceId,
-            workspaces = linkContext.workspaces
-        )
+        CloudWorkspacePostAuthRoute.NONE -> linkContext.demoOnlyDestinationWorkspaceId?.let { workspaceId ->
+            CloudWorkspaceLinkSelection.Existing(workspaceId = workspaceId, discardDemoOnly = true)
+        } ?: if (linkContext.guestUpgradeMode == CloudGuestUpgradeMode.MERGE_REQUIRED) {
+            null
+        } else {
+            buildAutomaticWorkspaceSelection(
+                preferredWorkspaceId = linkContext.preferredWorkspaceId,
+                workspaces = linkContext.workspaces
+            )
+        }
 
         CloudWorkspacePostAuthRoute.LINKED_CREDENTIAL_RESTORE -> {
             val preferredWorkspaceId = linkContext.preferredWorkspaceId ?: return null

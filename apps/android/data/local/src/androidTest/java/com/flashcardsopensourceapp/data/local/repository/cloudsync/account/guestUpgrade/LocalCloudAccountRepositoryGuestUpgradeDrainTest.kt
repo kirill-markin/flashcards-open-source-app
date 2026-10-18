@@ -3,8 +3,8 @@ package com.flashcardsopensourceapp.data.local.repository.cloudsync.account.gues
 import androidx.room.withTransaction
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.flashcardsopensourceapp.data.local.cloud.remote.CloudRemoteGateway
-import com.flashcardsopensourceapp.data.local.cloud.remote.sync.RemoteBootstrapPullResponse
 import com.flashcardsopensourceapp.data.local.cloud.remote.sync.RemoteBootstrapPushResponse
+import com.flashcardsopensourceapp.data.local.cloud.remote.sync.RemotePullResponse
 import com.flashcardsopensourceapp.data.local.database.entities.CardEntity
 import com.flashcardsopensourceapp.data.local.database.entities.SyncStateEntity
 import com.flashcardsopensourceapp.data.local.model.cards.defaultCardType
@@ -133,18 +133,19 @@ class LocalCloudAccountRepositoryGuestUpgradeDrainTest {
             bootstrapRemoteIsEmpty = false,
             guestUpgradeReconciliation = null
         )
+        var completionDrainStarted = false
         val remoteGateway = object : CloudRemoteGateway by baseGateway {
-            override suspend fun bootstrapPull(
+            override suspend fun pull(
                 apiBaseUrl: String,
                 authorizationHeader: String,
                 workspaceId: String,
                 body: JSONObject
-            ): RemoteBootstrapPullResponse {
-                if (authorizationHeader == "Guest guest-token" && workspaceId == guestWorkspaceId) {
+            ): RemotePullResponse {
+                if (completionDrainStarted && authorizationHeader == "Guest guest-token" && workspaceId == guestWorkspaceId) {
                     guestDrainEntered.complete(Unit)
                     releaseGuestDrain.await()
                 }
-                return baseGateway.bootstrapPull(
+                return baseGateway.pull(
                     apiBaseUrl = apiBaseUrl,
                     authorizationHeader = authorizationHeader,
                     workspaceId = workspaceId,
@@ -169,6 +170,7 @@ class LocalCloudAccountRepositoryGuestUpgradeDrainTest {
             code = "123456",
             onVerified = { }
         )
+        completionDrainStarted = true
 
         val upgradeResult = async {
             repository.completeGuestUpgrade(
@@ -228,17 +230,18 @@ class LocalCloudAccountRepositoryGuestUpgradeDrainTest {
             bootstrapRemoteIsEmpty = false,
             guestUpgradeReconciliation = null
         )
+        var completionDrainStarted = false
         val remoteGateway = object : CloudRemoteGateway by baseGateway {
-            override suspend fun bootstrapPull(
+            override suspend fun pull(
                 apiBaseUrl: String,
                 authorizationHeader: String,
                 workspaceId: String,
                 body: JSONObject
-            ): RemoteBootstrapPullResponse {
-                if (authorizationHeader == "Guest guest-token" && workspaceId == guestWorkspaceId) {
+            ): RemotePullResponse {
+                if (completionDrainStarted && authorizationHeader == "Guest guest-token" && workspaceId == guestWorkspaceId) {
                     guestDrainEntered.complete(Unit)
                 }
-                return baseGateway.bootstrapPull(
+                return baseGateway.pull(
                     apiBaseUrl = apiBaseUrl,
                     authorizationHeader = authorizationHeader,
                     workspaceId = workspaceId,
@@ -263,6 +266,7 @@ class LocalCloudAccountRepositoryGuestUpgradeDrainTest {
             code = "123456",
             onVerified = { }
         )
+        completionDrainStarted = true
 
         val mutationResult = async {
             environment.cloudPreferencesStore.runWithLocalOutboxMutationAllowed {
@@ -364,13 +368,12 @@ class LocalCloudAccountRepositoryGuestUpgradeDrainTest {
                 userId = "guest-user"
             )
         )
-        val linkContext = repository.verifyCode(
-            challenge = createOtpChallenge(email = "user@example.com"),
-            code = "123456",
-            onVerified = { }
-        )
-
         try {
+            val linkContext = repository.verifyCode(
+                challenge = createOtpChallenge(email = "user@example.com"),
+                code = "123456",
+                onVerified = { }
+            )
             repository.completeGuestUpgrade(
                 linkContext = linkContext,
                 selection = CloudWorkspaceLinkSelection.Existing(workspaceId = selectedWorkspace.workspaceId),
@@ -457,13 +460,12 @@ class LocalCloudAccountRepositoryGuestUpgradeDrainTest {
                 userId = "guest-user"
             )
         )
-        val linkContext = repository.verifyCode(
-            challenge = createOtpChallenge(email = "user@example.com"),
-            code = "123456",
-            onVerified = { }
-        )
-
         try {
+            val linkContext = repository.verifyCode(
+                challenge = createOtpChallenge(email = "user@example.com"),
+                code = "123456",
+                onVerified = { }
+            )
             repository.completeGuestUpgrade(
                 linkContext = linkContext,
                 selection = CloudWorkspaceLinkSelection.Existing(workspaceId = localWorkspaceId),

@@ -861,6 +861,21 @@ class CloudSignInViewModel(
                         else -> AnalyticsAuthGuestUpgradeOutcome.SERVER_ERROR
                     }, signInStepSurface))
             }
+            if (selection is CloudWorkspaceLinkSelection.Existing && selection.discardDemoOnly &&
+                error is CloudRemoteException && error.statusCode == 409 &&
+                error.errorCode == "GUEST_UPGRADE_DEMO_ONLY_NOT_ELIGIBLE") {
+                draftState.update { state ->
+                    if (state.authAttemptId != authAttemptId) state else state.copy(
+                        linkContext = linkContext.copy(demoOnlyDestinationWorkspaceId = null),
+                        pendingSelection = null,
+                        processingTitle = "",
+                        processingMessage = "",
+                        postAuthErrorMessage = "",
+                        retryAction = null
+                    )
+                }
+                return
+            }
             val recoveryError = error as? CloudCredentialRecoveryRequiredException
             val errorPresentation = if (recoveryError != null) {
                 CloudPostAuthErrorPresentation(

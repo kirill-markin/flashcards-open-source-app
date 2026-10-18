@@ -14,6 +14,9 @@ internal fun validateWorkspaceSelection(
             require(linkContext.workspaces.any { workspace -> workspace.workspaceId == selection.workspaceId }) {
                 "Selected workspace is unavailable for this sign-in attempt. Start sign-in again."
             }
+            require(!selection.discardDemoOnly || selection.workspaceId == linkContext.demoOnlyDestinationWorkspaceId) {
+                "Discarding the guest demo requires the server-prepared demo-only destination."
+            }
             selection
         }
 
@@ -39,7 +42,7 @@ internal fun resolvePreferredPostAuthWorkspaceId(
 
 internal fun CloudWorkspaceLinkSelection.toGuestUpgradeSelection(): CloudGuestUpgradeSelection {
     return when (this) {
-        is CloudWorkspaceLinkSelection.Existing -> CloudGuestUpgradeSelection.Existing(workspaceId = workspaceId)
+        is CloudWorkspaceLinkSelection.Existing -> CloudGuestUpgradeSelection.Existing(workspaceId = workspaceId, discardDemoOnly = discardDemoOnly)
         CloudWorkspaceLinkSelection.CreateNew -> CloudGuestUpgradeSelection.CreateNew
     }
 }

@@ -27,6 +27,7 @@ import com.flashcardsopensourceapp.data.local.model.media.MediaAssetUploadSessio
 import com.flashcardsopensourceapp.data.local.model.media.MediaAssetUploadSessionCreateResponse
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudGuestUpgradeCompletion
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudGuestUpgradeMode
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudGuestUpgradePreparation
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudGuestUpgradeReconciliation
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudGuestUpgradeSelection
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudCommunityProfile
@@ -512,11 +513,12 @@ internal class FakeCloudRemoteGateway private constructor(
         apiBaseUrl: String,
         bearerToken: String,
         guestToken: String
-    ): CloudGuestUpgradeMode {
+    ): CloudGuestUpgradePreparation {
         prepareGuestUpgradeCalls += 1
-        return requireNotNull(guestUpgradeMode) {
-            "Guest upgrade mode is required for this test."
-        }
+        return CloudGuestUpgradePreparation(
+            mode = requireNotNull(guestUpgradeMode) { "Guest upgrade mode is required for this test." },
+            demoOnlyDestinationWorkspaceId = null
+        )
     }
 
     override suspend fun completeGuestUpgrade(
