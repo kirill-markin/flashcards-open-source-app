@@ -160,6 +160,7 @@ describe("chat API endpoints", () => {
       "session-1",
       "workspace-1",
       new AbortController().signal,
+      null,
     );
 
     const chatRequestInit = fetchMock.mock.calls[0]?.[1] as RequestInit | undefined;

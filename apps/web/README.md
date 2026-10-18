@@ -19,8 +19,13 @@ The browser opens a cloud-synced guest workspace immediately. **Guest · Sign in
 workspace before opening the auth UI. An existing account can merge into any accessible workspace
 or create a new one. Keep this browser’s site data until conversion finishes: guest access depends
 on its essential cookie, and clearing all site data can lose that access. An unverified guest cache
-opens read-only until its original session can be verified. Nibomo-funded AI and Stripe purchases
-require sign-in; guests can use their own OpenAI key.
+opens read-only until its original session can be verified. Stripe purchases require sign-in.
+Nibomo-funded AI requires sign-in while the browser trial is disabled. AI refusals invite sign-in inside the
+conversation and preserve the draft; chat, dictation and images use independent server allowances
+when both the trial and funded capability are enabled. Guest key entry is deferred until sign-in;
+an already saved key remains available. Funded guest dictation stops at the smaller of 120 seconds
+and the remaining personal allowance, then uploads 16 kHz mono 16-bit PCM WAV with one stable
+operation ID per recording. Other dictation keeps its existing format.
 
 The live smoke starts with guest authoring/review, reload and IndexedDB-only restoration, then covers
 conversion, fresh-merge demo cleanup and an interrupted completion replay using the configured review

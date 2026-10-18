@@ -19,7 +19,9 @@ import {
 import { track } from "../../../analytics/client";
 import { toAnalyticsDictationFailureReason } from "../../../analytics/failureReasons";
 import type { TranslationKey, TranslationValues } from "../../../i18n";
-import { isAiLimitReachedError } from "../../shared/chatAiLimitPolicy";
+import type { BrowserGuestAiRefusal } from "../../../types";
+import { encodeGuestPcmRecording, GuestPcmDecodeError } from "./guestPcmRecording";
+import { getBrowserGuestAiErrorRefusal, isAiLimitReachedError } from "../../shared/chatAiLimitPolicy";
 import {
   formatOwnOpenAIKeyErrorMessage,
   isOwnOpenAIKeyError,
@@ -46,6 +48,8 @@ type UseChatDictationCaptureParams = Readonly<{
   onTechnicalError: (error: unknown, operation: ChatDictationTechnicalOperation) => boolean;
   formatAiLimitReachedMessage: () => string;
   refreshAiUsage: () => void;
+  guestRecordingLimitSeconds: number | null;
+  onGuestAiRefusal: (refusal: BrowserGuestAiRefusal) => void;
   t: Translate;
   textareaRef: RefObject<HTMLTextAreaElement | null>;
   updateInputText: (updateDraftText: (currentInputText: string) => string) => void;
@@ -137,10 +141,11 @@ function stopMediaRecorder(
   recorder: MediaRecorder,
   recordedChunksRef: MutableRefObject<Array<Blob>>,
 ): Promise<Blob> {
+  const chunks = recordedChunksRef.current;
   return new Promise((resolve, reject) => {
     function handleStop(): void {
       recorder.removeEventListener("error", handleError as EventListener);
-      resolve(new Blob(recordedChunksRef.current, {
+      resolve(new Blob(chunks, {
         type: recorder.mimeType === "" ? "audio/webm" : recorder.mimeType,
       }));
     }
@@ -172,11 +177,16 @@ export function useChatDictationCapture(params: UseChatDictationCaptureParams): 
     onTechnicalError,
     formatAiLimitReachedMessage,
     refreshAiUsage,
+    guestRecordingLimitSeconds,
+    onGuestAiRefusal,
     t,
     textareaRef,
     updateInputText,
   } = params;
   const [dictationState, setDictationState] = useState<ChatDictationState>("idle");
+  const recordingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const guestCaptureRef = useRef<Readonly<{ operationId: string; limitSeconds: number }> | null>(null);
+  const captureSequenceRef = useRef(0);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const mediaStreamRef = useRef<MediaStream | null>(null);
   const transcriptionAbortControllerRef = useRef<AbortController | null>(null);
@@ -190,7 +200,15 @@ export function useChatDictationCapture(params: UseChatDictationCaptureParams): 
   const shouldRestoreTextareaFocusAfterDictationRef = useRef<boolean>(false);
   const isMountedRef = useRef<boolean>(true);
 
+  const clearRecordingTimer = useCallback((): void => {
+    if (recordingTimerRef.current !== null) clearTimeout(recordingTimerRef.current);
+    recordingTimerRef.current = null;
+  }, []);
+
   const stopActiveDictationResources = useCallback((): void => {
+    captureSequenceRef.current += 1;
+    guestCaptureRef.current = null;
+    clearRecordingTimer();
     transcriptionAbortControllerRef.current?.abort(new DOMException("Chat dictation stopped", "AbortError"));
     transcriptionAbortControllerRef.current = null;
     const recorder = mediaRecorderRef.current;
@@ -198,7 +216,7 @@ export function useChatDictationCapture(params: UseChatDictationCaptureParams): 
       recorder.stop();
     }
     cleanupDictationResources(mediaRecorderRef, mediaStreamRef, recordedChunksRef);
-  }, []);
+  }, [clearRecordingTimer]);
 
   /**
    * The terminal report for an abandoned attempt, called from the only two paths that abandon one:
@@ -208,11 +226,7 @@ export function useChatDictationCapture(params: UseChatDictationCaptureParams): 
    *
    * While transcribing, `stopDictation` is still awaiting the recorder or the request, so this
    * marks that attempt, hands the shared resources back, and leaves the invocation holding it to
-   * report from whichever branch it reaches:
-   * `cancelled` instead of the `no_speech` its dropped chunks would produce, `cancelled` instead of
-   * the transport reason its failing request would map to, and `cancelled` when the request
-   * succeeds but the transcript reaches no draft. A marked attempt whose transcript does land in
-   * the draft stays eventless on purpose: the person received the text, so it did not fail.
+   * report from whichever branch it reaches.
    *
    * `dictationStateRef` is written back here rather than left to the effect below: a discard
    * followed by an unmount in the same commit never re-renders, so both would otherwise still read
@@ -323,6 +337,7 @@ export function useChatDictationCapture(params: UseChatDictationCaptureParams): 
   }, [indexedDbOpenRecoveryState.signal, stopActiveDictationResources]);
 
   useEffect(() => {
+    isMountedRef.current = true;
     return () => {
       isMountedRef.current = false;
       reportDictationAbandoned();
@@ -355,6 +370,7 @@ export function useChatDictationCapture(params: UseChatDictationCaptureParams): 
   function discardDictation(): void {
     reportDictationAbandoned();
     stopActiveDictationResources();
+    dictationStateRef.current = "idle";
     draftSelectionRef.current = null;
     pendingTextareaSelectionRef.current = null;
     shouldRestoreTextareaFocusAfterDictationRef.current = false;
@@ -364,7 +380,7 @@ export function useChatDictationCapture(params: UseChatDictationCaptureParams): 
   }
 
   async function startDictation(): Promise<void> {
-    if (indexedDbOpenRecoveryState.hasFailed() || dictationState !== "idle") {
+    if (indexedDbOpenRecoveryState.hasFailed() || dictationStateRef.current !== "idle") {
       return;
     }
 
@@ -393,6 +409,8 @@ export function useChatDictationCapture(params: UseChatDictationCaptureParams): 
       return;
     }
 
+    const captureSequence = ++captureSequenceRef.current;
+    dictationStateRef.current = "requesting_permission";
     setDictationState("requesting_permission");
 
     let stream: MediaStream | null = null;
@@ -400,19 +418,46 @@ export function useChatDictationCapture(params: UseChatDictationCaptureParams): 
       indexedDbOpenRecoveryState.throwIfFailed();
       stream = await mediaDevices.getUserMedia({ audio: true, video: false });
       indexedDbOpenRecoveryState.throwIfFailed();
+      if (captureSequenceRef.current !== captureSequence || isMountedRef.current === false) {
+        stopMediaStream(stream);
+        return;
+      }
       const recorderMimeType = chooseSupportedRecordingMimeType();
       const recorder = recorderMimeType === null
         ? new MediaRecorder(stream)
         : new MediaRecorder(stream, { mimeType: recorderMimeType });
-      recordedChunksRef.current = [];
+      const chunks: Array<Blob> = [];
+      recordedChunksRef.current = chunks;
       recorder.addEventListener("dataavailable", (event: BlobEvent) => {
         if (event.data.size > 0) {
-          recordedChunksRef.current.push(event.data);
+          chunks.push(event.data);
         }
       });
+      function releaseFailedRecording(): void {
+        if (mediaRecorderRef.current !== recorder || dictationStateRef.current !== "recording") return;
+        clearRecordingTimer();
+        guestCaptureRef.current = null;
+        dictationStateRef.current = "idle";
+        cleanupDictationResources(mediaRecorderRef, mediaStreamRef, recordedChunksRef);
+        if (indexedDbOpenRecoveryState.hasFailed() === false) {
+          track({ name: "dictation_failed", reason: "server_error" });
+          if (isMountedRef.current) {
+            setDictationState("idle");
+            window.alert(t("chatPanel.alerts.microphoneUnavailable"));
+          }
+        }
+      }
+      recorder.addEventListener("error", releaseFailedRecording, { once: true });
+      recorder.addEventListener("stop", releaseFailedRecording, { once: true });
       recorder.start();
       mediaRecorderRef.current = recorder;
       mediaStreamRef.current = stream;
+      guestCaptureRef.current = guestRecordingLimitSeconds === null ? null
+        : { operationId: crypto.randomUUID().toLowerCase(), limitSeconds: guestRecordingLimitSeconds };
+      if (guestCaptureRef.current !== null) {
+        recordingTimerRef.current = setTimeout(() => { void stopDictation(); }, guestCaptureRef.current.limitSeconds * 1000);
+      }
+      dictationStateRef.current = "recording";
       if (isMountedRef.current) {
         // The recorder is running, which is what `dictation_started` means. Reporting the button
         // click instead would count a refused microphone as a start with no end. An unmounted
@@ -426,6 +471,10 @@ export function useChatDictationCapture(params: UseChatDictationCaptureParams): 
         error,
       );
       stopMediaStream(stream);
+      if (captureSequenceRef.current !== captureSequence) return;
+      clearRecordingTimer();
+      guestCaptureRef.current = null;
+      dictationStateRef.current = "idle";
       cleanupDictationResources(mediaRecorderRef, mediaStreamRef, recordedChunksRef);
       if (isRecoveryActive) {
         return;
@@ -458,10 +507,14 @@ export function useChatDictationCapture(params: UseChatDictationCaptureParams): 
     }
 
     const recorder = mediaRecorderRef.current;
+    clearRecordingTimer();
+    if (dictationStateRef.current !== "recording") return;
     if (recorder === null || recorder.state === "inactive") {
       // Only reachable while the state says `recording`, so the recorder stopped on its own —
       // a revoked permission, a device taken away — and the attempt ended with no audio to send.
       track({ name: "dictation_failed", reason: "server_error" });
+      guestCaptureRef.current = null;
+      dictationStateRef.current = "idle";
       cleanupDictationResources(mediaRecorderRef, mediaStreamRef, recordedChunksRef);
       setDictationState("idle");
       return;
@@ -471,17 +524,23 @@ export function useChatDictationCapture(params: UseChatDictationCaptureParams): 
     // recorder flush lets a later recording own `mediaStreamRef`, and stopping that would cut a
     // live recording.
     const ownedStream = mediaStreamRef.current;
+    const guestCapture = guestCaptureRef.current;
     const attempt: ChatDictationAttempt = { abandoned: false };
     currentDictationAttemptRef.current = attempt;
+    dictationStateRef.current = "transcribing";
     setDictationState("transcribing");
 
     let transcriptionAbortController: AbortController | null = null;
     try {
       indexedDbOpenRecoveryState.throwIfFailed();
-      const audioBlob = await stopMediaRecorder(recorder, recordedChunksRef);
+      const recordedBlob = await stopMediaRecorder(recorder, recordedChunksRef);
       indexedDbOpenRecoveryState.throwIfFailed();
       stopMediaStream(ownedStream);
-      if (audioBlob.size <= 0) {
+      if (attempt.abandoned || isMountedRef.current === false) {
+        track({ name: "dictation_failed", reason: "cancelled" });
+        return;
+      }
+      if (recordedBlob.size <= 0) {
         track({
           name: "dictation_failed",
           reason: attempt.abandoned ? "cancelled" : "no_speech",
@@ -496,8 +555,19 @@ export function useChatDictationCapture(params: UseChatDictationCaptureParams): 
         throw new Error(t("chatPanel.transientErrors.workspaceRequired"));
       }
 
+      const audioBlob = guestCapture === null ? recordedBlob
+        : await encodeGuestPcmRecording(recordedBlob, guestCapture.limitSeconds);
+      indexedDbOpenRecoveryState.throwIfFailed();
+      if (attempt.abandoned || !isMountedRef.current) {
+        track({ name: "dictation_failed", reason: "cancelled" });
+        return;
+      }
       const sessionId = await ensureRemoteSession();
       indexedDbOpenRecoveryState.throwIfFailed();
+      if (attempt.abandoned || !isMountedRef.current) {
+        track({ name: "dictation_failed", reason: "cancelled" });
+        return;
+      }
       transcriptionAbortController = new AbortController();
       transcriptionAbortControllerRef.current = transcriptionAbortController;
       const transcription = await transcribeChatAudio(
@@ -506,18 +576,18 @@ export function useChatDictationCapture(params: UseChatDictationCaptureParams): 
         sessionId,
         activeWorkspaceId,
         transcriptionAbortController.signal,
+        guestCapture?.operationId ?? null,
       );
       indexedDbOpenRecoveryState.throwIfFailed();
       if (transcription.sessionId !== sessionId) {
         throw new Error(t("chatPanel.errors.transcriptionUnexpectedSessionId"));
       }
 
+      refreshAiUsage();
+
       // The transcript reaches the draft only while the composer is mounted and still on the
       // session it was recorded for; a composer that left either one drops it.
-      if (currentSessionIdRef.current !== sessionId || isMountedRef.current === false) {
-        // A dropped transcript alone is not a failure and stays eventless. An abandoned attempt is:
-        // its request was created too late to be aborted and resolved anyway, so nobody received
-        // the text and this is the only branch left to pair its `dictation_started`.
+      if (currentSessionIdRef.current !== sessionId || !isMountedRef.current) {
         if (attempt.abandoned) {
           track({ name: "dictation_failed", reason: "cancelled" });
         }
@@ -542,16 +612,21 @@ export function useChatDictationCapture(params: UseChatDictationCaptureParams): 
         return;
       }
 
-      // An attempt abandoned before the request existed has no abort to raise `AbortError`, so the
-      // request it left running maps to a transport reason the person never experienced.
-      track({
-        name: "dictation_failed",
-        reason: attempt.abandoned
-          ? "cancelled"
-          : toAnalyticsDictationFailureReason(error),
-      });
-      if (isMountedRef.current) {
-        if (error instanceof Error && error.message === "MICROPHONE_RECORDING_FAILED") {
+      const guestRefusal = getBrowserGuestAiErrorRefusal(error, "dictation");
+      if (guestRefusal === null || attempt.abandoned) {
+        track({
+          name: "dictation_failed",
+          reason: attempt.abandoned ? "cancelled" : toAnalyticsDictationFailureReason(error),
+        });
+      }
+      if (isMountedRef.current && attempt.abandoned === false) {
+        if (guestRefusal !== null) {
+          refreshAiUsage();
+          onGuestAiRefusal(guestRefusal);
+        } else if (error instanceof GuestPcmDecodeError) {
+          onTechnicalError(error, "chat_dictation_transcribe");
+          window.alert(t("guest.aiRecordingDecodeFailed", { format: error.mediaType }));
+        } else if (error instanceof Error && error.message === "MICROPHONE_RECORDING_FAILED") {
           window.alert(t("chatPanel.alerts.microphoneUnavailable"));
         } else if (error instanceof Error && error.message === t("chatPanel.transientErrors.workspaceRequired")) {
           window.alert(t("chatPanel.transientErrors.workspaceRequired"));
@@ -581,6 +656,8 @@ export function useChatDictationCapture(params: UseChatDictationCaptureParams): 
       const ownsAttempt = currentDictationAttemptRef.current === attempt;
       if (ownsAttempt) {
         currentDictationAttemptRef.current = null;
+        guestCaptureRef.current = null;
+        dictationStateRef.current = "idle";
         cleanupDictationResources(mediaRecorderRef, mediaStreamRef, recordedChunksRef);
         if (isMountedRef.current && indexedDbOpenRecoveryState.hasFailed() === false) {
           setDictationState("idle");

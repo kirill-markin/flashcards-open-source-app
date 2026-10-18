@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { loadAiUsage } from "../../../api";
 import {
   markIndexedDbOpenRecoveryFailureAndCheckActive,
@@ -15,22 +15,34 @@ type UseChatAiUsageParams = Readonly<{
 
 export type ChatAiUsage = Readonly<{
   aiUsage: AiUsageStatus | null;
+  aiUsageLoadStatus: "idle" | "loading" | "ready" | "error";
   readHeldAiUsage: () => AiUsageStatus | null;
   refreshAiUsageInBackground: () => void;
 }>;
 
-/**
- * This month's AI usage as the chat last read it. Only the newest request may replace it, so a slow
- * earlier response cannot bring back a larger remaining count after a later one. A failed load is
- * reported here, and the chat keeps the last usage it read.
- */
 export function useChatAiUsage(params: UseChatAiUsageParams): ChatAiUsage {
   const { indexedDbOpenRecoveryState, workspaceId, isRemoteReady } = params;
   const [aiUsage, setAiUsage] = useState<AiUsageStatus | null>(null);
+  const [usageRead, setUsageRead] = useState<Readonly<{
+    requestId: number;
+    status: ChatAiUsage["aiUsageLoadStatus"];
+  }>>({ requestId: 0, status: "idle" });
   const aiUsageRef = useRef<AiUsageStatus | null>(null);
   const latestRequestIdRef = useRef<number>(0);
+  const ownerRef = useRef({ workspaceId, isRemoteReady });
+  const heldOwnerRef = useRef<string | null>(null);
+  if (ownerRef.current.workspaceId !== workspaceId || ownerRef.current.isRemoteReady !== isRemoteReady) {
+    latestRequestIdRef.current += 1;
+    aiUsageRef.current = null;
+    heldOwnerRef.current = null;
+    ownerRef.current = { workspaceId, isRemoteReady };
+  }
 
-  const readHeldAiUsage = useCallback((): AiUsageStatus | null => aiUsageRef.current, []);
+  useEffect(() => () => { latestRequestIdRef.current += 1; }, []);
+
+  const readHeldAiUsage = useCallback((): AiUsageStatus | null =>
+    ownerRef.current.isRemoteReady && heldOwnerRef.current === ownerRef.current.workspaceId
+      ? aiUsageRef.current : null, []);
 
   const refreshAiUsageInBackground = useCallback((): void => {
     if (indexedDbOpenRecoveryState.hasFailed() || isRemoteReady === false) {
@@ -39,16 +51,22 @@ export function useChatAiUsage(params: UseChatAiUsageParams): ChatAiUsage {
 
     const requestId = latestRequestIdRef.current + 1;
     latestRequestIdRef.current = requestId;
+    setUsageRead({ requestId, status: "loading" });
     void (async (): Promise<void> => {
       try {
         const nextAiUsage = await loadAiUsage();
         indexedDbOpenRecoveryState.throwIfFailed();
-        if (latestRequestIdRef.current === requestId) {
+        if (latestRequestIdRef.current === requestId && ownerRef.current.workspaceId === workspaceId && ownerRef.current.isRemoteReady) {
+          heldOwnerRef.current = workspaceId;
           aiUsageRef.current = nextAiUsage;
           setAiUsage(nextAiUsage);
+          setUsageRead({ requestId, status: "ready" });
         }
       } catch (error) {
         if (markIndexedDbOpenRecoveryFailureAndCheckActive(indexedDbOpenRecoveryState, error) === false) {
+          if (latestRequestIdRef.current === requestId && ownerRef.current.workspaceId === workspaceId && ownerRef.current.isRemoteReady) {
+            setUsageRead({ requestId, status: "error" });
+          }
           captureAppOperationError(error, {
             feature: "chat",
             operation: "ai_usage_load",
@@ -63,7 +81,8 @@ export function useChatAiUsage(params: UseChatAiUsageParams): ChatAiUsage {
   }, [indexedDbOpenRecoveryState, isRemoteReady, workspaceId]);
 
   return {
-    aiUsage,
+    aiUsage: isRemoteReady && heldOwnerRef.current === workspaceId ? aiUsage : null,
+    aiUsageLoadStatus: isRemoteReady && usageRead.requestId === latestRequestIdRef.current ? usageRead.status : "idle",
     readHeldAiUsage,
     refreshAiUsageInBackground,
   };

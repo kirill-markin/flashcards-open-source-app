@@ -447,13 +447,13 @@ export function SettingsScreen(): ReactElement {
               </span>
             </button>
           </article>
-          <SettingsNavigationCard
+          {!isGuest ? <SettingsNavigationCard
             title={t("ownOpenAIKeySettings.title")}
             description={t("ownOpenAIKeySettings.subtitle")}
             value={isOwnOpenAIKeyEnabled ? t("common.on") : t("common.off")}
             to={workspacePath(settingsOwnOpenAIKeyRoute)}
             testId="settings-row-own-openai-key"
-          />
+          /> : null}
           <SettingsNavigationCard
             title={t("workspaceScheduler.title")}
             description={t("workspaceScheduler.subtitle")}

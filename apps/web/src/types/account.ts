@@ -57,7 +57,7 @@ export type AccountPreferencesEnvelope = Readonly<{
 
 export type BrowserGuestCapabilities = Readonly<{
   isGuest: true;
-  platformFundedAi: false;
+  platformFundedAi: boolean;
   ownKeyAi: true;
   requiresAccountLinking: true;
 }>;

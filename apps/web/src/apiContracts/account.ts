@@ -122,7 +122,7 @@ export function parseBrowserGuestCapabilities(value: unknown, endpoint: string, 
   const object = parseObject(value, endpoint, path);
   return {
     isGuest: parseLiteral(object.isGuest, endpoint, `${path}.isGuest`, true),
-    platformFundedAi: parseLiteral(object.platformFundedAi, endpoint, `${path}.platformFundedAi`, false),
+    platformFundedAi: parseBoolean(object.platformFundedAi, endpoint, `${path}.platformFundedAi`),
     ownKeyAi: parseLiteral(object.ownKeyAi, endpoint, `${path}.ownKeyAi`, true),
     requiresAccountLinking: parseLiteral(object.requiresAccountLinking, endpoint, `${path}.requiresAccountLinking`, true),
   };
