@@ -139,6 +139,19 @@ final class FlashcardsStore {
     )
     var accountDeletionState: AccountDeletionState
     var accountDeletionSuccessMessage: String?
+    var savedReviewPromptOpportunity: SavedReviewPromptOpportunity? = nil
+    var isPremiumPresentationActive: Bool = false
+    var isSavedReviewPromptSurfaceAvailable: Bool = false {
+        didSet {
+            if self.isSavedReviewPromptSurfaceAvailable == false {
+                self.savedReviewPromptOpportunity = nil
+                self.pendingStoreReviewRequestAttempt = nil
+                self.activeAutomaticFeedbackPromptTask?.cancel()
+            }
+        }
+    }
+    @ObservationIgnored var paywallStateSyncId: UUID? = nil
+    @ObservationIgnored var activePaywallStateSyncTask: Task<Void, Never>? = nil
     var pendingStoreReviewRequestAttempt: StoreReviewRequestAttempt?
     var uiTestLaunchPreparationStatus: FlashcardsUITestLaunchPreparationStatus
     var localReadVersion: Int
