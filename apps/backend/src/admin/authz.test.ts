@@ -137,6 +137,7 @@ test("requireCatalogAdminRequestWithDependencies accepts an active admin API key
         assert.deepEqual(authRequest, {
           authorizationHeader: "ApiKey fca_test",
           sessionToken: undefined,
+          guestSessionToken: undefined,
         });
         return auth;
       },
@@ -162,6 +163,7 @@ test("requireCatalogAdminRequestWithDependencies accepts an active admin API key
     requestAuthInputs: {
       authorizationHeader: "ApiKey fca_test",
       sessionToken: undefined,
+      guestSessionToken: undefined,
       csrfTokenHeader: undefined,
       originHeader: undefined,
       refererHeader: undefined,
@@ -366,6 +368,7 @@ test("requireAdminRequestWithDependencies accepts localhost admin requests in AU
     requestAuthInputs: {
       authorizationHeader: undefined,
       sessionToken: undefined,
+      guestSessionToken: undefined,
       csrfTokenHeader: undefined,
       originHeader: undefined,
       refererHeader: undefined,
@@ -458,6 +461,7 @@ test("requireAdminRequestWithDependencies accepts signed-in admins and normalize
     requestAuthInputs: {
       authorizationHeader: undefined,
       sessionToken: undefined,
+      guestSessionToken: undefined,
       csrfTokenHeader: undefined,
       originHeader: undefined,
       refererHeader: undefined,
