@@ -274,6 +274,7 @@
   flex-wrap: nowrap;
 }
 
+.review-card-copy-btn,
 .review-card-speech-btn {
   width: 32px;
   height: 32px;
@@ -289,15 +290,43 @@
   transition: background-color 140ms ease, color 140ms ease, border-color 140ms ease;
 }
 
+.review-card-copy-btn:hover,
 .review-card-speech-btn:hover {
   color: var(--text);
   background: rgba(255, 255, 255, 0.08);
   border-color: rgba(255, 255, 255, 0.12);
 }
 
+.review-card-copy-btn:focus-visible,
 .review-card-speech-btn:focus-visible {
   outline: 2px solid rgba(255, 255, 255, 0.28);
   outline-offset: 2px;
+}
+
+.review-card-copy {
+  position: relative;
+  display: inline-flex;
+  flex-shrink: 0;
+}
+
+.review-card-copy-btn[aria-disabled="true"] {
+  cursor: progress;
+  opacity: 0.65;
+}
+
+.review-card-copy-error {
+  position: absolute;
+  inset-inline-end: 0;
+  bottom: 100%;
+  z-index: 1;
+  width: max-content;
+  max-width: min(260px, 65vw);
+  padding: 6px 8px;
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--danger);
+  font-size: 12px;
+  overflow-wrap: anywhere;
 }
 
 .review-card-speech-btn-active {
@@ -314,6 +343,7 @@
   cursor: default;
 }
 
+.review-card-copy-btn svg,
 .review-card-speech-btn svg {
   width: 16px;
   height: 16px;

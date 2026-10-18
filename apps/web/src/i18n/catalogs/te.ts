@@ -1055,6 +1055,7 @@ const teCatalog: TranslationCatalog = {
     searchPlaceholder: "డెక్‌లు లేదా ట్యాగ్‌లను వెతకండి",
   },
   reviewScreen: {
+    copyAriaLabel: "{{side}} కాపీ చేయండి",
     selectTextAriaLabel: "వచనాన్ని ఎంచుకుని కాపీ చేయండి: {{side}}",
     actions: {
       createCard: "కార్డు సృష్టించు",
@@ -1101,6 +1102,8 @@ const teCatalog: TranslationCatalog = {
       snapshot: "ఇటీవలి స్థానిక స్నాప్‌షాట్ చూపుతోంది...",
     },
     media: {
+      privateImage: "ప్రైవేట్ చిత్రం",
+      privateAttachment: "ప్రైవేట్ జోడింపు",
       attachmentLabel: "జోడింపు",
       audioLabel: "ఆడియో జోడింపు",
       imageAlt: "నిర్వహిత చిత్రం",

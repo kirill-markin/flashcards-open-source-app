@@ -1055,6 +1055,7 @@ const bgCatalog: TranslationCatalog = {
     searchPlaceholder: "Търсене на тестета или етикети",
   },
   reviewScreen: {
+    copyAriaLabel: "Копиране: {{side}}",
     selectTextAriaLabel: "Избиране и копиране на текст: {{side}}",
     actions: {
       createCard: "Създаване на карта",
@@ -1101,6 +1102,8 @@ const bgCatalog: TranslationCatalog = {
       snapshot: "Показва се скорошна локална моментна снимка...",
     },
     media: {
+      privateImage: "Лично изображение",
+      privateAttachment: "Личен прикачен файл",
       attachmentLabel: "Прикачен файл",
       audioLabel: "Аудио прикачен файл",
       imageAlt: "Управлявано изображение",

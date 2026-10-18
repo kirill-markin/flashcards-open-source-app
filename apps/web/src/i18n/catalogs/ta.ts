@@ -1055,6 +1055,7 @@ const taCatalog: TranslationCatalog = {
     searchPlaceholder: "தொகுப்புகள் அல்லது குறிச்சொற்களைத் தேடு",
   },
   reviewScreen: {
+    copyAriaLabel: "{{side}} நகலெடு",
     selectTextAriaLabel: "உரையைத் தேர்ந்தெடுத்து நகலெடுக்கவும்: {{side}}",
     actions: {
       createCard: "அட்டையை உருவாக்கு",
@@ -1101,6 +1102,8 @@ const taCatalog: TranslationCatalog = {
       snapshot: "சமீபத்திய உள்ளூர் ஸ்னாப்ஷாட்டைக் காட்டுகிறது...",
     },
     media: {
+      privateImage: "தனிப்பட்ட படம்",
+      privateAttachment: "தனிப்பட்ட இணைப்பு",
       attachmentLabel: "இணைப்பு",
       audioLabel: "ஒலி இணைப்பு",
       imageAlt: "நிர்வகிக்கப்படும் படம்",

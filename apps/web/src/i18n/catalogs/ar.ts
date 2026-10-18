@@ -1055,6 +1055,7 @@ const arCatalog: TranslationCatalog = {
     searchPlaceholder: "ابحث في المجموعات أو الوسوم",
   },
   reviewScreen: {
+    copyAriaLabel: "نسخ {{side}}",
     selectTextAriaLabel: "تحديد النص ونسخه: {{side}}",
     actions: {
       createCard: "أنشئ بطاقة",
@@ -1101,6 +1102,8 @@ const arCatalog: TranslationCatalog = {
       snapshot: "جارٍ عرض لقطة محلية حديثة...",
     },
     media: {
+      privateImage: "صورة خاصة",
+      privateAttachment: "مرفق خاص",
       attachmentLabel: "مرفق",
       audioLabel: "مرفق صوتي",
       imageAlt: "صورة مُدارة",

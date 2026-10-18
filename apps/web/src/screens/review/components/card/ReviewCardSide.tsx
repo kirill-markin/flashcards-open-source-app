@@ -21,6 +21,7 @@ import reviewMathBlocks, {
   normalizeReviewPlainTextEscapedDollars,
 } from "./reviewMathBlocks";
 import { ReviewMathBlock } from "./ReviewMathBlock";
+import { ReviewCardCopyButton } from "./ReviewCardCopyButton";
 import { useI18n } from "../../../../i18n";
 
 const REVIEW_MARKDOWN_FENCE_PATTERN = /^\s{0,3}(`{3,}|~{3,})/;
@@ -38,6 +39,7 @@ const ReviewMarkdownRenderContext = createContext<ReviewMarkdownRenderContextVal
 export type ReviewCardSideProps = Readonly<{
   aiButtonAriaLabel: string | null;
   contentClassName: string;
+  copySource: Readonly<{ cardId: string; side: "front" | "back"; sourceText: string }> | null;
   isSpeaking: boolean;
   label: string;
   onOpenAi: (() => void) | null;
@@ -388,6 +390,7 @@ export function ReviewCardSide(props: ReviewCardSideProps): ReactElement {
   const {
     aiButtonAriaLabel,
     contentClassName,
+    copySource,
     isSpeaking,
     label,
     onOpenAi,
@@ -405,7 +408,7 @@ export function ReviewCardSide(props: ReviewCardSideProps): ReactElement {
     text,
     workspaceId,
   } = props;
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const presentationMode = parseManagedImageMarkdownReferences(text).length > 0
     ? "markdown"
     : classifyReviewContentPresentation(text);
@@ -451,8 +454,16 @@ export function ReviewCardSide(props: ReviewCardSideProps): ReactElement {
           </div>
         </div>
 
-        {showSpeechButton || showAiButton ? (
+        {copySource !== null || showSpeechButton || showAiButton ? (
           <div className="review-card-actions">
+            {copySource !== null ? (
+              <ReviewCardCopyButton
+                key={JSON.stringify([workspaceId, copySource.cardId, copySource.side, copySource.sourceText, locale])}
+                side={copySource.side}
+                sideLabel={label}
+                sourceText={copySource.sourceText}
+              />
+            ) : null}
             {showSpeechButton ? (
               <ReviewCardSpeechButton
                 ariaLabel={speechButtonAriaLabel ?? label}

@@ -1055,6 +1055,7 @@ const nlCatalog: TranslationCatalog = {
     searchPlaceholder: "Zoek in decks of tags",
   },
   reviewScreen: {
+    copyAriaLabel: "{{side}} kopiëren",
     selectTextAriaLabel: "Tekst selecteren en kopiëren: {{side}}",
     actions: {
       createCard: "Kaart maken",
@@ -1101,6 +1102,8 @@ const nlCatalog: TranslationCatalog = {
       snapshot: "Een recente lokale momentopname wordt getoond...",
     },
     media: {
+      privateImage: "Privéafbeelding",
+      privateAttachment: "Privébijlage",
       attachmentLabel: "Bijlage",
       audioLabel: "Audiobijlage",
       imageAlt: "Beheerde afbeelding",

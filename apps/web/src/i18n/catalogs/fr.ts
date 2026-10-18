@@ -1055,6 +1055,7 @@ const frCatalog: TranslationCatalog = {
     searchPlaceholder: "Rechercher des paquets ou des étiquettes",
   },
   reviewScreen: {
+    copyAriaLabel: "Copier {{side}}",
     selectTextAriaLabel: "Sélectionner et copier le texte : {{side}}",
     actions: {
       createCard: "Créer une carte",
@@ -1101,6 +1102,8 @@ const frCatalog: TranslationCatalog = {
       snapshot: "Affichage d'un instantané local récent...",
     },
     media: {
+      privateImage: "Image privée",
+      privateAttachment: "Pièce jointe privée",
       attachmentLabel: "Pièce jointe",
       audioLabel: "Pièce jointe audio",
       imageAlt: "Image gérée",

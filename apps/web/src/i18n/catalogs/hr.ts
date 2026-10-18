@@ -1065,6 +1065,7 @@ const hrCatalog: TranslationCatalog = {
     searchPlaceholder: "Pretraži špilove ili oznake",
   },
   reviewScreen: {
+    copyAriaLabel: "Kopiraj: {{side}}",
     selectTextAriaLabel: "Odaberi i kopiraj tekst: {{side}}",
     actions: {
       createCard: "Stvori karticu",
@@ -1111,6 +1112,8 @@ const hrCatalog: TranslationCatalog = {
       snapshot: "Prikaz nedavne lokalne snimke...",
     },
     media: {
+      privateImage: "Privatna slika",
+      privateAttachment: "Privatni privitak",
       attachmentLabel: "Privitak",
       audioLabel: "Audioprivitak",
       imageAlt: "Upravljana slika",

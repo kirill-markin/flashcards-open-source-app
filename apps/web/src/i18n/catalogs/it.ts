@@ -1055,6 +1055,7 @@ const itCatalog: TranslationCatalog = {
     searchPlaceholder: "Cerca mazzi o tag",
   },
   reviewScreen: {
+    copyAriaLabel: "Copia {{side}}",
     selectTextAriaLabel: "Seleziona e copia il testo: {{side}}",
     actions: {
       createCard: "Crea una carta",
@@ -1101,6 +1102,8 @@ const itCatalog: TranslationCatalog = {
       snapshot: "Visualizzazione di uno snapshot locale recente...",
     },
     media: {
+      privateImage: "Immagine privata",
+      privateAttachment: "Allegato privato",
       attachmentLabel: "Allegato",
       audioLabel: "Allegato audio",
       imageAlt: "Immagine gestita",

@@ -1055,6 +1055,7 @@ export const jaCatalog = {
     searchPlaceholder: "デッキまたはタグを検索",
   },
   reviewScreen: {
+    copyAriaLabel: "{{side}}をコピー",
     selectTextAriaLabel: "テキストを選択してコピー：{{side}}",
     actions: {
       createCard: "カードを作成",
@@ -1101,6 +1102,8 @@ export const jaCatalog = {
       snapshot: "最近のローカルスナップショットを表示しています...",
     },
     media: {
+      privateImage: "非公開の画像",
+      privateAttachment: "非公開の添付ファイル",
       attachmentLabel: "添付ファイル",
       audioLabel: "音声添付",
       imageAlt: "管理対象画像",

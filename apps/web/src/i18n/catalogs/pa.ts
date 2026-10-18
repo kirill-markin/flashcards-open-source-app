@@ -1055,6 +1055,7 @@ const paCatalog: TranslationCatalog = {
     searchPlaceholder: "ਡੈੱਕ ਜਾਂ ਟੈਗ ਲੱਭੋ",
   },
   reviewScreen: {
+    copyAriaLabel: "{{side}} ਕਾਪੀ ਕਰੋ",
     selectTextAriaLabel: "ਲਿਖਤ ਚੁਣੋ ਅਤੇ ਕਾਪੀ ਕਰੋ: {{side}}",
     actions: {
       createCard: "ਕਾਰਡ ਬਣਾਓ",
@@ -1101,6 +1102,8 @@ const paCatalog: TranslationCatalog = {
       snapshot: "ਹਾਲੀਆ ਸਥਾਨਕ ਸਨੈਪਸ਼ਾਟ ਵਿਖਾਇਆ ਜਾ ਰਿਹਾ ਹੈ...",
     },
     media: {
+      privateImage: "ਨਿੱਜੀ ਤਸਵੀਰ",
+      privateAttachment: "ਨਿੱਜੀ ਅਟੈਚਮੈਂਟ",
       attachmentLabel: "ਅਟੈਚਮੈਂਟ",
       audioLabel: "ਆਡੀਓ ਅਟੈਚਮੈਂਟ",
       imageAlt: "ਪ੍ਰਬੰਧਿਤ ਚਿੱਤਰ",
