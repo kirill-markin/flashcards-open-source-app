@@ -24,24 +24,21 @@ that app transport, OkHttp, AWS, or Google alone is responsible.
   Aggregate findings above come from retained private native evidence, not
   those vendor documents. Keep raw logs, identifiers and credentials private.
 
-## Temporary release exception
+## Standing known-issue procedure
 
-Kirill explicitly authorized continuing the 1.35.0 rollout on 18 October 2026,
-ignoring the broken external Device Run networking for now, testing what is
-feasible and retaining this known issue. This authority covers only Device Run
-network acceptance for 1.35.0; another version requires a new explicit decision.
+Track the vendor report at [Google issue 574921431](https://issuetracker.google.com/issues/574921431). Ownership remains unknown. Apply the [standing best-effort release policy](release/README.md#standing-best-effort-release-policy) to future releases while the issue remains unresolved and there is no material new evidence. Reuse the bounded diagnosis above; no new owner decision, unavailable physical evidence or repeated blind probes are required each release.
 
 Dispatch `Android Release` with `known_device_run_network_exception=true` only
-under that authority. It defaults to false. The exception skips all four
+when preflight selects this known-issue route. It defaults to false. The exception skips all four
 physical sessions as `waived_not_executed`; it does not pass them, repair earlier
 failures, or produce a green mobile-readiness result. Retain the run's
 `android-device-run-policy-r<runId>a<attempt>` artifact and visible summaries.
 Normal dispatch still requires four passing sessions and complete named results.
 
 Before publication, retain a separate dated operator readiness decision with
-the explicit authorization, exact source/run/attempt/version/code/AAB hash,
+the standing-policy reference, exact source/run/attempt/version/code/AAB hash,
 failed/skipped history, best-effort full latest-OS local native results and
-feasible compatibility checks, coverage gaps, applicable API 30 walkthrough,
+feasible compatibility checks, applicable API 30 walkthrough results or coverage gaps,
 and exact Play-delivered candidate/translation verification. Local success is
 bounded evidence, not a physical-device pass. CI/build/lint/local-data gates,
 security/warning policy, signing, R8, managed publishing and publisher guards
@@ -51,4 +48,4 @@ is still required by [Android release completion](release/android.md).
 Preserve all original failures and skips and the readiness CLI's unchanged
 contract/report. Recheck physical networking on provider remediation or
 materially new evidence; avoid unchanged expensive reruns or speculative app
-transport changes. No provider report has been submitted by this procedure.
+transport changes. Fix identifiable app/test defects and actionable failures under the standing policy.

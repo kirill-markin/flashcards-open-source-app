@@ -23,19 +23,18 @@ correctness, security, artifact authenticity, operator completion, or public
 availability. Inspect native diagnostics, signing, store processing, uploaded
 binary localizations, metadata, release settings, submission and publication
 under the existing procedures. All gates required by the platform's recorded
-contract, native checks and store procedure remain mandatory. New Android
+contract remain mandatory for a CLI pass. The [standing policy](README.md#standing-best-effort-release-policy) governs the separate operator publication decision for unavailable testing; signing and store guards remain mandatory. New Android
 records use schema 2's cloud-first gates; new iOS records use schema 4's full local acceptance and Cloud archive. Historical schema-1/3 records retain their original gates and failed history; do not relabel them to remove a requirement.
 Already-published artifacts follow the [historical reuse rule](evidence.md#reuse-existing-artifacts),
 without reconstructing evidence merely to turn this report green.
 
-## Authorized Android network exception boundary
+## Standing-policy publication boundary
 
-The [temporary 1.35.0 Device Run exception](../android-device-run-network-issue.md)
+The [standing best-effort policy](README.md#standing-best-effort-release-policy), including the [known Device Run exception](../android-device-run-network-issue.md),
 does not change this CLI, its schemas, required inventories or exit codes.
 Preserve failed/skipped/missing native evidence and the resulting blocked report;
 never manufacture a passing gate or relabel historical records. Publication
-under that explicit authority requires the separately retained operator
-readiness decision and all remaining gates in the Android procedure.
+with unavailable testing requires the separately retained operator readiness decision and remaining platform gates under that policy.
 
 ## macOS Readiness Boundary
 
@@ -88,7 +87,7 @@ selected attempt or evidence changes.
    references that resolve to retained native exports, action status, full
    logs, artifact metadata, configuration and source comparisons. Inspect logs
    and adjudicate every notice under the [warning policy](README.md#release-warning-policy).
-6. Run the command, resolve each error, and rerun after evidence changes.
+6. Run the command, resolve invalid input and actionable errors, and rerun after evidence changes. Preserve a blocked report for unavailable testing under the standing policy.
    Keep the manifest and report together with the [ledger](evidence.md#release-ledger).
    Verify the manual gates separately before the authorized action.
 

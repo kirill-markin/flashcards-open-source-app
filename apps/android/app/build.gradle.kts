@@ -283,6 +283,11 @@ android {
         buildConfig = true
     }
 
+    lint {
+        abortOnError = true
+        warningsAsErrors = true
+    }
+
     androidResources {
         localeFilters += supportedAndroidLocaleFilters
         if (isMarketingScreenshotTaskRequested) {

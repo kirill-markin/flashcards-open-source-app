@@ -13,7 +13,7 @@ continue at step 8. An already-published matching build counts complete under
 the shared reuse rules; record its identity and observed availability in step 9
 without reconstructing historical logs. Preserve an existing review submission
 and verify its identity and release setting at step 7 instead of uploading or
-resubmitting the same artifact. New artifacts follow all pre-submission gates.
+resubmitting the same artifact. New artifacts follow all pre-submission gates under the [standing best-effort policy](README.md#standing-best-effort-release-policy), including its separate operator decision for unavailable testing.
 For a user-reserved final Submit, apply the [handoff and resume rules](#user-reserved-final-submit).
 
 1. Prepare production build values using [iOS Local Setup](../ios-local-setup.md).
@@ -33,14 +33,14 @@ For a user-reserved final Submit, apply the [handoff and resume rules](#user-res
 
    Use a fresh archive output path on retries and retain full build logs. The archive validates device Release compilation without upload; Cloud signing and distribution remain mandatory.
 
-   Complete all three [local native acceptance plans](../ios-local-setup.md#local-native-acceptance): `LocalFull` on one latest iPhone (full eligible UI plus the entire existing non-UI bundle), `LocalIPad` on one latest iPad (three eligible flows), and `IOS18Compatibility` on one actual 18.x iPhone or iPad (three compatibility flows). Use scheme `Flashcards Native Acceptance`, test-plan configuration `Acceptance`, and the exact commands/signing and runner-email setup there. Require complete all-green inventories before Cloud dispatch; filtered diagnostic reruns, unexpected skips and missing cases cannot satisfy acceptance. If a required destination is unavailable, block release. Record exact source, toolchain, plan/configuration, destinations, named results, logs and `.xcresult` evidence in the [ledger](evidence.md#release-ledger), applying the [local gate](evidence.md#local-mobile-release-gate) and warning policy. Valid unchanged evidence may be reused under step 5; a docs-only root SHA change alone does not force native reruns.
+   Complete all three [local native acceptance plans](../ios-local-setup.md#local-native-acceptance): `LocalFull` on one latest iPhone (full eligible UI plus the entire existing non-UI bundle), `LocalIPad` on one latest iPad (three eligible flows), and `IOS18Compatibility` on one actual 18.x iPhone or iPad (three compatibility flows). Use scheme `Flashcards Native Acceptance`, test-plan configuration `Acceptance`, and the exact commands/signing and runner-email setup there. For normal acceptance, require complete all-green inventories before Cloud dispatch; filtered diagnostic reruns, unexpected skips and missing cases cannot satisfy acceptance. If a required destination or test tooling is unavailable, apply the standing policy. Record exact source, toolchain, plan/configuration, destinations, named results, logs and `.xcresult` evidence in the [ledger](evidence.md#release-ledger), applying the [local gate](evidence.md#local-mobile-release-gate) and warning policy. Valid unchanged evidence may be reused under step 5; a docs-only root SHA change alone does not force native reruns.
 2. Access the app and Xcode Cloud through the App Store Connect API using
    [local credentials](../xcode-cloud-data-access.md#required-local-secrets). Use
    the browser for unsupported operations or diagnosed API access blockers;
    ask the user to complete Apple login/MFA if needed, then resume.
 3. Identify **iOS Release Build** (`97ECE547-B59E-4970-ACFA-52ED8F6F7B29`).
    Complete the [Cloud configuration preflight](../ios-ci-cd.md#cloud-configuration-preflight)
-   and every local gate in step 1 before dispatch. Verify the required
+   and the local gates in step 1 under the standing policy before dispatch. Verify the required
    `Archive - iOS` action, original `Flashcards Open Source App` scheme,
    Release/App Store eligible signing and retained TestFlight internal-testers
    postaction. Start only this release-build workflow for the accepted SHA;
@@ -55,7 +55,7 @@ For a user-reserved final Submit, apply the [handoff and resume rules](#user-res
    follow [App Store metadata](../app-store-connect-metadata.md); its editable-draft
    requirements apply. Verify each saved field and required metadata; request
    help for missing declarations or unexpected store requirements.
-5. Require all five [schema-4 readiness gates](readiness.md#ios-local-acceptance-schema-4): unsigned `local-archive`, `local-full`, `local-ipad`, `local-ios18` and signed `cloud-archive`. Inspect every named native result, action status, error and warning even when the overall summary is green. All selected required methods must execute and pass. Preserve failure artifacts and investigate unexpected skips or missing cases. The acceptance plans exclude marketing and ineligible device methods through explicit selection; do not invent passed/skipped records for unselected methods or use historical destination exclusions to excuse current required tests.
+5. For normal acceptance, require all five [schema-4 readiness gates](readiness.md#ios-local-acceptance-schema-4): unsigned `local-archive`, `local-full`, `local-ipad`, `local-ios18` and signed `cloud-archive`. Inspect every named native result, action status, error and warning even when the overall summary is green. All selected required methods must execute and pass. Preserve failure artifacts and investigate unexpected skips or missing cases. The acceptance plans exclude marketing and ineligible device methods through explicit selection; do not invent passed/skipped records for unselected methods or use historical destination exclusions to excuse current required tests.
 
    Complete the [iOS 18 manual checklist](../ios-local-setup.md#ios-18-compatibility-smoke) for the first expanded release or changes affecting OS-specific behavior. Fix blocking code/build/test issues through normal PR/CI, then repeat affected complete local plans before retrying an affected Cloud archive. Targeted reruns help diagnosis but do not replace all-green complete acceptance on corrected inputs.
 
@@ -109,7 +109,7 @@ For a user-reserved final Submit, apply the [handoff and resume rules](#user-res
    for propagation or declare the release live from the API status alone.
 
 Completion follows the [canonical boundary](README.md#release-inventory-and-completion):
-all required gates pass before submission, the exact submission and saved
+required gates pass or unavailable testing is recorded under the standing policy before submission, the exact submission and saved
 release setting are verified, and any currently available manual publication
 action is completed. Already-published matching builds use the shared historical
 evidence rule. Public availability is a separate observed state.
@@ -119,7 +119,7 @@ bundles: [Xcode Cloud data access](../xcode-cloud-data-access.md).
 
 ## User-Reserved Final Submit
 
-After all required gates and preparation pass, verify the **Ready for Review**
+After required gates pass or unavailable testing is recorded under the standing policy, complete preparation and verify the **Ready for Review**
 draft's exact version, version ID, build number/build ID and submission ID.
 Verify the saved automatic-release-after-approval setting, unless manual mode
 was explicitly intended. Record these identities, gate evidence, saved mode
