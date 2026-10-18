@@ -76,6 +76,7 @@ data class OnboardingDemoMetadata(
     val wasEdited: Boolean
 )
 
+@ConsistentCopyVisibility
 data class CardDraft private constructor(
     val frontText: String,
     val backText: String,
