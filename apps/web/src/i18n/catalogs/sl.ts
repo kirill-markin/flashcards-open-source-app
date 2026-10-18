@@ -63,6 +63,7 @@ const slCatalog: TranslationCatalog = {
     limitTitle: "Dosežena omejitev sporočil UI",
     previewOffer: "Predogled ponudbe Premium",
     previewAi: "Predogled omejitve UI",
+    previewNoPurchase: "Preizkusni način: nakup ne bo opravljen in nič vam ne bo zaračunano.",
     retryManually: "Vrnite se v klepet in znova pošljite sporočilo, ko boste pripravljeni. Nastavitve ključa se shranijo samodejno.",
   },
   common: {

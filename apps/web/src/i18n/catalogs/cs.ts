@@ -63,6 +63,7 @@ const csCatalog: TranslationCatalog = {
     limitTitle: "Dosažen limit zpráv AI",
     previewOffer: "Náhled nabídky Premium",
     previewAi: "Náhled limitu AI",
+    previewNoPurchase: "Testovací režim: žádný nákup se neprovede a nic vám nebude účtováno.",
     retryManually: "Vraťte se do chatu a až budete připraveni, odešlete zprávu znovu. Nastavení klíče se ukládá automaticky.",
   },
   common: {

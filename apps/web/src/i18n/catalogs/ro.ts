@@ -63,6 +63,7 @@ const roCatalog: TranslationCatalog = {
     limitTitle: "Limita de mesaje IA a fost atinsă",
     previewOffer: "Previzualizează oferta Premium",
     previewAi: "Previzualizează limita IA",
+    previewNoPurchase: "Mod de testare: nu se efectuează nicio achiziție și nu vi se va percepe nicio taxă.",
     retryManually: "Revino la chat și trimite mesajul din nou când ești gata. Setările cheii sunt salvate automat.",
   },
   common: {

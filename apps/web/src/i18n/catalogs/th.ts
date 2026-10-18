@@ -63,6 +63,7 @@ const thCatalog: TranslationCatalog = {
     limitTitle: "ใช้ข้อความ AI ถึงขีดจำกัดแล้ว",
     previewOffer: "ดูตัวอย่างข้อเสนอ Premium",
     previewAi: "ดูตัวอย่างขีดจำกัด AI",
+    previewNoPurchase: "โหมดทดสอบ: จะไม่มีการซื้อและคุณจะไม่ถูกเรียกเก็บเงิน",
     retryManually: "กลับไปที่แชตแล้วส่งข้อความอีกครั้งเมื่อพร้อม การตั้งค่าคีย์จะบันทึกโดยอัตโนมัติ",
   },
   common: {
