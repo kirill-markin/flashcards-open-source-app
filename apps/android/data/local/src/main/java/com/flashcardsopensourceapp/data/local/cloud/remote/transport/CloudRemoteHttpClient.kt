@@ -316,6 +316,8 @@ internal class CloudJsonHttpClient(
             var receivedStatusCode: Int? = null
             var receivedRequestId: String? = null
             var receivedProtocol: String? = null
+            var ioExceptionClass: String? = null
+            var responseBodyRead: Boolean = false
             val attemptStartedAtNanos: Long = System.nanoTime()
 
             try {
@@ -334,6 +336,7 @@ internal class CloudJsonHttpClient(
                         ?.ifEmpty { null }
                     ioPhase = cloudHttpIoReadingResponseBodyPhase
                     val responseBody = readCloudResponseBody(response = response)
+                    responseBodyRead = true
                     if (response.isSuccessful.not()) {
                         val parsedError = parseCloudErrorPayloadWithHeaderRequestId(
                             responseBody = responseBody,
@@ -423,6 +426,7 @@ internal class CloudJsonHttpClient(
                     }
                 }
             } catch (error: IOException) {
+                ioExceptionClass = error::class.java.name
                 if (cancellationRequested.get() || coroutineJob.isCancelled) {
                     throw cancellationException(
                         message = "Cloud request was cancelled.",
@@ -468,6 +472,23 @@ internal class CloudJsonHttpClient(
                 }
             } finally {
                 cancellationHandle.dispose()
+                captureCloudHttpAttemptFinishedObservation(
+                    observability = observability,
+                    observationVersions = observationVersions,
+                    call = call,
+                    path = path,
+                    method = method.requestMethod,
+                    attemptNumber = attemptNumber,
+                    attemptElapsedMs = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - attemptStartedAtNanos),
+                    ioPhase = ioPhase,
+                    exceptionClass = ioExceptionClass,
+                    cancelled = cancellationRequested.get() || coroutineJob.isCancelled,
+                    requestId = receivedRequestId,
+                    statusCode = receivedStatusCode,
+                    responseProtocol = receivedProtocol,
+                    connectionSnapshot = connectionObservation.snapshot(),
+                    responseBodyRead = responseBodyRead
+                )
             }
 
             val attemptResponse = successfulResponse
@@ -521,6 +542,8 @@ internal class CloudJsonHttpClient(
             var receivedStatusCode: Int? = null
             var receivedRequestId: String? = null
             var receivedProtocol: String? = null
+            var ioExceptionClass: String? = null
+            var responseBodyRead: Boolean = false
             val attemptStartedAtNanos: Long = System.nanoTime()
 
             try {
@@ -542,6 +565,7 @@ internal class CloudJsonHttpClient(
                         ?.ifEmpty { null }
                     ioPhase = cloudHttpIoReadingResponseBodyPhase
                     val responseBodyBytes = readCloudResponseBytes(response = response)
+                    responseBodyRead = true
                     if (response.isSuccessful.not()) {
                         val responseBody = String(responseBodyBytes, StandardCharsets.UTF_8)
                         val parsedError = parseCloudErrorPayloadWithHeaderRequestId(
@@ -620,6 +644,7 @@ internal class CloudJsonHttpClient(
                     }
                 }
             } catch (error: IOException) {
+                ioExceptionClass = error::class.java.name
                 if (cancellationRequested.get() || coroutineJob.isCancelled) {
                     throw cancellationException(
                         message = "Cloud request was cancelled.",
@@ -665,6 +690,23 @@ internal class CloudJsonHttpClient(
                 }
             } finally {
                 cancellationHandle.dispose()
+                captureCloudHttpAttemptFinishedObservation(
+                    observability = observability,
+                    observationVersions = observationVersions,
+                    call = call,
+                    path = path,
+                    method = method.requestMethod,
+                    attemptNumber = attemptNumber,
+                    attemptElapsedMs = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - attemptStartedAtNanos),
+                    ioPhase = ioPhase,
+                    exceptionClass = ioExceptionClass,
+                    cancelled = cancellationRequested.get() || coroutineJob.isCancelled,
+                    requestId = receivedRequestId,
+                    statusCode = receivedStatusCode,
+                    responseProtocol = receivedProtocol,
+                    connectionSnapshot = connectionObservation.snapshot(),
+                    responseBodyRead = responseBodyRead
+                )
             }
 
             val attemptResponse = successfulResponse

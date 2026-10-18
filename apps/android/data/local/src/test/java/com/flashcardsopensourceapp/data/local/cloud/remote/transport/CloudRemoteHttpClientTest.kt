@@ -72,7 +72,7 @@ class CloudRemoteHttpClientTest {
             assertEquals(42L, response.getLong("nextHotChangeId"))
             assertEquals(2, requestCount.get())
             assertTrue(observability.warnings.isEmpty())
-            val retryEvent = observability.breadcrumbs.single()
+            val retryEvent = observability.breadcrumbs.filterNot { it is AndroidBreadcrumbEvent.HttpAttemptFinished }.single()
             assertTrue(retryEvent is AndroidBreadcrumbEvent.HttpTransientRetry)
             retryEvent as AndroidBreadcrumbEvent.HttpTransientRetry
             assertEquals("/workspaces/{workspaceId}/sync/pull", retryEvent.endpointName)
@@ -131,7 +131,7 @@ class CloudRemoteHttpClientTest {
             assertEquals(504, error.statusCode)
             assertEquals("lambda-request-1", error.requestId)
             assertEquals(1, requestCount.get())
-            assertTrue(observability.breadcrumbs.isEmpty())
+            assertTrue(observability.breadcrumbs.filterNot { it is AndroidBreadcrumbEvent.HttpAttemptFinished }.isEmpty())
             val warning = observability.warnings.single()
             assertTrue(warning is AndroidWarningIssueEvent.HttpServerError)
             warning as AndroidWarningIssueEvent.HttpServerError
@@ -279,7 +279,7 @@ class CloudRemoteHttpClientTest {
             assertArrayEquals(zipBytes, response.bodyBytes)
             assertEquals(2, requestCount.get())
             assertTrue(observability.warnings.isEmpty())
-            val retryEvent = observability.breadcrumbs.single()
+            val retryEvent = observability.breadcrumbs.filterNot { it is AndroidBreadcrumbEvent.HttpAttemptFinished }.single()
             assertTrue(retryEvent is AndroidBreadcrumbEvent.HttpTransientRetry)
             retryEvent as AndroidBreadcrumbEvent.HttpTransientRetry
             assertEquals("/workspaces/{workspaceId}/packages/export", retryEvent.endpointName)

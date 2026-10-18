@@ -7,6 +7,7 @@ import com.flashcardsopensourceapp.core.observability.AndroidWarningIssueEvent
 import com.flashcardsopensourceapp.core.observability.AppObservability
 import com.flashcardsopensourceapp.core.observability.CloudObservationIdentity
 import com.flashcardsopensourceapp.data.local.cloud.remote.CloudSyncConflictDetails
+import okhttp3.Call
 import okhttp3.Request
 import okhttp3.Response
 
@@ -110,6 +111,48 @@ internal fun captureCloudHttpTransientRetryObservation(
             connectionId = connectionId,
             connectionProtocol = connectionProtocol,
             requestHeadersCompleted = requestHeadersCompleted,
+            appVersion = observationVersions.appVersion,
+            clientVersion = observationVersions.clientVersion,
+            versionCode = observationVersions.versionCode
+        )
+    )
+}
+
+internal fun captureCloudHttpAttemptFinishedObservation(
+    observability: AppObservability,
+    observationVersions: CloudHttpObservationVersions,
+    call: Call,
+    path: String,
+    method: String,
+    attemptNumber: Int,
+    attemptElapsedMs: Long,
+    ioPhase: String,
+    exceptionClass: String?,
+    cancelled: Boolean,
+    requestId: String?,
+    statusCode: Int?,
+    responseProtocol: String?,
+    connectionSnapshot: CloudHttpConnectionSnapshot,
+    responseBodyRead: Boolean
+) {
+    observability.addBreadcrumb(
+        event = AndroidBreadcrumbEvent.HttpAttemptFinished(
+            feature = cloudObservationFeature(request = call.request()),
+            endpointName = cloudObservationEndpointName(path = path),
+            method = method,
+            callId = System.identityHashCode(call).toString(),
+            attemptNumber = attemptNumber,
+            attemptElapsedMs = attemptElapsedMs,
+            ioPhase = ioPhase,
+            exceptionClass = exceptionClass,
+            cancelled = cancelled,
+            requestId = requestId,
+            statusCode = statusCode,
+            responseProtocol = responseProtocol,
+            connectionId = connectionSnapshot.connectionId,
+            connectionProtocol = connectionSnapshot.connectionProtocol,
+            requestHeadersCompleted = connectionSnapshot.requestHeadersCompleted,
+            responseBodyRead = responseBodyRead,
             appVersion = observationVersions.appVersion,
             clientVersion = observationVersions.clientVersion,
             versionCode = observationVersions.versionCode

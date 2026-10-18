@@ -185,6 +185,28 @@ private fun addBreadcrumbData(
                 )
             )
         }
+        is AndroidBreadcrumbEvent.HttpAttemptFinished -> {
+            breadcrumb.setData(
+                "httpAttempt",
+                SentryHttpAttemptContext(
+                    endpointName = sanitizeSentryContextValue(fieldName = "endpointName", value = event.endpointName),
+                    method = sanitizeSentryContextValue(fieldName = "method", value = event.method),
+                    callId = sanitizeSentryIdentifier(value = event.callId),
+                    attemptNumber = event.attemptNumber,
+                    attemptElapsedMs = event.attemptElapsedMs,
+                    ioPhase = sanitizeSentryContextValue(fieldName = "ioPhase", value = event.ioPhase),
+                    exceptionClass = sanitizeSentryContextValue(fieldName = "exceptionClass", value = event.exceptionClass),
+                    cancelled = event.cancelled,
+                    requestId = sanitizeSentryIdentifier(value = event.requestId),
+                    statusCode = event.statusCode,
+                    responseProtocol = sanitizeSentryContextValue(fieldName = "responseProtocol", value = event.responseProtocol),
+                    connectionId = sanitizeSentryIdentifier(value = event.connectionId),
+                    connectionProtocol = sanitizeSentryContextValue(fieldName = "connectionProtocol", value = event.connectionProtocol),
+                    requestHeadersCompleted = event.requestHeadersCompleted,
+                    responseBodyRead = event.responseBodyRead
+                )
+            )
+        }
         is AndroidBreadcrumbEvent.HttpTransientRetry -> {
             breadcrumb.setData(
                 "http",
@@ -1086,6 +1108,24 @@ private data class SentryHttpContext(
     val statusCode: Int?,
     val code: String?,
     val stage: String?
+)
+
+private data class SentryHttpAttemptContext(
+    val endpointName: String?,
+    val method: String?,
+    val callId: String?,
+    val attemptNumber: Int,
+    val attemptElapsedMs: Long,
+    val ioPhase: String?,
+    val exceptionClass: String?,
+    val cancelled: Boolean,
+    val requestId: String?,
+    val statusCode: Int?,
+    val responseProtocol: String?,
+    val connectionId: String?,
+    val connectionProtocol: String?,
+    val requestHeadersCompleted: Boolean,
+    val responseBodyRead: Boolean
 )
 
 private data class SentryHttpRetryContext(
