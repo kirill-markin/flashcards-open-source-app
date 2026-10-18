@@ -145,15 +145,14 @@ func canonicalizedPendingGuestUpgradeState(
     )
 
     switch state {
-    case .inFlight(let inFlightState):
-        return .inFlight(
-            PendingGuestUpgradeInFlightState(
-                common: canonicalCommon,
-                guestIdentity: inFlightState.guestIdentity,
-                selection: inFlightState.selection,
-                supportsDroppedEntities: inFlightState.supportsDroppedEntities
-            )
+    case .inFlight(let inFlightState), .selectionRequired(let inFlightState):
+        let canonicalState = PendingGuestUpgradeInFlightState(
+            common: canonicalCommon,
+            guestIdentity: inFlightState.guestIdentity,
+            selection: inFlightState.selection,
+            supportsDroppedEntities: inFlightState.supportsDroppedEntities
         )
+        return state.requiresCompletion ? .inFlight(canonicalState) : .selectionRequired(canonicalState)
     case .completed(let completedState):
         return .completed(
             PendingGuestUpgradeCompletedState(

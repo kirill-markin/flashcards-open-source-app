@@ -345,7 +345,7 @@ final class CloudCredentialRecoveryStatePersistenceTests: CloudCredentialRecover
             apiBaseUrl: configuration.apiBaseUrl
         )
         try guestCredentialStore.saveGuestSession(session: guestSession)
-        let pendingState: PendingGuestUpgradeState = pendingGuestUpgradeInFlightState(
+        let pendingState: PendingGuestUpgradeState = try pendingGuestUpgradeInFlightState(
             linkContext: CloudWorkspaceLinkContext(
                 userId: "linked-user",
                 email: "user@example.com",
@@ -354,6 +354,7 @@ final class CloudCredentialRecoveryStatePersistenceTests: CloudCredentialRecover
                 workspaces: [],
                 preferences: makeDefaultAccountPreferences(),
                 guestUpgradeMode: .mergeRequired,
+                demoOnlyDestinationWorkspaceId: nil,
                 postAuthRecoveryRoute: .none
             ),
             configuration: configuration,

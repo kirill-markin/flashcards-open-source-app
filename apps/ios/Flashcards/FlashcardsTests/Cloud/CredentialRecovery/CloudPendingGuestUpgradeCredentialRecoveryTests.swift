@@ -50,7 +50,7 @@ final class CloudPendingGuestUpgradeCredentialRecoveryTests: CloudCredentialReco
             idToken: "id-token",
             idTokenExpiresAt: "2099-01-01T00:00:00.000Z"
         )
-        let pendingState: PendingGuestUpgradeState = pendingGuestUpgradeInFlightState(
+        let pendingState: PendingGuestUpgradeState = try pendingGuestUpgradeInFlightState(
             linkContext: CloudWorkspaceLinkContext(
                 userId: "linked-user",
                 email: "user@example.com",
@@ -59,6 +59,7 @@ final class CloudPendingGuestUpgradeCredentialRecoveryTests: CloudCredentialReco
                 workspaces: [],
                 preferences: makeDefaultAccountPreferences(),
                 guestUpgradeMode: .mergeRequired,
+                demoOnlyDestinationWorkspaceId: nil,
                 postAuthRecoveryRoute: .none
             ),
             configuration: configuration,
@@ -181,6 +182,7 @@ final class CloudPendingGuestUpgradeCredentialRecoveryTests: CloudCredentialReco
             workspaces: [],
             preferences: makeDefaultAccountPreferences(),
             guestUpgradeMode: nil,
+            demoOnlyDestinationWorkspaceId: nil,
             postAuthRecoveryRoute: .none
         )
         let guestSession: StoredGuestCloudSession = StoredGuestCloudSession(
@@ -190,7 +192,7 @@ final class CloudPendingGuestUpgradeCredentialRecoveryTests: CloudCredentialReco
             configurationMode: configuration.mode,
             apiBaseUrl: configuration.apiBaseUrl
         )
-        let pendingState: PendingGuestUpgradeState = pendingGuestUpgradeInFlightState(
+        let pendingState: PendingGuestUpgradeState = try pendingGuestUpgradeInFlightState(
             linkContext: CloudWorkspaceLinkContext(
                 userId: recoveredLinkContext.userId,
                 email: recoveredLinkContext.email,
@@ -199,6 +201,7 @@ final class CloudPendingGuestUpgradeCredentialRecoveryTests: CloudCredentialReco
                 workspaces: [],
                 preferences: makeDefaultAccountPreferences(),
                 guestUpgradeMode: .mergeRequired,
+                demoOnlyDestinationWorkspaceId: nil,
                 postAuthRecoveryRoute: .none
             ),
             configuration: configuration,
@@ -313,7 +316,7 @@ final class CloudPendingGuestUpgradeCredentialRecoveryTests: CloudCredentialReco
             apiBaseUrl: configuration.apiBaseUrl
         )
         try guestCredentialStore.saveGuestSession(session: guestSession)
-        let pendingState: PendingGuestUpgradeState = pendingGuestUpgradeInFlightState(
+        let pendingState: PendingGuestUpgradeState = try pendingGuestUpgradeInFlightState(
             linkContext: CloudWorkspaceLinkContext(
                 userId: "linked-user",
                 email: "user@example.com",
@@ -322,6 +325,7 @@ final class CloudPendingGuestUpgradeCredentialRecoveryTests: CloudCredentialReco
                 workspaces: [],
                 preferences: makeDefaultAccountPreferences(),
                 guestUpgradeMode: .mergeRequired,
+                demoOnlyDestinationWorkspaceId: nil,
                 postAuthRecoveryRoute: .none
             ),
             configuration: configuration,
@@ -410,7 +414,7 @@ final class CloudPendingGuestUpgradeCredentialRecoveryTests: CloudCredentialReco
         XCTAssertEqual([completedWorkspace], linkContext.workspaces)
         XCTAssertEqual(
             .autoLink(.existing(workspaceId: completedWorkspace.workspaceId)),
-            makeCloudWorkspacePostAuthRoute(linkContext: linkContext)
+            makeCloudWorkspacePostAuthRoute(linkContext: linkContext, pendingGuestUpgradeState: nil)
         )
     }
 
@@ -463,7 +467,7 @@ final class CloudPendingGuestUpgradeCredentialRecoveryTests: CloudCredentialReco
             configurationMode: configuration.mode,
             apiBaseUrl: configuration.apiBaseUrl
         )
-        let pendingState: PendingGuestUpgradeState = pendingGuestUpgradeInFlightState(
+        let pendingState: PendingGuestUpgradeState = try pendingGuestUpgradeInFlightState(
             linkContext: CloudWorkspaceLinkContext(
                 userId: "linked-user",
                 email: "user@example.com",
@@ -472,6 +476,7 @@ final class CloudPendingGuestUpgradeCredentialRecoveryTests: CloudCredentialReco
                 workspaces: [],
                 preferences: makeDefaultAccountPreferences(),
                 guestUpgradeMode: .mergeRequired,
+                demoOnlyDestinationWorkspaceId: nil,
                 postAuthRecoveryRoute: .none
             ),
             configuration: configuration,
@@ -621,7 +626,7 @@ final class CloudPendingGuestUpgradeCredentialRecoveryTests: CloudCredentialReco
             apiBaseUrl: configuration.apiBaseUrl
         )
         try guestCredentialStore.saveGuestSession(session: guestSession)
-        let pendingState: PendingGuestUpgradeState = pendingGuestUpgradeInFlightState(
+        let pendingState: PendingGuestUpgradeState = try pendingGuestUpgradeInFlightState(
             linkContext: CloudWorkspaceLinkContext(
                 userId: "linked-user",
                 email: "user@example.com",
@@ -630,6 +635,7 @@ final class CloudPendingGuestUpgradeCredentialRecoveryTests: CloudCredentialReco
                 workspaces: [],
                 preferences: makeDefaultAccountPreferences(),
                 guestUpgradeMode: .mergeRequired,
+                demoOnlyDestinationWorkspaceId: nil,
                 postAuthRecoveryRoute: .none
             ),
             configuration: configuration,
@@ -688,6 +694,7 @@ final class CloudPendingGuestUpgradeCredentialRecoveryTests: CloudCredentialReco
                     workspaces: [completedWorkspace],
                     preferences: makeDefaultAccountPreferences(),
                     guestUpgradeMode: nil,
+                    demoOnlyDestinationWorkspaceId: nil,
                     postAuthRecoveryRoute: .pendingGuestUpgradeRecovery
                 ),
                 selection: .existing(workspaceId: completedWorkspace.workspaceId)
@@ -772,7 +779,7 @@ final class CloudPendingGuestUpgradeCredentialRecoveryTests: CloudCredentialReco
             idToken: "id-token",
             idTokenExpiresAt: "2099-01-01T00:00:00.000Z"
         )
-        let pendingState: PendingGuestUpgradeState = pendingGuestUpgradeInFlightState(
+        let pendingState: PendingGuestUpgradeState = try pendingGuestUpgradeInFlightState(
             linkContext: CloudWorkspaceLinkContext(
                 userId: "linked-user",
                 email: "user@example.com",
@@ -781,6 +788,7 @@ final class CloudPendingGuestUpgradeCredentialRecoveryTests: CloudCredentialReco
                 workspaces: [],
                 preferences: makeDefaultAccountPreferences(),
                 guestUpgradeMode: .mergeRequired,
+                demoOnlyDestinationWorkspaceId: nil,
                 postAuthRecoveryRoute: .none
             ),
             configuration: configuration,
@@ -824,6 +832,7 @@ final class CloudPendingGuestUpgradeCredentialRecoveryTests: CloudCredentialReco
                     workspaces: [],
                     preferences: makeDefaultAccountPreferences(),
                     guestUpgradeMode: .mergeRequired,
+                    demoOnlyDestinationWorkspaceId: nil,
                     postAuthRecoveryRoute: .pendingGuestUpgradeRecovery
                 ),
                 selection: .createNew
@@ -895,7 +904,7 @@ final class CloudPendingGuestUpgradeCredentialRecoveryTests: CloudCredentialReco
             idToken: "id-token",
             idTokenExpiresAt: "2099-01-01T00:00:00.000Z"
         )
-        let pendingState: PendingGuestUpgradeState = pendingGuestUpgradeInFlightState(
+        let pendingState: PendingGuestUpgradeState = try pendingGuestUpgradeInFlightState(
             linkContext: CloudWorkspaceLinkContext(
                 userId: "linked-user",
                 email: "user@example.com",
@@ -904,6 +913,7 @@ final class CloudPendingGuestUpgradeCredentialRecoveryTests: CloudCredentialReco
                 workspaces: [],
                 preferences: makeDefaultAccountPreferences(),
                 guestUpgradeMode: .mergeRequired,
+                demoOnlyDestinationWorkspaceId: nil,
                 postAuthRecoveryRoute: .none
             ),
             configuration: configuration,

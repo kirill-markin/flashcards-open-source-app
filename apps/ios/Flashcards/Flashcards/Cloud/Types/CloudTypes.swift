@@ -289,6 +289,7 @@ struct CloudWorkspaceLinkContext: Hashable, Identifiable, Sendable {
     let workspaces: [CloudWorkspaceSummary]
     let preferences: AccountPreferences
     let guestUpgradeMode: CloudGuestUpgradeMode?
+    let demoOnlyDestinationWorkspaceId: String?
     let postAuthRecoveryRoute: CloudPostAuthRecoveryRoute
 
     var id: String {
@@ -381,8 +382,14 @@ enum CloudGuestUpgradeMode: String, Codable, Hashable, Sendable {
     case mergeRequired = "merge_required"
 }
 
+struct CloudGuestUpgradePreparation: Hashable, Sendable {
+    let mode: CloudGuestUpgradeMode
+    let demoOnlyDestinationWorkspaceId: String?
+}
+
 enum CloudGuestUpgradeSelection: Hashable, Sendable {
     case existing(workspaceId: String)
+    case discardDemoOnly(workspaceId: String)
     case createNew
 }
 

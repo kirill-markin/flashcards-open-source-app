@@ -158,6 +158,7 @@ final class GuestCloudUpgradeDrainTests: XCTestCase {
             workspaces: [],
             preferences: makeDefaultAccountPreferences(),
             guestUpgradeMode: .mergeRequired,
+            demoOnlyDestinationWorkspaceId: nil,
             postAuthRecoveryRoute: .none
         )
         let upgradeTask: Task<Void, Error> = Task { @MainActor in
@@ -282,6 +283,7 @@ final class GuestCloudUpgradeDrainTests: XCTestCase {
             workspaces: [],
             preferences: makeDefaultAccountPreferences(),
             guestUpgradeMode: .mergeRequired,
+            demoOnlyDestinationWorkspaceId: nil,
             postAuthRecoveryRoute: .none
         )
 

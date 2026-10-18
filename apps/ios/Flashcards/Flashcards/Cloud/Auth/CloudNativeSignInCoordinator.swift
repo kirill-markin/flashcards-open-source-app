@@ -194,11 +194,22 @@ final class CloudNativeSignInCoordinator {
                 throw LocalStoreError.validation("This sign-in has already completed")
             }
             self.stage = .preparingAccount(pending.method)
-            // The existing preparer settles canonical guest mapping before generic account loading.
             let context = try await store.prepareCloudLink(verifiedContext: pending.verifiedContext)
             try self.checkCurrent(epoch)
             self.linkContext = context
-            self.stage = .workspaceSelectionRequired(pending.method)
+            let automaticWorkspaceId = context.demoOnlyDestinationWorkspaceId
+                ?? (context.postAuthRecoveryRoute == .pendingGuestUpgradeRecovery && context.guestUpgradeMode == nil
+                    ? context.workspaces.first?.workspaceId : nil)
+            if let workspaceId = automaticWorkspaceId {
+                _ = try await self.finishAccount(
+                    store: store,
+                    selection: .existing(workspaceId: workspaceId),
+                    captureContext: nil,
+                    epoch: epoch
+                )
+            } else {
+                self.stage = .workspaceSelectionRequired(pending.method)
+            }
             return context
         }
     }
@@ -209,45 +220,60 @@ final class CloudNativeSignInCoordinator {
         captureContext: TechnicalErrorCaptureContext?
     ) async throws -> CloudLinkedSession {
         try await self.perform { epoch in
-            let pending = try self.requirePendingSession(store: store)
-            guard let context = self.linkContext, self.completedAccount == nil else {
-                throw LocalStoreError.uninitialized("Prepared sign-in workspace selection is unavailable")
-            }
-            self.stage = .completingAccount(pending.method)
-            if context.guestUpgradeMode != nil {
-                try await store.completeGuestCloudLink(
-                    linkContext: context,
-                    selection: selection,
-                    technicalErrorCaptureContext: captureContext
-                )
-            } else {
-                try await store.completeCloudLink(
-                    linkContext: context,
-                    selection: selection,
-                    technicalErrorCaptureContext: captureContext
-                )
-            }
-            try self.checkCurrent(epoch)
-            _ = try self.requirePendingSession(store: store)
-            guard let session = store.cloudRuntime.activeCloudSession(),
-                  case .bearer = session.authorization,
-                  session.userId == context.userId, session.apiBaseUrl == context.apiBaseUrl,
-                  session.configurationMode == self.configuration?.mode,
-                  store.cloudSettings?.cloudState == .linked,
-                  store.cloudSettings?.linkedUserId == session.userId,
-                  store.workspace?.workspaceId == session.workspaceId else {
-                throw LocalStoreError.validation("The completed sign-in did not accept its linked account and workspace")
-            }
-            self.completedAccount = CloudNativeSignInAccount(userId: session.userId, workspaceId: session.workspaceId)
-            self.connectionSuggestion = self.pendingConnectionSuggestion
-            self.pendingConnectionSuggestion = nil
-            self.acceptedHint = pending.hint
-            self.pending = nil
-            self.linkContext = nil
-            self.stage = .accountReady(pending.method)
+            let session = try await self.finishAccount(
+                store: store,
+                selection: selection,
+                captureContext: captureContext,
+                epoch: epoch
+            )
             try self.rememberAcceptedSession()
             return session
         }
+    }
+
+    private func finishAccount(
+        store: FlashcardsStore,
+        selection: CloudWorkspaceLinkSelection,
+        captureContext: TechnicalErrorCaptureContext?,
+        epoch: UUID
+    ) async throws -> CloudLinkedSession {
+        let pending = try self.requirePendingSession(store: store)
+        guard let context = self.linkContext, self.completedAccount == nil else {
+            throw LocalStoreError.uninitialized("Prepared sign-in workspace selection is unavailable")
+        }
+        self.stage = .completingAccount(pending.method)
+        if context.guestUpgradeMode != nil {
+            try await store.completeGuestCloudLink(
+                linkContext: context,
+                selection: selection,
+                technicalErrorCaptureContext: captureContext
+            )
+        } else {
+            try await store.completeCloudLink(
+                linkContext: context,
+                selection: selection,
+                technicalErrorCaptureContext: captureContext
+            )
+        }
+        try self.checkCurrent(epoch)
+        _ = try self.requirePendingSession(store: store)
+        guard let session = store.cloudRuntime.activeCloudSession(),
+              case .bearer = session.authorization,
+              session.userId == context.userId, session.apiBaseUrl == context.apiBaseUrl,
+              session.configurationMode == self.configuration?.mode,
+              store.cloudSettings?.cloudState == .linked,
+              store.cloudSettings?.linkedUserId == session.userId,
+              store.workspace?.workspaceId == session.workspaceId else {
+            throw LocalStoreError.validation("The completed sign-in did not accept its linked account and workspace")
+        }
+        self.completedAccount = CloudNativeSignInAccount(userId: session.userId, workspaceId: session.workspaceId)
+        self.connectionSuggestion = self.pendingConnectionSuggestion
+        self.pendingConnectionSuggestion = nil
+        self.acceptedHint = pending.hint
+        self.pending = nil
+        self.linkContext = nil
+        self.stage = .accountReady(pending.method)
+        return session
     }
 
     // A storage failure can be retried without repeating the completed workspace transition.

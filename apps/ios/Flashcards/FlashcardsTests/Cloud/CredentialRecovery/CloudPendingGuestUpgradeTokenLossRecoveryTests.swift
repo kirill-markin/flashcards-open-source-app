@@ -42,7 +42,7 @@ final class CloudPendingGuestUpgradeTokenLossRecoveryTests: CloudCredentialRecov
             idToken: "id-token",
             idTokenExpiresAt: "2099-01-01T00:00:00.000Z"
         )
-        let pendingState: PendingGuestUpgradeState = pendingGuestUpgradeInFlightState(
+        let pendingState: PendingGuestUpgradeState = try pendingGuestUpgradeInFlightState(
             linkContext: CloudWorkspaceLinkContext(
                 userId: "linked-user",
                 email: "user@example.com",
@@ -51,6 +51,7 @@ final class CloudPendingGuestUpgradeTokenLossRecoveryTests: CloudCredentialRecov
                 workspaces: [],
                 preferences: makeDefaultAccountPreferences(),
                 guestUpgradeMode: .mergeRequired,
+                demoOnlyDestinationWorkspaceId: nil,
                 postAuthRecoveryRoute: .none
             ),
             configuration: configuration,
@@ -120,7 +121,7 @@ final class CloudPendingGuestUpgradeTokenLossRecoveryTests: CloudCredentialRecov
         XCTAssertEqual(0, cloudSyncService.runGuestLocalRecoveryLinkedSyncCallCount)
         XCTAssertNil(linkContext.guestUpgradeMode)
         XCTAssertEqual(.pendingGuestUpgradeMissingGuestSessionRecovery, linkContext.postAuthRecoveryRoute)
-        XCTAssertEqual(.guestLocalRecoveryNeeded, makeCloudWorkspacePostAuthRoute(linkContext: linkContext))
+        XCTAssertEqual(.guestLocalRecoveryNeeded, makeCloudWorkspacePostAuthRoute(linkContext: linkContext, pendingGuestUpgradeState: nil))
         XCTAssertEqual("any-linked-user", linkContext.userId)
         XCTAssertEqual(pendingState, try decoder.decode(
             PendingGuestUpgradeState.self,
@@ -204,7 +205,7 @@ final class CloudPendingGuestUpgradeTokenLossRecoveryTests: CloudCredentialRecov
             idTokenExpiresAt: "2099-01-01T00:00:00.000Z"
         )
         try credentialStore.saveCredentials(credentials: credentials)
-        let pendingState: PendingGuestUpgradeState = pendingGuestUpgradeInFlightState(
+        let pendingState: PendingGuestUpgradeState = try pendingGuestUpgradeInFlightState(
             linkContext: CloudWorkspaceLinkContext(
                 userId: "linked-user",
                 email: "user@example.com",
@@ -213,6 +214,7 @@ final class CloudPendingGuestUpgradeTokenLossRecoveryTests: CloudCredentialRecov
                 workspaces: [],
                 preferences: makeDefaultAccountPreferences(),
                 guestUpgradeMode: .mergeRequired,
+                demoOnlyDestinationWorkspaceId: nil,
                 postAuthRecoveryRoute: .none
             ),
             configuration: configuration,
@@ -345,6 +347,7 @@ final class CloudPendingGuestUpgradeTokenLossRecoveryTests: CloudCredentialRecov
                     ],
                     preferences: makeDefaultAccountPreferences(),
                     guestUpgradeMode: .mergeRequired,
+                    demoOnlyDestinationWorkspaceId: nil,
                     postAuthRecoveryRoute: .none
                 ),
                 selection: .createNew

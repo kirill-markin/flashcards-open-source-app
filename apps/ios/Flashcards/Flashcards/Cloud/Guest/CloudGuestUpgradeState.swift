@@ -1,30 +1,45 @@
 import Foundation
 
 let pendingGuestUpgradeUserDefaultsKey: String = "pending-guest-upgrade"
-private let pendingGuestUpgradeSchemaVersion: Int = 6
-private let supportedPendingGuestUpgradeSchemaVersions: Set<Int> = [pendingGuestUpgradeSchemaVersion, 5, 4, 3, 2]
+private let pendingGuestUpgradeSchemaVersion: Int = 8
+private let supportedPendingGuestUpgradeSchemaVersions: Set<Int> = [pendingGuestUpgradeSchemaVersion, 7, 6, 5, 4, 3, 2]
 
 private enum PendingGuestUpgradePhase: String, Codable, Hashable {
     case inFlight = "in_flight"
     case completed
+    case selectionRequired = "selection_required"
 }
 
 enum PendingGuestUpgradeSelection: Codable, Hashable {
     case existing(workspaceId: String)
+    case discardDemoOnly(workspaceId: String)
     case createNew
 
     private enum CodingKeys: String, CodingKey {
         case type
         case workspaceId
+        case discardDemoOnly
     }
 
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         let type = try container.decode(String.self, forKey: .type)
+        let discardDemoOnly = try container.decodeIfPresent(Bool.self, forKey: .discardDemoOnly) ?? false
         switch type {
         case "existing":
-            self = .existing(workspaceId: try container.decode(String.self, forKey: .workspaceId))
+            let workspaceId = try container.decode(String.self, forKey: .workspaceId)
+            if discardDemoOnly {
+                guard UUID(uuidString: workspaceId) != nil else {
+                    throw LocalStoreError.database("Invalid pending demo-only guest upgrade destination: \(workspaceId)")
+                }
+                self = .discardDemoOnly(workspaceId: workspaceId)
+            } else {
+                self = .existing(workspaceId: workspaceId)
+            }
         case "create_new":
+            guard discardDemoOnly == false else {
+                throw LocalStoreError.database("Demo-only guest upgrade requires an existing workspace")
+            }
             self = .createNew
         default:
             throw LocalStoreError.database("Unsupported pending guest upgrade selection type: \(type)")
@@ -37,6 +52,10 @@ enum PendingGuestUpgradeSelection: Codable, Hashable {
         case .existing(let workspaceId):
             try container.encode("existing", forKey: .type)
             try container.encode(workspaceId, forKey: .workspaceId)
+        case .discardDemoOnly(let workspaceId):
+            try container.encode("existing", forKey: .type)
+            try container.encode(workspaceId, forKey: .workspaceId)
+            try container.encode(true, forKey: .discardDemoOnly)
         case .createNew:
             try container.encode("create_new", forKey: .type)
         }
@@ -76,6 +95,7 @@ struct PendingGuestUpgradeCompletedState: Hashable {
 enum PendingGuestUpgradeState: Codable, Hashable {
     case inFlight(PendingGuestUpgradeInFlightState)
     case completed(PendingGuestUpgradeCompletedState)
+    case selectionRequired(PendingGuestUpgradeInFlightState)
 
     private enum CodingKeys: String, CodingKey {
         case schemaVersion
@@ -94,11 +114,18 @@ enum PendingGuestUpgradeState: Codable, Hashable {
 
     var common: PendingGuestUpgradeCommonState {
         switch self {
-        case .inFlight(let state):
+        case .inFlight(let state), .selectionRequired(let state):
             return state.common
         case .completed(let state):
             return state.common
         }
+    }
+
+    var requiresCompletion: Bool {
+        if case .selectionRequired = self {
+            return false
+        }
+        return true
     }
 
     init(from decoder: Decoder) throws {
@@ -126,7 +153,7 @@ enum PendingGuestUpgradeState: Codable, Hashable {
         // not include a phase field, so missing phase normalizes to completed.
         let phase = try container.decodeIfPresent(PendingGuestUpgradePhase.self, forKey: .phase) ?? .completed
         switch phase {
-        case .inFlight:
+        case .inFlight, .selectionRequired:
             guard let selection = try container.decodeIfPresent(
                 PendingGuestUpgradeSelection.self,
                 forKey: .selection
@@ -145,17 +172,26 @@ enum PendingGuestUpgradeState: Codable, Hashable {
             ) else {
                 throw LocalStoreError.database("In-flight pending guest upgrade is missing capability flags")
             }
-            self = .inFlight(
-                PendingGuestUpgradeInFlightState(
-                    common: common,
-                    guestIdentity: PendingGuestUpgradeGuestIdentityState(
-                        userId: guestUserId,
-                        workspaceId: guestWorkspaceId
-                    ),
-                    selection: selection,
-                    supportsDroppedEntities: supportsDroppedEntities
-                )
+            if case .discardDemoOnly = selection, supportsDroppedEntities == false {
+                throw LocalStoreError.database("Demo-only guest upgrade requires dropped-entity support")
+            }
+            let state = PendingGuestUpgradeInFlightState(
+                common: common,
+                guestIdentity: PendingGuestUpgradeGuestIdentityState(
+                    userId: guestUserId,
+                    workspaceId: guestWorkspaceId
+                ),
+                selection: selection,
+                supportsDroppedEntities: supportsDroppedEntities
             )
+            if phase == .selectionRequired {
+                guard case .discardDemoOnly = selection else {
+                    throw LocalStoreError.database("Explicit transfer recovery requires a rejected demo-only selection")
+                }
+                self = .selectionRequired(state)
+            } else {
+                self = .inFlight(state)
+            }
         case .completed:
             guard let workspace = try container.decodeIfPresent(CloudWorkspaceSummary.self, forKey: .workspace) else {
                 throw LocalStoreError.database("Completed pending guest upgrade is missing linked workspace")
@@ -180,8 +216,9 @@ enum PendingGuestUpgradeState: Codable, Hashable {
         try container.encode(common.preferences, forKey: .preferences)
 
         switch self {
-        case .inFlight(let state):
-            try container.encode(PendingGuestUpgradePhase.inFlight, forKey: .phase)
+        case .inFlight(let state), .selectionRequired(let state):
+            let phase: PendingGuestUpgradePhase = self.requiresCompletion ? .inFlight : .selectionRequired
+            try container.encode(phase, forKey: .phase)
             try container.encode(state.guestIdentity.userId, forKey: .guestUserId)
             try container.encode(state.guestIdentity.workspaceId, forKey: .guestWorkspaceId)
             try container.encode(state.selection, forKey: .selection)
@@ -225,7 +262,8 @@ func assertLocalOutboxMutationAllowedDuringPendingGuestUpgrade(
     guard isGuestUpgradeLocalOutboxMutationBlocked == false else {
         throw PendingGuestUpgradeLocalMutationError.blocked
     }
-    guard userDefaults.data(forKey: pendingGuestUpgradeUserDefaultsKey) == nil else {
+    if let data = userDefaults.data(forKey: pendingGuestUpgradeUserDefaultsKey),
+       try JSONDecoder().decode(PendingGuestUpgradeState.self, from: data).requiresCompletion {
         throw PendingGuestUpgradeLocalMutationError.blocked
     }
 }
@@ -234,16 +272,17 @@ func clearPendingGuestUpgradeState(userDefaults: UserDefaults) {
     userDefaults.removeObject(forKey: pendingGuestUpgradeUserDefaultsKey)
 }
 
-private func cloudGuestUpgradeSelection(selection: CloudWorkspaceLinkSelection) -> CloudGuestUpgradeSelection {
-    switch selection {
-    case .existing(let workspaceId):
-        return .existing(workspaceId: workspaceId)
-    case .createNew:
-        return .createNew
+private func pendingGuestUpgradeSelection(
+    linkContext: CloudWorkspaceLinkContext,
+    selection: CloudWorkspaceLinkSelection
+) throws -> PendingGuestUpgradeSelection {
+    if let workspaceId = linkContext.demoOnlyDestinationWorkspaceId {
+        guard linkContext.guestUpgradeMode == .mergeRequired,
+              selection == .existing(workspaceId: workspaceId) else {
+            throw LocalStoreError.validation("Demo-only guest upgrade must use its prepared destination workspace")
+        }
+        return .discardDemoOnly(workspaceId: workspaceId)
     }
-}
-
-private func pendingGuestUpgradeSelection(selection: CloudWorkspaceLinkSelection) -> PendingGuestUpgradeSelection {
     switch selection {
     case .existing(let workspaceId):
         return .existing(workspaceId: workspaceId)
@@ -256,6 +295,8 @@ func cloudGuestUpgradeSelection(selection: PendingGuestUpgradeSelection) -> Clou
     switch selection {
     case .existing(let workspaceId):
         return .existing(workspaceId: workspaceId)
+    case .discardDemoOnly(let workspaceId):
+        return .discardDemoOnly(workspaceId: workspaceId)
     case .createNew:
         return .createNew
     }
@@ -267,7 +308,7 @@ func pendingGuestUpgradeInFlightState(
     guestSession: StoredGuestCloudSession,
     selection: CloudWorkspaceLinkSelection,
     supportsDroppedEntities: Bool
-) -> PendingGuestUpgradeState {
+) throws -> PendingGuestUpgradeState {
     .inFlight(
         PendingGuestUpgradeInFlightState(
             common: PendingGuestUpgradeCommonState(
@@ -282,7 +323,7 @@ func pendingGuestUpgradeInFlightState(
                 userId: guestSession.userId,
                 workspaceId: guestSession.workspaceId
             ),
-            selection: pendingGuestUpgradeSelection(selection: selection),
+            selection: try pendingGuestUpgradeSelection(linkContext: linkContext, selection: selection),
             supportsDroppedEntities: supportsDroppedEntities
         )
     )
@@ -310,4 +351,12 @@ func cloudLinkedSession(
         apiBaseUrl: state.common.apiBaseUrl,
         authorization: .bearer(credentials.idToken)
     )
+}
+
+func isDemoOnlyGuestUpgradeEligibilityRefusal(error: Error) -> Bool {
+    guard let guestError = error as? GuestCloudAuthError,
+          case .invalidResponse(let details, let statusCode) = guestError else {
+        return false
+    }
+    return statusCode == 409 && details.code == "GUEST_UPGRADE_DEMO_ONLY_NOT_ELIGIBLE"
 }

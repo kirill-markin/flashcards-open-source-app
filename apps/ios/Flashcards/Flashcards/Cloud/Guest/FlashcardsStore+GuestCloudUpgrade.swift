@@ -53,8 +53,17 @@ extension FlashcardsStore {
                       pendingState.common.configurationMode == configuration.mode else {
                     throw LocalStoreError.validation(localizedCloudCredentialRecoveryInterruptedUpgradeAccountMessage())
                 }
-                try self.cloudRuntime.saveCredentials(credentials: linkContext.credentials)
-                return try await self.performPendingGuestUpgradeResume(trigger: trigger)
+                if pendingState.requiresCompletion {
+                    try self.cloudRuntime.saveCredentials(credentials: linkContext.credentials)
+                    return try await self.performPendingGuestUpgradeResume(trigger: trigger)
+                }
+                guard linkContext.demoOnlyDestinationWorkspaceId == nil,
+                      guestUpgradeMode == .mergeRequired else {
+                    throw LocalStoreError.validation("Guest content changed. Prepare the account upgrade again and choose where to transfer it.")
+                }
+                if case .selectionRequired(let rejectedState) = pendingState {
+                    _ = try self.loadPendingGuestUpgradeGuestSession(state: rejectedState, detectedAt: trigger.now)
+                }
             }
             guard let guestSession = try self.loadUsableGuestSessionForCurrentConfiguration() else {
                 try self.markPendingGuestUpgradeGuestSessionMissing(detectedAt: trigger.now)
@@ -81,7 +90,7 @@ extension FlashcardsStore {
                 try await self.flushGuestAIConsentBeforeUpgrade(guest: guestSession)
                 try Task.checkCancellation()
                 try self.cloudRuntime.saveCredentials(credentials: linkContext.credentials)
-                let inFlightState = pendingGuestUpgradeInFlightState(
+                let inFlightState = try pendingGuestUpgradeInFlightState(
                     linkContext: linkContext,
                     configuration: configuration,
                     guestSession: guestSession,
@@ -94,9 +103,8 @@ extension FlashcardsStore {
                     state: inFlightState,
                     detectedAt: trigger.now
                 )
-                // Only this fresh path knows the mode and still has the guest rows, so a resumed
-                // upgrade keeps the guest's demo card as an ordinary card.
                 let demoCardCleanup: GuestUpgradeDemoCardCleanup? = guestUpgradeMode == .mergeRequired
+                    && linkContext.demoOnlyDestinationWorkspaceId == nil
                     ? self.captureGuestUpgradeDemoCardCleanupReportingFailure(guestWorkspaceId: guestSession.workspaceId)
                     : nil
                 do {
@@ -112,20 +120,20 @@ extension FlashcardsStore {
                         trigger: trigger
                     )
                 }
-                self.unblockGuestUpgradeLocalOutboxMutationsIfPossible()
+                try self.unblockGuestUpgradeLocalOutboxMutationsIfPossible()
                 if let demoCardCleanup {
                     self.deleteGuestUpgradeDemoCardsReportingFailure(cleanup: demoCardCleanup)
                 }
                 return completionState.workspace
             } catch {
-                self.unblockGuestUpgradeLocalOutboxMutationsIfPossible()
+                try self.unblockGuestUpgradeLocalOutboxMutationsIfPossible()
                 throw error
             }
         }
     }
 
     func resumePendingGuestUpgradeIfNeeded(trigger: CloudSyncTrigger) async throws -> Bool {
-        guard try self.loadPendingGuestUpgradeState() != nil else {
+        guard try self.loadPendingGuestUpgradeState()?.requiresCompletion == true else {
             return false
         }
 
@@ -145,15 +153,24 @@ extension FlashcardsStore {
         self.reviewSubmissionOutboxMutationGate.unblockReviewSubmissions()
     }
 
-    func prepareGuestUpgradeModeIfNeeded(
+    func prepareGuestUpgradeIfNeeded(
         verifiedContext: CloudVerifiedAuthContext,
         detectedAt: Date
-    ) async throws -> CloudGuestUpgradeMode? {
+    ) async throws -> CloudGuestUpgradePreparation? {
         guard try self.shouldPrepareGuestUpgradeModeForCloudLink(apiBaseUrl: verifiedContext.apiBaseUrl) else {
             return nil
         }
         if let pendingState = try self.matchingInFlightPendingGuestUpgradeState(apiBaseUrl: verifiedContext.apiBaseUrl) {
-            return pendingState.supportsDroppedEntities ? .mergeRequired : .bound
+            let destinationWorkspaceId: String?
+            if case .discardDemoOnly(let workspaceId) = pendingState.selection {
+                destinationWorkspaceId = workspaceId
+            } else {
+                destinationWorkspaceId = nil
+            }
+            return CloudGuestUpgradePreparation(
+                mode: pendingState.supportsDroppedEntities ? .mergeRequired : .bound,
+                demoOnlyDestinationWorkspaceId: destinationWorkspaceId
+            )
         }
         guard let guestSession = try self.loadUsableGuestSessionForCurrentConfiguration() else {
             try self.markPendingGuestUpgradeGuestSessionMissing(detectedAt: detectedAt)
@@ -161,13 +178,43 @@ extension FlashcardsStore {
             throw LocalStoreError.uninitialized("Guest AI session is unavailable")
         }
 
-        try await self.flushGuestAIConsentBeforeUpgrade(guest: guestSession)
-        try Task.checkCancellation()
-        return try await self.dependencies.guestCloudAuthService.prepareGuestUpgrade(
-            apiBaseUrl: verifiedContext.apiBaseUrl,
-            bearerToken: verifiedContext.credentials.idToken,
-            guestToken: guestSession.guestToken
-        )
+        let configuration = try self.currentCloudServiceConfiguration()
+        let requiresExplicitSelection: Bool
+        if let pendingState = try self.loadPendingGuestUpgradeState(),
+           case .selectionRequired(let rejectedState) = pendingState {
+            _ = try self.loadPendingGuestUpgradeGuestSession(state: rejectedState, detectedAt: detectedAt)
+            requiresExplicitSelection = true
+        } else {
+            requiresExplicitSelection = false
+        }
+        await self.blockGuestUpgradeLocalOutboxMutationsBeforeDrain()
+        do {
+            try Task.checkCancellation()
+            // Only fresh preparation drains the guest; saved completions may have retired it.
+            try await self.drainGuestWorkspaceBeforeUpgrade(
+                guestSession: guestSession,
+                configuration: configuration,
+                trigger: self.postAuthCloudSyncTrigger(now: detectedAt)
+            )
+            try await self.flushGuestAIConsentBeforeUpgrade(guest: guestSession)
+            try Task.checkCancellation()
+            let preparation = try await self.dependencies.guestCloudAuthService.prepareGuestUpgrade(
+                apiBaseUrl: verifiedContext.apiBaseUrl,
+                bearerToken: verifiedContext.credentials.idToken,
+                guestToken: guestSession.guestToken
+            )
+            try self.unblockGuestUpgradeLocalOutboxMutationsIfPossible()
+            if requiresExplicitSelection {
+                guard preparation.mode == .mergeRequired else {
+                    throw LocalStoreError.validation("Rejected demo-only upgrade requires an existing-account transfer choice")
+                }
+                return CloudGuestUpgradePreparation(mode: .mergeRequired, demoOnlyDestinationWorkspaceId: nil)
+            }
+            return preparation
+        } catch {
+            try self.unblockGuestUpgradeLocalOutboxMutationsIfPossible()
+            throw error
+        }
     }
 
     func blockPendingGuestUpgradeRecoveryIfMissingGuestSession(
@@ -307,10 +354,14 @@ extension FlashcardsStore {
     }
 
     func shouldValidatePendingGuestUpgradeAccountBeforePrepare(apiBaseUrl: String) throws -> Bool {
-        guard try self.matchingInFlightPendingGuestUpgradeState(apiBaseUrl: apiBaseUrl) != nil else {
+        guard let state = try self.loadPendingGuestUpgradeState() else {
             return false
         }
-
+        let configuration = try self.currentCloudServiceConfiguration()
+        guard state.common.apiBaseUrl == apiBaseUrl,
+              state.common.configurationMode == configuration.mode else {
+            return false
+        }
         return try self.loadUsableGuestSessionForCurrentConfiguration() != nil
     }
 
@@ -335,8 +386,7 @@ extension FlashcardsStore {
         userId: String,
         apiBaseUrl: String
     ) throws {
-        guard let pendingGuestUpgradeState = try self.loadPendingGuestUpgradeState(),
-            case .inFlight(let pendingState) = pendingGuestUpgradeState else {
+        guard let pendingState = try self.loadPendingGuestUpgradeState() else {
             return
         }
 
@@ -368,7 +418,7 @@ extension FlashcardsStore {
         guard completedState.common.userId == linkContext.userId
             && completedState.common.apiBaseUrl == linkContext.apiBaseUrl
             && completedState.common.configurationMode == configuration.mode else {
-            return nil
+            throw LocalStoreError.validation(localizedCloudCredentialRecoveryInterruptedUpgradeAccountMessage())
         }
 
         return completedState
@@ -377,16 +427,8 @@ extension FlashcardsStore {
     private func completedPendingGuestUpgradeRecoveryCheckpoint(
         apiBaseUrl: String
     ) throws -> PendingGuestUpgradeCompletedState? {
-        guard let recoveryState = self.cloudCredentialRecoveryState else {
-            return nil
-        }
-        guard recoveryState.previousCloudState == .guest,
-            recoveryState.apiBaseUrl == apiBaseUrl else {
-            return nil
-        }
-
         let configuration = try self.currentCloudServiceConfiguration()
-        guard recoveryState.configurationMode == configuration.mode else {
+        guard configuration.apiBaseUrl == apiBaseUrl else {
             return nil
         }
         guard let pendingState = try self.loadPendingGuestUpgradeState() else {
@@ -522,11 +564,11 @@ extension FlashcardsStore {
         await self.reviewSubmissionOutboxMutationGate.blockNewReviewSubmissionsAndWaitForActiveSubmissions()
     }
 
-    private func unblockGuestUpgradeLocalOutboxMutationsIfPossible() {
-        if self.userDefaults.data(forKey: pendingGuestUpgradeUserDefaultsKey) == nil {
+    private func unblockGuestUpgradeLocalOutboxMutationsIfPossible() throws {
+        self.isGuestUpgradeLocalOutboxMutationBlocked = false
+        if try self.loadPendingGuestUpgradeState()?.requiresCompletion != true {
             self.reviewSubmissionOutboxMutationGate.unblockReviewSubmissions()
         }
-        self.isGuestUpgradeLocalOutboxMutationBlocked = false
     }
 
     private func completePendingGuestUpgradeIfNeeded(
@@ -534,6 +576,8 @@ extension FlashcardsStore {
         detectedAt: Date
     ) async throws -> PendingGuestUpgradeCompletedState {
         switch state {
+        case .selectionRequired:
+            throw LocalStoreError.validation("Guest content changed. Prepare the account upgrade again and choose where to transfer it.")
         case .completed(let completedState):
             return completedState
         case .inFlight(let inFlightState):
@@ -546,14 +590,43 @@ extension FlashcardsStore {
                 detectedAt: detectedAt
             )
             try Task.checkCancellation()
-            let workspace = try await self.dependencies.guestCloudAuthService.completeGuestUpgrade(
-                apiBaseUrl: inFlightState.common.apiBaseUrl,
-                bearerToken: credentials.idToken,
-                guestToken: guestSession.guestToken,
-                selection: cloudGuestUpgradeSelection(selection: inFlightState.selection),
-                supportsDroppedEntities: inFlightState.supportsDroppedEntities,
-                guestWorkspaceSyncedAndOutboxDrained: true
-            )
+            let workspace: CloudWorkspaceSummary
+            do {
+                workspace = try await self.dependencies.guestCloudAuthService.completeGuestUpgrade(
+                    apiBaseUrl: inFlightState.common.apiBaseUrl,
+                    bearerToken: credentials.idToken,
+                    guestToken: guestSession.guestToken,
+                    selection: cloudGuestUpgradeSelection(selection: inFlightState.selection),
+                    supportsDroppedEntities: inFlightState.supportsDroppedEntities,
+                    guestWorkspaceSyncedAndOutboxDrained: true
+                )
+            } catch {
+                if case .discardDemoOnly = inFlightState.selection,
+                   isDemoOnlyGuestUpgradeEligibilityRefusal(error: error) {
+                    try Task.checkCancellation()
+                    guard try self.loadPendingGuestUpgradeState() == .inFlight(inFlightState) else {
+                        throw error
+                    }
+                    self.cloudRuntime.setActiveCloudSession(linkedSession: CloudLinkedSession(
+                        userId: guestSession.userId,
+                        workspaceId: guestSession.workspaceId,
+                        email: nil,
+                        configurationMode: guestSession.configurationMode,
+                        apiBaseUrl: guestSession.apiBaseUrl,
+                        authorization: .guest(guestSession.guestToken)
+                    ))
+                    try self.savePendingGuestUpgradeState(state: .selectionRequired(inFlightState))
+                    if let recovery = self.cloudCredentialRecoveryState,
+                       recovery.reason == .linkedCredentialsMissing,
+                       recovery.previousCloudState == .guest,
+                       recovery.apiBaseUrl == inFlightState.common.apiBaseUrl,
+                       recovery.configurationMode == inFlightState.common.configurationMode {
+                        self.clearCloudCredentialRecoveryState()
+                    }
+                    try self.unblockGuestUpgradeLocalOutboxMutationsIfPossible()
+                }
+                throw error
+            }
             let completionState = pendingGuestUpgradeCompletedState(
                 state: inFlightState,
                 workspace: workspace

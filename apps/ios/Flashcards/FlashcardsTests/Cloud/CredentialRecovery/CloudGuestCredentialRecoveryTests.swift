@@ -369,7 +369,7 @@ final class CloudGuestCredentialRecoveryTests: CloudCredentialRecoveryTestCase {
         XCTAssertNil(linkContext.guestUpgradeMode)
         XCTAssertEqual(.guestLocalRecovery, linkContext.postAuthRecoveryRoute)
         XCTAssertEqual("unrelated-email-user", linkContext.userId)
-        XCTAssertEqual(.autoLink(.createNew), makeCloudWorkspacePostAuthRoute(linkContext: linkContext))
+        XCTAssertEqual(.autoLink(.createNew), makeCloudWorkspacePostAuthRoute(linkContext: linkContext, pendingGuestUpgradeState: nil))
         XCTAssertEqual(0, GuestCloudAuthServiceTestURLProtocol.requestCount)
         XCTAssertEqual(1, cloudSyncService.fetchCloudAccountCallCount)
         XCTAssertEqual(0, cloudSyncService.selectWorkspaceCallCount)

@@ -405,7 +405,7 @@ final class CloudAccountMethodCoordinator {
             }
             let link = CloudWorkspaceLinkContext(userId: account.userId, email: account.email,
                 apiBaseUrl: verified.apiBaseUrl, credentials: verified.credentials, workspaces: [workspace],
-                preferences: account.preferences, guestUpgradeMode: nil, postAuthRecoveryRoute: .none)
+                preferences: account.preferences, guestUpgradeMode: nil, demoOnlyDestinationWorkspaceId: nil, postAuthRecoveryRoute: .none)
             try await self.store.completeCloudLink(linkContext: link, selection: .existing(workspaceId: workspace.workspaceId))
             _ = try self.checkCurrent(epoch)
             try await self.refreshMethods(epoch: epoch)
