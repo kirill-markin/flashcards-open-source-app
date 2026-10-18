@@ -368,6 +368,7 @@ export function isGuestUpgradeMergeOnlyExecutorQuery(text: string): boolean {
     || text.startsWith("DELETE FROM billing.")
     || (text.startsWith("SELECT") && text.includes("FROM billing.user_billing_state"))
     || text.startsWith("UPDATE ai.usage_events SET")
+    || text === "SELECT ai.transfer_browser_guest_trial($1, $2)"
     || text === "UPDATE auth.guest_sessions SET revoked_at = now() WHERE session_id = $1"
     || text === "SELECT workspace_id FROM sync.find_conflicting_workspace_id($1, $2) LIMIT 1"
     || text === "SELECT workspace_id FROM sync.workspace_sync_metadata WHERE workspace_id = $1 FOR UPDATE"

@@ -91,7 +91,7 @@ struct ReviewCardSideView: View {
                         self.copyError = error.localizedDescription
                     }
                 } label: {
-                    Image(systemName: self.hasCopied ? "checkmark" : "doc.on.doc")
+                    Image(systemName: self.hasCopied ? "checkmark" : "square.on.square")
                         .font(.callout.weight(.semibold))
                         .foregroundStyle(.secondary)
                         .padding(6)
