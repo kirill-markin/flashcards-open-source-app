@@ -61,6 +61,7 @@ function createRequestContextWithTransport(transport: RequestContext["transport"
     preferences: {
       accentColor: "#FF6719",
       reviewReactionAnimationsEnabled: true,
+      firstReviewOnboardingCompleted: false,
       analyticsConsent: null,
       productAnalyticsEnabled: null,
     },

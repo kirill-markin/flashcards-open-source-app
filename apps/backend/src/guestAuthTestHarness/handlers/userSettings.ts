@@ -116,7 +116,7 @@ export function handleUserSettingsExecutorQuery<Row extends pg.QueryResultRow>(
   if (
     text.startsWith(
       "SELECT workspace_id, email, locale, review_reaction_animations_enabled, analytics_consent,"
-      + " product_analytics_enabled, accent_color, created_at",
+      + " product_analytics_enabled, accent_color, first_review_onboarding_completed, created_at",
     )
     && text.includes("FROM org.user_settings")
     && text.includes("FOR UPDATE")
@@ -130,6 +130,7 @@ export function handleUserSettingsExecutorQuery<Row extends pg.QueryResultRow>(
       locale: "en",
       accent_color: row.accent_color,
       review_reaction_animations_enabled: true,
+      first_review_onboarding_completed: row.first_review_onboarding_completed,
       analytics_consent: row.analytics_consent,
       product_analytics_enabled: row.product_analytics_enabled,
       created_at: "2026-04-02T13:00:00.000Z",

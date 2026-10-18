@@ -15,6 +15,7 @@ export type UserSettingsState = Readonly<{
   email: string | null;
   analytics_consent: "granted" | "declined" | null;
   product_analytics_enabled: boolean | null;
+  first_review_onboarding_completed: boolean;
   progress_time_zone: string | null;
   paywall_intro_shown_at: string | null;
   paywall_intro_local_date: string | null;
