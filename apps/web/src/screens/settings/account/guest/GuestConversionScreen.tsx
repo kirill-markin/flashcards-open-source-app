@@ -6,6 +6,7 @@ import { applyFinalizedGuestConversion, completePendingGuestConversion, probePen
 import { readPendingGuestConversion, runWithBrowserGuestLock, subscribeToBrowserGuestChanges } from "../../../../appData/session/guest/browserGuestStorage";
 import { captureGuestDemoCards, deleteMergedGuestDemoCards, type GuestDemoCapture } from "../../../../appData/session/guest/demoCardCleanup";
 import type { GuestUpgradeSelection } from "../../../../apiContracts/guestAuth";
+import { bindGuestStripeCheckout, cancelGuestStripeCheckout } from "../../../../premium/stripeIntent";
 import { useI18n } from "../../../../i18n";
 import { captureAppOperationError } from "../../../../observability/appOperationObservation";
 import type { WorkspaceSummary } from "../../../../types";
@@ -128,6 +129,9 @@ export function GuestConversionScreen(props: Readonly<{ returnUrl: string }>): R
         }
         await latest.current.refreshLocalData();
         if (warning.current !== "") latest.current.setErrorMessage(warning.current);
+        if (!bindGuestStripeCheckout(pending.sourceUserId, destinationUserId)) {
+          latest.current.setErrorMessage("The saved Premium choice changed in this browser. Open the Premium offer again to continue purchasing.");
+        }
         await retireGuestCredential(destinationUserId);
       } catch (failure) {
         demo.current = null; fresh.current = false;
@@ -152,7 +156,12 @@ export function GuestConversionScreen(props: Readonly<{ returnUrl: string }>): R
   async function cancel(): Promise<void> {
     if (running.current) return;
     running.current = true;
-    try { await resumeGuestAfterCancelledSignIn(); await latest.current.initialize(); }
+    try {
+      const sourceUserId = readPendingGuestConversion()?.sourceUserId;
+      await resumeGuestAfterCancelledSignIn();
+      if (sourceUserId !== undefined) cancelGuestStripeCheckout(sourceUserId);
+      await latest.current.initialize();
+    }
     catch (failure) { setError(describeFailure(failure)); setPhase("error"); }
     finally { running.current = false; setAttempt((value) => value + 1); }
   }

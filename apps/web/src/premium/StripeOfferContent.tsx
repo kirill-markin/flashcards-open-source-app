@@ -1,9 +1,7 @@
 import { useState, type ReactElement } from "react";
-import { isAwaitingAnalyticsConsentDecision } from "../analytics";
-import { GuestSignIn } from "../screens/settings/account/guest/GuestSignIn";
 import { useAppData } from "../appData";
 import { useI18n } from "../i18n";
-import { canCollectPaywallAnalytics, type PaywallPresentation, type PremiumContinuation } from "./stripeIntent";
+import type { PaywallPresentation, PremiumContinuation } from "./stripeIntent";
 import { StripeBillingFeedback } from "./StripeBillingFeedback";
 import { useStripeBilling } from "./useStripeBilling";
 
@@ -24,19 +22,14 @@ export function StripeOfferContent(props: StripeOfferContentProps): ReactElement
   const guest = session?.profile.email === null;
   const price = offer?.basePrice === null || offer?.basePrice === undefined ? null
     : formatNumber(offer.basePrice.unitAmount / 100, { style: "currency", currency: offer.basePrice.currency.toUpperCase(), currencyDisplay: "code" });
-  const returnUrl = new URL("/settings/subscription?premium=offer", window.location.origin);
-  if (props.presentation !== null && !props.isPreview && canCollectPaywallAnalytics() && !isAwaitingAnalyticsConsentDecision()) {
-    returnUrl.searchParams.set("premium_presentation_id", props.presentation.presentationId);
-    returnUrl.searchParams.set("premium_entry_point", props.presentation.entryPoint);
-  }
-  if (props.continuation !== null) returnUrl.searchParams.set("premium_accent_color", props.continuation.accentColor);
   const actionArrow = <span className="premium-action-arrow" aria-hidden="true">{direction === "rtl" ? "←" : "→"}</span>;
   const priceCopy = t("paywall.basePrice").split("{{price}}");
   const creatorCopy = t("paywall.creatorSupport").split("{{creator}}");
   const isPurchasing = !props.isPreview && billing.busy && billing.status === "opening";
+  const showsTrial = guest || offer?.trialEligible === true;
   const canPreviewPurchase = props.isPreview && price !== null
     && offer?.premiumAiMonthlyMessages !== null && offer?.premiumAiMonthlyMessages !== undefined
-    && offer.trialEligible !== null;
+    && (guest || offer.trialEligible !== null);
   const canPurchase = props.isPreview ? canPreviewPurchase : offer?.checkoutAvailable === true && price !== null;
 
   function choosePremium(): void {
@@ -71,42 +64,29 @@ export function StripeOfferContent(props: StripeOfferContentProps): ReactElement
         <li>{t("stripe.product.accentFeature")}</li>
       </ul>
       <p className="premium-creator-support">{creatorCopy[0]}<a href="https://kirill-markin.com/" target="_blank" rel="noreferrer">Kirill Markin</a>{creatorCopy[1]}</p>
-      {guest ? <>
-        <p>{t("stripe.offer.guestExplanation")}</p>
-        {props.isPreview ? <button type="button" className="premium-plan-button premium-paid-button" data-testid="premium-add-email"
-          onClick={choosePremium}><span>{t("stripe.offer.addEmail")}</span>{actionArrow}</button> : !isSessionVerified ?
-          <button type="button" className="premium-plan-button premium-paid-button" disabled><span>{t("stripe.offer.addEmail")}</span>{actionArrow}</button> :
-          <div className="premium-guest-action">
-            <GuestSignIn label={t("stripe.offer.addEmail")} testId="premium-add-email"
-              returnUrl={returnUrl.toString()} onStarted={props.onChoosePremium} />
-            {actionArrow}
-          </div>}
-      </> : <>
-        {canPurchase ? <button type="button" className="premium-plan-button premium-paid-button"
-          disabled={billing.busy || !isSessionVerified} data-testid="premium-purchase"
-          onClick={choosePremium}>
-          <span>{t(offer?.trialEligible === true ? "paywall.startTrial" : "stripe.offer.subscribe")}</span>{actionArrow}
-        </button> : <p data-testid="premium-purchase-unavailable" role="status">
-          {t(billing.busy ? "common.loading" : !props.isPreview && offer?.checkoutUnavailableReason === "checkout_pending" ? "stripe.checkout.delayed"
-            : !props.isPreview && offer?.checkoutUnavailableReason === "existing_subscription" ? "stripe.portal.headline" : "common.unavailable")}
-        </p>}
-      </>}
+      {canPurchase ? <button type="button" className="premium-plan-button premium-paid-button"
+        disabled={billing.busy || !isSessionVerified} data-testid="premium-purchase" onClick={choosePremium}>
+        <span>{t(showsTrial ? "paywall.startTrial" : "stripe.offer.subscribe")}</span>{actionArrow}
+      </button> : <p data-testid="premium-purchase-unavailable" role="status">
+        {t(billing.busy ? "common.loading" : !props.isPreview && offer?.checkoutUnavailableReason === "checkout_pending" ? "stripe.checkout.delayed"
+          : !props.isPreview && offer?.checkoutUnavailableReason === "existing_subscription" ? "stripe.portal.headline" : "common.unavailable")}
+      </p>}
       {price === null ? null : <div className="premium-disclosures">
-        {offer?.trialEligible === true ? <p className="premium-renewal">{t("paywall.trialPrice", { price })}</p> : null}
+        {showsTrial ? <p className="premium-renewal">{t("paywall.trialPrice", { price })}</p> : null}
         <p className="premium-renewal">
-          {offer?.trialEligible === true ? null : <>{t("paywall.renewalDisclosure")} </>}
+          {showsTrial ? null : <>{t("paywall.renewalDisclosure")} </>}
           {t("paywall.checkoutPrice")}
         </p>
       </div>}
-      {guest ? null : <StripeBillingFeedback />}
+      <StripeBillingFeedback />
       {showPreviewMessage ? <p role="status" data-testid="premium-preview-message">{t("premium.previewNoPurchase")}</p> : null}
     </section>
     <footer className="premium-footer">
-      {guest ? null : <div className="premium-utilities">
+      <div className="premium-utilities">
         <button type="button" className="ghost-btn" data-testid="premium-refresh" disabled={props.isPreview || billing.busy || !isSessionVerified}
           onClick={() => void billing.refresh()}>{t("stripe.subscription.refresh")}</button>
         {props.isPreview ? null : <a className="ghost-btn" href="/settings/subscription" data-testid="premium-subscription-settings">{t("premium.subscription")}</a>}
-      </div>}
+      </div>
       <nav className="premium-legal">
         <a href="https://nibomo.com/terms/" target="_blank" rel="noreferrer" data-testid="premium-terms">{t("stripe.legal.terms")}</a>
         <a href="https://nibomo.com/privacy/" target="_blank" rel="noreferrer" data-testid="premium-privacy">{t("stripe.legal.privacy")}</a>

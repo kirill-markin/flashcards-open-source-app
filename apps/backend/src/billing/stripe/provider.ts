@@ -167,7 +167,7 @@ export class StripeProvider {
     return result;
   }
 
-  async createCheckout(attempt: StripeCheckoutAttempt): Promise<Stripe.Checkout.Session> {
+  async createCheckout(attempt: StripeCheckoutAttempt, verifiedAccountEmail: string): Promise<Stripe.Checkout.Session> {
     requireMatch(attempt.environment === this.environment && attempt.accountDeletedAt === null
       && attempt.status !== "abandoned" && z.uuid().safeParse(attempt.attemptId).success
       && (attempt.trialDays === 0 || attempt.trialDays === 7));
@@ -187,6 +187,15 @@ export class StripeProvider {
     await this.retrieveKnownPrice();
     const customer = await this.retrieveCustomer(attempt.customerId);
     requireMatch(customer.metadata.nibomo_identity_id === attempt.identityId);
+    if (!z.email().safeParse(verifiedAccountEmail).success) throw new StripeBillingError("STRIPE_EMAIL_REQUIRED", false,
+      "The verified account email is invalid. Sign in again before purchasing.");
+    if (customer.email !== verifiedAccountEmail) {
+      const updated = await callStripe("update customer email", () => this.#client.customers.update(attempt.customerId,
+        { email: verifiedAccountEmail }));
+      this.requireEnvironment(updated);
+      requireMatch(updated.id === attempt.customerId && updated.metadata.application === "nibomo"
+        && updated.metadata.nibomo_identity_id === attempt.identityId && updated.email === verifiedAccountEmail);
+    }
     const metadata = { application: "nibomo", nibomo_checkout_attempt_id: attempt.attemptId };
     const session = await callStripe("create checkout", () => this.#client.checkout.sessions.create({
       mode: "subscription", customer: attempt.customerId, client_reference_id: attempt.attemptId,

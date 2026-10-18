@@ -20,6 +20,7 @@ export type StripeHumanActor = Readonly<{ subject: string; userId: string }>;
 export type StripeAccountContext = Readonly<{
   environment: StripeEnvironment;
   locale: string;
+  email: string;
   checkoutEnabled: boolean;
   identities: ReadonlyArray<StripeCustomerIdentity>;
 }>;
@@ -48,7 +49,7 @@ export async function lockStripeHumanAccountInExecutor(
     "SELECT email, locale FROM org.user_settings WHERE user_id = $1", [actor.userId]);
   const profile = result.rows[0];
   const environment = isConfiguredDemoEmail(profile.email) ? "sandbox" : "production";
-  return { environment, locale: resolveStripeCopyLocale(profile.locale),
+  return { environment, email: profile.email, locale: resolveStripeCopyLocale(profile.locale),
     checkoutEnabled: environment === "sandbox" || process.env.STRIPE_CHECKOUT_LIVE_ENABLED === "true",
     identities: await lockStripePersonIdentitiesInExecutor(executor, [actor.userId]) };
 }
@@ -229,7 +230,7 @@ export async function createStripeCheckout(actor: StripeHumanActor): Promise<Str
         "The pending Checkout environment is no longer eligible for new purchases.");
     }
     const provider = await loadStripeProvider(environment);
-    const session = await provider.createCheckout(attempt);
+    const session = await provider.createCheckout(attempt, current.context.email);
     requireOwnedStripeCheckout(attempt, session);
     await recordStripeCheckoutSessionInExecutor(executor, attempt, session);
     const identity = current.context.identities.find((candidate) => candidate.identityId === attempt.identityId);

@@ -59,6 +59,7 @@ function PremiumSession(props: Readonly<{ children: ReactNode }>): ReactElement 
   const [presentation, setPresentation] = useState<Presentation | null>(null);
   const pendingRef = useRef<Presentation | null>(null);
   const shownRef = useRef<Presentation | null>(null);
+  const chosenRef = useRef<Presentation | null>(null);
   const revisionRef = useRef(0);
   const currentUserIdRef = useRef(userId);
   currentUserIdRef.current = userId;
@@ -103,6 +104,7 @@ function PremiumSession(props: Readonly<{ children: ReactNode }>): ReactElement 
     revisionRef.current += 1;
     const next = { userId, billingGeneration, request, analytics, functionalPresentationId, revision: revisionRef.current };
     shownRef.current = null;
+    chosenRef.current = null;
     pendingRef.current = next;
     setPresentation(next);
     return request.reason === "offer" && !isPreview && hasPremiumAccess(entitlement, 20) ? "granted" : "presented";
@@ -138,7 +140,9 @@ function PremiumSession(props: Readonly<{ children: ReactNode }>): ReactElement 
 
   function reportChoice(outcome: "free" | "premium" | "dismissed"): void {
     const pending = pendingRef.current;
-    if (pending?.analytics !== null && pending?.analytics !== undefined && shownRef.current === pending && canCollectPaywallAnalytics()) {
+    if (pending?.analytics !== null && pending?.analytics !== undefined && shownRef.current === pending
+      && chosenRef.current !== pending && canCollectPaywallAnalytics()) {
+      chosenRef.current = pending;
       track({ name: "paywall_choice", ...pending.analytics, outcome });
     }
     if (outcome !== "premium") dismiss();

@@ -88,6 +88,7 @@ export function readPremiumReturnContinuation(query: URLSearchParams): PremiumCo
 }
 export type StripeIntent = Readonly<{
   userId: string;
+  checkoutAfterSignIn?: string | null;
   attemptId: string | null;
   sessionId: string | null;
   continuation: PremiumContinuation | null;
@@ -123,6 +124,8 @@ export function readStripeIntent(userId: string): StripeIntent | null {
     }
     return {
       userId, continuation,
+      checkoutAfterSignIn: value.checkoutAfterSignIn === undefined || value.checkoutAfterSignIn === null ? null
+        : parseStripeUuid(value.checkoutAfterSignIn, "localStorage", "stripeIntent.checkoutAfterSignIn"),
       presentation: value.presentation === undefined || value.presentation === null || !canCollectPaywallAnalytics() ? null
         : parsePaywallPresentation(parseObject(value.presentation, "localStorage", "stripeIntent.presentation").presentationId,
           parseObject(value.presentation, "localStorage", "stripeIntent.presentation").entryPoint),
@@ -140,6 +143,7 @@ export function readStripeIntent(userId: string): StripeIntent | null {
 export function isCurrentStripeIntent(expected: StripeIntent): boolean {
   const current = readStripeIntent(expected.userId);
   return current !== null && current.attemptId === expected.attemptId && current.sessionId === expected.sessionId
+    && (current.checkoutAfterSignIn ?? null) === (expected.checkoutAfterSignIn ?? null)
     && current.continuation?.accentColor === expected.continuation?.accentColor
     && current.continuation?.requiredRank === expected.continuation?.requiredRank;
 }
@@ -154,4 +158,48 @@ export function consumeStripeContinuation(expected: StripeIntent): PremiumContin
   if (!isCurrentStripeIntent(expected)) return null;
   storeStripeIntent({ ...expected, continuation: null });
   return expected.continuation;
+}
+
+export function storeGuestStripeCheckout(userId: string, continuation: PremiumContinuation | null, presentation: PaywallPresentation | null): string {
+  const token = crypto.randomUUID();
+  storeStripeIntent({ userId, checkoutAfterSignIn: token, continuation, presentation,
+    attemptId: null, sessionId: null, reportedReturn: null });
+  return token;
+}
+
+export function guestStripeCheckoutReturnUrl(sourceUserId: string): string | null {
+  const intent = readStripeIntent(sourceUserId);
+  if (intent?.checkoutAfterSignIn == null) return null;
+  const url = new URL("/settings/subscription?premium=checkout", window.location.origin);
+  url.searchParams.set("premium_checkout_token", intent.checkoutAfterSignIn);
+  return url.toString();
+}
+
+export function bindGuestStripeCheckout(sourceUserId: string, destinationUserId: string): boolean {
+  const query = new URLSearchParams(window.location.search);
+  if (query.get("premium") !== "checkout") return true;
+  const token = query.get("premium_checkout_token");
+  if (token === null) return false;
+  if (readStripeIntent(destinationUserId)?.checkoutAfterSignIn === token) return true;
+  const intent = readStripeIntent(sourceUserId);
+  if (intent?.checkoutAfterSignIn !== token) return false;
+  storeStripeIntent({ ...intent, userId: destinationUserId });
+  return true;
+}
+
+export function cancelGuestStripeCheckout(sourceUserId: string): void {
+  const intent = readStripeIntent(sourceUserId);
+  if (intent?.checkoutAfterSignIn == null) return;
+  clearStripeIntent();
+  const url = new URL(window.location.href);
+  for (const key of ["premium", "premium_checkout_token", "premium_presentation_id", "premium_entry_point", "premium_accent_color"]) url.searchParams.delete(key);
+  window.history.replaceState(window.history.state, "", url);
+}
+
+export function consumeGuestStripeCheckout(userId: string, token: string | null): StripeIntent | null {
+  const intent = readStripeIntent(userId);
+  if (token === null || intent?.checkoutAfterSignIn !== token) return null;
+  const consumed = { ...intent, checkoutAfterSignIn: null };
+  storeStripeIntent(consumed);
+  return consumed;
 }
