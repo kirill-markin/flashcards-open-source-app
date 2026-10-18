@@ -897,8 +897,8 @@
 "settings.appIcon.systemAlertNote" = "ప్రతి ఐకాన్ మార్పును iOS ఒక హెచ్చరికతో నిర్ధారిస్తుంది.";
 
 "premium.apple.monthlyProduct" = "%@ · నెలవారీ";
-"premium.apple.renewal" = "రద్దు చేసే వరకు స్వయంచాలకంగా పునరుద్ధరించబడుతుంది. మీ App Store సభ్యత్వాల్లో నిర్వహించండి లేదా రద్దు చేయండి.";
-"premium.apple.trial" = "ఉచిత ట్రయల్: %@. ఆ తర్వాత:";
+"premium.apple.renewal" = "స్వయంచాలక పునరుద్ధరణ. App Store సభ్యత్వాల్లో నిర్వహించండి లేదా రద్దు చేయండి.";
+"premium.apple.trial" = "%@ ఉచితం, తర్వాత";
 "premium.apple.loadFailed" = "App Store ఆఫర్ లోడ్ కాలేదు. మీ కనెక్షన్‌ను తనిఖీ చేసి మళ్లీ ప్రయత్నించండి.";
 "premium.apple.pending" = "Apple లేదా ఖాతా నిర్ధారణ కోసం వేచి ఉంది. మళ్లీ ప్రయత్నించడానికి కొనుగోళ్లను పునరుద్ధరించండి.";
 "premium.apple.cancelled" = "కొనుగోలు రద్దయింది. మీకు ఎటువంటి ఛార్జీ విధించలేదు.";

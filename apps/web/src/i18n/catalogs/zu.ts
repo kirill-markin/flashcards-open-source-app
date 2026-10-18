@@ -26,8 +26,9 @@ const zuCatalog: TranslationCatalog = {
     creatorSupport: "Ukubhalisa kwakho kusiza umdali we-Nibomo, {{creator}}, ukukhokhela amaseva nokulungiselela isibuyekezo esilandelayo ngekhofi ne-pizza.",
     basePrice: "Intengo eyisisekelo: {{price}} / ngenyanga",
     startTrial: "Qala isivivinyo samahhala sezinsuku eziyi-7",
-    trialPrice: "Izinsuku ezingu-7 mahhala, bese kuba intengo eyisisekelo engu-{{price}} ngenyanga. Kudingeka indlela yokukhokha; khansela ngaphambi kokuphela kwesivivinyo ukuze ugweme inkokhelo yokuqala.",
-    checkoutPrice: "I-Stripe iqinisekisa intengo yokugcina nemali ozokhokha ngayo lapho ukhokha.",
+    trialPrice: "Izinsuku ezingu-7 mahhala, bese kuba intengo eyisisekelo engu-{{price}} ngenyanga. Kudingeka indlela yokukhokha. Kuvuselelwa ngokuzenzakalela; khansela ngaphambi kokuphela kwesivivinyo kuzilungiselelo Zokubhalisa.",
+    checkoutPrice: "Intengo yokugcina nemali yokukhokha kuvela lapho ukhokha.",
+    renewalDisclosure: "Kuvuselelwa ngokuzenzakalela; khansela noma nini kuzilungiselelo Zokubhalisa.",
   },
   accentColorSettings: {
     title: "Umbala wokugqamisa",

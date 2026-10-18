@@ -897,8 +897,8 @@
 "settings.appIcon.systemAlertNote" = "iOS katru ikonas maiņu apstiprina ar brīdinājumu.";
 
 "premium.apple.monthlyProduct" = "%@ · Katru mēnesi";
-"premium.apple.renewal" = "Automātiski atjaunojas līdz atcelšanai. Pārvaldiet vai atceliet App Store abonementos.";
-"premium.apple.trial" = "Bezmaksas izmēģinājums: %@. Pēc tam:";
+"premium.apple.renewal" = "Automātiska atjaunošana. Pārvaldiet vai atceliet App Store abonementos.";
+"premium.apple.trial" = "%@ bez maksas, pēc tam";
 "premium.apple.loadFailed" = "Neizdevās ielādēt App Store piedāvājumu. Pārbaudiet savienojumu un mēģiniet vēlreiz.";
 "premium.apple.pending" = "Gaida Apple vai konta apstiprinājumu. Atjaunojiet pirkumus, lai mēģinātu vēlreiz.";
 "premium.apple.cancelled" = "Pirkums atcelts. Maksa nav iekasēta.";

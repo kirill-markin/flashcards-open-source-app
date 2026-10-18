@@ -897,8 +897,8 @@
 "settings.appIcon.systemAlertNote" = "아이콘을 변경할 때마다 iOS가 알림으로 확인합니다.";
 
 "premium.apple.monthlyProduct" = "%@ · 월간";
-"premium.apple.renewal" = "취소할 때까지 자동 갱신됩니다. App Store 구독에서 관리하거나 취소하세요.";
-"premium.apple.trial" = "무료 체험: %@. 이후:";
+"premium.apple.renewal" = "자동 갱신됩니다. App Store 구독에서 관리하거나 취소하세요.";
+"premium.apple.trial" = "%@ 무료, 이후";
 "premium.apple.loadFailed" = "App Store 혜택을 불러오지 못했습니다. 연결을 확인하고 다시 시도하세요.";
 "premium.apple.pending" = "Apple 또는 계정 확인을 기다리는 중입니다. 구매를 복원하여 다시 시도하세요.";
 "premium.apple.cancelled" = "구매가 취소되었습니다. 요금이 청구되지 않았습니다.";

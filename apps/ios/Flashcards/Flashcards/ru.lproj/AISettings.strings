@@ -925,8 +925,8 @@
 "settings.appIcon.systemAlertNote" = "iOS подтверждает каждую смену иконки уведомлением.";
 
 "premium.apple.monthlyProduct" = "%@ · Ежемесячно";
-"premium.apple.renewal" = "Продлевается автоматически до отмены. Управлять подпиской или отменить её можно в App Store.";
-"premium.apple.trial" = "Бесплатный пробный период: %@. Затем:";
+"premium.apple.renewal" = "Автопродление. Управление и отмена в подписках App Store.";
+"premium.apple.trial" = "%@ бесплатно, затем";
 "premium.apple.loadFailed" = "Не удалось загрузить предложение App Store. Проверьте соединение и повторите попытку.";
 "premium.apple.pending" = "Ожидается подтверждение Apple или доступа к аккаунту. Восстановите покупки, чтобы повторить попытку.";
 "premium.apple.cancelled" = "Покупка отменена. Деньги не списаны.";

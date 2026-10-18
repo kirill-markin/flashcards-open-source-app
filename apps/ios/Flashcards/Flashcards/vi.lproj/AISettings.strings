@@ -897,8 +897,8 @@
 "settings.appIcon.systemAlertNote" = "iOS xác nhận mỗi lần đổi biểu tượng bằng một thông báo.";
 
 "premium.apple.monthlyProduct" = "%@ · Hằng tháng";
-"premium.apple.renewal" = "Tự động gia hạn cho đến khi hủy. Quản lý hoặc hủy trong mục đăng ký App Store của bạn.";
-"premium.apple.trial" = "Dùng thử miễn phí: %@. Sau đó:";
+"premium.apple.renewal" = "Tự động gia hạn. Quản lý hoặc hủy trong mục đăng ký App Store.";
+"premium.apple.trial" = "Miễn phí %@, sau đó";
 "premium.apple.loadFailed" = "Không thể tải ưu đãi App Store. Kiểm tra kết nối và thử lại.";
 "premium.apple.pending" = "Đang chờ Apple hoặc tài khoản xác nhận. Khôi phục giao dịch mua để thử lại.";
 "premium.apple.cancelled" = "Đã hủy giao dịch mua. Bạn chưa bị tính phí.";

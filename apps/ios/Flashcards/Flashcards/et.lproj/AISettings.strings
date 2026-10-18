@@ -897,8 +897,8 @@
 "settings.appIcon.systemAlertNote" = "iOS kinnitab iga ikoonimuudatuse teatega.";
 
 "premium.apple.monthlyProduct" = "%@ · Igakuine";
-"premium.apple.renewal" = "Uueneb automaatselt kuni tühistamiseni. Halda või tühista App Store’i tellimustes.";
-"premium.apple.trial" = "Tasuta prooviperiood: %@. Seejärel:";
+"premium.apple.renewal" = "Uueneb automaatselt. Halda või tühista App Store’i tellimustes.";
+"premium.apple.trial" = "%@ tasuta, seejärel";
 "premium.apple.loadFailed" = "App Store’i pakkumist ei saanud laadida. Kontrolli ühendust ja proovi uuesti.";
 "premium.apple.pending" = "Oodatakse Apple’i või konto kinnitust. Uuesti proovimiseks taasta ostud.";
 "premium.apple.cancelled" = "Ost tühistatud. Raha ei võetud.";

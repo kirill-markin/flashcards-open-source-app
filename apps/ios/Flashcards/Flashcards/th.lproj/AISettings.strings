@@ -897,8 +897,8 @@
 "settings.appIcon.systemAlertNote" = "iOS จะแสดงการแจ้งเตือนเพื่อยืนยันทุกครั้งที่เปลี่ยนไอคอน";
 
 "premium.apple.monthlyProduct" = "%@ · รายเดือน";
-"premium.apple.renewal" = "ต่ออายุอัตโนมัติจนกว่าจะยกเลิก จัดการหรือยกเลิกได้ในการสมัครสมาชิก App Store ของคุณ";
-"premium.apple.trial" = "ทดลองใช้ฟรี: %@ หลังจากนั้น:";
+"premium.apple.renewal" = "ต่ออายุอัตโนมัติ จัดการหรือยกเลิกได้ในการสมัครสมาชิก App Store";
+"premium.apple.trial" = "ฟรี %@ จากนั้น";
 "premium.apple.loadFailed" = "โหลดข้อเสนอจาก App Store ไม่สำเร็จ ตรวจสอบการเชื่อมต่อแล้วลองอีกครั้ง";
 "premium.apple.pending" = "กำลังรอการยืนยันจาก Apple หรือบัญชี กู้คืนรายการซื้อเพื่อลองอีกครั้ง";
 "premium.apple.cancelled" = "ยกเลิกการซื้อแล้ว ไม่มีการเรียกเก็บเงินจากคุณ";

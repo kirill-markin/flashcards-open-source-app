@@ -897,8 +897,8 @@
 "settings.appIcon.systemAlertNote" = "iOS vahvistaa jokaisen kuvakkeen vaihdon ilmoituksella.";
 
 "premium.apple.monthlyProduct" = "%@ · Kuukausittain";
-"premium.apple.renewal" = "Uusiutuu automaattisesti, kunnes peruutat. Hallitse tai peruuta App Store -tilauksissasi.";
-"premium.apple.trial" = "Ilmainen kokeilu: %@. Sen jälkeen:";
+"premium.apple.renewal" = "Uusiutuu automaattisesti. Hallitse tai peruuta App Store -tilauksissa.";
+"premium.apple.trial" = "%@ ilmaiseksi, sitten";
 "premium.apple.loadFailed" = "App Storen tarjousta ei voitu ladata. Tarkista yhteys ja yritä uudelleen.";
 "premium.apple.pending" = "Odotetaan Applen tai tilin vahvistusta. Palauta ostokset ja yritä uudelleen.";
 "premium.apple.cancelled" = "Ostos peruutettu. Sinua ei ole veloitettu.";

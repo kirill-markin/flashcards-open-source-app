@@ -897,8 +897,8 @@
 "settings.appIcon.systemAlertNote" = "iOS her simge değişikliğini bir uyarıyla onaylar.";
 
 "premium.apple.monthlyProduct" = "%@ · Aylık";
-"premium.apple.renewal" = "İptal edilene kadar otomatik yenilenir. App Store aboneliklerinizden yönetin veya iptal edin.";
-"premium.apple.trial" = "Ücretsiz deneme: %@. Ardından:";
+"premium.apple.renewal" = "Otomatik yenilenir. App Store aboneliklerinden yönetin veya iptal edin.";
+"premium.apple.trial" = "%@ ücretsiz, ardından";
 "premium.apple.loadFailed" = "App Store teklifi yüklenemedi. Bağlantınızı kontrol edip yeniden deneyin.";
 "premium.apple.pending" = "Apple veya hesap onayı bekleniyor. Yeniden denemek için satın alımları geri yükleyin.";
 "premium.apple.cancelled" = "Satın alım iptal edildi. Ücret alınmadı.";
