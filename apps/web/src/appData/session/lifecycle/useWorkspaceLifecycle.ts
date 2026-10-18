@@ -1,3 +1,9 @@
+import { retireEntryWorkspaceAddress } from "../activation/workspaceActivationHelpers";
+import { clearWebSyncCacheForLocalBrowserDataCleanup } from "../../../localDb/cache";
+import { requireWorkspaceMediaUploadsCompleted } from "../../../localDb/mediaTransfers";
+import { pauseBrowserGuestSession } from "../../../api/transport/transport";
+import { GuestConversionRequiredError, loadBrowserProductSession, loadCachedBrowserGuestOwner } from "../guest/browserGuestSession";
+import { invalidateBrowserGuestOwnership, readBrowserGuestState, readPendingGuestConversion, runWithBrowserGuestLock, subscribeToBrowserGuestChanges } from "../guest/browserGuestStorage";
 import { consumeAcceptedBrowserSignInMethod, readBrowserSignInInformationGeneration } from "../../../api/browserHints";
 import { readPendingConnection, storePendingConnection } from "../../../screens/settings/account/accountConnectionPending";
 import { getAppConfig } from "../../../config";
@@ -8,7 +14,6 @@ import { useCallback, useEffect, useRef } from "react";
 import {
   ApiError,
   buildLogoutLocalUrl,
-  getSession,
   isAuthRedirectError,
   revalidateSession as revalidateSessionRequest,
 } from "../../../api";
@@ -67,7 +72,7 @@ import type {
   WorkspaceSessionSetters,
   WorkspaceSessionState,
 } from "../workspaceSessionTypes";
-import type { SessionInfo } from "../../../types";
+import type { CloudSettings, SessionInfo } from "../../../types";
 
 const sessionInitializationInvalidatedMessage = "Session changed during initialization. Retry to verify the current account.";
 
@@ -75,6 +80,7 @@ type UseWorkspaceLifecycleParams =
   & Readonly<{
     t: (key: TranslationKey) => string;
     runSyncSilently: () => Promise<void>;
+    discardAllSyncWork: (action: () => Promise<void>) => Promise<void>;
     resolveInitialWorkspace: (currentSession: SessionInfo) => Promise<void>;
     clearConfirmedUserScopedState: (reason: LocalBrowserDataCleanupReason) => Promise<void>;
     indexedDbOpenRecoveryState: IndexedDbOpenRecoveryState;
@@ -139,6 +145,7 @@ export function useWorkspaceLifecycle(params: UseWorkspaceLifecycleParams): Work
     setTechnicalError,
     setCloudSettings,
     runSyncSilently,
+    discardAllSyncWork,
     resolveInitialWorkspace,
     clearConfirmedUserScopedState,
     indexedDbOpenRecoveryState,
@@ -150,12 +157,43 @@ export function useWorkspaceLifecycle(params: UseWorkspaceLifecycleParams): Work
   // One-use method consumption must survive a ready-to-ready workspace switch.
   const hasReadyWorkspace = activeWorkspaceId !== null;
   const sessionUserId = session?.userId ?? null;
+  const initializePromiseRef = useRef<Promise<void> | null>(null);
   const resumePromiseRef = useRef<Promise<void> | null>(null);
   const analyticsReadyRef = useRef<Readonly<{ userId: string; ready: Promise<void> }> | null>(null);
 
+  const showCachedGuestRecovery = useCallback(async (error: Error): Promise<boolean> => {
+    if (error instanceof GuestConversionRequiredError) return false;
+    let owner: CloudSettings | null;
+    try {
+      owner = await loadCachedBrowserGuestOwner();
+    } catch (recoveryError) {
+      const storageError = normalizeCaughtError(recoveryError);
+      indexedDbOpenRecoveryState.markFailed(storageError);
+      if (indexedDbOpenRecoveryState.hasFailed()) return true;
+      setSessionLoadState("error");
+      setSessionErrorMessage(getErrorMessage(storageError));
+      setSessionTechnicalError(storageError);
+      return true;
+    }
+    if (owner === null) return false;
+    pauseBrowserGuestSession();
+    await discardAllSyncWork(async () => {
+      setSession(null);
+      setActiveWorkspace(null);
+      setAvailableWorkspaces([]);
+      setCloudSettings(owner);
+      setSessionVerificationState("unverified");
+      setSessionLoadState("guest_recovery");
+      setSessionErrorMessage(`${t("guest.recovery")} ${getErrorMessage(error)}`);
+      setSessionTechnicalError(error);
+      setTechnicalError(null);
+    });
+    return true;
+  }, [discardAllSyncWork, indexedDbOpenRecoveryState, setActiveWorkspace, setAvailableWorkspaces, setCloudSettings, setSession, setSessionErrorMessage, setSessionLoadState, setSessionTechnicalError, setSessionVerificationState, setTechnicalError, t]);
+
   useEffect(() => {
     if (sessionLoadState !== "ready" || sessionVerificationState !== "verified"
-      || sessionUserId === null || !hasReadyWorkspace) return;
+      || session?.browserGuestCapabilities?.isGuest === true || sessionUserId === null || !hasReadyWorkspace) return;
     const userId = sessionUserId;
     const generation = readEntitlementIdentityGeneration();
     const informationGeneration = readBrowserSignInInformationGeneration();
@@ -184,7 +222,23 @@ export function useWorkspaceLifecycle(params: UseWorkspaceLifecycleParams): Work
       if (isCurrent()) setErrorMessage(normalizeCaughtError(error).message);
     });
     return () => { current = false; };
-  }, [hasReadyWorkspace, indexedDbOpenRecoveryState, sessionUserId, sessionLoadState, sessionVerificationState, setErrorMessage]);
+  }, [hasReadyWorkspace, indexedDbOpenRecoveryState, session?.browserGuestCapabilities?.isGuest, sessionUserId, sessionLoadState, sessionVerificationState, setErrorMessage]);
+
+  useEffect(() => {
+    let hadPending = readPendingGuestConversion() !== null;
+    return subscribeToBrowserGuestChanges(() => {
+      const saved = readBrowserGuestState();
+      const wasPending = hadPending;
+      hadPending = saved?.status === "owned" && saved.owner.pending !== null;
+      if (session?.browserGuestCapabilities?.isGuest !== true) return;
+      if (saved?.status === "owned" && saved.owner.pending === null && saved.owner.userId === session.userId) {
+        if (wasPending) void initializeRef.current();
+        return;
+      }
+      setSessionVerificationState("unverified");
+      if (saved === null) void initializeRef.current();
+    });
+  }, [session, setSessionVerificationState]);
 
   const resumeConfirmedAccountDeletion = useCallback(async function resumeConfirmedAccountDeletion(): Promise<void> {
     await runWithAccountDeletionLock(
@@ -207,7 +261,7 @@ export function useWorkspaceLifecycle(params: UseWorkspaceLifecycleParams): Work
     indexedDbOpenRecoveryState.throwIfFailed();
   }, [clearConfirmedUserScopedState, indexedDbOpenRecoveryState]);
 
-  const initialize = useCallback(async function initialize(): Promise<void> {
+  const initializeSession = useCallback(async function initializeSession(): Promise<void> {
     if (indexedDbOpenRecoveryState.hasFailed()) {
       return;
     }
@@ -218,11 +272,8 @@ export function useWorkspaceLifecycle(params: UseWorkspaceLifecycleParams): Work
       && activeWorkspace !== null
       && availableWorkspaces.length > 0;
 
-    // Warm start intentionally keeps the last known shell visible while the
-    // browser revalidates auth in the background. If verification fails, this
-    // optimistic state is discarded by the mismatch or redirect handling below.
     if (shouldPreserveWarmStartState === false) {
-      setSessionLoadState("loading");
+      if (sessionLoadState !== "guest_conversion") setSessionLoadState("loading");
       setActiveWorkspace(null);
       setAvailableWorkspaces([]);
     }
@@ -276,7 +327,7 @@ export function useWorkspaceLifecycle(params: UseWorkspaceLifecycleParams): Work
       const preferenceWriteVersion = readAccountPreferencesWriteVersion();
       let currentSession: SessionInfo;
       try {
-        currentSession = await getSession();
+        currentSession = await loadBrowserProductSession();
       } catch (error) {
         if (
           isAccountDeletionPending()
@@ -312,7 +363,7 @@ export function useWorkspaceLifecycle(params: UseWorkspaceLifecycleParams): Work
         return;
       }
 
-      const persistedCloudSettings = await loadCloudSettings();
+      let persistedCloudSettings = await loadCloudSettings();
       if (indexedDbOpenRecoveryState.hasFailed()) {
         return;
       }
@@ -321,12 +372,50 @@ export function useWorkspaceLifecycle(params: UseWorkspaceLifecycleParams): Work
         throw createSessionAccountSwitchError(sessionInitializationInvalidatedMessage);
       }
 
+      const completion = readPendingGuestConversion();
+      const hasFinalizedGuestConversion = completion?.phase === "completed" && completion.result !== null
+        && completion.destinationUserId === currentSession.userId;
+      if (hasFinalizedGuestConversion && completion?.result !== null && completion?.result !== undefined) {
+        currentSession = { ...currentSession, selectedWorkspaceId: completion.result.workspace.workspaceId };
+        const destinationSession = currentSession;
+        const destinationWorkspaceId = completion.result.workspace.workspaceId;
+        persistedCloudSettings = await runWithBrowserGuestLock("exclusive", async () => {
+          const owner = await loadCloudSettings();
+          const alreadyOwnsDestination = owner?.linkedUserId === destinationSession.userId && owner.linkedWorkspaceId === destinationWorkspaceId;
+          if (alreadyOwnsDestination) {
+            if (owner?.cloudState === "guest") invalidateBrowserGuestOwnership();
+            const installed = buildLinkedCloudSettings(destinationSession, destinationWorkspaceId, owner);
+            await putCloudSettings(installed);
+            return installed;
+          }
+          if (owner !== null && owner.linkedUserId !== completion.sourceUserId) {
+            throw new Error("Local owner differs from both saved conversion accounts. Preserve local data before recovery.");
+          }
+          invalidateBrowserGuestOwnership();
+          await discardAllSyncWork(async () => {
+            if (owner !== null) {
+              await requireWorkspaceMediaUploadsCompleted(completion.sourceWorkspaceId);
+              await clearWebSyncCacheForLocalBrowserDataCleanup(indexedDbOpenRecoveryState.throwIfFailed);
+            }
+            indexedDbOpenRecoveryState.throwIfFailed();
+            await putCloudSettings(buildLinkedCloudSettings(destinationSession, destinationWorkspaceId, owner));
+          });
+          indexedDbOpenRecoveryState.throwIfFailed();
+          const installed = await loadCloudSettings();
+          if (installed?.linkedUserId !== destinationSession.userId || installed.linkedWorkspaceId !== destinationWorkspaceId) {
+            throw new Error("The converted destination owner could not be installed.");
+          }
+          return installed;
+        });
+        retireEntryWorkspaceAddress();
+      }
+
       currentSession = projectSessionToLocalOwner(currentSession, persistedCloudSettings?.linkedUserId ?? null);
       if (setEntitlementIdentity(currentSession.userId, entitlementGeneration) === false) {
         throw createSessionAccountSwitchError(sessionInitializationInvalidatedMessage);
       }
       setWebObservabilityUser({ id: currentSession.userId });
-      const localDataCleanupReason = resolveLocalDataCleanupReasonForVerifiedSession(
+      const localDataCleanupReason = hasFinalizedGuestConversion ? null : resolveLocalDataCleanupReasonForVerifiedSession(
         persistedCloudSettings,
         currentSession,
         wasBrowserReauthRequired,
@@ -380,7 +469,7 @@ export function useWorkspaceLifecycle(params: UseWorkspaceLifecycleParams): Work
       // request-context call the route requires to have run first, and the account it verified is
       // passed along so the link can assert, on every attempt and on every later load, that it is
       // still binding the envelope to the account it started for.
-      linkWebGuestIdentityInBackground(
+      if (currentSession.browserGuestCapabilities?.isGuest !== true) linkWebGuestIdentityInBackground(
         storedGuestSession,
         storedGuestIdentityGeneration,
         currentSession.userId,
@@ -388,6 +477,13 @@ export function useWorkspaceLifecycle(params: UseWorkspaceLifecycleParams): Work
       );
       setSessionVerificationState("verified");
     } catch (error) {
+      if (error instanceof GuestConversionRequiredError) {
+        setSessionLoadState("guest_conversion");
+        setSessionErrorMessage("");
+        setSessionTechnicalError(null);
+        setTechnicalError(null);
+        return;
+      }
       const normalizedError = normalizeCaughtError(error);
       indexedDbOpenRecoveryState.markFailed(normalizedError);
       if (indexedDbOpenRecoveryState.hasFailed()) {
@@ -420,6 +516,7 @@ export function useWorkspaceLifecycle(params: UseWorkspaceLifecycleParams): Work
       }
 
       const nextErrorMessage = getErrorMessage(normalizedError);
+      if (await showCachedGuestRecovery(normalizedError)) return;
       const isExpectedError = isExpectedWorkspaceSessionApiError(normalizedError);
       if (isExpectedError === false) {
         captureWorkspaceTransitionError("session_bootstrap_failed", {
@@ -434,6 +531,7 @@ export function useWorkspaceLifecycle(params: UseWorkspaceLifecycleParams): Work
     }
   }, [
     clearConfirmedUserScopedState,
+    discardAllSyncWork,
     indexedDbOpenRecoveryState,
     resolveInitialWorkspace,
     resumeConfirmedAccountDeletion,
@@ -453,7 +551,17 @@ export function useWorkspaceLifecycle(params: UseWorkspaceLifecycleParams): Work
     setSessionTechnicalError,
     setSessionVerificationState,
     setTechnicalError,
+    showCachedGuestRecovery,
   ]);
+
+  const initialize = useCallback(function initialize(): Promise<void> {
+    if (initializePromiseRef.current !== null) return initializePromiseRef.current;
+    const initializing = initializeSession().finally(() => {
+      if (initializePromiseRef.current === initializing) initializePromiseRef.current = null;
+    });
+    initializePromiseRef.current = initializing;
+    return initializing;
+  }, [initializeSession]);
 
   const initializeRef = useRef(initialize);
 
@@ -487,7 +595,7 @@ export function useWorkspaceLifecycle(params: UseWorkspaceLifecycleParams): Work
     const entitlementGeneration = readEntitlementIdentityGeneration();
     const preferenceWriteVersion = readAccountPreferencesWriteVersion();
     try {
-      const verifiedSession = await revalidateSessionRequest();
+      const verifiedSession = await loadBrowserProductSession();
       if (indexedDbOpenRecoveryState.hasFailed()) {
         return false;
       }
@@ -588,6 +696,7 @@ export function useWorkspaceLifecycle(params: UseWorkspaceLifecycleParams): Work
     } catch (error) {
       indexedDbOpenRecoveryState.markFailed(error);
       indexedDbOpenRecoveryState.throwIfFailed();
+      if (session?.browserGuestCapabilities?.isGuest === true && await showCachedGuestRecovery(normalizeCaughtError(error))) return false;
       if (isAuthRedirectError(error)) {
         return false;
       }
@@ -610,13 +719,13 @@ export function useWorkspaceLifecycle(params: UseWorkspaceLifecycleParams): Work
     setSessionTechnicalError,
     setSessionVerificationState,
     setTechnicalError,
+    showCachedGuestRecovery,
   ]);
 
   const runResumeAttempt = useCallback(async function runResumeAttempt(): Promise<void> {
     const isSessionValid = await revalidateActiveSession();
-    if (isSessionValid) {
-      await runSyncSilently();
-    }
+    if (!isSessionValid) return;
+    await runSyncSilently();
 
     if (indexedDbOpenRecoveryState.hasFailed()) {
       return;

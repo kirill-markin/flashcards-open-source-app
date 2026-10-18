@@ -53,12 +53,20 @@ export type AccountPreferencesEnvelope = Readonly<{
   preferences: AccountPreferences;
 }>;
 
+export type BrowserGuestCapabilities = Readonly<{
+  isGuest: true;
+  platformFundedAi: false;
+  ownKeyAi: true;
+  requiresAccountLinking: true;
+}>;
+
 export type SessionInfo = Readonly<{
   userId: string;
   canonicalAccountId?: string;
   linkedAccountIds?: ReadonlyArray<string>;
   selectedWorkspaceId: string | null;
   authTransport: string;
+  browserGuestCapabilities?: BrowserGuestCapabilities | null;
   csrfToken: string | null;
   preferences: AccountPreferences;
   profile: Readonly<{
@@ -68,7 +76,7 @@ export type SessionInfo = Readonly<{
   }>;
 }>;
 
-export type CloudAccountState = "disconnected" | "linking-ready" | "linked";
+export type CloudAccountState = "disconnected" | "linking-ready" | "linked" | "guest";
 
 export type WorkspaceSummary = Readonly<{
   workspaceId: string;

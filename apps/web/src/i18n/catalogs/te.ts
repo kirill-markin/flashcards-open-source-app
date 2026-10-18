@@ -3,6 +3,18 @@ import { createStripeCatalog } from "../stripeCatalog";
 import type { TranslationCatalog } from "../catalogTypes";
 
 const teCatalog: TranslationCatalog = {
+  guest: {
+    title: "అతిథి",
+    signIn: "సైన్ ఇన్",
+    saveProgress: "మీ పురోగతిని సేవ్ చేయండి",
+    reminder: "ఈ కార్డులు, పునశ్చరణ పురోగతి కోల్పోకుండా ఇమెయిల్‌తో సైన్ ఇన్ చేయండి.",
+    later: "తర్వాత",
+    warning: "ఇతర పరికరాల్లోనూ ప్రాప్యత ఉంచుకోవడానికి సైన్ ఇన్ చేయండి. సైట్ డేటాను తొలగిస్తే అతిథి ప్రాప్యత కోల్పోవచ్చు.",
+    mergeExplanation: "మీ కార్డులు మరియు పునశ్చరణ చరిత్ర భద్రంగా ఉంటాయి. ఖాతాలో వర్క్‌స్పేస్‌ను ఎంచుకోండి లేదా కొత్తది సృష్టించండి.",
+    aiSignIn: "Nibomo AI కోసం సైన్ ఇన్ చేయండి లేదా మీ సొంత OpenAI కీని వాడండి.",
+    recovery: "అతిథి ప్రాప్యత ధృవీకరించబడలేదు. కాష్ చేసిన కార్డులు చదవడానికి మాత్రమే అందుబాటులో ఉంటాయి. అసలు సెషన్ లేదా కనెక్షన్ పునరుద్ధరించి మళ్లీ ప్రయత్నించండి.",
+    cleanupFailed: "సైన్ ఇన్ విజయవంతమైంది, కానీ డెమో కార్డును తీసివేయలేకపోయాము.",
+  },
   stripe: createStripeCatalog(stripeCopy),
   paywall: {
     heading: "నేర్చుకోవడం అందరి హక్కు.",

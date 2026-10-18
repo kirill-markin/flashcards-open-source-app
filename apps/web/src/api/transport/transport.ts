@@ -1,3 +1,4 @@
+import { readPendingGuestConversion } from "../../appData/session/guest/browserGuestStorage";
 import { parseSessionInfoResponse } from "../../apiContracts/account";
 import { getAppConfig } from "../../config";
 import { loadCloudSettings } from "../../localDb/sync/cloudSettings";
@@ -81,6 +82,27 @@ export function resetApiClientStateForTests(): void {
 
 export function getCachedSessionCsrfToken(): string | null {
   return sessionRecovery.getCachedSessionCsrfToken();
+}
+
+export function recoverRegisteredCredentialForProbe(): Promise<void> {
+  return sessionRecovery.recoverRegisteredCredentialForProbe();
+}
+
+export function primeGuestSession(userId: string, csrfToken: string): void {
+  sessionRecovery.primeGuestSession(userId, csrfToken);
+}
+
+export function pauseBrowserGuestSession(): void {
+  sessionRecovery.pauseBrowserGuestSession();
+}
+
+export function resumeVerifiedBrowserSession(session: SessionInfo): SessionInfo {
+  sessionRecovery.resumeVerifiedBrowserSession(session);
+  return session;
+}
+
+export function readBrowserGuestVerificationGeneration(userId: string): number | null {
+  return sessionRecovery.readBrowserGuestVerificationGeneration(userId);
 }
 
 export function primeSessionCsrfToken(csrfToken: string): void {
@@ -211,7 +233,7 @@ async function performCredentialFreeFetch(
 }
 
 /**
- * Sends this browser's cookies and nothing else: no CSRF token, no bearer, no auth recovery.
+ * Sends browser cookies and explicit caller-supplied CSRF, without auth recovery.
  *
  * The analytics visitor route needs exactly that. Its whole effect is a first-party cookie it sets
  * and clears, so the request cannot omit credentials the way the collector does, and it is
@@ -371,16 +393,7 @@ export async function requestCredentialFreeJson(
   }
 }
 
-/**
- * The one route this transport may be used for. It is a literal rather than a `string` on purpose:
- * the request carries the session cookie with no CSRF token of any kind, so its safety is not a
- * property of this function at all — it comes from `enforceAllowedBrowserOrigin`, which refuses
- * every non-allowlisted `Origin` and `Referer` on the analytics visitor route, on every method
- * (apps/backend/src/routes/analyticsVisitor.ts). A second caller would silently leave the CSRF
- * pipeline, so adding one has to be a deliberate change to this type and a check that the new route
- * enforces its own origin the same way.
- */
-export type BrowserCookieRequestPath = "/analytics/visitor";
+export type BrowserCookieRequestPath = "/analytics/visitor" | "/guest-auth/browser/session" | "/guest-auth/browser/session/forget" | "/guest-auth/browser/upgrade/prepare" | "/guest-auth/browser/upgrade/complete";
 
 /** One request on `performBrowserCookieFetch`, through the shared pipeline every other call uses. */
 export async function requestBrowserCookieJson(
@@ -468,6 +481,8 @@ async function loadSessionInfo(
   options: RequestOptions,
   signal: AbortSignal | null,
 ): Promise<SessionInfo> {
+  const pending = readPendingGuestConversion();
+  if (pending?.phase === "draining" || pending?.phase === "awaiting_auth") throw new Error("Prepare the saved guest conversion before loading /me.");
   const session = parseContractResponse(await requestJson("/me", {
     method: "GET",
     ...(signal === null ? {} : { signal }),

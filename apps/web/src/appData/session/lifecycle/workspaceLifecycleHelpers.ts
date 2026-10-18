@@ -19,7 +19,8 @@ export function removeLoggedOutMarker(): void {
 
   url.searchParams.delete("logged_out");
   const nextUrl = `${url.pathname}${url.search}${url.hash}`;
-  window.history.replaceState({}, document.title, nextUrl);
+  window.history.replaceState(window.history.state, document.title, nextUrl);
+  window.dispatchEvent(new PopStateEvent("popstate", { state: window.history.state }));
 }
 
 export function createSessionAccountSwitchError(errorMessage: string): SessionAccountSwitchError {

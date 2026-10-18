@@ -1,3 +1,4 @@
+import { GuestSignIn } from "./guest/GuestSignIn";
 import { AccountMethods } from "./AccountMethods";
 import { type ReactElement } from "react";
 import {
@@ -23,6 +24,12 @@ function formatCloudStateTitle(cloudState: string | null, t: (key: "accountStatu
 export function AccountStatusScreen(): ReactElement {
   const { cloudSettings, session } = useAppData();
   const { t, formatDateTime } = useI18n();
+  if (session?.browserGuestCapabilities?.isGuest === true) return <SettingsShell title={t("guest.title")} subtitle={t("guest.warning")} activeTab="account">
+    <section className="content-card"><h2 className="panel-subtitle">{t("guest.saveProgress")}</h2>
+      <p>{t("guest.mergeExplanation")}</p><GuestSignIn label={t("guest.signIn")} testId="account-guest-sign-in" />
+      <span className="guest-attention" aria-label={t("guest.signIn")}>1</span>
+    </section>
+  </SettingsShell>;
   const unavailableLabel = t("common.unavailable");
   const accountEmail: string | null = cloudSettings?.linkedEmail ?? session?.profile.email ?? null;
   const accountEmailLabel: string = accountEmail ?? unavailableLabel;

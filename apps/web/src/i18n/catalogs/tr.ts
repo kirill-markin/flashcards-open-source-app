@@ -3,6 +3,18 @@ import { createStripeCatalog } from "../stripeCatalog";
 import type { TranslationCatalog } from "../catalogTypes";
 
 const trCatalog: TranslationCatalog = {
+  guest: {
+    title: "Misafir",
+    signIn: "Giriş yap",
+    saveProgress: "İlerlemenizi kaydedin",
+    reminder: "Bu kartların ve tekrar ilerlemenizin kaybolmaması için e-posta ile giriş yapın.",
+    later: "Daha sonra",
+    warning: "Diğer cihazlarda erişimi korumak için giriş yapın. Site verilerini temizlemek misafir erişimini kaybettirebilir.",
+    mergeExplanation: "Kartlarınız ve tekrar geçmişiniz korunacak. Hesabınızdan bir çalışma alanı seçin veya yeni bir tane oluşturun.",
+    aiSignIn: "Nibomo yapay zekâsını kullanmak için giriş yapın veya kendi OpenAI anahtarınızı kullanın.",
+    recovery: "Misafir erişimi doğrulanmadı. Önbellekteki kartlar salt okunurdur. İlk oturumu veya bağlantıyı geri yükleyip yeniden deneyin.",
+    cleanupFailed: "Giriş yapıldı, ancak demo kart silinemedi.",
+  },
   stripe: createStripeCatalog(stripeCopy),
   paywall: {
     heading: "Öğrenmek herkesin hakkı.",

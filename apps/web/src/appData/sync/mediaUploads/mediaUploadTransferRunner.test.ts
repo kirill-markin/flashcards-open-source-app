@@ -93,10 +93,11 @@ describe("media upload transfer runner", () => {
       lastOperationId: transferId,
     });
     expect(workspaceReplicaId).not.toBe(installationId);
-    const lifecycleSignal = createSessionInit?.signal;
-    expect(lifecycleSignal).toBeInstanceOf(AbortSignal);
+    expect(createSessionInit?.signal).toBeInstanceOf(AbortSignal);
+    expect(createSessionInit?.signal?.aborted).toBe(false);
     const partUrlsInit = fetchMock.mock.calls[1]?.[1] as RequestInit | undefined;
-    expect(partUrlsInit?.signal).toBe(lifecycleSignal);
+    expect(partUrlsInit?.signal).toBeInstanceOf(AbortSignal);
+    expect(partUrlsInit?.signal?.aborted).toBe(false);
     expect(parseRequestBody(partUrlsInit)).toEqual({
       parts: [
         {
@@ -109,11 +110,13 @@ describe("media upload transfer runner", () => {
     const signedPutInit = fetchMock.mock.calls[2]?.[1] as RequestInit | undefined;
     expect(fetchMock.mock.calls[2]?.[0]).toBe("https://uploads.example.test/part-1");
     expect(signedPutInit?.method).toBe("PUT");
-    expect(signedPutInit?.signal).toBe(lifecycleSignal);
+    expect(signedPutInit?.signal).toBeInstanceOf(AbortSignal);
+    expect(signedPutInit?.signal?.aborted).toBe(false);
     expect((signedPutInit?.headers as Readonly<Record<string, string>> | undefined)?.["x-amz-checksum-sha256"]).toBe("checksum-1");
     await expect((signedPutInit?.body as Blob).text()).resolves.toBe("hello world");
     const completionInit = fetchMock.mock.calls[3]?.[1] as RequestInit | undefined;
     expect(completionInit?.signal).toBeInstanceOf(AbortSignal);
+    expect(completionInit?.signal?.aborted).toBe(false);
     expect(parseRequestBody(completionInit)).toEqual({
       parts: [
         {

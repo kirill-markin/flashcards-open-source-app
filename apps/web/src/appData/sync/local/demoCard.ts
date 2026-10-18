@@ -15,8 +15,6 @@ import {
 
 const demoCardTag = "demo";
 
-// The product name is a brand and is never translated. The markdown emphasis lives here
-// so the catalogs stay free of markup.
 const demoCardAppName = "**Nibomo**";
 
 function asInlineCode(label: string): string {
@@ -44,13 +42,9 @@ export type SeedDemoCardInput = Readonly<{
   localCardCount: number;
 }>;
 
-async function buildDemoCardText(): Promise<DemoCardText> {
+export async function buildDemoCardText(): Promise<DemoCardText> {
   const locale = resolveLocaleState(readStoredLocalePreference()).locale;
-  // Catalogs are loaded per locale, and this seed can run before the UI has rendered this one.
   await loadTranslationCatalog(locale);
-  // The rating label comes from the catalog the review screen already uses, so the card
-  // always names the button exactly as it is rendered. Like the bold product name, the
-  // inline-code backticks are added here so the catalogs stay free of markup.
   const values = {
     appName: demoCardAppName,
     againLabel: asInlineCode(translateMessage(locale, "reviewScreen.ratings.again", undefined)),
@@ -58,28 +52,10 @@ async function buildDemoCardText(): Promise<DemoCardText> {
 
   return {
     frontText: translateMessage(locale, "demoCard.front", values),
-    // Blank lines separate the three paragraphs. The bold product name and the inline-code
-    // rating label are the only markdown the answer contains.
     backText: demoCardBackKeys.map((key) => translateMessage(locale, key, values)).join("\n\n"),
   };
 }
 
-// This is a new-user card, not a new-workspace card. An empty workspace is not by itself
-// a new account: an existing user who deliberately creates a second workspace is handed an
-// empty one too, and would otherwise be onboarded again. isOnlyWorkspaceForUser carries
-// that user-scoped signal, decided by the caller from the account's workspace list.
-//
-// The backend never seeds this card, because a server-side seed would make a new
-// workspace non-empty and push mobile cloud linking into the replace_local_shell branch,
-// discarding a new user's offline work. Deduplication is therefore purely local: each
-// client seeds only at its own new-user moment, and only into a workspace that holds no
-// cards at all.
-//
-// Every condition is decided by the caller and passed in, so this stays a pure guard over
-// its input and never re-reads workspace state.
-//
-// Ordinary seed failures must never fail a sync run, so they are reported and swallowed.
-// An IndexedDB open recovery failure must escape so the page-lifetime recovery latch can stop all local work.
 export async function seedDemoCardForNewWorkspace(
   input: SeedDemoCardInput,
 ): Promise<LocalCardMutationResult | null> {

@@ -526,3 +526,6 @@
     width: 100%;
   }
 }
+
+.guest-sign-in-control { display: inline-flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.guest-attention { display: inline-grid; place-items: center; min-width: 20px; height: 20px; padding-inline: 5px; margin-inline-start: 6px; border-radius: 999px; background: #c72e38; color: white; font-size: 12px; font-weight: 700; }

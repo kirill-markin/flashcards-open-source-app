@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { act } from "react";
+import { act, type ReactNode } from "react";
 import ReactDOM from "react-dom/client";
 import { MemoryRouter, Route, Routes } from "react-router";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -12,13 +12,15 @@ import { FriendInviteScreen } from "./FriendInviteScreen";
 const {
   acceptFriendInvitationMock,
   clearPersistedProgressLeaderboardMock,
-  getOptionalSessionMock,
+  probeBrowserGuestSessionMock,
+  useAppDataMock,
   invalidateServerProgressMock,
   previewFriendInvitationMock,
 } = vi.hoisted(() => ({
   acceptFriendInvitationMock: vi.fn(),
   clearPersistedProgressLeaderboardMock: vi.fn(),
-  getOptionalSessionMock: vi.fn(),
+  probeBrowserGuestSessionMock: vi.fn(),
+  useAppDataMock: vi.fn(),
   invalidateServerProgressMock: vi.fn(),
   previewFriendInvitationMock: vi.fn(),
 }));
@@ -31,11 +33,25 @@ vi.mock("../../api", async (importOriginal) => {
     buildLoginUrl: (returnUrl: string, localeHint: string): string => (
       `https://auth.example.test/login?redirect_uri=${encodeURIComponent(returnUrl)}&locale=${encodeURIComponent(localeHint)}`
     ),
-    getOptionalSession: getOptionalSessionMock,
     isAuthRedirectError: (_error: unknown): boolean => false,
     previewFriendInvitation: previewFriendInvitationMock,
   };
 });
+
+vi.mock("../../api/endpoints/guestAuth", async (importOriginal) => ({
+  ...await importOriginal<typeof import("../../api/endpoints/guestAuth")>(),
+  probeBrowserGuestSession: probeBrowserGuestSessionMock,
+}));
+
+vi.mock("../../localDb/sync/cloudSettings", async (importOriginal) => ({
+  ...await importOriginal<typeof import("../../localDb/sync/cloudSettings")>(),
+  loadCloudSettings: async () => null,
+}));
+
+vi.mock("../../appData", () => ({
+  AppDataProvider: (props: Readonly<{ children: ReactNode }>): ReactNode => props.children,
+  useAppData: useAppDataMock,
+}));
 
 vi.mock("../../appData/progress/invalidation/progressInvalidation", () => ({
   invalidateServerProgress: invalidateServerProgressMock,
@@ -92,7 +108,13 @@ describe("FriendInviteScreen", () => {
     document.body.appendChild(container);
     root = ReactDOM.createRoot(container);
     previewFriendInvitationMock.mockReset();
-    getOptionalSessionMock.mockReset();
+    probeBrowserGuestSessionMock.mockReset();
+    probeBrowserGuestSessionMock.mockResolvedValue({ registeredSession: { present: true }, guestSession: { status: "absent" } });
+    useAppDataMock.mockReset();
+    useAppDataMock.mockReturnValue({
+      sessionLoadState: "ready", isSessionVerified: true, session: createSession(),
+      cloudSettings: null, sessionTechnicalError: null, sessionErrorMessage: "", initialize: vi.fn(),
+    });
     acceptFriendInvitationMock.mockReset();
     clearPersistedProgressLeaderboardMock.mockReset();
     invalidateServerProgressMock.mockReset();
@@ -130,7 +152,8 @@ describe("FriendInviteScreen", () => {
 
     expect(container.querySelector("[data-testid='friend-invite-inactive']")).not.toBeNull();
     expect(container.textContent).toContain("This link is no longer active. Ask for a new one.");
-    expect(getOptionalSessionMock).not.toHaveBeenCalled();
+    expect(probeBrowserGuestSessionMock).not.toHaveBeenCalled();
+    expect(useAppDataMock).not.toHaveBeenCalled();
   });
 
   it("renders preview failures without inactive invite copy", async () => {
@@ -141,7 +164,8 @@ describe("FriendInviteScreen", () => {
     expect(container.querySelector("[data-testid='friend-invite-error']")).not.toBeNull();
     expect(container.querySelector("[data-testid='friend-invite-inactive']")).toBeNull();
     expect(container.textContent).toContain("A technical error occurred. Try again or restart the app.");
-    expect(getOptionalSessionMock).not.toHaveBeenCalled();
+    expect(probeBrowserGuestSessionMock).not.toHaveBeenCalled();
+    expect(useAppDataMock).not.toHaveBeenCalled();
   });
 
   it("accepts an active invite and renders the success links", async () => {
@@ -149,7 +173,6 @@ describe("FriendInviteScreen", () => {
       status: "active",
       expiresAt: "2026-04-22T10:00:00.000Z",
     });
-    getOptionalSessionMock.mockResolvedValue(createSession());
     acceptFriendInvitationMock.mockResolvedValue({ status: "accepted" });
 
     await renderInviteScreen();
@@ -192,7 +215,6 @@ describe("FriendInviteScreen", () => {
       status: "active",
       expiresAt: "2026-04-22T10:00:00.000Z",
     });
-    getOptionalSessionMock.mockResolvedValue(createSession());
 
     await renderInviteScreen();
 

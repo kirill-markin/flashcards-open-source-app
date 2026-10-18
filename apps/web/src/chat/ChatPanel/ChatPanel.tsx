@@ -1,4 +1,8 @@
 import { useEffect, useRef, useState, type ReactElement } from "react";
+import { Link } from "react-router";
+import { useWorkspacePath } from "../../useWorkspacePath";
+import { settingsOwnOpenAIKeyRoute } from "../../routes";
+import { GuestSignIn } from "../../screens/settings/account/guest/GuestSignIn";
 import { useAppData } from "../../appData";
 import {
   markIndexedDbOpenRecoveryFailureAndCheckActive,
@@ -20,7 +24,7 @@ import {
   formatAiLimitReachedMessageForHeldUsage,
   isHeldAiUsageCurrent,
 } from "../shared/chatAiLimitPolicy";
-import { useIsOwnOpenAIKeyActive } from "../preferences/ownOpenAIKeyStorage";
+import { isOwnOpenAIKeyActive, useIsOwnOpenAIKeyActive } from "../preferences/ownOpenAIKeyStorage";
 import {
   getCanSendPendingMessage,
   getCanShowComposerSuggestions,
@@ -46,12 +50,13 @@ type Props = Readonly<{
 export function ChatPanel(props: Props): ReactElement {
   const { mode } = props;
   const appData = useAppData();
+  const workspacePath = useWorkspacePath();
   const entitlement = useEntitlementSnapshot(appData.session?.userId ?? null);
   const presentPremium = usePremiumPresenter();
   const { indexedDbOpenRecoveryState, showCapturedTechnicalError, showTechnicalError } = useAppErrorDialog();
   const { t, formatCount, formatDate, formatNumber, messages: translationMessages } = useI18n();
   const { aiChatComposerSuggestionsEnabled } = useAIChatPreferences();
-  const isOwnOpenAIKeyActive = useIsOwnOpenAIKeyActive();
+  const hasOwnOpenAIKey = useIsOwnOpenAIKeyActive();
   const {
     draft,
     focusComposerRequestVersion,
@@ -159,7 +164,7 @@ export function ChatPanel(props: Props): ReactElement {
     inputText,
     pendingAttachments,
     pendingAttachmentsRef,
-    sendPendingMessage,
+    sendPendingMessage: sendPreparedMessage,
     setPendingAttachmentsState,
     startNewConversationComposerReset,
   } = useChatComposerSend({
@@ -192,8 +197,17 @@ export function ChatPanel(props: Props): ReactElement {
   });
   const rootClassName = mode === "sidebar" ? "chat-sidebar" : "chat-sidebar-fullscreen";
   const isDictationVisible = dictationState !== "idle";
-  const isChatActionLocked = appData.isSessionVerified === false
-    || indexedDbOpenRecoveryState.hasFailed();
+  const fundedAiNeedsSignIn = appData.session?.browserGuestCapabilities?.platformFundedAi === false && !hasOwnOpenAIKey;
+  const isChatActionLocked = appData.isSessionVerified === false || indexedDbOpenRecoveryState.hasFailed();
+  const isAiActionLocked = isChatActionLocked || fundedAiNeedsSignIn;
+  async function sendPendingMessage(): Promise<void> {
+    if (isChatActionLocked || !isHistoryLoaded || isStopping
+      || (appData.session?.browserGuestCapabilities?.platformFundedAi === false && !isOwnOpenAIKeyActive())) return;
+    await sendPreparedMessage();
+  }
+  useEffect(() => {
+    if (isAiActionLocked && dictationState !== "idle") discardDictation();
+  }, [isAiActionLocked, dictationState, discardDictation]);
   const areAttachmentsEnabled = chatConfig.features.attachmentsEnabled;
   const isDictationEnabled = chatConfig.features.dictationEnabled;
   const isChatConversationReadyForAttachments = isHistoryLoaded && currentSessionId !== null;
@@ -205,7 +219,7 @@ export function ChatPanel(props: Props): ReactElement {
   } = getChatComposerCapabilities({
     areAttachmentsEnabled,
     dictationState,
-    isChatActionLocked,
+    isChatActionLocked: isAiActionLocked,
     isChatConversationReadyForAttachments,
     isDictationEnabled,
     isStopping,
@@ -252,7 +266,7 @@ export function ChatPanel(props: Props): ReactElement {
     composerAction,
     dictationState,
     hasDraftContent,
-    isChatActionLocked,
+    isChatActionLocked: isAiActionLocked,
     isHistoryLoaded,
     isStopping,
     sendPhase,
@@ -265,7 +279,7 @@ export function ChatPanel(props: Props): ReactElement {
     dictationState,
     inputText,
     isAssistantRunActive,
-    isChatActionLocked,
+    isChatActionLocked: isAiActionLocked,
     isHistoryLoaded,
     isStopping,
     pendingAttachmentCount: pendingAttachments.length,
@@ -277,7 +291,7 @@ export function ChatPanel(props: Props): ReactElement {
     : null;
   const remainingAiMessagesNotice = remainingAiMessages !== null
     && remainingAiMessages <= 3
-    && isOwnOpenAIKeyActive === false
+    && hasOwnOpenAIKey === false && !fundedAiNeedsSignIn
     ? remainingAiMessages
     : null;
   const microphoneAriaLabel = dictationState === "recording" ? t("chatPanel.dictation.stop") : t("chatPanel.dictation.start");
@@ -347,6 +361,10 @@ export function ChatPanel(props: Props): ReactElement {
       onDragOver={handleDragOver}
       onDrop={(event) => void handleDrop(event)}
     >
+      {fundedAiNeedsSignIn ? <section className="content-card" data-testid="guest-ai-sign-in">
+        <p>{t("guest.aiSignIn")}</p><GuestSignIn label={t("guest.signIn")} testId="guest-ai-sign-in-button" />
+        <Link className="ghost-btn" to={workspacePath(settingsOwnOpenAIKeyRoute)}>{t("ownOpenAIKeySettings.title")}</Link>
+      </section> : null}
       {isDragOver && canDropDraftFiles ? <div className="chat-drop-overlay">{t("chatPanel.dropFiles")}</div> : null}
       {mode === "sidebar" ? (
         <div

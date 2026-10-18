@@ -27,6 +27,7 @@ import type {
   WorkspaceSummary,
 } from "../../../types";
 import type { SessionLoadState } from "../../context/types";
+import { readBrowserGuestVerificationGeneration, requireBrowserGuestVerificationGeneration } from "../../session/guest/browserGuestSession";
 import type { SessionVerificationState } from "../../session/workspaceSessionTypes";
 import {
   processDueMediaUploadTransfersForWorkspace,
@@ -69,7 +70,7 @@ function isLinkedMediaUploadCloudSettings(
   workspaceId: string,
 ): boolean {
   return cloudSettings !== null
-    && cloudSettings.cloudState === "linked"
+    && (cloudSettings.cloudState === "linked" || (cloudSettings.cloudState === "guest" && session.browserGuestCapabilities?.isGuest === true))
     && cloudSettings.linkedUserId === session.userId
     && cloudSettings.linkedWorkspaceId === workspaceId
     && cloudSettings.installationId.trim() !== "";
@@ -215,6 +216,8 @@ export function useMediaUploadLifecycle(params: UseMediaUploadLifecycleParams): 
       || sessionLoadStateRef.current !== "ready"
       || currentSession === null
       || sessionVerificationStateRef.current !== "verified"
+      || (currentSession.browserGuestCapabilities?.isGuest === true
+        && readBrowserGuestVerificationGeneration(currentSession.userId) === null)
       || isBrowserOnline() === false
       || activeWorkspaceRef.current?.workspaceId !== workspace.workspaceId
     ) {
@@ -320,6 +323,8 @@ export function useMediaUploadLifecycle(params: UseMediaUploadLifecycleParams): 
     }
 
     const lifecycleGeneration = lifecycleGenerationRef.current;
+    const guestVerificationGeneration = currentSession.browserGuestCapabilities?.isGuest === true
+      ? readBrowserGuestVerificationGeneration(currentSession.userId) : null;
     const abortController = new AbortController();
     const {
       signal: mediaUploadSignal,
@@ -334,9 +339,11 @@ export function useMediaUploadLifecycle(params: UseMediaUploadLifecycleParams): 
         return;
       }
 
-      if (indexedDbOpenRecoveryState.hasFailed()) {
+      if (indexedDbOpenRecoveryState.hasFailed() || mediaUploadSignal.aborted
+        || lifecycleGeneration !== lifecycleGenerationRef.current) {
         return;
       }
+      if (guestVerificationGeneration !== null) requireBrowserGuestVerificationGeneration(currentSession.userId, guestVerificationGeneration);
 
       await waitForRecoveryGuardedPhase(
         processDueMediaUploadTransfersForWorkspace(

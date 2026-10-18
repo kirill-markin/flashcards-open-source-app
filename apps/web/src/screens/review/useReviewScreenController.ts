@@ -57,12 +57,13 @@ export type UseReviewScreenControllerResult = Readonly<{
 
 export type UseReviewScreenControllerParams = Readonly<{
   reviewReactionAnimationsEnabled: boolean;
+  isGuestSignInPromptVisible: boolean;
 }>;
 
 export function useReviewScreenController(
   params: UseReviewScreenControllerParams,
 ): UseReviewScreenControllerResult {
-  const { reviewReactionAnimationsEnabled } = params;
+  const { reviewReactionAnimationsEnabled, isGuestSignInPromptVisible } = params;
   const {
     activeWorkspace,
     cloudSettings,
@@ -538,6 +539,7 @@ export function useReviewScreenController(
     isEditorPresented,
     isFeedbackDialogOpen,
     isHardReminderVisible,
+    isGuestSignInPromptVisible,
     isMobileAppPromotionDialogOpen,
     isReviewFilterMenuOpen,
     isSubmitting,

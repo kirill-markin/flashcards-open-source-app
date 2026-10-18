@@ -3,6 +3,18 @@ import { createStripeCatalog } from "../stripeCatalog";
 import type { TranslationCatalog } from "../catalogTypes";
 
 const faCatalog: TranslationCatalog = {
+  guest: {
+    title: "مهمان",
+    signIn: "ورود",
+    saveProgress: "ذخیرهٔ پیشرفت",
+    reminder: "با ایمیل وارد شوید تا این کارت‌ها و پیشرفت مرور از دست نروند.",
+    later: "بعداً",
+    warning: "برای حفظ دسترسی در دستگاه‌های دیگر وارد شوید. پاک کردن داده‌های سایت ممکن است دسترسی مهمان را از بین ببرد.",
+    mergeExplanation: "کارت‌ها و سابقه مرور شما حفظ می‌شوند. یک فضای کاری در حساب انتخاب کنید یا فضای جدید بسازید.",
+    aiSignIn: "برای استفاده از هوش مصنوعی Nibomo وارد شوید یا از کلید OpenAI خود استفاده کنید.",
+    recovery: "دسترسی مهمان تأیید نشده است. کارت‌های ذخیره‌شده فقط خواندنی هستند. نشست اصلی یا اتصال را بازیابی کنید و دوباره تلاش کنید.",
+    cleanupFailed: "ورود موفق بود، اما حذف کارت نمونه ممکن نشد.",
+  },
   stripe: createStripeCatalog(stripeCopy),
   paywall: {
     heading: "یادگیری برای همه است.",

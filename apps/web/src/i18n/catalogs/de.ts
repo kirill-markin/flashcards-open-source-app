@@ -3,6 +3,18 @@ import { createStripeCatalog } from "../stripeCatalog";
 import type { TranslationCatalog } from "../catalogTypes";
 
 const deCatalog: TranslationCatalog = {
+  guest: {
+    title: "Gast",
+    signIn: "Anmelden",
+    saveProgress: "Fortschritt sichern",
+    reminder: "Melde dich mit E-Mail an, damit diese Karten und dein Wiederholungsfortschritt nicht verloren gehen.",
+    later: "Später",
+    warning: "Melde dich an, um auf anderen Geräten Zugriff zu behalten. Das Löschen der Websitedaten kann den Gastzugriff verlieren lassen.",
+    mergeExplanation: "Deine Karten und dein Lernverlauf bleiben erhalten. Wähle einen Arbeitsbereich im Konto oder erstelle einen neuen.",
+    aiSignIn: "Melde dich für Nibomo-KI an oder verwende deinen eigenen OpenAI-Schlüssel.",
+    recovery: "Der Gastzugriff ist nicht bestätigt. Zwischengespeicherte Karten sind schreibgeschützt. Stelle die ursprüngliche Sitzung oder Verbindung wieder her und versuche es erneut.",
+    cleanupFailed: "Die Anmeldung war erfolgreich, aber die Demokarte konnte nicht gelöscht werden.",
+  },
   stripe: createStripeCatalog(stripeCopy),
   paywall: {
     heading: "Lernen ist für alle da.",

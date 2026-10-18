@@ -3,6 +3,18 @@ import { createStripeCatalog } from "../stripeCatalog";
 import type { TranslationCatalog } from "../catalogTypes";
 
 const csCatalog: TranslationCatalog = {
+  guest: {
+    title: "Host",
+    signIn: "Přihlásit se",
+    saveProgress: "Uložte svůj pokrok",
+    reminder: "Přihlaste se e-mailem, aby se tyto kartičky a pokrok v opakování neztratily.",
+    later: "Později",
+    warning: "Přihlaste se, abyste si zachovali přístup na jiných zařízeních. Smazáním dat webu můžete ztratit přístup hosta.",
+    mergeExplanation: "Vaše kartičky a historie opakování se zachovají. Vyberte pracovní prostor účtu nebo vytvořte nový.",
+    aiSignIn: "Pro AI Nibomo se přihlaste nebo použijte vlastní klíč OpenAI.",
+    recovery: "Přístup hosta není ověřen. Kartičky v mezipaměti jsou jen pro čtení. Obnovte původní relaci nebo připojení a zkuste to znovu.",
+    cleanupFailed: "Přihlášení proběhlo úspěšně, ale ukázkovou kartičku se nepodařilo smazat.",
+  },
   stripe: createStripeCatalog(stripeCopy),
   paywall: {
     heading: "Učení patří všem.",
