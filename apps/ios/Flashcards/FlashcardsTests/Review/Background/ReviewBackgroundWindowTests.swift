@@ -74,11 +74,12 @@ final class ReviewBackgroundWindowTests: ProgressStoreTestCase {
                 )
             },
             reviewTimelinePageLoader: defaultReviewTimelinePageLoader,
-            initialGlobalErrorMessage: ""
+            initialGlobalErrorMessage: "Test state is configured after initialization"
         )
         defer {
             store.shutdownForTests()
         }
+        store.globalErrorMessage = ""
         store.workspace = bootstrapSnapshot.workspace
         store.schedulerSettings = bootstrapSnapshot.schedulerSettings
         store.applyReviewPublishedState(
