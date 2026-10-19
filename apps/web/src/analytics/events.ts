@@ -225,6 +225,10 @@ export type AnalyticsPurchaseOfferType = "free_trial" | "standard";
 
 export type AnalyticsPurchaseOutcome = "completed" | "cancelled" | "failed" | "pending";
 
+// The backend catalog's `purchase_finished.error_code`. Web never loads Stripe.js, so every failure
+// is our own client or API error under `app:`.
+export type AnalyticsPurchaseErrorCode = `app:${string}`;
+
 export type AnalyticsSubscriptionManagementDestination =
   | "stripe_portal"
   | "app_store"
@@ -486,7 +490,14 @@ export type AnalyticsEvent =
   }>
   | Readonly<{
     name: "purchase_finished";
-    outcome: AnalyticsPurchaseOutcome;
+    outcome: Exclude<AnalyticsPurchaseOutcome, "failed">;
+    presentationId?: string;
+    entryPoint?: AnalyticsPaywallEntryPoint;
+  }>
+  | Readonly<{
+    name: "purchase_finished";
+    outcome: "failed";
+    errorCode: AnalyticsPurchaseErrorCode;
     presentationId?: string;
     entryPoint?: AnalyticsPaywallEntryPoint;
   }>
@@ -654,6 +665,7 @@ export function buildAnalyticsEventProperties(event: AnalyticsEvent): AnalyticsE
         ...(event.entryPoint === undefined ? {} : { entry_point: event.entryPoint }) };
     case "purchase_finished":
       return { outcome: event.outcome,
+        ...(event.outcome === "failed" ? { error_code: event.errorCode } : {}),
         ...(event.presentationId === undefined ? {} : { presentation_id: event.presentationId }),
         ...(event.entryPoint === undefined ? {} : { entry_point: event.entryPoint }) };
     case "subscription_management_opened":

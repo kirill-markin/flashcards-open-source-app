@@ -22,6 +22,7 @@ export type {
   AnalyticsMediaSource,
   AnalyticsMediaUploadFailureReason,
   AnalyticsPaywallEntryPoint,
+  AnalyticsPurchaseErrorCode,
   AnalyticsPurchaseOutcome,
   AnalyticsSurface,
   AnalyticsSyncFailureReason,
