@@ -16,12 +16,13 @@ Current campaign buckets; the web app's store links are in
 | `catalog_import` | Catalog package import screen in the web app. |
 | `friend_invite` | Friend invite acceptance screen in the web app. |
 | `web_app_header` | Store buttons in the web app top bar. |
+| `github_readme` | Store links in the repository README on GitHub. |
 
 ## Google Play
 
 Use Google Play UTM parameters for Android store links:
 
-- `utm_source=flashcards_website`
+- `utm_source=flashcards_website`, or `utm_source=github` for `github_readme`
 - `utm_medium=referral` for owned web-to-store links
 - `utm_campaign=<bucket>`, starting with `marketing_site`
 
