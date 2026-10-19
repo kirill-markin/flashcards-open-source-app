@@ -1,13 +1,18 @@
-import { useCallback, useEffect, useRef, useState, type JSX } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, type JSX } from "react";
 import { AdminApiError, fetchAdminSession, type AdminSession } from "./adminApi";
 import { getAdminAppConfig, type AdminAppConfig } from "./config";
-import { AdminDashboard, type AdminReportState } from "./dashboard/AdminDashboard";
+import {
+  AdminDashboard,
+  type AdminReportState,
+  type AnalyticsRangeLookup,
+} from "./dashboard/AdminDashboard";
 import { EventPage } from "./events/eventPage/EventPage";
 import { EventsPage } from "./events/EventsPage";
 import type { AnalyticsDateRange, AnalyticsFilterState } from "./filters/analyticsFilters";
 import {
   normalizeAnalyticsFilterState,
   parseAnalyticsFilterState,
+  parseProvisionalAnalyticsFilterState,
   toAnalyticsFilterSearchParams,
 } from "./filters/analyticsFiltersUrl";
 import { loadAnalyticsFilterOptions, type AnalyticsFilterOptions } from "./filters/optionsQuery";
@@ -28,7 +33,12 @@ import {
   withFunnelGroupBySearchParams,
 } from "./reports/funnels/funnelGroupBy";
 import { funnelSections } from "./reports/funnels/funnelSections";
-import { buildDefaultReportRange } from "./reports/reportValues";
+import {
+  buildDefaultReportRange,
+  buildLookbackReportRangeEndingOn,
+  defaultReportRangeLookbackDays,
+  todayUtcCalendarDate,
+} from "./reports/reportValues";
 import {
   loadReviewEventsByDateAvailableRange,
   loadReviewEventsByDateReport,
@@ -45,11 +55,14 @@ type AppState =
   | Readonly<{ status: "error"; message: string }>
   | Readonly<{ status: "ready"; config: AdminAppConfig; session: AdminSession }>;
 
-/** The ranges the picker validates against, loaded once per page load. */
-type AdminReportRanges = Readonly<{
-  availableRange: ReviewEventsByDateRange;
+/** What the first analytics area opened on, before the available range is known. */
+type ProvisionalAnalyticsSelection = Readonly<{
   defaultRange: ReviewEventsByDateRange;
+  /** The query string the area opened with, which the range lookup reconciles against. */
+  openedSearch: string;
 }>;
+
+const analyticsDefaultRangeLabel = "Analytics default";
 
 // Every filter is applied server-side, so a burst of clicks would be a burst of report queries. The
 // newest selection waits this long before it is sent, and the ones it superseded never reach the
@@ -79,6 +92,10 @@ function parseCalendarDate(date: string, fieldName: string): Date {
   }
 
   return parsedDate;
+}
+
+function isSameDateRange(left: ReviewEventsByDateRange, right: ReviewEventsByDateRange): boolean {
+  return left.from === right.from && left.to === right.to;
 }
 
 function compareCalendarDates(left: string, right: string): number {
@@ -256,16 +273,25 @@ export default function App(): JSX.Element {
   const [eventsListPath, setEventsListPath] = useState<string>(eventsPath);
   const [reportLoadRevision, setReportLoadRevision] = useState<number>(0);
   // The whole filter selection lives here, above every area, so leaving General for Funnels and
-  // coming back keeps it. It is null until the available range is known, because the default
-  // selection opens on the default range.
+  // coming back keeps it. It is null until the first analytics area opens, which starts it
+  // provisionally from the URL; the range lookup then reconciles its range.
   const [filterState, setFilterState] = useState<AnalyticsFilterState | null>(null);
   // Mirrors `filterState` for `applyFilters`, which has to stay stable across renders and therefore
   // cannot read the state itself.
   const filterStateRef = useRef<AnalyticsFilterState | null>(null);
-  const [reportRanges, setReportRanges] = useState<AdminReportRanges | null>(null);
+  const [provisionalSelection, setProvisionalSelection] = useState<ProvisionalAnalyticsSelection | null>(null);
+  const [rangeLookup, setRangeLookup] = useState<AnalyticsRangeLookup>({ status: "loading" });
+  // Mirrors the looked-up available range for `applyFilters`, for the same reason as `filterStateRef`.
+  const availableRangeRef = useRef<ReviewEventsByDateRange | null>(null);
+  const [rangeLookupRevision, setRangeLookupRevision] = useState<number>(0);
   // The available range is fetched at most once per page load. The latch is also the re-entry guard:
   // while that request is in flight no revision bump or area switch can start a second one.
   const hasRequestedAvailableRangeRef = useRef<boolean>(false);
+  // Raised by a filter change and lowered once it has stood for the reload debounce; the areas that
+  // query on their own wait it out, as the General batch does.
+  const [isSelectionSettling, setIsSelectionSettling] = useState<boolean>(false);
+  // The synchronous rejection of a requested range, shown inside the filter panel.
+  const [dateRangeError, setDateRangeError] = useState<string>("");
   // Only a view that already has numbers on screen waits for the debounce; the first load has
   // nothing to coalesce.
   const hasLoadedReportsRef = useRef<boolean>(false);
@@ -360,13 +386,48 @@ export default function App(): JSX.Element {
   const sessionConfig = appState.status === "ready" ? appState.config : null;
   const usesAnalyticsFilters = doesRouteUseAnalyticsFilters(route);
 
+  // The first analytics area starts on the URL's selection at once, its range clamped to today and
+  // the browser's default where the URL has none. A layout effect, so the area never paints without it.
+  useLayoutEffect(() => {
+    if (!usesAnalyticsFilters || sessionConfig === null || filterStateRef.current !== null) {
+      return;
+    }
+
+    const openedSearch = window.location.search;
+    const todayUtc = todayUtcCalendarDate(new Date());
+    // Both range loaders end on today's UTC date, so this matches the lookup's default unless the
+    // data starts later than the lookback.
+    const defaultRange = buildLookbackReportRangeEndingOn(
+      todayUtc,
+      defaultReportRangeLookbackDays,
+      analyticsDefaultRangeLabel,
+    );
+    const provisionalFilters = parseProvisionalAnalyticsFilterState(
+      new URLSearchParams(openedSearch),
+      todayUtc,
+      defaultRange,
+    );
+
+    setProvisionalSelection({ defaultRange, openedSearch });
+    filterStateRef.current = provisionalFilters;
+    setFilterState(provisionalFilters);
+  }, [sessionConfig, usesAnalyticsFilters]);
+
   useEffect(() => {
-    if (!usesAnalyticsFilters || sessionConfig === null || hasRequestedAvailableRangeRef.current) {
+    if (
+      !usesAnalyticsFilters
+      || sessionConfig === null
+      || provisionalSelection === null
+      || hasRequestedAvailableRangeRef.current
+    ) {
       return;
     }
 
     hasRequestedAvailableRangeRef.current = true;
-    setReportState({ status: "loading" });
+    setRangeLookup({ status: "loading" });
+    // Read from what the area opened with, because switching area before the lookup returns drops the
+    // selection from the address bar until it can be written back.
+    const openedSearchParams = new URLSearchParams(provisionalSelection.openedSearch);
 
     async function loadAvailableRange(config: AdminAppConfig): Promise<void> {
       try {
@@ -375,38 +436,42 @@ export default function App(): JSX.Element {
           loadCatalogInstallFunnelAvailableRange(config),
         ]);
         const availableRange = buildUnionRange(reviewAvailableRange, funnelAvailableRange);
-        const defaultRange = buildDefaultReportRange(availableRange, "Analytics default");
-        // The URL carries the whole selection, so a reload or a shared link opens the view it asks
-        // for; anything it does not carry, or carries malformed, opens on the default instead.
-        const urlFilterState = parseAnalyticsFilterState(
-          new URLSearchParams(window.location.search),
-          availableRange,
-        );
+        const defaultRange = buildDefaultReportRange(availableRange, analyticsDefaultRangeLabel);
+        // Only the range is reconciled: every other field reads the same without the available
+        // range, and one changed meanwhile is not in the URL yet. An unchanged range keeps the
+        // selection object, so nothing reloads.
+        const reconciledRange = parseAnalyticsFilterState(openedSearchParams, availableRange).dateRange;
+        const currentFilters = filterStateRef.current;
 
-        setReportRanges({ availableRange, defaultRange });
-        filterStateRef.current = urlFilterState;
-        setFilterState(urlFilterState);
+        availableRangeRef.current = availableRange;
+        setRangeLookup({ status: "ready", availableRange, defaultRange });
+        if (currentFilters !== null && isSameDateRange(currentFilters.dateRange, reconciledRange) === false) {
+          const reconciledFilters = { ...currentFilters, dateRange: reconciledRange };
+          filterStateRef.current = reconciledFilters;
+          setFilterState(reconciledFilters);
+        }
       } catch (error) {
-        // Nothing is loaded and nothing is in flight, so the next revision bump or area switch may
-        // ask for the range again.
+        // Nothing is loaded and nothing is in flight, so a Retry may ask for the range again.
         hasRequestedAvailableRangeRef.current = false;
 
         if (handleTerminalAdminError(error, config)) {
           return;
         }
 
-        // A failed report load stays inside the reports area: the session, the hero and the nav keep
-        // working, and only a 401/403 replaces the whole page.
-        setReportState({
-          status: "error",
-          message: getErrorMessage(error),
-          isRetrying: false,
-        });
+        // The areas already run on the provisional selection, so a failure only stays beside the
+        // filter bar, whose date field it leaves disabled.
+        setRangeLookup({ status: "error", message: getErrorMessage(error) });
       }
     }
 
     void loadAvailableRange(sessionConfig);
-  }, [handleTerminalAdminError, reportLoadRevision, sessionConfig, usesAnalyticsFilters]);
+  }, [
+    handleTerminalAdminError,
+    provisionalSelection,
+    rangeLookupRevision,
+    sessionConfig,
+    usesAnalyticsFilters,
+  ]);
 
   // The option lists and the colour domains are deliberately blind to the rest of the selection - a
   // user a filter just removed from every chart is exactly the user the popup has to keep offering -
@@ -431,13 +496,12 @@ export default function App(): JSX.Element {
   }, []);
 
   useEffect(() => {
-    if (sessionConfig === null || filterState === null || reportRanges === null) {
+    if (sessionConfig === null || filterState === null) {
       return;
     }
 
     const config = sessionConfig;
     const filters = filterState;
-    const ranges = reportRanges;
     let isSuperseded = false;
 
     async function loadReports(): Promise<void> {
@@ -445,7 +509,7 @@ export default function App(): JSX.Element {
       // let a failure blink away the moment the next request leaves and put the operator back in
       // front of confidently rendered stale numbers. Only an outcome clears it.
       setReportState((currentState) => (currentState.status === "ready"
-        ? { ...currentState, isReportLoading: true, dateRangeError: "" }
+        ? { ...currentState, isReportLoading: true }
         : currentState));
 
       try {
@@ -464,14 +528,12 @@ export default function App(): JSX.Element {
         setReportState({
           status: "ready",
           data: {
-            ...ranges,
             filterOptions,
             report,
             dailyActiveUsersReport,
             catalogInstallsReport,
           },
           isReportLoading: false,
-          dateRangeError: "",
           reloadError: "",
         });
       } catch (error) {
@@ -507,9 +569,23 @@ export default function App(): JSX.Element {
     handleTerminalAdminError,
     loadFilterOptions,
     reportLoadRevision,
-    reportRanges,
     sessionConfig,
   ]);
+
+  useEffect(() => {
+    if (isSelectionSettling === false) {
+      return;
+    }
+
+    const settleTimeoutId = window.setTimeout(
+      () => { setIsSelectionSettling(false); },
+      filterReloadDebounceMs,
+    );
+
+    return () => {
+      window.clearTimeout(settleTimeoutId);
+    };
+  }, [filterState, isSelectionSettling]);
 
   // The selection is written back into the URL so a reload or a shared link reopens the same view.
   // It replaces the current history entry rather than pushing one, so Back leaves the area instead of
@@ -518,13 +594,13 @@ export default function App(): JSX.Element {
   // areas, so switching area re-writes it onto the new path instead of being read back from it.
   // Area-specific parameters - the Funnels charts' anchors and group-by fields, and the Study-vs-AI
   // period length and audience - are carried over by `buildAreaSearchParams` above, on their own
-  // route only.
+  // route only. It waits for the range lookup, whose available range the defaults are derived from.
   useEffect(() => {
-    if (filterState === null || reportRanges === null || doesRouteUseAnalyticsFilters(route) === false) {
+    if (filterState === null || rangeLookup.status !== "ready" || doesRouteUseAnalyticsFilters(route) === false) {
       return;
     }
 
-    const filterSearchParams = toAnalyticsFilterSearchParams(filterState, reportRanges.availableRange);
+    const filterSearchParams = toAnalyticsFilterSearchParams(filterState, rangeLookup.availableRange);
     const currentSearchParams = new URLSearchParams(window.location.search);
     const searchParams = buildAreaSearchParams(route, filterSearchParams, currentSearchParams);
     const serializedParams = searchParams.toString();
@@ -538,7 +614,7 @@ export default function App(): JSX.Element {
       "",
       `${window.location.pathname}${nextSearch}${window.location.hash}`,
     );
-  }, [filterState, reportRanges, route]);
+  }, [filterState, rangeLookup, route]);
 
   // Both Retry controls - the one in the failure banner over stale numbers and the one in the error
   // panel - reach the reports effect only through this revision bump, and the in-flight mark is
@@ -564,42 +640,46 @@ export default function App(): JSX.Element {
     setReportLoadRevision((revision) => revision + 1);
   }, []);
 
+  const retryRangeLookup = useCallback((): void => {
+    setRangeLookupRevision((revision) => revision + 1);
+  }, []);
+
   // Stable across renders on purpose: this reaches the charts through the filter callbacks, and a new
   // identity on every render would tear down and redraw every chart on every click.
   // Returns whether the selection was accepted, so a caller that dismisses its own control on
   // success - the date popover - keeps it open to show the rejection instead.
   const applyFilters = useCallback((nextFilters: AnalyticsFilterState): boolean => {
-    if (reportRanges === null) {
-      return false;
-    }
-
     // Canonical here rather than only where it is serialized, so a value the URL codec would drop or
     // reorder cannot stay on screen as a checked option and a popover header and then change on the
     // next reload.
     const filters = normalizeAnalyticsFilterState(nextFilters);
 
     // Every selection is judged against the available data, including one that only changes another
-    // field: a range the URL carried is already clamped into that window by the parser, so this
-    // cannot refuse a filter click on a link older than the retained data.
-    const validationError = validateRequestedRange(filters.dateRange, reportRanges.availableRange);
-    if (validationError !== null) {
-      setReportState((currentState) => (currentState.status === "ready"
-        ? { ...currentState, dateRangeError: validationError }
-        : currentState));
-      return false;
+    // field: a range the URL carried is already clamped into that window by the reconciliation, so
+    // this cannot refuse a filter click on a link older than the retained data. Until the lookup
+    // returns the date field is disabled, so the range here is still the provisional one.
+    const availableRange = availableRangeRef.current;
+    if (availableRange !== null) {
+      const validationError = validateRequestedRange(filters.dateRange, availableRange);
+      if (validationError !== null) {
+        setDateRangeError(validationError);
+        return false;
+      }
     }
 
     // The reload waits out the debounce, so the indicator is raised here rather than when the request
     // finally leaves: a selection that shows nothing for 400 ms reads as a dead control. Only the
     // range-validation message is cleared; an unresolved reload failure and its stale numbers stay on
     // screen until this new attempt has an outcome of its own.
+    setDateRangeError("");
     setReportState((currentState) => (currentState.status === "ready"
-      ? { ...currentState, isReportLoading: true, dateRangeError: "" }
+      ? { ...currentState, isReportLoading: true }
       : currentState));
+    setIsSelectionSettling(true);
     filterStateRef.current = filters;
     setFilterState(filters);
     return true;
-  }, [reportRanges]);
+  }, []);
 
   // Clicking a person in a chart narrows the selection to them. It reads the current selection from
   // the ref rather than taking it as a dependency, so this identity survives every filter change:
@@ -691,8 +771,15 @@ export default function App(): JSX.Element {
       config={appState.config}
       adminEmail={appState.session.email}
       reportState={reportState}
+      rangeLookup={rangeLookup}
+      defaultRange={rangeLookup.status === "ready"
+        ? rangeLookup.defaultRange
+        : provisionalSelection?.defaultRange ?? null}
       filters={filterState}
+      isSelectionSettling={isSelectionSettling}
+      dateRangeError={dateRangeError}
       onReportRetry={retryReportLoad}
+      onRangeLookupRetry={retryRangeLookup}
       onFiltersChange={applyFilters}
       onChartUserFilterApply={applyChartUserFilter}
       onTerminalAdminError={handleTerminalAdminError}

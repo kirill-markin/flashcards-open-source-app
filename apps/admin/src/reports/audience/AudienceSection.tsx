@@ -102,7 +102,7 @@ export function AudienceSection(props: Readonly<{
   config: AdminAppConfig;
   /** The live selection, so this section answers a filter click even when a General report failed. */
   filters: AnalyticsFilterState;
-  /** A General reload is pending or in flight; this section waits it out rather than querying per click. */
+  /** A filter change is still inside the reload debounce; this section waits until the selection settles. */
   isRangeLoading: boolean;
   onTerminalAdminError: (error: unknown, config: AdminAppConfig) => boolean;
 }>): JSX.Element {
