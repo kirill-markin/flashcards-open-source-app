@@ -2,6 +2,8 @@ import type { JSX, ReactNode } from "react";
 import type { AdminAppConfig } from "../../config";
 import { AdminLink } from "../../navigation/AdminLink";
 import { getAnalyticsAreaPath, type LevelOneMetricDetail } from "../../routing";
+import { WhoCameBackBreakdownSections } from "../whoCameBack/WhoCameBackBreakdownSections";
+import { WhoCameBackSection } from "../whoCameBack/WhoCameBackSection";
 import { WhoOpenedTheAppBreakdownSections } from "../whoOpenedTheApp/WhoOpenedTheAppBreakdownSections";
 import { WhoOpenedTheAppSection } from "../whoOpenedTheApp/WhoOpenedTheAppSection";
 import { WhoPaidUsBreakdownSections } from "../whoPaidUs/WhoPaidUsBreakdownSections";
@@ -18,6 +20,7 @@ const levelOneMetricDetailLabels: Readonly<Record<LevelOneMetricDetail, string>>
   "who-saw-us": "Who saw us",
   "who-opened-the-app": "Who opened the app",
   "who-studied": "Who studied",
+  "who-came-back": "Who came back",
   "who-paid-us": "Who paid us",
 };
 
@@ -83,6 +86,24 @@ function renderMetricSections(
             onTerminalAdminError={props.onTerminalAdminError}
           />
           <WhoStudiedBreakdownSections
+            config={props.config}
+            dateRange={selection.dateRange}
+            period={selection.period}
+            onTerminalAdminError={props.onTerminalAdminError}
+          />
+        </>
+      );
+    case "who-came-back":
+      return (
+        <>
+          <WhoCameBackSection
+            config={props.config}
+            dateRange={selection.dateRange}
+            period={selection.period}
+            detailsLink={null}
+            onTerminalAdminError={props.onTerminalAdminError}
+          />
+          <WhoCameBackBreakdownSections
             config={props.config}
             dateRange={selection.dateRange}
             period={selection.period}

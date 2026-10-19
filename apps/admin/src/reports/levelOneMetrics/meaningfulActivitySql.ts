@@ -57,3 +57,23 @@ export function buildMeaningfulLastReviewsCteSql(period: ReportPeriod, range: An
   ORDER BY range_reviews.bucket_date, range_reviews.actor_id, range_reviews.occurred_at DESC, range_reviews.event_id DESC
 )`;
 }
+
+/**
+ * The `actor_first_use_platform` CTE, composed after `buildMeaningfulActivityCtesSql`: for each person
+ * whose first use falls in `range`, the `platform` of the answered review that is that first use
+ * (earliest `occurred_at`, then `event_id`).
+ */
+export function buildActorFirstUsePlatformCteSql(range: AnalyticsDateRange): string {
+  return `actor_first_use_platform AS (
+  SELECT DISTINCT ON (range_reviews.actor_id) range_reviews.actor_id, range_reviews.platform
+  FROM (
+    SELECT events.actor_id::text AS actor_id, events.occurred_at, events.event_id, events.platform
+    ${reviewRowsFromSql}
+      AND events.occurred_at >= (${escapeSqlStringLiteral(range.from)}::date)::timestamp AT TIME ZONE 'UTC'
+      AND events.occurred_at < (${escapeSqlStringLiteral(range.to)}::date + 1)::timestamp AT TIME ZONE 'UTC'
+  ) AS range_reviews
+  JOIN actor_first_use ON actor_first_use.actor_id = range_reviews.actor_id
+    AND actor_first_use.first_use_date = (range_reviews.occurred_at AT TIME ZONE 'UTC')::date
+  ORDER BY range_reviews.actor_id, range_reviews.occurred_at, range_reviews.event_id
+)`;
+}

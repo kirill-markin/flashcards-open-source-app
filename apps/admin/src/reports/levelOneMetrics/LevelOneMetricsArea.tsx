@@ -49,6 +49,7 @@ export function LevelOneMetricsArea(
             config={props.config}
             dateRange={selection.dateRange}
             period={selection.period}
+            detailsLink={buildLevelOneMetricDetailsLink("who-came-back", search, props.onNavigate)}
             onTerminalAdminError={props.onTerminalAdminError}
           />
           <WhoPaidUsSection
