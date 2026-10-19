@@ -187,12 +187,8 @@ export function buildHashedVisitorDayRangeSqlLines(
  * scraper fleet lists its browser-days by hash
  * (`db/migrations/0225_probable_scraper_fleet_facts_rule.sql`), as one uncorrelated `NOT IN` set.
  */
-export function buildHashedSiteRowSqlLines(
-  rowAlias: string,
-  eventName: string,
-): ReadonlyArray<string> {
+export function buildHashedSiteVisitorRowSqlLines(rowAlias: string): ReadonlyArray<string> {
   return [
-    `${rowAlias}.event_name = ${escapeSqlStringLiteral(eventName)}`,
     `${rowAlias}.origin = 'client'`,
     `${rowAlias}.trust_level = 'anonymous_client'`,
     `${rowAlias}.daily_visitor_hash IS NOT NULL`,
@@ -204,6 +200,17 @@ export function buildHashedSiteRowSqlLines(
       "  WHERE probable_scraper_fleet.subject_kind = 'daily_visitor_hash'",
       ")",
     ].join("\n"),
+  ];
+}
+
+/** `buildHashedSiteVisitorRowSqlLines` for one event. */
+export function buildHashedSiteRowSqlLines(
+  rowAlias: string,
+  eventName: string,
+): ReadonlyArray<string> {
+  return [
+    `${rowAlias}.event_name = ${escapeSqlStringLiteral(eventName)}`,
+    ...buildHashedSiteVisitorRowSqlLines(rowAlias),
   ];
 }
 

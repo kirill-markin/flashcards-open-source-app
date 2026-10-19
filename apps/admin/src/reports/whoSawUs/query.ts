@@ -4,7 +4,7 @@ import type { AnalyticsDateRange } from "../../filters/analyticsFilters";
 import { buildExcludedActorSqlLines } from "../../filters/filterSql";
 import { escapeSqlStringLiteral } from "../../sql";
 import {
-  buildHashedSiteRowSqlLines,
+  buildHashedSiteVisitorRowSqlLines,
   buildHashedVisitorDayRangeSqlLines,
   buildHashedVisitorDaySql,
 } from "../funnels/funnelAudienceSql";
@@ -17,7 +17,7 @@ import {
   type ReportPeriod,
 } from "../levelOneMetrics/reportPeriod";
 import { assertIsString, assertValidDateRange, parseActivityCount, parseActivityDate } from "../reportValues";
-import { buildSiteFactSql } from "../siteEntryFunnel/query";
+import { buildSiteFactSourceSql } from "../siteEntryFunnel/query";
 
 const reportLabel = "Who saw us report";
 const storeDeliveryLabel = "Who saw us store delivery";
@@ -109,15 +109,25 @@ export function buildStoreReportDateRangeSqlLines(rowAlias: string, range: Analy
   ];
 }
 
+const siteViewEventNames: ReadonlyArray<string> = ["site_page_viewed"];
+
+function buildSiteEventNamesSql(rowAlias: string, eventNames: ReadonlyArray<string>): string {
+  return `${rowAlias}.event_name IN (${eventNames.map(escapeSqlStringLiteral).join(", ")})`;
+}
+
 /**
- * The page views of identified site visitors the `web` series reads, inside the range, as a `WHERE`
- * body. Each is a person under the shared actor exclusion rule.
+ * The `eventNames` site facts of the identified site visitors the `web` series reads, inside the
+ * range, as a `WHERE` body. Each is a person under the shared actor exclusion rule.
  */
-export function buildIdentifiedSiteViewFilterSql(rowAlias: string, range: AnalyticsDateRange): string {
+export function buildIdentifiedSiteFactFilterSql(
+  rowAlias: string,
+  eventNames: ReadonlyArray<string>,
+  range: AnalyticsDateRange,
+): string {
   const fromSql = `${escapeSqlStringLiteral(range.from)}::date`;
   const toSql = `${escapeSqlStringLiteral(range.to)}::date`;
   return [
-    buildSiteFactSql(rowAlias, "site_page_viewed"),
+    `${buildSiteEventNamesSql(rowAlias, eventNames)} AND ${buildSiteFactSourceSql(rowAlias)}`,
     `  AND ${rowAlias}.anonymous_id IS NOT NULL`,
     `  AND ${rowAlias}.actor_id IS NOT NULL`,
     // On the raw column, so the (event_name, occurred_at) index stays usable.
@@ -127,15 +137,30 @@ export function buildIdentifiedSiteViewFilterSql(rowAlias: string, range: Analyt
   ].join("\n");
 }
 
+/** The page views of identified site visitors the `web` series reads. */
+export function buildIdentifiedSiteViewFilterSql(rowAlias: string, range: AnalyticsDateRange): string {
+  return buildIdentifiedSiteFactFilterSql(rowAlias, siteViewEventNames, range);
+}
+
 /**
- * The page views of cookieless site visitors the `web` series reads, on hash days inside the range,
- * as a `WHERE` body. Each is a person for one UTC day of `buildHashedVisitorDaySql`.
+ * The `eventNames` site facts of the cookieless site visitors the `web` series reads, on hash days
+ * inside the range, as a `WHERE` body. Each is a person for one UTC day of `buildHashedVisitorDaySql`.
  */
-export function buildHashedSiteViewFilterSql(rowAlias: string, range: AnalyticsDateRange): string {
+export function buildHashedSiteFactFilterSql(
+  rowAlias: string,
+  eventNames: ReadonlyArray<string>,
+  range: AnalyticsDateRange,
+): string {
   return [
-    ...buildHashedSiteRowSqlLines(rowAlias, "site_page_viewed"),
+    buildSiteEventNamesSql(rowAlias, eventNames),
+    ...buildHashedSiteVisitorRowSqlLines(rowAlias),
     ...buildHashedVisitorDayRangeSqlLines(rowAlias, range.from, range.to),
   ].join("\n  AND ");
+}
+
+/** The page views of cookieless site visitors the `web` series reads. */
+export function buildHashedSiteViewFilterSql(rowAlias: string, range: AnalyticsDateRange): string {
+  return buildHashedSiteFactFilterSql(rowAlias, siteViewEventNames, range);
 }
 
 /**

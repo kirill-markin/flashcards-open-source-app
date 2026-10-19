@@ -39,7 +39,7 @@ export const whoSawUsSeriesLabels: Readonly<Record<WhoSawUsSeriesKey, string>> =
   "google-play": "Google Play",
 };
 
-const whoSawUsSeriesColors: Readonly<Record<WhoSawUsSeriesKey, string>> = {
+export const whoSawUsSeriesColors: Readonly<Record<WhoSawUsSeriesKey, string>> = {
   web: "#4e79a7",
   "app-store": "#f28e2b",
   "google-play": "#59a14f",
