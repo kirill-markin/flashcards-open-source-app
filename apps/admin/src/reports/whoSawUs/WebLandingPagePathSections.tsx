@@ -1,10 +1,11 @@
 import { useEffect, useState, type JSX } from "react";
 import type { AdminAppConfig } from "../../config";
 import type { AnalyticsDateRange } from "../../filters/analyticsFilters";
+import { BreakdownLoadingChart } from "../levelOneMetrics/BreakdownSection";
 import type { BreakdownReportLoader } from "../levelOneMetrics/breakdownReport";
 import type { ReportPeriod } from "../levelOneMetrics/reportPeriod";
-import { loadLandingPagePathReport, loadTopLandingPageKinds } from "./landingPagePathQuery";
-import { WhoSawUsBreakdownSection, webVisitorCounting } from "./WhoSawUsBreakdownSections";
+import { loadLandingPagePathReport, loadTopLandingPageKinds, topLandingPageKindCount } from "./landingPagePathQuery";
+import { WhoSawUsBreakdownSection, webVisitorCounting, whoSawUsCountLabel } from "./WhoSawUsBreakdownSections";
 
 type LandingPagePathBreakdown = Readonly<{
   pageKind: string;
@@ -27,6 +28,7 @@ type LoadState =
   }>;
 
 const topKindsTitle = "Top landing page types";
+const sectionsTitle = "Web visitors by page, for the top landing page types";
 
 function buildLandingPagePathBreakdown(pageKind: string): LandingPagePathBreakdown {
   const title = `Web visitors landing on ${pageKind} pages, by page`;
@@ -65,18 +67,31 @@ export function WebLandingPagePathSections(props: Readonly<{
     return () => { cancelled = true; };
   }, [props.config, props.dateRange, props.period, props.onTerminalAdminError, revision]);
 
-  if (state.status !== "ready") {
+  if (state.status === "loading") {
+    return (
+      <>
+        {Array.from({ length: topLandingPageKindCount }, (_, index) => (
+          <section key={index} className="dashboard-section" data-testid={`who-saw-us-landing-page-paths-placeholder-${index + 1}-section`}>
+            <header className="dashboard-section-header level-1-metric-section-header">
+              <h2>{sectionsTitle}</h2>
+            </header>
+            <BreakdownLoadingChart countLabel={whoSawUsCountLabel} period={props.period} label={`Loading ${topKindsTitle}…`} />
+          </section>
+        ))}
+      </>
+    );
+  }
+
+  if (state.status === "error") {
     return (
       <section className="dashboard-section" data-testid="who-saw-us-landing-page-paths-section">
         <header className="dashboard-section-header level-1-metric-section-header">
-          <h2>Web visitors by page, for the top landing page types</h2>
+          <h2>{sectionsTitle}</h2>
         </header>
-        {state.status === "loading" ? <p className="report-state" aria-live="polite">Loading {topKindsTitle}…</p> : (
-          <div className="report-state report-state-error">
-            <strong>{topKindsTitle} query failed.</strong><span>{state.message}</span>
-            <button className="filter-button" type="button" onClick={() => setRevision((value) => value + 1)}>Retry</button>
-          </div>
-        )}
+        <div className="report-state report-state-error">
+          <strong>{topKindsTitle} query failed.</strong><span>{state.message}</span>
+          <button className="filter-button" type="button" onClick={() => setRevision((value) => value + 1)}>Retry</button>
+        </div>
       </section>
     );
   }

@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useRef, useState, type JSX, type ReactNode } from "react";
 import * as d3 from "d3";
+import { ChartAreaWithNote } from "../../charts/ChartAreaWithNote";
 import { ChartColorKey } from "../../charts/ChartLegends";
+import { ChartLoadingPlaceholder } from "../../charts/ChartLoadingPlaceholder";
 import { ChartTooltip, useChartTooltip } from "../../charts/ChartTooltip";
-import { createTickDates, type MatrixChartEntry } from "../../charts/chartPrimitives";
+import { chartWidth, createTickDates, stackedChartHeight, type MatrixChartEntry } from "../../charts/chartPrimitives";
 import { renderWhoSawUsChart } from "../../charts/chartRenderers";
 import { escapeHtml, formatGeneratedAt } from "../../charts/formatting";
 import type { AdminAppConfig } from "../../config";
@@ -335,10 +337,6 @@ export function WhoSawUsSection(
         {props.detailsLink !== null ? <LevelOneMetricDetailsButton link={props.detailsLink} /> : null}
       </header>
 
-      {loadState.status === "loading" ? (
-        <p className="report-state" aria-live="polite">Loading Who saw us…</p>
-      ) : null}
-
       {loadState.status === "error" ? (
         <div className="report-state report-state-error">
           <strong>Who saw us query failed.</strong>
@@ -347,11 +345,11 @@ export function WhoSawUsSection(
         </div>
       ) : null}
 
-      {loadState.status === "ready" ? (
+      {loadState.status === "error" ? null : (
         <section className="chart-column">
           <div className="chart-shell">
             <div className="chart-meta">
-              <span>Visitors per {loadState.report.period} · UTC</span>
+              <span>Visitors per {props.period} · UTC</span>
               <div className="chart-meta-right">
                 <ChartColorKey
                   ariaLabel="Who saw us color key"
@@ -362,11 +360,17 @@ export function WhoSawUsSection(
               </div>
             </div>
             <div className="chart-scroll">
-              <svg ref={chartRef} />
+              {loadState.status === "ready" ? (
+                <ChartAreaWithNote viewBoxWidth={chartWidth} viewBoxHeight={stackedChartHeight} note={null}>
+                  <svg ref={chartRef} />
+                </ChartAreaWithNote>
+              ) : (
+                <ChartLoadingPlaceholder viewBoxWidth={chartWidth} viewBoxHeight={stackedChartHeight} label="Loading Who saw us…" />
+              )}
             </div>
           </div>
         </section>
-      ) : null}
+      )}
 
       <ChartTooltip {...tooltipState} />
     </section>

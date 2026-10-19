@@ -1474,9 +1474,39 @@ h2 {
   flex: 0 0 auto;
 }
 
+.platform-key-placeholder {
+  visibility: hidden;
+}
+
 .chart-scroll {
   overflow-x: auto;
   padding: 8px 8px 16px;
+}
+
+/* Sized by an inline `aspect-ratio` equal to the chart's viewBox, the ratio its full-width `<svg>`
+   renders at, so a loading placeholder and a ready chart are the same height at every width. */
+.chart-area {
+  position: relative;
+}
+
+.chart-area-note {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  margin: 0;
+  padding: 24px;
+  color: var(--muted);
+  font-size: 14px;
+  text-align: center;
+  pointer-events: none;
+}
+
+/* Boxed so a grid line drawn under a ready chart's note does not run through its text. */
+.chart-area-note > span {
+  padding: 6px 12px;
+  border-radius: 10px;
+  background: var(--panel);
 }
 
 .level-1-metrics-grid {

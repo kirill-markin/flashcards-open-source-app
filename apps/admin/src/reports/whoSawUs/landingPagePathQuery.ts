@@ -8,7 +8,7 @@ import { buildReportBucketsCteSql, type ReportPeriod } from "../levelOneMetrics/
 import { assertIsString, assertValidDateRange } from "../reportValues";
 import { buildSiteFirstViewsCtesSql, buildSitePageKindSql } from "./breakdownQuery";
 
-const topLandingPageKindCount = 3;
+export const topLandingPageKindCount = 3;
 
 /**
  * `landing_views(bucket_date, page_kind, page_path)`: exactly the first page views the
