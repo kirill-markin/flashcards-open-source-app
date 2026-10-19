@@ -4,7 +4,11 @@ import type { AnalyticsFilterState } from "../../filters/analyticsFilters";
 import { buildEventPlatformsFilterSql } from "../../filters/filterSql";
 import { escapeSqlStringLiteral } from "../../sql";
 import { assertIsString, assertValidDateRange, toInteger } from "../reportValues";
-import { buildPaywallActorFiltersSql, buildPaywallAttributionCtes } from "./attributionQuery";
+import {
+  buildPaywallActorFiltersSql,
+  buildPaywallAttributionCtes,
+  paywallFirstPaymentWindowDays,
+} from "./attributionQuery";
 
 const reportLabel = "Paywall presentations";
 
@@ -31,6 +35,7 @@ export type PaywallPresentationGroup = Readonly<{
   reviewedCount: number;
   returnedCount: number;
   maturingCount: number;
+  firstPaymentPendingCount: number;
 }>;
 
 export type PaywallPresentationReport = Readonly<{
@@ -60,7 +65,7 @@ export function buildPaywallPresentationSql(filters: AnalyticsFilterState): stri
     CASE WHEN shown.exposure_rank = 1 THEN '1st'
       WHEN shown.exposure_rank = 2 THEN '2nd' ELSE '3rd+' END AS exposure,
     COALESCE(shown.content_version, 'unknown') AS content_version,
-    CASE WHEN shown.presentation_id IS NULL THEN 'Legacy / unlinked' ELSE 'UUID linked' END AS linkage,
+    CASE WHEN shown.presentation_id IS NULL THEN 'Legacy, no UUID' ELSE 'UUID linked' END AS linkage,
     COUNT(*)::int AS shown_count,
     (COUNT(*) FILTER (WHERE flow.chose_free))::int AS free_count,
     (COUNT(*) FILTER (WHERE flow.chose_premium))::int AS premium_count,
@@ -76,7 +81,9 @@ export function buildPaywallPresentationSql(filters: AnalyticsFilterState): stri
     (COUNT(*) FILTER (WHERE billing.paid))::int AS paid_count,
     (COUNT(*) FILTER (WHERE activity.reviewed))::int AS reviewed_count,
     (COUNT(*) FILTER (WHERE activity.returned))::int AS returned_count,
-    (COUNT(*) FILTER (WHERE shown.shown_at + INTERVAL '7 days' > now()))::int AS maturing_count
+    (COUNT(*) FILTER (WHERE shown.shown_at + INTERVAL '7 days' > now()))::int AS maturing_count,
+    (COUNT(*) FILTER (WHERE shown.shown_at + INTERVAL '${paywallFirstPaymentWindowDays} days' > now()))::int
+      AS first_payment_pending_count
   FROM selected_impressions AS shown
   LEFT JOIN flow_outcomes AS flow ON flow.shown_event_id = shown.event_id
   LEFT JOIN billing_outcomes AS billing ON billing.shown_event_id = shown.event_id
@@ -108,6 +115,7 @@ function parseGroup(row: AdminQueryRow): PaywallPresentationGroup {
     cancelledCount: count("cancelled_count"), failedCount: count("failed_count"), pendingCount: count("pending_count"),
     convertedCount: count("converted_count"), trialCount: count("trial_count"), paidCount: count("paid_count"),
     reviewedCount: count("reviewed_count"), returnedCount: count("returned_count"), maturingCount: count("maturing_count"),
+    firstPaymentPendingCount: count("first_payment_pending_count"),
   };
 }
 

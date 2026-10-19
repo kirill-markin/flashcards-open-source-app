@@ -12,6 +12,17 @@ import { assertValidDateRange } from "../reportValues";
 
 export const paywallFunnelStartDate = "2026-10-04";
 
+// Choices and checkout requests link to a paywall within this many days of it.
+export const paywallStepWindowDays = 7;
+
+// The 7-day free trial bills its first payment on day 7, so billing needs a window past it;
+// the second week covers provider billing retries.
+const paywallBillingWindowDays = 14;
+const billingWindowSql = `INTERVAL '${paywallBillingWindowDays} days'`;
+
+// A paywall's first payment can arrive this long after it: checkout, then billing.
+export const paywallFirstPaymentWindowDays = paywallStepWindowDays + paywallBillingWindowDays;
+
 export function buildPaywallActorFiltersSql(filters: AnalyticsFilterState, alias: string): string {
   return [
     ...buildFunnelAudienceActorSqlLines(filters, `${alias}.actor_id::text`),
@@ -44,7 +55,11 @@ export function buildPaywallAttributionCtes(filters: AnalyticsFilterState): stri
     AND event.event_name IN ('paywall_shown', 'paywall_choice', 'purchase_started',
       'purchase_finished', 'trial_started', 'purchase_completed', 'review_answered', 'app_opened')
     AND event.occurred_at >= (${escapeSqlStringLiteral(paywallFunnelStartDate)}::date)::timestamp AT TIME ZONE 'UTC'
-    AND event.occurred_at < ${rangeEnd} + INTERVAL '7 days'
+    -- Checkouts and billing need the payment window; activity only the step window.
+    -- The fixed bound stays separate so the event-name index keeps an upper bound.
+    AND event.occurred_at < ${rangeEnd} + INTERVAL '${paywallFirstPaymentWindowDays} days'
+    AND (event.event_name NOT IN ('review_answered', 'app_opened')
+      OR event.occurred_at < ${rangeEnd} + INTERVAL '${paywallStepWindowDays} days')
     AND event.occurred_at <= now()
     AND (event.event_name = 'paywall_shown' OR event.occurred_at >= ${rangeStart} - INTERVAL '7 days')
 ), impressions AS MATERIALIZED (
@@ -65,15 +80,20 @@ export function buildPaywallAttributionCtes(filters: AnalyticsFilterState): stri
     AND ${buildEventPlatformsFilterSql("COALESCE(shown.platform, 'unattributed')", filters.eventPlatforms)}
     ${buildPaywallActorFiltersSql(filters, "shown")}
 ), linked_flow AS MATERIALIZED (
-  SELECT flow.*, shown.event_id AS shown_event_id, shown.shown_at
+  -- Clients before presentation UUIDs send none on either side; such a row belongs to the
+  -- actor's latest preceding legacy impression on its platform, the screen it was raised from.
+  SELECT DISTINCT ON (flow.event_id) flow.*, shown.event_id AS shown_event_id, shown.shown_at
   FROM event_rows AS flow
   JOIN impressions AS shown
-    ON shown.actor_id = flow.actor_id AND shown.presentation_id = flow.presentation_id
+    ON shown.actor_id = flow.actor_id
+    AND (shown.presentation_id = flow.presentation_id
+      OR (shown.presentation_id IS NULL AND flow.presentation_id IS NULL))
     AND flow.platform IS NOT DISTINCT FROM shown.platform
     AND (flow.entry_point IS NULL OR flow.entry_point = shown.entry_point)
     AND flow.occurred_at >= shown.shown_at
-    AND flow.occurred_at <= shown.shown_at + INTERVAL '7 days'
+    AND flow.occurred_at <= shown.shown_at + INTERVAL '${paywallStepWindowDays} days'
   WHERE flow.event_name IN ('paywall_choice', 'purchase_started', 'purchase_finished')
+  ORDER BY flow.event_id, shown.shown_at DESC, shown.event_id DESC
 ), billing_checkouts AS MATERIALIZED (
   -- Select before linking so an unlinked checkout cannot credit an older presentation.
   SELECT DISTINCT ON (fact.event_id)
@@ -83,7 +103,7 @@ export function buildPaywallAttributionCtes(filters: AnalyticsFilterState): stri
   JOIN event_rows AS started
     ON started.actor_id = fact.actor_id AND started.event_name = 'purchase_started'
     AND started.occurred_at <= fact.occurred_at
-    AND fact.occurred_at <= started.occurred_at + INTERVAL '7 days'
+    AND fact.occurred_at <= started.occurred_at + ${billingWindowSql}
     AND fact.provider = CASE started.platform
       WHEN 'ios' THEN 'apple' WHEN 'android' THEN 'google' WHEN 'web' THEN 'stripe' END
   WHERE fact.origin = 'server' AND fact.event_name IN ('trial_started', 'purchase_completed')
@@ -92,7 +112,6 @@ export function buildPaywallAttributionCtes(filters: AnalyticsFilterState): stri
   SELECT fact.event_id, fact.event_name, fact.started_event_id, started.shown_event_id
   FROM billing_checkouts AS fact
   JOIN linked_flow AS started ON started.event_id = fact.started_event_id
-    AND fact.billing_at <= started.shown_at + INTERVAL '7 days'
   WHERE fact.event_name <> 'trial_started' OR fact.offer_type IS DISTINCT FROM 'standard'
 ), flow_outcomes AS (
   SELECT shown_event_id,
