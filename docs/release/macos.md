@@ -59,7 +59,7 @@ authorize dispatch, signed local execution, submission or publication. Apply the
    Keep genuine app provisioning, automatic test-runner signing, sandbox and
    private Keychain storage; do not fabricate identities, disable signing or
    filter required tests. Verify the app-process automation marker before
-   interaction under [the testing rule](../../AGENTS.md#testing-philosophy).
+   interaction under [the automation marker](../ios-ci-cd.md#automation-marker).
 5. During an authorized release, start only **macOS Release Build**
    (`9d704b65-5254-4f04-be24-bebc0f0cfc7d`) on that accepted `main` SHA.
    Save workflow/run/Archive action IDs, source SHA, Xcode/SDK/OS, configuration
