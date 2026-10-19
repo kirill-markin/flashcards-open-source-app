@@ -8,11 +8,14 @@ import type { AdminAppConfig } from "../../config";
 import { ExplanationTip } from "../../explanations/ExplanationTip";
 import type { AnalyticsDateRange } from "../../filters/analyticsFilters";
 import {
+  LevelOneMetricDetailsButton,
+  type LevelOneMetricDetailsLink,
+} from "../levelOneMetrics/LevelOneMetricDetailsLink";
+import {
   findInProgressBucketKey,
   formatReportBucketTick,
   formatReportBucketTitle,
   reportPeriodAxisLabels,
-  reportPeriodColumnLabels,
   type ReportPeriod,
 } from "../levelOneMetrics/reportPeriod";
 import {
@@ -25,13 +28,6 @@ type LoadState =
   | Readonly<{ status: "error"; message: string }>
   | Readonly<{ status: "ready"; report: WhoPaidUsReport }>;
 const formatCount = d3.format(",d");
-const sourceLabels: Readonly<Record<string, string>> = {
-  apple_transactions: "Apple retained notification discovery",
-  google_orders: "Google discoverable orders",
-  stripe_subscriptions: "Stripe catalog subscriptions",
-  stripe_invoices: "Stripe catalog invoices",
-  stripe_payments: "Stripe catalog payments",
-};
 
 function describeSeries(entry: WhoPaidUsBucket, series: PaymentSeries): string {
   const total = getPaymentSeriesTotal(entry, series);
@@ -68,6 +64,7 @@ export function WhoPaidUsSection(props: Readonly<{
   config: AdminAppConfig;
   dateRange: AnalyticsDateRange;
   period: ReportPeriod;
+  detailsLink: LevelOneMetricDetailsLink | null;
   onTerminalAdminError: (error: unknown, config: AdminAppConfig) => boolean;
 }>): JSX.Element {
   const chartRef = useRef<SVGSVGElement | null>(null);
@@ -114,19 +111,21 @@ export function WhoPaidUsSection(props: Readonly<{
   }, [state, bucketsByKey, tooltipHandlers]);
   return (
     <section className="dashboard-section" data-testid="who-paid-us-section">
-      <header className="dashboard-section-header"><div className="explained-heading-row">
+      <header className="dashboard-section-header level-1-metric-section-header"><div className="explained-heading-row">
         <h2>Who paid us</h2>
         <ExplanationTip label="What Who paid us shows" explanationId="who-paid-us-explanation">
           <ul>
             <li>Subscription events in production per UTC day, week or month, counted by their actual UTC time and summed over the bar’s days. These are events, not unique people, revenue or active paying customers.</li>
             <li>Trial starts require native free-trial evidence. First payment is the first successful positive paid period in verified original subscription history; later successful periods are recurring, even when a provider labels the first charge a renewal.</li>
-            <li>New Google order roots and new Stripe subscriptions begin new histories. Apple PURCHASE after an earlier paid period stays recurring and is labeled separately in the data. Reactivations are not new globally unique customers.</li>
+            <li>New Google order roots and new Stripe subscriptions begin new histories. Apple PURCHASE after an earlier paid period stays recurring. Reactivations are not new globally unique customers.</li>
             <li>Refunds do not erase historical charges. Multiple Stripe invoice payments count once per paid invoice. Sandbox and gifts are excluded; real sales remain regardless of account attribution, erasure or analytics exclusions.</li>
             <li>Apple notification discovery and Google discoverable orders are partial merchant inventories. Known counts remain visible after an import failure; absent or unclassified history is unavailable. Stripe completed production catalog scans can prove zero only for a bar whose every day lies inside their covered window.</li>
             {state.status === "ready" ? <li>Generated {formatGeneratedAt(state.report.generatedAtUtc)}.</li> : null}
           </ul>
         </ExplanationTip>
-      </div></header>
+      </div>
+        {props.detailsLink !== null ? <LevelOneMetricDetailsButton link={props.detailsLink} /> : null}
+      </header>
       {state.status === "loading" ? <p className="report-state" aria-live="polite">Loading Who paid us…</p> : null}
       {state.status === "error" ? <div className="report-state report-state-error">
         <strong>Who paid us query failed.</strong><span>{state.message}</span>
@@ -139,42 +138,8 @@ export function WhoPaidUsSection(props: Readonly<{
           </div>
         </div>
         {state.report.buckets.every((entry) => paymentSeries.every((series) => getPaymentSeriesTotal(entry, series) === null))
-          ? <p className="report-state">No classified events are available in this range. Unclassified paid periods, if recorded, appear in the data table.</p> : null}
+          ? <p className="report-state">No classified events are available in this range.</p> : null}
         <div className="chart-scroll"><svg ref={chartRef} role="group" aria-label={`Who paid us: recorded trial starts, first payments and recurring payments per ${state.report.period}`} /></div>
-        <details className="activity-chart-table"><summary>Chart data and coverage</summary>
-          <p className="activity-coverage-note">Recorded counts are partial totals. Missing history is unavailable. The bar holding today ({state.report.today} UTC) is in progress; verified events are shown as they arrive.</p>
-          <ul className="activity-coverage-note">{state.report.sources.map((source) => <li key={source.source}>
-            {sourceLabels[source.source]}: {source.status}.
-            {source.failureCode === "GOOGLE_HISTORY_SALES_INVENTORY_INCOMPLETE" ? " Sales export discovery failed; verified native orders remain included." : null}
-            {source.failureCode !== null ? ` Failure: ${source.failureCode}.` : null}
-            {source.finishedAt !== null ? ` Finished ${formatGeneratedAt(source.finishedAt)}.` : source.startedAt !== null ? ` Started ${formatGeneratedAt(source.startedAt)}.` : " No import recorded."}
-            {source.requestedTo !== null ? ` Requested through ${formatGeneratedAt(source.requestedTo)}.` : null}
-          </li>)}</ul>
-          <div className="chart-scroll"><table><caption>Recorded aggregates per {state.report.period}. Totals include unclassified paid periods; merchant history is incomplete.</caption>
-            <thead><tr><th scope="col">{reportPeriodColumnLabels[state.report.period]}</th>{paymentSeries.map((series) => <th scope="col" key={series}>{paymentSeriesLabels[series]}</th>)}<th scope="col">Recorded total / availability</th></tr></thead>
-            <tbody>{state.report.buckets.map((entry) => <tr key={entry.bucket.key}>
-              <th scope="row">{formatReportBucketTitle(state.report.period, entry.bucket)}{entry.bucket.to === state.report.today ? " (in progress)" : ""}</th>
-              {paymentSeries.map((series) => <td key={series}>{describeSeries(entry, series)}</td>)}
-              <td>{describeRecordedTotal(entry)}</td>
-            </tr>)}</tbody>
-          </table></div>
-          <div className="chart-scroll"><table><caption>Production subscription events, UTC. Recorded partial counts; — means unavailable.</caption>
-            <thead><tr><th scope="col">{reportPeriodColumnLabels[state.report.period]} / provider</th>{paymentSeries.map((series) => <th scope="col" key={series}>{paymentSeriesLabels[series]}</th>)}
-              <th scope="col">Unclassified paid periods</th><th scope="col">Apple subsequent PURCHASE</th><th scope="col">Coverage</th></tr></thead>
-            <tbody>{state.report.buckets.flatMap((entry) => paymentProviders.map((provider) => <tr key={`${entry.bucket.key}:${provider}`}>
-              <th scope="row">{formatReportBucketTitle(state.report.period, entry.bucket)} / {paymentProviderLabels[provider]}{entry.bucket.to === state.report.today ? " (in progress)" : ""}</th>
-              {paymentSeries.map((series) => <td key={series}>{formatNullableCount(entry.providers[provider].counts[series])}</td>)}
-              <td>{formatCount(entry.providers[provider].unclassified)}</td><td>{provider === "apple" ? formatCount(entry.providers[provider].nativeRepurchases) : "—"}</td>
-              <td>{entry.providers[provider].complete ? "Complete catalog inventory" : "Partial / unavailable merchant coverage"}</td>
-            </tr>))}</tbody>
-          </table></div>
-          <div className="chart-scroll"><table><caption>Latest production source attempts; half-open UTC coverage windows.</caption>
-            <thead><tr><th scope="col">Source</th><th scope="col">Status</th><th scope="col">Covered from</th><th scope="col">Covered to (exclusive)</th></tr></thead>
-            <tbody>{state.report.sources.map((source) => <tr key={source.source}><th scope="row">{sourceLabels[source.source]}</th>
-              <td>{source.status}</td><td>{source.coveredFrom === null ? "Unavailable" : formatGeneratedAt(source.coveredFrom)}</td>
-              <td>{source.coveredTo === null ? "Unavailable" : formatGeneratedAt(source.coveredTo)}</td></tr>)}</tbody>
-          </table></div>
-        </details>
       </div></section> : null}
       <ChartTooltip {...tooltipState} />
     </section>
