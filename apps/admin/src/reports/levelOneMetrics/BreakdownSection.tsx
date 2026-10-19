@@ -66,6 +66,10 @@ export function BreakdownSection(props: Readonly<{
   explanation: ReactNode;
   /** What a bar counts, as the y axis names it. */
   countLabel: string;
+  /** Why a bar is unavailable, in its tooltip and accessible label. */
+  unavailableBarText: string;
+  /** Shown instead of the chart when every bar is unavailable. */
+  noAvailableBarText: string;
   loadReport: BreakdownReportLoader;
   /** A value's name on screen. */
   formatValue: (value: string) => string;
@@ -103,7 +107,7 @@ export function BreakdownSection(props: Readonly<{
     const getTitle = (key: string): string => `${formatReportBucketTitle(report.period, getBucket(key).bucket)} UTC`;
     const describeBucket = (key: string): string => {
       const countsByValue = getBucket(key).countsByValue;
-      if (countsByValue === null) return "Unavailable: retained source history does not cover all of its days.";
+      if (countsByValue === null) return props.unavailableBarText;
       return [
         ...listBucketCounts(report, countsByValue).map((entry) => `${props.formatValue(entry.value)}: ${formatCount(entry.count)}`),
         `total: ${formatCount(sumBreakdownBar(countsByValue))}.`,
@@ -130,7 +134,7 @@ export function BreakdownSection(props: Readonly<{
       getTooltipHtml: (key) => `<p class="tooltip-title">${escapeHtml(getTitle(key))}${key === model.inProgressKey ? " · in progress" : ""}</p>${buildTooltipMetricsHtml(key)}`,
       tooltipHandlers,
     });
-  }, [model, props.title, props.countLabel, props.formatValue, tooltipHandlers]);
+  }, [model, props.title, props.countLabel, props.unavailableBarText, props.formatValue, tooltipHandlers]);
   return (
     <section className="dashboard-section" data-testid={props.testId}>
       <header className="dashboard-section-header level-1-metric-section-header">
@@ -165,7 +169,7 @@ export function BreakdownSection(props: Readonly<{
                 />
               </div>
             </div>
-            {model.report.buckets.every((entry) => entry.countsByValue === null) ? <p className="report-state">Retained source history does not cover this range.</p> : null}
+            {model.report.buckets.every((entry) => entry.countsByValue === null) ? <p className="report-state">{props.noAvailableBarText}</p> : null}
             {model.report.buckets.some((entry) => entry.countsByValue !== null) && model.report.values.length === 0 ? <p className="report-state">Nothing counted in the covered days.</p> : null}
             <div className="chart-scroll"><svg ref={chartRef} role="group" aria-label={`${props.title}: ${props.countLabel.toLowerCase()} per ${model.report.period}`} /></div>
           </div>

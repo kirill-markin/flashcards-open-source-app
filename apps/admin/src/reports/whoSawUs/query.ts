@@ -63,7 +63,7 @@ function getSingleResultSet(
  * The App Store rows the `app-store` series reads, as `AND` lines: our app's daily standard product
  * page views that carry the count it sums.
  */
-function buildAppleProductPageViewRowSqlLines(
+export function buildAppleProductPageViewRowSqlLines(
   rowAlias: string,
   countColumn: "unique_counts" | "counts",
 ): ReadonlyArray<string> {
@@ -83,6 +83,43 @@ function buildPlayListingVisitorRowSqlLines(rowAlias: string): ReadonlyArray<str
     `${rowAlias}.package_name = ${escapeSqlStringLiteral(ourPlayPackageName)}`,
     `${rowAlias}.store_listing_visitors IS NOT NULL`,
   ];
+}
+
+/** A store row's `report_date` inside the range, as `AND` lines. */
+export function buildStoreReportDateRangeSqlLines(rowAlias: string, range: AnalyticsDateRange): ReadonlyArray<string> {
+  return [
+    `${rowAlias}.report_date >= ${escapeSqlStringLiteral(range.from)}::date`,
+    `${rowAlias}.report_date <= ${escapeSqlStringLiteral(range.to)}::date`,
+  ];
+}
+
+/**
+ * The page views of identified site visitors the `web` series reads, inside the range, as a `WHERE`
+ * body. Each is a person under the shared actor exclusion rule.
+ */
+export function buildIdentifiedSiteViewFilterSql(rowAlias: string, range: AnalyticsDateRange): string {
+  const fromSql = `${escapeSqlStringLiteral(range.from)}::date`;
+  const toSql = `${escapeSqlStringLiteral(range.to)}::date`;
+  return [
+    buildSiteFactSql(rowAlias, "site_page_viewed"),
+    `  AND ${rowAlias}.anonymous_id IS NOT NULL`,
+    `  AND ${rowAlias}.actor_id IS NOT NULL`,
+    // On the raw column, so the (event_name, occurred_at) index stays usable.
+    `  AND ${rowAlias}.occurred_at >= (${fromSql})::timestamp AT TIME ZONE 'UTC'`,
+    `  AND ${rowAlias}.occurred_at < (${toSql} + INTERVAL '1 day')::timestamp AT TIME ZONE 'UTC'`,
+    ...buildExcludedActorSqlLines(`${rowAlias}.actor_id::text`),
+  ].join("\n");
+}
+
+/**
+ * The page views of cookieless site visitors the `web` series reads, on hash days inside the range,
+ * as a `WHERE` body. Each is a person for one UTC day of `buildHashedVisitorDaySql`.
+ */
+export function buildHashedSiteViewFilterSql(rowAlias: string, range: AnalyticsDateRange): string {
+  return [
+    ...buildHashedSiteRowSqlLines(rowAlias, "site_page_viewed"),
+    ...buildHashedVisitorDayRangeSqlLines(rowAlias, range.from, range.to),
+  ].join("\n  AND ");
 }
 
 /**
@@ -160,8 +197,6 @@ export async function loadWhoSawUsAvailableRange(config: AdminAppConfig): Promis
  */
 export function buildWhoSawUsSql(dateRange: AnalyticsDateRange, period: ReportPeriod): string {
   const range = assertValidDateRange(dateRange, reportLabel);
-  const fromSql = `${escapeSqlStringLiteral(range.from)}::date`;
-  const toSql = `${escapeSqlStringLiteral(range.to)}::date`;
   const hashedVisitorDaySql = buildHashedVisitorDaySql("hashed_view");
   const identifiedBucketSql = buildReportBucketSql(period, "(site_view.occurred_at AT TIME ZONE 'UTC')::date");
   const appleBucketSql = buildReportBucketSql(period, "apple_visitors.visit_date");
@@ -173,21 +208,14 @@ export function buildWhoSawUsSql(dateRange: AnalyticsDateRange, period: ReportPe
     `    ${identifiedBucketSql} AS bucket_date,`,
     "    COUNT(DISTINCT site_view.actor_id) AS visitor_count",
     "  FROM analytics.product_events_resolved AS site_view",
-    `  WHERE ${buildSiteFactSql("site_view", "site_page_viewed")}`,
-    "    AND site_view.anonymous_id IS NOT NULL",
-    "    AND site_view.actor_id IS NOT NULL",
-    // On the raw column, so the (event_name, occurred_at) index stays usable.
-    `    AND site_view.occurred_at >= (${fromSql})::timestamp AT TIME ZONE 'UTC'`,
-    `    AND site_view.occurred_at < (${toSql} + INTERVAL '1 day')::timestamp AT TIME ZONE 'UTC'`,
-    ...buildExcludedActorSqlLines("site_view.actor_id::text"),
+    `  WHERE ${buildIdentifiedSiteViewFilterSql("site_view", range)}`,
     `  GROUP BY ${identifiedBucketSql}`,
     "), hashed_site_visitors AS (",
     "  SELECT",
     `    ${hashedVisitorDaySql} AS visit_date,`,
     "    COUNT(DISTINCT hashed_view.daily_visitor_hash) AS visitor_count",
     "  FROM analytics.product_events_resolved AS hashed_view",
-    `  WHERE ${buildHashedSiteRowSqlLines("hashed_view", "site_page_viewed").join("\n    AND ")}`,
-    `    AND ${buildHashedVisitorDayRangeSqlLines("hashed_view", range.from, range.to).join("\n    AND ")}`,
+    `  WHERE ${buildHashedSiteViewFilterSql("hashed_view", range)}`,
     `  GROUP BY ${hashedVisitorDaySql}`,
     "), site_visitors AS (",
     "  SELECT identified.bucket_date, identified.visitor_count FROM identified_site_visitors AS identified",
@@ -198,20 +226,17 @@ export function buildWhoSawUsSql(dateRange: AnalyticsDateRange, period: ReportPe
     "  SELECT engagement.report_date AS visit_date, engagement.unique_counts AS visitor_count",
     "  FROM store_analytics.apple_discovery_engagement AS engagement",
     `  WHERE ${buildAppleProductPageViewRowSqlLines("engagement", "unique_counts").join("\n    AND ")}`,
-    `    AND engagement.report_date >= ${fromSql}`,
-    `    AND engagement.report_date <= ${toSql}`,
+    `    AND ${buildStoreReportDateRangeSqlLines("engagement", range).join("\n    AND ")}`,
     "  UNION ALL",
     "  SELECT preview.report_date AS visit_date, preview.counts AS visitor_count",
     "  FROM store_analytics.apple_web_preview_engagement AS preview",
     `  WHERE ${buildAppleProductPageViewRowSqlLines("preview", "counts").join("\n    AND ")}`,
-    `    AND preview.report_date >= ${fromSql}`,
-    `    AND preview.report_date <= ${toSql}`,
+    `    AND ${buildStoreReportDateRangeSqlLines("preview", range).join("\n    AND ")}`,
     "), play_visitors AS (",
     "  SELECT performance.report_date AS visit_date, performance.store_listing_visitors AS visitor_count",
     "  FROM store_analytics.play_store_performance_country AS performance",
     `  WHERE ${buildPlayListingVisitorRowSqlLines("performance").join("\n    AND ")}`,
-    `    AND performance.report_date >= ${fromSql}`,
-    `    AND performance.report_date <= ${toSql}`,
+    `    AND ${buildStoreReportDateRangeSqlLines("performance", range).join("\n    AND ")}`,
     "), web_buckets AS (",
     "  SELECT site_visitors.bucket_date, SUM(site_visitors.visitor_count)::bigint AS visitor_count",
     "  FROM site_visitors",

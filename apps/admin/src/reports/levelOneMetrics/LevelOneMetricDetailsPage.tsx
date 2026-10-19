@@ -4,6 +4,7 @@ import { AdminLink } from "../../navigation/AdminLink";
 import { getAnalyticsAreaPath, type LevelOneMetricDetail } from "../../routing";
 import { WhoOpenedTheAppBreakdownSections } from "../whoOpenedTheApp/WhoOpenedTheAppBreakdownSections";
 import { WhoOpenedTheAppSection } from "../whoOpenedTheApp/WhoOpenedTheAppSection";
+import { WhoSawUsBreakdownSections } from "../whoSawUs/WhoSawUsBreakdownSections";
 import { WhoSawUsSection } from "../whoSawUs/WhoSawUsSection";
 import { LevelOneMetricsFrame } from "./LevelOneMetricsFrame";
 import type { LevelOneMetricsSelection } from "./levelOneMetricsUrl";
@@ -31,13 +32,21 @@ function renderMetricSections(
   switch (props.metric) {
     case "who-saw-us":
       return (
-        <WhoSawUsSection
-          config={props.config}
-          dateRange={selection.dateRange}
-          period={selection.period}
-          detailsLink={null}
-          onTerminalAdminError={props.onTerminalAdminError}
-        />
+        <>
+          <WhoSawUsSection
+            config={props.config}
+            dateRange={selection.dateRange}
+            period={selection.period}
+            detailsLink={null}
+            onTerminalAdminError={props.onTerminalAdminError}
+          />
+          <WhoSawUsBreakdownSections
+            config={props.config}
+            dateRange={selection.dateRange}
+            period={selection.period}
+            onTerminalAdminError={props.onTerminalAdminError}
+          />
+        </>
       );
     case "who-opened-the-app":
       return (
