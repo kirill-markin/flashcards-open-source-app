@@ -23,7 +23,8 @@ import { PrincipalSessionError } from "../../server/social/principalSessions.js"
 import { log, maskEmail } from "../../server/logger.js";
 import { isTransientDatabaseError } from "../../server/databaseErrors.js";
 import { isRejectedPasswordSignIn } from "../../server/cognito/passwordSignInErrors.js";
-import { isCognitoInvalidEmailError } from "../../server/cognito/cognitoErrors.js";
+import { isCognitoInvalidEmailError, isCognitoProviderOutage } from "../../server/cognito/cognitoErrors.js";
+import { getCognitoOutageLogFields, reportCognitoProviderOutage } from "../../server/cognito/cognitoOutageReport.js";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const POST_EMAIL_DB_FAILURE_MESSAGE = "A verification email may have been sent, but sign-in could not be prepared.";
@@ -132,17 +133,24 @@ export function createSendCodeApp(dependencies: SendCodeDependencies): Hono<Auth
           return jsonAuthError(c, 401, "PASSWORD_SIGN_IN_FAILED", "Email or password is incorrect.");
         }
 
+        const cognitoProviderOutage = isCognitoProviderOutage(error) ? error : null;
+        const statusCode = cognitoProviderOutage === null ? 500 : 503;
         log({
           domain: "auth",
           action: "send_code_demo_sign_in_error",
           requestId,
           route: c.req.path,
-          statusCode: 500,
+          statusCode,
           code: "PASSWORD_SIGN_IN_FAILED",
           error: error instanceof Error ? error.message : String(error),
+          ...(cognitoProviderOutage === null ? {} : getCognitoOutageLogFields(cognitoProviderOutage)),
         });
+        if (cognitoProviderOutage !== null) {
+          reportCognitoProviderOutage(c, cognitoProviderOutage, "PASSWORD_SIGN_IN_FAILED");
+          c.header("Retry-After", "1");
+        }
         await reportSignInFailed(c, "server_error");
-        return jsonAuthError(c, 500, "PASSWORD_SIGN_IN_FAILED", "Password sign-in failed. Try again.");
+        return jsonAuthError(c, statusCode, "PASSWORD_SIGN_IN_FAILED", "Password sign-in failed. Try again.");
       }
 
       dependencies.setBrowserSessionCookies(c, tokens.idToken, tokens.refreshToken);
@@ -244,17 +252,24 @@ export function createSendCodeApp(dependencies: SendCodeDependencies): Hono<Auth
           return jsonAuthError(c, 400, "INVALID_EMAIL", "Enter a valid email address.");
         }
 
+        const cognitoProviderOutage = isCognitoProviderOutage(err) ? err : null;
+        const statusCode = cognitoProviderOutage === null ? 500 : 503;
         log({
           domain: "auth",
           action: "send_code_error",
           requestId,
           route: c.req.path,
-          statusCode: 500,
+          statusCode,
           code: "OTP_SEND_FAILED",
           error: err instanceof Error ? err.message : String(err),
+          ...(cognitoProviderOutage === null ? {} : getCognitoOutageLogFields(cognitoProviderOutage)),
         });
+        if (cognitoProviderOutage !== null) {
+          reportCognitoProviderOutage(c, cognitoProviderOutage, "OTP_SEND_FAILED");
+          c.header("Retry-After", "1");
+        }
         await reportSignInFailed(c, "server_error");
-        return jsonAuthError(c, 500, "OTP_SEND_FAILED", "Could not send a code. Try again.");
+        return jsonAuthError(c, statusCode, "OTP_SEND_FAILED", "Could not send a code. Try again.");
       }
 
       log({ domain: "auth", action: "send_code", requestId, route: c.req.path, maskedEmail: maskEmail(email) });

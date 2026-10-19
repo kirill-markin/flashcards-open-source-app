@@ -204,7 +204,7 @@ test("refresh-session returns 401 and clears cookies for terminal refresh failur
   assert.equal(JSON.stringify(events).includes("secret-release-value"), false);
 });
 
-test("refresh-session bubbles non-terminal refresh failures as 500 without clearing cookies", async () => {
+test("refresh-session answers a Cognito outage with 503 without clearing cookies", async () => {
   let clearCookieCallCount = 0;
   const traceId = "4c79f60c11214eb38604f4ae0781bfb2";
   const events: Array<AuthLogEvent> = [];
@@ -229,29 +229,23 @@ test("refresh-session bubbles non-terminal refresh failures as 500 without clear
     },
   });
 
-  assert.equal(response.status, 500);
+  assert.equal(response.status, 503);
+  assert.equal(response.headers.get("Retry-After"), "1");
   assert.equal(clearCookieCallCount, 0);
   assert.equal(getSetCookieValues(response).length, 0);
-  assert.equal(events.length, 2);
-  assert.deepEqual(events[0], {
+  assert.deepEqual(events, [{
     domain: "auth",
     action: "request_error",
     requestId: "request-1",
     traceId,
     route: "/api/refresh-session",
-    statusCode: 500,
-    code: "INTERNAL_ERROR",
+    statusCode: 503,
+    code: "SERVICE_UNAVAILABLE",
     error: "Cognito internal error",
-  });
-  assert.deepEqual(events[1], {
-    domain: "auth",
-    action: "request_error",
-    requestId: "request-1",
-    traceId,
-    route: "/api/refresh-session",
-    statusCode: 500,
-    code: "INTERNAL_ERROR",
-  });
+    operation: "InitiateAuth",
+    cognitoType: "InternalErrorException",
+    providerStatusCode: 500,
+  }]);
   assert.equal(JSON.stringify(events).includes(`${traceId}-0123456789abcdef-1`), false);
   assert.equal(JSON.stringify(events).includes("secret-release-value"), false);
 });

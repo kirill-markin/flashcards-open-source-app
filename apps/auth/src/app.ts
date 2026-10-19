@@ -45,6 +45,8 @@ import { getAppleSignInConfig, getGoogleSignInConfig } from "./server/social/con
 import { getDemoEmailAccessConfig } from "./server/demoEmailAccess.js";
 import { createAgentErrorEnvelope } from "./server/agent/agentEnvelope.js";
 import { getDatabaseErrorSqlState, isTransientDatabaseError } from "./server/databaseErrors.js";
+import { isCognitoProviderOutage } from "./server/cognito/cognitoErrors.js";
+import { getCognitoOutageLogFields, reportCognitoProviderOutage } from "./server/cognito/cognitoOutageReport.js";
 import { log } from "./server/logger.js";
 import { continueAuthTrace } from "./server/sentry.js";
 
@@ -176,7 +178,8 @@ export function registerAuthErrorHandler(app: Hono<AuthAppEnv>): void {
       }
       return jsonAuthError(c, 409, code, message);
     }
-    if (isTransientDatabaseError(error)) {
+    const cognitoProviderOutage = isCognitoProviderOutage(error) ? error : null;
+    if (cognitoProviderOutage !== null || isTransientDatabaseError(error)) {
       const statusCode = 503;
       const code = socialCompletion ? "AUTH_ATTEMPT_RESTART_REQUIRED" : "SERVICE_UNAVAILABLE";
       const message = socialCompletion
@@ -191,7 +194,9 @@ export function registerAuthErrorHandler(app: Hono<AuthAppEnv>): void {
         statusCode,
         code,
         error: error instanceof Error ? error.message : String(error),
+        ...(cognitoProviderOutage === null ? {} : getCognitoOutageLogFields(cognitoProviderOutage)),
       });
+      if (cognitoProviderOutage !== null) reportCognitoProviderOutage(c, cognitoProviderOutage, code);
       c.header("Retry-After", "1");
       c.header("Access-Control-Expose-Headers", apiCorsExposeHeaders.join(", "));
 
