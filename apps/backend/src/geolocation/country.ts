@@ -6,7 +6,7 @@ import { join } from "node:path";
 import type { CountryResponse, Reader } from "maxmind";
 import { writeCloudWatchRecord } from "../observability/cloudWatch";
 import { createBackendRuntimeObservationScope } from "../observability/sentry";
-import { assertCountryDatabaseFresh, GeoLiteDatabaseError, openCountryDatabase } from "./database";
+import { assertGeoLiteDatabaseFresh, GeoLiteDatabaseError, openGeoLiteDatabase } from "./database";
 import { runGeoLiteStorageOperation } from "./storage";
 
 const databaseRefreshIntervalMs = 60 * 60 * 1000;
@@ -60,7 +60,7 @@ async function downloadCountryDatabase(): Promise<Reader<CountryResponse>> {
   try {
     const path = join(directory, "GeoLite2-Country.mmdb");
     await writeFile(path, object.bytes, { mode: 0o600 });
-    const reader = await openCountryDatabase(path);
+    const reader = await openGeoLiteDatabase<CountryResponse>(path, "GeoLite2-Country");
     reportCountryDatabasePublishedAge(object.lastModified);
     return reader;
   } finally {
@@ -71,7 +71,7 @@ async function downloadCountryDatabase(): Promise<Reader<CountryResponse>> {
 
 async function getCountryDatabase(): Promise<Reader<CountryResponse>> {
   if (cachedDatabase !== null && Date.now() - cachedDatabase.loadedAt < databaseRefreshIntervalMs) {
-    assertCountryDatabaseFresh(cachedDatabase.reader, Date.now());
+    assertGeoLiteDatabaseFresh(cachedDatabase.reader, "GeoLite2-Country", Date.now());
     return cachedDatabase.reader;
   }
   if (pendingDownload === null) {
