@@ -2,6 +2,8 @@
 
 This product includes GeoLite data created by MaxMind, available from <https://www.maxmind.com>.
 
+The daily refresh and the release gate also publish `GeoLite2-ASN.mmdb` beside `GeoLite2-Country.mmdb` in the same bucket, with the same validation.
+
 Implementation: [reader](../apps/backend/src/geolocation/country.ts), [freshness validation](../apps/backend/src/geolocation/database.ts), [private bucket](../infra/aws/lib/geolite-country.ts), [download script](../scripts/geolite/refresh-country.sh), [release gate](../scripts/geolite/ensure-country.sh), [daily workflow](../.github/workflows/geolite-country-refresh.yml), [country ingestion and retention](analytics-audience.md). Freshness follows [MaxMind's update requirements](https://dev.maxmind.com/geoip/geolite2-free-geolocation-data/#automate-database-downloads-and-updates).
 
 Every ingestion path treats a broken or expired database as an error and never as an unknown country; only an address the database cannot place stays unknown.
@@ -9,7 +11,7 @@ Every ingestion path treats a broken or expired database as an error and never a
 ## Release and daily refresh
 
 1. Merge to `main` after `Repository static checks` passes; PR checks need no MaxMind credentials or database.
-2. In `AWS/Web Release`, confirm `Ensure fresh private GeoLite Country database` succeeded and read its structured `fresh` result with the actual publication and build dates: the [gate](../scripts/geolite/ensure-country.sh) reuses a fresh published object, refreshes a stale or absent one from MaxMind, and fails the release on anything else. An `AccessDenied` is never read as missing, because the deployment role cannot list the bucket: inspect IAM, and seed or restore the object with the daily refresh workflow on `main` before rerunning the release.
+2. In `AWS/Web Release`, confirm `Ensure fresh private GeoLite Country database` succeeded and read its structured `fresh` result per database with the actual publication and build dates: the [gate](../scripts/geolite/ensure-country.sh) reuses fresh published objects, refreshes both from MaxMind when either is stale or absent, and fails the release on anything else, including `AccessDenied`: inspect IAM before rerunning the release.
 3. Confirm the next scheduled `GeoLite Country Refresh` succeeds. Its restricted role is derived from the deployment-role ARN, so there is no GitHub secret to add.
 
 ## Failed refresh or expired data

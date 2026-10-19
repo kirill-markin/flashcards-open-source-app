@@ -17,21 +17,34 @@ trap 'exit 130' INT
 trap 'exit 143' TERM
 chmod 700 "$work_dir"
 
-if apps/backend/node_modules/.bin/tsx apps/backend/scripts/check-published-geolite-country.ts \
-  "$bucket" "$work_dir/GeoLite2-Country.mmdb"; then
-  exit 0
-else
-  status=$?
-fi
+editions=(GeoLite2-Country GeoLite2-ASN)
 
-case "$status" in
-  2|3)
-    bash scripts/geolite/refresh-country.sh
-    apps/backend/node_modules/.bin/tsx apps/backend/scripts/check-published-geolite-country.ts \
-      "$bucket" "$work_dir/GeoLite2-Country.mmdb"
-    ;;
-  *)
-    echo "Published GeoLite Country validation failed; release stopped. Inspect the error above. AccessDenied is not treated as missing: verify the deploy role, and use GeoLite Country Refresh on main to restore an absent object." >&2
-    exit "$status"
-    ;;
-esac
+check_edition() {
+  apps/backend/node_modules/.bin/tsx apps/backend/scripts/check-published-geolite-country.ts \
+    "$1" "$bucket" "$work_dir/$1.mmdb"
+}
+
+refresh_required=false
+for edition in "${editions[@]}"; do
+  if check_edition "$edition"; then
+    continue
+  else
+    status=$?
+  fi
+  case "$status" in
+    2|3)
+      refresh_required=true
+      ;;
+    *)
+      echo "Published $edition validation failed; release stopped. Inspect the error above. AccessDenied is not treated as missing: verify the deploy role, and use GeoLite Country Refresh on main to restore an absent object." >&2
+      exit "$status"
+      ;;
+  esac
+done
+
+if [[ "$refresh_required" == true ]]; then
+  bash scripts/geolite/refresh-country.sh
+  for edition in "${editions[@]}"; do
+    check_edition "$edition"
+  done
+fi
