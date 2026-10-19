@@ -13,6 +13,7 @@ import { combineAbortSignals } from "../../../abortSignals";
 import {
   isAuthRedirectError,
 } from "../../../api";
+import { BrowserGuestSessionInvalidatedError } from "../../../api/transport/transport";
 import {
   isIndexedDbOpenRecoveryFailureMark,
   type IndexedDbOpenRecoveryMarkResult,
@@ -668,6 +669,11 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
         }
 
         if (isWorkspaceSyncDiscardedError(error)) {
+          return;
+        }
+
+        // Every guest re-verification schedules a fresh sync, which replaces this stopped attempt.
+        if (error instanceof BrowserGuestSessionInvalidatedError) {
           return;
         }
 

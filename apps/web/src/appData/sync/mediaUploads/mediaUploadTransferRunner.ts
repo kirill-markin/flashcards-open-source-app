@@ -3,6 +3,7 @@ import {
   isAuthRedirectError,
   type ApiError,
 } from "../../../api";
+import { BrowserGuestSessionInvalidatedError } from "../../../api/transport/transport";
 import { putMediaAsset } from "../../../localDb/mediaAssets";
 import {
   loadMediaBlobCacheRecord,
@@ -552,7 +553,7 @@ export async function processDueMediaUploadTransfersForWorkspace(
   const generation = settings === null || settings.linkedUserId === null
     ? null : readBrowserGuestVerificationGeneration(settings.linkedUserId);
   if (settings?.cloudState === "guest" && generation === null) {
-    throw new Error("Browser guest session is unverified; media uploads are paused.");
+    throw new BrowserGuestSessionInvalidatedError("Browser guest session is unverified; media uploads are paused.");
   }
   return runWithBrowserGuestWorkLock(signal, async () => {
     const current = await loadCloudSettings();
@@ -560,7 +561,7 @@ export async function processDueMediaUploadTransfersForWorkspace(
       || current.linkedWorkspaceId !== workspaceId) throw new Error("Media upload owner changed. Verify the workspace before retrying uploads.");
     if (generation !== null) requireBrowserGuestVerificationGeneration(current.linkedUserId, generation);
     if (current.cloudState === "guest") {
-      if (generation === null) throw new Error("Browser guest media upload has no verified session generation.");
+      if (generation === null) throw new BrowserGuestSessionInvalidatedError("Browser guest media upload has no verified session generation.");
       requireBrowserGuestSyncReady(current.linkedUserId);
     }
     await run();

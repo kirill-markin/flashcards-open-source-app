@@ -4,6 +4,7 @@ import {
   useRef,
 } from "react";
 import { combineAbortSignals } from "../../../abortSignals";
+import { BrowserGuestSessionInvalidatedError } from "../../../api/transport/transport";
 import {
   isIndexedDbOpenRecoveryFailureMark,
   type IndexedDbOpenRecoveryMarkResult,
@@ -193,6 +194,9 @@ export function useMediaUploadLifecycle(params: UseMediaUploadLifecycleParams): 
     const normalizedError = normalizeCaughtError(error);
     markIndexedDbOpenRecoveryFailure(normalizedError);
     if (indexedDbOpenRecoveryState.hasFailed()) {
+      return;
+    }
+    if (normalizedError instanceof BrowserGuestSessionInvalidatedError) {
       return;
     }
     captureAppOperationError(normalizedError, {
