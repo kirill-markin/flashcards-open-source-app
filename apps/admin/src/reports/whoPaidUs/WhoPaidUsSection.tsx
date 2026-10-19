@@ -1,7 +1,10 @@
 import { useEffect, useMemo, useRef, useState, type JSX } from "react";
 import * as d3 from "d3";
+import { ChartAreaWithNote } from "../../charts/ChartAreaWithNote";
 import { ChartColorKey } from "../../charts/ChartLegends";
+import { ChartLoadingPlaceholder } from "../../charts/ChartLoadingPlaceholder";
 import { ChartTooltip, useChartTooltip } from "../../charts/ChartTooltip";
+import { chartWidth, stackedChartHeight } from "../../charts/chartPrimitives";
 import { escapeHtml, formatGeneratedAt } from "../../charts/formatting";
 import { paymentColors, renderWhoPaidUsChart } from "../../charts/whoPaidUsChart";
 import type { AdminAppConfig } from "../../config";
@@ -126,21 +129,24 @@ export function WhoPaidUsSection(props: Readonly<{
       </div>
         {props.detailsLink !== null ? <LevelOneMetricDetailsButton link={props.detailsLink} /> : null}
       </header>
-      {state.status === "loading" ? <p className="report-state" aria-live="polite">Loading Who paid us…</p> : null}
       {state.status === "error" ? <div className="report-state report-state-error">
         <strong>Who paid us query failed.</strong><span>{state.message}</span>
         <button className="filter-button" type="button" onClick={() => setRevision((value) => value + 1)}>Retry</button>
       </div> : null}
-      {state.status === "ready" ? <section className="chart-column"><div className="chart-shell">
-        <div className="chart-meta"><span>Events per {state.report.period} · partial history</span>
+      {state.status === "error" ? null : <section className="chart-column"><div className="chart-shell">
+        <div className="chart-meta"><span>Events per {props.period} · partial history</span>
           <div className="chart-meta-right"><ChartColorKey ariaLabel="Payment event color key" keys={paymentSeries}
             getColor={(series) => paymentColors[series]} getLabel={(series) => paymentSeriesLabels[series]} />
           </div>
         </div>
-        {state.report.buckets.every((entry) => paymentSeries.every((series) => getPaymentSeriesTotal(entry, series) === null))
-          ? <p className="report-state">No classified events are available in this range.</p> : null}
-        <div className="chart-scroll"><svg ref={chartRef} role="group" aria-label={`Who paid us: recorded trial starts, first payments and recurring payments per ${state.report.period}`} /></div>
-      </div></section> : null}
+        <div className="chart-scroll">
+          {state.status === "ready" ? <ChartAreaWithNote viewBoxWidth={chartWidth} viewBoxHeight={stackedChartHeight}
+            note={state.report.buckets.every((entry) => paymentSeries.every((series) => getPaymentSeriesTotal(entry, series) === null))
+              ? "No classified events are available in this range." : null}>
+            <svg ref={chartRef} role="group" aria-label={`Who paid us: recorded trial starts, first payments and recurring payments per ${state.report.period}`} />
+          </ChartAreaWithNote> : <ChartLoadingPlaceholder viewBoxWidth={chartWidth} viewBoxHeight={stackedChartHeight} label="Loading Who paid us…" />}
+        </div>
+      </div></section>}
       <ChartTooltip {...tooltipState} />
     </section>
   );

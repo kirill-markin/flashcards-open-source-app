@@ -1,7 +1,10 @@
 import { useEffect, useMemo, useRef, useState, type JSX, type ReactNode } from "react";
 import * as d3 from "d3";
+import { ChartAreaWithNote } from "../../charts/ChartAreaWithNote";
 import { UniqueUserCohortKey } from "../../charts/ChartLegends";
+import { ChartLoadingPlaceholder } from "../../charts/ChartLoadingPlaceholder";
 import { ChartTooltip, useChartTooltip } from "../../charts/ChartTooltip";
+import { chartWidth, stackedChartHeight } from "../../charts/chartPrimitives";
 import { renderDailyNewReturningChart } from "../../charts/dailyNewReturningChart";
 import { escapeHtml, formatGeneratedAt } from "../../charts/formatting";
 import type { AdminAppConfig } from "../../config";
@@ -34,6 +37,13 @@ const formatCount = d3.format(",d");
 function describeBucket(entry: NewReturningBucket, report: DailyNewReturningReport): string {
   if (entry.newUsers === null || entry.returningUsers === null) return "Unavailable: retained source history does not cover all of its days.";
   return `${entry.bucket.to === report.today ? "In progress through today. " : ""}New: ${formatCount(entry.newUsers)}; returning: ${formatCount(entry.returningUsers)}; total: ${formatCount(entry.newUsers + entry.returningUsers)}.`;
+}
+
+/** Why the chart draws no bar, or null when it draws one. */
+function describeEmptyChart(report: DailyNewReturningReport): string | null {
+  if (report.buckets.every((entry) => entry.newUsers === null)) return "Retained source history does not cover this range.";
+  if (report.buckets.every((entry) => (entry.newUsers ?? 0) + (entry.returningUsers ?? 0) === 0)) return "No people in the covered days after exclusions.";
+  return null;
 }
 
 /** One Level 1 chart of unique people per bucket, stacked new vs returning; `source` must be a stable constant. */
@@ -101,26 +111,29 @@ export function DailyNewReturningSection(props: Readonly<{
         </div>
         {props.detailsLink !== null ? <LevelOneMetricDetailsButton link={props.detailsLink} /> : null}
       </header>
-      {state.status === "loading" ? <p className="report-state" aria-live="polite">Loading {props.title}…</p> : null}
       {state.status === "error" ? (
         <div className="report-state report-state-error">
           <strong>{props.title} query failed.</strong><span>{state.message}</span>
           <button className="filter-button" type="button" onClick={() => setRevision((value) => value + 1)}>Retry</button>
         </div>
       ) : null}
-      {state.status === "ready" ? (
+      {state.status === "error" ? null : (
         <section className="chart-column">
           <div className="chart-shell">
             <div className="chart-meta">
-              <span>Unique people per {state.report.period} · UTC</span>
+              <span>Unique people per {props.period} · UTC</span>
               <div className="chart-meta-right"><UniqueUserCohortKey /></div>
             </div>
-            {state.report.buckets.every((entry) => entry.newUsers === null) ? <p className="report-state">Retained source history does not cover this range.</p> : null}
-            {state.report.buckets.some((entry) => entry.newUsers !== null) && state.report.buckets.every((entry) => (entry.newUsers ?? 0) + (entry.returningUsers ?? 0) === 0) ? <p className="report-state">No people in the covered days after exclusions.</p> : null}
-            <div className="chart-scroll"><svg ref={chartRef} role="group" aria-label={`${props.title}: unique people per ${state.report.period}, new and returning`} /></div>
+            <div className="chart-scroll">
+              {state.status === "ready" ? (
+                <ChartAreaWithNote viewBoxWidth={chartWidth} viewBoxHeight={stackedChartHeight} note={describeEmptyChart(state.report)}>
+                  <svg ref={chartRef} role="group" aria-label={`${props.title}: unique people per ${state.report.period}, new and returning`} />
+                </ChartAreaWithNote>
+              ) : <ChartLoadingPlaceholder viewBoxWidth={chartWidth} viewBoxHeight={stackedChartHeight} label={`Loading ${props.title}…`} />}
+            </div>
           </div>
         </section>
-      ) : null}
+      )}
       <ChartTooltip {...tooltipState} />
     </section>
   );

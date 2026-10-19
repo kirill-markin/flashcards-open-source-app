@@ -31,6 +31,9 @@ function buildWhoSawUsBreakdown(
 
 const showValue = (value: string): string => value;
 
+/** What a Who saw us breakdown bar counts, as its y axis names it. */
+export const whoSawUsCountLabel = "Visitors";
+
 /** How a Who saw us Web visitor is counted, to close a sentence. */
 export const webVisitorCounting = "an identified visitor counts once per bar after the shared exclusions, a cookieless one once per day with only automated traffic dropped";
 
@@ -94,7 +97,7 @@ export function WhoSawUsBreakdownSection(props: Readonly<{
         <li>The five values with the most visitors over the selection get their own colour; the rest are summed into Other. A missing value is Unknown and ranks like any other.</li>
         <li>Edge bars hold only the selected days, and the bar holding today is in progress. A bar whose source has no row on any of its days is unavailable, never zero.</li>
       </>}
-      countLabel="Visitors"
+      countLabel={whoSawUsCountLabel}
       unavailableBarText="No data: the source has no row on any of its days."
       noAvailableBarText="No data: the source has no row in this range."
       loadReport={props.loadReport}
