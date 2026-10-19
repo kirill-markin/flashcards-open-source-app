@@ -6,6 +6,8 @@ import { WhoOpenedTheAppBreakdownSections } from "../whoOpenedTheApp/WhoOpenedTh
 import { WhoOpenedTheAppSection } from "../whoOpenedTheApp/WhoOpenedTheAppSection";
 import { WhoSawUsBreakdownSections } from "../whoSawUs/WhoSawUsBreakdownSections";
 import { WhoSawUsSection } from "../whoSawUs/WhoSawUsSection";
+import { WhoStudiedBreakdownSections } from "../whoStudied/WhoStudiedBreakdownSections";
+import { WhoStudiedSection } from "../whoStudied/WhoStudiedSection";
 import { LevelOneMetricsFrame } from "./LevelOneMetricsFrame";
 import type { LevelOneMetricsSelection } from "./levelOneMetricsUrl";
 import { useLevelOneMetricsSelection } from "./useLevelOneMetricsSelection";
@@ -13,6 +15,7 @@ import { useLevelOneMetricsSelection } from "./useLevelOneMetricsSelection";
 const levelOneMetricDetailLabels: Readonly<Record<LevelOneMetricDetail, string>> = {
   "who-saw-us": "Who saw us",
   "who-opened-the-app": "Who opened the app",
+  "who-studied": "Who studied",
 };
 
 type LevelOneMetricDetailsPageProps = Readonly<{
@@ -59,6 +62,24 @@ function renderMetricSections(
             onTerminalAdminError={props.onTerminalAdminError}
           />
           <WhoOpenedTheAppBreakdownSections
+            config={props.config}
+            dateRange={selection.dateRange}
+            period={selection.period}
+            onTerminalAdminError={props.onTerminalAdminError}
+          />
+        </>
+      );
+    case "who-studied":
+      return (
+        <>
+          <WhoStudiedSection
+            config={props.config}
+            dateRange={selection.dateRange}
+            period={selection.period}
+            detailsLink={null}
+            onTerminalAdminError={props.onTerminalAdminError}
+          />
+          <WhoStudiedBreakdownSections
             config={props.config}
             dateRange={selection.dateRange}
             period={selection.period}
