@@ -84,3 +84,12 @@ Declarations:
   [signed native/database verification](macos-ci-cd.md#development-analytics-verification).
 - [Web](../apps/web/src/analytics/deliveryRuntime.ts), on authenticated analytics batches only; web
   sync requests and credential-free collector events carry no declaration.
+
+## Test-distribution installations
+
+A client may also declare `isTestDistribution`: its installation did not come from the public store
+(TestFlight, App Review or a developer build). It is stored the same one-way way
+([migration](../db/migrations/0222_sync_installation_test_distribution_marker.sql)), suppresses no
+producer, and [`testDistributionInstallationActorIdsSqlLines`](../apps/backend/src/reviewMetricsSql.ts)
+drops every person such an installation belongs to, signed in or not. Android and web cannot tell and
+send nothing.

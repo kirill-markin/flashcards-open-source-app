@@ -417,6 +417,7 @@ async function withGuestUpgradeFixture(
       const replica = await ensureWorkspaceReplicaInExecutor(executor, {
         workspaceId: guest.workspaceId, userId: guest.userId, installationId: randomUUID(),
         platform, appVersion: "postgres-integration", osName: null, deviceType: null, isAutomation: true,
+        isTestDistribution: false,
       });
       await upsertCardSnapshotInExecutor(executor, guest.workspaceId, snapshot, {
         clientUpdatedAt: createdAt, lastModifiedByReplicaId: replica, lastOperationId: randomUUID(),

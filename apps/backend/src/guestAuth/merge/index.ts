@@ -529,6 +529,9 @@ async function recreateGuestReplicasInExecutor(
         // installation already stored is what the recreated replica keeps: a merge is the same
         // physical installation adopting an account, and it can neither claim nor drop automation.
         isAutomation: replica.isAutomation,
+        // The test-distribution marker stays on the same sync.installations row the claim reassigns,
+        // so the merge has nothing to carry or declare.
+        isTestDistribution: false,
       });
     } else {
       if (replica.actorKey === null) {

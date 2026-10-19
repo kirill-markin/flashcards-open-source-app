@@ -26,7 +26,7 @@ The browser never queries Postgres. Each chart or page sends its own SQL to `POS
 
 ## Who counts as a person
 
-- One exclusion rule, [`buildExcludedActorSqlLines`](../apps/backend/src/reviewMetricsSql.ts), drops test accounts, admins, listed exclusions, actors with an automated collector verdict, guests on an automation install and probable Android test bursts from every usage chart and filter option list; the public v3 snapshot shares it, and [compatibility v2](global-metrics.md) keeps its own. `Who paid us` is the exception: a production sale counts whoever made it.
+- One exclusion rule, [`buildExcludedActorSqlLines`](../apps/backend/src/reviewMetricsSql.ts), drops test accounts, admins, listed exclusions, actors with an automated collector verdict, guests on an automation install, anyone on a [test-distribution install](analytics-audience.md#test-distribution-installations), anyone with a sandbox `entitlement_changed` fact and probable Android test bursts from every usage chart and filter option list; the public v3 snapshot shares it, and [compatibility v2](global-metrics.md) keeps its own. `Who paid us` is the exception: a production sale counts whoever made it.
 - The people counts of General, Audience and Level 1 drop the credential-free collector's rows; the site and deck funnels and the `Who saw us` `Web` series count the visitor identities those rows carry, on purpose ([`buildTrustedActorRowsFilterSql`](../apps/admin/src/filters/filterSql.ts) lists every reader, [Anonymous client analytics](anonymous-client-analytics.md)).
 - Ad-hoc SQL over `analytics.product_events` or `analytics.product_events_resolved` gets none of this; read the resolved view and compose `buildExcludedActorSqlLines` on `actor_id::text`.
 

@@ -1,7 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router";
 import { combineAbortSignals } from "../abortSignals";
-import { isAwaitingAnalyticsConsentDecision, track, type AnalyticsPurchaseOutcome } from "../analytics";
+import { isAwaitingAnalyticsConsentDecision, track, type AnalyticsPurchaseErrorCode, type AnalyticsPurchaseOutcome } from "../analytics";
 import { ApiError, buildLoginUrl, isAuthRedirectError, updateAccountPreferences } from "../api";
 import {
   createStripeCheckout, createStripePortal, loadStripeOffer, loadStripeSubscriptions,
@@ -19,6 +19,15 @@ import { activateVerifiedStripeBillingSession, cancelGuestStripeCheckout, consum
   subscribeToStripeBillingInvalidation, type PaywallPresentation, type PremiumContinuation, type StripeIntent } from "./stripeIntent";
 
 type BillingIdentity = StripeRequestIdentity & Readonly<{ entitlementGeneration: number; billingGeneration: number }>;
+
+// The collector rejects the whole event when the code breaks the catalog pattern, so every branch
+// passes a non-empty value and the result is sanitized and capped to `[A-Za-z0-9_.-]{1,96}`.
+function toPurchaseErrorCode(caught: unknown): AnalyticsPurchaseErrorCode {
+  const code = caught instanceof ApiError && caught.code !== null && caught.code !== "" ? caught.code
+    : caught instanceof ApiError ? `http_${caught.statusCode}`
+      : caught instanceof Error && caught.name !== "" ? caught.name : typeof caught;
+  return `app:${code.replace(/[^A-Za-z0-9_.-]/gu, "_").slice(0, 96)}`;
+}
 
 type BillingStatus = "idle" | "loading" | "opening" | "confirming" | "confirmed" | "delayed" | "interrupted";
 export type StripeBilling = Readonly<{
@@ -148,7 +157,7 @@ export function useAccountStripeBilling(consumePendingOfferContinuation: (contin
     const returnKey = `${query.get("checkout")}:${query.get("checkout_attempt_id")}`;
     // Only the browser holding this attempt's intent reports its return, once: a reload finds the intent
     // marked, and a reopened link after completion or cancellation finds it consumed.
-    const reportReturn = (outcome: AnalyticsPurchaseOutcome): void => {
+    const reportReturn = (outcome: Exclude<AnalyticsPurchaseOutcome, "failed">): void => {
       if (!returned || reportedReturnRef.current === returnKey) return;
       reportedReturnRef.current = returnKey;
       if (intent === null || intent.attemptId !== query.get("checkout_attempt_id") || intent.reportedReturn === returnKey) return;
@@ -276,7 +285,7 @@ export function useAccountStripeBilling(consumePendingOfferContinuation: (contin
           : { offerType: offer.trialEligible ? "free_trial" : "standard" }) });
       result = await createStripeCheckout(identity);
     } catch (caught) {
-      if (isCurrent(identity) && !isAuthRedirectError(caught)) track({ name: "purchase_finished", outcome: "failed", ...pending.presentation });
+      if (isCurrent(identity) && !isAuthRedirectError(caught)) track({ name: "purchase_finished", outcome: "failed", errorCode: toPurchaseErrorCode(caught), ...pending.presentation });
       throw caught;
     }
     if (!isCurrent(identity)) return;
