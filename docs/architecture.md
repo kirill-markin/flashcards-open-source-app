@@ -90,3 +90,8 @@ The machine-facing API is intentionally narrower than the human app API. Discove
 - Cloudflare is the public DNS and edge TLS layer; RDS is private and reachable only from the VPC; Lambda functions connect with dedicated security groups and per-service secrets.
 - Browser session-authenticated unsafe API requests require CSRF validation plus allowed-origin checks. The backend derives the CSRF token from the session JWT with a dedicated secret, so CSRF needs no database state.
 - PostgreSQL row-level security is enabled for the runtime tables, and backend and auth access is scoped through the runtime roles plus `app.user_id` and `app.workspace_id` session settings.
+
+## Decisions
+
+- One monorepo keeps shared API contracts and the data model together, makes coordinated backend/mobile changes easier, and lowers operational overhead at this stage.
+- Postgres is the primary backend database because flashcards data is relational (workspaces, cards, review events, sync metadata), transactions and consistency matter, and schema and query evolution for scheduling, stats, and filtering is simpler than with DynamoDB.

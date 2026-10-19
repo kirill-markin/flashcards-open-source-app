@@ -28,16 +28,15 @@ Build a practical Anki-like alternative focused on fast mobile UX, offline-first
 - AI assistants via MCP: supported at `https://mcp.nibomo.com/mcp`.
 - Terminal / AI-agent API client: supported via the canonical machine API entrypoint `GET https://api.flashcards-open-source-app.com/v1/` (the same discovery payload is also available at `GET https://api.flashcards-open-source-app.com/v1/agent`)
 
-For iOS App Store screenshots and derived marketing materials, read [apps/ios/docs/marketing-screenshots.md](apps/ios/docs/marketing-screenshots.md).
-For approved store-card design and independent processing of existing iOS/Android screenshots, read [docs/store-screenshot-processing.md](docs/store-screenshot-processing.md). Keep this processing flow separate from native capture and store upload; source PNGs are read-only and derived cards belong in the adjacent output folders.
-Marketing attribution links and campaign naming rules live in [docs/marketing-links.md](docs/marketing-links.md).
+Before marketing or store-asset work, read the matching guide: [iOS App Store screenshots](apps/ios/docs/marketing-screenshots.md), [store-card processing](docs/store-screenshot-processing.md), or [attribution links and campaign naming](docs/marketing-links.md).
 
 We support the web, iOS/iPadOS, Mac Catalyst, Android, MCP, and terminal-first AI-agent API clients. When making changes, we try to keep all supported clients aligned where relevant.
-The platform READMEs are part of the working agreement for client work: [apps/web/README.md](apps/web/README.md) for web changes, [apps/ios/README.md](apps/ios/README.md) for iOS and Mac Catalyst changes, and [apps/android/README.md](apps/android/README.md) for Android changes.
 Before releasing or bumping versions, read [Release All Platforms](docs/release/README.md); it owns the release sequence, authorization, and aligned version surfaces.
 The Web, iOS, and Android clients are multilingual, so always account for localization and follow the existing translation patterns in the surrounding code and dedicated client documentation.
 Adding a new language spans more surfaces than any single client guide covers, so read [docs/add-language.md](docs/add-language.md) before starting one.
 The demo onboarding card seeded for new users is a cross-client contract, so before changing it on any client, read [docs/demo-card.md](docs/demo-card.md).
+Before changing auth (`apps/auth/`, passwordless email OTP via AWS Cognito), read [docs/auth-service.md](docs/auth-service.md).
+Before changing card reappearance or FSRS scheduling, read [docs/fsrs-scheduling-logic.md](docs/fsrs-scheduling-logic.md).
 
 ## Mobile OS Compatibility
 
@@ -46,19 +45,16 @@ The demo onboarding card seeded for new users is a cross-client contract, so bef
 
 ## Testing Philosophy
 
-We do not try to cover the whole product with tests, and we do not optimize for blanket test coverage metrics.
-Do not add unit tests by default, and do not guard every helper or pure function with a dedicated test.
-Do not add new unit tests for this repository as part of implementation or as part of a written plan unless the user explicitly asks for unit tests.
+We do not optimize for blanket test coverage. Do not add unit tests, in an implementation or a written plan, unless the user explicitly asks for them.
 Targeted integration or module-boundary tests are allowed when they validate a real interaction between modules, storage layers, or contracts.
-The most trusted tests are the native/browser smoke flows that run the real app on a simulator, emulator, managed device, or deployed environment because they are the closest checks to production behavior.
-Keep tests minimal and focused on primary user flows, critical contracts, or important cross-module behavior.
+The most trusted tests are the native/browser smoke flows that run the real app on a simulator, emulator, managed device, or deployed environment. Keep tests minimal and focused on primary user flows, critical contracts, or important cross-module behavior.
 Run the full existing mobile smoke selection on the latest OS; run only a small essential compatibility smoke on older supported OS versions.
-When proposing a test plan, treat "real testing" as one of these two options only: either implement a real integration/end-to-end/smoke flow that exercises the app or API for real, or provide explicit manual test instructions for the user to run. Do not treat unit tests as the default validation plan.
+A test plan offers only real testing: a real integration/end-to-end/smoke flow that exercises the app or API, or explicit manual test instructions for the user.
 
 For iOS local testing details, see [docs/ios-local-setup.md](docs/ios-local-setup.md).
 For Android local testing details, see [docs/android-ci-cd.md](docs/android-ci-cd.md).
 Run useful local project checks, builds and tests during implementation and pre-release validation without additional approval. Honor explicit static-only review instructions. AWS deployment and deployment-artifact restrictions above still apply.
-For every manual or automated Apple test, local or cloud, including Release/TestFlight, set `FLASHCARDS_AUTOMATION_RUN=1` in the app process and verify `automation_run_decided` reports `isAutomation=true` before interacting; on Mac, launch with `bash scripts/ios/launch-macos-test-app.sh "<path/Nibomo.app>"`.
+Before every manual or automated Apple test, local or cloud, including Release/TestFlight, apply the [automation marker](docs/ios-ci-cd.md#automation-marker).
 
 ## Local development loop
 
@@ -69,17 +65,11 @@ Rule: read production, write locally. Both commands open on `localhost` without 
 
 ## Release Gates and Monitoring
 
-Release and check workflows use independent AWS/web, Android, and iOS streams.
 Pull-request checks stay deliberately light and fast: do not add heavy mobile build or test jobs to pull-request workflows.
-Android CI scope and its tradeoff: [Android CI/CD](docs/android-ci-cd.md). `Repository static checks` is the strict required aggregate PR gate.
-Infra-changing pull requests synthesize the CDK app and fail at 470 resources per stack, 30 below CloudFormation's hard limit.
-Auto-merge is enabled but never updates a `BEHIND` branch, so it cannot rescue a pull request on its own: update the branch once server-side, then queue `gh pr merge --auto` so the merge lands unattended once the gate passes instead of racing `main` with repeated updates, and still watch the post-merge deploy to completion.
-`PR Checks` runs static iOS checks; follow the [iOS release procedure](docs/release/ios.md#ios) and [standing best-effort release policy](docs/release/README.md#standing-best-effort-release-policy) for native acceptance and unavailable testing.
-Run Apple builds and tests only in Xcode Cloud or local Xcode; never use Firebase for Apple tests. Xcode Cloud workflow definitions live in App Store Connect; its in-repo build inputs are documented in [docs/ios-ci-cd.md](docs/ios-ci-cd.md).
-Follow local Apple acceptance under that policy before release-build dispatch: [iOS](docs/release/ios.md) and [signed Mac](docs/release/macos.md). Only `iOS Release Build` and `macOS Release Build` stay enabled in Xcode Cloud; retain disabled test workflows/configuration/history without routine dispatch or release gates.
+Before merging a pull request, read [merging pull requests](docs/release-gates.md#merging-pull-requests).
+Run Apple builds and tests only in Xcode Cloud or local Xcode; never use Firebase for Apple tests.
 A request to execute the full release runbook authorizes its manual workflow dispatches and publication steps. Reading and monitoring Xcode Cloud runs, results, and artifacts is always allowed without asking, including outside a release. Outside a release request, dispatch Xcode Cloud workflows or trigger `Android Release` / `MCP Registry Publish` only when the user requests those actions; agents may monitor and fix automatically triggered GitHub Actions.
-For Android releases, follow the [known Device Run issue procedure](docs/android-device-run-network-issue.md) when applicable; otherwise run device tests in Device Run. Use the existing `Android Release` workflow and GitHub Actions signing secrets described in [docs/android-ci-cd.md](docs/android-ci-cd.md). A missing local upload key does not block CI signing and is not grounds for key reset or recovery. Inspect the workflow run and its Device Run results or exception provenance under the [Android release procedure](docs/release/android.md#android).
-Details, rollback rules, and live smoke references: [docs/release-gates.md](docs/release-gates.md).
+Release streams, Apple and Android release gates, rollback rules, and live smoke references: [docs/release-gates.md](docs/release-gates.md).
 
 ## Data Sources for Analysis
 
@@ -97,31 +87,10 @@ Reach the database through an SSM port-forward: `bash scripts/setup/get-analytic
 
 The App Store Connect credentials live in the repository-root `.env`, which exists only in the main checkout. Load it by path when working from a worktree. For App Store Connect, check these local credentials and use the API first for supported operations; use the browser only when the API is insufficient or access remains blocked after diagnosis. See [credential setup and checks](docs/xcode-cloud-data-access.md#required-local-secrets).
 
-## Repository Strategy
-
-Use a single monorepo for now because it keeps shared API contracts and the data model together, makes coordinated backend/mobile changes easier, and lowers operational overhead at this stage.
-
 ## Architecture
 
-- Source of truth: Postgres in AWS
-- Mobile local database: SQLite on device
-- Sync model: offline-first synchronization via API
-
-## Database Decision
-
-Use Postgres as the primary backend database because flashcards data is relational (workspaces, cards, review events, sync metadata), transactions/consistency matter, and schema/query evolution for scheduling, stats, and filtering is simpler than with DynamoDB as primary.
-
-## Offline-First Sync Rules
-
-- Read and write locally to SQLite first.
-- Queue local writes in an `outbox`.
-- When connectivity returns:
-  1. push pending operations to the backend (idempotent by operation id)
-  2. pull remote changes since the last sync cursor
-  3. apply updates locally
-  4. advance the sync cursor and clear acknowledged outbox rows
-
-The sync approach and the data model changed multiple times during development. To understand how the system works now, read `docs/architecture.md` together with the full relevant migration chain in `db/migrations`, and do not infer current behavior from only one or two isolated migrations.
+Postgres in AWS is the source of truth. Clients read and write their local store first, queue writes in an outbox, and sync through the API.
+The sync approach and the data model changed multiple times during development. To understand how the system works now, read [docs/architecture.md](docs/architecture.md) together with the full relevant migration chain in `db/migrations`, and do not infer current behavior from only one or two isolated migrations.
 
 ## Data Modeling Notes
 
@@ -129,15 +98,6 @@ The sync approach and the data model changed multiple times during development. 
 - Include `updated_at` and `deleted_at` for sync and tombstones.
 - Keep review history append-only where possible.
 - Do not hide sync failures behind fallback logic.
-
-## Planned Monorepo Shape
-
-`apps/{backend,ios,android}`, `db/{migrations,views,queries}`, `infra/{docker,aws}`, `docs/`, `scripts/`
-
-## Auth Service (`apps/auth/`)
-
-Email + OTP authentication via AWS Cognito (passwordless).
-Details and key files: [docs/auth-service.md](docs/auth-service.md).
 
 ## Engineering Principles
 
@@ -147,23 +107,19 @@ Details and key files: [docs/auth-service.md](docs/auth-service.md).
 - Keep changes minimal and scoped.
 - Store each fact once: in code; if code cannot say it, in the shortest comment beside the code that enforces it; only short high-level information no code can hold (how parts combine, product and business decisions, procedures a human runs) goes in `docs/`, once. Everything else links to it, and a repeat needs a reason. Marketing and published content (store and connector listings, website articles) is content, not code documentation, and is exempt.
 - Offline-first clients may apply narrow local overlays for pending changes, but complex product/domain rules must stay server-owned unless explicitly required; do not reimplement full backend algorithms in clients.
-- The conventional machine API document probes (`GET /v1/openapi.json`, `GET /v1/swagger.json`, `GET /v1/agent/openapi.json`, and `GET /v1/agent/swagger.json`) return concise source-discovery JSON that links to the open-source repository and relevant backend and auth route source files; they do not publish OpenAPI documents.
 - The in-app chat and the MCP server serve one tool inventory from a shared registry, and the Agent REST API re-implements the same capabilities as HTTP routes over the same shared contract modules; before changing any of those three surfaces, read [docs/agent-tool-surfaces.md](docs/agent-tool-surfaces.md).
 - Paid access is a cross-client contract: tiers and their integer ranks, access status, how an entitlement is derived, and what a client may trust offline; before changing premium, entitlements, AI limits, or billing on any surface, read [docs/premium-entitlements.md](docs/premium-entitlements.md) and the product decisions in [docs/premium-offer.md](docs/premium-offer.md).
 - Flashcard side contract is mandatory across all clients and APIs: `frontText` is only a question/review prompt (never the answer), and `backText` contains the answer (optionally with a concrete example, preferably in a fenced markdown code block when helpful).
 - We align the functional contract across iOS and Android, but we do not synchronize the designs between them. The iOS UI should stay maximally native to iOS, and the Android UI should stay maximally native to Android and Material 3.
 - Use separate native screens for mobile forms and multistep flows, replacing the previous step instead of expanding controls beneath it.
-- In the iOS app, every user tap should trigger immediate Apple-standard UI feedback, with background loading shown in place or on the next surface, failed actions restoring the previous state, and successful actions clearly exposing the next step.
+- In every client UI, every user tap should trigger immediate platform-standard UI feedback, with background loading shown in place or on the next surface, failed actions restoring the previous state, and successful actions clearly exposing the next step.
 - In the iOS app and the web app, user actions should feel instantaneous. In key flows we proactively prepare the most likely next states, and where that is not possible or too expensive, we react immediately and show in-place loading feedback such as a spinner or small partial-loading spinners while data arrives.
 - Analytics events store facts; funnels, cohorts, and groupings are produced by queries over those facts at analysis time, so never add an event or event property that exists only to assemble one specific report.
 - Always mention the schema explicitly in migrations.
 - Apply authorized one-off data changes directly in the database. Reserve migrations for schema changes and bulk data transformations.
-- The root `{proxy+}` in `infra/aws/lib/gateways/api-gateway.ts` forwards every backend path, so add a gateway resource for a backend route only when it needs distinct gateway behavior (throttle, CORS origins, integration, auth); every gateway resource, method, and Lambda permission counts toward the stack's 500-resource CloudFormation limit.
 - AWS CLI access is available in this environment. When debugging backend, AI, or SSE issues, prefer checking the exact Lambda log group first instead of inferring only from client symptoms.
 - For CloudWatch investigations, avoid complex OR filter patterns. Fetch fresh events first, then filter locally by `requestId` and chat error signals.
 - For live SSE issues, correlate the CloudWatch structured log, the `X-Request-Id` response header, and the client-visible error body.
 - Prioritize clear, actionable errors.
 
 Backend changes must remain backward-compatible with already released client versions by default. Do not break backend-facing contracts or behavior that shipped clients rely on unless the user explicitly asks for a breaking change. For the web, iOS, and Android clients, preserving obsolete client implementations is not a goal; keep the latest codepath clean and current while supporting the mobile OS versions declared in the platform READMEs.
-
-Card reappearance and FSRS scheduling logic are documented in `docs/fsrs-scheduling-logic.md`.

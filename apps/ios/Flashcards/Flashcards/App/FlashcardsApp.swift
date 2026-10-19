@@ -52,6 +52,7 @@ struct FlashcardsApp: App {
     init() {
         FlashcardsObservability.configure(bundle: .main, processInfo: ProcessInfo.processInfo)
         AutomationRun.logDecision()
+        TestDistribution.startResolution()
         logAppLifecycleBreadcrumb(
             action: .appInitConfigured,
             store: nil,
