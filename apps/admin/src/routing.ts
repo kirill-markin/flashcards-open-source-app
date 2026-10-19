@@ -14,7 +14,7 @@ export const analyticsAreaLabels: Readonly<Record<AnalyticsArea, string>> = {
 };
 
 /** The Level 1 charts that have a Details page, by the slug of its path. */
-export const levelOneMetricDetails = ["who-saw-us", "who-opened-the-app"] as const;
+export const levelOneMetricDetails = ["who-saw-us", "who-opened-the-app", "who-paid-us"] as const;
 
 export type LevelOneMetricDetail = (typeof levelOneMetricDetails)[number];
 

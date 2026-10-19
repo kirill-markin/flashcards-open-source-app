@@ -54,6 +54,7 @@ export function LevelOneMetricsArea(
             config={props.config}
             dateRange={selection.dateRange}
             period={selection.period}
+            detailsLink={buildLevelOneMetricDetailsLink("who-paid-us", search, props.onNavigate)}
             onTerminalAdminError={props.onTerminalAdminError}
           />
         </div>

@@ -4,6 +4,8 @@ import { AdminLink } from "../../navigation/AdminLink";
 import { getAnalyticsAreaPath, type LevelOneMetricDetail } from "../../routing";
 import { WhoOpenedTheAppBreakdownSections } from "../whoOpenedTheApp/WhoOpenedTheAppBreakdownSections";
 import { WhoOpenedTheAppSection } from "../whoOpenedTheApp/WhoOpenedTheAppSection";
+import { WhoPaidUsBreakdownSections } from "../whoPaidUs/WhoPaidUsBreakdownSections";
+import { WhoPaidUsSection } from "../whoPaidUs/WhoPaidUsSection";
 import { WhoSawUsBreakdownSections } from "../whoSawUs/WhoSawUsBreakdownSections";
 import { WhoSawUsSection } from "../whoSawUs/WhoSawUsSection";
 import { LevelOneMetricsFrame } from "./LevelOneMetricsFrame";
@@ -13,6 +15,7 @@ import { useLevelOneMetricsSelection } from "./useLevelOneMetricsSelection";
 const levelOneMetricDetailLabels: Readonly<Record<LevelOneMetricDetail, string>> = {
   "who-saw-us": "Who saw us",
   "who-opened-the-app": "Who opened the app",
+  "who-paid-us": "Who paid us",
 };
 
 type LevelOneMetricDetailsPageProps = Readonly<{
@@ -59,6 +62,24 @@ function renderMetricSections(
             onTerminalAdminError={props.onTerminalAdminError}
           />
           <WhoOpenedTheAppBreakdownSections
+            config={props.config}
+            dateRange={selection.dateRange}
+            period={selection.period}
+            onTerminalAdminError={props.onTerminalAdminError}
+          />
+        </>
+      );
+    case "who-paid-us":
+      return (
+        <>
+          <WhoPaidUsSection
+            config={props.config}
+            dateRange={selection.dateRange}
+            period={selection.period}
+            detailsLink={null}
+            onTerminalAdminError={props.onTerminalAdminError}
+          />
+          <WhoPaidUsBreakdownSections
             config={props.config}
             dateRange={selection.dateRange}
             period={selection.period}

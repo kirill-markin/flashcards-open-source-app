@@ -1555,6 +1555,31 @@ h2 {
   margin-top: 24px;
 }
 
+/* A table of long UTC times, too wide for one grid cell. */
+.level-1-metrics-grid .payment-import-status {
+  grid-column: 1 / -1;
+}
+
+.payment-import-status-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.payment-import-status-table th,
+.payment-import-status-table td {
+  padding: 8px;
+  text-align: left;
+  vertical-align: top;
+  border-bottom: 1px solid var(--panel-border);
+}
+
+.payment-import-status-table caption {
+  padding: 0 8px 12px;
+  text-align: left;
+  color: var(--muted);
+}
+
 .activity-chart-hit:focus {
   outline: none;
   stroke: var(--text);
