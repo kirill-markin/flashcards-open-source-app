@@ -85,8 +85,8 @@ export function buildExcludedActorReasonSql(actorIdSqlExpression: string): strin
  *   - `reports/dailyActiveUsers/query.ts`, the `app_opens` CTE and the first-active-date cohort it
  *     feeds.
  *   - `reports/whoOpenedTheApp/appOpenActivitySql.ts`, `app_open_rows`, the first-open cohort it
- *     feeds and `app_open_last_opens`, one row predicate, read by Who opened the app, its breakdowns
- *     and the Level 1 available range.
+ *     feeds and `app_open_last_opens`, one row predicate, read by Who opened the app, its breakdowns,
+ *     the Who studied breakdowns and the Level 1 available range.
  *   - `reports/audience/query.ts`, the `history` CTE and the cohort it feeds.
  *   - `reports/audience/query.ts`, `language_events`: the per-actor language and `unknown` coverage
  *     of an already-counted actor, over every event name.
@@ -121,8 +121,8 @@ export function buildExcludedActorReasonSql(actorIdSqlExpression: string): strin
  *   - `buildConnectionCountrySamplesSql` below, whose `origin = 'client'` is exactly what an
  *     `anonymous_client` row carries; read by the country filter, the country option list, the
  *     country and pair charts of `Audience`, and `buildActorConnectionCountrySql`, which reduces it
- *     to the one country a funnel's `Group by` field and the Who opened the app country breakdown
- *     place a person in.
+ *     to the one country a funnel's `Group by` field and the Who opened the app and Who studied
+ *     country breakdowns place a person in.
  *   - `buildAppUiLanguagesFilterSql` below, over every event name, composed by every report's
  *     filter bar.
  *   - `buildActorAppUiLanguageSql` below, the one UI language a funnel's `Group by` field places a
