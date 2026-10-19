@@ -7,6 +7,8 @@ import { clearAuthAnalyticsGuestSession } from "../../server/analytics/visitorSe
 import { clearBrowserSessionCookies } from "../../server/browserSession.js";
 import { type AuthAppEnv, getRequestId, jsonAuthError } from "../../server/apiErrors.js";
 import { revokeToken } from "../../server/cognito/cognitoAuth.js";
+import { isCognitoProviderOutage } from "../../server/cognito/cognitoErrors.js";
+import { getCognitoOutageLogFields, reportCognitoProviderOutage } from "../../server/cognito/cognitoOutageReport.js";
 import { log } from "../../server/logger.js";
 
 const app = new Hono<AuthAppEnv>();
@@ -35,16 +37,23 @@ app.post("/api/revoke-token", async (c) => {
     return c.json({ ok: true });
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
+    const cognitoProviderOutage = isCognitoProviderOutage(err) ? err : null;
+    const statusCode = cognitoProviderOutage === null ? 500 : 503;
     log({
       domain: "auth",
       action: "revoke_token_error",
       requestId,
       route: c.req.path,
-      statusCode: 500,
+      statusCode,
       code: "REVOKE_TOKEN_FAILED",
       error: message,
+      ...(cognitoProviderOutage === null ? {} : getCognitoOutageLogFields(cognitoProviderOutage)),
     });
-    return jsonAuthError(c, 500, "REVOKE_TOKEN_FAILED", "Sign out failed. Try again.");
+    if (cognitoProviderOutage !== null) {
+      reportCognitoProviderOutage(c, cognitoProviderOutage, "REVOKE_TOKEN_FAILED");
+      c.header("Retry-After", "1");
+    }
+    return jsonAuthError(c, statusCode, "REVOKE_TOKEN_FAILED", "Sign out failed. Try again.");
   }
 });
 

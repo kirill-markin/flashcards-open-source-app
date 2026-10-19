@@ -8,6 +8,8 @@ import { clearAuthAnalyticsGuestSession } from "../../server/analytics/visitorSe
 import { clearBrowserSessionCookies } from "../../server/browserSession.js";
 import { type AuthAppEnv, getRequestId } from "../../server/apiErrors.js";
 import { revokeToken } from "../../server/cognito/cognitoAuth.js";
+import { isCognitoProviderOutage } from "../../server/cognito/cognitoErrors.js";
+import { getCognitoOutageLogFields, reportCognitoProviderOutage } from "../../server/cognito/cognitoOutageReport.js";
 import { log } from "../../server/logger.js";
 
 const app = new Hono<AuthAppEnv>();
@@ -57,13 +59,20 @@ app.get("/logout", async (c) => {
     try {
       await revokeToken(refreshToken);
     } catch (error) {
+      const cognitoProviderOutage = isCognitoProviderOutage(error) ? error : null;
       log({
         domain: "auth",
         action: "revoke_token_error",
         requestId: getRequestId(c),
         route: c.req.path,
         error: error instanceof Error ? error.message : String(error),
+        ...(cognitoProviderOutage === null ? {} : { statusCode: 503, ...getCognitoOutageLogFields(cognitoProviderOutage) }),
       });
+      if (cognitoProviderOutage !== null) {
+        reportCognitoProviderOutage(c, cognitoProviderOutage, "REVOKE_TOKEN_FAILED");
+        c.header("Retry-After", "1");
+        return c.text("Sign out failed. Try again.", 503);
+      }
       return c.text("Sign out failed. Try again.", 500);
     }
   }
