@@ -5,6 +5,7 @@ import { BreakdownSection } from "../levelOneMetrics/BreakdownSection";
 import type { BreakdownReportLoader } from "../levelOneMetrics/breakdownReport";
 import type { ReportPeriod } from "../levelOneMetrics/reportPeriod";
 import { loadWhoSawUsBreakdownReport, type WhoSawUsBreakdownDimension } from "./breakdownQuery";
+import type { WhoSawUsSeriesKey } from "./query";
 import { storeNotFinalDayCounts } from "./storeDataFreshness";
 
 type WhoSawUsBreakdown = Readonly<{
@@ -36,29 +37,35 @@ const appleRows = <li>The rows the Who saw us App Store series sums, product pag
 
 const appleFreshness = <li>A faded bar is not final: Apple’s numbers can still arrive or change for {storeNotFinalDayCounts["app-store"]} days, and in a week or month that runs past Apple’s newest delivered day. A bar none of whose days Apple has delivered yet is Not arrived yet, never zero.</li>;
 
-const whoSawUsBreakdowns: ReadonlyArray<WhoSawUsBreakdown> = [
-  buildWhoSawUsBreakdown("web-country", "Web visitors by country", <>
-    {webCohorts}
-    <li>A visitor counts under the country of their first page view in that bar or day, which the site’s collector derived from the request when it stored the view. Views stored before it began recording a country, in late September 2026, and requests it could not place are Unknown.</li>
-  </>),
-  buildWhoSawUsBreakdown("web-landing-page-type", "Web visitors by landing page type", <>
-    {webCohorts}
-    <li>A visitor counts under the page type of their first page view in that bar or day, as the site reports it, such as home or blog_article.</li>
-  </>),
-  buildWhoSawUsBreakdown("app-store-source-type", "App Store visitors by source type", <>
-    {appleRows}
-    <li>A row counts under its own source type, as Apple names it.</li>
-    {appleFreshness}
-  </>),
-  buildWhoSawUsBreakdown("app-store-territory", "App Store visitors by territory", <>
-    {appleRows}
-    <li>A row counts under its own territory, as Apple names it.</li>
-    {appleFreshness}
-  </>),
-];
+const whoSawUsBreakdownsBySeries: Readonly<Record<WhoSawUsSeriesKey, ReadonlyArray<WhoSawUsBreakdown>>> = {
+  web: [
+    buildWhoSawUsBreakdown("web-country", "Web visitors by country", <>
+      {webCohorts}
+      <li>A visitor counts under the country of their first page view in that bar or day, which the site’s collector derived from the request when it stored the view. Views stored before it began recording a country, in late September 2026, and requests it could not place are Unknown.</li>
+    </>),
+    buildWhoSawUsBreakdown("web-landing-page-type", "Web visitors by landing page type", <>
+      {webCohorts}
+      <li>A visitor counts under the page type of their first page view in that bar or day, as the site reports it, such as home or blog_article.</li>
+    </>),
+  ],
+  "app-store": [
+    buildWhoSawUsBreakdown("app-store-source-type", "App Store visitors by source type", <>
+      {appleRows}
+      <li>A row counts under its own source type, as Apple names it.</li>
+      {appleFreshness}
+    </>),
+    buildWhoSawUsBreakdown("app-store-territory", "App Store visitors by territory", <>
+      {appleRows}
+      <li>A row counts under its own territory, as Apple names it.</li>
+      {appleFreshness}
+    </>),
+  ],
+  "google-play": [],
+};
 
-/** The Who saw us Details breakdowns, one grid cell each. */
+/** The breakdowns on one Who saw us dataset page, one grid cell each. */
 export function WhoSawUsBreakdownSections(props: Readonly<{
+  seriesKey: WhoSawUsSeriesKey;
   config: AdminAppConfig;
   dateRange: AnalyticsDateRange;
   period: ReportPeriod;
@@ -66,7 +73,7 @@ export function WhoSawUsBreakdownSections(props: Readonly<{
 }>): JSX.Element {
   return (
     <>
-      {whoSawUsBreakdowns.map((breakdown) => (
+      {whoSawUsBreakdownsBySeries[props.seriesKey].map((breakdown) => (
         <BreakdownSection
           key={breakdown.dimension}
           config={props.config}

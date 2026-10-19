@@ -22,6 +22,7 @@ import { LevelOneMetricsArea } from "../reports/levelOneMetrics/LevelOneMetricsA
 import { ReviewActivitySection } from "../reports/reviewEventsByDate/ReviewActivitySection";
 import type { ReviewEventsByDateRange } from "../reports/reviewEventsByDate/query";
 import { SocialConnectionsSection } from "../reports/socialConnections/SocialConnectionsSection";
+import { WhoSawUsDatasetPage } from "../reports/whoSawUs/WhoSawUsDatasetPage";
 import type { AdminRoute, AnalyticsArea } from "../routing";
 import { getStableUserColorDomain, getUserColorScale } from "./userColors";
 
@@ -202,8 +203,8 @@ function AnalyticsReportSections(props: AnalyticsReportSectionsProps): JSX.Eleme
   );
 }
 
-/** The routes the dashboard shell renders: an analytics area, or a Level 1 Details page under its tab. */
-export type AdminDashboardRoute = Extract<AdminRoute, { kind: "analyticsArea" | "levelOneMetricDetails" }>;
+/** The routes the dashboard shell renders: an analytics area, or a Level 1 Details or Who saw us dataset page under its tab. */
+export type AdminDashboardRoute = Extract<AdminRoute, { kind: "analyticsArea" | "levelOneMetricDetails" | "whoSawUsDataset" }>;
 
 export function AdminDashboard(
   props: Readonly<{
@@ -226,6 +227,13 @@ export function AdminDashboard(
   const appliedRange = usesGeneralReports && props.reportState.status === "ready"
     ? { from: props.reportState.data.report.from, to: props.reportState.data.report.to }
     : null;
+  const renderNavigation = (levelOneMetricsSearch: string): JSX.Element => (
+    <AdminNavigation
+      activePage={activeArea}
+      levelOneMetricsSearch={levelOneMetricsSearch}
+      onNavigate={props.onNavigate}
+    />
+  );
 
   return (
     <main className="shell">
@@ -242,9 +250,10 @@ export function AdminDashboard(
       </section>
 
       {/*
-        A Details page renders the tab row itself, because only it knows the selection its Level 1
-        metrics tab has to carry back. Keyed by metric, because its selection is read from the URL
-        once, so moving between two Details pages in history has to remount it.
+        A Details or Who saw us dataset page renders the tab row itself, because only it knows the
+        selection its Level 1 metrics tab has to carry back. Keyed by metric or dataset, because its
+        selection is read from the URL once, so moving between two such pages in history has to
+        remount it.
       */}
       {props.route.kind === "levelOneMetricDetails" ? (
         <LevelOneMetricDetailsPage
@@ -253,15 +262,22 @@ export function AdminDashboard(
           config={props.config}
           onNavigate={props.onNavigate}
           onTerminalAdminError={props.onTerminalAdminError}
-          renderNavigation={(levelOneMetricsSearch) => (
-            <AdminNavigation
-              activePage={activeArea}
-              levelOneMetricsSearch={levelOneMetricsSearch}
-              onNavigate={props.onNavigate}
-            />
-          )}
+          renderNavigation={renderNavigation}
         />
-      ) : <AdminNavigation activePage={activeArea} levelOneMetricsSearch="" onNavigate={props.onNavigate} />}
+      ) : null}
+
+      {props.route.kind === "whoSawUsDataset" ? (
+        <WhoSawUsDatasetPage
+          key={props.route.dataset}
+          dataset={props.route.dataset}
+          config={props.config}
+          onNavigate={props.onNavigate}
+          onTerminalAdminError={props.onTerminalAdminError}
+          renderNavigation={renderNavigation}
+        />
+      ) : null}
+
+      {props.route.kind === "analyticsArea" ? renderNavigation("") : null}
 
       {props.route.kind === "analyticsArea" && props.route.area === "level-1-metrics" ? (
         <LevelOneMetricsArea

@@ -1,6 +1,5 @@
 import type { JSX, ReactNode } from "react";
 import type { AdminAppConfig } from "../../config";
-import { AdminLink } from "../../navigation/AdminLink";
 import { getAnalyticsAreaPath, type LevelOneMetricDetail } from "../../routing";
 import { WhoCameBackBreakdownSections } from "../whoCameBack/WhoCameBackBreakdownSections";
 import { WhoCameBackSection } from "../whoCameBack/WhoCameBackSection";
@@ -8,24 +7,26 @@ import { WhoOpenedTheAppBreakdownSections } from "../whoOpenedTheApp/WhoOpenedTh
 import { WhoOpenedTheAppSection } from "../whoOpenedTheApp/WhoOpenedTheAppSection";
 import { WhoPaidUsBreakdownSections } from "../whoPaidUs/WhoPaidUsBreakdownSections";
 import { WhoPaidUsSection } from "../whoPaidUs/WhoPaidUsSection";
-import { WhoSawUsBreakdownSections } from "../whoSawUs/WhoSawUsBreakdownSections";
-import { WhoSawUsSection } from "../whoSawUs/WhoSawUsSection";
+import { WhoSawUsDatasetPicker } from "../whoSawUs/WhoSawUsDatasetPicker";
 import { WhoStudiedBreakdownSections } from "../whoStudied/WhoStudiedBreakdownSections";
 import { WhoStudiedSection } from "../whoStudied/WhoStudiedSection";
+import { LevelOneMetricDetailsHeader } from "./LevelOneMetricDetailsHeader";
 import { LevelOneMetricsFrame } from "./LevelOneMetricsFrame";
 import type { LevelOneMetricsSelection } from "./levelOneMetricsUrl";
 import { useLevelOneMetricsSelection } from "./useLevelOneMetricsSelection";
 
-const levelOneMetricDetailLabels: Readonly<Record<LevelOneMetricDetail, string>> = {
-  "who-saw-us": "Who saw us",
+/** Who saw us has a dataset picker instead, because its series come from unrelated sources. */
+type ChartedLevelOneMetricDetail = Exclude<LevelOneMetricDetail, "who-saw-us">;
+
+const levelOneMetricDetailLabels: Readonly<Record<ChartedLevelOneMetricDetail, string>> = {
   "who-opened-the-app": "Who opened the app",
   "who-studied": "Who studied",
   "who-came-back": "Who came back",
   "who-paid-us": "Who paid us",
 };
 
-type LevelOneMetricDetailsPageProps = Readonly<{
-  metric: LevelOneMetricDetail;
+type LevelOneMetricDetailsPageProps<Metric extends LevelOneMetricDetail> = Readonly<{
+  metric: Metric;
   config: AdminAppConfig;
   onNavigate: (path: string) => void;
   onTerminalAdminError: (error: unknown, config: AdminAppConfig) => boolean;
@@ -35,28 +36,10 @@ type LevelOneMetricDetailsPageProps = Readonly<{
 
 /** The metric's own chart, without a Details button since this is its Details page, then its breakdowns. */
 function renderMetricSections(
-  props: LevelOneMetricDetailsPageProps,
+  props: LevelOneMetricDetailsPageProps<ChartedLevelOneMetricDetail>,
   selection: LevelOneMetricsSelection,
 ): JSX.Element {
   switch (props.metric) {
-    case "who-saw-us":
-      return (
-        <>
-          <WhoSawUsSection
-            config={props.config}
-            dateRange={selection.dateRange}
-            period={selection.period}
-            detailsLink={null}
-            onTerminalAdminError={props.onTerminalAdminError}
-          />
-          <WhoSawUsBreakdownSections
-            config={props.config}
-            dateRange={selection.dateRange}
-            period={selection.period}
-            onTerminalAdminError={props.onTerminalAdminError}
-          />
-        </>
-      );
     case "who-opened-the-app":
       return (
         <>
@@ -133,22 +116,21 @@ function renderMetricSections(
 }
 
 /** One Level 1 chart in the top-left cell of the main page's grid, on the main page's selection, followed by its breakdowns. */
-export function LevelOneMetricDetailsPage(props: LevelOneMetricDetailsPageProps): JSX.Element {
+function ChartedLevelOneMetricDetailsPage(
+  props: LevelOneMetricDetailsPageProps<ChartedLevelOneMetricDetail>,
+): JSX.Element {
   const selectionState = useLevelOneMetricsSelection(props.config, props.onTerminalAdminError);
 
   return (
     <>
       {props.renderNavigation(selectionState.search)}
 
-      <header className="level-1-metric-details-header">
-        <AdminLink
-          className="state-link"
-          path={`${getAnalyticsAreaPath("level-1-metrics")}${selectionState.search}`}
-          testId="level-1-metric-details-back"
-          onNavigate={props.onNavigate}
-        >← Level 1 metrics</AdminLink>
-        <h2 data-testid="level-1-metric-details-title">{levelOneMetricDetailLabels[props.metric]} details</h2>
-      </header>
+      <LevelOneMetricDetailsHeader
+        backPath={`${getAnalyticsAreaPath("level-1-metrics")}${selectionState.search}`}
+        backLabel="Level 1 metrics"
+        title={`${levelOneMetricDetailLabels[props.metric]} details`}
+        onNavigate={props.onNavigate}
+      />
 
       <LevelOneMetricsFrame
         selectionState={selectionState}
@@ -158,5 +140,13 @@ export function LevelOneMetricDetailsPage(props: LevelOneMetricDetailsPageProps)
         )}
       />
     </>
+  );
+}
+
+export function LevelOneMetricDetailsPage(props: LevelOneMetricDetailsPageProps<LevelOneMetricDetail>): JSX.Element {
+  return props.metric === "who-saw-us" ? (
+    <WhoSawUsDatasetPicker onNavigate={props.onNavigate} renderNavigation={props.renderNavigation} />
+  ) : (
+    <ChartedLevelOneMetricDetailsPage {...props} metric={props.metric} />
   );
 }

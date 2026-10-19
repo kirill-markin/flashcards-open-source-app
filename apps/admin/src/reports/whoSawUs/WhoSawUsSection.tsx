@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type JSX } from "react";
+import { useEffect, useMemo, useRef, useState, type JSX, type ReactNode } from "react";
 import * as d3 from "d3";
 import { ChartColorKey } from "../../charts/ChartLegends";
 import { ChartTooltip, useChartTooltip } from "../../charts/ChartTooltip";
@@ -31,7 +31,7 @@ import {
 } from "./query";
 import { getStoreBarFreshness, storeNotFinalDayCounts } from "./storeDataFreshness";
 
-const whoSawUsSeriesLabels: Readonly<Record<WhoSawUsSeriesKey, string>> = {
+export const whoSawUsSeriesLabels: Readonly<Record<WhoSawUsSeriesKey, string>> = {
   web: "Web",
   "app-store": "App Store",
   "google-play": "Google Play",
@@ -43,6 +43,13 @@ const whoSawUsSeriesColors: Readonly<Record<WhoSawUsSeriesKey, string>> = {
   "google-play": "#59a14f",
 };
 
+/** The main Level 1 chart stacks every series; a dataset page draws its own one alone. */
+export type WhoSawUsChartSeries = "all" | WhoSawUsSeriesKey;
+
+function getDrawnSeriesKeys(series: WhoSawUsChartSeries): ReadonlyArray<WhoSawUsSeriesKey> {
+  return series === "all" ? whoSawUsSeriesKeys : [series];
+}
+
 const numberFormatter = d3.format(",");
 
 type LoadState =
@@ -52,6 +59,7 @@ type LoadState =
 
 type WhoSawUsChartModel = Readonly<{
   period: ReportPeriod;
+  seriesKeys: ReadonlyArray<WhoSawUsSeriesKey>;
   keys: ReadonlyArray<string>;
   tickKeys: ReadonlyArray<string>;
   matrix: ReadonlyArray<MatrixChartEntry>;
@@ -76,25 +84,29 @@ function getSeriesKey(key: string): WhoSawUsSeriesKey {
   return seriesKey;
 }
 
-function getBucketTotal(entry: WhoSawUsBucket): number {
-  return d3.sum(whoSawUsSeriesKeys, (key) => entry.visitorsBySeries[key] ?? 0);
+function getBucketTotal(entry: WhoSawUsBucket, seriesKeys: ReadonlyArray<WhoSawUsSeriesKey>): number {
+  return d3.sum(seriesKeys, (key) => entry.visitorsBySeries[key] ?? 0);
 }
 
-function buildWhoSawUsChartModel(report: WhoSawUsReport): WhoSawUsChartModel {
+function buildWhoSawUsChartModel(
+  report: WhoSawUsReport,
+  seriesKeys: ReadonlyArray<WhoSawUsSeriesKey>,
+): WhoSawUsChartModel {
   const keys = report.buckets.map((entry) => entry.bucket.key);
 
   return {
     period: report.period,
+    seriesKeys,
     keys,
     tickKeys: createTickDates(keys),
     matrix: report.buckets.map((entry) => ({
       date: entry.bucket.key,
       valuesByKey: Object.fromEntries(
-        whoSawUsSeriesKeys.map((key) => [key, entry.visitorsBySeries[key] ?? 0]),
+        seriesKeys.map((key) => [key, entry.visitorsBySeries[key] ?? 0]),
       ),
     })),
     bucketByKey: new Map(report.buckets.map((entry) => [entry.bucket.key, entry])),
-    peakTotal: d3.max(report.buckets, getBucketTotal) ?? 0,
+    peakTotal: d3.max(report.buckets, (entry) => getBucketTotal(entry, seriesKeys)) ?? 0,
     storeFreshnessByKey: new Map(report.buckets.map((entry) => [entry.bucket.key, {
       "app-store": getStoreBarFreshness("app-store", report.storeDelivery, entry.bucket),
       "google-play": getStoreBarFreshness("google-play", report.storeDelivery, entry.bucket),
@@ -118,9 +130,14 @@ function formatStoreValue(value: number | null, freshness: BarFreshness): string
   }
 }
 
-function buildBucketTooltipMetricsHtml(entry: WhoSawUsBucket, storeFreshness: StoreFreshness): string {
+function buildBucketTooltipMetricsHtml(
+  entry: WhoSawUsBucket,
+  storeFreshness: StoreFreshness,
+  seriesKeys: ReadonlyArray<WhoSawUsSeriesKey>,
+): string {
+  const drawnStoreKeys = whoSawUsStoreSeriesKeys.filter((key) => seriesKeys.includes(key));
   return [
-    ...whoSawUsSeriesKeys.map((key) => {
+    ...seriesKeys.map((key) => {
       const value = entry.visitorsBySeries[key];
       const storeKey = findStoreSeriesKey(key);
       const valueText = storeKey === undefined
@@ -128,11 +145,102 @@ function buildBucketTooltipMetricsHtml(entry: WhoSawUsBucket, storeFreshness: St
         : formatStoreValue(value, storeFreshness[storeKey]);
       return `<div class="tooltip-metric"><span>${escapeHtml(whoSawUsSeriesLabels[key])}</span><strong>${escapeHtml(valueText)}</strong></div>`;
     }),
-    `<div class="tooltip-metric"><span>Total</span><strong>${numberFormatter(getBucketTotal(entry))}</strong></div>`,
-    whoSawUsStoreSeriesKeys.some((key) => storeFreshness[key] !== "final")
+    seriesKeys.length > 1
+      ? `<div class="tooltip-metric"><span>Total</span><strong>${numberFormatter(getBucketTotal(entry, seriesKeys))}</strong></div>`
+      : "",
+    drawnStoreKeys.some((key) => storeFreshness[key] !== "final")
       ? `<p class="tooltip-hint">Not final: store numbers for these days can still arrive or change.</p>`
       : "",
   ].join("");
+}
+
+const whoSawUsSeriesDescriptions: Readonly<Record<WhoSawUsSeriesKey, ReactNode>> = {
+  web: <>
+    identified site visitors after the shared exclusions, plus cookieless visitors (only automated traffic is dropped)
+    <ul>
+      <li>So an admin browsing without consent still counts</li>
+    </ul>
+  </>,
+  "app-store": "product page views by unique count, plus apps.apple.com browser views (Apple reports those without a unique count)",
+  "google-play": "store listing visitors",
+};
+
+/** The (i) items of the main chart, which stacks every series. */
+const allSeriesExplanation = <>
+  <li>
+    <strong>What it shows:</strong> approximate unique visitors per surface, stacked, per UTC day, week or month
+    <ul>
+      {whoSawUsSeriesKeys.map((key) => (
+        <li key={key}><strong>{whoSawUsSeriesLabels[key]}:</strong> {whoSawUsSeriesDescriptions[key]}</li>
+      ))}
+      <li><strong>Weeks and months:</strong> an identified web visitor counts once per bar; cookieless and store visitors are summed over the bar's days, because the cookieless id changes every day and the stores send no visitor ids</li>
+    </ul>
+  </li>
+  <li>
+    <strong>Caveats</strong>
+    <ul>
+      <li>Stores count per breakdown row, and the three surfaces overlap, so one person can be counted more than once</li>
+      <li>Someone who opens a store page from our website, by a store badge or the site's QR code, counts in both Web and App Store or Google Play; removing this overlap is a planned follow-up</li>
+      <li>
+        Faded store segment = not final: its numbers can still arrive or change
+        <ul>
+          <li>App Store for {storeNotFinalDayCounts["app-store"]} days, Google Play for {storeNotFinalDayCounts["google-play"]} days, since Google posts daily data within 3 to 7 days</li>
+          <li>Also a week or month that runs past the store's newest delivered day</li>
+        </ul>
+      </li>
+      <li>No store segment, tooltip Not arrived yet = the store has delivered none of the bar's days, judged by its newest delivered day, so a stalled import never reads as zero or No data</li>
+      <li>No store segment, tooltip No data = the store has no row on any of the bar's days, not zero</li>
+    </ul>
+  </li>
+</>;
+
+const oneSeriesWeeksAndMonthsTexts: Readonly<Record<WhoSawUsSeriesKey, string>> = {
+  web: "an identified visitor counts once per bar; cookieless visitors are summed over the bar's days, because the cookieless id changes every day",
+  "app-store": "visitors are summed over the bar's days, because Apple sends no visitor ids",
+  "google-play": "visitors are summed over the bar's days, because Google sends no visitor ids",
+};
+
+const storeNotFinalWindowTexts: Readonly<Record<WhoSawUsStoreSeriesKey, string>> = {
+  "app-store": `For ${storeNotFinalDayCounts["app-store"]} days`,
+  "google-play": `For ${storeNotFinalDayCounts["google-play"]} days, since Google posts daily data within 3 to 7 days`,
+};
+
+function renderStoreSeriesCaveats(storeKey: WhoSawUsStoreSeriesKey): JSX.Element {
+  const label = whoSawUsSeriesLabels[storeKey];
+  return (
+    <li>
+      <strong>Caveats</strong>
+      <ul>
+        <li>{label} counts per breakdown row, so one person can be counted more than once</li>
+        <li>
+          Faded bar = not final: its numbers can still arrive or change
+          <ul>
+            <li>{storeNotFinalWindowTexts[storeKey]}</li>
+            <li>Also a week or month that runs past {label}'s newest delivered day</li>
+          </ul>
+        </li>
+        <li>No bar, tooltip Not arrived yet = {label} has delivered none of the bar's days, judged by its newest delivered day, so a stalled import never reads as zero or No data</li>
+        <li>No bar, tooltip No data = {label} has no row on any of the bar's days, not zero</li>
+      </ul>
+    </li>
+  );
+}
+
+/** The (i) items of one series drawn alone on its dataset page. */
+function renderOneSeriesExplanation(seriesKey: WhoSawUsSeriesKey): JSX.Element {
+  const storeKey = findStoreSeriesKey(seriesKey);
+  return (
+    <>
+      <li>
+        <strong>What it shows:</strong> approximate unique {whoSawUsSeriesLabels[seriesKey]} visitors per UTC day, week or month
+        <ul>
+          <li>{whoSawUsSeriesDescriptions[seriesKey]}</li>
+          <li><strong>Weeks and months:</strong> {oneSeriesWeeksAndMonthsTexts[seriesKey]}</li>
+        </ul>
+      </li>
+      {storeKey === undefined ? null : renderStoreSeriesCaveats(storeKey)}
+    </>
+  );
 }
 
 export function WhoSawUsSection(
@@ -140,6 +248,7 @@ export function WhoSawUsSection(
     config: AdminAppConfig;
     dateRange: AnalyticsDateRange;
     period: ReportPeriod;
+    series: WhoSawUsChartSeries;
     detailsLink: LevelOneMetricDetailsLink | null;
     onTerminalAdminError: (error: unknown, config: AdminAppConfig) => boolean;
   }>,
@@ -161,9 +270,10 @@ export function WhoSawUsSection(
     return () => { cancelled = true; };
   }, [props.config, props.dateRange, props.period, props.onTerminalAdminError, revision]);
 
+  const seriesKeys = useMemo(() => getDrawnSeriesKeys(props.series), [props.series]);
   const chartModel = useMemo(
-    () => (loadState.status === "ready" ? buildWhoSawUsChartModel(loadState.report) : null),
-    [loadState],
+    () => (loadState.status === "ready" ? buildWhoSawUsChartModel(loadState.report, seriesKeys) : null),
+    [loadState, seriesKeys],
   );
 
   useEffect(() => {
@@ -194,7 +304,7 @@ export function WhoSawUsSection(
       dates: chartModel.keys,
       tickDates: chartModel.tickKeys,
       matrix: chartModel.matrix,
-      keys: whoSawUsSeriesKeys,
+      keys: chartModel.seriesKeys,
       getKeyColor: (key) => whoSawUsSeriesColors[getSeriesKey(key)],
       getKeyLabel: (key) => whoSawUsSeriesLabels[getSeriesKey(key)],
       peakDailyTotal: chartModel.peakTotal,
@@ -205,7 +315,7 @@ export function WhoSawUsSection(
       },
       formatTickLabel: (key) => formatReportBucketTick(chartModel.period, key),
       formatTitleLabel: (key) => `${formatReportBucketTitle(chartModel.period, getBucket(key).bucket)} UTC${key === chartModel.inProgressKey ? " · in progress" : ""}`,
-      buildTooltipMetricsHtml: (entry) => buildBucketTooltipMetricsHtml(getBucket(entry.date), getStoreFreshness(entry.date)),
+      buildTooltipMetricsHtml: (entry) => buildBucketTooltipMetricsHtml(getBucket(entry.date), getStoreFreshness(entry.date), chartModel.seriesKeys),
       tooltipHandlers,
     });
   }, [chartModel, tooltipHandlers]);
@@ -217,36 +327,7 @@ export function WhoSawUsSection(
           <h2>Who saw us</h2>
           <ExplanationTip label="What Who saw us shows" explanationId="who-saw-us-explanation">
             <ul>
-              <li>
-                <strong>What it shows:</strong> approximate unique visitors per surface, stacked, per UTC day, week or month
-                <ul>
-                  <li>
-                    <strong>Web:</strong> identified site visitors after the shared exclusions, plus cookieless visitors (only automated traffic is dropped)
-                    <ul>
-                      <li>So an admin browsing without consent still counts</li>
-                    </ul>
-                  </li>
-                  <li><strong>App Store:</strong> product page views by unique count, plus apps.apple.com browser views (Apple reports those without a unique count)</li>
-                  <li><strong>Google Play:</strong> store listing visitors</li>
-                  <li><strong>Weeks and months:</strong> an identified web visitor counts once per bar; cookieless and store visitors are summed over the bar's days, because the cookieless id changes every day and the stores send no visitor ids</li>
-                </ul>
-              </li>
-              <li>
-                <strong>Caveats</strong>
-                <ul>
-                  <li>Stores count per breakdown row, and the three surfaces overlap, so one person can be counted more than once</li>
-                  <li>Someone who opens a store page from our website, by a store badge or the site's QR code, counts in both Web and App Store or Google Play; removing this overlap is a planned follow-up</li>
-                  <li>
-                    Faded store segment = not final: its numbers can still arrive or change
-                    <ul>
-                      <li>App Store for {storeNotFinalDayCounts["app-store"]} days, Google Play for {storeNotFinalDayCounts["google-play"]} days, since Google posts daily data within 3 to 7 days</li>
-                      <li>Also a week or month that runs past the store's newest delivered day</li>
-                    </ul>
-                  </li>
-                  <li>No store segment, tooltip Not arrived yet = the store has delivered none of the bar's days, judged by its newest delivered day, so a stalled import never reads as zero or No data</li>
-                  <li>No store segment, tooltip No data = the store has no row on any of the bar's days, not zero</li>
-                </ul>
-              </li>
+              {props.series === "all" ? allSeriesExplanation : renderOneSeriesExplanation(props.series)}
               {loadState.status === "ready" ? <li>Generated {formatGeneratedAt(loadState.report.generatedAtUtc)}.</li> : null}
             </ul>
           </ExplanationTip>
@@ -274,7 +355,7 @@ export function WhoSawUsSection(
               <div className="chart-meta-right">
                 <ChartColorKey
                   ariaLabel="Who saw us color key"
-                  keys={whoSawUsSeriesKeys}
+                  keys={seriesKeys}
                   getColor={(key) => whoSawUsSeriesColors[key]}
                   getLabel={(key) => whoSawUsSeriesLabels[key]}
                 />
