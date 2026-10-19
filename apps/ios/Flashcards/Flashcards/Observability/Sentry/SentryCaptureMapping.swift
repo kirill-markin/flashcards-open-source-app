@@ -758,7 +758,7 @@ extension SentryObservabilityAdapter {
         context["cloud_sync_cleaned_up_review_schedule_impacting_operation_count"] = observation.cloudSyncCleanedUpReviewScheduleImpactingOperationCount.map { cleanedUpReviewScheduleImpactingOperationCount in String(cleanedUpReviewScheduleImpactingOperationCount) } ?? ""
         context["cloud_sync_cleaned_up_review_event_operation_count"] = observation.cloudSyncCleanedUpReviewEventOperationCount.map { cleanedUpReviewEventOperationCount in String(cleanedUpReviewEventOperationCount) } ?? ""
         context["notification_kind"] = observation.notificationKind ?? ""
-        context["notification_authorization_status"] = observation.notificationAuthorizationStatus ?? ""
+        context["notification_permission_status"] = observation.notificationAuthorizationStatus ?? ""
         context["notification_pending_before_total_count"] = observation.notificationPendingBeforeTotalCount.map { pendingBeforeTotalCount in String(pendingBeforeTotalCount) } ?? ""
         context["notification_pending_before_review_count"] = observation.notificationPendingBeforeReviewCount.map { pendingBeforeReviewCount in String(pendingBeforeReviewCount) } ?? ""
         context["notification_pending_before_strict_count"] = observation.notificationPendingBeforeStrictCount.map { pendingBeforeStrictCount in String(pendingBeforeStrictCount) } ?? ""
