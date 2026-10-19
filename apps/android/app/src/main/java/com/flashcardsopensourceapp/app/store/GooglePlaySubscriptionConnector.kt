@@ -18,6 +18,8 @@ import com.android.billingclient.api.queryPurchasesAsync
 import com.flashcardsopensourceapp.core.observability.analytics.Analytics
 import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsEvent
 import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsPaywallPresentation
+import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsPurchaseErrorCode
+import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsPurchaseErrorSource
 import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsPurchaseOfferType
 import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsPurchaseOutcome
 import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsPurchaseRestoreOutcome
@@ -52,6 +54,11 @@ private data class GooglePlayPurchaseReport(
     val presentation: AnalyticsPaywallPresentation?
 )
 
+private data class GooglePlayPurchaseResult(
+    val outcome: AnalyticsPurchaseOutcome,
+    val errorCode: AnalyticsPurchaseErrorCode?
+)
+
 private data class GooglePlayPurchasePreparationReport(
     val identity: GoogleBillingIdentity?,
     val purchaseReport: GooglePlayPurchaseReport
@@ -79,7 +86,7 @@ class GooglePlaySubscriptionConnector(
     private val billingClient = BillingClient.newBuilder(context.applicationContext)
         .setListener { result, purchases ->
             runOperation {
-                reportPurchaseFinished(outcome = purchaseOutcome(result.responseCode, purchases.orEmpty()))
+                reportPurchaseFinished(result = purchaseResult(result.responseCode, purchases.orEmpty()))
                 when (result.responseCode) {
                     BillingResponseCode.OK -> processPurchaseUpdates(purchases.orEmpty())
                     BillingResponseCode.USER_CANCELED -> clearLaunch()
@@ -256,8 +263,10 @@ class GooglePlaySubscriptionConnector(
                     // waits for this one's lock, so the report is in place before it runs.
                     pendingPurchaseReport = GooglePlayPurchaseReport(analyticsSurface = analyticsSurface, presentation = presentation)
                 } else {
+                    val finished = purchaseResult(result.responseCode, emptyList())
                     analytics.track(event = AnalyticsEvent.PurchaseFinished(
-                        outcome = purchaseOutcome(result.responseCode, emptyList()),
+                        outcome = finished.outcome,
+                        errorCode = finished.errorCode,
                         presentation = presentation,
                         screen = analyticsSurface
                     ))
@@ -453,11 +462,14 @@ class GooglePlaySubscriptionConnector(
         }
     }
 
-    private fun reportPurchaseFinished(outcome: AnalyticsPurchaseOutcome) {
+    private fun reportPurchaseFinished(result: GooglePlayPurchaseResult) {
         val report = pendingPurchaseReport ?: return
         pendingPurchaseReport = null
         analytics.track(event = AnalyticsEvent.PurchaseFinished(
-            outcome = outcome, presentation = report.presentation, screen = report.analyticsSurface
+            outcome = result.outcome,
+            errorCode = result.errorCode,
+            presentation = report.presentation,
+            screen = report.analyticsSurface
         ))
     }
 
@@ -529,16 +541,41 @@ class GooglePlaySubscriptionConnector(
     private suspend fun savePending(state: GooglePlayPendingState) = withContext(Dispatchers.IO) { pendingStore.save(state) }
 }
 
-private fun purchaseOutcome(responseCode: Int, purchases: List<Purchase>): AnalyticsPurchaseOutcome {
+private fun purchaseResult(responseCode: Int, purchases: List<Purchase>): GooglePlayPurchaseResult {
     val premiumStates = purchases
         .filter { purchase -> purchase.products.contains(googlePlayPremiumProductId) }
         .map { purchase -> purchase.purchaseState }
     return when {
-        responseCode == BillingResponseCode.USER_CANCELED -> AnalyticsPurchaseOutcome.CANCELLED
-        responseCode != BillingResponseCode.OK -> AnalyticsPurchaseOutcome.FAILED
-        premiumStates.contains(Purchase.PurchaseState.PURCHASED) -> AnalyticsPurchaseOutcome.COMPLETED
-        premiumStates.contains(Purchase.PurchaseState.PENDING) -> AnalyticsPurchaseOutcome.PENDING
-        else -> AnalyticsPurchaseOutcome.FAILED
+        responseCode == BillingResponseCode.USER_CANCELED -> GooglePlayPurchaseResult(AnalyticsPurchaseOutcome.CANCELLED, null)
+        responseCode != BillingResponseCode.OK -> GooglePlayPurchaseResult(
+            AnalyticsPurchaseOutcome.FAILED,
+            AnalyticsPurchaseErrorCode(AnalyticsPurchaseErrorSource.PLAY, billingResponseCodeName(responseCode))
+        )
+        premiumStates.contains(Purchase.PurchaseState.PURCHASED) -> GooglePlayPurchaseResult(AnalyticsPurchaseOutcome.COMPLETED, null)
+        premiumStates.contains(Purchase.PurchaseState.PENDING) -> GooglePlayPurchaseResult(AnalyticsPurchaseOutcome.PENDING, null)
+        else -> GooglePlayPurchaseResult(
+            AnalyticsPurchaseOutcome.FAILED,
+            AnalyticsPurchaseErrorCode(AnalyticsPurchaseErrorSource.APP, "no_premium_purchase")
+        )
+    }
+}
+
+/** The BillingResponseCode constant name; a code this library version does not name stays an integer. */
+private fun billingResponseCodeName(responseCode: Int): String {
+    return when (responseCode) {
+        BillingResponseCode.FEATURE_NOT_SUPPORTED -> "FEATURE_NOT_SUPPORTED"
+        BillingResponseCode.SERVICE_DISCONNECTED -> "SERVICE_DISCONNECTED"
+        BillingResponseCode.OK -> "OK"
+        BillingResponseCode.USER_CANCELED -> "USER_CANCELED"
+        BillingResponseCode.SERVICE_UNAVAILABLE -> "SERVICE_UNAVAILABLE"
+        BillingResponseCode.BILLING_UNAVAILABLE -> "BILLING_UNAVAILABLE"
+        BillingResponseCode.ITEM_UNAVAILABLE -> "ITEM_UNAVAILABLE"
+        BillingResponseCode.DEVELOPER_ERROR -> "DEVELOPER_ERROR"
+        BillingResponseCode.ERROR -> "ERROR"
+        BillingResponseCode.ITEM_ALREADY_OWNED -> "ITEM_ALREADY_OWNED"
+        BillingResponseCode.ITEM_NOT_OWNED -> "ITEM_NOT_OWNED"
+        BillingResponseCode.NETWORK_ERROR -> "NETWORK_ERROR"
+        else -> responseCode.toString()
     }
 }
 

@@ -182,6 +182,7 @@ const productAnalyticsSubscriptionPeriods = ["monthly", "annual"] as const;
 // A store product id (`premium_monthly`, `premium`, `prod_...`) and an ISO 4217 currency code.
 const productAnalyticsStoreProductIdPattern = /^[A-Za-z0-9._-]{1,128}$/u;
 const productAnalyticsCurrencyPattern = /^[A-Z]{3}$/u;
+const productAnalyticsPurchaseErrorCodePattern = /^(storekit|play|stripe|app|nserror):[A-Za-z0-9_.-]{1,96}$/u;
 
 const productAnalyticsPaywallEntryPoints = [
   "subscription_settings",
@@ -1646,6 +1647,11 @@ export const productAnalyticsEventCatalog = {
       outcome: { kind: "enum", values: ["completed", "cancelled", "failed", "pending"] },
       presentation_id: { kind: "string", pattern: productAnalyticsUuidPattern, optional: true },
       entry_point: { kind: "enum", values: productAnalyticsPaywallEntryPoints, optional: true },
+      // Sent only with `failed`: `<source>:<code>`, the provider's own code verbatim after the prefix.
+      // `storekit` a StoreKit error, `play` a Play Billing response code constant name, `stripe` a
+      // Stripe error code, `app` our own client or API error code, `nserror` an unrecognized Apple
+      // error as `<domain>.<code>`. Grouping and normalization happen in queries, never in clients.
+      error_code: { kind: "string", pattern: productAnalyticsPurchaseErrorCodePattern, optional: true },
     },
   },
   // A store restore finishing, which only the iOS and Android apps offer.

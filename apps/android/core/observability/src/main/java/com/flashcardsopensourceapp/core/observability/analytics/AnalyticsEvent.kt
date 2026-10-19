@@ -358,6 +358,27 @@ enum class AnalyticsPurchaseOutcome(val wireValue: String) {
     PENDING(wireValue = "pending")
 }
 
+/** Narrower than the catalog: `storekit`, `stripe` and `nserror` are other clients' sources. */
+enum class AnalyticsPurchaseErrorSource(val wireValue: String) {
+    PLAY(wireValue = "play"),
+    APP(wireValue = "app")
+}
+
+/**
+ * The collector rejects the whole event when the code after the prefix breaks
+ * `[A-Za-z0-9_.-]{1,96}`, so the code is sanitized and capped rather than trusted.
+ */
+data class AnalyticsPurchaseErrorCode(
+    val source: AnalyticsPurchaseErrorSource,
+    val code: String
+) {
+    init {
+        require(code.isNotEmpty()) { "A purchase error code must not be empty." }
+    }
+
+    val wireValue: String = "${source.wireValue}:${code.replace(Regex("[^A-Za-z0-9_.-]"), "_").take(96)}"
+}
+
 enum class AnalyticsPurchaseRestoreOutcome(val wireValue: String) {
     RESTORED(wireValue = "restored"),
     NOTHING_TO_RESTORE(wireValue = "nothing_to_restore"),
@@ -926,12 +947,22 @@ sealed interface AnalyticsEvent {
 
     data class PurchaseFinished(
         val outcome: AnalyticsPurchaseOutcome,
+        val errorCode: AnalyticsPurchaseErrorCode?,
         val presentation: AnalyticsPaywallPresentation?,
         override val screen: AnalyticsSurface?
     ) : AnalyticsEvent {
+        init {
+            require((outcome == AnalyticsPurchaseOutcome.FAILED) == (errorCode != null)) {
+                "purchase_finished carries an error code exactly when the outcome is failed, got $outcome with $errorCode."
+            }
+        }
+
         override val eventName: String = "purchase_finished"
         override val properties: Map<String, AnalyticsPropertyValue> = buildMap {
             put("outcome", AnalyticsPropertyValue.Text(value = outcome.wireValue))
+            if (errorCode != null) {
+                put("error_code", AnalyticsPropertyValue.Text(value = errorCode.wireValue))
+            }
             if (presentation != null) {
                 put("presentation_id", AnalyticsPropertyValue.Text(value = presentation.id))
                 put("entry_point", AnalyticsPropertyValue.Text(value = presentation.entryPoint.wireValue))

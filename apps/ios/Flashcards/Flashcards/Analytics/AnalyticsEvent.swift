@@ -519,11 +519,60 @@ enum AnalyticsPurchaseOfferType: String, Sendable, Equatable {
     case standard
 }
 
-enum AnalyticsPurchaseOutcome: String, Sendable, Equatable {
+/// Only `failed` carries a code, because the catalog admits `error_code` with no other outcome.
+enum AnalyticsPurchaseOutcome: Sendable, Equatable {
     case completed
     case cancelled
-    case failed
+    case failed(errorCode: AnalyticsPurchaseErrorCode)
     case pending
+
+    var catalogValue: String {
+        switch self {
+        case .completed:
+            return "completed"
+        case .cancelled:
+            return "cancelled"
+        case .failed:
+            return "failed"
+        case .pending:
+            return "pending"
+        }
+    }
+}
+
+/**
+ * Mirrors `productAnalyticsPurchaseErrorCodePattern`: `^(storekit|play|stripe|app|nserror):[A-Za-z0-9_.-]{1,96}$`.
+ * The initializer is the only way to build one and always produces a match, because a code outside
+ * the pattern makes the server reject the whole event.
+ */
+struct AnalyticsPurchaseErrorCode: Sendable, Equatable {
+    /// Only the sources this client produces.
+    enum Source: String, Sendable, Equatable {
+        case storekit
+        case app
+        case nserror
+    }
+
+    let value: String
+
+    /// Keeps the first 96 scalars of `code` and replaces each one outside `[A-Za-z0-9_.-]` with `_`.
+    init(source: Source, code: String) {
+        precondition(code.isEmpty == false, "A purchase error code needs at least one character after its source prefix.")
+        var sanitized = String.UnicodeScalarView()
+        for scalar in code.unicodeScalars.prefix(96) {
+            sanitized.append(isAnalyticsPurchaseErrorCodeScalar(scalar: scalar) ? scalar : "_")
+        }
+        self.value = "\(source.rawValue):\(String(sanitized))"
+    }
+}
+
+private func isAnalyticsPurchaseErrorCodeScalar(scalar: Unicode.Scalar) -> Bool {
+    switch scalar {
+    case "A"..."Z", "a"..."z", "0"..."9", "_", ".", "-":
+        return true
+    default:
+        return false
+    }
 }
 
 enum AnalyticsPurchaseRestoreOutcome: String, Sendable, Equatable {
@@ -810,7 +859,10 @@ extension AnalyticsEvent {
         case .purchaseStarted(let offerType, let presentation):
             return (presentation?.attributionProperties ?? [:]).merging(["offer_type": .string(offerType.rawValue)]) { _, value in value }
         case .purchaseFinished(let outcome, let presentation):
-            return (presentation?.attributionProperties ?? [:]).merging(["outcome": .string(outcome.rawValue)]) { _, value in value }
+            var properties = presentation?.attributionProperties ?? [:]
+            properties["outcome"] = .string(outcome.catalogValue)
+            if case .failed(let errorCode) = outcome { properties["error_code"] = .string(errorCode.value) }
+            return properties
         case .purchaseRestoreFinished(let outcome):
             return ["outcome": .string(outcome.rawValue)]
         case .subscriptionManagementOpened(let destination):
