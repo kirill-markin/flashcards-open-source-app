@@ -30,12 +30,13 @@ export const whoSawUsBreakdownDimensions = [
 export type WhoSawUsBreakdownDimension = (typeof whoSawUsBreakdownDimensions)[number];
 
 /**
- * The `web` series' visitors, each under the value `valueSqlOf` reads off their first page view in the
- * unit the series counts them once in: the bucket for an identified visitor, the hash day for a
- * cookieless one. So a bar sums to the series' bar.
+ * The first page view of each `web` series visitor in the unit the series counts them once in: the
+ * bucket for an identified visitor, the hash day for a cookieless one. Two CTEs,
+ * `identified_first_views` and `hashed_first_views`, each a `bucket_date` plus the columns
+ * `columnsSqlOf` selects off the view.
  */
-function buildSiteMeasuredValuesSql(
-  valueSqlOf: (rowAlias: string) => string,
+export function buildSiteFirstViewsCtesSql(
+  columnsSqlOf: (rowAlias: string) => string,
   range: AnalyticsDateRange,
   period: ReportPeriod,
 ): string {
@@ -44,18 +45,35 @@ function buildSiteMeasuredValuesSql(
   return `identified_first_views AS (
   SELECT DISTINCT ON (${identifiedBucketSql}, site_view.actor_id)
     ${identifiedBucketSql} AS bucket_date,
-    ${buildBreakdownValueSql(valueSqlOf("site_view"))} AS dimension_value
+    ${columnsSqlOf("site_view")}
   FROM analytics.product_events_resolved AS site_view
   WHERE ${buildIdentifiedSiteViewFilterSql("site_view", range)}
   ORDER BY ${identifiedBucketSql}, site_view.actor_id, site_view.occurred_at, site_view.event_id
 ), hashed_first_views AS (
   SELECT DISTINCT ON (${hashedVisitorDaySql}, hashed_view.daily_visitor_hash)
     ${buildReportBucketSql(period, hashedVisitorDaySql)} AS bucket_date,
-    ${buildBreakdownValueSql(valueSqlOf("hashed_view"))} AS dimension_value
+    ${columnsSqlOf("hashed_view")}
   FROM analytics.product_events_resolved AS hashed_view
   WHERE ${buildHashedSiteViewFilterSql("hashed_view", range)}
   ORDER BY ${hashedVisitorDaySql}, hashed_view.daily_visitor_hash, hashed_view.occurred_at, hashed_view.event_id
-), measured_values AS (
+)`;
+}
+
+// Shared so the landing page path charts split exactly the segments of `web-landing-page-type`.
+export function buildSitePageKindSql(rowAlias: string): string {
+  return `${rowAlias}.event_properties ->> 'page_kind'`;
+}
+
+/**
+ * The `web` series' visitors, each under the value `valueSqlOf` reads off their first page view, so
+ * a bar sums to the series' bar.
+ */
+function buildSiteMeasuredValuesSql(
+  valueSqlOf: (rowAlias: string) => string,
+  range: AnalyticsDateRange,
+  period: ReportPeriod,
+): string {
+  return `${buildSiteFirstViewsCtesSql((rowAlias) => `${buildBreakdownValueSql(valueSqlOf(rowAlias))} AS dimension_value`, range, period)}, measured_values AS (
   SELECT bucket_date, dimension_value, 1 AS value_count FROM identified_first_views
   UNION ALL
   SELECT bucket_date, dimension_value, 1 AS value_count FROM hashed_first_views
@@ -92,7 +110,7 @@ function buildMeasuredValuesSql(
     case "web-country":
       return buildSiteMeasuredValuesSql((rowAlias) => `${rowAlias}.country`, range, period);
     case "web-landing-page-type":
-      return buildSiteMeasuredValuesSql((rowAlias) => `${rowAlias}.event_properties ->> 'page_kind'`, range, period);
+      return buildSiteMeasuredValuesSql(buildSitePageKindSql, range, period);
     case "app-store-source-type":
       return buildAppleMeasuredValuesSql("source_type", range, period);
     case "app-store-territory":
