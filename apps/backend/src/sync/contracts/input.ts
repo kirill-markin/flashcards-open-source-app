@@ -30,6 +30,10 @@ const deviceTypeSchema = z.enum(productAnalyticsDeviceTypes).nullable().optional
 // rather than here: nothing clears it once stored
 // (db/migrations/0141_sync_installation_automation_marker.sql).
 const automationDeclarationSchema = z.boolean().optional();
+// `true` claims the installation was not installed from the public store (TestFlight, App Review or a
+// developer build); absent and `false` mean nothing, exactly as for the automation declaration above
+// (db/migrations/0222_sync_installation_test_distribution_marker.sql).
+const testDistributionDeclarationSchema = z.boolean().optional();
 const isoTimestampStringSchema = z.string().datetime();
 const cardTypeSchema = z.string();
 const mediaAssetMimeTypePattern = /^[a-z0-9][a-z0-9!#$&^_.+-]{0,126}\/[a-z0-9][a-z0-9!#$&^_.+-]{0,126}$/i;
@@ -374,6 +378,7 @@ const syncPushInputBaseSchema = z.object({
   osName: osNameSchema,
   deviceType: deviceTypeSchema,
   isAutomation: automationDeclarationSchema,
+  isTestDistribution: testDistributionDeclarationSchema,
   operations: z.array(syncPushOperationSchema),
 });
 
@@ -411,6 +416,7 @@ const syncPullInputSchema = z.object({
   osName: osNameSchema,
   deviceType: deviceTypeSchema,
   isAutomation: automationDeclarationSchema,
+  isTestDistribution: testDistributionDeclarationSchema,
   afterHotChangeId: z.number().int().nonnegative(),
   limit: z.number().int().positive().max(syncIncrementalPullLimit),
   includeMediaAssets: z.boolean().optional(),
@@ -424,6 +430,7 @@ const syncBootstrapPullInputSchema = z.object({
   osName: osNameSchema,
   deviceType: deviceTypeSchema,
   isAutomation: automationDeclarationSchema,
+  isTestDistribution: testDistributionDeclarationSchema,
   cursor: z.string().min(1).nullable(),
   limit: z.number().int().positive().max(syncBootstrapPullLimit),
   includeMediaAssets: z.boolean().optional(),
@@ -437,6 +444,7 @@ const syncBootstrapPushInputSchema = z.object({
   osName: osNameSchema,
   deviceType: deviceTypeSchema,
   isAutomation: automationDeclarationSchema,
+  isTestDistribution: testDistributionDeclarationSchema,
   includeMediaAssets: z.boolean().optional(),
   entries: z.array(
     z.discriminatedUnion("entityType", [
@@ -475,6 +483,7 @@ const syncReviewHistoryPullInputSchema = z.object({
   osName: osNameSchema,
   deviceType: deviceTypeSchema,
   isAutomation: automationDeclarationSchema,
+  isTestDistribution: testDistributionDeclarationSchema,
   afterReviewSequenceId: z.number().int().nonnegative(),
   limit: z.number().int().positive().max(syncReviewHistoryPullLimit),
 });
@@ -486,6 +495,7 @@ const syncReviewHistoryImportInputSchema = z.object({
   osName: osNameSchema,
   deviceType: deviceTypeSchema,
   isAutomation: automationDeclarationSchema,
+  isTestDistribution: testDistributionDeclarationSchema,
   reviewEvents: z.array(reviewEventImportPayloadSchema),
 });
 

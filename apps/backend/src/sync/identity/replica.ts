@@ -68,6 +68,9 @@ type EnsureClientWorkspaceReplicaParams = Readonly<{
   // the stored marker is never cleared, so a request that says nothing leaves an earlier claim
   // standing.
   isAutomation: boolean;
+  // The installation was not installed from the public store. The same one-way claim as
+  // isAutomation, read only by reports, so no fact this request produces depends on it.
+  isTestDistribution: boolean;
 }>;
 
 type EnsureSystemWorkspaceReplicaParams = Readonly<{
@@ -202,6 +205,33 @@ async function markInstallationAutomationInExecutor(
   if (result.rows[0] === undefined) {
     throw new Error(
       `sync.installations row ${installationId} was not reachable for the automation marker`,
+    );
+  }
+}
+
+/**
+ * Stores the client's own declaration that this installation is a test distribution. Like the
+ * automation marker it can only be set, never cleared, and it runs after the claim for the same
+ * reachability reason. The claim does not read this marker back because no fact the request
+ * produces depends on it, so a declaring request always writes; only test builds declare it.
+ */
+async function markInstallationTestDistributionInExecutor(
+  executor: DatabaseExecutor,
+  installationId: string,
+): Promise<void> {
+  const result = await executor.query<MarkedInstallationRow>(
+    [
+      "UPDATE sync.installations",
+      "SET is_test_distribution = TRUE",
+      "WHERE installation_id = $1",
+      "RETURNING installation_id",
+    ].join(" "),
+    [installationId],
+  );
+
+  if (result.rows[0] === undefined) {
+    throw new Error(
+      `sync.installations row ${installationId} was not reachable for the test-distribution marker`,
     );
   }
 }
@@ -371,6 +401,9 @@ export async function ensureWorkspaceReplicaInExecutor(
     params.deviceType,
     params.isAutomation,
   );
+  if (params.isTestDistribution) {
+    await markInstallationTestDistributionInExecutor(executor, params.installationId);
+  }
 
   const replicaId = toUuidFromSeed(`${params.workspaceId}:${params.installationId}`);
   return upsertWorkspaceReplicaInExecutor(

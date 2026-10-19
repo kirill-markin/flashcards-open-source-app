@@ -68,6 +68,33 @@ export const automationInstallationActorIdsSqlLines: ReadonlyArray<string> = [
   "  )",
 ];
 
+// Unlike the automation arm, a signed-in person on a test build is dropped too: a product decision.
+// sync.installations.user_id names only the current owner, and nothing suppresses a test build's
+// activity at write time, so every earlier owner is found through the installation's per-workspace
+// replicas, which a later claim never reassigns.
+export const testDistributionInstallationActorIdsSqlLines: ReadonlyArray<string> = [
+  "SELECT pg_catalog.lower(test_distribution_installations.user_id)",
+  "FROM sync.installations AS test_distribution_installations",
+  "WHERE test_distribution_installations.is_test_distribution",
+  "UNION ALL",
+  "SELECT pg_catalog.lower(test_distribution_replicas.user_id)",
+  "FROM sync.workspace_replicas AS test_distribution_replicas",
+  "JOIN sync.installations AS test_distribution_replica_installations",
+  "  ON test_distribution_replica_installations.installation_id = test_distribution_replicas.installation_id",
+  "WHERE test_distribution_replica_installations.is_test_distribution",
+];
+
+// `entitlement_changed` is the only billing fact that carries `environment`
+// (apps/backend/src/productAnalytics/catalog.ts).
+export const sandboxBillingActorIdsSqlLines: ReadonlyArray<string> = [
+  "SELECT DISTINCT sandbox_billing_events.actor_id::text",
+  "FROM analytics.product_events_resolved AS sandbox_billing_events",
+  "WHERE sandbox_billing_events.event_name = 'entitlement_changed'",
+  "  AND sandbox_billing_events.origin = 'server'",
+  "  AND sandbox_billing_events.event_properties ->> 'environment' = 'sandbox'",
+  "  AND sandbox_billing_events.actor_id IS NOT NULL",
+];
+
 export function buildExcludedActorSqlLines(
   actorIdSqlExpression: string,
 ): ReadonlyArray<string> {
@@ -89,6 +116,10 @@ export function buildExcludedActorSqlLines(
     ...indentSqlLines(automatedActorIdsSqlLines, "      "),
     "      UNION ALL",
     ...indentSqlLines(automationInstallationActorIdsSqlLines, "      "),
+    "      UNION ALL",
+    ...indentSqlLines(testDistributionInstallationActorIdsSqlLines, "      "),
+    "      UNION ALL",
+    ...indentSqlLines(sandboxBillingActorIdsSqlLines, "      "),
     "      UNION ALL",
     ...indentSqlLines(probableAndroidBurstActorIdsSqlLines, "      "),
     "    )",

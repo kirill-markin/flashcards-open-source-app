@@ -374,6 +374,7 @@ export async function processSyncPush(
         osName: input.osName ?? null,
         deviceType: input.deviceType ?? null,
         isAutomation: input.isAutomation === true,
+        isTestDistribution: input.isTestDistribution === true,
       });
 
       return processSyncPushOperationsInExecutor(executor, workspaceId, replicaId, input.operations);
