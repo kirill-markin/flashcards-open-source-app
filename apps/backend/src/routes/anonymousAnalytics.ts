@@ -200,10 +200,9 @@ async function runAnonymousEventLookup<Value>(
     //
     // Unlike the other callers, this marks a caught instance rather than a freshly constructed one,
     // so the mark is a property of that instance and not of this request, and a caught instance can
-    // be shared: the rejected `pendingDownload` in ../geolocation/country.ts and
-    // ../geolocation/asn.ts hands the same one to every awaiter, and a non-`Error` rejection is
-    // wrapped once and cached for the container's life
-    // (../observability/sentry/errorNormalization.ts). Nothing here can be relied on to keep the
+    // be shared: the rejected `pendingDownload` in ../geolocation/databaseLoader.ts hands the same
+    // one to every awaiter, and a non-`Error` rejection is wrapped once and cached for the
+    // container's life (../observability/sentry/errorNormalization.ts). Nothing here can be relied on to keep the
     // instance private to this request, so anything else that ends up holding it is treated as
     // already reported too.
     throw markBackendExceptionWrapperAsReported(normalizeCaughtError(error));

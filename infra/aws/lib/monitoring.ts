@@ -142,11 +142,11 @@ const geoLiteCountryDatabaseLoadedAction: string = "geolite_country_database_loa
 // below are what separate a storage blip from a database that is not coming back.
 const geoLiteCountryLookupFailurePeriodMinutes = 15;
 const geoLiteCountryLookupFailureEvaluationPeriods = 2;
-// Equal to `databaseRefreshIntervalMs` in apps/backend/src/geolocation/country.ts, which is not
-// aligned to clock-hour boundaries: a container that loaded mid-period serves warm lookups for the
-// rest of its TTL and contributes nothing to the period it spills into. A traffic-serving container
-// therefore guarantees a datapoint only across two consecutive periods, which is why the alarm
-// below ignores missing data rather than reading it as a verdict.
+// Equal to `databaseRefreshIntervalMs` in apps/backend/src/geolocation/databaseLoader.ts, which is
+// not aligned to clock-hour boundaries: a container that loaded mid-period serves warm lookups for
+// the rest of its TTL and contributes nothing to the period it spills into. A traffic-serving
+// container therefore guarantees a datapoint only across two consecutive periods, which is why the
+// alarm below ignores missing data rather than reading it as a verdict.
 const geoLiteCountryDatabaseAgePeriodHours = 1;
 // Four missed daily refreshes, measured from the S3 write rather than the MaxMind build date. Both
 // walls of the usable band are close. Above: `geoLiteCountryObjectExpirationDays` in
