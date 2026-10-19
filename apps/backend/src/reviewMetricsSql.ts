@@ -39,7 +39,7 @@ export const probableAndroidBurstActorIdsSqlLines: ReadonlyArray<string> = [
   "FROM analytics.probable_android_burst_actors AS probable_android_bursts",
 ];
 
-// Refreshed hourly; see db/migrations/0223_probable_scraper_fleet_visitors.sql.
+// Refreshed hourly; see db/migrations/0225_probable_scraper_fleet_facts_rule.sql.
 export const probableScraperFleetActorIdsSqlLines: ReadonlyArray<string> = [
   "SELECT probable_scraper_fleet.subject_id",
   "FROM analytics.probable_scraper_fleet_visitors AS probable_scraper_fleet",
