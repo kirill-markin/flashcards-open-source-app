@@ -139,6 +139,7 @@ export async function processSyncReviewHistoryPull(
       osName: input.osName ?? null,
       deviceType: input.deviceType ?? null,
       isAutomation: input.isAutomation === true,
+      isTestDistribution: input.isTestDistribution === true,
     });
 
     const result = await executor.query<ReviewHistoryRow>(
@@ -190,6 +191,7 @@ export async function processSyncReviewHistoryImport(
         osName: input.osName ?? null,
         deviceType: input.deviceType ?? null,
         isAutomation: input.isAutomation === true,
+        isTestDistribution: input.isTestDistribution === true,
       });
 
       return processSyncReviewHistoryImportInExecutor(executor, workspaceId, replicaId, input);

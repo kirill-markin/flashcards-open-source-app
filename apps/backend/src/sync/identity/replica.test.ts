@@ -141,6 +141,7 @@ test("ensureWorkspaceReplicaInExecutor accepts inserted, refreshed, and reassign
       osName: null,
       deviceType: null,
       isAutomation: false,
+      isTestDistribution: false,
     });
 
     assert.equal(recordedQueries.length, 5);
@@ -174,6 +175,7 @@ test("ensureWorkspaceReplicaInExecutor raises platform mismatch without touching
       osName: null,
       deviceType: null,
       isAutomation: false,
+      isTestDistribution: false,
     }),
     (error: unknown): boolean => {
       assert.ok(error instanceof HttpError);
@@ -207,6 +209,7 @@ test("ensureWorkspaceReplicaInExecutor raises workspace not found before registe
       osName: null,
       deviceType: null,
       isAutomation: false,
+      isTestDistribution: false,
     }),
     (error: unknown): boolean => {
       assert.ok(error instanceof HttpError);
