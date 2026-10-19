@@ -106,7 +106,7 @@ func dueReviewPaywallTrigger(
     timeZone: TimeZone
 ) -> ReviewPaywallTrigger? {
     guard let entitlement, entitlement.tierRank < premiumTierRank,
-          entitlement.status == .none, entitlement.isTrial == false else { return nil }
+          entitlement.status == .noEntitlement, entitlement.isTrial == false else { return nil }
     guard let introLocalDate = state.introLocalDate else {
         return cumulativeReviews >= 3 ? .initial : nil
     }
