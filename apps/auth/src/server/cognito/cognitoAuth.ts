@@ -172,10 +172,11 @@ function getUserPoolId(): string {
 }
 
 function rethrowProvisioningError(error: unknown, operation: "AdminCreateUser" | "AdminGetUser"): never {
-  if (!(error instanceof CognitoIdentityProviderServiceException)) throw error;
+  // Without a real provider status the error stays unclassified rather than claiming a Cognito outage.
+  if (!(error instanceof CognitoIdentityProviderServiceException) || error.$metadata.httpStatusCode === undefined) throw error;
   throw createCognitoTypedError({
     operation,
-    providerStatusCode: error.$metadata.httpStatusCode ?? 500,
+    providerStatusCode: error.$metadata.httpStatusCode,
     cognitoType: error.name,
     reasonCode: "reasonCode" in error && typeof error.reasonCode === "string" ? error.reasonCode : null,
     message: error.message,

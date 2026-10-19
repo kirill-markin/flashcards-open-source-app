@@ -71,3 +71,8 @@ export function isCognitoInvalidEmailError(error: unknown): error is CognitoType
     && error.cognitoType === "InvalidParameterException"
     && error.message.trim().toLowerCase() === "invalid email address format.";
 }
+
+/** Cognito itself failed (HTTP 5xx), so the same request may succeed once it recovers. */
+export function isCognitoProviderOutage(error: unknown): error is CognitoTypedError {
+  return isCognitoTypedError(error) && error.providerStatusCode >= 500;
+}
