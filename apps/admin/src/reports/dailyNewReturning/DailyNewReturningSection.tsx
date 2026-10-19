@@ -8,11 +8,14 @@ import type { AdminAppConfig } from "../../config";
 import { ExplanationTip } from "../../explanations/ExplanationTip";
 import type { AnalyticsDateRange } from "../../filters/analyticsFilters";
 import {
+  LevelOneMetricDetailsButton,
+  type LevelOneMetricDetailsLink,
+} from "../levelOneMetrics/LevelOneMetricDetailsLink";
+import {
   findInProgressBucketKey,
   formatReportBucketTick,
   formatReportBucketTitle,
   reportPeriodAxisLabels,
-  reportPeriodColumnLabels,
   type ReportPeriod,
 } from "../levelOneMetrics/reportPeriod";
 import {
@@ -45,6 +48,7 @@ export function DailyNewReturningSection(props: Readonly<{
   source: DailyActivitySource;
   /** The `<li>` items of the (i) explanation. */
   explanation: ReactNode;
+  detailsLink: LevelOneMetricDetailsLink | null;
 }>): JSX.Element {
   const chartRef = useRef<SVGSVGElement | null>(null);
   const [state, setState] = useState<LoadState>({ status: "loading" });
@@ -85,7 +89,7 @@ export function DailyNewReturningSection(props: Readonly<{
   }, [state, bucketsByKey, props.title, tooltipHandlers]);
   return (
     <section className="dashboard-section" data-testid={props.testId}>
-      <header className="dashboard-section-header">
+      <header className="dashboard-section-header level-1-metric-section-header">
         <div className="explained-heading-row">
           <h2>{props.title}</h2>
           <ExplanationTip label={`What ${props.title} shows`} explanationId={props.explanationId}>
@@ -95,6 +99,7 @@ export function DailyNewReturningSection(props: Readonly<{
             </ul>
           </ExplanationTip>
         </div>
+        {props.detailsLink !== null ? <LevelOneMetricDetailsButton link={props.detailsLink} /> : null}
       </header>
       {state.status === "loading" ? <p className="report-state" aria-live="polite">Loading {props.title}…</p> : null}
       {state.status === "error" ? (
@@ -113,22 +118,6 @@ export function DailyNewReturningSection(props: Readonly<{
             {state.report.buckets.every((entry) => entry.newUsers === null) ? <p className="report-state">Retained source history does not cover this range.</p> : null}
             {state.report.buckets.some((entry) => entry.newUsers !== null) && state.report.buckets.every((entry) => (entry.newUsers ?? 0) + (entry.returningUsers ?? 0) === 0) ? <p className="report-state">No people in the covered days after exclusions.</p> : null}
             <div className="chart-scroll"><svg ref={chartRef} role="group" aria-label={`${props.title}: unique people per ${state.report.period}, new and returning`} /></div>
-            <details className="activity-chart-table">
-              <summary>Chart data and coverage</summary>
-              <p className="activity-coverage-note">
-                {state.report.historyFrom === null ? "No retained source history." : `Recorded source history starts ${state.report.historyFrom}. Today (${state.report.today} UTC) is in progress.`}
-              </p>
-              <div className="chart-scroll"><table>
-                <caption>Unique people per {state.report.period}, UTC</caption>
-                <thead><tr><th scope="col">{reportPeriodColumnLabels[state.report.period]}</th><th scope="col">New</th><th scope="col">Returning</th><th scope="col">Total / availability</th></tr></thead>
-                <tbody>{state.report.buckets.map((entry) => <tr key={entry.bucket.key}>
-                  <th scope="row">{formatReportBucketTitle(state.report.period, entry.bucket)}{entry.bucket.to === state.report.today ? " (in progress)" : ""}</th>
-                  <td>{entry.newUsers === null ? "—" : formatCount(entry.newUsers)}</td>
-                  <td>{entry.returningUsers === null ? "—" : formatCount(entry.returningUsers)}</td>
-                  <td>{entry.newUsers === null || entry.returningUsers === null ? describeBucket(entry, state.report) : formatCount(entry.newUsers + entry.returningUsers)}</td>
-                </tr>)}</tbody>
-              </table></div>
-            </details>
           </div>
         </section>
       ) : null}
