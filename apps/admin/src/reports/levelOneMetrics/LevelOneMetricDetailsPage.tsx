@@ -6,8 +6,12 @@ import { WhoCameBackBreakdownSections } from "../whoCameBack/WhoCameBackBreakdow
 import { WhoCameBackSection } from "../whoCameBack/WhoCameBackSection";
 import { WhoOpenedTheAppBreakdownSections } from "../whoOpenedTheApp/WhoOpenedTheAppBreakdownSections";
 import { WhoOpenedTheAppSection } from "../whoOpenedTheApp/WhoOpenedTheAppSection";
+import { WhoPaidUsBreakdownSections } from "../whoPaidUs/WhoPaidUsBreakdownSections";
+import { WhoPaidUsSection } from "../whoPaidUs/WhoPaidUsSection";
 import { WhoSawUsBreakdownSections } from "../whoSawUs/WhoSawUsBreakdownSections";
 import { WhoSawUsSection } from "../whoSawUs/WhoSawUsSection";
+import { WhoStudiedBreakdownSections } from "../whoStudied/WhoStudiedBreakdownSections";
+import { WhoStudiedSection } from "../whoStudied/WhoStudiedSection";
 import { LevelOneMetricsFrame } from "./LevelOneMetricsFrame";
 import type { LevelOneMetricsSelection } from "./levelOneMetricsUrl";
 import { useLevelOneMetricsSelection } from "./useLevelOneMetricsSelection";
@@ -15,7 +19,9 @@ import { useLevelOneMetricsSelection } from "./useLevelOneMetricsSelection";
 const levelOneMetricDetailLabels: Readonly<Record<LevelOneMetricDetail, string>> = {
   "who-saw-us": "Who saw us",
   "who-opened-the-app": "Who opened the app",
+  "who-studied": "Who studied",
   "who-came-back": "Who came back",
+  "who-paid-us": "Who paid us",
 };
 
 type LevelOneMetricDetailsPageProps = Readonly<{
@@ -69,6 +75,24 @@ function renderMetricSections(
           />
         </>
       );
+    case "who-studied":
+      return (
+        <>
+          <WhoStudiedSection
+            config={props.config}
+            dateRange={selection.dateRange}
+            period={selection.period}
+            detailsLink={null}
+            onTerminalAdminError={props.onTerminalAdminError}
+          />
+          <WhoStudiedBreakdownSections
+            config={props.config}
+            dateRange={selection.dateRange}
+            period={selection.period}
+            onTerminalAdminError={props.onTerminalAdminError}
+          />
+        </>
+      );
     case "who-came-back":
       return (
         <>
@@ -80,6 +104,24 @@ function renderMetricSections(
             onTerminalAdminError={props.onTerminalAdminError}
           />
           <WhoCameBackBreakdownSections
+            config={props.config}
+            dateRange={selection.dateRange}
+            period={selection.period}
+            onTerminalAdminError={props.onTerminalAdminError}
+          />
+        </>
+      );
+    case "who-paid-us":
+      return (
+        <>
+          <WhoPaidUsSection
+            config={props.config}
+            dateRange={selection.dateRange}
+            period={selection.period}
+            detailsLink={null}
+            onTerminalAdminError={props.onTerminalAdminError}
+          />
+          <WhoPaidUsBreakdownSections
             config={props.config}
             dateRange={selection.dateRange}
             period={selection.period}

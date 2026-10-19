@@ -1,8 +1,9 @@
 import type { AnalyticsDateRange } from "../../filters/analyticsFilters";
 import { buildExcludedActorSqlLines, buildTrustedActorRowsFilterSql } from "../../filters/filterSql";
 import { escapeSqlStringLiteral } from "../../sql";
+import { buildReportBucketSql, type ReportPeriod } from "./reportPeriod";
 
-const answeredReviewRowsFromSql = `FROM analytics.product_events_resolved AS events
+const reviewRowsFromSql = `FROM analytics.product_events_resolved AS events
   WHERE events.event_name = 'review_answered'
     AND events.actor_id IS NOT NULL
     AND ${buildTrustedActorRowsFilterSql("events.trust_level")}`;
@@ -15,7 +16,7 @@ export function buildMeaningfulActivityCtesSql(): string {
 ), recorded_activity AS MATERIALIZED (
   SELECT events.actor_id::text AS actor_id,
     (events.occurred_at AT TIME ZONE 'UTC')::date AS activity_date
-  ${answeredReviewRowsFromSql}
+  ${reviewRowsFromSql}
 ), activity_coverage AS (
   SELECT MIN(activity_date) AS history_from FROM recorded_activity
 ), included_actors AS MATERIALIZED (
@@ -35,6 +36,29 @@ ${buildExcludedActorSqlLines("recorded_activity.actor_id").join("\n")}
 }
 
 /**
+ * The `meaningful_last_reviews` CTE, composed after `buildMeaningfulActivityCtesSql`: one row per
+ * bucket of the range and person `meaningful_activity` counts in it, carrying that person's last
+ * `review_answered` in the bucket (latest `occurred_at`, then `event_id`), so a breakdown places each
+ * person once per bar.
+ */
+export function buildMeaningfulLastReviewsCteSql(period: ReportPeriod, range: AnalyticsDateRange): string {
+  return `meaningful_last_reviews AS (
+  SELECT DISTINCT ON (range_reviews.bucket_date, range_reviews.actor_id) range_reviews.*
+  FROM (
+    SELECT events.actor_id::text AS actor_id,
+      (events.occurred_at AT TIME ZONE 'UTC')::date AS activity_date,
+      ${buildReportBucketSql(period, "(events.occurred_at AT TIME ZONE 'UTC')::date")} AS bucket_date,
+      events.occurred_at, events.event_id, events.platform
+    ${reviewRowsFromSql}
+      AND events.occurred_at >= (${escapeSqlStringLiteral(range.from)}::date)::timestamp AT TIME ZONE 'UTC'
+      AND events.occurred_at < (${escapeSqlStringLiteral(range.to)}::date + 1)::timestamp AT TIME ZONE 'UTC'
+  ) AS range_reviews
+  JOIN meaningful_activity USING (actor_id, activity_date)
+  ORDER BY range_reviews.bucket_date, range_reviews.actor_id, range_reviews.occurred_at DESC, range_reviews.event_id DESC
+)`;
+}
+
+/**
  * The `actor_first_use_platform` CTE, composed after `buildMeaningfulActivityCtesSql`: for each person
  * whose first use falls in `range`, the `platform` of the answered review that is that first use
  * (earliest `occurred_at`, then `event_id`).
@@ -44,7 +68,7 @@ export function buildActorFirstUsePlatformCteSql(range: AnalyticsDateRange): str
   SELECT DISTINCT ON (range_reviews.actor_id) range_reviews.actor_id, range_reviews.platform
   FROM (
     SELECT events.actor_id::text AS actor_id, events.occurred_at, events.event_id, events.platform
-    ${answeredReviewRowsFromSql}
+    ${reviewRowsFromSql}
       AND events.occurred_at >= (${escapeSqlStringLiteral(range.from)}::date)::timestamp AT TIME ZONE 'UTC'
       AND events.occurred_at < (${escapeSqlStringLiteral(range.to)}::date + 1)::timestamp AT TIME ZONE 'UTC'
   ) AS range_reviews
