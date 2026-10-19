@@ -52,7 +52,7 @@ export function todayUtcCalendarDate(now: Date): string {
   return formatCalendarDate(now);
 }
 
-const defaultReportRangeLookbackDays = 30;
+export const defaultReportRangeLookbackDays = 30;
 
 /** `to` back `lookbackDays` days, both ends inclusive. */
 export function buildLookbackReportRangeEndingOn(

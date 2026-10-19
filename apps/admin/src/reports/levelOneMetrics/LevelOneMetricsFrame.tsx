@@ -47,6 +47,7 @@ export function LevelOneMetricsFrame(
         catalogSourceOptions={noOptions}
         catalogDeviceCategoryOptions={noOptions}
         catalogClickBrowserLanguageOptions={noOptions}
+        areOptionListsLoading={false}
         isReportLoading={false}
         dateRangeError={selectionState.dateRangeError}
         userColorScale={noUserColorScale}

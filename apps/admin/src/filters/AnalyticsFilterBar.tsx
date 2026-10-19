@@ -70,6 +70,17 @@ const filterValueSwatchColor = "var(--accent-strong)";
 const optionSummaryValueLimit = 3;
 // Above this many values an option list stops being scannable in a popover and is searched instead.
 const searchableFilterOptionCount = 15;
+// The fields whose values come from the caller's option lists rather than from a closed set.
+const optionListFields: ReadonlySet<AnalyticsFilterField> = new Set<AnalyticsFilterField>([
+  "users",
+  "connectionCountries",
+  "appUiLanguages",
+  "installedDecks",
+  "catalogPlacements",
+  "catalogSources",
+  "catalogDeviceCategories",
+  "catalogClickBrowserLanguages",
+]);
 
 type AnalyticsFilterBarProps = Readonly<{
   /** Chooses the wording of each field; the fields themselves are `fields`. */
@@ -119,6 +130,8 @@ type AnalyticsFilterBarProps = Readonly<{
   catalogSourceOptions: ReadonlyArray<CatalogInstallSource>;
   catalogDeviceCategoryOptions: ReadonlyArray<CatalogInstallDeviceCategory>;
   catalogClickBrowserLanguageOptions: ReadonlyArray<string>;
+  /** The option lists have not arrived yet, so every field that picks from them is disabled. */
+  areOptionListsLoading: boolean;
   userColorScale: UserColorScale;
   /** Whether the selection was accepted; a rejected one keeps its popover open on the error. */
   onFiltersChange: (filters: AnalyticsFilterState) => boolean;
@@ -1220,7 +1233,8 @@ export function AnalyticsFilterBar(props: AnalyticsFilterBarProps): JSX.Element 
           const popoverId = `${props.headingId}-${entry.field}-popover`;
           const explanationId = `${props.headingId}-${entry.field}-explanation`;
           const fieldLabel = getAnalyticsFilterFieldLabel(props.area, entry.field);
-          const isFieldDisabled = entry.field === "dateRange" && props.availableRange === null;
+          const isFieldDisabled = (entry.field === "dateRange" && props.availableRange === null)
+            || (props.areOptionListsLoading && optionListFields.has(entry.field));
 
           return (
             <div
