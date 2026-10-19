@@ -479,31 +479,59 @@ function parseFunnelAudienceMode(
   return funnelAudienceModes.find((mode) => mode === rawMode) ?? defaultMode;
 }
 
+/** The range the URL carries, `null` when either end is absent or malformed or they are reversed. */
+function readRequestedDateRange(searchParams: URLSearchParams): AnalyticsDateRange | null {
+  const from = readSingleParam(searchParams, dateRangeFromParamName);
+  const to = readSingleParam(searchParams, dateRangeToParamName);
+  if (from === undefined || to === undefined) {
+    return null;
+  }
+
+  if (isCalendarDate(from) === false || isCalendarDate(to) === false || from > to) {
+    return null;
+  }
+
+  return { from, to };
+}
+
+/**
+ * The range the URL asks for before the available range is known, so reports can start on it at
+ * once: `to` is clamped onto `todayUtc`, the last day any available range ends on, and `null` means
+ * the default. `parseDateRange` decides the final range once the available range arrives.
+ */
+export function parseProvisionalDateRange(
+  searchParams: URLSearchParams,
+  todayUtc: string,
+): AnalyticsDateRange | null {
+  const requestedRange = readRequestedDateRange(searchParams);
+  if (requestedRange === null) {
+    return null;
+  }
+
+  const clampedTo = requestedRange.to > todayUtc ? todayUtc : requestedRange.to;
+  return requestedRange.from > clampedTo ? null : { from: requestedRange.from, to: clampedTo };
+}
+
 // A range whose days reach past the available data is clamped onto it rather than refused, so a link
 // older than the retained window still opens, on the data that does exist. Refusing it would make an
 // old bookmark unusable, and passing it through would send an arbitrary window - a hand-typed
 // `1900-01-01` to `2099-12-31` - to the report query and to the day-by-day gap filling. A window that
 // does not overlap the available data at all has nothing to clamp onto and opens on the default.
 // Both ends are `YYYY-MM-DD` here, so comparing them as text is comparing them as dates: the typed
-// ends are checked by `isCalendarDate` just above, and the available ends by the
-// `assertValidDateRange` every available-range loader returns them through.
+// ends are checked by `isCalendarDate`, and the available ends by the `assertValidDateRange` every
+// available-range loader returns them through.
 export function parseDateRange(
   searchParams: URLSearchParams,
   availableRange: AnalyticsDateRange,
   defaultDateRange: AnalyticsDateRange,
 ): AnalyticsDateRange {
-  const from = readSingleParam(searchParams, dateRangeFromParamName);
-  const to = readSingleParam(searchParams, dateRangeToParamName);
-  if (from === undefined || to === undefined) {
+  const requestedRange = readRequestedDateRange(searchParams);
+  if (requestedRange === null) {
     return defaultDateRange;
   }
 
-  if (isCalendarDate(from) === false || isCalendarDate(to) === false || from > to) {
-    return defaultDateRange;
-  }
-
-  const clampedFrom = from < availableRange.from ? availableRange.from : from;
-  const clampedTo = to > availableRange.to ? availableRange.to : to;
+  const clampedFrom = requestedRange.from < availableRange.from ? availableRange.from : requestedRange.from;
+  const clampedTo = requestedRange.to > availableRange.to ? availableRange.to : requestedRange.to;
   if (clampedFrom > clampedTo) {
     return defaultDateRange;
   }
