@@ -1,0 +1,25 @@
+import type { AdminAppConfig } from "../../config";
+import type { AnalyticsDateRange } from "../../filters/analyticsFilters";
+import type { ReportBucket, ReportPeriod } from "./reportPeriod";
+
+export type BreakdownBucket = Readonly<{
+  bucket: ReportBucket;
+  /** Null when the bar is unavailable. */
+  countsByValue: ReadonlyMap<string, number> | null;
+}>;
+
+/** One Level 1 chart split by one dimension. */
+export type BreakdownReport = Readonly<{
+  generatedAtUtc: string;
+  period: ReportPeriod;
+  today: string;
+  /** Every value a bar holds, in stack order from the bottom. */
+  values: ReadonlyArray<string>;
+  buckets: ReadonlyArray<BreakdownBucket>;
+}>;
+
+export type BreakdownReportLoader = (
+  config: AdminAppConfig,
+  dateRange: AnalyticsDateRange,
+  period: ReportPeriod,
+) => Promise<BreakdownReport>;

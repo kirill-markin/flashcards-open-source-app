@@ -333,7 +333,7 @@ export function UsersPage(props: Readonly<{
         </div>
       </section>
 
-      <AdminNavigation activePage="users" onNavigate={props.onNavigate} />
+      <AdminNavigation activePage="users" levelOneMetricsSearch="" onNavigate={props.onNavigate} />
 
       <section data-testid="users-section">
         {loadState.status === "loading" ? <p className="report-state" aria-live="polite">Loading users…</p> : null}

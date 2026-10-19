@@ -118,7 +118,7 @@ export function UserPage(props: Readonly<{
         </div>
       </section>
 
-      <AdminNavigation activePage="users" onNavigate={props.onNavigate} />
+      <AdminNavigation activePage="users" levelOneMetricsSearch="" onNavigate={props.onNavigate} />
 
       <section className="dashboard-section" data-testid="user-page-section">
         {profile !== null && profile.header.mergedInto !== null ? (

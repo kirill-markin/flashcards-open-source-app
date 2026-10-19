@@ -15,6 +15,8 @@ const analyticsAreaTestIds: Readonly<Record<AnalyticsArea, string | undefined>> 
 /** The tab row shared by every analytics area and the Users and Events pages. */
 export function AdminNavigation(props: Readonly<{
   activePage: AdminNavigationPage;
+  /** Appended to the Level 1 metrics tab's link: a Details page's selection, or empty. */
+  levelOneMetricsSearch: string;
   onNavigate: (path: string) => void;
 }>): JSX.Element {
   return (
@@ -24,7 +26,7 @@ export function AdminNavigation(props: Readonly<{
           key={area}
           testId={analyticsAreaTestIds[area]}
           className={props.activePage === area ? "active" : ""}
-          path={getAnalyticsAreaPath(area)}
+          path={area === "level-1-metrics" ? `${getAnalyticsAreaPath(area)}${props.levelOneMetricsSearch}` : getAnalyticsAreaPath(area)}
           ariaCurrent={props.activePage === area ? "page" : undefined}
           onNavigate={props.onNavigate}
         >{analyticsAreaLabels[area]}</AdminLink>

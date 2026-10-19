@@ -34,7 +34,6 @@ export type NewReturningBucket = Readonly<{
 export type DailyNewReturningReport = Readonly<{
   generatedAtUtc: string;
   period: ReportPeriod;
-  historyFrom: string | null;
   today: string;
   buckets: ReadonlyArray<NewReturningBucket>;
 }>;
@@ -89,7 +88,6 @@ export async function loadDailyNewReturningReport(
   return {
     generatedAtUtc: response.executedAtUtc,
     period,
-    historyFrom: firstRow.history_from === null ? null : parseActivityDate(firstRow.history_from ?? null, reportLabel, "history_from"),
     today: parseActivityDate(firstRow.today ?? null, reportLabel, "today"),
     buckets: result.rows.map((row) => {
       const newUsers = parseActivityCount(row.new_users ?? null, reportLabel, "new_users");
