@@ -86,6 +86,7 @@ extension CloudSyncRunner {
                         osName: currentClientOsName(),
                         deviceType: currentClientDeviceType(),
                         isAutomation: AutomationRun.current.isAutomation,
+                        isTestDistribution: TestDistribution.isTestDistribution,
                         operations: outboxEntries.map { entry in
                             SyncOperationEnvelope(operation: entry.operation)
                         }

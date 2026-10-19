@@ -92,6 +92,7 @@ extension CloudSyncRunner {
                     osName: currentClientOsName(),
                     deviceType: currentClientDeviceType(),
                     isAutomation: AutomationRun.current.isAutomation,
+                    isTestDistribution: TestDistribution.isTestDistribution,
                     reviewEvents: Array(reviewEvents[startIndex..<endIndex])
                 )
             )
@@ -128,6 +129,7 @@ extension CloudSyncRunner {
                     osName: currentClientOsName(),
                     deviceType: currentClientDeviceType(),
                     isAutomation: AutomationRun.current.isAutomation,
+                    isTestDistribution: TestDistribution.isTestDistribution,
                     afterReviewSequenceId: afterReviewSequenceId,
                     limit: 200
                 )

@@ -25,6 +25,7 @@ final class CloudSyncContractsEncodingTests: XCTestCase {
             osName: "ios",
             deviceType: "phone",
             isAutomation: false,
+            isTestDistribution: false,
             includeMediaAssets: true,
             entries: [
                 SyncBootstrapEntryEnvelope(
@@ -75,6 +76,7 @@ final class CloudSyncContractsEncodingTests: XCTestCase {
             osName: "ios",
             deviceType: "phone",
             isAutomation: false,
+            isTestDistribution: false,
             includeMediaAssets: true,
             entries: [
                 SyncBootstrapEntryEnvelope(
@@ -209,6 +211,7 @@ final class CloudSyncContractsEncodingTests: XCTestCase {
             osName: "ios",
             deviceType: "phone",
             isAutomation: false,
+            isTestDistribution: false,
             afterHotChangeId: 42,
             limit: 200,
             includeMediaAssets: true
@@ -221,6 +224,7 @@ final class CloudSyncContractsEncodingTests: XCTestCase {
             osName: "ios",
             deviceType: "phone",
             isAutomation: false,
+            isTestDistribution: false,
             cursor: nil,
             limit: 200,
             includeMediaAssets: true
@@ -315,6 +319,7 @@ final class CloudSyncContractsEncodingTests: XCTestCase {
             osName: "ios",
             deviceType: "phone",
             isAutomation: false,
+            isTestDistribution: false,
             includeMediaAssets: true,
             entries: [
                 SyncBootstrapEntryEnvelope(
