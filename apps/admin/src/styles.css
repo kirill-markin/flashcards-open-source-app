@@ -1570,6 +1570,10 @@ h2 {
   cursor: not-allowed;
 }
 
+.landing-page-path-top-pages .funnel-group-table-shell {
+  margin-top: 24px;
+}
+
 /* A table of long UTC times, too wide for one grid cell. */
 .level-1-metrics-grid .payment-import-status {
   grid-column: 1 / -1;
