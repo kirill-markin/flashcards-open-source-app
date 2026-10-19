@@ -15,7 +15,9 @@ at all. Authenticated clients keep batching through `POST /v1/analytics/events`.
   [daily visitor hash](../db/migrations/0144_anonymous_client_daily_visitor_hash.sql) with its
   [current exclusion list](../db/migrations/0156_site_consent_daily_visitor_hash_exclusion.sql) and
   [code](../apps/backend/src/productAnalytics/dailyVisitorHash.ts), the
-  [stored country](../db/migrations/0158_anonymous_event_country.sql), and the
+  [stored country](../db/migrations/0158_anonymous_event_country.sql), the
+  [network and browser-version facts](../db/migrations/0224_anonymous_event_network_and_browser_facts.sql)
+  with their [parser](../apps/backend/src/productAnalytics/browserVersion.ts), and the
   [automated client marker](../db/migrations/0145_anonymous_client_automated_marker.sql) with its
   [code](../apps/backend/src/productAnalytics/automatedClient.ts)
 - [Route registration](../infra/aws/lib/gateways/api-gateway.ts)
@@ -47,7 +49,9 @@ verdict; the auth origin's sign-in funnel is that producer
   event that belongs to no actor, never a person.
 - Every row carries the `country` derived at ingest from the request's address, except an
   `identityFree` event and the auth origin's sign-in rows, which never carry one, and a request whose
-  address cannot be placed, which stores NULL.
+  address cannot be placed, which stores NULL. The same rows carry `network_asn`,
+  `user_agent_chrome_major` and `client_hint_chromium_major`, each NULL when its source cannot
+  supply it.
 - A report that excludes automated traffic excludes `automated_client IS TRUE`, never `IS FALSE`.
 
 ## Identity-free events

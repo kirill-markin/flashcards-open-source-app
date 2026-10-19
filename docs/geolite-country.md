@@ -2,11 +2,11 @@
 
 This product includes GeoLite data created by MaxMind, available from <https://www.maxmind.com>.
 
-The daily refresh and the release gate also publish `GeoLite2-ASN.mmdb` beside `GeoLite2-Country.mmdb` in the same bucket, with the same validation.
+The daily refresh and the release gate also publish `GeoLite2-ASN.mmdb` beside `GeoLite2-Country.mmdb` in the same bucket, with the same validation. The credential-free collector reads it through the [ASN reader](../apps/backend/src/geolocation/asn.ts) to store a network ASN on every row that carries a country.
 
 Implementation: [reader](../apps/backend/src/geolocation/country.ts), [freshness validation](../apps/backend/src/geolocation/database.ts), [private bucket](../infra/aws/lib/geolite-country.ts), [download script](../scripts/geolite/refresh-country.sh), [release gate](../scripts/geolite/ensure-country.sh), [daily workflow](../.github/workflows/geolite-country-refresh.yml), [country ingestion and retention](analytics-audience.md). Freshness follows [MaxMind's update requirements](https://dev.maxmind.com/geoip/geolite2-free-geolocation-data/#automate-database-downloads-and-updates).
 
-Every ingestion path treats a broken or expired database as an error and never as an unknown country; only an address the database cannot place stays unknown.
+Every ingestion path treats a broken or expired database as an error and never as an unknown country or network; only an address the database cannot place stays unknown.
 
 ## Release and daily refresh
 
@@ -16,7 +16,7 @@ Every ingestion path treats a broken or expired database as an error and never a
 
 ## Failed refresh or expired data
 
-Both GeoLite [alarms](../infra/aws/lib/monitoring.ts) route here, and each description states its impact; `GeoLiteCountryDatabaseStaleAlarm` fires while lookups still work and is the one that leaves time to act.
+Every GeoLite [alarm](../infra/aws/lib/monitoring.ts), Country and ASN, routes here, and each description states its impact; the two `DatabaseStale` alarms fire while lookups still work and are the ones that leave time to act.
 
 1. Open the failing refresh job and inspect its download, validation or upload error. Fix the existing GitHub MaxMind secrets when authentication fails.
 2. Run `GeoLite Country Refresh` on `main` with GitHub Actions **Run workflow**. A failed download or validation never overwrites the published object.

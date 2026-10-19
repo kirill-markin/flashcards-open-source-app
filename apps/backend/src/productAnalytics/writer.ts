@@ -96,7 +96,7 @@ const productAnalyticsInsertColumns: ReadonlyArray<ProductAnalyticsInsertColumn<
   },
 ];
 
-// The credential-free collector's columns: the shared list plus the two columns only that collector
+// The credential-free collector's columns: the shared list plus the columns only that collector
 // writes.
 const anonymousProductAnalyticsInsertColumns: ReadonlyArray<
   ProductAnalyticsInsertColumn<AnonymousProductAnalyticsEventRow>
@@ -104,6 +104,13 @@ const anonymousProductAnalyticsInsertColumns: ReadonlyArray<
   ...productAnalyticsInsertColumns,
   { columnName: "daily_visitor_hash", columnType: "text", readValue: (row) => row.dailyVisitorHash },
   { columnName: "automated_client", columnType: "boolean", readValue: (row) => row.automatedClient },
+  { columnName: "network_asn", columnType: "bigint", readValue: (row) => row.networkAsn },
+  { columnName: "user_agent_chrome_major", columnType: "smallint", readValue: (row) => row.userAgentChromeMajor },
+  {
+    columnName: "client_hint_chromium_major",
+    columnType: "smallint",
+    readValue: (row) => row.clientHintChromiumMajor,
+  },
 ];
 
 // unnest keeps the parameter count and the query plan stable no matter how many events a batch
@@ -518,8 +525,8 @@ export async function insertProductAnalyticsEvents(
   return runAnalyticsWrite((client) => insertEventRowsInTransaction(client, rows));
 }
 
-// The credential-free collector's write, the only one that stores daily_visitor_hash and
-// automated_client. Returns the number of rows stored, 0 for a redelivered event_id.
+// The credential-free collector's write, the only one that stores its server-derived columns.
+// Returns the number of rows stored, 0 for a redelivered event_id.
 export async function insertAnonymousProductAnalyticsEvent(
   row: AnonymousProductAnalyticsEventRow,
 ): Promise<number> {

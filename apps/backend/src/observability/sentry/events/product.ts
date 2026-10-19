@@ -511,6 +511,9 @@ export type ProductWarningEvent =
   }>> & Readonly<{ message: string }>)
   | (EventByAction<"anonymous_analytics_country_lookup_failed", Readonly<{
     errorMessage: string;
+  }>> & Readonly<{ message: string }>)
+  | (EventByAction<"anonymous_analytics_network_asn_lookup_failed", Readonly<{
+    errorMessage: string;
   }>> & Readonly<{ message: string }>);
 
 export type ProductExceptionEvent =

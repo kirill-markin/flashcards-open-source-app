@@ -36,7 +36,7 @@ for edition in "${editions[@]}"; do
       refresh_required=true
       ;;
     *)
-      echo "Published $edition validation failed; release stopped. Inspect the error above. AccessDenied is not treated as missing: verify the deploy role, and use GeoLite Country Refresh on main to restore an absent object." >&2
+      echo "Published $edition validation failed; release stopped. Inspect the error above; AccessDenied means the deploy role's IAM is wrong." >&2
       exit "$status"
       ;;
   esac
