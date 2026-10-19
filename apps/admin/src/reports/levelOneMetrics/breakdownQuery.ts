@@ -27,27 +27,36 @@ export function buildBreakdownValueSql(valueSql: string): string {
 }
 
 /**
+ * Two CTEs over the relation `sourceName` with a `dimension_value` column: `value_ranks`, and
+ * `seriesName`, every source row plus its `series_value` and `series_rank`. Values rank by
+ * `weightSql`, an aggregate over a value's source rows, ties by value; a value weighing nothing is
+ * dropped, the top values keep their own series, and every other value folds into Other, ranked last.
+ */
+export function buildSeriesRankCtesSql(sourceName: string, weightSql: string, seriesName: string): string {
+  return `value_ranks AS (
+  SELECT dimension_value, ROW_NUMBER() OVER (ORDER BY ${weightSql} DESC, dimension_value) AS value_rank
+  FROM ${sourceName}
+  GROUP BY dimension_value
+  HAVING ${weightSql} > 0
+), ${seriesName} AS (
+  SELECT ${sourceName}.*,
+    CASE WHEN value_ranks.value_rank <= ${keptValueCount} THEN ${sourceName}.dimension_value
+      ELSE ${escapeSqlStringLiteral(breakdownOtherValue)} END AS series_value,
+    LEAST(value_ranks.value_rank, ${keptValueCount + 1}) AS series_rank
+  FROM ${sourceName}
+  JOIN value_ranks USING (dimension_value)
+)`;
+}
+
+/**
  * The statement `parseBreakdownReport` reads, over the caller's CTEs: `report_buckets`,
  * `measured_buckets(bucket_date)`, the available bars, and `measured_values(bucket_date,
- * dimension_value, value_count)`, what an available bar counts under a value. The top values rank by
- * count summed over the range, ties by value; every other value is summed into Other, ranked last. A
- * value or Other that rounds to zero in a bar draws nothing there.
+ * dimension_value, value_count)`, what an available bar counts under a value. Values rank by count
+ * summed over the range through `buildSeriesRankCtesSql`. A value or Other that rounds to zero in a
+ * bar draws nothing there.
  */
 export function buildBreakdownSql(ctesSql: string): string {
-  return `WITH ${ctesSql}, value_ranks AS (
-  SELECT dimension_value, ROW_NUMBER() OVER (ORDER BY SUM(value_count) DESC, dimension_value) AS value_rank
-  FROM measured_values
-  GROUP BY dimension_value
-  HAVING SUM(value_count) > 0
-), series_counts AS (
-  SELECT measured_values.bucket_date,
-    CASE WHEN value_ranks.value_rank <= ${keptValueCount} THEN measured_values.dimension_value
-      ELSE ${escapeSqlStringLiteral(breakdownOtherValue)} END AS series_value,
-    LEAST(value_ranks.value_rank, ${keptValueCount + 1}) AS series_rank,
-    measured_values.value_count
-  FROM measured_values
-  JOIN value_ranks USING (dimension_value)
-), bucket_series AS (
+  return `WITH ${ctesSql}, ${buildSeriesRankCtesSql("measured_values", "SUM(value_count)", "series_counts")}, bucket_series AS (
   SELECT bucket_date, series_value, series_rank, ROUND(SUM(value_count))::bigint AS series_count
   FROM series_counts
   GROUP BY bucket_date, series_value, series_rank
@@ -81,20 +90,23 @@ function parseBreakdownRow(row: AdminQueryRow, reportLabel: string): BreakdownRo
   };
 }
 
-/** The series values in rank order, the bottom of the stack first. */
-function listSeriesValues(rows: ReadonlyArray<BreakdownRow>, reportLabel: string): ReadonlyArray<string> {
-  const valuesByRank = d3.rollup(
-    rows.flatMap((row) => (row.series === null ? [] : [row.series])),
-    (series) => new Set(series.map((entry) => entry.value)),
-    (entry) => entry.rank,
-  );
-  return [...valuesByRank.entries()].sort(([leftRank], [rightRank]) => leftRank - rightRank).map(([rank, values]) => {
-    const [value] = [...values];
-    if (values.size !== 1 || value === undefined) {
+/** The values of `buildSeriesRankCtesSql` rows in rank order, each value at exactly one rank. */
+export function listSeriesValues(
+  series: ReadonlyArray<Readonly<{ value: string; rank: number }>>,
+  reportLabel: string,
+): ReadonlyArray<string> {
+  const valuesByRank = d3.rollup(series, (entries) => new Set(entries.map((entry) => entry.value)), (entry) => entry.rank);
+  const values = [...valuesByRank.entries()].sort(([leftRank], [rightRank]) => leftRank - rightRank).map(([rank, rankValues]) => {
+    const [value] = [...rankValues];
+    if (rankValues.size !== 1 || value === undefined) {
       throw new Error(`${reportLabel} must name exactly one value at rank ${rank}.`);
     }
     return value;
   });
+  if (new Set(values).size !== values.length) {
+    throw new Error(`${reportLabel} returned one value at two ranks: ${values.join(", ")}.`);
+  }
+  return values;
 }
 
 /** Reads the response to a `buildBreakdownSql` statement, each bar's freshness from `freshnessRule`. */
@@ -110,10 +122,7 @@ export function parseBreakdownReport(
     throw new Error(`${reportLabel} must return one result set with at least one bucket.`);
   }
   const rows = result.rows.map((row) => parseBreakdownRow(row, reportLabel));
-  const values = listSeriesValues(rows, reportLabel);
-  if (new Set(values).size !== values.length) {
-    throw new Error(`${reportLabel} returned one value at two ranks: ${values.join(", ")}.`);
-  }
+  const values = listSeriesValues(rows.flatMap((row) => (row.series === null ? [] : [row.series])), reportLabel);
   const buckets: ReadonlyArray<BreakdownBucket> = [...d3.group(rows, (row) => row.bucket.key).values()].map((bucketRows) => {
     const [first] = bucketRows;
     if (first === undefined) throw new Error(`${reportLabel} grouped an empty bucket.`);

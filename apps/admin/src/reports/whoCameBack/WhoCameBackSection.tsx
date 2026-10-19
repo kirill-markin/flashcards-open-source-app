@@ -8,18 +8,20 @@ import type { AdminAppConfig } from "../../config";
 import { ExplanationTip } from "../../explanations/ExplanationTip";
 import type { AnalyticsDateRange } from "../../filters/analyticsFilters";
 import {
-  formatReportBucketLabel,
+  LevelOneMetricDetailsButton,
+  type LevelOneMetricDetailsLink,
+} from "../levelOneMetrics/LevelOneMetricDetailsLink";
+import {
   formatReportBucketTick,
   formatReportBucketTitle,
   reportPeriodAxisLabels,
-  reportPeriodColumnLabels,
   type ReportPeriod,
 } from "../levelOneMetrics/reportPeriod";
-import { formatCalendarDate, parseCalendarDate } from "../reportValues";
 import {
+  describeUnavailableRetention,
   loadWhoCameBackReport,
-  retentionMaturityDays,
   type RetentionCounts,
+  type RetentionWindow,
   type WhoCameBackCohort,
   type WhoCameBackReport,
 } from "./query";
@@ -31,20 +33,16 @@ type LoadState =
 const formatCount = d3.format(",d");
 const formatRate = d3.format(".1%");
 
-function describeRetention(counts: RetentionCounts | null, cohort: WhoCameBackCohort, report: WhoCameBackReport, offset: number): string {
+function describeRetention(counts: RetentionCounts | null, cohort: WhoCameBackCohort, report: WhoCameBackReport, window: RetentionWindow): string {
   if (counts !== null) return `${formatRate(counts.returned / counts.base)} (${formatCount(counts.returned)} / ${formatCount(counts.base)})`;
-  if (report.historyFrom === null || cohort.bucket.from < report.historyFrom) return "Unavailable: cohort predates retained source history.";
-  const matureDate = parseCalendarDate(cohort.bucket.to, "Who came back");
-  matureDate.setUTCDate(matureDate.getUTCDate() + offset);
-  const matureOn = formatCalendarDate(matureDate);
-  if (matureOn > report.latestCompleteDate) return `Unavailable: needs complete UTC days through ${matureOn}.`;
-  return "Unavailable: no users in this cohort.";
+  return describeUnavailableRetention(cohort.bucket, report.historyFrom, report.latestCompleteDate, window);
 }
 
 export function WhoCameBackSection(props: Readonly<{
   config: AdminAppConfig;
   dateRange: AnalyticsDateRange;
   period: ReportPeriod;
+  detailsLink: LevelOneMetricDetailsLink | null;
   onTerminalAdminError: (error: unknown, config: AdminAppConfig) => boolean;
 }>): JSX.Element {
   const chartRef = useRef<SVGSVGElement | null>(null);
@@ -73,7 +71,7 @@ export function WhoCameBackSection(props: Readonly<{
     };
     const getDescription = (key: string): string => {
       const cohort = getCohort(key);
-      return `Selected first-use dates: ${cohort.bucket.from} to ${cohort.bucket.to}. Recorded cohort: ${cohort.cohortUsers === null ? "unavailable" : formatCount(cohort.cohortUsers)}. W1: ${describeRetention(cohort.w1, cohort, state.report, retentionMaturityDays.w1)} W4: ${describeRetention(cohort.w4, cohort, state.report, retentionMaturityDays.w4)}`;
+      return `Selected first-use dates: ${cohort.bucket.from} to ${cohort.bucket.to}. Recorded cohort: ${cohort.cohortUsers === null ? "unavailable" : formatCount(cohort.cohortUsers)}. W1: ${describeRetention(cohort.w1, cohort, state.report, "w1")} W4: ${describeRetention(cohort.w4, cohort, state.report, "w4")}`;
     };
     renderWhoCameBackChart({
       svgElement: chartRef.current,
@@ -87,13 +85,13 @@ export function WhoCameBackSection(props: Readonly<{
   }, [state, cohortsByKey, tooltipHandlers]);
   return (
     <section className="dashboard-section" data-testid="who-came-back-section">
-      <header className="dashboard-section-header">
+      <header className="dashboard-section-header level-1-metric-section-header">
         <div className="explained-heading-row">
           <h2>Who came back</h2>
           <ExplanationTip label="What Who came back shows" explanationId="who-came-back-explanation">
             <ul>
               <li>Cohorts are the UTC days, Monday–Sunday weeks or months of each person’s first-ever answered review, with any rating, using the same review history and actor exclusions as Who studied. Cohorts and returns count answered reviews only.</li>
-              <li>W1 is any answered review on days 7–13 after each person’s first-use day; W4 is days 28–34. The tooltip and table show returned users / cohort users.</li>
+              <li>W1 is any answered review on days 7–13 after each person’s first-use day; W4 is days 28–34. The tooltip shows returned users / cohort users.</li>
               <li>Grouping changes only the cohort size; the W1 and W4 windows stay counted from each person’s own first day. A rate appears only after the cohort’s last selected first-use day has its full return window. Recent or uncovered cohorts are unavailable, never zero.</li>
               <li>The date range selects first-use dates; edge cohorts include only selected days. Returns after the selection end count through the latest complete UTC day.</li>
               <li>First use reads the full retained review history. Reviews never recorded in analytics cannot be reconstructed.</li>
@@ -101,6 +99,7 @@ export function WhoCameBackSection(props: Readonly<{
             </ul>
           </ExplanationTip>
         </div>
+        {props.detailsLink !== null ? <LevelOneMetricDetailsButton link={props.detailsLink} /> : null}
       </header>
       {state.status === "loading" ? <p className="report-state" aria-live="polite">Loading Who came back…</p> : null}
       {state.status === "error" ? (
@@ -120,20 +119,6 @@ export function WhoCameBackSection(props: Readonly<{
             </div>
             {state.report.cohorts.every((cohort) => cohort.w1 === null && cohort.w4 === null) ? <p className="report-state">No non-empty, fully matured covered cohort is available in this range.</p> : null}
             <div className="chart-scroll"><svg ref={chartRef} role="group" aria-label={`Who came back: W1 and W4 retention by first-use ${state.report.period}`} /></div>
-            <details className="activity-chart-table">
-              <summary>Chart data and coverage</summary>
-              <p className="activity-coverage-note">
-                {state.report.historyFrom === null ? "No retained review history." : `Recorded source history starts ${state.report.historyFrom}. Returns observed through ${state.report.latestCompleteDate} UTC.`}
-              </p>
-              <div className="chart-scroll"><table>
-                <caption>First-use cohort retention per {state.report.period}, UTC; returned / base counts</caption>
-                <thead><tr><th scope="col">{reportPeriodColumnLabels[state.report.period]}</th><th scope="col">Selected first-use dates</th><th scope="col">Recorded users</th><th scope="col">W1</th><th scope="col">W4</th></tr></thead>
-                <tbody>{state.report.cohorts.map((cohort) => <tr key={cohort.bucket.key}>
-                  <th scope="row">{formatReportBucketLabel(state.report.period, cohort.bucket.key)}{cohort.bucket.to > state.report.latestCompleteDate ? " (in progress)" : ""}</th><td>{cohort.bucket.from} – {cohort.bucket.to}</td><td>{cohort.cohortUsers === null ? "—" : formatCount(cohort.cohortUsers)}</td>
-                  <td>{describeRetention(cohort.w1, cohort, state.report, retentionMaturityDays.w1)}</td><td>{describeRetention(cohort.w4, cohort, state.report, retentionMaturityDays.w4)}</td>
-                </tr>)}</tbody>
-              </table></div>
-            </details>
           </div>
         </section>
       ) : null}
