@@ -12,9 +12,11 @@ import { assertIsString, assertValidDateRange, toInteger } from "../reportValues
 import {
   buildPaywallActorFiltersSql,
   buildPaywallAttributionCtes,
+  paywallFirstPaymentWindowDays,
+  paywallStepWindowDays,
 } from "./attributionQuery";
 
-export { paywallFunnelStartDate } from "./attributionQuery";
+export { paywallFirstPaymentWindowDays, paywallFunnelStartDate } from "./attributionQuery";
 
 export const paywallFunnelReportLabel = "Paywall funnel";
 
@@ -29,6 +31,7 @@ export type PaywallFunnelCounts = Readonly<{
   dismissedCount: number;
   unknownChoiceCount: number;
   maturingCount: number;
+  firstPaymentPendingCount: number;
 }>;
 
 export type PaywallFunnelGroup = PaywallFunnelCounts & Readonly<{ key: string }>;
@@ -74,44 +77,61 @@ export function buildPaywallFunnelSql(
   FROM first_paywalls AS candidate
   WHERE ${buildEventPlatformsFilterSql("COALESCE(candidate.platform, 'unattributed')", filters.eventPlatforms)}
     ${buildPaywallActorFiltersSql(filters, "candidate")}
+), person_flow AS MATERIALIZED (
+  -- A person who buys on a repeat paywall still converted: every presentation from the first one
+  -- in range counts, as long as the step falls within the step window of that first one.
+  SELECT cohort.actor_id AS cohort_actor_id, flow.*
+  FROM cohort
+  JOIN linked_flow AS flow ON flow.actor_id = cohort.actor_id
+    AND flow.shown_at >= cohort.shown_at
+    AND flow.occurred_at <= cohort.shown_at + INTERVAL '${paywallStepWindowDays} days'
 ), premium_choices AS MATERIALIZED (
+  -- Legacy clients sent no choice, and every path to their checkout request began at the Premium button.
   SELECT choice.shown_event_id, MIN(choice.occurred_at) AS premium_at
-  FROM linked_flow AS choice
-  JOIN cohort ON cohort.event_id = choice.shown_event_id
-  WHERE choice.event_name = 'paywall_choice' AND choice.outcome = 'premium'
+  FROM person_flow AS choice
+  WHERE (choice.event_name = 'paywall_choice' AND choice.outcome = 'premium')
+    OR (choice.event_name = 'purchase_started' AND choice.presentation_id IS NULL)
   GROUP BY choice.shown_event_id
 ), purchase_starts AS MATERIALIZED (
-  SELECT started.event_id, started.shown_event_id
-  FROM linked_flow AS started
+  SELECT started.event_id, started.cohort_actor_id
+  FROM person_flow AS started
   JOIN premium_choices AS choice ON choice.shown_event_id = started.shown_event_id
     AND started.occurred_at >= choice.premium_at
   WHERE started.event_name = 'purchase_started'
+), person_steps AS (
+  SELECT flow.cohort_actor_id,
+    bool_or(choice.shown_event_id IS NOT NULL) AS premium,
+    bool_or(flow.event_name = 'paywall_choice' AND flow.outcome = 'free') AS chose_free,
+    bool_or(flow.event_name = 'paywall_choice' AND flow.outcome = 'dismissed') AS dismissed
+  FROM person_flow AS flow
+  LEFT JOIN premium_choices AS choice ON choice.shown_event_id = flow.shown_event_id
+  GROUP BY flow.cohort_actor_id
 ), conversions AS (
-  SELECT fact.shown_event_id,
+  SELECT started.cohort_actor_id,
     bool_or(fact.event_name = 'trial_started') AS trial,
     bool_or(fact.event_name = 'purchase_completed') AS paid
   FROM credited_billing AS fact
   JOIN purchase_starts AS started ON started.event_id = fact.started_event_id
-  GROUP BY fact.shown_event_id
-), checkout_presentations AS (
-  SELECT DISTINCT shown_event_id FROM purchase_starts
+  GROUP BY started.cohort_actor_id
+), checkout_people AS (
+  SELECT DISTINCT cohort_actor_id FROM purchase_starts
 )
 SELECT ${groupKeySql} AS group_key,
   COUNT(*)::int AS paywall_shown_count,
-  COUNT(choice.premium_at)::int AS premium_count,
-  COUNT(started.shown_event_id)::int AS purchase_started_count,
+  (COUNT(*) FILTER (WHERE steps.premium))::int AS premium_count,
+  COUNT(started.cohort_actor_id)::int AS purchase_started_count,
   (COUNT(*) FILTER (WHERE converted.trial OR converted.paid))::int AS converted_count,
   (COUNT(*) FILTER (WHERE converted.trial))::int AS trial_count,
   (COUNT(*) FILTER (WHERE converted.paid))::int AS paid_count,
-  (COUNT(*) FILTER (WHERE flow.chose_free))::int AS free_count,
-  (COUNT(*) FILTER (WHERE flow.dismissed))::int AS dismissed_count,
-  (COUNT(*) FILTER (WHERE NOT COALESCE(flow.has_choice, false)))::int AS unknown_choice_count,
-  (COUNT(*) FILTER (WHERE cohort.shown_at + INTERVAL '7 days' > now()))::int AS maturing_count
+  (COUNT(*) FILTER (WHERE steps.chose_free))::int AS free_count,
+  (COUNT(*) FILTER (WHERE steps.dismissed))::int AS dismissed_count,
+  (COUNT(*) FILTER (WHERE NOT COALESCE(steps.premium OR steps.chose_free OR steps.dismissed, false)))::int AS unknown_choice_count,
+  (COUNT(*) FILTER (WHERE cohort.shown_at + INTERVAL '${paywallStepWindowDays} days' > now()))::int AS maturing_count,
+  (COUNT(*) FILTER (WHERE cohort.shown_at + INTERVAL '${paywallFirstPaymentWindowDays} days' > now()))::int AS first_payment_pending_count
 FROM cohort
-LEFT JOIN premium_choices AS choice ON choice.shown_event_id = cohort.event_id
-LEFT JOIN checkout_presentations AS started ON started.shown_event_id = cohort.event_id
-LEFT JOIN conversions AS converted ON converted.shown_event_id = cohort.event_id
-LEFT JOIN flow_outcomes AS flow ON flow.shown_event_id = cohort.event_id
+LEFT JOIN person_steps AS steps ON steps.cohort_actor_id = cohort.actor_id
+LEFT JOIN checkout_people AS started ON started.cohort_actor_id = cohort.actor_id
+LEFT JOIN conversions AS converted ON converted.cohort_actor_id = cohort.actor_id
 GROUP BY group_key`;
 }
 
@@ -148,6 +168,7 @@ export async function loadPaywallFunnelReport(
         dismissedCount: count("dismissed_count"),
         unknownChoiceCount: count("unknown_choice_count"),
         maturingCount: count("maturing_count"),
+        firstPaymentPendingCount: count("first_payment_pending_count"),
       };
     }),
   };
