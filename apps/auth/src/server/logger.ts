@@ -1,5 +1,6 @@
 import type { ProviderEmailEnrollmentOutcome } from "./social/providerEmailEnrollment.js";
 import type { AuthTraceId } from "./sentry.js";
+import type { CognitoOperation } from "./cognito/cognitoErrors.js";
 import type { AuthPurpose } from "./social/attemptContract.js";
 import type { IdentityProvider } from "./social/identityStore.js";
 import type { PrincipalEnrollmentResult, EnrolledProviderPrincipal } from "./social/principalEnrollment.js";
@@ -68,6 +69,9 @@ export type AuthLogEvent = Readonly<{
   errorCode?: string | null;
   errorClass?: string;
   errorMessage?: string;
+  operation?: CognitoOperation;
+  cognitoType?: string;
+  providerStatusCode?: number;
   reasonCategory?: string;
   mailboxReason?: Exclude<PrincipalEnrollmentResult, EnrolledProviderPrincipal>["reason"];
   provider?: IdentityProvider;

@@ -5,7 +5,7 @@ const countryLookupFailureSentryThrottleMs = 5 * 60 * 1000;
 
 /**
  * A reporter for a failed country lookup, which fails for a whole deployment at once rather than for
- * one caller: `assertCountryDatabaseFresh` throws on every lookup once the database is stale or the
+ * one caller: `assertGeoLiteDatabaseFresh` throws on every lookup once the database is stale or the
  * wrong type, and an S3 failure re-throws per request (./country.ts), so one broken database would
  * otherwise become one Sentry event per request of every visitor worldwide. CloudWatch keeps every
  * occurrence — that is what the log groups are queried for — and Sentry gets at most one per

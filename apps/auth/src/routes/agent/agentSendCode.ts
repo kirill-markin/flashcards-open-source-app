@@ -18,7 +18,8 @@ import {
 import { log, maskEmail } from "../../server/logger.js";
 import { getPublicAuthBaseUrl, getPublicApiBaseUrl } from "../../server/publicUrls.js";
 import { isTransientDatabaseError } from "../../server/databaseErrors.js";
-import { isCognitoInvalidEmailError } from "../../server/cognito/cognitoErrors.js";
+import { isCognitoInvalidEmailError, isCognitoProviderOutage } from "../../server/cognito/cognitoErrors.js";
+import { getCognitoOutageLogFields, reportCognitoProviderOutage } from "../../server/cognito/cognitoOutageReport.js";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const POST_EMAIL_DELIVERY_DB_FAILURE_INSTRUCTIONS = "A verification email may already be in the user's inbox, but this response could not create a usable agent verification handle. Do not retry this same send-code request immediately because it may send another email. Ask the user to wait briefly and check their email, including spam or junk. If sign-in is still needed, start a fresh flow with POST /api/agent/send-code and use only the latest email code and latest otpSessionToken.";
@@ -235,6 +236,8 @@ export function createAgentSendCodeApp(dependencies: AgentSendCodeDependencies):
           );
         }
 
+        const cognitoProviderOutage = isCognitoProviderOutage(error) ? error : null;
+        const statusCode = cognitoProviderOutage === null ? 500 : 503;
         log({
           domain: "auth",
           action: "agent_send_code_error",
@@ -242,9 +245,14 @@ export function createAgentSendCodeApp(dependencies: AgentSendCodeDependencies):
           route: c.req.path,
           maskedEmail: maskEmail(email),
           ipAddress,
-          statusCode: 500,
+          statusCode,
           error: error instanceof Error ? error.message : String(error),
+          ...(cognitoProviderOutage === null ? {} : getCognitoOutageLogFields(cognitoProviderOutage)),
         });
+        if (cognitoProviderOutage !== null) {
+          reportCognitoProviderOutage(c, cognitoProviderOutage, "OTP_SEND_FAILED");
+          c.header("Retry-After", "1");
+        }
         return c.json(
           createAgentErrorEnvelope(
             c.req.url,
@@ -252,7 +260,7 @@ export function createAgentSendCodeApp(dependencies: AgentSendCodeDependencies):
             "Could not send a code. Try again.",
             "Retry POST /api/agent/send-code with the same email. If the issue persists, try later.",
           ),
-          500,
+          statusCode,
         );
       }
 

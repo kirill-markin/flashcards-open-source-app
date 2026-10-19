@@ -4,7 +4,7 @@ import * as lambda from "aws-cdk-lib/aws-lambda";
 import * as s3 from "aws-cdk-lib/aws-s3";
 import * as cloudfront from "aws-cdk-lib/aws-cloudfront";
 import { Construct } from "constructs";
-import { geoLiteCountryObjectKey } from "./geolite-country";
+import { geoLiteAsnObjectKey, geoLiteCountryObjectKey } from "./geolite-country";
 
 export interface CiCdProps {
   stackId: string;
@@ -63,10 +63,14 @@ export function ciCd(scope: Construct, props: CiCdProps): void {
       props.githubOidcProviderArn,
     );
 
+  const geoLiteObjectArns = [
+    props.geoLiteCountryBucket.arnForObjects(geoLiteCountryObjectKey),
+    props.geoLiteCountryBucket.arnForObjects(geoLiteAsnObjectKey),
+  ];
   const geoLiteStatements = [
     new iam.PolicyStatement({
       actions: ["s3:PutObject"],
-      resources: [props.geoLiteCountryBucket.arnForObjects(geoLiteCountryObjectKey)],
+      resources: geoLiteObjectArns,
     }),
     new iam.PolicyStatement({
       actions: ["cloudformation:DescribeStacks"],
@@ -87,9 +91,15 @@ export function ciCd(scope: Construct, props: CiCdProps): void {
   const cdkDeployStatements: iam.PolicyStatement[] = [
     ...geoLiteStatements,
     new iam.PolicyStatement({
-      sid: "ReadPublishedGeoLiteCountryDatabase",
+      sid: "ReadPublishedGeoLiteDatabases",
       actions: ["s3:GetObject"],
-      resources: [props.geoLiteCountryBucket.arnForObjects(geoLiteCountryObjectKey)],
+      resources: geoLiteObjectArns,
+    }),
+    // Without it S3 answers an absent object with AccessDenied, so the release gate could not refresh it.
+    new iam.PolicyStatement({
+      sid: "ListGeoLiteBucket",
+      actions: ["s3:ListBucket"],
+      resources: [props.geoLiteCountryBucket.bucketArn],
     }),
     new iam.PolicyStatement({
       sid: "AssumeCdkRoles",

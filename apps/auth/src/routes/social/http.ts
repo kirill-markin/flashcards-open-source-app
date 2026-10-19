@@ -8,7 +8,7 @@ import { PrincipalEnrollmentError } from "../../server/social/mailboxProof.js";
 import { AppleRelayDeliveryDisabledError } from "../../server/social/appleNotifications.js";
 import { AppleRevocationPendingError } from "../../server/social/appleCredential.js";
 import { getDatabaseErrorSqlState, getDatabaseErrorMessage } from "../../server/databaseErrors.js";
-import { isCognitoTypedError } from "../../server/cognito/cognitoErrors.js";
+import { isCognitoProviderOutage, isCognitoTypedError } from "../../server/cognito/cognitoErrors.js";
 import { getSocialRequestSource } from "../../server/social/requestSource.js";
 import { requireSocialRateLimit, type SocialPublicAction } from "../../server/social/rateLimit.js";
 import { AccountTransportError } from "./accountTransport.js";
@@ -95,7 +95,7 @@ export function socialErrorResponse(c: Context<AuthAppEnv>, error: unknown): Res
     if (code === "TooManyRequestsException" || code === "LimitExceededException") {
       return jsonAuthError(c, 429, "AUTH_RATE_LIMITED", "Email verification was rate limited. Start a new sign-in later.");
     }
-    return jsonAuthError(c, error.providerStatusCode >= 500 ? 503 : 409, "AUTH_ATTEMPT_RESTART_REQUIRED",
+    return jsonAuthError(c, isCognitoProviderOutage(error) ? 503 : 409, "AUTH_ATTEMPT_RESTART_REQUIRED",
       "Email verification could not complete. Start a new provider sign-in and request a fresh code.");
   }
   const state = getDatabaseErrorSqlState(error);
