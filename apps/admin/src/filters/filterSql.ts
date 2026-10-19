@@ -6,6 +6,8 @@ import {
   excludedListedActorIdsSqlLines,
   excludedTestEmailActorIdsSqlLines,
   probableAndroidBurstActorIdsSqlLines,
+  sandboxBillingActorIdsSqlLines,
+  testDistributionInstallationActorIdsSqlLines,
 } from "../../../backend/src/reviewMetricsSql";
 export { buildExcludedActorSqlLines } from "../../../backend/src/reviewMetricsSql";
 import {
@@ -45,6 +47,8 @@ export function buildExcludedActorReasonSql(actorIdSqlExpression: string): strin
     `  CASE WHEN ${actorIdSqlExpression} IN (${inline(excludedListedActorIdsSqlLines)}) THEN 'exclusion list' END,`,
     `  CASE WHEN ${actorIdSqlExpression} IN (${inline(automatedActorIdsSqlLines)}) THEN 'automated client' END,`,
     `  CASE WHEN ${actorIdSqlExpression} IN (${inline(automationInstallationActorIdsSqlLines)}) THEN 'automation guest install' END,`,
+    `  CASE WHEN ${actorIdSqlExpression} IN (${inline(testDistributionInstallationActorIdsSqlLines)}) THEN 'test distribution install' END,`,
+    `  CASE WHEN ${actorIdSqlExpression} IN (${inline(sandboxBillingActorIdsSqlLines)}) THEN 'sandbox billing' END,`,
     `  CASE WHEN ${actorIdSqlExpression} IN (${inline(probableAndroidBurstActorIdsSqlLines)}) THEN 'probable Android test burst' END`,
     ")",
   ].join("\n");
