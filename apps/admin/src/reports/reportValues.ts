@@ -47,28 +47,38 @@ export function formatCalendarDate(date: Date): string {
   return `${year}-${month}-${day}`;
 }
 
+/** The UTC calendar date `now` falls on, which is the date every available range ends on. */
+export function todayUtcCalendarDate(now: Date): string {
+  return formatCalendarDate(now);
+}
+
 const defaultReportRangeLookbackDays = 30;
 
-// A lookback window anchored on the last day that carries data rather than on today: the available
-// range's last day back `lookbackDays` days, both ends inclusive, clamped up to the available first
-// day so the window can never fall outside the range the picker and the range validation allow.
+/** `to` back `lookbackDays` days, both ends inclusive. */
+export function buildLookbackReportRangeEndingOn(
+  to: string,
+  lookbackDays: number,
+  reportLabel: string,
+): Readonly<{ from: string; to: string }> {
+  const toDate = parseCalendarDate(to, reportLabel);
+  const fromDate = new Date(toDate);
+  fromDate.setUTCDate(fromDate.getUTCDate() - lookbackDays);
+
+  return { from: formatCalendarDate(fromDate), to: formatCalendarDate(toDate) };
+}
+
+// A lookback window anchored on the last day that carries data rather than on today, clamped up to
+// the available first day so the window can never fall outside the range the picker and the range
+// validation allow.
 function buildLookbackReportRange(
   availableRange: Readonly<{ from: string; to: string }>,
   lookbackDays: number,
   reportLabel: string,
 ): Readonly<{ from: string; to: string }> {
-  const availableFromDate = parseCalendarDate(availableRange.from, reportLabel);
-  const availableToDate = parseCalendarDate(availableRange.to, reportLabel);
+  const availableFrom = formatCalendarDate(parseCalendarDate(availableRange.from, reportLabel));
+  const lookbackRange = buildLookbackReportRangeEndingOn(availableRange.to, lookbackDays, reportLabel);
 
-  const lookbackFromDate = new Date(availableToDate);
-  lookbackFromDate.setUTCDate(lookbackFromDate.getUTCDate() - lookbackDays);
-
-  return {
-    from: formatCalendarDate(
-      lookbackFromDate.getTime() < availableFromDate.getTime() ? availableFromDate : lookbackFromDate,
-    ),
-    to: formatCalendarDate(availableToDate),
-  };
+  return { from: laterCalendarDate(lookbackRange.from, availableFrom), to: lookbackRange.to };
 }
 
 // The window the dashboard opens on.
@@ -79,8 +89,10 @@ export function buildDefaultReportRange(
   return buildLookbackReportRange(availableRange, defaultReportRangeLookbackDays, reportLabel);
 }
 
+type LookbackReportRangePreset = Readonly<{ id: string; label: string; kind: "lookback"; lookbackDays: number }>;
+
 export type ReportRangePreset =
-  | Readonly<{ id: string; label: string; kind: "lookback"; lookbackDays: number }>
+  | LookbackReportRangePreset
   | Readonly<{ id: string; label: string; kind: "all-time" }>;
 
 const lastThreeDaysReportRangePreset: ReportRangePreset = {
@@ -91,7 +103,7 @@ const lastThreeDaysReportRangePreset: ReportRangePreset = {
 };
 
 /** Also the window Level 1 metrics opens on. */
-export const lastSixtyDaysReportRangePreset: ReportRangePreset = {
+export const lastSixtyDaysReportRangePreset: LookbackReportRangePreset = {
   id: "last-60-days",
   label: "Last 60 days",
   kind: "lookback",
