@@ -4,6 +4,7 @@ import { getLevelOneMetricDetailsPath, type WhoSawUsDataset } from "../../routin
 import { LevelOneMetricDetailsHeader } from "../levelOneMetrics/LevelOneMetricDetailsHeader";
 import { LevelOneMetricsFrame } from "../levelOneMetrics/LevelOneMetricsFrame";
 import { useLevelOneMetricsSelection } from "../levelOneMetrics/useLevelOneMetricsSelection";
+import { WebEngagedVisitorsSection } from "./WebEngagedVisitorsSection";
 import { WebLandingPagePathSections } from "./WebLandingPagePathSections";
 import { WhoSawUsBreakdownSections } from "./WhoSawUsBreakdownSections";
 import { whoSawUsSeriesLabels, WhoSawUsSection } from "./WhoSawUsSection";
@@ -45,6 +46,14 @@ export function WhoSawUsDatasetPage(
               detailsLink={null}
               onTerminalAdminError={props.onTerminalAdminError}
             />
+            {props.dataset === "web" ? (
+              <WebEngagedVisitorsSection
+                config={props.config}
+                dateRange={selection.dateRange}
+                period={selection.period}
+                onTerminalAdminError={props.onTerminalAdminError}
+              />
+            ) : null}
             <WhoSawUsBreakdownSections
               seriesKey={props.dataset}
               config={props.config}

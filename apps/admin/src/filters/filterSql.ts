@@ -190,10 +190,11 @@ export function buildExcludedActorReasonSql(actorIdSqlExpression: string): strin
  * credential-free by construction.
  *
  * NOT AN ENTRY, FOR THE CATALOG COHORT'S REASON: `identified_site_visitors`, the `Web` series of
- * `reports/whoSawUs/query.ts`. It counts the browser visitor identities that `anonymous_client`
- * `site_page_viewed` rows carry - the site's own facts - so this predicate would empty it. It is a
- * count of site visitors, never merged into a count of people, and it applies the exclusion rule
- * above.
+ * `reports/whoSawUs/query.ts`, and `identified_visitor_days`, its engaged subset in
+ * `reports/whoSawUs/engagedVisitorsQuery.ts`. They count the browser visitor identities that
+ * `anonymous_client` site facts carry - the site's own facts - so this predicate would empty them.
+ * They are counts of site visitors, never merged into a count of people, and they apply the
+ * exclusion rule above.
  *
  * NOT ENTRIES, AND NOT OMISSIONS. The three available-range probes,
  * `buildReviewEventsByDateAvailableRangeSql`, `buildCatalogInstallFunnelAvailableRangeSql` and
@@ -231,14 +232,15 @@ export function buildTrustedActorRowsFilterSql(trustLevelSqlExpression: string):
  * rows carrying the marker. So the identified site page views and install clicks of the funnels take
  * nothing from here - their cohorts already compose that rule - and neither do the option lists over
  * collector rows, which restate it too.
- *   - `buildHashedSiteRowSqlLines` in `apps/admin/src/reports/funnels/funnelAudienceSql.ts`, the
- *     cookieless hashed cohort of the site-entry funnels that read it - the home page funnel and the
- *     blog platform-choice funnel, while the blog web-app funnel deliberately reads none - of the
+ *   - `buildHashedSiteVisitorRowSqlLines` in `apps/admin/src/reports/funnels/funnelAudienceSql.ts`,
+ *     the cookieless hashed cohort of the site-entry funnels that read it - the home page funnel and
+ *     the blog platform-choice funnel, while the blog web-app funnel deliberately reads none - of the
  *     deck funnel, and of the `Web` series of Who saw us (`hashed_site_visitors` in
- *     `reports/whoSawUs/query.ts`): every hashed page view and every hashed click. Those rows carry
- *     a NULL `actor_id` by construction, so the automated verdict can judge them only row by row
- *     here, beside the hash-level scraper-fleet `NOT IN` in the same builder, and a marked
- *     browser-day never becomes a person.
+ *     `reports/whoSawUs/query.ts`) and its engaged subset (`hashed_visitor_days` in
+ *     `reports/whoSawUs/engagedVisitorsQuery.ts`): every hashed page view and every hashed click.
+ *     Those rows carry a NULL `actor_id` by construction, so the automated verdict can judge them
+ *     only row by row here, beside the hash-level scraper-fleet `NOT IN` in the same builder, and a
+ *     marked browser-day never becomes a person.
  *   - `attribution_clicks` in `buildCatalogInstallAttributionSql` below, because its journey bridge
  *     matches a click that claimed no visitor at all, whose own actor is therefore never the install's
  *     and is never tested by the rule the install side applies.
