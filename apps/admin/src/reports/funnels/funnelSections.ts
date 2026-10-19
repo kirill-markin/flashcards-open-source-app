@@ -46,7 +46,7 @@ export type FunnelSectionProps = Readonly<{
   config: AdminAppConfig;
   /** The whole live selection; each funnel applies the fields it can answer and says which it cannot. */
   filters: AnalyticsFilterState;
-  /** A General reload is pending or in flight; a funnel waits it out rather than querying per click. */
+  /** The shared selection is still settling after a filter change; a funnel waits it out rather than querying per click. */
   isRangeLoading: boolean;
   /** The funnel's own filter row over `filterFields`, or null when it has none. */
   filterRow: JSX.Element | null;

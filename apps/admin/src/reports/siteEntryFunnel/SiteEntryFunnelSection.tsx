@@ -13,7 +13,12 @@ import {
 } from "../funnels/funnelGroupBy";
 import { FunnelMaturingWarning } from "../funnels/FunnelMaturingWarning";
 import type { FunnelSectionProps } from "../funnels/funnelSections";
-import { FunnelStepsChart, type FunnelStage } from "../funnels/FunnelStepsChart";
+import {
+  FunnelStepsChart,
+  FunnelStepsEmptyChart,
+  FunnelStepsLoadingChart,
+  type FunnelStage,
+} from "../funnels/FunnelStepsChart";
 import {
   loadSiteEntryFunnelReport,
   siteEntryEngagedReviewThreshold,
@@ -266,14 +271,31 @@ export function HomeToWebAppFunnelSection(props: FunnelSectionProps): JSX.Elemen
         />
       </div>
 
-      {props.isRangeLoading || loadState.status === "loading" ? <div className="report-state" aria-live="polite">Loading home page to web app funnel…</div> : null}
       {props.isRangeLoading === false && loadState.status === "error" ? <div className="report-state report-state-error"><strong>Funnel query failed.</strong><span>{loadState.message}</span><button className="filter-button" type="button" onClick={() => setLoadRevision((revision) => revision + 1)}>Retry</button></div> : null}
       {startDateNote !== null ? <p className="report-state" aria-live="polite">{startDateNote}</p> : null}
       {hashedCountryNote !== null ? <p className="report-state" aria-live="polite">{hashedCountryNote}</p> : null}
-      {/* The audience mode is named here because it is not one of the filters the heading blames and `Reset all` does not clear it. */}
-      {totals !== null && entryCount === 0 ? <div className="report-state"><strong>No first visits on a home page match these filters.</strong><span>Only a person whose first site page is a home page viewed on a selected day enters this funnel.</span>{audienceEmptyStateNote === null ? null : <span>{audienceEmptyStateNote}</span>}</div> : null}
 
       {totals !== null ? <FunnelMaturingWarning maturingCount={totals.maturingCount} entryCount={totals.entryViewCount} /> : null}
+
+      {props.isRangeLoading || loadState.status === "loading" ? (
+        <FunnelStepsLoadingChart
+          countLabel="People"
+          dateRange={props.filters.dateRange}
+          showsHashedSplit={readsHashedCohort}
+          isGrouped={groupByDimension !== null}
+          label="Loading home page to web app funnel…"
+        />
+      ) : null}
+      {/* The audience mode is named here because it is not one of the filters the heading blames and `Reset all` does not clear it. */}
+      {totals !== null && entryCount === 0 ? (
+        <FunnelStepsEmptyChart
+          countLabel="People"
+          dateRange={props.filters.dateRange}
+          showsHashedSplit={readsHashedCohort}
+          isGrouped={groupByDimension !== null}
+          note={<><strong>No first visits on a home page match these filters.</strong><span>Only a person whose first site page is a home page viewed on a selected day enters this funnel.</span>{audienceEmptyStateNote === null ? null : <span>{audienceEmptyStateNote}</span>}</>}
+        />
+      ) : null}
 
       {totals !== null && entryCount > 0 ? (
         <FunnelStepsChart

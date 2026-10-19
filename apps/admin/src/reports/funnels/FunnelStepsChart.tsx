@@ -1,6 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type JSX } from "react";
+import { ChartAreaWithNote } from "../../charts/ChartAreaWithNote";
+import { ChartColorKeyPlaceholder } from "../../charts/ChartLegends";
 import { ChartTooltip, useChartTooltip } from "../../charts/ChartTooltip";
+import { chartWidth } from "../../charts/chartPrimitives";
 import {
+  getFunnelChartHeight,
+  getFunnelSplitLineCount,
   renderFunnelStepsChart,
   type FunnelStepBar,
   type FunnelStepGroupBars,
@@ -30,6 +35,9 @@ export type FunnelStage<StepId extends string> = Readonly<{
 
 /** The single series an ungrouped funnel draws; its key is never shown and never collides with a group key. */
 const ungroupedFunnelGroupKey = "ungrouped";
+
+/** The lines `buildFunnelStepBars` writes for a step that has a hashed part. */
+const funnelSplitLabelLineCount = 2;
 
 export function formatPercentage(numerator: number, denominator: number): string {
   if (denominator === 0) {
@@ -83,6 +91,120 @@ function buildFunnelStepBars<StepId extends string>(
         : [`${formatCount(stage.count - hashedCount)} with ID`, `+ ${formatCount(hashedCount)} hashed`],
     };
   });
+}
+
+/**
+ * The height a funnel's chart draws at, known before its report: an ungrouped hashed read draws the
+ * split lines, unless no step turns out to have a hashed part, which draws it shorter than this.
+ */
+function getExpectedFunnelChartHeight(showsHashedSplit: boolean, isGrouped: boolean): number {
+  return getFunnelChartHeight(showsHashedSplit && isGrouped === false ? funnelSplitLabelLineCount : 0);
+}
+
+function FunnelChartMeta(
+  props: Readonly<{
+    countLabel: string;
+    dateRange: AnalyticsDateRange;
+    showsHashedSplit: boolean;
+  }>,
+): JSX.Element {
+  return (
+    <div className="chart-meta">
+      <div className="funnel-chart-heading">
+        <span>{props.countLabel} reaching each step</span>
+        <span>
+          {props.showsHashedSplit
+            ? "Lighter segment: cookieless visitors, by daily hash · Click a step to measure from it"
+            : "Click a step to measure from it"}
+        </span>
+      </div>
+      <div className="chart-meta-right">
+        <span>{props.dateRange.from} to {props.dateRange.to}, inclusive</span>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * A funnel's chart panel with an empty area in place of its chart, at the size a ready one draws at,
+ * and `note` over it. `isGrouped` is whether a `Group by` dimension is selected, which reserves one row
+ * of the group key.
+ */
+function FunnelChartPanel(
+  props: Readonly<{
+    countLabel: string;
+    dateRange: AnalyticsDateRange;
+    showsHashedSplit: boolean;
+    isGrouped: boolean;
+    note: JSX.Element;
+  }>,
+): JSX.Element {
+  return (
+    <section className="chart-column funnel-chart-column">
+      <div className="chart-shell">
+        <FunnelChartMeta countLabel={props.countLabel} dateRange={props.dateRange} showsHashedSplit={props.showsHashedSplit} />
+        {props.isGrouped ? <div className="funnel-group-key"><ChartColorKeyPlaceholder /></div> : null}
+        <div className="funnel-chart-area">
+          <div className="chart-scroll">
+            {/* The ready chart's class, so the area keeps its minimum width in the same scroll container. */}
+            <div className="funnel-steps-chart">
+              <ChartAreaWithNote
+                viewBoxWidth={chartWidth}
+                viewBoxHeight={getExpectedFunnelChartHeight(props.showsHashedSplit, props.isGrouped)}
+                note={null}
+              >
+                {null}
+              </ChartAreaWithNote>
+            </div>
+          </div>
+          {/* Outside the scroller, so it centers in the visible part rather than in the wider area. */}
+          {props.note}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/** A funnel's chart panel while its report loads or reloads. */
+export function FunnelStepsLoadingChart(
+  props: Readonly<{
+    countLabel: string;
+    dateRange: AnalyticsDateRange;
+    showsHashedSplit: boolean;
+    isGrouped: boolean;
+    label: string;
+  }>,
+): JSX.Element {
+  return (
+    <FunnelChartPanel
+      countLabel={props.countLabel}
+      dateRange={props.dateRange}
+      showsHashedSplit={props.showsHashedSplit}
+      isGrouped={props.isGrouped}
+      note={<p className="chart-area-note" aria-live="polite"><span>{props.label}</span></p>}
+    />
+  );
+}
+
+/** A funnel's chart panel when nobody entered it, with `note` saying why over the empty chart area. */
+export function FunnelStepsEmptyChart(
+  props: Readonly<{
+    countLabel: string;
+    dateRange: AnalyticsDateRange;
+    showsHashedSplit: boolean;
+    isGrouped: boolean;
+    note: JSX.Element;
+  }>,
+): JSX.Element {
+  return (
+    <FunnelChartPanel
+      countLabel={props.countLabel}
+      dateRange={props.dateRange}
+      showsHashedSplit={props.showsHashedSplit}
+      isGrouped={props.isGrouped}
+      note={<p className="chart-area-note"><span className="funnel-empty-note">{props.note}</span></p>}
+    />
+  );
 }
 
 /**
@@ -300,19 +422,7 @@ export function FunnelStepsChart<StepId extends string>(
   return (
     <section className="chart-column funnel-chart-column">
       <div className="chart-shell">
-        <div className="chart-meta">
-          <div className="funnel-chart-heading">
-            <span>{props.countLabel} reaching each step</span>
-            <span>
-              {props.showsHashedSplit
-                ? "Lighter segment: cookieless visitors, by daily hash · Click a step to measure from it"
-                : "Click a step to measure from it"}
-            </span>
-          </div>
-          <div className="chart-meta-right">
-            <span>{props.dateRange.from} to {props.dateRange.to}, inclusive</span>
-          </div>
-        </div>
+        <FunnelChartMeta countLabel={props.countLabel} dateRange={props.dateRange} showsHashedSplit={props.showsHashedSplit} />
         {/* The same key markup the platform charts use, so a colour key reads the same everywhere. */}
         {isGrouped ? (
           <div className="platform-key funnel-group-key" aria-label="Funnel group color key">
@@ -325,7 +435,15 @@ export function FunnelStepsChart<StepId extends string>(
           </div>
         ) : null}
         <div className="chart-scroll">
-          <svg ref={chartRef} className="funnel-steps-chart" role="group" aria-label="Funnel steps; select a step to measure later steps from it" />
+          <div className="funnel-steps-chart">
+            <ChartAreaWithNote
+              viewBoxWidth={chartWidth}
+              viewBoxHeight={getFunnelChartHeight(getFunnelSplitLineCount(groupBars[0]?.steps ?? [], isGrouped))}
+              note={null}
+            >
+              <svg ref={chartRef} role="group" aria-label="Funnel steps; select a step to measure later steps from it" />
+            </ChartAreaWithNote>
+          </div>
         </div>
       </div>
       {isGrouped ? (
