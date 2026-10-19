@@ -178,7 +178,7 @@ export function EventPage(props: Readonly<{
         </div>
       </section>
 
-      <AdminNavigation activePage="events" onNavigate={props.onNavigate} />
+      <AdminNavigation activePage="events" levelOneMetricsSearch="" onNavigate={props.onNavigate} />
 
       <section className="dashboard-section" data-testid="event-page-section">
         {renderContent()}

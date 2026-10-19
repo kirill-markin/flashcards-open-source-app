@@ -242,7 +242,7 @@ export function EventsPage(props: Readonly<{
         </div>
       </section>
 
-      <AdminNavigation activePage="events" onNavigate={props.onNavigate} />
+      <AdminNavigation activePage="events" levelOneMetricsSearch="" onNavigate={props.onNavigate} />
 
       <section data-testid="events-section">
         {loadState.status === "loading" ? <p className="report-state" aria-live="polite">Loading events…</p> : null}

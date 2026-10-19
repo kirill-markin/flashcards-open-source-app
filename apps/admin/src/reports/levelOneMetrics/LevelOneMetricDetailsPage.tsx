@@ -1,7 +1,8 @@
-import type { JSX } from "react";
+import type { JSX, ReactNode } from "react";
 import type { AdminAppConfig } from "../../config";
 import { AdminLink } from "../../navigation/AdminLink";
 import { getAnalyticsAreaPath, type LevelOneMetricDetail } from "../../routing";
+import { WhoOpenedTheAppBreakdownSections } from "../whoOpenedTheApp/WhoOpenedTheAppBreakdownSections";
 import { WhoOpenedTheAppSection } from "../whoOpenedTheApp/WhoOpenedTheAppSection";
 import { WhoSawUsSection } from "../whoSawUs/WhoSawUsSection";
 import { LevelOneMetricsFrame } from "./LevelOneMetricsFrame";
@@ -18,10 +19,12 @@ type LevelOneMetricDetailsPageProps = Readonly<{
   config: AdminAppConfig;
   onNavigate: (path: string) => void;
   onTerminalAdminError: (error: unknown, config: AdminAppConfig) => boolean;
+  /** The admin tab row, given the query string that carries this page's selection. */
+  renderNavigation: (levelOneMetricsSearch: string) => ReactNode;
 }>;
 
-/** The metric's own chart, without a Details button: it already is on its Details page. */
-function renderMetricSection(
+/** The metric's own chart, without a Details button since this is its Details page, then its breakdowns. */
+function renderMetricSections(
   props: LevelOneMetricDetailsPageProps,
   selection: LevelOneMetricsSelection,
 ): JSX.Element {
@@ -38,23 +41,33 @@ function renderMetricSection(
       );
     case "who-opened-the-app":
       return (
-        <WhoOpenedTheAppSection
-          config={props.config}
-          dateRange={selection.dateRange}
-          period={selection.period}
-          detailsLink={null}
-          onTerminalAdminError={props.onTerminalAdminError}
-        />
+        <>
+          <WhoOpenedTheAppSection
+            config={props.config}
+            dateRange={selection.dateRange}
+            period={selection.period}
+            detailsLink={null}
+            onTerminalAdminError={props.onTerminalAdminError}
+          />
+          <WhoOpenedTheAppBreakdownSections
+            config={props.config}
+            dateRange={selection.dateRange}
+            period={selection.period}
+            onTerminalAdminError={props.onTerminalAdminError}
+          />
+        </>
       );
   }
 }
 
-/** One Level 1 chart in the top-left cell of the main page's grid, on the main page's selection. */
+/** One Level 1 chart in the top-left cell of the main page's grid, on the main page's selection, followed by its breakdowns. */
 export function LevelOneMetricDetailsPage(props: LevelOneMetricDetailsPageProps): JSX.Element {
   const selectionState = useLevelOneMetricsSelection(props.config, props.onTerminalAdminError);
 
   return (
     <>
+      {props.renderNavigation(selectionState.search)}
+
       <header className="level-1-metric-details-header">
         <AdminLink
           className="state-link"
@@ -69,7 +82,7 @@ export function LevelOneMetricDetailsPage(props: LevelOneMetricDetailsPageProps)
         selectionState={selectionState}
         onNavigate={props.onNavigate}
         renderCharts={(selection) => (
-          <div className="level-1-metrics-grid">{renderMetricSection(props, selection)}</div>
+          <div className="level-1-metrics-grid">{renderMetricSections(props, selection)}</div>
         )}
       />
     </>

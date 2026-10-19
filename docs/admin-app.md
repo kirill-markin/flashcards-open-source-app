@@ -65,6 +65,7 @@ Run it locally with `make local-admin` on `http://localhost:3001` before merge; 
 
 - The five charts appear in funnel order on the last 60 days, and in one column on a narrow viewport.
 - Switch `Group by` through Days, Weeks and Months: every chart regroups, edge buckets name only the selected days, the bucket holding today is in progress, and a people count in a week or month is less than or equal to the sum of its Days bars.
+- On the `Who opened the app` Details page, every breakdown bar sums to the chart's bar for the same bucket, and both the `Level 1 metrics` tab and `← Level 1 metrics` return with the same range and `Group by`.
 - Hover and keyboard-focus a bucket on every chart, and open every data table. On `Who saw us`, the tooltip lists every series, or `No data` where a source has no row, and a dashed `Not final →` line marks the recent buckets.
 - Change the selection around one complete day: nobody already counted turns new in `Who opened the app` or `Who studied`.
 - Select early retained history and today alone: days before coverage are unavailable rather than zero, and today is in progress.

@@ -241,16 +241,27 @@ export function AdminDashboard(
         </div>
       </section>
 
-      <AdminNavigation activePage={activeArea} onNavigate={props.onNavigate} />
-
+      {/*
+        A Details page renders the tab row itself, because only it knows the selection its Level 1
+        metrics tab has to carry back. Keyed by metric, because its selection is read from the URL
+        once, so moving between two Details pages in history has to remount it.
+      */}
       {props.route.kind === "levelOneMetricDetails" ? (
         <LevelOneMetricDetailsPage
+          key={props.route.metric}
           metric={props.route.metric}
           config={props.config}
           onNavigate={props.onNavigate}
           onTerminalAdminError={props.onTerminalAdminError}
+          renderNavigation={(levelOneMetricsSearch) => (
+            <AdminNavigation
+              activePage={activeArea}
+              levelOneMetricsSearch={levelOneMetricsSearch}
+              onNavigate={props.onNavigate}
+            />
+          )}
         />
-      ) : null}
+      ) : <AdminNavigation activePage={activeArea} levelOneMetricsSearch="" onNavigate={props.onNavigate} />}
 
       {props.route.kind === "analyticsArea" && props.route.area === "level-1-metrics" ? (
         <LevelOneMetricsArea
