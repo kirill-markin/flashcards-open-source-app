@@ -284,7 +284,6 @@ extension FlashcardsStore {
             return .blocked
         }
 
-        _ = try await UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .badge, .sound])
         self.updateNotificationPermissionPromptState(
             state: NotificationPermissionPromptState(
                 hasShownPrePrompt: true,
@@ -293,7 +292,20 @@ extension FlashcardsStore {
             )
         )
 
-        let notificationSettings = await UNUserNotificationCenter.current().notificationSettings()
+        let notificationCenter = UNUserNotificationCenter.current()
+        let notificationSettings: UNNotificationSettings
+        do {
+            _ = try await notificationCenter.requestAuthorization(options: [.alert, .badge, .sound])
+            notificationSettings = await notificationCenter.notificationSettings()
+        } catch let error as UNError where error.code == .notificationsNotAllowed {
+            let observedSettings = await notificationCenter.notificationSettings()
+            switch observedSettings.authorizationStatus {
+            case .denied, .notDetermined:
+                notificationSettings = observedSettings
+            default:
+                throw error
+            }
+        }
         let permissionStatus = reviewNotificationPermissionStatus(authorizationStatus: notificationSettings.authorizationStatus)
         switch notificationSettings.authorizationStatus {
         case .authorized, .provisional, .ephemeral:
