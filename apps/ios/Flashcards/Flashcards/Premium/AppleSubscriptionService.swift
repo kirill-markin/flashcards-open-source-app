@@ -76,6 +76,100 @@ private enum ApplePremiumStorePurchase {
     }
 }
 
+/// The provider's own code for what failed, named as `purchase_finished.error_code` in the catalog.
+private func analyticsPurchaseErrorCode(error: any Error) -> AnalyticsPurchaseErrorCode {
+    switch error {
+    case let storeKitError as StoreKitError:
+        switch storeKitError {
+        case .unknown:
+            return AnalyticsPurchaseErrorCode(source: .storekit, code: "unknown")
+        case .userCancelled:
+            return AnalyticsPurchaseErrorCode(source: .storekit, code: "userCancelled")
+        case .networkError(let urlError):
+            return AnalyticsPurchaseErrorCode(source: .storekit, code: "networkError.\(urlError.code.rawValue)")
+        case .systemError(let systemError):
+            let nsError = systemError as NSError
+            return AnalyticsPurchaseErrorCode(source: .storekit, code: "systemError.\(nsError.domain).\(nsError.code)")
+        case .notAvailableInStorefront:
+            return AnalyticsPurchaseErrorCode(source: .storekit, code: "notAvailableInStorefront")
+        case .notEntitled:
+            return AnalyticsPurchaseErrorCode(source: .storekit, code: "notEntitled")
+        case .unsupported:
+            return AnalyticsPurchaseErrorCode(source: .storekit, code: "unsupported")
+        case .invalidPresentationContext:
+            return AnalyticsPurchaseErrorCode(source: .storekit, code: "invalidPresentationContext")
+        @unknown default:
+            return nsErrorPurchaseErrorCode(error: storeKitError)
+        }
+    case let purchaseError as Product.PurchaseError:
+        switch purchaseError {
+        case .invalidQuantity:
+            return AnalyticsPurchaseErrorCode(source: .storekit, code: "invalidQuantity")
+        case .productUnavailable:
+            return AnalyticsPurchaseErrorCode(source: .storekit, code: "productUnavailable")
+        case .purchaseNotAllowed:
+            return AnalyticsPurchaseErrorCode(source: .storekit, code: "purchaseNotAllowed")
+        case .ineligibleForOffer:
+            return AnalyticsPurchaseErrorCode(source: .storekit, code: "ineligibleForOffer")
+        case .invalidOfferIdentifier:
+            return AnalyticsPurchaseErrorCode(source: .storekit, code: "invalidOfferIdentifier")
+        case .invalidOfferPrice:
+            return AnalyticsPurchaseErrorCode(source: .storekit, code: "invalidOfferPrice")
+        case .invalidOfferSignature:
+            return AnalyticsPurchaseErrorCode(source: .storekit, code: "invalidOfferSignature")
+        case .missingOfferParameters:
+            return AnalyticsPurchaseErrorCode(source: .storekit, code: "missingOfferParameters")
+        case .paymentMethodBindingConfigurationRequired:
+            return AnalyticsPurchaseErrorCode(source: .storekit, code: "paymentMethodBindingConfigurationRequired")
+        @unknown default:
+            return nsErrorPurchaseErrorCode(error: purchaseError)
+        }
+    case let verificationError as VerificationResult<StoreKit.Transaction>.VerificationError:
+        switch verificationError {
+        case .revokedCertificate:
+            return AnalyticsPurchaseErrorCode(source: .storekit, code: "revokedCertificate")
+        case .invalidCertificateChain:
+            return AnalyticsPurchaseErrorCode(source: .storekit, code: "invalidCertificateChain")
+        case .invalidDeviceVerification:
+            return AnalyticsPurchaseErrorCode(source: .storekit, code: "invalidDeviceVerification")
+        case .invalidEncoding:
+            return AnalyticsPurchaseErrorCode(source: .storekit, code: "invalidEncoding")
+        case .invalidSignature:
+            return AnalyticsPurchaseErrorCode(source: .storekit, code: "invalidSignature")
+        case .missingRequiredProperties:
+            return AnalyticsPurchaseErrorCode(source: .storekit, code: "missingRequiredProperties")
+        @unknown default:
+            return nsErrorPurchaseErrorCode(error: verificationError)
+        }
+    case let subscriptionError as AppleSubscriptionError:
+        switch subscriptionError {
+        case .accountUnavailable:
+            return AnalyticsPurchaseErrorCode(source: .app, code: "accountUnavailable")
+        case .identityChanged:
+            return AnalyticsPurchaseErrorCode(source: .app, code: "identityChanged")
+        case .productUnavailable:
+            return AnalyticsPurchaseErrorCode(source: .app, code: "productUnavailable")
+        case .attachmentNotConfirmed:
+            return AnalyticsPurchaseErrorCode(source: .app, code: "attachmentNotConfirmed")
+        case .entitlementNotConfirmed:
+            return AnalyticsPurchaseErrorCode(source: .app, code: "entitlementNotConfirmed")
+        case .premiumAlreadyAvailable:
+            return AnalyticsPurchaseErrorCode(source: .app, code: "premiumAlreadyAvailable")
+        case .unexpectedPurchaseResult:
+            return AnalyticsPurchaseErrorCode(source: .app, code: "unexpectedPurchaseResult")
+        case .subscriptionManagementOpenFailed:
+            return AnalyticsPurchaseErrorCode(source: .app, code: "subscriptionManagementOpenFailed")
+        }
+    default:
+        return nsErrorPurchaseErrorCode(error: error)
+    }
+}
+
+private func nsErrorPurchaseErrorCode(error: any Error) -> AnalyticsPurchaseErrorCode {
+    let nsError = error as NSError
+    return AnalyticsPurchaseErrorCode(source: .nserror, code: "\(nsError.domain).\(nsError.code)")
+}
+
 private struct ApplePremiumRestoredPurchase {
     let verification: VerificationResult<StoreKit.Transaction>
     let transaction: StoreKit.Transaction
@@ -176,7 +270,10 @@ final class AppleSubscriptionService {
         do {
             purchase = try await self.storePurchase(product: offer.product, token: token)
         } catch {
-            self.trackForCurrentIdentity(.purchaseFinished(outcome: .failed, presentation: presentation), identity: identity)
+            self.trackForCurrentIdentity(
+                .purchaseFinished(outcome: .failed(errorCode: analyticsPurchaseErrorCode(error: error)), presentation: presentation),
+                identity: identity
+            )
             throw error
         }
         self.trackForCurrentIdentity(.purchaseFinished(outcome: purchase.analyticsOutcome, presentation: presentation), identity: identity)
