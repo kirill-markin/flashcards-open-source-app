@@ -13,6 +13,11 @@ export const analyticsAreaLabels: Readonly<Record<AnalyticsArea, string>> = {
   "ai-usage": "Study vs AI",
 };
 
+/** The Level 1 charts that have a Details page, by the slug of its path. */
+export const levelOneMetricDetails = ["who-saw-us", "who-opened-the-app"] as const;
+
+export type LevelOneMetricDetail = (typeof levelOneMetricDetails)[number];
+
 export const userPageTabs = ["profile", "activity", "chats", "cards"] as const;
 
 export type UserPageTab = (typeof userPageTabs)[number];
@@ -26,6 +31,7 @@ export const userPageTabLabels: Readonly<Record<UserPageTab, string>> = {
 
 export type AdminRoute =
   | Readonly<{ kind: "analyticsArea"; area: AnalyticsArea }>
+  | Readonly<{ kind: "levelOneMetricDetails"; metric: LevelOneMetricDetail }>
   | Readonly<{ kind: "users" }>
   | Readonly<{ kind: "user"; userId: string; tab: UserPageTab }>
   /** One chat opened from the Chats tab, a path of its own so Back returns to the list. */
@@ -44,6 +50,10 @@ export const eventsPath = "/events";
 
 export function getAnalyticsAreaPath(area: AnalyticsArea): string {
   return `${analyticsIndexPath}/${area}`;
+}
+
+export function getLevelOneMetricDetailsPath(metric: LevelOneMetricDetail): string {
+  return `${getAnalyticsAreaPath("level-1-metrics")}/${metric}`;
 }
 
 /** `userId` is a raw `org.user_settings.user_id` or an analytics `actor_id`, encoded as one segment. */
@@ -68,6 +78,8 @@ export function getAdminRoutePath(route: AdminRoute): string {
   switch (route.kind) {
     case "analyticsArea":
       return getAnalyticsAreaPath(route.area);
+    case "levelOneMetricDetails":
+      return getLevelOneMetricDetailsPath(route.metric);
     case "users":
       return usersPath;
     case "user":
@@ -164,6 +176,13 @@ export function parseAdminRoute(pathname: string): AdminRoute {
   );
   if (area !== undefined) {
     return { kind: "analyticsArea", area };
+  }
+
+  const metric = levelOneMetricDetails.find(
+    (candidateMetric) => getLevelOneMetricDetailsPath(candidateMetric) === normalizedPathname,
+  );
+  if (metric !== undefined) {
+    return { kind: "levelOneMetricDetails", metric };
   }
 
   return { kind: "notFound", pathname };

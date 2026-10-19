@@ -1536,6 +1536,25 @@ h2 {
   padding-left: 18px;
 }
 
+/* A Level 1 section's Details button sits at the right end of its heading row. */
+.level-1-metric-section-header {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+}
+
+.level-1-metric-details-link {
+  display: inline-flex;
+  align-items: center;
+  text-decoration: none;
+}
+
+.level-1-metric-details-header {
+  display: grid;
+  justify-items: start;
+  gap: 12px;
+  margin-top: 24px;
+}
+
 .activity-chart-hit:focus {
   outline: none;
   stroke: var(--text);

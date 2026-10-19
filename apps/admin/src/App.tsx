@@ -130,7 +130,8 @@ function buildUnionRange(
 
 /**
  * Every analytics area but Level 1 metrics renders the shared filter bar and carries its selection in
- * the URL. Level 1 metrics owns its range and its available range, so entering it loads nothing here.
+ * the URL. Level 1 metrics and its Details pages own their range and its available range, so entering
+ * them loads nothing here.
  */
 function doesRouteUseAnalyticsFilters(route: AdminRoute): boolean {
   return route.kind === "analyticsArea" && route.area !== "level-1-metrics";
@@ -685,7 +686,7 @@ export default function App(): JSX.Element {
 
   return (
     <AdminDashboard
-      activeArea={route.area}
+      route={route}
       onNavigate={navigateToPath}
       config={appState.config}
       adminEmail={appState.session.email}

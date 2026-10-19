@@ -18,8 +18,12 @@ export const reportPeriodAxisLabels: Readonly<Record<ReportPeriod, string>> = {
 /** One bar: `key` is the bucket's first day; `from`–`to` are the selected days inside it, all a bar counts. */
 export type ReportBucket = Readonly<{ key: string; from: string; to: string }>;
 
+export function findReportPeriod(value: string): ReportPeriod | undefined {
+  return reportPeriods.find((candidate) => candidate === value);
+}
+
 export function parseReportPeriod(value: string): ReportPeriod {
-  const period = reportPeriods.find((candidate) => candidate === value);
+  const period = findReportPeriod(value);
   if (period === undefined) throw new Error(`Unsupported Level 1 report period: ${value}`);
   return period;
 }

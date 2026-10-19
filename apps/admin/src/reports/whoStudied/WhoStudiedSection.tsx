@@ -25,6 +25,7 @@ export function WhoStudiedSection(props: Readonly<{
       dateRange={props.dateRange}
       period={props.period}
       onTerminalAdminError={props.onTerminalAdminError}
+      detailsLink={null}
       title="Who studied"
       testId="who-studied-section"
       explanationId="who-studied-explanation"
