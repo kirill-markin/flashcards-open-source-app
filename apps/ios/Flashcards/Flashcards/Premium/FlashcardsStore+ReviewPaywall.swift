@@ -14,7 +14,7 @@ private struct PersistedPaywallState: Codable {
 extension FlashcardsStore {
     func dueReviewPaywall(now: Date) throws -> ReviewPaywallTrigger? {
         guard let entitlement = self.cloudEntitlement, entitlement.tierRank < premiumTierRank,
-              entitlement.status == .none, entitlement.isTrial == false else { return nil }
+              entitlement.status == .noEntitlement, entitlement.isTrial == false else { return nil }
         let identity = try self.appleSubscriptionIdentity()
         let persisted = try self.loadPaywallState(identity: identity)
         guard persisted.hasLoadedServerState == true else { return nil }

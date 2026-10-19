@@ -86,7 +86,7 @@ final class ReviewSelectableTableView: UIView {
         for row in self.cells {
             for cell in row { self.addSubview(cell) }
         }
-        self.accessibilityElements = self.cells.flatMap { $0 }
+        self.accessibilityElements = Array(self.cells.joined())
         self.registerForTraitChanges([UITraitUserInterfaceStyle.self]) { (view: ReviewSelectableTableView, _: UITraitCollection) in
             view.updateBorderColors()
         }
