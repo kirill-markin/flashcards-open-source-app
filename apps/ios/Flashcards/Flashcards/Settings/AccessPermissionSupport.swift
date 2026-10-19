@@ -352,7 +352,17 @@ func openApplicationSettings() async throws {
     #else
     let settingsUrlString: String = UIApplication.openSettingsURLString
     #endif
-    guard let settingsUrl = URL(string: settingsUrlString) else {
+    try await openSystemSettings(urlString: settingsUrlString)
+}
+
+@MainActor
+func openNotificationSettings() async throws {
+    try await openSystemSettings(urlString: UIApplication.openNotificationSettingsURLString)
+}
+
+@MainActor
+private func openSystemSettings(urlString: String) async throws {
+    guard let settingsUrl = URL(string: urlString) else {
         throw SystemSettingsError.invalidLink
     }
 

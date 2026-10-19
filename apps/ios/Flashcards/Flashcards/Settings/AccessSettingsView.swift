@@ -1,20 +1,36 @@
 import SwiftUI
 
+private struct AccessPermissionSummary: Identifiable {
+    let kind: AccessPermissionKind
+    let status: AccessPermissionStatus
+
+    var id: AccessPermissionKind { self.kind }
+}
+
+private func accessPermissionSummaries() -> [AccessPermissionSummary] {
+    AccessPermissionKind.allCases.map { kind in
+        AccessPermissionSummary(kind: kind, status: accessPermissionStatus(kind: kind))
+    }
+}
+
 struct AccessSettingsView: View {
+    @Environment(\.scenePhase) private var scenePhase
+    @State private var permissions: [AccessPermissionSummary] = accessPermissionSummaries()
+
     var body: some View {
         List {
             Section(aiSettingsLocalized("settings.access.section.permissions", "Permissions")) {
-                ForEach(AccessPermissionKind.allCases) { kind in
-                    NavigationLink(value: SettingsNavigationDestination.accessPermissionDetail(kind)) {
+                ForEach(self.permissions) { permission in
+                    NavigationLink(value: SettingsNavigationDestination.accessPermissionDetail(permission.kind)) {
                         HStack(spacing: 12) {
                             Label {
-                                Text(localizedAccessPermissionKindTitle(kind))
+                                Text(localizedAccessPermissionKindTitle(permission.kind))
                                     .foregroundStyle(Color.primary)
                             } icon: {
-                                Image(systemName: kind.systemImage)
+                                Image(systemName: permission.kind.systemImage)
                             }
                             Spacer()
-                            Text(localizedAccessPermissionStatusTitle(accessPermissionStatus(kind: kind)))
+                            Text(localizedAccessPermissionStatusTitle(permission.status))
                                 .font(.subheadline.monospacedDigit())
                                 .foregroundStyle(.secondary)
                         }
@@ -35,12 +51,22 @@ struct AccessSettingsView: View {
         .listStyle(.insetGrouped)
         .navigationTitle(aiSettingsLocalized("settings.access.title", "Access"))
         .accessibilityIdentifier(UITestIdentifier.accessSettingsScreen)
+        .onAppear {
+            self.permissions = accessPermissionSummaries()
+        }
+        .onChange(of: self.scenePhase) { _, nextPhase in
+            if nextPhase == .active {
+                self.permissions = accessPermissionSummaries()
+            }
+        }
     }
 }
 
 struct AccessPermissionDetailView: View {
+    @Environment(\.scenePhase) private var scenePhase
     @State private var status: AccessPermissionStatus
     @State private var guidanceMessage: String
+    @State private var isPerformingAction: Bool = false
 
     let kind: AccessPermissionKind
 
@@ -69,13 +95,34 @@ struct AccessPermissionDetailView: View {
 
                 Text(localizedAccessPermissionGuidance(kind: self.kind, status: self.status))
                     .foregroundStyle(.secondary)
+
+                #if targetEnvironment(macCatalyst)
+                if self.status == .allowed || self.status == .blocked || self.status == .limited {
+                    Text(
+                        String(
+                            localized: "access_permission_guidance.mac_settings",
+                            defaultValue: "In System Settings, open Privacy & Security and select this permission.",
+                            table: "Foundation"
+                        )
+                    )
+                    .foregroundStyle(.secondary)
+                }
+                #endif
             }
 
             if let primaryActionTitle = localizedAccessPermissionPrimaryActionTitle(self.status) {
                 Section {
-                    Button(primaryActionTitle) {
+                    Button {
                         self.handlePrimaryAction()
+                    } label: {
+                        HStack {
+                            Text(primaryActionTitle)
+                            if self.isPerformingAction {
+                                ProgressView()
+                            }
+                        }
                     }
+                    .disabled(self.isPerformingAction)
                 }
             }
         }
@@ -84,6 +131,11 @@ struct AccessPermissionDetailView: View {
         .onAppear {
             self.refreshStatus()
         }
+        .onChange(of: self.scenePhase) { _, nextPhase in
+            if nextPhase == .active {
+                self.refreshStatus()
+            }
+        }
     }
 
     private func refreshStatus() {
@@ -91,26 +143,33 @@ struct AccessPermissionDetailView: View {
     }
 
     private func handlePrimaryAction() {
-        switch self.status {
-        case .askEveryTime:
-            Task { @MainActor in
-                self.status = await requestAccessPermission(kind: self.kind)
-                self.guidanceMessage = ""
+        guard self.isPerformingAction == false else {
+            return
+        }
+
+        let status = self.status
+        self.isPerformingAction = true
+        self.guidanceMessage = ""
+        Task { @MainActor in
+            defer {
+                self.isPerformingAction = false
             }
-        case .allowed, .blocked, .limited:
-            Task { @MainActor in
-                self.guidanceMessage = ""
+
+            switch status {
+            case .askEveryTime:
+                self.status = await requestAccessPermission(kind: self.kind)
+            case .allowed, .blocked, .limited:
                 do {
                     try await openApplicationSettings()
                 } catch {
                     self.guidanceMessage = errorMessage(error: error)
                 }
+            case .unavailable:
+                self.guidanceMessage = aiSettingsLocalized(
+                    "settings.access.guidance.unavailable",
+                    "This access is unavailable on the current device."
+                )
             }
-        case .unavailable:
-            self.guidanceMessage = aiSettingsLocalized(
-                "settings.access.guidance.unavailable",
-                "This access is unavailable on the current device."
-            )
         }
     }
 }

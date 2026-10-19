@@ -278,7 +278,7 @@ struct NotificationsSettingsView: View {
             do {
                 switch permissionStatus {
                 case .allowed, .blocked:
-                    try await openApplicationSettings()
+                    try await openNotificationSettings()
                 case .notRequested:
                     self.permissionStatus = try await store.requestReviewNotificationPermissionFromSettings(
                         now: Date()
