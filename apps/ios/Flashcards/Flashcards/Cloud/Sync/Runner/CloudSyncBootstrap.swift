@@ -35,6 +35,7 @@ extension CloudSyncRunner {
                 osName: currentClientOsName(),
                 deviceType: currentClientDeviceType(),
                 isAutomation: AutomationRun.current.isAutomation,
+                isTestDistribution: TestDistribution.isTestDistribution,
                 cursor: nil,
                 limit: 200,
                 includeMediaAssets: true
@@ -155,6 +156,7 @@ extension CloudSyncRunner {
                     osName: currentClientOsName(),
                     deviceType: currentClientDeviceType(),
                     isAutomation: AutomationRun.current.isAutomation,
+                    isTestDistribution: TestDistribution.isTestDistribution,
                     cursor: nextCursor,
                     limit: 200,
                     includeMediaAssets: true
@@ -224,6 +226,7 @@ extension CloudSyncRunner {
                     osName: currentClientOsName(),
                     deviceType: currentClientDeviceType(),
                     isAutomation: AutomationRun.current.isAutomation,
+                    isTestDistribution: TestDistribution.isTestDistribution,
                     includeMediaAssets: true,
                     entries: bootstrapEntries.map { entry in
                         SyncBootstrapEntryEnvelope(entry: entry)

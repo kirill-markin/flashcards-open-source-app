@@ -74,6 +74,7 @@ extension CloudSyncRunner {
                     osName: currentClientOsName(),
                     deviceType: currentClientDeviceType(),
                     isAutomation: AutomationRun.current.isAutomation,
+                    isTestDistribution: TestDistribution.isTestDistribution,
                     afterHotChangeId: afterHotChangeId,
                     limit: 200,
                     includeMediaAssets: true

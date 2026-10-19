@@ -716,6 +716,7 @@ final class CloudSyncService: @unchecked Sendable {
                 osName: currentClientOsName(),
                 deviceType: currentClientDeviceType(),
                 isAutomation: AutomationRun.current.isAutomation,
+                isTestDistribution: TestDistribution.isTestDistribution,
                 cursor: nil,
                 limit: 1,
                 includeMediaAssets: true

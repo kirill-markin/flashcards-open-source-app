@@ -8,6 +8,9 @@
  installation, `false` is the ordinary case the backend treats exactly like an absent field, and the
  marker is never cleared once stored. It rides on every request rather than a dedicated registration
  call because any of them can be the one that registers this installation.
+
+ `isTestDistribution` follows the same rules and claims the installation did not come from the App
+ Store (TestFlight, App Review or a developer build); see `TestDistribution`.
  */
 
 import Foundation
@@ -23,6 +26,7 @@ struct PushRequest: Encodable {
     let osName: String
     let deviceType: String
     let isAutomation: Bool
+    let isTestDistribution: Bool
     let operations: [SyncOperationEnvelope]
 }
 
@@ -37,6 +41,7 @@ struct PullRequest: Encodable {
     let osName: String
     let deviceType: String
     let isAutomation: Bool
+    let isTestDistribution: Bool
     let afterHotChangeId: Int64
     let limit: Int
     let includeMediaAssets: Bool
@@ -56,6 +61,7 @@ struct BootstrapPullRequest: Encodable {
     let osName: String
     let deviceType: String
     let isAutomation: Bool
+    let isTestDistribution: Bool
     let cursor: String?
     let limit: Int
     let includeMediaAssets: Bool
@@ -68,6 +74,7 @@ struct BootstrapPullRequest: Encodable {
         case osName
         case deviceType
         case isAutomation
+        case isTestDistribution
         case cursor
         case limit
         case includeMediaAssets
@@ -86,6 +93,7 @@ struct BootstrapPullRequest: Encodable {
         try container.encode(self.osName, forKey: .osName)
         try container.encode(self.deviceType, forKey: .deviceType)
         try container.encode(self.isAutomation, forKey: .isAutomation)
+        try container.encode(self.isTestDistribution, forKey: .isTestDistribution)
         if let cursor = self.cursor {
             try container.encode(cursor, forKey: .cursor)
         } else {
@@ -109,6 +117,7 @@ struct BootstrapPushRequest: Encodable {
     let osName: String
     let deviceType: String
     let isAutomation: Bool
+    let isTestDistribution: Bool
     let includeMediaAssets: Bool
     let entries: [SyncBootstrapEntryEnvelope]
 }
@@ -136,6 +145,7 @@ struct ReviewHistoryPullRequest: Encodable {
     let osName: String
     let deviceType: String
     let isAutomation: Bool
+    let isTestDistribution: Bool
     let afterReviewSequenceId: Int64
     let limit: Int
 }
@@ -151,6 +161,7 @@ struct ReviewHistoryImportRequest: Encodable {
     let osName: String
     let deviceType: String
     let isAutomation: Bool
+    let isTestDistribution: Bool
     let reviewEvents: [ReviewEvent]
 }
 
