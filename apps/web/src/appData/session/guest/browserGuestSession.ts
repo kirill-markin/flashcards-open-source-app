@@ -1,5 +1,5 @@
 import { createBrowserGuestSession, probeBrowserGuestSession } from "../../../api/endpoints/guestAuth";
-import { getOptionalSession, getSession, isBrowserGuestSessionVerified, loadVerifiedBrowserGuestSession, pauseBrowserGuestSession, readBrowserGuestVerificationGeneration, recoverRegisteredCredentialForProbe, resumeVerifiedBrowserSession } from "../../../api/transport/transport";
+import { BrowserGuestSessionInvalidatedError, getOptionalSession, getSession, isBrowserGuestSessionVerified, loadVerifiedBrowserGuestSession, pauseBrowserGuestSession, readBrowserGuestVerificationGeneration, recoverRegisteredCredentialForProbe, resumeVerifiedBrowserSession } from "../../../api/transport/transport";
 import type { BrowserGuestProbe } from "../../../apiContracts/guestAuth";
 import { closeDatabaseAfter, getAllFromStore } from "../../../localDb/core/database";
 import { loadCloudSettings } from "../../../localDb/sync/cloudSettings";
@@ -23,7 +23,7 @@ export { readBrowserGuestVerificationGeneration };
 
 export function requireBrowserGuestVerificationGeneration(userId: string, generation: number | null): void {
   if (generation === null || readBrowserGuestVerificationGeneration(userId) !== generation) {
-    throw new Error("Browser guest verification changed; remote work is paused until the owner is verified again.");
+    throw new BrowserGuestSessionInvalidatedError("Browser guest verification changed; remote work is paused until the owner is verified again.");
   }
 }
 
