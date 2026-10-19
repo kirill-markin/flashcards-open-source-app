@@ -1,5 +1,10 @@
 import type { AnalyticsDateRange } from "../../filters/analyticsFilters";
-import { parseDateRange, readSingleParam, setDateRangeParams } from "../../filters/analyticsFiltersUrl";
+import {
+  parseDateRange,
+  parseProvisionalDateRange,
+  readSingleParam,
+  setDateRangeParams,
+} from "../../filters/analyticsFiltersUrl";
 import { findReportPeriod, type ReportPeriod } from "./reportPeriod";
 
 // The Level 1 main and Details pages carry their selection in the same query string, so a shared
@@ -12,16 +17,32 @@ const periodParamName = "period";
 
 const defaultLevelOneMetricsPeriod: ReportPeriod = "day";
 
+function parsePeriod(searchParams: URLSearchParams): ReportPeriod {
+  const periodParam = readSingleParam(searchParams, periodParamName);
+  const period = periodParam === undefined ? undefined : findReportPeriod(periodParam);
+  return period ?? defaultLevelOneMetricsPeriod;
+}
+
 export function parseLevelOneMetricsSelection(
   searchParams: URLSearchParams,
   availableRange: AnalyticsDateRange,
   defaultRange: AnalyticsDateRange,
 ): LevelOneMetricsSelection {
-  const periodParam = readSingleParam(searchParams, periodParamName);
-  const period = periodParam === undefined ? undefined : findReportPeriod(periodParam);
   return {
     dateRange: parseDateRange(searchParams, availableRange, defaultRange),
-    period: period ?? defaultLevelOneMetricsPeriod,
+    period: parsePeriod(searchParams),
+  };
+}
+
+/** The selection the charts start on before the available range is known; see `parseProvisionalDateRange`. */
+export function parseProvisionalLevelOneMetricsSelection(
+  searchParams: URLSearchParams,
+  todayUtc: string,
+  provisionalDefaultRange: AnalyticsDateRange,
+): LevelOneMetricsSelection {
+  return {
+    dateRange: parseProvisionalDateRange(searchParams, todayUtc) ?? provisionalDefaultRange,
+    period: parsePeriod(searchParams),
   };
 }
 
