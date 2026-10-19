@@ -52,6 +52,11 @@ export function WhoSawUsDatasetPage(
               period={selection.period}
               onTerminalAdminError={props.onTerminalAdminError}
             />
+            {props.dataset === "google-play" ? (
+              <p className="report-state" data-testid="who-saw-us-google-play-no-breakdowns-note">
+                No breakdowns: at our volume Google Play reports every country, traffic source and search term as Other, so a split would show one Other bar. Verified 2026-10-19 over all imported days.
+              </p>
+            ) : null}
             {props.dataset === "web" ? (
               <WebLandingPagePathSections
                 config={props.config}
