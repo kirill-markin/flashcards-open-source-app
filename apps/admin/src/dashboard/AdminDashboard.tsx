@@ -17,11 +17,12 @@ import { AudienceSection } from "../reports/audience/AudienceSection";
 import { CatalogInstallsSection } from "../reports/catalogInstalls/CatalogInstallsSection";
 import { DailyActiveUsersSection } from "../reports/dailyActiveUsers/DailyActiveUsersSection";
 import { FunnelsArea } from "../reports/funnels/FunnelsArea";
+import { LevelOneMetricDetailsPage } from "../reports/levelOneMetrics/LevelOneMetricDetailsPage";
 import { LevelOneMetricsArea } from "../reports/levelOneMetrics/LevelOneMetricsArea";
 import { ReviewActivitySection } from "../reports/reviewEventsByDate/ReviewActivitySection";
 import type { ReviewEventsByDateRange } from "../reports/reviewEventsByDate/query";
 import { SocialConnectionsSection } from "../reports/socialConnections/SocialConnectionsSection";
-import type { AnalyticsArea } from "../routing";
+import type { AdminRoute, AnalyticsArea } from "../routing";
 import { getStableUserColorDomain, getUserColorScale } from "./userColors";
 
 export type AdminReportsData = Readonly<{
@@ -201,9 +202,12 @@ function AnalyticsReportSections(props: AnalyticsReportSectionsProps): JSX.Eleme
   );
 }
 
+/** The routes the dashboard shell renders: an analytics area, or a Level 1 Details page under its tab. */
+export type AdminDashboardRoute = Extract<AdminRoute, { kind: "analyticsArea" | "levelOneMetricDetails" }>;
+
 export function AdminDashboard(
   props: Readonly<{
-    activeArea: AnalyticsArea;
+    route: AdminDashboardRoute;
     onNavigate: (path: string) => void;
     config: AdminAppConfig;
     adminEmail: string;
@@ -215,8 +219,9 @@ export function AdminDashboard(
     onTerminalAdminError: (error: unknown, config: AdminAppConfig) => boolean;
   }>,
 ): JSX.Element {
+  const activeArea: AnalyticsArea = props.route.kind === "analyticsArea" ? props.route.area : "level-1-metrics";
   // Level 1 metrics loads and ranges its own charts, so nothing below about the General reports applies.
-  const usesGeneralReports = props.activeArea !== "level-1-metrics";
+  const usesGeneralReports = activeArea !== "level-1-metrics";
   // The range the numbers on screen were produced with, which lags the selection while a reload runs.
   const appliedRange = usesGeneralReports && props.reportState.status === "ready"
     ? { from: props.reportState.data.report.from, to: props.reportState.data.report.to }
@@ -236,15 +241,24 @@ export function AdminDashboard(
         </div>
       </section>
 
-      <AdminNavigation activePage={props.activeArea} onNavigate={props.onNavigate} />
+      <AdminNavigation activePage={activeArea} onNavigate={props.onNavigate} />
 
-      {usesGeneralReports ? null : (
+      {props.route.kind === "levelOneMetricDetails" ? (
+        <LevelOneMetricDetailsPage
+          metric={props.route.metric}
+          config={props.config}
+          onNavigate={props.onNavigate}
+          onTerminalAdminError={props.onTerminalAdminError}
+        />
+      ) : null}
+
+      {props.route.kind === "analyticsArea" && props.route.area === "level-1-metrics" ? (
         <LevelOneMetricsArea
           config={props.config}
           onNavigate={props.onNavigate}
           onTerminalAdminError={props.onTerminalAdminError}
         />
-      )}
+      ) : null}
 
       {usesGeneralReports && props.reportState.status === "loading" ? (
         <p className="report-state" aria-live="polite">Loading analytics reports…</p>
@@ -278,7 +292,7 @@ export function AdminDashboard(
               once per page load and cannot go stale, so the only thing the failed reload can leave
               behind there is the option lists, which are refetched with it whenever the range moves.
             */}
-            <strong>{props.activeArea === "general"
+            <strong>{activeArea === "general"
               ? "General reports failed to reload. The numbers below are stale."
               : "General reports failed to reload. The filter option lists may not match the current range."}</strong>
             {/* Clamped to three lines in CSS, so a long backend message cannot take over a short
@@ -296,7 +310,7 @@ export function AdminDashboard(
 
       {usesGeneralReports && props.reportState.status === "ready" && props.filters !== null ? (
         <AnalyticsReportSections
-          activeArea={props.activeArea}
+          activeArea={activeArea}
           config={props.config}
           data={props.reportState.data}
           filters={props.filters}

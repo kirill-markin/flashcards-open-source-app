@@ -9,6 +9,10 @@ import type { AdminAppConfig } from "../../config";
 import { ExplanationTip } from "../../explanations/ExplanationTip";
 import type { AnalyticsDateRange } from "../../filters/analyticsFilters";
 import {
+  LevelOneMetricDetailsButton,
+  type LevelOneMetricDetailsLink,
+} from "../levelOneMetrics/LevelOneMetricDetailsLink";
+import {
   findInProgressBucketKey,
   formatReportBucketTick,
   formatReportBucketTitle,
@@ -127,6 +131,7 @@ export function WhoSawUsSection(
     config: AdminAppConfig;
     dateRange: AnalyticsDateRange;
     period: ReportPeriod;
+    detailsLink: LevelOneMetricDetailsLink | null;
     onTerminalAdminError: (error: unknown, config: AdminAppConfig) => boolean;
   }>,
 ): JSX.Element {
@@ -187,7 +192,7 @@ export function WhoSawUsSection(
 
   return (
     <section className="dashboard-section" data-testid="who-saw-us-section">
-      <header className="dashboard-section-header">
+      <header className="dashboard-section-header level-1-metric-section-header">
         <div className="explained-heading-row">
           <h2>Who saw us</h2>
           <ExplanationTip label="What Who saw us shows" explanationId="who-saw-us-explanation">
@@ -219,6 +224,7 @@ export function WhoSawUsSection(
             </ul>
           </ExplanationTip>
         </div>
+        {props.detailsLink !== null ? <LevelOneMetricDetailsButton link={props.detailsLink} /> : null}
       </header>
 
       {loadState.status === "loading" ? (

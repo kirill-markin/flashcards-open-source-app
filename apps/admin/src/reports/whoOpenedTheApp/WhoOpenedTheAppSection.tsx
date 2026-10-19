@@ -3,6 +3,7 @@ import type { AdminAppConfig } from "../../config";
 import type { AnalyticsDateRange } from "../../filters/analyticsFilters";
 import { DailyNewReturningSection } from "../dailyNewReturning/DailyNewReturningSection";
 import type { DailyActivitySource } from "../dailyNewReturning/query";
+import type { LevelOneMetricDetailsLink } from "../levelOneMetrics/LevelOneMetricDetailsLink";
 import type { ReportPeriod } from "../levelOneMetrics/reportPeriod";
 import { buildAppOpenActivityCtesSql } from "./appOpenActivitySql";
 
@@ -17,6 +18,7 @@ export function WhoOpenedTheAppSection(props: Readonly<{
   config: AdminAppConfig;
   dateRange: AnalyticsDateRange;
   period: ReportPeriod;
+  detailsLink: LevelOneMetricDetailsLink | null;
   onTerminalAdminError: (error: unknown, config: AdminAppConfig) => boolean;
 }>): JSX.Element {
   return (
@@ -25,6 +27,7 @@ export function WhoOpenedTheAppSection(props: Readonly<{
       dateRange={props.dateRange}
       period={props.period}
       onTerminalAdminError={props.onTerminalAdminError}
+      detailsLink={props.detailsLink}
       title="Who opened the app"
       testId="who-opened-the-app-section"
       explanationId="who-opened-the-app-explanation"
