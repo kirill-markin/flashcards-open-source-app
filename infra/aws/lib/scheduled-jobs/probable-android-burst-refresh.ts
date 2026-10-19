@@ -115,7 +115,7 @@ export function probableAndroidBurstRefresh(scope: Construct, props: ProbableAnd
   }));
 
   new scheduler.CfnSchedule(scope, "ProbableAndroidBurstRefreshHourlySchedule", {
-    description: "Refresh the probable Android test-burst analytics classification every hour",
+    description: "Refresh the probable Android test-burst and scraper-fleet analytics classifications every hour",
     flexibleTimeWindow: { mode: "OFF" },
     scheduleExpression: probableAndroidBurstRefreshScheduleExpression,
     scheduleExpressionTimezone: "UTC",

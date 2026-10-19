@@ -6,6 +6,7 @@ import {
   excludedListedActorIdsSqlLines,
   excludedTestEmailActorIdsSqlLines,
   probableAndroidBurstActorIdsSqlLines,
+  probableScraperFleetActorIdsSqlLines,
   sandboxBillingActorIdsSqlLines,
   testDistributionInstallationActorIdsSqlLines,
 } from "../../../backend/src/reviewMetricsSql";
@@ -49,7 +50,8 @@ export function buildExcludedActorReasonSql(actorIdSqlExpression: string): strin
     `  CASE WHEN ${actorIdSqlExpression} IN (${inline(automationInstallationActorIdsSqlLines)}) THEN 'automation guest install' END,`,
     `  CASE WHEN ${actorIdSqlExpression} IN (${inline(testDistributionInstallationActorIdsSqlLines)}) THEN 'test distribution install' END,`,
     `  CASE WHEN ${actorIdSqlExpression} IN (${inline(sandboxBillingActorIdsSqlLines)}) THEN 'sandbox billing' END,`,
-    `  CASE WHEN ${actorIdSqlExpression} IN (${inline(probableAndroidBurstActorIdsSqlLines)}) THEN 'probable Android test burst' END`,
+    `  CASE WHEN ${actorIdSqlExpression} IN (${inline(probableAndroidBurstActorIdsSqlLines)}) THEN 'probable Android test burst' END,`,
+    `  CASE WHEN ${actorIdSqlExpression} IN (${inline(probableScraperFleetActorIdsSqlLines)}) THEN 'scraper fleet' END`,
     ")",
   ].join("\n");
 }
@@ -234,8 +236,9 @@ export function buildTrustedActorRowsFilterSql(trustLevelSqlExpression: string):
  *     blog platform-choice funnel, while the blog web-app funnel deliberately reads none - of the
  *     deck funnel, and of the `Web` series of Who saw us (`hashed_site_visitors` in
  *     `reports/whoSawUs/query.ts`): every hashed page view and every hashed click. Those rows carry
- *     a NULL `actor_id` by construction, so this is the only level at which they can be judged at
- *     all, and a marked browser-day never becomes a person.
+ *     a NULL `actor_id` by construction, so the automated verdict can judge them only row by row
+ *     here, beside the hash-level scraper-fleet `NOT IN` in the same builder, and a marked
+ *     browser-day never becomes a person.
  *   - `attribution_clicks` in `buildCatalogInstallAttributionSql` below, because its journey bridge
  *     matches a click that claimed no visitor at all, whose own actor is therefore never the install's
  *     and is never tested by the rule the install side applies.

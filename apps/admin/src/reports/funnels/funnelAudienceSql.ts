@@ -179,11 +179,13 @@ export function buildHashedVisitorDayRangeSqlLines(
  * admin browsing the site without consenting is counted among the hashed people. It is why the mode
  * that reads them is not the default, and the sections say what the segment is.
  *
- * THE ONE ARM OF THAT RULE THAT DOES REACH THEM IS THE AUTOMATED VERDICT, because the collector
- * writes it onto the row rather than onto a person, so it needs no actor: a browser-day reported by a
+ * TWO ARMS OF THAT RULE DO REACH THEM, because each names a row or a hash rather than a person, so
+ * neither needs an actor. The automated verdict is written onto the row: a browser-day reported by a
  * bot, a crawler, a headless browser or a request carrying no `User-Agent` never becomes a hashed
  * person at all. `buildNonAutomatedClientRowsFilterSql` owns that predicate and the reason it keeps
- * NULL, which on these rows is one stored before the marker shipped and is a real visitor.
+ * NULL, which on these rows is one stored before the marker shipped and is a real visitor. The
+ * scraper fleet lists its browser-days by hash
+ * (`db/migrations/0223_probable_scraper_fleet_visitors.sql`), as one uncorrelated `NOT IN` set.
  */
 export function buildHashedSiteRowSqlLines(
   rowAlias: string,
@@ -195,6 +197,13 @@ export function buildHashedSiteRowSqlLines(
     `${rowAlias}.trust_level = 'anonymous_client'`,
     `${rowAlias}.daily_visitor_hash IS NOT NULL`,
     buildNonAutomatedClientRowsFilterSql(`${rowAlias}.automated_client`),
+    [
+      `${rowAlias}.daily_visitor_hash NOT IN (`,
+      "  SELECT probable_scraper_fleet.subject_id",
+      "  FROM analytics.probable_scraper_fleet_visitors AS probable_scraper_fleet",
+      "  WHERE probable_scraper_fleet.subject_kind = 'daily_visitor_hash'",
+      ")",
+    ].join("\n"),
   ];
 }
 
