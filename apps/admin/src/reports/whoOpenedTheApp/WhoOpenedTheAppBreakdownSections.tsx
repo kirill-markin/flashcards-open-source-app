@@ -69,6 +69,8 @@ export function WhoOpenedTheAppBreakdownSections(props: Readonly<{
             <li>The shared actor exclusions apply, and only credentialed rows count. Edge bars hold only the selected days. The bar holding today is in progress; a bar with days before retained history is unavailable, never zero.</li>
           </>}
           countLabel="Unique people"
+          unavailableBarText="Unavailable: retained source history does not cover all of its days."
+          noAvailableBarText="Retained source history does not cover this range."
           loadReport={breakdown.loadReport}
           formatValue={breakdown.formatValue}
         />
