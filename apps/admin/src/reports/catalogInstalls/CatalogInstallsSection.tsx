@@ -1,15 +1,19 @@
 import { useEffect, useMemo, useRef, type JSX } from "react";
 import * as d3 from "d3";
 import type { CatalogInstallsReport } from "../../adminApi";
+import { ChartGeneratedAt } from "../../charts/ChartGeneratedAt";
+import { ChartLoadingPlaceholder } from "../../charts/ChartLoadingPlaceholder";
 import { ChartTooltip, useChartTooltip } from "../../charts/ChartTooltip";
 import {
+  chartWidth,
   createTickDates,
+  stackedChartHeight,
   type MatrixChartEntry,
   type PackageColorScale,
 } from "../../charts/chartPrimitives";
 import { renderCatalogInstallsByPackageChart } from "../../charts/chartRenderers";
-import { formatGeneratedAt } from "../../charts/formatting";
 import { ExplanationTip } from "../../explanations/ExplanationTip";
+import { getLatestGeneralReport, type GeneralReportView } from "../generalReportView";
 import { buildRequestedDateRange } from "../reportValues";
 import { catalogInstallsReportLabel } from "./query";
 
@@ -84,23 +88,32 @@ function buildCatalogInstallsSummaryCards(
 
 export function CatalogInstallsSection(
   props: Readonly<{
-    filteredReport: CatalogInstallsReport;
-    generatedAtUtc: string;
+    filteredReport: GeneralReportView<CatalogInstallsReport>;
     packageColorScale: PackageColorScale;
   }>,
 ): JSX.Element {
   const packageInstallsChartRef = useRef<SVGSVGElement | null>(null);
   const { tooltipState, tooltipHandlers } = useChartTooltip();
+  const latestReport = getLatestGeneralReport(props.filteredReport);
   const chartModel = useMemo(
-    () => buildCatalogInstallsChartModel(props.filteredReport),
-    [props.filteredReport],
+    () => latestReport === null ? null : buildCatalogInstallsChartModel(latestReport),
+    [latestReport],
   );
   const summaryCards = useMemo(
-    () => buildCatalogInstallsSummaryCards(props.filteredReport, chartModel.peakDailyInstalls),
-    [chartModel.peakDailyInstalls, props.filteredReport],
+    () => latestReport === null || chartModel === null
+      ? null
+      : buildCatalogInstallsSummaryCards(latestReport, chartModel.peakDailyInstalls),
+    [chartModel, latestReport],
   );
+  const readyReport = props.filteredReport.status === "ready" ? props.filteredReport.report : null;
+  const readyChartModel = readyReport === null ? null : chartModel;
 
   useEffect(() => {
+    if (readyChartModel === null) {
+      tooltipHandlers.hideTooltip();
+      return;
+    }
+
     const packageInstallsSvgElement = packageInstallsChartRef.current;
     if (packageInstallsSvgElement === null) {
       return;
@@ -108,17 +121,17 @@ export function CatalogInstallsSection(
 
     renderCatalogInstallsByPackageChart({
       svgElement: packageInstallsSvgElement,
-      dates: chartModel.dates,
-      tickDates: chartModel.tickDates,
-      packageInstallsMatrix: chartModel.packageInstallsMatrix,
-      packageSlugs: chartModel.packageSlugs,
+      dates: readyChartModel.dates,
+      tickDates: readyChartModel.tickDates,
+      packageInstallsMatrix: readyChartModel.packageInstallsMatrix,
+      packageSlugs: readyChartModel.packageSlugs,
       packageColorScale: props.packageColorScale,
-      totalInstallsByDate: chartModel.totalInstallsByDate,
-      cardCountByDateAndPackageSlug: chartModel.cardCountByDateAndPackageSlug,
-      peakDailyInstalls: chartModel.peakDailyInstalls,
+      totalInstallsByDate: readyChartModel.totalInstallsByDate,
+      cardCountByDateAndPackageSlug: readyChartModel.cardCountByDateAndPackageSlug,
+      peakDailyInstalls: readyChartModel.peakDailyInstalls,
       tooltipHandlers,
     });
-  }, [chartModel, props.packageColorScale, tooltipHandlers]);
+  }, [readyChartModel, props.packageColorScale, tooltipHandlers]);
 
   return (
     <section className="dashboard-section">
@@ -152,25 +165,29 @@ export function CatalogInstallsSection(
         </div>
       </header>
 
-      <section className="summary-grid">
-        {summaryCards.map((card) => (
-          <article key={card.label} className="metric-card">
-            <p className="metric-label">{card.label}</p>
-            <p className="metric-value">{card.value}</p>
-          </article>
-        ))}
-      </section>
+      {summaryCards === null ? null : (
+        <section className="summary-grid">
+          {summaryCards.map((card) => (
+            <article key={card.label} className="metric-card">
+              <p className="metric-label">{card.label}</p>
+              <p className="metric-value">{card.value}</p>
+            </article>
+          ))}
+        </section>
+      )}
 
       <section className="chart-column">
         <div className="chart-shell">
           <div className="chart-meta">
             <span>Catalog deck installs per day &mdash; stacked by deck</span>
             <div className="chart-meta-right">
-              <span>Generated {formatGeneratedAt(props.generatedAtUtc)}</span>
+              <ChartGeneratedAt generatedAtUtc={latestReport?.generatedAtUtc ?? null} />
             </div>
           </div>
           <div className="chart-scroll">
-            <svg ref={packageInstallsChartRef} />
+            {readyChartModel === null ? (
+              <ChartLoadingPlaceholder viewBoxWidth={chartWidth} viewBoxHeight={stackedChartHeight} label="Loading…" />
+            ) : <svg ref={packageInstallsChartRef} />}
           </div>
         </div>
       </section>

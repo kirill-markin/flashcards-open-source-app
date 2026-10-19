@@ -1484,7 +1484,8 @@ h2 {
   flex: 0 0 auto;
 }
 
-.platform-key-placeholder {
+.platform-key-placeholder,
+.chart-generated-at-placeholder {
   visibility: hidden;
 }
 

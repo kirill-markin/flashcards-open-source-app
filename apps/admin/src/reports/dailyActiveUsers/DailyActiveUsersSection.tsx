@@ -14,8 +14,16 @@ import {
   UniqueActiveUsersMarkerKey,
   UniqueUserCohortKey,
 } from "../../charts/ChartLegends";
+import { ChartGeneratedAt } from "../../charts/ChartGeneratedAt";
+import { ChartLoadingPlaceholder } from "../../charts/ChartLoadingPlaceholder";
 import { ChartTooltip, useChartTooltip } from "../../charts/ChartTooltip";
-import { createTickDates, type MatrixChartEntry } from "../../charts/chartPrimitives";
+import {
+  chartWidth,
+  createTickDates,
+  simpleChartHeight,
+  stackedChartHeight,
+  type MatrixChartEntry,
+} from "../../charts/chartPrimitives";
 import {
   renderDailyActiveUsersByDeviceTypeChart,
   renderDailyActiveUsersByOsNameChart,
@@ -23,8 +31,8 @@ import {
   renderDailyActiveUsersChart,
   renderDailyActiveUsersTotalChart,
 } from "../../charts/chartRenderers";
-import { formatGeneratedAt } from "../../charts/formatting";
 import { ExplanationTip } from "../../explanations/ExplanationTip";
+import { getLatestGeneralReport, type GeneralReportView } from "../generalReportView";
 
 const dailyActiveUsersBreakdowns = ["none", "cohort", "platform", "osName", "deviceType"] as const;
 type DailyActiveUsersBreakdown = (typeof dailyActiveUsersBreakdowns)[number];
@@ -43,6 +51,15 @@ const dailyActiveUsersChartTitles: Readonly<Record<DailyActiveUsersBreakdown, st
   platform: "Daily active users by platform",
   osName: "Daily active users by OS",
   deviceType: "Daily active users by device type",
+};
+
+/** The viewBox height each breakdown's renderer draws at. */
+const dailyActiveUsersChartHeights: Readonly<Record<DailyActiveUsersBreakdown, number>> = {
+  none: simpleChartHeight,
+  cohort: simpleChartHeight,
+  platform: stackedChartHeight,
+  osName: stackedChartHeight,
+  deviceType: stackedChartHeight,
 };
 
 const dailyActiveUsersBreakdownFieldId = "daily-active-users-breakdown";
@@ -180,19 +197,25 @@ function DailyActiveUsersBreakdownKey(props: Readonly<{ breakdown: DailyActiveUs
 
 export function DailyActiveUsersSection(
   props: Readonly<{
-    filteredReport: DailyActiveUsersReport;
-    generatedAtUtc: string;
+    filteredReport: GeneralReportView<DailyActiveUsersReport>;
   }>,
 ): JSX.Element {
   const chartRef = useRef<SVGSVGElement | null>(null);
   const [breakdown, setBreakdown] = useState<DailyActiveUsersBreakdown>("none");
   const { tooltipState, tooltipHandlers } = useChartTooltip();
+  const readyReport = props.filteredReport.status === "ready" ? props.filteredReport.report : null;
+  const latestReport = getLatestGeneralReport(props.filteredReport);
   const chartModel = useMemo(
-    () => buildDailyActiveUsersChartModel(props.filteredReport),
-    [props.filteredReport],
+    () => readyReport === null ? null : buildDailyActiveUsersChartModel(readyReport),
+    [readyReport],
   );
 
   useEffect(() => {
+    if (chartModel === null) {
+      tooltipHandlers.hideTooltip();
+      return;
+    }
+
     const svgElement = chartRef.current;
     if (svgElement === null) {
       return;
@@ -310,11 +333,17 @@ export function DailyActiveUsersSection(
             <span>{dailyActiveUsersChartTitles[breakdown]}</span>
             <div className="chart-meta-right">
               <DailyActiveUsersBreakdownKey breakdown={breakdown} />
-              <span>Generated {formatGeneratedAt(props.generatedAtUtc)}</span>
+              <ChartGeneratedAt generatedAtUtc={latestReport?.generatedAtUtc ?? null} />
             </div>
           </div>
           <div className="chart-scroll">
-            <svg ref={chartRef} />
+            {chartModel === null ? (
+              <ChartLoadingPlaceholder
+                viewBoxWidth={chartWidth}
+                viewBoxHeight={dailyActiveUsersChartHeights[breakdown]}
+                label="Loading…"
+              />
+            ) : <svg ref={chartRef} />}
           </div>
         </div>
       </section>

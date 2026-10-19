@@ -1,20 +1,24 @@
 import { useCallback, useEffect, useRef, type JSX } from "react";
 import type { ReviewEventsByDateUser } from "../../../adminApi";
 import { PlatformKey, UniqueUserCohortKey } from "../../../charts/ChartLegends";
+import { ChartGeneratedAt } from "../../../charts/ChartGeneratedAt";
+import { ChartLoadingPlaceholder } from "../../../charts/ChartLoadingPlaceholder";
 import { ChartTooltip, useChartTooltip } from "../../../charts/ChartTooltip";
+import { chartWidth, simpleChartHeight, stackedChartHeight } from "../../../charts/chartPrimitives";
 import {
   renderDailyUniqueUsersChart,
   renderPlatformActiveUsersChart,
   renderPlatformReviewEventsChart,
   renderUserReviewEventsChart,
 } from "../../../charts/chartRenderers";
-import { formatGeneratedAt } from "../../../charts/formatting";
 import type { UserColorScale } from "../../../dashboard/userColors";
 import type { ReviewEventsByDateChartModel } from "./chartModel";
 
 type ReviewEventsByDateChartsProps = Readonly<{
-  chartModel: ReviewEventsByDateChartModel;
-  generatedAtUtc: string;
+  /** `null` while the General batch loads or reloads, which holds every chart's placeholder. */
+  chartModel: ReviewEventsByDateChartModel | null;
+  /** The last loaded report's, also during a reload; `null` before the first load. */
+  generatedAtUtc: string | null;
   userById: ReadonlyMap<string, ReviewEventsByDateUser>;
   userColorScale: UserColorScale;
   onUserFilterApply: (userId: string) => void;
@@ -33,6 +37,11 @@ export function ReviewEventsByDateCharts(props: ReviewEventsByDateChartsProps): 
   }, [props.onUserFilterApply, tooltipHandlers]);
 
   useEffect(() => {
+    if (props.chartModel === null) {
+      tooltipHandlers.hideTooltip();
+      return;
+    }
+
     const uniqueUsersSvgElement = uniqueUsersChartRef.current;
     const userReviewEventsSvgElement = userReviewEventsChartRef.current;
     const platformUsersSvgElement = platformUsersChartRef.current;
@@ -106,7 +115,9 @@ export function ReviewEventsByDateCharts(props: ReviewEventsByDateChartsProps): 
             </div>
           </div>
           <div className="chart-scroll">
-            <svg ref={uniqueUsersChartRef} />
+            {props.chartModel === null ? (
+              <ChartLoadingPlaceholder viewBoxWidth={chartWidth} viewBoxHeight={simpleChartHeight} label="Loading…" />
+            ) : <svg ref={uniqueUsersChartRef} />}
           </div>
         </div>
 
@@ -114,11 +125,13 @@ export function ReviewEventsByDateCharts(props: ReviewEventsByDateChartsProps): 
           <div className="chart-meta">
             <span>Stacked review events by user</span>
             <div className="chart-meta-right">
-              <span>Generated {formatGeneratedAt(props.generatedAtUtc)}</span>
+              <ChartGeneratedAt generatedAtUtc={props.generatedAtUtc} />
             </div>
           </div>
           <div className="chart-scroll">
-            <svg ref={userReviewEventsChartRef} />
+            {props.chartModel === null ? (
+              <ChartLoadingPlaceholder viewBoxWidth={chartWidth} viewBoxHeight={stackedChartHeight} label="Loading…" />
+            ) : <svg ref={userReviewEventsChartRef} />}
           </div>
         </div>
 
@@ -130,7 +143,9 @@ export function ReviewEventsByDateCharts(props: ReviewEventsByDateChartsProps): 
             </div>
           </div>
           <div className="chart-scroll">
-            <svg ref={platformUsersChartRef} />
+            {props.chartModel === null ? (
+              <ChartLoadingPlaceholder viewBoxWidth={chartWidth} viewBoxHeight={stackedChartHeight} label="Loading…" />
+            ) : <svg ref={platformUsersChartRef} />}
           </div>
         </div>
 
@@ -142,7 +157,9 @@ export function ReviewEventsByDateCharts(props: ReviewEventsByDateChartsProps): 
             </div>
           </div>
           <div className="chart-scroll">
-            <svg ref={platformReviewEventsChartRef} />
+            {props.chartModel === null ? (
+              <ChartLoadingPlaceholder viewBoxWidth={chartWidth} viewBoxHeight={stackedChartHeight} label="Loading…" />
+            ) : <svg ref={platformReviewEventsChartRef} />}
           </div>
         </div>
       </section>
