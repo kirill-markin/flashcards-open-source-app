@@ -1044,6 +1044,19 @@ const funnelHashedSegmentMixRatio = 0.55;
 const funnelShareAxisFormatter = d3.format(".0%");
 
 /**
+ * A funnel chart's viewBox height. A split label adds lines above the bars, so the chart grows by as
+ * many rather than the plot shrinking: the bars stay the height they are without the split.
+ */
+export function getFunnelChartHeight(splitLineCount: number): number {
+  return funnelChartHeight + splitLineCount * funnelStepSplitLineHeight;
+}
+
+/** A grouped chart writes nothing above its bars, so it never asks for split lines. */
+export function getFunnelSplitLineCount(steps: ReadonlyArray<FunnelStepBar>, isGrouped: boolean): number {
+  return isGrouped ? 0 : Math.max(0, ...steps.map((step) => step.splitLabels.length));
+}
+
+/**
  * A grouped bar's hashed segment: that group's own colour, mixed toward the page's text.
  *
  * The stylesheet's wash cannot serve a grouped chart. It is one translucent `--text` over whatever
@@ -1194,11 +1207,9 @@ export function renderFunnelStepsChart(params: RenderFunnelStepsChartParams): vo
 
   const isGrouped = params.isGrouped;
   const steps = firstGroup.steps;
-  // A split label adds lines above the bars, so the chart and its top margin both grow by as many
-  // rather than the plot shrinking: the bars stay the height they are without the split. A grouped
-  // chart writes nothing above its bars, so it never asks for those lines.
-  const splitLineCount = isGrouped ? 0 : Math.max(0, ...steps.map((step) => step.splitLabels.length));
-  const chartHeight = funnelChartHeight + splitLineCount * funnelStepSplitLineHeight;
+  // The top margin grows with the chart, so the plot keeps its height.
+  const splitLineCount = getFunnelSplitLineCount(steps, isGrouped);
+  const chartHeight = getFunnelChartHeight(splitLineCount);
   const marginTop = funnelChartMargin.top + splitLineCount * funnelStepSplitLineHeight;
   const innerWidth = chartWidth - funnelChartMargin.left - funnelChartMargin.right;
   const innerHeight = chartHeight - marginTop - funnelChartMargin.bottom;

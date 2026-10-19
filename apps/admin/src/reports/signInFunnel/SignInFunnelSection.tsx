@@ -12,7 +12,13 @@ import {
 } from "../funnels/funnelGroupBy";
 import { FunnelMaturingWarning } from "../funnels/FunnelMaturingWarning";
 import type { FunnelSectionProps } from "../funnels/funnelSections";
-import { formatPercentage, FunnelStepsChart, type FunnelStage } from "../funnels/FunnelStepsChart";
+import {
+  formatPercentage,
+  FunnelStepsChart,
+  FunnelStepsEmptyChart,
+  FunnelStepsLoadingChart,
+  type FunnelStage,
+} from "../funnels/FunnelStepsChart";
 import {
   loadSignInFunnelReport,
   signInFunnelGroupByDimensions,
@@ -186,12 +192,29 @@ export function SignInFunnelSection(props: FunnelSectionProps): JSX.Element {
         />
       </div>
 
-      {props.isRangeLoading || loadState.status === "loading" ? <div className="report-state" aria-live="polite">Loading sign-in funnel…</div> : null}
       {props.isRangeLoading === false && loadState.status === "error" ? <div className="report-state report-state-error"><strong>Funnel query failed.</strong><span>{loadState.message}</span><button className="filter-button" type="button" onClick={() => setLoadRevision((revision) => revision + 1)}>Retry</button></div> : null}
       {props.filters.dateRange.from < signInFunnelStartDate ? <p className="report-state">Selections before {signInFunnelStartDate} are outside this report&rsquo;s coverage.</p> : null}
-      {totals !== null && totals.selectedCount === 0 ? <div className="report-state"><strong>No observed sign-in method selections match these filters.</strong><span>Entry requires a recorded method choice on the ordinary sign-in screen and an anonymous, guest or account identifier.</span>{audienceEmptyStateNote === null ? null : <span>{audienceEmptyStateNote}</span>}</div> : null}
 
       {totals !== null ? <FunnelMaturingWarning maturingCount={totals.maturingCount} entryCount={totals.selectedCount} /> : null}
+
+      {props.isRangeLoading || loadState.status === "loading" ? (
+        <FunnelStepsLoadingChart
+          countLabel="People"
+          dateRange={props.filters.dateRange}
+          showsHashedSplit={false}
+          isGrouped={groupByDimension !== null}
+          label="Loading sign-in funnel…"
+        />
+      ) : null}
+      {totals !== null && totals.selectedCount === 0 ? (
+        <FunnelStepsEmptyChart
+          countLabel="People"
+          dateRange={props.filters.dateRange}
+          showsHashedSplit={false}
+          isGrouped={groupByDimension !== null}
+          note={<><strong>No observed sign-in method selections match these filters.</strong><span>Entry requires a recorded method choice on the ordinary sign-in screen and an anonymous, guest or account identifier.</span>{audienceEmptyStateNote === null ? null : <span>{audienceEmptyStateNote}</span>}</>}
+        />
+      ) : null}
 
       {totals !== null && totals.selectedCount > 0 ? (
         <FunnelStepsChart

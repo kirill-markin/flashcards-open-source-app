@@ -12,7 +12,12 @@ import {
 } from "../funnels/funnelGroupBy";
 import { FunnelMaturingWarning } from "../funnels/FunnelMaturingWarning";
 import type { FunnelSectionProps } from "../funnels/funnelSections";
-import { FunnelStepsChart, type FunnelStage } from "../funnels/FunnelStepsChart";
+import {
+  FunnelStepsChart,
+  FunnelStepsEmptyChart,
+  FunnelStepsLoadingChart,
+  type FunnelStage,
+} from "../funnels/FunnelStepsChart";
 import { PaywallPresentations } from "./PaywallPresentations";
 import {
   loadPaywallFunnelReport,
@@ -210,13 +215,30 @@ export function PaywallFunnelSection(props: FunnelSectionProps): JSX.Element {
         />
       </div>
 
-      {props.isRangeLoading || loadState.status === "loading" ? <div className="report-state" aria-live="polite">Loading paywall funnel…</div> : null}
       {props.isRangeLoading === false && loadState.status === "error" ? <div className="report-state report-state-error"><strong>Funnel query failed.</strong><span>{loadState.message}</span><button className="filter-button" type="button" onClick={() => setLoadRevision((revision) => revision + 1)}>Retry</button></div> : null}
       {startDateNote !== null ? <p className="report-state" aria-live="polite">{startDateNote}</p> : null}
-      {totals !== null && totals.paywallShownCount === 0 ? <div className="report-state"><strong>No paywall views match these filters.</strong><span>A person enters this funnel when a web, iOS or Android client reports the paywall reaching the screen on a selected day.</span>{audienceEmptyStateNote === null ? null : <span>{audienceEmptyStateNote}</span>}</div> : null}
 
       {totals !== null ? <FunnelMaturingWarning maturingCount={totals.maturingCount} entryCount={totals.paywallShownCount} /> : null}
       {totals !== null ? <FirstPaymentPendingWarning pendingCount={totals.firstPaymentPendingCount} entryCount={totals.paywallShownCount} /> : null}
+
+      {props.isRangeLoading || loadState.status === "loading" ? (
+        <FunnelStepsLoadingChart
+          countLabel="People"
+          dateRange={props.filters.dateRange}
+          showsHashedSplit={false}
+          isGrouped={groupByDimension !== null}
+          label="Loading paywall funnel…"
+        />
+      ) : null}
+      {totals !== null && totals.paywallShownCount === 0 ? (
+        <FunnelStepsEmptyChart
+          countLabel="People"
+          dateRange={props.filters.dateRange}
+          showsHashedSplit={false}
+          isGrouped={groupByDimension !== null}
+          note={<><strong>No paywall views match these filters.</strong><span>A person enters this funnel when a web, iOS or Android client reports the paywall reaching the screen on a selected day.</span>{audienceEmptyStateNote === null ? null : <span>{audienceEmptyStateNote}</span>}</>}
+        />
+      ) : null}
 
       {totals !== null && totals.paywallShownCount > 0 ? (
         <>

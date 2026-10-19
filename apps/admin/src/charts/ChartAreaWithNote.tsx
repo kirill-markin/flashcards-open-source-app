@@ -1,6 +1,6 @@
 import type { JSX, ReactNode } from "react";
 
-/** A ready chart's `<svg>` with an optional note centered over it, so the note adds no height. */
+/** A chart's area, holding its `<svg>` if it draws one, with an optional note centered over it, so the note adds no height. */
 export function ChartAreaWithNote(
   props: Readonly<{
     viewBoxWidth: number;
