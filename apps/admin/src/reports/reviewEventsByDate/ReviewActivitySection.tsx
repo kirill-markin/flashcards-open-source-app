@@ -2,6 +2,7 @@ import { useMemo, type JSX } from "react";
 import type { ReviewEventsByDateReport, ReviewEventsByDateUser } from "../../adminApi";
 import type { UserColorScale } from "../../dashboard/userColors";
 import { ExplanationTip } from "../../explanations/ExplanationTip";
+import { getLatestGeneralReport, type GeneralReportView } from "../generalReportView";
 import { ReviewEventsByDateCharts } from "./charts/ReviewEventsByDateCharts";
 import { buildReviewEventsByDateChartModel } from "./charts/chartModel";
 import {
@@ -11,24 +12,24 @@ import {
 
 export function ReviewActivitySection(
   props: Readonly<{
-    filteredReport: ReviewEventsByDateReport;
-    generatedAtUtc: string;
+    filteredReport: GeneralReportView<ReviewEventsByDateReport>;
     filteredUserById: ReadonlyMap<string, ReviewEventsByDateUser>;
     userColorScale: UserColorScale;
     onUserFilterApply: (userId: string) => void;
   }>,
 ): JSX.Element {
+  const latestReport = getLatestGeneralReport(props.filteredReport);
   const chartModel = useMemo(
-    () => buildReviewEventsByDateChartModel(props.filteredReport),
-    [props.filteredReport],
+    () => latestReport === null ? null : buildReviewEventsByDateChartModel(latestReport),
+    [latestReport],
   );
   const summaryCards = useMemo(
-    () => buildReviewEventsByDateSummaryCards(
-      props.filteredReport,
+    () => latestReport === null || chartModel === null ? null : buildReviewEventsByDateSummaryCards(
+      latestReport,
       chartModel.peakDailyVolume,
       chartModel.peakDailyUniqueUsers,
     ),
-    [chartModel.peakDailyUniqueUsers, chartModel.peakDailyVolume, props.filteredReport],
+    [chartModel, latestReport],
   );
 
   return (
@@ -58,11 +59,11 @@ export function ReviewActivitySection(
         </div>
       </header>
 
-      <ReviewEventsByDateSummary cards={summaryCards} />
+      {summaryCards === null ? null : <ReviewEventsByDateSummary cards={summaryCards} />}
 
       <ReviewEventsByDateCharts
-        chartModel={chartModel}
-        generatedAtUtc={props.generatedAtUtc}
+        chartModel={props.filteredReport.status === "ready" ? chartModel : null}
+        generatedAtUtc={latestReport?.generatedAtUtc ?? null}
         userById={props.filteredUserById}
         userColorScale={props.userColorScale}
         onUserFilterApply={props.onUserFilterApply}

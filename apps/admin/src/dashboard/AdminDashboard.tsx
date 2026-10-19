@@ -17,6 +17,7 @@ import { AudienceSection } from "../reports/audience/AudienceSection";
 import { CatalogInstallsSection } from "../reports/catalogInstalls/CatalogInstallsSection";
 import { DailyActiveUsersSection } from "../reports/dailyActiveUsers/DailyActiveUsersSection";
 import { FunnelsArea } from "../reports/funnels/FunnelsArea";
+import type { GeneralReportView } from "../reports/generalReportView";
 import { LevelOneMetricDetailsPage } from "../reports/levelOneMetrics/LevelOneMetricDetailsPage";
 import { LevelOneMetricsArea } from "../reports/levelOneMetrics/LevelOneMetricsArea";
 import { ReviewActivitySection } from "../reports/reviewEventsByDate/ReviewActivitySection";
@@ -97,55 +98,67 @@ function buildUserById(
   return new Map<string, ReviewEventsByDateUser>(users.map((user) => [user.userId, user]));
 }
 
+type GeneralReportState = Extract<AdminReportState, { status: "loading" | "ready" }>;
+
+/** Loading while a batch is in flight, so the charts hold placeholders; a failed reload falls back to the last loaded report, marked stale. */
+function toGeneralReportView<Report>(
+  reportState: GeneralReportState,
+  selectReport: (data: AdminReportsData) => Report,
+): GeneralReportView<Report> {
+  if (reportState.status === "loading") {
+    return { status: "loading", lastLoadedReport: null };
+  }
+
+  const report = selectReport(reportState.data);
+  return reportState.isReportLoading
+    ? { status: "loading", lastLoadedReport: report }
+    : { status: "ready", report };
+}
+
 function GeneralReportSections(
   props: Readonly<{
-    data: AdminReportsData;
-    /** The numbers on screen are the ones a failed reload left behind. */
-    isReportStale: boolean;
+    reportState: GeneralReportState;
     userColorScale: UserColorScale;
     onChartUserFilterApply: (userId: string) => void;
   }>,
 ): JSX.Element {
-  const report = props.data.report;
-  const dailyActiveUsersReport = props.data.dailyActiveUsersReport;
-  const catalogInstallsReport = props.data.catalogInstallsReport;
+  const data = props.reportState.status === "ready" ? props.reportState.data : null;
+  // The numbers on screen are the ones a failed reload left behind.
+  const isReportStale = props.reportState.status === "ready" && props.reportState.reloadError !== "";
+  const reviewUsers = data === null ? noOptions : data.report.users;
+  const catalogPackageSlugs = data === null ? noOptions : data.filterOptions.catalogPackageSlugs;
 
   const filteredUserById = useMemo(
-    () => buildUserById(report.users),
-    [report.users],
+    () => buildUserById(reviewUsers),
+    [reviewUsers],
   );
   // From the options rather than the report, so a deck does not change colour because a filter
   // removed another deck.
   const packageColorScale = useMemo(
-    () => getPackageColorScale(props.data.filterOptions.catalogPackageSlugs),
-    [props.data.filterOptions.catalogPackageSlugs],
+    () => getPackageColorScale(catalogPackageSlugs),
+    [catalogPackageSlugs],
   );
+  const report = toGeneralReportView(props.reportState, (loaded) => loaded.report);
 
   return (
-    <div className={props.isReportStale ? "report-sections-stale" : undefined}>
+    <div className={isReportStale ? "report-sections-stale" : undefined}>
       <DailyActiveUsersSection
-        filteredReport={dailyActiveUsersReport}
-        generatedAtUtc={dailyActiveUsersReport.generatedAtUtc}
+        filteredReport={toGeneralReportView(props.reportState, (loaded) => loaded.dailyActiveUsersReport)}
       />
 
       <ReviewActivitySection
         filteredReport={report}
-        generatedAtUtc={report.generatedAtUtc}
         filteredUserById={filteredUserById}
         userColorScale={props.userColorScale}
         onUserFilterApply={props.onChartUserFilterApply}
       />
 
       <CatalogInstallsSection
-        filteredReport={catalogInstallsReport}
-        generatedAtUtc={catalogInstallsReport.generatedAtUtc}
+        filteredReport={toGeneralReportView(props.reportState, (loaded) => loaded.catalogInstallsReport)}
         packageColorScale={packageColorScale}
       />
 
-      <SocialConnectionsSection
-        filteredReport={report}
-        generatedAtUtc={report.generatedAtUtc}
-      />
+      <SocialConnectionsSection filteredReport={report} />
     </div>
   );
 }
@@ -212,10 +225,6 @@ function AnalyticsReportSections(props: AnalyticsReportSectionsProps): JSX.Eleme
         </div>
       ) : null}
 
-      {props.activeArea === "general" && reportState.status === "loading" ? (
-        <p className="report-state" aria-live="polite">Loading analytics reports…</p>
-      ) : null}
-
       {/* Every other area renders without the General batch, which only fills the option lists there. */}
       {reportState.status === "error" ? (
         <div className="report-state report-state-error">
@@ -237,9 +246,8 @@ function AnalyticsReportSections(props: AnalyticsReportSectionsProps): JSX.Eleme
         Audience and Funnels fetch their own data from the live selection and own their error states,
         so the stale mark stops here.
       */}
-      {props.activeArea === "general" && reportState.status === "ready" ? <GeneralReportSections
-        data={reportState.data}
-        isReportStale={reportState.reloadError !== ""}
+      {props.activeArea === "general" && reportState.status !== "error" ? <GeneralReportSections
+        reportState={reportState}
         userColorScale={userColorScale}
         onChartUserFilterApply={props.onChartUserFilterApply}
       /> : null}
