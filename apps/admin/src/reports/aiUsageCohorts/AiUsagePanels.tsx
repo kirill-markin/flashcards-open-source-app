@@ -1,15 +1,19 @@
 import { useEffect, useMemo, useRef, type JSX } from "react";
+import { ChartLoadingPlaceholder } from "../../charts/ChartLoadingPlaceholder";
 import { ChartTooltip, useChartTooltip } from "../../charts/ChartTooltip";
 import type { ChartTooltipHandlers } from "../../charts/chartPrimitives";
 import { escapeHtml } from "../../charts/formatting";
 import {
   buildLogScatterDomain,
+  panelHeight,
+  panelWidth,
   renderLogScatterPanel,
   type LogScatterDomain,
   type LogScatterDot,
 } from "../../charts/logScatterPanels";
 import { getUserPath } from "../../routing";
 import type { AiUsagePanel, AiUsagePoint } from "./panels";
+import type { AiUsagePeriod } from "./reportModel";
 
 // The small multiples and their captions. One panel per period, every panel on the same pair of
 // scales, and each one carrying the three numbers that say what its cloud is: how many people are in
@@ -43,8 +47,8 @@ function formatPeriodDay(date: string): string {
   });
 }
 
-export function formatPeriodSpan(panel: AiUsagePanel): string {
-  return `${formatPeriodDay(panel.period.from)} – ${formatPeriodDay(panel.period.to)}`;
+export function formatPeriodSpan(period: AiUsagePeriod): string {
+  return `${formatPeriodDay(period.from)} – ${formatPeriodDay(period.to)}`;
 }
 
 function buildDotTooltipHtml(point: AiUsagePoint): string {
@@ -93,7 +97,7 @@ function AiUsagePanelFigure(
     tooltipHtml: buildDotTooltipHtml(point),
     path: getUserPath(point.dot.actorId, "profile"),
   })), [panel.points]);
-  const spanLabel = formatPeriodSpan(panel);
+  const spanLabel = formatPeriodSpan(panel.period);
 
   useEffect(() => {
     const svgElement = chartRef.current;
@@ -138,6 +142,27 @@ function AiUsagePanelFigure(
       </figcaption>
       <svg ref={chartRef} className="ai-usage-panel-chart" />
     </figure>
+  );
+}
+
+/** A panel before its data arrives: the same figure and title, the chart area at its drawn size. */
+function AiUsagePanelPlaceholderFigure(props: Readonly<{ period: AiUsagePeriod }>): JSX.Element {
+  return (
+    <figure className="ai-usage-panel">
+      <figcaption className="ai-usage-panel-caption">
+        <span className="ai-usage-panel-title">{props.period.index + 1}. {formatPeriodSpan(props.period)}</span>
+        <span className="ai-usage-panel-stats" />
+      </figcaption>
+      <ChartLoadingPlaceholder viewBoxWidth={panelWidth} viewBoxHeight={panelHeight} label="Loading…" />
+    </figure>
+  );
+}
+
+export function AiUsagePanelPlaceholders(props: Readonly<{ periods: ReadonlyArray<AiUsagePeriod> }>): JSX.Element {
+  return (
+    <div className="ai-usage-panel-grid">
+      {props.periods.map((period) => <AiUsagePanelPlaceholderFigure key={period.index} period={period} />)}
+    </div>
   );
 }
 

@@ -33,6 +33,18 @@ export function ChartColorKey<Key extends string>(
   );
 }
 
+/** An invisible one-chip key that holds a data-derived key's row height until its keys load. */
+export function ChartColorKeyPlaceholder(): JSX.Element {
+  return (
+    <div className="platform-key platform-key-placeholder" aria-hidden="true">
+      <span className="platform-key-item">
+        <span className="platform-key-swatch" />
+        <span>{"\u00a0"}</span>
+      </span>
+    </div>
+  );
+}
+
 export function PlatformKey(): JSX.Element {
   return (
     <ChartColorKey

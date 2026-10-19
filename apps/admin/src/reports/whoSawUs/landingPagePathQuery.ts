@@ -8,7 +8,7 @@ import { buildReportBucketsCteSql, type ReportPeriod } from "../levelOneMetrics/
 import { assertIsString, assertValidDateRange, toInteger } from "../reportValues";
 import { buildSiteFirstViewsCtesSql, buildSitePageKindSql } from "./breakdownQuery";
 
-const topLandingPageKindCount = 3;
+export const topLandingPageKindCount = 3;
 export const topLandingPageCount = 20;
 
 export type LandingPageVisitors = Readonly<{ pagePath: string; visitors: number }>;
