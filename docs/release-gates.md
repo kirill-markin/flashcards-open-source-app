@@ -3,6 +3,12 @@
 For AWS stack boundaries, resource ownership or deployment-role changes, follow
 the [AWS infrastructure change procedure](aws-infrastructure-changes.md).
 
+## Merging pull requests
+
+`Repository static checks` is the strict required aggregate PR gate; [Android CI/CD](android-ci-cd.md) explains the Android scope and its tradeoff. Auto-merge is enabled but never updates a `BEHIND` branch, so it cannot rescue a pull request on its own: update the branch once server-side, then queue `gh pr merge --auto` so the merge lands unattended once the gate passes instead of racing `main` with repeated updates, and still watch the post-merge deploy to completion.
+
+## Release streams
+
 Apply the [standing best-effort release policy](release/README.md#standing-best-effort-release-policy) to unavailable testing in the normal gates below; preserve actual failures and coverage gaps.
 
 Pushes to `main` use independent release and check streams:
