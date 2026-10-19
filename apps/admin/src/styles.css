@@ -1555,6 +1555,21 @@ h2 {
   margin-top: 24px;
 }
 
+/* The inactive MCP entry of the Who saw us dataset picker, with its note beside it. */
+.who-saw-us-dataset-inactive {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+/* Inactive rather than busy, so not the wait cursor of `.filter-button:disabled`. */
+.who-saw-us-dataset-inactive .filter-button:disabled {
+  cursor: not-allowed;
+}
+
 /* A table of long UTC times, too wide for one grid cell. */
 .level-1-metrics-grid .payment-import-status {
   grid-column: 1 / -1;
