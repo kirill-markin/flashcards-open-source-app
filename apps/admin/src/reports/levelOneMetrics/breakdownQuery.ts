@@ -1,10 +1,10 @@
 import * as d3 from "d3";
-import { runAdminQuery, type AdminQueryRow } from "../../adminApi";
+import { runAdminQuery, type AdminQueryResponse, type AdminQueryRow } from "../../adminApi";
 import { breakdownOtherValue, breakdownUnknownValue } from "../../charts/stackedBreakdownChart";
 import type { AdminAppConfig } from "../../config";
 import { escapeSqlStringLiteral } from "../../sql";
 import { assertIsString, parseActivityCount, parseActivityDate, toInteger } from "../reportValues";
-import type { BreakdownBucket, BreakdownReport } from "./breakdownReport";
+import type { BarFreshnessRule, BreakdownBucket, BreakdownReport } from "./breakdownReport";
 import {
   buildReportBucketColumnsSql,
   parseReportBucket,
@@ -27,7 +27,7 @@ export function buildBreakdownValueSql(valueSql: string): string {
 }
 
 /**
- * The statement `loadBreakdownReport` reads, over the caller's CTEs: `report_buckets`,
+ * The statement `parseBreakdownReport` reads, over the caller's CTEs: `report_buckets`,
  * `measured_buckets(bucket_date)`, the available bars, and `measured_values(bucket_date,
  * dimension_value, value_count)`, what an available bar counts under a value. The top values rank by
  * count summed over the range, ties by value; every other value is summed into Other, ranked last. A
@@ -97,14 +97,13 @@ function listSeriesValues(rows: ReadonlyArray<BreakdownRow>, reportLabel: string
   });
 }
 
-/** Runs a `buildBreakdownSql` statement. */
-export async function loadBreakdownReport(
-  config: AdminAppConfig,
-  sql: string,
+/** Reads the response to a `buildBreakdownSql` statement, each bar's freshness from `freshnessRule`. */
+export function parseBreakdownReport(
+  response: AdminQueryResponse,
   period: ReportPeriod,
   reportLabel: string,
-): Promise<BreakdownReport> {
-  const response = await runAdminQuery(config, sql);
+  freshnessRule: BarFreshnessRule,
+): BreakdownReport {
   const result = response.resultSets[0];
   const firstRow = result?.rows[0];
   if (response.resultSets.length !== 1 || result === undefined || firstRow === undefined) {
@@ -123,6 +122,7 @@ export async function loadBreakdownReport(
       countsByValue: first.measured
         ? new Map(bucketRows.flatMap((row) => (row.series === null ? [] : [[row.series.value, row.series.count] as const])))
         : null,
+      freshness: freshnessRule(first.bucket),
     };
   });
   return {
@@ -132,4 +132,15 @@ export async function loadBreakdownReport(
     values,
     buckets,
   };
+}
+
+/** Runs a `buildBreakdownSql` statement. */
+export async function loadBreakdownReport(
+  config: AdminAppConfig,
+  sql: string,
+  period: ReportPeriod,
+  reportLabel: string,
+  freshnessRule: BarFreshnessRule,
+): Promise<BreakdownReport> {
+  return parseBreakdownReport(await runAdminQuery(config, sql), period, reportLabel, freshnessRule);
 }

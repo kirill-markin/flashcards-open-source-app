@@ -1595,18 +1595,6 @@ h2 {
   color: var(--muted);
 }
 
-.not-final-marker line {
-  stroke: var(--muted);
-  stroke-width: 2;
-  stroke-dasharray: 6 5;
-}
-
-.not-final-marker text {
-  fill: var(--muted);
-  font-size: 16px;
-  font-weight: 700;
-}
-
 .axis text,
 .axis-label {
   fill: var(--muted);
@@ -1681,6 +1669,10 @@ h2 {
 
 .bar-segment.clickable {
   cursor: pointer;
+}
+
+.bar-segment-not-final {
+  fill-opacity: 0.4;
 }
 
 /* Above both `.filter-popover`'s `20` and `.report-reload-banner`'s `30`: the tooltip is transient

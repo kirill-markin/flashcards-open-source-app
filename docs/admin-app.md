@@ -67,7 +67,7 @@ Run it locally with `make local-admin` on `http://localhost:3001` before merge; 
 - Switch `Group by` through Days, Weeks and Months: every chart regroups, edge buckets name only the selected days, the bucket holding today is in progress, and a people count in a week or month is less than or equal to the sum of its Days bars.
 - On the `Who opened the app` Details page, every breakdown bar sums to the chart's bar for the same bucket, and both the `Level 1 metrics` tab and `← Level 1 metrics` return with the same range and `Group by`.
 - On the `Who saw us` Details page, every Web and App Store breakdown bar sums to that series' bar for the same bucket.
-- Hover and keyboard-focus a bucket on every chart, and open every data table. On `Who saw us`, the tooltip lists every series, or `No data` where a source has no row, and a dashed `Not final →` line marks the recent buckets.
+- Hover and keyboard-focus a bucket on every chart, and open every data table. On `Who saw us`, the tooltip lists every series with each store's state; recent store segments are faded as not final, and a store bucket past that store's newest delivered day reads `Not arrived yet` rather than `No data`. The App Store breakdowns on its Details page mark their bars the same way.
 - Change the selection around one complete day: nobody already counted turns new in `Who opened the app` or `Who studied`.
 - Select early retained history and today alone: days before coverage are unavailable rather than zero, and today is in progress.
 - On `Who came back`, recent cohorts are unavailable, an older cohort still counts returns after the selection end, an empty matured cohort has no rate, and one with no returns shows 0% with exact counts.

@@ -1,8 +1,14 @@
+import { runAdminQuery } from "../../adminApi";
 import type { AdminAppConfig } from "../../config";
 import type { AnalyticsDateRange } from "../../filters/analyticsFilters";
 import { buildHashedVisitorDaySql } from "../funnels/funnelAudienceSql";
-import { buildBreakdownSql, buildBreakdownValueSql, loadBreakdownReport } from "../levelOneMetrics/breakdownQuery";
-import type { BreakdownReport } from "../levelOneMetrics/breakdownReport";
+import {
+  buildBreakdownSql,
+  buildBreakdownValueSql,
+  loadBreakdownReport,
+  parseBreakdownReport,
+} from "../levelOneMetrics/breakdownQuery";
+import { liveSourceBarFreshness, type BreakdownReport } from "../levelOneMetrics/breakdownReport";
 import { buildReportBucketSql, buildReportBucketsCteSql, type ReportPeriod } from "../levelOneMetrics/reportPeriod";
 import { assertValidDateRange } from "../reportValues";
 import {
@@ -10,7 +16,9 @@ import {
   buildHashedSiteViewFilterSql,
   buildIdentifiedSiteViewFilterSql,
   buildStoreReportDateRangeSqlLines,
+  loadStoreDelivery,
 } from "./query";
+import { getStoreBarFreshness } from "./storeDataFreshness";
 
 export const whoSawUsBreakdownDimensions = [
   "web-country",
@@ -105,12 +113,23 @@ export function buildWhoSawUsBreakdownSql(
 )`);
 }
 
-export function loadWhoSawUsBreakdownReport(
+/** App Store bars carry the App Store's freshness; the website is recorded live. */
+export async function loadWhoSawUsBreakdownReport(
   config: AdminAppConfig,
   dimension: WhoSawUsBreakdownDimension,
   dateRange: AnalyticsDateRange,
   period: ReportPeriod,
   reportLabel: string,
 ): Promise<BreakdownReport> {
-  return loadBreakdownReport(config, buildWhoSawUsBreakdownSql(dimension, dateRange, period, reportLabel), period, reportLabel);
+  const sql = buildWhoSawUsBreakdownSql(dimension, dateRange, period, reportLabel);
+  switch (dimension) {
+    case "web-country":
+    case "web-landing-page-type":
+      return loadBreakdownReport(config, sql, period, reportLabel, liveSourceBarFreshness);
+    case "app-store-source-type":
+    case "app-store-territory": {
+      const [response, storeDelivery] = await Promise.all([runAdminQuery(config, sql), loadStoreDelivery(config)]);
+      return parseBreakdownReport(response, period, reportLabel, (bucket) => getStoreBarFreshness("app-store", storeDelivery, bucket));
+    }
+  }
 }

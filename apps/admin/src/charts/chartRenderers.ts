@@ -930,8 +930,8 @@ export type RenderWhoSawUsChartParams = Readonly<{
   getKeyLabel: (key: string) => string;
   peakDailyTotal: number;
   xAxisLabel: string;
-  /** The first bar that is not final yet, where a dashed line marks the start; null when every bar is final. */
-  firstNotFinalDate: string | null;
+  /** Whether a series' segment in a bar can still change, drawn faded. */
+  isNotFinalSegment: (key: string, date: string) => boolean;
   formatTickLabel: (date: string) => string;
   formatTitleLabel: (date: string) => string;
   buildTooltipMetricsHtml: (entry: StackedChartRectEntry) => string;
@@ -955,22 +955,8 @@ export function renderWhoSawUsChart(params: RenderWhoSawUsChartParams): void {
     buildTooltipMetricsHtml: params.buildTooltipMetricsHtml,
     tooltipHandlers: params.tooltipHandlers,
   });
-  if (params.firstNotFinalDate === null) {
-    return;
-  }
-
-  // In the middle of the gap before the first not-final bar, so the line never covers a bar.
-  const lineX = (frame.x(params.firstNotFinalDate) ?? 0) - (frame.x.step() - frame.x.bandwidth()) / 2;
-  const marker = frame.group.append("g").attr("class", "not-final-marker");
-  marker.append("line")
-    .attr("x1", lineX)
-    .attr("x2", lineX)
-    .attr("y1", -6)
-    .attr("y2", frame.y.range()[0]);
-  marker.append("text")
-    .attr("x", lineX + 6)
-    .attr("y", -10)
-    .text("Not final →");
+  frame.group.selectAll<SVGRectElement, StackedChartRectEntry>(".bar-segment")
+    .classed("bar-segment-not-final", (entry) => params.isNotFinalSegment(entry.key, entry.date));
 }
 
 /** One funnel step as the step chart draws it; the shares arrive preformatted so the chart and its text alternative cannot disagree. */

@@ -5,6 +5,7 @@ import { BreakdownSection } from "../levelOneMetrics/BreakdownSection";
 import type { BreakdownReportLoader } from "../levelOneMetrics/breakdownReport";
 import type { ReportPeriod } from "../levelOneMetrics/reportPeriod";
 import { loadWhoSawUsBreakdownReport, type WhoSawUsBreakdownDimension } from "./breakdownQuery";
+import { storeNotFinalDayCounts } from "./storeDataFreshness";
 
 type WhoSawUsBreakdown = Readonly<{
   dimension: WhoSawUsBreakdownDimension;
@@ -33,7 +34,7 @@ const webCohorts = <li>The visitors of the Who saw us Web series, so each bar ad
 
 const appleRows = <li>The rows the Who saw us App Store series sums, product page views by unique count plus apps.apple.com browser views, so each bar adds up to that series’ bar. Apple counts uniques within each of its own rows, so a visitor in two rows counts in both, and the segments are not additive unique visitors.</li>;
 
-const storeNotFinal = <li>Store numbers for the last few days are not final.</li>;
+const appleFreshness = <li>A faded bar is not final: Apple’s numbers can still arrive or change for {storeNotFinalDayCounts["app-store"]} days, and in a week or month that runs past Apple’s newest delivered day. A bar none of whose days Apple has delivered yet is Not arrived yet, never zero.</li>;
 
 const whoSawUsBreakdowns: ReadonlyArray<WhoSawUsBreakdown> = [
   buildWhoSawUsBreakdown("web-country", "Web visitors by country", <>
@@ -47,12 +48,12 @@ const whoSawUsBreakdowns: ReadonlyArray<WhoSawUsBreakdown> = [
   buildWhoSawUsBreakdown("app-store-source-type", "App Store visitors by source type", <>
     {appleRows}
     <li>A row counts under its own source type, as Apple names it.</li>
-    {storeNotFinal}
+    {appleFreshness}
   </>),
   buildWhoSawUsBreakdown("app-store-territory", "App Store visitors by territory", <>
     {appleRows}
     <li>A row counts under its own territory, as Apple names it.</li>
-    {storeNotFinal}
+    {appleFreshness}
   </>),
 ];
 

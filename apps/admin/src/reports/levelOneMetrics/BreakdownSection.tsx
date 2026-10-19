@@ -34,6 +34,9 @@ type BreakdownChartModel = Readonly<{
 
 const formatCount = d3.format(",d");
 
+const notArrivedBarText = "Not arrived yet: the source has delivered none of its days.";
+const notFinalBarText = "Not final: the source's numbers for these days can still arrive or change.";
+
 function getValueColor(model: BreakdownChartModel, value: string): string {
   const color = model.colorsByValue.get(value);
   if (color === undefined) throw new Error(`Breakdown chart has no colour for value ${value}.`);
@@ -106,24 +109,30 @@ export function BreakdownSection(props: Readonly<{
     };
     const getTitle = (key: string): string => `${formatReportBucketTitle(report.period, getBucket(key).bucket)} UTC`;
     const describeBucket = (key: string): string => {
-      const countsByValue = getBucket(key).countsByValue;
-      if (countsByValue === null) return props.unavailableBarText;
-      return [
-        ...listBucketCounts(report, countsByValue).map((entry) => `${props.formatValue(entry.value)}: ${formatCount(entry.count)}`),
-        `total: ${formatCount(sumBreakdownBar(countsByValue))}.`,
+      const entry = getBucket(key);
+      if (entry.countsByValue === null && entry.freshness === "not-arrived") return notArrivedBarText;
+      const valueText = entry.countsByValue === null ? props.unavailableBarText : [
+        ...listBucketCounts(report, entry.countsByValue).map((count) => `${props.formatValue(count.value)}: ${formatCount(count.count)}`),
+        `total: ${formatCount(sumBreakdownBar(entry.countsByValue))}.`,
       ].join("; ");
+      return entry.freshness === "final" ? valueText : `${valueText} ${notFinalBarText}`;
     };
     const buildTooltipMetricsHtml = (key: string): string => {
-      const countsByValue = getBucket(key).countsByValue;
-      if (countsByValue === null) return `<p>${escapeHtml(describeBucket(key))}</p>`;
+      const entry = getBucket(key);
+      if (entry.countsByValue === null) return `<p>${escapeHtml(describeBucket(key))}</p>`;
       return [
-        ...listBucketCounts(report, countsByValue).map((entry) => `<div class="tooltip-metric"><span>${escapeHtml(props.formatValue(entry.value))}</span><strong>${formatCount(entry.count)}</strong></div>`),
-        `<div class="tooltip-metric"><span>Total</span><strong>${formatCount(sumBreakdownBar(countsByValue))}</strong></div>`,
+        ...listBucketCounts(report, entry.countsByValue).map((count) => `<div class="tooltip-metric"><span>${escapeHtml(props.formatValue(count.value))}</span><strong>${formatCount(count.count)}</strong></div>`),
+        `<div class="tooltip-metric"><span>Total</span><strong>${formatCount(sumBreakdownBar(entry.countsByValue))}</strong></div>`,
+        entry.freshness === "final" ? "" : `<p class="tooltip-hint">${escapeHtml(notFinalBarText)}</p>`,
       ].join("");
     };
     renderStackedBreakdownChart({
       svgElement: chartRef.current,
-      bars: report.buckets.map((entry) => ({ key: entry.bucket.key, countsByValue: entry.countsByValue })),
+      bars: report.buckets.map((entry) => ({
+        key: entry.bucket.key,
+        countsByValue: entry.countsByValue,
+        notFinal: entry.freshness !== "final",
+      })),
       values: report.values,
       getValueColor: (value) => getValueColor(model, value),
       inProgressKey: model.inProgressKey,
@@ -169,7 +178,11 @@ export function BreakdownSection(props: Readonly<{
                 />
               </div>
             </div>
-            {model.report.buckets.every((entry) => entry.countsByValue === null) ? <p className="report-state">{props.noAvailableBarText}</p> : null}
+            {model.report.buckets.every((entry) => entry.countsByValue === null) ? (
+              <p className="report-state">
+                {model.report.buckets.every((entry) => entry.freshness === "not-arrived") ? notArrivedBarText : props.noAvailableBarText}
+              </p>
+            ) : null}
             {model.report.buckets.some((entry) => entry.countsByValue !== null) && model.report.values.length === 0 ? <p className="report-state">Nothing counted in the covered days.</p> : null}
             <div className="chart-scroll"><svg ref={chartRef} role="group" aria-label={`${props.title}: ${props.countLabel.toLowerCase()} per ${model.report.period}`} /></div>
           </div>

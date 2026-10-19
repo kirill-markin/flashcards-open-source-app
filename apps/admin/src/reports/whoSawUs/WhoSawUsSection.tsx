@@ -8,6 +8,7 @@ import { escapeHtml, formatGeneratedAt } from "../../charts/formatting";
 import type { AdminAppConfig } from "../../config";
 import { ExplanationTip } from "../../explanations/ExplanationTip";
 import type { AnalyticsDateRange } from "../../filters/analyticsFilters";
+import type { BarFreshness } from "../levelOneMetrics/breakdownReport";
 import {
   LevelOneMetricDetailsButton,
   type LevelOneMetricDetailsLink,
@@ -19,14 +20,16 @@ import {
   reportPeriodAxisLabels,
   type ReportPeriod,
 } from "../levelOneMetrics/reportPeriod";
-import { formatCalendarDate } from "../reportValues";
 import {
   loadWhoSawUsReport,
   whoSawUsSeriesKeys,
+  whoSawUsStoreSeriesKeys,
   type WhoSawUsBucket,
   type WhoSawUsReport,
   type WhoSawUsSeriesKey,
+  type WhoSawUsStoreSeriesKey,
 } from "./query";
+import { getStoreBarFreshness, storeNotFinalDayCounts } from "./storeDataFreshness";
 
 const whoSawUsSeriesLabels: Readonly<Record<WhoSawUsSeriesKey, string>> = {
   web: "Web",
@@ -39,9 +42,6 @@ const whoSawUsSeriesColors: Readonly<Record<WhoSawUsSeriesKey, string>> = {
   "app-store": "#f28e2b",
   "google-play": "#59a14f",
 };
-
-// The store reports arrive late and are revised: Google Play lags three to seven days.
-const notFinalDayCount = 3;
 
 const numberFormatter = d3.format(",");
 
@@ -57,10 +57,15 @@ type WhoSawUsChartModel = Readonly<{
   matrix: ReadonlyArray<MatrixChartEntry>;
   bucketByKey: ReadonlyMap<string, WhoSawUsBucket>;
   peakTotal: number;
-  lastFinalDate: string;
-  firstNotFinalKey: string | null;
+  storeFreshnessByKey: ReadonlyMap<string, StoreFreshness>;
   inProgressKey: string | null;
 }>;
+
+type StoreFreshness = Readonly<Record<WhoSawUsStoreSeriesKey, BarFreshness>>;
+
+function findStoreSeriesKey(key: WhoSawUsSeriesKey): WhoSawUsStoreSeriesKey | undefined {
+  return whoSawUsStoreSeriesKeys.find((candidate) => candidate === key);
+}
 
 function getSeriesKey(key: string): WhoSawUsSeriesKey {
   const seriesKey = whoSawUsSeriesKeys.find((candidate) => candidate === key);
@@ -75,22 +80,8 @@ function getBucketTotal(entry: WhoSawUsBucket): number {
   return d3.sum(whoSawUsSeriesKeys, (key) => entry.visitorsBySeries[key] ?? 0);
 }
 
-function buildUtcDateDaysBefore(generatedAtUtc: string, dayCount: number): string {
-  const generatedAt = new Date(generatedAtUtc);
-  if (Number.isNaN(generatedAt.getTime())) {
-    throw new Error(`Who saw us report generation time is invalid: ${generatedAtUtc}`);
-  }
-
-  return formatCalendarDate(new Date(Date.UTC(
-    generatedAt.getUTCFullYear(),
-    generatedAt.getUTCMonth(),
-    generatedAt.getUTCDate() - dayCount,
-  )));
-}
-
 function buildWhoSawUsChartModel(report: WhoSawUsReport): WhoSawUsChartModel {
   const keys = report.buckets.map((entry) => entry.bucket.key);
-  const lastFinalDate = buildUtcDateDaysBefore(report.generatedAtUtc, notFinalDayCount);
 
   return {
     period: report.period,
@@ -104,23 +95,41 @@ function buildWhoSawUsChartModel(report: WhoSawUsReport): WhoSawUsChartModel {
     })),
     bucketByKey: new Map(report.buckets.map((entry) => [entry.bucket.key, entry])),
     peakTotal: d3.max(report.buckets, getBucketTotal) ?? 0,
-    lastFinalDate,
-    firstNotFinalKey: report.buckets.find((entry) => entry.bucket.to > lastFinalDate)?.bucket.key ?? null,
+    storeFreshnessByKey: new Map(report.buckets.map((entry) => [entry.bucket.key, {
+      "app-store": getStoreBarFreshness("app-store", report.storeDelivery, entry.bucket),
+      "google-play": getStoreBarFreshness("google-play", report.storeDelivery, entry.bucket),
+    }])),
     inProgressKey: findInProgressBucketKey(
       report.buckets.map((entry) => entry.bucket),
-      buildUtcDateDaysBefore(report.generatedAtUtc, 0),
+      report.storeDelivery.today,
     ),
   };
 }
 
-function buildBucketTooltipMetricsHtml(entry: WhoSawUsBucket, lastFinalDate: string): string {
+function formatStoreValue(value: number | null, freshness: BarFreshness): string {
+  if (value !== null) return `${numberFormatter(value)} · ${freshness === "final" ? "final" : "not final"}`;
+  switch (freshness) {
+    case "not-arrived":
+      return "Not arrived yet";
+    case "not-final":
+      return "No data · not final";
+    case "final":
+      return "No data";
+  }
+}
+
+function buildBucketTooltipMetricsHtml(entry: WhoSawUsBucket, storeFreshness: StoreFreshness): string {
   return [
     ...whoSawUsSeriesKeys.map((key) => {
       const value = entry.visitorsBySeries[key];
-      return `<div class="tooltip-metric"><span>${escapeHtml(whoSawUsSeriesLabels[key])}</span><strong>${value === null ? "No data" : numberFormatter(value)}</strong></div>`;
+      const storeKey = findStoreSeriesKey(key);
+      const valueText = storeKey === undefined
+        ? (value === null ? "No data" : numberFormatter(value))
+        : formatStoreValue(value, storeFreshness[storeKey]);
+      return `<div class="tooltip-metric"><span>${escapeHtml(whoSawUsSeriesLabels[key])}</span><strong>${escapeHtml(valueText)}</strong></div>`;
     }),
     `<div class="tooltip-metric"><span>Total</span><strong>${numberFormatter(getBucketTotal(entry))}</strong></div>`,
-    entry.bucket.to > lastFinalDate
+    whoSawUsStoreSeriesKeys.some((key) => storeFreshness[key] !== "final")
       ? `<p class="tooltip-hint">Not final: store numbers for these days can still arrive or change.</p>`
       : "",
   ].join("");
@@ -171,6 +180,14 @@ export function WhoSawUsSection(
 
       return entry;
     };
+    const getStoreFreshness = (key: string): StoreFreshness => {
+      const storeFreshness = chartModel.storeFreshnessByKey.get(key);
+      if (storeFreshness === undefined) {
+        throw new Error(`Who saw us chart has no store freshness for ${key}.`);
+      }
+
+      return storeFreshness;
+    };
 
     renderWhoSawUsChart({
       svgElement,
@@ -182,10 +199,13 @@ export function WhoSawUsSection(
       getKeyLabel: (key) => whoSawUsSeriesLabels[getSeriesKey(key)],
       peakDailyTotal: chartModel.peakTotal,
       xAxisLabel: reportPeriodAxisLabels[chartModel.period],
-      firstNotFinalDate: chartModel.firstNotFinalKey,
+      isNotFinalSegment: (key, date) => {
+        const storeKey = findStoreSeriesKey(getSeriesKey(key));
+        return storeKey !== undefined && getStoreFreshness(date)[storeKey] !== "final";
+      },
       formatTickLabel: (key) => formatReportBucketTick(chartModel.period, key),
       formatTitleLabel: (key) => `${formatReportBucketTitle(chartModel.period, getBucket(key).bucket)} UTC${key === chartModel.inProgressKey ? " · in progress" : ""}`,
-      buildTooltipMetricsHtml: (entry) => buildBucketTooltipMetricsHtml(getBucket(entry.date), chartModel.lastFinalDate),
+      buildTooltipMetricsHtml: (entry) => buildBucketTooltipMetricsHtml(getBucket(entry.date), getStoreFreshness(entry.date)),
       tooltipHandlers,
     });
   }, [chartModel, tooltipHandlers]);
@@ -216,8 +236,15 @@ export function WhoSawUsSection(
                 <ul>
                   <li>Stores count per breakdown row, and the three surfaces overlap, so one person can be counted more than once</li>
                   <li>Someone who opens a store page from our website, by a store badge or the site's QR code, counts in both Web and App Store or Google Play; removing this overlap is a planned follow-up</li>
-                  <li>No store bar = no data on any of its days, not zero; the tooltip says No data</li>
-                  <li>Store numbers right of the dashed line are not final; Google Play can lag up to a week</li>
+                  <li>
+                    Faded store segment = not final: its numbers can still arrive or change
+                    <ul>
+                      <li>App Store for {storeNotFinalDayCounts["app-store"]} days, Google Play for {storeNotFinalDayCounts["google-play"]} days, since Google posts daily data within 3 to 7 days</li>
+                      <li>Also a week or month that runs past the store's newest delivered day</li>
+                    </ul>
+                  </li>
+                  <li>No store segment, tooltip Not arrived yet = the store has delivered none of the bar's days, judged by its newest delivered day, so a stalled import never reads as zero or No data</li>
+                  <li>No store segment, tooltip No data = the store has no row on any of the bar's days, not zero</li>
                 </ul>
               </li>
               {loadState.status === "ready" ? <li>Generated {formatGeneratedAt(loadState.report.generatedAtUtc)}.</li> : null}

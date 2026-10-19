@@ -2,7 +2,7 @@ import type { AdminAppConfig } from "../../config";
 import type { AnalyticsDateRange } from "../../filters/analyticsFilters";
 import { buildActorConnectionCountrySql } from "../../filters/filterSql";
 import { buildBreakdownSql, buildBreakdownValueSql, loadBreakdownReport } from "../levelOneMetrics/breakdownQuery";
-import type { BreakdownReport } from "../levelOneMetrics/breakdownReport";
+import { liveSourceBarFreshness, type BreakdownReport } from "../levelOneMetrics/breakdownReport";
 import { buildReportBucketsCteSql, type ReportPeriod } from "../levelOneMetrics/reportPeriod";
 import { assertValidDateRange } from "../reportValues";
 import { buildAppOpenActivityCtesSql, buildAppOpenLastOpensCteSql } from "./appOpenActivitySql";
@@ -75,5 +75,5 @@ export function loadAppOpenBreakdownReport(
   period: ReportPeriod,
   reportLabel: string,
 ): Promise<BreakdownReport> {
-  return loadBreakdownReport(config, buildAppOpenBreakdownSql(dimension, dateRange, period, reportLabel), period, reportLabel);
+  return loadBreakdownReport(config, buildAppOpenBreakdownSql(dimension, dateRange, period, reportLabel), period, reportLabel, liveSourceBarFreshness);
 }

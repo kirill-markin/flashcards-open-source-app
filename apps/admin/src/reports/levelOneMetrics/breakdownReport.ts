@@ -2,10 +2,19 @@ import type { AdminAppConfig } from "../../config";
 import type { AnalyticsDateRange } from "../../filters/analyticsFilters";
 import type { ReportBucket, ReportPeriod } from "./reportPeriod";
 
+/** Whether a bar's source has delivered its days yet, and whether their numbers can still change. */
+export type BarFreshness = "not-arrived" | "not-final" | "final";
+
+export type BarFreshnessRule = (bucket: ReportBucket) => BarFreshness;
+
+/** A source recorded live, whose bars are final as soon as they are counted. */
+export const liveSourceBarFreshness: BarFreshnessRule = () => "final";
+
 export type BreakdownBucket = Readonly<{
   bucket: ReportBucket;
   /** Null when the bar is unavailable. */
   countsByValue: ReadonlyMap<string, number> | null;
+  freshness: BarFreshness;
 }>;
 
 /** One Level 1 chart split by one dimension. */
