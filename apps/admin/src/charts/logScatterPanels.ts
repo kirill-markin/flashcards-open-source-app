@@ -24,8 +24,8 @@ import {
 // that overlapping people stay countable. The strip is labelled `0` in bold, so it can never be
 // misread as the first decade.
 
-const panelWidth = 352;
-const panelHeight = 232;
+export const panelWidth = 352;
+export const panelHeight = 232;
 
 const plotLeft = 52;
 const plotRight = 342;

@@ -70,7 +70,9 @@
   font-weight: 800;
 }
 
+/* Two lines whether or not the stats wrap, so a loading panel's empty line holds the same height. */
 .ai-usage-panel-stats {
+  min-height: 3em;
   color: var(--muted);
   font-size: 11px;
   line-height: 1.5;

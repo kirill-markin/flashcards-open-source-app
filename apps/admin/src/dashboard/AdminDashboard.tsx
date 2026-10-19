@@ -24,11 +24,9 @@ import type { ReviewEventsByDateRange } from "../reports/reviewEventsByDate/quer
 import { SocialConnectionsSection } from "../reports/socialConnections/SocialConnectionsSection";
 import { WhoSawUsDatasetPage } from "../reports/whoSawUs/WhoSawUsDatasetPage";
 import type { AdminRoute, AnalyticsArea } from "../routing";
-import { getStableUserColorDomain, getUserColorScale } from "./userColors";
+import { getStableUserColorDomain, getUserColorScale, type UserColorScale } from "./userColors";
 
 export type AdminReportsData = Readonly<{
-  availableRange: ReviewEventsByDateRange;
-  defaultRange: ReviewEventsByDateRange;
   filterOptions: AnalyticsFilterOptions;
   report: ReviewEventsByDateReport;
   dailyActiveUsersReport: DailyActiveUsersReport;
@@ -36,10 +34,10 @@ export type AdminReportsData = Readonly<{
 }>;
 
 /**
- * The General report data an analytics area either already has, is still fetching, or failed to
- * fetch. Every area but Level 1 metrics waits for it, because it also carries the shared range and
- * the filter bar's option lists. A failure is area-local and retryable; only a terminal 401/403 replaces the whole
- * page.
+ * The General batch - the filter bar's option lists and the three General reports - an analytics
+ * area either already has, is still fetching, or failed to fetch. Every area but Level 1 metrics
+ * loads it; only General waits for it. A failure is area-local and retryable; only a terminal
+ * 401/403 replaces the whole page.
  */
 export type AdminReportState =
   | Readonly<{ status: "loading" }>
@@ -53,8 +51,6 @@ export type AdminReportState =
       status: "ready";
       data: AdminReportsData;
       isReportLoading: boolean;
-      /** The synchronous rejection of a requested range, shown inside the filter panel. */
-      dateRangeError: string;
       /**
        * The failure of a reload that had numbers on screen already. Non-empty is also the record
        * that those numbers answer an older selection than the current one, so it drives both the
@@ -63,15 +59,31 @@ export type AdminReportState =
       reloadError: string;
     }>;
 
+/** The available range the date picker is bounded by, looked up once per page load in the background. */
+export type AnalyticsRangeLookup =
+  | Readonly<{ status: "loading" }>
+  | Readonly<{ status: "error"; message: string }>
+  | Readonly<{
+      status: "ready";
+      availableRange: ReviewEventsByDateRange;
+      defaultRange: ReviewEventsByDateRange;
+    }>;
+
+const noOptions: ReadonlyArray<never> = [];
+
 type AnalyticsReportSectionsProps = Readonly<{
   activeArea: AnalyticsArea;
   config: AdminAppConfig;
-  data: AdminReportsData;
+  reportState: AdminReportState;
+  rangeLookup: AnalyticsRangeLookup;
+  /** The lookup's default once it returns, the browser-computed one until then. */
+  defaultRange: ReviewEventsByDateRange;
   filters: AnalyticsFilterState;
-  isReportLoading: boolean;
+  /** A filter change is still inside the reload debounce, so the areas that query on their own wait. */
+  isSelectionSettling: boolean;
   dateRangeError: string;
-  /** The General numbers on screen are the ones a failed reload left behind. */
-  isReportStale: boolean;
+  onReportRetry: () => void;
+  onRangeLookupRetry: () => void;
   onFiltersChange: (filters: AnalyticsFilterState) => boolean;
   onNavigate: (path: string) => void;
   /** Stable across filter changes on purpose; see `App`. */
@@ -85,27 +97,76 @@ function buildUserById(
   return new Map<string, ReviewEventsByDateUser>(users.map((user) => [user.userId, user]));
 }
 
-function AnalyticsReportSections(props: AnalyticsReportSectionsProps): JSX.Element {
+function GeneralReportSections(
+  props: Readonly<{
+    data: AdminReportsData;
+    /** The numbers on screen are the ones a failed reload left behind. */
+    isReportStale: boolean;
+    userColorScale: UserColorScale;
+    onChartUserFilterApply: (userId: string) => void;
+  }>,
+): JSX.Element {
   const report = props.data.report;
   const dailyActiveUsersReport = props.data.dailyActiveUsersReport;
   const catalogInstallsReport = props.data.catalogInstallsReport;
-  const filterOptions = props.data.filterOptions;
 
   const filteredUserById = useMemo(
     () => buildUserById(report.users),
     [report.users],
   );
-  // Both colour domains come from the range-scoped options rather than from the reports on screen,
-  // so a person keeps one colour wherever they appear and a deck does not change colour because a
-  // filter removed another deck. The options span every section's users, so no section can ask the
-  // shared scale for an id it does not hold.
-  const userColorScale = useMemo(
-    () => getUserColorScale(getStableUserColorDomain(filterOptions.users)),
-    [filterOptions.users],
-  );
+  // From the options rather than the report, so a deck does not change colour because a filter
+  // removed another deck.
   const packageColorScale = useMemo(
-    () => getPackageColorScale(filterOptions.catalogPackageSlugs),
-    [filterOptions.catalogPackageSlugs],
+    () => getPackageColorScale(props.data.filterOptions.catalogPackageSlugs),
+    [props.data.filterOptions.catalogPackageSlugs],
+  );
+
+  return (
+    <div className={props.isReportStale ? "report-sections-stale" : undefined}>
+      <DailyActiveUsersSection
+        filteredReport={dailyActiveUsersReport}
+        generatedAtUtc={dailyActiveUsersReport.generatedAtUtc}
+      />
+
+      <ReviewActivitySection
+        filteredReport={report}
+        generatedAtUtc={report.generatedAtUtc}
+        filteredUserById={filteredUserById}
+        userColorScale={props.userColorScale}
+        onUserFilterApply={props.onChartUserFilterApply}
+      />
+
+      <CatalogInstallsSection
+        filteredReport={catalogInstallsReport}
+        generatedAtUtc={catalogInstallsReport.generatedAtUtc}
+        packageColorScale={packageColorScale}
+      />
+
+      <SocialConnectionsSection
+        filteredReport={report}
+        generatedAtUtc={report.generatedAtUtc}
+      />
+    </div>
+  );
+}
+
+function AnalyticsReportSections(props: AnalyticsReportSectionsProps): JSX.Element {
+  const reportState = props.reportState;
+  const filterOptions = reportState.status === "ready" ? reportState.data.filterOptions : null;
+  const availableRange = props.rangeLookup.status === "ready" ? props.rangeLookup.availableRange : null;
+  const userOptions: ReadonlyArray<ReviewEventsByDateUser> = filterOptions?.users ?? noOptions;
+  // Only General draws the General batch, so only there does its reload drive the bar; every other
+  // area queries on its own once the selection settles.
+  const isReportLoading = props.activeArea === "general"
+    ? reportState.status === "loading" || (reportState.status === "ready" && reportState.isReportLoading)
+    : props.isSelectionSettling;
+
+  // The user colour domain comes from the range-scoped options rather than from the reports on
+  // screen, so a person keeps one colour wherever they appear. The options span every section's
+  // users, so no section can ask the shared scale for an id it does not hold.
+  const userColorScale = useMemo(
+    () => getUserColorScale(getStableUserColorDomain(userOptions)),
+    [userOptions],
   );
   // The shared bar offers catalog fields only on the user-scoped areas, which match a person through a
   // completed install and offer what that bridge can reach; a funnel offers its own in its section.
@@ -120,66 +181,78 @@ function AnalyticsReportSections(props: AnalyticsReportSectionsProps): JSX.Eleme
         resetAllLabel={
           props.activeArea === "funnels" ? "Reset all shared funnel filters" : "Reset all filters"
         }
-        availableRange={props.data.availableRange}
-        defaultRange={props.data.defaultRange}
+        availableRange={availableRange}
+        defaultRange={props.defaultRange}
         filters={props.filters}
-        userOptions={filterOptions.users}
-        connectionCountryOptions={filterOptions.connectionCountries}
-        appUiLanguageOptions={filterOptions.appUiLanguages}
-        catalogDeckOptions={filterOptions.catalogDecks}
-        catalogPlacementOptions={filterOptions.catalogPlacements}
-        catalogSourceOptions={filterOptions.catalogSources}
-        catalogDeviceCategoryOptions={filterOptions.catalogDeviceCategories}
-        catalogClickBrowserLanguageOptions={filterOptions.catalogClickBrowserLanguages}
-        isReportLoading={props.isReportLoading}
+        userOptions={userOptions}
+        connectionCountryOptions={filterOptions?.connectionCountries ?? noOptions}
+        appUiLanguageOptions={filterOptions?.appUiLanguages ?? noOptions}
+        catalogDeckOptions={filterOptions?.catalogDecks ?? noOptions}
+        catalogPlacementOptions={filterOptions?.catalogPlacements ?? noOptions}
+        catalogSourceOptions={filterOptions?.catalogSources ?? noOptions}
+        catalogDeviceCategoryOptions={filterOptions?.catalogDeviceCategories ?? noOptions}
+        catalogClickBrowserLanguageOptions={filterOptions?.catalogClickBrowserLanguages ?? noOptions}
+        areOptionListsLoading={filterOptions === null}
+        isReportLoading={isReportLoading}
         dateRangeError={props.dateRangeError}
         userColorScale={userColorScale}
         onFiltersChange={props.onFiltersChange}
         onNavigate={props.onNavigate}
       />
 
+      {props.rangeLookup.status === "error" ? (
+        <div className="report-state report-state-error" role="alert">
+          <strong>The analytics date range failed to load.</strong>
+          <span>{props.rangeLookup.message}</span>
+          <button
+            className="filter-button"
+            type="button"
+            onClick={props.onRangeLookupRetry}
+          >Retry</button>
+        </div>
+      ) : null}
+
+      {props.activeArea === "general" && reportState.status === "loading" ? (
+        <p className="report-state" aria-live="polite">Loading analytics reports…</p>
+      ) : null}
+
+      {/* Every other area renders without the General batch, which only fills the option lists there. */}
+      {reportState.status === "error" ? (
+        <div className="report-state report-state-error">
+          <strong>{props.activeArea === "general"
+            ? "Analytics reports failed to load."
+            : "The filter option lists failed to load."}</strong>
+          <span>{reportState.message}</span>
+          <button
+            className="filter-button"
+            type="button"
+            disabled={reportState.isRetrying}
+            onClick={props.onReportRetry}
+          >{reportState.isRetrying ? "Retrying…" : "Retry"}</button>
+        </div>
+      ) : null}
+
       {/*
         Only the General sections are drawn from the report state a failed reload leaves behind;
         Audience and Funnels fetch their own data from the live selection and own their error states,
         so the stale mark stops here.
       */}
-      {props.activeArea === "general" ? <div
-        className={props.isReportStale ? "report-sections-stale" : undefined}
-      >
-        <DailyActiveUsersSection
-        filteredReport={dailyActiveUsersReport}
-        generatedAtUtc={dailyActiveUsersReport.generatedAtUtc}
-      />
-
-        <ReviewActivitySection
-        filteredReport={report}
-        generatedAtUtc={report.generatedAtUtc}
-        filteredUserById={filteredUserById}
+      {props.activeArea === "general" && reportState.status === "ready" ? <GeneralReportSections
+        data={reportState.data}
+        isReportStale={reportState.reloadError !== ""}
         userColorScale={userColorScale}
-        onUserFilterApply={props.onChartUserFilterApply}
-        />
-
-        <CatalogInstallsSection
-        filteredReport={catalogInstallsReport}
-        generatedAtUtc={catalogInstallsReport.generatedAtUtc}
-        packageColorScale={packageColorScale}
-      />
-
-        <SocialConnectionsSection
-        filteredReport={report}
-        generatedAtUtc={report.generatedAtUtc}
-      />
-        </div> : null}
+        onChartUserFilterApply={props.onChartUserFilterApply}
+      /> : null}
 
       {props.activeArea === "funnels" ? <FunnelsArea
         config={props.config}
-        availableRange={props.data.availableRange}
-        defaultRange={props.data.defaultRange}
+        availableRange={availableRange}
+        defaultRange={props.defaultRange}
         filters={props.filters}
         filterOptions={filterOptions}
-        userOptions={filterOptions.users}
+        userOptions={userOptions}
         userColorScale={userColorScale}
-        isReportLoading={props.isReportLoading}
+        isReportLoading={props.isSelectionSettling}
         dateRangeError={props.dateRangeError}
         onFiltersChange={props.onFiltersChange}
         onNavigate={props.onNavigate}
@@ -189,14 +262,14 @@ function AnalyticsReportSections(props: AnalyticsReportSectionsProps): JSX.Eleme
       {props.activeArea === "audience" ? <AudienceSection
         config={props.config}
         filters={props.filters}
-        isRangeLoading={props.isReportLoading}
+        isRangeLoading={props.isSelectionSettling}
         onTerminalAdminError={props.onTerminalAdminError}
       /> : null}
 
       {props.activeArea === "ai-usage" ? <AiUsageCohortsSection
         config={props.config}
         filters={props.filters}
-        isRangeLoading={props.isReportLoading}
+        isRangeLoading={props.isSelectionSettling}
         onTerminalAdminError={props.onTerminalAdminError}
       /> : null}
     </>
@@ -213,8 +286,14 @@ export function AdminDashboard(
     config: AdminAppConfig;
     adminEmail: string;
     reportState: AdminReportState;
+    rangeLookup: AnalyticsRangeLookup;
+    /** `null` exactly while `filters` is, before the first analytics area opens. */
+    defaultRange: ReviewEventsByDateRange | null;
     filters: AnalyticsFilterState | null;
+    isSelectionSettling: boolean;
+    dateRangeError: string;
     onReportRetry: () => void;
+    onRangeLookupRetry: () => void;
     onFiltersChange: (filters: AnalyticsFilterState) => boolean;
     onChartUserFilterApply: (userId: string) => void;
     onTerminalAdminError: (error: unknown, config: AdminAppConfig) => boolean;
@@ -287,23 +366,6 @@ export function AdminDashboard(
         />
       ) : null}
 
-      {usesGeneralReports && props.reportState.status === "loading" ? (
-        <p className="report-state" aria-live="polite">Loading analytics reports…</p>
-      ) : null}
-
-      {usesGeneralReports && props.reportState.status === "error" ? (
-        <div className="report-state report-state-error">
-          <strong>Analytics reports failed to load.</strong>
-          <span>{props.reportState.message}</span>
-          <button
-            className="filter-button"
-            type="button"
-            disabled={props.reportState.isRetrying}
-            onClick={props.onReportRetry}
-          >{props.reportState.isRetrying ? "Retrying…" : "Retry"}</button>
-        </div>
-      ) : null}
-
       {/*
         A reload that fails leaves complete, confidently drawn numbers on screen, so the failure gets
         the one place a filter popover cannot cover and a scroll to the charts cannot leave behind: a
@@ -335,15 +397,18 @@ export function AdminDashboard(
         </div>
       ) : null}
 
-      {usesGeneralReports && props.reportState.status === "ready" && props.filters !== null ? (
+      {usesGeneralReports && props.filters !== null && props.defaultRange !== null ? (
         <AnalyticsReportSections
           activeArea={activeArea}
           config={props.config}
-          data={props.reportState.data}
+          reportState={props.reportState}
+          rangeLookup={props.rangeLookup}
+          defaultRange={props.defaultRange}
           filters={props.filters}
-          isReportLoading={props.reportState.isReportLoading}
-          dateRangeError={props.reportState.dateRangeError}
-          isReportStale={props.reportState.reloadError !== ""}
+          isSelectionSettling={props.isSelectionSettling}
+          dateRangeError={props.dateRangeError}
+          onReportRetry={props.onReportRetry}
+          onRangeLookupRetry={props.onRangeLookupRetry}
           onFiltersChange={props.onFiltersChange}
           onNavigate={props.onNavigate}
           onChartUserFilterApply={props.onChartUserFilterApply}

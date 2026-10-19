@@ -553,8 +553,33 @@ export function parseAnalyticsFilterState(
 ): AnalyticsFilterState {
   const defaults = buildDefaultAnalyticsFilterStateForAvailableRange(availableRange);
 
+  return parseAnalyticsFilterStateOnDateRange(
+    searchParams,
+    parseDateRange(searchParams, availableRange, defaults.dateRange),
+  );
+}
+
+/** The selection reports start on before the available range is known; see `parseProvisionalDateRange`. */
+export function parseProvisionalAnalyticsFilterState(
+  searchParams: URLSearchParams,
+  todayUtc: string,
+  provisionalDefaultRange: AnalyticsDateRange,
+): AnalyticsFilterState {
+  return parseAnalyticsFilterStateOnDateRange(
+    searchParams,
+    parseProvisionalDateRange(searchParams, todayUtc) ?? provisionalDefaultRange,
+  );
+}
+
+// Every field but the range reads the same whether or not the available range is known.
+function parseAnalyticsFilterStateOnDateRange(
+  searchParams: URLSearchParams,
+  dateRange: AnalyticsDateRange,
+): AnalyticsFilterState {
+  const defaults = buildDefaultAnalyticsFilterState(dateRange);
+
   return {
-    dateRange: parseDateRange(searchParams, availableRange, defaults.dateRange),
+    dateRange,
     users: parseOpaqueList(searchParams, usersParamName, defaults.users),
     userCohorts: parseEnumList<ReviewEventCohort>(
       searchParams,
