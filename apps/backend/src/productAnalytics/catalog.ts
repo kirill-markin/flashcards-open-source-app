@@ -1827,6 +1827,13 @@ export const productAnalyticsEventCatalog = {
   // case fold is the one normalization a campaign token takes, for the reason stated beside
   // `productAnalyticsSiteCampaignTokenPattern`. They sit on the page view alone because that is
   // where a visit begins, rather than being repeated onto every row the visit goes on to produce.
+  //
+  // `time_zone`, `automation` and `screen_width_bucket` are browser signals that help tell a reader
+  // from a scraper: the browser's IANA zone from `Intl.DateTimeFormat().resolvedOptions()`,
+  // `webdriver` when `navigator.webdriver === true`, and `window.screen.width` in CSS px bucketed as
+  // xs <480, sm 480-767, md 768-1023, lg 1024-1439, xl 1440-1919, xxl >=1920. They are optional
+  // because the site bundles already released send none of them, and the zone stays here rather than
+  // in the row's `timezone` column, which the collector leaves NULL.
   site_page_viewed: {
     serverOnly: false,
     requiresScreen: false,
@@ -1840,6 +1847,22 @@ export const productAnalyticsEventCatalog = {
       utm_source: { kind: "string", pattern: productAnalyticsSiteCampaignTokenPattern, optional: true },
       utm_medium: { kind: "string", pattern: productAnalyticsSiteCampaignTokenPattern, optional: true },
       utm_campaign: { kind: "string", pattern: productAnalyticsSiteCampaignTokenPattern, optional: true },
+      time_zone: { kind: "timeZone", optional: true },
+      automation: { kind: "enum", values: ["webdriver", "none"], optional: true },
+      screen_width_bucket: { kind: "enum", values: ["xs", "sm", "md", "lg", "xl", "xxl"], optional: true },
+    },
+  },
+  // A marketing site page was read rather than only loaded: it was visible for at least 10 seconds in
+  // total and the visitor scrolled, moved or pressed a pointer, touched, or pressed a key on it. The
+  // marketing site is its only producer and reports it at most once per page view, so engaged views
+  // over `site_page_viewed` is a rate. `page_kind` and `device_category` match the page view value
+  // for value; the visit's acquisition stays on the page view.
+  site_page_engaged: {
+    serverOnly: false,
+    requiresScreen: false,
+    properties: {
+      page_kind: { kind: "enum", values: productAnalyticsSitePageKinds },
+      device_category: { kind: "enum", values: productAnalyticsSiteDeviceCategories },
     },
   },
   // `action` is what the web app CTA offers - sign in, sign up, or open the app someone is already
