@@ -31,7 +31,10 @@ function buildWhoSawUsBreakdown(
 
 const showValue = (value: string): string => value;
 
-const webCohorts = <li>The visitors of the Who saw us Web series, so each bar adds up to that series’ bar for the same day, week or month: an identified visitor counts once per bar after the shared exclusions, a cookieless one once per day with only automated traffic dropped.</li>;
+/** How a Who saw us Web visitor is counted, to close a sentence. */
+export const webVisitorCounting = "an identified visitor counts once per bar after the shared exclusions, a cookieless one once per day with only automated traffic dropped";
+
+const webCohorts = <li>The visitors of the Who saw us Web series, so each bar adds up to that series’ bar for the same day, week or month: {webVisitorCounting}.</li>;
 
 const appleRows = <li>The rows the Who saw us App Store series sums, product page views by unique count plus apps.apple.com browser views, so each bar adds up to that series’ bar. Apple counts uniques within each of its own rows, so a visitor in two rows counts in both, and the segments are not additive unique visitors.</li>;
 
@@ -63,6 +66,43 @@ const whoSawUsBreakdownsBySeries: Readonly<Record<WhoSawUsSeriesKey, ReadonlyArr
   "google-play": [],
 };
 
+/** One Who saw us breakdown chart, with the explanation items every breakdown shares. */
+export function WhoSawUsBreakdownSection(props: Readonly<{
+  config: AdminAppConfig;
+  dateRange: AnalyticsDateRange;
+  period: ReportPeriod;
+  onTerminalAdminError: (error: unknown, config: AdminAppConfig) => boolean;
+  title: string;
+  testId: string;
+  explanationId: string;
+  /** The `<li>` items saying what a bar counts and under which value. */
+  explanation: ReactNode;
+  /** Must be stable, as `BreakdownSection` requires. */
+  loadReport: BreakdownReportLoader;
+}>): JSX.Element {
+  return (
+    <BreakdownSection
+      config={props.config}
+      dateRange={props.dateRange}
+      period={props.period}
+      onTerminalAdminError={props.onTerminalAdminError}
+      title={props.title}
+      testId={props.testId}
+      explanationId={props.explanationId}
+      explanation={<>
+        {props.explanation}
+        <li>The five values with the most visitors over the selection get their own colour; the rest are summed into Other. A missing value is Unknown and ranks like any other.</li>
+        <li>Edge bars hold only the selected days, and the bar holding today is in progress. A bar whose source has no row on any of its days is unavailable, never zero.</li>
+      </>}
+      countLabel="Visitors"
+      unavailableBarText="No data: the source has no row on any of its days."
+      noAvailableBarText="No data: the source has no row in this range."
+      loadReport={props.loadReport}
+      formatValue={showValue}
+    />
+  );
+}
+
 /** The breakdowns on one Who saw us dataset page, one grid cell each. */
 export function WhoSawUsBreakdownSections(props: Readonly<{
   seriesKey: WhoSawUsSeriesKey;
@@ -74,7 +114,7 @@ export function WhoSawUsBreakdownSections(props: Readonly<{
   return (
     <>
       {whoSawUsBreakdownsBySeries[props.seriesKey].map((breakdown) => (
-        <BreakdownSection
+        <WhoSawUsBreakdownSection
           key={breakdown.dimension}
           config={props.config}
           dateRange={props.dateRange}
@@ -83,16 +123,8 @@ export function WhoSawUsBreakdownSections(props: Readonly<{
           title={breakdown.title}
           testId={`who-saw-us-by-${breakdown.dimension}-section`}
           explanationId={`who-saw-us-by-${breakdown.dimension}-explanation`}
-          explanation={<>
-            {breakdown.explanation}
-            <li>The five values with the most visitors over the selection get their own colour; the rest are summed into Other. A missing value is Unknown and ranks like any other.</li>
-            <li>Edge bars hold only the selected days, and the bar holding today is in progress. A bar whose source has no row on any of its days is unavailable, never zero.</li>
-          </>}
-          countLabel="Visitors"
-          unavailableBarText="No data: the source has no row on any of its days."
-          noAvailableBarText="No data: the source has no row in this range."
+          explanation={breakdown.explanation}
           loadReport={breakdown.loadReport}
-          formatValue={showValue}
         />
       ))}
     </>
