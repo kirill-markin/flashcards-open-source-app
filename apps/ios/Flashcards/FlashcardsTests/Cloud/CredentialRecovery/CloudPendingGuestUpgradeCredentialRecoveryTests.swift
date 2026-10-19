@@ -136,7 +136,7 @@ final class CloudPendingGuestUpgradeCredentialRecoveryTests: CloudCredentialReco
     }
 
     @MainActor
-    func testCompletedPendingGuestUpgradeRecoveredLinkRequiresActiveRecovery() throws {
+    func testCompletedPendingGuestUpgradeRecoveredLinkRequiresMatchingCheckpoint() throws {
         let suiteName: String = "pending-guest-upgrade-relink-shortcut-\(UUID().uuidString)"
         let userDefaults: UserDefaults = try XCTUnwrap(UserDefaults(suiteName: suiteName))
         let encoder: JSONEncoder = JSONEncoder()
@@ -242,7 +242,7 @@ final class CloudPendingGuestUpgradeCredentialRecoveryTests: CloudCredentialReco
             userDefaults.removePersistentDomain(forName: suiteName)
         }
 
-        XCTAssertFalse(
+        XCTAssertTrue(
             try store.shouldFinalizeCompletedPendingGuestUpgradeForRecoveredLink(
                 linkContext: recoveredLinkContext
             )
@@ -257,6 +257,13 @@ final class CloudPendingGuestUpgradeCredentialRecoveryTests: CloudCredentialReco
         )
 
         XCTAssertTrue(
+            try store.shouldFinalizeCompletedPendingGuestUpgradeForRecoveredLink(
+                linkContext: recoveredLinkContext
+            )
+        )
+
+        userDefaults.removeObject(forKey: pendingGuestUpgradeUserDefaultsKey)
+        XCTAssertFalse(
             try store.shouldFinalizeCompletedPendingGuestUpgradeForRecoveredLink(
                 linkContext: recoveredLinkContext
             )
