@@ -944,7 +944,7 @@ export function monitoring(scope: Construct, props: MonitoringProps): void {
     metric: props.probableAndroidBurstRefreshFn.metricErrors({ period: cdk.Duration.minutes(15), statistic: "Sum" }),
     threshold: 1,
     evaluationPeriods: 1,
-    alarmDescription: "Probable Android burst refresh failed; analytics reports read a stale burst classification",
+    alarmDescription: "Probable Android burst or scraper-fleet refresh failed; analytics reports read a stale classification",
     treatMissingData: cloudwatch.TreatMissingData.NOT_BREACHING,
   }), alertTopic);
 

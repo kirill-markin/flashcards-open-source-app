@@ -73,8 +73,8 @@ export const createdRolesByMigration = new Map([
 // migration contracts retain their original cutoffs.
 export const boundaryDefinitions = Object.freeze([
   Object.freeze({
-    migrationFileName: "0222_sync_installation_test_distribution_marker.sql",
-    expectedMigrationCount: 224,
+    migrationFileName: "0223_probable_scraper_fleet_visitors.sql",
+    expectedMigrationCount: 225,
     testFiles: Object.freeze([
       "src/productAnalytics/androidBurstReporting.postgres.integration.ts",
     ]),

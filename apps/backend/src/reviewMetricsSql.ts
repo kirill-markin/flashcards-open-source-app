@@ -39,6 +39,13 @@ export const probableAndroidBurstActorIdsSqlLines: ReadonlyArray<string> = [
   "FROM analytics.probable_android_burst_actors AS probable_android_bursts",
 ];
 
+// Refreshed hourly; see db/migrations/0223_probable_scraper_fleet_visitors.sql.
+export const probableScraperFleetActorIdsSqlLines: ReadonlyArray<string> = [
+  "SELECT probable_scraper_fleet.subject_id",
+  "FROM analytics.probable_scraper_fleet_visitors AS probable_scraper_fleet",
+  "WHERE probable_scraper_fleet.subject_kind = 'actor'",
+];
+
 export const excludedListedActorIdsSqlLines: ReadonlyArray<string> = [
   "SELECT excluded_actors.actor_id",
   "FROM analytics.excluded_actors AS excluded_actors",
@@ -122,6 +129,8 @@ export function buildExcludedActorSqlLines(
     ...indentSqlLines(sandboxBillingActorIdsSqlLines, "      "),
     "      UNION ALL",
     ...indentSqlLines(probableAndroidBurstActorIdsSqlLines, "      "),
+    "      UNION ALL",
+    ...indentSqlLines(probableScraperFleetActorIdsSqlLines, "      "),
     "    )",
     "  )",
   ];

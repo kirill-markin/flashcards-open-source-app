@@ -941,6 +941,7 @@ export type OperationsExceptionEvent =
   | (EventByAction<"daily_visitor_hash_salt_expiry_failed", Readonly<{ message: string }>> & Readonly<{ error: Error }>)
   | (EventByAction<"synthetic_actor_detector_failed", Readonly<{ message: string }>> & Readonly<{ error: Error }>)
   | (EventByAction<"probable_android_burst_refresh_failed", Readonly<{ message: string }>> & Readonly<{ error: Error }>)
+  | (EventByAction<"probable_scraper_fleet_refresh_failed", Readonly<{ message: string }>> & Readonly<{ error: Error }>)
   | (EventByAction<
     "store_analytics_import_failed",
     Readonly<{ source: "app_store" | "google_play" | "google_history" | "stripe_history" | "apple_history" | null; message: string }>
