@@ -1361,6 +1361,9 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
   );
 
   restApi.root.addMethod("GET", integration);
+  // Forwards every backend path, so add a resource only for distinct gateway behavior (throttle,
+  // CORS origins, integration, auth): each resource, method and Lambda permission counts toward the
+  // stack's 500-resource CloudFormation limit.
   // Includes the authenticated POST /agent/reviews/{next,reveal,submit} routes.
   // Keep these on the existing greedy integration, like the agent SQL routes.
   restApi.root.addResource("{proxy+}").addMethod("ANY", integration);

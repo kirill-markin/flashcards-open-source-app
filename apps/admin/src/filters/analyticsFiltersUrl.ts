@@ -242,6 +242,18 @@ export function normalizeAnalyticsFilterState(state: AnalyticsFilterState): Anal
   };
 }
 
+/** Writes both ends only when the range differs from `defaultDateRange`; `parseDateRange` reads them back. */
+export function setDateRangeParams(
+  searchParams: URLSearchParams,
+  dateRange: AnalyticsDateRange,
+  defaultDateRange: AnalyticsDateRange,
+): void {
+  if (dateRange.from !== defaultDateRange.from || dateRange.to !== defaultDateRange.to) {
+    searchParams.set(dateRangeFromParamName, dateRange.from);
+    searchParams.set(dateRangeToParamName, dateRange.to);
+  }
+}
+
 export function toAnalyticsFilterSearchParams(
   state: AnalyticsFilterState,
   availableRange: AnalyticsDateRange,
@@ -249,13 +261,7 @@ export function toAnalyticsFilterSearchParams(
   const defaults = buildDefaultAnalyticsFilterStateForAvailableRange(availableRange);
   const searchParams = new URLSearchParams();
 
-  if (
-    state.dateRange.from !== defaults.dateRange.from
-    || state.dateRange.to !== defaults.dateRange.to
-  ) {
-    searchParams.set(dateRangeFromParamName, state.dateRange.from);
-    searchParams.set(dateRangeToParamName, state.dateRange.to);
-  }
+  setDateRangeParams(searchParams, state.dateRange, defaults.dateRange);
 
   setOpaqueListParam(searchParams, usersParamName, state.users, defaults.users);
   setEnumListParam(
@@ -340,7 +346,7 @@ export function toAnalyticsFilterSearchParams(
 }
 
 /** The single value of a parameter, or `undefined` when it is absent or given more than once. */
-function readSingleParam(
+export function readSingleParam(
   searchParams: URLSearchParams,
   paramName: string,
 ): string | undefined {
@@ -480,8 +486,8 @@ function parseFunnelAudienceMode(
 // does not overlap the available data at all has nothing to clamp onto and opens on the default.
 // Both ends are `YYYY-MM-DD` here, so comparing them as text is comparing them as dates: the typed
 // ends are checked by `isCalendarDate` just above, and the available ends by the
-// `assertValidDateRange` that `loadReviewEventsByDateAvailableRange` returns them through.
-function parseDateRange(
+// `assertValidDateRange` every available-range loader returns them through.
+export function parseDateRange(
   searchParams: URLSearchParams,
   availableRange: AnalyticsDateRange,
   defaultDateRange: AnalyticsDateRange,

@@ -330,6 +330,7 @@ export async function processSyncPull(
       osName: input.osName ?? null,
       deviceType: input.deviceType ?? null,
       isAutomation: input.isAutomation === true,
+      isTestDistribution: input.isTestDistribution === true,
     });
     await ensureWorkspaceSyncMetadataInExecutor(executor, workspaceId);
     const minAvailableHotChangeId = await loadMinAvailableHotChangeId(executor, workspaceId);
