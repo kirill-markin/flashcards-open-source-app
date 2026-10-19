@@ -1,4 +1,4 @@
-import { runAdminQuery, type AdminQueryResultSet } from "../../adminApi";
+import { runAdminQuery, type AdminQueryResultSet, type AdminQueryValue } from "../../adminApi";
 import type { AdminAppConfig } from "../../config";
 import type { AnalyticsDateRange } from "../../filters/analyticsFilters";
 import { buildExcludedActorSqlLines } from "../../filters/filterSql";
@@ -16,10 +16,11 @@ import {
   type ReportBucket,
   type ReportPeriod,
 } from "../levelOneMetrics/reportPeriod";
-import { assertIsString, assertValidDateRange, parseActivityCount } from "../reportValues";
+import { assertIsString, assertValidDateRange, parseActivityCount, parseActivityDate } from "../reportValues";
 import { buildSiteFactSql } from "../siteEntryFunnel/query";
 
 const reportLabel = "Who saw us report";
+const storeDeliveryLabel = "Who saw us store delivery";
 
 // Our app in each store's reports. Store accounts can hold other apps, and the Play reports bucket
 // belongs to the whole developer account, so every store read pins one of these.
@@ -31,6 +32,20 @@ const ourPlayPackageName = "com.flashcardsopensourceapp.app";
 export const whoSawUsSeriesKeys = ["web", "app-store", "google-play"] as const;
 
 export type WhoSawUsSeriesKey = (typeof whoSawUsSeriesKeys)[number];
+
+export const whoSawUsStoreSeriesKeys = ["app-store", "google-play"] as const;
+
+export type WhoSawUsStoreSeriesKey = (typeof whoSawUsStoreSeriesKeys)[number];
+
+/** Today in UTC and each store's newest delivered day, as the database reads them. */
+export type StoreDelivery = Readonly<{
+  today: string;
+  /**
+   * The latest `report_date` among exactly the rows the store's series reads, over all retained
+   * history rather than the selected range; null before the store's first row.
+   */
+  newestDeliveredDateByStore: Readonly<Record<WhoSawUsStoreSeriesKey, string | null>>;
+}>;
 
 export type WhoSawUsBucket = Readonly<{
   bucket: ReportBucket;
@@ -45,6 +60,7 @@ export type WhoSawUsReport = Readonly<{
   to: string;
   /** Every bucket of the range, oldest first. */
   buckets: ReadonlyArray<WhoSawUsBucket>;
+  storeDelivery: StoreDelivery;
 }>;
 
 function getSingleResultSet(
@@ -159,6 +175,58 @@ export function buildWhoSawUsAvailableRangeSql(): string {
     "  ) AS from_date,",
     "  to_char((now() AT TIME ZONE 'UTC')::date, 'YYYY-MM-DD') AS to_date",
   ].join("\n");
+}
+
+function buildStoreDeliverySql(): string {
+  return [
+    "SELECT",
+    "  to_char((now() AT TIME ZONE 'UTC')::date, 'YYYY-MM-DD') AS today,",
+    "  to_char(",
+    // `GREATEST` skips NULLs, so one Apple table without rows does not hide the other.
+    "    GREATEST(",
+    "      (",
+    "        SELECT MAX(engagement.report_date)",
+    "        FROM store_analytics.apple_discovery_engagement AS engagement",
+    `        WHERE ${buildAppleProductPageViewRowSqlLines("engagement", "unique_counts").join("\n          AND ")}`,
+    "      ),",
+    "      (",
+    "        SELECT MAX(preview.report_date)",
+    "        FROM store_analytics.apple_web_preview_engagement AS preview",
+    `        WHERE ${buildAppleProductPageViewRowSqlLines("preview", "counts").join("\n          AND ")}`,
+    "      )",
+    "    ),",
+    "    'YYYY-MM-DD'",
+    "  ) AS app_store_newest_date,",
+    "  to_char(",
+    "    (",
+    "      SELECT MAX(performance.report_date)",
+    "      FROM store_analytics.play_store_performance_country AS performance",
+    `      WHERE ${buildPlayListingVisitorRowSqlLines("performance").join("\n        AND ")}`,
+    "    ),",
+    "    'YYYY-MM-DD'",
+    "  ) AS google_play_newest_date",
+  ].join("\n");
+}
+
+function parseNewestDeliveredDate(value: AdminQueryValue, field: string): string | null {
+  return value === null ? null : parseActivityDate(value, storeDeliveryLabel, field);
+}
+
+export async function loadStoreDelivery(config: AdminAppConfig): Promise<StoreDelivery> {
+  const response = await runAdminQuery(config, buildStoreDeliverySql());
+  const resultSet = getSingleResultSet(response.resultSets, storeDeliveryLabel);
+  const row = resultSet.rows[0];
+  if (resultSet.rows.length !== 1 || row === undefined) {
+    throw new Error(`${storeDeliveryLabel} must return exactly one row. Got ${resultSet.rows.length}.`);
+  }
+
+  return {
+    today: parseActivityDate(row.today ?? null, storeDeliveryLabel, "today"),
+    newestDeliveredDateByStore: {
+      "app-store": parseNewestDeliveredDate(row.app_store_newest_date ?? null, "app_store_newest_date"),
+      "google-play": parseNewestDeliveredDate(row.google_play_newest_date ?? null, "google_play_newest_date"),
+    },
+  };
 }
 
 export async function loadWhoSawUsAvailableRange(config: AdminAppConfig): Promise<AnalyticsDateRange> {
@@ -279,7 +347,10 @@ export async function loadWhoSawUsReport(
   dateRange: AnalyticsDateRange,
   period: ReportPeriod,
 ): Promise<WhoSawUsReport> {
-  const response = await runAdminQuery(config, buildWhoSawUsSql(dateRange, period));
+  const [response, storeDelivery] = await Promise.all([
+    runAdminQuery(config, buildWhoSawUsSql(dateRange, period)),
+    loadStoreDelivery(config),
+  ]);
   const resultSet = getSingleResultSet(response.resultSets, reportLabel);
 
   return {
@@ -288,5 +359,6 @@ export async function loadWhoSawUsReport(
     from: dateRange.from,
     to: dateRange.to,
     buckets: buildWhoSawUsBuckets(resultSet),
+    storeDelivery,
   };
 }

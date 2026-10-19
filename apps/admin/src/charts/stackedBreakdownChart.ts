@@ -13,15 +13,17 @@ const breakdownUnknownColor = "#bab0ac";
 // Tableau 10 without its grey, which Unknown takes.
 const breakdownValuePalette: ReadonlyArray<string> = d3.schemeTableau10.slice(0, 9);
 
-/** One bar: its count per value, or null when the bar is unavailable. */
+/** One bar: its count per value, or null when the bar is unavailable; a not final bar is drawn faded. */
 export type StackedBreakdownBar = Readonly<{
   key: string;
   countsByValue: ReadonlyMap<string, number> | null;
+  notFinal: boolean;
 }>;
 
 type MeasuredBreakdownBar = Readonly<{
   key: string;
   countsByValue: ReadonlyMap<string, number>;
+  notFinal: boolean;
 }>;
 
 /** Colours by value: Other and Unknown in neutral greys, every other value the next palette colour in stack order. */
@@ -68,10 +70,11 @@ export function renderStackedBreakdownChart(params: Readonly<{
     .keys(params.values)
     .value((bar, value) => bar.countsByValue.get(value) ?? 0)(measuredBars);
   const segments = layers.flatMap((layer) => layer
-    .map((point) => ({ key: point.data.key, value: layer.key, low: point[0], high: point[1] }))
+    .map((point) => ({ key: point.data.key, value: layer.key, notFinal: point.data.notFinal, low: point[0], high: point[1] }))
     .filter((segment) => segment.high > segment.low));
   frame.group.selectAll(".bar-segment").data(segments).join("rect")
-    .attr("class", "bar-segment").attr("fill", (segment) => params.getValueColor(segment.value))
+    .attr("class", "bar-segment").classed("bar-segment-not-final", (segment) => segment.notFinal)
+    .attr("fill", (segment) => params.getValueColor(segment.value))
     .attr("x", (segment) => frame.x(segment.key) ?? 0).attr("width", frame.x.bandwidth())
     .attr("y", (segment) => y(segment.high)).attr("height", (segment) => y(segment.low) - y(segment.high)).attr("rx", 2);
   const inProgressX = params.inProgressKey === null ? undefined : frame.x(params.inProgressKey);
