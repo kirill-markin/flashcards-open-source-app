@@ -107,11 +107,25 @@ test("a cookieless collector row stores a daily visitor hash and a consent row d
     assert.equal(consentHash, null);
     const automatedClient = isAutomatedUserAgent(inputs.userAgent);
     assert.equal(
-      await insertAnonymousProductAnalyticsEvent({ ...pageViewRow, dailyVisitorHash: pageViewHash, automatedClient }),
+      await insertAnonymousProductAnalyticsEvent({
+        ...pageViewRow,
+        dailyVisitorHash: pageViewHash,
+        automatedClient,
+        networkAsn: null,
+        userAgentChromeMajor: null,
+        clientHintChromiumMajor: null,
+      }),
       1,
     );
     assert.equal(
-      await insertAnonymousProductAnalyticsEvent({ ...consentRow, dailyVisitorHash: consentHash, automatedClient }),
+      await insertAnonymousProductAnalyticsEvent({
+        ...consentRow,
+        dailyVisitorHash: consentHash,
+        automatedClient,
+        networkAsn: null,
+        userAgentChromeMajor: null,
+        clientHintChromiumMajor: null,
+      }),
       1,
     );
 
@@ -142,6 +156,9 @@ test("a cookieless collector row stores a daily visitor hash and a consent row d
         eventId: createEventId(),
         dailyVisitorHash: pageViewHash,
         automatedClient,
+        networkAsn: null,
+        userAgentChromeMajor: null,
+        clientHintChromiumMajor: null,
       }),
       { code: "23514", constraint: "product_events_daily_visitor_hash_shape" },
     );
@@ -208,6 +225,9 @@ test("a collector row records whether the reporting request announced itself as 
         ...headlessRow,
         dailyVisitorHash: null,
         automatedClient: isAutomatedUserAgent(headlessUserAgent),
+        networkAsn: null,
+        userAgentChromeMajor: null,
+        clientHintChromiumMajor: null,
       }),
       1,
     );
@@ -216,6 +236,9 @@ test("a collector row records whether the reporting request announced itself as 
         ...browserRow,
         dailyVisitorHash: null,
         automatedClient: isAutomatedUserAgent(browserUserAgent),
+        networkAsn: null,
+        userAgentChromeMajor: null,
+        clientHintChromiumMajor: null,
       }),
       1,
     );
@@ -224,6 +247,9 @@ test("a collector row records whether the reporting request announced itself as 
         ...collidingDeviceRow,
         dailyVisitorHash: null,
         automatedClient: isAutomatedUserAgent(collidingDeviceUserAgent),
+        networkAsn: null,
+        userAgentChromeMajor: null,
+        clientHintChromiumMajor: null,
       }),
       1,
     );

@@ -157,6 +157,13 @@ const geoLiteCountryDatabaseAgePeriodHours = 1;
 // run, so a healthy pipeline reports up to 24 hours and a threshold near that fires on a working
 // system. Four days sits clear of both and leaves three days of lead time.
 const geoLiteCountryDatabasePublishedAgeThresholdHours = 4 * 24;
+// The ASN database (apps/backend/src/geolocation/asn.ts) mirrors the Country one: the same bucket,
+// refresh workflow, reload interval and lifecycle expiry, so it reuses the periods and thresholds
+// above and differs only in its records and its impact, which reaches the credential-free collector
+// alone.
+const geoLiteAsnMetricNamespace: string = "FlashcardsOpenSourceApp/GeoLiteAsn";
+const geoLiteAsnLookupFailureAction: string = "anonymous_analytics_network_asn_lookup_failed";
+const geoLiteAsnDatabaseLoadedAction: string = "geolite_asn_database_loaded";
 
 // A Lambda throttle reaches REST clients as status 500 with integrationStatus 429; it is counted by
 // the integrated function's Lambda throttle alarm instead.
@@ -224,6 +231,14 @@ export function createGeoLiteCountryDatabaseLoadedFilterPattern(): logs.IFilterP
     "=",
     geoLiteCountryDatabaseLoadedAction,
   );
+}
+
+export function createGeoLiteAsnLookupFailureFilterPattern(): logs.IFilterPattern {
+  return logs.FilterPattern.stringValue("$.message.action", "=", geoLiteAsnLookupFailureAction);
+}
+
+export function createGeoLiteAsnDatabaseLoadedFilterPattern(): logs.IFilterPattern {
+  return logs.FilterPattern.stringValue("$.message.action", "=", geoLiteAsnDatabaseLoadedAction);
 }
 
 // CloudWatch notifies only on state transitions, so an alarm without an OK action sends alert
@@ -1161,6 +1176,72 @@ export function monitoring(scope: Construct, props: MonitoringProps): void {
       `about ${geoLiteCountryObjectExpirationDays - geoLiteCountryDatabasePublishedAgeThresholdHours / 24} ` +
       "days, and from then every country lookup throws and the consent banner is shown worldwide. " +
       "docs/geolite-country.md has the runbook",
+    treatMissingData: cloudwatch.TreatMissingData.IGNORE,
+  }), alertTopic);
+
+  // The same two alarms on the ASN database, for the same reasons as above.
+  const geoLiteAsnLookupFailureMetricFilter = new logs.MetricFilter(
+    scope,
+    "GeoLiteAsnLookupFailureMetricFilter",
+    {
+      logGroup: props.backendLogGroup,
+      filterPattern: createGeoLiteAsnLookupFailureFilterPattern(),
+      metricNamespace: geoLiteAsnMetricNamespace,
+      metricName: geoLiteCountryLookupFailureMetricName,
+      metricValue: "1",
+      defaultValue: 0,
+    },
+  );
+  notifyAlertTopic(new cloudwatch.Alarm(scope, "GeoLiteAsnLookupFailureAlarm", {
+    metric: geoLiteAsnLookupFailureMetricFilter.metric({
+      period: cdk.Duration.minutes(geoLiteCountryLookupFailurePeriodMinutes),
+      statistic: "Sum",
+    }),
+    threshold: 1,
+    comparisonOperator: cloudwatch.ComparisonOperator.GREATER_THAN_OR_EQUAL_TO_THRESHOLD,
+    evaluationPeriods: geoLiteCountryLookupFailureEvaluationPeriods,
+    datapointsToAlarm: geoLiteCountryLookupFailureEvaluationPeriods,
+    alarmDescription:
+      "GeoLite ASN lookup threw in each of " +
+      `${geoLiteCountryLookupFailureEvaluationPeriods} consecutive ` +
+      `${geoLiteCountryLookupFailurePeriodMinutes}-minute periods, so the database is missing, ` +
+      "unreadable, the wrong type, or past its 30-day limit: every credential-free analytics event " +
+      "that carries a country is being refused with a 500 rather than stored without its network, " +
+      "while the events exempt from carrying one (docs/anonymous-client-analytics.md) keep landing " +
+      "with a 200. An address the database simply has no network for returns null and never " +
+      "reaches this metric. Check the private GeoLite bucket and the last GeoLite Country Refresh " +
+      "run; docs/geolite-country.md has the runbook",
+    treatMissingData: cloudwatch.TreatMissingData.NOT_BREACHING,
+  }), alertTopic);
+
+  const geoLiteAsnDatabaseAgeMetricFilter = new logs.MetricFilter(
+    scope,
+    "GeoLiteAsnDatabaseAgeMetricFilter",
+    {
+      logGroup: props.backendLogGroup,
+      filterPattern: createGeoLiteAsnDatabaseLoadedFilterPattern(),
+      metricNamespace: geoLiteAsnMetricNamespace,
+      metricName: geoLiteCountryDatabasePublishedAgeMetricName,
+      metricValue: "$.message.publishedAgeHours",
+    },
+  );
+  notifyAlertTopic(new cloudwatch.Alarm(scope, "GeoLiteAsnDatabaseStaleAlarm", {
+    metric: geoLiteAsnDatabaseAgeMetricFilter.metric({
+      period: cdk.Duration.hours(geoLiteCountryDatabaseAgePeriodHours),
+      statistic: "Maximum",
+    }),
+    threshold: geoLiteCountryDatabasePublishedAgeThresholdHours,
+    comparisonOperator: cloudwatch.ComparisonOperator.GREATER_THAN_OR_EQUAL_TO_THRESHOLD,
+    evaluationPeriods: 1,
+    datapointsToAlarm: 1,
+    alarmDescription:
+      "The GeoLite ASN object being served was uploaded at least " +
+      `${geoLiteCountryDatabasePublishedAgeThresholdHours / 24} days ago, so the daily GeoLite ` +
+      "Country Refresh workflow has stopped publishing it. Nothing is failing yet: the private " +
+      `bucket's ${geoLiteCountryObjectExpirationDays}-day lifecycle expiry deletes the object in ` +
+      `about ${geoLiteCountryObjectExpirationDays - geoLiteCountryDatabasePublishedAgeThresholdHours / 24} ` +
+      "days, and from then every ASN lookup throws and the credential-free collector refuses every " +
+      "event that carries a country. docs/geolite-country.md has the runbook",
     treatMissingData: cloudwatch.TreatMissingData.IGNORE,
   }), alertTopic);
 }

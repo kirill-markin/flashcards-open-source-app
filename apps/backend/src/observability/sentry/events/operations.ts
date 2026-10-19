@@ -821,6 +821,8 @@ export type GoogleHistorySourceFailureDetails = Readonly<{
  * (infra/aws/lib/geolite-country.ts) deletes the object once refreshes stop landing, after which
  * every country lookup worldwide throws at once, and without this record the approach to that
  * deletion is invisible. `GeoLiteCountryDatabaseStaleAlarm` in infra/aws/lib/monitoring.ts reads it.
+ * The ASN object's `geolite_asn_database_loaded` record carries the same detail for
+ * `GeoLiteAsnDatabaseStaleAlarm`.
  */
 export type GeoLiteCountryDatabaseLoadedDetails = Readonly<{
   publishedAgeHours: number;
@@ -859,6 +861,7 @@ export type OperationsBreadcrumbEvent =
   | EventByAction<"google_history_source_failed", GoogleHistorySourceFailureDetails>
   | EventByAction<"generated_media_promotion_batch_completed", GeneratedMediaPromotionBatchDetails>
   | EventByAction<"geolite_country_database_loaded", GeoLiteCountryDatabaseLoadedDetails>
+  | EventByAction<"geolite_asn_database_loaded", GeoLiteCountryDatabaseLoadedDetails>
   | EventByAction<"media_blob_cleanup_batch_completed", MediaBlobCleanupBatchDetails>
   | EventByAction<"media_blob_cleanup_retry", MediaBlobCleanupRetryDetails>
   | EventByAction<"media_blob_cleanup_failure_recorded", MediaBlobCleanupFailureRecordedDetails>
