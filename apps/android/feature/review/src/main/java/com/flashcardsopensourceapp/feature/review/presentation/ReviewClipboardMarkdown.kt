@@ -14,7 +14,7 @@ internal fun reviewSideMarkdownForClipboard(
     privateMediaPlaceholder: (String) -> String
 ): String {
     // Mask accepted math without changing source offsets or normalizing escaped dollars.
-    val mediaMarkdown: String = buildString(capacity = sourceText.length) {
+    val mediaMarkdown: CharSequence = buildString(capacity = sourceText.length) {
         extractReviewMathBlocks(markdown = sourceText).blocks.forEach { block ->
             when (block) {
                 is ReviewMathBlock.Markdown -> append(block.markdown)
