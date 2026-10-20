@@ -6,7 +6,8 @@
 // The value is a stable step identifier rather than the display label, so renaming a step on screen
 // does not break links that are already shared. Each funnel has its own parameter, so anchoring one
 // chart leaves the others alone. The parameters belong to the Funnels area only: area links carry a
-// bare path, and the filter writer in `App.tsx` keeps them only on the Funnels route.
+// bare path, and the filter writer in `App.tsx` keeps them only on the Funnels and funnel Details
+// routes. The URL is the anchor's one copy, so every chart of a funnel on a page shares its anchor.
 
 /** One funnel's anchor contract: its URL parameter comes from `funnelId`, and `stepIds` are its steps in chart order. */
 export type FunnelAnchor<StepId extends string> = Readonly<{
@@ -56,6 +57,14 @@ export function withFunnelAnchorSearchParams<StepId extends string>(
   return nextSearchParams;
 }
 
+const funnelAnchorChangeEventName = "funnel-anchor-change";
+
+/** Calls `onChange` after every `writeFunnelAnchorToUrl` that changed the URL; returns the unsubscribe. */
+export function subscribeToFunnelAnchorChanges(onChange: () => void): () => void {
+  window.addEventListener(funnelAnchorChangeEventName, onChange);
+  return () => { window.removeEventListener(funnelAnchorChangeEventName, onChange); };
+}
+
 /**
  * Writes the anchor into the current URL the way the filter selection is written: it replaces the
  * current history entry rather than pushing one, so Back leaves the area instead of stepping through
@@ -81,4 +90,5 @@ export function writeFunnelAnchorToUrl<StepId extends string>(
     "",
     `${window.location.pathname}${nextSearch}${window.location.hash}`,
   );
+  window.dispatchEvent(new Event(funnelAnchorChangeEventName));
 }

@@ -256,3 +256,55 @@ export function foldFunnelGroupsWith<
     }]),
   ];
 }
+
+/** One drawn group of a date range comparison: its steps on range A and on range B, in one colour. */
+export type FunnelComparedGroup<StepId extends string> = Readonly<{
+  key: string;
+  label: string;
+  color: string;
+  aStages: ReadonlyArray<FunnelStage<StepId>>;
+  bStages: ReadonlyArray<FunnelStage<StepId>>;
+}>;
+
+/**
+ * `foldFunnelGroups` over two ranges at once, for a funnel whose groups partition its cohort.
+ *
+ * Both ranges are folded against one set of drawn groups, ranked by their A and B entries together,
+ * so a group means the same people's value in A and in B and keeps one colour; `Other` sums each
+ * range's own groups outside that set. A group a range has nobody in draws zeros there.
+ */
+export function foldComparedFunnelGroups<StepId extends string>(
+  dimension: FunnelGroupByField,
+  aGroups: ReadonlyArray<FunnelGroupCounts<StepId>>,
+  bGroups: ReadonlyArray<FunnelGroupCounts<StepId>>,
+): ReadonlyArray<FunnelComparedGroup<StepId>> {
+  const combinedGroups = new Map<string, FunnelGroupCounts<StepId>>();
+  for (const group of [...aGroups, ...bGroups]) {
+    const combinedGroup = combinedGroups.get(group.key);
+    combinedGroups.set(group.key, combinedGroup === undefined
+      ? group
+      : { ...combinedGroup, stages: sumFunnelStages([combinedGroup.stages, group.stages]) });
+  }
+
+  const drawnGroups = foldFunnelGroups(dimension, [...combinedGroups.values()]);
+  const drawnGroupKeys = new Set(drawnGroups.map((group) => group.key));
+  const buildRangeStages = (
+    rangeGroups: ReadonlyArray<FunnelGroupCounts<StepId>>,
+    drawnGroup: FunnelGroup<StepId>,
+  ): ReadonlyArray<FunnelStage<StepId>> => {
+    const matchingGroups = drawnGroup.key === otherFunnelGroupKey
+      ? rangeGroups.filter((group) => drawnGroupKeys.has(group.key) === false)
+      : rangeGroups.filter((group) => group.key === drawnGroup.key);
+    return matchingGroups.length === 0
+      ? drawnGroup.stages.map((stage) => ({ ...stage, count: 0, hashedCount: 0 }))
+      : sumFunnelStages(matchingGroups.map((group) => group.stages));
+  };
+
+  return drawnGroups.map((group) => ({
+    key: group.key,
+    label: group.label,
+    color: group.color,
+    aStages: buildRangeStages(aGroups, group),
+    bStages: buildRangeStages(bGroups, group),
+  }));
+}

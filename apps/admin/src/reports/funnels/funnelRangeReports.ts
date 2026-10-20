@@ -3,9 +3,8 @@ import { dailyTotalBarColor } from "../../charts/chartPrimitives";
 import type { AdminAppConfig } from "../../config";
 import type { AnalyticsDateRange, AnalyticsFilterState } from "../../filters/analyticsFilters";
 import { normalizeAnalyticsFilterState } from "../../filters/analyticsFiltersUrl";
-import type { FunnelGroup } from "./funnelGroupBy";
-import type { FunnelSectionProps } from "./funnelSections";
-import type { FunnelStage } from "./FunnelStepsChart";
+import type { FunnelReportProps } from "./funnelSections";
+import type { FunnelChartGroups, FunnelStage } from "./FunnelStepsChart";
 
 // A funnel card counts its report on the main range A and, when the Funnels bar sets a comparison
 // range, once more on range B with every other filter and the audience mode unchanged; the chart then
@@ -44,7 +43,7 @@ const funnelRangeColors: Readonly<Record<FunnelRangeKey, string>> = {
 
 const loadingState = { status: "loading" } as const;
 
-function formatFunnelRangeSeriesLabel(key: FunnelRangeKey, dateRange: AnalyticsDateRange): string {
+export function formatFunnelRangeSeriesLabel(key: FunnelRangeKey, dateRange: AnalyticsDateRange): string {
   return `${key.toUpperCase()} · ${dateRange.from} – ${dateRange.to}`;
 }
 
@@ -69,7 +68,7 @@ type FunnelRangeQuery = Readonly<{ key: string; request: AnalyticsFilterState }>
  * query at once and asks again only once the selection settles. `null` when there is no range.
  */
 function useFunnelRangeLoad<Report>(
-  props: FunnelSectionProps,
+  props: FunnelReportProps,
   request: AnalyticsFilterState | null,
   loadRevision: number,
   loadReport: FunnelReportLoader<Report>,
@@ -128,7 +127,7 @@ function useFunnelRangeLoad<Report>(
  * loading, and the card is ready only once every range it draws is.
  */
 export function useFunnelRangeReports<Report>(
-  props: FunnelSectionProps,
+  props: FunnelReportProps,
   loadReport: FunnelReportLoader<Report>,
   getErrorMessage: (error: unknown) => string,
 ): Readonly<{ state: FunnelRangeReportsState<Report>; retry: () => void }> {
@@ -203,7 +202,7 @@ export function buildFunnelRangeGroups<StepId extends string>(
     seriesLabel: string | null;
     stages: ReadonlyArray<FunnelStage<StepId>>;
   }>>,
-): ReadonlyArray<FunnelGroup<StepId>> | undefined {
+): FunnelChartGroups<StepId> | undefined {
   const groups = ranges.flatMap((range) => (range.seriesLabel === null ? [] : [{
     key: range.key,
     label: range.seriesLabel,
@@ -211,7 +210,7 @@ export function buildFunnelRangeGroups<StepId extends string>(
     stages: range.stages,
   }]));
 
-  return groups.length === 0 ? undefined : groups;
+  return groups.length === 0 ? undefined : { kind: "groups", groups };
 }
 
 /** A note about one range, named by its series once two ranges share the card. */

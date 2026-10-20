@@ -448,8 +448,17 @@ export type FunnelStepGroupBars = Readonly<{
   key: string;
   label: string;
   color: string;
+  /**
+   * Bars sharing it sit side by side with no gap between them: one group's range A and range B bars
+   * in a date range comparison, otherwise the group's own key. Every pair holds the same number of bars.
+   */
+  pairKey: string;
+  /** The range the bar draws in a paired comparison, or `null` outside one. */
+  pairedRange: FunnelStepPairedRange | null;
   steps: ReadonlyArray<FunnelStepBar>;
 }>;
+
+export type FunnelStepPairedRange = "a" | "b";
 
 export type RenderFunnelStepsChartParams = Readonly<{
   svgElement: SVGSVGElement;
@@ -633,6 +642,64 @@ function buildFunnelStepGroupTooltipHtml(
   ].join("");
 }
 
+/** A group's share at a step, as its bar is measured: of its selected step from the anchor on, else of its first; `null` on a zero base. */
+function getFunnelStepGroupShare(group: FunnelStepGroupBars, stepIndex: number, anchorIndex: number): number | null {
+  const baseCount = group.steps[stepIndex < anchorIndex ? 0 : anchorIndex]?.count ?? 0;
+  return baseCount === 0 ? null : (group.steps[stepIndex]?.count ?? 0) / baseCount;
+}
+
+/** The same one-decimal rounding as the shares the chart writes, so A, B and their change agree on screen. */
+function formatFunnelStepShare(share: number | null): string {
+  return share === null ? "—" : `${(share * 100).toFixed(1)}%`;
+}
+
+function formatFunnelStepShareChange(aShare: number | null, bShare: number | null): string {
+  if (aShare === null || bShare === null) {
+    return "—";
+  }
+
+  const change = Number(((bShare - aShare) * 100).toFixed(1));
+  return `${change > 0 ? "+" : change < 0 ? "−" : ""}${Math.abs(change).toFixed(1)} pp`;
+}
+
+/** A paired comparison's step tooltip: every group's A and B shares at the step and the change from A to B. */
+function buildFunnelStepPairedTooltipHtml(
+  groups: ReadonlyArray<FunnelStepGroupBars>,
+  pairKeys: ReadonlyArray<string>,
+  stepIndex: number,
+  anchorIndex: number,
+): string {
+  const findPairBar = (pairKey: string, range: FunnelStepPairedRange): FunnelStepGroupBars => {
+    const bar = groups.find((group) => group.pairKey === pairKey && group.pairedRange === range);
+    if (bar === undefined) {
+      throw new Error(`Funnel pair "${pairKey}" has no range ${range.toUpperCase()} bar.`);
+    }
+
+    return bar;
+  };
+  const rows = pairKeys.map((pairKey) => {
+    const aBar = findPairBar(pairKey, "a");
+    const aShare = getFunnelStepGroupShare(aBar, stepIndex, anchorIndex);
+    const bShare = getFunnelStepGroupShare(findPairBar(pairKey, "b"), stepIndex, anchorIndex);
+    return [
+      "<tr>",
+      `<th><span class="funnel-tooltip-swatch" style="background-color: ${escapeHtml(aBar.color)}"></span>${escapeHtml(aBar.label)}</th>`,
+      `<td>${formatFunnelStepShare(aShare)}</td>`,
+      `<td>${formatFunnelStepShare(bShare)}</td>`,
+      `<td>${formatFunnelStepShareChange(aShare, bShare)}</td>`,
+      "</tr>",
+    ].join("");
+  });
+  const isOfSelected = anchorIndex > 0 && stepIndex >= anchorIndex;
+
+  return [
+    `<p class="tooltip-title">${escapeHtml(groups[0]?.steps[stepIndex]?.label ?? "")}</p>`,
+    `<p class="tooltip-subtitle">${isOfSelected ? "Share of each group's selected step" : "Share of each group's first step"}</p>`,
+    "<table class=\"payment-tooltip-table\"><thead><tr><th>Group</th><th>A</th><th>B</th><th>Change</th></tr></thead>",
+    `<tbody>${rows.join("")}</tbody></table>`,
+  ].join("");
+}
+
 /**
  * Vertical funnel bars, one coloured bar per group inside every step band. A faint ghost at that
  * group's own previous step sits behind each later bar, so the drop-off reads as the gap between
@@ -643,6 +710,9 @@ function buildFunnelStepGroupTooltipHtml(
  * size comparable, and the steps before it lose their ghosts, turn grey and are capped at the plot
  * top with a zig-zag clip mark when taller.
  * A redraw keeps keyboard focus on the column that held it.
+ *
+ * A PAIRED COMPARISON draws each group's A and B bars touching inside the step band, and hovering a
+ * step's column compares every group's A and B there in one tooltip instead of describing one bar.
  *
  * THE UNGROUPED CHART IS THE ONE-GROUP CASE OF ALL OF THAT, and it alone writes the exact count, the
  * identified/hashed split and both shares above each bar: a step band that may hold several bars has
@@ -674,11 +744,25 @@ export function renderFunnelStepsChart(params: RenderFunnelStepsChartParams): vo
     .paddingInner(0.28)
     .paddingOuter(0.14);
   const bandWidth = x.bandwidth();
-  const groupX = d3.scaleBand<string>()
-    .domain(params.groups.map((group) => group.key))
+  const pairKeys = Array.from(new Set(params.groups.map((group) => group.pairKey)));
+  const pairX = d3.scaleBand<string>()
+    .domain(pairKeys)
     .range([0, bandWidth])
     .paddingInner(isGrouped ? funnelGroupBandPaddingInner : 0)
     .paddingOuter(0);
+  const barsPerPair = params.groups.length / pairKeys.length;
+  const barOffsetByGroupKey = new Map<string, number>();
+  for (const pairKey of pairKeys) {
+    const pairBars = params.groups.filter((group) => group.pairKey === pairKey);
+    if (pairBars.length !== barsPerPair) {
+      throw new Error(`Funnel pair "${pairKey}" has ${pairBars.length} bars; every pair needs the same number.`);
+    }
+
+    pairBars.forEach((group, index) => {
+      barOffsetByGroupKey.set(group.key, (pairX(pairKey) ?? 0) + (index * pairX.bandwidth()) / barsPerPair);
+    });
+  }
+  const isPaired = params.groups.some((group) => group.pairedRange !== null);
   // One scale for the plot and the axis: counts, or shares once a step is selected. Clamping caps the
   // steps before a re-based anchor at the plot top.
   const y = d3.scaleLinear().domain([0, isRebased ? 1 : peakCount]).range([innerHeight, 0]).clamp(true);
@@ -822,12 +906,12 @@ export function renderFunnelStepsChart(params: RenderFunnelStepsChartParams): vo
     .attr("height", chartHeight - (funnelStepHitEdgeInset + funnelStepFocusRingInset) * 2)
     .attr("rx", 4);
 
-  const groupBandWidth = groupX.bandwidth();
+  const groupBandWidth = pairX.bandwidth() / barsPerPair;
   const barGroups = stepGroups.selectAll<SVGGElement, FunnelStepGroupBar>("g.funnel-step-group")
     .data((step) => getStepGroupBars(step.label))
     .join("g")
     .attr("class", "funnel-step-group")
-    .attr("transform", (bar) => `translate(${groupX(bar.group.key) ?? 0},0)`);
+    .attr("transform", (bar) => `translate(${barOffsetByGroupKey.get(bar.group.key) ?? 0},0)`);
 
   // The anchor's previous step lies outside the measured funnel, so the anchor draws no ghost. A re-based
   // chart also drops the grey steps' ghosts, whose dashed outline would show through the faded bar.
@@ -917,7 +1001,17 @@ export function renderFunnelStepsChart(params: RenderFunnelStepsChartParams): vo
     .attr("class", "funnel-step-clip-mark")
     .attr("d", buildFunnelStepClipMarkPath(groupBandWidth));
 
-  if (isGrouped) {
+  if (isPaired) {
+    stepGroups
+      .on("mousemove", (event: MouseEvent, step: FunnelStepBar) => {
+        params.tooltipHandlers.showTooltip(
+          buildFunnelStepPairedTooltipHtml(params.groups, pairKeys, getStepIndex(step.label), params.anchorIndex),
+          event.clientX,
+          event.clientY,
+        );
+      })
+      .on("mouseleave", params.tooltipHandlers.hideTooltip);
+  } else if (isGrouped) {
     barGroups
       .on("mousemove", (event: MouseEvent, bar: FunnelStepGroupBar) => {
         params.tooltipHandlers.showTooltip(

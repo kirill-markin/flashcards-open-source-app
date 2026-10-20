@@ -89,7 +89,7 @@ export function CatalogInstallFunnelSection(props: FunnelSectionProps): JSX.Elem
 
   return (
     <section className="dashboard-section funnel-report">
-      <FunnelSectionHeader funnelId={catalogInstallFunnelAnchor.funnelId} title={catalogInstallFunnelTitle} />
+      <FunnelSectionHeader funnelId={catalogInstallFunnelAnchor.funnelId} title={catalogInstallFunnelTitle} onDetailsNavigate={props.onDetailsNavigate} />
 
       {loadState.status === "error" ? <div className="report-state report-state-error"><strong>Funnel query failed.</strong><span>{loadState.message}</span><button className="filter-button" type="button" onClick={retry}>Retry</button></div> : null}
       {rangeViews.map((range) => {

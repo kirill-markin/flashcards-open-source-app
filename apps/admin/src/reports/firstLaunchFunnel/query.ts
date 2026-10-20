@@ -67,20 +67,22 @@ export type FirstLaunchFunnelReport = Readonly<{
 const ungroupedFirstLaunchGroupKey = "all";
 
 /**
- * The two dimensions whose key is not on the cohort row but in a per-actor source joined beside it.
- * The ids are named here because the dimension that declares one and the join that supplies it have
- * to agree, and they are written in two places.
+ * The dimensions whose key is not on the cohort row but in a source joined beside it. The ids are
+ * named here because the dimension that declares one and the join that supplies it have to agree,
+ * and they are written in two places.
  */
 const connectionCountryGroupByDimensionId = "country";
 const appUiLanguageGroupByDimensionId = "language";
+const signInStateGroupByDimensionId = "sign-in-state";
+const appVersionGroupByDimensionId = "app-version";
 
 /**
  * What this funnel offers in its `Group by` field, in picker order.
  *
  * Each expression yields exactly one key per person in the cohort, so the groups partition the
  * funnel and still sum to it. Country and language read the per-actor sources joined beside the
- * cohort, and both can be NULL for somebody they cannot place, which the query folds into the
- * `Unresolved` group.
+ * cohort, sign-in state and app version the first launch's own row, and any of them can be NULL for
+ * somebody it cannot place, which the query folds into the `Unresolved` group.
  */
 export const firstLaunchFunnelGroupByDimensions: ReadonlyArray<FunnelGroupByDimension> = [
   {
@@ -108,6 +110,23 @@ export const firstLaunchFunnelGroupByDimensions: ReadonlyArray<FunnelGroupByDime
     label: "App interface language",
     buildGroupKeySql: () => "actor_language.ui_locale",
   },
+  {
+    id: signInStateGroupByDimensionId,
+    label: "Sign-in state",
+    buildGroupKeySql: () => [
+      "CASE anchor_launch.trust_level",
+      "  WHEN 'guest_client' THEN 'Guest'",
+      "  WHEN 'authenticated_client' THEN 'Signed in'",
+      "  WHEN 'backfill_derived' THEN 'Backfilled'",
+      "  ELSE anchor_launch.trust_level",
+      "END",
+    ].join("\n"),
+  },
+  {
+    id: appVersionGroupByDimensionId,
+    label: "App version",
+    buildGroupKeySql: () => "NULLIF(anchor_launch.app_version, '')",
+  },
 ];
 
 /**
@@ -122,25 +141,28 @@ export const firstLaunchFunnelGroupByDimensions: ReadonlyArray<FunnelGroupByDime
 export const firstLaunchDemoCardAllowanceSeconds = 60;
 
 /**
- * The per-actor source the selected dimension's key expression reads, joined to the cohort, or no
- * lines for a dimension whose key is already on the cohort row.
+ * The source the selected dimension's key expression reads, joined to the cohort, or no lines for a
+ * dimension whose key is already on the cohort row.
  *
- * ONE SOURCE, NEVER BOTH. Each of the two is a scan of its own - the country one cross-joins the
- * retained connection samples to their endpoints and hash-joins the view again, the language one is
- * another full pass over the range - and this query is shaped around the 30 s statement timeout, so
- * a join whose alias the group key never mentions is paid for nothing. `platform` reads the
- * cohort's per-platform first launches and needs neither, and it is both the cheapest dimension and
- * the likeliest first pick. The alias each case supplies is the one the matching dimension's
- * `buildGroupKeySql` names, which is why the two are written against the same id constants.
+ * ONE SOURCE, NEVER TWO. Each is a scan of its own - the country one cross-joins the retained
+ * connection samples to their endpoints and hash-joins the view again, the language one is another
+ * full pass over the range, the first launch's row is another pass over the range's launch rows -
+ * and this query is shaped around the 30 s statement timeout, so a join whose alias the group key
+ * never mentions is paid for nothing. `platform` reads the cohort's per-platform first launches and
+ * needs none, and it is both the cheapest dimension and the likeliest first pick. The alias each case
+ * supplies is the one the matching dimension's `buildGroupKeySql` names, which is why the two are
+ * written against the same id constants.
  */
 function buildGroupSourceJoinSqlLines(
   groupByDimension: FunnelGroupByDimension | null,
-  dateRange: AnalyticsFilterState["dateRange"],
+  filters: AnalyticsFilterState,
+  rangeStartSql: string,
+  rangeEndSql: string,
 ): ReadonlyArray<string> {
   if (groupByDimension?.id === connectionCountryGroupByDimensionId) {
     return [
       "LEFT JOIN (",
-      buildActorConnectionCountrySql(dateRange),
+      buildActorConnectionCountrySql(filters.dateRange),
       ") AS actor_country ON actor_country.actor_id = cohort.actor_id",
     ];
   }
@@ -148,8 +170,41 @@ function buildGroupSourceJoinSqlLines(
   if (groupByDimension?.id === appUiLanguageGroupByDimensionId) {
     return [
       "LEFT JOIN (",
-      buildActorAppUiLanguageSql(dateRange),
+      buildActorAppUiLanguageSql(filters.dateRange),
       ") AS actor_language ON actor_language.actor_id = cohort.actor_id",
+    ];
+  }
+
+  // The first launch's own row, found the way `step_events` finds steps: the range's launch rows joined
+  // to the unfiltered `actor_first_events` on the actor and the first launch's instant, never to the
+  // filtered cohort, whose one-row estimate would rescan the view per person. Actors outside the cohort
+  // drop out at the outer join. The platform and trust filters stay on the launch row, so an
+  // unselected platform's row at that instant never names the group. Two launches at that instant are
+  // the cohort's own tie, so the row is picked in the platform dimension's order, then an open before
+  // a screen view.
+  if (
+    groupByDimension?.id === signInStateGroupByDimensionId
+    || groupByDimension?.id === appVersionGroupByDimensionId
+  ) {
+    return [
+      "LEFT JOIN (",
+      "  SELECT DISTINCT ON (launch.actor_id) launch.actor_id, launch.trust_level, launch.app_version",
+      "  FROM analytics.product_events_resolved AS launch",
+      "  INNER JOIN actor_first_events AS history",
+      "    ON history.actor_id = launch.actor_id",
+      "    AND launch.occurred_at = history.first_launch_at",
+      "  WHERE launch.event_name IN ('app_opened', 'screen_viewed')",
+      "    AND launch.platform IN ('ios', 'android', 'web')",
+      `    AND ${buildEventPlatformsFilterSql("launch.platform", filters.eventPlatforms)}`,
+      `    AND ${buildTrustedActorRowsFilterSql("launch.trust_level")}`,
+      `    AND launch.occurred_at >= ${rangeStartSql}`,
+      `    AND launch.occurred_at < ${rangeEndSql}`,
+      "  ORDER BY",
+      "    launch.actor_id,",
+      "    CASE launch.platform WHEN 'ios' THEN 0 WHEN 'android' THEN 1 ELSE 2 END,",
+      "    launch.event_name,",
+      "    launch.event_id",
+      ") AS anchor_launch ON anchor_launch.actor_id = cohort.actor_id",
     ];
   }
 
@@ -192,6 +247,9 @@ function buildGroupSourceJoinSqlLines(
  *   cohort joins the step aggregates.
  * - Each step is then a `GROUP BY` over those rows, joined to the step above it, so no step is a
  *   per-person scan.
+ * - A sign-in state or app version reads the first launch's own row the same way, launch rows joined
+ *   to `actor_first_events` rather than to the cohort, and only while that dimension is selected
+ *   (`buildGroupSourceJoinSqlLines`).
  *
  * Every later step is the same actor within seven days of the first launch, at or after the step
  * above it: the review screen, which the launch itself may be, then an answer reveal, then a first
@@ -223,7 +281,7 @@ export function buildFirstLaunchFunnelSql(
   const groupKeySql = groupByDimension === null
     ? `${escapeSqlStringLiteral(ungroupedFirstLaunchGroupKey)}::text`
     : `COALESCE(${groupByDimension.buildGroupKeySql(filters)}, ${escapeSqlStringLiteral(unresolvedFunnelGroupKey)})::text`;
-  const groupSourceJoinSqlLines = buildGroupSourceJoinSqlLines(groupByDimension, filters.dateRange);
+  const groupSourceJoinSqlLines = buildGroupSourceJoinSqlLines(groupByDimension, filters, rangeStartSql, rangeEndSql);
   const launchEventSql = "resolved.event_name IN ('app_opened', 'screen_viewed')";
 
   return [

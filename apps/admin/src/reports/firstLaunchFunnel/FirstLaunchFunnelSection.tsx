@@ -27,7 +27,7 @@ import {
   type FirstLaunchFunnelReport,
 } from "./query";
 
-/** The seven funnel steps in chart order; `buildStages` takes its order from this list. */
+/** The seven funnel steps in chart order; `buildFirstLaunchFunnelStages` takes its order from this list. */
 const funnelStepIds = [
   "first-launch",
   "review-screen",
@@ -38,9 +38,9 @@ const funnelStepIds = [
   "engaged-returning",
 ] as const;
 
-type FunnelStepId = (typeof funnelStepIds)[number];
+export type FirstLaunchFunnelStepId = (typeof funnelStepIds)[number];
 
-export const firstLaunchFunnelAnchor: FunnelAnchor<FunnelStepId> = {
+export const firstLaunchFunnelAnchor: FunnelAnchor<FirstLaunchFunnelStepId> = {
   funnelId: "first-launch",
   stepIds: funnelStepIds,
 };
@@ -75,10 +75,12 @@ function buildStartDateNote(dateRange: AnalyticsFilterState["dateRange"]): strin
  * split, because the daily visitor hash exists only on credential-free collector rows, which this
  * funnel never reads, so the `all` audience mode counts exactly who `with-anonymous-id` counts here.
  */
-function buildStages(counts: FirstLaunchFunnelCounts): ReadonlyArray<FunnelStage<FunnelStepId>> {
+export function buildFirstLaunchFunnelStages(
+  counts: FirstLaunchFunnelCounts,
+): ReadonlyArray<FunnelStage<FirstLaunchFunnelStepId>> {
   // Keyed by id, so the compiler demands every step exactly once; the order comes from `funnelStepIds`.
   const stages: Readonly<
-    Record<FunnelStepId, Readonly<{ label: string; count: number; hashedCount: number }>>
+    Record<FirstLaunchFunnelStepId, Readonly<{ label: string; count: number; hashedCount: number }>>
   > = {
     "first-launch": { label: "First app launch", count: counts.firstLaunchCount, hashedCount: 0 },
     "review-screen": { label: "Review screen", count: counts.reviewScreenCount, hashedCount: 0 },
@@ -130,7 +132,7 @@ export function FirstLaunchFunnelSection(props: FunnelSectionProps): JSX.Element
   const rangeViews = useMemo(
     () => (loadState.status === "ready" ? loadState.ranges : []).map((range) => {
       const totals = sumFunnelGroups(range.report.groups);
-      return { ...range, totals, stages: buildStages(totals), hasEntries: totals.firstLaunchCount > 0 };
+      return { ...range, totals, stages: buildFirstLaunchFunnelStages(totals), hasEntries: totals.firstLaunchCount > 0 };
     }),
     [loadState],
   );
@@ -143,7 +145,7 @@ export function FirstLaunchFunnelSection(props: FunnelSectionProps): JSX.Element
 
   return (
     <section className="dashboard-section funnel-report">
-      <FunnelSectionHeader funnelId={firstLaunchFunnelAnchor.funnelId} title={firstLaunchFunnelTitle} />
+      <FunnelSectionHeader funnelId={firstLaunchFunnelAnchor.funnelId} title={firstLaunchFunnelTitle} onDetailsNavigate={props.onDetailsNavigate} />
 
       {loadState.status === "error" ? <div className="report-state report-state-error"><strong>Funnel query failed.</strong><span>{loadState.message}</span><button className="filter-button" type="button" onClick={retry}>Retry</button></div> : null}
       {rangeViews.map((range) => {
