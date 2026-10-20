@@ -33,9 +33,9 @@ import {
 // parameters at all. Reading is tolerant of anything a person can type into an address bar: an
 // unknown, repeated or malformed parameter is ignored and that field keeps its default. A list
 // parameter is never repaired, because dropping one bad entry out of a list would silently hand back
-// a different selection from the one the URL asked for. The date range is the exception:
-// `parseDateRange` clamps a window that reaches past the available data onto it and falls back to the
-// default only when the two do not overlap at all.
+// a different selection from the one the URL asked for. The date ranges are the exception: each is
+// clamped onto the available data, and only a window that does not overlap it at all falls back, the
+// main range to its default and the comparison range to none.
 //
 // Every option field is an unordered multi-select, so both directions put its values back into one
 // canonical order first: the declared option order for the closed enums, plain sorting for the
@@ -48,6 +48,8 @@ const analyticsFilterReportLabel = "Analytics filters";
 
 const dateRangeFromParamName = "from";
 const dateRangeToParamName = "to";
+const comparisonDateRangeFromParamName = "compare-from";
+const comparisonDateRangeToParamName = "compare-to";
 const usersParamName = "users";
 const userCohortsParamName = "cohorts";
 const eventPlatformsParamName = "platforms";
@@ -211,9 +213,9 @@ export function buildDefaultAnalyticsFilterStateForAvailableRange(
 
 /**
  * The canonical form of the option fields of a selection: exactly what writing them to the URL and
- * reading them back gives. `dateRange` is passed through untouched, because canonicalizing it takes
- * the `availableRange` this function is not given; `parseDateRange` validates the range on the way in
- * and `assertValidDateRange` refuses it on the way to a report.
+ * reading them back gives. Both ranges are passed through untouched, because canonicalizing them takes
+ * the `availableRange` this function is not given; the parsers validate them on the way in and
+ * `assertValidDateRange` refuses them on the way to a report.
  *
  * The filter bar puts every selection it builds through this, so a value the codec would drop or
  * reorder cannot stay on screen as a checked option and a popover header and then change on the next
@@ -222,6 +224,7 @@ export function buildDefaultAnalyticsFilterStateForAvailableRange(
 export function normalizeAnalyticsFilterState(state: AnalyticsFilterState): AnalyticsFilterState {
   return {
     dateRange: state.dateRange,
+    comparisonDateRange: state.comparisonDateRange,
     users: normalizeOpaqueList(state.users),
     userCohorts: normalizeEnumList(state.userCohorts, reviewEventCohorts),
     eventPlatforms: normalizeEnumList(state.eventPlatforms, reviewEventPlatforms),
@@ -262,6 +265,10 @@ export function toAnalyticsFilterSearchParams(
   const searchParams = new URLSearchParams();
 
   setDateRangeParams(searchParams, state.dateRange, defaults.dateRange);
+  if (state.comparisonDateRange !== null) {
+    searchParams.set(comparisonDateRangeFromParamName, state.comparisonDateRange.from);
+    searchParams.set(comparisonDateRangeToParamName, state.comparisonDateRange.to);
+  }
 
   setOpaqueListParam(searchParams, usersParamName, state.users, defaults.users);
   setEnumListParam(
@@ -480,9 +487,13 @@ function parseFunnelAudienceMode(
 }
 
 /** The range the URL carries, `null` when either end is absent or malformed or they are reversed. */
-function readRequestedDateRange(searchParams: URLSearchParams): AnalyticsDateRange | null {
-  const from = readSingleParam(searchParams, dateRangeFromParamName);
-  const to = readSingleParam(searchParams, dateRangeToParamName);
+function readRequestedDateRange(
+  searchParams: URLSearchParams,
+  fromParamName: string,
+  toParamName: string,
+): AnalyticsDateRange | null {
+  const from = readSingleParam(searchParams, fromParamName);
+  const to = readSingleParam(searchParams, toParamName);
   if (from === undefined || to === undefined) {
     return null;
   }
@@ -503,7 +514,16 @@ export function parseProvisionalDateRange(
   searchParams: URLSearchParams,
   todayUtc: string,
 ): AnalyticsDateRange | null {
-  const requestedRange = readRequestedDateRange(searchParams);
+  return clampRequestedDateRangeToToday(
+    readRequestedDateRange(searchParams, dateRangeFromParamName, dateRangeToParamName),
+    todayUtc,
+  );
+}
+
+function clampRequestedDateRangeToToday(
+  requestedRange: AnalyticsDateRange | null,
+  todayUtc: string,
+): AnalyticsDateRange | null {
   if (requestedRange === null) {
     return null;
   }
@@ -525,18 +545,24 @@ export function parseDateRange(
   availableRange: AnalyticsDateRange,
   defaultDateRange: AnalyticsDateRange,
 ): AnalyticsDateRange {
-  const requestedRange = readRequestedDateRange(searchParams);
+  return clampRequestedDateRangeToAvailableRange(
+    readRequestedDateRange(searchParams, dateRangeFromParamName, dateRangeToParamName),
+    availableRange,
+  ) ?? defaultDateRange;
+}
+
+/** `null` when nothing was requested or the request does not overlap `availableRange`. */
+function clampRequestedDateRangeToAvailableRange(
+  requestedRange: AnalyticsDateRange | null,
+  availableRange: AnalyticsDateRange,
+): AnalyticsDateRange | null {
   if (requestedRange === null) {
-    return defaultDateRange;
+    return null;
   }
 
   const clampedFrom = requestedRange.from < availableRange.from ? availableRange.from : requestedRange.from;
   const clampedTo = requestedRange.to > availableRange.to ? availableRange.to : requestedRange.to;
-  if (clampedFrom > clampedTo) {
-    return defaultDateRange;
-  }
-
-  return { from: clampedFrom, to: clampedTo };
+  return clampedFrom > clampedTo ? null : { from: clampedFrom, to: clampedTo };
 }
 
 /**
@@ -553,9 +579,13 @@ export function parseAnalyticsFilterState(
 ): AnalyticsFilterState {
   const defaults = buildDefaultAnalyticsFilterStateForAvailableRange(availableRange);
 
-  return parseAnalyticsFilterStateOnDateRange(
+  return parseAnalyticsFilterStateOnDateRanges(
     searchParams,
     parseDateRange(searchParams, availableRange, defaults.dateRange),
+    clampRequestedDateRangeToAvailableRange(
+      readRequestedDateRange(searchParams, comparisonDateRangeFromParamName, comparisonDateRangeToParamName),
+      availableRange,
+    ),
   );
 }
 
@@ -565,21 +595,27 @@ export function parseProvisionalAnalyticsFilterState(
   todayUtc: string,
   provisionalDefaultRange: AnalyticsDateRange,
 ): AnalyticsFilterState {
-  return parseAnalyticsFilterStateOnDateRange(
+  return parseAnalyticsFilterStateOnDateRanges(
     searchParams,
     parseProvisionalDateRange(searchParams, todayUtc) ?? provisionalDefaultRange,
+    clampRequestedDateRangeToToday(
+      readRequestedDateRange(searchParams, comparisonDateRangeFromParamName, comparisonDateRangeToParamName),
+      todayUtc,
+    ),
   );
 }
 
-// Every field but the range reads the same whether or not the available range is known.
-function parseAnalyticsFilterStateOnDateRange(
+// Every field but the two ranges reads the same whether or not the available range is known.
+function parseAnalyticsFilterStateOnDateRanges(
   searchParams: URLSearchParams,
   dateRange: AnalyticsDateRange,
+  comparisonDateRange: AnalyticsDateRange | null,
 ): AnalyticsFilterState {
   const defaults = buildDefaultAnalyticsFilterState(dateRange);
 
   return {
     dateRange,
+    comparisonDateRange,
     users: parseOpaqueList(searchParams, usersParamName, defaults.users),
     userCohorts: parseEnumList<ReviewEventCohort>(
       searchParams,

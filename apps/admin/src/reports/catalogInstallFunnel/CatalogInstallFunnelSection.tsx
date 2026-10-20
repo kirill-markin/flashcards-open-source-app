@@ -1,7 +1,13 @@
-import { useEffect, useMemo, useState, type JSX } from "react";
+import { useMemo, type JSX } from "react";
 import { buildFunnelAudienceEmptyStateNote, type AnalyticsFilterState } from "../../filters/analyticsFilters";
 import { isFunnelAllAudienceSelected, isFunnelHashedCohortRead } from "../funnels/funnelAudienceSql";
+import { FunnelEmptyRangeNotes } from "../funnels/FunnelEmptyRangeNotes";
 import { FunnelMaturingWarning } from "../funnels/FunnelMaturingWarning";
+import {
+  buildFunnelRangeGroups,
+  formatFunnelRangeNote,
+  useFunnelRangeReports,
+} from "../funnels/funnelRangeReports";
 import { FunnelSectionHeader } from "../funnels/FunnelSectionHeader";
 import type { FunnelSectionProps } from "../funnels/funnelSections";
 import {
@@ -13,7 +19,6 @@ import { mobileFirstLaunchEngagedReviewThreshold } from "../mobileFirstLaunchFun
 import {
   catalogInstallFunnelStartDate,
   loadCatalogInstallFunnelReport,
-  type CatalogInstallFunnelReport,
 } from "./query";
 import {
   buildCatalogInstallFunnelReportModel,
@@ -22,11 +27,6 @@ import {
 
 export { catalogInstallFunnelAnchor } from "./reportModel";
 export const catalogInstallFunnelTitle = "Deck page to install";
-
-type FunnelLoadState =
-  | Readonly<{ status: "loading" }>
-  | Readonly<{ status: "error"; message: string }>
-  | Readonly<{ status: "ready"; report: CatalogInstallFunnelReport }>;
 
 function getErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : "Unexpected deck page to install funnel error.";
@@ -59,46 +59,21 @@ function formatDuration(seconds: number | null): string {
 }
 
 export function CatalogInstallFunnelSection(props: FunnelSectionProps): JSX.Element {
-  const [loadRevision, setLoadRevision] = useState<number>(0);
-  const [loadState, setLoadState] = useState<FunnelLoadState>({ status: "loading" });
-
-  useEffect(() => {
-    let cancelled = false;
-    setLoadState({ status: "loading" });
-    if (props.isRangeLoading) {
-      return () => { cancelled = true; };
-    }
-
-    const abortController = new AbortController();
-    void loadCatalogInstallFunnelReport(props.config, props.filters, abortController.signal)
-      .then((report) => {
-        if (cancelled === false) {
-          setLoadState({ status: "ready", report });
-        }
-      })
-      .catch((error: unknown) => {
-        if (cancelled || props.onTerminalAdminError(error, props.config)) {
-          return;
-        }
-
-        setLoadState({ status: "error", message: getErrorMessage(error) });
-      });
-
-    return () => { cancelled = true; abortController.abort(); };
-  }, [loadRevision, props.config, props.filters, props.isRangeLoading, props.onTerminalAdminError]);
-
-  const report = loadState.status === "ready" ? loadState.report : null;
-  const {
-    mainStages,
-    medianInstallSeconds,
-    maturingCount,
-    maturityEntryCount,
-    hasVisits: reportHasVisits,
-  } = useMemo(() => buildCatalogInstallFunnelReportModel(report, null), [report]);
-
-  const isReady = props.isRangeLoading === false && loadState.status === "ready";
-  const hasVisits = isReady && reportHasVisits;
-  const startDateNote = isReady ? buildStartDateNote(props.filters.dateRange) : null;
+  const { state: loadState, retry } = useFunnelRangeReports(props, loadCatalogInstallFunnelReport, getErrorMessage);
+  const rangeViews = useMemo(
+    () => (loadState.status === "ready" ? loadState.ranges : []).map((range) => {
+      const model = buildCatalogInstallFunnelReportModel(range.report, null);
+      return { ...range, model, stages: model.mainStages, hasEntries: model.hasVisits };
+    }),
+    [loadState],
+  );
+  const groups = useMemo(() => buildFunnelRangeGroups(rangeViews), [rangeViews]);
+  // A, whose figures the explainer shows.
+  const primaryRange = rangeViews[0];
+  const medianInstallSeconds = primaryRange === undefined ? null : primaryRange.model.medianInstallSeconds;
+  const isReady = loadState.status === "ready";
+  const hasVisits = rangeViews.some((range) => range.hasEntries);
+  const isComparing = props.filters.comparisonDateRange !== null;
   // The mode alone, never the chart's `showsHashedSplit` prop: that one is the read gate below,
   // and the two differ exactly in the `all`-with-a-country case this note exists to explain.
   const wantsHashedCohort = isFunnelAllAudienceSelected(props.filters);
@@ -116,18 +91,22 @@ export function CatalogInstallFunnelSection(props: FunnelSectionProps): JSX.Elem
     <section className="dashboard-section funnel-report">
       <FunnelSectionHeader funnelId={catalogInstallFunnelAnchor.funnelId} title={catalogInstallFunnelTitle} />
 
-      {props.isRangeLoading === false && loadState.status === "error" ? <div className="report-state report-state-error"><strong>Funnel query failed.</strong><span>{loadState.message}</span><button className="filter-button" type="button" onClick={() => setLoadRevision((revision) => revision + 1)}>Retry</button></div> : null}
-      {startDateNote !== null ? <p className="report-state" aria-live="polite">{startDateNote}</p> : null}
+      {loadState.status === "error" ? <div className="report-state report-state-error"><strong>Funnel query failed.</strong><span>{loadState.message}</span><button className="filter-button" type="button" onClick={retry}>Retry</button></div> : null}
+      {rangeViews.map((range) => {
+        const startDateNote = buildStartDateNote(range.dateRange);
+        return startDateNote === null ? null : <p key={range.key} className="report-state" aria-live="polite">{formatFunnelRangeNote(range.seriesLabel, startDateNote)}</p>;
+      })}
       {hashedCountryNote !== null ? <p className="report-state" aria-live="polite">{hashedCountryNote}</p> : null}
 
-      {isReady ? <FunnelMaturingWarning maturingCount={maturingCount} entryCount={maturityEntryCount} /> : null}
+      {rangeViews.map((range) => <FunnelMaturingWarning key={range.key} seriesLabel={range.seriesLabel} maturingCount={range.model.maturingCount} entryCount={range.model.maturityEntryCount} />)}
+      <FunnelEmptyRangeNotes ranges={rangeViews} />
 
-      {props.isRangeLoading || loadState.status === "loading" ? (
+      {loadState.status === "loading" ? (
         <FunnelStepsLoadingChart
           countLabel="Visitors"
           dateRange={props.filters.dateRange}
           showsHashedSplit={readsHashedCohort}
-          isGrouped={false}
+          isGrouped={isComparing}
           label="Loading deck page to install funnel…"
         />
       ) : null}
@@ -137,15 +116,16 @@ export function CatalogInstallFunnelSection(props: FunnelSectionProps): JSX.Elem
           countLabel="Visitors"
           dateRange={props.filters.dateRange}
           showsHashedSplit={readsHashedCohort}
-          isGrouped={false}
+          isGrouped={isComparing}
           note={<><strong>No deck page views match these filters.</strong><span>{readsHashedCohort ? "Cookieless visitors are counted here through their daily hash, so this is every deck page view in range, and no earlier traffic history is inferred from Vercel aggregates." : "A page view from a browser that refused consent carries no identity and is not counted, and no earlier traffic history is inferred from Vercel aggregates."}</span>{audienceEmptyStateNote === null ? null : <span>{audienceEmptyStateNote}</span>}</>}
         />
       ) : null}
 
-      {hasVisits ? (
+      {primaryRange !== undefined && hasVisits ? (
         <FunnelStepsChart
           anchor={catalogInstallFunnelAnchor}
-          stages={mainStages}
+          stages={primaryRange.stages}
+          groups={groups}
           countLabel="Visitors"
           dateRange={props.filters.dateRange}
           showsHashedSplit={readsHashedCohort}

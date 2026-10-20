@@ -220,11 +220,12 @@ export function FunnelStepsChart<StepId extends string>(
     /** The main path in chart order, each step a subset of the one before it. */
     stages: ReadonlyArray<FunnelStage<StepId>>;
     /**
-     * One coloured series per group, which replaces `stages`; each group carries the funnel's full
-     * step list in the same order. Left out is the ungrouped chart: `stages` becomes the single group
-     * everything below draws, so there is one rendering path either way.
+     * One coloured series per group, such as the A/B date range comparison, which replaces `stages`;
+     * each group carries the funnel's full step list in the same order. `undefined` is the ungrouped
+     * chart: `stages` becomes the single group everything below draws, so there is one rendering path
+     * either way.
      */
-    groups?: ReadonlyArray<FunnelGroup<StepId>>;
+    groups: ReadonlyArray<FunnelGroup<StepId>> | undefined;
     /** What one counted row is, plural: the chart heading. */
     countLabel: string;
     dateRange: AnalyticsDateRange;
@@ -250,10 +251,8 @@ export function FunnelStepsChart<StepId extends string>(
       stages: props.stages,
     }]
   ), [propsGroups, props.countLabel, props.stages]);
-  // PASSED GROUPS ARE WHAT MAKE THE CHART GROUPED, not how many came back. A range in which a
-  // dimension placed nobody returns the one `Unresolved` group, and a range with one country or one
-  // platform returns one value group; drawing either as the ungrouped accent chart would read as the
-  // plain funnel and hide the very split the reader asked for.
+  // PASSED GROUPS ARE WHAT MAKE THE CHART GROUPED, not how many there are: a passed series is always
+  // drawn in its own colour and named in the key, so it can never read as the plain funnel.
   const isGrouped = propsGroups !== undefined;
   // Every group carries the same steps in the same order, so the first one names the funnel's steps.
   const chartStages = groups[0]?.stages ?? [];

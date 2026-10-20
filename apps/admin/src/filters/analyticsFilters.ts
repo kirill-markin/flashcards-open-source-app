@@ -156,6 +156,8 @@ export function buildFunnelAudienceEmptyStateNote(mode: FunnelAudienceMode): str
  */
 export type AnalyticsFilterState = Readonly<{
   dateRange: AnalyticsDateRange;
+  /** The Funnels area's second range, drawn beside `dateRange` as series B; `null` is no comparison. */
+  comparisonDateRange: AnalyticsDateRange | null;
   users: ReadonlyArray<string>;
   userCohorts: ReadonlyArray<ReviewEventCohort>;
   eventPlatforms: ReadonlyArray<ReviewEventPlatform>;
@@ -183,6 +185,7 @@ export type AnalyticsFilterField = Exclude<keyof AnalyticsFilterState, "funnelAu
 // of silently missing from the bar. Object key order is the declaration order for these names.
 const analyticsFilterFieldOrder = {
   dateRange: true,
+  comparisonDateRange: true,
   users: true,
   userCohorts: true,
   eventPlatforms: true,
@@ -207,6 +210,7 @@ export const analyticsFilterFields: ReadonlyArray<AnalyticsFilterField> = Object
 // for the same reason the order above is exhaustive.
 const funnelsAnalyticsFilterFieldApplicability = {
   dateRange: true,
+  comparisonDateRange: true,
   users: false,
   userCohorts: false,
   eventPlatforms: true,
@@ -222,6 +226,10 @@ const funnelsAnalyticsFilterFieldApplicability = {
 
 const funnelsAnalyticsFilterFields: ReadonlyArray<AnalyticsFilterField> = analyticsFilterFields
   .filter((field) => funnelsAnalyticsFilterFieldApplicability[field]);
+
+// General and Audience draw no second series a comparison range could fill.
+const userScopedAnalyticsFilterFields: ReadonlyArray<AnalyticsFilterField> = analyticsFilterFields
+  .filter((field) => field !== "comparisonDateRange");
 
 // `ai-usage` offers the date range and nothing else, and the omissions are a decision rather than
 // unfinished wiring. That area plots one dot per person from two sources at once - review events and
@@ -240,9 +248,9 @@ export const analyticsFilterFieldsByArea: Readonly<
   Record<AnalyticsArea, ReadonlyArray<AnalyticsFilterField>>
 > = {
   "level-1-metrics": levelOneMetricsAnalyticsFilterFields,
-  general: analyticsFilterFields,
+  general: userScopedAnalyticsFilterFields,
   funnels: funnelsAnalyticsFilterFields,
-  audience: analyticsFilterFields,
+  audience: userScopedAnalyticsFilterFields,
   "ai-usage": aiUsageAnalyticsFilterFields,
 };
 
@@ -251,6 +259,7 @@ export const analyticsFilterFieldsByArea: Readonly<
 // by a call site.
 const analyticsFilterFieldLabels: Readonly<Record<AnalyticsFilterField, string>> = {
   dateRange: "Date range of counted events",
+  comparisonDateRange: "Compare with",
   users: "Specific users",
   userCohorts: "New vs returning users",
   eventPlatforms: "Client platform of events",
@@ -285,6 +294,9 @@ const catalogClickAttributionExplanationTail =
 const analyticsFilterFieldExplanations: Readonly<Record<AnalyticsFilterField, string>> = {
   dateRange:
     "Counts only events whose UTC calendar day falls inside this range. Both the first and the last day are included, and the day is the UTC day rather than the reader's own.",
+  // Offered on Funnels only.
+  comparisonDateRange:
+    "An optional second entry range, empty by default. When it is set, every funnel is counted again on it with every other filter and the audience unchanged, and drawn beside the main range as series B, each series measured from its own first step.",
   users:
     "Keeps only events produced by the people you pick. The match is on the resolved actor id, so a guest and the account that guest became stay one person; picking nobody keeps every user.",
   // The on-screen sentence now carries the split rule itself, including its one exception.
@@ -469,11 +481,12 @@ export function getAnalyticsFilterFieldLabel(
 
 /**
  * Every filter cleared on the supplied range: every user, every platform, no threshold, and the
- * funnels on their default audience.
+ * funnels on their default audience with no comparison range.
  */
 export function buildDefaultAnalyticsFilterState(dateRange: AnalyticsDateRange): AnalyticsFilterState {
   return {
     dateRange,
+    comparisonDateRange: null,
     users: [],
     userCohorts: [...reviewEventCohorts],
     eventPlatforms: [...reviewEventPlatforms],
