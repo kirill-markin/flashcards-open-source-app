@@ -50,6 +50,8 @@ type DailyTotalBarChartParams = Readonly<{
   svgElement: SVGSVGElement;
   dates: ReadonlyArray<string>;
   tickDates: ReadonlyArray<string>;
+  today: string;
+  notes: ReadonlyArray<PlacedChartNote>;
   totalsByDate: ReadonlyMap<string, number>;
   peakDailyTotal: number;
   yAxisLabel: string;
@@ -68,6 +70,8 @@ export type RenderDailyFriendInvitationsChartParams = Readonly<{
   svgElement: SVGSVGElement;
   dates: ReadonlyArray<string>;
   tickDates: ReadonlyArray<string>;
+  today: string;
+  notes: ReadonlyArray<PlacedChartNote>;
   friendInvitationsByDate: ReadonlyMap<string, number>;
   peakDailyFriendInvitations: number;
   tooltipHandlers: ChartTooltipHandlers;
@@ -77,6 +81,8 @@ export type RenderDailyFriendConnectionsChartParams = Readonly<{
   svgElement: SVGSVGElement;
   dates: ReadonlyArray<string>;
   tickDates: ReadonlyArray<string>;
+  today: string;
+  notes: ReadonlyArray<PlacedChartNote>;
   friendConnectionsByDate: ReadonlyMap<string, number>;
   peakDailyFriendConnections: number;
   tooltipHandlers: ChartTooltipHandlers;
@@ -86,6 +92,8 @@ export type RenderCatalogInstallsByPackageChartParams = Readonly<{
   svgElement: SVGSVGElement;
   dates: ReadonlyArray<string>;
   tickDates: ReadonlyArray<string>;
+  today: string;
+  notes: ReadonlyArray<PlacedChartNote>;
   packageInstallsMatrix: ReadonlyArray<MatrixChartEntry>;
   packageSlugs: ReadonlyArray<string>;
   packageColorScale: PackageColorScale;
@@ -97,6 +105,22 @@ export type RenderCatalogInstallsByPackageChartParams = Readonly<{
 }>;
 
 const numberFormatter = d3.format(",");
+
+function formatDailyTitleLabel(date: string, today: string): string {
+  return `${formatDateRangeLabel(date)}${date === today ? " · in progress" : ""}`;
+}
+
+/** Call last, after every other hit target, so the notes' hover strips stay on top. */
+function markKeyedStackedInProgressDay(
+  frame: KeyedStackedBarChartFrame,
+  today: string,
+  notes: ReadonlyArray<PlacedChartNote>,
+  tooltipHandlers: ChartTooltipHandlers,
+): void {
+  frame.group.selectAll<SVGRectElement, StackedChartRectEntry>(".bar-segment")
+    .classed("bar-segment-not-final", (entry) => entry.date === today);
+  renderChartNotes(frame.group, frame.x, getInnerHeight(stackedChartHeight), notes, tooltipHandlers);
+}
 
 function getInnerWidth(): number {
   return chartWidth - chartMargin.left - chartMargin.right;
@@ -210,6 +234,7 @@ function renderDailyTotalBarChart(params: DailyTotalBarChartParams): void {
     .data(bars)
     .join("rect")
     .attr("class", "bar-segment")
+    .classed("bar-segment-not-final", (entry) => entry.date === params.today)
     .attr("fill", dailyTotalBarColor)
     .attr("x", (entry) => x(entry.date) ?? 0)
     .attr("y", (entry) => y(entry.value))
@@ -219,7 +244,7 @@ function renderDailyTotalBarChart(params: DailyTotalBarChartParams): void {
     .on("mousemove", (event, entry: DailyTotalEntry) => {
       params.tooltipHandlers.showTooltip(
         [
-          `<p class="tooltip-title">${escapeHtml(formatDateRangeLabel(entry.date))}</p>`,
+          `<p class="tooltip-title">${escapeHtml(formatDailyTitleLabel(entry.date, params.today))}</p>`,
           `<div class="tooltip-metric"><span>${escapeHtml(params.tooltipMetricLabel)}</span><strong>${numberFormatter(entry.value)}</strong></div>`,
         ].join(""),
         event.clientX,
@@ -227,6 +252,7 @@ function renderDailyTotalBarChart(params: DailyTotalBarChartParams): void {
       );
     })
     .on("mouseleave", params.tooltipHandlers.hideTooltip);
+  renderChartNotes(group, x, innerHeight, params.notes, params.tooltipHandlers);
 }
 
 export function renderDailyFriendInvitationsChart(params: RenderDailyFriendInvitationsChartParams): void {
@@ -234,6 +260,8 @@ export function renderDailyFriendInvitationsChart(params: RenderDailyFriendInvit
     svgElement: params.svgElement,
     dates: params.dates,
     tickDates: params.tickDates,
+    today: params.today,
+    notes: params.notes,
     totalsByDate: params.friendInvitationsByDate,
     peakDailyTotal: params.peakDailyFriendInvitations,
     yAxisLabel: "Invite links",
@@ -248,6 +276,8 @@ export function renderDailyFriendConnectionsChart(params: RenderDailyFriendConne
     svgElement: params.svgElement,
     dates: params.dates,
     tickDates: params.tickDates,
+    today: params.today,
+    notes: params.notes,
     totalsByDate: params.friendConnectionsByDate,
     peakDailyTotal: params.peakDailyFriendConnections,
     yAxisLabel: "Connections",
@@ -317,7 +347,7 @@ function renderKeyedStackedBarChart(params: KeyedStackedBarChartParams): KeyedSt
 // Stacked by deck rather than by person: the section answers which decks were installed, and who
 // installed them is the shared user filter's job.
 export function renderCatalogInstallsByPackageChart(params: RenderCatalogInstallsByPackageChartParams): void {
-  renderKeyedStackedBarChart({
+  const frame = renderKeyedStackedBarChart({
     svgElement: params.svgElement,
     dates: params.dates,
     tickDates: params.tickDates,
@@ -330,7 +360,7 @@ export function renderCatalogInstallsByPackageChart(params: RenderCatalogInstall
     yAxisLabel: "Installs",
     xAxisLabel: "Install date",
     formatTickLabel: formatCompactDateLabel,
-    formatTitleLabel: formatDateRangeLabel,
+    formatTitleLabel: (date) => formatDailyTitleLabel(date, params.today),
     buildTooltipMetricsHtml: (entry) => [
       `<div class="tooltip-metric"><span>Installs of this deck</span><strong>${numberFormatter(entry.value)}</strong></div>`,
       `<div class="tooltip-metric"><span>All decks on this date</span><strong>${numberFormatter(params.totalInstallsByDate.get(entry.date) ?? 0)}</strong></div>`,
@@ -338,6 +368,7 @@ export function renderCatalogInstallsByPackageChart(params: RenderCatalogInstall
     ].join(""),
     tooltipHandlers: params.tooltipHandlers,
   });
+  markKeyedStackedInProgressDay(frame, params.today, params.notes, params.tooltipHandlers);
 }
 
 export type RenderWhoSawUsChartParams = Readonly<{

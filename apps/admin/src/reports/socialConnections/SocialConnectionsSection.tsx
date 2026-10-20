@@ -3,7 +3,9 @@ import * as d3 from "d3";
 import type { ReviewEventsByDateReport } from "../../adminApi";
 import { ChartGeneratedAt } from "../../charts/ChartGeneratedAt";
 import { ChartLoadingPlaceholder } from "../../charts/ChartLoadingPlaceholder";
+import { ChartNotesKey } from "../../charts/ChartNotesKey";
 import { ChartTooltip, useChartTooltip } from "../../charts/ChartTooltip";
+import { buildInProgressChartNote, placeChartNotes } from "../../charts/chartNotes";
 import { chartWidth, createTickDates, simpleChartHeight } from "../../charts/chartPrimitives";
 import {
   renderDailyFriendConnectionsChart,
@@ -11,6 +13,7 @@ import {
 } from "../../charts/chartRenderers";
 import { ExplanationTip } from "../../explanations/ExplanationTip";
 import { getLatestGeneralReport, type GeneralReportView } from "../generalReportView";
+import { todayUtcCalendarDate } from "../reportValues";
 
 type SocialConnectionsChartModel = Readonly<{
   dates: ReadonlyArray<string>;
@@ -56,9 +59,14 @@ export function SocialConnectionsSection(
     () => readyReport === null ? null : buildSocialConnectionsChartModel(readyReport),
     [readyReport],
   );
+  const today = todayUtcCalendarDate(new Date());
+  const chartNotes = useMemo(() => chartModel === null ? null : placeChartNotes(
+    [buildInProgressChartNote(today)],
+    chartModel.dates.map((date) => ({ key: date, from: date, to: date })),
+  ), [chartModel, today]);
 
   useEffect(() => {
-    if (chartModel === null) {
+    if (chartModel === null || chartNotes === null) {
       tooltipHandlers.hideTooltip();
       return;
     }
@@ -73,6 +81,8 @@ export function SocialConnectionsSection(
       svgElement: friendInvitationsSvgElement,
       dates: chartModel.dates,
       tickDates: chartModel.tickDates,
+      today,
+      notes: chartNotes,
       friendInvitationsByDate: chartModel.friendInvitationsByDate,
       peakDailyFriendInvitations: chartModel.peakDailyFriendInvitations,
       tooltipHandlers,
@@ -81,11 +91,13 @@ export function SocialConnectionsSection(
       svgElement: friendConnectionsSvgElement,
       dates: chartModel.dates,
       tickDates: chartModel.tickDates,
+      today,
+      notes: chartNotes,
       friendConnectionsByDate: chartModel.friendConnectionsByDate,
       peakDailyFriendConnections: chartModel.peakDailyFriendConnections,
       tooltipHandlers,
     });
-  }, [chartModel, tooltipHandlers]);
+  }, [chartModel, chartNotes, today, tooltipHandlers]);
 
   return (
     <section className="dashboard-section">
@@ -124,6 +136,7 @@ export function SocialConnectionsSection(
               <ChartLoadingPlaceholder viewBoxWidth={chartWidth} viewBoxHeight={simpleChartHeight} label="Loading…" />
             ) : <svg ref={friendInvitationsChartRef} />}
           </div>
+          <ChartNotesKey notes={chartNotes} />
         </div>
 
         <div className="chart-shell">
@@ -135,6 +148,7 @@ export function SocialConnectionsSection(
               <ChartLoadingPlaceholder viewBoxWidth={chartWidth} viewBoxHeight={simpleChartHeight} label="Loading…" />
             ) : <svg ref={friendConnectionsChartRef} />}
           </div>
+          <ChartNotesKey notes={chartNotes} />
         </div>
       </section>
 

@@ -3,7 +3,9 @@ import * as d3 from "d3";
 import type { CatalogInstallsReport } from "../../adminApi";
 import { ChartGeneratedAt } from "../../charts/ChartGeneratedAt";
 import { ChartLoadingPlaceholder } from "../../charts/ChartLoadingPlaceholder";
+import { ChartNotesKey } from "../../charts/ChartNotesKey";
 import { ChartTooltip, useChartTooltip } from "../../charts/ChartTooltip";
+import { buildInProgressChartNote, placeChartNotes } from "../../charts/chartNotes";
 import {
   chartWidth,
   createTickDates,
@@ -14,7 +16,7 @@ import {
 import { renderCatalogInstallsByPackageChart } from "../../charts/chartRenderers";
 import { ExplanationTip } from "../../explanations/ExplanationTip";
 import { getLatestGeneralReport, type GeneralReportView } from "../generalReportView";
-import { buildRequestedDateRange } from "../reportValues";
+import { buildRequestedDateRange, todayUtcCalendarDate } from "../reportValues";
 import { catalogInstallsReportLabel } from "./query";
 
 type CatalogInstallsChartModel = Readonly<{
@@ -107,9 +109,14 @@ export function CatalogInstallsSection(
   );
   const readyReport = props.filteredReport.status === "ready" ? props.filteredReport.report : null;
   const readyChartModel = readyReport === null ? null : chartModel;
+  const today = todayUtcCalendarDate(new Date());
+  const chartNotes = useMemo(() => readyChartModel === null ? null : placeChartNotes(
+    [buildInProgressChartNote(today)],
+    readyChartModel.dates.map((date) => ({ key: date, from: date, to: date })),
+  ), [readyChartModel, today]);
 
   useEffect(() => {
-    if (readyChartModel === null) {
+    if (readyChartModel === null || chartNotes === null) {
       tooltipHandlers.hideTooltip();
       return;
     }
@@ -123,6 +130,8 @@ export function CatalogInstallsSection(
       svgElement: packageInstallsSvgElement,
       dates: readyChartModel.dates,
       tickDates: readyChartModel.tickDates,
+      today,
+      notes: chartNotes,
       packageInstallsMatrix: readyChartModel.packageInstallsMatrix,
       packageSlugs: readyChartModel.packageSlugs,
       packageColorScale: props.packageColorScale,
@@ -131,7 +140,7 @@ export function CatalogInstallsSection(
       peakDailyInstalls: readyChartModel.peakDailyInstalls,
       tooltipHandlers,
     });
-  }, [readyChartModel, props.packageColorScale, tooltipHandlers]);
+  }, [readyChartModel, chartNotes, today, props.packageColorScale, tooltipHandlers]);
 
   return (
     <section className="dashboard-section">
@@ -189,6 +198,7 @@ export function CatalogInstallsSection(
               <ChartLoadingPlaceholder viewBoxWidth={chartWidth} viewBoxHeight={stackedChartHeight} label="Loading…" />
             ) : <svg ref={packageInstallsChartRef} />}
           </div>
+          <ChartNotesKey notes={chartNotes} />
         </div>
       </section>
 
