@@ -911,6 +911,9 @@ const mrCatalog: TranslationCatalog = {
     previewRemoveTagLabel: "{{tag}} काढा ({{count}})",
   },
   catalogImport: {
+    existingCopyNotice: "{{title}} या कार्यक्षेत्रात आधीपासून आहे ({{count}}). तुमची अभ्यासाची प्रगती जतन केली जाईल.",
+    studyExistingCards: "विद्यमान कार्डांचा अभ्यास करा",
+    importAnotherCopy: "आणखी एक प्रत आयात करा",
     title: "कॅटलॉगमधून संच आयात करा",
     loading: "कॅटलॉग संच लोड करत आहे...",
     packageSummary: "{{title}} — {{count}}",

@@ -101,6 +101,7 @@ export {
 } from "./api/endpoints/workspacePackageImport";
 export {
   confirmCatalogPackageInstall,
+  loadCatalogPackageInstallContext,
   loadPublicCatalogPackageVersion,
   previewCatalogPackageInstall,
 } from "./api/endpoints/catalog";

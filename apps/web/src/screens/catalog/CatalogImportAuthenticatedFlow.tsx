@@ -1,4 +1,5 @@
 import { Fragment, useCallback, useEffect, useRef, useState, type ReactElement } from "react";
+import { useNavigate } from "react-router";
 import {
   createCatalogInstallReportScope,
   reportCatalogInstallFailure,
@@ -17,6 +18,7 @@ import {
   previewCatalogPackageInstall,
 } from "../../api";
 import { useAppData } from "../../appData";
+import { storeSelectedReviewFilterForWorkspace } from "../../appData/context/reviewFilterPersistence";
 import { PublicGuestAppDataProvider } from "../settings/account/guest/GuestConversionGate";
 import { requireCloudInstallationId } from "../../appData/sync/local/syncCloudSettings";
 import { getSyncFailureObservationCaptureState } from "../../appData/sync/observation/syncErrorObservation";
@@ -32,6 +34,7 @@ import { buildWorkspaceRoute, reviewRoute } from "../../routes";
 import type {
   CatalogPackageInstallConfirmOptions,
   CatalogPackageInstallPreviewResponse,
+  ReviewFilter,
 } from "../../types";
 import type {
   WorkspaceImportOptions,
@@ -46,6 +49,10 @@ import {
   isCatalogVersionUnavailableError,
   type CatalogImportContext,
 } from "./catalogImportShared";
+import {
+  useCatalogPackageInstallContext,
+  type CatalogPackageInstallContextLoader,
+} from "./useCatalogPackageInstallContext";
 
 type CatalogImportStep = "workspace" | "confirm" | "done";
 
@@ -85,7 +92,7 @@ function isSameCatalogWorkspaceIdentity(
 
 function createInitialImportOptions(): WorkspaceImportOptions {
   return {
-    addImportTag: true,
+    addImportTag: false,
     importTag: "",
     removeTags: [],
   };
@@ -303,8 +310,12 @@ function CatalogImportSyncStatus(props: Readonly<{
   );
 }
 
-function CatalogImportAuthenticatedContent(props: Readonly<{ catalogContext: CatalogImportContext }>): ReactElement {
-  const { catalogContext } = props;
+function CatalogImportAuthenticatedContent(props: Readonly<{
+  catalogContext: CatalogImportContext;
+  installContextLoader?: CatalogPackageInstallContextLoader;
+}>): ReactElement {
+  const { catalogContext, installContextLoader } = props;
+  const navigate = useNavigate();
   const {
     activeWorkspace,
     availableWorkspaces,
@@ -314,11 +325,22 @@ function CatalogImportAuthenticatedContent(props: Readonly<{ catalogContext: Cat
     initialize,
     isChoosingWorkspace,
     isSessionVerified,
+    openReview,
     refreshLocalData,
     session,
     sessionErrorMessage,
     sessionLoadState,
   } = useAppData();
+  const localInstallContextLoader = useCatalogPackageInstallContext(
+    catalogContext.packageVersionId,
+    installContextLoader === undefined
+      && (sessionLoadState === "ready" || sessionLoadState === "selecting_workspace")
+      && isSessionVerified
+      ? session?.userId ?? null
+      : null,
+  );
+  const resolvedInstallContextLoader = installContextLoader ?? localInstallContextLoader;
+  const installContextState = resolvedInstallContextLoader.state;
   const { indexedDbOpenRecoveryState, showCapturedTechnicalError } = useAppErrorDialog();
   const { messages, t, formatCount, formatNumber } = useI18n();
   const isWorkspaceChoiceAvailable = availableWorkspaces.filter((workspace) => workspace.isVisible !== false).length > 1;
@@ -333,6 +355,7 @@ function CatalogImportAuthenticatedContent(props: Readonly<{ catalogContext: Cat
   const [isWorkspaceSelectionPending, setIsWorkspaceSelectionPending] = useState<boolean>(false);
   const [isPreviewing, setIsPreviewing] = useState<boolean>(false);
   const [isInstalling, setIsInstalling] = useState<boolean>(false);
+  const [isStudyingExisting, setIsStudyingExisting] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string>("");
   // Held for this mount so one preview load is reported once, and so a later visit to the same deck
   // in this tab reports its own.
@@ -343,6 +366,7 @@ function CatalogImportAuthenticatedContent(props: Readonly<{ catalogContext: Cat
   const activePreviewRequestRef = useRef<number | null>(null);
   const activeInstallRequestRef = useRef<number | null>(null);
   const activeSyncRequestRef = useRef<number | null>(null);
+  const activeStudyRequestRef = useRef<number | null>(null);
   const workspaceSelectionInFlightRef = useRef<boolean>(false);
   const pendingWorkspaceSelectionRef = useRef<string | null>(null);
   const hasLeftInitialStepRef = useRef<boolean>(false);
@@ -371,7 +395,18 @@ function CatalogImportAuthenticatedContent(props: Readonly<{ catalogContext: Cat
     && isSessionVerified
     && workspaceIdentity !== null
     && !isWorkspaceSelectionBusy;
-  const isImportBusy = isPreviewing || isInstalling || syncState.status === "syncing";
+  const selectedWorkspaceContext = installContextState.status === "ready"
+    ? installContextState.context.workspaces.find((workspace) => workspace.workspaceId === workspaceId) ?? null
+    : null;
+  const previousInstall = selectedWorkspaceContext?.previousInstall ?? null;
+  const isImportContextReady = selectedWorkspaceContext !== null;
+  const isImportContextLoading = installContextState.status === "idle" || installContextState.status === "loading";
+  const importContextErrorMessage = installContextState.status === "error"
+    ? getCatalogImportErrorMessage(installContextState.error)
+    : installContextState.status === "ready" && selectedWorkspaceContext === null
+      ? t("catalogImport.workspaceUnavailable")
+      : "";
+  const isImportBusy = isPreviewing || isInstalling || isStudyingExisting || syncState.status === "syncing";
   const isPreviewCurrent = preview !== null
     && previewIdentity !== null
     && isImportAvailable
@@ -623,6 +658,7 @@ function CatalogImportAuthenticatedContent(props: Readonly<{ catalogContext: Cat
     activePreviewRequestRef.current = null;
     activeInstallRequestRef.current = null;
     activeSyncRequestRef.current = null;
+    activeStudyRequestRef.current = null;
     installAttemptRef.current = null;
     setPreview(null);
     setPreviewIdentity(null);
@@ -631,6 +667,7 @@ function CatalogImportAuthenticatedContent(props: Readonly<{ catalogContext: Cat
     setSyncState({ status: "idle" });
     setIsPreviewing(false);
     setIsInstalling(false);
+    setIsStudyingExisting(false);
     setErrorMessage("");
   }, [isImportAvailable, workspaceIdentityKey]);
 
@@ -691,6 +728,55 @@ function CatalogImportAuthenticatedContent(props: Readonly<{ catalogContext: Cat
     }
   }
 
+  async function studyExistingCards(): Promise<void> {
+    const identity = workspaceIdentityRef.current;
+    if (identity === null || previousInstall === null || !isImportAvailable || isImportBusy
+      || areImportOptionsLocked || workspaceSelectionInFlightRef.current
+      || activePreviewRequestRef.current !== null || activeInstallRequestRef.current !== null
+      || activeSyncRequestRef.current !== null || activeStudyRequestRef.current !== null) {
+      return;
+    }
+    const requestGeneration = syncRequestGenerationRef.current + 1;
+    syncRequestGenerationRef.current = requestGeneration;
+    activeStudyRequestRef.current = requestGeneration;
+    setIsStudyingExisting(true);
+    setErrorMessage("");
+    try {
+      indexedDbOpenRecoveryState.throwIfFailed();
+      await refreshLocalData();
+      indexedDbOpenRecoveryState.throwIfFailed();
+      if (activeStudyRequestRef.current !== requestGeneration
+        || !isSameCatalogWorkspaceIdentity(workspaceIdentityRef.current, identity)) {
+        return;
+      }
+      const reviewFilter: ReviewFilter = {
+        kind: "catalogImport",
+        importId: previousInstall.installId,
+        title: previousInstall.title,
+      };
+      storeSelectedReviewFilterForWorkspace(identity.workspaceId, reviewFilter);
+      openReview(reviewFilter);
+      navigate(buildWorkspaceRoute(identity.workspaceId, reviewRoute));
+    } catch (error) {
+      if (markIndexedDbOpenRecoveryFailureAndCheckActive(indexedDbOpenRecoveryState, error)
+        || activeStudyRequestRef.current !== requestGeneration
+        || !isSameCatalogWorkspaceIdentity(workspaceIdentityRef.current, identity)
+        || isAuthRedirectError(error)) {
+        return;
+      }
+      const wasCaptured = captureCatalogImportError(error, identity);
+      if (wasCaptured) {
+        showCapturedTechnicalError(error);
+      }
+      setErrorMessage(wasCaptured ? technicalErrorMessage : getCatalogImportErrorMessage(error));
+    } finally {
+      if (activeStudyRequestRef.current === requestGeneration) {
+        activeStudyRequestRef.current = null;
+        setIsStudyingExisting(false);
+      }
+    }
+  }
+
   async function confirmInstall(importOptions: WorkspaceImportOptions): Promise<void> {
     if (indexedDbOpenRecoveryState.hasFailed()) {
       return;
@@ -715,7 +801,7 @@ function CatalogImportAuthenticatedContent(props: Readonly<{ catalogContext: Cat
     ) {
       return;
     }
-    if (!isPreviewCurrent) {
+    if (!isPreviewCurrent || !isImportContextReady || activeStudyRequestRef.current !== null) {
       setErrorMessage(t("catalogImport.previewRequired"));
       return;
     }
@@ -981,7 +1067,7 @@ function CatalogImportAuthenticatedContent(props: Readonly<{ catalogContext: Cat
             importTagDescription: t("workspaceImport.importTagDescription"),
             importTagValueLabel: t("workspaceImport.importTagValueLabel"),
             tagsTitle: t("workspaceImport.previewTagsTitle"),
-            confirmActionLabel: t("catalogImport.confirm"),
+            confirmActionLabel: previousInstall === null ? t("catalogImport.confirm") : t("catalogImport.importAnotherCopy"),
             confirmingActionLabel: t("catalogImport.installing"),
             retryPreviewLabel: t("common.retry"),
           }}
@@ -989,14 +1075,27 @@ function CatalogImportAuthenticatedContent(props: Readonly<{ catalogContext: Cat
           preview={previewModel}
           options={options}
           isControlDisabled={!isImportAvailable || isImportBusy || areImportOptionsLocked}
-          isPreviewLoading={isPreviewing}
-          canConfirm={isPreviewCurrent && !isImportBusy && !isWorkspaceSelectionBusy}
+          isPreviewLoading={isPreviewing || isImportContextLoading}
+          canConfirm={isPreviewCurrent && isImportContextReady && !isImportBusy && !isWorkspaceSelectionBusy}
           isConfirming={isInstalling}
           unavailableMessage={isImportAvailable ? null : t("catalogImport.workspaceUnavailable")}
-          errorMessage={errorMessage}
+          errorMessage={errorMessage || importContextErrorMessage}
+          existingCopy={previousInstall === null ? null : {
+            notice: t("catalogImport.existingCopyNotice", {
+              title: previousInstall.title,
+              count: formatCount(previousInstall.retainedCardCount, messages.common.countLabels.card),
+            }),
+            actionLabel: t("catalogImport.studyExistingCards"),
+            loadingLabel: t("common.loading"),
+            isLoading: isStudyingExisting,
+            isDisabled: !isImportAvailable || isImportBusy || areImportOptionsLocked,
+            onStudy: () => void studyExistingCards(),
+          }}
           onOptionsChange={setOptions}
           onConfirm={(nextOptions) => void confirmInstall(nextOptions)}
-          onRetryPreview={canRetryPreview ? () => void refreshPreview() : null}
+          onRetryPreview={importContextErrorMessage !== ""
+            ? resolvedInstallContextLoader.retry
+            : canRetryPreview ? () => void refreshPreview() : null}
         />
       ) : null}
       {step === "done" && completion !== null ? (
@@ -1025,11 +1124,14 @@ function CatalogImportAuthenticatedContent(props: Readonly<{ catalogContext: Cat
   );
 }
 
-export function CatalogImportAuthenticatedFlow(props: Readonly<{ catalogContext: CatalogImportContext }>): ReactElement {
-  const { catalogContext } = props;
+export function CatalogImportAuthenticatedFlow(props: Readonly<{
+  catalogContext: CatalogImportContext;
+  installContextLoader?: CatalogPackageInstallContextLoader;
+}>): ReactElement {
+  const { catalogContext, installContextLoader } = props;
   return (
     <PublicGuestAppDataProvider>
-      <CatalogImportAuthenticatedContent catalogContext={catalogContext} />
+      <CatalogImportAuthenticatedContent catalogContext={catalogContext} installContextLoader={installContextLoader} />
     </PublicGuestAppDataProvider>
   );
 }

@@ -910,6 +910,9 @@ const enCatalog = {
     previewRemoveTagLabel: "Remove {{tag}} ({{count}})",
   },
   catalogImport: {
+    existingCopyNotice: "{{title}} is already in this workspace ({{count}}). Your study progress is preserved.",
+    studyExistingCards: "Study existing cards",
+    importAnotherCopy: "Import another copy",
     title: "Import deck from catalog",
     loading: "Loading catalog deck...",
     packageSummary: "{{title}} — {{count}}",

@@ -30,6 +30,14 @@ type CatalogImportConfirmPanelProps = Readonly<{
   isConfirming: boolean;
   unavailableMessage: string | null;
   errorMessage: string;
+  existingCopy: Readonly<{
+    notice: string;
+    actionLabel: string;
+    loadingLabel: string;
+    isLoading: boolean;
+    isDisabled: boolean;
+    onStudy: () => void;
+  }> | null;
   onOptionsChange: (options: WorkspaceImportOptions) => void;
   onConfirm: (options: WorkspaceImportOptions) => void;
   onRetryPreview: (() => void) | null;
@@ -182,6 +190,7 @@ export function CatalogImportConfirmPanel(props: CatalogImportConfirmPanelProps)
     isConfirming,
     unavailableMessage,
     errorMessage,
+    existingCopy,
     onOptionsChange,
     onConfirm,
     onRetryPreview,
@@ -195,8 +204,11 @@ export function CatalogImportConfirmPanel(props: CatalogImportConfirmPanelProps)
         <span className="catalog-import-target-label">{copy.workspaceLabel}</span>
         <strong data-testid="catalog-import-workspace-name">{workspaceName}</strong>
       </p>
+      {existingCopy === null ? null : (
+        <p className="subtitle" data-testid="catalog-import-existing-copy-notice">{existingCopy.notice}</p>
+      )}
       {preview === null ? null : <CatalogImportPreviewSummary preview={preview} />}
-      {preview === null && isPreviewLoading ? (
+      {isPreviewLoading ? (
         <p className="subtitle" aria-live="polite" data-testid="catalog-import-preview-loading">
           {copy.previewLoadingLabel}
         </p>
@@ -209,8 +221,20 @@ export function CatalogImportConfirmPanel(props: CatalogImportConfirmPanelProps)
         onOptionsChange={onOptionsChange}
       />
       <div className="catalog-import-actions">
+        {existingCopy === null ? null : (
+          <button
+            className="primary-btn"
+            type="button"
+            disabled={existingCopy.isDisabled}
+            aria-busy={existingCopy.isLoading}
+            data-testid="catalog-import-study-existing"
+            onClick={existingCopy.onStudy}
+          >
+            {existingCopy.isLoading ? existingCopy.loadingLabel : existingCopy.actionLabel}
+          </button>
+        )}
         <button
-          className="primary-btn"
+          className={existingCopy === null ? "primary-btn" : "ghost-btn"}
           type="button"
           disabled={!canConfirm}
           data-testid="workspace-package-import-confirm-button"

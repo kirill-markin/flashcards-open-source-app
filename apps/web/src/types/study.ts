@@ -232,6 +232,11 @@ export type ReviewFilter =
   | Readonly<{
     kind: "tags";
     tags: ReadonlyArray<string>;
+  }>
+  | Readonly<{
+    kind: "catalogImport";
+    importId: string;
+    title: string;
   }>;
 
 export type ReviewEvent = Readonly<{

@@ -920,6 +920,9 @@ const plCatalog: TranslationCatalog = {
     previewRemoveTagLabel: "Usuń {{tag}} ({{count}})",
   },
   catalogImport: {
+    existingCopyNotice: "{{title}} jest już w tym obszarze roboczym ({{count}}). Twoje postępy w nauce zostaną zachowane.",
+    studyExistingCards: "Ucz się z istniejących kart",
+    importAnotherCopy: "Importuj kolejną kopię",
     title: "Importuj talię z katalogu",
     loading: "Ładowanie talii z katalogu...",
     packageSummary: "{{title}} — {{count}}",

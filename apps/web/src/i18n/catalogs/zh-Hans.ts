@@ -911,6 +911,9 @@ export const zhHansCatalog = {
     previewRemoveTagLabel: "移除 {{tag}}（{{count}}）",
   },
   catalogImport: {
+    existingCopyNotice: "此工作区已包含 {{title}}（{{count}}）。学习进度将保留。",
+    studyExistingCards: "学习现有卡片",
+    importAnotherCopy: "导入另一份副本",
     title: "从目录导入牌组",
     loading: "正在加载目录牌组...",
     packageSummary: "{{title}} — {{count}}",

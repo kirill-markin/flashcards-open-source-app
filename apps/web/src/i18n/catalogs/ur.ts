@@ -911,6 +911,9 @@ const urCatalog: TranslationCatalog = {
     previewRemoveTagLabel: "{{tag}} ہٹائیں ({{count}})",
   },
   catalogImport: {
+    existingCopyNotice: "{{title}} اس ورک اسپیس میں پہلے سے موجود ہے ({{count}})۔ آپ کی پڑھائی کی پیش رفت محفوظ رہے گی۔",
+    studyExistingCards: "موجودہ کارڈز پڑھیں",
+    importAnotherCopy: "ایک اور کاپی درآمد کریں",
     title: "کیٹلاگ سے ڈیک درآمد کریں",
     loading: "کیٹلاگ کا ڈیک لوڈ ہو رہا ہے...",
     packageSummary: "{{title}} — {{count}}",

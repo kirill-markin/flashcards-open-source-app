@@ -911,6 +911,9 @@ const fiCatalog: TranslationCatalog = {
     previewRemoveTagLabel: "Poista tunniste {{tag}} ({{count}})",
   },
   catalogImport: {
+    existingCopyNotice: "{{title}} on jo tässä työtilassa ({{count}}). Opiskelusi edistyminen säilyy.",
+    studyExistingCards: "Opiskele olemassa olevia kortteja",
+    importAnotherCopy: "Tuo toinen kopio",
     title: "Tuo pakka katalogista",
     loading: "Ladataan katalogin pakkaa...",
     packageSummary: "{{title}} — {{count}}",

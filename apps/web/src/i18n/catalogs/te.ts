@@ -911,6 +911,9 @@ const teCatalog: TranslationCatalog = {
     previewRemoveTagLabel: "{{tag}} తీసివేయి ({{count}})",
   },
   catalogImport: {
+    existingCopyNotice: "{{title}} ఇప్పటికే ఈ వర్క్‌స్పేస్‌లో ఉంది ({{count}}). మీ అధ్యయన పురోగతి భద్రపరచబడుతుంది.",
+    studyExistingCards: "ఇప్పటికే ఉన్న కార్డులను చదవండి",
+    importAnotherCopy: "మరొక ప్రతిని దిగుమతి చేయండి",
     title: "కేటలాగ్ నుంచి డెక్‌ను దిగుమతి చేయి",
     loading: "కేటలాగ్ డెక్ లోడ్ అవుతోంది...",
     packageSummary: "{{title}} — {{count}}",

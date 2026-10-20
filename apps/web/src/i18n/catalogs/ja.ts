@@ -911,6 +911,9 @@ export const jaCatalog = {
     previewRemoveTagLabel: "{{tag}} を削除 ({{count}})",
   },
   catalogImport: {
+    existingCopyNotice: "{{title}} はこのワークスペースにすでにあります（{{count}}）。学習の進捗は保持されます。",
+    studyExistingCards: "既存のカードを学習",
+    importAnotherCopy: "別のコピーをインポート",
     title: "カタログからデッキをインポート",
     loading: "カタログのデッキを読み込んでいます...",
     packageSummary: "{{title}} — {{count}}",

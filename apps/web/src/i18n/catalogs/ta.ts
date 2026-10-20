@@ -911,6 +911,9 @@ const taCatalog: TranslationCatalog = {
     previewRemoveTagLabel: "{{tag}} அகற்று ({{count}})",
   },
   catalogImport: {
+    existingCopyNotice: "{{title}} ஏற்கனவே இந்தப் பணியிடத்தில் உள்ளது ({{count}}). உங்கள் கற்றல் முன்னேற்றம் பாதுகாக்கப்படும்.",
+    studyExistingCards: "ஏற்கனவே உள்ள அட்டைகளைப் படிக்கவும்",
+    importAnotherCopy: "மற்றொரு நகலை இறக்குமதி செய்யவும்",
     title: "பட்டியலிலிருந்து தொகுப்பை இறக்குமதி செய்",
     loading: "பட்டியல் தொகுப்பை ஏற்றுகிறது...",
     packageSummary: "{{title}} — {{count}}",

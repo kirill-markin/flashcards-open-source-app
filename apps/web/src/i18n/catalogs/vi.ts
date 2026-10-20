@@ -911,6 +911,9 @@ const viCatalog: TranslationCatalog = {
     previewRemoveTagLabel: "Xóa {{tag}} ({{count}})",
   },
   catalogImport: {
+    existingCopyNotice: "{{title}} đã có trong không gian làm việc này ({{count}}). Tiến độ học của bạn được giữ nguyên.",
+    studyExistingCards: "Học các thẻ hiện có",
+    importAnotherCopy: "Nhập thêm một bản sao",
     title: "Nhập bộ thẻ từ danh mục",
     loading: "Đang tải bộ thẻ từ danh mục...",
     packageSummary: "{{title}} — {{count}}",

@@ -911,6 +911,9 @@ const bgCatalog: TranslationCatalog = {
     previewRemoveTagLabel: "Премахване на {{tag}} ({{count}})",
   },
   catalogImport: {
+    existingCopyNotice: "{{title}} вече е в това работно пространство ({{count}}). Напредъкът ви се запазва.",
+    studyExistingCards: "Учене със съществуващите карти",
+    importAnotherCopy: "Импортиране на друго копие",
     title: "Импортиране на тесте от каталога",
     loading: "Зареждане на тестето от каталога...",
     packageSummary: "{{title}} — {{count}}",

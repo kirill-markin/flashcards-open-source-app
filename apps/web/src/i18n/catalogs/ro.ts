@@ -920,6 +920,9 @@ const roCatalog: TranslationCatalog = {
     previewRemoveTagLabel: "Elimină {{tag}} ({{count}})",
   },
   catalogImport: {
+    existingCopyNotice: "{{title}} există deja în acest spațiu de lucru ({{count}}). Progresul tău este păstrat.",
+    studyExistingCards: "Studiază fișele existente",
+    importAnotherCopy: "Importă încă o copie",
     title: "Importă un pachet din catalog",
     loading: "Se încarcă pachetul din catalog...",
     packageSummary: "{{title}} — {{count}}",

@@ -911,6 +911,9 @@ const faCatalog: TranslationCatalog = {
     previewRemoveTagLabel: "حذف {{tag}} ({{count}})",
   },
   catalogImport: {
+    existingCopyNotice: "{{title}} از قبل در این فضای کاری وجود دارد ({{count}}). پیشرفت یادگیری شما حفظ می‌شود.",
+    studyExistingCards: "مطالعهٔ کارت‌های موجود",
+    importAnotherCopy: "وارد کردن یک نسخهٔ دیگر",
     title: "درون‌ریزی دسته از فهرست",
     loading: "در حال بارگیری دستهٔ فهرست...",
     packageSummary: "{{title}} — {{count}}",

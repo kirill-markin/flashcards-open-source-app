@@ -911,6 +911,9 @@ const knCatalog: TranslationCatalog = {
     previewRemoveTagLabel: "{{tag}} ತೆಗೆದುಹಾಕಿ ({{count}})",
   },
   catalogImport: {
+    existingCopyNotice: "{{title}} ಈಗಾಗಲೇ ಈ ಕಾರ್ಯಕ್ಷೇತ್ರದಲ್ಲಿದೆ ({{count}}). ನಿಮ್ಮ ಕಲಿಕೆಯ ಪ್ರಗತಿಯನ್ನು ಉಳಿಸಲಾಗುತ್ತದೆ.",
+    studyExistingCards: "ಈಗಿರುವ ಕಾರ್ಡ್‌ಗಳನ್ನು ಅಧ್ಯಯನ ಮಾಡಿ",
+    importAnotherCopy: "ಮತ್ತೊಂದು ಪ್ರತಿಯನ್ನು ಆಮದು ಮಾಡಿ",
     title: "ಕ್ಯಾಟಲಾಗ್‌ನಿಂದ ಡೆಕ್ ಆಮದು ಮಾಡಿ",
     loading: "ಕ್ಯಾಟಲಾಗ್ ಡೆಕ್ ಲೋಡ್ ಆಗುತ್ತಿದೆ...",
     packageSummary: "{{title}} — {{count}}",

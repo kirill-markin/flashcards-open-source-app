@@ -911,6 +911,9 @@ const koCatalog: TranslationCatalog = {
     previewRemoveTagLabel: "{{tag}} 제거 ({{count}})",
   },
   catalogImport: {
+    existingCopyNotice: "{{title}}이(가) 이 워크스페이스에 이미 있습니다({{count}}). 학습 진도는 유지됩니다.",
+    studyExistingCards: "기존 카드 학습",
+    importAnotherCopy: "다른 사본 가져오기",
     title: "카탈로그에서 덱 가져오기",
     loading: "카탈로그 덱을 불러오는 중...",
     packageSummary: "{{title}} — {{count}}",
