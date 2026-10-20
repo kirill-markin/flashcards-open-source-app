@@ -1490,13 +1490,21 @@ h2 {
 }
 
 .platform-key-placeholder,
-.chart-generated-at-placeholder {
+.chart-generated-at-placeholder,
+.chart-notes-key-placeholder {
   visibility: hidden;
 }
 
 .chart-scroll {
   overflow-x: auto;
   padding: 8px 8px 16px;
+}
+
+.chart-notes-key {
+  margin: 0;
+  padding: 0 18px 16px;
+  color: var(--muted);
+  font-size: 13px;
 }
 
 /* Sized by an inline `aspect-ratio` equal to the chart's viewBox, the ratio its full-width `<svg>`
@@ -1559,6 +1567,10 @@ h2 {
 
 .level-1-metrics-grid .chart-scroll {
   padding: 8px 12px 16px;
+}
+
+.level-1-metrics-grid .chart-notes-key {
+  padding: 0 20px 16px;
 }
 
 .level-1-metrics-grid .activity-chart-table {
@@ -1651,10 +1663,16 @@ h2 {
   color: var(--muted);
 }
 
-.activity-chart-hit:focus {
+.activity-chart-hit:focus,
+.chart-note-hit:focus {
   outline: none;
   stroke: var(--text);
   stroke-width: 2;
+}
+
+.chart-note-tag,
+.chart-note-hit {
+  cursor: help;
 }
 
 .activity-coverage-note {

@@ -1,5 +1,6 @@
 import * as d3 from "d3";
 import { chartMargin, stackedChartHeight, type ChartTooltipHandlers } from "./chartPrimitives";
+import { renderChartNotes, type PlacedChartNote } from "./chartNotes";
 import { renderMeaningfulActivityFrame, renderMeaningfulActivityHitTargets } from "./meaningfulActivityFrame";
 
 type RatePoint = Readonly<{ key: string; rate: number | null }>;
@@ -12,9 +13,7 @@ export function renderRateLineChart(params: Readonly<{
   color: string;
   yLabel: string;
   xLabel: string;
-  /** The bar a dashed vertical line marks at its left edge, with `markerLabel`; null draws no marker. */
-  markerKey: string | null;
-  markerLabel: string;
+  notes: ReadonlyArray<PlacedChartNote>;
   formatTick: (key: string) => string;
   getLabel: (key: string) => string;
   getTooltipHtml: (key: string) => string;
@@ -34,14 +33,6 @@ export function renderRateLineChart(params: Readonly<{
     .attr("stroke", params.color).attr("stroke-width", 3).attr("d", line);
   frame.group.append("g").selectAll("circle").data(points.filter((point) => point.rate !== null)).join("circle")
     .attr("fill", params.color).attr("r", 5).attr("cx", getX).attr("cy", getY);
-  const markerX = params.markerKey === null ? undefined : frame.x(params.markerKey);
-  if (markerX !== undefined) {
-    // The label sits on the side with more room, so it stays inside the plot near either edge.
-    const isRightHalf = markerX > frame.x.range()[1] / 2;
-    frame.group.append("line").attr("x1", markerX).attr("x2", markerX)
-      .attr("y1", 0).attr("y2", frame.innerHeight).attr("stroke", "currentColor").attr("stroke-dasharray", "6 4");
-    frame.group.append("text").attr("x", isRightHalf ? markerX - 6 : markerX + 6).attr("y", -10)
-      .attr("text-anchor", isRightHalf ? "end" : "start").attr("fill", "currentColor").text(params.markerLabel);
-  }
   renderMeaningfulActivityHitTargets(frame, params.keys, params.getLabel, params.getTooltipHtml, params.tooltipHandlers);
+  renderChartNotes(frame.group, frame.x, frame.innerHeight, params.notes, params.tooltipHandlers);
 }

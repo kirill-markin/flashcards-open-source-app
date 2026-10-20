@@ -3,7 +3,9 @@ import * as d3 from "d3";
 import { ChartAreaWithNote } from "../../charts/ChartAreaWithNote";
 import { UniqueUserCohortKey } from "../../charts/ChartLegends";
 import { ChartLoadingPlaceholder } from "../../charts/ChartLoadingPlaceholder";
+import { ChartNotesKey } from "../../charts/ChartNotesKey";
 import { ChartTooltip, useChartTooltip } from "../../charts/ChartTooltip";
+import { buildInProgressChartNote, placeChartNotes } from "../../charts/chartNotes";
 import { chartWidth, stackedChartHeight } from "../../charts/chartPrimitives";
 import { renderDailyNewReturningChart } from "../../charts/dailyNewReturningChart";
 import { escapeHtml, formatGeneratedAt } from "../../charts/formatting";
@@ -79,8 +81,11 @@ export function DailyNewReturningSection(props: Readonly<{
     return () => { cancelled = true; abortController.abort(); };
   }, [props.config, props.source, props.dateRange, props.period, props.onTerminalAdminError, props.title, reportLabel, revision, tooltipHandlers]);
   const bucketsByKey = useMemo(() => new Map(state.status === "ready" ? state.report.buckets.map((entry) => [entry.bucket.key, entry]) : []), [state]);
+  const chartNotes = useMemo(() => (state.status === "ready"
+    ? placeChartNotes([buildInProgressChartNote(state.report.today)], state.report.buckets.map((entry) => entry.bucket))
+    : null), [state]);
   useEffect(() => {
-    if (chartRef.current === null || state.status !== "ready") return;
+    if (chartRef.current === null || state.status !== "ready" || chartNotes === null) return;
     const getBucket = (key: string): NewReturningBucket => {
       const entry = bucketsByKey.get(key);
       if (entry === undefined) throw new Error(`${props.title} chart has no bucket for ${key}.`);
@@ -90,14 +95,14 @@ export function DailyNewReturningSection(props: Readonly<{
     renderDailyNewReturningChart({
       svgElement: chartRef.current,
       buckets: state.report.buckets,
-      inProgressKey,
+      notes: chartNotes,
       xLabel: reportPeriodAxisLabels[state.report.period],
       formatTick: (key) => formatReportBucketTick(state.report.period, key),
       getLabel: (key) => `${formatReportBucketTitle(state.report.period, getBucket(key).bucket)} UTC. ${describeBucket(getBucket(key), state.report)}`,
       getTooltipHtml: (key) => `<p class="tooltip-title">${escapeHtml(formatReportBucketTitle(state.report.period, getBucket(key).bucket))} UTC${key === inProgressKey ? " · in progress" : ""}</p><p>${escapeHtml(describeBucket(getBucket(key), state.report))}</p>`,
       tooltipHandlers,
     });
-  }, [state, bucketsByKey, props.title, tooltipHandlers]);
+  }, [state, bucketsByKey, chartNotes, props.title, tooltipHandlers]);
   return (
     <section className="dashboard-section" data-testid={props.testId}>
       <header className="dashboard-section-header level-1-metric-section-header">
@@ -132,6 +137,7 @@ export function DailyNewReturningSection(props: Readonly<{
                 </ChartAreaWithNote>
               ) : <ChartLoadingPlaceholder viewBoxWidth={chartWidth} viewBoxHeight={stackedChartHeight} label={`Loading ${props.title}…`} />}
             </div>
+            <ChartNotesKey notes={chartNotes} />
           </div>
         </section>
       )}

@@ -3,7 +3,9 @@ import * as d3 from "d3";
 import { ChartAreaWithNote } from "../../charts/ChartAreaWithNote";
 import { ChartColorKey, ChartColorKeyPlaceholder } from "../../charts/ChartLegends";
 import { ChartLoadingPlaceholder } from "../../charts/ChartLoadingPlaceholder";
+import { ChartNotesKey } from "../../charts/ChartNotesKey";
 import { ChartTooltip, useChartTooltip } from "../../charts/ChartTooltip";
+import { buildInProgressChartNote, placeChartNotes, type PlacedChartNote } from "../../charts/chartNotes";
 import { chartWidth, stackedChartHeight } from "../../charts/chartPrimitives";
 import { escapeHtml, formatGeneratedAt } from "../../charts/formatting";
 import {
@@ -33,6 +35,7 @@ type BreakdownChartModel = Readonly<{
   bucketsByKey: ReadonlyMap<string, BreakdownBucket>;
   colorsByValue: ReadonlyMap<string, string>;
   inProgressKey: string | null;
+  notes: ReadonlyArray<PlacedChartNote>;
 }>;
 
 const formatCount = d3.format(",d");
@@ -71,6 +74,7 @@ function BreakdownChartColumn(props: Readonly<{
   period: ReportPeriod;
   colorKey: ReactNode;
   chartArea: ReactNode;
+  notes: ReadonlyArray<PlacedChartNote> | null;
 }>): JSX.Element {
   return (
     <section className="chart-column">
@@ -80,6 +84,7 @@ function BreakdownChartColumn(props: Readonly<{
           <div className="chart-meta-right">{props.colorKey}</div>
         </div>
         <div className="chart-scroll">{props.chartArea}</div>
+        <ChartNotesKey notes={props.notes} />
       </div>
     </section>
   );
@@ -97,6 +102,7 @@ export function BreakdownLoadingChart(props: Readonly<{
       period={props.period}
       colorKey={<ChartColorKeyPlaceholder />}
       chartArea={<ChartLoadingPlaceholder viewBoxWidth={chartWidth} viewBoxHeight={stackedChartHeight} label={props.label} />}
+      notes={null}
     />
   );
 }
@@ -147,6 +153,7 @@ export function BreakdownSection(props: Readonly<{
     bucketsByKey: new Map(state.report.buckets.map((entry) => [entry.bucket.key, entry])),
     colorsByValue: buildBreakdownValueColors(state.report.values),
     inProgressKey: findInProgressBucketKey(state.report.buckets.map((entry) => entry.bucket), state.report.today),
+    notes: placeChartNotes([buildInProgressChartNote(state.report.today)], state.report.buckets.map((entry) => entry.bucket)),
   } : null), [state]);
   useEffect(() => {
     if (chartRef.current === null || model === null) return;
@@ -184,7 +191,7 @@ export function BreakdownSection(props: Readonly<{
       })),
       values: report.values,
       getValueColor: (value) => getValueColor(model, value),
-      inProgressKey: model.inProgressKey,
+      notes: model.notes,
       yLabel: props.countLabel,
       xLabel: reportPeriodAxisLabels[report.period],
       formatTick: (key) => formatReportBucketTick(report.period, key),
@@ -230,6 +237,7 @@ export function BreakdownSection(props: Readonly<{
               <svg ref={chartRef} role="group" aria-label={`${props.title}: ${props.countLabel.toLowerCase()} per ${model.report.period}`} />
             </ChartAreaWithNote>
           )}
+          notes={model.notes}
         />
       )}
       <ChartTooltip {...tooltipState} />
