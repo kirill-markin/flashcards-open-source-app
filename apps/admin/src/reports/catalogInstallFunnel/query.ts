@@ -1,9 +1,5 @@
 import { runAdminQuery } from "../../adminApi";
-import type {
-  AdminQueryObject,
-  AdminQueryResultSet,
-  AdminQueryValue,
-} from "../../adminApi";
+import type { AdminQueryValue } from "../../adminApi";
 import type { AdminAppConfig } from "../../config";
 import type { AnalyticsFilterState } from "../../filters/analyticsFilters";
 import {
@@ -13,7 +9,6 @@ import {
   buildConnectionCountriesFilterSql,
   buildEventPlatformsFilterSql,
   buildExcludedActorSqlLines,
-  buildTrustedActorRowsFilterSql,
 } from "../../filters/filterSql";
 import { escapeSqlStringLiteral } from "../../sql";
 import {
@@ -55,43 +50,9 @@ export const catalogInstallDeviceCategories = [
   "tablet",
   "unknown",
 ] as const;
-export const catalogInstallFailureStages = [
-  "landing",
-  "signin",
-  "preview",
-  "preinstall_sync",
-  "install",
-  "postinstall_sync",
-] as const;
-export const catalogInstallFailureReasons = [
-  "invalid_link",
-  "package_unavailable",
-  "workspace_unavailable",
-  "invalid_code",
-  "expired_code",
-  "code_already_used",
-  "rate_limited",
-  "offline",
-  "timeout",
-  "network_error",
-  "unauthorized",
-  "conflict",
-  "storage_error",
-  "contract_error",
-  "server_error",
-  "cancelled",
-] as const;
-
 export type CatalogInstallPlacement = (typeof catalogInstallPlacements)[number];
 export type CatalogInstallSource = (typeof catalogInstallSources)[number];
 export type CatalogInstallDeviceCategory = (typeof catalogInstallDeviceCategories)[number];
-export type CatalogInstallFailureStage = (typeof catalogInstallFailureStages)[number];
-export type CatalogInstallFailureReason = (typeof catalogInstallFailureReasons)[number];
-
-export type CatalogInstallFailureBucket = Readonly<{
-  stage: CatalogInstallFailureStage;
-  reason: CatalogInstallFailureReason;
-}>;
 
 /**
  * One visitor identity and one deck version, anchored at that identity's first view of the deck's
@@ -103,24 +64,13 @@ export type CatalogInstallFailureBucket = Readonly<{
  * every earlier step, so a person with rows for several decks still adds at most +1 to each step.
  *
  * The identity is `analytics.product_events_resolved.actor_id`. A row the browser sent with no
- * account credential - the page view, the site click, the signed-out import screens - resolves through the shared
+ * account credential - the page view, the site click - resolves through the shared
  * `analytics_visitor` cookie in its `anonymous_id`, and onto the account once the web app records an
- * `authenticated_client` identity link for that cookie; the signed-in app's rows carry the account
- * in `user_id` already. That is what carries a person from the site click to the server install.
+ * `authenticated_client` identity link for that cookie; the server install carries the account in
+ * `user_id` already. That is what carries a person from the site click to the server install.
  *
- * The auth origin's rows are not part of that. No step takes one, because no step's relation admits
- * the event name or the screen: the event window admits six catalog event names and no `signin_*`,
- * and `surface_events` admits `screen_viewed` only for the three catalog screens or from an
- * `authenticated_client` row, which the auth origin's sign-in screen view is not. A relation that
- * reads an actor's whole history under `buildTrustedActorRowsFilterSql`, as
- * `install_actor_first_event` does, takes the auth origin's `guest_client` rows and not its
- * `anonymous_client` ones.
- * `buildCatalogInstallFunnelSql` states what that leaves the sign-in branch able to read.
- *
- * The four `screen_viewed` steps name no deck, because that event carries no properties at all: a
- * visitor who clicked two deck versions in range has them satisfied on both rows by the same view.
- * Only the click, install-start, install and failure steps require the row's own `package_version_id`.
- * `source` and `deviceCategory` are the page view's own.
+ * The click and the install each require the row's own `package_version_id`. `source` and
+ * `deviceCategory` are the page view's own.
  */
 export type CatalogInstallFunnelVisit = Readonly<{
   actorId: string;
@@ -139,27 +89,17 @@ export type CatalogInstallFunnelVisit = Readonly<{
   source: CatalogInstallSource;
   deviceCategory: CatalogInstallDeviceCategory;
   installClickedAt: string | null;
-  importScreenAt: string | null;
-  importConfirmAt: string | null;
-  installStartedAt: string | null;
   installedAt: string | null;
   /**
-   * The three post-install engagement facts, all null together exactly when the visit has no server
+   * The two post-install engagement facts, both null together exactly when the visit has no server
    * install, because a person's reviews are only measurable from the install onwards.
    *
    * `installReviewCount` counts the identity's `review_answered` rows from the install to the page
    * view's seven-day bound, anywhere in the product rather than in the installed deck.
-   * `installHasReturnDay` is one of those reviews on a later UTC day than the install.
-   * `installActorIsNew` is that identity having no trusted row at all before the page view, over
-   * every event name, trusted as `buildTrustedActorRowsFilterSql` defines it.
+   * `installReviewDayCount` is the distinct UTC days those same reviews fall on.
    */
   installReviewCount: number | null;
-  installHasReturnDay: boolean | null;
-  installActorIsNew: boolean | null;
-  signedOutGateAt: string | null;
-  signedInAt: string | null;
-  signedOutImportConfirmAt: string | null;
-  failureBuckets: ReadonlyArray<CatalogInstallFailureBucket>;
+  installReviewDayCount: number | null;
   /**
    * The four values only the funnel's `Group by` field reads, on every row of every load rather
    * than with the dimension that reads them: the field regroups the rows the browser already holds
@@ -173,11 +113,9 @@ export type CatalogInstallFunnelVisit = Readonly<{
    *
    * `clickPlacement` IS A PLAIN STRING HERE, not the `CatalogInstallPlacement` the filter field
    * offers, and it is deliberately the one catalog column this parser does not hold to its declared
-   * values. The strict ones are read by name somewhere - the failure stage and reason name a bucket,
-   * the diagnostics line tests `source = 'direct'` - so an undeclared value there would be silently
-   * misread and has to be loud instead. This one is only ever a group key and is drawn as it comes,
-   * so the day the site ships a fourth placement it should become its own bar rather than throw
-   * away all four result sets of a report whose statements share one request. The filter's own
+   * values. It is only ever a group key and is drawn as it comes, so the day the site ships a fourth
+   * placement it should become its own bar rather than throw away both result sets of a report whose
+   * statements share one request. The filter's own
    * option list refuses that same unknown value on purpose (`buildCatalogAttributionEnumOptions` in
    * `../../filters/optionsQuery.ts`): a value that cannot be selected costs one popover entry,
    * while a value that cannot be grouped costs the page.
@@ -193,16 +131,6 @@ export type CatalogInstallFunnelReport = Readonly<{
   from: string;
   to: string;
   visits: ReadonlyArray<CatalogInstallFunnelVisit>;
-  /** Distinct people with an import preview of a deck whose page they had not viewed in the selected dates. */
-  previewersWithoutVisitCount: number;
-  /**
-   * Distinct people with a server install on a selected UTC day of a deck whose page they had not
-   * viewed in the selected dates before the install, so no visit row can hold that install. A view
-   * before the range counts as none here, exactly as the funnel treats it. It is one slice of the gap between real installs and the
-   * funnel rather than all of it: an install whose identity did view the page in range is equally
-   * unheld whenever its click was dropped by a filter or its step chain is broken.
-   */
-  installersWithoutVisitCount: number;
   /**
    * The cookieless visitors of the `all` audience mode, one person per daily hash per UTC day: those
    * who viewed any deck page, and those among them whose install click was on a deck whose page they
@@ -264,48 +192,6 @@ function assertNullableInteger(value: AdminQueryValue, fieldName: string): numbe
   return toInteger(value, catalogInstallFunnelReportLabel, fieldName);
 }
 
-function assertNullableBoolean(value: AdminQueryValue, fieldName: string): boolean | null {
-  if (value === null) {
-    return null;
-  }
-
-  if (typeof value !== "boolean") {
-    throw new Error(`${catalogInstallFunnelReportLabel} field "${fieldName}" must be a boolean.`);
-  }
-
-  return value;
-}
-
-function assertQueryObject(value: AdminQueryValue, fieldName: string): AdminQueryObject {
-  if (typeof value !== "object" || value === null || Array.isArray(value)) {
-    throw new Error(`${catalogInstallFunnelReportLabel} field "${fieldName}" must be an object.`);
-  }
-
-  return value as AdminQueryObject;
-}
-
-function parseFailureBuckets(value: AdminQueryValue): ReadonlyArray<CatalogInstallFailureBucket> {
-  if (Array.isArray(value) === false) {
-    throw new Error(`${catalogInstallFunnelReportLabel} field "failure_buckets" must be an array.`);
-  }
-
-  return (value as ReadonlyArray<AdminQueryValue>).map((entry, index) => {
-    const object = assertQueryObject(entry, `failure_buckets[${index}]`);
-    return {
-      stage: assertEnumValue(
-        object.stage ?? null,
-        catalogInstallFailureStages,
-        `failure_buckets[${index}].stage`,
-      ),
-      reason: assertEnumValue(
-        object.reason ?? null,
-        catalogInstallFailureReasons,
-        `failure_buckets[${index}].reason`,
-      ),
-    };
-  });
-}
-
 function parseVisitRow(row: Readonly<Record<string, AdminQueryValue>>): CatalogInstallFunnelVisit {
   return {
     actorId: assertIsString(row.actor_id ?? null, catalogInstallFunnelReportLabel, "actor_id"),
@@ -324,20 +210,9 @@ function parseVisitRow(row: Readonly<Record<string, AdminQueryValue>>): CatalogI
       "device_category",
     ),
     installClickedAt: assertNullableTimestamp(row.install_clicked_at ?? null, "install_clicked_at"),
-    importScreenAt: assertNullableTimestamp(row.import_screen_at ?? null, "import_screen_at"),
-    importConfirmAt: assertNullableTimestamp(row.import_confirm_at ?? null, "import_confirm_at"),
-    installStartedAt: assertNullableTimestamp(row.install_started_at ?? null, "install_started_at"),
     installedAt: assertNullableTimestamp(row.installed_at ?? null, "installed_at"),
     installReviewCount: assertNullableInteger(row.install_review_count ?? null, "install_review_count"),
-    installHasReturnDay: assertNullableBoolean(row.install_has_return_day ?? null, "install_has_return_day"),
-    installActorIsNew: assertNullableBoolean(row.install_actor_is_new ?? null, "install_actor_is_new"),
-    signedOutGateAt: assertNullableTimestamp(row.signed_out_gate_at ?? null, "signed_out_gate_at"),
-    signedInAt: assertNullableTimestamp(row.signed_in_at ?? null, "signed_in_at"),
-    signedOutImportConfirmAt: assertNullableTimestamp(
-      row.signed_out_import_confirm_at ?? null,
-      "signed_out_import_confirm_at",
-    ),
-    failureBuckets: parseFailureBuckets(row.failure_buckets ?? null),
+    installReviewDayCount: assertNullableInteger(row.install_review_day_count ?? null, "install_review_day_count"),
     connectionCountry: assertNullableString(row.connection_country ?? null, "connection_country"),
     appUiLanguage: assertNullableString(row.app_ui_language ?? null, "app_ui_language"),
     clickPlacement: assertNullableString(row.click_placement ?? null, "click_placement"),
@@ -346,17 +221,6 @@ function parseVisitRow(row: Readonly<Record<string, AdminQueryValue>>): CatalogI
       "click_browser_language",
     ),
   };
-}
-
-function parsePersonCount(resultSet: AdminQueryResultSet, resultSetName: string): number {
-  const row = resultSet.rows[0];
-  if (row === undefined || resultSet.rows.length !== 1) {
-    throw new Error(
-      `${catalogInstallFunnelReportLabel} ${resultSetName} result set must return one row. Got ${resultSet.rows.length}.`,
-    );
-  }
-
-  return toInteger(row.person_count ?? null, catalogInstallFunnelReportLabel, `${resultSetName} person_count`);
 }
 
 /**
@@ -414,22 +278,9 @@ function buildFunnelVisitFilterSqlLines(filters: AnalyticsFilterState): Readonly
   return [
     `    AND ${buildEventPlatformsFilterSql("COALESCE(candidate.platform, 'unattributed')", filters.eventPlatforms)}`,
     ...buildVisitDimensionFilterSqlLines("candidate.package_version_id", filters.installedDecks),
-    ...buildFunnelPersonFilterSqlLines("candidate.actor_id::text", filters),
-  ];
-}
-
-// Everything that narrows an identity rather than a row, so the cohort, the no-visit preview
-// diagnostic and the no-visit install diagnostic all select the same people. The audience mode is one
-// of them: it decides who counts as a person here, so a line it leaves out of one of the three would
-// make a diagnostic count people the funnel above it does not.
-function buildFunnelPersonFilterSqlLines(
-  actorIdSqlExpression: string,
-  filters: AnalyticsFilterState,
-): ReadonlyArray<string> {
-  return [
-    ...buildFunnelAudienceActorSqlLines(filters, actorIdSqlExpression),
-    `    AND ${buildConnectionCountriesFilterSql(actorIdSqlExpression, filters.connectionCountries, filters.dateRange)}`,
-    `    AND ${buildAppUiLanguagesFilterSql(actorIdSqlExpression, filters.appUiLanguages, filters.dateRange)}`,
+    ...buildFunnelAudienceActorSqlLines(filters, "candidate.actor_id::text"),
+    `    AND ${buildConnectionCountriesFilterSql("candidate.actor_id::text", filters.connectionCountries, filters.dateRange)}`,
+    `    AND ${buildAppUiLanguagesFilterSql("candidate.actor_id::text", filters.appUiLanguages, filters.dateRange)}`,
   ];
 }
 
@@ -450,27 +301,9 @@ function buildInstallClickFilterSqlLines(filters: AnalyticsFilterState): Readonl
 }
 
 /**
- * The same selection on the no-visit diagnostic, which counts app-side previews whose identity viewed
- * no deck page this report can see. Only what such a row answers itself can narrow it: the deck
- * version it names, its own client platform and its identity. The four click dimensions are absent
- * from it by definition, so the diagnostic stays wider than the install-click step and the steps
- * below it whenever one of them is narrowed, and the section says so.
- */
-function buildFunnelPreviewFilterSqlLines(filters: AnalyticsFilterState): ReadonlyArray<string> {
-  return [
-    `    AND ${buildEventPlatformsFilterSql("COALESCE(candidate.platform, 'unattributed')", filters.eventPlatforms)}`,
-    ...buildVisitDimensionFilterSqlLines("candidate.package_version_id", filters.installedDecks),
-    ...buildFunnelPersonFilterSqlLines("candidate.actor_id::text", filters),
-  ];
-}
-
-/**
- * The deck page views and the five catalog install facts, all of which carry a deck version, in one
- * pass over the widest window any row can ask for. Only a `catalog_package` page's view is kept,
- * because no other page names a deck. The two surface steps are not here: they are read through
- * `surface_events` below, restricted to the actors this report already selected, because
- * `screen_viewed` is the highest-volume event in the store and an unrestricted pass of it does not
- * finish inside the statement timeout.
+ * The deck page views and the three catalog install facts the funnel and its test-deck exclusion
+ * read, all of which carry a deck version, in one pass over the widest window any row can ask for.
+ * Only a `catalog_package` page's view is kept, because no other page names a deck.
  *
  * `client_events` leaves the page views out, and the server install gets its own relation, so the
  * per-visit step reads below scan only the catalog facts rather than every deck page view.
@@ -483,8 +316,6 @@ function buildEventWindowSql(from: string, to: string): ReadonlyArray<string> {
     "  WHERE resolved.event_name IN (",
     "    'site_page_viewed',",
     "    'catalog_install_clicked',",
-    "    'catalog_install_preview_ready',",
-    "    'catalog_install_failed',",
     "    'catalog_deck_install_started',",
     "    'catalog_deck_installed'",
     "  )",
@@ -643,13 +474,13 @@ function buildHashedCatalogInstallFunnelSql(
 }
 
 /**
- * The visit rows, then the two no-visit diagnostics, then the cookieless counts, over the selected
- * UTC days from `catalogInstallFunnelStartDate` on. The section reduces the rows to people by the
+ * The visit rows, then the cookieless counts, over the selected UTC days from
+ * `catalogInstallFunnelStartDate` on. The section reduces the rows to people by the
  * funnel rule in `../funnels/funnelSections.ts`.
  */
 export function buildCatalogInstallFunnelSql(filters: AnalyticsFilterState): string {
   const { from: selectedFrom, to } = assertValidDateRange(filters.dateRange, catalogInstallFunnelReportLabel);
-  // A range ending before the start date leaves `from` after `to`, so no row and no diagnostic counts.
+  // A range ending before the start date leaves `from` after `to`, so nothing counts.
   const from = laterCalendarDate(selectedFrom, catalogInstallFunnelStartDate);
 
   const cohortQuery = [
@@ -716,51 +547,16 @@ export function buildCatalogInstallFunnelSql(filters: AnalyticsFilterState): str
     "  WHERE click.event_name = 'catalog_install_clicked'",
     ...buildInstallClickFilterSqlLines(filters),
     "  ORDER BY visit.actor_id, visit.package_version_id, click.occurred_at, click.event_id",
-    "), cohort_actors AS (",
-    "  SELECT DISTINCT visit_clicks.actor_id",
-    "  FROM visit_clicks",
     // The same cohort by identity alone, for the two per-actor `Group by` sources to be probed
     // against. `DISTINCT` is the whole point of it: `eligible_visits` holds an actor once per deck
     // version they viewed, and the array an InitPlan produces is not a `Const`, so the planner
     // cannot hash the `= ANY (...)` and probes it linearly - and this is the largest cohort the
     // pattern is handed anywhere in the query, one row per identity and deck version rather than
     // per click or per install, so every duplicate would be one more comparison for every row of
-    // the source being filtered. The two `SELECT DISTINCT` relations above and below are distinct
-    // for the same reason.
+    // the source being filtered. `install_actors` below is distinct for the same reason.
     "), visit_actors AS (",
     "  SELECT DISTINCT eligible_visits.actor_id",
     "  FROM eligible_visits",
-    // The surface steps, restricted to the identities that reached the click. `screen_viewed` names
-    // no deck and carries no properties at all, so nothing but the identity and the clock can place
-    // it. The three import screens are read at every trust level, because the gate is credential-free
-    // by construction; every other screen is read only when an account credential sent it, which is
-    // what the signed-in step below needs.
-    "), surface_events AS MATERIALIZED (",
-    "  SELECT",
-    "    surface_event.actor_id,",
-    "    surface_event.anonymous_id,",
-    "    surface_event.trust_level,",
-    "    surface_event.occurred_at,",
-    "    surface_event.event_id,",
-    "    surface_event.screen",
-    "  FROM analytics.product_events_resolved AS surface_event",
-    "  WHERE surface_event.event_name = 'screen_viewed'",
-    "    AND (",
-    "      surface_event.screen IN (",
-    "        'catalog',",
-    "        'catalog_import_signin',",
-    "        'catalog_import_confirm'",
-    "      )",
-    "      OR surface_event.trust_level = 'authenticated_client'",
-    "    )",
-    "    AND surface_event.origin = 'client'",
-    `    AND ${buildActorMembershipSql("cohort_actors", "surface_event.actor_id")}`,
-    "    AND surface_event.occurred_at >= (",
-    `      (${escapeSqlStringLiteral(from)}::date)::timestamp AT TIME ZONE 'UTC'`,
-    "    )",
-    "    AND surface_event.occurred_at < (",
-    `      (${escapeSqlStringLiteral(to)}::date + INTERVAL '${catalogInstallConversionWindowDays + 1} days')::timestamp AT TIME ZONE 'UTC'`,
-    "    )",
     "), visit_rows AS MATERIALIZED (",
     "SELECT",
     "  visit.actor_id,",
@@ -769,151 +565,24 @@ export function buildCatalogInstallFunnelSql(filters: AnalyticsFilterState): str
     "  clicked.clicked_at AS install_clicked_at,",
     "  clicked.click_placement,",
     "  clicked.click_browser_language,",
-    "  import_screen.occurred_at AS import_screen_at,",
-    "  import_confirm.occurred_at AS import_confirm_at,",
-    "  install_started.occurred_at AS install_started_at,",
-    "  installed.occurred_at AS installed_at,",
-    "  signed_out_gate.occurred_at AS signed_out_gate_at,",
-    "  signed_in.occurred_at AS signed_in_at,",
-    "  signed_out_confirm.occurred_at AS signed_out_import_confirm_at,",
-    "  COALESCE(failures.failure_buckets, '[]'::jsonb) AS failure_buckets",
+    "  installed.occurred_at AS installed_at",
     "FROM eligible_visits AS visit",
     "INNER JOIN visit_clicks AS clicked",
     "  ON clicked.actor_id = visit.actor_id",
     "  AND clicked.package_version_id = visit.package_version_id",
-    // `catalog` means "the web catalog import route" only because that route's shell is its sole
-    // producer today (`resolveAnalyticsSurface` in `apps/web/src/analytics/surfaces.ts`). The surface
-    // itself is a general catalog-browse value in the shared enum, and Android already stamps
-    // `catalog_deck_install_started` with it. A client that ships a catalog browse screen will file
-    // `screen_viewed` rows here from people who never opened an import link, and this step will count
-    // them with no change to this query: narrow it to the import route's own fact before that ships.
-    "LEFT JOIN LATERAL (",
-    "  SELECT screen_event.occurred_at",
-    "  FROM surface_events AS screen_event",
-    "  WHERE screen_event.screen = 'catalog'",
-    "    AND screen_event.actor_id = visit.actor_id",
-    "    AND screen_event.occurred_at >= clicked.clicked_at",
-    `    AND screen_event.occurred_at <= visit.anchor_at + INTERVAL '${catalogInstallConversionWindowDays} days'`,
-    "  ORDER BY screen_event.occurred_at, screen_event.event_id",
-    "  LIMIT 1",
-    ") AS import_screen ON TRUE",
-    // NOT `catalog_install_preview_ready`, which marks the same moment. This screen view is the
-    // account-side fact: the signed-in app reports it with the account credential, so it names the
-    // account in `user_id` with no identity link needed, while the preview fact goes out on the
-    // credential-free collector and reaches the account only through the web app's link for its
-    // visitor cookie.
-    "LEFT JOIN LATERAL (",
-    "  SELECT confirm_event.occurred_at",
-    "  FROM surface_events AS confirm_event",
-    "  WHERE confirm_event.screen = 'catalog_import_confirm'",
-    "    AND confirm_event.actor_id = visit.actor_id",
-    "    AND confirm_event.occurred_at >= import_screen.occurred_at",
-    `    AND confirm_event.occurred_at <= visit.anchor_at + INTERVAL '${catalogInstallConversionWindowDays} days'`,
-    "  ORDER BY confirm_event.occurred_at, confirm_event.event_id",
-    "  LIMIT 1",
-    ") AS import_confirm ON TRUE",
-    "LEFT JOIN LATERAL (",
-    "  SELECT start_event.occurred_at",
-    "  FROM install_start_events AS start_event",
-    "  WHERE start_event.actor_id = visit.actor_id",
-    "    AND start_event.event_properties ->> 'package_version_id' = visit.package_version_id",
-    "    AND start_event.occurred_at >= import_confirm.occurred_at",
-    `    AND start_event.occurred_at <= visit.anchor_at + INTERVAL '${catalogInstallConversionWindowDays} days'`,
-    "  ORDER BY start_event.occurred_at, start_event.event_id",
-    "  LIMIT 1",
-    ") AS install_started ON TRUE",
     "LEFT JOIN LATERAL (",
     "  SELECT installed_event.occurred_at",
     "  FROM server_installs AS installed_event",
     "  WHERE installed_event.actor_id = visit.actor_id",
     "    AND installed_event.event_properties ->> 'package_version_id' = visit.package_version_id",
-    "    AND installed_event.occurred_at >= install_started.occurred_at",
+    "    AND installed_event.occurred_at >= clicked.clicked_at",
     `    AND installed_event.occurred_at <= visit.anchor_at + INTERVAL '${catalogInstallConversionWindowDays} days'`,
     "  ORDER BY installed_event.occurred_at, installed_event.event_id",
     "  LIMIT 1",
     ") AS installed ON TRUE",
-    "LEFT JOIN LATERAL (",
-    "  SELECT gate_event.occurred_at, gate_event.anonymous_id",
-    "  FROM surface_events AS gate_event",
-    "  WHERE gate_event.screen = 'catalog_import_signin'",
-    "    AND gate_event.actor_id = visit.actor_id",
-    "    AND gate_event.occurred_at >= clicked.clicked_at",
-    `    AND gate_event.occurred_at <= visit.anchor_at + INTERVAL '${catalogInstallConversionWindowDays} days'`,
-    "  ORDER BY gate_event.occurred_at, gate_event.event_id",
-    "  LIMIT 1",
-    ") AS signed_out_gate ON TRUE",
-    // Signed in on this browser: the first screen view this same browser sent with an account
-    // credential after the gate. It is the account-side fact rather than the auth origin's
-    // `signin_succeeded`, and that choice is load-bearing, because no row of that origin carries the
-    // signing-in person's own account. The rows it writes now are credential-free with a NULL
-    // `user_id`, and reach an account only through the same web app identity link this step's own
-    // rows already carry; the `guest_client` rows it wrote before that carry the guest's `user_id`,
-    // which outranks the visitor cookie in `analytics.product_events_resolved`, and reached the
-    // account only through the `server_derived` guest-upgrade link that same view ranks above
-    // `user_id` (`db/migrations/0137_audience_context.sql`), written inside a 150 ms budget that a
-    // first-ever sign-in usually overruns (`analyticsReportBudgetMs` in
-    // `apps/auth/src/server/analytics/signInFunnel.ts`). Delivery is best effort and a lost event is
-    // never resent (`apps/auth/src/server/analytics/client.ts`). Keyed on it, this step would miss
-    // most of the people the gate is shown to. The auth origin's sign-in screen and code request are
-    // not steps at all either: the event window above admits six catalog event names and no
-    // `signin_*`, and `surface_events` takes `screen_viewed` only for the three catalog screens or
-    // from an `authenticated_client` row, so no step's relation admits them. They are not kept out
-    // of the query altogether, though: a relation that reads an actor's whole history under
-    // `buildTrustedActorRowsFilterSql`, as `install_actor_first_event` below does, takes the
-    // guest-era rows and not the ones written now, so a guest-era sign-in row that resolved to the
-    // account can still be that person's first trusted event.
-    //
-    // The web app's signed-in rows need no link to meet the gate: they carry the account in `user_id`,
-    // and the same batch writes the `authenticated_client` link that resolves this browser's
-    // credential-free rows, the gate included, onto that account.
-    //
-    // THE SAME `anonymous_id` AS THE GATE is what makes it this browser's sign-in rather than the
-    // account's activity. A person who already had an account resolves to it at the gate as well, and
-    // without that equality a screen view from their phone, or from another browser, after they gave
-    // up at the gate would count as a sign-in here. Strictly after the gate, so the gate row itself can
-    // never satisfy it.
-    "LEFT JOIN LATERAL (",
-    "  SELECT signed_in_event.occurred_at",
-    "  FROM surface_events AS signed_in_event",
-    "  WHERE signed_in_event.trust_level = 'authenticated_client'",
-    "    AND signed_in_event.actor_id = visit.actor_id",
-    "    AND signed_in_event.anonymous_id = signed_out_gate.anonymous_id",
-    "    AND signed_in_event.occurred_at > signed_out_gate.occurred_at",
-    `    AND signed_in_event.occurred_at <= visit.anchor_at + INTERVAL '${catalogInstallConversionWindowDays} days'`,
-    "  ORDER BY signed_in_event.occurred_at, signed_in_event.event_id",
-    "  LIMIT 1",
-    ") AS signed_in ON TRUE",
-    "LEFT JOIN LATERAL (",
-    "  SELECT confirm_event.occurred_at",
-    "  FROM surface_events AS confirm_event",
-    "  WHERE confirm_event.screen = 'catalog_import_confirm'",
-    "    AND confirm_event.actor_id = visit.actor_id",
-    "    AND confirm_event.occurred_at >= signed_in.occurred_at",
-    `    AND confirm_event.occurred_at <= visit.anchor_at + INTERVAL '${catalogInstallConversionWindowDays} days'`,
-    "  ORDER BY confirm_event.occurred_at, confirm_event.event_id",
-    "  LIMIT 1",
-    ") AS signed_out_confirm ON TRUE",
-    "LEFT JOIN LATERAL (",
-    "  SELECT jsonb_agg(",
-    "    jsonb_build_object('stage', distinct_failures.stage, 'reason', distinct_failures.reason)",
-    "    ORDER BY distinct_failures.stage, distinct_failures.reason",
-    "  ) AS failure_buckets",
-    "  FROM (",
-    "    SELECT DISTINCT",
-    "      failure_event.event_properties ->> 'stage' AS stage,",
-    "      failure_event.event_properties ->> 'reason' AS reason",
-    "    FROM client_events AS failure_event",
-    "    WHERE failure_event.event_name = 'catalog_install_failed'",
-    "      AND failure_event.actor_id = visit.actor_id",
-    "      AND failure_event.event_properties ->> 'package_version_id' = visit.package_version_id",
-    "      AND failure_event.occurred_at >= visit.anchor_at",
-    `      AND failure_event.occurred_at <= visit.anchor_at + INTERVAL '${catalogInstallConversionWindowDays} days'`,
-    "  ) AS distinct_failures",
-    ") AS failures ON TRUE",
-    // Post-install engagement, in three uncorrelated passes keyed by the installing identity rather
-    // than per visit row. A visit without a server install has no install to measure from, so it is
-    // absent from all three and its columns arrive null together rather than as a zero that would
-    // read as a drop-off.
+    // Post-install engagement, keyed by the installing identity rather than per visit row. A visit
+    // without a server install has no install to measure from, so its columns arrive null together
+    // rather than as a zero that would read as a drop-off.
     "), install_actors AS (",
     "  SELECT DISTINCT visit.actor_id",
     "  FROM visit_rows AS visit",
@@ -921,7 +590,7 @@ export function buildCatalogInstallFunnelSql(filters: AnalyticsFilterState): str
     // THE REVIEWS ARE THE PERSON'S, NOT THE DECK'S. `review_answered` carries only `rating` and
     // `source`, so no deck or card identity exists to narrow them by, and this reads every review
     // those identities answered. It cannot reuse the `events` CTE: that one is restricted to the deck
-    // page view and the five catalog event names, and `review_answered` is not among them.
+    // page view and the catalog event names, and `review_answered` is not among them.
     //
     // The bounds are the widest any visit can ask for, so one pass serves all of them: no review
     // counts before the install, and no install is earlier than the range's first instant, while the
@@ -939,39 +608,11 @@ export function buildCatalogInstallFunnelSql(filters: AnalyticsFilterState): str
     "    AND review_event.occurred_at < (",
     `      (${escapeSqlStringLiteral(to)}::date + INTERVAL '${catalogInstallConversionWindowDays + 1} days')::timestamp AT TIME ZONE 'UTC'`,
     "    )",
-    // New is the absence of any trusted event before the page view, over that identity's whole
-    // history, so this carries NO LOWER BOUND AND NO EVENT-NAME RESTRICTION - reusing a bounded or
-    // catalog-only relation here would silently make every identity look new. It reads that history
-    // as one grouped `MIN(occurred_at)` per actor, the way
-    // `apps/backend/src/productAnalytics/syntheticActorDetector.ts` and the `history` CTE of
-    // `apps/admin/src/reports/audience/query.ts` read an actor's first day.
-    //
-    // The upper bound is the only thing added, and it removes nothing the test can see: every page
-    // view in this cohort is before it, so an event at or after it can never precede one.
-    //
-    // The trust rule is the second thing this reads the history through, and the shared identity made
-    // it matter more rather than less: the anchoring page view is itself a credential-free row
-    // resolving onto this same identity, so without the rule every installer would have a trusted-
-    // looking event at their own first deck page view and none of them would ever read as new. See
-    // `buildTrustedActorRowsFilterSql`.
-    "), install_actor_first_event AS MATERIALIZED (",
-    "  SELECT",
-    "    prior_event.actor_id,",
-    "    MIN(prior_event.occurred_at) AS first_event_at",
-    "  FROM analytics.product_events_resolved AS prior_event",
-    `  WHERE ${buildActorMembershipSql("install_actors", "prior_event.actor_id")}`,
-    `    AND ${buildTrustedActorRowsFilterSql("prior_event.trust_level")}`,
-    "    AND prior_event.occurred_at < (",
-    `      (${escapeSqlStringLiteral(to)}::date + INTERVAL '1 day')::timestamp AT TIME ZONE 'UTC'`,
-    "    )",
-    "  GROUP BY prior_event.actor_id",
-    // The count and the return day come from one grouped pass over the same review rows rather than
-    // two scans of them. The window runs from the install - a review before it cannot be a
+    // The count and the review day count come from one grouped pass over the same review rows rather
+    // than two scans of them. The window runs from the install - a review before it cannot be a
     // consequence of it - to the same seven-day bound on the page view every other step here uses,
-    // so a late install leaves less of it. The return day is a UTC calendar day strictly after the
-    // install's, the same UTC day every other admin report reads, and it is reported only together
-    // with the review threshold, never on its own, because two independent conditions would let a
-    // later step exceed an earlier one.
+    // so a late install leaves less of it. A review day is a UTC calendar day, the same UTC day every
+    // other admin report reads.
     //
     // The join is on a visit rather than on an actor, which is what keeps one person who installs two
     // decks in range counted as the two rows they are: each row carries that identity's reviews for
@@ -981,13 +622,7 @@ export function buildCatalogInstallFunnelSql(filters: AnalyticsFilterState): str
     "    visit.actor_id,",
     "    visit.package_version_id,",
     "    COUNT(review.occurred_at)::int AS review_count,",
-    "    COALESCE(",
-    "      bool_or(",
-    "        (review.occurred_at AT TIME ZONE 'UTC')::date",
-    "          > (visit.installed_at AT TIME ZONE 'UTC')::date",
-    "      ),",
-    "      FALSE",
-    "    ) AS has_return_day",
+    "    COUNT(DISTINCT (review.occurred_at AT TIME ZONE 'UTC')::date)::int AS review_day_count",
     "  FROM visit_rows AS visit",
     "  LEFT JOIN install_actor_reviews AS review",
     "    ON review.actor_id = visit.actor_id",
@@ -1022,23 +657,9 @@ export function buildCatalogInstallFunnelSql(filters: AnalyticsFilterState): str
     "  stepped.install_clicked_at,",
     "  stepped.click_placement,",
     "  stepped.click_browser_language,",
-    "  stepped.import_screen_at,",
-    "  stepped.import_confirm_at,",
-    "  stepped.install_started_at,",
     "  stepped.installed_at,",
     "  engagement.review_count AS install_review_count,",
-    "  engagement.has_return_day AS install_has_return_day,",
-    "  CASE",
-    "    WHEN stepped.installed_at IS NULL THEN NULL",
-    "    ELSE (",
-    "      first_event.first_event_at IS NULL",
-    "      OR first_event.first_event_at >= visit.anchor_at",
-    "    )",
-    "  END AS install_actor_is_new,",
-    "  stepped.signed_out_gate_at,",
-    "  stepped.signed_in_at,",
-    "  stepped.signed_out_import_confirm_at,",
-    "  COALESCE(stepped.failure_buckets, '[]'::jsonb) AS failure_buckets",
+    "  engagement.review_day_count AS install_review_day_count",
     "FROM eligible_visits AS visit",
     "LEFT JOIN visit_rows AS stepped",
     "  ON stepped.actor_id = visit.actor_id",
@@ -1046,15 +667,13 @@ export function buildCatalogInstallFunnelSql(filters: AnalyticsFilterState): str
     "LEFT JOIN visit_engagement AS engagement",
     "  ON engagement.actor_id = visit.actor_id",
     "  AND engagement.package_version_id = visit.package_version_id",
-    "LEFT JOIN install_actor_first_event AS first_event",
-    "  ON first_event.actor_id = visit.actor_id",
     // The deck behind the row's version, which is what the `Group by` field's deck dimension is keyed
     // and named on. Both joins are outer because the analytics rows outlive the catalog: a version
     // whose row is gone keeps its visit with a NULL package and slug, and groups as `Unresolved`.
     //
     // `::text` on the catalog column rather than `::uuid` on the property, the way every other join
     // between this store and a UUID column is written here: the property is client-reported JSON text,
-    // and casting it would fail all four statements of the page on one malformed id rather than leave
+    // and casting it would fail both statements of the page on one malformed id rather than leave
     // that one visit unnamed. `reporting_readonly` may read these two columns of each table and no
     // other (`db/migrations/0148_reporting_readonly_catalog_deck_names.sql`).
     "LEFT JOIN catalog.package_versions AS deck_version",
@@ -1074,7 +693,7 @@ export function buildCatalogInstallFunnelSql(filters: AnalyticsFilterState): str
     // cross-joins the retained connection samples to two endpoints each and hash-joins the view
     // again, and the language source alone materializes and hash-joins a row for every trusted actor
     // in the selected range rather than for this cohort's - on a statement group whose 30 s timeout
-    // fails the visits, both no-visit diagnostics and the cookieless counts together.
+    // fails the visits and the cookieless counts together.
     //
     // EACH SOURCE IS A `MATERIALIZED` CTE, computed once and joined here by a CTE scan. The planner
     // has no statistics for the JSONB predicates that build `eligible_visits` and can estimate it at
@@ -1091,108 +710,8 @@ export function buildCatalogInstallFunnelSql(filters: AnalyticsFilterState): str
     "ORDER BY visit.anchor_at, visit.actor_id, visit.package_version_id",
   ].join("\n");
 
-  // App-side previews whose identity viewed no page of that deck in the selected dates before the
-  // preview: the person reached the import screen and loaded the deck without a deck page view the
-  // funnel could anchor on - a shared link, a bookmark, or a view older than the selected range,
-  // which `deck_page_views` does not reach because it is bounded below by the range like the cohort
-  // is. Outside the funnel's denominator rather than a step of it, and counted as distinct people over
-  // every deck, so a person previewing several such decks adds one.
-  const previewWithoutVisitQuery = [
-    "WITH",
-    ...buildEventWindowSql(from, to),
-    ", preview_candidates AS (",
-    "  SELECT DISTINCT ON (",
-    "    preview.actor_id,",
-    "    preview.event_properties ->> 'package_version_id'",
-    "  )",
-    "    preview.actor_id,",
-    "    preview.event_properties ->> 'package_version_id' AS package_version_id,",
-    "    preview.occurred_at AS anchor_at,",
-    "    preview.platform",
-    "  FROM client_events AS preview",
-    "  WHERE preview.event_name = 'catalog_install_preview_ready'",
-    "    AND preview.occurred_at < (",
-    `      (${escapeSqlStringLiteral(to)}::date + INTERVAL '1 day')::timestamp AT TIME ZONE 'UTC'`,
-    "    )",
-    "  ORDER BY",
-    "    preview.actor_id,",
-    "    preview.event_properties ->> 'package_version_id',",
-    "    preview.occurred_at,",
-    "    preview.event_id",
-    "), eligible_previews AS (",
-    "  SELECT candidate.*",
-    "  FROM preview_candidates AS candidate",
-    "  WHERE NOT EXISTS (",
-    "    SELECT 1",
-    "    FROM deck_page_views AS page_view",
-    "    WHERE page_view.actor_id = candidate.actor_id",
-    "      AND page_view.event_properties ->> 'package_version_id' = candidate.package_version_id",
-    "      AND page_view.occurred_at <= candidate.anchor_at",
-    "  )",
-    ...buildTestDeckFilterSqlLines(),
-    ...buildExcludedActorSqlLines("candidate.actor_id::text"),
-    ...buildFunnelPreviewFilterSqlLines(filters),
-    ")",
-    "SELECT COUNT(DISTINCT eligible_previews.actor_id)::int AS person_count",
-    "FROM eligible_previews",
-  ].join("\n");
-
-  // Server installs the funnel can never place. Every step above is bridged by identity, so an
-  // install whose identity viewed no page of that deck in the selected dates is invisible to all of
-  // them - a view before the range included, since `deck_page_views` shares the cohort's lower bound -
-  // and that absence is legitimate: an install link can be shared, bookmarked or reopened weeks later.
-  // This counts the distinct people behind them so part of the gap is a number rather than a
-  // suspicion, one per person however many such installs they made.
-  //
-  // IT IS A LOWER BOUND ON THAT GAP, NOT THE WHOLE OF IT, and the card and the doc say so. An install
-  // whose identity did view the page in the selected dates is just as unheld by any installed step
-  // when its click was dropped by a placement, source, device-category or browser-language
-  // selection, or when the click/import-screen/confirm/started/installed chain is broken. Nothing
-  // here can count those, because they are absences.
-  //
-  // It narrows itself the way the no-visit diagnostic does, on what the row can answer alone: the
-  // selected UTC days, the installed deck, the client platform, the identity's connection country and
-  // app interface language, and the actor exclusions, read off the install row directly because it
-  // names its actor without any bridge. Nothing else reaches it - a server install holds no placement,
-  // source, device category or browser language - and the platform on a server fact is always NULL,
-  // so picking any device platform empties this line.
-  const installWithoutVisitQuery = [
-    "WITH",
-    ...buildEventWindowSql(from, to),
-    "SELECT COUNT(DISTINCT orphan_install.actor_id)::int AS person_count",
-    "FROM server_installs AS orphan_install",
-    // A PRIOR page view, the same way the no-visit preview diagnostic reads one. The funnel requires
-    // every step to be at or after the one above it, so a view made after the install anchors no
-    // visit row this install could ever have landed on: without this bound such an install is
-    // excluded here and held nowhere above, and is counted by nothing at all.
-    "WHERE NOT EXISTS (",
-    "    SELECT 1",
-    "    FROM deck_page_views AS page_view",
-    "    WHERE page_view.actor_id = orphan_install.actor_id",
-    "      AND page_view.event_properties ->> 'package_version_id'",
-    "        = orphan_install.event_properties ->> 'package_version_id'",
-    "      AND page_view.occurred_at <= orphan_install.occurred_at",
-    "  )",
-    "  AND orphan_install.occurred_at >= (",
-    `    (${escapeSqlStringLiteral(from)}::date)::timestamp AT TIME ZONE 'UTC'`,
-    "  )",
-    "  AND orphan_install.occurred_at < (",
-    `    (${escapeSqlStringLiteral(to)}::date + INTERVAL '1 day')::timestamp AT TIME ZONE 'UTC'`,
-    "  )",
-    "  AND orphan_install.event_properties ->> 'package_slug' <> 'test'",
-    ...buildExcludedActorSqlLines("orphan_install.actor_id::text"),
-    `  AND ${buildEventPlatformsFilterSql("COALESCE(orphan_install.platform, 'unattributed')", filters.eventPlatforms)}`,
-    ...buildVisitDimensionFilterSqlLines(
-      "orphan_install.event_properties ->> 'package_version_id'",
-      filters.installedDecks,
-    ),
-    ...buildFunnelPersonFilterSqlLines("orphan_install.actor_id::text", filters),
-  ].join("\n");
-
   return [
     cohortQuery,
-    previewWithoutVisitQuery,
-    installWithoutVisitQuery,
     buildHashedCatalogInstallFunnelSql(filters, from, to),
   ].join(";\n");
 }
@@ -1232,22 +751,15 @@ export async function loadCatalogInstallFunnelReport(
   signal: AbortSignal,
 ): Promise<CatalogInstallFunnelReport> {
   const response = await runAdminQuery(config, buildCatalogInstallFunnelSql(filters), signal);
-  if (response.resultSets.length !== 4) {
+  if (response.resultSets.length !== 2) {
     throw new Error(
-      `${catalogInstallFunnelReportLabel} must return exactly four result sets. Got ${response.resultSets.length}.`,
+      `${catalogInstallFunnelReportLabel} must return exactly two result sets. Got ${response.resultSets.length}.`,
     );
   }
 
   const visitsResultSet = response.resultSets[0];
-  const previewsWithoutVisitResultSet = response.resultSets[1];
-  const installsWithoutVisitResultSet = response.resultSets[2];
-  const hashedResultSet = response.resultSets[3];
-  if (
-    visitsResultSet === undefined
-    || previewsWithoutVisitResultSet === undefined
-    || installsWithoutVisitResultSet === undefined
-    || hashedResultSet === undefined
-  ) {
+  const hashedResultSet = response.resultSets[1];
+  if (visitsResultSet === undefined || hashedResultSet === undefined) {
     throw new Error(`${catalogInstallFunnelReportLabel} result sets are missing.`);
   }
 
@@ -1263,8 +775,6 @@ export async function loadCatalogInstallFunnelReport(
     from: filters.dateRange.from,
     to: filters.dateRange.to,
     visits: visitsResultSet.rows.map(parseVisitRow),
-    previewersWithoutVisitCount: parsePersonCount(previewsWithoutVisitResultSet, "previews-without-visit"),
-    installersWithoutVisitCount: parsePersonCount(installsWithoutVisitResultSet, "installs-without-visit"),
     hashedDeckPageViewCount: toInteger(
       hashedRow.hashed_view_count ?? null,
       catalogInstallFunnelReportLabel,
