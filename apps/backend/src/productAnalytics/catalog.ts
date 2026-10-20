@@ -1622,6 +1622,7 @@ export const productAnalyticsEventCatalog = {
     properties: {
       presentation_id: { kind: "string", pattern: productAnalyticsUuidPattern },
       entry_point: { kind: "enum", values: productAnalyticsPaywallEntryPoints },
+      review_trigger: { kind: "enum", values: ["initial", "day3", "weekly"], optional: true },
       outcome: { kind: "enum", values: ["free", "premium", "dismissed"] },
       offer_type: { kind: "enum", values: ["free_trial", "standard"], optional: true },
     },
@@ -1636,6 +1637,7 @@ export const productAnalyticsEventCatalog = {
       offer_type: { kind: "enum", values: ["free_trial", "standard"], optional: true },
       presentation_id: { kind: "string", pattern: productAnalyticsUuidPattern, optional: true },
       entry_point: { kind: "enum", values: productAnalyticsPaywallEntryPoints, optional: true },
+      review_trigger: { kind: "enum", values: ["initial", "day3", "weekly"], optional: true },
     },
   },
   // What the store or checkout reported back to the client. `completed` is the client's view only;
@@ -1647,6 +1649,7 @@ export const productAnalyticsEventCatalog = {
       outcome: { kind: "enum", values: ["completed", "cancelled", "failed", "pending"] },
       presentation_id: { kind: "string", pattern: productAnalyticsUuidPattern, optional: true },
       entry_point: { kind: "enum", values: productAnalyticsPaywallEntryPoints, optional: true },
+      review_trigger: { kind: "enum", values: ["initial", "day3", "weekly"], optional: true },
       // Sent only with `failed`: `<source>:<code>`, the provider's own code verbatim after the prefix.
       // `storekit` a StoreKit error, `play` a Play Billing response code constant name, `stripe` a
       // Stripe error code, `app` our own client or API error code, `nserror` an unrecognized Apple
