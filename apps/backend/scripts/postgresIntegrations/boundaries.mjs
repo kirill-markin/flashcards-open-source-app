@@ -77,6 +77,7 @@ export const boundaryDefinitions = Object.freeze([
     expectedMigrationCount: 226,
     testFiles: Object.freeze([
       "src/productAnalytics/dailyVisitorHash.postgres.integration.ts",
+      "src/catalog/distribution/install/install.postgres.integration.ts",
     ]),
   }),
   Object.freeze({
@@ -212,7 +213,6 @@ export const boundaryDefinitions = Object.freeze([
       "src/chat/store/historyService.postgres.integration.ts",
       "src/productAnalytics/serverFacts/authoringUpdates.postgres.integration.ts",
       "src/sync/freshBootstrap.postgres.integration.ts",
-      "src/catalog/distribution/install/install.postgres.integration.ts",
       "src/cards/managedMedia/managedImageSnapshotMerge.postgres.integration.ts",
       "src/cards/onboardingDemo.postgres.integration.ts",
       "src/chat/cardImages/generationBudget.postgres.integration.ts",
