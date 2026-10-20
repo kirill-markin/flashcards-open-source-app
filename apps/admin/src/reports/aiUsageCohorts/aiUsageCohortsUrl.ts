@@ -7,10 +7,10 @@ import {
   type AiUsagePeriodWeeks,
 } from "./reportModel";
 
-// The URL codec for the two controls of the Study-vs-AI area. It follows the funnels' anchor and
-// group-by codecs in `../funnels/funnelAnchorUrl.ts` and `../funnels/funnelGroupBy.ts` rather than
-// the shared filter codec, for the same reason those exist: these two parameters belong to one area,
-// so `App.tsx` carries them over on this route only and they cannot leak into another area's links.
+// The URL codec for the two controls of the Study-vs-AI area. It follows the funnels' anchor codec in
+// `../funnels/funnelAnchorUrl.ts` rather than the shared filter codec, for the same reason that one
+// exists: these two parameters belong to one area, so `App.tsx` carries them over on this route only
+// and they cannot leak into another area's links.
 //
 // A control holding its default writes no parameter, so a default view carries none. Reading is
 // tolerant of anything a person can type: an unknown, repeated or malformed value opens on the

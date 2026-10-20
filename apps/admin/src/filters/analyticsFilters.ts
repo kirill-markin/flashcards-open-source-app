@@ -202,10 +202,9 @@ export const analyticsFilterFields: ReadonlyArray<AnalyticsFilterField> = Object
 ) as Array<AnalyticsFilterField>;
 
 // The Funnels bar is shared by every funnel on the area, so it offers only the fields they all
-// share; a field that belongs to one funnel lives in that funnel's own row instead. The users,
-// cohort and threshold fields ask something only an account answers, and a funnel's top steps happen
-// before sign-in, so they are absent rather than empty. Every field takes a side here for the same
-// reason the order above is exhaustive.
+// share. The users, cohort and threshold fields ask something only an account answers, and a funnel's
+// top steps happen before sign-in, so they are absent rather than empty. Every field takes a side here
+// for the same reason the order above is exhaustive.
 const funnelsAnalyticsFilterFieldApplicability = {
   dateRange: true,
   users: false,
@@ -220,15 +219,6 @@ const funnelsAnalyticsFilterFieldApplicability = {
   catalogDeviceCategories: false,
   catalogClickBrowserLanguages: false,
 } as const satisfies Readonly<Record<AnalyticsFilterField, boolean>>;
-
-/** The deck funnel's own row: the deck version and the four catalog-click dimensions. */
-export const catalogInstallFunnelFilterFields: ReadonlyArray<AnalyticsFilterField> = [
-  "installedDecks",
-  "catalogPlacements",
-  "catalogSources",
-  "catalogDeviceCategories",
-  "catalogClickBrowserLanguages",
-];
 
 const funnelsAnalyticsFilterFields: ReadonlyArray<AnalyticsFilterField> = analyticsFilterFields
   .filter((field) => funnelsAnalyticsFilterFieldApplicability[field]);
@@ -369,61 +359,21 @@ const analyticsFilterFieldExplanations: Readonly<Record<AnalyticsFilterField, st
     + ` ${catalogClickAttributionExplanationTail}`,
 };
 
-// What the four click-based catalog fields have to admit on this area. Their option lists are read
-// off the clicks themselves here, the same rows the predicates read, rather than through the
-// completed-install bridge the user-scoped areas need; the one thing left to say is that they are not
-// scoped to the selected dates. The installed deck is not one of them, because its list is read from
-// the install alone and says so itself.
-const funnelsCatalogOptionCoverageTail =
-  "The values on offer are read from the clicks themselves and cover every day rather than only the selected ones, so a value that only clicks outside this range recorded is still listed, and picking it zeroes the install-click step and everything below it while the deck page views stay.";
-
-// The deck funnel counts one visitor identity and deck version per row, anchored at that identity's
-// first view of the deck's page inside the selected range, so the deck and the platform read off that
-// page view, and the four click fields read off the install click that is its second step, instead of
-// a person's lifetime install history. The date range changes meaning on every funnel: it
-// places an entry by the page view or app open that anchors it, which is not always that funnel's
-// own first step, and then lets the later steps run past the range, so the shared "only events
-// inside these days" wording would be false here.
+// The date range changes meaning on every funnel: it places an entry by the event that anchors it and
+// then lets the later steps run past the range, so the shared "only events inside these days" wording
+// would be false here.
 const funnelsAnalyticsFilterFieldExplanations: Readonly<
   Partial<Record<AnalyticsFilterField, string>>
 > = {
-  // Cut from the on-screen text: the two no-visit diagnostics place a preview or an install by its
-  // own day the same way, and the seven-day tail is exactly what the "Visits still inside 7-day
-  // window" line under the funnel counts, so a short recent window reads as a drop-off when it is
-  // only immature.
   dateRange:
-    "Selects who enters each funnel by the UTC calendar day of the page view or app open that anchors them rather than bounding every event counted here, with the first and the last day both included. Every later step still counts for seven days after that anchoring event, so it can have happened past the last selected day, and a range whose last days are less than seven days old is still filling rather than finished. In the mobile funnel the anchor is a person's first app open on iOS or Android, in the home page and the blog article to platform choice funnels it is a person's first marketing-site page view, which is also their first step, in the blog article to web app funnel it is that same entry page view while the funnel's own first step is the web app click below it, so a person who clicks late in that seven-day window has less of it left for the steps under the click, and in the deck funnel it is a visitor's first view of a deck's page inside the range.",
-  // Cut from the on-screen text: the no-visit preview diagnostic keeps previews by the preview row's
-  // own platform the same way, and the no-visit install diagnostic reads the install row's platform,
-  // which is always unattributed, so it empties as soon as any device platform is picked.
+    "Selects who enters each funnel by the UTC calendar day of the event that anchors them rather than bounding every event counted here, with the first and the last day both included. Every later step still counts for at least seven days after that anchoring event, so it can have happened past the last selected day, and a range whose last days are less than seven days old is still filling rather than finished. The anchor is a person's first app open on iOS or Android in the mobile funnel, a visitor's first view of a deck's page inside the range in the deck funnel, a person's first marketing-site page view in the blog funnel, their first sign-in method choice in the sign-in funnel, and their first paywall shown in the paywall funnel.",
   eventPlatforms:
-    "In the mobile funnel, keeps only the people whose first app open was on one of the platforms you pick, so a selection without iOS or Android empties it. In the home page and blog article funnels, reads the entry page view, which the site always reports as web, so a selection without web empties them. In the deck funnel, keeps only the visits whose own deck page view carries one of the client platforms you pick; the later steps are never judged by it, so an install finished on another device still counts once that install and the page view resolve to the same person. The public collector stamps every anonymous site row as web itself and no client can override it, so picking any other platform on its own empties the deck funnel.",
+    "In the mobile funnel, keeps only the people whose first app open was on one of the platforms you pick, so a selection without iOS or Android empties it. In the blog funnel, reads the entry page view, which the site always reports as web, so a selection without web empties it. In the deck funnel, keeps only the visits whose own deck page view carries one of the client platforms you pick; the later steps are never judged by it, so an install finished on another device still counts once that install and the page view resolve to the same person. The public collector stamps every anonymous site row as web itself and no client can override it, so picking any other platform on its own empties the deck funnel.",
   // Every funnel applies both, on the identity its entry resolves to, the way General applies them.
   connectionCountries:
     "Narrows every funnel to people seen connecting from the countries you pick, which is connection geography rather than residence or nationality. Picking nothing keeps every country.",
   appUiLanguages:
     "Narrows every funnel to people whose events recorded one of the app interface languages you pick. Picking nothing keeps every language.",
-  // Cut from the on-screen text, in full, because it is the reason the option list and the matching
-  // disagree: the list is built from deck versions somebody completed an install of, so three kinds
-  // of version are missing from it while a visit to them is still counted here - a version nobody
-  // ever finished installing, a version whose only completed installs came from a test account or an
-  // excluded actor, and the delisted `test` fixture, which is dropped from the list outright while an
-  // visit aimed at it is excluded only when a matching install start inside the conversion window
-  // named that slug, so a test visit that never reached install start is still counted.
-  installedDecks:
-    "Keeps only the visits to the page of one of the deck versions you pick, read from the visit's own deck page view inside the selected date range. The versions on offer are the ones somebody completed an install of, so a version can be missing from the list and still match visits here.",
-  catalogPlacements:
-    "Counts an install click only when it came from one of the page placements you pick; the deck page views above it are not narrowed."
-    + ` ${funnelsCatalogOptionCoverageTail}`,
-  catalogSources:
-    "Counts an install click only when the click was attributed to one of the traffic sources you pick; the deck page views above it are not narrowed."
-    + ` ${funnelsCatalogOptionCoverageTail}`,
-  catalogDeviceCategories:
-    "Counts an install click only when it came from one of the device categories you pick; the deck page views above it are not narrowed."
-    + ` ${funnelsCatalogOptionCoverageTail}`,
-  catalogClickBrowserLanguages:
-    "Counts an install click only when it reported one of the browser languages you pick; the deck page views above it are not narrowed. It is the browser setting at click time rather than the language the app is used in."
-    + ` ${funnelsCatalogOptionCoverageTail}`,
 };
 
 // Audience renders neither the installs chart nor any other named section of General, so the shared
@@ -478,9 +428,8 @@ export function getAnalyticsFilterFieldExplanation(
 // A label has to be a full phrase somebody can read without opening this file, so a field whose
 // subject genuinely changes in an area is renamed here rather than neutralised into a name that fits
 // everywhere and says nothing. The date range is that field: on the user-scoped areas it bounds the
-// events being counted, while on `funnels` it only places an entry by the event that anchors it,
-// which is not always that funnel's own first step, and the later steps run past it, which is what
-// the explanation above says.
+// events being counted, while on `funnels` it only places an entry by the event that anchors it, and
+// the later steps run past it, which is what the explanation above says.
 const funnelsAnalyticsFilterFieldLabels: Readonly<
   Partial<Record<AnalyticsFilterField, string>>
 > = {
