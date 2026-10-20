@@ -95,8 +95,8 @@ and by the client, never on this collector.
    still accepted and still stores its journey UUID as `anonymous_id`.
 10. Read the rows through `reporting_readonly` and confirm every one has null `user_id`,
     `subject_user_id`, `workspace_id`, `guest_session_id`, `session_id` and `auth_transport`.
-11. Open the admin dashboard and confirm `daily-active-users` and `Audience` are unchanged by every
-    row just written, including any `app_opened` posted to this collector.
+11. Open the admin dashboard and confirm the Level 1 `Who opened the app` chart and `Audience` are
+    unchanged by every row just written, including any `app_opened` posted to this collector.
 12. Post three valid events, each with its own fresh `eventId` — step 2 stores only one row per id —
     one with a `HeadlessChrome` `User-Agent`, one with an ordinary Chrome one and one with no
     `User-Agent` header at all, and confirm the stored rows carry `automated_client` TRUE, FALSE and

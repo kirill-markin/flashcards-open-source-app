@@ -272,7 +272,6 @@ const nlCatalog: TranslationCatalog = {
   },
   progressScreen: {
     title: "Voortgang",
-    subtitle: "Volg je recente reeks en je dagelijkse herhalingsgeschiedenis.",
     streakTitle: "Reeks",
     streakInfoToggleLabel: "Over reeksbevriezingen",
     streakInfo: "Vriesvoorraad {{available}}/{{capacity}}. Volgende aanvulling {{progress}}/{{required}}.",
@@ -516,7 +515,6 @@ const nlCatalog: TranslationCatalog = {
   },
   settingsHome: {
     title: "Instellingen",
-    subtitle: "Beheer je account, werkruimte, support en geavanceerde webinstellingen.",
     inviteFriend: {
       actionText: "Vriend toevoegen",
       ariaLabel: "Vriend toevoegen",
@@ -1228,7 +1226,6 @@ const nlCatalog: TranslationCatalog = {
       label: "Zoeken",
       placeholder: "Zoek in voorkant, achterkant of tags",
     },
-    subtitle: "Kaarten zijn de vragen en antwoorden die je herhaalt om te leren en te onthouden.",
     table: {
       back: "Achterkant",
       due: "Gepland",

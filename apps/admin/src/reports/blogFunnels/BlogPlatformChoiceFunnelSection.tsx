@@ -11,6 +11,7 @@ import {
   FunnelStepsLoadingChart,
   type FunnelStage,
 } from "../funnels/FunnelStepsChart";
+import { pageReadEngagementStartDate } from "../whoSawUs/engagedVisitorsQuery";
 import {
   blogFunnelStartDate,
   buildBlogFunnelStartDateNote,
@@ -20,7 +21,6 @@ import {
   type BlogPlatformChoiceFunnelCounts,
   type BlogPlatformChoiceFunnelGroup,
   type BlogPlatformChoiceFunnelReport,
-  type BlogPlatformChoiceTargetCounts,
 } from "./platformChoiceQuery";
 
 type FunnelLoadState =
@@ -28,8 +28,8 @@ type FunnelLoadState =
   | Readonly<{ status: "error"; message: string }>
   | Readonly<{ status: "ready"; report: BlogPlatformChoiceFunnelReport }>;
 
-/** The three funnel steps in chart order; `buildStages` takes its order from this list. */
-const funnelStepIds = ["entry-view", "home-view", "platform-click"] as const;
+/** The funnel steps in chart order; `buildStages` takes its order from this list. */
+const funnelStepIds = ["entry-view", "engaged", "home-view", "platform-hover-or-click", "platform-click"] as const;
 
 type FunnelStepId = (typeof funnelStepIds)[number];
 
@@ -46,7 +46,7 @@ function getErrorMessage(error: unknown): string {
 }
 
 /**
- * The three steps of one group, or of the funnel as a whole, each as the audience the mode asks for.
+ * The steps of one group, or of the funnel as a whole, each as the audience the mode asks for.
  *
  * EVERY STEP CAN HAVE A HASHED PART HERE, because every step is a marketing-site fact: the cookieless
  * cohort of `all` is measured the whole way down this funnel rather than ending partway through it.
@@ -61,13 +61,23 @@ function buildStages(counts: BlogPlatformChoiceFunnelCounts): ReadonlyArray<Funn
       count: counts.entryViewCount + counts.hashedEntryViewCount,
       hashedCount: counts.hashedEntryViewCount,
     },
+    engaged: {
+      label: "Engaged",
+      count: counts.engagedCount + counts.hashedEngagedCount,
+      hashedCount: counts.hashedEngagedCount,
+    },
     "home-view": {
       label: "Home page viewed",
       count: counts.homeViewCount + counts.hashedHomeViewCount,
       hashedCount: counts.hashedHomeViewCount,
     },
+    "platform-hover-or-click": {
+      label: "Platform hovered or clicked",
+      count: counts.platformHoverOrClickCount + counts.hashedPlatformHoverOrClickCount,
+      hashedCount: counts.hashedPlatformHoverOrClickCount,
+    },
     "platform-click": {
-      label: "Platform picked",
+      label: "Platform clicked",
       count: counts.platformClickCount + counts.hashedPlatformClickCount,
       hashedCount: counts.hashedPlatformClickCount,
     },
@@ -76,46 +86,33 @@ function buildStages(counts: BlogPlatformChoiceFunnelCounts): ReadonlyArray<Funn
   return funnelStepIds.map((id) => ({ id, ...stages[id] }));
 }
 
-function sumTargetCounts(
-  totals: BlogPlatformChoiceTargetCounts,
-  group: BlogPlatformChoiceTargetCounts,
-): BlogPlatformChoiceTargetCounts {
-  return {
-    web_app: totals.web_app + group.web_app,
-    app_store: totals.app_store + group.app_store,
-    google_play: totals.google_play + group.google_play,
-  };
-}
-
-const emptyTargetCounts: BlogPlatformChoiceTargetCounts = {
-  web_app: 0,
-  app_store: 0,
-  google_play: 0,
-};
-
 /** The funnel as a whole: the groups are a partition of both cohorts, so it is their sum. */
 function sumFunnelGroups(
   groups: ReadonlyArray<BlogPlatformChoiceFunnelGroup>,
 ): BlogPlatformChoiceFunnelCounts {
   return groups.reduce<BlogPlatformChoiceFunnelCounts>((totals, group) => ({
     entryViewCount: totals.entryViewCount + group.entryViewCount,
+    engagedCount: totals.engagedCount + group.engagedCount,
     homeViewCount: totals.homeViewCount + group.homeViewCount,
+    platformHoverOrClickCount: totals.platformHoverOrClickCount + group.platformHoverOrClickCount,
     platformClickCount: totals.platformClickCount + group.platformClickCount,
-    targetCounts: sumTargetCounts(totals.targetCounts, group.targetCounts),
     hashedEntryViewCount: totals.hashedEntryViewCount + group.hashedEntryViewCount,
+    hashedEngagedCount: totals.hashedEngagedCount + group.hashedEngagedCount,
     hashedHomeViewCount: totals.hashedHomeViewCount + group.hashedHomeViewCount,
+    hashedPlatformHoverOrClickCount: totals.hashedPlatformHoverOrClickCount + group.hashedPlatformHoverOrClickCount,
     hashedPlatformClickCount: totals.hashedPlatformClickCount + group.hashedPlatformClickCount,
-    hashedTargetCounts: sumTargetCounts(totals.hashedTargetCounts, group.hashedTargetCounts),
     maturingCount: totals.maturingCount + group.maturingCount,
   }), {
     entryViewCount: 0,
+    engagedCount: 0,
     homeViewCount: 0,
+    platformHoverOrClickCount: 0,
     platformClickCount: 0,
-    targetCounts: emptyTargetCounts,
     hashedEntryViewCount: 0,
+    hashedEngagedCount: 0,
     hashedHomeViewCount: 0,
+    hashedPlatformHoverOrClickCount: 0,
     hashedPlatformClickCount: 0,
-    hashedTargetCounts: emptyTargetCounts,
     maturingCount: 0,
   });
 }
@@ -160,6 +157,9 @@ export function BlogPlatformChoiceFunnelSection(props: FunnelSectionProps): JSX.
   const totals = useMemo(() => (report === null ? null : sumFunnelGroups(report.groups)), [report]);
   const stages = useMemo(() => (totals === null ? [] : buildStages(totals)), [totals]);
   const startDateNote = totals === null ? null : buildBlogFunnelStartDateNote(props.filters.dateRange);
+  const pageReadNote = totals !== null && props.filters.dateRange.from < pageReadEngagementStartDate
+    ? `From ${pageReadEngagementStartDate}, a one-page read of 10+ seconds with a scroll, click or key press also counts as Engaged, so a range starting before that day mixes both definitions and its Engaged step reads lower by definition.`
+    : null;
   // The whole first step, so a range in which only cookieless visitors arrived draws the funnel instead
   // of claiming nobody came.
   const entryCount = totals === null ? 0 : totals.entryViewCount + totals.hashedEntryViewCount;
@@ -180,6 +180,7 @@ export function BlogPlatformChoiceFunnelSection(props: FunnelSectionProps): JSX.
 
       {props.isRangeLoading === false && loadState.status === "error" ? <div className="report-state report-state-error"><strong>Funnel query failed.</strong><span>{loadState.message}</span><button className="filter-button" type="button" onClick={() => setLoadRevision((revision) => revision + 1)}>Retry</button></div> : null}
       {startDateNote !== null ? <p className="report-state" aria-live="polite">{startDateNote}</p> : null}
+      {pageReadNote !== null ? <p className="report-state" aria-live="polite">{pageReadNote}</p> : null}
       {hashedCountryNote !== null ? <p className="report-state" aria-live="polite">{hashedCountryNote}</p> : null}
 
       {totals !== null ? <FunnelMaturingWarning maturingCount={totals.maturingCount} entryCount={totals.entryViewCount} /> : null}
@@ -220,9 +221,9 @@ export function BlogPlatformChoiceFunnelSection(props: FunnelSectionProps): JSX.
           <div className="funnel-detail-row funnel-explainer-figure"><span>People still inside 7-day window</span><strong>{totals.maturingCount.toLocaleString("en-US")}</strong></div>
           <p>Every step counts people: a person adds at most one to each step, and counts at a step only after reaching every step above it.</p>
           <p>One row is one person, the site&rsquo;s visitor cookie, anchored at their first <code>site_page_viewed</code> on the marketing site, and only when that first page is a blog article viewed in the selected UTC dates with no trusted event anywhere before it. Blog visits count from {blogFunnelStartDate}, the first full UTC day the blog&rsquo;s calls to action led to the home page. A page viewed before the visitor consents to a cookie carries no visitor id, so such a visitor enters at the first page they view after consenting.</p>
-          <p>Both later steps are that same person within seven days of the entry, each at or after the step above it: a home page view, the designed path every call to action in an article leads to, then a <code>site_app_entry_clicked</code> with any target. The funnel ends at the platform choice on purpose, because a store badge click leaves the browser and cannot be matched to anything after it. A person still inside their seven-day window is not a confirmed drop-off.</p>
+          <p>Every later step is that same person within seven days of the entry, each at or after the step above it. <strong>Engaged</strong> is the first site event after the entry page view that Level 1 counts as engagement: another page view, a 10-second read (from {pageReadEngagementStartDate}), a click, a search or similar; a QR code shown on hover is not one. <strong>Home page viewed</strong> is the designed path every call to action in an article leads to, so a reader who uses the footer store badges on the article without visiting the home page is outside this funnel. <strong>Platform hovered or clicked</strong> is a <code>site_store_qr_shown</code>, sent when an App Store or Google Play button shows its QR code after a short hover or keyboard focus, or a <code>site_app_entry_clicked</code> with any target. <strong>Platform clicked</strong> is a <code>site_app_entry_clicked</code> with any target, so a web app click counts at both of the last steps, and a reader who scans the QR code without clicking stops at the step before. The funnel ends at the platform choice on purpose, because a store badge click or a QR scan leaves the browser and cannot be matched to anything after it. A person still inside their seven-day window is not a confirmed drop-off.</p>
           <p>The platform is the entry page view&rsquo;s, which the site always reports as web, so a selection without web empties this funnel. The country and language keep a person the way they do on General, so narrowing either keeps only people who signed in. Test accounts, admins and excluded actors are left out.</p>
-          <p><strong>Signed-in only</strong> keeps people who resolve to a real, non-guest account. <strong>All</strong> adds cookieless visitors, one person per daily hash, as the lighter part of every bar, and they can reach every step because all three are marketing-site facts. <strong>All</strong> is an upper bound rather than a count, because a visitor who consents partway through a day can appear once in each part of a step; that is why <strong>With anonymous ID</strong> is the default.</p>
+          <p><strong>Signed-in only</strong> keeps people who resolve to a real, non-guest account. <strong>All</strong> adds cookieless visitors, one person per daily hash, as the lighter part of every bar, and they can reach every step because every step is a marketing-site fact. <strong>All</strong> is an upper bound rather than a count, because a visitor who consents partway through a day can appear once in each part of a step; that is why <strong>With anonymous ID</strong> is the default.</p>
         </details>
       ) : null}
     </section>

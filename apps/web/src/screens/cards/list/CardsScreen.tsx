@@ -742,7 +742,6 @@ export function CardsScreen(): ReactElement {
         <div className="screen-head cards-screen-head">
           <div>
             <h1 className="title">{t("cardsScreen.title")}</h1>
-            <p className="subtitle">{t("cardsScreen.subtitle")}</p>
           </div>
           <div className="screen-actions">
             <span className="badge">{visibleCountLabel}</span>
