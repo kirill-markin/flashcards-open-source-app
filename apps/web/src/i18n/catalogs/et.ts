@@ -911,6 +911,9 @@ const etCatalog: TranslationCatalog = {
     previewRemoveTagLabel: "Eemalda silt {{tag}} ({{count}})",
   },
   catalogImport: {
+    existingCopyNotice: "{{title}} on selles tööruumis juba olemas ({{count}}). Sinu õpiedusammud säilivad.",
+    studyExistingCards: "Õpi olemasolevaid kaarte",
+    importAnotherCopy: "Impordi veel üks koopia",
     title: "Impordi pakk kataloogist",
     loading: "Kataloogipaki laadimine...",
     packageSummary: "{{title}} — {{count}}",

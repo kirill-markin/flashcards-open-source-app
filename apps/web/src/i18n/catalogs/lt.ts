@@ -920,6 +920,9 @@ const ltCatalog: TranslationCatalog = {
     previewRemoveTagLabel: "Pašalinti {{tag}} ({{count}})",
   },
   catalogImport: {
+    existingCopyNotice: "{{title}} jau yra šioje darbo srityje ({{count}}). Mokymosi pažanga išsaugoma.",
+    studyExistingCards: "Mokytis esamas korteles",
+    importAnotherCopy: "Importuoti kitą kopiją",
     title: "Importuoti kaladę iš katalogo",
     loading: "Įkeliama katalogo kaladė...",
     packageSummary: "{{title}} — {{count}}",

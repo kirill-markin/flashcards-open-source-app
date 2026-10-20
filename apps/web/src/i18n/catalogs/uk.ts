@@ -920,6 +920,9 @@ const ukCatalog: TranslationCatalog = {
     previewRemoveTagLabel: "Прибрати {{tag}} ({{count}})",
   },
   catalogImport: {
+    existingCopyNotice: "{{title}} уже є в цьому робочому просторі ({{count}}). Прогрес навчання збережеться.",
+    studyExistingCards: "Вчити наявні картки",
+    importAnotherCopy: "Імпортувати ще одну копію",
     title: "Імпорт колоди з каталогу",
     loading: "Завантаження колоди з каталогу...",
     packageSummary: "{{title}} — {{count}}",

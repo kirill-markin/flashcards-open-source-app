@@ -911,6 +911,9 @@ const hiCatalog: TranslationCatalog = {
     previewRemoveTagLabel: "{{tag}} हटाएँ ({{count}})",
   },
   catalogImport: {
+    existingCopyNotice: "{{title}} इस कार्यक्षेत्र में पहले से है ({{count}})। आपकी पढ़ाई की प्रगति सुरक्षित रहेगी।",
+    studyExistingCards: "मौजूदा कार्ड पढ़ें",
+    importAnotherCopy: "एक और कॉपी आयात करें",
     title: "कैटलॉग से डेक इम्पोर्ट करें",
     loading: "कैटलॉग डेक लोड हो रहा है...",
     packageSummary: "{{title}} — {{count}}",

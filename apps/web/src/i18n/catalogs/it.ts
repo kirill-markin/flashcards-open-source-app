@@ -911,6 +911,9 @@ const itCatalog: TranslationCatalog = {
     previewRemoveTagLabel: "Rimuovi {{tag}} ({{count}})",
   },
   catalogImport: {
+    existingCopyNotice: "{{title}} è già in questo spazio di lavoro ({{count}}). I tuoi progressi vengono conservati.",
+    studyExistingCards: "Studia le carte esistenti",
+    importAnotherCopy: "Importa un’altra copia",
     title: "Importa un mazzo dal catalogo",
     loading: "Caricamento del mazzo dal catalogo...",
     packageSummary: "{{title}} — {{count}}",

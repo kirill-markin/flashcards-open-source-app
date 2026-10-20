@@ -911,6 +911,9 @@ const swCatalog: TranslationCatalog = {
     previewRemoveTagLabel: "Ondoa {{tag}} ({{count}})",
   },
   catalogImport: {
+    existingCopyNotice: "{{title}} tayari ipo katika nafasi hii ya kazi ({{count}}). Maendeleo yako ya masomo yanahifadhiwa.",
+    studyExistingCards: "Soma kadi zilizopo",
+    importAnotherCopy: "Leta nakala nyingine",
     title: "Ingiza fungu kutoka katalogi",
     loading: "Inapakia fungu la katalogi...",
     packageSummary: "{{title}} — {{count}}",

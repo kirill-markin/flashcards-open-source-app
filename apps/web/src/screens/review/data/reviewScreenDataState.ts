@@ -67,6 +67,10 @@ export function resolveReviewFilterTitle(
     return reviewFilter.tags.length === 0 ? noTagsLabel : selectedTagsCountLabel;
   }
 
+  if (reviewFilter.kind === "catalogImport") {
+    return reviewFilter.title;
+  }
+
   return deckSummaries.find((deck) => deck.deckId === reviewFilter.deckId)?.name ?? allCardsLabel;
 }
 
@@ -125,6 +129,10 @@ function matchesResolvedReviewFilterForPreservation(
   if (resolvedReviewFilter.kind === "deck") {
     const deckSummary = deckSummaries.find((deck) => deck.deckId === resolvedReviewFilter.deckId);
     return deckSummary === undefined ? false : matchesDeckFilterDefinition(deckSummary.filterDefinition, card);
+  }
+
+  if (resolvedReviewFilter.kind === "catalogImport") {
+    return card.metadata.source?.importId === resolvedReviewFilter.importId;
   }
 
   const requestedTagKeys = new Set(resolvedReviewFilter.tags.map((tag) => normalizeTagKey(tag)));

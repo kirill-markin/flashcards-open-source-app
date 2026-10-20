@@ -911,6 +911,9 @@ const lvCatalog: TranslationCatalog = {
     previewRemoveTagLabel: "Noņemt {{tag}} ({{count}})",
   },
   catalogImport: {
+    existingCopyNotice: "{{title}} jau ir šajā darbvietā ({{count}}). Jūsu mācību progress tiek saglabāts.",
+    studyExistingCards: "Mācīties esošās kartītes",
+    importAnotherCopy: "Importēt vēl vienu kopiju",
     title: "Importēt kavu no kataloga",
     loading: "Ielādē kataloga kavu...",
     packageSummary: "{{title}} — {{count}}",

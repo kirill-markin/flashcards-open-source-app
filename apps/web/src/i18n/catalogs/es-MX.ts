@@ -911,6 +911,9 @@ const esMxCatalog: TranslationCatalog = {
     previewRemoveTagLabel: "Quitar {{tag}} ({{count}})",
   },
   catalogImport: {
+    existingCopyNotice: "{{title}} ya está en este espacio de trabajo ({{count}}). Tu progreso se conserva.",
+    studyExistingCards: "Estudiar las tarjetas existentes",
+    importAnotherCopy: "Importar otra copia",
     title: "Importar mazo del catálogo",
     loading: "Cargando mazo del catálogo...",
     packageSummary: "{{title}} — {{count}}",

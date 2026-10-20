@@ -911,6 +911,9 @@ const svCatalog: TranslationCatalog = {
     previewRemoveTagLabel: "Ta bort {{tag}} ({{count}})",
   },
   catalogImport: {
+    existingCopyNotice: "{{title}} finns redan i den här arbetsytan ({{count}}). Dina studieframsteg bevaras.",
+    studyExistingCards: "Studera befintliga kort",
+    importAnotherCopy: "Importera en till kopia",
     title: "Importera kortlek från katalogen",
     loading: "Läser in kortleken från katalogen...",
     packageSummary: "{{title}} — {{count}}",

@@ -911,6 +911,9 @@ const paCatalog: TranslationCatalog = {
     previewRemoveTagLabel: "{{tag}} ਹਟਾਓ ({{count}})",
   },
   catalogImport: {
+    existingCopyNotice: "{{title}} ਇਸ ਵਰਕਸਪੇਸ ਵਿੱਚ ਪਹਿਲਾਂ ਹੀ ਹੈ ({{count}})। ਤੁਹਾਡੀ ਪੜ੍ਹਾਈ ਦੀ ਤਰੱਕੀ ਸੁਰੱਖਿਅਤ ਰਹੇਗੀ।",
+    studyExistingCards: "ਮੌਜੂਦਾ ਕਾਰਡ ਪੜ੍ਹੋ",
+    importAnotherCopy: "ਇੱਕ ਹੋਰ ਕਾਪੀ ਆਯਾਤ ਕਰੋ",
     title: "ਕੈਟਾਲਾਗ ਤੋਂ ਡੈੱਕ ਆਯਾਤ ਕਰੋ",
     loading: "ਕੈਟਾਲਾਗ ਡੈੱਕ ਲੋਡ ਹੋ ਰਿਹਾ ਹੈ...",
     packageSummary: "{{title}} — {{count}}",

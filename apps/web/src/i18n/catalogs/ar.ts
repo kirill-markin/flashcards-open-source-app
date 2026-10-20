@@ -911,6 +911,9 @@ const arCatalog: TranslationCatalog = {
     previewRemoveTagLabel: "إزالة {{tag}} ({{count}})",
   },
   catalogImport: {
+    existingCopyNotice: "{{title}} موجود بالفعل في مساحة العمل هذه ({{count}}). يُحفظ تقدمك في الدراسة.",
+    studyExistingCards: "دراسة البطاقات الموجودة",
+    importAnotherCopy: "استيراد نسخة أخرى",
     title: "استيراد مجموعة من الكتالوج",
     loading: "جارٍ تحميل مجموعة من الكتالوج...",
     packageSummary: "{{title}} — {{count}}",

@@ -920,6 +920,9 @@ const hrCatalog: TranslationCatalog = {
     previewRemoveTagLabel: "Ukloni {{tag}} ({{count}})",
   },
   catalogImport: {
+    existingCopyNotice: "{{title}} već je u ovom radnom prostoru ({{count}}). Vaš napredak u učenju ostaje sačuvan.",
+    studyExistingCards: "Uči postojeće kartice",
+    importAnotherCopy: "Uvezi još jednu kopiju",
     title: "Uvoz špila iz kataloga",
     loading: "Učitavanje špila iz kataloga...",
     packageSummary: "{{title}} — {{count}}",

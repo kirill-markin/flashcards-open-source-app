@@ -911,6 +911,9 @@ const nbCatalog: TranslationCatalog = {
     previewRemoveTagLabel: "Fjern {{tag}} ({{count}})",
   },
   catalogImport: {
+    existingCopyNotice: "{{title}} finnes allerede i dette arbeidsområdet ({{count}}). Læringsfremgangen din beholdes.",
+    studyExistingCards: "Studer eksisterende kort",
+    importAnotherCopy: "Importer en ny kopi",
     title: "Importer kortstokk fra katalogen",
     loading: "Laster inn kortstokken fra katalogen...",
     packageSummary: "{{title}} — {{count}}",
