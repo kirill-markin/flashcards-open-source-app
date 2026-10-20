@@ -1144,6 +1144,7 @@ const plCatalog: TranslationCatalog = {
       hard: "Trudne",
     },
     shortcuts: {
+      enterKey: "Enter",
       hint: "Naciśnij {{key}}",
       spaceKey: "Spacja",
     },

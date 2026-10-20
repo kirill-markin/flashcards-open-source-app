@@ -1144,6 +1144,7 @@ const roCatalog: TranslationCatalog = {
       hard: "Greu",
     },
     shortcuts: {
+      enterKey: "Enter",
       hint: "Apasă {{key}}",
       spaceKey: "Spațiu",
     },

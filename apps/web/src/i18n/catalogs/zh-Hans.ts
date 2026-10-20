@@ -1134,6 +1134,7 @@ export const zhHansCatalog = {
       hard: "困难",
     },
     shortcuts: {
+      enterKey: "回车",
       hint: "按 {{key}}",
       spaceKey: "空格",
     },

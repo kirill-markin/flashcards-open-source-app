@@ -1134,6 +1134,7 @@ const ptBrCatalog: TranslationCatalog = {
       hard: "Difícil",
     },
     shortcuts: {
+      enterKey: "Enter",
       hint: "Pressione {{key}}",
       spaceKey: "Espaço",
     },

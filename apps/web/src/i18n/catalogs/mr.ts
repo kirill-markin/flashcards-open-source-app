@@ -1134,6 +1134,7 @@ const mrCatalog: TranslationCatalog = {
       hard: "कठीण",
     },
     shortcuts: {
+      enterKey: "एंटर",
       hint: "{{key}} दाबा",
       spaceKey: "स्पेस",
     },

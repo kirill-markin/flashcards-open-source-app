@@ -1134,6 +1134,7 @@ const mlCatalog: TranslationCatalog = {
       hard: "പ്രയാസം",
     },
     shortcuts: {
+      enterKey: "എന്റർ",
       hint: "{{key}} അമർത്തുക",
       spaceKey: "സ്പേസ്",
     },

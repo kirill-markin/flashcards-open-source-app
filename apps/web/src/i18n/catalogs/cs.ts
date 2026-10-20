@@ -1144,6 +1144,7 @@ const csCatalog: TranslationCatalog = {
       hard: "Těžké",
     },
     shortcuts: {
+      enterKey: "Enter",
       hint: "Stiskněte {{key}}",
       spaceKey: "Mezerník",
     },

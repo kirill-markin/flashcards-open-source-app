@@ -1134,6 +1134,7 @@ const swCatalog: TranslationCatalog = {
       hard: "Ngumu",
     },
     shortcuts: {
+      enterKey: "Enter",
       hint: "Bonyeza {{key}}",
       spaceKey: "Nafasi",
     },

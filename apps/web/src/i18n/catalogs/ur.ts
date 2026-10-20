@@ -1134,6 +1134,7 @@ const urCatalog: TranslationCatalog = {
       hard: "مشکل",
     },
     shortcuts: {
+      enterKey: "اینٹر",
       hint: "{{key}} دبائیں",
       spaceKey: "اسپیس",
     },

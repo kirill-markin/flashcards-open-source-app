@@ -1134,6 +1134,7 @@ const zuCatalog: TranslationCatalog = {
       hard: "Kunzima",
     },
     shortcuts: {
+      enterKey: "Enter",
       hint: "Cindezela: {{key}}",
       spaceKey: "Isikhala",
     },

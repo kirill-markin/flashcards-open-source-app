@@ -1144,6 +1144,7 @@ export const ruCatalog = {
       hard: "Трудно",
     },
     shortcuts: {
+      enterKey: "Ввод",
       hint: "Нажмите {{key}}",
       spaceKey: "Пробел",
     },

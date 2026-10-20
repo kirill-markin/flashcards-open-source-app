@@ -1134,6 +1134,7 @@ const teCatalog: TranslationCatalog = {
       hard: "కష్టం",
     },
     shortcuts: {
+      enterKey: "ఎంటర్",
       hint: "{{key}} నొక్కండి",
       spaceKey: "స్పేస్",
     },

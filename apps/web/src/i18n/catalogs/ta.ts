@@ -1134,6 +1134,7 @@ const taCatalog: TranslationCatalog = {
       hard: "கடினம்",
     },
     shortcuts: {
+      enterKey: "என்டர்",
       hint: "{{key}} அழுத்தவும்",
       spaceKey: "ஸ்பேஸ்",
     },

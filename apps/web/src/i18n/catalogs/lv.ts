@@ -1134,6 +1134,7 @@ const lvCatalog: TranslationCatalog = {
       hard: "Grūti",
     },
     shortcuts: {
+      enterKey: "Enter",
       hint: "Nospiediet {{key}}",
       spaceKey: "Atstarpe",
     },

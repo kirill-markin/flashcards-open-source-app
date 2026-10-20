@@ -1134,6 +1134,7 @@ const deCatalog: TranslationCatalog = {
       hard: "Schwer",
     },
     shortcuts: {
+      enterKey: "Eingabetaste",
       hint: "Drücke {{key}}",
       spaceKey: "Leertaste",
     },

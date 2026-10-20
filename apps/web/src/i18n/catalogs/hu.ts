@@ -1134,6 +1134,7 @@ const huCatalog: TranslationCatalog = {
       hard: "Nehéz",
     },
     shortcuts: {
+      enterKey: "Enter",
       hint: "Nyomd meg: {{key}}",
       spaceKey: "Szóköz",
     },

@@ -1134,6 +1134,7 @@ const heCatalog: TranslationCatalog = {
       hard: "קשה",
     },
     shortcuts: {
+      enterKey: "אנטר",
       hint: "לחץ {{key}}",
       spaceKey: "רווח",
     },

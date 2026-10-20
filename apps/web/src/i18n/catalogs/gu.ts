@@ -1134,6 +1134,7 @@ const guCatalog: TranslationCatalog = {
       hard: "મુશ્કેલ",
     },
     shortcuts: {
+      enterKey: "એન્ટર",
       hint: "{{key}} દબાવો",
       spaceKey: "સ્પેસ",
     },

@@ -1134,6 +1134,7 @@ const caCatalog: TranslationCatalog = {
       hard: "Difícil",
     },
     shortcuts: {
+      enterKey: "Retorn",
       hint: "Prem {{key}}",
       spaceKey: "Espai",
     },

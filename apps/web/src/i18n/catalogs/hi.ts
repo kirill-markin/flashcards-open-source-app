@@ -1134,6 +1134,7 @@ const hiCatalog: TranslationCatalog = {
       hard: "कठिन",
     },
     shortcuts: {
+      enterKey: "एंटर",
       hint: "{{key}} दबाएँ",
       spaceKey: "स्पेस",
     },

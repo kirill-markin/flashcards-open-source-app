@@ -1134,6 +1134,7 @@ const bnCatalog: TranslationCatalog = {
       hard: "কঠিন",
     },
     shortcuts: {
+      enterKey: "এন্টার",
       hint: "{{key}} চাপুন",
       spaceKey: "স্পেস",
     },

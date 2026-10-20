@@ -1133,6 +1133,7 @@ const enCatalog = {
       hard: "Hard",
     },
     shortcuts: {
+      enterKey: "Enter",
       hint: "Press {{key}}",
       spaceKey: "Space",
     },

@@ -1134,6 +1134,7 @@ export const jaCatalog = {
       hard: "難しい",
     },
     shortcuts: {
+      enterKey: "エンター",
       hint: "{{key}} を押す",
       spaceKey: "スペース",
     },

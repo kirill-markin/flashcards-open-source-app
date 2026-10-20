@@ -1134,6 +1134,7 @@ const idCatalog: TranslationCatalog = {
       hard: "Sulit",
     },
     shortcuts: {
+      enterKey: "Enter",
       hint: "Tekan {{key}}",
       spaceKey: "Spasi",
     },

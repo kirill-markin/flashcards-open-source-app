@@ -1134,6 +1134,7 @@ const thCatalog: TranslationCatalog = {
       hard: "ยาก",
     },
     shortcuts: {
+      enterKey: "เอนเทอร์",
       hint: "กด {{key}}",
       spaceKey: "แป้นเว้นวรรค",
     },

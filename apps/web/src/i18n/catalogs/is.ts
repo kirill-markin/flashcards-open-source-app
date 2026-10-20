@@ -1134,6 +1134,7 @@ const isCatalog: TranslationCatalog = {
       hard: "Erfitt",
     },
     shortcuts: {
+      enterKey: "Enter",
       hint: "Ýttu á {{key}}",
       spaceKey: "Bilslá",
     },
