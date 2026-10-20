@@ -16,7 +16,9 @@ import {
 } from "../../charts/ChartLegends";
 import { ChartGeneratedAt } from "../../charts/ChartGeneratedAt";
 import { ChartLoadingPlaceholder } from "../../charts/ChartLoadingPlaceholder";
+import { ChartNotesKey } from "../../charts/ChartNotesKey";
 import { ChartTooltip, useChartTooltip } from "../../charts/ChartTooltip";
+import { buildInProgressChartNote, placeChartNotes } from "../../charts/chartNotes";
 import {
   chartWidth,
   createTickDates,
@@ -33,6 +35,7 @@ import {
 } from "../../charts/chartRenderers";
 import { ExplanationTip } from "../../explanations/ExplanationTip";
 import { getLatestGeneralReport, type GeneralReportView } from "../generalReportView";
+import { todayUtcCalendarDate } from "../reportValues";
 
 const dailyActiveUsersBreakdowns = ["none", "cohort", "platform", "osName", "deviceType"] as const;
 type DailyActiveUsersBreakdown = (typeof dailyActiveUsersBreakdowns)[number];
@@ -209,9 +212,14 @@ export function DailyActiveUsersSection(
     () => readyReport === null ? null : buildDailyActiveUsersChartModel(readyReport),
     [readyReport],
   );
+  const today = todayUtcCalendarDate(new Date());
+  const chartNotes = useMemo(() => chartModel === null ? null : placeChartNotes(
+    [buildInProgressChartNote(today)],
+    chartModel.dates.map((date) => ({ key: date, from: date, to: date })),
+  ), [chartModel, today]);
 
   useEffect(() => {
-    if (chartModel === null) {
+    if (chartModel === null || chartNotes === null) {
       tooltipHandlers.hideTooltip();
       return;
     }
@@ -227,6 +235,8 @@ export function DailyActiveUsersSection(
           svgElement,
           dates: chartModel.dates,
           tickDates: chartModel.tickDates,
+          today,
+          notes: chartNotes,
           dailyActiveUsersByDate: chartModel.dailyActiveUsersByDate,
           peakDailyActiveUsers: chartModel.peakDailyActiveUsers,
           tooltipHandlers,
@@ -237,6 +247,8 @@ export function DailyActiveUsersSection(
           svgElement,
           dates: chartModel.dates,
           tickDates: chartModel.tickDates,
+          today,
+          notes: chartNotes,
           dailyActiveUserCohortMatrix: chartModel.dailyActiveUserCohortMatrix,
           dailyActiveUsersByDate: chartModel.dailyActiveUsersByDate,
           peakDailyActiveUsers: chartModel.peakDailyActiveUsers,
@@ -248,6 +260,8 @@ export function DailyActiveUsersSection(
           svgElement,
           dates: chartModel.dates,
           tickDates: chartModel.tickDates,
+          today,
+          notes: chartNotes,
           activeUsersMatrix: chartModel.platformActiveUsersMatrix,
           dailyActiveUsersByDate: chartModel.dailyActiveUsersByDate,
           peakDailyValue: chartModel.peakDailyPlatformValue,
@@ -259,6 +273,8 @@ export function DailyActiveUsersSection(
           svgElement,
           dates: chartModel.dates,
           tickDates: chartModel.tickDates,
+          today,
+          notes: chartNotes,
           activeUsersMatrix: chartModel.osNameActiveUsersMatrix,
           dailyActiveUsersByDate: chartModel.dailyActiveUsersByDate,
           peakDailyValue: chartModel.peakDailyOsNameValue,
@@ -270,6 +286,8 @@ export function DailyActiveUsersSection(
           svgElement,
           dates: chartModel.dates,
           tickDates: chartModel.tickDates,
+          today,
+          notes: chartNotes,
           activeUsersMatrix: chartModel.deviceTypeActiveUsersMatrix,
           dailyActiveUsersByDate: chartModel.dailyActiveUsersByDate,
           peakDailyValue: chartModel.peakDailyDeviceTypeValue,
@@ -277,7 +295,7 @@ export function DailyActiveUsersSection(
         });
         return;
     }
-  }, [chartModel, breakdown, tooltipHandlers]);
+  }, [chartModel, chartNotes, today, breakdown, tooltipHandlers]);
 
   return (
     <section className="dashboard-section">
@@ -345,6 +363,7 @@ export function DailyActiveUsersSection(
               />
             ) : <svg ref={chartRef} />}
           </div>
+          <ChartNotesKey notes={chartNotes} />
         </div>
       </section>
 
