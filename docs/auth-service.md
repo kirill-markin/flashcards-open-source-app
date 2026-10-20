@@ -128,6 +128,8 @@ The API stores only the random token's hash and sends the token only as
   refuses creation with `409 GUEST_BROWSER_RECOVERY_REQUIRED`. Preserve local data.
   A registered session or pending upgrade refuses it with
   `409 GUEST_BROWSER_UPGRADE_REQUIRED`; complete conversion instead.
+  A User-Agent that declares a crawler refuses creation, never resumption, with
+  `403 GUEST_BROWSER_CRAWLER_REFUSED`; headless browsers and scripts are not refused.
 - `POST /v1/guest-auth/browser/session/forget` returns `{ok: true}` and revokes only
   the guest credential, then expires its cookie. Missing/unknown/already-revoked
   credentials are safe to forget. It never deletes a workspace or a linked account.

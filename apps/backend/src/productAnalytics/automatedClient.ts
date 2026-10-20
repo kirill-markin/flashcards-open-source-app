@@ -75,12 +75,31 @@ const automatedUserAgentMarkers: ReadonlyArray<string> = [
 // non-overlapping, and where one is a prefix of another put the longer one first.
 const collidingVendorTokens: ReadonlyArray<string> = ["cubot"];
 
+// The subset of the markers above with which a client declares itself a crawler, as opposed to a
+// headless browser or a script. Browser guest creation refuses these and nothing else, because the
+// release smoke creates production guests from HeadlessChrome.
+const selfDeclaredCrawlerUserAgentMarkers: ReadonlyArray<string> = [
+  "bot",
+  "crawl",
+  "spider",
+  "slurp",
+  "facebookexternalhit",
+  "embedly",
+];
+
 const automatedUserAgentPattern = new RegExp(automatedUserAgentMarkers.join("|"), "iu");
-// Both patterns are module-level and shared by every request. collidingVendorTokenPattern carries g
+const selfDeclaredCrawlerUserAgentPattern = new RegExp(selfDeclaredCrawlerUserAgentMarkers.join("|"), "iu");
+// The patterns are module-level and shared by every request. collidingVendorTokenPattern carries g
 // so that .replace() cuts every occurrence, which also makes it stateful: use it with .replace()
 // only. .test() and .exec() on a g pattern advance its lastIndex and resume there next time, so a
 // verdict would depend on where the previous request's User-Agent happened to match.
 const collidingVendorTokenPattern = new RegExp(collidingVendorTokens.join("|"), "giu");
+
+// Replaced with a space rather than removed, so cutting a token out cannot join its neighbours
+// into a marker that neither of them contained.
+function cutCollidingVendorTokens(userAgent: string): string {
+  return userAgent.toLowerCase().replace(collidingVendorTokenPattern, " ");
+}
 
 // A missing or empty User-Agent counts as automated: every browser sends one, so its absence is
 // itself the signal that the caller is a script.
@@ -89,9 +108,14 @@ export function isAutomatedUserAgent(userAgent: string | null): boolean {
     return true;
   }
 
-  // Replaced with a space rather than removed, so cutting a token out cannot join its neighbours
-  // into a marker that neither of them contained.
-  const scannableUserAgent = userAgent.toLowerCase().replace(collidingVendorTokenPattern, " ");
+  return automatedUserAgentPattern.test(cutCollidingVendorTokens(userAgent));
+}
 
-  return automatedUserAgentPattern.test(scannableUserAgent);
+// A missing User-Agent declares nothing, so it is not a crawler here.
+export function isSelfDeclaredCrawlerUserAgent(userAgent: string | null): boolean {
+  if (userAgent === null) {
+    return false;
+  }
+
+  return selfDeclaredCrawlerUserAgentPattern.test(cutCollidingVendorTokens(userAgent));
 }
