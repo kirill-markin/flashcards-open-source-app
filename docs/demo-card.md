@@ -59,6 +59,11 @@ a guest first, sign-in is a guest upgrade instead, covered in [Guest upgrade](#g
 
 ### Web: the four seed conditions
 
+Catalog entry suppresses the web seed before guest creation and hot bootstrap; ordinary app entry
+keeps the conditions below. A catalog-created guest consumes its seed permission even when the
+import is interrupted. Successful imports hydrate real cards before review, so later account
+conversion does not seed another demo.
+
 The web seed is the last step of a workspace's first successful hot bootstrap
 ([`bootstrapHotState.ts`](../apps/web/src/appData/sync/remote/bootstrapHotState.ts), guard in
 [`demoCard.ts`](../apps/web/src/appData/sync/local/demoCard.ts)). All four must hold: the run is not
@@ -200,6 +205,13 @@ It imports the catalog cards and tombstones only the confirmed unchanged demo at
 ordinary hot sync publication. A failed import preserves all prior content; retrying a committed
 request replays its original result even though the imported cards now make the workspace ineligible.
 Normal explicit catalog imports preserve the demo.
+
+The web automatically requests this intent for a single eligible workspace, preserving package
+tags without adding an import tag. Registered accounts with multiple visible workspaces always
+choose a workspace and confirm the ordinary import. A saved automatic request is replayed exactly
+after interruption, until the destination review loads its actual imported card. The web waits for
+the installed cards and demo tombstone to sync locally before opening review. A revalidated
+eligibility refusal returns to the ordinary import controls without discarding content.
 
 ## Deletion
 

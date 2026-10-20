@@ -3,6 +3,7 @@ import { BrowserGuestSessionInvalidatedError, getOptionalSession, getSession, is
 import type { BrowserGuestProbe } from "../../../apiContracts/guestAuth";
 import { closeDatabaseAfter, getAllFromStore } from "../../../localDb/core/database";
 import { loadCloudSettings } from "../../../localDb/sync/cloudSettings";
+import { isCatalogImportPath } from "../../../routes";
 import type { CloudSettings, SessionInfo } from "../../../types";
 import { hasLoggedInCookie } from "../activation/warmStart";
 import { probeBrowserGuestSessionWithRegisteredRecovery } from "./browserGuestProbe";
@@ -115,7 +116,8 @@ export async function loadBrowserProductSession(): Promise<SessionInfo> {
       const session = await loadVerifiedBrowserGuestSession(activeGuest.userId, activeGuest.workspaceId);
       writeBrowserGuestState({ status: "owned", owner: {
         userId: activeGuest.userId, workspaceId: activeGuest.workspaceId,
-        initialSeedAllowed: saved?.status === "owned" ? saved.owner.initialSeedAllowed : saved?.status === "creating" || guest.status === "absent",
+        initialSeedAllowed: !isCatalogImportPath(window.location.pathname)
+          && (saved?.status === "owned" ? saved.owner.initialSeedAllowed : saved?.status === "creating" || guest.status === "absent"),
         pending: null,
       } });
       return resumeVerifiedBrowserSession(session);

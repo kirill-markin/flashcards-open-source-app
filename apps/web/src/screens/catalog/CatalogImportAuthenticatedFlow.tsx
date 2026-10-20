@@ -40,6 +40,7 @@ import type {
 import { CatalogImportConfirmPanel } from "./CatalogImportConfirmPanel";
 import { CatalogImportWorkspaceChooser } from "./CatalogImportWorkspaceChooser";
 import { CatalogImportSuccessPanel } from "./CatalogImportSuccessPanel";
+import { CatalogImportEntry } from "./CatalogImportEntry";
 import { useCatalogPackageInstallContext, type CatalogPackageInstallContextLoader } from "./useCatalogPackageInstallContext";
 import {
   CatalogImportContextCard,
@@ -270,7 +271,6 @@ function CatalogImportAuthenticatedContent(props: Readonly<{
   const { catalogContext, installContextLoader } = props;
   const {
     activeWorkspace,
-    availableWorkspaces,
     chooseWorkspace,
     cloudSettings,
     errorMessage: appDataErrorMessage,
@@ -294,7 +294,8 @@ function CatalogImportAuthenticatedContent(props: Readonly<{
   const installContextState = resolvedInstallContextLoader.state;
   const { indexedDbOpenRecoveryState, showCapturedTechnicalError } = useAppErrorDialog();
   const { messages, t, formatCount, formatNumber } = useI18n();
-  const isWorkspaceChoiceAvailable = availableWorkspaces.filter((workspace) => workspace.isVisible !== false).length > 1;
+  const isWorkspaceChoiceAvailable = installContextState.status === "ready"
+    && installContextState.context.workspaces.length > 1;
   const [step, setStep] = useState<CatalogImportStep>(() => (isWorkspaceChoiceAvailable ? "workspace" : "confirm"));
   const [hasWorkspaceStep, setHasWorkspaceStep] = useState<boolean>(isWorkspaceChoiceAvailable);
   const [preview, setPreview] = useState<CatalogPackageInstallPreviewResponse | null>(null);
@@ -340,7 +341,9 @@ function CatalogImportAuthenticatedContent(props: Readonly<{
     ? ""
     : `${workspaceIdentity.workspaceId}:${workspaceIdentity.installationId}`;
   const isWorkspaceSelectionBusy = isChoosingWorkspace || isWorkspaceSelectionPending;
-  const isImportAvailable = sessionLoadState === "ready"
+  const isEntryStepPending = isWorkspaceChoiceAvailable && !hasWorkspaceStep;
+  const isImportAvailable = !isEntryStepPending
+    && sessionLoadState === "ready"
     && installContextState.status === "ready"
     && isSessionVerified
     && workspaceIdentity !== null
@@ -966,14 +969,14 @@ function CatalogImportAuthenticatedContent(props: Readonly<{
           <p className="error-banner" role="alert">{workspaceErrorMessage}</p>
         </section>
       )}
-      {step === "workspace" ? (
+      {step === "workspace" || isEntryStepPending ? (
         <CatalogImportWorkspaceChooser
           workspaces={installContextState.context.workspaces}
           isSelectionBusy={isWorkspaceSelectionBusy}
           onChooseWorkspace={(nextWorkspaceId) => void selectCatalogWorkspace(nextWorkspaceId)}
         />
       ) : null}
-      {step === "confirm" && activeWorkspace !== null ? (
+      {step === "confirm" && !isEntryStepPending && activeWorkspace !== null ? (
         <CatalogImportConfirmPanel
           copy={{
             title: t("catalogImport.installTitle"),
@@ -1036,7 +1039,14 @@ export function CatalogImportAuthenticatedFlow(props: Readonly<{
   const { catalogContext, installContextLoader } = props;
   return (
     <PublicGuestAppDataProvider>
-      <CatalogImportAuthenticatedContent catalogContext={catalogContext} installContextLoader={installContextLoader} />
+      <CatalogImportEntry
+        key={catalogContext.packageVersionId}
+        catalogContext={catalogContext}
+        renderManual={(loader) => <CatalogImportAuthenticatedContent
+          catalogContext={catalogContext}
+          installContextLoader={installContextLoader ?? loader}
+        />}
+      />
     </PublicGuestAppDataProvider>
   );
 }

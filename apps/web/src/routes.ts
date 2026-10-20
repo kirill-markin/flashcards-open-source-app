@@ -16,6 +16,9 @@ export const friendInviteRoutePrefix: string = "/invite";
 export const friendInviteRoutePattern: string = `${friendInviteRoutePrefix}/:token`;
 export const catalogImportRoutePrefix: string = "/catalog/import";
 export const catalogImportRoutePattern: string = `${catalogImportRoutePrefix}/:packageVersionId`;
+export function isCatalogImportPath(pathname: string): boolean {
+  return new RegExp(`^${catalogImportRoutePrefix}/[^/]+/*$`, "i").test(pathname);
+}
 export const devPreviewsRoutePrefix: string = "/dev/previews";
 export const friendInvitePreviewRoutePrefix: string = `${devPreviewsRoutePrefix}/invite`;
 export const friendInvitePreviewIndexRoute: string = friendInvitePreviewRoutePrefix;

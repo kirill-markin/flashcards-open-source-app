@@ -27,14 +27,9 @@ export function CatalogImportWorkspaceChooser(props: Readonly<{
   onChooseWorkspace: (workspaceId: string) => void;
 }>): ReactElement {
   const { workspaces, isSelectionBusy, onChooseWorkspace } = props;
-  const { activeWorkspace, availableWorkspaces, isChoosingWorkspace } = useAppData();
+  const { activeWorkspace, isChoosingWorkspace } = useAppData();
   const { messages, t, formatCount, formatDateTime } = useI18n();
-  const visibleWorkspaceIds = new Set(availableWorkspaces
-    .filter((workspace) => workspace.isVisible !== false)
-    .map((workspace) => workspace.workspaceId));
-  const orderedWorkspaces = workspaces
-    .filter((workspace) => visibleWorkspaceIds.has(workspace.workspaceId))
-    .sort(compareCatalogWorkspaces);
+  const orderedWorkspaces = [...workspaces].sort(compareCatalogWorkspaces);
 
   return (
     <section className="content-card invite-panel workspace-modal" data-testid="catalog-import-workspace-selector">

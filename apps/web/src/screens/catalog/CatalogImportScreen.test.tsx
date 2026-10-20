@@ -432,26 +432,30 @@ describe("CatalogImportScreen", () => {
     );
   });
 
-  it("skips the workspace step for a single workspace and keeps the active one selectable", async () => {
-    loadCatalogPackageInstallContextMock.mockResolvedValue(createInstallContext([
+  it("uses fresh context for workspace selection and keeps the active one selectable", async () => {
+    const workspaces = [
       createWorkspace("workspace-1", "Primary", true),
       createWorkspace("workspace-2", "Secondary", false),
-    ]));
+    ];
+    loadCatalogPackageInstallContextMock.mockResolvedValue(createInstallContext(workspaces));
+    const chooseWorkspace = vi.mocked(appData.chooseWorkspace);
+    chooseWorkspace.mockImplementation(async (workspaceId): Promise<void> => {
+      appData = {
+        ...createAppData(workspaces.map((workspace) => ({
+          ...workspace,
+          isSelected: workspace.workspaceId === workspaceId,
+        }))),
+        session: { ...createSession(), selectedWorkspaceId: workspaceId },
+        chooseWorkspace,
+      };
+    });
     await renderRoute(`/catalog/import/${packageVersionId}`);
-    await waitForCondition("Single workspace confirm step was not rendered", () => (
-      container.querySelector("[data-testid='catalog-import-confirm']") !== null
-    ));
-    expect(container.querySelector("[data-testid='catalog-import-workspace-selector']")).toBeNull();
-    expect(container.querySelector("[data-testid='catalog-import-workspace-name']")?.textContent).toBe("Primary");
-
-    appData = createAppData([
-      createWorkspace("workspace-1", "Primary", true),
-      createWorkspace("workspace-2", "Secondary", false),
-    ]);
-    await renderRoute(`/catalog/import/${packageVersionId}`);
+    expect(appData.availableWorkspaces).toHaveLength(1);
     await waitForCondition("Multi-workspace selector was not rendered", () => (
       container.querySelector("[data-testid='catalog-import-workspace-selector']") !== null
     ));
+    expect(container.querySelector("[data-testid='catalog-import-confirm']")).toBeNull();
+    expect(previewCatalogPackageInstallMock).not.toHaveBeenCalled();
     const secondWorkspaceButton = container.querySelector(
       "[data-testid='catalog-import-workspace-option'][data-workspace-id='workspace-2']",
     );
@@ -460,8 +464,17 @@ describe("CatalogImportScreen", () => {
     }
     await act(async () => secondWorkspaceButton.click());
     expect(appData.chooseWorkspace).toHaveBeenCalledWith("workspace-2");
-
-    await clickWorkspaceOption("workspace-1");
+    await waitForCondition("Selected workspace preview did not load", () => (
+      container.querySelector("[data-testid='workspace-package-import-preview']") !== null
+    ));
+    expect(previewCatalogPackageInstallMock).toHaveBeenCalledWith("workspace-2", packageVersionId);
+    expect(confirmCatalogPackageInstallMock).not.toHaveBeenCalled();
+    const backButton = container.querySelector("[data-testid='catalog-import-back']");
+    if (!(backButton instanceof HTMLButtonElement)) {
+      throw new Error("Catalog import back button was not found");
+    }
+    await act(async () => backButton.click());
+    await clickWorkspaceOption("workspace-2");
     await waitForCondition("Active workspace selection did not reach the confirm step", () => (
       container.querySelector("[data-testid='catalog-import-confirm']") !== null
     ));
