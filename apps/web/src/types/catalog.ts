@@ -64,6 +64,7 @@ export type CatalogPackageInstallPreviewResponse = Readonly<{
 }>;
 
 export type CatalogPackageInstallConfirmOptions = Readonly<{
+  immediateOnboarding?: boolean;
   addImportTag: boolean;
   importTag: string;
   removeTags: ReadonlyArray<string>;
@@ -75,6 +76,7 @@ export type CatalogPackageInstallConfirmOptions = Readonly<{
 }>;
 
 export type CatalogPackageInstallConfirmResponse = Readonly<{
+  onboarding?: Readonly<{ removedDemoCardId: string | null }>;
   packageVersion: CatalogPackageInstallPackageVersion;
   installedCards: ReadonlyArray<Readonly<{
     packageCardId: string;

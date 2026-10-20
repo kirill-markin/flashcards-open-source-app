@@ -21,6 +21,7 @@ import {
   parseNonNegativeInteger,
   parseNullableString,
   parseObject,
+  parseOptionalField,
   parseRequiredField,
   parseString,
   parseStringArray,
@@ -206,6 +207,17 @@ function parseCatalogInstalledMediaAsset(
   };
 }
 
+function parseCatalogInstallOnboarding(
+  value: unknown,
+  endpoint: string,
+  path: string,
+): Readonly<{ removedDemoCardId: string | null }> {
+  const objectValue = parseObject(value, endpoint, path);
+  return {
+    removedDemoCardId: parseRequiredField(objectValue, "removedDemoCardId", endpoint, path, parseNullableString),
+  };
+}
+
 export function parseCatalogPackageInstallConfirmResponse(
   value: unknown,
   endpoint: string,
@@ -214,6 +226,7 @@ export function parseCatalogPackageInstallConfirmResponse(
   const summaryValue = parseObject(objectValue.summary, endpoint, "summary");
   return {
     packageVersion: parseRequiredField(objectValue, "packageVersion", endpoint, "", parseCatalogPackageInstallPackageVersion),
+    onboarding: parseOptionalField(objectValue, "onboarding", endpoint, "", parseCatalogInstallOnboarding),
     installedCards: parseCatalogArray(objectValue, "installedCards", endpoint, parseCatalogInstalledCard),
     installedMediaAssets: parseCatalogArray(objectValue, "installedMediaAssets", endpoint, parseCatalogInstalledMediaAsset),
     summary: {

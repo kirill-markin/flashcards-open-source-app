@@ -8,6 +8,7 @@ import { isIndexedDbOpenRecoveryError } from "../../../localDb/core/indexedDbOpe
 import { captureAppOperationError } from "../../../observability/appOperationObservation";
 import type { IndexedDbOpenRecoveryState } from "../../../appError/AppErrorContext";
 import { nowIso } from "../../domain";
+import { isCatalogImportPath } from "../../../routes";
 import {
   createOnboardingDemoCardLocally,
   type LocalCardMutationResult,
@@ -61,7 +62,8 @@ export async function seedDemoCardForNewWorkspace(
 ): Promise<LocalCardMutationResult | null> {
   input.indexedDbOpenRecoveryState.throwIfFailed();
   if (
-    input.isOnlyWorkspaceForUser !== true
+    isCatalogImportPath(window.location.pathname)
+    || input.isOnlyWorkspaceForUser !== true
     || input.remoteIsEmpty !== true
     || input.localCardCount !== 0
   ) {
