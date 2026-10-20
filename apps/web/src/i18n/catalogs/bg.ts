@@ -1125,6 +1125,9 @@ const bgCatalog: TranslationCatalog = {
       unavailable: "Мултимедията е недостъпна",
       videoLabel: "Прикачен видеоклип",
     },
+    moreActions: {
+      ariaLabel: "Още действия за преговора",
+    },
     queue: {
       close: "Затваряне на опашката",
       loading: "зареждане",
@@ -1151,7 +1154,6 @@ const bgCatalog: TranslationCatalog = {
       stop: "Спиране на прочитането: {{side}}",
     },
     speechUnavailable: "Говорът не е наличен на това устройство.",
-    subtitle: "Таблица на опашката и съсредоточен поток с обръщане на картите.",
     title: "Преговор",
   },
   reviewEditor: {

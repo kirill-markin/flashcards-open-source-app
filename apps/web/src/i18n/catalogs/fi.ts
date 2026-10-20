@@ -1125,6 +1125,9 @@ const fiCatalog: TranslationCatalog = {
       unavailable: "Media ei saatavilla",
       videoLabel: "Videoliite",
     },
+    moreActions: {
+      ariaLabel: "Lisää kertaustoimintoja",
+    },
     queue: {
       close: "Sulje jono",
       loading: "ladataan",
@@ -1151,7 +1154,6 @@ const fiCatalog: TranslationCatalog = {
       stop: "Lopeta lukeminen: {{side}}",
     },
     speechUnavailable: "Puhe ei ole käytettävissä tällä laitteella.",
-    subtitle: "Jonotaulukko ja keskittynyt kääntönäkymä.",
     title: "Kertaa",
   },
   reviewEditor: {

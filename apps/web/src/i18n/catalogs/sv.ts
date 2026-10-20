@@ -1125,6 +1125,9 @@ const svCatalog: TranslationCatalog = {
       unavailable: "Media är inte tillgänglig",
       videoLabel: "Videobilaga",
     },
+    moreActions: {
+      ariaLabel: "Fler repetitionsåtgärder",
+    },
     queue: {
       close: "Stäng kön",
       loading: "läser in",
@@ -1151,7 +1154,6 @@ const svCatalog: TranslationCatalog = {
       stop: "Sluta läsa upp: {{side}}",
     },
     speechUnavailable: "Uppläsning är inte tillgänglig på den här enheten.",
-    subtitle: "Kötabell och ett fokuserat flöde där du vänder kortet.",
     title: "Repetition",
   },
   reviewEditor: {

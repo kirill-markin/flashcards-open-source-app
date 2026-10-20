@@ -1125,6 +1125,9 @@ const deCatalog: TranslationCatalog = {
       unavailable: "Medien nicht verfügbar",
       videoLabel: "Videoanhang",
     },
+    moreActions: {
+      ariaLabel: "Weitere Aktionen zum Wiederholen",
+    },
     queue: {
       close: "Warteschlange schließen",
       loading: "lädt",
@@ -1151,7 +1154,6 @@ const deCatalog: TranslationCatalog = {
       stop: "Sprechen von {{side}} stoppen",
     },
     speechUnavailable: "Sprachausgabe ist auf diesem Gerät nicht verfügbar.",
-    subtitle: "Warteschlangentabelle plus fokussierter Umdreh-Ablauf.",
     title: "Wiederholen",
   },
   reviewEditor: {

@@ -1125,6 +1125,9 @@ const bnCatalog: TranslationCatalog = {
       unavailable: "মিডিয়া উপলভ্য নয়",
       videoLabel: "ভিডিও সংযুক্তি",
     },
+    moreActions: {
+      ariaLabel: "পুনরালোচনার আরও বিকল্প",
+    },
     queue: {
       close: "সারি বন্ধ করুন",
       loading: "লোড হচ্ছে",
@@ -1151,7 +1154,6 @@ const bnCatalog: TranslationCatalog = {
       stop: "{{side}} পড়ে শোনানো বন্ধ করুন",
     },
     speechUnavailable: "এই ডিভাইসে পড়ে শোনানোর সুবিধা নেই।",
-    subtitle: "সারির তালিকা এবং একটি মনোযোগী ফ্লিপ ফ্লো।",
     title: "পুনরালোচনা",
   },
   reviewEditor: {

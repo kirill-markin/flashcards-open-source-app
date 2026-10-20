@@ -1125,6 +1125,9 @@ const teCatalog: TranslationCatalog = {
       unavailable: "మీడియా అందుబాటులో లేదు",
       videoLabel: "వీడియో జోడింపు",
     },
+    moreActions: {
+      ariaLabel: "పునశ్చరణ కోసం మరిన్ని చర్యలు",
+    },
     queue: {
       close: "క్యూను మూసివేయి",
       loading: "లోడ్ అవుతోంది",
@@ -1151,7 +1154,6 @@ const teCatalog: TranslationCatalog = {
       stop: "చదివి వినిపించడం ఆపు: {{side}}",
     },
     speechUnavailable: "ఈ పరికరంలో చదివి వినిపించే సౌకర్యం అందుబాటులో లేదు.",
-    subtitle: "క్యూ పట్టికతో పాటు ఏకాగ్రతతో కార్డు తిప్పే ప్రవాహం.",
     title: "పునశ్చరణ",
   },
   reviewEditor: {

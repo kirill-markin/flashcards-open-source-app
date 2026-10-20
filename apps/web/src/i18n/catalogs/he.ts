@@ -1125,6 +1125,9 @@ const heCatalog: TranslationCatalog = {
       unavailable: "המדיה אינה זמינה",
       videoLabel: "סרטון מצורף",
     },
+    moreActions: {
+      ariaLabel: "פעולות חזרה נוספות",
+    },
     queue: {
       close: "סגירת התור",
       loading: "טוען",
@@ -1151,7 +1154,6 @@ const heCatalog: TranslationCatalog = {
       stop: "הפסק להקריא את {{side}}",
     },
     speechUnavailable: "הקראה אינה זמינה במכשיר הזה.",
-    subtitle: "טבלת תור יחד עם זרימת היפוך ממוקדת.",
     title: "חזרה",
   },
   reviewEditor: {

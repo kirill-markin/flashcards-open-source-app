@@ -1125,6 +1125,9 @@ const nlCatalog: TranslationCatalog = {
       unavailable: "Media niet beschikbaar",
       videoLabel: "Videobijlage",
     },
+    moreActions: {
+      ariaLabel: "Meer herhaalacties",
+    },
     queue: {
       close: "Wachtrij sluiten",
       loading: "laden",
@@ -1151,7 +1154,6 @@ const nlCatalog: TranslationCatalog = {
       stop: "Voorlezen van {{side}} stoppen",
     },
     speechUnavailable: "Spraak is niet beschikbaar op dit apparaat.",
-    subtitle: "Wachtrijtabel plus een gerichte flow om kaarten om te draaien.",
     title: "Herhalen",
   },
   reviewEditor: {

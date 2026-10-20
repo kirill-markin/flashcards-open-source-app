@@ -1125,6 +1125,9 @@ const daCatalog: TranslationCatalog = {
       unavailable: "Medier er ikke tilgængelige",
       videoLabel: "Videovedhæftning",
     },
+    moreActions: {
+      ariaLabel: "Flere repetitionshandlinger",
+    },
     queue: {
       close: "Luk køen",
       loading: "indlæser",
@@ -1151,7 +1154,6 @@ const daCatalog: TranslationCatalog = {
       stop: "Stop oplæsning: {{side}}",
     },
     speechUnavailable: "Oplæsning er ikke tilgængelig på denne enhed.",
-    subtitle: "Kø-tabel plus et fokuseret flow, hvor du vender kortene.",
     title: "Repetition",
   },
   reviewEditor: {

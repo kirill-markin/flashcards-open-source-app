@@ -1125,6 +1125,9 @@ const esEsCatalog: TranslationCatalog = {
       unavailable: "Archivo multimedia no disponible",
       videoLabel: "Adjunto de video",
     },
+    moreActions: {
+      ariaLabel: "Más acciones de repaso",
+    },
     queue: {
       close: "Cerrar cola",
       loading: "cargando",
@@ -1151,7 +1154,6 @@ const esEsCatalog: TranslationCatalog = {
       stop: "Dejar de leer {{side}}",
     },
     speechUnavailable: "La voz no está disponible en este dispositivo.",
-    subtitle: "Tabla de cola más un flujo de giro centrado.",
     title: "Repasar",
   },
   reviewEditor: {

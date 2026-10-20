@@ -26,6 +26,7 @@ type ReviewFilterMenuProps = Readonly<{
   reviewDeckSearchText: string;
   reviewFilterListboxId: string;
   reviewFilterListboxRef: React.RefObject<HTMLDivElement | null>;
+  reviewFilterMenuAnchorRef: React.RefObject<HTMLButtonElement | null>;
   reviewFilterMenuRef: React.RefObject<HTMLDivElement | null>;
   reviewFilterMenuItems: ReadonlyArray<ReviewFilterMenuItem>;
   reviewFilterTriggerRef: React.RefObject<HTMLButtonElement | null>;
@@ -125,6 +126,7 @@ export function ReviewFilterMenu(props: ReviewFilterMenuProps): ReactElement {
     reviewDeckSearchText,
     reviewFilterListboxId,
     reviewFilterListboxRef,
+    reviewFilterMenuAnchorRef,
     reviewFilterMenuRef,
     reviewFilterMenuItems,
     reviewFilterTriggerRef,
@@ -155,7 +157,7 @@ export function ReviewFilterMenu(props: ReviewFilterMenuProps): ReactElement {
       </button>
       <AnchoredFloatingOverlay
         isOpen={isReviewFilterMenuOpen}
-        referenceRef={reviewFilterTriggerRef}
+        referenceRef={reviewFilterMenuAnchorRef}
         floatingRef={reviewFilterMenuRef}
         placement="bottom-end"
         viewportPaddingPx={REVIEW_FILTER_MENU_VIEWPORT_PADDING_PX}

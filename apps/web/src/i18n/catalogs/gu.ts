@@ -1125,6 +1125,9 @@ const guCatalog: TranslationCatalog = {
       unavailable: "મીડિયા ઉપલબ્ધ નથી",
       videoLabel: "વિડિયો જોડાણ",
     },
+    moreActions: {
+      ariaLabel: "પુનરાવર્તનની વધુ ક્રિયાઓ",
+    },
     queue: {
       close: "કતાર બંધ કરો",
       loading: "લોડ થઈ રહ્યું છે",
@@ -1151,7 +1154,6 @@ const guCatalog: TranslationCatalog = {
       stop: "મોટેથી વાંચવાનું બંધ કરો: {{side}}",
     },
     speechUnavailable: "આ ઉપકરણ પર વાચન ઉપલબ્ધ નથી.",
-    subtitle: "કતારનું કોષ્ટક અને કેન્દ્રિત ફ્લિપ ફ્લો.",
     title: "પુનરાવર્તન",
   },
   reviewEditor: {

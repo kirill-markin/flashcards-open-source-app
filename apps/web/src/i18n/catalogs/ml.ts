@@ -1125,6 +1125,9 @@ const mlCatalog: TranslationCatalog = {
       unavailable: "മീഡിയ ലഭ്യമല്ല",
       videoLabel: "വീഡിയോ അറ്റാച്ച്മെന്റ്",
     },
+    moreActions: {
+      ariaLabel: "അവലോകനത്തിനുള്ള കൂടുതൽ പ്രവർത്തനങ്ങൾ",
+    },
     queue: {
       close: "ക്യൂ അടയ്ക്കുക",
       loading: "ലോഡ് ചെയ്യുന്നു",
@@ -1151,7 +1154,6 @@ const mlCatalog: TranslationCatalog = {
       stop: "ഉറക്കെ വായിക്കുന്നത് നിർത്തുക: {{side}}",
     },
     speechUnavailable: "ഈ ഉപകരണത്തിൽ ശബ്ദവായന ലഭ്യമല്ല.",
-    subtitle: "ക്യൂ പട്ടികയും കേന്ദ്രീകൃതമായ ഫ്ലിപ്പ് ഒഴുക്കും.",
     title: "അവലോകനം",
   },
   reviewEditor: {

@@ -1124,6 +1124,9 @@ const enCatalog = {
       unavailable: "Media unavailable",
       videoLabel: "Video attachment",
     },
+    moreActions: {
+      ariaLabel: "More review actions",
+    },
     queue: {
       close: "Close queue",
       loading: "loading",
@@ -1150,7 +1153,6 @@ const enCatalog = {
       stop: "Stop speaking {{side}}",
     },
     speechUnavailable: "Speech is unavailable on this device.",
-    subtitle: "Queue table plus a focused flip flow.",
     title: "Review",
   },
   reviewEditor: {

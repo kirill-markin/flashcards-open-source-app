@@ -1125,6 +1125,9 @@ export const jaCatalog = {
       unavailable: "メディアを利用できません",
       videoLabel: "動画添付",
     },
+    moreActions: {
+      ariaLabel: "復習のその他の操作",
+    },
     queue: {
       close: "キューを閉じる",
       loading: "読み込み中",
@@ -1151,7 +1154,6 @@ export const jaCatalog = {
       stop: "{{side}} の読み上げを停止",
     },
     speechUnavailable: "このデバイスでは音声機能を利用できません。",
-    subtitle: "キューの一覧表と集中できるフリップ操作。",
     title: "復習",
   },
   reviewEditor: {

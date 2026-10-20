@@ -1135,6 +1135,9 @@ const skCatalog: TranslationCatalog = {
       unavailable: "Médiá nie sú dostupné",
       videoLabel: "Video príloha",
     },
+    moreActions: {
+      ariaLabel: "Ďalšie akcie opakovania",
+    },
     queue: {
       close: "Zavrieť rad",
       loading: "načítava sa",
@@ -1161,7 +1164,6 @@ const skCatalog: TranslationCatalog = {
       stop: "Zastaviť čítanie: {{side}}",
     },
     speechUnavailable: "Reč nie je na tomto zariadení dostupná.",
-    subtitle: "Tabuľka radu a sústredené otáčanie kariet.",
     title: "Opakovanie",
   },
   reviewEditor: {

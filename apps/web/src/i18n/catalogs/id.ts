@@ -1125,6 +1125,9 @@ const idCatalog: TranslationCatalog = {
       unavailable: "Media tidak tersedia",
       videoLabel: "Lampiran video",
     },
+    moreActions: {
+      ariaLabel: "Tindakan tinjauan lainnya",
+    },
     queue: {
       close: "Tutup antrean",
       loading: "memuat",
@@ -1151,7 +1154,6 @@ const idCatalog: TranslationCatalog = {
       stop: "Hentikan pembacaan sisi {{side}}",
     },
     speechUnavailable: "Pembacaan suara tidak tersedia di perangkat ini.",
-    subtitle: "Tabel antrean plus alur balik kartu yang fokus.",
     title: "Tinjau",
   },
   reviewEditor: {

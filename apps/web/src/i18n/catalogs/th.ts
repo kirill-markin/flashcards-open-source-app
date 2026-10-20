@@ -1125,6 +1125,9 @@ const thCatalog: TranslationCatalog = {
       unavailable: "สื่อไม่พร้อมใช้งาน",
       videoLabel: "วิดีโอแนบ",
     },
+    moreActions: {
+      ariaLabel: "ตัวเลือกการทบทวนเพิ่มเติม",
+    },
     queue: {
       close: "ปิดคิว",
       loading: "กำลังโหลด",
@@ -1151,7 +1154,6 @@ const thCatalog: TranslationCatalog = {
       stop: "หยุดอ่านออกเสียง{{side}}",
     },
     speechUnavailable: "อุปกรณ์นี้ใช้การอ่านออกเสียงไม่ได้",
-    subtitle: "ตารางคิวพร้อมโหมดพลิกการ์ดแบบโฟกัส",
     title: "ทบทวน",
   },
   reviewEditor: {

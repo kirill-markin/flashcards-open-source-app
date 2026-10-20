@@ -176,6 +176,7 @@ export function useReviewScreenController(
     handleCloseMenu,
     handleReviewFilterComboboxKeyDown,
     handleReviewFilterListboxKeyDown,
+    handleReviewFilterMenuOpenFromMoreActions,
     handleReviewFilterMenuToggle,
     handleReviewFilterSelect,
     hasVisibleReviewFilterChoices,
@@ -184,9 +185,11 @@ export function useReviewScreenController(
     reviewDeckSearchText,
     reviewFilterListboxId,
     reviewFilterListboxRef,
+    reviewFilterMenuAnchorRef,
     reviewFilterMenuRef,
     reviewFilterMenuItems,
     reviewFilterTriggerRef,
+    reviewMoreActionsTriggerRef,
     setReviewDeckSearchText,
     shouldShowReviewDeckSearch,
     visibleReviewDeckFilterMenuItems,
@@ -665,6 +668,7 @@ export function useReviewScreenController(
         reviewDeckSearchText,
         reviewFilterListboxId,
         reviewFilterListboxRef,
+        reviewFilterMenuAnchorRef,
         reviewFilterMenuRef,
         reviewFilterMenuItems,
         reviewFilterTriggerRef,
@@ -677,6 +681,7 @@ export function useReviewScreenController(
       hasLoadedReviewData,
       isReviewQueuePanelOpen,
       onRetry: handleRetryReviewLoad,
+      onReviewFilterMenuOpenFromMoreActions: handleReviewFilterMenuOpenFromMoreActions,
       onReviewQueueShortcutClick: handleReviewQueueShortcutClick,
       reviewQueueTotalCount: isInitialReviewLoad && reviewLoadingSnapshot !== null
         ? reviewLoadingSnapshot.reviewCounts.totalCount
@@ -684,6 +689,7 @@ export function useReviewScreenController(
       reviewLoadErrorMessage,
       reviewLeaderboardBadge,
       reviewProgressBadge,
+      reviewMoreActionsTriggerRef,
       reviewSpeechMessage: reviewFeedbackMessage !== "" ? reviewFeedbackMessage : reviewSpeechMessage,
     },
     paneProps: {

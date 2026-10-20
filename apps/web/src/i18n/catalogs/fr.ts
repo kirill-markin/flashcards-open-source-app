@@ -1125,6 +1125,9 @@ const frCatalog: TranslationCatalog = {
       unavailable: "Média indisponible",
       videoLabel: "Pièce jointe vidéo",
     },
+    moreActions: {
+      ariaLabel: "Plus d'actions de révision",
+    },
     queue: {
       close: "Fermer la file",
       loading: "chargement",
@@ -1151,7 +1154,6 @@ const frCatalog: TranslationCatalog = {
       stop: "Arrêter la lecture du {{side}}",
     },
     speechUnavailable: "La synthèse vocale est indisponible sur cet appareil.",
-    subtitle: "Un tableau de file combiné à un flux de retournement concentré.",
     title: "Révision",
   },
   reviewEditor: {

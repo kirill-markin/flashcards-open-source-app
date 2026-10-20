@@ -1145,6 +1145,9 @@ const slCatalog: TranslationCatalog = {
       unavailable: "Predstavnost ni na voljo",
       videoLabel: "Video priloga",
     },
+    moreActions: {
+      ariaLabel: "Več dejanj ponavljanja",
+    },
     queue: {
       close: "Zapri čakalno vrsto",
       loading: "nalaganje",
@@ -1171,7 +1174,6 @@ const slCatalog: TranslationCatalog = {
       stop: "Ustavi branje: {{side}}",
     },
     speechUnavailable: "Govor v tej napravi ni na voljo.",
-    subtitle: "Tabela čakalne vrste in osredotočeno obračanje kartic.",
     title: "Ponavljanje",
   },
   reviewEditor: {

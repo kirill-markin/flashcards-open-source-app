@@ -1125,6 +1125,9 @@ const zuCatalog: TranslationCatalog = {
       unavailable: "Imidiya ayitholakali",
       videoLabel: "Ividiyo enamathiselwe",
     },
+    moreActions: {
+      ariaLabel: "Ezinye izenzo zokubuyekeza",
+    },
     queue: {
       close: "Vala umugqa",
       loading: "kuyalayishwa",
@@ -1151,7 +1154,6 @@ const zuCatalog: TranslationCatalog = {
       stop: "Misa ukufunda ngezwi: {{side}}",
     },
     speechUnavailable: "Ukufunda umbhalo ngezwi akutholakali kule divayisi.",
-    subtitle: "Ithebula lomugqa kanye nokuphenya ikhadi ngokugxila.",
     title: "Buyekeza",
   },
   reviewEditor: {

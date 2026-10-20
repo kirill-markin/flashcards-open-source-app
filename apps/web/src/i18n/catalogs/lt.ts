@@ -1135,6 +1135,9 @@ const ltCatalog: TranslationCatalog = {
       unavailable: "Medija nepasiekiama",
       videoLabel: "Vaizdo priedas",
     },
+    moreActions: {
+      ariaLabel: "Daugiau kartojimo veiksmų",
+    },
     queue: {
       close: "Uždaryti eilę",
       loading: "įkeliama",
@@ -1161,7 +1164,6 @@ const ltCatalog: TranslationCatalog = {
       stop: "Sustabdyti skaitymą: {{side}}",
     },
     speechUnavailable: "Šiame įrenginyje skaitymas balsu nepasiekiamas.",
-    subtitle: "Eilės lentelė ir sutelktas kortelių apvertimo srautas.",
     title: "Kartojimas",
   },
   reviewEditor: {

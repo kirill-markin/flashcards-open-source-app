@@ -1125,6 +1125,9 @@ const knCatalog: TranslationCatalog = {
       unavailable: "ಮಾಧ್ಯಮ ಲಭ್ಯವಿಲ್ಲ",
       videoLabel: "ವೀಡಿಯೊ ಲಗತ್ತು",
     },
+    moreActions: {
+      ariaLabel: "ಪುನರಾವರ್ತನೆಯ ಇನ್ನಷ್ಟು ಕ್ರಿಯೆಗಳು",
+    },
     queue: {
       close: "ಸರತಿ ಮುಚ್ಚಿ",
       loading: "ಲೋಡ್ ಆಗುತ್ತಿದೆ",
@@ -1151,7 +1154,6 @@ const knCatalog: TranslationCatalog = {
       stop: "ಓದುವುದನ್ನು ನಿಲ್ಲಿಸಿ: {{side}}",
     },
     speechUnavailable: "ಈ ಸಾಧನದಲ್ಲಿ ಓದುವಿಕೆ ಲಭ್ಯವಿಲ್ಲ.",
-    subtitle: "ಸರತಿಯ ಕೋಷ್ಟಕ ಮತ್ತು ಕೇಂದ್ರೀಕೃತ ಫ್ಲಿಪ್ ಹರಿವು.",
     title: "ಪುನರಾವರ್ತನೆ",
   },
   reviewEditor: {

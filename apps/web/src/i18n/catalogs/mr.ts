@@ -1125,6 +1125,9 @@ const mrCatalog: TranslationCatalog = {
       unavailable: "माध्यम उपलब्ध नाही",
       videoLabel: "जोडलेला व्हिडिओ",
     },
+    moreActions: {
+      ariaLabel: "उजळणीच्या आणखी क्रिया",
+    },
     queue: {
       close: "रांग बंद करा",
       loading: "लोड करत आहे",
@@ -1151,7 +1154,6 @@ const mrCatalog: TranslationCatalog = {
       stop: "मोठ्याने वाचणे थांबवा: {{side}}",
     },
     speechUnavailable: "या उपकरणावर बोलण्याची सुविधा उपलब्ध नाही.",
-    subtitle: "रांगेची सारणी आणि एकाग्र उलटण्याचा प्रवाह.",
     title: "उजळणी",
   },
   reviewEditor: {

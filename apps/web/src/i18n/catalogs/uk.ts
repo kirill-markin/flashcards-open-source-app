@@ -1135,6 +1135,9 @@ const ukCatalog: TranslationCatalog = {
       unavailable: "Медіа недоступне",
       videoLabel: "Відеовкладення",
     },
+    moreActions: {
+      ariaLabel: "Додаткові дії повторення",
+    },
     queue: {
       close: "Закрити чергу",
       loading: "завантаження",
@@ -1161,7 +1164,6 @@ const ukCatalog: TranslationCatalog = {
       stop: "Зупинити озвучення: {{side}}",
     },
     speechUnavailable: "Озвучення недоступне на цьому пристрої.",
-    subtitle: "Таблиця черги та зосереджений режим перегортання карток.",
     title: "Повторення",
   },
   reviewEditor: {
