@@ -84,7 +84,7 @@ export function SignInFunnelSection(props: FunnelSectionProps): JSX.Element {
 
   return (
     <section className="dashboard-section funnel-report">
-      <FunnelSectionHeader funnelId={signInFunnelAnchor.funnelId} title={signInFunnelTitle} />
+      <FunnelSectionHeader funnelId={signInFunnelAnchor.funnelId} title={signInFunnelTitle} onDetailsNavigate={props.onDetailsNavigate} />
 
       {loadState.status === "error" ? <div className="report-state report-state-error"><strong>Funnel query failed.</strong><span>{loadState.message}</span><button className="filter-button" type="button" onClick={retry}>Retry</button></div> : null}
       {rangeViews.map((range) => (range.dateRange.from < signInFunnelStartDate ? <p key={range.key} className="report-state">{formatFunnelRangeNote(range.seriesLabel, `Selections before ${signInFunnelStartDate} are outside this report’s coverage.`)}</p> : null))}

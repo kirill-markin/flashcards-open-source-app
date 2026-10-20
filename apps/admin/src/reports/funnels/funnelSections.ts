@@ -10,9 +10,9 @@ import {
   catalogInstallFunnelAnchor,
 } from "../catalogInstallFunnel/CatalogInstallFunnelSection";
 import {
-  MobileFirstLaunchFunnelSection,
-  mobileFirstLaunchFunnelAnchor,
-} from "../mobileFirstLaunchFunnel/MobileFirstLaunchFunnelSection";
+  FirstLaunchFunnelSection,
+  firstLaunchFunnelAnchor,
+} from "../firstLaunchFunnel/FirstLaunchFunnelSection";
 import {
   PaywallFunnelSection,
   paywallFunnelAnchor,
@@ -23,13 +23,19 @@ import {
 } from "../signInFunnel/SignInFunnelSection";
 import type { FunnelAnchor } from "./funnelAnchorUrl";
 
-export type FunnelSectionProps = Readonly<{
+/** What a funnel card loads its report from. */
+export type FunnelReportProps = Readonly<{
   config: AdminAppConfig;
   /** The selection the Funnels area applies; each funnel applies the fields it can answer and says which it cannot. */
   filters: AnalyticsFilterState;
   /** The shared selection is still settling after a filter change; a funnel waits it out rather than querying per click. */
   isRangeLoading: boolean;
   onTerminalAdminError: (error: unknown, config: AdminAppConfig) => boolean;
+}>;
+
+export type FunnelSectionProps = FunnelReportProps & Readonly<{
+  /** Follows the card's Details link; `null` on the funnel's own Details page, which draws no Details button. */
+  onDetailsNavigate: ((path: string) => void) | null;
 }>;
 
 export type FunnelSectionDefinition = Readonly<{
@@ -80,7 +86,7 @@ export type FunnelSectionDefinition = Readonly<{
  * partial first day, and warns while some entries are still inside their seven-day window.
  */
 export const funnelSections: ReadonlyArray<FunnelSectionDefinition> = [
-  { anchor: mobileFirstLaunchFunnelAnchor, Section: MobileFirstLaunchFunnelSection },
+  { anchor: firstLaunchFunnelAnchor, Section: FirstLaunchFunnelSection },
   { anchor: catalogInstallFunnelAnchor, Section: CatalogInstallFunnelSection },
   { anchor: blogPlatformChoiceFunnelAnchor, Section: BlogPlatformChoiceFunnelSection },
   { anchor: signInFunnelAnchor, Section: SignInFunnelSection },

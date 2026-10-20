@@ -8,7 +8,7 @@ import {
   type FunnelGroupCounts,
 } from "../funnels/funnelGroupBy";
 import type { FunnelStage } from "../funnels/FunnelStepsChart";
-import { mobileFirstLaunchEngagedReviewThreshold } from "../mobileFirstLaunchFunnel/query";
+import { firstLaunchEngagedReviewThreshold } from "../firstLaunchFunnel/query";
 import {
   catalogInstallConversionWindowDays,
   type CatalogInstallFunnelReport,
@@ -152,9 +152,9 @@ function buildMainStages(
       isReached: (visit) => (visit.installReviewDayCount ?? 0) >= 2,
     },
     "engaged-returning": {
-      label: `${mobileFirstLaunchEngagedReviewThreshold}+ reviews on 3+ days`,
+      label: `${firstLaunchEngagedReviewThreshold}+ reviews on 3+ days`,
       isReached: (visit) => (
-        (visit.installReviewCount ?? 0) >= mobileFirstLaunchEngagedReviewThreshold
+        (visit.installReviewCount ?? 0) >= firstLaunchEngagedReviewThreshold
         && (visit.installReviewDayCount ?? 0) >= 3
       ),
     },

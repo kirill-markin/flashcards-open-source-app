@@ -167,12 +167,12 @@ function buildUnionRange(
 }
 
 /**
- * Every analytics area but Level 1 metrics renders the shared filter bar and carries its selection in
- * the URL. Level 1 metrics and its Details pages own their range and its available range, so entering
- * them loads nothing here.
+ * Every analytics area but Level 1 metrics, and every funnel Details page, renders the shared filter
+ * bar and carries its selection in the URL. Level 1 metrics and its Details pages own their range and
+ * its available range, so entering them loads nothing here.
  */
 function doesRouteUseAnalyticsFilters(route: AdminRoute): boolean {
-  return route.kind === "analyticsArea" && route.area !== "level-1-metrics";
+  return (route.kind === "analyticsArea" && route.area !== "level-1-metrics") || route.kind === "funnelDetails";
 }
 
 /**
@@ -193,11 +193,9 @@ function buildAreaSearchParams(
   filterSearchParams: URLSearchParams,
   currentSearchParams: URLSearchParams,
 ): URLSearchParams {
-  if (route.kind !== "analyticsArea") {
-    return filterSearchParams;
-  }
-
-  if (route.area === "funnels") {
+  // A funnel Details page carries every funnel's anchor, not only its own, so its back link returns
+  // to the Funnels area with the query string it left.
+  if (route.kind === "funnelDetails" || (route.kind === "analyticsArea" && route.area === "funnels")) {
     return funnelSections.reduce(
       (nextSearchParams, funnel) => withFunnelAnchorSearchParams(
         nextSearchParams,
@@ -208,7 +206,7 @@ function buildAreaSearchParams(
     );
   }
 
-  if (route.area === "ai-usage") {
+  if (route.kind === "analyticsArea" && route.area === "ai-usage") {
     return withAiUsageControlSearchParams(
       filterSearchParams,
       parseAiUsageControls(currentSearchParams),

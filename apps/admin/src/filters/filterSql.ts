@@ -89,12 +89,13 @@ export function buildExcludedActorReasonSql(actorIdSqlExpression: string): strin
  *   - `reports/audience/query.ts`, `language_events`: the per-actor language and `unknown` coverage
  *     of an already-counted actor, over every event name.
  *   - `reports/catalogInstalls/query.ts`, `installer_app_opens`: the new-versus-returning cohort.
- *   - `reports/mobileFirstLaunchFunnel/query.ts`, `actor_first_events` and `step_events`. The first
- *     decides whether a person's first-ever event is a mobile app open. It reads every event name with
- *     no lower bound and lets through only a `card_created` at most 60 seconds before that open, which
- *     is the seeded demo card. Without this predicate, a signed-out marketing-site visit resolving onto
- *     the same identity would keep that person out. The second reads the client-reportable
- *     `screen_viewed` and `review_card_revealed` steps, so a credential-free claim would otherwise
+ *   - `reports/firstLaunchFunnel/query.ts`, `actor_first_events` and `step_events`. The first
+ *     decides whether a person's first-ever event is an app launch (`app_opened` or `screen_viewed`)
+ *     on iOS, Android or web. It reads every event name with no lower bound and lets through only a
+ *     `card_created` at most 60 seconds before that launch, which is the seeded demo card. Without
+ *     this predicate, a signed-out marketing-site visit resolving onto the same identity would keep
+ *     that person out, and a credential-free launch claim could enter one. The second reads the
+ *     client-reportable `screen_viewed` and `review_card_revealed` steps, so a credential-free claim would otherwise
  *     advance a cohort member through the funnel.
  *   - `reports/siteEntryFunnel/query.ts`, `actor_first_events`, the site-entry cohort the blog funnel
  *     reads through the fragments that module exports. It decides whether a person was already here

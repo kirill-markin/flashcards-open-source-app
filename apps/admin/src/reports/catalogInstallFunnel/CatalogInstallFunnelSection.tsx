@@ -15,7 +15,7 @@ import {
   FunnelStepsEmptyChart,
   FunnelStepsLoadingChart,
 } from "../funnels/FunnelStepsChart";
-import { mobileFirstLaunchEngagedReviewThreshold } from "../mobileFirstLaunchFunnel/query";
+import { firstLaunchEngagedReviewThreshold } from "../firstLaunchFunnel/query";
 import {
   catalogInstallFunnelStartDate,
   loadCatalogInstallFunnelReport,
@@ -89,7 +89,7 @@ export function CatalogInstallFunnelSection(props: FunnelSectionProps): JSX.Elem
 
   return (
     <section className="dashboard-section funnel-report">
-      <FunnelSectionHeader funnelId={catalogInstallFunnelAnchor.funnelId} title={catalogInstallFunnelTitle} />
+      <FunnelSectionHeader funnelId={catalogInstallFunnelAnchor.funnelId} title={catalogInstallFunnelTitle} onDetailsNavigate={props.onDetailsNavigate} />
 
       {loadState.status === "error" ? <div className="report-state report-state-error"><strong>Funnel query failed.</strong><span>{loadState.message}</span><button className="filter-button" type="button" onClick={retry}>Retry</button></div> : null}
       {rangeViews.map((range) => {
@@ -137,7 +137,7 @@ export function CatalogInstallFunnelSection(props: FunnelSectionProps): JSX.Elem
           <summary>How it&rsquo;s counted</summary>
           <div className="funnel-detail-row funnel-explainer-figure"><span>Median page view to install</span><strong>{formatDuration(medianInstallSeconds)}</strong></div>
           <p>Every step counts people: a person adds at most one to each step, and counts at a step only after reaching every step above it. Step one is a person who viewed the page of any deck; below it, a person counts at a step when one deck whose page they viewed carried them through every step down to it. The install click and the install are joined to the page view by the same visitor identity, the <code>analytics_visitor</code> cookie the site and the app share, each at or after the step above it and within seven days of the page view. An install made as a signed-out browser guest is joined to the clicking visitor through that same visitor id, which the guest&rsquo;s own rows carry. Only a server-origin <code>catalog_deck_installed</code> is an install, whichever import path the app took, and the median is each person&rsquo;s earliest server install measured from that deck&rsquo;s page view.</p>
-          <p>People count from {catalogInstallFunnelStartDate}, the first full UTC day the site reported identified deck page views. A page viewed before the visitor consents to a cookie carries no visitor id, so it is not in this funnel. The four review steps count the installing person&rsquo;s reviews from the install to seven days after the page view, anywhere in the product rather than in the installed deck, because <code>review_answered</code> names no deck: one review, two reviews, reviews on two UTC days, then {mobileFirstLaunchEngagedReviewThreshold} reviews over three UTC days. A person whose deck page view is still inside its seven-day window is not a confirmed drop-off.</p>
+          <p>People count from {catalogInstallFunnelStartDate}, the first full UTC day the site reported identified deck page views. A page viewed before the visitor consents to a cookie carries no visitor id, so it is not in this funnel. The four review steps count the installing person&rsquo;s reviews from the install to seven days after the page view, anywhere in the product rather than in the installed deck, because <code>review_answered</code> names no deck: one review, two reviews, reviews on two UTC days, then {firstLaunchEngagedReviewThreshold} reviews over three UTC days. A person whose deck page view is still inside its seven-day window is not a confirmed drop-off.</p>
           <p>The client platform is read off the anchoring page view, which the site always reports as web, so a selection without web empties this funnel. The connection country and the app interface language keep an identity the way they keep a person on General, so narrowing either keeps only people who signed in. Test-deck rows, test accounts, admins and excluded actors are left out.</p>
           <p><strong>Signed-in only</strong> keeps the visits whose identity resolves to a real, non-guest account. <strong>All</strong> adds cookieless visitors, one person per daily hash, as the lighter part of the first two bars; they reach no later step, the exclusion rules cannot reach them, and a selected connection country removes them. <strong>All</strong> is an upper bound rather than a count, because a visitor who consents partway through a day can appear once in each part of a step; that is why <strong>With anonymous ID</strong> is the default.</p>
         </details>

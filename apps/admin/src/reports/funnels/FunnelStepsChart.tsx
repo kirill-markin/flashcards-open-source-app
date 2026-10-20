@@ -1,8 +1,8 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type JSX } from "react";
+import { useCallback, useEffect, useMemo, useRef, useSyncExternalStore, type JSX } from "react";
 import { ChartAreaWithNote } from "../../charts/ChartAreaWithNote";
 import { ChartColorKeyPlaceholder } from "../../charts/ChartLegends";
 import { ChartTooltip, useChartTooltip } from "../../charts/ChartTooltip";
-import { chartWidth } from "../../charts/chartPrimitives";
+import { buildFunnelComparisonTint, chartWidth, neutralChartColor } from "../../charts/chartPrimitives";
 import {
   getFunnelChartHeight,
   getFunnelSplitLineCount,
@@ -13,10 +13,11 @@ import {
 import type { AnalyticsDateRange } from "../../filters/analyticsFilters";
 import {
   parseFunnelAnchorStepId,
+  subscribeToFunnelAnchorChanges,
   writeFunnelAnchorToUrl,
   type FunnelAnchor,
 } from "./funnelAnchorUrl";
-import type { FunnelGroup } from "./funnelGroupBy";
+import type { FunnelComparedGroup, FunnelGroup } from "./funnelGroupBy";
 
 /**
  * A main-path step; its `id` is what the URL stores as the anchor, so a label can change freely.
@@ -32,6 +33,19 @@ export type FunnelStage<StepId extends string> = Readonly<{
   count: number;
   hashedCount: number;
 }>;
+
+/**
+ * What a grouped chart draws: one coloured series per group, such as the A/B date range comparison,
+ * or a date range comparison of groups, each drawn as a pair of bars in its own colour, range A solid
+ * and range B a lighter tint of it, named by `rangeLabels` in the key.
+ */
+export type FunnelChartGroups<StepId extends string> =
+  | Readonly<{ kind: "groups"; groups: ReadonlyArray<FunnelGroup<StepId>> }>
+  | Readonly<{
+    kind: "range-pairs";
+    rangeLabels: Readonly<{ a: string; b: string }>;
+    groups: ReadonlyArray<FunnelComparedGroup<StepId>>;
+  }>;
 
 /** The single series an ungrouped funnel draws; its key is never shown and never collides with a group key. */
 const ungroupedFunnelGroupKey = "ungrouped";
@@ -209,10 +223,10 @@ export function FunnelStepsEmptyChart(
 
 /**
  * One funnel's step chart with its click-to-anchor state. Mount it only once the funnel has something
- * to draw. The anchor is read from the URL on mount and written back on every click, so a remount after
- * a reload reopens the same anchor; only a click moves it, and `null` is the default view, measured
- * from the first step. The anchor is one choice for the whole chart: clicking a step re-bases every
- * group on its own count at that step.
+ * to draw. The anchor is read from the URL and written back on every click, so a reload reopens the
+ * same anchor and every chart of the funnel on the page follows the click; only a click moves it, and
+ * `null` is the default view, measured from the first step. The anchor is one choice for the whole
+ * chart: clicking a step re-bases every group on its own count at that step.
  */
 export function FunnelStepsChart<StepId extends string>(
   props: Readonly<{
@@ -220,12 +234,11 @@ export function FunnelStepsChart<StepId extends string>(
     /** The main path in chart order, each step a subset of the one before it. */
     stages: ReadonlyArray<FunnelStage<StepId>>;
     /**
-     * One coloured series per group, such as the A/B date range comparison, which replaces `stages`;
-     * each group carries the funnel's full step list in the same order. `undefined` is the ungrouped
-     * chart: `stages` becomes the single group everything below draws, so there is one rendering path
-     * either way.
+     * The groups, which replace `stages`; each carries the funnel's full step list in the same order.
+     * `undefined` is the ungrouped chart: `stages` becomes the single group everything below draws, so
+     * there is one rendering path either way.
      */
-    groups: ReadonlyArray<FunnelGroup<StepId>> | undefined;
+    groups: FunnelChartGroups<StepId> | undefined;
     /** What one counted row is, plural: the chart heading. */
     countLabel: string;
     dateRange: AnalyticsDateRange;
@@ -237,37 +250,72 @@ export function FunnelStepsChart<StepId extends string>(
     showsHashedSplit: boolean;
   }>,
 ): JSX.Element {
-  const [anchorStepId, setAnchorStepId] = useState<StepId | null>(
+  const anchorStepId = useSyncExternalStore(
+    subscribeToFunnelAnchorChanges,
     () => parseFunnelAnchorStepId(new URLSearchParams(window.location.search), props.anchor),
   );
   const { tooltipState, tooltipHandlers } = useChartTooltip();
   const propsGroups = props.groups;
-  const groups = useMemo<ReadonlyArray<FunnelGroup<StepId>>>(() => (
-    propsGroups ?? [{
-      key: ungroupedFunnelGroupKey,
-      label: props.countLabel,
-      // The single bar takes its accent fill from the stylesheet, so no colour is read off this group.
-      color: "var(--accent)",
-      stages: props.stages,
-    }]
-  ), [propsGroups, props.countLabel, props.stages]);
   // PASSED GROUPS ARE WHAT MAKE THE CHART GROUPED, not how many there are: a passed series is always
   // drawn in its own colour and named in the key, so it can never read as the plain funnel.
   const isGrouped = propsGroups !== undefined;
   // Every group carries the same steps in the same order, so the first one names the funnel's steps.
-  const chartStages = groups[0]?.stages ?? [];
+  const chartStages = useMemo<ReadonlyArray<FunnelStage<StepId>>>(() => {
+    if (propsGroups === undefined) {
+      return props.stages;
+    }
+
+    return (propsGroups.kind === "groups" ? propsGroups.groups[0]?.stages : propsGroups.groups[0]?.aStages) ?? [];
+  }, [propsGroups, props.stages]);
   const anchorIndex = Math.max(0, chartStages.findIndex((stage) => stage.id === anchorStepId));
-  const groupBars = useMemo<ReadonlyArray<FunnelStepGroupBars>>(() => groups.map((group) => ({
-    key: group.key,
-    label: group.label,
-    color: group.color,
-    steps: buildFunnelStepBars(group.stages, anchorIndex, props.showsHashedSplit),
-  })), [groups, anchorIndex, props.showsHashedSplit]);
+  const groupBars = useMemo<ReadonlyArray<FunnelStepGroupBars>>(() => {
+    if (propsGroups === undefined) {
+      return [{
+        key: ungroupedFunnelGroupKey,
+        label: props.countLabel,
+        // The single bar takes its accent fill from the stylesheet, so no colour is read off this group.
+        color: "var(--accent)",
+        pairKey: ungroupedFunnelGroupKey,
+        pairedRange: null,
+        steps: buildFunnelStepBars(props.stages, anchorIndex, props.showsHashedSplit),
+      }];
+    }
+
+    if (propsGroups.kind === "groups") {
+      return propsGroups.groups.map((group) => ({
+        key: group.key,
+        label: group.label,
+        color: group.color,
+        pairKey: group.key,
+        pairedRange: null,
+        steps: buildFunnelStepBars(group.stages, anchorIndex, props.showsHashedSplit),
+      }));
+    }
+
+    // The range is a prefix of the bar's key, so a group key can never collide with another bar's.
+    return propsGroups.groups.flatMap((group): ReadonlyArray<FunnelStepGroupBars> => [
+      {
+        key: `a:${group.key}`,
+        label: group.label,
+        color: group.color,
+        pairKey: group.key,
+        pairedRange: "a",
+        steps: buildFunnelStepBars(group.aStages, anchorIndex, props.showsHashedSplit),
+      },
+      {
+        key: `b:${group.key}`,
+        label: group.label,
+        color: buildFunnelComparisonTint(group.color),
+        pairKey: group.key,
+        pairedRange: "b",
+        steps: buildFunnelStepBars(group.bStages, anchorIndex, props.showsHashedSplit),
+      },
+    ]);
+  }, [propsGroups, props.countLabel, props.stages, anchorIndex, props.showsHashedSplit]);
   /** Selecting the current anchor or the first step returns to the default view and clears the URL. */
   const selectAnchorStep = useCallback((stepIndex: number): void => {
     const selectedStepId = chartStages[stepIndex]?.id ?? null;
     const nextStepId = stepIndex === 0 || selectedStepId === anchorStepId ? null : selectedStepId;
-    setAnchorStepId(nextStepId);
     writeFunnelAnchorToUrl(props.anchor, nextStepId);
   }, [anchorStepId, chartStages, props.anchor]);
 
@@ -294,7 +342,7 @@ export function FunnelStepsChart<StepId extends string>(
       <div className="chart-shell">
         <FunnelChartMeta countLabel={props.countLabel} dateRange={props.dateRange} showsHashedSplit={props.showsHashedSplit} />
         {/* The same key markup the platform charts use, so a colour key reads the same everywhere. */}
-        {isGrouped ? (
+        {propsGroups?.kind === "groups" ? (
           <div className="platform-key funnel-group-key" aria-label="Funnel group color key">
             {groupBars.map((group) => (
               <span key={group.key} className="platform-key-item">
@@ -302,6 +350,28 @@ export function FunnelStepsChart<StepId extends string>(
                 <span>{group.label}</span>
               </span>
             ))}
+          </div>
+        ) : null}
+        {/* Each group's swatch shows both of its tints; the last two entries say which tint is which range. */}
+        {propsGroups?.kind === "range-pairs" ? (
+          <div className="platform-key funnel-group-key" aria-label="Funnel group color key">
+            {propsGroups.groups.map((group) => (
+              <span key={group.key} className="platform-key-item">
+                <span
+                  className="platform-key-swatch"
+                  style={{ background: `linear-gradient(90deg, ${group.color} 50%, ${buildFunnelComparisonTint(group.color)} 50%)` }}
+                />
+                <span>{group.label}</span>
+              </span>
+            ))}
+            <span className="platform-key-item">
+              <span className="platform-key-swatch" style={{ backgroundColor: neutralChartColor }} />
+              <span>Solid: {propsGroups.rangeLabels.a}</span>
+            </span>
+            <span className="platform-key-item">
+              <span className="platform-key-swatch" style={{ backgroundColor: buildFunnelComparisonTint(neutralChartColor) }} />
+              <span>Light: {propsGroups.rangeLabels.b}</span>
+            </span>
           </div>
         ) : null}
         <div className="chart-scroll">
