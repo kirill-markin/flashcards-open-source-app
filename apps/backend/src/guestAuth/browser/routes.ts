@@ -8,6 +8,7 @@ import {
   getSessionCsrfToken,
   type RequestAuthInputs,
 } from "../../auth/requestSecurity";
+import { isSelfDeclaredCrawlerUserAgent } from "../../productAnalytics/automatedClient";
 import type { AppEnv } from "../../server/app";
 import { expectBoolean, expectRecord, parseJsonBody } from "../../server/requestParsing";
 import { HttpError } from "../../shared/errors";
@@ -123,6 +124,9 @@ export function createBrowserGuestAuthRoutes(options: BrowserGuestRoutesOptions)
       });
     }
 
+    if (isSelfDeclaredCrawlerUserAgent(context.req.header("user-agent") ?? null)) {
+      throw new HttpError(403, "Crawlers cannot create browser guest accounts. Open the app in a regular browser, or use the agent API for automated access.", "GUEST_BROWSER_CRAWLER_REFUSED");
+    }
     const body = expectRecord(await parseJsonBody(context.req.raw));
     const hasLocalOwnership = expectBoolean(body.hasLocalOwnership, "hasLocalOwnership");
     if (hasLocalOwnership) {

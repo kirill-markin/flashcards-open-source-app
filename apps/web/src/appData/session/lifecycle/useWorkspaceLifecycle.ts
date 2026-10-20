@@ -100,6 +100,7 @@ function isExpectedWorkspaceSessionApiError(error: Error): boolean {
   switch (error.code) {
     case "WORKSPACE_NOT_FOUND":
     case "WORKSPACE_SELECTION_REQUIRED":
+    case "GUEST_BROWSER_CRAWLER_REFUSED":
       return true;
   }
 
