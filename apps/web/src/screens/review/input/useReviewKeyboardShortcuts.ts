@@ -13,6 +13,7 @@ type UseReviewKeyboardShortcutsParams = Readonly<{
   isGuestSignInPromptVisible: boolean;
   isMobileAppPromotionDialogOpen: boolean;
   isReviewFilterMenuOpen: boolean;
+  isReviewMoreActionsMenuOpen: boolean;
   isSubmitting: boolean;
   isTagFilterDialogOpen: boolean;
   isTextSelectionDialogOpen: boolean;
@@ -49,6 +50,7 @@ export function useReviewKeyboardShortcuts(params: UseReviewKeyboardShortcutsPar
     isGuestSignInPromptVisible,
     isMobileAppPromotionDialogOpen,
     isReviewFilterMenuOpen,
+    isReviewMoreActionsMenuOpen,
     isSubmitting,
     isTagFilterDialogOpen,
     isTextSelectionDialogOpen,
@@ -64,6 +66,7 @@ export function useReviewKeyboardShortcuts(params: UseReviewKeyboardShortcutsPar
     || isGuestSignInPromptVisible
     || isMobileAppPromotionDialogOpen
     || isReviewFilterMenuOpen
+    || isReviewMoreActionsMenuOpen
     || isTagFilterDialogOpen
     || isTextSelectionDialogOpen;
 

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState, type ReactElement } from "react";
+import { useCallback, useEffect, useRef, type ReactElement } from "react";
 import {
   AnchoredFloatingOverlay,
   useAnchoredFloatingHiddenTriggerDismiss,
@@ -11,9 +11,11 @@ const REVIEW_MORE_ACTIONS_MENU_VIEWPORT_PADDING_PX = 16;
 const REVIEW_MORE_ACTIONS_MENU_MAX_WIDTH_PX = 320;
 
 type ReviewMoreActionsMenuProps = Readonly<{
+  isOpen: boolean;
   isReviewFilterMenuOpen: boolean;
   isReviewQueueShortcutDisabled: boolean;
   onCloseReviewFilterMenu: () => void;
+  onOpenChange: (isOpen: boolean) => void;
   onOpenReviewFilterMenu: () => void;
   onReviewQueueShortcutClick: () => void;
   selectedReviewFilterTitle: string;
@@ -47,22 +49,23 @@ function ReviewMoreActionsChevronIcon(): ReactElement {
 // Phone-width entry point to the review scope list and queue, which the compact header hides.
 export function ReviewMoreActionsMenu(props: ReviewMoreActionsMenuProps): ReactElement {
   const {
+    isOpen,
     isReviewFilterMenuOpen,
     isReviewQueueShortcutDisabled,
     onCloseReviewFilterMenu,
+    onOpenChange,
     onOpenReviewFilterMenu,
     onReviewQueueShortcutClick,
     selectedReviewFilterTitle,
     triggerRef,
   } = props;
   const { t } = useI18n();
-  const [isOpen, setIsOpen] = useState<boolean>(false);
   const menuRef = useRef<HTMLDivElement | null>(null);
   const triggerAriaLabel = t("reviewScreen.moreActions.ariaLabel");
 
   const closeMenu = useCallback(function closeMenu(): void {
-    setIsOpen(false);
-  }, []);
+    onOpenChange(false);
+  }, [onOpenChange]);
 
   useAnchoredFloatingOutsidePointerDismiss({
     triggerRef,
@@ -86,14 +89,14 @@ export function ReviewMoreActionsMenu(props: ReviewMoreActionsMenuProps): ReactE
 
     function handleKeyDown(event: KeyboardEvent): void {
       if (event.key === "Escape") {
-        setIsOpen(false);
+        onOpenChange(false);
         triggerRef.current?.focus();
       }
     }
 
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [isOpen, triggerRef]);
+  }, [isOpen, onOpenChange, triggerRef]);
 
   function handleTriggerClick(): void {
     if (isReviewFilterMenuOpen) {
@@ -101,16 +104,16 @@ export function ReviewMoreActionsMenu(props: ReviewMoreActionsMenuProps): ReactE
       return;
     }
 
-    setIsOpen((currentValue) => !currentValue);
+    onOpenChange(!isOpen);
   }
 
   function handleScopeClick(): void {
-    setIsOpen(false);
+    onOpenChange(false);
     onOpenReviewFilterMenu();
   }
 
   function handleQueueClick(): void {
-    setIsOpen(false);
+    onOpenChange(false);
     onReviewQueueShortcutClick();
   }
 
