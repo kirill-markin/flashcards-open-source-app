@@ -9,7 +9,6 @@ import {
   useAnalyticsScreenView,
   type CatalogInstallFailureStage,
   type CatalogInstallReportScope,
-  type AnalyticsSurface,
 } from "../../analytics";
 import {
   ApiContractError,
@@ -26,7 +25,7 @@ import {
   markIndexedDbOpenRecoveryFailureAndCheckActive,
   useAppErrorDialog,
 } from "../../appError/AppErrorContext";
-import { type TranslationKey, type TranslationValues, useI18n } from "../../i18n";
+import { useI18n } from "../../i18n";
 import { loadCardsByIds } from "../../localDb/cards/cards";
 import { buildClientWorkspaceReplicaId } from "../../media/mediaCrypto";
 import { captureAppOperationError } from "../../observability/appOperationObservation";
@@ -34,12 +33,9 @@ import { buildWorkspaceRoute, reviewRoute } from "../../routes";
 import type {
   CatalogPackageInstallConfirmOptions,
   CatalogPackageInstallPreviewResponse,
+  CatalogPackageInstallWorkspaceContext,
   ReviewFilter,
 } from "../../types";
-import type {
-  WorkspaceImportOptions,
-  WorkspaceImportPreviewModel,
-} from "../settings/workspace/packages/workspaceImportPresentationModel";
 import { CatalogImportConfirmPanel } from "./CatalogImportConfirmPanel";
 import { CatalogImportWorkspaceChooser } from "./CatalogImportWorkspaceChooser";
 import { CatalogImportEntry } from "./CatalogImportEntry";
@@ -55,7 +51,7 @@ import {
   type CatalogPackageInstallContextLoader,
 } from "./useCatalogPackageInstallContext";
 
-type CatalogImportStep = "workspace" | "confirm";
+type CatalogImportStep = "confirm" | "workspace" | "destination";
 
 type CatalogWorkspaceIdentity = Readonly<{
   userId: string;
@@ -89,44 +85,6 @@ function isSameCatalogWorkspaceIdentity(
     && left.installationId === right.installationId;
 }
 
-function createInitialImportOptions(): WorkspaceImportOptions {
-  return {
-    addImportTag: false,
-    importTag: "",
-    removeTags: [],
-  };
-}
-
-function resolveCatalogImportStepSurface(params: Readonly<{
-  hasActiveWorkspace: boolean;
-  isStudyPending: boolean;
-  hasWorkspaceStep: boolean;
-  isSessionPanelVisible: boolean;
-  isWorkspaceChoiceAvailable: boolean;
-  step: CatalogImportStep;
-}>): AnalyticsSurface | null {
-  const {
-    hasActiveWorkspace,
-    isStudyPending,
-    hasWorkspaceStep,
-    isSessionPanelVisible,
-    isWorkspaceChoiceAvailable,
-    step,
-  } = params;
-  if (isSessionPanelVisible || isStudyPending) {
-    return null;
-  }
-
-  switch (step) {
-    case "workspace":
-      return "catalog_import_workspace";
-    case "confirm": {
-      const isEntryStepPending = isWorkspaceChoiceAvailable && hasWorkspaceStep === false;
-      return hasActiveWorkspace && isEntryStepPending === false ? "catalog_import_confirm" : null;
-    }
-  }
-}
-
 function CatalogImportBackNav(props: Readonly<{ isDisabled: boolean; onBack: () => void }>): ReactElement {
   const { isDisabled, onBack } = props;
   const { t } = useI18n();
@@ -156,59 +114,6 @@ function CatalogImportBackNav(props: Readonly<{ isDisabled: boolean; onBack: () 
       </button>
     </div>
   );
-}
-
-function buildCatalogPreviewModel(
-  preview: CatalogPackageInstallPreviewResponse,
-  t: (key: TranslationKey, values?: TranslationValues) => string,
-  formatNumber: (value: number) => string,
-  formatCardCount: (value: number) => string,
-): WorkspaceImportPreviewModel {
-  return {
-    statistics: [
-      {
-        id: "source",
-        label: t("workspaceImport.previewSourceLabel"),
-        value: t("catalogImport.previewSourceCatalog"),
-        testId: "catalog-import-preview-source",
-      },
-      {
-        id: "cards",
-        label: t("workspaceImport.previewCardsLabel"),
-        value: formatNumber(preview.summary.cardCount),
-        testId: "catalog-import-preview-card-count",
-      },
-      {
-        id: "media",
-        label: t("workspaceImport.previewReferencedMediaLabel"),
-        value: formatNumber(preview.summary.mediaAssetCount),
-        testId: "catalog-import-preview-media-count",
-      },
-    ],
-    metadataRows: [
-      {
-        id: "author",
-        label: t("workspaceImport.previewMetadataAuthor"),
-        value: preview.packageVersion.author.displayName,
-        href: null,
-      },
-      {
-        id: "version",
-        label: t("catalogImport.previewVersionLabel"),
-        value: formatNumber(preview.packageVersion.versionNumber),
-        href: null,
-      },
-    ],
-    warnings: [],
-    tags: preview.tagCounts.map((tagCount) => ({
-      tag: tagCount.tag,
-      removalLabel: t("workspaceImport.previewRemoveTagLabel", {
-        tag: tagCount.tag,
-        count: formatCardCount(tagCount.cardsCount),
-      }),
-    })),
-    suggestedImportTag: preview.defaultOptions.suggestedImportTag,
-  };
 }
 
 function CatalogImportSyncStatus(props: Readonly<{
@@ -254,6 +159,7 @@ function CatalogImportAuthenticatedContent(props: Readonly<{
   const {
     activeWorkspace,
     chooseWorkspace,
+    createWorkspace,
     cloudSettings,
     errorMessage: appDataErrorMessage,
     initialize,
@@ -276,14 +182,13 @@ function CatalogImportAuthenticatedContent(props: Readonly<{
   const resolvedInstallContextLoader = installContextLoader ?? localInstallContextLoader;
   const installContextState = resolvedInstallContextLoader.state;
   const { indexedDbOpenRecoveryState, showCapturedTechnicalError } = useAppErrorDialog();
-  const { messages, t, formatCount, formatNumber } = useI18n();
+  const { messages, t, formatCount } = useI18n();
   const isWorkspaceChoiceAvailable = installContextState.status === "ready"
     && installContextState.context.workspaces.length > 1;
-  const [step, setStep] = useState<CatalogImportStep>(() => (isWorkspaceChoiceAvailable ? "workspace" : "confirm"));
-  const [hasWorkspaceStep, setHasWorkspaceStep] = useState<boolean>(isWorkspaceChoiceAvailable);
+  const [step, setStep] = useState<CatalogImportStep>("confirm");
+  const [createdWorkspace, setCreatedWorkspace] = useState<CatalogPackageInstallWorkspaceContext | null>(null);
   const [preview, setPreview] = useState<CatalogPackageInstallPreviewResponse | null>(null);
   const [previewIdentity, setPreviewIdentity] = useState<CatalogWorkspaceIdentity | null>(null);
-  const [options, setOptions] = useState<WorkspaceImportOptions>(createInitialImportOptions);
   const [installAttempt, setInstallAttempt] = useState<CatalogInstallAttempt | null>(null);
   const [importedCopy, setImportedCopy] = useState<CatalogImportedCopy | null>(null);
   const [syncState, setSyncState] = useState<CatalogInstallSyncState>({ status: "idle" });
@@ -302,7 +207,7 @@ function CatalogImportAuthenticatedContent(props: Readonly<{
   const activeStudyRequestRef = useRef<number | null>(null);
   const workspaceSelectionInFlightRef = useRef<boolean>(false);
   const pendingWorkspaceSelectionRef = useRef<string | null>(null);
-  const hasLeftInitialStepRef = useRef<boolean>(false);
+  const pendingImportRef = useRef<Readonly<{ userId: string; workspaceId: string }> | null>(null);
   const installAttemptRef = useRef<CatalogInstallAttempt | null>(null);
   const technicalErrorMessage = t("appError.technicalError.message");
   const workspaceId = activeWorkspace?.workspaceId ?? null;
@@ -316,21 +221,22 @@ function CatalogImportAuthenticatedContent(props: Readonly<{
     && cloudSettings.installationId.trim() !== ""
     ? { userId: session.userId, workspaceId, installationId: cloudSettings.installationId }
     : null;
+  const sessionUserIdRef = useRef(session?.userId ?? null);
+  sessionUserIdRef.current = session?.userId ?? null;
   const workspaceIdentityRef = useRef<CatalogWorkspaceIdentity | null>(workspaceIdentity);
   workspaceIdentityRef.current = workspaceIdentity;
   const workspaceIdentityKey = workspaceIdentity === null
     ? ""
     : `${workspaceIdentity.userId}:${workspaceIdentity.workspaceId}:${workspaceIdentity.installationId}`;
   const isWorkspaceSelectionBusy = isChoosingWorkspace || isWorkspaceSelectionPending;
-  const isEntryStepPending = isWorkspaceChoiceAvailable && !hasWorkspaceStep;
-  const isImportAvailable = !isEntryStepPending
-    && sessionLoadState === "ready"
+  const isImportAvailable = sessionLoadState === "ready"
     && installContextState.status === "ready"
     && isSessionVerified
     && workspaceIdentity !== null
     && !isWorkspaceSelectionBusy;
   const selectedWorkspaceContext = installContextState.status === "ready"
-    ? installContextState.context.workspaces.find((workspace) => workspace.workspaceId === workspaceId) ?? null
+    ? installContextState.context.workspaces.find((workspace) => workspace.workspaceId === workspaceId)
+      ?? (createdWorkspace?.workspaceId === workspaceId ? createdWorkspace : null)
     : null;
   const previousInstall = selectedWorkspaceContext?.previousInstall ?? null;
   const isImportContextReady = selectedWorkspaceContext !== null;
@@ -347,9 +253,6 @@ function CatalogImportAuthenticatedContent(props: Readonly<{
     && workspaceIdentity !== null
     && isSameCatalogWorkspaceIdentity(previewIdentity, workspaceIdentity);
   const areImportOptionsLocked = installAttempt !== null;
-  const previewModel = preview === null
-    ? null
-    : buildCatalogPreviewModel(preview, t, formatNumber, (value) => formatCount(value, messages.common.countLabels.card));
   const workspaceErrorMessage = syncState.status === "idle" ? appDataErrorMessage : "";
   const canRetryPreview = preview === null && errorMessage !== "" && isImportAvailable && !isImportBusy;
 
@@ -470,8 +373,7 @@ function CatalogImportAuthenticatedContent(props: Readonly<{
       return;
     }
     if (
-      step !== "confirm"
-      || workspaceSelectionInFlightRef.current
+      workspaceSelectionInFlightRef.current
       || activePreviewRequestRef.current !== null
       || activeInstallRequestRef.current !== null
       || activeSyncRequestRef.current !== null
@@ -488,7 +390,6 @@ function CatalogImportAuthenticatedContent(props: Readonly<{
     setIsPreviewing(true);
     setPreview(null);
     setPreviewIdentity(null);
-    setOptions(createInitialImportOptions());
     setErrorMessage("");
 
     try {
@@ -517,11 +418,6 @@ function CatalogImportAuthenticatedContent(props: Readonly<{
       );
       setPreview(response);
       setPreviewIdentity(requestIdentity);
-      setOptions({
-        addImportTag: false,
-        importTag: response.defaultOptions.suggestedImportTag,
-        removeTags: [...response.defaultOptions.removedTags],
-      });
     } catch (error) {
       const indexedDbRecoveryFailed = markIndexedDbOpenRecoveryFailureAndCheckActive(
         indexedDbOpenRecoveryState,
@@ -572,27 +468,9 @@ function CatalogImportAuthenticatedContent(props: Readonly<{
     isImportAvailable,
     previewReportScope,
     showCapturedTechnicalError,
-    step,
     t,
     technicalErrorMessage,
   ]);
-
-  useEffect(() => {
-    if (hasLeftInitialStepRef.current) {
-      return;
-    }
-    setHasWorkspaceStep(isWorkspaceChoiceAvailable);
-    setStep(isWorkspaceChoiceAvailable ? "workspace" : "confirm");
-  }, [isWorkspaceChoiceAvailable]);
-
-  useEffect(() => {
-    if (pendingWorkspaceSelectionRef.current === null || pendingWorkspaceSelectionRef.current !== workspaceId) {
-      return;
-    }
-    pendingWorkspaceSelectionRef.current = null;
-    hasLeftInitialStepRef.current = true;
-    setStep("confirm");
-  }, [workspaceId]);
 
   useEffect(() => {
     previewRequestGenerationRef.current += 1;
@@ -605,7 +483,6 @@ function CatalogImportAuthenticatedContent(props: Readonly<{
     installAttemptRef.current = null;
     setPreview(null);
     setPreviewIdentity(null);
-    setOptions(createInitialImportOptions());
     setInstallAttempt(null);
     setImportedCopy(null);
     setSyncState({ status: "idle" });
@@ -622,11 +499,12 @@ function CatalogImportAuthenticatedContent(props: Readonly<{
   }, [isImportAvailable, workspaceIdentityKey]);
 
   useEffect(() => {
-    if (!isImportAvailable || step !== "confirm" || preview !== null || importedCopy !== null) {
+    if (!isImportAvailable || (step === "confirm" && isWorkspaceChoiceAvailable) || step === "workspace"
+      || preview !== null || importedCopy !== null) {
       return;
     }
     void refreshPreview();
-  }, [importedCopy, isImportAvailable, preview, refreshPreview, step, workspaceIdentityKey]);
+  }, [importedCopy, isImportAvailable, isWorkspaceChoiceAvailable, preview, refreshPreview, step, workspaceIdentityKey]);
 
   function cancelActivePreviewRequest(): void {
     if (activePreviewRequestRef.current === null) {
@@ -638,45 +516,86 @@ function CatalogImportAuthenticatedContent(props: Readonly<{
   }
 
   async function selectCatalogWorkspace(nextWorkspaceId: string): Promise<void> {
-    if (indexedDbOpenRecoveryState.hasFailed()) {
-      return;
-    }
+    if (indexedDbOpenRecoveryState.hasFailed() || session === null || workspaceSelectionInFlightRef.current
+      || activeInstallRequestRef.current !== null || activeSyncRequestRef.current !== null) return;
 
+    pendingImportRef.current = { userId: session.userId, workspaceId: nextWorkspaceId };
     if (nextWorkspaceId === workspaceId) {
-      pendingWorkspaceSelectionRef.current = null;
-      hasLeftInitialStepRef.current = true;
-      setStep("confirm");
+      setStep("destination");
       return;
     }
-    if (
-      workspaceSelectionInFlightRef.current
-      || activeInstallRequestRef.current !== null
-      || activeSyncRequestRef.current !== null
-    ) {
-      return;
-    }
-
     cancelActivePreviewRequest();
     workspaceSelectionInFlightRef.current = true;
     pendingWorkspaceSelectionRef.current = nextWorkspaceId;
     setIsWorkspaceSelectionPending(true);
+    setErrorMessage("");
     try {
-      indexedDbOpenRecoveryState.throwIfFailed();
       await chooseWorkspace(nextWorkspaceId);
       indexedDbOpenRecoveryState.throwIfFailed();
     } catch (error) {
-      if (markIndexedDbOpenRecoveryFailureAndCheckActive(indexedDbOpenRecoveryState, error)) {
-        return;
+      pendingImportRef.current = null;
+      if (!markIndexedDbOpenRecoveryFailureAndCheckActive(indexedDbOpenRecoveryState, error) && !isAuthRedirectError(error)) {
+        setErrorMessage(getCatalogImportErrorMessage(error));
       }
-      pendingWorkspaceSelectionRef.current = null;
-      throw error;
     } finally {
-      if (indexedDbOpenRecoveryState.hasFailed() === false) {
+      if (!indexedDbOpenRecoveryState.hasFailed()) {
         workspaceSelectionInFlightRef.current = false;
         setIsWorkspaceSelectionPending(false);
       }
     }
   }
+
+  async function createCatalogWorkspace(name: string): Promise<void> {
+    if (session === null || !isWorkspaceChoiceAvailable || workspaceSelectionInFlightRef.current || isImportBusy) return;
+    const userId = session.userId;
+    pendingImportRef.current = null;
+    pendingWorkspaceSelectionRef.current = null;
+    workspaceSelectionInFlightRef.current = true;
+    setIsWorkspaceSelectionPending(true);
+    setErrorMessage("");
+    try {
+      const workspace = await createWorkspace(name);
+      indexedDbOpenRecoveryState.throwIfFailed();
+      if (workspace === null || sessionUserIdRef.current !== userId) return;
+      setCreatedWorkspace({
+        ...workspace, cardCount: 0, lastReviewedAt: null, onboardingEligibility: "empty", previousInstall: null,
+      });
+      pendingImportRef.current = { userId, workspaceId: workspace.workspaceId };
+      pendingWorkspaceSelectionRef.current = workspace.workspaceId;
+    } catch (error) {
+      if (!markIndexedDbOpenRecoveryFailureAndCheckActive(indexedDbOpenRecoveryState, error) && !isAuthRedirectError(error)) {
+        setErrorMessage(getCatalogImportErrorMessage(error));
+      }
+    } finally {
+      if (!indexedDbOpenRecoveryState.hasFailed()) {
+        workspaceSelectionInFlightRef.current = false;
+        setIsWorkspaceSelectionPending(false);
+      }
+    }
+  }
+
+  useEffect(() => {
+    const pending = pendingImportRef.current;
+    if (pending !== null && pending.userId !== session?.userId) {
+      pendingImportRef.current = null;
+      pendingWorkspaceSelectionRef.current = null;
+      setCreatedWorkspace(null);
+      setStep("confirm");
+      return;
+    }
+    if (pendingWorkspaceSelectionRef.current === workspaceId && workspaceId !== null && !isWorkspaceSelectionBusy) {
+      pendingWorkspaceSelectionRef.current = null;
+      setStep("destination");
+    }
+  }, [session?.userId, workspaceId, isWorkspaceSelectionBusy]);
+
+  useEffect(() => {
+    const pending = pendingImportRef.current;
+    if (pending === null || pending.userId !== session?.userId || pending.workspaceId !== workspaceId
+      || step !== "destination" || !isPreviewCurrent || !isImportContextReady || isImportBusy) return;
+    pendingImportRef.current = null;
+    if (previousInstall === null) void confirmInstall();
+  });
 
   async function studyExistingCards(): Promise<void> {
     const identity = workspaceIdentityRef.current;
@@ -727,7 +646,7 @@ function CatalogImportAuthenticatedContent(props: Readonly<{
     }
   }
 
-  async function confirmInstall(importOptions: WorkspaceImportOptions): Promise<void> {
+  async function confirmInstall(): Promise<void> {
     if (indexedDbOpenRecoveryState.hasFailed()) {
       return;
     }
@@ -756,11 +675,6 @@ function CatalogImportAuthenticatedContent(props: Readonly<{
     }
 
     let currentAttempt = installAttemptRef.current;
-    const importTag = importOptions.importTag.trim();
-    if (currentAttempt === null && importOptions.addImportTag && importTag === "") {
-      setErrorMessage(t("workspaceImport.importTagRequired"));
-      return;
-    }
     if (currentAttempt !== null && !isSameCatalogWorkspaceIdentity(currentAttempt.identity, requestIdentity)) {
       installAttemptRef.current = null;
       setInstallAttempt(null);
@@ -817,9 +731,9 @@ function CatalogImportAuthenticatedContent(props: Readonly<{
         currentAttempt = {
           identity: requestIdentity,
           options: {
-            addImportTag: importOptions.addImportTag,
-            importTag,
-            removeTags: [...importOptions.removeTags],
+            addImportTag: false,
+            importTag: "",
+            removeTags: [],
             installId,
             installedAt,
             clientUpdatedAt: installedAt,
@@ -875,7 +789,6 @@ function CatalogImportAuthenticatedContent(props: Readonly<{
         },
       };
       setImportedCopy(copy);
-      hasLeftInitialStepRef.current = true;
       void runPostInstallSync(copy);
     } catch (error) {
       const indexedDbRecoveryFailed = markIndexedDbOpenRecoveryFailureAndCheckActive(
@@ -933,14 +846,8 @@ function CatalogImportAuthenticatedContent(props: Readonly<{
     || sessionLoadState === "deleted"
     || sessionLoadState === "storage_unavailable"
     || installContextState.status !== "ready";
-  useAnalyticsScreenView(resolveCatalogImportStepSurface({
-    hasActiveWorkspace: activeWorkspace !== null,
-    isStudyPending: importedCopy !== null,
-    hasWorkspaceStep,
-    isSessionPanelVisible,
-    isWorkspaceChoiceAvailable,
-    step,
-  }));
+  useAnalyticsScreenView(isSessionPanelVisible || importedCopy !== null ? null
+    : step === "workspace" ? "catalog_import_workspace" : "catalog_import_confirm");
 
   if (sessionLoadState === "loading" || sessionLoadState === "redirecting") {
     return (
@@ -1010,78 +917,89 @@ function CatalogImportAuthenticatedContent(props: Readonly<{
     );
   }
 
+  const isFirstConfirmation = step === "confirm";
+  const isDestinationChoice = isFirstConfirmation && isWorkspaceChoiceAvailable;
+  const existingCopy = isDestinationChoice ? null : previousInstall;
+  const isBusy = isImportBusy || isWorkspaceSelectionBusy;
+  const destinationCount = selectedWorkspaceContext === null ? null
+    : formatCount(selectedWorkspaceContext.cardCount, messages.common.countLabels.card);
+
   return (
     <main className="invite-page" data-testid="catalog-import-authenticated">
-      {importedCopy === null && hasWorkspaceStep && step === "confirm" ? (
-        <CatalogImportBackNav
-          isDisabled={isImportBusy || isWorkspaceSelectionBusy || areImportOptionsLocked}
-          onBack={() => setStep("workspace")}
-        />
-      ) : null}
-      <CatalogImportContextCard
-        catalogContext={catalogContext}
-        accountEmail={cloudSettings?.linkedEmail ?? session?.profile.email ?? null}
-      />
+      {importedCopy === null ? <CatalogImportBackNav
+        isDisabled={isBusy || areImportOptionsLocked}
+        onBack={() => {
+          pendingImportRef.current = null;
+          setErrorMessage("");
+          if (step === "workspace") setStep("confirm");
+          else if (step === "destination") setStep(isWorkspaceChoiceAvailable ? "workspace" : "confirm");
+          else navigate(workspaceId === null ? "/" : buildWorkspaceRoute(workspaceId, reviewRoute));
+        }}
+      /> : null}
       {workspaceErrorMessage === "" ? null : (
         <section className="content-card invite-panel" data-testid="catalog-import-workspace-error">
           <p className="error-banner" role="alert">{workspaceErrorMessage}</p>
         </section>
       )}
-      {importedCopy === null && (step === "workspace" || isEntryStepPending) ? (
-        <CatalogImportWorkspaceChooser
-          workspaces={installContextState.context.workspaces}
-          isSelectionBusy={isWorkspaceSelectionBusy}
-          onChooseWorkspace={(nextWorkspaceId) => void selectCatalogWorkspace(nextWorkspaceId)}
-        />
+      {importedCopy === null && step === "workspace" ? (
+        <>
+          <CatalogImportWorkspaceChooser
+            workspaces={installContextState.context.workspaces}
+            isSelectionBusy={isBusy}
+            onChooseWorkspace={(nextWorkspaceId) => void selectCatalogWorkspace(nextWorkspaceId)}
+            onCreateWorkspace={(name) => void createCatalogWorkspace(name)}
+          />
+          {errorMessage === "" ? null : <p className="error-banner" role="alert" data-testid="workspace-import-error">{errorMessage}</p>}
+        </>
       ) : null}
-      {importedCopy === null && step === "confirm" && !isEntryStepPending && activeWorkspace !== null ? (
+      {importedCopy === null && step !== "workspace" ? (
         <CatalogImportConfirmPanel
-          copy={{
-            title: t("catalogImport.installTitle"),
-            description: t("catalogImport.installDescription"),
-            workspaceLabel: t("catalogImport.workspaceTitle"),
-            previewLoadingLabel: t("catalogImport.loading"),
-            advancedTitle: t("catalogImport.advancedTitle"),
-            importTagLabel: t("workspaceImport.importTagLabel"),
-            importTagDescription: t("workspaceImport.importTagDescription"),
-            importTagValueLabel: t("workspaceImport.importTagValueLabel"),
-            tagsTitle: t("workspaceImport.previewTagsTitle"),
-            confirmActionLabel: previousInstall === null ? t("catalogImport.confirm") : t("catalogImport.importAnotherCopy"),
-            confirmingActionLabel: t("catalogImport.installing"),
-            retryPreviewLabel: t("common.retry"),
-          }}
-          workspaceName={activeWorkspace.name}
-          preview={previewModel}
-          options={options}
-          isControlDisabled={!isImportAvailable || isImportBusy || areImportOptionsLocked}
-          isPreviewLoading={isPreviewing || isImportContextLoading}
-          canConfirm={isPreviewCurrent && isImportContextReady && !isImportBusy && !isWorkspaceSelectionBusy}
+          description={t("catalogImport.installDescription")}
+          confirmActionLabel={existingCopy === null
+            ? t("catalogImport.confirm", { count: formatCount(catalogContext.cardCount, messages.common.countLabels.card) })
+            : t("catalogImport.importAnotherCopy")}
+          confirmingActionLabel={t("catalogImport.installing")}
+          loadingLabel={t("catalogImport.loading")}
+          retryLabel={t("common.retry")}
+          isLoading={!isDestinationChoice && (isPreviewing || isImportContextLoading)}
+          canConfirm={!isBusy && (isDestinationChoice || (isPreviewCurrent && isImportContextReady))}
           isConfirming={isInstalling}
-          unavailableMessage={isImportAvailable ? null : t("catalogImport.workspaceUnavailable")}
-          errorMessage={errorMessage || importContextErrorMessage}
-          existingCopy={previousInstall === null ? null : {
+          errorMessage={errorMessage || (isDestinationChoice ? "" : importContextErrorMessage)}
+          existingCopy={existingCopy === null ? null : {
             notice: t("catalogImport.existingCopyNotice", {
-              title: previousInstall.title,
-              count: formatCount(previousInstall.retainedCardCount, messages.common.countLabels.card),
+              title: existingCopy.title,
+              count: formatCount(existingCopy.retainedCardCount, messages.common.countLabels.card),
             }),
             actionLabel: t("catalogImport.studyExistingCards"),
-            loadingLabel: t("common.loading"),
             isLoading: isStudyingExisting,
-            isDisabled: !isImportAvailable || isImportBusy || areImportOptionsLocked,
+            isDisabled: !isImportAvailable || isBusy || areImportOptionsLocked,
             onStudy: () => void studyExistingCards(),
           }}
-          onOptionsChange={setOptions}
-          onConfirm={(nextOptions) => void confirmInstall(nextOptions)}
-          onRetryPreview={importContextErrorMessage !== ""
-            ? resolvedInstallContextLoader.retry
-            : canRetryPreview ? () => void refreshPreview() : null}
-        />
+          onConfirm={() => {
+            if (isDestinationChoice) setStep("workspace");
+            else void confirmInstall();
+          }}
+          onRetry={importContextErrorMessage !== "" && !isDestinationChoice
+            ? resolvedInstallContextLoader.retry : canRetryPreview ? () => void refreshPreview() : null}
+        >
+          <CatalogImportContextCard catalogContext={catalogContext}
+            accountEmail={session?.browserGuestCapabilities?.isGuest === true
+              ? null : cloudSettings?.linkedEmail ?? session?.profile.email ?? null} />
+          {isDestinationChoice ? (
+            <p className="subtitle" data-testid="catalog-import-visible-card-count">
+              {t("catalogImport.visibleCardCount", {
+                count: formatCount(installContextState.context.workspaces.reduce((sum, workspace) => sum + workspace.cardCount, 0), messages.common.countLabels.card),
+              })}
+            </p>
+          ) : selectedWorkspaceContext === null || destinationCount === null ? null : (
+            <p className="subtitle" data-testid="catalog-import-workspace-name">
+              {selectedWorkspaceContext.name} · {destinationCount}
+            </p>
+          )}
+        </CatalogImportConfirmPanel>
       ) : null}
       {importedCopy === null ? null : (
-        <CatalogImportSyncStatus
-          state={syncState}
-          onRetry={() => void runPostInstallSync(importedCopy)}
-        />
+        <CatalogImportSyncStatus state={syncState} onRetry={() => void runPostInstallSync(importedCopy)} />
       )}
     </main>
   );

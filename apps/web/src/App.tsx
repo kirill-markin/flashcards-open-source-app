@@ -924,7 +924,9 @@ export function AppShell(): ReactElement {
                 accountSettingsUrl={workspacePath(settingsHubRoute)}
                 logoutUrl={buildLogoutUrl()}
                 onSelectWorkspace={chooseWorkspace}
-                onCreateWorkspace={createWorkspace}
+                onCreateWorkspace={async (name) => {
+                  await createWorkspace(name);
+                }}
               />}
             </div>
           </div>

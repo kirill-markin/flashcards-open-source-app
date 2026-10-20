@@ -34,23 +34,14 @@ export function CatalogImportContextCard(props: Readonly<{
   const cardCount = formatCount(catalogContext.cardCount, messages.common.countLabels.card);
 
   return (
-    <section className="content-card invite-panel" data-testid="catalog-import-context">
-      <h1 className="title">{t("catalogImport.title")}</h1>
-      <p className="subtitle" data-testid="catalog-import-package-summary">
-        {t("catalogImport.packageSummary", {
-          title: catalogContext.title,
-          count: cardCount,
-        })}
+    <div data-testid="catalog-import-context">
+      <h1 className="title" data-testid="catalog-import-package-summary">
+        {t("catalogImport.packageSummary", { title: catalogContext.title, count: cardCount })}
+      </h1>
+      <p className="subtitle catalog-import-account-email" data-testid="catalog-import-account-email">
+        {accountEmail === null ? t("catalogImport.guestProfile") : t("catalogImport.accountEmail", { email: accountEmail })}
       </p>
-      <p className="subtitle" data-testid="catalog-import-author">
-        {t("catalogImport.author", { author: catalogContext.authorDisplayName })}
-      </p>
-      {accountEmail === null ? null : (
-        <p className="subtitle catalog-import-account-email" data-testid="catalog-import-account-email">
-          {t("catalogImport.accountEmail", { email: accountEmail })}
-        </p>
-      )}
-    </section>
+    </div>
   );
 }
 
