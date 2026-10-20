@@ -1871,6 +1871,15 @@ h2 {
   text-align: left;
 }
 
+/* A group's colour beside its name in a paired funnel comparison's tooltip row. */
+.funnel-tooltip-swatch {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  margin-right: 6px;
+  border-radius: 999px;
+}
+
 .payment-tooltip-note {
   margin: 8px 0 0;
   font-size: 12px;

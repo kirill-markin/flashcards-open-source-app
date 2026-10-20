@@ -120,6 +120,14 @@ export const neutralChartColor = "#8c8c8c";
  */
 export const funnelHashedSegmentMixColor = "#f6f6f8";
 
+/**
+ * Range B's colour for a group in a paired funnel comparison: the group's own colour, mixed halfway
+ * toward the page's text, so A and B read as one group and B as the lighter of the two.
+ */
+export function buildFunnelComparisonTint(color: string): string {
+  return d3.interpolateLab(color, funnelHashedSegmentMixColor)(0.5);
+}
+
 // Both positional scales below outlive the render that reads them, and the `implicit` default of
 // `d3.scaleOrdinal` appends an unknown key to the domain and hands back the next palette colour, so
 // that key's colour would depend on which render asked for it first. An explicit unknown prevents that.

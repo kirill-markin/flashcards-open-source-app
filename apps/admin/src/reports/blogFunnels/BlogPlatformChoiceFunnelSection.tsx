@@ -162,7 +162,7 @@ export function BlogPlatformChoiceFunnelSection(props: FunnelSectionProps): JSX.
 
   return (
     <section className="dashboard-section funnel-report">
-      <FunnelSectionHeader funnelId={blogPlatformChoiceFunnelAnchor.funnelId} title={blogPlatformChoiceFunnelTitle} />
+      <FunnelSectionHeader funnelId={blogPlatformChoiceFunnelAnchor.funnelId} title={blogPlatformChoiceFunnelTitle} onDetailsNavigate={props.onDetailsNavigate} />
 
       {loadState.status === "error" ? <div className="report-state report-state-error"><strong>Funnel query failed.</strong><span>{loadState.message}</span><button className="filter-button" type="button" onClick={retry}>Retry</button></div> : null}
       {rangeViews.map((range) => {

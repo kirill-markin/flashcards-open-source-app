@@ -18,6 +18,11 @@ export const levelOneMetricDetails = ["who-saw-us", "who-opened-the-app", "who-s
 
 export type LevelOneMetricDetail = (typeof levelOneMetricDetails)[number];
 
+/** The funnels that have a Details page, by their `FunnelAnchor.funnelId`, which is also the slug of its path. */
+export const funnelDetails = ["first-launch"] as const;
+
+export type FunnelDetail = (typeof funnelDetails)[number];
+
 /** The Who saw us datasets with a page of their own under its Details picker, by the slug of its path. */
 export const whoSawUsDatasets = ["web", "app-store", "google-play"] as const;
 
@@ -38,6 +43,7 @@ export type AdminRoute =
   | Readonly<{ kind: "analyticsArea"; area: AnalyticsArea }>
   | Readonly<{ kind: "levelOneMetricDetails"; metric: LevelOneMetricDetail }>
   | Readonly<{ kind: "whoSawUsDataset"; dataset: WhoSawUsDataset }>
+  | Readonly<{ kind: "funnelDetails"; funnelId: FunnelDetail }>
   | Readonly<{ kind: "users" }>
   | Readonly<{ kind: "user"; userId: string; tab: UserPageTab }>
   /** One chat opened from the Chats tab, a path of its own so Back returns to the list. */
@@ -66,6 +72,15 @@ export function getWhoSawUsDatasetPath(dataset: WhoSawUsDataset): string {
   return `${getLevelOneMetricDetailsPath("who-saw-us")}/${dataset}`;
 }
 
+export function getFunnelDetailsPath(funnelId: FunnelDetail): string {
+  return `${getAnalyticsAreaPath("funnels")}/${funnelId}`;
+}
+
+/** The funnel's Details page id, or `undefined` for a funnel that has none. */
+export function findFunnelDetail(funnelId: string): FunnelDetail | undefined {
+  return funnelDetails.find((candidateFunnelId) => candidateFunnelId === funnelId);
+}
+
 /** `userId` is a raw `org.user_settings.user_id` or an analytics `actor_id`, encoded as one segment. */
 export function getUserPath(userId: string, tab: UserPageTab): string {
   return `${usersPath}/${encodeURIComponent(userId)}/${tab}`;
@@ -92,6 +107,8 @@ export function getAdminRoutePath(route: AdminRoute): string {
       return getLevelOneMetricDetailsPath(route.metric);
     case "whoSawUsDataset":
       return getWhoSawUsDatasetPath(route.dataset);
+    case "funnelDetails":
+      return getFunnelDetailsPath(route.funnelId);
     case "users":
       return usersPath;
     case "user":
@@ -202,6 +219,13 @@ export function parseAdminRoute(pathname: string): AdminRoute {
   );
   if (dataset !== undefined) {
     return { kind: "whoSawUsDataset", dataset };
+  }
+
+  const funnelId = funnelDetails.find(
+    (candidateFunnelId) => getFunnelDetailsPath(candidateFunnelId) === normalizedPathname,
+  );
+  if (funnelId !== undefined) {
+    return { kind: "funnelDetails", funnelId };
   }
 
   return { kind: "notFound", pathname };

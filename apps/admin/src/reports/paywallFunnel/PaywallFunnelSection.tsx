@@ -135,7 +135,7 @@ export function PaywallFunnelSection(props: FunnelSectionProps): JSX.Element {
 
   return (
     <section className="dashboard-section funnel-report">
-      <FunnelSectionHeader funnelId={paywallFunnelAnchor.funnelId} title={paywallFunnelTitle} />
+      <FunnelSectionHeader funnelId={paywallFunnelAnchor.funnelId} title={paywallFunnelTitle} onDetailsNavigate={props.onDetailsNavigate} />
 
       {loadState.status === "error" ? <div className="report-state report-state-error"><strong>Funnel query failed.</strong><span>{loadState.message}</span><button className="filter-button" type="button" onClick={retry}>Retry</button></div> : null}
       {rangeViews.map((range) => {

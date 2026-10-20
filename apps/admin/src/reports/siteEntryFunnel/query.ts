@@ -100,7 +100,7 @@ export const siteEntryPagePathColumnName = "entry_page_path";
  * would place nearly every entrant in `Unresolved` and are not offered here. It is that rarity and
  * not the entry rule that rules them out - the rule bars a trusted event only BEFORE the entry, so
  * an entrant who signs in afterwards does have trusted rows in the range and could in principle
- * carry such a key. The mobile and the deck funnels keep both dimensions, because their cohorts are
+ * carry such a key. The first launch and the deck funnels keep both dimensions, because their cohorts are
  * identified. The locale the entry page was viewed in is on a row the statement already reads, is a
  * property of the person by construction because one person enters on exactly one page view, and is
  * NULL only for a client that reported none, which the query folds into `Unresolved`. The client

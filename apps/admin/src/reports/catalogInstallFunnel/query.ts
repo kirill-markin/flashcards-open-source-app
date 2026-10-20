@@ -757,7 +757,7 @@ export function buildCatalogInstallFunnelSql(filters: AnalyticsFilterState): str
     "LEFT JOIN catalog.packages AS deck",
     "  ON deck.package_id = deck_version.package_id",
     // BOTH PER-ACTOR SOURCES ON EVERY LOAD, never only the one a selected dimension reads, which is
-    // where this funnel departs from the mobile one. Its `Group by` field reloads the report and can
+    // where this funnel departs from the first launch one. Its `Group by` field reloads the report and can
     // therefore join the one source its key needs; this one regroups rows the browser already holds,
     // so a column joined only while its own dimension is selected would never be there to read.
     //
