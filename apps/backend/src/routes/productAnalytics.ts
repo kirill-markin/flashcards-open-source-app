@@ -1,6 +1,15 @@
 import { randomUUID } from "node:crypto";
-import { getDirectRequestCountryLookup } from "../geolocation/requestCountry";
+import { createCountryLookupFailureReporter } from "../geolocation/countryLookupFailure";
+import {
+  getDirectRequestCountryLookup,
+  getDirectRequestNetworkAsnLookup,
+} from "../geolocation/requestCountry";
 import { Hono } from "hono";
+import { isAutomatedUserAgent } from "../productAnalytics/automatedClient";
+import {
+  parseClientHintChromiumMajor,
+  parseUserAgentChromeMajor,
+} from "../productAnalytics/browserVersion";
 import {
   isProductAnalyticsEventIdVersionValid,
   productAnalyticsSchemaVersion,
@@ -15,8 +24,10 @@ import {
   validateProductAnalyticsBatch,
   type ProductAnalyticsBatchValidation,
 } from "../productAnalytics/validation";
+import { runAnalyticsIngestLookup } from "../productAnalytics/ingestLookup";
 import { insertProductAnalyticsClientBatch } from "../productAnalytics/writer";
 import type {
+  ClientProductAnalyticsEventRow,
   ProductAnalyticsEventRow,
   ProductAnalyticsIdentityLink,
   ProductAnalyticsInstallationObservation,
@@ -79,6 +90,9 @@ type ProductAnalyticsRequestFacts = Readonly<{
   platform: ProductAnalyticsClientReportablePlatform | null;
   appVersion: string | null;
 }>;
+
+// One reporter per lookup site; the shape and the reason are in ../geolocation/countryLookupFailure.ts.
+const reportNetworkAsnLookupFailure = createCountryLookupFailureReporter();
 
 function createProductAnalyticsScope(
   requestId: string,
@@ -230,6 +244,39 @@ function createIngestIdentityLink(
     // it never outranks the link a guest upgrade writes for the same pair.
     source: "authenticated_client",
   };
+}
+
+// The same request facts the credential-free collector stores, derived once per batch and stamped
+// on every row of it; what each column means is in db/migrations/0228_app_event_bot_evidence.sql.
+async function addProductAnalyticsRequestBotEvidence(
+  rows: ReadonlyArray<ProductAnalyticsEventRow>,
+  platform: ProductAnalyticsClientReportablePlatform | null,
+  userAgent: string | null,
+  clientHintUserAgent: string | null,
+  scope: BackendObservationScope,
+): Promise<ReadonlyArray<ClientProductAnalyticsEventRow>> {
+  const networkAsnLookup = getDirectRequestNetworkAsnLookup();
+  const networkAsn = networkAsnLookup === null
+    ? null
+    : await runAnalyticsIngestLookup(networkAsnLookup, (errorMessage) => reportNetworkAsnLookupFailure({
+      action: "analytics_events_network_asn_lookup_failed",
+      message: "Analytics batch network ASN lookup failed; the batch is refused so its client retries it.",
+      scope,
+      details: { errorMessage },
+    }));
+
+  // Only a browser's User-Agent is classified: the marker list matches okhttp, the HTTP library the
+  // Android app itself sends, so a native row would be marked for being the app.
+  const automatedClient = platform === "web" ? isAutomatedUserAgent(userAgent) : null;
+  const userAgentChromeMajor = parseUserAgentChromeMajor(userAgent);
+  const clientHintChromiumMajor = parseClientHintChromiumMajor(clientHintUserAgent);
+  return rows.map((row) => ({
+    ...row,
+    automatedClient,
+    networkAsn,
+    userAgentChromeMajor,
+    clientHintChromiumMajor,
+  }));
 }
 
 function toProductAnalyticsEventRow(
@@ -499,7 +546,17 @@ export function createProductAnalyticsRoutes(options: ProductAnalyticsRoutesOpti
               ? getDirectRequestCountryLookup()
               : null,
           };
-      const stored = await insertProductAnalyticsClientBatchFn(rows, identityLink, installation);
+      // A batch that accepted no event stores none, so a lookup outage must not refuse it.
+      const clientRows = rows.length === 0
+        ? []
+        : await addProductAnalyticsRequestBotEvidence(
+          rows,
+          facts.platform,
+          context.req.header("user-agent") ?? null,
+          context.req.header("sec-ch-ua") ?? null,
+          scope,
+        );
+      const stored = await insertProductAnalyticsClientBatchFn(clientRows, identityLink, installation);
       if (identityLink !== null) {
         rememberStoredIdentityLinkPair(
           toIdentityLinkPairKey(identityLink.anonymousId, identityLink.userId),

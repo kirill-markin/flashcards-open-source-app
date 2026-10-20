@@ -10,7 +10,7 @@ import {
   insertProductAnalyticsIdentityLink,
   type ProductAnalyticsClientBatchResult,
 } from "./writer";
-import type { ProductAnalyticsEventRow, ProductAnalyticsInstallationObservation } from "./types";
+import type { ClientProductAnalyticsEventRow, ProductAnalyticsInstallationObservation } from "./types";
 
 type StoredEventRow = Readonly<{
   event_id: string;
@@ -147,7 +147,7 @@ const redeliveredBatchEventId = createEventId();
 // all exercised with a real value at least once. details is the one exception it cannot make: every
 // row in this batch is client-origin, and product_events_details_client_shape requires that column
 // to be NULL on exactly those rows.
-const fullyPopulatedRow: ProductAnalyticsEventRow = {
+const fullyPopulatedRow: ClientProductAnalyticsEventRow = {
   eventId: fullyPopulatedEventId,
   schemaVersion: productAnalyticsSchemaVersion,
   // Carries both an enum and a counter property, so the jsonb cast is exercised with a mixed
@@ -185,12 +185,16 @@ const fullyPopulatedRow: ProductAnalyticsEventRow = {
   // details is the one nullable jsonb column, and a client-origin row is exactly the case
   // product_events_details_client_shape requires it to be NULL for.
   details: null,
+  automatedClient: false,
+  networkAsn: 3352,
+  userAgentChromeMajor: 131,
+  clientHintChromiumMajor: 131,
 };
 
 // The mirror image: every optional uuid and text column is NULL and the two non-nullable jsonb
 // columns are empty objects, which is the row shape a guest client with no workspace and no device
 // context produces.
-const minimalRow: ProductAnalyticsEventRow = {
+const minimalRow: ClientProductAnalyticsEventRow = {
   eventId: minimalEventId,
   schemaVersion: productAnalyticsSchemaVersion,
   eventName: "screen_viewed",
@@ -225,9 +229,13 @@ const minimalRow: ProductAnalyticsEventRow = {
   experimentAssignments: {},
   requestId: null,
   details: null,
+  automatedClient: null,
+  networkAsn: null,
+  userAgentChromeMajor: null,
+  clientHintChromiumMajor: null,
 };
 
-const slugPropertyRow: ProductAnalyticsEventRow = {
+const slugPropertyRow: ClientProductAnalyticsEventRow = {
   eventId: slugPropertyEventId,
   schemaVersion: productAnalyticsSchemaVersion,
   eventName: "catalog_deck_install_started",
@@ -261,9 +269,13 @@ const slugPropertyRow: ProductAnalyticsEventRow = {
   experimentAssignments: {},
   requestId,
   details: null,
+  automatedClient: null,
+  networkAsn: null,
+  userAgentChromeMajor: null,
+  clientHintChromiumMajor: null,
 };
 
-const redeliveredBatchRow: ProductAnalyticsEventRow = {
+const redeliveredBatchRow: ClientProductAnalyticsEventRow = {
   ...minimalRow,
   eventId: redeliveredBatchEventId,
   eventName: "app_opened",
@@ -307,7 +319,7 @@ test("the product analytics writer stores a batch, dedupes a redelivery, and lin
     userId: guestUserId,
     guestSessionId: randomUUID(),
   };
-  const guestRow: ProductAnalyticsEventRow = {
+  const guestRow: ClientProductAnalyticsEventRow = {
     ...fullyPopulatedRow,
     eventId: createEventId(),
     userId: guestUserId,
@@ -578,7 +590,7 @@ test("country periods dedupe concurrent days, retain first known country, and ex
     },
     observedAt: startedAt, countryLookup: async () => null,
   };
-  const event: ProductAnalyticsEventRow = {
+  const event: ClientProductAnalyticsEventRow = {
     ...minimalRow, eventId, userId: countryUserId, subjectUserId: countryUserId,
     anonymousId: installationId, country: null, uiLocale: "ru",
   };

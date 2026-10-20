@@ -19,6 +19,7 @@ import {
 } from "./catalog";
 import type {
   AnonymousProductAnalyticsEventRow,
+  ClientProductAnalyticsEventRow,
   ProductAnalyticsEventRow,
   ProductAnalyticsIdentityLink,
   ProductAnalyticsInstallationObservation,
@@ -96,13 +97,12 @@ const productAnalyticsInsertColumns: ReadonlyArray<ProductAnalyticsInsertColumn<
   },
 ];
 
-// The credential-free collector's columns: the shared list plus the columns only that collector
-// writes.
-const anonymousProductAnalyticsInsertColumns: ReadonlyArray<
-  ProductAnalyticsInsertColumn<AnonymousProductAnalyticsEventRow>
+// Both client ingests' columns: the shared list plus the facts derived from the request that
+// carried the event.
+const clientProductAnalyticsInsertColumns: ReadonlyArray<
+  ProductAnalyticsInsertColumn<ClientProductAnalyticsEventRow>
 > = [
   ...productAnalyticsInsertColumns,
-  { columnName: "daily_visitor_hash", columnType: "text", readValue: (row) => row.dailyVisitorHash },
   { columnName: "automated_client", columnType: "boolean", readValue: (row) => row.automatedClient },
   { columnName: "network_asn", columnType: "bigint", readValue: (row) => row.networkAsn },
   { columnName: "user_agent_chrome_major", columnType: "smallint", readValue: (row) => row.userAgentChromeMajor },
@@ -111,6 +111,15 @@ const anonymousProductAnalyticsInsertColumns: ReadonlyArray<
     columnType: "smallint",
     readValue: (row) => row.clientHintChromiumMajor,
   },
+];
+
+// The credential-free collector's columns: the client list plus the column only that collector
+// writes.
+const anonymousProductAnalyticsInsertColumns: ReadonlyArray<
+  ProductAnalyticsInsertColumn<AnonymousProductAnalyticsEventRow>
+> = [
+  ...clientProductAnalyticsInsertColumns,
+  { columnName: "daily_visitor_hash", columnType: "text", readValue: (row) => row.dailyVisitorHash },
 ];
 
 // unnest keeps the parameter count and the query plan stable no matter how many events a batch
@@ -132,6 +141,9 @@ function buildInsertProductAnalyticsEventsSql<Row extends ProductAnalyticsEventR
 }
 
 const insertProductAnalyticsEventsSql = buildInsertProductAnalyticsEventsSql(productAnalyticsInsertColumns);
+const insertClientProductAnalyticsEventsSql = buildInsertProductAnalyticsEventsSql(
+  clientProductAnalyticsInsertColumns,
+);
 const insertAnonymousProductAnalyticsEventsSql = buildInsertProductAnalyticsEventsSql(
   anonymousProductAnalyticsInsertColumns,
 );
@@ -590,7 +602,7 @@ export type ProductAnalyticsClientBatchResult = Readonly<{
 // then failed to store. A batch redelivered after a failure conflicts on event_id and on the
 // (anonymous_id, user_id) pair alike, so retrying the whole write stores nothing twice.
 export async function insertProductAnalyticsClientBatch(
-  rows: ReadonlyArray<ProductAnalyticsEventRow>,
+  rows: ReadonlyArray<ClientProductAnalyticsEventRow>,
   identityLink: ProductAnalyticsIdentityLink | null,
   installation: ProductAnalyticsInstallationObservation | null,
 ): Promise<ProductAnalyticsClientBatchResult> {
@@ -620,7 +632,10 @@ export async function insertProductAnalyticsClientBatch(
     }
     const storedEventCount = rows.length === 0
       ? 0
-      : await insertEventRowsInTransaction(client, rows);
+      : (await client.query(
+        insertClientProductAnalyticsEventsSql,
+        buildInsertParameters(clientProductAnalyticsInsertColumns, rows),
+      )).rowCount ?? 0;
     const storedIdentityLinkCount = identityLink === null
       ? 0
       : await insertIdentityLinkInTransaction(client, identityLink);

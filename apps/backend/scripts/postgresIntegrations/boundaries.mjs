@@ -73,6 +73,15 @@ export const createdRolesByMigration = new Map([
 // migration contracts retain their original cutoffs.
 export const boundaryDefinitions = Object.freeze([
   Object.freeze({
+    migrationFileName: "0228_app_event_bot_evidence.sql",
+    expectedMigrationCount: 230,
+    testFiles: Object.freeze([
+      "src/productAnalytics/writer.postgres.integration.ts",
+      "src/auth/provedAccountUnion.postgres.integration.ts",
+      "src/auth/appleLifecycle.postgres.integration.ts",
+    ]),
+  }),
+  Object.freeze({
     migrationFileName: "0224_anonymous_event_network_and_browser_facts.sql",
     expectedMigrationCount: 226,
     testFiles: Object.freeze([
@@ -97,8 +106,6 @@ export const boundaryDefinitions = Object.freeze([
       "src/aiConsent/consent.postgres.integration.ts",
       "src/routes/system/account/accountPreferences.postgres.integration.ts",
       "src/workspaces/starterVisibility.postgres.integration.ts",
-      "src/auth/provedAccountUnion.postgres.integration.ts",
-      "src/auth/appleLifecycle.postgres.integration.ts",
       "src/agent/reviews.postgres.integration.ts",
       "src/auth/stableClientAccountIdentity.postgres.integration.ts",
       "src/auth/accountRetirement.postgres.integration.ts",
@@ -127,7 +134,6 @@ export const boundaryDefinitions = Object.freeze([
       "src/auth/emailAuthAttempt.postgres.integration.ts",
       "src/auth/accountProviderMethods.postgres.integration.ts",
       "src/auth/accountProviderBrowserHandoffs.postgres.integration.ts",
-      "src/productAnalytics/writer.postgres.integration.ts",
     ]),
   }),
   Object.freeze({

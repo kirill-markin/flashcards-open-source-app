@@ -70,6 +70,7 @@ export function CatalogImportScreen(): ReactElement {
 
       setCatalogContext({
         packageVersionId: packageVersion.packageVersionId,
+        packageSlug: packageVersion.slug,
         title: packageVersion.title,
         cardCount: packageVersion.cardCount,
         authorDisplayName: packageVersion.author.displayName,
