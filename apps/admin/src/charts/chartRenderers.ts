@@ -10,6 +10,7 @@ import {
 } from "../adminApi";
 import type { UserColorScale } from "../dashboard/userColors";
 import { getUserPath } from "../routing";
+import { renderChartNotes, type PlacedChartNote } from "./chartNotes";
 import {
   chartMargin,
   chartWidth,
@@ -932,6 +933,8 @@ export type RenderWhoSawUsChartParams = Readonly<{
   xAxisLabel: string;
   /** Whether a series' segment in a bar can still change, drawn faded. */
   isNotFinalSegment: (key: string, date: string) => boolean;
+  /** Placed against the buckets keyed by `dates`. */
+  notes: ReadonlyArray<PlacedChartNote>;
   formatTickLabel: (date: string) => string;
   formatTitleLabel: (date: string) => string;
   buildTooltipMetricsHtml: (entry: StackedChartRectEntry) => string;
@@ -957,6 +960,7 @@ export function renderWhoSawUsChart(params: RenderWhoSawUsChartParams): void {
   });
   frame.group.selectAll<SVGRectElement, StackedChartRectEntry>(".bar-segment")
     .classed("bar-segment-not-final", (entry) => params.isNotFinalSegment(entry.key, entry.date));
+  renderChartNotes(frame.group, frame.x, getInnerHeight(stackedChartHeight), params.notes, params.tooltipHandlers);
 }
 
 /** One funnel step as the step chart draws it; the shares arrive preformatted so the chart and its text alternative cannot disagree. */

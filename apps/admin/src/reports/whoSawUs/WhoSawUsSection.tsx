@@ -3,7 +3,9 @@ import * as d3 from "d3";
 import { ChartAreaWithNote } from "../../charts/ChartAreaWithNote";
 import { ChartColorKey } from "../../charts/ChartLegends";
 import { ChartLoadingPlaceholder } from "../../charts/ChartLoadingPlaceholder";
+import { ChartNotesKey } from "../../charts/ChartNotesKey";
 import { ChartTooltip, useChartTooltip } from "../../charts/ChartTooltip";
+import { buildInProgressChartNote, placeChartNotes, type ChartNote, type PlacedChartNote } from "../../charts/chartNotes";
 import { chartWidth, createTickDates, stackedChartHeight, type MatrixChartEntry } from "../../charts/chartPrimitives";
 import { renderWhoSawUsChart } from "../../charts/chartRenderers";
 import { escapeHtml, formatGeneratedAt } from "../../charts/formatting";
@@ -24,6 +26,7 @@ import {
 } from "../levelOneMetrics/reportPeriod";
 import {
   loadWhoSawUsReport,
+  webDataStartChartNote,
   whoSawUsSeriesKeys,
   whoSawUsStoreSeriesKeys,
   type WhoSawUsBucket,
@@ -31,7 +34,7 @@ import {
   type WhoSawUsSeriesKey,
   type WhoSawUsStoreSeriesKey,
 } from "./query";
-import { getStoreBarFreshness, storeNotFinalDayCounts } from "./storeDataFreshness";
+import { buildStoreNotFinalChartNote, getStoreBarFreshness, storeNotFinalDayCounts } from "./storeDataFreshness";
 
 export const whoSawUsSeriesLabels: Readonly<Record<WhoSawUsSeriesKey, string>> = {
   web: "Web",
@@ -52,6 +55,10 @@ function getDrawnSeriesKeys(series: WhoSawUsChartSeries): ReadonlyArray<WhoSawUs
   return series === "all" ? whoSawUsSeriesKeys : [series];
 }
 
+function buildSeriesChartNote(seriesKey: WhoSawUsSeriesKey, today: string): ChartNote {
+  return seriesKey === "web" ? webDataStartChartNote : buildStoreNotFinalChartNote(seriesKey, today);
+}
+
 const numberFormatter = d3.format(",");
 
 type LoadState =
@@ -69,6 +76,7 @@ type WhoSawUsChartModel = Readonly<{
   peakTotal: number;
   storeFreshnessByKey: ReadonlyMap<string, StoreFreshness>;
   inProgressKey: string | null;
+  notes: ReadonlyArray<PlacedChartNote>;
 }>;
 
 type StoreFreshness = Readonly<Record<WhoSawUsStoreSeriesKey, BarFreshness>>;
@@ -95,6 +103,8 @@ function buildWhoSawUsChartModel(
   seriesKeys: ReadonlyArray<WhoSawUsSeriesKey>,
 ): WhoSawUsChartModel {
   const keys = report.buckets.map((entry) => entry.bucket.key);
+  const buckets = report.buckets.map((entry) => entry.bucket);
+  const today = report.storeDelivery.today;
 
   return {
     period: report.period,
@@ -113,9 +123,10 @@ function buildWhoSawUsChartModel(
       "app-store": getStoreBarFreshness("app-store", report.storeDelivery, entry.bucket),
       "google-play": getStoreBarFreshness("google-play", report.storeDelivery, entry.bucket),
     }])),
-    inProgressKey: findInProgressBucketKey(
-      report.buckets.map((entry) => entry.bucket),
-      report.storeDelivery.today,
+    inProgressKey: findInProgressBucketKey(buckets, today),
+    notes: placeChartNotes(
+      [buildInProgressChartNote(today), ...seriesKeys.map((key) => buildSeriesChartNote(key, today))],
+      buckets,
     ),
   };
 }
@@ -316,6 +327,7 @@ export function WhoSawUsSection(
         const storeKey = findStoreSeriesKey(getSeriesKey(key));
         return storeKey !== undefined && getStoreFreshness(date)[storeKey] !== "final";
       },
+      notes: chartModel.notes,
       formatTickLabel: (key) => formatReportBucketTick(chartModel.period, key),
       formatTitleLabel: (key) => `${formatReportBucketTitle(chartModel.period, getBucket(key).bucket)} UTC${key === chartModel.inProgressKey ? " · in progress" : ""}`,
       buildTooltipMetricsHtml: (entry) => buildBucketTooltipMetricsHtml(getBucket(entry.date), getStoreFreshness(entry.date), chartModel.seriesKeys),
@@ -369,6 +381,7 @@ export function WhoSawUsSection(
                 <ChartLoadingPlaceholder viewBoxWidth={chartWidth} viewBoxHeight={stackedChartHeight} label="Loading Who saw us…" />
               )}
             </div>
+            <ChartNotesKey notes={chartModel === null ? null : chartModel.notes} />
           </div>
         </section>
       )}
