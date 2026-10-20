@@ -334,6 +334,9 @@ struct ReviewView: View {
             .allowsHitTesting(false)
             .accessibilityHidden(true)
         }
+        #if targetEnvironment(macCatalyst)
+        .catalystReviewShortcutHintOverlay()
+        #endif
         .background {
             #if targetEnvironment(macCatalyst)
             MacStudyKeyboardReceiver(
@@ -1242,12 +1245,12 @@ struct ReviewView: View {
                 .frame(minHeight: showAnswerButtonMinHeight)
         }
         .nativeProminentActionButtonStyle()
+        .accessibilityIdentifier(UITestIdentifier.reviewShowAnswerButton)
         #if targetEnvironment(macCatalyst)
-        .reviewCardsShortcutHelp(key: String(localized: "Space / Enter", table: reviewCardsStringsTableName))
+        .catalystReviewShortcutHint(key: String(localized: "Space / Enter", table: reviewCardsStringsTableName))
         #else
         .reviewCardsShortcutHelp(key: String(localized: "Space", table: reviewCardsStringsTableName))
         #endif
-        .accessibilityIdentifier(UITestIdentifier.reviewShowAnswerButton)
         .anchorPreference(key: FirstReviewOnboardingAnchors.self, value: .bounds) {
             [.showAnswer: $0]
         }
@@ -1311,9 +1314,13 @@ struct ReviewView: View {
             .frame(maxWidth: .infinity, minHeight: reviewAnswerButtonMinHeight, alignment: .center)
         }
         .nativeProminentActionButtonStyle()
-        .reviewCardsShortcutHelp(key: String(option.rating.rawValue + 1))
         .disabled(store.isReviewPending(cardId: cardId))
         .accessibilityIdentifier(reviewAnswerButtonIdentifier(rating: option.rating))
+        #if targetEnvironment(macCatalyst)
+        .catalystReviewShortcutHint(key: String(option.rating.rawValue + 1))
+        #else
+        .reviewCardsShortcutHelp(key: String(option.rating.rawValue + 1))
+        #endif
         .anchorPreference(key: FirstReviewOnboardingAnchors.self, value: .bounds) {
             [.rating(option.rating): $0]
         }

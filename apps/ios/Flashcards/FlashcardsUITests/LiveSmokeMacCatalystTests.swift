@@ -31,10 +31,20 @@ final class LiveSmokeMacCatalystTests: LiveSmokeTestCase {
         )
 
         try self.step("reveal using Space and rate with the pointer") {
-            self.app.buttons[LiveSmokeIdentifier.reviewShowAnswerButton].hover()
+            self.hoverMacShortcutButton(identifier: LiveSmokeIdentifier.reviewShowAnswerButton, expectedHelp: "Press Space / Enter")
+            self.attachMacScreenshot(name: "mac-show-answer-shortcut-help")
             self.app.typeKey(XCUIKeyboardKey.space.rawValue, modifierFlags: [])
             try self.waitForReviewAnswerReveal()
             self.attachMacScreenshot(name: "mac-review-formulas")
+            for (identifier, key) in [
+                ("review.rating.0", "1"),
+                ("review.rating.1", "2"),
+                (LiveSmokeIdentifier.reviewRateGoodButton, "3"),
+                ("review.rating.3", "4")
+            ] {
+                self.hoverMacShortcutButton(identifier: identifier, expectedHelp: "Press " + key)
+                self.attachMacScreenshot(name: "mac-rating-" + key + "-shortcut-help")
+            }
             self.app.buttons[LiveSmokeIdentifier.reviewRateGoodButton].click()
             try self.assertElementExists(identifier: LiveSmokeIdentifier.reviewShowAnswerButton, timeout: LiveSmokeConfiguration.reviewInteractionTimeoutSeconds)
         }
@@ -98,7 +108,7 @@ final class LiveSmokeMacCatalystTests: LiveSmokeTestCase {
             self.app.typeKey("h", modifierFlags: .command)
             self.app.activate()
             try self.waitForApplicationToReachForeground(timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
-            self.app.buttons[LiveSmokeIdentifier.reviewRateGoodButton].hover()
+            self.hoverMacShortcutButton(identifier: LiveSmokeIdentifier.reviewRateGoodButton, expectedHelp: "Press 3")
             self.app.typeKey(XCUIKeyboardKey.space.rawValue, modifierFlags: [])
             for key in ["1", "2", "3", "4"] {
                 self.app.typeKey(key, modifierFlags: [])
@@ -133,6 +143,48 @@ final class LiveSmokeMacCatalystTests: LiveSmokeTestCase {
             try self.waitForReviewAnswerReveal()
             try self.assertElementDoesNotExist(identifier: LiveSmokeIdentifier.aiMessageRow, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
         }
+    }
+
+    @MainActor
+    private func hoverMacShortcutButton(identifier: String, expectedHelp: String) {
+        let hint = self.app.staticTexts["review.shortcutHint"]
+        self.app.staticTexts["review.companionTitle"].hover()
+        let dismissed = XCTNSPredicateExpectation(
+            predicate: NSPredicate(format: "exists == false"),
+            object: hint
+        )
+        XCTAssertEqual(
+            XCTWaiter.wait(for: [dismissed], timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds),
+            .completed,
+            "Previous shortcut tooltip must disappear before hovering " + identifier
+        )
+        let button = self.app.buttons[identifier]
+        let hittable = XCTNSPredicateExpectation(
+            predicate: NSPredicate(format: "exists == true AND hittable == true"),
+            object: button
+        )
+        XCTAssertEqual(
+            XCTWaiter.wait(for: [hittable], timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds),
+            .completed,
+            "Expected a visible shortcut button before hover: " + identifier
+        )
+        button.hover()
+        let appeared = XCTNSPredicateExpectation(
+            predicate: NSPredicate(format: "exists == true AND label == %@", expectedHelp),
+            object: hint
+        )
+        XCTAssertEqual(
+            XCTWaiter.wait(for: [appeared], timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds),
+            .completed,
+            "Expected fresh localized shortcut tooltip: " + expectedHelp
+        )
+        XCTAssertTrue(hint.frame.width > 0 && hint.frame.height > 0, "Shortcut tooltip must have visible bounds.")
+        XCTAssertLessThanOrEqual(
+            hint.frame.maxY,
+            button.frame.minY + 0.5,
+            "Shortcut tooltip must float above its button: " + identifier
+        )
+        XCTAssertTrue(self.app.windows.firstMatch.frame.contains(hint.frame), "Shortcut tooltip must stay inside the app window.")
     }
 
     @MainActor
