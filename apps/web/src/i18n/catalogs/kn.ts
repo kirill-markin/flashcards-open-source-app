@@ -1134,6 +1134,7 @@ const knCatalog: TranslationCatalog = {
       hard: "ಕಷ್ಟ",
     },
     shortcuts: {
+      enterKey: "ಎಂಟರ್",
       hint: "{{key}} ಒತ್ತಿ",
       spaceKey: "ಸ್ಪೇಸ್",
     },

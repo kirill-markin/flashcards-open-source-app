@@ -1134,6 +1134,7 @@ const viCatalog: TranslationCatalog = {
       hard: "Khó",
     },
     shortcuts: {
+      enterKey: "Enter",
       hint: "Nhấn {{key}}",
       spaceKey: "Phím cách",
     },

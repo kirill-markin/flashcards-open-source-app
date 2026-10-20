@@ -1134,6 +1134,7 @@ const koCatalog: TranslationCatalog = {
       hard: "어려움",
     },
     shortcuts: {
+      enterKey: "엔터",
       hint: "{{key}} 누르기",
       spaceKey: "스페이스",
     },

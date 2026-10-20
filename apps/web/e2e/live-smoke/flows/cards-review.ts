@@ -135,8 +135,28 @@ async function reviewSeededCardFromQueue(session: LiveSmokeSession): Promise<voi
     throw new Error(`Review current card id is unavailable for ${scenario.seededFrontText}`);
   }
   await trackedClick(diagnostics, "open review queue for post-review observation", page.getByTestId("review-queue-badge"));
-  await trackedClick(diagnostics, "reveal review answer", page.getByTestId("review-reveal-answer"));
-  await trackedClick(diagnostics, "submit Good review answer", page.getByTestId("review-rate-good"));
+  await diagnostics.runAction("reveal with Enter without letting reveal keys rate the card", async () => {
+    const revealButton = page.getByTestId("review-reveal-answer");
+    await expect(revealButton).toHaveAttribute("aria-keyshortcuts", "Space Enter");
+    await reviewPane.click({ position: { x: 1, y: 1 } });
+    await revealButton.hover();
+    await expect(revealButton).toContainText("Space / Enter");
+    await page.keyboard.press("Enter");
+    const goodButton = page.getByTestId("review-rate-good");
+    await expect(goodButton).toBeVisible();
+    await goodButton.hover();
+    await page.keyboard.press("Space");
+    await page.keyboard.press("Enter");
+    await expect(reviewPane).toHaveAttribute("data-review-current-card-id", reviewedCardId);
+    await expect(reviewPane).toHaveAttribute("data-review-submit-state", "idle");
+    await expect(goodButton).toBeVisible();
+  });
+  await diagnostics.runAction("submit Good with its native focused-button keyboard action", async () => {
+    const goodButton = page.getByTestId("review-rate-good");
+    await goodButton.focus();
+    await expect(goodButton).toBeFocused();
+    await goodButton.press("Enter");
+  });
   await session.diagnostics.runAction(`confirm review pane and queue update after reviewing ${scenario.seededFrontText}`, async () => {
     await expect.poll(
       async (): Promise<boolean> => {

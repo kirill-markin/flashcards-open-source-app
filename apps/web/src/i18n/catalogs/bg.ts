@@ -1134,6 +1134,7 @@ const bgCatalog: TranslationCatalog = {
       hard: "Трудно",
     },
     shortcuts: {
+      enterKey: "Enter",
       hint: "Натиснете {{key}}",
       spaceKey: "Интервал",
     },

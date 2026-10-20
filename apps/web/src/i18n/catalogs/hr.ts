@@ -1144,6 +1144,7 @@ const hrCatalog: TranslationCatalog = {
       hard: "Teško",
     },
     shortcuts: {
+      enterKey: "Enter",
       hint: "Pritisnite tipku: {{key}}",
       spaceKey: "Razmaknica",
     },

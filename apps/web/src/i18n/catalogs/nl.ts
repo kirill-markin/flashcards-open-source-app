@@ -1134,6 +1134,7 @@ const nlCatalog: TranslationCatalog = {
       hard: "Moeilijk",
     },
     shortcuts: {
+      enterKey: "Enter",
       hint: "Druk op {{key}}",
       spaceKey: "Spatie",
     },

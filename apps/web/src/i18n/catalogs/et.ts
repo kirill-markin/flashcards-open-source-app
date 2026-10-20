@@ -1134,6 +1134,7 @@ const etCatalog: TranslationCatalog = {
       hard: "Raske",
     },
     shortcuts: {
+      enterKey: "Enter",
       hint: "Vajuta klahvi {{key}}",
       spaceKey: "Tühik",
     },

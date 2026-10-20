@@ -1134,6 +1134,7 @@ const fiCatalog: TranslationCatalog = {
       hard: "Vaikea",
     },
     shortcuts: {
+      enterKey: "Enter",
       hint: "Paina näppäintä {{key}}",
       spaceKey: "Välilyönti",
     },

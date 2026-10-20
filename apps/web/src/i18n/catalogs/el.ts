@@ -1134,6 +1134,7 @@ const elCatalog: TranslationCatalog = {
       hard: "Δύσκολο",
     },
     shortcuts: {
+      enterKey: "Enter",
       hint: "Πατήστε {{key}}",
       spaceKey: "Διάστημα",
     },

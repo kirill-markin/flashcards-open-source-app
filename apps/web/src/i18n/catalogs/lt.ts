@@ -1144,6 +1144,7 @@ const ltCatalog: TranslationCatalog = {
       hard: "Sunku",
     },
     shortcuts: {
+      enterKey: "Enter",
       hint: "Paspauskite {{key}}",
       spaceKey: "Tarpas",
     },

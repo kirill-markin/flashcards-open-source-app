@@ -1134,6 +1134,7 @@ const svCatalog: TranslationCatalog = {
       hard: "Svårt",
     },
     shortcuts: {
+      enterKey: "Retur",
       hint: "Tryck på {{key}}",
       spaceKey: "Mellanslag",
     },

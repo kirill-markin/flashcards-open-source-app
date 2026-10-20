@@ -1154,6 +1154,7 @@ const slCatalog: TranslationCatalog = {
       hard: "Težko",
     },
     shortcuts: {
+      enterKey: "Enter",
       hint: "Pritisnite {{key}}",
       spaceKey: "preslednico",
     },

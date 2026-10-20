@@ -1144,6 +1144,7 @@ const skCatalog: TranslationCatalog = {
       hard: "Ťažké",
     },
     shortcuts: {
+      enterKey: "Enter",
       hint: "Stlačte {{key}}",
       spaceKey: "Medzerník",
     },

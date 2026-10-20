@@ -1144,6 +1144,7 @@ const ukCatalog: TranslationCatalog = {
       hard: "Важко",
     },
     shortcuts: {
+      enterKey: "Enter",
       hint: "Натисніть {{key}}",
       spaceKey: "Пробіл",
     },

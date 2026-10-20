@@ -1134,6 +1134,7 @@ const faCatalog: TranslationCatalog = {
       hard: "سخت",
     },
     shortcuts: {
+      enterKey: "ورود",
       hint: "{{key}} را بزنید",
       spaceKey: "فاصله",
     },

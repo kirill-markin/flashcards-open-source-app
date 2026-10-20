@@ -1134,6 +1134,7 @@ const daCatalog: TranslationCatalog = {
       hard: "Svært",
     },
     shortcuts: {
+      enterKey: "Enter",
       hint: "Tryk på {{key}}",
       spaceKey: "Mellemrum",
     },

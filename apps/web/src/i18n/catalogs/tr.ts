@@ -1134,6 +1134,7 @@ const trCatalog: TranslationCatalog = {
       hard: "Zor",
     },
     shortcuts: {
+      enterKey: "Enter",
       hint: "{{key}} tuşuna basın",
       spaceKey: "Boşluk",
     },

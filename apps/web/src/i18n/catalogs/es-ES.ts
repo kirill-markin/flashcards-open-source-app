@@ -1134,6 +1134,7 @@ const esEsCatalog: TranslationCatalog = {
       hard: "Difícil",
     },
     shortcuts: {
+      enterKey: "Intro",
       hint: "Pulsa {{key}}",
       spaceKey: "Espacio",
     },

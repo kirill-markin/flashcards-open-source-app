@@ -1134,6 +1134,7 @@ const paCatalog: TranslationCatalog = {
       hard: "ਔਖਾ",
     },
     shortcuts: {
+      enterKey: "ਐਂਟਰ",
       hint: "{{key}} ਦਬਾਓ",
       spaceKey: "ਸਪੇਸ",
     },

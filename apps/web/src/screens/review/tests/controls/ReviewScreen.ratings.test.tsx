@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { act } from "react";
 import { describe, expect, it, vi } from "vitest";
 import type { Card } from "../../../../types";
 import {
@@ -83,7 +84,7 @@ const reviewRatingShortcutDismissCases: ReadonlyArray<ReviewRatingShortcutDismis
 ];
 
 describe("ReviewScreen rating controls", () => {
-  it("reveals the answer with Space and submits the selected rating shortcut", async () => {
+  it.each([" ", "Enter"])("reveals with %j without rating until a rating shortcut is pressed", async (key) => {
     const state = getState();
     const card = createCard({
       cardId: "card-review",
@@ -96,13 +97,91 @@ describe("ReviewScreen rating controls", () => {
     state.appData.submitReviewItem.mockImplementation(async (): Promise<Card> => card);
 
     await renderReviewScreen();
-    await dispatchDocumentKeydown(" ");
+    const revealButton = getContainer().querySelector("[data-testid=review-reveal-answer]");
+    expect(revealButton?.getAttribute("aria-keyshortcuts")).toBe("Space Enter");
+    expect(revealButton?.textContent).toContain("Space / Enter");
+    const revealEvent = new KeyboardEvent("keydown", { key, bubbles: true, cancelable: true });
+    await act(async () => { document.dispatchEvent(revealEvent); });
 
+    expect(revealEvent.defaultPrevented).toBe(true);
     expect(getContainer().textContent).toContain("Answer");
+
+    for (const revealKey of [" ", "Enter"]) {
+      for (const repeat of [false, true]) {
+        const event = new KeyboardEvent("keydown", { key: revealKey, repeat, bubbles: true, cancelable: true });
+        await act(async () => { document.dispatchEvent(event); });
+        expect(event.defaultPrevented).toBe(true);
+      }
+    }
+    expect(state.appData.submitReviewItem).not.toHaveBeenCalled();
 
     await dispatchDocumentKeydown("3");
 
     expect(state.appData.submitReviewItem).toHaveBeenCalledWith("card-review", 2);
+  });
+
+  it("preserves modified keys, IME input and native focused controls before revealing", async () => {
+    const state = getState();
+    const card = createCard({ cardId: "card-shortcut-input", frontText: "Question", backText: "Answer" });
+    state.cards = [card];
+    state.reviewQueue = [card];
+    state.reviewTimeline = [card];
+    state.appData.submitReviewItem.mockImplementation(async (): Promise<Card> => card);
+    await renderReviewScreen();
+
+    const ignoredEvents: ReadonlyArray<KeyboardEventInit> = [
+      { altKey: true }, { ctrlKey: true }, { metaKey: true },
+      { isComposing: true }, { keyCode: 229 }, { repeat: true },
+    ];
+    for (const key of [" ", "Enter", "3"]) {
+      for (const eventInit of ignoredEvents) {
+        const event = new KeyboardEvent("keydown", { key, bubbles: true, cancelable: true, ...eventInit });
+        await act(async () => { document.dispatchEvent(event); });
+      }
+      const handledEvent = new KeyboardEvent("keydown", { key, bubbles: true, cancelable: true });
+      handledEvent.preventDefault();
+      await act(async () => { document.dispatchEvent(handledEvent); });
+    }
+    for (const key of [" ", "Enter"]) {
+      const event = new KeyboardEvent("keydown", { key, shiftKey: true, bubbles: true, cancelable: true });
+      await act(async () => { document.dispatchEvent(event); });
+      expect(event.defaultPrevented).toBe(false);
+    }
+    await act(async () => { document.dispatchEvent(new CompositionEvent("compositionstart", { bubbles: true })); });
+    await dispatchDocumentKeydown("Enter");
+    await act(async () => { document.dispatchEvent(new CompositionEvent("compositionend", { bubbles: true })); });
+
+    const editButton = getContainer().querySelector(".review-pane-edit-btn");
+    const navigationLink = getContainer().querySelector("a[href]");
+    if (!(editButton instanceof HTMLButtonElement) || !(navigationLink instanceof HTMLAnchorElement)) {
+      throw new Error("Review native keyboard controls were not found");
+    }
+    const input = document.createElement("textarea");
+    getContainer().append(input);
+    for (const target of [editButton, navigationLink, input]) {
+      target.focus();
+      for (const key of [" ", "Enter"]) {
+        const event = new KeyboardEvent("keydown", { key, bubbles: true, cancelable: true });
+        await act(async () => { target.dispatchEvent(event); });
+        expect(event.defaultPrevented).toBe(false);
+        expect(document.activeElement).toBe(target);
+      }
+    }
+    input.remove();
+    expect(getContainer().querySelector(".review-card-answer")).toBeNull();
+    expect(state.appData.submitReviewItem).not.toHaveBeenCalled();
+
+    await dispatchDocumentKeydown("Enter");
+    expect(getContainer().querySelector(".review-card-answer")).not.toBeNull();
+    for (const eventInit of ignoredEvents) {
+      const event = new KeyboardEvent("keydown", { key: "3", bubbles: true, cancelable: true, ...eventInit });
+      await act(async () => { document.dispatchEvent(event); });
+    }
+    expect(state.appData.submitReviewItem).not.toHaveBeenCalled();
+    const shiftedRatingEvent = new KeyboardEvent("keydown", { key: "3", shiftKey: true, bubbles: true, cancelable: true });
+    await act(async () => { document.dispatchEvent(shiftedRatingEvent); });
+    expect(shiftedRatingEvent.defaultPrevented).toBe(true);
+    expect(state.appData.submitReviewItem).toHaveBeenCalledWith(card.cardId, 2);
   });
 
   it("emits a decorative reaction and advances immediately when a rating is clicked", async () => {
@@ -341,6 +420,7 @@ describe("ReviewScreen rating controls", () => {
     await renderReviewScreen();
     await openReviewFilterMenu();
     await dispatchDocumentKeydown(" ");
+    await dispatchDocumentKeydown("Enter");
 
     expect(getContainer().textContent).not.toContain("Back");
     expect(state.appData.submitReviewItem).not.toHaveBeenCalled();
@@ -359,6 +439,7 @@ describe("ReviewScreen rating controls", () => {
 
     await clickElementAsync(editButton);
     await dispatchDocumentKeydown(" ");
+    await dispatchDocumentKeydown("Enter");
     await dispatchDocumentKeydown("3");
 
     expect(getContainer().querySelector(".review-pane .review-card-answer")).toBeNull();

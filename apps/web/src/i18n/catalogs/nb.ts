@@ -1134,6 +1134,7 @@ const nbCatalog: TranslationCatalog = {
       hard: "Vanskelig",
     },
     shortcuts: {
+      enterKey: "Enter",
       hint: "Trykk {{key}}",
       spaceKey: "Mellomrom",
     },
