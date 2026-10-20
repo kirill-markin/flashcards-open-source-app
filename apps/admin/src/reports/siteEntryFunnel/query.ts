@@ -264,7 +264,7 @@ export function buildHashedSiteEntryCohortCteSqlLines(
  * steps and the in-app steps meet on one `actor_id`. The web app mints no guests
  * (`apps/web/src/appData/session/guest/webGuestSession.ts`), so a session here is always a sign-in.
  *
- * The shape is the mobile funnel's (`../mobileFirstLaunchFunnel/query.ts`), for the same reason: no
+ * The shape is the first launch funnel's (`../firstLaunchFunnel/query.ts`), for the same reason: no
  * step joins a cohort to `analytics.product_events_resolved` by membership.
  *
  * - `actor_first_events` is one pass grouped by actor over trusted history and the site's page views
