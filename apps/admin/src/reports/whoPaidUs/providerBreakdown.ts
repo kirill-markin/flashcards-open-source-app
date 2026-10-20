@@ -39,6 +39,7 @@ function buildWhoPaidUsProviderBreakdownReport(report: WhoPaidUsReport): Breakdo
     period: report.period,
     today: report.today,
     values: paymentProviders,
+    valueLabels: null,
     buckets: report.buckets.map(buildProviderBucket),
   };
 }

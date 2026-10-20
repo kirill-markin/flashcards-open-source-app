@@ -35,6 +35,32 @@ ${buildExcludedActorSqlLines("recorded_activity.actor_id").join("\n")}
 )`;
 }
 
+/** Every trusted `review_answered` of `range`, with its day and `period` bucket. */
+function buildRangeReviewsSql(period: ReportPeriod, range: AnalyticsDateRange): string {
+  return `SELECT events.actor_id::text AS actor_id,
+      (events.occurred_at AT TIME ZONE 'UTC')::date AS activity_date,
+      ${buildReportBucketSql(period, "(events.occurred_at AT TIME ZONE 'UTC')::date")} AS bucket_date,
+      events.occurred_at, events.event_id, events.platform
+    ${reviewRowsFromSql}
+      AND events.occurred_at >= (${escapeSqlStringLiteral(range.from)}::date)::timestamp AT TIME ZONE 'UTC'
+      AND events.occurred_at < (${escapeSqlStringLiteral(range.to)}::date + 1)::timestamp AT TIME ZONE 'UTC'`;
+}
+
+/**
+ * The `meaningful_range_reviews` CTE, composed after `buildMeaningfulActivityCtesSql`: every
+ * `review_answered` of the range that `meaningful_activity` counts, one row per review, so the shared
+ * actor exclusions apply.
+ */
+export function buildMeaningfulRangeReviewsCteSql(period: ReportPeriod, range: AnalyticsDateRange): string {
+  return `meaningful_range_reviews AS (
+  SELECT range_reviews.*
+  FROM (
+    ${buildRangeReviewsSql(period, range)}
+  ) AS range_reviews
+  JOIN meaningful_activity USING (actor_id, activity_date)
+)`;
+}
+
 /**
  * The `meaningful_last_reviews` CTE, composed after `buildMeaningfulActivityCtesSql`: one row per
  * bucket of the range and person `meaningful_activity` counts in it, carrying that person's last
@@ -45,13 +71,7 @@ export function buildMeaningfulLastReviewsCteSql(period: ReportPeriod, range: An
   return `meaningful_last_reviews AS (
   SELECT DISTINCT ON (range_reviews.bucket_date, range_reviews.actor_id) range_reviews.*
   FROM (
-    SELECT events.actor_id::text AS actor_id,
-      (events.occurred_at AT TIME ZONE 'UTC')::date AS activity_date,
-      ${buildReportBucketSql(period, "(events.occurred_at AT TIME ZONE 'UTC')::date")} AS bucket_date,
-      events.occurred_at, events.event_id, events.platform
-    ${reviewRowsFromSql}
-      AND events.occurred_at >= (${escapeSqlStringLiteral(range.from)}::date)::timestamp AT TIME ZONE 'UTC'
-      AND events.occurred_at < (${escapeSqlStringLiteral(range.to)}::date + 1)::timestamp AT TIME ZONE 'UTC'
+    ${buildRangeReviewsSql(period, range)}
   ) AS range_reviews
   JOIN meaningful_activity USING (actor_id, activity_date)
   ORDER BY range_reviews.bucket_date, range_reviews.actor_id, range_reviews.occurred_at DESC, range_reviews.event_id DESC

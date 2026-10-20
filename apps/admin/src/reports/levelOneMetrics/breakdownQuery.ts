@@ -139,6 +139,7 @@ export function parseBreakdownReport(
     period,
     today: parseActivityDate(firstRow.today ?? null, reportLabel, "today"),
     values,
+    valueLabels: null,
     buckets,
   };
 }

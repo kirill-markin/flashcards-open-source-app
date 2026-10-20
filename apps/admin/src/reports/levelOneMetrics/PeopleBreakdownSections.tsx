@@ -26,7 +26,7 @@ const dimensionTitles: Readonly<Record<PeopleBreakdownDimension, string>> = {
 
 const showValue = (value: string): string => value;
 
-const showPlatform = (value: string): string => (isReviewEventPlatform(value) ? platformLabels[value] : value);
+export const showPlatform = (value: string): string => (isReviewEventPlatform(value) ? platformLabels[value] : value);
 
 /** Build at module level: `BreakdownSection` needs a stable loader. */
 export function buildPeopleBreakdowns(
@@ -87,6 +87,7 @@ export function PeopleBreakdownSections(props: Readonly<{
           loadReport={breakdown.loadReport}
           formatValue={breakdown.formatValue}
           buildExtraNotes={null}
+          keyLink={null}
         />
       ))}
     </>
