@@ -38,7 +38,9 @@ import type {
   WorkspaceImportPreviewModel,
 } from "../settings/workspace/packages/workspaceImportPresentationModel";
 import { CatalogImportConfirmPanel } from "./CatalogImportConfirmPanel";
+import { CatalogImportWorkspaceChooser } from "./CatalogImportWorkspaceChooser";
 import { CatalogImportSuccessPanel } from "./CatalogImportSuccessPanel";
+import { useCatalogPackageInstallContext, type CatalogPackageInstallContextLoader } from "./useCatalogPackageInstallContext";
 import {
   CatalogImportContextCard,
   CatalogImportStatePanel,
@@ -85,7 +87,7 @@ function isSameCatalogWorkspaceIdentity(
 
 function createInitialImportOptions(): WorkspaceImportOptions {
   return {
-    addImportTag: true,
+    addImportTag: false,
     importTag: "",
     removeTags: [],
   };
@@ -227,48 +229,6 @@ function buildCatalogPreviewModel(
   };
 }
 
-function CatalogImportWorkspaceChooser(props: Readonly<{
-  isSelectionBusy: boolean;
-  onChooseWorkspace: (workspaceId: string) => void;
-}>): ReactElement {
-  const { isSelectionBusy, onChooseWorkspace } = props;
-  const { activeWorkspace, availableWorkspaces, isChoosingWorkspace } = useAppData();
-  const { t, formatDateTime } = useI18n();
-
-  return (
-    <section className="content-card invite-panel workspace-modal" data-testid="catalog-import-workspace-selector">
-      <strong className="panel-subtitle">{t("catalogImport.workspaceTitle")}</strong>
-      <p className="subtitle">{t("catalogImport.workspaceDescription")}</p>
-      <div className="workspace-choice-list">
-        {availableWorkspaces.filter((workspace) => workspace.isVisible !== false).map((workspace) => {
-          const isActiveWorkspace = workspace.workspaceId === activeWorkspace?.workspaceId;
-          return (
-            <button
-              key={workspace.workspaceId}
-              className={`workspace-choice-btn${isActiveWorkspace ? " catalog-import-workspace-option-active" : ""}`}
-              type="button"
-              disabled={isChoosingWorkspace || isSelectionBusy}
-              aria-current={isActiveWorkspace ? "true" : undefined}
-              data-testid="catalog-import-workspace-option"
-              data-workspace-id={workspace.workspaceId}
-              data-workspace-active={isActiveWorkspace ? "true" : "false"}
-              onClick={() => onChooseWorkspace(workspace.workspaceId)}
-            >
-              <span className="workspace-choice-name">{workspace.name}</span>
-              <span className="workspace-choice-meta">{formatDateTime(workspace.createdAt)}</span>
-            </button>
-          );
-        })}
-      </div>
-      {isSelectionBusy ? (
-        <p className="subtitle" aria-live="polite" data-testid="catalog-import-workspace-loading">
-          {t("catalogImport.loading")}
-        </p>
-      ) : null}
-    </section>
-  );
-}
-
 function CatalogImportSyncStatus(props: Readonly<{
   state: CatalogInstallSyncState;
   onRetry: () => void;
@@ -303,8 +263,11 @@ function CatalogImportSyncStatus(props: Readonly<{
   );
 }
 
-function CatalogImportAuthenticatedContent(props: Readonly<{ catalogContext: CatalogImportContext }>): ReactElement {
-  const { catalogContext } = props;
+function CatalogImportAuthenticatedContent(props: Readonly<{
+  catalogContext: CatalogImportContext;
+  installContextLoader?: CatalogPackageInstallContextLoader;
+}>): ReactElement {
+  const { catalogContext, installContextLoader } = props;
   const {
     activeWorkspace,
     availableWorkspaces,
@@ -319,6 +282,16 @@ function CatalogImportAuthenticatedContent(props: Readonly<{ catalogContext: Cat
     sessionErrorMessage,
     sessionLoadState,
   } = useAppData();
+  const localInstallContextLoader = useCatalogPackageInstallContext(
+    catalogContext.packageVersionId,
+    installContextLoader === undefined
+      && (sessionLoadState === "ready" || sessionLoadState === "selecting_workspace")
+      && isSessionVerified
+      ? session?.userId ?? null
+      : null,
+  );
+  const resolvedInstallContextLoader = installContextLoader ?? localInstallContextLoader;
+  const installContextState = resolvedInstallContextLoader.state;
   const { indexedDbOpenRecoveryState, showCapturedTechnicalError } = useAppErrorDialog();
   const { messages, t, formatCount, formatNumber } = useI18n();
   const isWorkspaceChoiceAvailable = availableWorkspaces.filter((workspace) => workspace.isVisible !== false).length > 1;
@@ -368,6 +341,7 @@ function CatalogImportAuthenticatedContent(props: Readonly<{ catalogContext: Cat
     : `${workspaceIdentity.workspaceId}:${workspaceIdentity.installationId}`;
   const isWorkspaceSelectionBusy = isChoosingWorkspace || isWorkspaceSelectionPending;
   const isImportAvailable = sessionLoadState === "ready"
+    && installContextState.status === "ready"
     && isSessionVerified
     && workspaceIdentity !== null
     && !isWorkspaceSelectionBusy;
@@ -534,7 +508,7 @@ function CatalogImportAuthenticatedContent(props: Readonly<{ catalogContext: Cat
       setPreview(response);
       setPreviewIdentity(requestIdentity);
       setOptions({
-        addImportTag: response.defaultOptions.addImportTag,
+        addImportTag: false,
         importTag: response.defaultOptions.suggestedImportTag,
         removeTags: [...response.defaultOptions.removedTags],
       });
@@ -895,7 +869,8 @@ function CatalogImportAuthenticatedContent(props: Readonly<{ catalogContext: Cat
     || sessionLoadState === "error"
     || sessionLoadState === "guest_recovery"
     || sessionLoadState === "deleted"
-    || sessionLoadState === "storage_unavailable";
+    || sessionLoadState === "storage_unavailable"
+    || installContextState.status !== "ready";
   // Called before the early returns below so it runs on every render, as a hook must.
   useAnalyticsScreenView(resolveCatalogImportStepSurface({
     hasActiveWorkspace: activeWorkspace !== null,
@@ -946,6 +921,34 @@ function CatalogImportAuthenticatedContent(props: Readonly<{ catalogContext: Cat
     );
   }
 
+  if (installContextState.status === "error") {
+    return (
+      <CatalogImportStatePanel
+        testId="catalog-import-context-error"
+        title={t("catalogImport.errorTitle")}
+        message={isCatalogVersionUnavailableError(installContextState.error)
+          ? t("catalogImport.versionUnavailable")
+          : getCatalogImportErrorMessage(installContextState.error)}
+        guidance={null}
+        retryLabel={t("common.retry")}
+        onRetry={resolvedInstallContextLoader.retry}
+      />
+    );
+  }
+
+  if (installContextState.status !== "ready") {
+    return (
+      <CatalogImportStatePanel
+        testId="catalog-import-context-loading"
+        title={t("catalogImport.title")}
+        message={t("catalogImport.loading")}
+        guidance={null}
+        retryLabel={null}
+        onRetry={null}
+      />
+    );
+  }
+
   return (
     <main className="invite-page" data-testid="catalog-import-authenticated">
       {hasWorkspaceStep && step === "confirm" ? (
@@ -965,6 +968,7 @@ function CatalogImportAuthenticatedContent(props: Readonly<{ catalogContext: Cat
       )}
       {step === "workspace" ? (
         <CatalogImportWorkspaceChooser
+          workspaces={installContextState.context.workspaces}
           isSelectionBusy={isWorkspaceSelectionBusy}
           onChooseWorkspace={(nextWorkspaceId) => void selectCatalogWorkspace(nextWorkspaceId)}
         />
@@ -1025,11 +1029,14 @@ function CatalogImportAuthenticatedContent(props: Readonly<{ catalogContext: Cat
   );
 }
 
-export function CatalogImportAuthenticatedFlow(props: Readonly<{ catalogContext: CatalogImportContext }>): ReactElement {
-  const { catalogContext } = props;
+export function CatalogImportAuthenticatedFlow(props: Readonly<{
+  catalogContext: CatalogImportContext;
+  installContextLoader?: CatalogPackageInstallContextLoader;
+}>): ReactElement {
+  const { catalogContext, installContextLoader } = props;
   return (
     <PublicGuestAppDataProvider>
-      <CatalogImportAuthenticatedContent catalogContext={catalogContext} />
+      <CatalogImportAuthenticatedContent catalogContext={catalogContext} installContextLoader={installContextLoader} />
     </PublicGuestAppDataProvider>
   );
 }

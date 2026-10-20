@@ -97,3 +97,27 @@ export type CatalogPackageInstallConfirmResponse = Readonly<{
     importTag: string | null;
   }>;
 }>;
+
+export type CatalogPackageInstallOnboardingEligibility = "empty" | "demo_only" | "ineligible";
+
+export type CatalogPackageInstallPreviousInstall = Readonly<{
+  installId: string;
+  packageVersionId: string;
+  title: string;
+  retainedCardCount: number;
+}>;
+
+export type CatalogPackageInstallWorkspaceContext = Readonly<{
+  workspaceId: string;
+  name: string;
+  createdAt: string;
+  isSelected: boolean;
+  cardCount: number;
+  lastReviewedAt: string | null;
+  onboardingEligibility: CatalogPackageInstallOnboardingEligibility;
+  previousInstall: CatalogPackageInstallPreviousInstall | null;
+}>;
+
+export type CatalogPackageInstallContext = Readonly<{
+  workspaces: ReadonlyArray<CatalogPackageInstallWorkspaceContext>;
+}>;
