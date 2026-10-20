@@ -48,11 +48,10 @@ import {
   type SearchableUserFilterOption,
 } from "./userFilters";
 
-// The filter bar every analytics area renders, and every funnel with fields of its own renders again
-// inside its section. It offers exactly the fields its caller lists, so a later field is wired in
-// `buildFilterFieldView` rather than by editing this layout, and a field that does not apply is
-// absent rather than shown disabled. `Reset all` resets those fields and leaves the rest of the
-// selection alone.
+// The filter bar every analytics area renders. It offers exactly the fields its caller lists, so a
+// later field is wired in `buildFilterFieldView` rather than by editing this layout, and a field
+// that does not apply is absent rather than shown disabled. `Reset all` resets those fields and
+// leaves the rest of the selection alone.
 //
 // Every field reads the same way: its full label alone on the closed button, colour and a dot once
 // its selection differs from the default, and a popover carrying the selection in words, its
@@ -120,10 +119,8 @@ type AnalyticsFilterBarProps = Readonly<{
   /**
    * What the five catalog fields can offer. Unlike every list above, these are not scoped to the
    * range: the decks name every deck version ever installed, and the four dimensions name what the
-   * area's own rows carried. The caller chooses that source, because the two kinds of area match
-   * different rows: the user-scoped areas match a person through a completed install, so their values
-   * come from the clicks that became installs, while Funnels matches any click and takes its values
-   * from the clicks themselves. The field explanations say what each still cannot cover.
+   * clicks that became installs carried, because the user-scoped areas match a person through a
+   * completed install. The field explanations say what each still cannot cover.
    */
   catalogDeckOptions: ReadonlyArray<CatalogDeckOption>;
   catalogPlacementOptions: ReadonlyArray<CatalogInstallPlacement>;

@@ -6,22 +6,21 @@ import {
   type SiteFunnelEntryPageKind,
 } from "../siteEntryFunnel/query";
 
-// What the two funnels that start on a blog article share: the day they count from, the page kind they
-// enter on, the `Group by` dimensions they offer, and the note a range reaching back past that day
-// shows. Everything else is per funnel: `./platformChoiceQuery.ts` ends where the reader picks a
-// platform, `./webAppQuery.ts` starts at the web app click and follows that person into the product.
+// The blog funnel's entry: the day it counts from, the page kind it enters on, the `Group by`
+// dimensions it can be grouped by, and the note a range reaching back past that day shows. Its steps
+// are in `./platformChoiceQuery.ts`.
 
-/** The one `page_kind` both blog funnels enter on. */
+/** The one `page_kind` the blog funnel enters on. */
 export const blogFunnelEntryPageKind: SiteFunnelEntryPageKind = "blog_article";
 
 /**
- * What both blog funnels offer in their `Group by` field: every dimension a site-entry funnel offers,
- * plus the article the reader entered on, which answers which posts pull people into the product on the
- * same chart that measures the flow.
+ * What the blog funnel can be grouped by: every dimension a site-entry funnel offers, plus the article
+ * the reader entered on, which answers which posts pull people into the product on the same chart that
+ * measures the flow.
  *
- * THE BLOG FUNNELS ALONE GET THE ARTICLE. The home funnel keys the same cohort rule on `page_kind =
- * 'home'`, whose `page_path` is always `/`, so the dimension would draw one bar of everybody there; it
- * is declared here rather than in the shared list for that reason.
+ * THE ARTICLE IS DECLARED HERE rather than in the shared list, because a site-entry cohort keyed on
+ * `page_kind = 'home'` has a `page_path` that is always `/`, so the dimension would draw one bar of
+ * everybody there.
  *
  * It is the second dimension keyed on the entry page view itself rather than on a per-actor source, so
  * like `language` - and unlike anything read from a person's history, which can say nothing at all about
@@ -49,13 +48,11 @@ export const blogFunnelGroupByDimensions: ReadonlyArray<FunnelGroupByDimension> 
 /**
  * The first UTC day a blog entry counts from, whatever range is selected.
  *
- * IT IS ONE DAY LATER THAN `siteEntryFunnelStartDate`, and deliberately its own constant. The blog
- * article CTAs began leading to the localized home page and reporting `site_internal_cta_clicked`
- * instead of `site_app_entry_clicked` partway through 2026-09-23, at about 09:51 UTC, so on that day a
- * blog reader's path down either funnel depends on which side of the deploy their visit fell, and
- * 2026-09-24 is the first whole day of the current path. The home funnel is unaffected and keeps
- * counting from its own first full day of identified page views, which is why the two families cannot
- * be compared over a range that starts before this one.
+ * IT IS ONE DAY LATER THAN THE SITE'S FIRST FULL DAY OF IDENTIFIED PAGE VIEWS. The blog article CTAs
+ * began leading to the localized home page and reporting `site_internal_cta_clicked` instead of
+ * `site_app_entry_clicked` partway through 2026-09-23, at about 09:51 UTC, so on that day a blog
+ * reader's path depends on which side of the deploy their visit fell, and 2026-09-24 is the first
+ * whole day of the current path.
  */
 export const blogFunnelStartDate = "2026-09-24";
 

@@ -1,4 +1,4 @@
-export const analyticsAreas = ["level-1-metrics", "general", "funnels", "audience", "ai-usage"] as const;
+export const analyticsAreas = ["level-1-metrics", "funnels", "general", "audience", "ai-usage"] as const;
 
 export type AnalyticsArea = (typeof analyticsAreas)[number];
 
