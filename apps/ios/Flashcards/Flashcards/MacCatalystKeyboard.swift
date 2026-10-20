@@ -68,11 +68,13 @@ struct MacStudyKeyboardReceiver: UIViewRepresentable {
         view.onInput = self.onInput
         view.focusRequest = self.focusRequest
         if self.isStudyActive == false && view.isFirstResponder { view.resignFirstResponder() }
-        view.applyFocusRequest()
+        view.scheduleFocusRequest()
     }
 
     static func dismantleUIView(_ view: StudyKeyboardView, coordinator: Void) {
         view.onInput = nil
+        view.focusRequest = nil
+        NotificationCenter.default.removeObserver(view)
         if view.isFirstResponder { view.resignFirstResponder() }
     }
 }
@@ -91,9 +93,18 @@ final class StudyKeyboardView: UIView {
     }
     override var keyCommands: [UIKeyCommand]? {
         guard self.canHandleInput else { return [] }
-        return [" ", "1", "2", "3", "4"].map {
+        let commands = [" ", "\r", "\u{3}", "1", "2", "3", "4"].map {
             UIKeyCommand(input: $0, modifierFlags: [], action: #selector(self.studyInput(_:)))
         }
+        let keypadEnterCommands = ["\r", "\u{3}"].map {
+            UIKeyCommand(input: $0, modifierFlags: .numericPad, action: #selector(self.studyInput(_:)))
+        }
+        let studyCommands = commands + keypadEnterCommands
+        // Return must bypass retained system default actions when study owns the responder.
+        for command in studyCommands where command.input == "\r" || command.input == "\u{3}" {
+            command.wantsPriorityOverSystemBehavior = true
+        }
+        return studyCommands
     }
     override func canPerformAction(_ action: Selector, withSender sender: Any?) -> Bool {
         if action == #selector(self.studyInput(_:)) { return self.canHandleInput }
@@ -101,23 +112,43 @@ final class StudyKeyboardView: UIView {
     }
     override func didMoveToWindow() {
         super.didMoveToWindow()
+        NotificationCenter.default.removeObserver(self)
+        if let window = self.window {
+            NotificationCenter.default.addObserver(
+                self,
+                selector: #selector(self.keyboardWindowBecameKey),
+                name: UIWindow.didBecomeKeyNotification,
+                object: window
+            )
+        }
+        self.scheduleFocusRequest()
+    }
+    func scheduleFocusRequest() {
         self.applyFocusRequest()
+        DispatchQueue.main.async { [weak self] in self?.applyFocusRequest() }
+    }
+    @objc private func keyboardWindowBecameKey(_ notification: Notification) {
+        self.scheduleFocusRequest()
     }
     func applyFocusRequest() {
         guard let request = self.focusRequest, request != self.consumedFocusRequest,
               let window = self.window else { return }
-        self.consumedFocusRequest = request
-        guard self.isStudyActive, isActiveKeyboardWindow(window) else { return }
+        guard self.isStudyActive, self.isEnabled, isActiveKeyboardWindow(window),
+              let rootController = window.rootViewController,
+              hasCoveringPresentation(rootController) == false else { return }
         if case .automatic = request {
-            guard self.isEnabled && hasEditableResponder(in: window) == false else { return }
+            guard hasEditableResponder(in: window) == false else { return }
         }
         if case .study = request, hasEditableResponder(in: window) {
             guard firstResponderView(in: window) is ReviewSelectionTextView else { return }
         }
         guard self.becomeFirstResponder(), self.isFirstResponder else { return }
+        self.consumedFocusRequest = request
     }
     @objc private func studyInput(_ command: UIKeyCommand) {
-        guard self.canHandleInput, command.modifierFlags.isEmpty, let input = command.input else { return }
+        guard self.canHandleInput, let input = command.input else { return }
+        let allowedModifiers: UIKeyModifierFlags = input == "\r" || input == "\u{3}" ? .numericPad : []
+        guard command.modifierFlags.subtracting(allowedModifiers).isEmpty else { return }
         _ = self.onInput?(input)
     }
 }

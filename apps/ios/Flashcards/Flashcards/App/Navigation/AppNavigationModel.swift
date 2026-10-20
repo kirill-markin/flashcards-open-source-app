@@ -1,6 +1,9 @@
 import Foundation
 import Observation
 import SwiftUI
+#if targetEnvironment(macCatalyst)
+import UIKit
+#endif
 
 func makeSettingsNavigationPath(destination: SettingsNavigationDestination) -> [SettingsNavigationDestination] {
     switch destination {
@@ -78,8 +81,10 @@ func makeSettingsNavigationPath(destination: SettingsNavigationDestination) -> [
 final class AppNavigationModel {
     private(set) var selectedTab: AppTab
     private(set) var aiTabVisitID: UUID
+    #if targetEnvironment(macCatalyst)
+    private(set) var reviewKeyboardFocusRequestID: UUID? = nil
+    #endif
     var settingsPath: [SettingsNavigationDestination]
-    /// Chat history screens pushed over the live AI chat.
     var aiPath: NavigationPath
     var cardsPresentationRequest: CardsPresentationRequest?
     var aiChatPresentationRequest: AIChatPresentationRequest?
@@ -122,31 +127,6 @@ final class AppNavigationModel {
         self.progressPresentationRequest = progressPresentationRequest
     }
 
-    /**
-     * Every tab change goes through here, and the destination's `screen_viewed` is claimed before the
-     * selection actually moves.
-     *
-     * Doing it before the mutation is what makes the funnel independent of SwiftUI callback ordering.
-     * The tab-bar tap already had that property, because the selection `Binding.set` in `RootTabView`
-     * reports the destination and only then calls this. A programmatic change — a deck or tag opening
-     * review, a notification tap, `openCardCreation`, `openProgress`, `openSettings` — used to be
-     * reported afterwards, from an ancestor's `.onChange(of: selectedTab)`, and the ordering between
-     * that and the outgoing screen's `.onDisappear` is not established. Losing the race let a screen
-     * that restores a surface on dismissal name one the user had already left, which would also hide
-     * their genuine next view of it behind the dedupe.
-     *
-     * The reports from `prepareVisibleTabForPresentation` stay where they are: that one also covers
-     * the tab shown at launch, which never passes through here, and a repeat of the surface already
-     * being viewed is dropped.
-     *
-     * A call that names the tab already selected is not a tab change and reports nothing. The tab-bar
-     * re-selection tap arrives here right behind the same binding setter that feeds
-     * `prepareVisibleTabForPresentation`, so the gate has to hold at both or the re-selection would
-     * simply be reported from this one instead — and it would report a tab whose pushed detail screen
-     * is what the user is actually looking at. `openCardCreation`, `openProgress` and `openSettings`
-     * can also target the tab already on screen, and what the user then arrives at is the editor or
-     * the pushed destination, which is not this tab's own surface.
-     */
     func selectTab(_ tab: AppTab) {
         if self.selectedTab != tab {
             Analytics.trackScreenViewed(analyticsSurface(tab: tab))
@@ -157,6 +137,13 @@ final class AppNavigationModel {
 
         self.selectedTab = tab
     }
+
+    #if targetEnvironment(macCatalyst)
+    func requestReviewKeyboardFocus() {
+        guard self.selectedTab == .review else { return }
+        self.reviewKeyboardFocusRequestID = UUID()
+    }
+    #endif
 
     func openCardCreation() {
         self.selectTab(.cards)
@@ -174,6 +161,18 @@ final class AppNavigationModel {
             self.selectTab(.ai)
             return
         }
+        #if targetEnvironment(macCatalyst)
+        if self.isAICompanionVisible {
+            // End typing before SwiftUI removes the focused composer.
+            UIApplication.shared.sendAction(
+                #selector(UIResponder.resignFirstResponder),
+                to: nil,
+                from: nil,
+                for: nil
+            )
+            self.requestReviewKeyboardFocus()
+        }
+        #endif
         self.isAICompanionPresented.toggle()
     }
 

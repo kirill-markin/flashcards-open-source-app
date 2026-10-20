@@ -821,6 +821,11 @@ struct AIChatView: View {
             from: nil,
             for: nil
         )
+        #if targetEnvironment(macCatalyst)
+        if self.isCompanion {
+            self.navigation.requestReviewKeyboardFocus()
+        }
+        #endif
     }
 
     func startNewChat() {

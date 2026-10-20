@@ -239,6 +239,23 @@ struct ReviewView: View {
                 self.requestAutomaticReviewKeyboardFocus()
             }
         }
+        #if targetEnvironment(macCatalyst)
+        .onChange(of: self.canUseReviewKeyboardShortcuts, initial: true) { _, isAvailable in
+            if isAvailable {
+                self.requestAutomaticReviewKeyboardFocus()
+            }
+        }
+        .onChange(of: self.navigation.isAICompanionVisible) { _, isVisible in
+            if isVisible == false && self.canUseReviewKeyboardShortcuts {
+                self.requestAutomaticReviewKeyboardFocus()
+            }
+        }
+        .onChange(of: self.navigation.reviewKeyboardFocusRequestID) { _, _ in
+            if self.canUseReviewKeyboardShortcuts {
+                self.requestAutomaticReviewKeyboardFocus()
+            }
+        }
+        #endif
         .onChange(of: self.areReviewReactionAnimationsEnabled) { _, isEnabled in
             if isEnabled {
                 self.prewarmReviewReactionLottieAssets()
@@ -321,7 +338,7 @@ struct ReviewView: View {
             #if targetEnvironment(macCatalyst)
             MacStudyKeyboardReceiver(
                 isEnabled: self.canUseReviewKeyboardShortcuts,
-                isStudyActive: self.isReviewReactionScreenVisible && self.navigation.selectedTab == .review && self.scenePhase == .active && self.textSelection == nil,
+                isStudyActive: self.canUseReviewKeyboardShortcuts,
                 focusRequest: self.reviewKeyboardFocusRequest,
                 onInput: self.handleReviewKeyboardInput
             )
@@ -390,15 +407,12 @@ struct ReviewView: View {
         .sheet(
             isPresented: self.$isEditorPresented,
             onDismiss: {
-                // The same pair the Cards tab's editor reports, because it is the same screen: the
-                // pencil here opens `CardEditorScreen` too, and leaving it out would leave
-                // `card_editor` half-populated, counting only the editor views that happen on the
-                // Cards tab. This sheet is the edit path alone — the create button on Review calls
-                // `navigation.openCardCreation()`, which opens the Cards tab's own editor and is
-                // reported there. From the presentation, never from the content, for the reason
-                // `Analytics.trackScreenViewedOnDismiss` gives; the hand-off to the AI tab reports
-                // `ai` before it closes the editor, so this restore is then refused.
                 Analytics.trackScreenViewedOnDismiss(of: .cardEditor, restoring: .review)
+                #if targetEnvironment(macCatalyst)
+                if self.canUseReviewKeyboardShortcuts {
+                    self.requestAutomaticReviewKeyboardFocus()
+                }
+                #endif
             }
         ) {
             NavigationStack(path: self.$cardFormState.navigationPath) {
@@ -1120,7 +1134,10 @@ struct ReviewView: View {
     }
 
     private var canUseReviewKeyboardShortcuts: Bool {
-        UIDevice.current.userInterfaceIdiom == .pad
+        #if !targetEnvironment(macCatalyst)
+        guard self.store.pendingReviewCardIds.isEmpty else { return false }
+        #endif
+        return UIDevice.current.userInterfaceIdiom == .pad
             && self.navigation.selectedTab == .review
             && self.scenePhase == .active
             && self.isEditorPresented == false
@@ -1130,7 +1147,6 @@ struct ReviewView: View {
             && self.reviewTagFilterRequest == nil
             && self.shouldShowReviewLoader == false
             && self.currentCard != nil
-            && self.store.pendingReviewCardIds.isEmpty
             && self.store.reviewSubmissionFailure == nil
             && self.store.isReviewHardReminderPresented == false
             && self.store.isReviewNotificationPrePromptPresented == false
@@ -1155,7 +1171,7 @@ struct ReviewView: View {
     private func handleReviewKeyboardInput(_ input: String) -> Bool {
         guard self.canUseReviewKeyboardShortcuts else { return false }
         self.dismissActiveReviewReactions(reason: "interaction")
-        if input == " " {
+        if input == " " || input == "\r" || input == "\u{3}" {
             guard self.isAnswerVisible == false else { return false }
             self.revealReviewAnswer()
             return true
@@ -1226,7 +1242,11 @@ struct ReviewView: View {
                 .frame(minHeight: showAnswerButtonMinHeight)
         }
         .nativeProminentActionButtonStyle()
+        #if targetEnvironment(macCatalyst)
+        .reviewCardsShortcutHelp(key: String(localized: "Space / Enter", table: reviewCardsStringsTableName))
+        #else
         .reviewCardsShortcutHelp(key: String(localized: "Space", table: reviewCardsStringsTableName))
+        #endif
         .accessibilityIdentifier(UITestIdentifier.reviewShowAnswerButton)
         .anchorPreference(key: FirstReviewOnboardingAnchors.self, value: .bounds) {
             [.showAnswer: $0]
