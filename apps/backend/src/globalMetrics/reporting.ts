@@ -42,15 +42,15 @@ import {
 //
 // It does still carry the same exclusion rule as the admin dashboard: an `@example.com`
 // or `+test` address, an admin, an actor listed in `analytics.excluded_actors`, or an actor any of
-// whose rows the credential-free collector marked automated. That dashboard lives in a
+// whose rows its ingest marked automated. That dashboard lives in a
 // separate package and cannot import these fragments, so it writes the rule once of its
 // own in `buildExcludedActorSqlLines` (`apps/admin/src/filters/filterSql.ts`) and every
 // one of its reports and filter option lists reads it from there. The two surfaces
 // exclude the same people and must be changed together.
 //
 // THE AUTOMATED-CLIENT ARM DOES REACH A STORED ACCOUNT, which is why it is restated below
-// rather than skipped. The verdict is stamped on an event row of a browser request
-// (`db/migrations/0145_anonymous_client_automated_marker.sql`), and such a row carries no
+// rather than skipped. A web app row carries its verdict and its account's `user_id` together
+// (`db/migrations/0228_app_event_bot_evidence.sql`). A credential-free collector row carries no
 // `user_id` at all - `product_events_anonymous_client_shape` forbids one. But
 // `analytics.product_events_resolved` does not stop there: when
 // `analytics.identity_links` holds an `authenticated_client` row for that browser's
@@ -145,12 +145,10 @@ const excludedActorWhereSqlFragments = [
   "  )",
 ] as const;
 
-// SQL fragments that exclude the actors the credential-free collector judged automated, the
-// fourth arm of the rule the comment at the top of this file names. TRUE is the only value
-// dropped: NULL means nothing assessed that row - it was stored before
-// `db/migrations/0145_anonymous_client_automated_marker.sql` shipped, or on a trust level
-// where no `User-Agent` is read - and FALSE is one unverified claim a client makes about
-// itself, so neither is evidence either way. The verdict is read on the actor rather than on
+// SQL fragments that exclude the actors their ingest judged automated, the fourth arm of the
+// rule the comment at the top of this file names. TRUE is the only value dropped: NULL means
+// nothing assessed that row, and FALSE is one unverified claim a client makes about itself, so
+// neither is evidence either way. The verdict is read on the actor rather than on
 // the row, as it is on the dashboard: one marked row removes that person's whole history
 // here, so a smoke run that later signs into a real account cannot bring its reviews back.
 //
