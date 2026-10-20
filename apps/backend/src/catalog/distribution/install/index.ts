@@ -57,6 +57,11 @@ import {
   installCatalogPackageMediaAssetsInExecutor,
 } from "./persistence";
 
+export { loadCatalogPackageInstallContext, loadCatalogPackageInstallContextInExecutor } from "./context";
+import {
+  loadCatalogInstallOnboardingStateInExecutor,
+  tombstoneCatalogOnboardingDemoInExecutor,
+} from "./onboarding";
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/iu;
 const maximumJavaScriptArrayIndex = 4_294_967_294;
 const catalogPackageInstallMediaLastOperationIdMaximumSuffix =
@@ -170,6 +175,7 @@ function normalizeCatalogPackageInstallConfirmInput(
     clientUpdatedAt: normalizeCatalogInstallIsoTimestamp(input.clientUpdatedAt, "clientUpdatedAt"),
     lastModifiedByReplicaId: normalizeUuidString(input.lastModifiedByReplicaId, "lastModifiedByReplicaId"),
     operationIdPrefix: normalizeCatalogPackageInstallOperationIdPrefix(input.operationIdPrefix),
+    immediateOnboarding: input.immediateOnboarding === true,
     addImportTag: normalizedTagOptions.addImportTag,
     importTag: normalizedTagOptions.importTag,
     removeTags: normalizedTagOptions.removeTags,
@@ -216,6 +222,17 @@ export async function installCatalogPackageVersionInExecutor(
     return replayResult;
   }
 
+  const onboarding = normalizedInput.immediateOnboarding
+    ? await loadCatalogInstallOnboardingStateInExecutor(executor, normalizedWorkspaceId)
+    : null;
+  if (onboarding?.eligibility === "ineligible") {
+    throw new HttpError(
+      409,
+      "Workspace content changed. Reload catalog import context and choose an explicit import.",
+      "CATALOG_PACKAGE_INSTALL_ONBOARDING_NOT_ELIGIBLE",
+    );
+  }
+
   const versionRow = await loadCatalogPackageInstallVersionForInstallInExecutor(
     executor,
     normalizedPackageVersionId,
@@ -244,7 +261,11 @@ export async function installCatalogPackageVersionInExecutor(
   await assertInstallOperationIdsUnusedInExecutor(
     executor,
     normalizedWorkspaceId,
-    buildCatalogInstallOperationIds(normalizedInput, packageMediaAssets, packageCards),
+    [
+      ...buildCatalogInstallOperationIds(normalizedInput, packageMediaAssets, packageCards),
+      ...(onboarding?.demoCardId === null || onboarding === null
+        ? [] : [`${normalizedInput.operationIdPrefix}:onboarding-demo`]),
+    ],
   );
 
   const installedMediaAssets = await installCatalogPackageMediaAssetsInExecutor(
@@ -268,7 +289,14 @@ export async function installCatalogPackageVersionInExecutor(
     installedMediaAssetIdsByPackageMediaKey,
   );
 
+  if (onboarding !== null && onboarding.demoCardId !== null) {
+    await tombstoneCatalogOnboardingDemoInExecutor(
+      executor, normalizedWorkspaceId, hotChangeWriteLock, onboarding.demoCardId, normalizedInput,
+    );
+  }
+
   const result: CatalogPackageInstallResult = {
+    ...(onboarding === null ? {} : { onboarding: { removedDemoCardId: onboarding.demoCardId } }),
     packageVersion: mapCatalogPackageInstallPackageVersion(versionRow),
     installedCards,
     installedMediaAssets,

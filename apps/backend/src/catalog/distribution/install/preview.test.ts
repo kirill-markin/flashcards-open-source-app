@@ -16,7 +16,7 @@ import {
 } from "./installTestSupport";
 import { createQueryResult } from "../../testSupport";
 
-test("catalog install preview exposes source tag counts and ZIP-compatible default options", async () => {
+test("catalog install preview exposes source tag counts without a default extra import tag", async () => {
   const executor: DatabaseExecutor = {
     async query<Row extends pg.QueryResultRow>(
       text: string,
@@ -58,7 +58,7 @@ test("catalog install preview exposes source tag counts and ZIP-compatible defau
     { tag: "legacy", cardsCount: 1 },
   ]);
   assert.deepEqual(preview.defaultOptions, {
-    addImportTag: true,
+    addImportTag: false,
     suggestedImportTag: "import:2026-04-19-1",
     keptTags: ["language", "legacy"],
     removedTags: [],

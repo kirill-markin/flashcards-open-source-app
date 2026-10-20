@@ -7,7 +7,7 @@ import type {
   CatalogPackageInstallActor,
   CatalogPackageInstallConfirmInput,
 } from "../../types";
-import { installCatalogPackageVersion } from "./install";
+import { installCatalogPackageVersion, loadCatalogPackageInstallContext } from "./install";
 
 type InstallEffectCounts = Readonly<{
   card_count: string;
@@ -39,6 +39,7 @@ test("catalog install atomically replays one request and rejects key or operatio
   const suffix = randomUUID().replaceAll("-", "");
   const userId = randomUUID();
   const workspaceId = randomUUID();
+  const extraWorkspaceIds: Array<string> = [];
   const replicaId = randomUUID();
   const authorId = randomUUID();
   const packageId = randomUUID();
@@ -266,15 +267,196 @@ test("catalog install atomically replays one request and rejects key or operatio
       analytics_event_count: "1",
       analytics_package_slug: packageSlug,
     });
+    const context = await loadCatalogPackageInstallContext(userId, workspaceId, packageVersionId);
+    assert.equal(context.workspaces.length, 1);
+    assert.deepEqual(context.workspaces[0]?.previousInstall, {
+      installId, packageVersionId, title: "Idempotency package", retainedCardCount: 1,
+    });
+    assert.equal(context.workspaces[0]?.onboardingEligibility, "ineligible");
+    assert.equal(context.workspaces[0]?.lastReviewedAt, null);
+
+    const createOnboardingWorkspace = async (kind: "empty" | "demo" | "edited" | "real" | "invalid" | "deleted") => {
+      const id = randomUUID();
+      const replica = randomUUID();
+      const cardId = randomUUID();
+      extraWorkspaceIds.push(id);
+      const client = await ownerPool.connect();
+      try {
+        await client.query("BEGIN");
+        await client.query(
+          "INSERT INTO org.workspaces (workspace_id, name, fsrs_client_updated_at, fsrs_last_modified_by_replica_id, fsrs_last_operation_id) VALUES ($1, $2, $3, $4, $5)",
+          [id, kind, installedAt, replica, "workspace-" + id],
+        );
+        await client.query(
+          "INSERT INTO org.workspace_memberships (workspace_id, user_id, role) VALUES ($1, $2, 'owner')",
+          [id, userId],
+        );
+        await client.query(
+          "INSERT INTO sync.workspace_replicas (replica_id, workspace_id, user_id, actor_kind, actor_key, platform) VALUES ($1, $2, $3, 'ai_chat', $4, 'system')",
+          [replica, id, userId, id],
+        );
+        if (kind !== "empty") {
+          await client.query(
+            [
+              "INSERT INTO content.cards (card_id, workspace_id, front_text, back_text, card_type, metadata, tags, effort_level, created_at,",
+              "client_updated_at, last_modified_by_replica_id, last_operation_id, deleted_at)",
+              "VALUES ($1, $2, 'Demo question', 'Demo answer', 'basic', $3::jsonb, ARRAY['demo'], 'fast', $4, $4, $5, $6, $7)",
+            ].join(" "),
+            [cardId, id, JSON.stringify({
+              version: 1, source: null,
+              ...(kind === "real" ? {} : {
+                onboardingDemo: {
+                  version: kind === "invalid" ? 99 : 1,
+                  frontText: "Demo question", backText: "Demo answer", cardType: "basic", tags: ["demo"],
+                  wasEdited: kind === "edited",
+                },
+              }),
+            }), installedAt, replica, "seed-" + id, kind === "deleted" ? installedAt : null],
+          );
+        }
+        await client.query("COMMIT");
+      } catch (error) {
+        await client.query("ROLLBACK");
+        throw error;
+      } finally {
+        client.release();
+      }
+      return { workspaceId: id, replicaId: replica, cardId };
+    };
+    const empty = await createOnboardingWorkspace("empty");
+    const demo = await createOnboardingWorkspace("demo");
+    const preserved = await Promise.all([
+      createOnboardingWorkspace("edited"), createOnboardingWorkspace("real"),
+      createOnboardingWorkspace("invalid"), createOnboardingWorkspace("deleted"),
+    ]);
+    const reviewedAt = "2026-07-31T10:00:00.000Z";
+    const demoClientUpdatedAt = "2026-08-03T10:00:00.000500Z";
+    await ownerPool.query(
+      "UPDATE content.cards SET client_updated_at = $1 WHERE card_id = $2",
+      [demoClientUpdatedAt, demo.cardId],
+    );
+    await ownerPool.query(
+      [
+        "INSERT INTO content.review_events (review_event_id, workspace_id, card_id, replica_id, client_event_id, rating, reviewed_at_client, reviewed_at_server)",
+        "VALUES ($1, $2, $3, $4, $5, 1, $6, now())",
+      ].join(" "),
+      [randomUUID(), demo.workspaceId, demo.cardId, demo.replicaId, randomUUID(), reviewedAt],
+    );
+    const entry = await loadCatalogPackageInstallContext(userId, workspaceId, packageVersionId);
+    assert.equal(entry.workspaces[0]?.workspaceId, demo.workspaceId);
+    assert.equal(entry.workspaces[0]?.lastReviewedAt, reviewedAt);
+    assert.equal(entry.workspaces.find((row) => row.workspaceId === workspaceId)?.isSelected, true);
+    assert.equal(entry.workspaces.find((row) => row.workspaceId === empty.workspaceId)?.onboardingEligibility, "empty");
+    assert.equal(entry.workspaces.find((row) => row.workspaceId === demo.workspaceId)?.onboardingEligibility, "demo_only");
+    assert.deepEqual((await loadCatalogPackageInstallContext(randomUUID(), null, packageVersionId)).workspaces, []);
+    const immediateInput = (replica: string): CatalogPackageInstallConfirmInput => ({
+      installId: randomUUID(), installedAt, clientUpdatedAt: installedAt,
+      lastModifiedByReplicaId: replica, operationIdPrefix: "immediate-" + randomUUID(), immediateOnboarding: true,
+    });
+    for (const workspace of preserved) {
+      assert.equal(entry.workspaces.find((row) => row.workspaceId === workspace.workspaceId)?.onboardingEligibility, "ineligible");
+      await assert.rejects(
+        installCatalogPackageVersion(userId, workspace.workspaceId, packageVersionId, immediateInput(workspace.replicaId), installActor),
+        (error: unknown) => error instanceof HttpError && error.code === "CATALOG_PACKAGE_INSTALL_ONBOARDING_NOT_ELIGIBLE",
+      );
+      const remaining = await ownerPool.query("SELECT card_id FROM content.cards WHERE workspace_id = $1", [workspace.workspaceId]);
+      assert.deepEqual(remaining.rows, [{ card_id: workspace.cardId }]);
+    }
+    const changed = await createOnboardingWorkspace("demo");
+    assert.equal((await loadCatalogPackageInstallContext(userId, workspaceId, packageVersionId)).workspaces.find(
+      (row) => row.workspaceId === changed.workspaceId,
+    )?.onboardingEligibility, "demo_only");
+    await ownerPool.query("UPDATE content.cards SET back_text = 'Authored answer' WHERE card_id = $1", [changed.cardId]);
+    await assert.rejects(
+      installCatalogPackageVersion(userId, changed.workspaceId, packageVersionId, immediateInput(changed.replicaId), installActor),
+      (error: unknown) => error instanceof HttpError && error.code === "CATALOG_PACKAGE_INSTALL_ONBOARDING_NOT_ELIGIBLE",
+    );
+    const authored = await ownerPool.query("SELECT back_text, deleted_at FROM content.cards WHERE card_id = $1", [changed.cardId]);
+    assert.deepEqual(authored.rows, [{ back_text: "Authored answer", deleted_at: null }]);
+    const emptyInput = immediateInput(empty.replicaId);
+    const emptyResult = await installCatalogPackageVersion(userId, empty.workspaceId, packageVersionId, emptyInput, installActor);
+    assert.deepEqual(emptyResult.onboarding, { removedDemoCardId: null });
+    assert.equal(emptyResult.summary.importTag, null);
+    assert.deepEqual(await installCatalogPackageVersion(userId, empty.workspaceId, packageVersionId, emptyInput, installActor), emptyResult);
+
+    // The second version proves package identity across versions and fails after its media insert.
+    const brokenVersionId = randomUUID();
+    await ownerPool.query(
+      [
+        "INSERT INTO catalog.package_versions (package_version_id, package_id, version_number, slug, title, summary, description,",
+        "language_tags, license, card_count, created_by_admin_email, educational_subject)",
+        "SELECT $1, package_id, 2, slug, title, summary, description, language_tags, license, 1, created_by_admin_email, educational_subject",
+        "FROM catalog.package_versions WHERE package_version_id = $2",
+      ].join(" "), [brokenVersionId, packageVersionId],
+    );
+    await ownerPool.query(
+      [
+        "INSERT INTO catalog.package_cards (package_card_id, package_version_id, stable_card_key, ordinal, front_text, back_text, card_type, metadata, tags, media_asset_keys)",
+        "SELECT $1, $2, stable_card_key, ordinal, front_text, back_text, card_type, metadata, tags, ARRAY['missing']",
+        "FROM catalog.package_cards WHERE package_card_id = $3",
+      ].join(" "), [randomUUID(), brokenVersionId, packageCardId],
+    );
+    await ownerPool.query(
+      "INSERT INTO catalog.package_media_assets (package_media_asset_id, package_id, package_version_id, package_media_key, media_blob_id) VALUES ($1, $2, $3, 'diagram', $4)",
+      [randomUUID(), packageId, brokenVersionId, mediaBlobId],
+    );
+    for (const status of ["submitted", "approved", "published"]) {
+      await ownerPool.query("UPDATE catalog.package_versions SET status = $2 WHERE package_version_id = $1", [brokenVersionId, status]);
+    }
+    const previousVersion = await loadCatalogPackageInstallContext(userId, workspaceId, brokenVersionId);
+    assert.equal(previousVersion.workspaces.find((row) => row.workspaceId === workspaceId)?.previousInstall?.packageVersionId, packageVersionId);
+    await assert.rejects(
+      installCatalogPackageVersion(userId, demo.workspaceId, brokenVersionId, immediateInput(demo.replicaId), installActor),
+      (error: unknown) => error instanceof HttpError && error.code === "CATALOG_PACKAGE_INSTALL_MEDIA_ASSET_NOT_FOUND",
+    );
+    const failedEffects = await ownerPool.query(
+      [
+        "SELECT (SELECT COUNT(*) FROM content.cards WHERE workspace_id = $1 AND deleted_at IS NULL) AS cards,",
+        "(SELECT COUNT(*) FROM content.media_assets WHERE workspace_id = $1) AS media,",
+        "(SELECT COUNT(*) FROM sync.catalog_package_install_idempotency WHERE workspace_id = $1) AS installs",
+      ].join(" "), [demo.workspaceId],
+    );
+    assert.deepEqual(failedEffects.rows, [{ cards: "1", media: "0", installs: "0" }]);
+    const demoInput = immediateInput(demo.replicaId);
+    const demoResult = await installCatalogPackageVersion(userId, demo.workspaceId, packageVersionId, demoInput, installActor);
+    assert.deepEqual(demoResult.onboarding, { removedDemoCardId: demo.cardId });
+    assert.deepEqual(await installCatalogPackageVersion(userId, demo.workspaceId, packageVersionId, demoInput, installActor), demoResult);
+    await assert.rejects(
+      installCatalogPackageVersion(userId, demo.workspaceId, packageVersionId, { ...demoInput, immediateOnboarding: false }, installActor),
+      (error: unknown) => error instanceof HttpError && error.code === "CATALOG_PACKAGE_INSTALL_IDEMPOTENCY_CONFLICT",
+    );
+    const disposal = await ownerPool.query(
+      [
+        "SELECT deleted_at = cards.client_updated_at AS deleted,",
+        "cards.client_updated_at > $4::timestamptz AND cards.client_updated_at >= $5::timestamptz AS outranks_demo,",
+        "cards.client_updated_at = $6::timestamptz AS canonical_timestamp,",
+        "EXISTS (SELECT 1 FROM sync.hot_changes WHERE workspace_id = $1 AND entity_id = $2::text AND operation_id = $3",
+        "AND client_updated_at = cards.client_updated_at) AS published,",
+        "(SELECT COUNT(*) FROM content.review_events WHERE workspace_id = $1 AND card_id = $2::uuid) AS reviews",
+        "FROM content.cards AS cards WHERE workspace_id = $1 AND card_id = $2::uuid",
+      ].join(" "), [
+        demo.workspaceId, demo.cardId, demoInput.operationIdPrefix + ":onboarding-demo",
+        demoClientUpdatedAt, demoInput.clientUpdatedAt, "2026-08-03T10:00:00.001Z",
+      ],
+    );
+    assert.deepEqual(disposal.rows, [{
+      deleted: true, outranks_demo: true, canonical_timestamp: true, published: true, reviews: "1",
+    }]);
+    const retained = await ownerPool.query("SELECT tags FROM content.cards WHERE workspace_id = $1 AND deleted_at IS NULL", [demo.workspaceId]);
+    assert.deepEqual(retained.rows, [{ tags: ["keep", "temporary"] }]);
+    await ownerPool.query("UPDATE content.cards SET deleted_at = now() WHERE workspace_id = $1", [workspaceId]);
+    assert.equal((await loadCatalogPackageInstallContext(userId, workspaceId, packageVersionId)).workspaces.find(
+      (row) => row.workspaceId === workspaceId,
+    )?.previousInstall, null);
   } finally {
-    await ownerPool.query("DELETE FROM org.workspaces WHERE workspace_id = $1", [workspaceId]);
+    await ownerPool.query("DELETE FROM org.workspaces WHERE workspace_id = ANY($1::uuid[])", [[workspaceId, ...extraWorkspaceIds]]);
     await ownerPool.query("DELETE FROM catalog.packages WHERE package_id = $1", [packageId]);
     await ownerPool.query("DELETE FROM catalog.authors WHERE author_id = $1", [authorId]);
     await ownerPool.query("DELETE FROM content.media_blobs WHERE media_blob_id = $1", [mediaBlobId]);
     await ownerPool.query("DELETE FROM org.user_settings WHERE user_id = $1", [userId]);
     // The install emits its analytics row on the writer's own pool, outside the install
     // transaction, so it is removed here like every other row this test created.
-    await ownerPool.query("DELETE FROM analytics.product_events WHERE workspace_id = $1", [workspaceId]);
+    await ownerPool.query("DELETE FROM analytics.product_events WHERE workspace_id = ANY($1::uuid[])", [[workspaceId, ...extraWorkspaceIds]]);
     await ownerPool.end();
   }
 });

@@ -4,10 +4,12 @@ import {
   catalogPackageInstallOperationIdPrefixMaximumLength,
   installCatalogPackageVersion,
   isValidCatalogPackageInstallOperationIdPrefix,
+  loadCatalogPackageInstallContext,
   previewCatalogPackageInstall,
 } from "../../catalog";
 import type {
   CatalogPackageInstallConfirmInput,
+  CatalogPackageInstallContext,
   CatalogPackageInstallPreview,
   CatalogPackageInstallResult,
 } from "../../catalog/types";
@@ -33,6 +35,7 @@ export type CatalogInstallRoutesOptions = Readonly<{
   listWorkspaceTagsSummaryFn?: typeof listWorkspaceTagsSummary;
   previewCatalogPackageInstallFn?: typeof previewCatalogPackageInstall;
   installCatalogPackageVersionFn?: typeof installCatalogPackageVersion;
+  loadCatalogPackageInstallContextFn?: typeof loadCatalogPackageInstallContext;
 }>;
 
 type CatalogPackageInstallPreviewResponse = CatalogPackageInstallPreview;
@@ -102,6 +105,9 @@ function parseCatalogPackageInstallConfirmInput(value: unknown): CatalogPackageI
     ...(record.installJourneyId === undefined
       ? {}
       : { installJourneyId: expectUuidString(record.installJourneyId, "installJourneyId") }),
+    ...(record.immediateOnboarding === undefined ? {} : {
+      immediateOnboarding: expectBoolean(record.immediateOnboarding, "immediateOnboarding"),
+    }),
     addImportTag,
     importTag,
     removeTags: parseCatalogPackageInstallRemoveTags(record.removeTags),
@@ -134,6 +140,17 @@ export function createCatalogInstallRoutes(options: CatalogInstallRoutesOptions)
   const listWorkspaceTagsSummaryFn = options.listWorkspaceTagsSummaryFn ?? listWorkspaceTagsSummary;
   const previewCatalogPackageInstallFn = options.previewCatalogPackageInstallFn ?? previewCatalogPackageInstall;
   const installCatalogPackageVersionFn = options.installCatalogPackageVersionFn ?? installCatalogPackageVersion;
+
+  app.get("/catalog/package-versions/:packageVersionId/install-context", async (context) => {
+    const loadedContext = await loadRequestContextFromRequestFn(context.req.raw, options.allowedOrigins);
+    const packageVersionId = parseCatalogPackageVersionIdParam(context.req.param("packageVersionId"));
+    const result = await (options.loadCatalogPackageInstallContextFn ?? loadCatalogPackageInstallContext)(
+      loadedContext.requestContext.userId,
+      loadedContext.requestContext.selectedWorkspaceId,
+      packageVersionId,
+    );
+    return context.json(result satisfies CatalogPackageInstallContext);
+  });
 
   app.post("/workspaces/:workspaceId/catalog/package-versions/:packageVersionId/install/preview", async (context) => {
     const loadedContext = await loadRequestContextFromRequestFn(context.req.raw, options.allowedOrigins);
