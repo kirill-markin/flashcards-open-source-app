@@ -25,6 +25,7 @@ export type NormalizedCatalogPackageInstallConfirmInput = Readonly<{
   clientUpdatedAt: string;
   lastModifiedByReplicaId: string;
   operationIdPrefix: string;
+  immediateOnboarding?: boolean;
   addImportTag: boolean;
   importTag: string;
   removeTags: ReadonlyArray<string>;
@@ -36,6 +37,7 @@ export type CatalogPackageInstallRequestIdentity = Readonly<{
   clientUpdatedAt: string;
   lastModifiedByReplicaId: string;
   operationIdPrefix: string;
+  immediateOnboarding?: boolean;
   addImportTag: boolean;
   importTag: string | null;
   removeTags: ReadonlyArray<string>;
@@ -70,6 +72,7 @@ const catalogPackageInstallPackageVersionSchema = z.object({
 
 const catalogPackageInstallResultSchema = z.object({
   packageVersion: catalogPackageInstallPackageVersionSchema,
+  onboarding: z.object({ removedDemoCardId: catalogPackageInstallUuidSchema.nullable() }).strict().optional(),
   installedCards: z.array(z.object({
     packageCardId: catalogPackageInstallUuidSchema,
     stableCardKey: z.string(),
@@ -98,6 +101,7 @@ export function createCatalogPackageInstallRequestIdentity(
 ): CatalogPackageInstallRequestIdentity {
   return {
     packageVersionId,
+    ...(input.immediateOnboarding === true ? { immediateOnboarding: true } : {}),
     installedAt: input.installedAt,
     clientUpdatedAt: input.clientUpdatedAt,
     lastModifiedByReplicaId: input.lastModifiedByReplicaId,
@@ -236,7 +240,12 @@ export async function loadCatalogPackageInstallReplayInExecutor(
     return null;
   }
 
-  const mismatchFields = catalogPackageInstallRequestIdentityMismatchFields(row, identity);
+  const storedResult = parseCatalogPackageInstallStoredResult(row.install_result, workspaceId, installId);
+  const mismatchFields = [
+    ...catalogPackageInstallRequestIdentityMismatchFields(row, identity),
+    ...((storedResult.onboarding !== undefined) === (identity.immediateOnboarding === true)
+      ? [] : ["immediateOnboarding"]),
+  ];
   if (mismatchFields.length !== 0) {
     throw new HttpError(
       409,
@@ -251,7 +260,6 @@ export async function loadCatalogPackageInstallReplayInExecutor(
     );
   }
 
-  const storedResult = parseCatalogPackageInstallStoredResult(row.install_result, workspaceId, installId);
   assertCatalogPackageInstallStoredResultMatchesIdentity(
     row,
     identity,

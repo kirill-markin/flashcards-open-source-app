@@ -195,6 +195,10 @@ function shouldCaptureRequestFailureException(error: unknown): boolean {
 }
 
 function isPublicCatalogPath(path: string): boolean {
+  if (/^\/(?:v1\/)?catalog\/package-versions\/[^/]+\/install-context\/?$/u.test(path)) {
+    return false;
+  }
+
   return path === "/catalog"
     || path.startsWith("/catalog/")
     || path === "/v1/catalog"
