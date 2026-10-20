@@ -17,9 +17,11 @@ type ReviewLeaderboardBadgeState = Readonly<{
 export type ReviewScreenHeaderProps = Readonly<{
   filterMenuProps: ComponentProps<typeof ReviewFilterMenu>;
   hasLoadedReviewData: boolean;
+  isReviewMoreActionsMenuOpen: boolean;
   isReviewQueuePanelOpen: boolean;
   onRetry: () => void;
   onReviewFilterMenuOpenFromMoreActions: () => void;
+  onReviewMoreActionsMenuOpenChange: (isOpen: boolean) => void;
   onReviewQueueShortcutClick: () => void;
   reviewQueueTotalCount: number;
   reviewLoadErrorMessage: string;
@@ -33,9 +35,11 @@ export function ReviewScreenHeader(props: ReviewScreenHeaderProps): ReactElement
   const {
     filterMenuProps,
     hasLoadedReviewData,
+    isReviewMoreActionsMenuOpen,
     isReviewQueuePanelOpen,
     onRetry,
     onReviewFilterMenuOpenFromMoreActions,
+    onReviewMoreActionsMenuOpenChange,
     onReviewQueueShortcutClick,
     reviewQueueTotalCount,
     reviewLoadErrorMessage,
@@ -75,9 +79,11 @@ export function ReviewScreenHeader(props: ReviewScreenHeaderProps): ReactElement
             <span className="review-filter-label">{t("common.status")}</span>
             <div className="review-progress-shortcuts">
               <ReviewMoreActionsMenu
+                isOpen={isReviewMoreActionsMenuOpen}
                 isReviewFilterMenuOpen={filterMenuProps.isReviewFilterMenuOpen}
                 isReviewQueueShortcutDisabled={isReviewQueueShortcutDisabled}
                 onCloseReviewFilterMenu={filterMenuProps.handleCloseMenu}
+                onOpenChange={onReviewMoreActionsMenuOpenChange}
                 onOpenReviewFilterMenu={onReviewFilterMenuOpenFromMoreActions}
                 onReviewQueueShortcutClick={onReviewQueueShortcutClick}
                 selectedReviewFilterTitle={filterMenuProps.selectedReviewFilterTitle}

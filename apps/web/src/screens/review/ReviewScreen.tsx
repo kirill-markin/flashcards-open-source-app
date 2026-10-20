@@ -71,7 +71,7 @@ export function ReviewScreen(): ReactElement {
       <GuestSignInAfterReviewPrompt onVisibilityChange={setIsGuestSignInPromptVisible} blocked={editorModalProps.isEditorPresented || feedbackDialogProps.isOpen
         || hardReminderDialogProps.isOpen || mobileAppPromotionDialogProps.isOpen
         || tagFilterDialogProps.request !== null || textSelectionDialogProps.request !== null
-        || headerProps.filterMenuProps.isReviewFilterMenuOpen} />
+        || headerProps.filterMenuProps.isReviewFilterMenuOpen || headerProps.isReviewMoreActionsMenuOpen} />
       <ReviewEditorModal {...editorModalProps} />
       <FeedbackDialog {...feedbackDialogProps} />
       <ReviewHardReminderDialog {...hardReminderDialogProps} />

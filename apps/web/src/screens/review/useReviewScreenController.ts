@@ -201,6 +201,7 @@ export function useReviewScreenController(
     selectedReviewFilter,
     workspaceId: activeWorkspace?.workspaceId ?? null,
   });
+  const [isReviewMoreActionsMenuOpen, setIsReviewMoreActionsMenuOpen] = useState<boolean>(false);
   const {
     captureEditorPresentationToken,
     editorErrorMessage,
@@ -247,6 +248,7 @@ export function useReviewScreenController(
     isEditorPresented,
     isHardReminderVisible,
     isReviewFilterMenuOpen,
+    isReviewMoreActionsMenuOpen,
     isTagFilterDialogOpen,
     isTextSelectionDialogOpen,
     linkedUserId: cloudSettings?.linkedUserId ?? null,
@@ -560,6 +562,7 @@ export function useReviewScreenController(
     isGuestSignInPromptVisible,
     isMobileAppPromotionDialogOpen,
     isReviewFilterMenuOpen,
+    isReviewMoreActionsMenuOpen,
     isSubmitting: isSubmitting || reviewPaywall?.isPresented === true,
     isTagFilterDialogOpen,
     isTextSelectionDialogOpen,
@@ -679,9 +682,11 @@ export function useReviewScreenController(
         visibleReviewTagFilterMenuItems,
       },
       hasLoadedReviewData,
+      isReviewMoreActionsMenuOpen,
       isReviewQueuePanelOpen,
       onRetry: handleRetryReviewLoad,
       onReviewFilterMenuOpenFromMoreActions: handleReviewFilterMenuOpenFromMoreActions,
+      onReviewMoreActionsMenuOpenChange: setIsReviewMoreActionsMenuOpen,
       onReviewQueueShortcutClick: handleReviewQueueShortcutClick,
       reviewQueueTotalCount: isInitialReviewLoad && reviewLoadingSnapshot !== null
         ? reviewLoadingSnapshot.reviewCounts.totalCount
@@ -697,7 +702,7 @@ export function useReviewScreenController(
         && (session?.browserGuestCapabilities?.isGuest !== true || isSessionVerified)
         && !isEditorPresented && !isFeedbackDialogOpen && !isHardReminderVisible
         && !isGuestSignInPromptVisible && !isMobileAppPromotionDialogOpen
-        && !isReviewFilterMenuOpen && !isTagFilterDialogOpen && !isTextSelectionDialogOpen
+        && !isReviewFilterMenuOpen && !isReviewMoreActionsMenuOpen && !isTagFilterDialogOpen && !isTextSelectionDialogOpen
         && !isReviewQueuePanelOpen && reviewPaywall?.isPresented !== true
         && !indexedDbOpenRecoveryState.isFailed,
       activeSpeechSide,

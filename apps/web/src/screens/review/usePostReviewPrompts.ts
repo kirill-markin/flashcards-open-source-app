@@ -60,6 +60,7 @@ type PostReviewPromptUiState = Readonly<{
   isHardReminderVisible: boolean;
   isMobileAppPromotionDialogOpen: boolean;
   isReviewFilterMenuOpen: boolean;
+  isReviewMoreActionsMenuOpen: boolean;
   isTagFilterDialogOpen: boolean;
   isTextSelectionDialogOpen: boolean;
 }>;
@@ -86,6 +87,7 @@ export type UsePostReviewPromptsParams = Readonly<{
   isEditorPresented: boolean;
   isHardReminderVisible: boolean;
   isReviewFilterMenuOpen: boolean;
+  isReviewMoreActionsMenuOpen: boolean;
   isTagFilterDialogOpen: boolean;
   isTextSelectionDialogOpen: boolean;
   linkedUserId: string | null;
@@ -112,6 +114,7 @@ export function usePostReviewPrompts(params: UsePostReviewPromptsParams): UsePos
     isEditorPresented,
     isHardReminderVisible,
     isReviewFilterMenuOpen,
+    isReviewMoreActionsMenuOpen,
     isTagFilterDialogOpen,
     isTextSelectionDialogOpen,
     linkedUserId,
@@ -134,6 +137,7 @@ export function usePostReviewPrompts(params: UsePostReviewPromptsParams): UsePos
     isHardReminderVisible: false,
     isMobileAppPromotionDialogOpen: false,
     isReviewFilterMenuOpen: false,
+    isReviewMoreActionsMenuOpen: false,
     isTagFilterDialogOpen: false,
     isTextSelectionDialogOpen: false,
   });
@@ -157,6 +161,7 @@ export function usePostReviewPrompts(params: UsePostReviewPromptsParams): UsePos
     isHardReminderVisible,
     isMobileAppPromotionDialogOpen,
     isReviewFilterMenuOpen,
+    isReviewMoreActionsMenuOpen,
     isTagFilterDialogOpen,
     isTextSelectionDialogOpen,
   };
@@ -223,6 +228,7 @@ export function usePostReviewPrompts(params: UsePostReviewPromptsParams): UsePos
       || uiState.isHardReminderVisible
       || uiState.isMobileAppPromotionDialogOpen
       || uiState.isReviewFilterMenuOpen
+      || uiState.isReviewMoreActionsMenuOpen
       || uiState.isTagFilterDialogOpen
       || uiState.isTextSelectionDialogOpen
       || reviewPaywall?.isBusy() === true;
