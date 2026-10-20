@@ -103,14 +103,13 @@ export function buildExcludedActorReasonSql(actorIdSqlExpression: string): strin
  *     the same identity would keep that person out. The second reads the client-reportable
  *     `screen_viewed` and `review_card_revealed` steps, so a credential-free claim would otherwise
  *     advance a cohort member through the funnel.
- *   - `reports/siteEntryFunnel/query.ts`, `actor_first_events` and its step CTEs, read by the home
- *     page funnel and, through the fragments that module exports, by both blog funnels. The first decides whether a person was already here before their
- *     first marketing-site page view, over every event name with no lower bound. The second reads
- *     the in-app steps, the client-reportable web `app_opened` among them, so a credential-free claim
- *     would otherwise advance a cohort member. Both also read `site_page_viewed` and
- *     `site_app_entry_clicked` at `trust_level = 'anonymous_client'` only, on purpose: those are the
- *     site's own facts, the cohort is keyed on the visitor identity they carry, and they never count
- *     as the trusted evidence this rule is about.
+ *   - `reports/siteEntryFunnel/query.ts`, `actor_first_events`, the site-entry cohort the blog funnel
+ *     reads through the fragments that module exports. It decides whether a person was already here
+ *     before their first marketing-site page view, over every event name with no lower bound. That
+ *     cohort and the blog funnel's own steps read `site_page_viewed` and `site_app_entry_clicked` at
+ *     `trust_level = 'anonymous_client'` only, on purpose: those are the site's own facts, the cohort
+ *     is keyed on the visitor identity they carry, and they never count as the trusted evidence this
+ *     rule is about.
  *   - `reports/paywallFunnel/query.ts`, `funnel_rows`, which every step reads. The cohort and the
  *     purchase start are the client-reportable `paywall_shown` and `purchase_started`, so a
  *     credential-free claim would otherwise enter a person or advance one.
@@ -231,10 +230,8 @@ export function buildTrustedActorRowsFilterSql(trustLevelSqlExpression: string):
  * nothing from here - their cohorts already compose that rule - and neither do the option lists over
  * collector rows, which restate it too.
  *   - `buildHashedSiteVisitorRowSqlLines` in `apps/admin/src/reports/funnels/funnelAudienceSql.ts`,
- *     the cookieless hashed cohort of the site-entry funnels that read it - the home page funnel and
- *     the blog platform-choice funnel, while the blog web-app funnel deliberately reads none - of the
- *     deck funnel, and of the `Web` series of Who saw us (`hashed_site_visitors` in
- *     `reports/whoSawUs/query.ts`) and its engaged subset (`hashed_visitor_days` in
+ *     the cookieless hashed cohort of the blog funnel, of the deck funnel, and of the `Web` series
+ *     of Who saw us (`hashed_site_visitors` in `reports/whoSawUs/query.ts`) and its engaged subset (`hashed_visitor_days` in
  *     `reports/whoSawUs/engagedVisitorsQuery.ts`): every hashed page view and every hashed click.
  *     Those rows carry a NULL `actor_id` by construction, so the automated verdict can judge them
  *     only row by row here, beside the hash-level scraper-fleet `NOT IN` in the same builder, and a

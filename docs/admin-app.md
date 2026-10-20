@@ -94,10 +94,9 @@ Run it locally with `make local-admin` on `http://localhost:3001` before merge; 
 
 ### Funnels ([`funnelSections.ts`](../apps/admin/src/reports/funnels/funnelSections.ts))
 
-- The funnels appear in `funnelSections` order under a shared bar of date range, client platform, connection country and app interface language; only `Deck page to install` has a filter row of its own.
-- A funnel's `Group by` regroups that chart alone; the audience switch changes every funnel at once, and `Reset all` leaves it.
-- On `Blog article to platform choice`, the three target lines add up to `Platform picked`, and `Group by` offers no target; on `Blog article to web app`, the first bar is the web app click at 100%, with no cookieless segment even under `All`.
-- On `Deck page to install` ([query](../apps/admin/src/reports/catalogInstallFunnel/query.ts)), only a server install is success, signed-in users skip the gate, the signed-out branch runs from the gate to a signed-in screen on the same browser, and an empty state shows `—` rather than NaN.
+- `Funnels` is the second tab; its funnels appear in `funnelSections` order as chart-only cards in two columns, one on a narrow viewport, under a shared bar of date range, client platform, connection country and app interface language, and each card's `Details` button is disabled.
+- The audience switch changes every funnel at once, and `Reset all` leaves it.
+- On `Deck page to install` ([query](../apps/admin/src/reports/catalogInstallFunnel/query.ts)), only a server install is success.
 - A deck page view near the range end stays maturing until its seven-day window closes, and a follow-up after the cohort end still counts.
 
 ### Audience ([query](../apps/admin/src/reports/audience/query.ts), [section](../apps/admin/src/reports/audience/AudienceSection.tsx))

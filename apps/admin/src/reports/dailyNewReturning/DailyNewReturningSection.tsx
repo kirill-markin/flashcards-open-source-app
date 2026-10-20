@@ -96,6 +96,7 @@ export function DailyNewReturningSection(props: Readonly<{
       svgElement: chartRef.current,
       buckets: state.report.buckets,
       notes: chartNotes,
+      inProgressKey,
       xLabel: reportPeriodAxisLabels[state.report.period],
       formatTick: (key) => formatReportBucketTick(state.report.period, key),
       getLabel: (key) => `${formatReportBucketTitle(state.report.period, getBucket(key).bucket)} UTC. ${describeBucket(getBucket(key), state.report)}`,

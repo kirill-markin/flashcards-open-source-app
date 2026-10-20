@@ -1,16 +1,8 @@
-import { useCallback, useEffect, useMemo, useState, type JSX } from "react";
+import { useEffect, useMemo, useState, type JSX } from "react";
 import { buildFunnelAudienceEmptyStateNote, type AnalyticsFilterState } from "../../filters/analyticsFilters";
 import type { FunnelAnchor } from "../funnels/funnelAnchorUrl";
-import { FunnelGroupByPicker } from "../funnels/FunnelGroupByPicker";
-import {
-  buildFunnelGroupLabel,
-  foldFunnelGroups,
-  parseFunnelGroupByDimension,
-  writeFunnelGroupByToUrl,
-  type FunnelGroup,
-  type FunnelGroupByDimension,
-} from "../funnels/funnelGroupBy";
 import { FunnelMaturingWarning } from "../funnels/FunnelMaturingWarning";
+import { FunnelSectionHeader } from "../funnels/FunnelSectionHeader";
 import type { FunnelSectionProps } from "../funnels/funnelSections";
 import {
   FunnelStepsChart,
@@ -18,11 +10,9 @@ import {
   FunnelStepsLoadingChart,
   type FunnelStage,
 } from "../funnels/FunnelStepsChart";
-import { PaywallPresentations } from "./PaywallPresentations";
 import {
   loadPaywallFunnelReport,
   paywallFirstPaymentWindowDays,
-  paywallFunnelGroupByDimensions,
   paywallFunnelStartDate,
   type PaywallFunnelCounts,
   type PaywallFunnelGroup,
@@ -32,11 +22,7 @@ import {
 type FunnelLoadState =
   | Readonly<{ status: "loading" }>
   | Readonly<{ status: "error"; message: string }>
-  | Readonly<{
-    status: "ready";
-    report: PaywallFunnelReport;
-    dimension: FunnelGroupByDimension | null;
-  }>;
+  | Readonly<{ status: "ready"; report: PaywallFunnelReport }>;
 
 const funnelStepIds = ["paywall-shown", "premium-clicked", "purchase-started", "converted"] as const;
 
@@ -118,24 +104,9 @@ function FirstPaymentPendingWarning(
   );
 }
 
-const outcomeRows = [
-  ["trialCount", "Server-confirmed trial"],
-  ["paidCount", "Server-confirmed first payment"],
-  ["freeCount", "Chose Free"],
-  ["dismissedCount", "Dismissed"],
-  ["unknownChoiceCount", "No observed choice / unknown"],
-] as const;
-
 export function PaywallFunnelSection(props: FunnelSectionProps): JSX.Element {
   const [loadRevision, setLoadRevision] = useState<number>(0);
   const [loadState, setLoadState] = useState<FunnelLoadState>({ status: "loading" });
-  const [groupByDimension, setGroupByDimension] = useState<FunnelGroupByDimension | null>(
-    () => parseFunnelGroupByDimension(
-      new URLSearchParams(window.location.search),
-      paywallFunnelAnchor.funnelId,
-      paywallFunnelGroupByDimensions,
-    ),
-  );
 
   useEffect(() => {
     let cancelled = false;
@@ -145,10 +116,10 @@ export function PaywallFunnelSection(props: FunnelSectionProps): JSX.Element {
     }
 
     const abortController = new AbortController();
-    void loadPaywallFunnelReport(props.config, props.filters, groupByDimension, abortController.signal)
+    void loadPaywallFunnelReport(props.config, props.filters, null, abortController.signal)
       .then((report) => {
         if (cancelled === false) {
-          setLoadState({ status: "ready", report, dimension: groupByDimension });
+          setLoadState({ status: "ready", report });
         }
       })
       .catch((error: unknown) => {
@@ -160,61 +131,20 @@ export function PaywallFunnelSection(props: FunnelSectionProps): JSX.Element {
       });
 
     return () => { cancelled = true; abortController.abort(); };
-  }, [
-    groupByDimension,
-    loadRevision,
-    props.config,
-    props.filters,
-    props.isRangeLoading,
-    props.onTerminalAdminError,
-  ]);
+  }, [loadRevision, props.config, props.filters, props.isRangeLoading, props.onTerminalAdminError]);
 
-  const selectGroupByDimension = useCallback((dimension: FunnelGroupByDimension | null): void => {
-    setGroupByDimension(dimension);
-    writeFunnelGroupByToUrl(paywallFunnelAnchor.funnelId, dimension?.id ?? null);
-  }, []);
-
-  const readyState = props.isRangeLoading === false && loadState.status === "ready" ? loadState : null;
-  const report = readyState === null ? null : readyState.report;
+  const report = props.isRangeLoading === false && loadState.status === "ready" ? loadState.report : null;
   const totals = useMemo(
     () => (report === null ? null : sumFunnelGroups(report.groups)),
     [report],
   );
   const stages = useMemo(() => (totals === null ? [] : buildStages(totals)), [totals]);
-  const groups = useMemo<ReadonlyArray<FunnelGroup<FunnelStepId>> | null>(() => {
-    const loadedDimension = readyState === null ? null : readyState.dimension;
-    if (readyState === null || loadedDimension === null || loadedDimension !== groupByDimension) {
-      return null;
-    }
-
-    return foldFunnelGroups(loadedDimension, readyState.report.groups.map((group) => ({
-      key: group.key,
-      label: buildFunnelGroupLabel(loadedDimension, group.key),
-      stages: buildStages(group),
-    })));
-  }, [groupByDimension, readyState]);
   const startDateNote = report === null ? null : buildStartDateNote(props.filters.dateRange);
   const audienceEmptyStateNote = buildFunnelAudienceEmptyStateNote(props.filters.funnelAudienceMode);
 
   return (
     <section className="dashboard-section funnel-report">
-      <header className="dashboard-section-header">
-        <p className="eyebrow">Funnel report</p>
-        <h2>{paywallFunnelTitle}</h2>
-      </header>
-
-      {props.filterRow}
-
-      {/* Outside every state gate below, so a grouping stays clearable while loading and when empty. */}
-      <div className="funnel-group-by-row">
-        <FunnelGroupByPicker
-          funnelId={paywallFunnelAnchor.funnelId}
-          dimensions={paywallFunnelGroupByDimensions}
-          selectedDimensionId={groupByDimension === null ? null : groupByDimension.id}
-          isReportLoading={props.isRangeLoading || loadState.status === "loading"}
-          onSelect={selectGroupByDimension}
-        />
-      </div>
+      <FunnelSectionHeader funnelId={paywallFunnelAnchor.funnelId} title={paywallFunnelTitle} />
 
       {props.isRangeLoading === false && loadState.status === "error" ? <div className="report-state report-state-error"><strong>Funnel query failed.</strong><span>{loadState.message}</span><button className="filter-button" type="button" onClick={() => setLoadRevision((revision) => revision + 1)}>Retry</button></div> : null}
       {startDateNote !== null ? <p className="report-state" aria-live="polite">{startDateNote}</p> : null}
@@ -227,7 +157,7 @@ export function PaywallFunnelSection(props: FunnelSectionProps): JSX.Element {
           countLabel="People"
           dateRange={props.filters.dateRange}
           showsHashedSplit={false}
-          isGrouped={groupByDimension !== null}
+          isGrouped={false}
           label="Loading paywall funnel…"
         />
       ) : null}
@@ -236,35 +166,19 @@ export function PaywallFunnelSection(props: FunnelSectionProps): JSX.Element {
           countLabel="People"
           dateRange={props.filters.dateRange}
           showsHashedSplit={false}
-          isGrouped={groupByDimension !== null}
+          isGrouped={false}
           note={<><strong>No paywall views match these filters.</strong><span>A person enters this funnel when a web, iOS or Android client reports the paywall reaching the screen on a selected day.</span>{audienceEmptyStateNote === null ? null : <span>{audienceEmptyStateNote}</span>}</>}
         />
       ) : null}
 
       {totals !== null && totals.paywallShownCount > 0 ? (
-        <>
-          <FunnelStepsChart
-            anchor={paywallFunnelAnchor}
-            stages={stages}
-            groups={groups ?? undefined}
-            countLabel="People"
-            tableCaption="Paywall funnel steps"
-            dateRange={props.filters.dateRange}
-            showsHashedSplit={false}
-          />
-          <div className="funnel-group-table-shell">
-            <table className="funnel-group-table">
-              <caption>Outcomes of the people shown a paywall in range — people</caption>
-              <thead><tr><th scope="col">Observed outcome</th><th scope="col">People, out of {totals.paywallShownCount.toLocaleString("en-US")} shown</th></tr></thead>
-              <tbody>
-                {outcomeRows.map(([key, label]) => (
-                  <tr key={key}><th scope="row">{label}</th><td>{totals[key].toLocaleString("en-US")}</td></tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          <p>Trial and first payment are separate outcomes after checkout, and can overlap; payment does not require a trial. Free, dismissed and unknown are alternative observations, not steps toward purchase. Explicit choices can overlap after retries.</p>
-        </>
+        <FunnelStepsChart
+          anchor={paywallFunnelAnchor}
+          stages={stages}
+          countLabel="People"
+          dateRange={props.filters.dateRange}
+          showsHashedSplit={false}
+        />
       ) : null}
 
       {totals !== null ? (
@@ -273,15 +187,11 @@ export function PaywallFunnelSection(props: FunnelSectionProps): JSX.Element {
           <div className="funnel-detail-row funnel-explainer-figure"><span>Paywall entries still inside 7-day window</span><strong>{totals.maturingCount.toLocaleString("en-US")}</strong></div>
           <div className="funnel-detail-row funnel-explainer-figure"><span>Paywall entries still inside {paywallFirstPaymentWindowDays}-day first-payment window</span><strong>{totals.firstPaymentPendingCount.toLocaleString("en-US")}</strong></div>
           <p>Every step counts people: a person adds at most one to each step, and counts at a step only after reaching every step above it.</p>
-          <p>One row is one canonical actor, anchored at their first trusted paywall presentation in the selected UTC dates, counted only from {paywallFunnelStartDate}. Guest activity and the account it becomes resolve to the same person. Later steps can come from that first presentation or any later one of the same person; Premium and checkout must occur within seven days of the first. The Premium step requires an explicit <code>paywall_choice</code> with <code>outcome=premium</code>, and checkout a <code>purchase_started</code> after it on the same presentation. Each matches its impression by presentation UUID, actor and platform, plus the entry point when reported. Clients from before presentation UUIDs sent no UUID and no choice: their row matches the person&rsquo;s latest preceding impression without a UUID on the same platform, and their <code>purchase_started</code> also counts as the Premium tap, because every path to it began at the Premium button.</p>
-          <p>Checkout requested means the client reported <code>purchase_started</code>; it does not prove a provider sheet appeared or the request succeeded. The final step requires a server <code>trial_started</code> or <code>purchase_completed</code> within fourteen days after that checkout, long enough for the seven-day free trial to reach its first payment. These are billing facts, not client purchase results. Trials and first payments are counted independently, with each person counted once in their union. The outcomes table uses the same people shown as its denominator.</p>
-          <p>Billing attribution follows the presentation report&rsquo;s rule below, before filters. If the latest provider checkout is unlinked, its fact cannot credit this person. A server purchase never fills in a missing Premium click or checkout, so opted-out analytics can leave a known purchase outside the sequenced funnel. An open seven-day window is not a confirmed drop-off, and neither is an open {paywallFirstPaymentWindowDays}-day first-payment window: seven days to checkout, then fourteen for billing. Delayed events can change past results.</p>
-          <p>The date range, the client platform, the connection country and the app interface language are applied in SQL. The platform is the first paywall&rsquo;s, and one that carried none counts as unattributed; the country and language keep a person the way they do on General. An <code>@example.com</code> or <code>+test</code> account, an admin and an actor on the analytics exclusion list are excluded. <strong>Signed-in only</strong> keeps just the people who resolve to a real, non-guest account; <strong>All</strong> counts the same people as <strong>With anonymous ID</strong>, because there are no cookieless visitors on a paywall.</p>
-          <p><strong>Group by</strong> splits those people by the platform or the entry point of their first paywall in range, so the groups sum back to the numbers above, and measures each group from its own first step. A first paywall that carried no value is kept in <strong>Unresolved</strong>.</p>
+          <p>One row is one canonical actor, anchored at their first trusted paywall presentation in the selected UTC dates, counted only from {paywallFunnelStartDate}; guest activity and the account it becomes are one person. Later steps can come from that presentation or a later one of the same person: Premium needs an explicit <code>paywall_choice</code> with <code>outcome=premium</code> and checkout a <code>purchase_started</code> after it on the same presentation, both within seven days of the first presentation. A client from before presentation UUIDs sent no choice, so its <code>purchase_started</code> also counts as the Premium tap.</p>
+          <p>Checkout requested means the client reported <code>purchase_started</code>, not that a provider sheet appeared. The final step is a server <code>trial_started</code> or <code>purchase_completed</code> within fourteen days after that checkout, long enough for the seven-day free trial to reach its first payment. Each billing fact credits the same actor&rsquo;s latest preceding checkout and nobody when that checkout is unlinked, and a server purchase never fills in a missing Premium click or checkout. An open seven-day window, or an open {paywallFirstPaymentWindowDays}-day first-payment window, is not a confirmed drop-off.</p>
+          <p>The platform is the first paywall&rsquo;s, unattributed when it carried none; the country and language keep a person the way they do on General. Test accounts, admins and excluded actors are left out. <strong>Signed-in only</strong> keeps people who resolve to a real, non-guest account; <strong>All</strong> counts the same people as <strong>With anonymous ID</strong>, because there are no cookieless visitors on a paywall.</p>
         </details>
       ) : null}
-
-      <PaywallPresentations {...props} />
     </section>
   );
 }

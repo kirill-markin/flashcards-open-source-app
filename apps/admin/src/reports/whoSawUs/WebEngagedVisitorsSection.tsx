@@ -106,7 +106,7 @@ export function WebEngagedVisitorsSection(props: Readonly<{
       getKeyLabel: () => title,
       peakDailyTotal: d3.max(report.buckets, (entry) => entry.engagedVisitors ?? 0) ?? 0,
       xAxisLabel: reportPeriodAxisLabels[report.period],
-      isNotFinalSegment: () => false,
+      isNotFinalSegment: (_key, date) => date === inProgressKey,
       notes: chartNotes,
       formatTickLabel: (key) => formatReportBucketTick(report.period, key),
       formatTitleLabel: (key) => `${formatReportBucketTitle(report.period, getBucket(key).bucket)} UTC${key === inProgressKey ? " · in progress" : ""}`,

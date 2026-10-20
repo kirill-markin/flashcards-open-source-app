@@ -27,10 +27,6 @@ import {
   parseFunnelAnchorStepId,
   withFunnelAnchorSearchParams,
 } from "./reports/funnels/funnelAnchorUrl";
-import {
-  readFunnelGroupByParam,
-  withFunnelGroupBySearchParams,
-} from "./reports/funnels/funnelGroupBy";
 import { funnelSections } from "./reports/funnels/funnelSections";
 import {
   buildDefaultReportRange,
@@ -162,10 +158,9 @@ function doesRouteUseAnalyticsFilters(route: AdminRoute): boolean {
  * filter writer starts from a fresh `URLSearchParams` each time, which is what drops them again on
  * the way out.
  *
- * The Funnels parameters are validated on the way through - an anchor against that funnel's own steps
- * - while a group-by value is only carried, because the option list is per funnel and lives with the
- * funnel. The Study-vs-AI controls are validated by their own parser, which falls back to the default
- * for anything outside the two closed option lists.
+ * The Funnels anchors are validated on the way through, each against that funnel's own steps. The
+ * Study-vs-AI controls are validated by their own parser, which falls back to the default for
+ * anything outside the two closed option lists.
  */
 function buildAreaSearchParams(
   route: AdminRoute,
@@ -178,14 +173,10 @@ function buildAreaSearchParams(
 
   if (route.area === "funnels") {
     return funnelSections.reduce(
-      (nextSearchParams, funnel) => withFunnelGroupBySearchParams(
-        withFunnelAnchorSearchParams(
-          nextSearchParams,
-          funnel.anchor,
-          parseFunnelAnchorStepId(currentSearchParams, funnel.anchor),
-        ),
-        funnel.anchor.funnelId,
-        readFunnelGroupByParam(currentSearchParams, funnel.anchor.funnelId),
+      (nextSearchParams, funnel) => withFunnelAnchorSearchParams(
+        nextSearchParams,
+        funnel.anchor,
+        parseFunnelAnchorStepId(currentSearchParams, funnel.anchor),
       ),
       filterSearchParams,
     );
