@@ -180,7 +180,8 @@ export function AiUsageCohortsSection(props: Readonly<{
     let cancelled = false;
     setLoadState({ status: "loading" });
     if (props.isRangeLoading) return () => { cancelled = true; };
-    void loadAiUsageCohortsReport(props.config, props.filters, periodWeeks, audience)
+    const abortController = new AbortController();
+    void loadAiUsageCohortsReport(props.config, props.filters, periodWeeks, audience, abortController.signal)
       .then((report) => {
         if (!cancelled) setLoadState({ status: "ready", report });
       })
@@ -191,7 +192,7 @@ export function AiUsageCohortsSection(props: Readonly<{
           message: error instanceof Error ? error.message : "Unexpected Study vs AI query error.",
         });
       });
-    return () => { cancelled = true; };
+    return () => { cancelled = true; abortController.abort(); };
   }, [
     audience,
     periodWeeks,

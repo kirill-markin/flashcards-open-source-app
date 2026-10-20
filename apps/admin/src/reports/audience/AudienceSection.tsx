@@ -113,13 +113,14 @@ export function AudienceSection(props: Readonly<{
     let cancelled = false;
     setLoadState({ status: "loading" });
     if (props.isRangeLoading) return () => { cancelled = true; };
-    void loadAudienceReport(props.config, props.filters).then((report) => {
+    const abortController = new AbortController();
+    void loadAudienceReport(props.config, props.filters, abortController.signal).then((report) => {
       if (!cancelled) setLoadState({ status: "ready", report });
     }).catch((error: unknown) => {
       if (cancelled || props.onTerminalAdminError(error, props.config)) return;
       setLoadState({ status: "error", message: error instanceof Error ? error.message : "Unexpected Audience query error." });
     });
-    return () => { cancelled = true; };
+    return () => { cancelled = true; abortController.abort(); };
   }, [props.config, props.filters, props.isRangeLoading, props.onTerminalAdminError, revision]);
 
   const retainedSince = loadState.status === "ready" ? buildRetainedSince(loadState.report.generatedAtUtc) : null;

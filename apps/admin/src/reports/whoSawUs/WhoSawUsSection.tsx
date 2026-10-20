@@ -263,13 +263,14 @@ export function WhoSawUsSection(
   useEffect(() => {
     let cancelled = false;
     setLoadState({ status: "loading" });
-    void loadWhoSawUsReport(props.config, props.dateRange, props.period).then((report) => {
+    const abortController = new AbortController();
+    void loadWhoSawUsReport(props.config, props.dateRange, props.period, abortController.signal).then((report) => {
       if (!cancelled) setLoadState({ status: "ready", report });
     }).catch((error: unknown) => {
       if (cancelled || props.onTerminalAdminError(error, props.config)) return;
       setLoadState({ status: "error", message: error instanceof Error ? error.message : "Unexpected Who saw us query error." });
     });
-    return () => { cancelled = true; };
+    return () => { cancelled = true; abortController.abort(); };
   }, [props.config, props.dateRange, props.period, props.onTerminalAdminError, revision]);
 
   const seriesKeys = useMemo(() => getDrawnSeriesKeys(props.series), [props.series]);

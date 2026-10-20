@@ -25,6 +25,7 @@ type TopLandingPagesLoader = (
   config: AdminAppConfig,
   dateRange: AnalyticsDateRange,
   period: ReportPeriod,
+  signal: AbortSignal,
 ) => Promise<ReadonlyArray<LandingPageVisitors>>;
 
 type LandingPagePathBreakdown = Readonly<{
@@ -105,9 +106,9 @@ function buildLandingPagePathBreakdown(cohort: SiteVisitorCohort, pageKind: stri
   return {
     pageKind,
     title,
-    loadReport: (config, dateRange, period) => loadLandingPagePathReport(config, cohort, pageKind, dateRange, period, `${title} report`),
+    loadReport: (config, dateRange, period, signal) => loadLandingPagePathReport(config, cohort, pageKind, dateRange, period, `${title} report`, signal),
     topPagesTitle,
-    loadTopPages: (config, dateRange, period) => loadTopLandingPages(config, cohort, pageKind, dateRange, period, `${topPagesTitle} report`),
+    loadTopPages: (config, dateRange, period, signal) => loadTopLandingPages(config, cohort, pageKind, dateRange, period, `${topPagesTitle} report`, signal),
   };
 }
 
@@ -127,13 +128,14 @@ function TopLandingPagesTable(props: Readonly<{
   useEffect(() => {
     let cancelled = false;
     setState({ status: "loading" });
-    void props.loadTopPages(props.config, props.dateRange, props.period).then((pages) => {
+    const abortController = new AbortController();
+    void props.loadTopPages(props.config, props.dateRange, props.period, abortController.signal).then((pages) => {
       if (!cancelled) setState({ status: "ready", pages });
     }).catch((error: unknown) => {
       if (cancelled || props.onTerminalAdminError(error, props.config)) return;
       setState({ status: "error", message: error instanceof Error ? error.message : `Unexpected ${props.title} query error.` });
     });
-    return () => { cancelled = true; };
+    return () => { cancelled = true; abortController.abort(); };
   }, [props.config, props.dateRange, props.period, props.onTerminalAdminError, props.loadTopPages, props.title, revision]);
 
   return (
@@ -182,7 +184,8 @@ export function WebLandingPagePathSections(props: Readonly<{
     let cancelled = false;
     const { topKindsTitle } = cohortCopy[props.cohort];
     setState({ status: "loading" });
-    void loadTopLandingPageKinds(props.config, props.cohort, props.dateRange, props.period, `${topKindsTitle} report`).then((pageKinds) => {
+    const abortController = new AbortController();
+    void loadTopLandingPageKinds(props.config, props.cohort, props.dateRange, props.period, `${topKindsTitle} report`, abortController.signal).then((pageKinds) => {
       if (!cancelled) {
         setState({
           status: "ready",
@@ -195,7 +198,7 @@ export function WebLandingPagePathSections(props: Readonly<{
       if (cancelled || props.onTerminalAdminError(error, props.config)) return;
       setState({ status: "error", message: error instanceof Error ? error.message : `Unexpected ${topKindsTitle} query error.` });
     });
-    return () => { cancelled = true; };
+    return () => { cancelled = true; abortController.abort(); };
   }, [props.cohort, props.config, props.dateRange, props.period, props.onTerminalAdminError, revision]);
 
   if (state.status === "loading") {

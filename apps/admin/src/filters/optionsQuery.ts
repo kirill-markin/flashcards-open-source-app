@@ -373,6 +373,7 @@ function requireResultSet(
 export async function loadAnalyticsFilterOptions(
   config: AdminAppConfig,
   dateRange: AnalyticsDateRange,
+  signal: AbortSignal,
 ): Promise<AnalyticsFilterOptions> {
   assertValidDateRange(dateRange, optionsReportLabel);
   const optionListSql = [
@@ -392,7 +393,7 @@ export async function loadAnalyticsFilterOptions(
     // absence of a reported browser language on both sides rather than a bucket name on one.
     buildAnalyticsFilterOptionCatalogClickSql("NULLIF(clicked.device_locale, '')"),
   ];
-  const response = await runAdminQuery(config, optionListSql.join(";\n"));
+  const response = await runAdminQuery(config, optionListSql.join(";\n"), signal);
   if (response.resultSets.length !== optionListSql.length) {
     throw new Error(`${optionsReportLabel} must return exactly ${optionListSql.length} result sets. Got ${response.resultSets.length}.`);
   }

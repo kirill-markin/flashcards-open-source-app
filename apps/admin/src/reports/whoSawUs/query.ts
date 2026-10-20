@@ -237,8 +237,8 @@ function parseNewestDeliveredDate(value: AdminQueryValue, field: string): string
   return value === null ? null : parseActivityDate(value, storeDeliveryLabel, field);
 }
 
-export async function loadStoreDelivery(config: AdminAppConfig): Promise<StoreDelivery> {
-  const response = await runAdminQuery(config, buildStoreDeliverySql());
+export async function loadStoreDelivery(config: AdminAppConfig, signal: AbortSignal): Promise<StoreDelivery> {
+  const response = await runAdminQuery(config, buildStoreDeliverySql(), signal);
   const resultSet = getSingleResultSet(response.resultSets, storeDeliveryLabel);
   const row = resultSet.rows[0];
   if (resultSet.rows.length !== 1 || row === undefined) {
@@ -254,8 +254,8 @@ export async function loadStoreDelivery(config: AdminAppConfig): Promise<StoreDe
   };
 }
 
-export async function loadWhoSawUsAvailableRange(config: AdminAppConfig): Promise<AnalyticsDateRange> {
-  const response = await runAdminQuery(config, buildWhoSawUsAvailableRangeSql());
+export async function loadWhoSawUsAvailableRange(config: AdminAppConfig, signal: AbortSignal): Promise<AnalyticsDateRange> {
+  const response = await runAdminQuery(config, buildWhoSawUsAvailableRangeSql(), signal);
   const resultSet = getSingleResultSet(response.resultSets, `${reportLabel} available range`);
   const row = resultSet.rows[0];
   if (resultSet.rows.length !== 1 || row === undefined) {
@@ -371,10 +371,11 @@ export async function loadWhoSawUsReport(
   config: AdminAppConfig,
   dateRange: AnalyticsDateRange,
   period: ReportPeriod,
+  signal: AbortSignal,
 ): Promise<WhoSawUsReport> {
   const [response, storeDelivery] = await Promise.all([
-    runAdminQuery(config, buildWhoSawUsSql(dateRange, period)),
-    loadStoreDelivery(config),
+    runAdminQuery(config, buildWhoSawUsSql(dateRange, period), signal),
+    loadStoreDelivery(config, signal),
   ]);
   const resultSet = getSingleResultSet(response.resultSets, reportLabel);
 

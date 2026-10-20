@@ -236,13 +236,14 @@ function RetentionBreakdownPair(props: Readonly<{
   useEffect(() => {
     let cancelled = false;
     setState({ status: "loading" });
-    void loadWhoCameBackBreakdownReport(props.config, props.breakdown.dimension, props.dateRange, props.period, `Who came back by ${props.breakdown.label} report`).then((report) => {
+    const abortController = new AbortController();
+    void loadWhoCameBackBreakdownReport(props.config, props.breakdown.dimension, props.dateRange, props.period, `Who came back by ${props.breakdown.label} report`, abortController.signal).then((report) => {
       if (!cancelled) setState({ status: "ready", report });
     }).catch((error: unknown) => {
       if (cancelled || props.onTerminalAdminError(error, props.config)) return;
       setState({ status: "error", message: error instanceof Error ? error.message : `Unexpected Who came back by ${props.breakdown.label} query error.` });
     });
-    return () => { cancelled = true; };
+    return () => { cancelled = true; abortController.abort(); };
   }, [props.config, props.dateRange, props.period, props.onTerminalAdminError, props.breakdown, revision]);
   return (
     <>

@@ -47,6 +47,7 @@ export async function loadWhoPaidUsProviderBreakdownReport(
   config: AdminAppConfig,
   dateRange: AnalyticsDateRange,
   period: ReportPeriod,
+  signal: AbortSignal,
 ): Promise<BreakdownReport> {
-  return buildWhoPaidUsProviderBreakdownReport(await loadWhoPaidUsReport(config, dateRange, period));
+  return buildWhoPaidUsProviderBreakdownReport(await loadWhoPaidUsReport(config, dateRange, period, signal));
 }

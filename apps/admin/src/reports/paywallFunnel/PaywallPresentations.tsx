@@ -82,7 +82,8 @@ export function PaywallPresentations(props: FunnelSectionProps): JSX.Element {
       return () => { cancelled = true; };
     }
 
-    void loadPaywallPresentationReport(props.config, props.filters)
+    const abortController = new AbortController();
+    void loadPaywallPresentationReport(props.config, props.filters, abortController.signal)
       .then((report) => {
         if (cancelled === false) setState({ status: "ready", report });
       })
@@ -94,7 +95,7 @@ export function PaywallPresentations(props: FunnelSectionProps): JSX.Element {
         });
       });
 
-    return () => { cancelled = true; };
+    return () => { cancelled = true; abortController.abort(); };
   }, [props.config, props.filters, props.isRangeLoading, props.onTerminalAdminError, revision]);
 
   const report = props.isRangeLoading === false && state.status === "ready" ? state.report : null;

@@ -105,11 +105,12 @@ export function ActivityTab(props: Readonly<{
   // Blind to the table state, so neither a table change nor the clamp re-request asks for them again.
   useEffect(() => {
     let isSuperseded = false;
+    const abortController = new AbortController();
     setEnumOptionsState({ status: "loading" });
 
     async function loadEnumOptions(): Promise<void> {
       try {
-        const options = await loadActivityEnumOptions(config, userId);
+        const options = await loadActivityEnumOptions(config, userId, abortController.signal);
         if (isSuperseded) return;
         setEnumOptionsState({ status: "ready", options });
       } catch (error: unknown) {
@@ -121,12 +122,14 @@ export function ActivityTab(props: Readonly<{
     void loadEnumOptions();
     return () => {
       isSuperseded = true;
+      abortController.abort();
     };
   }, [config, enumOptionsRevision, onTerminalAdminError, userId]);
 
   useEffect(() => {
     const requestedState = tableState;
     let isSuperseded = false;
+    const abortController = new AbortController();
     // The previous page stays on screen, dimmed, until the new one arrives.
     setLoadState((current) => {
       if (current.status === "ready") return { ...current, isLoading: true };
@@ -135,7 +138,7 @@ export function ActivityTab(props: Readonly<{
 
     async function loadPage(): Promise<void> {
       try {
-        const result = await loadActivityPage(config, userId, requestedState, activityColumns);
+        const result = await loadActivityPage(config, userId, requestedState, activityColumns, abortController.signal);
         if (isSuperseded) return;
         // A page past the end, from a shrunken total, is asked for again as the last page the table shows instead.
         const clampedPage = clampDataTablePage(requestedState.page, result.totalCount);
@@ -160,6 +163,7 @@ export function ActivityTab(props: Readonly<{
     );
     return () => {
       isSuperseded = true;
+      abortController.abort();
       window.clearTimeout(reloadTimeoutId);
     };
   }, [activityColumns, config, onTerminalAdminError, revision, tableState, userId]);

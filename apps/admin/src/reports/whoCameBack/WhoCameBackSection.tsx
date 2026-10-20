@@ -56,13 +56,14 @@ export function WhoCameBackSection(props: Readonly<{
     let cancelled = false;
     tooltipHandlers.hideTooltip();
     setState({ status: "loading" });
-    void loadWhoCameBackReport(props.config, props.dateRange, props.period).then((report) => {
+    const abortController = new AbortController();
+    void loadWhoCameBackReport(props.config, props.dateRange, props.period, abortController.signal).then((report) => {
       if (!cancelled) setState({ status: "ready", report });
     }).catch((error: unknown) => {
       if (cancelled || props.onTerminalAdminError(error, props.config)) return;
       setState({ status: "error", message: error instanceof Error ? error.message : "Unexpected Who came back query error." });
     });
-    return () => { cancelled = true; };
+    return () => { cancelled = true; abortController.abort(); };
   }, [props.config, props.dateRange, props.period, props.onTerminalAdminError, revision, tooltipHandlers]);
   const cohortsByKey = useMemo(() => new Map(state.status === "ready" ? state.report.cohorts.map((cohort) => [cohort.bucket.key, cohort]) : []), [state]);
   useEffect(() => {

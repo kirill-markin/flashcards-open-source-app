@@ -691,10 +691,12 @@ export async function loadSiteEntryFunnelReport(
   pageKind: SiteEntryPageKind,
   reportLabel: string,
   groupByDimension: FunnelGroupByDimension | null,
+  signal: AbortSignal,
 ): Promise<SiteEntryFunnelReport> {
   const response = await runAdminQuery(
     config,
     buildSiteEntryFunnelSql(filters, pageKind, reportLabel, groupByDimension),
+    signal,
   );
   if (response.resultSets.length !== 1) {
     throw new Error(`${reportLabel} must return exactly one result set. Got ${response.resultSets.length}.`);
