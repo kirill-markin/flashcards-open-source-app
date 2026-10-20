@@ -24,15 +24,7 @@
  * account wherever that link landed, and to the guest only where it did not — which a first-ever
  * sign-in, writing the link inside the budget below, usually lost.
  *
- * No report caught that for us. `apps/admin/src/reports/catalogInstallFunnel/query.ts` is silent on
- * the auth origin's rows rather than excluding them, and what it does with one depends on the
- * relation. No step takes one, because no step's relation admits the event name or the screen: its
- * event window admits six catalog event names and no `signin_*`, and its `screen_viewed` relation
- * admits only the three catalog screens or an `authenticated_client` row. A relation that reads an
- * actor's whole history under `buildTrustedActorRowsFilterSql` (`trust_level <> 'anonymous_client'`)
- * takes the guest-era rows of this origin and not the ones written now, so such a row that resolved
- * to the account can still set the `first_event_at` in `install_actor_first_event` that decides
- * whether an installer counts as new.
+ * No report caught that for us.
  *
  * What a future report must declare: `buildTrustedActorRowsFilterSql` in the admin app excludes
  * `anonymous_client` rows, so a sign-in funnel report built over these has to except them the way
