@@ -67,13 +67,14 @@ function WebEngagedShareTableSection(props: Readonly<{
     let cancelled = false;
     const { title } = engagedShareTableCopy[props.dimension];
     setState({ status: "loading" });
-    void loadEngagedShareTable(props.config, props.dimension, props.dateRange, props.period, `${title} report`).then((table) => {
+    const abortController = new AbortController();
+    void loadEngagedShareTable(props.config, props.dimension, props.dateRange, props.period, `${title} report`, abortController.signal).then((table) => {
       if (!cancelled) setState({ status: "ready", table });
     }).catch((error: unknown) => {
       if (cancelled || props.onTerminalAdminError(error, props.config)) return;
       setState({ status: "error", message: error instanceof Error ? error.message : `Unexpected ${title} query error.` });
     });
-    return () => { cancelled = true; };
+    return () => { cancelled = true; abortController.abort(); };
   }, [props.dimension, props.config, props.dateRange, props.period, props.onTerminalAdminError, revision]);
 
   return (

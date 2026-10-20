@@ -86,9 +86,10 @@ export async function loadEngagedShareTable(
   dateRange: AnalyticsDateRange,
   period: ReportPeriod,
   reportLabel: string,
+  signal: AbortSignal,
 ): Promise<EngagedShareTable> {
   const range = assertValidDateRange(dateRange, reportLabel);
-  const response = await runAdminQuery(config, buildEngagedShareTableSql(dimension, range, period));
+  const response = await runAdminQuery(config, buildEngagedShareTableSql(dimension, range, period), signal);
   const result = response.resultSets[0];
   if (response.resultSets.length !== 1 || result === undefined) {
     throw new Error(`${reportLabel} must return exactly one result set. Got ${response.resultSets.length}.`);
