@@ -36,6 +36,7 @@
 .topbar-brand-block {
   min-width: 0;
   display: grid;
+  container: topbar-brand / inline-size;
 }
 
 .topbar-brand-row {
@@ -62,10 +63,29 @@
 }
 
 .topbar-sync-status {
+  min-width: 0;
+  overflow: hidden;
   color: var(--text-secondary);
   font-size: 13px;
   font-weight: 500;
+  text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+/* The logo and the four device pills need about 430px on one line. Narrower, the pills move to
+   their own line, which keeps the sync status beside the logo and the pills out of the nav. */
+@container topbar-brand (max-width: 520px) {
+  .topbar-brand-row {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 8px 10px;
+  }
+
+  .header-store-buttons {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    flex-wrap: wrap;
+  }
 }
 
 .topbar-actions {
@@ -475,6 +495,30 @@
 
   .brand-short {
     display: inline;
+  }
+
+  /* The device pills take a full-width line under the logo, the sync status and the actions. */
+  .topbar {
+    grid-template-columns: minmax(0, auto) minmax(0, 1fr) auto;
+  }
+
+  .topbar-brand-block,
+  .topbar-brand-row {
+    display: contents;
+  }
+
+  .topbar-brand,
+  .topbar-sync-status {
+    align-self: baseline;
+  }
+
+  .topbar-actions {
+    grid-column: 3;
+  }
+
+  .header-store-buttons {
+    grid-column: 1 / -1;
+    grid-row: 2;
   }
 
   .nav {

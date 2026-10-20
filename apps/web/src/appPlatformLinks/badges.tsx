@@ -1,4 +1,5 @@
 import type { ReactElement } from "react";
+import type { AnalyticsStoreDevice } from "../analytics/events";
 
 const appStoreBadgeSrc: string = "/home/app-store-badge.svg";
 const googlePlayLockupSrc: string = "/home/google-play-lockup.png";
@@ -46,21 +47,23 @@ export function WebAppIcon(): ReactElement {
   );
 }
 
-export function AppleLogoIcon(): ReactElement {
+/** Copied from the marketing site's `DeviceIcon` in `src/components/HomeDeviceLinks.tsx` (website repo). */
+export function DeviceIcon({ device }: Readonly<{ device: AnalyticsStoreDevice }>): ReactElement {
   return (
-    <svg viewBox="0 0 24 24" fill="currentColor" className="header-store-button-icon" aria-hidden="true">
-      <path d="M12.152 6.896c-.948 0-2.415-1.078-3.96-1.04-2.04.027-3.91 1.183-4.961 3.014-2.117 3.675-.546 9.103 1.519 12.09 1.013 1.454 2.208 3.09 3.792 3.039 1.52-.065 2.09-.987 3.935-.987 1.831 0 2.35.987 3.96.948 1.637-.026 2.676-1.48 3.676-2.948 1.156-1.688 1.636-3.325 1.662-3.415-.039-.013-3.182-1.221-3.22-4.857-.026-3.04 2.48-4.494 2.597-4.559-1.429-2.09-3.623-2.324-4.39-2.376-2-.156-3.675 1.09-4.61 1.09zM15.53 3.83c.843-1.012 1.4-2.427 1.245-3.83-1.207.052-2.662.805-3.532 1.818-.78.896-1.454 2.338-1.273 3.714 1.338.104 2.715-.688 3.559-1.701" />
-    </svg>
-  );
-}
-
-export function GooglePlayIcon(): ReactElement {
-  return (
-    <svg viewBox="0 0 24 24" className="header-store-button-icon" aria-hidden="true">
-      <path fill="#4285F4" d="M3.5 2 13 12 3.5 22Z" />
-      <path fill="#34A853" d="M3.5 2 16.1 9 13 12Z" />
-      <path fill="#FBBC04" d="M16.1 9 21 12 16.1 15 13 12Z" />
-      <path fill="#EA4335" d="M13 12 16.1 15 3.5 22Z" />
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.6"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className="header-store-button-icon"
+      aria-hidden="true"
+    >
+      {device === "iphone" && <><rect x="6" y="2" width="12" height="20" rx="2.5" /><path d="M10 5h4M11 19h2" /></>}
+      {device === "ipad" && <><rect x="3" y="2" width="18" height="20" rx="2.5" /><path d="M11 19h2" /></>}
+      {device === "mac" && <><rect x="4" y="3" width="16" height="13" rx="1.5" /><path d="m4 16-2 4h20l-2-4M10 17h4" /></>}
+      {device === "android" && <><path d="M6 8h12a1 1 0 0 1 1 1v8H5V9a1 1 0 0 1 1-1Zm0 0a6 6 0 0 1 12 0M8 3 6 1m10 2 2-2M2 9v7m20-7v7M8 17v5m8-5v5" /><path d="M8 6h.01M16 6h.01" /></>}
     </svg>
   );
 }
