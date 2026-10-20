@@ -5,7 +5,7 @@ import { ChartColorKey, ChartColorKeyPlaceholder } from "../../charts/ChartLegen
 import { ChartLoadingPlaceholder } from "../../charts/ChartLoadingPlaceholder";
 import { ChartNotesKey } from "../../charts/ChartNotesKey";
 import { ChartTooltip, useChartTooltip } from "../../charts/ChartTooltip";
-import { buildInProgressChartNote, placeChartNotes, type PlacedChartNote } from "../../charts/chartNotes";
+import { buildInProgressChartNote, placeChartNotes, type ChartNote, type PlacedChartNote } from "../../charts/chartNotes";
 import { chartWidth, stackedChartHeight } from "../../charts/chartPrimitives";
 import { escapeHtml, formatGeneratedAt } from "../../charts/formatting";
 import {
@@ -68,7 +68,7 @@ function describeEmptyChart(report: BreakdownReport, noAvailableBarText: string)
   return null;
 }
 
-/** A breakdown's chart panel, loading or ready, so both take the same space. */
+/** A breakdown's chart panel, loading or ready. */
 function BreakdownChartColumn(props: Readonly<{
   countLabel: string;
   period: ReportPeriod;
@@ -109,7 +109,7 @@ export function BreakdownLoadingChart(props: Readonly<{
 
 /**
  * One Level 1 chart split by one dimension, stacked per bucket in the report's value order.
- * `loadReport` and `formatValue` must be stable.
+ * `loadReport`, `formatValue` and `buildExtraNotes` must be stable.
  */
 export function BreakdownSection(props: Readonly<{
   config: AdminAppConfig;
@@ -130,6 +130,8 @@ export function BreakdownSection(props: Readonly<{
   loadReport: BreakdownReportLoader;
   /** A value's name on screen. */
   formatValue: (value: string) => string;
+  /** The notes besides In progress, from the report's today; null for none. */
+  buildExtraNotes: ((today: string) => ReadonlyArray<ChartNote>) | null;
 }>): JSX.Element {
   const chartRef = useRef<SVGSVGElement | null>(null);
   const [state, setState] = useState<LoadState>({ status: "loading" });
@@ -153,8 +155,11 @@ export function BreakdownSection(props: Readonly<{
     bucketsByKey: new Map(state.report.buckets.map((entry) => [entry.bucket.key, entry])),
     colorsByValue: buildBreakdownValueColors(state.report.values),
     inProgressKey: findInProgressBucketKey(state.report.buckets.map((entry) => entry.bucket), state.report.today),
-    notes: placeChartNotes([buildInProgressChartNote(state.report.today)], state.report.buckets.map((entry) => entry.bucket)),
-  } : null), [state]);
+    notes: placeChartNotes(
+      [buildInProgressChartNote(state.report.today), ...(props.buildExtraNotes === null ? [] : props.buildExtraNotes(state.report.today))],
+      state.report.buckets.map((entry) => entry.bucket),
+    ),
+  } : null), [state, props.buildExtraNotes]);
   useEffect(() => {
     if (chartRef.current === null || model === null) return;
     const report = model.report;

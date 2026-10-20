@@ -1,4 +1,5 @@
 import { runAdminQuery, type AdminQueryResultSet, type AdminQueryValue } from "../../adminApi";
+import type { ChartNote } from "../../charts/chartNotes";
 import type { AdminAppConfig } from "../../config";
 import type { AnalyticsDateRange } from "../../filters/analyticsFilters";
 import { buildExcludedActorSqlLines } from "../../filters/filterSql";
@@ -110,6 +111,13 @@ export function buildStoreReportDateRangeSqlLines(rowAlias: string, range: Analy
 }
 
 const siteViewEventNames: ReadonlyArray<string> = ["site_page_viewed"];
+
+export const webDataStartChartNote: ChartNote = {
+  // Approximate: production's first `site_page_viewed` is 2026-09-22 15:43:57 UTC, read on 2026-10-20.
+  at: "2026-09-22T15:44:00Z",
+  shortText: "Web data starts",
+  longText: "We started collecting website visits in our analytics around 15:44 UTC on 2026-09-22. That day is partial, and there is no web data before it.",
+};
 
 function buildSiteEventNamesSql(rowAlias: string, eventNames: ReadonlyArray<string>): string {
   return `${rowAlias}.event_name IN (${eventNames.map(escapeSqlStringLiteral).join(", ")})`;

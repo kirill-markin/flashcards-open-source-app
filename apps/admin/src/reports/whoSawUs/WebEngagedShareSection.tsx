@@ -21,7 +21,7 @@ import {
   type ReportPeriod,
 } from "../levelOneMetrics/reportPeriod";
 import { loadEngagedVisitorsReport, pageReadEngagementChartNote, type EngagedVisitorsReport } from "./engagedVisitorsQuery";
-import { loadWhoSawUsReport, type WhoSawUsReport } from "./query";
+import { loadWhoSawUsReport, webDataStartChartNote, type WhoSawUsReport } from "./query";
 import { whoSawUsSeriesColors } from "./WhoSawUsSection";
 
 const title = "Engaged share of Web visitors";
@@ -113,7 +113,7 @@ export function WebEngagedShareSection(props: Readonly<{
   );
   const chartNotes = useMemo(() => (loadState.status === "ready"
     ? placeChartNotes(
-      [buildInProgressChartNote(loadState.report.today), pageReadEngagementChartNote],
+      [buildInProgressChartNote(loadState.report.today), webDataStartChartNote, pageReadEngagementChartNote],
       loadState.report.buckets.map((entry) => entry.bucket),
     )
     : null), [loadState]);

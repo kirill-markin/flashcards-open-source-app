@@ -16,6 +16,7 @@ import {
 } from "./landingPagePathQuery";
 import {
   WhoSawUsBreakdownSection,
+  buildWebBreakdownChartNotes,
   webEngagedVisitorCounting,
   webVisitorCounting,
   whoSawUsCountLabel,
@@ -249,6 +250,7 @@ export function WebLandingPagePathSections(props: Readonly<{
               <li>The table beneath lists the {topLandingPageCount} pages with the most visitors summed over the selection’s bars, so a visitor counts as many times as the bars count them: by day, landing on a page on 3 days counts 3 times. Its order is the chart’s, so its first five rows are the chart’s coloured pages.</li>
             </>}
             loadReport={breakdown.loadReport}
+            buildExtraNotes={buildWebBreakdownChartNotes}
           />
           <TopLandingPagesTable
             config={props.config}
