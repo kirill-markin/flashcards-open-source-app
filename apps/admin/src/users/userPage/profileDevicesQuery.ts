@@ -233,12 +233,14 @@ export async function loadDeviceListPage<Row>(
   query: DeviceListQuery<Row>,
   state: DataTableState,
   columns: ReadonlyArray<DataTableColumn<Row>>,
+  signal: AbortSignal,
 ): Promise<DeviceListPageResult<Row>> {
   const clauses = buildDataTableSqlClauses(state, columns, query.columnSqlById, query.defaultOrderBySql, query.tiebreakOrderBySql);
   const fromSql = query.buildFromSql(buildUserSubjectSql(userId));
   const response = await runAdminQuery(
     config,
     `${buildDeviceListPageSql(query, fromSql, clauses)};\n${buildDeviceListTotalSql(fromSql, clauses)}`,
+    signal,
   );
   const pageResult = response.resultSets[0];
   if (response.resultSets.length !== 2 || pageResult === undefined) {
@@ -269,7 +271,8 @@ export async function loadDeviceListEnumOptions<Row>(
   config: AdminAppConfig,
   userId: string,
   query: DeviceListQuery<Row>,
+  signal: AbortSignal,
 ): Promise<ReadonlyMap<string, ReadonlyArray<string>>> {
-  const response = await runAdminQuery(config, buildDeviceListEnumOptionsSql(query, buildUserSubjectSql(userId)));
+  const response = await runAdminQuery(config, buildDeviceListEnumOptionsSql(query, buildUserSubjectSql(userId)), signal);
   return parseEnumOptionsResponse(response, query.enumColumnIds, query.label);
 }

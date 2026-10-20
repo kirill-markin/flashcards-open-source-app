@@ -131,8 +131,9 @@ export async function loadWhoPaidUsReport(
   config: AdminAppConfig,
   dateRange: AnalyticsDateRange,
   period: ReportPeriod,
+  signal: AbortSignal,
 ): Promise<WhoPaidUsReport> {
-  const response = await runAdminQuery(config, buildWhoPaidUsSql(dateRange, period));
+  const response = await runAdminQuery(config, buildWhoPaidUsSql(dateRange, period), signal);
   const bucketed = response.resultSets[0];
   const coverage = response.resultSets[1];
   const firstRow = bucketed?.rows[0];

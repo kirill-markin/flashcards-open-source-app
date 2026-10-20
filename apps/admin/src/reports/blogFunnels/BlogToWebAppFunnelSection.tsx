@@ -147,11 +147,13 @@ export function BlogToWebAppFunnelSection(props: FunnelSectionProps): JSX.Elemen
       return () => { cancelled = true; };
     }
 
+    const abortController = new AbortController();
     void loadBlogToWebAppFunnelReport(
       props.config,
       props.filters,
       `${blogToWebAppFunnelTitle} funnel`,
       groupByDimension,
+      abortController.signal,
     )
       .then((report) => {
         if (cancelled === false) {
@@ -166,7 +168,7 @@ export function BlogToWebAppFunnelSection(props: FunnelSectionProps): JSX.Elemen
         setLoadState({ status: "error", message: getErrorMessage(error) });
       });
 
-    return () => { cancelled = true; };
+    return () => { cancelled = true; abortController.abort(); };
   }, [
     groupByDimension,
     loadRevision,

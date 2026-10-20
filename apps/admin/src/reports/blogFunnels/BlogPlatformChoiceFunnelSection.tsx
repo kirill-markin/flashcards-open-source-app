@@ -173,11 +173,13 @@ export function BlogPlatformChoiceFunnelSection(props: FunnelSectionProps): JSX.
       return () => { cancelled = true; };
     }
 
+    const abortController = new AbortController();
     void loadBlogPlatformChoiceFunnelReport(
       props.config,
       props.filters,
       `${blogPlatformChoiceFunnelTitle} funnel`,
       groupByDimension,
+      abortController.signal,
     )
       .then((report) => {
         if (cancelled === false) {
@@ -192,7 +194,7 @@ export function BlogPlatformChoiceFunnelSection(props: FunnelSectionProps): JSX.
         setLoadState({ status: "error", message: getErrorMessage(error) });
       });
 
-    return () => { cancelled = true; };
+    return () => { cancelled = true; abortController.abort(); };
   }, [
     groupByDimension,
     loadRevision,

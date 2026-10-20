@@ -139,8 +139,9 @@ export async function loadPaywallFunnelReport(
   config: AdminAppConfig,
   filters: AnalyticsFilterState,
   groupByDimension: FunnelGroupByDimension | null,
+  signal: AbortSignal,
 ): Promise<PaywallFunnelReport> {
-  const response = await runAdminQuery(config, buildPaywallFunnelSql(filters, groupByDimension));
+  const response = await runAdminQuery(config, buildPaywallFunnelSql(filters, groupByDimension), signal);
   if (response.resultSets.length !== 1) {
     throw new Error(
       `${paywallFunnelReportLabel} must return exactly one result set. Got ${response.resultSets.length}.`,

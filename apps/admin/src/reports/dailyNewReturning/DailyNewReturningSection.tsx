@@ -69,13 +69,14 @@ export function DailyNewReturningSection(props: Readonly<{
     let cancelled = false;
     tooltipHandlers.hideTooltip();
     setState({ status: "loading" });
-    void loadDailyNewReturningReport(props.config, props.source, props.dateRange, props.period, reportLabel).then((report) => {
+    const abortController = new AbortController();
+    void loadDailyNewReturningReport(props.config, props.source, props.dateRange, props.period, reportLabel, abortController.signal).then((report) => {
       if (!cancelled) setState({ status: "ready", report });
     }).catch((error: unknown) => {
       if (cancelled || props.onTerminalAdminError(error, props.config)) return;
       setState({ status: "error", message: error instanceof Error ? error.message : `Unexpected ${props.title} query error.` });
     });
-    return () => { cancelled = true; };
+    return () => { cancelled = true; abortController.abort(); };
   }, [props.config, props.source, props.dateRange, props.period, props.onTerminalAdminError, props.title, reportLabel, revision, tooltipHandlers]);
   const bucketsByKey = useMemo(() => new Map(state.status === "ready" ? state.report.buckets.map((entry) => [entry.bucket.key, entry]) : []), [state]);
   useEffect(() => {

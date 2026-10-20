@@ -102,7 +102,8 @@ export function useLevelOneMetricsSelection(
   useEffect(() => {
     let cancelled = false;
     setRangeLookup({ status: "loading" });
-    void loadLevelOneMetricsAvailableRange(config).then((availableRange) => {
+    const abortController = new AbortController();
+    void loadLevelOneMetricsAvailableRange(config, abortController.signal).then((availableRange) => {
       if (cancelled) return;
       const defaultRange = buildPresetReportRange(
         lastSixtyDaysReportRangePreset,
@@ -127,7 +128,7 @@ export function useLevelOneMetricsSelection(
         message: error instanceof Error ? error.message : "Unexpected Level 1 metrics range error.",
       });
     });
-    return () => { cancelled = true; };
+    return () => { cancelled = true; abortController.abort(); };
   }, [config, onTerminalAdminError, rangeLoadRevision]);
 
   const defaultRange = rangeLookup.status === "ready" ? rangeLookup.defaultRange : provisional.defaultRange;

@@ -138,15 +138,16 @@ export async function loadWhoSawUsBreakdownReport(
   dateRange: AnalyticsDateRange,
   period: ReportPeriod,
   reportLabel: string,
+  signal: AbortSignal,
 ): Promise<BreakdownReport> {
   const sql = buildWhoSawUsBreakdownSql(dimension, dateRange, period, reportLabel);
   switch (dimension) {
     case "web-country":
     case "web-landing-page-type":
-      return loadBreakdownReport(config, sql, period, reportLabel, liveSourceBarFreshness);
+      return loadBreakdownReport(config, sql, period, reportLabel, liveSourceBarFreshness, signal);
     case "app-store-source-type":
     case "app-store-territory": {
-      const [response, storeDelivery] = await Promise.all([runAdminQuery(config, sql), loadStoreDelivery(config)]);
+      const [response, storeDelivery] = await Promise.all([runAdminQuery(config, sql, signal), loadStoreDelivery(config, signal)]);
       return parseBreakdownReport(response, period, reportLabel, (bucket) => getStoreBarFreshness("app-store", storeDelivery, bucket));
     }
   }

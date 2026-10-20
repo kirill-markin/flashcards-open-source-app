@@ -236,12 +236,14 @@ export async function loadActivityPage(
   userId: string,
   state: DataTableState,
   columns: ReadonlyArray<DataTableColumn<ActivityRow>>,
+  signal: AbortSignal,
 ): Promise<ActivityPageResult> {
   const subject = buildUserSubjectSql(userId);
   const clauses = buildDataTableSqlClauses(state, columns, activityColumnSqlById, defaultOrderBySql, tiebreakOrderBySql);
   const response = await runAdminQuery(
     config,
     `${buildActivityPageSql(subject, clauses)};\n${buildActivityTotalSql(subject, clauses)}`,
+    signal,
   );
   const pageResult = response.resultSets[0];
   if (response.resultSets.length !== 2 || pageResult === undefined) {
@@ -280,7 +282,7 @@ export type ActivityEnumOptions = ReadonlyMap<string, ReadonlyArray<string>>;
 /** Every enum column with no options, which the table shows until `loadActivityEnumOptions` answers. */
 export const emptyActivityEnumOptions: ActivityEnumOptions = emptyEnumOptions(activityEnumColumnIds);
 
-export async function loadActivityEnumOptions(config: AdminAppConfig, userId: string): Promise<ActivityEnumOptions> {
-  const response = await runAdminQuery(config, buildActivityEnumOptionsSql(buildUserSubjectSql(userId)));
+export async function loadActivityEnumOptions(config: AdminAppConfig, userId: string, signal: AbortSignal): Promise<ActivityEnumOptions> {
+  const response = await runAdminQuery(config, buildActivityEnumOptionsSql(buildUserSubjectSql(userId)), signal);
   return parseEnumOptionsResponse(response, activityEnumColumnIds, reportLabel);
 }

@@ -121,8 +121,9 @@ export async function loadEngagedVisitorsReport(
   config: AdminAppConfig,
   dateRange: AnalyticsDateRange,
   period: ReportPeriod,
+  signal: AbortSignal,
 ): Promise<EngagedVisitorsReport> {
-  const response = await runAdminQuery(config, buildEngagedVisitorsSql(dateRange, period));
+  const response = await runAdminQuery(config, buildEngagedVisitorsSql(dateRange, period), signal);
   const resultSet = response.resultSets[0];
   const firstRow = resultSet?.rows[0];
   if (response.resultSets.length !== 1 || resultSet === undefined || firstRow === undefined) {

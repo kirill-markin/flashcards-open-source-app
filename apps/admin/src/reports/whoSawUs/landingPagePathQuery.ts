@@ -36,6 +36,7 @@ export async function loadTopLandingPageKinds(
   dateRange: AnalyticsDateRange,
   period: ReportPeriod,
   reportLabel: string,
+  signal: AbortSignal,
 ): Promise<ReadonlyArray<string>> {
   const range = assertValidDateRange(dateRange, reportLabel);
   const response = await runAdminQuery(config, `WITH ${buildLandingViewsCtesSql(range, period)}
@@ -44,7 +45,7 @@ FROM landing_views
 GROUP BY page_kind
 HAVING COUNT(DISTINCT page_path) > 1
 ORDER BY COUNT(*) DESC, page_kind
-LIMIT ${topLandingPageKindCount}`);
+LIMIT ${topLandingPageKindCount}`, signal);
   const result = response.resultSets[0];
   if (response.resultSets.length !== 1 || result === undefined) {
     throw new Error(`${reportLabel} must return exactly one result set. Got ${response.resultSets.length}.`);
@@ -71,13 +72,14 @@ export async function loadLandingPagePathReport(
   dateRange: AnalyticsDateRange,
   period: ReportPeriod,
   reportLabel: string,
+  signal: AbortSignal,
 ): Promise<BreakdownReport> {
   const range = assertValidDateRange(dateRange, reportLabel);
   // Bars are available over every landing view, as on the landing page type chart, so both agree.
   const sql = buildBreakdownSql(`${buildReportBucketsCteSql(period, range)}, ${buildLandingPagePathValuesCtesSql(pageKind, range, period)}, measured_buckets AS (
   SELECT DISTINCT bucket_date FROM landing_views
 )`);
-  return loadBreakdownReport(config, sql, period, reportLabel, liveSourceBarFreshness);
+  return loadBreakdownReport(config, sql, period, reportLabel, liveSourceBarFreshness, signal);
 }
 
 /**
@@ -90,6 +92,7 @@ export async function loadTopLandingPages(
   dateRange: AnalyticsDateRange,
   period: ReportPeriod,
   reportLabel: string,
+  signal: AbortSignal,
 ): Promise<ReadonlyArray<LandingPageVisitors>> {
   const range = assertValidDateRange(dateRange, reportLabel);
   const response = await runAdminQuery(config, `WITH ${buildLandingPagePathValuesCtesSql(pageKind, range, period)}
@@ -98,7 +101,7 @@ FROM measured_values
 GROUP BY dimension_value
 HAVING SUM(value_count) > 0
 ORDER BY SUM(value_count) DESC, dimension_value
-LIMIT ${topLandingPageCount}`);
+LIMIT ${topLandingPageCount}`, signal);
   const result = response.resultSets[0];
   if (response.resultSets.length !== 1 || result === undefined) {
     throw new Error(`${reportLabel} must return exactly one result set. Got ${response.resultSets.length}.`);

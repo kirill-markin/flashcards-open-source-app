@@ -25,7 +25,7 @@ function buildWhoSawUsBreakdown(
     dimension,
     title,
     explanation,
-    loadReport: (config, dateRange, period) => loadWhoSawUsBreakdownReport(config, dimension, dateRange, period, `${title} report`),
+    loadReport: (config, dateRange, period, signal) => loadWhoSawUsBreakdownReport(config, dimension, dateRange, period, `${title} report`, signal),
   };
 }
 

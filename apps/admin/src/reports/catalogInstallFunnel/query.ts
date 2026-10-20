@@ -1199,8 +1199,9 @@ export function buildCatalogInstallFunnelSql(filters: AnalyticsFilterState): str
 
 export async function loadCatalogInstallFunnelAvailableRange(
   config: AdminAppConfig,
+  signal: AbortSignal,
 ): Promise<CatalogInstallFunnelRange> {
-  const response = await runAdminQuery(config, buildCatalogInstallFunnelAvailableRangeSql());
+  const response = await runAdminQuery(config, buildCatalogInstallFunnelAvailableRangeSql(), signal);
   if (response.resultSets.length !== 1) {
     throw new Error(
       `${catalogInstallFunnelReportLabel} available range must return exactly one result set. Got ${response.resultSets.length}.`,
@@ -1228,8 +1229,9 @@ export async function loadCatalogInstallFunnelAvailableRange(
 export async function loadCatalogInstallFunnelReport(
   config: AdminAppConfig,
   filters: AnalyticsFilterState,
+  signal: AbortSignal,
 ): Promise<CatalogInstallFunnelReport> {
-  const response = await runAdminQuery(config, buildCatalogInstallFunnelSql(filters));
+  const response = await runAdminQuery(config, buildCatalogInstallFunnelSql(filters), signal);
   if (response.resultSets.length !== 4) {
     throw new Error(
       `${catalogInstallFunnelReportLabel} must return exactly four result sets. Got ${response.resultSets.length}.`,

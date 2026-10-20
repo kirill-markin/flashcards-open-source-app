@@ -315,8 +315,9 @@ export function buildCatalogInstallsSql(filters: AnalyticsFilterState): string {
 export async function loadCatalogInstallsReport(
   config: AdminAppConfig,
   filters: AnalyticsFilterState,
+  signal: AbortSignal,
 ): Promise<CatalogInstallsReport> {
-  const response = await runAdminQuery(config, buildCatalogInstallsSql(filters));
+  const response = await runAdminQuery(config, buildCatalogInstallsSql(filters), signal);
   if (response.resultSets.length !== 1) {
     throw new Error(`${catalogInstallsReportLabel} must return exactly one result set. Got ${response.resultSets.length}.`);
   }
