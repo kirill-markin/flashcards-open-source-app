@@ -135,15 +135,16 @@ function readInitialEnabled(): boolean {
 }
 
 /**
- * What one discard covers. Named rather than positional because the three answers differ per caller
- * and none of them follows from the others: a refusal keeps what it holds in memory and reports
- * nothing, an identity boundary takes everything and reports it, and the kill switch takes
- * everything silently.
+ * What one discard covers. Named rather than positional because the answers differ per caller and
+ * none of them follows from the others: a refusal keeps what it holds in memory and reports
+ * nothing, an identity boundary takes everything except this load's cold open and reports it, and
+ * the kill switch takes everything silently.
  */
 type QueuedWorkDiscardOptions = Readonly<{
   shouldReportDiscard: boolean;
   shouldReleaseOwner: boolean;
   shouldDiscardHeldEvents: boolean;
+  shouldKeepUnadoptedColdOpen: boolean;
 }>;
 
 type AnalyticsDeliveryRuntime = Readonly<{
@@ -300,6 +301,20 @@ export function createAnalyticsDeliveryRuntime(
    * to be carried out from the one already in force.
    */
   let lastCarriedOutCollection = isProductAnalyticsCollectionEnabled();
+  /**
+   * This document's cold `app_opened` until the first account owner confirmed on this load takes it,
+   * whether an identity boundary discarded it meanwhile, and that owner. It is collected on the first
+   * commit, before the session layer knows who the load belongs to, so the boundary that layer may
+   * then cross — `reset()` on a load that finds another person's data, or a claim that replaces
+   * another account's queue — would take it with the previous person's events. It is the first
+   * confirmed person's open, so their claim, or on a refused browser their confirmation, collects it
+   * again; without that a first load after sign-up reports no `app_opened` at all. A load that
+   * confirms nobody, such as an account deletion, never collects it again, and one that confirms
+   * somebody else afterwards drops it for good.
+   */
+  let unadoptedColdOpenWireEvent: AnalyticsWireEvent | null = null;
+  let isUnadoptedColdOpenDiscarded = false;
+  let coldOpenOwnerId: string | null = null;
 
   function isAnalyticsEnabledForCurrentRuntime(): boolean {
     return isEnabled;
@@ -325,14 +340,15 @@ export function createAnalyticsDeliveryRuntime(
     pendingDropCounts.set(reason, (pendingDropCounts.get(reason) ?? 0) + count);
   }
 
-  function enqueueEvent(event: AnalyticsEvent, surface: AnalyticsSurface | null): void {
+  /** Returns the collected wire event, or null when the event was dropped instead. */
+  function enqueueEvent(event: AnalyticsEvent, surface: AnalyticsSurface | null): AnalyticsWireEvent | null {
     const nowMs = Date.now();
     const sessionId = readAnalyticsSessionId(nowMs);
     const wireEvent = toAnalyticsWireEvent(event, nowMs, surface);
     const byteSize = measureAnalyticsWireEventBytes(wireEvent);
     if (byteSize > analyticsEventByteLimit) {
       countDropped("rejected", 1);
-      return;
+      return null;
     }
 
     pendingRecords.push({
@@ -342,6 +358,7 @@ export function createAnalyticsDeliveryRuntime(
       byteSize,
       wireEvent,
     });
+    return wireEvent;
   }
 
   /**
@@ -349,19 +366,20 @@ export function createAnalyticsDeliveryRuntime(
    * session id is deliberately not read here: `readAnalyticsSessionId` persists the session it
    * returns, so asking for one would be the write this path exists to avoid.
    */
-  function holdEvent(event: AnalyticsEvent, surface: AnalyticsSurface | null): void {
+  function holdEvent(event: AnalyticsEvent, surface: AnalyticsSurface | null): AnalyticsWireEvent | null {
     const wireEvent = toAnalyticsWireEvent(event, Date.now(), surface);
     if (measureAnalyticsWireEventBytes(wireEvent) > analyticsEventByteLimit) {
       countDropped("rejected", 1);
-      return;
+      return null;
     }
 
     if (heldWireEvents.length >= heldEventLimit) {
       countDropped("queue_overflow", 1);
-      return;
+      return null;
     }
 
     heldWireEvents.push(wireEvent);
+    return wireEvent;
   }
 
   /**
@@ -379,13 +397,23 @@ export function createAnalyticsDeliveryRuntime(
   }
 
   /** The one routing decision every collected event takes, from `track` and from drop reporting. */
-  function collectEvent(event: AnalyticsEvent, surface: AnalyticsSurface | null): void {
+  function collectEvent(event: AnalyticsEvent, surface: AnalyticsSurface | null): AnalyticsWireEvent | null {
     if (isAnalyticsDeviceStorageAllowed()) {
-      enqueueEvent(event, surface);
-      return;
+      return enqueueEvent(event, surface);
     }
 
-    holdEvent(event, surface);
+    return holdEvent(event, surface);
+  }
+
+  /** A wire event collected earlier on this load, as the queue stores it in the session it joins now. */
+  function toQueueRecord(wireEvent: AnalyticsWireEvent, sessionId: string): AnalyticsQueueRecord {
+    return {
+      eventId: wireEvent.eventId,
+      sessionId,
+      createdAtMs: Date.parse(wireEvent.clientOccurredAt),
+      byteSize: measureAnalyticsWireEventBytes(wireEvent),
+      wireEvent,
+    };
   }
 
   /**
@@ -405,13 +433,89 @@ export function createAnalyticsDeliveryRuntime(
     heldWireEvents = [];
     const sessionId = readAnalyticsSessionId(Date.now());
     for (const wireEvent of adoptedWireEvents) {
-      pendingRecords.push({
-        eventId: wireEvent.eventId,
-        sessionId,
-        createdAtMs: Date.parse(wireEvent.clientOccurredAt),
-        byteSize: measureAnalyticsWireEventBytes(wireEvent),
-        wireEvent,
-      });
+      pendingRecords.push(toQueueRecord(wireEvent, sessionId));
+    }
+  }
+
+  function isWireEventInMemory(wireEvent: AnalyticsWireEvent): boolean {
+    return pendingRecords.some((record) => record.eventId === wireEvent.eventId)
+      || heldWireEvents.some((heldWireEvent) => heldWireEvent.eventId === wireEvent.eventId);
+  }
+
+  function forgetColdOpen(): void {
+    unadoptedColdOpenWireEvent = null;
+    isUnadoptedColdOpenDiscarded = false;
+    coldOpenOwnerId = null;
+  }
+
+  /**
+   * Hands this load's cold open over to `userId` where it is the owner the open is bound to, and
+   * answers the event where an identity boundary discarded it and it has to be collected again.
+   */
+  function takeColdOpenForOwner(userId: string): AnalyticsWireEvent | null {
+    if (coldOpenOwnerId !== userId) {
+      return null;
+    }
+
+    const coldOpenWireEvent = unadoptedColdOpenWireEvent;
+    const wasDiscarded = isUnadoptedColdOpenDiscarded;
+    forgetColdOpen();
+    return wasDiscarded ? coldOpenWireEvent : null;
+  }
+
+  /**
+   * Runs inside the claim's `persistTask` link, so the flush it schedules appends the event to the
+   * claimed queue.
+   */
+  function adoptColdOpenIntoClaimedQueue(userId: string): void {
+    const coldOpenWireEvent = takeColdOpenForOwner(userId);
+    if (coldOpenWireEvent === null) {
+      return;
+    }
+
+    pendingRecords.push(toQueueRecord(coldOpenWireEvent, readAnalyticsSessionId(Date.now())));
+  }
+
+  /** A refused browser never claims the queue; its held events ship on the account's credential. */
+  function adoptColdOpenIntoHeldEvents(userId: string): void {
+    const coldOpenWireEvent = takeColdOpenForOwner(userId);
+    if (coldOpenWireEvent === null) {
+      return;
+    }
+
+    if (heldWireEvents.length >= heldEventLimit) {
+      countDropped("queue_overflow", 1);
+      return;
+    }
+
+    // Ahead of what this load held since, in the order it happened.
+    heldWireEvents = [coldOpenWireEvent, ...heldWireEvents];
+  }
+
+  /**
+   * Binds this load's cold open to the first owner confirmed after it was collected. A different
+   * owner later on this load is another person, so the open is dropped for good rather than handed
+   * to them.
+   */
+  function bindColdOpenToConfirmedOwner(userId: string): void {
+    if (unadoptedColdOpenWireEvent === null) {
+      return;
+    }
+
+    if (coldOpenOwnerId === null) {
+      coldOpenOwnerId = userId;
+    } else if (coldOpenOwnerId !== userId) {
+      // Every discard that kept it left it out of its own loss count.
+      if (isUnadoptedColdOpenDiscarded) {
+        reportAnalyticsQueueDiscardedOnReset(1);
+      }
+
+      forgetColdOpen();
+      return;
+    }
+
+    if (readAnalyticsConsentDecision() === "declined") {
+      adoptColdOpenIntoHeldEvents(userId);
     }
   }
 
@@ -1236,6 +1340,7 @@ export function createAnalyticsDeliveryRuntime(
       // told about.
       if (readAnalyticsConsentDecision() === "declined") {
         heldWireEvents = [];
+        forgetColdOpen();
       }
 
       recordAnalyticsConsentDecision("granted");
@@ -1350,6 +1455,7 @@ export function createAnalyticsDeliveryRuntime(
         wasIdentityAllowed,
       ),
       shouldDiscardHeldEvents: false,
+      shouldKeepUnadoptedColdOpen: false,
     });
     resetAnalyticsSession();
     flush();
@@ -1514,8 +1620,21 @@ export function createAnalyticsDeliveryRuntime(
       hasOpenedAnalyticsQueue = true;
       try {
         const claim = await claimAnalyticsQueueOwner(userId);
-        if (claim.didReplaceForeignOwner && claim.discardedEventCount > 0) {
-          reportAnalyticsQueueDiscardedOnReset(claim.discardedEventCount);
+        // Out of memory and not yet discarded means it was appended under the owner this claim
+        // replaced, and went with that owner's queue.
+        const didDiscardColdOpen = claim.didReplaceForeignOwner
+          && coldOpenOwnerId === userId
+          && unadoptedColdOpenWireEvent !== null
+          && isUnadoptedColdOpenDiscarded === false
+          && isWireEventInMemory(unadoptedColdOpenWireEvent) === false;
+        if (didDiscardColdOpen) {
+          isUnadoptedColdOpenDiscarded = true;
+        }
+
+        // The cold open is left out of the loss: the owner of this load collects it again.
+        const discardedEventCount = claim.discardedEventCount - (didDiscardColdOpen ? 1 : 0);
+        if (claim.didReplaceForeignOwner && discardedEventCount > 0) {
+          reportAnalyticsQueueDiscardedOnReset(discardedEventCount);
         }
 
         // A newer owner was published while this claim ran; its own claim opens the gate instead.
@@ -1523,6 +1642,7 @@ export function createAnalyticsDeliveryRuntime(
           return;
         }
 
+        adoptColdOpenIntoClaimedQueue(userId);
         isQueueOwnerReconciled = true;
         scheduleFlush(0);
       } catch (error) {
@@ -1588,6 +1708,7 @@ export function createAnalyticsDeliveryRuntime(
       firstDeliveryFailureAtMs = null;
       lastFailureStatusCode = null;
       retryNotBeforeMs = 0;
+      bindColdOpenToConfirmedOwner(userId);
       claimQueueOwner(userId);
     } catch {
       // The gate is already shut; a failure here can only cost delivery, never misattribute an event.
@@ -1612,7 +1733,11 @@ export function createAnalyticsDeliveryRuntime(
       return;
     }
 
-    collectEvent(event, surface);
+    const wireEvent = collectEvent(event, surface);
+    if (event.name === "app_opened" && event.launchType === "cold" && confirmedOwnerId === null) {
+      unadoptedColdOpenWireEvent = wireEvent;
+    }
+
     trackedSinceFlushCount += 1;
     // A held event persists nothing, because `pendingRecords` is empty; the flush the threshold
     // schedules is what a browser reporting without an identity drains its held events on.
@@ -1810,14 +1935,31 @@ export function createAnalyticsDeliveryRuntime(
   }
 
   function discardQueuedWork(options: QueuedWorkDiscardOptions): void {
-    const { shouldReportDiscard, shouldReleaseOwner, shouldDiscardHeldEvents } = options;
+    const {
+      shouldReportDiscard,
+      shouldReleaseOwner,
+      shouldDiscardHeldEvents,
+      shouldKeepUnadoptedColdOpen,
+    } = options;
     // Invalidates any flush already in flight before a single record is touched, so it can neither
     // send the discarded events under the next identity nor delete records belonging to it.
     analyticsGeneration += 1;
+    // Left out of the loss: it waits for the owner this load confirms next. Every other discard
+    // takes it for good, because what it answers covers this load's open as well.
+    const keptColdOpenCount = shouldKeepUnadoptedColdOpen
+      && unadoptedColdOpenWireEvent !== null
+      && isUnadoptedColdOpenDiscarded === false ? 1 : 0;
+    if (shouldKeepUnadoptedColdOpen) {
+      isUnadoptedColdOpenDiscarded = unadoptedColdOpenWireEvent !== null;
+    } else {
+      forgetColdOpen();
+    }
+
     // Counted before the queue is emptied: an unreported drop is itself a silent loss.
     const unreportedLossCount = pendingRecords.length
       + sumPendingDropCounts()
-      + (shouldDiscardHeldEvents ? heldWireEvents.length : 0);
+      + (shouldDiscardHeldEvents ? heldWireEvents.length : 0)
+      - keptColdOpenCount;
     pendingRecords = [];
     if (shouldDiscardHeldEvents) {
       heldWireEvents = [];
@@ -1880,6 +2022,7 @@ export function createAnalyticsDeliveryRuntime(
         shouldReportDiscard: true,
         shouldReleaseOwner: true,
         shouldDiscardHeldEvents: true,
+        shouldKeepUnadoptedColdOpen: true,
       });
       resetAnalyticsSession();
     } catch {
@@ -1902,6 +2045,7 @@ export function createAnalyticsDeliveryRuntime(
           shouldReportDiscard: false,
           shouldReleaseOwner: false,
           shouldDiscardHeldEvents: true,
+          shouldKeepUnadoptedColdOpen: false,
         });
         return;
       }
@@ -2009,6 +2153,7 @@ export function createAnalyticsDeliveryRuntime(
         shouldReportDiscard: false,
         shouldReleaseOwner: true,
         shouldDiscardHeldEvents: true,
+        shouldKeepUnadoptedColdOpen: false,
       });
       if (hasOpenedAnalyticsQueue === false) {
         clearStoredQueueAfterCollectionOff();
