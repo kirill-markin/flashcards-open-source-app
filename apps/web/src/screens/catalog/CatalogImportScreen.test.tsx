@@ -12,6 +12,7 @@ import type {
   Card,
   CatalogPackageInstallConfirmOptions,
   CatalogPackageInstallConfirmResponse,
+  CatalogPackageInstallContext,
   CatalogPackageInstallPreviewResponse,
   CatalogPublicPackageVersion,
   Deck,
@@ -30,6 +31,7 @@ const workspaceReplicaId = "45268888-5620-5912-9ed1-4bd6f2105aff";
 
 const {
   confirmCatalogPackageInstallMock,
+  loadCatalogPackageInstallContextMock,
   loadPublicCatalogPackageVersionMock,
   previewCatalogPackageInstallMock,
   useAppDataMock,
@@ -39,6 +41,9 @@ const {
     requestedPackageVersionId: string,
     options: CatalogPackageInstallConfirmOptions,
   ) => Promise<CatalogPackageInstallConfirmResponse>>(),
+  loadCatalogPackageInstallContextMock: vi.fn<(
+    requestedPackageVersionId: string,
+  ) => Promise<CatalogPackageInstallContext>>(),
   loadPublicCatalogPackageVersionMock: vi.fn<(
     requestedPackageVersionId: string,
   ) => Promise<CatalogPublicPackageVersion>>(),
@@ -55,6 +60,7 @@ vi.mock("../../api", async (importOriginal) => {
     ...actual,
     confirmCatalogPackageInstall: confirmCatalogPackageInstallMock,
     isAuthRedirectError: (_error: unknown): boolean => false,
+    loadCatalogPackageInstallContext: loadCatalogPackageInstallContextMock,
     loadPublicCatalogPackageVersion: loadPublicCatalogPackageVersionMock,
     previewCatalogPackageInstall: previewCatalogPackageInstallMock,
   };
@@ -100,6 +106,21 @@ function createWorkspace(workspaceId: string, name: string, isSelected: boolean)
     name,
     createdAt: "2026-03-10T00:00:00.000Z",
     isSelected,
+  };
+}
+
+function createInstallContext(workspaces: ReadonlyArray<WorkspaceSummary>): CatalogPackageInstallContext {
+  return {
+    workspaces: workspaces.map((workspace) => ({
+      workspaceId: workspace.workspaceId,
+      name: workspace.name,
+      createdAt: workspace.createdAt,
+      isSelected: workspace.isSelected,
+      cardCount: 0,
+      lastReviewedAt: null,
+      onboardingEligibility: "ineligible",
+      previousInstall: null,
+    })),
   };
 }
 
@@ -151,7 +172,7 @@ function createInstallPreview(): CatalogPackageInstallPreviewResponse {
       { tag: "temporary", cardsCount: 1 },
     ],
     defaultOptions: {
-      addImportTag: true,
+      addImportTag: false,
       suggestedImportTag: "import:2026-08-02",
       keptTags: ["geography"],
       removedTags: ["temporary"],
@@ -328,6 +349,8 @@ describe("CatalogImportScreen", () => {
     appData = createAppData([createWorkspace("workspace-1", "Primary", true)]);
     useAppDataMock.mockReset();
     useAppDataMock.mockImplementation(() => appData);
+    loadCatalogPackageInstallContextMock.mockReset();
+    loadCatalogPackageInstallContextMock.mockImplementation(async () => createInstallContext(appData.availableWorkspaces));
     loadPublicCatalogPackageVersionMock.mockReset();
     loadPublicCatalogPackageVersionMock.mockResolvedValue(createCatalogPackageVersion());
     previewCatalogPackageInstallMock.mockReset();
@@ -410,6 +433,10 @@ describe("CatalogImportScreen", () => {
   });
 
   it("skips the workspace step for a single workspace and keeps the active one selectable", async () => {
+    loadCatalogPackageInstallContextMock.mockResolvedValue(createInstallContext([
+      createWorkspace("workspace-1", "Primary", true),
+      createWorkspace("workspace-2", "Secondary", false),
+    ]));
     await renderRoute(`/catalog/import/${packageVersionId}`);
     await waitForCondition("Single workspace confirm step was not rendered", () => (
       container.querySelector("[data-testid='catalog-import-confirm']") !== null
@@ -583,6 +610,12 @@ describe("CatalogImportScreen", () => {
     await waitForCondition("Catalog preview was not rendered", () => (
       container.querySelector("[data-testid='workspace-package-import-preview']") !== null
     ));
+    const importTagCheckbox = container.querySelector("[data-testid='workspace-package-import-tag-checkbox']");
+    if (!(importTagCheckbox instanceof HTMLInputElement)) {
+      throw new Error("Catalog import tag checkbox was not found");
+    }
+    expect(importTagCheckbox.checked).toBe(false);
+    await act(async () => importTagCheckbox.click());
     const importTagInput = container.querySelector("[data-testid='workspace-package-import-tag-input']");
     const geographyCheckbox = container.querySelector(
       "[data-testid='workspace-package-remove-tag-checkbox'][data-tag='geography']",
@@ -661,11 +694,11 @@ describe("CatalogImportScreen", () => {
     await waitForCondition("Ambiguous catalog install failure was not rendered", () => (
       container.querySelector("[data-testid='workspace-import-error']") !== null
     ));
-    const lockedTagInput = container.querySelector("[data-testid='workspace-package-import-tag-input']");
-    if (!(lockedTagInput instanceof HTMLInputElement)) {
-      throw new Error("Catalog import tag input was not found after failure");
+    const lockedTagCheckbox = container.querySelector("[data-testid='workspace-package-import-tag-checkbox']");
+    if (!(lockedTagCheckbox instanceof HTMLInputElement)) {
+      throw new Error("Catalog import tag checkbox was not found after failure");
     }
-    expect(lockedTagInput.disabled).toBe(true);
+    expect(lockedTagCheckbox.disabled).toBe(true);
     expect(confirmButton.disabled).toBe(false);
     // The retry must reuse the install id rather than mint a second one. It is read as a delta
     // because the analytics visitor identity mints through this same spy.

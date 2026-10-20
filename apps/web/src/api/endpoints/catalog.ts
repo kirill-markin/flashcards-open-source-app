@@ -1,11 +1,13 @@
 import {
   parseCatalogPackageInstallConfirmResponse,
+  parseCatalogPackageInstallContextResponse,
   parseCatalogPackageInstallPreviewResponse,
   parseCatalogPublicPackageVersionResponse,
 } from "../../apiContracts/catalog";
 import type {
   CatalogPackageInstallConfirmOptions,
   CatalogPackageInstallConfirmResponse,
+  CatalogPackageInstallContext,
   CatalogPackageInstallPreviewResponse,
   CatalogPublicPackageVersion,
 } from "../../types";
@@ -61,5 +63,16 @@ export async function confirmCatalogPackageInstall(
     }, allowAuthRecovery),
     `POST ${pathname}`,
     parseCatalogPackageInstallConfirmResponse,
+  );
+}
+
+export async function loadCatalogPackageInstallContext(
+  packageVersionId: string,
+): Promise<CatalogPackageInstallContext> {
+  const pathname = `/catalog/package-versions/${encodePathSegment(packageVersionId)}/install-context`;
+  return parseContractResponse(
+    await requestJson(pathname, { method: "GET" }, allowAuthRecovery),
+    `GET ${pathname}`,
+    parseCatalogPackageInstallContextResponse,
   );
 }
