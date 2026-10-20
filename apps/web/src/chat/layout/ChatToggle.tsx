@@ -1,8 +1,10 @@
 import type { ReactElement } from "react";
+import { useI18n } from "../../i18n";
 import { useChatLayout } from "./ChatLayoutContext";
 
 export function ChatToggle(): ReactElement {
   const { setIsOpen } = useChatLayout();
+  const { t } = useI18n();
 
   return (
     <button
@@ -10,7 +12,7 @@ export function ChatToggle(): ReactElement {
       className="chat-toggle-floating"
       onClick={() => setIsOpen(true)}
     >
-      AI chat
+      {t("navigation.aiChat")}
     </button>
   );
 }
