@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type ReactElement } from "react";
 import { useNavigate } from "react-router";
 import { ApiContractError, ApiError, confirmCatalogPackageInstall } from "../../api";
-import { reportCatalogInstallFailure, toCatalogInstallFailureReason } from "../../analytics";
+import { reportCatalogInstallFailure, toCatalogInstallFailureReason, trackCatalogDeckInstallStarted } from "../../analytics";
 import { useAppData } from "../../appData";
 import { ALL_CARDS_REVIEW_FILTER } from "../../appData/domain";
 import { storeSelectedReviewFilterForWorkspace } from "../../appData/context/reviewFilterPersistence";
@@ -86,6 +86,7 @@ export function CatalogImmediateStudy(props: Readonly<{
               },
             };
             storeCatalogImmediateAttempt(attempt);
+            trackCatalogDeckInstallStarted(catalogContext.packageSlug, catalogContext.packageVersionId);
           }
           if (attempt.workspaceId !== workspaceId) {
             throw new Error("Saved catalog onboarding request belongs to another workspace. Preserve site data and resume that request.");
@@ -152,7 +153,7 @@ export function CatalogImmediateStudy(props: Readonly<{
       }
     })();
     return () => { isCurrent = false; };
-  }, [catalogContext.packageVersionId, identityKey, indexedDbOpenRecoveryState, navigate, retryRevision, showTechnicalError, t, workspaceId]);
+  }, [catalogContext.packageSlug, catalogContext.packageVersionId, identityKey, indexedDbOpenRecoveryState, navigate, retryRevision, showTechnicalError, t, workspaceId]);
 
   return <CatalogImportStatePanel
     testId={phase === "error" ? "catalog-immediate-error" : "catalog-immediate-loading"}

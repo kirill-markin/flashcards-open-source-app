@@ -4,6 +4,7 @@ import { useI18n } from "../../i18n";
 
 export type CatalogImportContext = Readonly<{
   packageVersionId: string;
+  packageSlug: string;
   title: string;
   cardCount: number;
   authorDisplayName: string;
