@@ -74,14 +74,14 @@ export function buildExcludedActorReasonSql(actorIdSqlExpression: string): strin
  * kept: `server_derived` and `backfill_derived` are the server's own observations, and
  * `authenticated_client` and `guest_client` are claims made on an authenticated request.
  *
- * APPLIED EVERYWHERE IT CAN DECIDE A PERSON, AND THIS IS THE WHOLE LIST. Twenty-three entries below
- * derive an actor-level fact from `analytics.product_events_resolved`, twenty-two in this package
+ * APPLIED EVERYWHERE IT CAN DECIDE A PERSON, AND THIS IS THE WHOLE LIST. Twenty entries below
+ * derive an actor-level fact from `analytics.product_events_resolved`, nineteen in this package
  * and one outside it. Each is APPLIED or UNREACHABLE, and the two are not interchangeable: adding this
  * predicate to an UNREACHABLE entry is a no-op, and reading one as an omission produces a
  * remediation that converts the entries it happens to have been told about and stops. A shared
  * fragment is one entry, listed where it is written, with its readers named.
  *
- * APPLIED (14).
+ * APPLIED (13).
  *   - `reports/whoOpenedTheApp/appOpenActivitySql.ts`, `app_open_rows`, the first-open cohort it
  *     feeds and `app_open_last_opens`, one row predicate, read by Who opened the app, its breakdowns,
  *     the Who studied breakdowns and the Level 1 available range.
@@ -89,13 +89,6 @@ export function buildExcludedActorReasonSql(actorIdSqlExpression: string): strin
  *   - `reports/audience/query.ts`, `language_events`: the per-actor language and `unknown` coverage
  *     of an already-counted actor, over every event name.
  *   - `reports/catalogInstalls/query.ts`, `installer_app_opens`: the new-versus-returning cohort.
- *   - `reports/catalogInstallFunnel/query.ts`, `install_actor_first_event`: whether the installing
- *     identity is new, which is a different rule from the cohort above - the absence of any trusted
- *     row before the anchoring deck page view, read with no lower bound and, by design, no event-name
- *     restriction at all, so it sees every name the collector accepts. The shared visitor identity
- *     makes it load-bearing rather than defensive: the page view that anchors the row is itself a
- *     collector row resolving onto that same identity, so without this predicate every installer
- *     would have an event at their own first visit and none would ever read as new.
  *   - `reports/mobileFirstLaunchFunnel/query.ts`, `actor_first_events` and `step_events`. The first
  *     decides whether a person's first-ever event is a mobile app open. It reads every event name with
  *     no lower bound and lets through only a `card_created` at most 60 seconds before that open, which
@@ -129,11 +122,10 @@ export function buildExcludedActorReasonSql(actorIdSqlExpression: string): strin
  *     non-NULL actor, so a locale only a signed-out visitor ever sent would be offered as a filter
  *     value.
  *
- * UNREACHABLE (8): SAFE FOR A DIFFERENT REASON, NOT CONVERTED. Every event these derive an actor
+ * UNREACHABLE (6): SAFE FOR A DIFFERENT REASON, NOT CONVERTED. Every event these derive an actor
  * from is either `serverOnly: true` in `apps/backend/src/productAnalytics/catalog.ts`, which the
  * collector refuses outright, or already carries a trust predicate of its own, so no row this
  * collector writes can reach them and this predicate would change nothing.
- *   - `reports/reviewEventsByDate/query.ts`, the `review_answered` cohort. By event name.
  *   - `reports/reviewEventsByDate/query.ts`, the `friend_invitation_created` and
  *     `friendship_created` community series. By event name.
  *   - `reports/catalogInstalls/query.ts`, the `deck_installs` CTE (`catalog_deck_installed`). By
@@ -151,8 +143,6 @@ export function buildExcludedActorReasonSql(actorIdSqlExpression: string): strin
  *     five option lists. The attribution fragment reads `anonymous_client` clicks deliberately, but
  *     a click decides nobody: every actor it emits is the server-origin install's own, which a click
  *     can only be matched to.
- *   - `reports/catalogInstallFunnel/query.ts`, the installs-without-deck-page-view diagnostic, which
- *     applies the actor exclusions to a server-origin `catalog_deck_installed`. By event name.
  *   - `filters/optionsQuery.ts`, the deck-slug list (`catalog_deck_installed`). By event name.
  *
  * OUTSIDE THIS PACKAGE (1), and it cannot take the rule from here.
@@ -170,21 +160,10 @@ export function buildExcludedActorReasonSql(actorIdSqlExpression: string): strin
  * NOT AN ENTRY EITHER, AND THE ONE THAT MOST LOOKS LIKE ONE. The catalog install funnel's cohort
  * keys a row on the identity an `anonymous_client` deck page view (`site_page_viewed`) carries, reads
  * its second step from the `anonymous_client` install click on that identity, and reads that identity
- * through every later step; its two no-visit diagnostics read the same page views only to ask whether
- * an identity had one. Applying this predicate there would empty the report, because the
+ * through every later step. Applying this predicate there would empty the report, because the
  * marketing-site page view and click are credential-free by construction. It stays out because what
  * the funnel counts is browser visitor identities arriving at a deck, which is what it calls them on
- * screen; that number is never merged into a count of people, and the one place inside the funnel
- * that does decide a person - `install_actor_first_event` - is in the applied list above.
- *
- * That funnel's `surface_events` is not an entry either, one step further on. It derives per-actor
- * step facts over `screen_viewed`, which is not `serverOnly`, and reads the import screens at every
- * trust level, so the collector does reach it - but it decides no person. Its one trust predicate,
- * on the signed-in step, selects a row an account credential sent rather than excluding the
- * collector's. Its actors are already fixed by the cohort above and it only answers which steps
- * one of them reached, so this rule stays off deliberately rather than by omission: applying it
- * would zero the import-screen step for every signed-out visitor, whose `screen_viewed` rows are
- * credential-free by construction.
+ * screen; that number is never merged into a count of people.
  *
  * NOT AN ENTRY, FOR THE CATALOG COHORT'S REASON: `identified_site_visitors`, the `Web` series of
  * `reports/whoSawUs/query.ts`, and `identified_visitor_days`, its engaged subset in

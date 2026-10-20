@@ -8,9 +8,9 @@ import {
   type FunnelGroupCounts,
 } from "../funnels/funnelGroupBy";
 import type { FunnelStage } from "../funnels/FunnelStepsChart";
+import { mobileFirstLaunchEngagedReviewThreshold } from "../mobileFirstLaunchFunnel/query";
 import {
   catalogInstallConversionWindowDays,
-  type CatalogInstallFailureBucket,
   type CatalogInstallFunnelReport,
   type CatalogInstallFunnelVisit,
 } from "./query";
@@ -18,12 +18,10 @@ import {
 const funnelMainStepIds = [
   "deck-page-view",
   "install-click",
-  "import-screen",
-  "import-confirm",
-  "install-started",
   "installed",
   "one-review",
-  "engaged",
+  "two-reviews",
+  "two-review-days",
   "engaged-returning",
 ] as const;
 
@@ -34,11 +32,7 @@ export const catalogInstallFunnelAnchor: FunnelAnchor<FunnelMainStepId> = {
   stepIds: funnelMainStepIds,
 };
 
-type StepCount = Readonly<{ label: string; count: number }>;
 type StepDefinition = Readonly<{ label: string; isReached: (visit: CatalogInstallFunnelVisit) => boolean }>;
-type FailureTotal = CatalogInstallFailureBucket & Readonly<{ count: number }>;
-
-const engagedReviewThreshold = 20;
 
 export type CatalogInstallFunnelGroupByDimension = FunnelGroupByField & Readonly<{
   readGroupKey: (visit: CatalogInstallFunnelVisit) => string | null;
@@ -65,16 +59,9 @@ export const catalogInstallFunnelGroupByDimensions: ReadonlyArray<CatalogInstall
 export type CatalogInstallFunnelReportModel = Readonly<{
   mainStages: ReadonlyArray<FunnelStage<FunnelMainStepId>>;
   groups: ReadonlyArray<FunnelGroup<FunnelMainStepId>> | null;
-  authStages: ReadonlyArray<StepCount>;
-  failureTotals: ReadonlyArray<FailureTotal>;
   medianInstallSeconds: number | null;
-  newIdentityInstallerCount: number;
-  returningIdentityInstallerCount: number;
-  directVisitorCount: number;
   maturingCount: number;
   maturityEntryCount: number;
-  previewersWithoutVisitCount: number;
-  installersWithoutVisitCount: number;
   hasVisits: boolean;
 }>;
 
@@ -157,18 +144,19 @@ function buildMainStages(
   const steps: Readonly<Record<FunnelMainStepId, StepDefinition>> = {
     "deck-page-view": { label: "Viewed any deck page", isReached: () => true },
     "install-click": { label: "Install clicked", isReached: (visit) => visit.installClickedAt !== null },
-    "import-screen": { label: "Import screen", isReached: (visit) => visit.importScreenAt !== null },
-    "import-confirm": { label: "Import confirm", isReached: (visit) => visit.importConfirmAt !== null },
-    "install-started": { label: "Install started", isReached: (visit) => visit.installStartedAt !== null },
     installed: { label: "Installed (server)", isReached: (visit) => visit.installedAt !== null },
     "one-review": { label: "1+ review", isReached: (visit) => (visit.installReviewCount ?? 0) >= 1 },
-    engaged: {
-      label: `${engagedReviewThreshold}+ reviews`,
-      isReached: (visit) => (visit.installReviewCount ?? 0) >= engagedReviewThreshold,
+    "two-reviews": { label: "2+ reviews", isReached: (visit) => (visit.installReviewCount ?? 0) >= 2 },
+    "two-review-days": {
+      label: "Reviews on 2+ days",
+      isReached: (visit) => (visit.installReviewDayCount ?? 0) >= 2,
     },
     "engaged-returning": {
-      label: `${engagedReviewThreshold}+ reviews with a return day`,
-      isReached: (visit) => visit.installHasReturnDay === true,
+      label: `${mobileFirstLaunchEngagedReviewThreshold}+ reviews on 3+ days`,
+      isReached: (visit) => (
+        (visit.installReviewCount ?? 0) >= mobileFirstLaunchEngagedReviewThreshold
+        && (visit.installReviewDayCount ?? 0) >= 3
+      ),
     },
   };
 
@@ -238,21 +226,6 @@ function buildGroups(
   }));
 }
 
-function buildAuthStages(visits: ReadonlyArray<CatalogInstallFunnelVisit>): ReadonlyArray<StepCount> {
-  return countPeopleAtEachStep(visits, [
-    { label: "Signed-out import gate", isReached: (visit) => visit.signedOutGateAt !== null },
-    { label: "Signed in on this browser", isReached: (visit) => visit.signedInAt !== null },
-    { label: "Import confirm after sign-in", isReached: (visit) => visit.signedOutImportConfirmAt !== null },
-  ]).map(({ label, count }) => ({ label, count }));
-}
-
-function countPeopleWhere(
-  visits: ReadonlyArray<CatalogInstallFunnelVisit>,
-  matches: (visit: CatalogInstallFunnelVisit) => boolean,
-): number {
-  return new Set(visits.filter(matches).map((visit) => visit.actorId)).size;
-}
-
 function countMaturingPeople(visits: ReadonlyArray<CatalogInstallFunnelVisit>, generatedAtUtc: string): number {
   const firstVisitMsByActor = new Map<string, number>();
   for (const visit of visits) {
@@ -264,24 +237,6 @@ function countMaturingPeople(visits: ReadonlyArray<CatalogInstallFunnelVisit>, g
   return Array.from(firstVisitMsByActor.values())
     .filter((firstVisitMs) => firstVisitMs + catalogInstallConversionWindowDays * 86_400_000 > nowMs)
     .length;
-}
-
-function buildFailureTotals(visits: ReadonlyArray<CatalogInstallFunnelVisit>): ReadonlyArray<FailureTotal> {
-  const actorsByKey = new Map<string, Readonly<{ bucket: CatalogInstallFailureBucket; actorIds: Set<string> }>>();
-  for (const visit of visits) {
-    for (const bucket of visit.failureBuckets) {
-      const key = `${bucket.stage}:${bucket.reason}`;
-      const entry = actorsByKey.get(key) ?? { bucket, actorIds: new Set<string>() };
-      entry.actorIds.add(visit.actorId);
-      actorsByKey.set(key, entry);
-    }
-  }
-
-  return Array.from(actorsByKey.values(), (entry): FailureTotal => ({ ...entry.bucket, count: entry.actorIds.size })).sort((left, right) => (
-    right.count - left.count
-    || left.stage.localeCompare(right.stage)
-    || left.reason.localeCompare(right.reason)
-  ));
 }
 
 function buildFoldedGroups(
@@ -319,23 +274,15 @@ export function buildCatalogInstallFunnelReportModel(
   const hashedDeckPageViewCount = report === null ? 0 : report.hashedDeckPageViewCount;
   const hashedInstallClickCount = report === null ? 0 : report.hashedInstallClickCount;
   const mainStages = buildMainStages(visits, hashedDeckPageViewCount, hashedInstallClickCount);
-  const firstInstallVisits = getFirstInstallVisitByPerson(visits);
 
   // Grouping changes only the chart; summaries always use the complete report.
   return {
     mainStages,
     groups: buildFoldedGroups(report, groupByDimensionId),
-    authStages: buildAuthStages(visits),
-    failureTotals: buildFailureTotals(visits),
-    medianInstallSeconds: getMedianInstallSeconds(firstInstallVisits),
-    newIdentityInstallerCount: firstInstallVisits.filter((visit) => visit.installActorIsNew === true).length,
-    returningIdentityInstallerCount: firstInstallVisits.filter((visit) => visit.installActorIsNew === false).length,
-    directVisitorCount: countPeopleWhere(visits, (visit) => visit.source === "direct"),
+    medianInstallSeconds: getMedianInstallSeconds(getFirstInstallVisitByPerson(visits)),
     maturingCount: report === null ? 0 : countMaturingPeople(visits, report.generatedAtUtc),
     // Only identified people have a seven-day window.
     maturityEntryCount: (mainStages[0]?.count ?? 0) - (mainStages[0]?.hashedCount ?? 0),
-    previewersWithoutVisitCount: report === null ? 0 : report.previewersWithoutVisitCount,
-    installersWithoutVisitCount: report === null ? 0 : report.installersWithoutVisitCount,
     // A cookieless-only report has a funnel even though it contains no visit rows.
     hasVisits: visits.length > 0 || hashedDeckPageViewCount > 0,
   };
