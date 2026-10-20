@@ -9,6 +9,7 @@ import {
   createApiNetworkError,
   type ApiResponseBodyKind,
 } from "./errors";
+import { recordApiResponseReceived } from "./lastApiResponse";
 
 type JsonObject = Readonly<{
   readonly [key: string]: unknown;
@@ -159,22 +160,30 @@ async function readJsonResponseWithNetworkError(
   response: Response,
   context: ResponseBodyReadErrorContext,
 ): Promise<ParsedResponsePayload> {
+  let payload: ParsedResponsePayload;
   try {
-    return await readJsonResponse(response);
+    payload = await readJsonResponse(response);
   } catch (error) {
     throw createResponseBodyNetworkError(response, error, context);
   }
+
+  recordApiResponseReceived();
+  return payload;
 }
 
 export async function readBlobResponse(
   response: Response,
   bodyReadErrorContext: ResponseBodyReadErrorContext,
 ): Promise<Blob> {
+  let blob: Blob;
   try {
-    return await response.blob();
+    blob = await response.blob();
   } catch (error) {
     throw createResponseBodyNetworkError(response, error, bodyReadErrorContext);
   }
+
+  recordApiResponseReceived();
+  return blob;
 }
 
 export async function parseJsonPayload(
