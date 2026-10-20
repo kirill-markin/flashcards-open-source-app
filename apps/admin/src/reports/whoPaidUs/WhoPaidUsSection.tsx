@@ -102,7 +102,7 @@ export function WhoPaidUsSection(props: Readonly<{
     };
     const inProgressKey = findInProgressBucketKey(state.report.buckets.map((entry) => entry.bucket), state.report.today);
     renderWhoPaidUsChart({
-      svgElement: chartRef.current, buckets: state.report.buckets, notes: chartNotes,
+      svgElement: chartRef.current, buckets: state.report.buckets, notes: chartNotes, inProgressKey,
       xLabel: reportPeriodAxisLabels[state.report.period],
       formatTick: (key) => formatReportBucketTick(state.report.period, key),
       getLabel: (key) => `${formatReportBucketTitle(state.report.period, getBucket(key).bucket)} UTC. ${describeBucket(getBucket(key), state.report.today)}`,
