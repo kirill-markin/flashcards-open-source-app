@@ -1,23 +1,10 @@
-import {
-  buildReviewAnswersCteSql as buildCanonicalReviewAnswersCteSql,
-  buildDailyReviewActorPlatformSql,
-} from "../../../../backend/src/reviewMetricsSql";
-import {
-  reviewEventPlatforms,
-  runAdminQuery,
-} from "../../adminApi";
+import { buildReviewAnswersCteSql as buildCanonicalReviewAnswersCteSql } from "../../../../backend/src/reviewMetricsSql";
+import { runAdminQuery } from "../../adminApi";
 import type {
   AdminQueryResultSet,
   AdminQueryValue,
-  ReviewEventPlatform,
   ReviewEventsByDateCommunityRow,
-  ReviewEventsByDatePlatformActiveUserTotal,
-  ReviewEventsByDatePlatformReviewEventTotal,
   ReviewEventsByDateReport,
-  ReviewEventsByDateRow,
-  ReviewEventsByDateTotal,
-  ReviewEventsByDateUniqueUserCohort,
-  ReviewEventsByDateUser,
 } from "../../adminApi";
 import type { AdminAppConfig } from "../../config";
 import type { AnalyticsFilterState } from "../../filters/analyticsFilters";
@@ -35,20 +22,10 @@ import {
 import { escapeSqlStringLiteral } from "../../sql";
 import {
   assertIsString,
-  assertPlatform,
   assertValidDateRange,
   buildRequestedDateRange,
   toInteger,
 } from "../reportValues";
-
-type ReviewEventsByDateQueryRow = Readonly<{
-  review_date: string;
-  user_id: string;
-  email: string;
-  platform: ReviewEventPlatform;
-  review_event_count: string | number;
-  user_first_review_date: string;
-}>;
 
 type ReviewEventsByDateCommunityQueryRow = Readonly<{
   report_date: string;
@@ -67,27 +44,6 @@ type ReviewEventsByDateAvailableRangeQueryRow = Readonly<{
   from_date: string;
   to_date: string;
 }>;
-
-type ReviewEventsByDateAggregateFields = Readonly<Pick<
-  ReviewEventsByDateReport,
-  | "totalReviewEvents"
-  | "users"
-  | "dateTotals"
-  | "dailyUniqueUserCohorts"
-  | "platformActiveUserTotals"
-  | "platformReviewEventTotals"
->>;
-
-function toReviewEventsByDateQueryRow(resultSetRow: Readonly<Record<string, AdminQueryValue>>): ReviewEventsByDateQueryRow {
-  return {
-    review_date: assertIsString(resultSetRow.review_date ?? null, "Review events report", "review_date"),
-    user_id: assertIsString(resultSetRow.user_id ?? null, "Review events report", "user_id"),
-    email: assertIsString(resultSetRow.email ?? null, "Review events report", "email"),
-    platform: assertPlatform(resultSetRow.platform ?? null, "Review events report", "platform"),
-    review_event_count: toInteger(resultSetRow.review_event_count ?? null, "Review events report", "review_event_count"),
-    user_first_review_date: assertIsString(resultSetRow.user_first_review_date ?? null, "Review events report", "user_first_review_date"),
-  };
-}
 
 function toReviewEventsByDateCommunityQueryRow(
   resultSetRow: Readonly<Record<string, AdminQueryValue>>,
@@ -108,103 +64,6 @@ function toReviewEventsByDateAvailableRangeQueryRow(
     from_date: assertIsString(resultSetRow.from_date ?? null, "Review events report", "from_date"),
     to_date: assertIsString(resultSetRow.to_date ?? null, "Review events report", "to_date"),
   };
-}
-
-function buildReviewEventsByDateUsers(rows: ReadonlyArray<ReviewEventsByDateRow>): ReadonlyArray<ReviewEventsByDateUser> {
-  const totalsByUserId = new Map<string, ReviewEventsByDateUser>();
-
-  for (const row of rows) {
-    const existingEntry = totalsByUserId.get(row.userId);
-    totalsByUserId.set(row.userId, {
-      userId: row.userId,
-      email: existingEntry?.email ?? row.email,
-      totalReviewEvents: (existingEntry?.totalReviewEvents ?? 0) + row.reviewEventCount,
-    });
-  }
-
-  return Array.from(totalsByUserId.values()).sort((left, right) => {
-    if (right.totalReviewEvents !== left.totalReviewEvents) {
-      return right.totalReviewEvents - left.totalReviewEvents;
-    }
-
-    const leftLabel = left.email === "(no email)" ? left.userId : left.email;
-    const rightLabel = right.email === "(no email)" ? right.userId : right.email;
-    return leftLabel.localeCompare(rightLabel);
-  });
-}
-
-function buildReviewEventsByDateTotals(
-  rows: ReadonlyArray<ReviewEventsByDateRow>,
-  dates: ReadonlyArray<string>,
-): ReadonlyArray<ReviewEventsByDateTotal> {
-  const totalsByDate = new Map<string, number>();
-
-  for (const row of rows) {
-    totalsByDate.set(row.date, (totalsByDate.get(row.date) ?? 0) + row.reviewEventCount);
-  }
-
-  return dates.map((date) => ({
-    date,
-    totalReviewEvents: totalsByDate.get(date) ?? 0,
-  }));
-}
-
-function buildPlatformActiveUserTotals(
-  rows: ReadonlyArray<ReviewEventsByDateRow>,
-  dates: ReadonlyArray<string>,
-): ReadonlyArray<ReviewEventsByDatePlatformActiveUserTotal> {
-  const countsByDatePlatform = new Map<string, number>();
-
-  for (const row of rows) {
-    const key = `${row.date}:${row.platform}`;
-    countsByDatePlatform.set(key, (countsByDatePlatform.get(key) ?? 0) + 1);
-  }
-
-  return dates.flatMap((date) => reviewEventPlatforms.map((platform) => ({
-    date,
-    platform,
-    activeUserCount: countsByDatePlatform.get(`${date}:${platform}`) ?? 0,
-  })));
-}
-
-function buildPlatformReviewEventTotals(
-  rows: ReadonlyArray<ReviewEventsByDateRow>,
-  dates: ReadonlyArray<string>,
-): ReadonlyArray<ReviewEventsByDatePlatformReviewEventTotal> {
-  const countsByDatePlatform = new Map<string, number>();
-
-  for (const row of rows) {
-    const key = `${row.date}:${row.platform}`;
-    countsByDatePlatform.set(key, (countsByDatePlatform.get(key) ?? 0) + row.reviewEventCount);
-  }
-
-  return dates.flatMap((date) => reviewEventPlatforms.map((platform) => ({
-    date,
-    platform,
-    reviewEventCount: countsByDatePlatform.get(`${date}:${platform}`) ?? 0,
-  })));
-}
-
-function buildDailyUniqueUserCohorts(
-  rows: ReadonlyArray<ReviewEventsByDateRow>,
-  dates: ReadonlyArray<string>,
-): ReadonlyArray<ReviewEventsByDateUniqueUserCohort> {
-  const newUsersByDate = new Map<string, Set<string>>();
-  const returningUsersByDate = new Map<string, Set<string>>();
-
-  for (const row of rows) {
-    const isNew = row.firstReviewDate === row.date;
-    const usersByDate = isNew ? newUsersByDate : returningUsersByDate;
-    const users = usersByDate.get(row.date) ?? new Set<string>();
-    users.add(row.userId);
-    usersByDate.set(row.date, users);
-  }
-
-  return dates.map((date) => ({
-    date,
-    newReviewingUsers: newUsersByDate.get(date)?.size ?? 0,
-    returningReviewingUsers: returningUsersByDate.get(date)?.size ?? 0,
-  }));
 }
 
 function assertCommunityRowsInRange(
@@ -228,55 +87,13 @@ function assertCommunityRowsInRange(
   }
 }
 
-function buildReviewEventsByDateAggregateFields(
-  rows: ReadonlyArray<ReviewEventsByDateRow>,
-  dates: ReadonlyArray<string>,
-): ReviewEventsByDateAggregateFields {
-  return {
-    totalReviewEvents: rows.reduce((sum, row) => sum + row.reviewEventCount, 0),
-    users: buildReviewEventsByDateUsers(rows),
-    dateTotals: buildReviewEventsByDateTotals(rows, dates),
-    dailyUniqueUserCohorts: buildDailyUniqueUserCohorts(rows, dates),
-    platformActiveUserTotals: buildPlatformActiveUserTotals(rows, dates),
-    platformReviewEventTotals: buildPlatformReviewEventTotals(rows, dates),
-  };
-}
-
 function buildReviewEventsByDateReport(
-  resultSet: AdminQueryResultSet,
   communityResultSet: AdminQueryResultSet,
   executedAtUtc: string,
   from: string,
   to: string,
 ): ReviewEventsByDateReport {
-  const rows = resultSet.rows
-    .map(toReviewEventsByDateQueryRow)
-    .map((row) => ({
-      date: row.review_date,
-      userId: row.user_id,
-      email: row.email,
-      platform: row.platform,
-      reviewEventCount: toInteger(row.review_event_count, "Review events report", "review_event_count"),
-      firstReviewDate: row.user_first_review_date,
-    }))
-    .sort((left, right) => {
-      if (left.date !== right.date) {
-        return left.date.localeCompare(right.date);
-      }
-
-      if (right.reviewEventCount !== left.reviewEventCount) {
-        return right.reviewEventCount - left.reviewEventCount;
-      }
-
-      if (left.userId !== right.userId) {
-        return left.userId.localeCompare(right.userId);
-      }
-
-      return left.platform.localeCompare(right.platform);
-    });
-
   const dates = buildRequestedDateRange(from, to, "Review events report");
-  const aggregateFields = buildReviewEventsByDateAggregateFields(rows, dates);
   const communityRows = communityResultSet.rows
     .map(toReviewEventsByDateCommunityQueryRow)
     .map((row) => ({
@@ -299,8 +116,7 @@ function buildReviewEventsByDateReport(
     generatedAtUtc: executedAtUtc,
     from,
     to,
-    ...aggregateFields,
-    rows,
+    dates,
     communityRows,
   };
 }
@@ -335,8 +151,8 @@ export function buildReviewEventsByDateAvailableRangeSql(): string {
     "            FROM analytics.product_events_resolved AS resolved",
     "            WHERE resolved.event_name = 'friendship_created'",
     "          ),",
-    // The daily-active-users section reads this event, and `0121` reconstructed its history back
-    // past the first review, so this is normally the subquery that decides the available range.
+    // `0121` reconstructed this event's history back past the first review, so this is normally the
+    // subquery that decides the available range.
     "          (",
     "            SELECT MIN(resolved.occurred_at)",
     "            FROM analytics.product_events_resolved AS resolved",
@@ -352,53 +168,9 @@ export function buildReviewEventsByDateAvailableRangeSql(): string {
   ].join("\n");
 }
 
-// New on the day this actor first answered a card, returning on every later day: the cohort split of
-// this report, and the expression the cohort filter is applied to.
+// New on the day this actor first answered a card, returning on every later day: the expression the
+// cohort filter is applied to.
 const reviewCohortSqlExpression = "CASE WHEN review_answers.review_date = actor_first_review_date.first_review_date THEN 'new' ELSE 'returning' END";
-
-/**
- * The email join folds the stored side with `pg_catalog.lower` because `actor_id` renders canonical
- * lowercase hex while `org.user_settings.user_id` is an unconstrained TEXT key, so an unfolded join would
- * miss an uppercase-hex row. An actor with no settings row, such as a deleted account's anonymized
- * history, is counted as `(no email)`.
- */
-export function buildReviewEventsByDateSql(filters: AnalyticsFilterState): string {
-  const dateRange = assertValidDateRange(filters.dateRange, "Review events report");
-  const from = dateRange.from;
-  const to = dateRange.to;
-
-  const selectionSql = [
-    `review_answers.review_date >= ${escapeSqlStringLiteral(from)}::date`,
-    `review_answers.review_date <= ${escapeSqlStringLiteral(to)}::date`,
-    buildUserCohortsFilterSql(reviewCohortSqlExpression, filters.userCohorts),
-    buildEventPlatformsFilterSql("review_answers.platform", filters.eventPlatforms),
-    buildMinimumEventCountsFilterSql("review_answers.actor_id", filters.minimumEventCounts, dateRange),
-    buildConnectionCountriesFilterSql("review_answers.actor_id", filters.connectionCountries, dateRange),
-    buildAppUiLanguagesFilterSql("review_answers.actor_id", filters.appUiLanguages, dateRange),
-    buildCatalogAttributionFiltersSql("review_answers.actor_id", filters),
-  ].join(" AND ");
-
-  return [
-    `WITH ${buildReviewAnswersCteSql(to, filters.users)},`,
-    `daily_review_activity AS (${buildDailyReviewActorPlatformSql(selectionSql)}),`,
-    // Email is a display label: grouping by the folded id gives at most one row per actor, so the
-    // join below cannot multiply review facts. Materialized so `org.user_settings` is read once, not
-    // once per output row.
-    "actor_email AS MATERIALIZED (",
-    "  SELECT pg_catalog.lower(settings.user_id) AS actor_id, MIN(NULLIF(btrim(settings.email), '')) AS email",
-    "  FROM org.user_settings AS settings",
-    "  GROUP BY pg_catalog.lower(settings.user_id)",
-    ")",
-    "SELECT to_char(activity.review_date, 'YYYY-MM-DD') AS review_date,",
-    "  activity.actor_id AS user_id,",
-    "  COALESCE(actor_email.email, '(no email)') AS email,",
-    "  activity.platform, activity.review_event_count,",
-    "  to_char(activity.first_review_date, 'YYYY-MM-DD') AS user_first_review_date",
-    "FROM daily_review_activity AS activity",
-    "LEFT JOIN actor_email ON actor_email.actor_id = activity.actor_id",
-    "ORDER BY activity.review_date ASC, review_event_count DESC, activity.actor_id ASC, activity.platform ASC",
-  ].join("\n");
-}
 
 // User selection retains a selected actor's entire history; community rows still need their own filter.
 function buildReviewAnswersCteSql(to: string, users: ReadonlyArray<string>): string {
@@ -413,8 +185,10 @@ function buildReviewAnswersCteSql(to: string, users: ReadonlyArray<string>): str
 // dates.
 //
 // Both series now come from `analytics.product_events_resolved`, grouped by `actor_id`, under the
-// same shared exclusion rule `buildReviewEventsByDateSql` applies, through
-// `buildExcludedActorSqlLines`.
+// shared exclusion rule, through `buildExcludedActorSqlLines`. The email join folds the stored side
+// with `pg_catalog.lower` because `actor_id` renders canonical lowercase hex while
+// `org.user_settings.user_id` is an unconstrained TEXT key, so an unfolded join would miss an
+// uppercase-hex row.
 //
 // `friendship_count` is a RUNNING SUM of `friendship_created`, which replaces the old
 // `requested_dates x real_friendships` cross join - the one genuinely non-scaling part of the
@@ -642,26 +416,17 @@ export async function loadReviewEventsByDateReport(
   filters: AnalyticsFilterState,
   signal: AbortSignal,
 ): Promise<ReviewEventsByDateReport> {
-  const response = await runAdminQuery(config, [
-    buildReviewEventsByDateSql(filters),
-    buildReviewEventsByDateCommunitySql(filters),
-  ].join(";\n"), signal);
-  if (response.resultSets.length !== 2) {
-    throw new Error(`Review events report must return exactly two result sets. Got ${response.resultSets.length}.`);
+  const response = await runAdminQuery(config, buildReviewEventsByDateCommunitySql(filters), signal);
+  if (response.resultSets.length !== 1) {
+    throw new Error(`Review events community report must return exactly one result set. Got ${response.resultSets.length}.`);
   }
 
-  const resultSet = response.resultSets[0];
-  if (resultSet === undefined) {
-    throw new Error("Review events report result set is missing.");
-  }
-
-  const communityResultSet = response.resultSets[1];
+  const communityResultSet = response.resultSets[0];
   if (communityResultSet === undefined) {
     throw new Error("Review events community report result set is missing.");
   }
 
   return buildReviewEventsByDateReport(
-    resultSet,
     communityResultSet,
     response.executedAtUtc,
     filters.dateRange.from,
