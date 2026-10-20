@@ -102,6 +102,19 @@ test("API Gateway exposes catalog with site, app, and local credential-free CORS
   assert.doesNotMatch(publicCatalogCorsSource, /\["\*"\]/);
 });
 
+test("API Gateway answers the catalog install-context preflight with credentialed browser CORS", () => {
+  const apiGatewaySource = loadApiGatewaySource();
+
+  assert.match(
+    apiGatewaySource,
+    /const catalogPackageVersion = catalog\s*\.addResource\("package-versions"\)\s*\.addResource\("\{packageVersionId\}"\);\s*catalogPackageVersion\.addMethod\("GET", integration\);/,
+  );
+  assert.match(
+    apiGatewaySource,
+    /const catalogPackageInstallContext = catalogPackageVersion\.addResource\("install-context", \{\s*defaultCorsPreflightOptions: createBrowserCorsPreflightOptions\(allowedOrigins\),\s*\}\);\s*catalogPackageInstallContext\.addMethod\("GET", integration\);/,
+  );
+});
+
 test("API Gateway proxy accepts browser-safe binary bodies", () => {
   const apiGatewaySource = loadApiGatewaySource();
 

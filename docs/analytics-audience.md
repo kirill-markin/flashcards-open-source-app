@@ -86,8 +86,8 @@ Declarations:
   and throughout preference refresh and toggle, without storing a forced opt-out or pushing
   preferences onto the linked review account; see [harness/logging](ios-ci-cd.md#automation-marker) and
   [signed native/database verification](macos-ci-cd.md#development-analytics-verification).
-- [Web](../apps/web/src/analytics/deliveryRuntime.ts), on authenticated analytics batches only; web
-  sync requests and credential-free collector events carry no declaration.
+- [Web](../apps/web/src/automationRun.ts), sent on every sync body and authenticated analytics batch;
+  credential-free collector events carry no declaration.
 
 ## Test-distribution installations
 
