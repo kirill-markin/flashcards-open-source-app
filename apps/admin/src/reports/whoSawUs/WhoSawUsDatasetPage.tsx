@@ -55,7 +55,7 @@ export function WhoSawUsDatasetPage(
               />
             ) : null}
             <WhoSawUsBreakdownSections
-              seriesKey={props.dataset}
+              group={props.dataset}
               config={props.config}
               dateRange={selection.dateRange}
               period={selection.period}
@@ -67,12 +67,32 @@ export function WhoSawUsDatasetPage(
               </p>
             ) : null}
             {props.dataset === "web" ? (
-              <WebLandingPagePathSections
-                config={props.config}
-                dateRange={selection.dateRange}
-                period={selection.period}
-                onTerminalAdminError={props.onTerminalAdminError}
-              />
+              <>
+                <WebLandingPagePathSections
+                  cohort="all"
+                  config={props.config}
+                  dateRange={selection.dateRange}
+                  period={selection.period}
+                  onTerminalAdminError={props.onTerminalAdminError}
+                />
+                <header className="level-1-metrics-group-heading" data-testid="who-saw-us-web-engaged-heading">
+                  <h2>Engaged visitors</h2>
+                </header>
+                <WhoSawUsBreakdownSections
+                  group="web-engaged"
+                  config={props.config}
+                  dateRange={selection.dateRange}
+                  period={selection.period}
+                  onTerminalAdminError={props.onTerminalAdminError}
+                />
+                <WebLandingPagePathSections
+                  cohort="engaged"
+                  config={props.config}
+                  dateRange={selection.dateRange}
+                  period={selection.period}
+                  onTerminalAdminError={props.onTerminalAdminError}
+                />
+              </>
             ) : null}
           </div>
         )}
