@@ -1,12 +1,13 @@
 import type { JSX, ReactNode } from "react";
+import type { ChartNote } from "../../charts/chartNotes";
 import type { AdminAppConfig } from "../../config";
 import type { AnalyticsDateRange } from "../../filters/analyticsFilters";
 import { BreakdownSection } from "../levelOneMetrics/BreakdownSection";
 import type { BreakdownReportLoader } from "../levelOneMetrics/breakdownReport";
 import type { ReportPeriod } from "../levelOneMetrics/reportPeriod";
 import { loadWhoSawUsBreakdownReport, type WhoSawUsBreakdownDimension } from "./breakdownQuery";
-import type { WhoSawUsSeriesKey } from "./query";
-import { storeNotFinalDayCounts } from "./storeDataFreshness";
+import { webDataStartChartNote, type WhoSawUsSeriesKey } from "./query";
+import { buildStoreNotFinalChartNote, storeNotFinalDayCounts } from "./storeDataFreshness";
 
 type WhoSawUsBreakdown = Readonly<{
   dimension: WhoSawUsBreakdownDimension;
@@ -91,6 +92,18 @@ const whoSawUsBreakdownsByGroup: Readonly<Record<WhoSawUsBreakdownGroup, Readonl
   "google-play": [],
 };
 
+/** The notes of every Web or Engaged visitors breakdown besides In progress. */
+export function buildWebBreakdownChartNotes(): ReadonlyArray<ChartNote> {
+  return [webDataStartChartNote];
+}
+
+const buildBreakdownChartNotesByGroup: Readonly<Record<WhoSawUsBreakdownGroup, (today: string) => ReadonlyArray<ChartNote>>> = {
+  web: buildWebBreakdownChartNotes,
+  "web-engaged": buildWebBreakdownChartNotes,
+  "app-store": (today) => [buildStoreNotFinalChartNote("app-store", today)],
+  "google-play": (today) => [buildStoreNotFinalChartNote("google-play", today)],
+};
+
 /** One Who saw us breakdown chart, with the explanation items every breakdown shares. */
 export function WhoSawUsBreakdownSection(props: Readonly<{
   config: AdminAppConfig;
@@ -104,6 +117,8 @@ export function WhoSawUsBreakdownSection(props: Readonly<{
   explanation: ReactNode;
   /** Must be stable, as `BreakdownSection` requires. */
   loadReport: BreakdownReportLoader;
+  /** Must be stable, as `BreakdownSection` requires. */
+  buildExtraNotes: (today: string) => ReadonlyArray<ChartNote>;
 }>): JSX.Element {
   return (
     <BreakdownSection
@@ -124,6 +139,8 @@ export function WhoSawUsBreakdownSection(props: Readonly<{
       noAvailableBarText="No data: the source has no row in this range."
       loadReport={props.loadReport}
       formatValue={showValue}
+      buildExtraNotes={props.buildExtraNotes}
+      keyLink={null}
     />
   );
 }
@@ -150,6 +167,7 @@ export function WhoSawUsBreakdownSections(props: Readonly<{
           explanationId={`who-saw-us-by-${breakdown.dimension}-explanation`}
           explanation={breakdown.explanation}
           loadReport={breakdown.loadReport}
+          buildExtraNotes={buildBreakdownChartNotesByGroup[props.group]}
         />
       ))}
     </>

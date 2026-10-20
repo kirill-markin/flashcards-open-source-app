@@ -33,6 +33,8 @@ export function WhoPaidUsBreakdownSections(props: Readonly<{
         noAvailableBarText="No classified events are available in this range."
         loadReport={loadWhoPaidUsProviderBreakdownReport}
         formatValue={formatPaymentProvider}
+        buildExtraNotes={null}
+        keyLink={null}
       />
       <PaymentImportStatusSection
         config={props.config}

@@ -1452,6 +1452,14 @@ h2 {
   text-transform: uppercase;
 }
 
+.platform-key-link {
+  text-decoration: none;
+}
+
+.platform-key-link:hover {
+  border-color: var(--accent-strong);
+}
+
 .platform-key-swatch {
   width: 10px;
   height: 10px;

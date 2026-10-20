@@ -185,7 +185,8 @@ export function buildHashedVisitorDayRangeSqlLines(
  * person at all. `buildNonAutomatedClientRowsFilterSql` owns that predicate and the reason it keeps
  * NULL, which on these rows is one stored before the marker shipped and is a real visitor. The
  * scraper fleet lists its browser-days by hash
- * (`db/migrations/0226_probable_scraper_fleet_worldwide_rule.sql`), as one uncorrelated `NOT IN` set.
+ * (`db/migrations/0227_probable_scraper_fleet_page_read_is_passive.sql`), as one uncorrelated
+ * `NOT IN` set.
  */
 export function buildHashedSiteVisitorRowSqlLines(rowAlias: string): ReadonlyArray<string> {
   return [

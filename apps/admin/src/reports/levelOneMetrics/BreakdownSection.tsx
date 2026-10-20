@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useRef, useState, type JSX, type ReactNode } from "react";
 import * as d3 from "d3";
 import { ChartAreaWithNote } from "../../charts/ChartAreaWithNote";
-import { ChartColorKey, ChartColorKeyPlaceholder } from "../../charts/ChartLegends";
+import { ChartColorKey, ChartColorKeyPlaceholder, type ChartColorKeyLink } from "../../charts/ChartLegends";
 import { ChartLoadingPlaceholder } from "../../charts/ChartLoadingPlaceholder";
 import { ChartNotesKey } from "../../charts/ChartNotesKey";
 import { ChartTooltip, useChartTooltip } from "../../charts/ChartTooltip";
-import { buildInProgressChartNote, placeChartNotes, type PlacedChartNote } from "../../charts/chartNotes";
+import { buildInProgressChartNote, placeChartNotes, type ChartNote, type PlacedChartNote } from "../../charts/chartNotes";
 import { chartWidth, stackedChartHeight } from "../../charts/chartPrimitives";
 import { escapeHtml, formatGeneratedAt } from "../../charts/formatting";
 import {
@@ -34,6 +34,8 @@ type BreakdownChartModel = Readonly<{
   report: BreakdownReport;
   bucketsByKey: ReadonlyMap<string, BreakdownBucket>;
   colorsByValue: ReadonlyMap<string, string>;
+  /** A value's name on screen: the report's label for it, else the section's `formatValue`. */
+  formatValue: (value: string) => string;
   inProgressKey: string | null;
   notes: ReadonlyArray<PlacedChartNote>;
 }>;
@@ -68,7 +70,7 @@ function describeEmptyChart(report: BreakdownReport, noAvailableBarText: string)
   return null;
 }
 
-/** A breakdown's chart panel, loading or ready, so both take the same space. */
+/** A breakdown's chart panel, loading or ready. */
 function BreakdownChartColumn(props: Readonly<{
   countLabel: string;
   period: ReportPeriod;
@@ -109,7 +111,7 @@ export function BreakdownLoadingChart(props: Readonly<{
 
 /**
  * One Level 1 chart split by one dimension, stacked per bucket in the report's value order.
- * `loadReport` and `formatValue` must be stable.
+ * `loadReport`, `formatValue` and `buildExtraNotes` must be stable.
  */
 export function BreakdownSection(props: Readonly<{
   config: AdminAppConfig;
@@ -130,6 +132,10 @@ export function BreakdownSection(props: Readonly<{
   loadReport: BreakdownReportLoader;
   /** A value's name on screen. */
   formatValue: (value: string) => string;
+  /** The notes besides In progress, from the report's today; null for none. */
+  buildExtraNotes: ((today: string) => ReadonlyArray<ChartNote>) | null;
+  /** Where the color key's entries link; null for a plain key. */
+  keyLink: ChartColorKeyLink<string> | null;
 }>): JSX.Element {
   const chartRef = useRef<SVGSVGElement | null>(null);
   const [state, setState] = useState<LoadState>({ status: "loading" });
@@ -152,9 +158,13 @@ export function BreakdownSection(props: Readonly<{
     report: state.report,
     bucketsByKey: new Map(state.report.buckets.map((entry) => [entry.bucket.key, entry])),
     colorsByValue: buildBreakdownValueColors(state.report.values),
+    formatValue: (value) => state.report.valueLabels?.get(value) ?? props.formatValue(value),
     inProgressKey: findInProgressBucketKey(state.report.buckets.map((entry) => entry.bucket), state.report.today),
-    notes: placeChartNotes([buildInProgressChartNote(state.report.today)], state.report.buckets.map((entry) => entry.bucket)),
-  } : null), [state]);
+    notes: placeChartNotes(
+      [buildInProgressChartNote(state.report.today), ...(props.buildExtraNotes === null ? [] : props.buildExtraNotes(state.report.today))],
+      state.report.buckets.map((entry) => entry.bucket),
+    ),
+  } : null), [state, props.buildExtraNotes, props.formatValue]);
   useEffect(() => {
     if (chartRef.current === null || model === null) return;
     const report = model.report;
@@ -168,7 +178,7 @@ export function BreakdownSection(props: Readonly<{
       const entry = getBucket(key);
       if (entry.countsByValue === null && entry.freshness === "not-arrived") return notArrivedBarText;
       const valueText = entry.countsByValue === null ? props.unavailableBarText : [
-        ...listBucketCounts(report, entry.countsByValue).map((count) => `${props.formatValue(count.value)}: ${formatCount(count.count)}`),
+        ...listBucketCounts(report, entry.countsByValue).map((count) => `${model.formatValue(count.value)}: ${formatCount(count.count)}`),
         `total: ${formatCount(sumBreakdownBar(entry.countsByValue))}.`,
       ].join("; ");
       return entry.freshness === "final" ? valueText : `${valueText} ${notFinalBarText}`;
@@ -177,7 +187,7 @@ export function BreakdownSection(props: Readonly<{
       const entry = getBucket(key);
       if (entry.countsByValue === null) return `<p>${escapeHtml(describeBucket(key))}</p>`;
       return [
-        ...listBucketCounts(report, entry.countsByValue).map((count) => `<div class="tooltip-metric"><span>${escapeHtml(props.formatValue(count.value))}</span><strong>${formatCount(count.count)}</strong></div>`),
+        ...listBucketCounts(report, entry.countsByValue).map((count) => `<div class="tooltip-metric"><span>${escapeHtml(model.formatValue(count.value))}</span><strong>${formatCount(count.count)}</strong></div>`),
         `<div class="tooltip-metric"><span>Total</span><strong>${formatCount(sumBreakdownBar(entry.countsByValue))}</strong></div>`,
         entry.freshness === "final" ? "" : `<p class="tooltip-hint">${escapeHtml(notFinalBarText)}</p>`,
       ].join("");
@@ -199,7 +209,7 @@ export function BreakdownSection(props: Readonly<{
       getTooltipHtml: (key) => `<p class="tooltip-title">${escapeHtml(getTitle(key))}${key === model.inProgressKey ? " · in progress" : ""}</p>${buildTooltipMetricsHtml(key)}`,
       tooltipHandlers,
     });
-  }, [model, props.title, props.countLabel, props.unavailableBarText, props.formatValue, tooltipHandlers]);
+  }, [model, props.title, props.countLabel, props.unavailableBarText, tooltipHandlers]);
   return (
     <section className="dashboard-section" data-testid={props.testId}>
       <header className="dashboard-section-header level-1-metric-section-header">
@@ -229,7 +239,8 @@ export function BreakdownSection(props: Readonly<{
               ariaLabel={`${props.title} color key`}
               keys={model.report.values}
               getColor={(value) => getValueColor(model, value)}
-              getLabel={props.formatValue}
+              getLabel={model.formatValue}
+              link={props.keyLink ?? undefined}
             />
           )}
           chartArea={(

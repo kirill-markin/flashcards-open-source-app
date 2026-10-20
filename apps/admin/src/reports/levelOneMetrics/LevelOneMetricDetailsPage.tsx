@@ -9,6 +9,7 @@ import { WhoPaidUsBreakdownSections } from "../whoPaidUs/WhoPaidUsBreakdownSecti
 import { WhoPaidUsSection } from "../whoPaidUs/WhoPaidUsSection";
 import { WhoSawUsDatasetPicker } from "../whoSawUs/WhoSawUsDatasetPicker";
 import { WhoStudiedBreakdownSections } from "../whoStudied/WhoStudiedBreakdownSections";
+import { WhoStudiedReviewEventSections } from "../whoStudied/WhoStudiedReviewEventSections";
 import { WhoStudiedSection } from "../whoStudied/WhoStudiedSection";
 import { LevelOneMetricDetailsHeader } from "./LevelOneMetricDetailsHeader";
 import { LevelOneMetricsFrame } from "./LevelOneMetricsFrame";
@@ -72,6 +73,13 @@ function renderMetricSections(
             config={props.config}
             dateRange={selection.dateRange}
             period={selection.period}
+            onTerminalAdminError={props.onTerminalAdminError}
+          />
+          <WhoStudiedReviewEventSections
+            config={props.config}
+            dateRange={selection.dateRange}
+            period={selection.period}
+            onNavigate={props.onNavigate}
             onTerminalAdminError={props.onTerminalAdminError}
           />
         </>
