@@ -6,7 +6,7 @@ type SettingsTab = "general" | "current-workspace" | "workspace" | "account" | "
 
 type SettingsShellProps = Readonly<{
   title: string;
-  subtitle: string;
+  subtitle: string | null;
   activeTab: SettingsTab;
   children: ReactNode;
   panelClassName?: string;
@@ -57,7 +57,7 @@ export function SettingsShell(props: SettingsShellProps): ReactElement {
         <div className="screen-head">
           <div>
             <h1 className="panel-subtitle">{title}</h1>
-            <p className="subtitle">{subtitle}</p>
+            {subtitle === null ? null : <p className="subtitle">{subtitle}</p>}
           </div>
         </div>
 

@@ -272,7 +272,6 @@ const huCatalog: TranslationCatalog = {
   },
   progressScreen: {
     title: "Haladás",
-    subtitle: "Kövesd a legutóbbi sorozatodat és a napi ismétlési előzményeidet.",
     streakTitle: "Sorozat",
     streakInfoToggleLabel: "A sorozatvédőkről",
     streakInfo: "Sorozatvédők: {{available}}/{{capacity}}. Következő feltöltés: {{progress}}/{{required}}.",
@@ -516,7 +515,6 @@ const huCatalog: TranslationCatalog = {
   },
   settingsHome: {
     title: "Beállítások",
-    subtitle: "Kezeld a fiókot, a munkaterületet, a támogatást és a haladó webes beállításokat.",
     inviteFriend: {
       actionText: "Barát hozzáadása",
       ariaLabel: "Barát hozzáadása",
@@ -1228,7 +1226,6 @@ const huCatalog: TranslationCatalog = {
       label: "Keresés",
       placeholder: "Keresés az előlapon, a hátlapon vagy a címkékben",
     },
-    subtitle: "A kártyák kérdések és válaszok, amelyeket a tanulás és a megjegyzés érdekében ismételsz.",
     table: {
       back: "Hátlap",
       due: "Esedékes",

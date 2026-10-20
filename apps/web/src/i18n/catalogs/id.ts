@@ -272,7 +272,6 @@ const idCatalog: TranslationCatalog = {
   },
   progressScreen: {
     title: "Progres",
-    subtitle: "Pantau rentetan terbaru dan riwayat tinjauan harian Anda.",
     streakTitle: "Rentetan",
     streakInfoToggleLabel: "Tentang pembekuan rentetan",
     streakInfo: "Bank pembekuan {{available}}/{{capacity}}. Pengisian berikutnya {{progress}}/{{required}}.",
@@ -516,7 +515,6 @@ const idCatalog: TranslationCatalog = {
   },
   settingsHome: {
     title: "Pengaturan",
-    subtitle: "Kelola akun, ruang kerja, dukungan, dan pengaturan web lanjutan.",
     inviteFriend: {
       actionText: "Tambah teman",
       ariaLabel: "Tambah teman",
@@ -1228,7 +1226,6 @@ const idCatalog: TranslationCatalog = {
       label: "Cari",
       placeholder: "Cari sisi depan, belakang, atau tag",
     },
-    subtitle: "Kartu adalah pertanyaan dan jawaban yang Anda tinjau untuk belajar dan mengingat.",
     table: {
       back: "Belakang",
       due: "Jatuh tempo",
