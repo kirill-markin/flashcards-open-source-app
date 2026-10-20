@@ -86,6 +86,7 @@ export function PeopleBreakdownSections(props: Readonly<{
           noAvailableBarText="Retained source history does not cover this range."
           loadReport={breakdown.loadReport}
           formatValue={breakdown.formatValue}
+          buildExtraNotes={null}
         />
       ))}
     </>

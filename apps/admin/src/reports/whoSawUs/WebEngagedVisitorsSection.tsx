@@ -3,7 +3,9 @@ import * as d3 from "d3";
 import { ChartAreaWithNote } from "../../charts/ChartAreaWithNote";
 import { ChartColorKey } from "../../charts/ChartLegends";
 import { ChartLoadingPlaceholder } from "../../charts/ChartLoadingPlaceholder";
+import { ChartNotesKey } from "../../charts/ChartNotesKey";
 import { ChartTooltip, useChartTooltip } from "../../charts/ChartTooltip";
+import { buildInProgressChartNote, placeChartNotes } from "../../charts/chartNotes";
 import { chartWidth, createTickDates, stackedChartHeight } from "../../charts/chartPrimitives";
 import { renderWhoSawUsChart } from "../../charts/chartRenderers";
 import { escapeHtml, formatGeneratedAt } from "../../charts/formatting";
@@ -23,6 +25,7 @@ import {
   type EngagedVisitorsBucket,
   type EngagedVisitorsReport,
 } from "./engagedVisitorsQuery";
+import { webDataStartChartNote } from "./query";
 import { whoSawUsSeriesColors } from "./WhoSawUsSection";
 
 const title = "Engaged visitors";
@@ -65,10 +68,16 @@ export function WebEngagedVisitorsSection(props: Readonly<{
     () => new Map(loadState.status === "ready" ? loadState.report.buckets.map((entry) => [entry.bucket.key, entry]) : []),
     [loadState],
   );
+  const chartNotes = useMemo(() => (loadState.status === "ready"
+    ? placeChartNotes(
+      [buildInProgressChartNote(loadState.report.today), webDataStartChartNote],
+      loadState.report.buckets.map((entry) => entry.bucket),
+    )
+    : null), [loadState]);
 
   useEffect(() => {
     const svgElement = chartRef.current;
-    if (svgElement === null || loadState.status !== "ready") {
+    if (svgElement === null || loadState.status !== "ready" || chartNotes === null) {
       return;
     }
 
@@ -98,6 +107,7 @@ export function WebEngagedVisitorsSection(props: Readonly<{
       peakDailyTotal: d3.max(report.buckets, (entry) => entry.engagedVisitors ?? 0) ?? 0,
       xAxisLabel: reportPeriodAxisLabels[report.period],
       isNotFinalSegment: () => false,
+      notes: chartNotes,
       formatTickLabel: (key) => formatReportBucketTick(report.period, key),
       formatTitleLabel: (key) => `${formatReportBucketTitle(report.period, getBucket(key).bucket)} UTC${key === inProgressKey ? " · in progress" : ""}`,
       buildTooltipMetricsHtml: (entry) => {
@@ -106,7 +116,7 @@ export function WebEngagedVisitorsSection(props: Readonly<{
       },
       tooltipHandlers,
     });
-  }, [loadState, bucketByKey, tooltipHandlers]);
+  }, [loadState, bucketByKey, chartNotes, tooltipHandlers]);
 
   return (
     <section className="dashboard-section" data-testid="who-saw-us-web-engaged-visitors-section">
@@ -161,6 +171,7 @@ export function WebEngagedVisitorsSection(props: Readonly<{
                 <ChartLoadingPlaceholder viewBoxWidth={chartWidth} viewBoxHeight={stackedChartHeight} label={`Loading ${title}…`} />
               )}
             </div>
+            <ChartNotesKey notes={chartNotes} />
           </div>
         </section>
       )}
