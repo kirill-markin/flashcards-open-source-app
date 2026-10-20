@@ -8,6 +8,8 @@ export function renderDailyNewReturningChart(params: Readonly<{
   svgElement: SVGSVGElement;
   buckets: ReadonlyArray<NewReturningBucket>;
   notes: ReadonlyArray<PlacedChartNote>;
+  /** The still-filling bucket, drawn faded; null when the range has none. */
+  inProgressKey: string | null;
   xLabel: string;
   formatTick: (key: string) => string;
   getLabel: (key: string) => string;
@@ -26,7 +28,8 @@ export function renderDailyNewReturningChart(params: Readonly<{
     { key: entry.bucket.key, cohort: "new" as const, low: entry.returningUsers ?? 0, high: (entry.returningUsers ?? 0) + (entry.newUsers ?? 0) },
   ]);
   frame.group.selectAll(".bar-segment").data(segments).join("rect")
-    .attr("class", "bar-segment").attr("fill", (segment) => uniqueUserCohortColors[segment.cohort])
+    .attr("class", "bar-segment").classed("bar-segment-not-final", (segment) => segment.key === params.inProgressKey)
+    .attr("fill", (segment) => uniqueUserCohortColors[segment.cohort])
     .attr("x", (segment) => frame.x(segment.key) ?? 0).attr("width", frame.x.bandwidth())
     .attr("y", (segment) => y(segment.high)).attr("height", (segment) => y(segment.low) - y(segment.high)).attr("rx", 2);
   renderMeaningfulActivityHitTargets(frame, keys, params.getLabel, params.getTooltipHtml, params.tooltipHandlers);

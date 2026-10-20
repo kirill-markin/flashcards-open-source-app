@@ -192,7 +192,7 @@ export function BreakdownSection(props: Readonly<{
       bars: report.buckets.map((entry) => ({
         key: entry.bucket.key,
         countsByValue: entry.countsByValue,
-        notFinal: entry.freshness !== "final",
+        notFinal: entry.freshness !== "final" || entry.bucket.key === model.inProgressKey,
       })),
       values: report.values,
       getValueColor: (value) => getValueColor(model, value),
