@@ -475,6 +475,11 @@ h2 {
   text-align: left;
 }
 
+/* Column 2 here is a count, not a name, so its header aligns with its numbers. */
+.funnel-group-table.engaged-share-table thead th:nth-child(2) {
+  text-align: right;
+}
+
 /* A row header, so it is bold by default; the group name is read as data beside its counts, and the
    step header down the left is the one heading that carries weight here. Scoped by the table, so it
    also outweighs the right alignment every cell of this table takes and the column reads left

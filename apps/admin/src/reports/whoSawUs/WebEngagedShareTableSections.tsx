@@ -109,7 +109,7 @@ function WebEngagedShareTableSection(props: Readonly<{
       ) : null}
       {state.status === "ready" ? (
         <div className="funnel-group-table-shell">
-          <table className="funnel-group-table">
+          <table className="funnel-group-table engaged-share-table">
             <caption>Visitors summed over the selection’s {props.period} bars</caption>
             <thead>
               <tr>
