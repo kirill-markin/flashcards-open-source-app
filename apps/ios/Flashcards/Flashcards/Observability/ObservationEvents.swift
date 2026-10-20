@@ -48,6 +48,7 @@ enum IOSBreadcrumbEvent: Sendable {
     case appLifecycle(AppLifecycleObservation)
     case foregroundOperation(ForegroundOperationObservation)
     case cloudFlow(CloudFlowObservation)
+    case workspaceLinkReadFailed(WorkspaceLinkReadFailureObservation)
     case cloudRetry(CloudRetryObservation)
     case aiChatLifecycle(AIChatLifecycleObservation)
     case aiLiveLifecycle(AILiveLifecycleObservation)
@@ -395,6 +396,19 @@ struct CloudFlowObservation: Sendable, Hashable {
     let reviewScheduleImpactingOperationCount: Int?
     let changesCount: Int?
     let errorSummary: String?
+}
+
+enum WorkspaceLinkRead: String, Sendable, Hashable {
+    case loadWorkspace = "load_workspace"
+    case loadWorkspaceSchedulerSettings = "load_workspace_scheduler_settings"
+}
+
+struct WorkspaceLinkReadFailureObservation: Sendable, Hashable {
+    let failedRead: WorkspaceLinkRead
+    let expectedSourceWorkspaceId: String
+    let persistedActiveWorkspaceId: String?
+    let workspaceRowCount: Int?
+    let stateReadErrorType: String?
 }
 
 enum CloudFlowOutcome: String, Sendable, Hashable {
