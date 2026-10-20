@@ -140,6 +140,7 @@ export function WhoSawUsBreakdownSection(props: Readonly<{
       loadReport={props.loadReport}
       formatValue={showValue}
       buildExtraNotes={props.buildExtraNotes}
+      keyLink={null}
     />
   );
 }
