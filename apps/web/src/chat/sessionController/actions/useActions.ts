@@ -159,8 +159,8 @@ function shouldCaptureChatRunRequestError(error: Error): boolean {
     return false;
   }
 
-  // A PUT without a response failed on the connection, which the API transport does not report either; a
-  // response means the storage refused a PUT this client built from a signed target.
+  // A PUT without a response failed on the connection, like the network error above; a response means
+  // the storage refused a PUT this client built from a signed target.
   if (error instanceof ChatFileUploadTransferError && error.statusCode === null) {
     return false;
   }

@@ -25,6 +25,7 @@ import {
   type RequestOptions,
 } from "./sessionRecovery";
 import { waitForTransportDelay } from "./transportSignals";
+import { resetLastApiResponseForTests } from "./lastApiResponse";
 
 type NavigateToUrl = (url: string) => void;
 type NetworkRequestAttempt<Result> = (attemptCount: number) => Promise<Result>;
@@ -51,7 +52,10 @@ export type {
 export const apiNetworkRetryMaximumAttemptCount = 4;
 const apiNetworkRetryBaseDelayMs = 250;
 const apiNetworkRetryMaximumDelayMs = 2000;
-const uuidPathSegmentPattern = /\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}(?=\/|$)/giu;
+const uuidPathSegmentPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/iu;
+// Static route segments are lowercase kebab-case words, so a long segment with a digit, capital, or
+// underscore is an opaque id or token such as a base64url friend-invite secret.
+const opaqueTokenPathSegmentPattern = /^(?=.*[0-9A-Z_])[A-Za-z0-9_-]{16,}$/u;
 
 const sessionRecovery = createSessionRecovery(loadSessionInfo);
 
@@ -81,6 +85,7 @@ export function setNavigationHandlerForTests(handler: NavigateToUrl | null): voi
  */
 export function resetApiClientStateForTests(): void {
   sessionRecovery.resetApiClientStateForTests();
+  resetLastApiResponseForTests();
 }
 
 export function getCachedSessionCsrfToken(): string | null {
@@ -133,9 +138,18 @@ function buildRequestEndpoint(pathname: string, init: RequestInit): string {
   return `${getMethod(init)} ${pathOnly}`;
 }
 
+/** Turns one path segment into its route-template placeholder, so ids and secrets never reach Sentry. */
+function sanitizeRequestPathSegment(segment: string): string {
+  if (uuidPathSegmentPattern.test(segment)) {
+    return "{uuid}";
+  }
+
+  return segment.includes("%") || opaqueTokenPathSegmentPattern.test(segment) ? "{id}" : segment;
+}
+
 function sanitizeRequestPath(pathname: string): string {
   const pathOnly = pathname.split("?", 1)[0] ?? pathname;
-  return pathOnly.replace(uuidPathSegmentPattern, "/{uuid}");
+  return pathOnly.split("/").map(sanitizeRequestPathSegment).join("/");
 }
 
 function buildSanitizedRequestEndpoint(pathname: string, init: RequestInit): string {

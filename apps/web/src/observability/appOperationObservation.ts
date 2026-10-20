@@ -4,6 +4,7 @@ import {
   captureWebException,
   normalizeCaughtError,
   type WebAppOperation,
+  type WebExceptionEvent,
   type WebObservationFeature,
   type WebObservationScope,
 } from "./webObservability";
@@ -137,11 +138,7 @@ function isExpectedAppOperationError(error: Error, context: AppOperationObservat
 
 export function captureAppOperationError(caughtError: unknown, context: AppOperationObservationContext): boolean {
   const error = normalizeCaughtError(caughtError);
-  if (isExpectedAppOperationError(error, context)) {
-    return false;
-  }
-
-  captureWebException({
+  const event: WebExceptionEvent = {
     action: "app_operation_failed",
     error,
     scope: buildAppOperationScope(error, context),
@@ -149,6 +146,16 @@ export function captureAppOperationError(caughtError: unknown, context: AppOpera
       operation: context.operation,
       entityId: context.entityId,
     },
-  });
+  };
+  if (isExpectedAppOperationError(error, context)) {
+    // captureWebException owns the network-error reporting rule; the caller's UI keeps treating it as expected.
+    if (isBrowserApiNetworkError(error)) {
+      captureWebException(event);
+    }
+
+    return false;
+  }
+
+  captureWebException(event);
   return true;
 }

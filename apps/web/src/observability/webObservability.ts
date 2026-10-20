@@ -2,7 +2,7 @@ import * as Sentry from "@sentry/react";
 import type { Scope } from "@sentry/react";
 import type { AnalyticsQueueOperation } from "../analytics/queue";
 import { isIndexedDbOpenRecoveryError } from "../localDb/core/indexedDbOpenRecovery";
-import { isBrowserApiNetworkError } from "./apiNetworkErrorPolicy";
+import { isApiDemonstrablyReachable, isBrowserApiNetworkError } from "./apiNetworkErrorPolicy";
 import { isWebSentryEnabled } from "./instrument";
 
 export type WebObservationFeature =
@@ -876,9 +876,17 @@ export function captureWebWarning(event: WebWarningEvent): void {
   });
 }
 
+// Sanitized endpoints whose network failure this page session already reported; periodic callers retry
+// the same endpoint on every interval, and one event per endpoint is enough to open its issue.
+const reportedApiNetworkFailureEndpoints = new Set<string>();
+
 export function captureWebException(event: WebExceptionEvent): void {
   if (isBrowserApiNetworkError(event.error)) {
-    return;
+    if (isApiDemonstrablyReachable() === false || reportedApiNetworkFailureEndpoints.has(event.error.endpoint)) {
+      return;
+    }
+
+    reportedApiNetworkFailureEndpoints.add(event.error.endpoint);
   }
 
   if (isWebSentryEnabled === false) {
@@ -887,6 +895,10 @@ export function captureWebException(event: WebExceptionEvent): void {
 
   Sentry.withScope((scope: Scope): void => {
     applyObservationScope(scope, event.scope, event.action);
+    if (isBrowserApiNetworkError(event.error)) {
+      scope.setLevel("warning");
+    }
+
     scope.setFingerprint(buildWebExceptionFingerprint(event));
     scope.setContext("web.exception", detailsToContext(event.details));
     scope.setContext("web.error", errorMetadataToContext(readErrorMetadata(event.error)));
@@ -897,6 +909,10 @@ export function captureWebException(event: WebExceptionEvent): void {
 export function buildWebExceptionFingerprint(event: WebExceptionEvent): Array<string> {
   if (isIndexedDbOpenRecoveryError(event.error)) {
     return ["web.indexeddb.open.unknown_error"];
+  }
+
+  if (isBrowserApiNetworkError(event.error)) {
+    return ["api_network_failed", event.error.endpoint];
   }
 
   if (event.action === "app_operation_failed") {

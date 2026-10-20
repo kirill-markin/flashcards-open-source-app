@@ -2,9 +2,14 @@ import { useEffect, useRef, useState, type ReactElement } from "react";
 import { useAppData } from "../../appData";
 import { useAppErrorDialog } from "../../appError/AppErrorContext";
 import { useI18n } from "../../i18n";
+import { captureAppOperationError } from "../../observability/appOperationObservation";
 import { CatalogImmediateStudy } from "./CatalogImmediateStudy";
 import { readCatalogImmediateAttempt, type CatalogImmediateAttempt } from "./catalogImmediateAttempt";
-import { CatalogImportStatePanel, type CatalogImportContext } from "./catalogImportShared";
+import {
+  CatalogImportStatePanel,
+  isCatalogVersionUnavailableError,
+  type CatalogImportContext,
+} from "./catalogImportShared";
 import { useCatalogPackageInstallContext, type CatalogPackageInstallContextLoader } from "./useCatalogPackageInstallContext";
 
 export function CatalogImportEntry(props: Readonly<{
@@ -51,6 +56,21 @@ export function CatalogImportEntry(props: Readonly<{
       setFailure({ key: identityKey, message: t("catalogImport.errorBody") });
     }
   }, [activeWorkspace?.workspaceId, catalogContext.packageVersionId, cloudSettings?.installationId, identityKey, session?.userId, showTechnicalError, t]);
+
+  const loadError = loader.state.status === "error" ? loader.state.error : null;
+  const reportedLoadError = useRef<unknown>(null);
+  useEffect(() => {
+    // The error panel below is this failure's only UI, so it is captured without the technical-error dialog,
+    // once per error even when the identity fields change while it stays on screen.
+    if (loadError === null || loadError === reportedLoadError.current || isCatalogVersionUnavailableError(loadError)) return;
+    reportedLoadError.current = loadError;
+    captureAppOperationError(loadError, {
+      feature: "settings", operation: "catalog_import", userId: session?.userId ?? null,
+      workspaceId: activeWorkspace?.workspaceId ?? null,
+      installationId: cloudSettings?.installationId ?? null,
+      entityId: catalogContext.packageVersionId,
+    });
+  }, [activeWorkspace?.workspaceId, catalogContext.packageVersionId, cloudSettings?.installationId, loadError, session?.userId]);
 
   // The existing flow owns credential recovery and explicit workspace selection.
   if (session !== null && (sessionLoadState === "selecting_workspace" || forceManual)) {
