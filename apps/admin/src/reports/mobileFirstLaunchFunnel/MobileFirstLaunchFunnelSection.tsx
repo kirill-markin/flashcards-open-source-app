@@ -1,7 +1,14 @@
-import { useEffect, useMemo, useState, type JSX } from "react";
+import { useMemo, type JSX } from "react";
+import type { AdminAppConfig } from "../../config";
 import { buildFunnelAudienceEmptyStateNote, type AnalyticsFilterState } from "../../filters/analyticsFilters";
 import type { FunnelAnchor } from "../funnels/funnelAnchorUrl";
+import { FunnelEmptyRangeNotes } from "../funnels/FunnelEmptyRangeNotes";
 import { FunnelMaturingWarning } from "../funnels/FunnelMaturingWarning";
+import {
+  buildFunnelRangeGroups,
+  formatFunnelRangeNote,
+  useFunnelRangeReports,
+} from "../funnels/funnelRangeReports";
 import { FunnelSectionHeader } from "../funnels/FunnelSectionHeader";
 import type { FunnelSectionProps } from "../funnels/funnelSections";
 import {
@@ -18,11 +25,6 @@ import {
   type MobileFirstLaunchFunnelGroup,
   type MobileFirstLaunchFunnelReport,
 } from "./query";
-
-type FunnelLoadState =
-  | Readonly<{ status: "loading" }>
-  | Readonly<{ status: "error"; message: string }>
-  | Readonly<{ status: "ready"; report: MobileFirstLaunchFunnelReport }>;
 
 /** The seven funnel steps in chart order; `buildStages` takes its order from this list. */
 const funnelStepIds = [
@@ -46,6 +48,14 @@ export const mobileFirstLaunchFunnelTitle = "Mobile first launch";
 
 function getErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : "Unexpected mobile first launch funnel error.";
+}
+
+function loadReport(
+  config: AdminAppConfig,
+  filters: AnalyticsFilterState,
+  signal: AbortSignal,
+): Promise<MobileFirstLaunchFunnelReport> {
+  return loadMobileFirstLaunchFunnelReport(config, filters, null, signal);
 }
 
 /** The short note shown when the selected range starts before `mobileFirstLaunchFunnelStartDate`, or `null`. */
@@ -115,86 +125,69 @@ function sumFunnelGroups(
 }
 
 export function MobileFirstLaunchFunnelSection(props: FunnelSectionProps): JSX.Element {
-  const [loadRevision, setLoadRevision] = useState<number>(0);
-  const [loadState, setLoadState] = useState<FunnelLoadState>({ status: "loading" });
-
-  useEffect(() => {
-    let cancelled = false;
-    setLoadState({ status: "loading" });
-    if (props.isRangeLoading) {
-      return () => { cancelled = true; };
-    }
-
-    const abortController = new AbortController();
-    void loadMobileFirstLaunchFunnelReport(props.config, props.filters, null, abortController.signal)
-      .then((report) => {
-        if (cancelled === false) {
-          setLoadState({ status: "ready", report });
-        }
-      })
-      .catch((error: unknown) => {
-        if (cancelled || props.onTerminalAdminError(error, props.config)) {
-          return;
-        }
-
-        setLoadState({ status: "error", message: getErrorMessage(error) });
-      });
-
-    return () => { cancelled = true; abortController.abort(); };
-  }, [loadRevision, props.config, props.filters, props.isRangeLoading, props.onTerminalAdminError]);
-
-  const report = props.isRangeLoading === false && loadState.status === "ready" ? loadState.report : null;
-  const totals = useMemo(
-    () => (report === null ? null : sumFunnelGroups(report.groups)),
-    [report],
+  const { state: loadState, retry } = useFunnelRangeReports(props, loadReport, getErrorMessage);
+  const rangeViews = useMemo(
+    () => (loadState.status === "ready" ? loadState.ranges : []).map((range) => {
+      const totals = sumFunnelGroups(range.report.groups);
+      return { ...range, totals, stages: buildStages(totals), hasEntries: totals.firstOpenCount > 0 };
+    }),
+    [loadState],
   );
-  const stages = useMemo(() => (totals === null ? [] : buildStages(totals)), [totals]);
-  const startDateNote = report === null ? null : buildStartDateNote(props.filters.dateRange);
+  const groups = useMemo(() => buildFunnelRangeGroups(rangeViews), [rangeViews]);
+  // A, whose figures the explainer shows.
+  const primaryRange = rangeViews[0];
+  const hasEntries = rangeViews.some((range) => range.hasEntries);
+  const isComparing = props.filters.comparisonDateRange !== null;
   const audienceEmptyStateNote = buildFunnelAudienceEmptyStateNote(props.filters.funnelAudienceMode);
 
   return (
     <section className="dashboard-section funnel-report">
       <FunnelSectionHeader funnelId={mobileFirstLaunchFunnelAnchor.funnelId} title={mobileFirstLaunchFunnelTitle} />
 
-      {props.isRangeLoading === false && loadState.status === "error" ? <div className="report-state report-state-error"><strong>Funnel query failed.</strong><span>{loadState.message}</span><button className="filter-button" type="button" onClick={() => setLoadRevision((revision) => revision + 1)}>Retry</button></div> : null}
-      {startDateNote !== null ? <p className="report-state" aria-live="polite">{startDateNote}</p> : null}
+      {loadState.status === "error" ? <div className="report-state report-state-error"><strong>Funnel query failed.</strong><span>{loadState.message}</span><button className="filter-button" type="button" onClick={retry}>Retry</button></div> : null}
+      {rangeViews.map((range) => {
+        const startDateNote = buildStartDateNote(range.dateRange);
+        return startDateNote === null ? null : <p key={range.key} className="report-state" aria-live="polite">{formatFunnelRangeNote(range.seriesLabel, startDateNote)}</p>;
+      })}
 
-      {totals !== null ? <FunnelMaturingWarning maturingCount={totals.maturingCount} entryCount={totals.firstOpenCount} /> : null}
+      {rangeViews.map((range) => <FunnelMaturingWarning key={range.key} seriesLabel={range.seriesLabel} maturingCount={range.totals.maturingCount} entryCount={range.totals.firstOpenCount} />)}
+      <FunnelEmptyRangeNotes ranges={rangeViews} />
 
-      {props.isRangeLoading || loadState.status === "loading" ? (
+      {loadState.status === "loading" ? (
         <FunnelStepsLoadingChart
           countLabel="People"
           dateRange={props.filters.dateRange}
           showsHashedSplit={false}
-          isGrouped={false}
+          isGrouped={isComparing}
           label="Loading mobile first launch funnel…"
         />
       ) : null}
       {/* The audience mode is named here because it is not one of the filters the heading blames and `Reset all` does not clear it. */}
-      {totals !== null && totals.firstOpenCount === 0 ? (
+      {loadState.status === "ready" && hasEntries === false ? (
         <FunnelStepsEmptyChart
           countLabel="People"
           dateRange={props.filters.dateRange}
           showsHashedSplit={false}
-          isGrouped={false}
+          isGrouped={isComparing}
           note={<><strong>No first mobile app opens match these filters.</strong><span>Only a person whose first event anywhere is opening the iOS or Android app on a selected day enters this funnel.</span>{audienceEmptyStateNote === null ? null : <span>{audienceEmptyStateNote}</span>}</>}
         />
       ) : null}
 
-      {totals !== null && totals.firstOpenCount > 0 ? (
+      {primaryRange !== undefined && hasEntries ? (
         <FunnelStepsChart
           anchor={mobileFirstLaunchFunnelAnchor}
-          stages={stages}
+          stages={primaryRange.stages}
+          groups={groups}
           countLabel="People"
           dateRange={props.filters.dateRange}
           showsHashedSplit={false}
         />
       ) : null}
 
-      {totals !== null ? (
+      {primaryRange !== undefined ? (
         <details className="funnel-explainer">
           <summary>How it&rsquo;s counted</summary>
-          <div className="funnel-detail-row funnel-explainer-figure"><span>First opens still inside 7-day window</span><strong>{totals.maturingCount.toLocaleString("en-US")}</strong></div>
+          <div className="funnel-detail-row funnel-explainer-figure"><span>First opens still inside 7-day window</span><strong>{primaryRange.totals.maturingCount.toLocaleString("en-US")}</strong></div>
           <p>Every step counts people: a person adds at most one to each step, and counts at a step only after reaching every step above it.</p>
           <p>One row is one person, anchored at their first <code>app_opened</code> on iOS or Android in the selected UTC dates, and only when that app open is their first trusted event anywhere. The one exception is a <code>card_created</code> up to 60 seconds before it, the demo card the app seeds on first launch. First opens count from {mobileFirstLaunchFunnelStartDate}, the first UTC day both apps reported every step.</p>
           <p>Every later step is that same person within seven days of the first app open, each at or after the step above it: the review screen, a revealed answer, a first answered review, then two reviews, reviews on two UTC days, and {mobileFirstLaunchEngagedReviewThreshold} reviews over three days, on any device. A person still inside their seven-day window is not a confirmed drop-off.</p>

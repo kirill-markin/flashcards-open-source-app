@@ -94,8 +94,9 @@ Run it locally with `make local-admin` on `http://localhost:3001` before merge; 
 
 ### Funnels ([`funnelSections.ts`](../apps/admin/src/reports/funnels/funnelSections.ts))
 
-- `Funnels` is the second tab; its funnels appear in `funnelSections` order as chart-only cards in two columns, one on a narrow viewport, under a shared bar of date range, client platform, connection country and app interface language, and each card's `Details` button is disabled.
+- `Funnels` is the second tab; its funnels appear in `funnelSections` order as chart-only cards in two columns, one on a narrow viewport, under a shared bar of date range, `Compare with`, client platform, connection country and app interface language, and each card's `Details` button is disabled.
 - The audience switch changes every funnel at once, and `Reset all` leaves it.
+- Pick a `Compare with` range: every card draws A and B side by side, the key names both with their dates, hovering a bar gives that range's own shares, an empty or maturing range is named in a note, and the comparison survives a reload and clears with `Clear comparison` or `Reset all`.
 - On `Blog article to platform choice` ([query](../apps/admin/src/reports/blogFunnels/platformChoiceQuery.ts)), after an article and the home page, hovering a store badge until its QR code shows counts at `Platform hovered or clicked` but not at `Platform clicked`, and a web app click counts at both.
 - On `Deck page to install` ([query](../apps/admin/src/reports/catalogInstallFunnel/query.ts)), only a server install is success.
 - A deck page view near the range end stays maturing until its seven-day window closes, and a follow-up after the cohort end still counts.

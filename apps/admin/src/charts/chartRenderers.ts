@@ -456,9 +456,9 @@ export type RenderFunnelStepsChartParams = Readonly<{
   /** At least one group, each carrying the funnel's full step list in the same order. */
   groups: ReadonlyArray<FunnelStepGroupBars>;
   /**
-   * A `Group by` dimension is selected, so the bars are its groups and are drawn and named as such.
-   * It is not `groups.length > 1`: a dimension that placed everybody in one group, or nobody
-   * anywhere, still has to draw its colour and its key rather than pass for the plain funnel.
+   * Series were passed, such as the A/B date range comparison, so the bars are drawn in their colours
+   * and named as such. It is not `groups.length > 1`: a passed series still has to draw its colour and
+   * its key rather than pass for the plain funnel.
    */
   isGrouped: boolean;
   /** What one counted row is, plural; the tooltip names the number with it. */

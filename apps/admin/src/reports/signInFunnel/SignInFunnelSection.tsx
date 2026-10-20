@@ -1,7 +1,14 @@
-import { useEffect, useMemo, useState, type JSX } from "react";
-import { buildFunnelAudienceEmptyStateNote } from "../../filters/analyticsFilters";
+import { useMemo, type JSX } from "react";
+import type { AdminAppConfig } from "../../config";
+import { buildFunnelAudienceEmptyStateNote, type AnalyticsFilterState } from "../../filters/analyticsFilters";
 import type { FunnelAnchor } from "../funnels/funnelAnchorUrl";
+import { FunnelEmptyRangeNotes } from "../funnels/FunnelEmptyRangeNotes";
 import { FunnelMaturingWarning } from "../funnels/FunnelMaturingWarning";
+import {
+  buildFunnelRangeGroups,
+  formatFunnelRangeNote,
+  useFunnelRangeReports,
+} from "../funnels/funnelRangeReports";
 import { FunnelSectionHeader } from "../funnels/FunnelSectionHeader";
 import type { FunnelSectionProps } from "../funnels/funnelSections";
 import {
@@ -18,11 +25,6 @@ import {
   type SignInFunnelReport,
 } from "./query";
 
-type FunnelLoadState =
-  | Readonly<{ status: "loading" }>
-  | Readonly<{ status: "error"; message: string }>
-  | Readonly<{ status: "ready"; report: SignInFunnelReport }>;
-
 const funnelStepIds = ["method-selected", "session-accepted", "account-ready"] as const;
 type FunnelStepId = (typeof funnelStepIds)[number];
 
@@ -35,6 +37,14 @@ export const signInFunnelTitle = "Sign-in";
 
 function getErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : "Unexpected sign-in funnel error.";
+}
+
+function loadReport(
+  config: AdminAppConfig,
+  filters: AnalyticsFilterState,
+  signal: AbortSignal,
+): Promise<SignInFunnelReport> {
+  return loadSignInFunnelReport(config, filters, null, signal);
 }
 
 function buildStages(counts: SignInFunnelCounts): ReadonlyArray<FunnelStage<FunnelStepId>> {
@@ -57,80 +67,65 @@ function sumFunnelGroups(groups: ReadonlyArray<SignInFunnelGroup>): SignInFunnel
 }
 
 export function SignInFunnelSection(props: FunnelSectionProps): JSX.Element {
-  const [loadRevision, setLoadRevision] = useState<number>(0);
-  const [loadState, setLoadState] = useState<FunnelLoadState>({ status: "loading" });
-
-  useEffect(() => {
-    let cancelled = false;
-    setLoadState({ status: "loading" });
-    if (props.isRangeLoading) {
-      return () => { cancelled = true; };
-    }
-
-    const abortController = new AbortController();
-    void loadSignInFunnelReport(props.config, props.filters, null, abortController.signal)
-      .then((report) => {
-        if (cancelled === false) {
-          setLoadState({ status: "ready", report });
-        }
-      })
-      .catch((error: unknown) => {
-        if (cancelled || props.onTerminalAdminError(error, props.config)) {
-          return;
-        }
-        setLoadState({ status: "error", message: getErrorMessage(error) });
-      });
-
-    return () => { cancelled = true; abortController.abort(); };
-  }, [loadRevision, props.config, props.filters, props.isRangeLoading, props.onTerminalAdminError]);
-
-  const report = props.isRangeLoading === false && loadState.status === "ready" ? loadState.report : null;
-  const totals = useMemo(() => (report === null ? null : sumFunnelGroups(report.groups)), [report]);
-  const stages = useMemo(() => (totals === null ? [] : buildStages(totals)), [totals]);
+  const { state: loadState, retry } = useFunnelRangeReports(props, loadReport, getErrorMessage);
+  const rangeViews = useMemo(
+    () => (loadState.status === "ready" ? loadState.ranges : []).map((range) => {
+      const totals = sumFunnelGroups(range.report.groups);
+      return { ...range, totals, stages: buildStages(totals), hasEntries: totals.selectedCount > 0 };
+    }),
+    [loadState],
+  );
+  const groups = useMemo(() => buildFunnelRangeGroups(rangeViews), [rangeViews]);
+  // A, whose figures the explainer shows.
+  const primaryRange = rangeViews[0];
+  const hasEntries = rangeViews.some((range) => range.hasEntries);
+  const isComparing = props.filters.comparisonDateRange !== null;
   const audienceEmptyStateNote = buildFunnelAudienceEmptyStateNote(props.filters.funnelAudienceMode);
 
   return (
     <section className="dashboard-section funnel-report">
       <FunnelSectionHeader funnelId={signInFunnelAnchor.funnelId} title={signInFunnelTitle} />
 
-      {props.isRangeLoading === false && loadState.status === "error" ? <div className="report-state report-state-error"><strong>Funnel query failed.</strong><span>{loadState.message}</span><button className="filter-button" type="button" onClick={() => setLoadRevision((revision) => revision + 1)}>Retry</button></div> : null}
-      {props.filters.dateRange.from < signInFunnelStartDate ? <p className="report-state">Selections before {signInFunnelStartDate} are outside this report&rsquo;s coverage.</p> : null}
+      {loadState.status === "error" ? <div className="report-state report-state-error"><strong>Funnel query failed.</strong><span>{loadState.message}</span><button className="filter-button" type="button" onClick={retry}>Retry</button></div> : null}
+      {rangeViews.map((range) => (range.dateRange.from < signInFunnelStartDate ? <p key={range.key} className="report-state">{formatFunnelRangeNote(range.seriesLabel, `Selections before ${signInFunnelStartDate} are outside this report’s coverage.`)}</p> : null))}
 
-      {totals !== null ? <FunnelMaturingWarning maturingCount={totals.maturingCount} entryCount={totals.selectedCount} /> : null}
+      {rangeViews.map((range) => <FunnelMaturingWarning key={range.key} seriesLabel={range.seriesLabel} maturingCount={range.totals.maturingCount} entryCount={range.totals.selectedCount} />)}
+      <FunnelEmptyRangeNotes ranges={rangeViews} />
 
-      {props.isRangeLoading || loadState.status === "loading" ? (
+      {loadState.status === "loading" ? (
         <FunnelStepsLoadingChart
           countLabel="People"
           dateRange={props.filters.dateRange}
           showsHashedSplit={false}
-          isGrouped={false}
+          isGrouped={isComparing}
           label="Loading sign-in funnel…"
         />
       ) : null}
-      {totals !== null && totals.selectedCount === 0 ? (
+      {loadState.status === "ready" && hasEntries === false ? (
         <FunnelStepsEmptyChart
           countLabel="People"
           dateRange={props.filters.dateRange}
           showsHashedSplit={false}
-          isGrouped={false}
+          isGrouped={isComparing}
           note={<><strong>No observed sign-in method selections match these filters.</strong><span>Entry requires a recorded method choice on the ordinary sign-in screen and an anonymous, guest or account identifier.</span>{audienceEmptyStateNote === null ? null : <span>{audienceEmptyStateNote}</span>}</>}
         />
       ) : null}
 
-      {totals !== null && totals.selectedCount > 0 ? (
+      {primaryRange !== undefined && hasEntries ? (
         <FunnelStepsChart
           anchor={signInFunnelAnchor}
-          stages={stages}
+          stages={primaryRange.stages}
+          groups={groups}
           countLabel="People"
           dateRange={props.filters.dateRange}
           showsHashedSplit={false}
         />
       ) : null}
 
-      {totals !== null ? (
+      {primaryRange !== undefined ? (
         <details className="funnel-explainer">
           <summary>How it&rsquo;s counted</summary>
-          <div className="funnel-detail-row funnel-explainer-figure"><span>Entries still inside 7-day window</span><strong>{totals.maturingCount.toLocaleString("en-US")}</strong></div>
+          <div className="funnel-detail-row funnel-explainer-figure"><span>Entries still inside 7-day window</span><strong>{primaryRange.totals.maturingCount.toLocaleString("en-US")}</strong></div>
           <p>One person is one resolved analytics actor, including a visitor or guest who never registered. A person enters once at their first recorded <code>auth_method_selected</code> in the selected UTC dates, from {signInFunnelStartDate}, on the ordinary sign-in screen of web, iOS (including iPad and Mac) or Android; account-security linking and credential recovery are excluded.</p>
           <p>Each step counts that person at most once. Within seven days of entry, each method and platform has its own ordered <code>auth_method_selected</code> → <code>auth_session_accepted</code> → <code>auth_account_ready</code> path, and the funnel counts a person if any such path reaches the step; an email session and an Apple ready event cannot form one path. The platform filter reads the first selection in range.</p>
           <p>Unreported steps stay unobserved: older client versions, analytics consent and delivery gaps can hide a successful sign-in, and missing facts are never backfilled with inferred success. A person still inside the window is not a confirmed drop-off.</p>
