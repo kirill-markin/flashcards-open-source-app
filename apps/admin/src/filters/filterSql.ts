@@ -192,16 +192,15 @@ export function buildTrustedActorRowsFilterSql(trustLevelSqlExpression: string):
 }
 
 /**
- * Drops one row the credential-free collector judged to come from an automated client, as a predicate
- * on that row's own `automated_client`.
+ * Drops one row its ingest judged to come from an automated client, as a predicate on that row's own
+ * `automated_client`.
  *
  * TRUE is a bot, a crawler, a headless browser, an HTTP library or a request that sent no
- * `User-Agent` at all, decided by the collector from that header alone at insert time
- * (`db/migrations/0145_anonymous_client_automated_marker.sql`). `IS NOT TRUE` rather than `IS FALSE`
- * is the whole contract: NULL means the code that stored the row did not assess it - a row stored
- * before the marker shipped, or one on any other trust level - so reading NULL as automated would
- * silently drop real people, and FALSE is in any case only the client's own unverified claim about
- * itself.
+ * `User-Agent` at all, decided from that header alone at insert time
+ * (`db/migrations/0228_app_event_bot_evidence.sql`). `IS NOT TRUE` rather than `IS FALSE` is the
+ * whole contract: NULL means the code that stored the row did not assess it, so reading NULL as
+ * automated would silently drop real people, and FALSE is in any case only the client's own
+ * unverified claim about itself.
  *
  * ROW LEVEL IS FOR THE READS THAT NAME NOBODY, AND THIS IS THE WHOLE LIST. Wherever a read has an
  * actor to test, the verdict is applied to that actor by `buildExcludedActorSqlLines` above instead,

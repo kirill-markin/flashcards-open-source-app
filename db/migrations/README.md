@@ -203,6 +203,16 @@ The rest of that header still holds, and it is the part that carries the promise
 actor, it is never folded into `actor_id` and never linked to a visitor id, an identity link or an
 account, a day's salt is deleted once that day has ended, and no raw IP is stored anywhere.
 
+### `0145_anonymous_client_automated_marker.sql` — the collector is no longer the only judge
+
+Its header says a row on any other trust level is NULL "because no other ingest classifies a
+User-Agent", and the comment on `product_events_automated_client_shape` says that "only the
+credential-free collector reads a User-Agent, so no other trust level may carry a verdict".
+Since `0228_app_event_bot_evidence.sql` the authenticated ingest classifies the User-Agent of every
+web app batch, so `guest_client` and `authenticated_client` rows with `platform = 'web'` carry a
+verdict too, and `0228` re-adds the constraint over all three client trust levels. iOS and Android
+rows stay NULL; `0228` says why.
+
 ### `0149_product_analytics_off_switch.sql` — account deletion anonymizes, it does not erase
 
 Its header makes the same claim twice, in words that differ between the copies. The `Current
@@ -340,3 +350,11 @@ adds is the only `sync.claim_installation`, and `0179` records why the drop wait
   Public request/result and continuation contracts live in
   [publicContract.ts](../../apps/auth/src/server/social/publicContract.ts) and
   [accountConnection.ts](../../apps/auth/src/server/social/accountConnection.ts).
+
+### `0224_anonymous_event_network_and_browser_facts.sql` — the facts are not only on `anonymous_client` rows
+
+Its header says none of the three facts is set "on any trust level other than anonymous_client",
+and that account deletion never reaches these columns. Since `0228_app_event_bot_evidence.sql` the
+authenticated ingest stores them on `guest_client` and `authenticated_client` rows of every platform,
+and `0228` re-adds `product_events_network_and_browser_facts_shape` over all three client trust levels
+with the same value ranges. Account deletion rewrites those rows and clears the three facts.

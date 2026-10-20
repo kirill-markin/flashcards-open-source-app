@@ -169,6 +169,11 @@ async function anonymizeProductAnalyticsInExecutor(
       "device_locale = NULL,",
       "ui_locale = NULL,",
       "country = NULL,",
+      // automated_client stays: it is a verdict, and clearing it would return a deleted bot's
+      // history to every report that excludes automated traffic.
+      "network_asn = NULL,",
+      "user_agent_chrome_major = NULL,",
+      "client_hint_chromium_major = NULL,",
       "identity_state = 'anonymized'",
       "WHERE user_id = ANY($2::uuid[])",
     ].join(" "),

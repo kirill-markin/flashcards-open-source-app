@@ -184,7 +184,7 @@ test("a cookieless collector row stores a daily visitor hash and a consent row d
   }
 });
 
-// The second column only the credential-free collector writes; contract in
+// The collector's automated-client verdict; contract in
 // db/migrations/0145_anonymous_client_automated_marker.sql.
 test("a collector row records whether the reporting request announced itself as automated", async () => {
   const ownerPool = new pg.Pool({
