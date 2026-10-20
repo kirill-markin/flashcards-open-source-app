@@ -23,7 +23,6 @@ import {
 } from "./reports/aiUsageCohorts/aiUsageCohortsUrl";
 import { loadCatalogInstallFunnelAvailableRange } from "./reports/catalogInstallFunnel/query";
 import { loadCatalogInstallsReport } from "./reports/catalogInstalls/query";
-import { loadDailyActiveUsersReport } from "./reports/dailyActiveUsers/query";
 import {
   parseFunnelAnchorStepId,
   withFunnelAnchorSearchParams,
@@ -523,10 +522,9 @@ export default function App(): JSX.Element {
         : currentState));
 
       try {
-        const [filterOptions, report, dailyActiveUsersReport, catalogInstallsReport] = await Promise.all([
+        const [filterOptions, report, catalogInstallsReport] = await Promise.all([
           loadFilterOptions(config, filters.dateRange, abortController.signal),
           loadReviewEventsByDateReport(config, filters, abortController.signal),
-          loadDailyActiveUsersReport(config, filters, abortController.signal),
           loadCatalogInstallsReport(config, filters, abortController.signal),
         ]);
 
@@ -540,7 +538,6 @@ export default function App(): JSX.Element {
           data: {
             filterOptions,
             report,
-            dailyActiveUsersReport,
             catalogInstallsReport,
           },
           isReportLoading: false,
@@ -692,19 +689,6 @@ export default function App(): JSX.Element {
     return true;
   }, []);
 
-  // Clicking a person in a chart narrows the selection to them. It reads the current selection from
-  // the ref rather than taking it as a dependency, so this identity survives every filter change:
-  // it reaches the charts' render effects, and a new one on each change would tear down and redraw
-  // all nine charts at click time with the data already on screen.
-  const applyChartUserFilter = useCallback((userId: string): void => {
-    const currentFilters = filterStateRef.current;
-    if (currentFilters === null) {
-      return;
-    }
-
-    applyFilters({ ...currentFilters, users: [userId] });
-  }, [applyFilters]);
-
   if (appState.status === "loading" || appState.status === "redirecting") {
     return <LoadingState />;
   }
@@ -792,7 +776,6 @@ export default function App(): JSX.Element {
       onReportRetry={retryReportLoad}
       onRangeLookupRetry={retryRangeLookup}
       onFiltersChange={applyFilters}
-      onChartUserFilterApply={applyChartUserFilter}
       onTerminalAdminError={handleTerminalAdminError}
     />
   );

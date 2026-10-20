@@ -297,12 +297,12 @@ const analyticsFilterFieldExplanations: Readonly<Record<AnalyticsFilterField, st
     "Counts only events whose UTC calendar day falls inside this range. Both the first and the last day are included, and the day is the UTC day rather than the reader's own.",
   users:
     "Keeps only events produced by the people you pick. The match is on the resolved actor id, so a guest and the account that guest became stay one person; picking nobody keeps every user.",
-  // The on-screen sentence now carries the split rule itself, including the review-chart exception.
+  // The on-screen sentence now carries the split rule itself, including its one exception.
   // The rule it states is owned elsewhere and is deliberately not restated here: the catalog side of
   // it, the NULL cohort and the both-sides-only rule for an installer with no app open day in range
   // live in `apps/admin/src/reports/catalogInstalls/query.ts`, which also explains why that section
-  // borrows the daily active users definition instead of having one of its own. The other rows with
-  // no cohort of their own are the community rows of the review charts, which a narrowed selection
+  // borrows the Who opened the app definition instead of having one of its own. The other rows with
+  // no cohort of their own are the community rows of Social connections, which a narrowed selection
   // restricts to the actors that still have review events in range; that one is owned by
   // `isCohortOrPlatformNarrowed` in `apps/admin/src/filters/filterSql.ts`. Re-read the sentence
   // below against both whenever the cohort rule changes there. The one part of the rule the sentence
@@ -310,7 +310,7 @@ const analyticsFilterFieldExplanations: Readonly<Record<AnalyticsFilterField, st
   // told the cohort is the first app open day would otherwise read it as every stored app open;
   // `buildTrustedActorRowsFilterSql` owns that qualification.
   userCohorts:
-    "Splits activity day by day: an event is new on that person's first ever app open day and returning on every later day, except on the review charts, which measure against their first answered card day instead. An app open the credential-free public collector wrote is not one of that person's, here or anywhere the dashboard counts people. One person therefore shows up as new once and as returning on the other days of the same range. Both sides are selected by default, and narrowing to one of them also drops the rows that carry no cohort of their own, so New and Returning need not add up to the unfiltered total.",
+    "Splits activity day by day: an event is new on that person's first ever app open day and returning on every later day, except on Social connections, which measures against a person's first answered card day instead. An app open the credential-free public collector wrote is not one of that person's, here or anywhere the dashboard counts people. One person therefore shows up as new once and as returning on the other days of the same range. Both sides are selected by default, and narrowing to one of them also drops the rows that carry no cohort of their own, so New and Returning need not add up to the unfiltered total.",
   // Cut from the on-screen text: the catalog install event is always unattributed rather than merely
   // often, so no device platform selection can ever keep one, while every other section keeps its
   // data because its events are judged by the platform their own row carries.

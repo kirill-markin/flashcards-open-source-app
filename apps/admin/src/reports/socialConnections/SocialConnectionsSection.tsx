@@ -23,7 +23,7 @@ type SocialConnectionsChartModel = Readonly<{
 
 /** Each community row already holds one person's day, so a day's total is the sum over its people. */
 function buildSocialConnectionsChartModel(report: ReviewEventsByDateReport): SocialConnectionsChartModel {
-  const dates = report.dateTotals.map((item) => item.date);
+  const dates = report.dates;
   const friendInvitationsByDate = new Map<string, number>();
   const friendConnectionsByDate = new Map<string, number>();
 
