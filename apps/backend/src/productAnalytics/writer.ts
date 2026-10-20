@@ -537,7 +537,7 @@ export async function insertProductAnalyticsEvents(
   return runAnalyticsWrite((client) => insertEventRowsInTransaction(client, rows));
 }
 
-// The credential-free collector's write, the only one that stores its server-derived columns.
+// The credential-free collector's write.
 // Returns the number of rows stored, 0 for a redelivered event_id.
 export async function insertAnonymousProductAnalyticsEvent(
   row: AnonymousProductAnalyticsEventRow,
