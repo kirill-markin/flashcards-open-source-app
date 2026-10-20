@@ -272,7 +272,6 @@ const etCatalog: TranslationCatalog = {
   },
   progressScreen: {
     title: "Edenemine",
-    subtitle: "Jälgi oma viimast päevade jada ja igapäevast kordamiste ajalugu.",
     streakTitle: "Päevade jada",
     streakInfoToggleLabel: "Päevade jada külmutustest",
     streakInfo: "Külmutusi saadaval: {{available}}/{{capacity}}. Järgmine taastumine: {{progress}}/{{required}}.",
@@ -516,7 +515,6 @@ const etCatalog: TranslationCatalog = {
   },
   settingsHome: {
     title: "Seaded",
-    subtitle: "Halda kontot, tööruumi, tuge ja täpsemaid veebiseadeid.",
     inviteFriend: {
       actionText: "Lisa sõber",
       ariaLabel: "Lisa sõber",
@@ -1230,7 +1228,6 @@ const etCatalog: TranslationCatalog = {
       label: "Otsing",
       placeholder: "Otsi esi- või tagaküljelt või siltidest",
     },
-    subtitle: "Kaardid on küsimused ja vastused, mida kordad õppimiseks ja meeldejätmiseks.",
     table: {
       back: "Tagakülg",
       due: "Tähtaeg",

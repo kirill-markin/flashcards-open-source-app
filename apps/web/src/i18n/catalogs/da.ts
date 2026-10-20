@@ -272,7 +272,6 @@ const daCatalog: TranslationCatalog = {
   },
   progressScreen: {
     title: "Fremskridt",
-    subtitle: "Følg din aktuelle stime og dine daglige repetitioner.",
     streakTitle: "Stime",
     streakInfoToggleLabel: "Om stimefrys",
     streakInfo: "Frysebank {{available}}/{{capacity}}. Næste optankning {{progress}}/{{required}}.",
@@ -516,7 +515,6 @@ const daCatalog: TranslationCatalog = {
   },
   settingsHome: {
     title: "Indstillinger",
-    subtitle: "Administrer konto, arbejdsområde, support og avancerede webindstillinger.",
     inviteFriend: {
       actionText: "Tilføj ven",
       ariaLabel: "Tilføj ven",
@@ -1230,7 +1228,6 @@ const daCatalog: TranslationCatalog = {
       label: "Søg",
       placeholder: "Søg i forside, bagside eller tags",
     },
-    subtitle: "Kort er de spørgsmål og svar, du repeterer for at lære og huske.",
     table: {
       back: "Bagside",
       due: "Forfalder",

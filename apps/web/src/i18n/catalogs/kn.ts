@@ -272,7 +272,6 @@ const knCatalog: TranslationCatalog = {
   },
   progressScreen: {
     title: "ಪ್ರಗತಿ",
-    subtitle: "ನಿಮ್ಮ ಇತ್ತೀಚಿನ ನಿರಂತರತೆ ಮತ್ತು ದೈನಂದಿನ ಪುನರಾವರ್ತನೆ ಇತಿಹಾಸ ನೋಡಿ.",
     streakTitle: "ನಿರಂತರತೆ",
     streakInfoToggleLabel: "ನಿರಂತರತೆ ಫ್ರೀಜ್ ಬಗ್ಗೆ",
     streakInfo: "ಫ್ರೀಜ್ ಬ್ಯಾಂಕ್ {{available}}/{{capacity}}. ಮುಂದಿನ ರಿಚಾರ್ಜ್ {{progress}}/{{required}}.",
@@ -516,7 +515,6 @@ const knCatalog: TranslationCatalog = {
   },
   settingsHome: {
     title: "ಸೆಟ್ಟಿಂಗ್‌ಗಳು",
-    subtitle: "ಖಾತೆ, ಕಾರ್ಯಸ್ಥಳ, ಬೆಂಬಲ ಮತ್ತು ಸುಧಾರಿತ ವೆಬ್ ಸೆಟ್ಟಿಂಗ್‌ಗಳನ್ನು ನಿರ್ವಹಿಸಿ.",
     inviteFriend: {
       actionText: "ಸ್ನೇಹಿತರನ್ನು ಸೇರಿಸಿ",
       ariaLabel: "ಸ್ನೇಹಿತರನ್ನು ಸೇರಿಸಿ",
@@ -1230,7 +1228,6 @@ const knCatalog: TranslationCatalog = {
       label: "ಹುಡುಕಿ",
       placeholder: "ಮುಂಭಾಗ, ಹಿಂಭಾಗ ಅಥವಾ ಟ್ಯಾಗ್ ಹುಡುಕಿ",
     },
-    subtitle: "ಕಾರ್ಡ್‌ಗಳು ನೀವು ಕಲಿಯಲು ಮತ್ತು ನೆನಪಿಡಲು ಪುನರಾವರ್ತಿಸುವ ಪ್ರಶ್ನೆಗಳು ಹಾಗೂ ಉತ್ತರಗಳು.",
     table: {
       back: "ಹಿಂಭಾಗ",
       due: "ಬಾಕಿ",

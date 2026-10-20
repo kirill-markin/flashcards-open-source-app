@@ -272,7 +272,6 @@ const teCatalog: TranslationCatalog = {
   },
   progressScreen: {
     title: "పురోగతి",
-    subtitle: "మీ ఇటీవలి వరుస రోజులు, రోజువారీ పునశ్చరణ చరిత్రను గమనించండి.",
     streakTitle: "వరుస రోజులు",
     streakInfoToggleLabel: "వరుస ఫ్రీజ్‌ల గురించి",
     streakInfo: "ఫ్రీజ్ బ్యాంక్ {{available}}/{{capacity}}. తదుపరి రీఛార్జ్ {{progress}}/{{required}}.",
@@ -516,7 +515,6 @@ const teCatalog: TranslationCatalog = {
   },
   settingsHome: {
     title: "సెట్టింగ్‌లు",
-    subtitle: "ఖాతా, వర్క్‌స్పేస్, సహాయం, అధునాతన వెబ్ సెట్టింగ్‌లను నిర్వహించండి.",
     inviteFriend: {
       actionText: "స్నేహితుడిని చేర్చు",
       ariaLabel: "స్నేహితుడిని చేర్చు",
@@ -1230,7 +1228,6 @@ const teCatalog: TranslationCatalog = {
       label: "శోధన",
       placeholder: "ముందు వైపు, వెనుక వైపు లేదా ట్యాగ్‌లలో వెతకండి",
     },
-    subtitle: "కార్డులు అంటే నేర్చుకోవడానికి, గుర్తుంచుకోవడానికి మీరు పునశ్చరణ చేసే ప్రశ్నలు, సమాధానాలు.",
     table: {
       back: "వెనుక వైపు",
       due: "గడువు",

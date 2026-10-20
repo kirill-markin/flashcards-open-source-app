@@ -272,7 +272,6 @@ const hiCatalog: TranslationCatalog = {
   },
   progressScreen: {
     title: "प्रगति",
-    subtitle: "अपनी हाल की स्ट्रीक और दैनिक रिव्यू इतिहास को ट्रैक करें।",
     streakTitle: "स्ट्रीक",
     streakInfoToggleLabel: "स्ट्रीक फ़्रीज़ के बारे में",
     streakInfo: "फ़्रीज़ बैंक {{available}}/{{capacity}}। अगला रीचार्ज {{progress}}/{{required}}।",
@@ -516,7 +515,6 @@ const hiCatalog: TranslationCatalog = {
   },
   settingsHome: {
     title: "सेटिंग्स",
-    subtitle: "खाता, वर्कस्पेस, सहायता और उन्नत वेब सेटिंग्स मैनेज करें।",
     inviteFriend: {
       actionText: "दोस्त जोड़ें",
       ariaLabel: "दोस्त जोड़ें",
@@ -1230,7 +1228,6 @@ const hiCatalog: TranslationCatalog = {
       label: "खोजें",
       placeholder: "सामने, पीछे या टैग खोजें",
     },
-    subtitle: "कार्ड वे प्रश्न और उत्तर हैं जिन्हें आप सीखने और याद रखने के लिए रिव्यू करते हैं।",
     table: {
       back: "पीछे",
       due: "बाकी",

@@ -272,7 +272,6 @@ const ptBrCatalog: TranslationCatalog = {
   },
   progressScreen: {
     title: "Progresso",
-    subtitle: "Acompanhe sua sequência recente e o histórico diário de revisões.",
     streakTitle: "Sequência",
     streakInfoToggleLabel: "Sobre os congelamentos de sequência",
     streakInfo: "Reserva de congelamentos {{available}}/{{capacity}}. Próxima recarga {{progress}}/{{required}}.",
@@ -516,7 +515,6 @@ const ptBrCatalog: TranslationCatalog = {
   },
   settingsHome: {
     title: "Configurações",
-    subtitle: "Gerencie conta, espaço de trabalho, suporte e configurações avançadas da web.",
     inviteFriend: {
       actionText: "Adicionar amigo",
       ariaLabel: "Adicionar amigo",
@@ -1230,7 +1228,6 @@ const ptBrCatalog: TranslationCatalog = {
       label: "Buscar",
       placeholder: "Buscar na frente, no verso ou nas etiquetas",
     },
-    subtitle: "Os cartões são as perguntas e respostas que você revisa para aprender e lembrar.",
     table: {
       back: "Verso",
       due: "Vencimento",

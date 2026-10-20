@@ -272,7 +272,6 @@ const elCatalog: TranslationCatalog = {
   },
   progressScreen: {
     title: "Πρόοδος",
-    subtitle: "Παρακολουθήστε το πρόσφατο σερί σας και το ημερήσιο ιστορικό επαναλήψεων.",
     streakTitle: "Σερί",
     streakInfoToggleLabel: "Σχετικά με τα παγώματα σερί",
     streakInfo: "Απόθεμα παγωμάτων {{available}}/{{capacity}}. Επόμενη αναπλήρωση {{progress}}/{{required}}.",
@@ -516,7 +515,6 @@ const elCatalog: TranslationCatalog = {
   },
   settingsHome: {
     title: "Ρυθμίσεις",
-    subtitle: "Διαχειριστείτε τον λογαριασμό, τον χώρο εργασίας, την υποστήριξη και τις προχωρημένες ρυθμίσεις του web.",
     inviteFriend: {
       actionText: "Προσθήκη φίλου",
       ariaLabel: "Προσθήκη φίλου",
@@ -1230,7 +1228,6 @@ const elCatalog: TranslationCatalog = {
       label: "Αναζήτηση",
       placeholder: "Αναζήτηση σε μπροστινή, πίσω πλευρά ή ετικέτες",
     },
-    subtitle: "Οι κάρτες περιέχουν ερωτήσεις και απαντήσεις που επαναλαμβάνετε για να μάθετε και να θυμάστε.",
     table: {
       back: "Πίσω",
       due: "Προθεσμία",

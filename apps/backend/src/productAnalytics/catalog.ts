@@ -44,7 +44,21 @@ export function isProductAnalyticsEventIdVersionValid(eventId: string): boolean 
 }
 
 export const productAnalyticsPropertyStringMaxLength = 200;
+// A store link with its campaign query runs past the string cap, so a `url` property is bounded by
+// its shape instead: an owned host, then a path and query of unencoded tokens with no fragment, so
+// no space, no percent-encoding and no `#` can carry free text.
+export const productAnalyticsPropertyUrlMaxLength = 512;
+const productAnalyticsPropertyUrlPathAndQueryPattern = /^\/[A-Za-z0-9\/._~-]*(?:\?[A-Za-z0-9\/._~=&-]*)?$/u;
 export const productAnalyticsPropertyKeyLimit = 25;
+
+// The hosts our app-entry and store links point at. Both web app hosts are permanent, see the
+// repository root CLAUDE.md.
+const productAnalyticsOwnedLinkHosts = [
+  "apps.apple.com",
+  "play.google.com",
+  "app.nibomo.com",
+  "app.flashcards-open-source-app.com",
+] as const;
 
 // The repository's canonical slug shape, mirrored from apps/backend/src/catalog/common.ts so this
 // contract stays readable on its own for the clients that mirror it by hand.
@@ -139,6 +153,7 @@ const productAnalyticsSiteAppEntryProperties = {
   placement: { kind: "string", pattern: productAnalyticsSitePlacementPattern },
   source: { kind: "enum", values: productAnalyticsSiteSources },
   device_category: { kind: "enum", values: productAnalyticsSiteDeviceCategories },
+  url: { kind: "url", hosts: productAnalyticsOwnedLinkHosts, optional: true },
 } as const;
 
 // The reminders a client schedules with the OS. `review_reminder` is the daily or inactivity review
@@ -508,6 +523,9 @@ type ProductAnalyticsPropertySpec =
     | Readonly<{ kind: "enum"; values: ReadonlyArray<string> }>
     // pattern is required, so a string property that would accept unbounded free text cannot compile.
     | Readonly<{ kind: "string"; pattern: RegExp }>
+    // The exact link a button or QR code carried at the moment of the event, query string included,
+    // so the fact stays true after the link changes in code.
+    | Readonly<{ kind: "url"; hosts: ReadonlyArray<string> }>
     | Readonly<{ kind: "localDate" }>
     | Readonly<{ kind: "timeZone" }>
     // Every numeric property in this catalog is a counter or a measure. The table is append-only, so a
@@ -1883,7 +1901,7 @@ export const productAnalyticsEventCatalog = {
   // The impression half of `site_app_entry_clicked`, carrying the shared app-entry map that the
   // click spreads and adds `action` on top of, so a click and the view it came from join by
   // equality on that shared map and the click rate is a rate rather than a bare count. The producer
-  // reports it at most once per target, placement and page kind per document load, after about a
+  // reports it at most once per target, placement, page kind and url per document load, after about a
   // second of visibility, the way `store_qr_shown` below is keyed on the store rather than on the
   // placement alone. Every shared property a click can vary on has to sit in that key, or the
   // clicks differing on the missing one join to nothing: a site placement is a container, and the
@@ -1898,7 +1916,7 @@ export const productAnalyticsEventCatalog = {
   // denominator for every click that differs only on `action`. The impression derives `source` and
   // `device_category` exactly as the click does, from the document's own referrer and user agent
   // rather than from the page a client-side navigation just left, which is what completes that
-  // three-property key: neither can change inside one document load, so an impression and the click
+  // four-property key: neither can change inside one document load, so an impression and the click
   // it precedes always agree on them. A document that navigates between two pages of the same kind
   // therefore reports one impression and can produce a click on each page, so the ratio is per
   // document load and can exceed one in a multi-page visit. A CTA that stays visible across a
@@ -1916,7 +1934,7 @@ export const productAnalyticsEventCatalog = {
   // exists because a visitor who scans the code off the screen produces no click at all. It is
   // reported as the card opens, with no visibility delay, because the reveal is already a
   // deliberate act rather than something a scroll can cause. The marketing site is its only producer
-  // and it reports at most once per target, placement and page kind per document load, exactly the
+  // and it reports at most once per target, placement, page kind and url per document load, the
   // key `site_app_entry_shown` uses, so a QR show, the button impression and the click compare one to
   // one, which is why the property names are the app-entry set exactly. The map itself is not held
   // here: it is shared only by the app-entry click and its impression half, and `target` names only
@@ -1931,6 +1949,7 @@ export const productAnalyticsEventCatalog = {
       placement: { kind: "string", pattern: productAnalyticsSitePlacementPattern },
       source: { kind: "enum", values: productAnalyticsSiteSources },
       device_category: { kind: "enum", values: productAnalyticsSiteDeviceCategories },
+      url: { kind: "url", hosts: productAnalyticsOwnedLinkHosts, optional: true },
     },
   },
   // A marketing site CTA that leads to another marketing page instead of into the product, which is
@@ -2244,7 +2263,9 @@ export const productAnalyticsEventCatalog = {
   },
   // A click on a link that opens an app store. `placement` is spelled exactly as the store campaign
   // bucket (`ct=` / `utm_campaign=`, see docs/marketing-links.md) the link carries, so a click joins
-  // to store-side campaign data by equality; the two spellings have to stay identical.
+  // to store-side campaign data by equality; the two spellings have to stay identical. `device` is
+  // the device the web app header button offered: the App Store link is the same for iPhone, iPad
+  // and Mac, so `store` alone cannot tell them apart.
   store_link_clicked: {
     serverOnly: false,
     requiresScreen: false,
@@ -2254,11 +2275,15 @@ export const productAnalyticsEventCatalog = {
         kind: "enum",
         values: ["web_app_header", "web_review_mobile_prompt", "catalog_import", "friend_invite", "share_app"],
       },
+      url: { kind: "url", hosts: productAnalyticsOwnedLinkHosts, optional: true },
+      device: { kind: "enum", values: ["iphone", "ipad", "mac", "android"], optional: true },
     },
   },
   // A store QR code that stays hidden until asked for was shown long enough to be read, about one
-  // second, reported at most once per store per page load. Always-visible QR codes, such as the
-  // platform links grid, never report it. `store` and `placement` read as on `store_link_clicked`.
+  // second. The web app header reports it at most once per device per page load, and every other
+  // placement at most once per store per page load. Always-visible QR codes, such as the
+  // platform links grid, never report it. `store`, `placement`, `url` and `device` read as on
+  // `store_link_clicked`.
   store_qr_shown: {
     serverOnly: false,
     requiresScreen: false,
@@ -2268,6 +2293,8 @@ export const productAnalyticsEventCatalog = {
         kind: "enum",
         values: ["web_app_header", "web_review_mobile_prompt", "catalog_import", "friend_invite", "share_app"],
       },
+      url: { kind: "url", hosts: productAnalyticsOwnedLinkHosts, optional: true },
+      device: { kind: "enum", values: ["iphone", "ipad", "mac", "android"], optional: true },
     },
   },
   analytics_events_dropped: {
@@ -2309,6 +2336,20 @@ export type ProductAnalyticsEventDefinition = Readonly<{
   parseProperties: (value: unknown) => ProductAnalyticsEventProperties | null;
 }>;
 
+// Only the canonical serialization is accepted, so one link is never stored under several
+// spellings (an uppercase host, an explicit :443, surrounding spaces).
+function isAllowedHttpsUrl(value: string, hosts: ReadonlyArray<string>): boolean {
+  const url = URL.parse(value);
+  return url !== null
+    && url.href === value
+    && url.protocol === "https:"
+    && hosts.includes(url.hostname)
+    && url.username === ""
+    && url.password === ""
+    && url.port === ""
+    && productAnalyticsPropertyUrlPathAndQueryPattern.test(value.slice(url.origin.length));
+}
+
 function createRequiredPropertySchema(spec: ProductAnalyticsPropertySpec) {
   if (spec.kind === "enum") {
     return z.enum(spec.values);
@@ -2326,6 +2367,11 @@ function createRequiredPropertySchema(spec: ProductAnalyticsPropertySpec) {
     return z.string().min(1).max(productAnalyticsPropertyStringMaxLength)
       .regex(productAnalyticsTimeZonePattern)
       .refine((value) => validateIanaTimeZone(value).ok);
+  }
+
+  if (spec.kind === "url") {
+    return z.string().min(1).max(productAnalyticsPropertyUrlMaxLength)
+      .refine((value) => isAllowedHttpsUrl(value, spec.hosts));
   }
 
   return z.string().min(1).max(productAnalyticsPropertyStringMaxLength).regex(spec.pattern);

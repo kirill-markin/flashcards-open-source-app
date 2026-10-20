@@ -272,7 +272,6 @@ const lvCatalog: TranslationCatalog = {
   },
   progressScreen: {
     title: "Progress",
-    subtitle: "Sekojiet savai pašreizējai sērijai un ikdienas atkārtošanas vēsturei.",
     streakTitle: "Sērija",
     streakInfoToggleLabel: "Par sērijas aizsardzību",
     streakInfo: "Pieejamās aizsardzības: {{available}}/{{capacity}}. Nākamā papildināšana: {{progress}}/{{required}}.",
@@ -516,7 +515,6 @@ const lvCatalog: TranslationCatalog = {
   },
   settingsHome: {
     title: "Iestatījumi",
-    subtitle: "Pārvaldiet kontu, darbvietu, atbalstu un papildu tīmekļa iestatījumus.",
     inviteFriend: {
       actionText: "Pievienot draugu",
       ariaLabel: "Pievienot draugu",
@@ -1230,7 +1228,6 @@ const lvCatalog: TranslationCatalog = {
       label: "Meklēt",
       placeholder: "Meklēt priekšpusē, aizmugurē vai birkās",
     },
-    subtitle: "Kartītes ir jautājumi un atbildes, ko atkārtojat, lai mācītos un atcerētos.",
     table: {
       back: "Aizmugure",
       due: "Jāatkārto",

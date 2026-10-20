@@ -272,7 +272,6 @@ const paCatalog: TranslationCatalog = {
   },
   progressScreen: {
     title: "ਤਰੱਕੀ",
-    subtitle: "ਆਪਣੀ ਹਾਲੀਆ ਲੜੀ ਅਤੇ ਰੋਜ਼ਾਨਾ ਦੁਹਰਾਈ ਦਾ ਇਤਿਹਾਸ ਵੇਖੋ.",
     streakTitle: "ਲੜੀ",
     streakInfoToggleLabel: "ਲੜੀ ਫ੍ਰੀਜ਼ ਬਾਰੇ",
     streakInfo: "ਫ੍ਰੀਜ਼ ਬੈਂਕ {{available}}/{{capacity}}. ਅਗਲਾ ਰੀਚਾਰਜ {{progress}}/{{required}}.",
@@ -516,7 +515,6 @@ const paCatalog: TranslationCatalog = {
   },
   settingsHome: {
     title: "ਸੈਟਿੰਗਾਂ",
-    subtitle: "ਖਾਤਾ, ਵਰਕਸਪੇਸ, ਸਹਾਇਤਾ ਅਤੇ ਉੱਨਤ ਵੈੱਬ ਸੈਟਿੰਗਾਂ ਸੰਭਾਲੋ.",
     inviteFriend: {
       actionText: "ਦੋਸਤ ਸ਼ਾਮਲ ਕਰੋ",
       ariaLabel: "ਦੋਸਤ ਸ਼ਾਮਲ ਕਰੋ",
@@ -1230,7 +1228,6 @@ const paCatalog: TranslationCatalog = {
       label: "ਖੋਜ",
       placeholder: "ਅਗਲਾ ਪਾਸਾ, ਪਿਛਲਾ ਪਾਸਾ ਜਾਂ ਟੈਗ ਲੱਭੋ",
     },
-    subtitle: "ਕਾਰਡਾਂ ਵਿੱਚ ਉਹ ਸਵਾਲ ਅਤੇ ਜਵਾਬ ਹੁੰਦੇ ਹਨ ਜਿਨ੍ਹਾਂ ਦੀ ਤੁਸੀਂ ਸਿੱਖਣ ਅਤੇ ਯਾਦ ਰੱਖਣ ਲਈ ਦੁਹਰਾਈ ਕਰਦੇ ਹੋ.",
     table: {
       back: "ਪਿਛਲਾ ਪਾਸਾ",
       due: "ਬਕਾਇਆ",

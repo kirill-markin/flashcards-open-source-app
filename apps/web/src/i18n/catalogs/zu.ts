@@ -272,7 +272,6 @@ const zuCatalog: TranslationCatalog = {
   },
   progressScreen: {
     title: "Inqubekelaphambili",
-    subtitle: "Landelela uchungechunge lwakho lwakamuva nomlando wokubukeza wansuku zonke.",
     streakTitle: "Uchungechunge",
     streakInfoToggleLabel: "Mayelana nezivikelo zochungechunge",
     streakInfo: "Isilondolozi sochungechunge {{available}}/{{capacity}}. Ukugcwaliswa okulandelayo {{progress}}/{{required}}.",
@@ -516,7 +515,6 @@ const zuCatalog: TranslationCatalog = {
   },
   settingsHome: {
     title: "Izilungiselelo",
-    subtitle: "Phatha i-akhawunti, indawo yokusebenza, usizo, nezilungiselelo zewebhu ezithuthukisiwe.",
     inviteFriend: {
       actionText: "Engeza umngane",
       ariaLabel: "Engeza umngane",
@@ -1230,7 +1228,6 @@ const zuCatalog: TranslationCatalog = {
       label: "Sesha",
       placeholder: "Sesha ingaphambili, ingemuva, noma amathegi",
     },
-    subtitle: "Amakhadi anemibuzo nezimpendulo ozibukezayo ukuze ufunde futhi ukhumbule.",
     table: {
       back: "Ingemuva",
       due: "Sekuyisikhathi",

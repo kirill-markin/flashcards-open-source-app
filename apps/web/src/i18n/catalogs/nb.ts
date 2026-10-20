@@ -272,7 +272,6 @@ const nbCatalog: TranslationCatalog = {
   },
   progressScreen: {
     title: "Fremgang",
-    subtitle: "Følg rekken din og repetisjonshistorikken dag for dag.",
     streakTitle: "Rekke",
     streakInfoToggleLabel: "Om rekkefrys",
     streakInfo: "Frysebank {{available}}/{{capacity}}. Neste påfyll {{progress}}/{{required}}.",
@@ -516,7 +515,6 @@ const nbCatalog: TranslationCatalog = {
   },
   settingsHome: {
     title: "Innstillinger",
-    subtitle: "Administrer konto, arbeidsområde, støtte og avanserte nettinnstillinger.",
     inviteFriend: {
       actionText: "Legg til venn",
       ariaLabel: "Legg til venn",
@@ -1230,7 +1228,6 @@ const nbCatalog: TranslationCatalog = {
       label: "Søk",
       placeholder: "Søk i forside, bakside eller tagger",
     },
-    subtitle: "Kort er spørsmålene og svarene du repeterer for å lære og huske.",
     table: {
       back: "Bakside",
       due: "Forfaller",

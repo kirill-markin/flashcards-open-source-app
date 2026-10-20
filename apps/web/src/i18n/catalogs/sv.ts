@@ -272,7 +272,6 @@ const svCatalog: TranslationCatalog = {
   },
   progressScreen: {
     title: "Framsteg",
-    subtitle: "Följ din senaste svit och din dagliga repetitionshistorik.",
     streakTitle: "Svit",
     streakInfoToggleLabel: "Om svitfrysningar",
     streakInfo: "Fryssaldo {{available}}/{{capacity}}. Nästa påfyllning {{progress}}/{{required}}.",
@@ -516,7 +515,6 @@ const svCatalog: TranslationCatalog = {
   },
   settingsHome: {
     title: "Inställningar",
-    subtitle: "Hantera konto, arbetsyta, support och avancerade webbinställningar.",
     inviteFriend: {
       actionText: "Lägg till vän",
       ariaLabel: "Lägg till vän",
@@ -1230,7 +1228,6 @@ const svCatalog: TranslationCatalog = {
       label: "Sök",
       placeholder: "Sök i framsida, baksida eller taggar",
     },
-    subtitle: "Kort är frågorna och svaren du repeterar för att lära dig och minnas.",
     table: {
       back: "Baksida",
       due: "Förfaller",

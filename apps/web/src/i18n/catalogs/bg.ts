@@ -272,7 +272,6 @@ const bgCatalog: TranslationCatalog = {
   },
   progressScreen: {
     title: "Напредък",
-    subtitle: "Следете последната си поредица и дневната история на преговорите.",
     streakTitle: "Поредица",
     streakInfoToggleLabel: "Относно замразяванията на поредицата",
     streakInfo: "Налични замразявания: {{available}}/{{capacity}}. Следващо възстановяване: {{progress}}/{{required}}.",
@@ -516,7 +515,6 @@ const bgCatalog: TranslationCatalog = {
   },
   settingsHome: {
     title: "Настройки",
-    subtitle: "Управлявайте акаунта, работното пространство, поддръжката и разширените уеб настройки.",
     inviteFriend: {
       actionText: "Добавяне на приятел",
       ariaLabel: "Добавяне на приятел",
@@ -1230,7 +1228,6 @@ const bgCatalog: TranslationCatalog = {
       label: "Търсене",
       placeholder: "Търсене в лицето, гърба или етикетите",
     },
-    subtitle: "Картите съдържат въпроси и отговори, които преговаряте, за да учите и запомняте.",
     table: {
       back: "Гръб",
       due: "За преговор",

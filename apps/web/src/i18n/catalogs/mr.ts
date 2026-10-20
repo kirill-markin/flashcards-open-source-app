@@ -272,7 +272,6 @@ const mrCatalog: TranslationCatalog = {
   },
   progressScreen: {
     title: "प्रगती",
-    subtitle: "तुमचे अलीकडील सलग दिवस आणि दैनंदिन उजळणीचा इतिहास पाहा.",
     streakTitle: "सलग दिवस",
     streakInfoToggleLabel: "सलग दिवस फ्रीझबद्दल",
     streakInfo: "फ्रीझ शिल्लक {{available}}/{{capacity}}. पुढील भरणा {{progress}}/{{required}}.",
@@ -516,7 +515,6 @@ const mrCatalog: TranslationCatalog = {
   },
   settingsHome: {
     title: "सेटिंग्ज",
-    subtitle: "खाते, कार्यक्षेत्र, सहाय्य आणि प्रगत वेब सेटिंग्ज व्यवस्थापित करा.",
     inviteFriend: {
       actionText: "मित्र जोडा",
       ariaLabel: "मित्र जोडा",
@@ -1230,7 +1228,6 @@ const mrCatalog: TranslationCatalog = {
       label: "शोध",
       placeholder: "पुढील बाजू, मागील बाजू किंवा टॅग शोधा",
     },
-    subtitle: "कार्डे म्हणजे शिकण्यासाठी आणि लक्षात ठेवण्यासाठी तुम्ही उजळणी करता ते प्रश्न आणि उत्तरे.",
     table: {
       back: "मागील बाजू",
       due: "बाकी",

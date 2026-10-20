@@ -272,7 +272,6 @@ const taCatalog: TranslationCatalog = {
   },
   progressScreen: {
     title: "முன்னேற்றம்",
-    subtitle: "உங்கள் சமீபத்திய தொடர்ச்சியையும் தினசரி மீள்பயிற்சி வரலாற்றையும் கண்காணியுங்கள்.",
     streakTitle: "தொடர்ச்சி",
     streakInfoToggleLabel: "தொடர்ச்சி உறைவுகள் பற்றி",
     streakInfo: "உறைவுச் சேமிப்பு {{available}}/{{capacity}}. அடுத்த நிரப்பல் {{progress}}/{{required}}.",
@@ -516,7 +515,6 @@ const taCatalog: TranslationCatalog = {
   },
   settingsHome: {
     title: "அமைப்புகள்",
-    subtitle: "கணக்கு, பணியிடம், ஆதரவு மற்றும் மேம்பட்ட வலை அமைப்புகளை நிர்வகிக்கவும்.",
     inviteFriend: {
       actionText: "நண்பரைச் சேர்",
       ariaLabel: "நண்பரைச் சேர்",
@@ -1230,7 +1228,6 @@ const taCatalog: TranslationCatalog = {
       label: "தேடு",
       placeholder: "முன்புறம், பின்புறம் அல்லது குறிச்சொற்களைத் தேடு",
     },
-    subtitle: "கற்கவும் நினைவில் வைக்கவும் நீங்கள் மீள்பயிற்சி செய்யும் கேள்விகளும் பதில்களுமே அட்டைகள்.",
     table: {
       back: "பின்புறம்",
       due: "உரியவை",

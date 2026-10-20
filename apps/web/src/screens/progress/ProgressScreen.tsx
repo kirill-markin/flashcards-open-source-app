@@ -340,7 +340,6 @@ export function ProgressScreen(): ReactElement {
         <div className="screen-head">
           <div>
             <h1 className="title">{t("progressScreen.title")}</h1>
-            <p className="subtitle">{t("progressScreen.subtitle")}</p>
           </div>
 
           <button className="ghost-btn" type="button" onClick={() => void refreshProgress()}>

@@ -278,7 +278,6 @@ const ltCatalog: TranslationCatalog = {
   },
   progressScreen: {
     title: "Pažanga",
-    subtitle: "Stebėkite naujausią seriją ir kasdienę kartojimų istoriją.",
     streakTitle: "Serija",
     streakInfoToggleLabel: "Apie serijos apsaugas",
     streakInfo: "Serijos apsaugų atsargoje: {{available}}/{{capacity}}. Kitas papildymas: {{progress}}/{{required}}.",
@@ -524,7 +523,6 @@ const ltCatalog: TranslationCatalog = {
   },
   settingsHome: {
     title: "Nustatymai",
-    subtitle: "Tvarkykite paskyros, darbo srities, pagalbos ir išplėstinius žiniatinklio nustatymus.",
     inviteFriend: {
       actionText: "Pridėti draugą",
       ariaLabel: "Pridėti draugą",
@@ -1240,7 +1238,6 @@ const ltCatalog: TranslationCatalog = {
       label: "Paieška",
       placeholder: "Ieškoti priekinėje, galinėje pusėje arba žymose",
     },
-    subtitle: "Kortelės – tai klausimai ir atsakymai, kuriuos kartojate, kad išmoktumėte ir įsimintumėte.",
     table: {
       back: "Galinė pusė",
       due: "Laikas kartoti",

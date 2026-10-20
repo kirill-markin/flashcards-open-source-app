@@ -284,7 +284,6 @@ const slCatalog: TranslationCatalog = {
   },
   progressScreen: {
     title: "Napredek",
-    subtitle: "Spremljajte svoj nedavni niz in dnevno zgodovino ponavljanja.",
     streakTitle: "Niz",
     streakInfoToggleLabel: "O zaščitah niza",
     streakInfo: "Zaščite niza: {{available}}/{{capacity}}. Naslednje obnavljanje: {{progress}}/{{required}}.",
@@ -532,7 +531,6 @@ const slCatalog: TranslationCatalog = {
   },
   settingsHome: {
     title: "Nastavitve",
-    subtitle: "Upravljajte račun, delovni prostor, podporo in napredne spletne nastavitve.",
     inviteFriend: {
       actionText: "Dodaj prijatelja",
       ariaLabel: "Dodaj prijatelja",
@@ -1250,7 +1248,6 @@ const slCatalog: TranslationCatalog = {
       label: "Iskanje",
       placeholder: "Išči po sprednji strani, zadnji strani ali oznakah",
     },
-    subtitle: "Kartice so vprašanja in odgovori, ki jih ponavljate, da se jih naučite in si jih zapomnite.",
     table: {
       back: "Zadnja stran",
       due: "Za ponovitev",

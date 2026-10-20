@@ -67,7 +67,9 @@ export type CatalogInstallDeviceCategory = (typeof catalogInstallDeviceCategorie
  * account credential - the page view, the site click - resolves through the shared
  * `analytics_visitor` cookie in its `anonymous_id`, and onto the account once the web app records an
  * `authenticated_client` identity link for that cookie; the server install carries the account in
- * `user_id` already. That is what carries a person from the site click to the server install.
+ * `user_id` already. That is what carries a person from the site click to the server install. An
+ * install made as a web browser guest names the guest instead, and joins the visit through the
+ * `anonymous_id` the guest's own rows share with the click (`browser_guest_actors` below).
  *
  * The click and the install each require the row's own `package_version_id`. `source` and
  * `deviceCategory` are the page view's own.
@@ -94,8 +96,9 @@ export type CatalogInstallFunnelVisit = Readonly<{
    * The two post-install engagement facts, both null together exactly when the visit has no server
    * install, because a person's reviews are only measurable from the install onwards.
    *
-   * `installReviewCount` counts the identity's `review_answered` rows from the install to the page
-   * view's seven-day bound, anywhere in the product rather than in the installed deck.
+   * `installReviewCount` counts the `review_answered` rows of the identity and its browser guest
+   * from the install to the page view's seven-day bound, anywhere in the product rather than in the
+   * installed deck.
    * `installReviewDayCount` is the distinct UTC days those same reviews fall on.
    */
   installReviewCount: number | null;
@@ -537,7 +540,8 @@ export function buildCatalogInstallFunnelSql(filters: AnalyticsFilterState): str
     "    click.event_properties ->> 'placement' AS click_placement,",
     // The same `NULLIF` the click filter and the General attribution fragment apply, so an empty
     // locale is the absence of a reported browser language here too, and groups as `Unresolved`.
-    "    NULLIF(click.device_locale, '') AS click_browser_language",
+    "    NULLIF(click.device_locale, '') AS click_browser_language,",
+    "    click.anonymous_id AS click_anonymous_id",
     "  FROM eligible_visits AS visit",
     "  INNER JOIN client_events AS click",
     "    ON click.actor_id = visit.actor_id",
@@ -557,6 +561,43 @@ export function buildCatalogInstallFunnelSql(filters: AnalyticsFilterState): str
     "), visit_actors AS (",
     "  SELECT DISTINCT eligible_visits.actor_id",
     "  FROM eligible_visits",
+    // A signed-out visitor who imports the deck gets a web browser guest seconds after the click, and
+    // the server install names that guest rather than the visitor: the backend writes no identity link
+    // for a guest request, so the visitor's own rows never resolve onto it. The guest's own
+    // `guest_client` rows carry the click's `anonymous_id`, and that shared visitor id is the only
+    // join. The guest's `actor_id` rather than its `user_id`, because the install and its reviews are
+    // keyed on the resolved identity, which a later merge moves onto the target account.
+    //
+    // The guest is held to the visitor's own exclusion and audience rules, so an excluded guest stays
+    // out and `signed-in` still drops a guest that never registered.
+    "), browser_guest_actors AS MATERIALIZED (",
+    "  SELECT DISTINCT guest_row.anonymous_id, guest_row.actor_id",
+    "  FROM analytics.product_events_resolved AS guest_row",
+    "  WHERE guest_row.trust_level = 'guest_client'",
+    "    AND guest_row.platform = 'web'",
+    "    AND guest_row.anonymous_id = ANY (ARRAY(",
+    "      SELECT visit_clicks.click_anonymous_id",
+    "      FROM visit_clicks",
+    "    ))",
+    "    AND guest_row.actor_id IS NOT NULL",
+    "    AND guest_row.occurred_at >= (",
+    `      (${escapeSqlStringLiteral(from)}::date)::timestamp AT TIME ZONE 'UTC'`,
+    "    )",
+    "    AND guest_row.occurred_at < (",
+    `      (${escapeSqlStringLiteral(to)}::date + INTERVAL '${catalogInstallConversionWindowDays + 1} days')::timestamp AT TIME ZONE 'UTC'`,
+    "    )",
+    ...buildExcludedActorSqlLines("guest_row.actor_id::text"),
+    ...buildFunnelAudienceActorSqlLines(filters, "guest_row.actor_id::text"),
+    // Every identity whose server install and reviews count for a clicked visit: the visit's own and
+    // its browser guest's. `UNION` keeps each once, so no review joins a visit twice.
+    "), visit_install_actors AS MATERIALIZED (",
+    "  SELECT clicked.actor_id, clicked.package_version_id, clicked.actor_id AS install_actor_id",
+    "  FROM visit_clicks AS clicked",
+    "  UNION",
+    "  SELECT clicked.actor_id, clicked.package_version_id, guest.actor_id AS install_actor_id",
+    "  FROM visit_clicks AS clicked",
+    "  INNER JOIN browser_guest_actors AS guest",
+    "    ON guest.anonymous_id = clicked.click_anonymous_id",
     "), visit_rows AS MATERIALIZED (",
     "SELECT",
     "  visit.actor_id,",
@@ -573,7 +614,12 @@ export function buildCatalogInstallFunnelSql(filters: AnalyticsFilterState): str
     "LEFT JOIN LATERAL (",
     "  SELECT installed_event.occurred_at",
     "  FROM server_installs AS installed_event",
-    "  WHERE installed_event.actor_id = visit.actor_id",
+    "  WHERE installed_event.actor_id IN (",
+    "      SELECT install_actor.install_actor_id",
+    "      FROM visit_install_actors AS install_actor",
+    "      WHERE install_actor.actor_id = visit.actor_id",
+    "        AND install_actor.package_version_id = visit.package_version_id",
+    "    )",
     "    AND installed_event.event_properties ->> 'package_version_id' = visit.package_version_id",
     "    AND installed_event.occurred_at >= clicked.clicked_at",
     `    AND installed_event.occurred_at <= visit.anchor_at + INTERVAL '${catalogInstallConversionWindowDays} days'`,
@@ -584,8 +630,11 @@ export function buildCatalogInstallFunnelSql(filters: AnalyticsFilterState): str
     // without a server install has no install to measure from, so its columns arrive null together
     // rather than as a zero that would read as a drop-off.
     "), install_actors AS (",
-    "  SELECT DISTINCT visit.actor_id",
+    "  SELECT DISTINCT install_actor.install_actor_id AS actor_id",
     "  FROM visit_rows AS visit",
+    "  INNER JOIN visit_install_actors AS install_actor",
+    "    ON install_actor.actor_id = visit.actor_id",
+    "    AND install_actor.package_version_id = visit.package_version_id",
     "  WHERE visit.installed_at IS NOT NULL",
     // THE REVIEWS ARE THE PERSON'S, NOT THE DECK'S. `review_answered` carries only `rating` and
     // `source`, so no deck or card identity exists to narrow them by, and this reads every review
@@ -624,8 +673,11 @@ export function buildCatalogInstallFunnelSql(filters: AnalyticsFilterState): str
     "    COUNT(review.occurred_at)::int AS review_count,",
     "    COUNT(DISTINCT (review.occurred_at AT TIME ZONE 'UTC')::date)::int AS review_day_count",
     "  FROM visit_rows AS visit",
+    "  INNER JOIN visit_install_actors AS install_actor",
+    "    ON install_actor.actor_id = visit.actor_id",
+    "    AND install_actor.package_version_id = visit.package_version_id",
     "  LEFT JOIN install_actor_reviews AS review",
-    "    ON review.actor_id = visit.actor_id",
+    "    ON review.actor_id = install_actor.install_actor_id",
     "    AND review.occurred_at >= visit.installed_at",
     `    AND review.occurred_at <= visit.visited_at + INTERVAL '${catalogInstallConversionWindowDays} days'`,
     "  WHERE visit.installed_at IS NOT NULL",

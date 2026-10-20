@@ -272,7 +272,6 @@ const arCatalog: TranslationCatalog = {
   },
   progressScreen: {
     title: "التقدم",
-    subtitle: "تتبّع سلسلة الأيام الأخيرة وسجل المراجعات اليومي.",
     streakTitle: "السلسلة",
     streakInfoToggleLabel: "حول تجميد السلسلة",
     streakInfo: "رصيد التجميد {{available}}/{{capacity}}. الشحن التالي {{progress}}/{{required}}.",
@@ -516,7 +515,6 @@ const arCatalog: TranslationCatalog = {
   },
   settingsHome: {
     title: "الإعدادات",
-    subtitle: "أدر الحساب ومساحة العمل والدعم وإعدادات الويب المتقدمة.",
     inviteFriend: {
       actionText: "إضافة صديق",
       ariaLabel: "إضافة صديق",
@@ -1230,7 +1228,6 @@ const arCatalog: TranslationCatalog = {
       label: "بحث",
       placeholder: "ابحث في الأمام أو الخلف أو الوسوم",
     },
-    subtitle: "البطاقات هي الأسئلة والأجوبة التي تراجعها لتتعلّم وتتذكر.",
     table: {
       back: "الخلف",
       due: "مستحق",

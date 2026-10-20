@@ -272,7 +272,6 @@ const itCatalog: TranslationCatalog = {
   },
   progressScreen: {
     title: "Progressi",
-    subtitle: "Monitora la tua serie recente e lo storico dei ripassi giornalieri.",
     streakTitle: "Serie",
     streakInfoToggleLabel: "Informazioni sui congelamenti della serie",
     streakInfo: "Riserva congelamenti {{available}}/{{capacity}}. Prossima ricarica {{progress}}/{{required}}.",
@@ -516,7 +515,6 @@ const itCatalog: TranslationCatalog = {
   },
   settingsHome: {
     title: "Impostazioni",
-    subtitle: "Gestisci account, area di lavoro, supporto e impostazioni web avanzate.",
     inviteFriend: {
       actionText: "Aggiungi amico",
       ariaLabel: "Aggiungi amico",
@@ -1230,7 +1228,6 @@ const itCatalog: TranslationCatalog = {
       label: "Cerca",
       placeholder: "Cerca nel fronte, nel retro o nei tag",
     },
-    subtitle: "Le carte sono le domande e le risposte che ripassi per imparare e ricordare.",
     table: {
       back: "Retro",
       due: "Scadenza",

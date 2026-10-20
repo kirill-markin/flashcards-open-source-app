@@ -272,7 +272,6 @@ export const jaCatalog = {
   },
   progressScreen: {
     title: "進捗",
-    subtitle: "直近の連続日数と日ごとの復習履歴を確認できます。",
     streakTitle: "連続日数",
     streakInfoToggleLabel: "連続フリーズについて",
     streakInfo: "フリーズ残数 {{available}}/{{capacity}}。次の回復 {{progress}}/{{required}}。",
@@ -516,7 +515,6 @@ export const jaCatalog = {
   },
   settingsHome: {
     title: "設定",
-    subtitle: "アカウント、ワークスペース、サポート、詳細な Web 設定を管理します。",
     inviteFriend: {
       actionText: "友達を追加",
       ariaLabel: "友達を追加",
@@ -1230,7 +1228,6 @@ export const jaCatalog = {
       label: "検索",
       placeholder: "表面、裏面、またはタグを検索",
     },
-    subtitle: "カードは、学んで覚えるために復習する問いと答えです。",
     table: {
       back: "裏面",
       due: "期限",

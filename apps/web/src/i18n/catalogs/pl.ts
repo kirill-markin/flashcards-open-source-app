@@ -278,7 +278,6 @@ const plCatalog: TranslationCatalog = {
   },
   progressScreen: {
     title: "Postępy",
-    subtitle: "Śledź swoją ostatnią serię i historię codziennych powtórek.",
     streakTitle: "Seria",
     streakInfoToggleLabel: "O zamrożeniach serii",
     streakInfo: "Zapas zamrożeń {{available}}/{{capacity}}. Następne doładowanie {{progress}}/{{required}}.",
@@ -524,7 +523,6 @@ const plCatalog: TranslationCatalog = {
   },
   settingsHome: {
     title: "Ustawienia",
-    subtitle: "Zarządzaj kontem, przestrzenią roboczą, pomocą i zaawansowanymi ustawieniami aplikacji webowej.",
     inviteFriend: {
       actionText: "Dodaj znajomego",
       ariaLabel: "Dodaj znajomego",
@@ -1240,7 +1238,6 @@ const plCatalog: TranslationCatalog = {
       label: "Szukaj",
       placeholder: "Szukaj w treści kart lub tagach",
     },
-    subtitle: "Karty to pytania i odpowiedzi, które powtarzasz, aby się uczyć i zapamiętywać.",
     table: {
       back: "Tył",
       due: "Termin",

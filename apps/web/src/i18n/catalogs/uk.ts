@@ -278,7 +278,6 @@ const ukCatalog: TranslationCatalog = {
   },
   progressScreen: {
     title: "Прогрес",
-    subtitle: "Стежте за поточною серією та історією щоденних повторень.",
     streakTitle: "Серія",
     streakInfoToggleLabel: "Про заморозки серії",
     streakInfo: "Запас заморозок {{available}}/{{capacity}}. Наступне поповнення {{progress}}/{{required}}.",
@@ -524,7 +523,6 @@ const ukCatalog: TranslationCatalog = {
   },
   settingsHome: {
     title: "Налаштування",
-    subtitle: "Керуйте акаунтом, робочим простором, підтримкою та розширеними вебналаштуваннями.",
     inviteFriend: {
       actionText: "Додати друга",
       ariaLabel: "Додати друга",
@@ -1240,7 +1238,6 @@ const ukCatalog: TranslationCatalog = {
       label: "Пошук",
       placeholder: "Пошук за передньою, зворотною стороною або тегами",
     },
-    subtitle: "Картки — це питання та відповіді, які ви повторюєте, щоб вивчити й запам'ятати.",
     table: {
       back: "Зворотна сторона",
       due: "Термін",

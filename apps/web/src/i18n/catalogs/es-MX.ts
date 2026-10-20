@@ -272,7 +272,6 @@ const esMxCatalog: TranslationCatalog = {
   },
   progressScreen: {
     title: "Progreso",
-    subtitle: "Sigue tu racha reciente y el historial diario de repasos.",
     streakTitle: "Racha",
     streakInfoToggleLabel: "Acerca de las congelaciones de racha",
     streakInfo: "Banco de congelaciones {{available}}/{{capacity}}. Próxima recarga {{progress}}/{{required}}.",
@@ -516,7 +515,6 @@ const esMxCatalog: TranslationCatalog = {
   },
   settingsHome: {
     title: "Configuración",
-    subtitle: "Administra la cuenta, el espacio de trabajo, el soporte y la configuración web avanzada.",
     inviteFriend: {
       actionText: "Agregar amigo",
       ariaLabel: "Agregar amigo",
@@ -1230,7 +1228,6 @@ const esMxCatalog: TranslationCatalog = {
       label: "Buscar",
       placeholder: "Buscar en el frente, el reverso o las etiquetas",
     },
-    subtitle: "Las tarjetas son las preguntas y respuestas que repasas para aprender y recordar.",
     table: {
       back: "Reverso",
       due: "Pendiente",

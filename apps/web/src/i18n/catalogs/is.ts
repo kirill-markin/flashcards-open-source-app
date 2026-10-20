@@ -272,7 +272,6 @@ const isCatalog: TranslationCatalog = {
   },
   progressScreen: {
     title: "Framvinda",
-    subtitle: "Fylgstu með nýlegri runu og daglegri upprifjunarsögu.",
     streakTitle: "Runa",
     streakInfoToggleLabel: "Um runuvörn",
     streakInfo: "Runuvörn: {{available}}/{{capacity}}. Næsta endurhleðsla: {{progress}}/{{required}}.",
@@ -516,7 +515,6 @@ const isCatalog: TranslationCatalog = {
   },
   settingsHome: {
     title: "Stillingar",
-    subtitle: "Stjórnaðu aðgangi, vinnusvæði, aðstoð og ítarlegum vefstillingum.",
     inviteFriend: {
       actionText: "Bæta við vini",
       ariaLabel: "Bæta við vini",
@@ -1230,7 +1228,6 @@ const isCatalog: TranslationCatalog = {
       label: "Leita",
       placeholder: "Leita í framhlið, bakhlið eða merkjum",
     },
-    subtitle: "Spjöld eru spurningar og svör sem þú rifjar upp til að læra og muna.",
     table: {
       back: "Bakhlið",
       due: "Á dagskrá",

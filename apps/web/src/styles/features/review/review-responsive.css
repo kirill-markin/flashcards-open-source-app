@@ -74,7 +74,8 @@
     padding: 12px;
   }
 
-  .rating-bar {
-    grid-template-columns: 1fr;
+  /* Room for the floating AI chat pill, which on a phone rests just above the action dock. */
+  .review-card-stack {
+    padding-bottom: calc(var(--chat-toggle-floating-compact-height) + var(--shell-frame-gap));
   }
 }

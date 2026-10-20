@@ -272,7 +272,6 @@ const heCatalog: TranslationCatalog = {
   },
   progressScreen: {
     title: "התקדמות",
-    subtitle: "עקוב אחרי הרצף האחרון והיסטוריית החזרות היומית.",
     streakTitle: "רצף",
     streakInfoToggleLabel: "על הקפאות רצף",
     streakInfo: "בנק ההקפאות {{available}}/{{capacity}}. הטעינה הבאה {{progress}}/{{required}}.",
@@ -516,7 +515,6 @@ const heCatalog: TranslationCatalog = {
   },
   settingsHome: {
     title: "הגדרות",
-    subtitle: "ניהול החשבון, סביבת העבודה, התמיכה והגדרות הרשת המתקדמות.",
     inviteFriend: {
       actionText: "הוספת חבר",
       ariaLabel: "הוספת חבר",
@@ -1230,7 +1228,6 @@ const heCatalog: TranslationCatalog = {
       label: "חיפוש",
       placeholder: "חפש בצד הקדמי, בצד האחורי או בתגיות",
     },
-    subtitle: "כרטיסים הם השאלות והתשובות שאתה חוזר עליהן כדי ללמוד ולזכור.",
     table: {
       back: "אחורי",
       due: "מועד",

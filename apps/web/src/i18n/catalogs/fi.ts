@@ -272,7 +272,6 @@ const fiCatalog: TranslationCatalog = {
   },
   progressScreen: {
     title: "Edistyminen",
-    subtitle: "Seuraa päiväputkeasi ja päivittäistä kertaushistoriaasi.",
     streakTitle: "Päiväputki",
     streakInfoToggleLabel: "Tietoja päiväputken suojista",
     streakInfo: "Suojia {{available}}/{{capacity}}. Seuraava latautuminen {{progress}}/{{required}}.",
@@ -516,7 +515,6 @@ const fiCatalog: TranslationCatalog = {
   },
   settingsHome: {
     title: "Asetukset",
-    subtitle: "Hallitse tiliä, työtilaa, tukea ja verkkosovelluksen lisäasetuksia.",
     inviteFriend: {
       actionText: "Lisää ystävä",
       ariaLabel: "Lisää ystävä",
@@ -1230,7 +1228,6 @@ const fiCatalog: TranslationCatalog = {
       label: "Haku",
       placeholder: "Hae etupuolta, kääntöpuolta tai tunnisteita",
     },
-    subtitle: "Kortit ovat kysymyksiä ja vastauksia, joita kertaat oppiaksesi ja muistaaksesi.",
     table: {
       back: "Kääntöpuoli",
       due: "Erääntyy",
