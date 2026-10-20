@@ -1,9 +1,11 @@
-import { useCallback, useEffect, useRef, type JSX } from "react";
+import { useCallback, useEffect, useMemo, useRef, type JSX } from "react";
 import type { ReviewEventsByDateUser } from "../../../adminApi";
 import { PlatformKey, UniqueUserCohortKey } from "../../../charts/ChartLegends";
 import { ChartGeneratedAt } from "../../../charts/ChartGeneratedAt";
 import { ChartLoadingPlaceholder } from "../../../charts/ChartLoadingPlaceholder";
+import { ChartNotesKey } from "../../../charts/ChartNotesKey";
 import { ChartTooltip, useChartTooltip } from "../../../charts/ChartTooltip";
+import { buildInProgressChartNote, placeChartNotes } from "../../../charts/chartNotes";
 import { chartWidth, simpleChartHeight, stackedChartHeight } from "../../../charts/chartPrimitives";
 import {
   renderDailyUniqueUsersChart,
@@ -12,6 +14,7 @@ import {
   renderUserReviewEventsChart,
 } from "../../../charts/chartRenderers";
 import type { UserColorScale } from "../../../dashboard/userColors";
+import { todayUtcCalendarDate } from "../../reportValues";
 import type { ReviewEventsByDateChartModel } from "./chartModel";
 
 type ReviewEventsByDateChartsProps = Readonly<{
@@ -30,6 +33,11 @@ export function ReviewEventsByDateCharts(props: ReviewEventsByDateChartsProps): 
   const platformUsersChartRef = useRef<SVGSVGElement | null>(null);
   const platformReviewEventsChartRef = useRef<SVGSVGElement | null>(null);
   const { tooltipState, tooltipHandlers } = useChartTooltip();
+  const today = todayUtcCalendarDate(new Date());
+  const chartNotes = useMemo(() => props.chartModel === null ? null : placeChartNotes(
+    [buildInProgressChartNote(today)],
+    props.chartModel.dates.map((date) => ({ key: date, from: date, to: date })),
+  ), [props.chartModel, today]);
 
   const handleUserFilterApply = useCallback((userId: string): void => {
     props.onUserFilterApply(userId);
@@ -37,7 +45,7 @@ export function ReviewEventsByDateCharts(props: ReviewEventsByDateChartsProps): 
   }, [props.onUserFilterApply, tooltipHandlers]);
 
   useEffect(() => {
-    if (props.chartModel === null) {
+    if (props.chartModel === null || chartNotes === null) {
       tooltipHandlers.hideTooltip();
       return;
     }
@@ -59,6 +67,8 @@ export function ReviewEventsByDateCharts(props: ReviewEventsByDateChartsProps): 
       svgElement: uniqueUsersSvgElement,
       dates: props.chartModel.dates,
       tickDates: props.chartModel.tickDates,
+      today,
+      notes: chartNotes,
       dailyUniqueUserCohortMatrix: props.chartModel.dailyUniqueUserCohortMatrix,
       dailyUniqueUsersByDate: props.chartModel.dailyUniqueUsersByDate,
       totalReviewEventsByDate: props.chartModel.totalReviewEventsByDate,
@@ -69,6 +79,8 @@ export function ReviewEventsByDateCharts(props: ReviewEventsByDateChartsProps): 
       svgElement: userReviewEventsSvgElement,
       dates: props.chartModel.dates,
       tickDates: props.chartModel.tickDates,
+      today,
+      notes: chartNotes,
       userMatrix: props.chartModel.userMatrix,
       userIds: props.chartModel.userIds,
       userColorScale: props.userColorScale,
@@ -82,6 +94,8 @@ export function ReviewEventsByDateCharts(props: ReviewEventsByDateChartsProps): 
       svgElement: platformUsersSvgElement,
       dates: props.chartModel.dates,
       tickDates: props.chartModel.tickDates,
+      today,
+      notes: chartNotes,
       platformActiveUsersMatrix: props.chartModel.platformActiveUsersMatrix,
       dailyUniqueUsersByDate: props.chartModel.dailyUniqueUsersByDate,
       peakDailyPlatformUsers: props.chartModel.peakDailyPlatformUsers,
@@ -91,6 +105,8 @@ export function ReviewEventsByDateCharts(props: ReviewEventsByDateChartsProps): 
       svgElement: platformReviewEventsSvgElement,
       dates: props.chartModel.dates,
       tickDates: props.chartModel.tickDates,
+      today,
+      notes: chartNotes,
       platformReviewEventsMatrix: props.chartModel.platformReviewEventsMatrix,
       totalPlatformReviewEventsByDate: props.chartModel.totalPlatformReviewEventsByDate,
       peakDailyPlatformReviewEvents: props.chartModel.peakDailyPlatformReviewEvents,
@@ -98,6 +114,8 @@ export function ReviewEventsByDateCharts(props: ReviewEventsByDateChartsProps): 
     });
   }, [
     props.chartModel,
+    chartNotes,
+    today,
     props.userById,
     props.userColorScale,
     handleUserFilterApply,
@@ -119,6 +137,7 @@ export function ReviewEventsByDateCharts(props: ReviewEventsByDateChartsProps): 
               <ChartLoadingPlaceholder viewBoxWidth={chartWidth} viewBoxHeight={simpleChartHeight} label="Loading…" />
             ) : <svg ref={uniqueUsersChartRef} />}
           </div>
+          <ChartNotesKey notes={chartNotes} />
         </div>
 
         <div className="chart-shell">
@@ -133,6 +152,7 @@ export function ReviewEventsByDateCharts(props: ReviewEventsByDateChartsProps): 
               <ChartLoadingPlaceholder viewBoxWidth={chartWidth} viewBoxHeight={stackedChartHeight} label="Loading…" />
             ) : <svg ref={userReviewEventsChartRef} />}
           </div>
+          <ChartNotesKey notes={chartNotes} />
         </div>
 
         <div className="chart-shell">
@@ -147,6 +167,7 @@ export function ReviewEventsByDateCharts(props: ReviewEventsByDateChartsProps): 
               <ChartLoadingPlaceholder viewBoxWidth={chartWidth} viewBoxHeight={stackedChartHeight} label="Loading…" />
             ) : <svg ref={platformUsersChartRef} />}
           </div>
+          <ChartNotesKey notes={chartNotes} />
         </div>
 
         <div className="chart-shell">
@@ -161,6 +182,7 @@ export function ReviewEventsByDateCharts(props: ReviewEventsByDateChartsProps): 
               <ChartLoadingPlaceholder viewBoxWidth={chartWidth} viewBoxHeight={stackedChartHeight} label="Loading…" />
             ) : <svg ref={platformReviewEventsChartRef} />}
           </div>
+          <ChartNotesKey notes={chartNotes} />
         </div>
       </section>
 
