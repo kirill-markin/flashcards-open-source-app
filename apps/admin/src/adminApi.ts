@@ -40,73 +40,28 @@ export type AdminQueryResponse = Readonly<{
 // merged into `web` would read as a person using the site. `unattributed` is where every row whose
 // platform column is NULL lands, which means the row carries no resolved device fact - either the
 // actor behind it is not a device or no device could be resolved for it - so it stays its own bucket
-// and is never guessed at. See the note on `buildReviewEventsByDateSql` for how a `review_answered`
-// row reaches its bucket.
+// and is never guessed at.
 export const reviewEventPlatforms = ["web", "android", "ios", "agent", "unattributed"] as const;
 
 export type ReviewEventPlatform = (typeof reviewEventPlatforms)[number];
-
-// The closed domains of `analytics.product_events.os_name` and `device_type`, which
-// `db/migrations/0175_analytics_os_name_device_type.sql` defines, plus the bucket for a row that
-// carries no value. `platform` names the client build, so these are what tell an iPhone, an iPad and
-// a Mac apart, and an Android tablet from an Android phone.
-export const productEventOsNames = ["ios", "ipados", "macos", "android", "unknown"] as const;
-
-export type ProductEventOsName = (typeof productEventOsNames)[number];
-
-export const productEventDeviceTypes = ["phone", "tablet", "desktop", "tv", "unknown"] as const;
-
-export type ProductEventDeviceType = (typeof productEventDeviceTypes)[number];
 
 export const reviewEventCohorts = ["returning", "new"] as const;
 
 export type ReviewEventCohort = (typeof reviewEventCohorts)[number];
 
 /**
- * One person in the report.
+ * One person the Users filter offers.
  *
  * `userId` carries `actor_id` from `analytics.product_events_resolved`, not a raw `user_id`: the view
  * has already collapsed a guest and the account that guest became into one person. It is therefore
  * not always an account id - a guest who never upgraded stays on the guest user id, and an
  * unresolved row resolves to its own `anonymous_id`. The field keeps its name because the filter
- * popup, the tooltips and the chart colour scale are all keyed on it.
+ * popup and the user colour scale are keyed on it.
  */
 export type ReviewEventsByDateUser = Readonly<{
   userId: string;
   email: string;
   totalReviewEvents: number;
-}>;
-
-export type ReviewEventsByDateTotal = Readonly<{
-  date: string;
-  totalReviewEvents: number;
-}>;
-
-export type ReviewEventsByDateUniqueUserCohort = Readonly<{
-  date: string;
-  newReviewingUsers: number;
-  returningReviewingUsers: number;
-}>;
-
-export type ReviewEventsByDatePlatformActiveUserTotal = Readonly<{
-  date: string;
-  platform: ReviewEventPlatform;
-  activeUserCount: number;
-}>;
-
-export type ReviewEventsByDatePlatformReviewEventTotal = Readonly<{
-  date: string;
-  platform: ReviewEventPlatform;
-  reviewEventCount: number;
-}>;
-
-export type ReviewEventsByDateRow = Readonly<{
-  date: string;
-  userId: string;
-  email: string;
-  platform: ReviewEventPlatform;
-  reviewEventCount: number;
-  firstReviewDate: string;
 }>;
 
 /** One community activity row per report date and user. */
@@ -122,60 +77,9 @@ export type ReviewEventsByDateReport = Readonly<{
   generatedAtUtc: string;
   from: string;
   to: string;
-  totalReviewEvents: number;
-  users: ReadonlyArray<ReviewEventsByDateUser>;
-  dateTotals: ReadonlyArray<ReviewEventsByDateTotal>;
-  dailyUniqueUserCohorts: ReadonlyArray<ReviewEventsByDateUniqueUserCohort>;
-  platformActiveUserTotals: ReadonlyArray<ReviewEventsByDatePlatformActiveUserTotal>;
-  platformReviewEventTotals: ReadonlyArray<ReviewEventsByDatePlatformReviewEventTotal>;
-  rows: ReadonlyArray<ReviewEventsByDateRow>;
+  /** Every UTC day of the range, including the ones with no community row. */
+  dates: ReadonlyArray<string>;
   communityRows: ReadonlyArray<ReviewEventsByDateCommunityRow>;
-}>;
-
-/** One (UTC date, actor, platform, OS name, device type) the actor opened the app on. */
-export type DailyActiveUsersRow = Readonly<{
-  date: string;
-  userId: string;
-  email: string;
-  platform: ReviewEventPlatform;
-  osName: ProductEventOsName;
-  deviceType: ProductEventDeviceType;
-  firstActiveDate: string;
-}>;
-
-export type DailyActiveUsersCohortTotal = Readonly<{
-  date: string;
-  newActiveUsers: number;
-  returningActiveUsers: number;
-}>;
-
-export type DailyActiveUsersPlatformTotal = Readonly<{
-  date: string;
-  platform: ReviewEventPlatform;
-  activeUserCount: number;
-}>;
-
-export type DailyActiveUsersOsNameTotal = Readonly<{
-  date: string;
-  osName: ProductEventOsName;
-  activeUserCount: number;
-}>;
-
-export type DailyActiveUsersDeviceTypeTotal = Readonly<{
-  date: string;
-  deviceType: ProductEventDeviceType;
-  activeUserCount: number;
-}>;
-
-export type DailyActiveUsersReport = Readonly<{
-  generatedAtUtc: string;
-  from: string;
-  to: string;
-  dailyCohortTotals: ReadonlyArray<DailyActiveUsersCohortTotal>;
-  platformActiveUserTotals: ReadonlyArray<DailyActiveUsersPlatformTotal>;
-  osNameActiveUserTotals: ReadonlyArray<DailyActiveUsersOsNameTotal>;
-  deviceTypeActiveUserTotals: ReadonlyArray<DailyActiveUsersDeviceTypeTotal>;
-  rows: ReadonlyArray<DailyActiveUsersRow>;
 }>;
 
 /**

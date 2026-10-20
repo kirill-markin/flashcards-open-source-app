@@ -2,8 +2,6 @@ import * as d3 from "d3";
 import {
   reviewEventCohorts,
   reviewEventPlatforms,
-  type ProductEventDeviceType,
-  type ProductEventOsName,
   type ReviewEventCohort,
   type ReviewEventPlatform,
 } from "../adminApi";
@@ -18,12 +16,6 @@ export type ChartTooltipState = Readonly<{
 export type ChartTooltipHandlers = Readonly<{
   showTooltip: (html: string, clientX: number, clientY: number) => void;
   hideTooltip: () => void;
-}>;
-
-/** The identity fields every per-user chart tooltip renders, whichever report supplied the person. */
-export type ChartUser = Readonly<{
-  userId: string;
-  email: string;
 }>;
 
 /**
@@ -72,12 +64,6 @@ export type StackedChartRectEntry = Readonly<{
   y1: number;
 }>;
 
-export type GroupedChartRectEntry = Readonly<{
-  key: string;
-  date: string;
-  value: number;
-}>;
-
 export const chartMargin = { top: 28, right: 68, bottom: 88, left: 68 } as const;
 export const chartWidth = 1320;
 export const simpleChartHeight = 300;
@@ -102,38 +88,6 @@ const platformColors: Readonly<Record<ReviewEventPlatform, string>> = {
   unattributed: "#8c8c8c",
 };
 
-export const osNameLabels: Readonly<Record<ProductEventOsName, string>> = {
-  ios: "iOS",
-  ipados: "iPadOS",
-  macos: "macOS",
-  android: "Android",
-  unknown: "Unknown",
-};
-
-export const osNameColors: Readonly<Record<ProductEventOsName, string>> = {
-  ios: "#f28e2b",
-  ipados: "#e15759",
-  macos: "#76b7b2",
-  android: "#59a14f",
-  unknown: "#8c8c8c",
-};
-
-export const deviceTypeLabels: Readonly<Record<ProductEventDeviceType, string>> = {
-  phone: "Phone",
-  tablet: "Tablet",
-  desktop: "Desktop",
-  tv: "TV",
-  unknown: "Unknown",
-};
-
-export const deviceTypeColors: Readonly<Record<ProductEventDeviceType, string>> = {
-  phone: "#4e79a7",
-  tablet: "#e15759",
-  desktop: "#76b7b2",
-  tv: "#ff9da7",
-  unknown: "#8c8c8c",
-};
-
 export const uniqueUserCohortKeys = reviewEventCohorts;
 export type UniqueUserCohortKey = ReviewEventCohort;
 
@@ -149,12 +103,6 @@ export const uniqueUserCohortColors: Readonly<Record<UniqueUserCohortKey, string
 
 /** The plain daily total bars: the value of `--accent` in `../styles.css`, tracked by hand. */
 export const dailyTotalBarColor = "#ff6719";
-
-/**
- * The line marking a day's unique active users over a breakdown whose segments can sum above it: the
- * value of `--text` in `../styles.css`, tracked by hand.
- */
-export const dailyActiveUsersUniqueTotalMarkerColor = "#f6f6f8";
 
 export type PackageColorScale = d3.ScaleOrdinal<string, string, string>;
 export type FunnelGroupColorScale = d3.ScaleOrdinal<string, string, string>;

@@ -34,7 +34,7 @@ import { insertProductAnalyticsEvents, insertProductAnalyticsIdentityLink } from
 //
 // Each field is optional, and null is always a correct answer. A producer that cannot justify a
 // value passes null, and there is no safe default it may reach for instead. Both outcomes have a
-// cost and they are not symmetric: null leaves the row out of "daily active users by platform",
+// cost and they are not symmetric: null leaves the row out of every per-platform people count,
 // while a guess files it under a platform it never had, permanently, on an append-only table. Each
 // producer therefore justifies its own derivation at its own call site, against the rows it
 // actually reads, and this comment is a list of hazards rather than a mapping to copy.

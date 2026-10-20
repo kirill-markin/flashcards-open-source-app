@@ -161,21 +161,19 @@ const catalogInstallCohortSqlExpression = [
 // Per-actor catalog deck installs for the admin "Catalog deck installs" section. One install action
 // by one person is one event, and one row is one (UTC date, actor, package slug).
 //
-// The shape mirrors `buildReviewEventsByDateSql`: the `org.user_settings` email join folded with
-// `pg_catalog.lower` because `actor_id` renders canonical lowercase hex while
-// `org.user_settings.user_id` is an unconstrained TEXT primary key - here it only supplies the
+// The `org.user_settings` email join is folded with `pg_catalog.lower` because `actor_id` renders
+// canonical lowercase hex while `org.user_settings.user_id` is an unconstrained TEXT primary key - here it only supplies the
 // displayed address, since the people this section refuses to count are dropped by
 // `buildExcludedActorSqlLines` - and grouping by `actor_id` so a guest and the account that guest
-// became are one person. Unlike that query the install CTE is bounded on both sides, because an
-// install's cohort is not derived from a first-install day at all.
+// became are one person. The install CTE is bounded on both sides, because an install's cohort is
+// not derived from a first-install day at all.
 //
-// NEW VERSUS RETURNING IS THE INSTALLER'S FIRST TRUSTED `app_opened` DAY, which is the cohort
-// definition of the daily active users section rather than one of this section's own, so the two
-// sections cannot disagree about which day a person was new on. `installer_first_active_date`
-// recreates exactly what that section exposes: each installer's first such day over all history up to
-// the end of the range, kept only for installers that have one INSIDE the range, because that is the
-// window the other section reports on. Trusted is what `buildTrustedActorRowsFilterSql` defines, and
-// `installer_app_opens` below is where this query applies it.
+// NEW VERSUS RETURNING IS THE INSTALLER'S FIRST TRUSTED `app_opened` DAY, which is the first-open
+// definition of Who opened the app rather than one of this section's own, so the two cannot disagree
+// about which day a person was new on. `installer_first_active_date` is each installer's first such
+// day over all history up to the end of the range, kept only for installers that have one INSIDE the
+// range. Trusted is what `buildTrustedActorRowsFilterSql` defines, and `installer_app_opens` below is
+// where this query applies it.
 //
 // AN INSTALLER WITH NO TRUSTED `app_opened` DAY INSIDE THE RANGE BELONGS TO NEITHER SIDE. There is
 // no first active day to compare the install against, so the row is kept only while both cohorts are

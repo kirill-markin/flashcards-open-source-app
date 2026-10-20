@@ -7,7 +7,7 @@
 Each area's contract lives beside the code that computes it:
 
 - `Level 1 metrics`, the landing page: one chart per stage of the user funnel, from `Who saw us` to `Who paid us` ([area](../apps/admin/src/reports/levelOneMetrics/LevelOneMetricsArea.tsx)); payment collection is [native billing history](billing-history.md).
-- `General`: [daily active users, review events, catalog deck installs and social connections](../apps/admin/src/dashboard/AdminDashboard.tsx), each section's query under `src/reports/` stating what it counts; social connections' is `buildReviewEventsByDateCommunitySql` in [`reviewEventsByDate/query.ts`](../apps/admin/src/reports/reviewEventsByDate/query.ts).
+- `General`: [catalog deck installs and social connections](../apps/admin/src/dashboard/AdminDashboard.tsx), each section's query under `src/reports/` stating what it counts; social connections' is `buildReviewEventsByDateCommunitySql` in [`reviewEventsByDate/query.ts`](../apps/admin/src/reports/reviewEventsByDate/query.ts).
 - `Funnels`: [`funnelSections.ts`](../apps/admin/src/reports/funnels/funnelSections.ts) holds the order, the rule every funnel follows and why the audience modes default as they do; each funnel's query holds its steps. The deck funnel's contract is its [query](../apps/admin/src/reports/catalogInstallFunnel/query.ts), and its events are in [catalog-install-funnel.md](catalog-install-funnel.md).
 - `Audience`: [query](../apps/admin/src/reports/audience/query.ts); collection and retention are in [Audience analytics](analytics-audience.md).
 - `Study vs AI`: how study and AI chat use shift together over time ([query](../apps/admin/src/reports/aiUsageCohorts/query.ts), [periods](../apps/admin/src/reports/aiUsageCohorts/reportModel.ts)).
@@ -82,7 +82,7 @@ Run it locally with `make local-admin` on `http://localhost:3001` before merge; 
 
 ### General and the shared filters ([dashboard](../apps/admin/src/dashboard/AdminDashboard.tsx), [filter model](../apps/admin/src/filters/analyticsFilters.ts))
 
-- `/analytics/general` shows its four sections in order, each chart rendering; under the daily active users `Break down by` Platform, OS or Device type, each day carries a marker at its unique total.
+- `/analytics/general` shows its two sections in order, each chart rendering.
 - `Catalog deck installs` is empty or nearly empty on production ([why](../apps/admin/src/reports/catalogInstalls/query.ts)); selecting any device platform empties only that section, and hovering a segment names the deck slug.
 - The default range is the one [`buildDefaultReportRange`](../apps/admin/src/reports/reportValues.ts) returns, and the picker widens back to the earliest selectable day; over days only the deck funnel carries, General shows an empty tail.
 - Every filter popup names what it filters and how; the date popup's second click applies the range; a threshold such as `1.5` stays named as not applied.
@@ -90,7 +90,7 @@ Run it locally with `make local-admin` on `http://localhost:3001` before merge; 
 - Pick one connection country and one app interface language: every chart and the Audience denominator narrow, and both survive a reload.
 - A filter that empties a chart removes no user or deck from the options and changes nobody's colour.
 - Copy the URL after a few filter clicks and open it in a new tab: the same selection and numbers reopen.
-- On the analytics areas, emails appear only in the user filter popup and tooltips. On the per-user chart, a click applies that user filter, and a ⌘/Ctrl-click or middle click opens the user page in a new tab, as it does on a `Study vs AI` dot and a user option's `Open` link, where a plain click opens it in the same tab.
+- On the analytics areas, emails appear only in the user filter popup and tooltips. A ⌘/Ctrl-click or middle click on a `Study vs AI` dot or a user option's `Open` link opens the user page in a new tab, and a plain click opens it in the same tab.
 
 ### Funnels ([`funnelSections.ts`](../apps/admin/src/reports/funnels/funnelSections.ts))
 
