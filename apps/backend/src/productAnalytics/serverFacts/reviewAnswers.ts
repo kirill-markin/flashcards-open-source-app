@@ -450,6 +450,7 @@ function toReviewAnsweredEvent(
     // here is the guest/account split on the row itself, not the attribution.
     guestSessionId: null,
     workspaceId: answer.workspaceId,
+    anonymousId: null,
     // Derived from sync.workspace_replicas for the replica that recorded the review and resolved
     // once for the whole drain by resolveReviewAnswerReplicas.
     //

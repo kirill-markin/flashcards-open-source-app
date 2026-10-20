@@ -1,4 +1,8 @@
 import { Hono } from "hono";
+import {
+  isProductAnalyticsCollectionTurnedOff,
+  readAnalyticsVisitorId,
+} from "../../analyticsVisitor/cookie";
 import { listWorkspaceTagsSummary } from "../../cards";
 import {
   catalogPackageInstallOperationIdPrefixMaximumLength,
@@ -180,6 +184,15 @@ export function createCatalogInstallRoutes(options: CatalogInstallRoutesOptions)
     const packageVersionId = parseCatalogPackageVersionIdParam(context.req.param("packageVersionId"));
     await assertUserHasWorkspaceAccessFn(loadedContext.requestContext.userId, workspaceId);
     const input = parseCatalogPackageInstallConfirmInput(await parseJsonBody(context.req.raw));
+    // The install row itself is a server fact outside the off switch, but the visitor id is the
+    // person's browsing identity, so it is not stored once they turned product analytics off. A
+    // present cookie already means the identifier question was answered yes or not asked.
+    const analyticsVisitorId = isProductAnalyticsCollectionTurnedOff(
+      context,
+      loadedContext.requestContext.preferences.productAnalyticsEnabled,
+    )
+      ? null
+      : readAnalyticsVisitorId(context);
     const result = await installCatalogPackageVersionFn(
       loadedContext.requestContext.userId,
       workspaceId,
@@ -188,6 +201,7 @@ export function createCatalogInstallRoutes(options: CatalogInstallRoutesOptions)
       {
         subjectUserId: loadedContext.requestContext.subjectUserId,
         guestSessionId: loadedContext.requestContext.guestSessionId,
+        analyticsVisitorId,
       },
     );
 

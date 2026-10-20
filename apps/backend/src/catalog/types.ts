@@ -718,4 +718,9 @@ export type CatalogPackageInstallResult = Readonly<{
 export type CatalogPackageInstallActor = Readonly<{
   subjectUserId: string;
   guestSessionId: string | null;
+  // The browser's analytics_visitor cookie, null when the request carried none (a native client, or
+  // a browser that refused the identifier) and when product analytics was turned off for the
+  // credential, in the shared collection cookie, or by the request header. It lets a report link a
+  // site click to this install.
+  analyticsVisitorId: string | null;
 }>;

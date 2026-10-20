@@ -69,7 +69,8 @@ export type CatalogInstallDeviceCategory = (typeof catalogInstallDeviceCategorie
  * `authenticated_client` identity link for that cookie; the server install carries the account in
  * `user_id` already. That is what carries a person from the site click to the server install. An
  * install made as a web browser guest names the guest instead, and joins the visit through the
- * `anonymous_id` the guest's own rows share with the click (`browser_guest_actors` below).
+ * click's `anonymous_id`: either the guest's own rows share it (`browser_guest_actors` below), or the
+ * guest's server install itself carries it from the request's visitor cookie.
  *
  * The click and the install each require the row's own `package_version_id`. `source` and
  * `deviceCategory` are the page view's own.
@@ -564,8 +565,9 @@ export function buildCatalogInstallFunnelSql(filters: AnalyticsFilterState): str
     // A signed-out visitor who imports the deck gets a web browser guest seconds after the click, and
     // the server install names that guest rather than the visitor: the backend writes no identity link
     // for a guest request, so the visitor's own rows never resolve onto it. The guest's own
-    // `guest_client` rows carry the click's `anonymous_id`, and that shared visitor id is the only
-    // join. The guest's `actor_id` rather than its `user_id`, because the install and its reviews are
+    // `guest_client` rows carry the click's `anonymous_id`, and that shared visitor id is the join
+    // here; the install's own copy of it is the third arm of `visit_install_actors` below. The
+    // guest's `actor_id` rather than its `user_id`, because the install and its reviews are
     // keyed on the resolved identity, which a later merge moves onto the target account.
     //
     // The guest is held to the visitor's own exclusion and audience rules, so an excluded guest stays
@@ -588,8 +590,9 @@ export function buildCatalogInstallFunnelSql(filters: AnalyticsFilterState): str
     "    )",
     ...buildExcludedActorSqlLines("guest_row.actor_id::text"),
     ...buildFunnelAudienceActorSqlLines(filters, "guest_row.actor_id::text"),
-    // Every identity whose server install and reviews count for a clicked visit: the visit's own and
-    // its browser guest's. `UNION` keeps each once, so no review joins a visit twice.
+    // Every identity whose server install and reviews count for a clicked visit: the visit's own, its
+    // browser guest's, and the installing guest of a server install that carries the click's
+    // `anonymous_id`. `UNION` keeps each once, so no review joins a visit twice.
     "), visit_install_actors AS MATERIALIZED (",
     "  SELECT clicked.actor_id, clicked.package_version_id, clicked.actor_id AS install_actor_id",
     "  FROM visit_clicks AS clicked",
@@ -598,6 +601,27 @@ export function buildCatalogInstallFunnelSql(filters: AnalyticsFilterState): str
     "  FROM visit_clicks AS clicked",
     "  INNER JOIN browser_guest_actors AS guest",
     "    ON guest.anonymous_id = clicked.click_anonymous_id",
+    "  UNION",
+    // The install request carries the browser's `analytics_visitor` cookie, and the server install
+    // stores it as `anonymous_id` while naming the guest as its actor, so this reaches a browser guest
+    // whose own rows never arrived. Only a guest install counts: the cookie survives a logout and an
+    // account switch, so on a shared browser an account's install would otherwise be credited to
+    // another account's click. It is bound to the deck version and the bounds the install step below
+    // applies, and held to the exclusion and audience rules the browser guest is.
+    "  SELECT clicked.actor_id, clicked.package_version_id, visitor_install.actor_id AS install_actor_id",
+    "  FROM visit_clicks AS clicked",
+    "  INNER JOIN eligible_visits AS visit",
+    "    ON visit.actor_id = clicked.actor_id",
+    "    AND visit.package_version_id = clicked.package_version_id",
+    "  INNER JOIN server_installs AS visitor_install",
+    "    ON visitor_install.anonymous_id = clicked.click_anonymous_id",
+    "    AND visitor_install.guest_session_id IS NOT NULL",
+    "    AND visitor_install.event_properties ->> 'package_version_id' = clicked.package_version_id",
+    "    AND visitor_install.occurred_at >= clicked.clicked_at",
+    `    AND visitor_install.occurred_at <= visit.anchor_at + INTERVAL '${catalogInstallConversionWindowDays} days'`,
+    "  WHERE TRUE",
+    ...buildExcludedActorSqlLines("visitor_install.actor_id::text"),
+    ...buildFunnelAudienceActorSqlLines(filters, "visitor_install.actor_id::text"),
     "), visit_rows AS MATERIALIZED (",
     "SELECT",
     "  visit.actor_id,",

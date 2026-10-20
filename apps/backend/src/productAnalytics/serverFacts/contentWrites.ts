@@ -569,6 +569,7 @@ function toContentWriteEvent(
     // itself, not the attribution.
     guestSessionId: null,
     workspaceId: write.workspaceId,
+    anonymousId: null,
     // The platform of the replica that wrote the row: named by the transaction that ensured that
     // replica itself, and otherwise read back from sync.workspace_replicas once for the whole drain.
     // See resolveContentWriteReplicaAttributions.
