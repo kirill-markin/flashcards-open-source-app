@@ -1,7 +1,7 @@
-// The group-by axis of the Funnels area: what a dimension is, how the selected one rides in the URL,
-// how the groups a funnel loaded are folded down to the handful a chart can draw, and what colour
-// each of them gets. Every funnel declares its own dimensions and owns the SQL behind them; this
-// module owns everything about grouping that must mean the same thing on all of them.
+// The group-by axis of the funnels: what a dimension is, how the groups a funnel loaded are folded
+// down to the handful a chart can draw, and what colour each of them gets. Every funnel declares its
+// own dimensions and owns the SQL behind them; this module owns everything about grouping that must
+// mean the same thing on all of them.
 //
 // GROUPING IS A SECOND AXIS BESIDE THE AUDIENCE MODE, not a replacement for it. The mode
 // (`./funnelAudienceSql.ts`) decides who is counted; grouping splits exactly those people, one group
@@ -103,82 +103,6 @@ export type FunnelGroup<StepId extends string> = Readonly<{
   color: string;
   stages: ReadonlyArray<FunnelStage<StepId>>;
 }>;
-
-/** The picker's `None` option value; the empty string can never collide with a dimension id. */
-export const funnelGroupByNoneValue = "";
-
-function getFunnelGroupByParamName(funnelId: string): string {
-  return `${funnelId}GroupBy`;
-}
-
-/**
- * The dimension a query string asks this funnel for, or `null` for the ungrouped default.
- *
- * It follows the anchor codec in `./funnelAnchorUrl.ts`: the parameter is the funnel's own, so
- * grouping one chart leaves the others alone, and anything the funnel does not offer - an unknown,
- * repeated or empty value - reads back as the default rather than throwing. There is deliberately no
- * legacy name here the way the deck funnel's anchor has one: the field is new on every funnel.
- */
-export function parseFunnelGroupByDimension<Dimension extends FunnelGroupByField>(
-  searchParams: URLSearchParams,
-  funnelId: string,
-  dimensions: ReadonlyArray<Dimension>,
-): Dimension | null {
-  const value = readFunnelGroupByParam(searchParams, funnelId);
-  return dimensions.find((dimension) => dimension.id === value) ?? null;
-}
-
-/**
- * The raw value a query string carries for this funnel, or `null` for none.
- *
- * The area's URL canonicalizer in `App.tsx` reads it to carry the field over a filter change without
- * knowing what it means: the option list is per funnel and lives with the funnel, so the funnel is
- * what validates the value, and an unknown one is kept in the URL while the funnel opens ungrouped.
- */
-export function readFunnelGroupByParam(searchParams: URLSearchParams, funnelId: string): string | null {
-  const values = searchParams.getAll(getFunnelGroupByParamName(funnelId));
-  return values.length === 1 ? (values[0] ?? null) : null;
-}
-
-/** A copy of `searchParams` carrying `dimensionId` for this funnel, or nothing for the default. */
-export function withFunnelGroupBySearchParams(
-  searchParams: URLSearchParams,
-  funnelId: string,
-  dimensionId: string | null,
-): URLSearchParams {
-  const paramName = getFunnelGroupByParamName(funnelId);
-  const nextSearchParams = new URLSearchParams(searchParams);
-  nextSearchParams.delete(paramName);
-  if (dimensionId !== null && dimensionId !== funnelGroupByNoneValue) {
-    nextSearchParams.set(paramName, dimensionId);
-  }
-
-  return nextSearchParams;
-}
-
-/**
- * Writes the selected dimension into the current URL the way the anchor is written: it replaces the
- * current history entry rather than pushing one, so Back leaves the area instead of stepping through
- * every pick, and every other parameter is kept as it is.
- */
-export function writeFunnelGroupByToUrl(funnelId: string, dimensionId: string | null): void {
-  const searchParams = withFunnelGroupBySearchParams(
-    new URLSearchParams(window.location.search),
-    funnelId,
-    dimensionId,
-  );
-  const serializedParams = searchParams.toString();
-  const nextSearch = serializedParams === "" ? "" : `?${serializedParams}`;
-  if (nextSearch === window.location.search) {
-    return;
-  }
-
-  window.history.replaceState(
-    null,
-    "",
-    `${window.location.pathname}${nextSearch}${window.location.hash}`,
-  );
-}
 
 /**
  * One group's colour, as an accessor over the resolved keys a chart draws.

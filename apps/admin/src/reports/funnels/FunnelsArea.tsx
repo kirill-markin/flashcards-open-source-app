@@ -1,18 +1,27 @@
-import type { JSX } from "react";
-import type { ReviewEventsByDateUser } from "../../adminApi";
+import { useMemo, type JSX } from "react";
 import type { AdminAppConfig } from "../../config";
-import type { UserColorScale } from "../../dashboard/userColors";
-import { AnalyticsFilterBar } from "../../filters/AnalyticsFilterBar";
-import type { AnalyticsDateRange, AnalyticsFilterState } from "../../filters/analyticsFilters";
-import type { AnalyticsFilterOptions } from "../../filters/optionsQuery";
+import type { AnalyticsFilterState } from "../../filters/analyticsFilters";
 import { FunnelAudienceModeControl } from "./FunnelAudienceModeControl";
 import { funnelSections } from "./funnelSections";
 
-const noOptions: ReadonlyArray<never> = [];
+/**
+ * The selection with the deck funnel's own fields cleared. The Funnels area offers no control for
+ * them, so a value carried over from another area must not narrow a funnel unseen.
+ */
+function buildFunnelsAreaFilters(filters: AnalyticsFilterState): AnalyticsFilterState {
+  return {
+    ...filters,
+    installedDecks: [],
+    catalogPlacements: [],
+    catalogSources: [],
+    catalogDeviceCategories: [],
+    catalogClickBrowserLanguages: [],
+  };
+}
 
 /**
- * The Funnels area: the audience mode, then every funnel in `funnelSections` order, each with its own
- * filter row when it has one.
+ * The Funnels area: the audience mode, then every funnel in `funnelSections` order as a chart card in
+ * the Level 1 metrics grid.
  *
  * The mode sits above all of them and applies to all of them, because it answers a question the
  * funnels have to agree on: a number from one funnel and a number from another can only be compared
@@ -21,68 +30,34 @@ const noOptions: ReadonlyArray<never> = [];
 export function FunnelsArea(
   props: Readonly<{
     config: AdminAppConfig;
-    /** `null` while the range lookup runs. */
-    availableRange: AnalyticsDateRange | null;
-    defaultRange: AnalyticsDateRange;
     filters: AnalyticsFilterState;
-    /** `null` until the General batch first lands. */
-    filterOptions: AnalyticsFilterOptions | null;
-    userOptions: ReadonlyArray<ReviewEventsByDateUser>;
-    userColorScale: UserColorScale;
     isReportLoading: boolean;
-    dateRangeError: string;
     onFiltersChange: (filters: AnalyticsFilterState) => boolean;
-    onNavigate: (path: string) => void;
     onTerminalAdminError: (error: unknown, config: AdminAppConfig) => boolean;
   }>,
 ): JSX.Element {
-  const filterOptions = props.filterOptions;
+  // Memoized on the selection, because every section reloads whenever the object it is given changes.
+  const funnelFilters = useMemo(() => buildFunnelsAreaFilters(props.filters), [props.filters]);
 
   return (
     <>
+      {/* The full selection, so a mode change writes back every field rather than the cleared copy. */}
       <FunnelAudienceModeControl
         filters={props.filters}
         isReportLoading={props.isReportLoading}
         onFiltersChange={props.onFiltersChange}
       />
-      {funnelSections.map((funnel) => (
-        <funnel.Section
-          key={funnel.anchor.funnelId}
-          config={props.config}
-          filters={props.filters}
-          isRangeLoading={props.isReportLoading}
-          onTerminalAdminError={props.onTerminalAdminError}
-          filterRow={funnel.filterFields.length === 0 ? null : (
-            // A funnel matches any click rather than a completed install, so its click dimensions
-            // offer the values the clicks themselves carried.
-            <AnalyticsFilterBar
-              area="funnels"
-              fields={funnel.filterFields}
-              title={`${funnel.title} filters`}
-              headingLevel={3}
-              headingId={`funnel-${funnel.anchor.funnelId}-filters-title`}
-              resetAllLabel={`Reset all ${funnel.anchor.funnelId} funnel filters`}
-              availableRange={props.availableRange}
-              defaultRange={props.defaultRange}
-              filters={props.filters}
-              userOptions={props.userOptions}
-              connectionCountryOptions={filterOptions?.connectionCountries ?? noOptions}
-              appUiLanguageOptions={filterOptions?.appUiLanguages ?? noOptions}
-              catalogDeckOptions={filterOptions?.catalogDecks ?? noOptions}
-              catalogPlacementOptions={filterOptions?.funnelCatalogPlacements ?? noOptions}
-              catalogSourceOptions={filterOptions?.funnelCatalogSources ?? noOptions}
-              catalogDeviceCategoryOptions={filterOptions?.funnelCatalogDeviceCategories ?? noOptions}
-              catalogClickBrowserLanguageOptions={filterOptions?.funnelCatalogClickBrowserLanguages ?? noOptions}
-              areOptionListsLoading={filterOptions === null}
-              isReportLoading={props.isReportLoading}
-              dateRangeError={props.dateRangeError}
-              userColorScale={props.userColorScale}
-              onFiltersChange={props.onFiltersChange}
-              onNavigate={props.onNavigate}
-            />
-          )}
-        />
-      ))}
+      <div className="level-1-metrics-grid">
+        {funnelSections.map((funnel) => (
+          <funnel.Section
+            key={funnel.anchor.funnelId}
+            config={props.config}
+            filters={funnelFilters}
+            isRangeLoading={props.isReportLoading}
+            onTerminalAdminError={props.onTerminalAdminError}
+          />
+        ))}
+      </div>
     </>
   );
 }

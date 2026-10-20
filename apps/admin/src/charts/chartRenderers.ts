@@ -1004,11 +1004,10 @@ export type RenderFunnelStepsChartParams = Readonly<{
   /**
    * A `Group by` dimension is selected, so the bars are its groups and are drawn and named as such.
    * It is not `groups.length > 1`: a dimension that placed everybody in one group, or nobody
-   * anywhere, still has to draw its colour, its key and its table rather than pass for the plain
-   * funnel.
+   * anywhere, still has to draw its colour and its key rather than pass for the plain funnel.
    */
   isGrouped: boolean;
-  /** What one counted row is, plural; the tooltip names the number with the same word the table does. */
+  /** What one counted row is, plural; the tooltip names the number with it. */
   countLabel: string;
   /** The step every later share is measured from; 0 is the default view. */
   anchorIndex: number;
@@ -1028,7 +1027,8 @@ type FunnelStepGroupBar = Readonly<{
 const funnelChartHeight = 440;
 const funnelChartMargin = { top: 76, right: 24, bottom: 64, left: chartMargin.left } as const;
 const funnelStepLabelMaxLineLength = 18;
-const funnelStepLabelLineHeight = 15;
+/** In ems, so a step label's lines stay apart at whatever size its stylesheet gives it; the Level 1 grid enlarges it. */
+const funnelStepLabelLineHeight = "1.25em";
 /** One line of the identified/hashed split drawn under the total when a step has a hashed part. */
 const funnelStepSplitLineHeight = 17;
 /** Keeps the column's 1.5-unit selected stroke inside the viewBox, whose edges clip it. */
@@ -1148,10 +1148,7 @@ function getFunnelStepAnchorShareText(step: FunnelStepBar, stepIndex: number, an
   return `${step.shareOfAnchorLabel} of selected`;
 }
 
-/**
- * Names the control only: the counts and shares live once, in the chart's table - hidden while the
- * chart is ungrouped, visible while it is grouped - so a screen reader does not hear every number twice.
- */
+/** Names the control only. */
 function getFunnelStepAriaLabel(step: FunnelStepBar, stepIndex: number, anchorIndex: number): string {
   if (stepIndex === 0) {
     return `Measure from ${step.label} (default start)`;
@@ -1195,9 +1192,8 @@ function buildFunnelStepGroupTooltipHtml(
  *
  * THE UNGROUPED CHART IS THE ONE-GROUP CASE OF ALL OF THAT, and it alone writes the exact count, the
  * identified/hashed split and both shares above each bar: a step band that may hold several bars has
- * no room for any of it, so a grouped chart moves those numbers to the hover tooltip and to the
- * visible table its component draws underneath, whether its dimension resolved to seven groups or
- * to one.
+ * no room for any of it, so a grouped chart moves those numbers to the hover tooltip, whether its
+ * dimension resolved to seven groups or to one.
  */
 export function renderFunnelStepsChart(params: RenderFunnelStepsChartParams): void {
   const firstGroup = params.groups[0];
@@ -1480,7 +1476,7 @@ export function renderFunnelStepsChart(params: RenderFunnelStepsChartParams): vo
   }
 
   // Only the ungrouped chart writes its numbers above the bars; a step band holding several has no
-  // room for them, so a grouped chart puts them in the hover tooltip and in its visible table.
+  // room for them, so a grouped chart puts them in the hover tooltip.
   if (isGrouped === false) {
     // Each block's last baseline sits 10 units above its own bar, so the offset is the block's own
     // height: a split line is added above the total rather than below the shares, which would push

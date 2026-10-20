@@ -58,7 +58,7 @@ function formatCount(count: number): string {
  * It is called once per group, so a grouped chart measures every group against that group's own
  * first step and its own anchor step rather than against the funnel as a whole.
  *
- * `showsHashedSplit` is the same gate the table and the chart's sub-heading read, and it zeroes
+ * `showsHashedSplit` is the same gate the chart's sub-heading reads, and it zeroes
  * `hashedCount` here rather than only hiding the text: the lighter bar segment is drawn from that
  * number, and one render with stale stages under a new mode must not leave a segment on screen that
  * nothing left announces.
@@ -85,7 +85,7 @@ function buildFunnelStepBars<StepId extends string>(
       // plain total it is instead of claiming a zero segment it could never have had. The two parts
       // go on a line each so that the widest line is one formatted number plus a fixed short word,
       // whatever the counts grow to, rather than both numbers on one line under a step column it
-      // would eventually outgrow. The table below names both parts in a column each.
+      // would eventually outgrow.
       splitLabels: hashedCount === 0
         ? []
         : [`${formatCount(stage.count - hashedCount)} with ID`, `+ ${formatCount(hashedCount)} hashed`],
@@ -127,7 +127,7 @@ function FunnelChartMeta(
 
 /**
  * A funnel's chart panel with an empty area in place of its chart, at the size a ready one draws at,
- * and `note` over it. `isGrouped` is whether a `Group by` dimension is selected, which reserves one row
+ * and `note` over it. `isGrouped` is whether the ready chart will draw groups, which reserves one row
  * of the group key.
  */
 function FunnelChartPanel(
@@ -208,135 +208,8 @@ export function FunnelStepsEmptyChart(
 }
 
 /**
- * The ungrouped chart's text alternative: the same numbers the bars carry, for screen readers only.
- *
- * The two split columns appear whenever the hashed cohort was actually read rather than only when a
- * step happens to have hashed people in it, so a reader who chose `all` and sees zeros learns that
- * there were none rather than that the split is missing. They stay away when the query left the
- * cohort out - `all` with a connection country selected - because there a zero would claim the
- * cookieless visitors were looked for and not found, and the section's own note says the opposite.
- */
-function FunnelStepTable(
-  props: Readonly<{
-    caption: string;
-    countLabel: string;
-    steps: ReadonlyArray<FunnelStepBar>;
-    anchorIndex: number;
-    showsHashedSplit: boolean;
-  }>,
-): JSX.Element {
-  const anchorLabel = props.anchorIndex > 0 ? (props.steps[props.anchorIndex]?.label ?? null) : null;
-  return (
-    <div className="visually-hidden">
-      <table>
-        <caption>{props.caption}</caption>
-        <thead>
-          <tr>
-            <th scope="col">Step</th>
-            <th scope="col">{props.countLabel}</th>
-            {props.showsHashedSplit ? <th scope="col">With an identifier</th> : null}
-            {props.showsHashedSplit ? <th scope="col">Cookieless, counted by daily hash</th> : null}
-            <th scope="col">Of first step</th>
-            {anchorLabel === null ? null : <th scope="col">Of selected step ({anchorLabel})</th>}
-            <th scope="col">Of previous step</th>
-          </tr>
-        </thead>
-        <tbody>
-          {props.steps.map((step) => (
-            <tr key={step.label}>
-              <th scope="row">{step.label}</th>
-              <td>{formatCount(step.count)}</td>
-              {props.showsHashedSplit ? <td>{formatCount(step.count - step.hashedCount)}</td> : null}
-              {props.showsHashedSplit ? <td>{formatCount(step.hashedCount)}</td> : null}
-              <td>{step.shareOfFirstLabel}</td>
-              {anchorLabel === null ? null : <td>{step.shareOfAnchorLabel}</td>}
-              <td>{step.shareOfPreviousLabel}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  );
-}
-
-/**
- * The grouped chart's numbers, one row per step and group, VISIBLE RATHER THAN HIDDEN and replacing
- * the hidden table while grouping is on.
- *
- * It is the only place the exact numbers of a grouped chart can be read without a pointer: the bars
- * no longer have room to carry them, and a tooltip answers one bar at a time and reaches neither a
- * keyboard nor a screen reader. Every share in it is that group's own, measured the way the group's
- * bars are drawn.
- */
-function FunnelStepGroupTable(
-  props: Readonly<{
-    caption: string;
-    countLabel: string;
-    groups: ReadonlyArray<FunnelStepGroupBars>;
-    anchorIndex: number;
-    showsHashedSplit: boolean;
-  }>,
-): JSX.Element {
-  const firstGroupSteps = props.groups[0]?.steps ?? [];
-  const anchorLabel = props.anchorIndex > 0 ? (firstGroupSteps[props.anchorIndex]?.label ?? null) : null;
-  return (
-    <div className="funnel-group-table-shell">
-      <table className="funnel-group-table">
-        <caption>{props.caption}</caption>
-        <thead>
-          <tr>
-            <th scope="col">Step</th>
-            <th scope="col">Group</th>
-            <th scope="col">{props.countLabel}</th>
-            {props.showsHashedSplit ? <th scope="col">With an identifier</th> : null}
-            {props.showsHashedSplit ? <th scope="col">Cookieless, counted by daily hash</th> : null}
-            <th scope="col">Of first step</th>
-            {anchorLabel === null ? null : <th scope="col">Of selected step ({anchorLabel})</th>}
-            <th scope="col">Of previous step</th>
-          </tr>
-        </thead>
-        <tbody>
-          {firstGroupSteps.flatMap((firstGroupStep, stepIndex) => props.groups.map((group, groupIndex) => {
-            const step = group.steps[stepIndex];
-            if (step === undefined) {
-              throw new Error(`Funnel group "${group.key}" is missing step ${stepIndex}.`);
-            }
-
-            return (
-              <tr key={`${firstGroupStep.label}:${group.key}`}>
-                {/* `scope="row"` heads the rows the cell spans, which is this step's group rows and
-                    only those. `rowgroup` would head every later step as well, because the whole
-                    table is one `<tbody>`. */}
-                {groupIndex === 0
-                  ? <th scope="row" rowSpan={props.groups.length}>{firstGroupStep.label}</th>
-                  : null}
-                {/* A second row header beside the step's, which one row may carry: as a plain cell
-                    it left a screen reader announcing every count with its step and none with its
-                    group, which is the one thing this table exists to say. */}
-                <th scope="row" className="funnel-group-table-name">
-                  <span className="funnel-group-swatch" style={{ backgroundColor: group.color }} />
-                  {group.label}
-                </th>
-                <td>{formatCount(step.count)}</td>
-                {props.showsHashedSplit ? <td>{formatCount(step.count - step.hashedCount)}</td> : null}
-                {props.showsHashedSplit ? <td>{formatCount(step.hashedCount)}</td> : null}
-                <td>{step.shareOfFirstLabel}</td>
-                {anchorLabel === null ? null : <td>{step.shareOfAnchorLabel}</td>}
-                <td>{step.shareOfPreviousLabel}</td>
-              </tr>
-            );
-          }))}
-        </tbody>
-      </table>
-    </div>
-  );
-}
-
-/**
- * One funnel's step chart with its click-to-anchor state and its table. Mount it only once the funnel
- * has something to draw - which is why the funnel's own `Group by` field is not in here but in the
- * section around it, mounted in every state, including the empty one a grouping has to be cleared
- * from. The anchor is read from the URL on mount and written back on every click, so a remount after
+ * One funnel's step chart with its click-to-anchor state. Mount it only once the funnel has something
+ * to draw. The anchor is read from the URL on mount and written back on every click, so a remount after
  * a reload reopens the same anchor; only a click moves it, and `null` is the default view, measured
  * from the first step. The anchor is one choice for the whole chart: clicking a step re-bases every
  * group on its own count at that step.
@@ -347,15 +220,13 @@ export function FunnelStepsChart<StepId extends string>(
     /** The main path in chart order, each step a subset of the one before it. */
     stages: ReadonlyArray<FunnelStage<StepId>>;
     /**
-     * One coloured series per group, which replaces `stages` while a `Group by` dimension is
-     * selected; each group carries the funnel's full step list in the same order. Left out is the
-     * ungrouped chart, and a funnel with no group-by field of its own never passes it: `stages`
-     * becomes the single group everything below draws, so there is one rendering path either way.
+     * One coloured series per group, which replaces `stages`; each group carries the funnel's full
+     * step list in the same order. Left out is the ungrouped chart: `stages` becomes the single group
+     * everything below draws, so there is one rendering path either way.
      */
     groups?: ReadonlyArray<FunnelGroup<StepId>>;
-    /** What one counted row is, plural: the chart heading and the table's count column. */
+    /** What one counted row is, plural: the chart heading. */
     countLabel: string;
-    tableCaption: string;
     dateRange: AnalyticsDateRange;
     /**
      * The hashed cohort was read, so the bars carry a segment that has to be named. It is the read
@@ -379,10 +250,10 @@ export function FunnelStepsChart<StepId extends string>(
       stages: props.stages,
     }]
   ), [propsGroups, props.countLabel, props.stages]);
-  // A SELECTED DIMENSION IS WHAT MAKES THE CHART GROUPED, not how many groups came back. A range in
-  // which the dimension placed nobody returns the one `Unresolved` group, and a range with one
-  // country or one platform returns one value group; drawing either as the ungrouped accent chart
-  // would read as the plain funnel and hide the very fact the reader asked the field for.
+  // PASSED GROUPS ARE WHAT MAKE THE CHART GROUPED, not how many came back. A range in which a
+  // dimension placed nobody returns the one `Unresolved` group, and a range with one country or one
+  // platform returns one value group; drawing either as the ungrouped accent chart would read as the
+  // plain funnel and hide the very split the reader asked for.
   const isGrouped = propsGroups !== undefined;
   // Every group carries the same steps in the same order, so the first one names the funnel's steps.
   const chartStages = groups[0]?.stages ?? [];
@@ -446,23 +317,6 @@ export function FunnelStepsChart<StepId extends string>(
           </div>
         </div>
       </div>
-      {isGrouped ? (
-        <FunnelStepGroupTable
-          caption={props.tableCaption}
-          countLabel={props.countLabel}
-          groups={groupBars}
-          anchorIndex={anchorIndex}
-          showsHashedSplit={props.showsHashedSplit}
-        />
-      ) : (
-        <FunnelStepTable
-          caption={props.tableCaption}
-          countLabel={props.countLabel}
-          steps={groupBars[0]?.steps ?? []}
-          anchorIndex={anchorIndex}
-          showsHashedSplit={props.showsHashedSplit}
-        />
-      )}
       <ChartTooltip {...tooltipState} />
     </section>
   );

@@ -368,9 +368,7 @@ h2 {
   gap: 8px;
 }
 
-/* The funnel's own `Group by` field sits in the funnel's own filter row area, under its heading and
-   above everything the report's state can unmount: the field regroups this one funnel, so it belongs
-   to the funnel rather than to the shared bar, where every field narrows them all at once. */
+/* A section's own `Group by` or `Break down by` field, on a row of its own under its heading. */
 .funnel-group-by-row {
   display: flex;
   flex-wrap: wrap;
@@ -429,14 +427,12 @@ h2 {
 
 /* THE ONE KEY THAT IS NOT UPPERCASED, unlike the platform key it borrows its markup from. A funnel
    group key can be an entry page's own `page_path`: a case-sensitive route the site lowercases at
-   ingest, so uppercasing it would draw a legend entry that is not the URL and that reads differently
-   from the very same group in the table below the plot. */
+   ingest, so uppercasing it would draw a legend entry that is not the URL. */
 .funnel-group-key .platform-key-item {
   text-transform: none;
 }
 
-/* Grouped, the bars have no room for their numbers, so this table is where they are read: visible,
-   and scrollable sideways rather than shrinking columns that hold formatted counts. */
+/* Scrollable sideways rather than shrinking columns that hold formatted counts. */
 .funnel-group-table-shell {
   overflow-x: auto;
 }
@@ -488,14 +484,6 @@ h2 {
 .funnel-group-table .funnel-group-table-name {
   font-weight: 400;
   text-align: left;
-}
-
-.funnel-group-swatch {
-  display: inline-block;
-  width: 10px;
-  height: 10px;
-  margin-right: 8px;
-  border-radius: 999px;
 }
 
 .funnel-step {
@@ -595,27 +583,9 @@ h2 {
   margin-top: 14px;
 }
 
-.funnel-explainer > summary,
-.funnel-detail-grid-collapsible .funnel-detail-card > summary {
+.funnel-explainer > summary {
   cursor: pointer;
   font-weight: 800;
-}
-
-.funnel-detail-grid-collapsible {
-  align-items: start;
-}
-
-.funnel-detail-grid-collapsible .funnel-detail-card > summary h3 {
-  display: inline;
-  margin: 0;
-}
-
-.funnel-detail-grid-collapsible .funnel-detail-card[open] > summary {
-  margin-bottom: 14px;
-}
-
-.funnel-detail-grid-collapsible .funnel-detail-card p:last-child {
-  margin: 14px 0 0;
 }
 
 .funnel-detail-grid {
@@ -1569,6 +1539,22 @@ h2 {
   padding: 8px 12px 16px;
 }
 
+/* A funnel scales into its column like a Level 1 chart instead of scrolling sideways, so its numbers
+   grow as the axis text above does; the shares stay at 15 so a nine-step funnel's "100.0% of previous"
+   clears its neighbour. */
+.level-1-metrics-grid .funnel-steps-chart {
+  min-width: 0;
+}
+
+.level-1-metrics-grid .funnel-step-count {
+  font-size: 24px;
+}
+
+.level-1-metrics-grid .funnel-step-split,
+.level-1-metrics-grid .funnel-step-share {
+  font-size: 15px;
+}
+
 .level-1-metrics-grid .chart-notes-key {
   padding: 0 20px 16px;
 }
@@ -1604,6 +1590,12 @@ h2 {
   display: inline-flex;
   align-items: center;
   text-decoration: none;
+}
+
+/* A funnel's Details button before its page exists: inactive rather than busy, so not the wait
+   cursor of `.filter-button:disabled`. */
+.level-1-metric-details-link:disabled {
+  cursor: not-allowed;
 }
 
 .level-1-metric-details-header {
