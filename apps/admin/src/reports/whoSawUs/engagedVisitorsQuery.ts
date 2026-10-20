@@ -52,7 +52,8 @@ export const pageReadEngagementChartNote: ChartNote = {
   longText: `From ${pageReadEngagementStartDate}, reading one page for 10+ seconds with a scroll, click or key press also counts as engaged, so the share steps up here by definition.`,
 };
 
-const siteFactEventNames: ReadonlyArray<string> = ["site_page_viewed", ...siteEngagementEventNames];
+/** The rows engagement is counted over: page views and `siteEngagementEventNames`; any two engage. */
+export const siteFactEventNames: ReadonlyArray<string> = ["site_page_viewed", ...siteEngagementEventNames];
 
 export type EngagedVisitorsBucket = Readonly<{
   bucket: ReportBucket;

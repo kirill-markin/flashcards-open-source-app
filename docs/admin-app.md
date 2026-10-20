@@ -97,6 +97,7 @@ Run it locally with `make local-admin` on `http://localhost:3001` before merge; 
 
 - `Funnels` is the second tab; its funnels appear in `funnelSections` order as chart-only cards in two columns, one on a narrow viewport, under a shared bar of date range, client platform, connection country and app interface language, and each card's `Details` button is disabled.
 - The audience switch changes every funnel at once, and `Reset all` leaves it.
+- On `Blog article to platform choice` ([query](../apps/admin/src/reports/blogFunnels/platformChoiceQuery.ts)), after an article and the home page, hovering a store badge until its QR code shows counts at `Platform hovered or clicked` but not at `Platform clicked`, and a web app click counts at both.
 - On `Deck page to install` ([query](../apps/admin/src/reports/catalogInstallFunnel/query.ts)), only a server install is success.
 - A deck page view near the range end stays maturing until its seven-day window closes, and a follow-up after the cohort end still counts.
 

@@ -99,7 +99,7 @@ export function buildExcludedActorReasonSql(actorIdSqlExpression: string): strin
  *   - `reports/siteEntryFunnel/query.ts`, `actor_first_events`, the site-entry cohort the blog funnel
  *     reads through the fragments that module exports. It decides whether a person was already here
  *     before their first marketing-site page view, over every event name with no lower bound. That
- *     cohort and the blog funnel's own steps read `site_page_viewed` and `site_app_entry_clicked` at
+ *     cohort and the blog funnel's own steps read marketing-site events at
  *     `trust_level = 'anonymous_client'` only, on purpose: those are the site's own facts, the cohort
  *     is keyed on the visitor identity they carry, and they never count as the trusted evidence this
  *     rule is about.
