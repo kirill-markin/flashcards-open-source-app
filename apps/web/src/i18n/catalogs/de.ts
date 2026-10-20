@@ -911,6 +911,9 @@ const deCatalog: TranslationCatalog = {
     previewRemoveTagLabel: "{{tag}} entfernen ({{count}})",
   },
   catalogImport: {
+    existingCopyNotice: "{{title}} ist bereits in diesem Arbeitsbereich ({{count}}). Dein Lernfortschritt bleibt erhalten.",
+    studyExistingCards: "Vorhandene Karten lernen",
+    importAnotherCopy: "Weitere Kopie importieren",
     title: "Deck aus Katalog importieren",
     loading: "Deck aus dem Katalog wird geladen...",
     packageSummary: "{{title}} — {{count}}",

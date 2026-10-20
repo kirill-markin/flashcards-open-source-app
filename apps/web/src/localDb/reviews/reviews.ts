@@ -104,6 +104,14 @@ async function resolveReviewFilterFromIndexedDb(
     };
   }
 
+  if (reviewFilter.kind === "catalogImport") {
+    return {
+      resolvedReviewFilter: reviewFilter,
+      deck: null,
+      allowedTagCardIds: null,
+    };
+  }
+
   const tagFilterLookup = await loadReviewTagFilterLookupForTags(database, workspaceId, reviewFilter.tags);
   const requestedTagKeys = new Set(
     reviewFilter.tags.map((tag) => normalizeTagKey(tag)).filter((tagKey) => tagKey !== ""),
@@ -140,6 +148,10 @@ function matchesResolvedReviewFilter(
     }
 
     return matchesDeckFilterDefinition(filterResolution.deck.filterDefinition, card);
+  }
+
+  if (filterResolution.resolvedReviewFilter.kind === "catalogImport") {
+    return card.metadata.source?.importId === filterResolution.resolvedReviewFilter.importId;
   }
 
   return filterResolution.allowedTagCardIds?.has(card.cardId) ?? false;

@@ -911,6 +911,9 @@ const heCatalog: TranslationCatalog = {
     previewRemoveTagLabel: "הסר את {{tag}} ({{count}})",
   },
   catalogImport: {
+    existingCopyNotice: "{{title}} כבר נמצא בסביבת העבודה הזו ({{count}}). התקדמות הלמידה שלך נשמרת.",
+    studyExistingCards: "ללמוד את הכרטיסיות הקיימות",
+    importAnotherCopy: "לייבא עותק נוסף",
     title: "ייבוא חפיסה מהקטלוג",
     loading: "טוען חפיסה מהקטלוג...",
     packageSummary: "{{title}} — {{count}}",

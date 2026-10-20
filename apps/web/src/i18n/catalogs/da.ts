@@ -911,6 +911,9 @@ const daCatalog: TranslationCatalog = {
     previewRemoveTagLabel: "Fjern {{tag}} ({{count}})",
   },
   catalogImport: {
+    existingCopyNotice: "{{title}} findes allerede i dette arbejdsområde ({{count}}). Dine fremskridt bevares.",
+    studyExistingCards: "Studér eksisterende kort",
+    importAnotherCopy: "Importér endnu en kopi",
     title: "Importér bunke fra kataloget",
     loading: "Indlæser bunken fra kataloget...",
     packageSummary: "{{title}} — {{count}}",

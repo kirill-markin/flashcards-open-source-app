@@ -911,6 +911,9 @@ const isCatalog: TranslationCatalog = {
     previewRemoveTagLabel: "Fjarlægja {{tag}} ({{count}})",
   },
   catalogImport: {
+    existingCopyNotice: "{{title}} er þegar á þessu vinnusvæði ({{count}}). Námsframvinda þín varðveitist.",
+    studyExistingCards: "Læra fyrirliggjandi spjöld",
+    importAnotherCopy: "Flytja inn annað eintak",
     title: "Flytja inn stokk úr safni",
     loading: "Hleð stokki úr safni...",
     packageSummary: "{{title}} — {{count}}",

@@ -911,6 +911,9 @@ const ptBrCatalog: TranslationCatalog = {
     previewRemoveTagLabel: "Remover {{tag}} ({{count}})",
   },
   catalogImport: {
+    existingCopyNotice: "{{title}} já está neste espaço de trabalho ({{count}}). Seu progresso será mantido.",
+    studyExistingCards: "Estudar os cartões existentes",
+    importAnotherCopy: "Importar outra cópia",
     title: "Importar baralho do catálogo",
     loading: "Carregando baralho do catálogo...",
     packageSummary: "{{title}} — {{count}}",

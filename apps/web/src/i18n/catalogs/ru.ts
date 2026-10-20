@@ -920,6 +920,9 @@ export const ruCatalog = {
     previewRemoveTagLabel: "Удалить {{tag}} ({{count}})",
   },
   catalogImport: {
+    existingCopyNotice: "{{title}} уже есть в этом рабочем пространстве ({{count}}). Прогресс обучения сохранится.",
+    studyExistingCards: "Учить существующие карточки",
+    importAnotherCopy: "Импортировать ещё одну копию",
     title: "Импорт колоды из каталога",
     loading: "Загрузка колоды из каталога...",
     packageSummary: "{{title}} — {{count}}",

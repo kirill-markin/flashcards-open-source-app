@@ -911,6 +911,9 @@ const idCatalog: TranslationCatalog = {
     previewRemoveTagLabel: "Hapus {{tag}} ({{count}})",
   },
   catalogImport: {
+    existingCopyNotice: "{{title}} sudah ada di ruang kerja ini ({{count}}). Progres belajar Anda tetap tersimpan.",
+    studyExistingCards: "Pelajari kartu yang ada",
+    importAnotherCopy: "Impor salinan lain",
     title: "Impor dek dari katalog",
     loading: "Memuat dek katalog...",
     packageSummary: "{{title}} — {{count}}",

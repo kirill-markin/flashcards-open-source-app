@@ -911,6 +911,9 @@ const zuCatalog: TranslationCatalog = {
     previewRemoveTagLabel: "Susa ithegi ethi {{tag}} ({{count}})",
   },
   catalogImport: {
+    existingCopyNotice: "{{title}} isivele ikhona kule ndawo yokusebenza ({{count}}). Inqubekelaphambili yakho yokufunda iyagcinwa.",
+    studyExistingCards: "Funda amakhadi akhona",
+    importAnotherCopy: "Ngenisa enye ikhophi",
     title: "Ngenisa inqwaba kusuka kukhathalogi",
     loading: "Kulayishwa inqwaba yekhathalogi...",
     packageSummary: "{{title}} — {{count}}",

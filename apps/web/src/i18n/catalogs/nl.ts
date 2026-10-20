@@ -911,6 +911,9 @@ const nlCatalog: TranslationCatalog = {
     previewRemoveTagLabel: "{{tag}} verwijderen ({{count}})",
   },
   catalogImport: {
+    existingCopyNotice: "{{title}} staat al in deze werkruimte ({{count}}). Je leervoortgang blijft behouden.",
+    studyExistingCards: "Bestaande kaarten bestuderen",
+    importAnotherCopy: "Nog een kopie importeren",
     title: "Deck importeren uit de catalogus",
     loading: "Catalogusdeck laden...",
     packageSummary: "{{title}} — {{count}}",

@@ -911,6 +911,9 @@ const trCatalog: TranslationCatalog = {
     previewRemoveTagLabel: "{{tag}} etiketini kaldır ({{count}})",
   },
   catalogImport: {
+    existingCopyNotice: "{{title}} bu çalışma alanında zaten var ({{count}}). Çalışma ilerlemeniz korunur.",
+    studyExistingCards: "Mevcut kartları çalış",
+    importAnotherCopy: "Başka bir kopya içe aktar",
     title: "Katalogdan deste içe aktar",
     loading: "Katalog destesi yükleniyor...",
     packageSummary: "{{title}} — {{count}}",

@@ -78,6 +78,10 @@ function toReviewFilterMenuItemKey(reviewFilter: ReviewFilter): string {
     return `${REVIEW_FILTER_DECK_PREFIX}${reviewFilter.deckId}`;
   }
 
+  if (reviewFilter.kind === "catalogImport") {
+    return `catalogImport:${reviewFilter.importId}`;
+  }
+
   return `${REVIEW_FILTER_TAG_PREFIX}${reviewFilter.tags.map((tag) => encodeURIComponent(tag)).join(",")}`;
 }
 
@@ -97,6 +101,13 @@ function buildReviewDeckFilterMenuItems(
       subtitle: null,
       isSelected: toReviewFilterMenuItemKey(selectedReviewFilter) === toReviewFilterMenuItemKey(ALL_CARDS_REVIEW_FILTER),
     },
+    ...(selectedReviewFilter.kind === "catalogImport" ? [{
+      key: toReviewFilterMenuItemKey(selectedReviewFilter),
+      label: selectedReviewFilter.title,
+      reviewFilter: selectedReviewFilter,
+      subtitle: null,
+      isSelected: true,
+    }] : []),
     ...decks.map((deck) => {
       const reviewFilter: ReviewFilter = {
         kind: "deck",
@@ -160,6 +171,10 @@ function resolveMaterializedTags(
 
   if (selectedReviewFilter.kind === "tags") {
     return normalizeReviewFilterTags(selectedReviewFilter.tags);
+  }
+
+  if (selectedReviewFilter.kind === "catalogImport") {
+    return [];
   }
 
   const selectedDeck = deckSummaries.find(

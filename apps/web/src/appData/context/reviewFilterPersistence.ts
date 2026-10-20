@@ -60,6 +60,22 @@ export function parsePersistedReviewFilter(value: string | null): ReviewFilter {
     }
 
     if (
+      parsedValue.kind === "catalogImport"
+      && "importId" in parsedValue
+      && typeof parsedValue.importId === "string"
+      && parsedValue.importId.trim() !== ""
+      && "title" in parsedValue
+      && typeof parsedValue.title === "string"
+      && parsedValue.title.trim() !== ""
+    ) {
+      return {
+        kind: "catalogImport",
+        importId: parsedValue.importId,
+        title: parsedValue.title,
+      };
+    }
+
+    if (
       parsedValue.kind === "deck"
       && "deckId" in parsedValue
       && typeof parsedValue.deckId === "string"

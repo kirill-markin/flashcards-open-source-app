@@ -929,6 +929,9 @@ const slCatalog: TranslationCatalog = {
     previewRemoveTagLabel: "Odstrani {{tag}} ({{count}})",
   },
   catalogImport: {
+    existingCopyNotice: "{{title}} je že v tem delovnem prostoru ({{count}}). Vaš napredek pri učenju se ohrani.",
+    studyExistingCards: "Uči se z obstoječimi karticami",
+    importAnotherCopy: "Uvozi še eno kopijo",
     title: "Uvozi komplet iz kataloga",
     loading: "Nalaganje kompleta iz kataloga ...",
     packageSummary: "{{title}} — {{count}}",

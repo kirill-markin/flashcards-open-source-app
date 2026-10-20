@@ -911,6 +911,9 @@ const huCatalog: TranslationCatalog = {
     previewRemoveTagLabel: "Eltávolítás: {{tag}} ({{count}})",
   },
   catalogImport: {
+    existingCopyNotice: "{{title}} már megtalálható ebben a munkaterületben ({{count}}). A tanulási előrehaladásod megmarad.",
+    studyExistingCards: "Meglévő kártyák tanulása",
+    importAnotherCopy: "Újabb példány importálása",
     title: "Pakli importálása a katalógusból",
     loading: "Katalóguspakli betöltése...",
     packageSummary: "{{title}} — {{count}}",

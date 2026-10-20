@@ -911,6 +911,9 @@ const thCatalog: TranslationCatalog = {
     previewRemoveTagLabel: "นำ {{tag}} ออก ({{count}})",
   },
   catalogImport: {
+    existingCopyNotice: "{{title}} อยู่ในพื้นที่ทำงานนี้แล้ว ({{count}}) ความคืบหน้าการเรียนของคุณจะยังอยู่",
+    studyExistingCards: "เรียนการ์ดที่มีอยู่",
+    importAnotherCopy: "นำเข้าสำเนาอีกชุด",
     title: "นำเข้าเด็คจากแคตตาล็อก",
     loading: "กำลังโหลดเด็คจากแคตตาล็อก...",
     packageSummary: "{{title}} — {{count}}",

@@ -911,6 +911,9 @@ const mlCatalog: TranslationCatalog = {
     previewRemoveTagLabel: "{{tag}} നീക്കുക ({{count}})",
   },
   catalogImport: {
+    existingCopyNotice: "{{title}} ഈ വർക്ക്‌സ്‌പേസിൽ ഇതിനകം ഉണ്ട് ({{count}}). നിങ്ങളുടെ പഠന പുരോഗതി നിലനിർത്തും.",
+    studyExistingCards: "നിലവിലുള്ള കാർഡുകൾ പഠിക്കുക",
+    importAnotherCopy: "മറ്റൊരു പകർപ്പ് ഇറക്കുമതി ചെയ്യുക",
     title: "കാറ്റലോഗിൽ നിന്ന് ഡെക്ക് ഇംപോർട്ട് ചെയ്യുക",
     loading: "കാറ്റലോഗ് ഡെക്ക് ലോഡ് ചെയ്യുന്നു...",
     packageSummary: "{{title}} — {{count}}",

@@ -911,6 +911,9 @@ const guCatalog: TranslationCatalog = {
     previewRemoveTagLabel: "{{tag}} દૂર કરો ({{count}})",
   },
   catalogImport: {
+    existingCopyNotice: "{{title}} આ વર્કસ્પેસમાં પહેલેથી છે ({{count}}). તમારી અભ્યાસની પ્રગતિ જળવાઈ રહેશે.",
+    studyExistingCards: "હાલનાં કાર્ડનો અભ્યાસ કરો",
+    importAnotherCopy: "બીજી નકલ આયાત કરો",
     title: "કૅટલૉગમાંથી ડેક આયાત કરો",
     loading: "કૅટલૉગ ડેક લોડ થઈ રહ્યું છે...",
     packageSummary: "{{title}} — {{count}}",

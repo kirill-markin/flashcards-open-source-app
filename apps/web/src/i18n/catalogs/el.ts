@@ -911,6 +911,9 @@ const elCatalog: TranslationCatalog = {
     previewRemoveTagLabel: "Αφαίρεση της {{tag}} ({{count}})",
   },
   catalogImport: {
+    existingCopyNotice: "Το {{title}} υπάρχει ήδη σε αυτόν τον χώρο εργασίας ({{count}}). Η πρόοδός σας διατηρείται.",
+    studyExistingCards: "Μελέτη υπαρχουσών καρτών",
+    importAnotherCopy: "Εισαγωγή άλλου αντιγράφου",
     title: "Εισαγωγή δέσμης από τον κατάλογο",
     loading: "Φόρτωση δέσμης από τον κατάλογο...",
     packageSummary: "{{title}} — {{count}}",

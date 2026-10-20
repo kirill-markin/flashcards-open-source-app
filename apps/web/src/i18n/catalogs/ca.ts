@@ -911,6 +911,9 @@ const caCatalog: TranslationCatalog = {
     previewRemoveTagLabel: "Elimina {{tag}} ({{count}})",
   },
   catalogImport: {
+    existingCopyNotice: "{{title}} ja és en aquest espai de treball ({{count}}). Es conserva el teu progrés.",
+    studyExistingCards: "Estudia les targetes existents",
+    importAnotherCopy: "Importa una altra còpia",
     title: "Importa una baralla del catàleg",
     loading: "S'està carregant la baralla del catàleg...",
     packageSummary: "{{title}} — {{count}}",

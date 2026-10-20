@@ -911,6 +911,9 @@ const bnCatalog: TranslationCatalog = {
     previewRemoveTagLabel: "{{tag}} সরান ({{count}})",
   },
   catalogImport: {
+    existingCopyNotice: "{{title}} ইতিমধ্যেই এই ওয়ার্কস্পেসে আছে ({{count}})। আপনার পড়ার অগ্রগতি সংরক্ষিত থাকবে।",
+    studyExistingCards: "বিদ্যমান কার্ড পড়ুন",
+    importAnotherCopy: "আরেকটি কপি আমদানি করুন",
     title: "ক্যাটালগ থেকে ডেক আমদানি করুন",
     loading: "ক্যাটালগ ডেক লোড হচ্ছে...",
     packageSummary: "{{title}} — {{count}}",

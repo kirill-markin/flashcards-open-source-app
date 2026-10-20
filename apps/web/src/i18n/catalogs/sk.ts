@@ -920,6 +920,9 @@ const skCatalog: TranslationCatalog = {
     previewRemoveTagLabel: "Odstrániť {{tag}} ({{count}})",
   },
   catalogImport: {
+    existingCopyNotice: "{{title}} už je v tomto pracovnom priestore ({{count}}). Váš pokrok zostane zachovaný.",
+    studyExistingCards: "Študovať existujúce kartičky",
+    importAnotherCopy: "Importovať ďalšiu kópiu",
     title: "Importovať balíček z katalógu",
     loading: "Načítava sa balíček z katalógu...",
     packageSummary: "{{title}} — {{count}}",

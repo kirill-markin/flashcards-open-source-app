@@ -308,6 +308,10 @@ export function serializeReviewFilterKey(reviewFilter: ReviewFilter): string {
     return `deck:${reviewFilter.deckId}`;
   }
 
+  if (reviewFilter.kind === "catalogImport") {
+    return `catalogImport:${encodeURIComponent(reviewFilter.importId)}`;
+  }
+
   return `tags:${normalizeReviewFilterTags(reviewFilter.tags)
     .map((tag) => encodeURIComponent(normalizeTagKey(tag)))
     .join(",")}`;
