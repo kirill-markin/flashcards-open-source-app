@@ -1127,6 +1127,9 @@ const hiCatalog: TranslationCatalog = {
       unavailable: "मीडिया उपलब्ध नहीं है",
       videoLabel: "वीडियो अटैचमेंट",
     },
+    moreActions: {
+      ariaLabel: "रिव्यू की और कार्रवाइयाँ",
+    },
     queue: {
       close: "कतार बंद करें",
       loading: "लोड हो रहा है",
@@ -1153,7 +1156,6 @@ const hiCatalog: TranslationCatalog = {
       stop: "{{side}} पढ़ना रोकें",
     },
     speechUnavailable: "आवाज़ इस डिवाइस पर उपलब्ध नहीं है।",
-    subtitle: "कतार तालिका के साथ केंद्रित फ्लिप फ़्लो।",
     title: "रिव्यू",
   },
   reviewEditor: {

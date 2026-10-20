@@ -1127,6 +1127,9 @@ const paCatalog: TranslationCatalog = {
       unavailable: "ਮੀਡੀਆ ਉਪਲਬਧ ਨਹੀਂ",
       videoLabel: "ਵੀਡੀਓ ਅਟੈਚਮੈਂਟ",
     },
+    moreActions: {
+      ariaLabel: "ਦੁਹਰਾਈ ਦੀਆਂ ਹੋਰ ਕਾਰਵਾਈਆਂ",
+    },
     queue: {
       close: "ਕਤਾਰ ਬੰਦ ਕਰੋ",
       loading: "ਲੋਡ ਹੋ ਰਿਹਾ ਹੈ",
@@ -1153,7 +1156,6 @@ const paCatalog: TranslationCatalog = {
       stop: "ਬੋਲ ਕੇ ਪੜ੍ਹਨਾ ਬੰਦ ਕਰੋ: {{side}}",
     },
     speechUnavailable: "ਇਸ ਡਿਵਾਈਸ ਉੱਤੇ ਬੋਲ ਕੇ ਪੜ੍ਹਨਾ ਉਪਲਬਧ ਨਹੀਂ ਹੈ.",
-    subtitle: "ਕਤਾਰ ਦੀ ਸਾਰਣੀ ਅਤੇ ਨਾਲ ਕੇਂਦਰਿਤ ਪਲਟਣ ਵਾਲਾ ਪ੍ਰਵਾਹ.",
     title: "ਦੁਹਰਾਈ",
   },
   reviewEditor: {

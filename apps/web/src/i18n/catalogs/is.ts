@@ -1127,6 +1127,9 @@ const isCatalog: TranslationCatalog = {
       unavailable: "Miðill ekki tiltækur",
       videoLabel: "Myndskeiðsviðhengi",
     },
+    moreActions: {
+      ariaLabel: "Fleiri upprifjunaraðgerðir",
+    },
     queue: {
       close: "Loka röð",
       loading: "hleð",
@@ -1153,7 +1156,6 @@ const isCatalog: TranslationCatalog = {
       stop: "Stöðva upplestur: {{side}}",
     },
     speechUnavailable: "Upplestur er ekki tiltækur á þessu tæki.",
-    subtitle: "Raðartafla ásamt einbeittu flettiflæði.",
     title: "Upprifjun",
   },
   reviewEditor: {

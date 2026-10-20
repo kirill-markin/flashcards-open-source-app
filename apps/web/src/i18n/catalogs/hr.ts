@@ -1137,6 +1137,9 @@ const hrCatalog: TranslationCatalog = {
       unavailable: "Mediji nisu dostupni",
       videoLabel: "Videoprivitak",
     },
+    moreActions: {
+      ariaLabel: "Više radnji ponavljanja",
+    },
     queue: {
       close: "Zatvori red",
       loading: "učitavanje",
@@ -1163,7 +1166,6 @@ const hrCatalog: TranslationCatalog = {
       stop: "Zaustavi izgovor: {{side}}",
     },
     speechUnavailable: "Govor nije dostupan na ovom uređaju.",
-    subtitle: "Tablica reda i usredotočeni tijek okretanja kartica.",
     title: "Ponavljanje",
   },
   reviewEditor: {

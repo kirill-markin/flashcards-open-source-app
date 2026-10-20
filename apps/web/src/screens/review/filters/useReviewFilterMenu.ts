@@ -6,7 +6,7 @@ import {
   normalizeReviewFilterTags,
   normalizeTagKey,
 } from "../../../appData/domain";
-import { useAnchoredFloatingOutsidePointerDismiss } from "../../../floating";
+import { useAnchoredFloatingHiddenTriggerDismiss, useAnchoredFloatingOutsidePointerDismiss } from "../../../floating";
 import { createDeckNameComparator } from "../../../deckNameOrdering";
 import { useI18n } from "../../../i18n";
 import { settingsDecksRoute } from "../../../routes";
@@ -40,6 +40,8 @@ type UseReviewFilterMenuParams = Readonly<{
   workspaceId: string | null;
 }>;
 
+type ReviewFilterMenuAnchor = "filterTrigger" | "moreActionsTrigger";
+
 type ReviewFilterMenuContext = Readonly<{
   reviewFilter: ReviewFilter;
   workspaceId: string | null;
@@ -52,6 +54,7 @@ export type UseReviewFilterMenuResult = Readonly<{
   handleCloseMenu: () => void;
   handleReviewFilterComboboxKeyDown: (event: ReactKeyboardEvent<HTMLInputElement>) => void;
   handleReviewFilterListboxKeyDown: (event: ReactKeyboardEvent<HTMLDivElement>) => void;
+  handleReviewFilterMenuOpenFromMoreActions: () => void;
   handleReviewFilterMenuToggle: () => void;
   handleReviewFilterSelect: (optionKey: string, reviewFilter: ReviewFilter) => void;
   hasVisibleReviewFilterChoices: boolean;
@@ -60,9 +63,11 @@ export type UseReviewFilterMenuResult = Readonly<{
   reviewDeckSearchText: string;
   reviewFilterListboxId: string;
   reviewFilterListboxRef: React.RefObject<HTMLDivElement | null>;
+  reviewFilterMenuAnchorRef: React.RefObject<HTMLButtonElement | null>;
   reviewFilterMenuRef: React.RefObject<HTMLDivElement | null>;
   reviewFilterMenuItems: ReadonlyArray<ReviewFilterMenuItem>;
   reviewFilterTriggerRef: React.RefObject<HTMLButtonElement | null>;
+  reviewMoreActionsTriggerRef: React.RefObject<HTMLButtonElement | null>;
   setReviewDeckSearchText: (value: string) => void;
   shouldShowReviewDeckSearch: boolean;
   visibleReviewDeckFilterMenuItems: ReadonlyArray<ReviewFilterChoiceMenuItem>;
@@ -284,6 +289,7 @@ export function useReviewFilterMenu(params: UseReviewFilterMenuParams): UseRevie
   const { locale, t } = useI18n();
   const workspacePath = useWorkspacePath();
   const [isReviewFilterMenuOpen, setIsReviewFilterMenuOpen] = useState<boolean>(false);
+  const [reviewFilterMenuAnchor, setReviewFilterMenuAnchor] = useState<ReviewFilterMenuAnchor>("filterTrigger");
   const [reviewFilterDraft, setReviewFilterDraft] = useState<ReviewFilter | null>(null);
   const [reviewDeckSearchText, setReviewDeckSearchText] = useState<string>("");
   const [activeReviewFilterOptionKey, setActiveReviewFilterOptionKey] = useState<string | null>(null);
@@ -294,6 +300,10 @@ export function useReviewFilterMenu(params: UseReviewFilterMenuParams): UseRevie
   const openingReviewFilterMenuContextRef = useRef<ReviewFilterMenuContext | null>(null);
   const reviewFilterDraftRef = useRef<ReviewFilter | null>(null);
   const reviewFilterTriggerRef = useRef<HTMLButtonElement | null>(null);
+  const reviewMoreActionsTriggerRef = useRef<HTMLButtonElement | null>(null);
+  const reviewFilterMenuAnchorRef = reviewFilterMenuAnchor === "filterTrigger"
+    ? reviewFilterTriggerRef
+    : reviewMoreActionsTriggerRef;
   const reviewFilterMenuRef = useRef<HTMLDivElement | null>(null);
   const reviewDeckSearchInputRef = useRef<HTMLInputElement | null>(null);
   const reviewFilterListboxRef = useRef<HTMLDivElement | null>(null);
@@ -337,8 +347,14 @@ export function useReviewFilterMenu(params: UseReviewFilterMenuParams): UseRevie
     : toReviewFilterOptionElementId(activeReviewFilterOptionKey);
 
   useAnchoredFloatingOutsidePointerDismiss({
-    triggerRef: reviewFilterTriggerRef,
+    triggerRef: reviewFilterMenuAnchorRef,
     overlayRef: reviewFilterMenuRef,
+    enabled: isReviewFilterMenuOpen,
+    onClose: handleCloseMenu,
+  });
+
+  useAnchoredFloatingHiddenTriggerDismiss({
+    triggerRef: reviewFilterMenuAnchorRef,
     enabled: isReviewFilterMenuOpen,
     onClose: handleCloseMenu,
   });
@@ -443,6 +459,15 @@ export function useReviewFilterMenu(params: UseReviewFilterMenuParams): UseRevie
     }
   }
 
+  function openReviewFilterMenu(anchor: ReviewFilterMenuAnchor): void {
+    openingReviewFilterMenuContextRef.current = currentReviewFilterMenuContextRef.current;
+    reviewFilterDraftRef.current = selectedReviewFilter;
+    setReviewFilterDraft(selectedReviewFilter);
+    setActiveReviewFilterOptionKey(findDefaultReviewFilterOptionKey(visibleReviewFilterChoiceMenuItems));
+    setReviewFilterMenuAnchor(anchor);
+    setIsReviewFilterMenuOpen(true);
+  }
+
   function handleReviewFilterMenuToggle(): void {
     setReviewDeckSearchText("");
     if (isReviewFilterMenuOpen) {
@@ -450,11 +475,11 @@ export function useReviewFilterMenu(params: UseReviewFilterMenuParams): UseRevie
       return;
     }
 
-    openingReviewFilterMenuContextRef.current = currentReviewFilterMenuContextRef.current;
-    reviewFilterDraftRef.current = selectedReviewFilter;
-    setReviewFilterDraft(selectedReviewFilter);
-    setActiveReviewFilterOptionKey(findDefaultReviewFilterOptionKey(visibleReviewFilterChoiceMenuItems));
-    setIsReviewFilterMenuOpen(true);
+    openReviewFilterMenu("filterTrigger");
+  }
+
+  function handleReviewFilterMenuOpenFromMoreActions(): void {
+    openReviewFilterMenu("moreActionsTrigger");
   }
 
   function handleReviewFilterSelect(optionKey: string, reviewFilter: ReviewFilter): void {
@@ -470,7 +495,7 @@ export function useReviewFilterMenu(params: UseReviewFilterMenuParams): UseRevie
 
   function closeReviewFilterMenuAndFocusTrigger(): void {
     handleCloseMenu();
-    reviewFilterTriggerRef.current?.focus();
+    reviewFilterMenuAnchorRef.current?.focus();
   }
 
   function closeReviewFilterMenuFromKeyboard(event: ReactKeyboardEvent<HTMLInputElement | HTMLDivElement>): void {
@@ -565,6 +590,7 @@ export function useReviewFilterMenu(params: UseReviewFilterMenuParams): UseRevie
     handleCloseMenu,
     handleReviewFilterComboboxKeyDown,
     handleReviewFilterListboxKeyDown,
+    handleReviewFilterMenuOpenFromMoreActions,
     handleReviewFilterMenuToggle,
     handleReviewFilterSelect,
     hasVisibleReviewFilterChoices,
@@ -573,9 +599,11 @@ export function useReviewFilterMenu(params: UseReviewFilterMenuParams): UseRevie
     reviewDeckSearchText,
     reviewFilterListboxId: REVIEW_FILTER_LISTBOX_ID,
     reviewFilterListboxRef,
+    reviewFilterMenuAnchorRef,
     reviewFilterMenuRef,
     reviewFilterMenuItems,
     reviewFilterTriggerRef,
+    reviewMoreActionsTriggerRef,
     setReviewDeckSearchText,
     shouldShowReviewDeckSearch,
     visibleReviewDeckFilterMenuItems,

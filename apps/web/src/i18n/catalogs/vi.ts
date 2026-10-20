@@ -1127,6 +1127,9 @@ const viCatalog: TranslationCatalog = {
       unavailable: "Media không khả dụng",
       videoLabel: "Video đính kèm",
     },
+    moreActions: {
+      ariaLabel: "Thêm thao tác ôn tập",
+    },
     queue: {
       close: "Đóng hàng đợi",
       loading: "đang tải",
@@ -1153,7 +1156,6 @@ const viCatalog: TranslationCatalog = {
       stop: "Dừng đọc {{side}}",
     },
     speechUnavailable: "Thiết bị này không hỗ trợ đọc thành tiếng.",
-    subtitle: "Bảng hàng đợi cùng luồng lật thẻ tập trung.",
     title: "Ôn tập",
   },
   reviewEditor: {

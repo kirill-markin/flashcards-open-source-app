@@ -1137,6 +1137,9 @@ const roCatalog: TranslationCatalog = {
       unavailable: "Fișiere media indisponibile",
       videoLabel: "Atașament video",
     },
+    moreActions: {
+      ariaLabel: "Mai multe acțiuni de recapitulare",
+    },
     queue: {
       close: "Închide coada",
       loading: "se încarcă",
@@ -1163,7 +1166,6 @@ const roCatalog: TranslationCatalog = {
       stop: "Oprește citirea: {{side}}",
     },
     speechUnavailable: "Redarea vocală nu este disponibilă pe acest dispozitiv.",
-    subtitle: "Tabelul cozii plus un flux concentrat de întoarcere a fișei.",
     title: "Recapitulare",
   },
   reviewEditor: {

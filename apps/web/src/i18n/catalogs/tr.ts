@@ -1127,6 +1127,9 @@ const trCatalog: TranslationCatalog = {
       unavailable: "Medya kullanılamıyor",
       videoLabel: "Video eki",
     },
+    moreActions: {
+      ariaLabel: "Diğer tekrar işlemleri",
+    },
     queue: {
       close: "Sırayı kapat",
       loading: "yükleniyor",
@@ -1153,7 +1156,6 @@ const trCatalog: TranslationCatalog = {
       stop: "{{side}} okumayı durdur",
     },
     speechUnavailable: "Bu cihazda seslendirme kullanılamıyor.",
-    subtitle: "Sıra tablosu ve odaklanmış kart çevirme akışı.",
     title: "Tekrar",
   },
   reviewEditor: {

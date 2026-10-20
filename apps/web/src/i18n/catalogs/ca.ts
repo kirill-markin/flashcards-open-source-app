@@ -1127,6 +1127,9 @@ const caCatalog: TranslationCatalog = {
       unavailable: "Contingut multimèdia no disponible",
       videoLabel: "Vídeo adjunt",
     },
+    moreActions: {
+      ariaLabel: "Més accions de repàs",
+    },
     queue: {
       close: "Tanca la cua",
       loading: "s'està carregant",
@@ -1153,7 +1156,6 @@ const caCatalog: TranslationCatalog = {
       stop: "Atura la lectura: {{side}}",
     },
     speechUnavailable: "La veu no està disponible en aquest dispositiu.",
-    subtitle: "Taula de la cua més un flux de gir concentrat.",
     title: "Repàs",
   },
   reviewEditor: {

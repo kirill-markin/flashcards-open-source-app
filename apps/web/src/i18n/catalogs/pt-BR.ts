@@ -1127,6 +1127,9 @@ const ptBrCatalog: TranslationCatalog = {
       unavailable: "Mídia indisponível",
       videoLabel: "Anexo de vídeo",
     },
+    moreActions: {
+      ariaLabel: "Mais ações de revisão",
+    },
     queue: {
       close: "Fechar fila",
       loading: "carregando",
@@ -1153,7 +1156,6 @@ const ptBrCatalog: TranslationCatalog = {
       stop: "Parar a leitura de {{side}}",
     },
     speechUnavailable: "A fala não está disponível neste dispositivo.",
-    subtitle: "Tabela da fila mais um fluxo focado de virar cartões.",
     title: "Revisar",
   },
   reviewEditor: {

@@ -1137,6 +1137,9 @@ const csCatalog: TranslationCatalog = {
       unavailable: "Média nejsou dostupná",
       videoLabel: "Videopříloha",
     },
+    moreActions: {
+      ariaLabel: "Další akce opakování",
+    },
     queue: {
       close: "Zavřít frontu",
       loading: "načítání",
@@ -1163,7 +1166,6 @@ const csCatalog: TranslationCatalog = {
       stop: "Zastavit předčítání: {{side}}",
     },
     speechUnavailable: "Předčítání není na tomto zařízení dostupné.",
-    subtitle: "Tabulka fronty a soustředěné otáčení kartiček.",
     title: "Opakování",
   },
   reviewEditor: {

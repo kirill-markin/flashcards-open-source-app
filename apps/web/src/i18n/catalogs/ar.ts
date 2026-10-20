@@ -1127,6 +1127,9 @@ const arCatalog: TranslationCatalog = {
       unavailable: "الوسائط غير متاحة",
       videoLabel: "مرفق فيديو",
     },
+    moreActions: {
+      ariaLabel: "مزيد من إجراءات المراجعة",
+    },
     queue: {
       close: "إغلاق قائمة الانتظار",
       loading: "جارٍ التحميل",
@@ -1153,7 +1156,6 @@ const arCatalog: TranslationCatalog = {
       stop: "أوقف قراءة {{side}}",
     },
     speechUnavailable: "الصوت غير متاح على هذا الجهاز.",
-    subtitle: "جدول لقائمة الانتظار مع تدفق قلب مركّز.",
     title: "مراجعة",
   },
   reviewEditor: {

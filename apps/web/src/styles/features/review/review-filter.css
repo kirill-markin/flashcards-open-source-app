@@ -176,6 +176,27 @@
   color: var(--accent-strong);
 }
 
+.review-more-actions-entry {
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.review-more-actions-entry:disabled {
+  pointer-events: none;
+  opacity: 0.64;
+}
+
+.review-more-actions-chevron {
+  display: block;
+  width: 18px;
+  height: 18px;
+  color: var(--text-tertiary);
+}
+
+/* The chevron path is hardcoded right-pointing, so RTL locales need it mirrored. */
+[dir="rtl"] .review-more-actions-chevron {
+  transform: scaleX(-1);
+}
+
 .review-filter-menu-item-slot {
   display: inline-flex;
   align-items: center;

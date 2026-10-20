@@ -1127,6 +1127,9 @@ const etCatalog: TranslationCatalog = {
       unavailable: "Meedia pole saadaval",
       videoLabel: "Videomanus",
     },
+    moreActions: {
+      ariaLabel: "Rohkem kordamise toiminguid",
+    },
     queue: {
       close: "Sulge järjekord",
       loading: "laadimine",
@@ -1153,7 +1156,6 @@ const etCatalog: TranslationCatalog = {
       stop: "Peata ettelugemine: {{side}}",
     },
     speechUnavailable: "Kõne pole selles seadmes saadaval.",
-    subtitle: "Järjekorra tabel ja keskendunud pööramisvoog.",
     title: "Korda",
   },
   reviewEditor: {

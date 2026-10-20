@@ -1137,6 +1137,9 @@ export const ruCatalog = {
       unavailable: "Медиа недоступно",
       videoLabel: "Видеовложение",
     },
+    moreActions: {
+      ariaLabel: "Дополнительные действия повторения",
+    },
     queue: {
       close: "Закрыть очередь",
       loading: "загрузка",
@@ -1163,7 +1166,6 @@ export const ruCatalog = {
       stop: "Остановить озвучивание {{side}}",
     },
     speechUnavailable: "Озвучивание недоступно на этом устройстве.",
-    subtitle: "Таблица очереди и сфокусированный режим переворота карточек.",
     title: "Повторение",
   },
   reviewEditor: {

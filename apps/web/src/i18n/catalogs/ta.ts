@@ -1127,6 +1127,9 @@ const taCatalog: TranslationCatalog = {
       unavailable: "ஊடகம் கிடைக்கவில்லை",
       videoLabel: "காணொளி இணைப்பு",
     },
+    moreActions: {
+      ariaLabel: "மீள்பயிற்சிக்கான கூடுதல் செயல்கள்",
+    },
     queue: {
       close: "வரிசையை மூடு",
       loading: "ஏற்றுகிறது",
@@ -1153,7 +1156,6 @@ const taCatalog: TranslationCatalog = {
       stop: "உரக்க வாசிப்பதை நிறுத்து: {{side}}",
     },
     speechUnavailable: "இந்தச் சாதனத்தில் உரக்க வாசிப்பு கிடைக்கவில்லை.",
-    subtitle: "வரிசை அட்டவணையுடன் கவனம் குவிந்த திருப்பல் ஓட்டம்.",
     title: "மீள்பயிற்சி",
   },
   reviewEditor: {

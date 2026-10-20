@@ -1127,6 +1127,9 @@ const koCatalog: TranslationCatalog = {
       unavailable: "미디어를 사용할 수 없음",
       videoLabel: "동영상 첨부 파일",
     },
+    moreActions: {
+      ariaLabel: "복습 작업 더보기",
+    },
     queue: {
       close: "대기열 닫기",
       loading: "불러오는 중",
@@ -1153,7 +1156,6 @@ const koCatalog: TranslationCatalog = {
       stop: "{{side}} 읽기 중지",
     },
     speechUnavailable: "이 기기에서는 음성 읽기를 사용할 수 없습니다.",
-    subtitle: "대기열 표와 집중 복습 흐름을 함께 제공합니다.",
     title: "복습",
   },
   reviewEditor: {

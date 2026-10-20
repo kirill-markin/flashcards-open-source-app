@@ -50,6 +50,12 @@ export type AnchoredFloatingOutsidePointerDismissOptions = Readonly<{
   onClose: () => void;
 }>;
 
+export type AnchoredFloatingHiddenTriggerDismissOptions = Readonly<{
+  triggerRef: RefObject<HTMLElement | null>;
+  enabled: boolean;
+  onClose: () => void;
+}>;
+
 function assertFiniteNumber(value: number, label: string): void {
   if (!Number.isFinite(value)) {
     throw new RangeError(`${label} must be a finite number.`);
@@ -168,6 +174,29 @@ export function useAnchoredFloatingOutsidePointerDismiss(
     document.addEventListener("pointerdown", handlePointerDown);
     return () => document.removeEventListener("pointerdown", handlePointerDown);
   }, [enabled, onClose, overlayRef, triggerRef]);
+}
+
+// A trigger hidden by a responsive breakpoint has no layout box, so an open overlay would anchor to nothing.
+export function useAnchoredFloatingHiddenTriggerDismiss(
+  options: AnchoredFloatingHiddenTriggerDismissOptions,
+): void {
+  const { triggerRef, enabled, onClose } = options;
+
+  useEffect(() => {
+    if (!enabled) {
+      return;
+    }
+
+    function handleResize(): void {
+      const trigger = triggerRef.current;
+      if (trigger === null || trigger.getClientRects().length === 0) {
+        onClose();
+      }
+    }
+
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, [enabled, onClose, triggerRef]);
 }
 
 export function AnchoredFloatingOverlay(props: AnchoredFloatingOverlayProps): ReactPortal | null {

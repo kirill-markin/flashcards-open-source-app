@@ -1127,6 +1127,9 @@ const urCatalog: TranslationCatalog = {
       unavailable: "میڈیا دستیاب نہیں",
       videoLabel: "ویڈیو منسلکہ",
     },
+    moreActions: {
+      ariaLabel: "دہرائی کے مزید اقدامات",
+    },
     queue: {
       close: "قطار بند کریں",
       loading: "لوڈ ہو رہی ہے",
@@ -1153,7 +1156,6 @@ const urCatalog: TranslationCatalog = {
       stop: "بلند آواز میں پڑھنا بند کریں: {{side}}",
     },
     speechUnavailable: "اس آلے پر آواز دستیاب نہیں ہے۔",
-    subtitle: "قطار کا جدول اور ایک مرکوز پلٹنے کا بہاؤ۔",
     title: "دہرائی",
   },
   reviewEditor: {

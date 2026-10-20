@@ -1127,6 +1127,9 @@ const huCatalog: TranslationCatalog = {
       unavailable: "A média nem érhető el",
       videoLabel: "Videómelléklet",
     },
+    moreActions: {
+      ariaLabel: "További ismétlési műveletek",
+    },
     queue: {
       close: "Sor bezárása",
       loading: "betöltés",
@@ -1153,7 +1156,6 @@ const huCatalog: TranslationCatalog = {
       stop: "Felolvasás leállítása: {{side}}",
     },
     speechUnavailable: "A felolvasás ezen az eszközön nem érhető el.",
-    subtitle: "Sortáblázat és fókuszált kártyafordítás.",
     title: "Ismétlés",
   },
   reviewEditor: {

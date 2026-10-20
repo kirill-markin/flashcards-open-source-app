@@ -1127,6 +1127,9 @@ const swCatalog: TranslationCatalog = {
       unavailable: "Midia haipatikani",
       videoLabel: "Kiambatisho cha video",
     },
+    moreActions: {
+      ariaLabel: "Vitendo zaidi vya marudio",
+    },
     queue: {
       close: "Funga foleni",
       loading: "inapakia",
@@ -1153,7 +1156,6 @@ const swCatalog: TranslationCatalog = {
       stop: "Acha kusoma kwa sauti: {{side}}",
     },
     speechUnavailable: "Usomaji kwa sauti haupatikani kwenye kifaa hiki.",
-    subtitle: "Jedwali la foleni pamoja na mtiririko wa kugeuza kadi kwa umakini.",
     title: "Marudio",
   },
   reviewEditor: {

@@ -40,6 +40,16 @@
   border-radius: var(--panel-inner-radius, var(--radius-lg));
 }
 
+.review-screen-header {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.review-screen-header > .review-loading-retry-btn {
+  justify-self: start;
+}
+
 .review-screen-head {
   align-items: flex-start;
 }
@@ -57,6 +67,7 @@
 }
 
 .review-screen-head-badge.review-leaderboard-shortcut,
+.review-screen-head-badge.review-more-actions-trigger,
 .review-screen-head-badge.review-queue-shortcut {
   min-width: 42px;
   width: 42px;
@@ -79,4 +90,8 @@
   align-items: center;
   justify-content: flex-end;
   gap: 6px;
+}
+
+.review-progress-shortcuts > .review-more-actions-trigger {
+  display: none;
 }

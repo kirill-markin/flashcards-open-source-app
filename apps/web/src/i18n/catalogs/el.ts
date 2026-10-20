@@ -1127,6 +1127,9 @@ const elCatalog: TranslationCatalog = {
       unavailable: "Τα πολυμέσα δεν είναι διαθέσιμα",
       videoLabel: "Συνημμένο βίντεο",
     },
+    moreActions: {
+      ariaLabel: "Περισσότερες ενέργειες επανάληψης",
+    },
     queue: {
       close: "Κλείσιμο ουράς",
       loading: "φόρτωση",
@@ -1153,7 +1156,6 @@ const elCatalog: TranslationCatalog = {
       stop: "Διακοπή εκφώνησης: {{side}}",
     },
     speechUnavailable: "Η ομιλία δεν είναι διαθέσιμη σε αυτήν τη συσκευή.",
-    subtitle: "Πίνακας ουράς μαζί με εστιασμένη ροή γυρίσματος καρτών.",
     title: "Επανάληψη",
   },
   reviewEditor: {

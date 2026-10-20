@@ -1137,6 +1137,9 @@ const plCatalog: TranslationCatalog = {
       unavailable: "Media niedostępne",
       videoLabel: "Załącznik wideo",
     },
+    moreActions: {
+      ariaLabel: "Więcej opcji powtórek",
+    },
     queue: {
       close: "Zamknij kolejkę",
       loading: "ładowanie",
@@ -1163,7 +1166,6 @@ const plCatalog: TranslationCatalog = {
       stop: "Zatrzymaj czytanie: {{side}}",
     },
     speechUnavailable: "Czytanie na głos jest niedostępne na tym urządzeniu.",
-    subtitle: "Tabela kolejki i skupiony tryb odwracania kart.",
     title: "Powtórki",
   },
   reviewEditor: {

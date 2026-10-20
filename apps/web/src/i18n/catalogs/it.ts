@@ -1127,6 +1127,9 @@ const itCatalog: TranslationCatalog = {
       unavailable: "Media non disponibile",
       videoLabel: "Allegato video",
     },
+    moreActions: {
+      ariaLabel: "Altre azioni di ripasso",
+    },
     queue: {
       close: "Chiudi la coda",
       loading: "caricamento",
@@ -1153,7 +1156,6 @@ const itCatalog: TranslationCatalog = {
       stop: "Interrompi la lettura del {{side}}",
     },
     speechUnavailable: "La sintesi vocale non è disponibile su questo dispositivo.",
-    subtitle: "Tabella della coda più un flusso di ripasso mirato.",
     title: "Ripasso",
   },
   reviewEditor: {

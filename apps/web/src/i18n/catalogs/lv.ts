@@ -1127,6 +1127,9 @@ const lvCatalog: TranslationCatalog = {
       unavailable: "Multivide nav pieejama",
       videoLabel: "Video pielikums",
     },
+    moreActions: {
+      ariaLabel: "Vairāk atkārtošanas darbību",
+    },
     queue: {
       close: "Aizvērt rindu",
       loading: "ielādē",
@@ -1153,7 +1156,6 @@ const lvCatalog: TranslationCatalog = {
       stop: "Apturēt nolasīšanu: {{side}}",
     },
     speechUnavailable: "Šajā ierīcē nolasīšana nav pieejama.",
-    subtitle: "Rindas tabula un fokusēta apvēršanas plūsma.",
     title: "Atkārtošana",
   },
   reviewEditor: {

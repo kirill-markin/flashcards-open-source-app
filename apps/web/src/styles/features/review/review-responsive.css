@@ -25,45 +25,34 @@
     padding: 16px;
   }
 
-  .review-screen-head-actions {
-    width: 100%;
+  .review-screen-head {
+    flex-direction: row;
+    flex-wrap: nowrap;
+    align-items: center;
   }
 
-  .review-filter-summary-wrap,
-  .review-filter-menu-wrap {
-    width: 100%;
-  }
-
-  .review-screen-head-actions > .review-filter-menu-wrap {
-    min-width: 0;
-  }
-
-  .review-screen-head-badge,
-  .review-filter-trigger {
-    min-width: 0;
-    width: 100%;
-  }
-
-  .review-progress-shortcuts {
-    width: 100%;
-  }
-
-  .review-progress-shortcuts > .review-leaderboard-shortcut,
-  .review-progress-shortcuts > .review-queue-shortcut {
-    width: 42px;
-    min-width: 42px;
-    flex: 0 0 42px;
-  }
-
-  .review-progress-shortcuts > .review-leaderboard-shortcut-ranked {
-    width: auto;
-    min-width: 42px;
-    flex: 0 0 auto;
-  }
-
-  .review-progress-shortcuts > .review-screen-head-badge:not(.review-leaderboard-shortcut):not(.review-queue-shortcut) {
-    width: auto;
+  .review-screen-head > div:first-child {
     flex: 1 1 auto;
+  }
+
+  .review-screen-head .title {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .review-screen-head-actions {
+    flex-wrap: nowrap;
+  }
+
+  .review-screen-head-actions > .review-filter-menu-wrap,
+  .review-filter-summary-wrap > .review-filter-label,
+  .review-progress-shortcuts > .review-queue-shortcut {
+    display: none;
+  }
+
+  .review-progress-shortcuts > .review-more-actions-trigger {
+    display: inline-flex;
   }
 
   .review-pane,

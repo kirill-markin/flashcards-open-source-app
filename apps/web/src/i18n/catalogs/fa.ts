@@ -1127,6 +1127,9 @@ const faCatalog: TranslationCatalog = {
       unavailable: "رسانه در دسترس نیست",
       videoLabel: "پیوست ویدیویی",
     },
+    moreActions: {
+      ariaLabel: "اقدامات بیشتر مرور",
+    },
     queue: {
       close: "بستن صف",
       loading: "در حال بارگیری",
@@ -1153,7 +1156,6 @@ const faCatalog: TranslationCatalog = {
       stop: "توقف خواندن {{side}}",
     },
     speechUnavailable: "گفتار در این دستگاه در دسترس نیست.",
-    subtitle: "جدول صف به‌همراه یک جریان متمرکز برگرداندن کارت.",
     title: "مرور",
   },
   reviewEditor: {

@@ -1127,6 +1127,9 @@ export const zhHansCatalog = {
       unavailable: "媒体不可用",
       videoLabel: "视频附件",
     },
+    moreActions: {
+      ariaLabel: "更多复习操作",
+    },
     queue: {
       close: "关闭队列",
       loading: "加载中",
@@ -1153,7 +1156,6 @@ export const zhHansCatalog = {
       stop: "停止朗读{{side}}",
     },
     speechUnavailable: "此设备不支持语音功能。",
-    subtitle: "队列表格加专注翻卡流程。",
     title: "复习",
   },
   reviewEditor: {

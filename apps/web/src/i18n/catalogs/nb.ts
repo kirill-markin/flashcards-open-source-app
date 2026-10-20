@@ -1127,6 +1127,9 @@ const nbCatalog: TranslationCatalog = {
       unavailable: "Medier er utilgjengelige",
       videoLabel: "Videovedlegg",
     },
+    moreActions: {
+      ariaLabel: "Flere repetisjonshandlinger",
+    },
     queue: {
       close: "Lukk køen",
       loading: "laster inn",
@@ -1153,7 +1156,6 @@ const nbCatalog: TranslationCatalog = {
       stop: "Stopp opplesingen: {{side}}",
     },
     speechUnavailable: "Opplesing er ikke tilgjengelig på denne enheten.",
-    subtitle: "Kø-tabell pluss en fokusert flyt der du snur kortet.",
     title: "Repetisjon",
   },
   reviewEditor: {
