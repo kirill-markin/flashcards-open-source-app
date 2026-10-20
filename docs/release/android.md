@@ -116,6 +116,23 @@ under the [canonical completion contract](README.md#release-inventory-and-comple
 Configuration, Device Run access, artifact correlation, and Play translation
 checks: [Android CI/CD](../android-ci-cd.md).
 
+## Intermittent Play translation failures
+
+Play can report unsupported languages or failed translations despite enabled
+languages. The [reported incident](https://support.google.com/googleplay/android-developer/thread/473681791?hl=en)
+recovered with the unchanged AAB about 18 hours later; this is not a guaranteed
+wait. Preserve all languages/settings and the exact bundle/hash. Wait, then make
+one authorized retry through the applicable recovery route; stop if it fails
+again. For a manual Console retry, reuse the draft and original signed AAB.
+Reload after saving to distinguish an old failed-upload message from the
+persisted candidate; verify its identity, translations and remaining gates.
+
+Restore the pinned localized notes, save, use **Next** through preview and
+confirmation, then inspect Publishing overview and submit only the intended
+change. Wait for quick checks and approval. Managed publishing **off** publishes
+automatically after approval; with it **on**, complete **Publish changes**.
+Verify the exact production version is public before calling Android complete.
+
 ## Exact-bundle upload recovery
 
 Use `Android Release Upload Recovery`
