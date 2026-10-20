@@ -74,12 +74,12 @@
   overflow-wrap: anywhere;
 }
 
-.catalog-import-workspace-option-active {
+.catalog-import-workspace-option-recommended {
   background: var(--accent-soft);
   color: var(--accent-strong);
 }
 
-.catalog-import-workspace-option-active:hover:not(:disabled) {
+.catalog-import-workspace-option-recommended:hover:not(:disabled) {
   background: var(--accent-muted);
   color: var(--accent-strong);
 }
@@ -104,28 +104,15 @@
   overflow-wrap: anywhere;
 }
 
-.catalog-import-advanced {
-  border-radius: var(--content-card-inner-radius, var(--radius-sm));
-  background: var(--surface-hover);
-  overflow: hidden;
+.catalog-import-create {
+  display: flex;
+  gap: 10px;
+  align-items: end;
+  flex-wrap: wrap;
 }
 
-.catalog-import-advanced > summary {
-  padding: 12px 14px;
-  color: var(--text-secondary);
-  cursor: pointer;
-  font-size: 14px;
-  font-weight: 650;
-}
-
-.catalog-import-advanced > summary:hover {
-  color: var(--text);
-}
-
-.catalog-import-advanced-body {
-  display: grid;
-  gap: 14px;
-  padding: 0 14px 14px;
+.catalog-import-create > .invite-field {
+  flex: 1 1 180px;
 }
 
 .catalog-import-actions {

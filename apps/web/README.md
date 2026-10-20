@@ -73,9 +73,10 @@ viewport sizes. Use an exact public package-version URL at `/catalog/import/<pac
    Check the local cards and outbox: package tags are preserved, no import tag or demo is created.
    Reload review, then sign in to a disposable unmapped account and reload again; no demo appears.
 2. With the same guest session, author a card and reopen another catalog URL. Confirm the manual
-   import controls appear and the guest identity and authored card survive. Confirm an import with
-   the current form: after sync, review opens only that imported copy without a success/platform
-   chooser, even with an empty saved tag filter. Block post-install sync, restore it and retry:
+   confirmation shows the deck, card count, Guest profile and the existing workspace count. Confirm
+   once: after sync, review opens only that imported copy without a success/platform chooser, even
+   with an empty saved tag filter. Original tags stay intact; there are no tag or advanced controls.
+   Block post-install sync, restore it and retry:
    review waits for the imported cards and only one install is submitted. Also check an existing
    guest that already imported cards and the duplicate-copy study action. Never clear owned site
    data to force automatic entry.
@@ -86,8 +87,14 @@ viewport sizes. Use an exact public package-version URL at `/catalog/import/<pac
    demo lacking provenance and with an authored card beside the demo.
 4. Use a registered local account with exactly one empty visible workspace, then one with an
    unchanged demo. Confirm automatic study in both. Use an account with several visible workspaces,
-   all empty, including a session without a selected workspace: confirm a workspace chooser always
-   appears, choosing a different workspace reaches manual controls, and confirmation remains required.
+   all empty, including a session without a selected workspace: confirm the deck first, then choose
+   a destination. Rows show only names and card counts, with the most recently reviewed workspace
+   first (or the largest when none has reviews). Clicking a row imports immediately; Back returns
+   to the confirmation. With multiple workspaces, enter a new name and use Create and add cards.
+   Fail the import after creation, retry, and confirm the same workspace and install ID are reused.
+   With one workspace, confirm there is no destination choice or create action. For an already
+   added deck, confirm Study existing cards is primary and Import another copy is secondary;
+   neither destination selection nor opening the decision silently imports another copy.
 5. Block the install POST before it reaches the local backend. Confirm the localized error and
    Retry action appear, with prior cards preserved. Restore connectivity and retry. Repeat while
    losing the actual committed POST response, using a local proxy/devtools response interception:
