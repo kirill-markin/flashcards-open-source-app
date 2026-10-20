@@ -24,6 +24,8 @@ export type BreakdownReport = Readonly<{
   today: string;
   /** Every value a bar holds, in stack order from the bottom. */
   values: ReadonlyArray<string>;
+  /** Names of values the section's `formatValue` cannot derive, such as a person's email; null for none. */
+  valueLabels: ReadonlyMap<string, string> | null;
   buckets: ReadonlyArray<BreakdownBucket>;
 }>;
 

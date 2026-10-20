@@ -34,6 +34,7 @@ export function WhoPaidUsBreakdownSections(props: Readonly<{
         loadReport={loadWhoPaidUsProviderBreakdownReport}
         formatValue={formatPaymentProvider}
         buildExtraNotes={null}
+        keyLink={null}
       />
       <PaymentImportStatusSection
         config={props.config}
