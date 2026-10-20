@@ -20,6 +20,7 @@ import {
   parseUserAgentChromeMajor,
 } from "../productAnalytics/browserVersion";
 import { findProductAnalyticsEventDefinition } from "../productAnalytics/catalog";
+import { runAnalyticsIngestLookup } from "../productAnalytics/ingestLookup";
 import { resolveDailyVisitorHash } from "../productAnalytics/dailyVisitorHash";
 import { insertAnonymousProductAnalyticsEvent } from "../productAnalytics/writer";
 import {
@@ -28,10 +29,7 @@ import {
   normalizeCaughtError,
   type BackendObservationScope,
 } from "../observability/sentry";
-import {
-  markBackendExceptionWrapperAsReported,
-  reportBackendExceptionOrBreadcrumb,
-} from "../observability/reporting";
+import { reportBackendExceptionOrBreadcrumb } from "../observability/reporting";
 import type { ProductAnalyticsEventRow } from "../productAnalytics/types";
 import type { AppEnv } from "../server/app";
 
@@ -177,38 +175,6 @@ const withheldAnonymousEventRequestFacts: AnonymousEventRequestFacts = {
   clientHintChromiumMajor: null,
 };
 
-// A LOOKUP FAILURE REFUSES THE EVENT RATHER THAN STORING A NULL, deliberately: these columns are
-// written once into an append-only table, so a NULL fabricated from a broken or expired database is
-// the irreversible choice and a rejected event is the recoverable one - its producer retries it
-// under the same idempotent event id, and nothing reconstructs a country or a network after the
-// fact. It is the call docs/geolite-country.md states for every ingestion path and the one
-// apps/backend/src/productAnalytics/installationCountry.ts already makes. Only the report is
-// throttled, not the refusal.
-async function runAnonymousEventLookup<Value>(
-  lookup: () => Promise<Value | null>,
-  reportFailure: (errorMessage: string) => void,
-): Promise<Value | null> {
-  try {
-    return await lookup();
-  } catch (error) {
-    reportFailure(normalizeCaughtError(error).message);
-
-    // Reported once per container per interval just above, so the route's own handler adds a
-    // breadcrumb instead of the per-request Sentry exception the throttle exists to prevent. The 500
-    // and the API Gateway 5XX alarm stay: a collector that cannot derive the facts it must store
-    // is an outage.
-    //
-    // Unlike the other callers, this marks a caught instance rather than a freshly constructed one,
-    // so the mark is a property of that instance and not of this request, and a caught instance can
-    // be shared: the rejected `pendingDownload` in ../geolocation/databaseLoader.ts hands the same
-    // one to every awaiter, and a non-`Error` rejection is wrapped once and cached for the
-    // container's life (../observability/sentry/errorNormalization.ts). Nothing here can be relied on to keep the
-    // instance private to this request, so anything else that ends up holding it is treated as
-    // already reported too.
-    throw markBackendExceptionWrapperAsReported(normalizeCaughtError(error));
-  }
-}
-
 async function resolveAnonymousEventRequestFacts(
   row: ProductAnalyticsEventRow,
   requestOrigin: string,
@@ -232,7 +198,7 @@ async function resolveAnonymousEventRequestFacts(
   const countryLookup = getDirectRequestCountryLookup();
   const country = countryLookup === null
     ? null
-    : await runAnonymousEventLookup(countryLookup, (errorMessage) => reportCountryLookupFailure({
+    : await runAnalyticsIngestLookup(countryLookup, (errorMessage) => reportCountryLookupFailure({
       action: "anonymous_analytics_country_lookup_failed",
       message: "Anonymous analytics country lookup failed; the event is refused so its producer retries it.",
       scope,
@@ -241,7 +207,7 @@ async function resolveAnonymousEventRequestFacts(
   const networkAsnLookup = getDirectRequestNetworkAsnLookup();
   const networkAsn = networkAsnLookup === null
     ? null
-    : await runAnonymousEventLookup(networkAsnLookup, (errorMessage) => reportNetworkAsnLookupFailure({
+    : await runAnalyticsIngestLookup(networkAsnLookup, (errorMessage) => reportNetworkAsnLookupFailure({
       action: "anonymous_analytics_network_asn_lookup_failed",
       message: "Anonymous analytics network ASN lookup failed; the event is refused so its producer retries it.",
       scope,

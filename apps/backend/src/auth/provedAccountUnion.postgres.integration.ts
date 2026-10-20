@@ -17,7 +17,7 @@ import { currentAiDisclosureVersion, type AiConsentInput } from "../aiConsent/in
 import { updateGuestSessionAnalyticsPreferences } from "../guestAuth/store/session";
 import { productAnalyticsSchemaVersion } from "../productAnalytics/catalog";
 import { insertProductAnalyticsClientBatch } from "../productAnalytics/writer";
-import type { ProductAnalyticsEventRow, ProductAnalyticsInstallationObservation } from "../productAnalytics/types";
+import type { ClientProductAnalyticsEventRow, ProductAnalyticsInstallationObservation } from "../productAnalytics/types";
 
 type Preview = Readonly<{
   sourceUserId: string;
@@ -437,7 +437,7 @@ test("retained guest credentials keep original projection and binding grace with
     });
     assert.equal(enabledContext.preferences.productAnalyticsEnabled, true);
     const now = new Date();
-    const event: ProductAnalyticsEventRow = {
+    const event: ClientProductAnalyticsEventRow = {
       eventId: eventIds[0], schemaVersion: productAnalyticsSchemaVersion, eventName: "screen_viewed",
       origin: "client", backfillId: null, clientOccurredAt: now, clientSentAt: now,
       serverReceivedAt: now, occurredAt: now, userId: enabledContext.userId,
@@ -447,6 +447,7 @@ test("retained guest credentials keep original projection and binding grace with
       osVersion: null, deviceModel: null, osName: null, deviceType: null, deviceLocale: null,
       timezone: null, country: null, uiLocale: "en", networkState: null, screen: "review",
       eventProperties: {}, experimentAssignments: {}, requestId: null, details: null,
+      automatedClient: null, networkAsn: null, userAgentChromeMajor: null, clientHintChromiumMajor: null,
     };
     const installation: ProductAnalyticsInstallationObservation = {
       anonymousId, platform: "ios", userId: enabledContext.userId,

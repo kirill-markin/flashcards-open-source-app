@@ -139,19 +139,22 @@ export type ProductAnalyticsEventRow = Readonly<{
   details: ProductAnalyticsEventDetails | null;
 }>;
 
-// A credential-free collector row with the server-derived columns only that collector writes, so
-// none is on ProductAnalyticsEventRow and no other producer has to carry them:
-// db/migrations/0144_anonymous_client_daily_visitor_hash.sql,
-// db/migrations/0145_anonymous_client_automated_marker.sql and
-// db/migrations/0224_anonymous_event_network_and_browser_facts.sql own the contracts.
-// automatedClient is not nullable here: every row this collector stores is assessed, and the
-// column's NULL means a row that predates the assessment.
-export type AnonymousProductAnalyticsEventRow = ProductAnalyticsEventRow & Readonly<{
-  dailyVisitorHash: string | null;
-  automatedClient: boolean;
+// A client-origin row with the columns both client ingests derive from the request that carried it,
+// so none is on ProductAnalyticsEventRow and no server-side producer has to carry them:
+// db/migrations/0228_app_event_bot_evidence.sql owns the contracts.
+export type ClientProductAnalyticsEventRow = ProductAnalyticsEventRow & Readonly<{
+  automatedClient: boolean | null;
   networkAsn: number | null;
   userAgentChromeMajor: number | null;
   clientHintChromiumMajor: number | null;
+}>;
+
+// A credential-free collector row, with the column only that collector writes
+// (db/migrations/0144_anonymous_client_daily_visitor_hash.sql). automatedClient is not nullable
+// here: every row this collector stores is assessed.
+export type AnonymousProductAnalyticsEventRow = ClientProductAnalyticsEventRow & Readonly<{
+  dailyVisitorHash: string | null;
+  automatedClient: boolean;
 }>;
 
 // server_derived comes from the two places the backend observes the pair itself: the guest upgrade,

@@ -2,7 +2,7 @@
 
 This product includes GeoLite data created by MaxMind, available from <https://www.maxmind.com>.
 
-The daily refresh and the release gate also publish `GeoLite2-ASN.mmdb` beside `GeoLite2-Country.mmdb` in the same bucket, with the same validation. The credential-free collector reads it through the [ASN reader](../apps/backend/src/geolocation/asn.ts) to store a network ASN on every row that carries a country.
+The daily refresh and the release gate also publish `GeoLite2-ASN.mmdb` beside `GeoLite2-Country.mmdb` in the same bucket, with the same validation. The credential-free collector reads it through the [ASN reader](../apps/backend/src/geolocation/asn.ts) to store a network ASN on every row that carries a country, and the authenticated analytics ingest to store one on every app event row.
 
 Implementation: [reader](../apps/backend/src/geolocation/country.ts), [freshness validation](../apps/backend/src/geolocation/database.ts), [private bucket](../infra/aws/lib/geolite-country.ts), [download script](../scripts/geolite/refresh-country.sh), [release gate](../scripts/geolite/ensure-country.sh), [daily workflow](../.github/workflows/geolite-country-refresh.yml), [country ingestion and retention](analytics-audience.md). Freshness follows [MaxMind's update requirements](https://dev.maxmind.com/geoip/geolite2-free-geolocation-data/#automate-database-downloads-and-updates).
 

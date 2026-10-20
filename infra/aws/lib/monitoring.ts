@@ -159,10 +159,14 @@ const geoLiteCountryDatabaseAgePeriodHours = 1;
 const geoLiteCountryDatabasePublishedAgeThresholdHours = 4 * 24;
 // The ASN database (apps/backend/src/geolocation/asn.ts) mirrors the Country one: the same bucket,
 // refresh workflow, reload interval and lifecycle expiry, so it reuses the periods and thresholds
-// above and differs only in its records and its impact, which reaches the credential-free collector
-// alone.
+// above and differs only in its records and its impact, which reaches the two analytics ingests:
+// the credential-free collector and the authenticated batch route
+// (apps/backend/src/routes/productAnalytics.ts).
 const geoLiteAsnMetricNamespace: string = "FlashcardsOpenSourceApp/GeoLiteAsn";
-const geoLiteAsnLookupFailureAction: string = "anonymous_analytics_network_asn_lookup_failed";
+const geoLiteAsnLookupFailureActions: ReadonlyArray<string> = [
+  "anonymous_analytics_network_asn_lookup_failed",
+  "analytics_events_network_asn_lookup_failed",
+];
 const geoLiteAsnDatabaseLoadedAction: string = "geolite_asn_database_loaded";
 
 // A Lambda throttle reaches REST clients as status 500 with integrationStatus 429; it is counted by
@@ -234,7 +238,13 @@ export function createGeoLiteCountryDatabaseLoadedFilterPattern(): logs.IFilterP
 }
 
 export function createGeoLiteAsnLookupFailureFilterPattern(): logs.IFilterPattern {
-  return logs.FilterPattern.stringValue("$.message.action", "=", geoLiteAsnLookupFailureAction);
+  return logs.FilterPattern.any(
+    ...geoLiteAsnLookupFailureActions.map((action: string) => logs.FilterPattern.stringValue(
+      "$.message.action",
+      "=",
+      action,
+    )),
+  );
 }
 
 export function createGeoLiteAsnDatabaseLoadedFilterPattern(): logs.IFilterPattern {
@@ -1206,9 +1216,10 @@ export function monitoring(scope: Construct, props: MonitoringProps): void {
       `${geoLiteCountryLookupFailureEvaluationPeriods} consecutive ` +
       `${geoLiteCountryLookupFailurePeriodMinutes}-minute periods, so the database is missing, ` +
       "unreadable, the wrong type, or past its 30-day limit: every credential-free analytics event " +
-      "that carries a country is being refused with a 500 rather than stored without its network, " +
-      "while the events exempt from carrying one (docs/anonymous-client-analytics.md) keep landing " +
-      "with a 200. An address the database simply has no network for returns null and never " +
+      "that carries a country and every app analytics batch that accepted an event are being " +
+      "refused with a 500 rather than stored without their network, while the credential-free " +
+      "events exempt from carrying one (docs/anonymous-client-analytics.md) keep landing with a " +
+      "200. An address the database simply has no network for returns null and never " +
       "reaches this metric. Check the private GeoLite bucket and the last GeoLite Country Refresh " +
       "run; docs/geolite-country.md has the runbook",
     treatMissingData: cloudwatch.TreatMissingData.NOT_BREACHING,
@@ -1241,7 +1252,8 @@ export function monitoring(scope: Construct, props: MonitoringProps): void {
       `bucket's ${geoLiteCountryObjectExpirationDays}-day lifecycle expiry deletes the object in ` +
       `about ${geoLiteCountryObjectExpirationDays - geoLiteCountryDatabasePublishedAgeThresholdHours / 24} ` +
       "days, and from then every ASN lookup throws and the credential-free collector refuses every " +
-      "event that carries a country. docs/geolite-country.md has the runbook",
+      "event that carries a country, and the app analytics ingest every batch that accepted an " +
+      "event. docs/geolite-country.md has the runbook",
     treatMissingData: cloudwatch.TreatMissingData.IGNORE,
   }), alertTopic);
 }
