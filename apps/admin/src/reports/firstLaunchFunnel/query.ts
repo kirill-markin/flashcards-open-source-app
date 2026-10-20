@@ -117,7 +117,6 @@ export const firstLaunchFunnelGroupByDimensions: ReadonlyArray<FunnelGroupByDime
       "CASE anchor_launch.trust_level",
       "  WHEN 'guest_client' THEN 'Guest'",
       "  WHEN 'authenticated_client' THEN 'Signed in'",
-      "  WHEN 'backfill_derived' THEN 'Backfilled'",
       "  ELSE anchor_launch.trust_level",
       "END",
     ].join("\n"),
@@ -139,6 +138,27 @@ export const firstLaunchFunnelGroupByDimensions: ReadonlyArray<FunnelGroupByDime
  * while client events are corrected for clock skew.
  */
 export const firstLaunchDemoCardAllowanceSeconds = 60;
+
+/**
+ * A row that is an app launch. A reconstructed open (`origin = 'backfill'`, migrations 0121 and
+ * 0126) is never one: it stands for activity the series missed, so it still counts as earlier
+ * activity, but its instant is derived, not a launch the app reported.
+ */
+function buildLaunchEventSql(rowAlias: string): string {
+  return `(${rowAlias}.event_name IN ('app_opened', 'screen_viewed') AND ${rowAlias}.origin <> 'backfill')`;
+}
+
+/**
+ * Keeps every row except the auth service's own sign-in page rows
+ * (`docs/analytics-db-access.md#auth-origin-sign-in-rows`): client rows on `web` with no app version.
+ * The web app always sends its version (`sendAnalyticsEventsBatch` in
+ * `apps/web/src/api/endpoints/analytics.ts`), while server and backfill rows carry none, hence the
+ * origin test. Such a row is neither a launch nor earlier activity, so a sign-up's sign-in page view
+ * never disqualifies their first launch.
+ */
+function buildNonAuthOriginRowSql(rowAlias: string): string {
+  return `(${rowAlias}.origin <> 'client' OR ${rowAlias}.platform IS DISTINCT FROM 'web' OR ${rowAlias}.app_version IS NOT NULL)`;
+}
 
 /**
  * The source the selected dimension's key expression reads, joined to the cohort, or no lines for a
@@ -178,10 +198,10 @@ function buildGroupSourceJoinSqlLines(
   // The first launch's own row, found the way `step_events` finds steps: the range's launch rows joined
   // to the unfiltered `actor_first_events` on the actor and the first launch's instant, never to the
   // filtered cohort, whose one-row estimate would rescan the view per person. Actors outside the cohort
-  // drop out at the outer join. The platform and trust filters stay on the launch row, so an
-  // unselected platform's row at that instant never names the group. Two launches at that instant are
-  // the cohort's own tie, so the row is picked in the platform dimension's order, then an open before
-  // a screen view.
+  // drop out at the outer join. The cohort pass's launch, trust and auth-origin rules and the platform
+  // filter stay on the launch row, so only a row the cohort could anchor on names the group, never a
+  // reconstructed open at that instant. Two launches at that instant are the cohort's own tie, so the
+  // row is picked in the platform dimension's order, then an open before a screen view.
   if (
     groupByDimension?.id === signInStateGroupByDimensionId
     || groupByDimension?.id === appVersionGroupByDimensionId
@@ -193,10 +213,11 @@ function buildGroupSourceJoinSqlLines(
       "  INNER JOIN actor_first_events AS history",
       "    ON history.actor_id = launch.actor_id",
       "    AND launch.occurred_at = history.first_launch_at",
-      "  WHERE launch.event_name IN ('app_opened', 'screen_viewed')",
+      `  WHERE ${buildLaunchEventSql("launch")}`,
       "    AND launch.platform IN ('ios', 'android', 'web')",
       `    AND ${buildEventPlatformsFilterSql("launch.platform", filters.eventPlatforms)}`,
       `    AND ${buildTrustedActorRowsFilterSql("launch.trust_level")}`,
+      `    AND ${buildNonAuthOriginRowSql("launch")}`,
       `    AND launch.occurred_at >= ${rangeStartSql}`,
       `    AND launch.occurred_at < ${rangeEndSql}`,
       "  ORDER BY",
@@ -230,10 +251,12 @@ function buildGroupSourceJoinSqlLines(
  *
  * - `actor_first_events` makes one pass over trusted history up to the range end and groups it by
  *   actor. The pass reads no cohort, so it costs the same for a week as for a year. A launch is an
- *   `app_opened` or a `screen_viewed`: either can be the first trusted row of a first launch, because
- *   a client can queue a screen view ahead of its open. Per actor it keeps the first launch, the first
- *   launch on a selected one of the three platforms, the first launch on iOS and on Android, the first
- *   `card_created`, and the first event other than `card_created`. `first_launches` then keeps the
+ *   `app_opened` or a `screen_viewed` the app reported (`buildLaunchEventSql`): either can be the
+ *   first trusted row of a first launch, because a client can queue a screen view ahead of its open.
+ *   The auth service's sign-in page rows are dropped from the whole pass (`buildNonAuthOriginRowSql`).
+ *   Per actor it keeps the first launch, the first launch on a selected one of the three platforms,
+ *   the first launch on iOS and on Android, the first `card_created`, and the first event other than
+ *   `card_created`, a reconstructed open included. `first_launches` then keeps the
  *   people whose first launch is on a selected day and on a selected platform, with no earlier event.
  *   A `card_created` is allowed up to `firstLaunchDemoCardAllowanceSeconds` before the launch, and
  *   nothing else is. The allowance is not simply "any `card_created`": a person whose first activity
@@ -282,7 +305,7 @@ export function buildFirstLaunchFunnelSql(
     ? `${escapeSqlStringLiteral(ungroupedFirstLaunchGroupKey)}::text`
     : `COALESCE(${groupByDimension.buildGroupKeySql(filters)}, ${escapeSqlStringLiteral(unresolvedFunnelGroupKey)})::text`;
   const groupSourceJoinSqlLines = buildGroupSourceJoinSqlLines(groupByDimension, filters, rangeStartSql, rangeEndSql);
-  const launchEventSql = "resolved.event_name IN ('app_opened', 'screen_viewed')";
+  const launchEventSql = buildLaunchEventSql("resolved");
 
   return [
     "WITH actor_first_events AS MATERIALIZED (",
@@ -307,6 +330,7 @@ export function buildFirstLaunchFunnelSql(
     "  FROM analytics.product_events_resolved AS resolved",
     "  WHERE resolved.actor_id IS NOT NULL",
     `    AND ${buildTrustedActorRowsFilterSql("resolved.trust_level")}`,
+    `    AND ${buildNonAuthOriginRowSql("resolved")}`,
     `    AND resolved.occurred_at < ${rangeEndSql}`,
     "  GROUP BY resolved.actor_id",
     "), first_launches AS MATERIALIZED (",
