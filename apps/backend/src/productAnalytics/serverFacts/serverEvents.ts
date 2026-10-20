@@ -22,9 +22,13 @@ import type { ProductAnalyticsEventDetails, ProductAnalyticsEventRow } from "../
 import { insertProductAnalyticsEvents, insertProductAnalyticsIdentityLink } from "../writer";
 
 // A server-derived emission carries only what the backend observed itself. There is no field for
-// client context here on purpose: the row below leaves client_occurred_at, client_sent_at,
-// session_id and anonymous_id NULL, and product_events_client_columns_shape rejects the row if it
-// ever stops doing so.
+// client context here on purpose: the row below leaves client_occurred_at, client_sent_at and
+// session_id NULL, and product_events_client_columns_shape rejects the row if it ever stops doing so.
+//
+// anonymousId is the one exception that constraint admits, and only on catalog_deck_installed
+// (db/migrations/0229_server_install_visitor_id.sql): the analytics_visitor cookie the install
+// request presented, so a report can link a site click to the install. Every other producer passes
+// null, and the database refuses the row if one does not.
 //
 // platform, osName and deviceType are the fields that describe a client, and they are not a hole in
 // that rule. What the rule forbids is a value a client request body claimed: a client able to name
@@ -81,6 +85,7 @@ export type ServerDerivedProductAnalyticsEvent = Readonly<{
   subjectUserId: string | null;
   guestSessionId: string | null;
   workspaceId: string | null;
+  anonymousId: string | null;
   platform: ProductAnalyticsPlatform | null;
   osName: ProductAnalyticsOsName | null;
   deviceType: ProductAnalyticsDeviceType | null;
@@ -149,7 +154,8 @@ function createServerDerivedProductAnalyticsRow(
     clientOccurredAt: null,
     clientSentAt: null,
     sessionId: null,
-    anonymousId: null,
+    // Observed rather than invented: see the exception stated above ServerDerivedProductAnalyticsEvent.
+    anonymousId: event.anonymousId,
     // The exception, and only because the producer read them from a source the server stored
     // itself. See the invariant on ServerDerivedProductAnalyticsEvent: a value a client request body
     // claimed must never reach these columns on a server-derived row.

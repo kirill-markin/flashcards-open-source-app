@@ -55,6 +55,7 @@ export async function recordAccountDeletedAnalytics(userId: string): Promise<voi
     // The sweep clears workspace_id on every row it rewrites, so naming one here would only be
     // cleared a statement later.
     workspaceId: null,
+    anonymousId: null,
     platform: null,
     osName: null,
     deviceType: null,
@@ -88,6 +89,7 @@ export async function recordWorkspaceDeletedAnalytics(
     guestSessionId: null,
     // The org.workspaces row is gone by now, so this names a workspace that no longer exists.
     workspaceId,
+    anonymousId: null,
     platform: null,
     osName: null,
     deviceType: null,
@@ -124,6 +126,7 @@ export async function recordStudyProgressResetAnalytics(
     subjectUserId: null,
     guestSessionId: null,
     workspaceId,
+    anonymousId: null,
     platform: null,
     osName: null,
     deviceType: null,
@@ -174,6 +177,7 @@ export async function recordWorkspacePackageImportedAnalytics(
     subjectUserId: fact.subjectUserId,
     guestSessionId: fact.guestSessionId,
     workspaceId: fact.workspaceId,
+    anonymousId: null,
     platform: null,
     osName: null,
     deviceType: null,
@@ -216,6 +220,7 @@ export async function recordWorkspacePackageExportedAnalytics(
     subjectUserId: fact.subjectUserId,
     guestSessionId: fact.guestSessionId,
     workspaceId: fact.workspaceId,
+    anonymousId: null,
     platform: null,
     osName: null,
     deviceType: null,
@@ -251,6 +256,7 @@ export async function recordAgentConnectionCreatedAnalytics(
     guestSessionId: null,
     // auth.agent_api_keys is account-scoped and names no workspace.
     workspaceId: null,
+    anonymousId: null,
     // `agent` belongs to the facts this connection goes on to produce, not to its creation, which
     // happens in whatever client the person was signed in to.
     platform: null,
@@ -301,6 +307,7 @@ export async function recordFeedbackSubmittedAnalytics(
     subjectUserId: fact.subjectUserId,
     guestSessionId: fact.guestSessionId,
     workspaceId: fact.workspaceId,
+    anonymousId: null,
     platform: null,
     osName: null,
     deviceType: null,

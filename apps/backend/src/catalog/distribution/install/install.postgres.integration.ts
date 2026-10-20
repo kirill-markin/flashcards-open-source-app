@@ -67,6 +67,7 @@ test("catalog install atomically replays one request and rejects key or operatio
   const installActor: CatalogPackageInstallActor = {
     subjectUserId: userId,
     guestSessionId: null,
+    analyticsVisitorId: null,
   };
 
   try {

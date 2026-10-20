@@ -79,6 +79,16 @@ the legacy payload-heavy sync feeds, `sync.changes` and `sync.applied_operations
 `ai.chat_runs.client_platform`, added by `0136_ai_chat_run_client_platform.sql` after `0066`
 enumerated that table, had to be named again in `0153`.
 
+### `0114`, `0119`, `0120`, `0121` — one server event carries `anonymous_id`
+
+`0114`'s `product_events_client_columns_shape` keeps `anonymous_id` NULL on every row whose origin is
+not `client`; `0119` restates that as binding the client-owned columns to origin `client`, and
+`0120` and `0121` say the constraint requires `anonymous_id` NULL "for any origin but 'client'".
+`0229_server_install_visitor_id.sql` re-adds the constraint so that a server `catalog_deck_installed`
+row may carry the browser's `analytics_visitor` id as `anonymous_id`. Every other server and
+backfill row still carries NULL there, and `client_occurred_at`, `client_sent_at` and `session_id`
+are still NULL on every non-client row, which is all the rows `0120` and `0121` wrote ever needed.
+
 ### `0120_backfill_product_analytics_server_facts.sql` — the auth service pointer drifted
 
 Its header cites `apps/auth/src/server/agent/userWorkspace.ts:27-34` for the auth service's copy of

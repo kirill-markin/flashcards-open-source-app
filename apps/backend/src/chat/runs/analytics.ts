@@ -41,6 +41,7 @@ export async function recordAiMessageSentAnalytics(
     subjectUserId: actor.subjectUserId,
     guestSessionId: actor.guestSessionId,
     workspaceId,
+    anonymousId: null,
     // The run carries no server-stored platform for the actor, and the request headers that do name
     // one are a client claim this row must not repeat.
     platform: null,
@@ -78,6 +79,7 @@ export async function recordAiRunFailedAnalytics(
     subjectUserId: userId,
     guestSessionId: null,
     workspaceId,
+    anonymousId: null,
     // Null for the reason spelled out on the producer above: the only platform this path could read
     // is the one the client claimed in the request that started the run.
     platform: null,
@@ -125,6 +127,7 @@ export async function recordAiLimitReachedAnalytics(
     subjectUserId: actor.subjectUserId,
     guestSessionId: actor.guestSessionId,
     workspaceId,
+    anonymousId: null,
     // Null for the reason spelled out on `recordAiMessageSentAnalytics`.
     platform: null,
     osName: null,

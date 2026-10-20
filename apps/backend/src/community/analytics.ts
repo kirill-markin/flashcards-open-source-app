@@ -48,6 +48,7 @@ export async function recordFriendInvitationCreatedAnalytics(
     guestSessionId: null,
     // community.friend_invitations is account-scoped and names no workspace.
     workspaceId: null,
+    anonymousId: null,
     // No column the server stored names a device here. An invitation belongs to an account and not
     // to a workspace, so there is no sync.workspace_replicas row to read even carefully, and the
     // route rejects guest transport, so auth.guest_sessions — the one platform column that is safe
@@ -107,6 +108,7 @@ async function emitFriendshipCreatedForViewer(
     guestSessionId: null,
     // community.friendships is account-scoped and names no workspace.
     workspaceId: null,
+    anonymousId: null,
     // Same derivation as the invitation above: no workspace and therefore no replica row, no guest
     // session on these routes, and the headers are a client claim. The inviter's row makes the point
     // twice over, because no client of theirs is involved in this moment at all.

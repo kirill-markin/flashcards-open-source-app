@@ -460,6 +460,10 @@ export async function installCatalogPackageVersion(
     subjectUserId: actor.subjectUserId,
     guestSessionId: actor.guestSessionId,
     workspaceId: normalizedWorkspaceId,
+    // The browser's own visitor id, which its site click carries too. It is what links that click to
+    // a guest install whose own app events never arrived. user_id still names this row's actor, and
+    // no identity link is written for the id, so it resolves no other row onto this guest.
+    anonymousId: actor.analyticsVisitorId,
     // The install names no server-stored replica or guest session row here, and the request headers
     // that do name a platform are a client claim this row must not repeat.
     platform: null,

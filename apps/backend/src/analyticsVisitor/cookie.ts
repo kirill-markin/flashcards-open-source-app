@@ -31,6 +31,7 @@ import { deleteCookie, getCookie, setCookie } from "hono/cookie";
 import { parseCookieDomainCandidates, resolveCookieDomain } from "../shared/cookieDomain";
 
 const visitorCookieName = "analytics_visitor";
+const collectionCookieName = "product_analytics_collection";
 
 /** 13 months, the retention ceiling this identity is kept to and under the browsers' 400-day cap. */
 const visitorCookieMaxAgeSeconds = 395 * 24 * 60 * 60;
@@ -94,6 +95,22 @@ export function readAnalyticsVisitorId(context: Context): string | null {
 
   const visitorId = cookieValue.trim().toLowerCase();
   return analyticsUuidPattern.test(visitorId) ? visitorId : null;
+}
+
+/**
+ * Only an explicit "off" counts: the credential's switch is false, the web's shared collection
+ * cookie (`docs/analytics-visitor-identity.md` "Shared collection cookie") reads exactly `0`, or the
+ * request sends `X-Product-Analytics-Enabled: 0`. A missing cookie is not off, because the web
+ * measures an unanswered browser and writes the cookie only once the consent question settles
+ * (apps/web/src/analytics/productAnalyticsCollection.ts).
+ */
+export function isProductAnalyticsCollectionTurnedOff(
+  context: Context,
+  credentialProductAnalyticsEnabled: boolean | null,
+): boolean {
+  return credentialProductAnalyticsEnabled === false
+    || getCookie(context, collectionCookieName) === "0"
+    || context.req.header("x-product-analytics-enabled") === "0";
 }
 
 /** Writing the id a caller already holds is how the 13-month lifetime is extended on each visit. */
