@@ -223,6 +223,16 @@ web app batch, so `guest_client` and `authenticated_client` rows with `platform 
 verdict too, and `0228` re-adds the constraint over all three client trust levels. iOS and Android
 rows stay NULL; `0228` says why.
 
+### `0146_product_events_automated_client_index.sql` — a marked row can name an account
+
+Its header says `anonymous_id` is the key column "because it is the only identity a marked row can
+carry", reasoning that `0145` admits a verdict only on `anonymous_client` rows, which may carry no
+`user_id`. Since `0228_app_event_bot_evidence.sql` a `guest_client` or `authenticated_client` row
+with `platform = 'web'` carries the verdict together with its `user_id`, and
+`analytics.product_events_resolved` resolves such a row's `actor_id` through that account rather than
+through `anonymous_id`. The index still holds every marked row, because a partial index selects on
+its predicate rather than on its key.
+
 ### `0149_product_analytics_off_switch.sql` — account deletion anonymizes, it does not erase
 
 Its header makes the same claim twice, in words that differ between the copies. The `Current
@@ -242,9 +252,8 @@ first country and sparse history may predate the latest owner. It then `UPDATE`s
 `analytics.product_events` row belonging to any user id that person ever reported under — guest
 phase included, walked through `auth.guest_upgrade_history` and the `server_derived`
 `analytics.identity_links` — onto a single `randomUUID()` pseudonym, generated per deletion and kept
-in no mapping table, nulls every remaining joinable column (`anonymous_id`, `session_id`,
-`guest_session_id`, `workspace_id`, `request_id`, `device_model`, `os_version`, `timezone`,
-`device_locale`, `ui_locale` and `country`), sets `identity_state = 'anonymized'`, and only then
+in no mapping table, nulls every remaining joinable column (that function lists them and says why
+it keeps `automated_client`), sets `identity_state = 'anonymized'`, and only then
 deletes `analytics.identity_links` so nothing can resolve the pseudonym back. The pseudonym itself
 is written into `user_id` and `subject_user_id` on every row it touches and stays visible: the rows
 survive and keep being counted, and `docs/admin-app.md` describes a deleted person surfacing as a
