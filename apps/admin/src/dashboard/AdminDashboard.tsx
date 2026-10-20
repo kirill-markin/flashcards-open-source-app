@@ -182,7 +182,7 @@ function AnalyticsReportSections(props: AnalyticsReportSectionsProps): JSX.Eleme
     [userOptions],
   );
   // The shared bar offers catalog fields only on the user-scoped areas, which match a person through a
-  // completed install and offer what that bridge can reach; a funnel offers its own in its section.
+  // completed install and offer what that bridge can reach.
   return (
     <>
       <AnalyticsFilterBar
@@ -191,9 +191,7 @@ function AnalyticsReportSections(props: AnalyticsReportSectionsProps): JSX.Eleme
         title="Filters"
         headingLevel={2}
         headingId="analytics-filters-title"
-        resetAllLabel={
-          props.activeArea === "funnels" ? "Reset all shared funnel filters" : "Reset all filters"
-        }
+        resetAllLabel="Reset all filters"
         availableRange={availableRange}
         defaultRange={props.defaultRange}
         filters={props.filters}
@@ -254,16 +252,9 @@ function AnalyticsReportSections(props: AnalyticsReportSectionsProps): JSX.Eleme
 
       {props.activeArea === "funnels" ? <FunnelsArea
         config={props.config}
-        availableRange={availableRange}
-        defaultRange={props.defaultRange}
         filters={props.filters}
-        filterOptions={filterOptions}
-        userOptions={userOptions}
-        userColorScale={userColorScale}
         isReportLoading={props.isSelectionSettling}
-        dateRangeError={props.dateRangeError}
         onFiltersChange={props.onFiltersChange}
-        onNavigate={props.onNavigate}
         onTerminalAdminError={props.onTerminalAdminError}
       /> : null}
 
