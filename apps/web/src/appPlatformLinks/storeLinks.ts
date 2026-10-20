@@ -1,3 +1,4 @@
+import type { AnalyticsStoreDevice } from "../analytics/events";
 import type { AppPlatformStoreLinks } from "./appPlatformOptions";
 
 /**
@@ -36,3 +37,15 @@ export const webAppHeaderStoreLinks: AppPlatformStoreLinks = {
   android: "https://play.google.com/store/apps/details?id=com.flashcardsopensourceapp.app&utm_source=flashcards_website&utm_medium=referral&utm_campaign=web_app_header",
   placement: "web_app_header",
 };
+
+export type AppleDevice = Exclude<AnalyticsStoreDevice, "android">;
+
+/**
+ * The header's App Store link for one Apple device: the `platform` param opens that device's
+ * listing and the campaign stays `web_app_header`, as in the marketing site's `getAppleDeviceUrl`.
+ */
+export function buildWebAppHeaderAppleDeviceLink(device: AppleDevice): string {
+  const url = new URL(webAppHeaderStoreLinks.ios);
+  url.searchParams.set("platform", device);
+  return url.href;
+}

@@ -192,12 +192,17 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 34px;
-  height: 34px;
+  gap: 4px;
+  height: 32px;
+  padding-inline: 8px 10px;
   border: 1px solid var(--panel-border);
   border-radius: var(--radius-pill);
   background: var(--surface-muted);
   color: var(--text);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
   transition:
     border-color 140ms ease,
     background 140ms ease;
@@ -262,8 +267,24 @@
   text-align: center;
 }
 
+/* On a phone-width screen the pills take their own scrollable line, with no QR: an overflow
+   container would clip the popover, and nobody scans a QR off a phone screen. The padding
+   keeps the focus ring inside the scroller, and the negative margin cancels it. */
 @media (max-width: 768px) {
   .header-store-buttons {
+    min-width: 0;
+    margin: -4px;
+    padding: 4px;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .header-store-buttons::-webkit-scrollbar {
+    display: none;
+  }
+
+  .header-store-button:focus-visible + .header-store-popover,
+  .header-store-button:hover + .header-store-popover {
     display: none;
   }
 }
