@@ -785,9 +785,10 @@ export async function loadUsersPage(
   config: AdminAppConfig,
   state: DataTableState,
   columns: ReadonlyArray<DataTableColumn<UserRow>>,
+  signal: AbortSignal,
 ): Promise<UsersPageResult> {
   const clauses = buildDataTableSqlClauses(state, columns, columnSqlById, defaultOrderBySql, tiebreakOrderBySql);
-  const response = await runAdminQuery(config, buildUsersPageSql(buildCountrySampleRange(new Date()), clauses));
+  const response = await runAdminQuery(config, buildUsersPageSql(buildCountrySampleRange(new Date()), clauses), signal);
   const pageRow = response.resultSets[0]?.rows[0];
   if (response.resultSets.length !== 1 || pageRow === undefined) {
     throw new Error(`${reportLabel} query must return exactly one result set with one row.`);
@@ -881,7 +882,7 @@ export type UsersEnumOptions = ReadonlyMap<string, ReadonlyArray<string>>;
 /** Every enum column with no options, which the table shows until `loadUsersEnumOptions` answers. */
 export const emptyUsersEnumOptions: UsersEnumOptions = emptyEnumOptions(userEnumColumnIds);
 
-export async function loadUsersEnumOptions(config: AdminAppConfig): Promise<UsersEnumOptions> {
-  const response = await runAdminQuery(config, buildUsersEnumOptionsSql(buildCountrySampleRange(new Date())));
+export async function loadUsersEnumOptions(config: AdminAppConfig, signal: AbortSignal): Promise<UsersEnumOptions> {
+  const response = await runAdminQuery(config, buildUsersEnumOptionsSql(buildCountrySampleRange(new Date())), signal);
   return parseEnumOptionsResponse(response, userEnumColumnIds, reportLabel);
 }

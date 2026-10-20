@@ -338,10 +338,12 @@ export async function loadMobileFirstLaunchFunnelReport(
   config: AdminAppConfig,
   filters: AnalyticsFilterState,
   groupByDimension: FunnelGroupByDimension | null,
+  signal: AbortSignal,
 ): Promise<MobileFirstLaunchFunnelReport> {
   const response = await runAdminQuery(
     config,
     buildMobileFirstLaunchFunnelSql(filters, groupByDimension),
+    signal,
   );
   if (response.resultSets.length !== 1) {
     throw new Error(

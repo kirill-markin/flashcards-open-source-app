@@ -191,11 +191,13 @@ export async function loadChatSessionsPage(
   userId: string,
   state: DataTableState,
   columns: ReadonlyArray<DataTableColumn<ChatSessionRow>>,
+  signal: AbortSignal,
 ): Promise<ChatSessionsPageResult> {
   const clauses = buildDataTableSqlClauses(state, columns, chatColumnSqlById, defaultOrderBySql, tiebreakOrderBySql);
   const response = await runAdminQuery(
     config,
     `${buildChatSessionsPageSql(userId, clauses)};\n${buildChatSessionsTotalSql(userId, clauses)}`,
+    signal,
   );
   const pageResult = response.resultSets[0];
   if (response.resultSets.length !== 2 || pageResult === undefined) {
@@ -232,8 +234,8 @@ export type ChatSessionsEnumOptions = ReadonlyMap<string, ReadonlyArray<string>>
 /** Every enum column with no options, which the table shows until `loadChatSessionsEnumOptions` answers. */
 export const emptyChatSessionsEnumOptions: ChatSessionsEnumOptions = emptyEnumOptions(chatEnumColumnIds);
 
-export async function loadChatSessionsEnumOptions(config: AdminAppConfig, userId: string): Promise<ChatSessionsEnumOptions> {
-  const response = await runAdminQuery(config, buildChatSessionsEnumOptionsSql(userId));
+export async function loadChatSessionsEnumOptions(config: AdminAppConfig, userId: string, signal: AbortSignal): Promise<ChatSessionsEnumOptions> {
+  const response = await runAdminQuery(config, buildChatSessionsEnumOptionsSql(userId), signal);
   return parseEnumOptionsResponse(response, chatEnumColumnIds, listLabel);
 }
 
@@ -369,11 +371,11 @@ function parseTranscriptItems(result: AdminQueryResultSet | undefined): Readonly
 }
 
 /** Null when no session with this id belongs to the person. */
-export async function loadChatTranscript(config: AdminAppConfig, userId: string, sessionId: string): Promise<ChatTranscript | null> {
+export async function loadChatTranscript(config: AdminAppConfig, userId: string, sessionId: string, signal: AbortSignal): Promise<ChatTranscript | null> {
   if (!isUuid(sessionId)) {
     throw new Error(`${chatLabel} session id must be a UUID, got: ${sessionId}`);
   }
-  const response = await runAdminQuery(config, buildChatTranscriptSql(userId, sessionId));
+  const response = await runAdminQuery(config, buildChatTranscriptSql(userId, sessionId), signal);
   if (response.resultSets.length !== 2) {
     throw new Error(`${chatLabel} query must return exactly two result sets.`);
   }

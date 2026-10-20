@@ -52,13 +52,14 @@ export function UserPage(props: Readonly<{
   useEffect(() => {
     let cancelled = false;
     setLoadState({ status: "loading" });
-    void loadUserProfile(config, userId).then((profile) => {
+    const abortController = new AbortController();
+    void loadUserProfile(config, userId, abortController.signal).then((profile) => {
       if (!cancelled) setLoadState({ status: "ready", profile });
     }).catch((error: unknown) => {
       if (cancelled || onTerminalAdminError(error, config)) return;
       setLoadState({ status: "error", message: error instanceof Error ? error.message : "Unexpected user profile query error." });
     });
-    return () => { cancelled = true; };
+    return () => { cancelled = true; abortController.abort(); };
   }, [config, userId, onTerminalAdminError, revision]);
 
   const profile = loadState.status === "ready" ? loadState.profile : null;

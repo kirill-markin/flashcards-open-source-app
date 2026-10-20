@@ -78,8 +78,9 @@ export async function loadDailyNewReturningReport(
   dateRange: AnalyticsDateRange,
   period: ReportPeriod,
   reportLabel: string,
+  signal: AbortSignal,
 ): Promise<DailyNewReturningReport> {
-  const response = await runAdminQuery(config, buildDailyNewReturningSql(source, dateRange, period, reportLabel));
+  const response = await runAdminQuery(config, buildDailyNewReturningSql(source, dateRange, period, reportLabel), signal);
   const result = response.resultSets[0];
   const firstRow = result?.rows[0];
   if (response.resultSets.length !== 1 || result === undefined || firstRow === undefined) {

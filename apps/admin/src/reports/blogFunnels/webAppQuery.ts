@@ -114,10 +114,12 @@ export async function loadBlogToWebAppFunnelReport(
   filters: AnalyticsFilterState,
   reportLabel: string,
   groupByDimension: FunnelGroupByDimension | null,
+  signal: AbortSignal,
 ): Promise<BlogToWebAppFunnelReport> {
   const response = await runAdminQuery(
     config,
     buildBlogToWebAppFunnelSql(filters, reportLabel, groupByDimension),
+    signal,
   );
   if (response.resultSets.length !== 1) {
     throw new Error(`${reportLabel} must return exactly one result set. Got ${response.resultSets.length}.`);

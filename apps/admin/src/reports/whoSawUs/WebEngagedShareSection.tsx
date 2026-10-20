@@ -99,16 +99,17 @@ export function WebEngagedShareSection(props: Readonly<{
   useEffect(() => {
     let cancelled = false;
     setLoadState({ status: "loading" });
+    const abortController = new AbortController();
     void Promise.all([
-      loadWhoSawUsReport(props.config, props.dateRange, props.period),
-      loadEngagedVisitorsReport(props.config, props.dateRange, props.period),
+      loadWhoSawUsReport(props.config, props.dateRange, props.period, abortController.signal),
+      loadEngagedVisitorsReport(props.config, props.dateRange, props.period, abortController.signal),
     ]).then(([webReport, engagedReport]) => {
       if (!cancelled) setLoadState({ status: "ready", report: buildEngagedShareReport(webReport, engagedReport) });
     }).catch((error: unknown) => {
       if (cancelled || props.onTerminalAdminError(error, props.config)) return;
       setLoadState({ status: "error", message: error instanceof Error ? error.message : `Unexpected ${title} query error.` });
     });
-    return () => { cancelled = true; };
+    return () => { cancelled = true; abortController.abort(); };
   }, [props.config, props.dateRange, props.period, props.onTerminalAdminError, revision]);
 
   const bucketByKey = useMemo(

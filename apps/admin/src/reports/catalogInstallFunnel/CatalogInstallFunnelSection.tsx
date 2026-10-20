@@ -81,7 +81,8 @@ export function CatalogInstallFunnelSection(props: FunnelSectionProps): JSX.Elem
       return () => { cancelled = true; };
     }
 
-    void loadCatalogInstallFunnelReport(props.config, props.filters)
+    const abortController = new AbortController();
+    void loadCatalogInstallFunnelReport(props.config, props.filters, abortController.signal)
       .then((report) => {
         if (cancelled === false) {
           setLoadState({ status: "ready", report });
@@ -95,7 +96,7 @@ export function CatalogInstallFunnelSection(props: FunnelSectionProps): JSX.Elem
         setLoadState({ status: "error", message: getErrorMessage(error) });
       });
 
-    return () => { cancelled = true; };
+    return () => { cancelled = true; abortController.abort(); };
   }, [loadRevision, props.config, props.filters, props.isRangeLoading, props.onTerminalAdminError]);
 
   const report = loadState.status === "ready" ? loadState.report : null;

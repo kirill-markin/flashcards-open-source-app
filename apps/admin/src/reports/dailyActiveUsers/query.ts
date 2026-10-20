@@ -340,8 +340,9 @@ export function buildDailyActiveUsersSql(filters: AnalyticsFilterState): string 
 export async function loadDailyActiveUsersReport(
   config: AdminAppConfig,
   filters: AnalyticsFilterState,
+  signal: AbortSignal,
 ): Promise<DailyActiveUsersReport> {
-  const response = await runAdminQuery(config, buildDailyActiveUsersSql(filters));
+  const response = await runAdminQuery(config, buildDailyActiveUsersSql(filters), signal);
   if (response.resultSets.length !== 1) {
     throw new Error(`Daily active users report must return exactly one result set. Got ${response.resultSets.length}.`);
   }
