@@ -272,7 +272,6 @@ const guCatalog: TranslationCatalog = {
   },
   progressScreen: {
     title: "પ્રગતિ",
-    subtitle: "તમારી તાજેતરની સ્ટ્રીક અને દૈનિક પુનરાવર્તનનો ઇતિહાસ જુઓ.",
     streakTitle: "સ્ટ્રીક",
     streakInfoToggleLabel: "સ્ટ્રીક ફ્રીઝ વિશે",
     streakInfo: "ફ્રીઝ બૅન્ક {{available}}/{{capacity}}. આગલું રિચાર્જ {{progress}}/{{required}}.",
@@ -516,7 +515,6 @@ const guCatalog: TranslationCatalog = {
   },
   settingsHome: {
     title: "સેટિંગ્સ",
-    subtitle: "ખાતું, કાર્યક્ષેત્ર, સપોર્ટ અને અદ્યતન વેબ સેટિંગ્સનું સંચાલન કરો.",
     inviteFriend: {
       actionText: "મિત્ર ઉમેરો",
       ariaLabel: "મિત્ર ઉમેરો",
@@ -1228,7 +1226,6 @@ const guCatalog: TranslationCatalog = {
       label: "શોધો",
       placeholder: "આગળ, પાછળ કે ટૅગ શોધો",
     },
-    subtitle: "કાર્ડમાં એવા પ્રશ્નો અને જવાબો હોય છે જેનું પુનરાવર્તન કરીને તમે શીખો અને યાદ રાખો છો.",
     table: {
       back: "પાછળ",
       due: "બાકી",

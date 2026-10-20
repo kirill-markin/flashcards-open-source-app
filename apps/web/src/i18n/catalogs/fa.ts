@@ -272,7 +272,6 @@ const faCatalog: TranslationCatalog = {
   },
   progressScreen: {
     title: "پیشرفت",
-    subtitle: "روزهای پیاپی اخیر و تاریخچهٔ مرور روزانهٔ خود را دنبال کنید.",
     streakTitle: "روزهای پیاپی",
     streakInfoToggleLabel: "دربارهٔ محافظت از روزهای پیاپی",
     streakInfo: "ذخیرهٔ محافظت {{available}}/{{capacity}}. شارژ مجدد بعدی {{progress}}/{{required}}.",
@@ -516,7 +515,6 @@ const faCatalog: TranslationCatalog = {
   },
   settingsHome: {
     title: "تنظیمات",
-    subtitle: "مدیریت حساب، فضای کاری، پشتیبانی و تنظیمات پیشرفتهٔ وب.",
     inviteFriend: {
       actionText: "افزودن دوست",
       ariaLabel: "افزودن دوست",
@@ -1228,7 +1226,6 @@ const faCatalog: TranslationCatalog = {
       label: "جست‌وجو",
       placeholder: "جست‌وجو در رو، پشت یا برچسب‌ها",
     },
-    subtitle: "کارت‌ها پرسش‌ها و پاسخ‌هایی هستند که برای یادگیری و به‌خاطرسپاری مرور می‌کنید.",
     table: {
       back: "پشت",
       due: "موعد مرور",

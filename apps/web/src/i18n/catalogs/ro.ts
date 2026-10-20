@@ -278,7 +278,6 @@ const roCatalog: TranslationCatalog = {
   },
   progressScreen: {
     title: "Progres",
-    subtitle: "Urmărește-ți seria recentă și istoricul zilnic al recapitulărilor.",
     streakTitle: "Serie",
     streakInfoToggleLabel: "Despre înghețările seriei",
     streakInfo: "Rezerva de înghețări {{available}}/{{capacity}}. Următoarea reîncărcare {{progress}}/{{required}}.",
@@ -524,7 +523,6 @@ const roCatalog: TranslationCatalog = {
   },
   settingsHome: {
     title: "Setări",
-    subtitle: "Gestionează contul, spațiul de lucru, asistența și setările web avansate.",
     inviteFriend: {
       actionText: "Adaugă prieten",
       ariaLabel: "Adaugă un prieten",
@@ -1238,7 +1236,6 @@ const roCatalog: TranslationCatalog = {
       label: "Caută",
       placeholder: "Caută în față, verso sau etichete",
     },
-    subtitle: "Fișele sunt întrebări și răspunsuri pe care le recapitulezi pentru a învăța și a reține.",
     table: {
       back: "Verso",
       due: "Scadență",

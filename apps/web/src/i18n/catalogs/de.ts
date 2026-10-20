@@ -272,7 +272,6 @@ const deCatalog: TranslationCatalog = {
   },
   progressScreen: {
     title: "Fortschritt",
-    subtitle: "Verfolge deine aktuelle Serie und deinen täglichen Wiederholungsverlauf.",
     streakTitle: "Serie",
     streakInfoToggleLabel: "Über Serien-Frost",
     streakInfo: "Frostbank {{available}}/{{capacity}}. Nächste Aufladung {{progress}}/{{required}}.",
@@ -516,7 +515,6 @@ const deCatalog: TranslationCatalog = {
   },
   settingsHome: {
     title: "Einstellungen",
-    subtitle: "Verwalte Konto, Arbeitsbereich, Support und erweiterte Web-Einstellungen.",
     inviteFriend: {
       actionText: "Freund hinzufügen",
       ariaLabel: "Freund hinzufügen",
@@ -1228,7 +1226,6 @@ const deCatalog: TranslationCatalog = {
       label: "Suchen",
       placeholder: "Vorderseite, Rückseite oder Tags durchsuchen",
     },
-    subtitle: "Karten sind die Fragen und Antworten, die du wiederholst, um zu lernen und dich zu erinnern.",
     table: {
       back: "Rückseite",
       due: "Fällig",
