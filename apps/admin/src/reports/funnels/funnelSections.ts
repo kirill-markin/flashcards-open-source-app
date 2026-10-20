@@ -10,9 +10,9 @@ import {
   catalogInstallFunnelAnchor,
 } from "../catalogInstallFunnel/CatalogInstallFunnelSection";
 import {
-  MobileFirstLaunchFunnelSection,
-  mobileFirstLaunchFunnelAnchor,
-} from "../mobileFirstLaunchFunnel/MobileFirstLaunchFunnelSection";
+  FirstLaunchFunnelSection,
+  firstLaunchFunnelAnchor,
+} from "../firstLaunchFunnel/FirstLaunchFunnelSection";
 import {
   PaywallFunnelSection,
   paywallFunnelAnchor,
@@ -80,7 +80,7 @@ export type FunnelSectionDefinition = Readonly<{
  * partial first day, and warns while some entries are still inside their seven-day window.
  */
 export const funnelSections: ReadonlyArray<FunnelSectionDefinition> = [
-  { anchor: mobileFirstLaunchFunnelAnchor, Section: MobileFirstLaunchFunnelSection },
+  { anchor: firstLaunchFunnelAnchor, Section: FirstLaunchFunnelSection },
   { anchor: catalogInstallFunnelAnchor, Section: CatalogInstallFunnelSection },
   { anchor: blogPlatformChoiceFunnelAnchor, Section: BlogPlatformChoiceFunnelSection },
   { anchor: signInFunnelAnchor, Section: SignInFunnelSection },

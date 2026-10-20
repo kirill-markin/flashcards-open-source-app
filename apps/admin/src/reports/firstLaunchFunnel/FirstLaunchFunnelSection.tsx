@@ -18,17 +18,18 @@ import {
   type FunnelStage,
 } from "../funnels/FunnelStepsChart";
 import {
-  loadMobileFirstLaunchFunnelReport,
-  mobileFirstLaunchEngagedReviewThreshold,
-  mobileFirstLaunchFunnelStartDate,
-  type MobileFirstLaunchFunnelCounts,
-  type MobileFirstLaunchFunnelGroup,
-  type MobileFirstLaunchFunnelReport,
+  firstLaunchDemoCardAllowanceSeconds,
+  firstLaunchEngagedReviewThreshold,
+  firstLaunchFunnelStartDate,
+  loadFirstLaunchFunnelReport,
+  type FirstLaunchFunnelCounts,
+  type FirstLaunchFunnelGroup,
+  type FirstLaunchFunnelReport,
 } from "./query";
 
 /** The seven funnel steps in chart order; `buildStages` takes its order from this list. */
 const funnelStepIds = [
-  "first-open",
+  "first-launch",
   "review-screen",
   "revealed",
   "one-review",
@@ -39,47 +40,47 @@ const funnelStepIds = [
 
 type FunnelStepId = (typeof funnelStepIds)[number];
 
-export const mobileFirstLaunchFunnelAnchor: FunnelAnchor<FunnelStepId> = {
-  funnelId: "mobile",
+export const firstLaunchFunnelAnchor: FunnelAnchor<FunnelStepId> = {
+  funnelId: "first-launch",
   stepIds: funnelStepIds,
 };
 
-export const mobileFirstLaunchFunnelTitle = "Mobile first launch";
+export const firstLaunchFunnelTitle = "First launch";
 
 function getErrorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : "Unexpected mobile first launch funnel error.";
+  return error instanceof Error ? error.message : "Unexpected first launch funnel error.";
 }
 
 function loadReport(
   config: AdminAppConfig,
   filters: AnalyticsFilterState,
   signal: AbortSignal,
-): Promise<MobileFirstLaunchFunnelReport> {
-  return loadMobileFirstLaunchFunnelReport(config, filters, null, signal);
+): Promise<FirstLaunchFunnelReport> {
+  return loadFirstLaunchFunnelReport(config, filters, null, signal);
 }
 
-/** The short note shown when the selected range starts before `mobileFirstLaunchFunnelStartDate`, or `null`. */
+/** The short note shown when the selected range starts before `firstLaunchFunnelStartDate`, or `null`. */
 function buildStartDateNote(dateRange: AnalyticsFilterState["dateRange"]): string | null {
-  if (dateRange.to < mobileFirstLaunchFunnelStartDate) {
-    return `First launches count from ${mobileFirstLaunchFunnelStartDate}, the first day the apps reported every step, so the selected range has no data.`;
+  if (dateRange.to < firstLaunchFunnelStartDate) {
+    return `First launches count from ${firstLaunchFunnelStartDate}, the first day every app reported every step, so the selected range has no data.`;
   }
 
-  return dateRange.from < mobileFirstLaunchFunnelStartDate
-    ? `First launches count from ${mobileFirstLaunchFunnelStartDate}, the first day the apps reported every step, so there is no data before that day.`
+  return dateRange.from < firstLaunchFunnelStartDate
+    ? `First launches count from ${firstLaunchFunnelStartDate}, the first day every app reported every step, so there is no data before that day.`
     : null;
 }
 
 /**
  * The seven steps of one group. Every `hashedCount` is zero and the chart is never told to show a
- * split, because the daily visitor hash exists only on marketing-site rows: there are no cookieless
- * people on mobile, so the `all` audience mode counts exactly who `with-anonymous-id` counts here.
+ * split, because the daily visitor hash exists only on credential-free collector rows, which this
+ * funnel never reads, so the `all` audience mode counts exactly who `with-anonymous-id` counts here.
  */
-function buildStages(counts: MobileFirstLaunchFunnelCounts): ReadonlyArray<FunnelStage<FunnelStepId>> {
+function buildStages(counts: FirstLaunchFunnelCounts): ReadonlyArray<FunnelStage<FunnelStepId>> {
   // Keyed by id, so the compiler demands every step exactly once; the order comes from `funnelStepIds`.
   const stages: Readonly<
     Record<FunnelStepId, Readonly<{ label: string; count: number; hashedCount: number }>>
   > = {
-    "first-open": { label: "First app open", count: counts.firstOpenCount, hashedCount: 0 },
+    "first-launch": { label: "First app launch", count: counts.firstLaunchCount, hashedCount: 0 },
     "review-screen": { label: "Review screen", count: counts.reviewScreenCount, hashedCount: 0 },
     revealed: { label: "Answer revealed", count: counts.revealedCount, hashedCount: 0 },
     "one-review": { label: "1+ review", count: counts.oneReviewCount, hashedCount: 0 },
@@ -90,7 +91,7 @@ function buildStages(counts: MobileFirstLaunchFunnelCounts): ReadonlyArray<Funne
       hashedCount: 0,
     },
     "engaged-returning": {
-      label: `${mobileFirstLaunchEngagedReviewThreshold}+ reviews on 3+ days`,
+      label: `${firstLaunchEngagedReviewThreshold}+ reviews on 3+ days`,
       count: counts.engagedReturningCount,
       hashedCount: 0,
     },
@@ -101,10 +102,10 @@ function buildStages(counts: MobileFirstLaunchFunnelCounts): ReadonlyArray<Funne
 
 /** The funnel as a whole: the groups are a partition of the cohort, so it is their sum. */
 function sumFunnelGroups(
-  groups: ReadonlyArray<MobileFirstLaunchFunnelGroup>,
-): MobileFirstLaunchFunnelCounts {
-  return groups.reduce<MobileFirstLaunchFunnelCounts>((totals, group) => ({
-    firstOpenCount: totals.firstOpenCount + group.firstOpenCount,
+  groups: ReadonlyArray<FirstLaunchFunnelGroup>,
+): FirstLaunchFunnelCounts {
+  return groups.reduce<FirstLaunchFunnelCounts>((totals, group) => ({
+    firstLaunchCount: totals.firstLaunchCount + group.firstLaunchCount,
     reviewScreenCount: totals.reviewScreenCount + group.reviewScreenCount,
     revealedCount: totals.revealedCount + group.revealedCount,
     oneReviewCount: totals.oneReviewCount + group.oneReviewCount,
@@ -113,7 +114,7 @@ function sumFunnelGroups(
     engagedReturningCount: totals.engagedReturningCount + group.engagedReturningCount,
     maturingCount: totals.maturingCount + group.maturingCount,
   }), {
-    firstOpenCount: 0,
+    firstLaunchCount: 0,
     reviewScreenCount: 0,
     revealedCount: 0,
     oneReviewCount: 0,
@@ -124,12 +125,12 @@ function sumFunnelGroups(
   });
 }
 
-export function MobileFirstLaunchFunnelSection(props: FunnelSectionProps): JSX.Element {
+export function FirstLaunchFunnelSection(props: FunnelSectionProps): JSX.Element {
   const { state: loadState, retry } = useFunnelRangeReports(props, loadReport, getErrorMessage);
   const rangeViews = useMemo(
     () => (loadState.status === "ready" ? loadState.ranges : []).map((range) => {
       const totals = sumFunnelGroups(range.report.groups);
-      return { ...range, totals, stages: buildStages(totals), hasEntries: totals.firstOpenCount > 0 };
+      return { ...range, totals, stages: buildStages(totals), hasEntries: totals.firstLaunchCount > 0 };
     }),
     [loadState],
   );
@@ -142,7 +143,7 @@ export function MobileFirstLaunchFunnelSection(props: FunnelSectionProps): JSX.E
 
   return (
     <section className="dashboard-section funnel-report">
-      <FunnelSectionHeader funnelId={mobileFirstLaunchFunnelAnchor.funnelId} title={mobileFirstLaunchFunnelTitle} />
+      <FunnelSectionHeader funnelId={firstLaunchFunnelAnchor.funnelId} title={firstLaunchFunnelTitle} />
 
       {loadState.status === "error" ? <div className="report-state report-state-error"><strong>Funnel query failed.</strong><span>{loadState.message}</span><button className="filter-button" type="button" onClick={retry}>Retry</button></div> : null}
       {rangeViews.map((range) => {
@@ -150,7 +151,7 @@ export function MobileFirstLaunchFunnelSection(props: FunnelSectionProps): JSX.E
         return startDateNote === null ? null : <p key={range.key} className="report-state" aria-live="polite">{formatFunnelRangeNote(range.seriesLabel, startDateNote)}</p>;
       })}
 
-      {rangeViews.map((range) => <FunnelMaturingWarning key={range.key} seriesLabel={range.seriesLabel} maturingCount={range.totals.maturingCount} entryCount={range.totals.firstOpenCount} />)}
+      {rangeViews.map((range) => <FunnelMaturingWarning key={range.key} seriesLabel={range.seriesLabel} maturingCount={range.totals.maturingCount} entryCount={range.totals.firstLaunchCount} />)}
       <FunnelEmptyRangeNotes ranges={rangeViews} />
 
       {loadState.status === "loading" ? (
@@ -159,7 +160,7 @@ export function MobileFirstLaunchFunnelSection(props: FunnelSectionProps): JSX.E
           dateRange={props.filters.dateRange}
           showsHashedSplit={false}
           isGrouped={isComparing}
-          label="Loading mobile first launch funnel…"
+          label="Loading first launch funnel…"
         />
       ) : null}
       {/* The audience mode is named here because it is not one of the filters the heading blames and `Reset all` does not clear it. */}
@@ -169,13 +170,13 @@ export function MobileFirstLaunchFunnelSection(props: FunnelSectionProps): JSX.E
           dateRange={props.filters.dateRange}
           showsHashedSplit={false}
           isGrouped={isComparing}
-          note={<><strong>No first mobile app opens match these filters.</strong><span>Only a person whose first event anywhere is opening the iOS or Android app on a selected day enters this funnel.</span>{audienceEmptyStateNote === null ? null : <span>{audienceEmptyStateNote}</span>}</>}
+          note={<><strong>No first app launches match these filters.</strong><span>Only a person whose first event anywhere is launching the iOS, Android or web app on a selected day enters this funnel.</span>{audienceEmptyStateNote === null ? null : <span>{audienceEmptyStateNote}</span>}</>}
         />
       ) : null}
 
       {primaryRange !== undefined && hasEntries ? (
         <FunnelStepsChart
-          anchor={mobileFirstLaunchFunnelAnchor}
+          anchor={firstLaunchFunnelAnchor}
           stages={primaryRange.stages}
           groups={groups}
           countLabel="People"
@@ -187,11 +188,11 @@ export function MobileFirstLaunchFunnelSection(props: FunnelSectionProps): JSX.E
       {primaryRange !== undefined ? (
         <details className="funnel-explainer">
           <summary>How it&rsquo;s counted</summary>
-          <div className="funnel-detail-row funnel-explainer-figure"><span>First opens still inside 7-day window</span><strong>{primaryRange.totals.maturingCount.toLocaleString("en-US")}</strong></div>
+          <div className="funnel-detail-row funnel-explainer-figure"><span>First launches still inside 7-day window</span><strong>{primaryRange.totals.maturingCount.toLocaleString("en-US")}</strong></div>
           <p>Every step counts people: a person adds at most one to each step, and counts at a step only after reaching every step above it.</p>
-          <p>One row is one person, anchored at their first <code>app_opened</code> on iOS or Android in the selected UTC dates, and only when that app open is their first trusted event anywhere. The one exception is a <code>card_created</code> up to 60 seconds before it, the demo card the app seeds on first launch. First opens count from {mobileFirstLaunchFunnelStartDate}, the first UTC day both apps reported every step.</p>
-          <p>Every later step is that same person within seven days of the first app open, each at or after the step above it: the review screen, a revealed answer, a first answered review, then two reviews, reviews on two UTC days, and {mobileFirstLaunchEngagedReviewThreshold} reviews over three days, on any device. A person still inside their seven-day window is not a confirmed drop-off.</p>
-          <p>The platform is the first app open&rsquo;s, so a selection without iOS or Android empties this funnel; the country and language keep a person the way they do on General. Test accounts, admins and excluded actors are left out. <strong>Signed-in only</strong> keeps people who resolve to a real, non-guest account; <strong>All</strong> counts the same people as <strong>With anonymous ID</strong>, because there are no cookieless people in a mobile app.</p>
+          <p>One row is one person, anchored at their first app launch on iOS, Android or web in the selected UTC dates, and only when that launch is their first trusted event anywhere. A launch is an <code>app_opened</code> or a <code>screen_viewed</code>, whichever the app sent first. The one exception is a <code>card_created</code> up to {firstLaunchDemoCardAllowanceSeconds} seconds before it, the demo card the app seeds on first launch. First launches count from {firstLaunchFunnelStartDate}, the first UTC day every app reported every step.</p>
+          <p>Every later step is that same person within seven days of the first launch, each at or after the step above it: the review screen, which the launch itself may be, a revealed answer, a first answered review, then two reviews, reviews on two UTC days, and {firstLaunchEngagedReviewThreshold} reviews over three days, on any device. A person still inside their seven-day window is not a confirmed drop-off.</p>
+          <p>The platform is the first launch&rsquo;s, so a selection without iOS, Android or web empties this funnel; the country and language keep a person the way they do on General. Test accounts, admins and excluded actors are left out. <strong>Signed-in only</strong> keeps people who resolve to a real, non-guest account; <strong>All</strong> counts the same people as <strong>With anonymous ID</strong>, because cookieless visitors exist only on credential-free collector rows, which this funnel never reads.</p>
         </details>
       ) : null}
     </section>
