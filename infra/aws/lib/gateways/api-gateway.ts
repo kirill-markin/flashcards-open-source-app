@@ -1283,6 +1283,18 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
       defaultCorsPreflightOptions: createPublicCatalogCorsPreflightOptions(publicCatalogAllowedOrigins),
     })
     .addMethod("GET", integration);
+  // The one /catalog route that reads the caller's session, so its preflight must allow credentials.
+  // The public GET /catalog/package-versions/{packageVersionId} matches the concrete resource below,
+  // not catalog/{proxy+}, so it needs its own method there; deeper public paths such as /cards fall
+  // back to catalog/{proxy+}.
+  const catalogPackageVersion = catalog
+    .addResource("package-versions")
+    .addResource("{packageVersionId}");
+  catalogPackageVersion.addMethod("GET", integration);
+  const catalogPackageInstallContext = catalogPackageVersion.addResource("install-context", {
+    defaultCorsPreflightOptions: createBrowserCorsPreflightOptions(allowedOrigins),
+  });
+  catalogPackageInstallContext.addMethod("GET", integration);
 
   const legacyAuth = restApi.root.addResource("auth");
   legacyAuth.addMethod("ANY", notFoundIntegration, notFoundMethodOptions);
