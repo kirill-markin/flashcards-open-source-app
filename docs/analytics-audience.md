@@ -32,8 +32,9 @@ where it is certain.
   [shared exclusion rule](admin-app.md#who-counts-as-a-person) drops, are a materialized view an
   [hourly job](../infra/aws/lib/scheduled-jobs/probable-android-burst-refresh.ts) refreshes, so a
   change reaches reports at the next refresh.
-- [Probable scraper-fleet visitors](../db/migrations/0227_probable_scraper_fleet_page_read_is_passive.sql),
-  by actor and by daily visitor hash, are a materialized view the same
+- [Probable scraper-fleet visitors](../db/migrations/0230_probable_scraper_fleet_app_visitors.sql),
+  marketing-site visitors by actor and by daily visitor hash and app guests with stored bot
+  evidence and no activity, are a materialized view the same
   [hourly job](../infra/aws/lib/scheduled-jobs/probable-android-burst-refresh.ts) refreshes.
 - [Feedback connection-country snapshot](../db/migrations/0138_feedback_connection_country.sql)
 - [Gateway access log fields](../infra/aws/lib/gateways/api-gateway-access-log.ts): raw IP is excluded.
