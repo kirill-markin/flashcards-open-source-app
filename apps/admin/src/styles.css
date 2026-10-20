@@ -1835,9 +1835,6 @@ h2 {
 .tooltip-user-secondary {
   margin: 0;
   word-break: break-word;
-}
-
-.tooltip-user-secondary {
   margin-bottom: 10px;
   font-size: 12px;
   color: rgba(248, 250, 252, 0.72);
