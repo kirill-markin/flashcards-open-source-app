@@ -5,7 +5,7 @@ What the marketing-site to web-app catalog import flow records: independent fact
 - Event catalog, owning every fact's properties and the retired names still accepted: [`catalog.ts`](../apps/backend/src/productAnalytics/catalog.ts)
 - Collector: [anonymous client analytics](anonymous-client-analytics.md); browser identity: [analytics visitor identity](analytics-visitor-identity.md)
 - Web producer: [`catalogInstall.ts`](../apps/web/src/analytics/catalogInstall.ts); server install fact: [`install/index.ts`](../apps/backend/src/catalog/distribution/install/index.ts); database contract: [`0134`](../db/migrations/0134_catalog_install_journey_analytics.sql)
-- Admin deck funnel: [its query](../apps/admin/src/reports/catalogInstallFunnel/query.ts), which also defines its engagement and new-installer columns
+- Admin deck funnel: [its query](../apps/admin/src/reports/catalogInstallFunnel/query.ts), which also defines its review steps
 
 The facts are the site's `catalog_install_clicked` and deck-page `site_page_viewed`, the web app's `catalog_install_preview_ready`, `catalog_install_failed` and `catalog_deck_install_started`, and the server's `catalog_deck_installed`, each carrying `package_version_id`. Entry into the import screen is `screen_viewed`, and sign-in is the generic `signin_*` facts.
 
