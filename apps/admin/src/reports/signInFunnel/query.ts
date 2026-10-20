@@ -190,8 +190,9 @@ export async function loadSignInFunnelReport(
   config: AdminAppConfig,
   filters: AnalyticsFilterState,
   groupByDimension: FunnelGroupByDimension | null,
+  signal: AbortSignal,
 ): Promise<SignInFunnelReport> {
-  const response = await runAdminQuery(config, buildSignInFunnelSql(filters, groupByDimension));
+  const response = await runAdminQuery(config, buildSignInFunnelSql(filters, groupByDimension), signal);
   if (response.resultSets.length !== 1) {
     throw new Error(`${reportLabel} must return exactly one result set. Got ${response.resultSets.length}.`);
   }

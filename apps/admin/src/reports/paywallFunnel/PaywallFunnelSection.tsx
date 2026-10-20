@@ -144,7 +144,8 @@ export function PaywallFunnelSection(props: FunnelSectionProps): JSX.Element {
       return () => { cancelled = true; };
     }
 
-    void loadPaywallFunnelReport(props.config, props.filters, groupByDimension)
+    const abortController = new AbortController();
+    void loadPaywallFunnelReport(props.config, props.filters, groupByDimension, abortController.signal)
       .then((report) => {
         if (cancelled === false) {
           setLoadState({ status: "ready", report, dimension: groupByDimension });
@@ -158,7 +159,7 @@ export function PaywallFunnelSection(props: FunnelSectionProps): JSX.Element {
         setLoadState({ status: "error", message: getErrorMessage(error) });
       });
 
-    return () => { cancelled = true; };
+    return () => { cancelled = true; abortController.abort(); };
   }, [
     groupByDimension,
     loadRevision,

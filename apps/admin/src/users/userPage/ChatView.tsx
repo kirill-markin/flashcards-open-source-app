@@ -91,13 +91,14 @@ export function ChatView(props: Readonly<{
   useEffect(() => {
     let cancelled = false;
     setLoadState({ status: "loading" });
-    void loadChatTranscript(config, userId, sessionId).then((transcript) => {
+    const abortController = new AbortController();
+    void loadChatTranscript(config, userId, sessionId, abortController.signal).then((transcript) => {
       if (!cancelled) setLoadState({ status: "ready", transcript });
     }).catch((error: unknown) => {
       if (cancelled || onTerminalAdminError(error, config)) return;
       setLoadState({ status: "error", message: error instanceof Error ? error.message : "Unexpected user chat query error." });
     });
-    return () => { cancelled = true; };
+    return () => { cancelled = true; abortController.abort(); };
   }, [config, userId, sessionId, onTerminalAdminError, revision]);
 
   return (

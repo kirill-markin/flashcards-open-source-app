@@ -481,10 +481,10 @@ function parseHeader(value: AdminQueryValue | undefined): UserProfileHeader {
   };
 }
 
-export async function loadUserProfile(config: AdminAppConfig, userId: string): Promise<UserProfile> {
+export async function loadUserProfile(config: AdminAppConfig, userId: string, signal: AbortSignal): Promise<UserProfile> {
   const subject = buildUserSubjectSql(userId);
   const sections = buildProfileSections(subject);
-  const response = await runAdminQuery(config, buildUserProfileSql(subject, sections));
+  const response = await runAdminQuery(config, buildUserProfileSql(subject, sections), signal);
   const result = response.resultSets[0];
   const row = result?.rows[0];
   if (response.resultSets.length !== 1 || result === undefined || result.rows.length !== 1 || row === undefined) {

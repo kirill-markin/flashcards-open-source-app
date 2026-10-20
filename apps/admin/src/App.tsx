@@ -424,6 +424,7 @@ export default function App(): JSX.Element {
     }
 
     hasRequestedAvailableRangeRef.current = true;
+    const abortController = new AbortController();
     setRangeLookup({ status: "loading" });
     // Read from what the area opened with, because switching area before the lookup returns drops the
     // selection from the address bar until it can be written back.
@@ -432,8 +433,8 @@ export default function App(): JSX.Element {
     async function loadAvailableRange(config: AdminAppConfig): Promise<void> {
       try {
         const [reviewAvailableRange, funnelAvailableRange] = await Promise.all([
-          loadReviewEventsByDateAvailableRange(config),
-          loadCatalogInstallFunnelAvailableRange(config),
+          loadReviewEventsByDateAvailableRange(config, abortController.signal),
+          loadCatalogInstallFunnelAvailableRange(config, abortController.signal),
         ]);
         const availableRange = buildUnionRange(reviewAvailableRange, funnelAvailableRange);
         const defaultRange = buildDefaultReportRange(availableRange, analyticsDefaultRangeLabel);
@@ -454,6 +455,12 @@ export default function App(): JSX.Element {
         // Nothing is loaded and nothing is in flight, so a Retry may ask for the range again.
         hasRequestedAvailableRangeRef.current = false;
 
+        // Dropped while it waited for a query slot, so it is asked for again once this effect can.
+        if (abortController.signal.aborted) {
+          setRangeLookupRevision((revision) => revision + 1);
+          return;
+        }
+
         if (handleTerminalAdminError(error, config)) {
           return;
         }
@@ -465,6 +472,7 @@ export default function App(): JSX.Element {
     }
 
     void loadAvailableRange(sessionConfig);
+    return () => { abortController.abort(); };
   }, [
     handleTerminalAdminError,
     provisionalSelection,
@@ -480,6 +488,7 @@ export default function App(): JSX.Element {
   const loadFilterOptions = useCallback(async (
     config: AdminAppConfig,
     dateRange: AnalyticsDateRange,
+    signal: AbortSignal,
   ): Promise<AnalyticsFilterOptions> => {
     const loadedOptions = loadedFilterOptionsRef.current;
     if (
@@ -490,7 +499,7 @@ export default function App(): JSX.Element {
       return loadedOptions.options;
     }
 
-    const options = await loadAnalyticsFilterOptions(config, dateRange);
+    const options = await loadAnalyticsFilterOptions(config, dateRange, signal);
     loadedFilterOptionsRef.current = { dateRange, options };
     return options;
   }, []);
@@ -503,6 +512,7 @@ export default function App(): JSX.Element {
     const config = sessionConfig;
     const filters = filterState;
     let isSuperseded = false;
+    const abortController = new AbortController();
 
     async function loadReports(): Promise<void> {
       // `reloadError` is deliberately left standing while this attempt runs: clearing it here would
@@ -514,10 +524,10 @@ export default function App(): JSX.Element {
 
       try {
         const [filterOptions, report, dailyActiveUsersReport, catalogInstallsReport] = await Promise.all([
-          loadFilterOptions(config, filters.dateRange),
-          loadReviewEventsByDateReport(config, filters),
-          loadDailyActiveUsersReport(config, filters),
-          loadCatalogInstallsReport(config, filters),
+          loadFilterOptions(config, filters.dateRange, abortController.signal),
+          loadReviewEventsByDateReport(config, filters, abortController.signal),
+          loadDailyActiveUsersReport(config, filters, abortController.signal),
+          loadCatalogInstallsReport(config, filters, abortController.signal),
         ]);
 
         if (isSuperseded) {
@@ -562,6 +572,7 @@ export default function App(): JSX.Element {
 
     return () => {
       isSuperseded = true;
+      abortController.abort();
       window.clearTimeout(reloadTimeoutId);
     };
   }, [

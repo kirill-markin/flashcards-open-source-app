@@ -150,6 +150,7 @@ export async function loadBreakdownReport(
   period: ReportPeriod,
   reportLabel: string,
   freshnessRule: BarFreshnessRule,
+  signal: AbortSignal,
 ): Promise<BreakdownReport> {
-  return parseBreakdownReport(await runAdminQuery(config, sql), period, reportLabel, freshnessRule);
+  return parseBreakdownReport(await runAdminQuery(config, sql, signal), period, reportLabel, freshnessRule);
 }

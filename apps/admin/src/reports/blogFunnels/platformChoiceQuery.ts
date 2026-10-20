@@ -336,10 +336,12 @@ export async function loadBlogPlatformChoiceFunnelReport(
   filters: AnalyticsFilterState,
   reportLabel: string,
   groupByDimension: FunnelGroupByDimension | null,
+  signal: AbortSignal,
 ): Promise<BlogPlatformChoiceFunnelReport> {
   const response = await runAdminQuery(
     config,
     buildBlogPlatformChoiceFunnelSql(filters, reportLabel, groupByDimension),
+    signal,
   );
   if (response.resultSets.length !== 1) {
     throw new Error(`${reportLabel} must return exactly one result set. Got ${response.resultSets.length}.`);

@@ -30,8 +30,17 @@ struct WorkspaceForker {
         sourceWorkspaceId: String,
         destinationWorkspaceId: String
     ) throws {
-        let localWorkspace = try self.workspaceSettingsStore.loadWorkspace()
-        let currentSettings = try self.workspaceSettingsStore.loadWorkspaceSchedulerSettings(workspaceId: sourceWorkspaceId)
+        let localWorkspace = try self.loadWorkspaceForLinking(sourceWorkspaceId: sourceWorkspaceId)
+        let currentSettings: WorkspaceSchedulerSettings
+        do {
+            currentSettings = try self.workspaceSettingsStore.loadWorkspaceSchedulerSettings(workspaceId: sourceWorkspaceId)
+        } catch {
+            self.recordWorkspaceLinkReadFailure(
+                failedRead: .loadWorkspaceSchedulerSettings,
+                sourceWorkspaceId: sourceWorkspaceId
+            )
+            throw error
+        }
         let forkMappings = try self.loadWorkspaceForkIdMappings(
             sourceWorkspaceId: sourceWorkspaceId,
             destinationWorkspaceId: destinationWorkspaceId
@@ -94,7 +103,7 @@ struct WorkspaceForker {
         sourceWorkspaceId: String,
         destinationWorkspaceId: String
     ) throws {
-        let sourceWorkspace = try self.workspaceSettingsStore.loadWorkspace()
+        let sourceWorkspace = try self.loadWorkspaceForLinking(sourceWorkspaceId: sourceWorkspaceId)
         try self.shellStore.deleteWorkspaceIfExists(workspaceId: destinationWorkspaceId)
         try self.shellStore.insertWorkspaceShell(
             workspace: CloudWorkspaceSummary(
@@ -107,6 +116,52 @@ struct WorkspaceForker {
         try self.shellStore.resetSyncState(workspaceId: destinationWorkspaceId)
         try self.shellStore.updateAccountWorkspaceReference(workspaceId: destinationWorkspaceId)
         try self.shellStore.deleteWorkspaceIfExists(workspaceId: sourceWorkspaceId)
+    }
+
+    private func loadWorkspaceForLinking(sourceWorkspaceId: String) throws -> Workspace {
+        do {
+            return try self.workspaceSettingsStore.loadWorkspace()
+        } catch {
+            self.recordWorkspaceLinkReadFailure(failedRead: .loadWorkspace, sourceWorkspaceId: sourceWorkspaceId)
+            throw error
+        }
+    }
+
+    private func recordWorkspaceLinkReadFailure(failedRead: WorkspaceLinkRead, sourceWorkspaceId: String) {
+        var persistedActiveWorkspaceId: String?
+        var workspaceRowCount: Int?
+        var stateReadErrorType: String?
+        do {
+            // Read before the caller's transaction rolls back; diagnostics must never replace its error.
+            let states = try self.core.query(
+                sql: """
+                SELECT
+                    (SELECT active_workspace_id FROM app_local_settings WHERE settings_id = 1),
+                    COUNT(*)
+                FROM workspaces
+                """,
+                values: []
+            ) { statement in
+                (
+                    activeWorkspaceId: DatabaseCore.columnOptionalText(statement: statement, index: 0),
+                    workspaceRowCount: Int(DatabaseCore.columnInt64(statement: statement, index: 1))
+                )
+            }
+            guard let state = states.first else {
+                throw LocalStoreError.database("Workspace link diagnostics returned no state")
+            }
+            persistedActiveWorkspaceId = state.activeWorkspaceId
+            workspaceRowCount = state.workspaceRowCount
+        } catch {
+            stateReadErrorType = String(reflecting: type(of: error))
+        }
+        FlashcardsObservability.addBreadcrumb(.workspaceLinkReadFailed(WorkspaceLinkReadFailureObservation(
+            failedRead: failedRead,
+            expectedSourceWorkspaceId: sourceWorkspaceId,
+            persistedActiveWorkspaceId: persistedActiveWorkspaceId,
+            workspaceRowCount: workspaceRowCount,
+            stateReadErrorType: stateReadErrorType
+        )))
     }
 
     private func loadWorkspaceForkIdMappings(

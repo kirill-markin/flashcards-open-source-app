@@ -132,7 +132,8 @@ export function SignInFunnelSection(props: FunnelSectionProps): JSX.Element {
       return () => { cancelled = true; };
     }
 
-    void loadSignInFunnelReport(props.config, props.filters, groupByDimension)
+    const abortController = new AbortController();
+    void loadSignInFunnelReport(props.config, props.filters, groupByDimension, abortController.signal)
       .then((report) => {
         if (cancelled === false) {
           setLoadState({ status: "ready", report, dimension: groupByDimension });
@@ -145,7 +146,7 @@ export function SignInFunnelSection(props: FunnelSectionProps): JSX.Element {
         setLoadState({ status: "error", message: getErrorMessage(error) });
       });
 
-    return () => { cancelled = true; };
+    return () => { cancelled = true; abortController.abort(); };
   }, [groupByDimension, loadRevision, props.config, props.filters, props.isRangeLoading, props.onTerminalAdminError]);
 
   const selectGroupByDimension = useCallback((dimension: FunnelGroupByDimension | null): void => {

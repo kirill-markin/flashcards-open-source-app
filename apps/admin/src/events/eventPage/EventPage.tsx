@@ -127,13 +127,14 @@ export function EventPage(props: Readonly<{
   useEffect(() => {
     let cancelled = false;
     setLoadState({ status: "loading" });
-    void loadAnalyticsEvent(config, eventId).then((loaded) => {
+    const abortController = new AbortController();
+    void loadAnalyticsEvent(config, eventId, abortController.signal).then((loaded) => {
       if (!cancelled) setLoadState({ status: "ready", loaded });
     }).catch((error: unknown) => {
       if (cancelled || onTerminalAdminError(error, config)) return;
       setLoadState({ status: "error", message: error instanceof Error ? error.message : "Unexpected analytics event query error." });
     });
-    return () => { cancelled = true; };
+    return () => { cancelled = true; abortController.abort(); };
   }, [config, eventId, onTerminalAdminError, revision]);
 
   const loaded = loadState.status === "ready" ? loadState.loaded : null;

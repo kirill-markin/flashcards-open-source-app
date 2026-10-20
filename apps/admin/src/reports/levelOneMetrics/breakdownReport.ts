@@ -31,4 +31,5 @@ export type BreakdownReportLoader = (
   config: AdminAppConfig,
   dateRange: AnalyticsDateRange,
   period: ReportPeriod,
+  signal: AbortSignal,
 ) => Promise<BreakdownReport>;

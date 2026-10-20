@@ -22,9 +22,9 @@ CROSS JOIN activity_coverage
 CROSS JOIN payment_range`;
 }
 
-export async function loadLevelOneMetricsAvailableRange(config: AdminAppConfig): Promise<AnalyticsDateRange> {
+export async function loadLevelOneMetricsAvailableRange(config: AdminAppConfig, signal: AbortSignal): Promise<AnalyticsDateRange> {
   const label = "Level 1 metrics available range";
-  const response = await runAdminQuery(config, buildLevelOneMetricsAvailableRangeSql());
+  const response = await runAdminQuery(config, buildLevelOneMetricsAvailableRangeSql(), signal);
   const result = response.resultSets[0];
   const row = result?.rows[0];
   if (response.resultSets.length !== 1 || result === undefined || result.rows.length !== 1 || row === undefined) {

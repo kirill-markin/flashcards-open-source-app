@@ -38,6 +38,7 @@ export function buildPeopleBreakdowns(
     dateRange: AnalyticsDateRange,
     period: ReportPeriod,
     reportLabel: string,
+    signal: AbortSignal,
   ) => Promise<BreakdownReport>,
 ): ReadonlyArray<PeopleBreakdown> {
   return peopleBreakdownDimensions.map((dimension): PeopleBreakdown => {
@@ -46,7 +47,7 @@ export function buildPeopleBreakdowns(
       dimension,
       title,
       placement: placements[dimension],
-      loadReport: (config, dateRange, period) => loadReport(config, dimension, dateRange, period, `${title} report`),
+      loadReport: (config, dateRange, period, signal) => loadReport(config, dimension, dateRange, period, `${title} report`, signal),
       formatValue: dimension === "platform" ? showPlatform : showValue,
     };
   });

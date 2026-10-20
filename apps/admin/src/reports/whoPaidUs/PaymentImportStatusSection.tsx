@@ -40,13 +40,14 @@ export function PaymentImportStatusSection(props: Readonly<{
   useEffect(() => {
     let cancelled = false;
     setState({ status: "loading" });
-    void loadWhoPaidUsReport(props.config, props.dateRange, props.period).then((report) => {
+    const abortController = new AbortController();
+    void loadWhoPaidUsReport(props.config, props.dateRange, props.period, abortController.signal).then((report) => {
       if (!cancelled) setState({ status: "ready", report });
     }).catch((error: unknown) => {
       if (cancelled || props.onTerminalAdminError(error, props.config)) return;
       setState({ status: "error", message: error instanceof Error ? error.message : "Unexpected Payment import status query error." });
     });
-    return () => { cancelled = true; };
+    return () => { cancelled = true; abortController.abort(); };
   }, [props.config, props.dateRange, props.period, props.onTerminalAdminError, revision]);
   return (
     <section className="dashboard-section payment-import-status" data-testid="payment-import-status-section">

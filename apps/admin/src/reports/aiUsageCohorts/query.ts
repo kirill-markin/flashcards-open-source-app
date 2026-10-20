@@ -352,6 +352,7 @@ export async function loadAiUsageCohortsReport(
   filters: AnalyticsFilterState,
   periodWeeks: AiUsagePeriodWeeks,
   audience: AiUsageAudience,
+  signal: AbortSignal,
 ): Promise<AiUsageCohortsReport> {
   const plan: AiUsagePeriodPlan = buildAiUsagePeriods(
     assertValidDateRange(filters.dateRange, aiUsageReportLabel),
@@ -371,6 +372,7 @@ export async function loadAiUsageCohortsReport(
   const response = await runAdminQuery(
     config,
     buildAiUsageCohortsSql(filters, plan.periods, audience),
+    signal,
   );
   const result = response.resultSets[0];
   if (response.resultSets.length !== 1 || result === undefined) {

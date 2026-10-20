@@ -154,7 +154,8 @@ export function MobileFirstLaunchFunnelSection(props: FunnelSectionProps): JSX.E
       return () => { cancelled = true; };
     }
 
-    void loadMobileFirstLaunchFunnelReport(props.config, props.filters, groupByDimension)
+    const abortController = new AbortController();
+    void loadMobileFirstLaunchFunnelReport(props.config, props.filters, groupByDimension, abortController.signal)
       .then((report) => {
         if (cancelled === false) {
           setLoadState({ status: "ready", report, dimension: groupByDimension });
@@ -168,7 +169,7 @@ export function MobileFirstLaunchFunnelSection(props: FunnelSectionProps): JSX.E
         setLoadState({ status: "error", message: getErrorMessage(error) });
       });
 
-    return () => { cancelled = true; };
+    return () => { cancelled = true; abortController.abort(); };
   }, [
     groupByDimension,
     loadRevision,

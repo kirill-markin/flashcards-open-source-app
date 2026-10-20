@@ -285,8 +285,8 @@ function parseBucket(row: AdminQueryRow): AudienceBucket {
   };
 }
 
-export async function loadAudienceReport(config: AdminAppConfig, filters: AnalyticsFilterState): Promise<AudienceReport> {
-  const response = await runAdminQuery(config, buildAudienceSql(filters));
+export async function loadAudienceReport(config: AdminAppConfig, filters: AnalyticsFilterState, signal: AbortSignal): Promise<AudienceReport> {
+  const response = await runAdminQuery(config, buildAudienceSql(filters), signal);
   const result = response.resultSets[0];
   if (response.resultSets.length !== 1 || result === undefined) {
     throw new Error("Audience query must return exactly one result set.");

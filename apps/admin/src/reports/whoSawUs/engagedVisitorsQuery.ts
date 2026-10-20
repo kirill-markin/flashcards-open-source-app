@@ -39,6 +39,12 @@ const siteEngagementEventNames: ReadonlyArray<string> = [
   "catalog_install_clicked",
 ];
 
+/**
+ * `site_page_engaged` went live that evening, ~21:00 UTC, so from that bar on a one-page read of
+ * 10+ s with a scroll, click or key press also counts as engaged.
+ */
+export const pageReadEngagementStartDate = "2026-10-19";
+
 const siteFactEventNames: ReadonlyArray<string> = ["site_page_viewed", ...siteEngagementEventNames];
 
 export type EngagedVisitorsBucket = Readonly<{
@@ -56,24 +62,20 @@ export type EngagedVisitorsReport = Readonly<{
 }>;
 
 /**
- * One row per bucket of the range: the `web` series' visitors who did more than open one page.
+ * `identified_visitor_days(actor_id, visit_date, is_engaged)` and
+ * `hashed_visitor_days(daily_visitor_hash, visit_date, is_engaged)`: the `web` series' visitor-days.
  *
  * A visitor-day is one of that series' people on one UTC day, keyed as the series keys them: an
  * identified visitor on the UTC day of `occurred_at`, a cookieless one on the hash's salt day. It
- * counts only with a page view, so every engaged visitor is a `web` visitor of the same bucket, and
+ * exists only with a page view, so every engaged visitor is a `web` visitor of the same bucket, and
  * it is engaged with any second fact of the day: another page view or a `siteEngagementEventNames`
- * event. The buckets combine the two cohorts as the series does: an identified visitor engaged on any
- * of the bucket's days counts once, cookieless visitor-days are summed.
+ * event.
  */
-export function buildEngagedVisitorsSql(dateRange: AnalyticsDateRange, period: ReportPeriod): string {
-  const range = assertValidDateRange(dateRange, reportLabel);
+export function buildSiteVisitorDaysCtesSql(range: AnalyticsDateRange): string {
   const identifiedDaySql = "(site_fact.occurred_at AT TIME ZONE 'UTC')::date";
   const hashedDaySql = buildHashedVisitorDaySql("hashed_fact");
-  const identifiedBucketSql = buildReportBucketSql(period, "identified.visit_date");
-  const hashedBucketSql = buildReportBucketSql(period, "hashed.visit_date");
-
   return [
-    `WITH ${buildReportBucketsCteSql(period, range)}, identified_visitor_days AS (`,
+    "identified_visitor_days AS (",
     "  SELECT",
     "    site_fact.actor_id,",
     `    ${identifiedDaySql} AS visit_date,`,
@@ -84,13 +86,30 @@ export function buildEngagedVisitorsSql(dateRange: AnalyticsDateRange, period: R
     "  HAVING COUNT(*) FILTER (WHERE site_fact.event_name = 'site_page_viewed') > 0",
     "), hashed_visitor_days AS (",
     "  SELECT",
+    "    hashed_fact.daily_visitor_hash,",
     `    ${hashedDaySql} AS visit_date,`,
     "    COUNT(*) >= 2 AS is_engaged",
     "  FROM analytics.product_events_resolved AS hashed_fact",
     `  WHERE ${buildHashedSiteFactFilterSql("hashed_fact", siteFactEventNames, range)}`,
     `  GROUP BY hashed_fact.daily_visitor_hash, ${hashedDaySql}`,
     "  HAVING COUNT(*) FILTER (WHERE hashed_fact.event_name = 'site_page_viewed') > 0",
-    "), engaged_visitors AS (",
+    ")",
+  ].join("\n");
+}
+
+/**
+ * One row per bucket of the range: the `web` series' visitors who did more than open one page, over
+ * `buildSiteVisitorDaysCtesSql`. The buckets combine the two cohorts as the series does: an
+ * identified visitor engaged on any of the bucket's days counts once, cookieless visitor-days are
+ * summed.
+ */
+export function buildEngagedVisitorsSql(dateRange: AnalyticsDateRange, period: ReportPeriod): string {
+  const range = assertValidDateRange(dateRange, reportLabel);
+  const identifiedBucketSql = buildReportBucketSql(period, "identified.visit_date");
+  const hashedBucketSql = buildReportBucketSql(period, "hashed.visit_date");
+
+  return [
+    `WITH ${buildReportBucketsCteSql(period, range)}, ${buildSiteVisitorDaysCtesSql(range)}, engaged_visitors AS (`,
     "  SELECT",
     `    ${identifiedBucketSql} AS bucket_date,`,
     "    COUNT(DISTINCT identified.actor_id) FILTER (WHERE identified.is_engaged) AS visitor_count",
@@ -121,8 +140,9 @@ export async function loadEngagedVisitorsReport(
   config: AdminAppConfig,
   dateRange: AnalyticsDateRange,
   period: ReportPeriod,
+  signal: AbortSignal,
 ): Promise<EngagedVisitorsReport> {
-  const response = await runAdminQuery(config, buildEngagedVisitorsSql(dateRange, period));
+  const response = await runAdminQuery(config, buildEngagedVisitorsSql(dateRange, period), signal);
   const resultSet = response.resultSets[0];
   const firstRow = resultSet?.rows[0];
   if (response.resultSets.length !== 1 || resultSet === undefined || firstRow === undefined) {

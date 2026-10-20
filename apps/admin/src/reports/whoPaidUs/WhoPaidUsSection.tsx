@@ -78,13 +78,14 @@ export function WhoPaidUsSection(props: Readonly<{
     let cancelled = false;
     tooltipHandlers.hideTooltip();
     setState({ status: "loading" });
-    void loadWhoPaidUsReport(props.config, props.dateRange, props.period).then((report) => {
+    const abortController = new AbortController();
+    void loadWhoPaidUsReport(props.config, props.dateRange, props.period, abortController.signal).then((report) => {
       if (!cancelled) setState({ status: "ready", report });
     }).catch((error: unknown) => {
       if (cancelled || props.onTerminalAdminError(error, props.config)) return;
       setState({ status: "error", message: error instanceof Error ? error.message : "Unexpected Who paid us query error." });
     });
-    return () => { cancelled = true; };
+    return () => { cancelled = true; abortController.abort(); };
   }, [props.config, props.dateRange, props.period, props.onTerminalAdminError, revision, tooltipHandlers]);
   const bucketsByKey = useMemo(() => new Map(state.status === "ready" ? state.report.buckets.map((entry) => [entry.bucket.key, entry]) : []), [state]);
   useEffect(() => {

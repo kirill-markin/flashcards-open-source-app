@@ -4,6 +4,8 @@ import { getLevelOneMetricDetailsPath, type WhoSawUsDataset } from "../../routin
 import { LevelOneMetricDetailsHeader } from "../levelOneMetrics/LevelOneMetricDetailsHeader";
 import { LevelOneMetricsFrame } from "../levelOneMetrics/LevelOneMetricsFrame";
 import { useLevelOneMetricsSelection } from "../levelOneMetrics/useLevelOneMetricsSelection";
+import { WebEngagedShareSection } from "./WebEngagedShareSection";
+import { WebEngagedShareTableSections } from "./WebEngagedShareTableSections";
 import { WebEngagedVisitorsSection } from "./WebEngagedVisitorsSection";
 import { WebLandingPagePathSections } from "./WebLandingPagePathSections";
 import { WhoSawUsBreakdownSections } from "./WhoSawUsBreakdownSections";
@@ -54,8 +56,16 @@ export function WhoSawUsDatasetPage(
                 onTerminalAdminError={props.onTerminalAdminError}
               />
             ) : null}
+            {props.dataset === "web" ? (
+              <WebEngagedShareSection
+                config={props.config}
+                dateRange={selection.dateRange}
+                period={selection.period}
+                onTerminalAdminError={props.onTerminalAdminError}
+              />
+            ) : null}
             <WhoSawUsBreakdownSections
-              seriesKey={props.dataset}
+              group={props.dataset}
               config={props.config}
               dateRange={selection.dateRange}
               period={selection.period}
@@ -67,12 +77,38 @@ export function WhoSawUsDatasetPage(
               </p>
             ) : null}
             {props.dataset === "web" ? (
-              <WebLandingPagePathSections
-                config={props.config}
-                dateRange={selection.dateRange}
-                period={selection.period}
-                onTerminalAdminError={props.onTerminalAdminError}
-              />
+              <>
+                <WebLandingPagePathSections
+                  cohort="all"
+                  config={props.config}
+                  dateRange={selection.dateRange}
+                  period={selection.period}
+                  onTerminalAdminError={props.onTerminalAdminError}
+                />
+                <header className="level-1-metrics-group-heading" data-testid="who-saw-us-web-engaged-heading">
+                  <h2>Engaged visitors</h2>
+                </header>
+                <WhoSawUsBreakdownSections
+                  group="web-engaged"
+                  config={props.config}
+                  dateRange={selection.dateRange}
+                  period={selection.period}
+                  onTerminalAdminError={props.onTerminalAdminError}
+                />
+                <WebEngagedShareTableSections
+                  config={props.config}
+                  dateRange={selection.dateRange}
+                  period={selection.period}
+                  onTerminalAdminError={props.onTerminalAdminError}
+                />
+                <WebLandingPagePathSections
+                  cohort="engaged"
+                  config={props.config}
+                  dateRange={selection.dateRange}
+                  period={selection.period}
+                  onTerminalAdminError={props.onTerminalAdminError}
+                />
+              </>
             ) : null}
           </div>
         )}

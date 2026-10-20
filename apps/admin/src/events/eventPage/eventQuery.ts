@@ -171,11 +171,11 @@ export type LoadedAnalyticsEvent = Readonly<{
 }>;
 
 /** Null when no event has this id; an id that is not a UUID names none and is never queried. */
-export async function loadAnalyticsEvent(config: AdminAppConfig, eventId: string): Promise<LoadedAnalyticsEvent | null> {
+export async function loadAnalyticsEvent(config: AdminAppConfig, eventId: string, signal: AbortSignal): Promise<LoadedAnalyticsEvent | null> {
   if (!isUuid(eventId)) {
     return null;
   }
-  const response = await runAdminQuery(config, buildEventSql(eventId));
+  const response = await runAdminQuery(config, buildEventSql(eventId), signal);
   const result = response.resultSets[0];
   if (response.resultSets.length !== 1 || result === undefined || result.rows.length > 1) {
     throw new Error(`${reportLabel} query must return exactly one result set with at most one row.`);

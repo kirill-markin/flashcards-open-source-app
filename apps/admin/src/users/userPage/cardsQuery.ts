@@ -163,9 +163,10 @@ export async function loadCardsPage(
   userId: string,
   state: DataTableState,
   columns: ReadonlyArray<DataTableColumn<CardRow>>,
+  signal: AbortSignal,
 ): Promise<CardsPageResult> {
   const clauses = buildDataTableSqlClauses(state, columns, cardColumnSqlById, defaultOrderBySql, tiebreakOrderBySql);
-  const response = await runAdminQuery(config, `${buildCardsPageSql(userId, clauses)};\n${buildCardsTotalSql(userId, clauses)}`);
+  const response = await runAdminQuery(config, `${buildCardsPageSql(userId, clauses)};\n${buildCardsTotalSql(userId, clauses)}`, signal);
   const pageResult = response.resultSets[0];
   if (response.resultSets.length !== 2 || pageResult === undefined) {
     throw new Error(`${listLabel} query must return exactly two result sets.`);
@@ -199,16 +200,16 @@ export type CardsEnumOptions = ReadonlyMap<string, ReadonlyArray<string>>;
 /** Every enum column with no options, which the table shows until `loadCardsEnumOptions` answers. */
 export const emptyCardsEnumOptions: CardsEnumOptions = emptyEnumOptions(cardEnumColumnIds);
 
-export async function loadCardsEnumOptions(config: AdminAppConfig, userId: string): Promise<CardsEnumOptions> {
-  const response = await runAdminQuery(config, buildCardsEnumOptionsSql(userId));
+export async function loadCardsEnumOptions(config: AdminAppConfig, userId: string, signal: AbortSignal): Promise<CardsEnumOptions> {
+  const response = await runAdminQuery(config, buildCardsEnumOptionsSql(userId), signal);
   return parseEnumOptionsResponse(response, cardEnumColumnIds, listLabel);
 }
 
 /** `cardId` comes from a `loadCardsPage` row; the card must still be in one of the person's workspaces. */
-export async function loadCardFullText(config: AdminAppConfig, userId: string, cardId: string): Promise<CardFullText> {
+export async function loadCardFullText(config: AdminAppConfig, userId: string, cardId: string, signal: AbortSignal): Promise<CardFullText> {
   const response = await runAdminQuery(config, `SELECT cards.front_text AS "frontText", cards.back_text AS "backText"
   ${buildMemberCardsFromSql(userId)}
-    AND cards.card_id = ${escapeSqlStringLiteral(cardId)}::uuid`);
+    AND cards.card_id = ${escapeSqlStringLiteral(cardId)}::uuid`, signal);
   const rows = response.resultSets[0]?.rows ?? [];
   const row = rows[0];
   if (response.resultSets.length !== 1 || rows.length !== 1 || row === undefined) {

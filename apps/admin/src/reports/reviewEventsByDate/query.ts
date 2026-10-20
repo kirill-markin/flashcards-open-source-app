@@ -609,8 +609,9 @@ export function buildReviewEventsByDateCommunitySql(filters: AnalyticsFilterStat
 
 export async function loadReviewEventsByDateAvailableRange(
   config: AdminAppConfig,
+  signal: AbortSignal,
 ): Promise<ReviewEventsByDateRange> {
-  const response = await runAdminQuery(config, buildReviewEventsByDateAvailableRangeSql());
+  const response = await runAdminQuery(config, buildReviewEventsByDateAvailableRangeSql(), signal);
   if (response.resultSets.length !== 1) {
     throw new Error("Review events available range query must return exactly one result set.");
   }
@@ -639,11 +640,12 @@ export async function loadReviewEventsByDateAvailableRange(
 export async function loadReviewEventsByDateReport(
   config: AdminAppConfig,
   filters: AnalyticsFilterState,
+  signal: AbortSignal,
 ): Promise<ReviewEventsByDateReport> {
   const response = await runAdminQuery(config, [
     buildReviewEventsByDateSql(filters),
     buildReviewEventsByDateCommunitySql(filters),
-  ].join(";\n"));
+  ].join(";\n"), signal);
   if (response.resultSets.length !== 2) {
     throw new Error(`Review events report must return exactly two result sets. Got ${response.resultSets.length}.`);
   }
