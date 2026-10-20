@@ -272,7 +272,6 @@ const urCatalog: TranslationCatalog = {
   },
   progressScreen: {
     title: "پیش رفت",
-    subtitle: "اپنے حالیہ تسلسل اور روزانہ دہرائی کی تاریخ پر نظر رکھیں۔",
     streakTitle: "تسلسل",
     streakInfoToggleLabel: "تسلسل کے فریز کے بارے میں",
     streakInfo: "فریز بینک {{available}}/{{capacity}}۔ اگلی ری چارج {{progress}}/{{required}}۔",
@@ -516,7 +515,6 @@ const urCatalog: TranslationCatalog = {
   },
   settingsHome: {
     title: "ترتیبات",
-    subtitle: "اکاؤنٹ، ورک اسپیس، معاونت اور اعلیٰ ویب ترتیبات کا انتظام کریں۔",
     inviteFriend: {
       actionText: "دوست شامل کریں",
       ariaLabel: "دوست شامل کریں",
@@ -1228,7 +1226,6 @@ const urCatalog: TranslationCatalog = {
       label: "تلاش",
       placeholder: "سامنے، پیچھے یا ٹیگز میں تلاش کریں",
     },
-    subtitle: "کارڈز وہ سوالات اور جوابات ہیں جن کی دہرائی سے آپ سیکھتے اور یاد رکھتے ہیں۔",
     table: {
       back: "پچھلا رخ",
       due: "واجب",

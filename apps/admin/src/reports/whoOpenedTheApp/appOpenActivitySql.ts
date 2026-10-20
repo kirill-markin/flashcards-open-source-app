@@ -3,8 +3,6 @@ import { buildExcludedActorSqlLines, buildTrustedActorRowsFilterSql } from "../.
 import { escapeSqlStringLiteral } from "../../sql";
 import { buildReportBucketSql, type ReportPeriod } from "../levelOneMetrics/reportPeriod";
 
-// The same `app_opened` rows, trust rule and actor exclusions as `buildDailyActiveUsersSql` in
-// `../dailyActiveUsers/query.ts`, whose header explains them.
 const appOpenRowsFromSql = `FROM analytics.product_events_resolved AS events
   WHERE events.event_name = 'app_opened'
     AND ${buildTrustedActorRowsFilterSql("events.trust_level")}`;

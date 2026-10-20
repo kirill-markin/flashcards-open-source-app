@@ -272,7 +272,6 @@ const caCatalog: TranslationCatalog = {
   },
   progressScreen: {
     title: "Progrés",
-    subtitle: "Segueix la teva ratxa recent i l'historial diari de repassos.",
     streakTitle: "Ratxa",
     streakInfoToggleLabel: "Sobre les congelacions de ratxa",
     streakInfo: "Congelacions disponibles {{available}}/{{capacity}}. Propera recàrrega {{progress}}/{{required}}.",
@@ -516,7 +515,6 @@ const caCatalog: TranslationCatalog = {
   },
   settingsHome: {
     title: "Configuració",
-    subtitle: "Gestiona el compte, l'espai de treball, l'assistència i la configuració web avançada.",
     inviteFriend: {
       actionText: "Afegeix amic",
       ariaLabel: "Afegeix amic",
@@ -1228,7 +1226,6 @@ const caCatalog: TranslationCatalog = {
       label: "Cerca",
       placeholder: "Cerca a l'anvers, al revers o a les etiquetes",
     },
-    subtitle: "Les targetes contenen preguntes i respostes que repasses per aprendre i recordar.",
     table: {
       back: "Revers",
       due: "Pendent",

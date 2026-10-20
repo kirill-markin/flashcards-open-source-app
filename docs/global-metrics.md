@@ -7,7 +7,7 @@
 | `GET /v1/global/snapshot` or `?schemaVersion=2` | [Compatibility v2](../apps/backend/src/globalMetrics/snapshot.ts) | [Persisted reviews](../apps/backend/src/globalMetrics/reporting.ts) |
 | `GET /v1/global/snapshot?schemaVersion=3` | [Canonical v3](../apps/backend/src/globalMetrics/snapshotV3.ts) | [Resolved analytics reviews](../apps/backend/src/globalMetrics/reportingV3.ts) |
 
-Consumers opt into v3 explicitly, and v2 keeps its complete old shape and calculation for the consumers already reading it. V3 and the [admin review report](../apps/admin/src/reports/reviewEventsByDate/query.ts) compose [one SQL calculation](../apps/backend/src/reviewMetricsSql.ts), including the [shared exclusion rule](admin-app.md#who-counts-as-a-person); [Reading the numbers](admin-app.md#reading-the-numbers) applies to it.
+Consumers opt into v3 explicitly, and v2 keeps its complete old shape and calculation for the consumers already reading it. V3 counts reviews with the [shared review SQL](../apps/backend/src/reviewMetricsSql.ts), including the [shared exclusion rule](admin-app.md#who-counts-as-a-person); [Reading the numbers](admin-app.md#reading-the-numbers) applies to it.
 
 Persisted reviews and analytics are not interchangeable: installation automation is suppressed in analytics, deleted accounts keep anonymized analytics after their persisted rows disappear, historical absent-author reviews may have no analytics row, and best-effort event delivery can leave a gap nothing backfills.
 

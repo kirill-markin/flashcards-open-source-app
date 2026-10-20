@@ -222,7 +222,7 @@ export function SettingsScreen(): ReactElement {
   return (
     <SettingsShell
       title={t("settingsHome.title")}
-      subtitle={t("settingsHome.subtitle")}
+      subtitle={null}
       activeTab="general"
     >
       <SettingsGroup title={t("settingsHome.groups.feedback")} testId="settings-group-feedback">

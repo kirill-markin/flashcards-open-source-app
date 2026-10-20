@@ -1781,10 +1781,6 @@ h2 {
   opacity: 0.82;
 }
 
-.bar-segment.clickable {
-  cursor: pointer;
-}
-
 .bar-segment-not-final {
   fill-opacity: 0.4;
 }
@@ -1836,16 +1832,9 @@ h2 {
   letter-spacing: 0.04em;
 }
 
-.tooltip-user-primary,
 .tooltip-user-secondary {
   margin: 0;
   word-break: break-word;
-}
-
-.tooltip-user-primary {
-  margin-bottom: 2px;
-  font-size: 12px;
-  color: rgba(248, 250, 252, 0.9);
 }
 
 .tooltip-user-secondary {

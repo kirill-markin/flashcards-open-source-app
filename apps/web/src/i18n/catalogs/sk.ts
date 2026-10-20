@@ -278,7 +278,6 @@ const skCatalog: TranslationCatalog = {
   },
   progressScreen: {
     title: "Pokrok",
-    subtitle: "Sledujte svoju aktuálnu sériu a dennú históriu opakovania.",
     streakTitle: "Séria",
     streakInfoToggleLabel: "O ochranách série",
     streakInfo: "Dostupné ochrany série: {{available}}/{{capacity}}. Ďalšie doplnenie: {{progress}}/{{required}}.",
@@ -524,7 +523,6 @@ const skCatalog: TranslationCatalog = {
   },
   settingsHome: {
     title: "Nastavenia",
-    subtitle: "Spravujte účet, pracovný priestor, podporu a rozšírené nastavenia webu.",
     inviteFriend: {
       actionText: "Pridať priateľa",
       ariaLabel: "Pridať priateľa",
@@ -1238,7 +1236,6 @@ const skCatalog: TranslationCatalog = {
       label: "Hľadať",
       placeholder: "Hľadať na prednej a zadnej strane alebo v značkách",
     },
-    subtitle: "Karty sú otázky a odpovede, ktoré si opakujete, aby ste sa učili a pamätali si ich.",
     table: {
       back: "Zadná strana",
       due: "Na opakovanie",
