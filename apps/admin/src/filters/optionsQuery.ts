@@ -52,11 +52,11 @@ export type CatalogDeckOption = Readonly<{
   packageSlug: string;
 }>;
 
-// Every actor the General sections can show inside the range, with the review-event count the popup
-// prints next to them. The four sources are the four ways a person reaches a chart: review events,
-// community activity, active days and catalog installs. Every source applies the shared exclusion
+// The people the General and Audience user filter offers inside the range. No chart there draws
+// `review_answered`: it feeds the review-event count the popup prints and ranks people by, and still
+// offers someone whose only activity in range is reviewing. Every source applies the shared exclusion
 // rule of `buildExcludedActorSqlLines`, and the install source drops the delisted `test` fixture on
-// top of it, so a person offered here is a person some section can really show.
+// top of it.
 //
 // `friendship_created` is the one source that reaches back before the range, because the community
 // chart carries a running friendship total: a friendship created earlier still shows on every day in
@@ -67,9 +67,10 @@ function buildAnalyticsFilterOptionUsersSql(dateRange: AnalyticsDateRange): stri
 
   return [
     "WITH",
-    // One stored email per actor key. The email join is folded on the stored side for the reason
-    // `buildReviewEventsByDateSql` states. Folding can merge two stored rows, and a join on them would
-    // fan every event row out once per folded row and double `COUNT(*)`. Deduping the stored side here
+    // One stored email per actor key. The email join is folded on the stored side because `actor_id`
+    // renders canonical lowercase hex while `org.user_settings.user_id` is unconstrained TEXT.
+    // Folding can merge two stored rows, and a join on them would fan every event row out once per
+    // folded row and double `COUNT(*)`. Deduping the stored side here
     // rather than aggregating the fan-out away downstream keeps one row per event structural, so the
     // review count below stays the real one.
     // `MIN` over the nullable address keeps a real email whenever any folded row carries one and

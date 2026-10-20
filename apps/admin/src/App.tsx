@@ -23,7 +23,6 @@ import {
 } from "./reports/aiUsageCohorts/aiUsageCohortsUrl";
 import { loadCatalogInstallFunnelAvailableRange } from "./reports/catalogInstallFunnel/query";
 import { loadCatalogInstallsReport } from "./reports/catalogInstalls/query";
-import { loadDailyActiveUsersReport } from "./reports/dailyActiveUsers/query";
 import {
   parseFunnelAnchorStepId,
   withFunnelAnchorSearchParams,
@@ -514,10 +513,9 @@ export default function App(): JSX.Element {
         : currentState));
 
       try {
-        const [filterOptions, report, dailyActiveUsersReport, catalogInstallsReport] = await Promise.all([
+        const [filterOptions, report, catalogInstallsReport] = await Promise.all([
           loadFilterOptions(config, filters.dateRange, abortController.signal),
           loadReviewEventsByDateReport(config, filters, abortController.signal),
-          loadDailyActiveUsersReport(config, filters, abortController.signal),
           loadCatalogInstallsReport(config, filters, abortController.signal),
         ]);
 
@@ -531,7 +529,6 @@ export default function App(): JSX.Element {
           data: {
             filterOptions,
             report,
-            dailyActiveUsersReport,
             catalogInstallsReport,
           },
           isReportLoading: false,
@@ -646,8 +643,7 @@ export default function App(): JSX.Element {
     setRangeLookupRevision((revision) => revision + 1);
   }, []);
 
-  // Stable across renders on purpose: this reaches the charts through the filter callbacks, and a new
-  // identity on every render would tear down and redraw every chart on every click.
+  // Stable across renders on purpose, so the filter controls receive the same callback on every render.
   // Returns whether the selection was accepted, so a caller that dismisses its own control on
   // success - the date popover - keeps it open to show the rejection instead.
   const applyFilters = useCallback((nextFilters: AnalyticsFilterState): boolean => {
@@ -682,19 +678,6 @@ export default function App(): JSX.Element {
     setFilterState(filters);
     return true;
   }, []);
-
-  // Clicking a person in a chart narrows the selection to them. It reads the current selection from
-  // the ref rather than taking it as a dependency, so this identity survives every filter change:
-  // it reaches the charts' render effects, and a new one on each change would tear down and redraw
-  // all nine charts at click time with the data already on screen.
-  const applyChartUserFilter = useCallback((userId: string): void => {
-    const currentFilters = filterStateRef.current;
-    if (currentFilters === null) {
-      return;
-    }
-
-    applyFilters({ ...currentFilters, users: [userId] });
-  }, [applyFilters]);
 
   if (appState.status === "loading" || appState.status === "redirecting") {
     return <LoadingState />;
@@ -783,7 +766,6 @@ export default function App(): JSX.Element {
       onReportRetry={retryReportLoad}
       onRangeLookupRetry={retryRangeLookup}
       onFiltersChange={applyFilters}
-      onChartUserFilterApply={applyChartUserFilter}
       onTerminalAdminError={handleTerminalAdminError}
     />
   );

@@ -1,44 +1,16 @@
 import * as d3 from "d3";
-import {
-  productEventDeviceTypes,
-  productEventOsNames,
-  reviewEventPlatforms,
-  type ProductEventDeviceType,
-  type ProductEventOsName,
-  type ReviewEventPlatform,
-  type ReviewEventsByDateUser,
-} from "../adminApi";
-import type { UserColorScale } from "../dashboard/userColors";
-import { getUserPath } from "../routing";
 import { renderChartNotes, type PlacedChartNote } from "./chartNotes";
 import {
   chartMargin,
   chartWidth,
-  dailyActiveUsersUniqueTotalMarkerColor,
   dailyTotalBarColor,
-  deviceTypeColors,
-  deviceTypeLabels,
   funnelHashedSegmentMixColor,
-  getPlatformColor,
-  isNewTabClick,
-  openPathInNewTab,
-  openPathOnMiddleClick,
-  osNameColors,
-  osNameLabels,
-  platformLabels,
-  preventMiddleClickAutoscroll,
   simpleChartHeight,
   stackedChartHeight,
-  uniqueUserCohortColors,
-  uniqueUserCohortKeys,
-  uniqueUserCohortLabels,
   type ChartTooltipHandlers,
-  type ChartUser,
-  type GroupedChartRectEntry,
   type MatrixChartEntry,
   type PackageColorScale,
   type StackedChartRectEntry,
-  type UniqueUserCohortKey,
 } from "./chartPrimitives";
 import { escapeHtml, formatCompactDateLabel, formatDateRangeLabel } from "./formatting";
 
@@ -50,39 +22,6 @@ type ChartFrameParams = Readonly<{
   formatTickLabel: (date: string) => string;
   yAxisLabel: string;
   xAxisLabel: string;
-}>;
-
-type UserStackedBarChartParams<User extends ChartUser> = Readonly<{
-  svgElement: SVGSVGElement;
-  dates: ReadonlyArray<string>;
-  tickDates: ReadonlyArray<string>;
-  today: string;
-  notes: ReadonlyArray<PlacedChartNote>;
-  userMatrix: ReadonlyArray<MatrixChartEntry>;
-  userIds: ReadonlyArray<string>;
-  userColorScale: UserColorScale;
-  userById: ReadonlyMap<string, User>;
-  peakStackedValue: number;
-  yAxisLabel: string;
-  xAxisLabel: string;
-  segmentClass: string;
-  buildTooltipMetricsHtml: (entry: StackedChartRectEntry, user: User) => string;
-  onUserFilterApply: (userId: string) => void;
-  tooltipHandlers: ChartTooltipHandlers;
-}>;
-
-type UniqueUserCohortChartParams = Readonly<{
-  svgElement: SVGSVGElement;
-  dates: ReadonlyArray<string>;
-  tickDates: ReadonlyArray<string>;
-  today: string;
-  notes: ReadonlyArray<PlacedChartNote>;
-  cohortMatrix: ReadonlyArray<MatrixChartEntry>;
-  peakDailyUniqueUsers: number;
-  yAxisLabel: string;
-  xAxisLabel: string;
-  buildTooltipMetricsHtml: (entry: StackedChartRectEntry) => string;
-  tooltipHandlers: ChartTooltipHandlers;
 }>;
 
 type KeyedStackedBarChartParams = Readonly<{
@@ -99,105 +38,6 @@ type KeyedStackedBarChartParams = Readonly<{
   formatTickLabel: (date: string) => string;
   formatTitleLabel: (date: string) => string;
   buildTooltipMetricsHtml: (entry: StackedChartRectEntry) => string;
-  tooltipHandlers: ChartTooltipHandlers;
-}>;
-
-type KeyedGroupedUsersChartParams = Readonly<{
-  svgElement: SVGSVGElement;
-  dates: ReadonlyArray<string>;
-  tickDates: ReadonlyArray<string>;
-  today: string;
-  notes: ReadonlyArray<PlacedChartNote>;
-  matrix: ReadonlyArray<MatrixChartEntry>;
-  keys: ReadonlyArray<string>;
-  getKeyColor: (key: string) => string;
-  getKeyLabel: (key: string) => string;
-  peakGroupedValue: number;
-  yAxisLabel: string;
-  xAxisLabel: string;
-  buildTooltipMetricsHtml: (entry: GroupedChartRectEntry) => string;
-  tooltipHandlers: ChartTooltipHandlers;
-}>;
-
-export type RenderDailyUniqueUsersChartParams = Readonly<{
-  svgElement: SVGSVGElement;
-  dates: ReadonlyArray<string>;
-  tickDates: ReadonlyArray<string>;
-  today: string;
-  notes: ReadonlyArray<PlacedChartNote>;
-  dailyUniqueUserCohortMatrix: ReadonlyArray<MatrixChartEntry>;
-  dailyUniqueUsersByDate: ReadonlyMap<string, number>;
-  totalReviewEventsByDate: ReadonlyMap<string, number>;
-  peakDailyUniqueUsers: number;
-  tooltipHandlers: ChartTooltipHandlers;
-}>;
-
-export type RenderUserReviewEventsChartParams = Readonly<{
-  svgElement: SVGSVGElement;
-  dates: ReadonlyArray<string>;
-  tickDates: ReadonlyArray<string>;
-  today: string;
-  notes: ReadonlyArray<PlacedChartNote>;
-  userMatrix: ReadonlyArray<MatrixChartEntry>;
-  userIds: ReadonlyArray<string>;
-  userColorScale: UserColorScale;
-  userById: ReadonlyMap<string, ReviewEventsByDateUser>;
-  totalReviewEventsByDate: ReadonlyMap<string, number>;
-  peakDailyVolume: number;
-  onUserFilterApply: (userId: string) => void;
-  tooltipHandlers: ChartTooltipHandlers;
-}>;
-
-export type RenderDailyActiveUsersChartParams = Readonly<{
-  svgElement: SVGSVGElement;
-  dates: ReadonlyArray<string>;
-  tickDates: ReadonlyArray<string>;
-  today: string;
-  notes: ReadonlyArray<PlacedChartNote>;
-  dailyActiveUserCohortMatrix: ReadonlyArray<MatrixChartEntry>;
-  dailyActiveUsersByDate: ReadonlyMap<string, number>;
-  peakDailyActiveUsers: number;
-  tooltipHandlers: ChartTooltipHandlers;
-}>;
-
-export type RenderDailyActiveUsersTotalChartParams = Readonly<{
-  svgElement: SVGSVGElement;
-  dates: ReadonlyArray<string>;
-  tickDates: ReadonlyArray<string>;
-  today: string;
-  notes: ReadonlyArray<PlacedChartNote>;
-  dailyActiveUsersByDate: ReadonlyMap<string, number>;
-  peakDailyActiveUsers: number;
-  tooltipHandlers: ChartTooltipHandlers;
-}>;
-
-/** One breakdown of daily active users whose keys can overlap: platform, OS name or device type. */
-export type RenderDailyActiveUsersKeyedBreakdownChartParams = Readonly<{
-  svgElement: SVGSVGElement;
-  dates: ReadonlyArray<string>;
-  tickDates: ReadonlyArray<string>;
-  today: string;
-  notes: ReadonlyArray<PlacedChartNote>;
-  activeUsersMatrix: ReadonlyArray<MatrixChartEntry>;
-  dailyActiveUsersByDate: ReadonlyMap<string, number>;
-  /** The taller of each day's stack and its unique-user total, over the range. */
-  peakDailyValue: number;
-  tooltipHandlers: ChartTooltipHandlers;
-}>;
-
-type DailyActiveUsersOverlappingStackChartParams = Readonly<{
-  svgElement: SVGSVGElement;
-  dates: ReadonlyArray<string>;
-  tickDates: ReadonlyArray<string>;
-  today: string;
-  notes: ReadonlyArray<PlacedChartNote>;
-  matrix: ReadonlyArray<MatrixChartEntry>;
-  keys: ReadonlyArray<string>;
-  getKeyColor: (key: string) => string;
-  getKeyLabel: (key: string) => string;
-  segmentMetricLabel: string;
-  dailyActiveUsersByDate: ReadonlyMap<string, number>;
-  peakDailyValue: number;
   tooltipHandlers: ChartTooltipHandlers;
 }>;
 
@@ -248,30 +88,6 @@ export type RenderDailyFriendConnectionsChartParams = Readonly<{
   tooltipHandlers: ChartTooltipHandlers;
 }>;
 
-export type RenderPlatformActiveUsersChartParams = Readonly<{
-  svgElement: SVGSVGElement;
-  dates: ReadonlyArray<string>;
-  tickDates: ReadonlyArray<string>;
-  today: string;
-  notes: ReadonlyArray<PlacedChartNote>;
-  platformActiveUsersMatrix: ReadonlyArray<MatrixChartEntry>;
-  dailyUniqueUsersByDate: ReadonlyMap<string, number>;
-  peakDailyPlatformUsers: number;
-  tooltipHandlers: ChartTooltipHandlers;
-}>;
-
-export type RenderPlatformReviewEventsChartParams = Readonly<{
-  svgElement: SVGSVGElement;
-  dates: ReadonlyArray<string>;
-  tickDates: ReadonlyArray<string>;
-  today: string;
-  notes: ReadonlyArray<PlacedChartNote>;
-  platformReviewEventsMatrix: ReadonlyArray<MatrixChartEntry>;
-  totalPlatformReviewEventsByDate: ReadonlyMap<string, number>;
-  peakDailyPlatformReviewEvents: number;
-  tooltipHandlers: ChartTooltipHandlers;
-}>;
-
 export type RenderCatalogInstallsByPackageChartParams = Readonly<{
   svgElement: SVGSVGElement;
   dates: ReadonlyArray<string>;
@@ -289,13 +105,6 @@ export type RenderCatalogInstallsByPackageChartParams = Readonly<{
 }>;
 
 const numberFormatter = d3.format(",");
-
-/** The tooltip cannot hold a link, so a per-user segment names its two click gestures instead. */
-const userSegmentClickHintHtml = `<p class="tooltip-hint">Click to filter · ⌘/Ctrl-click opens the user</p>`;
-
-function getUserSegmentPath(entry: StackedChartRectEntry): string {
-  return getUserPath(entry.key, "profile");
-}
 
 function formatDailyTitleLabel(date: string, today: string): string {
   return `${formatDateRangeLabel(date)}${date === today ? " · in progress" : ""}`;
@@ -400,182 +209,6 @@ function renderChartFrame(
   return group;
 }
 
-function renderUserStackedBarChart<User extends ChartUser>(params: UserStackedBarChartParams<User>): void {
-  const svg = d3.select(params.svgElement);
-  const x = createDateScale(params.dates);
-  const innerHeight = getInnerHeight(stackedChartHeight);
-  const y = d3.scaleLinear()
-    .domain([0, Math.max(1, params.peakStackedValue)])
-    .nice()
-    .range([innerHeight, 0]);
-  const group = renderChartFrame(svg, {
-    chartHeight: stackedChartHeight,
-    x,
-    y,
-    tickDates: params.tickDates,
-    formatTickLabel: formatCompactDateLabel,
-    yAxisLabel: params.yAxisLabel,
-    xAxisLabel: params.xAxisLabel,
-  });
-  const series = d3.stack<MatrixChartEntry>()
-    .keys(params.userIds)
-    .value((entry, key) => entry.valuesByKey[key] ?? 0)(params.userMatrix);
-  const bars = group.selectAll(".series")
-    .data(series)
-    .join("g")
-    .attr("class", "series")
-    .attr("fill", (segment) => params.userColorScale(segment.key))
-    .selectAll("rect")
-    .data((segment) => segment.map((entry) => ({
-      key: segment.key,
-      date: entry.data.date,
-      y0: entry[0],
-      y1: entry[1],
-      value: entry.data.valuesByKey[segment.key] ?? 0,
-    })).filter((entry) => entry.value > 0))
-    .join("rect")
-    .attr("class", `bar-segment ${params.segmentClass} clickable`)
-    .classed("bar-segment-not-final", (entry) => entry.date === params.today)
-    .attr("x", (entry) => x(entry.date) ?? 0)
-    .attr("y", (entry) => y(entry.y1))
-    .attr("width", x.bandwidth())
-    .attr("height", (entry) => Math.max(0, y(entry.y0) - y(entry.y1)))
-    .attr("rx", 2)
-    .on("mousemove", (event, entry: StackedChartRectEntry) => {
-      const user = params.userById.get(entry.key);
-      if (user === undefined) {
-        return;
-      }
-
-      params.tooltipHandlers.showTooltip(
-        [
-          `<p class="tooltip-title">${escapeHtml(formatDailyTitleLabel(entry.date, params.today))}</p>`,
-          `<p class="tooltip-user-primary">${escapeHtml(user.email)}</p>`,
-          `<p class="tooltip-user-secondary">${escapeHtml(user.userId)}</p>`,
-          params.buildTooltipMetricsHtml(entry, user),
-          userSegmentClickHintHtml,
-        ].join(""),
-        event.clientX,
-        event.clientY,
-      );
-    })
-    .on("mouseleave", params.tooltipHandlers.hideTooltip);
-
-  bars.on("click", (event: MouseEvent, entry: StackedChartRectEntry) => {
-    if (isNewTabClick(event)) {
-      openPathInNewTab(getUserSegmentPath(entry));
-      return;
-    }
-
-    params.onUserFilterApply(entry.key);
-  })
-    .on("mousedown", preventMiddleClickAutoscroll)
-    .on("auxclick", openPathOnMiddleClick(getUserSegmentPath));
-  renderChartNotes(group, x, innerHeight, params.notes, params.tooltipHandlers);
-}
-
-function renderUniqueUserCohortChart(params: UniqueUserCohortChartParams): void {
-  const svg = d3.select(params.svgElement);
-  const x = createDateScale(params.dates);
-  const innerHeight = getInnerHeight(simpleChartHeight);
-  const y = d3.scaleLinear()
-    .domain([0, Math.max(1, params.peakDailyUniqueUsers)])
-    .nice()
-    .range([innerHeight, 0]);
-  const group = renderChartFrame(svg, {
-    chartHeight: simpleChartHeight,
-    x,
-    y,
-    tickDates: params.tickDates,
-    formatTickLabel: formatCompactDateLabel,
-    yAxisLabel: params.yAxisLabel,
-    xAxisLabel: params.xAxisLabel,
-  });
-  const series = d3.stack<MatrixChartEntry>()
-    .keys(uniqueUserCohortKeys)
-    .value((entry, key) => entry.valuesByKey[key] ?? 0)(params.cohortMatrix);
-
-  group.selectAll(".series")
-    .data(series)
-    .join("g")
-    .attr("class", "series")
-    .attr("fill", (segment) => uniqueUserCohortColors[segment.key as UniqueUserCohortKey])
-    .selectAll("rect")
-    .data((segment) => segment.map((entry) => ({
-      key: segment.key,
-      date: entry.data.date,
-      y0: entry[0],
-      y1: entry[1],
-      value: entry.data.valuesByKey[segment.key] ?? 0,
-    })).filter((entry) => entry.value > 0))
-    .join("rect")
-    .attr("class", "bar-segment daily-unique-users")
-    .classed("bar-segment-not-final", (entry) => entry.date === params.today)
-    .attr("x", (entry) => x(entry.date) ?? 0)
-    .attr("y", (entry) => y(entry.y1))
-    .attr("width", x.bandwidth())
-    .attr("height", (entry) => Math.max(0, y(entry.y0) - y(entry.y1)))
-    .attr("rx", 3)
-    .attr("stroke", "rgba(255, 255, 255, 0.18)")
-    .attr("stroke-width", 1)
-    .on("mousemove", (event, entry: StackedChartRectEntry) => {
-      const cohortKey = entry.key as UniqueUserCohortKey;
-      params.tooltipHandlers.showTooltip(
-        [
-          `<p class="tooltip-title">${escapeHtml(formatDailyTitleLabel(entry.date, params.today))}</p>`,
-          `<p class="tooltip-subtitle">${escapeHtml(uniqueUserCohortLabels[cohortKey])}</p>`,
-          params.buildTooltipMetricsHtml(entry),
-        ].join(""),
-        event.clientX,
-        event.clientY,
-      );
-    })
-    .on("mouseleave", params.tooltipHandlers.hideTooltip);
-  renderChartNotes(group, x, innerHeight, params.notes, params.tooltipHandlers);
-}
-
-export function renderDailyUniqueUsersChart(params: RenderDailyUniqueUsersChartParams): void {
-  renderUniqueUserCohortChart({
-    svgElement: params.svgElement,
-    dates: params.dates,
-    tickDates: params.tickDates,
-    today: params.today,
-    notes: params.notes,
-    cohortMatrix: params.dailyUniqueUserCohortMatrix,
-    peakDailyUniqueUsers: params.peakDailyUniqueUsers,
-    yAxisLabel: "Unique users",
-    xAxisLabel: "Review date",
-    buildTooltipMetricsHtml: (entry) => [
-      `<div class="tooltip-metric"><span>Unique users in this cohort</span><strong>${numberFormatter(entry.value)}</strong></div>`,
-      `<div class="tooltip-metric"><span>Total unique users</span><strong>${numberFormatter(params.dailyUniqueUsersByDate.get(entry.date) ?? entry.value)}</strong></div>`,
-      `<div class="tooltip-metric"><span>Total review events</span><strong>${numberFormatter(params.totalReviewEventsByDate.get(entry.date) ?? 0)}</strong></div>`,
-    ].join(""),
-    tooltipHandlers: params.tooltipHandlers,
-  });
-}
-
-// New versus returning is the report's own cohort definition and not the review report's first review
-// day. `apps/admin/src/reports/dailyActiveUsers/query.ts` states which `app_opened` rows that first
-// day is derived from; this renderer only draws the cohorts it is handed.
-export function renderDailyActiveUsersChart(params: RenderDailyActiveUsersChartParams): void {
-  renderUniqueUserCohortChart({
-    svgElement: params.svgElement,
-    dates: params.dates,
-    tickDates: params.tickDates,
-    today: params.today,
-    notes: params.notes,
-    cohortMatrix: params.dailyActiveUserCohortMatrix,
-    peakDailyUniqueUsers: params.peakDailyActiveUsers,
-    yAxisLabel: "Active users",
-    xAxisLabel: "Date",
-    buildTooltipMetricsHtml: (entry) => [
-      `<div class="tooltip-metric"><span>Active users in this cohort</span><strong>${numberFormatter(entry.value)}</strong></div>`,
-      `<div class="tooltip-metric"><span>Total active users</span><strong>${numberFormatter(params.dailyActiveUsersByDate.get(entry.date) ?? entry.value)}</strong></div>`,
-    ].join(""),
-    tooltipHandlers: params.tooltipHandlers,
-  });
-}
-
 function renderDailyTotalBarChart(params: DailyTotalBarChartParams): void {
   const svg = d3.select(params.svgElement);
   const x = createDateScale(params.dates);
@@ -622,47 +255,6 @@ function renderDailyTotalBarChart(params: DailyTotalBarChartParams): void {
   renderChartNotes(group, x, innerHeight, params.notes, params.tooltipHandlers);
 }
 
-export function renderDailyActiveUsersTotalChart(params: RenderDailyActiveUsersTotalChartParams): void {
-  renderDailyTotalBarChart({
-    svgElement: params.svgElement,
-    dates: params.dates,
-    tickDates: params.tickDates,
-    today: params.today,
-    notes: params.notes,
-    totalsByDate: params.dailyActiveUsersByDate,
-    peakDailyTotal: params.peakDailyActiveUsers,
-    yAxisLabel: "Active users",
-    xAxisLabel: "Date",
-    tooltipMetricLabel: "Unique active users",
-    tooltipHandlers: params.tooltipHandlers,
-  });
-}
-
-export function renderUserReviewEventsChart(params: RenderUserReviewEventsChartParams): void {
-  renderUserStackedBarChart({
-    svgElement: params.svgElement,
-    dates: params.dates,
-    tickDates: params.tickDates,
-    today: params.today,
-    notes: params.notes,
-    userMatrix: params.userMatrix,
-    userIds: params.userIds,
-    userColorScale: params.userColorScale,
-    userById: params.userById,
-    peakStackedValue: params.peakDailyVolume,
-    yAxisLabel: "Review events",
-    xAxisLabel: "Review date",
-    segmentClass: "user-review-events",
-    buildTooltipMetricsHtml: (entry, user) => [
-      `<div class="tooltip-metric"><span>User review events</span><strong>${numberFormatter(entry.value)}</strong></div>`,
-      `<div class="tooltip-metric"><span>Total on this date</span><strong>${numberFormatter(params.totalReviewEventsByDate.get(entry.date) ?? entry.value)}</strong></div>`,
-      `<div class="tooltip-metric"><span>User total</span><strong>${numberFormatter(user.totalReviewEvents)}</strong></div>`,
-    ].join(""),
-    onUserFilterApply: params.onUserFilterApply,
-    tooltipHandlers: params.tooltipHandlers,
-  });
-}
-
 export function renderDailyFriendInvitationsChart(params: RenderDailyFriendInvitationsChartParams): void {
   renderDailyTotalBarChart({
     svgElement: params.svgElement,
@@ -691,82 +283,6 @@ export function renderDailyFriendConnectionsChart(params: RenderDailyFriendConne
     yAxisLabel: "Connections",
     xAxisLabel: "Date",
     tooltipMetricLabel: "Connections at end of day",
-    tooltipHandlers: params.tooltipHandlers,
-  });
-}
-
-function renderKeyedGroupedUsersChart(params: KeyedGroupedUsersChartParams): void {
-  const svg = d3.select(params.svgElement);
-  const x = createDateScale(params.dates);
-  const innerHeight = getInnerHeight(stackedChartHeight);
-  const keyX = d3.scaleBand<string>()
-    .domain(params.keys)
-    .range([0, x.bandwidth()])
-    .paddingInner(0.16)
-    .paddingOuter(0.08);
-  const y = d3.scaleLinear()
-    .domain([0, Math.max(1, params.peakGroupedValue)])
-    .nice()
-    .range([innerHeight, 0]);
-  const group = renderChartFrame(svg, {
-    chartHeight: stackedChartHeight,
-    x,
-    y,
-    tickDates: params.tickDates,
-    formatTickLabel: formatCompactDateLabel,
-    yAxisLabel: params.yAxisLabel,
-    xAxisLabel: params.xAxisLabel,
-  });
-  const bars = params.matrix.flatMap((entry) => params.keys.map((key) => ({
-    key,
-    date: entry.date,
-    value: entry.valuesByKey[key] ?? 0,
-  })).filter((item) => item.value > 0));
-
-  group.selectAll<SVGGElement, GroupedChartRectEntry>(".series")
-    .data(bars)
-    .join("rect")
-    .attr("class", "bar-segment")
-    .classed("bar-segment-not-final", (entry) => entry.date === params.today)
-    .attr("fill", (entry) => params.getKeyColor(entry.key))
-    .attr("x", (entry) => (x(entry.date) ?? 0) + (keyX(entry.key) ?? 0))
-    .attr("y", (entry) => y(entry.value))
-    .attr("width", keyX.bandwidth())
-    .attr("height", (entry) => Math.max(0, innerHeight - y(entry.value)))
-    .attr("rx", 2)
-    .on("mousemove", (event, entry: GroupedChartRectEntry) => {
-      params.tooltipHandlers.showTooltip(
-        [
-          `<p class="tooltip-title">${escapeHtml(formatDailyTitleLabel(entry.date, params.today))}</p>`,
-          `<p class="tooltip-subtitle">${escapeHtml(params.getKeyLabel(entry.key))}</p>`,
-          params.buildTooltipMetricsHtml(entry),
-        ].join(""),
-        event.clientX,
-        event.clientY,
-      );
-    })
-    .on("mouseleave", params.tooltipHandlers.hideTooltip);
-  renderChartNotes(group, x, innerHeight, params.notes, params.tooltipHandlers);
-}
-
-export function renderPlatformActiveUsersChart(params: RenderPlatformActiveUsersChartParams): void {
-  renderKeyedGroupedUsersChart({
-    svgElement: params.svgElement,
-    dates: params.dates,
-    tickDates: params.tickDates,
-    today: params.today,
-    notes: params.notes,
-    matrix: params.platformActiveUsersMatrix,
-    keys: reviewEventPlatforms,
-    getKeyColor: getPlatformColor,
-    getKeyLabel: (key) => platformLabels[key as ReviewEventPlatform],
-    peakGroupedValue: params.peakDailyPlatformUsers,
-    yAxisLabel: "Reviewing users",
-    xAxisLabel: "Review date",
-    buildTooltipMetricsHtml: (entry) => [
-      `<div class="tooltip-metric"><span>Reviewing users on this platform</span><strong>${numberFormatter(entry.value)}</strong></div>`,
-      `<div class="tooltip-metric"><span>Total unique users on this date</span><strong>${numberFormatter(params.dailyUniqueUsersByDate.get(entry.date) ?? 0)}</strong></div>`,
-    ].join(""),
     tooltipHandlers: params.tooltipHandlers,
   });
 }
@@ -828,152 +344,8 @@ function renderKeyedStackedBarChart(params: KeyedStackedBarChartParams): KeyedSt
   return { group, x, y };
 }
 
-// A person active on the phone and the browser on one day sits in both segments, so a stack can rise
-// above the day's unique total; the marker drawn over it is that total, and the only number to read
-// as "how many people".
-function renderDailyActiveUsersOverlappingStackChart(params: DailyActiveUsersOverlappingStackChartParams): void {
-  const frame = renderKeyedStackedBarChart({
-    svgElement: params.svgElement,
-    dates: params.dates,
-    tickDates: params.tickDates,
-    matrix: params.matrix,
-    keys: params.keys,
-    getKeyColor: params.getKeyColor,
-    getKeyLabel: params.getKeyLabel,
-    peakStackedValue: params.peakDailyValue,
-    yAxisLabel: "Active users",
-    xAxisLabel: "Date",
-    formatTickLabel: formatCompactDateLabel,
-    formatTitleLabel: (date) => formatDailyTitleLabel(date, params.today),
-    buildTooltipMetricsHtml: (entry) => [
-      `<div class="tooltip-metric"><span>${escapeHtml(params.segmentMetricLabel)}</span><strong>${numberFormatter(entry.value)}</strong></div>`,
-      `<div class="tooltip-metric"><span>Unique active users on this date</span><strong>${numberFormatter(params.dailyActiveUsersByDate.get(entry.date) ?? 0)}</strong></div>`,
-    ].join(""),
-    tooltipHandlers: params.tooltipHandlers,
-  });
-  const stackTotalByDate = new Map(params.matrix.map((entry) => [
-    entry.date,
-    d3.sum(params.keys, (key) => entry.valuesByKey[key] ?? 0),
-  ]));
-  const markers: ReadonlyArray<DailyTotalEntry> = params.dates
-    .map((date) => ({ date, value: params.dailyActiveUsersByDate.get(date) ?? 0 }))
-    .filter((entry) => entry.value > 0);
-
-  // The marker never crosses half the gap between bands, so on a dense range each one still sits
-  // over its own day's bar alone; the transparent hit line keeps it hoverable when that bar is thin.
-  const overhang = Math.min(2, (frame.x.step() - frame.x.bandwidth()) / 2);
-  const markerGroups = frame.group.selectAll<SVGGElement, DailyTotalEntry>(".unique-total-marker")
-    .data(markers)
-    .join("g")
-    .attr("class", "unique-total-marker")
-    .attr("stroke-opacity", (entry) => entry.date === params.today ? 0.4 : null);
-
-  for (const [stroke, strokeWidth] of [[dailyActiveUsersUniqueTotalMarkerColor, 3], ["transparent", 9]] as const) {
-    markerGroups.append("line")
-      .attr("x1", (entry) => (frame.x(entry.date) ?? 0) - overhang)
-      .attr("x2", (entry) => (frame.x(entry.date) ?? 0) + frame.x.bandwidth() + overhang)
-      .attr("y1", (entry) => frame.y(entry.value))
-      .attr("y2", (entry) => frame.y(entry.value))
-      .attr("stroke", stroke)
-      .attr("stroke-width", strokeWidth)
-      .attr("stroke-linecap", "butt");
-  }
-
-  markerGroups
-    .on("mousemove", (event, entry: DailyTotalEntry) => {
-      params.tooltipHandlers.showTooltip(
-        [
-          `<p class="tooltip-title">${escapeHtml(formatDailyTitleLabel(entry.date, params.today))}</p>`,
-          `<div class="tooltip-metric"><span>Unique active users</span><strong>${numberFormatter(entry.value)}</strong></div>`,
-          `<div class="tooltip-metric"><span>Sum of the segments</span><strong>${numberFormatter(stackTotalByDate.get(entry.date) ?? 0)}</strong></div>`,
-        ].join(""),
-        event.clientX,
-        event.clientY,
-      );
-    })
-    .on("mouseleave", params.tooltipHandlers.hideTooltip);
-  markKeyedStackedInProgressDay(frame, params.today, params.notes, params.tooltipHandlers);
-}
-
-export function renderDailyActiveUsersByPlatformChart(params: RenderDailyActiveUsersKeyedBreakdownChartParams): void {
-  renderDailyActiveUsersOverlappingStackChart({
-    svgElement: params.svgElement,
-    dates: params.dates,
-    tickDates: params.tickDates,
-    today: params.today,
-    notes: params.notes,
-    matrix: params.activeUsersMatrix,
-    keys: reviewEventPlatforms,
-    getKeyColor: getPlatformColor,
-    getKeyLabel: (key) => platformLabels[key as ReviewEventPlatform],
-    segmentMetricLabel: "Active users on this platform",
-    dailyActiveUsersByDate: params.dailyActiveUsersByDate,
-    peakDailyValue: params.peakDailyValue,
-    tooltipHandlers: params.tooltipHandlers,
-  });
-}
-
-export function renderDailyActiveUsersByOsNameChart(params: RenderDailyActiveUsersKeyedBreakdownChartParams): void {
-  renderDailyActiveUsersOverlappingStackChart({
-    svgElement: params.svgElement,
-    dates: params.dates,
-    tickDates: params.tickDates,
-    today: params.today,
-    notes: params.notes,
-    matrix: params.activeUsersMatrix,
-    keys: productEventOsNames,
-    getKeyColor: (key) => osNameColors[key as ProductEventOsName],
-    getKeyLabel: (key) => osNameLabels[key as ProductEventOsName],
-    segmentMetricLabel: "Active users on this OS",
-    dailyActiveUsersByDate: params.dailyActiveUsersByDate,
-    peakDailyValue: params.peakDailyValue,
-    tooltipHandlers: params.tooltipHandlers,
-  });
-}
-
-export function renderDailyActiveUsersByDeviceTypeChart(params: RenderDailyActiveUsersKeyedBreakdownChartParams): void {
-  renderDailyActiveUsersOverlappingStackChart({
-    svgElement: params.svgElement,
-    dates: params.dates,
-    tickDates: params.tickDates,
-    today: params.today,
-    notes: params.notes,
-    matrix: params.activeUsersMatrix,
-    keys: productEventDeviceTypes,
-    getKeyColor: (key) => deviceTypeColors[key as ProductEventDeviceType],
-    getKeyLabel: (key) => deviceTypeLabels[key as ProductEventDeviceType],
-    segmentMetricLabel: "Active users on this device type",
-    dailyActiveUsersByDate: params.dailyActiveUsersByDate,
-    peakDailyValue: params.peakDailyValue,
-    tooltipHandlers: params.tooltipHandlers,
-  });
-}
-
-export function renderPlatformReviewEventsChart(params: RenderPlatformReviewEventsChartParams): void {
-  const frame = renderKeyedStackedBarChart({
-    svgElement: params.svgElement,
-    dates: params.dates,
-    tickDates: params.tickDates,
-    matrix: params.platformReviewEventsMatrix,
-    keys: reviewEventPlatforms,
-    getKeyColor: getPlatformColor,
-    getKeyLabel: (key) => platformLabels[key as ReviewEventPlatform],
-    peakStackedValue: params.peakDailyPlatformReviewEvents,
-    yAxisLabel: "Review events",
-    xAxisLabel: "Review date",
-    formatTickLabel: formatCompactDateLabel,
-    formatTitleLabel: (date) => formatDailyTitleLabel(date, params.today),
-    buildTooltipMetricsHtml: (entry) => [
-      `<div class="tooltip-metric"><span>Review events</span><strong>${numberFormatter(entry.value)}</strong></div>`,
-      `<div class="tooltip-metric"><span>All platforms on this date</span><strong>${numberFormatter(params.totalPlatformReviewEventsByDate.get(entry.date) ?? 0)}</strong></div>`,
-    ].join(""),
-    tooltipHandlers: params.tooltipHandlers,
-  });
-  markKeyedStackedInProgressDay(frame, params.today, params.notes, params.tooltipHandlers);
-}
-
 // Stacked by deck rather than by person: the section answers which decks were installed, and who
-// installed them is already the shared user filter's and the tooltip's job on the per-user charts.
+// installed them is the shared user filter's job.
 export function renderCatalogInstallsByPackageChart(params: RenderCatalogInstallsByPackageChartParams): void {
   const frame = renderKeyedStackedBarChart({
     svgElement: params.svgElement,

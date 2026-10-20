@@ -74,16 +74,14 @@ export function buildExcludedActorReasonSql(actorIdSqlExpression: string): strin
  * kept: `server_derived` and `backfill_derived` are the server's own observations, and
  * `authenticated_client` and `guest_client` are claims made on an authenticated request.
  *
- * APPLIED EVERYWHERE IT CAN DECIDE A PERSON, AND THIS IS THE WHOLE LIST. Twenty-two entries below
- * derive an actor-level fact from `analytics.product_events_resolved`, twenty-one in this package
+ * APPLIED EVERYWHERE IT CAN DECIDE A PERSON, AND THIS IS THE WHOLE LIST. Twenty entries below
+ * derive an actor-level fact from `analytics.product_events_resolved`, nineteen in this package
  * and one outside it. Each is APPLIED or UNREACHABLE, and the two are not interchangeable: adding this
  * predicate to an UNREACHABLE entry is a no-op, and reading one as an omission produces a
  * remediation that converts the entries it happens to have been told about and stops. A shared
  * fragment is one entry, listed where it is written, with its readers named.
  *
- * APPLIED (14).
- *   - `reports/dailyActiveUsers/query.ts`, the `app_opens` CTE and the first-active-date cohort it
- *     feeds.
+ * APPLIED (13).
  *   - `reports/whoOpenedTheApp/appOpenActivitySql.ts`, `app_open_rows`, the first-open cohort it
  *     feeds and `app_open_last_opens`, one row predicate, read by Who opened the app, its breakdowns,
  *     the Who studied breakdowns and the Level 1 available range.
@@ -101,7 +99,7 @@ export function buildExcludedActorReasonSql(actorIdSqlExpression: string): strin
  *   - `reports/siteEntryFunnel/query.ts`, `actor_first_events`, the site-entry cohort the blog funnel
  *     reads through the fragments that module exports. It decides whether a person was already here
  *     before their first marketing-site page view, over every event name with no lower bound. That
- *     cohort and the blog funnel's own steps read `site_page_viewed` and `site_app_entry_clicked` at
+ *     cohort and the blog funnel's own steps read marketing-site events at
  *     `trust_level = 'anonymous_client'` only, on purpose: those are the site's own facts, the cohort
  *     is keyed on the visitor identity they carry, and they never count as the trusted evidence this
  *     rule is about.
@@ -124,18 +122,18 @@ export function buildExcludedActorReasonSql(actorIdSqlExpression: string): strin
  *     non-NULL actor, so a locale only a signed-out visitor ever sent would be offered as a filter
  *     value.
  *
- * UNREACHABLE (7): SAFE FOR A DIFFERENT REASON, NOT CONVERTED. Every event these derive an actor
+ * UNREACHABLE (6): SAFE FOR A DIFFERENT REASON, NOT CONVERTED. Every event these derive an actor
  * from is either `serverOnly: true` in `apps/backend/src/productAnalytics/catalog.ts`, which the
  * collector refuses outright, or already carries a trust predicate of its own, so no row this
  * collector writes can reach them and this predicate would change nothing.
- *   - `reports/reviewEventsByDate/query.ts`, the `review_answered` cohort. By event name.
  *   - `reports/reviewEventsByDate/query.ts`, the `friend_invitation_created` and
  *     `friendship_created` community series. By event name.
  *   - `reports/catalogInstalls/query.ts`, the `deck_installs` CTE (`catalog_deck_installed`). By
  *     event name.
- *   - `reports/catalogInstallFunnel/query.ts`, `install_actors` and `install_actor_reviews`. By
- *     event name: an identity enters them only by reaching the server-origin
- *     `catalog_deck_installed`, and the reviews read `review_answered`.
+ *   - `reports/catalogInstallFunnel/query.ts`, `browser_guest_actors`, `install_actors` and
+ *     `install_actor_reviews`. The first reads `guest_client` rows only; through the others an
+ *     identity enters only by reaching the server-origin `catalog_deck_installed`, and the reviews
+ *     read `review_answered`.
  *   - `reports/catalogInstallFunnel/query.ts`, the identity-level exclusion, which reads the
  *     candidate row's own `actor_id` rather than bridging to an install. That id is the
  *     collector-supplied one for a visitor who never signed in, and the predicate stays off it on

@@ -30,19 +30,18 @@ export type AudienceReport = Readonly<{
 }>;
 
 // The cohort is everyone who opened the app inside the range, which is the "was here" definition of
-// the daily active users section rather than one of this section's own, so the two cannot disagree
-// about which day a person was new on. THE TWO DENOMINATORS NOW AGREE: `history` below applies
-// `buildExcludedActorSqlLines`, the one exclusion rule every section applies, so the admin gap that
-// used to separate this count from that section's unique users is gone.
+// Who opened the app rather than one of this section's own, so the two cannot disagree about which
+// day a person was new on. `history` below applies `buildExcludedActorSqlLines`, the one exclusion
+// rule every section applies.
 // A narrower population is a threshold rather than a mode: the people who answered at least one card
 // are `review_answered >= 1`.
 //
 // `history` also drops `trust_level = 'anonymous_client'`, for the reason
 // `buildTrustedActorRowsFilterSql` states: the credential-free collector's `anonymous_id` is an
 // unverified caller-supplied claim, and this report's every number is a share of one distinct-user
-// denominator. The daily active users section applies the same predicate, so the two cohorts stay
-// comparable. `language_events` below drops it a second time, because it reads every event name
-// rather than `app_opened` alone: it decides the interface language and the `unknown` language
+// denominator. Who opened the app applies the same predicate, so the two cohorts stay comparable.
+// `language_events` below drops it a second time, because it reads every event name rather than
+// `app_opened` alone: it decides the interface language and the `unknown` language
 // coverage of a person the cohort already counted, and a credential-free row resolving onto that
 // person is not evidence of what language that person uses.
 //

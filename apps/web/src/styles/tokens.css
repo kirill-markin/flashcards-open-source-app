@@ -41,6 +41,7 @@
   --page-title-font-weight: 720;
   --page-title-letter-spacing: -0.04em;
   --shell-frame-gap: 12px;
+  --chat-toggle-floating-compact-height: 40px;
   --desktop-shell-gutter: var(--shell-frame-gap);
   --content-width: 1240px;
   --shell-width: 1320px;

@@ -1,7 +1,6 @@
 import { useMemo, type JSX } from "react";
 import type {
   CatalogInstallsReport,
-  DailyActiveUsersReport,
   ReviewEventsByDateReport,
   ReviewEventsByDateUser,
 } from "../adminApi";
@@ -15,27 +14,24 @@ import { AdminNavigation } from "../navigation/AdminNavigation";
 import { AiUsageCohortsSection } from "../reports/aiUsageCohorts/AiUsageCohortsSection";
 import { AudienceSection } from "../reports/audience/AudienceSection";
 import { CatalogInstallsSection } from "../reports/catalogInstalls/CatalogInstallsSection";
-import { DailyActiveUsersSection } from "../reports/dailyActiveUsers/DailyActiveUsersSection";
 import { FunnelsArea } from "../reports/funnels/FunnelsArea";
 import type { GeneralReportView } from "../reports/generalReportView";
 import { LevelOneMetricDetailsPage } from "../reports/levelOneMetrics/LevelOneMetricDetailsPage";
 import { LevelOneMetricsArea } from "../reports/levelOneMetrics/LevelOneMetricsArea";
-import { ReviewActivitySection } from "../reports/reviewEventsByDate/ReviewActivitySection";
 import type { ReviewEventsByDateRange } from "../reports/reviewEventsByDate/query";
 import { SocialConnectionsSection } from "../reports/socialConnections/SocialConnectionsSection";
 import { WhoSawUsDatasetPage } from "../reports/whoSawUs/WhoSawUsDatasetPage";
 import type { AdminRoute, AnalyticsArea } from "../routing";
-import { getStableUserColorDomain, getUserColorScale, type UserColorScale } from "./userColors";
+import { getStableUserColorDomain, getUserColorScale } from "./userColors";
 
 export type AdminReportsData = Readonly<{
   filterOptions: AnalyticsFilterOptions;
   report: ReviewEventsByDateReport;
-  dailyActiveUsersReport: DailyActiveUsersReport;
   catalogInstallsReport: CatalogInstallsReport;
 }>;
 
 /**
- * The General batch - the filter bar's option lists and the three General reports - an analytics
+ * The General batch - the filter bar's option lists and the two General reports - an analytics
  * area either already has, is still fetching, or failed to fetch. Every area but Level 1 metrics
  * loads it; only General waits for it. A failure is area-local and retryable; only a terminal
  * 401/403 replaces the whole page.
@@ -87,16 +83,8 @@ type AnalyticsReportSectionsProps = Readonly<{
   onRangeLookupRetry: () => void;
   onFiltersChange: (filters: AnalyticsFilterState) => boolean;
   onNavigate: (path: string) => void;
-  /** Stable across filter changes on purpose; see `App`. */
-  onChartUserFilterApply: (userId: string) => void;
   onTerminalAdminError: (error: unknown, config: AdminAppConfig) => boolean;
 }>;
-
-function buildUserById(
-  users: ReadonlyArray<ReviewEventsByDateUser>,
-): ReadonlyMap<string, ReviewEventsByDateUser> {
-  return new Map<string, ReviewEventsByDateUser>(users.map((user) => [user.userId, user]));
-}
 
 type GeneralReportState = Extract<AdminReportState, { status: "loading" | "ready" }>;
 
@@ -118,47 +106,30 @@ function toGeneralReportView<Report>(
 function GeneralReportSections(
   props: Readonly<{
     reportState: GeneralReportState;
-    userColorScale: UserColorScale;
-    onChartUserFilterApply: (userId: string) => void;
   }>,
 ): JSX.Element {
   const data = props.reportState.status === "ready" ? props.reportState.data : null;
   // The numbers on screen are the ones a failed reload left behind.
   const isReportStale = props.reportState.status === "ready" && props.reportState.reloadError !== "";
-  const reviewUsers = data === null ? noOptions : data.report.users;
   const catalogPackageSlugs = data === null ? noOptions : data.filterOptions.catalogPackageSlugs;
 
-  const filteredUserById = useMemo(
-    () => buildUserById(reviewUsers),
-    [reviewUsers],
-  );
   // From the options rather than the report, so a deck does not change colour because a filter
   // removed another deck.
   const packageColorScale = useMemo(
     () => getPackageColorScale(catalogPackageSlugs),
     [catalogPackageSlugs],
   );
-  const report = toGeneralReportView(props.reportState, (loaded) => loaded.report);
 
   return (
     <div className={isReportStale ? "report-sections-stale" : undefined}>
-      <DailyActiveUsersSection
-        filteredReport={toGeneralReportView(props.reportState, (loaded) => loaded.dailyActiveUsersReport)}
-      />
-
-      <ReviewActivitySection
-        filteredReport={report}
-        filteredUserById={filteredUserById}
-        userColorScale={props.userColorScale}
-        onUserFilterApply={props.onChartUserFilterApply}
-      />
-
       <CatalogInstallsSection
         filteredReport={toGeneralReportView(props.reportState, (loaded) => loaded.catalogInstallsReport)}
         packageColorScale={packageColorScale}
       />
 
-      <SocialConnectionsSection filteredReport={report} />
+      <SocialConnectionsSection
+        filteredReport={toGeneralReportView(props.reportState, (loaded) => loaded.report)}
+      />
     </div>
   );
 }
@@ -246,8 +217,6 @@ function AnalyticsReportSections(props: AnalyticsReportSectionsProps): JSX.Eleme
       */}
       {props.activeArea === "general" && reportState.status !== "error" ? <GeneralReportSections
         reportState={reportState}
-        userColorScale={userColorScale}
-        onChartUserFilterApply={props.onChartUserFilterApply}
       /> : null}
 
       {props.activeArea === "funnels" ? <FunnelsArea
@@ -294,7 +263,6 @@ export function AdminDashboard(
     onReportRetry: () => void;
     onRangeLookupRetry: () => void;
     onFiltersChange: (filters: AnalyticsFilterState) => boolean;
-    onChartUserFilterApply: (userId: string) => void;
     onTerminalAdminError: (error: unknown, config: AdminAppConfig) => boolean;
   }>,
 ): JSX.Element {
@@ -410,7 +378,6 @@ export function AdminDashboard(
           onRangeLookupRetry={props.onRangeLookupRetry}
           onFiltersChange={props.onFiltersChange}
           onNavigate={props.onNavigate}
-          onChartUserFilterApply={props.onChartUserFilterApply}
           onTerminalAdminError={props.onTerminalAdminError}
         />
       ) : null}
