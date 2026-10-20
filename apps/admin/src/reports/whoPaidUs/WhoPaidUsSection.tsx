@@ -3,7 +3,9 @@ import * as d3 from "d3";
 import { ChartAreaWithNote } from "../../charts/ChartAreaWithNote";
 import { ChartColorKey } from "../../charts/ChartLegends";
 import { ChartLoadingPlaceholder } from "../../charts/ChartLoadingPlaceholder";
+import { ChartNotesKey } from "../../charts/ChartNotesKey";
 import { ChartTooltip, useChartTooltip } from "../../charts/ChartTooltip";
+import { buildInProgressChartNote, placeChartNotes } from "../../charts/chartNotes";
 import { chartWidth, stackedChartHeight } from "../../charts/chartPrimitives";
 import { escapeHtml, formatGeneratedAt } from "../../charts/formatting";
 import { paymentColors, renderWhoPaidUsChart } from "../../charts/whoPaidUsChart";
@@ -88,8 +90,11 @@ export function WhoPaidUsSection(props: Readonly<{
     return () => { cancelled = true; abortController.abort(); };
   }, [props.config, props.dateRange, props.period, props.onTerminalAdminError, revision, tooltipHandlers]);
   const bucketsByKey = useMemo(() => new Map(state.status === "ready" ? state.report.buckets.map((entry) => [entry.bucket.key, entry]) : []), [state]);
+  const chartNotes = useMemo(() => (state.status === "ready"
+    ? placeChartNotes([buildInProgressChartNote(state.report.today)], state.report.buckets.map((entry) => entry.bucket))
+    : null), [state]);
   useEffect(() => {
-    if (chartRef.current === null || state.status !== "ready") return;
+    if (chartRef.current === null || state.status !== "ready" || chartNotes === null) return;
     const getBucket = (key: string): WhoPaidUsBucket => {
       const entry = bucketsByKey.get(key);
       if (entry === undefined) throw new Error(`Who paid us chart has no bucket for ${key}.`);
@@ -97,7 +102,7 @@ export function WhoPaidUsSection(props: Readonly<{
     };
     const inProgressKey = findInProgressBucketKey(state.report.buckets.map((entry) => entry.bucket), state.report.today);
     renderWhoPaidUsChart({
-      svgElement: chartRef.current, buckets: state.report.buckets, inProgressKey,
+      svgElement: chartRef.current, buckets: state.report.buckets, notes: chartNotes,
       xLabel: reportPeriodAxisLabels[state.report.period],
       formatTick: (key) => formatReportBucketTick(state.report.period, key),
       getLabel: (key) => `${formatReportBucketTitle(state.report.period, getBucket(key).bucket)} UTC. ${describeBucket(getBucket(key), state.report.today)}`,
@@ -112,7 +117,7 @@ export function WhoPaidUsSection(props: Readonly<{
       },
       tooltipHandlers,
     });
-  }, [state, bucketsByKey, tooltipHandlers]);
+  }, [state, bucketsByKey, chartNotes, tooltipHandlers]);
   return (
     <section className="dashboard-section" data-testid="who-paid-us-section">
       <header className="dashboard-section-header level-1-metric-section-header"><div className="explained-heading-row">
@@ -147,6 +152,7 @@ export function WhoPaidUsSection(props: Readonly<{
             <svg ref={chartRef} role="group" aria-label={`Who paid us: recorded trial starts, first payments and recurring payments per ${state.report.period}`} />
           </ChartAreaWithNote> : <ChartLoadingPlaceholder viewBoxWidth={chartWidth} viewBoxHeight={stackedChartHeight} label="Loading Who paid us…" />}
         </div>
+        <ChartNotesKey notes={chartNotes} />
       </div></section>}
       <ChartTooltip {...tooltipState} />
     </section>

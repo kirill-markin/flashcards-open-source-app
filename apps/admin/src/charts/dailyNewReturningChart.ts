@@ -1,13 +1,13 @@
 import * as d3 from "d3";
 import type { NewReturningBucket } from "../reports/dailyNewReturning/query";
 import { chartMargin, stackedChartHeight, uniqueUserCohortColors, type ChartTooltipHandlers } from "./chartPrimitives";
+import { renderChartNotes, type PlacedChartNote } from "./chartNotes";
 import { renderMeaningfulActivityFrame, renderMeaningfulActivityHitTargets } from "./meaningfulActivityFrame";
 
 export function renderDailyNewReturningChart(params: Readonly<{
   svgElement: SVGSVGElement;
   buckets: ReadonlyArray<NewReturningBucket>;
-  /** The bucket holding today, marked in progress; null when the selection ends before today. */
-  inProgressKey: string | null;
+  notes: ReadonlyArray<PlacedChartNote>;
   xLabel: string;
   formatTick: (key: string) => string;
   getLabel: (key: string) => string;
@@ -29,12 +29,6 @@ export function renderDailyNewReturningChart(params: Readonly<{
     .attr("class", "bar-segment").attr("fill", (segment) => uniqueUserCohortColors[segment.cohort])
     .attr("x", (segment) => frame.x(segment.key) ?? 0).attr("width", frame.x.bandwidth())
     .attr("y", (segment) => y(segment.high)).attr("height", (segment) => y(segment.low) - y(segment.high)).attr("rx", 2);
-  const inProgressX = params.inProgressKey === null ? undefined : frame.x(params.inProgressKey);
-  if (inProgressX !== undefined) {
-    frame.group.append("line").attr("x1", inProgressX).attr("x2", inProgressX)
-      .attr("y1", 0).attr("y2", frame.innerHeight).attr("stroke", "currentColor").attr("stroke-dasharray", "6 4");
-    frame.group.append("text").attr("x", inProgressX + frame.x.bandwidth()).attr("y", -10)
-      .attr("text-anchor", "end").attr("fill", "currentColor").text("In progress");
-  }
   renderMeaningfulActivityHitTargets(frame, keys, params.getLabel, params.getTooltipHtml, params.tooltipHandlers);
+  renderChartNotes(frame.group, frame.x, frame.innerHeight, params.notes, params.tooltipHandlers);
 }
