@@ -10,6 +10,7 @@ import {
 } from "../api";
 import { hasLoggedInCookie } from "../appData/session/activation/warmStart";
 import { readStoredWebGuestSession, resetWebGuestSession } from "../appData/session/guest/webGuestSession";
+import { isAutomationRun } from "../automationRun";
 import { isAuthenticatedAppPath } from "../routes";
 import {
   isAwaitingAnalyticsConsentDecision,
@@ -80,8 +81,6 @@ const retryBaseDelayMs = 1000;
 const retryMaxDelayMs = 60 * 60 * 1000;
 const sustainedFailureWindowMs = 60 * 60 * 1000;
 const periodicFlushIntervalMs = 60 * 1000;
-/** A browser under automation control, Playwright included; decided once per page load. */
-const isAutomationRun = navigator.webdriver === true;
 
 /**
  * How long a pressed control waits for the queue to drain before it destroys the credential behind
