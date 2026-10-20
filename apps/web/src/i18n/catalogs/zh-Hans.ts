@@ -272,7 +272,6 @@ export const zhHansCatalog = {
   },
   progressScreen: {
     title: "进度",
-    subtitle: "查看你最近的连续学习天数和每日复习记录。",
     streakTitle: "连续天数",
     streakInfoToggleLabel: "关于连续冻结",
     streakInfo: "冻结额度 {{available}}/{{capacity}}。下次补充 {{progress}}/{{required}}。",
@@ -516,7 +515,6 @@ export const zhHansCatalog = {
   },
   settingsHome: {
     title: "设置",
-    subtitle: "管理账户、工作区、支持和高级 Web 设置。",
     inviteFriend: {
       actionText: "添加好友",
       ariaLabel: "添加好友",
@@ -1228,7 +1226,6 @@ export const zhHansCatalog = {
       label: "搜索",
       placeholder: "搜索正面、背面或标签",
     },
-    subtitle: "卡片是您用来学习和记忆的提示与答案。",
     table: {
       back: "背面",
       due: "到期",

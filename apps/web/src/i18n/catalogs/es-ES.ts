@@ -272,7 +272,6 @@ const esEsCatalog: TranslationCatalog = {
   },
   progressScreen: {
     title: "Progreso",
-    subtitle: "Sigue tu racha reciente y el historial diario de repasos.",
     streakTitle: "Racha",
     streakInfoToggleLabel: "Acerca de las congelaciones de racha",
     streakInfo: "Banco de congelaciones {{available}}/{{capacity}}. Próxima recarga {{progress}}/{{required}}.",
@@ -516,7 +515,6 @@ const esEsCatalog: TranslationCatalog = {
   },
   settingsHome: {
     title: "Ajustes",
-    subtitle: "Gestiona la cuenta, el espacio de trabajo, el soporte y los ajustes web avanzados.",
     inviteFriend: {
       actionText: "Añadir amigo",
       ariaLabel: "Añadir amigo",
@@ -1228,7 +1226,6 @@ const esEsCatalog: TranslationCatalog = {
       label: "Buscar",
       placeholder: "Buscar en el frente, el reverso o las etiquetas",
     },
-    subtitle: "Las tarjetas son las preguntas y respuestas que repasas para aprender y recordar.",
     table: {
       back: "Reverso",
       due: "Pendiente",

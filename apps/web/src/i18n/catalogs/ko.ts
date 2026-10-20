@@ -272,7 +272,6 @@ const koCatalog: TranslationCatalog = {
   },
   progressScreen: {
     title: "진행 상황",
-    subtitle: "최근 연속 학습과 일별 복습 기록을 확인하세요.",
     streakTitle: "연속 학습",
     streakInfoToggleLabel: "연속 학습 보호 안내",
     streakInfo: "보호 횟수 {{available}}/{{capacity}}. 다음 충전까지 {{progress}}/{{required}}.",
@@ -516,7 +515,6 @@ const koCatalog: TranslationCatalog = {
   },
   settingsHome: {
     title: "설정",
-    subtitle: "계정, 워크스페이스, 지원, 웹 고급 설정을 관리하세요.",
     inviteFriend: {
       actionText: "친구 추가",
       ariaLabel: "친구 추가",
@@ -1228,7 +1226,6 @@ const koCatalog: TranslationCatalog = {
       label: "검색",
       placeholder: "앞면, 뒷면, 태그 검색",
     },
-    subtitle: "카드는 배우고 기억하기 위해 복습하는 질문과 답입니다.",
     table: {
       back: "뒷면",
       due: "복습일",

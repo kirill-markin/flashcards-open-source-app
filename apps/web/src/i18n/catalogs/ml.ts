@@ -272,7 +272,6 @@ const mlCatalog: TranslationCatalog = {
   },
   progressScreen: {
     title: "പുരോഗതി",
-    subtitle: "സമീപകാല തുടർച്ചയും ദിവസേനയുള്ള അവലോകന ചരിത്രവും കാണുക.",
     streakTitle: "തുടർച്ച",
     streakInfoToggleLabel: "തുടർച്ചാ ഫ്രീസുകളെക്കുറിച്ച്",
     streakInfo: "ഫ്രീസ് ബാങ്ക് {{available}}/{{capacity}}. അടുത്ത റീചാർജ് {{progress}}/{{required}}.",
@@ -516,7 +515,6 @@ const mlCatalog: TranslationCatalog = {
   },
   settingsHome: {
     title: "ക്രമീകരണങ്ങൾ",
-    subtitle: "അക്കൗണ്ട്, വർക്ക്‌സ്‌പേസ്, പിന്തുണ, വിപുലമായ വെബ് ക്രമീകരണങ്ങൾ എന്നിവ നിയന്ത്രിക്കുക.",
     inviteFriend: {
       actionText: "സുഹൃത്തിനെ ചേർക്കുക",
       ariaLabel: "സുഹൃത്തിനെ ചേർക്കുക",
@@ -1228,7 +1226,6 @@ const mlCatalog: TranslationCatalog = {
       label: "തിരയൽ",
       placeholder: "മുൻവശം, പിൻവശം അല്ലെങ്കിൽ ടാഗുകൾ തിരയുക",
     },
-    subtitle: "പഠിക്കാനും ഓർമ്മിക്കാനുമായി അവലോകനം ചെയ്യുന്ന ചോദ്യങ്ങളും ഉത്തരങ്ങളുമാണ് കാർഡുകൾ.",
     table: {
       back: "പിൻവശം",
       due: "ആവർത്തിക്കേണ്ടത്",

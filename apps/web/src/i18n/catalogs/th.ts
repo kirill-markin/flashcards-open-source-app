@@ -272,7 +272,6 @@ const thCatalog: TranslationCatalog = {
   },
   progressScreen: {
     title: "ความคืบหน้า",
-    subtitle: "ติดตามสตรีคล่าสุดและประวัติการทบทวนรายวันของคุณ",
     streakTitle: "สตรีค",
     streakInfoToggleLabel: "เกี่ยวกับการฟรีซสตรีค",
     streakInfo: "คลังฟรีซ {{available}}/{{capacity}} เติมครั้งถัดไป {{progress}}/{{required}}",
@@ -516,7 +515,6 @@ const thCatalog: TranslationCatalog = {
   },
   settingsHome: {
     title: "การตั้งค่า",
-    subtitle: "จัดการบัญชี พื้นที่ทำงาน การสนับสนุน และการตั้งค่าขั้นสูงของเว็บ",
     inviteFriend: {
       actionText: "เพิ่มเพื่อน",
       ariaLabel: "เพิ่มเพื่อน",
@@ -1228,7 +1226,6 @@ const thCatalog: TranslationCatalog = {
       label: "ค้นหา",
       placeholder: "ค้นหาด้านหน้า ด้านหลัง หรือแท็ก",
     },
-    subtitle: "การ์ดคือคำถามและคำตอบที่คุณทบทวนเพื่อเรียนรู้และจดจำ",
     table: {
       back: "ด้านหลัง",
       due: "ถึงกำหนด",
