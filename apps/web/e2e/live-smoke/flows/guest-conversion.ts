@@ -58,7 +58,7 @@ async function reviewGuestDemo(session: LiveSmokeSession): Promise<Readonly<{ wo
   await diagnostics.runAction("reveal the guest demo with Space without submitting a rating", async () => {
     const reviewPane = page.getByTestId("review-pane");
     await expect(page.getByTestId("review-reveal-answer")).toBeVisible();
-    await reviewPane.click({ position: { x: 1, y: 1 } });
+    await page.getByTestId("review-current-front-card").locator(".review-front").click();
     await page.keyboard.press("Space");
     await expect(page.getByTestId("review-rate-good")).toBeVisible();
     await page.keyboard.press("Enter");
