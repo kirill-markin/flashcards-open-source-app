@@ -108,13 +108,17 @@ function isDayUnavailable(dayValue: string, availableRange: DateRangeCalendarRan
 // may lose the range highlight.
 function getDayClassName(
   dayValue: string,
-  highlightRange: DateRangeCalendarRange,
+  highlightRange: DateRangeCalendarRange | null,
   availableRange: DateRangeCalendarRange,
 ): string {
   const classNames = ["calendar-day"];
 
   if (isDayUnavailable(dayValue, availableRange)) {
     classNames.push("calendar-day-unavailable");
+  }
+
+  if (highlightRange === null) {
+    return classNames.join(" ");
   }
 
   if (dayValue >= highlightRange.from && dayValue <= highlightRange.to) {
@@ -161,11 +165,13 @@ function getKeyboardTargetDay(key: string, dayValue: string): string | null {
 }
 
 function getRangeSummary(
-  selectedRange: DateRangeCalendarRange,
+  selectedRange: DateRangeCalendarRange | null,
   pendingStart: string | null,
 ): string {
   if (pendingStart === null) {
-    return `${selectedRange.from} to ${selectedRange.to} UTC`;
+    return selectedRange === null
+      ? "No range picked - pick the first day"
+      : `${selectedRange.from} to ${selectedRange.to} UTC`;
   }
 
   return `${pendingStart} to ... - pick the other end`;
@@ -173,27 +179,30 @@ function getRangeSummary(
 
 // A controlled picker: it owns which months are on screen and which end is half-picked, and reports
 // only complete ranges. The first click starts a range, the second one closes it, and a second click
-// before the start swaps the ends rather than refusing the day.
+// before the start swaps the ends rather than refusing the day. A `null` selection highlights nothing
+// and opens on the latest available months.
 //
 // Every day stays pickable while the report it filters is reloading, the same way the rest of the
 // filter bar does: a pick made during a reload supersedes that reload.
 export function DateRangeCalendar(
   props: Readonly<{
     availableRange: DateRangeCalendarRange;
-    selectedRange: DateRangeCalendarRange;
+    selectedRange: DateRangeCalendarRange | null;
     onRangeChange: (range: DateRangeCalendarRange) => void;
   }>,
 ): JSX.Element {
+  const openingDay = props.selectedRange === null ? props.availableRange.to : props.selectedRange.from;
   const [requestedMonthStart, setRequestedMonthStart] = useState(
-    () => startOfUtcMonth(props.selectedRange.from),
+    () => startOfUtcMonth(openingDay),
   );
   const [focusedDay, setFocusedDay] = useState(
-    () => clampDay(props.selectedRange.from, props.availableRange),
+    () => clampDay(openingDay, props.availableRange),
   );
   const [pendingStart, setPendingStart] = useState<string | null>(null);
-  const [lastSelectionKey, setLastSelectionKey] = useState(
-    `${props.selectedRange.from}/${props.selectedRange.to}`,
-  );
+  const selectionKey = props.selectedRange === null
+    ? ""
+    : `${props.selectedRange.from}/${props.selectedRange.to}`;
+  const [lastSelectionKey, setLastSelectionKey] = useState(selectionKey);
   const focusedDayButtonRef = useRef<HTMLButtonElement | null>(null);
   const previousMonthButtonRef = useRef<HTMLButtonElement | null>(null);
   const nextMonthButtonRef = useRef<HTMLButtonElement | null>(null);
@@ -208,12 +217,11 @@ export function DateRangeCalendar(
 
   // A selection made elsewhere, such as a preset, drops a half-picked end and pulls the months back
   // only when the new start is off screen, so month navigation survives a selection inside it.
-  const selectionKey = `${props.selectedRange.from}/${props.selectedRange.to}`;
   if (lastSelectionKey !== selectionKey) {
     setLastSelectionKey(selectionKey);
     setPendingStart(null);
 
-    if (isDayVisible(props.selectedRange.from, visibleMonthStart) === false) {
+    if (props.selectedRange !== null && isDayVisible(props.selectedRange.from, visibleMonthStart) === false) {
       setRequestedMonthStart(startOfUtcMonth(props.selectedRange.from));
     }
   }
@@ -320,7 +328,7 @@ export function DateRangeCalendar(
   // The roving tab stop has to be a day that is on screen and pickable, or the grid drops out of the
   // tab order once navigation moves past the focused day.
   const tabStopDay = selectableDayValues.includes(focusedDay) ? focusedDay : selectableDayValues[0];
-  const highlightRange: DateRangeCalendarRange = pendingStart === null
+  const highlightRange: DateRangeCalendarRange | null = pendingStart === null
     ? props.selectedRange
     : { from: pendingStart, to: pendingStart };
   const isPreviousMonthDisabled = clampVisibleMonthStart(
