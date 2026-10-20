@@ -147,6 +147,7 @@ export function WebEngagedShareSection(props: Readonly<{
       keys: report.buckets.map((entry) => entry.bucket.key),
       getRate: (key) => getBucket(key).share,
       color: whoSawUsSeriesColors.web,
+      inProgressKey,
       yLabel: "Engaged share",
       xLabel: reportPeriodAxisLabels[report.period],
       notes: chartNotes,
