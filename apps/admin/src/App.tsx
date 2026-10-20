@@ -643,8 +643,7 @@ export default function App(): JSX.Element {
     setRangeLookupRevision((revision) => revision + 1);
   }, []);
 
-  // Stable across renders on purpose: this reaches the charts through the filter callbacks, and a new
-  // identity on every render would tear down and redraw every chart on every click.
+  // Stable across renders on purpose, so the filter controls receive the same callback on every render.
   // Returns whether the selection was accepted, so a caller that dismisses its own control on
   // success - the date popover - keeps it open to show the rejection instead.
   const applyFilters = useCallback((nextFilters: AnalyticsFilterState): boolean => {
