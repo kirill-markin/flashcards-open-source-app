@@ -182,6 +182,10 @@ function resolveLegacyReviewFilter(
       : { kind: "allCards" };
   }
 
+  if (reviewFilter.kind === "catalogImport") {
+    return reviewFilter;
+  }
+
   const canonicalTagsByKey = new Map(
     cards.flatMap((card) => card.tags).map((tag) => [normalizeTagKey(tag), tag] as const),
   );
@@ -217,10 +221,12 @@ export function legacyReviewCards(
         const deck = decks.find((candidateDeck) => candidateDeck.deckId === resolvedReviewFilter.deckId);
         return deck === undefined ? true : matchesDeckFilterDefinition(deck.filterDefinition, card);
       })
-      : activeCards.filter((card) => {
-        const requestedTagKeys = new Set(resolvedReviewFilter.tags.map((tag) => normalizeTagKey(tag)));
-        return card.tags.some((tag) => requestedTagKeys.has(normalizeTagKey(tag)));
-      });
+      : resolvedReviewFilter.kind === "catalogImport"
+        ? activeCards.filter((card) => card.metadata.source?.importId === resolvedReviewFilter.importId)
+        : activeCards.filter((card) => {
+          const requestedTagKeys = new Set(resolvedReviewFilter.tags.map((tag) => normalizeTagKey(tag)));
+          return card.tags.some((tag) => requestedTagKeys.has(normalizeTagKey(tag)));
+        });
 
   return [...matchingCards].sort((leftCard, rightCard) => compareCardsForReviewOrder(leftCard, rightCard, nowTimestamp));
 }

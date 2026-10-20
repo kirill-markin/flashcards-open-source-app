@@ -1,6 +1,6 @@
 import type { ReviewRating } from "../../../../../backend/src/scheduling";
 
-export const reviewRevealShortcutKey = " ";
+export const reviewRevealShortcutKeys: ReadonlyArray<string> = [" ", "Enter"];
 
 export const reviewRatingShortcutKeys: Readonly<Record<ReviewRating, string>> = {
   0: "1",

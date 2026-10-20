@@ -122,8 +122,9 @@ function parseGroup(row: AdminQueryRow): PaywallPresentationGroup {
 export async function loadPaywallPresentationReport(
   config: AdminAppConfig,
   filters: AnalyticsFilterState,
+  signal: AbortSignal,
 ): Promise<PaywallPresentationReport> {
-  const response = await runAdminQuery(config, buildPaywallPresentationSql(filters));
+  const response = await runAdminQuery(config, buildPaywallPresentationSql(filters), signal);
   if (response.resultSets.length !== 1 || response.resultSets[0].rows.length === 0) {
     throw new Error(`${reportLabel} must return exactly one result set with coverage counts.`);
   }

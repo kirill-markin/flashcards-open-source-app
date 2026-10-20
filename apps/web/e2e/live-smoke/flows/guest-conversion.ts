@@ -55,7 +55,16 @@ async function reviewGuestDemo(session: LiveSmokeSession): Promise<Readonly<{ wo
   if (!workspaceId) throw new Error("Guest workspace id is unavailable");
   await expect.poll(async () => (await snapshot(page)).cards.length, { timeout: externalUiTimeoutMs }).toBe(1);
   const demoId = (await snapshot(page)).cards[0]!.cardId;
-  await trackedClick(diagnostics, "reveal the guest demo answer", page.getByTestId("review-reveal-answer"));
+  await diagnostics.runAction("reveal the guest demo with Space without submitting a rating", async () => {
+    const reviewPane = page.getByTestId("review-pane");
+    await expect(page.getByTestId("review-reveal-answer")).toBeVisible();
+    await page.getByTestId("review-current-front-card").locator(".review-front").click();
+    await page.keyboard.press("Space");
+    await expect(page.getByTestId("review-rate-good")).toBeVisible();
+    await page.keyboard.press("Enter");
+    await expect(reviewPane).toHaveAttribute("data-review-current-card-id", demoId);
+    await expect(reviewPane).toHaveAttribute("data-review-submit-state", "idle");
+  });
   await trackedClick(diagnostics, "review the guest demo", page.getByTestId("review-rate-good"));
   await diagnostics.runAction("confirm the guest demo review finishes saving before navigation", async () => {
     const reviewPane = page.getByTestId("review-pane");

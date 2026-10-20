@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useEffectEvent, useRef, type PointerEvent as ReactPointerEvent } from "react";
 import type { Card } from "../../../types";
-import { reviewRevealShortcutKey, reviewShortcutRatingsByKey } from "./reviewShortcutKeys";
+import { reviewRevealShortcutKeys, reviewShortcutRatingsByKey } from "./reviewShortcutKeys";
 
 export type ReviewShortcutPointerEnterHandler = (event: ReactPointerEvent<HTMLButtonElement>) => void;
 
@@ -69,26 +69,43 @@ export function useReviewKeyboardShortcuts(params: UseReviewKeyboardShortcutsPar
 
   const handleDocumentKeyDown = useEffectEvent((event: KeyboardEvent) => {
     if (
-      selectedCard === null
+      event.defaultPrevented
+      || event.altKey
+      || event.ctrlKey
+      || event.metaKey
+      || event.isComposing
+      || event.keyCode === 229
+      || isImeCompositionActiveRef.current
+      || selectedCard === null
       || areShortcutsSuppressed
       || isEditableKeyboardTarget(event.target)
     ) {
       return;
     }
 
-    if (event.key === reviewRevealShortcutKey) {
-      onShortcutInputStart();
-      if (isAnswerVisible) {
+    if (reviewRevealShortcutKeys.includes(event.key)) {
+      if (event.shiftKey) {
+        return;
+      }
+
+      if (event.target instanceof Element && event.target.closest("button, a[href], summary, [role=button], [role=link]") !== null) {
         return;
       }
 
       event.preventDefault();
-      setIsAnswerVisible(true);
+      if (event.repeat) {
+        return;
+      }
+
+      onShortcutInputStart();
+      if (!isAnswerVisible) {
+        setIsAnswerVisible(true);
+      }
       return;
     }
 
     const rating = reviewShortcutRatingsByKey[event.key];
-    if (rating === undefined) {
+    if (rating === undefined || event.repeat) {
       return;
     }
 

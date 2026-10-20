@@ -121,7 +121,7 @@ export function mapCatalogPackageInstallPackageVersion(
   };
 }
 
-async function loadCatalogPackageInstallVersionInExecutor(
+export async function loadCatalogPackageInstallVersionInExecutor(
   executor: DatabaseExecutor,
   packageVersionId: string,
 ): Promise<CatalogPackageInstallVersionRow> {
@@ -313,7 +313,7 @@ function createCatalogPackageInstallPreview(
   const tagPlan = createCatalogPackageInstallTagPlan(
     tagRows,
     {
-      addImportTag: true,
+      addImportTag: false,
       importTag: suggestedImportTag,
       removeTags: [],
     },
@@ -327,7 +327,7 @@ function createCatalogPackageInstallPreview(
     },
     tagCounts: tagPlan.sourceTagCounts,
     defaultOptions: {
-      addImportTag: true,
+      addImportTag: false,
       suggestedImportTag,
       keptTags: tagPlan.keptTags,
       removedTags: tagPlan.removedTags,

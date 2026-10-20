@@ -14,6 +14,7 @@ import { useI18n } from "../../i18n";
 import { normalizeCaughtError } from "../../observability/webObservability";
 import { useAiCardHandoff } from "../../chat/handoff/useAiCardHandoff";
 import { useTransientMessage } from "../../useTransientMessage";
+import { completeCatalogImmediateStudy } from "../catalog/catalogImmediateAttempt";
 import type { Card } from "../../types";
 import { handleRefreshLocalDataError } from "../shared/refreshLocalDataError";
 import { isCardFormStateDirty } from "../cards/form/CardForm";
@@ -145,6 +146,11 @@ export function useReviewScreenController(
     userId: session?.userId ?? null,
   });
   const selectedCard = currentReviewCard(activeReviewQueue);
+  useEffect(() => {
+    if (isSessionVerified && session !== null && activeWorkspace !== null && selectedCard !== null && !isInitialReviewLoad) {
+      completeCatalogImmediateStudy(session.userId, activeWorkspace.workspaceId, selectedCard.cardId);
+    }
+  }, [activeWorkspace?.workspaceId, isInitialReviewLoad, isSessionVerified, selectedCard?.cardId, session?.userId]);
   const loadingReviewCurrentCard = reviewLoadingSnapshot?.currentCard ?? reviewLoadingSnapshot?.queuePreview[0] ?? null;
   const visibleReviewCardId = isInitialReviewLoad ? loadingReviewCurrentCard?.cardId : selectedCard?.cardId;
   const visibleTextSelectionRequest = textSelectionRequest !== null

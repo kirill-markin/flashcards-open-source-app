@@ -358,6 +358,16 @@ h2 {
   gap: 2px;
 }
 
+/* Holds a loading or empty funnel's note over its scroller, so the note stays in view at any width. */
+.funnel-chart-area {
+  position: relative;
+}
+
+.funnel-empty-note {
+  display: grid;
+  gap: 8px;
+}
+
 /* The funnel's own `Group by` field sits in the funnel's own filter row area, under its heading and
    above everything the report's state can unmount: the field regroups this one funnel, so it belongs
    to the funnel rather than to the shared bar, where every field narrows them all at once. */
@@ -463,6 +473,11 @@ h2 {
 .funnel-group-table thead th:nth-child(2),
 .funnel-group-table tbody th {
   text-align: left;
+}
+
+/* Column 2 here is a count, not a name, so its header aligns with its numbers. */
+.funnel-group-table.engaged-share-table thead th:nth-child(2) {
+  text-align: right;
 }
 
 /* A row header, so it is bold by default; the group name is read as data beside its counts, and the
@@ -1474,9 +1489,40 @@ h2 {
   flex: 0 0 auto;
 }
 
+.platform-key-placeholder,
+.chart-generated-at-placeholder {
+  visibility: hidden;
+}
+
 .chart-scroll {
   overflow-x: auto;
   padding: 8px 8px 16px;
+}
+
+/* Sized by an inline `aspect-ratio` equal to the chart's viewBox, the ratio its full-width `<svg>`
+   renders at, so a loading placeholder and a ready chart are the same height at every width. */
+.chart-area {
+  position: relative;
+}
+
+.chart-area-note {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  margin: 0;
+  padding: 24px;
+  color: var(--muted);
+  font-size: 14px;
+  text-align: center;
+  pointer-events: none;
+}
+
+/* Boxed so a grid line drawn under a ready chart's note does not run through its text. */
+.chart-area-note > span {
+  padding: 6px 12px;
+  border-radius: 10px;
+  background: var(--panel);
 }
 
 .level-1-metrics-grid {
@@ -1555,9 +1601,34 @@ h2 {
   margin-top: 24px;
 }
 
+/* The inactive MCP entry of the Who saw us dataset picker, with its note beside it. */
+.who-saw-us-dataset-inactive {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+/* Inactive rather than busy, so not the wait cursor of `.filter-button:disabled`. */
+.who-saw-us-dataset-inactive .filter-button:disabled {
+  cursor: not-allowed;
+}
+
+.landing-page-path-top-pages .funnel-group-table-shell {
+  margin-top: 24px;
+}
+
 /* A table of long UTC times, too wide for one grid cell. */
 .level-1-metrics-grid .payment-import-status {
   grid-column: 1 / -1;
+}
+
+/* Opens a group of charts below the ones before it, across every grid column. */
+.level-1-metrics-grid .level-1-metrics-group-heading {
+  grid-column: 1 / -1;
+  margin-top: 56px;
 }
 
 .payment-import-status-table {

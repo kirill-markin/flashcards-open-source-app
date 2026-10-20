@@ -123,8 +123,9 @@ export async function loadWhoCameBackReport(
   config: AdminAppConfig,
   dateRange: AnalyticsDateRange,
   period: ReportPeriod,
+  signal: AbortSignal,
 ): Promise<WhoCameBackReport> {
-  const response = await runAdminQuery(config, buildWhoCameBackSql(dateRange, period));
+  const response = await runAdminQuery(config, buildWhoCameBackSql(dateRange, period), signal);
   const result = response.resultSets[0];
   const firstRow = result?.rows[0];
   if (response.resultSets.length !== 1 || result === undefined || firstRow === undefined) {

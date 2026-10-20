@@ -160,15 +160,18 @@ export function CardsTab(props: Readonly<{
   const [fullTexts, setFullTexts] = useState<Readonly<Record<string, FullTextState>>>({});
   // Only a table that already shows a page waits for the debounce; the first load has nothing to coalesce.
   const hasLoadedPageRef = useRef<boolean>(false);
+  // A full text is asked for by a click, so it is dropped only when this person's tab goes away.
+  const fullTextAbortControllerRef = useRef<AbortController>(new AbortController());
 
   // Blind to the table state, so neither a table change nor the clamp re-request asks for them again.
   useEffect(() => {
     let isSuperseded = false;
+    const abortController = new AbortController();
     setEnumOptionsState({ status: "loading" });
 
     async function loadEnumOptions(): Promise<void> {
       try {
-        const options = await loadCardsEnumOptions(config, userId);
+        const options = await loadCardsEnumOptions(config, userId, abortController.signal);
         if (isSuperseded) return;
         setEnumOptionsState({ status: "ready", options });
       } catch (error: unknown) {
@@ -180,12 +183,14 @@ export function CardsTab(props: Readonly<{
     void loadEnumOptions();
     return () => {
       isSuperseded = true;
+      abortController.abort();
     };
   }, [config, enumOptionsRevision, onTerminalAdminError, userId]);
 
   useEffect(() => {
     const requestedState = tableState;
     let isSuperseded = false;
+    const abortController = new AbortController();
     // The previous page stays on screen, dimmed, until the new one arrives.
     setLoadState((current) => {
       if (current.status === "ready") return { ...current, isLoading: true };
@@ -194,7 +199,7 @@ export function CardsTab(props: Readonly<{
 
     async function loadPage(): Promise<void> {
       try {
-        const result = await loadCardsPage(config, userId, requestedState, cardColumns);
+        const result = await loadCardsPage(config, userId, requestedState, cardColumns, abortController.signal);
         if (isSuperseded) return;
         // A page past the end, from a shrunken total, is asked for again as the last page the table shows.
         const clampedPage = clampDataTablePage(requestedState.page, result.totalCount);
@@ -219,16 +224,24 @@ export function CardsTab(props: Readonly<{
     );
     return () => {
       isSuperseded = true;
+      abortController.abort();
       window.clearTimeout(reloadTimeoutId);
     };
   }, [config, onTerminalAdminError, revision, tableState, userId]);
 
+  useEffect(() => {
+    const abortController = new AbortController();
+    fullTextAbortControllerRef.current = abortController;
+    return () => { abortController.abort(); };
+  }, [config, userId]);
+
   const expand = useCallback((cardId: string): void => {
+    const signal = fullTextAbortControllerRef.current.signal;
     setFullTexts((current) => ({ ...current, [cardId]: { status: "loading" } }));
-    void loadCardFullText(config, userId, cardId).then((fullText) => {
+    void loadCardFullText(config, userId, cardId, signal).then((fullText) => {
       setFullTexts((current) => ({ ...current, [cardId]: { status: "ready", fullText } }));
     }).catch((error: unknown) => {
-      if (onTerminalAdminError(error, config)) return;
+      if (signal.aborted || onTerminalAdminError(error, config)) return;
       setFullTexts((current) => ({ ...current, [cardId]: { status: "error", message: getErrorMessage(error) } }));
     });
   }, [config, userId, onTerminalAdminError]);

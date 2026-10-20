@@ -1,6 +1,10 @@
 import type {
   CatalogPackageInstallAuthor,
   CatalogPackageInstallConfirmResponse,
+  CatalogPackageInstallContext,
+  CatalogPackageInstallOnboardingEligibility,
+  CatalogPackageInstallPreviousInstall,
+  CatalogPackageInstallWorkspaceContext,
   CatalogPackageInstallDefaultOptions,
   CatalogPackageInstallPackageVersion,
   CatalogPackageInstallPreviewResponse,
@@ -13,9 +17,11 @@ import {
   type JsonObject,
   parseArray,
   parseBoolean,
+  parseEnum,
   parseNonNegativeInteger,
   parseNullableString,
   parseObject,
+  parseOptionalField,
   parseRequiredField,
   parseString,
   parseStringArray,
@@ -201,6 +207,17 @@ function parseCatalogInstalledMediaAsset(
   };
 }
 
+function parseCatalogInstallOnboarding(
+  value: unknown,
+  endpoint: string,
+  path: string,
+): Readonly<{ removedDemoCardId: string | null }> {
+  const objectValue = parseObject(value, endpoint, path);
+  return {
+    removedDemoCardId: parseRequiredField(objectValue, "removedDemoCardId", endpoint, path, parseNullableString),
+  };
+}
+
 export function parseCatalogPackageInstallConfirmResponse(
   value: unknown,
   endpoint: string,
@@ -209,6 +226,7 @@ export function parseCatalogPackageInstallConfirmResponse(
   const summaryValue = parseObject(objectValue.summary, endpoint, "summary");
   return {
     packageVersion: parseRequiredField(objectValue, "packageVersion", endpoint, "", parseCatalogPackageInstallPackageVersion),
+    onboarding: parseOptionalField(objectValue, "onboarding", endpoint, "", parseCatalogInstallOnboarding),
     installedCards: parseCatalogArray(objectValue, "installedCards", endpoint, parseCatalogInstalledCard),
     installedMediaAssets: parseCatalogArray(objectValue, "installedMediaAssets", endpoint, parseCatalogInstalledMediaAsset),
     summary: {
@@ -220,5 +238,70 @@ export function parseCatalogPackageInstallConfirmResponse(
       removedTagCount: parseRequiredField(summaryValue, "removedTagCount", endpoint, "summary", parseNonNegativeInteger),
       importTag: parseRequiredField(summaryValue, "importTag", endpoint, "summary", parseNullableString),
     },
+  };
+}
+
+function parseCatalogTimestamp(value: unknown, endpoint: string, path: string): string {
+  const timestamp = parseString(value, endpoint, path);
+  if (Number.isFinite(Date.parse(timestamp)) === false) {
+    throw new ApiContractError(endpoint, path, "timestamp");
+  }
+  return timestamp;
+}
+
+function parseCatalogNullableTimestamp(value: unknown, endpoint: string, path: string): string | null {
+  return value === null ? null : parseCatalogTimestamp(value, endpoint, path);
+}
+
+function parseCatalogPackageInstallOnboardingEligibility(
+  value: unknown,
+  endpoint: string,
+  path: string,
+): CatalogPackageInstallOnboardingEligibility {
+  return parseEnum(value, endpoint, path, ["empty", "demo_only", "ineligible"]);
+}
+
+function parseCatalogPackageInstallPreviousInstall(
+  value: unknown,
+  endpoint: string,
+  path: string,
+): CatalogPackageInstallPreviousInstall | null {
+  if (value === null) {
+    return null;
+  }
+  const objectValue = parseObject(value, endpoint, path);
+  return {
+    installId: parseRequiredField(objectValue, "installId", endpoint, path, parseString),
+    packageVersionId: parseRequiredField(objectValue, "packageVersionId", endpoint, path, parseString),
+    title: parseRequiredField(objectValue, "title", endpoint, path, parseString),
+    retainedCardCount: parseRequiredField(objectValue, "retainedCardCount", endpoint, path, parseNonNegativeInteger),
+  };
+}
+
+function parseCatalogPackageInstallWorkspaceContext(
+  value: unknown,
+  endpoint: string,
+  path: string,
+): CatalogPackageInstallWorkspaceContext {
+  const objectValue = parseObject(value, endpoint, path);
+  return {
+    workspaceId: parseRequiredField(objectValue, "workspaceId", endpoint, path, parseString),
+    name: parseRequiredField(objectValue, "name", endpoint, path, parseString),
+    createdAt: parseRequiredField(objectValue, "createdAt", endpoint, path, parseCatalogTimestamp),
+    isSelected: parseRequiredField(objectValue, "isSelected", endpoint, path, parseBoolean),
+    cardCount: parseRequiredField(objectValue, "cardCount", endpoint, path, parseNonNegativeInteger),
+    lastReviewedAt: parseRequiredField(objectValue, "lastReviewedAt", endpoint, path, parseCatalogNullableTimestamp),
+    onboardingEligibility: parseRequiredField(objectValue, "onboardingEligibility", endpoint, path, parseCatalogPackageInstallOnboardingEligibility),
+    previousInstall: parseRequiredField(objectValue, "previousInstall", endpoint, path, parseCatalogPackageInstallPreviousInstall),
+  };
+}
+
+export function parseCatalogPackageInstallContextResponse(
+  value: unknown,
+  endpoint: string,
+): CatalogPackageInstallContext {
+  const objectValue = parseObject(value, endpoint, "");
+  return {
+    workspaces: parseCatalogArray(objectValue, "workspaces", endpoint, parseCatalogPackageInstallWorkspaceContext),
   };
 }

@@ -175,7 +175,7 @@ function createAppData(): Mutable<AppDataContextValue> {
     refreshConnectedAccount: vi.fn(async (): Promise<void> => undefined),
     initialize: vi.fn(async (): Promise<void> => undefined),
     chooseWorkspace: vi.fn(async (_workspaceId: string): Promise<void> => undefined),
-    createWorkspace: vi.fn(async (_name: string): Promise<void> => undefined),
+    createWorkspace: vi.fn(async (_name: string): Promise<null> => null),
     renameWorkspace: vi.fn(async (_workspaceId: string, _name: string): Promise<void> => undefined),
     deleteWorkspace: vi.fn(async (_workspaceId: string, _confirmationText: string): Promise<void> => undefined),
     loadWorkspaceResetProgressPreview: vi.fn(async (_workspaceId: string): Promise<WorkspaceResetProgressPreview> => throwNotUsed("loadWorkspaceResetProgressPreview")),

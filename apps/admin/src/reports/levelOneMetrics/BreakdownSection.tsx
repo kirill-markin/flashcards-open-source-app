@@ -1,7 +1,10 @@
 import { useEffect, useMemo, useRef, useState, type JSX, type ReactNode } from "react";
 import * as d3 from "d3";
-import { ChartColorKey } from "../../charts/ChartLegends";
+import { ChartAreaWithNote } from "../../charts/ChartAreaWithNote";
+import { ChartColorKey, ChartColorKeyPlaceholder } from "../../charts/ChartLegends";
+import { ChartLoadingPlaceholder } from "../../charts/ChartLoadingPlaceholder";
 import { ChartTooltip, useChartTooltip } from "../../charts/ChartTooltip";
+import { chartWidth, stackedChartHeight } from "../../charts/chartPrimitives";
 import { escapeHtml, formatGeneratedAt } from "../../charts/formatting";
 import {
   buildBreakdownValueColors,
@@ -53,6 +56,51 @@ function listBucketCounts(
     .filter((entry) => entry.count > 0);
 }
 
+/** Why the chart draws no bar, or null when it draws one. */
+function describeEmptyChart(report: BreakdownReport, noAvailableBarText: string): string | null {
+  if (report.buckets.every((entry) => entry.countsByValue === null)) {
+    return report.buckets.every((entry) => entry.freshness === "not-arrived") ? notArrivedBarText : noAvailableBarText;
+  }
+  if (report.values.length === 0) return "Nothing counted in the covered days.";
+  return null;
+}
+
+/** A breakdown's chart panel, loading or ready, so both take the same space. */
+function BreakdownChartColumn(props: Readonly<{
+  countLabel: string;
+  period: ReportPeriod;
+  colorKey: ReactNode;
+  chartArea: ReactNode;
+}>): JSX.Element {
+  return (
+    <section className="chart-column">
+      <div className="chart-shell">
+        <div className="chart-meta">
+          <span>{props.countLabel} per {props.period} · UTC</span>
+          <div className="chart-meta-right">{props.colorKey}</div>
+        </div>
+        <div className="chart-scroll">{props.chartArea}</div>
+      </div>
+    </section>
+  );
+}
+
+/** A breakdown's chart panel while its report loads, at the size of a ready one with a one-row key. */
+export function BreakdownLoadingChart(props: Readonly<{
+  countLabel: string;
+  period: ReportPeriod;
+  label: string;
+}>): JSX.Element {
+  return (
+    <BreakdownChartColumn
+      countLabel={props.countLabel}
+      period={props.period}
+      colorKey={<ChartColorKeyPlaceholder />}
+      chartArea={<ChartLoadingPlaceholder viewBoxWidth={chartWidth} viewBoxHeight={stackedChartHeight} label={props.label} />}
+    />
+  );
+}
+
 /**
  * One Level 1 chart split by one dimension, stacked per bucket in the report's value order.
  * `loadReport` and `formatValue` must be stable.
@@ -71,7 +119,7 @@ export function BreakdownSection(props: Readonly<{
   countLabel: string;
   /** Why a bar is unavailable, in its tooltip and accessible label. */
   unavailableBarText: string;
-  /** Shown instead of the chart when every bar is unavailable. */
+  /** Shown over the chart when every bar is unavailable. */
   noAvailableBarText: string;
   loadReport: BreakdownReportLoader;
   /** A value's name on screen. */
@@ -85,13 +133,14 @@ export function BreakdownSection(props: Readonly<{
     let cancelled = false;
     tooltipHandlers.hideTooltip();
     setState({ status: "loading" });
-    void props.loadReport(props.config, props.dateRange, props.period).then((report) => {
+    const abortController = new AbortController();
+    void props.loadReport(props.config, props.dateRange, props.period, abortController.signal).then((report) => {
       if (!cancelled) setState({ status: "ready", report });
     }).catch((error: unknown) => {
       if (cancelled || props.onTerminalAdminError(error, props.config)) return;
       setState({ status: "error", message: error instanceof Error ? error.message : `Unexpected ${props.title} query error.` });
     });
-    return () => { cancelled = true; };
+    return () => { cancelled = true; abortController.abort(); };
   }, [props.config, props.dateRange, props.period, props.onTerminalAdminError, props.loadReport, props.title, revision, tooltipHandlers]);
   const model = useMemo<BreakdownChartModel | null>(() => (state.status === "ready" ? {
     report: state.report,
@@ -157,37 +206,32 @@ export function BreakdownSection(props: Readonly<{
           </ExplanationTip>
         </div>
       </header>
-      {state.status === "loading" ? <p className="report-state" aria-live="polite">Loading {props.title}…</p> : null}
       {state.status === "error" ? (
         <div className="report-state report-state-error">
           <strong>{props.title} query failed.</strong><span>{state.message}</span>
           <button className="filter-button" type="button" onClick={() => setRevision((value) => value + 1)}>Retry</button>
         </div>
       ) : null}
-      {model !== null ? (
-        <section className="chart-column">
-          <div className="chart-shell">
-            <div className="chart-meta">
-              <span>{props.countLabel} per {model.report.period} · UTC</span>
-              <div className="chart-meta-right">
-                <ChartColorKey
-                  ariaLabel={`${props.title} color key`}
-                  keys={model.report.values}
-                  getColor={(value) => getValueColor(model, value)}
-                  getLabel={props.formatValue}
-                />
-              </div>
-            </div>
-            {model.report.buckets.every((entry) => entry.countsByValue === null) ? (
-              <p className="report-state">
-                {model.report.buckets.every((entry) => entry.freshness === "not-arrived") ? notArrivedBarText : props.noAvailableBarText}
-              </p>
-            ) : null}
-            {model.report.buckets.some((entry) => entry.countsByValue !== null) && model.report.values.length === 0 ? <p className="report-state">Nothing counted in the covered days.</p> : null}
-            <div className="chart-scroll"><svg ref={chartRef} role="group" aria-label={`${props.title}: ${props.countLabel.toLowerCase()} per ${model.report.period}`} /></div>
-          </div>
-        </section>
-      ) : null}
+      {state.status === "loading" ? <BreakdownLoadingChart countLabel={props.countLabel} period={props.period} label={`Loading ${props.title}…`} /> : null}
+      {model === null ? null : (
+        <BreakdownChartColumn
+          countLabel={props.countLabel}
+          period={props.period}
+          colorKey={(
+            <ChartColorKey
+              ariaLabel={`${props.title} color key`}
+              keys={model.report.values}
+              getColor={(value) => getValueColor(model, value)}
+              getLabel={props.formatValue}
+            />
+          )}
+          chartArea={(
+            <ChartAreaWithNote viewBoxWidth={chartWidth} viewBoxHeight={stackedChartHeight} note={describeEmptyChart(model.report, props.noAvailableBarText)}>
+              <svg ref={chartRef} role="group" aria-label={`${props.title}: ${props.countLabel.toLowerCase()} per ${model.report.period}`} />
+            </ChartAreaWithNote>
+          )}
+        />
+      )}
       <ChartTooltip {...tooltipState} />
     </section>
   );

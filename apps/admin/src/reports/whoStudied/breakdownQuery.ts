@@ -36,6 +36,7 @@ export function loadWhoStudiedBreakdownReport(
   dateRange: AnalyticsDateRange,
   period: ReportPeriod,
   reportLabel: string,
+  signal: AbortSignal,
 ): Promise<BreakdownReport> {
-  return loadBreakdownReport(config, buildWhoStudiedBreakdownSql(dimension, dateRange, period, reportLabel), period, reportLabel, liveSourceBarFreshness);
+  return loadBreakdownReport(config, buildWhoStudiedBreakdownSql(dimension, dateRange, period, reportLabel), period, reportLabel, liveSourceBarFreshness, signal);
 }

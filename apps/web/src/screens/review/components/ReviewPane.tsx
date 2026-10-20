@@ -25,7 +25,7 @@ import {
 
 const REVIEW_BUTTONS_PER_COLUMN = 2;
 const REVIEW_SHORTCUT_HINT_KEY_TOKEN = "{{key}}";
-const REVIEW_REVEAL_SHORTCUT_ARIA_KEY = "Space";
+const REVIEW_REVEAL_SHORTCUT_ARIA_KEYS = "Space Enter";
 const REVIEW_SCROLL_INTO_VIEW_OPTIONS = {
   behavior: "instant",
   block: "start",
@@ -466,13 +466,13 @@ function ReviewActiveCardPane(props: ReviewActiveCardPaneProps): ReactElement {
             type="button"
             className="primary-btn review-reveal-btn"
             ref={setRevealButton}
-            aria-keyshortcuts={REVIEW_REVEAL_SHORTCUT_ARIA_KEY}
+            aria-keyshortcuts={REVIEW_REVEAL_SHORTCUT_ARIA_KEYS}
             onClick={onRevealAnswer}
             onPointerEnter={onShortcutButtonPointerEnter}
             data-testid="review-reveal-answer"
           >
             {t("reviewScreen.actions.revealAnswer")}
-            <ReviewShortcutHint keyLabel={t("reviewScreen.shortcuts.spaceKey")} />
+            <ReviewShortcutHint keyLabel={`${t("reviewScreen.shortcuts.spaceKey")} / ${t("reviewScreen.shortcuts.enterKey")}`} />
           </button>
         )}
       </div>

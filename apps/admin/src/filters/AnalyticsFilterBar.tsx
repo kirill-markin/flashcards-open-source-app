@@ -70,6 +70,17 @@ const filterValueSwatchColor = "var(--accent-strong)";
 const optionSummaryValueLimit = 3;
 // Above this many values an option list stops being scannable in a popover and is searched instead.
 const searchableFilterOptionCount = 15;
+// The fields whose values come from the caller's option lists rather than from a closed set.
+const optionListFields: ReadonlySet<AnalyticsFilterField> = new Set<AnalyticsFilterField>([
+  "users",
+  "connectionCountries",
+  "appUiLanguages",
+  "installedDecks",
+  "catalogPlacements",
+  "catalogSources",
+  "catalogDeviceCategories",
+  "catalogClickBrowserLanguages",
+]);
 
 type AnalyticsFilterBarProps = Readonly<{
   /** Chooses the wording of each field; the fields themselves are `fields`. */
@@ -82,7 +93,11 @@ type AnalyticsFilterBarProps = Readonly<{
   headingId: string;
   /** The accessible name of `Reset all`, which says whose filters it resets when bars share a page. */
   resetAllLabel: string;
-  availableRange: AnalyticsDateRange;
+  /**
+   * `null` while the caller is still looking it up. The date field is then disabled, and so is
+   * `Reset all`, which would reset the range too, while the summary still names the selected range.
+   */
+  availableRange: AnalyticsDateRange | null;
   defaultRange: AnalyticsDateRange;
   filters: AnalyticsFilterState;
   /** Every user the range can offer, deliberately wider than the users the filtered reports show. */
@@ -115,6 +130,8 @@ type AnalyticsFilterBarProps = Readonly<{
   catalogSourceOptions: ReadonlyArray<CatalogInstallSource>;
   catalogDeviceCategoryOptions: ReadonlyArray<CatalogInstallDeviceCategory>;
   catalogClickBrowserLanguageOptions: ReadonlyArray<string>;
+  /** The option lists have not arrived yet, so every field that picks from them is disabled. */
+  areOptionListsLoading: boolean;
   userColorScale: UserColorScale;
   /** Whether the selection was accepted; a rejected one keeps its popover open on the error. */
   onFiltersChange: (filters: AnalyticsFilterState) => boolean;
@@ -865,6 +882,7 @@ export function AnalyticsFilterBar(props: AnalyticsFilterBarProps): JSX.Element 
 
   function buildFilterFieldView(field: AnalyticsFilterField): FilterFieldView {
     if (field === "dateRange") {
+      const availableRange = props.availableRange;
       const isDefaultRange = props.filters.dateRange.from === props.defaultRange.from
         && props.filters.dateRange.to === props.defaultRange.to;
 
@@ -872,10 +890,10 @@ export function AnalyticsFilterBar(props: AnalyticsFilterBarProps): JSX.Element 
         summary: `${props.filters.dateRange.from} to ${props.filters.dateRange.to}`,
         isFiltered: isDefaultRange === false,
         isWide: true,
-        content: (
+        content: availableRange === null ? null : (
           <>
             <DateRangeCalendar
-              availableRange={props.availableRange}
+              availableRange={availableRange}
               selectedRange={props.filters.dateRange}
               onRangeChange={handleDateRangeChange}
             />
@@ -1215,6 +1233,8 @@ export function AnalyticsFilterBar(props: AnalyticsFilterBarProps): JSX.Element 
           const popoverId = `${props.headingId}-${entry.field}-popover`;
           const explanationId = `${props.headingId}-${entry.field}-explanation`;
           const fieldLabel = getAnalyticsFilterFieldLabel(props.area, entry.field);
+          const isFieldDisabled = (entry.field === "dateRange" && props.availableRange === null)
+            || (props.areOptionListsLoading && optionListFields.has(entry.field));
 
           return (
             <div
@@ -1238,6 +1258,7 @@ export function AnalyticsFilterBar(props: AnalyticsFilterBarProps): JSX.Element 
                 }}
                 className={getFilterButtonClassName(openField === entry.field, entry.view.isFiltered)}
                 type="button"
+                disabled={isFieldDisabled}
                 data-testid={`analytics-filter-${entry.field}`}
                 aria-label={`${fieldLabel}: ${entry.view.summary}`}
                 aria-expanded={openField === entry.field}
@@ -1251,7 +1272,7 @@ export function AnalyticsFilterBar(props: AnalyticsFilterBarProps): JSX.Element 
                 ) : null}
                 {fieldLabel}
               </button>
-              {openField === entry.field ? (
+              {openField === entry.field && isFieldDisabled === false ? (
                 <div id={popoverId} className="filter-popover">
                   <div className="filter-popover-header">
                     <div className="filter-popover-field">
@@ -1282,7 +1303,7 @@ export function AnalyticsFilterBar(props: AnalyticsFilterBarProps): JSX.Element 
         <button
           className="filter-button filter-button-reset-all"
           type="button"
-          disabled={props.isReportLoading}
+          disabled={props.isReportLoading || props.availableRange === null}
           aria-label={props.resetAllLabel}
           onClick={handleAllFiltersReset}
         >

@@ -188,8 +188,12 @@ export const siteEntryFunnelGroupByDimensions: ReadonlyArray<FunnelGroupByDimens
 
 /** A marketing-site fact: only the credential-free collector writes these, under the visitor cookie. */
 export function buildSiteFactSql(rowAlias: string, eventName: string): string {
+  return `${rowAlias}.event_name = ${escapeSqlStringLiteral(eventName)} AND ${buildSiteFactSourceSql(rowAlias)}`;
+}
+
+/** The writer test of `buildSiteFactSql`, for a read of several site facts at once. */
+export function buildSiteFactSourceSql(rowAlias: string): string {
   return [
-    `${rowAlias}.event_name = ${escapeSqlStringLiteral(eventName)}`,
     `${rowAlias}.origin = 'client'`,
     `${rowAlias}.trust_level = 'anonymous_client'`,
   ].join(" AND ");
@@ -687,10 +691,12 @@ export async function loadSiteEntryFunnelReport(
   pageKind: SiteEntryPageKind,
   reportLabel: string,
   groupByDimension: FunnelGroupByDimension | null,
+  signal: AbortSignal,
 ): Promise<SiteEntryFunnelReport> {
   const response = await runAdminQuery(
     config,
     buildSiteEntryFunnelSql(filters, pageKind, reportLabel, groupByDimension),
+    signal,
   );
   if (response.resultSets.length !== 1) {
     throw new Error(`${reportLabel} must return exactly one result set. Got ${response.resultSets.length}.`);

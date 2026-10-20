@@ -28,6 +28,7 @@ export function loadAppOpenBreakdownReport(
   dateRange: AnalyticsDateRange,
   period: ReportPeriod,
   reportLabel: string,
+  signal: AbortSignal,
 ): Promise<BreakdownReport> {
-  return loadBreakdownReport(config, buildAppOpenBreakdownSql(dimension, dateRange, period, reportLabel), period, reportLabel, liveSourceBarFreshness);
+  return loadBreakdownReport(config, buildAppOpenBreakdownSql(dimension, dateRange, period, reportLabel), period, reportLabel, liveSourceBarFreshness, signal);
 }

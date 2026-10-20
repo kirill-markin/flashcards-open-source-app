@@ -62,6 +62,58 @@ database or a disposable, previously unmapped account:
 
 Never publish cookies, CSRF tokens, keys, auth responses, or full storage dumps in diagnostics.
 
+## Catalog first study smoke
+
+Use the isolated local stack for writes. For guest and account conversion scenarios, use the
+Cognito-backed local stack described above. Repeat the primary entry flow at mobile and desktop
+viewport sizes. Use an exact public package-version URL at `/catalog/import/<packageVersionId>`.
+
+1. In a fresh browser profile, open the catalog URL directly. Confirm localized import/sync feedback
+   leads to an actual card from that version in review, without import controls or a success chooser.
+   Check the local cards and outbox: package tags are preserved, no import tag or demo is created.
+   Reload review, then sign in to a disposable unmapped account and reload again; no demo appears.
+2. With the same guest session, author a card and reopen another catalog URL. Confirm the manual
+   confirmation shows the deck, card count, Guest profile and the existing workspace count. Confirm
+   once: after sync, review opens only that imported copy without a success/platform chooser, even
+   with an empty saved tag filter. Original tags stay intact; there are no tag or advanced controls.
+   Block post-install sync, restore it and retry:
+   review waits for the imported cards and only one install is submitted. Also check an existing
+   guest that already imported cards and the duplicate-copy study action. Never clear owned site
+   data to force automatic entry.
+3. Start ordinary app onboarding in another fresh profile and wait for its provenance-backed demo
+   to sync. Open a catalog URL; confirm automatic import removes that demo only after import commits
+   and review shows an imported card. Repeat with a reviewed unchanged demo. Edit the demo, including
+   editing and reverting before sync; confirm the manual import preserves it. Repeat with a legacy
+   demo lacking provenance and with an authored card beside the demo.
+4. Use a registered local account with exactly one empty visible workspace, then one with an
+   unchanged demo. Confirm automatic study in both. Use an account with several visible workspaces,
+   all empty, including a session without a selected workspace: confirm the deck first, then choose
+   a destination. Rows show only names and card counts, with the most recently reviewed workspace
+   first (or the largest when none has reviews). Clicking a row imports immediately; Back returns
+   to the confirmation. With multiple workspaces, enter a new name and use Create and add cards.
+   Fail the import after creation, retry, and confirm the same workspace and install ID are reused.
+   With one workspace, confirm there is no destination choice or create action. For an already
+   added deck, confirm Study existing cards is primary and Import another copy is secondary;
+   neither destination selection nor opening the decision silently imports another copy.
+5. Block the install POST before it reaches the local backend. Confirm the localized error and
+   Retry action appear, with prior cards preserved. Restore connectivity and retry. Repeat while
+   losing the actual committed POST response, using a local proxy/devtools response interception:
+   retry in-page and separately reload the catalog page. Compare request bodies and backend install
+   ledger: the same install ID, timestamps, replica ID, options and operation prefix are replayed,
+   with one card set. Do not replace the committed response with a fake successful response.
+6. Let the POST commit but block the subsequent sync pull/bootstrap. Confirm review does not open
+   early or show an old demo/empty state; restore the requests and retry or reload. Confirm the same
+   install replays, its cards and demo tombstone hydrate, and the first actual card appears with the
+   all-cards selection after the destination provider remount. Also start with an explicitly empty
+   saved tag filter and confirm it cannot hide the imported cards.
+7. While automatic entry is waiting, author/edit a card from another tab and sync it before the
+   guarded install. Confirm the backend eligibility refusal preserves that content and returns to
+   manual controls. Open the same catalog URL concurrently in two tabs and confirm the request is
+   coordinated and no duplicate card set is committed.
+8. Outside catalog entry, open the app in a fresh profile and confirm ordinary demo onboarding still
+   works. In a non-English locale, repeat entry and a failed install/sync to verify localized loading,
+   failure and retry copy; include an RTL locale and the two supported Spanish variants.
+
 ## Localization
 
 When adding a new web language, follow [docs/web-localization.md](../../docs/web-localization.md).

@@ -18,6 +18,11 @@ export const levelOneMetricDetails = ["who-saw-us", "who-opened-the-app", "who-s
 
 export type LevelOneMetricDetail = (typeof levelOneMetricDetails)[number];
 
+/** The Who saw us datasets with a page of their own under its Details picker, by the slug of its path. */
+export const whoSawUsDatasets = ["web", "app-store", "google-play"] as const;
+
+export type WhoSawUsDataset = (typeof whoSawUsDatasets)[number];
+
 export const userPageTabs = ["profile", "activity", "chats", "cards"] as const;
 
 export type UserPageTab = (typeof userPageTabs)[number];
@@ -32,6 +37,7 @@ export const userPageTabLabels: Readonly<Record<UserPageTab, string>> = {
 export type AdminRoute =
   | Readonly<{ kind: "analyticsArea"; area: AnalyticsArea }>
   | Readonly<{ kind: "levelOneMetricDetails"; metric: LevelOneMetricDetail }>
+  | Readonly<{ kind: "whoSawUsDataset"; dataset: WhoSawUsDataset }>
   | Readonly<{ kind: "users" }>
   | Readonly<{ kind: "user"; userId: string; tab: UserPageTab }>
   /** One chat opened from the Chats tab, a path of its own so Back returns to the list. */
@@ -54,6 +60,10 @@ export function getAnalyticsAreaPath(area: AnalyticsArea): string {
 
 export function getLevelOneMetricDetailsPath(metric: LevelOneMetricDetail): string {
   return `${getAnalyticsAreaPath("level-1-metrics")}/${metric}`;
+}
+
+export function getWhoSawUsDatasetPath(dataset: WhoSawUsDataset): string {
+  return `${getLevelOneMetricDetailsPath("who-saw-us")}/${dataset}`;
 }
 
 /** `userId` is a raw `org.user_settings.user_id` or an analytics `actor_id`, encoded as one segment. */
@@ -80,6 +90,8 @@ export function getAdminRoutePath(route: AdminRoute): string {
       return getAnalyticsAreaPath(route.area);
     case "levelOneMetricDetails":
       return getLevelOneMetricDetailsPath(route.metric);
+    case "whoSawUsDataset":
+      return getWhoSawUsDatasetPath(route.dataset);
     case "users":
       return usersPath;
     case "user":
@@ -183,6 +195,13 @@ export function parseAdminRoute(pathname: string): AdminRoute {
   );
   if (metric !== undefined) {
     return { kind: "levelOneMetricDetails", metric };
+  }
+
+  const dataset = whoSawUsDatasets.find(
+    (candidateDataset) => getWhoSawUsDatasetPath(candidateDataset) === normalizedPathname,
+  );
+  if (dataset !== undefined) {
+    return { kind: "whoSawUsDataset", dataset };
   }
 
   return { kind: "notFound", pathname };

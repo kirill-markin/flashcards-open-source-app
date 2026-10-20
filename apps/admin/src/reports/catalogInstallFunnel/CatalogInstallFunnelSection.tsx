@@ -5,7 +5,12 @@ import { FunnelGroupByPicker } from "../funnels/FunnelGroupByPicker";
 import { parseFunnelGroupByDimension, writeFunnelGroupByToUrl } from "../funnels/funnelGroupBy";
 import { FunnelMaturingWarning } from "../funnels/FunnelMaturingWarning";
 import type { FunnelSectionProps } from "../funnels/funnelSections";
-import { formatPercentage, FunnelStepsChart } from "../funnels/FunnelStepsChart";
+import {
+  formatPercentage,
+  FunnelStepsChart,
+  FunnelStepsEmptyChart,
+  FunnelStepsLoadingChart,
+} from "../funnels/FunnelStepsChart";
 import {
   catalogInstallFunnelStartDate,
   loadCatalogInstallFunnelReport,
@@ -76,7 +81,8 @@ export function CatalogInstallFunnelSection(props: FunnelSectionProps): JSX.Elem
       return () => { cancelled = true; };
     }
 
-    void loadCatalogInstallFunnelReport(props.config, props.filters)
+    const abortController = new AbortController();
+    void loadCatalogInstallFunnelReport(props.config, props.filters, abortController.signal)
       .then((report) => {
         if (cancelled === false) {
           setLoadState({ status: "ready", report });
@@ -90,7 +96,7 @@ export function CatalogInstallFunnelSection(props: FunnelSectionProps): JSX.Elem
         setLoadState({ status: "error", message: getErrorMessage(error) });
       });
 
-    return () => { cancelled = true; };
+    return () => { cancelled = true; abortController.abort(); };
   }, [loadRevision, props.config, props.filters, props.isRangeLoading, props.onTerminalAdminError]);
 
   const report = loadState.status === "ready" ? loadState.report : null;
@@ -161,14 +167,31 @@ export function CatalogInstallFunnelSection(props: FunnelSectionProps): JSX.Elem
         />
       </div>
 
-      {props.isRangeLoading || loadState.status === "loading" ? <div className="report-state" aria-live="polite">Loading deck page to install funnel…</div> : null}
       {props.isRangeLoading === false && loadState.status === "error" ? <div className="report-state report-state-error"><strong>Funnel query failed.</strong><span>{loadState.message}</span><button className="filter-button" type="button" onClick={() => setLoadRevision((revision) => revision + 1)}>Retry</button></div> : null}
       {startDateNote !== null ? <p className="report-state" aria-live="polite">{startDateNote}</p> : null}
       {hashedCountryNote !== null ? <p className="report-state" aria-live="polite">{hashedCountryNote}</p> : null}
-      {/* Chosen on the read gate, not the mode: with a country selected the cookieless rows were not read, and the note above already says so. The audience mode is named as well, because it is not one of the filters the heading blames and `Reset all` does not clear it. */}
-      {isReady && hasVisits === false ? <div className="report-state"><strong>No deck page views match these filters.</strong><span>{readsHashedCohort ? "Cookieless visitors are counted here through their daily hash, so this is every deck page view in range, and no earlier traffic history is inferred from Vercel aggregates." : "A page view from a browser that refused consent carries no identity and is not counted, and no earlier traffic history is inferred from Vercel aggregates."}</span>{audienceEmptyStateNote === null ? null : <span>{audienceEmptyStateNote}</span>}</div> : null}
 
       {isReady ? <FunnelMaturingWarning maturingCount={maturingCount} entryCount={maturityEntryCount} /> : null}
+
+      {props.isRangeLoading || loadState.status === "loading" ? (
+        <FunnelStepsLoadingChart
+          countLabel="Visitors"
+          dateRange={props.filters.dateRange}
+          showsHashedSplit={readsHashedCohort}
+          isGrouped={groupByDimension !== null}
+          label="Loading deck page to install funnel…"
+        />
+      ) : null}
+      {/* Chosen on the read gate, not the mode: with a country selected the cookieless rows were not read, and the note above already says so. The audience mode is named as well, because it is not one of the filters the heading blames and `Reset all` does not clear it. */}
+      {isReady && hasVisits === false ? (
+        <FunnelStepsEmptyChart
+          countLabel="Visitors"
+          dateRange={props.filters.dateRange}
+          showsHashedSplit={readsHashedCohort}
+          isGrouped={groupByDimension !== null}
+          note={<><strong>No deck page views match these filters.</strong><span>{readsHashedCohort ? "Cookieless visitors are counted here through their daily hash, so this is every deck page view in range, and no earlier traffic history is inferred from Vercel aggregates." : "A page view from a browser that refused consent carries no identity and is not counted, and no earlier traffic history is inferred from Vercel aggregates."}</span>{audienceEmptyStateNote === null ? null : <span>{audienceEmptyStateNote}</span>}</>}
+        />
+      ) : null}
 
       {hasVisits ? (
         <FunnelStepsChart

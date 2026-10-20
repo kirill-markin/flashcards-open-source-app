@@ -644,15 +644,38 @@ export type CatalogPackageInstallPreview = Readonly<{
   defaultOptions: CatalogPackageInstallDefaultOptions;
 }>;
 
+export type CatalogPackageInstallOnboardingEligibility = "empty" | "demo_only" | "ineligible";
+
+export type CatalogPackageInstallPreviousInstall = Readonly<{
+  installId: string;
+  packageVersionId: string;
+  title: string;
+  retainedCardCount: number;
+}>;
+
+export type CatalogPackageInstallWorkspaceContext = Readonly<{
+  workspaceId: string;
+  name: string;
+  createdAt: string;
+  isSelected: boolean;
+  cardCount: number;
+  lastReviewedAt: string | null;
+  onboardingEligibility: CatalogPackageInstallOnboardingEligibility;
+  previousInstall: CatalogPackageInstallPreviousInstall | null;
+}>;
+
+export type CatalogPackageInstallContext = Readonly<{
+  workspaces: ReadonlyArray<CatalogPackageInstallWorkspaceContext>;
+}>;
+
 export type CatalogPackageInstallConfirmInput = Readonly<{
   installId: string;
   installedAt: string;
   clientUpdatedAt: string;
   lastModifiedByReplicaId: string;
   operationIdPrefix: string;
-  // Accepted and ignored: released clients still send it, and this backend keeps their confirms
-  // valid. Nothing reads it, so no install fact carries it any more.
   installJourneyId?: string;
+  immediateOnboarding?: boolean;
   addImportTag?: boolean;
   importTag?: string;
   removeTags?: ReadonlyArray<string>;
@@ -682,6 +705,7 @@ export type CatalogPackageInstallResultSummary = Readonly<{
 }>;
 
 export type CatalogPackageInstallResult = Readonly<{
+  onboarding?: Readonly<{ removedDemoCardId: string | null }>;
   packageVersion: CatalogPackageInstallPackageVersion;
   installedCards: ReadonlyArray<CatalogInstalledCard>;
   installedMediaAssets: ReadonlyArray<CatalogInstalledMediaAsset>;

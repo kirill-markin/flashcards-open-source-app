@@ -125,6 +125,10 @@ export function isReviewFilterEqual(left: ReviewFilter, right: ReviewFilter): bo
     return left.deckId === right.deckId;
   }
 
+  if (left.kind === "catalogImport" && right.kind === "catalogImport") {
+    return left.importId === right.importId && left.title === right.title;
+  }
+
   if (left.kind === "tags" && right.kind === "tags") {
     const leftTags = normalizeReviewFilterTags(left.tags);
     const rightTags = normalizeReviewFilterTags(right.tags);
@@ -289,6 +293,10 @@ export function resolveReviewFilter(
     return reviewFilter;
   }
 
+  if (reviewFilter.kind === "catalogImport") {
+    return reviewFilter;
+  }
+
   return makeTagsReviewFilter(resolveActiveTags(reviewFilter.tags, cards));
 }
 
@@ -311,6 +319,10 @@ export function cardsMatchingReviewFilter(
     return cardsMatchingDeck(deck, cards);
   }
 
+  if (resolvedReviewFilter.kind === "catalogImport") {
+    return deriveActiveCards(cards).filter((card) => card.metadata.source?.importId === resolvedReviewFilter.importId);
+  }
+
   return deriveActiveCards(cards).filter((card) => hasMatchingTags(card.tags, resolvedReviewFilter.tags));
 }
 
@@ -327,6 +339,10 @@ export function reviewFilterTitle(
   if (resolvedReviewFilter.kind === "deck") {
     const deck = deriveActiveDecks(decks).find((candidateDeck) => candidateDeck.deckId === resolvedReviewFilter.deckId);
     return deck?.name ?? ALL_CARDS_DECK_LABEL;
+  }
+
+  if (resolvedReviewFilter.kind === "catalogImport") {
+    return resolvedReviewFilter.title;
   }
 
   return resolvedReviewFilter.tags.join(", ");

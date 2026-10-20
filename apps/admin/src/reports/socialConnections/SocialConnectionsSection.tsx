@@ -1,14 +1,16 @@
 import { useEffect, useMemo, useRef, type JSX } from "react";
 import * as d3 from "d3";
 import type { ReviewEventsByDateReport } from "../../adminApi";
+import { ChartGeneratedAt } from "../../charts/ChartGeneratedAt";
+import { ChartLoadingPlaceholder } from "../../charts/ChartLoadingPlaceholder";
 import { ChartTooltip, useChartTooltip } from "../../charts/ChartTooltip";
-import { createTickDates } from "../../charts/chartPrimitives";
+import { chartWidth, createTickDates, simpleChartHeight } from "../../charts/chartPrimitives";
 import {
   renderDailyFriendConnectionsChart,
   renderDailyFriendInvitationsChart,
 } from "../../charts/chartRenderers";
-import { formatGeneratedAt } from "../../charts/formatting";
 import { ExplanationTip } from "../../explanations/ExplanationTip";
+import { getLatestGeneralReport, type GeneralReportView } from "../generalReportView";
 
 type SocialConnectionsChartModel = Readonly<{
   dates: ReadonlyArray<string>;
@@ -42,19 +44,25 @@ function buildSocialConnectionsChartModel(report: ReviewEventsByDateReport): Soc
 
 export function SocialConnectionsSection(
   props: Readonly<{
-    filteredReport: ReviewEventsByDateReport;
-    generatedAtUtc: string;
+    filteredReport: GeneralReportView<ReviewEventsByDateReport>;
   }>,
 ): JSX.Element {
   const friendInvitationsChartRef = useRef<SVGSVGElement | null>(null);
   const friendConnectionsChartRef = useRef<SVGSVGElement | null>(null);
   const { tooltipState, tooltipHandlers } = useChartTooltip();
+  const readyReport = props.filteredReport.status === "ready" ? props.filteredReport.report : null;
+  const latestReport = getLatestGeneralReport(props.filteredReport);
   const chartModel = useMemo(
-    () => buildSocialConnectionsChartModel(props.filteredReport),
-    [props.filteredReport],
+    () => readyReport === null ? null : buildSocialConnectionsChartModel(readyReport),
+    [readyReport],
   );
 
   useEffect(() => {
+    if (chartModel === null) {
+      tooltipHandlers.hideTooltip();
+      return;
+    }
+
     const friendInvitationsSvgElement = friendInvitationsChartRef.current;
     const friendConnectionsSvgElement = friendConnectionsChartRef.current;
     if (friendInvitationsSvgElement === null || friendConnectionsSvgElement === null) {
@@ -108,11 +116,13 @@ export function SocialConnectionsSection(
           <div className="chart-meta">
             <span>Friend invite links created</span>
             <div className="chart-meta-right">
-              <span>Generated {formatGeneratedAt(props.generatedAtUtc)}</span>
+              <ChartGeneratedAt generatedAtUtc={latestReport?.generatedAtUtc ?? null} />
             </div>
           </div>
           <div className="chart-scroll">
-            <svg ref={friendInvitationsChartRef} />
+            {chartModel === null ? (
+              <ChartLoadingPlaceholder viewBoxWidth={chartWidth} viewBoxHeight={simpleChartHeight} label="Loading…" />
+            ) : <svg ref={friendInvitationsChartRef} />}
           </div>
         </div>
 
@@ -121,7 +131,9 @@ export function SocialConnectionsSection(
             <span>Existing friend connections by day</span>
           </div>
           <div className="chart-scroll">
-            <svg ref={friendConnectionsChartRef} />
+            {chartModel === null ? (
+              <ChartLoadingPlaceholder viewBoxWidth={chartWidth} viewBoxHeight={simpleChartHeight} label="Loading…" />
+            ) : <svg ref={friendConnectionsChartRef} />}
           </div>
         </div>
       </section>

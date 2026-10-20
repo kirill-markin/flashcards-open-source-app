@@ -1,17 +1,24 @@
 // @vitest-environment jsdom
-import { act, type ReactNode } from "react";
+import "fake-indexeddb/auto";
+import { act, useEffect, useState, type ReactElement, type ReactNode } from "react";
 import ReactDOM from "react-dom/client";
-import { MemoryRouter, Route, Routes } from "react-router";
+import { MemoryRouter, Route, Routes, useParams } from "react-router";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { publishAnalyticsConsentJurisdiction } from "../../analytics/consent";
 import { ApiError } from "../../api";
 import type { AppDataContextValue } from "../../appData";
+import { loadSelectedReviewFilterForWorkspace, storeSelectedReviewFilterForWorkspace } from "../../appData/context/reviewFilterPersistence";
 import { AppErrorDialogProvider } from "../../appError/AppErrorContext";
 import { I18nProvider } from "../../i18n";
+import { replaceCards } from "../../localDb/cards/cards";
+import { clearWebSyncCache } from "../../localDb/core/cache";
+import { makeCard } from "../../localDb/core/testSupport";
+import { loadReviewQueueSnapshot } from "../../localDb/reviews/reviews";
 import type {
   Card,
   CatalogPackageInstallConfirmOptions,
   CatalogPackageInstallConfirmResponse,
+  CatalogPackageInstallContext,
   CatalogPackageInstallPreviewResponse,
   CatalogPublicPackageVersion,
   Deck,
@@ -30,6 +37,7 @@ const workspaceReplicaId = "45268888-5620-5912-9ed1-4bd6f2105aff";
 
 const {
   confirmCatalogPackageInstallMock,
+  loadCatalogPackageInstallContextMock,
   loadPublicCatalogPackageVersionMock,
   previewCatalogPackageInstallMock,
   useAppDataMock,
@@ -39,6 +47,9 @@ const {
     requestedPackageVersionId: string,
     options: CatalogPackageInstallConfirmOptions,
   ) => Promise<CatalogPackageInstallConfirmResponse>>(),
+  loadCatalogPackageInstallContextMock: vi.fn<(
+    requestedPackageVersionId: string,
+  ) => Promise<CatalogPackageInstallContext>>(),
   loadPublicCatalogPackageVersionMock: vi.fn<(
     requestedPackageVersionId: string,
   ) => Promise<CatalogPublicPackageVersion>>(),
@@ -55,6 +66,7 @@ vi.mock("../../api", async (importOriginal) => {
     ...actual,
     confirmCatalogPackageInstall: confirmCatalogPackageInstallMock,
     isAuthRedirectError: (_error: unknown): boolean => false,
+    loadCatalogPackageInstallContext: loadCatalogPackageInstallContextMock,
     loadPublicCatalogPackageVersion: loadPublicCatalogPackageVersionMock,
     previewCatalogPackageInstall: previewCatalogPackageInstallMock,
   };
@@ -100,6 +112,21 @@ function createWorkspace(workspaceId: string, name: string, isSelected: boolean)
     name,
     createdAt: "2026-03-10T00:00:00.000Z",
     isSelected,
+  };
+}
+
+function createInstallContext(workspaces: ReadonlyArray<WorkspaceSummary>): CatalogPackageInstallContext {
+  return {
+    workspaces: workspaces.map((workspace) => ({
+      workspaceId: workspace.workspaceId,
+      name: workspace.name,
+      createdAt: workspace.createdAt,
+      isSelected: workspace.isSelected,
+      cardCount: 0,
+      lastReviewedAt: null,
+      onboardingEligibility: "ineligible",
+      previousInstall: null,
+    })),
   };
 }
 
@@ -151,7 +178,7 @@ function createInstallPreview(): CatalogPackageInstallPreviewResponse {
       { tag: "temporary", cardsCount: 1 },
     ],
     defaultOptions: {
-      addImportTag: true,
+      addImportTag: false,
       suggestedImportTag: "import:2026-08-02",
       keptTags: ["geography"],
       removedTags: ["temporary"],
@@ -159,10 +186,43 @@ function createInstallPreview(): CatalogPackageInstallPreviewResponse {
   };
 }
 
+function createImportedCards(installId: string): ReadonlyArray<Card> {
+  return ["imported-1", "imported-2"].map((cardId) => makeCard({
+    cardId,
+    frontText: `Question ${cardId}`,
+    backText: `Answer ${cardId}`,
+    tags: ["geography"],
+    dueAt: null,
+    createdAt: "2026-08-02T10:00:00.000Z",
+    metadata: {
+      version: 1,
+      source: {
+        label: "тест", author: "Test Author", comment: null, createdAt: null,
+        importedAt: "2026-08-02T10:00:00.000Z", importId: installId,
+      },
+    },
+  }));
+}
+
+function CatalogReviewDestination(): ReactElement {
+  const { workspaceId } = useParams();
+  const [cards, setCards] = useState<ReadonlyArray<Card> | null>(null);
+  useEffect(() => {
+    if (workspaceId === undefined) throw new Error("Review destination workspace was not found");
+    const filter = loadSelectedReviewFilterForWorkspace(workspaceId);
+    void loadReviewQueueSnapshot(workspaceId, filter, 20).then((snapshot) => setCards(snapshot.cards));
+  }, [workspaceId]);
+  return <div data-testid="catalog-review-destination" data-workspace-id={workspaceId}>
+    {cards === null ? null : <div data-testid="catalog-review-cards">{cards.map((card) => card.frontText).join(",")}</div>}
+  </div>;
+}
+
 function createInstallResult(installId: string): CatalogPackageInstallConfirmResponse {
   return {
     packageVersion: createInstallPreview().packageVersion,
-    installedCards: [],
+    installedCards: createImportedCards(installId).map((card, ordinal) => ({
+      packageCardId: `package-card-${ordinal}`, stableCardKey: `stable-${ordinal}`, ordinal: ordinal + 1, cardId: card.cardId,
+    })),
     installedMediaAssets: [],
     summary: {
       cardCount: 2,
@@ -267,7 +327,7 @@ function createAppData(workspaces: ReadonlyArray<WorkspaceSummary>): Mutable<App
     refreshConnectedAccount: vi.fn(async (): Promise<void> => undefined),
     initialize: vi.fn(async (): Promise<void> => undefined),
     chooseWorkspace: vi.fn(async (_workspaceId: string): Promise<void> => undefined),
-    createWorkspace: vi.fn(async (_name: string): Promise<void> => undefined),
+    createWorkspace: vi.fn(async (_name: string): Promise<null> => null),
     renameWorkspace: vi.fn(async (_workspaceId: string, _name: string): Promise<void> => undefined),
     deleteWorkspace: vi.fn(async (_workspaceId: string, _confirmationText: string): Promise<void> => undefined),
     loadWorkspaceResetProgressPreview: vi.fn(async (_workspaceId: string): Promise<WorkspaceResetProgressPreview> => throwNotUsed("loadWorkspaceResetProgressPreview")),
@@ -316,10 +376,17 @@ describe("CatalogImportScreen", () => {
   let root: ReactDOM.Root;
   let appData: Mutable<AppDataContextValue>;
 
-  beforeEach(() => {
+  beforeEach(async () => {
+    window.localStorage.clear();
+    await clearWebSyncCache();
+    await replaceCards("workspace-1", [
+      ...createImportedCards("44444444-4444-4444-8444-444444444444"),
+      makeCard({
+        cardId: "unrelated", frontText: "Unrelated question", backText: "Unrelated answer",
+        tags: ["unrelated"], dueAt: null, createdAt: "2025-01-01T00:00:00.000Z",
+      }),
+    ]);
     (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
-    // Answers the consent question this load would otherwise hold open, so the screen's analytics
-    // behave the same way in every test rather than depending on an unresolved jurisdiction.
     publishAnalyticsConsentJurisdiction(false);
     window.history.replaceState(null, "", `/catalog/import/${packageVersionId}?source=exact#install`);
     container = document.createElement("div");
@@ -328,6 +395,8 @@ describe("CatalogImportScreen", () => {
     appData = createAppData([createWorkspace("workspace-1", "Primary", true)]);
     useAppDataMock.mockReset();
     useAppDataMock.mockImplementation(() => appData);
+    loadCatalogPackageInstallContextMock.mockReset();
+    loadCatalogPackageInstallContextMock.mockImplementation(async () => createInstallContext(appData.availableWorkspaces));
     loadPublicCatalogPackageVersionMock.mockReset();
     loadPublicCatalogPackageVersionMock.mockResolvedValue(createCatalogPackageVersion());
     previewCatalogPackageInstallMock.mockReset();
@@ -353,12 +422,25 @@ describe("CatalogImportScreen", () => {
             <AppErrorDialogProvider>
               <Routes>
                 <Route path="/catalog/import/:packageVersionId" element={<CatalogImportScreen />} />
+                <Route path="/w/:workspaceId/review" element={<CatalogReviewDestination />} />
               </Routes>
             </AppErrorDialogProvider>
           </I18nProvider>
         </MemoryRouter>,
       );
     });
+  }
+
+  function isConfirmationReady(): boolean {
+    const button = container.querySelector("[data-testid='workspace-package-import-confirm-button']");
+    return button instanceof HTMLButtonElement && !button.disabled;
+  }
+
+  async function clickConfirm(): Promise<void> {
+    await waitForCondition("Confirmation was not actionable", isConfirmationReady);
+    const button = container.querySelector("[data-testid='workspace-package-import-confirm-button']");
+    if (!(button instanceof HTMLButtonElement)) throw new Error("Confirm button was not found");
+    await act(async () => button.click());
   }
 
   async function clickWorkspaceOption(workspaceId: string): Promise<void> {
@@ -409,39 +491,79 @@ describe("CatalogImportScreen", () => {
     );
   });
 
-  it("skips the workspace step for a single workspace and keeps the active one selectable", async () => {
-    await renderRoute(`/catalog/import/${packageVersionId}`);
-    await waitForCondition("Single workspace confirm step was not rendered", () => (
-      container.querySelector("[data-testid='catalog-import-confirm']") !== null
-    ));
-    expect(container.querySelector("[data-testid='catalog-import-workspace-selector']")).toBeNull();
-    expect(container.querySelector("[data-testid='catalog-import-workspace-name']")?.textContent).toBe("Primary");
-
-    appData = createAppData([
+  it("confirms first, returns with Back and imports immediately into the selected fresh destination", async () => {
+    const workspaces = [
       createWorkspace("workspace-1", "Primary", true),
       createWorkspace("workspace-2", "Secondary", false),
-    ]);
-    await renderRoute(`/catalog/import/${packageVersionId}`);
-    await waitForCondition("Multi-workspace selector was not rendered", () => (
-      container.querySelector("[data-testid='catalog-import-workspace-selector']") !== null
+    ];
+    const context = createInstallContext(workspaces);
+    loadCatalogPackageInstallContextMock.mockResolvedValue({
+      workspaces: context.workspaces.map((workspace) => ({
+        ...workspace, cardCount: workspace.workspaceId === "workspace-1" ? 10 : 2,
+        lastReviewedAt: workspace.workspaceId === "workspace-2" ? "2026-08-03T00:00:00.000Z" : null,
+      })),
+    });
+    const chooseWorkspace = vi.mocked(appData.chooseWorkspace);
+    chooseWorkspace.mockImplementation(async (workspaceId): Promise<void> => {
+      appData = {
+        ...createAppData(workspaces.map((workspace) => ({
+          ...workspace, isSelected: workspace.workspaceId === workspaceId,
+        }))),
+        chooseWorkspace,
+      };
+    });
+    await replaceCards("workspace-2", createImportedCards("44444444-4444-4444-8444-444444444444"));
+    await renderRoute("/catalog/import/" + packageVersionId);
+    expect(appData.availableWorkspaces).toHaveLength(1);
+    await waitForCondition("First confirmation was not ready", isConfirmationReady);
+    expect(container.querySelector("[data-testid='catalog-import-workspace-selector']")).toBeNull();
+    expect(previewCatalogPackageInstallMock).not.toHaveBeenCalled();
+    await clickConfirm();
+    expect(container.querySelector("[data-testid='catalog-import-workspace-option']")?.getAttribute("data-workspace-id")).toBe("workspace-2");
+    const back = container.querySelector("[data-testid='catalog-import-back']");
+    if (!(back instanceof HTMLButtonElement)) throw new Error("Back was not found");
+    await act(async () => back.click());
+    expect(container.querySelector("[data-testid='catalog-import-confirm']")).not.toBeNull();
+    expect(confirmCatalogPackageInstallMock).not.toHaveBeenCalled();
+    await clickConfirm();
+    await clickWorkspaceOption("workspace-2");
+    await waitForCondition("Destination selection did not open imported cards", () => (
+      container.querySelector("[data-testid='catalog-review-cards']") !== null
     ));
-    const secondWorkspaceButton = container.querySelector(
-      "[data-testid='catalog-import-workspace-option'][data-workspace-id='workspace-2']",
-    );
-    if (!(secondWorkspaceButton instanceof HTMLButtonElement)) {
-      throw new Error("Secondary workspace button was not found");
-    }
-    await act(async () => secondWorkspaceButton.click());
-    expect(appData.chooseWorkspace).toHaveBeenCalledWith("workspace-2");
-
-    await clickWorkspaceOption("workspace-1");
-    await waitForCondition("Active workspace selection did not reach the confirm step", () => (
-      container.querySelector("[data-testid='catalog-import-confirm']") !== null
-    ));
-    expect(vi.mocked(appData.chooseWorkspace).mock.calls).toEqual([["workspace-2"]]);
+    expect(chooseWorkspace).toHaveBeenCalledWith("workspace-2");
+    expect(previewCatalogPackageInstallMock).toHaveBeenCalledWith("workspace-2", packageVersionId);
+    expect(confirmCatalogPackageInstallMock).toHaveBeenCalledTimes(1);
+    expect(confirmCatalogPackageInstallMock.mock.calls[0]?.[0]).toBe("workspace-2");
   });
 
-  it("locks workspace selection and import controls across conflicting operations", async () => {
+  it("confirms before choosing a destination when the session has no selected workspace", async () => {
+    const workspaces = [
+      createWorkspace("workspace-1", "Primary", false),
+      createWorkspace("workspace-2", "Secondary", false),
+    ];
+    appData = createAppData(workspaces);
+    appData.session = { ...createSession(), selectedWorkspaceId: null };
+    const choose = vi.mocked(appData.chooseWorkspace);
+    choose.mockImplementation(async (workspaceId) => {
+      appData = {
+        ...createAppData(workspaces.map((workspace) => ({ ...workspace, isSelected: workspace.workspaceId === workspaceId }))),
+        chooseWorkspace: choose,
+      };
+    });
+    await renderRoute("/catalog/import/" + packageVersionId);
+    await waitForCondition("Unselected session confirmation was not ready", isConfirmationReady);
+    expect(previewCatalogPackageInstallMock).not.toHaveBeenCalled();
+    await clickConfirm();
+    await clickWorkspaceOption("workspace-1");
+    await waitForCondition("Unselected session did not open imported cards", () => (
+      container.querySelector("[data-testid='catalog-review-cards']") !== null
+    ));
+    expect(choose).toHaveBeenCalledWith("workspace-1");
+    expect(confirmCatalogPackageInstallMock).toHaveBeenCalledTimes(1);
+    expect(confirmCatalogPackageInstallMock.mock.calls[0]?.[0]).toBe("workspace-1");
+  });
+
+  it("locks destination selection and repeated import actions across conflicting operations", async () => {
     const previewDeferred = createDeferred<CatalogPackageInstallPreviewResponse>();
     const selectionDeferred = createDeferred<void>();
     const installDeferred = createDeferred<CatalogPackageInstallConfirmResponse>();
@@ -452,60 +574,31 @@ describe("CatalogImportScreen", () => {
       createWorkspace("workspace-2", "Secondary", false),
     ]);
     appData.chooseWorkspace = vi.fn(() => selectionDeferred.promise);
-
-    await renderRoute(`/catalog/import/${packageVersionId}`);
-    await waitForCondition("Workspace step was not rendered", () => (
-      container.querySelector("[data-testid='catalog-import-workspace-selector']") !== null
-    ));
+    await renderRoute("/catalog/import/" + packageVersionId);
+    await clickConfirm();
+    await clickWorkspaceOption("workspace-2");
     const secondWorkspaceButton = container.querySelector(
       "[data-testid='catalog-import-workspace-option'][data-workspace-id='workspace-2']",
     );
-    if (!(secondWorkspaceButton instanceof HTMLButtonElement)) {
-      throw new Error("Catalog import locking controls were not found");
-    }
-    expect(previewCatalogPackageInstallMock).not.toHaveBeenCalled();
-    expect(secondWorkspaceButton.disabled).toBe(false);
-
-    await act(async () => secondWorkspaceButton.click());
-    await waitForCondition("Workspace selection did not start", () => (
-      vi.mocked(appData.chooseWorkspace).mock.calls.length === 1
-    ));
+    if (!(secondWorkspaceButton instanceof HTMLButtonElement)) throw new Error("Destination option was not found");
     expect(secondWorkspaceButton.disabled).toBe(true);
-
     await act(async () => selectionDeferred.resolve());
-    await waitForCondition("Workspace options did not unlock after the selection", () => (
-      secondWorkspaceButton.disabled === false
-    ));
-    expect(container.querySelector("[data-testid='catalog-import-confirm']")).toBeNull();
-
+    await waitForCondition("Destination options did not unlock", () => !secondWorkspaceButton.disabled);
+    expect(confirmCatalogPackageInstallMock).not.toHaveBeenCalled();
     await clickWorkspaceOption("workspace-1");
-    await waitForCondition("Catalog preview did not start on the confirm step", () => (
-      previewCatalogPackageInstallMock.mock.calls.length === 1
-    ));
+    await waitForCondition("Destination preview did not start", () => previewCatalogPackageInstallMock.mock.calls.length === 1);
     await act(async () => previewDeferred.resolve(createInstallPreview()));
-    await waitForCondition("Catalog preview was not rendered on the confirm step", () => (
-      container.querySelector("[data-testid='workspace-package-import-preview']") !== null
-    ));
+    await waitForCondition("Destination click did not start import", () => confirmCatalogPackageInstallMock.mock.calls.length === 1);
     const confirmButton = container.querySelector("[data-testid='workspace-package-import-confirm-button']");
-    if (!(confirmButton instanceof HTMLButtonElement)) {
-      throw new Error("Catalog confirm button was not found");
+    const back = container.querySelector("[data-testid='catalog-import-back']");
+    if (!(confirmButton instanceof HTMLButtonElement) || !(back instanceof HTMLButtonElement)) {
+      throw new Error("Import controls were not found");
     }
-    await act(async () => confirmButton.click());
-    await waitForCondition("Catalog install did not start", () => (
-      confirmCatalogPackageInstallMock.mock.calls.length === 1
-    ));
-    const tagCheckbox = container.querySelector("[data-testid='workspace-package-import-tag-checkbox']");
-    const backButton = container.querySelector("[data-testid='catalog-import-back']");
-    if (!(tagCheckbox instanceof HTMLInputElement) || !(backButton instanceof HTMLButtonElement)) {
-      throw new Error("Catalog import controls were not rendered during the install");
-    }
-    expect(tagCheckbox.disabled).toBe(true);
     expect(confirmButton.disabled).toBe(true);
-    expect(backButton.disabled).toBe(true);
-
-    await act(async () => installDeferred.resolve(createInstallResult(
-      "44444444-4444-4444-8444-444444444444",
-    )));
+    expect(back.disabled).toBe(true);
+    await act(async () => confirmButton.click());
+    expect(confirmCatalogPackageInstallMock).toHaveBeenCalledTimes(1);
+    await act(async () => installDeferred.resolve(createInstallResult("44444444-4444-4444-8444-444444444444")));
   });
 
   it("ignores an install result after the workspace identity changes", async () => {
@@ -517,15 +610,8 @@ describe("CatalogImportScreen", () => {
     ]);
 
     await renderRoute(`/catalog/import/${packageVersionId}`);
+    await clickConfirm();
     await clickWorkspaceOption("workspace-1");
-    await waitForCondition("Catalog preview was not rendered", () => (
-      container.querySelector("[data-testid='workspace-package-import-preview']") !== null
-    ));
-    const confirmButton = container.querySelector("[data-testid='workspace-package-import-confirm-button']");
-    if (!(confirmButton instanceof HTMLButtonElement)) {
-      throw new Error("Catalog confirm button was not found");
-    }
-    await act(async () => confirmButton.click());
     await waitForCondition("Catalog install did not start", () => (
       confirmCatalogPackageInstallMock.mock.calls.length === 1
     ));
@@ -535,18 +621,19 @@ describe("CatalogImportScreen", () => {
       createWorkspace("workspace-2", "Secondary", true),
     ]);
     await renderRoute(`/catalog/import/${packageVersionId}`);
-    await clickWorkspaceOption("workspace-2");
-    await waitForCondition("The new workspace preview did not load", () => (
-      previewCatalogPackageInstallMock.mock.calls.some(([workspaceId]) => workspaceId === "workspace-2")
-    ));
+    await waitForCondition("The new workspace confirmation was not ready", isConfirmationReady);
 
     await act(async () => installDeferred.resolve(createInstallResult(
       "44444444-4444-4444-8444-444444444444",
     )));
     await act(async () => Promise.resolve());
     expect(container.querySelector("[data-testid='workspace-import-success']")).toBeNull();
+    expect(container.querySelector("[data-testid='catalog-review-cards']")).toBeNull();
     expect(appData.refreshLocalData).not.toHaveBeenCalled();
-    expect(container.querySelector("[data-testid='workspace-package-import-preview']")).not.toBeNull();
+    expect(appData.openReview).not.toHaveBeenCalled();
+    expect(loadSelectedReviewFilterForWorkspace("workspace-2")).toEqual({ kind: "allCards" });
+    expect(confirmCatalogPackageInstallMock).toHaveBeenCalledTimes(1);
+    expect(container.querySelector("[data-testid='catalog-import-confirm']")).not.toBeNull();
   });
 
   it("waits for first workspace bootstrap and submits the derived replica identity", async () => {
@@ -556,9 +643,7 @@ describe("CatalogImportScreen", () => {
       .mockResolvedValue(undefined);
 
     await renderRoute(`/catalog/import/${packageVersionId}`);
-    await waitForCondition("Catalog preview was not rendered", () => (
-      container.querySelector("[data-testid='workspace-package-import-preview']") !== null
-    ));
+    await waitForCondition("Catalog confirmation was not ready", isConfirmationReady);
     const confirmButton = container.querySelector("[data-testid='workspace-package-import-confirm-button']");
     if (!(confirmButton instanceof HTMLButtonElement)) {
       throw new Error("Catalog confirm button was not found");
@@ -578,70 +663,41 @@ describe("CatalogImportScreen", () => {
     expect(confirmCatalogPackageInstallMock.mock.calls[0]?.[2].lastModifiedByReplicaId).toBe(workspaceReplicaId);
   });
 
-  it("submits selected tag options, shows success, and completes normal sync", async () => {
-    await renderRoute(`/catalog/import/${packageVersionId}`);
-    await waitForCondition("Catalog preview was not rendered", () => (
-      container.querySelector("[data-testid='workspace-package-import-preview']") !== null
-    ));
-    const importTagInput = container.querySelector("[data-testid='workspace-package-import-tag-input']");
-    const geographyCheckbox = container.querySelector(
-      "[data-testid='workspace-package-remove-tag-checkbox'][data-tag='geography']",
-    );
+  it("preserves package tags and persists the hydrated copy selection for review", async () => {
+    storeSelectedReviewFilterForWorkspace("workspace-1", { kind: "tags", tags: [] });
+    await renderRoute("/catalog/import/" + packageVersionId);
+    await waitForCondition("Confirmation was not ready", isConfirmationReady);
+    expect(container.querySelector("[data-testid='catalog-import-advanced']")).toBeNull();
+    expect(container.querySelector("[data-testid='workspace-package-import-tag-checkbox']")).toBeNull();
+    expect(container.querySelector("[data-testid='catalog-import-create-workspace']")).toBeNull();
     const confirmButton = container.querySelector("[data-testid='workspace-package-import-confirm-button']");
-    if (!(importTagInput instanceof HTMLInputElement)
-      || !(geographyCheckbox instanceof HTMLInputElement)
-      || !(confirmButton instanceof HTMLButtonElement)) {
-      throw new Error("Catalog import controls were not found");
-    }
-
-    await act(async () => setTextInputValue(importTagInput, "custom-tag"));
-    await act(async () => geographyCheckbox.click());
+    if (!(confirmButton instanceof HTMLButtonElement)) throw new Error("Confirm button was not found");
     await act(async () => confirmButton.click());
-    await waitForCondition("Catalog import success was not rendered", () => (
-      container.querySelector("[data-testid='workspace-import-success']") !== null
+    await waitForCondition("Imported cards did not open in review", () => (
+      container.querySelector("[data-testid='catalog-review-cards']") !== null
     ));
 
     expect(confirmCatalogPackageInstallMock).toHaveBeenCalledWith(
       "workspace-1",
       packageVersionId,
       expect.objectContaining({
-        addImportTag: true,
-        importTag: "custom-tag",
-        removeTags: ["temporary", "geography"],
+        addImportTag: false,
+        importTag: "",
+        removeTags: [],
         installId: "44444444-4444-4444-8444-444444444444",
         operationIdPrefix: "44444444-4444-4444-8444-444444444444",
         lastModifiedByReplicaId: workspaceReplicaId,
       }),
     );
     expect(appData.refreshLocalData).toHaveBeenCalledTimes(2);
-    expect(container.querySelector("[data-testid='workspace-import-success']")?.textContent).toContain("Imported 2 cards with tag custom-tag");
-
-    expect(container.querySelector("[data-testid='catalog-import-success']")).not.toBeNull();
-    expect(container.querySelector("[data-testid='catalog-import-success-workspace']")?.textContent).toBe("Primary");
-    expect(container.querySelector("[data-testid='catalog-import-success-account']")?.textContent).toBe("user@example.com");
-    // The jsdom user agent is a desktop string, so both store options keep their QR code.
-    const platformLinks = Array.from(container.querySelectorAll("[data-testid^='catalog-import-success-link-']"));
-    expect(platformLinks.map((link) => [
-      link.getAttribute("data-testid"),
-      link.getAttribute("href"),
-      link.getAttribute("target"),
-    ])).toEqual([
-      [
-        "catalog-import-success-link-ios",
-        "https://apps.apple.com/app/apple-store/id6760538964?pt=128797295&ct=catalog_import&mt=8",
-        "_blank",
-      ],
-      [
-        "catalog-import-success-link-android",
-        "https://play.google.com/store/apps/details?id=com.flashcardsopensourceapp.app&utm_source=flashcards_website&utm_medium=referral&utm_campaign=catalog_import",
-        "_blank",
-      ],
-      ["catalog-import-success-link-web", "http://localhost:3000/w/workspace-1/review", "_blank"],
-    ]);
-    expect(container.querySelector("[data-testid='catalog-import-success-qr-ios']")).not.toBeNull();
-    expect(container.querySelector("[data-testid='catalog-import-success-qr-android']")).not.toBeNull();
-    expect(container.querySelector("[data-testid='catalog-import-success-qr-web']")).toBeNull();
-    expect(container.querySelector("[data-testid='catalog-import-success-mcp-option']")).not.toBeNull();
+    const expectedFilter: ReviewFilter = {
+      kind: "catalogImport", importId: "44444444-4444-4444-8444-444444444444", title: "тест",
+    };
+    expect(appData.openReview).toHaveBeenCalledWith(expectedFilter);
+    expect(loadSelectedReviewFilterForWorkspace("workspace-1")).toEqual(expectedFilter);
+    expect(container.querySelector("[data-testid='catalog-review-destination']")?.getAttribute("data-workspace-id")).toBe("workspace-1");
+    expect(container.querySelector("[data-testid='catalog-review-cards']")?.textContent).toBe("Question imported-1,Question imported-2");
+    expect(container.querySelector("[data-testid='catalog-import-success']")).toBeNull();
   });
 
   it("reuses one install identity after an ambiguous response and accepts the verified replay result", async () => {
@@ -650,9 +706,7 @@ describe("CatalogImportScreen", () => {
       .mockResolvedValueOnce(createInstallResult("44444444-4444-4444-8444-444444444444"));
 
     await renderRoute(`/catalog/import/${packageVersionId}`);
-    await waitForCondition("Catalog preview was not rendered", () => (
-      container.querySelector("[data-testid='workspace-package-import-preview']") !== null
-    ));
+    await waitForCondition("Catalog confirmation was not ready", isConfirmationReady);
     const confirmButton = container.querySelector("[data-testid='workspace-package-import-confirm-button']");
     if (!(confirmButton instanceof HTMLButtonElement)) {
       throw new Error("Catalog confirm button was not found");
@@ -661,19 +715,15 @@ describe("CatalogImportScreen", () => {
     await waitForCondition("Ambiguous catalog install failure was not rendered", () => (
       container.querySelector("[data-testid='workspace-import-error']") !== null
     ));
-    const lockedTagInput = container.querySelector("[data-testid='workspace-package-import-tag-input']");
-    if (!(lockedTagInput instanceof HTMLInputElement)) {
-      throw new Error("Catalog import tag input was not found after failure");
-    }
-    expect(lockedTagInput.disabled).toBe(true);
+    const back = container.querySelector("[data-testid='catalog-import-back']");
+    if (!(back instanceof HTMLButtonElement)) throw new Error("Back was not found");
+    expect(back.disabled).toBe(true);
     expect(confirmButton.disabled).toBe(false);
-    // The retry must reuse the install id rather than mint a second one. It is read as a delta
-    // because the analytics visitor identity mints through this same spy.
     const mintCountBeforeRetry = vi.mocked(crypto.randomUUID).mock.calls.length;
 
     await act(async () => confirmButton.click());
     await waitForCondition("Catalog install conflict was not reconciled", () => (
-      container.querySelector("[data-testid='workspace-import-success']") !== null
+      container.querySelector("[data-testid='catalog-review-destination']") !== null
       && vi.mocked(appData.refreshLocalData).mock.calls.length === 2
     ));
 
@@ -691,9 +741,7 @@ describe("CatalogImportScreen", () => {
     );
 
     await renderRoute(`/catalog/import/${packageVersionId}`);
-    await waitForCondition("Catalog preview was not rendered", () => (
-      container.querySelector("[data-testid='workspace-package-import-preview']") !== null
-    ));
+    await waitForCondition("Catalog confirmation was not ready", isConfirmationReady);
     const confirmButton = container.querySelector("[data-testid='workspace-package-import-confirm-button']");
     if (!(confirmButton instanceof HTMLButtonElement)) {
       throw new Error("Catalog confirm button was not found");
@@ -709,7 +757,8 @@ describe("CatalogImportScreen", () => {
     expect(confirmCatalogPackageInstallMock).toHaveBeenCalledTimes(1);
   });
 
-  it("keeps a queued post-install sync failure retryable without repeating the install", async () => {
+  it("keeps post-install sync and incomplete hydration retryable without repeating the install", async () => {
+    await replaceCards("workspace-1", []);
     const queuedSyncDeferred = createDeferred<void>();
     appData.refreshLocalData = vi.fn()
       .mockResolvedValueOnce(undefined)
@@ -717,9 +766,7 @@ describe("CatalogImportScreen", () => {
       .mockResolvedValueOnce(undefined);
 
     await renderRoute(`/catalog/import/${packageVersionId}`);
-    await waitForCondition("Catalog preview was not rendered", () => (
-      container.querySelector("[data-testid='workspace-package-import-preview']") !== null
-    ));
+    await waitForCondition("Catalog confirmation was not ready", isConfirmationReady);
     const confirmButton = container.querySelector("[data-testid='workspace-package-import-confirm-button']");
     if (!(confirmButton instanceof HTMLButtonElement)) {
       throw new Error("Catalog confirm button was not found");
@@ -733,20 +780,110 @@ describe("CatalogImportScreen", () => {
     await waitForCondition("Catalog sync failure was not rendered", () => (
       container.querySelector("[data-testid='catalog-import-sync-error']") !== null
     ));
-    expect(container.querySelector("[data-testid='workspace-import-success']")).not.toBeNull();
+    expect(container.querySelector("[data-testid='catalog-review-destination']")).toBeNull();
+    expect(container.querySelector("[data-testid='workspace-package-import-confirm-button']")).toBeNull();
 
     const syncRetryButton = container.querySelector("[data-testid='catalog-import-sync-retry']");
     if (!(syncRetryButton instanceof HTMLButtonElement)) {
       throw new Error("Catalog sync retry button was not found");
     }
     await act(async () => syncRetryButton.click());
-    await waitForCondition("Catalog sync retry did not finish", () => (
+    await waitForCondition("Incomplete hydration did not remain retryable", () => (
       vi.mocked(appData.refreshLocalData).mock.calls.length === 3
-      && container.querySelector("[data-testid='catalog-import-sync-error']") === null
+      && container.querySelector("[data-testid='catalog-import-syncing']") === null
+      && container.querySelector("[data-testid='catalog-import-sync-error']") !== null
+    ));
+    expect(appData.openReview).not.toHaveBeenCalled();
+    expect(container.querySelector("[data-testid='catalog-review-destination']")).toBeNull();
+
+    await replaceCards("workspace-1", createImportedCards("44444444-4444-4444-8444-444444444444"));
+    const hydrationRetryButton = container.querySelector("[data-testid='catalog-import-sync-retry']");
+    if (!(hydrationRetryButton instanceof HTMLButtonElement)) {
+      throw new Error("Catalog hydration retry button was not found");
+    }
+    await act(async () => hydrationRetryButton.click());
+    await waitForCondition("Hydrated imported cards did not open", () => (
+      vi.mocked(appData.refreshLocalData).mock.calls.length === 4
+      && container.querySelector("[data-testid='catalog-review-cards']") !== null
     ));
 
     expect(confirmCatalogPackageInstallMock).toHaveBeenCalledTimes(1);
-    expect(container.querySelector("[data-testid='workspace-import-success']")).not.toBeNull();
+    expect(appData.openReview).toHaveBeenCalledWith({
+      kind: "catalogImport", importId: "44444444-4444-4444-8444-444444444444", title: "тест",
+    });
+  });
+
+  it("retries into a successfully created destination without creating it again", async () => {
+    appData = createAppData([
+      createWorkspace("workspace-1", "Primary", true),
+      createWorkspace("workspace-2", "Secondary", false),
+    ]);
+    const create = vi.mocked(appData.createWorkspace);
+    create.mockImplementation(async (name) => {
+      const workspace = createWorkspace("workspace-3", name, true);
+      appData = {
+        ...createAppData([...appData.availableWorkspaces.map((item) => ({ ...item, isSelected: false })), workspace]),
+        createWorkspace: create,
+      };
+      return workspace;
+    });
+    await replaceCards("workspace-3", createImportedCards("44444444-4444-4444-8444-444444444444"));
+    confirmCatalogPackageInstallMock.mockRejectedValueOnce(new Error("Import response unavailable"));
+    await renderRoute("/catalog/import/" + packageVersionId);
+    await clickConfirm();
+    expect(container.querySelector("[data-testid='catalog-import-workspace-name-input']")).toBeNull();
+    const showCreateButton = container.querySelector("[data-testid='catalog-import-show-create-workspace']");
+    if (!(showCreateButton instanceof HTMLButtonElement)) throw new Error("Create workspace option was not found");
+    await act(async () => showCreateButton.click());
+    const input = container.querySelector("[data-testid='catalog-import-workspace-name-input']");
+    if (!(input instanceof HTMLInputElement)) throw new Error("Workspace name input was not found");
+    await act(async () => setTextInputValue(input, "New study"));
+    const createButton = container.querySelector("[data-testid='catalog-import-create-workspace']");
+    if (!(createButton instanceof HTMLButtonElement)) throw new Error("Create button was not found");
+    await act(async () => createButton.click());
+    await waitForCondition("Created destination import did not fail visibly", () => (
+      container.querySelector("[data-testid='workspace-import-error']") !== null
+    ));
+    expect(create).toHaveBeenCalledTimes(1);
+    expect(confirmCatalogPackageInstallMock.mock.calls[0]?.[0]).toBe("workspace-3");
+    await clickConfirm();
+    await waitForCondition("Created destination retry did not open study", () => (
+      container.querySelector("[data-testid='catalog-review-cards']") !== null
+    ));
+    expect(create).toHaveBeenCalledTimes(1);
+    expect(confirmCatalogPackageInstallMock.mock.calls[1]?.[0]).toBe("workspace-3");
+    expect(confirmCatalogPackageInstallMock.mock.calls[1]?.[2]).toEqual(confirmCatalogPackageInstallMock.mock.calls[0]?.[2]);
+  });
+
+  it("offers existing study before importing a duplicate in the selected destination", async () => {
+    appData = createAppData([
+      createWorkspace("workspace-1", "Primary", true),
+      createWorkspace("workspace-2", "Secondary", false),
+    ]);
+    const context = createInstallContext(appData.availableWorkspaces);
+    loadCatalogPackageInstallContextMock.mockResolvedValue({
+      workspaces: context.workspaces.map((workspace) => ({
+        ...workspace,
+        previousInstall: workspace.workspaceId === "workspace-1" ? {
+          installId: "44444444-4444-4444-8444-444444444444", packageVersionId, title: "тест", retainedCardCount: 2,
+        } : null,
+      })),
+    });
+    await renderRoute("/catalog/import/" + packageVersionId);
+    await clickConfirm();
+    await clickWorkspaceOption("workspace-1");
+    await waitForCondition("Duplicate decision was not ready", isConfirmationReady);
+    expect(appData.chooseWorkspace).not.toHaveBeenCalled();
+    expect(confirmCatalogPackageInstallMock).not.toHaveBeenCalled();
+    const study = container.querySelector("[data-testid='catalog-import-study-existing']");
+    if (!(study instanceof HTMLButtonElement)) throw new Error("Study existing action was not found");
+    expect(study.classList.contains("primary-btn")).toBe(true);
+    await act(async () => study.click());
+    await waitForCondition("Existing cards did not open", () => container.querySelector("[data-testid='catalog-review-cards']") !== null);
+    expect(confirmCatalogPackageInstallMock).not.toHaveBeenCalled();
+    expect(loadSelectedReviewFilterForWorkspace("workspace-1")).toEqual({
+      kind: "catalogImport", importId: "44444444-4444-4444-8444-444444444444", title: "тест",
+    });
   });
 
   it("keeps preview failures retryable in place", async () => {
@@ -765,7 +902,7 @@ describe("CatalogImportScreen", () => {
     await act(async () => retryButton.click());
     await waitForCondition("Preview retry did not succeed", () => (
       previewCatalogPackageInstallMock.mock.calls.length === 2
-      && container.querySelector("[data-testid='workspace-package-import-preview']") !== null
+      && isConfirmationReady()
     ));
   });
 });

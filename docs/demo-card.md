@@ -9,9 +9,8 @@ One flashcard, tagged `demo`, seeded as onboarding into an empty workspace: for 
 mobile also for whoever uses the device next after a logout or other local reset.
 
 After it is seeded it is an ordinary card: editable, deletable, synced, and counted by FSRS
-scheduling, progress, and streaks like any other card. The one special case is the
-guest-upgrade cleanup in [Guest upgrade](#guest-upgrade); there is no other special-case behavior
-for it anywhere in the product, and no client may add any.
+scheduling, progress, and streaks like any other card. Disposal is limited to the provenance-backed
+catalog onboarding import below and the [guest-upgrade cleanup](#guest-upgrade).
 
 ## Server provenance
 
@@ -59,6 +58,11 @@ sign-in, so a returning user can get the card back that way; this is accepted. I
 a guest first, sign-in is a guest upgrade instead, covered in [Guest upgrade](#guest-upgrade).
 
 ### Web: the four seed conditions
+
+Catalog entry suppresses the web seed before guest creation and hot bootstrap; ordinary app entry
+keeps the conditions below. A catalog-created guest consumes its seed permission even when the
+import is interrupted. Successful imports hydrate real cards before review, so later account
+conversion does not seed another demo.
 
 The web seed is the last step of a workspace's first successful hot bootstrap
 ([`bootstrapHotState.ts`](../apps/web/src/appData/sync/remote/bootstrapHotState.ts), guard in
@@ -188,6 +192,26 @@ Accepted limits:
 
 Outside the opt-in demo-only protocol, this remains the only cleanup; there is no other
 tag-based cleanup or unlinking logic.
+
+## Catalog onboarding import
+
+The catalog install context reports empty workspaces and those containing only one active,
+unchanged provenance-backed demo as eligible for an explicit `immediateOnboarding` import.
+Reviews and scheduling state do not count as edits. Tombstones, authored or edited cards, missing
+or invalid provenance, and other material workspace content require the ordinary import flow.
+
+The server revalidates eligibility under the workspace sync lock after checking durable replay.
+It imports the catalog cards and tombstones only the confirmed unchanged demo atomically through
+ordinary hot sync publication. A failed import preserves all prior content; retrying a committed
+request replays its original result even though the imported cards now make the workspace ineligible.
+Normal explicit catalog imports preserve the demo.
+
+The web automatically requests this intent for a single eligible workspace, preserving package
+tags without adding an import tag. Registered accounts with multiple visible workspaces always
+choose a workspace and confirm the ordinary import. A saved automatic request is replayed exactly
+after interruption, until the destination review loads its actual imported card. The web waits for
+the installed cards and demo tombstone to sync locally before opening review. A revalidated
+eligibility refusal returns to the ordinary import controls without discarding content.
 
 ## Deletion
 

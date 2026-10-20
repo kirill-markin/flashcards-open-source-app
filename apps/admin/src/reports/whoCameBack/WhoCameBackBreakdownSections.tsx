@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useRef, useState, type JSX, type ReactNode } from "react";
 import * as d3 from "d3";
-import { ChartColorKey } from "../../charts/ChartLegends";
+import { ChartAreaWithNote } from "../../charts/ChartAreaWithNote";
+import { ChartColorKey, ChartColorKeyPlaceholder } from "../../charts/ChartLegends";
+import { ChartLoadingPlaceholder } from "../../charts/ChartLoadingPlaceholder";
 import { ChartTooltip, useChartTooltip } from "../../charts/ChartTooltip";
-import { isReviewEventPlatform, platformLabels } from "../../charts/chartPrimitives";
+import { chartWidth, isReviewEventPlatform, platformLabels, stackedChartHeight } from "../../charts/chartPrimitives";
 import { escapeHtml, formatGeneratedAt } from "../../charts/formatting";
 import { renderRetentionBreakdownChart } from "../../charts/retentionBreakdownChart";
 import { buildBreakdownValueColors } from "../../charts/stackedBreakdownChart";
@@ -97,6 +99,7 @@ function describeEmptyChart(report: WhoCameBackBreakdownReport, window: Retentio
 function RetentionWindowSection(props: Readonly<{
   breakdown: RetentionBreakdown;
   window: RetentionWindow;
+  period: ReportPeriod;
   state: LoadState;
   onRetry: () => void;
 }>): JSX.Element {
@@ -164,7 +167,6 @@ function RetentionWindowSection(props: Readonly<{
     });
   }, [model, props.window, props.breakdown, title, tooltipHandlers]);
   const testId = `who-came-back-${props.window}-by-${props.breakdown.dimension}`;
-  const emptyChartMessage = model === null ? null : describeEmptyChart(model.report, props.window);
   return (
     <section className="dashboard-section" data-testid={`${testId}-section`}>
       <header className="dashboard-section-header level-1-metric-section-header">
@@ -182,32 +184,40 @@ function RetentionWindowSection(props: Readonly<{
           </ExplanationTip>
         </div>
       </header>
-      {props.state.status === "loading" ? <p className="report-state" aria-live="polite">Loading {title}…</p> : null}
       {props.state.status === "error" ? (
         <div className="report-state report-state-error">
           <strong>{title} query failed.</strong><span>{props.state.message}</span>
           <button className="filter-button" type="button" onClick={props.onRetry}>Retry</button>
         </div>
       ) : null}
-      {model !== null ? (
+      {props.state.status === "error" ? null : (
         <section className="chart-column">
           <div className="chart-shell">
             <div className="chart-meta">
-              <span>{retentionLabels[props.window]} per first-use {model.report.period} · UTC</span>
+              <span>{retentionLabels[props.window]} per first-use {props.period} · UTC</span>
               <div className="chart-meta-right">
-                <ChartColorKey
-                  ariaLabel={`${title} color key`}
-                  keys={model.report.values}
-                  getColor={(value) => getValueColor(model, value)}
-                  getLabel={props.breakdown.formatValue}
-                />
+                {model === null ? <ChartColorKeyPlaceholder /> : (
+                  <ChartColorKey
+                    ariaLabel={`${title} color key`}
+                    keys={model.report.values}
+                    getColor={(value) => getValueColor(model, value)}
+                    getLabel={props.breakdown.formatValue}
+                  />
+                )}
               </div>
             </div>
-            {emptyChartMessage === null ? null : <p className="report-state">{emptyChartMessage}</p>}
-            <div className="chart-scroll"><svg ref={chartRef} role="group" aria-label={`${title}, by first-use ${model.report.period}`} /></div>
+            <div className="chart-scroll">
+              {model === null ? (
+                <ChartLoadingPlaceholder viewBoxWidth={chartWidth} viewBoxHeight={stackedChartHeight} label={`Loading ${title}…`} />
+              ) : (
+                <ChartAreaWithNote viewBoxWidth={chartWidth} viewBoxHeight={stackedChartHeight} note={describeEmptyChart(model.report, props.window)}>
+                  <svg ref={chartRef} role="group" aria-label={`${title}, by first-use ${model.report.period}`} />
+                </ChartAreaWithNote>
+              )}
+            </div>
           </div>
         </section>
-      ) : null}
+      )}
       <ChartTooltip {...tooltipState} />
     </section>
   );
@@ -226,13 +236,14 @@ function RetentionBreakdownPair(props: Readonly<{
   useEffect(() => {
     let cancelled = false;
     setState({ status: "loading" });
-    void loadWhoCameBackBreakdownReport(props.config, props.breakdown.dimension, props.dateRange, props.period, `Who came back by ${props.breakdown.label} report`).then((report) => {
+    const abortController = new AbortController();
+    void loadWhoCameBackBreakdownReport(props.config, props.breakdown.dimension, props.dateRange, props.period, `Who came back by ${props.breakdown.label} report`, abortController.signal).then((report) => {
       if (!cancelled) setState({ status: "ready", report });
     }).catch((error: unknown) => {
       if (cancelled || props.onTerminalAdminError(error, props.config)) return;
       setState({ status: "error", message: error instanceof Error ? error.message : `Unexpected Who came back by ${props.breakdown.label} query error.` });
     });
-    return () => { cancelled = true; };
+    return () => { cancelled = true; abortController.abort(); };
   }, [props.config, props.dateRange, props.period, props.onTerminalAdminError, props.breakdown, revision]);
   return (
     <>
@@ -241,6 +252,7 @@ function RetentionBreakdownPair(props: Readonly<{
           key={window}
           breakdown={props.breakdown}
           window={window}
+          period={props.period}
           state={state}
           onRetry={() => setRevision((value) => value + 1)}
         />

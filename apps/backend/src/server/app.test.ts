@@ -768,6 +768,35 @@ test("app public catalog CORS allows production site, app, and local reads witho
   assert.equal(appGetResponse.headers.get("access-control-allow-credentials"), null);
   assert.equal(accountResponse.status, 204);
   assert.equal(accountResponse.headers.get("access-control-allow-origin"), null);
+
+  const dualMountedApp = createApp("");
+  for (const prefix of ["", "/v1"]) {
+    for (const trailingSlash of ["", "/"]) {
+      const contextPath = `${prefix}/catalog/package-versions/not-a-uuid/install-context${trailingSlash}`;
+      const contextResponse = await dualMountedApp.request(`https://api.flashcards-open-source-app.com${contextPath}`, {
+        method: "OPTIONS",
+        headers: {
+          origin: "https://app.flashcards-open-source-app.com",
+          "access-control-request-method": "GET",
+          "access-control-request-headers": "authorization,x-csrf-token",
+        },
+      });
+      assert.equal(contextResponse.status, 204);
+      assert.equal(contextResponse.headers.get("access-control-allow-origin"), "https://app.flashcards-open-source-app.com");
+      assert.equal(contextResponse.headers.get("access-control-allow-credentials"), "true");
+      const contextAllowHeaders = parseCommaSeparatedHeader(contextResponse.headers.get("access-control-allow-headers") ?? "");
+      assert.ok(contextAllowHeaders.includes("authorization"));
+      assert.ok(contextAllowHeaders.includes("x-csrf-token"));
+      const siteContextResponse = await dualMountedApp.request(`https://api.flashcards-open-source-app.com${contextPath}`, {
+        method: "OPTIONS",
+        headers: {
+          origin: "https://flashcards-open-source-app.com",
+          "access-control-request-method": "GET",
+        },
+      });
+      assert.equal(siteContextResponse.headers.get("access-control-allow-origin"), null);
+    }
+  }
 });
 
 test("app public catalog CORS uses only fixed origins when local configuration is explicit", async () => {

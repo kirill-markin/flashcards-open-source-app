@@ -172,11 +172,12 @@ function ProfileDeviceTable<Row>(props: Readonly<{
   // Blind to the table state, so neither a table change nor the clamp re-request asks for them again.
   useEffect(() => {
     let isSuperseded = false;
+    const abortController = new AbortController();
     setEnumOptionsState({ status: "loading" });
 
     async function loadEnumOptions(): Promise<void> {
       try {
-        const options = await loadDeviceListEnumOptions(config, userId, list.query);
+        const options = await loadDeviceListEnumOptions(config, userId, list.query, abortController.signal);
         if (isSuperseded) return;
         setEnumOptionsState({ status: "ready", options });
       } catch (error: unknown) {
@@ -188,12 +189,14 @@ function ProfileDeviceTable<Row>(props: Readonly<{
     void loadEnumOptions();
     return () => {
       isSuperseded = true;
+      abortController.abort();
     };
   }, [config, enumOptionsRevision, label, list, onTerminalAdminError, userId]);
 
   useEffect(() => {
     const requestedState = tableState;
     let isSuperseded = false;
+    const abortController = new AbortController();
     // The previous page stays on screen, dimmed, until the new one arrives.
     setLoadState((current) => {
       if (current.status === "ready") return { ...current, isLoading: true };
@@ -202,7 +205,7 @@ function ProfileDeviceTable<Row>(props: Readonly<{
 
     async function loadPage(): Promise<void> {
       try {
-        const result = await loadDeviceListPage(config, userId, list.query, requestedState, list.columns);
+        const result = await loadDeviceListPage(config, userId, list.query, requestedState, list.columns, abortController.signal);
         if (isSuperseded) return;
         // A page past the end, from a shrunken total or a hand-edited link, is asked for again as the
         // last page the table shows instead.
@@ -234,6 +237,7 @@ function ProfileDeviceTable<Row>(props: Readonly<{
     );
     return () => {
       isSuperseded = true;
+      abortController.abort();
       window.clearTimeout(reloadTimeoutId);
     };
   }, [config, label, list, onTerminalAdminError, revision, tableState, userId]);

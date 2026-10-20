@@ -11,7 +11,10 @@ const levelOneMetricsGroupByFieldId = "level-1-metrics-group-by";
 const noOptions: ReadonlyArray<never> = [];
 const noUserColorScale = getUserColorScale([]);
 
-/** The range loading, date range bar and Group by every Level 1 page shares, above that page's charts. */
+/**
+ * The date range bar and Group by every Level 1 page shares, above that page's charts. Everything
+ * renders at once on the provisional selection; the range lookup only enables the date field.
+ */
 export function LevelOneMetricsFrame(
   props: Readonly<{
     selectionState: LevelOneMetricsSelectionState;
@@ -19,30 +22,10 @@ export function LevelOneMetricsFrame(
     renderCharts: (selection: LevelOneMetricsSelection, search: string) => ReactNode;
   }>,
 ): JSX.Element {
-  const rangeState = props.selectionState.rangeState;
-  const dateRange = rangeState.status === "ready" ? rangeState.selection.dateRange : null;
-  const filters = useMemo(
-    () => (dateRange === null ? null : buildDefaultAnalyticsFilterState(dateRange)),
-    [dateRange],
-  );
-
-  if (rangeState.status === "error") {
-    return (
-      <div className="report-state report-state-error">
-        <strong>Level 1 metrics failed to load.</strong>
-        <span>{rangeState.message}</span>
-        <button
-          className="filter-button"
-          type="button"
-          onClick={props.selectionState.retryRangeLoad}
-        >Retry</button>
-      </div>
-    );
-  }
-
-  if (rangeState.status === "loading" || filters === null) {
-    return <p className="report-state" aria-live="polite">Loading Level 1 metrics…</p>;
-  }
+  const selectionState = props.selectionState;
+  const rangeLookup = selectionState.rangeLookup;
+  const dateRange = selectionState.selection.dateRange;
+  const filters = useMemo(() => buildDefaultAnalyticsFilterState(dateRange), [dateRange]);
 
   return (
     <>
@@ -53,8 +36,8 @@ export function LevelOneMetricsFrame(
         headingLevel={2}
         headingId="level-1-metrics-filters-title"
         resetAllLabel="Reset the Level 1 metrics date range"
-        availableRange={rangeState.availableRange}
-        defaultRange={rangeState.defaultRange}
+        availableRange={rangeLookup.status === "ready" ? rangeLookup.availableRange : null}
+        defaultRange={selectionState.defaultRange}
         filters={filters}
         userOptions={noOptions}
         connectionCountryOptions={noOptions}
@@ -64,12 +47,25 @@ export function LevelOneMetricsFrame(
         catalogSourceOptions={noOptions}
         catalogDeviceCategoryOptions={noOptions}
         catalogClickBrowserLanguageOptions={noOptions}
+        areOptionListsLoading={false}
         isReportLoading={false}
-        dateRangeError={props.selectionState.dateRangeError}
+        dateRangeError={selectionState.dateRangeError}
         userColorScale={noUserColorScale}
-        onFiltersChange={props.selectionState.applyFilters}
+        onFiltersChange={selectionState.applyFilters}
         onNavigate={props.onNavigate}
       />
+
+      {rangeLookup.status === "error" ? (
+        <div className="report-state report-state-error" role="alert">
+          <strong>The Level 1 date range failed to load.</strong>
+          <span>{rangeLookup.message}</span>
+          <button
+            className="filter-button"
+            type="button"
+            onClick={selectionState.retryRangeLoad}
+          >Retry</button>
+        </div>
+      ) : null}
 
       <div className="funnel-group-by-row">
         <div className="funnel-group-by">
@@ -78,8 +74,8 @@ export function LevelOneMetricsFrame(
             id={levelOneMetricsGroupByFieldId}
             className="funnel-group-by-select"
             data-testid={levelOneMetricsGroupByFieldId}
-            value={rangeState.selection.period}
-            onChange={(event) => props.selectionState.setPeriod(parseReportPeriod(event.target.value))}
+            value={selectionState.selection.period}
+            onChange={(event) => selectionState.setPeriod(parseReportPeriod(event.target.value))}
           >
             {reportPeriods.map((option) => (
               <option key={option} value={option}>{reportPeriodLabels[option]}</option>
@@ -88,7 +84,7 @@ export function LevelOneMetricsFrame(
         </div>
       </div>
 
-      {props.renderCharts(rangeState.selection, props.selectionState.search)}
+      {props.renderCharts(selectionState.selection, selectionState.search)}
     </>
   );
 }

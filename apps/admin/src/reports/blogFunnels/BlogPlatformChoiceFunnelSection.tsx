@@ -13,7 +13,13 @@ import {
 } from "../funnels/funnelGroupBy";
 import { FunnelMaturingWarning } from "../funnels/FunnelMaturingWarning";
 import type { FunnelSectionProps } from "../funnels/funnelSections";
-import { formatPercentage, FunnelStepsChart, type FunnelStage } from "../funnels/FunnelStepsChart";
+import {
+  formatPercentage,
+  FunnelStepsChart,
+  FunnelStepsEmptyChart,
+  FunnelStepsLoadingChart,
+  type FunnelStage,
+} from "../funnels/FunnelStepsChart";
 import {
   blogFunnelGroupByDimensions,
   blogFunnelStartDate,
@@ -167,11 +173,13 @@ export function BlogPlatformChoiceFunnelSection(props: FunnelSectionProps): JSX.
       return () => { cancelled = true; };
     }
 
+    const abortController = new AbortController();
     void loadBlogPlatformChoiceFunnelReport(
       props.config,
       props.filters,
       `${blogPlatformChoiceFunnelTitle} funnel`,
       groupByDimension,
+      abortController.signal,
     )
       .then((report) => {
         if (cancelled === false) {
@@ -186,7 +194,7 @@ export function BlogPlatformChoiceFunnelSection(props: FunnelSectionProps): JSX.
         setLoadState({ status: "error", message: getErrorMessage(error) });
       });
 
-    return () => { cancelled = true; };
+    return () => { cancelled = true; abortController.abort(); };
   }, [
     groupByDimension,
     loadRevision,
@@ -280,14 +288,31 @@ export function BlogPlatformChoiceFunnelSection(props: FunnelSectionProps): JSX.
         />
       </div>
 
-      {props.isRangeLoading || loadState.status === "loading" ? <div className="report-state" aria-live="polite">Loading blog article to platform choice funnel…</div> : null}
       {props.isRangeLoading === false && loadState.status === "error" ? <div className="report-state report-state-error"><strong>Funnel query failed.</strong><span>{loadState.message}</span><button className="filter-button" type="button" onClick={() => setLoadRevision((revision) => revision + 1)}>Retry</button></div> : null}
       {startDateNote !== null ? <p className="report-state" aria-live="polite">{startDateNote}</p> : null}
       {hashedCountryNote !== null ? <p className="report-state" aria-live="polite">{hashedCountryNote}</p> : null}
-      {/* The audience mode is named here because it is not one of the filters the heading blames and `Reset all` does not clear it. */}
-      {totals !== null && entryCount === 0 ? <div className="report-state"><strong>No first visits on a blog article match these filters.</strong><span>Only a person whose first site page is a blog article viewed on a selected day enters this funnel.</span>{audienceEmptyStateNote === null ? null : <span>{audienceEmptyStateNote}</span>}</div> : null}
 
       {totals !== null ? <FunnelMaturingWarning maturingCount={totals.maturingCount} entryCount={totals.entryViewCount} /> : null}
+
+      {props.isRangeLoading || loadState.status === "loading" ? (
+        <FunnelStepsLoadingChart
+          countLabel="People"
+          dateRange={props.filters.dateRange}
+          showsHashedSplit={readsHashedCohort}
+          isGrouped={groupByDimension !== null}
+          label="Loading blog article to platform choice funnel…"
+        />
+      ) : null}
+      {/* The audience mode is named here because it is not one of the filters the heading blames and `Reset all` does not clear it. */}
+      {totals !== null && entryCount === 0 ? (
+        <FunnelStepsEmptyChart
+          countLabel="People"
+          dateRange={props.filters.dateRange}
+          showsHashedSplit={readsHashedCohort}
+          isGrouped={groupByDimension !== null}
+          note={<><strong>No first visits on a blog article match these filters.</strong><span>Only a person whose first site page is a blog article viewed on a selected day enters this funnel.</span>{audienceEmptyStateNote === null ? null : <span>{audienceEmptyStateNote}</span>}</>}
+        />
+      ) : null}
 
       {totals !== null && entryCount > 0 ? (
         <FunnelStepsChart

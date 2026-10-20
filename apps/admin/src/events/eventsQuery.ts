@@ -195,9 +195,10 @@ export async function loadEventsPage(
   config: AdminAppConfig,
   state: DataTableState,
   columns: ReadonlyArray<DataTableColumn<EventRow>>,
+  signal: AbortSignal,
 ): Promise<EventsPageResult> {
   const clauses = buildDataTableSqlClauses(state, columns, eventColumnSqlById, defaultOrderBySql, tiebreakOrderBySql);
-  const response = await runAdminQuery(config, `${buildEventsPageSql(clauses)};\n${buildEventsTotalSql(clauses)}`);
+  const response = await runAdminQuery(config, `${buildEventsPageSql(clauses)};\n${buildEventsTotalSql(clauses)}`, signal);
   const pageResult = response.resultSets[0];
   if (response.resultSets.length !== 2 || pageResult === undefined) {
     throw new Error(`${reportLabel} query must return exactly two result sets.`);
@@ -253,7 +254,7 @@ export type EventsEnumOptions = ReadonlyMap<string, ReadonlyArray<string>>;
 /** Every enum column with no options, which the table shows until `loadEventsEnumOptions` answers. */
 export const emptyEventsEnumOptions: EventsEnumOptions = emptyEnumOptions(eventEnumColumnIds);
 
-export async function loadEventsEnumOptions(config: AdminAppConfig): Promise<EventsEnumOptions> {
-  const response = await runAdminQuery(config, buildEventsEnumOptionsSql());
+export async function loadEventsEnumOptions(config: AdminAppConfig, signal: AbortSignal): Promise<EventsEnumOptions> {
+  const response = await runAdminQuery(config, buildEventsEnumOptionsSql(), signal);
   return parseEnumOptionsResponse(response, eventEnumColumnIds, reportLabel);
 }

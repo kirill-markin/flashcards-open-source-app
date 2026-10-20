@@ -3,6 +3,7 @@ import type { AdminAppConfig } from "../../config";
 import { ExplanationTip } from "../../explanations/ExplanationTip";
 import type { AnalyticsFilterState } from "../../filters/analyticsFilters";
 import {
+  AiUsagePanelPlaceholders,
   AiUsagePanels,
   formatCharRate,
   formatPeriodSpan,
@@ -22,6 +23,7 @@ import {
   aiUsageAudienceLabels,
   aiUsageAudiences,
   aiUsagePeriodWeekOptions,
+  buildAiUsagePeriods,
   maxAiUsagePanelCount,
   minAiUsageExposureDays,
   type AiUsageAudience,
@@ -87,7 +89,7 @@ function AiUsageSummaryTable(props: Readonly<{ panels: ReadonlyArray<AiUsagePane
       <tbody>
         {props.panels.map((panel) => (
           <tr key={panel.period.index}>
-            <th scope="row">{panel.period.index + 1}. {formatPeriodSpan(panel)}</th>
+            <th scope="row">{panel.period.index + 1}. {formatPeriodSpan(panel.period)}</th>
             <td>{integerFormatter.format(panel.peopleCount)}</td>
             <td>
               {integerFormatter.format(panel.neverReviewedCount)}
@@ -148,7 +150,7 @@ export function AiUsageCohortsSection(props: Readonly<{
   config: AdminAppConfig;
   /** The live selection, so this section answers a filter click even when a General report failed. */
   filters: AnalyticsFilterState;
-  /** A General reload is pending or in flight; this section waits it out rather than querying per click. */
+  /** The shared selection is still settling after a filter change; this section waits it out rather than querying per click. */
   isRangeLoading: boolean;
   onTerminalAdminError: (error: unknown, config: AdminAppConfig) => boolean;
 }>): JSX.Element {
@@ -169,12 +171,17 @@ export function AiUsageCohortsSection(props: Readonly<{
 
   const periodWeeks = controls.periodWeeks;
   const audience = controls.audience;
+  const loadingPeriods = useMemo(
+    () => buildAiUsagePeriods(props.filters.dateRange, periodWeeks).periods,
+    [periodWeeks, props.filters.dateRange],
+  );
 
   useEffect(() => {
     let cancelled = false;
     setLoadState({ status: "loading" });
     if (props.isRangeLoading) return () => { cancelled = true; };
-    void loadAiUsageCohortsReport(props.config, props.filters, periodWeeks, audience)
+    const abortController = new AbortController();
+    void loadAiUsageCohortsReport(props.config, props.filters, periodWeeks, audience, abortController.signal)
       .then((report) => {
         if (!cancelled) setLoadState({ status: "ready", report });
       })
@@ -185,7 +192,7 @@ export function AiUsageCohortsSection(props: Readonly<{
           message: error instanceof Error ? error.message : "Unexpected Study vs AI query error.",
         });
       });
-    return () => { cancelled = true; };
+    return () => { cancelled = true; abortController.abort(); };
   }, [
     audience,
     periodWeeks,
@@ -283,7 +290,9 @@ export function AiUsageCohortsSection(props: Readonly<{
       </div>
 
       {props.isRangeLoading || loadState.status === "loading"
-        ? <p className="report-state" aria-live="polite">Loading Study vs AI…</p>
+        ? (loadingPeriods.length === 0
+          ? <p className="report-state" aria-live="polite">Loading Study vs AI…</p>
+          : <AiUsagePanelPlaceholders periods={loadingPeriods} />)
         : null}
       {!props.isRangeLoading && loadState.status === "error" ? (
         <div className="report-state report-state-error">

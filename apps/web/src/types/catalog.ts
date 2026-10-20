@@ -64,6 +64,7 @@ export type CatalogPackageInstallPreviewResponse = Readonly<{
 }>;
 
 export type CatalogPackageInstallConfirmOptions = Readonly<{
+  immediateOnboarding?: boolean;
   addImportTag: boolean;
   importTag: string;
   removeTags: ReadonlyArray<string>;
@@ -75,6 +76,7 @@ export type CatalogPackageInstallConfirmOptions = Readonly<{
 }>;
 
 export type CatalogPackageInstallConfirmResponse = Readonly<{
+  onboarding?: Readonly<{ removedDemoCardId: string | null }>;
   packageVersion: CatalogPackageInstallPackageVersion;
   installedCards: ReadonlyArray<Readonly<{
     packageCardId: string;
@@ -96,4 +98,28 @@ export type CatalogPackageInstallConfirmResponse = Readonly<{
     removedTagCount: number;
     importTag: string | null;
   }>;
+}>;
+
+export type CatalogPackageInstallOnboardingEligibility = "empty" | "demo_only" | "ineligible";
+
+export type CatalogPackageInstallPreviousInstall = Readonly<{
+  installId: string;
+  packageVersionId: string;
+  title: string;
+  retainedCardCount: number;
+}>;
+
+export type CatalogPackageInstallWorkspaceContext = Readonly<{
+  workspaceId: string;
+  name: string;
+  createdAt: string;
+  isSelected: boolean;
+  cardCount: number;
+  lastReviewedAt: string | null;
+  onboardingEligibility: CatalogPackageInstallOnboardingEligibility;
+  previousInstall: CatalogPackageInstallPreviousInstall | null;
+}>;
+
+export type CatalogPackageInstallContext = Readonly<{
+  workspaces: ReadonlyArray<CatalogPackageInstallWorkspaceContext>;
 }>;

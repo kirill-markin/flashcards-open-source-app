@@ -246,6 +246,15 @@ let adminSessionState: AdminSessionState | undefined;
 let adminSessionRecoveryPromise: Promise<AdminSession> | undefined;
 let adminSessionCsrfRecoveryPromise: Promise<void> | undefined;
 
+// The most report queries the whole admin app keeps in flight. Each one occupies a backend Lambda
+// instance, and that Lambda's reserved concurrency (`backendHandlerReservedConcurrency` in
+// `infra/aws/lib/lambda-database-capacity.ts`) is shared with app users; a page that fires every
+// report at once exhausts it, and API Gateway answers the throttled overflow with 500s.
+const maxConcurrentAdminQueries = 4;
+
+let activeAdminQueryCount: number = 0;
+const waitingAdminQueryStarts: Array<() => void> = [];
+
 async function parseApiError(response: Response): Promise<never> {
   let message = `Request failed with status ${response.status}`;
   let code: string | null = null;
@@ -461,7 +470,62 @@ export async function fetchAdminSession(config: AdminAppConfig): Promise<AdminSe
   return parseAdminSessionResponse(response);
 }
 
+function createAdminQueryAbortError(): DOMException {
+  return new DOMException("The admin report query was cancelled before it started.", "AbortError");
+}
+
+// An aborted caller only ever leaves the queue: a query that has started keeps its slot until its real
+// response, because aborting the browser request would not stop the backend Lambda serving it.
+async function acquireAdminQuerySlot(signal: AbortSignal): Promise<void> {
+  if (signal.aborted) {
+    throw createAdminQueryAbortError();
+  }
+
+  if (activeAdminQueryCount < maxConcurrentAdminQueries) {
+    activeAdminQueryCount += 1;
+    return;
+  }
+
+  await new Promise<void>((resolve, reject) => {
+    const startAdminQuery = (): void => {
+      signal.removeEventListener("abort", leaveAdminQueryQueue);
+      resolve();
+    };
+    const leaveAdminQueryQueue = (): void => {
+      waitingAdminQueryStarts.splice(waitingAdminQueryStarts.indexOf(startAdminQuery), 1);
+      reject(createAdminQueryAbortError());
+    };
+
+    signal.addEventListener("abort", leaveAdminQueryQueue, { once: true });
+    waitingAdminQueryStarts.push(startAdminQuery);
+  });
+}
+
+function releaseAdminQuerySlot(): void {
+  const startNextAdminQuery = waitingAdminQueryStarts.shift();
+  if (startNextAdminQuery === undefined) {
+    activeAdminQueryCount -= 1;
+    return;
+  }
+
+  // The slot passes straight to the oldest waiter, so a newer caller cannot overtake it.
+  startNextAdminQuery();
+}
+
 export async function runAdminQuery(
+  config: AdminAppConfig,
+  sql: string,
+  signal: AbortSignal,
+): Promise<AdminQueryResponse> {
+  await acquireAdminQuerySlot(signal);
+  try {
+    return await runAdminQueryInSlot(config, sql);
+  } finally {
+    releaseAdminQuerySlot();
+  }
+}
+
+async function runAdminQueryInSlot(
   config: AdminAppConfig,
   sql: string,
 ): Promise<AdminQueryResponse> {

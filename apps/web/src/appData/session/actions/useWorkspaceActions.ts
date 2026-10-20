@@ -187,7 +187,7 @@ export function useWorkspaceActions(params: UseWorkspaceActionsParams): Workspac
     setTechnicalError,
   ]);
 
-  const createWorkspace = useCallback(async function createWorkspace(name: string): Promise<void> {
+  const createWorkspace = useCallback(async function createWorkspace(name: string): Promise<WorkspaceSummary | null> {
     indexedDbOpenRecoveryState.throwIfFailed();
     const verifiedSession = requireVerifiedWorkspaceSession(session, sessionVerificationState, t);
 
@@ -228,12 +228,13 @@ export function useWorkspaceActions(params: UseWorkspaceActionsParams): Workspac
       const nextWorkspaces = replaceWorkspaceSummary(availableWorkspaces, createdWorkspace);
       await activateWorkspace(verifiedSession, nextWorkspaces, createdWorkspace);
       indexedDbOpenRecoveryState.throwIfFailed();
+      return createdWorkspace;
     } catch (error) {
       const normalizedError = normalizeCaughtError(error);
       indexedDbOpenRecoveryState.markFailed(normalizedError);
       indexedDbOpenRecoveryState.throwIfFailed();
       if (isAuthRedirectError(error)) {
-        return;
+        return null;
       }
 
       const nextErrorMessage = getErrorMessage(normalizedError);

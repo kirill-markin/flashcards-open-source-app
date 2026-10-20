@@ -1,7 +1,10 @@
 import { useEffect, useMemo, useRef, useState, type JSX } from "react";
 import * as d3 from "d3";
+import { ChartAreaWithNote } from "../../charts/ChartAreaWithNote";
 import { ChartColorKey } from "../../charts/ChartLegends";
+import { ChartLoadingPlaceholder } from "../../charts/ChartLoadingPlaceholder";
 import { ChartTooltip, useChartTooltip } from "../../charts/ChartTooltip";
+import { chartWidth, stackedChartHeight } from "../../charts/chartPrimitives";
 import { escapeHtml, formatGeneratedAt } from "../../charts/formatting";
 import { renderWhoCameBackChart, retentionColors, retentionLabels, retentionSeries } from "../../charts/whoCameBackChart";
 import type { AdminAppConfig } from "../../config";
@@ -53,13 +56,14 @@ export function WhoCameBackSection(props: Readonly<{
     let cancelled = false;
     tooltipHandlers.hideTooltip();
     setState({ status: "loading" });
-    void loadWhoCameBackReport(props.config, props.dateRange, props.period).then((report) => {
+    const abortController = new AbortController();
+    void loadWhoCameBackReport(props.config, props.dateRange, props.period, abortController.signal).then((report) => {
       if (!cancelled) setState({ status: "ready", report });
     }).catch((error: unknown) => {
       if (cancelled || props.onTerminalAdminError(error, props.config)) return;
       setState({ status: "error", message: error instanceof Error ? error.message : "Unexpected Who came back query error." });
     });
-    return () => { cancelled = true; };
+    return () => { cancelled = true; abortController.abort(); };
   }, [props.config, props.dateRange, props.period, props.onTerminalAdminError, revision, tooltipHandlers]);
   const cohortsByKey = useMemo(() => new Map(state.status === "ready" ? state.report.cohorts.map((cohort) => [cohort.bucket.key, cohort]) : []), [state]);
   useEffect(() => {
@@ -101,27 +105,35 @@ export function WhoCameBackSection(props: Readonly<{
         </div>
         {props.detailsLink !== null ? <LevelOneMetricDetailsButton link={props.detailsLink} /> : null}
       </header>
-      {state.status === "loading" ? <p className="report-state" aria-live="polite">Loading Who came back…</p> : null}
       {state.status === "error" ? (
         <div className="report-state report-state-error">
           <strong>Who came back query failed.</strong><span>{state.message}</span>
           <button className="filter-button" type="button" onClick={() => setRevision((value) => value + 1)}>Retry</button>
         </div>
       ) : null}
-      {state.status === "ready" ? (
+      {state.status === "error" ? null : (
         <section className="chart-column">
           <div className="chart-shell">
             <div className="chart-meta">
-              <span>First-use cohorts per {state.report.period} · UTC</span>
+              <span>First-use cohorts per {props.period} · UTC</span>
               <div className="chart-meta-right">
                 <ChartColorKey ariaLabel="Retention color key" keys={retentionSeries} getColor={(key) => retentionColors[key]} getLabel={(key) => retentionLabels[key]} />
               </div>
             </div>
-            {state.report.cohorts.every((cohort) => cohort.w1 === null && cohort.w4 === null) ? <p className="report-state">No non-empty, fully matured covered cohort is available in this range.</p> : null}
-            <div className="chart-scroll"><svg ref={chartRef} role="group" aria-label={`Who came back: W1 and W4 retention by first-use ${state.report.period}`} /></div>
+            <div className="chart-scroll">
+              {state.status === "ready" ? (
+                <ChartAreaWithNote
+                  viewBoxWidth={chartWidth}
+                  viewBoxHeight={stackedChartHeight}
+                  note={state.report.cohorts.every((cohort) => cohort.w1 === null && cohort.w4 === null) ? "No non-empty, fully matured covered cohort is available in this range." : null}
+                >
+                  <svg ref={chartRef} role="group" aria-label={`Who came back: W1 and W4 retention by first-use ${state.report.period}`} />
+                </ChartAreaWithNote>
+              ) : <ChartLoadingPlaceholder viewBoxWidth={chartWidth} viewBoxHeight={stackedChartHeight} label="Loading Who came back…" />}
+            </div>
           </div>
         </section>
-      ) : null}
+      )}
       <ChartTooltip {...tooltipState} />
     </section>
   );

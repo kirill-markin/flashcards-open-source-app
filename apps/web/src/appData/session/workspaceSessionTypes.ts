@@ -61,7 +61,7 @@ export type UseWorkspaceSessionParams =
 
 export type WorkspaceSessionCommands = Readonly<{
   chooseWorkspace: (workspaceId: string) => Promise<void>;
-  createWorkspace: (name: string) => Promise<void>;
+  createWorkspace: (name: string) => Promise<WorkspaceSummary | null>;
   renameWorkspace: (workspaceId: string, name: string) => Promise<void>;
   deleteWorkspace: (workspaceId: string, confirmationText: string) => Promise<void>;
   loadWorkspaceResetProgressPreview: (workspaceId: string) => Promise<WorkspaceResetProgressPreview>;

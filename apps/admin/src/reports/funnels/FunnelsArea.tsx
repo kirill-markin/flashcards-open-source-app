@@ -8,6 +8,8 @@ import type { AnalyticsFilterOptions } from "../../filters/optionsQuery";
 import { FunnelAudienceModeControl } from "./FunnelAudienceModeControl";
 import { funnelSections } from "./funnelSections";
 
+const noOptions: ReadonlyArray<never> = [];
+
 /**
  * The Funnels area: the audience mode, then every funnel in `funnelSections` order, each with its own
  * filter row when it has one.
@@ -19,10 +21,12 @@ import { funnelSections } from "./funnelSections";
 export function FunnelsArea(
   props: Readonly<{
     config: AdminAppConfig;
-    availableRange: AnalyticsDateRange;
+    /** `null` while the range lookup runs. */
+    availableRange: AnalyticsDateRange | null;
     defaultRange: AnalyticsDateRange;
     filters: AnalyticsFilterState;
-    filterOptions: AnalyticsFilterOptions;
+    /** `null` until the General batch first lands. */
+    filterOptions: AnalyticsFilterOptions | null;
     userOptions: ReadonlyArray<ReviewEventsByDateUser>;
     userColorScale: UserColorScale;
     isReportLoading: boolean;
@@ -32,6 +36,8 @@ export function FunnelsArea(
     onTerminalAdminError: (error: unknown, config: AdminAppConfig) => boolean;
   }>,
 ): JSX.Element {
+  const filterOptions = props.filterOptions;
+
   return (
     <>
       <FunnelAudienceModeControl
@@ -60,13 +66,14 @@ export function FunnelsArea(
               defaultRange={props.defaultRange}
               filters={props.filters}
               userOptions={props.userOptions}
-              connectionCountryOptions={props.filterOptions.connectionCountries}
-              appUiLanguageOptions={props.filterOptions.appUiLanguages}
-              catalogDeckOptions={props.filterOptions.catalogDecks}
-              catalogPlacementOptions={props.filterOptions.funnelCatalogPlacements}
-              catalogSourceOptions={props.filterOptions.funnelCatalogSources}
-              catalogDeviceCategoryOptions={props.filterOptions.funnelCatalogDeviceCategories}
-              catalogClickBrowserLanguageOptions={props.filterOptions.funnelCatalogClickBrowserLanguages}
+              connectionCountryOptions={filterOptions?.connectionCountries ?? noOptions}
+              appUiLanguageOptions={filterOptions?.appUiLanguages ?? noOptions}
+              catalogDeckOptions={filterOptions?.catalogDecks ?? noOptions}
+              catalogPlacementOptions={filterOptions?.funnelCatalogPlacements ?? noOptions}
+              catalogSourceOptions={filterOptions?.funnelCatalogSources ?? noOptions}
+              catalogDeviceCategoryOptions={filterOptions?.funnelCatalogDeviceCategories ?? noOptions}
+              catalogClickBrowserLanguageOptions={filterOptions?.funnelCatalogClickBrowserLanguages ?? noOptions}
+              areOptionListsLoading={filterOptions === null}
               isReportLoading={props.isReportLoading}
               dateRangeError={props.dateRangeError}
               userColorScale={props.userColorScale}
