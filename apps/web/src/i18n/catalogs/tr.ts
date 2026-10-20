@@ -272,7 +272,6 @@ const trCatalog: TranslationCatalog = {
   },
   progressScreen: {
     title: "İlerleme",
-    subtitle: "Güncel serinizi ve günlük tekrar geçmişinizi takip edin.",
     streakTitle: "Seri",
     streakInfoToggleLabel: "Seri dondurmaları hakkında",
     streakInfo: "Dondurma bankası {{available}}/{{capacity}}. Sonraki yenilenme {{progress}}/{{required}}.",
@@ -516,7 +515,6 @@ const trCatalog: TranslationCatalog = {
   },
   settingsHome: {
     title: "Ayarlar",
-    subtitle: "Hesabı, çalışma alanını, desteği ve gelişmiş web ayarlarını yönetin.",
     inviteFriend: {
       actionText: "Arkadaş ekle",
       ariaLabel: "Arkadaş ekle",
@@ -1228,7 +1226,6 @@ const trCatalog: TranslationCatalog = {
       label: "Ara",
       placeholder: "Ön yüz, arka yüz veya etiket ara",
     },
-    subtitle: "Kartlar, öğrenmek ve hatırlamak için tekrar ettiğiniz sorular ve cevaplardır.",
     table: {
       back: "Arka",
       due: "Zamanı",

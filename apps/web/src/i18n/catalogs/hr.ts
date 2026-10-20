@@ -278,7 +278,6 @@ const hrCatalog: TranslationCatalog = {
   },
   progressScreen: {
     title: "Napredak",
-    subtitle: "Pratite svoj nedavni niz i dnevnu povijest ponavljanja.",
     streakTitle: "Niz",
     streakInfoToggleLabel: "O zamrzavanjima niza",
     streakInfo: "Zamrzavanja niza: {{available}}/{{capacity}}. Sljedeća obnova: {{progress}}/{{required}}.",
@@ -524,7 +523,6 @@ const hrCatalog: TranslationCatalog = {
   },
   settingsHome: {
     title: "Postavke",
-    subtitle: "Upravljajte računom, radnim prostorom, podrškom i naprednim web-postavkama.",
     inviteFriend: {
       actionText: "Dodaj prijatelja",
       ariaLabel: "Dodaj prijatelja",
@@ -1238,7 +1236,6 @@ const hrCatalog: TranslationCatalog = {
       label: "Pretraživanje",
       placeholder: "Pretraži prednju stranu, poleđinu ili oznake",
     },
-    subtitle: "Kartice sadrže pitanja i odgovore koje ponavljate kako biste učili i pamtili.",
     table: {
       back: "Poleđina",
       due: "Dospijeće",

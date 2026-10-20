@@ -278,7 +278,6 @@ const csCatalog: TranslationCatalog = {
   },
   progressScreen: {
     title: "Pokrok",
-    subtitle: "Sledujte svou aktuální sérii a denní historii opakování.",
     streakTitle: "Série",
     streakInfoToggleLabel: "O zmrazeních série",
     streakInfo: "Zásoba zmrazení {{available}}/{{capacity}}. Další doplnění {{progress}}/{{required}}.",
@@ -524,7 +523,6 @@ const csCatalog: TranslationCatalog = {
   },
   settingsHome: {
     title: "Nastavení",
-    subtitle: "Spravujte účet, pracovní prostor, podporu a pokročilá nastavení webu.",
     inviteFriend: {
       actionText: "Přidat přítele",
       ariaLabel: "Přidat přítele",
@@ -1238,7 +1236,6 @@ const csCatalog: TranslationCatalog = {
       label: "Hledat",
       placeholder: "Hledat v přední straně, zadní straně nebo štítcích",
     },
-    subtitle: "Kartičky obsahují otázky a odpovědi, které si opakujete, abyste se je naučili a zapamatovali.",
     table: {
       back: "Zadní strana",
       due: "K opakování",
