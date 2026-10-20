@@ -5,6 +5,7 @@ import type { AnalyticsDateRange } from "../../filters/analyticsFilters";
 import { BreakdownLoadingChart } from "../levelOneMetrics/BreakdownSection";
 import type { BreakdownReportLoader } from "../levelOneMetrics/breakdownReport";
 import type { ReportPeriod } from "../levelOneMetrics/reportPeriod";
+import type { SiteVisitorCohort } from "./breakdownQuery";
 import {
   loadLandingPagePathReport,
   loadTopLandingPageKinds,
@@ -13,7 +14,12 @@ import {
   topLandingPageKindCount,
   type LandingPageVisitors,
 } from "./landingPagePathQuery";
-import { WhoSawUsBreakdownSection, webVisitorCounting, whoSawUsCountLabel } from "./WhoSawUsBreakdownSections";
+import {
+  WhoSawUsBreakdownSection,
+  webEngagedVisitorCounting,
+  webVisitorCounting,
+  whoSawUsCountLabel,
+} from "./WhoSawUsBreakdownSections";
 
 type TopLandingPagesLoader = (
   config: AdminAppConfig,
@@ -49,20 +55,60 @@ type TopPagesLoadState =
   | Readonly<{ status: "error"; message: string }>
   | Readonly<{ status: "ready"; pages: ReadonlyArray<LandingPageVisitors> }>;
 
-const topKindsTitle = "Top landing page types";
-const sectionsTitle = "Web visitors by page, for the top landing page types";
+/** The words that tell one cohort's landing page path charts from the other's. */
+type CohortCopy = Readonly<{
+  testIdPrefix: string;
+  topKindsTitle: string;
+  sectionsTitle: string;
+  /** Opens a chart title, as in "Web visitors landing on home pages, by page". */
+  visitorsTitle: string;
+  /** Closes a top pages table title. */
+  topPagesSuffix: string;
+  /** The visitors a chart holds, to open a sentence. */
+  visitors: string;
+  pageTypeChartTitle: string;
+  counting: string;
+  /** The visitors the top landing page types rank by, to close a sentence. */
+  rankedVisitors: string;
+}>;
+
+const cohortCopy: Readonly<Record<SiteVisitorCohort, CohortCopy>> = {
+  all: {
+    testIdPrefix: "who-saw-us-landing-page-paths",
+    topKindsTitle: "Top landing page types",
+    sectionsTitle: "Web visitors by page, for the top landing page types",
+    visitorsTitle: "Web visitors",
+    topPagesSuffix: "",
+    visitors: "The Who saw us Web visitors",
+    pageTypeChartTitle: "Web visitors by landing page type",
+    counting: webVisitorCounting,
+    rankedVisitors: "landing visitors",
+  },
+  engaged: {
+    testIdPrefix: "who-saw-us-engaged-landing-page-paths",
+    topKindsTitle: "Top engaged landing page types",
+    sectionsTitle: "Engaged visitors by page, for the top landing page types",
+    visitorsTitle: "Engaged visitors",
+    topPagesSuffix: " of engaged visitors",
+    visitors: "The Who saw us Web Engaged visitors",
+    pageTypeChartTitle: "Engaged visitors by landing page type",
+    counting: webEngagedVisitorCounting,
+    rankedVisitors: "engaged landing visitors",
+  },
+};
 
 const formatCount = d3.format(",d");
 
-function buildLandingPagePathBreakdown(pageKind: string): LandingPagePathBreakdown {
-  const title = `Web visitors landing on ${pageKind} pages, by page`;
-  const topPagesTitle = `Top ${topLandingPageCount} ${pageKind} landing pages`;
+function buildLandingPagePathBreakdown(cohort: SiteVisitorCohort, pageKind: string): LandingPagePathBreakdown {
+  const copy = cohortCopy[cohort];
+  const title = `${copy.visitorsTitle} landing on ${pageKind} pages, by page`;
+  const topPagesTitle = `Top ${topLandingPageCount} ${pageKind} landing pages${copy.topPagesSuffix}`;
   return {
     pageKind,
     title,
-    loadReport: (config, dateRange, period, signal) => loadLandingPagePathReport(config, pageKind, dateRange, period, `${title} report`, signal),
+    loadReport: (config, dateRange, period, signal) => loadLandingPagePathReport(config, cohort, pageKind, dateRange, period, `${title} report`, signal),
     topPagesTitle,
-    loadTopPages: (config, dateRange, period, signal) => loadTopLandingPages(config, pageKind, dateRange, period, `${topPagesTitle} report`, signal),
+    loadTopPages: (config, dateRange, period, signal) => loadTopLandingPages(config, cohort, pageKind, dateRange, period, `${topPagesTitle} report`, signal),
   };
 }
 
@@ -121,28 +167,31 @@ function TopLandingPagesTable(props: Readonly<{
 }
 
 /**
- * One chart per top landing page type of the selection, splitting its visitors by the exact page,
- * with that type's top pages listed beneath it in the same grid cell.
+ * One chart per top landing page type of the selection, splitting its `cohort` visitors by the exact
+ * page, with that type's top pages listed beneath it in the same grid cell.
  */
 export function WebLandingPagePathSections(props: Readonly<{
+  cohort: SiteVisitorCohort;
   config: AdminAppConfig;
   dateRange: AnalyticsDateRange;
   period: ReportPeriod;
   onTerminalAdminError: (error: unknown, config: AdminAppConfig) => boolean;
 }>): JSX.Element {
+  const copy = cohortCopy[props.cohort];
   const [state, setState] = useState<LoadState>({ status: "loading" });
   const [revision, setRevision] = useState<number>(0);
   useEffect(() => {
     let cancelled = false;
+    const { topKindsTitle } = cohortCopy[props.cohort];
     setState({ status: "loading" });
     const abortController = new AbortController();
-    void loadTopLandingPageKinds(props.config, props.dateRange, props.period, `${topKindsTitle} report`, abortController.signal).then((pageKinds) => {
+    void loadTopLandingPageKinds(props.config, props.cohort, props.dateRange, props.period, `${topKindsTitle} report`, abortController.signal).then((pageKinds) => {
       if (!cancelled) {
         setState({
           status: "ready",
           dateRange: props.dateRange,
           period: props.period,
-          breakdowns: pageKinds.map(buildLandingPagePathBreakdown),
+          breakdowns: pageKinds.map((pageKind) => buildLandingPagePathBreakdown(props.cohort, pageKind)),
         });
       }
     }).catch((error: unknown) => {
@@ -150,17 +199,17 @@ export function WebLandingPagePathSections(props: Readonly<{
       setState({ status: "error", message: error instanceof Error ? error.message : `Unexpected ${topKindsTitle} query error.` });
     });
     return () => { cancelled = true; abortController.abort(); };
-  }, [props.config, props.dateRange, props.period, props.onTerminalAdminError, revision]);
+  }, [props.cohort, props.config, props.dateRange, props.period, props.onTerminalAdminError, revision]);
 
   if (state.status === "loading") {
     return (
       <>
         {Array.from({ length: topLandingPageKindCount }, (_, index) => (
-          <section key={index} className="dashboard-section" data-testid={`who-saw-us-landing-page-paths-placeholder-${index + 1}-section`}>
+          <section key={index} className="dashboard-section" data-testid={`${copy.testIdPrefix}-placeholder-${index + 1}-section`}>
             <header className="dashboard-section-header level-1-metric-section-header">
-              <h2>{sectionsTitle}</h2>
+              <h2>{copy.sectionsTitle}</h2>
             </header>
-            <BreakdownLoadingChart countLabel={whoSawUsCountLabel} period={props.period} label={`Loading ${topKindsTitle}…`} />
+            <BreakdownLoadingChart countLabel={whoSawUsCountLabel} period={props.period} label={`Loading ${copy.topKindsTitle}…`} />
           </section>
         ))}
       </>
@@ -169,12 +218,12 @@ export function WebLandingPagePathSections(props: Readonly<{
 
   if (state.status === "error") {
     return (
-      <section className="dashboard-section" data-testid="who-saw-us-landing-page-paths-section">
+      <section className="dashboard-section" data-testid={`${copy.testIdPrefix}-section`}>
         <header className="dashboard-section-header level-1-metric-section-header">
-          <h2>{sectionsTitle}</h2>
+          <h2>{copy.sectionsTitle}</h2>
         </header>
         <div className="report-state report-state-error">
-          <strong>{topKindsTitle} query failed.</strong><span>{state.message}</span>
+          <strong>{copy.topKindsTitle} query failed.</strong><span>{state.message}</span>
           <button className="filter-button" type="button" onClick={() => setRevision((value) => value + 1)}>Retry</button>
         </div>
       </section>
@@ -191,12 +240,12 @@ export function WebLandingPagePathSections(props: Readonly<{
             period={state.period}
             onTerminalAdminError={props.onTerminalAdminError}
             title={breakdown.title}
-            testId={`who-saw-us-landing-page-paths-${index + 1}-section`}
-            explanationId={`who-saw-us-landing-page-paths-${index + 1}-explanation`}
+            testId={`${copy.testIdPrefix}-${index + 1}-section`}
+            explanationId={`${copy.testIdPrefix}-${index + 1}-explanation`}
             explanation={<>
-              <li>The Who saw us Web visitors whose first page view in that bar or day is a {breakdown.pageKind} page, so each bar adds up to the {breakdown.pageKind} visitors in Web visitors by landing page type for the same day, week or month: {webVisitorCounting}. When {breakdown.pageKind} is not one of that chart’s five coloured values, those visitors sit inside its Other.</li>
+              <li>{copy.visitors} whose first page view in that bar or day is a {breakdown.pageKind} page, so each bar adds up to the {breakdown.pageKind} visitors in {copy.pageTypeChartTitle} for the same day, week or month: {copy.counting}. When {breakdown.pageKind} is not one of that chart’s five coloured values, those visitors sit inside its Other.</li>
               <li>A visitor counts under the path of that first page view, which the site reports with the language prefix removed, so one page in every language is one path. Views stored before the site began sending a path, on 2026-09-23, and pages whose route it could not report are Unknown.</li>
-              <li>{breakdown.pageKind} is one of the three page types with the most landing visitors over the selection, among the types with more than one page.</li>
+              <li>{breakdown.pageKind} is one of the three page types with the most {copy.rankedVisitors} over the selection, among the types with more than one page.</li>
               <li>The table beneath lists the {topLandingPageCount} pages with the most visitors summed over the selection’s bars, so a visitor counts as many times as the bars count them: by day, landing on a page on 3 days counts 3 times. Its order is the chart’s, so its first five rows are the chart’s coloured pages.</li>
             </>}
             loadReport={breakdown.loadReport}
@@ -207,7 +256,7 @@ export function WebLandingPagePathSections(props: Readonly<{
             period={state.period}
             onTerminalAdminError={props.onTerminalAdminError}
             title={breakdown.topPagesTitle}
-            testId={`who-saw-us-landing-page-paths-${index + 1}-top-pages`}
+            testId={`${copy.testIdPrefix}-${index + 1}-top-pages`}
             loadTopPages={breakdown.loadTopPages}
           />
         </div>
