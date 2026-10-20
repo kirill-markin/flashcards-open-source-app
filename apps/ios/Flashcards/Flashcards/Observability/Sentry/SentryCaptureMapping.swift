@@ -80,6 +80,23 @@ extension SentryObservabilityAdapter {
                 message: "\(observation.phase.rawValue).\(observation.outcome.rawValue)",
                 data: self.cloudFlowContext(observation)
             )
+        case .workspaceLinkReadFailed(let observation):
+            let context: [String: Any] = [
+                "phase": CloudFlowPhase.linkLocalWorkspace.rawValue,
+                "failed_read": observation.failedRead.rawValue,
+                "expected_source_workspace_id": observation.expectedSourceWorkspaceId,
+                "persisted_active_workspace_id": observation.persistedActiveWorkspaceId ?? "",
+                "workspace_row_count": observation.workspaceRowCount.map { count in String(count) } ?? "",
+                "state_read_error_type": observation.stateReadErrorType.map(safeDiagnosticIdentifier) ?? ""
+            ]
+            self.writeLocalRecord(
+                kind: "breadcrumb", feature: .cloudSync,
+                action: "workspace_link_read_failed", fields: stringifyContext(context)
+            )
+            self.addSentryBreadcrumb(
+                category: "ios.cloud", level: .error,
+                message: "workspace_link_read_failed", data: context
+            )
         case .cloudRetry(let observation):
             self.writeLocalRecord(
                 kind: "breadcrumb",
