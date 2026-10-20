@@ -317,6 +317,48 @@ function FullscreenChatFallback(): ReactElement {
   );
 }
 
+function isBrowserStorageAvailable(): boolean {
+  try {
+    const storage: Storage = window.localStorage;
+    if (
+      typeof storage?.getItem !== "function"
+      || typeof storage?.setItem !== "function"
+      || typeof storage?.removeItem !== "function"
+    ) {
+      return false;
+    }
+
+    storage.getItem("flashcards-storage-availability");
+    return true;
+  } catch (error) {
+    if (error instanceof DOMException && error.name === "SecurityError") {
+      return false;
+    }
+
+    throw error;
+  }
+}
+
+function StorageUnavailablePanel(): ReactElement {
+  const { t } = useI18n();
+
+  return (
+    <main className="page-state" data-testid="storage-unavailable">
+      <section className="panel panel-center state-panel">
+        <h1 className="title">{t("app.title")}</h1>
+        <h2 className="panel-subtitle">{t("appError.storageUnavailable.title")}</h2>
+        <p className="error-banner">{t("appError.storageUnavailable.message")}</p>
+        <p className="subtitle">{t("appError.storageUnavailable.guidance")}</p>
+      </section>
+    </main>
+  );
+}
+
+function BrowserStorageGate(props: Readonly<{ children: ReactElement }>): ReactElement {
+  const [isStorageAvailable] = useState<boolean>(isBrowserStorageAvailable);
+  return isStorageAvailable ? props.children : <StorageUnavailablePanel />;
+}
+
 function AppCrashFallback(): ReactElement {
   const { t } = useI18n();
 
@@ -751,17 +793,7 @@ export function AppShell(): ReactElement {
   }
 
   if (sessionLoadState === "storage_unavailable") {
-    // No retry button: the browser exposes no storage at all, so another attempt fails identically.
-    return (
-      <main className="page-state">
-        <section className="panel panel-center state-panel">
-          <h1 className="title">{t("app.title")}</h1>
-          <h2 className="panel-subtitle">{t("appError.storageUnavailable.title")}</h2>
-          <p className="error-banner">{t("appError.storageUnavailable.message")}</p>
-          <p className="subtitle">{t("appError.storageUnavailable.guidance")}</p>
-        </section>
-      </main>
-    );
+    return <StorageUnavailablePanel />;
   }
 
   if (sessionLoadState === "deleted") {
@@ -1149,9 +1181,9 @@ function AuthenticatedApp(): ReactElement {
   );
 }
 
-export default function App(): ReactElement {
+function AppContent(): ReactElement {
   return (
-    <AppErrorBoundary fallback={<AppCrashFallback />}>
+    <BrowserStorageGate>
       <BrowserRouter>
         <AnalyticsLifecycle />
         {/* Outside the routes, so every surface a visitor can land on asks on the same terms. */}
@@ -1182,6 +1214,14 @@ export default function App(): ReactElement {
           </TestModeProvider>
         </AppErrorDialogProvider>
       </BrowserRouter>
+    </BrowserStorageGate>
+  );
+}
+
+export default function App(): ReactElement {
+  return (
+    <AppErrorBoundary fallback={<AppCrashFallback />}>
+      <AppContent />
     </AppErrorBoundary>
   );
 }
