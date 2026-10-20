@@ -195,7 +195,7 @@ const allSeriesExplanation = <>
       <li>Stores count per breakdown row, and the three surfaces overlap, so one person can be counted more than once</li>
       <li>Someone who opens a store page from our website, by a store badge or the site's QR code, counts in both Web and App Store or Google Play; removing this overlap is a planned follow-up</li>
       <li>
-        Faded store segment = not final: its numbers can still arrive or change
+        Faded store segment, or any segment of the bar holding today, = not final: its numbers can still arrive or change
         <ul>
           <li>App Store for {storeNotFinalDayCounts["app-store"]} days, Google Play for {storeNotFinalDayCounts["google-play"]} days, since Google posts daily data within 3 to 7 days</li>
           <li>Also a week or month that runs past the store's newest delivered day</li>
@@ -324,6 +324,7 @@ export function WhoSawUsSection(
       peakDailyTotal: chartModel.peakTotal,
       xAxisLabel: reportPeriodAxisLabels[chartModel.period],
       isNotFinalSegment: (key, date) => {
+        if (date === chartModel.inProgressKey) return true;
         const storeKey = findStoreSeriesKey(getSeriesKey(key));
         return storeKey !== undefined && getStoreFreshness(date)[storeKey] !== "final";
       },
