@@ -39,12 +39,29 @@ export type WhoSawUsBreakdownDimension = (typeof whoSawUsBreakdownDimensions)[nu
 export type SiteVisitorCohort = "all" | "engaged";
 
 /**
+ * Over `buildSiteVisitorDaysCtesSql`'s CTEs, the visitors the `Engaged visitors` chart counts, keyed
+ * as `buildSiteFirstViewsCtesSql` counts a visitor once: `engaged_identified_visitors(bucket_date,
+ * actor_id)`, engaged on a day of that bucket, and `engaged_hashed_visitors(daily_visitor_hash,
+ * visit_date)`, engaged on that hash day.
+ */
+export function buildSiteEngagedVisitorKeysCtesSql(range: AnalyticsDateRange, period: ReportPeriod): string {
+  return `${buildSiteVisitorDaysCtesSql(range)}, engaged_identified_visitors AS MATERIALIZED (
+  SELECT DISTINCT ${buildReportBucketSql(period, "visit_date")} AS bucket_date, actor_id
+  FROM identified_visitor_days
+  WHERE is_engaged
+), engaged_hashed_visitors AS MATERIALIZED (
+  SELECT daily_visitor_hash, visit_date
+  FROM hashed_visitor_days
+  WHERE is_engaged
+)`;
+}
+
+/**
  * The first page view of each `cohort` visitor in the unit the `web` series counts them once in: the
  * bucket for an identified visitor, the hash day for a cookieless one. Two CTEs,
  * `identified_first_views` and `hashed_first_views`, each a `bucket_date` plus the columns
- * `columnsSqlOf` selects off the view. An engaged identified visitor is engaged on a day of that
- * bucket, an engaged cookieless one on that hash day; the cohort keeps or drops a visitor's views
- * whole, so their first view is the one every cohort reads.
+ * `columnsSqlOf` selects off the view. The `engaged` cohort keeps or drops a visitor's views whole,
+ * by `buildSiteEngagedVisitorKeysCtesSql`, so their first view is the one every cohort reads.
  */
 export function buildSiteFirstViewsCtesSql(
   columnsSqlOf: (rowAlias: string) => string,
@@ -73,15 +90,7 @@ export function buildSiteFirstViewsCtesSql(
     case "all":
       return firstViewsCtesSql("", "");
     case "engaged":
-      return `${buildSiteVisitorDaysCtesSql(range)}, engaged_identified_visitors AS MATERIALIZED (
-  SELECT DISTINCT ${buildReportBucketSql(period, "visit_date")} AS bucket_date, actor_id
-  FROM identified_visitor_days
-  WHERE is_engaged
-), engaged_hashed_visitors AS MATERIALIZED (
-  SELECT daily_visitor_hash, visit_date
-  FROM hashed_visitor_days
-  WHERE is_engaged
-), ${firstViewsCtesSql(
+      return `${buildSiteEngagedVisitorKeysCtesSql(range, period)}, ${firstViewsCtesSql(
         `\n  AND (${identifiedBucketSql}, site_view.actor_id) IN (SELECT bucket_date, actor_id FROM engaged_identified_visitors)`,
         `\n  AND (hashed_view.daily_visitor_hash, ${hashedVisitorDaySql}) IN (SELECT daily_visitor_hash, visit_date FROM engaged_hashed_visitors)`,
       )}`;
@@ -110,7 +119,13 @@ export function buildSiteMeasuredBucketsCteSql(cohort: SiteVisitorCohort, period
   }
 }
 
-// Shared so the landing page path charts split exactly the segments of `web-landing-page-type`.
+// Shared so the engaged share table splits exactly the segments of `web-country`.
+export function buildSiteCountrySql(rowAlias: string): string {
+  return `${rowAlias}.country`;
+}
+
+// Shared so the landing page path charts and the engaged share table split exactly the segments of
+// `web-landing-page-type`.
 export function buildSitePageKindSql(rowAlias: string): string {
   return `${rowAlias}.event_properties ->> 'page_kind'`;
 }
@@ -163,11 +178,11 @@ function buildMeasuredCtesSql(
 ): string {
   switch (dimension) {
     case "web-country":
-      return buildSiteMeasuredCtesSql((rowAlias) => `${rowAlias}.country`, "all", range, period);
+      return buildSiteMeasuredCtesSql(buildSiteCountrySql, "all", range, period);
     case "web-landing-page-type":
       return buildSiteMeasuredCtesSql(buildSitePageKindSql, "all", range, period);
     case "web-engaged-country":
-      return buildSiteMeasuredCtesSql((rowAlias) => `${rowAlias}.country`, "engaged", range, period);
+      return buildSiteMeasuredCtesSql(buildSiteCountrySql, "engaged", range, period);
     case "web-engaged-landing-page-type":
       return buildSiteMeasuredCtesSql(buildSitePageKindSql, "engaged", range, period);
     case "app-store-source-type":

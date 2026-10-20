@@ -5,6 +5,7 @@ import { LevelOneMetricDetailsHeader } from "../levelOneMetrics/LevelOneMetricDe
 import { LevelOneMetricsFrame } from "../levelOneMetrics/LevelOneMetricsFrame";
 import { useLevelOneMetricsSelection } from "../levelOneMetrics/useLevelOneMetricsSelection";
 import { WebEngagedShareSection } from "./WebEngagedShareSection";
+import { WebEngagedShareTableSections } from "./WebEngagedShareTableSections";
 import { WebEngagedVisitorsSection } from "./WebEngagedVisitorsSection";
 import { WebLandingPagePathSections } from "./WebLandingPagePathSections";
 import { WhoSawUsBreakdownSections } from "./WhoSawUsBreakdownSections";
@@ -89,6 +90,12 @@ export function WhoSawUsDatasetPage(
                 </header>
                 <WhoSawUsBreakdownSections
                   group="web-engaged"
+                  config={props.config}
+                  dateRange={selection.dateRange}
+                  period={selection.period}
+                  onTerminalAdminError={props.onTerminalAdminError}
+                />
+                <WebEngagedShareTableSections
                   config={props.config}
                   dateRange={selection.dateRange}
                   period={selection.period}
