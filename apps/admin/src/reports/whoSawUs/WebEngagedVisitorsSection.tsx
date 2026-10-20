@@ -17,7 +17,12 @@ import {
   reportPeriodAxisLabels,
   type ReportPeriod,
 } from "../levelOneMetrics/reportPeriod";
-import { loadEngagedVisitorsReport, type EngagedVisitorsBucket, type EngagedVisitorsReport } from "./engagedVisitorsQuery";
+import {
+  loadEngagedVisitorsReport,
+  pageReadEngagementStartDate,
+  type EngagedVisitorsBucket,
+  type EngagedVisitorsReport,
+} from "./engagedVisitorsQuery";
 import { whoSawUsSeriesColors } from "./WhoSawUsSection";
 
 const title = "Engaged visitors";
@@ -112,7 +117,7 @@ export function WebEngagedVisitorsSection(props: Readonly<{
               <li>
                 <strong>What it shows:</strong> the Web visitors above who did more than open one page, per UTC day, week or month
                 <ul>
-                  <li>Engaged on a day: 2 or more page views, or a page view plus any site action, such as a click, a deck install click, a catalog search, a copy, an answered language suggestion or a cookie consent grant</li>
+                  <li>Engaged on a day: 2 or more page views, or a page view plus any site action, such as a page read (from {pageReadEngagementStartDate}, 10+ seconds on one page with a scroll, click or key press), a click, a deck install click, a catalog search, a copy, an answered language suggestion or a cookie consent grant</li>
                   <li>Impressions are not actions: an app button, store QR code, language suggestion or cookie banner shown, a declined banner, or collection switched on or off</li>
                   <li>The same visitors and exclusions as the Web chart, so each bar is at most the Web bar for the same day, week or month; one-page visitors stay counted there</li>
                   <li><strong>Weeks and months:</strong> an identified visitor engaged on any of the bar's days counts once; cookieless visitors are summed over the bar's days, because the cookieless id changes every day</li>

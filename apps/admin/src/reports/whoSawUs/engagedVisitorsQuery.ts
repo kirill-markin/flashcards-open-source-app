@@ -39,6 +39,12 @@ const siteEngagementEventNames: ReadonlyArray<string> = [
   "catalog_install_clicked",
 ];
 
+/**
+ * `site_page_engaged` went live that evening, ~21:00 UTC, so from that bar on a one-page read of
+ * 10+ s with a scroll, click or key press also counts as engaged.
+ */
+export const pageReadEngagementStartDate = "2026-10-19";
+
 const siteFactEventNames: ReadonlyArray<string> = ["site_page_viewed", ...siteEngagementEventNames];
 
 export type EngagedVisitorsBucket = Readonly<{

@@ -18,18 +18,13 @@ import {
   type ReportBucket,
   type ReportPeriod,
 } from "../levelOneMetrics/reportPeriod";
-import { loadEngagedVisitorsReport, type EngagedVisitorsReport } from "./engagedVisitorsQuery";
+import { loadEngagedVisitorsReport, pageReadEngagementStartDate, type EngagedVisitorsReport } from "./engagedVisitorsQuery";
 import { loadWhoSawUsReport, type WhoSawUsReport } from "./query";
 import { whoSawUsSeriesColors } from "./WhoSawUsSection";
 
 const title = "Engaged share of Web visitors";
 const seriesKeys = ["share"] as const;
 
-/**
- * `site_page_engaged` went live that evening, ~21:00 UTC, so from that bar on a one-page read of
- * 10+ s with a scroll, click or key press also counts as engaged.
- */
-const pageReadEngagementStartDate = "2026-10-19";
 const pageReadEngagementMarkerLabel = "Page reads count from here";
 
 const numberFormatter = d3.format(",");
