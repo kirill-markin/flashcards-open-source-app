@@ -1,13 +1,19 @@
 // @vitest-environment jsdom
-import { act, type ReactNode } from "react";
+import "fake-indexeddb/auto";
+import { act, useEffect, useState, type ReactElement, type ReactNode } from "react";
 import ReactDOM from "react-dom/client";
-import { MemoryRouter, Route, Routes } from "react-router";
+import { MemoryRouter, Route, Routes, useParams } from "react-router";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { publishAnalyticsConsentJurisdiction } from "../../analytics/consent";
 import { ApiError } from "../../api";
 import type { AppDataContextValue } from "../../appData";
+import { loadSelectedReviewFilterForWorkspace, storeSelectedReviewFilterForWorkspace } from "../../appData/context/reviewFilterPersistence";
 import { AppErrorDialogProvider } from "../../appError/AppErrorContext";
 import { I18nProvider } from "../../i18n";
+import { replaceCards } from "../../localDb/cards/cards";
+import { clearWebSyncCache } from "../../localDb/core/cache";
+import { makeCard } from "../../localDb/core/testSupport";
+import { loadReviewQueueSnapshot } from "../../localDb/reviews/reviews";
 import type {
   Card,
   CatalogPackageInstallConfirmOptions,
@@ -180,10 +186,43 @@ function createInstallPreview(): CatalogPackageInstallPreviewResponse {
   };
 }
 
+function createImportedCards(installId: string): ReadonlyArray<Card> {
+  return ["imported-1", "imported-2"].map((cardId) => makeCard({
+    cardId,
+    frontText: `Question ${cardId}`,
+    backText: `Answer ${cardId}`,
+    tags: ["geography"],
+    dueAt: null,
+    createdAt: "2026-08-02T10:00:00.000Z",
+    metadata: {
+      version: 1,
+      source: {
+        label: "тест", author: "Test Author", comment: null, createdAt: null,
+        importedAt: "2026-08-02T10:00:00.000Z", importId: installId,
+      },
+    },
+  }));
+}
+
+function CatalogReviewDestination(): ReactElement {
+  const { workspaceId } = useParams();
+  const [cards, setCards] = useState<ReadonlyArray<Card> | null>(null);
+  useEffect(() => {
+    if (workspaceId === undefined) throw new Error("Review destination workspace was not found");
+    const filter = loadSelectedReviewFilterForWorkspace(workspaceId);
+    void loadReviewQueueSnapshot(workspaceId, filter, 20).then((snapshot) => setCards(snapshot.cards));
+  }, [workspaceId]);
+  return <div data-testid="catalog-review-destination" data-workspace-id={workspaceId}>
+    {cards === null ? null : <div data-testid="catalog-review-cards">{cards.map((card) => card.frontText).join(",")}</div>}
+  </div>;
+}
+
 function createInstallResult(installId: string): CatalogPackageInstallConfirmResponse {
   return {
     packageVersion: createInstallPreview().packageVersion,
-    installedCards: [],
+    installedCards: createImportedCards(installId).map((card, ordinal) => ({
+      packageCardId: `package-card-${ordinal}`, stableCardKey: `stable-${ordinal}`, ordinal: ordinal + 1, cardId: card.cardId,
+    })),
     installedMediaAssets: [],
     summary: {
       cardCount: 2,
@@ -337,10 +376,17 @@ describe("CatalogImportScreen", () => {
   let root: ReactDOM.Root;
   let appData: Mutable<AppDataContextValue>;
 
-  beforeEach(() => {
+  beforeEach(async () => {
+    window.localStorage.clear();
+    await clearWebSyncCache();
+    await replaceCards("workspace-1", [
+      ...createImportedCards("44444444-4444-4444-8444-444444444444"),
+      makeCard({
+        cardId: "unrelated", frontText: "Unrelated question", backText: "Unrelated answer",
+        tags: ["unrelated"], dueAt: null, createdAt: "2025-01-01T00:00:00.000Z",
+      }),
+    ]);
     (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
-    // Answers the consent question this load would otherwise hold open, so the screen's analytics
-    // behave the same way in every test rather than depending on an unresolved jurisdiction.
     publishAnalyticsConsentJurisdiction(false);
     window.history.replaceState(null, "", `/catalog/import/${packageVersionId}?source=exact#install`);
     container = document.createElement("div");
@@ -376,6 +422,7 @@ describe("CatalogImportScreen", () => {
             <AppErrorDialogProvider>
               <Routes>
                 <Route path="/catalog/import/:packageVersionId" element={<CatalogImportScreen />} />
+                <Route path="/w/:workspaceId/review" element={<CatalogReviewDestination />} />
               </Routes>
             </AppErrorDialogProvider>
           </I18nProvider>
@@ -618,7 +665,8 @@ describe("CatalogImportScreen", () => {
     expect(confirmCatalogPackageInstallMock.mock.calls[0]?.[2].lastModifiedByReplicaId).toBe(workspaceReplicaId);
   });
 
-  it("submits selected tag options, shows success, and completes normal sync", async () => {
+  it("submits selected tag options and persists the hydrated copy selection for review", async () => {
+    storeSelectedReviewFilterForWorkspace("workspace-1", { kind: "tags", tags: [] });
     await renderRoute(`/catalog/import/${packageVersionId}`);
     await waitForCondition("Catalog preview was not rendered", () => (
       container.querySelector("[data-testid='workspace-package-import-preview']") !== null
@@ -643,8 +691,8 @@ describe("CatalogImportScreen", () => {
     await act(async () => setTextInputValue(importTagInput, "custom-tag"));
     await act(async () => geographyCheckbox.click());
     await act(async () => confirmButton.click());
-    await waitForCondition("Catalog import success was not rendered", () => (
-      container.querySelector("[data-testid='workspace-import-success']") !== null
+    await waitForCondition("Imported cards did not open in review", () => (
+      container.querySelector("[data-testid='catalog-review-cards']") !== null
     ));
 
     expect(confirmCatalogPackageInstallMock).toHaveBeenCalledWith(
@@ -660,34 +708,14 @@ describe("CatalogImportScreen", () => {
       }),
     );
     expect(appData.refreshLocalData).toHaveBeenCalledTimes(2);
-    expect(container.querySelector("[data-testid='workspace-import-success']")?.textContent).toContain("Imported 2 cards with tag custom-tag");
-
-    expect(container.querySelector("[data-testid='catalog-import-success']")).not.toBeNull();
-    expect(container.querySelector("[data-testid='catalog-import-success-workspace']")?.textContent).toBe("Primary");
-    expect(container.querySelector("[data-testid='catalog-import-success-account']")?.textContent).toBe("user@example.com");
-    // The jsdom user agent is a desktop string, so both store options keep their QR code.
-    const platformLinks = Array.from(container.querySelectorAll("[data-testid^='catalog-import-success-link-']"));
-    expect(platformLinks.map((link) => [
-      link.getAttribute("data-testid"),
-      link.getAttribute("href"),
-      link.getAttribute("target"),
-    ])).toEqual([
-      [
-        "catalog-import-success-link-ios",
-        "https://apps.apple.com/app/apple-store/id6760538964?pt=128797295&ct=catalog_import&mt=8",
-        "_blank",
-      ],
-      [
-        "catalog-import-success-link-android",
-        "https://play.google.com/store/apps/details?id=com.flashcardsopensourceapp.app&utm_source=flashcards_website&utm_medium=referral&utm_campaign=catalog_import",
-        "_blank",
-      ],
-      ["catalog-import-success-link-web", "http://localhost:3000/w/workspace-1/review", "_blank"],
-    ]);
-    expect(container.querySelector("[data-testid='catalog-import-success-qr-ios']")).not.toBeNull();
-    expect(container.querySelector("[data-testid='catalog-import-success-qr-android']")).not.toBeNull();
-    expect(container.querySelector("[data-testid='catalog-import-success-qr-web']")).toBeNull();
-    expect(container.querySelector("[data-testid='catalog-import-success-mcp-option']")).not.toBeNull();
+    const expectedFilter: ReviewFilter = {
+      kind: "catalogImport", importId: "44444444-4444-4444-8444-444444444444", title: "тест",
+    };
+    expect(appData.openReview).toHaveBeenCalledWith(expectedFilter);
+    expect(loadSelectedReviewFilterForWorkspace("workspace-1")).toEqual(expectedFilter);
+    expect(container.querySelector("[data-testid='catalog-review-destination']")?.getAttribute("data-workspace-id")).toBe("workspace-1");
+    expect(container.querySelector("[data-testid='catalog-review-cards']")?.textContent).toBe("Question imported-1,Question imported-2");
+    expect(container.querySelector("[data-testid='catalog-import-success']")).toBeNull();
   });
 
   it("reuses one install identity after an ambiguous response and accepts the verified replay result", async () => {
@@ -713,13 +741,11 @@ describe("CatalogImportScreen", () => {
     }
     expect(lockedTagCheckbox.disabled).toBe(true);
     expect(confirmButton.disabled).toBe(false);
-    // The retry must reuse the install id rather than mint a second one. It is read as a delta
-    // because the analytics visitor identity mints through this same spy.
     const mintCountBeforeRetry = vi.mocked(crypto.randomUUID).mock.calls.length;
 
     await act(async () => confirmButton.click());
     await waitForCondition("Catalog install conflict was not reconciled", () => (
-      container.querySelector("[data-testid='workspace-import-success']") !== null
+      container.querySelector("[data-testid='catalog-review-destination']") !== null
       && vi.mocked(appData.refreshLocalData).mock.calls.length === 2
     ));
 
@@ -755,7 +781,8 @@ describe("CatalogImportScreen", () => {
     expect(confirmCatalogPackageInstallMock).toHaveBeenCalledTimes(1);
   });
 
-  it("keeps a queued post-install sync failure retryable without repeating the install", async () => {
+  it("keeps post-install sync and incomplete hydration retryable without repeating the install", async () => {
+    await replaceCards("workspace-1", []);
     const queuedSyncDeferred = createDeferred<void>();
     appData.refreshLocalData = vi.fn()
       .mockResolvedValueOnce(undefined)
@@ -779,20 +806,37 @@ describe("CatalogImportScreen", () => {
     await waitForCondition("Catalog sync failure was not rendered", () => (
       container.querySelector("[data-testid='catalog-import-sync-error']") !== null
     ));
-    expect(container.querySelector("[data-testid='workspace-import-success']")).not.toBeNull();
+    expect(container.querySelector("[data-testid='catalog-review-destination']")).toBeNull();
+    expect(container.querySelector("[data-testid='workspace-package-import-confirm-button']")).toBeNull();
 
     const syncRetryButton = container.querySelector("[data-testid='catalog-import-sync-retry']");
     if (!(syncRetryButton instanceof HTMLButtonElement)) {
       throw new Error("Catalog sync retry button was not found");
     }
     await act(async () => syncRetryButton.click());
-    await waitForCondition("Catalog sync retry did not finish", () => (
+    await waitForCondition("Incomplete hydration did not remain retryable", () => (
       vi.mocked(appData.refreshLocalData).mock.calls.length === 3
-      && container.querySelector("[data-testid='catalog-import-sync-error']") === null
+      && container.querySelector("[data-testid='catalog-import-syncing']") === null
+      && container.querySelector("[data-testid='catalog-import-sync-error']") !== null
+    ));
+    expect(appData.openReview).not.toHaveBeenCalled();
+    expect(container.querySelector("[data-testid='catalog-review-destination']")).toBeNull();
+
+    await replaceCards("workspace-1", createImportedCards("44444444-4444-4444-8444-444444444444"));
+    const hydrationRetryButton = container.querySelector("[data-testid='catalog-import-sync-retry']");
+    if (!(hydrationRetryButton instanceof HTMLButtonElement)) {
+      throw new Error("Catalog hydration retry button was not found");
+    }
+    await act(async () => hydrationRetryButton.click());
+    await waitForCondition("Hydrated imported cards did not open", () => (
+      vi.mocked(appData.refreshLocalData).mock.calls.length === 4
+      && container.querySelector("[data-testid='catalog-review-cards']") !== null
     ));
 
     expect(confirmCatalogPackageInstallMock).toHaveBeenCalledTimes(1);
-    expect(container.querySelector("[data-testid='workspace-import-success']")).not.toBeNull();
+    expect(appData.openReview).toHaveBeenCalledWith({
+      kind: "catalogImport", importId: "44444444-4444-4444-8444-444444444444", title: "тест",
+    });
   });
 
   it("keeps preview failures retryable in place", async () => {

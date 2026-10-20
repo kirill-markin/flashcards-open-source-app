@@ -73,8 +73,12 @@ viewport sizes. Use an exact public package-version URL at `/catalog/import/<pac
    Check the local cards and outbox: package tags are preserved, no import tag or demo is created.
    Reload review, then sign in to a disposable unmapped account and reload again; no demo appears.
 2. With the same guest session, author a card and reopen another catalog URL. Confirm the manual
-   import controls appear and the guest identity and authored card survive. Also check an existing
-   guest that already imported cards. Never clear owned site data to force automatic entry.
+   import controls appear and the guest identity and authored card survive. Confirm an import with
+   the current form: after sync, review opens only that imported copy without a success/platform
+   chooser, even with an empty saved tag filter. Block post-install sync, restore it and retry:
+   review waits for the imported cards and only one install is submitted. Also check an existing
+   guest that already imported cards and the duplicate-copy study action. Never clear owned site
+   data to force automatic entry.
 3. Start ordinary app onboarding in another fresh profile and wait for its provenance-backed demo
    to sync. Open a catalog URL; confirm automatic import removes that demo only after import commits
    and review shows an imported card. Repeat with a reviewed unchanged demo. Edit the demo, including

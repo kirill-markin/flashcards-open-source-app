@@ -1,4 +1,4 @@
-import { Fragment, useCallback, useEffect, useRef, useState, type ReactElement } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactElement } from "react";
 import { useNavigate } from "react-router";
 import {
   createCatalogInstallReportScope,
@@ -26,8 +26,8 @@ import {
   markIndexedDbOpenRecoveryFailureAndCheckActive,
   useAppErrorDialog,
 } from "../../appError/AppErrorContext";
-import { getAppConfig } from "../../config";
 import { type TranslationKey, type TranslationValues, useI18n } from "../../i18n";
+import { loadCardsByIds } from "../../localDb/cards/cards";
 import { buildClientWorkspaceReplicaId } from "../../media/mediaCrypto";
 import { captureAppOperationError } from "../../observability/appOperationObservation";
 import { buildWorkspaceRoute, reviewRoute } from "../../routes";
@@ -42,7 +42,6 @@ import type {
 } from "../settings/workspace/packages/workspaceImportPresentationModel";
 import { CatalogImportConfirmPanel } from "./CatalogImportConfirmPanel";
 import { CatalogImportWorkspaceChooser } from "./CatalogImportWorkspaceChooser";
-import { CatalogImportSuccessPanel } from "./CatalogImportSuccessPanel";
 import { CatalogImportEntry } from "./CatalogImportEntry";
 import {
   CatalogImportContextCard,
@@ -56,9 +55,10 @@ import {
   type CatalogPackageInstallContextLoader,
 } from "./useCatalogPackageInstallContext";
 
-type CatalogImportStep = "workspace" | "confirm" | "done";
+type CatalogImportStep = "workspace" | "confirm";
 
 type CatalogWorkspaceIdentity = Readonly<{
+  userId: string;
   workspaceId: string;
   installationId: string;
 }>;
@@ -66,21 +66,17 @@ type CatalogWorkspaceIdentity = Readonly<{
 type CatalogInstallAttempt = Readonly<{
   identity: CatalogWorkspaceIdentity;
   options: CatalogPackageInstallConfirmOptions;
-  cardCount: number;
-  importTag: string | null;
 }>;
 
-type CatalogInstallCompletion = Readonly<{
-  cardCount: number;
-  importTag: string | null;
-  workspaceId: string;
-  workspaceName: string;
+type CatalogImportedCopy = Readonly<{
+  identity: CatalogWorkspaceIdentity;
+  cardIds: ReadonlyArray<string>;
+  reviewFilter: Extract<ReviewFilter, { kind: "catalogImport" }>;
 }>;
 
 type CatalogInstallSyncState =
   | Readonly<{ status: "idle" }>
   | Readonly<{ status: "syncing" }>
-  | Readonly<{ status: "succeeded" }>
   | Readonly<{ status: "failed"; errorMessage: string }>;
 
 function isSameCatalogWorkspaceIdentity(
@@ -88,6 +84,7 @@ function isSameCatalogWorkspaceIdentity(
   right: CatalogWorkspaceIdentity,
 ): boolean {
   return left !== null
+    && left.userId === right.userId
     && left.workspaceId === right.workspaceId
     && left.installationId === right.installationId;
 }
@@ -100,29 +97,9 @@ function createInitialImportOptions(): WorkspaceImportOptions {
   };
 }
 
-/**
- * The install step a person can actually see right now, or null while none of the three is on
- * screen. The steps are component state rather than routes, so this is the only place they can be
- * recorded, and every branch repeats the render condition of its own panel below rather than
- * reading `step` alone: the session panels replace the whole flow, the confirm panel waits for an
- * active workspace, and the done panel waits for its completion data.
- *
- * `isEntryStepPending` covers the one commit `step` misreports. The entry step is corrected from the
- * workspace list in an effect, so the commit that first delivers a multi-workspace list still
- * carries the entry `confirm` and renders its panel for a single frame before the effect replaces it
- * with `workspace`. `hasWorkspaceStep` is set by that same effect, so it is false exactly on that
- * commit and true by the time a person can reach `confirm` through the chooser — which is what keeps
- * a flash from filing a `catalog_import_confirm` entry that never happened.
- *
- * Exhaustive over `CatalogImportStep` with no `default`, the way `productAnalyticsClientReportable-
- * PlatformFlags` is exhaustive over its stored domain in `apps/backend/src/productAnalytics/
- * catalog.ts`, and for the same reason: a step added to the flow must not inherit `done`'s answer by
- * falling through, because `analytics.product_events` is append-only and has no repair path. Adding
- * one fails to compile here until this question is answered for it.
- */
 function resolveCatalogImportStepSurface(params: Readonly<{
   hasActiveWorkspace: boolean;
-  hasCompletion: boolean;
+  isStudyPending: boolean;
   hasWorkspaceStep: boolean;
   isSessionPanelVisible: boolean;
   isWorkspaceChoiceAvailable: boolean;
@@ -130,13 +107,13 @@ function resolveCatalogImportStepSurface(params: Readonly<{
 }>): AnalyticsSurface | null {
   const {
     hasActiveWorkspace,
-    hasCompletion,
+    isStudyPending,
     hasWorkspaceStep,
     isSessionPanelVisible,
     isWorkspaceChoiceAvailable,
     step,
   } = params;
-  if (isSessionPanelVisible) {
+  if (isSessionPanelVisible || isStudyPending) {
     return null;
   }
 
@@ -147,8 +124,6 @@ function resolveCatalogImportStepSurface(params: Readonly<{
       const isEntryStepPending = isWorkspaceChoiceAvailable && hasWorkspaceStep === false;
       return hasActiveWorkspace && isEntryStepPending === false ? "catalog_import_confirm" : null;
     }
-    case "done":
-      return hasCompletion ? "catalog_import_done" : null;
   }
 }
 
@@ -243,7 +218,7 @@ function CatalogImportSyncStatus(props: Readonly<{
   const { state, onRetry } = props;
   const { t } = useI18n();
 
-  if (state.status === "idle" || state.status === "succeeded") {
+  if (state.status === "idle") {
     return null;
   }
 
@@ -310,15 +285,13 @@ function CatalogImportAuthenticatedContent(props: Readonly<{
   const [previewIdentity, setPreviewIdentity] = useState<CatalogWorkspaceIdentity | null>(null);
   const [options, setOptions] = useState<WorkspaceImportOptions>(createInitialImportOptions);
   const [installAttempt, setInstallAttempt] = useState<CatalogInstallAttempt | null>(null);
-  const [completion, setCompletion] = useState<CatalogInstallCompletion | null>(null);
+  const [importedCopy, setImportedCopy] = useState<CatalogImportedCopy | null>(null);
   const [syncState, setSyncState] = useState<CatalogInstallSyncState>({ status: "idle" });
   const [isWorkspaceSelectionPending, setIsWorkspaceSelectionPending] = useState<boolean>(false);
   const [isPreviewing, setIsPreviewing] = useState<boolean>(false);
   const [isInstalling, setIsInstalling] = useState<boolean>(false);
   const [isStudyingExisting, setIsStudyingExisting] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string>("");
-  // Held for this mount so one preview load is reported once, and so a later visit to the same deck
-  // in this tab reports its own.
   const [previewReportScope] = useState<CatalogInstallReportScope>(createCatalogInstallReportScope);
   const previewRequestGenerationRef = useRef<number>(0);
   const installRequestGenerationRef = useRef<number>(0);
@@ -331,8 +304,6 @@ function CatalogImportAuthenticatedContent(props: Readonly<{
   const pendingWorkspaceSelectionRef = useRef<string | null>(null);
   const hasLeftInitialStepRef = useRef<boolean>(false);
   const installAttemptRef = useRef<CatalogInstallAttempt | null>(null);
-  const stepRef = useRef<CatalogImportStep>(step);
-  stepRef.current = step;
   const technicalErrorMessage = t("appError.technicalError.message");
   const workspaceId = activeWorkspace?.workspaceId ?? null;
   const workspaceIdentity: CatalogWorkspaceIdentity | null = workspaceId !== null
@@ -343,13 +314,13 @@ function CatalogImportAuthenticatedContent(props: Readonly<{
       : cloudSettings.cloudState === "linked")
     && cloudSettings.linkedWorkspaceId === workspaceId
     && cloudSettings.installationId.trim() !== ""
-    ? { workspaceId, installationId: cloudSettings.installationId }
+    ? { userId: session.userId, workspaceId, installationId: cloudSettings.installationId }
     : null;
   const workspaceIdentityRef = useRef<CatalogWorkspaceIdentity | null>(workspaceIdentity);
   workspaceIdentityRef.current = workspaceIdentity;
   const workspaceIdentityKey = workspaceIdentity === null
     ? ""
-    : `${workspaceIdentity.workspaceId}:${workspaceIdentity.installationId}`;
+    : `${workspaceIdentity.userId}:${workspaceIdentity.workspaceId}:${workspaceIdentity.installationId}`;
   const isWorkspaceSelectionBusy = isChoosingWorkspace || isWorkspaceSelectionPending;
   const isEntryStepPending = isWorkspaceChoiceAvailable && !hasWorkspaceStep;
   const isImportAvailable = !isEntryStepPending
@@ -397,8 +368,9 @@ function CatalogImportAuthenticatedContent(props: Readonly<{
   }, [catalogContext.packageVersionId, session?.userId]);
 
   const runPostInstallSync = useCallback(async function runPostInstallSync(
-    identity: CatalogWorkspaceIdentity,
+    copy: CatalogImportedCopy,
   ): Promise<void> {
+    const { identity, cardIds, reviewFilter } = copy;
     if (
       indexedDbOpenRecoveryState.hasFailed()
       || activeSyncRequestRef.current !== null
@@ -422,7 +394,19 @@ function CatalogImportAuthenticatedContent(props: Readonly<{
       ) {
         return;
       }
-      setSyncState({ status: "succeeded" });
+      const localCards = await loadCardsByIds(identity.workspaceId, cardIds);
+      indexedDbOpenRecoveryState.throwIfFailed();
+      if (activeSyncRequestRef.current !== requestGeneration
+        || !isSameCatalogWorkspaceIdentity(workspaceIdentityRef.current, identity)) {
+        return;
+      }
+      if (cardIds.length === 0 || localCards.size !== cardIds.length
+        || [...localCards.values()].some((card) => card.metadata.source?.importId !== reviewFilter.importId)) {
+        throw new Error("Catalog import has not fully hydrated locally. Retry to sync the imported copy.");
+      }
+      storeSelectedReviewFilterForWorkspace(identity.workspaceId, reviewFilter);
+      openReview(reviewFilter);
+      navigate(buildWorkspaceRoute(identity.workspaceId, reviewRoute));
     } catch (error) {
       const indexedDbRecoveryFailed = markIndexedDbOpenRecoveryFailureAndCheckActive(
         indexedDbOpenRecoveryState,
@@ -462,6 +446,8 @@ function CatalogImportAuthenticatedContent(props: Readonly<{
   }, [
     catalogContext.packageVersionId,
     indexedDbOpenRecoveryState,
+    navigate,
+    openReview,
     refreshLocalData,
     showCapturedTechnicalError,
     t,
@@ -609,12 +595,6 @@ function CatalogImportAuthenticatedContent(props: Readonly<{
   }, [workspaceId]);
 
   useEffect(() => {
-    // The done step is terminal: it keeps its own completion data and its post-install
-    // sync status, so a later workspace identity change must not blank it.
-    if (stepRef.current === "done") {
-      return;
-    }
-
     previewRequestGenerationRef.current += 1;
     installRequestGenerationRef.current += 1;
     syncRequestGenerationRef.current += 1;
@@ -627,19 +607,26 @@ function CatalogImportAuthenticatedContent(props: Readonly<{
     setPreviewIdentity(null);
     setOptions(createInitialImportOptions());
     setInstallAttempt(null);
+    setImportedCopy(null);
     setSyncState({ status: "idle" });
     setIsPreviewing(false);
     setIsInstalling(false);
     setIsStudyingExisting(false);
     setErrorMessage("");
+    return () => {
+      activePreviewRequestRef.current = null;
+      activeInstallRequestRef.current = null;
+      activeSyncRequestRef.current = null;
+      activeStudyRequestRef.current = null;
+    };
   }, [isImportAvailable, workspaceIdentityKey]);
 
   useEffect(() => {
-    if (!isImportAvailable || step !== "confirm" || preview !== null) {
+    if (!isImportAvailable || step !== "confirm" || preview !== null || importedCopy !== null) {
       return;
     }
     void refreshPreview();
-  }, [isImportAvailable, preview, refreshPreview, step, workspaceIdentityKey]);
+  }, [importedCopy, isImportAvailable, preview, refreshPreview, step, workspaceIdentityKey]);
 
   function cancelActivePreviewRequest(): void {
     if (activePreviewRequestRef.current === null) {
@@ -755,7 +742,6 @@ function CatalogImportAuthenticatedContent(props: Readonly<{
       setErrorMessage(t("catalogImport.workspaceUnavailable"));
       return;
     }
-    const requestWorkspaceName = activeWorkspace.name;
     if (
       workspaceSelectionInFlightRef.current
       || activePreviewRequestRef.current !== null
@@ -840,8 +826,6 @@ function CatalogImportAuthenticatedContent(props: Readonly<{
             lastModifiedByReplicaId: replicaId,
             operationIdPrefix: installId,
           },
-          cardCount: preview.summary.cardCount,
-          importTag: importOptions.addImportTag ? importTag : null,
         };
         installAttemptRef.current = currentAttempt;
         setInstallAttempt(currentAttempt);
@@ -881,15 +865,18 @@ function CatalogImportAuthenticatedContent(props: Readonly<{
       setPreviewIdentity(null);
       installAttemptRef.current = null;
       setInstallAttempt(null);
-      setCompletion({
-        cardCount: result.summary.cardCount,
-        importTag: result.summary.importTag,
-        workspaceId: requestIdentity.workspaceId,
-        workspaceName: requestWorkspaceName,
-      });
+      const copy: CatalogImportedCopy = {
+        identity: requestAttempt.identity,
+        cardIds: result.installedCards.map((card) => card.cardId),
+        reviewFilter: {
+          kind: "catalogImport",
+          importId: result.summary.installId,
+          title: result.packageVersion.title,
+        },
+      };
+      setImportedCopy(copy);
       hasLeftInitialStepRef.current = true;
-      setStep("done");
-      void runPostInstallSync(requestAttempt.identity);
+      void runPostInstallSync(copy);
     } catch (error) {
       const indexedDbRecoveryFailed = markIndexedDbOpenRecoveryFailureAndCheckActive(
         indexedDbOpenRecoveryState,
@@ -946,10 +933,9 @@ function CatalogImportAuthenticatedContent(props: Readonly<{
     || sessionLoadState === "deleted"
     || sessionLoadState === "storage_unavailable"
     || installContextState.status !== "ready";
-  // Called before the early returns below so it runs on every render, as a hook must.
   useAnalyticsScreenView(resolveCatalogImportStepSurface({
     hasActiveWorkspace: activeWorkspace !== null,
-    hasCompletion: completion !== null,
+    isStudyPending: importedCopy !== null,
     hasWorkspaceStep,
     isSessionPanelVisible,
     isWorkspaceChoiceAvailable,
@@ -1026,7 +1012,7 @@ function CatalogImportAuthenticatedContent(props: Readonly<{
 
   return (
     <main className="invite-page" data-testid="catalog-import-authenticated">
-      {hasWorkspaceStep && step === "confirm" ? (
+      {importedCopy === null && hasWorkspaceStep && step === "confirm" ? (
         <CatalogImportBackNav
           isDisabled={isImportBusy || isWorkspaceSelectionBusy || areImportOptionsLocked}
           onBack={() => setStep("workspace")}
@@ -1034,21 +1020,21 @@ function CatalogImportAuthenticatedContent(props: Readonly<{
       ) : null}
       <CatalogImportContextCard
         catalogContext={catalogContext}
-        accountEmail={step === "done" ? null : (cloudSettings?.linkedEmail ?? session?.profile.email ?? null)}
+        accountEmail={cloudSettings?.linkedEmail ?? session?.profile.email ?? null}
       />
       {workspaceErrorMessage === "" ? null : (
         <section className="content-card invite-panel" data-testid="catalog-import-workspace-error">
           <p className="error-banner" role="alert">{workspaceErrorMessage}</p>
         </section>
       )}
-      {step === "workspace" || isEntryStepPending ? (
+      {importedCopy === null && (step === "workspace" || isEntryStepPending) ? (
         <CatalogImportWorkspaceChooser
           workspaces={installContextState.context.workspaces}
           isSelectionBusy={isWorkspaceSelectionBusy}
           onChooseWorkspace={(nextWorkspaceId) => void selectCatalogWorkspace(nextWorkspaceId)}
         />
       ) : null}
-      {step === "confirm" && !isEntryStepPending && activeWorkspace !== null ? (
+      {importedCopy === null && step === "confirm" && !isEntryStepPending && activeWorkspace !== null ? (
         <CatalogImportConfirmPanel
           copy={{
             title: t("catalogImport.installTitle"),
@@ -1091,28 +1077,12 @@ function CatalogImportAuthenticatedContent(props: Readonly<{
             : canRetryPreview ? () => void refreshPreview() : null}
         />
       ) : null}
-      {step === "done" && completion !== null ? (
-        <Fragment>
-          <CatalogImportSuccessPanel
-            cardCount={completion.cardCount}
-            importTag={completion.importTag}
-            workspaceName={completion.workspaceName}
-            accountEmail={session?.profile.email ?? null}
-            webHref={
-              `${getAppConfig().appBaseUrl}${buildWorkspaceRoute(completion.workspaceId, reviewRoute)}`
-            }
-          />
-          <CatalogImportSyncStatus
-            state={syncState}
-            onRetry={() => {
-              const identity = workspaceIdentityRef.current;
-              if (identity !== null) {
-                void runPostInstallSync(identity);
-              }
-            }}
-          />
-        </Fragment>
-      ) : null}
+      {importedCopy === null ? null : (
+        <CatalogImportSyncStatus
+          state={syncState}
+          onRetry={() => void runPostInstallSync(importedCopy)}
+        />
+      )}
     </main>
   );
 }
