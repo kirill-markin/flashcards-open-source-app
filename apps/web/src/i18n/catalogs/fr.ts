@@ -272,7 +272,6 @@ const frCatalog: TranslationCatalog = {
   },
   progressScreen: {
     title: "Progression",
-    subtitle: "Suivez votre série en cours et l'historique de vos révisions quotidiennes.",
     streakTitle: "Série",
     streakInfoToggleLabel: "À propos des gels de série",
     streakInfo: "Réserve de gels {{available}}/{{capacity}}. Prochaine recharge {{progress}}/{{required}}.",
@@ -516,7 +515,6 @@ const frCatalog: TranslationCatalog = {
   },
   settingsHome: {
     title: "Paramètres",
-    subtitle: "Gérez le compte, l'espace de travail, l'assistance et les paramètres web avancés.",
     inviteFriend: {
       actionText: "Ajouter un ami",
       ariaLabel: "Ajouter un ami",
@@ -1228,7 +1226,6 @@ const frCatalog: TranslationCatalog = {
       label: "Rechercher",
       placeholder: "Rechercher dans le recto, le verso ou les étiquettes",
     },
-    subtitle: "Les cartes sont les questions et les réponses que vous révisez pour apprendre et mémoriser.",
     table: {
       back: "Verso",
       due: "Échéance",

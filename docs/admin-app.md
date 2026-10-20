@@ -66,6 +66,7 @@ Run it locally with `make local-admin` on `http://localhost:3001` before merge; 
 - The five charts appear in funnel order on the last 60 days, and in one column on a narrow viewport.
 - Switch `Group by` through Days, Weeks and Months: every chart regroups, edge buckets name only the selected days, the bucket holding today is in progress, and a people count in a week or month is less than or equal to the sum of its Days bars.
 - On the `Who opened the app` Details page, every breakdown bar sums to the chart's bar for the same bucket, and both the `Level 1 metrics` tab and `← Level 1 metrics` return with the same range and `Group by`.
+- On the `Who studied` Details page, every `Review events by person` bar totals the same as the `Review events by platform` bar for the same bucket.
 - `Who saw us` `Details` opens a picker of `Web`, `App Store` and `Google Play` beside an inactive `MCP`; each opens a page with only that series' chart and its own breakdowns, every breakdown bar sums to that chart's bar for the same bucket (on `Web`, only above the `Engaged visitors` heading, where a by-page chart's bar sums to its type's visitors in `Web visitors by landing page type`, inside Other when that type is outside the chart's top five), and both its back link and the `Level 1 metrics` tab keep the range and `Group by`.
 - On the `Who saw us` `Web` page, every `Engaged visitors` bar is less than or equal to the visitor chart's bar for the same bucket. Under the `Engaged visitors` heading after every other chart, every engaged breakdown bar sums to the `Engaged visitors` bar for the same bucket, and each engaged by-page bar sums to its type's visitors in `Engaged visitors by landing page type`, inside Other when that type is outside the chart's top five.
 - On the same page, every `Engaged share of Web visitors` point is between 0% and 100% and equals the `Engaged visitors` bar ÷ the visitor chart's bar for the same bucket; the dashed 2026-10-19 marker shows when the range includes that day, under every `Group by`.
@@ -90,7 +91,7 @@ Run it locally with `make local-admin` on `http://localhost:3001` before merge; 
 - Pick one connection country and one app interface language: every chart and the Audience denominator narrow, and both survive a reload.
 - A filter that empties a chart removes no user or deck from the options and changes nobody's colour.
 - Copy the URL after a few filter clicks and open it in a new tab: the same selection and numbers reopen.
-- On the analytics areas, emails appear only in the user filter popup and tooltips. A ⌘/Ctrl-click or middle click on a `Study vs AI` dot or a user option's `Open` link opens the user page in a new tab, and a plain click opens it in the same tab.
+- On the analytics areas, emails appear only in the user filter popup, tooltips and the `Who studied` `Review events by person` key, which names a person by account email or `(no email)` and the start of their id. A ⌘/Ctrl-click or middle click on a `Study vs AI` dot, a user option's `Open` link or a named key entry opens the user page in a new tab, and a plain click opens it in the same tab; the key opens it on the Activity tab.
 
 ### Funnels ([`funnelSections.ts`](../apps/admin/src/reports/funnels/funnelSections.ts))
 

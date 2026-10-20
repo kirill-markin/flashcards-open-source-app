@@ -272,7 +272,6 @@ const bnCatalog: TranslationCatalog = {
   },
   progressScreen: {
     title: "অগ্রগতি",
-    subtitle: "আপনার সাম্প্রতিক ধারাবাহিকতা ও দৈনিক পুনরালোচনার ইতিহাস দেখুন।",
     streakTitle: "ধারাবাহিকতা",
     streakInfoToggleLabel: "ধারাবাহিকতার ফ্রিজ সম্পর্কে",
     streakInfo: "ফ্রিজ ব্যাংক {{available}}/{{capacity}}। পরবর্তী রিচার্জ {{progress}}/{{required}}।",
@@ -516,7 +515,6 @@ const bnCatalog: TranslationCatalog = {
   },
   settingsHome: {
     title: "সেটিংস",
-    subtitle: "অ্যাকাউন্ট, কর্মক্ষেত্র, সহায়তা ও উন্নত ওয়েব সেটিংস পরিচালনা করুন।",
     inviteFriend: {
       actionText: "বন্ধু যোগ করুন",
       ariaLabel: "বন্ধু যোগ করুন",
@@ -1228,7 +1226,6 @@ const bnCatalog: TranslationCatalog = {
       label: "খুঁজুন",
       placeholder: "সামনের দিক, পেছনের দিক বা ট্যাগ খুঁজুন",
     },
-    subtitle: "কার্ডে প্রশ্ন ও উত্তর থাকে, যা শেখার ও মনে রাখার জন্য আপনি পুনরালোচনা করেন।",
     table: {
       back: "পেছনের দিক",
       due: "বাকি",

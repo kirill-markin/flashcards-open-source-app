@@ -272,7 +272,6 @@ const swCatalog: TranslationCatalog = {
   },
   progressScreen: {
     title: "Maendeleo",
-    subtitle: "Fuatilia mfululizo wako wa hivi karibuni na historia ya marudio ya kila siku.",
     streakTitle: "Mfululizo",
     streakInfoToggleLabel: "Kuhusu kugandisha mfululizo",
     streakInfo: "Akiba ya kugandisha {{available}}/{{capacity}}. Kujaza kunakofuata {{progress}}/{{required}}.",
@@ -516,7 +515,6 @@ const swCatalog: TranslationCatalog = {
   },
   settingsHome: {
     title: "Mipangilio",
-    subtitle: "Dhibiti akaunti, nafasi ya kazi, usaidizi na mipangilio ya kina ya wavuti.",
     inviteFriend: {
       actionText: "Ongeza rafiki",
       ariaLabel: "Ongeza rafiki",
@@ -1228,7 +1226,6 @@ const swCatalog: TranslationCatalog = {
       label: "Tafuta",
       placeholder: "Tafuta mbele, nyuma au lebo",
     },
-    subtitle: "Kadi ni maswali na majibu unayorudia ili kujifunza na kukumbuka.",
     table: {
       back: "Nyuma",
       due: "Zinazosubiri",

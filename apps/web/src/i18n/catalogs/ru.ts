@@ -278,7 +278,6 @@ export const ruCatalog = {
   },
   progressScreen: {
     title: "Прогресс",
-    subtitle: "Отслеживайте недавнюю серию и ежедневную историю повторений.",
     streakTitle: "Серия",
     streakInfoToggleLabel: "О заморозках серии",
     streakInfo: "Запас заморозок {{available}}/{{capacity}}. Следующее пополнение {{progress}}/{{required}}.",
@@ -524,7 +523,6 @@ export const ruCatalog = {
   },
   settingsHome: {
     title: "Настройки",
-    subtitle: "Управляйте аккаунтом, рабочим пространством, поддержкой и расширенными веб-настройками.",
     inviteFriend: {
       actionText: "Добавить друга",
       ariaLabel: "Добавить друга",
@@ -1238,7 +1236,6 @@ export const ruCatalog = {
       label: "Поиск",
       placeholder: "Искать по лицевой стороне, обратной стороне или тегам",
     },
-    subtitle: "Карточки — это вопросы и ответы, которые вы повторяете, чтобы учиться и запоминать.",
     table: {
       back: "Обратная сторона",
       due: "Срок",

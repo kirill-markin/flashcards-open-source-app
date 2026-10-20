@@ -271,7 +271,6 @@ const enCatalog = {
   },
   progressScreen: {
     title: "Progress",
-    subtitle: "Track your recent streak and daily review history.",
     streakTitle: "Streak",
     streakInfoToggleLabel: "About streak freezes",
     streakInfo: "Freeze bank {{available}}/{{capacity}}. Next recharge {{progress}}/{{required}}.",
@@ -515,7 +514,6 @@ const enCatalog = {
   },
   settingsHome: {
     title: "Settings",
-    subtitle: "Manage account, workspace, support, and advanced web settings.",
     inviteFriend: {
       actionText: "Add friend",
       ariaLabel: "Add friend",
@@ -1227,7 +1225,6 @@ const enCatalog = {
       label: "Search",
       placeholder: "Search front, back, or tags",
     },
-    subtitle: "Cards are the prompts and answers you review to learn and remember.",
     table: {
       back: "Back",
       due: "Due",

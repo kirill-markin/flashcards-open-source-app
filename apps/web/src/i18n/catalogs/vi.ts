@@ -272,7 +272,6 @@ const viCatalog: TranslationCatalog = {
   },
   progressScreen: {
     title: "Tiến độ",
-    subtitle: "Theo dõi chuỗi ngày gần đây và lịch sử ôn tập hằng ngày của bạn.",
     streakTitle: "Chuỗi ngày",
     streakInfoToggleLabel: "Về tính năng đóng băng chuỗi ngày",
     streakInfo: "Kho đóng băng {{available}}/{{capacity}}. Lần nạp tiếp theo {{progress}}/{{required}}.",
@@ -516,7 +515,6 @@ const viCatalog: TranslationCatalog = {
   },
   settingsHome: {
     title: "Cài đặt",
-    subtitle: "Quản lý tài khoản, không gian làm việc, hỗ trợ và các cài đặt web nâng cao.",
     inviteFriend: {
       actionText: "Thêm bạn",
       ariaLabel: "Thêm bạn",
@@ -1228,7 +1226,6 @@ const viCatalog: TranslationCatalog = {
       label: "Tìm kiếm",
       placeholder: "Tìm trong mặt trước, mặt sau hoặc nhãn",
     },
-    subtitle: "Thẻ là câu hỏi và đáp án bạn ôn tập để học và ghi nhớ.",
     table: {
       back: "Mặt sau",
       due: "Đến hạn",
