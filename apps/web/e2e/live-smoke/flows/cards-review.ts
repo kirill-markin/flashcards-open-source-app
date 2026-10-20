@@ -138,7 +138,7 @@ async function reviewSeededCardFromQueue(session: LiveSmokeSession): Promise<voi
   await diagnostics.runAction("reveal with Enter without letting reveal keys rate the card", async () => {
     const revealButton = page.getByTestId("review-reveal-answer");
     await expect(revealButton).toHaveAttribute("aria-keyshortcuts", "Space Enter");
-    await reviewPane.click({ position: { x: 1, y: 1 } });
+    await currentReviewFrontCard.locator(".review-front").click();
     await revealButton.hover();
     await expect(revealButton).toContainText("Space / Enter");
     await page.keyboard.press("Enter");
