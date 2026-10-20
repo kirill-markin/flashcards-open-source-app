@@ -23,8 +23,11 @@ function requireOptionHref(option: AppPlatformOption): string {
   return option.href;
 }
 
-/** Store tiles report the click; the web tile is not a store link and reports nothing. */
-function buildOptionClickHandler(option: AppPlatformOption): (() => void) | undefined {
+/**
+ * Store tiles report the click; the web tile is not a store link and reports nothing.
+ * No `device`: the App Store tile serves every Apple device.
+ */
+function buildOptionClickHandler(option: AppPlatformOption, href: string): (() => void) | undefined {
   if (option.kind !== "ios" && option.kind !== "android") {
     return undefined;
   }
@@ -35,7 +38,7 @@ function buildOptionClickHandler(option: AppPlatformOption): (() => void) | unde
     throw new Error(`App platform option "${option.kind}" is missing its store placement.`);
   }
 
-  return () => track({ name: "store_link_clicked", store, placement });
+  return () => track({ name: "store_link_clicked", store, placement, url: href });
 }
 
 function AppPlatformOptionBadge({ option }: Readonly<{ option: AppPlatformOption }>): ReactElement {
@@ -61,7 +64,7 @@ function AppPlatformOptionBadge({ option }: Readonly<{ option: AppPlatformOption
 
 function AppPlatformLinkTile({ option, testIdPrefix }: AppPlatformLinkTileProps): ReactElement {
   const href = requireOptionHref(option);
-  const handleClick = buildOptionClickHandler(option);
+  const handleClick = buildOptionClickHandler(option, href);
 
   return (
     <a

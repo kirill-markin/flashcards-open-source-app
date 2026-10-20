@@ -42,6 +42,8 @@ Current marketing-site App Store campaign URL:
 Keep the path and the `pt` and `mt` parameters exactly as App Store Connect
 generated them; do not rewrite them manually. Only `ct` differs per bucket,
 and its value is chosen freely without registering the campaign there first.
+The web app header and the marketing site also add `platform=iphone`, `ipad` or
+`mac` to open that device's listing; nothing else changes.
 A new campaign appears in App Store Connect Analytics on its own after roughly
 five first-time downloads from distinct Apple IDs and 24 hours.
 

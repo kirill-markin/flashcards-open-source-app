@@ -210,6 +210,9 @@ export type AnalyticsDropReason = "queue_overflow" | "ttl_expired" | "rejected";
 
 export type AnalyticsStore = "app_store" | "google_play";
 
+/** The device a web app header store link names; one App Store link serves all three Apple devices. */
+export type AnalyticsStoreDevice = "iphone" | "ipad" | "mac" | "android";
+
 export type AnalyticsPaywallEntryPoint =
   | "subscription_settings"
   | "ai_limit"
@@ -458,11 +461,16 @@ export type AnalyticsEvent =
     name: "store_link_clicked";
     store: AnalyticsStore;
     placement: AnalyticsStorePlacement;
+    /** Exactly the link the button or QR carries, campaign query included. */
+    url: string;
+    device?: AnalyticsStoreDevice;
   }>
   | Readonly<{
     name: "store_qr_shown";
     store: AnalyticsStore;
     placement: AnalyticsStorePlacement;
+    url: string;
+    device?: AnalyticsStoreDevice;
   }>
   | Readonly<{
     name: "paywall_shown";
@@ -642,9 +650,11 @@ export function buildAnalyticsEventProperties(event: AnalyticsEvent): AnalyticsE
         ...(event.packageVersionId === null ? {} : { package_version_id: event.packageVersionId }),
       };
     case "store_link_clicked":
-      return { store: event.store, placement: event.placement };
+      return { store: event.store, placement: event.placement, url: event.url,
+        ...(event.device === undefined ? {} : { device: event.device }) };
     case "store_qr_shown":
-      return { store: event.store, placement: event.placement };
+      return { store: event.store, placement: event.placement, url: event.url,
+        ...(event.device === undefined ? {} : { device: event.device }) };
     case "paywall_shown":
       return {
         entry_point: event.entryPoint,
