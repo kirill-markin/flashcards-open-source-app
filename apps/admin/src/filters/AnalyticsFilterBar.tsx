@@ -80,6 +80,11 @@ const optionListFields: ReadonlySet<AnalyticsFilterField> = new Set<AnalyticsFil
   "catalogDeviceCategories",
   "catalogClickBrowserLanguages",
 ]);
+// The fields picked on the calendar, which is bounded by the available range.
+const dateRangeFields: ReadonlySet<AnalyticsFilterField> = new Set<AnalyticsFilterField>([
+  "dateRange",
+  "comparisonDateRange",
+]);
 
 type AnalyticsFilterBarProps = Readonly<{
   /** Chooses the wording of each field; the fields themselves are `fields`. */
@@ -93,7 +98,7 @@ type AnalyticsFilterBarProps = Readonly<{
   /** The accessible name of `Reset all`, which says whose filters it resets when bars share a page. */
   resetAllLabel: string;
   /**
-   * `null` while the caller is still looking it up. The date field is then disabled, and so is
+   * `null` while the caller is still looking it up. The date fields are then disabled, and so is
    * `Reset all`, which would reset the range too, while the summary still names the selected range.
    */
   availableRange: AnalyticsDateRange | null;
@@ -175,11 +180,17 @@ function getFilterButtonClassName(isActive: boolean, isFiltered: boolean): strin
 }
 
 // The popover of the first field opens to the right and of the last one to the left, so neither can
-// leave the panel; everything between them is centred on its own button.
-function getPopoverAnchorClassName(index: number, fieldCount: number, isWide: boolean): string {
+// leave the panel; everything between them is centred on its own button, except the comparison
+// calendar: it sits right after the range, so its wide popover opens to the right as that one does.
+function getPopoverAnchorClassName(
+  field: AnalyticsFilterField,
+  index: number,
+  fieldCount: number,
+  isWide: boolean,
+): string {
   const classNames = ["filter-popover-anchor"];
 
-  if (index === 0) {
+  if (index === 0 || field === "comparisonDateRange") {
     classNames.push("filter-popover-anchor-start");
   } else if (index === fieldCount - 1) {
     classNames.push("filter-popover-anchor-end");
@@ -797,14 +808,23 @@ export function AnalyticsFilterBar(props: AnalyticsFilterBarProps): JSX.Element 
     [props.filters.users, userOptionById],
   );
 
-  // The range is the one field whose picker dismisses itself, because a picked range is complete and
-  // nothing else in that popover follows from it. A rejected range keeps it open on the error.
+  // The two date fields are the only ones whose pickers dismiss themselves, because a picked range is
+  // complete and nothing else in that popover follows from it. A rejected range keeps it open on the error.
   function handleDateRangeChange(range: DateRangeCalendarRange): void {
     if (props.onFiltersChange({ ...props.filters, dateRange: range }) === false) {
       return;
     }
 
     closeField("dateRange", true);
+  }
+
+  // `null` clears the comparison.
+  function handleComparisonDateRangeChange(range: DateRangeCalendarRange | null): void {
+    if (props.onFiltersChange({ ...props.filters, comparisonDateRange: range }) === false) {
+      return;
+    }
+
+    closeField("comparisonDateRange", true);
   }
 
   function clearMinimumCountDraft(eventType: AnalyticsThresholdEventType): void {
@@ -901,6 +921,37 @@ export function AnalyticsFilterBar(props: AnalyticsFilterBarProps): JSX.Element 
               <FilterFieldResetButton
                 label="Reset to default range"
                 onReset={() => handleDateRangeChange(props.defaultRange)}
+              />
+            )}
+          </>
+        ),
+      };
+    }
+
+    if (field === "comparisonDateRange") {
+      const availableRange = props.availableRange;
+      const comparisonDateRange = props.filters.comparisonDateRange;
+
+      return {
+        summary: comparisonDateRange === null
+          ? "No comparison"
+          : `${comparisonDateRange.from} to ${comparisonDateRange.to}`,
+        isFiltered: comparisonDateRange !== null,
+        isWide: true,
+        content: availableRange === null ? null : (
+          <>
+            <DateRangeCalendar
+              availableRange={availableRange}
+              selectedRange={comparisonDateRange}
+              onRangeChange={handleComparisonDateRangeChange}
+            />
+            {props.dateRangeError === "" ? null : (
+              <p className="filter-error" role="alert">{props.dateRangeError}</p>
+            )}
+            {comparisonDateRange === null ? null : (
+              <FilterFieldResetButton
+                label="Clear comparison"
+                onReset={() => handleComparisonDateRangeChange(null)}
               />
             )}
           </>
@@ -1230,13 +1281,13 @@ export function AnalyticsFilterBar(props: AnalyticsFilterBarProps): JSX.Element 
           const popoverId = `${props.headingId}-${entry.field}-popover`;
           const explanationId = `${props.headingId}-${entry.field}-explanation`;
           const fieldLabel = getAnalyticsFilterFieldLabel(props.area, entry.field);
-          const isFieldDisabled = (entry.field === "dateRange" && props.availableRange === null)
+          const isFieldDisabled = (dateRangeFields.has(entry.field) && props.availableRange === null)
             || (props.areOptionListsLoading && optionListFields.has(entry.field));
 
           return (
             <div
               key={entry.field}
-              className={getPopoverAnchorClassName(index, fieldViews.length, entry.view.isWide)}
+              className={getPopoverAnchorClassName(entry.field, index, fieldViews.length, entry.view.isWide)}
             >
               {/*
                 The button prints the field name alone, so the row stays one line of field names and no
@@ -1308,7 +1359,9 @@ export function AnalyticsFilterBar(props: AnalyticsFilterBarProps): JSX.Element 
         </button>
       </div>
 
-      {props.fields.includes("dateRange") && props.dateRangeError !== "" && openField !== "dateRange" ? (
+      {props.fields.includes("dateRange")
+        && props.dateRangeError !== ""
+        && (openField === null || dateRangeFields.has(openField) === false) ? (
         <p className="filter-error" role="alert">{props.dateRangeError}</p>
       ) : null}
     </section>

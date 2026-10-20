@@ -8,7 +8,11 @@ import {
 } from "./dashboard/AdminDashboard";
 import { EventPage } from "./events/eventPage/EventPage";
 import { EventsPage } from "./events/EventsPage";
-import type { AnalyticsDateRange, AnalyticsFilterState } from "./filters/analyticsFilters";
+import {
+  defaultFunnelAudienceMode,
+  type AnalyticsDateRange,
+  type AnalyticsFilterState,
+} from "./filters/analyticsFilters";
 import {
   normalizeAnalyticsFilterState,
   parseAnalyticsFilterState,
@@ -91,6 +95,28 @@ function parseCalendarDate(date: string, fieldName: string): Date {
 
 function isSameDateRange(left: ReviewEventsByDateRange, right: ReviewEventsByDateRange): boolean {
   return left.from === right.from && left.to === right.to;
+}
+
+function isSameOptionalDateRange(
+  left: ReviewEventsByDateRange | null,
+  right: ReviewEventsByDateRange | null,
+): boolean {
+  return left === null || right === null ? left === right : isSameDateRange(left, right);
+}
+
+// General's reports read neither Funnels-only field, so its batch is keyed on the selection with both
+// blanked: picking a comparison or an audience neither reloads General nor takes query slots ahead of
+// the funnel cards. Keyed on content, because every apply makes a new selection object.
+function toGeneralReportFilters(filters: AnalyticsFilterState): AnalyticsFilterState {
+  return normalizeAnalyticsFilterState({
+    ...filters,
+    comparisonDateRange: null,
+    funnelAudienceMode: defaultFunnelAudienceMode,
+  });
+}
+
+function toGeneralReportFiltersKey(filters: AnalyticsFilterState): string {
+  return JSON.stringify(toGeneralReportFilters(filters));
 }
 
 function compareCalendarDates(left: string, right: string): number {
@@ -428,16 +454,29 @@ export default function App(): JSX.Element {
         ]);
         const availableRange = buildUnionRange(reviewAvailableRange, funnelAvailableRange);
         const defaultRange = buildDefaultReportRange(availableRange, analyticsDefaultRangeLabel);
-        // Only the range is reconciled: every other field reads the same without the available
-        // range, and one changed meanwhile is not in the URL yet. An unchanged range keeps the
-        // selection object, so nothing reloads.
-        const reconciledRange = parseAnalyticsFilterState(openedSearchParams, availableRange).dateRange;
+        // Only the two ranges are reconciled: every other field reads the same without the
+        // available range, and one changed meanwhile is not in the URL yet. Unchanged ranges keep
+        // the selection object, so nothing reloads.
+        const reconciledSelection = parseAnalyticsFilterState(openedSearchParams, availableRange);
         const currentFilters = filterStateRef.current;
 
         availableRangeRef.current = availableRange;
         setRangeLookup({ status: "ready", availableRange, defaultRange });
-        if (currentFilters !== null && isSameDateRange(currentFilters.dateRange, reconciledRange) === false) {
-          const reconciledFilters = { ...currentFilters, dateRange: reconciledRange };
+        if (
+          currentFilters !== null
+          && (
+            isSameDateRange(currentFilters.dateRange, reconciledSelection.dateRange) === false
+            || isSameOptionalDateRange(
+              currentFilters.comparisonDateRange,
+              reconciledSelection.comparisonDateRange,
+            ) === false
+          )
+        ) {
+          const reconciledFilters = {
+            ...currentFilters,
+            dateRange: reconciledSelection.dateRange,
+            comparisonDateRange: reconciledSelection.comparisonDateRange,
+          };
           filterStateRef.current = reconciledFilters;
           setFilterState(reconciledFilters);
         }
@@ -494,13 +533,17 @@ export default function App(): JSX.Element {
     return options;
   }, []);
 
+  const generalReportFilters = filterState === null ? null : toGeneralReportFilters(filterState);
+  const generalReportFiltersKey = generalReportFilters === null ? null : JSON.stringify(generalReportFilters);
+
+  // Reruns on `generalReportFiltersKey` rather than on `generalReportFilters`, whose content it fixes.
   useEffect(() => {
-    if (sessionConfig === null || filterState === null) {
+    if (sessionConfig === null || generalReportFilters === null) {
       return;
     }
 
     const config = sessionConfig;
-    const filters = filterState;
+    const filters = generalReportFilters;
     let isSuperseded = false;
     const abortController = new AbortController();
 
@@ -564,7 +607,7 @@ export default function App(): JSX.Element {
       window.clearTimeout(reloadTimeoutId);
     };
   }, [
-    filterState,
+    generalReportFiltersKey,
     handleTerminalAdminError,
     loadFilterOptions,
     reportLoadRevision,
@@ -655,7 +698,7 @@ export default function App(): JSX.Element {
     // Every selection is judged against the available data, including one that only changes another
     // field: a range the URL carried is already clamped into that window by the reconciliation, so
     // this cannot refuse a filter click on a link older than the retained data. Until the lookup
-    // returns the date field is disabled, so the range here is still the provisional one.
+    // returns the date fields are disabled, so the ranges here are still the provisional ones.
     const availableRange = availableRangeRef.current;
     if (availableRange !== null) {
       const validationError = validateRequestedRange(filters.dateRange, availableRange);
@@ -663,16 +706,31 @@ export default function App(): JSX.Element {
         setDateRangeError(validationError);
         return false;
       }
+
+      const comparisonValidationError = filters.comparisonDateRange === null
+        ? null
+        : validateRequestedRange(filters.comparisonDateRange, availableRange);
+      if (comparisonValidationError !== null) {
+        setDateRangeError(`Compare with: ${comparisonValidationError}`);
+        return false;
+      }
     }
 
     // The reload waits out the debounce, so the indicator is raised here rather than when the request
     // finally leaves: a selection that shows nothing for 400 ms reads as a dead control. Only the
     // range-validation message is cleared; an unresolved reload failure and its stale numbers stay on
-    // screen until this new attempt has an outcome of its own.
+    // screen until this new attempt has an outcome of its own. A change General's batch ignores
+    // leaves its indicator alone.
     setDateRangeError("");
-    setReportState((currentState) => (currentState.status === "ready"
-      ? { ...currentState, isReportLoading: true }
-      : currentState));
+    const previousFilters = filterStateRef.current;
+    if (
+      previousFilters === null
+      || toGeneralReportFiltersKey(previousFilters) !== toGeneralReportFiltersKey(filters)
+    ) {
+      setReportState((currentState) => (currentState.status === "ready"
+        ? { ...currentState, isReportLoading: true }
+        : currentState));
+    }
     setIsSelectionSettling(true);
     filterStateRef.current = filters;
     setFilterState(filters);
