@@ -1,4 +1,5 @@
 import { runAdminQuery } from "../../adminApi";
+import type { ChartNote } from "../../charts/chartNotes";
 import type { AdminAppConfig } from "../../config";
 import type { AnalyticsDateRange } from "../../filters/analyticsFilters";
 import { buildHashedVisitorDaySql } from "../funnels/funnelAudienceSql";
@@ -44,6 +45,12 @@ const siteEngagementEventNames: ReadonlyArray<string> = [
  * 10+ s with a scroll, click or key press also counts as engaged.
  */
 export const pageReadEngagementStartDate = "2026-10-19";
+
+export const pageReadEngagementChartNote: ChartNote = {
+  at: pageReadEngagementStartDate,
+  shortText: "Page reads count from here",
+  longText: `From ${pageReadEngagementStartDate}, reading one page for 10+ seconds with a scroll, click or key press also counts as engaged, so the share steps up here by definition.`,
+};
 
 const siteFactEventNames: ReadonlyArray<string> = ["site_page_viewed", ...siteEngagementEventNames];
 

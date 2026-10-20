@@ -1,5 +1,6 @@
 import * as d3 from "d3";
 import { chartMargin, neutralChartColor, stackedChartHeight, type ChartTooltipHandlers } from "./chartPrimitives";
+import { renderChartNotes, type PlacedChartNote } from "./chartNotes";
 import { renderMeaningfulActivityFrame, renderMeaningfulActivityHitTargets } from "./meaningfulActivityFrame";
 
 /** The series a breakdown sums every value outside its top values into. */
@@ -50,8 +51,7 @@ export function renderStackedBreakdownChart(params: Readonly<{
   bars: ReadonlyArray<StackedBreakdownBar>;
   values: ReadonlyArray<string>;
   getValueColor: (value: string) => string;
-  /** The bar holding today, marked in progress; null when the selection ends before today. */
-  inProgressKey: string | null;
+  notes: ReadonlyArray<PlacedChartNote>;
   yLabel: string;
   xLabel: string;
   formatTick: (key: string) => string;
@@ -77,12 +77,6 @@ export function renderStackedBreakdownChart(params: Readonly<{
     .attr("fill", (segment) => params.getValueColor(segment.value))
     .attr("x", (segment) => frame.x(segment.key) ?? 0).attr("width", frame.x.bandwidth())
     .attr("y", (segment) => y(segment.high)).attr("height", (segment) => y(segment.low) - y(segment.high)).attr("rx", 2);
-  const inProgressX = params.inProgressKey === null ? undefined : frame.x(params.inProgressKey);
-  if (inProgressX !== undefined) {
-    frame.group.append("line").attr("x1", inProgressX).attr("x2", inProgressX)
-      .attr("y1", 0).attr("y2", frame.innerHeight).attr("stroke", "currentColor").attr("stroke-dasharray", "6 4");
-    frame.group.append("text").attr("x", inProgressX + frame.x.bandwidth()).attr("y", -10)
-      .attr("text-anchor", "end").attr("fill", "currentColor").text("In progress");
-  }
   renderMeaningfulActivityHitTargets(frame, keys, params.getLabel, params.getTooltipHtml, params.tooltipHandlers);
+  renderChartNotes(frame.group, frame.x, frame.innerHeight, params.notes, params.tooltipHandlers);
 }

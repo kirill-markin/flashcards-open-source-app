@@ -3,7 +3,9 @@ import * as d3 from "d3";
 import { ChartAreaWithNote } from "../../charts/ChartAreaWithNote";
 import { ChartColorKey } from "../../charts/ChartLegends";
 import { ChartLoadingPlaceholder } from "../../charts/ChartLoadingPlaceholder";
+import { ChartNotesKey } from "../../charts/ChartNotesKey";
 import { ChartTooltip, useChartTooltip } from "../../charts/ChartTooltip";
+import { buildInProgressChartNote, placeChartNotes } from "../../charts/chartNotes";
 import { chartWidth, stackedChartHeight } from "../../charts/chartPrimitives";
 import { escapeHtml, formatGeneratedAt } from "../../charts/formatting";
 import { renderRateLineChart } from "../../charts/rateLineChart";
@@ -18,14 +20,12 @@ import {
   type ReportBucket,
   type ReportPeriod,
 } from "../levelOneMetrics/reportPeriod";
-import { loadEngagedVisitorsReport, pageReadEngagementStartDate, type EngagedVisitorsReport } from "./engagedVisitorsQuery";
+import { loadEngagedVisitorsReport, pageReadEngagementChartNote, type EngagedVisitorsReport } from "./engagedVisitorsQuery";
 import { loadWhoSawUsReport, type WhoSawUsReport } from "./query";
 import { whoSawUsSeriesColors } from "./WhoSawUsSection";
 
 const title = "Engaged share of Web visitors";
 const seriesKeys = ["share"] as const;
-
-const pageReadEngagementMarkerLabel = "Page reads count from here";
 
 const numberFormatter = d3.format(",");
 const shareFormatter = d3.format(".1%");
@@ -111,10 +111,16 @@ export function WebEngagedShareSection(props: Readonly<{
     () => new Map(loadState.status === "ready" ? loadState.report.buckets.map((entry) => [entry.bucket.key, entry]) : []),
     [loadState],
   );
+  const chartNotes = useMemo(() => (loadState.status === "ready"
+    ? placeChartNotes(
+      [buildInProgressChartNote(loadState.report.today), pageReadEngagementChartNote],
+      loadState.report.buckets.map((entry) => entry.bucket),
+    )
+    : null), [loadState]);
 
   useEffect(() => {
     const svgElement = chartRef.current;
-    if (svgElement === null || loadState.status !== "ready") {
+    if (svgElement === null || loadState.status !== "ready" || chartNotes === null) {
       return;
     }
 
@@ -143,9 +149,7 @@ export function WebEngagedShareSection(props: Readonly<{
       color: whoSawUsSeriesColors.web,
       yLabel: "Engaged share",
       xLabel: reportPeriodAxisLabels[report.period],
-      markerKey: report.buckets.find((entry) =>
-        entry.bucket.from <= pageReadEngagementStartDate && pageReadEngagementStartDate <= entry.bucket.to)?.bucket.key ?? null,
-      markerLabel: pageReadEngagementMarkerLabel,
+      notes: chartNotes,
       formatTick: (key) => formatReportBucketTick(report.period, key),
       getLabel: (key) => `${formatTitle(key)}. ${title}: ${formatShare(key)}`,
       getTooltipHtml: (key) => {
@@ -159,7 +163,7 @@ export function WebEngagedShareSection(props: Readonly<{
       },
       tooltipHandlers,
     });
-  }, [loadState, bucketByKey, tooltipHandlers]);
+  }, [loadState, bucketByKey, chartNotes, tooltipHandlers]);
 
   return (
     <section className="dashboard-section" data-testid="who-saw-us-web-engaged-share-section">
@@ -173,7 +177,6 @@ export function WebEngagedShareSection(props: Readonly<{
                 <ul>
                   <li>A bar with no Web visitor has no share</li>
                   <li><strong>Weeks and months:</strong> counted as in the two charts above, so the share stays at most 100%</li>
-                  <li><strong>The dashed line:</strong> from {pageReadEngagementStartDate}, a visitor who reads one page for 10+ seconds with a scroll, click or key press also counts as engaged, so the share steps up there by definition, not because visitors changed</li>
                 </ul>
               </li>
               {loadState.status === "ready" ? <li>Generated {formatGeneratedAt(loadState.report.generatedAtUtc)}.</li> : null}
@@ -213,6 +216,7 @@ export function WebEngagedShareSection(props: Readonly<{
                 <ChartLoadingPlaceholder viewBoxWidth={chartWidth} viewBoxHeight={stackedChartHeight} label={`Loading ${title}…`} />
               )}
             </div>
+            <ChartNotesKey notes={chartNotes} />
           </div>
         </section>
       )}
