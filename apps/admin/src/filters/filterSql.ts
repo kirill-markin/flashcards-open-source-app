@@ -133,9 +133,10 @@ export function buildExcludedActorReasonSql(actorIdSqlExpression: string): strin
  *     `friendship_created` community series. By event name.
  *   - `reports/catalogInstalls/query.ts`, the `deck_installs` CTE (`catalog_deck_installed`). By
  *     event name.
- *   - `reports/catalogInstallFunnel/query.ts`, `install_actors` and `install_actor_reviews`. By
- *     event name: an identity enters them only by reaching the server-origin
- *     `catalog_deck_installed`, and the reviews read `review_answered`.
+ *   - `reports/catalogInstallFunnel/query.ts`, `browser_guest_actors`, `install_actors` and
+ *     `install_actor_reviews`. The first reads `guest_client` rows only; through the others an
+ *     identity enters only by reaching the server-origin `catalog_deck_installed`, and the reviews
+ *     read `review_answered`.
  *   - `reports/catalogInstallFunnel/query.ts`, the identity-level exclusion, which reads the
  *     candidate row's own `actor_id` rather than bridging to an install. That id is the
  *     collector-supplied one for a visitor who never signed in, and the predicate stays off it on
