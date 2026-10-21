@@ -62,6 +62,7 @@ describe("ChatPanel new chat", () => {
     expect(createNewChatSessionMock).toHaveBeenCalledTimes(2);
     expect(getContainer().querySelectorAll(".chat-msg").length).toBe(0);
     expect(getContainer().querySelector(".chat-msg-error")).toBeNull();
+    expect(getContainer().querySelector(".chat-empty")).toBeNull();
   });
 
   it("keeps the previous session draft when rolling to a fresh chat", async () => {
@@ -76,6 +77,8 @@ describe("ChatPanel new chat", () => {
 
     await renderChatPanel();
     await flushAsync();
+
+    expect(getContainer().querySelector(".chat-empty")).toBeNull();
 
     const textarea = getContainer().querySelector('textarea[name="chatMessage"]') as HTMLTextAreaElement | null;
     expect(textarea).not.toBeNull();

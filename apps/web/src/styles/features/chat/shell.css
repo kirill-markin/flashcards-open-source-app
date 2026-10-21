@@ -188,11 +188,6 @@
   color: var(--text);
 }
 
-.chat-empty-copy {
-  margin: 0;
-  line-height: 1.6;
-}
-
 .chat-empty-loading {
   min-height: 312px;
 }

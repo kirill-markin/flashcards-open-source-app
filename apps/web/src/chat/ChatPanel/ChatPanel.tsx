@@ -538,13 +538,6 @@ export function ChatPanel(props: Props): ReactElement {
             </div>
           ) : null}
 
-          {!isInitialHistoryLoading && messages.length === 0 ? (
-            <div className="chat-empty">
-              <p className="chat-empty-title" data-testid="chat-empty-title">{t("chatPanel.empty.title")}</p>
-              <p className="chat-empty-copy">{t("chatPanel.empty.copy")}</p>
-            </div>
-          ) : null}
-
           {messages.map((message, index) => {
             const isLastAssistant = isAssistantRunActive && message.role === "assistant" && index === messages.length - 1;
             return (

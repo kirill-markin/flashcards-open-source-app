@@ -140,7 +140,6 @@ export function ReviewFilterMenu(props: ReviewFilterMenuProps): ReactElement {
 
   return (
     <div className="review-filter-menu-wrap">
-      <span className="review-filter-label">{t("reviewFilterMenu.scopeLabel")}</span>
       <button
         ref={reviewFilterTriggerRef}
         className={`ghost-btn review-filter-trigger${isReviewFilterMenuOpen ? " review-filter-trigger-open" : ""}`}
