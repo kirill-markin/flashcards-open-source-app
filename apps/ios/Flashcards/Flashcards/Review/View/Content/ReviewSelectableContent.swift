@@ -181,7 +181,11 @@ func makeReviewSelectableContent(
                         appendAttachment(view: AnyView(image.accessibilityLabel(formula.formula.latex)), text: formula.formula.originalSource, layout: .inline, attributes: attributes, to: destination)
                     }
                 } else {
+                    #if targetEnvironment(macCatalyst)
+                    appendAttachment(view: AnyView(MacReviewImageView(state: MacReviewImageState(url: url))), text: text, layout: .block, attributes: attributes, to: destination)
+                    #else
                     appendAttachment(view: AnyView(DefaultImageProvider.default.makeImage(url: url)), text: text, layout: .block, attributes: attributes, to: destination)
+                    #endif
                 }
                 continue
             }
@@ -219,9 +223,17 @@ func makeReviewSelectableContent(
             case .markdown(let markdown, let formulas):
                 try appendMarkdown(markdown, formulas: formulas)
             case .formula(let formula):
+                #if targetEnvironment(macCatalyst)
+                appendAttachment(view: AnyView(ReviewMathFormulaView(formula: formula, surfaceStyle: surfaceStyle, rendering: MacReviewFormulaState())), text: formula.originalSource, layout: .block, attributes: [:], to: result)
+                #else
                 appendAttachment(view: AnyView(ReviewMathFormulaView(formula: formula, surfaceStyle: surfaceStyle)), text: formula.originalSource, layout: .block, attributes: [:], to: result)
+                #endif
             case .managedMedia(let reference):
+                #if targetEnvironment(macCatalyst)
+                appendAttachment(view: AnyView(ReviewManagedMediaView(reference: reference, surfaceStyle: surfaceStyle, retainedState: MacReviewManagedMediaState())), text: reference.label ?? "fcasset:\(reference.mediaAssetId)", layout: .block, attributes: [:], to: result)
+                #else
                 appendAttachment(view: AnyView(ReviewManagedMediaView(reference: reference, surfaceStyle: surfaceStyle)), text: reference.label ?? "fcasset:\(reference.mediaAssetId)", layout: .block, attributes: [:], to: result)
+                #endif
             }
         }
     }

@@ -12,6 +12,7 @@
 		A10000000000000000000041 /* RaTeX in Frameworks */ = {isa = PBXBuildFile; productRef = A10000000000000000000043 /* RaTeX */; };
 		ED45BBBE2F61DADF00E259C4 /* MarkdownUI in Frameworks */ = {isa = PBXBuildFile; productRef = A1000000000000000000002C /* MarkdownUI */; };
 		A10000000000000000000044 /* GoogleSignIn in Frameworks */ = {isa = PBXBuildFile; productRef = A10000000000000000000046 /* GoogleSignIn */; };
+		A10000000000000000000048 /* NetworkImage in Frameworks */ = {isa = PBXBuildFile; productRef = A10000000000000000000050 /* NetworkImage */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -67,6 +68,7 @@
 				A1000000000000000000003E /* Lottie in Frameworks */,
 				A10000000000000000000041 /* RaTeX in Frameworks */,
 				A10000000000000000000044 /* GoogleSignIn in Frameworks */,
+				A10000000000000000000048 /* NetworkImage in Frameworks */,
 				A1000000000000000000003B /* Sentry in Frameworks */,
 				ED45BBBE2F61DADF00E259C4 /* MarkdownUI in Frameworks */,
 			);
@@ -146,6 +148,7 @@
 				A1000000000000000000003F /* Lottie */,
 				A10000000000000000000043 /* RaTeX */,
 				A10000000000000000000046 /* GoogleSignIn */,
+				A10000000000000000000050 /* NetworkImage */,
 			);
 			productName = "Flashcards Open Source App";
 			productReference = A10000000000000000000005 /* Flashcards Open Source App.app */;
@@ -280,6 +283,7 @@
 				A10000000000000000000040 /* XCRemoteSwiftPackageReference "lottie-spm" */,
 				A10000000000000000000042 /* XCRemoteSwiftPackageReference "RaTeX" */,
 				A10000000000000000000045 /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */,
+				A10000000000000000000049 /* XCRemoteSwiftPackageReference "NetworkImage" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = A10000000000000000000003 /* Products */;
@@ -657,6 +661,14 @@
 				version = "0.1.14-catalyst.1";
 			};
 		};
+		A10000000000000000000049 /* XCRemoteSwiftPackageReference "NetworkImage" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/gonzalezreal/NetworkImage";
+			requirement = {
+				kind = exactVersion;
+				version = 6.0.1;
+			};
+		};
 		A10000000000000000000045 /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/google/GoogleSignIn-iOS";
@@ -687,6 +699,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = A10000000000000000000042 /* XCRemoteSwiftPackageReference "RaTeX" */;
 			productName = RaTeX;
+		};
+		A10000000000000000000050 /* NetworkImage */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = A10000000000000000000049 /* XCRemoteSwiftPackageReference "NetworkImage" */;
+			productName = NetworkImage;
 		};
 		A10000000000000000000046 /* GoogleSignIn */ = {
 			isa = XCSwiftPackageProductDependency;

@@ -107,7 +107,7 @@ final class ReviewSelectionTextView: UITextView, UITextViewDelegate, UIGestureRe
         var hit: UIView?
         self.attributedText.enumerateAttribute(.attachment, in: NSRange(location: 0, length: self.attributedText.length)) { value, _, stop in
             guard let attachment = value as? ReviewContentAttachment,
-                  let host = attachment.accessibilityView, host.isDescendant(of: self),
+                  let host = attachment.accessibilityView(in: self), host.isDescendant(of: self),
                   let hostedHit = host.hitTest(host.convert(point, from: self), with: event) else { return }
             hit = hostedHit
             stop.pointee = true
@@ -147,7 +147,7 @@ final class ReviewSelectionTextView: UITextView, UITextViewDelegate, UIGestureRe
         self.attributedText.enumerateAttribute(.attachment, in: NSRange(location: 0, length: self.attributedText.length)) { value, range, _ in
             guard let attachment = value as? ReviewContentAttachment else { return }
             appendText(until: range.location)
-            if let view = attachment.accessibilityView {
+            if let view = attachment.accessibilityView(in: self) {
                 elements.append(view)
             } else {
                 let element = ReviewSelectionAccessibilityElement(textView: self, range: range)
@@ -270,7 +270,11 @@ enum ReviewContentAttachmentLayout {
 final class ReviewContentAttachment: NSTextAttachment {
     @MainActor private static let contentType: String = {
         let contentType = "com.nibomo.review-content"
+        #if targetEnvironment(macCatalyst)
+        NSTextAttachment.registerViewProviderClass(MacReviewContentAttachmentProvider.self, forFileType: contentType)
+        #else
         NSTextAttachment.registerViewProviderClass(ReviewContentAttachmentProvider.self, forFileType: contentType)
+        #endif
         return contentType
     }()
 
@@ -279,10 +283,14 @@ final class ReviewContentAttachment: NSTextAttachment {
     private let layout: ReviewContentAttachmentLayout
     weak var accessibilityView: UIView?
     @MainActor weak var selectionTextView: ReviewSelectionTextView?
+    #if targetEnvironment(macCatalyst)
+    @MainActor private let hostedViews = NSHashTable<UIView>.weakObjects()
+    #else
     @MainActor private var hostingController: UIHostingController<AnyView>?
     @MainActor private var isSizeNotificationScheduled = false
     @MainActor private var lastMeasuredBounds: CGRect?
     @MainActor private var lastMeasurementWidth: CGFloat?
+    #endif
 
     @MainActor
     init(content: AnyView, copyText: String, layout: ReviewContentAttachmentLayout) {
@@ -294,15 +302,48 @@ final class ReviewContentAttachment: NSTextAttachment {
 
     required init?(coder: NSCoder) { nil }
 
+    @MainActor
+    fileprivate func accessibilityView(in textView: ReviewSelectionTextView) -> UIView? {
+        #if targetEnvironment(macCatalyst)
+        return self.hostedViews.allObjects.first { $0.isDescendant(of: textView) }
+        #else
+        return self.accessibilityView
+        #endif
+    }
+
+    #if targetEnvironment(macCatalyst)
+    @MainActor
+    func copyForTableCell() -> ReviewContentAttachment {
+        ReviewContentAttachment(content: self.content, copyText: self.copyText, layout: self.layout)
+    }
+
+    @MainActor
+    fileprivate func registerHostedView(_ view: UIView) { self.hostedViews.add(view) }
+    #endif
+
     nonisolated override func viewProvider(for parentView: UIView?, location: any NSTextLocation, textContainer: NSTextContainer?) -> NSTextAttachmentViewProvider? {
         let provider = super.viewProvider(for: parentView, location: location, textContainer: textContainer)
         provider?.tracksTextAttachmentViewBounds = true
         return provider
     }
 
+    #if !targetEnvironment(macCatalyst)
     @MainActor
     private func hostedController() -> UIHostingController<AnyView> {
         if let controller = self.hostingController { return controller }
+        let controller = self.makeHostedController { [weak self] in self?.scheduleSizeNotification() }
+        self.hostingController = controller
+        controller.view.backgroundColor = .clear
+        controller.view.isAccessibilityElement = false
+        return controller
+    }
+
+    @MainActor
+    fileprivate func hostedView() -> UIView { self.hostedController().view }
+    #endif
+
+    @MainActor
+    fileprivate func makeHostedController(onSizeChange: @escaping () -> Void) -> UIHostingController<AnyView> {
         let content: AnyView
         switch self.layout {
         case .inline:
@@ -314,23 +355,22 @@ final class ReviewContentAttachment: NSTextAttachment {
             .fixedSize(horizontal: false, vertical: true)
             .onGeometryChange(for: CGSize.self) { proxy in
                 proxy.size
-            } action: { [weak self] _ in
-                self?.scheduleSizeNotification()
+            } action: { _ in
+                onSizeChange()
             }))
-        self.hostingController = controller
-        controller.view.backgroundColor = .clear
-        controller.view.isAccessibilityElement = false
         return controller
     }
 
-    @MainActor
-    fileprivate func hostedView() -> UIView {
-        self.hostedController().view
-    }
-
+    #if !targetEnvironment(macCatalyst)
     @MainActor
     private func measuredBounds(width: CGFloat) -> CGRect {
-        let size = self.hostedController().sizeThatFits(in: CGSize(width: width, height: .greatestFiniteMagnitude))
+        self.measuredBounds(width: width, controller: self.hostedController())
+    }
+    #endif
+
+    @MainActor
+    fileprivate func measuredBounds(width: CGFloat, controller: UIHostingController<AnyView>) -> CGRect {
+        let size = controller.sizeThatFits(in: CGSize(width: width, height: .greatestFiniteMagnitude))
         let scale = max(self.selectionTextView?.traitCollection.displayScale ?? 1, 1)
         let measuredWidth: CGFloat
         switch self.layout {
@@ -345,6 +385,7 @@ final class ReviewContentAttachment: NSTextAttachment {
         ))
     }
 
+    #if !targetEnvironment(macCatalyst)
     @MainActor
     fileprivate func layoutBounds(proposedWidth: CGFloat) -> CGRect {
         let width = max(proposedWidth, 1)
@@ -378,8 +419,73 @@ final class ReviewContentAttachment: NSTextAttachment {
             textView.onAttachmentSizeChange?()
         }
     }
+    #endif
 }
 
+#if targetEnvironment(macCatalyst)
+private final class MacReviewContentAttachmentProvider: NSTextAttachmentViewProvider {
+    @MainActor private var hostingController: UIHostingController<AnyView>?
+    @MainActor private var lastMeasurementWidth: CGFloat?
+    @MainActor private var notifiedBoundsByWidth: [CGFloat: CGRect] = [:]
+    @MainActor private var isSizeNotificationScheduled = false
+
+    @MainActor
+    private func hostedController(for attachment: ReviewContentAttachment) -> UIHostingController<AnyView> {
+        if let controller = self.hostingController { return controller }
+        let controller = attachment.makeHostedController { [weak self] in self?.scheduleSizeNotification() }
+        self.hostingController = controller
+        controller.view.backgroundColor = .clear
+        controller.view.isAccessibilityElement = false
+        return controller
+    }
+
+    nonisolated override func loadView() {
+        nonisolated(unsafe) let provider: MacReviewContentAttachmentProvider = self
+        MainActor.assumeIsolated {
+            guard let attachment = provider.textAttachment as? ReviewContentAttachment else { return }
+            provider.view = provider.hostedController(for: attachment).view
+            if let view = provider.view { attachment.registerHostedView(view) }
+            attachment.selectionTextView?.rebuildAccessibilityContent()
+        }
+    }
+
+    nonisolated override func attachmentBounds(for attributes: [NSAttributedString.Key: Any], location: any NSTextLocation, textContainer: NSTextContainer?, proposedLineFragment: CGRect, position: CGPoint) -> CGRect {
+        nonisolated(unsafe) let provider: MacReviewContentAttachmentProvider = self
+        return MainActor.assumeIsolated {
+            guard let attachment = provider.textAttachment as? ReviewContentAttachment else { return .zero }
+            let width = max(proposedLineFragment.width, 1)
+            let bounds = attachment.measuredBounds(width: width, controller: provider.hostedController(for: attachment))
+            // Minimum-width probes must not become the baseline for the displayed fragment's size.
+            if provider.notifiedBoundsByWidth[width] == nil { provider.notifiedBoundsByWidth[width] = bounds }
+            provider.lastMeasurementWidth = width
+            return bounds
+        }
+    }
+
+    @MainActor
+    private func scheduleSizeNotification() {
+        guard self.isSizeNotificationScheduled == false else { return }
+        self.isSizeNotificationScheduled = true
+        DispatchQueue.main.async { [weak self] in
+            guard let self else { return }
+            defer { self.isSizeNotificationScheduled = false }
+            guard let attachment = self.textAttachment as? ReviewContentAttachment,
+                  let textView = attachment.selectionTextView,
+                  let width = self.lastMeasurementWidth else { return }
+            textView.rebuildAccessibilityContent()
+            let bounds = attachment.measuredBounds(width: width, controller: self.hostedController(for: attachment))
+            guard self.notifiedBoundsByWidth[width] != bounds else { return }
+            self.notifiedBoundsByWidth[width] = bounds
+            if let manager = self.textLayoutManager, let range = manager.textContentManager?.documentRange {
+                manager.invalidateLayout(for: range)
+            }
+            textView.invalidateIntrinsicContentSize()
+            textView.setNeedsLayout()
+            textView.onAttachmentSizeChange?()
+        }
+    }
+}
+#else
 private final class ReviewContentAttachmentProvider: NSTextAttachmentViewProvider {
     nonisolated override func loadView() {
         // TextKit's Objective-C callbacks lack the UI host's main-actor annotations.
@@ -400,3 +506,4 @@ private final class ReviewContentAttachmentProvider: NSTextAttachmentViewProvide
         }
     }
 }
+#endif
