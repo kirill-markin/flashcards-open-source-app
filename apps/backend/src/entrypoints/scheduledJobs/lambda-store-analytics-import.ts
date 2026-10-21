@@ -1,5 +1,6 @@
 import type { Handler } from "aws-lambda";
 import {
+  addBackendBreadcrumb,
   captureBackendException,
   createBackendObservationScope,
   initializeBackendSentry,
@@ -143,6 +144,11 @@ const storeAnalyticsImportHandler: Handler<
       error: normalizedError,
       details: { source: null, message: normalizedError.message },
     });
+    addBackendBreadcrumb({
+      action: "store_analytics_import_completed",
+      scope,
+      details: { succeeded: 0 },
+    });
     throw error;
   }
 
@@ -155,8 +161,18 @@ const storeAnalyticsImportHandler: Handler<
     );
     // Each source error was captured on its own; the aggregate only fails the invocation.
     markCapturedBackendException(failure);
+    addBackendBreadcrumb({
+      action: "store_analytics_import_completed",
+      scope,
+      details: { succeeded: 0 },
+    });
     throw failure;
   }
+  addBackendBreadcrumb({
+    action: "store_analytics_import_completed",
+    scope,
+    details: { succeeded: 1 },
+  });
   return { ok: true, appStore: appStore.summary, googlePlay: googlePlay.summary,
     googleHistory: googleHistory.summary, stripe: stripe.summary, appleHistory: appleHistory.summary };
 };

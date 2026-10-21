@@ -4,6 +4,7 @@ import * as ec2 from "aws-cdk-lib/aws-ec2";
 import * as iam from "aws-cdk-lib/aws-iam";
 import * as lambda from "aws-cdk-lib/aws-lambda";
 import * as lambdaNodejs from "aws-cdk-lib/aws-lambda-nodejs";
+import * as logs from "aws-cdk-lib/aws-logs";
 import * as rds from "aws-cdk-lib/aws-rds";
 import * as scheduler from "aws-cdk-lib/aws-scheduler";
 import { Construct } from "constructs";
@@ -29,6 +30,7 @@ export interface StoreAnalyticsImportProps {
 
 export interface StoreAnalyticsImportResult {
   importFunction: lambdaNodejs.NodejsFunction;
+  importLogGroup: logs.ILogGroup;
 }
 
 export const storeAnalyticsImportScheduleHours = 1;
@@ -168,5 +170,6 @@ export function storeAnalyticsImport(scope: Construct, props: StoreAnalyticsImpo
 
   return {
     importFunction,
+    importLogGroup: importFunction.logGroup,
   };
 }
