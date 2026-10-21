@@ -690,6 +690,7 @@ struct ReviewView: View {
                 }
                 .foregroundStyle(Color.primary)
                 .frame(minHeight: self.showsFilterInReviewColumn ? 30 : nil)
+                .fixedSize(horizontal: self.showsFilterInReviewColumn == false, vertical: false)
             }
         }
         .tint(Color.primary)
@@ -707,6 +708,7 @@ struct ReviewView: View {
             )
             .presentationCompactAdaptation(.popover)
         }
+        .id(store.selectedReviewFilter.id)
     }
 
     private func finalizeReviewFilterDraft() {
