@@ -16,6 +16,9 @@ extension AIChatView {
               self.chatStore.consumeCompletedDictationTranscript(id: completedTranscript.id) else {
             return
         }
+        self.chatStore.editorDiagnosticPresentation = self.composerDiagnosticPresentation
+        let beforeCount = self.chatStore.inputText.utf16.count
+        self.chatStore.recordComposerEditing(operation: .dictation, phase: .before, beforeUTF16Count: beforeCount, afterUTF16Count: nil)
         let insertionSelection = aiChatDictationInsertionSelection(
             text: self.chatStore.inputText,
             selection: self.composerSelection
@@ -25,10 +28,12 @@ extension AIChatView {
             transcript: completedTranscript.transcript,
             selection: insertionSelection
         )
+        self.chatStore.recordComposerEditing(operation: .dictation, phase: .before, beforeUTF16Count: beforeCount, afterUTF16Count: insertionResult.text.utf16.count)
         self.chatStore.inputText = insertionResult.text
         self.composerSelection = aiChatTextSelection(
             text: insertionResult.text,
             selection: insertionResult.selection
         )
+        self.chatStore.recordComposerEditing(operation: .dictation, phase: .after, beforeUTF16Count: beforeCount, afterUTF16Count: insertionResult.text.utf16.count)
     }
 }

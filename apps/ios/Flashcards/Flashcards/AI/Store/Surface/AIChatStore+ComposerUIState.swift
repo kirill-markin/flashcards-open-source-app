@@ -155,7 +155,15 @@ extension AIChatStore {
             return
         }
 
+        let beforeCount = self.inputText.utf16.count
         let trimmedInputText = self.inputText.trimmingCharacters(in: .whitespacesAndNewlines)
+        let afterCount = trimmedInputText.isEmpty
+            ? suggestion.text.utf16.count
+            : beforeCount + (self.inputText.hasSuffix(" ") ? 0 : 1) + suggestion.text.utf16.count
+        self.recordComposerEditing(operation: .suggestion, phase: .before, beforeUTF16Count: beforeCount, afterUTF16Count: afterCount)
+        defer {
+            self.recordComposerEditing(operation: .suggestion, phase: .after, beforeUTF16Count: beforeCount, afterUTF16Count: self.inputText.utf16.count)
+        }
         self.composerSelection = nil
         if trimmedInputText.isEmpty {
             self.inputText = suggestion.text
@@ -203,8 +211,11 @@ extension AIChatStore {
             guard self.canEditDraft else {
                 return false
             }
+            let beforeCount = self.inputText.utf16.count
+            self.recordComposerEditing(operation: .createCard, phase: .before, beforeUTF16Count: beforeCount, afterUTF16Count: aiChatCreateCardDraftPrompt.utf16.count)
             self.composerSelection = nil
             self.inputText = aiChatCreateCardDraftPrompt
+            self.recordComposerEditing(operation: .createCard, phase: .after, beforeUTF16Count: beforeCount, afterUTF16Count: aiChatCreateCardDraftPrompt.utf16.count)
             return true
         case .attachCard(let card):
             return self.prepareCardHandoff(card: card)

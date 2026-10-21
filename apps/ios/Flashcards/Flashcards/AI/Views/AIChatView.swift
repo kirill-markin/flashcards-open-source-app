@@ -167,6 +167,12 @@ struct AIChatView: View {
     var bodyLifecycleModifiers: some View {
         self.bodyBaseModifiers
             .onAppear(perform: self.handleViewAppear)
+            .onDisappear {
+                self.recordComposerPresentation(operation: .presentation, isVisible: false)
+            }
+            .onChange(of: self.isComposerFocused) { _, _ in
+                self.recordComposerPresentation(operation: .focus, isVisible: self.isPresentationActive)
+            }
             .onChange(of: self.chatStore.quotaRefusal, initial: true) { _, refusal in
                 self.handleQuotaRefusal(refusal)
             }
@@ -293,11 +299,50 @@ struct AIChatView: View {
         nonmutating set { self.chatStore.composerSelection = newValue }
     }
 
+    var composerDiagnosticPresentation: NativeEditorPresentation {
+        NativeEditorPresentation(
+            host: self.isCompanion ? .aiCompanion : .aiTab,
+            hostTab: self.isCompanion ? self.companionHostTab ?? self.navigation.selectedTab : .ai,
+            isFocused: self.isComposerFocused,
+            isVisible: self.isPresentationActive,
+            isSceneActive: self.scenePhase == .active
+        )
+    }
+
+    func recordComposerPresentation(operation: NativeEditorOperation, isVisible: Bool) {
+        let current = self.composerDiagnosticPresentation
+        let presentation = NativeEditorPresentation(
+            host: current.host, hostTab: current.hostTab, isFocused: current.isFocused,
+            isVisible: isVisible, isSceneActive: current.isSceneActive
+        )
+        guard self.isPresentationActive
+            || (self.chatStore.editorDiagnosticPresentation?.host == current.host
+                && self.chatStore.editorDiagnosticPresentation?.hostTab == current.hostTab) else {
+            return
+        }
+        self.chatStore.editorDiagnosticPresentation = presentation
+        FlashcardsObservability.addBreadcrumb(.nativeEditor(NativeEditorObservation(
+            editor: .aiComposer, operation: operation, phase: .after,
+            beforeUTF16Count: self.chatStore.inputText.utf16.count,
+            afterUTF16Count: self.chatStore.inputText.utf16.count,
+            selectionKind: NativeEditorSelectionKind(self.composerSelection),
+            presentation: presentation
+        )))
+    }
+
+    var composerTextBinding: Binding<String> {
+        Binding(get: { self.chatStore.inputText }, set: { text in
+            self.chatStore.editorDiagnosticPresentation = self.composerDiagnosticPresentation
+            self.chatStore.inputText = text
+        })
+    }
+
     var composerSelectionBinding: Binding<TextSelection?> {
         Binding(
             get: { self.chatStore.composerSelection },
             set: { selection in
                 guard self.isPresentationActive else { return }
+                self.chatStore.editorDiagnosticPresentation = self.composerDiagnosticPresentation
                 self.chatStore.composerSelection = selection
             }
         )
@@ -813,7 +858,10 @@ struct AIChatView: View {
     }
 
     func dismissComposerFocus() {
+        self.chatStore.editorDiagnosticPresentation = self.composerDiagnosticPresentation
+        self.chatStore.recordComposerEditing(operation: .focus, phase: .before, beforeUTF16Count: self.chatStore.inputText.utf16.count, afterUTF16Count: self.chatStore.inputText.utf16.count)
         self.isComposerFocused = false
+        self.chatStore.editorDiagnosticPresentation = self.composerDiagnosticPresentation
         self.composerSelection = nil
         UIApplication.shared.sendAction(
             #selector(UIResponder.resignFirstResponder),
@@ -840,6 +888,7 @@ struct AIChatView: View {
     }
 
     func handleViewAppear() {
+        self.recordComposerPresentation(operation: .presentation, isVisible: self.isPresentationActive)
         self.handleQuotaRefusal(self.chatStore.quotaRefusal)
         self.syncChatSurface(refreshConsent: true)
         self.refreshAIUsage()
@@ -928,6 +977,7 @@ struct AIChatView: View {
     }
 
     func handleScenePhaseChange(nextPhase: ScenePhase) {
+        self.recordComposerPresentation(operation: .scene, isVisible: self.isPresentationActive)
         guard nextPhase == .active else {
             self.syncChatSurface(refreshConsent: false)
             return
@@ -949,6 +999,7 @@ struct AIChatView: View {
     }
 
     func handleChatVisibilityChange(isVisible: Bool) {
+        self.recordComposerPresentation(operation: .presentation, isVisible: isVisible)
         guard isVisible else {
             self.syncChatSurface(refreshConsent: false)
             return

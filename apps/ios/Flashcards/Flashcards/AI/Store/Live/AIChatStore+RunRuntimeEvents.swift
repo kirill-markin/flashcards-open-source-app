@@ -34,7 +34,7 @@ extension AIChatStore {
                     messages: response.envelope.conversation.messages
                 )
             }
-            self.applyComposerDraft(inputText: "", pendingAttachments: [])
+            self.applyComposerDraft(inputText: "", pendingAttachments: [], operation: .sendAccepted)
             self.schedulePersistCurrentDraftState()
             self.persistStateSynchronously(state: self.currentPersistedState())
             self.repairStatus = nil

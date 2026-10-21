@@ -294,6 +294,7 @@ private struct CardTextPreviewRow: View {
 
 private struct CardTextEditorScreen: View {
     @Environment(FlashcardsStore.self) private var store: FlashcardsStore
+    @Environment(\.scenePhase) private var scenePhase
 
     let field: CardTextField
     @Binding var text: String
@@ -301,6 +302,7 @@ private struct CardTextEditorScreen: View {
     @Binding var editorSessionId: UUID
     @Binding var mediaAssetIdsReadyForUpload: Set<String>
     @FocusState private var isTextEditorFocused: Bool
+    @State private var isEditorVisible: Bool = false
     @State private var isPhotoPickerPresented: Bool = false
     @State private var selectedPhotoItem: PhotosPickerItem?
     @State private var isImportingImage: Bool = false
@@ -319,7 +321,7 @@ private struct CardTextEditorScreen: View {
             horizontalPadding: 16
         ) {
             VStack(alignment: .leading, spacing: 12) {
-                TextEditor(text: $text, selection: $textSelection)
+                TextEditor(text: self.diagnosticTextBinding, selection: self.diagnosticSelectionBinding)
                     .scrollContentBackground(.hidden)
                     .focused(self.$isTextEditorFocused)
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
@@ -336,14 +338,17 @@ private struct CardTextEditorScreen: View {
                         references: self.managedImageReferences,
                         surfaceStyle: self.field.reviewSurfaceStyle,
                         onRemove: { reference in
+                            let beforeCount = self.text.utf16.count
                             let removal = cardEditorTextByRemovingManagedImageReference(
                                 text: self.text,
                                 selection: self.textSelection,
                                 mediaAssetId: reference.mediaAssetId,
                                 occurrence: reference.occurrence
                             )
+                            self.recordEditing(operation: .imageRemoval, phase: .before, beforeCount: beforeCount, afterCount: removal.text.utf16.count, isVisible: true)
                             self.text = removal.text
                             self.textSelection = removal.selection
+                            self.recordEditing(operation: .imageRemoval, phase: .after, beforeCount: beforeCount, afterCount: self.text.utf16.count, isVisible: true)
                         }
                     )
                 }
@@ -384,12 +389,54 @@ private struct CardTextEditorScreen: View {
             self.clearSelectedPhotoItem()
         }
         .onAppear {
+            self.isEditorVisible = true
+            self.recordEditing(operation: .presentation, phase: .before, beforeCount: self.text.utf16.count, afterCount: self.text.utf16.count, isVisible: true)
             self.isTextEditorFocused = true
         }
+        .onChange(of: self.isTextEditorFocused) { _, _ in
+            self.recordEditing(operation: .focus, phase: .after, beforeCount: self.text.utf16.count, afterCount: self.text.utf16.count, isVisible: self.isEditorVisible)
+        }
+        .onChange(of: self.scenePhase) { _, _ in
+            self.recordEditing(operation: .scene, phase: .after, beforeCount: self.text.utf16.count, afterCount: self.text.utf16.count, isVisible: self.isEditorVisible)
+        }
         .onDisappear {
+            self.isEditorVisible = false
+            self.recordEditing(operation: .presentation, phase: .after, beforeCount: self.text.utf16.count, afterCount: self.text.utf16.count, isVisible: false)
             self.cancelImageImport()
             self.clearSelectedPhotoItem()
         }
+    }
+
+    private var diagnosticTextBinding: Binding<String> {
+        Binding(get: { self.text }, set: { value in
+            let beforeCount = self.text.utf16.count
+            self.recordEditing(operation: .input, phase: .before, beforeCount: beforeCount, afterCount: value.utf16.count, isVisible: true)
+            self.text = value
+            self.recordEditing(operation: .input, phase: .after, beforeCount: beforeCount, afterCount: value.utf16.count, isVisible: true)
+        })
+    }
+
+    private var diagnosticSelectionBinding: Binding<TextSelection?> {
+        Binding(get: { self.textSelection }, set: { value in
+            self.textSelection = value
+            self.recordEditing(operation: .selection, phase: .after, beforeCount: self.text.utf16.count, afterCount: self.text.utf16.count, isVisible: true)
+        })
+    }
+
+    private func recordEditing(
+        operation: NativeEditorOperation, phase: NativeEditorPhase,
+        beforeCount: Int, afterCount: Int, isVisible: Bool
+    ) {
+        FlashcardsObservability.addBreadcrumb(.nativeEditor(NativeEditorObservation(
+            editor: self.field == .front ? .cardFront : .cardBack,
+            operation: operation, phase: phase,
+            beforeUTF16Count: beforeCount, afterUTF16Count: afterCount,
+            selectionKind: NativeEditorSelectionKind(self.textSelection),
+            presentation: NativeEditorPresentation(
+                host: .cardEditor, hostTab: nil, isFocused: self.isTextEditorFocused,
+                isVisible: isVisible, isSceneActive: self.scenePhase == .active
+            )
+        )))
     }
 
     private var addImageToolbarItem: some View {
@@ -486,13 +533,16 @@ private struct CardTextEditorScreen: View {
                 return
             }
             self.mediaAssetIdsReadyForUpload.insert(authoringResult.mediaAsset.mediaAssetId)
+            let beforeCount = self.text.utf16.count
             let insertion = cardEditorTextByInsertingMarkdown(
                 text: self.text,
                 markdown: authoringResult.markdown,
                 insertionAnchor: insertionAnchor
             )
+            self.recordEditing(operation: .imageInsertion, phase: .before, beforeCount: beforeCount, afterCount: insertion.text.utf16.count, isVisible: true)
             self.text = insertion.text
             self.textSelection = insertion.selection
+            self.recordEditing(operation: .imageInsertion, phase: .after, beforeCount: beforeCount, afterCount: self.text.utf16.count, isVisible: true)
             // Reported where the image reaches the card's text, never where the picker was opened.
             Analytics.track(.mediaAttached(source: .photoLibrary, screen: .cardEditor))
         } catch is CancellationError {

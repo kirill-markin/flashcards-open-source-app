@@ -78,14 +78,22 @@ final class AIChatStore {
     var activeRunSession: AIChatActiveRunSession?
     // Keep the current draft selection when its tab or companion changes hosts.
     // Selection is transient UI state and is not persisted with the draft.
-    var composerSelection: TextSelection?
+    var composerSelection: TextSelection? {
+        didSet {
+            self.recordComposerEditing(operation: .selection, phase: .after, beforeUTF16Count: self.inputText.utf16.count, afterUTF16Count: self.inputText.utf16.count)
+        }
+    }
+    @ObservationIgnored var editorDiagnosticPresentation: NativeEditorPresentation?
 
     var inputText: String {
         get { self.composerState.inputText }
         set {
+            let beforeCount = self.inputText.utf16.count
+            self.recordComposerEditing(operation: .input, phase: .before, beforeUTF16Count: beforeCount, afterUTF16Count: newValue.utf16.count)
             var updatedState = self.composerState
             updatedState.inputText = newValue
             self.composerState = updatedState
+            self.recordComposerEditing(operation: .input, phase: .after, beforeUTF16Count: beforeCount, afterUTF16Count: newValue.utf16.count)
             self.schedulePersistCurrentDraftState()
         }
     }
@@ -530,10 +538,17 @@ final class AIChatStore {
         )
     }
 
+    func applyComposerDraft(inputText: String, pendingAttachments: [AIChatAttachment]) {
+        self.applyComposerDraft(inputText: inputText, pendingAttachments: pendingAttachments, operation: .draftReplacement)
+    }
+
     func applyComposerDraft(
         inputText: String,
-        pendingAttachments: [AIChatAttachment]
+        pendingAttachments: [AIChatAttachment],
+        operation: NativeEditorOperation
     ) {
+        let beforeCount = self.inputText.utf16.count
+        self.recordComposerEditing(operation: operation, phase: .before, beforeUTF16Count: beforeCount, afterUTF16Count: inputText.utf16.count)
         if self.inputText != inputText {
             self.composerSelection = nil
         }
@@ -541,6 +556,21 @@ final class AIChatStore {
         updatedState.inputText = inputText
         updatedState.pendingAttachments = pendingAttachments
         self.composerState = updatedState
+        self.recordComposerEditing(operation: operation, phase: .after, beforeUTF16Count: beforeCount, afterUTF16Count: inputText.utf16.count)
+    }
+
+    func recordComposerEditing(
+        operation: NativeEditorOperation,
+        phase: NativeEditorPhase,
+        beforeUTF16Count: Int,
+        afterUTF16Count: Int?
+    ) {
+        FlashcardsObservability.addBreadcrumb(.nativeEditor(NativeEditorObservation(
+            editor: .aiComposer, operation: operation, phase: phase,
+            beforeUTF16Count: beforeUTF16Count, afterUTF16Count: afterUTF16Count,
+            selectionKind: NativeEditorSelectionKind(self.composerSelection),
+            presentation: self.editorDiagnosticPresentation
+        )))
     }
 
     convenience init(
@@ -679,6 +709,7 @@ final class AIChatStore {
         self.optimisticOutgoingTurnState = restoredAIChatOptimisticOutgoingTurnState(
             messages: persistedState.messages
         )
+        self.recordComposerEditing(operation: .restore, phase: .after, beforeUTF16Count: 0, afterUTF16Count: self.inputText.utf16.count)
         self.activateAccessContext(
             force: true,
             nextAccessContext: self.currentAccessContext()

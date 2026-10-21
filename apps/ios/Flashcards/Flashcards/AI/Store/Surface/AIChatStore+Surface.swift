@@ -29,6 +29,11 @@ extension AIChatStore {
             return false
         }
 
+        let beforeCount = self.inputText.utf16.count
+        self.recordComposerEditing(operation: .attachCard, phase: .before, beforeUTF16Count: beforeCount, afterUTF16Count: nil)
+        defer {
+            self.recordComposerEditing(operation: .attachCard, phase: .after, beforeUTF16Count: beforeCount, afterUTF16Count: self.inputText.utf16.count)
+        }
         let attachment = AIChatAttachment(
             id: UUID().uuidString.lowercased(),
             payload: .card(card)
@@ -86,7 +91,7 @@ extension AIChatStore {
             return true
         }
 
-        self.applyComposerDraft(inputText: "", pendingAttachments: [attachment])
+        self.applyComposerDraft(inputText: "", pendingAttachments: [attachment], operation: .attachCard)
         self.schedulePersistCurrentDraftState()
         self.activeAlert = nil
         self.repairStatus = nil
@@ -354,7 +359,8 @@ extension AIChatStore {
             : persistedDraft
         self.applyComposerDraft(
             inputText: restoredDraft.inputText,
-            pendingAttachments: restoredDraft.pendingAttachments
+            pendingAttachments: restoredDraft.pendingAttachments,
+            operation: .restore
         )
         self.applyComposerSuggestions(persistedState.composerSuggestions)
         self.suppressDraftRestore = false
@@ -545,7 +551,7 @@ extension AIChatStore {
         )
         self.chatSessionId = resolvedSessionId
         self.conversationScopeId = resolvedSessionId
-        self.applyComposerDraft(inputText: "", pendingAttachments: [])
+        self.applyComposerDraft(inputText: "", pendingAttachments: [], operation: .reset)
         self.schedulePersistCurrentDraftState()
         self.messages = []
         self.applyComposerSuggestions([])
@@ -586,7 +592,8 @@ extension AIChatStore {
         self.conversationScopeId = sessionId
         self.applyComposerDraft(
             inputText: inputText,
-            pendingAttachments: pendingAttachments
+            pendingAttachments: pendingAttachments,
+            operation: .reset
         )
         self.schedulePersistCurrentDraftState()
         self.messages = []

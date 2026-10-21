@@ -84,7 +84,7 @@ extension AIChatStore {
         self.transitionToPreparingSend()
         self.persistStateSynchronously(state: self.currentPersistedState())
         let conversationId = UUID().uuidString.lowercased()
-        self.applyComposerDraft(inputText: "", pendingAttachments: [])
+        self.applyComposerDraft(inputText: "", pendingAttachments: [], operation: .send)
         self.appendOptimisticOutgoingTurn(content: content)
         self.storePreSendSnapshot(preSendSnapshot, conversationId: conversationId)
         self.activeConversationId = conversationId
@@ -278,7 +278,10 @@ extension AIChatStore {
                 sessionId: self.chatSessionId.isEmpty ? nil : self.chatSessionId,
                 isSuppressed: false
             )
+            let beforeCount = self.inputText.utf16.count
+            self.recordComposerEditing(operation: .sendFailedRestore, phase: .before, beforeUTF16Count: beforeCount, afterUTF16Count: draftText.utf16.count)
             self.inputText = draftText
+            self.recordComposerEditing(operation: .sendFailedRestore, phase: .after, beforeUTF16Count: beforeCount, afterUTF16Count: draftText.utf16.count)
             self.pendingAttachments = draftAttachments
             self.persistDraftStateImmediately(
                 workspaceId: self.historyWorkspaceId(),
