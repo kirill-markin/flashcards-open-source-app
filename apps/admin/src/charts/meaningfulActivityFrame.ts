@@ -60,6 +60,5 @@ export function renderMeaningfulActivityHitTargets(
     })
     .on("focus", showFocusedTooltip)
     .on("blur", tooltipHandlers.hideTooltip)
-    .on("mouseleave", tooltipHandlers.hideTooltip)
-    .append("title").text(getLabel);
+    .on("mouseleave", tooltipHandlers.hideTooltip);
 }
