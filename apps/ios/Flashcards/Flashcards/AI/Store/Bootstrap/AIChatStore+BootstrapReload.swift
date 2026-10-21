@@ -66,7 +66,7 @@ extension AIChatStore {
                     )
                     self.chatSessionId = resolvedSessionId
                     self.conversationScopeId = resolvedSessionId
-                    self.applyComposerDraft(inputText: "", pendingAttachments: [])
+                    self.applyComposerDraft(inputText: "", pendingAttachments: [], operation: .bootstrapReset)
                     self.schedulePersistCurrentDraftState()
                 }
                 self.transitionToIdle()
@@ -176,7 +176,8 @@ extension AIChatStore {
                 self.applyBootstrap(response)
                 self.applyComposerDraft(
                     inputText: draft.inputText,
-                    pendingAttachments: draft.pendingAttachments
+                    pendingAttachments: draft.pendingAttachments,
+                    operation: .restore
                 )
                 self.persistDraftRestoreSuppressionSynchronously(
                     workspaceId: workspaceId,

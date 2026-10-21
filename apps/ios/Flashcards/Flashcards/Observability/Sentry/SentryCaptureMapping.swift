@@ -36,6 +36,8 @@ extension SentryObservabilityAdapter {
 
     static func addBreadcrumb(_ event: IOSBreadcrumbEvent) {
         switch event {
+        case .nativeEditor(let observation):
+            self.recordNativeEditor(observation)
         case .reviewReaction(let observation):
             let context: [String: Any] = self.reviewReactionContext(observation)
             self.writeLocalRecord(
@@ -201,6 +203,46 @@ extension SentryObservabilityAdapter {
                 scope.setFingerprint(["{{ default }}", safeDiagnosticIdentifier(payload.observation.action)])
             }
         }
+    }
+
+    private static func recordNativeEditor(_ observation: NativeEditorObservation) {
+        let presentation = observation.presentation
+        let context: [String: Any] = [
+            "editor": observation.editor.rawValue,
+            "operation": observation.operation.rawValue,
+            "phase": observation.phase.rawValue,
+            "before_utf16_count": observation.beforeUTF16Count,
+            "after_utf16_count": observation.afterUTF16Count.map { String($0) } ?? "unavailable",
+            "selection_kind": observation.selectionKind.rawValue,
+            "has_selection": observation.selectionKind != .none,
+            "host": presentation?.host.rawValue ?? "unavailable",
+            "host_tab": presentation?.hostTab.map { String(describing: $0) } ?? "unavailable",
+            "is_focused": presentation.map { String($0.isFocused) } ?? "unavailable",
+            "is_visible": presentation.map { String($0.isVisible) } ?? "unavailable",
+            "is_scene_active": presentation.map { String($0.isSceneActive) } ?? "unavailable",
+            "observed_at_millis": Int64(Date().timeIntervalSince1970 * 1_000)
+        ]
+        if self.state.isStarted() {
+            let sanitizedContext = sanitizedDictionary(context) ?? [:]
+            SentrySDK.configureScope { scope in
+                scope.setContext(value: sanitizedContext, key: "ios_native_editor_\(observation.editor.rawValue)")
+                if observation.operation.emitsBreadcrumb {
+                    scope.setContext(value: sanitizedContext, key: "ios_native_editor_transition")
+                }
+                if observation.operation.isProgrammaticTextChange {
+                    scope.setContext(value: sanitizedContext, key: "ios_native_editor_replacement_\(observation.phase.rawValue)")
+                }
+            }
+        }
+        guard observation.operation.emitsBreadcrumb else { return }
+        self.writeLocalRecord(
+            kind: "breadcrumb", feature: observation.editor == .aiComposer ? .aiChat : .cards,
+            action: "native_editor", fields: stringifyContext(context)
+        )
+        self.addSentryBreadcrumb(
+            category: "ios.native_editor", level: .info,
+            message: observation.operation.rawValue, data: context
+        )
     }
 
     private static func addSentryBreadcrumb(
