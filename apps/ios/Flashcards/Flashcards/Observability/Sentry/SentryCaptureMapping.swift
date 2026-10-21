@@ -151,6 +151,16 @@ extension SentryObservabilityAdapter {
                 message: observation.action.rawValue,
                 data: self.notificationTapContext(observation)
             )
+        case .premiumPresentation(let observation):
+            let context: [String: Any] = self.premiumPresentationContext(observation)
+            self.writeLocalRecord(
+                kind: "breadcrumb", feature: .subscription,
+                action: observation.phase.rawValue, fields: stringifyContext(context)
+            )
+            self.addSentryBreadcrumb(
+                category: "ios.premium_presentation", level: .info,
+                message: observation.phase.rawValue, data: context
+            )
         }
     }
 
@@ -929,6 +939,30 @@ extension SentryObservabilityAdapter {
 
     private static func aiLiveLifecycleFields(_ observation: AILiveLifecycleObservation) -> [String: String] {
         stringifyContext(self.aiLiveLifecycleContext(observation))
+    }
+
+    private static func premiumPresentationContext(_ observation: PremiumPresentationObservation) -> [String: Any] {
+        var context: [String: Any] = [
+            "phase": observation.phase.rawValue,
+            "presentation_id": observation.requestId.uuidString,
+            "entry_point": observation.entryPoint?.rawValue ?? "",
+            "selected_tab": observation.selectedTab,
+            "scene_phase": observation.scenePhase,
+            "subscription_service_explicitly_injected": observation.isSubscriptionServiceExplicitlyInjected
+        ]
+        switch observation.reason {
+        case .aiLimit:
+            context["reason"] = "ai_limit"
+        case .premiumFeature(let requiredTierRank):
+            context["reason"] = "premium_feature"
+            context["required_tier_rank"] = requiredTierRank
+        case .offerPreview:
+            context["reason"] = "offer_preview"
+        case .review(let trigger):
+            context["reason"] = "review"
+            context["review_trigger"] = trigger.rawValue
+        }
+        return context
     }
 
     private static func notificationTapContext(_ observation: NotificationTapObservation) -> [String: Any] {

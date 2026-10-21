@@ -55,6 +55,24 @@ enum IOSBreadcrumbEvent: Sendable {
     case aiChatLifecycle(AIChatLifecycleObservation)
     case aiLiveLifecycle(AILiveLifecycleObservation)
     case notificationTap(NotificationTapObservation)
+    case premiumPresentation(PremiumPresentationObservation)
+}
+
+enum PremiumPresentationPhase: String, Sendable {
+    case preparing
+    case contentPrepared = "content_prepared"
+    case appeared
+    case disappeared
+}
+
+struct PremiumPresentationObservation: Sendable {
+    let phase: PremiumPresentationPhase
+    let requestId: UUID
+    let reason: PremiumPresentationReason
+    let entryPoint: AnalyticsPaywallEntryPoint?
+    let selectedTab: String
+    let scenePhase: String
+    let isSubscriptionServiceExplicitlyInjected: Bool
 }
 
 enum IOSWarningEvent: Sendable {

@@ -578,14 +578,52 @@ struct RootTabView: View {
             presentationContext: .standard(originSurface: .review)
         )
         .sheet(item: self.premiumPresentation) { request in
-            PremiumOfferView(request: request)
-            .environment(store)
-            .environment(self.premiumPresenter)
+            self.premiumOffer(request: request)
         }
         .sheet(item: self.feedbackPresentation) { presentation in
             FeedbackSheet(presentation: presentation)
                 .environment(store)
         }
+    }
+
+    private func premiumOffer(request: PremiumPresentationRequest) -> some View {
+        self.recordPremiumPresentation(
+            request: request, phase: .preparing, isSubscriptionServiceExplicitlyInjected: false
+        )
+        let content = PremiumOfferView(request: request)
+            .environment(self.store)
+            .environment(self.premiumPresenter)
+            .environment(self.appleSubscriptions)
+        self.recordPremiumPresentation(
+            request: request, phase: .contentPrepared, isSubscriptionServiceExplicitlyInjected: true
+        )
+        return content
+            .onAppear {
+                self.recordPremiumPresentation(
+                    request: request, phase: .appeared, isSubscriptionServiceExplicitlyInjected: true
+                )
+            }
+            .onDisappear {
+                self.recordPremiumPresentation(
+                    request: request, phase: .disappeared, isSubscriptionServiceExplicitlyInjected: true
+                )
+            }
+    }
+
+    private func recordPremiumPresentation(
+        request: PremiumPresentationRequest,
+        phase: PremiumPresentationPhase,
+        isSubscriptionServiceExplicitlyInjected: Bool
+    ) {
+        FlashcardsObservability.addBreadcrumb(.premiumPresentation(PremiumPresentationObservation(
+            phase: phase,
+            requestId: request.id,
+            reason: request.reason,
+            entryPoint: request.analyticsEntryPoint,
+            selectedTab: analyticsSurface(tab: self.navigation.selectedTab).rawValue,
+            scenePhase: String(describing: self.scenePhase),
+            isSubscriptionServiceExplicitlyInjected: isSubscriptionServiceExplicitlyInjected
+        )))
     }
 
     private var tabRootAlerts: some View {

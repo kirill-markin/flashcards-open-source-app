@@ -16,7 +16,7 @@ struct AIChatQuotaRefusal: Equatable {
     let cloudState: CloudAccountState?
 }
 
-enum PremiumPresentationReason: Equatable {
+enum PremiumPresentationReason: Equatable, Sendable {
     case aiLimit
     case premiumFeature(requiredTierRank: Int)
     case offerPreview
@@ -26,7 +26,6 @@ enum PremiumPresentationReason: Equatable {
 struct PremiumPresentationRequest: Identifiable, Equatable {
     let id: UUID
     let reason: PremiumPresentationReason
-    /// `nil` only for the test-settings previews, which report nothing.
     let analyticsEntryPoint: AnalyticsPaywallEntryPoint?
     let identity: AppleSubscriptionIdentity?
 
