@@ -990,7 +990,7 @@ export function monitoring(scope: Construct, props: MonitoringProps): void {
     metric: props.storeAnalyticsImportFn.metricErrors({ period: cdk.Duration.minutes(15), statistic: "Sum" }),
     threshold: 1,
     evaluationPeriods: 1,
-    alarmDescription: "Store analytics import failed; store report rows (App Store or Google Play) are missing or stale in store_analytics",
+    alarmDescription: "Store reports or billing history import failed; inspect the failed source and environment in the Lambda logs",
     treatMissingData: cloudwatch.TreatMissingData.NOT_BREACHING,
   }), alertTopic);
 
