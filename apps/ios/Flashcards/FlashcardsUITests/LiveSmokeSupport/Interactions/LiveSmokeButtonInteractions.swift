@@ -152,13 +152,16 @@ extension LiveSmokeTestCase {
 
     @MainActor
     func tapFirstNavigationBackButton() throws {
-        let navigationBarButton = self.app.navigationBars.buttons["BackButton"].firstMatch
+        var navigationBarButton = self.app.navigationBars.buttons["BackButton"].firstMatch
         let toolbarBackButton = self.app.toolbars.buttons["BackButton"].firstMatch
         try self.runWithInlineRawScreenStateOnFailure(action: "tap_back_button.navigation.backButton") {
             #if !targetEnvironment(macCatalyst)
             if #unavailable(iOS 26.0), let source = try self.iOS18SettingsBackSource() {
                 try self.tapBackToSettingsRoot(from: source)
                 return
+            }
+            if #unavailable(iOS 26.0), let historyBackButton = try self.iOS18AIHistoryBackButton() {
+                navigationBarButton = historyBackButton
             }
             #endif
             let timeout = LiveSmokeConfiguration.shortUiTimeoutSeconds
@@ -212,6 +215,51 @@ extension LiveSmokeTestCase {
     }
 
     #if !targetEnvironment(macCatalyst)
+    @MainActor
+    private func iOS18AIHistoryBackButton() throws -> XCUIElement? {
+        let reader = self.app.collectionViews[LiveSmokeIdentifier.aiHistoryReader].firstMatch
+        let historyList = self.app.collectionViews[LiveSmokeIdentifier.aiHistoryList].firstMatch
+        let isReaderVisible = reader.exists && reader.isHittable
+        let isListVisible = historyList.exists && historyList.isHittable
+        guard isReaderVisible || isListVisible else {
+            return nil
+        }
+
+        let navigationBars = self.elements(query: self.app.navigationBars).filter(\.isHittable)
+        guard self.currentLaunchLocalization == .english,
+              isReaderVisible != isListVisible,
+              self.app.alerts.count == 0,
+              self.app.sheets.count == 0,
+              navigationBars.count == 1 else {
+            throw LiveSmokeFailure.unexpectedAiConversationState(
+                message: "Native iOS 18 AI history back lookup requires an English launch, one active history screen, one navigation bar, and no sheet or alert.",
+                screen: self.currentScreenSummary(),
+                step: self.currentStepTitle
+            )
+        }
+
+        let navigationBar = navigationBars[0]
+        guard isReaderVisible || navigationBar.identifier == "Chat history" else {
+            throw LiveSmokeFailure.unexpectedAiConversationState(
+                message: "Expected Chat history navigation bar before returning to AI; found \(navigationBar.identifier).",
+                screen: self.currentScreenSummary(),
+                step: self.currentStepTitle
+            )
+        }
+
+        // iOS 18 exposes native Back by its parent title without the BackButton identifier.
+        let parentTitle = isReaderVisible ? "Chat history" : LiveSmokeSelectedTab.ai.localizedTitle(localization: self.currentLaunchLocalization)
+        let buttons = navigationBar.buttons.matching(NSPredicate(format: "label == %@", parentTitle))
+        guard buttons.count <= 1 else {
+            throw LiveSmokeFailure.unexpectedAiConversationState(
+                message: "Expected one native AI history back button labeled \(parentTitle); found \(buttons.count).",
+                screen: self.currentScreenSummary(),
+                step: self.currentStepTitle
+            )
+        }
+        return buttons.firstMatch
+    }
+
     @MainActor
     private func iOS18SettingsBackSource() throws -> XCUIElement? {
         let sourceIdentifiers: [String] = [

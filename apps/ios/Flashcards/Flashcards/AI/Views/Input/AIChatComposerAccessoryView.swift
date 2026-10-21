@@ -120,6 +120,7 @@ extension AIChatView {
                         HStack(spacing: 8) {
                             ForEach(Array(self.chatStore.visibleComposerSuggestions.enumerated()), id: \.element.id) { index, suggestion in
                                 Button {
+                                    self.chatStore.editorDiagnosticPresentation = self.composerDiagnosticPresentation
                                     self.chatStore.applyComposerSuggestion(suggestion)
                                     self.isComposerFocused = true
                                 } label: {
@@ -170,7 +171,7 @@ extension AIChatView {
                             "ai.composer.placeholder",
                             "Ask about cards, review history, or propose a change..."
                         ),
-                        text: $chatStore.inputText,
+                        text: self.composerTextBinding,
                         selection: self.composerSelectionBinding,
                         axis: .vertical
                     )

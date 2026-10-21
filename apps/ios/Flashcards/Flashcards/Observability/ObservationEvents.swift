@@ -1,4 +1,5 @@
 import Foundation
+import SwiftUI
 
 struct ObservabilityIdentity: Sendable, Hashable {
     let userId: String
@@ -44,6 +45,7 @@ struct IOSObservationScope: Sendable, Hashable {
 }
 
 enum IOSBreadcrumbEvent: Sendable {
+    case nativeEditor(NativeEditorObservation)
     case reviewReaction(ReviewReactionObservation)
     case appLifecycle(AppLifecycleObservation)
     case foregroundOperation(ForegroundOperationObservation)
@@ -757,4 +759,77 @@ struct ReviewReactionObservation: Sendable {
 struct ReviewReactionFailureWarning: Sendable {
     let observation: ReviewReactionObservation
     let messageSummary: String
+}
+
+enum NativeEditorIdentity: String, Sendable {
+    case aiComposer = "ai_composer"
+    case cardFront = "card_front"
+    case cardBack = "card_back"
+}
+
+enum NativeEditorOperation: String, Sendable {
+    case input, selection, focus, presentation, scene
+    case draftReplacement = "draft_replacement"
+    case send, reset, restore, suggestion, dictation
+    case createCard = "create_card"
+    case attachCard = "attach_card"
+    case sendAccepted = "send_accepted"
+    case sendFailedRestore = "send_failed_restore"
+    case bootstrapReset = "bootstrap_reset"
+    case imageInsertion = "image_insertion"
+    case imageRemoval = "image_removal"
+
+    var isProgrammaticTextChange: Bool {
+        switch self {
+        case .input, .selection, .focus, .presentation, .scene: false
+        default: true
+        }
+    }
+
+    var emitsBreadcrumb: Bool { self != .input && self != .selection }
+}
+
+enum NativeEditorPhase: String, Sendable {
+    case before, after
+}
+
+enum NativeEditorSelectionKind: String, Sendable {
+    case none, insertion, range, multiple, unknown
+
+    init(_ selection: TextSelection?) {
+        guard let selection else {
+            self = .none
+            return
+        }
+        // Inspect shape only: indices may belong to a previous text value.
+        switch selection.indices {
+        case .selection(let range): self = range.isEmpty ? .insertion : .range
+        case .multiSelection: self = .multiple
+        @unknown default: self = .unknown
+        }
+    }
+}
+
+struct NativeEditorPresentation: Sendable {
+    enum Host: String, Sendable {
+        case aiTab = "ai_tab"
+        case aiCompanion = "ai_companion"
+        case cardEditor = "card_editor"
+    }
+
+    let host: Host
+    let hostTab: AppTab?
+    let isFocused: Bool
+    let isVisible: Bool
+    let isSceneActive: Bool
+}
+
+struct NativeEditorObservation: Sendable {
+    let editor: NativeEditorIdentity
+    let operation: NativeEditorOperation
+    let phase: NativeEditorPhase
+    let beforeUTF16Count: Int
+    let afterUTF16Count: Int?
+    let selectionKind: NativeEditorSelectionKind
+    let presentation: NativeEditorPresentation?
 }
