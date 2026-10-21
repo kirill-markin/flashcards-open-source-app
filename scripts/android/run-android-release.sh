@@ -65,4 +65,4 @@ ANDROID_RELEASE_STORE_FILE="${KEYSTORE_PATH}" \
 ANDROID_RELEASE_STORE_PASSWORD="${KEYSTORE_PASSWORD}" \
 ANDROID_RELEASE_KEY_ALIAS="${KEY_ALIAS}" \
 ANDROID_RELEASE_KEY_PASSWORD="${KEY_PASSWORD}" \
-./gradlew --no-daemon :app:bundleRelease
+./gradlew --no-daemon --warning-mode all :app:bundleRelease
