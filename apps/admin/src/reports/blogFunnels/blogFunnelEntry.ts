@@ -24,7 +24,7 @@ export const blogFunnelEntryPageKind: SiteFunnelEntryPageKind = "blog_article";
  *
  * It is the second dimension keyed on the entry page view itself rather than on a per-actor source, so
  * like `language` - and unlike anything read from a person's history, which can say nothing at all about
- * a cookieless visitor - it places the `all` cohort's hashed people too: their entry row carries the path
+ * a cookieless visitor - it places the hashed people too: their entry row carries the path
  * as an identified one does, and both cohorts project it under the same name and the same `cohort` alias,
  * so one key expression reads them both and the platform-choice funnel's lighter segments sit inside
  * their own article.

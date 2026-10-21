@@ -227,7 +227,6 @@ function AnalyticsReportSections(props: AnalyticsReportSectionsProps): JSX.Eleme
         filters={props.filters}
         funnelDetail={props.funnelDetail}
         isReportLoading={props.isSelectionSettling}
-        onFiltersChange={props.onFiltersChange}
         onNavigate={props.onNavigate}
         onTerminalAdminError={props.onTerminalAdminError}
       /> : null}

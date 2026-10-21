@@ -16,14 +16,12 @@ import { buildDefaultReportRange } from "../reports/reportValues";
 import {
   analyticsThresholdEventTypes,
   buildDefaultAnalyticsFilterState,
-  funnelAudienceModes,
   isAcceptedMinimumCount,
   parseAcceptedMinimumCount,
   type AnalyticsDateRange,
   type AnalyticsFilterState,
   type AnalyticsMinimumEventCount,
   type AnalyticsThresholdEventType,
-  type FunnelAudienceMode,
 } from "./analyticsFilters";
 
 // The URL codec for `AnalyticsFilterState`. The selection lives in the query string, so a reload or a
@@ -61,7 +59,6 @@ const catalogPlacementsParamName = "placements";
 const catalogSourcesParamName = "sources";
 const catalogDeviceCategoriesParamName = "device-categories";
 const catalogClickBrowserLanguagesParamName = "click-languages";
-const funnelAudienceModeParamName = "audience";
 
 const listSeparator = ",";
 const minimumEventCountSeparator = ":";
@@ -239,9 +236,6 @@ export function normalizeAnalyticsFilterState(state: AnalyticsFilterState): Anal
       catalogInstallDeviceCategories,
     ),
     catalogClickBrowserLanguages: normalizeOpaqueList(state.catalogClickBrowserLanguages),
-    // A closed single choice rather than a multi-select, so it has no order to canonicalize and no
-    // entry a reader could drop: every value the type admits is written and read back as itself.
-    funnelAudienceMode: state.funnelAudienceMode,
   };
 }
 
@@ -344,10 +338,6 @@ export function toAnalyticsFilterSearchParams(
     state.catalogClickBrowserLanguages,
     defaults.catalogClickBrowserLanguages,
   );
-
-  if (state.funnelAudienceMode !== defaults.funnelAudienceMode) {
-    searchParams.set(funnelAudienceModeParamName, state.funnelAudienceMode);
-  }
 
   return searchParams;
 }
@@ -468,22 +458,6 @@ function parseMinimumEventCounts(
   }
 
   return normalizeMinimumEventCounts(parsedEntries);
-}
-
-/**
- * The mode a query string asks for, or the default when it names none.
- *
- * An unknown or repeated value opens the default view rather than an error, the way every other
- * field here treats one, because the mode decides who the funnels count and a typo must not read as
- * a deliberately narrowed audience. Matching against `funnelAudienceModes` itself is what narrows
- * the type, so adding a mode cannot outrun this reader the way a cast would let it.
- */
-function parseFunnelAudienceMode(
-  searchParams: URLSearchParams,
-  defaultMode: FunnelAudienceMode,
-): FunnelAudienceMode {
-  const rawMode = readSingleParam(searchParams, funnelAudienceModeParamName);
-  return funnelAudienceModes.find((mode) => mode === rawMode) ?? defaultMode;
 }
 
 /** The range the URL carries, `null` when either end is absent or malformed or they are reversed. */
@@ -660,6 +634,5 @@ function parseAnalyticsFilterStateOnDateRanges(
       catalogClickBrowserLanguagesParamName,
       defaults.catalogClickBrowserLanguages,
     ),
-    funnelAudienceMode: parseFunnelAudienceMode(searchParams, defaults.funnelAudienceMode),
   };
 }

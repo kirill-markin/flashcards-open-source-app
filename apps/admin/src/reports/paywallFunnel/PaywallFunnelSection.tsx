@@ -1,6 +1,6 @@
 import { useMemo, type JSX } from "react";
 import type { AdminAppConfig } from "../../config";
-import { buildFunnelAudienceEmptyStateNote, type AnalyticsFilterState } from "../../filters/analyticsFilters";
+import type { AnalyticsFilterState } from "../../filters/analyticsFilters";
 import type { FunnelAnchor } from "../funnels/funnelAnchorUrl";
 import { FunnelEmptyRangeNotes } from "../funnels/FunnelEmptyRangeNotes";
 import { FunnelMaturingWarning } from "../funnels/FunnelMaturingWarning";
@@ -131,7 +131,6 @@ export function PaywallFunnelSection(props: FunnelSectionProps): JSX.Element {
   const primaryRange = rangeViews[0];
   const hasEntries = rangeViews.some((range) => range.hasEntries);
   const isComparing = props.filters.comparisonDateRange !== null;
-  const audienceEmptyStateNote = buildFunnelAudienceEmptyStateNote(props.filters.funnelAudienceMode);
 
   return (
     <section className="dashboard-section funnel-report">
@@ -162,7 +161,7 @@ export function PaywallFunnelSection(props: FunnelSectionProps): JSX.Element {
           dateRange={props.filters.dateRange}
           showsHashedSplit={false}
           isGrouped={isComparing}
-          note={<><strong>No paywall views match these filters.</strong><span>A person enters this funnel when a web, iOS or Android client reports the paywall reaching the screen on a selected day.</span>{audienceEmptyStateNote === null ? null : <span>{audienceEmptyStateNote}</span>}</>}
+          note={<><strong>No paywall views match these filters.</strong><span>A person enters this funnel when a web, iOS or Android client reports the paywall reaching the screen on a selected day.</span></>}
         />
       ) : null}
 
@@ -185,7 +184,7 @@ export function PaywallFunnelSection(props: FunnelSectionProps): JSX.Element {
           <p>Every step counts people: a person adds at most one to each step, and counts at a step only after reaching every step above it.</p>
           <p>One row is one canonical actor, anchored at their first trusted paywall presentation in the selected UTC dates, counted only from {paywallFunnelStartDate}; guest activity and the account it becomes are one person. Later steps can come from that presentation or a later one of the same person: Premium needs an explicit <code>paywall_choice</code> with <code>outcome=premium</code> and checkout a <code>purchase_started</code> after it on the same presentation, both within seven days of the first presentation. A client from before presentation UUIDs sent no choice, so its <code>purchase_started</code> also counts as the Premium tap.</p>
           <p>Checkout requested means the client reported <code>purchase_started</code>, not that a provider sheet appeared. The final step is a server <code>trial_started</code> or <code>purchase_completed</code> within fourteen days after that checkout, long enough for the seven-day free trial to reach its first payment. Each billing fact credits the same actor&rsquo;s latest preceding checkout and nobody when that checkout is unlinked, and a server purchase never fills in a missing Premium click or checkout. An open seven-day window, or an open {paywallFirstPaymentWindowDays}-day first-payment window, is not a confirmed drop-off.</p>
-          <p>The platform is the first paywall&rsquo;s, unattributed when it carried none; the country and language keep a person the way they do on General. Test accounts, admins and excluded actors are left out. <strong>Signed-in only</strong> keeps people who resolve to a real, non-guest account; <strong>All</strong> counts the same people as <strong>With anonymous ID</strong>, because there are no cookieless visitors on a paywall.</p>
+          <p>The platform is the first paywall&rsquo;s, unattributed when it carried none; the country and language keep a person the way they do on General. Test accounts, admins and excluded actors are left out.</p>
         </details>
       ) : null}
     </section>

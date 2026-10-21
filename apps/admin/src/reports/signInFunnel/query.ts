@@ -9,7 +9,6 @@ import {
 } from "../../filters/filterSql";
 import { escapeSqlStringLiteral } from "../../sql";
 import { catalogInstallConversionWindowDays } from "../catalogInstallFunnel/query";
-import { buildFunnelAudienceActorSqlLines } from "../funnels/funnelAudienceSql";
 import {
   platformFunnelGroupByDimensionId,
   unresolvedFunnelGroupKey,
@@ -108,7 +107,6 @@ export function buildSignInFunnelSql(
     "  FROM first_selections AS candidate",
     `  WHERE ${buildEventPlatformsFilterSql("candidate.platform", filters.eventPlatforms)}`,
     ...buildExcludedActorSqlLines("candidate.actor_id::text"),
-    ...buildFunnelAudienceActorSqlLines(filters, "candidate.actor_id::text"),
     `    AND ${buildConnectionCountriesFilterSql("candidate.actor_id::text", filters.connectionCountries, filters.dateRange)}`,
     `    AND ${buildAppUiLanguagesFilterSql("candidate.actor_id::text", filters.appUiLanguages, filters.dateRange)}`,
     "), window_rows AS MATERIALIZED (",

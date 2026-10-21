@@ -6,9 +6,8 @@ import {
 import { escapeSqlStringLiteral } from "../../sql";
 import { laterCalendarDate } from "../reportValues";
 
-// The SQL half of the funnel audience mode: who each funnel counts as a person. The three modes and
-// what they mean to a reader live in `apps/admin/src/filters/analyticsFilters.ts`; this file owns how
-// each one is expressed against `analytics.product_events_resolved`, once, for every funnel.
+// Who counts as a person beyond an identified actor - a registered account, a cookieless hashed
+// visitor - expressed once against `analytics.product_events_resolved` for every report that asks.
 
 /**
  * The first UTC day a cookieless visitor can be counted from, whatever range is selected.
@@ -23,7 +22,7 @@ export const funnelDailyVisitorHashStartDate = "2026-09-23";
 
 /**
  * A REAL, NON-GUEST ACCOUNT, as one SQL boolean expression over one actor, and the one place that
- * rule is written. `buildSignedInActorSqlLines` below is the same rule as an `AND` line.
+ * rule is written.
  *
  * The signal is a `auth.user_identities` row for the actor. That table accepts only
  * `provider_type = 'cognito'` by its own CHECK (`db/migrations/0031_guest_ai_identity_and_quota.sql`),
@@ -32,8 +31,8 @@ export const funnelDailyVisitorHashStartDate = "2026-09-23";
  * SELECT on its `provider_type`, `user_id` and `created_at`. A one-time backfill in migration 0031
  * gave every account that predates the table an identity row, so old accounts are covered too.
  *
- * IT ANSWERS "EVER REGISTERED", WHICH IS WHAT THE MODE ASKS, and it does so through both conversion
- * shapes rather than only the visible one:
+ * IT ANSWERS "EVER REGISTERED", and it does so through both conversion shapes rather than only the
+ * visible one:
  *   - a bound completion, the ordinary first-ever conversion, keeps the guest's own user id and binds
  *     the Cognito subject to it (`bindCognitoIdentityMappingInExecutor` in
  *     `apps/backend/src/guestAuth/upgrade/index.ts`). No upgrade-history row and no identity link are
@@ -62,7 +61,7 @@ export const funnelDailyVisitorHashStartDate = "2026-09-23";
  * A PERSON WHO DELETED THEIR ACCOUNT READS AS NOT SIGNED IN. Account deletion removes the
  * `org.user_settings` row and the identity row cascades with it
  * (`apps/backend/src/auth/accountDeletion.ts`), while their events survive under a per-deletion
- * pseudonym. This mode therefore counts who is still a registered account rather than who ever
+ * pseudonym. It therefore names who is still a registered account rather than who ever
  * completed a registration, and it is the one case where those two differ.
  */
 export function buildSignedInActorSql(actorIdSqlExpression: string): string {
@@ -74,68 +73,6 @@ export function buildSignedInActorSql(actorIdSqlExpression: string): string {
     `      AND pg_catalog.lower(signed_in_identities.user_id) = ${actorIdSqlExpression}`,
     "  )",
   ].join("\n");
-}
-
-/**
- * The same rule as an `AND` line, which is how a cohort restricted to registered people reads it.
- *
- * A reader that needs the answer as a value rather than as a restriction - the Study-vs-AI area,
- * which splits people into registered and guests and labels each dot with which one it is - takes
- * `buildSignedInActorSql` above instead. Both go through one definition on purpose: two copies of
- * this predicate would be two different answers to "is this person registered" the first time the
- * table behind it changed.
- */
-export function buildSignedInActorSqlLines(
-  actorIdSqlExpression: string,
-): ReadonlyArray<string> {
-  return buildSignedInActorSql(actorIdSqlExpression)
-    .split("\n")
-    .map((line, index) => (index === 0 ? `  AND ${line}` : line));
-}
-
-/**
- * What the selected mode adds to a cohort of actors, which is a restriction in `signed-in` and
- * nothing in the other two.
- *
- * `all` adds no line here on purpose: it widens the funnel with people who have no actor at all, so
- * it is a second cohort beside this one rather than a predicate on it.
- */
-export function buildFunnelAudienceActorSqlLines(
-  filters: AnalyticsFilterState,
-  actorIdSqlExpression: string,
-): ReadonlyArray<string> {
-  return filters.funnelAudienceMode === "signed-in"
-    ? buildSignedInActorSqlLines(actorIdSqlExpression)
-    : [];
-}
-
-/**
- * Whether a funnel with site steps should read the hashed cohort at all.
- *
- * Two things switch it off, and only the first is a mode: a narrowed connection country, because
- * that filter places a person by the `analytics.installation_country_observations` samples joined
- * to an actor (`buildConnectionCountrySamplesSql`, apps/admin/src/filters/filterSql.ts) and a
- * hashed row has neither an actor nor an installation. The credential-free collector does stamp an
- * ingest-time `country` on such a row, but it is different evidence rather than a narrower answer
- * to the same question, so the cohort is left out instead of filtered. Each section says so where
- * it shows the split. When this is false the queries below are left out of the statement entirely
- * rather than executed and discarded, so the default mode costs exactly what it cost before the
- * modes existed.
- */
-export function isFunnelHashedCohortRead(filters: AnalyticsFilterState): boolean {
-  return filters.funnelAudienceMode === "all" && filters.connectionCountries.length === 0;
-}
-
-/**
- * True once `all` is selected, whatever the country selection then leaves readable.
- *
- * It is deliberately not named after the split on screen, which is the one thing it must never gate:
- * the chart's `showsHashedSplit` prop is fed by `isFunnelHashedCohortRead` above, so nothing announces
- * a segment the query did not read. This answers only which mode is selected, which is what a section
- * needs to say why the cohort was left out under it.
- */
-export function isFunnelAllAudienceSelected(filters: AnalyticsFilterState): boolean {
-  return filters.funnelAudienceMode === "all";
 }
 
 /**
@@ -176,8 +113,8 @@ export function buildHashedVisitorDayRangeSqlLines(
  * THE SHARED EXCLUSION RULE CANNOT REACH THIS COHORT, and that is a property of the data rather than
  * an omission here. `buildExcludedActorSqlLines` drops a person by their actor - a test address, an
  * ever-admin address, an entry on the exclusion list - and these rows have no actor to test, so an
- * admin browsing the site without consenting is counted among the hashed people. It is why the mode
- * that reads them is not the default, and the sections say what the segment is.
+ * admin browsing the site without consenting is counted among the hashed people, and the sections say
+ * what the segment is.
  *
  * TWO ARMS OF THAT RULE DO REACH THEM, because each names a row or a hash rather than a person, so
  * neither needs an actor. The automated verdict is written onto the row: a browser-day reported by a
@@ -227,13 +164,10 @@ export function buildHashedSiteRowSqlLines(
  * anonymous site row as web and no client can override it, so a selection without web empties the
  * hashed segment either way, which is the same thing it does to the identified one.
  *
- * The app interface language is the locale the row itself carries, rather than the person-level test
- * `buildAppUiLanguagesFilterSql` applies to an actor: a hashed person is one page view's worth of
- * evidence, with no history to ask. The connection country is not asked here at all and is handled
- * by `isFunnelHashedCohortRead` instead: the row carries an ingest-time `country` of its own, but
- * the filter places a person by the installation samples kept for an actor, and a hashed row has
- * neither, so answering from that column would answer a different question rather than narrow this
- * one.
+ * The app interface language and the connection country are the row's own `ui_locale` and
+ * ingest-time `country`, rather than the person-level tests `buildAppUiLanguagesFilterSql` and
+ * `buildConnectionCountriesFilterSql` apply to an actor: a hashed person is one page view's worth of
+ * evidence, with no history and no installation to ask.
  */
 export function buildHashedPageViewFilterSqlLines(
   rowAlias: string,
@@ -245,6 +179,9 @@ export function buildHashedPageViewFilterSqlLines(
     ...(filters.appUiLanguages.length === 0 ? [] : [
       `${rowAlias}.ui_locale IN (${filters.appUiLanguages.map(escapeSqlStringLiteral).join(", ")})`,
     ]),
+    ...(filters.connectionCountries.length === 0 ? [] : [
+      `${rowAlias}.country IN (${filters.connectionCountries.map(escapeSqlStringLiteral).join(", ")})`,
+    ]),
   ];
 }
 
@@ -254,7 +191,7 @@ export function buildHashedPageViewFilterSqlLines(
  * A hash is rotated daily against a salt the reporting role cannot read, so it names one browser for
  * one UTC day and nothing beyond it. Keying on the pair rather than on the hash alone is what makes
  * the funnel rule hold inside a day without depending on the hash's construction never colliding
- * across days: two days are two people either way, which is what the mode promises.
+ * across days: two days are two people either way.
  *
  * THE DAY IS `server_received_at`'s, NOT `occurred_at`'s, because that is the day whose salt made
  * the hash: the backend picks the salt by `toUtcDay(row.serverReceivedAt)`

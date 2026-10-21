@@ -3,9 +3,8 @@
 // own dimensions and owns the SQL behind them; this module owns everything about grouping that must
 // mean the same thing on all of them.
 //
-// GROUPING IS A SECOND AXIS BESIDE THE AUDIENCE MODE, not a replacement for it. The mode
-// (`./funnelAudienceSql.ts`) decides who is counted; grouping splits exactly those people, one group
-// per person, and every group's conversions are then measured inside that group: its own first step
+// GROUPING NEVER CHANGES WHO IS COUNTED. Each funnel's query decides that; grouping splits exactly
+// those people, one group per person, and every group's conversions are then measured inside that group: its own first step
 // is its denominator, and a selected anchor re-bases each group on its own count at that step. A
 // group's share is therefore never a share of the funnel as a whole, which is the whole point of the
 // field - two groups of very different size are compared by their rates rather than by their heights.

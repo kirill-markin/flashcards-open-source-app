@@ -1,7 +1,6 @@
 import { useMemo, type JSX } from "react";
 import type { AdminAppConfig } from "../../config";
-import { buildFunnelAudienceEmptyStateNote, type AnalyticsFilterState } from "../../filters/analyticsFilters";
-import { isFunnelAllAudienceSelected, isFunnelHashedCohortRead } from "../funnels/funnelAudienceSql";
+import type { AnalyticsFilterState } from "../../filters/analyticsFilters";
 import type { FunnelAnchor } from "../funnels/funnelAnchorUrl";
 import { FunnelEmptyRangeNotes } from "../funnels/FunnelEmptyRangeNotes";
 import { FunnelMaturingWarning } from "../funnels/FunnelMaturingWarning";
@@ -56,10 +55,10 @@ function loadReport(
 }
 
 /**
- * The steps of one group, or of the funnel as a whole, each as the audience the mode asks for.
+ * The steps of one group, or of the funnel as a whole.
  *
  * EVERY STEP CAN HAVE A HASHED PART HERE, because every step is a marketing-site fact: the cookieless
- * cohort of `all` is measured the whole way down this funnel rather than ending partway through it.
+ * cohort is measured the whole way down this funnel rather than ending partway through it.
  */
 function buildStages(counts: BlogPlatformChoiceFunnelCounts): ReadonlyArray<FunnelStage<FunnelStepId>> {
   // Keyed by id, so the compiler demands every step exactly once; the order comes from `funnelStepIds`.
@@ -149,16 +148,6 @@ export function BlogPlatformChoiceFunnelSection(props: FunnelSectionProps): JSX.
   const primaryRange = rangeViews[0];
   const hasEntries = rangeViews.some((range) => range.hasEntries);
   const isComparing = props.filters.comparisonDateRange !== null;
-  // The mode alone, never the chart's `showsHashedSplit` prop: that one is the read gate below, and the
-  // two differ exactly in the `all`-with-a-country case this note exists to explain.
-  const wantsHashedCohort = isFunnelAllAudienceSelected(props.filters);
-  const readsHashedCohort = isFunnelHashedCohortRead(props.filters);
-  const audienceEmptyStateNote = buildFunnelAudienceEmptyStateNote(props.filters.funnelAudienceMode);
-  const hashedCountryNote = primaryRange !== undefined
-    && wantsHashedCohort
-    && props.filters.connectionCountries.length > 0
-    ? "A connection country is selected, so the cookieless visitors are left out of these bars entirely: that filter places a person by the connection samples kept for an actor, and these rows have neither an actor nor an installation, so the ingest-time country stored on them answers a different question rather than narrowing this one."
-    : null;
 
   return (
     <section className="dashboard-section funnel-report">
@@ -170,7 +159,6 @@ export function BlogPlatformChoiceFunnelSection(props: FunnelSectionProps): JSX.
         return startDateNote === null ? null : <p key={range.key} className="report-state" aria-live="polite">{formatFunnelRangeNote(range.seriesLabel, startDateNote)}</p>;
       })}
       {rangeViews.map((range) => (range.dateRange.from < pageReadEngagementStartDate ? <p key={range.key} className="report-state" aria-live="polite">{formatFunnelRangeNote(range.seriesLabel, `From ${pageReadEngagementStartDate}, a one-page read of 10+ seconds with a scroll, click or key press also counts as Engaged, so a range starting before that day mixes both definitions and its Engaged step reads lower by definition.`)}</p> : null))}
-      {hashedCountryNote !== null ? <p className="report-state" aria-live="polite">{hashedCountryNote}</p> : null}
 
       {rangeViews.map((range) => <FunnelMaturingWarning key={range.key} seriesLabel={range.seriesLabel} maturingCount={range.totals.maturingCount} entryCount={range.totals.entryViewCount} />)}
       <FunnelEmptyRangeNotes ranges={rangeViews} />
@@ -179,19 +167,18 @@ export function BlogPlatformChoiceFunnelSection(props: FunnelSectionProps): JSX.
         <FunnelStepsLoadingChart
           countLabel="People"
           dateRange={props.filters.dateRange}
-          showsHashedSplit={readsHashedCohort}
+          showsHashedSplit
           isGrouped={isComparing}
           label="Loading blog article to platform choice funnel…"
         />
       ) : null}
-      {/* The audience mode is named here because it is not one of the filters the heading blames and `Reset all` does not clear it. */}
       {loadState.status === "ready" && hasEntries === false ? (
         <FunnelStepsEmptyChart
           countLabel="People"
           dateRange={props.filters.dateRange}
-          showsHashedSplit={readsHashedCohort}
+          showsHashedSplit
           isGrouped={isComparing}
-          note={<><strong>No first visits on a blog article match these filters.</strong><span>Only a person whose first site page is a blog article viewed on a selected day enters this funnel.</span>{audienceEmptyStateNote === null ? null : <span>{audienceEmptyStateNote}</span>}</>}
+          note={<><strong>No first visits on a blog article match these filters.</strong><span>Only a person whose first site page is a blog article viewed on a selected day enters this funnel.</span></>}
         />
       ) : null}
 
@@ -202,7 +189,7 @@ export function BlogPlatformChoiceFunnelSection(props: FunnelSectionProps): JSX.
           groups={groups}
           countLabel="People"
           dateRange={props.filters.dateRange}
-          showsHashedSplit={readsHashedCohort}
+          showsHashedSplit
         />
       ) : null}
 
@@ -213,8 +200,8 @@ export function BlogPlatformChoiceFunnelSection(props: FunnelSectionProps): JSX.
           <p>Every step counts people: a person adds at most one to each step, and counts at a step only after reaching every step above it.</p>
           <p>One row is one person, the site&rsquo;s visitor cookie, anchored at their first <code>site_page_viewed</code> on the marketing site, and only when that first page is a blog article viewed in the selected UTC dates with no trusted event anywhere before it. Blog visits count from {blogFunnelStartDate}, the first full UTC day the blog&rsquo;s calls to action led to the home page. A page viewed before the visitor consents to a cookie carries no visitor id, so such a visitor enters at the first page they view after consenting.</p>
           <p>Every later step is that same person within seven days of the entry, each at or after the step above it. <strong>Engaged</strong> is the first site event after the entry page view that Level 1 counts as engagement: another page view, a 10-second read (from {pageReadEngagementStartDate}), a click, a search or similar; a QR code shown on hover is not one. <strong>Home page viewed</strong> is the designed path every call to action in an article leads to, so a reader who uses the footer store badges on the article without visiting the home page is outside this funnel. <strong>Platform hovered or clicked</strong> is a <code>site_store_qr_shown</code>, sent when an App Store or Google Play button shows its QR code after a short hover or keyboard focus, or a <code>site_app_entry_clicked</code> with any target. <strong>Platform clicked</strong> is a <code>site_app_entry_clicked</code> with any target, so a web app click counts at both of the last steps, and a reader who scans the QR code without clicking stops at the step before. The funnel ends at the platform choice on purpose, because a store badge click or a QR scan leaves the browser and cannot be matched to anything after it. A person still inside their seven-day window is not a confirmed drop-off.</p>
-          <p>The platform is the entry page view&rsquo;s, which the site always reports as web, so a selection without web empties this funnel. The country and language keep a person the way they do on General, so narrowing either keeps only people who signed in. Test accounts, admins and excluded actors are left out.</p>
-          <p><strong>Signed-in only</strong> keeps people who resolve to a real, non-guest account. <strong>All</strong> adds cookieless visitors, one person per daily hash, as the lighter part of every bar, and they can reach every step because every step is a marketing-site fact. <strong>All</strong> is an upper bound rather than a count, because a visitor who consents partway through a day can appear once in each part of a step; that is why <strong>With anonymous ID</strong> is the default.</p>
+          <p>The platform is the entry page view&rsquo;s, which the site always reports as web, so a selection without web empties this funnel. The country and language keep a person the way they do on General, and keep a cookieless visitor by the country and interface language of that visitor&rsquo;s entry page view. Test accounts, admins and excluded actors are left out.</p>
+          <p>Cookieless visitors, one person per daily hash, are the lighter part of every bar, and they can reach every step because every step is a marketing-site fact. The test-account, admin and exclusion-list rules cannot reach them, because they have no identity to test. The bars are an upper bound rather than a count, because a visitor who consents partway through a day can appear once in each part of a step.</p>
         </details>
       ) : null}
     </section>

@@ -24,8 +24,8 @@ import type { FunnelComparedGroup, FunnelGroup } from "./funnelGroupBy";
  *
  * `count` is the whole step and `hashedCount` is the part of it made of cookieless visitors counted
  * by their daily hash, so the identified part is the difference. Every share on this chart is
- * measured on `count`, which is what makes the `all` mode a wider funnel rather than a second one
- * drawn beside it.
+ * measured on `count`, which is what makes the hashed cohort part of a wider funnel rather than a
+ * second one drawn beside it.
  */
 export type FunnelStage<StepId extends string> = Readonly<{
   id: StepId;
@@ -74,8 +74,7 @@ function formatCount(count: number): string {
  *
  * `showsHashedSplit` is the same gate the chart's sub-heading reads, and it zeroes
  * `hashedCount` here rather than only hiding the text: the lighter bar segment is drawn from that
- * number, and one render with stale stages under a new mode must not leave a segment on screen that
- * nothing left announces.
+ * number, so no segment is drawn that the sub-heading does not announce.
  */
 function buildFunnelStepBars<StepId extends string>(
   stages: ReadonlyArray<FunnelStage<StepId>>,
@@ -243,9 +242,7 @@ export function FunnelStepsChart<StepId extends string>(
     countLabel: string;
     dateRange: AnalyticsDateRange;
     /**
-     * The hashed cohort was read, so the bars carry a segment that has to be named. It is the read
-     * gate rather than the mode: with `all` and a connection country selected the mode is on and the
-     * cohort was deliberately not queried, and nothing here may announce a segment that is not there.
+     * The hashed cohort was read, so the bars carry a segment that has to be named.
      */
     showsHashedSplit: boolean;
   }>,

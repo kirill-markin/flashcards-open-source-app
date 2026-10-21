@@ -1,6 +1,6 @@
 import { useMemo, type JSX } from "react";
 import type { AdminAppConfig } from "../../config";
-import { buildFunnelAudienceEmptyStateNote, type AnalyticsFilterState } from "../../filters/analyticsFilters";
+import type { AnalyticsFilterState } from "../../filters/analyticsFilters";
 import type { FunnelAnchor } from "../funnels/funnelAnchorUrl";
 import { FunnelEmptyRangeNotes } from "../funnels/FunnelEmptyRangeNotes";
 import { FunnelMaturingWarning } from "../funnels/FunnelMaturingWarning";
@@ -80,7 +80,6 @@ export function SignInFunnelSection(props: FunnelSectionProps): JSX.Element {
   const primaryRange = rangeViews[0];
   const hasEntries = rangeViews.some((range) => range.hasEntries);
   const isComparing = props.filters.comparisonDateRange !== null;
-  const audienceEmptyStateNote = buildFunnelAudienceEmptyStateNote(props.filters.funnelAudienceMode);
 
   return (
     <section className="dashboard-section funnel-report">
@@ -107,7 +106,7 @@ export function SignInFunnelSection(props: FunnelSectionProps): JSX.Element {
           dateRange={props.filters.dateRange}
           showsHashedSplit={false}
           isGrouped={isComparing}
-          note={<><strong>No observed sign-in method selections match these filters.</strong><span>Entry requires a recorded method choice on the ordinary sign-in screen and an anonymous, guest or account identifier.</span>{audienceEmptyStateNote === null ? null : <span>{audienceEmptyStateNote}</span>}</>}
+          note={<><strong>No observed sign-in method selections match these filters.</strong><span>Entry requires a recorded method choice on the ordinary sign-in screen and an anonymous, guest or account identifier.</span></>}
         />
       ) : null}
 
@@ -129,7 +128,7 @@ export function SignInFunnelSection(props: FunnelSectionProps): JSX.Element {
           <p>One person is one resolved analytics actor, including a visitor or guest who never registered. A person enters once at their first recorded <code>auth_method_selected</code> in the selected UTC dates, from {signInFunnelStartDate}, on the ordinary sign-in screen of web, iOS (including iPad and Mac) or Android; account-security linking and credential recovery are excluded.</p>
           <p>Each step counts that person at most once. Within seven days of entry, each method and platform has its own ordered <code>auth_method_selected</code> → <code>auth_session_accepted</code> → <code>auth_account_ready</code> path, and the funnel counts a person if any such path reaches the step; an email session and an Apple ready event cannot form one path. The platform filter reads the first selection in range.</p>
           <p>Unreported steps stay unobserved: older client versions, analytics consent and delivery gaps can hide a successful sign-in, and missing facts are never backfilled with inferred success. A person still inside the window is not a confirmed drop-off.</p>
-          <p>The country and language use the shared person-level filters, and test accounts, admins, analytics exclusions and detected automation are left out. There is no cookieless cohort, so <strong>All</strong> and <strong>With anonymous ID</strong> count the same people; <strong>Signed-in only</strong> narrows this to actors that currently resolve to registered accounts.</p>
+          <p>The country and language use the shared person-level filters, and test accounts, admins, analytics exclusions and detected automation are left out.</p>
         </details>
       ) : null}
     </section>
