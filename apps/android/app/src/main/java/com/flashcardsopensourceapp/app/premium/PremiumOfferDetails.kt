@@ -70,7 +70,11 @@ internal fun premiumOfferDetails(offer: GooglePlaySubscriptionOffer, resources: 
         recurringPrice = descriptions.last(),
         purchaseLabel = purchaseLabel,
         renewalDescription = resources.getString(
-            if (hasFreeTrial) R.string.premium_trial_renewal_disclosure else R.string.premium_renewal_disclosure,
+            if (hasFreeTrial) {
+                R.string.premium_trial_pricing_sequence_renewal_disclosure
+            } else {
+                R.string.premium_pricing_sequence_renewal_disclosure
+            },
             descriptions.reduce { previous, next ->
                 resources.getString(R.string.premium_phase_sequence, previous, next)
             }

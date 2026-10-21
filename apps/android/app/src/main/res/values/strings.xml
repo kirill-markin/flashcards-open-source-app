@@ -61,8 +61,8 @@
     <string name="premium_phase_sequence">%1$s, then %2$s</string>
     <string name="premium_start_trial">Start free trial (%1$s)</string>
     <string name="premium_subscribe">Subscribe — %1$s</string>
-    <string name="premium_renewal_disclosure">%1$s. Auto-renews. Cancel in Google Play before renewal to avoid charges.</string>
-    <string name="premium_trial_renewal_disclosure">%1$s. Auto-renews. Cancel in Google Play before the trial ends to avoid charges.</string>
+    <string name="premium_pricing_sequence_renewal_disclosure"><xliff:g id="pricing_sequence" example="$6.99/1 month">%1$s</xliff:g>. Auto-renews. Cancel in Google Play before renewal to avoid charges.</string>
+    <string name="premium_trial_pricing_sequence_renewal_disclosure"><xliff:g id="pricing_sequence" example="7 days free, then $6.99/1 month">%1$s</xliff:g>. Auto-renews. Cancel in Google Play before the trial ends to avoid charges.</string>
     <string name="premium_terms">Terms of Service</string>
     <string name="premium_privacy">Privacy Policy</string>
     <string name="premium_restore">Restore purchases</string>
