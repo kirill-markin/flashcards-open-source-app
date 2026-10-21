@@ -12,6 +12,7 @@ import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.focus.FocusManager
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.semantics.ProgressBarRangeInfo
+import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.assertIsDisplayed
@@ -30,6 +31,7 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performSemanticsAction
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
@@ -448,7 +450,10 @@ class AiRouteTest : FirebaseAppInstrumentationTimeoutTest() {
             didRequestForcedFocusClear.get().not()
         )
 
-        composeRule.onNodeWithTag(aiComposerSendButtonTag).performClick()
+        composeRule.onNodeWithTag(aiComposerSendButtonTag)
+            .assertIsDisplayed()
+            .assertIsEnabled()
+            .performSemanticsAction(SemanticsActions.OnClick)
         assertTrue(
             "Expected the AI composer focus to request forced clear before send dispatch.",
             didRequestForcedFocusClearAtDispatch == true
