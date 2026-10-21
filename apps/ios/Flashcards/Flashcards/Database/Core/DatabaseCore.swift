@@ -171,6 +171,14 @@ final class DatabaseCore {
         beginStatement: String,
         _ body: () throws -> T
     ) throws -> T {
+        guard let mutex = sqlite3_db_mutex(connection) else {
+            throw LocalStoreError.database("Failed to begin transaction: SQLite connection mutex is unavailable")
+        }
+        sqlite3_mutex_enter(mutex)
+        defer {
+            sqlite3_mutex_leave(mutex)
+        }
+
         let beginResult = sqlite3_exec(connection, beginStatement, nil, nil, nil)
         guard beginResult == SQLITE_OK else {
             throw LocalStoreError.database("Failed to begin transaction: \(self.lastErrorMessage())")
