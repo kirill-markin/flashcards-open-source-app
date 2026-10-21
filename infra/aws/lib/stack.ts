@@ -417,6 +417,8 @@ export class FlashcardsOpenSourceAppStack extends cdk.Stack {
       ...sentryContext,
       schedulerRole,
     });
+    // Retain the export until monitoring drops its old function-name import.
+    this.exportValue(storeAnalyticsImportResult.importFunction.functionName);
     publicEndpointHeartbeat(this, { baseDomain, alternateHeartbeatHosts, schedulerRole });
     // Both distributions are resolved here, before either is constructed and
     // before the media bucket, auth and API stages that have to allow their
