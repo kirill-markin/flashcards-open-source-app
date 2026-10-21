@@ -215,15 +215,17 @@ internal fun PremiumPresentationHost(
                     style = MaterialTheme.typography.titleMedium,
                     modifier = Modifier.weight(1f)
                 )
-                IconButton(
-                    onClick = dismiss,
-                    modifier = Modifier.size(48.dp).testTag(tag = premiumCloseButtonTag)
-                ) {
-                    Icon(
-                        imageVector = Icons.Outlined.Close,
-                        contentDescription = stringResource(R.string.premium_close),
-                        modifier = Modifier.size(20.dp)
-                    )
+                if (isEditingOwnKey || !isOfferVisible) {
+                    IconButton(
+                        onClick = dismiss,
+                        modifier = Modifier.size(48.dp).testTag(tag = premiumCloseButtonTag)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Outlined.Close,
+                            contentDescription = stringResource(R.string.premium_close),
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
                 }
             }
             if (isEditingOwnKey) {

@@ -27,6 +27,7 @@ export function PremiumOffer(props: PremiumOfferProps): ReactElement {
   const [technicalError, setTechnicalError] = useState<AppErrorPresentation | null>(null);
   const dialogRef = useRef<HTMLDialogElement | null>(null);
   const closeRef = useRef<HTMLButtonElement | null>(null);
+  const continueFreeRef = useRef<HTMLButtonElement | null>(null);
   const titleId = useId();
   const bodyId = useId();
   const billing = useStripeBilling();
@@ -46,7 +47,6 @@ export function PremiumOffer(props: PremiumOfferProps): ReactElement {
     dialog.showModal();
     props.onVisible();
     document.body.style.overflow = "hidden";
-    closeRef.current?.focus();
     return (): void => {
       dialog.close();
       document.body.style.overflow = previousOverflow;
@@ -56,6 +56,11 @@ export function PremiumOffer(props: PremiumOfferProps): ReactElement {
     };
   }, []);
 
+  useEffect(() => {
+    const focusTarget = isEditingKey || !showOffer ? closeRef.current : continueFreeRef.current;
+    focusTarget?.focus();
+  }, [isEditingKey, showOffer]);
+
   function showEditorTechnicalError(error: unknown): void {
     setTechnicalError(buildAppErrorPresentation(error, buildPresentationMessages(t)));
   }
@@ -63,7 +68,6 @@ export function PremiumOffer(props: PremiumOfferProps): ReactElement {
   function returnFromEditor(): void {
     setIsEditingKey(false);
     setTechnicalError(null);
-    closeRef.current?.focus();
   }
 
   return (
@@ -81,7 +85,7 @@ export function PremiumOffer(props: PremiumOfferProps): ReactElement {
           <img src="/icon.svg" alt="" width="28" height="28" />
           <span>{t("app.title")}</span>
         </div>
-        <button
+        {isEditingKey || !showOffer ? <button
           ref={closeRef}
           type="button"
           className="ghost-btn premium-close"
@@ -95,7 +99,7 @@ export function PremiumOffer(props: PremiumOfferProps): ReactElement {
               <path d="m6 6 12 12M18 6 6 18" />
             </svg>
           </span>
-        </button>
+        </button> : null}
       </div>
       <h2 id={titleId} className="title premium-heading">
         {isEditingKey ? t("ownOpenAIKeySettings.title") : showOffer
@@ -126,7 +130,7 @@ export function PremiumOffer(props: PremiumOfferProps): ReactElement {
           </p>
           {showOffer ? <StripeOfferContent continuation={request.reason === "ai-limit" ? null : request.continuation ?? null}
             presentation={props.presentation} isPreview={isPreview} onContinueFree={props.onContinueFree}
-            onChoosePremium={props.onChoosePremium} /> : null}
+            onChoosePremium={props.onChoosePremium} continueFreeRef={continueFreeRef} /> : null}
           {isAiLimit ? (
             <div className="premium-key-context">
               <p className="subtitle">{t("stripe.ownKey.explanation")}</p>
