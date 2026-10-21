@@ -314,16 +314,16 @@ const analyticsFilterFieldExplanations: Readonly<Record<AnalyticsFilterField, st
     + ` ${catalogClickAttributionExplanationTail}`,
 };
 
-// The date range changes meaning on every funnel: it places an entry by the event that anchors it and
+// The date range changes meaning on most funnels: it places an entry by the event that anchors it and
 // then lets the later steps run past the range, so the shared "only events inside these days" wording
 // would be false here.
 const funnelsAnalyticsFilterFieldExplanations: Readonly<
   Partial<Record<AnalyticsFilterField, string>>
 > = {
   dateRange:
-    "Selects who enters each funnel by the UTC calendar day of the event that anchors them rather than bounding every event counted here, with the first and the last day both included. Every later step still counts for at least seven days after that anchoring event, so it can have happened past the last selected day, and a range whose last days are less than seven days old is still filling rather than finished. The anchor is a person's first app launch on iOS, Android or web in the first launch funnel, a visitor's first view of a deck's page inside the range in the deck funnel, a person's first marketing-site page view in the blog funnel, their first sign-in method choice in the sign-in funnel, and their first paywall shown in the paywall funnel.",
+    "Selects who enters each funnel by the UTC calendar day of the event that anchors them rather than bounding every event counted here, with the first and the last day both included. Every later step still counts for at least seven days after that anchoring event, so it can have happened past the last selected day, and a range whose last days are less than seven days old is still filling rather than finished. The anchor is a person's first app launch on iOS, Android or web in the first launch funnel, a visitor's first view of a deck's page inside the range in the deck funnel, their first sign-in method choice in the sign-in funnel, and their first paywall shown in the paywall funnel. The blog funnel has no anchor: it counts the people who viewed a blog article inside the selected days, and each later step only inside those same days.",
   eventPlatforms:
-    "In the first launch funnel, keeps only the people whose first app launch was on one of the platforms you pick, so a selection without iOS, Android or web empties it. In the blog funnel, reads the entry page view, which the site always reports as web, so a selection without web empties it. In the deck funnel, keeps only the visits whose own deck page view carries one of the client platforms you pick; the later steps are never judged by it, so an install finished on another device still counts once that install and the page view resolve to the same person. The public collector stamps every anonymous site row as web itself and no client can override it, so picking any other platform on its own empties the deck funnel.",
+    "In the first launch funnel, keeps only the people whose first app launch was on one of the platforms you pick, so a selection without iOS, Android or web empties it. In the blog funnel, reads the blog article page view, which the site always reports as web, so a selection without web empties it. In the deck funnel, keeps only the visits whose own deck page view carries one of the client platforms you pick; the later steps are never judged by it, so an install finished on another device still counts once that install and the page view resolve to the same person. The public collector stamps every anonymous site row as web itself and no client can override it, so picking any other platform on its own empties the deck funnel.",
   // Every funnel applies both, on the identity its entry resolves to, the way General applies them; a
   // cookieless visitor of the deck and blog funnels has no identity and answers both from the row.
   connectionCountries:

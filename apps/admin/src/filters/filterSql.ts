@@ -74,14 +74,14 @@ export function buildExcludedActorReasonSql(actorIdSqlExpression: string): strin
  * kept: `server_derived` and `backfill_derived` are the server's own observations, and
  * `authenticated_client` and `guest_client` are claims made on an authenticated request.
  *
- * APPLIED EVERYWHERE IT CAN DECIDE A PERSON, AND THIS IS THE WHOLE LIST. Twenty entries below
- * derive an actor-level fact from `analytics.product_events_resolved`, nineteen in this package
+ * APPLIED EVERYWHERE IT CAN DECIDE A PERSON, AND THIS IS THE WHOLE LIST. Nineteen entries below
+ * derive an actor-level fact from `analytics.product_events_resolved`, eighteen in this package
  * and one outside it. Each is APPLIED or UNREACHABLE, and the two are not interchangeable: adding this
  * predicate to an UNREACHABLE entry is a no-op, and reading one as an omission produces a
  * remediation that converts the entries it happens to have been told about and stops. A shared
  * fragment is one entry, listed where it is written, with its readers named.
  *
- * APPLIED (13).
+ * APPLIED (12).
  *   - `reports/whoOpenedTheApp/appOpenActivitySql.ts`, `app_open_rows`, the first-open cohort it
  *     feeds and `app_open_last_opens`, one row predicate, read by Who opened the app, its breakdowns,
  *     the Who studied breakdowns and the Level 1 available range.
@@ -97,13 +97,6 @@ export function buildExcludedActorReasonSql(actorIdSqlExpression: string): strin
  *     that person out, and a credential-free launch claim could enter one. The second reads the
  *     client-reportable `screen_viewed` and `review_card_revealed` steps, so a credential-free claim would otherwise
  *     advance a cohort member through the funnel.
- *   - `reports/siteEntryFunnel/query.ts`, `actor_first_events`, the site-entry cohort the blog funnel
- *     reads through the fragments that module exports. It decides whether a person was already here
- *     before their first marketing-site page view, over every event name with no lower bound. That
- *     cohort and the blog funnel's own steps read marketing-site events at
- *     `trust_level = 'anonymous_client'` only, on purpose: those are the site's own facts, the cohort
- *     is keyed on the visitor identity they carry, and they never count as the trusted evidence this
- *     rule is about.
  *   - `reports/paywallFunnel/query.ts`, `funnel_rows`, which every step reads. The cohort and the
  *     purchase start are the client-reportable `paywall_shown` and `purchase_started`, so a
  *     credential-free claim would otherwise enter a person or advance one.
@@ -172,7 +165,9 @@ export function buildExcludedActorReasonSql(actorIdSqlExpression: string): strin
  * `reports/whoSawUs/engagedVisitorsQuery.ts`. They count the browser visitor identities that
  * `anonymous_client` site facts carry - the site's own facts - so this predicate would empty them.
  * They are counts of site visitors, never merged into a count of people, and they apply the
- * exclusion rule above.
+ * exclusion rule above. The blog funnel's `identified_readers`
+ * (`reports/blogFunnels/platformChoiceQuery.ts`) reads the same facts through the same
+ * `buildIdentifiedSiteFactFilterSql` and stays out for the same reason.
  *
  * NOT ENTRIES, AND NOT OMISSIONS. The three available-range probes,
  * `buildReviewEventsByDateAvailableRangeSql`, `buildCatalogInstallFunnelAvailableRangeSql` and
