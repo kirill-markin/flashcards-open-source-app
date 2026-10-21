@@ -1,4 +1,4 @@
-import { useRef, useState, type ReactElement } from "react";
+import { useRef, useState, type ReactElement, type RefObject } from "react";
 import { useAppData } from "../appData";
 import { useI18n } from "../i18n";
 import type { PaywallPresentation, PremiumContinuation } from "./stripeIntent";
@@ -11,6 +11,7 @@ type StripeOfferContentProps = Readonly<{
   isPreview: boolean;
   onContinueFree: () => void;
   onChoosePremium: () => void;
+  continueFreeRef: RefObject<HTMLButtonElement | null>;
 }>;
 
 export function StripeOfferContent(props: StripeOfferContentProps): ReactElement {
@@ -51,7 +52,7 @@ export function StripeOfferContent(props: StripeOfferContentProps): ReactElement
       </div>
       <p>{t("paywall.freeDescription")}</p>
       <ul className="premium-benefits"><li>{t("paywall.freeBenefit")}</li></ul>
-      <button type="button" className="premium-plan-button premium-free-button" data-testid="premium-continue-free" disabled={isPurchasing} onClick={props.onContinueFree}>
+      <button ref={props.continueFreeRef} type="button" className="premium-plan-button premium-free-button" data-testid="premium-continue-free" disabled={isPurchasing} onClick={props.onContinueFree}>
         <span>{t("paywall.continueFree")}</span>{actionArrow}
       </button>
     </section>

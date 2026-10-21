@@ -155,7 +155,11 @@ struct PremiumOfferView: View {
                         .toolbar { self.closeToolbar }
                 }
             }
-            .toolbar { self.closeToolbar }
+            .toolbar {
+                if self.showsOffer == false {
+                    self.closeToolbar
+                }
+            }
         }
         .onChange(of: self.displayedOfferType, initial: true) { _, offerType in
             self.presenter.updateDisplayedOffer(requestId: self.request.id, offerType: offerType)
