@@ -31,6 +31,10 @@ export interface StoreAnalyticsImportProps {
 export interface StoreAnalyticsImportResult {
   importFunction: lambdaNodejs.NodejsFunction;
   importLogGroup: logs.ILogGroup;
+  sandboxFunction: lambdaNodejs.NodejsFunction;
+  sandboxLogGroup: logs.ILogGroup;
+  discoveryFunction: lambdaNodejs.NodejsFunction;
+  discoveryLogGroup: logs.ILogGroup;
 }
 
 export const storeAnalyticsImportScheduleHours = 1;
@@ -61,6 +65,7 @@ function hasConfiguredValue(value: string | undefined): value is string {
 
 function addOptionalSentryEnvironment(
   scope: Construct,
+  idPrefix: string,
   fn: lambdaNodejs.NodejsFunction,
   props: StoreAnalyticsImportProps,
 ): void {
@@ -82,7 +87,7 @@ function addOptionalSentryEnvironment(
 
   const secret = cdk.aws_secretsmanager.Secret.fromSecretCompleteArn(
     scope,
-    "StoreAnalyticsImportSentryDsnSecret",
+    `${idPrefix}SentryDsnSecret`,
     props.sentryDsnSecretArn,
   );
   secret.grantRead(fn);
@@ -102,8 +107,7 @@ export function storeAnalyticsImport(scope: Construct, props: StoreAnalyticsImpo
     ],
   });
 
-  const importFunction = createCachedNodejsFunction(scope, "StoreAnalyticsImportHandler", {
-    entry: resolveFromRepoRoot("apps", "backend", "src", "entrypoints", "scheduledJobs", "lambda-store-analytics-import.ts"),
+  const sharedFunctionProps = {
     handler: "handler",
     runtime: lambda.Runtime.NODEJS_24_X,
     timeout: cdk.Duration.minutes(15),
@@ -116,16 +120,35 @@ export function storeAnalyticsImport(scope: Construct, props: StoreAnalyticsImpo
     ...backendNodejsProjectPaths,
     copiedAssetPaths: [rdsCaBundlePath],
     bundling: lambdaBundling,
+  };
+  const databaseEnvironment = {
+    NODE_EXTRA_CA_CERTS: "/var/task/rds-global-bundle.pem",
+    DB_SECRET_ARN: props.backendDbSecret.secretArn,
+    DB_HOST: props.db.dbInstanceEndpointAddress,
+    DB_NAME: "flashcards",
+  };
+  const importFunction = createCachedNodejsFunction(scope, "StoreAnalyticsImportHandler", {
+    ...sharedFunctionProps,
+    entry: resolveFromRepoRoot("apps", "backend", "src", "entrypoints", "scheduledJobs", "lambda-store-analytics-import.ts"),
     environment: {
-      NODE_EXTRA_CA_CERTS: "/var/task/rds-global-bundle.pem",
-      DB_SECRET_ARN: props.backendDbSecret.secretArn,
-      DB_HOST: props.db.dbInstanceEndpointAddress,
-      DB_NAME: "flashcards",
+      ...databaseEnvironment,
       APP_STORE_CONNECT_REPORTS_SECRET_ID: appStoreConnectReportsSecretName,
     },
   });
+  const sandboxFunction = createCachedNodejsFunction(scope, "StoreSandboxImportHandler", {
+    ...sharedFunctionProps,
+    entry: resolveFromRepoRoot("apps", "backend", "src", "entrypoints", "scheduledJobs", "lambda-store-sandbox-import.ts"),
+    environment: databaseEnvironment,
+  });
+  const discoveryFunction = createCachedNodejsFunction(scope, "GoogleBillingDiscoveryHandler", {
+    ...sharedFunctionProps,
+    entry: resolveFromRepoRoot("apps", "backend", "src", "entrypoints", "scheduledJobs", "lambda-google-billing-discovery.ts"),
+    environment: databaseEnvironment,
+  });
 
   props.backendDbSecret.grantRead(importFunction);
+  props.backendDbSecret.grantRead(sandboxFunction);
+  props.backendDbSecret.grantRead(discoveryFunction);
   cdk.aws_secretsmanager.Secret.fromSecretNameV2(
     scope,
     "AppStoreConnectReportsSecret",
@@ -136,26 +159,35 @@ export function storeAnalyticsImport(scope: Construct, props: StoreAnalyticsImpo
       scope, "StoreAnalyticsImportAppleIapSecret", props.appleIapSecretArn,
     );
     appleIapSecret.grantRead(importFunction);
+    appleIapSecret.grantRead(sandboxFunction);
     importFunction.addEnvironment("APPLE_IAP_SECRET_ARN", appleIapSecret.secretArn);
+    sandboxFunction.addEnvironment("APPLE_IAP_SECRET_ARN", appleIapSecret.secretArn);
   }
-  addOptionalSentryEnvironment(scope, importFunction, props);
+  addOptionalSentryEnvironment(scope, "StoreAnalyticsImport", importFunction, props);
+  addOptionalSentryEnvironment(scope, "StoreSandboxImport", sandboxFunction, { ...props, sentryEnvironment: "sandbox" });
+  addOptionalSentryEnvironment(scope, "GoogleBillingDiscovery", discoveryFunction, { ...props, sentryEnvironment: "billing-discovery" });
   if (hasConfiguredValue(props.stripeBillingSecretArn)) {
-    cdk.aws_secretsmanager.Secret.fromSecretCompleteArn(
+    const stripeBillingSecret = cdk.aws_secretsmanager.Secret.fromSecretCompleteArn(
       scope, "StoreAnalyticsImportStripeBillingSecret", props.stripeBillingSecretArn,
-    ).grantRead(importFunction);
+    );
+    stripeBillingSecret.grantRead(importFunction);
+    stripeBillingSecret.grantRead(sandboxFunction);
     importFunction.addEnvironment("STRIPE_BILLING_SECRET_ARN", props.stripeBillingSecretArn);
+    sandboxFunction.addEnvironment("STRIPE_BILLING_SECRET_ARN", props.stripeBillingSecretArn);
   }
 
   // No automatic retry: an instance or file left unimported is picked up by the next hourly run.
-  importFunction.configureAsyncInvoke({ retryAttempts: 0 });
+  for (const fn of [importFunction, sandboxFunction, discoveryFunction]) {
+    fn.configureAsyncInvoke({ retryAttempts: 0 });
+  }
 
   props.schedulerRole.addToPolicy(new iam.PolicyStatement({
     actions: ["lambda:InvokeFunction"],
-    resources: [importFunction.functionArn],
+    resources: [importFunction.functionArn, sandboxFunction.functionArn, discoveryFunction.functionArn],
   }));
 
   new scheduler.CfnSchedule(scope, "StoreAnalyticsImportHourlySchedule", {
-    description: "Import store reports and reconcile Google, Apple and Stripe native billing history every hour",
+    description: "Import real store reports and production Google, Apple and Stripe billing history every hour",
     flexibleTimeWindow: { mode: "OFF" },
     scheduleExpression: storeAnalyticsImportScheduleExpression,
     scheduleExpressionTimezone: "UTC",
@@ -168,8 +200,29 @@ export function storeAnalyticsImport(scope: Construct, props: StoreAnalyticsImpo
     },
   });
 
+  for (const job of [
+    { id: "GoogleBillingDiscoveryHourlySchedule", fn: discoveryFunction, minute: 0,
+      description: "Classify Google notification tokens with an unknown billing environment" },
+    { id: "StoreSandboxImportHourlySchedule", fn: sandboxFunction, minute: 40,
+      description: "Reconcile sandbox Google, Apple and Stripe billing history" },
+  ]) {
+    new scheduler.CfnSchedule(scope, job.id, {
+      description: job.description,
+      flexibleTimeWindow: { mode: "OFF" },
+      scheduleExpression: `cron(${job.minute} * * * ? *)`,
+      scheduleExpressionTimezone: "UTC",
+      state: "ENABLED",
+      target: { arn: job.fn.functionArn, input: "{}", roleArn: props.schedulerRole.roleArn,
+        retryPolicy: { maximumRetryAttempts: 0 } },
+    });
+  }
+
   return {
     importFunction,
     importLogGroup: importFunction.logGroup,
+    sandboxFunction,
+    sandboxLogGroup: sandboxFunction.logGroup,
+    discoveryFunction,
+    discoveryLogGroup: discoveryFunction.logGroup,
   };
 }

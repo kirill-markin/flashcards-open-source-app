@@ -256,33 +256,17 @@ function environmentImportFailure(
 }
 
 export async function importStripeHistory(
-  scope: BackendObservationScope, deadlineAtMs: number, signal: AbortSignal,
+  scope: BackendObservationScope, environment: StripeEnvironment, deadlineAtMs: number, signal: AbortSignal,
 ): Promise<StripeHistoryImportSummary> {
-  return withSessionAdvisoryLock({ lockName: "stripe-history-import", lockKey: "billing.stripe_history_import",
+  return withSessionAdvisoryLock({ lockName: `stripe-history-import-${environment}`,
+    lockKey: environment === "production" ? "billing.stripe_history_import" : "billing.stripe_history_import.sandbox",
     timeoutMs: 10_000, pollIntervalMs: 1_000, signal }, async (lockSignal) => {
     const environments: Array<StripeHistoryEnvironmentSummary> = [];
     const errors: Array<Error> = [];
-    const cohorts: Array<Readonly<{ environment: StripeEnvironment;
-      attempts: ReadonlyMap<StripeHistorySource, SourceAttempt>; requestedTo: Date }>> = [];
     if (Date.now() + 30_000 < deadlineAtMs) {
-      for (const environment of ["production", "sandbox"] as const) {
-        lockSignal.throwIfAborted();
-        try {
-          const attempts = await beginAttempts(environment);
-          cohorts.push({ environment, attempts,
-            requestedTo: requireAttempt(attempts, "stripe_subscriptions").input.requestedTo });
-        } catch (error) {
-          const failureCode = error instanceof Error ? importFailure(error) : "STRIPE_HISTORY_IMPORT_FAILED";
-          errors.push(environmentImportFailure(scope, environment, failureCode));
-        }
-      }
-    }
-    // Record both cohorts before collection; an unfinished older environment precedes a fresh scan.
-    cohorts.sort((left, right) => left.requestedTo.getTime() - right.requestedTo.getTime());
-    for (const { environment, attempts } of cohorts) {
       lockSignal.throwIfAborted();
-      if (Date.now() + 30_000 >= deadlineAtMs) break;
       try {
+        const attempts = await beginAttempts(environment);
         const result = await collectEnvironment(scope, environment, attempts, deadlineAtMs, lockSignal);
         environments.push(result.summary);
         errors.push(...result.errors);
@@ -296,7 +280,7 @@ export async function importStripeHistory(
       markCapturedBackendException(failure);
       throw failure;
     }
-    const summary: StripeHistoryImportSummary = { environments, remaining: environments.length < 2
+    const summary: StripeHistoryImportSummary = { environments, remaining: environments.length === 0
       || environments.some((environment) => environment.sources.some((source) => source.status === "running")) };
     console.info(JSON.stringify({ event: "stripe_history_import_completed", ...summary }));
     return summary;

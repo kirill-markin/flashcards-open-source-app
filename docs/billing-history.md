@@ -4,7 +4,7 @@ The [schema](../db/migrations/0182_provider_native_billing_history.sql) retains 
 objects independently of [current entitlement state](premium-entitlements.md).
 [Google collection](#google-backfill-and-verification),
 [Apple collection](#apple-collection-and-backfill) and [Stripe collection](#stripe-inventory-and-backfill)
-run in the existing hourly store-analytics job. Other source collectors and charts use these same contracts.
+run in separate production and sandbox hourly jobs; a third job classifies unknown-environment Google tokens. [Store Analytics Import](store-analytics.md) owns the runtime boundaries and schedule. Other source collectors and charts use these same contracts.
 
 The [source modules](../apps/backend/src/billing/history/) are the collector contract: each one's
 schema and write helper states what a caller must verify first, and
@@ -28,7 +28,7 @@ currency minor units.
 
 ## Invoke after deployment
 
-All three collectors run in the hourly store-analytics job, which also refreshes the store reports.
+Select the production, sandbox or Google discovery job from the [schedule table](store-analytics.md), and inspect each independently. Only production refreshes store reports.
 AWS builds and deployments run through CI only: wait for the merged commit's `AWS/Web Release`
 success, then resolve the current function from the stack instead of copying an older name. Do not
 create a role, Lambda, analytics report request, or change access state. No mode switch or special
@@ -36,16 +36,17 @@ backfill payload exists: the ordinary job backfills and continually reconciles.
 
 ```bash
 set -euo pipefail
+history_logical_id=StoreAnalyticsImportHandler
 history_function=$(aws cloudformation list-stack-resources \
   --profile flashcards-open-source-app --region eu-central-1 \
   --stack-name FlashcardsOpenSourceApp \
-  --query "StackResourceSummaries[?ResourceType=='AWS::Lambda::Function' && starts_with(LogicalResourceId, 'StoreAnalyticsImportHandler')].PhysicalResourceId | [0]" \
+  --query "StackResourceSummaries[?ResourceType=='AWS::Lambda::Function' && starts_with(LogicalResourceId, '${history_logical_id}')].PhysicalResourceId | [0]" \
   --output json | python3 -c 'import json, sys; name = json.load(sys.stdin); sys.exit("Store analytics Lambda lookup returned no function") if not isinstance(name, str) or not name else print(name)')
 test -n "$history_function"
 aws lambda get-function-configuration \
   --profile flashcards-open-source-app --region eu-central-1 \
   --function-name "$history_function" \
-  --query '{state:State,lastUpdateStatus:LastUpdateStatus,role:Role,appleSecretConfigured:Environment.Variables.APPLE_IAP_SECRET_ARN!=`null`}'
+  --query '{state:State,lastUpdateStatus:LastUpdateStatus,role:Role,sentryEnvironment:Environment.Variables.SENTRY_ENVIRONMENT,appleSecretConfigured:Environment.Variables.APPLE_IAP_SECRET_ARN!=`null`}'
 aws lambda invoke --profile flashcards-open-source-app --region eu-central-1 \
   --function-name "$history_function" --invocation-type RequestResponse \
   --cli-read-timeout 1000 --cli-binary-format raw-in-base64-out --payload '{}' \
@@ -53,10 +54,11 @@ aws lambda invoke --profile flashcards-open-source-app --region eu-central-1 \
 cat /tmp/nibomo-billing-history-result.json
 ```
 
-Require `State: Active`, `LastUpdateStatus: Successful`, the Apple secret configured, no
-`FunctionError` and `ok: true`; verify the role's Secrets Manager read grants privately. A running
+Repeat with `history_logical_id=StoreSandboxImportHandler` and `GoogleBillingDiscoveryHandler`.
+Require `State: Active`, `LastUpdateStatus: Successful`, the matching Sentry environment, no
+`FunctionError` and `ok: true`; verify the shared role and Secrets Manager grants privately. Production and sandbox require the Apple secret; discovery does not. A running
 source, `unfinishedSources` or `stripe.remaining=true` is committed progress, not covered history:
-repeat the invocation after the previous one ends, or let the next hour resume it. Read fresh
+repeat that job's invocation after the previous one ends, or let the next hour resume it. Discovery's `tokensRemaining` likewise identifies unfinished classification. Read fresh
 records in `/aws/lambda/$history_function` for the provider events named below. Never print
 private checkpoints, tokens, signed payloads or SDK errors. A deployed API timeout or access denial
 is a real failure requiring investigation; no source-empty conclusion is valid.
@@ -147,7 +149,7 @@ as evidence of first payment.
 ## Stripe inventory and backfill
 
 The [collector](../apps/backend/src/billing/history/stripeImport.ts) runs in the
-existing [hourly importer](store-analytics.md) with the HTTP provider's restricted runtime keys,
+[environment-specific hourly importers](store-analytics.md) with the HTTP provider's restricted runtime keys,
 verified accounts, catalog and API pin; the importer's secret grant comes from the
 [`stripeBillingSecretArn` context](stripe-subscriptions.md#receiver-and-runtime-provisioning-procedure).
 It only reads Stripe and writes native history.

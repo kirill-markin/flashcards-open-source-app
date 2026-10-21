@@ -1,6 +1,14 @@
 # Store Analytics Import
 
-[A scheduled Lambda](../infra/aws/lib/scheduled-jobs/store-analytics-import.ts) copies App Store and Google Play reports into the `store_analytics` schema ([migration](../db/migrations/0181_store_analytics_schema.sql)) and runs the [Google](billing-history.md#google-backfill-and-verification), [Apple](billing-history.md#apple-collection-and-backfill) and [Stripe](billing-history.md#stripe-inventory-and-backfill) native billing history collectors. [The handler](../apps/backend/src/entrypoints/scheduledJobs/lambda-store-analytics-import.ts) owns the run lock, each source's deadline and how a failed source fails the run.
+[Three independent scheduled Lambdas](../infra/aws/lib/scheduled-jobs/store-analytics-import.ts) collect store reports and [native billing history](billing-history.md). Each has its own run lock, source deadlines, outcome metrics and failure/freshness alarms on the existing alert topic.
+
+| Hourly UTC minute | Lambda logical ID prefix | Collection | Sentry environment |
+| --- | --- | --- | --- |
+| 00 | `GoogleBillingDiscoveryHandler` | Verify unknown-environment Google notification tokens, retain subscription observations and classify provider-event metadata | `billing-discovery` |
+| 20 | `StoreAnalyticsImportHandler` | Real App Store/Play reports into `store_analytics`, plus production Apple/Stripe/Google history | Existing production configuration |
+| 40 | `StoreSandboxImportHandler` | Sandbox Apple/Stripe/Google history | `sandbox` |
+
+Neither financial importer classifies unknown Google tokens. Discovery failures and sandbox failures cannot fail production collection. All three reuse `FlashcardsStoreReportsImportRole`, whose exact name is externally trusted by Google WIF. Sandbox Google order completion uses its verified sandbox inventory without requiring production sales exports; production completion still requires those exports. Checkpoint identities and coverage meanings are shared with [billing history](billing-history.md#reading-the-history).
 
 ## App Store
 
@@ -13,6 +21,8 @@
 ## Freshness
 
 Operational success means every source completed without an error; it does not guarantee complete historical coverage. Import failure alerts recover only after a completed successful run. A separate freshness alert reports two consecutive hours without a successful completion, including missing jobs and hard crashes.
+
+For each job, read its own log group for `store_analytics_import_completed` with `succeeded=0` or `1`, and its own `RunSucceeded` metric under `FlashcardsOpenSourceApp/StoreAnalyticsImport`, `FlashcardsOpenSourceApp/StoreSandboxImport` or `FlashcardsOpenSourceApp/GoogleBillingDiscovery`. Failure alarms use the hourly minimum, ignore missing data and require a real success for recovery; freshness alarms use the hourly maximum with missing hours filled as zero. Resolve current functions and inspect configuration/results as in [billing history](billing-history.md#invoke-after-deployment). In Sentry, inspect each job's actual environment; sandbox/discovery exception grouping is separate from production even for identical stacks. Historical events retain their original environments.
 
 `store_analytics.import_files` has one row per imported App Store segment or Play file. For App Store, read the latest `processing_date` and `imported_at` per `report_name` and `granularity`; an instance absent from it has not been imported, and Apple deletes instances 35 days after generation. For Google Play, read `file_month`, `report_date_to` and `imported_at` per `report_name`; Google posts each day 3–7 days late.
 

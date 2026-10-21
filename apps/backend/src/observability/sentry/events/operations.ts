@@ -952,7 +952,7 @@ export type OperationsExceptionEvent =
   | (EventByAction<"probable_scraper_fleet_refresh_failed", Readonly<{ message: string }>> & Readonly<{ error: Error }>)
   | (EventByAction<
     "store_analytics_import_failed",
-    Readonly<{ source: "app_store" | "google_play" | "google_history" | "stripe_history" | "apple_history" | null; message: string }>
+    Readonly<{ source: "app_store" | "google_play" | "google_history" | "stripe_history" | "apple_history" | "google_token_discovery" | null; message: string }>
   > & Readonly<{ error: Error }>)
   | (EventByAction<
     "stripe_history_import_failed",
