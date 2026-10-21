@@ -100,7 +100,7 @@ Run it locally with `make local-admin` on `http://localhost:3001` before merge; 
 - Pick a `Compare with` range: every card draws A and B side by side, the key names both with their dates, hovering a bar gives that range's own shares, an empty or maturing range is named in a note, and the comparison survives a reload and clears with `Clear comparison` or `Reset all`.
 - On `Blog article to platform choice` ([query](../apps/admin/src/reports/blogFunnels/platformChoiceQuery.ts)), after an article and the home page, hovering a store badge until its QR code shows counts at `Platform hovered or clicked` but not at `Platform clicked`, and a web app click counts at both.
 - On `Deck page to install` ([query](../apps/admin/src/reports/catalogInstallFunnel/query.ts)), only a server install is success.
-- A deck page view near the range end stays maturing until its seven-day window closes, and a follow-up after the cohort end still counts.
+- On it, an install near the range end keeps its review steps maturing until seven days after it, and a review after the range end still counts.
 
 ### Audience ([query](../apps/admin/src/reports/audience/query.ts), [section](../apps/admin/src/reports/audience/AudienceSection.tsx))
 
