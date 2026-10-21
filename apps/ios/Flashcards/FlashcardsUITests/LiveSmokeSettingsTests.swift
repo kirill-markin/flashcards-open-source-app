@@ -3,6 +3,39 @@ import XCTest
 
 final class LiveSmokeSettingsTests: LiveSmokeTestCase {
     @MainActor
+    func testLiveSmokeGuestPremiumSheetCanReopen() throws {
+        try self.step("prepare guest subscription settings") {
+            try self.launchApplication(launchScenario: .guestEmptyWorkspace, selectedTab: .settings)
+            try self.openSettingsRootRow(identifier: LiveSmokeIdentifier.settingsSubscriptionRow)
+            try self.assertElementEnabled(
+                identifier: LiveSmokeIdentifier.subscriptionSettingsPremiumButton,
+                timeout: LiveSmokeConfiguration.longUiTimeoutSeconds
+            )
+        }
+
+        for presentationNumber in 1...2 {
+            try self.step("open and dismiss the premium sheet \(presentationNumber)") {
+                try self.tapButton(
+                    identifier: LiveSmokeIdentifier.subscriptionSettingsPremiumButton,
+                    timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds
+                )
+                try self.assertElementExists(
+                    identifier: LiveSmokeIdentifier.premiumOfferSheet,
+                    timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds
+                )
+                try self.tapButtonScrollingIntoView(
+                    identifier: LiveSmokeIdentifier.premiumContinueFreeButton,
+                    timeout: LiveSmokeConfiguration.longUiTimeoutSeconds
+                )
+                try self.assertElementDoesNotExist(
+                    identifier: LiveSmokeIdentifier.premiumOfferSheet,
+                    timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds
+                )
+            }
+        }
+    }
+
+    @MainActor
     func testLiveSmokeGuestNavigationFlow() throws {
         try self.step("verify guest navigation surfaces without login") {
             try self.launchApplication(launchScenario: .guestEmptyWorkspace, selectedTab: .cards)
