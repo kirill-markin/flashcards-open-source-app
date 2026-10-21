@@ -131,15 +131,14 @@ export function buildExcludedActorReasonSql(actorIdSqlExpression: string): strin
  *     `friendship_created` community series. By event name.
  *   - `reports/catalogInstalls/query.ts`, the `deck_installs` CTE (`catalog_deck_installed`). By
  *     event name.
- *   - `reports/catalogInstallFunnel/query.ts`, `browser_guest_actors`, `install_actors` and
- *     `install_actor_reviews`. The first reads `guest_client` rows only; through the others an
- *     identity enters only by reaching the server-origin `catalog_deck_installed`, and the reviews
- *     read `review_answered`.
- *   - `reports/catalogInstallFunnel/query.ts`, the identity-level exclusion, which reads the
- *     candidate row's own `actor_id` rather than bridging to an install. That id is the
- *     collector-supplied one for a visitor who never signed in, and the predicate stays off it on
- *     purpose: this removes rows rather than counting people, so reaching such a row is the safe
- *     direction and refusing to read it would keep an excluded person in.
+ *   - `reports/catalogInstallFunnel/query.ts`, `installers` and `installer_reviews`. An identity
+ *     enters only by reaching the server-origin `catalog_deck_installed`, and the reviews read
+ *     `review_answered`.
+ *   - `reports/catalogInstallFunnel/query.ts`, the identity-level exclusion, which reads each site
+ *     row's own `actor_id`. That id is the collector-supplied one for a visitor who never signed in,
+ *     and the predicate stays off it on purpose: this removes rows rather than counting people, so
+ *     reaching such a row is the safe direction and refusing to read it would keep an excluded
+ *     person in.
  *   - `buildCatalogInstalledDeckVersionsSql` and `buildCatalogInstallAttributionSql` below - two
  *     fragments, one bridge - read by the installed-deck and click-attribution filters and by their
  *     five option lists. The attribution fragment reads `anonymous_client` clicks deliberately, but
@@ -159,15 +158,14 @@ export function buildExcludedActorReasonSql(actorIdSqlExpression: string): strin
  *     removes that suppression, so the restatement itself can cause a detection that would not
  *     have fired and can never suppress one.
  *
- * NOT AN ENTRY EITHER, AND THE ONE THAT MOST LOOKS LIKE ONE. The catalog install funnel's cohort
- * keys a row on the identity an `anonymous_client` deck page view (`site_page_viewed`) carries, reads
- * its second step from the `anonymous_client` install click on that identity, and reads that identity
- * through every later step. Applying this predicate there would empty the report, because the
- * marketing-site page view and click are credential-free by construction. It stays out because what
- * the funnel counts is browser visitor identities arriving at a deck, which is what it calls them on
- * screen; that number is never merged into a count of people.
+ * NOT AN ENTRY EITHER, AND THE ONE THAT MOST LOOKS LIKE ONE. The deck funnel's two site steps count
+ * the identities `anonymous_client` deck page views (`site_page_viewed`) and install clicks carry.
+ * Applying this predicate there would empty both, because the marketing-site page view and click are
+ * credential-free by construction. It stays out because what those steps count is browser visitor
+ * identities, which is what the funnel calls them on screen; that number is never merged into a count
+ * of people.
  *
- * NOT AN ENTRY, FOR THE CATALOG COHORT'S REASON: `identified_site_visitors`, the `Web` series of
+ * NOT AN ENTRY, FOR THE DECK FUNNEL'S REASON: `identified_site_visitors`, the `Web` series of
  * `reports/whoSawUs/query.ts`, and `identified_visitor_days`, its engaged subset in
  * `reports/whoSawUs/engagedVisitorsQuery.ts`. They count the browser visitor identities that
  * `anonymous_client` site facts carry - the site's own facts - so this predicate would empty them.
@@ -623,14 +621,9 @@ export function buildInstalledDecksFilterSql(
  * server-origin `catalog_deck_installed` names the person, and a click reaches it in one of two ways,
  * both also requiring the same `package_version_id`:
  *   - the shared identity: the click resolves to the install's own `actor_id` through the
- *     `analytics_visitor` cookie, exactly as the funnel's steps are joined, and the install falls
- *     within `catalogInstallConversionWindowDays` of it. Of the clicks in those days before the
- *     install, the install takes the earliest by `occurred_at` then `event_id`. The funnel
- *     (`buildCatalogInstallFunnelSql` in `apps/admin/src/reports/catalogInstallFunnel/query.ts`)
- *     instead anchors on a visitor's first click in the selected range, converting or not, so the two
- *     credit one install to different clicks when the range cuts off an earlier click: with clicks on
- *     day 0 and day 3, the install on day 5 and the range starting on day 2, the funnel's anchor is the
- *     day-3 click and this picks the day-0 one.
+ *     `analytics_visitor` cookie, and the install falls within `catalogInstallConversionWindowDays`
+ *     of it. Of the clicks in those days before the install, the install takes the earliest by
+ *     `occurred_at` then `event_id`.
  *   - the per-attempt `install_journey_id`, which only rows written before the producers dropped it
  *     carry, on the first click of that journey. It stays because those clicks share no identity with
  *     anything: a click that claimed no visitor cookie is stored under its journey id

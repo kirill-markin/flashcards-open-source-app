@@ -10,8 +10,8 @@ const funnelDetailsPages: Readonly<Record<FunnelDetail, (props: FunnelReportProp
 };
 
 /**
- * The selection with the deck funnel's own fields cleared. The Funnels area offers no control for
- * them, so a value carried over from another area must not narrow a funnel unseen.
+ * The selection with the catalog fields cleared. No funnel reads them and the Funnels area offers no
+ * control for them, so a value carried over from another area must not reload a funnel unseen.
  */
 function buildFunnelsAreaFilters(filters: AnalyticsFilterState): AnalyticsFilterState {
   return {

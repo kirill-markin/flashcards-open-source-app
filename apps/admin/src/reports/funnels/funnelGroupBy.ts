@@ -24,9 +24,7 @@ import type { FunnelStage } from "./FunnelStepsChart";
  *
  * `id` is never the label, so a dimension can be renamed on screen without breaking links that are
  * already shared. Where a funnel's key comes from is the funnel's own business, which is why nothing
- * here knows about it: a funnel reduced in SQL declares `FunnelGroupByDimension` below, while one
- * whose query already returns a row per person reduces in the browser and declares its own dimension
- * type over this one, carrying a reader instead.
+ * here knows about it: a funnel reduced in SQL declares `FunnelGroupByDimension` below.
  */
 export type FunnelGroupByField = Readonly<{
   id: string;
@@ -58,14 +56,6 @@ export const platformFunnelGroupByDimensionId = "platform";
  * funnel reduced in SQL produces it there. Almost no dimension value can be this word: platforms,
  * ISO country codes and UI locales are all shorter, fixed shapes - `ui_locale` is constrained to
  * one by `db/migrations/0137_audience_context.sql`.
- *
- * THE ONE EXCEPTION IS A DIMENSION KEYED ON `device_locale`, which the deck funnel's browser
- * language at click is: that column is unconstrained client text up to 200 characters in the same
- * migration, so a client that reports exactly this word merges into the pinned `Unresolved` group,
- * out of the five drawn ones and in with the counts no dimension could place. It is recorded here
- * rather than worked around because it costs one misplaced group of one absurd value, and a wider
- * sentinel would have to be produced identically by every funnel's SQL. A new dimension keyed on
- * free client text belongs in this note.
  */
 export const unresolvedFunnelGroupKey = "unresolved";
 
@@ -160,8 +150,7 @@ export function buildFunnelGroupLabel(dimension: FunnelGroupByField, groupKey: s
 /**
  * Both counts fold by summing, which is exact only where every counted person carries exactly one
  * group key, so that no person is in two of the groups being added. That is the rule for a funnel
- * whose groups partition its cohort, and it is why merging the remainder is a caller's decision in
- * `foldFunnelGroupsWith` rather than this function's alone.
+ * whose groups partition its cohort.
  */
 function sumFunnelStages<StepId extends string>(
   stageLists: ReadonlyArray<ReadonlyArray<FunnelStage<StepId>>>,
@@ -198,31 +187,6 @@ export function foldFunnelGroups<StepId extends string>(
   dimension: FunnelGroupByField,
   groups: ReadonlyArray<FunnelGroupCounts<StepId>>,
 ): ReadonlyArray<FunnelGroup<StepId>> {
-  return foldFunnelGroupsWith(dimension, groups, (foldedGroups) => (
-    sumFunnelStages(foldedGroups.map((group) => group.stages))
-  ));
-}
-
-/**
- * The same folding for a funnel whose groups can hold one person twice, which decides `Other` for
- * itself.
- *
- * `mergeFoldedStages` is handed the groups below the five drawn and returns the one stage list that
- * replaces them. A funnel whose groups partition its cohort sums them, through `foldFunnelGroups`
- * above. The deck funnel grouped by deck cannot: a person's rows are one per deck they
- * viewed, so the same person can sit in two folded groups and a sum would count them twice; it
- * re-reduces the underlying rows instead. Everything else about the fold - the ranking, the five,
- * the pinned `Unresolved` and the colours - is the same on every funnel, which is the point of
- * having one function.
- */
-export function foldFunnelGroupsWith<
-  StepId extends string,
-  Group extends FunnelGroupCounts<StepId>,
->(
-  dimension: FunnelGroupByField,
-  groups: ReadonlyArray<Group>,
-  mergeFoldedStages: (foldedGroups: ReadonlyArray<Group>) => ReadonlyArray<FunnelStage<StepId>>,
-): ReadonlyArray<FunnelGroup<StepId>> {
   const resolvedGroups = groups.filter((group) => group.key !== unresolvedFunnelGroupKey);
   const unresolvedGroup = groups.find((group) => group.key === unresolvedFunnelGroupKey);
   const rankedGroups = [...resolvedGroups].sort((leftGroup, rightGroup) => (
@@ -245,7 +209,7 @@ export function foldFunnelGroupsWith<
       // The count is in the label because the bar itself cannot say how many values it holds.
       label: `Other (${foldedGroups.length})`,
       color: neutralChartColor,
-      stages: mergeFoldedStages(foldedGroups),
+      stages: sumFunnelStages(foldedGroups.map((group) => group.stages)),
     }]),
     ...(unresolvedGroup === undefined ? [] : [{
       key: unresolvedFunnelGroupKey,

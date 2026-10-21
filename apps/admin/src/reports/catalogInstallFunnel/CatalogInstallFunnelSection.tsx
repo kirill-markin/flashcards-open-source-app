@@ -1,7 +1,6 @@
 import { useMemo, type JSX } from "react";
 import type { AnalyticsFilterState } from "../../filters/analyticsFilters";
 import { FunnelEmptyRangeNotes } from "../funnels/FunnelEmptyRangeNotes";
-import { FunnelMaturingWarning } from "../funnels/FunnelMaturingWarning";
 import {
   buildFunnelRangeGroups,
   formatFunnelRangeNote,
@@ -16,6 +15,7 @@ import {
 } from "../funnels/FunnelStepsChart";
 import { firstLaunchEngagedReviewThreshold } from "../firstLaunchFunnel/query";
 import {
+  catalogInstallConversionWindowDays,
   catalogInstallFunnelStartDate,
   loadCatalogInstallFunnelReport,
 } from "./query";
@@ -41,37 +41,19 @@ function buildStartDateNote(dateRange: AnalyticsFilterState["dateRange"]): strin
     : null;
 }
 
-function formatDuration(seconds: number | null): string {
-  if (seconds === null) {
-    return "—";
-  }
-
-  if (seconds < 60) {
-    return `${Math.round(seconds)} sec`;
-  }
-
-  if (seconds < 3600) {
-    return `${Math.round(seconds / 60)} min`;
-  }
-
-  return `${(seconds / 3600).toFixed(1)} hr`;
-}
-
 export function CatalogInstallFunnelSection(props: FunnelSectionProps): JSX.Element {
   const { state: loadState, retry } = useFunnelRangeReports(props, loadCatalogInstallFunnelReport, getErrorMessage);
   const rangeViews = useMemo(
     () => (loadState.status === "ready" ? loadState.ranges : []).map((range) => {
-      const model = buildCatalogInstallFunnelReportModel(range.report, null);
-      return { ...range, model, stages: model.mainStages, hasEntries: model.hasVisits };
+      const model = buildCatalogInstallFunnelReportModel(range.report);
+      return { ...range, stages: model.mainStages, hasEntries: model.hasEntries };
     }),
     [loadState],
   );
   const groups = useMemo(() => buildFunnelRangeGroups(rangeViews), [rangeViews]);
-  // A, whose figures the explainer shows.
   const primaryRange = rangeViews[0];
-  const medianInstallSeconds = primaryRange === undefined ? null : primaryRange.model.medianInstallSeconds;
   const isReady = loadState.status === "ready";
-  const hasVisits = rangeViews.some((range) => range.hasEntries);
+  const hasEntries = rangeViews.some((range) => range.hasEntries);
   const isComparing = props.filters.comparisonDateRange !== null;
 
   return (
@@ -84,47 +66,53 @@ export function CatalogInstallFunnelSection(props: FunnelSectionProps): JSX.Elem
         return startDateNote === null ? null : <p key={range.key} className="report-state" aria-live="polite">{formatFunnelRangeNote(range.seriesLabel, startDateNote)}</p>;
       })}
 
-      {rangeViews.map((range) => <FunnelMaturingWarning key={range.key} seriesLabel={range.seriesLabel} maturingCount={range.model.maturingCount} entryCount={range.model.maturityEntryCount} />)}
+      {rangeViews.map((range) => (range.report.maturingInstallerCount === 0 ? null : (
+        <p key={range.key} className="report-state report-state-warning" aria-live="polite">
+          {formatFunnelRangeNote(
+            range.seriesLabel,
+            `${range.report.maturingInstallerCount.toLocaleString("en-US")} of ${range.report.installerCount.toLocaleString("en-US")} installers first installed less than ${catalogInstallConversionWindowDays} days ago; their review steps are still filling in.`,
+          )}
+        </p>
+      )))}
       <FunnelEmptyRangeNotes ranges={rangeViews} />
 
       {loadState.status === "loading" ? (
         <FunnelStepsLoadingChart
           countLabel="Visitors"
           dateRange={props.filters.dateRange}
-          showsHashedSplit
+          showsHashedSplit={false}
           isGrouped={isComparing}
           label="Loading deck page to install funnel…"
         />
       ) : null}
-      {isReady && hasVisits === false ? (
+      {isReady && hasEntries === false ? (
         <FunnelStepsEmptyChart
           countLabel="Visitors"
           dateRange={props.filters.dateRange}
-          showsHashedSplit
+          showsHashedSplit={false}
           isGrouped={isComparing}
-          note={<><strong>No deck page views match these filters.</strong><span>Cookieless visitors are counted here through their daily hash, so this is every deck page view in range, and no earlier traffic history is inferred from Vercel aggregates.</span></>}
+          note={<><strong>No deck page views, install clicks or installs match these filters.</strong><span>Cookieless visitors are counted here through their daily hash, so this is every deck page view in range, and no earlier traffic history is inferred from Vercel aggregates.</span></>}
         />
       ) : null}
 
-      {primaryRange !== undefined && hasVisits ? (
+      {primaryRange !== undefined && hasEntries ? (
         <FunnelStepsChart
           anchor={catalogInstallFunnelAnchor}
           stages={primaryRange.stages}
           groups={groups}
           countLabel="Visitors"
           dateRange={props.filters.dateRange}
-          showsHashedSplit
+          showsHashedSplit={false}
         />
       ) : null}
 
       {isReady ? (
         <details className="funnel-explainer">
           <summary>How it&rsquo;s counted</summary>
-          <div className="funnel-detail-row funnel-explainer-figure"><span>Median page view to install</span><strong>{formatDuration(medianInstallSeconds)}</strong></div>
-          <p>Every step counts people: a person adds at most one to each step, and counts at a step only after reaching every step above it. Step one is a person who viewed the page of any deck; below it, a person counts at a step when one deck whose page they viewed carried them through every step down to it. The install click and the install are joined to the page view by the same visitor identity, the <code>analytics_visitor</code> cookie the site and the app share, each at or after the step above it and within seven days of the page view. An install made as a signed-out browser guest is joined to the clicking visitor through that same visitor id, which the guest&rsquo;s own rows carry. Only a server-origin <code>catalog_deck_installed</code> is an install, whichever import path the app took, and the median is each person&rsquo;s earliest server install measured from that deck&rsquo;s page view.</p>
-          <p>People count from {catalogInstallFunnelStartDate}, the first full UTC day the site reported identified deck page views. A page viewed before the visitor consents to a cookie carries no visitor id, so it counts only among the cookieless visitors below. The four review steps count the installing person&rsquo;s reviews from the install to seven days after the page view, anywhere in the product rather than in the installed deck, because <code>review_answered</code> names no deck: one review, two reviews, reviews on two UTC days, then {firstLaunchEngagedReviewThreshold} reviews over three UTC days. A person whose deck page view is still inside its seven-day window is not a confirmed drop-off.</p>
-          <p>The client platform is read off the anchoring page view, which the site always reports as web, so a selection without web empties this funnel. The connection country and the app interface language keep an identity the way they keep a person on General, and keep a cookieless visitor by the country and interface language of that visitor&rsquo;s own page view. Test-deck rows, test accounts, admins and excluded actors are left out.</p>
-          <p>Cookieless visitors, one person per daily hash, are the lighter part of the first two bars. They reach no later step, and the test-deck, test-account, admin and exclusion-list rules cannot reach them, because they have no identity to test. Those two bars are an upper bound rather than a count, because a visitor who consents partway through a day can appear once in each part of a step.</p>
+          <p>The first three steps are each counted on their own over the selected UTC days, from {catalogInstallFunnelStartDate}, with no link, order or time window between them, so a later step can be larger than an earlier one and a share can pass 100%. A deck page view and an install click count each visitor once: by the <code>analytics_visitor</code> cookie or account they carry, or, for a cookieless visitor, once per daily hash per UTC day, so a visitor who consents partway through a day counts twice. An install counts each person with a server-origin <code>catalog_deck_installed</code> once; every install comes through the web import page.</p>
+          <p>Only the four review steps are linked, to the people counted at the install: each person&rsquo;s reviews from their first install in range to seven days after it, anywhere in the product rather than in the installed deck, because <code>review_answered</code> names no deck: one review, two reviews, reviews on two UTC days, then {firstLaunchEngagedReviewThreshold} reviews over three UTC days. A person whose first install is less than seven days old is not a confirmed drop-off.</p>
+          <p>The client platform narrows the deck page views and install clicks, which the site always reports as web, so a selection without web empties those two steps; a server install carries no platform, so the install and review steps ignore it. The connection country and the app interface language keep an identified visitor or installer the way they keep a person on General, and keep a cookieless visitor by that row&rsquo;s own country and interface language.</p>
+          <p>The delisted test deck, test accounts, admins, excluded actors and detected automation are left out of every step. A cookieless visitor has no actor, so only the automated-client and scraper-fleet rules reach them.</p>
         </details>
       ) : null}
     </section>
