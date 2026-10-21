@@ -3,7 +3,6 @@ import type { AdminAppConfig } from "../../config";
 import type { AnalyticsFilterState } from "../../filters/analyticsFilters";
 import type { FunnelDetail } from "../../routing";
 import { FirstLaunchFunnelDetailsPage } from "../firstLaunchFunnel/FirstLaunchFunnelDetailsPage";
-import { FunnelAudienceModeControl } from "./FunnelAudienceModeControl";
 import { funnelSections, type FunnelReportProps } from "./funnelSections";
 
 const funnelDetailsPages: Readonly<Record<FunnelDetail, (props: FunnelReportProps) => JSX.Element>> = {
@@ -26,12 +25,8 @@ function buildFunnelsAreaFilters(filters: AnalyticsFilterState): AnalyticsFilter
 }
 
 /**
- * The Funnels area: the audience mode, then every funnel in `funnelSections` order as a chart card in
- * the Level 1 metrics grid, or one funnel's Details page when `funnelDetail` names it.
- *
- * The mode sits above all of them and applies to all of them, because it answers a question the
- * funnels have to agree on: a number from one funnel and a number from another can only be compared
- * when both counted the same kind of person.
+ * The Funnels area: every funnel in `funnelSections` order as a chart card in the Level 1 metrics
+ * grid, or one funnel's Details page when `funnelDetail` names it.
  */
 export function FunnelsArea(
   props: Readonly<{
@@ -39,7 +34,6 @@ export function FunnelsArea(
     filters: AnalyticsFilterState;
     funnelDetail: FunnelDetail | null;
     isReportLoading: boolean;
-    onFiltersChange: (filters: AnalyticsFilterState) => boolean;
     onNavigate: (path: string) => void;
     onTerminalAdminError: (error: unknown, config: AdminAppConfig) => boolean;
   }>,
@@ -48,35 +42,25 @@ export function FunnelsArea(
   const funnelFilters = useMemo(() => buildFunnelsAreaFilters(props.filters), [props.filters]);
   const FunnelDetailsPage = props.funnelDetail === null ? null : funnelDetailsPages[props.funnelDetail];
 
-  return (
-    <>
-      {/* The full selection, so a mode change writes back every field rather than the cleared copy. */}
-      <FunnelAudienceModeControl
-        filters={props.filters}
-        isReportLoading={props.isReportLoading}
-        onFiltersChange={props.onFiltersChange}
-      />
-      {FunnelDetailsPage === null ? (
-        <div className="level-1-metrics-grid">
-          {funnelSections.map((funnel) => (
-            <funnel.Section
-              key={funnel.anchor.funnelId}
-              config={props.config}
-              filters={funnelFilters}
-              isRangeLoading={props.isReportLoading}
-              onTerminalAdminError={props.onTerminalAdminError}
-              onDetailsNavigate={props.onNavigate}
-            />
-          ))}
-        </div>
-      ) : (
-        <FunnelDetailsPage
+  return FunnelDetailsPage === null ? (
+    <div className="level-1-metrics-grid">
+      {funnelSections.map((funnel) => (
+        <funnel.Section
+          key={funnel.anchor.funnelId}
           config={props.config}
           filters={funnelFilters}
           isRangeLoading={props.isReportLoading}
           onTerminalAdminError={props.onTerminalAdminError}
+          onDetailsNavigate={props.onNavigate}
         />
-      )}
-    </>
+      ))}
+    </div>
+  ) : (
+    <FunnelDetailsPage
+      config={props.config}
+      filters={funnelFilters}
+      isRangeLoading={props.isReportLoading}
+      onTerminalAdminError={props.onTerminalAdminError}
+    />
   );
 }

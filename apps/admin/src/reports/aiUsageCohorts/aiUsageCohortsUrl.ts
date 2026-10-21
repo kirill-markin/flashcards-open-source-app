@@ -15,10 +15,6 @@ import {
 // A control holding its default writes no parameter, so a default view carries none. Reading is
 // tolerant of anything a person can type: an unknown, repeated or malformed value opens on the
 // default instead of throwing.
-//
-// The audience parameter is deliberately not called `audience`: the funnels' audience mode already
-// owns that name in the shared filter codec, and that one is written on every area because it lives
-// in `AnalyticsFilterState`. Two controls under one name would overwrite each other.
 
 const aiUsagePeriodWeeksParamName = "period-weeks";
 const aiUsageAudienceParamName = "ai-audience";

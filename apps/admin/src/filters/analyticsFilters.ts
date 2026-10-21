@@ -93,61 +93,6 @@ export function parseAcceptedMinimumCount(rawMinimumCount: string): number | und
 }
 
 /**
- * WHO EACH FUNNEL COUNTS AS A PERSON. One choice, applied to every funnel at once, widest first:
- *
- * - `all`: everybody `with-anonymous-id` counts, plus the cookieless visitors the site can only
- *   count through `analytics.product_events_resolved.daily_visitor_hash`, one person per hash per UTC
- *   day. Those people reach the site steps and nothing below them, because a hash names nobody the
- *   app or the server could ever meet again;
- * - `with-anonymous-id`: a person with an identifier - a site visitor cookie, a mobile guest id or an
- *   account. It is the default, and it is what every funnel counted before the modes existed;
- * - `signed-in`: only the people whose identity resolves to a real, non-guest account at any time up
- *   to now, so a mobile guest who never registered is out and one who later registered is in.
- *
- * It is a single choice rather than a multi-select and it is offered only on the Funnels area, by
- * `FunnelAudienceModeControl` beside the funnels rather than by the shared filter bar, which is why
- * `AnalyticsFilterField` below excludes it: every member of that union is a multi-select the bar
- * renders, and the bar has no control that could draw this one.
- */
-export const funnelAudienceModes = ["all", "with-anonymous-id", "signed-in"] as const;
-
-export type FunnelAudienceMode = (typeof funnelAudienceModes)[number];
-
-/** Today's behaviour, so opening the area unchanged shows exactly the funnels it showed before. */
-export const defaultFunnelAudienceMode: FunnelAudienceMode = "with-anonymous-id";
-
-/** What each mode is called on screen, kept beside the values so a new mode cannot ship unnamed. */
-export const funnelAudienceModeLabels: Readonly<Record<FunnelAudienceMode, string>> = {
-  all: "All",
-  "with-anonymous-id": "With anonymous ID",
-  "signed-in": "Signed-in only",
-};
-
-/** What each mode counts, shown under the control, so the numbers can be read without this file. */
-export const funnelAudienceModeExplanations: Readonly<Record<FunnelAudienceMode, string>> = {
-  all:
-    "Everyone below, plus cookieless site visitors counted by their daily hash, drawn as the lighter part of each bar. A hash is one person for one UTC day and names nobody the app can meet again, so those people can only reach the site steps and are absent from every step below them.",
-  "with-anonymous-id":
-    "People carrying an identifier: a site visitor cookie, a mobile guest id, or an account. This is the default and what every funnel counts unless you change it.",
-  "signed-in":
-    "Only people whose identity resolves to a real, non-guest account at some point up to now. A mobile guest who never registered is left out, and one who registered later is counted, including their steps from before they registered.",
-};
-
-/**
- * What an empty funnel adds about the audience mode, or `null` when the mode cannot be the reason.
- *
- * `signed-in` is the only mode that removes people, and it is the one thing an empty funnel's "match
- * these filters" wording cannot be pointing at: the mode is not in the filter bar and `Reset all`
- * leaves it selected, so a reader told only about filters clears fields that were never the reason.
- * `all` and `with-anonymous-id` only ever add people to the default, so neither can empty a funnel.
- */
-export function buildFunnelAudienceEmptyStateNote(mode: FunnelAudienceMode): string | null {
-  return mode === "signed-in"
-    ? `The audience is set to "${funnelAudienceModeLabels["signed-in"]}", which is not one of these filters and stays selected through Reset all; widening it counts people who never registered.`
-    : null;
-}
-
-/**
  * The complete filter selection of one analytics area.
  *
  * An empty list on an option field means "every value", except on `userCohorts` and
@@ -169,16 +114,14 @@ export type AnalyticsFilterState = Readonly<{
   catalogSources: ReadonlyArray<CatalogInstallSource>;
   catalogDeviceCategories: ReadonlyArray<CatalogInstallDeviceCategory>;
   catalogClickBrowserLanguages: ReadonlyArray<string>;
-  funnelAudienceMode: FunnelAudienceMode;
 }>;
 
 /**
- * Every field the shared filter bar offers, which is every field of the selection except the funnel
- * audience mode. The exclusion names that one field rather than opting out of the exhaustiveness the
- * records below rely on: any other field added to `AnalyticsFilterState` still stops this file
- * compiling until it is given an order, an applicability, a label and an explanation.
+ * Every field the shared filter bar offers, which is every field of the selection: a field added to
+ * `AnalyticsFilterState` stops this file compiling until it is given an order, an applicability, a
+ * label and an explanation.
  */
-export type AnalyticsFilterField = Exclude<keyof AnalyticsFilterState, "funnelAudienceMode">;
+export type AnalyticsFilterField = keyof AnalyticsFilterState;
 
 // The order the filter bar offers the fields in, written as a record rather than as a list: a field
 // added to `AnalyticsFilterState` stops this file compiling until it is given a place here, instead
@@ -296,7 +239,7 @@ const analyticsFilterFieldExplanations: Readonly<Record<AnalyticsFilterField, st
     "Counts only events whose UTC calendar day falls inside this range. Both the first and the last day are included, and the day is the UTC day rather than the reader's own.",
   // Offered on Funnels only.
   comparisonDateRange:
-    "An optional second entry range, empty by default. When it is set, every funnel is counted again on it with every other filter and the audience unchanged, and drawn beside the main range as series B, each series measured from its own first step.",
+    "An optional second entry range, empty by default. When it is set, every funnel is counted again on it with every other filter unchanged, and drawn beside the main range as series B, each series measured from its own first step.",
   users:
     "Keeps only events produced by the people you pick. The match is on the resolved actor id, so a guest and the account that guest became stay one person; picking nobody keeps every user.",
   // The on-screen sentence now carries the split rule itself, including its one exception.
@@ -371,17 +314,18 @@ const analyticsFilterFieldExplanations: Readonly<Record<AnalyticsFilterField, st
     + ` ${catalogClickAttributionExplanationTail}`,
 };
 
-// The date range changes meaning on every funnel: it places an entry by the event that anchors it and
+// The date range changes meaning on most funnels: it places an entry by the event that anchors it and
 // then lets the later steps run past the range, so the shared "only events inside these days" wording
 // would be false here.
 const funnelsAnalyticsFilterFieldExplanations: Readonly<
   Partial<Record<AnalyticsFilterField, string>>
 > = {
   dateRange:
-    "Selects who enters each funnel by the UTC calendar day of the event that anchors them rather than bounding every event counted here, with the first and the last day both included. Every later step still counts for at least seven days after that anchoring event, so it can have happened past the last selected day, and a range whose last days are less than seven days old is still filling rather than finished. The anchor is a person's first app launch on iOS, Android or web in the first launch funnel, a visitor's first view of a deck's page inside the range in the deck funnel, a person's first marketing-site page view in the blog funnel, their first sign-in method choice in the sign-in funnel, and their first paywall shown in the paywall funnel.",
+    "Selects who enters each funnel by the UTC calendar day of the event that anchors them rather than bounding every event counted here, with the first and the last day both included. Every later step still counts for at least seven days after that anchoring event, so it can have happened past the last selected day, and a range whose last days are less than seven days old is still filling rather than finished. The anchor is a person's first app launch on iOS, Android or web in the first launch funnel, a visitor's first view of a deck's page inside the range in the deck funnel, their first sign-in method choice in the sign-in funnel, and their first paywall shown in the paywall funnel. The blog funnel has no anchor: it counts the people who viewed a blog article inside the selected days, and each later step only inside those same days.",
   eventPlatforms:
-    "In the first launch funnel, keeps only the people whose first app launch was on one of the platforms you pick, so a selection without iOS, Android or web empties it. In the blog funnel, reads the entry page view, which the site always reports as web, so a selection without web empties it. In the deck funnel, keeps only the visits whose own deck page view carries one of the client platforms you pick; the later steps are never judged by it, so an install finished on another device still counts once that install and the page view resolve to the same person. The public collector stamps every anonymous site row as web itself and no client can override it, so picking any other platform on its own empties the deck funnel.",
-  // Every funnel applies both, on the identity its entry resolves to, the way General applies them.
+    "In the first launch funnel, keeps only the people whose first app launch was on one of the platforms you pick, so a selection without iOS, Android or web empties it. In the blog funnel, reads the blog article page view, which the site always reports as web, so a selection without web empties it. In the deck funnel, keeps only the visits whose own deck page view carries one of the client platforms you pick; the later steps are never judged by it, so an install finished on another device still counts once that install and the page view resolve to the same person. The public collector stamps every anonymous site row as web itself and no client can override it, so picking any other platform on its own empties the deck funnel.",
+  // Every funnel applies both, on the identity its entry resolves to, the way General applies them; a
+  // cookieless visitor of the deck and blog funnels has no identity and answers both from the row.
   connectionCountries:
     "Narrows every funnel to people seen connecting from the countries you pick, which is connection geography rather than residence or nationality. Picking nothing keeps every country.",
   appUiLanguages:
@@ -481,7 +425,7 @@ export function getAnalyticsFilterFieldLabel(
 
 /**
  * Every filter cleared on the supplied range: every user, every platform, no threshold, and the
- * funnels on their default audience with no comparison range.
+ * funnels with no comparison range.
  */
 export function buildDefaultAnalyticsFilterState(dateRange: AnalyticsDateRange): AnalyticsFilterState {
   return {
@@ -498,7 +442,6 @@ export function buildDefaultAnalyticsFilterState(dateRange: AnalyticsDateRange):
     catalogSources: [],
     catalogDeviceCategories: [],
     catalogClickBrowserLanguages: [],
-    funnelAudienceMode: defaultFunnelAudienceMode,
   };
 }
 

@@ -1,52 +1,7 @@
 import type { AnalyticsFilterState } from "../../filters/analyticsFilters";
-import type { FunnelGroupByDimension } from "../funnels/funnelGroupBy";
-import {
-  siteEntryFunnelGroupByDimensions,
-  siteEntryPagePathColumnName,
-  type SiteFunnelEntryPageKind,
-} from "../siteEntryFunnel/query";
-
-// The blog funnel's entry: the day it counts from, the page kind it enters on, the `Group by`
-// dimensions it can be grouped by, and the note a range reaching back past that day shows. Its steps
-// are in `./platformChoiceQuery.ts`.
-
-/** The one `page_kind` the blog funnel enters on. */
-export const blogFunnelEntryPageKind: SiteFunnelEntryPageKind = "blog_article";
 
 /**
- * What the blog funnel can be grouped by: every dimension a site-entry funnel offers, plus the article
- * the reader entered on, which answers which posts pull people into the product on the same chart that
- * measures the flow.
- *
- * THE ARTICLE IS DECLARED HERE rather than in the shared list, because a site-entry cohort keyed on
- * `page_kind = 'home'` has a `page_path` that is always `/`, so the dimension would draw one bar of
- * everybody there.
- *
- * It is the second dimension keyed on the entry page view itself rather than on a per-actor source, so
- * like `language` - and unlike anything read from a person's history, which can say nothing at all about
- * a cookieless visitor - it places the `all` cohort's hashed people too: their entry row carries the path
- * as an identified one does, and both cohorts project it under the same name and the same `cohort` alias,
- * so one key expression reads them both and the platform-choice funnel's lighter segments sit inside
- * their own article.
- *
- * The key is its own label and needs no option list: the site sends the route with its locale prefix
- * already stripped, lowercase and with a leading and a trailing slash, so one article reads as one group
- * across every language and no value can collide with `unresolvedFunnelGroupKey`, which has no slashes.
- * An entry row that carried no path at all - a site bundle released before the property, or a route
- * whose shape the site could not report - is `Unresolved`, pinned outside the five largest articles the
- * chart draws while everything below them folds into `Other`.
- */
-export const blogFunnelGroupByDimensions: ReadonlyArray<FunnelGroupByDimension> = [
-  ...siteEntryFunnelGroupByDimensions,
-  {
-    id: "article",
-    label: "Entry article",
-    buildGroupKeySql: () => `cohort.${siteEntryPagePathColumnName}`,
-  },
-];
-
-/**
- * The first UTC day a blog entry counts from, whatever range is selected.
+ * The first UTC day the blog funnel counts from, whatever range is selected.
  *
  * IT IS ONE DAY LATER THAN THE SITE'S FIRST FULL DAY OF IDENTIFIED PAGE VIEWS. The blog article CTAs
  * began leading to the localized home page and reporting `site_internal_cta_clicked` instead of

@@ -420,8 +420,8 @@ export type FunnelStepBar = Readonly<{
   count: number;
   /**
    * The part of `count` that is cookieless visitors counted by their daily hash, drawn as a lighter
-   * segment at the top of the bar. Zero outside the `all` audience mode, and zero on every step the
-   * hashed people cannot reach, which is every step below the site ones.
+   * segment at the top of the bar. Zero on every step the hashed people cannot reach, which is every
+   * step below the site ones.
    */
   hashedCount: number;
   /** Null on the first step, which has nothing before it to drop off from. */
