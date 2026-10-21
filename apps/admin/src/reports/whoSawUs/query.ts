@@ -18,7 +18,6 @@ import {
   type ReportPeriod,
 } from "../levelOneMetrics/reportPeriod";
 import { assertIsString, assertValidDateRange, parseActivityCount, parseActivityDate } from "../reportValues";
-import { buildSiteFactSourceSql } from "../siteEntryFunnel/query";
 
 const reportLabel = "Who saw us report";
 const storeDeliveryLabel = "Who saw us store delivery";
@@ -121,6 +120,11 @@ export const webDataStartChartNote: ChartNote = {
 
 function buildSiteEventNamesSql(rowAlias: string, eventNames: ReadonlyArray<string>): string {
   return `${rowAlias}.event_name IN (${eventNames.map(escapeSqlStringLiteral).join(", ")})`;
+}
+
+/** A marketing-site fact: only the credential-free collector writes these, under the visitor cookie. */
+function buildSiteFactSourceSql(rowAlias: string): string {
+  return `${rowAlias}.origin = 'client' AND ${rowAlias}.trust_level = 'anonymous_client'`;
 }
 
 /**

@@ -3,7 +3,6 @@ import type { AdminAppConfig } from "../../config";
 import type { AnalyticsFilterState } from "../../filters/analyticsFilters";
 import type { FunnelAnchor } from "../funnels/funnelAnchorUrl";
 import { FunnelEmptyRangeNotes } from "../funnels/FunnelEmptyRangeNotes";
-import { FunnelMaturingWarning } from "../funnels/FunnelMaturingWarning";
 import {
   buildFunnelRangeGroups,
   formatFunnelRangeNote,
@@ -25,7 +24,6 @@ import {
 import {
   loadBlogPlatformChoiceFunnelReport,
   type BlogPlatformChoiceFunnelCounts,
-  type BlogPlatformChoiceFunnelGroup,
   type BlogPlatformChoiceFunnelReport,
 } from "./platformChoiceQuery";
 
@@ -51,100 +49,32 @@ function loadReport(
   filters: AnalyticsFilterState,
   signal: AbortSignal,
 ): Promise<BlogPlatformChoiceFunnelReport> {
-  return loadBlogPlatformChoiceFunnelReport(config, filters, `${blogPlatformChoiceFunnelTitle} funnel`, null, signal);
+  return loadBlogPlatformChoiceFunnelReport(config, filters, `${blogPlatformChoiceFunnelTitle} funnel`, signal);
 }
 
-/**
- * The steps of one group, or of the funnel as a whole.
- *
- * EVERY STEP CAN HAVE A HASHED PART HERE, because every step is a marketing-site fact: the cookieless
- * cohort is measured the whole way down this funnel rather than ending partway through it.
- */
 function buildStages(counts: BlogPlatformChoiceFunnelCounts): ReadonlyArray<FunnelStage<FunnelStepId>> {
-  // Keyed by id, so the compiler demands every step exactly once; the order comes from `funnelStepIds`.
-  const stages: Readonly<
-    Record<FunnelStepId, Readonly<{ label: string; count: number; hashedCount: number }>>
-  > = {
-    "entry-view": {
-      label: "First page: blog article",
-      count: counts.entryViewCount + counts.hashedEntryViewCount,
-      hashedCount: counts.hashedEntryViewCount,
-    },
-    engaged: {
-      label: "Engaged",
-      count: counts.engagedCount + counts.hashedEngagedCount,
-      hashedCount: counts.hashedEngagedCount,
-    },
-    "home-view": {
-      label: "Home page viewed",
-      count: counts.homeViewCount + counts.hashedHomeViewCount,
-      hashedCount: counts.hashedHomeViewCount,
-    },
-    "platform-hover-or-click": {
-      label: "Platform hovered or clicked",
-      count: counts.platformHoverOrClickCount + counts.hashedPlatformHoverOrClickCount,
-      hashedCount: counts.hashedPlatformHoverOrClickCount,
-    },
-    "platform-click": {
-      label: "Platform clicked",
-      count: counts.platformClickCount + counts.hashedPlatformClickCount,
-      hashedCount: counts.hashedPlatformClickCount,
-    },
-  };
+  const stages = {
+    "entry-view": { label: "Viewed a blog article", count: counts.articleViewCount, hashedCount: 0 },
+    engaged: { label: "Engaged", count: counts.engagedCount, hashedCount: 0 },
+    "home-view": { label: "Home page viewed", count: counts.homeViewCount, hashedCount: 0 },
+    "platform-hover-or-click": { label: "Platform hovered or clicked", count: counts.platformHoverOrClickCount, hashedCount: 0 },
+    "platform-click": { label: "Platform clicked", count: counts.platformClickCount, hashedCount: 0 },
+  } satisfies Record<FunnelStepId, Readonly<{ label: string; count: number; hashedCount: number }>>;
 
   return funnelStepIds.map((id) => ({ id, ...stages[id] }));
-}
-
-/** The funnel as a whole: the groups are a partition of both cohorts, so it is their sum. */
-function sumFunnelGroups(
-  groups: ReadonlyArray<BlogPlatformChoiceFunnelGroup>,
-): BlogPlatformChoiceFunnelCounts {
-  return groups.reduce<BlogPlatformChoiceFunnelCounts>((totals, group) => ({
-    entryViewCount: totals.entryViewCount + group.entryViewCount,
-    engagedCount: totals.engagedCount + group.engagedCount,
-    homeViewCount: totals.homeViewCount + group.homeViewCount,
-    platformHoverOrClickCount: totals.platformHoverOrClickCount + group.platformHoverOrClickCount,
-    platformClickCount: totals.platformClickCount + group.platformClickCount,
-    hashedEntryViewCount: totals.hashedEntryViewCount + group.hashedEntryViewCount,
-    hashedEngagedCount: totals.hashedEngagedCount + group.hashedEngagedCount,
-    hashedHomeViewCount: totals.hashedHomeViewCount + group.hashedHomeViewCount,
-    hashedPlatformHoverOrClickCount: totals.hashedPlatformHoverOrClickCount + group.hashedPlatformHoverOrClickCount,
-    hashedPlatformClickCount: totals.hashedPlatformClickCount + group.hashedPlatformClickCount,
-    maturingCount: totals.maturingCount + group.maturingCount,
-  }), {
-    entryViewCount: 0,
-    engagedCount: 0,
-    homeViewCount: 0,
-    platformHoverOrClickCount: 0,
-    platformClickCount: 0,
-    hashedEntryViewCount: 0,
-    hashedEngagedCount: 0,
-    hashedHomeViewCount: 0,
-    hashedPlatformHoverOrClickCount: 0,
-    hashedPlatformClickCount: 0,
-    maturingCount: 0,
-  });
 }
 
 export function BlogPlatformChoiceFunnelSection(props: FunnelSectionProps): JSX.Element {
   const { state: loadState, retry } = useFunnelRangeReports(props, loadReport, getErrorMessage);
   const rangeViews = useMemo(
-    () => (loadState.status === "ready" ? loadState.ranges : []).map((range) => {
-      // The groups partition both cohorts, so the funnel-wide numbers are their sum.
-      const totals = sumFunnelGroups(range.report.groups);
-      return {
-        ...range,
-        totals,
-        stages: buildStages(totals),
-        // The whole first step, so a range in which only cookieless visitors arrived draws the funnel
-        // instead of claiming nobody came.
-        hasEntries: totals.entryViewCount + totals.hashedEntryViewCount > 0,
-      };
-    }),
+    () => (loadState.status === "ready" ? loadState.ranges : []).map((range) => ({
+      ...range,
+      stages: buildStages(range.report.counts),
+      hasEntries: range.report.counts.articleViewCount > 0,
+    })),
     [loadState],
   );
   const groups = useMemo(() => buildFunnelRangeGroups(rangeViews), [rangeViews]);
-  // A, whose figures the explainer shows.
   const primaryRange = rangeViews[0];
   const hasEntries = rangeViews.some((range) => range.hasEntries);
   const isComparing = props.filters.comparisonDateRange !== null;
@@ -160,14 +90,13 @@ export function BlogPlatformChoiceFunnelSection(props: FunnelSectionProps): JSX.
       })}
       {rangeViews.map((range) => (range.dateRange.from < pageReadEngagementStartDate ? <p key={range.key} className="report-state" aria-live="polite">{formatFunnelRangeNote(range.seriesLabel, `From ${pageReadEngagementStartDate}, a one-page read of 10+ seconds with a scroll, click or key press also counts as Engaged, so a range starting before that day mixes both definitions and its Engaged step reads lower by definition.`)}</p> : null))}
 
-      {rangeViews.map((range) => <FunnelMaturingWarning key={range.key} seriesLabel={range.seriesLabel} maturingCount={range.totals.maturingCount} entryCount={range.totals.entryViewCount} />)}
       <FunnelEmptyRangeNotes ranges={rangeViews} />
 
       {loadState.status === "loading" ? (
         <FunnelStepsLoadingChart
           countLabel="People"
           dateRange={props.filters.dateRange}
-          showsHashedSplit
+          showsHashedSplit={false}
           isGrouped={isComparing}
           label="Loading blog article to platform choice funnel…"
         />
@@ -176,9 +105,9 @@ export function BlogPlatformChoiceFunnelSection(props: FunnelSectionProps): JSX.
         <FunnelStepsEmptyChart
           countLabel="People"
           dateRange={props.filters.dateRange}
-          showsHashedSplit
+          showsHashedSplit={false}
           isGrouped={isComparing}
-          note={<><strong>No first visits on a blog article match these filters.</strong><span>Only a person whose first site page is a blog article viewed on a selected day enters this funnel.</span></>}
+          note={<><strong>No blog article views match these filters.</strong><span>A person enters this funnel by viewing a blog article on a selected day.</span></>}
         />
       ) : null}
 
@@ -189,19 +118,16 @@ export function BlogPlatformChoiceFunnelSection(props: FunnelSectionProps): JSX.
           groups={groups}
           countLabel="People"
           dateRange={props.filters.dateRange}
-          showsHashedSplit
+          showsHashedSplit={false}
         />
       ) : null}
 
       {primaryRange !== undefined ? (
         <details className="funnel-explainer">
           <summary>How it&rsquo;s counted</summary>
-          <div className="funnel-detail-row funnel-explainer-figure"><span>People still inside 7-day window</span><strong>{primaryRange.totals.maturingCount.toLocaleString("en-US")}</strong></div>
-          <p>Every step counts people: a person adds at most one to each step, and counts at a step only after reaching every step above it.</p>
-          <p>One row is one person, the site&rsquo;s visitor cookie, anchored at their first <code>site_page_viewed</code> on the marketing site, and only when that first page is a blog article viewed in the selected UTC dates with no trusted event anywhere before it. Blog visits count from {blogFunnelStartDate}, the first full UTC day the blog&rsquo;s calls to action led to the home page. A page viewed before the visitor consents to a cookie carries no visitor id, so such a visitor enters at the first page they view after consenting.</p>
-          <p>Every later step is that same person within seven days of the entry, each at or after the step above it. <strong>Engaged</strong> is the first site event after the entry page view that Level 1 counts as engagement: another page view, a 10-second read (from {pageReadEngagementStartDate}), a click, a search or similar; a QR code shown on hover is not one. <strong>Home page viewed</strong> is the designed path every call to action in an article leads to, so a reader who uses the footer store badges on the article without visiting the home page is outside this funnel. <strong>Platform hovered or clicked</strong> is a <code>site_store_qr_shown</code>, sent when an App Store or Google Play button shows its QR code after a short hover or keyboard focus, or a <code>site_app_entry_clicked</code> with any target. <strong>Platform clicked</strong> is a <code>site_app_entry_clicked</code> with any target, so a web app click counts at both of the last steps, and a reader who scans the QR code without clicking stops at the step before. The funnel ends at the platform choice on purpose, because a store badge click or a QR scan leaves the browser and cannot be matched to anything after it. A person still inside their seven-day window is not a confirmed drop-off.</p>
-          <p>The platform is the entry page view&rsquo;s, which the site always reports as web, so a selection without web empties this funnel. The country and language keep a person the way they do on General, and keep a cookieless visitor by the country and interface language of that visitor&rsquo;s entry page view. Test accounts, admins and excluded actors are left out.</p>
-          <p>Cookieless visitors, one person per daily hash, are the lighter part of every bar, and they can reach every step because every step is a marketing-site fact. The test-account, admin and exclusion-list rules cannot reach them, because they have no identity to test. The bars are an upper bound rather than a count, because a visitor who consents partway through a day can appear once in each part of a step.</p>
+          <p>Every step counts people, and a person adds at most one to each step. One person is one visitor identity that viewed a blog article in the selected UTC dates: the site&rsquo;s visitor cookie, or for a visitor who has not consented to a cookie, one daily hash on one UTC day, so a visitor who consents partway through counts as two people. Blog visits count from {blogFunnelStartDate}, the first full UTC day the blog&rsquo;s calls to action led to the home page.</p>
+          <p>Every later step counts those same people by what they did on the marketing site in the selected dates, in any order and on any page, so a step can count people the step above it does not. <strong>Engaged</strong> is at least two site events of the kinds Level 1 counts as engagement, the article view included: page views, a 10-second read (from {pageReadEngagementStartDate}), a click, a search or similar; a QR code shown on hover is not one. <strong>Home page viewed</strong> is a home page view. <strong>Platform hovered or clicked</strong> is a <code>site_store_qr_shown</code>, sent when an App Store or Google Play button shows its QR code after a short hover or keyboard focus, or a <code>site_app_entry_clicked</code> with any target. <strong>Platform clicked</strong> is a <code>site_app_entry_clicked</code> with any target, so a web app click counts at both of the last steps, and a reader who only scans the QR code counts at the step before but not here. The funnel ends at the platform choice on purpose, because a store badge click or a QR scan leaves the browser and cannot be matched to anything after it.</p>
+          <p>The platform is the article page view&rsquo;s, which the site always reports as web, so a selection without web empties this funnel. The country and language keep a person the way they do on General, and keep a cookieless visitor by the country and interface language of that visitor&rsquo;s article page view. Test accounts, admins, excluded actors and detected automation are left out; a cookieless visitor has no identity for the account rules to test, so only the automation and scraper rules reach them.</p>
         </details>
       ) : null}
     </section>
