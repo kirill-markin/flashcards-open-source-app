@@ -700,7 +700,7 @@ export class FlashcardsOpenSourceAppStack extends cdk.Stack {
       dailyVisitorHashSaltExpiryFn: dailyVisitorHashSaltExpiryResult.expiryFunction,
       syntheticActorDetectorFn: syntheticActorDetectorResult.detectorFunction,
       probableAndroidBurstRefreshFn: probableAndroidBurstRefreshResult.refreshFunction,
-      storeAnalyticsImportFn: storeAnalyticsImportResult.importFunction,
+      storeAnalyticsImportLogGroup: storeAnalyticsImportResult.importLogGroup,
       webGuestReaperFn: webGuestReaperResult.reaperFunction,
       generatedMediaPromotionFn: generatedMediaPromotionResult.promotionFunction,
       multipartCompletionReconciliationFn:

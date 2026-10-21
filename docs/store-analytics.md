@@ -12,6 +12,8 @@
 
 ## Freshness
 
+Operational success means every source completed without an error; it does not guarantee complete historical coverage. Import failure alerts recover only after a completed successful run. A separate freshness alert reports two consecutive hours without a successful completion, including missing jobs and hard crashes.
+
 `store_analytics.import_files` has one row per imported App Store segment or Play file. For App Store, read the latest `processing_date` and `imported_at` per `report_name` and `granularity`; an instance absent from it has not been imported, and Apple deletes instances 35 days after generation. For Google Play, read `file_month`, `report_date_to` and `imported_at` per `report_name`; Google posts each day 3–7 days late.
 
 The ongoing and one-time snapshot Apple requests are read together, so do not create another request when a commerce report has no instances. An empty instance list is unavailable report history, not zero sales.

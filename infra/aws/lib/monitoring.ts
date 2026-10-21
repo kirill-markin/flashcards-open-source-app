@@ -73,7 +73,7 @@ export interface MonitoringProps {
   dailyVisitorHashSaltExpiryFn: lambda.IFunction;
   syntheticActorDetectorFn: lambda.IFunction;
   probableAndroidBurstRefreshFn: lambda.IFunction;
-  storeAnalyticsImportFn: lambda.IFunction;
+  storeAnalyticsImportLogGroup: logs.ILogGroup;
   generatedMediaPromotionFn: lambda.IFunction;
   multipartCompletionReconciliationFn: lambda.IFunction;
   multipartCompletionReconciliationLogGroup: logs.ILogGroup;
@@ -986,24 +986,49 @@ export function monitoring(scope: Construct, props: MonitoringProps): void {
     treatMissingData: cloudwatch.TreatMissingData.BREACHING,
   }), alertTopic);
 
+  const storeAnalyticsImportOutcomeMetricFilter = new logs.MetricFilter(
+    scope,
+    "StoreAnalyticsImportOutcomeMetricFilter",
+    {
+      logGroup: props.storeAnalyticsImportLogGroup,
+      filterPattern: logs.FilterPattern.stringValue(
+        "$.message.action", "=", "store_analytics_import_completed",
+      ),
+      metricNamespace: "FlashcardsOpenSourceApp/StoreAnalyticsImport",
+      metricName: "RunSucceeded",
+      metricValue: "$.message.succeeded",
+    },
+  );
+  // No default value: silence cannot clear a failed run or count as a successful completion.
   notifyAlertTopic(new cloudwatch.Alarm(scope, "StoreAnalyticsImportLambdaErrorAlarm", {
-    metric: props.storeAnalyticsImportFn.metricErrors({ period: cdk.Duration.minutes(15), statistic: "Sum" }),
+    metric: storeAnalyticsImportOutcomeMetricFilter.metric({
+      period: cdk.Duration.hours(storeAnalyticsImportScheduleHours),
+      statistic: "Minimum",
+    }),
     threshold: 1,
+    comparisonOperator: cloudwatch.ComparisonOperator.LESS_THAN_THRESHOLD,
     evaluationPeriods: 1,
-    alarmDescription: "Store reports or billing history import failed; inspect the failed source and environment in the Lambda logs",
-    treatMissingData: cloudwatch.TreatMissingData.NOT_BREACHING,
+    alarmDescription: "Store reports or billing history import failed; recovery requires a completed successful run",
+    treatMissingData: cloudwatch.TreatMissingData.IGNORE,
   }), alertTopic);
 
+  // Fill each missing hour so CloudWatch cannot reuse older successes from its extra lookback.
   notifyAlertTopic(new cloudwatch.Alarm(scope, "StoreAnalyticsImportStaleAlarm", {
-    metric: props.storeAnalyticsImportFn.metricInvocations({
+    metric: new cloudwatch.MathExpression({
+      expression: "FILL(outcome, 0)",
+      usingMetrics: {
+        outcome: storeAnalyticsImportOutcomeMetricFilter.metric({
+          period: cdk.Duration.hours(storeAnalyticsImportScheduleHours),
+          statistic: "Maximum",
+        }),
+      },
       period: cdk.Duration.hours(storeAnalyticsImportScheduleHours),
-      statistic: "Sum",
     }),
     threshold: 1,
     comparisonOperator: cloudwatch.ComparisonOperator.LESS_THAN_THRESHOLD,
     evaluationPeriods: 2,
     datapointsToAlarm: 2,
-    alarmDescription: "Store analytics import has not run for two consecutive hours",
+    alarmDescription: "Store analytics import has not completed successfully for two consecutive hours, including missing or crashed runs",
     treatMissingData: cloudwatch.TreatMissingData.BREACHING,
   }), alertTopic);
 

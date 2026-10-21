@@ -747,6 +747,10 @@ export type BillingHistoryAppleEnvironmentFailureDetails = Readonly<{
   failureCode: string;
 }>;
 
+export type StoreAnalyticsImportCompletedDetails = Readonly<{
+  succeeded: 0 | 1;
+}>;
+
 export type StoreAnalyticsAppleRetryDetails = Readonly<{
   label: string;
   attempt: number;
@@ -852,6 +856,7 @@ export type OperationsBreadcrumbEvent =
   | EventByAction<"synthetic_actor_detector_completed", SyntheticActorDetectorCompletedDetails>
   | EventByAction<"billing_history_apple_environment_failed", BillingHistoryAppleEnvironmentFailureDetails>
   | EventByAction<"billing_history_apple_import_completed", AppleHistoryImportSummary>
+  | EventByAction<"store_analytics_import_completed", StoreAnalyticsImportCompletedDetails>
   | EventByAction<"store_analytics_apple_retry", StoreAnalyticsAppleRetryDetails>
   | EventByAction<"store_analytics_apple_import_completed", StoreAnalyticsAppleImportCompletedDetails>
   | EventByAction<"store_analytics_play_retry", StoreAnalyticsAppleRetryDetails>
