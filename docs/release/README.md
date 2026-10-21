@@ -70,7 +70,8 @@ Use this routine checklist; the linked procedures own the detailed gates.
    local work, downloads or dispatches; reused artifacts resume at their next unfinished step.
 3. **Merge preparation.** Align app/companion versions through normal PR/cloud
    CI, [verify them](versioning.md#verify-the-release-version), pin both SHAs and
-   prepare reusable [release notes](release-notes.md) in the chat. Keep that version through fixes.
+   prepare separate reusable [store notes and GitHub changelog](release-notes.md)
+   in the chat. Keep that version through fixes.
 4. **Run platform flows in parallel.** Follow the [platform procedures](#required-reading):
    complete feasible iOS and signed `LocalMac` acceptance under the [standing policy](#standing-best-effort-release-policy) before their Xcode Cloud release-build dispatches, use Android's
    [cloud-first gate](evidence.md#android-cloud-release-gate), and follow the independent
