@@ -97,8 +97,8 @@ export function buildExcludedActorReasonSql(actorIdSqlExpression: string): strin
  *     that person out, and a credential-free launch claim could enter one. The second reads the
  *     client-reportable `screen_viewed` and `review_card_revealed` steps, so a credential-free claim would otherwise
  *     advance a cohort member through the funnel.
- *   - `reports/paywallFunnel/query.ts`, `funnel_rows`, which every step reads. The cohort and the
- *     purchase start are the client-reportable `paywall_shown` and `purchase_started`, so a
+ *   - `reports/paywallFunnel/attributionQuery.ts`, `event_rows`, which every step reads. The cohort
+ *     and the purchase start are the client-reportable `paywall_shown` and `purchase_started`, so a
  *     credential-free claim would otherwise enter a person or advance one.
  *   - `buildMinimumEventCountFilterSql` below, the `app_opened:N` style threshold every report's
  *     filter bar composes.

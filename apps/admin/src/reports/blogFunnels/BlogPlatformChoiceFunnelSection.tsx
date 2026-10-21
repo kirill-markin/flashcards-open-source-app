@@ -2,6 +2,7 @@ import { useMemo, type JSX } from "react";
 import type { AdminAppConfig } from "../../config";
 import type { AnalyticsFilterState } from "../../filters/analyticsFilters";
 import type { FunnelAnchor } from "../funnels/funnelAnchorUrl";
+import { buildHashedVisitorCountryStartDateNote } from "../funnels/funnelAudienceSql";
 import { FunnelEmptyRangeNotes } from "../funnels/FunnelEmptyRangeNotes";
 import {
   buildFunnelRangeGroups,
@@ -54,12 +55,12 @@ function loadReport(
 
 function buildStages(counts: BlogPlatformChoiceFunnelCounts): ReadonlyArray<FunnelStage<FunnelStepId>> {
   const stages = {
-    "entry-view": { label: "Viewed a blog article", count: counts.articleViewCount, hashedCount: 0 },
-    engaged: { label: "Engaged", count: counts.engagedCount, hashedCount: 0 },
-    "home-view": { label: "Home page viewed", count: counts.homeViewCount, hashedCount: 0 },
-    "platform-hover-or-click": { label: "Platform hovered or clicked", count: counts.platformHoverOrClickCount, hashedCount: 0 },
-    "platform-click": { label: "Platform clicked", count: counts.platformClickCount, hashedCount: 0 },
-  } satisfies Record<FunnelStepId, Readonly<{ label: string; count: number; hashedCount: number }>>;
+    "entry-view": { label: "Viewed a blog article", count: counts.articleViewCount },
+    engaged: { label: "Engaged", count: counts.engagedCount },
+    "home-view": { label: "Home page viewed", count: counts.homeViewCount },
+    "platform-hover-or-click": { label: "Platform hovered or clicked", count: counts.platformHoverOrClickCount },
+    "platform-click": { label: "Platform clicked", count: counts.platformClickCount },
+  } satisfies Record<FunnelStepId, Readonly<{ label: string; count: number }>>;
 
   return funnelStepIds.map((id) => ({ id, ...stages[id] }));
 }
@@ -88,6 +89,10 @@ export function BlogPlatformChoiceFunnelSection(props: FunnelSectionProps): JSX.
         const startDateNote = buildBlogFunnelStartDateNote(range.dateRange);
         return startDateNote === null ? null : <p key={range.key} className="report-state" aria-live="polite">{formatFunnelRangeNote(range.seriesLabel, startDateNote)}</p>;
       })}
+      {rangeViews.map((range) => {
+        const countryStartDateNote = buildHashedVisitorCountryStartDateNote(props.filters.connectionCountries, range.dateRange);
+        return countryStartDateNote === null ? null : <p key={range.key} className="report-state" aria-live="polite">{formatFunnelRangeNote(range.seriesLabel, countryStartDateNote)}</p>;
+      })}
       {rangeViews.map((range) => (range.dateRange.from < pageReadEngagementStartDate ? <p key={range.key} className="report-state" aria-live="polite">{formatFunnelRangeNote(range.seriesLabel, `From ${pageReadEngagementStartDate}, a one-page read of 10+ seconds with a scroll, click or key press also counts as Engaged, so a range starting before that day mixes both definitions and its Engaged step reads lower by definition.`)}</p> : null))}
 
       <FunnelEmptyRangeNotes ranges={rangeViews} />
@@ -96,7 +101,6 @@ export function BlogPlatformChoiceFunnelSection(props: FunnelSectionProps): JSX.
         <FunnelStepsLoadingChart
           countLabel="People"
           dateRange={props.filters.dateRange}
-          showsHashedSplit={false}
           isGrouped={isComparing}
           label="Loading blog article to platform choice funnel…"
         />
@@ -105,7 +109,6 @@ export function BlogPlatformChoiceFunnelSection(props: FunnelSectionProps): JSX.
         <FunnelStepsEmptyChart
           countLabel="People"
           dateRange={props.filters.dateRange}
-          showsHashedSplit={false}
           isGrouped={isComparing}
           note={<><strong>No blog article views match these filters.</strong><span>A person enters this funnel by viewing a blog article on a selected day.</span></>}
         />
@@ -118,7 +121,6 @@ export function BlogPlatformChoiceFunnelSection(props: FunnelSectionProps): JSX.
           groups={groups}
           countLabel="People"
           dateRange={props.filters.dateRange}
-          showsHashedSplit={false}
         />
       ) : null}
 

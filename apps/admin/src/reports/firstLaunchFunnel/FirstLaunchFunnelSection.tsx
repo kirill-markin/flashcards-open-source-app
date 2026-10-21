@@ -70,32 +70,23 @@ function buildStartDateNote(dateRange: AnalyticsFilterState["dateRange"]): strin
     : null;
 }
 
-/**
- * The seven steps of one group. Every `hashedCount` is zero and the chart is never told to show a
- * split, because the daily visitor hash exists only on credential-free collector rows, which this
- * funnel never reads.
- */
+/** The seven steps of one group. */
 export function buildFirstLaunchFunnelStages(
   counts: FirstLaunchFunnelCounts,
 ): ReadonlyArray<FunnelStage<FirstLaunchFunnelStepId>> {
   // Keyed by id, so the compiler demands every step exactly once; the order comes from `funnelStepIds`.
   const stages: Readonly<
-    Record<FirstLaunchFunnelStepId, Readonly<{ label: string; count: number; hashedCount: number }>>
+    Record<FirstLaunchFunnelStepId, Readonly<{ label: string; count: number }>>
   > = {
-    "first-launch": { label: "First app launch", count: counts.firstLaunchCount, hashedCount: 0 },
-    "review-screen": { label: "Review screen", count: counts.reviewScreenCount, hashedCount: 0 },
-    revealed: { label: "Answer revealed", count: counts.revealedCount, hashedCount: 0 },
-    "one-review": { label: "1+ review", count: counts.oneReviewCount, hashedCount: 0 },
-    "two-reviews": { label: "2+ reviews", count: counts.twoReviewsCount, hashedCount: 0 },
-    "two-review-days": {
-      label: "Reviews on 2+ days",
-      count: counts.twoReviewDaysCount,
-      hashedCount: 0,
-    },
+    "first-launch": { label: "First app launch", count: counts.firstLaunchCount },
+    "review-screen": { label: "Review screen", count: counts.reviewScreenCount },
+    revealed: { label: "Answer revealed", count: counts.revealedCount },
+    "one-review": { label: "1+ review", count: counts.oneReviewCount },
+    "two-reviews": { label: "2+ reviews", count: counts.twoReviewsCount },
+    "two-review-days": { label: "Reviews on 2+ days", count: counts.twoReviewDaysCount },
     "engaged-returning": {
       label: `${firstLaunchEngagedReviewThreshold}+ reviews on 3+ days`,
       count: counts.engagedReturningCount,
-      hashedCount: 0,
     },
   };
 
@@ -159,7 +150,6 @@ export function FirstLaunchFunnelSection(props: FunnelSectionProps): JSX.Element
         <FunnelStepsLoadingChart
           countLabel="People"
           dateRange={props.filters.dateRange}
-          showsHashedSplit={false}
           isGrouped={isComparing}
           label="Loading first launch funnel…"
         />
@@ -168,7 +158,6 @@ export function FirstLaunchFunnelSection(props: FunnelSectionProps): JSX.Element
         <FunnelStepsEmptyChart
           countLabel="People"
           dateRange={props.filters.dateRange}
-          showsHashedSplit={false}
           isGrouped={isComparing}
           note={<><strong>No first app launches match these filters.</strong><span>Only a person whose first event anywhere is launching the iOS, Android or web app on a selected day enters this funnel; a website visit, a sign-in page and a reconstructed open are not launches.</span></>}
         />
@@ -181,7 +170,6 @@ export function FirstLaunchFunnelSection(props: FunnelSectionProps): JSX.Element
           groups={groups}
           countLabel="People"
           dateRange={props.filters.dateRange}
-          showsHashedSplit={false}
         />
       ) : null}
 

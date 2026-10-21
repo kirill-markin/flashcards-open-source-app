@@ -1,5 +1,6 @@
 import { useMemo, type JSX } from "react";
 import type { AnalyticsFilterState } from "../../filters/analyticsFilters";
+import { buildHashedVisitorCountryStartDateNote } from "../funnels/funnelAudienceSql";
 import { FunnelEmptyRangeNotes } from "../funnels/FunnelEmptyRangeNotes";
 import {
   buildFunnelRangeGroups,
@@ -65,6 +66,10 @@ export function CatalogInstallFunnelSection(props: FunnelSectionProps): JSX.Elem
         const startDateNote = buildStartDateNote(range.dateRange);
         return startDateNote === null ? null : <p key={range.key} className="report-state" aria-live="polite">{formatFunnelRangeNote(range.seriesLabel, startDateNote)}</p>;
       })}
+      {rangeViews.map((range) => {
+        const countryStartDateNote = buildHashedVisitorCountryStartDateNote(props.filters.connectionCountries, range.dateRange);
+        return countryStartDateNote === null ? null : <p key={range.key} className="report-state" aria-live="polite">{formatFunnelRangeNote(range.seriesLabel, countryStartDateNote)}</p>;
+      })}
 
       {rangeViews.map((range) => (range.report.maturingInstallerCount === 0 ? null : (
         <p key={range.key} className="report-state report-state-warning" aria-live="polite">
@@ -80,7 +85,6 @@ export function CatalogInstallFunnelSection(props: FunnelSectionProps): JSX.Elem
         <FunnelStepsLoadingChart
           countLabel="Visitors"
           dateRange={props.filters.dateRange}
-          showsHashedSplit={false}
           isGrouped={isComparing}
           label="Loading deck page to install funnel…"
         />
@@ -89,7 +93,6 @@ export function CatalogInstallFunnelSection(props: FunnelSectionProps): JSX.Elem
         <FunnelStepsEmptyChart
           countLabel="Visitors"
           dateRange={props.filters.dateRange}
-          showsHashedSplit={false}
           isGrouped={isComparing}
           note={<><strong>No deck page views, install clicks or installs match these filters.</strong><span>Cookieless visitors are counted here through their daily hash, so this is every deck page view in range, and no earlier traffic history is inferred from Vercel aggregates.</span></>}
         />
@@ -102,7 +105,6 @@ export function CatalogInstallFunnelSection(props: FunnelSectionProps): JSX.Elem
           groups={groups}
           countLabel="Visitors"
           dateRange={props.filters.dateRange}
-          showsHashedSplit={false}
         />
       ) : null}
 
@@ -112,7 +114,7 @@ export function CatalogInstallFunnelSection(props: FunnelSectionProps): JSX.Elem
           <p>The first three steps are each counted on their own over the selected UTC days, from {catalogInstallFunnelStartDate}, with no link, order or time window between them, so a later step can be larger than an earlier one and a share can pass 100%. A deck page view and an install click count each visitor once: by the <code>analytics_visitor</code> cookie or account they carry, or, for a cookieless visitor, once per daily hash per UTC day, so a visitor who consents partway through a day counts twice. An install counts each person with a server-origin <code>catalog_deck_installed</code> once; every install comes through the web import page.</p>
           <p>Only the four review steps are linked, to the people counted at the install: each person&rsquo;s reviews from their first install in range to seven days after it, anywhere in the product rather than in the installed deck, because <code>review_answered</code> names no deck: one review, two reviews, reviews on two UTC days, then {firstLaunchEngagedReviewThreshold} reviews over three UTC days. A person whose first install is less than seven days old is not a confirmed drop-off.</p>
           <p>The client platform narrows the deck page views and install clicks, which the site always reports as web, so a selection without web empties those two steps; a server install carries no platform, so the install and review steps ignore it. The connection country and the app interface language keep an identified visitor or installer the way they keep a person on General, and keep a cookieless visitor by that row&rsquo;s own country and interface language.</p>
-          <p>The delisted test deck, test accounts, admins, excluded actors and detected automation are left out of every step. A cookieless visitor has no actor, so only the automated-client and scraper-fleet rules reach them.</p>
+          <p>The delisted test deck, test accounts, admins, excluded actors and detected automation are left out of every step. A cookieless visitor has no actor, so only the test-deck, automated-client and scraper-fleet rules reach them.</p>
         </details>
       ) : null}
     </section>

@@ -272,9 +272,7 @@ function buildAnalyticsFilterOptionCatalogAttributionSql(columnSqlName: string):
  * never be selected, so dropping it costs one popover entry and makes nothing on screen lie, while
  * raising here would blank both General and Audience whole: this list loads in the same `Promise.all`
  * as every report of both areas, and because it is not scoped by the range no date selection could
- * dodge the offending row. The funnel report keeps refusing the same three columns, which stays the
- * deliberate loud place for a producer contract break - there the value would be charted rather than
- * only offered.
+ * dodge the offending row.
  */
 function buildCatalogAttributionEnumOptions<Value extends string>(
   resultSet: AdminQueryResultSet,

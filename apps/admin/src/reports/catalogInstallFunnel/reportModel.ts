@@ -41,7 +41,7 @@ function buildMainStages(report: CatalogInstallFunnelReport): ReadonlyArray<Funn
     },
   };
 
-  return funnelMainStepIds.map((id) => ({ id, ...steps[id], hashedCount: 0 }));
+  return funnelMainStepIds.map((id) => ({ id, ...steps[id] }));
 }
 
 export function buildCatalogInstallFunnelReportModel(

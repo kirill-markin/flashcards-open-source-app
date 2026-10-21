@@ -1,4 +1,4 @@
-import type { AnalyticsFilterState } from "../../filters/analyticsFilters";
+import type { AnalyticsDateRange, AnalyticsFilterState } from "../../filters/analyticsFilters";
 import {
   buildEventPlatformsFilterSql,
   buildNonAutomatedClientRowsFilterSql,
@@ -14,11 +14,26 @@ import { laterCalendarDate } from "../reportValues";
  *
  * `analytics.product_events_resolved.daily_visitor_hash` reached production at 18:25 UTC on
  * 2026-09-22 (`db/migrations/0144_anonymous_client_daily_visitor_hash.sql`), so that day is partial
- * and this is the first whole one. It is a separate constant from each funnel's own start date on
- * purpose: they are equal today, and a funnel whose start moves earlier must show the note its
- * section builds rather than silently draw a hashed segment that begins mid-range.
+ * and this is the first whole one.
  */
-export const funnelDailyVisitorHashStartDate = "2026-09-23";
+const funnelDailyVisitorHashStartDate = "2026-09-23";
+
+/**
+ * The first UTC day a cookieless row's ingest-time `country` is tested from under a country
+ * selection. The collector began storing it partway through 2026-09-25
+ * (`db/migrations/0158_anonymous_event_country.sql`), and earlier rows carry NULL.
+ */
+export const hashedVisitorCountryStartDate = "2026-09-26";
+
+/** A funnel section's range note for `hashedVisitorCountryStartDate`, or `null`. */
+export function buildHashedVisitorCountryStartDateNote(
+  connectionCountries: AnalyticsFilterState["connectionCountries"],
+  dateRange: AnalyticsDateRange,
+): string | null {
+  return connectionCountries.length > 0 && dateRange.from < hashedVisitorCountryStartDate
+    ? `With a country selected, cookieless visitors count from ${hashedVisitorCountryStartDate}, the first full UTC day their rows carry a country, so none are counted before that day.`
+    : null;
+}
 
 /**
  * A REAL, NON-GUEST ACCOUNT, as one SQL boolean expression over one actor, and the one place that
@@ -83,10 +98,8 @@ export function buildSignedInActorSql(actorIdSqlExpression: string): string {
  * other report bounds on. It has to be the column the person is keyed on, because the two name
  * different days around midnight: `occurred_at` is `server_received_at` minus the send delay, so a
  * row of a salt-day inside the range can carry an `occurred_at` outside it. Bounding on `occurred_at`
- * would then keep part of a person's day and drop the rest, and a partial day is not merely a lost
- * row: the site funnel reads a person's first page view as the `MIN` over the rows that survive the
- * bound, so a visitor whose genuine first view was clipped would have their second one promoted to
- * first and could enter a funnel they never entered. On this bound a person-day is whole or absent.
+ * would then keep part of a person's day and drop the rest; on this bound a person-day is whole or
+ * absent.
  */
 export function buildHashedVisitorDayRangeSqlLines(
   rowAlias: string,
@@ -113,8 +126,7 @@ export function buildHashedVisitorDayRangeSqlLines(
  * THE SHARED EXCLUSION RULE CANNOT REACH THIS COHORT, and that is a property of the data rather than
  * an omission here. `buildExcludedActorSqlLines` drops a person by their actor - a test address, an
  * ever-admin address, an entry on the exclusion list - and these rows have no actor to test, so an
- * admin browsing the site without consenting is counted among the hashed people, and the sections say
- * what the segment is.
+ * admin browsing the site without consenting is counted among the hashed people.
  *
  * TWO ARMS OF THAT RULE DO REACH THEM, because each names a row or a hash rather than a person, so
  * neither needs an actor. The automated verdict is written onto the row: a browser-day reported by a
@@ -141,33 +153,23 @@ export function buildHashedSiteVisitorRowSqlLines(rowAlias: string): ReadonlyArr
   ];
 }
 
-/** `buildHashedSiteVisitorRowSqlLines` for one event. */
-export function buildHashedSiteRowSqlLines(
-  rowAlias: string,
-  eventName: string,
-): ReadonlyArray<string> {
-  return [
-    `${rowAlias}.event_name = ${escapeSqlStringLiteral(eventName)}`,
-    ...buildHashedSiteVisitorRowSqlLines(rowAlias),
-  ];
-}
-
 /**
  * The selection a hashed page view answers itself, as `AND` lines.
  *
  * The platform is read off the row through `platformSqlExpression`, which the caller passes so that
- * the hashed arm asks its funnel's own platform question rather than a second one: the site-entry
- * funnel compares the bare column, where a NULL platform matches nothing, and the deck funnel
- * compares `COALESCE(..., 'unattributed')`, where a NULL platform is a selectable value. Deriving it
+ * the hashed arm asks its funnel's own platform question rather than a second one: the blog funnel
+ * compares the bare column, where a NULL platform matches nothing, and the deck funnel compares
+ * `COALESCE(..., 'unattributed')`, where a NULL platform is a selectable value. Deriving it
  * here instead would let a cookieless row with a NULL platform enter a cohort the identical
  * identified row is dropped from, under the default selection. The public collector stamps every
  * anonymous site row as web and no client can override it, so a selection without web empties the
- * hashed segment either way, which is the same thing it does to the identified one.
+ * hashed cohort either way, which is the same thing it does to the identified one.
  *
  * The app interface language and the connection country are the row's own `ui_locale` and
  * ingest-time `country`, rather than the person-level tests `buildAppUiLanguagesFilterSql` and
  * `buildConnectionCountriesFilterSql` apply to an actor: a hashed person is one page view's worth of
- * evidence, with no history and no installation to ask.
+ * evidence, with no history and no installation to ask. A country selection also starts the
+ * person-day at `hashedVisitorCountryStartDate`.
  */
 export function buildHashedPageViewFilterSqlLines(
   rowAlias: string,
@@ -181,6 +183,7 @@ export function buildHashedPageViewFilterSqlLines(
     ]),
     ...(filters.connectionCountries.length === 0 ? [] : [
       `${rowAlias}.country IN (${filters.connectionCountries.map(escapeSqlStringLiteral).join(", ")})`,
+      `${buildHashedVisitorDaySql(rowAlias)} >= ${escapeSqlStringLiteral(hashedVisitorCountryStartDate)}::date`,
     ]),
   ];
 }
@@ -189,9 +192,8 @@ export function buildHashedPageViewFilterSqlLines(
  * The UTC day of a hashed row, which is half of that cohort's person key.
  *
  * A hash is rotated daily against a salt the reporting role cannot read, so it names one browser for
- * one UTC day and nothing beyond it. Keying on the pair rather than on the hash alone is what makes
- * the funnel rule hold inside a day without depending on the hash's construction never colliding
- * across days: two days are two people either way.
+ * one UTC day and nothing beyond it. Keying on the pair rather than on the hash alone makes two days
+ * two people without depending on the hash's construction never colliding across days.
  *
  * THE DAY IS `server_received_at`'s, NOT `occurred_at`'s, because that is the day whose salt made
  * the hash: the backend picks the salt by `toUtcDay(row.serverReceivedAt)`

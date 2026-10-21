@@ -61,12 +61,12 @@ function buildStartDateNote(dateRange: AnalyticsFilterState["dateRange"]): strin
 
 function buildStages(counts: PaywallFunnelCounts): ReadonlyArray<FunnelStage<FunnelStepId>> {
   const stages: Readonly<
-    Record<FunnelStepId, Readonly<{ label: string; count: number; hashedCount: number }>>
+    Record<FunnelStepId, Readonly<{ label: string; count: number }>>
   > = {
-    "paywall-shown": { label: "Paywall shown", count: counts.paywallShownCount, hashedCount: 0 },
-    "premium-clicked": { label: "Premium clicked", count: counts.premiumCount, hashedCount: 0 },
-    "purchase-started": { label: "Checkout requested", count: counts.purchaseStartedCount, hashedCount: 0 },
-    converted: { label: "Server trial or first payment", count: counts.convertedCount, hashedCount: 0 },
+    "paywall-shown": { label: "Paywall shown", count: counts.paywallShownCount },
+    "premium-clicked": { label: "Premium clicked", count: counts.premiumCount },
+    "purchase-started": { label: "Checkout requested", count: counts.purchaseStartedCount },
+    converted: { label: "Server trial or first payment", count: counts.convertedCount },
   };
 
   return funnelStepIds.map((id) => ({ id, ...stages[id] }));
@@ -150,7 +150,6 @@ export function PaywallFunnelSection(props: FunnelSectionProps): JSX.Element {
         <FunnelStepsLoadingChart
           countLabel="People"
           dateRange={props.filters.dateRange}
-          showsHashedSplit={false}
           isGrouped={isComparing}
           label="Loading paywall funnel…"
         />
@@ -159,7 +158,6 @@ export function PaywallFunnelSection(props: FunnelSectionProps): JSX.Element {
         <FunnelStepsEmptyChart
           countLabel="People"
           dateRange={props.filters.dateRange}
-          showsHashedSplit={false}
           isGrouped={isComparing}
           note={<><strong>No paywall views match these filters.</strong><span>A person enters this funnel when a web, iOS or Android client reports the paywall reaching the screen on a selected day.</span></>}
         />
@@ -172,7 +170,6 @@ export function PaywallFunnelSection(props: FunnelSectionProps): JSX.Element {
           groups={groups}
           countLabel="People"
           dateRange={props.filters.dateRange}
-          showsHashedSplit={false}
         />
       ) : null}
 

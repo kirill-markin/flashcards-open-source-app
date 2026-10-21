@@ -44,9 +44,8 @@ export type FunnelSectionDefinition = Readonly<{
 }>;
 
 /**
- * THE FUNNEL RULE: each step grows by at most one per person, and a person counts at a step only if
- * the same person reached every earlier step. Each funnel defines in its own query who it counts as a
- * person and whether its steps follow this rule; there is no global audience switch.
+ * The funnels in page order. Each funnel's query states who it counts as a person and how its steps
+ * count.
  *
  * A FUNNEL EXISTS FOR ONE MAIN USER FLOW, and each of its steps is written as the designed path rather
  * than as a union of every way that step could be reached. Where a flow genuinely splits, it becomes
