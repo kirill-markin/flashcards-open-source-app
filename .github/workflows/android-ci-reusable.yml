@@ -170,8 +170,8 @@ jobs:
           # emulator-runner v2.38.0 writes hw.heapSize, but the emulator reads vm.heapSize.
           pre-emulator-launch-script: adb start-server && echo "vm.heapSize=512" >> "$HOME/.android/avd/test.avd/config.ini"
           disable-animations: true
-          emulator-options: -no-window -gpu swiftshader -no-snapshot -noaudio -no-boot-anim
-          script: cd apps/android && ANDROID_VERSION_CODE="${{ inputs.android_version_code }}" ./gradlew --no-daemon :data:local:connectedDebugAndroidTest
+          emulator-options: -no-window -gpu swiftshader -no-snapshot -noaudio -no-boot-anim -no-metrics
+          script: cd apps/android && ANDROID_VERSION_CODE="${{ inputs.android_version_code }}" ./gradlew --no-daemon --warning-mode all :data:local:connectedDebugAndroidTest
 
       - name: Detect data:local instrumentation reports
         if: always()
