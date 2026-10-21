@@ -148,7 +148,7 @@ export function buildFunnelGroupLabel(dimension: FunnelGroupByField, groupKey: s
 }
 
 /**
- * Both counts fold by summing, which is exact only where every counted person carries exactly one
+ * Counts fold by summing, which is exact only where every counted person carries exactly one
  * group key, so that no person is in two of the groups being added. That is the rule for a funnel
  * whose groups partition its cohort.
  */
@@ -166,11 +166,7 @@ function sumFunnelStages<StepId extends string>(
       throw new Error(`Funnel group step "${stage.id}" is missing from a group being folded.`);
     }
 
-    return {
-      ...summedStage,
-      count: summedStage.count + addedStage.count,
-      hashedCount: summedStage.hashedCount + addedStage.hashedCount,
-    };
+    return { ...summedStage, count: summedStage.count + addedStage.count };
   }, stage));
 }
 
@@ -259,7 +255,7 @@ export function foldComparedFunnelGroups<StepId extends string>(
       ? rangeGroups.filter((group) => drawnGroupKeys.has(group.key) === false)
       : rangeGroups.filter((group) => group.key === drawnGroup.key);
     return matchingGroups.length === 0
-      ? drawnGroup.stages.map((stage) => ({ ...stage, count: 0, hashedCount: 0 }))
+      ? drawnGroup.stages.map((stage) => ({ ...stage, count: 0 }))
       : sumFunnelStages(matchingGroups.map((group) => group.stages));
   };
 

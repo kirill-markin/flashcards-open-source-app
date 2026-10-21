@@ -107,7 +107,6 @@ export function FirstLaunchFunnelBreakdownSection(
         <FunnelStepsLoadingChart
           countLabel="People"
           dateRange={props.filters.dateRange}
-          showsHashedSplit={false}
           isGrouped
           label={`Loading ${title.toLowerCase()}…`}
         />
@@ -116,7 +115,6 @@ export function FirstLaunchFunnelBreakdownSection(
         <FunnelStepsEmptyChart
           countLabel="People"
           dateRange={props.filters.dateRange}
-          showsHashedSplit={false}
           isGrouped
           note={<strong>No first app launches match these filters.</strong>}
         />
@@ -129,7 +127,6 @@ export function FirstLaunchFunnelBreakdownSection(
           groups={chart.groups}
           countLabel="People"
           dateRange={props.filters.dateRange}
-          showsHashedSplit={false}
         />
       ) : null}
     </section>

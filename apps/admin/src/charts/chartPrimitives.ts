@@ -112,20 +112,15 @@ const packageColorPalette: ReadonlyArray<string> = [...d3.schemeTableau10, ...d3
 /** A series that is not a value of its dimension: an unknown deck, a folded or unresolved funnel group. */
 export const neutralChartColor = "#8c8c8c";
 
-/**
- * The value of `--text` in `../styles.css`, which this has to track by hand: the stylesheet washes
- * the ungrouped hashed funnel segment with that variable, and `renderFunnelStepsChart` mixes a
- * grouped segment toward the same colour, so a retuned palette has to be copied here or the two
- * stop matching.
- */
-export const funnelHashedSegmentMixColor = "#f6f6f8";
+/** The value of `--text` in `../styles.css`, tracked by hand. */
+const pageTextColor = "#f6f6f8";
 
 /**
  * Range B's colour for a group in a paired funnel comparison: the group's own colour, mixed halfway
  * toward the page's text, so A and B read as one group and B as the lighter of the two.
  */
 export function buildFunnelComparisonTint(color: string): string {
-  return d3.interpolateLab(color, funnelHashedSegmentMixColor)(0.5);
+  return d3.interpolateLab(color, pageTextColor)(0.5);
 }
 
 // Both positional scales below outlive the render that reads them, and the `implicit` default of

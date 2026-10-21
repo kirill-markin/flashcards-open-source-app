@@ -4,8 +4,7 @@ import { ChartColorKeyPlaceholder } from "../../charts/ChartLegends";
 import { ChartTooltip, useChartTooltip } from "../../charts/ChartTooltip";
 import { buildFunnelComparisonTint, chartWidth, neutralChartColor } from "../../charts/chartPrimitives";
 import {
-  getFunnelChartHeight,
-  getFunnelSplitLineCount,
+  funnelChartHeight,
   renderFunnelStepsChart,
   type FunnelStepBar,
   type FunnelStepGroupBars,
@@ -19,19 +18,11 @@ import {
 } from "./funnelAnchorUrl";
 import type { FunnelComparedGroup, FunnelGroup } from "./funnelGroupBy";
 
-/**
- * A main-path step; its `id` is what the URL stores as the anchor, so a label can change freely.
- *
- * `count` is the whole step and `hashedCount` is the part of it made of cookieless visitors counted
- * by their daily hash, so the identified part is the difference. Every share on this chart is
- * measured on `count`, which is what makes the hashed cohort part of a wider funnel rather than a
- * second one drawn beside it.
- */
+/** A main-path step; its `id` is what the URL stores as the anchor, so a label can change freely. */
 export type FunnelStage<StepId extends string> = Readonly<{
   id: StepId;
   label: string;
   count: number;
-  hashedCount: number;
 }>;
 
 /**
@@ -50,9 +41,6 @@ export type FunnelChartGroups<StepId extends string> =
 /** The single series an ungrouped funnel draws; its key is never shown and never collides with a group key. */
 const ungroupedFunnelGroupKey = "ungrouped";
 
-/** The lines `buildFunnelStepBars` writes for a step that has a hashed part. */
-const funnelSplitLabelLineCount = 2;
-
 export function formatPercentage(numerator: number, denominator: number): string {
   if (denominator === 0) {
     return "—";
@@ -61,75 +49,42 @@ export function formatPercentage(numerator: number, denominator: number): string
   return `${((numerator / denominator) * 100).toFixed(1)}%`;
 }
 
-function formatCount(count: number): string {
-  return count.toLocaleString("en-US");
-}
-
 /**
- * Every step is a subset of the one before it, so a later step's count over the anchor's is a
- * conversion rate.
+ * Every share is a plain ratio of two step counts. A funnel whose steps are counted on their own
+ * rather than nested can therefore show a share above 100%, which is written as computed rather than capped.
  *
  * It is called once per group, so a grouped chart measures every group against that group's own
  * first step and its own anchor step rather than against the funnel as a whole.
- *
- * `showsHashedSplit` is the same gate the chart's sub-heading reads, and it zeroes
- * `hashedCount` here rather than only hiding the text: the lighter bar segment is drawn from that
- * number, so no segment is drawn that the sub-heading does not announce.
  */
 function buildFunnelStepBars<StepId extends string>(
   stages: ReadonlyArray<FunnelStage<StepId>>,
   anchorIndex: number,
-  showsHashedSplit: boolean,
 ): ReadonlyArray<FunnelStepBar> {
   const firstCount = stages[0]?.count ?? 0;
   const anchorCount = stages[anchorIndex]?.count ?? 0;
   return stages.map((stage, index) => {
-    const previousCount = index === 0 ? null : (stages[index - 1]?.count ?? 0);
-    const hashedCount = showsHashedSplit ? stage.hashedCount : 0;
+    const previousStage = index === 0 ? undefined : stages[index - 1];
     return {
       label: stage.label,
       count: stage.count,
-      hashedCount,
-      previousCount,
       shareOfFirstLabel: formatPercentage(stage.count, firstCount),
       shareOfAnchorLabel: index < anchorIndex ? "—" : formatPercentage(stage.count, anchorCount),
-      shareOfPreviousLabel: previousCount === null ? "—" : formatPercentage(stage.count, previousCount),
-      // Only a step that has a hashed part is split, so a step below the site ones reads as the
-      // plain total it is instead of claiming a zero segment it could never have had. The two parts
-      // go on a line each so that the widest line is one formatted number plus a fixed short word,
-      // whatever the counts grow to, rather than both numbers on one line under a step column it
-      // would eventually outgrow.
-      splitLabels: hashedCount === 0
-        ? []
-        : [`${formatCount(stage.count - hashedCount)} with ID`, `+ ${formatCount(hashedCount)} hashed`],
+      shareOfPreviousLabel: previousStage === undefined ? "—" : formatPercentage(stage.count, previousStage.count),
     };
   });
-}
-
-/**
- * The height a funnel's chart draws at, known before its report: an ungrouped hashed read draws the
- * split lines, unless no step turns out to have a hashed part, which draws it shorter than this.
- */
-function getExpectedFunnelChartHeight(showsHashedSplit: boolean, isGrouped: boolean): number {
-  return getFunnelChartHeight(showsHashedSplit && isGrouped === false ? funnelSplitLabelLineCount : 0);
 }
 
 function FunnelChartMeta(
   props: Readonly<{
     countLabel: string;
     dateRange: AnalyticsDateRange;
-    showsHashedSplit: boolean;
   }>,
 ): JSX.Element {
   return (
     <div className="chart-meta">
       <div className="funnel-chart-heading">
         <span>{props.countLabel} reaching each step</span>
-        <span>
-          {props.showsHashedSplit
-            ? "Lighter segment: cookieless visitors, by daily hash · Click a step to measure from it"
-            : "Click a step to measure from it"}
-        </span>
+        <span>Click a step to measure from it</span>
       </div>
       <div className="chart-meta-right">
         <span>{props.dateRange.from} to {props.dateRange.to}, inclusive</span>
@@ -147,7 +102,6 @@ function FunnelChartPanel(
   props: Readonly<{
     countLabel: string;
     dateRange: AnalyticsDateRange;
-    showsHashedSplit: boolean;
     isGrouped: boolean;
     note: JSX.Element;
   }>,
@@ -155,7 +109,7 @@ function FunnelChartPanel(
   return (
     <section className="chart-column funnel-chart-column">
       <div className="chart-shell">
-        <FunnelChartMeta countLabel={props.countLabel} dateRange={props.dateRange} showsHashedSplit={props.showsHashedSplit} />
+        <FunnelChartMeta countLabel={props.countLabel} dateRange={props.dateRange} />
         {props.isGrouped ? <div className="funnel-group-key"><ChartColorKeyPlaceholder /></div> : null}
         <div className="funnel-chart-area">
           <div className="chart-scroll">
@@ -163,7 +117,7 @@ function FunnelChartPanel(
             <div className="funnel-steps-chart">
               <ChartAreaWithNote
                 viewBoxWidth={chartWidth}
-                viewBoxHeight={getExpectedFunnelChartHeight(props.showsHashedSplit, props.isGrouped)}
+                viewBoxHeight={funnelChartHeight}
                 note={null}
               >
                 {null}
@@ -183,7 +137,6 @@ export function FunnelStepsLoadingChart(
   props: Readonly<{
     countLabel: string;
     dateRange: AnalyticsDateRange;
-    showsHashedSplit: boolean;
     isGrouped: boolean;
     label: string;
   }>,
@@ -192,7 +145,6 @@ export function FunnelStepsLoadingChart(
     <FunnelChartPanel
       countLabel={props.countLabel}
       dateRange={props.dateRange}
-      showsHashedSplit={props.showsHashedSplit}
       isGrouped={props.isGrouped}
       note={<p className="chart-area-note" aria-live="polite"><span>{props.label}</span></p>}
     />
@@ -204,7 +156,6 @@ export function FunnelStepsEmptyChart(
   props: Readonly<{
     countLabel: string;
     dateRange: AnalyticsDateRange;
-    showsHashedSplit: boolean;
     isGrouped: boolean;
     note: JSX.Element;
   }>,
@@ -213,7 +164,6 @@ export function FunnelStepsEmptyChart(
     <FunnelChartPanel
       countLabel={props.countLabel}
       dateRange={props.dateRange}
-      showsHashedSplit={props.showsHashedSplit}
       isGrouped={props.isGrouped}
       note={<p className="chart-area-note"><span className="funnel-empty-note">{props.note}</span></p>}
     />
@@ -230,7 +180,7 @@ export function FunnelStepsEmptyChart(
 export function FunnelStepsChart<StepId extends string>(
   props: Readonly<{
     anchor: FunnelAnchor<StepId>;
-    /** The main path in chart order, each step a subset of the one before it. */
+    /** The main path in chart order. */
     stages: ReadonlyArray<FunnelStage<StepId>>;
     /**
      * The groups, which replace `stages`; each carries the funnel's full step list in the same order.
@@ -241,10 +191,6 @@ export function FunnelStepsChart<StepId extends string>(
     /** What one counted row is, plural: the chart heading. */
     countLabel: string;
     dateRange: AnalyticsDateRange;
-    /**
-     * The hashed cohort was read, so the bars carry a segment that has to be named.
-     */
-    showsHashedSplit: boolean;
   }>,
 ): JSX.Element {
   const anchorStepId = useSyncExternalStore(
@@ -274,7 +220,7 @@ export function FunnelStepsChart<StepId extends string>(
         color: "var(--accent)",
         pairKey: ungroupedFunnelGroupKey,
         pairedRange: null,
-        steps: buildFunnelStepBars(props.stages, anchorIndex, props.showsHashedSplit),
+        steps: buildFunnelStepBars(props.stages, anchorIndex),
       }];
     }
 
@@ -285,7 +231,7 @@ export function FunnelStepsChart<StepId extends string>(
         color: group.color,
         pairKey: group.key,
         pairedRange: null,
-        steps: buildFunnelStepBars(group.stages, anchorIndex, props.showsHashedSplit),
+        steps: buildFunnelStepBars(group.stages, anchorIndex),
       }));
     }
 
@@ -297,7 +243,7 @@ export function FunnelStepsChart<StepId extends string>(
         color: group.color,
         pairKey: group.key,
         pairedRange: "a",
-        steps: buildFunnelStepBars(group.aStages, anchorIndex, props.showsHashedSplit),
+        steps: buildFunnelStepBars(group.aStages, anchorIndex),
       },
       {
         key: `b:${group.key}`,
@@ -305,10 +251,10 @@ export function FunnelStepsChart<StepId extends string>(
         color: buildFunnelComparisonTint(group.color),
         pairKey: group.key,
         pairedRange: "b",
-        steps: buildFunnelStepBars(group.bStages, anchorIndex, props.showsHashedSplit),
+        steps: buildFunnelStepBars(group.bStages, anchorIndex),
       },
     ]);
-  }, [propsGroups, props.countLabel, props.stages, anchorIndex, props.showsHashedSplit]);
+  }, [propsGroups, props.countLabel, props.stages, anchorIndex]);
   /** Selecting the current anchor or the first step returns to the default view and clears the URL. */
   const selectAnchorStep = useCallback((stepIndex: number): void => {
     const selectedStepId = chartStages[stepIndex]?.id ?? null;
@@ -337,7 +283,7 @@ export function FunnelStepsChart<StepId extends string>(
   return (
     <section className="chart-column funnel-chart-column">
       <div className="chart-shell">
-        <FunnelChartMeta countLabel={props.countLabel} dateRange={props.dateRange} showsHashedSplit={props.showsHashedSplit} />
+        <FunnelChartMeta countLabel={props.countLabel} dateRange={props.dateRange} />
         {/* The same key markup the platform charts use, so a colour key reads the same everywhere. */}
         {propsGroups?.kind === "groups" ? (
           <div className="platform-key funnel-group-key" aria-label="Funnel group color key">
@@ -375,7 +321,7 @@ export function FunnelStepsChart<StepId extends string>(
           <div className="funnel-steps-chart">
             <ChartAreaWithNote
               viewBoxWidth={chartWidth}
-              viewBoxHeight={getFunnelChartHeight(getFunnelSplitLineCount(groupBars[0]?.steps ?? [], isGrouped))}
+              viewBoxHeight={funnelChartHeight}
               note={null}
             >
               <svg ref={chartRef} role="group" aria-label="Funnel steps; select a step to measure later steps from it" />

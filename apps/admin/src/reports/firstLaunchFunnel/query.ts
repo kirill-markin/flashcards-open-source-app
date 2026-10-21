@@ -235,7 +235,7 @@ function buildGroupSourceJoinSqlLines(
 /**
  * One row per person whose first-ever trusted event is an app launch on iOS, Android or web on a
  * selected UTC day from `firstLaunchFunnelStartDate` on, reduced in SQL to one row of step counts
- * per group that follow the funnel rule in `../funnels/funnelSections.ts`.
+ * per group.
  *
  * THE GROUP KEY IS A PROPERTY OF THE PERSON, never of a step: it is computed once per cohort row and
  * every count is taken inside it, so the groups partition the funnel and sum back to it step by

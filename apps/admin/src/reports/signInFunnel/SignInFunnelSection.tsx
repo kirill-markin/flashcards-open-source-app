@@ -49,10 +49,10 @@ function loadReport(
 
 function buildStages(counts: SignInFunnelCounts): ReadonlyArray<FunnelStage<FunnelStepId>> {
   const stages = {
-    "method-selected": { label: "Method selected", count: counts.selectedCount, hashedCount: 0 },
-    "session-accepted": { label: "Session accepted", count: counts.sessionAcceptedCount, hashedCount: 0 },
-    "account-ready": { label: "Account / workspace ready", count: counts.accountReadyCount, hashedCount: 0 },
-  } satisfies Record<FunnelStepId, Readonly<{ label: string; count: number; hashedCount: number }>>;
+    "method-selected": { label: "Method selected", count: counts.selectedCount },
+    "session-accepted": { label: "Session accepted", count: counts.sessionAcceptedCount },
+    "account-ready": { label: "Account / workspace ready", count: counts.accountReadyCount },
+  } satisfies Record<FunnelStepId, Readonly<{ label: string; count: number }>>;
 
   return funnelStepIds.map((id) => ({ id, ...stages[id] }));
 }
@@ -95,7 +95,6 @@ export function SignInFunnelSection(props: FunnelSectionProps): JSX.Element {
         <FunnelStepsLoadingChart
           countLabel="People"
           dateRange={props.filters.dateRange}
-          showsHashedSplit={false}
           isGrouped={isComparing}
           label="Loading sign-in funnel…"
         />
@@ -104,7 +103,6 @@ export function SignInFunnelSection(props: FunnelSectionProps): JSX.Element {
         <FunnelStepsEmptyChart
           countLabel="People"
           dateRange={props.filters.dateRange}
-          showsHashedSplit={false}
           isGrouped={isComparing}
           note={<><strong>No observed sign-in method selections match these filters.</strong><span>Entry requires a recorded method choice on the ordinary sign-in screen and an anonymous, guest or account identifier.</span></>}
         />
@@ -117,7 +115,6 @@ export function SignInFunnelSection(props: FunnelSectionProps): JSX.Element {
           groups={groups}
           countLabel="People"
           dateRange={props.filters.dateRange}
-          showsHashedSplit={false}
         />
       ) : null}
 
