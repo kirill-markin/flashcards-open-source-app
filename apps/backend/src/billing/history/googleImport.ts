@@ -9,7 +9,7 @@ import { persistGoogleOrderInExecutor, persistGoogleSubscriptionObservationInExe
 import { beginHistoryImportInExecutor, checkpointHistoryImportInExecutor, completeHistoryImportInExecutor,
   failHistoryImportInExecutor, loadLatestHistoryImportInExecutor, type HistoryImportInput,
   type HistorySource } from "./imports";
-import { historyEnvironmentSchema, historyScopeHash, type HistoryEnvironment } from "./store";
+import { historyScopeHash, type HistoryEnvironment } from "./store";
 
 const maximumInventorySize = 10_000;
 const inventoryKey = `nibomo:${googlePackageName}:discoverable-orders-v1`;
@@ -95,26 +95,27 @@ function expandInventory(tasks: ReadonlyArray<OrderTask>): ReadonlyArray<OrderTa
   return mergeOrders(expanded);
 }
 
-async function readInventory(): Promise<ReadonlyArray<InventoryRow>> {
+async function readInventory(environment: HistoryEnvironment): Promise<ReadonlyArray<InventoryRow>> {
   const result = await unsafeQuery<InventoryRow>(`WITH inventory AS (
     SELECT environment, provider_purchase_id AS purchase_token, google_latest_order_id AS order_id,
-      false AS sales_evidence FROM billing.purchases WHERE provider = 'google'
+      false AS sales_evidence FROM billing.purchases WHERE provider = 'google' AND environment = $3
     UNION SELECT environment, provider_purchase_id, google_last_paid_order_id, false
-      FROM billing.purchases WHERE provider = 'google'
+      FROM billing.purchases WHERE provider = 'google' AND environment = $3
     UNION SELECT environment, provider_purchase_id, payload->>'revokedOrderId', false
-      FROM billing.provider_events WHERE provider = 'google' AND environment IS NOT NULL
-    UNION SELECT environment, NULL, order_id, false FROM billing.google_orders
+      FROM billing.provider_events WHERE provider = 'google' AND environment = $3
+    UNION SELECT environment, NULL, order_id, false FROM billing.google_orders WHERE environment = $3
     UNION SELECT 'production', NULL, columns->>'Order Number', true
       FROM store_analytics.play_other_report_rows
-      WHERE report_name = 'sales' AND package_name = $1
+      WHERE report_name = 'sales' AND package_name = $1 AND $3 = 'production'
   ), observed AS (SELECT observation.environment, NULL::text AS purchase_token, item->>'latestSuccessfulOrderId' AS order_id,
     false AS sales_evidence FROM billing.google_subscription_observations AS observation
-    CROSS JOIN LATERAL jsonb_array_elements(observation.native_fields->'lineItems') AS item)
+    CROSS JOIN LATERAL jsonb_array_elements(observation.native_fields->'lineItems') AS item
+    WHERE observation.environment = $3)
   SELECT environment, purchase_token, order_id, bool_or(sales_evidence) AS sales_evidence,
     bool_or(NOT sales_evidence) AS verified_environment
     FROM (SELECT * FROM inventory UNION SELECT * FROM observed) AS combined
     GROUP BY environment, purchase_token, order_id LIMIT $2`,
-  [googlePackageName, maximumInventorySize + 1]);
+  [googlePackageName, maximumInventorySize + 1, environment]);
   requireInventoryBound(result.rows.length);
   return result.rows;
 }
@@ -305,7 +306,7 @@ async function collectOrders(
     handled += 1;
     checkpoint = next;
   }
-  if (reports?.salesInventoryComplete !== true) {
+  if (attempt.input.environment === "production" && reports?.salesInventoryComplete !== true) {
     throw new GoogleHistoryApiError("GOOGLE_HISTORY_SALES_INVENTORY_INCOMPLETE", null, "sales inventory collection");
   }
   if (checkpoint.unavailableOrders > 0) {
@@ -316,14 +317,17 @@ async function collectOrders(
   return { handled, unfinished: false, unavailable: [...cache.values()].filter((item) => item === null).length };
 }
 
-async function discoverUnclassifiedTokens(
-  client: GoogleHistoryClient, deadlineAtMs: number, signal: AbortSignal,
-): Promise<ReadonlyArray<GoogleHistoryApiError>> {
+export async function discoverGoogleBillingTokens(
+  scope: BackendObservationScope, deadlineAtMs: number, signal: AbortSignal,
+): Promise<Readonly<{ tokensClassified: number; tokensRemaining: number }>> {
+  const client = new GoogleHistoryClient((retry) =>
+    addBackendBreadcrumb({ action: "google_history_retry", scope, details: retry }));
   const unknown = await unsafeQuery<Readonly<{ purchase_token: string }>>(`SELECT DISTINCT provider_purchase_id AS purchase_token
     FROM billing.provider_events WHERE provider = 'google' AND environment IS NULL
       AND provider_purchase_id IS NOT NULL LIMIT $1`, [maximumInventorySize + 1]);
   requireInventoryBound(unknown.rows.length);
   const failures: Array<GoogleHistoryApiError> = [];
+  let tokensClassified = 0;
   for (const row of unknown.rows) {
     if (deadlineReached(deadlineAtMs, signal)) break;
     try {
@@ -336,79 +340,79 @@ async function discoverUnclassifiedTokens(
           WHERE provider = 'google' AND provider_purchase_id = $2 AND environment IS NULL`,
         [environment, row.purchase_token]);
       });
+      tokensClassified += 1;
     } catch (error) {
-      failures.push(error instanceof GoogleHistoryApiError ? error
-        : new GoogleHistoryApiError("GOOGLE_HISTORY_DISCOVERY_FAILED", null, "unclassified RTDN token discovery"));
+      const failure = error instanceof GoogleHistoryApiError ? error
+        : new GoogleHistoryApiError("GOOGLE_HISTORY_DISCOVERY_FAILED", null, "unclassified RTDN token discovery");
+      failures.push(failure);
+      addBackendBreadcrumb({ action: "google_history_source_failed", scope,
+        details: { source: "unclassified_rtdn_tokens", environment: null, code: failure.code, httpStatus: failure.httpStatus } });
     }
   }
-  return failures;
+  if (failures.length > 0) {
+    throw new AggregateError(failures, "Google token classification failed; inspect google_history_source_failed.");
+  }
+  return { tokensClassified, tokensRemaining: unknown.rows.length - tokensClassified };
 }
 
 export async function importGoogleBillingHistory(
-  scope: BackendObservationScope, deadlineAtMs: number, signal: AbortSignal, reports: SalesInventory,
+  scope: BackendObservationScope, environment: HistoryEnvironment, deadlineAtMs: number, signal: AbortSignal, reports: SalesInventory,
 ): Promise<GoogleHistoryImportSummary> {
   if (deadlineReached(deadlineAtMs, signal)) {
-    return { ordersHandled: 0, subscriptionsObserved: 0, unfinishedSources: 4, failedSources: 0, tokenLookupsUnavailable: 0 };
+    return { ordersHandled: 0, subscriptionsObserved: 0, unfinishedSources: 2, failedSources: 0, tokenLookupsUnavailable: 0 };
   }
   const client = new GoogleHistoryClient((retry) =>
     addBackendBreadcrumb({ action: "google_history_retry", scope, details: retry }));
-  const discoveryFailures = await discoverUnclassifiedTokens(client, deadlineAtMs, signal);
-  const inventory = await readInventory();
+  const inventory = await readInventory(environment);
   let ordersHandled = 0;
   let subscriptionsObserved = 0;
   let unfinishedSources = 0;
   let tokenLookupsUnavailable = 0;
   let failedScopedSources = 0;
-  const failures: Array<Error> = [...discoveryFailures];
-  for (const failure of discoveryFailures) {
-    addBackendBreadcrumb({ action: "google_history_source_failed", scope,
-      details: { source: "unclassified_rtdn_tokens", environment: null, code: failure.code, httpStatus: failure.httpStatus } });
-  }
-  for (const environment of historyEnvironmentSchema.options) {
-    const rows = inventory.filter((row) => row.environment === environment);
-    const tokens = [...new Set(rows.flatMap((row) => row.purchase_token === null ? [] : [row.purchase_token]))].sort();
-    for (const source of ["google_subscriptions", "google_orders"] as const) {
-      if (deadlineReached(deadlineAtMs, signal)) { unfinishedSources += 1; continue; }
-      const currentRows = source === "google_orders"
-        ? (await readInventory()).filter((row) => row.environment === environment) : rows;
-      const orders = expandInventory(currentRows.flatMap((row) => row.order_id === null ? [] : [{
-        orderId: row.order_id, purchaseToken: row.purchase_token, salesEvidence: row.sales_evidence,
-        verifiedEnvironment: row.verified_environment }]));
-      const attempt = await openAttempt(source, environment,
-        source === "google_orders" ? inventoryKey : subscriptionInventoryKey,
-        { orders: source === "google_orders" ? [...orders] : [], subscriptions: source === "google_subscriptions"
-          ? tokens.map((purchaseToken) => ({ purchaseToken, observationId: randomUUID() })) : [],
-          handledOrderIds: [], unavailableSubscriptions: 0, unavailableOrders: 0 });
-      try {
-        if (source === "google_subscriptions") {
-          const result = await collectSubscriptions(client, attempt, deadlineAtMs, signal);
-          subscriptionsObserved += result.handled;
-          unfinishedSources += Number(result.unfinished);
-        } else {
-          const result = await collectOrders(client, attempt, deadlineAtMs, signal, reports);
-          ordersHandled += result.handled;
-          tokenLookupsUnavailable += result.unavailable;
-          unfinishedSources += Number(result.unfinished);
-        }
-      } catch (error) {
-        await failAttempt(attempt, error);
-        failedScopedSources += 1;
-        const progress = await unsafeQuery<Readonly<{ record_count: string }>>(
-          "SELECT record_count::text FROM billing.history_import_runs WHERE run_id = $1", [attempt.runId]);
-        const handledBeforeFailure = Number(progress.rows[0].record_count) - attempt.count;
-        if (source === "google_orders") ordersHandled += handledBeforeFailure;
-        else subscriptionsObserved += handledBeforeFailure;
-        // Retain only boundary errors; database/SDK causes must not leak checkpoints or tokens.
-        const failure = error instanceof GoogleHistoryApiError ? error
-          : new GoogleHistoryApiError("GOOGLE_HISTORY_IMPORT_FAILED", null, "persistence; inspect database diagnostics");
-        failures.push(failure);
-        addBackendBreadcrumb({ action: "google_history_source_failed", scope,
-          details: { source, environment, code: failure.code, httpStatus: failure.httpStatus } });
+  const failures: Array<Error> = [];
+  const rows = inventory;
+  const tokens = [...new Set(rows.flatMap((row) => row.purchase_token === null ? [] : [row.purchase_token]))].sort();
+  for (const source of ["google_subscriptions", "google_orders"] as const) {
+    if (deadlineReached(deadlineAtMs, signal)) { unfinishedSources += 1; continue; }
+    const currentRows = source === "google_orders"
+      ? await readInventory(environment) : rows;
+    const orders = expandInventory(currentRows.flatMap((row) => row.order_id === null ? [] : [{
+      orderId: row.order_id, purchaseToken: row.purchase_token, salesEvidence: row.sales_evidence,
+      verifiedEnvironment: row.verified_environment }]));
+    const attempt = await openAttempt(source, environment,
+      source === "google_orders" ? inventoryKey : subscriptionInventoryKey,
+      { orders: source === "google_orders" ? [...orders] : [], subscriptions: source === "google_subscriptions"
+        ? tokens.map((purchaseToken) => ({ purchaseToken, observationId: randomUUID() })) : [],
+        handledOrderIds: [], unavailableSubscriptions: 0, unavailableOrders: 0 });
+    try {
+      if (source === "google_subscriptions") {
+        const result = await collectSubscriptions(client, attempt, deadlineAtMs, signal);
+        subscriptionsObserved += result.handled;
+        unfinishedSources += Number(result.unfinished);
+      } else {
+        const result = await collectOrders(client, attempt, deadlineAtMs, signal, reports);
+        ordersHandled += result.handled;
+        tokenLookupsUnavailable += result.unavailable;
+        unfinishedSources += Number(result.unfinished);
       }
+    } catch (error) {
+      await failAttempt(attempt, error);
+      failedScopedSources += 1;
+      const progress = await unsafeQuery<Readonly<{ record_count: string }>>(
+        "SELECT record_count::text FROM billing.history_import_runs WHERE run_id = $1", [attempt.runId]);
+      const handledBeforeFailure = Number(progress.rows[0].record_count) - attempt.count;
+      if (source === "google_orders") ordersHandled += handledBeforeFailure;
+      else subscriptionsObserved += handledBeforeFailure;
+      // Retain only boundary errors; database/SDK causes must not leak checkpoints or tokens.
+      const failure = error instanceof GoogleHistoryApiError ? error
+        : new GoogleHistoryApiError("GOOGLE_HISTORY_IMPORT_FAILED", null, "persistence; inspect database diagnostics");
+      failures.push(failure);
+      addBackendBreadcrumb({ action: "google_history_source_failed", scope,
+        details: { source, environment, code: failure.code, httpStatus: failure.httpStatus } });
     }
   }
   const summary = { ordersHandled, subscriptionsObserved, unfinishedSources,
-    failedSources: failedScopedSources + Number(discoveryFailures.length > 0), tokenLookupsUnavailable };
+    failedSources: failedScopedSources, tokenLookupsUnavailable };
   addBackendBreadcrumb({ action: "google_history_import_completed", scope, details: summary });
   if (failures.length > 0) throw new AggregateError(failures, "Google native history collection failed; inspect google_history_source_failed.");
   return summary;

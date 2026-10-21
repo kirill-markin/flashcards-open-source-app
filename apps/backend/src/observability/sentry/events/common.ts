@@ -15,6 +15,8 @@ export type BackendService =
   | "synthetic-actor-detector"
   | "probable-android-burst-refresh"
   | "store-analytics-import"
+  | "store-sandbox-import"
+  | "google-billing-discovery"
   | "generated-media-promotion"
   | "multipart-completion-reconciliation"
   | "migration";

@@ -249,7 +249,19 @@ export function initializeBackendSentryWithDeps(
     tracesSampleRate: config.tracesSampleRate,
     sendDefaultPii: false,
     beforeBreadcrumb: (breadcrumb, hint) => restoreBackendConsoleBreadcrumbMessage(breadcrumb, hint),
-    beforeSend: (event, hint) => sanitizeSentryEvent(event, hint),
+    beforeSend: (event, hint) => {
+      const sanitizedEvent = sanitizeSentryEvent(event, hint);
+      if (sanitizedEvent === null
+        || (service !== "store-sandbox-import" && service !== "google-billing-discovery")) {
+        return sanitizedEvent;
+      }
+
+      // Use the initialized job, including for SDK captures and nested service scopes.
+      return {
+        ...sanitizedEvent,
+        fingerprint: [...(sanitizedEvent.fingerprint ?? ["{{ default }}"]), service],
+      };
+    },
     beforeSendSpan: (span) => sanitizeSentrySpan(span),
     beforeSendTransaction: (event) => sanitizeSentryTransactionEvent(event),
     integrations: createSentryIntegrations(),

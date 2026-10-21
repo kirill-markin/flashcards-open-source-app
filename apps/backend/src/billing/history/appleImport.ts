@@ -307,25 +307,18 @@ async function importEnvironment(
 }
 
 export async function importAppleHistory(
-  scope: BackendObservationScope, deadlineAtMs: number, signal: AbortSignal,
+  scope: BackendObservationScope, environment: AppleEnvironment, deadlineAtMs: number, signal: AbortSignal,
 ): Promise<AppleHistoryImportSummary> {
-  const provider = new AppleProvider(await loadAppleSigningSecret());
-  const environments: Array<EnvironmentSummary> = [];
-  const failures: Array<Error> = [];
-  for (const environment of ["production", "sandbox"] as const) {
-    try {
-      const environmentDeadline = Math.min(deadlineAtMs, Date.now() + 2 * 60 * 1000);
-      environments.push(await importEnvironment(provider, environment, environmentDeadline, signal));
-    } catch (error) {
-      const sanitized = error instanceof AppleBillingError || error instanceof BillingHistoryError ? error
-        : new AppleBillingError("APPLE_HISTORY_IMPORT_FAILED", true, "Apple history import failed before a checkpoint was available.");
-      failures.push(sanitized);
-      addBackendBreadcrumb({ action: "billing_history_apple_environment_failed", scope,
-        details: { environment, failureCode: failureCode(sanitized) } });
-    }
+  try {
+    const provider = new AppleProvider(await loadAppleSigningSecret());
+    const summary = { environments: [await importEnvironment(provider, environment, deadlineAtMs, signal)] };
+    addBackendBreadcrumb({ action: "billing_history_apple_import_completed", scope, details: summary });
+    return summary;
+  } catch (error) {
+    const sanitized = error instanceof AppleBillingError || error instanceof BillingHistoryError ? error
+      : new AppleBillingError("APPLE_HISTORY_IMPORT_FAILED", true, "Apple history import failed before a checkpoint was available.");
+    addBackendBreadcrumb({ action: "billing_history_apple_environment_failed", scope,
+      details: { environment, failureCode: failureCode(sanitized) } });
+    throw sanitized;
   }
-  const summary = { environments };
-  addBackendBreadcrumb({ action: "billing_history_apple_import_completed", scope, details: summary });
-  if (failures.length > 0) throw new AggregateError(failures, failures.map((error) => error.message).join(" | "));
-  return summary;
 }
