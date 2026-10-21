@@ -6,7 +6,6 @@ import {
   buildHashedSiteRowSqlLines,
   buildHashedVisitorDayRangeSqlLines,
   buildHashedVisitorDaySql,
-  isFunnelHashedCohortRead,
 } from "../funnels/funnelAudienceSql";
 import type { FunnelGroupByDimension } from "../funnels/funnelGroupBy";
 import { assertIsString, toInteger } from "../reportValues";
@@ -32,10 +31,8 @@ const stepEventNames: ReadonlyArray<string> = [...engagementEventNames, "site_st
  * People per step, each step a subset of the one before it: one group's, or the funnel's own sum.
  *
  * THIS IS THE ONE FUNNEL WHOSE COOKIELESS COHORT REACHES EVERY STEP. Every step is a marketing-site
- * fact, so the `all` mode's hashed people are measured the whole way down rather than disappearing
- * into construction partway, and the `hashed` counts below are that cohort's own. They are zero
- * outside that mode and zero whenever a connection country is selected, because a hashed row carries no
- * country.
+ * fact, so the hashed people are measured the whole way down rather than disappearing into
+ * construction partway, and the `hashed` counts below are that cohort's own.
  */
 export type BlogPlatformChoiceFunnelCounts = Readonly<{
   entryViewCount: number;
@@ -180,9 +177,6 @@ export function buildBlogPlatformChoiceFunnelSql(
   groupByDimension: FunnelGroupByDimension | null,
 ): string {
   const range = buildSiteEntryFunnelRangeSql(filters, reportLabel, blogFunnelStartDate);
-  // Left out of the statement entirely rather than executed and discarded, so the default mode costs
-  // nothing for a cohort it does not count.
-  const isHashedCohortRead = isFunnelHashedCohortRead(filters);
   const countColumns = buildCountColumns(range);
   const cteSqlLines = [
     ...buildSiteEntryCohortCteSqlLines(filters, blogFunnelEntryPageKind, range),
@@ -235,66 +229,62 @@ export function buildBlogPlatformChoiceFunnelSql(
     "    AND click.occurred_at >= reach.hovered_or_clicked_at",
     "  WHERE click.event_name = 'site_app_entry_clicked'",
     "  GROUP BY click.actor_id",
-    ...(isHashedCohortRead
-      ? [
-        ...buildHashedSiteEntryCohortCteSqlLines(filters, blogFunnelEntryPageKind, range),
-        // The same four steps on the hashed person key, one hash on one UTC day, each a `MIN` over that
-        // pair so no step can grow by more than one per person and each is read only for a person the
-        // step above kept.
-        "), hashed_engagements AS MATERIALIZED (",
-        "  SELECT",
-        "    entry.daily_visitor_hash,",
-        "    entry.visitor_day,",
-        `    ${buildEngagedAtSql("hashed_engagement", "entry.first_entry_viewed_at")} AS engaged_at`,
-        "  FROM hashed_cohort AS entry",
-        "  INNER JOIN analytics.product_events_resolved AS hashed_engagement",
-        "    ON hashed_engagement.daily_visitor_hash = entry.daily_visitor_hash",
-        `    AND ${buildHashedVisitorDaySql("hashed_engagement")} = entry.visitor_day`,
-        "    AND hashed_engagement.occurred_at >= entry.first_entry_viewed_at",
-        `  WHERE ${buildHashedSiteFactFilterSql("hashed_engagement", engagementEventNames, range)}`,
-        "  GROUP BY entry.daily_visitor_hash, entry.visitor_day, entry.first_entry_viewed_at",
-        "  HAVING COUNT(*) >= 2",
-        "), hashed_home_views AS MATERIALIZED (",
-        "  SELECT",
-        "    engaged.daily_visitor_hash,",
-        "    engaged.visitor_day,",
-        "    MIN(hashed_home_view.occurred_at) AS viewed_at",
-        "  FROM hashed_engagements AS engaged",
-        "  INNER JOIN analytics.product_events_resolved AS hashed_home_view",
-        "    ON hashed_home_view.daily_visitor_hash = engaged.daily_visitor_hash",
-        `    AND ${buildHashedVisitorDaySql("hashed_home_view")} = engaged.visitor_day`,
-        "    AND hashed_home_view.occurred_at >= engaged.engaged_at",
-        `  WHERE ${buildHashedSiteRowSqlLines("hashed_home_view", "site_page_viewed").join("\n    AND ")}`,
-        "    AND hashed_home_view.event_properties ->> 'page_kind' = 'home'",
-        `    AND ${buildHashedVisitorDayRangeSqlLines("hashed_home_view", range.from, range.to).join("\n    AND ")}`,
-        "  GROUP BY engaged.daily_visitor_hash, engaged.visitor_day",
-        "), hashed_platform_hovers_or_clicks AS MATERIALIZED (",
-        "  SELECT",
-        "    home_view.daily_visitor_hash,",
-        "    home_view.visitor_day,",
-        "    MIN(hashed_reach.occurred_at) AS hovered_or_clicked_at",
-        "  FROM hashed_home_views AS home_view",
-        "  INNER JOIN analytics.product_events_resolved AS hashed_reach",
-        "    ON hashed_reach.daily_visitor_hash = home_view.daily_visitor_hash",
-        `    AND ${buildHashedVisitorDaySql("hashed_reach")} = home_view.visitor_day`,
-        "    AND hashed_reach.occurred_at >= home_view.viewed_at",
-        `  WHERE ${buildHashedSiteFactFilterSql("hashed_reach", platformHoverOrClickEventNames, range)}`,
-        "  GROUP BY home_view.daily_visitor_hash, home_view.visitor_day",
-        "), hashed_platform_clicks AS MATERIALIZED (",
-        "  SELECT",
-        "    reach.daily_visitor_hash,",
-        "    reach.visitor_day,",
-        "    MIN(hashed_click.occurred_at) AS clicked_at",
-        "  FROM hashed_platform_hovers_or_clicks AS reach",
-        "  INNER JOIN analytics.product_events_resolved AS hashed_click",
-        "    ON hashed_click.daily_visitor_hash = reach.daily_visitor_hash",
-        `    AND ${buildHashedVisitorDaySql("hashed_click")} = reach.visitor_day`,
-        "    AND hashed_click.occurred_at >= reach.hovered_or_clicked_at",
-        `  WHERE ${buildHashedSiteRowSqlLines("hashed_click", "site_app_entry_clicked").join("\n    AND ")}`,
-        `    AND ${buildHashedVisitorDayRangeSqlLines("hashed_click", range.from, range.to).join("\n    AND ")}`,
-        "  GROUP BY reach.daily_visitor_hash, reach.visitor_day",
-      ]
-      : []),
+    ...buildHashedSiteEntryCohortCteSqlLines(filters, blogFunnelEntryPageKind, range),
+    // The same four steps on the hashed person key, one hash on one UTC day, each a `MIN` over that
+    // pair so no step can grow by more than one per person and each is read only for a person the
+    // step above kept.
+    "), hashed_engagements AS MATERIALIZED (",
+    "  SELECT",
+    "    entry.daily_visitor_hash,",
+    "    entry.visitor_day,",
+    `    ${buildEngagedAtSql("hashed_engagement", "entry.first_entry_viewed_at")} AS engaged_at`,
+    "  FROM hashed_cohort AS entry",
+    "  INNER JOIN analytics.product_events_resolved AS hashed_engagement",
+    "    ON hashed_engagement.daily_visitor_hash = entry.daily_visitor_hash",
+    `    AND ${buildHashedVisitorDaySql("hashed_engagement")} = entry.visitor_day`,
+    "    AND hashed_engagement.occurred_at >= entry.first_entry_viewed_at",
+    `  WHERE ${buildHashedSiteFactFilterSql("hashed_engagement", engagementEventNames, range)}`,
+    "  GROUP BY entry.daily_visitor_hash, entry.visitor_day, entry.first_entry_viewed_at",
+    "  HAVING COUNT(*) >= 2",
+    "), hashed_home_views AS MATERIALIZED (",
+    "  SELECT",
+    "    engaged.daily_visitor_hash,",
+    "    engaged.visitor_day,",
+    "    MIN(hashed_home_view.occurred_at) AS viewed_at",
+    "  FROM hashed_engagements AS engaged",
+    "  INNER JOIN analytics.product_events_resolved AS hashed_home_view",
+    "    ON hashed_home_view.daily_visitor_hash = engaged.daily_visitor_hash",
+    `    AND ${buildHashedVisitorDaySql("hashed_home_view")} = engaged.visitor_day`,
+    "    AND hashed_home_view.occurred_at >= engaged.engaged_at",
+    `  WHERE ${buildHashedSiteRowSqlLines("hashed_home_view", "site_page_viewed").join("\n    AND ")}`,
+    "    AND hashed_home_view.event_properties ->> 'page_kind' = 'home'",
+    `    AND ${buildHashedVisitorDayRangeSqlLines("hashed_home_view", range.from, range.to).join("\n    AND ")}`,
+    "  GROUP BY engaged.daily_visitor_hash, engaged.visitor_day",
+    "), hashed_platform_hovers_or_clicks AS MATERIALIZED (",
+    "  SELECT",
+    "    home_view.daily_visitor_hash,",
+    "    home_view.visitor_day,",
+    "    MIN(hashed_reach.occurred_at) AS hovered_or_clicked_at",
+    "  FROM hashed_home_views AS home_view",
+    "  INNER JOIN analytics.product_events_resolved AS hashed_reach",
+    "    ON hashed_reach.daily_visitor_hash = home_view.daily_visitor_hash",
+    `    AND ${buildHashedVisitorDaySql("hashed_reach")} = home_view.visitor_day`,
+    "    AND hashed_reach.occurred_at >= home_view.viewed_at",
+    `  WHERE ${buildHashedSiteFactFilterSql("hashed_reach", platformHoverOrClickEventNames, range)}`,
+    "  GROUP BY home_view.daily_visitor_hash, home_view.visitor_day",
+    "), hashed_platform_clicks AS MATERIALIZED (",
+    "  SELECT",
+    "    reach.daily_visitor_hash,",
+    "    reach.visitor_day,",
+    "    MIN(hashed_click.occurred_at) AS clicked_at",
+    "  FROM hashed_platform_hovers_or_clicks AS reach",
+    "  INNER JOIN analytics.product_events_resolved AS hashed_click",
+    "    ON hashed_click.daily_visitor_hash = reach.daily_visitor_hash",
+    `    AND ${buildHashedVisitorDaySql("hashed_click")} = reach.visitor_day`,
+    "    AND hashed_click.occurred_at >= reach.hovered_or_clicked_at",
+    `  WHERE ${buildHashedSiteRowSqlLines("hashed_click", "site_app_entry_clicked").join("\n    AND ")}`,
+    `    AND ${buildHashedVisitorDayRangeSqlLines("hashed_click", range.from, range.to).join("\n    AND ")}`,
+    "  GROUP BY reach.daily_visitor_hash, reach.visitor_day",
     ")",
   ];
   const groupKeySql = buildSiteEntryFunnelGroupKeySql(filters, groupByDimension);
@@ -309,9 +299,6 @@ export function buildBlogPlatformChoiceFunnelSql(
     "LEFT JOIN platform_clicks AS clicked ON clicked.actor_id = cohort.actor_id",
     "GROUP BY group_key",
   ];
-  if (isHashedCohortRead === false) {
-    return [...cteSqlLines, ...identifiedGroupSqlLines].join("\n");
-  }
 
   return [
     ...cteSqlLines,

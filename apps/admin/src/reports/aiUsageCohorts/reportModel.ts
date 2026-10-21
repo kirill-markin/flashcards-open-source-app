@@ -24,8 +24,7 @@ export const defaultAiUsagePeriodWeeks: AiUsagePeriodWeeks = 4;
 /**
  * Who the panels count, decided by the person's state NOW rather than inside each period.
  *
- * `registered` is the rule `buildSignedInActorSql` owns, which is also what the funnels' `signed-in`
- * mode asks, so the two areas cannot disagree about who is registered. The consequence is stated on
+ * `registered` is the rule `buildSignedInActorSql` owns. The consequence is stated on
  * screen rather than hidden here: somebody who registered last week is registered in every earlier
  * panel too, so this axis cannot be read as a registration timeline.
  */

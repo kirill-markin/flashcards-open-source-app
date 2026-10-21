@@ -9,7 +9,6 @@ import {
 import { EventPage } from "./events/eventPage/EventPage";
 import { EventsPage } from "./events/EventsPage";
 import {
-  defaultFunnelAudienceMode,
   type AnalyticsDateRange,
   type AnalyticsFilterState,
 } from "./filters/analyticsFilters";
@@ -104,14 +103,13 @@ function isSameOptionalDateRange(
   return left === null || right === null ? left === right : isSameDateRange(left, right);
 }
 
-// General's reports read neither Funnels-only field, so its batch is keyed on the selection with both
-// blanked: picking a comparison or an audience neither reloads General nor takes query slots ahead of
-// the funnel cards. Keyed on content, because every apply makes a new selection object.
+// General's reports do not read the Funnels-only comparison range, so its batch is keyed on the
+// selection with it blanked: picking a comparison neither reloads General nor takes query slots ahead
+// of the funnel cards. Keyed on content, because every apply makes a new selection object.
 function toGeneralReportFilters(filters: AnalyticsFilterState): AnalyticsFilterState {
   return normalizeAnalyticsFilterState({
     ...filters,
     comparisonDateRange: null,
-    funnelAudienceMode: defaultFunnelAudienceMode,
   });
 }
 

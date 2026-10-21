@@ -7,7 +7,6 @@ import {
   buildTrustedActorRowsFilterSql,
 } from "../../filters/filterSql";
 import { escapeSqlStringLiteral } from "../../sql";
-import { buildFunnelAudienceActorSqlLines } from "../funnels/funnelAudienceSql";
 import { assertValidDateRange } from "../reportValues";
 
 export const paywallFunnelStartDate = "2026-10-04";
@@ -25,7 +24,6 @@ export const paywallFirstPaymentWindowDays = paywallStepWindowDays + paywallBill
 
 export function buildPaywallActorFiltersSql(filters: AnalyticsFilterState, alias: string): string {
   return [
-    ...buildFunnelAudienceActorSqlLines(filters, `${alias}.actor_id::text`),
     `AND ${buildConnectionCountriesFilterSql(`${alias}.actor_id::text`, filters.connectionCountries, filters.dateRange)}`,
     `AND ${buildAppUiLanguagesFilterSql(`${alias}.actor_id::text`, filters.appUiLanguages, filters.dateRange)}`,
   ].join("\n");

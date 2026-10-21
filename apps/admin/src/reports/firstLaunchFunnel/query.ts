@@ -12,7 +12,6 @@ import {
 } from "../../filters/filterSql";
 import { escapeSqlStringLiteral } from "../../sql";
 import { catalogInstallConversionWindowDays } from "../catalogInstallFunnel/query";
-import { buildFunnelAudienceActorSqlLines } from "../funnels/funnelAudienceSql";
 import {
   platformFunnelGroupByDimensionId,
   unresolvedFunnelGroupKey,
@@ -349,9 +348,6 @@ export function buildFirstLaunchFunnelSql(
     "  FROM first_launches AS candidate",
     "  WHERE TRUE",
     ...buildExcludedActorSqlLines("candidate.actor_id::text"),
-    // The one place the audience mode reaches this funnel. The cookieless hash exists only on
-    // credential-free collector rows, which this funnel never reads, so `all` adds nothing here.
-    ...buildFunnelAudienceActorSqlLines(filters, "candidate.actor_id::text"),
     `    AND ${buildConnectionCountriesFilterSql("candidate.actor_id::text", filters.connectionCountries, filters.dateRange)}`,
     `    AND ${buildAppUiLanguagesFilterSql("candidate.actor_id::text", filters.appUiLanguages, filters.dateRange)}`,
     "), step_events AS MATERIALIZED (",

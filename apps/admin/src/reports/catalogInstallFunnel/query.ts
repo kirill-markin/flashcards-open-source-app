@@ -12,12 +12,10 @@ import {
 } from "../../filters/filterSql";
 import { escapeSqlStringLiteral } from "../../sql";
 import {
-  buildFunnelAudienceActorSqlLines,
   buildHashedPageViewFilterSqlLines,
   buildHashedSiteRowSqlLines,
   buildHashedVisitorDayRangeSqlLines,
   buildHashedVisitorDaySql,
-  isFunnelHashedCohortRead,
 } from "../funnels/funnelAudienceSql";
 import {
   assertIsString,
@@ -136,10 +134,9 @@ export type CatalogInstallFunnelReport = Readonly<{
   to: string;
   visits: ReadonlyArray<CatalogInstallFunnelVisit>;
   /**
-   * The cookieless visitors of the `all` audience mode, one person per daily hash per UTC day: those
-   * who viewed any deck page, and those among them whose install click was on a deck whose page they
-   * had viewed. Both are zero outside that mode and whenever a connection country is selected, and
-   * there is no third count because every step below the click needs an identity a hash never has.
+   * The cookieless visitors, one person per daily hash per UTC day: those who viewed any deck page,
+   * and those among them whose install click was on a deck whose page they had viewed. There is no
+   * third count because every step below the click needs an identity a hash never has.
    */
   hashedDeckPageViewCount: number;
   hashedInstallClickCount: number;
@@ -282,7 +279,6 @@ function buildFunnelVisitFilterSqlLines(filters: AnalyticsFilterState): Readonly
   return [
     `    AND ${buildEventPlatformsFilterSql("COALESCE(candidate.platform, 'unattributed')", filters.eventPlatforms)}`,
     ...buildVisitDimensionFilterSqlLines("candidate.package_version_id", filters.installedDecks),
-    ...buildFunnelAudienceActorSqlLines(filters, "candidate.actor_id::text"),
     `    AND ${buildConnectionCountriesFilterSql("candidate.actor_id::text", filters.connectionCountries, filters.dateRange)}`,
     `    AND ${buildAppUiLanguagesFilterSql("candidate.actor_id::text", filters.appUiLanguages, filters.dateRange)}`,
   ];
@@ -403,7 +399,7 @@ function buildActorMembershipSql(relationName: string, actorIdSqlExpression: str
 }
 
 /**
- * The cookieless half of `all`, as its own statement rather than more visit rows.
+ * The cookieless cohort, as its own statement rather than more visit rows.
  *
  * A hashed person has no `actor_id`, no deck they can be followed to and no step below the click, so
  * a `CatalogInstallFunnelVisit` could carry nothing but nulls for them and every reduction the
@@ -427,10 +423,6 @@ function buildHashedCatalogInstallFunnelSql(
   from: string,
   to: string,
 ): string {
-  if (isFunnelHashedCohortRead(filters) === false) {
-    return ["SELECT", "  0::int AS hashed_view_count,", "  0::int AS hashed_click_count"].join("\n");
-  }
-
   const visitorDaySql = buildHashedVisitorDaySql("candidate");
   const packageVersionSql = "candidate.event_properties ->> 'package_version_id'";
 
@@ -570,8 +562,7 @@ export function buildCatalogInstallFunnelSql(filters: AnalyticsFilterState): str
     // guest's `actor_id` rather than its `user_id`, because the install and its reviews are
     // keyed on the resolved identity, which a later merge moves onto the target account.
     //
-    // The guest is held to the visitor's own exclusion and audience rules, so an excluded guest stays
-    // out and `signed-in` still drops a guest that never registered.
+    // The guest is held to the visitor's own exclusion rule, so an excluded guest stays out.
     "), browser_guest_actors AS MATERIALIZED (",
     "  SELECT DISTINCT guest_row.anonymous_id, guest_row.actor_id",
     "  FROM analytics.product_events_resolved AS guest_row",
@@ -589,7 +580,6 @@ export function buildCatalogInstallFunnelSql(filters: AnalyticsFilterState): str
     `      (${escapeSqlStringLiteral(to)}::date + INTERVAL '${catalogInstallConversionWindowDays + 1} days')::timestamp AT TIME ZONE 'UTC'`,
     "    )",
     ...buildExcludedActorSqlLines("guest_row.actor_id::text"),
-    ...buildFunnelAudienceActorSqlLines(filters, "guest_row.actor_id::text"),
     // Every identity whose server install and reviews count for a clicked visit: the visit's own, its
     // browser guest's, and the installing guest of a server install that carries the click's
     // `anonymous_id`. `UNION` keeps each once, so no review joins a visit twice.
@@ -607,7 +597,7 @@ export function buildCatalogInstallFunnelSql(filters: AnalyticsFilterState): str
     // whose own rows never arrived. Only a guest install counts: the cookie survives a logout and an
     // account switch, so on a shared browser an account's install would otherwise be credited to
     // another account's click. It is bound to the deck version and the bounds the install step below
-    // applies, and held to the exclusion and audience rules the browser guest is.
+    // applies, and held to the exclusion rule the browser guest is.
     "  SELECT clicked.actor_id, clicked.package_version_id, visitor_install.actor_id AS install_actor_id",
     "  FROM visit_clicks AS clicked",
     "  INNER JOIN eligible_visits AS visit",
@@ -621,7 +611,6 @@ export function buildCatalogInstallFunnelSql(filters: AnalyticsFilterState): str
     `    AND visitor_install.occurred_at <= visit.anchor_at + INTERVAL '${catalogInstallConversionWindowDays} days'`,
     "  WHERE TRUE",
     ...buildExcludedActorSqlLines("visitor_install.actor_id::text"),
-    ...buildFunnelAudienceActorSqlLines(filters, "visitor_install.actor_id::text"),
     "), visit_rows AS MATERIALIZED (",
     "SELECT",
     "  visit.actor_id,",

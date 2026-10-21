@@ -9,7 +9,6 @@ import {
 import { escapeSqlStringLiteral } from "../../sql";
 import { catalogInstallConversionWindowDays } from "../catalogInstallFunnel/query";
 import {
-  buildFunnelAudienceActorSqlLines,
   buildHashedPageViewFilterSqlLines,
   buildHashedSiteRowSqlLines,
   buildHashedVisitorDayRangeSqlLines,
@@ -66,7 +65,7 @@ export function buildSiteEntryFunnelRangeSql(
 /**
  * The one key of the ungrouped funnel, on the identified rows and the hashed ones alike. Both arms
  * take it from the same `groupKeySql` below: the outer `SUM ... GROUP BY group_key` merges them on
- * it, and a second literal would return the ungrouped `all`-mode funnel as two rows.
+ * it, and a second literal would return the ungrouped funnel as two rows.
  */
 const ungroupedSiteEntryGroupKey = "all";
 
@@ -159,7 +158,7 @@ function buildSiteEntryViewFilterSqlLines(
 }
 
 /**
- * The cookieless half of `all`, as the two CTEs the identified chain is extended with: one row per
+ * The cookieless cohort, as the two CTEs the identified chain is extended with: one row per
  * person in `hashed_cohort`, which each funnel then reads its own hashed steps off.
  *
  * ONE PERSON IS ONE HASH ON ONE UTC DAY, so every hashed step a funnel adds has to be read on that
@@ -279,11 +278,8 @@ export function buildHashedSiteEntryCohortCteSqlLines(
  *   bounded to its own actor's `[first page view of pageKind, + 7 days]`, and each step is then a
  *   `GROUP BY` joined to the step above it.
  *
- * The audience mode reaches this in two places and nowhere else: `signed-in` adds one restriction to
- * `cohort` here, and `all` appends `buildHashedSiteEntryCohortCteSqlLines` as a second, independent
- * cohort whose counts are rows of their own, one per group key, that a section adds to the site steps.
- * Neither changes anything above, so the default mode produces exactly the statement it produced
- * before.
+ * `buildHashedSiteEntryCohortCteSqlLines` is appended as a second, independent cohort whose counts
+ * are rows of their own, one per group key, that a section adds to the site steps.
  */
 export function buildSiteEntryCohortCteSqlLines(
   filters: AnalyticsFilterState,
@@ -368,7 +364,6 @@ export function buildSiteEntryCohortCteSqlLines(
     "  LEFT JOIN entry_group_keys AS entry_key ON entry_key.actor_id = candidate.actor_id",
     "  WHERE TRUE",
     ...buildExcludedActorSqlLines("candidate.actor_id::text"),
-    ...buildFunnelAudienceActorSqlLines(filters, "candidate.actor_id::text"),
     `    AND ${buildConnectionCountriesFilterSql("candidate.actor_id::text", filters.connectionCountries, filters.dateRange)}`,
     `    AND ${buildAppUiLanguagesFilterSql("candidate.actor_id::text", filters.appUiLanguages, filters.dateRange)}`,
   ];

@@ -1,5 +1,4 @@
 import { useMemo, type JSX } from "react";
-import { buildFunnelAudienceEmptyStateNote } from "../../filters/analyticsFilters";
 import {
   buildFunnelGroupLabel,
   foldComparedFunnelGroups,
@@ -97,7 +96,6 @@ export function FirstLaunchFunnelBreakdownSection(
       };
     return { hasEntries, groups };
   }, [dimension, loadState, title]);
-  const audienceEmptyStateNote = buildFunnelAudienceEmptyStateNote(props.filters.funnelAudienceMode);
 
   return (
     <section className="dashboard-section funnel-report" data-testid={`funnel-first-launch-by-${dimension.id}`}>
@@ -120,7 +118,7 @@ export function FirstLaunchFunnelBreakdownSection(
           dateRange={props.filters.dateRange}
           showsHashedSplit={false}
           isGrouped
-          note={<><strong>No first app launches match these filters.</strong>{audienceEmptyStateNote === null ? null : <span>{audienceEmptyStateNote}</span>}</>}
+          note={<strong>No first app launches match these filters.</strong>}
         />
       ) : null}
 

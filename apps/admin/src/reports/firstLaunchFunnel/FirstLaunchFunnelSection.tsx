@@ -1,6 +1,6 @@
 import { useMemo, type JSX } from "react";
 import type { AdminAppConfig } from "../../config";
-import { buildFunnelAudienceEmptyStateNote, type AnalyticsFilterState } from "../../filters/analyticsFilters";
+import type { AnalyticsFilterState } from "../../filters/analyticsFilters";
 import type { FunnelAnchor } from "../funnels/funnelAnchorUrl";
 import { FunnelEmptyRangeNotes } from "../funnels/FunnelEmptyRangeNotes";
 import { FunnelMaturingWarning } from "../funnels/FunnelMaturingWarning";
@@ -73,7 +73,7 @@ function buildStartDateNote(dateRange: AnalyticsFilterState["dateRange"]): strin
 /**
  * The seven steps of one group. Every `hashedCount` is zero and the chart is never told to show a
  * split, because the daily visitor hash exists only on credential-free collector rows, which this
- * funnel never reads, so the `all` audience mode counts exactly who `with-anonymous-id` counts here.
+ * funnel never reads.
  */
 export function buildFirstLaunchFunnelStages(
   counts: FirstLaunchFunnelCounts,
@@ -141,7 +141,6 @@ export function FirstLaunchFunnelSection(props: FunnelSectionProps): JSX.Element
   const primaryRange = rangeViews[0];
   const hasEntries = rangeViews.some((range) => range.hasEntries);
   const isComparing = props.filters.comparisonDateRange !== null;
-  const audienceEmptyStateNote = buildFunnelAudienceEmptyStateNote(props.filters.funnelAudienceMode);
 
   return (
     <section className="dashboard-section funnel-report">
@@ -165,14 +164,13 @@ export function FirstLaunchFunnelSection(props: FunnelSectionProps): JSX.Element
           label="Loading first launch funnel…"
         />
       ) : null}
-      {/* The audience mode is named here because it is not one of the filters the heading blames and `Reset all` does not clear it. */}
       {loadState.status === "ready" && hasEntries === false ? (
         <FunnelStepsEmptyChart
           countLabel="People"
           dateRange={props.filters.dateRange}
           showsHashedSplit={false}
           isGrouped={isComparing}
-          note={<><strong>No first app launches match these filters.</strong><span>Only a person whose first event anywhere is launching the iOS, Android or web app on a selected day enters this funnel; a website visit, a sign-in page and a reconstructed open are not launches.</span>{audienceEmptyStateNote === null ? null : <span>{audienceEmptyStateNote}</span>}</>}
+          note={<><strong>No first app launches match these filters.</strong><span>Only a person whose first event anywhere is launching the iOS, Android or web app on a selected day enters this funnel; a website visit, a sign-in page and a reconstructed open are not launches.</span></>}
         />
       ) : null}
 
@@ -194,7 +192,7 @@ export function FirstLaunchFunnelSection(props: FunnelSectionProps): JSX.Element
           <p>Every step counts people: a person adds at most one to each step, and counts at a step only after reaching every step above it.</p>
           <p>One row is one person, anchored at their first app launch on iOS, Android or web in the selected UTC dates, and only when that launch is their first trusted event anywhere. The one exception is a <code>card_created</code> up to {firstLaunchDemoCardAllowanceSeconds} seconds before it, the demo card the app seeds on first launch. A launch is an <code>app_opened</code> or a <code>screen_viewed</code> the app itself sent, whichever came first. The auth service&rsquo;s sign-in page is not the app, so its rows are ignored entirely; a reconstructed <code>app_opened</code> (origin <code>backfill</code>) is never a launch but still counts as earlier activity. First launches count from {firstLaunchFunnelStartDate}, the first UTC day every app reported every step.</p>
           <p>Every later step is that same person within seven days of the first launch, each at or after the step above it: the review screen, which the launch itself may be, a revealed answer, a first answered review, then two reviews, reviews on two UTC days, and {firstLaunchEngagedReviewThreshold} reviews over three days, on any device. A person still inside their seven-day window is not a confirmed drop-off.</p>
-          <p>The platform is the first launch&rsquo;s, so a selection without iOS, Android or web empties this funnel; the country and language keep a person the way they do on General. Test accounts, admins and excluded actors are left out. <strong>Signed-in only</strong> keeps people who resolve to a real, non-guest account; <strong>All</strong> counts the same people as <strong>With anonymous ID</strong>, because cookieless visitors exist only on credential-free collector rows, which this funnel never reads.</p>
+          <p>The platform is the first launch&rsquo;s, so a selection without iOS, Android or web empties this funnel; the country and language keep a person the way they do on General. Test accounts, admins and excluded actors are left out.</p>
         </details>
       ) : null}
     </section>
