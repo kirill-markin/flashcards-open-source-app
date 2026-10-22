@@ -310,7 +310,7 @@ final class ReviewContentAttachment: NSTextAttachment {
         self.content = content
         self.copyText = copyText
         self.layout = layout
-        super.init(data: Data(copyText.utf8), ofType: Self.contentType)
+        super.init(data: nil, ofType: Self.contentType)
     }
 
     required init?(coder: NSCoder) { nil }
@@ -333,6 +333,11 @@ final class ReviewContentAttachment: NSTextAttachment {
     @MainActor
     fileprivate func registerHostedView(_ view: UIView) { self.hostedViews.add(view) }
     #endif
+
+    // The view provider renders the content; form labels must not also draw a fallback file icon.
+    nonisolated override func image(for bounds: CGRect, attributes: [NSAttributedString.Key: Any], location: any NSTextLocation, textContainer: NSTextContainer?) -> UIImage? {
+        nil
+    }
 
     nonisolated override func viewProvider(for parentView: UIView?, location: any NSTextLocation, textContainer: NSTextContainer?) -> NSTextAttachmentViewProvider? {
         let provider = super.viewProvider(for: parentView, location: location, textContainer: textContainer)
