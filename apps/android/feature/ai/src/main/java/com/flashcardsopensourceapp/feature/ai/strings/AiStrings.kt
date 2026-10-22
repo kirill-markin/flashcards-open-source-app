@@ -5,6 +5,8 @@ import com.flashcardsopensourceapp.core.ui.bidiWrap
 import com.flashcardsopensourceapp.core.ui.currentResourceLocale
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatAttachmentLimitViolation
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatToolCallStatus
+import com.flashcardsopensourceapp.data.local.model.ai.aiChatAttachmentUnsupportedTypeCode
+import com.flashcardsopensourceapp.data.local.model.ai.openAiApiKeyInvalidCode
 import com.flashcardsopensourceapp.feature.ai.R
 import com.flashcardsopensourceapp.feature.ai.runtime.errors.AiAlertState
 import com.flashcardsopensourceapp.feature.ai.runtime.errors.AiAttachmentSettingsSource
@@ -27,6 +29,17 @@ data class AiTextProvider(
     val responseInProgress: String,
     val chatNotCurrentNotice: String,
     val chatFailed: String,
+    val chatErrorRunDeadlineReached: String,
+    val chatErrorRunInterrupted: String,
+    val chatErrorRuntime: String,
+    val chatErrorProvider: String,
+    val chatErrorProviderAuthFailed: String,
+    val chatErrorProviderRateLimited: String,
+    val chatErrorProviderUnavailable: String,
+    val chatErrorProviderAborted: String,
+    val chatErrorContextLengthExceeded: String,
+    val chatErrorConsentRequired: String,
+    val chatErrorOpenAiApiKeyInvalid: String,
     val liveStreamEndedBeforeCompletion: String,
     val errorTitle: String,
     val dictationRequestingPermission: String,
@@ -236,6 +249,25 @@ data class AiTextProvider(
         )
     }
 
+    /** A run's terminal error by its server code; the stored text for no code and for codes newer than this build. */
+    fun chatErrorText(errorCode: String?, storedText: String): String {
+        return when (errorCode) {
+            "CHAT_RUN_DEADLINE_REACHED" -> chatErrorRunDeadlineReached
+            "CHAT_RUN_INTERRUPTED" -> chatErrorRunInterrupted
+            "CHAT_RUNTIME_ERROR" -> chatErrorRuntime
+            "CHAT_PROVIDER_ERROR" -> chatErrorProvider
+            "CHAT_PROVIDER_AUTH_FAILED" -> chatErrorProviderAuthFailed
+            "CHAT_PROVIDER_RATE_LIMITED" -> chatErrorProviderRateLimited
+            "CHAT_PROVIDER_UNAVAILABLE" -> chatErrorProviderUnavailable
+            "CHAT_PROVIDER_ABORTED" -> chatErrorProviderAborted
+            "CHAT_CONTEXT_LENGTH_EXCEEDED" -> chatErrorContextLengthExceeded
+            aiChatAttachmentUnsupportedTypeCode -> attachmentUnsupportedMessage
+            "AI_CONSENT_REQUIRED" -> chatErrorConsentRequired
+            openAiApiKeyInvalidCode -> chatErrorOpenAiApiKeyInvalid
+            else -> storedText
+        }
+    }
+
     /** The provider's text stays unchanged below the prefix. */
     fun ownOpenAiKeyErrorMessage(providerMessage: String): String {
         return "$ownOpenAiKeyErrorPrefix\n\n$providerMessage"
@@ -270,6 +302,17 @@ fun aiTextProvider(context: Context): AiTextProvider {
         responseInProgress = context.getString(R.string.ai_response_in_progress),
         chatNotCurrentNotice = context.getString(R.string.ai_chat_not_current_notice),
         chatFailed = context.getString(R.string.ai_chat_failed),
+        chatErrorRunDeadlineReached = context.getString(R.string.ai_chat_error_run_deadline_reached),
+        chatErrorRunInterrupted = context.getString(R.string.ai_chat_error_run_interrupted),
+        chatErrorRuntime = context.getString(R.string.ai_chat_error_runtime),
+        chatErrorProvider = context.getString(R.string.ai_chat_error_provider),
+        chatErrorProviderAuthFailed = context.getString(R.string.ai_chat_error_provider_auth_failed),
+        chatErrorProviderRateLimited = context.getString(R.string.ai_chat_error_provider_rate_limited),
+        chatErrorProviderUnavailable = context.getString(R.string.ai_chat_error_provider_unavailable),
+        chatErrorProviderAborted = context.getString(R.string.ai_chat_error_provider_aborted),
+        chatErrorContextLengthExceeded = context.getString(R.string.ai_chat_error_context_length_exceeded),
+        chatErrorConsentRequired = context.getString(R.string.ai_chat_error_consent_required),
+        chatErrorOpenAiApiKeyInvalid = context.getString(R.string.ai_chat_error_openai_api_key_invalid),
         liveStreamEndedBeforeCompletion = context.getString(R.string.ai_live_stream_ended_before_completion),
         errorTitle = context.getString(R.string.ai_alert_error_title),
         dictationRequestingPermission = context.getString(R.string.ai_dictation_requesting_permission),
@@ -359,6 +402,17 @@ fun testAiTextProvider(): AiTextProvider {
         responseInProgress = "A response is already in progress. Wait for it to finish or stop it before sending another message.",
         chatNotCurrentNotice = "This chat was replaced by a newer one. Your message is still in the box — send it again.",
         chatFailed = "AI chat failed.",
+        chatErrorRunDeadlineReached = "This took too long, so I stopped. Everything already saved is kept. Write \"continue\" to finish the rest.",
+        chatErrorRunInterrupted = "The AI response was interrupted before it finished. Please try again.",
+        chatErrorRuntime = "The AI response failed before it could finish. Please try again.",
+        chatErrorProvider = "The AI service could not complete the response. Please try again.",
+        chatErrorProviderAuthFailed = "The AI service could not authenticate the request. Please try again later.",
+        chatErrorProviderRateLimited = "The AI service is rate limited right now. Please try again in a few minutes.",
+        chatErrorProviderUnavailable = "The AI service is temporarily unavailable. Please try again soon.",
+        chatErrorProviderAborted = "The AI request was interrupted. Please try again.",
+        chatErrorContextLengthExceeded = "This conversation has grown too long for the AI to continue. Please start a new chat to keep going.",
+        chatErrorConsentRequired = "AI consent was withdrawn or superseded. Review the disclosure and grant consent before sending another message.",
+        chatErrorOpenAiApiKeyInvalid = "Your OpenAI key does not work. Check it in Settings.",
         liveStreamEndedBeforeCompletion = "AI live stream ended before message completion.",
         errorTitle = "Error",
         dictationRequestingPermission = "Requesting microphone access...",

@@ -144,9 +144,13 @@ internal class AiChatRuntimeContext(
         return textProvider.aiLimitReachedAccountMessage(monthEndsAtMillis = usage.monthEndsAtMillis)
     }
 
-    /** A failed run's text, under the own-key prefix while the person's own OpenAI key is on. */
-    fun runErrorMessage(message: String): String {
-        if (aiChatRepository.isOwnOpenAiKeyActive().not()) {
+    /**
+     * A failed run's text, under the own-key prefix while the person's own OpenAI key is on and the
+     * error has no code: a coded error is a platform outcome or the invalid-key text, not OpenAI's.
+     */
+    fun runErrorMessage(errorCode: String?, storedText: String): String {
+        val message = textProvider.chatErrorText(errorCode = errorCode, storedText = storedText)
+        if (aiChatRepository.isOwnOpenAiKeyActive().not() || errorCode != null) {
             return message
         }
         return textProvider.ownOpenAiKeyErrorMessage(providerMessage = message)

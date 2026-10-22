@@ -127,5 +127,6 @@ export function buildLocalChatMessages(
     role: message.role,
     content: message.content,
     ...(message.openaiItems !== undefined ? { openaiItems: message.openaiItems } : {}),
+    isError: message.isError,
   }));
 }

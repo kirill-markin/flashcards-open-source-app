@@ -35,6 +35,7 @@ final class AIChatStoreRunTerminalRecoveryTests: XCTestCase {
             content: [.text("Explain this card.")],
             timestamp: isoTimestampFromMilliseconds(fixtureTimestamp - 11_000),
             isError: false,
+            errorCode: nil,
             isStopped: false,
             cursor: nil,
             itemId: nil
@@ -45,6 +46,7 @@ final class AIChatStoreRunTerminalRecoveryTests: XCTestCase {
             content: [],
             timestamp: isoTimestampFromMilliseconds(fixtureTimestamp - 10_000),
             isError: false,
+            errorCode: nil,
             isStopped: false,
             cursor: nil,
             itemId: nil
@@ -128,6 +130,7 @@ final class AIChatStoreRunTerminalRecoveryTests: XCTestCase {
                 itemId: "item-current",
                 content: [],
                 isError: false,
+                errorCode: nil,
                 isStopped: false
             )
         )
@@ -223,6 +226,7 @@ final class AIChatStoreRunTerminalRecoveryTests: XCTestCase {
             content: [.text("Explain this card.")],
             timestamp: "2026-04-08T10:02:00Z",
             isError: false,
+            errorCode: nil,
             isStopped: false,
             cursor: nil,
             itemId: nil
@@ -233,6 +237,7 @@ final class AIChatStoreRunTerminalRecoveryTests: XCTestCase {
             content: [],
             timestamp: "2026-04-08T10:02:01Z",
             isError: false,
+            errorCode: nil,
             isStopped: false,
             cursor: "cursor-2",
             itemId: "item-current"
@@ -288,6 +293,7 @@ final class AIChatStoreRunTerminalRecoveryTests: XCTestCase {
                 content: [.text("AI live stream failed.")],
                 timestamp: stampedOptimisticAssistantMessage.timestamp,
                 isError: true,
+                errorCode: nil,
                 isStopped: false,
                 cursor: stampedOptimisticAssistantMessage.cursor,
                 itemId: stampedOptimisticAssistantMessage.itemId
@@ -339,6 +345,7 @@ final class AIChatStoreRunTerminalRecoveryTests: XCTestCase {
             content: [.text("Explain this card.")],
             timestamp: "2026-04-08T10:02:00Z",
             isError: false,
+            errorCode: nil,
             isStopped: false,
             cursor: nil,
             itemId: nil
@@ -349,6 +356,7 @@ final class AIChatStoreRunTerminalRecoveryTests: XCTestCase {
             content: [],
             timestamp: "2026-04-08T10:02:01Z",
             isError: false,
+            errorCode: nil,
             isStopped: false,
             cursor: "cursor-2",
             itemId: "item-current"
@@ -404,6 +412,7 @@ final class AIChatStoreRunTerminalRecoveryTests: XCTestCase {
                 content: [.text("AI live stream failed.")],
                 timestamp: optimisticAssistantMessage.timestamp,
                 isError: true,
+                errorCode: nil,
                 isStopped: false,
                 cursor: optimisticAssistantMessage.cursor,
                 itemId: optimisticAssistantMessage.itemId
@@ -444,6 +453,7 @@ final class AIChatStoreRunTerminalRecoveryTests: XCTestCase {
             content: [.text("Explain this card.")],
             timestamp: "2026-04-08T10:02:00Z",
             isError: false,
+            errorCode: nil,
             isStopped: false,
             cursor: nil,
             itemId: nil
@@ -454,6 +464,7 @@ final class AIChatStoreRunTerminalRecoveryTests: XCTestCase {
             content: [],
             timestamp: "2026-04-08T10:02:01Z",
             isError: false,
+            errorCode: nil,
             isStopped: false,
             cursor: "cursor-2",
             itemId: "item-current"

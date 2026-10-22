@@ -25,9 +25,14 @@ extension AIChatStore {
         self.showGeneralError(message: aiChatAccountLimitReachedMessage(usage: currentMonthUsage))
     }
 
-    /// A run that fails on the person's own key ends with OpenAI's text, which is shown under the key prefix.
-    func aiChatRunFailureAlertMessage(message: String) -> String {
-        guard self.flashcardsStore.isOwnOpenAIKeyActive else {
+    /// A known terminal error code shows its client copy. Only an uncoded failure on the person's own key is OpenAI's text,
+    /// which is shown under the key prefix; any code is a platform outcome that must not blame the key.
+    func aiChatRunFailureAlertMessage(message: String, errorCode: String?) -> String {
+        if let terminalErrorMessage = aiChatTerminalErrorMessage(errorCode: errorCode) {
+            return terminalErrorMessage
+        }
+
+        guard errorCode == nil, self.flashcardsStore.isOwnOpenAIKeyActive else {
             return message
         }
 

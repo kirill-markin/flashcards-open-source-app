@@ -176,6 +176,7 @@ class AiRouteTest : FirebaseAppInstrumentationTimeoutTest() {
                                 ),
                                 timestampMillis = 1L,
                                 isError = false,
+                                errorCode = null,
                                 isStopped = false,
                                 cursor = null,
                                 itemId = null
@@ -242,6 +243,7 @@ class AiRouteTest : FirebaseAppInstrumentationTimeoutTest() {
                                 content = listOf(AiChatContentPart.Text(text = aiChatOptimisticAssistantStatusToken)),
                                 timestampMillis = 1L,
                                 isError = false,
+                                errorCode = null,
                                 isStopped = false,
                                 cursor = null,
                                 itemId = null
@@ -592,6 +594,7 @@ class AiRouteTest : FirebaseAppInstrumentationTimeoutTest() {
                                 content = listOf(AiChatContentPart.Text(text = "Build a deck from this note.")),
                                 timestampMillis = 1L,
                                 isError = false,
+                                errorCode = null,
                                 isStopped = false,
                                 cursor = null,
                                 itemId = null
@@ -663,6 +666,7 @@ class AiRouteTest : FirebaseAppInstrumentationTimeoutTest() {
                                 content = listOf(AiChatContentPart.Text(text = "hi")),
                                 timestampMillis = 1L,
                                 isError = false,
+                                errorCode = null,
                                 isStopped = false,
                                 cursor = null,
                                 itemId = null
@@ -740,6 +744,7 @@ class AiRouteTest : FirebaseAppInstrumentationTimeoutTest() {
                                         ),
                                         timestampMillis = 1L,
                                         isError = false,
+                                        errorCode = null,
                                         isStopped = false,
                                         cursor = null,
                                         itemId = null
@@ -882,6 +887,7 @@ class AiRouteTest : FirebaseAppInstrumentationTimeoutTest() {
                                 ),
                                 timestampMillis = 1L,
                                 isError = false,
+                                errorCode = null,
                                 isStopped = false,
                                 cursor = null,
                                 itemId = "item-1"

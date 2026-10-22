@@ -300,6 +300,7 @@ class AiChatHistoryStore(
             .put("content", JSONArray(message.content.map(::encodeContentPart)))
             .put("timestampMillis", message.timestampMillis)
             .put("isError", message.isError)
+            .put("errorCode", message.errorCode ?: JSONObject.NULL)
             .put("isStopped", message.isStopped)
             .put("cursor", message.cursor ?: JSONObject.NULL)
             .put("itemId", message.itemId ?: JSONObject.NULL)
@@ -330,6 +331,7 @@ class AiChatHistoryStore(
             ),
             timestampMillis = jsonObject.getLong("timestampMillis"),
             isError = jsonObject.getBoolean("isError"),
+            errorCode = if (jsonObject.isNull("errorCode")) null else jsonObject.getString("errorCode"),
             isStopped = jsonObject.optBoolean("isStopped", false),
             cursor = jsonObject.optString("cursor", "").ifBlank { null },
             itemId = jsonObject.optString("itemId", "").ifBlank { null }

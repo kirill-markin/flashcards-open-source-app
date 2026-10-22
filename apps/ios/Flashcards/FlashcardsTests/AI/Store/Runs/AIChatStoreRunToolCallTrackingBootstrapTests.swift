@@ -33,6 +33,7 @@ final class AIChatStoreRunToolCallTrackingBootstrapTests: XCTestCase {
                     ],
                     timestamp: "2026-04-08T10:00:00Z",
                     isError: false,
+                    errorCode: nil,
                     isStopped: true,
                     cursor: "cursor-1",
                     itemId: "item-1"
@@ -89,6 +90,7 @@ final class AIChatStoreRunToolCallTrackingBootstrapTests: XCTestCase {
                     ],
                     timestamp: "2026-04-08T10:00:00Z",
                     isError: false,
+                    errorCode: nil,
                     isStopped: true,
                     cursor: "cursor-1",
                     itemId: "item-1"

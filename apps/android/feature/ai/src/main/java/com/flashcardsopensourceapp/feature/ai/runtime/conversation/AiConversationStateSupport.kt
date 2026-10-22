@@ -22,6 +22,7 @@ internal fun makeUserMessage(
         content = content,
         timestampMillis = timestampMillis,
         isError = false,
+        errorCode = null,
         isStopped = false,
         cursor = null,
         itemId = null
@@ -37,6 +38,7 @@ internal fun makeAssistantStatusMessage(timestampMillis: Long): AiChatMessage {
         ),
         timestampMillis = timestampMillis,
         isError = false,
+        errorCode = null,
         isStopped = false,
         cursor = null,
         itemId = null
@@ -345,6 +347,7 @@ internal fun finalizeAssistantMessage(
     itemId: String,
     cursor: String,
     isError: Boolean,
+    errorCode: String?,
     isStopped: Boolean
 ): AiChatPersistedState? {
     val resolution = resolveExistingStreamingAssistantMessage(
@@ -364,6 +367,7 @@ internal fun finalizeAssistantMessage(
             value = targetMessage.copy(
                 content = finalizedContent,
                 isError = isError,
+                errorCode = errorCode,
                 isStopped = isStopped,
                 cursor = cursor,
                 itemId = itemId
@@ -386,6 +390,7 @@ internal fun markAssistantError(
                     content = listOf(AiChatContentPart.Text(text = message)),
                     timestampMillis = timestampMillis,
                     isError = true,
+                    errorCode = null,
                     isStopped = false,
                     cursor = null,
                     itemId = null
@@ -403,6 +408,7 @@ internal fun markAssistantError(
                 content = listOf(AiChatContentPart.Text(text = message)),
                 timestampMillis = timestampMillis,
                 isError = true,
+                errorCode = null,
                 isStopped = false,
                 cursor = null,
                 itemId = null
@@ -423,7 +429,8 @@ internal fun markAssistantError(
                 content = finalizingAssistantContent(content = lastMessage.content),
                 text = separator + message
             ),
-            isError = true
+            isError = true,
+            errorCode = null
         )
     )
 }
@@ -444,6 +451,7 @@ internal fun appendAssistantAccountUpgradePrompt(
         content = listOf(prompt),
         timestampMillis = timestampMillis,
         isError = false,
+        errorCode = null,
         isStopped = false,
         cursor = null,
         itemId = null
@@ -466,16 +474,42 @@ internal fun appendAssistantAccountUpgradePrompt(
     return state.copy(messages = state.messages + promptMessage)
 }
 
-internal fun latestAssistantErrorMessage(messages: List<AiChatMessage>): String? {
+/** The latest assistant error message's code and trimmed text; `text` is null when it has none. */
+internal data class AiLatestAssistantError(
+    val errorCode: String?,
+    val text: String?
+)
+
+internal fun latestAssistantError(messages: List<AiChatMessage>): AiLatestAssistantError? {
     val assistantMessage = messages.lastOrNull { message ->
         message.role == AiChatRole.ASSISTANT && message.isError
     } ?: return null
 
-    val message = assistantMessage.content.filterIsInstance<AiChatContentPart.Text>()
+    val text = assistantMessage.content.filterIsInstance<AiChatContentPart.Text>()
         .joinToString(separator = "") { part -> part.text }
         .trim()
 
-    return message.ifEmpty { null }
+    return AiLatestAssistantError(
+        errorCode = assistantMessage.errorCode,
+        text = text.ifEmpty { null }
+    )
+}
+
+/**
+ * The latest error's code describes a terminal event only when the event has no message or carries
+ * that error's own text; a failure without a persisted error item must not take an older turn's code.
+ */
+internal fun runTerminalErrorCode(
+    eventMessage: String?,
+    latestError: AiLatestAssistantError?
+): String? {
+    if (latestError == null) {
+        return null
+    }
+    if (eventMessage == null || eventMessage.trim() == latestError.text) {
+        return latestError.errorCode
+    }
+    return null
 }
 
 private fun appendingAssistantTextPart(
@@ -632,6 +666,7 @@ private fun resolveStreamingAssistantMessage(
         content = emptyList(),
         timestampMillis = System.currentTimeMillis(),
         isError = false,
+        errorCode = null,
         isStopped = false,
         cursor = cursor,
         itemId = itemId

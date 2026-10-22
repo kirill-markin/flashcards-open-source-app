@@ -31,10 +31,9 @@ import {
   hardReminderAnswerCount,
   hardReminderHardLimit,
   reviewPromptIds,
-  reviewPrompts,
   type ReviewPromptActed,
   type ReviewPromptActedWindow,
-  type ReviewPromptCoverage,
+  type ReviewPromptStepCoverageSubject,
   type ReviewPromptId,
 } from "./reviewPromptDefinitions";
 import { buildReviewPromptShowingsCtes } from "./showingsSql";
@@ -47,14 +46,14 @@ export const reviewPromptFollowUpDays = 14;
 /**
  * One funnel step of a showing. `reachedSql` is the step's own fact as a boolean over `showing`, a
  * `prompt_showings` row; a showing counts at a step only when it also reached every step above it.
- * `coverage` is when the step's own event starts being reported, when later than the prompt's, else `null`.
+ * `coverageSubject` names the step's own event when its first report is its own, else `null`.
  */
 export type ReviewPromptStep = Readonly<{
   id: string;
   label: string;
   rule: string;
   reachedSql: string;
-  coverage: ReadonlyArray<ReviewPromptCoverage> | null;
+  coverageSubject: ReviewPromptStepCoverageSubject | null;
 }>;
 
 export type ReviewPromptFunnel = Readonly<{
@@ -84,13 +83,13 @@ const shownStep: ReviewPromptStep = {
   label: "Shown",
   rule: "Every showing on a selected day.",
   reachedSql: "TRUE",
-  coverage: null,
+  coverageSubject: null,
 };
 
 /** The table's Acted, as a step. */
 function buildActedStep(promptId: ReviewPromptId, id: string, label: string): ReviewPromptStep {
   const acted = getActedRule(promptId);
-  return { id, label, rule: `${acted.rule} within ${formatReviewPromptActedWindow(acted.window)}.`, reachedSql: "showing.acted", coverage: null };
+  return { id, label, rule: `${acted.rule} within ${formatReviewPromptActedWindow(acted.window)}.`, reachedSql: "showing.acted", coverageSubject: null };
 }
 
 /** The prompt's own accept button, inside its Acted window; `prompt_event_rows` holds those answers. */
@@ -109,7 +108,7 @@ function buildAcceptedStep(promptId: ReviewPromptId, promptKey: string, id: stri
       WHERE answer.event_name = 'prompt_answered'
         AND answer.prompt = ${escapeSqlStringLiteral(promptKey)}
         AND answer.outcome = 'accepted')`,
-    coverage: null,
+    coverageSubject: null,
   };
 }
 
@@ -118,13 +117,13 @@ function buildFollowUpStep(
   id: string,
   label: string,
   rule: string,
-  coverage: ReadonlyArray<ReviewPromptCoverage> | null,
+  coverageSubject: ReviewPromptStepCoverageSubject | null,
 ): ReviewPromptStep {
   return {
     id,
     label,
     rule,
-    coverage,
+    coverageSubject,
     reachedSql: `showing.showing_id IN (
       SELECT returned.showing_id
       FROM prompt_showings AS returned
@@ -141,7 +140,7 @@ function buildPaywallFlowStep(flag: "chose_premium" | "checkout", id: string, la
     label,
     rule,
     reachedSql: `showing.showing_id IN (SELECT flow.shown_event_id FROM flow_outcomes AS flow WHERE flow.${flag})`,
-    coverage: null,
+    coverageSubject: null,
   };
 }
 
@@ -154,9 +153,6 @@ function buildPaywallSteps(promptId: ReviewPromptId): ReadonlyArray<ReviewPrompt
   ];
 }
 
-// The first whole UTC day iOS and Android report `notification_opened`, after the prompt itself.
-const notificationOpenedCoverageStart = { date: "2026-10-04", version: "1.29.0" } as const;
-
 const reviewPromptSteps: Readonly<Record<ReviewPromptId, ReadonlyArray<ReviewPromptStep>>> = {
   "paywall-initial": buildPaywallSteps("paywall-initial"),
   "paywall-day3": buildPaywallSteps("paywall-day3"),
@@ -168,8 +164,8 @@ const reviewPromptSteps: Readonly<Record<ReviewPromptId, ReadonlyArray<ReviewPro
     buildFollowUpStep(
       "notification-opened",
       "Notification opened",
-      `A notification opened within ${reviewPromptFollowUpDays} days; apps older than ${notificationOpenedCoverageStart.version} never report it.`,
-      [{ platform: "ios", start: notificationOpenedCoverageStart }, { platform: "android", start: notificationOpenedCoverageStart }],
+      `A notification opened within ${reviewPromptFollowUpDays} days, on an app that reports it.`,
+      "notification-opened",
     ),
   ],
   "hard-reminder": [
@@ -182,7 +178,7 @@ const reviewPromptSteps: Readonly<Record<ReviewPromptId, ReadonlyArray<ReviewPro
       label: "Requested",
       rule: "A rating dialog requested from Apple or Google, which decide on their own whether it appears.",
       reachedSql: "TRUE",
-      coverage: null,
+      coverageSubject: null,
     },
   ],
   "web-mobile-app-promo": [
@@ -258,10 +254,8 @@ export const reviewPromptGroupByDimensions: ReadonlyArray<FunnelGroupByDimension
   { id: appUiLanguageGroupByDimensionId, label: "App interface language", buildGroupKeySql: () => "actor_language.ui_locale" },
 ];
 
-/** The earliest first counted day of any prompt, where a person's showing number starts. */
-const showingHistoryStartDate = reviewPrompts
-  .flatMap((prompt) => prompt.coverage.flatMap((coverage) => (coverage.start === null ? [] : [coverage.start.date])))
-  .reduce((earliest, date) => (date < earliest ? date : earliest));
+/** The first UTC day any prompt was shown, where a person's showing number starts. */
+const showingHistoryStartDate = "2026-06-05";
 
 /** Reads `prompt_actors`, the people of the prompt's showings in the funnel query. */
 const promptActorIdsSql = "SELECT prompt_actor.actor_id FROM prompt_actors AS prompt_actor";
@@ -269,7 +263,7 @@ const promptActorIdsSql = "SELECT prompt_actor.actor_id FROM prompt_actors AS pr
 /**
  * Only the source the selected dimension reads, because each is a scan of its own; country and
  * language are placed once, for the prompt's people only. The showing number counts the person's
- * showings of this prompt on every platform from the first counted day, whatever the selected range
+ * showings of this prompt on every platform from the first day any prompt was shown, whatever the selected range
  * and filters, so it reruns the showings over that whole history.
  */
 function buildGroupSourceSql(

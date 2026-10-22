@@ -343,6 +343,7 @@ extension AIChatStore {
                 self.transitionToIdle()
                 self.showLiveReconciledError(
                     message: errorMessage,
+                    errorCode: aiChatTerminalAlertErrorCode(eventMessage: nil, messages: response.conversation.messages),
                     sessionId: sessionId,
                     runId: reconciledRunId,
                     afterCursor: reconciledAfterCursor,
@@ -422,6 +423,7 @@ extension AIChatStore {
                 self.transitionToIdle()
                 self.showLiveReconciledError(
                     message: errorMessage,
+                    errorCode: aiChatTerminalAlertErrorCode(eventMessage: nil, messages: response.conversation.messages),
                     sessionId: sessionId,
                     runId: reconciledRunId,
                     afterCursor: reconciledAfterCursor,
@@ -509,18 +511,36 @@ struct AIChatFailedLiveOptimisticFallbackAnchor {
     let previousMessageId: String?
 }
 
+/// The latest assistant error message's code, used only when the terminal event names no other failure:
+/// a different event message is a newer failure, such as a lost live poll, that has no stored error message.
+func aiChatTerminalAlertErrorCode(eventMessage: String?, messages: [AIChatMessage]) -> String? {
+    guard let assistantMessage = messages.last(where: { $0.role == .assistant && $0.isError }) else {
+        return nil
+    }
+
+    let trimmedEventMessage = eventMessage?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+    guard trimmedEventMessage.isEmpty || trimmedEventMessage == aiChatMessageText(message: assistantMessage) else {
+        return nil
+    }
+
+    return assistantMessage.errorCode
+}
+
 func aiChatLatestAssistantErrorMessage(messages: [AIChatMessage]) -> String? {
     guard let assistantMessage = messages.last(where: { $0.role == .assistant && $0.isError }) else {
         return nil
     }
 
-    let message = assistantMessage.content.reduce(into: "") { result, part in
+    let message = aiChatMessageText(message: assistantMessage)
+    return message.isEmpty ? nil : message
+}
+
+func aiChatMessageText(message: AIChatMessage) -> String {
+    message.content.reduce(into: "") { result, part in
         if case .text(let text) = part {
             result.append(text)
         }
     }.trimmingCharacters(in: .whitespacesAndNewlines)
-
-    return message.isEmpty ? nil : message
 }
 
 func aiChatShouldApplyFailedLiveOptimisticFallback(

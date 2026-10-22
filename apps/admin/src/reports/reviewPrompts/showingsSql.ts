@@ -19,13 +19,13 @@ import {
 
 const reportLabel = "Review prompt showings";
 
-const paywallPromptIdsByReviewTrigger = {
+export const paywallPromptIdsByReviewTrigger = {
   initial: "paywall-initial",
   day3: "paywall-day3",
   weekly: "paywall-weekly",
 } as const satisfies Readonly<Record<string, ReviewPromptId>>;
 
-const promptIdsByScreen = {
+export const promptIdsByScreen = {
   notifications_pre_prompt: "notifications-pre-prompt",
   review_hard_reminder: "hard-reminder",
   mobile_app_prompt: "web-mobile-app-promo",
@@ -36,26 +36,34 @@ function buildPromptIdSql(promptId: ReviewPromptId): string {
   return escapeSqlStringLiteral(promptId);
 }
 
-function buildValueListSql(values: ReadonlyArray<string>): string {
+export function buildValueListSql(values: ReadonlyArray<string>): string {
   return values.map(escapeSqlStringLiteral).join(", ");
 }
 
-function buildPromptIdCaseSql(keySqlExpression: string, promptIdsByKey: Readonly<Record<string, ReviewPromptId>>): string {
+export function buildPromptIdCaseSql(keySqlExpression: string, promptIdsByKey: Readonly<Record<string, ReviewPromptId>>): string {
   const branches = Object.entries(promptIdsByKey)
     .map(([key, promptId]) => `WHEN ${escapeSqlStringLiteral(key)} THEN ${escapeSqlStringLiteral(promptId)}`);
   return `CASE ${keySqlExpression} ${branches.join(" ")} END`;
 }
 
-/** A showing counts only on a platform its prompt runs on, from that platform's first counted day. */
-function buildCoverageSql(alias: string): string {
-  return reviewPrompts.flatMap((prompt) => prompt.coverage.map((coverage) => [
-    `(${alias}.prompt_id = ${escapeSqlStringLiteral(prompt.id)}`,
-    `AND ${alias}.platform = ${escapeSqlStringLiteral(coverage.platform)}`,
-    ...(coverage.start === null
-      ? []
-      : [`AND ${alias}.shown_at >= (${escapeSqlStringLiteral(coverage.start.date)}::date)::timestamp AT TIME ZONE 'UTC'`]),
-  ].join(" ").concat(")"))).join("\n      OR ");
+/** A showing counts only on a platform its prompt runs on. */
+function buildPromptPlatformsSql(alias: string): string {
+  return reviewPrompts.map((prompt) => (
+    `(${alias}.prompt_id = ${escapeSqlStringLiteral(prompt.id)} AND ${alias}.platform IN (${buildValueListSql(prompt.platforms)}))`
+  )).join("\n      OR ");
 }
+
+/**
+ * Each guest user id with the account its upgrade moved it to. A feedback row keeps the guest's user
+ * id until the upgrade moves it, so it resolves to the account the way the analytics view resolves a
+ * guest's events.
+ */
+export const guestUpgradesCteBodySql = `SELECT DISTINCT ON (identity_links.anonymous_id)
+    identity_links.anonymous_id AS guest_user_id,
+    identity_links.user_id AS account_user_id
+  FROM analytics.identity_links AS identity_links
+  WHERE identity_links.source = 'server_derived'
+  ORDER BY identity_links.anonymous_id, identity_links.linked_at, identity_links.link_id`;
 
 /** The end of a showing's acted window, NULL for a prompt whose answer nobody reports. */
 function buildActedWindowEndsAtSql(alias: string): string {
@@ -105,14 +113,7 @@ export function buildReviewPromptShowingsCtes(filters: AnalyticsFilterState): st
     AND event.occurred_at < ${followUpEnd}
     AND event.occurred_at <= now()
 ), guest_upgrades AS (
-  -- A feedback row keeps the guest's user id until the upgrade moves it, so it resolves to the
-  -- account the way the analytics view resolves a guest's events.
-  SELECT DISTINCT ON (identity_links.anonymous_id)
-    identity_links.anonymous_id AS guest_user_id,
-    identity_links.user_id AS account_user_id
-  FROM analytics.identity_links AS identity_links
-  WHERE identity_links.source = 'server_derived'
-  ORDER BY identity_links.anonymous_id, identity_links.linked_at, identity_links.link_id
+  ${guestUpgradesCteBodySql}
 ), automatic_feedback_submissions AS MATERIALIZED (
   SELECT COALESCE(guest_upgrade.account_user_id::text, pg_catalog.lower(submission.user_id)) AS actor_id,
     submission.created_at_server AS submitted_at
@@ -153,7 +154,7 @@ export function buildReviewPromptShowingsCtes(filters: AnalyticsFilterState): st
   SELECT candidate.*, ${buildActedWindowEndsAtSql("candidate")} AS acted_window_ends_at
   FROM showing_candidates AS candidate
   WHERE (
-      ${buildCoverageSql("candidate")}
+      ${buildPromptPlatformsSql("candidate")}
     )
     AND ${buildEventPlatformsFilterSql("COALESCE(candidate.platform, 'unattributed')", filters.eventPlatforms)}
     AND ${buildConnectionCountriesFilterSql("candidate.actor_id", filters.connectionCountries, filters.dateRange)}

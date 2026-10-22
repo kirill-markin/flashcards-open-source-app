@@ -66,6 +66,7 @@ func aiChatLiveEventLogMetadata(
         itemId: let itemId,
         content: let content,
         isError: let isError,
+        errorCode: _,
         isStopped: let isStopped
     ):
         metadata["eventType"] = "assistant_message_done"
@@ -176,7 +177,14 @@ func aiChatLiveEventMetadata(_ event: AIChatLiveEvent) -> AIChatLiveEventMetadat
         return metadata
     case .assistantReasoningDone(metadata: let metadata, reasoningId: _, itemId: _):
         return metadata
-    case .assistantMessageDone(metadata: let metadata, itemId: _, content: _, isError: _, isStopped: _):
+    case .assistantMessageDone(
+        metadata: let metadata,
+        itemId: _,
+        content: _,
+        isError: _,
+        errorCode: _,
+        isStopped: _
+    ):
         return metadata
     case .composerSuggestionsUpdated(metadata: let metadata, suggestions: _):
         return metadata
