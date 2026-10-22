@@ -22,6 +22,8 @@ export function GuestConversionScreen(props: Readonly<{ returnUrl: string }>): R
   const { locale, t } = useI18n();
   const [phase, setPhase] = useState<"loading" | "auth" | "choose" | "hydrate" | "error">("loading");
   const [workspaces, setWorkspaces] = useState<ReadonlyArray<WorkspaceSummary>>([]);
+  const [isNamingWorkspace, setIsNamingWorkspace] = useState(false);
+  const [workspaceName, setWorkspaceName] = useState("");
   const [error, setError] = useState("");
   const running = useRef(false);
   const bootstrapSettled = useRef(false);
@@ -173,8 +175,21 @@ export function GuestConversionScreen(props: Readonly<{ returnUrl: string }>): R
         {workspaces.map((workspace) => <button type="button" className="workspace-choice-btn" key={workspace.workspaceId}
           data-testid="guest-destination" data-workspace-id={workspace.workspaceId}
           onClick={() => void choose({ type: "existing", workspaceId: workspace.workspaceId })}>{workspace.name}</button>)}
-        <button type="button" className="primary-btn" data-testid="guest-create-workspace" onClick={() => void choose({ type: "create_new" })}>
-          {t("accountMenu.newWorkspace")}</button>
+        {isNamingWorkspace ? <form className="settings-workspace-create-form" onSubmit={(event) => {
+          event.preventDefault();
+          if (workspaceName.trim() !== "") void choose({ type: "create_new", name: workspaceName.trim() });
+        }}>
+          <input className="settings-input" type="text" autoComplete="off" autoFocus data-testid="guest-create-workspace-name-input"
+            aria-label={t("settingsCurrentWorkspace.workspaceNamePlaceholder")} placeholder={t("settingsCurrentWorkspace.workspaceNamePlaceholder")}
+            value={workspaceName} onChange={(event) => setWorkspaceName(event.currentTarget.value)} />
+          <div className="settings-workspace-create-actions">
+            <button type="submit" className="primary-btn" data-testid="guest-create-workspace-submit" disabled={workspaceName.trim() === ""}>
+              {t("settingsCurrentWorkspace.createWorkspace")}</button>
+            <button type="button" className="ghost-btn" data-testid="guest-create-workspace-cancel"
+              onClick={() => { setIsNamingWorkspace(false); setWorkspaceName(""); }}>{t("common.cancel")}</button>
+          </div>
+        </form> : <button type="button" className="primary-btn" data-testid="guest-create-workspace" onClick={() => setIsNamingWorkspace(true)}>
+          {t("accountMenu.newWorkspace")}</button>}
       </div> : null}
       {phase === "auth" ? <div className="screen-actions">
         {readPendingGuestConversion()?.guestWorkspaceSyncedAndOutboxDrained === true ? <a className="primary-btn"

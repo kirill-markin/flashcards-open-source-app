@@ -74,14 +74,14 @@ export function buildExcludedActorReasonSql(actorIdSqlExpression: string): strin
  * kept: `server_derived` and `backfill_derived` are the server's own observations, and
  * `authenticated_client` and `guest_client` are claims made on an authenticated request.
  *
- * APPLIED EVERYWHERE IT CAN DECIDE A PERSON, AND THIS IS THE WHOLE LIST. Nineteen entries below
- * derive an actor-level fact from `analytics.product_events_resolved`, eighteen in this package
+ * APPLIED EVERYWHERE IT CAN DECIDE A PERSON, AND THIS IS THE WHOLE LIST. Twenty entries below
+ * derive an actor-level fact from `analytics.product_events_resolved`, nineteen in this package
  * and one outside it. Each is APPLIED or UNREACHABLE, and the two are not interchangeable: adding this
  * predicate to an UNREACHABLE entry is a no-op, and reading one as an omission produces a
  * remediation that converts the entries it happens to have been told about and stops. A shared
  * fragment is one entry, listed where it is written, with its readers named.
  *
- * APPLIED (12).
+ * APPLIED (13).
  *   - `reports/whoOpenedTheApp/appOpenActivitySql.ts`, `app_open_rows`, the first-open cohort it
  *     feeds and `app_open_last_opens`, one row predicate, read by Who opened the app, its breakdowns,
  *     the Who studied breakdowns and the Level 1 available range.
@@ -100,6 +100,10 @@ export function buildExcludedActorReasonSql(actorIdSqlExpression: string): strin
  *   - `reports/paywallFunnel/attributionQuery.ts`, `event_rows`, which every step reads. The cohort
  *     and the purchase start are the client-reportable `paywall_shown` and `purchase_started`, so a
  *     credential-free claim would otherwise enter a person or advance one.
+ *   - `reports/reviewPrompts/showingsSql.ts`, `prompt_event_rows` and `activity_rows`. The first
+ *     turns a client-reportable prompt `screen_viewed` or `store_review_requested` into a showing for
+ *     a person and reads the answers that make one Acted; the second reads the `app_opened` and
+ *     `review_answered` that decide whether that person is Gone and whether a "Hard" reminder is Acted.
  *   - `buildMinimumEventCountFilterSql` below, the `app_opened:N` style threshold every report's
  *     filter bar composes.
  *   - `buildConnectionCountrySamplesSql` below, whose `origin = 'client'` is exactly what an
