@@ -331,11 +331,11 @@ export type ProductAnalyticsBillingPeriodType = (typeof productAnalyticsBillingP
 // The list names screens, never funnel steps, and it is the union of the screens the web, iOS and
 // Android apps actually have. One granularity rule keeps it a surface enum rather than a route
 // table: a screen earns a value when it is a destination of its own, meaning a tab, a public route,
-// a prompt a person has to answer, an abandonable step of a flow, or one of the content objects the
-// enum already names, while the app preference and account leaves that all three clients nest under
-// their settings screen collapse into `settings`, with `settings_legal` below the single named
-// exception. A client whose screen has no value here sends no `screen` at all rather than the
-// nearest wrong one.
+// a prompt a person has to answer or close, an abandonable step of a flow, or one of the content
+// objects the enum already names, while the app preference and account leaves that all three
+// clients nest under their settings screen collapse into `settings`, with `settings_legal` below
+// the single named exception. A client whose screen has no value here sends no `screen` at all
+// rather than the nearest wrong one.
 //
 // `screen` carries two readings, deliberately. On `screen_viewed` and on every other event it is
 // where the person is now. On `signin_failed` alone it is the entry point: the surface that owned
@@ -373,11 +373,15 @@ export const productAnalyticsSurfaces = [
   // could only be reported as no screen at all.
   "signin",
   "credential_recovery",
-  // Our own in-app prompts, each a screen a person has to answer before anything else continues.
-  // `prompt_answered.prompt` repeats these two values verbatim, so an answer joins to its surface by
-  // equality; the two spellings have to stay identical for that join to keep working.
+  // Our own in-app prompts, each shown in front of the app until the person answers or closes it.
+  // `prompt_answered.prompt` repeats every value here that has an answer verbatim, so an answer joins
+  // to its surface by equality; the two spellings have to stay identical for that join to keep
+  // working. `review_hard_reminder` is one-button guidance with no answer: its effect is read from
+  // the `review_answered.rating` that follows it.
   "notifications_pre_prompt",
   "signin_after_review_prompt",
+  "mobile_app_prompt",
+  "review_hard_reminder",
   // The catalog import flow, whose steps are internal component state rather than routes, so the
   // surface is the only place the step can be recorded. `catalog_import_signin` is the gate a
   // signed-out person lands on when they open an import link; `catalog` stays the surface of the
@@ -616,9 +620,19 @@ export const productAnalyticsEventCatalog = {
     serverOnly: false,
     requiresScreen: false,
     properties: {
-      prompt: { kind: "enum", values: ["signin_after_review_prompt", "notifications_pre_prompt"] },
+      prompt: {
+        kind: "enum",
+        values: ["signin_after_review_prompt", "notifications_pre_prompt", "mobile_app_prompt"],
+      },
       outcome: { kind: "enum", values: ["accepted", "dismissed", "snoozed"] },
     },
+  },
+  // Sent by iOS and Android when the app asks the OS for an App Store / Google Play rating dialog;
+  // the OS reports neither whether it appeared nor the answer.
+  store_review_requested: {
+    serverOnly: false,
+    requiresScreen: false,
+    properties: {},
   },
   // The OS-level permission dialog, whose outcome the app only observes. The surface is carried by
   // the event's own screen and never duplicated into a property: there is exactly one place a
