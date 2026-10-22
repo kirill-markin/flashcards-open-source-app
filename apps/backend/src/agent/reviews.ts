@@ -176,6 +176,9 @@ async function resolveReviewFilterTags(
 const recentlyReviewedWindow =
   "fsrs_last_reviewed_at BETWEEN now() - INTERVAL '1 hour' AND now()";
 
+/** A scheduled card is in the queue from its due_at on; a new card has a null due_at. */
+const dueNow = "due_at <= now()";
+
 /** The review queue in presentation order: due cards reviewed within the last hour, then the other
  * due cards, then new cards. Keep the ranks, the one-hour window and the tie-breaks in sync with
  * apps/web/src/localDb/reviews/reviews.ts, apps/ios/.../CardStore+ReadSQL.swift and
@@ -184,11 +187,11 @@ const reviewQueueBuckets: ReadonlyArray<
   Readonly<{ condition: string; tieBreaks: string }>
 > = [
   {
-    condition: `due_at <= now() AND ${recentlyReviewedWindow}`,
+    condition: `${dueNow} AND ${recentlyReviewedWindow}`,
     tieBreaks: "due_at ASC, created_at ASC, card_id ASC",
   },
   {
-    condition: `due_at <= now() AND (fsrs_last_reviewed_at IS NULL OR NOT (${recentlyReviewedWindow}))`,
+    condition: `${dueNow} AND (fsrs_last_reviewed_at IS NULL OR NOT (${recentlyReviewedWindow}))`,
     tieBreaks: "due_at ASC, created_at ASC, card_id ASC",
   },
   {
@@ -224,6 +227,17 @@ function buildNextReviewCardQuery(tagFilter: string): string {
   ].join(" ");
 }
 
+/** The earliest due_at among the filter's scheduled cards that are not in the queue yet.
+ * idx_cards_workspace_due_active supplies the due_at order the MIN reads. */
+function buildNextDueAtQuery(tagFilter: string): string {
+  return [
+    "SELECT MIN(due_at) AS next_due_at FROM content.cards",
+    "WHERE workspace_id = $1 AND deleted_at IS NULL",
+    `AND due_at IS NOT NULL AND NOT (${dueNow})`,
+    tagFilter,
+  ].join(" ");
+}
+
 /** Stateless on purpose: no reservation, lease or cursor, so a reconnecting voice client has no
  * session to lose and a repeated read can return the same card. */
 export async function nextReviewCard(
@@ -233,28 +247,37 @@ export async function nextReviewCard(
   Readonly<{
     workspaceId: string;
     card: Readonly<{ cardId: string; frontText: string }> | null;
+    /** Only with a null card: when the next card in the same filter comes due, null if none is scheduled. */
+    nextDueAt: string | null;
   }>
 > {
   const filterTags = await resolveReviewFilterTags(context, filter);
+  const tagFilter = filterTags === null ? "" : "AND tags && $2::text[]";
+  const params =
+    filterTags === null
+      ? [context.workspaceId]
+      : [context.workspaceId, filterTags];
   const result = await queryWithWorkspaceScopeReadOnly<{
     card_id: string;
     front_text: string;
-  }>(
-    context,
-    buildNextReviewCardQuery(
-      filterTags === null ? "" : "AND tags && $2::text[]",
-    ),
-    filterTags === null
-      ? [context.workspaceId]
-      : [context.workspaceId, filterTags],
-  );
+  }>(context, buildNextReviewCardQuery(tagFilter), params);
   const card = result.rows[0];
+  if (card !== undefined) {
+    return {
+      workspaceId: context.workspaceId,
+      card: { cardId: card.card_id, frontText: card.front_text },
+      nextDueAt: null,
+    };
+  }
+
+  const nextDue = await queryWithWorkspaceScopeReadOnly<{
+    next_due_at: Date | null;
+  }>(context, buildNextDueAtQuery(tagFilter), params);
+  const nextDueAt = nextDue.rows[0]?.next_due_at ?? null;
   return {
     workspaceId: context.workspaceId,
-    card:
-      card === undefined
-        ? null
-        : { cardId: card.card_id, frontText: card.front_text },
+    card: null,
+    nextDueAt: nextDueAt === null ? null : new Date(nextDueAt).toISOString(),
   };
 }
 
