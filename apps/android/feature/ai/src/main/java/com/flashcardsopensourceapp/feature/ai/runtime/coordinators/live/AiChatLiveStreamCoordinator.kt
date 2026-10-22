@@ -22,7 +22,8 @@ import com.flashcardsopensourceapp.feature.ai.runtime.conversation.AiComposerPha
 import com.flashcardsopensourceapp.feature.ai.runtime.conversation.clearOptimisticAssistantStatusIfNeeded
 import com.flashcardsopensourceapp.feature.ai.runtime.conversation.completeAssistantReasoningSummary
 import com.flashcardsopensourceapp.feature.ai.runtime.conversation.finalizeAssistantMessage
-import com.flashcardsopensourceapp.feature.ai.runtime.conversation.latestAssistantErrorMessage
+import com.flashcardsopensourceapp.feature.ai.runtime.conversation.latestAssistantError
+import com.flashcardsopensourceapp.feature.ai.runtime.conversation.runTerminalErrorCode
 import com.flashcardsopensourceapp.feature.ai.runtime.conversation.setPendingToolRunPostSync
 import com.flashcardsopensourceapp.feature.ai.runtime.conversation.upsertAssistantReasoningSummary
 import com.flashcardsopensourceapp.feature.ai.runtime.conversation.upsertAssistantText
@@ -461,6 +462,7 @@ internal class AiChatLiveStreamCoordinator(
                     itemId = event.itemId,
                     cursor = event.metadata.cursor ?: "",
                     isError = event.isError,
+                    errorCode = event.errorCode,
                     isStopped = event.isStopped
                 )
                 if (finalizedState == null) {
@@ -526,6 +528,7 @@ internal class AiChatLiveStreamCoordinator(
 
                 AiChatRunTerminalOutcome.ERROR -> {
                     context.runtimeStateMutable.update { state ->
+                        val latestError = latestAssistantError(messages = state.persistedState.messages)
                         state.copy(
                             activeRun = null,
                             isLiveAttached = false,
@@ -534,8 +537,12 @@ internal class AiChatLiveStreamCoordinator(
                             repairStatus = null,
                             activeAlert = context.textProvider.generalError(
                                 message = context.runErrorMessage(
-                                    message = event.message
-                                        ?: latestAssistantErrorMessage(messages = state.persistedState.messages)
+                                    errorCode = runTerminalErrorCode(
+                                        eventMessage = event.message,
+                                        latestError = latestError
+                                    ),
+                                    storedText = event.message
+                                        ?: latestError?.text
                                         ?: context.textProvider.chatFailed
                                 )
                             ),
@@ -563,14 +570,18 @@ internal class AiChatLiveStreamCoordinator(
             )
             applyActiveBootstrap(bootstrap, sessionId)
 
-            val errorMessage = latestAssistantErrorMessage(messages = bootstrap.conversation.messages)
-            if (errorMessage != null) {
+            val latestError = latestAssistantError(messages = bootstrap.conversation.messages)
+            val errorMessage = latestError?.text
+            if (latestError != null && errorMessage != null) {
                 context.runtimeStateMutable.update { state ->
                     state.copy(
                         activeRun = null,
                         composerPhase = AiComposerPhase.IDLE,
                         activeAlert = context.textProvider.generalError(
-                            message = context.runErrorMessage(message = errorMessage)
+                            message = context.runErrorMessage(
+                                errorCode = latestError.errorCode,
+                                storedText = errorMessage
+                            )
                         ),
                         errorMessage = ""
                     )
