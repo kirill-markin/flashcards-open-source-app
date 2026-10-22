@@ -216,7 +216,7 @@ class CloudSignInViewModelTest {
             "Keep this screen open while Android reconnects preserved local data to your recovered workspace.",
             viewModel.postAuthUiState.value.processingMessage
         )
-        assertEquals(listOf(CloudWorkspaceLinkSelection.CreateNew), repository.completeCloudLinkSelections)
+        assertEquals(listOf(CloudWorkspaceLinkSelection.CreateNew(name = null)), repository.completeCloudLinkSelections)
         assertEquals(0, syncRepository.syncNowCalls)
 
         recoveryWorkspace.complete(
@@ -231,7 +231,7 @@ class CloudSignInViewModelTest {
 
         completionJob.await()
         advanceUntilIdle()
-        assertEquals(listOf(CloudWorkspaceLinkSelection.CreateNew), repository.completeCloudLinkSelections)
+        assertEquals(listOf(CloudWorkspaceLinkSelection.CreateNew(name = null)), repository.completeCloudLinkSelections)
         assertEquals(0, syncRepository.syncNowCalls)
         assertEquals(CloudPostAuthMode.IDLE, viewModel.postAuthUiState.value.mode)
         assertNotNull(viewModel.postAuthUiState.value.completionToken)
@@ -293,13 +293,13 @@ class CloudSignInViewModelTest {
         assertEquals(true, viewModel.postAuthUiState.value.isGuestLocalRecovery)
         assertEquals(true, viewModel.postAuthUiState.value.canRetry)
         assertEquals(false, viewModel.postAuthUiState.value.canLogout)
-        assertEquals(listOf(CloudWorkspaceLinkSelection.CreateNew), repository.completeCloudLinkSelections)
+        assertEquals(listOf(CloudWorkspaceLinkSelection.CreateNew(name = null)), repository.completeCloudLinkSelections)
 
         viewModel.retryPostAuth()
         advanceUntilIdle()
 
         assertEquals(
-            listOf(CloudWorkspaceLinkSelection.CreateNew, CloudWorkspaceLinkSelection.CreateNew),
+            listOf(CloudWorkspaceLinkSelection.CreateNew(name = null), CloudWorkspaceLinkSelection.CreateNew(name = null)),
             repository.completeCloudLinkSelections
         )
         assertEquals(0, syncRepository.syncNowCalls)

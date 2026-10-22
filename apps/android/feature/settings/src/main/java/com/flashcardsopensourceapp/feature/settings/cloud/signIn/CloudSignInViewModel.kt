@@ -772,7 +772,7 @@ class CloudSignInViewModel(
         }
 
         if (socialAttemptId == null && linkContext.postAuthRoute == CloudWorkspacePostAuthRoute.GUEST_LOCAL_RECOVERY) {
-            require(selection == CloudWorkspaceLinkSelection.CreateNew) {
+            require(selection is CloudWorkspaceLinkSelection.CreateNew) {
                 "Guest local recovery must create the recovered linked workspace."
             }
             completeGuestLocalRecovery(
@@ -941,7 +941,7 @@ class CloudSignInViewModel(
             val completion = completeCloudPostAuthWorkspaceSelection(
                 cloudAccountRepository = cloudAccountRepository,
                 linkContext = linkContext,
-                selection = CloudWorkspaceLinkSelection.CreateNew,
+                selection = CloudWorkspaceLinkSelection.CreateNew(name = null),
                 onGuestCompletionStarted = {},
                 onGuestCompletionFinished = {}
             )

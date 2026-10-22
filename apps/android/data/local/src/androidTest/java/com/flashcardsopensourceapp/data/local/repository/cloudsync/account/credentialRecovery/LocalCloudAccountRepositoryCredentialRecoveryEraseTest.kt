@@ -88,7 +88,7 @@ class LocalCloudAccountRepositoryCredentialRecoveryEraseTest {
                 accountSnapshot = accountSnapshot,
                 guestSession = guestSession,
                 guestUpgradeMode = CloudGuestUpgradeMode.MERGE_REQUIRED,
-                selection = CloudWorkspaceLinkSelection.CreateNew,
+                selection = CloudWorkspaceLinkSelection.CreateNew(name = null),
                 completion = null
             )
         )

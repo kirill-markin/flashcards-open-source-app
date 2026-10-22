@@ -267,10 +267,10 @@ internal class CloudWorkspaceLinkCoordinator(
                     )
                 }
 
-                CloudWorkspaceLinkSelection.CreateNew -> remoteService.createWorkspace(
+                is CloudWorkspaceLinkSelection.CreateNew -> remoteService.createWorkspace(
                     apiBaseUrl = authenticatedSession.configuration.apiBaseUrl,
                     bearerToken = authenticatedSession.credentials.idToken,
-                    name = "Personal"
+                    name = linkedCreateWorkspaceName(selection = selection)
                 )
             }
             transitionCoordinator.applyLinkedWorkspaceAndSync(
@@ -371,10 +371,10 @@ internal class CloudWorkspaceLinkCoordinator(
                 workspaceId = validatedSelection.workspaceId
             )
 
-            CloudWorkspaceLinkSelection.CreateNew -> remoteService.createWorkspace(
+            is CloudWorkspaceLinkSelection.CreateNew -> remoteService.createWorkspace(
                 apiBaseUrl = authenticatedSession.configuration.apiBaseUrl,
                 bearerToken = authenticatedSession.credentials.idToken,
-                name = "Personal"
+                name = linkedCreateWorkspaceName(selection = validatedSelection)
             )
         }
     }

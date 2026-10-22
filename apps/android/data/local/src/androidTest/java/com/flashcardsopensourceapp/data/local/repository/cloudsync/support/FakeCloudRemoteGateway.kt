@@ -925,7 +925,7 @@ internal class FakeCloudRemoteGateway private constructor(
                 workspace.workspaceId == selection.workspaceId
             }
 
-            CloudGuestUpgradeSelection.CreateNew -> createCloudWorkspaceSummary(
+            is CloudGuestUpgradeSelection.CreateNew -> createCloudWorkspaceSummary(
                 workspaceId = "workspace-new",
                 name = localWorkspaceName,
                 createdAtMillis = 300L,

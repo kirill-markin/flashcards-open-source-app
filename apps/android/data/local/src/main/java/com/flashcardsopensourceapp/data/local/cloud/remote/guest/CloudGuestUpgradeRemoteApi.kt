@@ -136,8 +136,13 @@ private fun encodeGuestUpgradeSelection(selection: CloudGuestUpgradeSelection): 
             .put("workspaceId", selection.workspaceId)
             .put("discardDemoOnly", selection.discardDemoOnly)
 
-        CloudGuestUpgradeSelection.CreateNew -> JSONObject()
+        is CloudGuestUpgradeSelection.CreateNew -> JSONObject()
             .put("type", "create_new")
+            .apply {
+                if (selection.name != null) {
+                    put("name", selection.name)
+                }
+            }
     }
 }
 
