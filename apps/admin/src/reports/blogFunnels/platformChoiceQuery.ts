@@ -10,7 +10,11 @@ import { escapeSqlStringLiteral } from "../../sql";
 import { buildHashedPageViewFilterSqlLines, buildHashedVisitorDaySql } from "../funnels/funnelAudienceSql";
 import { assertValidDateRange, laterCalendarDate, toInteger } from "../reportValues";
 import { buildSiteEngagementFactSql, siteFactEventNames } from "../whoSawUs/engagedVisitorsQuery";
-import { buildHashedSiteFactFilterSql, buildIdentifiedSiteFactFilterSql } from "../whoSawUs/query";
+import {
+  buildHashedSiteFactFilterSql,
+  buildIdentifiedSiteFactFilterSql,
+  buildSiteEventNamesSql,
+} from "../whoSawUs/query";
 import { blogFunnelStartDate } from "./blogFunnelEntry";
 
 /** Step four's rows: a QR card shown on a store button's hover or focus, or a click on any platform. */
@@ -32,10 +36,6 @@ export type BlogPlatformChoiceFunnelReport = Readonly<{
   counts: BlogPlatformChoiceFunnelCounts;
 }>;
 
-function buildEventNameInSql(rowAlias: string, eventNames: ReadonlyArray<string>): string {
-  return `${rowAlias}.event_name IN (${eventNames.map(escapeSqlStringLiteral).join(", ")})`;
-}
-
 function buildPageViewSql(rowAlias: string, pageKind: string): string {
   return `${rowAlias}.event_name = 'site_page_viewed' AND ${rowAlias}.event_properties ->> 'page_kind' = ${escapeSqlStringLiteral(pageKind)}`;
 }
@@ -45,7 +45,7 @@ function buildReaderStepSqlLines(rowAlias: string): ReadonlyArray<string> {
   return [
     `    COUNT(*) FILTER (WHERE ${buildSiteEngagementFactSql(rowAlias)}) >= 2 AS engaged,`,
     `    COUNT(*) FILTER (WHERE ${buildPageViewSql(rowAlias, "home")}) > 0 AS viewed_home,`,
-    `    COUNT(*) FILTER (WHERE ${buildEventNameInSql(rowAlias, platformHoverOrClickEventNames)}) > 0 AS hovered_or_clicked,`,
+    `    COUNT(*) FILTER (WHERE ${buildSiteEventNamesSql(rowAlias, platformHoverOrClickEventNames)}) > 0 AS hovered_or_clicked,`,
     `    COUNT(*) FILTER (WHERE ${rowAlias}.event_name = 'site_app_entry_clicked') > 0 AS clicked`,
   ];
 }
