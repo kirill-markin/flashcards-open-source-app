@@ -43,8 +43,9 @@ internal const val analyticsEventsDroppedEventName: String = "analytics_events_d
  * argument rather than being read off the current destination.
  *
  * Values with no Android destination today — the catalog import steps, `SHARE` and
- * `FRIEND_INVITE_ACCEPT`, which are web landing pages, plus `CATALOG` — are mirrored anyway so the
- * list stays comparable to the server's line for line.
+ * `FRIEND_INVITE_ACCEPT`, which are web landing pages, `MOBILE_APP_PROMPT`, the web prompt that
+ * offers the mobile apps, plus `CATALOG` — are mirrored anyway so the list stays comparable to the
+ * server's line for line.
  *
  * `FRIEND_INVITE` is not one of them. It is the friend invitation dialog, which this app renders
  * from the settings screen and from the progress leaderboard, and both sites report it. Being a
@@ -79,11 +80,15 @@ enum class AnalyticsSurface(val wireValue: String) {
     SIGNIN(wireValue = "signin"),
     CREDENTIAL_RECOVERY(wireValue = "credential_recovery"),
 
-    // Our own in-app prompts, each a screen a person has to answer before anything else continues.
-    // `AnalyticsPrompt` names its surface rather than repeating the spelling, because
-    // `prompt_answered.prompt` has to equal the surface for an answer to join to its showing.
+    // Our own in-app prompts, each a screen that blocks everything else until it closes.
+    // `AnalyticsPrompt` names the surface of each answerable one rather than repeating the
+    // spelling, because `prompt_answered.prompt` has to equal the surface for an answer to join to
+    // its showing. `REVIEW_HARD_REMINDER` is a one-button guidance dialog with no answer, so it is
+    // only ever shown.
     NOTIFICATIONS_PRE_PROMPT(wireValue = "notifications_pre_prompt"),
     SIGNIN_AFTER_REVIEW_PROMPT(wireValue = "signin_after_review_prompt"),
+    REVIEW_HARD_REMINDER(wireValue = "review_hard_reminder"),
+    MOBILE_APP_PROMPT(wireValue = "mobile_app_prompt"),
 
     CATALOG_IMPORT_SIGNIN(wireValue = "catalog_import_signin"),
     CATALOG_IMPORT_WORKSPACE(wireValue = "catalog_import_workspace"),
@@ -763,6 +768,17 @@ sealed interface AnalyticsEvent {
 
     data object ReviewCardRevealed : AnalyticsEvent {
         override val eventName: String = "review_card_revealed"
+        override val screen: AnalyticsSurface = AnalyticsSurface.REVIEW
+        override val properties: Map<String, AnalyticsPropertyValue> = emptyMap()
+    }
+
+    /**
+     * The app launched the Google Play in-app review flow. Play reports neither whether its dialog
+     * appeared nor what the person answered, so this is the last fact the app can know. Only a
+     * finished review asks for it, so the person is on the review screen.
+     */
+    data object StoreReviewRequested : AnalyticsEvent {
+        override val eventName: String = "store_review_requested"
         override val screen: AnalyticsSurface = AnalyticsSurface.REVIEW
         override val properties: Map<String, AnalyticsPropertyValue> = emptyMap()
     }

@@ -185,6 +185,9 @@ enum AnalyticsEvent: Sendable, Equatable {
     /// transaction, whether or not the server then accepted it.
     case purchaseRestoreFinished(outcome: AnalyticsPurchaseRestoreOutcome)
     case subscriptionManagementOpened(destination: AnalyticsSubscriptionManagementDestination)
+    /// The app asked StoreKit for its rating dialog. StoreKit reports neither whether the dialog
+    /// appeared nor the answer, so this is the request alone.
+    case storeReviewRequested
     case analyticsEventsDropped(reason: AnalyticsDroppedReason, count: Int)
 }
 
@@ -196,8 +199,8 @@ enum AnalyticsEvent: Sendable, Equatable {
  * Existing spellings are never renamed: they are already in production data and a rename silently
  * splits a series in two. The catalog surfaces missing here name screens this app does not have —
  * the public catalog import steps, the friend-invitation landing page and the platform-links share
- * page are web routes — so this client sends no `screen` where it has no screen, rather than the
- * nearest wrong one.
+ * page are web routes, and the mobile-app promo is a web dialog — so this client sends no `screen`
+ * where it has no screen, rather than the nearest wrong one.
  */
 enum AnalyticsSurface: String, Sendable, Equatable, CaseIterable {
     case review
@@ -228,6 +231,9 @@ enum AnalyticsSurface: String, Sendable, Equatable, CaseIterable {
     // `screen_viewed` that recorded its showing by equality; the two must stay identical.
     case notificationsPrePrompt = "notifications_pre_prompt"
     case signInAfterReviewPrompt = "signin_after_review_prompt"
+    // The one-button "Hard" guidance alert after a review. It is shown but never answered, so it has
+    // no `AnalyticsPrompt` value; its effect is read from the following `review_answered.rating`.
+    case reviewHardReminder = "review_hard_reminder"
     // The friend-invitation creation screen. Its counterpart, the landing page the invited person
     // opens, is a web route with no iOS screen.
     case friendInvite = "friend_invite"
@@ -707,6 +713,8 @@ extension AnalyticsEvent {
             return "purchase_restore_finished"
         case .subscriptionManagementOpened:
             return "subscription_management_opened"
+        case .storeReviewRequested:
+            return "store_review_requested"
         case .analyticsEventsDropped:
             return analyticsEventsDroppedEventName
         }
@@ -867,6 +875,8 @@ extension AnalyticsEvent {
             return ["outcome": .string(outcome.rawValue)]
         case .subscriptionManagementOpened(let destination):
             return ["destination": .string(destination.rawValue)]
+        case .storeReviewRequested:
+            return [:]
         case .analyticsEventsDropped(let reason, let count):
             return [
                 "reason": .string(reason.rawValue),

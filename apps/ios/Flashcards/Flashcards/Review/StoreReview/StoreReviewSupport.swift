@@ -4,7 +4,6 @@ let lastStoreReviewRequestedAtUserDefaultsKey: String = "last-store-review-reque
 let lastStoreReviewRequestedAppVersionUserDefaultsKey: String = "last-store-review-requested-app-version"
 let storeReviewMinimumCurrentDayReviewCount: Int = 5
 let storeReviewAttemptCooldownCalendarDays: Int = 90
-let storeReviewRequestedAnalyticsEventName: String = "store_review_requested"
 
 enum StoreReviewEligibilityError: LocalizedError {
     case nextLocalDayUnavailable(Date)
@@ -43,23 +42,10 @@ struct StoreReviewEligibilityContext {
     let promptState: StoreReviewPromptState
 }
 
-enum StoreReviewAnalyticsPlatform: String, Hashable, Sendable {
-    case ios
-}
-
-struct StoreReviewRequestedAnalyticsEvent: Hashable, Sendable {
-    let name: String
-    let platform: StoreReviewAnalyticsPlatform
-    let appVersion: String
-    let localTimestamp: Date
-    let installationId: String?
-}
-
 struct StoreReviewRequestAttempt: Identifiable, Hashable, Sendable {
     let id: String
     let appVersion: String
     let requestedAt: Date
-    let installationId: String?
 }
 
 struct StoreReviewLocalDayRange: Hashable, Sendable {
@@ -125,24 +111,6 @@ func shouldRequestStoreReview(context: StoreReviewEligibilityContext) throws -> 
         now: context.now,
         calendar: context.localCalendar
     )
-}
-
-func makeStoreReviewRequestedAnalyticsEvent(
-    appVersion: String,
-    localTimestamp: Date,
-    installationId: String?
-) -> StoreReviewRequestedAnalyticsEvent {
-    StoreReviewRequestedAnalyticsEvent(
-        name: storeReviewRequestedAnalyticsEventName,
-        platform: .ios,
-        appVersion: appVersion,
-        localTimestamp: localTimestamp,
-        installationId: installationId
-    )
-}
-
-func fireAndForgetStoreReviewRequestedAnalyticsEvent(event: StoreReviewRequestedAnalyticsEvent) {
-    _ = event
 }
 
 private func loadLastStoreReviewRequestedAt(userDefaults: UserDefaults) throws -> Date? {
