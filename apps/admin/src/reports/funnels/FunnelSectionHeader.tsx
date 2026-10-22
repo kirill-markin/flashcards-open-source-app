@@ -1,4 +1,4 @@
-import type { JSX } from "react";
+import { useState, type JSX } from "react";
 import { WarningTip } from "../../explanations/ExplanationTip";
 import { findFunnelDetail, getFunnelDetailsPath } from "../../routing";
 import { FunnelsLink } from "./FunnelsLink";
@@ -8,8 +8,8 @@ const detailsButtonClassName = "filter-button filter-button-compact level-1-metr
 
 /**
  * A funnel card's heading row, styled like a Level 1 one, with a `⚠` after the title for each warning
- * the card's ranges trigger. Its Details button links to the funnel's Details page, stays disabled for
- * a funnel without one, and is absent on that page itself.
+ * the card's ranges trigger, of which one shows its text at a time. Its Details button links to the
+ * funnel's Details page, stays disabled for a funnel without one, and is absent on that page itself.
  */
 export function FunnelSectionHeader(
   props: Readonly<{
@@ -21,16 +21,21 @@ export function FunnelSectionHeader(
 ): JSX.Element {
   const funnelDetail = findFunnelDetail(props.funnelId);
   const testId = `funnel-${props.funnelId}-details-button`;
+  const [openWarningId, setOpenWarningId] = useState<string | null>(null);
 
   return (
     <header className="dashboard-section-header level-1-metric-section-header">
-      <div className="explained-heading-row">
+      <div className="explained-heading-row funnel-heading-row">
         <h2>{props.title}</h2>
         {props.warnings.map((warning) => (
           <WarningTip
             key={warning.id}
-            label={`${props.title} data warning`}
+            label={`${props.title} data warning: ${warning.label}`}
             explanationId={`funnel-${props.funnelId}-${warning.id}-warning`}
+            isOpen={openWarningId === warning.id}
+            onOpenChange={(isOpen) => setOpenWarningId((current) => (
+              isOpen ? warning.id : current === warning.id ? null : current
+            ))}
           >{warning.text}</WarningTip>
         ))}
       </div>
