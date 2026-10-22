@@ -786,6 +786,7 @@ h2 {
   place-items: center;
   width: 20px;
   height: 20px;
+  padding: 0;
   border: 1px solid var(--panel-border);
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.06);
@@ -803,8 +804,11 @@ h2 {
   border-color: rgba(214, 160, 56, 0.55);
   background: rgba(214, 160, 56, 0.12);
   color: #ffd98f;
-  font-size: 12px;
-  font-weight: 400;
+}
+
+.explanation-tip-warning .explanation-tip-toggle svg {
+  width: 12px;
+  height: 12px;
 }
 
 .explanation-tip-text {
