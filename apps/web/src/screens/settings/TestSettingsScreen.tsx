@@ -149,6 +149,7 @@ export function TestSettingsScreen(): ReactElement {
       <MobileAppPromotionDialog
         isOpen={isMobileAppPromotionDialogOpen}
         onDismiss={() => setIsMobileAppPromotionDialogOpen(false)}
+        onStoreLinkClick={null}
         storeLinks={webReviewMobilePromptStoreLinks}
       />
     </SettingsShell>

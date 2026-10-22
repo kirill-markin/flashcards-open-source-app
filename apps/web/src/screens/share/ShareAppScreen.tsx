@@ -35,6 +35,7 @@ export function ShareAppScreen(): ReactElement {
             },
             clientPlatform: resolveClientPlatform(navigator.userAgent),
           })}
+          onStoreLinkClick={null}
           testIdPrefix="share-app"
         />
       </section>

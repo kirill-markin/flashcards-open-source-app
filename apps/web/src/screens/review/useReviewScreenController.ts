@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import type { ReviewRating } from "../../../../backend/src/scheduling";
-import { track } from "../../analytics";
+import { track, trackScreenViewed, trackScreenViewedOnDismiss } from "../../analytics";
 import { useAppData, useReviewLeaderboardBadge, useReviewProgressBadge } from "../../appData";
 import { collectAccessibleWorkspaceIds } from "../../appData/progress/state/progressScope";
 import { useReviewPaywallPresenter } from "../../premium/PremiumProvider";
@@ -332,6 +332,7 @@ export function useReviewScreenController(
         if (shouldShowReviewHardReminder(nextRecentReviewRatings, hardReminderLastShownAt, nowMillis)) {
           setHardReminderLastShownAt(nowMillis);
           saveReviewHardReminderLastShownAt(nowMillis);
+          trackScreenViewed("review_hard_reminder");
           setIsHardReminderVisible(true);
           didShowHardReminder = true;
         }
@@ -398,6 +399,7 @@ export function useReviewScreenController(
   }
 
   function handleDismissHardReminder(): void {
+    trackScreenViewedOnDismiss({ dismissed: "review_hard_reminder", restored: "review" });
     setIsHardReminderVisible(false);
   }
 
@@ -541,6 +543,7 @@ export function useReviewScreenController(
 
   useEffect(() => {
     recentReviewRatingsRef.current = [];
+    trackScreenViewedOnDismiss({ dismissed: "review_hard_reminder", restored: "review" });
     setIsHardReminderVisible(false);
     setTagFilterRequest(null);
   }, [activeWorkspace?.workspaceId]);

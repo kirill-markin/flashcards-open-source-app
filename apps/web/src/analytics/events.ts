@@ -18,10 +18,9 @@
  * the active catalog. The server keeps exact backend-only tombstones for old queued copies and
  * rejects them `retired_event_name`.
  *
- * `prompt_answered` and `permission_prompt_answered` are client events the catalog declares and
- * this app cannot produce: the web client has neither the sign-in-after-review nudge nor the
- * notification pre-prompt, and a browser permission dialog is chrome whose outcome the page never
- * observes. That is a product difference from iOS and Android, not a gap.
+ * `permission_prompt_answered` is a client event the catalog declares and this app cannot produce:
+ * the web client has no notification pre-prompt, and a browser permission dialog is chrome whose
+ * outcome the page never observes. That is a product difference from iOS and Android, not a gap.
  *
  * `notification_scheduled` and `notification_opened` are omitted for the same reason: the web client
  * has no reminders, and `purchase_restore_finished` because it has no store purchase to restore.
@@ -32,10 +31,9 @@
  */
 
 /**
- * Mirrors `productAnalyticsSurfaces` in catalog order. Three values are kept only so the mirror
- * stays comparable to the catalog by eye: `notifications_pre_prompt` and
- * `signin_after_review_prompt`, the two prompts above that this app does not have, and
- * `settings_legal`, a screen this app does have but never reports under its own value.
+ * Mirrors `productAnalyticsSurfaces` in catalog order. Two values are kept only so the mirror stays
+ * comparable to the catalog by eye: `notifications_pre_prompt`, the prompt above that this app does
+ * not have, and `settings_legal`, a screen this app does have but never reports under its own value.
  *
  * `signin` and `credential_recovery` are reachable, from `resolveRootGateReport` in `App.tsx`.
  * The email and code steps of signing in do live on the auth service's origin, but the catalog
@@ -62,6 +60,8 @@ export type AnalyticsSurface =
   | "credential_recovery"
   | "notifications_pre_prompt"
   | "signin_after_review_prompt"
+  | "mobile_app_prompt"
+  | "review_hard_reminder"
   | "catalog_import_signin"
   | "catalog_import_workspace"
   | "catalog_import_confirm"
@@ -278,9 +278,11 @@ export type AnalyticsEvent =
    *   as `/cards/:cardId`, the route that maps to the same surface. So it reports both edges too,
    *   from `handleOpenEditor` and `handleCloseEditor` in `useReviewCardEditor.ts`, which is what iOS
    *   reports from the equivalent sheet in `CardsScreen.swift`.
-   * - the review screen's feedback and mobile-app-promotion dialogs have no value here, so under the
-   *   catalog's rule that a client whose screen has no value sends no `screen` at all they report
-   *   nothing and everything under them stays filed against `review`.
+   * - the review screen's post-review prompts — the guest sign-in prompt, the mobile-app promotion
+   *   and the Hard reminder — are named and take over, so each reports both edges.
+   * - the review screen's feedback dialog has no value here, so under the catalog's rule that a
+   *   client whose screen has no value sends no `screen` at all it reports nothing and everything
+   *   under it stays filed against `review`.
    * - the AI sidebar is named but does not take over: it is a split pane that leaves the route's
    *   screen mounted and usable beside it, and it becomes a full-width overlay only under a CSS
    *   breakpoint, so a report from it would mean two different things at two window widths. It
@@ -400,6 +402,15 @@ export type AnalyticsEvent =
   | Readonly<{
     name: "card_create_started";
     entryPoint: AnalyticsCardCreateEntryPoint;
+  }>
+  /**
+   * Tracked while the prompt is still the stamped surface, before the screen underneath is restored,
+   * so the answer is filed against the prompt it answers.
+   */
+  | Readonly<{
+    name: "prompt_answered";
+    prompt: "signin_after_review_prompt" | "mobile_app_prompt";
+    outcome: "accepted" | "dismissed" | "snoozed";
   }>
   /**
    * One asset reaching the chat draft or the card being edited, and the failure that stands in its
@@ -634,6 +645,8 @@ export function buildAnalyticsEventProperties(event: AnalyticsEvent): AnalyticsE
       return { reason: event.reason };
     case "card_create_started":
       return { entry_point: event.entryPoint };
+    case "prompt_answered":
+      return { prompt: event.prompt, outcome: event.outcome };
     case "media_attached":
       return { source: event.source };
     case "media_upload_failed":
