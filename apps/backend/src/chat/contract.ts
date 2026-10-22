@@ -15,6 +15,8 @@ type ChatConversationMessage = Readonly<{
   content: ReadonlyArray<ChatWireContentPart>;
   timestamp: number;
   isError: boolean;
+  /** Clients translate a known code and show the text content otherwise. */
+  errorCode: string | null;
   isStopped: boolean;
   cursor: string | null;
   itemId: string | null;
@@ -125,6 +127,7 @@ export type ChatLiveEvent =
     itemId: string;
     content: ReadonlyArray<ChatWireContentPart>;
     isError: boolean;
+    errorCode: string | null;
     isStopped: boolean;
   }>)
   | (ChatLiveEventMetadata & Readonly<{
@@ -194,6 +197,7 @@ export type ChatLiveEventPayload =
     itemId: string;
     content: ReadonlyArray<ContentPart>;
     isError: boolean;
+    errorCode: string | null;
     isStopped: boolean;
   }>
   | Readonly<{
@@ -278,6 +282,7 @@ export function toConversationMessage(
     content: ReadonlyArray<ContentPart>;
     timestamp: number;
     isError: boolean;
+    errorCode: string | null;
     isStopped: boolean;
     cursor: string | null;
     itemId: string | null;
@@ -288,6 +293,7 @@ export function toConversationMessage(
     content: toLegacyChatWireContentParts(message.content),
     timestamp: message.timestamp,
     isError: message.isError,
+    errorCode: message.errorCode,
     isStopped: message.isStopped,
     cursor: message.cursor,
     itemId: message.itemId,
@@ -302,6 +308,7 @@ export function toConversationMessageFromPersisted(
     content: message.content,
     timestamp: message.timestamp,
     isError: message.isError,
+    errorCode: message.errorCode,
     isStopped: message.isStopped,
     cursor: String(message.itemOrder),
     itemId: message.role === "assistant" ? message.itemId : null,

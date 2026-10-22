@@ -105,7 +105,6 @@ test("invokeChatWorkerOrPersistFailureWithDependencies captures dispatch failure
   const markError = new Error("database update rejected");
   const capturedEvents: Array<BackendExceptionEvent> = [];
   let markCallCount = 0;
-  let persistedErrorMessage: string | null = null;
 
   await assert.rejects(
     async () => invokeChatWorkerOrPersistFailureWithDependencies({
@@ -125,10 +124,8 @@ test("invokeChatWorkerOrPersistFailureWithDependencies captures dispatch failure
         _userId: string,
         _workspaceId: string,
         _runId: string,
-        errorMessage: string,
       ): Promise<void> => {
         markCallCount += 1;
-        persistedErrorMessage = errorMessage;
         throw markError;
       },
       captureException: (event: BackendExceptionEvent): void => {
@@ -148,7 +145,6 @@ test("invokeChatWorkerOrPersistFailureWithDependencies captures dispatch failure
   );
 
   assert.equal(markCallCount, 1);
-  assert.equal(persistedErrorMessage, "Chat worker dispatch failed: Lambda invoke rejected");
   const capturedEvent = requireDispatchFailureEvent(capturedEvents.at(0));
   assert.equal(capturedEvents.length, 1);
   assert.equal(capturedEvent.error, dispatchError);
