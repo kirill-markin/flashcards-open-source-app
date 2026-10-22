@@ -6,6 +6,7 @@ import { buildDefaultAnalyticsFilterState, type AnalyticsFilterState } from "../
 import { getReviewPromptDetailsPath } from "../../routing";
 import { FunnelsLink } from "../funnels/FunnelsLink";
 import { useFunnelRangeReports } from "../funnels/funnelRangeReports";
+import { useReviewPromptCoverage } from "./coverageQuery";
 import { loadReviewPromptsTable, type ReviewPromptCounts } from "./query";
 import {
   buildReviewPromptWarnings,
@@ -14,6 +15,7 @@ import {
   reviewPromptGoneWindowDays,
   reviewPrompts,
   type ReviewPrompt,
+  type ReviewPromptCoverage,
 } from "./reviewPromptDefinitions";
 
 const detailsButtonClassName = "filter-button filter-button-compact level-1-metric-details-link";
@@ -42,13 +44,14 @@ function formatCount(count: number): string {
 function ReviewPromptRow(props: Readonly<{
   prompt: ReviewPrompt;
   counts: ReviewPromptCounts;
+  coverage: ReviewPromptCoverage;
   filters: AnalyticsFilterState;
   openWarningId: string | null;
   onOpenWarningIdChange: (update: (current: string | null) => string | null) => void;
   onNavigate: (path: string) => void;
 }>): JSX.Element {
   const { prompt, counts } = props;
-  const warnings = buildReviewPromptWarnings(prompt, counts, props.filters);
+  const warnings = buildReviewPromptWarnings(prompt, counts, props.coverage, props.filters);
   const testId = `review-prompt-${prompt.id}`;
 
   return (
@@ -73,14 +76,17 @@ function ReviewPromptRow(props: Readonly<{
         </div>
       </th>
       <td className="review-prompts-text-cell">{formatReviewPromptPlatforms(prompt)}</td>
-      <td className="review-prompts-text-cell review-prompts-rule-cell">
-        {prompt.acted.kind === "rule"
-          ? `${prompt.acted.rule} within ${formatReviewPromptActedWindow(prompt.acted.window)}`
-          : "Not reported"}
-      </td>
+      <td className="review-prompts-text-cell review-prompts-rule-cell">{prompt.appearsWhen}</td>
       <td>{formatCount(counts.shownCount)}</td>
       <td>
-        {prompt.acted.kind === "rule" ? formatCount(counts.actedCount) : (
+        {prompt.acted.kind === "rule" ? (
+          <div className="explained-heading-row">
+            <span>{formatCount(counts.actedCount)}</span>
+            <ExplanationTip label={`When ${prompt.title} counts as Acted`} explanationId={`${testId}-acted-explanation`}>
+              {prompt.acted.rule} within {formatReviewPromptActedWindow(prompt.acted.window)}
+            </ExplanationTip>
+          </div>
+        ) : (
           <div className="explained-heading-row">
             <span>—</span>
             <ExplanationTip label={`Why ${prompt.title} has no Acted count`} explanationId={`${testId}-acted-explanation`}>
@@ -124,7 +130,12 @@ export function ReviewPromptsArea(
     loadReviewPromptsTable,
     getErrorMessage,
   );
+  const coverageLoad = useReviewPromptCoverage(props.config, props.onTerminalAdminError);
   const table = state.status === "ready" ? state.ranges[0]?.report ?? null : null;
+  const coverage = coverageLoad.state.status === "ready" ? coverageLoad.state.coverage : null;
+  const failure = state.status === "error"
+    ? { message: state.message, retry }
+    : coverageLoad.state.status === "error" ? { message: coverageLoad.state.message, retry: coverageLoad.retry } : null;
   // One warning text open at a time across the whole table.
   const [openWarningId, setOpenWarningId] = useState<string | null>(null);
 
@@ -138,27 +149,28 @@ export function ReviewPromptsArea(
               <li><strong>Shown:</strong> showings on the selected UTC days, so one person shown a prompt twice counts twice. The rating request counts requests sent to Apple or Google, which decide on their own whether a dialog appears.</li>
               <li><strong>Acted:</strong> showings followed by that prompt&rsquo;s rule, by the same person and inside its window, which can end after the last selected day.</li>
               <li><strong>Gone:</strong> showings after which the same person neither opened the app nor answered a card for {reviewPromptGoneWindowDays} days. Showings younger than that with neither yet are left out until their days pass.</li>
-              <li>A guest and the account it became are one person. Test accounts, admins and excluded actors are left out, and a showing counts only on its prompt&rsquo;s platforms from their first counted day.</li>
+              <li>A guest and the account it became are one person. Test accounts, admins and excluded actors are left out, and a showing counts only on its prompt&rsquo;s platforms.</li>
+              <li>A platform&rsquo;s first report of a prompt is the first day its events arrived, so a test build can make it a few days early.</li>
               {table !== null ? <li>Generated {formatGeneratedAt(table.generatedAtUtc)}.</li> : null}
             </ul>
           </ExplanationTip>
         </div>
       </header>
 
-      {state.status === "loading" ? <p className="report-state" aria-live="polite">Loading review prompts…</p> : null}
-      {state.status === "error" ? (
+      {failure === null && (table === null || coverage === null) ? <p className="report-state" aria-live="polite">Loading review prompts…</p> : null}
+      {failure !== null ? (
         <div className="report-state report-state-error">
-          <strong>Review prompts query failed.</strong><span>{state.message}</span>
-          <button className="filter-button" type="button" onClick={retry}>Retry</button>
+          <strong>Review prompts query failed.</strong><span>{failure.message}</span>
+          <button className="filter-button" type="button" onClick={failure.retry}>Retry</button>
         </div>
       ) : null}
-      {table !== null ? (
+      {failure === null && table !== null && coverage !== null ? (
         <table className="funnel-group-table review-prompts-table">
           <thead>
             <tr>
               <th scope="col">Prompt</th>
               <th scope="col">Platforms</th>
-              <th scope="col">Acted when</th>
+              <th scope="col">When it appears</th>
               <th scope="col">Shown</th>
               <th scope="col">Acted</th>
               <th scope="col">Gone</th>
@@ -171,6 +183,7 @@ export function ReviewPromptsArea(
                 key={prompt.id}
                 prompt={prompt}
                 counts={table.counts[prompt.id]}
+                coverage={coverage}
                 filters={filters}
                 openWarningId={openWarningId}
                 onOpenWarningIdChange={setOpenWarningId}
