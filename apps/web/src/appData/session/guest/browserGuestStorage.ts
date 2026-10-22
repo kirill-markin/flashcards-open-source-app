@@ -40,10 +40,10 @@ export function readBrowserGuestState(): BrowserGuestStoredState | null {
       selection = type === "existing" ? {
         type, workspaceId: parseString(selected.workspaceId, "browser guest storage", "selection.workspaceId"),
         ...(selected.discardDemoOnly === undefined ? {} : { discardDemoOnly: parseBoolean(selected.discardDemoOnly, "browser guest storage", "selection.discardDemoOnly") }),
-      } : { type };
+      } : { type, ...(selected.name === undefined ? {} : { name: parseString(selected.name, "browser guest storage", "selection.name") }) };
       if ((selection.type === "existing" && selection.workspaceId.trim() === "")
-        || (selection.type === "create_new" && selected.discardDemoOnly !== undefined)) {
-        throw new ApiContractError("browser guest storage", "selection", "existing non-empty workspace ID or create_new without demo disposal");
+        || (selection.type === "create_new" && (selected.discardDemoOnly !== undefined || selection.name?.trim() === ""))) {
+        throw new ApiContractError("browser guest storage", "selection", "existing non-empty workspace ID or create_new with an optional non-empty name and without demo disposal");
       }
     }
     pending = {
