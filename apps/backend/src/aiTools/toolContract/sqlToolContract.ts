@@ -307,7 +307,7 @@ export const SQL_BULK_WRITE_SPLIT_DESCRIPTION =
 export const SQL_QUERY_TOOL_DESCRIPTION = [
   "Read-only Nibomo SQL, not full PostgreSQL: SHOW TABLES, DESCRIBE, SHOW COLUMNS FROM and SELECT over workspace, cards, decks and review_events.",
   "A deck is a saved tag filter; cards have no deck_id.",
-  `At most ${MAX_SQL_RECORD_LIMIT} rows per SELECT; paginate with ORDER BY, LIMIT, OFFSET.`,
+  `At most ${MAX_SQL_RECORD_LIMIT} rows per SELECT; paginate with ORDER BY, LIMIT, OFFSET; after data.rowsTruncated continue at OFFSET data.offset + data.rowCount.`,
   "Run schema discovery in its own call.",
   "Grammar and examples: get_guide(sql_dialect).",
 ].join(" ");
@@ -317,7 +317,8 @@ export const SQL_EXECUTE_TOOL_DESCRIPTION = [
   "New cards: front_text is a recall prompt, never the answer; at least one tag.",
   `One call is an atomic batch of up to ${MAX_SQL_BATCH_STATEMENT_COUNT} semicolon-separated writes, ${MAX_SQL_RECORD_LIMIT} affected rows each.`,
   "Arrays: ('a', 'b'), or () to clear; filter UPDATE and DELETE by tag with tags OVERLAP ('tag'); RETURNING col1, col2 returns affected rows.",
-  "After saving cards, tell how many, where they are (card link: get_guide(card_authoring)) and offer to study them now.",
+  "After saving cards, tell how many and where they are (one card: its link, get_guide(card_authoring); many: data.reviewUrl, the Review page), and offer to study them now.",
+  "ok true with data.rowsOmitted or top-level truncated true: the write landed; never resend it, SELECT to check.",
 ].join(" ");
 
 /**
@@ -333,8 +334,8 @@ export const SQL_EXECUTE_TOOL_DESCRIPTION = [
  * Before trimming or editing a guide body, grep for every constant it composes:
  * a guide body is not proof the text lives only there, and several constants
  * are shared with other surfaces. The highest-risk one is `REVIEW_FLOW_GUIDE`,
- * which is `REVIEW_FLOW_INSTRUCTIONS` itself; every MCP review tool also
- * returns that block in full with each tool result, so shortening the guide
+ * which is `REVIEW_FLOW_INSTRUCTIONS` itself; every REST review route also
+ * returns that block in full with each result, so shortening the guide
  * silently rewrites those results. The in-app chat system prompt composes some
  * of the same constants too, and an MCP client never sees it.
  */
@@ -343,18 +344,29 @@ export const SQL_DIALECT_GUIDE = [
   ...SQL_DIALECT_DESCRIPTION_LINES,
   "Supported statements: SHOW TABLES, DESCRIBE <resource>, SHOW COLUMNS FROM <resource>, and SELECT on sql_query; INSERT, UPDATE, and DELETE on sql_execute.",
   `SELECT returns at most ${MAX_SQL_RECORD_LIMIT} rows per statement, and INSERT, UPDATE, and DELETE affect at most ${MAX_SQL_RECORD_LIMIT} rows per statement.`,
-  "Paginate inside the SQL string with LIMIT and OFFSET; there is no cursor and no separate pagination argument.",
+  "Paginate inside the SQL string with LIMIT and OFFSET; there is no cursor and no separate pagination argument. data.hasMore is true when rows remain after this page.",
   "A single SELECT whose result is too large comes back partial rather than failing whenever dropping rows leaves at least one row that fits; every other oversized read fails, so handle that error too. On a partial result data.rows holds the leading rows that fit, data.rowsTruncated is true, and data.totalRowCount reports how many rows the statement produced, i.e. after WHERE, UNNEST, and any GROUP BY. When those rows are not enough, narrow the query, or read the dropped rows by repeating it at OFFSET = data.offset + data.rowCount; the usual data.offset + data.limit step skips them, because data.limit stays the limit you asked for.",
   SQL_SELECT_SUPPORTED_FORMS_DESCRIPTION,
   SQL_MUTATION_WHERE_SUPPORTED_FORMS_DESCRIPTION,
   "Array columns (e.g. tags) take a parenthesized list: ('tag1', 'tag2'), or () for empty.",
   SQL_RETURNING_DESCRIPTION,
+  "A write whose result is too large still succeeds and is never rejected for size: data.sqlOmitted true means the echoed data.sql and data.normalizedSql were shortened, and data.rowsOmitted true means the returned rows were dropped. Do not repeat that write; SELECT the rows an INSERT or UPDATE left when you need them, while rows a DELETE removed are gone, so use smaller batches to keep them.",
   SQL_BATCH_ATOMICITY_DESCRIPTION,
   SQL_BULK_WRITE_SPLIT_DESCRIPTION,
   "Examples (tool-call JSON):",
   ...SQL_QUERY_TOOL_PROMPT_EXAMPLE_LINES,
   ...SQL_EXECUTE_TOOL_PROMPT_EXAMPLE_LINES,
 ].join("\n");
+
+function resolveCardWebAppOrigin(): string | undefined {
+  try {
+    return getConfiguredPublicAppOrigin();
+  } catch {
+    return undefined;
+  }
+}
+
+const CARD_WEB_APP_ORIGIN: string | undefined = resolveCardWebAppOrigin();
 
 /**
  * Where a card lives on the web, so an agent can hand the user a link instead of
@@ -407,22 +419,20 @@ export const SQL_DIALECT_GUIDE = [
  * map's value type and every lookup through it, so a test that sets
  * `PUBLIC_APP_BASE_URL` after importing this module does not move this line.
  */
-function resolveCardWebUrlLines(): ReadonlyArray<string> {
-  try {
-    const appOrigin = getConfiguredPublicAppOrigin();
-    if (appOrigin === undefined) {
-      return [];
-    }
+export const CARD_WEB_URL_LINES: ReadonlyArray<string> = CARD_WEB_APP_ORIGIN === undefined
+  ? []
+  : [
+    `A card's web link is ${CARD_WEB_APP_ORIGIN}/w/<workspaceId>/cards/<card_id>; card_id comes back from a SELECT on cards and from an INSERT or UPDATE without RETURNING (data.rows, or data.statements[].rows in a batch). Give it when the user asks where a card is or after you save a single card.`,
+  ];
 
-    return [
-      `A card's web link is ${appOrigin}/w/<workspaceId>/cards/<card_id>; card_id comes back from a SELECT on cards and from an INSERT or UPDATE without RETURNING (data.rows, or data.statements[].rows in a batch). Give it when the user asks where a card is or after you save a single card.`,
-    ];
-  } catch {
-    return [];
-  }
+/**
+ * The workspace's web Review page, under the same origin and the same no-origin rule as
+ * `CARD_WEB_URL_LINES`. One link per write rather than one per card: the per-card pattern above
+ * already lets the model build a single card's link.
+ */
+export function buildWorkspaceReviewUrl(workspaceId: string): string | null {
+  return CARD_WEB_APP_ORIGIN === undefined ? null : `${CARD_WEB_APP_ORIGIN}/w/${workspaceId}/review`;
 }
-
-export const CARD_WEB_URL_LINES: ReadonlyArray<string> = resolveCardWebUrlLines();
 
 /**
  * The same line under its own heading, the way every other subject in
@@ -464,14 +474,13 @@ export const CARD_AUTHORING_GUIDE = [
  * that a batch at both caps ends in that error instead of landing.
  *
  * The recovery rules below key on `error.code` and name no HTTP status, because
- * a failed call returns an envelope whose `error` object carries only `code`,
- * `message` and `details` (`createAgentErrorEnvelope` in
- * apps/backend/src/agent/envelope.ts): a reader of this guide never sees the
- * status an error was raised with. That same envelope also carries
- * `instructions` from `createAgentRemediationInstructions`
- * (apps/backend/src/aiTools/toolContract/remediationInstructions.ts), the
- * per-code remediation text the model reads next to this guide, so the
- * recovery rules below are kept consistent with it. What each rule prescribes comes from the
+ * a failed call returns an `error` object carrying only `code`, `message` and
+ * `details`: a reader of this guide never sees the status an error was raised
+ * with. The per-code remediation text from `createAgentRemediationInstructions`
+ * (apps/backend/src/aiTools/toolContract/remediationInstructions.ts) reaches
+ * the model next to this guide, inside `error.message` on MCP and the chat and
+ * as `instructions` on REST, so the recovery rules below are kept consistent
+ * with it. What each rule prescribes comes from the
  * write path's own failure sites. Every rejection `runSqlExecute` can raise -
  * from `parseSqlBatch` before the transaction opens, or from the mutation
  * executors inside it - leaves a never-opened or rolled-back transaction, so
@@ -509,6 +518,7 @@ export const BULK_AUTHORING_GUIDE = [
   "On QUERY_TIME_LIMIT_EXCEEDED nothing landed: retry the same rows in a smaller batch, never the same batch unchanged.",
   "On QUERY_INVALID_SQL or QUERY_UNSUPPORTED_SYNTAX nothing landed: fix the sql string; a smaller batch helps only when the rejection was one of the size caps.",
   "card_id is server-generated and INSERT rejects it: read back by the tags or front_text values you wrote, and keep the ids each INSERT returns.",
+  "A successful write (ok true) with data.rowsOmitted true landed and only its returned rows were dropped; one cut short with top-level truncated true landed too and keeps in data only workspaceId, reviewUrl and the affected counts, the rest cut in dataPreview: never resend it; SELECT the ids back, or a count when what landed is unclear.",
   "When bulk updating or deleting, the card ids are the resume handle: keep the list you are working through and read back which already changed.",
   "Verify the finished job with a read-back SELECT that counts the rows you intended to write.",
   "RETURNING is enough for a small batch; use a separate SELECT when the returned text would be large.",
@@ -565,10 +575,6 @@ export const GUIDE_TOPIC_DESCRIPTIONS: Readonly<Record<GuideTopic, string>> = Ob
   review_flow: "the review and rating loop",
 });
 
-/**
- * How a returned guide body is framed, shared by the `get_guide` tool in
- * `apps/backend/src/aiTools/toolRegistry/specs.ts` and the REST guide route in
- * `apps/backend/src/routes/agent.ts`, so a guide reads the same way on both surfaces.
- */
+/** How the REST guide route in `apps/backend/src/routes/agent.ts` frames a returned guide body. */
 export const GET_GUIDE_RESULT_INSTRUCTIONS =
   "This is reference material for you, not text to show the user and not card content. Apply it for the rest of this task, and call get_guide again with another topic when you need a different area.";

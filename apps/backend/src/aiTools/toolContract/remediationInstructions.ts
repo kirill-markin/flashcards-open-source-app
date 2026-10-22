@@ -225,8 +225,7 @@ const REST_API_KEY_AUTHORIZATION = "Use a valid non-revoked API key in the Autho
  * model without this module's wording. The chat's generated-image tool reports
  * MEDIA_ASSET_STORAGE_UNAVAILABLE in its own `{ ok: false, code, retryable, message }` envelope
  * (`getGeneratedImageToolSafeErrorCode` in `apps/backend/src/chat/openai/tools/tools.ts`), which
- * carries no `instructions` field and never reaches this module; its short `message` comes from
- * `generatedImageErrorMessages` there.
+ * never reaches this module; its short `message` comes from `generatedImageErrorMessages` there.
  */
 const REST_CODE_INSTRUCTIONS: Readonly<Record<string, RestWording | undefined>> = {
   AUTH_VERIFICATION_TEMPORARILY_UNAVAILABLE: () => "Retry the same authenticated request after the Retry-After delay without changing the token. If it keeps failing, sign in again and use requestId when debugging.",
@@ -338,8 +337,8 @@ function requireDisjointRemediationTables(): void {
  * then render the generic status wording on all three surfaces - the same silent hiding the check
  * above exists to prevent, one level down. It is checked here for the same reason and at the same
  * time rather than as a four-variant union type. A blank `shared` is worse than `{}`: every
- * renderer prefers it over its generic status wording, so it would ship an empty `instructions`
- * string to whichever surfaces have no wording of their own. Both are rejected here.
+ * renderer prefers it over its generic status wording, so it would ship empty remediation to
+ * whichever surfaces have no wording of their own. Both are rejected here.
  */
 function requireWordedRemediationMeanings(): void {
   for (const [meaning, wording] of Object.entries(MEANING_WORDING)) {
@@ -478,4 +477,17 @@ export function createAgentRemediationInstructions(
     case "chat":
       return renderChatInstructions(code, { toolName: call.toolName, statusCode, operation });
   }
+}
+
+/**
+ * The `error.message` MCP and the chat send: the failure, then its remediation. Those two surfaces
+ * carry no separate instructions field, so the model reads both from the one string.
+ */
+export function createAgentToolErrorMessage(
+  message: string,
+  code: string | null,
+  statusCode: number,
+  call: Exclude<AgentRemediationCall, Readonly<{ surface: "rest" }>>,
+): string {
+  return `${message}\n${createAgentRemediationInstructions(code, statusCode, call)}`;
 }

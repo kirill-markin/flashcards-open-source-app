@@ -344,7 +344,6 @@ async function handleMcpTransportRequest(
   const toolOutcomes: Array<McpToolOutcome> = [];
   const server = createMcpServer(
     connection,
-    getMcpResourceUrl(mcpHost),
     getWebsiteUrl(baseDomain),
     getIconUrl(baseDomain),
     {

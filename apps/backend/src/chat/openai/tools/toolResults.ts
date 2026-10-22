@@ -1,16 +1,16 @@
 import {
   previewSqlStatement,
-  type AgentSqlPayload,
+  type AgentSqlPayloadWithWorkspace,
   type AgentSqlReadPayload,
 } from "../../../aiTools/agentSql/shared";
 import { cutHeadAtCodePoint } from "../../../shared/codePointCuts";
 
+/** `error.message` ends with the remediation the model reads next, so there is no separate field. */
 export type ToolErrorPayload = Readonly<{
   error: Readonly<{
     name: string;
     message: string;
   }>;
-  instructions: string;
   sql?: string | null;
   code?: string;
   details?: unknown;
@@ -27,10 +27,14 @@ export const MAX_TOOL_OUTPUT_CHARS = 24_000 as const;
  * The marker overhead only seeds the first preview length. The slice is JSON-escaped into a
  * string field, and `omittedChars` gains decimal digits as the preview shrinks, so no single
  * arithmetic pass lands on the budget.
+ *
+ * `keptFacts`, when given, stays under `fieldKey` beside the preview, so facts the head cut
+ * could lose still reach the model at their usual path.
  */
 function capEnvelopeFieldToBudget(
   envelope: Readonly<Record<string, unknown>>,
   fieldKey: string,
+  keptFacts: Readonly<Record<string, unknown>> | null,
 ): string {
   const serializedField = JSON.stringify(envelope[fieldKey] ?? null);
   const { [fieldKey]: _omitted, ...rest } = envelope;
@@ -39,6 +43,7 @@ function capEnvelopeFieldToBudget(
     const preview = cutHeadAtCodePoint(serializedField, previewLength);
     return JSON.stringify({
       ...rest,
+      ...(keptFacts === null ? {} : { [fieldKey]: keptFacts }),
       [previewKey]: preview,
       truncated: true,
       omittedChars: serializedField.length - preview.length,
@@ -67,13 +72,14 @@ function capEnvelopeFieldToBudget(
 function capSerializedEnvelope(
   envelope: Readonly<Record<string, unknown>>,
   fieldKey: string,
+  keptFacts: Readonly<Record<string, unknown>> | null,
 ): string {
   const serialized = JSON.stringify(envelope);
   if (serialized.length <= MAX_TOOL_OUTPUT_CHARS) {
     return serialized;
   }
 
-  const capped = capEnvelopeFieldToBudget(envelope, fieldKey);
+  const capped = capEnvelopeFieldToBudget(envelope, fieldKey, keptFacts);
   if (capped.length <= MAX_TOOL_OUTPUT_CHARS) {
     return capped;
   }
@@ -88,14 +94,26 @@ function capSerializedEnvelope(
     return capped;
   }
 
-  return capEnvelopeFieldToBudget({ ...envelope, sql: shortenedSqlEcho }, fieldKey);
+  return capEnvelopeFieldToBudget({ ...envelope, sql: shortenedSqlEcho }, fieldKey, keptFacts);
 }
 
 type SqlToolSuccessPayload = Readonly<{
   sql: string;
-  data: AgentSqlPayload;
-  instructions: string;
+  data: AgentSqlPayloadWithWorkspace;
 }>;
+
+/**
+ * The serialized data starts with the echoed SQL, so a head cut of a large write drops these;
+ * they stay readable as `data.*` beside `dataPreview`.
+ */
+function pickSqlResultFacts(data: AgentSqlPayloadWithWorkspace): Readonly<Record<string, unknown>> {
+  return {
+    workspaceId: data.workspaceId,
+    ...(data.reviewUrl === undefined ? {} : { reviewUrl: data.reviewUrl }),
+    ...("affectedCount" in data ? { affectedCount: data.affectedCount } : {}),
+    ...(data.statementType === "batch" ? { affectedCountTotal: data.affectedCountTotal } : {}),
+  };
+}
 
 function buildSqlToolEnvelope(
   toolName: string,
@@ -107,18 +125,6 @@ function buildSqlToolEnvelope(
     ...payload,
   };
 }
-
-/**
- * It replaces the arriving instructions rather than extending them, for the same reason the
- * external surfaces rebuild theirs: an untruncated read is handed out saying `data.rowsTruncated`
- * is false and no row was dropped, which a truncated payload contradicts outright, so keeping
- * that sentence alongside this one would send the model two opposite readings of the same field.
- * What the rest of the arriving string carries - the dialect note, the row cap, the pagination
- * hint, and pointers to envelope fields the chat does not emit - the chat system prompt already
- * states for this surface.
- */
-const TRUNCATED_READ_ROWS_INSTRUCTION =
-  "This answer is partial: data.rows carries only the leading rows of the result, because the whole result did not fit the size limit of a single tool result, and data.rowsTruncated is true because the rest were dropped here rather than by your query. data.rowCount counts the rows you received and data.totalRowCount how many rows the statement produced, so compare the two before you answer and tell the user the answer is partial whenever the rows you are missing could change it. data.limit is still the limit you asked for rather than the number of rows delivered, so continuing from data.offset + data.limit would skip the rows dropped here. Nothing was written, so when those rows matter, ask again for less at a time: select fewer or narrower columns, add WHERE filters, or aggregate instead of listing rows.";
 
 /**
  * The prefix is found by binary search over the row count rather than by predicting where to
@@ -134,7 +140,7 @@ const TRUNCATED_READ_ROWS_INSTRUCTION =
 function capReadEnvelopeByRows(
   toolName: string,
   payload: SqlToolSuccessPayload,
-  data: AgentSqlReadPayload,
+  data: AgentSqlReadPayload & Pick<AgentSqlPayloadWithWorkspace, "workspaceId" | "reviewUrl">,
 ): string | null {
   const serializeRowPrefix = (rowCount: number): string =>
     JSON.stringify(buildSqlToolEnvelope(toolName, {
@@ -146,7 +152,6 @@ function capReadEnvelopeByRows(
         rowsTruncated: true,
         hasMore: true,
       },
-      instructions: TRUNCATED_READ_ROWS_INSTRUCTION,
     }));
 
   let lowestRowCount = 1;
@@ -182,7 +187,7 @@ export function createSqlToolSuccessResult(toolName: string, payload: SqlToolSuc
     }
   }
 
-  return capSerializedEnvelope(envelope, "data");
+  return capSerializedEnvelope(envelope, "data", pickSqlResultFacts(data));
 }
 
 /** The same envelope uncut, for code that reads it rather than the model: the chat sandbox's SQL bridge. */
@@ -198,26 +203,22 @@ export function createToolErrorResult(toolName: string, payload: ToolErrorPayloa
       ...payload,
     },
     "details",
+    null,
   );
 }
 
-type ToolSuccessPayload<Data> = Readonly<{
-  data: Data;
-  instructions: string;
-}>;
-
-/** The success envelope of every tool that echoes no statement: the payload and its instructions. */
+/** The success envelope of every tool that echoes no statement. */
 export function createToolSuccessResult<Data>(
   toolName: string,
-  payload: ToolSuccessPayload<Data>,
+  data: Data,
 ): string {
   return capSerializedEnvelope(
     {
       ok: true,
       tool: toolName,
-      data: payload.data,
-      instructions: payload.instructions,
+      data,
     },
     "data",
+    null,
   );
 }
