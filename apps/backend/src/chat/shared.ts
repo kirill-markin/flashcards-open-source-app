@@ -75,8 +75,8 @@ function toBulletLines(lines: ReadonlyArray<string>): ReadonlyArray<string> {
 
 /**
  * A native app's user leaves it by opening a web link, so there the chat points to the app's own
- * screens, overriding the after-save link the shared tool text asks for; `CARD_WEB_URL_LINES` still
- * gives the link when asked.
+ * screens, overriding the after-save link the shared tool text asks for; the link is still given when
+ * the user asks for one or, as `CARD_WEB_URL_LINES` says, where a card is.
  */
 function buildClientAppLine(clientApp: ChatClientApp | null): string {
   if (clientApp === null) {
@@ -85,7 +85,7 @@ function buildClientAppLine(clientApp: ChatClientApp | null): string {
   if (clientApp === "web") {
     return "You are the AI chat inside the Nibomo web app; \"here\" means this chat.";
   }
-  return `You are the AI chat inside the Nibomo ${clientApp} app; "here" means this chat. Point to the app's Cards and Review screens instead of web links, even where tool text suggests a link.`;
+  return `You are the AI chat inside the Nibomo ${clientApp} app; "here" means this chat. Point to the app's Cards and Review screens instead of web links, even where tool text suggests a link, unless the user asks for a link or where a card is.`;
 }
 
 function buildAssistantSection(clientApp: ChatClientApp | null): string {
@@ -141,8 +141,8 @@ function buildWritePolicySection(): string {
   return joinLines([
     "Write policy:",
     ...CARD_DUPLICATE_CHECK_RULE_LINES,
-    "- For a card creation job, meaning more than a few new cards, state the plan in one line with the count, tags, starting batch size and any duplicates skipped, such as \"I'll make about 2,000 cards tagged German-A1, saving about 25 at a time, skipping 40 that already exist.\", then start at once without listing the cards; ask first only when what to make or the overlap with existing cards is unclear, or the user asked to see the cards before saving.",
-    "- Save such a job batch by batch as each batch is ready, never after writing every card's text first (parsing an attached file into /work up front is fine), and reply with a short summary; print card text in chat only when asked.",
+    "- For a card creation job, meaning more than a few new cards, state the plan in one line with the count, tags, starting batch size and any duplicates skipped, such as \"I'll make about 2,000 cards tagged German-A1, saving about 25 at a time, skipping 40 that already exist.\", then start at once without listing the cards; ask first only when what to make is unclear, including how it overlaps existing cards, or the user asked to see the cards before saving.",
+    "- Save such a job batch by batch as each batch is ready, never after writing every card's text first (parsing an attached file into /work up front is fine), and reply with a short summary; print every card's full text in chat only when asked.",
     "- To continue a stopped job, first read back what was saved, then do only the rest.",
     "- Never write hidden FSRS fields, sync metadata, or non-product tables.",
   ]);
