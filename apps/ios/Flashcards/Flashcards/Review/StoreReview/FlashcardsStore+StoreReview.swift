@@ -49,13 +49,7 @@ extension FlashcardsStore {
                 lastStoreReviewRequestedAppVersion: requestAttempt.appVersion
             )
         )
-        fireAndForgetStoreReviewRequestedAnalyticsEvent(
-            event: makeStoreReviewRequestedAnalyticsEvent(
-                appVersion: requestAttempt.appVersion,
-                localTimestamp: now,
-                installationId: requestAttempt.installationId
-            )
-        )
+        Analytics.track(.storeReviewRequested, screen: analyticsSurface(tab: self.currentVisibleTab))
 
         return true
     }
@@ -96,8 +90,7 @@ extension FlashcardsStore {
         self.pendingStoreReviewRequestAttempt = StoreReviewRequestAttempt(
             id: UUID().uuidString.lowercased(),
             appVersion: appVersion,
-            requestedAt: now,
-            installationId: self.cloudSettings?.installationId
+            requestedAt: now
         )
     }
 }

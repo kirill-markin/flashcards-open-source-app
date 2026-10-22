@@ -763,6 +763,15 @@ h2 {
   text-transform: none;
 }
 
+/* The `⚠` of `WarningTip`, in the colours of `.report-state-warning`. */
+.explanation-tip-warning .explanation-tip-toggle {
+  border-color: rgba(214, 160, 56, 0.55);
+  background: rgba(214, 160, 56, 0.12);
+  color: #ffd98f;
+  font-size: 12px;
+  font-weight: 400;
+}
+
 .explanation-tip-text {
   position: absolute;
   display: none;

@@ -4,6 +4,31 @@ import { useEffect, useRef, useState, type JSX, type ReactNode } from "react";
 // the text, which opens below the `(i)`, short enough that leaving still reads as closing it.
 const HOVER_RELEASE_DELAY_MS = 180;
 
+type TipProps = Readonly<{
+  /** The button's accessible name, which says what the explanation is about. */
+  label: string;
+  /** Unique on the page; the button's `aria-describedby` points at it. */
+  explanationId: string;
+  children: ReactNode;
+}>;
+
+type TipKind = "explanation" | "warning";
+
+// U+FE0E asks for the text glyph, so the `⚠` takes the button's colour instead of an emoji's.
+const tipKinds: Readonly<Record<TipKind, Readonly<{ className: string; glyph: string }>>> = {
+  explanation: { className: "explanation-tip", glyph: "i" },
+  warning: { className: "explanation-tip explanation-tip-warning", glyph: "\u26A0\uFE0E" },
+};
+
+export function ExplanationTip(props: TipProps): JSX.Element {
+  return <Tip kind="explanation" label={props.label} explanationId={props.explanationId}>{props.children}</Tip>;
+}
+
+/** The same tip behind a `⚠`, for a caveat about the numbers it sits beside. */
+export function WarningTip(props: TipProps): JSX.Element {
+  return <Tip kind="warning" label={props.label} explanationId={props.explanationId}>{props.children}</Tip>;
+}
+
 // An explanation waiting behind an `(i)`. A real button with a described tooltip rather than a
 // `title`, because it has to be reachable by keyboard and readable by a screen reader. One boolean
 // decides both the class that shows the text and `aria-expanded`, so what a screen reader is told and
@@ -20,15 +45,7 @@ const HOVER_RELEASE_DELAY_MS = 180;
 // contacts are not hover, or the tap that opens the tooltip would arrive as a click on an already-open
 // one and close it again. Where it sits decides only where the text opens, which the stylesheet places
 // by the container the tip is rendered in.
-export function ExplanationTip(
-  props: Readonly<{
-    /** The button's accessible name, which says what the explanation is about. */
-    label: string;
-    /** Unique on the page; the button's `aria-describedby` points at it. */
-    explanationId: string;
-    children: ReactNode;
-  }>,
-): JSX.Element {
+function Tip(props: TipProps & Readonly<{ kind: TipKind }>): JSX.Element {
   const [clickedState, setClickedState] = useState<"none" | "open" | "closed">("none");
   const [isPointerOver, setIsPointerOver] = useState<boolean>(false);
   const isOpen = clickedState === "none" ? isPointerOver : clickedState === "open";
@@ -52,7 +69,7 @@ export function ExplanationTip(
 
   return (
     <div
-      className={`explanation-tip${isOpen ? " open" : ""}`}
+      className={`${tipKinds[props.kind].className}${isOpen ? " open" : ""}`}
       onPointerEnter={(event) => {
         if (event.pointerType === "mouse") {
           cancelHoverRelease();
@@ -75,7 +92,7 @@ export function ExplanationTip(
         aria-expanded={isOpen}
         onClick={() => setClickedState(isOpen ? "closed" : "open")}
       >
-        i
+        {tipKinds[props.kind].glyph}
       </button>
       <div id={props.explanationId} className="explanation-tip-text" role="tooltip">
         {props.children}

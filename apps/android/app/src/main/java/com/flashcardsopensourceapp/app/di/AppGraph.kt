@@ -23,7 +23,6 @@ import com.flashcardsopensourceapp.app.prompts.feedback.SharedPreferencesFeedbac
 import com.flashcardsopensourceapp.app.prompts.feedback.feedbackPromptIdentityKey
 import com.flashcardsopensourceapp.app.prompts.guestreview.GuestSignInAfterReviewPromptController
 import com.flashcardsopensourceapp.app.prompts.guestreview.SharedPreferencesGuestSignInAfterReviewPromptStore
-import com.flashcardsopensourceapp.app.store.NoOpStoreReviewAnalyticsReporter
 import com.flashcardsopensourceapp.app.store.StoreReviewActivityProvider
 import com.flashcardsopensourceapp.app.store.StoreReviewRequestManager
 import com.flashcardsopensourceapp.app.analytics.AppAnalyticsCredentialProvider
@@ -376,10 +375,7 @@ class AppGraph(
         reviewLogDao = database.reviewLogDao(),
         storeReviewRequestStore = storeReviewRequestStore,
         appVersion = appPackageInfo.versionName,
-        installationIdProvider = {
-            cloudPreferencesStore.currentCloudSettings().installationId
-        },
-        analyticsReporter = NoOpStoreReviewAnalyticsReporter,
+        analytics = analytics,
         zoneIdProvider = ZoneId::systemDefault,
         currentTimeMillisProvider = {
             System.currentTimeMillis()

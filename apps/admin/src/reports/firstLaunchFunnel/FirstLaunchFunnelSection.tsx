@@ -2,11 +2,8 @@ import { useMemo, type JSX } from "react";
 import type { AdminAppConfig } from "../../config";
 import type { AnalyticsFilterState } from "../../filters/analyticsFilters";
 import type { FunnelAnchor } from "../funnels/funnelAnchorUrl";
-import { FunnelEmptyRangeNotes } from "../funnels/FunnelEmptyRangeNotes";
-import { FunnelMaturingWarning } from "../funnels/FunnelMaturingWarning";
 import {
   buildFunnelRangeGroups,
-  formatFunnelRangeNote,
   useFunnelRangeReports,
 } from "../funnels/funnelRangeReports";
 import { FunnelSectionHeader } from "../funnels/FunnelSectionHeader";
@@ -17,6 +14,11 @@ import {
   FunnelStepsLoadingChart,
   type FunnelStage,
 } from "../funnels/FunnelStepsChart";
+import {
+  buildFunnelEmptyRangeNote,
+  buildFunnelMaturingNote,
+  buildFunnelRangeWarnings,
+} from "../funnels/funnelWarnings";
 import {
   firstLaunchDemoCardAllowanceSeconds,
   firstLaunchEngagedReviewThreshold,
@@ -128,6 +130,11 @@ export function FirstLaunchFunnelSection(props: FunnelSectionProps): JSX.Element
     [loadState],
   );
   const groups = useMemo(() => buildFunnelRangeGroups(rangeViews), [rangeViews]);
+  const warnings = useMemo(() => rangeViews.flatMap((range) => buildFunnelRangeWarnings(range, {
+    "start-date": buildStartDateNote(range.dateRange),
+    maturing: buildFunnelMaturingNote(range.totals.maturingCount, range.totals.firstLaunchCount),
+    empty: buildFunnelEmptyRangeNote(rangeViews, range),
+  })), [rangeViews]);
   // A, whose figures the explainer shows.
   const primaryRange = rangeViews[0];
   const hasEntries = rangeViews.some((range) => range.hasEntries);
@@ -135,16 +142,9 @@ export function FirstLaunchFunnelSection(props: FunnelSectionProps): JSX.Element
 
   return (
     <section className="dashboard-section funnel-report">
-      <FunnelSectionHeader funnelId={firstLaunchFunnelAnchor.funnelId} title={firstLaunchFunnelTitle} onDetailsNavigate={props.onDetailsNavigate} />
+      <FunnelSectionHeader funnelId={firstLaunchFunnelAnchor.funnelId} title={firstLaunchFunnelTitle} warnings={warnings} onDetailsNavigate={props.onDetailsNavigate} />
 
       {loadState.status === "error" ? <div className="report-state report-state-error"><strong>Funnel query failed.</strong><span>{loadState.message}</span><button className="filter-button" type="button" onClick={retry}>Retry</button></div> : null}
-      {rangeViews.map((range) => {
-        const startDateNote = buildStartDateNote(range.dateRange);
-        return startDateNote === null ? null : <p key={range.key} className="report-state" aria-live="polite">{formatFunnelRangeNote(range.seriesLabel, startDateNote)}</p>;
-      })}
-
-      {rangeViews.map((range) => <FunnelMaturingWarning key={range.key} seriesLabel={range.seriesLabel} maturingCount={range.totals.maturingCount} entryCount={range.totals.firstLaunchCount} />)}
-      <FunnelEmptyRangeNotes ranges={rangeViews} />
 
       {loadState.status === "loading" ? (
         <FunnelStepsLoadingChart
