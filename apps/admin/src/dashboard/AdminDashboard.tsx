@@ -8,7 +8,11 @@ import { getPackageColorScale } from "../charts/chartPrimitives";
 import { formatDateRangeLabel } from "../charts/formatting";
 import type { AdminAppConfig } from "../config";
 import { AnalyticsFilterBar } from "../filters/AnalyticsFilterBar";
-import { analyticsFilterFieldsByArea, type AnalyticsFilterState } from "../filters/analyticsFilters";
+import {
+  analyticsFilterFieldsByArea,
+  reviewPromptDetailsAnalyticsFilterFields,
+  type AnalyticsFilterState,
+} from "../filters/analyticsFilters";
 import type { AnalyticsFilterOptions } from "../filters/optionsQuery";
 import { AdminNavigation } from "../navigation/AdminNavigation";
 import { AiUsageCohortsSection } from "../reports/aiUsageCohorts/AiUsageCohortsSection";
@@ -20,6 +24,8 @@ import type { GeneralReportView } from "../reports/generalReportView";
 import { LevelOneMetricDetailsPage } from "../reports/levelOneMetrics/LevelOneMetricDetailsPage";
 import { LevelOneMetricsArea } from "../reports/levelOneMetrics/LevelOneMetricsArea";
 import type { ReviewEventsByDateRange } from "../reports/reviewEventsByDate/query";
+import type { ReviewPromptId } from "../reports/reviewPrompts/reviewPromptDefinitions";
+import { ReviewPromptDetailsHeader, ReviewPromptDetailsPage } from "../reports/reviewPrompts/ReviewPromptDetailsPage";
 import { ReviewPromptsArea } from "../reports/reviewPrompts/ReviewPromptsArea";
 import { SocialConnectionsSection } from "../reports/socialConnections/SocialConnectionsSection";
 import { WhoSawUsDatasetPage } from "../reports/whoSawUs/WhoSawUsDatasetPage";
@@ -74,6 +80,8 @@ type AnalyticsReportSectionsProps = Readonly<{
   activeArea: AnalyticsArea;
   /** The funnel whose Details page the Funnels area shows, or `null` for the area itself. */
   funnelDetail: FunnelDetail | null;
+  /** The prompt whose Details page the Review prompts area shows, or `null` for its table. */
+  reviewPromptDetail: ReviewPromptId | null;
   config: AdminAppConfig;
   reportState: AdminReportState;
   rangeLookup: AnalyticsRangeLookup;
@@ -162,7 +170,9 @@ function AnalyticsReportSections(props: AnalyticsReportSectionsProps): JSX.Eleme
     <>
       <AnalyticsFilterBar
         area={props.activeArea}
-        fields={analyticsFilterFieldsByArea[props.activeArea]}
+        fields={props.reviewPromptDetail === null
+          ? analyticsFilterFieldsByArea[props.activeArea]
+          : reviewPromptDetailsAnalyticsFilterFields}
         title="Filters"
         headingLevel={2}
         headingId="analytics-filters-title"
@@ -232,12 +242,23 @@ function AnalyticsReportSections(props: AnalyticsReportSectionsProps): JSX.Eleme
         onTerminalAdminError={props.onTerminalAdminError}
       /> : null}
 
-      {props.activeArea === "review-prompts" ? <ReviewPromptsArea
+      {props.activeArea === "review-prompts" && props.reviewPromptDetail === null ? <ReviewPromptsArea
         config={props.config}
         filters={props.filters}
         isReportLoading={props.isSelectionSettling}
+        onNavigate={props.onNavigate}
         onTerminalAdminError={props.onTerminalAdminError}
       /> : null}
+
+      {/* Keyed by prompt, so moving between two Details pages starts each card afresh. */}
+      {props.reviewPromptDetail === null ? null : <ReviewPromptDetailsPage
+        key={props.reviewPromptDetail}
+        promptId={props.reviewPromptDetail}
+        config={props.config}
+        filters={props.filters}
+        isRangeLoading={props.isSelectionSettling}
+        onTerminalAdminError={props.onTerminalAdminError}
+      />}
 
       {props.activeArea === "audience" ? <AudienceSection
         config={props.config}
@@ -256,10 +277,13 @@ function AnalyticsReportSections(props: AnalyticsReportSectionsProps): JSX.Eleme
   );
 }
 
-/** The routes the dashboard shell renders: an analytics area, or a Level 1 Details, Who saw us dataset or funnel Details page under its tab. */
+/**
+ * The routes the dashboard shell renders: an analytics area, or a Level 1 Details, Who saw us
+ * dataset, funnel Details or review prompt Details page under its tab.
+ */
 export type AdminDashboardRoute = Extract<
   AdminRoute,
-  { kind: "analyticsArea" | "levelOneMetricDetails" | "whoSawUsDataset" | "funnelDetails" }
+  { kind: "analyticsArea" | "levelOneMetricDetails" | "whoSawUsDataset" | "funnelDetails" | "reviewPromptDetails" }
 >;
 
 function getActiveArea(route: AdminDashboardRoute): AnalyticsArea {
@@ -268,6 +292,8 @@ function getActiveArea(route: AdminDashboardRoute): AnalyticsArea {
       return route.area;
     case "funnelDetails":
       return "funnels";
+    case "reviewPromptDetails":
+      return "review-prompts";
     case "levelOneMetricDetails":
     case "whoSawUsDataset":
       return "level-1-metrics";
@@ -295,6 +321,7 @@ export function AdminDashboard(
 ): JSX.Element {
   const activeArea = getActiveArea(props.route);
   const funnelDetail = props.route.kind === "funnelDetails" ? props.route.funnelId : null;
+  const reviewPromptDetail = props.route.kind === "reviewPromptDetails" ? props.route.promptId : null;
   // Level 1 metrics loads and ranges its own charts, so nothing below about the General reports applies.
   const usesGeneralReports = activeArea !== "level-1-metrics";
   // The range the numbers on screen were produced with, which lags the selection while a reload runs.
@@ -351,9 +378,12 @@ export function AdminDashboard(
         />
       ) : null}
 
-      {props.route.kind === "analyticsArea" || props.route.kind === "funnelDetails" ? renderNavigation("") : null}
+      {props.route.kind === "analyticsArea" || props.route.kind === "funnelDetails" || props.route.kind === "reviewPromptDetails"
+        ? renderNavigation("")
+        : null}
 
       {funnelDetail === null ? null : <FunnelDetailsHeader funnelId={funnelDetail} onNavigate={props.onNavigate} />}
+      {reviewPromptDetail === null ? null : <ReviewPromptDetailsHeader promptId={reviewPromptDetail} onNavigate={props.onNavigate} />}
 
       {props.route.kind === "analyticsArea" && props.route.area === "level-1-metrics" ? (
         <LevelOneMetricsArea
@@ -398,6 +428,7 @@ export function AdminDashboard(
         <AnalyticsReportSections
           activeArea={activeArea}
           funnelDetail={funnelDetail}
+          reviewPromptDetail={reviewPromptDetail}
           config={props.config}
           reportState={props.reportState}
           rangeLookup={props.rangeLookup}

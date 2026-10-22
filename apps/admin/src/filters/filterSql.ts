@@ -487,13 +487,17 @@ export function buildConnectionCountriesFilterSql(
  * ANY of their samples matches the selection, while this places them at the alphabetically first of
  * all of them, so a person kept by a `DE` selection can be grouped under an `AT` they were also seen
  * in. A report that shows both says so where it shows them.
+ *
+ * `actorIdsSql`, an uncorrelated `SELECT` of `uuid` actor ids, restricts the output to those people,
+ * or `null` places everybody.
  */
-export function buildActorConnectionCountrySql(dateRange: AnalyticsDateRange): string {
+export function buildActorConnectionCountrySql(dateRange: AnalyticsDateRange, actorIdsSql: string | null): string {
   return [
     "SELECT country_samples.actor_id, MIN(country_samples.country) AS country",
     "FROM (",
     buildConnectionCountrySamplesSql(dateRange, null),
     ") AS country_samples",
+    ...(actorIdsSql === null ? [] : [`WHERE ${buildSubqueryMembershipSql("country_samples.actor_id", [actorIdsSql])}`]),
     "GROUP BY country_samples.actor_id",
   ].join("\n");
 }
@@ -508,8 +512,9 @@ export function buildActorConnectionCountrySql(dateRange: AnalyticsDateRange): s
  * client and an old queued event carry no locale, and there is no `ui_locale IS NOT NULL` predicate
  * here on purpose: such a person yields a row whose `ui_locale` is NULL rather than no row at all,
  * which the funnel's `COALESCE` groups as `Unresolved` exactly as it does a missing row.
+ * `actorIdsSql` restricts the people as it does for the country above.
  */
-export function buildActorAppUiLanguageSql(dateRange: AnalyticsDateRange): string {
+export function buildActorAppUiLanguageSql(dateRange: AnalyticsDateRange, actorIdsSql: string | null): string {
   return [
     "SELECT ui_locale_events.actor_id, MIN(ui_locale_events.ui_locale) AS ui_locale",
     "FROM analytics.product_events_resolved AS ui_locale_events",
@@ -517,6 +522,7 @@ export function buildActorAppUiLanguageSql(dateRange: AnalyticsDateRange): strin
     `  AND ${buildTrustedActorRowsFilterSql("ui_locale_events.trust_level")}`,
     `  AND ui_locale_events.occurred_at >= ${buildRangeStartSql(dateRange)}`,
     `  AND ui_locale_events.occurred_at < ${buildRangeEndSql(dateRange)}`,
+    ...(actorIdsSql === null ? [] : [`  AND ${buildSubqueryMembershipSql("ui_locale_events.actor_id", [actorIdsSql])}`]),
     "GROUP BY ui_locale_events.actor_id",
   ].join("\n");
 }

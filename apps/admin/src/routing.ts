@@ -1,3 +1,5 @@
+import { reviewPromptIds, type ReviewPromptId } from "./reports/reviewPrompts/reviewPromptDefinitions";
+
 export const analyticsAreas = ["level-1-metrics", "funnels", "review-prompts", "general", "audience", "ai-usage"] as const;
 
 export type AnalyticsArea = (typeof analyticsAreas)[number];
@@ -45,6 +47,7 @@ export type AdminRoute =
   | Readonly<{ kind: "levelOneMetricDetails"; metric: LevelOneMetricDetail }>
   | Readonly<{ kind: "whoSawUsDataset"; dataset: WhoSawUsDataset }>
   | Readonly<{ kind: "funnelDetails"; funnelId: FunnelDetail }>
+  | Readonly<{ kind: "reviewPromptDetails"; promptId: ReviewPromptId }>
   | Readonly<{ kind: "users" }>
   | Readonly<{ kind: "user"; userId: string; tab: UserPageTab }>
   /** One chat opened from the Chats tab, a path of its own so Back returns to the list. */
@@ -75,6 +78,10 @@ export function getWhoSawUsDatasetPath(dataset: WhoSawUsDataset): string {
 
 export function getFunnelDetailsPath(funnelId: FunnelDetail): string {
   return `${getAnalyticsAreaPath("funnels")}/${funnelId}`;
+}
+
+export function getReviewPromptDetailsPath(promptId: ReviewPromptId): string {
+  return `${getAnalyticsAreaPath("review-prompts")}/${promptId}`;
 }
 
 /** The funnel's Details page id, or `undefined` for a funnel that has none. */
@@ -110,6 +117,8 @@ export function getAdminRoutePath(route: AdminRoute): string {
       return getWhoSawUsDatasetPath(route.dataset);
     case "funnelDetails":
       return getFunnelDetailsPath(route.funnelId);
+    case "reviewPromptDetails":
+      return getReviewPromptDetailsPath(route.promptId);
     case "users":
       return usersPath;
     case "user":
@@ -227,6 +236,13 @@ export function parseAdminRoute(pathname: string): AdminRoute {
   );
   if (funnelId !== undefined) {
     return { kind: "funnelDetails", funnelId };
+  }
+
+  const promptId = reviewPromptIds.find(
+    (candidatePromptId) => getReviewPromptDetailsPath(candidatePromptId) === normalizedPathname,
+  );
+  if (promptId !== undefined) {
+    return { kind: "reviewPromptDetails", promptId };
   }
 
   return { kind: "notFound", pathname };

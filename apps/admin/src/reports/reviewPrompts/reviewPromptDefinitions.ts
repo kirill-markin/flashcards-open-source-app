@@ -138,6 +138,15 @@ export const reviewPrompts: ReadonlyArray<ReviewPrompt> = [
   },
 ];
 
+export function getReviewPrompt(promptId: ReviewPromptId): ReviewPrompt {
+  const prompt = reviewPrompts.find((candidate) => candidate.id === promptId);
+  if (prompt === undefined) {
+    throw new Error(`Review prompt "${promptId}" has no definition.`);
+  }
+
+  return prompt;
+}
+
 const platformLabels: Readonly<Record<ReviewPromptPlatform, string>> = {
   web: "Web",
   ios: "iOS",
@@ -158,6 +167,19 @@ function joinLabels(labels: ReadonlyArray<string>): string {
     : `${labels.slice(0, -1).join(", ")} and ${labels[labels.length - 1]}`;
 }
 
+/** The selected platforms whose `coverage` starts after the selected range does, as one phrase, or `null`. */
+export function formatReviewPromptLateStarts(
+  coverage: ReadonlyArray<ReviewPromptCoverage>,
+  filters: AnalyticsFilterState,
+): string | null {
+  const lateStarts = coverage.flatMap((platformCoverage) => (
+    filters.eventPlatforms.includes(platformCoverage.platform) && platformCoverage.start !== null && filters.dateRange.from < platformCoverage.start.date
+      ? [`${platformLabels[platformCoverage.platform]} from ${platformCoverage.start.date}${platformCoverage.start.version === null ? "" : ` (${platformCoverage.start.version})`}`]
+      : []
+  ));
+  return lateStarts.length === 0 ? null : joinLabels(lateStarts);
+}
+
 /** The counts a row's warnings depend on. */
 export type ReviewPromptWarningCounts = Readonly<{
   shownCount: number;
@@ -172,20 +194,16 @@ export function buildReviewPromptWarnings(
   filters: AnalyticsFilterState,
 ): ReadonlyArray<FunnelWarning> {
   const selectedCoverage = prompt.coverage.filter((coverage) => filters.eventPlatforms.includes(coverage.platform));
-  const lateStarts = selectedCoverage.flatMap((coverage) => (
-    coverage.start !== null && filters.dateRange.from < coverage.start.date
-      ? [`${platformLabels[coverage.platform]} from ${coverage.start.date}${coverage.start.version === null ? "" : ` (${coverage.start.version})`}`]
-      : []
-  ));
+  const lateStarts = formatReviewPromptLateStarts(prompt.coverage, filters);
   const unreleased = selectedCoverage.flatMap((coverage) => (coverage.start === null ? [platformLabels[coverage.platform]] : []));
   const shown = counts.shownCount.toLocaleString("en-US");
   const notes: ReadonlyArray<Readonly<{ id: string; label: string; text: string | null }>> = [
     {
       id: "coverage-start",
       label: "coverage start",
-      text: lateStarts.length === 0
+      text: lateStarts === null
         ? null
-        : `Counted on ${joinLabels(lateStarts)}, so the selected days before that have no data for it.`,
+        : `Counted on ${lateStarts}, so the selected days before that have no data for it.`,
     },
     {
       id: "next-release",

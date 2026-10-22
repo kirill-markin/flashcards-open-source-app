@@ -66,7 +66,7 @@ function buildDimensionSql(
       // Materialized: joined as an inline subquery, the lookup runs past the statement timeout.
       return {
         ctesSql: `, actor_connection_country AS MATERIALIZED (
-${buildActorConnectionCountrySql(range)}
+${buildActorConnectionCountrySql(range, null)}
 )`,
         valueSql: "actor_country.country",
         joinSql: "LEFT JOIN actor_connection_country AS actor_country ON actor_country.actor_id::text = returns.actor_id",
