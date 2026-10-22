@@ -9,7 +9,7 @@ import {
 import { escapeSqlStringLiteral } from "../../sql";
 import { buildHashedPageViewFilterSqlLines, buildHashedVisitorDaySql } from "../funnels/funnelAudienceSql";
 import { assertValidDateRange, laterCalendarDate, toInteger } from "../reportValues";
-import { siteFactEventNames as engagementEventNames } from "../whoSawUs/engagedVisitorsQuery";
+import { buildSiteEngagementFactSql, siteFactEventNames } from "../whoSawUs/engagedVisitorsQuery";
 import { buildHashedSiteFactFilterSql, buildIdentifiedSiteFactFilterSql } from "../whoSawUs/query";
 import { blogFunnelStartDate } from "./blogFunnelEntry";
 
@@ -17,7 +17,7 @@ import { blogFunnelStartDate } from "./blogFunnelEntry";
 const platformHoverOrClickEventNames: ReadonlyArray<string> = ["site_store_qr_shown", "site_app_entry_clicked"];
 
 /** Every row any step reads, so each identity's rows are read once for all five steps. */
-const stepEventNames: ReadonlyArray<string> = [...engagementEventNames, "site_store_qr_shown"];
+const stepEventNames: ReadonlyArray<string> = [...new Set([...siteFactEventNames, ...platformHoverOrClickEventNames])];
 
 export type BlogPlatformChoiceFunnelCounts = Readonly<{
   articleViewCount: number;
@@ -43,7 +43,7 @@ function buildPageViewSql(rowAlias: string, pageKind: string): string {
 /** Steps two to five of one identity, as aggregate columns over that identity's rows in the range. */
 function buildReaderStepSqlLines(rowAlias: string): ReadonlyArray<string> {
   return [
-    `    COUNT(*) FILTER (WHERE ${buildEventNameInSql(rowAlias, engagementEventNames)}) >= 2 AS engaged,`,
+    `    COUNT(*) FILTER (WHERE ${buildSiteEngagementFactSql(rowAlias)}) >= 2 AS engaged,`,
     `    COUNT(*) FILTER (WHERE ${buildPageViewSql(rowAlias, "home")}) > 0 AS viewed_home,`,
     `    COUNT(*) FILTER (WHERE ${buildEventNameInSql(rowAlias, platformHoverOrClickEventNames)}) > 0 AS hovered_or_clicked,`,
     `    COUNT(*) FILTER (WHERE ${rowAlias}.event_name = 'site_app_entry_clicked') > 0 AS clicked`,
@@ -57,7 +57,7 @@ const readerStepColumnNames: ReadonlyArray<string> = ["engaged", "viewed_home", 
  * for a cookieless visitor one `daily_visitor_hash` on its salt day, so a reader who consents partway
  * through is two people. Every later step tests that same identity's marketing-site rows in the range,
  * with no order between steps and no window, so a step can count someone the step above it does not:
- * - engaged: at least two rows Level 1 counts toward engagement (`siteFactEventNames` in
+ * - engaged: at least two rows Level 1 counts toward engagement (`buildSiteEngagementFactSql` in
  *   `../whoSawUs/engagedVisitorsQuery.ts`), the article view included;
  * - a `site_page_viewed` with `page_kind = 'home'`;
  * - a `site_store_qr_shown` or a `site_app_entry_clicked` with any `target`;

@@ -2,6 +2,7 @@ import { runAdminQuery } from "../../adminApi";
 import type { ChartNote } from "../../charts/chartNotes";
 import type { AdminAppConfig } from "../../config";
 import type { AnalyticsDateRange } from "../../filters/analyticsFilters";
+import { escapeSqlStringLiteral } from "../../sql";
 import { buildHashedVisitorDaySql } from "../funnels/funnelAudienceSql";
 import {
   buildReportBucketColumnsSql,
@@ -18,11 +19,9 @@ const reportLabel = "Engaged visitors report";
 
 /**
  * The site facts that make a visitor-day engaged beside its page views: every marketing-site event,
- * the deck page's `catalog_install_clicked` included, except the passive impressions
- * (`site_app_entry_shown`, `site_locale_suggestion_shown`, `site_store_qr_shown`,
- * `site_consent_prompt_shown`, `site_consent_declined`, `site_collection_disabled`,
- * `site_collection_enabled`). Listed by name rather than as a `NOT IN` so the
- * (event_name, occurred_at) index stays usable; a new site event counts only once added here.
+ * the deck page's `catalog_install_clicked` included, except `sitePassiveImpressionEventNames`.
+ * Listed by name rather than as a `NOT IN` so the (event_name, occurred_at) index stays usable; a new
+ * site event counts only once added here.
  */
 const siteEngagementEventNames: ReadonlyArray<string> = [
   "site_page_engaged",
@@ -40,20 +39,45 @@ const siteEngagementEventNames: ReadonlyArray<string> = [
   "catalog_install_clicked",
 ];
 
-/**
- * `site_page_engaged` went live that evening, ~21:00 UTC, so from that bar on a one-page read of
- * 10+ s with a scroll, click or key press also counts as engaged.
- */
-export const pageReadEngagementStartDate = "2026-10-19";
+/** Site events sent without a visitor action; they count toward engagement only before `engagedRuleSwitchInstant`. */
+const sitePassiveImpressionEventNames: ReadonlyArray<string> = [
+  "site_app_entry_shown",
+  "site_locale_suggestion_shown",
+  "site_store_qr_shown",
+  "site_consent_prompt_shown",
+  "site_consent_declined",
+  "site_collection_disabled",
+  "site_collection_enabled",
+];
+
+/** The production deploy of website PR #692, from which the site sends page reads (`site_page_engaged`). */
+export const engagedRuleSwitchInstant = "2026-10-19T21:06:34Z";
+
+export const engagedRuleSwitchLabel = `${engagedRuleSwitchInstant.slice(0, 10)} ${engagedRuleSwitchInstant.slice(11, 16)} UTC`;
 
 export const pageReadEngagementChartNote: ChartNote = {
-  at: pageReadEngagementStartDate,
-  shortText: "Page reads count from here",
-  longText: `From ${pageReadEngagementStartDate}, reading one page for 10+ seconds with a scroll, click or key press also counts as engaged, so the share steps up here by definition.`,
+  at: engagedRuleSwitchInstant,
+  shortText: "Engaged rule changes",
+  longText: `Before ${engagedRuleSwitchLabel}, any two site events of a visitor's day counted as engaged, automatic ones such as a shown app button or cookie prompt included, as a looser stand-in because the site did not send page reads yet. From here only a second page view or a real site action counts, including a 10+ second page read with a scroll, click or key press.`,
 };
 
-/** The rows engagement is counted over: page views and `siteEngagementEventNames`; any two engage. */
-export const siteFactEventNames: ReadonlyArray<string> = ["site_page_viewed", ...siteEngagementEventNames];
+const siteActiveFactEventNames: ReadonlyArray<string> = ["site_page_viewed", ...siteEngagementEventNames];
+
+/** The rows engagement is counted over; any two that `buildSiteEngagementFactSql` accepts engage. */
+export const siteFactEventNames: ReadonlyArray<string> = [...siteActiveFactEventNames, ...sitePassiveImpressionEventNames];
+
+function buildEventNameInSql(rowAlias: string, eventNames: ReadonlyArray<string>): string {
+  return `${rowAlias}.event_name IN (${eventNames.map(escapeSqlStringLiteral).join(", ")})`;
+}
+
+/** Whether one site fact counts toward engagement: a page view or site action always, an impression only before the switch. */
+export function buildSiteEngagementFactSql(rowAlias: string): string {
+  return [
+    `(${buildEventNameInSql(rowAlias, siteActiveFactEventNames)}`,
+    ` OR (${buildEventNameInSql(rowAlias, sitePassiveImpressionEventNames)}`,
+    ` AND ${rowAlias}.occurred_at < ${escapeSqlStringLiteral(engagedRuleSwitchInstant)}::timestamptz))`,
+  ].join("");
+}
 
 export type EngagedVisitorsBucket = Readonly<{
   bucket: ReportBucket;
@@ -76,8 +100,7 @@ export type EngagedVisitorsReport = Readonly<{
  * A visitor-day is one of that series' people on one UTC day, keyed as the series keys them: an
  * identified visitor on the UTC day of `occurred_at`, a cookieless one on the hash's salt day. It
  * exists only with a page view, so every engaged visitor is a `web` visitor of the same bucket, and
- * it is engaged with any second fact of the day: another page view or a `siteEngagementEventNames`
- * event.
+ * it is engaged with two facts of the day that `buildSiteEngagementFactSql` accepts.
  */
 export function buildSiteVisitorDaysCtesSql(range: AnalyticsDateRange): string {
   const identifiedDaySql = "(site_fact.occurred_at AT TIME ZONE 'UTC')::date";
@@ -87,7 +110,7 @@ export function buildSiteVisitorDaysCtesSql(range: AnalyticsDateRange): string {
     "  SELECT",
     "    site_fact.actor_id,",
     `    ${identifiedDaySql} AS visit_date,`,
-    "    COUNT(*) >= 2 AS is_engaged",
+    `    COUNT(*) FILTER (WHERE ${buildSiteEngagementFactSql("site_fact")}) >= 2 AS is_engaged`,
     "  FROM analytics.product_events_resolved AS site_fact",
     `  WHERE ${buildIdentifiedSiteFactFilterSql("site_fact", siteFactEventNames, range)}`,
     `  GROUP BY site_fact.actor_id, ${identifiedDaySql}`,
@@ -96,7 +119,7 @@ export function buildSiteVisitorDaysCtesSql(range: AnalyticsDateRange): string {
     "  SELECT",
     "    hashed_fact.daily_visitor_hash,",
     `    ${hashedDaySql} AS visit_date,`,
-    "    COUNT(*) >= 2 AS is_engaged",
+    `    COUNT(*) FILTER (WHERE ${buildSiteEngagementFactSql("hashed_fact")}) >= 2 AS is_engaged`,
     "  FROM analytics.product_events_resolved AS hashed_fact",
     `  WHERE ${buildHashedSiteFactFilterSql("hashed_fact", siteFactEventNames, range)}`,
     `  GROUP BY hashed_fact.daily_visitor_hash, ${hashedDaySql}`,
