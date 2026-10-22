@@ -19,6 +19,7 @@ extension AIChatStore {
             content: content,
             timestamp: nowIsoTimestamp(),
             isError: false,
+            errorCode: nil,
             isStopped: false,
             cursor: nil,
             itemId: nil
@@ -30,6 +31,7 @@ extension AIChatStore {
             content: [],
             timestamp: nowIsoTimestamp(),
             isError: false,
+            errorCode: nil,
             isStopped: false,
             cursor: nil,
             itemId: nil

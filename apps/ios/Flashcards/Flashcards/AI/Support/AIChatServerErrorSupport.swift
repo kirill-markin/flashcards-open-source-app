@@ -100,3 +100,72 @@ func makeAIChatUserFacingErrorMessage(
 
     return appendCloudRequestIdReference(message: rawMessage, requestId: requestId)
 }
+
+/// Client copy for the stable code of a run's terminal error message; nil for an absent or unknown code, whose stored text is shown instead.
+func aiChatTerminalErrorMessage(errorCode: String?) -> String? {
+    guard let errorCode else {
+        return nil
+    }
+
+    switch errorCode {
+    case "CHAT_RUN_DEADLINE_REACHED":
+        return aiSettingsLocalized(
+            "ai.error.terminal.deadlineReached",
+            "This took too long, so I stopped. Everything already saved is kept. Write \"continue\" to finish the rest."
+        )
+    case "CHAT_RUN_INTERRUPTED":
+        return aiSettingsLocalized(
+            "ai.error.terminal.interrupted",
+            "The AI response was interrupted before it finished. Please try again."
+        )
+    case "CHAT_RUNTIME_ERROR":
+        return aiSettingsLocalized(
+            "ai.error.terminal.runtimeError",
+            "The AI response failed before it could finish. Please try again."
+        )
+    case "CHAT_PROVIDER_ERROR":
+        return aiSettingsLocalized(
+            "ai.error.terminal.providerError",
+            "The AI service could not complete the response. Please try again."
+        )
+    case "CHAT_PROVIDER_AUTH_FAILED":
+        return aiSettingsLocalized(
+            "ai.error.terminal.providerAuthFailed",
+            "The AI service could not authenticate the request. Please try again later."
+        )
+    case "CHAT_PROVIDER_RATE_LIMITED":
+        return aiSettingsLocalized(
+            "ai.error.terminal.providerRateLimited",
+            "The AI service is rate limited right now. Please try again in a few minutes."
+        )
+    case "CHAT_PROVIDER_UNAVAILABLE":
+        return aiSettingsLocalized(
+            "ai.error.terminal.providerUnavailable",
+            "The AI service is temporarily unavailable. Please try again soon."
+        )
+    case "CHAT_PROVIDER_ABORTED":
+        return aiSettingsLocalized(
+            "ai.error.terminal.providerAborted",
+            "The AI request was interrupted. Please try again."
+        )
+    case "CHAT_CONTEXT_LENGTH_EXCEEDED":
+        return aiSettingsLocalized(
+            "ai.error.terminal.contextLengthExceeded",
+            "This conversation has grown too long for the AI to continue. Please start a new chat to keep going."
+        )
+    case "CHAT_ATTACHMENT_UNSUPPORTED_TYPE":
+        return aiChatAttachmentUnsupportedTypeMessage()
+    case "AI_CONSENT_REQUIRED":
+        return aiSettingsLocalized(
+            "ai.error.terminal.consentRequired",
+            "AI consent was withdrawn or superseded. Review the disclosure and grant consent before sending another message."
+        )
+    case "OPENAI_API_KEY_INVALID":
+        return aiSettingsLocalized(
+            "ai.error.terminal.ownOpenAIKeyInvalid",
+            "Your OpenAI key does not work. Check it in Settings."
+        )
+    default:
+        return nil
+    }
+}

@@ -67,6 +67,7 @@ extension AIChatStoreTestSupport {
             ],
             timestamp: "2026-04-08T10:00:00Z",
             isError: false,
+            errorCode: nil,
             isStopped: false,
             cursor: "cursor-1",
             itemId: "item-1"
@@ -80,6 +81,7 @@ extension AIChatStoreTestSupport {
             content: [.text("Working on it.")],
             timestamp: "2026-04-08T10:00:00Z",
             isError: false,
+            errorCode: nil,
             isStopped: false,
             cursor: "cursor-1",
             itemId: itemId
@@ -93,6 +95,7 @@ extension AIChatStoreTestSupport {
             content: [.text(text)],
             timestamp: timestamp,
             isError: false,
+            errorCode: nil,
             isStopped: false,
             cursor: nil,
             itemId: nil
@@ -111,6 +114,7 @@ extension AIChatStoreTestSupport {
             content: [.text(text)],
             timestamp: timestamp,
             isError: false,
+            errorCode: nil,
             isStopped: false,
             cursor: "cursor-\(id)",
             itemId: itemId

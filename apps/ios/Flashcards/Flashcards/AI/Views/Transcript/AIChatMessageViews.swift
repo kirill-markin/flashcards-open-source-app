@@ -46,6 +46,15 @@ struct AIChatTypingIndicator: View {
     }
 }
 
+/// An error message with a known code shows the client copy in place of its stored English text.
+private func aiChatDisplayedMessageContent(message: AIChatMessage) -> [AIChatContentPart] {
+    guard message.isError, let terminalErrorMessage = aiChatTerminalErrorMessage(errorCode: message.errorCode) else {
+        return message.content
+    }
+
+    return [.text(terminalErrorMessage)]
+}
+
 func aiChatShouldShowTypingIndicator(
     message: AIChatMessage,
     isLastMessage: Bool,
@@ -189,7 +198,7 @@ struct AIChatMessageRow: View {
                 .font(.caption.weight(.semibold))
                 .foregroundStyle(.secondary)
 
-            ForEach(Array(message.content.enumerated()), id: \.offset) { _, part in
+            ForEach(Array(aiChatDisplayedMessageContent(message: message).enumerated()), id: \.offset) { _, part in
                 self.messageContent(part: part, message: message)
             }
 
@@ -408,7 +417,7 @@ struct AIChatMessageRow: View {
     }
 
     private func messageRowAccessibilityLabel(message: AIChatMessage) -> String {
-        let text = message.content.reduce(into: "") { partialResult, part in
+        let text = aiChatDisplayedMessageContent(message: message).reduce(into: "") { partialResult, part in
             switch part {
             case .text(let text):
                 partialResult.append(text)

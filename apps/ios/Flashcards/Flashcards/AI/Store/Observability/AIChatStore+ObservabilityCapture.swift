@@ -12,6 +12,7 @@ extension AIChatStore {
 
     func showLiveTerminalError(
         message: String,
+        errorCode: String?,
         metadata: AIChatLiveEventMetadata,
         isError: Bool?,
         isStopped: Bool?
@@ -24,12 +25,13 @@ extension AIChatStore {
         )
         self.activeAlert = .generalError(
             title: aiSettingsLocalized("ai.error.title", "Error"),
-            message: self.aiChatRunFailureAlertMessage(message: message)
+            message: self.aiChatRunFailureAlertMessage(message: message, errorCode: errorCode)
         )
     }
 
     func showLiveReconciledError(
         message: String,
+        errorCode: String?,
         sessionId: String,
         runId: String?,
         afterCursor: String?,
@@ -48,7 +50,7 @@ extension AIChatStore {
         )
         self.activeAlert = .generalError(
             title: aiSettingsLocalized("ai.error.title", "Error"),
-            message: self.aiChatRunFailureAlertMessage(message: message)
+            message: self.aiChatRunFailureAlertMessage(message: message, errorCode: errorCode)
         )
     }
 

@@ -76,6 +76,7 @@ struct AIChatConversationMessageWire: Decodable, Hashable, Sendable {
     let content: [AIChatContentPart]
     let timestamp: String
     let isError: Bool
+    let errorCode: String?
     let isStopped: Bool
     let cursor: String?
     let itemId: String?
@@ -86,6 +87,7 @@ struct AIChatConversationMessageWire: Decodable, Hashable, Sendable {
         case timestamp
         case timestampMillis
         case isError
+        case errorCode
         case isStopped
         case cursor
         case itemId
@@ -111,6 +113,7 @@ struct AIChatConversationMessageWire: Decodable, Hashable, Sendable {
             )
         }
         self.isError = try container.decode(Bool.self, forKey: .isError)
+        self.errorCode = try container.decodeIfPresent(String.self, forKey: .errorCode)
         self.isStopped = try container.decodeIfPresent(Bool.self, forKey: .isStopped) ?? false
         self.cursor = try container.decodeIfPresent(String.self, forKey: .cursor)
         self.itemId = try container.decodeIfPresent(String.self, forKey: .itemId)
@@ -218,6 +221,7 @@ func mapConversationMessage(
         content: message.content,
         timestamp: message.timestamp,
         isError: message.isError,
+        errorCode: message.errorCode,
         isStopped: message.isStopped,
         cursor: message.cursor,
         itemId: message.itemId
