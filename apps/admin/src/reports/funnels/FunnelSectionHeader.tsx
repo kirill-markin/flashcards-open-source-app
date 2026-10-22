@@ -1,17 +1,21 @@
 import type { JSX } from "react";
+import { WarningTip } from "../../explanations/ExplanationTip";
 import { findFunnelDetail, getFunnelDetailsPath } from "../../routing";
 import { FunnelsLink } from "./FunnelsLink";
+import type { FunnelWarning } from "./funnelWarnings";
 
 const detailsButtonClassName = "filter-button filter-button-compact level-1-metric-details-link";
 
 /**
- * A funnel card's heading row, styled like a Level 1 one. Its Details button links to the funnel's
- * Details page, stays disabled for a funnel without one, and is absent on that page itself.
+ * A funnel card's heading row, styled like a Level 1 one, with a `⚠` after the title for each warning
+ * the card's ranges trigger. Its Details button links to the funnel's Details page, stays disabled for
+ * a funnel without one, and is absent on that page itself.
  */
 export function FunnelSectionHeader(
   props: Readonly<{
     funnelId: string;
     title: string;
+    warnings: ReadonlyArray<FunnelWarning>;
     onDetailsNavigate: ((path: string) => void) | null;
   }>,
 ): JSX.Element {
@@ -20,7 +24,16 @@ export function FunnelSectionHeader(
 
   return (
     <header className="dashboard-section-header level-1-metric-section-header">
-      <h2>{props.title}</h2>
+      <div className="explained-heading-row">
+        <h2>{props.title}</h2>
+        {props.warnings.map((warning) => (
+          <WarningTip
+            key={warning.id}
+            label={`${props.title} data warning`}
+            explanationId={`funnel-${props.funnelId}-${warning.id}-warning`}
+          >{warning.text}</WarningTip>
+        ))}
+      </div>
       {props.onDetailsNavigate !== null && funnelDetail !== undefined ? (
         <FunnelsLink
           className={detailsButtonClassName}

@@ -2,11 +2,8 @@ import { useMemo, type JSX } from "react";
 import type { AdminAppConfig } from "../../config";
 import type { AnalyticsFilterState } from "../../filters/analyticsFilters";
 import type { FunnelAnchor } from "../funnels/funnelAnchorUrl";
-import { FunnelEmptyRangeNotes } from "../funnels/FunnelEmptyRangeNotes";
-import { FunnelMaturingWarning } from "../funnels/FunnelMaturingWarning";
 import {
   buildFunnelRangeGroups,
-  formatFunnelRangeNote,
   useFunnelRangeReports,
 } from "../funnels/funnelRangeReports";
 import { FunnelSectionHeader } from "../funnels/FunnelSectionHeader";
@@ -17,6 +14,11 @@ import {
   FunnelStepsLoadingChart,
   type FunnelStage,
 } from "../funnels/FunnelStepsChart";
+import {
+  buildFunnelEmptyRangeNote,
+  buildFunnelMaturingNote,
+  buildFunnelRangeWarnings,
+} from "../funnels/funnelWarnings";
 import {
   loadPaywallFunnelReport,
   paywallFirstPaymentWindowDays,
@@ -100,21 +102,10 @@ function sumFunnelGroups(groups: ReadonlyArray<PaywallFunnelGroup>): PaywallFunn
   });
 }
 
-function FirstPaymentPendingWarning(
-  props: Readonly<{ seriesLabel: string | null; pendingCount: number; entryCount: number }>,
-): JSX.Element | null {
-  if (props.pendingCount === 0) {
-    return null;
-  }
-
-  return (
-    <p className="report-state report-state-warning" aria-live="polite">
-      {formatFunnelRangeNote(
-        props.seriesLabel,
-        `${props.pendingCount.toLocaleString("en-US")} of ${props.entryCount.toLocaleString("en-US")} people entered less than ${paywallFirstPaymentWindowDays} days ago; their first payments can still arrive.`,
-      )}
-    </p>
-  );
+function buildFirstPaymentPendingNote(pendingCount: number, entryCount: number): string | null {
+  return pendingCount === 0
+    ? null
+    : `${pendingCount.toLocaleString("en-US")} of ${entryCount.toLocaleString("en-US")} people entered less than ${paywallFirstPaymentWindowDays} days ago; their first payments can still arrive.`;
 }
 
 export function PaywallFunnelSection(props: FunnelSectionProps): JSX.Element {
@@ -127,6 +118,12 @@ export function PaywallFunnelSection(props: FunnelSectionProps): JSX.Element {
     [loadState],
   );
   const groups = useMemo(() => buildFunnelRangeGroups(rangeViews), [rangeViews]);
+  const warnings = useMemo(() => rangeViews.flatMap((range) => buildFunnelRangeWarnings(range, {
+    "start-date": buildStartDateNote(range.dateRange),
+    maturing: buildFunnelMaturingNote(range.totals.maturingCount, range.totals.paywallShownCount),
+    "first-payment-pending": buildFirstPaymentPendingNote(range.totals.firstPaymentPendingCount, range.totals.paywallShownCount),
+    empty: buildFunnelEmptyRangeNote(rangeViews, range),
+  })), [rangeViews]);
   // A, whose figures the explainer shows.
   const primaryRange = rangeViews[0];
   const hasEntries = rangeViews.some((range) => range.hasEntries);
@@ -134,17 +131,9 @@ export function PaywallFunnelSection(props: FunnelSectionProps): JSX.Element {
 
   return (
     <section className="dashboard-section funnel-report">
-      <FunnelSectionHeader funnelId={paywallFunnelAnchor.funnelId} title={paywallFunnelTitle} onDetailsNavigate={props.onDetailsNavigate} />
+      <FunnelSectionHeader funnelId={paywallFunnelAnchor.funnelId} title={paywallFunnelTitle} warnings={warnings} onDetailsNavigate={props.onDetailsNavigate} />
 
       {loadState.status === "error" ? <div className="report-state report-state-error"><strong>Funnel query failed.</strong><span>{loadState.message}</span><button className="filter-button" type="button" onClick={retry}>Retry</button></div> : null}
-      {rangeViews.map((range) => {
-        const startDateNote = buildStartDateNote(range.dateRange);
-        return startDateNote === null ? null : <p key={range.key} className="report-state" aria-live="polite">{formatFunnelRangeNote(range.seriesLabel, startDateNote)}</p>;
-      })}
-
-      {rangeViews.map((range) => <FunnelMaturingWarning key={range.key} seriesLabel={range.seriesLabel} maturingCount={range.totals.maturingCount} entryCount={range.totals.paywallShownCount} />)}
-      {rangeViews.map((range) => <FirstPaymentPendingWarning key={range.key} seriesLabel={range.seriesLabel} pendingCount={range.totals.firstPaymentPendingCount} entryCount={range.totals.paywallShownCount} />)}
-      <FunnelEmptyRangeNotes ranges={rangeViews} />
 
       {loadState.status === "loading" ? (
         <FunnelStepsLoadingChart

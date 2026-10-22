@@ -1,10 +1,8 @@
 import { useMemo, type JSX } from "react";
 import type { AnalyticsFilterState } from "../../filters/analyticsFilters";
 import { buildHashedVisitorCountryStartDateNote } from "../funnels/funnelAudienceSql";
-import { FunnelEmptyRangeNotes } from "../funnels/FunnelEmptyRangeNotes";
 import {
   buildFunnelRangeGroups,
-  formatFunnelRangeNote,
   useFunnelRangeReports,
 } from "../funnels/funnelRangeReports";
 import { FunnelSectionHeader } from "../funnels/FunnelSectionHeader";
@@ -14,6 +12,7 @@ import {
   FunnelStepsEmptyChart,
   FunnelStepsLoadingChart,
 } from "../funnels/FunnelStepsChart";
+import { buildFunnelEmptyRangeNote, buildFunnelRangeWarnings } from "../funnels/funnelWarnings";
 import { firstLaunchEngagedReviewThreshold } from "../firstLaunchFunnel/query";
 import {
   catalogInstallConversionWindowDays,
@@ -52,6 +51,15 @@ export function CatalogInstallFunnelSection(props: FunnelSectionProps): JSX.Elem
     [loadState],
   );
   const groups = useMemo(() => buildFunnelRangeGroups(rangeViews), [rangeViews]);
+  const connectionCountries = props.filters.connectionCountries;
+  const warnings = useMemo(() => rangeViews.flatMap((range) => buildFunnelRangeWarnings(range, {
+    "start-date": buildStartDateNote(range.dateRange),
+    "country-start-date": buildHashedVisitorCountryStartDateNote(connectionCountries, range.dateRange),
+    maturing: range.report.maturingInstallerCount === 0
+      ? null
+      : `${range.report.maturingInstallerCount.toLocaleString("en-US")} of ${range.report.installerCount.toLocaleString("en-US")} installers first installed less than ${catalogInstallConversionWindowDays} days ago; their review steps are still filling in.`,
+    empty: buildFunnelEmptyRangeNote(rangeViews, range),
+  })), [connectionCountries, rangeViews]);
   const primaryRange = rangeViews[0];
   const isReady = loadState.status === "ready";
   const hasEntries = rangeViews.some((range) => range.hasEntries);
@@ -59,27 +67,9 @@ export function CatalogInstallFunnelSection(props: FunnelSectionProps): JSX.Elem
 
   return (
     <section className="dashboard-section funnel-report">
-      <FunnelSectionHeader funnelId={catalogInstallFunnelAnchor.funnelId} title={catalogInstallFunnelTitle} onDetailsNavigate={props.onDetailsNavigate} />
+      <FunnelSectionHeader funnelId={catalogInstallFunnelAnchor.funnelId} title={catalogInstallFunnelTitle} warnings={warnings} onDetailsNavigate={props.onDetailsNavigate} />
 
       {loadState.status === "error" ? <div className="report-state report-state-error"><strong>Funnel query failed.</strong><span>{loadState.message}</span><button className="filter-button" type="button" onClick={retry}>Retry</button></div> : null}
-      {rangeViews.map((range) => {
-        const startDateNote = buildStartDateNote(range.dateRange);
-        return startDateNote === null ? null : <p key={range.key} className="report-state" aria-live="polite">{formatFunnelRangeNote(range.seriesLabel, startDateNote)}</p>;
-      })}
-      {rangeViews.map((range) => {
-        const countryStartDateNote = buildHashedVisitorCountryStartDateNote(props.filters.connectionCountries, range.dateRange);
-        return countryStartDateNote === null ? null : <p key={range.key} className="report-state" aria-live="polite">{formatFunnelRangeNote(range.seriesLabel, countryStartDateNote)}</p>;
-      })}
-
-      {rangeViews.map((range) => (range.report.maturingInstallerCount === 0 ? null : (
-        <p key={range.key} className="report-state report-state-warning" aria-live="polite">
-          {formatFunnelRangeNote(
-            range.seriesLabel,
-            `${range.report.maturingInstallerCount.toLocaleString("en-US")} of ${range.report.installerCount.toLocaleString("en-US")} installers first installed less than ${catalogInstallConversionWindowDays} days ago; their review steps are still filling in.`,
-          )}
-        </p>
-      )))}
-      <FunnelEmptyRangeNotes ranges={rangeViews} />
 
       {loadState.status === "loading" ? (
         <FunnelStepsLoadingChart

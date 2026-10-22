@@ -20,6 +20,7 @@ import {
   type FunnelChartGroups,
   type FunnelStage,
 } from "../funnels/FunnelStepsChart";
+import type { FunnelWarning } from "../funnels/funnelWarnings";
 import {
   buildFirstLaunchFunnelStages,
   firstLaunchFunnelAnchor,
@@ -46,6 +47,9 @@ export const firstLaunchFunnelBreakdowns: ReadonlyArray<FirstLaunchFunnelBreakdo
 
 /** The groups replace the plain funnel's steps, so the chart is given none; one array, so a render is not a change. */
 const noStages: ReadonlyArray<FunnelStage<FirstLaunchFunnelStepId>> = [];
+
+/** The First launch card above names the ranges' caveats once for the whole page. */
+const noWarnings: ReadonlyArray<FunnelWarning> = [];
 
 function getErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : "Unexpected first launch funnel breakdown error.";
@@ -99,7 +103,7 @@ export function FirstLaunchFunnelBreakdownSection(
 
   return (
     <section className="dashboard-section funnel-report" data-testid={`funnel-first-launch-by-${dimension.id}`}>
-      <FunnelSectionHeader funnelId={firstLaunchFunnelAnchor.funnelId} title={title} onDetailsNavigate={null} />
+      <FunnelSectionHeader funnelId={firstLaunchFunnelAnchor.funnelId} title={title} warnings={noWarnings} onDetailsNavigate={null} />
 
       {loadState.status === "error" ? <div className="report-state report-state-error"><strong>Funnel query failed.</strong><span>{loadState.message}</span><button className="filter-button" type="button" onClick={retry}>Retry</button></div> : null}
 
