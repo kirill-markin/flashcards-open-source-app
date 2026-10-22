@@ -4,6 +4,40 @@ One tool inventory reaches agents three ways: the MCP server, the in-app chat,
 and the Agent REST API. This document says how they combine; every fact it
 names lives in the linked source.
 
+## AI-facing text: MCP first, layered, facts only
+
+Some users reach Nibomo only through MCP from their own assistant (ChatGPT,
+Claude or another), so everything an assistant needs lives in MCP text. The
+in-app chat, the plugin repository
+[`kirill-markin/nibomo-plugins`](https://github.com/kirill-markin/nibomo-plugins)
+and REST only add surface-specific extras; the chat prompt
+([`chat/shared.ts`](../apps/backend/src/chat/shared.ts)) and the MCP server
+instructions share one core,
+[`assistantContract.ts`](../apps/backend/src/aiTools/toolContract/assistantContract.ts).
+
+Text is layered from essentials to on-demand detail:
+
+1. Server instructions (`SERVER_INSTRUCTIONS` in
+   [`mcp/server.ts`](../apps/backend/src/mcp/server.ts)): what every
+   conversation needs, and pointers to guides.
+2. Tool descriptions ([the registry](#the-registry-is-the-inventory)): what the
+   tool does and which guide to read first.
+3. `get_guide` topics ([shared contracts](#shared-contracts)): the details.
+
+The budgets of the first two layers are in
+[`sqlToolLimits.ts`](../apps/backend/src/aiTools/toolContract/sqlToolLimits.ts),
+enforced by [`toolBudgets.test.ts`](../apps/backend/src/mcp/toolBudgets.test.ts).
+
+MCP and chat tool results carry facts only: `ok` plus the data or the error,
+whose message ends with any remediation. REST keeps `instructions` and
+`docs` in its envelope ([`envelope.ts`](../apps/backend/src/agent/envelope.ts))
+because an HTTP caller sees no tool descriptions.
+
+Every sentence must change model behaviour. In MCP text each fact lives at one
+layer; repeat it in a tool description only when a host may truncate or drop
+server instructions, and in the first two layers only when the model must
+follow it even if it never reads the guide.
+
 ## The registry is the inventory
 
 [`AGENT_TOOL_SPECS`](../apps/backend/src/aiTools/toolRegistry/specs.ts) is the
@@ -13,8 +47,7 @@ What a tool is lives in its spec; presentation, result envelope and output
 budget stay in each adapter: [`mcp/server.ts`](../apps/backend/src/mcp/server.ts)
 on MCP, [`tools.ts`](../apps/backend/src/chat/openai/tools/tools.ts) and
 [`toolResults.ts`](../apps/backend/src/chat/openai/tools/toolResults.ts) on the
-chat. MCP and REST share the agent envelope
-([`envelope.ts`](../apps/backend/src/agent/envelope.ts)).
+chat.
 
 The chat also sends three tools that are not registry specs, so no other
 surface has them:
