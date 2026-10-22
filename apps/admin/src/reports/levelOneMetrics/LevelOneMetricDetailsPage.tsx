@@ -1,6 +1,7 @@
 import type { JSX, ReactNode } from "react";
 import type { AdminAppConfig } from "../../config";
 import { getAnalyticsAreaPath, type LevelOneMetricDetail } from "../../routing";
+import { RetentionCurveSections } from "../retentionCurve/RetentionCurveSections";
 import { WhoCameBackBreakdownSections } from "../whoCameBack/WhoCameBackBreakdownSections";
 import { WhoCameBackSection } from "../whoCameBack/WhoCameBackSection";
 import { WhoOpenedTheAppBreakdownSections } from "../whoOpenedTheApp/WhoOpenedTheAppBreakdownSections";
@@ -92,6 +93,11 @@ function renderMetricSections(
             dateRange={selection.dateRange}
             period={selection.period}
             detailsLink={null}
+            onTerminalAdminError={props.onTerminalAdminError}
+          />
+          <RetentionCurveSections
+            config={props.config}
+            dateRange={selection.dateRange}
             onTerminalAdminError={props.onTerminalAdminError}
           />
           <WhoCameBackBreakdownSections
