@@ -8,6 +8,7 @@ const analyticsAreaTestIds: Readonly<Record<AnalyticsArea, string | undefined>> 
   "level-1-metrics": "analytics-level-1-metrics-tab",
   general: undefined,
   funnels: undefined,
+  "review-prompts": "analytics-review-prompts-tab",
   audience: "analytics-audience-tab",
   "ai-usage": "analytics-ai-usage-tab",
 };

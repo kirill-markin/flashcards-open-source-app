@@ -20,6 +20,7 @@ import type { GeneralReportView } from "../reports/generalReportView";
 import { LevelOneMetricDetailsPage } from "../reports/levelOneMetrics/LevelOneMetricDetailsPage";
 import { LevelOneMetricsArea } from "../reports/levelOneMetrics/LevelOneMetricsArea";
 import type { ReviewEventsByDateRange } from "../reports/reviewEventsByDate/query";
+import { ReviewPromptsArea } from "../reports/reviewPrompts/ReviewPromptsArea";
 import { SocialConnectionsSection } from "../reports/socialConnections/SocialConnectionsSection";
 import { WhoSawUsDatasetPage } from "../reports/whoSawUs/WhoSawUsDatasetPage";
 import type { AdminRoute, AnalyticsArea, FunnelDetail } from "../routing";
@@ -228,6 +229,13 @@ function AnalyticsReportSections(props: AnalyticsReportSectionsProps): JSX.Eleme
         funnelDetail={props.funnelDetail}
         isReportLoading={props.isSelectionSettling}
         onNavigate={props.onNavigate}
+        onTerminalAdminError={props.onTerminalAdminError}
+      /> : null}
+
+      {props.activeArea === "review-prompts" ? <ReviewPromptsArea
+        config={props.config}
+        filters={props.filters}
+        isReportLoading={props.isSelectionSettling}
         onTerminalAdminError={props.onTerminalAdminError}
       /> : null}
 
