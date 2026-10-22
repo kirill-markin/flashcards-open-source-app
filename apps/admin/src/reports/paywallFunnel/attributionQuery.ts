@@ -38,7 +38,7 @@ export function buildPaywallAttributionCtes(filters: AnalyticsFilterState): stri
   // Otherwise changing dates or platforms would promote an exposure or steal another one's sale.
   return `WITH event_rows AS MATERIALIZED (
   SELECT event.event_id, event.actor_id, event.event_name, event.occurred_at,
-    event.origin, event.platform,
+    event.origin, event.platform, event.app_version, event.trust_level,
     lower(event.event_properties ->> 'presentation_id') AS presentation_id,
     event.event_properties ->> 'entry_point' AS entry_point,
     event.event_properties ->> 'review_trigger' AS review_stage,
@@ -63,7 +63,7 @@ export function buildPaywallAttributionCtes(filters: AnalyticsFilterState): stri
 ), impressions AS MATERIALIZED (
   SELECT DISTINCT ON (actor_id, COALESCE(presentation_id, 'legacy:' || event_id::text))
     event_id, actor_id, occurred_at AS shown_at, presentation_id,
-    platform, entry_point, review_stage, content_version
+    platform, app_version, trust_level, entry_point, review_stage, content_version
   FROM event_rows
   WHERE event_name = 'paywall_shown'
   ORDER BY actor_id, COALESCE(presentation_id, 'legacy:' || event_id::text), occurred_at, event_id

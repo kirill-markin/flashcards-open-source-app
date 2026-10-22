@@ -170,6 +170,16 @@ const funnelsAnalyticsFilterFieldApplicability = {
 const funnelsAnalyticsFilterFields: ReadonlyArray<AnalyticsFilterField> = analyticsFilterFields
   .filter((field) => funnelsAnalyticsFilterFieldApplicability[field]);
 
+// Review prompts count showings: a showing carries its own platform and belongs to one person, which
+// is all these fields ask. The table draws no second series, and the person-level fields Funnels
+// leaves out are left out here for the same reason.
+const reviewPromptsAnalyticsFilterFields: ReadonlyArray<AnalyticsFilterField> = [
+  "dateRange",
+  "eventPlatforms",
+  "connectionCountries",
+  "appUiLanguages",
+];
+
 // General and Audience draw no second series a comparison range could fill.
 const userScopedAnalyticsFilterFields: ReadonlyArray<AnalyticsFilterField> = analyticsFilterFields
   .filter((field) => field !== "comparisonDateRange");
@@ -193,6 +203,7 @@ export const analyticsFilterFieldsByArea: Readonly<
   "level-1-metrics": levelOneMetricsAnalyticsFilterFields,
   general: userScopedAnalyticsFilterFields,
   funnels: funnelsAnalyticsFilterFields,
+  "review-prompts": reviewPromptsAnalyticsFilterFields,
   audience: userScopedAnalyticsFilterFields,
   "ai-usage": aiUsageAnalyticsFilterFields,
 };
@@ -332,6 +343,21 @@ const funnelsAnalyticsFilterFieldExplanations: Readonly<
     "Narrows every funnel to people whose events recorded one of the app interface languages you pick. Picking nothing keeps every language.",
 };
 
+// A showing is placed by its own day and platform, while Acted and Gone look past it, so the shared
+// "only events inside these days" wording would be false here.
+const reviewPromptsAnalyticsFilterFieldExplanations: Readonly<
+  Partial<Record<AnalyticsFilterField, string>>
+> = {
+  dateRange:
+    "Counts the prompts shown on the UTC calendar days inside this range, with the first and the last day both included. Acted and Gone still look at what the person did after each showing, for up to seven days and longer for a paywall's first payment, so they can count days after the last selected one.",
+  eventPlatforms:
+    "Keeps only the showings recorded on the client platforms you pick, read from the showing itself. Each prompt runs only on some platforms, so a selection without them empties its row.",
+  connectionCountries:
+    "Keeps only showings of people seen connecting from the countries you pick, which is connection geography rather than residence or nationality. Picking nothing keeps every country.",
+  appUiLanguages:
+    "Keeps only showings of people whose events inside the selected date range recorded one of the app interface languages you pick. Picking nothing keeps every language.",
+};
+
 // Audience renders neither the installs chart nor any other named section of General, so the shared
 // platform wording would send a reader looking for a section that is not on this screen. The fact it
 // carries is the same one, said without naming where it shows.
@@ -368,6 +394,7 @@ const analyticsFilterFieldExplanationOverridesByArea: Readonly<
   "level-1-metrics": levelOneMetricsAnalyticsFilterFieldExplanations,
   general: {},
   funnels: funnelsAnalyticsFilterFieldExplanations,
+  "review-prompts": reviewPromptsAnalyticsFilterFieldExplanations,
   audience: audienceAnalyticsFilterFieldExplanations,
   "ai-usage": aiUsageAnalyticsFilterFieldExplanations,
 };
@@ -410,6 +437,7 @@ const analyticsFilterFieldLabelOverridesByArea: Readonly<
   "level-1-metrics": levelOneMetricsAnalyticsFilterFieldLabels,
   general: {},
   funnels: funnelsAnalyticsFilterFieldLabels,
+  "review-prompts": { dateRange: "Date range of the showing" },
   audience: {},
   "ai-usage": aiUsageAnalyticsFilterFieldLabels,
 };
