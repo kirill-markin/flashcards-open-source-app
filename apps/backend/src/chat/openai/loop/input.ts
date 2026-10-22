@@ -220,18 +220,30 @@ export function placeSystemPrompt(
   return [systemPrompt, ...replayedItems];
 }
 
+/** Tells the model that a reply ended in an error and why; the error has no OpenAI output to replay. */
+function buildFailedReplyNote(message: ServerChatMessage): string | null {
+  if (message.isError !== true) {
+    return null;
+  }
+
+  const errorText = message.content.flatMap((part) => part.type === "text" ? [part.text] : []).join("\n");
+  return `[Your previous reply failed: ${errorText}]`;
+}
+
 /**
- * Rebuilds provider replay items for assistant messages that were already persisted with OpenAI output.
+ * Rebuilds provider replay items for assistant messages that were already persisted with OpenAI output, followed by
+ * the failed-reply note when the reply ended in an error.
  */
 function buildAssistantHistoryItems(
   message: ServerChatMessage,
 ): ReadonlyArray<OpenAIInputItem> {
-  if (message.openaiItems === undefined) {
-    return [];
-  }
-
-  const { items } = normalizeStoredOpenAIReplayItems(message.openaiItems);
-  return items.map(toOpenAIResponseInputItem);
+  const replayedItems: ReadonlyArray<OpenAIInputItem> = message.openaiItems === undefined
+    ? []
+    : normalizeStoredOpenAIReplayItems(message.openaiItems).items.map(toOpenAIResponseInputItem);
+  const failedReplyNote = buildFailedReplyNote(message);
+  return failedReplyNote === null
+    ? replayedItems
+    : [...replayedItems, { role: "assistant", type: "message", content: failedReplyNote }];
 }
 
 async function buildUserInputMessage(
@@ -302,13 +314,13 @@ function estimateContentPartTokens(part: ContentPart): number {
 /**
  * Estimates the provider token cost of one persisted message, mirroring how
  * the input builder replays it: user messages cost their content, assistant
- * messages cost their stored OpenAI replay items.
+ * messages cost their stored OpenAI replay items and failed-reply note.
  */
 function estimateMessageTokens(message: ServerChatMessage): number {
   if (message.role === "assistant") {
-    return message.openaiItems === undefined
-      ? 0
-      : estimateTextTokens(stringifyJson(message.openaiItems));
+    const failedReplyNote = buildFailedReplyNote(message);
+    return (message.openaiItems === undefined ? 0 : estimateTextTokens(stringifyJson(message.openaiItems)))
+      + (failedReplyNote === null ? 0 : estimateTextTokens(failedReplyNote));
   }
 
   return message.content.reduce(

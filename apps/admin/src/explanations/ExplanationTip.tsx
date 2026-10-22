@@ -21,10 +21,19 @@ type TipOpenControl = Readonly<{
 
 type TipKind = "explanation" | "warning";
 
-// U+FE0E asks for the text glyph, so the `⚠` takes the button's colour instead of an emoji's.
-const tipKinds: Readonly<Record<TipKind, Readonly<{ className: string; glyph: string }>>> = {
+// A drawn triangle rather than the `⚠` character, whose font metrics sit it low and left in the
+// circle. Its box sits a little above the circle's centre, because a triangle's weight is at its base.
+const warningGlyph: JSX.Element = (
+  <svg viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+    <path d="M8 1.75 14.75 13.25H1.25Z" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
+    <path d="M8 5.75V8.25" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+    <circle cx="8" cy="10.6" r="0.9" fill="currentColor" />
+  </svg>
+);
+
+const tipKinds: Readonly<Record<TipKind, Readonly<{ className: string; glyph: ReactNode }>>> = {
   explanation: { className: "explanation-tip", glyph: "i" },
-  warning: { className: "explanation-tip explanation-tip-warning", glyph: "\u26A0\uFE0E" },
+  warning: { className: "explanation-tip explanation-tip-warning", glyph: warningGlyph },
 };
 
 export function ExplanationTip(props: TipProps): JSX.Element {

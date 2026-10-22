@@ -21,6 +21,7 @@ export const OPENAI_BASH_TOOL: FunctionTool = {
     "/files holds the files the user attached and is read-only; /work is writable scratch space kept for this chat, and commands start there.",
     "Each call is a fresh shell: only files under /work last between calls.",
     "Tools: cat, head, tail, sed, grep, rg, awk, jq, yq, xan, sort, uniq, wc, cut, find, ls, file, diff, split, gzip, tar, python3 (standard library only), sqlite3 (SQL only, no dot-commands), and js-exec (JavaScript, with the user's flashcards through tools.sql), plus fc-sql-query and fc-sql-execute.",
+    `Example: js-exec -c 'const r = await tools.sql.query({ sql: "SELECT card_id, front_text FROM cards LIMIT 5 OFFSET 0" }); console.log(JSON.stringify(r))'`,
     "There is no network.",
   ].join(" "),
   strict: true,
