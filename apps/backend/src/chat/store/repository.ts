@@ -50,6 +50,8 @@ export type ChatItemPayload = Readonly<{
   role: "user" | "assistant";
   content: ReadonlyArray<ContentPart>;
   openaiItems?: ReadonlyArray<StoredOpenAIReplayItem>;
+  /** Present only on a terminal error item stored with a code. */
+  errorCode?: string;
   /** Internal durable state; normal chat-item mappers intentionally omit it. */
   generatedCardImageOperations?: ReadonlyArray<Readonly<{
     operationKey: string;

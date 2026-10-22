@@ -31,7 +31,7 @@ export async function insertChatItemWithExecutor(
     scope,
     params.sessionId,
     params.state,
-    toChatItemPayload(params.role, params.content, params.assistantOpenAIItems),
+    toChatItemPayload(params.role, params.content, params.assistantOpenAIItems, params.errorCode),
   );
   return mapChatItemRow(row);
 }
@@ -45,7 +45,7 @@ export async function updateChatItemWithExecutor(
     executor,
     scope,
     params.itemId,
-    toChatItemPayload("assistant", params.content, params.assistantOpenAIItems),
+    toChatItemPayload("assistant", params.content, params.assistantOpenAIItems, params.errorCode),
     params.state,
   );
   return mapChatItemRow(row);
@@ -63,7 +63,7 @@ async function updateChatItemAndInvalidateMainContentWithExecutor(
     executor,
     scope,
     params.itemId,
-    toChatItemPayload("assistant", params.content, params.assistantOpenAIItems),
+    toChatItemPayload("assistant", params.content, params.assistantOpenAIItems, null),
     params.state,
   );
 

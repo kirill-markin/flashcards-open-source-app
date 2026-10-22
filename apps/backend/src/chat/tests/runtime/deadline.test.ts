@@ -63,6 +63,7 @@ test("runPersistedChatSessionWithDeps interrupts immediately when the lambda is 
     assistantContent: [],
     assistantOpenAIItems: undefined,
     errorMessage: DEADLINE_REACHED_MESSAGE,
+    errorCode: "CHAT_RUN_DEADLINE_REACHED",
     sessionState: "interrupted",
   });
   assert.equal(findLog(logs, "chat_worker_abort_requested")?.abortReason, "deadline_reached");
@@ -111,6 +112,7 @@ test("runPersistedChatSessionWithDeps re-checks the deadline after task protecti
     assistantContent: [],
     assistantOpenAIItems: undefined,
     errorMessage: DEADLINE_REACHED_MESSAGE,
+    errorCode: "CHAT_RUN_DEADLINE_REACHED",
     sessionState: "interrupted",
   });
   assert.equal(findLog(logs, "chat_worker_abort_requested")?.abortReason, "deadline_reached");
@@ -383,6 +385,7 @@ test("runPersistedChatSessionWithDeps interrupts gracefully on the soft deadline
     ],
     assistantOpenAIItems: interruptedOpenAIItems,
     errorMessage: DEADLINE_REACHED_MESSAGE,
+    errorCode: "CHAT_RUN_DEADLINE_REACHED",
     sessionState: "interrupted",
   });
   assert.equal(findLog(logs, "chat_worker_abort_requested")?.abortReason, "deadline_reached");

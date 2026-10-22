@@ -68,7 +68,6 @@ type ChatWorkerDispatchFailureDependencies = Readonly<{
     userId: string,
     workspaceId: string,
     runId: string,
-    errorMessage: string,
   ) => Promise<void>;
   captureException: (event: BackendExceptionEvent) => void;
 }>;
@@ -202,7 +201,6 @@ export async function invokeChatWorkerOrPersistFailureWithDependencies(
         payload.userId,
         payload.workspaceId,
         payload.runId,
-        `Chat worker dispatch failed: ${message}`,
       );
     } catch (markError) {
       throw createDispatchPersistenceFailureError(dispatchError, normalizeCaughtError(markError));

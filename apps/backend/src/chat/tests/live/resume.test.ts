@@ -26,6 +26,7 @@ function makeAssistantMessage(
     content: params.content,
     state: params.state,
     isError: params.state === "error",
+    errorCode: null,
     isStopped: params.state === "cancelled",
     timestamp: 1,
     updatedAt: 1,
@@ -221,6 +222,7 @@ test("resume replay emits terminal assistant backlog after afterCursor", async (
       itemId: "assistant-1",
       content: [{ type: "text", text: "done" }],
       isError: false,
+      errorCode: null,
       isStopped: false,
     },
     {
@@ -313,7 +315,7 @@ test("completed live replay emits composer suggestions before the terminal event
 });
 
 test("interrupted live replay keeps the existing error outcome contract and includes the timeout message", async () => {
-  const timeoutMessage = "This response took too long, so I stopped the run before the server timeout. Please try again or split the request into smaller steps.";
+  const timeoutMessage = "This took too long, so I stopped. Everything already saved is kept. Write \"continue\" to finish the rest.";
 
   const output = await collectStreamOutput(async (stream) => {
     await runLiveStreamWithDependencies(stream, {
@@ -528,6 +530,7 @@ test("terminal replay emits assistant_message_done before run_terminal when the 
       itemId: "assistant-5",
       content: [{ type: "text", text: "hello world" }],
       isError: false,
+      errorCode: null,
       isStopped: false,
     },
     {
@@ -760,6 +763,7 @@ test("recovered session read emits terminal events when the attached run finaliz
       itemId: "assistant-7",
       content: [{ type: "text", text: "done after recovery" }],
       isError: false,
+      errorCode: null,
       isStopped: false,
     },
     {
