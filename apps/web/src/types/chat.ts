@@ -57,6 +57,7 @@ export type ChatSessionHistoryMessage = Readonly<{
   content: ReadonlyArray<ContentPart>;
   timestamp: number;
   isError: boolean;
+  errorCode: string | null;
   isStopped: boolean;
   cursor: string | null;
   itemId: string | null;

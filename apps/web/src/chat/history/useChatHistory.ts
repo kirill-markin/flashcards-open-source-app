@@ -6,6 +6,7 @@ export type StoredMessage = Readonly<{
   content: ReadonlyArray<ContentPart>;
   timestamp: number;
   isError: boolean;
+  errorCode: string | null;
   isStopped: boolean;
   cursor: string | null;
   itemId: string | null;
@@ -25,6 +26,7 @@ export type ChatHistoryState = Readonly<{
     itemId: string,
     cursor: string,
     isError: boolean,
+    errorCode: string | null,
     isStopped: boolean,
   ) => boolean;
   markAssistantError: (errorText: string) => void;
@@ -256,6 +258,7 @@ function resolveStreamingAssistantMessage(
       content: [],
       timestamp: Date.now(),
       isError: false,
+      errorCode: null,
       isStopped: false,
       cursor,
       itemId,
@@ -317,6 +320,7 @@ export function useChatHistory(
         content,
         timestamp: Date.now(),
         isError: false,
+        errorCode: null,
         isStopped: false,
         cursor: null,
         itemId: null,
@@ -332,6 +336,7 @@ export function useChatHistory(
         content: initialText === null ? [] : [{ type: "text", text: initialText }],
         timestamp: Date.now(),
         isError: false,
+        errorCode: null,
         isStopped: false,
         cursor: null,
         itemId: null,
@@ -424,6 +429,7 @@ export function useChatHistory(
     itemId: string,
     cursor: string,
     isError: boolean,
+    errorCode: string | null,
     isStopped: boolean,
   ): boolean => {
     const currentMessages = messagesRef.current;
@@ -448,6 +454,7 @@ export function useChatHistory(
           ...lastMessage,
           content: finalizedContent,
           isError,
+          errorCode,
           isStopped,
         }
         : message
@@ -468,6 +475,7 @@ export function useChatHistory(
             content: [{ type: "text", text: errorText }],
             timestamp: Date.now(),
             isError: true,
+            errorCode: null,
             isStopped: false,
             cursor: null,
             itemId: null,
@@ -481,6 +489,7 @@ export function useChatHistory(
           ...lastMessage,
           content: appendAssistantErrorContent(finalizeAssistantContent(lastMessage.content), errorText),
           isError: true,
+          errorCode: null,
         },
       ];
     });

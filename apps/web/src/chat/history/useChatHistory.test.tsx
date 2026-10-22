@@ -222,6 +222,7 @@ describe("useChatHistory", () => {
         "assistant-item-1",
         "cursor-1",
         false,
+        null,
         false,
       );
     });
@@ -254,6 +255,7 @@ describe("useChatHistory", () => {
         "assistant-item-1",
         "cursor-1",
         false,
+        null,
         false,
       );
     });

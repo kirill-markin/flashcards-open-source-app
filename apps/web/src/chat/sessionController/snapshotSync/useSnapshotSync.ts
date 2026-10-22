@@ -28,6 +28,7 @@ import {
   extractAssistantErrorMessage,
   extractLatestAssistantMessageText,
   logChatControllerDebug,
+  resolveTerminalErrorCode,
   toAssistantReasoningSummaryContentPart,
   toAssistantToolCallContentPart,
   toErrorMessage,
@@ -46,6 +47,18 @@ import type { ChatLiveEvent } from "../../streaming/liveStream";
 import { formatChatRunFailureMessage } from "../../shared/chatOwnOpenAIKeyErrorPolicy";
 
 const assistantMessageDoneTerminalReconcileDelayMs = 5_000;
+
+function formatRunFailureMessage(
+  uiMessages: ChatSessionControllerUiMessages,
+  errorCode: string | null,
+  errorText: string,
+): string {
+  return formatChatRunFailureMessage(
+    uiMessages.ownOpenAIKeyErrorPrefix,
+    errorCode,
+    uiMessages.localizeChatTerminalError(errorCode, errorText),
+  );
+}
 
 type UseChatSessionSnapshotSyncParams = Readonly<{
   indexedDbOpenRecoveryState: IndexedDbOpenRecoveryState;
@@ -417,6 +430,7 @@ export function useChatSessionSnapshotSync(
         event.itemId,
         event.cursor,
         event.isError,
+        event.errorCode,
         event.isStopped,
       );
       if (didFinish === false) {
@@ -466,8 +480,9 @@ export function useChatSessionSnapshotSync(
     triggerToolRunPostSyncIfNeeded();
     dispatch({
       type: "run_interrupted",
-      message: formatChatRunFailureMessage(
-        uiMessages.ownOpenAIKeyErrorPrefix,
+      message: formatRunFailureMessage(
+        uiMessages,
+        resolveTerminalErrorCode(messagesRef.current, event.message ?? null),
         event.message ?? extractLatestAssistantMessageText(messagesRef.current) ?? uiMessages.genericChatFailed,
       ),
     });
@@ -616,7 +631,11 @@ export function useChatSessionSnapshotSync(
           if (snapshotErrorMessage !== null) {
             dispatch({
               type: "run_interrupted",
-              message: formatChatRunFailureMessage(uiMessages.ownOpenAIKeyErrorPrefix, snapshotErrorMessage),
+              message: formatRunFailureMessage(
+                uiMessages,
+                resolveTerminalErrorCode(snapshot.conversation.messages, null),
+                snapshotErrorMessage,
+              ),
             });
           }
         } catch (error) {
@@ -669,7 +688,11 @@ export function useChatSessionSnapshotSync(
           if (snapshotErrorMessage !== null) {
             dispatch({
               type: "run_interrupted",
-              message: formatChatRunFailureMessage(uiMessages.ownOpenAIKeyErrorPrefix, snapshotErrorMessage),
+              message: formatRunFailureMessage(
+                uiMessages,
+                resolveTerminalErrorCode(snapshot.conversation.messages, null),
+                snapshotErrorMessage,
+              ),
             });
             return;
           }

@@ -58,6 +58,7 @@ export type ChatLiveEvent =
     itemId: string;
     content: ReadonlyArray<ContentPart>;
     isError: boolean;
+    errorCode: string | null;
     isStopped: boolean;
   }>)
   | (ChatLiveEventMetadata<string | null> & Readonly<{
@@ -457,6 +458,7 @@ export function parseChatLiveEvent(
       itemId: requireStringField(objectValue, "itemId", type, payload),
       content: parseContentPartArray(objectValue.content, type, "content"),
       isError: requireBooleanField(objectValue, "isError", type, payload),
+      errorCode: readNullableStringField(objectValue, "errorCode") ?? null,
       isStopped: requireBooleanField(objectValue, "isStopped", type, payload),
     };
   }
