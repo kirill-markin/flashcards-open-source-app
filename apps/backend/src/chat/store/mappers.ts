@@ -8,6 +8,7 @@ import type {
   StoredOpenAIReplayItem,
 } from "../openai/replayItems";
 import type { ContentPart } from "../types";
+import type { ChatTerminalErrorCode } from "../terminalErrors";
 import type {
   ChatSessionSnapshot,
   PersistedChatMessageItem,
@@ -81,6 +82,7 @@ export function mapChatItemRow(row: ChatItemRow): PersistedChatMessageItem {
     openaiItems: row.payload.role === "assistant" ? row.payload.openaiItems : undefined,
     state: row.state,
     isError: row.state === "error",
+    errorCode: row.payload.errorCode ?? null,
     isStopped: row.state === "cancelled",
     timestamp: new Date(row.created_at).getTime(),
     updatedAt: new Date(row.updated_at).getTime(),
@@ -95,6 +97,7 @@ export function mapPersistedMessagesToStoredMessages(
     content: message.content,
     timestamp: message.timestamp,
     isError: message.isError,
+    errorCode: message.errorCode,
     isStopped: message.isStopped,
     cursor: String(message.itemOrder),
     itemId: message.role === "assistant" ? message.itemId : null,
@@ -104,7 +107,8 @@ export function mapPersistedMessagesToStoredMessages(
 export function toChatItemPayload(
   role: "user" | "assistant",
   content: ReadonlyArray<ContentPart>,
-  assistantOpenAIItems?: ReadonlyArray<StoredOpenAIReplayItem>,
+  assistantOpenAIItems: ReadonlyArray<StoredOpenAIReplayItem> | undefined,
+  errorCode: ChatTerminalErrorCode | null | undefined,
 ): ChatItemPayload {
   return {
     role,
@@ -112,6 +116,7 @@ export function toChatItemPayload(
     ...(role === "assistant" && assistantOpenAIItems !== undefined
       ? { openaiItems: assistantOpenAIItems }
       : {}),
+    ...(errorCode === undefined || errorCode === null ? {} : { errorCode }),
   };
 }
 

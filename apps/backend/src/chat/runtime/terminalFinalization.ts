@@ -9,15 +9,16 @@ import type {
 import type {
   ContentPart,
 } from "../types";
+import type { ChatTerminalError } from "../terminalErrors";
 import {
   logChatWorkerLifecycleEvent,
   type ChatWorkerLogContext,
 } from "../worker/logging";
 import {
   classifyChatRunFailureCategory,
-  createOwnOpenAIKeyPublicTerminalErrorMessage,
+  createOwnOpenAIKeyPublicTerminalError,
   createSafeProviderErrorDetails,
-  createPublicTerminalErrorMessage,
+  createPublicTerminalError,
 } from "./providerErrors";
 import {
   finalizeAssistantToolCalls,
@@ -146,14 +147,16 @@ export async function persistFailedChatRun(
 ): Promise<TerminalFinalizationResult> {
   const assistantContent = finalizeAssistantToolCalls(input.assistantContent);
   const finishedAt = new Date();
+  const terminalError = input.params.userOpenAIApiKey === null
+    ? createPublicTerminalError(input.error)
+    : createOwnOpenAIKeyPublicTerminalError(input.error);
   await input.dependencies.persistAssistantTerminalError(input.params.userId, input.params.workspaceId, {
     runId: input.params.runId,
     sessionId: input.params.sessionId,
     assistantItemId: input.params.assistantItemId,
     assistantContent,
-    errorMessage: input.params.userOpenAIApiKey === null
-      ? createPublicTerminalErrorMessage(input.error)
-      : createOwnOpenAIKeyPublicTerminalErrorMessage(input.error),
+    errorMessage: terminalError.message,
+    errorCode: terminalError.code,
     sessionState: "idle",
   }, input.params.claimToken);
   // After the terminal state is stored, never before: a worker that lost the run throws above, and
@@ -192,7 +195,7 @@ export async function persistFailedChatRun(
 
 export async function persistInterruptedChatRun(
   input: TerminalFinalizationBaseParams & Readonly<{
-    errorMessage: string;
+    terminalError: ChatTerminalError;
     assistantOpenAIItems: ReadonlyArray<StoredOpenAIReplayItem> | undefined;
   }>,
 ): Promise<TerminalFinalizationResult> {
@@ -204,7 +207,8 @@ export async function persistInterruptedChatRun(
     assistantItemId: input.params.assistantItemId,
     assistantContent,
     assistantOpenAIItems: input.assistantOpenAIItems,
-    errorMessage: input.errorMessage,
+    errorMessage: input.terminalError.message,
+    errorCode: input.terminalError.code,
     sessionState: "interrupted",
   }, input.params.claimToken);
   const lifecycleState = input.readLifecycleState();

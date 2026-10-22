@@ -125,6 +125,7 @@ function createAssistantItem(
     content: [{ type: "text", text: "hello" }],
     state,
     isError: false,
+    errorCode: null,
     isStopped: false,
     timestamp: 1,
     updatedAt: 1,
