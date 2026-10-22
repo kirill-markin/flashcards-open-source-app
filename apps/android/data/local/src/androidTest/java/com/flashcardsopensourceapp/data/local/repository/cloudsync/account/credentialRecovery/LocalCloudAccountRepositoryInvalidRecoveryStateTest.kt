@@ -70,7 +70,7 @@ class LocalCloudAccountRepositoryInvalidRecoveryStateTest {
         try {
             restartedRuntime.repository.completeCloudLink(
                 linkContext = linkContext,
-                selection = CloudWorkspaceLinkSelection.CreateNew
+                selection = CloudWorkspaceLinkSelection.CreateNew(name = null)
             )
             throw AssertionError("Expected invalid stored recovery to block complete-link.")
         } catch (error: CloudCredentialRecoveryRequiredException) {

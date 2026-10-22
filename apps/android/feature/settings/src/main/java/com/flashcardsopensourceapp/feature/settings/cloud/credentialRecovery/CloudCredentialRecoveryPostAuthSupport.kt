@@ -35,7 +35,7 @@ internal fun buildCloudPostAuthPendingSelection(
             }
         }
 
-        CloudWorkspacePostAuthRoute.GUEST_LOCAL_RECOVERY -> CloudWorkspaceLinkSelection.CreateNew
+        CloudWorkspacePostAuthRoute.GUEST_LOCAL_RECOVERY -> CloudWorkspaceLinkSelection.CreateNew(name = null)
 
         CloudWorkspacePostAuthRoute.PENDING_GUEST_UPGRADE_RECOVERY,
         CloudWorkspacePostAuthRoute.INVALID_STORED_STATE -> null

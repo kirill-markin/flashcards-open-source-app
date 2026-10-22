@@ -7,6 +7,7 @@ import com.flashcardsopensourceapp.data.local.database.core.AppDatabase
 import com.flashcardsopensourceapp.data.local.database.entities.AppLocalSettingsEntity
 import com.flashcardsopensourceapp.data.local.cloud.wire.putNullableString
 import com.flashcardsopensourceapp.data.local.cloud.wire.requireCloudBoolean
+import com.flashcardsopensourceapp.data.local.cloud.wire.requireCloudString
 import com.flashcardsopensourceapp.data.local.model.cloud.AccountDeletionState
 import com.flashcardsopensourceapp.data.local.model.sync.CloudAccountSnapshot
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudAccountState
@@ -943,8 +944,13 @@ private fun encodeWorkspaceLinkSelection(selection: CloudWorkspaceLinkSelection)
             .put("workspaceId", selection.workspaceId)
             .put("discardDemoOnly", selection.discardDemoOnly)
 
-        CloudWorkspaceLinkSelection.CreateNew -> JSONObject()
+        is CloudWorkspaceLinkSelection.CreateNew -> JSONObject()
             .put("type", "create_new")
+            .apply {
+                if (selection.name != null) {
+                    put("name", selection.name)
+                }
+            }
     }
 }
 
@@ -958,7 +964,13 @@ private fun decodeWorkspaceLinkSelection(jsonObject: JSONObject): CloudWorkspace
                 false
             }
         )
-        "create_new" -> CloudWorkspaceLinkSelection.CreateNew
+        "create_new" -> CloudWorkspaceLinkSelection.CreateNew(
+            name = if (jsonObject.has("name")) {
+                jsonObject.requireCloudString("name", "pendingGuestUpgrade.selection.name")
+            } else {
+                null
+            }
+        )
         else -> throw IllegalStateException("Unknown pending guest upgrade selection type '$selectionType'.")
     }
 }

@@ -141,6 +141,7 @@
 "common.continue" = "ดำเนินการต่อ";
 "common.copy" = "คัดลอก";
 "common.copyError" = "คัดลอกข้อผิดพลาด";
+"common.create" = "สร้าง";
 "common.delete" = "ลบ";
 "common.done" = "เสร็จสิ้น";
 "common.edit" = "แก้ไข";

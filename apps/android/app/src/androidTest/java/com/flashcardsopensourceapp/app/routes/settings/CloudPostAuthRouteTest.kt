@@ -9,6 +9,7 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performTextInput
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.flashcardsopensourceapp.app.FirebaseAppInstrumentationTimeoutTest
 import com.flashcardsopensourceapp.core.ui.theme.FlashcardsTheme
@@ -16,6 +17,9 @@ import com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspaceLinkSele
 import com.flashcardsopensourceapp.feature.settings.cloud.CloudPostAuthMode
 import com.flashcardsopensourceapp.feature.settings.cloud.CloudPostAuthRoute
 import com.flashcardsopensourceapp.feature.settings.cloud.CloudPostAuthUiState
+import com.flashcardsopensourceapp.feature.settings.cloud.cloudPostAuthCreateNewButtonTag
+import com.flashcardsopensourceapp.feature.settings.cloud.cloudPostAuthNewWorkspaceCreateButtonTag
+import com.flashcardsopensourceapp.feature.settings.cloud.cloudPostAuthNewWorkspaceNameFieldTag
 import com.flashcardsopensourceapp.feature.settings.workspace.current.CurrentWorkspaceItemUiState
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -138,6 +142,69 @@ class CloudPostAuthRouteTest : FirebaseAppInstrumentationTimeoutTest() {
             CloudWorkspaceLinkSelection.Existing(workspaceId = "workspace-1"),
             selectedWorkspace
         )
+    }
+
+    @Test
+    fun chooseWorkspaceCreateNewAsksForWorkspaceName() {
+        var selectedWorkspace: CloudWorkspaceLinkSelection? = null
+
+        composeRule.setContent {
+            FlashcardsTheme {
+                CloudPostAuthRoute(
+                    uiState = CloudPostAuthUiState(
+                        mode = CloudPostAuthMode.CHOOSE_WORKSPACE,
+                        verifiedEmail = "user@example.com",
+                        isGuestUpgrade = false,
+                        isGuestLocalRecovery = false,
+                        workspaces = listOf(
+                            CurrentWorkspaceItemUiState(
+                                workspaceId = "workspace-1",
+                                title = "Personal",
+                                subtitle = "2 decks | 12 cards",
+                                isSelected = true,
+                                isCreateNew = false
+                            ),
+                            CurrentWorkspaceItemUiState(
+                                workspaceId = "new",
+                                title = "Create new workspace",
+                                subtitle = "Start from an empty cloud workspace",
+                                isSelected = false,
+                                isCreateNew = true
+                            )
+                        ),
+                        pendingWorkspaceTitle = null,
+                        processingTitle = "",
+                        processingMessage = "",
+                        errorMessage = "",
+                        errorTechnicalDetails = null,
+                        errorTechnicalDetailsReportId = null,
+                        canRetry = false,
+                        canLogout = false,
+                        failureActionLabel = "Log out",
+                        completionToken = null
+                    ),
+                    onAutoContinue = {},
+                    onSelectWorkspace = { selection ->
+                        selectedWorkspace = selection
+                    },
+                    onRetry = {},
+                    onFailureAction = {},
+                    onShowTechnicalDetails = { _, _ -> },
+                    onBack = {},
+                    canNavigateBack = true,
+                    isFailureActionInFlight = false
+                )
+            }
+        }
+
+        composeRule.onNodeWithTag(cloudPostAuthCreateNewButtonTag).performClick()
+        composeRule.onNodeWithTag(cloudPostAuthNewWorkspaceCreateButtonTag).assertIsNotEnabled()
+        composeRule.onNodeWithTag(cloudPostAuthNewWorkspaceNameFieldTag).performTextInput("  Spanish  ")
+        composeRule.onNodeWithTag(cloudPostAuthNewWorkspaceCreateButtonTag).performClick()
+        composeRule.waitUntil(timeoutMillis = 5_000L) {
+            selectedWorkspace != null
+        }
+        assertEquals(CloudWorkspaceLinkSelection.CreateNew(name = "Spanish"), selectedWorkspace)
     }
 
     @Test

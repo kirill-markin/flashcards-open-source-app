@@ -99,7 +99,7 @@ internal fun requireGuestLocalRecoveryAllowsCreateNewCompletion(
     ) {
         throw CloudCredentialRecoveryRequiredException(recoveryState = recoveryState)
     }
-    if (selection != CloudWorkspaceLinkSelection.CreateNew) {
+    if (selection !is CloudWorkspaceLinkSelection.CreateNew) {
         throw CloudCredentialRecoveryRequiredException(recoveryState = recoveryState)
     }
 }
@@ -178,7 +178,7 @@ internal fun requireWorkspaceSelectionMatchesCredentialRecoveryBeforeSideEffects
 
     val selectedWorkspaceId: String = when (selection) {
         is CloudWorkspaceLinkSelection.Existing -> selection.workspaceId
-        CloudWorkspaceLinkSelection.CreateNew -> throw CloudCredentialRecoveryRequiredException(
+        is CloudWorkspaceLinkSelection.CreateNew -> throw CloudCredentialRecoveryRequiredException(
             recoveryState = recoveryState
         )
     }

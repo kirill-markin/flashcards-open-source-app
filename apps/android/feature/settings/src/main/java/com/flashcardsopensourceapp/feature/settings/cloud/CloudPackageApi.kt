@@ -42,6 +42,12 @@ const val cloudPostAuthExistingButtonTagPrefix: String = "cloud_post_auth_existi
 const val cloudPostAuthWorkspaceRowTag: String = "cloud_post_auth_workspace_row"
 const val cloudPostAuthSelectedIndicatorTagPrefix: String =
     "cloud_post_auth_selected_indicator:"
+const val cloudPostAuthCreateNewButtonTag: String =
+    com.flashcardsopensourceapp.feature.settings.cloud.postAuth.cloudPostAuthCreateNewButtonTag
+const val cloudPostAuthNewWorkspaceNameFieldTag: String =
+    com.flashcardsopensourceapp.feature.settings.cloud.postAuth.cloudPostAuthNewWorkspaceNameFieldTag
+const val cloudPostAuthNewWorkspaceCreateButtonTag: String =
+    com.flashcardsopensourceapp.feature.settings.cloud.postAuth.cloudPostAuthNewWorkspaceCreateButtonTag
 
 const val cloudSignInEmailFieldTag: String = "cloud_sign_in_email_field"
 const val cloudSignInSendCodeButtonTag: String = "cloud_sign_in_send_code_button"

@@ -141,6 +141,7 @@
 "common.continue" = "Fortsett";
 "common.copy" = "Kopier";
 "common.copyError" = "Kopier feil";
+"common.create" = "Opprett";
 "common.delete" = "Slett";
 "common.done" = "Ferdig";
 "common.edit" = "Rediger";

@@ -127,6 +127,8 @@ final class LiveSmokeAIConsentTests: LiveSmokeTestCase {
                 guestReceipt = try self.readConsentReceipt()
                 try self.tapFirstNavigationBackButton()
             },
+            // A guest upgrade can create the workspace in the chooser, where the typed name is not checked.
+            afterWorkspaceCreated: {},
             beforeDelete: {
                 try self.openAIConsentLegalSettings()
                 let grant = try self.readConsentReceipt()

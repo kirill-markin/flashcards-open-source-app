@@ -196,7 +196,7 @@ extension FlashcardsStore {
                 self.blockCloudSyncForCredentialRecovery()
                 throw LocalStoreError.validation(localizedCloudCredentialRecoveryWrongLinkedWorkspaceMessage())
             }
-        case .createNew:
+        case .createNew, .createNewNamed:
             self.blockCloudSyncForCredentialRecovery()
             throw LocalStoreError.validation(localizedCloudCredentialRecoveryWrongLinkedWorkspaceMessage())
         }
@@ -285,7 +285,7 @@ extension FlashcardsStore {
         switch selection {
         case .createNew:
             break
-        case .existing:
+        case .existing, .createNewNamed:
             self.blockCloudSyncForCredentialRecovery()
             throw LocalStoreError.validation(
                 localizedCloudCredentialRecoveryBlockedMessage(reason: .guestSessionMissing)

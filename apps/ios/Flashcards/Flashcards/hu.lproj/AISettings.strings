@@ -141,6 +141,7 @@
 "common.continue" = "Folytatás";
 "common.copy" = "Másolás";
 "common.copyError" = "Hiba másolása";
+"common.create" = "Létrehozás";
 "common.delete" = "Törlés";
 "common.done" = "Kész";
 "common.edit" = "Szerkesztés";

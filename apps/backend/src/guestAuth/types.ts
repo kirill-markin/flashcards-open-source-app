@@ -25,6 +25,7 @@ export type GuestUpgradeSelection =
   }>
   | Readonly<{
     type: "create_new";
+    name?: string;
   }>;
 
 export type GuestUpgradeCompleteCapabilities = Readonly<{

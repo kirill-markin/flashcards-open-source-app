@@ -141,6 +141,7 @@
 "common.continue" = "Fortsätt";
 "common.copy" = "Kopiera";
 "common.copyError" = "Kopiera fel";
+"common.create" = "Skapa";
 "common.delete" = "Radera";
 "common.done" = "Klart";
 "common.edit" = "Redigera";

@@ -143,6 +143,7 @@
 "common.continue" = "जारी रखें";
 "common.copy" = "कॉपी";
 "common.copyError" = "प्रतिलिपि त्रुटि";
+"common.create" = "बनाएँ";
 "common.delete" = "हटाएं";
 "common.done" = "तैयार";
 "common.edit" = "संपादित करें";

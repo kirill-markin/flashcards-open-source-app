@@ -141,6 +141,7 @@
 "common.continue" = "Jätka";
 "common.copy" = "Kopeeri";
 "common.copyError" = "Kopeeri viga";
+"common.create" = "Loo";
 "common.delete" = "Kustuta";
 "common.done" = "Valmis";
 "common.edit" = "Muuda";

@@ -141,6 +141,7 @@
 "common.continue" = "Devam";
 "common.copy" = "Kopyala";
 "common.copyError" = "Hatayı kopyala";
+"common.create" = "Oluştur";
 "common.delete" = "Sil";
 "common.done" = "Bitti";
 "common.edit" = "Düzenle";

@@ -143,6 +143,7 @@
 "common.continue" = "متابعة";
 "common.copy" = "نسخ";
 "common.copyError" = "خطأ في النسخ";
+"common.create" = "إنشاء";
 "common.delete" = "حذف";
 "common.done" = "جاهز";
 "common.edit" = "تحرير";

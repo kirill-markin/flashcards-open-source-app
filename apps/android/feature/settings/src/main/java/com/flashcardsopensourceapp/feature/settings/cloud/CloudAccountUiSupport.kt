@@ -29,7 +29,8 @@ internal fun workspaceSelectionTitle(
         is CloudWorkspaceLinkSelection.Existing -> workspaces.firstOrNull { workspace ->
             workspace.workspaceId == selection.workspaceId
         }?.name ?: strings.get(R.string.settings_current_workspace_selected)
-        CloudWorkspaceLinkSelection.CreateNew -> strings.get(R.string.settings_current_workspace_new_title)
+        is CloudWorkspaceLinkSelection.CreateNew -> selection.name
+            ?: strings.get(R.string.settings_current_workspace_new_title)
     }
 }
 
@@ -106,7 +107,7 @@ internal fun buildCloudPostAuthWorkspaceItems(
         )
     ) {
         is CloudWorkspaceLinkSelection.Existing -> selection.workspaceId
-        CloudWorkspaceLinkSelection.CreateNew,
+        is CloudWorkspaceLinkSelection.CreateNew,
         null -> null
     }
     val items = workspaces.filter(CloudWorkspaceSummary::isVisible)
@@ -154,7 +155,7 @@ internal fun buildAutomaticWorkspaceSelection(
 
     val visibleWorkspaces = workspaces.filter(CloudWorkspaceSummary::isVisible)
     if (visibleWorkspaces.isEmpty()) {
-        return CloudWorkspaceLinkSelection.CreateNew
+        return CloudWorkspaceLinkSelection.CreateNew(name = null)
     }
 
     if (visibleWorkspaces.size == 1) {

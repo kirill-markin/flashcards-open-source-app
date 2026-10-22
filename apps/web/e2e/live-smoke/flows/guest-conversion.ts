@@ -158,7 +158,9 @@ export async function runGuestConversionFlow(session: LiveSmokeSession): Promise
 
   await authenticateGuest(session);
   if (await page.getByTestId("guest-destinations").isVisible()) {
-    await trackedClick(diagnostics, "keep the demo by creating a new destination workspace", page.getByTestId("guest-create-workspace"));
+    await trackedClick(diagnostics, "open the new destination workspace form", page.getByTestId("guest-create-workspace"));
+    await trackedFill(diagnostics, "name the new destination workspace", page.getByTestId("guest-create-workspace-name-input"), "Guest smoke workspace");
+    await trackedClick(diagnostics, "keep the demo by creating a new destination workspace", page.getByTestId("guest-create-workspace-submit"));
   }
   await waitForRegisteredDestination(page);
   const destinationId = await page.getByTestId("topbar-active-workspace").getAttribute("data-workspace-id");

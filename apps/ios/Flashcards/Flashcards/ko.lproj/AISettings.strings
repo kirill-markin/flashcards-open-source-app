@@ -141,6 +141,7 @@
 "common.continue" = "계속";
 "common.copy" = "복사";
 "common.copyError" = "오류 복사";
+"common.create" = "생성";
 "common.delete" = "삭제";
 "common.done" = "완료";
 "common.edit" = "편집";

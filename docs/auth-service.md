@@ -161,7 +161,7 @@ Authorization headers and JSON `guestToken` are refused.
   returns `merge_required` so the client can replay completion.
 - `POST /v1/guest-auth/browser/upgrade/complete` takes
   `{selection, guestWorkspaceSyncedAndOutboxDrained, supportsDroppedEntities}`.
-  Selection is `{type: existing, workspaceId}` or `{type: create_new}`;
+  Selection is `{type: existing, workspaceId}` or `{type: create_new, name?}`;
   both capability fields are required booleans. Fresh completion requires a true
   drain assertion. The response is `{workspace, droppedEntities?}`, using the
   existing native transfer and dropped-entity contract, including media ids.

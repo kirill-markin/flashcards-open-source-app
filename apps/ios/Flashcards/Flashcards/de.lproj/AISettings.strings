@@ -143,6 +143,7 @@
 "common.continue" = "Weiter";
 "common.copy" = "Kopieren";
 "common.copyError" = "Kopierfehler";
+"common.create" = "Erstellen";
 "common.delete" = "Löschen";
 "common.done" = "Bereit";
 "common.edit" = "Bearbeiten";

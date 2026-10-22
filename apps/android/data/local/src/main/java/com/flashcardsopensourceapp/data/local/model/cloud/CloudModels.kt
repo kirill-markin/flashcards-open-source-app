@@ -101,7 +101,10 @@ sealed interface CloudGuestUpgradeSelection {
         val discardDemoOnly: Boolean
     ) : CloudGuestUpgradeSelection
 
-    data object CreateNew : CloudGuestUpgradeSelection
+    /** A null name sends no name, so the server applies its automatic workspace name. */
+    data class CreateNew(
+        val name: String?
+    ) : CloudGuestUpgradeSelection
 }
 
 data class CloudWorkspaceDeletePreview(
@@ -153,8 +156,14 @@ sealed interface CloudWorkspaceLinkSelection {
         val discardDemoOnly: Boolean = false
     ) : CloudWorkspaceLinkSelection
 
+    /**
+     * [name] is the name the user typed; null marks an automatic creation that keeps the automatic
+     * workspace name. The default keeps selections persisted before the name existed decodable.
+     */
     @Serializable
-    data object CreateNew : CloudWorkspaceLinkSelection
+    data class CreateNew(
+        val name: String? = null
+    ) : CloudWorkspaceLinkSelection
 }
 
 @Serializable

@@ -8,6 +8,8 @@ struct CloudWorkspaceSelectionSheet: View {
     let onSelection: (CloudWorkspaceLinkSelection) -> Void
     let onCancelled: () -> Void
 
+    @State private var isCreateNameStepPresented: Bool = false
+
     private var selectionItems: [CloudWorkspaceSelectionItem] {
         makeCloudWorkspaceSelectionItems(
             workspaces: self.linkContext.workspaces,
@@ -36,7 +38,7 @@ struct CloudWorkspaceSelectionSheet: View {
                         Section(aiSettingsLocalized("settings.currentWorkspace.section.chooseWorkspace", "Choose workspace")) {
                             ForEach(self.selectionItems) { item in
                                 Button {
-                                    self.onSelection(item.selection)
+                                    self.handleSelection(selection: item.selection)
                                 } label: {
                                     CloudWorkspaceSelectionRow(item: item)
                                 }
@@ -58,13 +60,31 @@ struct CloudWorkspaceSelectionSheet: View {
                     }
                 }
             }
+            .navigationDestination(isPresented: self.$isCreateNameStepPresented) {
+                CloudWorkspaceCreateNameView(
+                    isSubmitting: self.isSelectionDisabled,
+                    guidanceMessage: "",
+                    onCreate: { name in
+                        self.onSelection(.createNewNamed(name: name))
+                    }
+                )
+            }
+        }
+    }
+
+    private func handleSelection(selection: CloudWorkspaceLinkSelection) {
+        switch selection {
+        case .createNew:
+            self.isCreateNameStepPresented = true
+        case .existing, .createNewNamed:
+            self.onSelection(selection)
         }
     }
 }
 
 private func cloudWorkspaceSelectionButtonIdentifier(selection: CloudWorkspaceLinkSelection) -> String {
     switch selection {
-    case .createNew:
+    case .createNew, .createNewNamed:
         return UITestIdentifier.cloudSignInCreateWorkspaceButton
     case .existing(let workspaceId):
         return "cloudSignIn.existingWorkspace.\(workspaceId)"

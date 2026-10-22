@@ -14,11 +14,13 @@ enum PendingGuestUpgradeSelection: Codable, Hashable {
     case existing(workspaceId: String)
     case discardDemoOnly(workspaceId: String)
     case createNew
+    case createNewNamed(name: String)
 
     private enum CodingKeys: String, CodingKey {
         case type
         case workspaceId
         case discardDemoOnly
+        case name
     }
 
     init(from decoder: Decoder) throws {
@@ -40,7 +42,11 @@ enum PendingGuestUpgradeSelection: Codable, Hashable {
             guard discardDemoOnly == false else {
                 throw LocalStoreError.database("Demo-only guest upgrade requires an existing workspace")
             }
-            self = .createNew
+            if let name = try container.decodeIfPresent(String.self, forKey: .name) {
+                self = .createNewNamed(name: name)
+            } else {
+                self = .createNew
+            }
         default:
             throw LocalStoreError.database("Unsupported pending guest upgrade selection type: \(type)")
         }
@@ -58,6 +64,9 @@ enum PendingGuestUpgradeSelection: Codable, Hashable {
             try container.encode(true, forKey: .discardDemoOnly)
         case .createNew:
             try container.encode("create_new", forKey: .type)
+        case .createNewNamed(let name):
+            try container.encode("create_new", forKey: .type)
+            try container.encode(name, forKey: .name)
         }
     }
 }
@@ -288,6 +297,8 @@ private func pendingGuestUpgradeSelection(
         return .existing(workspaceId: workspaceId)
     case .createNew:
         return .createNew
+    case .createNewNamed(let name):
+        return .createNewNamed(name: name)
     }
 }
 
@@ -299,6 +310,8 @@ func cloudGuestUpgradeSelection(selection: PendingGuestUpgradeSelection) -> Clou
         return .discardDemoOnly(workspaceId: workspaceId)
     case .createNew:
         return .createNew
+    case .createNewNamed(let name):
+        return .createNewNamed(name: name)
     }
 }
 

@@ -141,6 +141,7 @@
 "common.continue" = "Продовжити";
 "common.copy" = "Скопіювати";
 "common.copyError" = "Скопіювати помилку";
+"common.create" = "Створити";
 "common.delete" = "Видалити";
 "common.done" = "Готово";
 "common.edit" = "Редагувати";

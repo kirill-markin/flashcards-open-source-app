@@ -141,6 +141,7 @@
 "common.continue" = "ಮುಂದುವರಿಸಿ";
 "common.copy" = "ನಕಲಿಸಿ";
 "common.copyError" = "ದೋಷ ನಕಲಿಸಿ";
+"common.create" = "ರಚಿಸಿ";
 "common.delete" = "ಅಳಿಸಿ";
 "common.done" = "ಮುಗಿದಿದೆ";
 "common.edit" = "ಸಂಪಾದಿಸಿ";

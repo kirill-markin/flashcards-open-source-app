@@ -300,6 +300,7 @@
     <string name="settings_current_workspace_new_title">New workspace</string>
     <string name="settings_current_workspace_create_new_title">Create new workspace</string>
     <string name="settings_current_workspace_create_new_summary">Start a new linked workspace in the cloud</string>
+    <string name="settings_current_workspace_create_button">Create</string>
     <string name="settings_current_workspace_invalid_selection">The current workspace selection is invalid on this device. Retry the last workspace action or reload linked workspaces.</string>
     <string name="settings_current_workspace_load_guest_message">Create an account or log in to upgrade Guest AI before managing workspaces.</string>
     <string name="settings_current_workspace_load_sign_in_message">Sign in to load linked workspaces.</string>

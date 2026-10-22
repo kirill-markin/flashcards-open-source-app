@@ -141,6 +141,7 @@
 "common.continue" = "Continuă";
 "common.copy" = "Copiază";
 "common.copyError" = "Copiază eroarea";
+"common.create" = "Creează";
 "common.delete" = "Șterge";
 "common.done" = "Gata";
 "common.edit" = "Editează";
