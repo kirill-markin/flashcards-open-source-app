@@ -88,6 +88,7 @@ const outputSchemas: Readonly<Record<string, z.ZodObject | undefined>> = {
   [NEXT_REVIEW_CARD_TOOL_NAME]: envelope(z.object({
     workspaceId: z.string(),
     card: z.object({ cardId: z.string(), frontText: z.string() }).nullable(),
+    nextDueAt: z.string().nullable(),
   })),
   [REVEAL_ANSWER_TOOL_NAME]: envelope(z.object({
     workspaceId: z.string(),

@@ -23,6 +23,7 @@ import type { BackendTraceCarrier } from "../../observability/sentry";
 import {
   captureUnexpectedChatLiveEnvelopeError,
   createChatResumeContractViolationError,
+  logChatRunInterruptedLiveStreamUnavailable,
   logChatResumeContractViolation,
   type ChatResumeDiagnosticsHeaders,
 } from "./diagnostics";
@@ -264,11 +265,19 @@ export async function buildStartConversationEnvelope(
     }
 
     const runIdToInterrupt = params.snapshot.activeRunId ?? params.preparedRun.runId;
+    logChatRunInterruptedLiveStreamUnavailable(
+      params.request,
+      params.requestId,
+      params.userId,
+      params.workspaceId,
+      params.snapshot.sessionId,
+      runIdToInterrupt,
+      error,
+    );
     await params.interruptPreparedChatRunFn(
       params.userId,
       params.workspaceId,
       runIdToInterrupt,
-      "AI live stream is unavailable for the active run.",
     );
 
     if (error instanceof HttpError) {

@@ -187,6 +187,7 @@ function areMessagesEqual(
       previousMessage.role === nextMessage.role
       && previousMessage.timestamp === nextMessage.timestamp
       && previousMessage.isError === nextMessage.isError
+      && previousMessage.errorCode === nextMessage.errorCode
       && previousMessage.isStopped === nextMessage.isStopped
       && (previousMessage.itemId ?? null) === (nextMessage.itemId ?? null)
       && (previousMessage.cursor ?? null) === (nextMessage.cursor ?? null)

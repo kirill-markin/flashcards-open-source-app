@@ -19,6 +19,7 @@ import type {
   ChatStreamEvent,
   ContentPart,
 } from "../types";
+import type { ChatTerminalError } from "../terminalErrors";
 import {
   InactiveChatRunClaimError,
 } from "../runs";
@@ -38,7 +39,7 @@ import {
   CHAT_WORKER_PRE_TIMEOUT_BUFFER_MS,
   CHAT_WORKER_TERMINAL_PERSISTENCE_RESERVE_MS,
   createChatRuntimeControl,
-  DEADLINE_REACHED_MESSAGE,
+  DEADLINE_REACHED_ERROR,
 } from "./control";
 import {
   DEFAULT_CHAT_RUNTIME_DEPENDENCIES,
@@ -225,12 +226,12 @@ export async function runPersistedChatSessionWithDeps(
   );
 
   const persistInterrupted = async (
-    errorMessage: string,
+    terminalError: ChatTerminalError,
     assistantOpenAIItems: ReadonlyArray<StoredOpenAIReplayItem> | undefined,
   ): Promise<ChatWorkerRunResult> => persistTerminalResult(
     () => persistInterruptedChatRun({
       ...createFinalizationBaseParams(),
-      errorMessage,
+      terminalError,
       assistantOpenAIItems,
     }),
   );
@@ -308,7 +309,7 @@ export async function runPersistedChatSessionWithDeps(
 
   const persistInterruptedIfDeadlineReached = async (): Promise<ChatWorkerRunResult | null> => {
     return control.getAbortReason() === "deadline_reached"
-      ? persistInterrupted(DEADLINE_REACHED_MESSAGE, undefined)
+      ? persistInterrupted(DEADLINE_REACHED_ERROR, undefined)
       : null;
   };
 
@@ -413,7 +414,7 @@ export async function runPersistedChatSessionWithDeps(
         || control.getAbortReason() === "deadline_reached"
       ) {
         runtimeResult = await persistInterrupted(
-          DEADLINE_REACHED_MESSAGE,
+          DEADLINE_REACHED_ERROR,
           completion.openaiItems,
         );
         return;
@@ -513,7 +514,7 @@ export async function runPersistedChatSessionWithDeps(
 
       if (abortReason === "deadline_reached") {
         return persistInterrupted(
-          DEADLINE_REACHED_MESSAGE,
+          DEADLINE_REACHED_ERROR,
           undefined,
         ).catch(rethrowTerminalPersistenceError);
       }
@@ -547,7 +548,7 @@ export async function runPersistedChatSessionWithDeps(
       control.requestSoftDeadlineStop();
       if (control.getAbortReason() === "deadline_reached") {
         return persistInterrupted(
-          DEADLINE_REACHED_MESSAGE,
+          DEADLINE_REACHED_ERROR,
           undefined,
         ).catch(rethrowTerminalPersistenceError);
       }

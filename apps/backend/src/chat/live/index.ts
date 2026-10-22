@@ -253,6 +253,7 @@ function buildAssistantMessageDonePayload(
     itemId: message.itemId,
     content: message.content,
     isError: message.isError,
+    errorCode: message.errorCode,
     isStopped: message.isStopped,
   };
 }

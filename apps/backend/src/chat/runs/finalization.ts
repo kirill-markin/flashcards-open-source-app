@@ -18,6 +18,7 @@ import {
 } from "../store";
 import type { ChatComposerSuggestionInvalidationReason } from "../composerSuggestions";
 import { isChatRunHeartbeatStale } from "../worker/lease";
+import { CHAT_RUN_INTERRUPTED_ERROR, type ChatTerminalError } from "../terminalErrors";
 import {
   createChatRunStatusUpdateFromRow,
   selectChatRunForUpdateWithExecutor,
@@ -108,7 +109,7 @@ export async function finalizeInterruptedRunWithExecutor(
   executor: DatabaseExecutor,
   scope: WorkspaceDatabaseScope,
   run: ChatRunRow,
-  errorMessage: string,
+  terminalError: ChatTerminalError,
 ): Promise<void> {
   const messages = await listChatMessagesWithExecutor(executor, scope, run.session_id);
   const assistantItem = findAssistantItem(messages, run.assistant_item_id);
@@ -122,9 +123,10 @@ export async function finalizeInterruptedRunWithExecutor(
     if (assistantContent.length === 0) {
       await updateChatItemWithExecutor(executor, scope, {
         itemId: assistantItem.itemId,
-        content: [{ type: "text", text: errorMessage }],
+        content: [{ type: "text", text: terminalError.message }],
         state: "error",
         assistantOpenAIItems: assistantItem.openaiItems,
+        errorCode: terminalError.code,
       });
     } else {
       await updateChatItemWithExecutor(executor, scope, {
@@ -137,7 +139,8 @@ export async function finalizeInterruptedRunWithExecutor(
         sessionId: run.session_id,
         role: "assistant",
         state: "error",
-        content: [{ type: "text", text: errorMessage }],
+        content: [{ type: "text", text: terminalError.message }],
+        errorCode: terminalError.code,
       });
     }
   }
@@ -148,7 +151,7 @@ export async function finalizeInterruptedRunWithExecutor(
     createChatRunStatusUpdateFromRow(run, {
       status: "interrupted",
       finishedAt: new Date(),
-      lastErrorMessage: errorMessage,
+      lastErrorMessage: terminalError.message,
     }),
   );
 
@@ -199,7 +202,7 @@ export async function recoverStaleRunWithExecutor(
     executor,
     scope,
     run,
-    "Chat run interrupted before completion.",
+    CHAT_RUN_INTERRUPTED_ERROR,
   );
   return true;
 }
