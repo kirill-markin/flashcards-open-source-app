@@ -3,6 +3,7 @@ package com.flashcardsopensourceapp.feature.settings.workspace.current
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -32,6 +33,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
@@ -60,6 +62,8 @@ const val currentWorkspaceLoadingStateTag: String = "current_workspace_loading_s
 const val currentWorkspaceReloadButtonTag: String = "current_workspace_reload_button"
 const val currentWorkspaceNameFieldTag: String = "current_workspace_name_field"
 const val currentWorkspaceSaveNameButtonTag: String = "current_workspace_save_name_button"
+const val currentWorkspaceNewNameFieldTag: String = "current_workspace_new_name_field"
+const val currentWorkspaceNewNameCreateButtonTag: String = "current_workspace_new_name_create_button"
 
 fun currentWorkspaceExistingButtonTag(workspaceId: String): String {
     return currentWorkspaceExistingButtonTagPrefix + workspaceId
@@ -75,7 +79,7 @@ fun CurrentWorkspaceRoute(
     uiState: CurrentWorkspaceUiState,
     onReload: () -> Unit,
     onSwitchToExistingWorkspace: (String) -> Unit,
-    onCreateWorkspace: () -> Unit,
+    onCreateWorkspace: (String) -> Unit,
     onWorkspaceNameChange: (String) -> Unit,
     onSaveWorkspaceName: () -> String,
     onOpenSignIn: () -> Unit,
@@ -284,9 +288,9 @@ fun CurrentWorkspaceRoute(
                 hasSubmittedWorkspaceAction = true
                 onSwitchToExistingWorkspace(workspaceId)
             },
-            onCreateWorkspace = {
+            onCreateWorkspace = { name ->
                 hasSubmittedWorkspaceAction = true
-                onCreateWorkspace()
+                onCreateWorkspace(name)
             },
             onOpenSignIn = onOpenSignIn,
             onRetryLastWorkspaceAction = {
@@ -364,11 +368,13 @@ private fun CurrentWorkspaceChangeSheet(
     uiState: CurrentWorkspaceUiState,
     onReload: () -> Unit,
     onSwitchToExistingWorkspace: (String) -> Unit,
-    onCreateWorkspace: () -> Unit,
+    onCreateWorkspace: (String) -> Unit,
     onOpenSignIn: () -> Unit,
     onRetryLastWorkspaceAction: () -> Unit,
     onDismiss: () -> Unit
 ) {
+    var isNameStepVisible by rememberSaveable { mutableStateOf(false) }
+    var newWorkspaceName by rememberSaveable { mutableStateOf("") }
     val isSwitching: Boolean by rememberUpdatedState(newValue = uiState.isSwitching)
     val sheetState: SheetState = rememberModalBottomSheetState(
         confirmValueChange = { nextValue: SheetValue ->
@@ -389,7 +395,11 @@ private fun CurrentWorkspaceChangeSheet(
         ) {
             item {
                 Text(
-                    text = stringResource(R.string.settings_current_workspace_change_sheet_title),
+                    text = if (isNameStepVisible) {
+                        stringResource(R.string.settings_current_workspace_new_title)
+                    } else {
+                        stringResource(R.string.settings_current_workspace_change_sheet_title)
+                    },
                     style = MaterialTheme.typography.titleLarge
                 )
             }
@@ -454,6 +464,52 @@ private fun CurrentWorkspaceChangeSheet(
                                 .testTag(tag = currentWorkspaceReloadButtonTag)
                         ) {
                             Text(stringResource(R.string.settings_reload))
+                        }
+                    }
+                }
+
+                isNameStepVisible -> {
+                    item {
+                        OutlinedTextField(
+                            value = newWorkspaceName,
+                            onValueChange = { name -> newWorkspaceName = name },
+                            enabled = uiState.isSwitching.not(),
+                            label = {
+                                Text(stringResource(R.string.settings_workspace_name_label))
+                            },
+                            singleLine = true,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .testTag(tag = currentWorkspaceNewNameFieldTag)
+                        )
+                    }
+                    if (uiState.errorMessage.isNotEmpty()) {
+                        item {
+                            WorkspaceErrorMessage(
+                                errorMessage = uiState.errorMessage,
+                                modifier = Modifier
+                            )
+                        }
+                    }
+                    item {
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            TextButton(
+                                onClick = { isNameStepVisible = false },
+                                enabled = uiState.isSwitching.not()
+                            ) {
+                                Text(stringResource(R.string.settings_cancel))
+                            }
+                            Button(
+                                onClick = { onCreateWorkspace(newWorkspaceName.trim()) },
+                                enabled = uiState.isSwitching.not() &&
+                                    newWorkspaceName.trim().isNotEmpty(),
+                                modifier = Modifier.testTag(tag = currentWorkspaceNewNameCreateButtonTag)
+                            ) {
+                                Text(stringResource(R.string.settings_current_workspace_create_button))
+                            }
                         }
                     }
                 }
@@ -544,7 +600,7 @@ private fun CurrentWorkspaceChangeSheet(
                     if (createWorkspace != null) {
                         item(key = createWorkspace.workspaceId) {
                             OutlinedButton(
-                                onClick = onCreateWorkspace,
+                                onClick = { isNameStepVisible = true },
                                 enabled = uiState.isSwitching.not(),
                                 modifier = Modifier
                                     .fillMaxWidth()

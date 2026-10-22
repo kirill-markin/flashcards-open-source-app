@@ -359,8 +359,10 @@ async function resolveGuestUpgradeTargetInExecutor(
   const targetWorkspaceId = selection.type === "existing"
     ? selection.workspaceId
     : await (async (): Promise<string> => {
-      const guestWorkspaceName = await loadWorkspaceNameInExecutor(executor, guestUserId, guestWorkspaceId);
-      const nextWorkspaceName = guestWorkspaceName === "" ? AUTO_CREATED_WORKSPACE_NAME : guestWorkspaceName;
+      const nextWorkspaceName = selection.name ?? await (async (): Promise<string> => {
+        const guestWorkspaceName = await loadWorkspaceNameInExecutor(executor, guestUserId, guestWorkspaceId);
+        return guestWorkspaceName === "" ? AUTO_CREATED_WORKSPACE_NAME : guestWorkspaceName;
+      })();
       const nextWorkspaceId = await createWorkspaceInExecutor(executor, targetUserId, {
         name: nextWorkspaceName,
         cause: "explicit",

@@ -422,6 +422,41 @@ h2 {
   text-align: left;
 }
 
+/* Review prompts: not in the sideways-scrolling shell, which would clip the row tips that open below
+   their row, so the prose columns wrap instead. */
+.funnel-group-table.review-prompts-table .review-prompts-text-cell {
+  color: var(--muted);
+  text-align: left;
+  white-space: normal;
+}
+
+.review-prompts-rule-cell {
+  min-width: 220px;
+}
+
+.review-prompts-table thead th:nth-child(3) {
+  text-align: left;
+}
+
+.review-prompts-table td .explained-heading-row {
+  justify-content: flex-end;
+}
+
+.review-prompts-table .explained-heading-row {
+  gap: 6px;
+}
+
+.review-prompts-table .explained-heading-row .explanation-tip-text {
+  width: min(420px, 80vw);
+  white-space: normal;
+  text-align: left;
+}
+
+.review-prompts-table td .explained-heading-row .explanation-tip-text {
+  right: 0;
+  left: auto;
+}
+
 .funnel-step {
   cursor: pointer;
   outline: none;

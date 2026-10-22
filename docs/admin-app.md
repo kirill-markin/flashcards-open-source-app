@@ -9,6 +9,7 @@ Each area's contract lives beside the code that computes it:
 - `Level 1 metrics`, the landing page: one chart per stage of the user funnel, from `Who saw us` to `Who paid us` ([area](../apps/admin/src/reports/levelOneMetrics/LevelOneMetricsArea.tsx)); payment collection is [native billing history](billing-history.md).
 - `General`: [catalog deck installs and social connections](../apps/admin/src/dashboard/AdminDashboard.tsx), each section's query under `src/reports/` stating what it counts; social connections' is `buildReviewEventsByDateCommunitySql` in [`reviewEventsByDate/query.ts`](../apps/admin/src/reports/reviewEventsByDate/query.ts).
 - `Funnels`: [`funnelSections.ts`](../apps/admin/src/reports/funnels/funnelSections.ts) holds the order; each funnel's query states who it counts and how its steps count. The deck funnel's contract is its [query](../apps/admin/src/reports/catalogInstallFunnel/query.ts), and its events are in [catalog-install-funnel.md](catalog-install-funnel.md).
+- `Review prompts`: every prompt that can appear after a review, counted in showings; [`reviewPromptDefinitions.ts`](../apps/admin/src/reports/reviewPrompts/reviewPromptDefinitions.ts) holds the order, platforms, first counted days and Acted rules, and [`showingsSql.ts`](../apps/admin/src/reports/reviewPrompts/showingsSql.ts) what a showing, Acted and Gone are.
 - `Audience`: [query](../apps/admin/src/reports/audience/query.ts); collection and retention are in [Audience analytics](analytics-audience.md).
 - `Study vs AI`: how study and AI chat use shift together over time ([query](../apps/admin/src/reports/aiUsageCohorts/query.ts), [periods](../apps/admin/src/reports/aiUsageCohorts/reportModel.ts)).
 - `Users` and `Events`: raw inspection at every trust level, where people the exclusion rule drops are listed, dimmed, with the reason ([`usersQuery.ts`](../apps/admin/src/users/usersQuery.ts), [`profileQuery.ts`](../apps/admin/src/users/userPage/profileQuery.ts), [`eventsQuery.ts`](../apps/admin/src/events/eventsQuery.ts)). The user page deliberately shows chat transcripts and card text, not only counts; [analytics-db-access.md](analytics-db-access.md) names the grants and the privacy-policy disclosure.
@@ -101,6 +102,13 @@ Run it locally with `make local-admin` on `http://localhost:3001` before merge; 
 - On `Blog article to platform choice` ([query](../apps/admin/src/reports/blogFunnels/platformChoiceQuery.ts)), after an article and the home page, hovering a store badge until its QR code shows counts at `Platform hovered or clicked` but not at `Platform clicked`, and a web app click counts at both.
 - On `Deck page to install` ([query](../apps/admin/src/reports/catalogInstallFunnel/query.ts)), only a server install is success.
 - On it, an install near the range end keeps its review steps maturing until seven days after it, and a review after the range end still counts.
+
+### Review prompts ([definitions](../apps/admin/src/reports/reviewPrompts/reviewPromptDefinitions.ts), [showings](../apps/admin/src/reports/reviewPrompts/showingsSql.ts))
+
+- `Review prompts` is the third tab: one table row per prompt in definition order under a bar of date range, client platform, connection country and app interface language, each row with a disabled `Details` button that says `Coming soon`.
+- On every row Acted and Gone are each at most Shown; `Store rating requested` shows `—` for Acted with an `(i)` naming why.
+- A ⚠ beside a prompt appears only while the selection triggers it: a range starting before a selected platform's first counted day, a selected platform whose app release does not report it yet, Web selected on `Automatic feedback`, or showings still inside their Gone or Acted window.
+- Pick only Web: the notifications pre-prompt and rating request rows read 0 with no ⚠, and the Funnels and General tabs keep the same selection.
 
 ### Audience ([query](../apps/admin/src/reports/audience/query.ts), [section](../apps/admin/src/reports/audience/AudienceSection.tsx))
 

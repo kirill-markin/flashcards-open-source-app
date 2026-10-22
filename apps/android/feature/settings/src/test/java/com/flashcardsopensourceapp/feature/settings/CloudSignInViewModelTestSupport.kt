@@ -319,7 +319,7 @@ internal class FakeCloudAccountRepository : CloudAccountRepository {
                 "Selected workspace is missing from test link context."
             }
 
-            CloudWorkspaceLinkSelection.CreateNew -> CloudWorkspaceSummary(
+            is CloudWorkspaceLinkSelection.CreateNew -> CloudWorkspaceSummary(
                 workspaceId = "workspace-new",
                 name = "Personal",
                 createdAtMillis = 200L,

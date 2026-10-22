@@ -149,7 +149,7 @@ class LocalCloudAccountRepositoryRecoverySyncFailureTest {
         try {
             repository.completeCloudLink(
                 linkContext = linkContext,
-                selection = CloudWorkspaceLinkSelection.CreateNew
+                selection = CloudWorkspaceLinkSelection.CreateNew(name = null)
             )
             throw AssertionError("Expected guest local recovery initial sync to fail.")
         } catch (error: IllegalStateException) {
@@ -169,7 +169,7 @@ class LocalCloudAccountRepositoryRecoverySyncFailureTest {
 
         val recoveredWorkspace = repository.completeCloudLink(
             linkContext = linkContext,
-            selection = CloudWorkspaceLinkSelection.CreateNew
+            selection = CloudWorkspaceLinkSelection.CreateNew(name = null)
         )
 
         assertEquals(createdWorkspaceId, recoveredWorkspace.workspaceId)

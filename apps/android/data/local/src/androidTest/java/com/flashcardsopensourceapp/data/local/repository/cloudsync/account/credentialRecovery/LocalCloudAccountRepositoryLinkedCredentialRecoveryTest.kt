@@ -507,7 +507,7 @@ class LocalCloudAccountRepositoryLinkedCredentialRecoveryTest {
         try {
             repository.completeCloudLink(
                 linkContext = linkContext,
-                selection = CloudWorkspaceLinkSelection.CreateNew
+                selection = CloudWorkspaceLinkSelection.CreateNew(name = null)
             )
             throw AssertionError("Expected linked credential recovery to reject create-new.")
         } catch (error: CloudCredentialRecoveryRequiredException) {

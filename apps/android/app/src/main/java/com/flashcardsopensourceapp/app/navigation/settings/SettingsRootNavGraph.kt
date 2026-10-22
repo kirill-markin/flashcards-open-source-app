@@ -589,9 +589,11 @@ internal fun NavGraphBuilder.registerSettingsRootDestinations(
                     )
                 )
             },
-            onCreateWorkspace = {
+            onCreateWorkspace = { name ->
                 currentWorkspaceViewModel.switchWorkspaceAsync(
-                    selection = com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspaceLinkSelection.CreateNew
+                    selection = com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspaceLinkSelection.CreateNew(
+                        name = name
+                    )
                 )
             },
             onWorkspaceNameChange = currentWorkspaceViewModel::updateWorkspaceNameDraft,

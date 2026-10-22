@@ -76,7 +76,7 @@ class LocalCloudAccountRepositoryGuestLocalRecoveryTest {
         assertEquals(0, remoteGateway.prepareGuestUpgradeCalls)
         val selectedWorkspace = repository.completeCloudLink(
             linkContext = linkContext,
-            selection = CloudWorkspaceLinkSelection.CreateNew
+            selection = CloudWorkspaceLinkSelection.CreateNew(name = null)
         )
 
         val createdWorkspaceId = remoteGateway.createdWorkspaceId

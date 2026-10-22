@@ -18,7 +18,7 @@ export type BrowserGuestProbe = Readonly<{
   guestSession: BrowserGuestSession;
 }>;
 export type BrowserGuestUpgradePreparation = Readonly<{ mode: "bound" | "merge_required"; demoOnlyDestinationWorkspaceId?: string }>;
-export type GuestUpgradeSelection = Readonly<{ type: "existing"; workspaceId: string; discardDemoOnly?: boolean }> | Readonly<{ type: "create_new" }>;
+export type GuestUpgradeSelection = Readonly<{ type: "existing"; workspaceId: string; discardDemoOnly?: boolean }> | Readonly<{ type: "create_new"; name?: string }>;
 export type BrowserGuestUpgradeResult = Readonly<{
   workspace: WorkspaceSummary;
   droppedEntities?: Readonly<{ cardIds: ReadonlyArray<string>; deckIds: ReadonlyArray<string>; reviewEventIds: ReadonlyArray<string>; mediaAssetIds?: ReadonlyArray<string> }>;
