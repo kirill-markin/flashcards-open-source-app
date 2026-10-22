@@ -13,7 +13,7 @@ import {
   type ReportPeriod,
 } from "../levelOneMetrics/reportPeriod";
 import { assertValidDateRange, parseActivityCount, parseActivityDate } from "../reportValues";
-import { buildHashedSiteFactFilterSql, buildIdentifiedSiteFactFilterSql } from "./query";
+import { buildHashedSiteFactFilterSql, buildIdentifiedSiteFactFilterSql, buildSiteEventNamesSql } from "./query";
 
 const reportLabel = "Engaged visitors report";
 
@@ -66,15 +66,11 @@ const siteActiveFactEventNames: ReadonlyArray<string> = ["site_page_viewed", ...
 /** The rows engagement is counted over; any two that `buildSiteEngagementFactSql` accepts engage. */
 export const siteFactEventNames: ReadonlyArray<string> = [...siteActiveFactEventNames, ...sitePassiveImpressionEventNames];
 
-function buildEventNameInSql(rowAlias: string, eventNames: ReadonlyArray<string>): string {
-  return `${rowAlias}.event_name IN (${eventNames.map(escapeSqlStringLiteral).join(", ")})`;
-}
-
 /** Whether one site fact counts toward engagement: a page view or site action always, an impression only before the switch. */
 export function buildSiteEngagementFactSql(rowAlias: string): string {
   return [
-    `(${buildEventNameInSql(rowAlias, siteActiveFactEventNames)}`,
-    ` OR (${buildEventNameInSql(rowAlias, sitePassiveImpressionEventNames)}`,
+    `(${buildSiteEventNamesSql(rowAlias, siteActiveFactEventNames)}`,
+    ` OR (${buildSiteEventNamesSql(rowAlias, sitePassiveImpressionEventNames)}`,
     ` AND ${rowAlias}.occurred_at < ${escapeSqlStringLiteral(engagedRuleSwitchInstant)}::timestamptz))`,
   ].join("");
 }

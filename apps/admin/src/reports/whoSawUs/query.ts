@@ -118,7 +118,7 @@ export const webDataStartChartNote: ChartNote = {
   longText: "We started collecting website visits in our analytics around 15:44 UTC on 2026-09-22. That day is partial, and there is no web data before it.",
 };
 
-function buildSiteEventNamesSql(rowAlias: string, eventNames: ReadonlyArray<string>): string {
+export function buildSiteEventNamesSql(rowAlias: string, eventNames: ReadonlyArray<string>): string {
   return `${rowAlias}.event_name IN (${eventNames.map(escapeSqlStringLiteral).join(", ")})`;
 }
 
