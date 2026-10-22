@@ -2,11 +2,8 @@ import { useMemo, type JSX } from "react";
 import type { AdminAppConfig } from "../../config";
 import type { AnalyticsFilterState } from "../../filters/analyticsFilters";
 import type { FunnelAnchor } from "../funnels/funnelAnchorUrl";
-import { FunnelEmptyRangeNotes } from "../funnels/FunnelEmptyRangeNotes";
-import { FunnelMaturingWarning } from "../funnels/FunnelMaturingWarning";
 import {
   buildFunnelRangeGroups,
-  formatFunnelRangeNote,
   useFunnelRangeReports,
 } from "../funnels/funnelRangeReports";
 import { FunnelSectionHeader } from "../funnels/FunnelSectionHeader";
@@ -17,6 +14,11 @@ import {
   FunnelStepsLoadingChart,
   type FunnelStage,
 } from "../funnels/FunnelStepsChart";
+import {
+  buildFunnelEmptyRangeNote,
+  buildFunnelMaturingNote,
+  buildFunnelRangeWarnings,
+} from "../funnels/funnelWarnings";
 import {
   loadSignInFunnelReport,
   signInFunnelStartDate,
@@ -76,6 +78,13 @@ export function SignInFunnelSection(props: FunnelSectionProps): JSX.Element {
     [loadState],
   );
   const groups = useMemo(() => buildFunnelRangeGroups(rangeViews), [rangeViews]);
+  const warnings = useMemo(() => rangeViews.flatMap((range) => buildFunnelRangeWarnings(range, {
+    coverage: range.dateRange.from < signInFunnelStartDate
+      ? `Selections before ${signInFunnelStartDate} are outside this report’s coverage.`
+      : null,
+    maturing: buildFunnelMaturingNote(range.totals.maturingCount, range.totals.selectedCount),
+    empty: buildFunnelEmptyRangeNote(rangeViews, range),
+  })), [rangeViews]);
   // A, whose figures the explainer shows.
   const primaryRange = rangeViews[0];
   const hasEntries = rangeViews.some((range) => range.hasEntries);
@@ -83,13 +92,9 @@ export function SignInFunnelSection(props: FunnelSectionProps): JSX.Element {
 
   return (
     <section className="dashboard-section funnel-report">
-      <FunnelSectionHeader funnelId={signInFunnelAnchor.funnelId} title={signInFunnelTitle} onDetailsNavigate={props.onDetailsNavigate} />
+      <FunnelSectionHeader funnelId={signInFunnelAnchor.funnelId} title={signInFunnelTitle} warnings={warnings} onDetailsNavigate={props.onDetailsNavigate} />
 
       {loadState.status === "error" ? <div className="report-state report-state-error"><strong>Funnel query failed.</strong><span>{loadState.message}</span><button className="filter-button" type="button" onClick={retry}>Retry</button></div> : null}
-      {rangeViews.map((range) => (range.dateRange.from < signInFunnelStartDate ? <p key={range.key} className="report-state">{formatFunnelRangeNote(range.seriesLabel, `Selections before ${signInFunnelStartDate} are outside this report’s coverage.`)}</p> : null))}
-
-      {rangeViews.map((range) => <FunnelMaturingWarning key={range.key} seriesLabel={range.seriesLabel} maturingCount={range.totals.maturingCount} entryCount={range.totals.selectedCount} />)}
-      <FunnelEmptyRangeNotes ranges={rangeViews} />
 
       {loadState.status === "loading" ? (
         <FunnelStepsLoadingChart

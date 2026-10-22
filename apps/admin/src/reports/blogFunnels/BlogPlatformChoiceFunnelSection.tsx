@@ -3,10 +3,8 @@ import type { AdminAppConfig } from "../../config";
 import type { AnalyticsFilterState } from "../../filters/analyticsFilters";
 import type { FunnelAnchor } from "../funnels/funnelAnchorUrl";
 import { buildHashedVisitorCountryStartDateNote } from "../funnels/funnelAudienceSql";
-import { FunnelEmptyRangeNotes } from "../funnels/FunnelEmptyRangeNotes";
 import {
   buildFunnelRangeGroups,
-  formatFunnelRangeNote,
   useFunnelRangeReports,
 } from "../funnels/funnelRangeReports";
 import { FunnelSectionHeader } from "../funnels/FunnelSectionHeader";
@@ -17,6 +15,7 @@ import {
   FunnelStepsLoadingChart,
   type FunnelStage,
 } from "../funnels/FunnelStepsChart";
+import { buildFunnelEmptyRangeNote, buildFunnelRangeWarnings } from "../funnels/funnelWarnings";
 import { pageReadEngagementStartDate } from "../whoSawUs/engagedVisitorsQuery";
 import {
   blogFunnelStartDate,
@@ -76,26 +75,24 @@ export function BlogPlatformChoiceFunnelSection(props: FunnelSectionProps): JSX.
     [loadState],
   );
   const groups = useMemo(() => buildFunnelRangeGroups(rangeViews), [rangeViews]);
+  const connectionCountries = props.filters.connectionCountries;
+  const warnings = useMemo(() => rangeViews.flatMap((range) => buildFunnelRangeWarnings(range, {
+    "start-date": buildBlogFunnelStartDateNote(range.dateRange),
+    "country-start-date": buildHashedVisitorCountryStartDateNote(connectionCountries, range.dateRange),
+    "engaged-definition": range.dateRange.from < pageReadEngagementStartDate
+      ? `From ${pageReadEngagementStartDate}, a one-page read of 10+ seconds with a scroll, click or key press also counts as Engaged, so a range starting before that day mixes both definitions and its Engaged step reads lower by definition.`
+      : null,
+    empty: buildFunnelEmptyRangeNote(rangeViews, range),
+  })), [connectionCountries, rangeViews]);
   const primaryRange = rangeViews[0];
   const hasEntries = rangeViews.some((range) => range.hasEntries);
   const isComparing = props.filters.comparisonDateRange !== null;
 
   return (
     <section className="dashboard-section funnel-report">
-      <FunnelSectionHeader funnelId={blogPlatformChoiceFunnelAnchor.funnelId} title={blogPlatformChoiceFunnelTitle} onDetailsNavigate={props.onDetailsNavigate} />
+      <FunnelSectionHeader funnelId={blogPlatformChoiceFunnelAnchor.funnelId} title={blogPlatformChoiceFunnelTitle} warnings={warnings} onDetailsNavigate={props.onDetailsNavigate} />
 
       {loadState.status === "error" ? <div className="report-state report-state-error"><strong>Funnel query failed.</strong><span>{loadState.message}</span><button className="filter-button" type="button" onClick={retry}>Retry</button></div> : null}
-      {rangeViews.map((range) => {
-        const startDateNote = buildBlogFunnelStartDateNote(range.dateRange);
-        return startDateNote === null ? null : <p key={range.key} className="report-state" aria-live="polite">{formatFunnelRangeNote(range.seriesLabel, startDateNote)}</p>;
-      })}
-      {rangeViews.map((range) => {
-        const countryStartDateNote = buildHashedVisitorCountryStartDateNote(props.filters.connectionCountries, range.dateRange);
-        return countryStartDateNote === null ? null : <p key={range.key} className="report-state" aria-live="polite">{formatFunnelRangeNote(range.seriesLabel, countryStartDateNote)}</p>;
-      })}
-      {rangeViews.map((range) => (range.dateRange.from < pageReadEngagementStartDate ? <p key={range.key} className="report-state" aria-live="polite">{formatFunnelRangeNote(range.seriesLabel, `From ${pageReadEngagementStartDate}, a one-page read of 10+ seconds with a scroll, click or key press also counts as Engaged, so a range starting before that day mixes both definitions and its Engaged step reads lower by definition.`)}</p> : null))}
-
-      <FunnelEmptyRangeNotes ranges={rangeViews} />
 
       {loadState.status === "loading" ? (
         <FunnelStepsLoadingChart
