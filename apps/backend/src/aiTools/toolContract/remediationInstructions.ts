@@ -222,10 +222,11 @@ const REST_API_KEY_AUTHORIZATION = "Use a valid non-revoked API key in the Autho
  * once, here, and fall through to the generic wording on every other surface.
  *
  * That is wording, not reachability: a tool surface can put one of these codes in front of the
- * model as a bare result code with no remediation text at all. The chat's generated-image tool
- * reports MEDIA_ASSET_STORAGE_UNAVAILABLE in its own `{ ok: false, code, retryable }` envelope
+ * model without this module's wording. The chat's generated-image tool reports
+ * MEDIA_ASSET_STORAGE_UNAVAILABLE in its own `{ ok: false, code, retryable, message }` envelope
  * (`getGeneratedImageToolSafeErrorCode` in `apps/backend/src/chat/openai/tools/tools.ts`), which
- * carries no `instructions` field and never reaches this module.
+ * carries no `instructions` field and never reaches this module; its short `message` comes from
+ * `generatedImageErrorMessages` there.
  */
 const REST_CODE_INSTRUCTIONS: Readonly<Record<string, RestWording | undefined>> = {
   AUTH_VERIFICATION_TEMPORARILY_UNAVAILABLE: () => "Retry the same authenticated request after the Retry-After delay without changing the token. If it keeps failing, sign in again and use requestId when debugging.",

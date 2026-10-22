@@ -577,9 +577,10 @@ function createGeneratedImageErrorResult(
   attempt: number | null,
   shouldInvalidateMainContent: boolean,
   stopReason: ExecutedChatToolCall["stopReason"],
+  details: Readonly<Record<string, unknown>>,
 ): ExecutedChatToolCall {
   return createGeneratedImageResult(
-    { ok: false, code, retryable, ...(attempt === null ? {} : { attempt }) },
+    { ok: false, code, retryable, ...(attempt === null ? {} : { attempt }), ...details },
     {
       succeeded: false,
       isMutating: false,
@@ -587,6 +588,36 @@ function createGeneratedImageErrorResult(
       stopReason,
     },
   );
+}
+
+/**
+ * What the model reads beside an error code to tell the user what happened and what to do next.
+ * `run_inactive` and `deadline_reached` end the turn before the model sees the result, so they carry none.
+ */
+const generatedImageErrorMessages = {
+  sign_in_required: "Generating card images needs a signed-in account; ask the user to sign in.",
+  invalid_arguments: "The tool arguments did not match the tool's schema; correct them before calling again.",
+  card_not_found: "The card no longer exists, possibly deleted after it was read; look it up again before retrying.",
+  MEDIA_ASSET_STORAGE_UNAVAILABLE: "Image storage was briefly unavailable on our side; trying again later should work.",
+  provider_unavailable: "OpenAI's image service stayed unavailable or rate-limited through our retries; this is temporary, so the user can try again later.",
+  moderation_blocked: "OpenAI's safety system blocked this image; rephrase the image idea so it avoids the flagged categories.",
+  provider_permission_denied: "Image generation hit a permission problem on our side; it is not the user's fault and not something they can fix, so they can only try again later.",
+  provider_failed: "OpenAI could not generate this image; the user can try again later or with a different image idea.",
+} as const;
+
+const generatedImageAttemptLimitMessage = `This reply has used all ${maximumGeneratedCardImageAttemptsPerRun} image attempts, failed ones included. The user's next message starts a new set of attempts.`;
+
+function createGenerationLimitMessage(
+  error: GeneratedCardImageGenerationLimitReachedError,
+  userOpenAIApiKey: UserOpenAIApiKey | null,
+): string {
+  if (userOpenAIApiKey !== null) {
+    return `This workspace's monthly limit of ${error.limit} generated card images, which applies when the user's own OpenAI key is used, is used up; it resets at ${error.resetsAt}.`;
+  }
+  const exhaustedLimit = error.ceiling === "daily"
+    ? `The daily limit of ${error.limit} generated card images`
+    : `This workspace's monthly limit of ${error.limit} generated card images`;
+  return `${exhaustedLimit} is used up; it resets at ${error.resetsAt}. Adding the user's own OpenAI key in Settings raises the image limit.`;
 }
 
 type GeneratedImageOperationSignals = Readonly<{
@@ -628,6 +659,7 @@ async function executeGeneratedImageToolCall(
       null,
       false,
       null,
+      { message: generatedImageErrorMessages.sign_in_required },
     );
   }
   const operationSignals = createOperationSignals(
@@ -649,10 +681,13 @@ async function executeGeneratedImageToolCall(
     });
     operationSignal.throwIfAborted();
     if (reservation.status === "run_inactive") {
-      return createGeneratedImageErrorResult("run_inactive", false, null, false, "run_inactive");
+      return createGeneratedImageErrorResult("run_inactive", false, null, false, "run_inactive", {});
     }
     if (reservation.status === "limit_reached") {
-      return createGeneratedImageErrorResult("limit_reached", false, null, false, null);
+      return createGeneratedImageErrorResult("limit_reached", false, null, false, null, {
+        limit: maximumGeneratedCardImageAttemptsPerRun,
+        message: generatedImageAttemptLimitMessage,
+      });
     }
     attempt = reservation.attempt;
 
@@ -668,6 +703,7 @@ async function executeGeneratedImageToolCall(
           reservation.attempt,
           false,
           null,
+          { message: generatedImageErrorMessages.invalid_arguments },
         );
       }
       const parsed = GENERATED_IMAGE_TOOL_ARGUMENT_VALIDATOR.safeParse(rawArgumentsValue);
@@ -678,6 +714,7 @@ async function executeGeneratedImageToolCall(
           reservation.attempt,
           false,
           null,
+          { message: generatedImageErrorMessages.invalid_arguments },
         );
       }
       immutablePayload = await dependencies.bindGeneratedCardImageAttemptPayload({
@@ -705,6 +742,7 @@ async function executeGeneratedImageToolCall(
         reservation.attempt,
         false,
         null,
+        { message: generatedImageErrorMessages.sign_in_required },
       );
     }
 
@@ -798,6 +836,7 @@ async function executeGeneratedImageToolCall(
         attempt,
         false,
         "deadline_reached",
+        {},
       );
     }
     if (error instanceof HttpError && error.code === "BROWSER_GUEST_AI_TRIAL_QUOTA_REACHED") {
@@ -810,22 +849,11 @@ async function executeGeneratedImageToolCall(
       const code = error.ceiling === "daily"
         ? "daily_generation_limit_reached"
         : "monthly_generation_limit_reached";
-      return createGeneratedImageResult(
-        {
-          ok: false,
-          code,
-          retryable: false,
-          ...(attempt === null ? {} : { attempt }),
-          limit: error.limit,
-          resetsAt: error.resetsAt,
-        },
-        {
-          succeeded: false,
-          isMutating: false,
-          shouldInvalidateMainContent: false,
-          stopReason: null,
-        },
-      );
+      return createGeneratedImageErrorResult(code, false, attempt, false, null, {
+        limit: error.limit,
+        resetsAt: error.resetsAt,
+        message: createGenerationLimitMessage(error, context.userOpenAIApiKey),
+      });
     }
     // Only the code is matched: the same 404 status and wording are also raised after the provider
     // was paid, and that one must keep failing the run instead of becoming a tool result.
@@ -839,6 +867,7 @@ async function executeGeneratedImageToolCall(
         attempt,
         false,
         null,
+        { message: generatedImageErrorMessages.card_not_found },
       );
     }
     const safeErrorCode = getGeneratedImageToolSafeErrorCode(error);
@@ -851,6 +880,7 @@ async function executeGeneratedImageToolCall(
         attempt,
         false,
         null,
+        { message: generatedImageErrorMessages[safeErrorCode] },
       );
     }
     if (isOpenAIImageGenerationProviderError(error)) {
@@ -867,18 +897,18 @@ async function executeGeneratedImageToolCall(
         && attempt !== null
         && attempt < maximumGeneratedCardImageAttemptsPerRun;
       // OpenAI's own reason for refusing a call made with the person's own key goes to the model, so the
-      // assistant can relay what only that person can fix; a platform-key result carries only the code.
+      // assistant can relay what only that person can fix; a platform-key result never quotes OpenAI's
+      // message, only our explanation and OpenAI's error type, code, and moderation categories.
       const providerMessage = context.userOpenAIApiKey === null
         ? null
         : readOwnOpenAIKeyProviderErrorText(error.cause);
       if (providerMessage === null) {
-        return createGeneratedImageErrorResult(
-          code,
-          retryable,
-          attempt,
-          false,
-          null,
-        );
+        return createGeneratedImageErrorResult(code, retryable, attempt, false, null, {
+          message: generatedImageErrorMessages[code],
+          providerErrorType: error.type,
+          providerErrorCode: error.code,
+          ...(code === "moderation_blocked" ? { moderationCategories: error.moderationCategories } : {}),
+        });
       }
       return createGeneratedImageResult(
         { ok: false, code, retryable, ...(attempt === null ? {} : { attempt }), providerMessage },
