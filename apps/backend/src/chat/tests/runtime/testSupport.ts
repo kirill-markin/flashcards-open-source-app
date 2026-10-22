@@ -24,7 +24,7 @@ export type PersistAssistantTerminalErrorParams = Parameters<
 >[2];
 
 export const CHAT_WORKER_PRE_TIMEOUT_BUFFER_MS = 180_000;
-export const DEADLINE_REACHED_MESSAGE = "This response took too long, so I stopped the run before the server timeout. Please try again or split the request into smaller steps.";
+export const DEADLINE_REACHED_MESSAGE = "This took too long, so I stopped. Everything already saved is kept. Write \"continue\" to finish the rest.";
 
 export function createCompletedLoopCompletion(): OpenAILoopCompletion {
   return {
@@ -136,6 +136,7 @@ export function createDependencies(overrides: DependencyOverrides): ChatRuntimeD
       content: params.content,
       state: params.state,
       isError: params.state === "error",
+      errorCode: null,
       isStopped: params.state === "cancelled",
       timestamp: 1,
       updatedAt: 1,

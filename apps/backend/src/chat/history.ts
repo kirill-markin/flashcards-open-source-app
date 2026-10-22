@@ -15,6 +15,7 @@ export type StoredMessage = Readonly<{
   content: ReadonlyArray<ContentPart>;
   timestamp: number;
   isError: boolean;
+  errorCode: string | null;
   isStopped: boolean;
   cursor: string | null;
   itemId: string | null;
@@ -346,6 +347,7 @@ export const applyAssistantError = (
     content: [{ type: "text", text: errorText }],
     timestamp,
     isError: true,
+    errorCode: null,
     isStopped: false,
     cursor: null,
     itemId: null,
@@ -361,6 +363,7 @@ export const applyAssistantError = (
       ...last,
       content: errorMessage.content,
       isError: true,
+      errorCode: errorMessage.errorCode,
       isStopped: false,
     };
     return [...messages.slice(0, -1), updated];

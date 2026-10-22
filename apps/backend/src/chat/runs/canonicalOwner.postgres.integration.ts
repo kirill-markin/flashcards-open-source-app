@@ -10,6 +10,7 @@ import { assertAccountLiveSession } from "../../auth/principalSessions";
 import { withPostgresIntegrationFixture } from "../../testSupport/postgresIntegration";
 import { assertTrustedChatWorkerInvocation } from "../worker/invoke";
 import { convertLegacyAttachmentsBeforeClaim } from "../worker";
+import { CHAT_RUN_INTERRUPTED_ERROR } from "../terminalErrors";
 import {
   claimChatRun,
   failQueuedChatRun,
@@ -204,14 +205,14 @@ test("trusted chat and usage retain immutable identity while authorization follo
       assert.equal((await owner.query(
         "SELECT worker_claimed_at::text AS token FROM ai.chat_runs WHERE run_id=$1", [running.runId],
       )).rows[0].token, initialLease);
-      await markQueuedChatRunDispatchFailed(source, fixture.workspaceId, dispatchFailed.runId, "dispatch rejected");
-      assert.equal(await failQueuedChatRun(source, fixture.workspaceId, prepareFailed.runId, "conversion rejected"), true);
-      assert.equal(await failQueuedChatRun(source, fixture.workspaceId, prepareFailed.runId, "repeat"), false);
+      await markQueuedChatRunDispatchFailed(source, fixture.workspaceId, dispatchFailed.runId);
+      assert.equal(await failQueuedChatRun(source, fixture.workspaceId, prepareFailed.runId, { code: null, message: "conversion rejected" }), true);
+      assert.equal(await failQueuedChatRun(source, fixture.workspaceId, prepareFailed.runId, { code: null, message: "repeat" }), false);
       assert.deepEqual((await owner.query(
         "SELECT run_id,status,last_error_message FROM ai.chat_runs WHERE run_id=ANY($1::uuid[]) ORDER BY run_id",
         [[dispatchFailed.runId, prepareFailed.runId]],
       )).rows, [
-        { run_id: dispatchFailed.runId, status: "interrupted", last_error_message: "dispatch rejected" },
+        { run_id: dispatchFailed.runId, status: "interrupted", last_error_message: CHAT_RUN_INTERRUPTED_ERROR.message },
         { run_id: prepareFailed.runId, status: "failed", last_error_message: "conversion rejected" },
       ].sort((left, right) => left.run_id.localeCompare(right.run_id)));
 

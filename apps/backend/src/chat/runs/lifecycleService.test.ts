@@ -9,6 +9,7 @@ import {
   InactiveChatRunClaimError,
 } from "./claimFence";
 import { finalizeInterruptedRunWithExecutor } from "./finalization";
+import { CHAT_RUN_INTERRUPTED_ERROR } from "../terminalErrors";
 import {
   assertClaimedRunStillActive,
   requestChatRunCancellationWithExecutor,
@@ -404,7 +405,7 @@ test("finalizeInterruptedRunWithExecutor does not clear a session that no longer
           createRunRow({
             status: "interrupted",
             finished_at: "2026-04-16T00:00:00.000Z",
-            last_error_message: "worker dispatch failed",
+            last_error_message: CHAT_RUN_INTERRUPTED_ERROR.message,
           }),
         ]) as unknown as pg.QueryResult<Row>;
       }
@@ -437,7 +438,7 @@ test("finalizeInterruptedRunWithExecutor does not clear a session that no longer
     executor,
     scope,
     run,
-    "worker dispatch failed",
+    CHAT_RUN_INTERRUPTED_ERROR,
   );
 
   assert.equal(guardedSessionUpdateCount, 1);

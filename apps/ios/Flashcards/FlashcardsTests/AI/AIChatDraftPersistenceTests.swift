@@ -264,6 +264,7 @@ final class AIChatDraftPersistenceTests: XCTestCase {
                     content: [.text("hello")],
                     timestamp: "2026-04-06T00:00:00Z",
                     isError: false,
+                    errorCode: nil,
                     isStopped: false,
                     cursor: nil,
                     itemId: nil
@@ -312,6 +313,7 @@ final class AIChatDraftPersistenceTests: XCTestCase {
                 content: [.text("hello")],
                 timestamp: "1970-01-01T00:00:00Z",
                 isError: false,
+                errorCode: nil,
                 isStopped: false,
                 cursor: nil,
                 itemId: nil
@@ -330,6 +332,7 @@ final class AIChatDraftPersistenceTests: XCTestCase {
                 content: [.text("hello")],
                 timestamp: "1970-01-01T00:00:00Z",
                 isError: false,
+                errorCode: nil,
                 isStopped: false,
                 cursor: nil,
                 itemId: nil
@@ -347,6 +350,7 @@ final class AIChatDraftPersistenceTests: XCTestCase {
                 content: [.text("hello")],
                 timestamp: "1970-01-01T00:00:00Z",
                 isError: false,
+                errorCode: nil,
                 isStopped: false,
                 cursor: nil,
                 itemId: nil

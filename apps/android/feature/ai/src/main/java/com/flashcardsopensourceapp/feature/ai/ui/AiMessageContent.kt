@@ -179,7 +179,10 @@ private fun MessageBubbleContent(
                     } else {
                         SelectionContainer {
                             Text(
-                                text = contentPart.text,
+                                text = textProvider.chatErrorText(
+                                    errorCode = message.errorCode,
+                                    storedText = contentPart.text
+                                ),
                                 modifier = if (message.role == AiChatRole.ASSISTANT) {
                                     Modifier.testTag(tag = aiAssistantTextPartTag)
                                 } else {

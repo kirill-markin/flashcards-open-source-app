@@ -87,6 +87,17 @@
     <string name="ai_guest_quota_button_title">Create account or Log in</string>
     <string name="ai_limit_reached_account_message">You\'ve used this month\'s AI messages. They renew on %1$s. You can add your own OpenAI key in Settings to keep going.</string>
     <string name="ai_limit_reached_account_message_without_date">You\'ve used this month\'s AI messages. You can add your own OpenAI key in Settings to keep going.</string>
+    <string name="ai_chat_error_run_deadline_reached">This took too long, so I stopped. Everything already saved is kept. Write \"continue\" to finish the rest.</string>
+    <string name="ai_chat_error_run_interrupted">The AI response was interrupted before it finished. Please try again.</string>
+    <string name="ai_chat_error_runtime">The AI response failed before it could finish. Please try again.</string>
+    <string name="ai_chat_error_provider">The AI service could not complete the response. Please try again.</string>
+    <string name="ai_chat_error_provider_auth_failed">The AI service could not authenticate the request. Please try again later.</string>
+    <string name="ai_chat_error_provider_rate_limited">The AI service is rate limited right now. Please try again in a few minutes.</string>
+    <string name="ai_chat_error_provider_unavailable">The AI service is temporarily unavailable. Please try again soon.</string>
+    <string name="ai_chat_error_provider_aborted">The AI request was interrupted. Please try again.</string>
+    <string name="ai_chat_error_context_length_exceeded">This conversation has grown too long for the AI to continue. Please start a new chat to keep going.</string>
+    <string name="ai_chat_error_consent_required">AI consent was withdrawn or superseded. Review the disclosure and grant consent before sending another message.</string>
+    <string name="ai_chat_error_openai_api_key_invalid">Your OpenAI key does not work. Check it in Settings.</string>
     <string name="ai_own_openai_key_error_prefix">Your own OpenAI key is on. OpenAI returned this error for your key. Fix it in your OpenAI account and try again.</string>
     <plurals name="ai_remaining_messages_notice">
         <item quantity="one">%d AI message left this month</item>

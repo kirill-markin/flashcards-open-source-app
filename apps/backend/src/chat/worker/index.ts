@@ -3,7 +3,7 @@ import { claimChatRun, failQueuedChatRun, recordAiRunFailedAnalytics } from "../
 import { runPersistedChatSession, type ChatWorkerRunResult } from "../runtime";
 import {
   classifyChatRunFailureCategory,
-  createPublicTerminalErrorMessage,
+  createPublicTerminalError,
 } from "../runtime/providerErrors";
 import { logChatWorkerLifecycleEvent } from "./logging";
 import { assertTrustedChatWorkerInvocation } from "./invoke";
@@ -100,7 +100,7 @@ export async function convertLegacyAttachmentsBeforeClaim(
       userId,
       event.workspaceId,
       event.runId,
-      createPublicTerminalErrorMessage(error),
+      createPublicTerminalError(error),
     );
     if (failed) {
       await recordAiRunFailedAnalytics(

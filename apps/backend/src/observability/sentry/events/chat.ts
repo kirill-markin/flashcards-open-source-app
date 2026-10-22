@@ -461,6 +461,13 @@ export type ChatBreadcrumbEvent =
   | EventByAction<"chat_transcription_invalid_audio", ChatTranscriptionFailureDetails>
   | EventByAction<"chat_transcription_failed", ChatTranscriptionFailureDetails>
   | EventByAction<"chat_session_not_current_refused", ChatSessionNotCurrentDetails>
+  // The run row and the chat carry only the generic interruption, so this record names the cause.
+  | EventByAction<"chat_run_interrupted_live_stream_unavailable", Readonly<{
+    path: string;
+    method: string;
+    statusCode: number;
+    code: string | null;
+  }>>
   | EventByAction<"chat_replay_encrypted_items_dropped", ChatReplayEncryptedItemsDroppedDetails>
   | EventByAction<"chat_file_legacy_attachments_converted", ChatFileLegacyAttachmentsConvertedDetails>
   | EventByAction<"chat_file_legacy_attachment_kept_as_file", ChatFileLegacyAttachmentKeptAsFileDetails>

@@ -1,5 +1,6 @@
 import { HttpError } from "../../shared/errors";
 import {
+  addBackendBreadcrumb,
   captureBackendException,
   captureBackendWarning,
   createBackendObservationScope,
@@ -121,6 +122,41 @@ export function captureUnexpectedChatLiveEnvelopeError(
       code: chatResumeContractViolationCode,
       message: "Unexpected chat live envelope creation failure.",
       validationIssues: [],
+    },
+  });
+}
+
+export function logChatRunInterruptedLiveStreamUnavailable(
+  request: Request,
+  requestId: string | null,
+  userId: string,
+  workspaceId: string,
+  sessionId: string,
+  runId: string,
+  error: unknown,
+): void {
+  const path = new URL(request.url).pathname;
+  const diagnostics = readChatResumeDiagnosticsHeaders(request);
+  addBackendBreadcrumb({
+    action: "chat_run_interrupted_live_stream_unavailable",
+    scope: createBackendObservationScope(
+      "backend-api",
+      requestId,
+      path,
+      request.method,
+      userId,
+      workspaceId,
+      null,
+      runId,
+      sessionId,
+      diagnostics.clientVersion,
+      diagnostics.clientPlatform,
+    ),
+    details: {
+      path,
+      method: request.method,
+      statusCode: error instanceof HttpError ? error.statusCode : 500,
+      code: error instanceof HttpError ? error.code : chatResumeContractViolationCode,
     },
   });
 }

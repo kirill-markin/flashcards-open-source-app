@@ -2,6 +2,7 @@ import type { ChatComposerSuggestion } from "../composerSuggestions";
 import type { StoredMessage } from "../history";
 import type { StoredOpenAIReplayItem } from "../openai/replayItems";
 import type { ContentPart } from "../types";
+import type { ChatTerminalErrorCode } from "../terminalErrors";
 
 export type ChatSessionRunState = "idle" | "running" | "interrupted";
 export type ChatItemState = "in_progress" | "completed" | "error" | "cancelled";
@@ -19,6 +20,7 @@ export type InsertChatItemParams = Readonly<{
   state: ChatItemState;
   content: ReadonlyArray<ContentPart>;
   assistantOpenAIItems?: ReadonlyArray<StoredOpenAIReplayItem>;
+  errorCode?: ChatTerminalErrorCode | null;
 }>;
 
 export type UpdateChatMessageItemParams = Readonly<{
@@ -26,6 +28,7 @@ export type UpdateChatMessageItemParams = Readonly<{
   content: ReadonlyArray<ContentPart>;
   state: ChatItemState;
   assistantOpenAIItems?: ReadonlyArray<StoredOpenAIReplayItem>;
+  errorCode?: ChatTerminalErrorCode | null;
 }>;
 
 export type UpdateChatMessageItemAndInvalidateMainContentParams = Readonly<{
@@ -42,6 +45,7 @@ export type PersistAssistantTerminalErrorParams = Readonly<{
   assistantContent: ReadonlyArray<ContentPart>;
   assistantOpenAIItems?: ReadonlyArray<StoredOpenAIReplayItem>;
   errorMessage: string;
+  errorCode: ChatTerminalErrorCode | null;
   sessionState: ChatSessionRunState;
 }>;
 
@@ -71,6 +75,7 @@ export type PersistedChatMessageItem = Readonly<{
   openaiItems?: ReadonlyArray<StoredOpenAIReplayItem>;
   state: ChatItemState;
   isError: boolean;
+  errorCode: string | null;
   isStopped: boolean;
   timestamp: number;
   updatedAt: number;
