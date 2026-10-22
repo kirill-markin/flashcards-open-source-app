@@ -1,4 +1,4 @@
-import { useMemo, type JSX } from "react";
+import { useMemo, useState, type JSX } from "react";
 import { formatGeneratedAt } from "../../charts/formatting";
 import type { AdminAppConfig } from "../../config";
 import { ExplanationTip, WarningTip } from "../../explanations/ExplanationTip";
@@ -41,6 +41,8 @@ function ReviewPromptRow(props: Readonly<{
   prompt: ReviewPrompt;
   counts: ReviewPromptCounts;
   filters: AnalyticsFilterState;
+  openWarningId: string | null;
+  onOpenWarningIdChange: (update: (current: string | null) => string | null) => void;
 }>): JSX.Element {
   const { prompt, counts } = props;
   const warnings = buildReviewPromptWarnings(prompt, counts, props.filters);
@@ -51,13 +53,20 @@ function ReviewPromptRow(props: Readonly<{
       <th scope="row" className="funnel-group-table-name">
         <div className="explained-heading-row">
           <span>{prompt.title}</span>
-          {warnings.map((warning) => (
-            <WarningTip
-              key={warning.id}
-              label={`${prompt.title} data warning`}
-              explanationId={`${testId}-${warning.id}-warning`}
-            >{warning.text}</WarningTip>
-          ))}
+          {warnings.map((warning) => {
+            const warningId = `${prompt.id}-${warning.id}`;
+            return (
+              <WarningTip
+                key={warning.id}
+                label={`${prompt.title} data warning: ${warning.label}`}
+                explanationId={`${testId}-${warning.id}-warning`}
+                isOpen={props.openWarningId === warningId}
+                onOpenChange={(isOpen) => props.onOpenWarningIdChange((current) => (
+                  isOpen ? warningId : current === warningId ? null : current
+                ))}
+              >{warning.text}</WarningTip>
+            );
+          })}
         </div>
       </th>
       <td className="review-prompts-text-cell">{formatReviewPromptPlatforms(prompt)}</td>
@@ -110,6 +119,8 @@ export function ReviewPromptsArea(
     getErrorMessage,
   );
   const table = state.status === "ready" ? state.ranges[0]?.report ?? null : null;
+  // One warning text open at a time across the whole table.
+  const [openWarningId, setOpenWarningId] = useState<string | null>(null);
 
   return (
     <section className="dashboard-section" data-testid="review-prompts-section">
@@ -150,7 +161,14 @@ export function ReviewPromptsArea(
           </thead>
           <tbody>
             {reviewPrompts.map((prompt) => (
-              <ReviewPromptRow key={prompt.id} prompt={prompt} counts={table.counts[prompt.id]} filters={filters} />
+              <ReviewPromptRow
+                key={prompt.id}
+                prompt={prompt}
+                counts={table.counts[prompt.id]}
+                filters={filters}
+                openWarningId={openWarningId}
+                onOpenWarningIdChange={setOpenWarningId}
+              />
             ))}
           </tbody>
         </table>

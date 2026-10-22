@@ -179,38 +179,43 @@ export function buildReviewPromptWarnings(
   ));
   const unreleased = selectedCoverage.flatMap((coverage) => (coverage.start === null ? [platformLabels[coverage.platform]] : []));
   const shown = counts.shownCount.toLocaleString("en-US");
-  const notes: ReadonlyArray<Readonly<{ id: string; text: string | null }>> = [
+  const notes: ReadonlyArray<Readonly<{ id: string; label: string; text: string | null }>> = [
     {
       id: "coverage-start",
+      label: "coverage start",
       text: lateStarts.length === 0
         ? null
         : `Counted on ${joinLabels(lateStarts)}, so the selected days before that have no data for it.`,
     },
     {
       id: "next-release",
+      label: "next release",
       text: unreleased.length === 0
         ? null
         : `${joinLabels(unreleased)} ${unreleased.length === 1 ? "reports this only from its" : "report this only from their"} next app release.`,
     },
     {
       id: "consent",
+      label: "consent",
       text: prompt.source === "support-tables" && filters.eventPlatforms.includes("web")
         ? "These showings come from the feedback tables and count every browser, while web product events count only browsers that accepted analytics consent."
         : null,
     },
     {
       id: "maturing",
+      label: "gone maturing",
       text: counts.maturingCount === 0
         ? null
         : `${counts.maturingCount.toLocaleString("en-US")} of ${shown} showings are less than ${reviewPromptGoneWindowDays} days old with no app open or answered card yet, so Gone leaves them out until their ${reviewPromptGoneWindowDays} days pass.`,
     },
     {
       id: "acted-pending",
+      label: "acted pending",
       text: prompt.acted.kind === "rule" && counts.actedPendingCount > 0
         ? `Acted can still grow for ${counts.actedPendingCount.toLocaleString("en-US")} of ${shown} showings less than ${formatReviewPromptActedWindow(prompt.acted.window)} old.`
         : null,
     },
   ];
 
-  return notes.flatMap((note) => (note.text === null ? [] : [{ id: note.id, text: note.text }]));
+  return notes.flatMap((note) => (note.text === null ? [] : [{ id: note.id, label: note.label, text: note.text }]));
 }
