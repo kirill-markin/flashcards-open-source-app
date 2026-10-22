@@ -116,7 +116,10 @@ function parseGuestUpgradeSelection(value: unknown): GuestUpgradeSelection {
   const body = expectRecord(value);
   const type = expectNonEmptyString(body.type, "selection.type");
   if (type === "create_new") {
-    return { type: "create_new" };
+    return {
+      type: "create_new",
+      ...(body.name === undefined ? {} : { name: expectNonEmptyString(body.name, "selection.name") }),
+    };
   }
 
   if (type === "existing") {
