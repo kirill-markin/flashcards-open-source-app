@@ -1,4 +1,5 @@
 import type { BrowserGuestAiTrialQuota } from "../../types/chat";
+import type { ApiFetchDiagnostics } from "./fetchDiagnostics";
 
 export type ApiResponseBodyKind = "empty" | "json" | "text" | "invalid_json";
 export const apiNetworkErrorCode: string = "API_NETWORK_ERROR";
@@ -44,6 +45,7 @@ type ApiNetworkErrorParams = Readonly<{
   originalErrorMessage: string;
   attemptCount: number;
   source: "fetch" | "response_body";
+  fetchDiagnostics?: ApiFetchDiagnostics;
 }>;
 
 type ApiNetworkErrorCauseParams = Omit<
@@ -58,6 +60,7 @@ export class ApiNetworkError extends ApiError {
   readonly originalErrorMessage: string;
   readonly attemptCount: number;
   readonly source: ApiNetworkErrorParams["source"];
+  readonly fetchDiagnostics: ApiFetchDiagnostics | null;
 
   constructor(params: ApiNetworkErrorParams) {
     super({
@@ -74,6 +77,7 @@ export class ApiNetworkError extends ApiError {
     this.originalErrorMessage = params.originalErrorMessage;
     this.attemptCount = params.attemptCount;
     this.source = params.source;
+    this.fetchDiagnostics = params.source === "fetch" ? params.fetchDiagnostics ?? null : null;
   }
 }
 
@@ -113,6 +117,7 @@ export function createApiNetworkError(params: ApiNetworkErrorCauseParams): ApiNe
     originalErrorMessage: readOriginalErrorMessage(params.error, params.source),
     attemptCount: params.attemptCount,
     source: params.source,
+    fetchDiagnostics: params.fetchDiagnostics,
   });
 }
 

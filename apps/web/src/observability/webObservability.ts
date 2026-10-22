@@ -1,6 +1,7 @@
 import * as Sentry from "@sentry/react";
 import type { Scope } from "@sentry/react";
 import type { AnalyticsQueueOperation } from "../analytics/queue";
+import { ApiNetworkError } from "../api/transport/errors";
 import { isIndexedDbOpenRecoveryError } from "../localDb/core/indexedDbOpenRecovery";
 import { isApiDemonstrablyReachable, isBrowserApiNetworkError } from "./apiNetworkErrorPolicy";
 import { isWebSentryEnabled } from "./instrument";
@@ -802,6 +803,7 @@ type ErrorMetadata = Readonly<{
   bodyKind: string | null;
   networkAttemptCount: number | null;
   networkErrorName: string | null;
+  networkSource: ApiNetworkError["source"] | null;
   indexedDbOperation: string | null;
   databaseName: string | null;
   databaseVersion: number | null;
@@ -902,6 +904,9 @@ export function captureWebException(event: WebExceptionEvent): void {
     scope.setFingerprint(buildWebExceptionFingerprint(event));
     scope.setContext("web.exception", detailsToContext(event.details));
     scope.setContext("web.error", errorMetadataToContext(readErrorMetadata(event.error)));
+    if (event.error instanceof ApiNetworkError && event.error.fetchDiagnostics !== null) {
+      scope.setContext("web.network", event.error.fetchDiagnostics);
+    }
     Sentry.captureException(event.error);
   });
 }
@@ -957,6 +962,7 @@ function readErrorMetadata(error: Error): ErrorMetadata {
       bodyKind: null,
       networkAttemptCount: null,
       networkErrorName: null,
+      networkSource: null,
       indexedDbOperation: null,
       databaseName: null,
       databaseVersion: null,
@@ -974,6 +980,7 @@ function readErrorMetadata(error: Error): ErrorMetadata {
     bodyKind: readStringMetadata(error, "responseBodyKind"),
     networkAttemptCount: readNumberMetadata(error, "attemptCount"),
     networkErrorName: readStringMetadata(error, "originalErrorName"),
+    networkSource: error instanceof ApiNetworkError ? error.source : null,
     indexedDbOperation: readStringMetadata(error, "indexedDbOperation"),
     databaseName: readStringMetadata(error, "databaseName"),
     databaseVersion: readNumberMetadata(error, "databaseVersion"),
@@ -992,6 +999,7 @@ function errorMetadataToContext(metadata: ErrorMetadata): SentryContext {
     bodyKind: metadata.bodyKind,
     networkAttemptCount: metadata.networkAttemptCount,
     networkErrorName: metadata.networkErrorName,
+    networkSource: metadata.networkSource,
     indexedDbOperation: metadata.indexedDbOperation,
     databaseName: metadata.databaseName,
     databaseVersion: metadata.databaseVersion,
