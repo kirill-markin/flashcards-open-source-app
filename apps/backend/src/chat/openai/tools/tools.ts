@@ -1228,7 +1228,7 @@ async function executeReadOnlyChatToolCall<Data>(
  * replayed in every later turn of the session.
  */
 const CHAT_REVIEW_RESULT_INSTRUCTIONS =
-  "Review one card at a time: speak only frontText, wait for the learner's attempt, call reveal_answer for that cardId, grade the attempt yourself, then call submit_review with a fresh reviewId. Call get_guide with topic review_flow for the rating scale and the full grading rules before your first grading in this conversation. A null card means nothing is due now, so stop rather than calling again.";
+  "Review one card at a time: speak only frontText, wait for the learner's attempt, call reveal_answer for that cardId, grade the attempt yourself, then call submit_review with a fresh reviewId. Call get_guide with topic review_flow for the rating scale and the full grading rules before your first grading in this conversation. A null card means nothing is due now: tell the learner nextDueAt in their own timezone, or that nothing is scheduled when it is null, rather than calling again.";
 
 /**
  * One review call, rendered for this surface.
