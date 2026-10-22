@@ -46,7 +46,6 @@
   }
 
   .review-screen-head-actions > .review-filter-menu-wrap,
-  .review-filter-summary-wrap > .review-filter-label,
   .review-progress-shortcuts > .review-queue-shortcut {
     display: none;
   }

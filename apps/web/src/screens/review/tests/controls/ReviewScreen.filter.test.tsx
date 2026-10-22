@@ -177,6 +177,8 @@ describe("ReviewScreen filter controls", () => {
     expect(getContainer().querySelectorAll("[data-testid='review-queue-card']")).toHaveLength(0);
     expect(getContainer().querySelector("[data-testid='review-screen-toolbar']")).toBeNull();
     expect(headerActions.contains(scopeTrigger)).toBe(true);
+    expect(headerActions.querySelector(".review-filter-label")).toBeNull();
+    expect(scopeTrigger.getAttribute("aria-label")).toBe("Open review filter");
     expect(headerActions.contains(queueBadge)).toBe(true);
     expect(headerActions.contains(leaderboardShortcut)).toBe(true);
     expect(headerActions.contains(progressBadge)).toBe(true);

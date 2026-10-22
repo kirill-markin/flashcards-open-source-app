@@ -76,7 +76,6 @@ export function ReviewScreenHeader(props: ReviewScreenHeaderProps): ReactElement
         <div className="screen-actions review-screen-head-actions">
           <ReviewFilterMenu {...filterMenuProps} />
           <div className="review-filter-summary-wrap">
-            <span className="review-filter-label">{t("common.status")}</span>
             <div className="review-progress-shortcuts">
               <ReviewMoreActionsMenu
                 isOpen={isReviewMoreActionsMenuOpen}

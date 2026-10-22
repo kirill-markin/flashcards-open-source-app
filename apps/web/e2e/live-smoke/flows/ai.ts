@@ -230,8 +230,9 @@ async function assertNewChatResetsConversation(session: LiveSmokeSession): Promi
     "start a fresh AI chat from the top bar",
     page.getByTestId("chat-new-button"),
   );
-  await diagnostics.runAction("confirm AI chat empty state is visible after starting a new chat", async () => {
-    await expect(page.getByTestId("chat-empty-title")).toBeVisible({ timeout: externalUiTimeoutMs });
+  await diagnostics.runAction("confirm AI chat reset finishes without an empty-state banner", async () => {
+    await expect(page.getByTestId("chat-messages")).toBeVisible({ timeout: externalUiTimeoutMs });
+    await expect(page.getByTestId("chat-messages").locator(".chat-empty")).toHaveCount(0, { timeout: externalUiTimeoutMs });
   });
   await diagnostics.runAction("confirm AI chat has no remaining messages or message-level errors", async () => {
     const allMessages = page.locator(".chat-msg");
