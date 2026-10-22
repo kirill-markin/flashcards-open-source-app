@@ -5,14 +5,14 @@ import { beginGuestSignIn } from "../../../../appData/session/guest/browserGuest
 import { useI18n } from "../../../../i18n";
 import { GuestAccountAttentionBadge } from "./GuestAccountAttentionBadge";
 
-export function GuestSignIn(props: Readonly<{ label: string; testId: string; returnUrl?: string; onStarted?: () => void; guestAccountAttention?: boolean }>): ReactElement {
+export function GuestSignIn(props: Readonly<{ label: string; testId: string; returnUrl?: string; onStarted?: () => void; onPressed?: () => void; guestAccountAttention?: boolean }>): ReactElement {
   const { session, activeWorkspace, isSessionVerified, drainGuestWorkspace, setErrorMessage } = useAppData();
   const { locale, t } = useI18n();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   async function signIn(): Promise<void> {
     if (busy || !isSessionVerified || session === null || activeWorkspace === null) return;
-    setBusy(true); setError("");
+    setBusy(true); setError(""); props.onPressed?.();
     try {
       if (session.browserGuestCapabilities?.isGuest === true) {
         await beginGuestSignIn(session.userId, activeWorkspace.workspaceId, drainGuestWorkspace);

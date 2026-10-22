@@ -269,3 +269,72 @@ test("a collector row records whether the reporting request announced itself as 
     await ownerPool.end();
   }
 });
+
+test("deck-open collector rows preserve article placements and accept released listing payloads", async () => {
+  const ownerPool = new pg.Pool({
+    connectionString: requireOwnerDatabaseUrl(),
+    application_name: "deck-open-collector-integration-owner",
+  });
+  const serverReceivedAt = new Date();
+  const sentAt = serverReceivedAt.toISOString();
+  const pagePath = "/blog/learning-with-flashcards/";
+  const cases = [
+    { package_slug: "spanish-vocabulary", placement: "card_cover" },
+    { package_slug: "spanish-vocabulary", placement: "card_title" },
+    { package_slug: "spanish-vocabulary", placement: "related_deck" },
+    { package_slug: "spanish-vocabulary", placement: "article_start_side", page_path: pagePath },
+    { package_slug: "spanish-vocabulary", placement: "mid_article", page_path: pagePath },
+    { package_slug: "spanish-vocabulary", placement: "article_end", page_path: pagePath },
+  ];
+  const rows = cases.map((properties) => parseAnonymousEvent(
+    createCollectorBody(createEventId(), "site_catalog_deck_opened", properties, sentAt),
+    serverReceivedAt,
+    randomUUID(),
+  ));
+  const eventIds = rows.map((row) => row.eventId);
+
+  try {
+    assert.throws(
+      () => parseAnonymousEvent(
+        createCollectorBody(
+          createEventId(),
+          "site_catalog_deck_opened",
+          { package_slug: "spanish-vocabulary", placement: "article_end", page_path: `${pagePath}?source=cta` },
+          sentAt,
+        ),
+        serverReceivedAt,
+        randomUUID(),
+      ),
+      { code: "ANONYMOUS_ANALYTICS_INVALID_EVENT" },
+    );
+
+    for (const row of rows) {
+      assert.equal(
+        await insertAnonymousProductAnalyticsEvent({
+          ...row,
+          dailyVisitorHash: null,
+          automatedClient: false,
+          networkAsn: null,
+          userAgentChromeMajor: null,
+          clientHintChromiumMajor: null,
+        }),
+        1,
+      );
+    }
+
+    const stored = await ownerPool.query<Readonly<{
+      event_id: string;
+      event_properties: Readonly<{ package_slug: string; placement: string; page_path?: string }>;
+    }>>(
+      `SELECT event_id::text AS event_id, event_properties
+       FROM analytics.product_events_resolved
+       WHERE event_id = ANY($1::uuid[])`,
+      [eventIds],
+    );
+    const storedByEventId = new Map(stored.rows.map((row) => [row.event_id, row.event_properties]));
+    assert.deepEqual(eventIds.map((eventId) => storedByEventId.get(eventId)), cases);
+  } finally {
+    await ownerPool.query("DELETE FROM analytics.product_events WHERE event_id = ANY($1::uuid[])", [eventIds]);
+    await ownerPool.end();
+  }
+});

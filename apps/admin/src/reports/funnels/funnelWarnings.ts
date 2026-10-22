@@ -1,23 +1,35 @@
 import { catalogInstallConversionWindowDays } from "../catalogInstallFunnel/query";
 import { formatFunnelRangeNote, type FunnelRangeKey } from "./funnelRangeReports";
 
-/** A caveat a funnel card shows as a `⚠` beside its title; `id` is unique among the card's warnings. */
-export type FunnelWarning = Readonly<{ id: string; text: string }>;
+/**
+ * A caveat a funnel card shows as a `⚠` beside its title; `id` and `label`, which names its button,
+ * are each unique among the card's warnings.
+ */
+export type FunnelWarning = Readonly<{ id: string; label: string; text: string }>;
 
 type FunnelWarningRange = Readonly<{ key: FunnelRangeKey; seriesLabel: string | null }>;
 
 /**
  * One range's notes, keyed by kind with `null` for a note the range does not trigger, as warnings
- * named by the range's series and identified by range and kind.
+ * named by the range's series and identified by range and kind; the label leaves the range out while
+ * the card shows only one.
  */
 export function buildFunnelRangeWarnings(
   range: FunnelWarningRange,
   notes: Readonly<Record<string, string | null>>,
 ): ReadonlyArray<FunnelWarning> {
-  return Object.entries(notes).flatMap(([kind, note]) => (note === null ? [] : [{
-    id: `${range.key}-${kind}`,
-    text: formatFunnelRangeNote(range.seriesLabel, note),
-  }]));
+  return Object.entries(notes).flatMap(([kind, note]) => {
+    if (note === null) {
+      return [];
+    }
+
+    const kindLabel = kind.replaceAll("-", " ");
+    return [{
+      id: `${range.key}-${kind}`,
+      label: range.seriesLabel === null ? kindLabel : `${range.key.toUpperCase()} range ${kindLabel}`,
+      text: formatFunnelRangeNote(range.seriesLabel, note),
+    }];
+  });
 }
 
 /** Says how many of one range's people can still move down the funnel, or `null` when none can. */

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type JSX, type ReactNode } from "react";
+import { useEffect, useEffectEvent, useLayoutEffect, useRef, useState, type JSX, type ReactNode } from "react";
 
 // How long hover keeps holding the tip after the pointer leaves it: enough to cross the gap down to
 // the text, which opens below the `(i)`, short enough that leaving still reads as closing it.
@@ -12,6 +12,13 @@ type TipProps = Readonly<{
   children: ReactNode;
 }>;
 
+/** A parent that holds whether the tip is open, so that of several tips it can keep one open. */
+type TipOpenControl = Readonly<{
+  isOpen: boolean;
+  /** Told what the tip's own hover and clicks ask for, `false` included, from its first render on. */
+  onOpenChange: (isOpen: boolean) => void;
+}>;
+
 type TipKind = "explanation" | "warning";
 
 // U+FE0E asks for the text glyph, so the `⚠` takes the button's colour instead of an emoji's.
@@ -21,12 +28,23 @@ const tipKinds: Readonly<Record<TipKind, Readonly<{ className: string; glyph: st
 };
 
 export function ExplanationTip(props: TipProps): JSX.Element {
-  return <Tip kind="explanation" label={props.label} explanationId={props.explanationId}>{props.children}</Tip>;
+  return (
+    <Tip kind="explanation" label={props.label} explanationId={props.explanationId} openControl={null}>
+      {props.children}
+    </Tip>
+  );
 }
 
-/** The same tip behind a `⚠`, for a caveat about the numbers it sits beside. */
-export function WarningTip(props: TipProps): JSX.Element {
-  return <Tip kind="warning" label={props.label} explanationId={props.explanationId}>{props.children}</Tip>;
+/** The same tip behind a `⚠`, for a caveat about the numbers it sits beside, open when its parent says. */
+export function WarningTip(props: TipProps & TipOpenControl): JSX.Element {
+  return (
+    <Tip
+      kind="warning"
+      label={props.label}
+      explanationId={props.explanationId}
+      openControl={{ isOpen: props.isOpen, onOpenChange: props.onOpenChange }}
+    >{props.children}</Tip>
+  );
 }
 
 // An explanation waiting behind an `(i)`. A real button with a described tooltip rather than a
@@ -44,12 +62,36 @@ export function WarningTip(props: TipProps): JSX.Element {
 // to the picker under it, so it closes that moment after the pointer leaves the `(i)`. Touch
 // contacts are not hover, or the tap that opens the tooltip would arrive as a click on an already-open
 // one and close it again. Where it sits decides only where the text opens, which the stylesheet places
-// by the container the tip is rendered in.
-function Tip(props: TipProps & Readonly<{ kind: TipKind }>): JSX.Element {
+// by the container the tip is rendered in. With an `openControl` the same hover and clicks only ask,
+// and the parent's answer is what shows; a tip the parent closes while it still asks to be open lets
+// go of its click and its hover, so its next hover or click starts fresh.
+function Tip(props: TipProps & Readonly<{ kind: TipKind; openControl: TipOpenControl | null }>): JSX.Element {
   const [clickedState, setClickedState] = useState<"none" | "open" | "closed">("none");
   const [isPointerOver, setIsPointerOver] = useState<boolean>(false);
-  const isOpen = clickedState === "none" ? isPointerOver : clickedState === "open";
+  const isSelfOpen = clickedState === "none" ? isPointerOver : clickedState === "open";
+  const parentIsOpen = props.openControl === null ? null : props.openControl.isOpen;
+  const isOpen = parentIsOpen === null ? isSelfOpen : parentIsOpen;
+  const [previousParentIsOpen, setPreviousParentIsOpen] = useState<boolean | null>(parentIsOpen);
   const hoverReleaseTimeoutIdRef = useRef<number | null>(null);
+
+  if (parentIsOpen !== previousParentIsOpen) {
+    setPreviousParentIsOpen(parentIsOpen);
+    if (parentIsOpen === false && isSelfOpen) {
+      setClickedState("none");
+      setIsPointerOver(false);
+    }
+  }
+
+  const reportSelfOpen = useEffectEvent((nextIsSelfOpen: boolean): void => {
+    if (props.openControl !== null) {
+      props.openControl.onOpenChange(nextIsSelfOpen);
+    }
+  });
+
+  // Before paint, so the parent's answer shows in the same frame as the hover or click that asked.
+  useLayoutEffect(() => {
+    reportSelfOpen(isSelfOpen);
+  }, [isSelfOpen]);
 
   const cancelHoverRelease = (): void => {
     if (hoverReleaseTimeoutIdRef.current !== null) {
