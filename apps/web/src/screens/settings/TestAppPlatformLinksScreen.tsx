@@ -106,6 +106,7 @@ export function TestAppPlatformLinksScreen(): ReactElement {
                 },
                 clientPlatform,
               })}
+              onStoreLinkClick={null}
               testIdPrefix={`test-app-platform-links-${surface.id}`}
             />
           </SettingsGroup>

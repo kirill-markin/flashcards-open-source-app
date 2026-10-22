@@ -110,6 +110,7 @@ function InviteSuccessLinks(): ReactElement {
         },
         clientPlatform: resolveClientPlatform(navigator.userAgent),
       })}
+      onStoreLinkClick={null}
       testIdPrefix="friend-invite-success"
     />
   );

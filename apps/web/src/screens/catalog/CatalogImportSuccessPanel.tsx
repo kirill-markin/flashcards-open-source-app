@@ -90,7 +90,7 @@ export function CatalogImportSuccessPanel(props: CatalogImportSuccessPanelProps)
         <strong data-testid="catalog-import-success-workspace">{workspaceName}</strong>
       </p>
       <p className="invite-note" data-testid="catalog-import-success-email-note">{sameEmailNote}</p>
-      <AppPlatformLinksGrid options={platformOptions} testIdPrefix="catalog-import-success" />
+      <AppPlatformLinksGrid options={platformOptions} onStoreLinkClick={null} testIdPrefix="catalog-import-success" />
     </section>
   );
 }

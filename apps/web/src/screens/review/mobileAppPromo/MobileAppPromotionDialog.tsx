@@ -11,11 +11,12 @@ import { trapFocusInsideDialog } from "../reviewDialogFocus";
 export type MobileAppPromotionDialogProps = Readonly<{
   isOpen: boolean;
   onDismiss: () => void;
+  onStoreLinkClick: (() => void) | null;
   storeLinks: AppPlatformStoreLinks;
 }>;
 
 export function MobileAppPromotionDialog(props: MobileAppPromotionDialogProps): ReactElement | null {
-  const { isOpen, onDismiss, storeLinks } = props;
+  const { isOpen, onDismiss, onStoreLinkClick, storeLinks } = props;
   const { t } = useI18n();
   const closeButtonRef = useRef<HTMLButtonElement | null>(null);
   const dialogRef = useRef<HTMLElement | null>(null);
@@ -112,6 +113,7 @@ export function MobileAppPromotionDialog(props: MobileAppPromotionDialogProps): 
               },
               clientPlatform: resolveClientPlatform(navigator.userAgent),
             })}
+            onStoreLinkClick={onStoreLinkClick}
             testIdPrefix="mobile-app-promo"
           />
         </div>
