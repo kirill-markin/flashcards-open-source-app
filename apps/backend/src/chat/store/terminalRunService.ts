@@ -74,6 +74,7 @@ export const persistAssistantTerminalError = async (
         content: [{ type: "text", text: params.errorMessage }],
         state: "error",
         assistantOpenAIItems: params.assistantOpenAIItems,
+        errorCode: params.errorCode,
       });
     } else {
       await updateChatItemWithExecutor(executor, { userId, workspaceId }, {
@@ -87,6 +88,7 @@ export const persistAssistantTerminalError = async (
         role: "assistant",
         state: "error",
         content: [{ type: "text", text: params.errorMessage }],
+        errorCode: params.errorCode,
       });
     }
 

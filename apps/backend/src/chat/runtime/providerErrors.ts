@@ -1,6 +1,7 @@
 import OpenAI from "openai";
 import { HttpError } from "../../shared/errors";
 import {
+  chatAttachmentUnsupportedTypeCode,
   chatAttachmentUnsupportedTypeMessage,
   isChatAttachmentUnsupportedTypeError,
 } from "../attachmentPolicy";
@@ -16,14 +17,48 @@ import {
 import type {
   ChatWorkerLifecycleDetails,
 } from "../../observability/sentry";
+import type { ChatTerminalError } from "../terminalErrors";
 
-const GENERIC_RUNTIME_ERROR_MESSAGE = "The AI response failed before it could finish. Please try again.";
-const PROVIDER_ERROR_MESSAGE = "The AI service could not complete the response. Please try again.";
-const PROVIDER_AUTH_ERROR_MESSAGE = "The AI service could not authenticate the request. Please try again later.";
-const PROVIDER_RATE_LIMITED_ERROR_MESSAGE = "The AI service is rate limited right now. Please try again in a few minutes.";
-const PROVIDER_UNAVAILABLE_ERROR_MESSAGE = "The AI service is temporarily unavailable. Please try again soon.";
-const PROVIDER_ABORT_ERROR_MESSAGE = "The AI request was interrupted. Please try again.";
-const PROVIDER_CONTEXT_LENGTH_ERROR_MESSAGE = "This conversation has grown too long for the AI to continue. Please start a new chat to keep going.";
+const GENERIC_RUNTIME_ERROR: ChatTerminalError = {
+  code: "CHAT_RUNTIME_ERROR",
+  message: "The AI response failed before it could finish. Please try again.",
+};
+const PROVIDER_ERROR: ChatTerminalError = {
+  code: "CHAT_PROVIDER_ERROR",
+  message: "The AI service could not complete the response. Please try again.",
+};
+const PROVIDER_AUTH_ERROR: ChatTerminalError = {
+  code: "CHAT_PROVIDER_AUTH_FAILED",
+  message: "The AI service could not authenticate the request. Please try again later.",
+};
+const PROVIDER_RATE_LIMITED_ERROR: ChatTerminalError = {
+  code: "CHAT_PROVIDER_RATE_LIMITED",
+  message: "The AI service is rate limited right now. Please try again in a few minutes.",
+};
+const PROVIDER_UNAVAILABLE_ERROR: ChatTerminalError = {
+  code: "CHAT_PROVIDER_UNAVAILABLE",
+  message: "The AI service is temporarily unavailable. Please try again soon.",
+};
+const PROVIDER_ABORT_ERROR: ChatTerminalError = {
+  code: "CHAT_PROVIDER_ABORTED",
+  message: "The AI request was interrupted. Please try again.",
+};
+const PROVIDER_CONTEXT_LENGTH_ERROR: ChatTerminalError = {
+  code: "CHAT_CONTEXT_LENGTH_EXCEEDED",
+  message: "This conversation has grown too long for the AI to continue. Please start a new chat to keep going.",
+};
+const ATTACHMENT_UNSUPPORTED_TYPE_ERROR: ChatTerminalError = {
+  code: chatAttachmentUnsupportedTypeCode,
+  message: chatAttachmentUnsupportedTypeMessage,
+};
+const AI_CONSENT_REQUIRED_ERROR: ChatTerminalError = {
+  code: "AI_CONSENT_REQUIRED",
+  message: "AI consent was withdrawn or superseded. Review the disclosure and grant consent before sending another message.",
+};
+const OPENAI_API_KEY_INVALID_ERROR: ChatTerminalError = {
+  code: "OPENAI_API_KEY_INVALID",
+  message: "Your OpenAI key does not work. Check it in Settings.",
+};
 const PROVIDER_ERROR_TYPE_MAX_LENGTH = 128;
 const PROVIDER_ERROR_PARAM_MAX_LENGTH = 256;
 const MISSING_PROVIDER_FINGERPRINT_COMPONENT = "none";
@@ -273,60 +308,73 @@ export function createSafeProviderErrorDetails(error: unknown | null): SafeProvi
   };
 }
 
-export function createPublicTerminalErrorMessage(error: unknown): string {
+export function createPublicTerminalError(error: unknown): ChatTerminalError {
   if (error instanceof HttpError && error.code === "AI_CONSENT_REQUIRED") {
-    return "AI consent was withdrawn or superseded. Review the disclosure and grant consent before sending another message.";
+    return AI_CONSENT_REQUIRED_ERROR;
   }
   const providerMetadata = getAIProviderFailureMetadata(error);
   const category = classifyProviderErrorCategory(error, providerMetadata.upstreamStatus);
   const providerErrorCode = readErrorRecordStringField(error, "code");
 
   if (isChatAttachmentRejectedError(error)) {
-    return chatAttachmentUnsupportedTypeMessage;
+    return ATTACHMENT_UNSUPPORTED_TYPE_ERROR;
   }
 
   if (providerErrorCode === "context_length_exceeded") {
-    return PROVIDER_CONTEXT_LENGTH_ERROR_MESSAGE;
+    return PROVIDER_CONTEXT_LENGTH_ERROR;
   }
 
   if (isProviderQuotaExhaustedError(error)) {
-    return PROVIDER_UNAVAILABLE_ERROR_MESSAGE;
+    return PROVIDER_UNAVAILABLE_ERROR;
   }
 
   if (category === "provider_auth") {
-    return PROVIDER_AUTH_ERROR_MESSAGE;
+    return PROVIDER_AUTH_ERROR;
   }
 
   if (category === "provider_rate_limited") {
-    return PROVIDER_RATE_LIMITED_ERROR_MESSAGE;
+    return PROVIDER_RATE_LIMITED_ERROR;
   }
 
   if (category === "provider_unavailable") {
-    return PROVIDER_UNAVAILABLE_ERROR_MESSAGE;
+    return PROVIDER_UNAVAILABLE_ERROR;
   }
 
   if (category === "provider_abort") {
-    return PROVIDER_ABORT_ERROR_MESSAGE;
+    return PROVIDER_ABORT_ERROR;
   }
 
   if (category === "provider_error") {
-    return PROVIDER_ERROR_MESSAGE;
+    return PROVIDER_ERROR;
   }
 
-  return GENERIC_RUNTIME_ERROR_MESSAGE;
+  return GENERIC_RUNTIME_ERROR;
 }
 
 /**
- * The terminal message of a run paid with the person's own key: OpenAI's own text for any call OpenAI
- * refused, which the client shows under its "your own key" prefix. A rejected attachment and an overlong
- * conversation keep their guidance, because neither is about the key.
+ * The terminal error of a run paid with the person's own key. A key OpenAI rejects gets a fixed text
+ * the client translates; any other call OpenAI refused keeps OpenAI's own text, uncoded, which the
+ * client shows under its "your own key" prefix. A rejected attachment and an overlong conversation keep
+ * their guidance, because neither is about the key.
  */
-export function createOwnOpenAIKeyPublicTerminalErrorMessage(error: unknown): string {
+export function createOwnOpenAIKeyPublicTerminalError(error: unknown): ChatTerminalError {
   if (isChatAttachmentRejectedError(error) || isContextLengthExceededError(error)) {
-    return createPublicTerminalErrorMessage(error);
+    return createPublicTerminalError(error);
   }
 
-  return readOwnOpenAIKeyProviderErrorText(error) ?? createPublicTerminalErrorMessage(error);
+  if (isOpenAIApiKeyRejectedError(error)) {
+    return OPENAI_API_KEY_INVALID_ERROR;
+  }
+
+  const providerErrorText = readOwnOpenAIKeyProviderErrorText(error);
+  return providerErrorText === null
+    ? createPublicTerminalError(error)
+    : { code: null, message: providerErrorText };
+}
+
+function isOpenAIApiKeyRejectedError(error: unknown): boolean {
+  return error instanceof OpenAI.APIError
+    && (error.status === 401 || readErrorRecordStringField(error, "code") === "invalid_api_key");
 }
 
 /**

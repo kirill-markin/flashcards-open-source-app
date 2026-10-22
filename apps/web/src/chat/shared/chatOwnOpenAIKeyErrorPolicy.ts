@@ -16,10 +16,14 @@ export function formatOwnOpenAIKeyErrorMessage(prefix: string, errorText: string
 
 /**
  * A failed chat run does not say which key it ran on, so the prefix follows the switch as it is when
- * the failure is shown.
+ * the failure is shown. A coded error is this app's own text, never OpenAI's, so it goes unprefixed.
  */
-export function formatChatRunFailureMessage(ownOpenAIKeyErrorPrefix: string, errorText: string): string {
-  return isOwnOpenAIKeyActive()
+export function formatChatRunFailureMessage(
+  ownOpenAIKeyErrorPrefix: string,
+  errorCode: string | null,
+  errorText: string,
+): string {
+  return errorCode === null && isOwnOpenAIKeyActive()
     ? formatOwnOpenAIKeyErrorMessage(ownOpenAIKeyErrorPrefix, errorText)
     : errorText;
 }

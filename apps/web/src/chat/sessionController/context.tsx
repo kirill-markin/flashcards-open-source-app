@@ -8,6 +8,7 @@ import {
 import { useI18n } from "../../i18n";
 import { formatAiLimitReachedMessageForHeldUsage } from "../shared/chatAiLimitPolicy";
 import { formatChatAttachmentLimitMessages } from "../shared/chatSizePolicy";
+import { localizeChatTerminalError } from "../shared/chatTerminalErrorPolicy";
 import {
   useChatSessionController,
   type ChatSessionController,
@@ -67,6 +68,7 @@ export function ChatSessionControllerProvider(props: Props): ReactElement {
       },
       genericChatFailed: t("chatPanel.errors.genericFailure"),
       liveStreamEndedBeforeCompletion: t("chatPanel.errors.liveStreamEndedBeforeCompletion"),
+      localizeChatTerminalError: (errorCode, storedText) => localizeChatTerminalError(errorCode, storedText, t),
       newChatFailedPrefix: t("chatPanel.errors.newChatFailedPrefix"),
       ownOpenAIKeyErrorPrefix: t("chatPanel.errors.ownOpenAIKeyPrefix"),
       refreshFailedPrefix: t("chatPanel.errors.refreshFailedPrefix"),

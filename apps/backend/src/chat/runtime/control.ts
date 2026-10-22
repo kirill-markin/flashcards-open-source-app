@@ -1,6 +1,7 @@
 import type {
   ChatStreamEvent,
 } from "../types";
+import type { ChatTerminalError } from "../terminalErrors";
 import {
   CHAT_RUN_HEARTBEAT_INTERVAL_MS,
 } from "../worker/lease";
@@ -29,7 +30,10 @@ const CHAT_WORKER_HEARTBEAT_TIMER_LAG_WARNING_MS = 10_000;
 export const CHAT_WORKER_INACTIVE_RECONCILIATION_MAXIMUM_MS = 10_000;
 export const CHAT_WORKER_TERMINAL_PERSISTENCE_RESERVE_MS = 10_000;
 export const CHAT_WORKER_POST_TERMINAL_PERSISTENCE_RESERVE_MS = 5_000;
-export const DEADLINE_REACHED_MESSAGE = "This response took too long, so I stopped the run before the server timeout. Please try again or split the request into smaller steps.";
+export const DEADLINE_REACHED_ERROR: ChatTerminalError = {
+  code: "CHAT_RUN_DEADLINE_REACHED",
+  message: "This took too long, so I stopped. Everything already saved is kept. Write \"continue\" to finish the rest.",
+};
 
 type InitialHeartbeatResult =
   | Readonly<{ outcome: "active" }>

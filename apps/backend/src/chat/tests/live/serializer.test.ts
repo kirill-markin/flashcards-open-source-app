@@ -31,6 +31,7 @@ test("assistant_message_done live serialization keeps legacy card effortLevel", 
       tags: ["lang", "systems"],
     }],
     isError: false,
+    errorCode: null,
     isStopped: false,
   });
 
@@ -52,6 +53,7 @@ test("assistant_message_done live serialization keeps legacy card effortLevel", 
       effortLevel: "fast",
     }],
     isError: false,
+    errorCode: null,
     isStopped: false,
   });
 });

@@ -47,6 +47,11 @@ import { finalizePendingToolCallContent } from "../history";
 import { FAILED_TOOL_CALL_OUTPUT } from "../store";
 import type { ContentPart, UnconvertedContentPart } from "../types";
 import {
+  CHAT_RUN_INTERRUPTED_ERROR,
+  type ChatTerminalError,
+  type ChatTerminalErrorCode,
+} from "../terminalErrors";
+import {
   logOrphanedChatFileUploads,
   recordTurnChatAttachmentsWithExecutor,
   uploadTurnChatAttachments,
@@ -545,6 +550,7 @@ export async function persistClaimedChatRunTerminalError(
     assistantContent: ReadonlyArray<ContentPart>;
     assistantOpenAIItems?: ReadonlyArray<StoredOpenAIReplayItem>;
     errorMessage: string;
+    errorCode: ChatTerminalErrorCode | null;
     sessionState: ChatSessionRunState;
   }>,
   claimToken: ChatRunClaimToken,
@@ -571,6 +577,7 @@ export async function persistClaimedChatRunTerminalError(
         content: [{ type: "text", text: params.errorMessage }],
         state: "error",
         assistantOpenAIItems: params.assistantOpenAIItems,
+        errorCode: params.errorCode,
       });
     } else {
       await updateChatItemWithExecutor(executor, scope, {
@@ -584,6 +591,7 @@ export async function persistClaimedChatRunTerminalError(
         role: "assistant",
         state: "error",
         content: [{ type: "text", text: params.errorMessage }],
+        errorCode: params.errorCode,
       });
     }
 
@@ -675,13 +683,13 @@ export async function persistClaimedChatRunCancelled(
 }
 
 /**
- * Marks a queued run as interrupted when worker dispatch fails before any worker can claim it.
+ * Marks a queued run as interrupted when worker dispatch fails before any worker can claim it. The
+ * dispatch error stays in the caller's exception capture, never in the chat or on the run row.
  */
 export async function markQueuedChatRunDispatchFailed(
   userId: string,
   workspaceId: string,
   runId: string,
-  errorMessage: string,
 ): Promise<void> {
   return transactionWithChatWorkerOwnerScope(userId, workspaceId, async (executor, scope) => {
     const run = await selectChatRunForUpdateWithExecutor(executor, scope, runId);
@@ -689,12 +697,12 @@ export async function markQueuedChatRunDispatchFailed(
       return;
     }
 
-    await finalizeInterruptedRunWithExecutor(executor, scope, run, errorMessage);
+    await finalizeInterruptedRunWithExecutor(executor, scope, run, CHAT_RUN_INTERRUPTED_ERROR);
   });
 }
 
 /**
- * Fails a queued run the worker could not prepare for its claim, so the turn ends with `errorMessage`
+ * Fails a queued run the worker could not prepare for its claim, so the turn ends with `terminalError`
  * instead of staying queued until stale-run recovery interrupts it. Returns whether it failed the run; a
  * run that is no longer queued belongs to whoever moved it on and is left as it is.
  */
@@ -702,7 +710,7 @@ export async function failQueuedChatRun(
   userId: string,
   workspaceId: string,
   runId: string,
-  errorMessage: string,
+  terminalError: ChatTerminalError,
 ): Promise<boolean> {
   return transactionWithChatWorkerOwnerScope(userId, workspaceId, async (executor, scope) => {
     const run = await selectChatRunForUpdateWithExecutor(executor, scope, runId);
@@ -712,8 +720,9 @@ export async function failQueuedChatRun(
 
     await updateChatItemWithExecutor(executor, scope, {
       itemId: run.assistant_item_id,
-      content: [{ type: "text", text: errorMessage }],
+      content: [{ type: "text", text: terminalError.message }],
       state: "error",
+      errorCode: terminalError.code,
     });
     await updateChatRunStatusWithExecutor(
       executor,
@@ -721,7 +730,7 @@ export async function failQueuedChatRun(
       createChatRunStatusUpdateFromRow(run, {
         status: "failed",
         finishedAt: new Date(),
-        lastErrorMessage: errorMessage,
+        lastErrorMessage: terminalError.message,
       }),
     );
     const sessionUpdated = await updateChatSessionRunStateForActiveRunWithExecutor(
@@ -746,13 +755,13 @@ export async function failQueuedChatRun(
 }
 
 /**
- * Interrupts a queued or running chat run when the API cannot provide an attachable live stream.
+ * Interrupts a queued or running chat run when the API cannot provide an attachable live stream. The
+ * reason stays in the caller's log, never in the chat or on the run row.
  */
 export async function interruptPreparedChatRun(
   userId: string,
   workspaceId: string,
   runId: string,
-  errorMessage: string,
 ): Promise<void> {
   return transactionWithWorkspaceScope({ userId, workspaceId }, async (executor) => {
     const scope = { userId, workspaceId };
@@ -765,7 +774,7 @@ export async function interruptPreparedChatRun(
       return;
     }
 
-    await finalizeInterruptedRunWithExecutor(executor, scope, run, errorMessage);
+    await finalizeInterruptedRunWithExecutor(executor, scope, run, CHAT_RUN_INTERRUPTED_ERROR);
   });
 }
 

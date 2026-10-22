@@ -4,6 +4,7 @@ import type { TranslationKey } from "../../i18n";
 import type { TranslationValues } from "../../i18n/types";
 import type { StoredMessage } from "./useChatHistory";
 import { buildCardContextXml, formatCardAttachmentLabel } from "../attachments/chatCardParts";
+import { localizeChatTerminalError } from "../shared/chatTerminalErrorPolicy";
 
 type Translate = (key: TranslationKey, values?: TranslationValues) => string;
 type ChatMessageTechnicalErrorHandler = (error: unknown) => boolean;
@@ -208,7 +209,7 @@ export function renderStoredMessageContent(
         elements.push(<br key={`attachment-break-1-${index}`} />);
         elements.push(<br key={`attachment-break-2-${index}`} />);
       }
-      elements.push(<span key={`text-${index}`}>{part.text}</span>);
+      elements.push(<span key={`text-${index}`}>{localizeChatTerminalError(message.errorCode, part.text, t)}</span>);
       previousPartNeedsTextSeparator = false;
       continue;
     }
