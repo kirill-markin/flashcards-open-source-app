@@ -143,6 +143,7 @@
 "common.continue" = "Продолжить";
 "common.copy" = "Копировать";
 "common.copyError" = "Ошибка копирования";
+"common.create" = "Создать";
 "common.delete" = "Удалить";
 "common.done" = "Готово";
 "common.edit" = "Редактировать";

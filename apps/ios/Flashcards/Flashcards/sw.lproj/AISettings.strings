@@ -141,6 +141,7 @@
 "common.continue" = "Endelea";
 "common.copy" = "Nakili";
 "common.copyError" = "Nakili hitilafu";
+"common.create" = "Unda";
 "common.delete" = "Futa";
 "common.done" = "Nimemaliza";
 "common.edit" = "Hariri";

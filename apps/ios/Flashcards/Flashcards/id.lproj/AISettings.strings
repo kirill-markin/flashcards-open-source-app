@@ -141,6 +141,7 @@
 "common.continue" = "Lanjutkan";
 "common.copy" = "Salin";
 "common.copyError" = "Salin kesalahan";
+"common.create" = "Buat";
 "common.delete" = "Hapus";
 "common.done" = "Selesai";
 "common.edit" = "Edit";

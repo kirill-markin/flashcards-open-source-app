@@ -143,6 +143,7 @@
 "common.continue" = "继续";
 "common.copy" = "复制";
 "common.copyError" = "复制错误";
+"common.create" = "创建";
 "common.delete" = "删除";
 "common.done" = "就绪";
 "common.edit" = "编辑";

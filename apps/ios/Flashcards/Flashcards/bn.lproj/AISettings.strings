@@ -141,6 +141,7 @@
 "common.continue" = "চালিয়ে যান";
 "common.copy" = "কপি করুন";
 "common.copyError" = "ত্রুটি কপি করুন";
+"common.create" = "তৈরি করুন";
 "common.delete" = "মুছুন";
 "common.done" = "হয়েছে";
 "common.edit" = "সম্পাদনা করুন";

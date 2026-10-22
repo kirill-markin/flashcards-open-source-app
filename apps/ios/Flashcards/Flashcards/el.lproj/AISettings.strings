@@ -141,6 +141,7 @@
 "common.continue" = "Συνέχεια";
 "common.copy" = "Αντιγραφή";
 "common.copyError" = "Αντιγραφή σφάλματος";
+"common.create" = "Δημιουργία";
 "common.delete" = "Διαγραφή";
 "common.done" = "Τέλος";
 "common.edit" = "Επεξεργασία";

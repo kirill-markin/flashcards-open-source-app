@@ -141,6 +141,7 @@
 "common.continue" = "המשך";
 "common.copy" = "העתקה";
 "common.copyError" = "העתקת השגיאה";
+"common.create" = "יצירה";
 "common.delete" = "מחיקה";
 "common.done" = "סיום";
 "common.edit" = "עריכה";

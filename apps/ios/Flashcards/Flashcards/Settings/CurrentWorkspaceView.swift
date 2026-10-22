@@ -307,6 +307,7 @@ private struct CurrentWorkspacePickerSheet: View {
 
     @State private var isSwitching: Bool = false
     @State private var guidanceMessage: String = ""
+    @State private var isCreateNameStepPresented: Bool = false
 
     private var selectionItems: [CloudWorkspaceSelectionItem] {
         makeCloudWorkspaceSelectionItems(workspaces: self.workspaces, localWorkspaceName: self.localWorkspaceName)
@@ -334,7 +335,7 @@ private struct CurrentWorkspacePickerSheet: View {
             Section(aiSettingsLocalized("settings.currentWorkspace.section.chooseWorkspace", "Choose workspace")) {
                 ForEach(self.selectionItems) { item in
                     Button {
-                        self.switchWorkspace(selection: item.selection)
+                        self.handleSelection(selection: item.selection)
                     } label: {
                         CloudWorkspaceSelectionRow(item: item)
                     }
@@ -345,11 +346,34 @@ private struct CurrentWorkspacePickerSheet: View {
                 }
             }
         }
+        .navigationDestination(isPresented: self.$isCreateNameStepPresented) {
+            CloudWorkspaceCreateNameView(
+                isSubmitting: self.isSwitching,
+                guidanceMessage: self.guidanceMessage,
+                onCreate: { name in
+                    self.switchWorkspace(selection: .createNewNamed(name: name))
+                }
+            )
+        }
+    }
+
+    private func handleSelection(selection: CloudWorkspaceLinkSelection) {
+        switch selection {
+        case .createNew:
+            self.guidanceMessage = ""
+            self.isCreateNameStepPresented = true
+        case .existing, .createNewNamed:
+            self.switchWorkspace(selection: selection)
+        }
     }
 
     private func switchWorkspace(selection: CloudWorkspaceLinkSelection) {
+        guard self.isSwitching == false else {
+            return
+        }
+
+        self.isSwitching = true
         Task { @MainActor in
-            self.isSwitching = true
             defer {
                 self.isSwitching = false
             }
@@ -371,7 +395,7 @@ private struct CurrentWorkspacePickerSheet: View {
 
 private func currentWorkspaceSelectionButtonIdentifier(selection: CloudWorkspaceLinkSelection) -> String {
     switch selection {
-    case .createNew:
+    case .createNew, .createNewNamed:
         return UITestIdentifier.currentWorkspaceCreateButton
     case .existing(let workspaceId):
         return "currentWorkspace.existingWorkspace.\(workspaceId)"

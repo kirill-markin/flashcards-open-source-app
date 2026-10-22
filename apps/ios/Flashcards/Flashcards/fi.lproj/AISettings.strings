@@ -141,6 +141,7 @@
 "common.continue" = "Jatka";
 "common.copy" = "Kopioi";
 "common.copyError" = "Kopioi virhe";
+"common.create" = "Luo";
 "common.delete" = "Poista";
 "common.done" = "Valmis";
 "common.edit" = "Muokkaa";

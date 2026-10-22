@@ -59,6 +59,7 @@ private struct GuestUpgradeCompleteRequest: Encodable {
         let type: String
         let workspaceId: String?
         let discardDemoOnly: Bool?
+        let name: String?
     }
 
     let guestToken: String
@@ -239,19 +240,29 @@ final class GuestCloudAuthService {
             requestSelection = GuestUpgradeCompleteRequest.Selection(
                 type: "existing",
                 workspaceId: workspaceId,
-                discardDemoOnly: nil
+                discardDemoOnly: nil,
+                name: nil
             )
         case .discardDemoOnly(let workspaceId):
             requestSelection = GuestUpgradeCompleteRequest.Selection(
                 type: "existing",
                 workspaceId: workspaceId,
-                discardDemoOnly: true
+                discardDemoOnly: true,
+                name: nil
             )
         case .createNew:
             requestSelection = GuestUpgradeCompleteRequest.Selection(
                 type: "create_new",
                 workspaceId: nil,
-                discardDemoOnly: nil
+                discardDemoOnly: nil,
+                name: nil
+            )
+        case .createNewNamed(let name):
+            requestSelection = GuestUpgradeCompleteRequest.Selection(
+                type: "create_new",
+                workspaceId: nil,
+                discardDemoOnly: nil,
+                name: name
             )
         }
 

@@ -141,6 +141,7 @@
 "common.continue" = "Pokračovať";
 "common.copy" = "Kopírovať";
 "common.copyError" = "Kopírovať chybu";
+"common.create" = "Vytvoriť";
 "common.delete" = "Vymazať";
 "common.done" = "Hotovo";
 "common.edit" = "Upraviť";

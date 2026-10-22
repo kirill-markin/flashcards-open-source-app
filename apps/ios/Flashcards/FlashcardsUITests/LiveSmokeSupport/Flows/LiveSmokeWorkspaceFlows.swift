@@ -7,6 +7,7 @@ extension LiveSmokeTestCase {
         let workspaceToken = String(runToken.prefix(6))
 
         return LiveSmokeRunContext(
+            createdWorkspaceName: "E2E iOS new \(workspaceToken)",
             workspaceName: "E2E iOS \(workspaceToken)",
             manualFrontText: "Manual \(runToken)",
             manualBackText: "Manual answer \(runToken)"
@@ -20,7 +21,15 @@ extension LiveSmokeTestCase {
         scenario: () throws -> Void
     ) throws {
         try self.runGuestToLinkedWorkspaceScenario(
-            context: context, reviewEmail: reviewEmail, beforeSignIn: {}, beforeDelete: {}, scenario: scenario
+            context: context,
+            reviewEmail: reviewEmail,
+            beforeSignIn: {},
+            afterWorkspaceCreated: {
+                try self.scrollSettingsToCurrentWorkspaceRow()
+                try self.assertTextExists(context.createdWorkspaceName, timeout: LiveSmokeConfiguration.longUiTimeoutSeconds)
+            },
+            beforeDelete: {},
+            scenario: scenario
         )
     }
 
@@ -29,6 +38,7 @@ extension LiveSmokeTestCase {
         context: LiveSmokeRunContext,
         reviewEmail: String,
         beforeSignIn: () throws -> Void,
+        afterWorkspaceCreated: () throws -> Void,
         beforeDelete: () throws -> Void,
         scenario: () throws -> Void
     ) throws {
@@ -44,16 +54,23 @@ extension LiveSmokeTestCase {
             try beforeSignIn()
             var didCreateWorkspaceInChooser = false
             try self.step("sign in with the configured review account") {
-                didCreateWorkspaceInChooser = try self.signInWithReviewAccount(reviewEmail: reviewEmail)
+                didCreateWorkspaceInChooser = try self.signInWithReviewAccount(
+                    reviewEmail: reviewEmail,
+                    createdWorkspaceName: context.createdWorkspaceName
+                )
             }
 
             if didCreateWorkspaceInChooser == false {
                 try self.step("create an isolated workspace after auto-linking") {
-                    try self.createWorkspaceFromCurrentWorkspaceSelection()
+                    try self.createWorkspaceFromCurrentWorkspaceSelection(workspaceName: context.createdWorkspaceName)
                 }
             }
 
             shouldDeleteWorkspace = true
+
+            try self.step("verify the created workspace name") {
+                try afterWorkspaceCreated()
+            }
 
             try self.step("rename the linked workspace for this run") {
                 try self.renameLinkedWorkspace(workspaceName: context.workspaceName)
@@ -102,7 +119,7 @@ extension LiveSmokeTestCase {
     }
 
     @MainActor
-    func signInWithReviewAccount(reviewEmail: String) throws -> Bool {
+    func signInWithReviewAccount(reviewEmail: String, createdWorkspaceName: String) throws -> Bool {
         try self.assertScreenVisible(screen: .settings, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
         try self.openAccountStatus()
 
@@ -133,7 +150,9 @@ extension LiveSmokeTestCase {
                 identifier: LiveSmokeIdentifier.cloudSignInSendCodeButton,
                 timeout: LiveSmokeConfiguration.longUiTimeoutSeconds
             )
-            let didUseWorkspaceChooser = try self.completeCloudWorkspaceSelectionIfNeeded()
+            let didUseWorkspaceChooser = try self.completeCloudWorkspaceSelectionIfNeeded(
+                createdWorkspaceName: createdWorkspaceName
+            )
             try self.assertLinkedEmailVisible(reviewEmail: reviewEmail, timeout: LiveSmokeConfiguration.longUiTimeoutSeconds)
             try self.tapFirstNavigationBackButton()
             return didUseWorkspaceChooser
@@ -159,7 +178,7 @@ extension LiveSmokeTestCase {
     }
 
     @MainActor
-    func createWorkspaceFromCurrentWorkspaceSelection() throws {
+    func createWorkspaceFromCurrentWorkspaceSelection(workspaceName: String) throws {
         try self.assertScreenVisible(screen: .settings, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
         try self.tapButtonScrollingIntoView(
             identifier: LiveSmokeIdentifier.settingsCurrentWorkspaceRow,
@@ -175,6 +194,7 @@ extension LiveSmokeTestCase {
             identifier: LiveSmokeIdentifier.currentWorkspaceCreateButton,
             timeout: LiveSmokeConfiguration.longUiTimeoutSeconds
         )
+        try self.submitCreateWorkspaceName(workspaceName: workspaceName)
         try self.assertElementDoesNotExist(
             identifier: LiveSmokeIdentifier.currentWorkspacePickerScreen,
             timeout: LiveSmokeConfiguration.longUiTimeoutSeconds
@@ -462,7 +482,7 @@ extension LiveSmokeTestCase {
     }
 
     @MainActor
-    func completeCloudWorkspaceSelectionIfNeeded() throws -> Bool {
+    func completeCloudWorkspaceSelectionIfNeeded(createdWorkspaceName: String) throws -> Bool {
         let deadline = Date().addingTimeInterval(LiveSmokeConfiguration.longUiTimeoutSeconds * 3)
         var didUseWorkspaceChooser = false
         var lastObservedState: LiveSmokeCloudSignInPostSendState = .unknown
@@ -476,7 +496,7 @@ extension LiveSmokeTestCase {
                 return didUseWorkspaceChooser
             case .workspaceChooser:
                 if didUseWorkspaceChooser == false {
-                    try self.createWorkspaceInChooser()
+                    try self.createWorkspaceInChooser(workspaceName: createdWorkspaceName)
                     didUseWorkspaceChooser = true
                     continue
                 }
@@ -560,10 +580,24 @@ extension LiveSmokeTestCase {
     }
 
     @MainActor
-    func createWorkspaceInChooser() throws {
+    func createWorkspaceInChooser(workspaceName: String) throws {
         try self.scrollWorkspaceChooserToCreateWorkspaceButton()
         try self.tapButton(
             identifier: LiveSmokeIdentifier.cloudSignInCreateWorkspaceButton,
+            timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds
+        )
+        try self.submitCreateWorkspaceName(workspaceName: workspaceName)
+    }
+
+    @MainActor
+    func submitCreateWorkspaceName(workspaceName: String) throws {
+        try self.typeTextSafely(
+            workspaceName,
+            intoElementWithIdentifier: LiveSmokeIdentifier.cloudWorkspaceCreateNameField,
+            timeout: LiveSmokeConfiguration.longUiTimeoutSeconds
+        )
+        try self.tapButton(
+            identifier: LiveSmokeIdentifier.cloudWorkspaceCreateNameConfirmButton,
             timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds
         )
     }

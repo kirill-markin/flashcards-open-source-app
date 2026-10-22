@@ -141,6 +141,7 @@
 "common.continue" = "தொடர்";
 "common.copy" = "நகலெடு";
 "common.copyError" = "பிழையை நகலெடு";
+"common.create" = "உருவாக்கு";
 "common.delete" = "நீக்கு";
 "common.done" = "முடிந்தது";
 "common.edit" = "திருத்து";

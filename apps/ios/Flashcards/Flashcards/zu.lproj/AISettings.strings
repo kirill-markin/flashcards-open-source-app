@@ -141,6 +141,7 @@
 "common.continue" = "Qhubeka";
 "common.copy" = "Kopisha";
 "common.copyError" = "Kopisha iphutha";
+"common.create" = "Dala";
 "common.delete" = "Susa";
 "common.done" = "Kwenziwe";
 "common.edit" = "Hlela";

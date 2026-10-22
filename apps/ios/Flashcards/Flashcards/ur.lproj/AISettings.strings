@@ -141,6 +141,7 @@
 "common.continue" = "جاری رکھیں";
 "common.copy" = "کاپی کریں";
 "common.copyError" = "خرابی کاپی کریں";
+"common.create" = "بنائیں";
 "common.delete" = "حذف کریں";
 "common.done" = "ہو گیا";
 "common.edit" = "ترمیم کریں";
