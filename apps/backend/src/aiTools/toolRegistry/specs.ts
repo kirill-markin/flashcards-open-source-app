@@ -49,7 +49,7 @@ const optionalWorkspaceIdArgument = workspaceIdStringSchema
   );
 
 const LIST_WORKSPACES_TOOL_DESCRIPTION =
-  "Lists the authenticated user's accessible workspaces with IDs, names, card counts, activity and isSelected. Does not create or modify workspaces.";
+  "Lists the user's workspaces; isSelected marks the default used when workspaceId is omitted.";
 
 const LIST_WORKSPACES_RESULT_INSTRUCTIONS =
   "These are the workspaces you can access. Each workspace has a workspaceId, name, cardCount (active cards), lastActivityAt (most recent card edit or review, or null), and isSelected (your current default). To target a specific one, pass its workspaceId to any workspace-scoped tool; the isSelected workspace is used by default when you omit workspaceId. Prefer the most active workspace (highest cardCount or most recent lastActivityAt) when the user has not told you which to use.";
@@ -61,7 +61,7 @@ const LIST_WORKSPACES_RESULT_INSTRUCTIONS =
  * `apps/backend/src/aiTools/toolContract/sqlToolContract.ts`.
  */
 const GET_GUIDE_TOOL_DESCRIPTION =
-  "Returns a bundled Nibomo reference guide for sql_dialect (grammar/limits/examples), card_authoring (content/tags/duplicates/formatting/links), bulk_authoring (batches/recovery/verification), or review_flow (review/rating). No workspace access, external fetches or writes.";
+  "Returns a Nibomo guide: study (explaining studying, nothing due), card_authoring (card rules, tags, duplicates, formatting, card links), bulk_authoring (large write jobs), review_flow (grading), sql_dialect (grammar, limits, examples).";
 const GET_GUIDE_TOPIC_ARGUMENT_DESCRIPTION =
   "Guide topic.";
 
@@ -135,7 +135,7 @@ export const SQL_QUERY_TOOL_INPUT_SCHEMA = z.strictObject({
     .trim()
     .min(1)
     .describe(
-      "One or more read statements in the published Nibomo SQL dialect (SHOW TABLES, DESCRIBE, SHOW COLUMNS, SELECT).",
+      "One or more semicolon-separated read statements.",
     ),
   workspaceId: optionalWorkspaceIdArgument,
 });
@@ -161,7 +161,7 @@ export const SQL_EXECUTE_TOOL_INPUT_SCHEMA = z.strictObject({
     .trim()
     .min(1)
     .describe(
-      "One or more write statements in the published Nibomo SQL dialect (INSERT, UPDATE, DELETE).",
+      "One or more semicolon-separated write statements.",
     ),
   workspaceId: optionalWorkspaceIdArgument,
 });

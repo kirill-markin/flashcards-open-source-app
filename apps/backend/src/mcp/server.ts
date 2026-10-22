@@ -8,6 +8,10 @@ import {
 } from "../agent/reviews";
 import { runSqlExecute, runSqlQuery } from "../aiTools/agentSql";
 import type { AgentSqlContext, AgentSqlExecutionResult } from "../aiTools/agentSql/shared";
+import {
+  ASSISTANT_BEHAVIOUR_RULE_LINES,
+  ASSISTANT_PRODUCT_DESCRIPTION,
+} from "../aiTools/toolContract/assistantContract";
 import { createAgentRemediationInstructions } from "../aiTools/toolContract/remediationInstructions";
 import {
   SQL_EXECUTE_TOOL_NAME,
@@ -50,19 +54,15 @@ const SERVER_NAME = "flashcards-open-source-app";
 const SERVER_VERSION = "v1";
 
 /**
- * Server instructions are always loaded, and a client that truncates them keeps
- * the head, so the routing path and the rules a call must not get wrong come
- * first and the dialect caveat and reference material follow.
- *
- * The review loop is deliberately absent: every review tool already returns
- * `REVIEW_FLOW_INSTRUCTIONS` in full with each result, and `get_guide` topic
- * `review_flow` serves the same block on demand.
+ * Server instructions carry only what every conversation needs; SQL detail lives in the SQL tool
+ * descriptions and everything else in `get_guide` topics.
  */
 const SERVER_INSTRUCTIONS = [
-  "Call list_workspaces first to pick a workspaceId, or omit it for the selected default. Then use sql_query for reads and sql_execute for authoring writes. To review, call next_review_card, then reveal_answer, then submit_review. Call get_guide for detail, and get_usage_limits for the plan tier, its limits and this month's AI usage.",
-  "Hard rules: front_text is a question and never the answer; every new card needs at least one tag; reuse existing workspace tags; check for duplicates with sql_query before creating; describe broad deletes or updates before running them.",
-  "Read get_guide(card_authoring) before authoring cards. Discover schema in a separate sql_query call before composing statements that depend on it. Read get_guide(sql_dialect) after a syntax error and get_guide(bulk_authoring) before a large write job.",
-  "The dialect is not full PostgreSQL. Published resources, already workspace-scoped: workspace, cards, decks, review_events. A deck is a saved tag filter, so a card has no deck_id and belongs to a deck only by matching tags. get_guide topics: sql_dialect for the grammar, limits, and examples; card_authoring for the card contract, formatting, and a card's web link; bulk_authoring for splitting and verifying a large write job; review_flow for the review loop.",
+  ASSISTANT_PRODUCT_DESCRIPTION,
+  ...ASSISTANT_BEHAVIOUR_RULE_LINES,
+  "Call list_workspaces to pick a workspaceId, or omit it for the selected default.",
+  "Hard rules: front_text is a short recall prompt, never the answer; every new card needs at least one tag, reusing existing workspace tags; check for duplicates with sql_query before creating; describe broad deletes or updates before running them.",
+  "Read get_guide(card_authoring) before authoring cards and get_guide(bulk_authoring) before a large write job.",
 ].join(" ");
 
 /**

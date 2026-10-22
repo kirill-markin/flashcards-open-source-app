@@ -7,11 +7,10 @@ export const SQL_EXECUTE_TOOL_NAME = "sql_execute";
 
 /**
  * Flashcard side contract, mandatory across all clients and APIs: `front_text`
- * is only a question/review prompt, never the answer, and `back_text` holds the
- * answer. Shared so the MCP tools and the in-app AI agent stay on one contract.
+ * is only a recall prompt, never the answer, and `back_text` holds the answer.
  */
 export const FRONT_BACK_CONTRACT =
-  "Card side contract: front_text is only a question or review prompt and must never contain the answer; back_text contains the answer, optionally with a concrete example (prefer a fenced markdown code block when helpful). Keep front_text short by default, usually one word, a term, or a brief phrase rather than a full sentence question, while back_text may still be long; write a longer front_text only when the user asks for it or when similar existing cards in the same deck, tag, or topic already use long fronts.";
+  "Card side contract: front_text is a short recall prompt and never contains the answer: a term for vocabulary and definitions, a question for concepts, facts and procedures. back_text holds the answer and may be long. One fact per card. Write a longer front only when the user asks or similar cards in the same deck or tag already use long fronts.";
 
 /**
  * Canonical Markdown and LaTeX authoring contract for every agent surface.
@@ -30,11 +29,9 @@ export const CARD_AUTHORING_TOOL_CALL_EXAMPLE =
  */
 export const CARD_BACK_SIDE_RULE_LINES = Object.freeze([
   "- Back side must start with the direct answer.",
-  "- When the back side is longer than one short sentence, format it as real Markdown instead of dense plain text.",
-  "- Use blank lines between paragraphs on longer back sides so the rendered card stays readable.",
-  "- Use short Markdown lists when they improve scanability.",
-  "- Include concrete examples by default when creating a card unless the user explicitly asks not to.",
-  "- For code cards, concrete code snippets are preferred inside the card content itself, usually in fenced Markdown code blocks on the back side.",
+  "- Format a back side longer than one short sentence as real Markdown: blank lines between paragraphs, short lists where they help scanning.",
+  "- Add an example only when it helps recall; never add examples or extra text to content the user supplied.",
+  "- For code cards, put concrete code in fenced Markdown code blocks on the back side.",
 ]);
 
 /**
@@ -51,8 +48,8 @@ export const CARD_TAGGING_RULE_LINES = Object.freeze([
  * system prompt and the MCP `card_authoring` guide.
  */
 export const CARD_DUPLICATE_CHECK_RULE_LINES = Object.freeze([
-  "- Before proposing or executing any new card or deck creation, you must first inspect the workspace for exact or similar items with a SELECT read.",
-  "- You must summarize what you found and discuss possible duplicates or overlap with the user before proposing a creation plan.",
+  "- Before creating any card or deck, silently check the workspace for exact or similar items with a SELECT.",
+  "- Mention only real overlaps; when there are none, do not raise duplicates with the user.",
 ]);
 
 /**
@@ -61,10 +58,8 @@ export const CARD_DUPLICATE_CHECK_RULE_LINES = Object.freeze([
  * `card_authoring` guide.
  */
 export const CARD_STYLE_ALIGNMENT_RULE_LINES = Object.freeze([
-  "- When creating new cards or editing existing cards, if the user did not ask for a specific format, first inspect a small set of related existing cards with a SELECT read.",
-  "- Infer the user's local card style from similar cards and follow it unless it would violate the card side contract.",
-  "- Preserve patterns such as one-word fronts, topic-specific examples on backs, punctuation choices, sentence length, Markdown density, and tag style.",
-  "- If similar cards conflict, prefer the pattern from the closest topic or deck and keep the proposed change simple.",
+  "- Unless the user asked for a format, first SELECT a few related existing cards and follow the user's local style where it keeps the card side contract.",
+  "- Preserve patterns such as examples on backs, punctuation, sentence length, Markdown density and tag style; when similar cards conflict, follow the closest topic or deck.",
 ]);
 
 /**
@@ -310,26 +305,26 @@ export const SQL_BULK_WRITE_SPLIT_DESCRIPTION =
   `Bulk-write split arithmetic: at most ${MAX_SQL_RECORD_LIMIT} rows affected per statement, at most ${MAX_SQL_BATCH_STATEMENT_COUNT} statements per batch, and a batch must not mix read and write statements. Split larger work across separate statements or separate tool calls.`;
 
 export const SQL_QUERY_TOOL_DESCRIPTION = [
-  "Queries the Nibomo API (https://nibomo.com/docs/api/) with the published read-only SQL dialect, not full PostgreSQL.",
-  "Reads workspace-scoped workspace, cards, decks and review_events using SHOW TABLES, DESCRIBE, SHOW COLUMNS FROM or SELECT; rejects writes.",
-  "Decks are tag filters; cards have no deck_id.",
-  `SELECT returns at most ${MAX_SQL_RECORD_LIMIT} rows; pagination uses LIMIT, OFFSET and ORDER BY in the SQL string.`,
+  "Read-only Nibomo SQL, not full PostgreSQL: SHOW TABLES, DESCRIBE, SHOW COLUMNS FROM and SELECT over workspace, cards, decks and review_events.",
+  "A deck is a saved tag filter; cards have no deck_id.",
+  `At most ${MAX_SQL_RECORD_LIMIT} rows per SELECT; paginate with ORDER BY, LIMIT, OFFSET.`,
+  "Run schema discovery in its own call.",
+  "Grammar and examples: get_guide(sql_dialect).",
 ].join(" ");
 
 export const SQL_EXECUTE_TOOL_DESCRIPTION = [
-  "Writes to the Nibomo API (https://nibomo.com/docs/api/) with the published SQL dialect, not full PostgreSQL.",
-  "Creates, updates or deletes workspace cards/decks with INSERT, UPDATE or DELETE; rejects read statements. Cannot write review_events or hidden FSRS state.",
-  "front_text is a question and back_text its answer; new cards require at least one tag.",
-  `Atomic batches allow ${MAX_SQL_BATCH_STATEMENT_COUNT} semicolon-separated write statements, ${MAX_SQL_RECORD_LIMIT} affected rows each.`,
-  "Arrays use ('a', 'b'), or () to clear. RETURNING * or columns returns affected rows.",
-  "UPDATE and DELETE support tag filtering with tags OVERLAP ('tag'); UNNEST is available only in SELECT.",
+  "Creates, updates or deletes cards and decks with Nibomo SQL INSERT, UPDATE or DELETE, not full PostgreSQL; cannot write review_events or FSRS state.",
+  "New cards: front_text is a recall prompt, never the answer; at least one tag.",
+  `One call is an atomic batch of up to ${MAX_SQL_BATCH_STATEMENT_COUNT} semicolon-separated writes, ${MAX_SQL_RECORD_LIMIT} affected rows each.`,
+  "Arrays: ('a', 'b'), or () to clear; filter UPDATE and DELETE by tag with tags OVERLAP ('tag'); RETURNING col1, col2 returns affected rows.",
+  "After saving cards, tell how many, where they are (card link: get_guide(card_authoring)) and offer to study them now.",
 ].join(" ");
 
 /**
  * On-demand guide bodies, served by the `get_guide` tool on MCP and the chat
  * and by the REST guide route.
  *
- * Every guide is composed from the constants above (and from
+ * A guide composes the shared constants it covers (and
  * `REVIEW_FLOW_INSTRUCTIONS`) rather than restating them, so a rule that
  * changes in its own constant changes in the guide too. Guides are the intended
  * home for the long tail of instructions a client only needs at a specific
@@ -390,16 +385,14 @@ export const SQL_DIALECT_GUIDE = [
  * be wrong for an agent talking to a deployed stack, and it is only a
  * development convenience.
  *
- * The three places that advertise this subject do not follow that condition and
- * must not. `SERVER_INSTRUCTIONS` (`apps/backend/src/mcp/server.ts`) and
- * `GET_GUIDE_TOPIC_ARGUMENT_DESCRIPTION`
- * (`apps/backend/src/aiTools/toolRegistry/specs.ts`) name the web link in the
- * `initialize` instructions and in `tools/list`, which are a published contract
- * that must not vary by environment and are measured byte for byte in
- * `apps/backend/src/mcp/toolBudgets.test.ts`; `GUIDE_TOPIC_DESCRIPTIONS` below
- * names it in the REST discovery topic list
- * (`apps/backend/src/agent/discovery.ts`). A deployment with no usable app
- * origin therefore advertises a `card_authoring` topic whose body carries no
+ * The places that advertise this subject do not follow that condition and
+ * must not. `SQL_EXECUTE_TOOL_DESCRIPTION` above and `GET_GUIDE_TOOL_DESCRIPTION`
+ * (`apps/backend/src/aiTools/toolRegistry/specs.ts`) name the web link in
+ * `tools/list`, which is a published contract that must not vary by environment
+ * and is measured in `apps/backend/src/mcp/toolBudgets.test.ts`;
+ * `GUIDE_TOPIC_DESCRIPTIONS` below names it in the REST discovery topic list
+ * (`apps/backend/src/agent/discovery.ts`), and `STUDY_GUIDE` points to it. A
+ * deployment with no usable app origin therefore advertises a `card_authoring` topic whose body carries no
  * link line, which costs the agent a guide read that answers less than the
  * advertisement promised and nothing more.
  *
@@ -422,7 +415,7 @@ function resolveCardWebUrlLines(): ReadonlyArray<string> {
     }
 
     return [
-      `A card's web link is ${appOrigin}/w/<workspaceId>/cards/<card_id>, where workspaceId is the workspace the card is in and card_id is the card's own id, returned by a SELECT on cards and by an INSERT or UPDATE without a RETURNING clause (data.rows, or data.statements[].rows in a batch), so give the user that link when they ask where a card is.`,
+      `A card's web link is ${appOrigin}/w/<workspaceId>/cards/<card_id>; card_id comes back from a SELECT on cards and from an INSERT or UPDATE without RETURNING (data.rows, or data.statements[].rows in a batch). Give it when the user asks where a card is or after you save a single card.`,
     ];
   } catch {
     return [];
@@ -501,27 +494,44 @@ export const CARD_AUTHORING_GUIDE = [
  */
 export const BULK_AUTHORING_GUIDE = [
   "Bulk authoring guide.",
+  "Verify meanings and translations of generated content before saving; prefer fewer accurate cards.",
   SQL_BULK_WRITE_SPLIT_DESCRIPTION,
   SQL_BATCH_ATOMICITY_DESCRIPTION,
-  "One sql_execute call also gets 15 seconds of database time. A call that spends it fails with QUERY_TIME_LIMIT_EXCEEDED: the transaction is cancelled, so nothing lands.",
-  `That time follows the number of rows touched rather than the number of statements, so treat the ${MAX_SQL_RECORD_LIMIT}-row and ${MAX_SQL_BATCH_STATEMENT_COUNT}-statement caps as hard ceilings rather than sizes to aim for: a batch at both caps ends in that error instead of landing.`,
-  `Plan the split before the first write: N cards need at least ceil(N / ${MAX_SQL_RECORD_LIMIT}) statements. Start with a small batch and watch how long each call takes. The 15 seconds bound the database work alone, so an observed call is always longer than the part that is budgeted; growing the next batch only while the observed time still leaves clear headroom under the 15 seconds therefore errs toward smaller batches on purpose. The first call of a job may carry cold start, so if its wall time stands out from the calls after it, judge growth from those instead.`,
-  "Because a batch either lands completely or not at all, keep each batch meaningful on its own and never split one logical card across two batches.",
-  "The read/write split is per call: run any SELECT you need in its own sql_query call before or after the write batch.",
+  "One sql_execute call also gets 15 seconds of database time; spending it fails with QUERY_TIME_LIMIT_EXCEEDED and cancels the transaction, so nothing lands.",
+  `That time follows rows touched, not statements, so the ${MAX_SQL_RECORD_LIMIT}-row and ${MAX_SQL_BATCH_STATEMENT_COUNT}-statement caps are ceilings, not targets: a batch at both caps ends in that error instead of landing.`,
+  `Plan the split before the first write: N cards need at least ceil(N / ${MAX_SQL_RECORD_LIMIT}) statements. Start with a small batch and grow the next one only while the observed call time leaves clear headroom under 15 seconds; an observed call also includes work outside the budget, so this errs toward smaller batches on purpose. The first call may carry cold start, so if it stands out, judge growth from the calls after it.`,
+  "Keep each batch meaningful on its own and never split one logical card across two batches.",
+  "Run any SELECT in its own sql_query call before or after the write batch.",
   "An error does not always mean the batch rolled back, so read error.code before you retry.",
-  "When the outcome is unknown - a DATABASE_COMMIT_OUTCOME_UNKNOWN error, or a run interrupted before you saw a result - the batch may already have committed: never re-send it blindly, first read it back with a SELECT to see what applied, then send only the rows that are still missing.",
-  "On QUERY_TIME_LIMIT_EXCEEDED the transaction is cancelled, so nothing lands: retry the same rows in a smaller batch, because re-sending the same batch unchanged only spends the budget again.",
-  "On QUERY_INVALID_SQL or QUERY_UNSUPPORTED_SYNTAX the batch was rejected, so nothing lands either: fix the sql string, because a smaller batch helps only when the rejection was one of the size caps above.",
-  "When bulk creating cards you cannot choose identifiers: card_id is server-generated and INSERT rejects it. Read back on what you wrote instead, such as the tags you set or the front_text values, and keep the ids each INSERT returns as you go.",
-  "When bulk updating or deleting existing cards, the card ids are the resume handle: keep the list of ids you are working through and read back which of them already changed.",
-  "Verify the finished job with a read-back SELECT: count the rows you intended to write and compare that with what the workspace now holds.",
-  "RETURNING reports the affected rows in the same write call, which is enough for a small batch; use a separate SELECT when the returned text would be large.",
+  "When the outcome is unknown - a DATABASE_COMMIT_OUTCOME_UNKNOWN error, or a run interrupted before you saw a result - the batch may already have committed: never re-send it blindly; SELECT what applied, then send only the missing rows.",
+  "On QUERY_TIME_LIMIT_EXCEEDED nothing landed: retry the same rows in a smaller batch, never the same batch unchanged.",
+  "On QUERY_INVALID_SQL or QUERY_UNSUPPORTED_SYNTAX nothing landed: fix the sql string; a smaller batch helps only when the rejection was one of the size caps.",
+  "card_id is server-generated and INSERT rejects it: read back by the tags or front_text values you wrote, and keep the ids each INSERT returns.",
+  "When bulk updating or deleting, the card ids are the resume handle: keep the list you are working through and read back which already changed.",
+  "Verify the finished job with a read-back SELECT that counts the rows you intended to write.",
+  "RETURNING is enough for a small batch; use a separate SELECT when the returned text would be large.",
+].join("\n");
+
+/**
+ * How studying works and how to explain it. Composes no other constant: every pointer names the
+ * guide or tool that owns the detail.
+ */
+export const STUDY_GUIDE = [
+  "Study guide.",
+  "Nibomo is a spaced-repetition flashcards app on web, iPhone/iPad, Mac and Android; the user's workspaces and cards are the same on every client and in every connected AI assistant.",
+  "How studying works: the user sees a saved card's front, recalls the answer, reveals the back and grades the recall Again, Hard, Good or Easy; the FSRS scheduler then decides when the card returns, sooner after a miss and later after each good recall. Only saved cards are scheduled.",
+  "When the user asks how to study, prepare for an exam or practice: turn the material into saved cards (get_guide(card_authoring)), then study them in the app's Review or here with next_review_card, reveal_answer and submit_review (get_guide(review_flow)). Never invent manual repetition schedules or send the user to other apps; the scheduler owns timing.",
+  "Explain this in a sentence or two in the user's terms (cards, Review, grades) unless they ask for more, and suggest a short Review of whatever is due each day. Do not answer a study request with long chat text that belongs on cards.",
+  "When the user wants cards only in the chat, say once that such cards are not scheduled, then do what they asked.",
+  "When nothing is due (next_review_card returns card:null): say so, then offer to add cards or to practice without grading by quizzing from cards read with sql_query; never call submit_review for that practice.",
+  "Pointing to cards: give a single card's web link (pattern in get_guide(card_authoring)); for a set, name its tag or deck, which the user finds in the app's Cards list and can study in Review.",
 ].join("\n");
 
 /** The review loop is already one canonical block, so the guide is that block. */
 export const REVIEW_FLOW_GUIDE = REVIEW_FLOW_INSTRUCTIONS;
 
 export const GUIDE_TOPICS = Object.freeze([
+  "study",
   "sql_dialect",
   "card_authoring",
   "bulk_authoring",
@@ -531,6 +541,7 @@ export const GUIDE_TOPICS = Object.freeze([
 export type GuideTopic = (typeof GUIDE_TOPICS)[number];
 
 export const GUIDE_BODIES: Readonly<Record<GuideTopic, string>> = Object.freeze({
+  study: STUDY_GUIDE,
   sql_dialect: SQL_DIALECT_GUIDE,
   card_authoring: CARD_AUTHORING_GUIDE,
   bulk_authoring: BULK_AUTHORING_GUIDE,
@@ -545,6 +556,7 @@ export const GUIDE_BODIES: Readonly<Record<GuideTopic, string>> = Object.freeze(
  * value reads as the tail of `<topic> for <description>`.
  */
 export const GUIDE_TOPIC_DESCRIPTIONS: Readonly<Record<GuideTopic, string>> = Object.freeze({
+  study: "how studying works, how to explain it, and what to do when nothing is due",
   sql_dialect: "the full grammar, limits, and examples",
   card_authoring: "the card side contract, tags, duplicate checks, matching the user's existing card style, preserving images already in card text, Markdown and LaTeX formatting, and where a card lives on the web",
   bulk_authoring: "splitting and verifying a large write job",
