@@ -1,5 +1,6 @@
 import { REVIEW_FLOW_INSTRUCTIONS } from "../../agent/reviewContract";
 import { getConfiguredPublicAppOrigin } from "../../shared/publicUrls";
+import { NIBOMO_APP_CLAUSE } from "./assistantContract";
 import { MAX_SQL_BATCH_STATEMENT_COUNT, MAX_SQL_RECORD_LIMIT } from "./sqlToolLimits";
 
 export const SQL_QUERY_TOOL_NAME = "sql_query";
@@ -359,10 +360,9 @@ export const SQL_DIALECT_GUIDE = [
 /**
  * Where a card lives on the web, so an agent can hand the user a link instead of
  * an id alone. Filed under its own heading in `CARD_AUTHORING_GUIDE` below (see
- * `CARD_WEB_URL_GUIDE_LINES`) and spread into the in-app chat's card-authoring
- * section (`buildCardAuthoringSection` in `apps/backend/src/chat/shared.ts`),
- * which states the card rules itself and is told never to fetch the
- * `card_authoring` guide. It stays one sentence,
+ * `CARD_WEB_URL_GUIDE_LINES`) and spread into the in-app chat's card rules
+ * (`buildCardRulesSection` in `apps/backend/src/chat/shared.ts`), which state
+ * the `card_authoring` guide inline. It stays one sentence,
  * because the chat pays for it on every model call of every turn while the
  * guide body is fetched once on demand.
  *
@@ -415,7 +415,7 @@ function resolveCardWebUrlLines(): ReadonlyArray<string> {
     }
 
     return [
-      `A card's web link is ${appOrigin}/w/<workspaceId>/cards/<card_id>; card_id comes back from a SELECT on cards and from an INSERT or UPDATE without RETURNING (data.rows, or data.statements[].rows in a batch). Give it when the user asks where a card is or after you save a single card.`,
+      `A card's web link is ${appOrigin}/w/<workspaceId>/cards/<card_id>; card_id comes back from a SELECT on cards and from an INSERT or UPDATE without RETURNING (data.rows, or data.statements[].rows in a batch). Give it when the user asks where a card is.`,
     ];
   } catch {
     return [];
@@ -430,8 +430,8 @@ export const CARD_WEB_URL_LINES: ReadonlyArray<string> = resolveCardWebUrlLines(
  * part of its Markdown and LaTeX rules. Derived rather than folded into
  * `CARD_WEB_URL_LINES` so a deployment without a usable app origin leaves no
  * dangling heading, and so the chat's own card-authoring section
- * (`buildCardAuthoringSection` in `apps/backend/src/chat/shared.ts`), which is
- * already a section of its own, keeps paying for the sentence alone.
+ * (`buildCardRulesSection` in `apps/backend/src/chat/shared.ts`) keeps paying
+ * for the sentence alone.
  */
 const CARD_WEB_URL_GUIDE_LINES: ReadonlyArray<string> =
   CARD_WEB_URL_LINES.length === 0 ? [] : ["Card web link:", ...CARD_WEB_URL_LINES];
@@ -515,12 +515,12 @@ export const BULK_AUTHORING_GUIDE = [
 ].join("\n");
 
 /**
- * How studying works and how to explain it. Composes no other constant: every pointer names the
- * guide or tool that owns the detail.
+ * How studying works and how to explain it. Composes only the shared app clause: every other pointer
+ * names the guide or tool that owns the detail.
  */
 export const STUDY_GUIDE = [
   "Study guide.",
-  "Nibomo is a spaced-repetition flashcards app on web, iPhone/iPad, Mac and Android; the user's workspaces and cards are the same on every client and in every connected AI assistant.",
+  `${NIBOMO_APP_CLAUSE}; the user's workspaces and cards are the same on every client and in every connected AI assistant.`,
   "How studying works: the user sees a saved card's front, recalls the answer, reveals the back and grades the recall Again, Hard, Good or Easy; the FSRS scheduler then decides when the card returns, sooner after a miss and later after each good recall. Only saved cards are scheduled.",
   "When the user asks how to study, prepare for an exam or practice: turn the material into saved cards (get_guide(card_authoring)), then study them in the app's Review or here with next_review_card, reveal_answer and submit_review (get_guide(review_flow)). Never invent manual repetition schedules or send the user to other apps; the scheduler owns timing.",
   "Explain this in a sentence or two in the user's terms (cards, Review, grades) unless they ask for more, and suggest a short Review of whatever is due each day. Do not answer a study request with long chat text that belongs on cards.",

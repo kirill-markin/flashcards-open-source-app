@@ -1,8 +1,13 @@
 /**
  * Shared system-prompt builders for the backend-owned chat stack.
- * These helpers keep the new server-owned chat contract aligned across routes, runtime, and replay.
+ * The prompt is the assistant core every AI surface states (`assistantContract.ts`) and the shared
+ * card rules, plus only what differs in this in-app chat.
  */
 
+import {
+  ASSISTANT_BEHAVIOUR_RULE_LINES,
+  ASSISTANT_PRODUCT_DESCRIPTION,
+} from "../aiTools/toolContract/assistantContract";
 import {
   CARD_AUTHORING_CONTRACT,
   CARD_AUTHORING_TOOL_CALL_EXAMPLE,
@@ -12,10 +17,49 @@ import {
   CARD_STYLE_ALIGNMENT_RULE_LINES,
   CARD_TAGGING_RULE_LINES,
   CARD_WEB_URL_LINES,
+  FRONT_BACK_CONTRACT,
   SQL_MUTATION_TAG_FILTER_DESCRIPTION,
 } from "../aiTools/toolContract/sqlToolContract";
 import { MAX_SQL_RECORD_LIMIT } from "../aiTools/toolContract/sqlToolLimits";
 import { maximumBashCommandSeconds, maximumSqlCallsPerCommand } from "../chatSandbox/contract";
+import type {
+  ProductAnalyticsClientReportablePlatform,
+  ProductAnalyticsDeviceType,
+  ProductAnalyticsOsName,
+} from "../productAnalytics/catalog";
+
+/** The Nibomo app a chat run comes from, named the way the user knows it. */
+export type ChatClientApp = "iPhone" | "iPad" | "Mac" | "Android" | "web";
+
+/**
+ * The Apple build reports platform `ios` on iPhone, iPad and Mac alike, so its osName, or without
+ * one its deviceType, tells them apart. Null when the run's headers do not say.
+ */
+export function resolveChatClientApp(
+  platform: ProductAnalyticsClientReportablePlatform | null,
+  osName: ProductAnalyticsOsName | null,
+  deviceType: ProductAnalyticsDeviceType | null,
+): ChatClientApp | null {
+  if (platform === "web") {
+    return "web";
+  }
+  if (platform === "android") {
+    return "Android";
+  }
+  if (platform !== "ios") {
+    return null;
+  }
+  if (osName === "macos" || (osName === null && deviceType === "desktop")) {
+    return "Mac";
+  }
+  if (osName === "ipados" || (osName === null && deviceType === "tablet")) {
+    return "iPad";
+  }
+  if (osName === "ios" || (osName === null && deviceType === "phone")) {
+    return "iPhone";
+  }
+  return null;
+}
 
 function joinLines(lines: ReadonlyArray<string>): string {
   return lines.join("\n");
@@ -25,49 +69,51 @@ function buildPromptFromSections(sections: ReadonlyArray<string>): string {
   return sections.filter((section) => section !== "").join("\n\n");
 }
 
-function buildAssistantRoleSection(): string {
-  return "You are a flashcards assistant for an offline-first flashcards app.";
-}
-
-function buildWorkspaceSection(): string {
-  return joinLines([
-    "You work over the synced workspace state managed by the backend.",
-    "Use sql_query to read workspace data and sql_execute to change it.",
-    "The user can have several workspaces: list_workspaces lists them, and sql_query and sql_execute take an optional workspaceId from that list; omit it to use the workspace the user has open.",
-    "Decks are saved tag filters: a deck row exposes deck_id, name, and tags among other columns, and has no description column.",
-    "Cards have no deck_id and no deck membership, so a card belongs to a deck only by matching that deck's tags.",
-    "You help with card drafting, deck cleanup, review analysis, study planning, and organizing content.",
-  ]);
-}
-
-function buildCardSideContractSection(): string {
-  return joinLines([
-    "Card side contract:",
-    "- Front side must contain only a question or recall prompt. Never include the answer on the front side.",
-    "- Keep the front short by default: usually one word, a term, or a brief phrase, not a full sentence question.",
-    "- Front brevity does not limit the back side, which may still be long.",
-    "- Write a longer front only when the user asks for it, or when similar existing cards in the same deck, tag, or topic already use long fronts.",
-    ...CARD_BACK_SIDE_RULE_LINES,
-  ]);
+function toBulletLines(lines: ReadonlyArray<string>): ReadonlyArray<string> {
+  return lines.map((line) => `- ${line}`);
 }
 
 /**
- * `CARD_WEB_URL_LINES` is the one line this chat would otherwise only learn from the
- * `card_authoring` guide that `buildSqlRoutingSection` below tells it not to fetch. It is empty
- * unless the deployment configured a usable app origin.
+ * A native app's user leaves it by opening a web link, so there the chat points to the app's own
+ * screens, overriding the after-save link the shared tool text asks for; `CARD_WEB_URL_LINES` still
+ * gives the link when asked.
  */
-function buildCardAuthoringSection(): string {
+function buildClientAppLine(clientApp: ChatClientApp | null): string {
+  if (clientApp === null) {
+    return "You are the AI chat inside the Nibomo app; \"here\" means this chat.";
+  }
+  if (clientApp === "web") {
+    return "You are the AI chat inside the Nibomo web app; \"here\" means this chat.";
+  }
+  return `You are the AI chat inside the Nibomo ${clientApp} app; "here" means this chat. Point to the app's Cards and Review screens instead of web links, even where tool text suggests a link.`;
+}
+
+function buildAssistantSection(clientApp: ChatClientApp | null): string {
   return joinLines([
-    CARD_AUTHORING_CONTRACT,
-    `Example: ${CARD_AUTHORING_TOOL_CALL_EXAMPLE}`,
-    ...CARD_WEB_URL_LINES,
+    buildClientAppLine(clientApp),
+    ASSISTANT_PRODUCT_DESCRIPTION,
+    ...toBulletLines(ASSISTANT_BEHAVIOUR_RULE_LINES),
   ]);
 }
 
-function buildCardStyleAlignmentSection(): string {
+function buildWorkspaceSection(): string {
+  return "Omitting workspaceId uses the workspace the user has open; list_workspaces lists the others. Decks have no description column.";
+}
+
+/**
+ * The card rules the `card_authoring` guide serves, stated inline so the chat never spends a model
+ * call fetching them; `buildSqlRoutingSection` says so. `CARD_WEB_URL_LINES` is empty unless the
+ * deployment configured a usable app origin.
+ */
+function buildCardRulesSection(): string {
   return joinLines([
-    "Card style alignment:",
+    FRONT_BACK_CONTRACT,
+    ...CARD_BACK_SIDE_RULE_LINES,
+    ...CARD_TAGGING_RULE_LINES,
     ...CARD_STYLE_ALIGNMENT_RULE_LINES,
+    CARD_AUTHORING_CONTRACT,
+    `Example: ${CARD_AUTHORING_TOOL_CALL_EXAMPLE}`,
+    ...CARD_WEB_URL_LINES,
   ]);
 }
 
@@ -83,80 +129,45 @@ function buildCardManagedImageSection(): string {
   ]);
 }
 
-function buildPlainTextChatFormattingSection(): string {
+function buildChatReplySection(): string {
   return joinLines([
-    "Chat response formatting:",
-    "- Respond as plain text for a compact chat surface.",
-    "- Keep replies concise and easy to scan on mobile and web.",
-    "- Do not rely on markdown headings, tables, blockquotes, or fenced code blocks in user-facing chat replies.",
-    "- These plain-text reply rules apply to chat messages, not to card fields such as backText.",
+    "Chat replies:",
+    "- Plain, concise text for a small screen: no Markdown headings, tables, blockquotes or code fences. Card fields keep their Markdown.",
+    "- Before long work, send at most one short status line per turn; never name tools, SQL, pages or internal steps.",
   ]);
 }
 
 function buildWritePolicySection(): string {
   return joinLines([
     "Write policy:",
-    "- Before any create, update, or delete tool call, you must first describe the exact changes you plan to make; a card creation job, meaning more than a few new cards that you would otherwise list card by card, needs only the one-line announcement below.",
     ...CARD_DUPLICATE_CHECK_RULE_LINES,
-    "- For a card creation job, still run that duplicate SELECT, then fold what it found into the announcement, such as \"skipping 40 that already exist\"; this replaces the discussion step above, so discuss it first only when the overlap is substantial or unclear.",
-    "- A clear user request for a specific low-risk change counts as permission to execute it.",
-    "- If the user already gave explicit permission earlier in this chat, do not ask again for ordinary low-risk writes.",
-    "- Ask for confirmation again only when the action is risky or unclear, for example broad deletes, broad updates, destructive resets, revokes, overwrites, or ambiguous instructions.",
-    "- Creating one card or making one small focused edit usually does not need a second confirmation.",
-    "- Announce a card creation job in one short line with the count, tags, and starting batch size, such as \"I'll make about 2,000 cards tagged German-A1, saving about 25 at a time to start.\", then start saving at once, without listing each card or waiting for confirmation; ask first only when what to make is ambiguous, the duplicate check found substantial or unclear overlap, or the user asked to see the cards before saving.",
-    "- Save a card creation job to the workspace batch by batch as each batch is ready, never after writing the text of every card first (parsing an attached file into /work up front is fine), and reply in chat with only a short summary; print full card text in chat only when the user asks to see the cards there.",
-    "- When the user asks to continue a stopped job, first read back what was already saved, then do only the rest.",
-    ...CARD_TAGGING_RULE_LINES,
-    "- Do not mutate hidden FSRS fields, sync metadata, or arbitrary non-product tables directly.",
-  ]);
-}
-
-function buildToolCallRulesSection(): string {
-  return joinLines([
-    "Tool-call rules:",
-    "- Tool arguments must be exactly one JSON object.",
-    "- Use sql_query for workspace reads and schema discovery, and sql_execute for writes.",
-    "- Send SHOW TABLES, DESCRIBE, and SHOW COLUMNS as their own tool call, never in the same sql string as statements that depend on the result.",
-    "- Never mix read and write statements in one sql string.",
-    "- Put the whole query in the sql string field and do not invent extra tool arguments.",
-    "- SQL pagination uses LIMIT and OFFSET inside the SQL string.",
-    "- SELECT returns at most 100 rows per statement.",
-    "- INSERT, UPDATE, and DELETE may affect at most 100 rows per statement.",
-    "- Before calling any tool, send one short user-facing sentence explaining what you are about to check.",
+    "- For a card creation job, meaning more than a few new cards, state the plan in one line with the count, tags, starting batch size and any duplicates skipped, such as \"I'll make about 2,000 cards tagged German-A1, saving about 25 at a time, skipping 40 that already exist.\", then start at once without listing the cards; ask first only when what to make or the overlap with existing cards is unclear, or the user asked to see the cards before saving.",
+    "- Save such a job batch by batch as each batch is ready, never after writing every card's text first (parsing an attached file into /work up front is fine), and reply with a short summary; print card text in chat only when asked.",
+    "- To continue a stopped job, first read back what was saved, then do only the rest.",
+    "- Never write hidden FSRS fields, sync metadata, or non-product tables.",
   ]);
 }
 
 /**
- * Where the rest of the dialect lives, modelled on `SERVER_INSTRUCTIONS` in
- * `apps/backend/src/mcp/server.ts`. The grammar, the text-column rules,
- * RETURNING, the batch arithmetic, and the full example list are served by
- * `get_guide` topic `sql_dialect` on demand, instead of being re-sent on every
- * one of a turn's model calls.
+ * Dialect routing as in the always-loaded `SQL_QUERY_TOOL_DESCRIPTION` and
+ * `SQL_EXECUTE_TOOL_DESCRIPTION`: they carry the caps, and `get_guide` topic `sql_dialect` serves the
+ * grammar, the text-column rules, RETURNING, the batch arithmetic, and the examples.
  *
- * What stays inline is what a first call gets wrong with nothing to read
- * afterwards, because the chat pays a wrong first guess out of its own model-call
- * budget: tags are spelled like nothing in standard SQL and every new card
- * carries one, and the tag forms that miss return zero rows rather than an
- * error, so a model that reaches for one of them reports "no cards found" and
- * never learns that it needed the guide. The forms that fail loudly are left to
- * the guide, which the model fetches after reading the dialect error.
+ * What stays inline is what a first call gets wrong with nothing to read afterwards: the tag forms
+ * that miss return zero rows rather than an error, so a model that reaches for one reports "no cards
+ * found" and never learns that it needed the guide.
  *
- * `get_guide` serves every surface, so the guides bullet is the single place
- * that says which of its topics this chat can use: it rules out
- * `card_authoring` alone, whose text the card sections above already state in
- * full.
+ * `get_guide` serves every surface, so the guides bullet is the single place that says which of its
+ * topics this chat needs: `card_authoring` only repeats `buildCardRulesSection`.
  */
 function buildSqlRoutingSection(): string {
   return joinLines([
-    "SQL dialect:",
-    "- This is not full PostgreSQL. Call get_guide with topic sql_dialect before any statement whose form you are unsure of, and again after a dialect error, instead of guessing.",
-    "- Guides are written for every surface: topic card_authoring only repeats the card rules above, so use topics sql_dialect, bulk_authoring, and review_flow, and never call a tool you were not given.",
-    "- Match rows by tag with tags OVERLAP ('english', 'slang'), compared exactly and case-sensitively, so pass tag values as they are stored.",
+    "SQL (not full PostgreSQL):",
+    "- Read get_guide(sql_dialect) before a statement whose form you are unsure of and after a dialect error, and get_guide(bulk_authoring) before a large write job.",
+    "- Your get_guide topics are study, sql_dialect, bulk_authoring and review_flow; card_authoring only repeats the card rules above.",
+    "- Match tags with tags OVERLAP ('english', 'slang'), compared exactly and case-sensitively, so pass tags as stored.",
     `- ${SQL_MUTATION_TAG_FILTER_DESCRIPTION}`,
-    "- Array columns such as tags take a parenthesized list: ('tag1', 'tag2'), or () for empty.",
-    "- Prefer OVERLAP over the tag forms that fail silently: tags = ('english', 'slang') is exact set equality, so a card carrying any extra tag does not match, and tags IN (...), LOWER(tags) IN (...), and LOWER(tags) NOT IN (...) are accepted but match no rows.",
-    "- LIKE, NOT LIKE, ILIKE, and the LOWER(column) LIKE and LOWER(column) = forms apply to text columns only and are rejected on an array column such as tags.",
-    "- Before a large write job, call get_guide with topic bulk_authoring and split the work as it says.",
+    "- tags = ('english', 'slang') is exact set equality, so a card with any extra tag does not match; tags IN (...), LOWER(tags) IN (...) and LOWER(tags) NOT IN (...) match no rows; LIKE-style forms are rejected on tags.",
   ]);
 }
 
@@ -164,13 +175,8 @@ function buildSqlRoutingSection(): string {
  * The timezone is printed verbatim by `buildCurrentDatetimeLine`, and the reviewId is the
  * dedup key, so a model reusing one is refused rather than recording a second review.
  */
-function buildReviewLoopSection(): string {
-  return joinLines([
-    "Review loop:",
-    "- To review the user one question at a time, call next_review_card, then reveal_answer for that cardId, then submit_review; call get_guide with topic review_flow for the grading and rating rules.",
-    "- Pass the User local timezone printed in the Current datetime message as submit_review's reviewedTimeZone, spelled exactly as it appears there.",
-    "- Generate one fresh random UUID as submit_review's reviewId per learner review, and reuse it only to retry that same card's submission.",
-  ]);
+function buildReviewSection(): string {
+  return "Reviews: pass the User local timezone from the Current datetime message as submit_review's reviewedTimeZone, spelled exactly; generate a fresh random UUID reviewId per learner review and reuse it only to retry that card's submission.";
 }
 
 /**
@@ -180,10 +186,7 @@ function buildReviewLoopSection(): string {
 function buildChatFilesSection(): string {
   return joinLines([
     "Chat files:",
-    "- /files holds the files the user attached to this chat and is read-only; /work is your scratch space, kept for this chat across turns.",
     "- Plain files derived from an attachment sit beside it in /files: a PDF's or DOCX's text in <file>.txt (PDF pages marked --- page N ---), an XLSX's sheets as <file>.d/<sheet>.csv, a ZIP's files under <file>.d/, and an Anki .apkg's collection as <file>.d/collection.sqlite. The attachment line names them or says why there are none.",
-    "- Use the bash tool to inspect and process them: shell tools, python3 with the standard library only, sqlite3, and js-exec. There is no network.",
-    "- Use view_file to look at one image or one PDF page, such as a photo, a scan, a chart or a layout. You see it during this turn only; later turns keep a [view_file showed ...] note, so call view_file again to look again.",
     "- Check a file's size first (wc -c, head), then read slices (sed -n '1,120p', rg -n PATTERN); never print a whole large file.",
     "- Save intermediate results to /work instead of printing them again.",
     "- python3 opens files of at most 8 MB: pipe a larger file in on stdin, or cut it into /work with split or head first.",
@@ -205,7 +208,7 @@ function buildSandboxSqlSection(): string {
     "- To import data parsed in python3, have it write the SQL or JSON to a /work file, then send it from the shell (fc-sql-execute < /work/batch.sql) or from js-exec.",
     `- Prefer a script for bulk imports, bulk edits, and analysis over many rows: loop in code, put up to ${MAX_SQL_RECORD_LIMIT} rows in each INSERT, UPDATE, or DELETE, and print only a short summary such as counts and the rows that failed.`,
     `- One bash command makes at most ${maximumSqlCallsPerCommand} SQL calls: split a larger job across commands and keep its progress in /work so it can resume.`,
-    "- Writes from code follow the write policy and the card rules above exactly as sql_execute calls do: describe the exact change before running the script, except that a card creation job needs only its one-line announcement.",
+    "- Writes from code follow the rules above, like sql_execute calls.",
     "- Imported cards start as new cards: review history and scheduling cannot be imported.",
     "- A write whose error says it may have been applied must be read back with a SELECT before it is sent again.",
   ]);
@@ -223,17 +226,13 @@ function buildGeneratedImagePolicySection(): string {
 }
 
 /**
- * The second sentence names the tools whose failure envelopes the shared remediation module fills
- * (`createAgentRemediationInstructions` in
- * `apps/backend/src/aiTools/toolContract/remediationInstructions.ts`), because those are the only
- * ones carrying an `instructions` field and an `error.message`. The generated-image tool fails with
- * `{ ok: false, code, retryable }` and is steered by its own policy section above, so widening this
- * to every tool would point the model at fields that envelope does not have.
+ * Worded for both failure envelopes: the shared tools fail with `ok: false` and an `error` carrying
+ * `code` and `message`, the generated-image tool with `ok: false` and a top-level `code`.
  */
 function buildRepairSection(): string {
   return joinLines([
-    "If a previous tool call was rejected for invalid arguments, correct the tool call shape and continue without repeating earlier assistant text.",
-    "If a sql_query, sql_execute, list_workspaces, get_guide, next_review_card, reveal_answer, submit_review, or get_usage_limits tool output returns structured error JSON with ok=false, follow its instructions field and use error.message to correct the next tool call and continue.",
+    "If a tool call was rejected for invalid arguments, send exactly one JSON object matching the tool's schema and continue without repeating earlier text.",
+    "When a tool returns ok=false, read its error code and message, correct the next call, and never guess or invent a failure cause for the user.",
   ]);
 }
 
@@ -260,27 +259,25 @@ export function buildCurrentDatetimeLine(timezone: string): string {
 }
 
 /**
- * Builds the canonical system instructions for backend-owned chat turns.
+ * Builds the canonical system instructions for backend-owned chat turns. Both inputs are fixed for a
+ * run and normally for a session, so the prompt stays a stable prompt-cache prefix.
  */
 export function buildSystemInstructions(
   generatedImageEligible: boolean,
+  clientApp: ChatClientApp | null,
 ): string {
   return buildPromptFromSections([
-    buildAssistantRoleSection(),
+    buildAssistantSection(clientApp),
     buildWorkspaceSection(),
-    buildCardSideContractSection(),
-    buildCardAuthoringSection(),
-    buildCardStyleAlignmentSection(),
+    buildCardRulesSection(),
     buildCardManagedImageSection(),
-    buildPlainTextChatFormattingSection(),
+    buildChatReplySection(),
     buildWritePolicySection(),
-    buildToolCallRulesSection(),
     buildSqlRoutingSection(),
-    buildReviewLoopSection(),
+    buildReviewSection(),
     buildChatFilesSection(),
     buildSandboxSqlSection(),
     generatedImageEligible ? buildGeneratedImagePolicySection() : "",
     buildRepairSection(),
-    "Be concise, direct, and operational.",
   ]);
 }
