@@ -6,6 +6,7 @@ import { BreakdownSection } from "../levelOneMetrics/BreakdownSection";
 import type { BreakdownReportLoader } from "../levelOneMetrics/breakdownReport";
 import type { ReportPeriod } from "../levelOneMetrics/reportPeriod";
 import { loadWhoSawUsBreakdownReport, type WhoSawUsBreakdownDimension } from "./breakdownQuery";
+import { pageReadEngagementChartNote } from "./engagedVisitorsQuery";
 import { webDataStartChartNote, type WhoSawUsSeriesKey } from "./query";
 import { buildStoreNotFinalChartNote, storeNotFinalDayCounts } from "./storeDataFreshness";
 
@@ -92,14 +93,19 @@ const whoSawUsBreakdownsByGroup: Readonly<Record<WhoSawUsBreakdownGroup, Readonl
   "google-play": [],
 };
 
-/** The notes of every Web or Engaged visitors breakdown besides In progress. */
+/** The notes of every Web visitors breakdown besides In progress. */
 export function buildWebBreakdownChartNotes(): ReadonlyArray<ChartNote> {
   return [webDataStartChartNote];
 }
 
+/** The notes of every Engaged visitors breakdown besides In progress. */
+export function buildWebEngagedBreakdownChartNotes(): ReadonlyArray<ChartNote> {
+  return [webDataStartChartNote, pageReadEngagementChartNote];
+}
+
 const buildBreakdownChartNotesByGroup: Readonly<Record<WhoSawUsBreakdownGroup, (today: string) => ReadonlyArray<ChartNote>>> = {
   web: buildWebBreakdownChartNotes,
-  "web-engaged": buildWebBreakdownChartNotes,
+  "web-engaged": buildWebEngagedBreakdownChartNotes,
   "app-store": (today) => [buildStoreNotFinalChartNote("app-store", today)],
   "google-play": (today) => [buildStoreNotFinalChartNote("google-play", today)],
 };

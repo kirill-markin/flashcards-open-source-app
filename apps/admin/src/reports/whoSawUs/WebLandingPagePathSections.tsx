@@ -1,5 +1,6 @@
 import { useEffect, useState, type JSX } from "react";
 import * as d3 from "d3";
+import type { ChartNote } from "../../charts/chartNotes";
 import type { AdminAppConfig } from "../../config";
 import type { AnalyticsDateRange } from "../../filters/analyticsFilters";
 import { BreakdownLoadingChart } from "../levelOneMetrics/BreakdownSection";
@@ -17,6 +18,7 @@ import {
 import {
   WhoSawUsBreakdownSection,
   buildWebBreakdownChartNotes,
+  buildWebEngagedBreakdownChartNotes,
   webEngagedVisitorCounting,
   webVisitorCounting,
   whoSawUsCountLabel,
@@ -56,7 +58,7 @@ type TopPagesLoadState =
   | Readonly<{ status: "error"; message: string }>
   | Readonly<{ status: "ready"; pages: ReadonlyArray<LandingPageVisitors> }>;
 
-/** The words that tell one cohort's landing page path charts from the other's. */
+/** The words and chart notes that tell one cohort's landing page path charts from the other's. */
 type CohortCopy = Readonly<{
   testIdPrefix: string;
   topKindsTitle: string;
@@ -71,6 +73,7 @@ type CohortCopy = Readonly<{
   counting: string;
   /** The visitors the top landing page types rank by, to close a sentence. */
   rankedVisitors: string;
+  buildChartNotes: () => ReadonlyArray<ChartNote>;
 }>;
 
 const cohortCopy: Readonly<Record<SiteVisitorCohort, CohortCopy>> = {
@@ -84,6 +87,7 @@ const cohortCopy: Readonly<Record<SiteVisitorCohort, CohortCopy>> = {
     pageTypeChartTitle: "Web visitors by landing page type",
     counting: webVisitorCounting,
     rankedVisitors: "landing visitors",
+    buildChartNotes: buildWebBreakdownChartNotes,
   },
   engaged: {
     testIdPrefix: "who-saw-us-engaged-landing-page-paths",
@@ -95,6 +99,7 @@ const cohortCopy: Readonly<Record<SiteVisitorCohort, CohortCopy>> = {
     pageTypeChartTitle: "Engaged visitors by landing page type",
     counting: webEngagedVisitorCounting,
     rankedVisitors: "engaged landing visitors",
+    buildChartNotes: buildWebEngagedBreakdownChartNotes,
   },
 };
 
@@ -250,7 +255,7 @@ export function WebLandingPagePathSections(props: Readonly<{
               <li>The table beneath lists the {topLandingPageCount} pages with the most visitors summed over the selection’s bars, so a visitor counts as many times as the bars count them: by day, landing on a page on 3 days counts 3 times. Its order is the chart’s, so its first five rows are the chart’s coloured pages.</li>
             </>}
             loadReport={breakdown.loadReport}
-            buildExtraNotes={buildWebBreakdownChartNotes}
+            buildExtraNotes={copy.buildChartNotes}
           />
           <TopLandingPagesTable
             config={props.config}

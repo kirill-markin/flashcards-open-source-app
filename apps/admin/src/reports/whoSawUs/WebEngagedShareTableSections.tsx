@@ -11,7 +11,7 @@ import {
   type EngagedShareDimension,
   type EngagedShareTable,
 } from "./engagedShareTableQuery";
-import { pageReadEngagementStartDate } from "./engagedVisitorsQuery";
+import { engagedRuleSwitchLabel } from "./engagedVisitorsQuery";
 
 type EngagedShareTableCopy = Readonly<{
   title: string;
@@ -94,7 +94,7 @@ function WebEngagedShareTableSection(props: Readonly<{
               </li>
               <li>The counts follow <strong>Group by</strong> like the charts: a visitor counts once in each bar that counts them, so an identified visitor seen on 3 days of one week counts 3 times by day and once by week, and a cookieless one counts once per day under every Group by.</li>
               <li>The {engagedShareKeptValueCount} values with the most Web visitors get their own row; the rest are summed into Other. A missing value is Unknown and ranks like any other. Total sums every value, so it equals the Web chart’s and the Engaged visitors chart’s bars summed over the selection.</li>
-              <li>From {pageReadEngagementStartDate}, a one-page read of 10+ seconds with a scroll, click or key press also counts as engaged, so a selection across that day mixes both definitions.</li>
+              <li>Before {engagedRuleSwitchLabel}, when the site did not send page reads yet, a page view plus any other site event counted as engaged, impressions such as a shown app button or cookie prompt included; from then only a second page view or a site action counts, a 10+ second page read with a scroll, click or key press included, so a selection across that time mixes the looser and the stricter rule.</li>
               {state.status === "ready" ? <li>Generated {formatGeneratedAt(state.table.generatedAtUtc)}.</li> : null}
             </ul>
           </ExplanationTip>
