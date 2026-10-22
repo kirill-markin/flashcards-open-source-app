@@ -768,7 +768,7 @@ test("agent reviews select, filter, and schedule cards the way the first-party c
           // Verify RLS separately from the HTTP membership preflight.
           assert.deepEqual(
             await nextReviewCard({ ...actor, userId: strangerId }, allCards),
-            { workspaceId, card: null },
+            { workspaceId, card: null, nextDueAt: null },
           );
         } finally {
           await owner.query(

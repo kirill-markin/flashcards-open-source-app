@@ -200,6 +200,7 @@ class AiChatRuntimeGuestQuotaPromptTest {
             content = listOf(AiChatContentPart.Text(text = text)),
             timestampMillis = timestampMillis,
             isError = false,
+            errorCode = null,
             isStopped = false,
             cursor = null,
             itemId = null

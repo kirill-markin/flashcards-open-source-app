@@ -124,6 +124,7 @@ class AiChatRuntimeLiveRunTerminalTest {
                 itemId = "item-1",
                 content = listOf(AiChatContentPart.Text(text = "Done")),
                 isError = false,
+                errorCode = null,
                 isStopped = false
             )
         )

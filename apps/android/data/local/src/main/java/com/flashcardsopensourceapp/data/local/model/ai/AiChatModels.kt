@@ -289,6 +289,8 @@ data class AiChatMessage(
     val content: List<AiChatContentPart>,
     val timestampMillis: Long,
     val isError: Boolean,
+    /** The server's code for a run's terminal error; null for other messages and for errors stored without one. */
+    val errorCode: String?,
     val isStopped: Boolean,
     val cursor: String?,
     val itemId: String?
@@ -542,6 +544,7 @@ sealed interface AiChatLiveEvent {
         val itemId: String,
         val content: List<AiChatContentPart>,
         val isError: Boolean,
+        val errorCode: String?,
         val isStopped: Boolean
     ) : AiChatLiveEvent
 

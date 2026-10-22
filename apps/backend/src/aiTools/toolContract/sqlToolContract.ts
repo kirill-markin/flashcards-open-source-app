@@ -506,6 +506,8 @@ export const BULK_AUTHORING_GUIDE = [
   "One sql_execute call also gets 15 seconds of database time. A call that spends it fails with QUERY_TIME_LIMIT_EXCEEDED: the transaction is cancelled, so nothing lands.",
   `That time follows the number of rows touched rather than the number of statements, so treat the ${MAX_SQL_RECORD_LIMIT}-row and ${MAX_SQL_BATCH_STATEMENT_COUNT}-statement caps as hard ceilings rather than sizes to aim for: a batch at both caps ends in that error instead of landing.`,
   `Plan the split before the first write: N cards need at least ceil(N / ${MAX_SQL_RECORD_LIMIT}) statements. Start with a small batch and watch how long each call takes. The 15 seconds bound the database work alone, so an observed call is always longer than the part that is budgeted; growing the next batch only while the observed time still leaves clear headroom under the 15 seconds therefore errs toward smaller batches on purpose. The first call of a job may carry cold start, so if its wall time stands out from the calls after it, judge growth from those instead.`,
+  "Save each batch as soon as it is ready and never draft the whole job before the first write: a run can stop at any time, and only the batches already committed survive.",
+  "Continuing a stopped job starts with a read-back of what already landed, then writes only the rest.",
   "Because a batch either lands completely or not at all, keep each batch meaningful on its own and never split one logical card across two batches.",
   "The read/write split is per call: run any SELECT you need in its own sql_query call before or after the write batch.",
   "An error does not always mean the batch rolled back, so read error.code before you retry.",
