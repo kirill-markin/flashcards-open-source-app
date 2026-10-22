@@ -196,6 +196,7 @@ class AiChatHistoryStoreTest {
                     ),
                     timestampMillis = 1L,
                     isError = false,
+                    errorCode = null,
                     isStopped = false,
                     cursor = "cursor-1",
                     itemId = "item-1"
