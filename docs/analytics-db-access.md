@@ -1,5 +1,7 @@
 # Analytical DB Access
 
+Every analysis of people or their data (events, chats, cards, reviews) first drops the actors the shared exclusion rule names, exactly as the admin reports do: [Who counts as a person](admin-app.md#who-counts-as-a-person).
+
 The persistent `reporting_readonly` role has two read-only access paths:
 
 - manual/operator analytics through an SSM tunnel to a [bastion](../infra/aws/lib/analytics-access.ts), without making the production RDS instance publicly reachable
