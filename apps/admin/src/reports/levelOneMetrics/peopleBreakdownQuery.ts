@@ -36,7 +36,7 @@ function buildDimensionSql(
       return {
         valueSql: "actor_country.country",
         joinSql: `LEFT JOIN (
-${buildActorConnectionCountrySql(range)}
+${buildActorConnectionCountrySql(range, null)}
   ) AS actor_country ON actor_country.actor_id::text = placement.actor_id`,
       };
     case "app-ui-language":

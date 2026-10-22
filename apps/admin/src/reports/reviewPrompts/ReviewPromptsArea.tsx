@@ -3,6 +3,8 @@ import { formatGeneratedAt } from "../../charts/formatting";
 import type { AdminAppConfig } from "../../config";
 import { ExplanationTip, WarningTip } from "../../explanations/ExplanationTip";
 import { buildDefaultAnalyticsFilterState, type AnalyticsFilterState } from "../../filters/analyticsFilters";
+import { getReviewPromptDetailsPath } from "../../routing";
+import { FunnelsLink } from "../funnels/FunnelsLink";
 import { useFunnelRangeReports } from "../funnels/funnelRangeReports";
 import { loadReviewPromptsTable, type ReviewPromptCounts } from "./query";
 import {
@@ -24,7 +26,7 @@ function getErrorMessage(error: unknown): string {
  * The selection with only the fields this area offers, so a value carried over from another area
  * cannot reload the table unseen.
  */
-function buildReviewPromptsAreaFilters(filters: AnalyticsFilterState): AnalyticsFilterState {
+export function buildReviewPromptsAreaFilters(filters: AnalyticsFilterState): AnalyticsFilterState {
   return {
     ...buildDefaultAnalyticsFilterState(filters.dateRange),
     eventPlatforms: filters.eventPlatforms,
@@ -43,6 +45,7 @@ function ReviewPromptRow(props: Readonly<{
   filters: AnalyticsFilterState;
   openWarningId: string | null;
   onOpenWarningIdChange: (update: (current: string | null) => string | null) => void;
+  onNavigate: (path: string) => void;
 }>): JSX.Element {
   const { prompt, counts } = props;
   const warnings = buildReviewPromptWarnings(prompt, counts, props.filters);
@@ -88,10 +91,12 @@ function ReviewPromptRow(props: Readonly<{
       </td>
       <td>{formatCount(counts.goneCount)}</td>
       <td>
-        {/* The hint sits on a wrapper, because some browsers show no tooltip for a disabled control. */}
-        <span title="Coming soon">
-          <button className={detailsButtonClassName} type="button" data-testid={`${testId}-details-button`} disabled>Details</button>
-        </span>
+        <FunnelsLink
+          className={detailsButtonClassName}
+          path={getReviewPromptDetailsPath(prompt.id)}
+          testId={`${testId}-details-button`}
+          onNavigate={props.onNavigate}
+        >Details</FunnelsLink>
       </td>
     </tr>
   );
@@ -103,6 +108,7 @@ export function ReviewPromptsArea(
     config: AdminAppConfig;
     filters: AnalyticsFilterState;
     isReportLoading: boolean;
+    onNavigate: (path: string) => void;
     onTerminalAdminError: (error: unknown, config: AdminAppConfig) => boolean;
   }>,
 ): JSX.Element {
@@ -168,6 +174,7 @@ export function ReviewPromptsArea(
                 filters={filters}
                 openWarningId={openWarningId}
                 onOpenWarningIdChange={setOpenWarningId}
+                onNavigate={props.onNavigate}
               />
             ))}
           </tbody>

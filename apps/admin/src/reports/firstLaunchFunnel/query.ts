@@ -181,7 +181,7 @@ function buildGroupSourceJoinSqlLines(
   if (groupByDimension?.id === connectionCountryGroupByDimensionId) {
     return [
       "LEFT JOIN (",
-      buildActorConnectionCountrySql(filters.dateRange),
+      buildActorConnectionCountrySql(filters.dateRange, null),
       ") AS actor_country ON actor_country.actor_id = cohort.actor_id",
     ];
   }
@@ -189,7 +189,7 @@ function buildGroupSourceJoinSqlLines(
   if (groupByDimension?.id === appUiLanguageGroupByDimensionId) {
     return [
       "LEFT JOIN (",
-      buildActorAppUiLanguageSql(filters.dateRange),
+      buildActorAppUiLanguageSql(filters.dateRange, null),
       ") AS actor_language ON actor_language.actor_id = cohort.actor_id",
     ];
   }

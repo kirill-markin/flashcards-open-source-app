@@ -31,6 +31,7 @@ import {
   withFunnelAnchorSearchParams,
 } from "./reports/funnels/funnelAnchorUrl";
 import { funnelSections } from "./reports/funnels/funnelSections";
+import { reviewPromptFunnels } from "./reports/reviewPrompts/detailsQuery";
 import {
   buildDefaultReportRange,
   buildLookbackReportRangeEndingOn,
@@ -165,12 +166,14 @@ function buildUnionRange(
 }
 
 /**
- * Every analytics area but Level 1 metrics, and every funnel Details page, renders the shared filter
- * bar and carries its selection in the URL. Level 1 metrics and its Details pages own their range and
- * its available range, so entering them loads nothing here.
+ * Every analytics area but Level 1 metrics, and every funnel and review prompt Details page, renders
+ * the shared filter bar and carries its selection in the URL. Level 1 metrics and its Details pages
+ * own their range and its available range, so entering them loads nothing here.
  */
 function doesRouteUseAnalyticsFilters(route: AdminRoute): boolean {
-  return (route.kind === "analyticsArea" && route.area !== "level-1-metrics") || route.kind === "funnelDetails";
+  return (route.kind === "analyticsArea" && route.area !== "level-1-metrics")
+    || route.kind === "funnelDetails"
+    || route.kind === "reviewPromptDetails";
 }
 
 /**
@@ -202,6 +205,12 @@ function buildAreaSearchParams(
       ),
       filterSearchParams,
     );
+  }
+
+  // A review prompt Details page carries its own funnel's anchor; the table has none.
+  if (route.kind === "reviewPromptDetails") {
+    const anchor = reviewPromptFunnels[route.promptId].anchor;
+    return withFunnelAnchorSearchParams(filterSearchParams, anchor, parseFunnelAnchorStepId(currentSearchParams, anchor));
   }
 
   if (route.kind === "analyticsArea" && route.area === "ai-usage") {

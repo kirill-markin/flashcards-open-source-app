@@ -2,8 +2,8 @@ import type { JSX, ReactNode } from "react";
 import { AdminLink } from "../../navigation/AdminLink";
 
 /**
- * A link between the Funnels area and a funnel Details page, carrying the query string the browser is
- * on: the shared selection and every funnel's anchor. The selection is written to the URL after the
+ * A link between the Funnels or Review prompts area and one of its Details pages, carrying the query
+ * string the browser is on: the shared selection and every funnel's anchor. The selection is written to the URL after the
  * render that shows it, and an anchor click writes it without a render, so `href` can lag one write;
  * a plain click therefore reads the URL again when it lands.
  */

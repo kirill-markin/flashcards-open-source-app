@@ -180,6 +180,15 @@ const reviewPromptsAnalyticsFilterFields: ReadonlyArray<AnalyticsFilterField> = 
   "appUiLanguages",
 ];
 
+// A prompt's Details page draws its funnels on a second range too, as the Funnels area does.
+export const reviewPromptDetailsAnalyticsFilterFields: ReadonlyArray<AnalyticsFilterField> = [
+  "dateRange",
+  "comparisonDateRange",
+  "eventPlatforms",
+  "connectionCountries",
+  "appUiLanguages",
+];
+
 // General and Audience draw no second series a comparison range could fill.
 const userScopedAnalyticsFilterFields: ReadonlyArray<AnalyticsFilterField> = analyticsFilterFields
   .filter((field) => field !== "comparisonDateRange");
@@ -248,7 +257,7 @@ const catalogClickAttributionExplanationTail =
 const analyticsFilterFieldExplanations: Readonly<Record<AnalyticsFilterField, string>> = {
   dateRange:
     "Counts only events whose UTC calendar day falls inside this range. Both the first and the last day are included, and the day is the UTC day rather than the reader's own.",
-  // Offered on Funnels only.
+  // Offered on Funnels and on review prompt Details pages only.
   comparisonDateRange:
     "An optional second entry range, empty by default. When it is set, every funnel is counted again on it with every other filter unchanged, and drawn beside the main range as series B, each series measured from its own first step.",
   users:
@@ -350,6 +359,8 @@ const reviewPromptsAnalyticsFilterFieldExplanations: Readonly<
 > = {
   dateRange:
     "Counts the prompts shown on the UTC calendar days inside this range, with the first and the last day both included. Acted and Gone still look at what the person did after each showing, for up to seven days and longer for a paywall's first payment, so they can count days after the last selected one.",
+  comparisonDateRange:
+    "An optional second range of showings, empty by default. When it is set, every funnel on a prompt's Details page is counted again on it with every other filter unchanged, and drawn beside the main range as series B; the daily outcome chart stays on the main range.",
   eventPlatforms:
     "Keeps only the showings recorded on the client platforms you pick, read from the showing itself. Each prompt runs only on some platforms, so a selection without them empties its row.",
   connectionCountries:

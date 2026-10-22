@@ -103,12 +103,14 @@ Run it locally with `make local-admin` on `http://localhost:3001` before merge; 
 - On `Deck page to install` ([query](../apps/admin/src/reports/catalogInstallFunnel/query.ts)), only a server install is success.
 - On it, an install near the range end keeps its review steps maturing until seven days after it, and a review after the range end still counts.
 
-### Review prompts ([definitions](../apps/admin/src/reports/reviewPrompts/reviewPromptDefinitions.ts), [showings](../apps/admin/src/reports/reviewPrompts/showingsSql.ts))
+### Review prompts ([definitions](../apps/admin/src/reports/reviewPrompts/reviewPromptDefinitions.ts), [showings](../apps/admin/src/reports/reviewPrompts/showingsSql.ts), [Details steps](../apps/admin/src/reports/reviewPrompts/detailsQuery.ts))
 
-- `Review prompts` is the third tab: one table row per prompt in definition order under a bar of date range, client platform, connection country and app interface language, each row with a disabled `Details` button that says `Coming soon`.
+- `Review prompts` is the third tab: one table row per prompt in definition order under a bar of date range, client platform, connection country and app interface language, each row with a `Details` button.
 - On every row Acted and Gone are each at most Shown; `Store rating requested` shows `—` for Acted with an `(i)` naming why.
 - A ⚠ beside a prompt appears only while the selection triggers it: a range starting before a selected platform's first counted day, a selected platform whose app release does not report it yet, Web selected on `Automatic feedback`, or showings still inside their Gone or Acted window.
 - Pick only Web: the notifications pre-prompt and rating request rows read 0 with no ⚠, and the Funnels and General tabs keep the same selection.
+- A row's `Details` opens `/analytics/review-prompts/<prompt>`, whose bar adds `Compare with`: the prompt's funnel counting showings, its first step the table's Shown and, on `Automatic feedback` and the `Hard` reminder, its last step the table's Acted; then one chart per platform, app version, showing number, sign-in state, connection country and app interface language, whose groups' first steps sum to the main chart's; then showings per day by outcome, each bar's Acted, Maturing, Gone and Other summing to that day's showings.
+- A step click re-bases every funnel chart on the page and survives a reload; `← Review prompts` and the tab return to the table with the same filters, and `Web mobile-app promo` always shows its `same account` ⚠.
 
 ### Audience ([query](../apps/admin/src/reports/audience/query.ts), [section](../apps/admin/src/reports/audience/AudienceSection.tsx))
 
