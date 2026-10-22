@@ -19,6 +19,7 @@ export type ChatSessionControllerUiMessages = Readonly<{
   errorFallbacks: ChatErrorFallbackMessages;
   genericChatFailed: string;
   liveStreamEndedBeforeCompletion: string;
+  localizeChatTerminalError: (errorCode: string | null, storedText: string) => string;
   newChatFailedPrefix: string;
   ownOpenAIKeyErrorPrefix: string;
   refreshFailedPrefix: string;

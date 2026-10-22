@@ -522,6 +522,7 @@ describe("ChatPanel hydration lifecycle", () => {
             content: [{ type: "text", text: "Warm question" }],
             timestamp: freshTimestamp,
             isError: false,
+            errorCode: null,
             isStopped: false,
           },
           {
@@ -529,6 +530,7 @@ describe("ChatPanel hydration lifecycle", () => {
             content: [{ type: "text", text: "Warm answer" }],
             timestamp: freshTimestamp + 1,
             isError: false,
+            errorCode: null,
             isStopped: false,
           },
         ],
@@ -575,6 +577,7 @@ describe("ChatPanel hydration lifecycle", () => {
               content: [{ type: "text", text: "Warm question" }],
               timestamp: freshTimestamp,
               isError: false,
+              errorCode: null,
               isStopped: false,
             },
             {
@@ -582,6 +585,7 @@ describe("ChatPanel hydration lifecycle", () => {
               content: [{ type: "text", text: "Warm answer with refreshed details" }],
               timestamp: freshTimestamp + 1,
               isError: false,
+              errorCode: null,
               isStopped: false,
             },
           ],
@@ -614,6 +618,7 @@ describe("ChatPanel hydration lifecycle", () => {
             content: [{ type: "text", text: "Warm question" }],
             timestamp: freshTimestamp,
             isError: false,
+            errorCode: null,
             isStopped: false,
           },
           {
@@ -621,6 +626,7 @@ describe("ChatPanel hydration lifecycle", () => {
             content: [{ type: "text", text: "Warm answer" }],
             timestamp: freshTimestamp + 1,
             isError: false,
+            errorCode: null,
             isStopped: false,
           },
         ],
@@ -667,6 +673,7 @@ describe("ChatPanel hydration lifecycle", () => {
               content: [{ type: "text", text: "Warm question" }],
               timestamp: freshTimestamp,
               isError: false,
+              errorCode: null,
               isStopped: false,
             },
             {
@@ -674,6 +681,7 @@ describe("ChatPanel hydration lifecycle", () => {
               content: [{ type: "text", text: "Warm answer" }],
               timestamp: freshTimestamp + 1,
               isError: false,
+              errorCode: null,
               isStopped: false,
             },
             {
@@ -681,6 +689,7 @@ describe("ChatPanel hydration lifecycle", () => {
               content: [{ type: "text", text: "Appended answer detail" }],
               timestamp: freshTimestamp + 2,
               isError: false,
+              errorCode: null,
               isStopped: false,
             },
           ],
