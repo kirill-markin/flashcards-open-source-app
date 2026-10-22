@@ -141,6 +141,7 @@
 "common.continue" = "ਜਾਰੀ ਰੱਖੋ";
 "common.copy" = "ਕਾਪੀ ਕਰੋ";
 "common.copyError" = "ਗਲਤੀ ਕਾਪੀ ਕਰੋ";
+"common.create" = "ਬਣਾਓ";
 "common.delete" = "ਮਿਟਾਓ";
 "common.done" = "ਮੁਕੰਮਲ";
 "common.edit" = "ਸੋਧੋ";

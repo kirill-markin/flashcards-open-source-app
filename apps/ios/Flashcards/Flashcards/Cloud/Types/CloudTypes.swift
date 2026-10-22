@@ -318,9 +318,12 @@ struct CloudVerifiedAuthContext: Hashable {
     let credentials: StoredCloudCredentials
 }
 
+/// `createNew` is the automatic creation with the caller's default name; `createNewNamed`
+/// carries the name typed after an explicit "Create new workspace" tap.
 enum CloudWorkspaceLinkSelection: Hashable, Sendable {
     case existing(workspaceId: String)
     case createNew
+    case createNewNamed(name: String)
 }
 
 enum CloudServiceConfigurationMode: String, Codable, Hashable, Sendable {
@@ -391,6 +394,7 @@ enum CloudGuestUpgradeSelection: Hashable, Sendable {
     case existing(workspaceId: String)
     case discardDemoOnly(workspaceId: String)
     case createNew
+    case createNewNamed(name: String)
 }
 
 enum CloudCredentialRecoveryReason: String, Codable, Hashable, Sendable {

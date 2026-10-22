@@ -141,6 +141,7 @@
 "common.continue" = "కొనసాగించు";
 "common.copy" = "కాపీ చేయి";
 "common.copyError" = "లోపాన్ని కాపీ చేయి";
+"common.create" = "సృష్టించు";
 "common.delete" = "తొలగించు";
 "common.done" = "పూర్తయింది";
 "common.edit" = "సవరించు";

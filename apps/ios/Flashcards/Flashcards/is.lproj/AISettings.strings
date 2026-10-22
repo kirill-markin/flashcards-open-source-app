@@ -141,6 +141,7 @@
 "common.continue" = "Halda áfram";
 "common.copy" = "Afrita";
 "common.copyError" = "Afrita villu";
+"common.create" = "Stofna";
 "common.delete" = "Eyða";
 "common.done" = "Lokið";
 "common.edit" = "Breyta";

@@ -141,6 +141,7 @@
 "common.continue" = "Tiếp tục";
 "common.copy" = "Sao chép";
 "common.copyError" = "Sao chép lỗi";
+"common.create" = "Tạo";
 "common.delete" = "Xóa";
 "common.done" = "Xong";
 "common.edit" = "Sửa";

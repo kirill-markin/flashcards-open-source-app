@@ -141,6 +141,7 @@
 "common.continue" = "തുടരുക";
 "common.copy" = "പകർത്തുക";
 "common.copyError" = "പിശക് പകർത്തുക";
+"common.create" = "സൃഷ്ടിക്കുക";
 "common.delete" = "ഇല്ലാതാക്കുക";
 "common.done" = "പൂർത്തിയായി";
 "common.edit" = "തിരുത്തുക";

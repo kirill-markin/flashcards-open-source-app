@@ -141,6 +141,7 @@
 "common.continue" = "Turpināt";
 "common.copy" = "Kopēt";
 "common.copyError" = "Kopēt kļūdu";
+"common.create" = "Izveidot";
 "common.delete" = "Dzēst";
 "common.done" = "Gatavs";
 "common.edit" = "Rediģēt";

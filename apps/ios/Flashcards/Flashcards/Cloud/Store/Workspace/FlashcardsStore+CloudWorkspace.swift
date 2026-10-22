@@ -105,10 +105,12 @@ extension FlashcardsStore {
                     workspaceId: workspaceId
                 )
             case .createNew:
+                throw LocalStoreError.validation("Creating a linked workspace from Settings requires a workspace name")
+            case .createNewNamed(let name):
                 return try await cloudSyncService.createWorkspace(
                     apiBaseUrl: session.apiBaseUrl,
                     bearerToken: session.bearerToken,
-                    name: "Personal"
+                    name: name
                 )
             }
         }

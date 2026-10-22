@@ -141,6 +141,7 @@
 "common.continue" = "Tęsti";
 "common.copy" = "Kopijuoti";
 "common.copyError" = "Kopijuoti klaidą";
+"common.create" = "Sukurti";
 "common.delete" = "Ištrinti";
 "common.done" = "Atlikta";
 "common.edit" = "Redaguoti";

@@ -141,6 +141,7 @@
 "common.continue" = "Fortsæt";
 "common.copy" = "Kopiér";
 "common.copyError" = "Kopiér fejl";
+"common.create" = "Opret";
 "common.delete" = "Slet";
 "common.done" = "Færdig";
 "common.edit" = "Rediger";

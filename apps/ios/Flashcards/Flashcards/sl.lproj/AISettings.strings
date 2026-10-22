@@ -141,6 +141,7 @@
 "common.continue" = "Nadaljuj";
 "common.copy" = "Kopiraj";
 "common.copyError" = "Kopiraj napako";
+"common.create" = "Ustvari";
 "common.delete" = "Izbriši";
 "common.done" = "Končano";
 "common.edit" = "Uredi";

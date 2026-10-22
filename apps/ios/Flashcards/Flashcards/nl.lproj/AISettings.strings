@@ -141,6 +141,7 @@
 "common.continue" = "Doorgaan";
 "common.copy" = "Kopiëren";
 "common.copyError" = "Fout kopiëren";
+"common.create" = "Maak aan";
 "common.delete" = "Verwijderen";
 "common.done" = "Gereed";
 "common.edit" = "Bewerken";

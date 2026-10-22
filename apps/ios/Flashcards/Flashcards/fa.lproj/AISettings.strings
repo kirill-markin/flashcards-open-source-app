@@ -141,6 +141,7 @@
 "common.continue" = "ادامه";
 "common.copy" = "کپی";
 "common.copyError" = "کپی خطا";
+"common.create" = "ایجاد";
 "common.delete" = "حذف";
 "common.done" = "انجام شد";
 "common.edit" = "ویرایش";

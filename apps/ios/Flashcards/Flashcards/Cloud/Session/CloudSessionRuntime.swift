@@ -109,6 +109,12 @@ final class CloudSessionRuntime {
                 bearerToken: linkContext.credentials.idToken,
                 name: localWorkspaceName
             )
+        case .createNewNamed(let name):
+            return try await cloudSyncService.createWorkspace(
+                apiBaseUrl: linkContext.apiBaseUrl,
+                bearerToken: linkContext.credentials.idToken,
+                name: name
+            )
         }
     }
 

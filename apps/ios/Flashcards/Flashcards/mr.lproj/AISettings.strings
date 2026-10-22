@@ -141,6 +141,7 @@
 "common.continue" = "पुढे चला";
 "common.copy" = "कॉपी करा";
 "common.copyError" = "त्रुटी कॉपी करा";
+"common.create" = "तयार करा";
 "common.delete" = "हटवा";
 "common.done" = "पूर्ण";
 "common.edit" = "संपादित करा";

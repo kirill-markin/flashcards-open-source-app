@@ -392,7 +392,17 @@ extension FlashcardsStore {
                     linkedSession: linkedSession,
                     trigger: trigger
                 )
+            } catch {
+                // A first sync failing after the local link leaves the install linked, and its
+                // `.syncOnly` retry never comes back here, so the name is applied now or never.
+                if Task.isCancelled == false {
+                    self.applyServerWorkspaceNameAfterCloudLink(linkedWorkspace: linkedWorkspace)
+                }
+                throw error
             }
+            // `finishCloudLink` suspends, so the check above no longer covers the writes below.
+            try Task.checkCancellation()
+            self.applyServerWorkspaceNameAfterCloudLink(linkedWorkspace: linkedWorkspace)
             if linkContext.guestUpgradeMode == nil {
                 self.clearPendingGuestUpgradeStateAndUnblockMutations()
             }
@@ -429,6 +439,45 @@ extension FlashcardsStore {
             return linkedWorkspace
         }
         self.triggerFirstReviewOnboardingPush()
+    }
+
+    /// The link migration keeps the local workspace name and sync never writes it, so the server
+    /// name is applied once the local row is the linked one. Best-effort: a display name must not
+    /// fail a completed link or cut off the cleanup after it.
+    private func applyServerWorkspaceNameAfterCloudLink(linkedWorkspace: CloudWorkspaceSummary) {
+        guard let workspace = self.workspace,
+              workspace.workspaceId == linkedWorkspace.workspaceId,
+              workspace.name != linkedWorkspace.name else {
+            return
+        }
+        do {
+            let database = try requireLocalDatabase(database: self.database)
+            _ = try database.updateWorkspaceName(
+                workspaceId: linkedWorkspace.workspaceId,
+                name: linkedWorkspace.name
+            )
+            try self.reload()
+        } catch {
+            FlashcardsObservability.captureSilentFailure(
+                error: error,
+                scope: IOSObservationScope(
+                    feature: .cloudSync,
+                    userId: self.cloudSettings?.linkedUserId,
+                    workspaceId: linkedWorkspace.workspaceId,
+                    requestId: nil,
+                    clientRequestId: nil,
+                    sessionId: nil,
+                    runId: nil,
+                    cloudState: self.cloudSettings?.cloudState,
+                    configurationMode: try? self.currentCloudServiceConfiguration().mode
+                ),
+                action: "cloud_link_apply_workspace_name",
+                stage: nil,
+                statusCode: nil,
+                backendCode: nil,
+                requestId: nil
+            )
+        }
     }
 
     private func completeGuestLocalRecoveryCloudLink(

@@ -143,6 +143,7 @@
 "common.continue" = "続行";
 "common.copy" = "コピー";
 "common.copyError" = "コピー エラー";
+"common.create" = "作成";
 "common.delete" = "削除";
 "common.done" = "準備完了";
 "common.edit" = "編集";
