@@ -1,7 +1,19 @@
 package com.flashcardsopensourceapp.feature.review
 
-import com.flashcardsopensourceapp.data.local.model.media.MediaAsset
+import com.flashcardsopensourceapp.core.ui.content.InlineMathFormula
+import com.flashcardsopensourceapp.core.ui.content.MathBlock
+import com.flashcardsopensourceapp.core.ui.content.MathBlockExtraction
+import com.flashcardsopensourceapp.core.ui.content.countInlineMathMarkers
+import com.flashcardsopensourceapp.core.ui.content.extractMathBlocks
+import com.flashcardsopensourceapp.core.ui.content.inlineMathMarker
+import com.flashcardsopensourceapp.core.ui.content.inlineMathTag
+import com.flashcardsopensourceapp.core.ui.content.isMarkdownFenceClosingLine
+import com.flashcardsopensourceapp.core.ui.content.markdownFenceMarker
+import com.flashcardsopensourceapp.core.ui.content.markdownHorizontalRuleRegex
+import com.flashcardsopensourceapp.core.ui.content.markdownTableDelimiterRegex
+import com.flashcardsopensourceapp.core.ui.content.removeInlineMathMarkers
 import com.flashcardsopensourceapp.data.local.model.media.ManagedMediaReference
+import com.flashcardsopensourceapp.data.local.model.media.MediaAsset
 import com.flashcardsopensourceapp.data.local.model.media.parseManagedMediaReference
 import org.intellij.markdown.MarkdownElementTypes
 import org.intellij.markdown.ast.ASTNode
@@ -23,18 +35,12 @@ internal val reviewHeadingRegex: Regex = Regex(pattern = """^\s{0,3}(#{1,6})\s+(
 internal val reviewQuoteRegex: Regex = Regex(pattern = """^\s{0,3}>\s?(.*)$""")
 internal val reviewBulletRegex: Regex = Regex(pattern = """^\s{0,3}[-*+]\s+(.+?)\s*$""")
 internal val reviewOrderedListRegex: Regex = Regex(pattern = """^\s{0,3}\d+\.\s+(.+?)\s*$""")
-internal val reviewHorizontalRuleRegex: Regex = Regex(pattern = """^\s{0,3}(?:-{3,}|\*{3,}|_{3,})\s*$""")
-internal val reviewTableDelimiterRegex: Regex = Regex(
-    pattern = """^\s*\|?(?:\s*:?-{3,}:?\s*\|)+\s*:?-{3,}:?\s*\|?\s*$"""
-)
 internal val reviewManagedMediaReferenceRegex: Regex = Regex(
     pattern = """(!)?\[([^\]]*)]\(([^)\s]+)(?:\s+"[^"]*")?\)"""
 )
 private val reviewMarkdownLinkOrImageRegex: Regex = Regex(
     pattern = """!?\[[^\]]*]\([^)]+\)"""
 )
-private val reviewFenceOpeningRegex: Regex = Regex(pattern = """^\s{0,3}(`{3,}|~{3,})(.*)$""")
-private val reviewFenceClosingRegex: Regex = Regex(pattern = """^\s{0,3}(`{3,}|~{3,})\s*$""")
 private data class ReviewManagedMediaMatch(
     val range: IntRange,
     val reference: ReviewManagedMediaReference
@@ -74,8 +80,8 @@ internal fun prepareReviewContent(
     // An accepted inline formula stands in as one marker character, so a marker the card text
     // already holds would consume a formula slot. Removing it once, before segmentation, keeps
     // every offset that segmentation, rendering and speech derive from this text consistent.
-    val sanitizedText: String = removeReviewInlineMathMarkers(text = text)
-    val mathExtraction: ReviewMathBlockExtraction = extractReviewMathBlocks(
+    val sanitizedText: String = removeInlineMathMarkers(text = text)
+    val mathExtraction: MathBlockExtraction = extractMathBlocks(
         markdown = sanitizedText
     )
     val renderedContent: ReviewRenderedContent = makeReviewRenderedContent(
@@ -93,10 +99,10 @@ internal fun prepareReviewContent(
 private fun makeReviewRenderedContent(
     text: String,
     mediaAssetsById: Map<String, MediaAsset>,
-    mathBlocks: List<ReviewMathBlock>,
+    mathBlocks: List<MathBlock>,
     requiresMarkdownRendering: Boolean
 ): ReviewRenderedContent {
-    if (mathBlocks.any { block -> block is ReviewMathBlock.Formula }) {
+    if (mathBlocks.any { block -> block is MathBlock.Formula }) {
         return makeReviewMathMarkdownContent(
             mathBlocks = mathBlocks,
             mediaAssetsById = mediaAssetsById
@@ -116,7 +122,7 @@ private fun makeReviewRenderedContent(
         return ReviewRenderedContent.Markdown(markdown = text)
     }
 
-    val plainText: String = (mathBlocks.single() as ReviewMathBlock.Markdown).normalizedMarkdown
+    val plainText: String = (mathBlocks.single() as MathBlock.Markdown).normalizedMarkdown
     return when (classifyReviewContentPresentation(text = text)) {
         ReviewContentPresentationMode.SHORT_PLAIN -> ReviewRenderedContent.ShortPlain(text = plainText)
         ReviewContentPresentationMode.PARAGRAPH_PLAIN -> {
@@ -127,12 +133,12 @@ private fun makeReviewRenderedContent(
 }
 
 private fun makeReviewMathMarkdownContent(
-    mathBlocks: List<ReviewMathBlock>,
+    mathBlocks: List<MathBlock>,
     mediaAssetsById: Map<String, MediaAsset>
 ): ReviewRenderedContent.ManagedMarkdown {
     val renderedBlocks: MutableList<ReviewManagedMarkdownBlock> = mutableListOf()
     val pendingMarkdown: StringBuilder = StringBuilder()
-    val pendingFormulas: MutableList<ReviewInlineMathFormula> = mutableListOf()
+    val pendingFormulas: MutableList<InlineMathFormula> = mutableListOf()
     var inlineFormulaIndex: Int = 0
 
     fun flushPendingMarkdown() {
@@ -149,20 +155,20 @@ private fun makeReviewMathMarkdownContent(
 
     mathBlocks.forEach { block ->
         when (block) {
-            is ReviewMathBlock.Markdown -> pendingMarkdown.append(block.markdown)
+            is MathBlock.Markdown -> pendingMarkdown.append(block.markdown)
 
             // An accepted inline span stays inside its paragraph, standing in as one marker
             // character; only display math is its own top-level block.
-            is ReviewMathBlock.Formula -> if (block.continuesParagraph) {
+            is MathBlock.Formula -> if (block.continuesParagraph) {
                 pendingFormulas.add(
-                    element = ReviewInlineMathFormula(
-                        tag = reviewInlineMathTag(index = inlineFormulaIndex),
+                    element = InlineMathFormula(
+                        tag = inlineMathTag(index = inlineFormulaIndex),
                         source = block.source,
                         delimitedSource = block.delimitedSource
                     )
                 )
                 inlineFormulaIndex += 1
-                pendingMarkdown.append(reviewInlineMathMarker)
+                pendingMarkdown.append(inlineMathMarker)
             } else {
                 flushPendingMarkdown()
                 renderedBlocks.add(
@@ -181,7 +187,7 @@ private fun makeReviewMathMarkdownContent(
 
 private fun reviewManagedMarkdownBlocks(
     text: String,
-    inlineFormulas: List<ReviewInlineMathFormula>,
+    inlineFormulas: List<InlineMathFormula>,
     mediaAssetsById: Map<String, MediaAsset>
 ): List<ReviewManagedMarkdownBlock> {
     val managedContent: ReviewRenderedContent.ManagedMarkdown? = makeReviewManagedMarkdownContent(
@@ -238,31 +244,10 @@ private fun hasStrongRichCue(text: String): Boolean {
             || reviewQuoteRegex.matches(line)
             || reviewBulletRegex.matches(line)
             || reviewOrderedListRegex.matches(line)
-            || reviewFenceMarker(line = line) != null
-            || reviewHorizontalRuleRegex.matches(line)
-            || reviewTableDelimiterRegex.matches(line)
+            || markdownFenceMarker(line = line) != null
+            || markdownHorizontalRuleRegex.matches(line)
+            || markdownTableDelimiterRegex.matches(line)
     }
-}
-
-internal fun reviewFenceMarker(line: String): String? {
-    val match: MatchResult = reviewFenceOpeningRegex.matchEntire(input = line) ?: return null
-    val marker: String = match.groupValues[1]
-    val info: String = match.groupValues[2]
-    if (marker.first() == '`' && info.contains('`')) {
-        return null
-    }
-
-    return marker
-}
-
-internal fun isReviewFenceClosingLine(
-    line: String,
-    openingMarker: String
-): Boolean {
-    val match: MatchResult = reviewFenceClosingRegex.matchEntire(input = line) ?: return false
-    val closingMarker: String = match.groupValues[1]
-    return closingMarker.first() == openingMarker.first() &&
-        closingMarker.length >= openingMarker.length
 }
 
 internal fun parseReviewManagedMediaAssetId(reference: String): String? {
@@ -271,7 +256,7 @@ internal fun parseReviewManagedMediaAssetId(reference: String): String? {
 
 private fun makeReviewManagedMarkdownContent(
     text: String,
-    inlineFormulas: List<ReviewInlineMathFormula>,
+    inlineFormulas: List<InlineMathFormula>,
     mediaAssetsById: Map<String, MediaAsset>
 ): ReviewRenderedContent.ManagedMarkdown? {
     val matches: List<ReviewManagedMediaMatch> = findReviewManagedMediaMatches(
@@ -290,7 +275,7 @@ private fun makeReviewManagedMarkdownContent(
                 startIndex = currentIndex,
                 endIndex = match.range.first
             )
-            val precedingFormulaCount: Int = countReviewInlineMathMarkers(text = precedingMarkdown)
+            val precedingFormulaCount: Int = countInlineMathMarkers(text = precedingMarkdown)
             if (precedingMarkdown.isNotBlank()) {
                 add(
                     ReviewManagedMarkdownBlock.Markdown(
@@ -340,11 +325,11 @@ private fun findReviewManagedMediaMatches(
                 if (index < 0) text.length else index
             }
             val line: String = text.substring(startIndex = lineStart, endIndex = lineEnd)
-            val fenceMarker: String? = reviewFenceMarker(line = line)
+            val fenceMarker: String? = markdownFenceMarker(line = line)
             val currentFenceMarker: String? = activeFenceMarker
 
             if (currentFenceMarker != null) {
-                if (isReviewFenceClosingLine(line = line, openingMarker = currentFenceMarker)) {
+                if (isMarkdownFenceClosingLine(line = line, openingMarker = currentFenceMarker)) {
                     activeFenceMarker = null
                 }
             } else if (fenceMarker != null) {

@@ -54,6 +54,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.flashcardsopensourceapp.core.ui.content.MathText
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatSessionHistorySummary
 import com.flashcardsopensourceapp.data.local.model.ai.aiChatSessionTitleMaximumLength
 import com.flashcardsopensourceapp.feature.ai.R
@@ -379,7 +380,7 @@ private fun AiChatHistoryRow(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text(
+                    MathText(
                         text = summary.title ?: stringResource(id = R.string.ai_history_untitled_chat),
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
@@ -397,7 +398,7 @@ private fun AiChatHistoryRow(
             },
             supportingContent = if (preview != null) {
                 {
-                    Text(
+                    MathText(
                         text = preview,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis

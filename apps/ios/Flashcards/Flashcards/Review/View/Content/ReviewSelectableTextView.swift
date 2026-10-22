@@ -5,6 +5,10 @@ struct ReviewSelectableTextView: UIViewRepresentable {
     let sourceText: String
     let content: ReviewRenderedContent
     let surfaceStyle: ReviewCardSurfaceStyle
+    var textFont: UIFont? = nil
+    var textColor: UIColor = .label
+    var isSelectable: Bool = true
+    var lineLimit: Int? = nil
     @State private var attachmentLayoutVersion = 0
 
     func makeCoordinator() -> Coordinator { Coordinator() }
@@ -12,7 +16,7 @@ struct ReviewSelectableTextView: UIViewRepresentable {
     func makeUIView(context: Context) -> ReviewSelectionTextView {
         let view = ReviewSelectionTextView(usingTextLayoutManager: true)
         view.isEditable = false
-        view.isSelectable = true
+        view.isSelectable = self.isSelectable
         view.delegate = view
         view.isScrollEnabled = false
         view.backgroundColor = .clear
@@ -26,8 +30,12 @@ struct ReviewSelectableTextView: UIViewRepresentable {
     func updateUIView(_ view: ReviewSelectionTextView, context: Context) {
         _ = self.attachmentLayoutVersion
         view.onAttachmentSizeChange = { self.attachmentLayoutVersion += 1 }
-        let font = UIFont.preferredFont(forTextStyle: .body)
-        let identity = "\(self.sourceText)-\(font.pointSize)-\(context.environment.colorScheme)-\(context.environment.displayScale)"
+        let font = self.textFont ?? UIFont.preferredFont(forTextStyle: .body)
+        view.isSelectable = self.isSelectable
+        view.textContainer.maximumNumberOfLines = self.lineLimit ?? 0
+        view.textContainer.lineBreakMode = self.lineLimit == nil ? .byWordWrapping : .byTruncatingTail
+        let color = self.textColor.resolvedColor(with: UITraitCollection(userInterfaceStyle: context.environment.colorScheme == .dark ? .dark : .light))
+        let identity = "\(self.sourceText)-\(font.fontName)-\(font.pointSize)-\(font.fontDescriptor.symbolicTraits.rawValue)-\(color.cgColor.components ?? [])-\(self.isSelectable)-\(String(describing: self.lineLimit))-\(context.environment.colorScheme)-\(context.environment.displayScale)"
         guard context.coordinator.identity != identity else { return }
         context.coordinator.identity = identity
         view.resignFirstResponder()
@@ -35,7 +43,9 @@ struct ReviewSelectableTextView: UIViewRepresentable {
             view.applyReviewContent(try makeReviewSelectableContent(
                 content: self.content,
                 surfaceStyle: self.surfaceStyle,
-                environment: context.environment
+                environment: context.environment,
+                textFont: self.textFont,
+                textColor: self.textColor
             ))
         } catch {
             view.applyReviewContent(NSAttributedString(
@@ -44,13 +54,16 @@ struct ReviewSelectableTextView: UIViewRepresentable {
             ))
         }
         view.selectedRange = NSRange(location: 0, length: 0)
-        view.accessibilityIdentifier = self.surfaceStyle == .front
-            ? UITestIdentifier.reviewFrontSelectableText : UITestIdentifier.reviewBackSelectableText
+        if self.textFont == nil {
+            view.accessibilityIdentifier = self.surfaceStyle == .front
+                ? UITestIdentifier.reviewFrontSelectableText : UITestIdentifier.reviewBackSelectableText
+        }
         view.rebuildAccessibilityContent()
     }
 
     func sizeThatFits(_ proposal: ProposedViewSize, uiView: ReviewSelectionTextView, context: Context) -> CGSize? {
-        guard let width = proposal.width, width > 0 else { return nil }
+        // Horizontal suggestion/chip stacks propose no width; keep those previews bounded.
+        guard let width = proposal.width ?? (self.textFont == nil ? nil : 320), width > 0 else { return nil }
         return uiView.sizeThatFits(CGSize(width: width, height: .greatestFiniteMagnitude))
     }
 

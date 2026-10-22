@@ -1,7 +1,8 @@
 package com.flashcardsopensourceapp.feature.review
 
-import com.flashcardsopensourceapp.data.local.model.media.MediaAsset
+import com.flashcardsopensourceapp.core.ui.content.InlineMathFormula
 import com.flashcardsopensourceapp.data.local.model.media.ManagedMediaReferenceState
+import com.flashcardsopensourceapp.data.local.model.media.MediaAsset
 import com.flashcardsopensourceapp.data.local.model.review.ReviewCard
 import com.flashcardsopensourceapp.data.local.model.review.ReviewRating
 
@@ -29,22 +30,10 @@ sealed interface ReviewRenderedContent {
     ) : ReviewRenderedContent
 }
 
-/**
- * An accepted `$…$` span that renders on the surrounding text baseline.
- *
- * The span stands in its block Markdown as one marker character, and formulas are ordered by the
- * marker they replace. [tag] is the Compose inline-content tag the rendered formula is resolved by.
- */
-data class ReviewInlineMathFormula(
-    val tag: String,
-    val source: String,
-    val delimitedSource: String
-)
-
 sealed interface ReviewManagedMarkdownBlock {
     data class Markdown(
         val markdown: String,
-        val inlineFormulas: List<ReviewInlineMathFormula>
+        val inlineFormulas: List<InlineMathFormula>
     ) : ReviewManagedMarkdownBlock
 
     data class ManagedMedia(

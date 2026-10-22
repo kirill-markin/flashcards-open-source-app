@@ -1,5 +1,6 @@
 import { useLayoutEffect, useRef, useState } from "react";
 import { useI18n } from "../../i18n";
+import { MathText } from "../../components/MathText";
 import type { ChatSessionHistorySummary } from "../../types";
 import { ChatHistoryLoadError, ChatHistoryLoading } from "./chatHistoryShared";
 
@@ -179,7 +180,7 @@ export function ChatHistoryList(props: {
                     data-testid="chat-history-open"
                   >
                     <span className="chat-history-item-title-row">
-                      <span className="chat-history-item-title">{title}</span>
+                      <span className="chat-history-item-title"><MathText text={title} /></span>
                       {isCurrent ? (
                         <span className="chat-history-item-current" data-testid="chat-history-current">
                           {t("chatPanel.history.current")}
@@ -195,7 +196,7 @@ export function ChatHistoryList(props: {
                       )}
                     </span>
                     {summary.preview !== null ? (
-                      <span className="chat-history-item-preview">{summary.preview}</span>
+                      <span className="chat-history-item-preview"><MathText text={summary.preview} /></span>
                     ) : null}
                   </button>
                   <div className="chat-history-item-actions">

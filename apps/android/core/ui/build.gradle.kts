@@ -26,6 +26,7 @@ android {
 }
 
 dependencies {
+    implementation(libs.ratex.android)
     implementation(libs.androidx.core.ktx)
     implementation(libs.org.jetbrains.kotlinx.coroutines.android)
 
