@@ -167,11 +167,11 @@ export function buildExcludedActorReasonSql(actorIdSqlExpression: string): strin
  * identities, which is what the funnel calls them on screen; that number is never merged into a count
  * of people.
  *
- * NOT AN ENTRY, FOR THE DECK FUNNEL'S REASON: `identified_site_visitors`, the `Web` series of
- * `reports/whoSawUs/query.ts`, and `identified_visitor_days`, its engaged subset in
- * `reports/whoSawUs/engagedVisitorsQuery.ts`. They count the browser visitor identities that
- * `anonymous_client` site facts carry - the site's own facts - so this predicate would empty them.
- * They are counts of site visitors, never merged into a count of people, and they apply the
+ * NOT AN ENTRY, FOR THE DECK FUNNEL'S REASON: `identified_visitor_days` in
+ * `reports/whoSawUs/engagedVisitorsQuery.ts`, which the `Web engaged` series of
+ * `reports/whoSawUs/query.ts` counts. It counts the browser visitor identities that
+ * `anonymous_client` site facts carry - the site's own facts - so this predicate would empty it.
+ * It is a count of site visitors, never merged into a count of people, and it applies the
  * exclusion rule above. The blog funnel's `identified_readers`
  * (`reports/blogFunnels/platformChoiceQuery.ts`) reads the same facts through the same
  * `buildIdentifiedSiteFactFilterSql` and stays out for the same reason.
@@ -212,9 +212,9 @@ export function buildTrustedActorRowsFilterSql(trustLevelSqlExpression: string):
  * nothing from here - their cohorts already compose that rule - and neither do the option lists over
  * collector rows, which restate it too.
  *   - `buildHashedSiteVisitorRowSqlLines` in `apps/admin/src/reports/funnels/funnelAudienceSql.ts`,
- *     the cookieless hashed cohort of the blog funnel, of the deck funnel, and of the `Web` series
- *     of Who saw us (`hashed_site_visitors` in `reports/whoSawUs/query.ts`) and its engaged subset (`hashed_visitor_days` in
- *     `reports/whoSawUs/engagedVisitorsQuery.ts`): every hashed page view and every hashed click.
+ *     the cookieless hashed cohort of the blog funnel, of the deck funnel, and of the `Web engaged`
+ *     series of Who saw us (`hashed_visitor_days` in `reports/whoSawUs/engagedVisitorsQuery.ts`):
+ *     every hashed page view and every hashed click.
  *     Those rows carry a NULL `actor_id` by construction, so the automated verdict can judge them
  *     only row by row here, beside the hash-level scraper-fleet `NOT IN` in the same builder, and a
  *     marked browser-day never becomes a person.

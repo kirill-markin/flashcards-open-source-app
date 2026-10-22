@@ -1,21 +1,8 @@
-import { runAdminQuery } from "../../adminApi";
 import type { ChartNote } from "../../charts/chartNotes";
-import type { AdminAppConfig } from "../../config";
 import type { AnalyticsDateRange } from "../../filters/analyticsFilters";
 import { escapeSqlStringLiteral } from "../../sql";
 import { buildHashedVisitorDaySql } from "../funnels/funnelAudienceSql";
-import {
-  buildReportBucketColumnsSql,
-  buildReportBucketSql,
-  buildReportBucketsCteSql,
-  parseReportBucket,
-  type ReportBucket,
-  type ReportPeriod,
-} from "../levelOneMetrics/reportPeriod";
-import { assertValidDateRange, parseActivityCount, parseActivityDate } from "../reportValues";
-import { buildHashedSiteFactFilterSql, buildIdentifiedSiteFactFilterSql, buildSiteEventNamesSql } from "./query";
-
-const reportLabel = "Engaged visitors report";
+import { buildHashedSiteFactFilterSql, buildIdentifiedSiteFactFilterSql, buildSiteEventNamesSql } from "./siteFactSql";
 
 /**
  * The site facts that make a visitor-day engaged beside its page views: every marketing-site event,
@@ -75,28 +62,15 @@ export function buildSiteEngagementFactSql(rowAlias: string): string {
   ].join("");
 }
 
-export type EngagedVisitorsBucket = Readonly<{
-  bucket: ReportBucket;
-  /** NULL exactly where the `web` series is: the bucket has no site visitor at all. */
-  engagedVisitors: number | null;
-}>;
-
-export type EngagedVisitorsReport = Readonly<{
-  generatedAtUtc: string;
-  period: ReportPeriod;
-  today: string;
-  /** Every bucket of the range, oldest first. */
-  buckets: ReadonlyArray<EngagedVisitorsBucket>;
-}>;
-
 /**
  * `identified_visitor_days(actor_id, visit_date, is_engaged)` and
- * `hashed_visitor_days(daily_visitor_hash, visit_date, is_engaged)`: the `web` series' visitor-days.
+ * `hashed_visitor_days(daily_visitor_hash, visit_date, is_engaged)`: the site's visitor-days, whose
+ * engaged ones the `web` series counts.
  *
- * A visitor-day is one of that series' people on one UTC day, keyed as the series keys them: an
- * identified visitor on the UTC day of `occurred_at`, a cookieless one on the hash's salt day. It
- * exists only with a page view, so every engaged visitor is a `web` visitor of the same bucket, and
- * it is engaged with two facts of the day that `buildSiteEngagementFactSql` accepts.
+ * A visitor-day is one site visitor on one UTC day, keyed as the series keys them: an identified
+ * visitor on the UTC day of `occurred_at`, a cookieless one on the hash's salt day. It exists only
+ * with a page view, and it is engaged with two facts of the day that `buildSiteEngagementFactSql`
+ * accepts.
  */
 export function buildSiteVisitorDaysCtesSql(range: AnalyticsDateRange): string {
   const identifiedDaySql = "(site_fact.occurred_at AT TIME ZONE 'UTC')::date";
@@ -122,67 +96,4 @@ export function buildSiteVisitorDaysCtesSql(range: AnalyticsDateRange): string {
     "  HAVING COUNT(*) FILTER (WHERE hashed_fact.event_name = 'site_page_viewed') > 0",
     ")",
   ].join("\n");
-}
-
-/**
- * One row per bucket of the range: the `web` series' visitors who did more than open one page, over
- * `buildSiteVisitorDaysCtesSql`. The buckets combine the two cohorts as the series does: an
- * identified visitor engaged on any of the bucket's days counts once, cookieless visitor-days are
- * summed.
- */
-export function buildEngagedVisitorsSql(dateRange: AnalyticsDateRange, period: ReportPeriod): string {
-  const range = assertValidDateRange(dateRange, reportLabel);
-  const identifiedBucketSql = buildReportBucketSql(period, "identified.visit_date");
-  const hashedBucketSql = buildReportBucketSql(period, "hashed.visit_date");
-
-  return [
-    `WITH ${buildReportBucketsCteSql(period, range)}, ${buildSiteVisitorDaysCtesSql(range)}, engaged_visitors AS (`,
-    "  SELECT",
-    `    ${identifiedBucketSql} AS bucket_date,`,
-    "    COUNT(DISTINCT identified.actor_id) FILTER (WHERE identified.is_engaged) AS visitor_count",
-    "  FROM identified_visitor_days AS identified",
-    `  GROUP BY ${identifiedBucketSql}`,
-    "  UNION ALL",
-    "  SELECT",
-    `    ${hashedBucketSql} AS bucket_date,`,
-    "    COUNT(*) FILTER (WHERE hashed.is_engaged) AS visitor_count",
-    "  FROM hashed_visitor_days AS hashed",
-    `  GROUP BY ${hashedBucketSql}`,
-    "), engaged_buckets AS (",
-    "  SELECT engaged_visitors.bucket_date, SUM(engaged_visitors.visitor_count)::bigint AS visitor_count",
-    "  FROM engaged_visitors",
-    "  GROUP BY engaged_visitors.bucket_date",
-    ")",
-    "SELECT",
-    `  ${buildReportBucketColumnsSql("buckets")},`,
-    "  to_char((now() AT TIME ZONE 'UTC')::date, 'YYYY-MM-DD') AS today,",
-    "  engaged.visitor_count AS engaged_visitors",
-    "FROM report_buckets AS buckets",
-    "LEFT JOIN engaged_buckets AS engaged ON engaged.bucket_date = buckets.bucket_date",
-    "ORDER BY buckets.bucket_date",
-  ].join("\n");
-}
-
-export async function loadEngagedVisitorsReport(
-  config: AdminAppConfig,
-  dateRange: AnalyticsDateRange,
-  period: ReportPeriod,
-  signal: AbortSignal,
-): Promise<EngagedVisitorsReport> {
-  const response = await runAdminQuery(config, buildEngagedVisitorsSql(dateRange, period), signal);
-  const resultSet = response.resultSets[0];
-  const firstRow = resultSet?.rows[0];
-  if (response.resultSets.length !== 1 || resultSet === undefined || firstRow === undefined) {
-    throw new Error(`${reportLabel} must return one result set with at least one bucket.`);
-  }
-
-  return {
-    generatedAtUtc: response.executedAtUtc,
-    period,
-    today: parseActivityDate(firstRow.today ?? null, reportLabel, "today"),
-    buckets: resultSet.rows.map((row) => ({
-      bucket: parseReportBucket(row, reportLabel),
-      engagedVisitors: parseActivityCount(row.engaged_visitors ?? null, reportLabel, "engaged_visitors"),
-    })),
-  };
 }

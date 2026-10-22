@@ -14,7 +14,7 @@ import {
   buildHashedSiteFactFilterSql,
   buildIdentifiedSiteFactFilterSql,
   buildSiteEventNamesSql,
-} from "../whoSawUs/query";
+} from "../whoSawUs/siteFactSql";
 import { blogFunnelStartDate } from "./blogFunnelEntry";
 
 /** Step four's rows: a QR card shown on a store button's hover or focus, or a click on any platform. */
