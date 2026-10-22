@@ -2040,17 +2040,16 @@ export const productAnalyticsEventCatalog = {
       result_count: { kind: "nonNegativeInteger" },
     },
   },
-  // The deck a browse actually ended on, which no `site_page_viewed` on the package page can answer:
-  // that view happens whatever brought the visitor there, including a search engine. `placement` is
-  // a closed set of the three ways out of a browse listing and not the site placement space the
-  // CTA events use, because a listing card is one element with named parts rather than a container
-  // the site can add a placement to.
   site_catalog_deck_opened: {
     serverOnly: false,
     requiresScreen: false,
     properties: {
       package_slug: { kind: "string", pattern: productAnalyticsSlugPattern },
-      placement: { kind: "enum", values: ["card_cover", "card_title", "related_deck"] },
+      placement: {
+        kind: "enum",
+        values: ["card_cover", "card_title", "related_deck", "article_start_side", "mid_article", "article_end"],
+      },
+      page_path: { kind: "string", pattern: productAnalyticsSitePagePathPattern, optional: true },
     },
   },
   // The marketing site's own consent decision. They are named apart from the `consent_*` family
