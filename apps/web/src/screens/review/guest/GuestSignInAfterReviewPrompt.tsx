@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState, type ReactElement } from "react";
+import { track, trackScreenViewedOnDismiss, useAnalyticsScreenView } from "../../../analytics";
 import { useAppData } from "../../../appData";
 import { readPendingGuestConversion } from "../../../appData/session/guest/browserGuestStorage";
 import { useI18n } from "../../../i18n";
@@ -16,6 +17,8 @@ export function GuestSignInAfterReviewPrompt(props: Readonly<{ blocked: boolean;
   const [count, setCount] = useState<number | null>(null);
   const [recheck, setRecheck] = useState(0);
   const [externalModalOpen, setExternalModalOpen] = useState(false);
+  // One answer per showing; a ref, so `later` and with it the focus effect stay stable.
+  const answeredRef = useRef(false);
   const dialog = useRef<HTMLElement | null>(null);
   const key = `guest-sign-in-after-review:${app.session?.userId ?? ""}`;
   const workspaceId = app.activeWorkspace?.workspaceId ?? null;
@@ -40,6 +43,7 @@ export function GuestSignInAfterReviewPrompt(props: Readonly<{ blocked: boolean;
     };
   }, []);
   const visible = count !== null && !props.blocked && !externalModalOpen && isGuest && app.isSessionVerified;
+  useEffect(() => { if (visible) answeredRef.current = false; }, [visible]);
   useEffect(() => {
     props.onVisibilityChange(visible);
     return () => props.onVisibilityChange(false);
@@ -66,11 +70,23 @@ export function GuestSignInAfterReviewPrompt(props: Readonly<{ blocked: boolean;
   }, [isGuest, app.isSessionVerified, workspaceId, app.localReadVersion, props.blocked, externalModalOpen, key, recheck, report]);
 
   const later = useCallback((): void => {
+    if (!answeredRef.current) {
+      answeredRef.current = true;
+      track({ name: "prompt_answered", prompt: "signin_after_review_prompt", outcome: "snoozed" });
+    }
+    trackScreenViewedOnDismiss({ dismissed: "signin_after_review_prompt", restored: "review" });
     try {
       localStorage.setItem(key, JSON.stringify({ lastShownReviewCount: count, snoozedUntil: Date.now() + snoozeMillis, accepted: false }));
       setCount(null); setRecheck((value) => value + 1);
     } catch (failure) { report(failure); }
   }, [key, count, report]);
+  const signInPressed = useCallback((): void => {
+    // Before sign-in's first await: starting it unverifies the session, which hides the prompt and
+    // hands the stamp back to `review`. Recorded on the press, as iOS and Android do.
+    if (answeredRef.current) return;
+    answeredRef.current = true;
+    track({ name: "prompt_answered", prompt: "signin_after_review_prompt", outcome: "accepted" });
+  }, []);
   useEffect(() => {
     if (!visible) return;
     const previous = document.activeElement;
@@ -83,6 +99,7 @@ export function GuestSignInAfterReviewPrompt(props: Readonly<{ blocked: boolean;
     return () => { document.removeEventListener("keydown", onKey); if (previous instanceof HTMLElement && previous.isConnected
       && document.querySelector('dialog[open], [aria-modal="true"]:not([data-testid="guest-review-reminder"])') === null) previous.focus(); };
   }, [visible, later]);
+  useAnalyticsScreenView(visible ? "signin_after_review_prompt" : null);
   if (!visible) return null;
   return <div className="review-hard-reminder-overlay">
     <section ref={dialog} className="panel review-hard-reminder-modal" role="dialog" aria-modal="true"
@@ -90,7 +107,7 @@ export function GuestSignInAfterReviewPrompt(props: Readonly<{ blocked: boolean;
       <h2 id="guest-review-prompt-title" className="title">{t("guest.saveProgress")}</h2>
       <p id="guest-review-prompt-body">{t("guest.reminder")}</p>
       <div className="screen-actions">
-        <GuestSignIn label={t("guest.signIn")} testId="guest-review-sign-in" onStarted={() => {
+        <GuestSignIn label={t("guest.signIn")} testId="guest-review-sign-in" onPressed={signInPressed} onStarted={() => {
           try { localStorage.setItem(key, JSON.stringify({ lastShownReviewCount: count, snoozedUntil: 0, accepted: true })); }
           catch (failure) { report(failure); }
         }} />

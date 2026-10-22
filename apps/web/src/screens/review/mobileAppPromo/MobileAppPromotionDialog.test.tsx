@@ -88,6 +88,7 @@ describe("MobileAppPromotionDialog", () => {
     await renderDialog({
       isOpen: false,
       onDismiss: () => undefined,
+      onStoreLinkClick: null,
       storeLinks: webReviewMobilePromptStoreLinks,
     });
 
@@ -101,6 +102,7 @@ describe("MobileAppPromotionDialog", () => {
     await renderDialog({
       isOpen: true,
       onDismiss,
+      onStoreLinkClick: null,
       storeLinks: webReviewMobilePromptStoreLinks,
     });
 
@@ -139,6 +141,7 @@ describe("MobileAppPromotionDialog", () => {
       await renderDialog({
         isOpen: true,
         onDismiss,
+        onStoreLinkClick: null,
         storeLinks: webReviewMobilePromptStoreLinks,
       });
 
@@ -151,6 +154,7 @@ describe("MobileAppPromotionDialog", () => {
       await renderDialog({
         isOpen: false,
         onDismiss,
+        onStoreLinkClick: null,
         storeLinks: webReviewMobilePromptStoreLinks,
       });
 
@@ -164,6 +168,7 @@ describe("MobileAppPromotionDialog", () => {
     await renderDialog({
       isOpen: true,
       onDismiss: () => undefined,
+      onStoreLinkClick: null,
       storeLinks: webReviewMobilePromptStoreLinks,
     });
 
@@ -183,6 +188,7 @@ describe("MobileAppPromotionDialog", () => {
     await renderDialog({
       isOpen: true,
       onDismiss: () => undefined,
+      onStoreLinkClick: null,
       storeLinks: webReviewMobilePromptStoreLinks,
     });
 
@@ -228,6 +234,7 @@ describe("MobileAppPromotionDialog", () => {
     await renderDialog({
       isOpen: true,
       onDismiss: () => undefined,
+      onStoreLinkClick: null,
       storeLinks: webReviewMobilePromptStoreLinks,
     });
 
