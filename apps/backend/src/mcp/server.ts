@@ -7,12 +7,13 @@ import {
   submitAgentReview,
 } from "../agent/reviews";
 import { runSqlExecute, runSqlQuery } from "../aiTools/agentSql";
+import type { AgentSqlResultMeasure } from "../aiTools/agentSql/resultBudget";
 import type { AgentSqlContext, AgentSqlExecutionResult } from "../aiTools/agentSql/shared";
 import {
   ASSISTANT_BEHAVIOUR_RULE_LINES,
   ASSISTANT_PRODUCT_DESCRIPTION,
 } from "../aiTools/toolContract/assistantContract";
-import { createAgentRemediationInstructions } from "../aiTools/toolContract/remediationInstructions";
+import { createAgentToolErrorMessage } from "../aiTools/toolContract/remediationInstructions";
 import {
   SQL_EXECUTE_TOOL_NAME,
   SQL_QUERY_TOOL_NAME,
@@ -21,6 +22,7 @@ import { MAX_SQL_RESULT_CHARS } from "../aiTools/toolContract/sqlToolLimits";
 import { USAGE_LIMITS_TOOL_NAME } from "../aiTools/toolContract/usageToolContract";
 import { loadAiUsageStatus } from "../aiUsage";
 import {
+  buildAgentSqlToolPayload,
   listAgentToolSpecsForSurface,
   GET_GUIDE_TOOL_NAME,
   LIST_WORKSPACES_TOOL_NAME,
@@ -33,10 +35,9 @@ import {
   resolveAccessibleAgentWorkspaceId,
   type WorkspaceRequestContext,
 } from "../server/requestContext";
-import { createAgentEnvelope, createAgentErrorEnvelope } from "../agent/envelope";
 import { getMcpRequestId } from "./requestTelemetry";
 import { requireMcpToolOutputSchema } from "./outputSchemas";
-import { createPublicHttpErrorDetails, HttpError } from "../shared/errors";
+import { createPublicHttpErrorDetails, HttpError, type PublicHttpErrorDetails } from "../shared/errors";
 import {
   listUserWorkspacesWithStatsForSelectedWorkspace,
   type WorkspaceSummaryWithStats,
@@ -162,12 +163,12 @@ export type McpServerDependencies = Readonly<{
   runSqlQuery: (
     context: AgentSqlContext,
     sql: string,
-    requestUrl: string,
+    measureResultChars: AgentSqlResultMeasure,
   ) => Promise<AgentSqlExecutionResult>;
   runSqlExecute: (
     context: AgentSqlContext,
     sql: string,
-    requestUrl: string,
+    measureResultChars: AgentSqlResultMeasure,
   ) => Promise<AgentSqlExecutionResult>;
   listUserWorkspacesWithStatsForSelectedWorkspace: (
     userId: string,
@@ -237,7 +238,7 @@ function buildToolResultText(payload: unknown): string {
   return JSON.stringify(payload);
 }
 
-function buildToolResult(payload: Record<string, unknown>): CallToolResult {
+function buildToolResult(payload: Readonly<Record<string, unknown>>): CallToolResult {
   return {
     content: [
       {
@@ -246,6 +247,58 @@ function buildToolResult(payload: Record<string, unknown>): CallToolResult {
       },
     ],
   };
+}
+
+/**
+ * A tool result carries facts only, unlike the REST agent envelope it shares its `ok`, `data` and
+ * `error` fields with: what to do with them is in the tool descriptions and `get_guide` topics, and a
+ * failure's remediation is part of `error.message`.
+ */
+type ToolSuccessEnvelope = Readonly<{
+  ok: true;
+  data: unknown;
+}>;
+
+type ToolErrorDetails = PublicHttpErrorDetails & Readonly<{
+  workspaces?: ReadonlyArray<WorkspaceSummaryWithStats>;
+}>;
+
+type ToolErrorEnvelope = Readonly<{
+  ok: false;
+  error: Readonly<{
+    code: string;
+    message: string;
+    details?: ToolErrorDetails;
+  }>;
+}>;
+
+function createToolSuccessEnvelope(data: unknown): ToolSuccessEnvelope {
+  return { ok: true, data };
+}
+
+function createToolErrorEnvelope(
+  code: string,
+  message: string,
+  details: ToolErrorDetails | undefined,
+): ToolErrorEnvelope {
+  return {
+    ok: false,
+    error: {
+      code,
+      message,
+      ...(details !== undefined ? { details } : {}),
+    },
+  };
+}
+
+/**
+ * Measures a SQL result as this server emits it, payload augmentation included, so the result-size
+ * budget binds the text a client actually receives.
+ */
+function createSqlToolResultMeasure(workspaceId: string): AgentSqlResultMeasure {
+  return (result) => buildToolResultText(
+    createToolSuccessEnvelope(buildAgentSqlToolPayload(result.data, workspaceId)),
+  ).length;
 }
 
 // Loads the caller's accessible workspaces (with stats) to embed under
@@ -264,7 +317,7 @@ async function buildWorkspaceSelectionDetails(
 /**
  * Mirrors the HTTP agent error contract (apps/backend/src/server/app.ts
  * `app.onError`) on the MCP surface: known `HttpError`s pass through their
- * code/message/details with MCP-appropriate remediation instructions so the
+ * code/message/details, the message followed by MCP-worded remediation so the
  * model can self-correct its next tool call, while any unexpected error
  * returns a generic envelope (no driver/stack internals leak) and is captured
  * server-side. The generic-error branch reuses `app.onError`'s
@@ -282,7 +335,6 @@ async function buildWorkspaceSelectionDetails(
 async function buildToolErrorResult(
   error: unknown,
   code: string,
-  resourceUrl: string,
   connection: AuthenticatedMcpAccessToken,
   toolName: string,
   dependencies: McpServerDependencies,
@@ -331,14 +383,14 @@ async function buildToolErrorResult(
       }
     }
 
-    const errorEnvelope = createAgentErrorEnvelope(
-      resourceUrl,
-      code,
+    const message = createAgentToolErrorMessage(
       error.message,
-      createAgentRemediationInstructions(error.code, error.statusCode, { surface: "mcp", toolName }),
-      undefined,
-      createPublicHttpErrorDetails(error.details) ?? undefined,
+      error.code,
+      error.statusCode,
+      { surface: "mcp", toolName },
     );
+    const details = createPublicHttpErrorDetails(error.details) ?? undefined;
+    const errorEnvelope = createToolErrorEnvelope(code, message, details);
 
     if (error.code === "WORKSPACE_SELECTION_REQUIRED") {
       // Best-effort enrichment: embed the caller's accessible workspaces so the
@@ -354,16 +406,10 @@ async function buildToolErrorResult(
         );
         return {
           isError: true,
-          content: buildToolResult({
-            ...errorEnvelope,
-            error: {
-              ...errorEnvelope.error,
-              details: {
-                ...errorEnvelope.error.details,
-                ...workspaceSelectionDetails,
-              },
-            },
-          }).content,
+          content: buildToolResult(createToolErrorEnvelope(code, message, {
+            ...details,
+            ...workspaceSelectionDetails,
+          })).content,
         };
       } catch (enrichmentError) {
         // Observe before discarding: a systematic enrichment failure (e.g. a
@@ -438,14 +484,11 @@ async function buildToolErrorResult(
 
   return {
     isError: true,
-    content: buildToolResult(
-      createAgentErrorEnvelope(
-        resourceUrl,
-        code,
-        "Internal error executing tool",
-        createAgentRemediationInstructions("INTERNAL_ERROR", 500, { surface: "mcp", toolName }),
-      ),
-    ).content,
+    content: buildToolResult(createToolErrorEnvelope(
+      code,
+      createAgentToolErrorMessage("Internal error executing tool", "INTERNAL_ERROR", 500, { surface: "mcp", toolName }),
+      undefined,
+    )).content,
   };
 }
 
@@ -455,11 +498,9 @@ async function buildToolErrorResult(
  * scoped to the connection resolved from the OAuth or API-key Bearer token.
  *
  * The connection is captured per request (the Lambda creates one server per
- * call) so the tools never read ambient request state. `resourceUrl` is the
- * canonical MCP resource (`https://mcp.<domain>/mcp`) used to build the agent
- * envelope so the tool results share one contract with `/agent/sql/query` and
- * `/agent/sql/execute`. `websiteUrl` is the public marketing-site origin
- * (env-driven, see lambda-mcp.ts) surfaced in the MCP implementation metadata.
+ * call) so the tools never read ambient request state. `websiteUrl` is the
+ * public marketing-site origin (env-driven, see lambda-mcp.ts) surfaced in the
+ * MCP implementation metadata.
  * `iconUrl` is the absolute https URL of the served branded SVG icon
  * (`/icon.svg`), advertised as the server `icons` entry so spec-current MCP
  * clients and auto-ingesting catalogs can render the brand. `telemetry` is the
@@ -467,14 +508,12 @@ async function buildToolErrorResult(
  */
 export function createMcpServer(
   connection: AuthenticatedMcpAccessToken,
-  resourceUrl: string,
   websiteUrl: string,
   iconUrl: string,
   telemetry: McpRequestTelemetryChannel,
 ): McpServer {
   return createMcpServerWithDependencies(
     connection,
-    resourceUrl,
     websiteUrl,
     iconUrl,
     telemetry,
@@ -484,7 +523,6 @@ export function createMcpServer(
 
 export function createMcpServerWithDependencies(
   connection: AuthenticatedMcpAccessToken,
-  resourceUrl: string,
   websiteUrl: string,
   iconUrl: string,
   telemetry: McpRequestTelemetryChannel,
@@ -519,12 +557,12 @@ export function createMcpServerWithDependencies(
         requestedWorkspaceId,
       ),
     actions: {
-      // Both SQL executors size their emitted agent envelope against this server's resource URL,
-      // which is why the registry leaves them to the surface that owns it.
+      // Both SQL executors size the result this server emits, which is why the registry leaves them to
+      // the surface that owns it.
       runSqlQuery: async (sqlContext, sql) =>
-        dependencies.runSqlQuery(sqlContext, sql, resourceUrl),
+        dependencies.runSqlQuery(sqlContext, sql, createSqlToolResultMeasure(sqlContext.workspaceId)),
       runSqlExecute: async (sqlContext, sql) =>
-        dependencies.runSqlExecute(sqlContext, sql, resourceUrl),
+        dependencies.runSqlExecute(sqlContext, sql, createSqlToolResultMeasure(sqlContext.workspaceId)),
       listUserWorkspacesWithStatsForSelectedWorkspace:
         dependencies.listUserWorkspacesWithStatsForSelectedWorkspace,
       nextReviewCard: dependencies.nextReviewCard,
@@ -569,7 +607,7 @@ export function createMcpServerWithDependencies(
         try {
           const result = await spec.execute(toolContext, rawInput);
           const toolResult: CallToolResult = {
-            ...buildToolResult(createAgentEnvelope(resourceUrl, result.data, result.instructions)),
+            ...buildToolResult(createToolSuccessEnvelope(result.data)),
             structuredContent: { data: result.data },
           };
           telemetry.recordToolOutcome({ isError: false, errorCode: null });
@@ -580,7 +618,6 @@ export function createMcpServerWithDependencies(
           return buildToolErrorResult(
             error,
             errorCode,
-            resourceUrl,
             connection,
             spec.name,
             dependencies,

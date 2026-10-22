@@ -11,15 +11,15 @@ import {
 } from "./shared";
 
 /**
- * Measures what a surface actually emits for a result.
- *
- * The MCP tools (`buildToolResultText` in apps/backend/src/mcp/server.ts) and
- * the REST routes (Hono `context.json` in apps/backend/src/routes/agent.ts)
- * both send `JSON.stringify` of the `createAgentEnvelope` object, so building
- * the same envelope here is the one measurement both surfaces are bound by.
+ * The serialized length of what a surface actually emits for a result. Each budgeted surface passes
+ * its own, because their envelopes differ: REST sends the agent envelope with its instructions and
+ * docs, MCP only `ok` and the tool payload (`apps/backend/src/mcp/server.ts`).
  */
-function measureAgentSqlEnvelopeChars(result: AgentSqlExecutionResult, requestUrl: string): number {
-  return JSON.stringify(createAgentEnvelope(requestUrl, result.data, result.instructions)).length;
+export type AgentSqlResultMeasure = (result: AgentSqlExecutionResult) => number;
+
+/** The REST routes send `JSON.stringify` of `createAgentEnvelope` (Hono `context.json`). */
+export function createAgentEnvelopeResultMeasure(requestUrl: string): AgentSqlResultMeasure {
+  return (result) => JSON.stringify(createAgentEnvelope(requestUrl, result.data, result.instructions)).length;
 }
 
 /**
@@ -57,9 +57,9 @@ export type AgentSqlEmission<Result extends AgentSqlExecutionResult> = Readonly<
  */
 export function assertSqlResultWithinSizeBudget<T extends AgentSqlExecutionResult>(
   result: T,
-  requestUrl: string,
+  measureResultChars: AgentSqlResultMeasure,
 ): AgentSqlEmission<T> {
-  const resultChars = measureAgentSqlEnvelopeChars(result, requestUrl);
+  const resultChars = measureResultChars(result);
   if (resultChars > MAX_SQL_RESULT_CHARS) {
     throw new HttpError(
       400,
@@ -158,15 +158,15 @@ function rejectOversizedSingleSelectRow(singleRowChars: number): never {
  */
 export function truncateReadResultToSizeBudget(
   result: AgentSqlReadExecutionResult,
-  requestUrl: string,
+  measureResultChars: AgentSqlResultMeasure,
 ): AgentSqlEmission<AgentSqlReadExecutionResult> {
-  const resultChars = measureAgentSqlEnvelopeChars(result, requestUrl);
+  const resultChars = measureResultChars(result);
   if (resultChars <= MAX_SQL_RESULT_CHARS) {
     return { result, resultChars };
   }
 
   if (result.data.statementType !== "select" || result.data.rows.length === 0) {
-    return assertSqlResultWithinSizeBudget(result, requestUrl);
+    return assertSqlResultWithinSizeBudget(result, measureResultChars);
   }
 
   if (result.data.rows.length === 1) {
@@ -180,7 +180,7 @@ export function truncateReadResultToSizeBudget(
   while (lowestRowCount <= highestRowCount) {
     const candidateRowCount = Math.floor((lowestRowCount + highestRowCount) / 2);
     const candidate = takeSelectRowPrefix(result, candidateRowCount);
-    const candidateChars = measureAgentSqlEnvelopeChars(candidate, requestUrl);
+    const candidateChars = measureResultChars(candidate);
     if (candidateChars <= MAX_SQL_RESULT_CHARS) {
       largestFitting = { result: candidate, resultChars: candidateChars };
       lowestRowCount = candidateRowCount + 1;
@@ -191,7 +191,7 @@ export function truncateReadResultToSizeBudget(
 
   if (largestFitting === null) {
     rejectOversizedSingleSelectRow(
-      measureAgentSqlEnvelopeChars(takeSelectRowPrefix(result, 1), requestUrl),
+      measureResultChars(takeSelectRowPrefix(result, 1)),
     );
   }
 
@@ -278,10 +278,10 @@ function shortenSqlEchoIfSmaller<Result extends AgentSqlExecutionResult>(
   result: Result,
   resultChars: number,
   shortenSqlEcho: (result: Result) => Result,
-  requestUrl: string,
+  measureResultChars: AgentSqlResultMeasure,
 ): Readonly<{ result: Result; resultChars: number }> {
   const shortenedResult = shortenSqlEcho(result);
-  const shortenedChars = measureAgentSqlEnvelopeChars(shortenedResult, requestUrl);
+  const shortenedChars = measureResultChars(shortenedResult);
   if (shortenedChars >= resultChars) {
     return { result, resultChars };
   }
@@ -312,14 +312,14 @@ function shortenSqlEchoIfSmaller<Result extends AgentSqlExecutionResult>(
  */
 export function reduceMutationResultToSizeBudget(
   result: AgentSqlMutationExecutionResult,
-  requestUrl: string,
+  measureResultChars: AgentSqlResultMeasure,
 ): AgentSqlEmission<AgentSqlMutationExecutionResult> {
-  const resultChars = measureAgentSqlEnvelopeChars(result, requestUrl);
+  const resultChars = measureResultChars(result);
   if (resultChars <= MAX_SQL_RESULT_CHARS) {
     return { result, resultChars };
   }
 
-  const shortened = shortenSqlEchoIfSmaller(result, resultChars, shortenMutationSqlEcho, requestUrl);
+  const shortened = shortenSqlEchoIfSmaller(result, resultChars, shortenMutationSqlEcho, measureResultChars);
   if (shortened.resultChars <= MAX_SQL_RESULT_CHARS || result.data.rows.length === 0) {
     return shortened;
   }
@@ -335,7 +335,7 @@ export function reduceMutationResultToSizeBudget(
 
   return {
     result: withoutRowsResult,
-    resultChars: measureAgentSqlEnvelopeChars(withoutRowsResult, requestUrl),
+    resultChars: measureResultChars(withoutRowsResult),
   };
 }
 
@@ -349,14 +349,14 @@ export function reduceMutationResultToSizeBudget(
  */
 export function reduceBatchMutationResultToSizeBudget(
   result: AgentSqlBatchExecutionResult,
-  requestUrl: string,
+  measureResultChars: AgentSqlResultMeasure,
 ): AgentSqlEmission<AgentSqlBatchExecutionResult> {
-  const resultChars = measureAgentSqlEnvelopeChars(result, requestUrl);
+  const resultChars = measureResultChars(result);
   if (resultChars <= MAX_SQL_RESULT_CHARS) {
     return { result, resultChars };
   }
 
-  const shortened = shortenSqlEchoIfSmaller(result, resultChars, shortenBatchSqlEcho, requestUrl);
+  const shortened = shortenSqlEchoIfSmaller(result, resultChars, shortenBatchSqlEcho, measureResultChars);
   const hasRowsToDrop = result.data.statements.some((statement) => statement.rows.length > 0);
   if (shortened.resultChars <= MAX_SQL_RESULT_CHARS || !hasRowsToDrop) {
     return shortened;
@@ -376,6 +376,6 @@ export function reduceBatchMutationResultToSizeBudget(
 
   return {
     result: withoutRowsResult,
-    resultChars: measureAgentSqlEnvelopeChars(withoutRowsResult, requestUrl),
+    resultChars: measureResultChars(withoutRowsResult),
   };
 }

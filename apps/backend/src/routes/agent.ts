@@ -21,6 +21,7 @@ import {
   loadAgentWorkspaceReplicaIdForSetup,
 } from "../agent/setup";
 import { runSqlExecute, runSqlQuery } from "../aiTools/agentSql";
+import { createAgentEnvelopeResultMeasure } from "../aiTools/agentSql/resultBudget";
 import {
   GET_GUIDE_RESULT_INSTRUCTIONS,
   GUIDE_BODIES,
@@ -240,7 +241,7 @@ export function createAgentRoutes(options: AgentRoutesOptions): Hono<AppEnv> {
       selectedWorkspaceId: requestContext.selectedWorkspaceId,
       connectionId,
       surface: "agent-rest",
-    }, body.sql, context.req.url);
+    }, body.sql, createAgentEnvelopeResultMeasure(context.req.url));
 
     return context.json(createAgentEnvelope(context.req.url, result.data, result.instructions));
   });
@@ -255,7 +256,7 @@ export function createAgentRoutes(options: AgentRoutesOptions): Hono<AppEnv> {
       selectedWorkspaceId: requestContext.selectedWorkspaceId,
       connectionId,
       surface: "agent-rest",
-    }, body.sql, context.req.url);
+    }, body.sql, createAgentEnvelopeResultMeasure(context.req.url));
 
     return context.json(createAgentEnvelope(context.req.url, result.data, result.instructions));
   });

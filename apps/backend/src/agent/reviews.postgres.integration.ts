@@ -630,7 +630,6 @@ test("agent reviews select, filter, and schedule cards the way the first-party c
       async () => {
         const server = createMcpServer(
           { ...actor, selectedWorkspaceId: workspaceId },
-          "https://mcp.example.test/mcp",
           "https://example.test",
           "https://example.test/icon.svg",
           { caller: "review-test", recordInvokedTool: () => {}, recordToolOutcome: () => {} },
