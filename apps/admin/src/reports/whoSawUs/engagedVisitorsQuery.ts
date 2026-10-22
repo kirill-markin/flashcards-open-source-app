@@ -62,6 +62,11 @@ export function buildSiteEngagementFactSql(rowAlias: string): string {
   ].join("");
 }
 
+/** The UTC day of an identified site row, which with `actor_id` keys a visitor-day. */
+export function buildIdentifiedVisitorDaySql(rowAlias: string): string {
+  return `(${rowAlias}.occurred_at AT TIME ZONE 'UTC')::date`;
+}
+
 /**
  * `identified_visitor_days(actor_id, visit_date, is_engaged)` and
  * `hashed_visitor_days(daily_visitor_hash, visit_date, is_engaged)`: the site's visitor-days, whose
@@ -73,7 +78,7 @@ export function buildSiteEngagementFactSql(rowAlias: string): string {
  * accepts.
  */
 export function buildSiteVisitorDaysCtesSql(range: AnalyticsDateRange): string {
-  const identifiedDaySql = "(site_fact.occurred_at AT TIME ZONE 'UTC')::date";
+  const identifiedDaySql = buildIdentifiedVisitorDaySql("site_fact");
   const hashedDaySql = buildHashedVisitorDaySql("hashed_fact");
   return [
     "identified_visitor_days AS (",

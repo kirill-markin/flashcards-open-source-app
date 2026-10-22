@@ -1637,6 +1637,14 @@ h2 {
   grid-column: 1 / -1;
 }
 
+/* Opens a group of charts below the ones before it, across every grid column, under a separator line. */
+.level-1-metrics-grid .level-1-metrics-group-heading {
+  grid-column: 1 / -1;
+  margin-top: 56px;
+  padding-top: 32px;
+  border-top: 1px solid var(--panel-border);
+}
+
 .payment-import-status-table {
   width: 100%;
   border-collapse: collapse;

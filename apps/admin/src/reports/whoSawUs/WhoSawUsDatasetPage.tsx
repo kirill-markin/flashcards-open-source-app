@@ -5,6 +5,7 @@ import { LevelOneMetricDetailsHeader } from "../levelOneMetrics/LevelOneMetricDe
 import { LevelOneMetricsFrame } from "../levelOneMetrics/LevelOneMetricsFrame";
 import { useLevelOneMetricsSelection } from "../levelOneMetrics/useLevelOneMetricsSelection";
 import { WebLandingPagePathSections } from "./WebLandingPagePathSections";
+import { WebTrafficCategoriesSection } from "./WebTrafficCategoriesSection";
 import { WhoSawUsBreakdownSections } from "./WhoSawUsBreakdownSections";
 import { whoSawUsSeriesLabels, WhoSawUsSection } from "./WhoSawUsSection";
 
@@ -58,12 +59,23 @@ export function WhoSawUsDatasetPage(
               </p>
             ) : null}
             {props.dataset === "web" ? (
-              <WebLandingPagePathSections
-                config={props.config}
-                dateRange={selection.dateRange}
-                period={selection.period}
-                onTerminalAdminError={props.onTerminalAdminError}
-              />
+              <>
+                <WebLandingPagePathSections
+                  config={props.config}
+                  dateRange={selection.dateRange}
+                  period={selection.period}
+                  onTerminalAdminError={props.onTerminalAdminError}
+                />
+                <header className="level-1-metrics-group-heading" data-testid="who-saw-us-web-traffic-categories-heading">
+                  <h2>Engaged vs all web traffic</h2>
+                </header>
+                <WebTrafficCategoriesSection
+                  config={props.config}
+                  dateRange={selection.dateRange}
+                  period={selection.period}
+                  onTerminalAdminError={props.onTerminalAdminError}
+                />
+              </>
             ) : null}
           </div>
         )}
