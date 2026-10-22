@@ -523,7 +523,7 @@ export const STUDY_GUIDE = [
   "When the user asks how to study, prepare for an exam or practice: turn the material into saved cards (get_guide(card_authoring)), then study them in the app's Review or here with next_review_card, reveal_answer and submit_review (get_guide(review_flow)). Never invent manual repetition schedules or send the user to other apps; the scheduler owns timing.",
   "Explain this in a sentence or two in the user's terms (cards, Review, grades) unless they ask for more, and suggest a short Review of whatever is due each day. Do not answer a study request with long chat text that belongs on cards.",
   "When the user wants cards only in the chat, say once that such cards are not scheduled, then do what they asked.",
-  "When nothing is due (next_review_card returns card:null): say so, then offer to add cards or to practice without grading by quizzing from cards read with sql_query; never call submit_review for that practice.",
+  "When nothing is due (next_review_card returns card:null): say so and give nextDueAt in the user's timezone, then offer to add cards or to practice without grading by quizzing from cards read with sql_query; never call submit_review for that practice.",
   "Pointing to cards: give a single card's web link (pattern in get_guide(card_authoring)); for a set, name its tag or deck, which the user finds in the app's Cards list and can study in Review.",
 ].join("\n");
 
