@@ -7,11 +7,14 @@ import { AppStoreBadge, GooglePlayBadge, WebAppIcon } from "./badges";
 
 type AppPlatformLinksGridProps = Readonly<{
   options: ReadonlyArray<AppPlatformOption>;
+  /** Runs after `store_link_clicked` is tracked, on every store tile click. */
+  onStoreLinkClick: (() => void) | null;
   testIdPrefix: string;
 }>;
 
 type AppPlatformLinkTileProps = Readonly<{
   option: AppPlatformOption;
+  onStoreLinkClick: (() => void) | null;
   testIdPrefix: string;
 }>;
 
@@ -27,7 +30,11 @@ function requireOptionHref(option: AppPlatformOption): string {
  * Store tiles report the click; the web tile is not a store link and reports nothing.
  * No `device`: the App Store tile serves every Apple device.
  */
-function buildOptionClickHandler(option: AppPlatformOption, href: string): (() => void) | undefined {
+function buildOptionClickHandler(
+  option: AppPlatformOption,
+  href: string,
+  onStoreLinkClick: (() => void) | null,
+): (() => void) | undefined {
   if (option.kind !== "ios" && option.kind !== "android") {
     return undefined;
   }
@@ -38,7 +45,10 @@ function buildOptionClickHandler(option: AppPlatformOption, href: string): (() =
     throw new Error(`App platform option "${option.kind}" is missing its store placement.`);
   }
 
-  return () => track({ name: "store_link_clicked", store, placement, url: href });
+  return () => {
+    track({ name: "store_link_clicked", store, placement, url: href });
+    onStoreLinkClick?.();
+  };
 }
 
 function AppPlatformOptionBadge({ option }: Readonly<{ option: AppPlatformOption }>): ReactElement {
@@ -62,9 +72,9 @@ function AppPlatformOptionBadge({ option }: Readonly<{ option: AppPlatformOption
   throw new Error(`App platform option "${option.kind}" is not rendered as a link tile.`);
 }
 
-function AppPlatformLinkTile({ option, testIdPrefix }: AppPlatformLinkTileProps): ReactElement {
+function AppPlatformLinkTile({ option, onStoreLinkClick, testIdPrefix }: AppPlatformLinkTileProps): ReactElement {
   const href = requireOptionHref(option);
-  const handleClick = buildOptionClickHandler(option, href);
+  const handleClick = buildOptionClickHandler(option, href, onStoreLinkClick);
 
   return (
     <a
@@ -95,7 +105,7 @@ function AppPlatformLinkTile({ option, testIdPrefix }: AppPlatformLinkTileProps)
  * which passes its `clientPlatform` to `buildAppPlatformOptions`.
  */
 export function AppPlatformLinksGrid(props: AppPlatformLinksGridProps): ReactElement {
-  const { options, testIdPrefix } = props;
+  const { options, onStoreLinkClick, testIdPrefix } = props;
 
   return (
     <div className="app-platform-links-grid" data-testid={`${testIdPrefix}-grid`}>
@@ -111,6 +121,7 @@ export function AppPlatformLinksGrid(props: AppPlatformLinksGridProps): ReactEle
           <AppPlatformLinkTile
             key={option.kind}
             option={option}
+            onStoreLinkClick={onStoreLinkClick}
             testIdPrefix={testIdPrefix}
           />
         )))}

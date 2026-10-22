@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { track, trackScreenViewed, trackScreenViewedOnDismiss } from "../../analytics";
 import {
   loadFeedbackState,
   loadReviewPlatformSummary,
@@ -131,6 +132,9 @@ export function usePostReviewPrompts(params: UsePostReviewPromptsParams): UsePos
   const [feedbackErrorMessage, setFeedbackErrorMessage] = useState<string>("");
   const [isFeedbackSubmitting, setIsFeedbackSubmitting] = useState<boolean>(false);
   const [isMobileAppPromotionDialogOpen, setIsMobileAppPromotionDialogOpen] = useState<boolean>(false);
+  // One `prompt_answered` per showing: the first store-link click accepts, and only a close
+  // without one dismisses.
+  const isMobileAppPromotionAnsweredRef = useRef<boolean>(false);
   const promptUiStateRef = useRef<PostReviewPromptUiState>({
     isEditorPresented: false,
     isFeedbackDialogOpen: false,
@@ -545,6 +549,8 @@ export function usePostReviewPrompts(params: UsePostReviewPromptsParams): UsePos
         return buildSkippedMobileAppPromotionDecision(promptContext);
       }
 
+      isMobileAppPromotionAnsweredRef.current = false;
+      trackScreenViewed("mobile_app_prompt");
       setIsMobileAppPromotionDialogOpen(true);
       return { kind: "opened" };
     } catch (error) {
@@ -639,7 +645,22 @@ export function usePostReviewPrompts(params: UsePostReviewPromptsParams): UsePos
     void postAutomaticFeedbackPromptEvent("automatic_prompt_dismissed");
   }
 
+  function answerMobileAppPromotion(outcome: "accepted" | "dismissed"): void {
+    if (isMobileAppPromotionAnsweredRef.current) {
+      return;
+    }
+
+    isMobileAppPromotionAnsweredRef.current = true;
+    track({ name: "prompt_answered", prompt: "mobile_app_prompt", outcome });
+  }
+
+  function acceptMobileAppPromotion(): void {
+    answerMobileAppPromotion("accepted");
+  }
+
   function dismissMobileAppPromotionDialog(): void {
+    answerMobileAppPromotion("dismissed");
+    trackScreenViewedOnDismiss({ dismissed: "mobile_app_prompt", restored: "review" });
     setIsMobileAppPromotionDialogOpen(false);
   }
 
@@ -719,6 +740,7 @@ export function usePostReviewPrompts(params: UsePostReviewPromptsParams): UsePos
     setFeedbackMessage("");
     setFeedbackErrorMessage("");
     setIsFeedbackSubmitting(false);
+    trackScreenViewedOnDismiss({ dismissed: "mobile_app_prompt", restored: "review" });
     setIsMobileAppPromotionDialogOpen(false);
   }, [workspaceId]);
 
@@ -750,6 +772,7 @@ export function usePostReviewPrompts(params: UsePostReviewPromptsParams): UsePos
     mobileAppPromotionDialogProps: {
       isOpen: isMobileAppPromotionDialogOpen,
       onDismiss: dismissMobileAppPromotionDialog,
+      onStoreLinkClick: acceptMobileAppPromotion,
       storeLinks: webReviewMobilePromptStoreLinks,
     },
   };

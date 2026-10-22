@@ -1541,6 +1541,12 @@ h2 {
   text-decoration: none;
 }
 
+/* Warnings that do not fit after a funnel's title wrap under it, instead of squeezing the title or
+   running under the Details button. */
+.funnel-heading-row {
+  flex-wrap: wrap;
+}
+
 /* A funnel's Details button before its page exists: inactive rather than busy, so not the wait
    cursor of `.filter-button:disabled`. */
 .level-1-metric-details-link:disabled {
