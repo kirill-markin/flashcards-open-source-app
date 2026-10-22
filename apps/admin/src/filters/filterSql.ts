@@ -174,7 +174,9 @@ export function buildExcludedActorReasonSql(actorIdSqlExpression: string): strin
  * It is a count of site visitors, never merged into a count of people, and it applies the
  * exclusion rule above. The blog funnel's `identified_readers`
  * (`reports/blogFunnels/platformChoiceQuery.ts`) reads the same facts through the same
- * `buildIdentifiedSiteFactFilterSql` and stays out for the same reason.
+ * `buildIdentifiedSiteFactFilterSql` and stays out for the same reason, as does
+ * `all_identified_visitor_days` in `reports/whoSawUs/webTrafficCategoriesQuery.ts`, which reads
+ * them without the exclusion rule on purpose, to count the visitors it drops.
  *
  * NOT ENTRIES, AND NOT OMISSIONS. The three available-range probes,
  * `buildReviewEventsByDateAvailableRangeSql`, `buildCatalogInstallFunnelAvailableRangeSql` and
@@ -221,6 +223,9 @@ export function buildTrustedActorRowsFilterSql(trustLevelSqlExpression: string):
  *   - `attribution_clicks` in `buildCatalogInstallAttributionSql` below, because its journey bridge
  *     matches a click that claimed no visitor at all, whose own actor is therefore never the install's
  *     and is never tested by the rule the install side applies.
+ *
+ * `all_hashed_visitor_days` in `reports/whoSawUs/webTrafficCategoriesQuery.ts` reads hashed rows
+ * without it on purpose, to count the visitor-days it drops as Bots.
  *
  * The three available-range probes are deliberately not on this list, exactly as they are not on
  * `buildTrustedActorRowsFilterSql`'s: each is a `MIN(occurred_at)` that widens a date picker and

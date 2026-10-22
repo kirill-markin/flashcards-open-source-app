@@ -114,6 +114,15 @@ export function buildHashedVisitorDayRangeSqlLines(
   ];
 }
 
+/** Every marketing-site row of a cookieless visitor, before the cleanup `buildHashedSiteVisitorRowSqlLines` adds. */
+export function buildHashedSiteRowSqlLines(rowAlias: string): ReadonlyArray<string> {
+  return [
+    `${rowAlias}.origin = 'client'`,
+    `${rowAlias}.trust_level = 'anonymous_client'`,
+    `${rowAlias}.daily_visitor_hash IS NOT NULL`,
+  ];
+}
+
 /**
  * A marketing-site row of a cookieless visitor, as `AND`-joined predicates on `rowAlias`.
  *
@@ -139,9 +148,7 @@ export function buildHashedVisitorDayRangeSqlLines(
  */
 export function buildHashedSiteVisitorRowSqlLines(rowAlias: string): ReadonlyArray<string> {
   return [
-    `${rowAlias}.origin = 'client'`,
-    `${rowAlias}.trust_level = 'anonymous_client'`,
-    `${rowAlias}.daily_visitor_hash IS NOT NULL`,
+    ...buildHashedSiteRowSqlLines(rowAlias),
     buildNonAutomatedClientRowsFilterSql(`${rowAlias}.automated_client`),
     [
       `${rowAlias}.daily_visitor_hash NOT IN (`,
