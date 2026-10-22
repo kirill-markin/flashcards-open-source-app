@@ -46,6 +46,10 @@ authorize dispatch, signed local execution, submission or publication. Apply the
    declarations/access with the user.
 4. Before Cloud dispatch, complete the [signed local native acceptance](../macos-ci-cd.md#signed-local-native-acceptance)
    on a registered real Mac with supported macOS and current Xcode.
+   Reserve an idle desktop for UI acceptance: coordinate with the user and
+   other chats so no simultaneous mouse/keyboard input or other UI automation
+   runs during acceptance. Preserve and investigate failures; do not assume
+   desktop interference or waive failed cases.
    Use **Flashcards Native Acceptance** / **LocalMac** / **Acceptance**, Debug,
    production service values, genuine authorized development certificate/profile,
    original generated `.xctestrun` and the same built products. Require the full
@@ -134,11 +138,16 @@ authorize dispatch, signed local execution, submission or publication. Apply the
     `MAC_OS` version ID, localized fields and required declarations. Choose
     automatic release after approval unless manual mode is explicitly intended;
     verify the saved setting. Add for Review, then Submit for Review only that
-    platform. Record the submission ID, accepted Waiting for Review/In Review
+    platform. If authorized Add for Review API requests repeatedly fail after
+    diagnosis, reconcile the existing `MAC_OS` draft, review submission and items
+    before using the existing authenticated main browser. Reuse matching records;
+    avoid duplicate or cross-platform submissions. Verify the exact
+    platform/version/build and accepted submission state after submission.
+    Record the submission ID, accepted Waiting for Review/In Review
     or approved state, saved mode, observation time and native/artifact evidence.
     A Ready for Review draft is not submitted; rejection blocks completion.
     If the user reserved final Submit, leave that exact action pending with
-    the verified draft/submission identity and handoff; do not submit via API.
+    the verified draft/submission identity and handoff; do not submit via API or browser.
 12. In manual mode, complete an available `PENDING_DEVELOPER_RELEASE` action
     through the supported API or Release This Version, then verify success.
     If approval is pending, record the operator's later action and condition
