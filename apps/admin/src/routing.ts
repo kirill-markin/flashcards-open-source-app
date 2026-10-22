@@ -1,4 +1,4 @@
-export const analyticsAreas = ["level-1-metrics", "funnels", "general", "audience", "ai-usage"] as const;
+export const analyticsAreas = ["level-1-metrics", "funnels", "review-prompts", "general", "audience", "ai-usage"] as const;
 
 export type AnalyticsArea = (typeof analyticsAreas)[number];
 
@@ -9,6 +9,7 @@ export const analyticsAreaLabels: Readonly<Record<AnalyticsArea, string>> = {
   "level-1-metrics": "Level 1 metrics",
   general: "General",
   funnels: "Funnels",
+  "review-prompts": "Review prompts",
   audience: "Audience",
   "ai-usage": "Study vs AI",
 };
