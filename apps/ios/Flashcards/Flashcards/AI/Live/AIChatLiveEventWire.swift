@@ -81,6 +81,7 @@ private struct AIChatLiveAssistantMessageDoneWirePayload: Decodable {
     let itemId: String
     let content: [AIChatContentPart]
     let isError: Bool
+    let errorCode: String?
     let isStopped: Bool
 }
 
@@ -267,6 +268,7 @@ func decodeAIChatLiveEventResult(
                 itemId: event.itemId,
                 content: event.content,
                 isError: event.isError,
+                errorCode: event.errorCode,
                 isStopped: event.isStopped
             ))
         case .composerSuggestionsUpdated:

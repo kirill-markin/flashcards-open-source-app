@@ -724,6 +724,7 @@ final class AIChatStoreRunStartTests: XCTestCase {
             content: [.text("Explain leitner spacing.")],
             timestamp: "2026-04-08T10:00:00Z",
             isError: false,
+            errorCode: nil,
             isStopped: false,
             cursor: "cursor-history-user-1",
             itemId: nil
@@ -734,6 +735,7 @@ final class AIChatStoreRunStartTests: XCTestCase {
             content: [.text("Leitner spacing increases review intervals after correct answers.")],
             timestamp: "2026-04-08T10:00:02Z",
             isError: false,
+            errorCode: nil,
             isStopped: true,
             cursor: "cursor-history-assistant-1",
             itemId: "item-history-assistant-1"

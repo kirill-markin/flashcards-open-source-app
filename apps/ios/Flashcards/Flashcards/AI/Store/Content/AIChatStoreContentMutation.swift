@@ -22,6 +22,10 @@ extension AIChatStore {
                 ),
                 timestamp: lastMessage.timestamp,
                 isError: true,
+                // The code still describes the message only when the appended text repeats its stored error.
+                errorCode: aiChatMessageText(message: lastMessage) == message.trimmingCharacters(in: .whitespacesAndNewlines)
+                    ? lastMessage.errorCode
+                    : nil,
                 isStopped: lastMessage.isStopped,
                 cursor: lastMessage.cursor,
                 itemId: lastMessage.itemId
@@ -34,6 +38,7 @@ extension AIChatStore {
                     content: [.text(message)],
                     timestamp: nowIsoTimestamp(),
                     isError: true,
+                    errorCode: nil,
                     isStopped: false,
                     cursor: nil,
                     itemId: nil
@@ -57,6 +62,7 @@ extension AIChatStore {
                     content: [.accountUpgradePrompt(message: message, buttonTitle: buttonTitle)],
                     timestamp: lastMessage.timestamp,
                     isError: false,
+                    errorCode: nil,
                     isStopped: lastMessage.isStopped,
                     cursor: lastMessage.cursor,
                     itemId: lastMessage.itemId
@@ -72,6 +78,7 @@ extension AIChatStore {
                 content: [.accountUpgradePrompt(message: message, buttonTitle: buttonTitle)],
                 timestamp: nowIsoTimestamp(),
                 isError: false,
+                errorCode: nil,
                 isStopped: false,
                 cursor: nil,
                 itemId: nil
@@ -90,6 +97,7 @@ extension AIChatStore {
                 content: [.accountUpgradePrompt(message: message, buttonTitle: buttonTitle)],
                 timestamp: nowIsoTimestamp(),
                 isError: false,
+                errorCode: nil,
                 isStopped: false,
                 cursor: nil,
                 itemId: nil
@@ -109,6 +117,7 @@ extension AIChatStore {
             content: [],
             timestamp: optimisticTurn.assistantMessage.timestamp,
             isError: optimisticTurn.assistantMessage.isError,
+            errorCode: optimisticTurn.assistantMessage.errorCode,
             isStopped: optimisticTurn.assistantMessage.isStopped,
             cursor: optimisticTurn.assistantMessage.cursor,
             itemId: optimisticTurn.assistantMessage.itemId
@@ -135,6 +144,7 @@ extension AIChatStore {
             ),
             timestamp: message.timestamp,
             isError: message.isError,
+            errorCode: message.errorCode,
             isStopped: true,
             cursor: message.cursor,
             itemId: message.itemId
