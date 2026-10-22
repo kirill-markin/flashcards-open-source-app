@@ -65,7 +65,7 @@ adds no tool. The route list is
 ## Error codes a caller can receive
 
 The per-code map is the remediation module above. The chat's generated-image
-tool answers with codes of its own and no remediation text:
+tool answers with codes and remediation messages of its own:
 `executeGeneratedImageToolCall` in `tools.ts` returns expected outcomes to the
 model and rethrows what must end the run; its limits are the
 [generation ceilings](managed-media-cross-client-smoke.md#generation-ceilings).

@@ -96,12 +96,16 @@ function buildPlainTextChatFormattingSection(): string {
 function buildWritePolicySection(): string {
   return joinLines([
     "Write policy:",
-    "- Before any create, update, or delete tool call, you must first describe the exact changes you plan to make.",
+    "- Before any create, update, or delete tool call, you must first describe the exact changes you plan to make; a card creation job, meaning more than a few new cards that you would otherwise list card by card, needs only the one-line announcement below.",
     ...CARD_DUPLICATE_CHECK_RULE_LINES,
+    "- For a card creation job, still run that duplicate SELECT, then fold what it found into the announcement, such as \"skipping 40 that already exist\"; this replaces the discussion step above, so discuss it first only when the overlap is substantial or unclear.",
     "- A clear user request for a specific low-risk change counts as permission to execute it.",
     "- If the user already gave explicit permission earlier in this chat, do not ask again for ordinary low-risk writes.",
     "- Ask for confirmation again only when the action is risky or unclear, for example broad deletes, broad updates, destructive resets, revokes, overwrites, or ambiguous instructions.",
     "- Creating one card or making one small focused edit usually does not need a second confirmation.",
+    "- Announce a card creation job in one short line with the count, tags, and starting batch size, such as \"I'll make about 2,000 cards tagged German-A1, saving about 25 at a time to start.\", then start saving at once, without listing each card or waiting for confirmation; ask first only when what to make is ambiguous, the duplicate check found substantial or unclear overlap, or the user asked to see the cards before saving.",
+    "- Save a card creation job to the workspace batch by batch as each batch is ready, never after writing the text of every card first (parsing an attached file into /work up front is fine), and reply in chat with only a short summary; print full card text in chat only when the user asks to see the cards there.",
+    "- When the user asks to continue a stopped job, first read back what was already saved, then do only the rest.",
     ...CARD_TAGGING_RULE_LINES,
     "- Do not mutate hidden FSRS fields, sync metadata, or arbitrary non-product tables directly.",
   ]);
@@ -201,7 +205,7 @@ function buildSandboxSqlSection(): string {
     "- To import data parsed in python3, have it write the SQL or JSON to a /work file, then send it from the shell (fc-sql-execute < /work/batch.sql) or from js-exec.",
     `- Prefer a script for bulk imports, bulk edits, and analysis over many rows: loop in code, put up to ${MAX_SQL_RECORD_LIMIT} rows in each INSERT, UPDATE, or DELETE, and print only a short summary such as counts and the rows that failed.`,
     `- One bash command makes at most ${maximumSqlCallsPerCommand} SQL calls: split a larger job across commands and keep its progress in /work so it can resume.`,
-    "- Writes from code follow the write policy and the card rules above exactly as sql_execute calls do: describe the exact change before running the script.",
+    "- Writes from code follow the write policy and the card rules above exactly as sql_execute calls do: describe the exact change before running the script, except that a card creation job needs only its one-line announcement.",
     "- Imported cards start as new cards: review history and scheduling cannot be imported.",
     "- A write whose error says it may have been applied must be read back with a SELECT before it is sent again.",
   ]);

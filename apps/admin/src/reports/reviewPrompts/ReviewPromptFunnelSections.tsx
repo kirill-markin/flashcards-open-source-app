@@ -32,7 +32,13 @@ import {
   type ReviewPromptFunnelGroup,
   type ReviewPromptFunnelReport,
 } from "./detailsQuery";
-import { buildReviewPromptWarnings, formatReviewPromptLateStarts, type ReviewPrompt } from "./reviewPromptDefinitions";
+import type { ReviewPromptCoverageLoad } from "./coverageQuery";
+import {
+  buildReviewPromptCoverageNotes,
+  buildReviewPromptWarnings,
+  type ReviewPrompt,
+  type ReviewPromptCoverage,
+} from "./reviewPromptDefinitions";
 
 const countLabel = "Showings";
 
@@ -74,19 +80,28 @@ function buildFollowUpPendingNote(funnel: ReviewPromptFunnel, counts: ReviewProm
     : `${lastStep.label} can still grow for ${counts.followUpPendingCount.toLocaleString("en-US")} of ${(counts.stepCounts[0] ?? 0).toLocaleString("en-US")} showings less than ${reviewPromptFollowUpDays} days old.`;
 }
 
-/** One note per step whose own event starts after the range does on a selected platform, keyed apart from the prompt's coverage start. */
-function buildStepCoverageNotes(funnel: ReviewPromptFunnel, filters: AnalyticsFilterState): Readonly<Record<string, string | null>> {
+/** The coverage notes of each step with its own event, keyed apart from the prompt's. */
+function buildStepCoverageNotes(
+  funnel: ReviewPromptFunnel,
+  prompt: ReviewPrompt,
+  coverage: ReviewPromptCoverage,
+  filters: AnalyticsFilterState,
+): Readonly<Record<string, string | null>> {
   return Object.fromEntries(funnel.steps.flatMap((step) => {
-    if (step.coverage === null) {
+    if (step.coverageSubject === null) {
       return [];
     }
 
-    const lateStarts = formatReviewPromptLateStarts(step.coverage, filters);
-    const note: readonly [string, string | null] = [
-      `${step.id}-coverage`,
-      lateStarts === null ? null : `${step.label} is reported on ${lateStarts}, so showings before that or on older apps never reach it.`,
+    // Every step event is in released apps.
+    const notes = buildReviewPromptCoverageNotes(step.coverageSubject, prompt.platforms, [], coverage, filters);
+    const stepNotes: ReadonlyArray<readonly [string, string | null]> = [
+      [
+        `${step.id}-coverage`,
+        notes.lateStarts === null ? null : `${step.label} is first reported on ${notes.lateStarts}, so showings before that or on older apps never reach it.`,
+      ],
+      [`${step.id}-not-reported`, notes.notReported === null ? null : `${step.label} — ${notes.notReported}`],
     ];
-    return [note];
+    return stepNotes;
   }));
 }
 
@@ -99,9 +114,12 @@ function FunnelQueryError(props: Readonly<{ message: string; onRetry: () => void
   );
 }
 
-/** One prompt's funnel of showings, with every caveat its ranges trigger. */
-export function ReviewPromptFunnelSection(props: FunnelReportProps & Readonly<{ prompt: ReviewPrompt }>): JSX.Element {
-  const { prompt, filters } = props;
+/** One prompt's funnel of showings, with every caveat its ranges trigger; the coverage caveats join once coverage loads. */
+export function ReviewPromptFunnelSection(
+  props: FunnelReportProps & Readonly<{ prompt: ReviewPrompt; coverageLoad: ReviewPromptCoverageLoad }>,
+): JSX.Element {
+  const { prompt, filters, coverageLoad } = props;
+  const coverage = coverageLoad.state.status === "ready" ? coverageLoad.state.coverage : null;
   const funnel = reviewPromptFunnels[prompt.id];
   const loadReport = useMemo<FunnelReportLoader<ReviewPromptFunnelReport>>(
     () => (config, rangeFilters, signal) => loadReviewPromptFunnelReport(config, rangeFilters, prompt.id, null, signal),
@@ -123,17 +141,18 @@ export function ReviewPromptFunnelSection(props: FunnelReportProps & Readonly<{ 
         prompt,
         // No funnel step is Gone, so its maturing caveat stays with the outcome chart's Maturing stack.
         { shownCount: range.totals.stepCounts[0] ?? 0, maturingCount: 0, actedPendingCount: range.totals.actedPendingCount },
+        coverage,
         rangeFilters,
       );
       return buildFunnelRangeWarnings(range, {
         ...Object.fromEntries(promptWarnings.map((warning) => [warning.id, warning.text])),
-        ...buildStepCoverageNotes(funnel, rangeFilters),
+        ...(coverage === null ? {} : buildStepCoverageNotes(funnel, prompt, coverage, rangeFilters)),
         "follow-up-pending": buildFollowUpPendingNote(funnel, range.totals),
         empty: buildFunnelEmptyRangeNote(rangeViews, range),
       });
     }),
     ...(funnel.warning === null ? [] : [funnel.warning]),
-  ], [filters, funnel, prompt, rangeViews]);
+  ], [coverage, filters, funnel, prompt, rangeViews]);
   const primaryRange = rangeViews[0];
   const hasEntries = rangeViews.some((range) => range.hasEntries);
   const isComparing = filters.comparisonDateRange !== null;
@@ -143,6 +162,7 @@ export function ReviewPromptFunnelSection(props: FunnelReportProps & Readonly<{ 
       <FunnelSectionHeader funnelId={funnel.anchor.funnelId} title={prompt.title} warnings={warnings} onDetailsNavigate={null} />
 
       {loadState.status === "error" ? <FunnelQueryError message={loadState.message} onRetry={retry} /> : null}
+      {coverageLoad.state.status === "error" ? <FunnelQueryError message={coverageLoad.state.message} onRetry={coverageLoad.retry} /> : null}
       {loadState.status === "loading" ? (
         <FunnelStepsLoadingChart countLabel={countLabel} dateRange={filters.dateRange} isGrouped={isComparing} label={`Loading ${prompt.title} funnel…`} />
       ) : null}
