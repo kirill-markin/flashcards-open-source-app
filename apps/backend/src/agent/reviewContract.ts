@@ -120,7 +120,7 @@ export const REVIEW_FLOW_INSTRUCTIONS = [
 ].join("\n\n");
 
 export const NEXT_REVIEW_DESCRIPTION =
-  "Returns one eligible cardId/frontText or card:null for conversational review, without the answer, reservation, scheduling or grading. Server-time app queue order: due cards reviewed within an hour, other due cards, then new cards. Optional tags or deckId narrow the queue and are mutually exclusive. With card:null, nextDueAt is when the next card comes due (null if none is scheduled).";
+  "Returns one eligible cardId/frontText or card:null with nextDueAt (next due time or null) for conversational review, without answer, reservation, scheduling or grading. Server-time app queue: due cards reviewed within an hour, other due cards, then new cards. Optional tags or deckId narrow the queue and are mutually exclusive.";
 export const REVEAL_ANSWER_DESCRIPTION =
   "Returns the saved backText for a workspace card when revealing its reference answer during review. Does not submit a review or modify the card or schedule.";
 export const SUBMIT_REVIEW_DESCRIPTION =
