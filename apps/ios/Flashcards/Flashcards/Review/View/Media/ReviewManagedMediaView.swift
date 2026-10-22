@@ -34,7 +34,7 @@ private enum ReviewManagedMediaCategory {
     }
 }
 
-private struct ReviewManagedMediaTaskID: Hashable {
+struct ReviewManagedMediaTaskID: Hashable {
     let mediaAssetId: String
     let state: ManagedMediaAssetReferenceState
     let workspaceId: String?
@@ -56,9 +56,32 @@ struct ReviewManagedMediaView: View {
     let reference: ReviewManagedMediaReference
     let surfaceStyle: ReviewCardSurfaceStyle
 
+    #if targetEnvironment(macCatalyst)
+    @State private var retainedState: MacReviewManagedMediaState
+    @State private var presentationID: UUID?
+
+    init(reference: ReviewManagedMediaReference, surfaceStyle: ReviewCardSurfaceStyle) {
+        self.init(reference: reference, surfaceStyle: surfaceStyle, retainedState: MacReviewManagedMediaState())
+    }
+
+    init(reference: ReviewManagedMediaReference, surfaceStyle: ReviewCardSurfaceStyle, retainedState: MacReviewManagedMediaState) {
+        self.reference = reference
+        self.surfaceStyle = surfaceStyle
+        self._retainedState = State(initialValue: retainedState)
+    }
+
+    private var loadResult: ReviewManagedMediaLoadResult? { self.retainedState.loadResult }
+    private var isLoading: Bool { self.retainedState.isLoading }
+    private var presentedPlayer: AVPlayer? {
+        guard let presentationID = self.presentationID,
+              self.retainedState.activePresentationID == presentationID else { return nil }
+        return self.retainedState.player
+    }
+    #else
     @State private var loadResult: ReviewManagedMediaLoadResult?
     @State private var isLoading: Bool = true
     @State private var localRefreshTask: Task<Void, Never>?
+    #endif
 
     var body: some View {
         Group {
@@ -79,6 +102,22 @@ struct ReviewManagedMediaView: View {
                 }
             }
         }
+        #if targetEnvironment(macCatalyst)
+        .background {
+            MacReviewMediaPresentation { id, isPresented in
+                if isPresented {
+                    self.presentationID = id
+                } else if self.presentationID == id {
+                    self.presentationID = nil
+                }
+                self.retainedState.setPresented(isPresented, id: id)
+            }
+        }
+        .task(id: taskID) { self.retainedState.load(request: self.taskID, store: self.store) }
+        .onChange(of: store.localReadVersion) { _, _ in
+            self.retainedState.load(request: self.taskID, store: self.store)
+        }
+        #else
         .task(id: taskID) { [taskID] in
             self.localRefreshTask?.cancel()
             guard taskID.state == .ready else {
@@ -98,6 +137,7 @@ struct ReviewManagedMediaView: View {
             self.localRefreshTask?.cancel()
             self.localRefreshTask = nil
         }
+        #endif
     }
 
     private var taskID: ReviewManagedMediaTaskID {
@@ -221,11 +261,25 @@ struct ReviewManagedMediaView: View {
             case .image:
                 imageView(mediaAsset: mediaAsset, mediaURL: mediaURL)
             case .audio:
+                #if targetEnvironment(macCatalyst)
+                VideoPlayer(player: self.presentedPlayer)
+                    .frame(maxWidth: .infinity, minHeight: reviewManagedAudioHeight)
+                    .clipShape(RoundedRectangle(cornerRadius: reviewManagedMediaCornerRadius))
+                    .accessibilityLabel(displayLabel(mediaAsset: mediaAsset, category: .audio))
+                #else
                 ReviewManagedMediaPlayerView(url: mediaURL, height: reviewManagedAudioHeight)
                     .accessibilityLabel(displayLabel(mediaAsset: mediaAsset, category: .audio))
+                #endif
             case .video:
+                #if targetEnvironment(macCatalyst)
+                VideoPlayer(player: self.presentedPlayer)
+                    .frame(maxWidth: .infinity, minHeight: reviewManagedVideoMinHeight)
+                    .clipShape(RoundedRectangle(cornerRadius: reviewManagedMediaCornerRadius))
+                    .accessibilityLabel(displayLabel(mediaAsset: mediaAsset, category: .video))
+                #else
                 ReviewManagedMediaPlayerView(url: mediaURL, height: reviewManagedVideoMinHeight)
                     .accessibilityLabel(displayLabel(mediaAsset: mediaAsset, category: .video))
+                #endif
             case .attachment:
                 Link(destination: mediaURL) {
                     Label(displayLabel(mediaAsset: mediaAsset, category: .attachment), systemImage: "paperclip")
@@ -242,6 +296,44 @@ struct ReviewManagedMediaView: View {
     private func imageView(mediaAsset: MediaAsset, mediaURL: URL) -> some View {
         let accessibilityLabel = displayLabel(mediaAsset: mediaAsset, category: .image)
 
+        #if targetEnvironment(macCatalyst)
+        if mediaURL.isFileURL {
+            Group {
+                if let image = self.retainedState.decodedImage, self.retainedState.decodedImageURL == mediaURL {
+                    self.reviewManagedImageView(image: Image(uiImage: image), accessibilityLabel: accessibilityLabel, aspectRatio: reviewManagedImageAspectRatio(size: image.size))
+                } else if self.retainedState.failedImageURL == mediaURL {
+                    unavailableView(unavailableReason: .cacheOrDownloadUnavailable)
+                } else {
+                    imageLoadingView
+                }
+            }
+            .task(id: mediaURL) {
+                self.retainedState.loadFileImage(mediaURL: mediaURL, decode: decodeReviewManagedFileImage)
+            }
+        } else if let image = self.retainedState.remoteImage {
+            reviewManagedImageView(image: image, accessibilityLabel: accessibilityLabel, aspectRatio: nil)
+        } else if self.retainedState.remoteImageFailed {
+            unavailableView(unavailableReason: .cacheOrDownloadUnavailable)
+        } else {
+            AsyncImage(url: mediaURL) { phase in
+                Group {
+                    switch phase {
+                    case .empty: imageLoadingView
+                    case .success(let image):
+                        reviewManagedImageView(image: image, accessibilityLabel: accessibilityLabel, aspectRatio: nil)
+                    case .failure: unavailableView(unavailableReason: .cacheOrDownloadUnavailable)
+                    @unknown default: unavailableView(unavailableReason: .cacheOrDownloadUnavailable)
+                    }
+                }
+                .onChange(of: phase.image, initial: true) { _, image in
+                    if let image { self.retainedState.retainRemoteImage(image, mediaURL: mediaURL) }
+                }
+                .onChange(of: phase.error != nil, initial: true) { _, failed in
+                    if failed { self.retainedState.retainRemoteFailure(mediaURL: mediaURL) }
+                }
+            }
+        }
+        #else
         if mediaURL.isFileURL {
             ReviewManagedFileImageView(mediaURL: mediaURL) { image in
                 self.reviewManagedImageView(
@@ -272,6 +364,7 @@ struct ReviewManagedMediaView: View {
                 }
             }
         }
+        #endif
     }
 
     @ViewBuilder
@@ -316,6 +409,7 @@ struct ReviewManagedMediaView: View {
         }
     }
 
+    #if !targetEnvironment(macCatalyst)
     private func startLocalRefresh(taskID: ReviewManagedMediaTaskID) {
         self.localRefreshTask?.cancel()
         self.localRefreshTask = Task { @MainActor in
@@ -347,6 +441,7 @@ struct ReviewManagedMediaView: View {
             return
         }
     }
+    #endif
 
     private func displayLabel(mediaAsset: MediaAsset, category: ReviewManagedMediaCategory) -> String {
         if let label = reference.label, label.isEmpty == false {

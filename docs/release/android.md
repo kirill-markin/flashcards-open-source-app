@@ -7,6 +7,13 @@ following this procedure.
 Apply [Reuse Existing Artifacts](evidence.md#reuse-existing-artifacts) and the
 [Android Cloud Release Gate](evidence.md#android-cloud-release-gate) to this flow.
 
+Keep Google Play managed publishing **OFF** by default so approved changes
+publish automatically as soon as Google approves them. Fix product issues
+discovered after publication in later updates. Existing release gates
+still apply before submission/publication. Enable a manual publishing hold only
+when the user explicitly requests it, and preserve any user-reserved final action
+under the [release authorization rules](README.md).
+
 For a matching draft or submitted artifact, resume at the remaining
 checks/publication steps without creating a duplicate. For an approved release,
 verify retained gate evidence and continue at step 8. An already-published
@@ -31,14 +38,15 @@ The exact-bundle upload recovery contract below is unchanged.
 2. Before dispatch, inspect Play Console's Publishing overview for all pending
    changes and active reviews. The upload commits an app-wide edit;
    `status: draft` alone does not prevent other pending changes from entering review.
-   Require managed publishing ON, no active review and an empty ready-to-submit
-   queue before upload; resolve unrelated pending changes with the release owner.
+   Require managed publishing OFF unless the user requested a manual hold above,
+   no active review and an empty ready-to-submit queue before upload; resolve
+   unrelated pending changes with the release owner.
    The publisher uses `ERROR_IF_IN_REVIEW` in Google's
    [edit commit API](https://developers.google.com/android-publisher/api-ref/rest/v3/edits/commit)
    and fails if a review starts during the run. It omits `changesNotSentForReview`,
    which Google supports conditionally after rejection and can reject for apps
    whose changes enter review automatically. The API guard protects active reviews;
-   it does not isolate other pending changes or replace managed publishing.
+   it does not isolate other pending changes or guarantee a manual-review hold.
    Dispatch `Android Release` (`.github/workflows/android-release.yml`) with
    `Git SHA to release` (`target_sha`) set to the release commit and optionally
    supply the [localized notes JSON](release-notes.md#android-draft-upload-input). Record its
@@ -76,9 +84,9 @@ The exact-bundle upload recovery contract below is unchanged.
    alone do not prove the distributed minimum. Device Run exercises the
    debug APKs from that SHA; the production artifact is the signed AAB from
    the same release run.
-   Check Publishing overview again: verify the exact intended draft and managed
-   publishing hold, and that unrelated changes or reviews were not unexpectedly
-   submitted, cancelled or replaced. App policy may send changes for review
+   Check Publishing overview again: verify the exact intended draft and saved
+   publishing mode under the policy above, and that unrelated changes or reviews
+   were not unexpectedly submitted, cancelled or replaced. App policy may send changes for review
    automatically; record the actual state rather than assuming a manual-review hold.
    Before publishing the first API-30-compatible release or a change affecting
    its OS-specific behavior, complete the applicable
@@ -92,10 +100,11 @@ The exact-bundle upload recovery contract below is unchanged.
    change set and submit the intended changes when a manual submission is
    required. Verify the actual review status; complete any publication action
    already available.
-8. Follow the exact version code through Play review and publication. With
-   managed publishing enabled, approval leaves changes ready to publish:
-   complete **Publish changes** for the intended release. Otherwise verify the
-   automatic publication after approval. See Google's
+8. Follow the exact version code through Play review and publication. Verify
+   managed publishing remains OFF and automatic publication follows approval.
+   If the user explicitly requested a manual hold, approval leaves changes ready
+   to publish: complete **Publish changes** when authorized, preserving any
+   user-reserved final action. See Google's
    [review and managed publishing controls](https://support.google.com/googleplay/android-developer/answer/9859654?hl=en).
    Confirm the production rollout and intended countries/audience; record any
    staged percentage or hold rather than describing it as full rollout.
@@ -129,8 +138,8 @@ persisted candidate; verify its identity, translations and remaining gates.
 
 Restore the pinned localized notes, save, use **Next** through preview and
 confirmation, then inspect Publishing overview and submit only the intended
-change. Wait for quick checks and approval. Managed publishing **off** publishes
-automatically after approval; with it **on**, complete **Publish changes**.
+change. Verify the saved publishing mode and follow step 8 through quick checks,
+approval and publication under the policy above.
 Verify the exact production version is public before calling Android complete.
 
 ## Exact-bundle upload recovery
@@ -149,8 +158,9 @@ Source changes require the bounded comparisons and affected gates in
    and independently verified AAB and summary SHA-256 values. For workflows with
    localized-notes support, also retain the separate original run/attempt notes
    artifact and its preflight SHA-256, including an explicitly empty input.
-2. Immediately before dispatch, verify managed publishing ON, no active review
-   and an empty ready-to-submit queue. Resolve unrelated pending changes first.
+2. Immediately before dispatch, verify managed publishing OFF unless the user
+   requested a manual hold above, no active review and an empty ready-to-submit
+   queue. Resolve unrelated pending changes first.
    Play's **Save for later** is a temporary exclusion: saved changes can return
    after another review starts. Inspect them again after upload and before
    publication; see Google's [publishing controls](https://support.google.com/googleplay/android-developer/answer/9859654?hl=en).
