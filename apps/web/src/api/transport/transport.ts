@@ -26,6 +26,7 @@ import {
 } from "./sessionRecovery";
 import { waitForTransportDelay } from "./transportSignals";
 import { resetLastApiResponseForTests } from "./lastApiResponse";
+import { captureApiFetchFailure, startApiFetchAttempt, type ApiFetchDiagnostics } from "./fetchDiagnostics";
 
 type NavigateToUrl = (url: string) => void;
 type NetworkRequestAttempt<Result> = (attemptCount: number) => Promise<Result>;
@@ -175,6 +176,7 @@ function createFetchApiNetworkError(
   init: RequestInit,
   error: unknown,
   attemptCount: number,
+  fetchDiagnostics: ApiFetchDiagnostics,
 ): ApiNetworkError {
   return createApiNetworkError({
     statusCode: 0,
@@ -184,6 +186,7 @@ function createFetchApiNetworkError(
     error,
     attemptCount,
     source: "fetch",
+    fetchDiagnostics,
   });
 }
 
@@ -226,6 +229,7 @@ async function performFetch(
 ): Promise<Response> {
   const config = getAppConfig();
   const headers = createHeaders(init);
+  const attempt = startApiFetchAttempt(config.apiBaseUrl, headers, credentials);
 
   try {
     return await fetch(`${config.apiBaseUrl}${pathname}`, {
@@ -235,7 +239,7 @@ async function performFetch(
     });
   } catch (error) {
     sessionRecovery.throwIfRequestAborted(init.signal ?? null);
-    throw createFetchApiNetworkError(pathname, init, error, attemptCount);
+    throw createFetchApiNetworkError(pathname, init, error, attemptCount, captureApiFetchFailure(attempt));
   }
 }
 
@@ -246,6 +250,7 @@ async function performCredentialFreeFetch(
 ): Promise<Response> {
   const config = getAppConfig();
   const headers = createBaseHeaders(init);
+  const attempt = startApiFetchAttempt(config.apiBaseUrl, headers, "omit");
 
   try {
     // "omit" rather than a session cookie the route would ignore: a request that carries no
@@ -257,7 +262,7 @@ async function performCredentialFreeFetch(
     });
   } catch (error) {
     sessionRecovery.throwIfRequestAborted(init.signal ?? null);
-    throw createFetchApiNetworkError(pathname, init, error, attemptCount);
+    throw createFetchApiNetworkError(pathname, init, error, attemptCount, captureApiFetchFailure(attempt));
   }
 }
 
@@ -277,6 +282,7 @@ async function performBrowserCookieFetch(
 ): Promise<Response> {
   const config = getAppConfig();
   const headers = createBaseHeaders(init);
+  const attempt = startApiFetchAttempt(config.apiBaseUrl, headers, "include");
 
   try {
     return await fetch(`${config.apiBaseUrl}${pathname}`, {
@@ -286,7 +292,7 @@ async function performBrowserCookieFetch(
     });
   } catch (error) {
     sessionRecovery.throwIfRequestAborted(init.signal ?? null);
-    throw createFetchApiNetworkError(pathname, init, error, attemptCount);
+    throw createFetchApiNetworkError(pathname, init, error, attemptCount, captureApiFetchFailure(attempt));
   }
 }
 
