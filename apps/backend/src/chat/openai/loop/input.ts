@@ -4,7 +4,7 @@
  */
 import type OpenAI from "openai";
 import type { ContentPart, FileContentPart, ImageContentPart } from "../../types";
-import { buildCurrentDatetimeLine, buildSystemInstructions } from "../../shared";
+import { buildCurrentDatetimeLine, buildSystemInstructions, type ChatClientApp } from "../../shared";
 import { CHAT_HISTORY_REPLAY_TOKEN_BUDGET } from "../../config";
 import { buildCardContextXml } from "../../cardContext";
 import { isTextLikeChatFileMediaType } from "../../attachmentPolicy";
@@ -206,11 +206,12 @@ function sliceHistoryFromLatestCompaction(
 export function placeSystemPrompt(
   replayedItems: ReadonlyArray<OpenAIInputItem>,
   generatedImageEligible: boolean,
+  clientApp: ChatClientApp | null,
 ): Array<OpenAIInputItem> {
   const systemPrompt: OpenAIInputItem = {
     role: "system",
     type: "message",
-    content: buildSystemInstructions(generatedImageEligible),
+    content: buildSystemInstructions(generatedImageEligible, clientApp),
   };
   const [firstItem, ...laterItems] = replayedItems;
   if (firstItem !== undefined && firstItem.type === "compaction") {
@@ -397,6 +398,7 @@ export async function buildChatCompletionInputWithBudget(
   sessionId: string,
   timezone: string,
   generatedImageEligible: boolean,
+  clientApp: ChatClientApp | null,
   fileDerivatives: ChatFileDerivativeIndex,
   budgetTokens: number,
 ): Promise<ReadonlyArray<OpenAIInputItem>> {
@@ -425,7 +427,7 @@ export async function buildChatCompletionInputWithBudget(
     historyItems.push(await buildUserInputMessage(sessionId, fileDerivatives, message.content));
   }
 
-  const input = placeSystemPrompt(historyItems, generatedImageEligible);
+  const input = placeSystemPrompt(historyItems, generatedImageEligible, clientApp);
   input.push({
     role: "system",
     type: "message",
@@ -445,6 +447,7 @@ export async function buildChatCompletionInput(
   sessionId: string,
   timezone: string,
   generatedImageEligible: boolean,
+  clientApp: ChatClientApp | null,
   fileDerivatives: ChatFileDerivativeIndex,
 ): Promise<ReadonlyArray<OpenAIInputItem>> {
   return buildChatCompletionInputWithBudget(
@@ -453,6 +456,7 @@ export async function buildChatCompletionInput(
     sessionId,
     timezone,
     generatedImageEligible,
+    clientApp,
     fileDerivatives,
     CHAT_HISTORY_REPLAY_TOKEN_BUDGET,
   );

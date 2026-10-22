@@ -111,7 +111,7 @@ test("startOpenAILoopWithDeps uses the persisted runtime model and reasoning eff
   assert.doesNotMatch(getSystemInstructions(requests[0]), /Generated-image policy:/u);
   assert.match(
     getSystemInstructions(requests[0]),
-    /You are a flashcards assistant for an offline-first flashcards app\./u,
+    /You are the AI chat inside the Nibomo app; "here" means this chat\./u,
   );
 });
 
