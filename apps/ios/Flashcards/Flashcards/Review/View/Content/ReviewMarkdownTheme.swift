@@ -368,7 +368,26 @@ struct ReviewMathFormulaView: View {
     let surfaceStyle: ReviewCardSurfaceStyle
 
     @ScaledMetric(relativeTo: .body) private var formulaFontSize: CGFloat = 18
+    #if targetEnvironment(macCatalyst)
+    @State private var rendering: MacReviewFormulaState
+
+    init(formula: ReviewFormulaContent, surfaceStyle: ReviewCardSurfaceStyle) {
+        self.init(formula: formula, surfaceStyle: surfaceStyle, rendering: MacReviewFormulaState())
+    }
+
+    init(formula: ReviewFormulaContent, surfaceStyle: ReviewCardSurfaceStyle, rendering: MacReviewFormulaState) {
+        self.formula = formula
+        self.surfaceStyle = surfaceStyle
+        self._rendering = State(initialValue: rendering)
+    }
+
+    private var renderFailed: Bool {
+        get { self.rendering.renderFailed }
+        nonmutating set { self.rendering.renderFailed = newValue }
+    }
+    #else
     @State private var renderFailed: Bool = false
+    #endif
 
     private var localizedRenderError: String {
         String(
@@ -418,6 +437,9 @@ struct ReviewMathFormulaView: View {
                     .accessibilityElement(children: .ignore)
                     .accessibilityLabel(self.formula.latex)
                 }
+                #if targetEnvironment(macCatalyst)
+                .scrollPosition(self.$rendering.scrollPosition)
+                #endif
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
         }
