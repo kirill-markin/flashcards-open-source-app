@@ -10,6 +10,7 @@ final class AIChatStoreContentMutationTests: XCTestCase {
                 content: [.text("Run a query.")],
                 timestamp: "2026-04-08T09:59:00Z",
                 isError: false,
+                errorCode: nil,
                 isStopped: false,
                 cursor: "cursor-0",
                 itemId: nil
@@ -30,6 +31,7 @@ final class AIChatStoreContentMutationTests: XCTestCase {
                 ],
                 timestamp: "2026-04-08T10:00:00Z",
                 isError: false,
+                errorCode: nil,
                 isStopped: false,
                 cursor: "cursor-1",
                 itemId: "item-1"
@@ -47,6 +49,7 @@ final class AIChatStoreContentMutationTests: XCTestCase {
                 content: [.text("Run a query.")],
                 timestamp: "2026-04-08T09:59:00Z",
                 isError: false,
+                errorCode: nil,
                 isStopped: false,
                 cursor: "cursor-0",
                 itemId: nil
@@ -67,6 +70,7 @@ final class AIChatStoreContentMutationTests: XCTestCase {
                 ],
                 timestamp: "2026-04-08T10:00:00Z",
                 isError: false,
+                errorCode: nil,
                 isStopped: true,
                 cursor: "cursor-1",
                 itemId: "item-1"
@@ -77,6 +81,7 @@ final class AIChatStoreContentMutationTests: XCTestCase {
                 content: [.text("Summarize the result.")],
                 timestamp: "2026-04-08T10:00:30Z",
                 isError: false,
+                errorCode: nil,
                 isStopped: false,
                 cursor: "cursor-2",
                 itemId: nil
@@ -87,6 +92,7 @@ final class AIChatStoreContentMutationTests: XCTestCase {
                 content: [.text("No tool calls in the latest assistant reply.")],
                 timestamp: "2026-04-08T10:01:00Z",
                 isError: false,
+                errorCode: nil,
                 isStopped: true,
                 cursor: "cursor-3",
                 itemId: "item-3"
@@ -114,6 +120,7 @@ final class AIChatStoreContentMutationTests: XCTestCase {
                 ],
                 timestamp: "2026-04-08T10:00:00Z",
                 isError: false,
+                errorCode: nil,
                 isStopped: true,
                 cursor: "cursor-1",
                 itemId: "item-1"
@@ -131,6 +138,7 @@ final class AIChatStoreContentMutationTests: XCTestCase {
                 content: [.text("Run a query.")],
                 timestamp: "2026-04-08T09:59:00Z",
                 isError: false,
+                errorCode: nil,
                 isStopped: false,
                 cursor: "cursor-0",
                 itemId: nil
@@ -141,6 +149,7 @@ final class AIChatStoreContentMutationTests: XCTestCase {
                 content: [.text("Checking the workspace.")],
                 timestamp: "2026-04-08T10:00:00Z",
                 isError: false,
+                errorCode: nil,
                 isStopped: true,
                 cursor: "cursor-1",
                 itemId: "item-1"
@@ -151,6 +160,7 @@ final class AIChatStoreContentMutationTests: XCTestCase {
                 content: [.text("Still running.")],
                 timestamp: "2026-04-08T10:00:30Z",
                 isError: false,
+                errorCode: nil,
                 isStopped: false,
                 cursor: "cursor-2",
                 itemId: "item-2"
@@ -171,6 +181,7 @@ final class AIChatStoreContentMutationTests: XCTestCase {
                 ],
                 timestamp: "2026-04-08T10:01:00Z",
                 isError: false,
+                errorCode: nil,
                 isStopped: false,
                 cursor: "cursor-3",
                 itemId: "item-3"
@@ -198,6 +209,7 @@ final class AIChatStoreContentMutationTests: XCTestCase {
                 ],
                 timestamp: "2026-04-08T10:00:00Z",
                 isError: false,
+                errorCode: nil,
                 isStopped: true,
                 cursor: "cursor-1",
                 itemId: "item-1"
@@ -225,6 +237,7 @@ final class AIChatStoreContentMutationTests: XCTestCase {
                 ],
                 timestamp: "2026-04-08T10:00:00Z",
                 isError: false,
+                errorCode: nil,
                 isStopped: true,
                 cursor: "cursor-1",
                 itemId: "item-1"
@@ -235,6 +248,7 @@ final class AIChatStoreContentMutationTests: XCTestCase {
                 content: [.text("Done.")],
                 timestamp: "2026-04-08T10:00:05Z",
                 isError: false,
+                errorCode: nil,
                 isStopped: true,
                 cursor: "cursor-2",
                 itemId: "item-1"
@@ -252,6 +266,7 @@ final class AIChatStoreContentMutationTests: XCTestCase {
                 content: [.text("Run a query.")],
                 timestamp: "2026-04-08T09:59:00Z",
                 isError: false,
+                errorCode: nil,
                 isStopped: false,
                 cursor: "cursor-0",
                 itemId: nil
@@ -272,6 +287,7 @@ final class AIChatStoreContentMutationTests: XCTestCase {
                 ],
                 timestamp: "2026-04-08T10:00:00Z",
                 isError: false,
+                errorCode: nil,
                 isStopped: true,
                 cursor: "cursor-1",
                 itemId: "item-1"
@@ -282,6 +298,7 @@ final class AIChatStoreContentMutationTests: XCTestCase {
                 content: [.text("Summarize the result.")],
                 timestamp: "2026-04-08T10:00:30Z",
                 isError: false,
+                errorCode: nil,
                 isStopped: false,
                 cursor: "cursor-2",
                 itemId: nil
@@ -292,6 +309,7 @@ final class AIChatStoreContentMutationTests: XCTestCase {
                 content: [.text("Here is a plain-text summary.")],
                 timestamp: "2026-04-08T10:01:00Z",
                 isError: false,
+                errorCode: nil,
                 isStopped: true,
                 cursor: "cursor-3",
                 itemId: "item-3"
@@ -319,6 +337,7 @@ final class AIChatStoreContentMutationTests: XCTestCase {
                 ],
                 timestamp: "2026-04-08T10:00:00Z",
                 isError: false,
+                errorCode: nil,
                 isStopped: true,
                 cursor: "cursor-1",
                 itemId: "item-1"
@@ -329,6 +348,7 @@ final class AIChatStoreContentMutationTests: XCTestCase {
                 content: [.text("Here is a plain-text summary.")],
                 timestamp: "2026-04-08T10:00:05Z",
                 isError: false,
+                errorCode: nil,
                 isStopped: true,
                 cursor: "cursor-2",
                 itemId: "item-2"
@@ -346,6 +366,7 @@ final class AIChatStoreContentMutationTests: XCTestCase {
                 content: [.text("Run a query.")],
                 timestamp: "2026-04-08T09:59:00Z",
                 isError: false,
+                errorCode: nil,
                 isStopped: false,
                 cursor: "cursor-0",
                 itemId: nil
@@ -366,6 +387,7 @@ final class AIChatStoreContentMutationTests: XCTestCase {
                 ],
                 timestamp: "2026-04-08T10:00:00Z",
                 isError: false,
+                errorCode: nil,
                 isStopped: true,
                 cursor: "cursor-1",
                 itemId: "item-1"
@@ -376,6 +398,7 @@ final class AIChatStoreContentMutationTests: XCTestCase {
                 content: [.text("Wrapping up.")],
                 timestamp: "2026-04-08T10:01:00Z",
                 isError: false,
+                errorCode: nil,
                 isStopped: false,
                 cursor: "cursor-2",
                 itemId: "item-2"
@@ -420,6 +443,7 @@ final class AIChatStoreContentMutationTests: XCTestCase {
                 ],
                 timestamp: "2026-04-08T10:00:00Z",
                 isError: false,
+                errorCode: nil,
                 isStopped: true,
                 cursor: "cursor-1",
                 itemId: "item-1"

@@ -30,6 +30,7 @@ final class AIChatStoreRunAcceptedReconciliationTests: XCTestCase {
             content: [.text("Explain this card.")],
             timestamp: "2026-04-08T10:02:00Z",
             isError: false,
+            errorCode: nil,
             isStopped: false,
             cursor: nil,
             itemId: nil
@@ -40,6 +41,7 @@ final class AIChatStoreRunAcceptedReconciliationTests: XCTestCase {
             content: [],
             timestamp: "2026-04-08T10:02:01Z",
             isError: false,
+            errorCode: nil,
             isStopped: false,
             cursor: nil,
             itemId: nil
@@ -140,6 +142,7 @@ final class AIChatStoreRunAcceptedReconciliationTests: XCTestCase {
             content: [.text("Explain this card.")],
             timestamp: "2026-04-08T10:02:00Z",
             isError: false,
+            errorCode: nil,
             isStopped: false,
             cursor: nil,
             itemId: nil
@@ -150,6 +153,7 @@ final class AIChatStoreRunAcceptedReconciliationTests: XCTestCase {
             content: [],
             timestamp: "2026-04-08T10:02:01Z",
             isError: false,
+            errorCode: nil,
             isStopped: false,
             cursor: nil,
             itemId: nil
@@ -261,6 +265,7 @@ final class AIChatStoreRunAcceptedReconciliationTests: XCTestCase {
             content: [.text("Explain this card.")],
             timestamp: "2026-04-08T10:02:00Z",
             isError: false,
+            errorCode: nil,
             isStopped: false,
             cursor: nil,
             itemId: nil
@@ -271,6 +276,7 @@ final class AIChatStoreRunAcceptedReconciliationTests: XCTestCase {
             content: [],
             timestamp: "2026-04-08T10:02:01Z",
             isError: false,
+            errorCode: nil,
             isStopped: false,
             cursor: nil,
             itemId: nil
@@ -365,6 +371,7 @@ final class AIChatStoreRunAcceptedReconciliationTests: XCTestCase {
             content: [.text("Explain this card.")],
             timestamp: "2026-04-08T10:02:00Z",
             isError: false,
+            errorCode: nil,
             isStopped: false,
             cursor: nil,
             itemId: nil
@@ -375,6 +382,7 @@ final class AIChatStoreRunAcceptedReconciliationTests: XCTestCase {
             content: [],
             timestamp: "2026-04-08T10:02:01Z",
             isError: false,
+            errorCode: nil,
             isStopped: false,
             cursor: nil,
             itemId: nil
@@ -508,6 +516,7 @@ final class AIChatStoreRunAcceptedReconciliationTests: XCTestCase {
             content: [.text("Explain this card.")],
             timestamp: "2026-04-08T10:02:00Z",
             isError: false,
+            errorCode: nil,
             isStopped: false,
             cursor: nil,
             itemId: nil
@@ -518,6 +527,7 @@ final class AIChatStoreRunAcceptedReconciliationTests: XCTestCase {
             content: [],
             timestamp: "2026-04-08T10:02:01Z",
             isError: false,
+            errorCode: nil,
             isStopped: false,
             cursor: nil,
             itemId: nil

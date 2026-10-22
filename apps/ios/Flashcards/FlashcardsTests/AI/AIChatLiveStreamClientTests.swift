@@ -127,6 +127,7 @@ final class AIChatLiveStreamClientTests: XCTestCase {
             itemId: let itemId,
             content: let content,
             isError: let isError,
+            errorCode: _,
             isStopped: let isStopped
         ) = event else {
             return XCTFail("Expected assistant_message_done event.")

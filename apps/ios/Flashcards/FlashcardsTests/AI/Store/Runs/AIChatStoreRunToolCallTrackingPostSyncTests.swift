@@ -71,6 +71,7 @@ final class AIChatStoreRunToolCallTrackingPostSyncTests: XCTestCase {
                         ],
                         timestamp: "2026-04-08T10:00:00Z",
                         isError: false,
+                        errorCode: nil,
                         isStopped: true,
                         cursor: "cursor-1",
                         itemId: "item-1"
@@ -123,6 +124,7 @@ final class AIChatStoreRunToolCallTrackingPostSyncTests: XCTestCase {
                         ],
                         timestamp: "2026-04-08T10:00:00Z",
                         isError: false,
+                        errorCode: nil,
                         isStopped: true,
                         cursor: "cursor-1",
                         itemId: "item-1"
@@ -378,6 +380,7 @@ final class AIChatStoreRunToolCallTrackingPostSyncTests: XCTestCase {
                         ],
                         timestamp: "2026-04-08T09:59:00Z",
                         isError: false,
+                        errorCode: nil,
                         isStopped: true,
                         cursor: "cursor-1",
                         itemId: "item-1"
@@ -393,6 +396,7 @@ final class AIChatStoreRunToolCallTrackingPostSyncTests: XCTestCase {
                         content: [.text("Here is a plain-text summary.")],
                         timestamp: "2026-04-08T10:01:00Z",
                         isError: false,
+                        errorCode: nil,
                         isStopped: true,
                         cursor: "cursor-3",
                         itemId: "item-3"
@@ -587,6 +591,7 @@ final class AIChatStoreRunToolCallTrackingPostSyncTests: XCTestCase {
                         ],
                         timestamp: "2026-04-08T09:59:00Z",
                         isError: false,
+                        errorCode: nil,
                         isStopped: true,
                         cursor: "cursor-1",
                         itemId: "item-1"
@@ -602,6 +607,7 @@ final class AIChatStoreRunToolCallTrackingPostSyncTests: XCTestCase {
                         content: [.text("Here is a plain-text summary.")],
                         timestamp: "2026-04-08T10:01:00Z",
                         isError: false,
+                        errorCode: nil,
                         isStopped: true,
                         cursor: "cursor-3",
                         itemId: "item-3"
@@ -640,6 +646,7 @@ final class AIChatStoreRunToolCallTrackingPostSyncTests: XCTestCase {
                         ],
                         timestamp: "2026-04-08T09:59:00Z",
                         isError: false,
+                        errorCode: nil,
                         isStopped: true,
                         cursor: "cursor-1",
                         itemId: "item-1"
@@ -655,6 +662,7 @@ final class AIChatStoreRunToolCallTrackingPostSyncTests: XCTestCase {
                         content: [.text("Here is a plain-text summary.")],
                         timestamp: "2026-04-08T10:01:00Z",
                         isError: false,
+                        errorCode: nil,
                         isStopped: true,
                         cursor: "cursor-3",
                         itemId: "item-3"

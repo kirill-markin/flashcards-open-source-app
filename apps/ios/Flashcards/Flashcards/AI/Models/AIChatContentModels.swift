@@ -661,6 +661,8 @@ struct AIChatMessage: Codable, Hashable, Identifiable, Sendable {
     let content: [AIChatContentPart]
     let timestamp: String
     let isError: Bool
+    /// Stable code of a run's terminal error message; nil for every other message and for error messages stored without one.
+    let errorCode: String?
     let isStopped: Bool
     let cursor: String?
     let itemId: String?
@@ -672,6 +674,7 @@ struct AIChatMessage: Codable, Hashable, Identifiable, Sendable {
         case timestamp
         case timestampMillis
         case isError
+        case errorCode
         case isStopped
         case cursor
         case itemId
@@ -683,6 +686,7 @@ struct AIChatMessage: Codable, Hashable, Identifiable, Sendable {
         content: [AIChatContentPart],
         timestamp: String,
         isError: Bool,
+        errorCode: String?,
         isStopped: Bool,
         cursor: String?,
         itemId: String?
@@ -692,6 +696,7 @@ struct AIChatMessage: Codable, Hashable, Identifiable, Sendable {
         self.content = content
         self.timestamp = timestamp
         self.isError = isError
+        self.errorCode = errorCode
         self.isStopped = isStopped
         self.cursor = cursor
         self.itemId = itemId
@@ -718,6 +723,7 @@ struct AIChatMessage: Codable, Hashable, Identifiable, Sendable {
             )
         }
         self.isError = try container.decode(Bool.self, forKey: .isError)
+        self.errorCode = try container.decodeIfPresent(String.self, forKey: .errorCode)
         self.isStopped = try container.decodeIfPresent(Bool.self, forKey: .isStopped) ?? false
         self.cursor = try container.decodeIfPresent(String.self, forKey: .cursor)
         self.itemId = try container.decodeIfPresent(String.self, forKey: .itemId)
@@ -730,6 +736,7 @@ struct AIChatMessage: Codable, Hashable, Identifiable, Sendable {
         try container.encode(self.content, forKey: .content)
         try container.encode(self.timestamp, forKey: .timestamp)
         try container.encode(self.isError, forKey: .isError)
+        try container.encodeIfPresent(self.errorCode, forKey: .errorCode)
         try container.encode(self.isStopped, forKey: .isStopped)
         try container.encodeIfPresent(self.cursor, forKey: .cursor)
         try container.encodeIfPresent(self.itemId, forKey: .itemId)

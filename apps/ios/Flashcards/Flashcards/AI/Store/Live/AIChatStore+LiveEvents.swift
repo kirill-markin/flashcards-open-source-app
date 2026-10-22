@@ -48,6 +48,7 @@ extension AIChatStore {
                 ),
                 timestamp: message.timestamp,
                 isError: message.isError,
+                errorCode: message.errorCode,
                 isStopped: message.isStopped,
                 cursor: cursor,
                 itemId: itemId
@@ -89,6 +90,7 @@ extension AIChatStore {
                 ),
                 timestamp: message.timestamp,
                 isError: message.isError,
+                errorCode: message.errorCode,
                 isStopped: message.isStopped,
                 cursor: cursor,
                 itemId: itemId
@@ -138,6 +140,7 @@ extension AIChatStore {
                 ),
                 timestamp: message.timestamp,
                 isError: message.isError,
+                errorCode: message.errorCode,
                 isStopped: message.isStopped,
                 cursor: cursor,
                 itemId: itemId
@@ -188,6 +191,7 @@ extension AIChatStore {
                 ),
                 timestamp: message.timestamp,
                 isError: message.isError,
+                errorCode: message.errorCode,
                 isStopped: message.isStopped,
                 cursor: cursor,
                 itemId: itemId
@@ -232,6 +236,7 @@ extension AIChatStore {
                 ),
                 timestamp: message.timestamp,
                 isError: message.isError,
+                errorCode: message.errorCode,
                 isStopped: message.isStopped,
                 cursor: cursor,
                 itemId: itemId
@@ -254,6 +259,7 @@ extension AIChatStore {
             itemId: let itemId,
             content: let content,
             isError: let isError,
+            errorCode: let errorCode,
             isStopped: let isStopped
         ):
             guard let cursor = metadata.cursor else {
@@ -331,6 +337,7 @@ extension AIChatStore {
                 content: finalizedContent,
                 timestamp: message.timestamp,
                 isError: isError,
+                errorCode: errorCode,
                 isStopped: isStopped,
                 cursor: cursor,
                 itemId: itemId
@@ -407,6 +414,7 @@ extension AIChatStore {
                 if let cursor = metadata.cursor, let assistantItemId {
                     _ = self.resolveTerminalAssistantMessageIndex(itemId: assistantItemId, cursor: cursor)
                 }
+                let alertErrorCode = aiChatTerminalAlertErrorCode(eventMessage: message, messages: self.messages)
                 let alertMessage: String
                 if let message, message.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false {
                     self.markAssistantError(message: message)
@@ -414,10 +422,11 @@ extension AIChatStore {
                 } else if let latestAssistantError = aiChatLatestAssistantErrorMessage(messages: self.messages) {
                     alertMessage = latestAssistantError
                 } else {
-                    alertMessage = "AI chat failed."
+                    alertMessage = aiSettingsLocalized("ai.error.terminal.fallback", "AI chat failed.")
                 }
                 self.showLiveTerminalError(
                     message: alertMessage,
+                    errorCode: alertErrorCode,
                     metadata: metadata,
                     isError: isError,
                     isStopped: isStopped
@@ -480,6 +489,7 @@ extension AIChatStore {
                 content: message.content,
                 timestamp: message.timestamp,
                 isError: message.isError,
+                errorCode: message.errorCode,
                 isStopped: message.isStopped,
                 cursor: cursor,
                 itemId: itemId
@@ -503,6 +513,7 @@ extension AIChatStore {
                 content: message.content,
                 timestamp: message.timestamp,
                 isError: message.isError,
+                errorCode: message.errorCode,
                 isStopped: message.isStopped,
                 cursor: cursor,
                 itemId: itemId
@@ -518,6 +529,7 @@ extension AIChatStore {
             content: [],
             timestamp: nowIsoTimestamp(),
             isError: false,
+            errorCode: nil,
             isStopped: false,
             cursor: cursor,
             itemId: itemId
@@ -582,6 +594,7 @@ extension AIChatStore {
             itemId: let itemId,
             content: let content,
             isError: let isError,
+            errorCode: _,
             isStopped: let isStopped
         ):
             values["eventType"] = "assistant_message_done"
@@ -664,7 +677,14 @@ extension AIChatStore {
             return metadata
         case .assistantReasoningDone(metadata: let metadata, reasoningId: _, itemId: _):
             return metadata
-        case .assistantMessageDone(metadata: let metadata, itemId: _, content: _, isError: _, isStopped: _):
+        case .assistantMessageDone(
+            metadata: let metadata,
+            itemId: _,
+            content: _,
+            isError: _,
+            errorCode: _,
+            isStopped: _
+        ):
             return metadata
         case .composerSuggestionsUpdated(metadata: let metadata, suggestions: _):
             return metadata
@@ -779,6 +799,7 @@ extension AIChatStore {
                 content: message.content,
                 timestamp: message.timestamp,
                 isError: message.isError,
+                errorCode: message.errorCode,
                 isStopped: message.isStopped,
                 cursor: cursor,
                 itemId: itemId
@@ -798,6 +819,7 @@ extension AIChatStore {
                 content: message.content,
                 timestamp: message.timestamp,
                 isError: message.isError,
+                errorCode: message.errorCode,
                 isStopped: message.isStopped,
                 cursor: cursor,
                 itemId: itemId
