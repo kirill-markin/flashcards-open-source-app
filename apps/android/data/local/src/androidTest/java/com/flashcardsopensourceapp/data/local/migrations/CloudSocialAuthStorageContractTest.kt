@@ -246,7 +246,7 @@ class CloudSocialAuthStorageContractTest {
                 guestUpgradeMode = CloudGuestUpgradeMode.MERGE_REQUIRED,
                 preferredWorkspaceId = null
             ),
-            workspaceSelection = CloudWorkspaceLinkSelection.CreateNew,
+            workspaceSelection = CloudWorkspaceLinkSelection.CreateNew(name = "Spanish"),
             completedWorkspace = completedWorkspace,
             linkingWorkspace = completedWorkspace
         )

@@ -20,8 +20,12 @@ internal fun validateWorkspaceSelection(
             selection
         }
 
-        CloudWorkspaceLinkSelection.CreateNew -> CloudWorkspaceLinkSelection.CreateNew
+        is CloudWorkspaceLinkSelection.CreateNew -> selection
     }
+}
+
+internal fun linkedCreateWorkspaceName(selection: CloudWorkspaceLinkSelection.CreateNew): String {
+    return selection.name ?: "Personal"
 }
 
 internal fun resolvePreferredPostAuthWorkspaceId(
@@ -43,6 +47,6 @@ internal fun resolvePreferredPostAuthWorkspaceId(
 internal fun CloudWorkspaceLinkSelection.toGuestUpgradeSelection(): CloudGuestUpgradeSelection {
     return when (this) {
         is CloudWorkspaceLinkSelection.Existing -> CloudGuestUpgradeSelection.Existing(workspaceId = workspaceId, discardDemoOnly = discardDemoOnly)
-        CloudWorkspaceLinkSelection.CreateNew -> CloudGuestUpgradeSelection.CreateNew
+        is CloudWorkspaceLinkSelection.CreateNew -> CloudGuestUpgradeSelection.CreateNew(name = name)
     }
 }

@@ -16,9 +16,14 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
@@ -32,6 +37,9 @@ import com.flashcardsopensourceapp.feature.settings.settingsScreenContentPadding
 const val cloudPostAuthExistingButtonTagPrefix: String = "cloud_post_auth_existing_button:"
 const val cloudPostAuthWorkspaceRowTag: String = "cloud_post_auth_workspace_row"
 const val cloudPostAuthSelectedIndicatorTagPrefix: String = "cloud_post_auth_selected_indicator:"
+const val cloudPostAuthCreateNewButtonTag: String = "cloud_post_auth_create_new_button"
+const val cloudPostAuthNewWorkspaceNameFieldTag: String = "cloud_post_auth_new_workspace_name_field"
+const val cloudPostAuthNewWorkspaceCreateButtonTag: String = "cloud_post_auth_new_workspace_create_button"
 
 fun cloudPostAuthExistingButtonTag(workspaceId: String): String {
     return cloudPostAuthExistingButtonTagPrefix + workspaceId
@@ -73,16 +81,65 @@ fun CloudPostAuthRoute(
         // finishes successfully or reaches an explicit failure state.
     }
 
+    var isNameStepVisible by rememberSaveable { mutableStateOf(false) }
+    var newWorkspaceName by rememberSaveable { mutableStateOf("") }
+    val isNameStepShown = isNameStepVisible && uiState.mode == CloudPostAuthMode.CHOOSE_WORKSPACE
+
+    // Registered after the blocking handler so back from the name step returns to the chooser.
+    BackHandler(enabled = isNameStepShown) {
+        isNameStepVisible = false
+    }
+
     SettingsScreenScaffold(
-        title = stringResource(R.string.settings_post_auth_title),
-        onBack = onBack,
-        isBackEnabled = isBackEnabled
+        title = if (isNameStepShown) {
+            stringResource(R.string.settings_current_workspace_new_title)
+        } else {
+            stringResource(R.string.settings_post_auth_title)
+        },
+        onBack = if (isNameStepShown) {
+            { isNameStepVisible = false }
+        } else {
+            onBack
+        },
+        isBackEnabled = isNameStepShown || isBackEnabled
     ) { innerPadding ->
         LazyColumn(
             contentPadding = settingsScreenContentPadding(innerPadding = innerPadding),
             verticalArrangement = Arrangement.spacedBy(settingsScreenCardSpacing),
             modifier = Modifier.fillMaxSize()
         ) {
+            if (isNameStepShown) {
+                item {
+                    OutlinedTextField(
+                        value = newWorkspaceName,
+                        onValueChange = { name -> newWorkspaceName = name },
+                        label = {
+                            Text(stringResource(R.string.settings_workspace_name_label))
+                        },
+                        singleLine = true,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .testTag(tag = cloudPostAuthNewWorkspaceNameFieldTag)
+                    )
+                }
+                item {
+                    Button(
+                        onClick = {
+                            onSelectWorkspace(
+                                CloudWorkspaceLinkSelection.CreateNew(name = newWorkspaceName.trim())
+                            )
+                        },
+                        enabled = newWorkspaceName.trim().isNotEmpty(),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .testTag(tag = cloudPostAuthNewWorkspaceCreateButtonTag)
+                    ) {
+                        Text(stringResource(R.string.settings_current_workspace_create_button))
+                    }
+                }
+                return@LazyColumn
+            }
+
             item {
                 Card(modifier = Modifier.fillMaxWidth()) {
                     Column(
@@ -177,7 +234,7 @@ fun CloudPostAuthRoute(
                     OutlinedButton(
                         onClick = {
                             if (workspace.isCreateNew) {
-                                onSelectWorkspace(CloudWorkspaceLinkSelection.CreateNew)
+                                isNameStepVisible = true
                             } else {
                                 onSelectWorkspace(
                                     CloudWorkspaceLinkSelection.Existing(workspaceId = workspace.workspaceId)
@@ -189,7 +246,7 @@ fun CloudPostAuthRoute(
                             .fillMaxWidth()
                             .then(
                                 if (workspace.isCreateNew) {
-                                    Modifier
+                                    Modifier.testTag(tag = cloudPostAuthCreateNewButtonTag)
                                 } else {
                                     Modifier.testTag(tag = cloudPostAuthWorkspaceRowTag)
                                 }

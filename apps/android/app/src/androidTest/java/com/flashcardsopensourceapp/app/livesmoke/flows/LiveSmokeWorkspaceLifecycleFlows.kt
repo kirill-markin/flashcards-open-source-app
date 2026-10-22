@@ -47,6 +47,8 @@ import com.flashcardsopensourceapp.feature.settings.workspace.current.currentWor
 import com.flashcardsopensourceapp.feature.settings.workspace.current.currentWorkspaceChangeSheetTag
 import com.flashcardsopensourceapp.feature.settings.workspace.current.currentWorkspaceExistingRowTag
 import com.flashcardsopensourceapp.feature.settings.workspace.current.currentWorkspaceNameFieldTag
+import com.flashcardsopensourceapp.feature.settings.workspace.current.currentWorkspaceNewNameCreateButtonTag
+import com.flashcardsopensourceapp.feature.settings.workspace.current.currentWorkspaceNewNameFieldTag
 import com.flashcardsopensourceapp.feature.settings.workspace.current.currentWorkspaceRenameActionTag
 import com.flashcardsopensourceapp.feature.settings.workspace.current.currentWorkspaceRenameDialogTag
 import com.flashcardsopensourceapp.feature.settings.workspace.current.currentWorkspaceSaveNameButtonTag
@@ -97,6 +99,14 @@ internal fun LiveSmokeContext.createEphemeralWorkspace(workspaceName: String): E
         matcher = hasTestTag(currentWorkspaceCreateButtonTag)
     )
     clickTag(tag = currentWorkspaceCreateButtonTag, label = "Create new workspace")
+    waitForTagToExist(
+        tag = currentWorkspaceNewNameFieldTag,
+        timeoutMillis = internalUiTimeoutMillis,
+        context = "while opening the new workspace name step"
+    )
+    // Created under a different name so the rename below still changes it.
+    composeRule.onNodeWithTag(currentWorkspaceNewNameFieldTag).performTextReplacement("$workspaceName new")
+    clickTag(tag = currentWorkspaceNewNameCreateButtonTag, label = "Create")
     val createdWorkspaceSelection: LinkedWorkspaceSelectionSnapshot = waitForLinkedWorkspaceSelectionToChange(
         previousWorkspaceId = selectedWorkspaceIdBeforeCreate,
         timeoutMillis = externalCloudWorkspaceTimeoutMillis,

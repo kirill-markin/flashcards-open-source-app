@@ -55,9 +55,10 @@ class LocalCloudAccountRepositoryLinkedWorkspaceTransitionTest {
 
         environment.prepareLinkedCloudIdentity(localWorkspaceId = initialLocalWorkspaceId)
 
-        val linkedWorkspace = repository.completeLinkedWorkspaceTransition(CloudWorkspaceLinkSelection.CreateNew)
+        val linkedWorkspace = repository.completeLinkedWorkspaceTransition(CloudWorkspaceLinkSelection.CreateNew(name = "Spanish"))
 
         assertEquals(createdWorkspace.workspaceId, linkedWorkspace.workspaceId)
+        assertEquals("Spanish", linkedWorkspace.name)
         assertEquals(createdWorkspace.workspaceId, environment.cloudPreferencesStore.currentCloudSettings().activeWorkspaceId)
         assertEquals(createdWorkspace.workspaceId, environment.cloudPreferencesStore.currentCloudSettings().linkedWorkspaceId)
         assertEquals(createdWorkspace.workspaceId, environment.database.workspaceDao().loadAnyWorkspace()?.workspaceId)
@@ -79,7 +80,7 @@ class LocalCloudAccountRepositoryLinkedWorkspaceTransitionTest {
         val repository = environment.createCloudAccountRepository(remoteGateway = remoteGateway)
 
         environment.prepareLinkedCloudIdentity(localWorkspaceId = initialLocalWorkspaceId)
-        repository.completeLinkedWorkspaceTransition(CloudWorkspaceLinkSelection.CreateNew)
+        repository.completeLinkedWorkspaceTransition(CloudWorkspaceLinkSelection.CreateNew(name = "Spanish"))
 
         val renamedWorkspace = repository.renameCurrentWorkspace(name = "Renamed Workspace")
 
@@ -193,7 +194,7 @@ class LocalCloudAccountRepositoryLinkedWorkspaceTransitionTest {
         fetchEntered.await()
 
         val switchJob = launch {
-            cloudRepository.switchLinkedWorkspace(CloudWorkspaceLinkSelection.CreateNew)
+            cloudRepository.switchLinkedWorkspace(CloudWorkspaceLinkSelection.CreateNew(name = "Spanish"))
         }
 
         assertEquals(0, remoteGateway.createWorkspaceCalls)
