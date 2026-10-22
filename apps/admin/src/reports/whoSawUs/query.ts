@@ -2,13 +2,7 @@ import { runAdminQuery, type AdminQueryResultSet, type AdminQueryValue } from ".
 import type { ChartNote } from "../../charts/chartNotes";
 import type { AdminAppConfig } from "../../config";
 import type { AnalyticsDateRange } from "../../filters/analyticsFilters";
-import { buildExcludedActorSqlLines } from "../../filters/filterSql";
 import { escapeSqlStringLiteral } from "../../sql";
-import {
-  buildHashedSiteVisitorRowSqlLines,
-  buildHashedVisitorDayRangeSqlLines,
-  buildHashedVisitorDaySql,
-} from "../funnels/funnelAudienceSql";
 import {
   buildReportBucketColumnsSql,
   buildReportBucketSql,
@@ -18,6 +12,7 @@ import {
   type ReportPeriod,
 } from "../levelOneMetrics/reportPeriod";
 import { assertIsString, assertValidDateRange, parseActivityCount, parseActivityDate } from "../reportValues";
+import { buildSiteVisitorDaysCtesSql } from "./engagedVisitorsQuery";
 
 const reportLabel = "Who saw us report";
 const storeDeliveryLabel = "Who saw us store delivery";
@@ -109,71 +104,12 @@ export function buildStoreReportDateRangeSqlLines(rowAlias: string, range: Analy
   ];
 }
 
-const siteViewEventNames: ReadonlyArray<string> = ["site_page_viewed"];
-
 export const webDataStartChartNote: ChartNote = {
   // Approximate: production's first `site_page_viewed` is 2026-09-22 15:43:57 UTC, read on 2026-10-20.
   at: "2026-09-22T15:44:00Z",
   shortText: "Web data starts",
   longText: "We started collecting website visits in our analytics around 15:44 UTC on 2026-09-22. That day is partial, and there is no web data before it.",
 };
-
-export function buildSiteEventNamesSql(rowAlias: string, eventNames: ReadonlyArray<string>): string {
-  return `${rowAlias}.event_name IN (${eventNames.map(escapeSqlStringLiteral).join(", ")})`;
-}
-
-/** A marketing-site fact: only the credential-free collector writes these, under the visitor cookie. */
-function buildSiteFactSourceSql(rowAlias: string): string {
-  return `${rowAlias}.origin = 'client' AND ${rowAlias}.trust_level = 'anonymous_client'`;
-}
-
-/**
- * The `eventNames` site facts of the identified site visitors the `web` series reads, inside the
- * range, as a `WHERE` body. Each is a person under the shared actor exclusion rule.
- */
-export function buildIdentifiedSiteFactFilterSql(
-  rowAlias: string,
-  eventNames: ReadonlyArray<string>,
-  range: AnalyticsDateRange,
-): string {
-  const fromSql = `${escapeSqlStringLiteral(range.from)}::date`;
-  const toSql = `${escapeSqlStringLiteral(range.to)}::date`;
-  return [
-    `${buildSiteEventNamesSql(rowAlias, eventNames)} AND ${buildSiteFactSourceSql(rowAlias)}`,
-    `  AND ${rowAlias}.anonymous_id IS NOT NULL`,
-    `  AND ${rowAlias}.actor_id IS NOT NULL`,
-    // On the raw column, so the (event_name, occurred_at) index stays usable.
-    `  AND ${rowAlias}.occurred_at >= (${fromSql})::timestamp AT TIME ZONE 'UTC'`,
-    `  AND ${rowAlias}.occurred_at < (${toSql} + INTERVAL '1 day')::timestamp AT TIME ZONE 'UTC'`,
-    ...buildExcludedActorSqlLines(`${rowAlias}.actor_id::text`),
-  ].join("\n");
-}
-
-/** The page views of identified site visitors the `web` series reads. */
-export function buildIdentifiedSiteViewFilterSql(rowAlias: string, range: AnalyticsDateRange): string {
-  return buildIdentifiedSiteFactFilterSql(rowAlias, siteViewEventNames, range);
-}
-
-/**
- * The `eventNames` site facts of the cookieless site visitors the `web` series reads, on hash days
- * inside the range, as a `WHERE` body. Each is a person for one UTC day of `buildHashedVisitorDaySql`.
- */
-export function buildHashedSiteFactFilterSql(
-  rowAlias: string,
-  eventNames: ReadonlyArray<string>,
-  range: AnalyticsDateRange,
-): string {
-  return [
-    buildSiteEventNamesSql(rowAlias, eventNames),
-    ...buildHashedSiteVisitorRowSqlLines(rowAlias),
-    ...buildHashedVisitorDayRangeSqlLines(rowAlias, range.from, range.to),
-  ].join("\n  AND ");
-}
-
-/** The page views of cookieless site visitors the `web` series reads. */
-export function buildHashedSiteViewFilterSql(rowAlias: string, range: AnalyticsDateRange): string {
-  return buildHashedSiteFactFilterSql(rowAlias, siteViewEventNames, range);
-}
 
 /**
  * Every day either the website or a store series has data on, through today: the union the area's
@@ -283,13 +219,14 @@ export async function loadWhoSawUsAvailableRange(config: AdminAppConfig, signal:
 /**
  * One row per bucket of the range, each series an approximate count of unique visitors or NULL.
  *
- * `web` is the marketing site: distinct identified visitors per bucket of the UTC day of `occurred_at`,
- * through the shared actor exclusion rule, which also drops every actor with an automated collector
- * row, plus distinct cookieless visitors per UTC day of the hash's salt, keyed as the funnels key them
- * in `../funnels/funnelAudienceSql.ts`. The two cohorts can hold one human on the same day, before and
- * after consent, and are added anyway. The salt rotates daily and no hash links two days, so the
- * cookieless daily counts are summed into the bucket, as are the stores' daily values, which carry no
- * visitor id at all.
+ * `web` is the marketing site's engaged visitors over `buildSiteVisitorDaysCtesSql`: distinct identified
+ * visitors engaged on any day of the bucket, through the shared actor exclusion rule, which also drops
+ * every actor with an automated collector row, plus engaged cookieless visitor-days, keyed as the
+ * funnels key them in `../funnels/funnelAudienceSql.ts`. The two cohorts can hold one human on the
+ * same day, before and after consent, and are added anyway. The salt rotates daily and no hash links
+ * two days, so the cookieless daily counts are summed into the bucket, as are the stores' daily
+ * values, which carry no visitor id at all. `web` is NULL only where the bucket has no site
+ * visitor-day, so a bucket with visitors but no engaged one is 0.
  *
  * `app-store` is our app's product page views of the Discovery and Engagement report, by unique count, plus
  * the browser views of the apps.apple.com page from the Web Preview report, which has no unique
@@ -298,35 +235,28 @@ export async function loadWhoSawUsAvailableRange(config: AdminAppConfig, signal:
  * strings are matched case-insensitively because no imported file has confirmed their exact case.
  *
  * TODO: someone who reaches the store page from our website, by a store badge or the site's QR code,
- * counts in both `web` and `app-store` or `google-play`. Removing that overlap is a known later task.
+ * can count in both `web` and `app-store` or `google-play`. Removing that overlap is a known later task.
  */
 export function buildWhoSawUsSql(dateRange: AnalyticsDateRange, period: ReportPeriod): string {
   const range = assertValidDateRange(dateRange, reportLabel);
-  const hashedVisitorDaySql = buildHashedVisitorDaySql("hashed_view");
-  const identifiedBucketSql = buildReportBucketSql(period, "(site_view.occurred_at AT TIME ZONE 'UTC')::date");
+  const identifiedBucketSql = buildReportBucketSql(period, "identified.visit_date");
+  const hashedBucketSql = buildReportBucketSql(period, "hashed.visit_date");
   const appleBucketSql = buildReportBucketSql(period, "apple_visitors.visit_date");
   const playBucketSql = buildReportBucketSql(period, "play_visitors.visit_date");
 
   return [
-    `WITH ${buildReportBucketsCteSql(period, range)}, identified_site_visitors AS (`,
+    `WITH ${buildReportBucketsCteSql(period, range)}, ${buildSiteVisitorDaysCtesSql(range)}, site_visitors AS (`,
     "  SELECT",
     `    ${identifiedBucketSql} AS bucket_date,`,
-    "    COUNT(DISTINCT site_view.actor_id) AS visitor_count",
-    "  FROM analytics.product_events_resolved AS site_view",
-    `  WHERE ${buildIdentifiedSiteViewFilterSql("site_view", range)}`,
+    "    COUNT(DISTINCT identified.actor_id) FILTER (WHERE identified.is_engaged) AS visitor_count",
+    "  FROM identified_visitor_days AS identified",
     `  GROUP BY ${identifiedBucketSql}`,
-    "), hashed_site_visitors AS (",
-    "  SELECT",
-    `    ${hashedVisitorDaySql} AS visit_date,`,
-    "    COUNT(DISTINCT hashed_view.daily_visitor_hash) AS visitor_count",
-    "  FROM analytics.product_events_resolved AS hashed_view",
-    `  WHERE ${buildHashedSiteViewFilterSql("hashed_view", range)}`,
-    `  GROUP BY ${hashedVisitorDaySql}`,
-    "), site_visitors AS (",
-    "  SELECT identified.bucket_date, identified.visitor_count FROM identified_site_visitors AS identified",
     "  UNION ALL",
-    `  SELECT ${buildReportBucketSql(period, "hashed.visit_date")} AS bucket_date, hashed.visitor_count`,
-    "  FROM hashed_site_visitors AS hashed",
+    "  SELECT",
+    `    ${hashedBucketSql} AS bucket_date,`,
+    "    COUNT(*) FILTER (WHERE hashed.is_engaged) AS visitor_count",
+    "  FROM hashed_visitor_days AS hashed",
+    `  GROUP BY ${hashedBucketSql}`,
     "), apple_visitors AS (",
     "  SELECT engagement.report_date AS visit_date, engagement.unique_counts AS visitor_count",
     "  FROM store_analytics.apple_discovery_engagement AS engagement",
