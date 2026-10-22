@@ -199,6 +199,7 @@ class ReviewViewModel(
         observePresentedCardChanges()
         observeAutoSyncDrivenReviewChanges()
         observeNotificationPermissionPromptVisibility()
+        observeHardAnswerReminderVisibility()
     }
 
     fun selectFilter(reviewFilter: ReviewFilter) {
@@ -407,6 +408,28 @@ class ReviewViewModel(
                 .collect { isPromptVisible ->
                     val visitedSurface: AnalyticsSurface = if (isPromptVisible) {
                         AnalyticsSurface.NOTIFICATIONS_PRE_PROMPT
+                    } else {
+                        AnalyticsSurface.REVIEW
+                    }
+                    analytics.track(event = AnalyticsEvent.ScreenViewed(screen = visitedSurface))
+                }
+        }
+    }
+
+    /**
+     * Both surface edges of the hard-answer reminder, for the reasons
+     * [observeNotificationPermissionPromptVisibility] gives. The reminder has no answer: its effect
+     * is read from the ratings that follow it.
+     */
+    private fun observeHardAnswerReminderVisibility() {
+        viewModelScope.launch {
+            draftState
+                .map { state -> state.isHardAnswerReminderVisible }
+                .distinctUntilChanged()
+                .drop(count = 1)
+                .collect { isReminderVisible ->
+                    val visitedSurface: AnalyticsSurface = if (isReminderVisible) {
+                        AnalyticsSurface.REVIEW_HARD_REMINDER
                     } else {
                         AnalyticsSurface.REVIEW
                     }

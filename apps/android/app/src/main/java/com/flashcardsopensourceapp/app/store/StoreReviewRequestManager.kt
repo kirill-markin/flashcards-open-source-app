@@ -4,6 +4,8 @@ import android.content.Context
 import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.lifecycle.Lifecycle
+import com.flashcardsopensourceapp.core.observability.analytics.Analytics
+import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsEvent
 import com.flashcardsopensourceapp.data.local.database.review.ReviewLogDao
 import com.flashcardsopensourceapp.data.local.review.StoreReviewRequestStore
 import com.flashcardsopensourceapp.data.local.review.determineStoreReviewRequestEligibility
@@ -24,24 +26,6 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 
 private const val storeReviewRequestLogTag: String = "StoreReviewRequest"
-private const val storeReviewRequestedAnalyticsEventName: String = "store_review_requested"
-private const val storeReviewRequestedAnalyticsPlatform: String = "android"
-
-data class StoreReviewRequestedAnalyticsEvent(
-    val name: String,
-    val platform: String,
-    val appVersion: String,
-    val localTimestampMillis: Long,
-    val installationId: String?
-)
-
-interface StoreReviewAnalyticsReporter {
-    fun recordEvent(event: StoreReviewRequestedAnalyticsEvent)
-}
-
-object NoOpStoreReviewAnalyticsReporter : StoreReviewAnalyticsReporter {
-    override fun recordEvent(event: StoreReviewRequestedAnalyticsEvent) = Unit
-}
 
 class StoreReviewActivityProvider {
     private val activityReference = AtomicReference<ComponentActivity?>(null)
@@ -64,8 +48,7 @@ class StoreReviewRequestManager(
     private val reviewLogDao: ReviewLogDao,
     private val storeReviewRequestStore: StoreReviewRequestStore,
     private val appVersion: String,
-    private val installationIdProvider: () -> String?,
-    private val analyticsReporter: StoreReviewAnalyticsReporter,
+    private val analytics: Analytics,
     private val zoneIdProvider: () -> ZoneId,
     private val currentTimeMillisProvider: () -> Long
 ) {
@@ -119,27 +102,6 @@ class StoreReviewRequestManager(
         return true
     }
 
-    private fun recordStoreReviewRequestedAnalytics(nowMillis: Long) {
-        try {
-            analyticsReporter.recordEvent(
-                event = StoreReviewRequestedAnalyticsEvent(
-                    name = storeReviewRequestedAnalyticsEventName,
-                    platform = storeReviewRequestedAnalyticsPlatform,
-                    appVersion = appVersion,
-                    localTimestampMillis = nowMillis,
-                    installationId = installationIdProvider()?.trim()?.ifEmpty { null }
-                )
-            )
-        } catch (error: CancellationException) {
-            throw error
-        } catch (error: Throwable) {
-            Log.w(
-                storeReviewRequestLogTag,
-                "event=store_review_analytics_failed ${renderStoreReviewThrowableFields(error = error)}"
-            )
-        }
-    }
-
     private suspend fun launchGooglePlayReviewFlow(
         activity: ComponentActivity,
         canPresent: () -> Boolean
@@ -172,7 +134,7 @@ class StoreReviewRequestManager(
                 requestedAtMillis = nowMillis,
                 appVersion = appVersion
             )
-            recordStoreReviewRequestedAnalytics(nowMillis = nowMillis)
+            analytics.track(event = AnalyticsEvent.StoreReviewRequested)
             awaitReviewFlowCompletionTask(task = reviewManager.launchReviewFlow(activity, reviewInfo))
         }
     }
