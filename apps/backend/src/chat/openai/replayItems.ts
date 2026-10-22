@@ -72,6 +72,8 @@ type NormalizeStoredOpenAIReplayItemsResult = Readonly<{
 
 export type ServerChatMessage = ChatMessage & Readonly<{
   openaiItems?: ReadonlyArray<StoredOpenAIReplayItem>;
+  /** An assistant reply that ended in an error; its text content is the error shown to the user. */
+  isError?: boolean;
 }>;
 
 /**
