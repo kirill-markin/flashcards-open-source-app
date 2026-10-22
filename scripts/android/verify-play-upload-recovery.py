@@ -56,7 +56,7 @@ def artifact_file(artifact_id: str, expected_name: str, member_name: str, run_id
 
 
 def main() -> None:
-    require(os.environ['PLAY_PREFLIGHT_CONFIRMED'] == 'true', 'Fresh Play managed-publishing/no-review/empty-submission-queue preflight must be confirmed')
+    require(os.environ['PLAY_PREFLIGHT_CONFIRMED'] == 'true', 'Fresh Play preflight must confirm managed publishing OFF (unless user requested a hold), no active review, an empty ready-to-submit queue and all retained release gates reviewed')
     run_id = os.environ['SOURCE_RUN_ID']
     attempt = os.environ['SOURCE_RUN_ATTEMPT']
     source = os.environ['ARTIFACT_SOURCE_SHA']

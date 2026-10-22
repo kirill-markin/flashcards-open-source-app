@@ -36,7 +36,7 @@ on:
         type: string
         required: true
       play_preflight_confirmed:
-        description: Managed publishing ON, no active review, empty ready-to-submit queue, all retained release gates reviewed
+        description: Managed publishing OFF (unless user requested a hold), no active review, empty ready-to-submit queue, all retained release gates reviewed
         type: boolean
         required: true
         default: false
