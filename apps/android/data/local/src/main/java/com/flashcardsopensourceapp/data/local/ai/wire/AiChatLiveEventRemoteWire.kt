@@ -129,6 +129,7 @@ private data class AiChatLiveAssistantMessageDoneWireEvent(
     val itemId: StrictRemoteString,
     val content: List<JsonObject>,
     val isError: StrictRemoteBoolean,
+    val errorCode: StrictRemoteString? = null,
     val isStopped: StrictRemoteBoolean
 )
 
@@ -307,6 +308,7 @@ internal fun decodeAiChatLiveEventPayloadResult(
                         )
                     },
                     isError = wire.isError.value,
+                    errorCode = wire.errorCode?.value?.ifBlank { null },
                     isStopped = wire.isStopped.value
                 )
             )
