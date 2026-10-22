@@ -124,8 +124,7 @@ function RetentionCurveSection(props: Readonly<{
     renderRateLineChart({
       svgElement: chartRef.current,
       keys: dayKeys,
-      getRate: (key) => getRate(getKeyDay(key)),
-      color: curveColor,
+      lines: [{ getRate: (key) => getRate(getKeyDay(key)), color: curveColor }],
       inProgressKey: null,
       yLabel: "Cohort active that day",
       xLabel: "Days since day 0 (UTC)",

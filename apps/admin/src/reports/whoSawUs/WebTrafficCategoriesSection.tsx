@@ -30,9 +30,10 @@ import {
 } from "./webTrafficCategoriesQuery";
 import { whoSawUsSeriesColors, whoSawUsSeriesLabels } from "./WhoSawUsSection";
 
-const title = "Web visitors by traffic category";
+export const webTrafficCategoriesTitle = "Web visitors by traffic category";
+const title = webTrafficCategoriesTitle;
 
-const webTrafficCategoryLabels: Readonly<Record<WebTrafficCategoryKey, string>> = {
+export const webTrafficCategoryLabels: Readonly<Record<WebTrafficCategoryKey, string>> = {
   engaged: "Engaged",
   "not-engaged": "Not engaged",
   "own-and-test": "Our own and test",
@@ -74,7 +75,7 @@ function getCategoryKey(key: string): WebTrafficCategoryKey {
   return categoryKey;
 }
 
-function getCategoriesTotal(counts: Readonly<Record<WebTrafficCategoryKey, number>>): number {
+export function getCategoriesTotal(counts: Readonly<Record<WebTrafficCategoryKey, number>>): number {
   return d3.sum(webTrafficCategoryKeys, (key) => counts[key]);
 }
 
