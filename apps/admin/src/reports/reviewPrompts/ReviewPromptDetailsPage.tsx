@@ -6,6 +6,7 @@ import { FunnelsLink } from "../funnels/FunnelsLink";
 import type { FunnelReportProps } from "../funnels/funnelSections";
 import { BreakdownSection } from "../levelOneMetrics/BreakdownSection";
 import type { BreakdownReportLoader } from "../levelOneMetrics/breakdownReport";
+import { useReviewPromptCoverage } from "./coverageQuery";
 import { loadReviewPromptOutcomesReport, reviewPromptGroupByDimensions } from "./detailsQuery";
 import { buildReviewPromptsAreaFilters } from "./ReviewPromptsArea";
 import { ReviewPromptFunnelBreakdownSection, ReviewPromptFunnelSection } from "./ReviewPromptFunnelSections";
@@ -99,6 +100,7 @@ export function ReviewPromptDetailsPage(
   }>,
 ): JSX.Element {
   const prompt = getReviewPrompt(props.promptId);
+  const coverageLoad = useReviewPromptCoverage(props.config, props.onTerminalAdminError);
   // Memoized on the selection, because every card reloads whenever the object it is given changes.
   const filters = useMemo(
     () => ({ ...buildReviewPromptsAreaFilters(props.filters), comparisonDateRange: props.filters.comparisonDateRange }),
@@ -113,7 +115,7 @@ export function ReviewPromptDetailsPage(
 
   return (
     <div className="level-1-metrics-grid" data-testid="review-prompt-details">
-      <ReviewPromptFunnelSection {...cardProps} prompt={prompt} />
+      <ReviewPromptFunnelSection {...cardProps} prompt={prompt} coverageLoad={coverageLoad} />
       {reviewPromptGroupByDimensions.map((dimension) => (
         <ReviewPromptFunnelBreakdownSection key={dimension.id} {...cardProps} prompt={prompt} dimension={dimension} />
       ))}
