@@ -2,17 +2,9 @@ import type { JSX } from "react";
 import type { AdminAppConfig } from "../../config";
 import type { AnalyticsDateRange } from "../../filters/analyticsFilters";
 import { DailyNewReturningSection } from "../dailyNewReturning/DailyNewReturningSection";
-import type { DailyActivitySource } from "../dailyNewReturning/query";
 import type { LevelOneMetricDetailsLink } from "../levelOneMetrics/LevelOneMetricDetailsLink";
 import type { ReportPeriod } from "../levelOneMetrics/reportPeriod";
-import { buildAppOpenActivityCtesSql } from "./appOpenActivitySql";
-
-const appOpenActivitySource: DailyActivitySource = {
-  ctesSql: buildAppOpenActivityCtesSql(),
-  activityCte: "app_open_activity",
-  firstUseCte: "app_open_first_use",
-  coverageCte: "app_open_coverage",
-};
+import { appOpenActivitySource } from "./appOpenActivitySql";
 
 export function WhoOpenedTheAppSection(props: Readonly<{
   config: AdminAppConfig;

@@ -1,6 +1,7 @@
 import type { AnalyticsDateRange } from "../../filters/analyticsFilters";
 import { buildExcludedActorSqlLines, buildTrustedActorRowsFilterSql } from "../../filters/filterSql";
 import { escapeSqlStringLiteral } from "../../sql";
+import type { DailyActivitySource } from "../dailyNewReturning/query";
 import { buildReportBucketSql, type ReportPeriod } from "../levelOneMetrics/reportPeriod";
 
 const appOpenRowsFromSql = `FROM analytics.product_events_resolved AS events
@@ -27,6 +28,13 @@ ${buildExcludedActorSqlLines("app_open_rows.actor_id").join("\n")}
   GROUP BY actor_id
 )`;
 }
+
+export const appOpenActivitySource: DailyActivitySource = {
+  ctesSql: buildAppOpenActivityCtesSql(),
+  activityCte: "app_open_activity",
+  firstUseCte: "app_open_first_use",
+  coverageCte: "app_open_coverage",
+};
 
 /**
  * The `app_open_last_opens` CTE, composed after `buildAppOpenActivityCtesSql`: one row per bucket of
