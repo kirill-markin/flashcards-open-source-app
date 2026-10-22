@@ -294,7 +294,9 @@ const mappedOpenAIImageError = Symbol("mappedOpenAIImageError");
 type MappedOpenAIImageError = Error & Readonly<{
   [mappedOpenAIImageError]: true;
   status: number | null;
+  type: string | null;
   code: string | null;
+  moderationCategories: ReadonlyArray<string>;
 }>;
 
 export function isOpenAIImageGenerationProviderError(error: unknown): error is MappedOpenAIImageError {
