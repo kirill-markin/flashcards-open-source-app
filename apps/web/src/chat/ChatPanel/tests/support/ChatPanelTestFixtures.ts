@@ -84,6 +84,7 @@ export function createCompletedToolCallAssistantMessage(
     content: [createCompletedToolCallPart()],
     timestamp: params.timestamp,
     isError: false,
+    errorCode: null,
     isStopped: params.isStopped,
     itemId: params.itemId,
     cursor: params.cursor,

@@ -237,6 +237,7 @@ function parseChatSessionHistoryMessage(
     content: parseRequiredField(objectValue, "content", endpoint, path, parseContentPartArray),
     timestamp: parseRequiredField(objectValue, "timestamp", endpoint, path, parseNumber),
     isError: parseRequiredField(objectValue, "isError", endpoint, path, parseBoolean),
+    errorCode: parseOptionalField(objectValue, "errorCode", endpoint, path, parseNullableString) ?? null,
     isStopped: parseRequiredField(objectValue, "isStopped", endpoint, path, parseBoolean),
     cursor: parseOptionalField(objectValue, "cursor", endpoint, path, parseNullableString) ?? null,
     itemId: parseOptionalField(objectValue, "itemId", endpoint, path, parseNullableString) ?? null,

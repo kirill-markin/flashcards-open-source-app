@@ -23,6 +23,7 @@ import {
   type StoredOpenAIReplayItem,
 } from "../replayItems";
 import { buildOpenAIChatTools } from "../tools/tools";
+import { resolveChatClientApp, type ChatClientApp } from "../../shared";
 import type { ContentPart } from "../../types";
 import {
   CHAT_HISTORY_REPLAY_TOKEN_BUDGET,
@@ -185,6 +186,10 @@ function createChatLoopObservationScope(params: StartOpenAILoopParams): BackendO
   );
 }
 
+function resolveRunClientApp(params: StartOpenAILoopParams): ChatClientApp | null {
+  return resolveChatClientApp(params.clientPlatform, params.clientOsName, params.clientDeviceType);
+}
+
 function setExecutionPhase(
   params: StartOpenAILoopParams,
   phase: "idle" | "model" | "tool",
@@ -236,6 +241,7 @@ function selectModelCallInputFromLatestCompaction(
   baseInput: ReadonlyArray<OpenAI.Responses.ResponseInputItem>,
   continuationItems: ReadonlyArray<StoredOpenAIReplayItem>,
   generatedImageEligible: boolean,
+  clientApp: ChatClientApp | null,
 ): ModelCallInput {
   const compactedItems = sliceReplayItemsFromLatestCompaction(continuationItems);
   if (compactedItems === null) {
@@ -243,7 +249,7 @@ function selectModelCallInputFromLatestCompaction(
   }
 
   return {
-    baseInput: placeSystemPrompt(compactedItems.map(toOpenAIResponseInputItem), generatedImageEligible),
+    baseInput: placeSystemPrompt(compactedItems.map(toOpenAIResponseInputItem), generatedImageEligible, clientApp),
     continuationItems: [],
   };
 }
@@ -288,6 +294,7 @@ async function runModelCallWithOverflowRetry(
       params.sessionId,
       params.timezone,
       params.generatedImageEligible,
+      resolveRunClientApp(params),
       fileDerivatives,
       REDUCED_HISTORY_REPLAY_TOKEN_BUDGET,
     );
@@ -327,7 +334,12 @@ async function runToolLimitSummaryTurn(
       fileDerivatives,
       baseInput,
       (input) => buildOpenAIResponsesRequest({
-        ...selectModelCallInputFromLatestCompaction(input, continuationItems, params.generatedImageEligible),
+        ...selectModelCallInputFromLatestCompaction(
+          input,
+          continuationItems,
+          params.generatedImageEligible,
+          resolveRunClientApp(params),
+        ),
         userId: params.userId,
         sessionId: params.sessionId,
         modelId: params.modelId,
@@ -374,6 +386,7 @@ async function runLoopWithDeps(
     params.sessionId,
     params.timezone,
     params.generatedImageEligible,
+    resolveRunClientApp(params),
     fileDerivatives,
   );
   const continuationItems: Array<StoredOpenAIReplayItem> = [];
@@ -395,7 +408,12 @@ async function runLoopWithDeps(
         fileDerivatives,
         baseInput,
         (input) => buildOpenAIResponsesRequest({
-          ...selectModelCallInputFromLatestCompaction(input, continuationItems, params.generatedImageEligible),
+          ...selectModelCallInputFromLatestCompaction(
+            input,
+            continuationItems,
+            params.generatedImageEligible,
+            resolveRunClientApp(params),
+          ),
           userId: params.userId,
           sessionId: params.sessionId,
           modelId: params.modelId,

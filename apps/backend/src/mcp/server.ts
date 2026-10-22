@@ -61,7 +61,7 @@ const SERVER_INSTRUCTIONS = [
   ASSISTANT_PRODUCT_DESCRIPTION,
   ...ASSISTANT_BEHAVIOUR_RULE_LINES,
   "Call list_workspaces to pick a workspaceId, or omit it for the selected default.",
-  "Hard rules: front_text is a short recall prompt, never the answer; every new card needs at least one tag, reusing existing workspace tags; check for duplicates with sql_query before creating; describe broad deletes or updates before running them.",
+  "Hard rules: front_text is a short recall prompt, never the answer; every new card needs at least one tag, reusing existing workspace tags; check for duplicates with sql_query before creating.",
   "Read get_guide(card_authoring) before authoring cards and get_guide(bulk_authoring) before a large write job.",
 ].join(" ");
 

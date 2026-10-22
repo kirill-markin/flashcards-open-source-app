@@ -7,6 +7,7 @@ import { ContentText } from "../../components/ContentText";
 import { MathText } from "../../components/MathText";
 import { hasEligibleReviewMath } from "../../screens/review/components/card/reviewMathBlocks";
 import { buildCardContextXml, formatCardAttachmentLabel } from "../attachments/chatCardParts";
+import { localizeChatTerminalError } from "../shared/chatTerminalErrorPolicy";
 
 type Translate = (key: TranslationKey, values?: TranslationValues) => string;
 type ChatMessageTechnicalErrorHandler = (error: unknown) => boolean;
@@ -251,7 +252,7 @@ export function renderStoredMessageContent(
         elements.push(<br key={`attachment-break-1-${index}`} />);
         elements.push(<br key={`attachment-break-2-${index}`} />);
       }
-      elements.push(<ContentText key={`text-${index}`} text={part.text} {...renderContext} />);
+      elements.push(<ContentText key={`text-${index}`} text={localizeChatTerminalError(message.errorCode, part.text, t)} {...renderContext} />);
       previousPartNeedsTextSeparator = false;
       continue;
     }
@@ -326,7 +327,10 @@ export function renderStoredMessageContent(
     <ChatMathCopyButton
       key={sourceText}
       text={sourceText}
-      hasRenderedMath={textParts.some((part) => part.text.includes("$") && hasEligibleReviewMath(part.text))}
+      hasRenderedMath={textParts.some((part) => {
+        const renderedText = localizeChatTerminalError(message.errorCode, part.text, t);
+        return renderedText.includes("$") && hasEligibleReviewMath(renderedText);
+      })}
       sectionTitle={t(message.role === "user" ? "chatMessageContent.request" : "chatMessageContent.response")}
       t={t}
       onTechnicalError={onTechnicalError}

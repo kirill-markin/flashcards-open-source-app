@@ -176,6 +176,7 @@ export function areMessagesEqual(
       leftMessage?.role !== rightMessage?.role
       || leftMessage.timestamp !== rightMessage.timestamp
       || leftMessage.isError !== rightMessage.isError
+      || leftMessage.errorCode !== rightMessage.errorCode
       || leftMessage.isStopped !== rightMessage.isStopped
       || leftMessage.itemId !== rightMessage.itemId
       || leftMessage.cursor !== rightMessage.cursor
@@ -231,16 +232,41 @@ function extractStoredMessageTextContent(message: StoredMessage): string {
   }, "").trim();
 }
 
+function findLatestAssistantErrorMessage(
+  messages: ReadonlyArray<StoredMessage>,
+): StoredMessage | null {
+  const assistantMessage = [...messages].reverse().find((message) => message.role === "assistant");
+  return assistantMessage === undefined || assistantMessage.isError === false ? null : assistantMessage;
+}
+
 export function extractAssistantErrorMessage(
   messages: ReadonlyArray<StoredMessage>,
 ): string | null {
-  const assistantMessage = [...messages].reverse().find((message) => message.role === "assistant");
-  if (assistantMessage === undefined || assistantMessage.isError === false) {
+  const assistantMessage = findLatestAssistantErrorMessage(messages);
+  if (assistantMessage === null) {
     return null;
   }
 
   const messageText = extractStoredMessageTextContent(assistantMessage);
   return messageText === "" ? null : messageText;
+}
+
+/**
+ * A terminal message that differs from the stored error's text is a failure with no stored error of
+ * its own, such as a poll failure, so an older turn's code must not replace it.
+ */
+export function resolveTerminalErrorCode(
+  messages: ReadonlyArray<StoredMessage>,
+  terminalMessage: string | null,
+): string | null {
+  const assistantMessage = findLatestAssistantErrorMessage(messages);
+  if (assistantMessage === null) {
+    return null;
+  }
+
+  return terminalMessage === null || terminalMessage === extractStoredMessageTextContent(assistantMessage)
+    ? assistantMessage.errorCode
+    : null;
 }
 
 export function extractLatestAssistantMessageText(
