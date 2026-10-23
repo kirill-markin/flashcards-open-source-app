@@ -376,7 +376,16 @@
 }
 
 .chat-attachment-chip-card {
+  min-width: 0;
+  max-width: 100%;
   background: var(--surface-hover);
+}
+
+.chat-attachment-card-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .chat-attachment-remove {

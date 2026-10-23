@@ -2,6 +2,7 @@ import type { ReactElement } from "react";
 import { isCardDue } from "../../../appData/domain";
 import { parseDueAtMillis } from "../../../appData/domain/dueAt";
 import { useI18n } from "../../../i18n";
+import { MathText } from "../../../components/MathText";
 import type { Card } from "../../../types";
 import type { ReviewLoadingSnapshot } from "../../shared/loadingSnapshots";
 import { formatNullableDateTime } from "../../shared/featureFormatting";
@@ -83,7 +84,7 @@ export function ReviewQueuePanel(props: ReviewQueuePanelProps): ReactElement {
                   data-card-front-text={card.frontText}
                   data-card-id={card.cardId}
                 >
-                  <span className="review-queue-card-title">{card.frontText}</span>
+                  <span className="review-queue-card-title"><MathText text={card.frontText} /></span>
                   <span className="review-queue-card-tags"><ReviewCardTags onRequestTagFilter={onRequestTagFilter} tags={card.tags} /></span>
                   <span className="review-queue-card-meta">
                     <span>{formatNullableDateTime(card.dueAt, formatDateTime, t)}</span>
@@ -120,7 +121,7 @@ export function ReviewQueuePanel(props: ReviewQueuePanelProps): ReactElement {
                 data-card-front-text={card.frontText}
                 data-card-id={card.cardId}
               >
-                <span className="review-queue-card-title">{card.frontText}</span>
+                <span className="review-queue-card-title"><MathText text={card.frontText} /></span>
                 <span className="review-queue-card-tags"><ReviewCardTags onRequestTagFilter={onRequestTagFilter} tags={card.tags} /></span>
                 <span className="review-queue-card-meta">
                   <span>{formatNullableDateTime(card.dueAt, formatDateTime, t)}</span>

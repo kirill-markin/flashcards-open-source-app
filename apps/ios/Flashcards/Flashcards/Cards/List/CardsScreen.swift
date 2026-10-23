@@ -705,9 +705,7 @@ struct CardRow: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text(card.frontText)
-                .font(.headline)
-                .foregroundStyle(.primary)
+            MathContentText(text: card.frontText, textStyle: .headline, weight: .semibold)
 
             ViewThatFits(in: .horizontal) {
                 HStack(spacing: 12) {

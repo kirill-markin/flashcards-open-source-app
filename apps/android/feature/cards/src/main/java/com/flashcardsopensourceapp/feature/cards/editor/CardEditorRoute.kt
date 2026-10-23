@@ -182,6 +182,7 @@ fun CardEditorRoute(
                             contentDescription = null
                         )
                     },
+                    contentSource = uiState.frontText,
                     onClick = onOpenFrontTextEditor
                 )
             }
@@ -208,6 +209,7 @@ fun CardEditorRoute(
                             contentDescription = null
                         )
                     },
+                    contentSource = uiState.backText,
                     onClick = onOpenBackTextEditor
                 )
             }

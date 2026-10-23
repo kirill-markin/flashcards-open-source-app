@@ -18,20 +18,8 @@ func buildAIChatLongTextPreview(
         "AI chat long text preview character limit must be greater than zero."
     )
 
-    let previewEndIndex = text.index(
-        text.startIndex,
-        offsetBy: characterLimit,
-        limitedBy: text.endIndex
-    ) ?? text.endIndex
-
-    guard previewEndIndex != text.endIndex else {
-        return AIChatLongTextPreview(text: text, isTruncated: false)
-    }
-
-    return AIChatLongTextPreview(
-        text: String(text[..<previewEndIndex]),
-        isTruncated: true
-    )
+    let preview = reviewMathTextPrefix(text: text, characterLimit: characterLimit)
+    return AIChatLongTextPreview(text: preview, isTruncated: preview != text)
 }
 
 func segmentAIChatLongText(
@@ -87,13 +75,17 @@ func buildAIChatLongTextChunks(
 
 struct AIChatLongTextView: View {
     let text: String
+    let textStyle: UIFont.TextStyle
+    let isSelectable: Bool
 
     @State private var isFullResponsePresented: Bool = false
 
     private let preview: AIChatLongTextPreview
 
-    init(text: String) {
+    init(text: String, textStyle: UIFont.TextStyle = .body, isSelectable: Bool = false) {
         self.text = text
+        self.textStyle = textStyle
+        self.isSelectable = isSelectable
         self.preview = buildAIChatLongTextPreview(
             text: text,
             characterLimit: aiChatLongTextPreviewCharacterLimit
@@ -104,7 +96,7 @@ struct AIChatLongTextView: View {
     var body: some View {
         if self.preview.isTruncated {
             VStack(alignment: .leading, spacing: 8) {
-                Text(verbatim: self.preview.text)
+                MathContentText(text: self.preview.text, textStyle: self.textStyle, isSelectable: self.isSelectable, isInteractive: true)
                 Button(aiSettingsLocalized("ai.message.fullResponse.show", "Show full response")) {
                     self.isFullResponsePresented = true
                 }
@@ -114,15 +106,59 @@ struct AIChatLongTextView: View {
                 AIChatFullResponseView(text: self.text)
             }
         } else {
-            Text(verbatim: self.preview.text)
+            MathContentText(text: self.preview.text, textStyle: self.textStyle, isSelectable: self.isSelectable, isInteractive: true)
         }
     }
+}
+
+private struct AIChatDisplayChunk {
+    let text: String
+    let blocks: [ReviewMathBlock]
+}
+
+private func buildAIChatDisplayChunks(text: String) async -> [AIChatDisplayChunk]? {
+    let task = Task.detached(priority: .userInitiated) { () -> [AIChatDisplayChunk]? in
+        let blocks: [ReviewMathBlock]
+        if containsReviewMathDelimiter(text: text), case .segmented(let mathBlocks) = extractReviewMathBlocks(text: text) {
+            blocks = mathBlocks
+        } else {
+            blocks = [.markdown(text)]
+        }
+        var chunks: [AIChatDisplayChunk] = []
+        var pendingText = ""
+        var pendingBlocks: [ReviewMathBlock] = []
+        func flush() {
+            guard pendingText.isEmpty == false else { return }
+            chunks.append(AIChatDisplayChunk(text: pendingText, blocks: pendingBlocks))
+            pendingText = ""
+            pendingBlocks = []
+        }
+        for block in blocks {
+            guard Task.isCancelled == false else { return nil }
+            switch block {
+            case .markdown(let source):
+                guard let segments = segmentAIChatLongText(text: source, chunkCharacterLimit: aiChatLongTextChunkCharacterLimit, cancellationRequested: { Task.isCancelled }) else { return nil }
+                for segment in segments {
+                    if pendingText.count + segment.count > aiChatLongTextChunkCharacterLimit { flush() }
+                    pendingText += segment
+                    pendingBlocks.append(.markdown(segment))
+                }
+            case .formula(let formula):
+                if pendingText.count + formula.originalSource.count > aiChatLongTextChunkCharacterLimit { flush() }
+                pendingText += formula.originalSource
+                pendingBlocks.append(block)
+            }
+        }
+        flush()
+        return chunks
+    }
+    return await withTaskCancellationHandler { await task.value } onCancel: { task.cancel() }
 }
 
 private struct AIChatFullResponseView: View {
     @Environment(\.dismiss) private var dismiss
 
-    @State private var chunks: [String]?
+    @State private var chunks: [AIChatDisplayChunk]?
 
     let text: String
 
@@ -136,7 +172,7 @@ private struct AIChatFullResponseView: View {
                 if let chunks = self.chunks {
                     LazyVStack(alignment: .leading, spacing: 0) {
                         ForEach(chunks.indices, id: \.self) { index in
-                            Text(verbatim: chunks[index])
+                            MathContentText(text: chunks[index].text, isSelectable: true, parsedBlocks: chunks[index].blocks)
                                 .frame(maxWidth: .infinity, alignment: .leading)
                                 .textSelection(.enabled)
                         }
@@ -152,10 +188,7 @@ private struct AIChatFullResponseView: View {
                 let text = self.text
                 self.chunks = nil
 
-                guard let chunks = await buildAIChatLongTextChunks(
-                    text: text,
-                    chunkCharacterLimit: aiChatLongTextChunkCharacterLimit
-                ) else {
+                guard let chunks = await buildAIChatDisplayChunks(text: text) else {
                     return
                 }
                 guard Task.isCancelled == false else {

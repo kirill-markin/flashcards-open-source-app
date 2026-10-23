@@ -7,7 +7,9 @@ import UIKit
 func makeReviewSelectableContent(
     content: ReviewRenderedContent,
     surfaceStyle: ReviewCardSurfaceStyle,
-    environment: EnvironmentValues
+    environment: EnvironmentValues,
+    textFont: UIFont? = nil,
+    textColor: UIColor = .label
 ) throws -> NSAttributedString {
     let font = UIFontMetrics(forTextStyle: .body).scaledFont(for: .systemFont(ofSize: surfaceStyle == .front ? 18 : 17))
     let result = NSMutableAttributedString()
@@ -203,6 +205,40 @@ func makeReviewSelectableContent(
     }
 
     switch content {
+    case .mathText(let blocks):
+        let textFont = textFont ?? font
+        let attributes: [NSAttributedString.Key: Any] = [.font: textFont, .foregroundColor: textColor]
+        var didFailRenderingFormula = false
+        for block in blocks {
+            switch block {
+            case .markdown(let source):
+                result.append(NSAttributedString(string: source, attributes: attributes))
+            case .formula(let formula):
+                if formula.continuesParagraph {
+                    let reference = ReviewInlineMathReference(source: "formula", formula: formula)
+                    let rendering = makeReviewInlineMathRendering(
+                        references: [reference], fontSize: textFont.pointSize,
+                        color: reviewMathRenderableColor(textColor.resolvedColor(with: UITraitCollection(userInterfaceStyle: environment.colorScheme == .dark ? .dark : .light))),
+                        displayScale: environment.displayScale
+                    )
+                    didFailRenderingFormula = didFailRenderingFormula || rendering.didFailRendering
+                    if let image = rendering.images[reference.source] {
+                        appendAttachment(view: AnyView(image.accessibilityLabel(formula.latex)), text: formula.originalSource, layout: .inline, attributes: attributes, to: result)
+                    }
+                } else {
+                    appendAttachment(
+                        view: AnyView(ReviewMathFormulaView(formula: formula, surfaceStyle: surfaceStyle, textFontSize: textFont.pointSize, textColor: Color(uiColor: reviewMathRenderableColor(textColor.resolvedColor(with: UITraitCollection(userInterfaceStyle: environment.colorScheme == .dark ? .dark : .light)))))),
+                        text: formula.originalSource, layout: .block, attributes: attributes, to: result
+                    )
+                }
+            }
+        }
+        if didFailRenderingFormula {
+            result.append(NSAttributedString(
+                string: "\n" + String(localized: "Formula couldn't be rendered. Check the LaTeX syntax.", table: "ReviewCards"),
+                attributes: [.font: UIFont.preferredFont(forTextStyle: .caption1), .foregroundColor: UIColor.systemRed]
+            ))
+        }
     case .shortPlain(let text):
         let paragraph = NSMutableParagraphStyle()
         paragraph.alignment = .center

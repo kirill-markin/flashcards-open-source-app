@@ -32,6 +32,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.flashcardsopensourceapp.core.ui.content.MathText
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatMessage
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatSessionHistorySummary
 import com.flashcardsopensourceapp.feature.ai.R
@@ -54,7 +55,7 @@ fun AiChatHistoryReaderRoute(
         topBar = {
             TopAppBar(
                 title = {
-                    Text(
+                    MathText(
                         text = summary?.title ?: stringResource(id = R.string.ai_history_untitled_chat),
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis

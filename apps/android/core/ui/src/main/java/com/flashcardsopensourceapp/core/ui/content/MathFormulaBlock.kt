@@ -1,4 +1,4 @@
-package com.flashcardsopensourceapp.feature.review
+package com.flashcardsopensourceapp.core.ui.content
 
 import android.util.Log
 import androidx.compose.foundation.horizontalScroll
@@ -31,6 +31,7 @@ import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
+import com.flashcardsopensourceapp.core.ui.R
 import io.ratex.RaTeXException
 import io.ratex.RaTeXView
 
@@ -39,7 +40,7 @@ private val reviewMathBlockCornerRadius = 12.dp
 private val reviewMathMinimumHeight = 32.dp
 
 @Composable
-internal fun ReviewMathFormulaBlock(
+fun MathFormulaBlock(
     source: String,
     delimitedSource: String,
     modifier: Modifier

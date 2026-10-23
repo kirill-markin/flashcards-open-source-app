@@ -1,11 +1,25 @@
+.content-text-markdown > :first-child,
+.content-text-markdown > :first-child > :first-child,
 .review-card-content-markdown > :first-child,
 .review-card-content-markdown > :first-child > :first-child {
   margin-top: 0;
 }
 
+.content-text-markdown > :last-child,
+.content-text-markdown > :last-child > :last-child,
 .review-card-content-markdown > :last-child,
 .review-card-content-markdown > :last-child > :last-child {
   margin-bottom: 0;
+}
+
+.content-text {
+  min-width: 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.content-text-markdown {
+  white-space: normal;
 }
 
 .review-markdown-h1,

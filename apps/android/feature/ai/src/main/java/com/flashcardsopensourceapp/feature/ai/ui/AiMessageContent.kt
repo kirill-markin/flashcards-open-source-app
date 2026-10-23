@@ -16,6 +16,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.CollectionsBookmark
@@ -49,13 +51,8 @@ import androidx.compose.ui.semantics.progressBarRangeInfo
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
-import com.flashcardsopensourceapp.feature.ai.R
-import com.flashcardsopensourceapp.feature.ai.aiAssistantMessageBubbleTag
-import com.flashcardsopensourceapp.feature.ai.aiAssistantTextPartTag
-import com.flashcardsopensourceapp.feature.ai.aiUserMessageBubbleTag
 import com.flashcardsopensourceapp.core.ui.bidiWrap
+import com.flashcardsopensourceapp.core.ui.content.MathText
 import com.flashcardsopensourceapp.core.ui.currentResourceLocale
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatContentPart
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatMessage
@@ -63,8 +60,12 @@ import com.flashcardsopensourceapp.data.local.model.ai.AiChatReasoningSummary
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatRepairAttemptStatus
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatRole
 import com.flashcardsopensourceapp.data.local.model.ai.AiChatToolCallStatus
-import com.flashcardsopensourceapp.data.local.model.ai.buildAiChatCardContextXml
 import com.flashcardsopensourceapp.data.local.model.ai.aiChatOptimisticAssistantStatusToken
+import com.flashcardsopensourceapp.data.local.model.ai.buildAiChatCardContextXml
+import com.flashcardsopensourceapp.feature.ai.R
+import com.flashcardsopensourceapp.feature.ai.aiAssistantMessageBubbleTag
+import com.flashcardsopensourceapp.feature.ai.aiAssistantTextPartTag
+import com.flashcardsopensourceapp.feature.ai.aiUserMessageBubbleTag
 import com.flashcardsopensourceapp.feature.ai.strings.AiTextProvider
 import com.flashcardsopensourceapp.feature.ai.strings.aiTextProvider
 import com.flashcardsopensourceapp.feature.ai.toolcall.ToolCallCard
@@ -178,7 +179,7 @@ private fun MessageBubbleContent(
                         }
                     } else {
                         SelectionContainer {
-                            Text(
+                            MathText(
                                 text = textProvider.chatErrorText(
                                     errorCode = message.errorCode,
                                     storedText = contentPart.text
@@ -282,7 +283,7 @@ private fun ReasoningSummaryCard(reasoningSummary: AiChatReasoningSummary) {
                 fontWeight = FontWeight.SemiBold
             )
             SelectionContainer {
-                Text(
+                MathText(
                     text = reasoningSummary.summary.ifBlank {
                         stringResource(id = R.string.ai_thinking)
                     },
@@ -358,8 +359,10 @@ private fun CardContextContentCard(
                     verticalArrangement = Arrangement.spacedBy(2.dp),
                     modifier = Modifier.weight(1f)
                 ) {
-                    Text(
-                        text = aiCardAttachmentLabel(frontText = frontText),
+                    MathText(
+                        text = frontText,
+                        formatText = cardAttachmentTextFormatter(),
+                        maxLines = 2,
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.SemiBold
                     )
@@ -546,20 +549,19 @@ private fun AccountUpgradeCard(
     }
 }
 
+
 @Composable
-private fun aiCardAttachmentLabel(frontText: String): String {
+private fun cardAttachmentTextFormatter(): (String) -> String {
     val context = LocalContext.current
     val locale = currentResourceLocale(resources = context.resources)
-    val trimmedFrontText = frontText.trim()
-    if (trimmedFrontText.isEmpty()) {
-        return stringResource(id = R.string.ai_card_attachment_fallback_title)
+    return { text ->
+        if (text.isBlank()) {
+            context.getString(R.string.ai_card_attachment_fallback_title)
+        } else {
+            context.getString(
+                R.string.ai_card_attachment_title,
+                bidiWrap(text = text.trim().take(72), locale = locale)
+            )
+        }
     }
-
-    return stringResource(
-        id = R.string.ai_card_attachment_title,
-        bidiWrap(
-            text = trimmedFrontText.take(n = 72),
-            locale = locale
-        )
-    )
 }

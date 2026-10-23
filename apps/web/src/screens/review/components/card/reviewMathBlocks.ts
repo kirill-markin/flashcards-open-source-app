@@ -72,6 +72,15 @@ export type ReviewMathSpeechSegment =
     value: string;
   }>;
 
+export type ReviewMathContentSegment =
+  | Readonly<{
+    kind: "formula";
+    value: string;
+    delimitedSource: string;
+    inline: boolean;
+  }>
+  | Extract<ReviewMathSpeechSegment, { kind: "prose" }>;
+
 function splitReviewMarkdownLines(text: string): ReadonlyArray<ReviewMarkdownLine> {
   const lines: Array<ReviewMarkdownLine> = [];
   const lineEndingPattern = /\r\n|\r|\n/g;
@@ -968,7 +977,7 @@ function createReviewMathProseSegment(
   escapedText: string,
   startIndex: number,
   endIndex: number,
-): ReviewMathSpeechSegment {
+): Extract<ReviewMathSpeechSegment, { kind: "prose" }> {
   return {
     kind: "prose",
     startsAtLineBoundary: startIndex === 0 || /[\r\n]/.test(escapedText[startIndex - 1] ?? ""),
@@ -976,10 +985,10 @@ function createReviewMathProseSegment(
   };
 }
 
-export function splitEligibleReviewMathForSpeech(text: string): ReadonlyArray<ReviewMathSpeechSegment> {
+export function splitEligibleReviewMathContent(text: string): ReadonlyArray<ReviewMathContentSegment> {
   const { escapedText, sources } = collectEscapedReviewMathSources(text);
   const orderedSources = [...sources].sort((left, right) => left.startIndex - right.startIndex);
-  const segments: Array<ReviewMathSpeechSegment> = [];
+  const segments: Array<ReviewMathContentSegment> = [];
   let sourceCursor = 0;
 
   for (const source of orderedSources) {
@@ -989,6 +998,8 @@ export function splitEligibleReviewMathForSpeech(text: string): ReadonlyArray<Re
     segments.push({
       kind: "formula",
       value: source.formulaSource,
+      delimitedSource: source.delimitedSource,
+      inline: source.mathMode === "inline",
     });
     sourceCursor = source.endIndex;
   }
@@ -998,6 +1009,12 @@ export function splitEligibleReviewMathForSpeech(text: string): ReadonlyArray<Re
   }
 
   return segments;
+}
+
+export function splitEligibleReviewMathForSpeech(text: string): ReadonlyArray<ReviewMathSpeechSegment> {
+  return splitEligibleReviewMathContent(text).map((segment) => segment.kind === "formula"
+    ? { kind: "formula", value: segment.value }
+    : segment);
 }
 
 const reviewMathBlocks: Plugin<[], Root> = function reviewMathBlocksPlugin() {

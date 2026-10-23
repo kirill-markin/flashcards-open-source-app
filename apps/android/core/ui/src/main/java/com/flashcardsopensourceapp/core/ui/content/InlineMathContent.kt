@@ -1,4 +1,4 @@
-package com.flashcardsopensourceapp.feature.review
+package com.flashcardsopensourceapp.core.ui.content
 
 import android.content.Context
 import android.graphics.Bitmap
@@ -15,6 +15,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.toArgb
@@ -29,31 +30,31 @@ import io.ratex.RaTeXEngine
 import io.ratex.RaTeXException
 import io.ratex.RaTeXFontLoader
 import io.ratex.RaTeXRenderer
+import kotlin.math.ceil
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import kotlin.math.ceil
 
 /**
  * One accepted inline formula stands in the block Markdown as this single character, so the
  * Markdown parser never reinterprets LaTeX and no block syntax can appear at a paragraph start.
  */
-internal const val reviewInlineMathMarker: Char = '\uFFFC'
+const val inlineMathMarker: Char = '\uFFFC'
 
 private const val reviewInlineMathLogTag: String = "ReviewInlineMath"
 
-internal sealed interface ReviewInlineMathRenderState {
+sealed interface InlineMathRenderState {
     data class Rendered(
         val bitmap: ImageBitmap,
         val widthPx: Float,
         val ascentPx: Float,
         val depthPx: Float
-    ) : ReviewInlineMathRenderState
+    ) : InlineMathRenderState
 
-    data object Failed : ReviewInlineMathRenderState
+    data object Failed : InlineMathRenderState
 }
 
-internal data class ReviewInlineMathContent(
-    val renderStates: Map<String, ReviewInlineMathRenderState>,
+data class InlineMathContent(
+    val renderStates: Map<String, InlineMathRenderState>,
     val inlineContent: Map<String, InlineTextContent>
 )
 
@@ -64,67 +65,70 @@ internal data class ReviewInlineMathContent(
  * left over from the previous card be recognized instead of drawing that card's bitmaps.
  */
 private data class ReviewInlineMathRenderResult(
-    val formulas: List<ReviewInlineMathFormula>,
-    val renderStates: Map<String, ReviewInlineMathRenderState>
+    val formulas: List<InlineMathFormula>,
+    val renderStates: Map<String, InlineMathRenderState>,
+    val colorArgb: Int,
+    val fontSizePx: Float
 )
 
-internal fun reviewInlineMathTag(index: Int): String {
+fun inlineMathTag(index: Int): String {
     return "review-inline-math-$index"
 }
 
-internal fun countReviewInlineMathMarkers(text: String): Int {
-    return text.count { character -> character == reviewInlineMathMarker }
+fun countInlineMathMarkers(text: String): Int {
+    return text.count { character -> character == inlineMathMarker }
 }
 
 /**
- * Drops every [reviewInlineMathMarker] a card already carries, so the markers this pipeline injects
+ * Drops every [inlineMathMarker] a card already carries, so the markers this pipeline injects
  * for accepted inline formulas are the only ones the marker counters can ever see.
  */
-internal fun removeReviewInlineMathMarkers(text: String): String {
-    if (text.indexOf(char = reviewInlineMathMarker) < 0) {
+fun removeInlineMathMarkers(text: String): String {
+    if (text.indexOf(char = inlineMathMarker) < 0) {
         return text
     }
-    return text.filter { character -> character != reviewInlineMathMarker }
+    return text.filter { character -> character != inlineMathMarker }
 }
 
 @Composable
-internal fun rememberReviewInlineMathContent(
-    formulas: List<ReviewInlineMathFormula>
-): ReviewInlineMathContent {
+fun rememberInlineMathContent(
+    formulas: List<InlineMathFormula>,
+    color: Color = MaterialTheme.colorScheme.onSurface,
+    fontSize: TextUnit = MaterialTheme.typography.bodyLarge.fontSize
+): InlineMathContent {
     val context: Context = LocalContext.current
     val density: Density = LocalDensity.current
-    val formulaColor: Int = MaterialTheme.colorScheme.onSurface.toArgb()
-    val formulaFontSize: TextUnit = MaterialTheme.typography.bodyLarge.fontSize
+    val formulaColor: Int = color.toArgb()
+    val formulaFontSize: TextUnit = fontSize
     val formulaFontSizePx: Float = with(density) { formulaFontSize.toPx() }
 
     val renderResult: ReviewInlineMathRenderResult by produceState(
         initialValue = ReviewInlineMathRenderResult(
             formulas = emptyList(),
-            renderStates = emptyMap()
+            renderStates = emptyMap(),
+            colorArgb = formulaColor,
+            fontSizePx = formulaFontSizePx
         ),
         key1 = formulas,
         key2 = formulaColor,
         key3 = formulaFontSizePx
     ) {
+        val reusableStates = matchingInlineMathStates(value, formulas, formulaColor, formulaFontSizePx)
         value = ReviewInlineMathRenderResult(
             formulas = formulas,
             renderStates = renderReviewInlineMathFormulas(
                 context = context,
                 formulas = formulas,
                 colorArgb = formulaColor,
-                fontSizePx = formulaFontSizePx
-            )
+                fontSizePx = formulaFontSizePx,
+                reusableStates = reusableStates
+            ),
+            colorArgb = formulaColor,
+            fontSizePx = formulaFontSizePx
         )
     }
-    // The producer coroutine runs after this composition, so the previous card's result can still
-    // be held here; a result that does not describe these formulas reads as "not yet rendered".
-    val renderStates: Map<String, ReviewInlineMathRenderState> = if (
-        renderResult.formulas == formulas
-    ) {
-        renderResult.renderStates
-    } else {
-        emptyMap()
-    }
+    // Keep completed formulas stable as chat streams new ones, while rejecting stale card/style data.
+    val renderStates = matchingInlineMathStates(renderResult, formulas, formulaColor, formulaFontSizePx)
 
     val inlineContent: Map<String, InlineTextContent> = remember(
         formulas,
@@ -133,7 +137,7 @@ internal fun rememberReviewInlineMathContent(
         formulaFontSize
     ) {
         formulas.associate { formula ->
-            val renderState: ReviewInlineMathRenderState? = renderStates[formula.tag]
+            val renderState: InlineMathRenderState? = renderStates[formula.tag]
             formula.tag to InlineTextContent(
                 placeholder = reviewInlineMathPlaceholder(
                     renderState = renderState,
@@ -141,14 +145,14 @@ internal fun rememberReviewInlineMathContent(
                     pendingSize = formulaFontSize
                 )
             ) {
-                if (renderState is ReviewInlineMathRenderState.Rendered) {
+                if (renderState is InlineMathRenderState.Rendered) {
                     ReviewInlineMathFormulaImage(renderState = renderState)
                 }
             }
         }
     }
 
-    return ReviewInlineMathContent(
+    return InlineMathContent(
         renderStates = renderStates,
         inlineContent = inlineContent
     )
@@ -159,7 +163,7 @@ internal fun rememberReviewInlineMathContent(
  * the formula baseline on the text baseline and hang the descender into the descender band.
  */
 @Composable
-private fun ReviewInlineMathFormulaImage(renderState: ReviewInlineMathRenderState.Rendered) {
+private fun ReviewInlineMathFormulaImage(renderState: InlineMathRenderState.Rendered) {
     Spacer(
         modifier = Modifier
             .fillMaxSize()
@@ -173,11 +177,11 @@ private fun ReviewInlineMathFormulaImage(renderState: ReviewInlineMathRenderStat
 }
 
 private fun reviewInlineMathPlaceholder(
-    renderState: ReviewInlineMathRenderState?,
+    renderState: InlineMathRenderState?,
     density: Density,
     pendingSize: TextUnit
 ): Placeholder {
-    if (renderState !is ReviewInlineMathRenderState.Rendered) {
+    if (renderState !is InlineMathRenderState.Rendered) {
         return Placeholder(
             width = pendingSize,
             height = pendingSize,
@@ -195,34 +199,50 @@ private fun reviewInlineMathPlaceholder(
 
 private suspend fun renderReviewInlineMathFormulas(
     context: Context,
-    formulas: List<ReviewInlineMathFormula>,
+    formulas: List<InlineMathFormula>,
     colorArgb: Int,
-    fontSizePx: Float
-): Map<String, ReviewInlineMathRenderState> {
+    fontSizePx: Float,
+    reusableStates: Map<String, InlineMathRenderState>
+): Map<String, InlineMathRenderState> {
     if (formulas.isEmpty()) {
         return emptyMap()
     }
     return withContext(Dispatchers.IO) {
         RaTeXFontLoader.ensureLoaded(context)
         formulas.associate { formula ->
-            formula.tag to renderReviewInlineMathFormula(
+            formula.tag to (reusableStates[formula.tag] ?: renderReviewInlineMathFormula(
                 formula = formula,
                 colorArgb = colorArgb,
                 fontSizePx = fontSizePx
-            )
+            ))
         }
     }
 }
 
-private fun renderReviewInlineMathFormula(
-    formula: ReviewInlineMathFormula,
+private fun matchingInlineMathStates(
+    result: ReviewInlineMathRenderResult,
+    formulas: List<InlineMathFormula>,
     colorArgb: Int,
     fontSizePx: Float
-): ReviewInlineMathRenderState {
+): Map<String, InlineMathRenderState> {
+    if (result.colorArgb != colorArgb || result.fontSizePx != fontSizePx) return emptyMap()
+    val previousFormulas = result.formulas.associateBy { it.tag }
+    return formulas.mapNotNull { formula ->
+        result.renderStates[formula.tag]?.takeIf {
+            previousFormulas[formula.tag] == formula
+        }?.let { formula.tag to it }
+    }.toMap()
+}
+
+private fun renderReviewInlineMathFormula(
+    formula: InlineMathFormula,
+    colorArgb: Int,
+    fontSizePx: Float
+): InlineMathRenderState {
     return try {
         val displayList: DisplayList = RaTeXEngine.parseBlocking(
             latex = formula.source,
-            displayMode = false,
+            displayMode = formula.displayMode,
             color = colorArgb
         )
         val renderer = RaTeXRenderer(
@@ -234,7 +254,7 @@ private fun renderReviewInlineMathFormula(
         val bitmapHeight: Int = ceil(renderer.totalHeightPx).toInt().coerceAtLeast(minimumValue = 1)
         val bitmap: Bitmap = Bitmap.createBitmap(bitmapWidth, bitmapHeight, Bitmap.Config.ARGB_8888)
         renderer.draw(canvas = Canvas(bitmap))
-        ReviewInlineMathRenderState.Rendered(
+        InlineMathRenderState.Rendered(
             bitmap = bitmap.asImageBitmap(),
             widthPx = bitmapWidth.toFloat(),
             ascentPx = renderer.heightPx,
@@ -242,11 +262,24 @@ private fun renderReviewInlineMathFormula(
         )
     } catch (error: RaTeXException) {
         Log.e(reviewInlineMathLogTag, "RaTeX inline formula rendering failed.", error)
-        ReviewInlineMathRenderState.Failed
+        InlineMathRenderState.Failed
     } catch (error: Throwable) {
         // The library's own display path reports any other throwable as a render error too, and a
         // rejected formula has to stay visible with a localized error instead of taking the screen.
         Log.e(reviewInlineMathLogTag, "Inline formula rendering failed unexpectedly.", error)
-        ReviewInlineMathRenderState.Failed
+        InlineMathRenderState.Failed
     }
 }
+
+/**
+ * An accepted `$…$` span that renders on the surrounding text baseline.
+ *
+ * The span stands in its block Markdown as one marker character, and formulas are ordered by the
+ * marker they replace. [tag] is the Compose inline-content tag the rendered formula is resolved by.
+ */
+data class InlineMathFormula(
+    val tag: String,
+    val source: String,
+    val delimitedSource: String,
+    val displayMode: Boolean = false
+)

@@ -221,8 +221,8 @@ before App Review. Use the actual correlated signed release/TestFlight artifact,
    editors while hovering review controls; focus and reviews must stay intact.
 4. Create/edit a card; verify save and cancel. Inspect inline and display math,
    including fractions, in cards. Play/stop review speech. Inspect native
-   screenshots for rendered card formulas rather than raw TeX; AI transcripts
-   retain the shared Apple plaintext presentation.
+   screenshots for rendered formulas in card lists, previews and AI transcripts.
+   Check selection/copy preserves formula source and technical disclosures stay literal.
 5. Disconnect networking, create/edit/review locally, quit and relaunch. Confirm
    persistence. Reconnect, sign in, sync and verify changes on another client.
    Inspect failed sync errors.
