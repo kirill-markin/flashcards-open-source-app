@@ -16,8 +16,12 @@ import zipfile
 
 
 def aws(arguments: list[str]) -> dict[str, object]:
-    result = subprocess.run(["aws", *arguments, "--output", "json"], check=True, capture_output=True, text=True,
-        env={**os.environ, "AWS_PAGER": "", "AWS_RETRY_MODE": "standard", "AWS_MAX_ATTEMPTS": "3"})
+    try:
+        result = subprocess.run(["aws", *arguments, "--output", "json"], check=True, capture_output=True, text=True,
+            env={**os.environ, "AWS_PAGER": "", "AWS_RETRY_MODE": "standard", "AWS_MAX_ATTEMPTS": "3"})
+    except subprocess.CalledProcessError as error:
+        print(json.dumps({"awsError": error.stderr, "exitCode": error.returncode}), file=sys.stderr, flush=True)
+        raise
     return json.loads(result.stdout)
 
 
