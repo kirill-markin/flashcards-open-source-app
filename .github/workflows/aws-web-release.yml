@@ -25,6 +25,8 @@ on:
       - 'scripts/deploy/upload-lambda-source-maps.py'
       - 'scripts/deploy/prepare-lambda-build-inputs.sh'
       - 'scripts/deploy/lambda-asset-cache.py'
+      - 'scripts/deploy/prepare-node-runtime.py'
+      - 'scripts/checks/check-node-runtime-*.py'
       - 'scripts/generate/generate-catalog-dump.sh'
       - 'scripts/generate/generate-global-metrics-snapshot.sh'
       - 'scripts/deploy/migrate-aws.sh'
@@ -229,10 +231,31 @@ jobs:
           POSTGRES_INTEGRATION_ADMIN_URL: postgresql://postgres_integration:postgres-integration-${{ github.run_id }}-${{ github.run_attempt }}@127.0.0.1:5432/postgres?sslmode=disable
         run: npm run test:postgres-integration --prefix apps/backend
 
+  node_runtime_startup:
+    name: Patched Node startup (${{ matrix.architecture }})
+    needs: changes
+    if: ${{ needs.changes.outputs.deploy_platform == 'true' }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - architecture: x86_64
+            runner: ubuntu-24.04
+          - architecture: arm64
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - name: Prepare checksum-pinned Node runtime layers
+        run: python3 scripts/deploy/prepare-node-runtime.py
+      - name: Exercise the AWS Node 24 bootstrap and RIC with constrained resources
+        run: python3 scripts/checks/check-node-runtime-startup.py ${{ matrix.architecture }}
+
   aws_deploy:
     name: Deploy AWS release
-    needs: changes
-    if: ${{ needs.changes.outputs.deploy_any == 'true' }}
+    needs: [changes, node_runtime_startup]
+    if: ${{ !cancelled() && needs.changes.outputs.deploy_any == 'true' && (needs.node_runtime_startup.result == 'success' || needs.node_runtime_startup.result == 'skipped') }}
     runs-on: ubuntu-24.04-arm
     timeout-minutes: 180
 
@@ -310,7 +333,9 @@ jobs:
 
       - name: Prepare exact Lambda copied inputs
         if: ${{ needs.changes.outputs.deploy_platform == 'true' }}
-        run: bash scripts/deploy/prepare-lambda-build-inputs.sh
+        run: |
+          bash scripts/deploy/prepare-lambda-build-inputs.sh
+          python3 scripts/deploy/prepare-node-runtime.py
 
       # An applied migration cannot be rolled back, so a release that changes
       # migrations waits for the PostgreSQL checks before CDK applies them.
@@ -404,6 +429,7 @@ jobs:
             -c generatedMediaPromotionScheduleState="${schedule_state}" \
             -c mediaBlobCleanupEnabled="${cleanup_enabled}" \
             -c multipartCompletionReconciliationScheduleState="${schedule_state}" 2>&1 | tee "${RUNNER_TEMP}/lambda-initial.log"
+          python3 ../../scripts/checks/check-node-runtime-template.py cdk.out
           python3 ../../scripts/deploy/report-cloudformation-budget.py cdk.out
           python3 ../../scripts/deploy/lambda-asset-cache.py save cdk.out
           npx cdk deploy --app cdk.out --all --require-approval never
@@ -435,6 +461,7 @@ jobs:
             -c generatedMediaPromotionScheduleState=ENABLED \
             -c mediaBlobCleanupEnabled=true \
             -c multipartCompletionReconciliationScheduleState=ENABLED 2>&1 | tee "${RUNNER_TEMP}/lambda-enable.log"
+          python3 ../../scripts/checks/check-node-runtime-template.py cdk.out
           python3 ../../scripts/deploy/report-cloudformation-budget.py cdk.out
           python3 ../../scripts/deploy/lambda-asset-cache.py save cdk.out
           npx cdk deploy --app cdk.out --all --require-approval never
@@ -447,6 +474,22 @@ jobs:
                  /"event":"lambda_asset_cache"/ && /"result":"reused"/ { reused++ }
                  END { printf "- Built: %d; reused: %d\n", built, reused }' "${RUNNER_TEMP}/lambda-enable.log"
           } >> "${GITHUB_STEP_SUMMARY}"
+
+      - name: Stage sanitized patched runtime evidence
+        if: ${{ needs.changes.outputs.deploy_platform == 'true' }}
+        run: |
+          mkdir -p "${RUNNER_TEMP}/node-runtime-evidence/x86_64" "${RUNNER_TEMP}/node-runtime-evidence/arm64"
+          cp infra/aws/cdk.out/node-runtime-evidence.json "${RUNNER_TEMP}/node-runtime-evidence/"
+          cp .cache/node-runtime/x86_64/nibomo-node/manifest.json "${RUNNER_TEMP}/node-runtime-evidence/x86_64/"
+          cp .cache/node-runtime/arm64/nibomo-node/manifest.json "${RUNNER_TEMP}/node-runtime-evidence/arm64/"
+
+      - name: Upload patched runtime evidence
+        if: ${{ needs.changes.outputs.deploy_platform == 'true' }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: node-runtime-evidence
+          path: ${{ runner.temp }}/node-runtime-evidence
+          if-no-files-found: error
 
       # Uploads in the background while the steps below publish assets; nothing
       # rewrites cdk.out after the last CDK deploy above. "Finish Lambda source
@@ -557,6 +600,10 @@ jobs:
     needs:
       - changes
       - aws_deploy
+      - post_deploy_seeding
+      - web_smoke
+      - agent_api_smoke
+      - mcp_smoke
     if: ${{ !cancelled() && needs.aws_deploy.result == 'success' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 30
@@ -588,6 +635,17 @@ jobs:
       - name: Verify private Cognito native proof bridge
         if: ${{ needs.changes.outputs.deploy_platform == 'true' }}
         run: bash scripts/checks/check-native-proof-bridge.sh --stack-name ${{ env.STACK_NAME }} --region ${{ env.AWS_REGION }}
+
+      - name: Download checksum-verified runtime evidence
+        if: ${{ needs.changes.outputs.deploy_platform == 'true' }}
+        uses: actions/download-artifact@v8
+        with:
+          name: node-runtime-evidence
+          path: ${{ runner.temp }}/node-runtime-evidence
+
+      - name: Verify every deployed Node runtime and direct process proof on both architectures
+        if: ${{ needs.changes.outputs.deploy_platform == 'true' }}
+        run: python3 scripts/checks/check-node-runtime-deployed.py "${RUNNER_TEMP}/node-runtime-evidence"
 
   # Scope note: this job never loads the deployed web assets. It builds `dist`
   # from the merge commit, points `app.nibomo.com` at 127.0.0.1 through

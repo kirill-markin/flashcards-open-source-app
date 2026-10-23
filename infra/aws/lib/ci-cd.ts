@@ -128,6 +128,29 @@ export function ciCd(scope: Construct, props: CiCdProps): void {
       props.multipartCompletionReconciliationScheduleArn,
     ),
     new iam.PolicyStatement({
+      sid: "ReadPatchedNodeFunctionInventory",
+      actions: ["cloudformation:ListStackResources"],
+      resources: [props.stackId],
+    }),
+    new iam.PolicyStatement({
+      sid: "ReadPatchedNodeConfigurations",
+      actions: ["lambda:GetFunctionConfiguration"],
+      resources: [`arn:aws:lambda:${cdk.Aws.REGION}:${cdk.Aws.ACCOUNT_ID}:function:${cdk.Stack.of(scope).stackName}-*`],
+    }),
+    new iam.PolicyStatement({
+      sid: "ReadPatchedNodeLayers",
+      actions: ["lambda:GetLayerVersion"],
+      resources: [`arn:aws:lambda:${cdk.Aws.REGION}:${cdk.Aws.ACCOUNT_ID}:layer:${cdk.Stack.of(scope).stackName}-PatchedNode*:*`],
+    }),
+    new iam.PolicyStatement({
+      sid: "ReadPatchedNodeStartupEvidence",
+      actions: ["logs:FilterLogEvents"],
+      resources: [
+        `arn:aws:logs:${cdk.Aws.REGION}:${cdk.Aws.ACCOUNT_ID}:log-group:/aws/lambda/${cdk.Stack.of(scope).stackName}-*:*`,
+        `arn:aws:logs:${cdk.Aws.REGION}:${cdk.Aws.ACCOUNT_ID}:log-group:${cdk.Stack.of(scope).stackName}-*:*`,
+      ],
+    }),
+    new iam.PolicyStatement({
       sid: "ReadAuthLambdaConfiguration",
       actions: ["lambda:GetFunctionConfiguration"],
       resources: [props.authFn.functionArn],

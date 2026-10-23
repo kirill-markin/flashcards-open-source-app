@@ -92,13 +92,24 @@ def fixture_template(source: dict[str, object], name: str) -> dict[str, object]:
     for key in code:
         text_value(code[key], f"Code.{key}")
     environment = object_value(source.get("Environment"), "dispatcher Environment")
-    if set(object_value(environment.get("Variables"), "dispatcher Variables")) != {"MCP_WORKER_FUNCTION_NAME", "MCP_TOKEN_LEASE_TABLE_NAME"}:
+    variables = object_value(environment.get("Variables"), "dispatcher Variables")
+    if set(variables) != {"MCP_WORKER_FUNCTION_NAME", "MCP_TOKEN_LEASE_TABLE_NAME", "AWS_LAMBDA_EXEC_WRAPPER", "NIBOMO_NODE_RUNTIME_ID"}:
         raise ValueError("Unsupported dispatcher environment; fixture must not copy production secrets")
     if source.get("Runtime") != "nodejs24.x" or source.get("Architectures", ["x86_64"]) != ["x86_64"]:
         raise ValueError("Unsupported dispatcher runtime or architecture")
-    if any(key in source for key in ("Layers", "VpcConfig", "FileSystemConfigs", "CodeSigningConfigArn")):
+    if variables["AWS_LAMBDA_EXEC_WRAPPER"] != "/opt/bin/nibomo-node-wrapper" or re.fullmatch(r"[a-f0-9]{64}", str(variables["NIBOMO_NODE_RUNTIME_ID"])) is None:
+        raise ValueError("Unsupported dispatcher runtime wrapper or immutable runtime identity")
+    layers = source.get("Layers")
+    if not isinstance(layers, list) or len(layers) != 1 or not isinstance(layers[0], str):
+        raise ValueError("Dispatcher must have exactly one resolved deployed runtime layer ARN")
+    if re.fullmatch(r"arn:aws:lambda:[a-z0-9-]+:\d{12}:layer:[A-Za-z0-9_-]+:\d+", layers[0]) is None:
+        raise ValueError("Dispatcher runtime layer ARN is invalid")
+    storage = object_value(source.get("EphemeralStorage"), "dispatcher EphemeralStorage")
+    if type(storage.get("Size")) is not int or not 640 <= cast(int, storage["Size"]) <= 10240:
+        raise ValueError("Dispatcher runtime scratch storage is invalid")
+    if any(key in source for key in ("VpcConfig", "FileSystemConfigs", "CodeSigningConfigArn")):
         raise ValueError("Unsupported dispatcher execution dependencies")
-    copied = {key: source[key] for key in ("Code", "Handler", "Runtime", "MemorySize", "Timeout")}
+    copied = {key: source[key] for key in ("Code", "Handler", "Runtime", "MemorySize", "Timeout", "Layers", "EphemeralStorage")}
     text_value(copied["Handler"], "dispatcher Handler")
     for key in ("MemorySize", "Timeout"):
         if type(copied[key]) is not int or cast(int, copied[key]) <= 0:
@@ -139,7 +150,8 @@ def handler(event, context):
     }}
     resources["Dispatcher"] = {"Type": "AWS::Lambda::Function", "DependsOn": "DispatcherLogs", "Properties": {
         **copied, "FunctionName": f"{name}-Dispatcher", "Role": {"Fn::GetAtt": ["DispatcherRole", "Arn"]},
-        "Environment": {"Variables": {"MCP_WORKER_FUNCTION_NAME": {"Ref": "Worker"}, "MCP_TOKEN_LEASE_TABLE_NAME": {"Ref": "LeaseTable"}}},
+        "Environment": {"Variables": {"MCP_WORKER_FUNCTION_NAME": {"Ref": "Worker"}, "MCP_TOKEN_LEASE_TABLE_NAME": {"Ref": "LeaseTable"},
+            "AWS_LAMBDA_EXEC_WRAPPER": variables["AWS_LAMBDA_EXEC_WRAPPER"], "NIBOMO_NODE_RUNTIME_ID": variables["NIBOMO_NODE_RUNTIME_ID"]}},
     }}
     resources["Api"] = {"Type": "AWS::ApiGatewayV2::Api", "Properties": {"Name": name, "ProtocolType": "HTTP"}}
     resources["Integration"] = {"Type": "AWS::ApiGatewayV2::Integration", "Properties": {
@@ -266,7 +278,26 @@ def main() -> None:
         raise ValueError("Deployed dispatcher is not a Lambda function")
     owner = f"{os.environ['GITHUB_RUN_ID']}-{os.environ['GITHUB_RUN_ATTEMPT']}-{uuid.uuid4().hex[:10]}"
     name = f"mcp-capacity-{owner}"
-    fixture = fixture_template(object_value(dispatcher.get("Properties"), "dispatcher Properties"), name)
+    properties = dict(object_value(dispatcher.get("Properties"), "dispatcher Properties"))
+    layers = properties.get("Layers")
+    if not isinstance(layers, list) or len(layers) != 1:
+        raise ValueError("Dispatcher must reference exactly one runtime layer")
+    reference = object_value(layers[0], "dispatcher layer Ref")
+    if set(reference) != {"Ref"}:
+        raise ValueError("Dispatcher runtime layer must be a stack-local Ref")
+    layer_id = text_value(reference["Ref"], "runtime layer logical ID")
+    layer_resource = object_value(resources.get(layer_id), "runtime layer resource")
+    if layer_resource.get("Type") != "AWS::Lambda::LayerVersion":
+        raise ValueError("Dispatcher layer Ref is not a Lambda layer version")
+    deployed = aws.call("cloudformation", "list-stack-resources", ["--stack-name", core]).get("StackResourceSummaries")
+    if not isinstance(deployed, list):
+        raise ValueError("Stack resource inventory is absent")
+    matches = [item.get("PhysicalResourceId") for item in deployed if isinstance(item, dict)
+        and item.get("LogicalResourceId") == layer_id and item.get("ResourceType") == "AWS::Lambda::LayerVersion"]
+    if len(matches) != 1:
+        raise ValueError("Runtime layer Ref did not resolve to exactly one deployed layer version")
+    properties["Layers"] = [text_value(matches[0], "deployed runtime layer ARN")]
+    fixture = fixture_template(properties, name)
     signal.signal(signal.SIGTERM, interrupt)
     signal.signal(signal.SIGINT, interrupt)
     with tempfile.TemporaryDirectory(prefix="mcp-capacity-") as directory:
