@@ -55,13 +55,13 @@
   },
   "overrides": {
     "protobufjs": "^8.8.1",
-    "undici": "6.29.0",
+    "undici": "6.29.1",
     "guarded-fetch": {
-      "undici": "7.30.0"
+      "undici": "7.30.1"
     }
   },
   "engines": {
-    "node": "24.x"
+    "node": ">=24.22.1 <25"
   },
   "allowScripts": {
     "@sentry/cli@3.8.0": true,
