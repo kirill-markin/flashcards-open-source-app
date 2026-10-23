@@ -28,7 +28,7 @@ def main() -> None:
         if scratch * 1024 * 1024 < 512 * 1024 * 1024 + manifest["size"]:
             raise AssertionError(f"Patched runtime consumes original scratch capacity: {logical_id}")
         memory = properties["MemorySize"]
-        if type(memory) is not int or memory < 256 or memory > 10240:
+        if type(memory) is not int or memory < 512 or memory > 10240:
             raise AssertionError(f"Unsupported patched runtime memory allocation: {logical_id}: {memory}")
         asset = assembly / resource["Metadata"]["aws:asset:path"]
         if not asset.is_dir():

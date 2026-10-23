@@ -69,7 +69,7 @@ export function activatePatchedNodeRuntime(stack: cdk.Stack): void {
     // The fingerprint also rotates published currentVersion hashes when layer contents change.
     node.addPropertyOverride("Environment.Variables.NIBOMO_NODE_RUNTIME_ID", layer.identity);
     node.addPropertyOverride("EphemeralStorage.Size", scratch + layer.scratch);
-    node.addPropertyOverride("MemorySize", Math.max(256, memory));
+    node.addPropertyOverride("MemorySize", Math.max(512, memory));
     activated.add(node);
   } }, { priority: cdk.AspectPriority.MUTATING });
   stack.node.addValidation({ validate(): string[] {

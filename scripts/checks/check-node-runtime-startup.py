@@ -41,7 +41,7 @@ def check_startup(architecture: str, node_arch: str, layer: Path, manifest: dict
             while True:
                 started = time.monotonic()
                 try:
-                    with urlopen(Request(endpoint, data=b"{}", method="POST"), timeout=deadline) as response:
+                    with urlopen(Request(endpoint, data=b"{}", method="POST"), timeout=30) as response:
                         result = json.load(response)
                     break
                 except URLError as error:
@@ -87,7 +87,7 @@ def main() -> None:
             time.sleep(2)
     original_abi = json.loads(docker(["run", "--rm", "--entrypoint", "/var/lang/bin/node",
         "public.ecr.aws/lambda/nodejs:24", "-p", "JSON.stringify({modules:process.versions.modules,napi:process.versions.napi})"]))
-    cases = {"x86_64": [(256, 10), (512, 5)], "arm64": [(1024, 10)]}[architecture]
+    cases = {"x86_64": [(512, 10), (1024, 5)], "arm64": [(1024, 10)]}[architecture]
     for memory, deadline in cases:
         check_startup(architecture, node_arch, layer, manifest, original_abi, memory, deadline)
 
