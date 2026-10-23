@@ -5,6 +5,8 @@
  * `agent_sql` records emitted underneath it.
  */
 import { AsyncLocalStorage } from "node:async_hooks";
+import { readRequestBody } from "@modelcontextprotocol/sdk/server/requestBody.js";
+import { MAX_MCP_REQUEST_BODY_BYTES } from "./requestLimits";
 
 const MAX_MCP_TELEMETRY_VALUE_CHARS = 120;
 
@@ -68,7 +70,12 @@ function readCallToolName(payload: unknown): string | null {
  */
 export async function readCallToolNameFromRequestBody(request: Request): Promise<string | null> {
   try {
-    const payload: unknown = await request.clone().json();
+    // Telemetry runs before the transport, so its clone needs the same byte ceiling.
+    const body = await readRequestBody(request.clone(), MAX_MCP_REQUEST_BODY_BYTES);
+    if (body.tooLarge) {
+      return null;
+    }
+    const payload: unknown = JSON.parse(body.text);
     if (Array.isArray(payload)) {
       const messages: ReadonlyArray<unknown> = payload;
       return messages.reduce<string | null>(
