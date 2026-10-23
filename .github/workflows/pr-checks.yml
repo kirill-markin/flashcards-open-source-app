@@ -71,7 +71,7 @@ jobs:
               admin_changed=true
             fi
 
-            if grep -Eq '^(infra/|scripts/generate/write-ci-cdk-context\.py$|scripts/deploy/(prepare-lambda-build-inputs\.sh|lambda-asset-cache\.py|report-cloudformation-budget\.py|bootstrap\.sh)$|scripts/checks/check-multipart-completion-reconciliation-schedule\.sh$|\.github/workflows/(pr-checks|aws-web-release)\.yml$)' "${changed_files_path}"; then
+            if grep -Eq '^(infra/|scripts/generate/write-ci-cdk-context\.py$|scripts/deploy/(prepare-lambda-build-inputs\.sh|lambda-asset-cache\.py|prepare-node-runtime\.py|report-cloudformation-budget\.py|bootstrap\.sh)$|scripts/checks/check-node-runtime-[^/]+\.py$|scripts/checks/check-mcp-capacity-smoke\.py$|scripts/checks/check-multipart-completion-reconciliation-schedule\.sh$|\.github/workflows/(pr-checks|aws-web-release)\.yml$)' "${changed_files_path}"; then
               infra_changed=true
             fi
           fi
@@ -120,6 +120,27 @@ jobs:
               echo "No changed files detected."
             fi
           } >> "${GITHUB_STEP_SUMMARY}"
+
+  node_runtime_startup:
+    name: Patched Node startup (${{ matrix.architecture }})
+    needs: changes
+    if: ${{ needs.changes.outputs.infra_changed == 'true' }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - architecture: x86_64
+            runner: ubuntu-24.04
+          - architecture: arm64
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - name: Prepare checksum-pinned Node runtime layers
+        run: python3 scripts/deploy/prepare-node-runtime.py
+      - name: Exercise the AWS Node 24 bootstrap and RIC with constrained resources
+        run: python3 scripts/checks/check-node-runtime-startup.py ${{ matrix.architecture }}
 
   checks:
     name: Type checks and builds
@@ -199,7 +220,9 @@ jobs:
 
       - name: Prepare exact Lambda copied inputs
         if: ${{ needs.changes.outputs.infra_changed == 'true' }}
-        run: bash scripts/deploy/prepare-lambda-build-inputs.sh
+        run: |
+          bash scripts/deploy/prepare-lambda-build-inputs.sh
+          python3 scripts/deploy/prepare-node-runtime.py
 
       # 470 leaves 30 resources below CloudFormation's hard limit. The synth runs without AWS credentials.
       - name: Check CloudFormation resource budget
@@ -236,6 +259,7 @@ jobs:
             --aws-deploy-role-arn "${AWS_DEPLOY_ROLE_ARN}"
           python3 ../../scripts/deploy/lambda-asset-cache.py restore cdk.out
           npx cdk synth --all --quiet
+          python3 ../../scripts/checks/check-node-runtime-template.py cdk.out
           python3 ../../scripts/deploy/report-cloudformation-budget.py cdk.out --fail-at 470
 
   backend_tests:
@@ -367,6 +391,7 @@ jobs:
     needs:
       - changes
       - checks
+      - node_runtime_startup
       - backend_tests
       - web_tests
       - repository_static_validation
@@ -382,6 +407,8 @@ jobs:
           NODE_CHANGED: ${{ needs.changes.outputs.node_changed }}
           BACKEND_CHANGED: ${{ needs.changes.outputs.backend_changed }}
           WEB_CHANGED: ${{ needs.changes.outputs.web_changed }}
+          INFRA_CHANGED: ${{ needs.changes.outputs.infra_changed }}
+          RUNTIME_STARTUP_RESULT: ${{ needs.node_runtime_startup.result }}
           TYPE_CHECKS_RESULT: ${{ needs.checks.result }}
           BACKEND_TESTS_RESULT: ${{ needs.backend_tests.result }}
           WEB_TESTS_RESULT: ${{ needs.web_tests.result }}
@@ -426,6 +453,7 @@ jobs:
           require_success "Detect changed areas" "${CHANGES_RESULT}"
           require_success "Repository static validation" "${STATIC_VALIDATION_RESULT}"
           require_success "Shell and workflow lint" "${SCRIPT_LINT_RESULT}"
+          require_conditional_success "Patched Node startup" "${INFRA_CHANGED}" "${RUNTIME_STARTUP_RESULT}"
           require_conditional_success "Type checks and builds" "${NODE_CHANGED}" "${TYPE_CHECKS_RESULT}"
           require_conditional_success "Backend test suites" "${BACKEND_CHANGED}" "${BACKEND_TESTS_RESULT}"
           require_conditional_success "Web test suite" "${WEB_CHANGED}" "${WEB_TESTS_RESULT}"

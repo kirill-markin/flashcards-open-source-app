@@ -22,7 +22,7 @@ export function nativeProofChallenge(scope: Construct, props: NativeProofChallen
     handler: "handler",
     runtime: lambda.Runtime.NODEJS_24_X,
     timeout: cdk.Duration.seconds(5),
-    memorySize: 256,
+    memorySize: 1024,
     reservedConcurrentExecutions: nativeProofChallengeReservedConcurrency,
     vpc: props.vpc,
     vpcSubnets: { subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS },
