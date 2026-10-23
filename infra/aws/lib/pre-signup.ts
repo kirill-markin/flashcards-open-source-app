@@ -69,6 +69,7 @@ export function preSignUp(scope: Construct, props: PreSignUpProps): lambdaNodejs
     entry: path.join(__dirname, "../lambda/pre-signup/index.ts"),
     handler: "handler",
     runtime: lambda.Runtime.NODEJS_24_X,
+    memorySize: 512,
     bundling,
     description: "Leave email verification to Cognito OTP",
   });

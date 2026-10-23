@@ -81,11 +81,13 @@ def main() -> None:
                     or [item["Arn"] for item in config.get("Layers", [])] != [layer_arn]
                     or variables.get("AWS_LAMBDA_EXEC_WRAPPER") != "/opt/bin/nibomo-node-wrapper"
                     or variables.get("NIBOMO_NODE_RUNTIME_ID") != function["runtimeId"]
-                    or config["EphemeralStorage"]["Size"] != function["scratch"]):
+                    or config["EphemeralStorage"]["Size"] != function["scratch"]
+                    or config["MemorySize"] != function["actualMemorySize"]):
                 raise AssertionError(f"Deployed runtime configuration differs: {name}")
             configurations.append((config, function, manifest))
             print(json.dumps({"runtimeConfiguration": "verified", "function": name, "layer": layer_arn,
-                "officialNode": manifest["version"], "runtimeId": function["runtimeId"]}), flush=True)
+                "officialNode": manifest["version"], "runtimeId": function["runtimeId"],
+                "actualMemorySize": config["MemorySize"]}), flush=True)
     observed = set()
     deadline = time.monotonic() + 90
     while time.monotonic() < deadline and observed != set(manifests):

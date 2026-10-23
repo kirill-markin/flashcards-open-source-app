@@ -11,6 +11,7 @@ interface FunctionProperties {
   Environment?: { Variables?: Record<string, string> };
   Layers?: object[];
   EphemeralStorage?: { Size: number };
+  MemorySize?: number;
 }
 
 function properties(stack: cdk.Stack, resource: cdk.CfnResource): FunctionProperties {
@@ -59,11 +60,16 @@ export function activatePatchedNodeRuntime(stack: cdk.Stack): void {
     if (!Number.isSafeInteger(scratch) || scratch + layer.scratch > 10240) {
       throw new Error(`Insufficient ephemeral storage headroom for patched Node: ${node.node.path}`);
     }
+    const memory = original.MemorySize ?? 128;
+    if (!Number.isSafeInteger(memory) || memory < 128 || memory > 10240) {
+      throw new Error(`Unsupported Lambda memory allocation for patched Node: ${node.node.path}`);
+    }
     node.addPropertyOverride("Layers", [layer.arn]);
     node.addPropertyOverride("Environment.Variables.AWS_LAMBDA_EXEC_WRAPPER", "/opt/bin/nibomo-node-wrapper");
     // The fingerprint also rotates published currentVersion hashes when layer contents change.
     node.addPropertyOverride("Environment.Variables.NIBOMO_NODE_RUNTIME_ID", layer.identity);
     node.addPropertyOverride("EphemeralStorage.Size", scratch + layer.scratch);
+    node.addPropertyOverride("MemorySize", Math.max(256, memory));
     activated.add(node);
   } }, { priority: cdk.AspectPriority.MUTATING });
   stack.node.addValidation({ validate(): string[] {
