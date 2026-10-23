@@ -36,6 +36,7 @@ import {
   type WorkspaceRequestContext,
 } from "../server/requestContext";
 import { getMcpRequestId } from "./requestTelemetry";
+import { MAX_MCP_TOOL_INPUT_ELEMENTS } from "./requestLimits";
 import { requireMcpToolOutputSchema } from "./outputSchemas";
 import { createPublicHttpErrorDetails, HttpError, type PublicHttpErrorDetails } from "../shared/errors";
 import {
@@ -539,6 +540,7 @@ export function createMcpServerWithDependencies(
     },
     {
       instructions: SERVER_INSTRUCTIONS,
+      maxToolInputElements: MAX_MCP_TOOL_INPUT_ELEMENTS,
     },
   );
 

@@ -26,6 +26,7 @@ import type { ContentfulStatusCode } from "hono/utils/http-status";
 import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js";
 import { authenticateMcpBearerToken } from "../auth/mcpTokens";
 import { createMcpServer, type McpToolOutcome } from "../mcp/server";
+import { MAX_MCP_REQUEST_BODY_BYTES } from "../mcp/requestLimits";
 import {
   normalizeMcpTelemetryValue,
   readCallToolNameFromRequestBody,
@@ -359,6 +360,7 @@ async function handleMcpTransportRequest(
   const transport = new WebStandardStreamableHTTPServerTransport({
     sessionIdGenerator: undefined,
     enableJsonResponse: true,
+    maxRequestBodySize: MAX_MCP_REQUEST_BODY_BYTES,
     enableDnsRebindingProtection: true,
     allowedHosts: [...getAllowedMcpHosts(baseDomain, getAlternateMcpHost())],
   });
