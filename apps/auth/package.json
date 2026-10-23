@@ -27,7 +27,7 @@
     "typescript": "^7.0.2"
   },
   "engines": {
-    "node": "24.x"
+    "node": ">=24.22.1 <25"
   },
   "allowScripts": {
     "esbuild@0.28.2": true
