@@ -289,7 +289,7 @@ def main() -> None:
     layer_resource = object_value(resources.get(layer_id), "runtime layer resource")
     if layer_resource.get("Type") != "AWS::Lambda::LayerVersion":
         raise ValueError("Dispatcher layer Ref is not a Lambda layer version")
-    deployed = aws.call("cloudformation", "list-stack-resources", ["--stack-name", core]).get("StackResourceSummaries")
+    deployed = original.call("cloudformation", "list-stack-resources", ["--stack-name", core]).get("StackResourceSummaries")
     if not isinstance(deployed, list):
         raise ValueError("Stack resource inventory is absent")
     matches = [item.get("PhysicalResourceId") for item in deployed if isinstance(item, dict)

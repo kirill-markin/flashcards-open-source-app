@@ -140,7 +140,12 @@ export function ciCd(scope: Construct, props: CiCdProps): void {
     new iam.PolicyStatement({
       sid: "ReadPatchedNodeLayers",
       actions: ["lambda:GetLayerVersion"],
-      resources: [`arn:aws:lambda:${cdk.Aws.REGION}:${cdk.Aws.ACCOUNT_ID}:layer:${cdk.Stack.of(scope).stackName}-PatchedNode*:*`],
+      resources: cdk.Lazy.list({
+        produce: () => scope.node.findAll()
+          .filter((node): node is lambda.LayerVersion =>
+            node instanceof lambda.LayerVersion && node.stack === cdk.Stack.of(scope))
+          .map((layer) => layer.layerVersionArn),
+      }),
     }),
     new iam.PolicyStatement({
       sid: "ReadPatchedNodeStartupEvidence",
