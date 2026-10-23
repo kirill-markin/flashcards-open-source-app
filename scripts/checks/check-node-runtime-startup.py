@@ -11,7 +11,11 @@ from urllib.request import Request, urlopen
 
 
 def docker(arguments: list[str]) -> str:
-    return subprocess.run(["docker", *arguments], check=True, capture_output=True, text=True).stdout.strip()
+    try:
+        return subprocess.run(["docker", *arguments], check=True, capture_output=True, text=True).stdout.strip()
+    except subprocess.CalledProcessError as error:
+        print(json.dumps({"dockerError": error.stderr, "exitCode": error.returncode}), file=sys.stderr, flush=True)
+        raise
 
 
 def main() -> None:
@@ -40,7 +44,7 @@ def main() -> None:
         scratch.mkdir(mode=0o777)
         scratch.chmod(0o777)
         container = docker(["run", "--detach", "--read-only", "--memory", f"{memory}m", "--memory-swap", f"{memory}m",
-            "--cpus", str(memory / 1769), "--mount", f"type=bind,src={scratch},dst=/tmp",
+            "--cpus", f"{memory / 1769:.6f}", "--mount", f"type=bind,src={scratch},dst=/tmp",
             "--publish", "127.0.0.1::8080", "--mount", f"type=bind,src={layer},dst=/opt,readonly",
             "--mount", f"type=bind,src={handler},dst=/var/task/index.js,readonly",
             "--env", "AWS_LAMBDA_EXEC_WRAPPER=/opt/bin/nibomo-node-wrapper",
