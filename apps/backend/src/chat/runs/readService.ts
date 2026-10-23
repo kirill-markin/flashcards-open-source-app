@@ -1,4 +1,8 @@
-import { transactionWithWorkspaceScope } from "../../database";
+import {
+  transactionWithWorkspaceScope,
+  type DatabaseExecutor,
+  type WorkspaceDatabaseScope,
+} from "../../database";
 import {
   recoverStaleRunWithExecutor,
 } from "./finalization";
@@ -7,7 +11,11 @@ import {
   selectChatRunWithExecutor,
   selectSessionForUpdateWithExecutor,
 } from "./repository";
-import type { ChatRunSnapshot, RecoveredPaginatedSession } from "./types";
+import type {
+  ChatRunSnapshot,
+  RecoveredChatSession,
+  RecoveredPaginatedSession,
+} from "./types";
 import {
   getChatSessionSnapshotWithExecutor,
   listChatMessagesBeforeWithExecutor,
@@ -35,6 +43,44 @@ function toLiveAttachSeq(value: string): number {
 }
 
 /**
+ * Reads a running session under its row lock. Every writer that ends a run updates this row in the
+ * same transaction, so the snapshot and any later read in the caller's transaction see one state.
+ */
+async function readRecoveredChatSessionSnapshotWithExecutor(
+  executor: DatabaseExecutor,
+  scope: WorkspaceDatabaseScope,
+  sessionId: string | undefined,
+): Promise<ChatSessionSnapshot> {
+  const session = sessionId === undefined
+    ? await resolveLatestOrCreateChatSessionWithExecutor(executor, scope)
+    : await resolveRequestedOrCreateChatSessionWithExecutor(executor, scope, sessionId);
+  if (session.status !== "running") {
+    const snapshot = await getChatSessionSnapshotWithExecutor(executor, scope, session.session_id);
+    if (snapshot.runState !== "running") {
+      return snapshot;
+    }
+  }
+
+  const lockedSession = await selectSessionForUpdateWithExecutor(executor, scope, session.session_id);
+  await recoverStaleRunWithExecutor(executor, scope, lockedSession);
+  return getChatSessionSnapshotWithExecutor(executor, scope, session.session_id);
+}
+
+async function readRecoveredChatSessionWithExecutor(
+  executor: DatabaseExecutor,
+  scope: WorkspaceDatabaseScope,
+  sessionId: string | undefined,
+): Promise<RecoveredChatSession> {
+  const snapshot = await readRecoveredChatSessionSnapshotWithExecutor(executor, scope, sessionId);
+  return {
+    snapshot,
+    latestMessagesPage: snapshot.runState === "running"
+      ? await listChatMessagesLatestWithExecutor(executor, scope, snapshot.sessionId, 2)
+      : null,
+  };
+}
+
+/**
  * Returns a session snapshot and recovers any stale active run before the snapshot is returned to a client.
  */
 export async function getRecoveredChatSessionSnapshot(
@@ -42,21 +88,20 @@ export async function getRecoveredChatSessionSnapshot(
   workspaceId: string,
   sessionId?: string,
 ): Promise<ChatSessionSnapshot> {
-  return transactionWithWorkspaceScope({ userId, workspaceId }, async (executor) => {
-    const scope = { userId, workspaceId };
-    const snapshot = await getChatSessionSnapshotWithExecutor(executor, scope, sessionId);
-    if (snapshot.runState !== "running") {
-      return snapshot;
-    }
+  return transactionWithWorkspaceScope({ userId, workspaceId }, async (executor) =>
+    readRecoveredChatSessionSnapshotWithExecutor(executor, { userId, workspaceId }, sessionId));
+}
 
-    const lockedSession = await selectSessionForUpdateWithExecutor(executor, scope, snapshot.sessionId);
-    const recovered = await recoverStaleRunWithExecutor(executor, scope, lockedSession);
-    if (!recovered) {
-      return snapshot;
-    }
-
-    return getChatSessionSnapshotWithExecutor(executor, scope, snapshot.sessionId);
-  });
+/**
+ * Returns a recovered session snapshot together with the latest messages read in the same locked state.
+ */
+export async function getRecoveredChatSession(
+  userId: string,
+  workspaceId: string,
+  sessionId: string | undefined,
+): Promise<RecoveredChatSession> {
+  return transactionWithWorkspaceScope({ userId, workspaceId }, async (executor) =>
+    readRecoveredChatSessionWithExecutor(executor, { userId, workspaceId }, sessionId));
 }
 
 /**
@@ -71,25 +116,14 @@ export async function getRecoveredPaginatedSession(
 ): Promise<RecoveredPaginatedSession> {
   return transactionWithWorkspaceScope({ userId, workspaceId }, async (executor) => {
     const scope = { userId, workspaceId };
-    const sessionRow = sessionId === undefined
-      ? await resolveLatestOrCreateChatSessionWithExecutor(executor, scope)
-      : await resolveRequestedOrCreateChatSessionWithExecutor(executor, scope, sessionId);
-
-    if (sessionRow.status === "running") {
-      const lockedSession = await selectSessionForUpdateWithExecutor(executor, scope, sessionRow.session_id);
-      await recoverStaleRunWithExecutor(executor, scope, lockedSession);
-    }
-
-    const resolvedSession = sessionId === undefined
-      ? await resolveLatestOrCreateChatSessionWithExecutor(executor, scope)
-      : await resolveRequestedOrCreateChatSessionWithExecutor(executor, scope, sessionRow.session_id);
-
+    const recoveredSession = await readRecoveredChatSessionWithExecutor(executor, scope, sessionId);
+    const resolvedSessionId = recoveredSession.snapshot.sessionId;
     const page = beforeCursor === undefined
-      ? await listChatMessagesLatestWithExecutor(executor, scope, resolvedSession.session_id, limit)
-      : await listChatMessagesBeforeWithExecutor(executor, scope, resolvedSession.session_id, beforeCursor, limit);
+      ? await listChatMessagesLatestWithExecutor(executor, scope, resolvedSessionId, limit)
+      : await listChatMessagesBeforeWithExecutor(executor, scope, resolvedSessionId, beforeCursor, limit);
 
     return {
-      snapshot: await getChatSessionSnapshotWithExecutor(executor, scope, resolvedSession.session_id),
+      ...recoveredSession,
       page,
     };
   });

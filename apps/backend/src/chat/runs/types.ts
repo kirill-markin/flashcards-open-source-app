@@ -110,7 +110,12 @@ export type ChatRunSnapshot = Readonly<{
   liveAttachSeq: number;
 }>;
 
-export type RecoveredPaginatedSession = Readonly<{
+export type RecoveredChatSession = Readonly<{
   snapshot: ChatSessionSnapshot;
+  // Read in the snapshot's transaction under the session lock; null unless the snapshot is running.
+  latestMessagesPage: PaginatedChatMessages | null;
+}>;
+
+export type RecoveredPaginatedSession = RecoveredChatSession & Readonly<{
   page: PaginatedChatMessages;
 }>;
