@@ -16,6 +16,7 @@ import {
 import { createChatLiveStreamEnvelope } from "../live/auth";
 import {
   archiveChatSession,
+  getRecoveredChatSession,
   getRecoveredChatSessionSnapshot,
   getRecoveredPaginatedSession,
   interruptPreparedChatRun,
@@ -27,17 +28,16 @@ import {
 import {
   createFreshChatSession,
   getChatSessionId,
-  listChatMessagesLatest,
   listChatSessionHistory,
   renameChatSession,
   rolloverToFreshChatSession,
 } from "../store";
 import { invokeChatWorkerOrPersistFailure } from "../worker/invoke";
-import { resolveLiveCursor } from "./envelopes";
 
 export type ChatRoutesOptions = Readonly<{
   allowedOrigins: ReadonlyArray<string>;
   loadRequestContextFromRequestFn?: typeof loadRequestContextFromRequest;
+  getRecoveredChatSessionFn?: typeof getRecoveredChatSession;
   getRecoveredChatSessionSnapshotFn?: typeof getRecoveredChatSessionSnapshot;
   getRecoveredPaginatedSessionFn?: typeof getRecoveredPaginatedSession;
   rolloverToFreshChatSessionFn?: typeof rolloverToFreshChatSession;
@@ -50,8 +50,6 @@ export type ChatRoutesOptions = Readonly<{
   invokeChatWorkerFn?: typeof invokeChatWorkerOrPersistFailure;
   requestChatRunCancellationFn?: typeof requestChatRunCancellation;
   createChatLiveStreamEnvelopeFn?: typeof createChatLiveStreamEnvelope;
-  resolveLiveCursorFn?: typeof resolveLiveCursor;
-  listChatMessagesLatestFn?: typeof listChatMessagesLatest;
   listChatSessionHistoryFn?: typeof listChatSessionHistory;
   renameChatSessionFn?: typeof renameChatSession;
   archiveChatSessionFn?: typeof archiveChatSession;
@@ -65,6 +63,7 @@ export type ChatRoutesOptions = Readonly<{
 export type ChatRouteDependencies = Readonly<{
   allowedOrigins: ReadonlyArray<string>;
   loadRequestContextFromRequestFn: typeof loadRequestContextFromRequest;
+  getRecoveredChatSessionFn: typeof getRecoveredChatSession;
   getRecoveredChatSessionSnapshotFn: typeof getRecoveredChatSessionSnapshot;
   getRecoveredPaginatedSessionFn: typeof getRecoveredPaginatedSession;
   rolloverToFreshChatSessionFn: typeof rolloverToFreshChatSession;
@@ -77,8 +76,6 @@ export type ChatRouteDependencies = Readonly<{
   invokeChatWorkerFn: typeof invokeChatWorkerOrPersistFailure;
   requestChatRunCancellationFn: typeof requestChatRunCancellation;
   createChatLiveStreamEnvelopeFn: typeof createChatLiveStreamEnvelope;
-  resolveLiveCursorFn: typeof resolveLiveCursor;
-  listChatMessagesLatestFn: typeof listChatMessagesLatest;
   listChatSessionHistoryFn: typeof listChatSessionHistory;
   renameChatSessionFn: typeof renameChatSession;
   archiveChatSessionFn: typeof archiveChatSession;
@@ -133,6 +130,7 @@ export function createChatRouteDependencies(options: ChatRoutesOptions): ChatRou
   return {
     allowedOrigins: options.allowedOrigins,
     loadRequestContextFromRequestFn,
+    getRecoveredChatSessionFn: options.getRecoveredChatSessionFn ?? getRecoveredChatSession,
     getRecoveredChatSessionSnapshotFn: options.getRecoveredChatSessionSnapshotFn ?? getRecoveredChatSessionSnapshot,
     getRecoveredPaginatedSessionFn: options.getRecoveredPaginatedSessionFn ?? getRecoveredPaginatedSession,
     rolloverToFreshChatSessionFn: options.rolloverToFreshChatSessionFn ?? rolloverToFreshChatSession,
@@ -145,8 +143,6 @@ export function createChatRouteDependencies(options: ChatRoutesOptions): ChatRou
     invokeChatWorkerFn: options.invokeChatWorkerFn ?? invokeChatWorkerOrPersistFailure,
     requestChatRunCancellationFn: options.requestChatRunCancellationFn ?? requestChatRunCancellation,
     createChatLiveStreamEnvelopeFn: options.createChatLiveStreamEnvelopeFn ?? createChatLiveStreamEnvelope,
-    resolveLiveCursorFn: options.resolveLiveCursorFn ?? resolveLiveCursor,
-    listChatMessagesLatestFn: options.listChatMessagesLatestFn ?? listChatMessagesLatest,
     listChatSessionHistoryFn: options.listChatSessionHistoryFn ?? listChatSessionHistory,
     renameChatSessionFn: options.renameChatSessionFn ?? renameChatSession,
     archiveChatSessionFn: options.archiveChatSessionFn ?? archiveChatSession,

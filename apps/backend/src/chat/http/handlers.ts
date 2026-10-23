@@ -131,10 +131,8 @@ export function createGetChatHandler(dependencies: ChatRouteDependencies): Handl
           requestId,
           traceContext,
           dependencies.createChatLiveStreamEnvelopeFn,
-          dependencies.resolveLiveCursorFn,
           context.req.raw,
           resumeDiagnostics,
-          dependencies.listChatMessagesLatestFn,
         ));
       } catch (error) {
         return mapStoreError(error);
@@ -142,31 +140,28 @@ export function createGetChatHandler(dependencies: ChatRouteDependencies): Handl
     }
 
     try {
-      const snapshot = await dependencies.getRecoveredChatSessionSnapshotFn(
+      const session = await dependencies.getRecoveredChatSessionFn(
         requestContext.userId,
         workspaceId,
         sessionId,
       );
-      await assertRunningSnapshotInvariant(
+      assertRunningSnapshotInvariant(
         context.req.raw,
         resumeDiagnostics,
         requestId,
-        snapshot,
+        session,
         requestContext.userId,
         workspaceId,
-        dependencies.listChatMessagesLatestFn,
       );
       return context.json(await buildConversationEnvelopeWithActiveRun(
-        snapshot,
+        session,
         requestContext.userId,
         workspaceId,
         requestId,
         traceContext,
         dependencies.createChatLiveStreamEnvelopeFn,
-        dependencies.resolveLiveCursorFn,
         context.req.raw,
         resumeDiagnostics,
-        dependencies.listChatMessagesLatestFn,
       ));
     } catch (error) {
       return mapStoreError(error);
@@ -363,7 +358,7 @@ export function createPostChatHandler(dependencies: ChatRouteDependencies): Hand
     }
 
     try {
-      const snapshot = await dependencies.getRecoveredChatSessionSnapshotFn(
+      const session = await dependencies.getRecoveredChatSessionFn(
         requestContext.userId,
         workspaceId,
         preparedRun.sessionId,
@@ -371,17 +366,15 @@ export function createPostChatHandler(dependencies: ChatRouteDependencies): Hand
 
       return context.json(await buildStartConversationEnvelope({
         preparedRun,
-        snapshot,
+        session,
         userId: requestContext.userId,
         workspaceId,
         requestId,
         traceContext,
         createChatLiveStreamEnvelopeFn: dependencies.createChatLiveStreamEnvelopeFn,
-        resolveLiveCursorFn: dependencies.resolveLiveCursorFn,
         interruptPreparedChatRunFn: dependencies.interruptPreparedChatRunFn,
         request: context.req.raw,
         diagnostics: resumeDiagnostics,
-        listChatMessagesLatestFn: dependencies.listChatMessagesLatestFn,
       }));
     } catch (error) {
       return mapStoreError(error);

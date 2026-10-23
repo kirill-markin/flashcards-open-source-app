@@ -446,12 +446,14 @@ test("GET /chat fails with a stable contract code when running snapshot has no i
       requestAuthInputs: {} as never,
       requestContext: createRequestContext(),
     }),
-    getRecoveredChatSessionSnapshotFn: async () => createRunningSnapshot(),
-    listChatMessagesLatestFn: async () => ({
-      messages: [createAssistantItem("completed")],
-      oldestCursor: "6",
-      newestCursor: "6",
-      hasOlder: false,
+    getRecoveredChatSessionFn: async () => ({
+      snapshot: createRunningSnapshot(),
+      latestMessagesPage: {
+        messages: [createAssistantItem("completed")],
+        oldestCursor: "6",
+        newestCursor: "6",
+        hasOlder: false,
+      },
     }),
   });
   const app = createRoutesWithHttpErrorJson();
@@ -481,12 +483,14 @@ test("GET /chat resume contract warnings include the Hono request id", async () 
       requestAuthInputs: {} as never,
       requestContext: createRequestContext(),
     }),
-    getRecoveredChatSessionSnapshotFn: async () => createRunningSnapshot(),
-    listChatMessagesLatestFn: async () => ({
-      messages: [createAssistantItem("completed")],
-      oldestCursor: "6",
-      newestCursor: "6",
-      hasOlder: false,
+    getRecoveredChatSessionFn: async () => ({
+      snapshot: createRunningSnapshot(),
+      latestMessagesPage: {
+        messages: [createAssistantItem("completed")],
+        oldestCursor: "6",
+        newestCursor: "6",
+        hasOlder: false,
+      },
     }),
   });
   const app = createRoutesWithHttpErrorJson();
@@ -514,13 +518,14 @@ test("GET /chat fails with a stable contract code when a running snapshot cannot
       requestAuthInputs: {} as never,
       requestContext: createRequestContext(),
     }),
-    getRecoveredChatSessionSnapshotFn: async () => createRunningSnapshot(),
-    resolveLiveCursorFn: async () => "5",
-    listChatMessagesLatestFn: async () => ({
-      messages: [createAssistantItem("in_progress")],
-      oldestCursor: "6",
-      newestCursor: "6",
-      hasOlder: false,
+    getRecoveredChatSessionFn: async () => ({
+      snapshot: createRunningSnapshot(),
+      latestMessagesPage: {
+        messages: [createAssistantItem("in_progress")],
+        oldestCursor: "6",
+        newestCursor: "6",
+        hasOlder: false,
+      },
     }),
     createChatLiveStreamEnvelopeFn: async () => null as never,
   });
@@ -560,13 +565,14 @@ test("POST /chat captures unexpected live envelope failures before returning the
       shouldInvokeWorker: false,
       initiatingAuthIsSignedIn: true,
     }),
-    getRecoveredChatSessionSnapshotFn: async () => createRunningSnapshot(),
-    resolveLiveCursorFn: async () => "5",
-    listChatMessagesLatestFn: async () => ({
-      messages: [createAssistantItem("in_progress")],
-      oldestCursor: "6",
-      newestCursor: "6",
-      hasOlder: false,
+    getRecoveredChatSessionFn: async () => ({
+      snapshot: createRunningSnapshot(),
+      latestMessagesPage: {
+        messages: [createAssistantItem("in_progress")],
+        oldestCursor: "6",
+        newestCursor: "6",
+        hasOlder: false,
+      },
     }),
     createChatLiveStreamEnvelopeFn: async () => {
       throw new Error("live signer exploded");
@@ -816,13 +822,14 @@ test("POST /chat fails with a stable contract code when a running response canno
       shouldInvokeWorker: false,
       initiatingAuthIsSignedIn: true,
     }),
-    getRecoveredChatSessionSnapshotFn: async () => createRunningSnapshot(),
-    resolveLiveCursorFn: async () => "5",
-    listChatMessagesLatestFn: async () => ({
-      messages: [createAssistantItem("in_progress")],
-      oldestCursor: "6",
-      newestCursor: "6",
-      hasOlder: false,
+    getRecoveredChatSessionFn: async () => ({
+      snapshot: createRunningSnapshot(),
+      latestMessagesPage: {
+        messages: [createAssistantItem("in_progress")],
+        oldestCursor: "6",
+        newestCursor: "6",
+        hasOlder: false,
+      },
     }),
     createChatLiveStreamEnvelopeFn: async () => null as never,
     interruptPreparedChatRunFn: async () => undefined,
