@@ -658,7 +658,7 @@
 			repositoryURL = "https://github.com/kirill-markin/RaTeX";
 			requirement = {
 				kind = exactVersion;
-				version = "0.1.14-catalyst.1";
+				version = "0.1.15-catalyst.1";
 			};
 		};
 		A10000000000000000000049 /* XCRemoteSwiftPackageReference "NetworkImage" */ = {

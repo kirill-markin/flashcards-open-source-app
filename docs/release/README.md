@@ -93,6 +93,9 @@ If a fix affects an already published artifact, ask the user how to handle that 
 
 ### Early preflight
 
+- For iOS/macOS, complete the [Apple dependency check](../macos-ci-cd.md#dependencies)
+  before native testing, builds or publication; merge any required pin update
+  and retain the affected native gate evidence before publishing.
 - Before required local Xcode work or runtime downloads, check available disk
   against the actual archive/result/runtime needs; there is no universal free-space threshold.
   Inspect installed [iOS runtimes/devices](../ios-local-setup.md#local-testing-rules)
