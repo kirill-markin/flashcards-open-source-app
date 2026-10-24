@@ -3,8 +3,8 @@ import {
   initRatex,
   renderLatexToDisplayList,
   renderToCanvas,
-} from "ratex-wasm";
-import "ratex-wasm/fonts.css";
+} from "@kirill-markin/ratex-wasm";
+import "@kirill-markin/ratex-wasm/fonts.css";
 import { useI18n } from "../../../../i18n";
 
 const REVIEW_MATH_FONT_SIZE_CSS_PIXELS = 18;
@@ -129,12 +129,7 @@ export function ReviewMathBlock(props: ReviewMathBlockProps): ReactElement {
           // `depth` is the descent below the formula baseline in em, and the
           // padding sits below that, so together they are the distance from the
           // surrounding text baseline to the bottom edge of the canvas box.
-          // Verified against `ratex-wasm@0.1.14`: `renderToCanvas` sizes the
-          // canvas as `ceil((height + depth) * fontSize + 2 * padding)` device
-          // pixels and translates by `padding` before drawing, so the full
-          // padding sits below the baseline. That `ceil` can leave up to one
-          // device pixel of unaccounted slack, which is below the visible
-          // threshold. A raised construction can report a negative depth, so the
+          // A raised construction can report a negative depth, so the
           // descent is clamped to keep the offset from becoming an invalid
           // `--Npx` that the browser would drop.
           const baselineDescentEm = Math.max(displayList.depth, 0);

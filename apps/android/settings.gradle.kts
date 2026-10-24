@@ -12,6 +12,24 @@ dependencyResolutionManagement {
     repositories {
         google()
         mavenCentral()
+        exclusiveContent {
+            forRepository {
+                ivy {
+                    name = "RaTeXFork"
+                    url = uri("https://github.com/kirill-markin/RaTeX/releases/download/fork-packages-0.1.15-1")
+                    patternLayout {
+                        ivy("[module]-[revision].ivy.xml")
+                        artifact("[artifact]-[revision].[ext]")
+                    }
+                    metadataSources {
+                        ivyDescriptor()
+                    }
+                }
+            }
+            filter {
+                includeModule("io.github.kirill-markin", "ratex-android")
+            }
+        }
     }
 }
 

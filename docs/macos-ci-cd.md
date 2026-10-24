@@ -34,31 +34,9 @@ SHA-256 `cf7eb8f7623a2baedc6710e7829184571698bbebb1f5878d3522c7b6c7b457f5`.
 The [binary release](https://github.com/kirill-markin/RaTeX/releases/tag/catalyst-binary-0.1.15-1)
 also retains its checksum and `provenance.json`.
 
-Before each Apple release, check the dependency before native testing or builds:
-
-1. Select a reviewed source commit in Kirill's fork and compare the **full diff**
-   from the pinned binary's `provenance.json` `source_sha` to that commit.
-   Keep using the fork until a deliberate migration; never follow moving `main`.
-2. Reuse the binary for documentation or URL/checksum-only packaging differences
-   only when native source, Swift wrapper, fonts/resources, dependencies,
-   toolchain and other build inputs are unchanged. Otherwise run the fork's
-   existing Catalyst XCFramework workflow at the selected source and verify its
-   native artifacts.
-3. When rebuilding, publish the exact verified CI bytes, checksum and provenance
-   under a **new immutable binary tag**. Update the manifest's URL/checksum
-   through a PR and CI when needed, then publish a **new immutable package tag**
-   at the merged manifest commit. Reuse the existing package if unchanged;
-   never overwrite published tags or assets.
-4. Update the shared Apple project's exact requirement when selecting a new
-   package; regenerate `Package.resolved` with Xcode/SwiftPM, preserving other
-   pins and letting SwiftPM generate `originHash`. Commit and
-   merge through normal CI, then run the affected existing native gates before
-   publication. Flashcards build hooks consume the binary; they do not rebuild it.
-
-Upstream synchronization is a separate manual process: review and merge the
-original repository into the fork, reconciling retained patches against those
-already accepted upstream, before selecting fork source. A normal Flashcards
-release does not automatically sync upstream or require a fresh binary.
+Before each Apple release, follow the shared [RaTeX dependency preflight and
+update procedure](ratex-dependency.md) before native testing or builds.
+Flashcards build hooks consume the binary; they do not rebuild it.
 
 ## Xcode Cloud
 
