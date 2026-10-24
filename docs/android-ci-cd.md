@@ -1,5 +1,7 @@
 # Android CI/CD
 
+Before builds or release dispatch, complete the [RaTeX dependency preflight](ratex-dependency.md).
+
 This repository uses one reusable Android validation workflow, called only by the manual release, and a publisher-only recovery entrypoint:
 
 - GitHub Actions is the primary Android CI/CD entrypoint
