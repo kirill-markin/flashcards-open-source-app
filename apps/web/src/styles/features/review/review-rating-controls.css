@@ -14,9 +14,9 @@
   padding-top: 8px;
   border: none;
   border-radius: 0;
-  background: transparent;
+  background: var(--bg);
   backdrop-filter: none;
-  box-shadow: none;
+  box-shadow: 0 var(--review-pane-padding) 0 var(--bg);
 }
 
 .review-reveal-btn {
