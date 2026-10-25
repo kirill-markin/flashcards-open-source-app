@@ -3,6 +3,7 @@ import test from "node:test";
 import { createChatRoutes } from "../../../routes/chat";
 import { buildInitialChatComposerSuggestions } from "../../composerSuggestions";
 import { createChatSessionRequestedSessionIdConflictError } from "../../errors";
+import type { ChatSessionSnapshot } from "../../store";
 import {
   aiUsageAllowanceTestOptions,
   EXPLICIT_WORKSPACE_ID,
@@ -287,6 +288,15 @@ test("POST /chat/new creates the exact explicit session when it does not exist y
 
 test("POST /chat/new persists localized initial suggestions for a created explicit session", async () => {
   let persistedUiLocale: string | null = null;
+  const getRecoveredChatSessionSnapshotFn = async (
+    _userId: string,
+    _workspaceId: string,
+    sessionId?: string,
+  ): Promise<ChatSessionSnapshot> => ({
+    ...createSnapshot([]),
+    sessionId: sessionId ?? SESSION_TWO,
+    composerSuggestions: buildInitialChatComposerSuggestions(persistedUiLocale),
+  });
   const app = createChatRoutes({
     ...aiUsageAllowanceTestOptions,
     allowedOrigins: [],
@@ -300,10 +310,10 @@ test("POST /chat/new persists localized initial suggestions for a created explic
       persistedUiLocale = uiLocale;
       return requestedSessionId ?? SESSION_TWO;
     },
-    getRecoveredChatSessionSnapshotFn: async (_userId, _workspaceId, sessionId) => ({
-      ...createSnapshot([]),
-      sessionId: sessionId ?? SESSION_TWO,
-      composerSuggestions: buildInitialChatComposerSuggestions(persistedUiLocale),
+    getRecoveredChatSessionSnapshotFn,
+    getRecoveredChatSessionFn: async (userId, workspaceId, sessionId) => ({
+      snapshot: await getRecoveredChatSessionSnapshotFn(userId, workspaceId, sessionId),
+      latestMessagesPage: null,
     }),
   });
 
@@ -436,6 +446,34 @@ test("POST /chat/new without sessionId preserves the legacy rollover behavior", 
 
 test("POST /chat/new persists localized initial suggestions for rollover-created sessions", async () => {
   let persistedUiLocale: string | null = null;
+  const getRecoveredChatSessionSnapshotFn = async (
+    _userId: string,
+    _workspaceId: string,
+    sessionId?: string,
+  ): Promise<ChatSessionSnapshot> => {
+    if (sessionId === SESSION_TWO) {
+      return {
+        ...createSnapshot([]),
+        sessionId: SESSION_TWO,
+        composerSuggestions: buildInitialChatComposerSuggestions(persistedUiLocale),
+      };
+    }
+
+    return {
+      ...createSnapshot([{
+        role: "user",
+        content: [{ type: "text", text: "hello" }],
+        timestamp: 1,
+        isError: false,
+        errorCode: null,
+        isStopped: false,
+        cursor: "1",
+        itemId: null,
+      }]),
+      sessionId: SESSION_ONE,
+      composerSuggestions: buildInitialChatComposerSuggestions(undefined),
+    };
+  };
   const app = createChatRoutes({
     ...aiUsageAllowanceTestOptions,
     allowedOrigins: [],
@@ -443,30 +481,11 @@ test("POST /chat/new persists localized initial suggestions for rollover-created
       requestAuthInputs: {} as never,
       requestContext: createRequestContext(),
     }),
-    getRecoveredChatSessionSnapshotFn: async (_userId, _workspaceId, sessionId) => {
-      if (sessionId === SESSION_TWO) {
-        return {
-          ...createSnapshot([]),
-          sessionId: SESSION_TWO,
-          composerSuggestions: buildInitialChatComposerSuggestions(persistedUiLocale),
-        };
-      }
-
-      return {
-        ...createSnapshot([{
-          role: "user",
-          content: [{ type: "text", text: "hello" }],
-          timestamp: 1,
-          isError: false,
-          errorCode: null,
-          isStopped: false,
-          cursor: "1",
-          itemId: null,
-        }]),
-        sessionId: SESSION_ONE,
-        composerSuggestions: buildInitialChatComposerSuggestions(undefined),
-      };
-    },
+    getRecoveredChatSessionSnapshotFn,
+    getRecoveredChatSessionFn: async (userId, workspaceId, sessionId) => ({
+      snapshot: await getRecoveredChatSessionSnapshotFn(userId, workspaceId, sessionId),
+      latestMessagesPage: null,
+    }),
     rolloverToFreshChatSessionFn: async (_userId, _workspaceId, previousSessionId, uiLocale) => {
       assert.equal(previousSessionId, SESSION_ONE);
       persistedUiLocale = uiLocale;

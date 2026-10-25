@@ -2,17 +2,9 @@ import type { JSX } from "react";
 import type { AdminAppConfig } from "../../config";
 import type { AnalyticsDateRange } from "../../filters/analyticsFilters";
 import { DailyNewReturningSection } from "../dailyNewReturning/DailyNewReturningSection";
-import type { DailyActivitySource } from "../dailyNewReturning/query";
 import type { LevelOneMetricDetailsLink } from "../levelOneMetrics/LevelOneMetricDetailsLink";
 import type { ReportPeriod } from "../levelOneMetrics/reportPeriod";
-import { buildMeaningfulActivityCtesSql } from "../levelOneMetrics/meaningfulActivitySql";
-
-const reviewActivitySource: DailyActivitySource = {
-  ctesSql: buildMeaningfulActivityCtesSql(),
-  activityCte: "meaningful_activity",
-  firstUseCte: "actor_first_use",
-  coverageCte: "activity_coverage",
-};
+import { reviewActivitySource } from "../levelOneMetrics/meaningfulActivitySql";
 
 export function WhoStudiedSection(props: Readonly<{
   config: AdminAppConfig;

@@ -61,7 +61,10 @@ const outputSchemas: Readonly<Record<string, z.ZodObject | undefined>> = {
       affectedCountTotal: z.null(),
     }),
   ]))),
-  [SQL_EXECUTE_TOOL_NAME]: envelope(z.intersection(z.looseObject(submittedSql), z.union([
+  [SQL_EXECUTE_TOOL_NAME]: envelope(z.intersection(z.looseObject({
+    ...submittedSql,
+    reviewUrl: z.string().optional(),
+  }), z.union([
     sqlMutationStatement.extend(sqlOmissions),
     sqlBatch.extend({
       statements: z.array(sqlMutationStatement),

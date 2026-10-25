@@ -407,11 +407,6 @@ h2 {
   text-align: left;
 }
 
-/* Column 2 here is a count, not a name, so its header aligns with its numbers. */
-.funnel-group-table.engaged-share-table thead th:nth-child(2) {
-  text-align: right;
-}
-
 /* A row header, so it is bold by default; the group name is read as data beside its counts, and the
    step header down the left is the one heading that carries weight here. Scoped by the table, so it
    also outweighs the right alignment every cell of this table takes and the column reads left
@@ -1381,6 +1376,13 @@ h2 {
   letter-spacing: -0.05em;
 }
 
+/* A retention tile's exact counts, or why it has none, under its rate. */
+.metric-detail {
+  margin: 6px 0 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+
 .chart-column {
   display: grid;
   gap: 16px;
@@ -1558,6 +1560,18 @@ h2 {
   font-size: 13px;
 }
 
+.level-1-metrics-grid .retention-curve-table-shell {
+  padding: 0 20px 16px;
+}
+
+/* Outweighs the data-table cell rules, so every column but the day reads right with its header. */
+.activity-chart-table .funnel-group-table.retention-curve-table th:not(:first-child),
+.activity-chart-table .funnel-group-table.retention-curve-table td {
+  padding: 8px 10px;
+  text-align: right;
+  vertical-align: baseline;
+}
+
 .level-1-metrics-grid .activity-coverage-note {
   margin: 12px 20px 16px;
   line-height: 1.6;
@@ -1623,10 +1637,12 @@ h2 {
   grid-column: 1 / -1;
 }
 
-/* Opens a group of charts below the ones before it, across every grid column. */
+/* Opens a group of charts below the ones before it, across every grid column, under a separator line. */
 .level-1-metrics-grid .level-1-metrics-group-heading {
   grid-column: 1 / -1;
   margin-top: 56px;
+  padding-top: 32px;
+  border-top: 1px solid var(--panel-border);
 }
 
 .payment-import-status-table {

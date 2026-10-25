@@ -667,7 +667,7 @@ export function createSessionRecovery(loadSessionInfo: LoadSessionInfo): Session
     return waitForSharedTransportTask(trackedRecoveryTask, requestSignal);
   }
 
-  async function ensureSessionTransportReadyForUnsafeRequest(
+  async function ensureSessionTransportReady(
     options: RequestOptions,
     requestSignal: AbortSignal | null,
   ): Promise<void> {
@@ -721,9 +721,11 @@ export function createSessionRecovery(loadSessionInfo: LoadSessionInfo): Session
     performRequest: PerformAuthenticatedRequest,
   ): Promise<Response> {
     throwIfRequestAborted(requestSignal);
-    if (isUnsafeMethod(method)) {
-      if (sessionCsrfState === "guest" && sessionUserId !== null) requireBrowserGuestSyncReady(sessionUserId);
-      await ensureSessionTransportReadyForUnsafeRequest(options, requestSignal);
+    if (isUnsafeMethod(method) && sessionCsrfState === "guest" && sessionUserId !== null) {
+      requireBrowserGuestSyncReady(sessionUserId);
+    }
+    if (isUnsafeMethod(method) || (options.expectedUserId !== null && sessionUserId === null)) {
+      await ensureSessionTransportReady(options, requestSignal);
       throwIfRequestAborted(requestSignal);
     }
 
@@ -732,7 +734,7 @@ export function createSessionRecovery(loadSessionInfo: LoadSessionInfo): Session
       if (options.expectedUserId !== null && options.expectedUserId !== sessionUserId) {
         throw new ApiError({
           statusCode: 0,
-          message: `The signed-in account changed. Reload before saving preferences. (${endpoint})`,
+          message: `The signed-in account changed. Reload the page. (${endpoint})`,
           code: "SESSION_ACCOUNT_CHANGED",
           requestId: null,
           retryAfterMs: null,

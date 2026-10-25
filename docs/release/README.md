@@ -93,6 +93,9 @@ If a fix affects an already published artifact, ask the user how to handle that 
 
 ### Early preflight
 
+- For Android, web and iOS/macOS, complete the [RaTeX dependency preflight](../ratex-dependency.md)
+  before testing, builds, deployment or publication; merge any required pin update
+  and retain the affected platform gate evidence.
 - Before required local Xcode work or runtime downloads, check available disk
   against the actual archive/result/runtime needs; there is no universal free-space threshold.
   Inspect installed [iOS runtimes/devices](../ios-local-setup.md#local-testing-rules)

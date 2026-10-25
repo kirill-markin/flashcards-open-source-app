@@ -3,6 +3,7 @@ import * as cdk from "aws-cdk-lib";
 import * as fs from "fs";
 import * as path from "path";
 import { FlashcardsOpenSourceAppStack } from "../lib/stack";
+import { activatePatchedNodeRuntime } from "../lib/patched-node-runtime";
 import { FlashcardsOpenSourceAppMonitoringStack } from "../lib/monitoring-stack";
 
 const app = new cdk.App();
@@ -48,3 +49,5 @@ const monitoringStack = new FlashcardsOpenSourceAppMonitoringStack(app, "Flashca
   monitoringInputs: core.monitoringInputs,
 });
 monitoringStack.addStackDependency(core);
+
+activatePatchedNodeRuntime(core);

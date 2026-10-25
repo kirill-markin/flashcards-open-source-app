@@ -27,9 +27,10 @@ import {
   type AgentToolOperationDependencies,
 } from "../../../aiTools/agentSql/operations";
 import type { AgentSqlPayload, AgentSqlPayloadWithWorkspace } from "../../../aiTools/agentSql/shared";
-import { createAgentRemediationInstructions } from "../../../aiTools/toolContract/remediationInstructions";
+import { createAgentToolErrorMessage } from "../../../aiTools/toolContract/remediationInstructions";
 import { GUIDE_TOPICS } from "../../../aiTools/toolContract/sqlToolContract";
 import {
+  buildAgentSqlToolPayload,
   findAgentToolSpecForSurface,
   listAgentToolSpecsForSurface,
   GET_GUIDE_TOOL_SPEC,
@@ -1021,34 +1022,37 @@ function createSqlToolSuccessTelemetry(data: AgentSqlPayload, startedAt: number)
   };
 }
 
-/** The `{ ok: false }` envelope a failed SQL call answers with, carrying an `HttpError`'s `code` and `details`. */
+/** What a failed registry tool call answers with, carrying an `HttpError`'s `code` and `details`. */
+function createChatToolErrorPayload(toolName: string, error: unknown): ToolErrorPayload {
+  const serializedError = serializeToolError(error);
+  const toolError = {
+    name: serializedError.name,
+    message: createAgentToolErrorMessage(
+      serializedError.message,
+      error instanceof HttpError ? error.code : null,
+      getChatToolFailureStatusCode(error),
+      { surface: "chat", toolName },
+    ),
+  };
+
+  return error instanceof HttpError
+    ? {
+      error: toolError,
+      code: error.code ?? "REQUEST_FAILED",
+      details: createPublicHttpErrorDetails(error.details) ?? undefined,
+    }
+    : { error: toolError };
+}
+
+/** The `{ ok: false }` envelope a failed SQL call answers with, echoing the statement it was sent. */
 function createSqlToolFailure(
   toolName: string,
   sql: string | null,
   error: unknown,
   startedAt: number,
 ): SqlToolFailure {
-  const instructions = createAgentRemediationInstructions(
-    error instanceof HttpError ? error.code : null,
-    getChatToolFailureStatusCode(error),
-    { surface: "chat", toolName },
-  );
-  const payload: ToolErrorPayload = error instanceof HttpError
-    ? {
-      sql,
-      error: serializeToolError(error),
-      instructions,
-      code: error.code ?? "REQUEST_FAILED",
-      details: createPublicHttpErrorDetails(error.details) ?? undefined,
-    }
-    : {
-      sql,
-      error: serializeToolError(error),
-      instructions,
-    };
-
   return {
-    output: createToolErrorResult(toolName, payload),
+    output: createToolErrorResult(toolName, { sql, ...createChatToolErrorPayload(toolName, error) }),
     sqlTelemetry: {
       succeeded: false,
       errorCode: error instanceof HttpError ? error.code : null,
@@ -1072,7 +1076,7 @@ function createSqlToolFailure(
  * the argument, and the chat HTTP layer lowercases the session's id before the run is created.
  */
 async function executeSqlChatToolCall(
-  spec: AgentToolSpec<AgentSqlPayload>,
+  spec: AgentToolSpec<AgentSqlPayloadWithWorkspace>,
   inputSchema: SqlToolInputSchema,
   rawArguments: string,
   context: OpenAIToolContext,
@@ -1093,7 +1097,6 @@ async function executeSqlChatToolCall(
       output: createSqlToolSuccessResult(spec.name, {
         sql: parsed.sql,
         data: result.data,
-        instructions: result.instructions,
       }),
       isMutating,
       succeeded: true,
@@ -1169,11 +1172,9 @@ export async function executeChatSandboxSqlCall(
     const result = kind === "query"
       ? await runChatSqlQuery(sqlContext, parsed.sql, operationDependencies)
       : await runChatSqlExecute(sqlContext, parsed.sql, operationDependencies);
-    const data: AgentSqlPayloadWithWorkspace = { ...result.data, workspaceId };
     const output = createWholeSqlToolSuccessResult(toolName, {
       sql: parsed.sql,
-      data,
-      instructions: result.instructions,
+      data: buildAgentSqlToolPayload(result.data, workspaceId),
     });
     if (kind === "query" && Buffer.byteLength(output) > maximumChatSandboxReadOutputBytes) {
       throw new HttpError(
@@ -1192,8 +1193,8 @@ export async function executeChatSandboxSqlCall(
 /**
  * A failure, including arguments the schema rejects, comes back as the same `{ ok: false }`
  * envelope a failed SQL call returns, carrying an `HttpError`'s `code` and `details`, rather than
- * as a throw, because a thrown tool call ends the run: the model repairs its call and continues on
- * its own remediation instructions instead.
+ * as a throw, because a thrown tool call ends the run: the model repairs its call and continues from
+ * the remediation in `error.message` instead.
  */
 async function executeReadOnlyChatToolCall<Data>(
   spec: AgentToolSpec<Data>,
@@ -1208,10 +1209,7 @@ async function executeReadOnlyChatToolCall<Data>(
     );
 
     return {
-      output: createToolSuccessResult(spec.name, {
-        data: result.data,
-        instructions: result.instructions,
-      }),
+      output: createToolSuccessResult(spec.name, result.data),
       isMutating: false,
       succeeded: true,
       shouldInvalidateMainContent: false,
@@ -1221,25 +1219,8 @@ async function executeReadOnlyChatToolCall<Data>(
       modelContent: null,
     };
   } catch (error) {
-    const instructions = createAgentRemediationInstructions(
-      error instanceof HttpError ? error.code : null,
-      getChatToolFailureStatusCode(error),
-      { surface: "chat", toolName: spec.name },
-    );
-    const payload: ToolErrorPayload = error instanceof HttpError
-      ? {
-        error: serializeToolError(error),
-        instructions,
-        code: error.code ?? "REQUEST_FAILED",
-        details: createPublicHttpErrorDetails(error.details) ?? undefined,
-      }
-      : {
-        error: serializeToolError(error),
-        instructions,
-      };
-
     return {
-      output: createToolErrorResult(spec.name, payload),
+      output: createToolErrorResult(spec.name, createChatToolErrorPayload(spec.name, error)),
       isMutating: false,
       succeeded: false,
       shouldInvalidateMainContent: false,
@@ -1250,15 +1231,6 @@ async function executeReadOnlyChatToolCall<Data>(
     };
   }
 }
-
-/**
- * The review loop itself is served by `get_guide` topic `review_flow`, so a review result points at
- * it instead of carrying the shared `REVIEW_FLOW_INSTRUCTIONS`: a graded card runs three review
- * calls, and those ~2,000 characters would be re-sent on every later model call of the turn and
- * replayed in every later turn of the session.
- */
-const CHAT_REVIEW_RESULT_INSTRUCTIONS =
-  "Review one card at a time: speak only frontText, wait for the learner's attempt, call reveal_answer for that cardId, grade the attempt yourself, then call submit_review with a fresh reviewId. Call get_guide with topic review_flow for the rating scale and the full grading rules before your first grading in this conversation. A null card means nothing is due now: tell the learner nextDueAt in their own timezone, or that nothing is scheduled when it is null, rather than calling again.";
 
 /**
  * One review call, rendered for this surface.
@@ -1272,8 +1244,7 @@ const CHAT_REVIEW_RESULT_INSTRUCTIONS =
  * in `details.reviewSchedule` instead of submitting again.
  *
  * Card text long enough to exceed the tool-output budget comes back as a JSON preview, so the model
- * would grade against a truncated answer. Accepted: nothing bounds card text server-side, and the
- * envelope that is capped still carries its instructions.
+ * would grade against a truncated answer. Accepted: nothing bounds card text server-side.
  */
 async function executeReviewChatToolCall(
   spec: AgentToolSpec<AgentReviewPayload>,
@@ -1290,10 +1261,7 @@ async function executeReviewChatToolCall(
     );
 
     return {
-      output: createToolSuccessResult(spec.name, {
-        data: result.data,
-        instructions: CHAT_REVIEW_RESULT_INSTRUCTIONS,
-      }),
+      output: createToolSuccessResult(spec.name, result.data),
       isMutating,
       succeeded: true,
       shouldInvalidateMainContent: isMutating && result.data.workspaceId === context.workspaceId,
@@ -1303,25 +1271,8 @@ async function executeReviewChatToolCall(
       modelContent: null,
     };
   } catch (error) {
-    const instructions = createAgentRemediationInstructions(
-      error instanceof HttpError ? error.code : null,
-      getChatToolFailureStatusCode(error),
-      { surface: "chat", toolName: spec.name },
-    );
-    const payload: ToolErrorPayload = error instanceof HttpError
-      ? {
-        error: serializeToolError(error),
-        instructions,
-        code: error.code ?? "REQUEST_FAILED",
-        details: createPublicHttpErrorDetails(error.details) ?? undefined,
-      }
-      : {
-        error: serializeToolError(error),
-        instructions,
-      };
-
     return {
-      output: createToolErrorResult(spec.name, payload),
+      output: createToolErrorResult(spec.name, createChatToolErrorPayload(spec.name, error)),
       isMutating,
       succeeded: false,
       shouldInvalidateMainContent: false,

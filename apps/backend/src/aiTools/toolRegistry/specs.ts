@@ -6,19 +6,22 @@ import {
   submitReviewSchema,
   NEXT_REVIEW_DESCRIPTION,
   REVEAL_ANSWER_DESCRIPTION,
-  REVIEW_FLOW_INSTRUCTIONS,
   SUBMIT_REVIEW_DESCRIPTION,
 } from "../../agent/reviewContract";
 import type { AgentReviewContext } from "../../agent/reviews";
 import type { AiUsageStatus } from "../../aiUsage";
-import type { AgentSqlContext, AgentSqlPayloadWithWorkspace } from "../agentSql/shared";
+import type {
+  AgentSqlContext,
+  AgentSqlPayload,
+  AgentSqlPayloadWithWorkspace,
+  AgentSqlSinglePayload,
+} from "../agentSql/shared";
 import {
-  USAGE_LIMITS_RESULT_INSTRUCTIONS,
   USAGE_LIMITS_TOOL_DESCRIPTION,
   USAGE_LIMITS_TOOL_NAME,
 } from "../toolContract/usageToolContract";
 import {
-  GET_GUIDE_RESULT_INSTRUCTIONS,
+  buildWorkspaceReviewUrl,
   GUIDE_BODIES,
   GUIDE_TOPICS,
   type GuideTopic,
@@ -50,9 +53,6 @@ const optionalWorkspaceIdArgument = workspaceIdStringSchema
 
 const LIST_WORKSPACES_TOOL_DESCRIPTION =
   "Lists the user's workspaces; isSelected marks the default used when workspaceId is omitted.";
-
-const LIST_WORKSPACES_RESULT_INSTRUCTIONS =
-  "These are the workspaces you can access. Each workspace has a workspaceId, name, cardCount (active cards), lastActivityAt (most recent card edit or review, or null), and isSelected (your current default). To target a specific one, pass its workspaceId to any workspace-scoped tool; the isSelected workspace is used by default when you omit workspaceId. Prefer the most active workspace (highest cardCount or most recent lastActivityAt) when the user has not told you which to use.";
 
 /**
  * `get_guide` is the on-demand home for instructions a client only needs at one
@@ -124,6 +124,26 @@ function buildReviewActor(context: AgentToolContext, workspaceId: string): Agent
   return { userId: context.userId, workspaceId, connectionId: context.connectionId };
 }
 
+function hasInsertedCards(data: AgentSqlPayload): boolean {
+  const statements: ReadonlyArray<AgentSqlSinglePayload> = data.statementType === "batch"
+    ? data.statements
+    : [data];
+  return statements.some((statement) =>
+    statement.statementType === "insert" && statement.resource === "cards" && statement.affectedCount > 0);
+}
+
+/**
+ * What a SQL tool returns for an executed payload. Exported so a surface that budgets its emitted
+ * result measures exactly this payload rather than the one before it.
+ */
+export function buildAgentSqlToolPayload(
+  data: AgentSqlPayload,
+  workspaceId: string,
+): AgentSqlPayloadWithWorkspace {
+  const reviewUrl = hasInsertedCards(data) ? buildWorkspaceReviewUrl(workspaceId) : null;
+  return reviewUrl === null ? { ...data, workspaceId } : { ...data, workspaceId, reviewUrl };
+}
+
 /**
  * Both SQL input schemas are exported because the chat parses with them too: its result envelope
  * echoes the trimmed statement, and whether a write invalidates the open workspace depends on the
@@ -151,7 +171,7 @@ export const SQL_QUERY_TOOL_SPEC = defineAgentTool({
       buildAgentSqlContext(context, workspaceId),
       input.sql,
     );
-    return { data: { ...result.data, workspaceId }, instructions: result.instructions };
+    return { data: buildAgentSqlToolPayload(result.data, workspaceId) };
   },
 });
 
@@ -177,7 +197,7 @@ export const SQL_EXECUTE_TOOL_SPEC = defineAgentTool({
       buildAgentSqlContext(context, workspaceId),
       input.sql,
     );
-    return { data: { ...result.data, workspaceId }, instructions: result.instructions };
+    return { data: buildAgentSqlToolPayload(result.data, workspaceId) };
   },
 });
 
@@ -195,7 +215,7 @@ export const LIST_WORKSPACES_TOOL_SPEC = defineAgentTool({
       context.userId,
       context.selectedWorkspaceId,
     );
-    return { data: { workspaces }, instructions: LIST_WORKSPACES_RESULT_INSTRUCTIONS };
+    return { data: { workspaces } };
   },
 });
 
@@ -220,7 +240,6 @@ export const GET_GUIDE_TOOL_SPEC = defineAgentTool({
   }),
   execute: async (_context, input): Promise<AgentToolResult<AgentGuidePayload>> => ({
     data: { topic: input.topic, guide: GUIDE_BODIES[input.topic] },
-    instructions: GET_GUIDE_RESULT_INSTRUCTIONS,
   }),
 });
 
@@ -242,7 +261,7 @@ export const NEXT_REVIEW_CARD_TOOL_SPEC = defineAgentTool({
       buildReviewActor(context, workspaceId),
       makeAgentReviewCardFilter(input),
     );
-    return { data: result, instructions: REVIEW_FLOW_INSTRUCTIONS };
+    return { data: result };
   },
 });
 
@@ -257,7 +276,7 @@ export const REVEAL_ANSWER_TOOL_SPEC = defineAgentTool({
       buildReviewActor(context, workspaceId),
       input.cardId,
     );
-    return { data: result, instructions: REVIEW_FLOW_INSTRUCTIONS };
+    return { data: result };
   },
 });
 
@@ -272,7 +291,7 @@ export const SUBMIT_REVIEW_TOOL_SPEC = defineAgentTool({
       buildReviewActor(context, workspaceId),
       input,
     );
-    return { data: result, instructions: REVIEW_FLOW_INSTRUCTIONS };
+    return { data: result };
   },
 });
 
@@ -296,7 +315,6 @@ export const GET_USAGE_LIMITS_TOOL_SPEC = defineAgentTool({
   inputSchema: z.strictObject({}),
   execute: async (context): Promise<AgentToolResult<AiUsageStatus>> => ({
     data: await context.actions.loadAiUsageStatus(context.userId, new Date()),
-    instructions: USAGE_LIMITS_RESULT_INSTRUCTIONS,
   }),
 });
 

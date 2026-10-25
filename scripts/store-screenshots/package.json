@@ -2,7 +2,7 @@
   "name": "nibomo-store-screenshot-processing",
   "private": true,
   "type": "module",
-  "engines": { "node": ">=22.18.0" },
+  "engines": { "node": ">=24.22.1 <25" },
   "scripts": {
     "render": "node --experimental-strip-types render.mts",
     "check": "tsc --noEmit",

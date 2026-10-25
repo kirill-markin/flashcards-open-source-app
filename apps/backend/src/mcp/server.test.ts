@@ -17,7 +17,6 @@ import {
 } from "./server";
 
 const LIST_WORKSPACES_TOOL_NAME = "list_workspaces";
-const RESOURCE_URL = "https://mcp.flashcards-open-source-app.com/mcp";
 const WEBSITE_URL = "https://flashcards-open-source-app.com";
 const ICON_URL = "https://mcp.flashcards-open-source-app.com/icon.svg";
 const CALLER_USER_AGENT = "mcp-protocol-smoke/1.0.0";
@@ -52,18 +51,9 @@ type JsonObject = {
   readonly [key: string]: JsonValue;
 };
 
-type AgentEnvelopeJson = Readonly<{
+type ToolEnvelopeJson = Readonly<{
   ok: true;
   data: JsonObject;
-  instructions: string;
-  docs: Readonly<{
-    discoveryUrl: string;
-    source: Readonly<{
-      repositoryUrl: string;
-      agentRoutesUrl: string;
-      authRoutesUrl: string;
-    }>;
-  }>;
 }>;
 
 type ClientToolList = Awaited<ReturnType<Client["listTools"]>>;
@@ -93,28 +83,16 @@ function readJsonString(record: JsonObject, key: string): string {
   return value;
 }
 
-function parseAgentEnvelope(text: string): AgentEnvelopeJson {
+/** A tool result carries facts only: no `instructions` or `docs` beside them. */
+function parseToolEnvelope(text: string): ToolEnvelopeJson {
   const value: unknown = JSON.parse(text);
   assert.ok(isJsonObject(value), "Expected tool result text to contain a JSON object");
+  assert.deepEqual(Object.keys(value), ["ok", "data"]);
   assert.equal(value.ok, true);
-
-  const data = readJsonObject(value, "data");
-  const instructions = readJsonString(value, "instructions");
-  const docs = readJsonObject(value, "docs");
-  const source = readJsonObject(docs, "source");
 
   return {
     ok: true,
-    data,
-    instructions,
-    docs: {
-      discoveryUrl: readJsonString(docs, "discoveryUrl"),
-      source: {
-        repositoryUrl: readJsonString(source, "repositoryUrl"),
-        agentRoutesUrl: readJsonString(source, "agentRoutesUrl"),
-        authRoutesUrl: readJsonString(source, "authRoutesUrl"),
-      },
-    },
+    data: readJsonObject(value, "data"),
   };
 }
 
@@ -285,7 +263,6 @@ test("MCP server exposes workspace and SQL tools through the protocol path", asy
   const invokedToolNames: Array<string> = [];
   const server = createMcpServerWithDependencies(
     connection,
-    RESOURCE_URL,
     WEBSITE_URL,
     ICON_URL,
     createTelemetryChannel(invokedToolNames),
@@ -360,33 +337,24 @@ test("MCP server exposes workspace and SQL tools through the protocol path", asy
       name: LIST_WORKSPACES_TOOL_NAME,
       arguments: {},
     });
-    const listWorkspacesEnvelope = parseAgentEnvelope(readSingleTextContent(listWorkspacesResult));
+    const listWorkspacesEnvelope = parseToolEnvelope(readSingleTextContent(listWorkspacesResult));
     assert.deepEqual(listWorkspacesEnvelope.data, { workspaces });
-    assert.notEqual(listWorkspacesEnvelope.instructions, "");
-    assert.notEqual(listWorkspacesEnvelope.docs.discoveryUrl, "");
-    assert.notEqual(listWorkspacesEnvelope.docs.source.repositoryUrl, "");
 
     const sql = "SELECT card_id, front_text, back_text FROM cards LIMIT 1";
     const sqlQueryResult = await client.callTool({
       name: SQL_QUERY_TOOL_NAME,
       arguments: { sql, workspaceId: requestedWorkspaceId },
     });
-    const sqlQueryEnvelope = parseAgentEnvelope(readSingleTextContent(sqlQueryResult));
+    const sqlQueryEnvelope = parseToolEnvelope(readSingleTextContent(sqlQueryResult));
     assert.equal(sqlQueryEnvelope.data.sql, sql);
-    assert.notEqual(sqlQueryEnvelope.instructions, "");
-    assert.notEqual(sqlQueryEnvelope.docs.discoveryUrl, "");
-    assert.notEqual(sqlQueryEnvelope.docs.source.agentRoutesUrl, "");
 
     const executeSql = "UPDATE cards SET back_text = 'Paris' WHERE card_id = 'card-1'";
     const sqlExecuteResult = await client.callTool({
       name: SQL_EXECUTE_TOOL_NAME,
       arguments: { sql: executeSql, workspaceId: requestedWorkspaceId },
     });
-    const sqlExecuteEnvelope = parseAgentEnvelope(readSingleTextContent(sqlExecuteResult));
+    const sqlExecuteEnvelope = parseToolEnvelope(readSingleTextContent(sqlExecuteResult));
     assert.equal(sqlExecuteEnvelope.data.sql, executeSql);
-    assert.notEqual(sqlExecuteEnvelope.instructions, "");
-    assert.notEqual(sqlExecuteEnvelope.docs.discoveryUrl, "");
-    assert.notEqual(sqlExecuteEnvelope.docs.source.authRoutesUrl, "");
 
     assert.deepEqual(calls.listWorkspaces, [{
       userId: connection.userId,
@@ -451,7 +419,6 @@ test("MCP SQL tools reject misdirected workspace arguments before access resolut
   const calls = createFakeDependencyCalls();
   const server = createMcpServerWithDependencies(
     connection,
-    RESOURCE_URL,
     WEBSITE_URL,
     ICON_URL,
     createTelemetryChannel([]),

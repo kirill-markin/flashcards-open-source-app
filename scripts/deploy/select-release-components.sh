@@ -65,13 +65,13 @@ components_for_path() {
       echo "web" ;;
     apps/admin/*|scripts/deploy/deploy-admin.sh)
       echo "admin" ;;
-    scripts/geolite/*|scripts/deploy/migrate-aws.sh|scripts/generate/write-ci-cdk-context.py|scripts/deploy/report-cloudformation-budget.py|scripts/deploy/upload-lambda-source-maps.py|scripts/deploy/prepare-lambda-build-inputs.sh|scripts/deploy/lambda-asset-cache.py)
+    scripts/geolite/*|scripts/deploy/migrate-aws.sh|scripts/generate/write-ci-cdk-context.py|scripts/deploy/report-cloudformation-budget.py|scripts/deploy/upload-lambda-source-maps.py|scripts/deploy/prepare-lambda-build-inputs.sh|scripts/deploy/lambda-asset-cache.py|scripts/deploy/prepare-node-runtime.py)
       echo "platform" ;;
     scripts/generate/generate-catalog-dump.sh|scripts/generate/generate-global-metrics-snapshot.sh)
       echo "platform" ;;
     scripts/checks/check-agent-api-smoke.sh|scripts/checks/check-api-health.sh|scripts/checks/check-demo-cognito-users.sh|scripts/checks/check-native-proof-bridge.sh)
       echo "platform" ;;
-    scripts/checks/check-mcp-smoke.sh|scripts/checks/check-mcp-capacity-smoke.py|scripts/checks/check-multipart-completion-reconciliation-schedule.sh|scripts/checks/check-public-endpoints.sh)
+    scripts/checks/check-mcp-smoke.sh|scripts/checks/check-mcp-capacity-smoke.py|scripts/checks/check-node-runtime-*.py|scripts/checks/check-multipart-completion-reconciliation-schedule.sh|scripts/checks/check-public-endpoints.sh)
       echo "platform" ;;
     *)
       echo "" ;;

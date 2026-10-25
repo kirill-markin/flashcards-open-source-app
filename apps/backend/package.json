@@ -10,7 +10,7 @@
     "lint": "tsc --noEmit",
     "test": "node scripts/run-tests.mjs",
     "test:postgres-integration": "node scripts/run-postgres-integrations.mjs",
-    "test:mcp": "node --test --import tsx src/entrypoints/lambda-mcp.test.ts src/mcp/server.test.ts"
+    "test:mcp": "node --test --import tsx src/entrypoints/lambda-mcp.test.ts src/mcp/server.test.ts src/mcp/requestLimits.integration.test.ts"
   },
   "dependencies": {
     "@apple/app-store-server-library": "3.1.0",
@@ -55,13 +55,13 @@
   },
   "overrides": {
     "protobufjs": "^8.8.1",
-    "undici": "6.29.0",
+    "undici": "6.29.1",
     "guarded-fetch": {
-      "undici": "7.30.0"
+      "undici": "7.30.1"
     }
   },
   "engines": {
-    "node": "24.x"
+    "node": ">=24.22.1 <25"
   },
   "allowScripts": {
     "@sentry/cli@3.8.0": true,

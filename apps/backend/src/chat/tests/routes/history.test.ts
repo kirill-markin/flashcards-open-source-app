@@ -44,9 +44,9 @@ test("GET /chat prefers an explicit workspaceId query param over the legacy sele
       requestAuthInputs: {} as never,
       requestContext: createRequestContextWithSelectedWorkspace(LEGACY_WORKSPACE_ID),
     }),
-    getRecoveredChatSessionSnapshotFn: async (_userId, workspaceId) => {
+    getRecoveredChatSessionFn: async (_userId, workspaceId) => {
       requestedWorkspaceIds.push(workspaceId);
-      return createSnapshot([]);
+      return { snapshot: createSnapshot([]), latestMessagesPage: null };
     },
   });
 
@@ -68,9 +68,9 @@ test("GET /chat preserves the legacy selected-workspace fallback when workspaceI
       requestAuthInputs: {} as never,
       requestContext: createRequestContextWithSelectedWorkspace(LEGACY_WORKSPACE_ID),
     }),
-    getRecoveredChatSessionSnapshotFn: async (_userId, workspaceId) => {
+    getRecoveredChatSessionFn: async (_userId, workspaceId) => {
       requestedWorkspaceId = workspaceId;
-      return createSnapshot([]);
+      return { snapshot: createSnapshot([]), latestMessagesPage: null };
     },
   });
 
@@ -89,32 +89,34 @@ test("GET /chat returns assistant item ids in snapshot history and strips attach
       requestAuthInputs: {} as never,
       requestContext: createRequestContext(),
     }),
-    resolveLiveCursorFn: async () => null,
-    getRecoveredChatSessionSnapshotFn: async () => createSnapshot([
-      {
-        role: "user",
-        content: [{ type: "text", text: "hello" }],
-        timestamp: 1,
-        isError: false,
-        errorCode: null,
-        isStopped: false,
-        cursor: "1",
-        itemId: null,
-      },
-      {
-        role: "assistant",
-        content: [
-          { type: "text", text: "done" },
-          { type: "image", fileId: "file-1", path: "/files/image-1.png", mediaType: "image/png", sizeBytes: 6 },
-        ],
-        timestamp: 2,
-        isError: false,
-        errorCode: null,
-        isStopped: false,
-        cursor: "2",
-        itemId: "assistant-item-1",
-      },
-    ]),
+    getRecoveredChatSessionFn: async () => ({
+      snapshot: createSnapshot([
+        {
+          role: "user",
+          content: [{ type: "text", text: "hello" }],
+          timestamp: 1,
+          isError: false,
+          errorCode: null,
+          isStopped: false,
+          cursor: "1",
+          itemId: null,
+        },
+        {
+          role: "assistant",
+          content: [
+            { type: "text", text: "done" },
+            { type: "image", fileId: "file-1", path: "/files/image-1.png", mediaType: "image/png", sizeBytes: 6 },
+          ],
+          timestamp: 2,
+          isError: false,
+          errorCode: null,
+          isStopped: false,
+          cursor: "2",
+          itemId: "assistant-item-1",
+        },
+      ]),
+      latestMessagesPage: null,
+    }),
   });
 
   const response = await app.request(`http://localhost/chat?sessionId=${SESSION_ONE}`);
@@ -167,7 +169,7 @@ test("GET /chat returns a stable conflict when the requested session id is owned
       requestAuthInputs: {} as never,
       requestContext: createRequestContext(),
     }),
-    getRecoveredChatSessionSnapshotFn: async () => {
+    getRecoveredChatSessionFn: async () => {
       throw createChatSessionRequestedSessionIdConflictError(SESSION_TWO);
     },
   });
@@ -197,9 +199,9 @@ test("GET /chat stops before store access when the selected workspace is no long
     resolveAccessibleChatWorkspaceIdFn: async () => {
       throw new HttpError(404, "Workspace not found", "WORKSPACE_NOT_FOUND");
     },
-    getRecoveredChatSessionSnapshotFn: async () => {
+    getRecoveredChatSessionFn: async () => {
       snapshotRequested = true;
-      return createSnapshot([]);
+      return { snapshot: createSnapshot([]), latestMessagesPage: null };
     },
   });
   const app = createRoutesWithHttpErrorJson();
@@ -225,25 +227,27 @@ test("GET /chat preserves card content parts in snapshot history", async () => {
       requestAuthInputs: {} as never,
       requestContext: createRequestContext(),
     }),
-    resolveLiveCursorFn: async () => null,
-    getRecoveredChatSessionSnapshotFn: async () => createSnapshot([
-      {
-        role: "user",
-        content: [{
-          type: "card",
-          cardId: "card-1",
-          frontText: "What is Rust?",
-          backText: "A systems programming language.",
-          tags: ["lang", "systems"],
-        }],
-        timestamp: 1,
-        isError: false,
-        errorCode: null,
-        isStopped: false,
-        cursor: "1",
-        itemId: null,
-      },
-    ]),
+    getRecoveredChatSessionFn: async () => ({
+      snapshot: createSnapshot([
+        {
+          role: "user",
+          content: [{
+            type: "card",
+            cardId: "card-1",
+            frontText: "What is Rust?",
+            backText: "A systems programming language.",
+            tags: ["lang", "systems"],
+          }],
+          timestamp: 1,
+          isError: false,
+          errorCode: null,
+          isStopped: false,
+          cursor: "1",
+          itemId: null,
+        },
+      ]),
+      latestMessagesPage: null,
+    }),
   });
 
   const response = await app.request(`http://localhost/chat?sessionId=${SESSION_ONE}`);
@@ -285,6 +289,7 @@ test("GET /chat preserves card content parts in snapshot history", async () => {
 test("GET /chat paginated history returns assistant item ids and sanitized content", async () => {
   const paginatedSession: RecoveredPaginatedSession = {
     snapshot: createSnapshot([]),
+    latestMessagesPage: null,
     page: {
       newestCursor: "8",
       oldestCursor: "7",

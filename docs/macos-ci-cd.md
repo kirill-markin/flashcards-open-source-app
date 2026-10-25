@@ -26,13 +26,17 @@ subscriptions and notifications use their existing Catalyst-supported APIs.
 ## Dependencies
 
 The project and `Package.resolved` pin
-[the RaTeX fork](https://github.com/kirill-markin/RaTeX/tree/v0.1.14-catalyst.1)
-to exact version `0.1.14-catalyst.1`, revision
-`d22e916b54cb1422ac823c129d540295e3f0b616`. Its manifest consumes the immutable
-[Catalyst binary](https://github.com/kirill-markin/RaTeX/releases/download/catalyst-binary-0.1.14-1/RaTeX.xcframework.zip),
-SHA-256 `37deca19f15dff2c330dea5c7b06c4a337462902f510fbea141f5dc30e5ed80a`.
-Keep the other committed pins. SwiftPM owns the generated `originHash`; do not
-invent it when editing the pin or move published tags/artifacts.
+[the RaTeX fork](https://github.com/kirill-markin/RaTeX/tree/v0.1.15-catalyst.1)
+to exact version `0.1.15-catalyst.1`, revision
+`a3421dd6b00975c0f72cb9ce4ab1b7a4d7c9ab17`. Its manifest consumes the immutable
+[Catalyst binary](https://github.com/kirill-markin/RaTeX/releases/download/catalyst-binary-0.1.15-1/RaTeX.xcframework.zip),
+SHA-256 `cf7eb8f7623a2baedc6710e7829184571698bbebb1f5878d3522c7b6c7b457f5`.
+The [binary release](https://github.com/kirill-markin/RaTeX/releases/tag/catalyst-binary-0.1.15-1)
+also retains its checksum and `provenance.json`.
+
+Before each Apple release, follow the shared [RaTeX dependency preflight and
+update procedure](ratex-dependency.md) before native testing or builds.
+Flashcards build hooks consume the binary; they do not rebuild it.
 
 ## Xcode Cloud
 

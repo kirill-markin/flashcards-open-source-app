@@ -16,8 +16,8 @@ Android keeps Material 3-native output, and the catalog website keeps its own
 web output. The rendered structure and behavior must match, but typography,
 spacing, and other platform styling do not need to be pixel-identical.
 
-The three apps render math with the same pinned RaTeX version; the catalog
-website renders it with KaTeX (`katex` through `rehype-katex`). The segmentation
+Each app pins its platform's [RaTeX fork package](ratex-dependency.md); the catalog
+website renders math with KaTeX (`katex` through `rehype-katex`). The segmentation
 rules below bind all four identically. Where two engines can legitimately
 disagree on the same accepted formula source, only surfaces that share an engine
 owe each other identical output, and this document says so at the point where it

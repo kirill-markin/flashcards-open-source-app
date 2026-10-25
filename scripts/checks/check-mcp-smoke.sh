@@ -548,26 +548,28 @@ content = result["content"]
 assert isinstance(content, list) and len(content) >= 1
 assert content[0]["type"] == "text"
 agent_payload = json.loads(content[0]["text"])
+assert set(agent_payload) == {"ok", "error"}, sorted(agent_payload)
 assert agent_payload["ok"] is False
-assert agent_payload["data"] == {}
 assert agent_payload["error"]["code"] == "QUERY_INVALID_SQL"
-assert agent_payload["error"]["message"] == expected_message
+message = agent_payload["error"]["message"]
+assert message.startswith(expected_message + "\n"), message
 assert agent_payload["error"]["details"]["validationIssues"] == [{
     "path": "sql",
     "code": "column_not_filterable",
     "message": expected_message,
 }]
-assert "Fix the sql string" in agent_payload["instructions"]
-assert "server-side error" not in agent_payload["instructions"]
+assert "Fix the sql string" in message
+assert "server-side error" not in message
 PY
 
 request_mcp_jsonrpc "{\"jsonrpc\":\"2.0\",\"id\":6,\"method\":\"tools/call\",\"params\":{\"name\":\"sql_execute\",\"arguments\":{\"sql\":\"INSERT INTO cards (front_text, back_text, tags, effort_level) VALUES ('${CARD_FRONT_TEXT}', '${CARD_BACK_TEXT}', ('${CARD_TAG}'), 'medium')\",\"workspaceId\":\"${WORKSPACE_ID}\"}}}"
 assert_status "200" "MCP tools/call sql_execute INSERT"
-python3 - <<'PY' "${LAST_BODY_FILE}"
+python3 - <<'PY' "${LAST_BODY_FILE}" "${WORKSPACE_ID}"
 import json
 import sys
 
 payload = json.load(open(sys.argv[1], encoding="utf-8"))
+workspace_id = sys.argv[2]
 assert payload["jsonrpc"] == "2.0"
 assert payload["id"] == 6
 assert "error" not in payload
@@ -575,10 +577,13 @@ content = payload["result"]["content"]
 assert isinstance(content, list) and len(content) >= 1
 assert content[0]["type"] == "text"
 agent_payload = json.loads(content[0]["text"])
+assert set(agent_payload) == {"ok", "data"}, sorted(agent_payload)
 assert agent_payload["ok"] is True
 assert agent_payload["data"]["statementType"] == "insert"
 assert agent_payload["data"]["resource"] == "cards"
 assert agent_payload["data"]["affectedCount"] == 1
+review_url = agent_payload["data"]["reviewUrl"]
+assert review_url.startswith("https://") and review_url.endswith(f"/w/{workspace_id}/review"), review_url
 PY
 
 request_mcp_jsonrpc "{\"jsonrpc\":\"2.0\",\"id\":7,\"method\":\"tools/call\",\"params\":{\"name\":\"sql_query\",\"arguments\":{\"sql\":\"SELECT card_id, front_text, back_text FROM cards WHERE LOWER(front_text) = '${CARD_FRONT_TEXT_LOWER}' ORDER BY created_at DESC, card_id ASC LIMIT 20 OFFSET 0\",\"workspaceId\":\"${WORKSPACE_ID}\"}}}"
@@ -646,9 +651,7 @@ card = agent_payload["data"]["card"]
 assert card["cardId"] == card_id, card
 assert card["frontText"] == front_text, card
 assert "backText" not in card, card
-instructions = agent_payload["instructions"]
-for tool_name in ("next_review_card", "reveal_answer", "submit_review"):
-    assert tool_name in instructions, instructions
+assert set(agent_payload) == {"ok", "data"}, sorted(agent_payload)
 PY
 
 request_mcp_jsonrpc "{\"jsonrpc\":\"2.0\",\"id\":9,\"method\":\"tools/call\",\"params\":{\"name\":\"reveal_answer\",\"arguments\":{\"workspaceId\":\"${WORKSPACE_ID}\",\"cardId\":\"${CARD_ID}\"}}}"
@@ -722,7 +725,7 @@ assert schedule["reps"] == original["reps"], schedule
 assert schedule["lapses"] == original["lapses"], schedule
 assert schedule["dueAt"] == original["dueAt"], schedule
 assert schedule["state"] == original["state"], schedule
-assert "already recorded" in agent_payload["instructions"], agent_payload["instructions"]
+assert "already recorded" in agent_payload["error"]["message"], agent_payload["error"]["message"]
 PY
 
 # The same public contract on the second MCP host, when this environment serves

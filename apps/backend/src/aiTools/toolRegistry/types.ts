@@ -15,8 +15,8 @@ import type {
 export type AgentToolSurface = "mcp" | "chat";
 
 /**
- * Runs one SQL statement batch. The URL an external surface measures its emitted agent envelope
- * against is bound by that surface when it builds the action, so no spec has to carry it.
+ * Runs one SQL statement batch. How an external surface measures its emitted result is bound by
+ * that surface when it builds the action, so no spec has to carry it.
  */
 export type AgentSqlAction = (
   context: AgentSqlContext,
@@ -64,10 +64,12 @@ export type AgentToolContext = Readonly<{
   actions: AgentToolActions;
 }>;
 
-/** The payload and the instructions each surface wraps in its own result envelope. */
+/**
+ * The payload each surface wraps in its own result envelope. Facts only: what to do with them lives
+ * in the tool descriptions and the `get_guide` topics.
+ */
 export type AgentToolResult<Data = unknown> = Readonly<{
   data: Data;
-  instructions: string;
 }>;
 
 /**

@@ -5,7 +5,7 @@ import { ChartColorKey } from "../../charts/ChartLegends";
 import { ChartLoadingPlaceholder } from "../../charts/ChartLoadingPlaceholder";
 import { ChartNotesKey } from "../../charts/ChartNotesKey";
 import { ChartTooltip, useChartTooltip } from "../../charts/ChartTooltip";
-import { buildInProgressChartNote, placeChartNotes } from "../../charts/chartNotes";
+import { buildInProgressChartNote, placeChartNotes, type PlacedChartNote } from "../../charts/chartNotes";
 import { chartWidth, stackedChartHeight } from "../../charts/chartPrimitives";
 import { escapeHtml, formatGeneratedAt } from "../../charts/formatting";
 import { renderRateLineChart } from "../../charts/rateLineChart";
@@ -17,69 +17,102 @@ import {
   formatReportBucketTick,
   formatReportBucketTitle,
   reportPeriodAxisLabels,
-  type ReportBucket,
   type ReportPeriod,
 } from "../levelOneMetrics/reportPeriod";
-import { loadEngagedVisitorsReport, pageReadEngagementChartNote, type EngagedVisitorsReport } from "./engagedVisitorsQuery";
-import { loadWhoSawUsReport, webDataStartChartNote, type WhoSawUsReport } from "./query";
+import { pageReadEngagementChartNote } from "./engagedVisitorsQuery";
+import { webDataStartChartNote } from "./query";
+import {
+  loadWebTrafficCategoriesReport,
+  type WebTrafficCategoriesBucket,
+  type WebTrafficCategoriesReport,
+  type WebTrafficCategoryKey,
+} from "./webTrafficCategoriesQuery";
+import { getCategoriesTotal, webTrafficCategoriesTitle, webTrafficCategoryLabels } from "./WebTrafficCategoriesSection";
 import { whoSawUsSeriesColors } from "./WhoSawUsSection";
 
-const title = "Engaged share of Web visitors";
-const seriesKeys = ["share"] as const;
+const title = "Engaged share";
+
+const engagedShareLineKeys = ["of-visitors-after-filters", "of-all-traffic"] as const;
+
+type EngagedShareLineKey = (typeof engagedShareLineKeys)[number];
+
+const engagedShareLineLabels: Readonly<Record<EngagedShareLineKey, string>> = {
+  "of-visitors-after-filters": "Of visitors after filters",
+  "of-all-traffic": "Of all traffic",
+};
+
+const engagedShareLineColors: Readonly<Record<EngagedShareLineKey, string>> = {
+  "of-visitors-after-filters": whoSawUsSeriesColors.web,
+  "of-all-traffic": "#e15759",
+};
 
 const numberFormatter = d3.format(",");
 const shareFormatter = d3.format(".1%");
 
-type EngagedShareBucket = Readonly<{
-  bucket: ReportBucket;
-  webVisitors: number | null;
-  engagedVisitors: number | null;
-  /** Null where the bar has no Web visitor, so there is nothing to divide by. */
-  share: number | null;
-}>;
-
-type EngagedShareReport = Readonly<{
-  generatedAtUtc: string;
-  period: ReportPeriod;
-  today: string;
-  buckets: ReadonlyArray<EngagedShareBucket>;
-}>;
-
 type LoadState =
   | Readonly<{ status: "loading" }>
   | Readonly<{ status: "error"; message: string }>
-  | Readonly<{ status: "ready"; report: EngagedShareReport }>;
+  | Readonly<{ status: "ready"; report: WebTrafficCategoriesReport }>;
 
-/** Both series count each bar's visitors in the same unit, so the ratio is a true share of the Web bar. */
-function buildEngagedShareReport(webReport: WhoSawUsReport, engagedReport: EngagedVisitorsReport): EngagedShareReport {
-  const webKeys = webReport.buckets.map((entry) => entry.bucket.key);
-  const engagedKeys = engagedReport.buckets.map((entry) => entry.bucket.key);
-  if (webKeys.join(",") !== engagedKeys.join(",")) {
-    throw new Error(`${title} needs the same buckets in both reports. Web: ${webKeys.join(", ")}. Engaged: ${engagedKeys.join(", ")}.`);
+type EngagedShareChartModel = Readonly<{
+  period: ReportPeriod;
+  keys: ReadonlyArray<string>;
+  bucketByKey: ReadonlyMap<string, WebTrafficCategoriesBucket>;
+  inProgressKey: string | null;
+  notes: ReadonlyArray<PlacedChartNote>;
+}>;
+
+function getShareDenominator(lineKey: EngagedShareLineKey, counts: Readonly<Record<WebTrafficCategoryKey, number>>): number {
+  return lineKey === "of-visitors-after-filters" ? counts.engaged + counts["not-engaged"] : getCategoriesTotal(counts);
+}
+
+/** Null where the bucket has no site visitor or the line's denominator is 0. */
+function getEngagedShare(lineKey: EngagedShareLineKey, entry: WebTrafficCategoriesBucket): number | null {
+  const counts = entry.visitorsByCategory;
+  if (counts === null) {
+    return null;
   }
 
-  return {
-    generatedAtUtc: webReport.generatedAtUtc < engagedReport.generatedAtUtc ? webReport.generatedAtUtc : engagedReport.generatedAtUtc,
-    period: engagedReport.period,
-    today: engagedReport.today,
-    buckets: engagedReport.buckets.map((entry, index) => {
-      const webEntry = webReport.buckets[index];
-      if (webEntry === undefined) {
-        throw new Error(`${title} has no Web bucket for ${entry.bucket.key}.`);
-      }
+  const denominator = getShareDenominator(lineKey, counts);
+  return denominator === 0 ? null : counts.engaged / denominator;
+}
 
-      const webVisitors = webEntry.visitorsBySeries.web;
-      return {
-        bucket: entry.bucket,
-        webVisitors,
-        engagedVisitors: entry.engagedVisitors,
-        share: webVisitors === null || webVisitors === 0 || entry.engagedVisitors === null ? null : entry.engagedVisitors / webVisitors,
-      };
-    }),
+function formatEngagedShare(share: number | null): string {
+  return share === null ? "No share" : shareFormatter(share);
+}
+
+function buildChartModel(report: WebTrafficCategoriesReport): EngagedShareChartModel {
+  const buckets = report.buckets.map((entry) => entry.bucket);
+
+  return {
+    period: report.period,
+    keys: buckets.map((bucket) => bucket.key),
+    bucketByKey: new Map(report.buckets.map((entry) => [entry.bucket.key, entry])),
+    inProgressKey: findInProgressBucketKey(buckets, report.today),
+    notes: placeChartNotes(
+      [buildInProgressChartNote(report.today), webDataStartChartNote, pageReadEngagementChartNote],
+      buckets,
+    ),
   };
 }
 
-/** The share of each bucket's Web visitors who were engaged, drawn under the Engaged visitors chart. */
+function buildBucketTooltipMetricsHtml(entry: WebTrafficCategoriesBucket): string {
+  const counts = entry.visitorsByCategory;
+  if (counts === null) {
+    return `<div class="tooltip-metric"><span>Total</span><strong>No data</strong></div>`;
+  }
+
+  return [
+    ...engagedShareLineKeys.map((lineKey) => (
+      `<div class="tooltip-metric"><span>${escapeHtml(engagedShareLineLabels[lineKey])}</span><strong>${escapeHtml(formatEngagedShare(getEngagedShare(lineKey, entry)))}</strong></div>`
+    )),
+    `<div class="tooltip-metric"><span>${escapeHtml(webTrafficCategoryLabels.engaged)}</span><strong>${numberFormatter(counts.engaged)}</strong></div>`,
+    `<div class="tooltip-metric"><span>Visitors after filters</span><strong>${numberFormatter(getShareDenominator("of-visitors-after-filters", counts))}</strong></div>`,
+    `<div class="tooltip-metric"><span>All traffic</span><strong>${numberFormatter(getShareDenominator("of-all-traffic", counts))}</strong></div>`,
+  ].join("");
+}
+
+/** The Engaged category of `WebTrafficCategoriesSection` as a share of the visitors after filters and of all traffic. */
 export function WebEngagedShareSection(props: Readonly<{
   config: AdminAppConfig;
   dateRange: AnalyticsDateRange;
@@ -95,11 +128,8 @@ export function WebEngagedShareSection(props: Readonly<{
     let cancelled = false;
     setLoadState({ status: "loading" });
     const abortController = new AbortController();
-    void Promise.all([
-      loadWhoSawUsReport(props.config, props.dateRange, props.period, abortController.signal),
-      loadEngagedVisitorsReport(props.config, props.dateRange, props.period, abortController.signal),
-    ]).then(([webReport, engagedReport]) => {
-      if (!cancelled) setLoadState({ status: "ready", report: buildEngagedShareReport(webReport, engagedReport) });
+    void loadWebTrafficCategoriesReport(props.config, props.dateRange, props.period, abortController.signal).then((report) => {
+      if (!cancelled) setLoadState({ status: "ready", report });
     }).catch((error: unknown) => {
       if (cancelled || props.onTerminalAdminError(error, props.config)) return;
       setLoadState({ status: "error", message: error instanceof Error ? error.message : `Unexpected ${title} query error.` });
@@ -107,64 +137,51 @@ export function WebEngagedShareSection(props: Readonly<{
     return () => { cancelled = true; abortController.abort(); };
   }, [props.config, props.dateRange, props.period, props.onTerminalAdminError, revision]);
 
-  const bucketByKey = useMemo(
-    () => new Map(loadState.status === "ready" ? loadState.report.buckets.map((entry) => [entry.bucket.key, entry]) : []),
+  const chartModel = useMemo(
+    () => (loadState.status === "ready" ? buildChartModel(loadState.report) : null),
     [loadState],
   );
-  const chartNotes = useMemo(() => (loadState.status === "ready"
-    ? placeChartNotes(
-      [buildInProgressChartNote(loadState.report.today), webDataStartChartNote, pageReadEngagementChartNote],
-      loadState.report.buckets.map((entry) => entry.bucket),
-    )
-    : null), [loadState]);
 
   useEffect(() => {
     const svgElement = chartRef.current;
-    if (svgElement === null || loadState.status !== "ready" || chartNotes === null) {
+    if (svgElement === null || chartModel === null) {
       return;
     }
 
-    const report = loadState.report;
-    const getBucket = (key: string): EngagedShareBucket => {
-      const entry = bucketByKey.get(key);
+    const getBucket = (key: string): WebTrafficCategoriesBucket => {
+      const entry = chartModel.bucketByKey.get(key);
       if (entry === undefined) {
         throw new Error(`${title} chart has no bucket for ${key}.`);
       }
 
       return entry;
     };
-    const inProgressKey = findInProgressBucketKey(report.buckets.map((entry) => entry.bucket), report.today);
-    const formatTitle = (key: string): string =>
-      `${formatReportBucketTitle(report.period, getBucket(key).bucket)} UTC${key === inProgressKey ? " · in progress" : ""}`;
-    const formatCount = (value: number | null): string => value === null ? "No data" : numberFormatter(value);
-    const formatShare = (key: string): string => {
-      const share = getBucket(key).share;
-      return share === null ? "No data" : shareFormatter(share);
-    };
+    const formatTitle = (key: string): string => (
+      `${formatReportBucketTitle(chartModel.period, getBucket(key).bucket)} UTC${key === chartModel.inProgressKey ? " · in progress" : ""}`
+    );
 
     renderRateLineChart({
       svgElement,
-      keys: report.buckets.map((entry) => entry.bucket.key),
-      getRate: (key) => getBucket(key).share,
-      color: whoSawUsSeriesColors.web,
-      inProgressKey,
-      yLabel: "Engaged share",
-      xLabel: reportPeriodAxisLabels[report.period],
-      notes: chartNotes,
-      formatTick: (key) => formatReportBucketTick(report.period, key),
-      getLabel: (key) => `${formatTitle(key)}. ${title}: ${formatShare(key)}`,
-      getTooltipHtml: (key) => {
-        const entry = getBucket(key);
-        return [
-          `<p class="tooltip-title">${escapeHtml(formatTitle(key))}</p>`,
-          `<div class="tooltip-metric"><span>Engaged share</span><strong>${escapeHtml(formatShare(key))}</strong></div>`,
-          `<div class="tooltip-metric"><span>Engaged visitors</span><strong>${escapeHtml(formatCount(entry.engagedVisitors))}</strong></div>`,
-          `<div class="tooltip-metric"><span>Web visitors</span><strong>${escapeHtml(formatCount(entry.webVisitors))}</strong></div>`,
-        ].join("");
-      },
+      keys: chartModel.keys,
+      lines: engagedShareLineKeys.map((lineKey) => ({
+        getRate: (key: string) => getEngagedShare(lineKey, getBucket(key)),
+        color: engagedShareLineColors[lineKey],
+      })),
+      inProgressKey: chartModel.inProgressKey,
+      yLabel: title,
+      xLabel: reportPeriodAxisLabels[chartModel.period],
+      notes: chartModel.notes,
+      formatTick: (key) => formatReportBucketTick(chartModel.period, key),
+      getLabel: (key) => [
+        formatTitle(key),
+        ...engagedShareLineKeys.map((lineKey) => `${engagedShareLineLabels[lineKey]}: ${formatEngagedShare(getEngagedShare(lineKey, getBucket(key)))}`),
+      ].join(". "),
+      getTooltipHtml: (key) => (
+        `<p class="tooltip-title">${escapeHtml(formatTitle(key))}</p>${buildBucketTooltipMetricsHtml(getBucket(key))}`
+      ),
       tooltipHandlers,
     });
-  }, [loadState, bucketByKey, chartNotes, tooltipHandlers]);
+  }, [chartModel, tooltipHandlers]);
 
   return (
     <section className="dashboard-section" data-testid="who-saw-us-web-engaged-share-section">
@@ -174,12 +191,14 @@ export function WebEngagedShareSection(props: Readonly<{
           <ExplanationTip label={`What ${title} shows`} explanationId="who-saw-us-web-engaged-share-explanation">
             <ul>
               <li>
-                <strong>What it shows:</strong> Engaged visitors ÷ Web visitors of the same UTC day, week or month, from the two charts above
+                <strong>What it shows:</strong> the {webTrafficCategoryLabels.engaged} visitors of {webTrafficCategoriesTitle}, per UTC day, week or month, as a share of two of its totals
                 <ul>
-                  <li>A bar with no Web visitor has no share</li>
-                  <li><strong>Weeks and months:</strong> counted as in the two charts above, so the share stays at most 100%</li>
+                  <li><strong>{engagedShareLineLabels["of-visitors-after-filters"]}:</strong> {webTrafficCategoryLabels.engaged} ÷ ({webTrafficCategoryLabels.engaged} + {webTrafficCategoryLabels["not-engaged"]})</li>
+                  <li><strong>{engagedShareLineLabels["of-all-traffic"]}:</strong> {webTrafficCategoryLabels.engaged} ÷ ({webTrafficCategoryLabels.engaged} + {webTrafficCategoryLabels["not-engaged"]} + {webTrafficCategoryLabels["own-and-test"]} + {webTrafficCategoryLabels.bots})</li>
+                  <li>Both stay within 0–100%, because {webTrafficCategoryLabels.engaged} is part of both denominators</li>
                 </ul>
               </li>
+              <li>A bar with no site visitor at all has no share, so both lines break there; a bar whose visitors were all dropped has no {engagedShareLineLabels["of-visitors-after-filters"]} share</li>
               {loadState.status === "ready" ? <li>Generated {formatGeneratedAt(loadState.report.generatedAtUtc)}.</li> : null}
             </ul>
           </ExplanationTip>
@@ -202,9 +221,9 @@ export function WebEngagedShareSection(props: Readonly<{
               <div className="chart-meta-right">
                 <ChartColorKey
                   ariaLabel={`${title} color key`}
-                  keys={seriesKeys}
-                  getColor={() => whoSawUsSeriesColors.web}
-                  getLabel={() => "Engaged share"}
+                  keys={engagedShareLineKeys}
+                  getColor={(key) => engagedShareLineColors[key]}
+                  getLabel={(key) => engagedShareLineLabels[key]}
                 />
               </div>
             </div>
@@ -217,7 +236,7 @@ export function WebEngagedShareSection(props: Readonly<{
                 <ChartLoadingPlaceholder viewBoxWidth={chartWidth} viewBoxHeight={stackedChartHeight} label={`Loading ${title}…`} />
               )}
             </div>
-            <ChartNotesKey notes={chartNotes} />
+            <ChartNotesKey notes={chartModel === null ? null : chartModel.notes} />
           </div>
         </section>
       )}

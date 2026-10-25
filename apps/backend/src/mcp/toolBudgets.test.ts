@@ -18,7 +18,6 @@ import {
   type McpServerDependencies,
 } from "./server";
 
-const RESOURCE_URL = "https://mcp.flashcards-open-source-app.com/mcp";
 const WEBSITE_URL = "https://flashcards-open-source-app.com";
 const ICON_URL = "https://mcp.flashcards-open-source-app.com/icon.svg";
 const CALLER_USER_AGENT = "mcp-tool-budget-guard/1.0.0";
@@ -223,7 +222,6 @@ test("MCP tool metadata stays inside the published client budgets", async () => 
   };
   const server = createMcpServerWithDependencies(
     connection,
-    RESOURCE_URL,
     WEBSITE_URL,
     ICON_URL,
     UNREACHED_TELEMETRY,

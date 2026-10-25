@@ -11,6 +11,7 @@ export type {
   ChatRunStopState,
   ClaimedChatRun,
   PreparedChatRun,
+  RecoveredChatSession,
   RecoveredPaginatedSession,
 } from "./runs/types";
 
@@ -32,6 +33,7 @@ export { archiveChatSession } from "./runs/historyService";
 export {
   claimChatLiveAttachOwnership,
   getChatRunSnapshot,
+  getRecoveredChatSession,
   getRecoveredChatSessionSnapshot,
   getRecoveredPaginatedSession,
 } from "./runs/readService";

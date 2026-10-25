@@ -166,14 +166,16 @@ export type AgentSqlBatchPayload = Readonly<{
 export type AgentSqlPayload = AgentSqlReadPayload | AgentSqlMutationPayload | AgentSqlBatchPayload;
 
 /**
- * The payload a tool spec returns: the executed payload plus the workspace the
- * statement ran in, which the spec knows because it resolved it
- * (`apps/backend/src/aiTools/toolRegistry/specs.ts`). It is there so an agent can
- * build a card web link without a `list_workspaces` round trip, and it is added
- * after `apps/backend/src/aiTools/agentSql/resultBudget.ts` measured the payload,
- * so those characters are outside the budget accounting.
+ * The payload a SQL tool returns, built by `buildAgentSqlToolPayload`
+ * (`apps/backend/src/aiTools/toolRegistry/specs.ts`): the executed payload plus
+ * the workspace the statement ran in, so an agent can build a card web link
+ * without a `list_workspaces` round trip, and, after a write that inserted
+ * cards, that workspace's web Review page. The REST routes emit neither.
  */
-export type AgentSqlPayloadWithWorkspace = AgentSqlPayload & Readonly<{ workspaceId: string }>;
+export type AgentSqlPayloadWithWorkspace = AgentSqlPayload & Readonly<{
+  workspaceId: string;
+  reviewUrl?: string;
+}>;
 
 export type AgentSqlReadExecutionResult = Readonly<{
   data: AgentSqlReadPayload;
@@ -558,10 +560,8 @@ export function buildDeckUpdateInput(
 }
 
 /**
- * The read result's own instructions, and the only untruncated channel a read
- * has: every tool description that could carry this text instead is metadata
- * under a character budget, so the explanation of a partial answer belongs
- * here, next to the fields it names.
+ * The REST read result's own instructions. MCP and the chat emit none: the
+ * `sql_dialect` guide states the same partial-read contract for them.
  *
  * `rowsTruncated` is passed rather than read off the payload because the
  * single-select reducer in `apps/backend/src/aiTools/agentSql/resultBudget.ts` decides on

@@ -1,4 +1,5 @@
 {
+  "originHash" : "0e69a0e6951f34e9aadc5ca2f4c6fe2998b909b9ec11e825e6dd211f1aca0bfc",
   "pins" : [
     {
       "identity" : "app-check",
@@ -95,8 +96,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/kirill-markin/RaTeX",
       "state" : {
-        "revision" : "d22e916b54cb1422ac823c129d540295e3f0b616",
-        "version" : "0.1.14-catalyst.1"
+        "revision" : "a3421dd6b00975c0f72cb9ce4ab1b7a4d7c9ab17",
+        "version" : "0.1.15-catalyst.1"
       }
     },
     {

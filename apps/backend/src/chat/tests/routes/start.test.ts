@@ -79,25 +79,26 @@ test("POST /chat can return an active run before the current turn appears in mes
     invokeChatWorkerFn: async () => {
       invokeCallCount += 1;
     },
-    getRecoveredChatSessionSnapshotFn: async () => createRunningSnapshot([]),
-    resolveLiveCursorFn: async () => null,
-    listChatMessagesLatestFn: async () => ({
-      messages: [{
-        sessionId: SESSION_ONE,
-        itemId: "assistant-item-1",
-        itemOrder: 1,
-        role: "assistant",
-        content: [{ type: "text", text: "thinking" }],
-        state: "in_progress",
-        isError: false,
-        errorCode: null,
-        isStopped: false,
-        timestamp: 1,
-        updatedAt: 1,
-      }],
-      oldestCursor: "1",
-      newestCursor: "1",
-      hasOlder: false,
+    getRecoveredChatSessionFn: async () => ({
+      snapshot: createRunningSnapshot([]),
+      latestMessagesPage: {
+        messages: [{
+          sessionId: SESSION_ONE,
+          itemId: "assistant-item-1",
+          itemOrder: 1,
+          role: "assistant",
+          content: [{ type: "text", text: "thinking" }],
+          state: "in_progress",
+          isError: false,
+          errorCode: null,
+          isStopped: false,
+          timestamp: 1,
+          updatedAt: 1,
+        }],
+        oldestCursor: "1",
+        newestCursor: "1",
+        hasOlder: false,
+      },
     }),
     createChatLiveStreamEnvelopeFn: async () => ({
       url: "https://chat-live.example.com",
@@ -236,25 +237,26 @@ test("POST /chat dispatches worker without a route-supplied trace carrier", asyn
       workerInvocation = payload;
       workerInvocationIncludesTraceContext = "traceContext" in payload;
     },
-    getRecoveredChatSessionSnapshotFn: async () => createRunningSnapshot([]),
-    resolveLiveCursorFn: async () => null,
-    listChatMessagesLatestFn: async () => ({
-      messages: [{
-        sessionId: SESSION_ONE,
-        itemId: "assistant-item-dispatch",
-        itemOrder: 1,
-        role: "assistant",
-        content: [{ type: "text", text: "thinking" }],
-        state: "in_progress",
-        isError: false,
-        errorCode: null,
-        isStopped: false,
-        timestamp: 1,
-        updatedAt: 1,
-      }],
-      oldestCursor: "1",
-      newestCursor: "1",
-      hasOlder: false,
+    getRecoveredChatSessionFn: async () => ({
+      snapshot: createRunningSnapshot([]),
+      latestMessagesPage: {
+        messages: [{
+          sessionId: SESSION_ONE,
+          itemId: "assistant-item-dispatch",
+          itemOrder: 1,
+          role: "assistant",
+          content: [{ type: "text", text: "thinking" }],
+          state: "in_progress",
+          isError: false,
+          errorCode: null,
+          isStopped: false,
+          timestamp: 1,
+          updatedAt: 1,
+        }],
+        oldestCursor: "1",
+        newestCursor: "1",
+        hasOlder: false,
+      },
     }),
     createChatLiveStreamEnvelopeFn: async (
       _userId,
@@ -360,7 +362,7 @@ test("POST /chat reports the sent turn when the worker dispatch fails", async ()
       // marked the run failed; only the message it persists carries a prefix.
       throw new Error("worker unreachable");
     },
-    getRecoveredChatSessionSnapshotFn: async () => {
+    getRecoveredChatSessionFn: async () => {
       snapshotReadCount += 1;
       throw new Error("the failed dispatch should have ended the request");
     },
@@ -478,25 +480,26 @@ test("POST /chat without uiLocale preserves the legacy request contract", async 
         initiatingAuthIsSignedIn: true,
       };
     },
-    getRecoveredChatSessionSnapshotFn: async () => createRunningSnapshot([]),
-    resolveLiveCursorFn: async () => null,
-    listChatMessagesLatestFn: async () => ({
-      messages: [{
-        sessionId: SESSION_ONE,
-        itemId: "assistant-item-legacy",
-        itemOrder: 1,
-        role: "assistant",
-        content: [{ type: "text", text: "thinking" }],
-        state: "in_progress",
-        isError: false,
-        errorCode: null,
-        isStopped: false,
-        timestamp: 1,
-        updatedAt: 1,
-      }],
-      oldestCursor: "1",
-      newestCursor: "1",
-      hasOlder: false,
+    getRecoveredChatSessionFn: async () => ({
+      snapshot: createRunningSnapshot([]),
+      latestMessagesPage: {
+        messages: [{
+          sessionId: SESSION_ONE,
+          itemId: "assistant-item-legacy",
+          itemOrder: 1,
+          role: "assistant",
+          content: [{ type: "text", text: "thinking" }],
+          state: "in_progress",
+          isError: false,
+          errorCode: null,
+          isStopped: false,
+          timestamp: 1,
+          updatedAt: 1,
+        }],
+        oldestCursor: "1",
+        newestCursor: "1",
+        hasOlder: false,
+      },
     }),
     createChatLiveStreamEnvelopeFn: async () => ({
       url: "https://chat-live.example.com",

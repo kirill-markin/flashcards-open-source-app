@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { toAnalyticsReviewAnswerFailureReason, track } from "../../../analytics";
+import { BrowserGuestSessionInvalidatedError } from "../../../api/transport/transport";
 import { ALL_CARDS_REVIEW_FILTER } from "../../../appData/domain";
 import {
   markIndexedDbOpenRecoveryFailureAndCheckActive,
@@ -586,10 +587,12 @@ export function useReviewScreenData(params: UseReviewScreenDataParams): UseRevie
         return "stale";
       }
 
-      const expectedSubmitErrorMessage = getExpectedCardMutationInlineErrorMessage(
-        error,
-        t("reviewEditor.errors.cardNotFound"),
-      );
+      const expectedSubmitErrorMessage = error instanceof BrowserGuestSessionInvalidatedError
+        ? t("app.sessionRestoringActionLocked")
+        : getExpectedCardMutationInlineErrorMessage(
+          error,
+          t("reviewEditor.errors.cardNotFound"),
+        );
       if (expectedSubmitErrorMessage === null) {
         captureAppOperationError(error, {
           feature: "review",

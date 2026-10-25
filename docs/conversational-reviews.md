@@ -21,10 +21,9 @@ ChatGPT Voice integration.
 - Arguments, ratings and tool descriptions:
   [`reviewContract.ts`](../apps/backend/src/agent/reviewContract.ts). What the
   agent must do, including grading, retries, both `409` codes and when to stop,
-  is `REVIEW_FLOW_INSTRUCTIONS` there, returned with every MCP and REST review
-  result and served as `get_guide` topic `review_flow`; a chat result points the
-  model at that topic instead (`CHAT_REVIEW_RESULT_INSTRUCTIONS` in
-  [`tools.ts`](../apps/backend/src/chat/openai/tools/tools.ts)).
+  is `REVIEW_FLOW_INSTRUCTIONS` there, served as `get_guide` topic `review_flow`
+  and returned with every REST review result; on MCP and the chat,
+  `SUBMIT_REVIEW_DESCRIPTION` points the model at that topic.
 - Queue order: the apps' order, in
   [review queue presentation](fsrs-scheduling-logic.md#review-queue-presentation).
 - Queue reads, the write, deduplication and conflicts:

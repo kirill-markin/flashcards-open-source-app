@@ -19,6 +19,7 @@ import {
   reduceMutationResultToSizeBudget,
   truncateReadResultToSizeBudget,
   type AgentSqlEmission,
+  type AgentSqlResultMeasure,
 } from "./agentSql/resultBudget";
 import {
   isSqlMutationStatement,
@@ -346,8 +347,8 @@ export async function runChatSqlExecute(
  * mutation with an actionable error that points at `sql_execute`, then runs the
  * existing read executors.
  *
- * `requestUrl` is the URL the calling surface builds its agent envelope from,
- * needed here so the result-size budget measures the emitted envelope.
+ * `measureResultChars` is how the calling surface measures what it emits, so
+ * the result-size budget is bound by the emitted result.
  *
  * The statement-direction parser guard (`parseSqlQueryBatch`) rejects
  * caller-authored writes. The repository read helpers reached from SELECT
@@ -358,7 +359,7 @@ export async function runChatSqlExecute(
 export async function runSqlQuery(
   context: AgentSqlContext,
   sql: string,
-  requestUrl: string,
+  measureResultChars: AgentSqlResultMeasure,
   dependencies: AgentToolOperationDependencies = DEFAULT_AGENT_TOOL_OPERATION_DEPENDENCIES,
 ) {
   return withAgentSqlTelemetry(context, sql, async (): Promise<AgentSqlEmission<AgentSqlExecutionResult>> => {
@@ -368,13 +369,13 @@ export async function runSqlQuery(
     if (statements.length === 1) {
       return truncateReadResultToSizeBudget(
         await executeSqlReadStatement(dependencies, context, sql, statements[0]),
-        requestUrl,
+        measureResultChars,
       );
     }
 
     return assertSqlResultWithinSizeBudget(
       await executeSqlReadBatch(dependencies, context, sql, statements, statementSqls),
-      requestUrl,
+      measureResultChars,
     );
   });
 }
@@ -385,13 +386,13 @@ export async function runSqlQuery(
  * an actionable error that points at `sql_query`, then runs the existing atomic
  * mutation executors.
  *
- * `requestUrl` is the URL the calling surface builds its agent envelope from,
- * needed here so the result-size budget measures the emitted envelope.
+ * `measureResultChars` is how the calling surface measures what it emits, so
+ * the result-size budget is bound by the emitted result.
  */
 export async function runSqlExecute(
   context: AgentSqlContext,
   sql: string,
-  requestUrl: string,
+  measureResultChars: AgentSqlResultMeasure,
   dependencies: AgentToolOperationDependencies = DEFAULT_AGENT_TOOL_OPERATION_DEPENDENCIES,
 ) {
   return withAgentSqlTelemetry(context, sql, async (): Promise<AgentSqlEmission<AgentSqlExecutionResult>> => {
@@ -401,13 +402,13 @@ export async function runSqlExecute(
     if (statements.length === 1) {
       return reduceMutationResultToSizeBudget(
         await executeSqlMutationStatement(dependencies, context, sql, statements[0]),
-        requestUrl,
+        measureResultChars,
       );
     }
 
     return reduceBatchMutationResultToSizeBudget(
       await executeSqlMutationBatch(dependencies, context, sql, statements, statementSqls),
-      requestUrl,
+      measureResultChars,
     );
   });
 }

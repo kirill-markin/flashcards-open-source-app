@@ -12,18 +12,11 @@ import { liveSourceBarFreshness, type BreakdownReport } from "../levelOneMetrics
 import { buildReportBucketSql, buildReportBucketsCteSql, type ReportPeriod } from "../levelOneMetrics/reportPeriod";
 import { assertValidDateRange } from "../reportValues";
 import { buildSiteVisitorDaysCtesSql } from "./engagedVisitorsQuery";
-import {
-  buildAppleProductPageViewRowSqlLines,
-  buildHashedSiteViewFilterSql,
-  buildIdentifiedSiteViewFilterSql,
-  buildStoreReportDateRangeSqlLines,
-  loadStoreDelivery,
-} from "./query";
+import { buildAppleProductPageViewRowSqlLines, buildStoreReportDateRangeSqlLines, loadStoreDelivery } from "./query";
+import { buildHashedSiteViewFilterSql, buildIdentifiedSiteViewFilterSql } from "./siteFactSql";
 import { getStoreBarFreshness } from "./storeDataFreshness";
 
 export const whoSawUsBreakdownDimensions = [
-  "web-country",
-  "web-landing-page-type",
   "web-engaged-country",
   "web-engaged-landing-page-type",
   "app-store-source-type",
@@ -33,13 +26,7 @@ export const whoSawUsBreakdownDimensions = [
 export type WhoSawUsBreakdownDimension = (typeof whoSawUsBreakdownDimensions)[number];
 
 /**
- * Whose first page views a site breakdown counts: every `web` series visitor, or only the ones the
- * `Engaged visitors` chart counts in the same bar.
- */
-export type SiteVisitorCohort = "all" | "engaged";
-
-/**
- * Over `buildSiteVisitorDaysCtesSql`'s CTEs, the visitors the `Engaged visitors` chart counts, keyed
+ * Over `buildSiteVisitorDaysCtesSql`'s CTEs, the visitors the `web` series counts, keyed
  * as `buildSiteFirstViewsCtesSql` counts a visitor once: `engaged_identified_visitors(bucket_date,
  * actor_id)`, engaged on a day of that bucket, and `engaged_hashed_visitors(daily_visitor_hash,
  * visit_date)`, engaged on that hash day.
@@ -57,94 +44,69 @@ export function buildSiteEngagedVisitorKeysCtesSql(range: AnalyticsDateRange, pe
 }
 
 /**
- * The first page view of each `cohort` visitor in the unit the `web` series counts them once in: the
+ * The first page view of each `web` series visitor in the unit the series counts them once in: the
  * bucket for an identified visitor, the hash day for a cookieless one. Two CTEs,
  * `identified_first_views` and `hashed_first_views`, each a `bucket_date` plus the columns
- * `columnsSqlOf` selects off the view. The `engaged` cohort keeps or drops a visitor's views whole,
- * by `buildSiteEngagedVisitorKeysCtesSql`, so their first view is the one every cohort reads.
+ * `columnsSqlOf` selects off the view. Engagement keeps or drops a visitor's views whole, by
+ * `buildSiteEngagedVisitorKeysCtesSql`, so their first view is their first page view of that unit.
  */
 export function buildSiteFirstViewsCtesSql(
   columnsSqlOf: (rowAlias: string) => string,
   range: AnalyticsDateRange,
   period: ReportPeriod,
-  cohort: SiteVisitorCohort,
 ): string {
   const identifiedBucketSql = buildReportBucketSql(period, "(site_view.occurred_at AT TIME ZONE 'UTC')::date");
   const hashedVisitorDaySql = buildHashedVisitorDaySql("hashed_view");
-  const firstViewsCtesSql = (identifiedCohortSql: string, hashedCohortSql: string): string => `identified_first_views AS (
+  return `${buildSiteEngagedVisitorKeysCtesSql(range, period)}, identified_first_views AS (
   SELECT DISTINCT ON (${identifiedBucketSql}, site_view.actor_id)
     ${identifiedBucketSql} AS bucket_date,
     ${columnsSqlOf("site_view")}
   FROM analytics.product_events_resolved AS site_view
-  WHERE ${buildIdentifiedSiteViewFilterSql("site_view", range)}${identifiedCohortSql}
+  WHERE ${buildIdentifiedSiteViewFilterSql("site_view", range)}
+  AND (${identifiedBucketSql}, site_view.actor_id) IN (SELECT bucket_date, actor_id FROM engaged_identified_visitors)
   ORDER BY ${identifiedBucketSql}, site_view.actor_id, site_view.occurred_at, site_view.event_id
 ), hashed_first_views AS (
   SELECT DISTINCT ON (${hashedVisitorDaySql}, hashed_view.daily_visitor_hash)
     ${buildReportBucketSql(period, hashedVisitorDaySql)} AS bucket_date,
     ${columnsSqlOf("hashed_view")}
   FROM analytics.product_events_resolved AS hashed_view
-  WHERE ${buildHashedSiteViewFilterSql("hashed_view", range)}${hashedCohortSql}
+  WHERE ${buildHashedSiteViewFilterSql("hashed_view", range)}
+  AND (hashed_view.daily_visitor_hash, ${hashedVisitorDaySql}) IN (SELECT daily_visitor_hash, visit_date FROM engaged_hashed_visitors)
   ORDER BY ${hashedVisitorDaySql}, hashed_view.daily_visitor_hash, hashed_view.occurred_at, hashed_view.event_id
 )`;
-  switch (cohort) {
-    case "all":
-      return firstViewsCtesSql("", "");
-    case "engaged":
-      return `${buildSiteEngagedVisitorKeysCtesSql(range, period)}, ${firstViewsCtesSql(
-        `\n  AND (${identifiedBucketSql}, site_view.actor_id) IN (SELECT bucket_date, actor_id FROM engaged_identified_visitors)`,
-        `\n  AND (hashed_view.daily_visitor_hash, ${hashedVisitorDaySql}) IN (SELECT daily_visitor_hash, visit_date FROM engaged_hashed_visitors)`,
-      )}`;
-  }
 }
 
 /**
- * `measured_buckets` over `buildSiteFirstViewsCtesSql`'s CTEs: the bars the `web` series has a
- * visitor in, whatever the cohort, so an engaged bar without an engaged visitor counts zero, as on
- * the `Engaged visitors` chart.
+ * `measured_buckets` over `buildSiteVisitorDaysCtesSql`'s CTEs: the bars with a site visitor-day,
+ * engaged or not, so a bar without an engaged visitor counts zero, as on the `web` series.
  */
-export function buildSiteMeasuredBucketsCteSql(cohort: SiteVisitorCohort, period: ReportPeriod): string {
-  switch (cohort) {
-    case "all":
-      return `measured_buckets AS (
-  SELECT bucket_date FROM identified_first_views
-  UNION
-  SELECT bucket_date FROM hashed_first_views
-)`;
-    case "engaged":
-      return `measured_buckets AS (
+export function buildSiteMeasuredBucketsCteSql(period: ReportPeriod): string {
+  return `measured_buckets AS (
   SELECT ${buildReportBucketSql(period, "visit_date")} AS bucket_date FROM identified_visitor_days
   UNION
   SELECT ${buildReportBucketSql(period, "visit_date")} AS bucket_date FROM hashed_visitor_days
 )`;
-  }
 }
 
-// Shared so the engaged share table splits exactly the segments of `web-country`.
-export function buildSiteCountrySql(rowAlias: string): string {
-  return `${rowAlias}.country`;
-}
-
-// Shared so the landing page path charts and the engaged share table split exactly the segments of
-// `web-landing-page-type`.
+// Shared so the landing page path charts split exactly the segments of `web-engaged-landing-page-type`.
 export function buildSitePageKindSql(rowAlias: string): string {
   return `${rowAlias}.event_properties ->> 'page_kind'`;
 }
 
 /**
- * The `cohort` visitors, each under the value `valueSqlOf` reads off their first page view, so a bar
- * sums to the `web` series' bar, or for `engaged` to the `Engaged visitors` chart's bar.
+ * The `web` series' visitors, each under the value `valueSqlOf` reads off their first page view, so
+ * a bar sums to the series' bar.
  */
 function buildSiteMeasuredCtesSql(
   valueSqlOf: (rowAlias: string) => string,
-  cohort: SiteVisitorCohort,
   range: AnalyticsDateRange,
   period: ReportPeriod,
 ): string {
-  return `${buildSiteFirstViewsCtesSql((rowAlias) => `${buildBreakdownValueSql(valueSqlOf(rowAlias))} AS dimension_value`, range, period, cohort)}, measured_values AS (
+  return `${buildSiteFirstViewsCtesSql((rowAlias) => `${buildBreakdownValueSql(valueSqlOf(rowAlias))} AS dimension_value`, range, period)}, measured_values AS (
   SELECT bucket_date, dimension_value, 1 AS value_count FROM identified_first_views
   UNION ALL
   SELECT bucket_date, dimension_value, 1 AS value_count FROM hashed_first_views
-), ${buildSiteMeasuredBucketsCteSql(cohort, period)}`;
+), ${buildSiteMeasuredBucketsCteSql(period)}`;
 }
 
 /** The `app-store` series' rows, each summed under its own `column`. */
@@ -177,14 +139,10 @@ function buildMeasuredCtesSql(
   period: ReportPeriod,
 ): string {
   switch (dimension) {
-    case "web-country":
-      return buildSiteMeasuredCtesSql(buildSiteCountrySql, "all", range, period);
-    case "web-landing-page-type":
-      return buildSiteMeasuredCtesSql(buildSitePageKindSql, "all", range, period);
     case "web-engaged-country":
-      return buildSiteMeasuredCtesSql(buildSiteCountrySql, "engaged", range, period);
+      return buildSiteMeasuredCtesSql((rowAlias) => `${rowAlias}.country`, range, period);
     case "web-engaged-landing-page-type":
-      return buildSiteMeasuredCtesSql(buildSitePageKindSql, "engaged", range, period);
+      return buildSiteMeasuredCtesSql(buildSitePageKindSql, range, period);
     case "app-store-source-type":
       return buildAppleMeasuredCtesSql("source_type", range, period);
     case "app-store-territory":
@@ -213,8 +171,6 @@ export async function loadWhoSawUsBreakdownReport(
 ): Promise<BreakdownReport> {
   const sql = buildWhoSawUsBreakdownSql(dimension, dateRange, period, reportLabel);
   switch (dimension) {
-    case "web-country":
-    case "web-landing-page-type":
     case "web-engaged-country":
     case "web-engaged-landing-page-type":
       return loadBreakdownReport(config, sql, period, reportLabel, liveSourceBarFreshness, signal);

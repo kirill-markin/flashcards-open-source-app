@@ -4,6 +4,8 @@ Read the [release entry point](README.md) for authorization, completion, and
 required reading, and the mandatory [shared evidence rules](evidence.md) before
 following this procedure.
 
+Before web builds or deployment, complete the [RaTeX dependency preflight](../ratex-dependency.md).
+
 `AWS/Web Release` deploys from `main` automatically when relevant files change,
 limited to the components that changed since their last release.
 These continuous deployments can advance while sources retain the last coordinated

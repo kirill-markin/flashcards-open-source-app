@@ -1,6 +1,7 @@
 import type { AnalyticsDateRange } from "../../filters/analyticsFilters";
 import { buildExcludedActorSqlLines, buildTrustedActorRowsFilterSql } from "../../filters/filterSql";
 import { escapeSqlStringLiteral } from "../../sql";
+import type { DailyActivitySource } from "../dailyNewReturning/query";
 import { buildReportBucketSql, type ReportPeriod } from "./reportPeriod";
 
 const reviewRowsFromSql = `FROM analytics.product_events_resolved AS events
@@ -34,6 +35,13 @@ ${buildExcludedActorSqlLines("recorded_activity.actor_id").join("\n")}
   GROUP BY actor_id
 )`;
 }
+
+export const reviewActivitySource: DailyActivitySource = {
+  ctesSql: buildMeaningfulActivityCtesSql(),
+  activityCte: "meaningful_activity",
+  firstUseCte: "actor_first_use",
+  coverageCte: "activity_coverage",
+};
 
 /** Every trusted `review_answered` of `range`, with its day and `period` bucket. */
 function buildRangeReviewsSql(period: ReportPeriod, range: AnalyticsDateRange): string {

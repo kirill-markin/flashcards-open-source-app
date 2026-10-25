@@ -12,12 +12,10 @@ import {
 import {
   interruptPreparedChatRun,
   type PreparedChatRun,
+  type RecoveredChatSession,
   type RecoveredPaginatedSession,
 } from "../runs";
-import {
-  listChatMessagesLatest,
-  type ChatSessionSnapshot,
-} from "../store";
+import type { PaginatedChatMessages } from "../store";
 import { HttpError } from "../../shared/errors";
 import type { BackendTraceCarrier } from "../../observability/sentry";
 import {
@@ -28,12 +26,7 @@ import {
   type ChatResumeDiagnosticsHeaders,
 } from "./diagnostics";
 
-export async function resolveLiveCursor(
-  userId: string,
-  workspaceId: string,
-  sessionId: string,
-): Promise<string | null> {
-  const page = await listChatMessagesLatest(userId, workspaceId, sessionId, 2);
+function resolveLiveCursor(page: PaginatedChatMessages): string | null {
   const latestMessage = page.messages.length > 0 ? page.messages[page.messages.length - 1]! : null;
   if (latestMessage === null) {
     return null;
@@ -47,20 +40,28 @@ export async function resolveLiveCursor(
   return previousMessage === null ? null : String(previousMessage.itemOrder);
 }
 
-export async function assertRunningSnapshotInvariant(
+function requireLatestMessagesPage(session: RecoveredChatSession): PaginatedChatMessages {
+  if (session.latestMessagesPage === null) {
+    throw new Error(`Running chat session ${session.snapshot.sessionId} was read without its latest messages page`);
+  }
+
+  return session.latestMessagesPage;
+}
+
+export function assertRunningSnapshotInvariant(
   request: Request,
   diagnostics: ChatResumeDiagnosticsHeaders,
   requestId: string | null,
-  snapshot: ChatSessionSnapshot,
+  session: RecoveredChatSession,
   userId: string,
   workspaceId: string,
-  listChatMessagesLatestFn: typeof listChatMessagesLatest,
-): Promise<void> {
+): void {
+  const snapshot = session.snapshot;
   if (snapshot.runState !== "running") {
     return;
   }
 
-  const latestMessagesPage = await listChatMessagesLatestFn(userId, workspaceId, snapshot.sessionId, 2);
+  const latestMessagesPage = requireLatestMessagesPage(session);
   const latestAssistantMessage = [...latestMessagesPage.messages].reverse().find((message) => message.role === "assistant") ?? null;
   if (latestAssistantMessage?.state === "in_progress") {
     return;
@@ -125,23 +126,20 @@ function assertRunningLiveStreamInvariant(
 }
 
 export async function buildConversationEnvelopeWithActiveRun(
-  snapshot: ChatSessionSnapshot,
+  session: RecoveredChatSession,
   userId: string,
   workspaceId: string,
   requestId: string | null,
   traceContext: BackendTraceCarrier | null,
   createChatLiveStreamEnvelopeFn: typeof createChatLiveStreamEnvelope,
-  resolveLiveCursorFn: typeof resolveLiveCursor,
   request: Request,
   diagnostics: ChatResumeDiagnosticsHeaders,
-  listChatMessagesLatestFn: typeof listChatMessagesLatest,
 ): Promise<ChatConversationEnvelope> {
-  const liveCursor = snapshot.runState === "running"
-    ? await resolveLiveCursorFn(userId, workspaceId, snapshot.sessionId)
-    : null;
+  const snapshot = session.snapshot;
   const latestMessagesPage = snapshot.runState === "running"
-    ? await listChatMessagesLatestFn(userId, workspaceId, snapshot.sessionId, 2)
+    ? requireLatestMessagesPage(session)
     : null;
+  const liveCursor = latestMessagesPage === null ? null : resolveLiveCursor(latestMessagesPage);
   const latestAssistantMessage = latestMessagesPage === null
     ? null
     : [...latestMessagesPage.messages].reverse().find((message) => message.role === "assistant") ?? null;
@@ -187,22 +185,18 @@ export async function buildPaginatedConversationEnvelopeWithActiveRun(
   requestId: string | null,
   traceContext: BackendTraceCarrier | null,
   createChatLiveStreamEnvelopeFn: typeof createChatLiveStreamEnvelope,
-  resolveLiveCursorFn: typeof resolveLiveCursor,
   request: Request,
   diagnostics: ChatResumeDiagnosticsHeaders,
-  listChatMessagesLatestFn: typeof listChatMessagesLatest,
 ): Promise<ChatConversationEnvelope> {
   const activeEnvelope = await buildConversationEnvelopeWithActiveRun(
-    result.snapshot,
+    result,
     userId,
     workspaceId,
     requestId,
     traceContext,
     createChatLiveStreamEnvelopeFn,
-    resolveLiveCursorFn,
     request,
     diagnostics,
-    listChatMessagesLatestFn,
   );
 
   return buildConversationEnvelopeFromPaginatedSession(
@@ -215,31 +209,28 @@ export async function buildPaginatedConversationEnvelopeWithActiveRun(
 export async function buildStartConversationEnvelope(
   params: Readonly<{
     preparedRun: PreparedChatRun;
-    snapshot: ChatSessionSnapshot;
+    session: RecoveredChatSession;
     userId: string;
     workspaceId: string;
     requestId: string | null;
     traceContext: BackendTraceCarrier | null;
     createChatLiveStreamEnvelopeFn: typeof createChatLiveStreamEnvelope;
-    resolveLiveCursorFn: typeof resolveLiveCursor;
     interruptPreparedChatRunFn: typeof interruptPreparedChatRun;
     request: Request;
     diagnostics: ChatResumeDiagnosticsHeaders;
-    listChatMessagesLatestFn: typeof listChatMessagesLatest;
   }>,
 ): Promise<ChatAcceptedConversationEnvelope> {
+  const snapshot = params.session.snapshot;
   try {
     const envelope = await buildConversationEnvelopeWithActiveRun(
-      params.snapshot,
+      params.session,
       params.userId,
       params.workspaceId,
       params.requestId,
       params.traceContext,
       params.createChatLiveStreamEnvelopeFn,
-      params.resolveLiveCursorFn,
       params.request,
       params.diagnostics,
-      params.listChatMessagesLatestFn,
     );
 
     // The accepted response mirrors the recovered snapshot at start time. For a
@@ -258,19 +249,19 @@ export async function buildStartConversationEnvelope(
         params.requestId,
         params.userId,
         params.workspaceId,
-        params.snapshot.sessionId,
-        params.snapshot.activeRunId ?? params.preparedRun.runId,
+        snapshot.sessionId,
+        snapshot.activeRunId ?? params.preparedRun.runId,
         error,
       );
     }
 
-    const runIdToInterrupt = params.snapshot.activeRunId ?? params.preparedRun.runId;
+    const runIdToInterrupt = snapshot.activeRunId ?? params.preparedRun.runId;
     logChatRunInterruptedLiveStreamUnavailable(
       params.request,
       params.requestId,
       params.userId,
       params.workspaceId,
-      params.snapshot.sessionId,
+      snapshot.sessionId,
       runIdToInterrupt,
       error,
     );

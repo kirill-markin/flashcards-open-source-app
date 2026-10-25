@@ -24,6 +24,7 @@ import {
   reportPeriodAxisLabels,
   type ReportPeriod,
 } from "../levelOneMetrics/reportPeriod";
+import { engagedRuleSwitchLabel, pageReadEngagementChartNote } from "./engagedVisitorsQuery";
 import {
   loadWhoSawUsReport,
   webDataStartChartNote,
@@ -37,7 +38,7 @@ import {
 import { buildStoreNotFinalChartNote, getStoreBarFreshness, storeNotFinalDayCounts } from "./storeDataFreshness";
 
 export const whoSawUsSeriesLabels: Readonly<Record<WhoSawUsSeriesKey, string>> = {
-  web: "Web",
+  web: "Web engaged",
   "app-store": "App Store",
   "google-play": "Google Play",
 };
@@ -55,8 +56,10 @@ function getDrawnSeriesKeys(series: WhoSawUsChartSeries): ReadonlyArray<WhoSawUs
   return series === "all" ? whoSawUsSeriesKeys : [series];
 }
 
-function buildSeriesChartNote(seriesKey: WhoSawUsSeriesKey, today: string): ChartNote {
-  return seriesKey === "web" ? webDataStartChartNote : buildStoreNotFinalChartNote(seriesKey, today);
+function buildSeriesChartNotes(seriesKey: WhoSawUsSeriesKey, today: string): ReadonlyArray<ChartNote> {
+  return seriesKey === "web"
+    ? [webDataStartChartNote, pageReadEngagementChartNote]
+    : [buildStoreNotFinalChartNote(seriesKey, today)];
 }
 
 const numberFormatter = d3.format(",");
@@ -125,7 +128,7 @@ function buildWhoSawUsChartModel(
     }])),
     inProgressKey: findInProgressBucketKey(buckets, today),
     notes: placeChartNotes(
-      [buildInProgressChartNote(today), ...seriesKeys.map((key) => buildSeriesChartNote(key, today))],
+      [buildInProgressChartNote(today), ...seriesKeys.flatMap((key) => buildSeriesChartNotes(key, today))],
       buckets,
     ),
   };
@@ -169,9 +172,13 @@ function buildBucketTooltipMetricsHtml(
 
 const whoSawUsSeriesDescriptions: Readonly<Record<WhoSawUsSeriesKey, ReactNode>> = {
   web: <>
-    identified site visitors after the shared exclusions, plus cookieless visitors (only automated traffic is dropped)
+    site visitors engaged on a day: identified visitors after the shared exclusions, plus cookieless visitors (only automated traffic is dropped)
     <ul>
       <li>So an admin browsing without consent still counts</li>
+      <li>Engaged on a day = 2+ page views, or 1+ page view and 1+ site action, such as a page read (10+ seconds on one page with a scroll, click or key press), a click, a deck install click, a catalog search, a copy, an answered language suggestion or a cookie consent grant</li>
+      <li>Impressions are not actions: an app button, store QR code, language suggestion or cookie banner shown, a declined banner, or collection switched on or off</li>
+      <li>Before {engagedRuleSwitchLabel}, the dashed marker, the site did not send page reads yet, so 1+ page view and 1+ other site event counts, impressions included</li>
+      <li>A bar with site visitors but no engaged one is 0; no site visitor at all is No data</li>
     </ul>
   </>,
   "app-store": "product page views by unique count, plus apps.apple.com browser views (Apple reports those without a unique count)",
@@ -186,14 +193,14 @@ const allSeriesExplanation = <>
       {whoSawUsSeriesKeys.map((key) => (
         <li key={key}><strong>{whoSawUsSeriesLabels[key]}:</strong> {whoSawUsSeriesDescriptions[key]}</li>
       ))}
-      <li><strong>Weeks and months:</strong> an identified web visitor counts once per bar; cookieless and store visitors are summed over the bar's days, because the cookieless id changes every day and the stores send no visitor ids</li>
+      <li><strong>Weeks and months:</strong> an identified Web engaged visitor counts once per bar, engaged on any of its days; cookieless engaged visitors and store visitors are summed over the bar's days, because the cookieless id changes every day and the stores send no visitor ids</li>
     </ul>
   </li>
   <li>
     <strong>Caveats</strong>
     <ul>
       <li>Stores count per breakdown row, and the three surfaces overlap, so one person can be counted more than once</li>
-      <li>Someone who opens a store page from our website, by a store badge or the site's QR code, counts in both Web and App Store or Google Play; removing this overlap is a planned follow-up</li>
+      <li>Someone who opens a store page from our website, by a store badge or the site's QR code, can count in both Web engaged and App Store or Google Play; removing this overlap is a planned follow-up</li>
       <li>
         Faded store segment, or any segment of the bar holding today, = not final: its numbers can still arrive or change
         <ul>
@@ -208,7 +215,7 @@ const allSeriesExplanation = <>
 </>;
 
 const oneSeriesWeeksAndMonthsTexts: Readonly<Record<WhoSawUsSeriesKey, string>> = {
-  web: "an identified visitor counts once per bar; cookieless visitors are summed over the bar's days, because the cookieless id changes every day",
+  web: "Web engaged = identified visitors engaged on any of the bar's days, each once + cookieless engaged visitors summed over the bar's days, because the cookieless id changes every day",
   "app-store": "visitors are summed over the bar's days, because Apple sends no visitor ids",
   "google-play": "visitors are summed over the bar's days, because Google sends no visitor ids",
 };
