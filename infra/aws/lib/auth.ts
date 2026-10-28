@@ -67,6 +67,10 @@ export function auth(scope: Construct, props: AuthProps): AuthResult {
     ],
     refreshTokenValidity: cdk.Duration.days(365),
     enableTokenRevocation: true,
+    // Email is the account identity, so access tokens must not rewrite it or other attributes. An empty
+    // list means all writable, hence the unused `locale`. Server-side Admin* calls ignore this list,
+    // so a server-driven email change stays possible.
+    writeAttributes: new cognito.ClientAttributes().withStandardAttributes({ locale: true }),
   });
 
   // CDK L2 doesn't expose USER_AUTH auth flow — override via L1
