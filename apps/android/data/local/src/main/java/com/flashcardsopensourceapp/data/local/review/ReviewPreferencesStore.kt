@@ -36,6 +36,8 @@ interface ReviewPreferencesStore {
 
     /** Persists the timestamp of the last hard-answer reminder shown on this device. */
     fun saveHardAnswerReminderLastShownAt(timestampMillis: Long)
+
+    fun clearHardAnswerReminderLastShownAt()
 }
 
 class SharedPreferencesReviewPreferencesStore(
@@ -82,6 +84,12 @@ class SharedPreferencesReviewPreferencesStore(
     override fun saveHardAnswerReminderLastShownAt(timestampMillis: Long) {
         preferences.edit(commit = true) {
             putLong(hardAnswerReminderLastShownAtKey, timestampMillis)
+        }
+    }
+
+    override fun clearHardAnswerReminderLastShownAt() {
+        preferences.edit(commit = true) {
+            remove(hardAnswerReminderLastShownAtKey)
         }
     }
 }

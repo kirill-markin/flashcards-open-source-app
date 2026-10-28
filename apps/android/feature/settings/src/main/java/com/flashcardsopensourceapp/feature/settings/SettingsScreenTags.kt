@@ -46,6 +46,12 @@ const val testSettingsAnimationsRowTag: String = "test_settings_animations_row"
 const val testSettingsTechnicalErrorRowTag: String = "test_settings_technical_error_row"
 const val testSettingsNotificationDiagnosticsRowTag: String = "test_settings_notification_diagnostics_row"
 const val testSettingsLocalSyncDiagnosticsRowTag: String = "test_settings_local_sync_diagnostics_row"
+const val testSettingsReviewPromptsConfigTag: String = "test_settings_review_prompts_config"
+const val testSettingsReviewPromptsResetRowTag: String = "test_settings_review_prompts_reset_row"
+
+fun testSettingsReviewPromptRowTag(preview: TestReviewPromptPreview): String {
+    return "test_settings_review_prompt_row_${preview.name.lowercase()}"
+}
 const val notificationDiagnosticsScreenTag: String = "notification_diagnostics_screen"
 const val localSyncDiagnosticsScreenTag: String = "local_sync_diagnostics_screen"
 const val localSyncDiagnosticsRefreshButtonTag: String = "local_sync_diagnostics_refresh_button"

@@ -12,6 +12,7 @@ private const val lastShownAtMillisKey: String = "lastShownAtMillis"
 interface GuestSignInAfterReviewPromptStore {
     fun loadLastShownAtMillis(): Long?
     fun recordShown(nowMillis: Long)
+    fun clearLastShownAt()
 }
 
 class SharedPreferencesGuestSignInAfterReviewPromptStore(
@@ -33,6 +34,12 @@ class SharedPreferencesGuestSignInAfterReviewPromptStore(
     override fun recordShown(nowMillis: Long) {
         preferences.edit(commit = true) {
             putLong(lastShownAtMillisKey, nowMillis)
+        }
+    }
+
+    override fun clearLastShownAt() {
+        preferences.edit(commit = true) {
+            remove(lastShownAtMillisKey)
         }
     }
 }

@@ -15,6 +15,7 @@ interface FeedbackPromptStore {
     fun recordAutomaticPromptShown(identityKey: FeedbackPromptIdentityKey, nowMillis: Long)
     fun saveDraftMessage(identityKey: FeedbackPromptIdentityKey, message: String)
     fun clearDraftMessage(identityKey: FeedbackPromptIdentityKey)
+    fun clearAllAutomaticPromptShownAt()
 }
 
 class SharedPreferencesFeedbackPromptStore(
@@ -61,6 +62,14 @@ class SharedPreferencesFeedbackPromptStore(
     override fun clearDraftMessage(identityKey: FeedbackPromptIdentityKey) {
         preferences.edit(commit = true) {
             remove(scopedKey(identityKey = identityKey, key = draftMessageKey))
+        }
+    }
+
+    override fun clearAllAutomaticPromptShownAt() {
+        val shownAtKeySuffix = ":$lastAutomaticFeedbackPromptShownAtMillisKey"
+        val shownAtStorageKeys = preferences.all.keys.filter { storageKey -> storageKey.endsWith(shownAtKeySuffix) }
+        preferences.edit(commit = true) {
+            shownAtStorageKeys.forEach { storageKey -> remove(storageKey) }
         }
     }
 

@@ -533,33 +533,10 @@ fun ReviewRoute(
     }
 
     if (uiState.isNotificationPermissionPromptVisible) {
-        AlertDialog(
-            onDismissRequest = onDismissNotificationPermissionPrompt,
-            title = {
-                androidx.compose.material3.Text(stringResource(id = R.string.review_notification_prompt_title))
-            },
-            text = {
-                androidx.compose.material3.Text(
-                    stringResource(id = R.string.review_notification_prompt_body)
-                )
-            },
-            confirmButton = {
-                androidx.compose.material3.TextButton(onClick = onContinueNotificationPermissionPrompt) {
-                    androidx.compose.material3.Text(
-                        stringResource(
-                            id = when (notificationPermissionPromptContinueAction) {
-                                NotificationPermissionPromptContinueAction.REQUEST_PERMISSION -> R.string.review_continue
-                                NotificationPermissionPromptContinueAction.OPEN_NOTIFICATION_SETTINGS -> R.string.review_open_settings
-                            }
-                        )
-                    )
-                }
-            },
-            dismissButton = {
-                androidx.compose.material3.TextButton(onClick = onDismissNotificationPermissionPrompt) {
-                    androidx.compose.material3.Text(stringResource(id = R.string.review_not_now))
-                }
-            }
+        NotificationPermissionPromptDialog(
+            continueAction = notificationPermissionPromptContinueAction,
+            onContinue = onContinueNotificationPermissionPrompt,
+            onDismiss = onDismissNotificationPermissionPrompt
         )
     }
 }
