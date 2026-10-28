@@ -14,10 +14,11 @@
 // `enabled`, passes every condition present in its settings and passes its fixed code rules is
 // shown. At most one prompt follows each saved review.
 //
-// Counters include the review just saved and span every workspace in the local store:
+// Counters include the review just saved and span every workspace in the local store. Their day
+// runs from 04:00 to 04:00 local time, so a late-night session stays one day:
 // - totalReviews: review events;
-// - reviewsToday: review events whose local date in the device's current time zone is today;
-// - reviewDays: distinct local dates with at least one review event.
+// - reviewsToday: review events whose local day in the device's current time zone is today;
+// - reviewDays: distinct local days with at least one review event.
 // An absent setting is no condition. `cooldownDays` passes when this same prompt was never shown,
 // or `now - lastShownAt(this prompt) >= cooldownDays * 24h`; it never counts from another prompt or
 // another event.

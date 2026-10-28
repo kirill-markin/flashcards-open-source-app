@@ -46,6 +46,8 @@ import com.flashcardsopensourceapp.data.local.model.review.toReviewCard
 import com.flashcardsopensourceapp.data.local.repository.ReviewRepository
 import com.flashcardsopensourceapp.data.local.review.prompts.ReviewPromptCounters
 import com.flashcardsopensourceapp.data.local.review.prompts.countReviewPromptDays
+import com.flashcardsopensourceapp.data.local.review.prompts.reviewPromptDayOf
+import com.flashcardsopensourceapp.data.local.review.prompts.reviewPromptDayStartMillis
 import com.flashcardsopensourceapp.data.local.review.prompts.reviewPromptTimeBucketMillis
 import com.flashcardsopensourceapp.data.local.repository.cards.toCardSummary
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.workspace.loadCurrentWorkspaceOrNull
@@ -70,7 +72,6 @@ import java.io.IOException
 import java.nio.file.AtomicMoveNotSupportedException
 import java.nio.file.Files
 import java.nio.file.StandardCopyOption
-import java.time.Instant
 import java.time.ZoneId
 import java.util.UUID
 
@@ -511,12 +512,12 @@ class LocalReviewRepository(
 
     override suspend fun loadReviewPromptCounters(nowMillis: Long, zoneId: ZoneId): ReviewPromptCounters {
         val reviewLogDao = database.reviewLogDao()
-        val today = Instant.ofEpochMilli(nowMillis).atZone(zoneId).toLocalDate()
+        val today = reviewPromptDayOf(epochMillis = nowMillis, zoneId = zoneId)
         return ReviewPromptCounters(
             totalReviews = reviewLogDao.countReviewLogs(),
             reviewsToday = reviewLogDao.countReviewLogsBetween(
-                startMillis = today.atStartOfDay(zoneId).toInstant().toEpochMilli(),
-                endMillis = today.plusDays(1L).atStartOfDay(zoneId).toInstant().toEpochMilli()
+                startMillis = reviewPromptDayStartMillis(day = today, zoneId = zoneId),
+                endMillis = reviewPromptDayStartMillis(day = today.plusDays(1L), zoneId = zoneId)
             ),
             reviewDays = countReviewPromptDays(
                 timeBuckets = reviewLogDao.loadDistinctReviewTimeBuckets(bucketMillis = reviewPromptTimeBucketMillis),

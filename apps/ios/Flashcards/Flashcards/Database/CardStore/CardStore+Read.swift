@@ -306,9 +306,10 @@ extension CardStore {
         )
     }
 
-    /// SQLite shifts a timestamp only by a fixed offset, so the history is split wherever the zone's
-    /// UTC offset changes and each part is dated with its own offset.
-    func loadAppWideReviewDayCount(timeZone: TimeZone) throws -> Int {
+    /// A review's day is the local date of its wall-clock time minus `dayStartHour` hours. SQLite
+    /// shifts a timestamp only by a fixed offset, so the history is split wherever the zone's UTC
+    /// offset changes and each part is dated with its own offset.
+    func loadAppWideReviewDayCount(timeZone: TimeZone, dayStartHour: Int) throws -> Int {
         let bounds = try self.core.query(
             sql: "SELECT MIN(reviewed_at_client), MAX(reviewed_at_client) FROM review_events",
             values: []
@@ -336,12 +337,13 @@ extension CardStore {
             let periodEnd = min(nextTransition ?? historyEnd, historyEnd)
             let periodLocalDates = try self.core.query(
                 sql: """
-                SELECT DISTINCT date(reviewed_at_client, ?)
+                SELECT DISTINCT date(reviewed_at_client, ?, ?)
                 FROM review_events
                 WHERE reviewed_at_client >= ? AND reviewed_at_client < ?
                 """,
                 values: [
                     .text("\(timeZone.secondsFromGMT(for: periodStart)) seconds"),
+                    .text("-\(dayStartHour) hours"),
                     .text(formatIsoTimestamp(date: periodStart)),
                     .text(formatIsoTimestamp(date: periodEnd))
                 ]

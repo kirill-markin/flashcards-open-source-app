@@ -1,6 +1,7 @@
 package com.flashcardsopensourceapp.data.local.review.prompts
 
 import java.time.Instant
+import java.time.LocalDate
 import java.time.ZoneId
 
 private const val millisPerDay: Long = 24L * 60L * 60L * 1_000L
@@ -25,9 +26,23 @@ data class ReviewPromptHandler(
     val tryShow: suspend (reviewPromptConfigVersion: String) -> Boolean
 )
 
+/** The counters' day runs from this local hour to the same hour next day, so a late-night session stays one day. */
+const val reviewPromptDayStartHour: Int = 4
+
+/** Wall-clock arithmetic keeps the boundary at the same local hour on daylight-saving days. */
+fun reviewPromptDayOf(epochMillis: Long, zoneId: ZoneId): LocalDate {
+    return Instant.ofEpochMilli(epochMillis).atZone(zoneId).toLocalDateTime()
+        .minusHours(reviewPromptDayStartHour.toLong())
+        .toLocalDate()
+}
+
+fun reviewPromptDayStartMillis(day: LocalDate, zoneId: ZoneId): Long {
+    return day.atTime(reviewPromptDayStartHour, 0).atZone(zoneId).toInstant().toEpochMilli()
+}
+
 fun countReviewPromptDays(timeBuckets: List<Long>, zoneId: ZoneId): Int {
     return timeBuckets.map { bucket ->
-        Instant.ofEpochMilli(bucket * reviewPromptTimeBucketMillis).atZone(zoneId).toLocalDate()
+        reviewPromptDayOf(epochMillis = bucket * reviewPromptTimeBucketMillis, zoneId = zoneId)
     }.distinct().size
 }
 

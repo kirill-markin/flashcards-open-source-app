@@ -1,11 +1,15 @@
 import Foundation
 
+/// The counters' day runs from this local hour to the same hour next day, so a late-night session
+/// stays one day.
+let reviewPromptDayStartHour: Int = 4
+
 /// Review events across every workspace, including the review just saved.
 struct ReviewPromptCounters: Equatable, Sendable {
     let totalReviews: Int
-    /// Reviews on today's local date in the device's current time zone.
+    /// Reviews on today's local day in the device's current time zone.
     let reviewsToday: Int
-    /// Distinct local dates in the device's current time zone with at least one review.
+    /// Distinct local days in the device's current time zone with at least one review.
     let reviewDays: Int
 }
 
