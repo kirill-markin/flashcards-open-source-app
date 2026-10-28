@@ -25,7 +25,7 @@ export const deckVersionDiscriminatorLength = 8;
 // `productAnalyticsSiteSources` in `apps/backend/src/productAnalytics/catalog.ts` declare it. The
 // catalog click fields read it too, off the site's `catalog_install_clicked`.
 export const siteDeviceCategories = ["desktop", "mobile", "tablet", "unknown"] as const;
-export const siteSources = ["direct", "search", "social", "referral", "internal", "unknown"] as const;
+export const siteSources = ["direct", "search", "social", "ai_assistant", "referral", "internal", "unknown"] as const;
 
 export type SiteDeviceCategory = (typeof siteDeviceCategories)[number];
 export type SiteSource = (typeof siteSources)[number];
@@ -409,7 +409,7 @@ const analyticsFilterFieldExplanations: Readonly<Record<AnalyticsFilterField, st
   siteDeviceCategories:
     "Keeps only the visitors whose first page view in the bar, or in the day for a cookieless visitor, came from a device category you pick, so a visitor who later switches devices counts only under the first. The site reads it from the browser's user agent: tablets include iPads that report themselves as a Mac, and an Android tablet in desktop-site mode counts as desktop. Picking nothing keeps every device.",
   siteSources:
-    "Keeps only the visitors whose first page view in the bar, or in the day for a cookieless visitor, arrived from a traffic source you pick, so a visitor who later comes back another way counts only under the first. The site classifies it from the page's referrer, and internal is a link from another page of the site. Picking nothing keeps every source.",
+    "Keeps only the visitors whose first page view in the bar, or in the day for a cookieless visitor, arrived from a traffic source you pick, so a visitor who later comes back another way counts only under the first. The site classifies it from the page's referrer: ai_assistant is a known AI assistant site, such as chatgpt.com, or a link whose utm_source names one, and internal is a link from another page of the site. Picking nothing keeps every source.",
   siteCountries:
     "Keeps only the visitors whose first page view in the bar, or in the day for a cookieless visitor, came from a country you pick, the one the site's collector derived from the request of that view. Views stored before late September 2026, and requests it could not place, are Unknown. Picking nothing keeps every country.",
   siteBrowserLanguages:
