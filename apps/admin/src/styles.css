@@ -1049,7 +1049,9 @@ h2 {
  * the selected mode keeps its accent border instead of dropping back to the neutral hover one.
  */
 .ai-usage-mode-selected,
-.ai-usage-mode-selected:not(:disabled):hover {
+.ai-usage-mode-selected:not(:disabled):hover,
+.study-depth-mode-selected,
+.study-depth-mode-selected:not(:disabled):hover {
   border-color: var(--accent-strong);
   background: var(--accent);
 }

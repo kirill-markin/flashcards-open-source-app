@@ -5,7 +5,12 @@ import {
   type ReviewEventPlatform,
 } from "../adminApi";
 import { catalogInstallPlacements, type CatalogInstallPlacement } from "../reports/catalogInstallFunnel/query";
-import { buildDefaultReportRange } from "../reports/reportValues";
+import {
+  allTimeReportRangePreset,
+  buildDefaultReportRange,
+  buildPresetReportRange,
+} from "../reports/reportValues";
+import type { AnalyticsArea } from "../routing";
 import {
   analyticsThresholdEventTypes,
   buildDefaultAnalyticsFilterState,
@@ -203,13 +208,25 @@ function formatMinimumEventCount(entry: AnalyticsMinimumEventCount): string {
   return `${entry.eventType}${minimumEventCountSeparator}${entry.minimumCount}`;
 }
 
-/** Every filter cleared, on the default window of the range the data actually covers. */
+/**
+ * The window an area opens on. Study depth opens on all time, because its cohort is people by their
+ * first review and a recent window would hold only people who started too late to come back.
+ */
+export function buildAnalyticsAreaDefaultDateRange(
+  area: AnalyticsArea,
+  availableRange: AnalyticsDateRange,
+): AnalyticsDateRange {
+  return area === "study-depth"
+    ? buildPresetReportRange(allTimeReportRangePreset, availableRange, analyticsFilterReportLabel)
+    : buildDefaultReportRange(availableRange, analyticsFilterReportLabel);
+}
+
+/** Every filter cleared, on the area's default window of the range the data actually covers. */
 export function buildDefaultAnalyticsFilterStateForAvailableRange(
+  area: AnalyticsArea,
   availableRange: AnalyticsDateRange,
 ): AnalyticsFilterState {
-  return buildDefaultAnalyticsFilterState(
-    buildDefaultReportRange(availableRange, analyticsFilterReportLabel),
-  );
+  return buildDefaultAnalyticsFilterState(buildAnalyticsAreaDefaultDateRange(area, availableRange));
 }
 
 /**
@@ -306,8 +323,9 @@ export function setDateRangeParams(
 export function toAnalyticsFilterSearchParams(
   state: AnalyticsFilterState,
   availableRange: AnalyticsDateRange,
+  area: AnalyticsArea,
 ): URLSearchParams {
-  const defaults = buildDefaultAnalyticsFilterStateForAvailableRange(availableRange);
+  const defaults = buildDefaultAnalyticsFilterStateForAvailableRange(area, availableRange);
   const searchParams = new URLSearchParams();
 
   setDateRangeParams(searchParams, state.dateRange, defaults.dateRange);
@@ -596,15 +614,16 @@ function clampRequestedDateRangeToAvailableRange(
  * The selection a query string asks for, filled in from the defaults for every field it does not
  * carry. `availableRange` is the full range the data covers, and both directions turn it into
  * defaults through the same builder, so this is the exact inverse of `toAnalyticsFilterSearchParams`
- * called with the same `availableRange` - for every selection whose range lies inside that window,
- * which is every selection the app itself can hold, because a wider one is clamped here on the way
- * in and refused on the way to the reports.
+ * called with the same `availableRange` and `area` - for every selection whose range lies inside
+ * that window, which is every selection the app itself can hold, because a wider one is clamped here
+ * on the way in and refused on the way to the reports.
  */
 export function parseAnalyticsFilterState(
   searchParams: URLSearchParams,
   availableRange: AnalyticsDateRange,
+  area: AnalyticsArea,
 ): AnalyticsFilterState {
-  const defaults = buildDefaultAnalyticsFilterStateForAvailableRange(availableRange);
+  const defaults = buildDefaultAnalyticsFilterStateForAvailableRange(area, availableRange);
 
   return parseAnalyticsFilterStateOnDateRanges(
     searchParams,

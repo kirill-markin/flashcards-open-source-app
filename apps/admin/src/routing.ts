@@ -1,6 +1,14 @@
 import { reviewPromptIds, type ReviewPromptId } from "./reports/reviewPrompts/reviewPromptDefinitions";
 
-export const analyticsAreas = ["level-1-metrics", "funnels", "review-prompts", "general", "audience", "ai-usage"] as const;
+export const analyticsAreas = [
+  "level-1-metrics",
+  "funnels",
+  "review-prompts",
+  "study-depth",
+  "general",
+  "audience",
+  "ai-usage",
+] as const;
 
 export type AnalyticsArea = (typeof analyticsAreas)[number];
 
@@ -12,6 +20,7 @@ export const analyticsAreaLabels: Readonly<Record<AnalyticsArea, string>> = {
   general: "General",
   funnels: "Funnels",
   "review-prompts": "Review prompts",
+  "study-depth": "Study depth",
   audience: "Audience",
   "ai-usage": "Study vs AI",
 };
