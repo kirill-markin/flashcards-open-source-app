@@ -73,7 +73,11 @@ export function auth(scope: Construct, props: AuthProps): AuthResult {
     writeAttributes: new cognito.ClientAttributes().withStandardAttributes({ locale: true }),
   });
 
-  // CDK L2 doesn't expose USER_AUTH auth flow — override via L1
+  // CDK L2 doesn't expose USER_AUTH auth flow — override via L1.
+  // Refresh-token rotation (refreshTokenRotationGracePeriod 60s; requires dropping ALLOW_REFRESH_TOKEN_AUTH,
+  // keeping ALLOW_USER_AUTH and ALLOW_CUSTOM_AUTH) stays off until active iOS/Android installs older than the
+  // first releases that store a rotated `refreshToken` from /api/refresh-token are negligible by app version:
+  // they keep the original token and would be signed out after their next refresh.
   (userPoolClient.node.defaultChild as cdk.CfnResource).addPropertyOverride(
     "ExplicitAuthFlows",
     ["ALLOW_USER_AUTH", "ALLOW_REFRESH_TOKEN_AUTH", "ALLOW_CUSTOM_AUTH"],
