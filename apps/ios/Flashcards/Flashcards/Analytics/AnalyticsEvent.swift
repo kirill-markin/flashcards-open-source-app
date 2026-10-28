@@ -280,9 +280,10 @@ enum AnalyticsPrompt: String, Sendable, Equatable {
  *
  * Both iOS prompts are UIKit-backed alerts, which cannot be closed without pressing a button, so
  * every answer here comes from a button and each prompt produces only the outcomes its buttons mean:
- * the after-review sign-in prompt reports `accepted` or `snoozed` — its "Later" really does snooze
- * for a week — and the notifications pre-prompt reports `accepted` or `dismissed`. A programmatic
- * teardown, such as a cloud identity reset closing a prompt nobody answered, reports nothing.
+ * both report `accepted` or `snoozed`, because each one's decline button only postpones it — the
+ * after-review sign-in prompt's "Later" for a week, the notifications pre-prompt's "Not now" until
+ * its cooldown ends. A programmatic teardown, such as a cloud identity reset closing a prompt nobody
+ * answered, reports nothing.
  */
 enum AnalyticsPromptOutcome: String, Sendable, Equatable {
     case accepted
