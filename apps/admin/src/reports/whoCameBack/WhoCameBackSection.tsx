@@ -11,10 +11,6 @@ import type { AdminAppConfig } from "../../config";
 import { ExplanationTip } from "../../explanations/ExplanationTip";
 import type { AnalyticsDateRange } from "../../filters/analyticsFilters";
 import {
-  LevelOneMetricDetailsButton,
-  type LevelOneMetricDetailsLink,
-} from "../levelOneMetrics/LevelOneMetricDetailsLink";
-import {
   formatReportBucketTick,
   formatReportBucketTitle,
   reportPeriodAxisLabels,
@@ -33,6 +29,7 @@ type LoadState =
   | Readonly<{ status: "loading" }>
   | Readonly<{ status: "error"; message: string }>
   | Readonly<{ status: "ready"; report: WhoCameBackReport }>;
+const title = "Retention by first-use cohort: W1 and W4";
 const formatCount = d3.format(",d");
 const formatRate = d3.format(".1%");
 
@@ -45,7 +42,6 @@ export function WhoCameBackSection(props: Readonly<{
   config: AdminAppConfig;
   dateRange: AnalyticsDateRange;
   period: ReportPeriod;
-  detailsLink: LevelOneMetricDetailsLink | null;
   onTerminalAdminError: (error: unknown, config: AdminAppConfig) => boolean;
 }>): JSX.Element {
   const chartRef = useRef<SVGSVGElement | null>(null);
@@ -61,7 +57,7 @@ export function WhoCameBackSection(props: Readonly<{
       if (!cancelled) setState({ status: "ready", report });
     }).catch((error: unknown) => {
       if (cancelled || props.onTerminalAdminError(error, props.config)) return;
-      setState({ status: "error", message: error instanceof Error ? error.message : "Unexpected Who came back query error." });
+      setState({ status: "error", message: error instanceof Error ? error.message : `Unexpected ${title} query error.` });
     });
     return () => { cancelled = true; abortController.abort(); };
   }, [props.config, props.dateRange, props.period, props.onTerminalAdminError, revision, tooltipHandlers]);
@@ -70,7 +66,7 @@ export function WhoCameBackSection(props: Readonly<{
     if (chartRef.current === null || state.status !== "ready") return;
     const getCohort = (key: string): WhoCameBackCohort => {
       const cohort = cohortsByKey.get(key);
-      if (cohort === undefined) throw new Error(`Who came back chart has no cohort for ${key}.`);
+      if (cohort === undefined) throw new Error(`${title} chart has no cohort for ${key}.`);
       return cohort;
     };
     const getDescription = (key: string): string => {
@@ -91,8 +87,8 @@ export function WhoCameBackSection(props: Readonly<{
     <section className="dashboard-section" data-testid="who-came-back-section">
       <header className="dashboard-section-header level-1-metric-section-header">
         <div className="explained-heading-row">
-          <h2>Who came back</h2>
-          <ExplanationTip label="What Who came back shows" explanationId="who-came-back-explanation">
+          <h2>{title}</h2>
+          <ExplanationTip label={`What ${title} shows`} explanationId="who-came-back-explanation">
             <ul>
               <li>Cohorts are the UTC days, Monday–Sunday weeks or months of each person’s first-ever answered review, with any rating, using the same review history and actor exclusions as Who studied. Cohorts and returns count answered reviews only.</li>
               <li>W1 is any answered review on days 7–13 after each person’s first-use day; W4 is days 28–34. The tooltip shows returned users / cohort users.</li>
@@ -103,11 +99,10 @@ export function WhoCameBackSection(props: Readonly<{
             </ul>
           </ExplanationTip>
         </div>
-        {props.detailsLink !== null ? <LevelOneMetricDetailsButton link={props.detailsLink} /> : null}
       </header>
       {state.status === "error" ? (
         <div className="report-state report-state-error">
-          <strong>Who came back query failed.</strong><span>{state.message}</span>
+          <strong>{title} query failed.</strong><span>{state.message}</span>
           <button className="filter-button" type="button" onClick={() => setRevision((value) => value + 1)}>Retry</button>
         </div>
       ) : null}
@@ -127,9 +122,9 @@ export function WhoCameBackSection(props: Readonly<{
                   viewBoxHeight={stackedChartHeight}
                   note={state.report.cohorts.every((cohort) => cohort.w1 === null && cohort.w4 === null) ? "No non-empty, fully matured covered cohort is available in this range." : null}
                 >
-                  <svg ref={chartRef} role="group" aria-label={`Who came back: W1 and W4 retention by first-use ${state.report.period}`} />
+                  <svg ref={chartRef} role="group" aria-label={`${title}, first-use cohorts per ${state.report.period}`} />
                 </ChartAreaWithNote>
-              ) : <ChartLoadingPlaceholder viewBoxWidth={chartWidth} viewBoxHeight={stackedChartHeight} label="Loading Who came back…" />}
+              ) : <ChartLoadingPlaceholder viewBoxWidth={chartWidth} viewBoxHeight={stackedChartHeight} label={`Loading ${title}…`} />}
             </div>
           </div>
         </section>

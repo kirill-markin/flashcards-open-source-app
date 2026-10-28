@@ -1,7 +1,7 @@
 import type { JSX, ReactNode } from "react";
 import type { AdminAppConfig } from "../../config";
 import { getAnalyticsAreaPath, type LevelOneMetricDetail } from "../../routing";
-import { RetentionCurveSections } from "../retentionCurve/RetentionCurveSections";
+import { AppOpenRetentionCurveSection, StudiedRetentionCurveSection } from "../retentionCurve/RetentionCurveSections";
 import { WhoCameBackBreakdownSections } from "../whoCameBack/WhoCameBackBreakdownSections";
 import { WhoCameBackSection } from "../whoCameBack/WhoCameBackSection";
 import { WhoOpenedTheAppBreakdownSections } from "../whoOpenedTheApp/WhoOpenedTheAppBreakdownSections";
@@ -88,16 +88,21 @@ function renderMetricSections(
     case "who-came-back":
       return (
         <>
+          <StudiedRetentionCurveSection
+            config={props.config}
+            dateRange={selection.dateRange}
+            detailsLink={null}
+            onTerminalAdminError={props.onTerminalAdminError}
+          />
+          <AppOpenRetentionCurveSection
+            config={props.config}
+            dateRange={selection.dateRange}
+            onTerminalAdminError={props.onTerminalAdminError}
+          />
           <WhoCameBackSection
             config={props.config}
             dateRange={selection.dateRange}
             period={selection.period}
-            detailsLink={null}
-            onTerminalAdminError={props.onTerminalAdminError}
-          />
-          <RetentionCurveSections
-            config={props.config}
-            dateRange={selection.dateRange}
             onTerminalAdminError={props.onTerminalAdminError}
           />
           <WhoCameBackBreakdownSections
