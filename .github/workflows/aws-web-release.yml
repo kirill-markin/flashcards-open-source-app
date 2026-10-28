@@ -662,7 +662,7 @@ jobs:
     if: ${{ !cancelled() && needs.changes.result == 'success' && needs.aws_deploy.result == 'success' && (needs.changes.outputs.deploy_web == 'true' || needs.changes.outputs.deploy_platform == 'true') }}
     runs-on: ubuntu-24.04
     container:
-      image: mcr.microsoft.com/playwright:v1.64.0-noble
+      image: mcr.microsoft.com/playwright:v1.64.1-noble
       options: --init --ipc=host
     timeout-minutes: 45
 

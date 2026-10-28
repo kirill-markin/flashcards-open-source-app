@@ -190,3 +190,27 @@ test("account retirement fences real scoped writers, flattens receipts and prese
     }
   }
 });
+
+test("account retirement keeps the later last and periodic paywall appearances", async () => {
+  const ownerUrl = process.env.TEST_DATABASE_ADMIN_URL;
+  if (ownerUrl === undefined) throw new Error("TEST_DATABASE_ADMIN_URL is required");
+  const owner = new pg.Client({ connectionString: ownerUrl });
+  const [source, target] = [randomUUID(), randomUUID()];
+  try {
+    await owner.connect();
+    await owner.query(`INSERT INTO org.user_settings(user_id, paywall_last_shown_at, paywall_periodic_shown_at)
+      VALUES ($1, '2026-10-02T00:00:00Z', '2026-10-02T00:00:00Z'), ($2, '2026-10-03T00:00:00Z', NULL)`, [source, target]);
+    await owner.query(retire, [source, target, randomUUID()]);
+    const row = (await owner.query(`SELECT paywall_last_shown_at, paywall_periodic_shown_at
+      FROM org.user_settings WHERE user_id = $1`, [target])).rows[0];
+    assert.equal(new Date(row.paywall_last_shown_at).toISOString(), "2026-10-03T00:00:00.000Z");
+    assert.equal(new Date(row.paywall_periodic_shown_at).toISOString(), "2026-10-02T00:00:00.000Z");
+  } finally {
+    try {
+      await owner.query("DELETE FROM auth.account_retirements WHERE retired_user_id = $1", [source]);
+      await owner.query("DELETE FROM org.user_settings WHERE user_id = ANY($1::text[])", [[source, target]]);
+    } finally {
+      await owner.end();
+    }
+  }
+});

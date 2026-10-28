@@ -24,6 +24,7 @@ import {
 
 export const catalogInstallFunnelReportLabel = "Deck page to install funnel";
 export const catalogInstallConversionWindowDays = 7;
+export const catalogInstallActivationWindowHours = 24;
 
 /**
  * The first UTC day deck page views count from, whatever range is selected. The site began sending
@@ -32,35 +33,24 @@ export const catalogInstallConversionWindowDays = 7;
 export const catalogInstallFunnelStartDate = "2026-09-23";
 
 export const catalogInstallPlacements = ["top", "middle", "bottom"] as const;
-export const catalogInstallSources = [
-  "direct",
-  "search",
-  "social",
-  "referral",
-  "internal",
-  "unknown",
-] as const;
-export const catalogInstallDeviceCategories = [
-  "desktop",
-  "mobile",
-  "tablet",
-  "unknown",
-] as const;
 export type CatalogInstallPlacement = (typeof catalogInstallPlacements)[number];
-export type CatalogInstallSource = (typeof catalogInstallSources)[number];
-export type CatalogInstallDeviceCategory = (typeof catalogInstallDeviceCategories)[number];
 
-/** One count per step, as `buildCatalogInstallFunnelSql` defines them. */
 export type CatalogInstallFunnelReport = Readonly<{
+  observedAtUtc: string;
   deckPageViewerCount: number;
   installClickerCount: number;
   installerCount: number;
-  oneReviewInstallerCount: number;
-  twoReviewsInstallerCount: number;
-  twoReviewDaysInstallerCount: number;
-  engagedReturningInstallerCount: number;
-  /** Installers whose first install in range is younger than the window, so their review steps are still filling in. */
-  maturingInstallerCount: number;
+  cookielessDeckPageViewerCount: number;
+  cookielessInstallClickerCount: number;
+  cohortClickerCount: number;
+  attributedInstallerCount: number;
+  activatedClickerCount: number;
+  maturingClickerCount: number;
+  matureRepeatClickerCount: number;
+  oneReviewClickerCount: number;
+  twoReviewsClickerCount: number;
+  twoReviewDaysClickerCount: number;
+  engagedReturningClickerCount: number;
 }>;
 
 export type CatalogInstallFunnelRange = Readonly<{
@@ -68,12 +58,6 @@ export type CatalogInstallFunnelRange = Readonly<{
   to: string;
 }>;
 
-/**
- * An identified view of a deck's marketing-site page, as `AND`-joined predicates on `rowAlias`. The
- * site reports its facts only through the credential-free collector, under the visitor cookie, and
- * sends `package_version_id` only on a `catalog_package` page; a browser that refused consent resolves
- * to a NULL actor.
- */
 function buildDeckPageViewSql(rowAlias: string): string {
   return [
     `${rowAlias}.event_name = 'site_page_viewed'`,
@@ -94,14 +78,16 @@ export function buildCatalogInstallFunnelAvailableRangeSql(): string {
     "  ) AS from_date,",
     "  to_char((now() AT TIME ZONE 'UTC')::date, 'YYYY-MM-DD') AS to_date",
     "FROM analytics.product_events_resolved AS resolved",
-    `WHERE ${buildDeckPageViewSql("resolved")}`,
+    `WHERE (${buildDeckPageViewSql("resolved")})`,
+    "  OR (resolved.event_name = 'catalog_install_clicked'",
+    "    AND resolved.origin = 'client' AND resolved.trust_level = 'anonymous_client'",
+    "    AND resolved.platform = 'web' AND resolved.actor_id IS NOT NULL",
+    "    AND resolved.anonymous_id IS NOT NULL",
+    "    AND resolved.anonymous_id::text IS DISTINCT FROM resolved.event_properties ->> 'install_journey_id'",
+    "    AND NULLIF(resolved.event_properties ->> 'package_version_id', '') IS NOT NULL)",
   ].join("\n");
 }
 
-/**
- * The two marketing-site steps, a deck page view and an install click, as one predicate on
- * `rowAlias`, each naming its deck version. Only a `catalog_package` page names a deck.
- */
 function buildSiteStepRowSql(rowAlias: string): string {
   return [
     "(",
@@ -129,10 +115,6 @@ function buildTestDeckFilterSqlLines(packageVersionIdSqlExpression: string): Rea
   ];
 }
 
-/**
- * The rules an identified row's actor answers: the shared exclusion rule, and the connection country
- * and app interface language, which keep an actor the way they keep a person on General.
- */
 function buildActorFilterSqlLines(
   actorIdSqlExpression: string,
   filters: AnalyticsFilterState,
@@ -144,30 +126,6 @@ function buildActorFilterSqlLines(
   ];
 }
 
-/**
- * A cohort membership test, as an uncorrelated subquery rather than a correlation.
- *
- * `analytics.product_events_resolved.actor_id` is
- * `COALESCE(first_guest_upgrade_link.user_id, product_events.user_id, first_anonymous_link.user_id,
- * product_events.anonymous_id)` over two `LEFT JOIN`ed `DISTINCT ON` subqueries
- * (`db/migrations/0137_audience_context.sql`), so an equality on it can never become an index qual and
- * can never be pushed below those joins: one comparison against it is one full pass of that view. So
- * a relation keyed on identity must never be computed per row. This is the same `= ANY (ARRAY(...))`
- * that `buildSubqueryMembershipSql` in `apps/admin/src/filters/filterSql.ts` uses and for the same
- * reason - the subquery is uncorrelated, so the planner evaluates it once as an InitPlan instead of
- * re-running it per row of a CTE it has no statistics for, which is what takes a report past the 30s
- * `reporting_readonly` statement timeout and fails every statement of the page with it.
- */
-function buildActorMembershipSql(relationName: string, actorIdSqlExpression: string): string {
-  return [
-    `${actorIdSqlExpression} = ANY (ARRAY(`,
-    `  SELECT ${relationName}.actor_id`,
-    `  FROM ${relationName}`,
-    "))",
-  ].join("\n");
-}
-
-/** One site step's distinct identities: identified actors plus cookieless visitors, two disjoint sets. */
 function buildSiteStepCountSql(eventName: string): string {
   return [
     "  (",
@@ -185,30 +143,18 @@ function buildSiteStepCountSql(eventName: string): string {
 }
 
 /**
- * One row of step counts over the selected UTC days from `catalogInstallFunnelStartDate` on.
- *
- * THE FIRST THREE STEPS ARE EACH COUNTED ON THEIR OWN: no identity link, order or time window joins
- * them, so a later step can exceed an earlier one. Most visitors carry no stable identity - a
- * cookieless view and click arrive under a daily hash, and the install that follows names a fresh web
- * guest - so linking the steps would lose those installs. A site step counts the row's `actor_id`, or
- * for a cookieless row its daily hash on that hash's salt day. The install step counts the actors of server-origin `catalog_deck_installed`; every install comes
- * through the web import page, the only caller of the install route, so no entry path is required.
- *
- * ONLY THE REVIEW STEPS ARE LINKED, to the installer: their `review_answered` rows from their first
- * install in range to `catalogInstallConversionWindowDays` after it. `review_answered` names no deck
- * or card, so these are the person's reviews anywhere in the product, never deck-level retention.
- *
- * The client platform narrows only the site rows; a server install carries none, so it narrows
- * neither the install nor the review steps.
+ * First-ever eligible clicks are selected before the range and audience filters. Follow-up is
+ * local to that click's browser: guest observations never create a global identity link.
  */
 export function buildCatalogInstallFunnelSql(filters: AnalyticsFilterState): string {
   const { from: selectedFrom, to } = assertValidDateRange(filters.dateRange, catalogInstallFunnelReportLabel);
-  // A range ending before the start date leaves `from` after `to`, so nothing counts.
   const from = laterCalendarDate(selectedFrom, catalogInstallFunnelStartDate);
-  const rangeStartSql = `(${escapeSqlStringLiteral(from)}::date)::timestamp AT TIME ZONE 'UTC'`;
+  const rangeStartSql = `(${escapeSqlStringLiteral(selectedFrom)}::date)::timestamp AT TIME ZONE 'UTC'`;
+  const coverageStartSql = `(${escapeSqlStringLiteral(from)}::date)::timestamp AT TIME ZONE 'UTC'`;
   const rangeEndSql = `(${escapeSqlStringLiteral(to)}::date + INTERVAL '1 day')::timestamp AT TIME ZONE 'UTC'`;
-  const reviewWindowEndSql = `(${escapeSqlStringLiteral(to)}::date + INTERVAL '${catalogInstallConversionWindowDays + 1} days')::timestamp AT TIME ZONE 'UTC'`;
-  const windowSql = `INTERVAL '${catalogInstallConversionWindowDays} days'`;
+  const followUpEndSql = `(${escapeSqlStringLiteral(to)}::date + INTERVAL '${catalogInstallConversionWindowDays + 1} days')::timestamp AT TIME ZONE 'UTC'`;
+  const repeatWindowSql = `INTERVAL '${catalogInstallConversionWindowDays} days'`;
+  const activationWindowSql = `INTERVAL '${catalogInstallActivationWindowHours} hours'`;
   const platformSql = "COALESCE(site_row.platform, 'unattributed')";
 
   return [
@@ -219,7 +165,7 @@ export function buildCatalogInstallFunnelSql(filters: AnalyticsFilterState): str
     "    AND site_row.origin = 'client'",
     "    AND site_row.trust_level = 'anonymous_client'",
     "    AND site_row.actor_id IS NOT NULL",
-    `    AND site_row.occurred_at >= ${rangeStartSql}`,
+    `    AND site_row.occurred_at >= ${coverageStartSql}`,
     `    AND site_row.occurred_at < ${rangeEndSql}`,
     `    AND ${buildEventPlatformsFilterSql(platformSql, filters.eventPlatforms)}`,
     ...buildTestDeckFilterSqlLines("site_row.event_properties ->> 'package_version_id'"),
@@ -241,44 +187,130 @@ export function buildCatalogInstallFunnelSql(filters: AnalyticsFilterState): str
     "  WHERE install.event_name = 'catalog_deck_installed'",
     "    AND install.origin = 'server'",
     "    AND install.actor_id IS NOT NULL",
-    `    AND install.occurred_at >= ${rangeStartSql}`,
+    `    AND install.occurred_at >= ${coverageStartSql}`,
     `    AND install.occurred_at < ${rangeEndSql}`,
     ...buildTestDeckFilterSqlLines("install.event_properties ->> 'package_version_id'"),
     ...buildActorFilterSqlLines("install.actor_id::text", filters),
     "  GROUP BY install.actor_id",
-    // Bounded by the widest window any installer can ask for, so one pass serves all of them.
-    "), installer_reviews AS MATERIALIZED (",
-    "  SELECT review.actor_id, review.occurred_at",
+    "), first_clicks AS MATERIALIZED (",
+    "  SELECT DISTINCT ON (click.actor_id)",
+    "    click.actor_id, click.anonymous_id, click.occurred_at AS clicked_at, click.platform,",
+    "    click.event_properties ->> 'package_version_id' AS package_version_id",
+    "  FROM analytics.product_events_resolved AS click",
+    "  WHERE click.event_name = 'catalog_install_clicked'",
+    "    AND click.origin = 'client'",
+    "    AND click.trust_level = 'anonymous_client'",
+    "    AND click.platform = 'web'",
+    "    AND click.actor_id IS NOT NULL",
+    "    AND click.anonymous_id IS NOT NULL",
+    "    AND click.anonymous_id::text IS DISTINCT FROM click.event_properties ->> 'install_journey_id'",
+    "    AND NULLIF(click.event_properties ->> 'package_version_id', '') IS NOT NULL",
+    `    AND click.occurred_at < LEAST(${rangeEndSql}, now())`,
+    ...buildTestDeckFilterSqlLines("click.event_properties ->> 'package_version_id'"),
+    "  ORDER BY click.actor_id, click.occurred_at, click.event_id",
+    "), cohort AS MATERIALIZED (",
+    "  SELECT click.*",
+    "  FROM first_clicks AS click",
+    `  WHERE click.clicked_at >= ${rangeStartSql}`,
+    `    AND ${buildEventPlatformsFilterSql("click.platform", filters.eventPlatforms)}`,
+    ...buildActorFilterSqlLines("click.actor_id::text", filters),
+    "), browser_observations AS MATERIALIZED (",
+    "  SELECT observation.actor_id, observation.anonymous_id, observation.occurred_at,",
+    "    observation.origin, observation.event_properties ->> 'package_version_id' AS package_version_id",
+    "  FROM analytics.product_events_resolved AS observation",
+    // Uncorrelated membership avoids a pass over the resolved view per cohort member.
+    "  WHERE observation.anonymous_id = ANY (ARRAY(SELECT anonymous_id FROM cohort))",
+    "    AND observation.actor_id IS NOT NULL",
+    `    AND observation.occurred_at >= ${rangeStartSql}`,
+    `    AND observation.occurred_at < LEAST(${followUpEndSql}, now())`,
+    "    AND (",
+    "      (observation.origin = 'client' AND observation.platform = 'web'",
+    "        AND observation.trust_level IN ('guest_client', 'authenticated_client'))",
+    "      OR (observation.origin = 'server' AND observation.event_name = 'catalog_deck_installed')",
+    "    )",
+    ...buildExcludedActorSqlLines("observation.actor_id::text"),
+    "), actor_associations AS MATERIALIZED (",
+    "  SELECT click_actor, study_actor, MIN(observed_at) AS observed_at",
+    "  FROM (",
+    "    SELECT actor_id AS click_actor, actor_id AS study_actor, clicked_at AS observed_at FROM cohort",
+    "    UNION ALL",
+    "    SELECT click.actor_id, observation.actor_id, observation.occurred_at",
+    "    FROM cohort AS click",
+    "    INNER JOIN browser_observations AS observation",
+    "      ON observation.anonymous_id = click.anonymous_id",
+    "      AND observation.occurred_at >= click.clicked_at",
+    `      AND observation.occurred_at <= click.clicked_at + ${repeatWindowSql}`,
+    "      AND (observation.origin = 'client' OR observation.package_version_id = click.package_version_id)",
+    "  ) AS associations",
+    "  GROUP BY click_actor, study_actor",
+    "), install_rows AS MATERIALIZED (",
+    "  SELECT install.actor_id, install.occurred_at,",
+    "    install.event_properties ->> 'package_version_id' AS package_version_id",
+    "  FROM analytics.product_events_resolved AS install",
+    "  WHERE install.event_name = 'catalog_deck_installed' AND install.origin = 'server'",
+    "    AND install.actor_id = ANY (ARRAY(SELECT study_actor FROM actor_associations))",
+    `    AND install.occurred_at >= ${rangeStartSql}`,
+    `    AND install.occurred_at < LEAST(${followUpEndSql}, now())`,
+    ...buildExcludedActorSqlLines("install.actor_id::text"),
+    "), attributed_installs AS MATERIALIZED (",
+    "  SELECT click.actor_id, MIN(install.occurred_at) AS installed_at",
+    "  FROM cohort AS click",
+    "  INNER JOIN actor_associations AS association ON association.click_actor = click.actor_id",
+    `    AND association.observed_at <= click.clicked_at + ${activationWindowSql}`,
+    "  INNER JOIN install_rows AS install ON install.actor_id = association.study_actor",
+    "    AND install.package_version_id = click.package_version_id",
+    "    AND install.occurred_at >= click.clicked_at",
+    `    AND install.occurred_at <= click.clicked_at + ${activationWindowSql}`,
+    "  GROUP BY click.actor_id",
+    "), review_rows AS MATERIALIZED (",
+    "  SELECT review.event_id, review.actor_id, review.occurred_at",
     "  FROM analytics.product_events_resolved AS review",
     "  WHERE review.event_name = 'review_answered'",
-    `    AND ${buildActorMembershipSql("installers", "review.actor_id")}`,
+    "    AND review.trust_level IN ('server_derived', 'backfill_derived')",
+    "    AND review.actor_id = ANY (ARRAY(SELECT study_actor FROM actor_associations))",
     `    AND review.occurred_at >= ${rangeStartSql}`,
-    `    AND review.occurred_at < ${reviewWindowEndSql}`,
-    "), installer_engagement AS (",
-    "  SELECT",
-    "    COUNT(review.occurred_at)::int AS review_count,",
-    "    COUNT(DISTINCT (review.occurred_at AT TIME ZONE 'UTC')::date)::int AS review_day_count",
-    "  FROM installers AS installer",
-    "  INNER JOIN installer_reviews AS review",
-    "    ON review.actor_id = installer.actor_id",
-    "    AND review.occurred_at >= installer.first_installed_at",
-    `    AND review.occurred_at <= installer.first_installed_at + ${windowSql}`,
-    "  GROUP BY installer.actor_id",
+    `    AND review.occurred_at < LEAST(${followUpEndSql}, now())`,
+    ...buildExcludedActorSqlLines("review.actor_id::text"),
+    "), outcomes AS MATERIALIZED (",
+    "  SELECT click.actor_id,",
+    `    click.clicked_at + ${activationWindowSql} > now() AS maturing24,`,
+    `    click.clicked_at + ${repeatWindowSql} <= now() AS mature7,`,
+    "    install.installed_at IS NOT NULL AS installed24,",
+    "    COUNT(DISTINCT review.event_id) FILTER (",
+    `      WHERE association.observed_at <= click.clicked_at + ${activationWindowSql}`,
+    "        AND review.occurred_at >= install.installed_at",
+    `        AND review.occurred_at <= click.clicked_at + ${activationWindowSql}`,
+    "    ) > 0 AS activated24,",
+    "    COUNT(DISTINCT review.event_id)::int AS review_count7,",
+    "    COUNT(DISTINCT (review.occurred_at AT TIME ZONE 'UTC')::date)::int AS review_days7",
+    "  FROM cohort AS click",
+    "  LEFT JOIN attributed_installs AS install ON install.actor_id = click.actor_id",
+    "  LEFT JOIN actor_associations AS association ON association.click_actor = click.actor_id",
+    "  LEFT JOIN review_rows AS review ON review.actor_id = association.study_actor",
+    "    AND review.occurred_at >= click.clicked_at",
+    `    AND review.occurred_at <= click.clicked_at + ${repeatWindowSql}`,
+    "  GROUP BY click.actor_id, click.clicked_at, install.installed_at",
     ")",
     "SELECT",
+    "  to_char(now() AT TIME ZONE 'UTC', 'YYYY-MM-DD HH24:MI:SS') || ' UTC' AS observed_at_utc,",
     `${buildSiteStepCountSql("site_page_viewed")} AS deck_page_viewer_count,`,
     `${buildSiteStepCountSql("catalog_install_clicked")} AS install_clicker_count,`,
     "  (SELECT COUNT(*) FROM installers)::int AS installer_count,",
-    "  (SELECT COUNT(*) FROM installer_engagement WHERE review_count >= 1)::int AS one_review_count,",
-    "  (SELECT COUNT(*) FROM installer_engagement WHERE review_count >= 2)::int AS two_reviews_count,",
-    "  (SELECT COUNT(*) FROM installer_engagement WHERE review_day_count >= 2)::int AS two_review_days_count,",
-    "  (",
-    "    SELECT COUNT(*)",
-    "    FROM installer_engagement",
-    `    WHERE review_count >= ${firstLaunchEngagedReviewThreshold}`,
-    "      AND review_day_count >= 3",
-    "  )::int AS engaged_returning_count,",
-    `  (SELECT COUNT(*) FROM installers WHERE first_installed_at + ${windowSql} > now())::int AS maturing_installer_count`,
+    "  (SELECT COUNT(DISTINCT (daily_visitor_hash, visitor_day)) FROM hashed_site_rows",
+    "    WHERE event_name = 'site_page_viewed')::int AS cookieless_deck_page_viewer_count,",
+    "  (SELECT COUNT(DISTINCT (daily_visitor_hash, visitor_day)) FROM hashed_site_rows",
+    "    WHERE event_name = 'catalog_install_clicked')::int AS cookieless_install_clicker_count,",
+    "  COUNT(*)::int AS cohort_clicker_count,",
+    "  COUNT(*) FILTER (WHERE installed24)::int AS attributed_installer_count,",
+    "  COUNT(*) FILTER (WHERE activated24)::int AS activated_clicker_count,",
+    "  COUNT(*) FILTER (WHERE maturing24)::int AS maturing_clicker_count,",
+    "  COUNT(*) FILTER (WHERE mature7)::int AS mature_repeat_clicker_count,",
+    "  COUNT(*) FILTER (WHERE mature7 AND review_count7 >= 1)::int AS one_review_clicker_count,",
+    "  COUNT(*) FILTER (WHERE mature7 AND review_count7 >= 2)::int AS two_reviews_clicker_count,",
+    "  COUNT(*) FILTER (WHERE mature7 AND review_days7 >= 2)::int AS two_review_days_clicker_count,",
+    `  COUNT(*) FILTER (WHERE mature7 AND review_count7 >= ${firstLaunchEngagedReviewThreshold}`,
+    "    AND review_days7 >= 3)::int AS engaged_returning_clicker_count",
+    "FROM outcomes",
   ].join("\n");
 }
 
@@ -335,13 +367,20 @@ export async function loadCatalogInstallFunnelReport(
     toInteger(row[fieldName] ?? null, catalogInstallFunnelReportLabel, fieldName)
   );
   return {
+    observedAtUtc: assertIsString(row.observed_at_utc ?? null, catalogInstallFunnelReportLabel, "observed_at_utc"),
     deckPageViewerCount: count("deck_page_viewer_count"),
     installClickerCount: count("install_clicker_count"),
     installerCount: count("installer_count"),
-    oneReviewInstallerCount: count("one_review_count"),
-    twoReviewsInstallerCount: count("two_reviews_count"),
-    twoReviewDaysInstallerCount: count("two_review_days_count"),
-    engagedReturningInstallerCount: count("engaged_returning_count"),
-    maturingInstallerCount: count("maturing_installer_count"),
+    cookielessDeckPageViewerCount: count("cookieless_deck_page_viewer_count"),
+    cookielessInstallClickerCount: count("cookieless_install_clicker_count"),
+    cohortClickerCount: count("cohort_clicker_count"),
+    attributedInstallerCount: count("attributed_installer_count"),
+    activatedClickerCount: count("activated_clicker_count"),
+    maturingClickerCount: count("maturing_clicker_count"),
+    matureRepeatClickerCount: count("mature_repeat_clicker_count"),
+    oneReviewClickerCount: count("one_review_clicker_count"),
+    twoReviewsClickerCount: count("two_reviews_clicker_count"),
+    twoReviewDaysClickerCount: count("two_review_days_clicker_count"),
+    engagedReturningClickerCount: count("engaged_returning_clicker_count"),
   };
 }

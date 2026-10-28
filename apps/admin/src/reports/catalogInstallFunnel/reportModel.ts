@@ -1,18 +1,8 @@
 import type { FunnelAnchor } from "../funnels/funnelAnchorUrl";
 import type { FunnelStage } from "../funnels/FunnelStepsChart";
-import { firstLaunchEngagedReviewThreshold } from "../firstLaunchFunnel/query";
 import type { CatalogInstallFunnelReport } from "./query";
 
-const funnelMainStepIds = [
-  "deck-page-view",
-  "install-click",
-  "installed",
-  "one-review",
-  "two-reviews",
-  "two-review-days",
-  "engaged-returning",
-] as const;
-
+const funnelMainStepIds = ["install-click", "installed", "one-review"] as const;
 type FunnelMainStepId = (typeof funnelMainStepIds)[number];
 
 export const catalogInstallFunnelAnchor: FunnelAnchor<FunnelMainStepId> = {
@@ -25,32 +15,15 @@ export type CatalogInstallFunnelReportModel = Readonly<{
   hasEntries: boolean;
 }>;
 
-function buildMainStages(report: CatalogInstallFunnelReport): ReadonlyArray<FunnelStage<FunnelMainStepId>> {
-  // Keyed by id, so the compiler demands every step exactly once; the order comes from `funnelMainStepIds`,
-  // which is also where the URL codec reads its default, the first step.
-  const steps: Readonly<Record<FunnelMainStepId, Readonly<{ label: string; count: number }>>> = {
-    "deck-page-view": { label: "Viewed any deck page", count: report.deckPageViewerCount },
-    "install-click": { label: "Install clicked", count: report.installClickerCount },
-    installed: { label: "Installed (server)", count: report.installerCount },
-    "one-review": { label: "1+ review", count: report.oneReviewInstallerCount },
-    "two-reviews": { label: "2+ reviews", count: report.twoReviewsInstallerCount },
-    "two-review-days": { label: "Reviews on 2+ days", count: report.twoReviewDaysInstallerCount },
-    "engaged-returning": {
-      label: `${firstLaunchEngagedReviewThreshold}+ reviews on 3+ days`,
-      count: report.engagedReturningInstallerCount,
-    },
-  };
-
-  return funnelMainStepIds.map((id) => ({ id, ...steps[id] }));
-}
-
 export function buildCatalogInstallFunnelReportModel(
   report: CatalogInstallFunnelReport,
 ): CatalogInstallFunnelReportModel {
-  const mainStages = buildMainStages(report);
   return {
-    mainStages,
-    // The steps are counted independently, so any of them can hold people while the first is empty.
-    hasEntries: mainStages.some((stage) => stage.count > 0),
+    mainStages: [
+      { id: "install-click", label: "First-ever identified click", count: report.cohortClickerCount },
+      { id: "installed", label: "Clicked deck installed ≤24h", count: report.attributedInstallerCount },
+      { id: "one-review", label: "Then 1+ review ≤24h", count: report.activatedClickerCount },
+    ],
+    hasEntries: report.cohortClickerCount > 0,
   };
 }

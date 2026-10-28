@@ -1,9 +1,11 @@
-import type { AnalyticsDateRange } from "../../filters/analyticsFilters";
+import type { AnalyticsDateRange, SiteVisitorFilterState } from "../../filters/analyticsFilters";
 import {
   parseDateRange,
   parseProvisionalDateRange,
+  parseSiteVisitorFilterState,
   readSingleParam,
   setDateRangeParams,
+  setSiteVisitorFilterParams,
 } from "../../filters/analyticsFiltersUrl";
 import { findReportPeriod, type ReportPeriod } from "./reportPeriod";
 
@@ -11,7 +13,12 @@ import { findReportPeriod, type ReportPeriod } from "./reportPeriod";
 // link or a move between them keeps it. Like the shared filter codec, writing omits a default and
 // reading falls back to it for a missing or malformed parameter.
 
-export type LevelOneMetricsSelection = Readonly<{ dateRange: AnalyticsDateRange; period: ReportPeriod }>;
+export type LevelOneMetricsSelection = Readonly<{
+  dateRange: AnalyticsDateRange;
+  period: ReportPeriod;
+  /** Applied on the Web engaged page only, and carried by every Level 1 page so a move keeps them. */
+  siteFilters: SiteVisitorFilterState;
+}>;
 
 const periodParamName = "period";
 
@@ -31,6 +38,7 @@ export function parseLevelOneMetricsSelection(
   return {
     dateRange: parseDateRange(searchParams, availableRange, defaultRange),
     period: parsePeriod(searchParams),
+    siteFilters: parseSiteVisitorFilterState(searchParams),
   };
 }
 
@@ -43,6 +51,7 @@ export function parseProvisionalLevelOneMetricsSelection(
   return {
     dateRange: parseProvisionalDateRange(searchParams, todayUtc) ?? provisionalDefaultRange,
     period: parsePeriod(searchParams),
+    siteFilters: parseSiteVisitorFilterState(searchParams),
   };
 }
 
@@ -53,6 +62,7 @@ export function buildLevelOneMetricsSearch(
 ): string {
   const searchParams = new URLSearchParams();
   setDateRangeParams(searchParams, selection.dateRange, defaultRange);
+  setSiteVisitorFilterParams(searchParams, selection.siteFilters);
   if (selection.period !== defaultLevelOneMetricsPeriod) {
     searchParams.set(periodParamName, selection.period);
   }

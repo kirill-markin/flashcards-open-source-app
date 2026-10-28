@@ -15,11 +15,7 @@ import {
 import type { UserColorScale } from "../dashboard/userColors";
 import { ExplanationTip } from "../explanations/ExplanationTip";
 import { AdminLink } from "../navigation/AdminLink";
-import type {
-  CatalogInstallDeviceCategory,
-  CatalogInstallPlacement,
-  CatalogInstallSource,
-} from "../reports/catalogInstallFunnel/query";
+import type { CatalogInstallPlacement } from "../reports/catalogInstallFunnel/query";
 import { getUserPath, type AnalyticsArea } from "../routing";
 import {
   analyticsThresholdEventTypeLabels,
@@ -29,14 +25,18 @@ import {
   getAnalyticsFilterFieldExplanation,
   getAnalyticsFilterFieldLabel,
   parseAcceptedMinimumCount,
+  siteDeviceCategories,
+  siteSources,
   type AnalyticsDateRange,
   type AnalyticsFilterField,
   type AnalyticsFilterState,
   type AnalyticsMinimumEventCount,
   type AnalyticsThresholdEventType,
+  type SiteDeviceCategory,
+  type SiteSource,
 } from "./analyticsFilters";
 import { DateRangeCalendar, type DateRangeCalendarRange } from "./DateRangeCalendar";
-import type { CatalogDeckOption } from "./optionsQuery";
+import type { CatalogDeckOption, SiteVisitorFilterOptions } from "./optionsQuery";
 import {
   buildActiveUserFilters,
   buildSearchableUserFilterOptions,
@@ -79,6 +79,9 @@ const optionListFields: ReadonlySet<AnalyticsFilterField> = new Set<AnalyticsFil
   "catalogSources",
   "catalogDeviceCategories",
   "catalogClickBrowserLanguages",
+  "siteCountries",
+  "siteBrowserLanguages",
+  "sitePageKinds",
 ]);
 // The fields picked on the calendar, which is bounded by the available range.
 const dateRangeFields: ReadonlySet<AnalyticsFilterField> = new Set<AnalyticsFilterField>([
@@ -129,9 +132,11 @@ type AnalyticsFilterBarProps = Readonly<{
    */
   catalogDeckOptions: ReadonlyArray<CatalogDeckOption>;
   catalogPlacementOptions: ReadonlyArray<CatalogInstallPlacement>;
-  catalogSourceOptions: ReadonlyArray<CatalogInstallSource>;
-  catalogDeviceCategoryOptions: ReadonlyArray<CatalogInstallDeviceCategory>;
+  catalogSourceOptions: ReadonlyArray<SiteSource>;
+  catalogDeviceCategoryOptions: ReadonlyArray<SiteDeviceCategory>;
   catalogClickBrowserLanguageOptions: ReadonlyArray<string>;
+  /** What the Web engaged page's data-driven site fields offer, scoped to the range like `userOptions`. */
+  siteVisitorOptions: SiteVisitorFilterOptions;
   /** The option lists have not arrived yet, so every field that picks from them is disabled. */
   areOptionListsLoading: boolean;
   userColorScale: UserColorScale;
@@ -1248,6 +1253,81 @@ export function AnalyticsFilterBar(props: AnalyticsFilterBarProps): JSX.Element 
         onSelectionChange: (catalogClickBrowserLanguages) => props.onFiltersChange({
           ...props.filters,
           catalogClickBrowserLanguages,
+        }),
+      });
+    }
+
+    if (field === "siteDeviceCategories") {
+      return buildOptionFieldView({
+        selectedValues: props.filters.siteDeviceCategories,
+        options: siteDeviceCategories.map(toPlainOptionChoice),
+        defaultValues: defaultFilters.siteDeviceCategories,
+        everyValueSummary: "Every device",
+        emptyOptionsMessage: "No device category is defined.",
+        resetLabel: "Select every device",
+        onSelectionChange: (selectedDeviceCategories) => props.onFiltersChange({
+          ...props.filters,
+          siteDeviceCategories: selectedDeviceCategories,
+        }),
+      });
+    }
+
+    if (field === "siteSources") {
+      return buildOptionFieldView({
+        selectedValues: props.filters.siteSources,
+        options: siteSources.map(toPlainOptionChoice),
+        defaultValues: defaultFilters.siteSources,
+        everyValueSummary: "Every source",
+        emptyOptionsMessage: "No traffic source is defined.",
+        resetLabel: "Select every source",
+        onSelectionChange: (selectedSources) => props.onFiltersChange({
+          ...props.filters,
+          siteSources: selectedSources,
+        }),
+      });
+    }
+
+    if (field === "siteCountries") {
+      return buildOptionFieldView({
+        selectedValues: props.filters.siteCountries,
+        options: props.siteVisitorOptions.siteCountries.map(toPlainOptionChoice),
+        defaultValues: defaultFilters.siteCountries,
+        everyValueSummary: "Every country",
+        emptyOptionsMessage: "No page view in this range.",
+        resetLabel: "Select every country",
+        onSelectionChange: (siteCountries) => props.onFiltersChange({
+          ...props.filters,
+          siteCountries,
+        }),
+      });
+    }
+
+    if (field === "siteBrowserLanguages") {
+      return buildOptionFieldView({
+        selectedValues: props.filters.siteBrowserLanguages,
+        options: props.siteVisitorOptions.siteBrowserLanguages.map(toPlainOptionChoice),
+        defaultValues: defaultFilters.siteBrowserLanguages,
+        everyValueSummary: "Every browser language",
+        emptyOptionsMessage: "No page view in this range.",
+        resetLabel: "Select every browser language",
+        onSelectionChange: (siteBrowserLanguages) => props.onFiltersChange({
+          ...props.filters,
+          siteBrowserLanguages,
+        }),
+      });
+    }
+
+    if (field === "sitePageKinds") {
+      return buildOptionFieldView({
+        selectedValues: props.filters.sitePageKinds,
+        options: props.siteVisitorOptions.sitePageKinds.map(toPlainOptionChoice),
+        defaultValues: defaultFilters.sitePageKinds,
+        everyValueSummary: "Every page type",
+        emptyOptionsMessage: "No page view in this range.",
+        resetLabel: "Select every page type",
+        onSelectionChange: (sitePageKinds) => props.onFiltersChange({
+          ...props.filters,
+          sitePageKinds,
         }),
       });
     }

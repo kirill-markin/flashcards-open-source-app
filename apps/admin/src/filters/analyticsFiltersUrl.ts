@@ -4,24 +4,23 @@ import {
   type ReviewEventCohort,
   type ReviewEventPlatform,
 } from "../adminApi";
-import {
-  catalogInstallDeviceCategories,
-  catalogInstallPlacements,
-  catalogInstallSources,
-  type CatalogInstallDeviceCategory,
-  type CatalogInstallPlacement,
-  type CatalogInstallSource,
-} from "../reports/catalogInstallFunnel/query";
+import { catalogInstallPlacements, type CatalogInstallPlacement } from "../reports/catalogInstallFunnel/query";
 import { buildDefaultReportRange } from "../reports/reportValues";
 import {
   analyticsThresholdEventTypes,
   buildDefaultAnalyticsFilterState,
+  defaultSiteVisitorFilterState,
   isAcceptedMinimumCount,
   parseAcceptedMinimumCount,
+  siteDeviceCategories,
+  siteSources,
   type AnalyticsDateRange,
   type AnalyticsFilterState,
   type AnalyticsMinimumEventCount,
   type AnalyticsThresholdEventType,
+  type SiteDeviceCategory,
+  type SiteSource,
+  type SiteVisitorFilterState,
 } from "./analyticsFilters";
 
 // The URL codec for `AnalyticsFilterState`. The selection lives in the query string, so a reload or a
@@ -59,6 +58,11 @@ const catalogPlacementsParamName = "placements";
 const catalogSourcesParamName = "sources";
 const catalogDeviceCategoriesParamName = "device-categories";
 const catalogClickBrowserLanguagesParamName = "click-languages";
+const siteDeviceCategoriesParamName = "site-devices";
+const siteSourcesParamName = "site-sources";
+const siteCountriesParamName = "site-countries";
+const siteBrowserLanguagesParamName = "site-languages";
+const sitePageKindsParamName = "site-page-types";
 
 const listSeparator = ",";
 const minimumEventCountSeparator = ":";
@@ -230,13 +234,61 @@ export function normalizeAnalyticsFilterState(state: AnalyticsFilterState): Anal
     appUiLanguages: normalizeOpaqueList(state.appUiLanguages),
     installedDecks: normalizeOpaqueList(state.installedDecks),
     catalogPlacements: normalizeEnumList(state.catalogPlacements, catalogInstallPlacements),
-    catalogSources: normalizeEnumList(state.catalogSources, catalogInstallSources),
-    catalogDeviceCategories: normalizeEnumList(
-      state.catalogDeviceCategories,
-      catalogInstallDeviceCategories,
-    ),
+    catalogSources: normalizeEnumList(state.catalogSources, siteSources),
+    catalogDeviceCategories: normalizeEnumList(state.catalogDeviceCategories, siteDeviceCategories),
     catalogClickBrowserLanguages: normalizeOpaqueList(state.catalogClickBrowserLanguages),
+    ...normalizeSiteVisitorFilterState(state),
   };
+}
+
+/** The site visitor fields of `normalizeAnalyticsFilterState`, for a selection that holds only those. */
+export function normalizeSiteVisitorFilterState(state: SiteVisitorFilterState): SiteVisitorFilterState {
+  return {
+    siteDeviceCategories: normalizeEnumList(state.siteDeviceCategories, siteDeviceCategories),
+    siteSources: normalizeEnumList(state.siteSources, siteSources),
+    siteCountries: normalizeOpaqueList(state.siteCountries),
+    siteBrowserLanguages: normalizeOpaqueList(state.siteBrowserLanguages),
+    sitePageKinds: normalizeOpaqueList(state.sitePageKinds),
+  };
+}
+
+/** Writes the site visitor fields that differ from their default; `parseSiteVisitorFilterState` reads them back. */
+export function setSiteVisitorFilterParams(
+  searchParams: URLSearchParams,
+  state: SiteVisitorFilterState,
+): void {
+  setEnumListParam(
+    searchParams,
+    siteDeviceCategoriesParamName,
+    state.siteDeviceCategories,
+    defaultSiteVisitorFilterState.siteDeviceCategories,
+    siteDeviceCategories,
+  );
+  setEnumListParam(
+    searchParams,
+    siteSourcesParamName,
+    state.siteSources,
+    defaultSiteVisitorFilterState.siteSources,
+    siteSources,
+  );
+  setOpaqueListParam(
+    searchParams,
+    siteCountriesParamName,
+    state.siteCountries,
+    defaultSiteVisitorFilterState.siteCountries,
+  );
+  setOpaqueListParam(
+    searchParams,
+    siteBrowserLanguagesParamName,
+    state.siteBrowserLanguages,
+    defaultSiteVisitorFilterState.siteBrowserLanguages,
+  );
+  setOpaqueListParam(
+    searchParams,
+    sitePageKindsParamName,
+    state.sitePageKinds,
+    defaultSiteVisitorFilterState.sitePageKinds,
+  );
 }
 
 /** Writes both ends only when the range differs from `defaultDateRange`; `parseDateRange` reads them back. */
@@ -323,14 +375,14 @@ export function toAnalyticsFilterSearchParams(
     catalogSourcesParamName,
     state.catalogSources,
     defaults.catalogSources,
-    catalogInstallSources,
+    siteSources,
   );
   setEnumListParam(
     searchParams,
     catalogDeviceCategoriesParamName,
     state.catalogDeviceCategories,
     defaults.catalogDeviceCategories,
-    catalogInstallDeviceCategories,
+    siteDeviceCategories,
   );
   setOpaqueListParam(
     searchParams,
@@ -338,6 +390,7 @@ export function toAnalyticsFilterSearchParams(
     state.catalogClickBrowserLanguages,
     defaults.catalogClickBrowserLanguages,
   );
+  setSiteVisitorFilterParams(searchParams, state);
 
   return searchParams;
 }
@@ -579,6 +632,39 @@ export function parseProvisionalAnalyticsFilterState(
   );
 }
 
+/** The site visitor fields a query string carries, each at its default when absent or malformed. */
+export function parseSiteVisitorFilterState(searchParams: URLSearchParams): SiteVisitorFilterState {
+  return {
+    siteDeviceCategories: parseEnumList<SiteDeviceCategory>(
+      searchParams,
+      siteDeviceCategoriesParamName,
+      siteDeviceCategories,
+      defaultSiteVisitorFilterState.siteDeviceCategories,
+    ),
+    siteSources: parseEnumList<SiteSource>(
+      searchParams,
+      siteSourcesParamName,
+      siteSources,
+      defaultSiteVisitorFilterState.siteSources,
+    ),
+    siteCountries: parseOpaqueList(
+      searchParams,
+      siteCountriesParamName,
+      defaultSiteVisitorFilterState.siteCountries,
+    ),
+    siteBrowserLanguages: parseOpaqueList(
+      searchParams,
+      siteBrowserLanguagesParamName,
+      defaultSiteVisitorFilterState.siteBrowserLanguages,
+    ),
+    sitePageKinds: parseOpaqueList(
+      searchParams,
+      sitePageKindsParamName,
+      defaultSiteVisitorFilterState.sitePageKinds,
+    ),
+  };
+}
+
 // Every field but the two ranges reads the same whether or not the available range is known.
 function parseAnalyticsFilterStateOnDateRanges(
   searchParams: URLSearchParams,
@@ -617,16 +703,16 @@ function parseAnalyticsFilterStateOnDateRanges(
       catalogInstallPlacements,
       defaults.catalogPlacements,
     ),
-    catalogSources: parseEnumList<CatalogInstallSource>(
+    catalogSources: parseEnumList<SiteSource>(
       searchParams,
       catalogSourcesParamName,
-      catalogInstallSources,
+      siteSources,
       defaults.catalogSources,
     ),
-    catalogDeviceCategories: parseEnumList<CatalogInstallDeviceCategory>(
+    catalogDeviceCategories: parseEnumList<SiteDeviceCategory>(
       searchParams,
       catalogDeviceCategoriesParamName,
-      catalogInstallDeviceCategories,
+      siteDeviceCategories,
       defaults.catalogDeviceCategories,
     ),
     catalogClickBrowserLanguages: parseOpaqueList(
@@ -634,5 +720,6 @@ function parseAnalyticsFilterStateOnDateRanges(
       catalogClickBrowserLanguagesParamName,
       defaults.catalogClickBrowserLanguages,
     ),
+    ...parseSiteVisitorFilterState(searchParams),
   };
 }

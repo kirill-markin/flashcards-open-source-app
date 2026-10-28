@@ -5,14 +5,12 @@ import {
 } from "../adminApi";
 import type { AdminAppConfig } from "../config";
 import { assertIsString, assertValidDateRange, toInteger } from "../reports/reportValues";
+import { catalogInstallPlacements, type CatalogInstallPlacement } from "../reports/catalogInstallFunnel/query";
 import {
-  catalogInstallDeviceCategories,
-  catalogInstallPlacements,
-  catalogInstallSources,
-  type CatalogInstallDeviceCategory,
-  type CatalogInstallPlacement,
-  type CatalogInstallSource,
-} from "../reports/catalogInstallFunnel/query";
+  buildHashedSiteViewRowsSql,
+  buildIdentifiedSiteViewRowsSql,
+  buildSiteVisitorFilterValueSql,
+} from "../reports/whoSawUs/siteFactSql";
 import {
   buildCatalogInstallAttributionSql,
   buildCatalogInstalledDeckVersionsSql,
@@ -22,7 +20,14 @@ import {
 } from "./filterSql";
 import { getUserFilterLabel } from "./userFilters";
 import { escapeSqlStringLiteral } from "../sql";
-import type { AnalyticsDateRange } from "./analyticsFilters";
+import {
+  siteDeviceCategories,
+  siteSources,
+  type AnalyticsDateRange,
+  type SiteDeviceCategory,
+  type SiteSource,
+  type SiteVisitorFilterState,
+} from "./analyticsFilters";
 
 const optionsReportLabel = "Analytics filter options";
 
@@ -42,10 +47,29 @@ export type AnalyticsFilterOptions = Readonly<{
   appUiLanguages: ReadonlyArray<string>;
   catalogDecks: ReadonlyArray<CatalogDeckOption>;
   catalogPlacements: ReadonlyArray<CatalogInstallPlacement>;
-  catalogSources: ReadonlyArray<CatalogInstallSource>;
-  catalogDeviceCategories: ReadonlyArray<CatalogInstallDeviceCategory>;
+  catalogSources: ReadonlyArray<SiteSource>;
+  catalogDeviceCategories: ReadonlyArray<SiteDeviceCategory>;
   catalogClickBrowserLanguages: ReadonlyArray<string>;
 }>;
+
+/** The site visitor fields whose values come from data rather than from a declared vocabulary. */
+const siteVisitorOptionFields = [
+  "siteCountries",
+  "siteBrowserLanguages",
+  "sitePageKinds",
+] as const satisfies ReadonlyArray<keyof SiteVisitorFilterState>;
+
+type SiteVisitorOptionField = (typeof siteVisitorOptionFields)[number];
+
+/** What the Web engaged page's data-driven site fields offer over one date range. */
+export type SiteVisitorFilterOptions = Readonly<Record<SiteVisitorOptionField, ReadonlyArray<string>>>;
+
+/** For every bar that does not offer the site fields. */
+export const noSiteVisitorFilterOptions: SiteVisitorFilterOptions = {
+  siteCountries: [],
+  siteBrowserLanguages: [],
+  sitePageKinds: [],
+};
 
 export type CatalogDeckOption = Readonly<{
   packageVersionId: string;
@@ -365,15 +389,83 @@ export async function loadAnalyticsFilterOptions(
     ),
     catalogSources: buildCatalogAttributionEnumOptions(
       requireResultSet(resultSets, 6, "catalog source"),
-      catalogInstallSources,
+      siteSources,
       "source",
     ),
     catalogDeviceCategories: buildCatalogAttributionEnumOptions(
       requireResultSet(resultSets, 7, "catalog device category"),
-      catalogInstallDeviceCategories,
+      siteDeviceCategories,
       "device_category",
     ),
     catalogClickBrowserLanguages: requireResultSet(resultSets, 8, "catalog click browser language")
       .rows.map((row) => assertIsString(row.option_value ?? null, optionsReportLabel, "device_locale")),
   };
+}
+
+const siteVisitorOptionsReportLabel = "Web engaged filter options";
+
+// Every value the three data-driven site fields can match inside the range, read off every page view
+// any chart of the Web engaged page reads: the traffic categories chart counts the visitors the series
+// drops too, so a value only they carry is still a segment there. Values are read as the charts
+// segment them, so Unknown is offered whenever a view lacks one. Any view offers its values, not only
+// a visitor's first, because finding first views per bucket would cost the whole engagement query
+// for one popover; a value only later views carry matches nobody.
+function buildSiteVisitorFilterOptionsSql(dateRange: AnalyticsDateRange): string {
+  const buildViewValuesSql = (rowAlias: string, rowsSql: string): string => [
+    "  SELECT",
+    siteVisitorOptionFields
+      .map((field) => `    ${buildSiteVisitorFilterValueSql(field, rowAlias)} AS "${field}"`)
+      .join(",\n"),
+    `  FROM analytics.product_events_resolved AS ${rowAlias}`,
+    `  WHERE ${rowsSql}`,
+  ].join("\n");
+
+  return [
+    "WITH site_view_values AS (",
+    buildViewValuesSql("site_view", buildIdentifiedSiteViewRowsSql("site_view", dateRange)),
+    "  UNION ALL",
+    buildViewValuesSql("hashed_view", buildHashedSiteViewRowsSql("hashed_view", dateRange)),
+    ")",
+    "SELECT DISTINCT option_values.field_name, option_values.option_value",
+    "FROM site_view_values",
+    "CROSS JOIN LATERAL (VALUES",
+    siteVisitorOptionFields
+      .map((field) => `  (${escapeSqlStringLiteral(field)}, site_view_values."${field}")`)
+      .join(",\n"),
+    ") AS option_values(field_name, option_value)",
+    "ORDER BY option_values.field_name, option_values.option_value",
+  ].join("\n");
+}
+
+function isSiteVisitorOptionField(value: string): value is SiteVisitorOptionField {
+  return (siteVisitorOptionFields as ReadonlyArray<string>).includes(value);
+}
+
+/** Loaded by the Web engaged page alone, deliberately independent of its current selection. */
+export async function loadSiteVisitorFilterOptions(
+  config: AdminAppConfig,
+  dateRange: AnalyticsDateRange,
+  signal: AbortSignal,
+): Promise<SiteVisitorFilterOptions> {
+  const range = assertValidDateRange(dateRange, siteVisitorOptionsReportLabel);
+  const response = await runAdminQuery(config, buildSiteVisitorFilterOptionsSql(range), signal);
+  const result = response.resultSets[0];
+  if (response.resultSets.length !== 1 || result === undefined) {
+    throw new Error(`${siteVisitorOptionsReportLabel} must return exactly one result set. Got ${response.resultSets.length}.`);
+  }
+
+  const optionsByField: Record<SiteVisitorOptionField, Array<string>> = {
+    siteCountries: [],
+    siteBrowserLanguages: [],
+    sitePageKinds: [],
+  };
+  for (const row of result.rows) {
+    const fieldName = assertIsString(row.field_name ?? null, siteVisitorOptionsReportLabel, "field_name");
+    if (isSiteVisitorOptionField(fieldName) === false) {
+      throw new Error(`${siteVisitorOptionsReportLabel} returned an unknown field_name ${fieldName}.`);
+    }
+    optionsByField[fieldName].push(assertIsString(row.option_value ?? null, siteVisitorOptionsReportLabel, "option_value"));
+  }
+
+  return optionsByField;
 }

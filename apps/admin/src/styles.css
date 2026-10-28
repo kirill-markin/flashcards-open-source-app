@@ -1628,8 +1628,16 @@ h2 {
   cursor: not-allowed;
 }
 
-.landing-page-path-top-pages .funnel-group-table-shell {
+.who-saw-us-top-values .funnel-group-table-shell {
   margin-top: 24px;
+}
+
+/* A free-text UTM tag runs to 500 characters, so it ellipsizes, its full text on hover. */
+.who-saw-us-utm-tag {
+  display: block;
+  max-width: 16em;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* A table of long UTC times, too wide for one grid cell. */
