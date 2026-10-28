@@ -86,3 +86,12 @@ export function saveReviewHardReminderLastShownAt(lastShownAt: number): void {
 
   storage.setItem(reviewHardReminderStorageKey, String(lastShownAt));
 }
+
+export function clearReviewHardReminderLastShownAt(): void {
+  const storage = getBrowserStorage();
+  if (storage === null) {
+    return;
+  }
+
+  storage.removeItem(reviewHardReminderStorageKey);
+}

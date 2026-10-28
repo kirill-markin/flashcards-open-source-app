@@ -738,6 +738,10 @@ const arCatalog: TranslationCatalog = {
       description: "عاين مطالبة تثبيت iOS وAndroid.",
       value: "معاينة",
     },
+    reviewPrompts: {
+      title: "التنبيهات بعد المراجعة",
+      resetAll: "إعادة تعيين حالة كل التنبيهات",
+    },
   },
   settingsWorkspace: {
     decks: {

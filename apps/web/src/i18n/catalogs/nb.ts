@@ -738,6 +738,10 @@ const nbCatalog: TranslationCatalog = {
       description: "Forhåndsvis installasjonsdialogen for iOS og Android.",
       value: "Forhåndsvisning",
     },
+    reviewPrompts: {
+      title: "Meldinger etter repetisjon",
+      resetAll: "Tilbakestill tilstanden for alle meldinger",
+    },
   },
   settingsWorkspace: {
     decks: {

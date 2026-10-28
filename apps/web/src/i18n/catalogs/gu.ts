@@ -738,6 +738,10 @@ const guCatalog: TranslationCatalog = {
       description: "iOS અને Android ઇન્સ્ટૉલ પ્રૉમ્પ્ટનું પૂર્વાવલોકન કરો.",
       value: "પૂર્વાવલોકન",
     },
+    reviewPrompts: {
+      title: "પુનરાવર્તન પછીના પ્રોમ્પ્ટ",
+      resetAll: "બધા પ્રોમ્પ્ટની સ્થિતિ રીસેટ કરો",
+    },
   },
   settingsWorkspace: {
     decks: {
