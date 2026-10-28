@@ -340,8 +340,8 @@
 "settings.test.animations.playAccessibility" = "پخش پویانمایی %@، %@";
 "settings.test.technicalErrorPreview" = "پیش‌نمایش خطای فنی";
 "settings.test.technicalErrorPreview.value" = "برگهٔ پیش‌نمایش";
-"settings.test.storeReviewPromptReset" = "بازنشانی درخواست ارزیابی App Store";
-"settings.test.storeReviewPromptReset.value" = "وضعیت محلی";
+"settings.test.section.reviewPrompts" = "درخواست‌های پس از مرور";
+"settings.test.reviewPromptsReset" = "بازنشانی وضعیت همه درخواست‌ها";
 "settings.test.notificationDiagnostics" = "عیب‌یابی اعلان‌ها";
 "settings.test.notificationDiagnostics.value" = "فقط‌خواندنی";
 "settings.test.localSyncDiagnostics" = "عیب‌یابی همگام‌سازی محلی";

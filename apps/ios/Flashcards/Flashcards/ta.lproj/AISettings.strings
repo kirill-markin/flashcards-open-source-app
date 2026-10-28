@@ -340,8 +340,8 @@
 "settings.test.animations.playAccessibility" = "%@ அசைவூட்டத்தை இயக்கு, %@";
 "settings.test.technicalErrorPreview" = "தொழில்நுட்பப் பிழை முன்னோட்டம்";
 "settings.test.technicalErrorPreview.value" = "முன்னோட்டத் தாள்";
-"settings.test.storeReviewPromptReset" = "App Store மதிப்புரைக் கோரிக்கையை மீட்டமை";
-"settings.test.storeReviewPromptReset.value" = "உள்ளூர் நிலை";
+"settings.test.section.reviewPrompts" = "மீள்பயிற்சிக்குப் பிந்தைய அறிவுறுத்தல்கள்";
+"settings.test.reviewPromptsReset" = "எல்லா அறிவுறுத்தல்களின் நிலையையும் மீட்டமை";
 "settings.test.notificationDiagnostics" = "அறிவிப்பு ஆய்வுத் தகவல்கள்";
 "settings.test.notificationDiagnostics.value" = "படிக்க மட்டும்";
 "settings.test.localSyncDiagnostics" = "உள்ளூர் ஒத்திசைவு ஆய்வுத் தகவல்கள்";

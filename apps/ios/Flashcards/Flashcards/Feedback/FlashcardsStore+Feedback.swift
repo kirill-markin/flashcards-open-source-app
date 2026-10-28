@@ -17,7 +17,11 @@ extension FlashcardsStore {
     }
 
     func presentFeedbackSheet(trigger: FeedbackTrigger) {
-        self.feedbackPresentation = makeFeedbackPresentation(trigger: trigger)
+        self.feedbackPresentation = makeFeedbackPresentation(trigger: trigger, isTestPreview: false)
+    }
+
+    func presentAutomaticFeedbackPromptTestPreview() {
+        self.feedbackPresentation = makeFeedbackPresentation(trigger: .automatic, isTestPreview: true)
     }
 
     func dismissFeedbackSheet() {
@@ -112,6 +116,10 @@ extension FlashcardsStore {
         )
     }
 
+    func clearAutomaticFeedbackPromptStateForTests() {
+        self.updateFeedbackPromptState(state: makeDefaultFeedbackPromptState())
+    }
+
     func reloadFeedbackPromptStateForCurrentIdentity() {
         self.feedbackPromptState = loadFeedbackPromptState(
             identityKey: self.feedbackPromptIdentityKey,
@@ -121,7 +129,7 @@ extension FlashcardsStore {
     }
 
     func recordAutomaticFeedbackPromptShownAfterPresentation(presentation: FeedbackPresentation) {
-        guard presentation.trigger == .automatic,
+        guard presentation.trigger == .automatic, presentation.isTestPreview == false,
               self.feedbackPresentation?.id == presentation.id else { return }
         let shownAt = Date()
         let identityKey = self.feedbackPromptIdentityKey

@@ -152,7 +152,8 @@ The [handler](../apps/backend/src/billing/google/notifications.ts) returns 204 o
 leaves processing failures retryable by Pub/Sub; scheduled reconciliation repairs missed updates.
 Inspect `google_notification_failed`, `google_purchase_acknowledgement_failed` and
 `google_reconciliation_completed`/`google_reconciliation_purchase_failed` when
-delivery or access diverges. A green deployment or an empty reconciliation run
+delivery or access diverges; each run's `google_reconciliation_run` outcome feeds
+its alarm. A green deployment or an empty reconciliation run
 does not prove purchase recovery; record actual affected-purchase readbacks.
 
 ## Finish merchant verification and read back the catalog

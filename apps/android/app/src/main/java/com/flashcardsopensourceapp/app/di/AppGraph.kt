@@ -32,6 +32,7 @@ import com.flashcardsopensourceapp.app.analytics.isProductAnalyticsDisabledForPr
 import com.flashcardsopensourceapp.app.automation.resolveAutomationEnvironment
 import com.flashcardsopensourceapp.core.observability.AndroidAnalyticsObservationName
 import com.flashcardsopensourceapp.core.observability.AndroidExceptionIssueEvent
+import com.flashcardsopensourceapp.core.observability.AndroidReviewPromptRemoteConfigStage
 import com.flashcardsopensourceapp.core.observability.AndroidWarningIssueEvent
 import com.flashcardsopensourceapp.core.observability.analytics.Analytics
 import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsClient
@@ -93,6 +94,8 @@ import com.flashcardsopensourceapp.data.local.review.ReviewPreferencesStore
 import com.flashcardsopensourceapp.data.local.review.SharedPreferencesReviewPreferencesStore
 import com.flashcardsopensourceapp.data.local.review.SharedPreferencesStoreReviewRequestStore
 import com.flashcardsopensourceapp.data.local.review.StoreReviewRequestStore
+import com.flashcardsopensourceapp.data.local.review.prompts.RemoteReviewPromptConfig
+import com.flashcardsopensourceapp.data.local.review.prompts.ReviewPromptConfigStore
 import com.flashcardsopensourceapp.data.local.repository.AiChatRepository
 import com.flashcardsopensourceapp.data.local.repository.sync.AutoSyncEventRepository
 import com.flashcardsopensourceapp.data.local.repository.CardsRepository
@@ -311,6 +314,12 @@ class AppGraph(
      */
     val pendingSignOutReport = PendingSignOutReport()
     val reviewPreferencesStore: ReviewPreferencesStore = SharedPreferencesReviewPreferencesStore(context = context)
+    val reviewPromptConfigStore = ReviewPromptConfigStore(
+        context = context,
+        onCacheUnreadable = { error ->
+            reportReviewPromptRemoteConfigFailure(error = error, stage = AndroidReviewPromptRemoteConfigStage.CACHE_LOAD)
+        }
+    )
     val storeReviewRequestStore: StoreReviewRequestStore = SharedPreferencesStoreReviewRequestStore(context = context)
     private val guestSignInAfterReviewPromptStore = SharedPreferencesGuestSignInAfterReviewPromptStore(
         context = context
@@ -372,11 +381,9 @@ class AppGraph(
     )
     val storeReviewRequestManager = StoreReviewRequestManager(
         context = context,
-        reviewLogDao = database.reviewLogDao(),
         storeReviewRequestStore = storeReviewRequestStore,
         appVersion = appPackageInfo.versionName,
         analytics = analytics,
-        zoneIdProvider = ZoneId::systemDefault,
         currentTimeMillisProvider = {
             System.currentTimeMillis()
         }
@@ -517,6 +524,7 @@ class AppGraph(
                 error = error
             )
         },
+        onReviewPromptConfigFetched = ::applyRemoteReviewPromptConfig,
         onAnalyticsGuestIdentityLinkRequested = ::requestAnalyticsGuestIdentityLink,
         onProductAnalyticsPreferencePushRefused = ::reportProductAnalyticsPreferencePushRefused
     )
@@ -626,13 +634,11 @@ class AppGraph(
     internal val reviewPaywallScheduler = PremiumReviewScheduler(
         repository = paywallRepository,
         preferencesStore = cloudPreferencesStore,
-        reviewLogDao = database.reviewLogDao(),
         presenter = premiumPresenter,
         appScope = appScope
     )
     val guestSignInAfterReviewPromptController = GuestSignInAfterReviewPromptController(
         cloudAccountRepository = cloudAccountRepository,
-        reviewRepository = reviewRepository,
         promptStore = guestSignInAfterReviewPromptStore,
         analytics = analytics
     )
@@ -640,7 +646,6 @@ class AppGraph(
         appScope = appScope,
         context = context,
         feedbackRepository = feedbackRepository,
-        reviewRepository = reviewRepository,
         promptStore = feedbackPromptStore,
         messageController = appMessageBus,
         observability = observability,
@@ -846,6 +851,22 @@ class AppGraph(
                 )
             }
         }
+    }
+
+    private fun applyRemoteReviewPromptConfig(remoteConfig: RemoteReviewPromptConfig) {
+        when (remoteConfig) {
+            is RemoteReviewPromptConfig.Valid -> reviewPromptConfigStore.saveRemoteConfig(config = remoteConfig.config)
+            is RemoteReviewPromptConfig.Rejected -> reportReviewPromptRemoteConfigFailure(
+                error = remoteConfig.error,
+                stage = AndroidReviewPromptRemoteConfigStage.VALIDATE
+            )
+        }
+    }
+
+    private fun reportReviewPromptRemoteConfigFailure(error: Throwable, stage: AndroidReviewPromptRemoteConfigStage) {
+        observability.captureException(
+            event = AndroidExceptionIssueEvent.ReviewPromptRemoteConfigException(throwable = error, stage = stage)
+        )
     }
 
     /**

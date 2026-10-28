@@ -23,6 +23,8 @@ struct MeResponse: Decodable {
     let selectedWorkspaceId: String?
     let profile: Profile
     let preferences: Preferences
+    /// Absent on older backends, which keeps the active config.
+    let reviewPrompts: ReviewPromptRemoteConfigJSON?
 }
 
 struct WorkspacesResponse: Decodable {

@@ -340,8 +340,8 @@
 "settings.test.animations.playAccessibility" = "%@ యానిమేషన్ ప్లే చేయి, %@";
 "settings.test.technicalErrorPreview" = "సాంకేతిక లోపం ప్రివ్యూ";
 "settings.test.technicalErrorPreview.value" = "ప్రివ్యూ షీట్";
-"settings.test.storeReviewPromptReset" = "App Store సమీక్ష అభ్యర్థనను రీసెట్ చేయి";
-"settings.test.storeReviewPromptReset.value" = "స్థానిక స్థితి";
+"settings.test.section.reviewPrompts" = "పునశ్చరణ తర్వాతి ప్రాంప్ట్‌లు";
+"settings.test.reviewPromptsReset" = "అన్ని ప్రాంప్ట్‌ల స్థితిని రీసెట్ చేయి";
 "settings.test.notificationDiagnostics" = "నోటిఫికేషన్ నిర్ధారణలు";
 "settings.test.notificationDiagnostics.value" = "చదవడానికి మాత్రమే";
 "settings.test.localSyncDiagnostics" = "స్థానిక సింక్ నిర్ధారణలు";

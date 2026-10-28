@@ -27,7 +27,7 @@ type PublicEndpointHeartbeatResult = Readonly<{
   probes: ReadonlyArray<HeartbeatProbeResult>;
 }>;
 
-const expectedStatusCode = 200;
+const reachableStatusCodes: ReadonlySet<number> = new Set([200, 429]);
 const reachableMetricValue = 1;
 const unreachableMetricValue = 0;
 const millisecondsPerSecond = 1000;
@@ -117,7 +117,8 @@ function formatErrorSummary(error: unknown): string {
 // report, so it is turned into an unreachable result instead of an exception: an outage on one
 // host must still leave the other hosts with a published datapoint.
 // Redirects are not followed, matching the repository's own curl checks against these paths, so
-// anything other than the host itself answering HTTP 200 counts as unreachable.
+// only the host itself answering HTTP 200 or 429 counts as reachable. A 429 means the host
+// answered and is throttling under client load, which is not an outage.
 async function probeTarget(
   target: HeartbeatTarget,
   requestTimeoutMilliseconds: number,
@@ -132,15 +133,17 @@ async function probeTarget(
     });
     await response.arrayBuffer();
 
+    const reachable = reachableStatusCodes.has(response.status);
+
     return {
       host: target.host,
       probeUrl: target.probeUrl,
-      reachable: response.status === expectedStatusCode,
+      reachable,
       statusCode: response.status,
       durationMilliseconds: Date.now() - startedAtMilliseconds,
-      failureReason: response.status === expectedStatusCode
+      failureReason: reachable
         ? undefined
-        : `Expected HTTP ${expectedStatusCode}, received HTTP ${response.status}`,
+        : `Expected HTTP ${[...reachableStatusCodes].join(" or ")}, received HTTP ${response.status}`,
     };
   } catch (error) {
     return {

@@ -114,6 +114,8 @@ struct FeedbackSubmissionRequest: Encodable, Hashable, Sendable {
 struct FeedbackPresentation: Identifiable, Hashable, Sendable {
     let id: String
     let trigger: FeedbackTrigger
+    /// A Settings → Test preview records no showing, keeps no draft and sends nothing.
+    let isTestPreview: Bool
 }
 
 /// Only an automatic showing starts the automatic prompt's cooldown; submissions do not.
@@ -150,10 +152,11 @@ func makeDefaultFeedbackPromptState() -> PersistedFeedbackPromptState {
     PersistedFeedbackPromptState(lastAutomaticPromptShownAt: nil)
 }
 
-func makeFeedbackPresentation(trigger: FeedbackTrigger) -> FeedbackPresentation {
+func makeFeedbackPresentation(trigger: FeedbackTrigger, isTestPreview: Bool) -> FeedbackPresentation {
     FeedbackPresentation(
         id: UUID().uuidString.lowercased(),
-        trigger: trigger
+        trigger: trigger,
+        isTestPreview: isTestPreview
     )
 }
 

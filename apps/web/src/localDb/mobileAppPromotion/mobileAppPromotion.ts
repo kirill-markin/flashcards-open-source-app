@@ -208,3 +208,11 @@ export async function storeKnownMobileReviewEvent(
   throwIfIndexedDbOpenRecoveryFailed();
   return nextState;
 }
+
+export async function deleteAllMobileAppPromotionStates(): Promise<void> {
+  await closeDatabaseAfterWrite(async (database) => {
+    await runReadwrite(database, ["meta"], (transaction) => transaction.objectStore("meta").delete(
+      IDBKeyRange.bound(mobileAppPromotionStateKeyPrefix, `${mobileAppPromotionStateKeyPrefix}￿`),
+    ));
+  });
+}

@@ -340,8 +340,8 @@
 "settings.test.animations.playAccessibility" = "Odtwórz animację %@, %@";
 "settings.test.technicalErrorPreview" = "Podgląd błędu technicznego";
 "settings.test.technicalErrorPreview.value" = "Arkusz podglądu";
-"settings.test.storeReviewPromptReset" = "Zresetuj prośbę o ocenę w App Store";
-"settings.test.storeReviewPromptReset.value" = "Stan lokalny";
+"settings.test.section.reviewPrompts" = "Monity po powtórce";
+"settings.test.reviewPromptsReset" = "Zresetuj stan wszystkich monitów";
 "settings.test.notificationDiagnostics" = "Diagnostyka powiadomień";
 "settings.test.notificationDiagnostics.value" = "Tylko do odczytu";
 "settings.test.localSyncDiagnostics" = "Diagnostyka lokalnej synchronizacji";

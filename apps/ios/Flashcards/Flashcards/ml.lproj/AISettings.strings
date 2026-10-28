@@ -340,8 +340,8 @@
 "settings.test.animations.playAccessibility" = "%@ ആനിമേഷൻ പ്ലേ ചെയ്യുക, %@";
 "settings.test.technicalErrorPreview" = "സാങ്കേതിക പിശക് പ്രിവ്യൂ";
 "settings.test.technicalErrorPreview.value" = "പ്രിവ്യൂ ഷീറ്റ്";
-"settings.test.storeReviewPromptReset" = "App Store വിലയിരുത്തൽ അഭ്യർത്ഥന പുനഃസജ്ജമാക്കുക";
-"settings.test.storeReviewPromptReset.value" = "പ്രാദേശിക നില";
+"settings.test.section.reviewPrompts" = "ആവർത്തനത്തിന് ശേഷമുള്ള പ്രോംപ്റ്റുകൾ";
+"settings.test.reviewPromptsReset" = "എല്ലാ പ്രോംപ്റ്റുകളുടെയും നില പുനഃസജ്ജമാക്കുക";
 "settings.test.notificationDiagnostics" = "അറിയിപ്പ് പരിശോധനാ വിവരങ്ങൾ";
 "settings.test.notificationDiagnostics.value" = "വായിക്കാൻ മാത്രം";
 "settings.test.localSyncDiagnostics" = "പ്രാദേശിക സമന്വയ പരിശോധനാ വിവരങ്ങൾ";

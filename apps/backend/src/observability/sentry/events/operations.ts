@@ -864,6 +864,7 @@ export type OperationsBreadcrumbEvent =
   | EventByAction<"google_history_retry", StoreAnalyticsAppleRetryDetails>
   | EventByAction<"google_history_import_completed", GoogleHistoryImportCompletedDetails>
   | EventByAction<"google_history_source_failed", GoogleHistorySourceFailureDetails>
+  | EventByAction<"google_reconciliation_run", Readonly<{ succeeded: 0 | 1 }>>
   | EventByAction<"generated_media_promotion_batch_completed", GeneratedMediaPromotionBatchDetails>
   | EventByAction<"geolite_country_database_loaded", GeoLiteCountryDatabaseLoadedDetails>
   | EventByAction<"geolite_asn_database_loaded", GeoLiteCountryDatabaseLoadedDetails>

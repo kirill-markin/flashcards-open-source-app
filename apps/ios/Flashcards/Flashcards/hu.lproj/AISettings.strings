@@ -340,8 +340,8 @@
 "settings.test.animations.playAccessibility" = "%@ animáció lejátszása, %@";
 "settings.test.technicalErrorPreview" = "Technikai hiba előnézete";
 "settings.test.technicalErrorPreview.value" = "Lap előnézete";
-"settings.test.storeReviewPromptReset" = "App Store értékelési kérés visszaállítása";
-"settings.test.storeReviewPromptReset.value" = "Helyi állapot";
+"settings.test.section.reviewPrompts" = "Ismétlés utáni kérések";
+"settings.test.reviewPromptsReset" = "Az összes kérés állapotának visszaállítása";
 "settings.test.notificationDiagnostics" = "Értesítési diagnosztika";
 "settings.test.notificationDiagnostics.value" = "Csak olvasható";
 "settings.test.localSyncDiagnostics" = "Helyi szinkronizálási diagnosztika";

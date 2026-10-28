@@ -369,7 +369,7 @@ fun FlashcardsApp(
             .collectAsStateWithLifecycle(
                 initialValue = GuestSignInAfterReviewPromptUiState(
                     isVisible = false,
-                    reviewCount = 0
+                    reviewPromptConfigVersion = null
                 )
             )
         val feedbackPromptUiState by appGraph.feedbackPromptController
@@ -494,7 +494,15 @@ fun FlashcardsApp(
                 return@LaunchedEffect
             }
             lastEmittedAnalyticsSurfaceName = visitedSurface.name
-            appGraph.analytics.track(event = AnalyticsEvent.ScreenViewed(screen = visitedSurface))
+            val event = if (visitedSurface == AnalyticsSurface.SIGNIN_AFTER_REVIEW_PROMPT) {
+                AnalyticsEvent.ScreenViewed(
+                    screen = visitedSurface,
+                    reviewPromptConfigVersion = guestSignInAfterReviewPromptUiState.reviewPromptConfigVersion
+                )
+            } else {
+                AnalyticsEvent.ScreenViewed(screen = visitedSurface)
+            }
+            appGraph.analytics.track(event = event)
         }
 
         LaunchedEffect(isAppResumed, appGraph.reviewReminderAttentionController) {

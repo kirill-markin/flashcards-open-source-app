@@ -340,8 +340,8 @@
 "settings.test.animations.playAccessibility" = "Atskaņot animāciju %@, %@";
 "settings.test.technicalErrorPreview" = "Tehniskās kļūdas priekšskatījums";
 "settings.test.technicalErrorPreview.value" = "Priekšskatījuma lapa";
-"settings.test.storeReviewPromptReset" = "Atiestatīt App Store vērtējuma uzvedni";
-"settings.test.storeReviewPromptReset.value" = "Vietējais stāvoklis";
+"settings.test.section.reviewPrompts" = "Uzvednes pēc atkārtošanas";
+"settings.test.reviewPromptsReset" = "Atiestatīt visu uzvedņu stāvokli";
 "settings.test.notificationDiagnostics" = "Paziņojumu diagnostika";
 "settings.test.notificationDiagnostics.value" = "Tikai lasāms";
 "settings.test.localSyncDiagnostics" = "Vietējās sinhronizācijas diagnostika";
