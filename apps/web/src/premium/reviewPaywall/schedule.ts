@@ -1,33 +1,43 @@
+import type { ReviewPromptSettings } from "../../../../backend/src/reviewPrompts/reviewPromptConfig";
 import type { PaywallState, ReviewPaywallTrigger } from "../../apiContracts/paywallState";
-import { loadLocalProgressDailyReviews } from "../../localDb/progress/progress";
-import { buildProgressDateContext, shiftLocalDate } from "../../progress/progressDates";
+import { isReviewPromptCooldownElapsed, parseReviewPromptShownAt } from "../../screens/review/prompts/reviewPromptRules";
 import type { EntitlementSnapshot } from "../../types/entitlement";
 
-export type ReviewPaywallActivity = Readonly<{ today: string; todayReviewCount: number; totalReviewCount: number }>;
-const weeklyCooldownMs = 7 * 24 * 60 * 60 * 1000;
+export type ReviewPaywallPromptId = "paywall-initial" | "paywall-second" | "paywall-periodic";
+
+// Wire names of the review paywall prompts: see the comment beside `reviewTrigger` in
+// apps/backend/src/paywallState.ts.
+const reviewPaywallTriggers: Readonly<Record<ReviewPaywallPromptId, ReviewPaywallTrigger>> = {
+  "paywall-initial": "initial",
+  "paywall-second": "day3",
+  "paywall-periodic": "weekly",
+};
 
 export function isKnownFreeEntitlement(entitlement: EntitlementSnapshot | null): boolean {
   return entitlement !== null && entitlement.status === "none" && !entitlement.isTrial && entitlement.tierRank < 20;
 }
 
-export async function loadReviewPaywallActivity(workspaceIds: ReadonlyArray<string>, now: Date): Promise<ReviewPaywallActivity> {
-  const dateContext = buildProgressDateContext(now);
-  const reviews = await loadLocalProgressDailyReviews(workspaceIds, {
-    timeZone: dateContext.timeZone, from: "0001-01-01", to: dateContext.today,
-  });
-  return {
-    today: dateContext.today,
-    todayReviewCount: reviews.find((point) => point.date === dateContext.today)?.reviewCount ?? 0,
-    totalReviewCount: reviews.reduce((total, point) => total + point.reviewCount, 0),
-  };
+function readReviewPaywallShownAt(state: PaywallState, promptId: ReviewPaywallPromptId): string | null {
+  switch (promptId) {
+    case "paywall-initial":
+      return state.introShownAt;
+    case "paywall-second":
+      return state.followUpShownAt;
+    case "paywall-periodic":
+      return state.periodicShownAt;
+  }
 }
 
-export function dueReviewPaywall(state: PaywallState, activity: ReviewPaywallActivity, now: Date): ReviewPaywallTrigger | null {
-  if (activity.today !== buildProgressDateContext(now).today) return null;
-  if (state.introShownAt === null) return activity.totalReviewCount >= 3 ? "initial" : null;
-  if (activity.todayReviewCount < 2) return null;
-  if (state.followUpShownAt === null) {
-    return state.introLocalDate !== null && activity.today >= shiftLocalDate(state.introLocalDate, 2) ? "day3" : null;
-  }
-  return state.lastShownAt !== null && now.getTime() - Date.parse(state.lastShownAt) >= weeklyCooldownMs ? "weekly" : null;
+/** The fixed rules and cooldown of one review paywall; its config counter conditions are checked by the caller. */
+export function dueReviewPaywall(
+  promptId: ReviewPaywallPromptId,
+  settings: ReviewPromptSettings,
+  state: PaywallState,
+  nowMillis: number,
+): ReviewPaywallTrigger | null {
+  const shownAt = readReviewPaywallShownAt(state, promptId);
+  if (promptId !== "paywall-periodic" && shownAt !== null) return null;
+  return isReviewPromptCooldownElapsed(settings, parseReviewPromptShownAt(shownAt, promptId), nowMillis)
+    ? reviewPaywallTriggers[promptId]
+    : null;
 }

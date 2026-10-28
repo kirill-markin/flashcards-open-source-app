@@ -1,5 +1,15 @@
 import { useEffect, useRef, useState } from "react";
-import { track, trackScreenViewed, trackScreenViewedOnDismiss } from "../../analytics";
+import {
+  reviewPromptConfig,
+  type ReviewPromptSettings,
+} from "../../../../backend/src/reviewPrompts/reviewPromptConfig";
+import type { ReviewRating } from "../../../../backend/src/scheduling";
+import {
+  restoreCurrentAnalyticsSurface,
+  track,
+  trackReviewPromptScreenViewed,
+  trackScreenViewedOnDismiss,
+} from "../../analytics";
 import {
   loadFeedbackState,
   loadReviewPlatformSummary,
@@ -10,13 +20,11 @@ import {
   markIndexedDbOpenRecoveryFailureAndCheckActive,
   type IndexedDbOpenRecoveryState,
 } from "../../appError/AppErrorContext";
+import { readPendingGuestConversion } from "../../appData/session/guest/browserGuestStorage";
 import { webReviewMobilePromptStoreLinks } from "../../appPlatformLinks";
 import {
-  buildNextAutomaticFeedbackPromptAt,
-  evaluateAutomaticFeedbackPromptEligibility,
-  loadAutomaticFeedbackPromptReviewActivity,
+  isAutomaticFeedbackPromptEligible,
   shouldRequestAutomaticFeedbackState,
-  type AutomaticFeedbackPromptReviewActivity,
 } from "../../feedback/automaticFeedbackPrompt";
 import type { FeedbackDialogProps } from "../../feedback/FeedbackDialog";
 import {
@@ -44,20 +52,40 @@ import {
 } from "../../localDb/mobileAppPromotion/mobileAppPromotion";
 import { readEntitlementSnapshot } from "../../premium/entitlementStore";
 import { useReviewPaywallPresenter } from "../../premium/PremiumProvider";
-import { dueReviewPaywall, isKnownFreeEntitlement, loadReviewPaywallActivity } from "../../premium/reviewPaywall/schedule";
+import {
+  dueReviewPaywall,
+  isKnownFreeEntitlement,
+  type ReviewPaywallPromptId,
+} from "../../premium/reviewPaywall/schedule";
 import { captureAppOperationError } from "../../observability/appOperationObservation";
 import type { FeedbackPromptEventType, FeedbackSubmissionRequest } from "../../types";
+import type { GuestSignInAfterReviewPromptProps } from "./guest/GuestSignInAfterReviewPrompt";
 import {
-  evaluateMobileAppPromotionEligibility,
-  loadMobileAppPromotionReviewActivity,
-  mobileAppPromotionMinimumReviewCount,
-  type MobileAppPromotionReviewActivity,
-} from "./mobileAppPromo/mobileAppPromotionEligibility";
+  loadGuestSignInAfterReviewLastShownAt,
+  saveGuestSignInAfterReviewLastShownAt,
+} from "./guest/guestSignInAfterReviewStorage";
+import type { ReviewHardReminderDialogProps } from "./hardReminder/ReviewHardReminderDialog";
+import {
+  loadReviewHardReminderLastShownAt,
+  saveReviewHardReminderLastShownAt,
+  shouldShowReviewHardReminder,
+} from "./hardReminder/reviewHardReminder";
+import { evaluateMobileAppPromotionEligibility } from "./mobileAppPromo/mobileAppPromotionEligibility";
 import type { MobileAppPromotionDialogProps } from "./mobileAppPromo/MobileAppPromotionDialog";
+import { loadReviewPromptCounters } from "./prompts/reviewPromptCounters";
+import {
+  hasReviewPromptCounterConditions,
+  isReviewPromptCooldownElapsed,
+  listWebReviewPromptOrder,
+  passesReviewPromptCounterConditions,
+  type ReviewPromptCounters,
+  type WebReviewPromptId,
+} from "./prompts/reviewPromptRules";
 
 type PostReviewPromptUiState = Readonly<{
   isEditorPresented: boolean;
   isFeedbackDialogOpen: boolean;
+  isGuestSignInPromptVisible: boolean;
   isHardReminderVisible: boolean;
   isMobileAppPromotionDialogOpen: boolean;
   isReviewFilterMenuOpen: boolean;
@@ -73,22 +101,24 @@ type PostReviewPromptContext = Readonly<{
   workspaceId: string | null;
 }>;
 
-type MobileAppPromotionPromptDecision = Readonly<{
+// `skipped` moves on to the next prompt in the config order; `opened` and `cancelled` end the walk.
+type ReviewPromptDecision = Readonly<{
   kind: "cancelled" | "opened" | "skipped";
 }>;
 
 type MobileAppPromotionInFlightCheck = Readonly<{
   context: PostReviewPromptContext;
-  promise: Promise<MobileAppPromotionPromptDecision>;
+  promise: Promise<ReviewPromptDecision>;
 }>;
 
 export type UsePostReviewPromptsParams = Readonly<{
   indexedDbOpenRecoveryState: IndexedDbOpenRecoveryState;
   installationId: string | null;
   isEditorPresented: boolean;
-  isHardReminderVisible: boolean;
+  isGuest: boolean;
   isReviewFilterMenuOpen: boolean;
   isReviewMoreActionsMenuOpen: boolean;
+  isSessionVerified: boolean;
   isTagFilterDialogOpen: boolean;
   isTextSelectionDialogOpen: boolean;
   linkedUserId: string | null;
@@ -102,9 +132,13 @@ export type UsePostReviewPromptsParams = Readonly<{
 export type UsePostReviewPromptsResult = Readonly<{
   beginSavedReviewPromptOpportunity: () => void;
   feedbackDialogProps: FeedbackDialogProps;
+  guestSignInPromptProps: GuestSignInAfterReviewPromptProps;
+  hardReminderDialogProps: ReviewHardReminderDialogProps;
   isFeedbackDialogOpen: boolean;
+  isGuestSignInPromptVisible: boolean;
+  isHardReminderVisible: boolean;
   isMobileAppPromotionDialogOpen: boolean;
-  maybeOpenPostReviewPrompt: () => Promise<void>;
+  maybeOpenPostReviewPrompt: (recentReviewRatings: ReadonlyArray<ReviewRating>) => Promise<void>;
   mobileAppPromotionDialogProps: MobileAppPromotionDialogProps;
 }>;
 
@@ -113,9 +147,10 @@ export function usePostReviewPrompts(params: UsePostReviewPromptsParams): UsePos
     indexedDbOpenRecoveryState,
     installationId,
     isEditorPresented,
-    isHardReminderVisible,
+    isGuest,
     isReviewFilterMenuOpen,
     isReviewMoreActionsMenuOpen,
+    isSessionVerified,
     isTagFilterDialogOpen,
     isTextSelectionDialogOpen,
     linkedUserId,
@@ -132,12 +167,19 @@ export function usePostReviewPrompts(params: UsePostReviewPromptsParams): UsePos
   const [feedbackErrorMessage, setFeedbackErrorMessage] = useState<string>("");
   const [isFeedbackSubmitting, setIsFeedbackSubmitting] = useState<boolean>(false);
   const [isMobileAppPromotionDialogOpen, setIsMobileAppPromotionDialogOpen] = useState<boolean>(false);
+  const [isHardReminderVisible, setIsHardReminderVisible] = useState<boolean>(false);
+  const [isGuestSignInPromptOpen, setIsGuestSignInPromptOpen] = useState<boolean>(false);
+  // The prompt asks a verified guest to sign in; it hides once the person is no longer one.
+  const isGuestSignInPromptVisible = isGuestSignInPromptOpen && isGuest && isSessionVerified;
   // One `prompt_answered` per showing: the first store-link click accepts, and only a close
   // without one dismisses.
   const isMobileAppPromotionAnsweredRef = useRef<boolean>(false);
+  // One `prompt_answered` per showing, recorded on the sign-in press as iOS and Android do.
+  const isGuestSignInPromptAnsweredRef = useRef<boolean>(false);
   const promptUiStateRef = useRef<PostReviewPromptUiState>({
     isEditorPresented: false,
     isFeedbackDialogOpen: false,
+    isGuestSignInPromptVisible: false,
     isHardReminderVisible: false,
     isMobileAppPromotionDialogOpen: false,
     isReviewFilterMenuOpen: false,
@@ -162,6 +204,7 @@ export function usePostReviewPrompts(params: UsePostReviewPromptsParams): UsePos
   promptUiStateRef.current = {
     isEditorPresented,
     isFeedbackDialogOpen,
+    isGuestSignInPromptVisible,
     isHardReminderVisible,
     isMobileAppPromotionDialogOpen,
     isReviewFilterMenuOpen,
@@ -193,7 +236,7 @@ export function usePostReviewPrompts(params: UsePostReviewPromptsParams): UsePos
 
   function captureFeedbackOperationError(
     error: unknown,
-    operation: "feedback_activity_load" | "feedback_state_load" | "feedback_prompt_event" | "feedback_submit",
+    operation: "feedback_state_load" | "feedback_prompt_event" | "feedback_submit",
     entityId: string | null,
   ): void {
     captureAppOperationError(error, {
@@ -209,7 +252,6 @@ export function usePostReviewPrompts(params: UsePostReviewPromptsParams): UsePos
   function captureMobileAppPromotionOperationError(
     error: unknown,
     operation:
-      | "mobile_app_promo_activity_load"
       | "mobile_app_promo_state_load"
       | "mobile_app_promo_status_load"
       | "mobile_app_promo_state_save",
@@ -225,10 +267,26 @@ export function usePostReviewPrompts(params: UsePostReviewPromptsParams): UsePos
     });
   }
 
+  function captureReviewPromptOperationError(
+    error: unknown,
+    operation: "paywall_state_sync" | "review_prompt_activity_load" | "review_prompt_state_load" | "review_prompt_state_save",
+    entityId: string | null,
+  ): void {
+    captureAppOperationError(error, {
+      feature: "review",
+      operation,
+      userId,
+      workspaceId,
+      installationId,
+      entityId,
+    });
+  }
+
   function isReviewPromptUiBlocked(): boolean {
     const uiState = promptUiStateRef.current;
     return uiState.isEditorPresented
       || uiState.isFeedbackDialogOpen
+      || uiState.isGuestSignInPromptVisible
       || uiState.isHardReminderVisible
       || uiState.isMobileAppPromotionDialogOpen
       || uiState.isReviewFilterMenuOpen
@@ -257,7 +315,7 @@ export function usePostReviewPrompts(params: UsePostReviewPromptsParams): UsePos
 
   function buildSkippedMobileAppPromotionDecision(
     promptContext: PostReviewPromptContext,
-  ): MobileAppPromotionPromptDecision {
+  ): ReviewPromptDecision {
     return isPromptContextCurrent(promptContext)
       ? { kind: "skipped" }
       : { kind: "cancelled" };
@@ -288,49 +346,34 @@ export function usePostReviewPrompts(params: UsePostReviewPromptsParams): UsePos
     }
   }
 
-  async function maybeOpenAutomaticFeedbackPrompt(promptContext: PostReviewPromptContext): Promise<void> {
-    if (workspaceId === null || isReviewPromptUiBlocked() || !isPromptContextCurrent(promptContext)) {
-      return;
+  async function maybeOpenAutomaticFeedbackPrompt(
+    settings: ReviewPromptSettings,
+    promptContext: PostReviewPromptContext,
+  ): Promise<ReviewPromptDecision> {
+    if (workspaceId === null) {
+      return { kind: "skipped" };
     }
 
     try {
       indexedDbOpenRecoveryState.throwIfFailed();
-      const now = new Date();
-      const nowMillis = now.getTime();
-      let reviewActivity: AutomaticFeedbackPromptReviewActivity;
-      try {
-        reviewActivity = await loadAutomaticFeedbackPromptReviewActivity(
-          workspaceId,
-          now,
-          indexedDbOpenRecoveryState,
-        );
-        indexedDbOpenRecoveryState.throwIfFailed();
-      } catch (error) {
-        if (markIndexedDbOpenRecoveryFailure(error)) {
-          return;
-        }
-        captureFeedbackOperationError(error, "feedback_activity_load", null);
-        return;
-      }
-
       let promptState: FeedbackPromptState;
       try {
         promptState = await loadFeedbackPromptState(feedbackPromptIdentityKey);
         indexedDbOpenRecoveryState.throwIfFailed();
       } catch (error) {
         if (markIndexedDbOpenRecoveryFailure(error)) {
-          return;
+          return { kind: "cancelled" };
         }
         captureFeedbackOperationError(error, "feedback_state_load", null);
-        return;
+        return { kind: "cancelled" };
       }
 
-      let decisionInput = {
-        reviewActivity,
+      let eligibilityInput = {
+        settings,
         promptState,
-        nowMillis,
+        nowMillis: Date.now(),
       };
-      if (shouldRequestAutomaticFeedbackState(decisionInput)) {
+      if (shouldRequestAutomaticFeedbackState(eligibilityInput)) {
         try {
           const feedbackState = await loadFeedbackState();
           indexedDbOpenRecoveryState.throwIfFailed();
@@ -340,33 +383,33 @@ export function usePostReviewPrompts(params: UsePostReviewPromptsParams): UsePos
             fetchedAt: new Date().toISOString(),
           }, indexedDbOpenRecoveryState.throwIfFailed);
           indexedDbOpenRecoveryState.throwIfFailed();
-          decisionInput = {
-            reviewActivity,
+          eligibilityInput = {
+            settings,
             promptState,
             nowMillis: Date.now(),
           };
         } catch (error) {
           if (markIndexedDbOpenRecoveryFailure(error)) {
-            return;
+            return { kind: "cancelled" };
           }
           captureFeedbackOperationError(error, "feedback_state_load", null);
-          return;
+          return { kind: "cancelled" };
         }
       }
 
-      if (evaluateAutomaticFeedbackPromptEligibility(decisionInput).isEligible === false) {
-        return;
+      if (isAutomaticFeedbackPromptEligible(eligibilityInput) === false) {
+        return { kind: "skipped" };
       }
 
       if (isReviewPromptUiBlocked() || !isPromptContextCurrent(promptContext)) {
-        return;
+        return { kind: "cancelled" };
       }
 
-      const shownAt = new Date();
       const shownChange = await storeAutomaticFeedbackPromptShownAt({
         identityKey: feedbackPromptIdentityKey,
-        shownAt: shownAt.toISOString(),
-        nextAutomaticFeedbackPromptAt: buildNextAutomaticFeedbackPromptAt(shownAt),
+        shownAt: new Date().toISOString(),
+        // Eligibility reads only the shown time; null leaves the stored next-prompt time unchanged.
+        nextAutomaticFeedbackPromptAt: null,
       }, indexedDbOpenRecoveryState.throwIfFailed);
       indexedDbOpenRecoveryState.throwIfFailed();
       if (isReviewPromptUiBlocked() || !isPromptContextCurrent(promptContext)) {
@@ -376,26 +419,28 @@ export function usePostReviewPrompts(params: UsePostReviewPromptsParams): UsePos
           indexedDbOpenRecoveryState.throwIfFailed,
         );
         indexedDbOpenRecoveryState.throwIfFailed();
-        return;
+        return { kind: "cancelled" };
       }
       setFeedbackMessage("");
       setFeedbackErrorMessage("");
       setIsFeedbackSubmitting(false);
       setIsFeedbackDialogOpen(true);
       void postAutomaticFeedbackPromptEvent("automatic_prompt_shown");
+      return { kind: "opened" };
     } catch (error) {
       if (markIndexedDbOpenRecoveryFailure(error)) {
-        return;
+        return { kind: "cancelled" };
       }
       captureFeedbackOperationError(error, "feedback_state_load", null);
+      return { kind: "cancelled" };
     }
   }
 
   async function runMobileAppPromotionCheck(
+    settings: ReviewPromptSettings,
     promptContext: PostReviewPromptContext,
-  ): Promise<MobileAppPromotionPromptDecision> {
-    const contextWorkspaceId = promptContext.workspaceId;
-    if (contextWorkspaceId === null || isReviewPromptUiBlocked()) {
+  ): Promise<ReviewPromptDecision> {
+    if (promptContext.workspaceId === null || isReviewPromptUiBlocked()) {
       return { kind: "skipped" };
     }
 
@@ -405,31 +450,6 @@ export function usePostReviewPrompts(params: UsePostReviewPromptsParams): UsePos
 
     try {
       indexedDbOpenRecoveryState.throwIfFailed();
-      const now = new Date();
-      let reviewActivity: MobileAppPromotionReviewActivity;
-      try {
-        reviewActivity = await loadMobileAppPromotionReviewActivity(contextWorkspaceId, now);
-        indexedDbOpenRecoveryState.throwIfFailed();
-      } catch (error) {
-        if (markIndexedDbOpenRecoveryFailure(error)) {
-          return { kind: "cancelled" };
-        }
-        captureMobileAppPromotionOperationError(error, "mobile_app_promo_activity_load", null);
-        return buildSkippedMobileAppPromotionDecision(promptContext);
-      }
-
-      if (isPromptContextCurrent(promptContext) === false) {
-        return { kind: "cancelled" };
-      }
-
-      if (reviewActivity.todayReviewCount < mobileAppPromotionMinimumReviewCount) {
-        return { kind: "skipped" };
-      }
-
-      if (isPromptContextCurrent(promptContext) === false) {
-        return { kind: "cancelled" };
-      }
-
       let promptState: MobileAppPromotionState;
       try {
         promptState = await loadMobileAppPromotionState(promptContext.identityKey);
@@ -447,9 +467,10 @@ export function usePostReviewPrompts(params: UsePostReviewPromptsParams): UsePos
       }
 
       const localEligibility = evaluateMobileAppPromotionEligibility({
-        reviewActivity,
+        settings,
         promptState,
         hasMobileReviewEvent: false,
+        nowMillis: Date.now(),
       });
       if (localEligibility.isEligible === false) {
         return { kind: "skipped" };
@@ -502,9 +523,10 @@ export function usePostReviewPrompts(params: UsePostReviewPromptsParams): UsePos
       }
 
       const remoteEligibility = evaluateMobileAppPromotionEligibility({
-        reviewActivity,
+        settings,
         promptState,
         hasMobileReviewEvent,
+        nowMillis: Date.now(),
       });
       if (remoteEligibility.isEligible === false || isReviewPromptUiBlocked()) {
         return { kind: "skipped" };
@@ -514,12 +536,10 @@ export function usePostReviewPrompts(params: UsePostReviewPromptsParams): UsePos
         return { kind: "cancelled" };
       }
 
-      const shownAt = new Date();
-      const shownAtIso = shownAt.toISOString();
+      const shownAtIso = new Date().toISOString();
       try {
         await storeMobileAppPromotionPromptShown({
           identityKey: promptContext.identityKey,
-          localDate: reviewActivity.today,
           shownAt: shownAtIso,
         }, indexedDbOpenRecoveryState.throwIfFailed);
         indexedDbOpenRecoveryState.throwIfFailed();
@@ -536,7 +556,6 @@ export function usePostReviewPrompts(params: UsePostReviewPromptsParams): UsePos
         try {
           await clearMobileAppPromotionPromptShownIfCurrent({
             identityKey: promptContext.identityKey,
-            localDate: reviewActivity.today,
             shownAt: shownAtIso,
           }, indexedDbOpenRecoveryState.throwIfFailed);
           indexedDbOpenRecoveryState.throwIfFailed();
@@ -550,7 +569,7 @@ export function usePostReviewPrompts(params: UsePostReviewPromptsParams): UsePos
       }
 
       isMobileAppPromotionAnsweredRef.current = false;
-      trackScreenViewed("mobile_app_prompt");
+      trackReviewPromptScreenViewed("mobile_app_prompt", reviewPromptConfig.version);
       setIsMobileAppPromotionDialogOpen(true);
       return { kind: "opened" };
     } catch (error) {
@@ -563,8 +582,9 @@ export function usePostReviewPrompts(params: UsePostReviewPromptsParams): UsePos
   }
 
   async function maybeOpenMobileAppPromotion(
+    settings: ReviewPromptSettings,
     promptContext: PostReviewPromptContext,
-  ): Promise<MobileAppPromotionPromptDecision> {
+  ): Promise<ReviewPromptDecision> {
     const currentCheck = mobileAppPromotionCheckInFlightRef.current;
     if (
       currentCheck !== null
@@ -574,7 +594,7 @@ export function usePostReviewPrompts(params: UsePostReviewPromptsParams): UsePos
       return currentCheck.promise;
     }
 
-    const nextPromise = runMobileAppPromotionCheck(promptContext);
+    const nextPromise = runMobileAppPromotionCheck(settings, promptContext);
     const nextCheck: MobileAppPromotionInFlightCheck = {
       context: promptContext,
       promise: nextPromise,
@@ -589,26 +609,120 @@ export function usePostReviewPrompts(params: UsePostReviewPromptsParams): UsePos
     }
   }
 
-  async function maybeOpenReviewPaywall(promptContext: PostReviewPromptContext): Promise<boolean> {
-    if (reviewPaywall === null || !isKnownFreeEntitlement(readEntitlementSnapshot(userId))) return false;
+  function maybeOpenReviewPaywall(
+    promptId: ReviewPaywallPromptId,
+    settings: ReviewPromptSettings,
+  ): ReviewPromptDecision {
+    if (reviewPaywall === null || !isKnownFreeEntitlement(readEntitlementSnapshot(userId))) {
+      return { kind: "skipped" };
+    }
+
     try {
-      indexedDbOpenRecoveryState.throwIfFailed();
-      const activity = await loadReviewPaywallActivity(reviewWorkspaceIds, new Date());
-      indexedDbOpenRecoveryState.throwIfFailed();
-      if (!isPromptContextCurrent(promptContext) || isReviewPromptUiBlocked()) return true;
       const state = reviewPaywall.readState();
-      if (state === null) return false;
-      const trigger = dueReviewPaywall(state, activity, new Date());
-      if (trigger === null) return false;
+      if (state === null) {
+        return { kind: "skipped" };
+      }
+      const trigger = dueReviewPaywall(promptId, settings, state, Date.now());
+      if (trigger === null) {
+        return { kind: "skipped" };
+      }
       // A due offer owns this saved review even if its presenter just became unavailable.
       reviewPaywall.present(trigger);
-      return true;
+      return { kind: "opened" };
     } catch (error) {
-      if (markIndexedDbOpenRecoveryFailure(error)) return true;
-      captureAppOperationError(error, {
-        feature: "review", operation: "paywall_state_sync", userId, workspaceId, installationId, entityId: null,
-      });
-      return true;
+      captureReviewPromptOperationError(error, "paywall_state_sync", promptId);
+      return { kind: "cancelled" };
+    }
+  }
+
+  function maybeOpenHardReminder(
+    settings: ReviewPromptSettings,
+    recentReviewRatings: ReadonlyArray<ReviewRating>,
+  ): ReviewPromptDecision {
+    const nowMillis = Date.now();
+    if (
+      shouldShowReviewHardReminder(recentReviewRatings) === false
+      || isReviewPromptCooldownElapsed(settings, loadReviewHardReminderLastShownAt(), nowMillis) === false
+    ) {
+      return { kind: "skipped" };
+    }
+
+    saveReviewHardReminderLastShownAt(nowMillis);
+    trackReviewPromptScreenViewed("review_hard_reminder", reviewPromptConfig.version);
+    setIsHardReminderVisible(true);
+    return { kind: "opened" };
+  }
+
+  function maybeOpenGuestSignInPrompt(settings: ReviewPromptSettings): ReviewPromptDecision {
+    if (
+      userId === null
+      || isGuest === false
+      || isSessionVerified === false
+      || readPendingGuestConversion() !== null
+      || document.querySelector('dialog[open], [aria-modal="true"]') !== null
+    ) {
+      return { kind: "skipped" };
+    }
+
+    let lastShownAtMillis: number | null;
+    try {
+      lastShownAtMillis = loadGuestSignInAfterReviewLastShownAt(userId);
+    } catch (error) {
+      captureReviewPromptOperationError(error, "review_prompt_state_load", "guest-sign-in");
+      return { kind: "cancelled" };
+    }
+
+    const nowMillis = Date.now();
+    if (isReviewPromptCooldownElapsed(settings, lastShownAtMillis, nowMillis) === false) {
+      return { kind: "skipped" };
+    }
+
+    try {
+      saveGuestSignInAfterReviewLastShownAt(userId, nowMillis);
+    } catch (error) {
+      captureReviewPromptOperationError(error, "review_prompt_state_save", "guest-sign-in");
+      return { kind: "cancelled" };
+    }
+
+    isGuestSignInPromptAnsweredRef.current = false;
+    trackReviewPromptScreenViewed("signin_after_review_prompt", reviewPromptConfig.version);
+    setIsGuestSignInPromptOpen(true);
+    return { kind: "opened" };
+  }
+
+  async function openReviewPrompt(
+    promptId: WebReviewPromptId,
+    settings: ReviewPromptSettings,
+    promptContext: PostReviewPromptContext,
+    recentReviewRatings: ReadonlyArray<ReviewRating>,
+  ): Promise<ReviewPromptDecision> {
+    switch (promptId) {
+      case "hard-reminder":
+        return maybeOpenHardReminder(settings, recentReviewRatings);
+      case "paywall-initial":
+      case "paywall-second":
+      case "paywall-periodic":
+        return maybeOpenReviewPaywall(promptId, settings);
+      case "web-mobile-app-promo":
+        return maybeOpenMobileAppPromotion(settings, promptContext);
+      case "guest-sign-in":
+        return maybeOpenGuestSignInPrompt(settings);
+      case "automatic-feedback":
+        return maybeOpenAutomaticFeedbackPrompt(settings, promptContext);
+    }
+  }
+
+  async function loadPromptCounters(): Promise<ReviewPromptCounters | null> {
+    try {
+      indexedDbOpenRecoveryState.throwIfFailed();
+      const counters = await loadReviewPromptCounters(reviewWorkspaceIds, new Date());
+      indexedDbOpenRecoveryState.throwIfFailed();
+      return counters;
+    } catch (error) {
+      if (markIndexedDbOpenRecoveryFailure(error) === false) {
+        captureReviewPromptOperationError(error, "review_prompt_activity_load", null);
+      }
+      return null;
     }
   }
 
@@ -617,17 +731,33 @@ export function usePostReviewPrompts(params: UsePostReviewPromptsParams): UsePos
     promptContextRef.current = { ...currentContext, generation: currentContext.generation + 1 };
   }
 
-  async function maybeOpenPostReviewPrompt(): Promise<void> {
+  /**
+   * Shows at most one prompt after a saved review: the first in the config order that is enabled and
+   * passes its config conditions and fixed rules. Counters are read only once a prompt needs them.
+   */
+  async function maybeOpenPostReviewPrompt(recentReviewRatings: ReadonlyArray<ReviewRating>): Promise<void> {
     if (postReviewCheckInFlightRef.current || isReviewPromptUiBlocked()) return;
     const promptContext = promptContextRef.current;
     postReviewCheckInFlightRef.current = true;
     try {
-      if (await maybeOpenReviewPaywall(promptContext)) return;
-      if (!isPromptContextCurrent(promptContext) || isReviewPromptUiBlocked()) return;
-      const mobileAppPromotionDecision = await maybeOpenMobileAppPromotion(promptContext);
-      if (mobileAppPromotionDecision.kind === "cancelled" || indexedDbOpenRecoveryState.hasFailed()) return;
-      if (mobileAppPromotionDecision.kind === "skipped" && isPromptContextCurrent(promptContext)) {
-        await maybeOpenAutomaticFeedbackPrompt(promptContext);
+      let counters: ReviewPromptCounters | null = null;
+      for (const promptId of listWebReviewPromptOrder(reviewPromptConfig)) {
+        const settings = reviewPromptConfig.prompts[promptId];
+        if (settings.enabled === false) continue;
+        if (hasReviewPromptCounterConditions(settings)) {
+          if (counters === null) {
+            counters = await loadPromptCounters();
+            if (counters === null || !isPromptContextCurrent(promptContext) || isReviewPromptUiBlocked()) return;
+          }
+          if (passesReviewPromptCounterConditions(settings, counters) === false) continue;
+        }
+        const decision = await openReviewPrompt(promptId, settings, promptContext, recentReviewRatings);
+        if (
+          decision.kind !== "skipped"
+          || indexedDbOpenRecoveryState.hasFailed()
+          || !isPromptContextCurrent(promptContext)
+          || isReviewPromptUiBlocked()
+        ) return;
       }
     } finally {
       postReviewCheckInFlightRef.current = false;
@@ -662,6 +792,31 @@ export function usePostReviewPrompts(params: UsePostReviewPromptsParams): UsePos
     answerMobileAppPromotion("dismissed");
     trackScreenViewedOnDismiss({ dismissed: "mobile_app_prompt", restored: "review" });
     setIsMobileAppPromotionDialogOpen(false);
+  }
+
+  function dismissHardReminder(): void {
+    trackScreenViewedOnDismiss({ dismissed: "review_hard_reminder", restored: "review" });
+    setIsHardReminderVisible(false);
+  }
+
+  function answerGuestSignInPrompt(outcome: "accepted" | "snoozed"): void {
+    if (isGuestSignInPromptAnsweredRef.current) {
+      return;
+    }
+
+    isGuestSignInPromptAnsweredRef.current = true;
+    track({ name: "prompt_answered", prompt: "signin_after_review_prompt", outcome });
+  }
+
+  function postponeGuestSignIn(): void {
+    answerGuestSignInPrompt("snoozed");
+    trackScreenViewedOnDismiss({ dismissed: "signin_after_review_prompt", restored: "review" });
+    setIsGuestSignInPromptOpen(false);
+  }
+
+  function acceptGuestSignIn(): void {
+    // Before sign-in's first await: starting it unverifies the session, which hides the prompt.
+    answerGuestSignInPrompt("accepted");
   }
 
   async function submitAutomaticFeedback(): Promise<void> {
@@ -742,7 +897,21 @@ export function usePostReviewPrompts(params: UsePostReviewPromptsParams): UsePos
     setIsFeedbackSubmitting(false);
     trackScreenViewedOnDismiss({ dismissed: "mobile_app_prompt", restored: "review" });
     setIsMobileAppPromotionDialogOpen(false);
+    trackScreenViewedOnDismiss({ dismissed: "review_hard_reminder", restored: "review" });
+    setIsHardReminderVisible(false);
+    trackScreenViewedOnDismiss({ dismissed: "signin_after_review_prompt", restored: "review" });
+    setIsGuestSignInPromptOpen(false);
   }, [workspaceId]);
+
+  useEffect(() => {
+    if (isGuestSignInPromptOpen === false || (isGuest && isSessionVerified)) {
+      return;
+    }
+
+    // Sign-in hides the prompt on its way out of the app, so the surface goes back without a view.
+    restoreCurrentAnalyticsSurface({ dismissed: "signin_after_review_prompt", restored: "review" });
+    setIsGuestSignInPromptOpen(false);
+  }, [isGuest, isGuestSignInPromptOpen, isSessionVerified]);
 
   useEffect(() => {
     return () => {
@@ -766,7 +935,18 @@ export function usePostReviewPrompts(params: UsePostReviewPromptsParams): UsePos
       onSubmit: submitAutomaticFeedback,
       onDismiss: dismissAutomaticFeedbackDialog,
     },
+    guestSignInPromptProps: {
+      isOpen: isGuestSignInPromptVisible,
+      onLater: postponeGuestSignIn,
+      onSignInPressed: acceptGuestSignIn,
+    },
+    hardReminderDialogProps: {
+      isOpen: isHardReminderVisible,
+      onDismiss: dismissHardReminder,
+    },
     isFeedbackDialogOpen,
+    isGuestSignInPromptVisible,
+    isHardReminderVisible,
     isMobileAppPromotionDialogOpen,
     maybeOpenPostReviewPrompt,
     mobileAppPromotionDialogProps: {
