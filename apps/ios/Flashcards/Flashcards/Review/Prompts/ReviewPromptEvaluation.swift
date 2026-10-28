@@ -21,7 +21,9 @@ func reviewPromptWalk(config: ReviewPromptConfig) -> [ReviewPromptId] {
 }
 
 /// The config half of a prompt's eligibility; its fixed code rules are checked by the prompt itself.
-/// `lastShownAt` must be this same prompt's last showing, never another prompt's or event's.
+/// `lastShownAt` must be this same prompt's last showing, except that the after-review paywalls share
+/// the latest after-review showing of any of them; never an unrelated prompt's or event's, nor a
+/// paywall opened elsewhere.
 func reviewPromptConfigAllows(
     settings: ReviewPromptSettings,
     counters: ReviewPromptCounters,
