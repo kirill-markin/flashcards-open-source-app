@@ -39,10 +39,10 @@ import { parsePublicOrigin } from "../shared/publicUrls";
 import {
   buildMcpProtectedResourceMetadata,
   getAllowedMcpHosts,
-  getMcpProtectedResourceMetadataUrl,
   getMcpResourceUrl,
   resolveMcpHost,
 } from "../mcp/hosts";
+import { buildMcpBearerChallenge, extractBearerToken } from "../mcp/bearerChallenge";
 import {
   captureBackendException,
   createBackendObservationScope,
@@ -147,34 +147,9 @@ function buildProtectedResourceMetadata(
   );
 }
 
-const BEARER_PREFIX_PATTERN = /^Bearer\s+(\S+)$/i;
-
-/**
- * Builds the shared Bearer 401 challenge so an unauthenticated or invalid-token
- * `/mcp` request points spec-current MCP clients at the PRM document. The
- * challenge names the metadata URL of the host the client actually used, so a
- * client on the alternate host is never sent across to the primary host.
- */
 function buildBearerChallenge(c: Context, mcpHost: string): Response {
-  return c.json(
-    {
-      error: "invalid_token",
-      error_description: "A valid OAuth Bearer token is required to access the MCP resource.",
-    },
-    401,
-    {
-      "WWW-Authenticate": `Bearer resource_metadata="${getMcpProtectedResourceMetadataUrl(mcpHost)}"`,
-    },
-  );
-}
-
-function extractBearerToken(authorization: string | undefined): string | null {
-  if (authorization === undefined) {
-    return null;
-  }
-
-  const match = BEARER_PREFIX_PATTERN.exec(authorization.trim());
-  return match === null ? null : match[1];
+  const challenge = buildMcpBearerChallenge(mcpHost);
+  return c.json(challenge.body, challenge.statusCode, { "WWW-Authenticate": challenge.wwwAuthenticate });
 }
 
 /**
@@ -440,7 +415,9 @@ function buildMcpRoutes(app: Hono<McpAppEnv>): Hono<McpAppEnv> {
     // request arrived on, so an OAuth token is accepted only on the host whose
     // resource identifier it carries.
     const mcpHost = getRequestMcpHost(c, baseDomain);
-    const token = extractBearerToken(c.req.header("authorization"));
+    const authorization = c.req.header("authorization");
+    const token = authorization === undefined ? null : extractBearerToken(authorization);
+    // The dispatcher answers most of these itself; see lambda-mcp-dispatcher.ts.
     if (token === null) {
       return buildBearerChallenge(c, mcpHost);
     }

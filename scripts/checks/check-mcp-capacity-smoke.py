@@ -3,7 +3,8 @@
 
 The fixture reuses the shipped dispatcher artifact with its own worker, lease table and API, so the
 check exercises what deployed while production resources, credentials and data stay untouched.
-Probes carry no bearer token, so they bypass the per-token limit and test worker admission only.
+Probes carry no bearer token and avoid /mcp, which the dispatcher answers itself without one, so they
+bypass the per-token limit and test worker admission only.
 The fixture worker's reserved concurrency of zero forces the capacity refusal; raising it to one
 lets the proxy probes reach the worker.
 """
@@ -93,7 +94,8 @@ def fixture_template(source: dict[str, object], name: str) -> dict[str, object]:
         text_value(code[key], f"Code.{key}")
     environment = object_value(source.get("Environment"), "dispatcher Environment")
     variables = object_value(environment.get("Variables"), "dispatcher Variables")
-    if set(variables) != {"MCP_WORKER_FUNCTION_NAME", "MCP_TOKEN_LEASE_TABLE_NAME", "AWS_LAMBDA_EXEC_WRAPPER", "NIBOMO_NODE_RUNTIME_ID"}:
+    required = {"MCP_WORKER_FUNCTION_NAME", "MCP_TOKEN_LEASE_TABLE_NAME", "MCP_BASE_DOMAIN", "AWS_LAMBDA_EXEC_WRAPPER", "NIBOMO_NODE_RUNTIME_ID"}
+    if not required <= set(variables) <= required | {"MCP_ALTERNATE_HOST"}:
         raise ValueError("Unsupported dispatcher environment; fixture must not copy production secrets")
     if source.get("Runtime") != "nodejs24.x" or source.get("Architectures", ["x86_64"]) != ["x86_64"]:
         raise ValueError("Unsupported dispatcher runtime or architecture")
@@ -151,6 +153,7 @@ def handler(event, context):
     resources["Dispatcher"] = {"Type": "AWS::Lambda::Function", "DependsOn": "DispatcherLogs", "Properties": {
         **copied, "FunctionName": f"{name}-Dispatcher", "Role": {"Fn::GetAtt": ["DispatcherRole", "Arn"]},
         "Environment": {"Variables": {"MCP_WORKER_FUNCTION_NAME": {"Ref": "Worker"}, "MCP_TOKEN_LEASE_TABLE_NAME": {"Ref": "LeaseTable"},
+            "MCP_BASE_DOMAIN": text_value(variables["MCP_BASE_DOMAIN"], "dispatcher MCP_BASE_DOMAIN"),
             "AWS_LAMBDA_EXEC_WRAPPER": variables["AWS_LAMBDA_EXEC_WRAPPER"], "NIBOMO_NODE_RUNTIME_ID": variables["NIBOMO_NODE_RUNTIME_ID"]}},
     }}
     resources["Api"] = {"Type": "AWS::ApiGatewayV2::Api", "Properties": {"Name": name, "ProtocolType": "HTTP"}}
@@ -319,11 +322,11 @@ def main() -> None:
             endpoint = text_value(endpoints[0], "Endpoint")
             if re.fullmatch(r"https://[a-z0-9]+\.execute-api\." + re.escape(region) + r"\.amazonaws\.com", endpoint) is None:
                 raise ValueError("Unexpected fixture Endpoint")
-            probe(endpoint, "/mcp", 429)
+            probe(endpoint, "/capacity-probe", 429)
             aws.call("cloudformation", "update-stack", ["--stack-name", name, "--use-previous-template",
                 "--parameters", "ParameterKey=WorkerConcurrency,ParameterValue=1", "--capabilities", "CAPABILITY_IAM", "--role-arn", role])
             wait_stack(aws, name, "UPDATE_COMPLETE", 300)
-            probe(endpoint, "/mcp", 201)
+            probe(endpoint, "/capacity-probe", 201)
             probe(endpoint, "/failure", 500)
         finally:
             cleanup(aws, name, owner, role)

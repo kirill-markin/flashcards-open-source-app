@@ -39,10 +39,8 @@ test("the OAuth identifiers and the token audience come from the request's host"
     source,
     /return c\.json\(buildProtectedResourceMetadata\(getRequestMcpHost\(c, baseDomain\), baseDomain\)\);/,
   );
-  assert.match(
-    source,
-    /"WWW-Authenticate": `Bearer resource_metadata="\$\{getMcpProtectedResourceMetadataUrl\(mcpHost\)\}"`/,
-  );
+  assert.match(source, /return buildBearerChallenge\(c, mcpHost\);/);
+  assert.match(source, /const challenge = buildMcpBearerChallenge\(mcpHost\);/);
   assert.match(source, /allowedHosts: \[\.\.\.getAllowedMcpHosts\(baseDomain, getAlternateMcpHost\(\)\)\]/);
 
   // Per-host tokens: the expected audience is the host the request arrived on, so

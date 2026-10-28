@@ -43,7 +43,7 @@ Select the `/aws/lambda/<dispatcher function name>` log group for the
 `McpDispatcher` Lambda in the deployed stack, then run this Logs Insights query:
 
 ```
-filter message.action in ["mcp_worker_completed", "mcp_worker_capacity_rejected", "mcp_client_capacity_rejected", "mcp_dispatch_failed"]
+filter message.action in ["mcp_unauthenticated_challenge", "mcp_worker_completed", "mcp_worker_capacity_rejected", "mcp_client_capacity_rejected", "mcp_dispatch_failed"]
 | stats count(*) as requests,
         avg(message.durationMs) as avgDurationMs,
         pct(message.durationMs, 50) as p50DurationMs,
@@ -54,6 +54,7 @@ filter message.action in ["mcp_worker_completed", "mcp_worker_capacity_rejected"
 
 The [dispatcher](../apps/backend/src/entrypoints/lambda-mcp-dispatcher.ts) owns these records:
 
+- `mcp_unauthenticated_challenge`: the dispatcher answered a `/mcp` request without a bearer token with the OAuth 401 challenge itself, without invoking the worker.
 - `mcp_worker_completed`: the worker returned a valid proxy response, including 401, 405 and 5xx. `attempts` above 1 means admission throttles were absorbed.
 - `mcp_worker_capacity_rejected`: the admission retries were exhausted and the client received 429 for shared worker capacity; the MCP capacity alarm in [`monitoring.ts`](../infra/aws/lib/monitoring.ts) counts only these. The worker's `Throttles` metric also counts absorbed attempts.
 - `mcp_client_capacity_rejected`: a 429 before any Invoke, because that bearer token already holds its share of in-flight requests; one client is busy, not the pool.
