@@ -34,8 +34,8 @@ import {
 import { funnelSections } from "./reports/funnels/funnelSections";
 import { reviewPromptFunnels } from "./reports/reviewPrompts/detailsQuery";
 import {
-  parseStudyDepthMaturityDays,
-  withStudyDepthMaturitySearchParams,
+  parseStudyDepthControls,
+  withStudyDepthControlSearchParams,
 } from "./reports/studyDepth/studyDepthUrl";
 import {
   buildLookbackReportRangeEndingOn,
@@ -240,9 +240,9 @@ function buildAreaSearchParams(
   }
 
   if (route.kind === "analyticsArea" && route.area === "study-depth") {
-    return withStudyDepthMaturitySearchParams(
+    return withStudyDepthControlSearchParams(
       filterSearchParams,
-      parseStudyDepthMaturityDays(currentSearchParams),
+      parseStudyDepthControls(currentSearchParams),
     );
   }
 
