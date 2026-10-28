@@ -13,7 +13,7 @@ import {
   reviewPromptDetailsAnalyticsFilterFields,
   type AnalyticsFilterState,
 } from "../filters/analyticsFilters";
-import type { AnalyticsFilterOptions } from "../filters/optionsQuery";
+import { noSiteVisitorFilterOptions, type AnalyticsFilterOptions } from "../filters/optionsQuery";
 import { AdminNavigation } from "../navigation/AdminNavigation";
 import { AiUsageCohortsSection } from "../reports/aiUsageCohorts/AiUsageCohortsSection";
 import { AudienceSection } from "../reports/audience/AudienceSection";
@@ -188,6 +188,7 @@ function AnalyticsReportSections(props: AnalyticsReportSectionsProps): JSX.Eleme
         catalogSourceOptions={filterOptions?.catalogSources ?? noOptions}
         catalogDeviceCategoryOptions={filterOptions?.catalogDeviceCategories ?? noOptions}
         catalogClickBrowserLanguageOptions={filterOptions?.catalogClickBrowserLanguages ?? noOptions}
+        siteVisitorOptions={noSiteVisitorFilterOptions}
         areOptionListsLoading={filterOptions === null}
         isReportLoading={isReportLoading}
         dateRangeError={props.dateRangeError}

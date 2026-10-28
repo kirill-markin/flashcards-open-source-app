@@ -115,6 +115,19 @@ export function WebLandingPagePathSections(props: Readonly<{
     );
   }
 
+  if (state.breakdowns.length === 0) {
+    return (
+      <section className="dashboard-section" data-testid={`${testIdPrefix}-section`}>
+        <header className="dashboard-section-header level-1-metric-section-header">
+          <h2>{sectionsTitle}</h2>
+        </header>
+        <p className="report-state" data-testid={`${testIdPrefix}-empty-note`}>
+          No landing page type of the selection has more than one landing page, so there is nothing to split by page.
+        </p>
+      </section>
+    );
+  }
+
   return (
     <>
       {state.breakdowns.map((breakdown, index) => (
