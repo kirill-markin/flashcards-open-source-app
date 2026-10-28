@@ -738,6 +738,10 @@ const thCatalog: TranslationCatalog = {
       description: "ดูตัวอย่างข้อความชวนติดตั้งแอป iOS และ Android",
       value: "ตัวอย่าง",
     },
+    reviewPrompts: {
+      title: "ข้อความแจ้งหลังทบทวน",
+      resetAll: "รีเซ็ตสถานะข้อความแจ้งทั้งหมด",
+    },
   },
   settingsWorkspace: {
     decks: {

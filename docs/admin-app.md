@@ -6,7 +6,7 @@
 
 Each area's contract lives beside the code that computes it:
 
-- `Level 1 metrics`, the landing page: one chart per stage of the user funnel, from `Who saw us` to `Who paid us` ([area](../apps/admin/src/reports/levelOneMetrics/LevelOneMetricsArea.tsx)); payment collection is [native billing history](billing-history.md).
+- `Level 1 metrics`, the landing page: one chart per stage of the user funnel, from `Who paid us` back to `Who saw us` ([area](../apps/admin/src/reports/levelOneMetrics/LevelOneMetricsArea.tsx)); payment collection is [native billing history](billing-history.md).
 - `General`: [catalog deck installs and social connections](../apps/admin/src/dashboard/AdminDashboard.tsx), each section's query under `src/reports/` stating what it counts; social connections' is `buildReviewEventsByDateCommunitySql` in [`reviewEventsByDate/query.ts`](../apps/admin/src/reports/reviewEventsByDate/query.ts).
 - `Funnels`: [`funnelSections.ts`](../apps/admin/src/reports/funnels/funnelSections.ts) holds the order; each funnel's query states who it counts and how its steps count. The deck funnel's contract is its [query](../apps/admin/src/reports/catalogInstallFunnel/query.ts), and its events are in [catalog-install-funnel.md](catalog-install-funnel.md).
 - `Review prompts`: every prompt that can appear after a review, counted in showings; the shipped [review prompt config](../apps/backend/src/reviewPrompts/reviewPromptConfig.ts) sets the ids, order and appearance rules, [`reviewPromptDefinitions.ts`](../apps/admin/src/reports/reviewPrompts/reviewPromptDefinitions.ts) the titles, platforms, plain-words fixed rules and Acted rules, [`showingsSql.ts`](../apps/admin/src/reports/reviewPrompts/showingsSql.ts) what a showing, Acted and Gone are, and [`coverageQuery.ts`](../apps/admin/src/reports/reviewPrompts/coverageQuery.ts) when each platform first reported each prompt.
@@ -64,7 +64,7 @@ Run it locally with `make local-admin` on `http://localhost:3001` before merge; 
 
 ### Level 1 metrics ([area](../apps/admin/src/reports/levelOneMetrics/LevelOneMetricsArea.tsx), [periods](../apps/admin/src/reports/levelOneMetrics/reportPeriod.ts))
 
-- The five charts appear in funnel order on the last 60 days, and in one column on a narrow viewport.
+- The five charts appear in reverse funnel order on the last 60 days, and in one column on a narrow viewport.
 - Switch `Group by` through Days, Weeks and Months: every chart regroups, edge buckets name only the selected days, the bucket holding today is in progress, and a people count in a week or month is less than or equal to the sum of its Days bars.
 - On the `Who opened the app` Details page, every breakdown bar sums to the chart's bar for the same bucket, and both the `Level 1 metrics` tab and `← Level 1 metrics` return with the same range and `Group by`.
 - On the `Who studied` Details page, every `Review events by person` bar totals the same as the `Review events by platform` bar for the same bucket.

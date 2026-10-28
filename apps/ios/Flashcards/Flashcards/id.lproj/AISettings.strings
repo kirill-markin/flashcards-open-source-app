@@ -340,8 +340,8 @@
 "settings.test.animations.playAccessibility" = "Putar animasi %@, %@";
 "settings.test.technicalErrorPreview" = "Pratinjau kesalahan teknis";
 "settings.test.technicalErrorPreview.value" = "Pratinjau lembar";
-"settings.test.storeReviewPromptReset" = "Reset permintaan ulasan App Store";
-"settings.test.storeReviewPromptReset.value" = "Status lokal";
+"settings.test.section.reviewPrompts" = "Prompt setelah pengulangan";
+"settings.test.reviewPromptsReset" = "Reset status semua prompt";
 "settings.test.notificationDiagnostics" = "Diagnostik Notifikasi";
 "settings.test.notificationDiagnostics.value" = "Hanya baca";
 "settings.test.localSyncDiagnostics" = "Diagnostik Sinkronisasi Lokal";

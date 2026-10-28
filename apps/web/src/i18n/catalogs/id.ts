@@ -738,6 +738,10 @@ const idCatalog: TranslationCatalog = {
       description: "Pratinjau ajakan pasang aplikasi iOS dan Android.",
       value: "Pratinjau",
     },
+    reviewPrompts: {
+      title: "Prompt setelah tinjauan",
+      resetAll: "Atur ulang status semua prompt",
+    },
   },
   settingsWorkspace: {
     decks: {

@@ -222,15 +222,6 @@ class SentryAppObservabilityTest {
 
     @Test
     fun feedbackPromptExceptionFingerprintAndContextUseStablePromptFields(): Unit {
-        val stateLoadEvent: AndroidExceptionIssueEvent.FeedbackPromptException =
-            AndroidExceptionIssueEvent.FeedbackPromptException(
-                throwable = RuntimeException("state load failed"),
-                promptAction = AndroidFeedbackPromptAction.AUTOMATIC_FEEDBACK_STATE_LOAD_FAILED,
-                trigger = AndroidFeedbackPromptTrigger.AUTOMATIC,
-                appVersion = testAppVersion,
-                clientVersion = testAppVersion,
-                versionCode = testVersionCode
-            )
         val promptShownEvent: AndroidExceptionIssueEvent.FeedbackPromptException =
             AndroidExceptionIssueEvent.FeedbackPromptException(
                 throwable = RuntimeException("prompt shown record failed"),
@@ -246,25 +237,16 @@ class SentryAppObservabilityTest {
                 "android",
                 "feedback",
                 "feedback_prompt_exception",
-                "automatic_feedback_state_load_failed"
-            ),
-            exceptionIssueFingerprint(event = stateLoadEvent)
-        )
-        assertEquals(
-            listOf(
-                "android",
-                "feedback",
-                "feedback_prompt_exception",
                 "automatic_prompt_shown_record_failed"
             ),
             exceptionIssueFingerprint(event = promptShownEvent)
         )
         assertEquals(
             SentryFeedbackContext(
-                promptAction = "automatic_feedback_state_load_failed",
+                promptAction = "automatic_prompt_shown_record_failed",
                 trigger = "automatic"
             ),
-            feedbackPromptContext(event = stateLoadEvent)
+            feedbackPromptContext(event = promptShownEvent)
         )
     }
 }

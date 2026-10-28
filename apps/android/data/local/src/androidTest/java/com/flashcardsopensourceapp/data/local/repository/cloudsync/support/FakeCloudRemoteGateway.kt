@@ -768,13 +768,6 @@ internal class FakeCloudRemoteGateway private constructor(
         throw UnsupportedOperationException()
     }
 
-    override suspend fun loadFeedbackState(
-        apiBaseUrl: String,
-        authorizationHeader: String
-    ): CloudFeedbackState {
-        return createDefaultFeedbackState()
-    }
-
     override suspend fun recordFeedbackPromptEvent(
         apiBaseUrl: String,
         authorizationHeader: String,

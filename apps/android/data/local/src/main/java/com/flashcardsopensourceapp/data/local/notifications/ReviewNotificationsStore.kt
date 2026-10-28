@@ -12,7 +12,6 @@ import org.json.JSONArray
 import org.json.JSONException
 import org.json.JSONObject
 
-const val reviewNotificationPermissionPromptThreshold: Int = 6
 const val defaultDailyReminderHour: Int = 10
 const val defaultDailyReminderMinute: Int = 0
 const val dailyReminderSchedulingHorizonDays: Int = 7
@@ -30,7 +29,6 @@ private const val strictRemindersSettingsKey: String = "strict-reminders-setting
 private const val strictRemindersScheduledPayloadsKey: String = "strict-reminders-scheduled-payloads"
 private const val strictRemindersLastCompletedReviewAtKey: String = "strict-reminders-last-completed-review-at"
 private const val reviewNotificationsPromptStateKey: String = "review-notifications-prompt-state"
-private const val reviewNotificationsSuccessfulReviewCountKey: String = "review-notifications-successful-review-count"
 private const val reviewNotificationsLastActiveAtKey: String = "review-notifications-last-active-at"
 private const val reviewReminderAttentionStateKey: String = "review-reminder-attention-state"
 private const val reportedScheduledReviewNotificationsKey: String = "reported-scheduled-review-notifications"
@@ -75,9 +73,10 @@ data class ReviewNotificationsSettings(
 )
 
 data class NotificationPermissionPromptState(
-    val hasShownPrePrompt: Boolean,
-    val hasRequestedSystemPermission: Boolean,
-    val hasDismissedPrePrompt: Boolean
+    /** The review pre-prompt's last showing, its cooldown clock. */
+    val lastShownAtMillis: Long?,
+    /** Whether this install ever asked the OS for the permission, from any surface. */
+    val hasRequestedSystemPermission: Boolean
 )
 
 data class PersistedReviewFilter(
@@ -142,9 +141,8 @@ fun defaultReviewNotificationsSettings(): ReviewNotificationsSettings {
 
 fun defaultNotificationPermissionPromptState(): NotificationPermissionPromptState {
     return NotificationPermissionPromptState(
-        hasShownPrePrompt = false,
-        hasRequestedSystemPermission = false,
-        hasDismissedPrePrompt = false
+        lastShownAtMillis = null,
+        hasRequestedSystemPermission = false
     )
 }
 
@@ -162,8 +160,6 @@ interface ReviewNotificationsStore {
     fun saveSettings(settings: ReviewNotificationsSettings)
     fun loadPromptState(): NotificationPermissionPromptState
     fun savePromptState(state: NotificationPermissionPromptState)
-    fun loadSuccessfulReviewCount(): Int
-    fun saveSuccessfulReviewCount(count: Int)
     fun loadLastActiveAtMillis(): Long?
     fun saveLastActiveAtMillis(timestampMillis: Long)
     fun clearLastActiveAtMillis()
@@ -306,16 +302,6 @@ class SharedPreferencesReviewNotificationsStore(
     override fun savePromptState(state: NotificationPermissionPromptState) {
         preferences.edit(commit = true) {
             putString(reviewNotificationsPromptStateKey, encodePromptState(state = state))
-        }
-    }
-
-    override fun loadSuccessfulReviewCount(): Int {
-        return preferences.getInt(reviewNotificationsSuccessfulReviewCountKey, 0)
-    }
-
-    override fun saveSuccessfulReviewCount(count: Int) {
-        preferences.edit(commit = true) {
-            putInt(reviewNotificationsSuccessfulReviewCountKey, count)
         }
     }
 
@@ -899,18 +885,18 @@ private fun decodeStrictRemindersSettings(rawValue: String): StrictRemindersSett
 
 private fun encodePromptState(state: NotificationPermissionPromptState): String {
     return JSONObject().apply {
-        put("hasShownPrePrompt", state.hasShownPrePrompt)
+        if (state.lastShownAtMillis != null) {
+            put("lastShownAtMillis", state.lastShownAtMillis)
+        }
         put("hasRequestedSystemPermission", state.hasRequestedSystemPermission)
-        put("hasDismissedPrePrompt", state.hasDismissedPrePrompt)
     }.toString()
 }
 
 private fun decodePromptState(rawValue: String): NotificationPermissionPromptState {
     val payload = JSONObject(rawValue)
     return NotificationPermissionPromptState(
-        hasShownPrePrompt = payload.getBoolean("hasShownPrePrompt"),
-        hasRequestedSystemPermission = payload.getBoolean("hasRequestedSystemPermission"),
-        hasDismissedPrePrompt = payload.getBoolean("hasDismissedPrePrompt")
+        lastShownAtMillis = if (payload.has("lastShownAtMillis")) payload.getLong("lastShownAtMillis") else null,
+        hasRequestedSystemPermission = payload.getBoolean("hasRequestedSystemPermission")
     )
 }
 

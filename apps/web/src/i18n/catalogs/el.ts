@@ -738,6 +738,10 @@ const elCatalog: TranslationCatalog = {
       description: "Δείτε την προτροπή εγκατάστασης για iOS και Android.",
       value: "Προεπισκόπηση",
     },
+    reviewPrompts: {
+      title: "Προτροπές μετά την επανάληψη",
+      resetAll: "Επαναφορά κατάστασης όλων των προτροπών",
+    },
   },
   settingsWorkspace: {
     decks: {

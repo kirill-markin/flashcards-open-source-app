@@ -340,8 +340,8 @@
 "settings.test.animations.playAccessibility" = "%@ اینیمیشن چلائیں، %@";
 "settings.test.technicalErrorPreview" = "تکنیکی خرابی کا پیش منظر";
 "settings.test.technicalErrorPreview.value" = "پیش منظر شیٹ";
-"settings.test.storeReviewPromptReset" = "App Store جائزے کی درخواست ری سیٹ کریں";
-"settings.test.storeReviewPromptReset.value" = "مقامی حالت";
+"settings.test.section.reviewPrompts" = "دہرائی کے بعد کی درخواستیں";
+"settings.test.reviewPromptsReset" = "تمام درخواستوں کی حالت ری سیٹ کریں";
 "settings.test.notificationDiagnostics" = "اطلاعات کی تشخیص";
 "settings.test.notificationDiagnostics.value" = "صرف پڑھنے کے لیے";
 "settings.test.localSyncDiagnostics" = "مقامی ہم وقت سازی کی تشخیص";

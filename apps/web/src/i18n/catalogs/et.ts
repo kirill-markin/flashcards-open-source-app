@@ -738,6 +738,10 @@ const etCatalog: TranslationCatalog = {
       description: "Vaata iOS-i ja Androidi installimisviipa.",
       value: "Eelvaade",
     },
+    reviewPrompts: {
+      title: "Viibad pärast kordamist",
+      resetAll: "Lähtesta kõigi viipade olek",
+    },
   },
   settingsWorkspace: {
     decks: {

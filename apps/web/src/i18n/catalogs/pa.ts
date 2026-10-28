@@ -738,6 +738,10 @@ const paCatalog: TranslationCatalog = {
       description: "iOS ਅਤੇ Android ਇੰਸਟਾਲ ਸੱਦੇ ਦੀ ਝਲਕ ਵੇਖੋ.",
       value: "ਝਲਕ",
     },
+    reviewPrompts: {
+      title: "ਦੁਹਰਾਈ ਤੋਂ ਬਾਅਦ ਦੇ ਪ੍ਰੋਂਪਟ",
+      resetAll: "ਸਾਰੇ ਪ੍ਰੋਂਪਟਾਂ ਦੀ ਸਥਿਤੀ ਰੀਸੈੱਟ ਕਰੋ",
+    },
   },
   settingsWorkspace: {
     decks: {

@@ -340,8 +340,8 @@
 "settings.test.animations.playAccessibility" = "Пускане на %@ анимация, %@";
 "settings.test.technicalErrorPreview" = "Предварителен преглед на техническа грешка";
 "settings.test.technicalErrorPreview.value" = "Лист за предварителен преглед";
-"settings.test.storeReviewPromptReset" = "Нулиране на поканата за оценка в App Store";
-"settings.test.storeReviewPromptReset.value" = "Локално състояние";
+"settings.test.section.reviewPrompts" = "Подкани след преговор";
+"settings.test.reviewPromptsReset" = "Нулиране на състоянието на всички подкани";
 "settings.test.notificationDiagnostics" = "Диагностика на известията";
 "settings.test.notificationDiagnostics.value" = "Само за четене";
 "settings.test.localSyncDiagnostics" = "Локална диагностика на синхронизиране";
