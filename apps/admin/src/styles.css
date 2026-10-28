@@ -447,6 +447,30 @@ h2 {
   font-size: 13px;
 }
 
+/* Stands in for a count while the table query runs. */
+.review-prompts-count-spinner {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border: 2px solid var(--panel-border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  vertical-align: middle;
+  animation: review-prompts-count-spin 0.8s linear infinite;
+}
+
+@keyframes review-prompts-count-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .review-prompts-count-spinner {
+    animation-duration: 2.4s;
+  }
+}
+
 .review-prompts-table td .explained-heading-row {
   justify-content: flex-end;
 }
