@@ -14,6 +14,7 @@ import {
 } from "./filters/analyticsFilters";
 import {
   buildAnalyticsAreaDefaultDateRange,
+  getAnalyticsAreaDefaultLookbackDays,
   normalizeAnalyticsFilterState,
   parseAnalyticsFilterState,
   parseProvisionalAnalyticsFilterState,
@@ -43,7 +44,6 @@ import {
 } from "./reports/studyDepth/studyDepthUrl";
 import {
   buildLookbackReportRangeEndingOn,
-  defaultReportRangeLookbackDays,
   todayUtcCalendarDate,
 } from "./reports/reportValues";
 import {
@@ -488,17 +488,17 @@ export default function App(): JSX.Element {
   // The first analytics area starts on the URL's selection at once, its range clamped to today and
   // the browser's default where the URL has none. A layout effect, so the area never paints without it.
   useLayoutEffect(() => {
-    if (!usesAnalyticsFilters || sessionConfig === null || filterStateRef.current !== null) {
+    if (filterArea === null || sessionConfig === null || filterStateRef.current !== null) {
       return;
     }
 
     const openedSearch = window.location.search;
     const todayUtc = todayUtcCalendarDate(new Date());
-    // Both range loaders end on today's UTC date, so this matches the lookup's default unless the
-    // data starts later than the lookback.
+    // Both range loaders end on today's UTC date, so this matches the opened area's default from the
+    // lookup unless the data starts later than the lookback or the area is Study depth.
     const defaultRange = buildLookbackReportRangeEndingOn(
       todayUtc,
-      defaultReportRangeLookbackDays,
+      getAnalyticsAreaDefaultLookbackDays(filterArea),
       analyticsDefaultRangeLabel,
     );
     const provisionalFilters = parseProvisionalAnalyticsFilterState(
@@ -510,7 +510,7 @@ export default function App(): JSX.Element {
     setProvisionalSelection({ defaultRange, openedSearch });
     filterStateRef.current = provisionalFilters;
     setFilterState(provisionalFilters);
-  }, [sessionConfig, usesAnalyticsFilters]);
+  }, [filterArea, sessionConfig]);
 
   useEffect(() => {
     if (

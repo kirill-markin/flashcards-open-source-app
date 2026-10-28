@@ -7,8 +7,10 @@ import {
 import { catalogInstallPlacements, type CatalogInstallPlacement } from "../reports/catalogInstallFunnel/query";
 import {
   allTimeReportRangePreset,
-  buildDefaultReportRange,
+  buildLookbackReportRange,
   buildPresetReportRange,
+  defaultReportRangeLookbackDays,
+  lastNinetyDaysReportRangePreset,
 } from "../reports/reportValues";
 import type { AnalyticsArea } from "../routing";
 import {
@@ -209,6 +211,15 @@ function formatMinimumEventCount(entry: AnalyticsMinimumEventCount): string {
 }
 
 /**
+ * The lookback an area opens on. Journeys opens on 90 days, because Retention needs about 65 for W4
+ * and D30 to have matured cohorts. Study depth opens on all time, which only the available range can
+ * place, so this is its window until that range is known.
+ */
+export function getAnalyticsAreaDefaultLookbackDays(area: AnalyticsArea): number {
+  return area === "journeys" ? lastNinetyDaysReportRangePreset.lookbackDays : defaultReportRangeLookbackDays;
+}
+
+/**
  * The window an area opens on. Study depth opens on all time, because its cohort is people by their
  * first review and a recent window would hold only people who started too late to come back.
  */
@@ -218,7 +229,7 @@ export function buildAnalyticsAreaDefaultDateRange(
 ): AnalyticsDateRange {
   return area === "study-depth"
     ? buildPresetReportRange(allTimeReportRangePreset, availableRange, analyticsFilterReportLabel)
-    : buildDefaultReportRange(availableRange, analyticsFilterReportLabel);
+    : buildLookbackReportRange(availableRange, getAnalyticsAreaDefaultLookbackDays(area), analyticsFilterReportLabel);
 }
 
 /** Every filter cleared, on the area's default window of the range the data actually covers. */

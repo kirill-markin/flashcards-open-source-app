@@ -87,7 +87,7 @@ Run it locally with `make local-admin` on `http://localhost:3001` before merge; 
 
 - `/analytics/general` shows its two sections in order, each chart rendering.
 - `Catalog deck installs` is empty or nearly empty on production ([why](../apps/admin/src/reports/catalogInstalls/query.ts)); selecting any device platform empties only that section, and hovering a segment names the deck slug.
-- The default range is the one [`buildDefaultReportRange`](../apps/admin/src/reports/reportValues.ts) returns, and the picker widens back to the earliest selectable day; over days only the deck funnel carries, General shows an empty tail.
+- The default range is the one [`buildAnalyticsAreaDefaultDateRange`](../apps/admin/src/filters/analyticsFiltersUrl.ts) returns, and the picker widens back to the earliest selectable day; over days only the deck funnel carries, General shows an empty tail.
 - Every filter popup names what it filters and how; the date popup's second click applies the range; a threshold such as `1.5` stays named as not applied.
 - A burst of filter clicks shows `Updating` at once, keeps the controls live and ends in one reload; `Reset all` restores the default range and clears every other filter.
 - Pick one connection country and one app interface language: every chart and the Audience denominator narrow, and both survive a reload.
@@ -97,6 +97,7 @@ Run it locally with `make local-admin` on `http://localhost:3001` before merge; 
 
 ### Journeys ([`funnelSections.ts`](../apps/admin/src/reports/funnels/funnelSections.ts))
 
+- `Journeys` and its Details pages open on the last 90 days, and `Reset all` returns there.
 - `Journeys` is the second tab; the `Retention` card, then its funnels in `funnelSections` order, appear as chart cards in two columns, one on a narrow viewport, under a shared bar of date range, `Compare with`, client platform, connection country and app interface language; only `Retention` and `First launch` have an enabled `Details` button. A ⚠ beside a card's title appears only while a selected range triggers its caveat, such as a range starting before that funnel's first counted day, and shows the caveat on hover or click; a failed query stays inline with `Retry`.
 - `First launch` `Details` opens `/analytics/journeys/first-launch`: the same chart top-left, then one chart per platform, connection country, app interface language, sign-in state and app version, whose groups' first steps sum to the main chart's. A step click re-bases every chart, and `← Journeys` returns with the same filters and anchors. With `Compare with`, each group draws a solid A bar beside a lighter B bar, and hovering a step lists every group's A and B shares and their change.
 - An old `/analytics/funnels` or `/analytics/funnels/first-launch` link lands on the matching `/analytics/journeys` page with its query string, and an old `/analytics/level-1-metrics/who-came-back` link on `/analytics/journeys/retention` with its query string.

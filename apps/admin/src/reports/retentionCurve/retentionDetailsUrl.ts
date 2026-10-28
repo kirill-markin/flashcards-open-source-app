@@ -1,7 +1,8 @@
 // The URL codec for the Retention Details page's own Group by, following `../studyDepth/studyDepthUrl.ts`:
 // the parameter belongs to that page, so `App.tsx` carries it over on that route only. The default
 // writes no parameter, and an unknown, repeated or malformed value opens on the default. It shares
-// the Level 1 `period` name, so a link to the former Level 1 retention Details page keeps its Group by.
+// the Level 1 `period` name, so a link to the former Level 1 retention Details page keeps an explicit
+// Weeks or Months; Level 1 wrote no parameter for its default Days, so such a link opens on Weeks.
 
 import { readSingleParam } from "../../filters/analyticsFiltersUrl";
 import { findReportPeriod, type ReportPeriod } from "../levelOneMetrics/reportPeriod";
