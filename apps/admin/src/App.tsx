@@ -115,7 +115,7 @@ function isSameOptionalDateRange(
   return left === null || right === null ? left === right : isSameDateRange(left, right);
 }
 
-// General's reports do not read the Funnels-only comparison range, so its batch is keyed on the
+// General's reports do not read the Journeys-only comparison range, so its batch is keyed on the
 // selection with it blanked: picking a comparison neither reloads General nor takes query slots ahead
 // of the funnel cards. Keyed on content, because every apply makes a new selection object.
 function toGeneralReportFilters(filters: AnalyticsFilterState): AnalyticsFilterState {
@@ -187,7 +187,7 @@ function getAnalyticsFilterArea(route: AdminRoute): AnalyticsArea | null {
     case "analyticsArea":
       return route.area === "level-1-metrics" ? null : route.area;
     case "funnelDetails":
-      return "funnels";
+      return "journeys";
     case "reviewPromptDetails":
       return "review-prompts";
     default:
@@ -204,7 +204,7 @@ function getAnalyticsFilterArea(route: AdminRoute): AnalyticsArea | null {
  * filter writer starts from a fresh `URLSearchParams` each time, which is what drops them again on
  * the way out.
  *
- * The Funnels anchors are validated on the way through, each against that funnel's own steps. The
+ * The Journeys anchors are validated on the way through, each against that funnel's own steps. The
  * Study-vs-AI controls and the Study depth maturity are validated by their own parsers, which fall
  * back to the default for anything outside their closed option lists.
  */
@@ -214,8 +214,8 @@ function buildAreaSearchParams(
   currentSearchParams: URLSearchParams,
 ): URLSearchParams {
   // A funnel Details page carries every funnel's anchor, not only its own, so its back link returns
-  // to the Funnels area with the query string it left.
-  if (route.kind === "funnelDetails" || (route.kind === "analyticsArea" && route.area === "funnels")) {
+  // to the Journeys area with the query string it left.
+  if (route.kind === "funnelDetails" || (route.kind === "analyticsArea" && route.area === "journeys")) {
     return funnelSections.reduce(
       (nextSearchParams, funnel) => withFunnelAnchorSearchParams(
         nextSearchParams,
@@ -319,7 +319,7 @@ export default function App(): JSX.Element {
   const [usersListPath, setUsersListPath] = useState<string>(usersPath);
   const [eventsListPath, setEventsListPath] = useState<string>(eventsPath);
   const [reportLoadRevision, setReportLoadRevision] = useState<number>(0);
-  // The whole filter selection lives here, above every area, so leaving General for Funnels and
+  // The whole filter selection lives here, above every area, so leaving General for Journeys and
   // coming back keeps it. It is null until the first analytics area opens, which starts it
   // provisionally from the URL; the range lookup then reconciles its range.
   const [filterState, setFilterState] = useState<AnalyticsFilterState | null>(null);
@@ -709,7 +709,7 @@ export default function App(): JSX.Element {
   // stepping through every click, and the single write this does on load is the canonicalization of a
   // hand-typed query string rather than a filter change of its own. The selection lives above the
   // areas, so switching area re-writes it onto the new path instead of being read back from it.
-  // Area-specific parameters - the Funnels charts' anchors and group-by fields, the Study-vs-AI
+  // Area-specific parameters - the Journeys charts' anchors and group-by fields, the Study-vs-AI
   // period length and audience, and the Study depth maturity - are carried over by
   // `buildAreaSearchParams` above, on their own route only. It waits for the range lookup, whose
   // available range the defaults are derived from.

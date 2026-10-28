@@ -18,10 +18,10 @@ export function FunnelDetailsHeader(
     <header className="level-1-metric-details-header">
       <FunnelsLink
         className="state-link"
-        path={getAnalyticsAreaPath("funnels")}
+        path={getAnalyticsAreaPath("journeys")}
         testId="funnel-details-back"
         onNavigate={props.onNavigate}
-      >← Funnels</FunnelsLink>
+      >← Journeys</FunnelsLink>
       <h2 data-testid="funnel-details-title">{funnelDetailTitles[props.funnelId]} details</h2>
     </header>
   );

@@ -106,7 +106,7 @@ export function parseAcceptedMinimumCount(rawMinimumCount: string): number | und
  */
 export type AnalyticsFilterState = Readonly<{
   dateRange: AnalyticsDateRange;
-  /** The Funnels area's second range, drawn beside `dateRange` as series B; `null` is no comparison. */
+  /** The Journeys area's second range, drawn beside `dateRange` as series B; `null` is no comparison. */
   comparisonDateRange: AnalyticsDateRange | null;
   users: ReadonlyArray<string>;
   userCohorts: ReadonlyArray<ReviewEventCohort>;
@@ -176,7 +176,7 @@ export const analyticsFilterFields: ReadonlyArray<AnalyticsFilterField> = Object
   analyticsFilterFieldOrder,
 ) as Array<AnalyticsFilterField>;
 
-// The Funnels bar is shared by every funnel on the area, so it offers only the fields they all
+// The Journeys bar is shared by every funnel on the area, so it offers only the fields they all
 // share. The users, cohort and threshold fields ask something only an account answers, and a funnel's
 // top steps happen before sign-in, so they are absent rather than empty. Every field takes a side here
 // for the same reason the order above is exhaustive.
@@ -205,7 +205,7 @@ const funnelsAnalyticsFilterFields: ReadonlyArray<AnalyticsFilterField> = analyt
   .filter((field) => funnelsAnalyticsFilterFieldApplicability[field]);
 
 // Review prompts count showings: a showing carries its own platform and belongs to one person, which
-// is all these fields ask. The table draws no second series, and the person-level fields Funnels
+// is all these fields ask. The table draws no second series, and the person-level fields Journeys
 // leaves out are left out here for the same reason.
 const reviewPromptsAnalyticsFilterFields: ReadonlyArray<AnalyticsFilterField> = [
   "dateRange",
@@ -223,7 +223,7 @@ const studyDepthAnalyticsFilterFields: ReadonlyArray<AnalyticsFilterField> = [
   "appUiLanguages",
 ];
 
-// A prompt's Details page draws its funnels on a second range too, as the Funnels area does.
+// A prompt's Details page draws its funnels on a second range too, as the Journeys area does.
 export const reviewPromptDetailsAnalyticsFilterFields: ReadonlyArray<AnalyticsFilterField> = [
   "dateRange",
   "comparisonDateRange",
@@ -243,7 +243,7 @@ export const webEngagedAnalyticsFilterFields: ReadonlyArray<AnalyticsFilterField
 ];
 
 // General and Audience draw no second series a comparison range could fill, and count people rather
-// than marketing-site visitors. Every field takes a side here for the same reason as on Funnels.
+// than marketing-site visitors. Every field takes a side here for the same reason as on Journeys.
 const userScopedAnalyticsFilterFieldApplicability = {
   dateRange: true,
   comparisonDateRange: false,
@@ -287,7 +287,7 @@ export const analyticsFilterFieldsByArea: Readonly<
 > = {
   "level-1-metrics": levelOneMetricsAnalyticsFilterFields,
   general: userScopedAnalyticsFilterFields,
-  funnels: funnelsAnalyticsFilterFields,
+  journeys: funnelsAnalyticsFilterFields,
   "review-prompts": reviewPromptsAnalyticsFilterFields,
   "study-depth": studyDepthAnalyticsFilterFields,
   audience: userScopedAnalyticsFilterFields,
@@ -330,7 +330,7 @@ const catalogClickAttributionExplanationTail =
   "Attribution covers completed installs only, so a click that never became an install can never match here, and an install whose click was never recorded carries no click values at all.";
 
 // Shown next to each filter, so it has to be readable by someone who never opens this code. These are
-// the wordings of the user-scoped areas, where a row is a person or an event of a person; `funnels`
+// the wordings of the user-scoped areas, where a row is a person or an event of a person; `journeys`
 // overrides the ones whose meaning genuinely changes there.
 //
 // Two or three sentences each, on purpose: what the field counts, then the one thing that would
@@ -339,7 +339,7 @@ const catalogClickAttributionExplanationTail =
 const analyticsFilterFieldExplanations: Readonly<Record<AnalyticsFilterField, string>> = {
   dateRange:
     "Counts only events whose UTC calendar day falls inside this range. Both the first and the last day are included, and the day is the UTC day rather than the reader's own.",
-  // Offered on Funnels and on review prompt Details pages only.
+  // Offered on Journeys and on review prompt Details pages only.
   comparisonDateRange:
     "An optional second entry range, empty by default. When it is set, every funnel is counted again on it with every other filter unchanged, and drawn beside the main range as series B, each series measured from its own first step.",
   users:
@@ -513,7 +513,7 @@ const analyticsFilterFieldExplanationOverridesByArea: Readonly<
 > = {
   "level-1-metrics": levelOneMetricsAnalyticsFilterFieldExplanations,
   general: {},
-  funnels: funnelsAnalyticsFilterFieldExplanations,
+  journeys: funnelsAnalyticsFilterFieldExplanations,
   "review-prompts": reviewPromptsAnalyticsFilterFieldExplanations,
   "study-depth": studyDepthAnalyticsFilterFieldExplanations,
   audience: audienceAnalyticsFilterFieldExplanations,
@@ -532,7 +532,7 @@ export function getAnalyticsFilterFieldExplanation(
 // A label has to be a full phrase somebody can read without opening this file, so a field whose
 // subject genuinely changes in an area is renamed here rather than neutralised into a name that fits
 // everywhere and says nothing. The date range is that field: on the user-scoped areas it bounds the
-// events being counted, while on `funnels` it only places an entry by the event that anchors it, and
+// events being counted, while on `journeys` it only places an entry by the event that anchors it, and
 // the later steps run past it, which is what the explanation above says.
 const funnelsAnalyticsFilterFieldLabels: Readonly<
   Partial<Record<AnalyticsFilterField, string>>
@@ -557,7 +557,7 @@ const analyticsFilterFieldLabelOverridesByArea: Readonly<
 > = {
   "level-1-metrics": levelOneMetricsAnalyticsFilterFieldLabels,
   general: {},
-  funnels: funnelsAnalyticsFilterFieldLabels,
+  journeys: funnelsAnalyticsFilterFieldLabels,
   "review-prompts": { dateRange: "Date range of the showing" },
   "study-depth": { dateRange: "First review of the person" },
   audience: {},

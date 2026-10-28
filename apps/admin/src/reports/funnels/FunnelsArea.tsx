@@ -10,7 +10,7 @@ const funnelDetailsPages: Readonly<Record<FunnelDetail, (props: FunnelReportProp
 };
 
 /**
- * The selection with the catalog fields cleared. No funnel reads them and the Funnels area offers no
+ * The selection with the catalog fields cleared. No funnel reads them and the Journeys area offers no
  * control for them, so a value carried over from another area must not reload a funnel unseen.
  */
 function buildFunnelsAreaFilters(filters: AnalyticsFilterState): AnalyticsFilterState {
@@ -25,7 +25,7 @@ function buildFunnelsAreaFilters(filters: AnalyticsFilterState): AnalyticsFilter
 }
 
 /**
- * The Funnels area: every funnel in `funnelSections` order as a chart card in the Level 1 metrics
+ * The Journeys area: every funnel in `funnelSections` order as a chart card in the Level 1 metrics
  * grid, or one funnel's Details page when `funnelDetail` names it.
  */
 export function FunnelsArea(
