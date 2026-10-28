@@ -66,7 +66,7 @@ export function buildLookbackReportRangeEndingOn(
 // A lookback window anchored on the last day that carries data rather than on today, clamped up to
 // the available first day so the window can never fall outside the range the picker and the range
 // validation allow.
-function buildLookbackReportRange(
+export function buildLookbackReportRange(
   availableRange: Readonly<{ from: string; to: string }>,
   lookbackDays: number,
   reportLabel: string,
@@ -75,14 +75,6 @@ function buildLookbackReportRange(
   const lookbackRange = buildLookbackReportRangeEndingOn(availableRange.to, lookbackDays, reportLabel);
 
   return { from: laterCalendarDate(lookbackRange.from, availableFrom), to: lookbackRange.to };
-}
-
-// The window the dashboard opens on.
-export function buildDefaultReportRange(
-  availableRange: Readonly<{ from: string; to: string }>,
-  reportLabel: string,
-): Readonly<{ from: string; to: string }> {
-  return buildLookbackReportRange(availableRange, defaultReportRangeLookbackDays, reportLabel);
 }
 
 type LookbackReportRangePreset = Readonly<{ id: string; label: string; kind: "lookback"; lookbackDays: number }>;
@@ -106,6 +98,14 @@ export const lastSixtyDaysReportRangePreset: LookbackReportRangePreset = {
   lookbackDays: 60,
 };
 
+/** Also the window Journeys opens on. */
+export const lastNinetyDaysReportRangePreset: LookbackReportRangePreset = {
+  id: "last-90-days",
+  label: "Last 90 days",
+  kind: "lookback",
+  lookbackDays: 90,
+};
+
 /** Also the window Study depth opens on. */
 export const allTimeReportRangePreset: ReportRangePreset = { id: "all-time", label: "All time", kind: "all-time" };
 
@@ -115,7 +115,7 @@ export const reportRangePresets: ReadonlyArray<ReportRangePreset> = [
   { id: "last-7-days", label: "Last 7 days", kind: "lookback", lookbackDays: 7 },
   { id: "last-30-days", label: "Last 30 days", kind: "lookback", lookbackDays: 30 },
   lastSixtyDaysReportRangePreset,
-  { id: "last-90-days", label: "Last 90 days", kind: "lookback", lookbackDays: 90 },
+  lastNinetyDaysReportRangePreset,
   { id: "last-130-days", label: "Last 130 days", kind: "lookback", lookbackDays: 130 },
   { id: "last-360-days", label: "Last 360 days", kind: "lookback", lookbackDays: 360 },
   allTimeReportRangePreset,
