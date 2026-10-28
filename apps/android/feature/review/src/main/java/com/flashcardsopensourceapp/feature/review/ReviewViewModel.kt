@@ -11,6 +11,8 @@ import com.flashcardsopensourceapp.core.ui.TransientMessageController
 import com.flashcardsopensourceapp.core.ui.VisibleAppScreen
 import com.flashcardsopensourceapp.core.ui.VisibleAppScreenRepository
 import com.flashcardsopensourceapp.core.ui.makeAppTechnicalError
+import com.flashcardsopensourceapp.core.observability.AndroidExceptionIssueEvent
+import com.flashcardsopensourceapp.core.observability.AppObservability
 import com.flashcardsopensourceapp.core.observability.analytics.Analytics
 import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsEvent
 import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsPrompt
@@ -27,8 +29,11 @@ import com.flashcardsopensourceapp.data.local.model.review.ReviewSessionSnapshot
 import com.flashcardsopensourceapp.data.local.notifications.NotificationPermissionPromptState
 import com.flashcardsopensourceapp.data.local.notifications.ReviewNotificationsReconcileTrigger
 import com.flashcardsopensourceapp.data.local.notifications.ReviewNotificationsStore
-import com.flashcardsopensourceapp.data.local.notifications.reviewNotificationPermissionPromptThreshold
 import com.flashcardsopensourceapp.data.local.review.ReviewPreferencesStore
+import com.flashcardsopensourceapp.data.local.review.prompts.ReviewPromptHandler
+import com.flashcardsopensourceapp.data.local.review.prompts.ReviewPromptId
+import com.flashcardsopensourceapp.data.local.review.prompts.reviewPromptConfigDefaults
+import com.flashcardsopensourceapp.data.local.review.prompts.showFirstEligibleReviewPrompt
 import com.flashcardsopensourceapp.data.local.repository.sync.AutoSyncCompletion
 import com.flashcardsopensourceapp.data.local.repository.sync.AutoSyncEvent
 import com.flashcardsopensourceapp.data.local.repository.sync.AutoSyncEventRepository
@@ -54,12 +59,9 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.io.IOException
 import java.net.SocketTimeoutException
+import java.time.ZoneId
 
 private const val maxAnalyticsReviewFailureCauseDepth: Int = 8
-
-private fun hasEnoughReviewHistoryForNotificationPrompt(reviewCount: Int): Boolean {
-    return reviewCount >= reviewNotificationPermissionPromptThreshold
-}
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class ReviewViewModel(
@@ -72,11 +74,12 @@ class ReviewViewModel(
     private val shouldShowNotificationPermissionPrePrompt: () -> Boolean,
     private val onReviewNotificationsChanged: (ReviewNotificationsReconcileTrigger) -> Unit,
     private val onSuccessfulReviewRecorded: suspend (Long) -> Unit,
-    private val onStoreReviewOpportunity: suspend () -> Boolean,
-    private val onAutomaticFeedbackPromptCandidate: suspend () -> Unit,
+    /** The after-review prompts the app shows over this screen; the view model owns the others. */
+    private val appReviewPromptHandlers: Map<ReviewPromptId, ReviewPromptHandler>,
     private val onNotificationPermissionGranted: () -> Unit,
     private val reviewPreferencesStore: ReviewPreferencesStore,
     private val analytics: Analytics,
+    private val observability: AppObservability,
     visibleAppScreenRepository: VisibleAppScreenRepository,
     workspaceRepository: WorkspaceRepository,
     private val textProvider: ReviewTextProvider
@@ -168,8 +171,8 @@ class ReviewViewModel(
     private var handledAnswerRevealCardId: String? = null
     /** Fixed-size in-memory review history for the current review session only. */
     private var recentReviewRatings: List<ReviewRating> = emptyList()
-    /** Device-level cooldown timestamp for the hard-answer reminder. */
-    private var hardAnswerReminderLastShownAtMillis: Long? = reviewPreferencesStore.loadHardAnswerReminderLastShownAt()
+    /** The config version that chose the prompt this view model last showed, for its `screen_viewed`. */
+    private var shownReviewPromptConfigVersion: String? = null
 
     val uiState: StateFlow<ReviewUiState> = combine(
         reviewSessionState,
@@ -406,12 +409,10 @@ class ReviewViewModel(
                 .distinctUntilChanged()
                 .drop(count = 1)
                 .collect { isPromptVisible ->
-                    val visitedSurface: AnalyticsSurface = if (isPromptVisible) {
-                        AnalyticsSurface.NOTIFICATIONS_PRE_PROMPT
-                    } else {
-                        AnalyticsSurface.REVIEW
-                    }
-                    analytics.track(event = AnalyticsEvent.ScreenViewed(screen = visitedSurface))
+                    trackReviewPromptVisibilityChange(
+                        isPromptVisible = isPromptVisible,
+                        promptSurface = AnalyticsSurface.NOTIFICATIONS_PRE_PROMPT
+                    )
                 }
         }
     }
@@ -428,14 +429,24 @@ class ReviewViewModel(
                 .distinctUntilChanged()
                 .drop(count = 1)
                 .collect { isReminderVisible ->
-                    val visitedSurface: AnalyticsSurface = if (isReminderVisible) {
-                        AnalyticsSurface.REVIEW_HARD_REMINDER
-                    } else {
-                        AnalyticsSurface.REVIEW
-                    }
-                    analytics.track(event = AnalyticsEvent.ScreenViewed(screen = visitedSurface))
+                    trackReviewPromptVisibilityChange(
+                        isPromptVisible = isReminderVisible,
+                        promptSurface = AnalyticsSurface.REVIEW_HARD_REMINDER
+                    )
                 }
         }
+    }
+
+    private fun trackReviewPromptVisibilityChange(isPromptVisible: Boolean, promptSurface: AnalyticsSurface) {
+        val event = if (isPromptVisible) {
+            AnalyticsEvent.ScreenViewed(
+                screen = promptSurface,
+                reviewPromptConfigVersion = shownReviewPromptConfigVersion
+            )
+        } else {
+            AnalyticsEvent.ScreenViewed(screen = AnalyticsSurface.REVIEW)
+        }
+        analytics.track(event = event)
     }
 
     /**
@@ -565,18 +576,16 @@ class ReviewViewModel(
                 } else {
                     ownedReviewSubmissions - pendingReviewedCard
                 }
-                val didShowHardAnswerReminder = if (isCurrentSubmissionContext && !isReviewSurfaceBusy && isAppPresentationAvailable()) {
-                    updateHardAnswerReminderState(
-                        rating = rating,
-                        reviewedAtMillis = reviewedAtMillis
+                if (isCurrentSubmissionContext) {
+                    recentReviewRatings = appendRecentReviewRatings(
+                        recentReviewRatings = recentReviewRatings,
+                        nextRating = rating
                     )
-                } else {
-                    false
                 }
-                val shouldRequestPostReviewPrompt = isCurrentSubmissionContext && didShowHardAnswerReminder.not()
                 handleSuccessfulReviewRecorded(
                     reviewedAtMillis = reviewedAtMillis,
-                    canEvaluatePostReviewPrompts = shouldRequestPostReviewPrompt
+                    savedRating = rating,
+                    canEvaluatePostReviewPrompts = isCurrentSubmissionContext
                 )
             } catch (error: Throwable) {
                 if (error is CancellationException) {
@@ -635,84 +644,129 @@ class ReviewViewModel(
         )
     }
 
+    private suspend fun handleSuccessfulReviewRecorded(
+        reviewedAtMillis: Long,
+        savedRating: ReviewRating,
+        canEvaluatePostReviewPrompts: Boolean
+    ) {
+        val nowMillis = System.currentTimeMillis()
+        reviewNotificationsStore.saveLastActiveAtMillis(timestampMillis = nowMillis)
+        onReviewNotificationsChanged(ReviewNotificationsReconcileTrigger.REVIEW_RECORDED)
+        onSuccessfulReviewRecorded(reviewedAtMillis)
+
+        if (canEvaluatePostReviewPrompts.not() || canPresentReviewPrompt().not()) {
+            return
+        }
+
+        showFirstEligibleReviewPromptAfterSavedReview(savedRating = savedRating, nowMillis = nowMillis)
+    }
+
     /**
-     * Updates the in-memory review window and returns true only when the simple
-     * threshold and cooldown rules both pass.
+     * The review is already saved here, so a prompt failure must not reach the save-failure path,
+     * which would roll the card back and invite a duplicate review log. It skips this review's prompts.
      */
-    private fun updateHardAnswerReminderState(
-        rating: ReviewRating,
-        reviewedAtMillis: Long
-    ): Boolean {
-        val decision = reduceHardAnswerReminderDecision(
-            recentReviewRatings = recentReviewRatings,
-            nextRating = rating,
-            reviewedAtMillis = reviewedAtMillis,
-            lastShownAtMillis = hardAnswerReminderLastShownAtMillis
+    private suspend fun showFirstEligibleReviewPromptAfterSavedReview(savedRating: ReviewRating, nowMillis: Long) {
+        try {
+            showFirstEligibleReviewPrompt(
+                config = reviewPromptConfigDefaults,
+                counters = reviewRepository.loadReviewPromptCounters(
+                    nowMillis = nowMillis,
+                    zoneId = ZoneId.systemDefault()
+                ),
+                nowMillis = nowMillis,
+                handlers = appReviewPromptHandlers + reviewScreenPromptHandlers(
+                    savedRating = savedRating,
+                    nowMillis = nowMillis
+                ),
+                canPresent = ::canPresentReviewPrompt
+            )
+        } catch (error: CancellationException) {
+            throw error
+        } catch (error: Throwable) {
+            observability.captureException(event = AndroidExceptionIssueEvent.ReviewPromptException(throwable = error))
+        }
+    }
+
+    private fun canPresentReviewPrompt(): Boolean {
+        return isReviewPromptVisible().not() &&
+            isReviewSurfaceBusy.not() &&
+            isAppPresentationAvailable() &&
+            visibleAppScreenState.value == VisibleAppScreen.REVIEW
+    }
+
+    private fun reviewScreenPromptHandlers(
+        savedRating: ReviewRating,
+        nowMillis: Long
+    ): Map<ReviewPromptId, ReviewPromptHandler> {
+        return mapOf(
+            ReviewPromptId.HARD_REMINDER to ReviewPromptHandler(
+                loadLastShownAtMillis = { reviewPreferencesStore.loadHardAnswerReminderLastShownAt() },
+                tryShow = { reviewPromptConfigVersion ->
+                    tryShowHardAnswerReminder(
+                        savedRating = savedRating,
+                        nowMillis = nowMillis,
+                        reviewPromptConfigVersion = reviewPromptConfigVersion
+                    )
+                }
+            ),
+            ReviewPromptId.NOTIFICATIONS_PRE_PROMPT to ReviewPromptHandler(
+                // Shown at most once per install, so it has no clock of its own yet.
+                loadLastShownAtMillis = { null },
+                tryShow = { reviewPromptConfigVersion ->
+                    tryShowNotificationPermissionPrompt(reviewPromptConfigVersion = reviewPromptConfigVersion)
+                }
+            )
         )
-        recentReviewRatings = decision.recentReviewRatings
-        if (decision.shouldShowReminder.not()) {
+    }
+
+    private fun tryShowHardAnswerReminder(
+        savedRating: ReviewRating,
+        nowMillis: Long,
+        reviewPromptConfigVersion: String
+    ): Boolean {
+        if (
+            shouldShowHardAnswerReminder(
+                savedRating = savedRating,
+                recentReviewRatings = recentReviewRatings
+            ).not()
+        ) {
             return false
         }
 
-        val nextLastShownAtMillis = checkNotNull(decision.nextLastShownAtMillis)
-        hardAnswerReminderLastShownAtMillis = nextLastShownAtMillis
-        reviewPreferencesStore.saveHardAnswerReminderLastShownAt(timestampMillis = nextLastShownAtMillis)
+        reviewPreferencesStore.saveHardAnswerReminderLastShownAt(timestampMillis = nowMillis)
+        shownReviewPromptConfigVersion = reviewPromptConfigVersion
         draftState.update { state ->
             state.copy(isHardAnswerReminderVisible = true)
         }
         return true
     }
 
-    private suspend fun handleSuccessfulReviewRecorded(
-        reviewedAtMillis: Long,
-        canEvaluatePostReviewPrompts: Boolean
-    ) {
-        val nowMillis = System.currentTimeMillis()
-        reviewNotificationsStore.saveLastActiveAtMillis(timestampMillis = nowMillis)
-        val nextReviewCount = reviewNotificationsStore.loadSuccessfulReviewCount() + 1
-        reviewNotificationsStore.saveSuccessfulReviewCount(count = nextReviewCount)
-        val reviewCount = maxOf(nextReviewCount, reviewRepository.countRecordedReviews())
-        onReviewNotificationsChanged(ReviewNotificationsReconcileTrigger.REVIEW_RECORDED)
-        onSuccessfulReviewRecorded(reviewedAtMillis)
-
-        if (canEvaluatePostReviewPrompts.not()) {
-            return
-        }
-        if (isReviewPromptVisible()) {
-            return
-        }
-
-        if (isReviewSurfaceBusy || !isAppPresentationAvailable() || visibleAppScreenState.value != VisibleAppScreen.REVIEW) return
-        val didStartStoreReviewRequest = onStoreReviewOpportunity()
-        if (didStartStoreReviewRequest || isReviewSurfaceBusy || !isAppPresentationAvailable() || isReviewPromptVisible()) {
-            return
-        }
-
+    private fun tryShowNotificationPermissionPrompt(reviewPromptConfigVersion: String): Boolean {
         val promptState = reviewNotificationsStore.loadPromptState()
         if (
-            hasEnoughReviewHistoryForNotificationPrompt(reviewCount = reviewCount) &&
-            promptState.hasShownPrePrompt.not() &&
-            promptState.hasRequestedSystemPermission.not() &&
-            promptState.hasDismissedPrePrompt.not() &&
-            shouldShowNotificationPermissionPrePrompt()
+            promptState.hasShownPrePrompt ||
+            promptState.hasRequestedSystemPermission ||
+            promptState.hasDismissedPrePrompt ||
+            shouldShowNotificationPermissionPrePrompt().not()
         ) {
-            // The showing half of the prompt rides on the flag, reported by
-            // `observeNotificationPermissionPromptVisibility`. Recording only the answer, as the
-            // retired onboarding event did, leaves no denominator and therefore no rate to compute.
-            draftState.update { state ->
-                state.copy(isNotificationPermissionPromptVisible = true)
-            }
-            reviewNotificationsStore.savePromptState(
-                state = NotificationPermissionPromptState(
-                    hasShownPrePrompt = true,
-                    hasRequestedSystemPermission = false,
-                    hasDismissedPrePrompt = false
-                )
-            )
-            return
+            return false
         }
 
-        onAutomaticFeedbackPromptCandidate()
+        // The showing half of the prompt rides on the flag, reported by
+        // `observeNotificationPermissionPromptVisibility`. Recording only the answer, as the
+        // retired onboarding event did, leaves no denominator and therefore no rate to compute.
+        shownReviewPromptConfigVersion = reviewPromptConfigVersion
+        draftState.update { state ->
+            state.copy(isNotificationPermissionPromptVisible = true)
+        }
+        reviewNotificationsStore.savePromptState(
+            state = NotificationPermissionPromptState(
+                hasShownPrePrompt = true,
+                hasRequestedSystemPermission = false,
+                hasDismissedPrePrompt = false
+            )
+        )
+        return true
     }
 
     private fun isReviewPromptVisible(): Boolean {
@@ -1032,11 +1086,11 @@ fun createReviewViewModelFactory(
     shouldShowNotificationPermissionPrePrompt: () -> Boolean,
     onReviewNotificationsChanged: (ReviewNotificationsReconcileTrigger) -> Unit,
     onSuccessfulReviewRecorded: suspend (Long) -> Unit,
-    onStoreReviewOpportunity: suspend () -> Boolean,
-    onAutomaticFeedbackPromptCandidate: suspend () -> Unit,
+    appReviewPromptHandlers: Map<ReviewPromptId, ReviewPromptHandler>,
     onNotificationPermissionGranted: () -> Unit,
     reviewPreferencesStore: ReviewPreferencesStore,
     analytics: Analytics,
+    observability: AppObservability,
     visibleAppScreenRepository: VisibleAppScreenRepository,
     workspaceRepository: WorkspaceRepository
 ): ViewModelProvider.Factory {
@@ -1053,11 +1107,11 @@ fun createReviewViewModelFactory(
                 shouldShowNotificationPermissionPrePrompt = shouldShowNotificationPermissionPrePrompt,
                 onReviewNotificationsChanged = onReviewNotificationsChanged,
                 onSuccessfulReviewRecorded = onSuccessfulReviewRecorded,
-                onStoreReviewOpportunity = onStoreReviewOpportunity,
-                onAutomaticFeedbackPromptCandidate = onAutomaticFeedbackPromptCandidate,
+                appReviewPromptHandlers = appReviewPromptHandlers,
                 onNotificationPermissionGranted = onNotificationPermissionGranted,
                 reviewPreferencesStore = reviewPreferencesStore,
                 analytics = analytics,
+                observability = observability,
                 visibleAppScreenRepository = visibleAppScreenRepository,
                 workspaceRepository = workspaceRepository,
                 textProvider = reviewTextProvider(context = application)

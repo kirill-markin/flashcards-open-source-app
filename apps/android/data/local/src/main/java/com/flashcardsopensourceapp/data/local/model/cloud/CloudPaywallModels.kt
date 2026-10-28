@@ -12,16 +12,18 @@ data class CloudPaywallState(
     val introLocalDate: LocalDate?,
     val introTimeZone: String?,
     val followUpShownAt: Instant?,
-    val lastShownAt: Instant?
+    val lastShownAt: Instant?,
+    val periodicShownAt: Instant?
 )
 
-val emptyCloudPaywallState = CloudPaywallState(null, null, null, null, null)
+val emptyCloudPaywallState = CloudPaywallState(null, null, null, null, null, null)
 
 data class CloudPaywallImpression(
     val presentationId: String,
     val shownAt: Instant,
     val localDate: LocalDate,
     val timeZone: String,
+    // Wire names from apps/backend/src/paywallState.ts: day3 is paywall-second, weekly is paywall-periodic.
     val reviewTrigger: AnalyticsReviewPaywallTrigger?
 ) {
     fun toJson(): JSONObject = JSONObject()
@@ -38,18 +40,20 @@ fun parseCloudPaywallState(json: JSONObject): CloudPaywallState {
     val zone = json.nullablePaywallString("introTimeZone")?.also(::requirePaywallZone)
     val followUp = json.nullablePaywallString("followUpShownAt")?.let(Instant::parse)
     val last = json.nullablePaywallString("lastShownAt")?.let(Instant::parse)
+    val periodic = json.nullablePaywallString("periodicShownAt")?.let(Instant::parse)
     require((intro == null && date == null && zone == null) || (intro != null && date != null && zone != null)) {
         "Paywall state must include all three intro fields together."
     }
     require(intro == null || intro.atZone(ZoneId.of(requireNotNull(zone))).toLocalDate() == date) {
         "Paywall intro local date does not match its instant and timezone."
     }
-    require(followUp == null || intro != null) { "Paywall follow-up requires an intro." }
-    require((intro == null && followUp == null) || last != null) { "Paywall stage requires lastShownAt." }
-    require(last == null || listOfNotNull(intro, followUp).all { it <= last }) {
+    require((intro == null && followUp == null && periodic == null) || last != null) {
+        "Paywall stage requires lastShownAt."
+    }
+    require(last == null || listOfNotNull(intro, followUp, periodic).all { it <= last }) {
         "Paywall lastShownAt precedes a review impression."
     }
-    return CloudPaywallState(intro, date, zone, followUp, last)
+    return CloudPaywallState(intro, date, zone, followUp, last, periodic)
 }
 
 fun parseCloudPaywallImpression(json: JSONObject): CloudPaywallImpression {
@@ -75,6 +79,7 @@ fun CloudPaywallState.toJson(): JSONObject = JSONObject()
     .put("introTimeZone", introTimeZone ?: JSONObject.NULL)
     .put("followUpShownAt", followUpShownAt?.toString() ?: JSONObject.NULL)
     .put("lastShownAt", lastShownAt?.toString() ?: JSONObject.NULL)
+    .put("periodicShownAt", periodicShownAt?.toString() ?: JSONObject.NULL)
 
 fun mergeCloudPaywallState(first: CloudPaywallState, second: CloudPaywallState): CloudPaywallState {
     val intro = listOf(first, second).filter { it.introShownAt != null }.minByOrNull { it.introShownAt!! }
@@ -83,7 +88,8 @@ fun mergeCloudPaywallState(first: CloudPaywallState, second: CloudPaywallState):
         intro?.introLocalDate,
         intro?.introTimeZone,
         listOfNotNull(first.followUpShownAt, second.followUpShownAt).minOrNull(),
-        listOfNotNull(first.lastShownAt, second.lastShownAt).maxOrNull()
+        listOfNotNull(first.lastShownAt, second.lastShownAt).maxOrNull(),
+        listOfNotNull(first.periodicShownAt, second.periodicShownAt).maxOrNull()
     )
 }
 
@@ -94,7 +100,8 @@ fun applyCloudPaywallImpression(state: CloudPaywallState, impression: CloudPaywa
         if (isIntro) impression.localDate else null,
         if (isIntro) impression.timeZone else null,
         if (impression.reviewTrigger == AnalyticsReviewPaywallTrigger.DAY3) impression.shownAt else null,
-        impression.shownAt
+        impression.shownAt,
+        if (impression.reviewTrigger == AnalyticsReviewPaywallTrigger.WEEKLY) impression.shownAt else null
     ))
 }
 

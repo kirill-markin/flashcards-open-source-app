@@ -42,14 +42,6 @@ class LocalFeedbackRepository(
     private val currentUiLocaleTag: () -> String,
     private val currentClientDeviceType: () -> ClientDeviceType
 ) : FeedbackRepository {
-    override suspend fun loadFeedbackStateForExistingCloudSession(): CloudFeedbackState? {
-        val session = authorizedSession(createGuestSessionIfMissing = false) ?: return null
-        return remoteService.loadFeedbackState(
-            apiBaseUrl = session.apiBaseUrl,
-            authorizationHeader = session.authorizationHeader
-        )
-    }
-
     override suspend fun recordAutomaticPromptShownForExistingCloudSession(): CloudFeedbackState? {
         val uiLocale: String = currentUiLocaleTag()
         val session = authorizedSession(createGuestSessionIfMissing = false) ?: return null

@@ -12,7 +12,6 @@ import org.json.JSONArray
 import org.json.JSONException
 import org.json.JSONObject
 
-const val reviewNotificationPermissionPromptThreshold: Int = 6
 const val defaultDailyReminderHour: Int = 10
 const val defaultDailyReminderMinute: Int = 0
 const val dailyReminderSchedulingHorizonDays: Int = 7
@@ -30,7 +29,6 @@ private const val strictRemindersSettingsKey: String = "strict-reminders-setting
 private const val strictRemindersScheduledPayloadsKey: String = "strict-reminders-scheduled-payloads"
 private const val strictRemindersLastCompletedReviewAtKey: String = "strict-reminders-last-completed-review-at"
 private const val reviewNotificationsPromptStateKey: String = "review-notifications-prompt-state"
-private const val reviewNotificationsSuccessfulReviewCountKey: String = "review-notifications-successful-review-count"
 private const val reviewNotificationsLastActiveAtKey: String = "review-notifications-last-active-at"
 private const val reviewReminderAttentionStateKey: String = "review-reminder-attention-state"
 private const val reportedScheduledReviewNotificationsKey: String = "reported-scheduled-review-notifications"
@@ -162,8 +160,6 @@ interface ReviewNotificationsStore {
     fun saveSettings(settings: ReviewNotificationsSettings)
     fun loadPromptState(): NotificationPermissionPromptState
     fun savePromptState(state: NotificationPermissionPromptState)
-    fun loadSuccessfulReviewCount(): Int
-    fun saveSuccessfulReviewCount(count: Int)
     fun loadLastActiveAtMillis(): Long?
     fun saveLastActiveAtMillis(timestampMillis: Long)
     fun clearLastActiveAtMillis()
@@ -306,16 +302,6 @@ class SharedPreferencesReviewNotificationsStore(
     override fun savePromptState(state: NotificationPermissionPromptState) {
         preferences.edit(commit = true) {
             putString(reviewNotificationsPromptStateKey, encodePromptState(state = state))
-        }
-    }
-
-    override fun loadSuccessfulReviewCount(): Int {
-        return preferences.getInt(reviewNotificationsSuccessfulReviewCountKey, 0)
-    }
-
-    override fun saveSuccessfulReviewCount(count: Int) {
-        preferences.edit(commit = true) {
-            putInt(reviewNotificationsSuccessfulReviewCountKey, count)
         }
     }
 

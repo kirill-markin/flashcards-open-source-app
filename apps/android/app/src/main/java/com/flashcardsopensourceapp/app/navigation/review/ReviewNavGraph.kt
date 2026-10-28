@@ -1,6 +1,7 @@
 package com.flashcardsopensourceapp.app.navigation.review
 
 import android.Manifest
+import android.content.Context
 import android.content.Intent
 import android.os.Build
 import android.provider.Settings
@@ -13,6 +14,7 @@ import androidx.compose.runtime.State
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.platform.LocalContext
+import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavGraphBuilder
@@ -48,18 +50,6 @@ internal fun NavGraphBuilder.registerReviewNavGraph(
     reviewReactionLottieConfigurationStore: ReviewReactionLottieConfigurationStore,
     reviewReactionAnimationsEnabledState: State<Boolean>
 ) {
-    fun isReviewSurfaceAvailable(): Boolean {
-        return appGraph.reviewPaywallScheduler.isAppAvailable &&
-            !appGraph.reviewPaywallScheduler.isReviewSurfaceBusy &&
-            appGraph.premiumPresenter.reason == null &&
-            !appGraph.guestSignInAfterReviewPromptController.observeUiState().value.isVisible &&
-            !appGraph.feedbackPromptController.observeUiState().value.isVisible
-    }
-
-    fun isOptionalReviewPromptAvailable(): Boolean {
-        return isReviewSurfaceAvailable() && !appGraph.reviewPaywallScheduler.isStoreReviewInProgress
-    }
-
     fun handleNotificationPermissionGranted() {
         appGraph.reviewNotificationsManager.reconcileCurrentWorkspaceReviewNotifications(
             trigger = ReviewNotificationsReconcileTrigger.PERMISSION_CHANGED,
@@ -90,6 +80,40 @@ internal fun NavGraphBuilder.registerReviewNavGraph(
         )
     }
 
+    fun reviewViewModelFactory(context: Context): ViewModelProvider.Factory {
+        return createReviewViewModelFactory(
+            reviewRepository = appGraph.reviewRepository,
+            progressRepository = appGraph.progressRepository,
+            autoSyncEventRepository = appGraph.autoSyncEventRepository,
+            messageController = appGraph.appMessageBus,
+            technicalErrorController = appGraph.appMessageBus,
+            reviewNotificationsStore = appGraph.reviewNotificationsStore,
+            shouldShowNotificationPermissionPrePrompt = {
+                hasNotificationPermission(context = context).not()
+            },
+            onReviewNotificationsChanged = { trigger ->
+                appGraph.reviewNotificationsManager.reconcileCurrentWorkspaceReviewNotifications(
+                    trigger = trigger,
+                    nowMillis = System.currentTimeMillis()
+                )
+            },
+            onSuccessfulReviewRecorded = { reviewedAtMillis ->
+                appGraph.reviewReminderAttentionController.clearAfterSuccessfulReview()
+                appGraph.strictRemindersManager.recordSuccessfulReview(
+                    reviewedAtMillis = reviewedAtMillis,
+                    nowMillis = System.currentTimeMillis()
+                )
+            },
+            appReviewPromptHandlers = makeAppReviewPromptHandlers(appGraph = appGraph),
+            onNotificationPermissionGranted = ::handleNotificationPermissionGranted,
+            reviewPreferencesStore = appGraph.reviewPreferencesStore,
+            analytics = appGraph.analytics,
+            observability = appGraph.observability,
+            visibleAppScreenRepository = appGraph.visibleAppScreenController,
+            workspaceRepository = appGraph.workspaceRepository
+        )
+    }
+
     navigation(
         startDestination = ReviewDestination.route,
         route = ReviewRootGraph.route
@@ -112,76 +136,11 @@ internal fun NavGraphBuilder.registerReviewNavGraph(
             ) ?: return@composable
             val reviewViewModel = viewModel<com.flashcardsopensourceapp.feature.review.ReviewViewModel>(
                 viewModelStoreOwner = reviewBackStackEntry,
-                factory = createReviewViewModelFactory(
-                    reviewRepository = appGraph.reviewRepository,
-                    progressRepository = appGraph.progressRepository,
-                    autoSyncEventRepository = appGraph.autoSyncEventRepository,
-                    messageController = appGraph.appMessageBus,
-                    technicalErrorController = appGraph.appMessageBus,
-                    reviewNotificationsStore = appGraph.reviewNotificationsStore,
-                    shouldShowNotificationPermissionPrePrompt = {
-                        hasNotificationPermission(context = context).not()
-                    },
-                    onReviewNotificationsChanged = { trigger ->
-                        appGraph.reviewNotificationsManager.reconcileCurrentWorkspaceReviewNotifications(
-                            trigger = trigger,
-                            nowMillis = System.currentTimeMillis()
-                        )
-                    },
-                    onSuccessfulReviewRecorded = { reviewedAtMillis ->
-                        appGraph.feedbackPromptController.cancelAutomaticReevaluation()
-                        appGraph.reviewReminderAttentionController.clearAfterSuccessfulReview()
-                        appGraph.strictRemindersManager.recordSuccessfulReview(
-                            reviewedAtMillis = reviewedAtMillis,
-                            nowMillis = System.currentTimeMillis()
-                        )
-                    },
-                    onStoreReviewOpportunity = {
-                        if (appGraph.reviewPaywallScheduler.consumeReviewOpportunity()) {
-                            true
-                        } else {
-                            val currentActivity = appGraph.storeReviewActivityProvider.currentActivity()
-                            if (currentActivity == null) {
-                                false
-                            } else {
-                                appGraph.reviewPaywallScheduler.isStoreReviewInProgress = true
-                                try {
-                                    appGraph.storeReviewRequestManager.requestStoreReviewIfEligible(
-                                        activity = currentActivity,
-                                        canPresent = ::isReviewSurfaceAvailable
-                                    )
-                                } finally {
-                                    appGraph.reviewPaywallScheduler.isStoreReviewInProgress = false
-                                }
-                            }
-                        }
-                    },
-                    onAutomaticFeedbackPromptCandidate = {
-                        if (isOptionalReviewPromptAvailable() &&
-                            !appGraph.guestSignInAfterReviewPromptController.tryShowAfterReview(
-                                canPresent = ::isOptionalReviewPromptAvailable
-                            ) &&
-                            isOptionalReviewPromptAvailable()
-                        ) {
-                            appGraph.feedbackPromptController.requestAutomaticReevaluation(
-                                canPresent = ::isOptionalReviewPromptAvailable
-                            )
-                        }
-                    },
-                    onNotificationPermissionGranted = ::handleNotificationPermissionGranted,
-                    reviewPreferencesStore = appGraph.reviewPreferencesStore,
-                    analytics = appGraph.analytics,
-                    visibleAppScreenRepository = appGraph.visibleAppScreenController,
-                    workspaceRepository = appGraph.workspaceRepository
-                )
+                factory = reviewViewModelFactory(context = context)
             )
             SideEffect {
                 reviewViewModel.updateAppPresentationAvailability {
-                    appGraph.reviewPaywallScheduler.isAppAvailable &&
-                        !appGraph.reviewPaywallScheduler.isStoreReviewInProgress &&
-                        appGraph.premiumPresenter.reason == null &&
-                        !appGraph.guestSignInAfterReviewPromptController.observeUiState().value.isVisible &&
-                        !appGraph.feedbackPromptController.observeUiState().value.isVisible
+                    canPresentReviewPrompt(appGraph = appGraph)
                 }
             }
             val uiState by reviewViewModel.uiState.collectAsStateWithLifecycle()
@@ -310,7 +269,6 @@ internal fun NavGraphBuilder.registerReviewNavGraph(
                 onReviewSurfaceBusyChanged = { isBusy ->
                     reviewViewModel.updateReviewSurfaceBusy(isBusy)
                     appGraph.reviewPaywallScheduler.isReviewSurfaceBusy = isBusy
-                    if (isBusy) appGraph.feedbackPromptController.cancelAutomaticReevaluation()
                 }
             )
         }
@@ -324,76 +282,11 @@ internal fun NavGraphBuilder.registerReviewNavGraph(
             ) ?: return@composable
             val reviewViewModel = viewModel<com.flashcardsopensourceapp.feature.review.ReviewViewModel>(
                 viewModelStoreOwner = reviewBackStackEntry,
-                factory = createReviewViewModelFactory(
-                    reviewRepository = appGraph.reviewRepository,
-                    progressRepository = appGraph.progressRepository,
-                    autoSyncEventRepository = appGraph.autoSyncEventRepository,
-                    messageController = appGraph.appMessageBus,
-                    technicalErrorController = appGraph.appMessageBus,
-                    reviewNotificationsStore = appGraph.reviewNotificationsStore,
-                    shouldShowNotificationPermissionPrePrompt = {
-                        hasNotificationPermission(context = context).not()
-                    },
-                    onReviewNotificationsChanged = { trigger ->
-                        appGraph.reviewNotificationsManager.reconcileCurrentWorkspaceReviewNotifications(
-                            trigger = trigger,
-                            nowMillis = System.currentTimeMillis()
-                        )
-                    },
-                    onSuccessfulReviewRecorded = { reviewedAtMillis ->
-                        appGraph.feedbackPromptController.cancelAutomaticReevaluation()
-                        appGraph.reviewReminderAttentionController.clearAfterSuccessfulReview()
-                        appGraph.strictRemindersManager.recordSuccessfulReview(
-                            reviewedAtMillis = reviewedAtMillis,
-                            nowMillis = System.currentTimeMillis()
-                        )
-                    },
-                    onStoreReviewOpportunity = {
-                        if (appGraph.reviewPaywallScheduler.consumeReviewOpportunity()) {
-                            true
-                        } else {
-                            val currentActivity = appGraph.storeReviewActivityProvider.currentActivity()
-                            if (currentActivity == null) {
-                                false
-                            } else {
-                                appGraph.reviewPaywallScheduler.isStoreReviewInProgress = true
-                                try {
-                                    appGraph.storeReviewRequestManager.requestStoreReviewIfEligible(
-                                        activity = currentActivity,
-                                        canPresent = ::isReviewSurfaceAvailable
-                                    )
-                                } finally {
-                                    appGraph.reviewPaywallScheduler.isStoreReviewInProgress = false
-                                }
-                            }
-                        }
-                    },
-                    onAutomaticFeedbackPromptCandidate = {
-                        if (isOptionalReviewPromptAvailable() &&
-                            !appGraph.guestSignInAfterReviewPromptController.tryShowAfterReview(
-                                canPresent = ::isOptionalReviewPromptAvailable
-                            ) &&
-                            isOptionalReviewPromptAvailable()
-                        ) {
-                            appGraph.feedbackPromptController.requestAutomaticReevaluation(
-                                canPresent = ::isOptionalReviewPromptAvailable
-                            )
-                        }
-                    },
-                    onNotificationPermissionGranted = ::handleNotificationPermissionGranted,
-                    reviewPreferencesStore = appGraph.reviewPreferencesStore,
-                    analytics = appGraph.analytics,
-                    visibleAppScreenRepository = appGraph.visibleAppScreenController,
-                    workspaceRepository = appGraph.workspaceRepository
-                )
+                factory = reviewViewModelFactory(context = context)
             )
             SideEffect {
                 reviewViewModel.updateAppPresentationAvailability {
-                    appGraph.reviewPaywallScheduler.isAppAvailable &&
-                        !appGraph.reviewPaywallScheduler.isStoreReviewInProgress &&
-                        appGraph.premiumPresenter.reason == null &&
-                        !appGraph.guestSignInAfterReviewPromptController.observeUiState().value.isVisible &&
-                        !appGraph.feedbackPromptController.observeUiState().value.isVisible
+                    canPresentReviewPrompt(appGraph = appGraph)
                 }
             }
             val uiState by reviewViewModel.uiState.collectAsStateWithLifecycle()
