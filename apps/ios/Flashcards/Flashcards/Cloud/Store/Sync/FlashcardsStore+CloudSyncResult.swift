@@ -47,9 +47,6 @@ extension FlashcardsStore {
             || syncResult.changedEntityTypes.contains(.mediaAsset) {
             self.localReadVersion += 1
         }
-        if bootstrapRefreshOutcome.homeSnapshotChanged {
-            self.requestGuestSignInAfterReviewPromptReconciliation()
-        }
         await self.handleProgressSyncCompletion(
             now: now,
             syncResult: syncResult
@@ -88,9 +85,6 @@ extension FlashcardsStore {
         }
         if bootstrapRefreshOutcome.didChange || didResetVolatileReviewSelection {
             self.localReadVersion += 1
-        }
-        if bootstrapRefreshOutcome.homeSnapshotChanged {
-            self.requestGuestSignInAfterReviewPromptReconciliation()
         }
     }
 

@@ -1,43 +1,110 @@
 import SwiftUI
 
 extension ReviewView {
+    /// Shows at most one prompt: the first in the config `order` that its config settings and fixed
+    /// code rules allow; see apps/backend/src/reviewPrompts/reviewPromptConfig.ts.
     func presentPromptAfterSavedReview(opportunity: SavedReviewPromptOpportunity) async {
-        guard self.store.savedReviewPromptOpportunity?.id == opportunity.id,
-              self.store.workspace?.workspaceId == opportunity.workspaceId,
-              self.store.selectedReviewFilter == opportunity.reviewFilter,
-              self.canPresentSavedReviewPrompt else { return }
+        guard self.isSavedReviewPromptOpportunityCurrent(opportunity) else { return }
         let now = Date()
-        self.store.handleSuccessfulReviewHardReminder(rating: opportunity.rating, now: now)
-        guard self.store.isReviewHardReminderPresented == false else { return }
+        let config = builtInReviewPromptConfig
+        let counters: ReviewPromptCounters
         do {
-            if let trigger = try self.store.dueReviewPaywall(now: now) {
-                self.premiumPresenter.present(
-                    reason: .review(trigger), analyticsEntryPoint: .review,
-                    entitlement: self.store.cloudEntitlement,
-                    identity: try self.store.appleSubscriptionIdentity()
-                )
-                self.store.isPremiumPresentationActive = self.premiumPresenter.request != nil
-                return
-            }
-        } catch AppleSubscriptionError.accountUnavailable {
-            // A local-only installation has no known account entitlement yet.
+            counters = try self.store.loadReviewPromptCounters(now: now)
         } catch {
-            self.store.capturePaywallStateFailure(error: error, stage: "review_eligibility")
+            self.store.captureReviewPromptFailure(error: error, stage: "load_counters")
             return
         }
-        let showNotifications = await self.store.resolveSuccessfulReviewNotificationPrePromptDecision(
-            reviewCount: opportunity.reviewCount
-        )
-        guard self.store.savedReviewPromptOpportunity?.id == opportunity.id,
-              self.store.workspace?.workspaceId == opportunity.workspaceId,
-              self.store.selectedReviewFilter == opportunity.reviewFilter,
-              self.canPresentSavedReviewPrompt else { return }
-        if showNotifications && self.store.presentReviewNotificationPrePromptIfAllowed() { return }
-        self.store.prepareStoreReviewRequestAttemptAfterSuccessfulReview(now: now)
-        if self.store.pendingStoreReviewRequestAttempt != nil { return }
-        self.store.reconcileGuestSignInAfterReviewPrompt(isModalOrAuthFlowActive: false, now: now)
-        if self.store.isGuestSignInAfterReviewPromptPresented { return }
-        self.store.startAutomaticFeedbackPromptCheckAfterSuccessfulReview(now: now)
+        for promptId in reviewPromptWalk(config: config) {
+            guard let settings = config.prompts[promptId.rawValue] else { continue }
+            guard self.isSavedReviewPromptOpportunityCurrent(opportunity) else { return }
+            let endsWalk = await self.presentReviewPromptIfDue(
+                promptId: promptId,
+                settings: settings,
+                counters: counters,
+                opportunity: opportunity,
+                configVersion: config.version,
+                now: now
+            )
+            if endsWalk { return }
+        }
+    }
+
+    private func isSavedReviewPromptOpportunityCurrent(_ opportunity: SavedReviewPromptOpportunity) -> Bool {
+        self.store.savedReviewPromptOpportunity?.id == opportunity.id
+            && self.store.workspace?.workspaceId == opportunity.workspaceId
+            && self.store.selectedReviewFilter == opportunity.reviewFilter
+            && self.canPresentSavedReviewPrompt
+    }
+
+    /// `true` ends the walk: the prompt was shown, or its check failed and was reported.
+    private func presentReviewPromptIfDue(
+        promptId: ReviewPromptId,
+        settings: ReviewPromptSettings,
+        counters: ReviewPromptCounters,
+        opportunity: SavedReviewPromptOpportunity,
+        configVersion: String,
+        now: Date
+    ) async -> Bool {
+        switch promptId {
+        case .hardReminder:
+            return self.store.presentReviewHardReminderIfDue(
+                rating: opportunity.rating, settings: settings, counters: counters,
+                configVersion: configVersion, now: now
+            )
+        case .paywallInitial:
+            return self.presentReviewPaywallIfDue(
+                trigger: .initial, settings: settings, counters: counters, configVersion: configVersion, now: now
+            )
+        case .paywallSecond:
+            return self.presentReviewPaywallIfDue(
+                trigger: .day3, settings: settings, counters: counters, configVersion: configVersion, now: now
+            )
+        case .paywallPeriodic:
+            return self.presentReviewPaywallIfDue(
+                trigger: .weekly, settings: settings, counters: counters, configVersion: configVersion, now: now
+            )
+        case .notificationsPrePrompt:
+            guard await self.store.isReviewNotificationPrePromptDue(settings: settings, counters: counters, now: now),
+                  self.isSavedReviewPromptOpportunityCurrent(opportunity) else { return false }
+            return self.store.presentReviewNotificationPrePromptIfAllowed(configVersion: configVersion)
+        case .ratingRequest:
+            return self.store.prepareStoreReviewRequestAttemptIfDue(
+                settings: settings, counters: counters, configVersion: configVersion, now: now
+            )
+        case .guestSignIn:
+            return self.store.presentGuestSignInAfterReviewPromptIfDue(
+                settings: settings, counters: counters, configVersion: configVersion, now: now
+            )
+        case .automaticFeedback:
+            return self.store.presentAutomaticFeedbackPromptIfDue(settings: settings, counters: counters, now: now)
+        }
+    }
+
+    private func presentReviewPaywallIfDue(
+        trigger: ReviewPaywallTrigger,
+        settings: ReviewPromptSettings,
+        counters: ReviewPromptCounters,
+        configVersion: String,
+        now: Date
+    ) -> Bool {
+        do {
+            guard try self.store.isReviewPaywallDue(
+                trigger: trigger, settings: settings, counters: counters, now: now
+            ) else { return false }
+            self.premiumPresenter.present(
+                reason: .review(trigger, reviewPromptConfigVersion: configVersion), analyticsEntryPoint: .review,
+                entitlement: self.store.cloudEntitlement,
+                identity: try self.store.appleSubscriptionIdentity()
+            )
+            self.store.isPremiumPresentationActive = self.premiumPresenter.request != nil
+            return true
+        } catch AppleSubscriptionError.accountUnavailable {
+            // A local-only installation has no known account entitlement yet.
+            return false
+        } catch {
+            self.store.capturePaywallStateFailure(error: error, stage: "review_eligibility")
+            return true
+        }
     }
 
     func prewarmReviewReactionLottieAssets() {

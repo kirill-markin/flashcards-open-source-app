@@ -12,25 +12,23 @@ private struct PersistedPaywallState: Codable {
 
 @MainActor
 extension FlashcardsStore {
-    func dueReviewPaywall(now: Date) throws -> ReviewPaywallTrigger? {
+    func isReviewPaywallDue(
+        trigger: ReviewPaywallTrigger,
+        settings: ReviewPromptSettings,
+        counters: ReviewPromptCounters,
+        now: Date
+    ) throws -> Bool {
         guard let entitlement = self.cloudEntitlement, entitlement.tierRank < premiumTierRank,
-              entitlement.status == .noEntitlement, entitlement.isTrial == false else { return nil }
+              entitlement.status == .noEntitlement, entitlement.isTrial == false else { return false }
         let identity = try self.appleSubscriptionIdentity()
         let persisted = try self.loadPaywallState(identity: identity)
-        guard persisted.hasLoadedServerState == true else { return nil }
-        let database = try requireLocalDatabase(database: self.database)
-        let calendar = makeStoreReviewLocalCalendar(timeZone: .current)
-        let day = try makeStoreReviewCurrentLocalDayRange(now: now, calendar: calendar)
-        return dueReviewPaywallTrigger(
+        guard persisted.hasLoadedServerState == true else { return false }
+        return reviewPaywallTriggerIsDue(
+            trigger: trigger,
             state: persisted.state,
-            entitlement: self.cloudEntitlement,
-            cumulativeReviews: max(
-                self.userDefaults.integer(forKey: reviewNotificationSuccessfulReviewCountUserDefaultsKey),
-                try database.loadReviewEventCount()
-            ),
-            reviewsToday: try database.loadAppWideReviewEventCount(start: day.start, end: day.end),
-            now: now,
-            timeZone: .current
+            settings: settings,
+            counters: counters,
+            now: now
         )
     }
 
