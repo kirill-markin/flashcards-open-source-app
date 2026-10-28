@@ -65,8 +65,8 @@ import com.flashcardsopensourceapp.data.local.model.progress.ProgressStreakLeade
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressSummarySnapshot
 import com.flashcardsopensourceapp.data.local.model.review.ReviewCard
 import com.flashcardsopensourceapp.data.local.model.review.ReviewFilter
-import com.flashcardsopensourceapp.data.local.model.feedback.FeedbackPromptReviewActivity
 import com.flashcardsopensourceapp.data.local.model.review.ReviewRating
+import com.flashcardsopensourceapp.data.local.review.prompts.ReviewPromptCounters
 import com.flashcardsopensourceapp.data.local.model.review.ReviewSessionSnapshot
 import com.flashcardsopensourceapp.data.local.model.review.ReviewTimelinePage
 import com.flashcardsopensourceapp.data.local.model.sync.SyncStatusSnapshot
@@ -81,6 +81,7 @@ import com.flashcardsopensourceapp.data.local.model.scheduling.WorkspaceSchedule
 import com.flashcardsopensourceapp.data.local.model.workspace.WorkspaceSummary
 import com.flashcardsopensourceapp.data.local.model.workspace.WorkspaceTagsSummary
 import kotlinx.coroutines.flow.Flow
+import java.time.ZoneId
 
 interface CardsRepository {
     fun observeCards(searchQuery: String, filter: CardFilter): Flow<List<CardSummary>>
@@ -138,14 +139,7 @@ interface ReviewRepository {
         limit: Int
     ): ReviewTimelinePage
 
-    suspend fun countRecordedReviews(): Int
-
-    suspend fun countRecordedReviewsInCurrentWorkspace(): Int
-
-    suspend fun loadFeedbackPromptReviewActivity(
-        currentLocalDayStartMillis: Long,
-        nextLocalDayStartMillis: Long
-    ): FeedbackPromptReviewActivity
+    suspend fun loadReviewPromptCounters(nowMillis: Long, zoneId: ZoneId): ReviewPromptCounters
 
     suspend fun loadReviewCardForRollback(selectedFilter: ReviewFilter, cardId: String): ReviewCard?
 
@@ -225,7 +219,6 @@ interface ProgressRepository {
 }
 
 interface FeedbackRepository {
-    suspend fun loadFeedbackStateForExistingCloudSession(): CloudFeedbackState?
     suspend fun recordAutomaticPromptShownForExistingCloudSession(): CloudFeedbackState?
     suspend fun submitFeedback(trigger: CloudFeedbackTrigger, message: String): CloudFeedbackState
 }

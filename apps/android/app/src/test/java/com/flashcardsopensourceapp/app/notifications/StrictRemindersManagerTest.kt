@@ -439,7 +439,7 @@ private class FakeReviewLogDao(
         throw UnsupportedOperationException("Unused in strict reminders manager tests.")
     }
 
-    override suspend fun hasReviewLogsBefore(endMillis: Long): Boolean {
+    override suspend fun loadDistinctReviewTimeBuckets(bucketMillis: Long): List<Long> {
         throw UnsupportedOperationException("Unused in strict reminders manager tests.")
     }
 
