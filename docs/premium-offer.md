@@ -110,6 +110,10 @@ to Stripe with the verified account email. Account trial history selects a trial
 with the charge shown before confirmation when the trial has been consumed. Existing Premium access skips
 Checkout and resumes any pending feature choice.
 
+## Plan order
+
+Every shared Premium offer shows the Premium plan first and the Free plan second.
+
 ## Style settings
 
 The Style section of Settings holds the custom styles: Accent color, Review Animations, AI Chat

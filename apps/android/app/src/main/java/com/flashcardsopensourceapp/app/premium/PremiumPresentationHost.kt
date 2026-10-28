@@ -278,12 +278,6 @@ internal fun PremiumPresentationHost(
                         }
                     }
                     if (isOfferVisible) {
-                        PremiumFreePlan(onContinueFree = {
-                            if (presenter.reason == reason && presenter.presentation == presentation) {
-                                reportChoice(AnalyticsPaywallChoice.FREE)
-                                presenter.dismiss()
-                            }
-                        })
                         PremiumStoreOffer(
                             connector = appGraph.googlePlaySubscriptionConnector,
                             entitlement = presenter.entitlement,
@@ -294,6 +288,12 @@ internal fun PremiumPresentationHost(
                             onRetryAllowance = { usageRequestVersion += 1 },
                             onChoosePremium = { reportChoice(AnalyticsPaywallChoice.PREMIUM) }
                         )
+                        PremiumFreePlan(onContinueFree = {
+                            if (presenter.reason == reason && presenter.presentation == presentation) {
+                                reportChoice(AnalyticsPaywallChoice.FREE)
+                                presenter.dismiss()
+                            }
+                        })
                     } else if (!isAiLimit) {
                         Text(
                             text = presenter.entitlement?.tierDisplayName.orEmpty(),
