@@ -312,7 +312,9 @@ final class CloudAuthService {
         return CloudIdentityToken(
             idToken: response.idToken,
             idTokenExpiresAt: makeIdTokenExpiryTimestamp(now: Date(), expiresInSeconds: response.expiresIn),
-            rotatedRefreshToken: response.refreshToken
+            rotatedRefreshToken: response.refreshToken.flatMap { refreshToken in
+                refreshToken.isEmpty ? nil : refreshToken
+            }
         )
     }
 

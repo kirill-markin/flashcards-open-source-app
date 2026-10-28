@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactElement } from "react";
+import { useEffect, type ReactElement } from "react";
 import { useAppErrorDialog } from "../../appError/AppErrorContext";
 import { FeedbackDialog } from "../../feedback/FeedbackDialog";
 import { useEffectiveReviewReactionAnimationsEnabled } from "../../premium/styleSettings";
@@ -19,12 +19,12 @@ export { normalizeReviewMarkdownForWeb } from "./components/card/ReviewCardSide"
 
 export function ReviewScreen(): ReactElement {
   const { indexedDbOpenRecoveryState } = useAppErrorDialog();
-  const [isGuestSignInPromptVisible, setIsGuestSignInPromptVisible] = useState(false);
   const reviewReactionAnimationsEnabled = useEffectiveReviewReactionAnimationsEnabled();
   const {
     dismissReviewReactions,
     editorModalProps,
     feedbackDialogProps,
+    guestSignInPromptProps,
     hardReminderDialogProps,
     headerProps,
     mobileAppPromotionDialogProps,
@@ -36,7 +36,6 @@ export function ReviewScreen(): ReactElement {
     textSelectionDialogProps,
   } = useReviewScreenController({
     reviewReactionAnimationsEnabled,
-    isGuestSignInPromptVisible,
   });
 
   useEffect(() => {
@@ -68,10 +67,7 @@ export function ReviewScreen(): ReactElement {
         </div>
       </section>
 
-      <GuestSignInAfterReviewPrompt onVisibilityChange={setIsGuestSignInPromptVisible} blocked={editorModalProps.isEditorPresented || feedbackDialogProps.isOpen
-        || hardReminderDialogProps.isOpen || mobileAppPromotionDialogProps.isOpen
-        || tagFilterDialogProps.request !== null || textSelectionDialogProps.request !== null
-        || headerProps.filterMenuProps.isReviewFilterMenuOpen || headerProps.isReviewMoreActionsMenuOpen} />
+      <GuestSignInAfterReviewPrompt {...guestSignInPromptProps} />
       <ReviewEditorModal {...editorModalProps} />
       <FeedbackDialog {...feedbackDialogProps} />
       <ReviewHardReminderDialog {...hardReminderDialogProps} />

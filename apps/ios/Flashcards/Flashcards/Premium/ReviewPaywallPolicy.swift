@@ -1,5 +1,6 @@
 import Foundation
 
+// Wire names: day3 is paywall-second and weekly is paywall-periodic; see apps/backend/src/paywallState.ts.
 enum ReviewPaywallTrigger: String, Codable, Sendable {
     case initial
     case day3
@@ -11,11 +12,11 @@ struct PaywallState: Codable, Equatable {
     let introLocalDate: String?
     let introTimeZone: String?
     let followUpShownAt: String?
-    let lastShownAt: String?
+    let periodicShownAt: String?
 
     static let empty = PaywallState(
         introShownAt: nil, introLocalDate: nil, introTimeZone: nil,
-        followUpShownAt: nil, lastShownAt: nil
+        followUpShownAt: nil, periodicShownAt: nil
     )
 
     func merging(_ other: PaywallState) -> PaywallState {
@@ -26,7 +27,7 @@ struct PaywallState: Codable, Equatable {
             introLocalDate: introState.introLocalDate,
             introTimeZone: introState.introTimeZone,
             followUpShownAt: earlierPaywallTimestamp(self.followUpShownAt, other.followUpShownAt),
-            lastShownAt: laterPaywallTimestamp(self.lastShownAt, other.lastShownAt)
+            periodicShownAt: laterPaywallTimestamp(self.periodicShownAt, other.periodicShownAt)
         )
     }
 
@@ -36,12 +37,12 @@ struct PaywallState: Codable, Equatable {
             introLocalDate: impression.reviewTrigger == .initial ? impression.localDate : nil,
             introTimeZone: impression.reviewTrigger == .initial ? impression.timeZone : nil,
             followUpShownAt: impression.reviewTrigger == .day3 ? impression.shownAt : nil,
-            lastShownAt: impression.shownAt
+            periodicShownAt: impression.reviewTrigger == .weekly ? impression.shownAt : nil
         ))
     }
 
     func validated() throws -> PaywallState {
-        for timestamp in [self.introShownAt, self.followUpShownAt, self.lastShownAt].compactMap({ $0 }) {
+        for timestamp in [self.introShownAt, self.followUpShownAt, self.periodicShownAt].compactMap({ $0 }) {
             guard parseIsoTimestamp(value: timestamp) != nil else {
                 throw LocalStoreError.validation("Invalid paywall-state timestamp: \(timestamp)")
             }
@@ -84,7 +85,6 @@ struct SavedReviewPromptOpportunity: Equatable {
     let id: UUID
     let workspaceId: String
     let rating: ReviewRating
-    let reviewCount: Int
     let reviewFilter: ReviewFilter
 }
 
@@ -97,35 +97,32 @@ func paywallLocalDate(now: Date, timeZone: TimeZone) -> String {
     return formatter.string(from: now)
 }
 
-func dueReviewPaywallTrigger(
+/// `state` must belong to a free account. Each review paywall is independent of the others and of
+/// paywalls opened anywhere else.
+func reviewPaywallTriggerIsDue(
+    trigger: ReviewPaywallTrigger,
     state: PaywallState,
-    entitlement: CloudEntitlement?,
-    cumulativeReviews: Int,
-    reviewsToday: Int,
-    now: Date,
-    timeZone: TimeZone
-) -> ReviewPaywallTrigger? {
-    guard let entitlement, entitlement.tierRank < premiumTierRank,
-          entitlement.status == .noEntitlement, entitlement.isTrial == false else { return nil }
-    guard let introLocalDate = state.introLocalDate else {
-        return cumulativeReviews >= 3 ? .initial : nil
+    settings: ReviewPromptSettings,
+    counters: ReviewPromptCounters,
+    now: Date
+) -> Bool {
+    switch trigger {
+    case .initial:
+        return state.introShownAt == nil
+            && reviewPromptConfigAllows(settings: settings, counters: counters, lastShownAt: nil, now: now)
+    case .day3:
+        return state.followUpShownAt == nil
+            && reviewPromptConfigAllows(settings: settings, counters: counters, lastShownAt: nil, now: now)
+    case .weekly:
+        return reviewPromptConfigAllows(
+            settings: settings,
+            counters: counters,
+            lastShownAt: state.periodicShownAt.flatMap { periodicShownAt in
+                parseIsoTimestamp(value: periodicShownAt)
+            },
+            now: now
+        )
     }
-    guard reviewsToday >= 2 else { return nil }
-    if state.followUpShownAt == nil {
-        var calendar = Calendar(identifier: .gregorian)
-        calendar.timeZone = .gmt
-        let formatter = DateFormatter()
-        formatter.calendar = calendar
-        formatter.locale = Locale(identifier: "en_US_POSIX")
-        formatter.timeZone = .gmt
-        formatter.dateFormat = "yyyy-MM-dd"
-        guard let introDate = formatter.date(from: introLocalDate),
-              let dueDate = formatter.calendar.date(byAdding: .day, value: 2, to: introDate) else { return nil }
-        return paywallLocalDate(now: now, timeZone: timeZone) >= formatter.string(from: dueDate) ? .day3 : nil
-    }
-    guard let lastShownAt = state.lastShownAt, let lastShown = parseIsoTimestamp(value: lastShownAt),
-          now.timeIntervalSince(lastShown) >= 7 * 24 * 60 * 60 else { return nil }
-    return .weekly
 }
 
 private func earlierPaywallTimestamp(_ first: String?, _ second: String?) -> String? {
@@ -149,7 +146,7 @@ private func laterPaywallTimestamp(_ first: String?, _ second: String?) -> Strin
 
 extension PaywallState {
     enum CodingKeys: String, CodingKey {
-        case introShownAt, introLocalDate, introTimeZone, followUpShownAt, lastShownAt
+        case introShownAt, introLocalDate, introTimeZone, followUpShownAt, periodicShownAt
     }
 
     init(from decoder: Decoder) throws {
@@ -158,7 +155,8 @@ extension PaywallState {
         self.introLocalDate = try container.decode(String?.self, forKey: .introLocalDate)
         self.introTimeZone = try container.decode(String?.self, forKey: .introTimeZone)
         self.followUpShownAt = try container.decode(String?.self, forKey: .followUpShownAt)
-        self.lastShownAt = try container.decode(String?.self, forKey: .lastShownAt)
+        // Absent only from states cached before the server sent it; the next server merge fills it.
+        self.periodicShownAt = try container.decodeIfPresent(String.self, forKey: .periodicShownAt)
     }
 
     func encode(to encoder: Encoder) throws {
@@ -167,6 +165,6 @@ extension PaywallState {
         try container.encode(self.introLocalDate, forKey: .introLocalDate)
         try container.encode(self.introTimeZone, forKey: .introTimeZone)
         try container.encode(self.followUpShownAt, forKey: .followUpShownAt)
-        try container.encode(self.lastShownAt, forKey: .lastShownAt)
+        try container.encode(self.periodicShownAt, forKey: .periodicShownAt)
     }
 }

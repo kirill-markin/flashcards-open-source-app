@@ -5,27 +5,28 @@ import {
 } from "./automaticFeedbackPrompt";
 
 const nowMillis = new Date("2026-04-18T09:00:00.000Z").getTime();
+const settings = { enabled: true, minReviewsToday: 15, minReviewDays: 2, cooldownDays: 30 };
 
 describe("automatic feedback prompt eligibility", () => {
-  it("does not request backend state before 15 reviews today", () => {
+  it("does not request backend state while the last automatic showing is within the cooldown", () => {
     expect(shouldRequestAutomaticFeedbackState({
-      reviewActivity: {
-        todayReviewCount: 14,
-        hasPreviousReviewDay: true,
+      settings,
+      promptState: {
+        ...emptyFeedbackPromptState,
+        lastAutomaticFeedbackPromptShownAt: "2026-04-08T09:00:00.000Z",
       },
-      promptState: emptyFeedbackPromptState,
       nowMillis,
     })).toBe(false);
   });
 
-  it("does not request backend state without a previous review day", () => {
+  it("requests backend state when the prompt is due and the local copy was never fetched", () => {
     expect(shouldRequestAutomaticFeedbackState({
-      reviewActivity: {
-        todayReviewCount: 15,
-        hasPreviousReviewDay: false,
+      settings,
+      promptState: {
+        ...emptyFeedbackPromptState,
+        lastFeedbackSubmittedAt: "2026-04-17T09:00:00.000Z",
       },
-      promptState: emptyFeedbackPromptState,
       nowMillis,
-    })).toBe(false);
+    })).toBe(true);
   });
 });

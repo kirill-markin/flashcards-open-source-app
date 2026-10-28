@@ -67,7 +67,7 @@ export function auth(scope: Construct, props: AuthProps): AuthResult {
     supportedIdentityProviders: [
       cognito.UserPoolClientIdentityProvider.COGNITO,
     ],
-    refreshTokenValidity: cdk.Duration.days(365),
+    refreshTokenValidity: cdk.Duration.days(3650),
     enableTokenRevocation: true,
     // Email is the account identity, so access tokens must not rewrite it or other attributes. An empty
     // list means all writable, hence the unused `locale`. Server-side Admin* calls ignore this list,

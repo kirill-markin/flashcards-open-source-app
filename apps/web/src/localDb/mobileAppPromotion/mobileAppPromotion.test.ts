@@ -21,7 +21,6 @@ describe("local mobile app promotion state", () => {
   it("keeps prompt state scoped by identity key", async () => {
     await putMobileAppPromotionState("user:user-1", {
       ...emptyMobileAppPromotionState,
-      lastPromptShownLocalDate: "2026-03-10",
       lastPromptShownAt: "2026-03-10T12:00:00.000Z",
     });
 
@@ -31,7 +30,6 @@ describe("local mobile app promotion state", () => {
 
     await expect(loadMobileAppPromotionState("user:user-1")).resolves.toEqual({
       ...emptyMobileAppPromotionState,
-      lastPromptShownLocalDate: "2026-03-10",
       lastPromptShownAt: "2026-03-10T12:00:00.000Z",
     });
     await expect(loadMobileAppPromotionState("user:user-2")).resolves.toEqual({
@@ -43,37 +41,31 @@ describe("local mobile app promotion state", () => {
     );
   });
 
-  it("stores the local date before returning the shown prompt state", async () => {
+  it("stores the shown time before returning the shown prompt state", async () => {
     await expect(storeMobileAppPromotionPromptShown({
       identityKey: "user:user-1",
-      localDate: "2026-03-11",
       shownAt: "2026-03-11T08:00:00.000Z",
     }, ignoreIndexedDbOpenRecoveryFailure)).resolves.toEqual({
       ...emptyMobileAppPromotionState,
-      lastPromptShownLocalDate: "2026-03-11",
       lastPromptShownAt: "2026-03-11T08:00:00.000Z",
     });
 
     await expect(loadMobileAppPromotionState("user:user-1")).resolves.toEqual({
       ...emptyMobileAppPromotionState,
-      lastPromptShownLocalDate: "2026-03-11",
       lastPromptShownAt: "2026-03-11T08:00:00.000Z",
     });
   });
 
   it("clears the prompt shown marker only when it still matches the current write", async () => {
     await putMobileAppPromotionState("user:user-1", {
-      lastPromptShownLocalDate: "2026-03-11",
       lastPromptShownAt: "2026-03-11T08:00:00.000Z",
       knownHasMobileReviewEvent: true,
     });
 
     await expect(clearMobileAppPromotionPromptShownIfCurrent({
       identityKey: "user:user-1",
-      localDate: "2026-03-11",
       shownAt: "2026-03-11T08:00:00.000Z",
     }, ignoreIndexedDbOpenRecoveryFailure)).resolves.toEqual({
-      lastPromptShownLocalDate: null,
       lastPromptShownAt: null,
       knownHasMobileReviewEvent: true,
     });
@@ -82,17 +74,14 @@ describe("local mobile app promotion state", () => {
   it("does not clear a newer prompt shown marker", async () => {
     await putMobileAppPromotionState("user:user-1", {
       ...emptyMobileAppPromotionState,
-      lastPromptShownLocalDate: "2026-03-12",
       lastPromptShownAt: "2026-03-12T08:00:00.000Z",
     });
 
     await expect(clearMobileAppPromotionPromptShownIfCurrent({
       identityKey: "user:user-1",
-      localDate: "2026-03-11",
       shownAt: "2026-03-11T08:00:00.000Z",
     }, ignoreIndexedDbOpenRecoveryFailure)).resolves.toEqual({
       ...emptyMobileAppPromotionState,
-      lastPromptShownLocalDate: "2026-03-12",
       lastPromptShownAt: "2026-03-12T08:00:00.000Z",
     });
   });

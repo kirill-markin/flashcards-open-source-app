@@ -63,13 +63,22 @@ export function readCurrentAnalyticsSurface(): AnalyticsSurface | null {
  * taking the surface back from a screen that covered it.
  */
 export function trackScreenViewed(surface: AnalyticsSurface): void {
-  setCurrentAnalyticsSurface(surface);
-  if (lastViewedSurface === surface) {
+  enterScreen({ name: "screen_viewed", screen: surface });
+}
+
+/** `trackScreenViewed` for an after-review prompt surface chosen by the review prompt config. */
+export function trackReviewPromptScreenViewed(surface: AnalyticsSurface, reviewPromptConfigVersion: string): void {
+  enterScreen({ name: "screen_viewed", screen: surface, reviewPromptConfigVersion });
+}
+
+function enterScreen(event: Extract<AnalyticsEvent, Readonly<{ name: "screen_viewed" }>>): void {
+  setCurrentAnalyticsSurface(event.screen);
+  if (lastViewedSurface === event.screen) {
     return;
   }
 
-  lastViewedSurface = surface;
-  track({ name: "screen_viewed", screen: surface });
+  lastViewedSurface = event.screen;
+  track(event);
 }
 
 /**
