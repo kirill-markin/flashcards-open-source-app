@@ -958,7 +958,7 @@ extension SentryObservabilityAdapter {
             context["required_tier_rank"] = requiredTierRank
         case .offerPreview:
             context["reason"] = "offer_preview"
-        case .review(let trigger):
+        case .review(let trigger, _):
             context["reason"] = "review"
             context["review_trigger"] = trigger.rawValue
         }

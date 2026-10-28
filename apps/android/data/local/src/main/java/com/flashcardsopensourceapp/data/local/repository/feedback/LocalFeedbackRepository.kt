@@ -15,11 +15,12 @@ import com.flashcardsopensourceapp.data.local.model.feedback.CloudFeedbackTrigge
 import com.flashcardsopensourceapp.data.local.model.cloud.StoredCloudCredentials
 import com.flashcardsopensourceapp.data.local.model.feedback.cloudFeedbackMessageMaximumLength
 import com.flashcardsopensourceapp.data.local.model.cloud.formatIsoTimestamp
-import com.flashcardsopensourceapp.data.local.model.cloud.shouldRefreshCloudIdToken
 import com.flashcardsopensourceapp.data.local.repository.FeedbackRepository
 import com.flashcardsopensourceapp.data.local.repository.SyncRepository
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.guest.CloudGuestSessionCoordinator
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.guest.GuestCloudSessionRestoreResult
+import com.flashcardsopensourceapp.data.local.repository.cloudsync.runtime.CloudOperationCoordinator
+import com.flashcardsopensourceapp.data.local.repository.cloudsync.runtime.refreshExpiredStoredCloudCredentials
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.sync.androidClientPlatform
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.workspace.loadCurrentWorkspaceOrNull
 import java.time.ZoneId
@@ -37,6 +38,7 @@ class LocalFeedbackRepository(
     private val preferencesStore: CloudPreferencesStore,
     private val remoteService: CloudRemoteGateway,
     private val cloudGuestSessionCoordinator: CloudGuestSessionCoordinator,
+    private val operationCoordinator: CloudOperationCoordinator,
     private val syncRepository: SyncRepository,
     private val appVersion: String,
     private val currentUiLocaleTag: () -> String,
@@ -164,19 +166,13 @@ class LocalFeedbackRepository(
         storedCredentials: StoredCloudCredentials,
         authBaseUrl: String
     ): StoredCloudCredentials {
-        if (
-            shouldRefreshCloudIdToken(
-                idTokenExpiresAtMillis = storedCredentials.idTokenExpiresAtMillis,
-                nowMillis = System.currentTimeMillis()
-            ).not()
-        ) {
-            return storedCredentials
-        }
-
-        return remoteService.refreshIdToken(
-            refreshToken = storedCredentials.refreshToken,
-            authBaseUrl = authBaseUrl
-        ).also(preferencesStore::saveCredentials)
+        return refreshExpiredStoredCloudCredentials(
+            storedCredentials = storedCredentials,
+            authBaseUrl = authBaseUrl,
+            preferencesStore = preferencesStore,
+            remoteService = remoteService,
+            operationCoordinator = operationCoordinator
+        )
     }
 }
 

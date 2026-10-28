@@ -1,10 +1,6 @@
 import Foundation
 
 let feedbackMessageMaximumCharacters: Int = 5000
-let feedbackAutomaticReviewThreshold: Int = 15
-let feedbackAutomaticPromptCooldownSeconds: TimeInterval = 30 * 24 * 60 * 60
-let feedbackServerStateStaleSeconds: TimeInterval = 24 * 60 * 60
-let feedbackAutomaticPromptFailureBackoffSeconds: TimeInterval = 30 * 60
 
 enum FeedbackTrigger: String, Codable, Hashable, Sendable {
     case settings
@@ -120,16 +116,9 @@ struct FeedbackPresentation: Identifiable, Hashable, Sendable {
     let trigger: FeedbackTrigger
 }
 
+/// Only an automatic showing starts the automatic prompt's cooldown; submissions do not.
 struct PersistedFeedbackPromptState: Codable, Hashable, Sendable {
     let lastAutomaticPromptShownAt: Date?
-    let lastFeedbackSubmittedAt: Date?
-    let serverNextAutomaticPromptAt: Date?
-    let lastServerStateFetchedAt: Date?
-}
-
-struct FeedbackReviewActivitySummary: Hashable, Sendable {
-    let hasPreviousLocalReviewDay: Bool
-    let currentLocalDayReviewCount: Int
 }
 
 struct FeedbackPromptIdentityKey: Hashable, Sendable {
@@ -158,12 +147,7 @@ func makeFeedbackPromptIdentityKey(cloudSettings: CloudSettings?) -> FeedbackPro
 }
 
 func makeDefaultFeedbackPromptState() -> PersistedFeedbackPromptState {
-    PersistedFeedbackPromptState(
-        lastAutomaticPromptShownAt: nil,
-        lastFeedbackSubmittedAt: nil,
-        serverNextAutomaticPromptAt: nil,
-        lastServerStateFetchedAt: nil
-    )
+    PersistedFeedbackPromptState(lastAutomaticPromptShownAt: nil)
 }
 
 func makeFeedbackPresentation(trigger: FeedbackTrigger) -> FeedbackPresentation {
@@ -198,93 +182,6 @@ func isFeedbackSendEnabled(message: String, isSubmitting: Bool) -> Bool {
     let trimmedMessage = trimmedFeedbackMessage(message)
     return trimmedMessage.isEmpty == false
         && trimmedMessage.count <= feedbackMessageMaximumCharacters
-}
-
-func shouldFetchFeedbackServerState(
-    promptState: PersistedFeedbackPromptState,
-    now: Date
-) -> Bool {
-    guard let lastServerStateFetchedAt = promptState.lastServerStateFetchedAt else {
-        return true
-    }
-
-    return now.timeIntervalSince(lastServerStateFetchedAt) >= feedbackServerStateStaleSeconds
-}
-
-func isFeedbackAutomaticCooldownExpired(
-    promptState: PersistedFeedbackPromptState,
-    now: Date
-) -> Bool {
-    guard let nextPromptAt = nextFeedbackAutomaticPromptAt(promptState: promptState) else {
-        return true
-    }
-
-    return now >= nextPromptAt
-}
-
-func nextFeedbackAutomaticPromptAt(promptState: PersistedFeedbackPromptState) -> Date? {
-    let localCooldownBase = [
-        promptState.lastAutomaticPromptShownAt,
-        promptState.lastFeedbackSubmittedAt
-    ].compactMap { date in
-        date
-    }.max()
-
-    let localNextPromptAt = localCooldownBase.map { date in
-        date.addingTimeInterval(feedbackAutomaticPromptCooldownSeconds)
-    }
-
-    return [
-        localNextPromptAt,
-        promptState.serverNextAutomaticPromptAt
-    ].compactMap { date in
-        date
-    }.max()
-}
-
-func applyFeedbackServerState(
-    promptState: PersistedFeedbackPromptState,
-    feedbackState: FeedbackState,
-    fetchedAt: Date
-) -> PersistedFeedbackPromptState {
-    PersistedFeedbackPromptState(
-        lastAutomaticPromptShownAt: promptState.lastAutomaticPromptShownAt,
-        lastFeedbackSubmittedAt: promptState.lastFeedbackSubmittedAt,
-        serverNextAutomaticPromptAt: feedbackState.nextAutomaticPromptAt.flatMap { value in
-            parseIsoTimestamp(value: value)
-        },
-        lastServerStateFetchedAt: fetchedAt
-    )
-}
-
-func makeFeedbackPromptStateAfterAutomaticPromptShown(
-    promptState: PersistedFeedbackPromptState,
-    feedbackState: FeedbackState,
-    shownAt: Date
-) -> PersistedFeedbackPromptState {
-    PersistedFeedbackPromptState(
-        lastAutomaticPromptShownAt: shownAt,
-        lastFeedbackSubmittedAt: promptState.lastFeedbackSubmittedAt,
-        serverNextAutomaticPromptAt: feedbackState.nextAutomaticPromptAt.flatMap { value in
-            parseIsoTimestamp(value: value)
-        },
-        lastServerStateFetchedAt: shownAt
-    )
-}
-
-func makeFeedbackPromptStateAfterSubmission(
-    promptState: PersistedFeedbackPromptState,
-    feedbackState: FeedbackState,
-    submittedAt: Date
-) -> PersistedFeedbackPromptState {
-    PersistedFeedbackPromptState(
-        lastAutomaticPromptShownAt: promptState.lastAutomaticPromptShownAt,
-        lastFeedbackSubmittedAt: submittedAt,
-        serverNextAutomaticPromptAt: feedbackState.nextAutomaticPromptAt.flatMap { value in
-            parseIsoTimestamp(value: value)
-        },
-        lastServerStateFetchedAt: submittedAt
-    )
 }
 
 @MainActor

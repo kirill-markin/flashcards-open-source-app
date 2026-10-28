@@ -77,50 +77,6 @@ extension LocalDatabase {
         ) == 1
     }
 
-    func loadFeedbackReviewActivitySummary(
-        workspaceId: String,
-        now: Date,
-        timeZone: TimeZone
-    ) throws -> FeedbackReviewActivitySummary {
-        var calendar = Calendar(identifier: .gregorian)
-        calendar.timeZone = timeZone
-        let currentDayStart = calendar.startOfDay(for: now)
-        guard let nextDayStart = calendar.date(byAdding: .day, value: 1, to: currentDayStart) else {
-            throw LocalStoreError.validation("Feedback review activity day boundary could not be computed")
-        }
-
-        let currentDayReviewCount = try self.core.scalarInt(
-            sql: """
-            SELECT COUNT(*)
-            FROM review_events
-            WHERE workspace_id = ? AND reviewed_at_client >= ? AND reviewed_at_client < ?
-            """,
-            values: [
-                .text(workspaceId),
-                .text(formatIsoTimestamp(date: currentDayStart)),
-                .text(formatIsoTimestamp(date: nextDayStart))
-            ]
-        )
-        let previousLocalReviewDayExists = try self.core.scalarInt(
-            sql: """
-            SELECT EXISTS(
-                SELECT 1
-                FROM review_events
-                WHERE workspace_id = ? AND reviewed_at_client < ?
-            )
-            """,
-            values: [
-                .text(workspaceId),
-                .text(formatIsoTimestamp(date: currentDayStart))
-            ]
-        ) == 1
-
-        return FeedbackReviewActivitySummary(
-            hasPreviousLocalReviewDay: previousLocalReviewDayExists,
-            currentLocalDayReviewCount: currentDayReviewCount
-        )
-    }
-
     func loadActiveDecks(workspaceId: String) throws -> [Deck] {
         try self.deckStore.loadDecks(workspaceId: workspaceId)
     }
@@ -278,6 +234,10 @@ extension LocalDatabase {
 
     func loadAppWideReviewEventCount(start: Date, end: Date) throws -> Int {
         try self.cardStore.loadAppWideReviewEventCount(start: start, end: end)
+    }
+
+    func loadAppWideReviewDayCount(timeZone: TimeZone) throws -> Int {
+        try self.cardStore.loadAppWideReviewDayCount(timeZone: timeZone)
     }
 
     func loadCardsListSnapshot(

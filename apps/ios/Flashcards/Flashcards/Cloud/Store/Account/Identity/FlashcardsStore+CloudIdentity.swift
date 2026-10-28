@@ -79,7 +79,6 @@ extension FlashcardsStore {
         clearStoredReviewFilters(userDefaults: self.userDefaults)
         clearStoredStrictReminders(userDefaults: self.userDefaults)
         self.userDefaults.removeObject(forKey: reviewNotificationPromptStateUserDefaultsKey)
-        self.userDefaults.removeObject(forKey: reviewNotificationSuccessfulReviewCountUserDefaultsKey)
         self.userDefaults.removeObject(forKey: reviewNotificationLastActiveAtUserDefaultsKey)
         self.userDefaults.removeObject(forKey: accountDeletionPendingUserDefaultsKey)
         self.userDefaults.removeObject(forKey: aiChatExternalProviderConsentUserDefaultsKey)

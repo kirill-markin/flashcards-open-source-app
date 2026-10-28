@@ -636,15 +636,12 @@ struct RootTabView: View {
                 self.guestSignInAfterReviewPromptLaterTitle,
                 role: .cancel
             ) {
-                store.snoozeGuestSignInAfterReviewPrompt(
-                    reviewedCount: store.homeSnapshot.reviewedCount,
-                    now: Date()
-                )
+                store.snoozeGuestSignInAfterReviewPrompt()
             }
             Button(
                 self.guestSignInAfterReviewPromptSignInTitle
             ) {
-                store.acceptGuestSignInAfterReviewPrompt(now: Date())
+                store.acceptGuestSignInAfterReviewPrompt()
                 self.isGuestSignInCloudSignInPresented = true
             }
         } message: {
