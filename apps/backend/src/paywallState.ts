@@ -10,13 +10,15 @@ import { HttpError } from "./shared/errors";
 
 /** Shared GET/POST response. Instants are UTC ISO8601 with milliseconds; dates are YYYY-MM-DD.
  * The intro fields are all null or one coherent earliest appearance, and follow-up is earliest
- * day3 appearance. lastShownAt is the latest appearance from every entry point. */
+ * day3 appearance. lastShownAt is the latest appearance from every entry point; periodicShownAt is
+ * the latest weekly appearance, the cooldown clock of the periodic review paywall. */
 export type PaywallState = Readonly<{
   introShownAt: string | null;
   introLocalDate: string | null;
   introTimeZone: string | null;
   followUpShownAt: string | null;
   lastShownAt: string | null;
+  periodicShownAt: string | null;
 }>;
 
 export type PaywallShownInput = Readonly<{
@@ -24,6 +26,8 @@ export type PaywallShownInput = Readonly<{
   shownAt: string;
   localDate: string;
   timeZone: string;
+  // day3 is the paywall-second prompt and weekly is paywall-periodic in
+  // apps/backend/src/reviewPrompts/reviewPromptConfig.ts; released apps still send these names.
   reviewTrigger: "initial" | "day3" | "weekly" | null;
 }>;
 
@@ -33,6 +37,7 @@ type PaywallStateRow = Readonly<{
   paywall_intro_time_zone: string | null;
   paywall_follow_up_shown_at: Date | string | null;
   paywall_last_shown_at: Date | string | null;
+  paywall_periodic_shown_at: Date | string | null;
 }>;
 
 const paywallStateColumns = [
@@ -41,6 +46,7 @@ const paywallStateColumns = [
   "paywall_intro_time_zone",
   "paywall_follow_up_shown_at",
   "paywall_last_shown_at",
+  "paywall_periodic_shown_at",
 ].join(", ");
 
 function normalizeInstant(value: Date | string | null): string | null {
@@ -60,6 +66,7 @@ function mapPaywallState(row: PaywallStateRow | undefined): PaywallState {
     introTimeZone: row.paywall_intro_time_zone,
     followUpShownAt: normalizeInstant(row.paywall_follow_up_shown_at),
     lastShownAt: normalizeInstant(row.paywall_last_shown_at),
+    periodicShownAt: normalizeInstant(row.paywall_periodic_shown_at),
   };
 }
 
@@ -129,12 +136,13 @@ async function foldPaywallStateInExecutor(
       `paywall_intro_local_date = CASE WHEN ${incomingIntroWins} THEN $3::DATE ELSE paywall_intro_local_date END,`,
       `paywall_intro_time_zone = CASE WHEN ${incomingIntroWins} THEN $4::TEXT ELSE paywall_intro_time_zone END,`,
       "paywall_follow_up_shown_at = LEAST(paywall_follow_up_shown_at, $5::TIMESTAMPTZ),",
-      "paywall_last_shown_at = GREATEST(paywall_last_shown_at, $6::TIMESTAMPTZ)",
+      "paywall_last_shown_at = GREATEST(paywall_last_shown_at, $6::TIMESTAMPTZ),",
+      "paywall_periodic_shown_at = GREATEST(paywall_periodic_shown_at, $7::TIMESTAMPTZ)",
       "WHERE user_id = $1",
       `RETURNING ${paywallStateColumns}`,
     ].join(" "),
     [userId, incoming.introShownAt, incoming.introLocalDate, incoming.introTimeZone,
-      incoming.followUpShownAt, incoming.lastShownAt],
+      incoming.followUpShownAt, incoming.lastShownAt, incoming.periodicShownAt],
   );
   return mapPaywallState(result.rows[0]);
 }
@@ -152,6 +160,7 @@ export async function recordPaywallShown(userId: string, input: PaywallShownInpu
       introTimeZone: input.reviewTrigger === "initial" ? input.timeZone : null,
       followUpShownAt: input.reviewTrigger === "day3" ? input.shownAt : null,
       lastShownAt: input.shownAt,
+      periodicShownAt: input.reviewTrigger === "weekly" ? input.shownAt : null,
     },
   ));
 }
