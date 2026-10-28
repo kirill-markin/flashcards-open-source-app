@@ -184,6 +184,8 @@
     <string name="settings_test_notification_diagnostics_summary">Read-only Android reminder state</string>
     <string name="settings_test_local_sync_diagnostics_title">Local sync diagnostics</string>
     <string name="settings_test_local_sync_diagnostics_summary">Read-only cards and managed media sync state</string>
+    <string name="settings_test_review_prompts_section">Prompts after review</string>
+    <string name="settings_test_review_prompts_reset">Reset all prompt state</string>
     <string name="settings_local_sync_diagnostics_title">Local sync diagnostics</string>
     <string name="settings_local_sync_diagnostics_refresh_button">Refresh</string>
     <string name="settings_local_sync_diagnostics_copy_button">Copy</string>

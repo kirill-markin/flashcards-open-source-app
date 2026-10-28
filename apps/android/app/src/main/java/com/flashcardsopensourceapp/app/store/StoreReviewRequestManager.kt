@@ -80,6 +80,14 @@ class StoreReviewRequestManager(
         }
     }
 
+    /** Test menu only: runs the Google Play flow and records nothing. Play itself may show no dialog. */
+    suspend fun launchReviewFlowPreview(activity: ComponentActivity) {
+        withContext(Dispatchers.Main.immediate) {
+            val reviewInfo = awaitReviewInfoTask(task = reviewManager.requestReviewFlow())
+            awaitReviewFlowCompletionTask(task = reviewManager.launchReviewFlow(activity, reviewInfo))
+        }
+    }
+
     private suspend fun requestStoreReviewIfEligibleNow(
         activity: ComponentActivity,
         canPresent: () -> Boolean,

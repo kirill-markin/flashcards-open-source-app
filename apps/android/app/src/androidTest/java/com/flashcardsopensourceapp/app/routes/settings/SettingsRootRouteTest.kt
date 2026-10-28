@@ -15,6 +15,7 @@ import androidx.compose.ui.test.performScrollToNode
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.flashcardsopensourceapp.app.FirebaseAppInstrumentationTimeoutTest
 import com.flashcardsopensourceapp.core.ui.theme.FlashcardsTheme
+import com.flashcardsopensourceapp.data.local.review.prompts.reviewPromptConfigDefaults
 import com.flashcardsopensourceapp.feature.settings.SettingsFriendInviteAvailability
 import com.flashcardsopensourceapp.feature.settings.SettingsRoute
 import com.flashcardsopensourceapp.feature.settings.SettingsUiState
@@ -277,6 +278,13 @@ class SettingsRootRouteTest : FirebaseAppInstrumentationTimeoutTest() {
                     },
                     onOpenLocalSyncDiagnostics = {
                         clickedRows += "local_sync_diagnostics"
+                    },
+                    reviewPromptConfig = reviewPromptConfigDefaults,
+                    onPreviewReviewPrompt = { preview ->
+                        clickedRows += preview.name
+                    },
+                    onResetReviewPromptState = {
+                        clickedRows += "reset_review_prompt_state"
                     },
                     onBack = {
                         clickedRows += "back"
