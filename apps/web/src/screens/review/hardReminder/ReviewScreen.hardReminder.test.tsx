@@ -1,12 +1,17 @@
 // @vitest-environment jsdom
 import { act } from "react";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import type { Card } from "../../../types";
 import {
   createCard,
   createDeferredPromise,
   setupReviewScreenTest,
 } from "../testSupport/ReviewScreenTestSupport";
+
+// No review activity, so no counter-gated prompt ahead of the hard reminder in the order opens.
+vi.mock("../prompts/reviewPromptCounters", () => ({
+  loadReviewPromptCounters: vi.fn().mockResolvedValue({ totalReviews: 0, reviewsToday: 0, reviewDays: 0 }),
+}));
 
 const {
   dispatchDocumentKeydown,
