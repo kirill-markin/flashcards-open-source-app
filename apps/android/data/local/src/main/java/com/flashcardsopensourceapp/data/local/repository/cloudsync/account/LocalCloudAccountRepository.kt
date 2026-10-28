@@ -66,6 +66,7 @@ import com.flashcardsopensourceapp.data.local.repository.cloudsync.runtime.Cloud
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.workspace.CloudLinkedWorkspaceTransitionCoordinator
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.workspace.CloudWorkspaceLinkCoordinator
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.workspace.CloudWorkspaceOperationsCoordinator
+import com.flashcardsopensourceapp.data.local.review.prompts.RemoteReviewPromptConfig
 import com.flashcardsopensourceapp.core.observability.analytics.Analytics
 import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsEvent
 import com.flashcardsopensourceapp.core.observability.analytics.FirstReviewOnboardingSource
@@ -92,6 +93,8 @@ class LocalCloudAccountRepository(
      * upgrade still succeeds, and the repository owns no observability of its own.
      */
     private val onGuestUpgradeDemoCardCleanupFailed: (workspaceId: String, error: Exception) -> Unit,
+    /** Receives `reviewPrompts` from each account refresh that has one; the app graph caches or reports it. */
+    private val onReviewPromptConfigFetched: (RemoteReviewPromptConfig) -> Unit,
     /**
      * Fired once a plain sign-in has stored its credentials. The app graph turns it into one
      * `CloudGuestSessionCoordinator.linkAnalyticsGuestIdentityToSignedInAccount` attempt off the
@@ -774,6 +777,7 @@ class LocalCloudAccountRepository(
             settings = preferencesStore.currentCloudSettings()
         )
         persistAccountSnapshotForCurrentCloudIdentity(accountSnapshot = accountSnapshot)
+        accountSnapshot.reviewPromptConfig?.let(onReviewPromptConfigFetched)
     }
 
     private suspend fun resolveAccountContextSessionLocked(): AccountContextSession? {

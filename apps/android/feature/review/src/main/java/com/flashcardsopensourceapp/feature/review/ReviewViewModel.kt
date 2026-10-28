@@ -32,7 +32,7 @@ import com.flashcardsopensourceapp.data.local.notifications.ReviewNotificationsS
 import com.flashcardsopensourceapp.data.local.review.ReviewPreferencesStore
 import com.flashcardsopensourceapp.data.local.review.prompts.ReviewPromptHandler
 import com.flashcardsopensourceapp.data.local.review.prompts.ReviewPromptId
-import com.flashcardsopensourceapp.data.local.review.prompts.reviewPromptConfigDefaults
+import com.flashcardsopensourceapp.data.local.review.prompts.ReviewPromptConfigStore
 import com.flashcardsopensourceapp.data.local.review.prompts.showFirstEligibleReviewPrompt
 import com.flashcardsopensourceapp.data.local.repository.sync.AutoSyncCompletion
 import com.flashcardsopensourceapp.data.local.repository.sync.AutoSyncEvent
@@ -78,6 +78,7 @@ class ReviewViewModel(
     private val appReviewPromptHandlers: Map<ReviewPromptId, ReviewPromptHandler>,
     private val onNotificationPermissionGranted: () -> Unit,
     private val reviewPreferencesStore: ReviewPreferencesStore,
+    private val reviewPromptConfigStore: ReviewPromptConfigStore,
     private val analytics: Analytics,
     private val observability: AppObservability,
     visibleAppScreenRepository: VisibleAppScreenRepository,
@@ -668,7 +669,7 @@ class ReviewViewModel(
     private suspend fun showFirstEligibleReviewPromptAfterSavedReview(savedRating: ReviewRating, nowMillis: Long) {
         try {
             showFirstEligibleReviewPrompt(
-                config = reviewPromptConfigDefaults,
+                config = reviewPromptConfigStore.loadActiveConfig(),
                 counters = reviewRepository.loadReviewPromptCounters(
                     nowMillis = nowMillis,
                     zoneId = ZoneId.systemDefault()
@@ -1089,6 +1090,7 @@ fun createReviewViewModelFactory(
     appReviewPromptHandlers: Map<ReviewPromptId, ReviewPromptHandler>,
     onNotificationPermissionGranted: () -> Unit,
     reviewPreferencesStore: ReviewPreferencesStore,
+    reviewPromptConfigStore: ReviewPromptConfigStore,
     analytics: Analytics,
     observability: AppObservability,
     visibleAppScreenRepository: VisibleAppScreenRepository,
@@ -1110,6 +1112,7 @@ fun createReviewViewModelFactory(
                 appReviewPromptHandlers = appReviewPromptHandlers,
                 onNotificationPermissionGranted = onNotificationPermissionGranted,
                 reviewPreferencesStore = reviewPreferencesStore,
+                reviewPromptConfigStore = reviewPromptConfigStore,
                 analytics = analytics,
                 observability = observability,
                 visibleAppScreenRepository = visibleAppScreenRepository,
