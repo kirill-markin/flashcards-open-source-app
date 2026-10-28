@@ -82,7 +82,7 @@ private fun makeReviewPaywallHandler(
     canPresent: () -> Boolean
 ): ReviewPromptHandler {
     return ReviewPromptHandler(
-        loadLastShownAtMillis = { appGraph.reviewPaywallScheduler.lastShownAt(trigger = trigger)?.toEpochMilli() },
+        loadLastShownAtMillis = { appGraph.reviewPaywallScheduler.lastShownAt()?.toEpochMilli() },
         tryShow = { reviewPromptConfigVersion ->
             appGraph.reviewPaywallScheduler.tryShowReviewOffer(
                 trigger = trigger,
