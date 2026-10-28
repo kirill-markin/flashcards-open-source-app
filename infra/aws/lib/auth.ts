@@ -44,6 +44,8 @@ export function auth(scope: Construct, props: AuthProps): AuthResult {
     selfSignUpEnabled: false,
     signInAliases: { email: true },
     autoVerify: { email: true },
+    // AdminUpdateUserAttributes setting email must also set email_verified=true in the same call, or Cognito silently keeps the old email.
+    keepOriginal: { email: true },
     customSenderKmsKey: sender.kmsKey,
     lambdaTriggers: {
       preSignUp: props.preSignUpFn,
