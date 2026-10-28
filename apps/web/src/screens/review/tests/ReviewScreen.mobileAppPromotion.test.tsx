@@ -142,6 +142,7 @@ function configureTodayReviewCount(dayOfMonth: number, reviewCount: number): voi
 
 function configureFeedbackEligibleReviewActivity(reviewCount: number): void {
   configureReviewEvents([
+    ...createLocalReviewEvents(8, 10, 1),
     ...createLocalReviewEvents(9, 10, 1),
     ...createLocalReviewEvents(10, 10, reviewCount),
   ]);
@@ -281,7 +282,7 @@ beforeEach(() => {
   progressMocks.loadLocalProgressSummaryMock.mockReset();
   progressMocks.loadLocalRecentReviewDaysMock.mockReset();
 
-  configureTodayReviewCount(10, 5);
+  configureTodayReviewCount(10, 3);
   configureMobileAppPromotionState(createEmptyMobileAppPromotionState());
   apiMocks.loadFeedbackStateMock.mockResolvedValue(createFeedbackState());
   apiMocks.loadReviewPlatformSummaryMock.mockResolvedValue({
@@ -292,10 +293,10 @@ beforeEach(() => {
 });
 
 describe("ReviewScreen mobile app promotion", () => {
-  it("does not show before five local reviews today, where today starts at 04:00", async () => {
+  it("does not show before three local reviews today, where today starts at 04:00", async () => {
     configureReviewEvents([
       ...createLocalReviewEvents(10, 3, 1),
-      ...createLocalReviewEvents(10, 10, 4),
+      ...createLocalReviewEvents(10, 10, 2),
     ]);
     prepareReviewQueue(1);
 
@@ -308,7 +309,7 @@ describe("ReviewScreen mobile app promotion", () => {
     expect(mobileAppPromotionMocks.storeMobileAppPromotionPromptShownMock).not.toHaveBeenCalled();
   });
 
-  it("shows after five local reviews when the backend has no mobile review event", async () => {
+  it("shows after three local reviews when the backend has no mobile review event", async () => {
     const shownState = {
       ...createEmptyMobileAppPromotionState(),
       lastPromptShownAt: "2026-03-10T12:00:00.000Z",

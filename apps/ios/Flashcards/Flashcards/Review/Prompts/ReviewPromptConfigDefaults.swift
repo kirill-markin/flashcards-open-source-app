@@ -37,45 +37,45 @@ struct ReviewPromptConfig: Codable, Equatable, Sendable {
 
 let builtInReviewPromptConfig = ReviewPromptConfig(
     schemaVersion: 1,
-    version: "2026-10-28-1",
+    version: "2026-10-28-2",
     order: [
-        "hard-reminder",
+        "web-mobile-app-promo",
+        "guest-sign-in",
+        "rating-request",
+        "automatic-feedback",
         "paywall-initial",
         "paywall-second",
         "paywall-periodic",
         "notifications-pre-prompt",
-        "rating-request",
-        "web-mobile-app-promo",
-        "guest-sign-in",
-        "automatic-feedback"
+        "hard-reminder"
     ],
     prompts: [
-        "hard-reminder": ReviewPromptSettings(
-            enabled: true, minTotalReviews: nil, minReviewsToday: nil, minReviewDays: nil, cooldownDays: 3
+        "web-mobile-app-promo": ReviewPromptSettings(
+            enabled: true, minTotalReviews: nil, minReviewsToday: 3, minReviewDays: nil, cooldownDays: 1
+        ),
+        "guest-sign-in": ReviewPromptSettings(
+            enabled: true, minTotalReviews: nil, minReviewsToday: 5, minReviewDays: nil, cooldownDays: 3
+        ),
+        "rating-request": ReviewPromptSettings(
+            enabled: true, minTotalReviews: nil, minReviewsToday: 2, minReviewDays: 2, cooldownDays: 90
+        ),
+        "automatic-feedback": ReviewPromptSettings(
+            enabled: true, minTotalReviews: nil, minReviewsToday: 5, minReviewDays: 3, cooldownDays: 30
         ),
         "paywall-initial": ReviewPromptSettings(
-            enabled: true, minTotalReviews: 3, minReviewsToday: nil, minReviewDays: nil, cooldownDays: nil
+            enabled: true, minTotalReviews: nil, minReviewsToday: 2, minReviewDays: 3, cooldownDays: nil
         ),
         "paywall-second": ReviewPromptSettings(
-            enabled: true, minTotalReviews: nil, minReviewsToday: 2, minReviewDays: 2, cooldownDays: nil
+            enabled: true, minTotalReviews: nil, minReviewsToday: 2, minReviewDays: 5, cooldownDays: 2
         ),
         "paywall-periodic": ReviewPromptSettings(
-            enabled: true, minTotalReviews: nil, minReviewsToday: 2, minReviewDays: 3, cooldownDays: 7
+            enabled: true, minTotalReviews: nil, minReviewsToday: 2, minReviewDays: 15, cooldownDays: 7
         ),
         "notifications-pre-prompt": ReviewPromptSettings(
             enabled: true, minTotalReviews: 6, minReviewsToday: nil, minReviewDays: nil, cooldownDays: 7
         ),
-        "rating-request": ReviewPromptSettings(
-            enabled: true, minTotalReviews: nil, minReviewsToday: 5, minReviewDays: 2, cooldownDays: 90
-        ),
-        "web-mobile-app-promo": ReviewPromptSettings(
-            enabled: true, minTotalReviews: nil, minReviewsToday: 5, minReviewDays: nil, cooldownDays: 1
-        ),
-        "guest-sign-in": ReviewPromptSettings(
-            enabled: true, minTotalReviews: 20, minReviewsToday: nil, minReviewDays: nil, cooldownDays: 7
-        ),
-        "automatic-feedback": ReviewPromptSettings(
-            enabled: true, minTotalReviews: nil, minReviewsToday: 15, minReviewDays: 2, cooldownDays: 30
+        "hard-reminder": ReviewPromptSettings(
+            enabled: true, minTotalReviews: nil, minReviewsToday: nil, minReviewDays: nil, cooldownDays: 3
         )
     ]
 )

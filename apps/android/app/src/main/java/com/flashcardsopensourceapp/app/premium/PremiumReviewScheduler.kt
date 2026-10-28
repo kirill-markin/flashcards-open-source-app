@@ -42,19 +42,18 @@ internal class PremiumReviewScheduler(
         }
     }
 
-    /** The account's last showing of this review paywall, the clock of its cooldown. */
-    fun lastShownAt(trigger: AnalyticsReviewPaywallTrigger): Instant? {
+    /**
+     * The account's latest showing of any review paywall, the shared clock of their cooldowns.
+     * Paywalls opened elsewhere do not count, so this is not [CloudPaywallState.lastShownAt].
+     */
+    fun lastShownAt(): Instant? {
         val state = loadReviewPaywallState() ?: return null
-        return when (trigger) {
-            AnalyticsReviewPaywallTrigger.INITIAL -> state.introShownAt
-            AnalyticsReviewPaywallTrigger.DAY3 -> state.followUpShownAt
-            AnalyticsReviewPaywallTrigger.WEEKLY -> state.periodicShownAt
-        }
+        return listOfNotNull(state.introShownAt, state.followUpShownAt, state.periodicShownAt).maxOrNull()
     }
 
     /**
      * Shows this review paywall to a known free account. The first two are once per account; the
-     * periodic one repeats on its config cooldown. Each ignores the other paywalls.
+     * periodic one repeats. Each waits its config cooldown after the latest of the three.
      */
     fun tryShowReviewOffer(
         trigger: AnalyticsReviewPaywallTrigger,
