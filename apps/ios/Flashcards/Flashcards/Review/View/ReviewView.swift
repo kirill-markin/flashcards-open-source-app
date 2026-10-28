@@ -491,8 +491,7 @@ struct ReviewView: View {
         } message: {
             Text(store.reviewSubmissionFailure?.message ?? "")
         }
-        .alert(
-            String(localized: "Stay on top of your cards", table: reviewCardsStringsTableName),
+        .reviewNotificationPrePromptAlert(
             isPresented: Binding(
                 get: {
                     store.isReviewNotificationPrePromptPresented
@@ -502,19 +501,16 @@ struct ReviewView: View {
                         store.dismissReviewNotificationPrePrompt(markDismissed: false)
                     }
                 }
-            )
-        ) {
-            Button(String(localized: "Not now", table: reviewCardsStringsTableName), role: .cancel) {
+            ),
+            permissionStatus: store.reviewNotificationPrePromptPermissionStatus,
+            onNotNow: {
                 store.dismissReviewNotificationPrePrompt(markDismissed: true)
-            }
-            Button(String(localized: "Continue", table: reviewCardsStringsTableName)) {
+            },
+            onContinue: {
                 store.continueReviewNotificationPrePrompt()
             }
-        } message: {
-            Text(String(localized: "Nibomo can send study reminders with a card from your review queue. These notifications contain study cards only and never marketing messages.", table: reviewCardsStringsTableName))
-        }
-        .alert(
-            String(localized: "Hard is for difficult recall", table: reviewCardsStringsTableName),
+        )
+        .reviewHardReminderAlert(
             isPresented: Binding(
                 get: {
                     store.isReviewHardReminderPresented
@@ -524,14 +520,11 @@ struct ReviewView: View {
                         store.dismissReviewHardReminder()
                     }
                 }
-            )
-        ) {
-            Button(String(localized: "OK", table: reviewCardsStringsTableName), role: .cancel) {
+            ),
+            onOK: {
                 store.dismissReviewHardReminder()
             }
-        } message: {
-            Text(String(localized: "If you did not know the answer, choose \"Again\". \"Hard\" is only for answers you knew but it was difficult to recall.", table: reviewCardsStringsTableName))
-        }
+        )
         .alert(
             String(
                 localized: "review.tag_filter_alert.title",

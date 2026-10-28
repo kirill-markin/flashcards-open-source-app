@@ -73,9 +73,10 @@ data class ReviewNotificationsSettings(
 )
 
 data class NotificationPermissionPromptState(
-    val hasShownPrePrompt: Boolean,
-    val hasRequestedSystemPermission: Boolean,
-    val hasDismissedPrePrompt: Boolean
+    /** The review pre-prompt's last showing, its cooldown clock. */
+    val lastShownAtMillis: Long?,
+    /** Whether this install ever asked the OS for the permission, from any surface. */
+    val hasRequestedSystemPermission: Boolean
 )
 
 data class PersistedReviewFilter(
@@ -140,9 +141,8 @@ fun defaultReviewNotificationsSettings(): ReviewNotificationsSettings {
 
 fun defaultNotificationPermissionPromptState(): NotificationPermissionPromptState {
     return NotificationPermissionPromptState(
-        hasShownPrePrompt = false,
-        hasRequestedSystemPermission = false,
-        hasDismissedPrePrompt = false
+        lastShownAtMillis = null,
+        hasRequestedSystemPermission = false
     )
 }
 
@@ -885,18 +885,18 @@ private fun decodeStrictRemindersSettings(rawValue: String): StrictRemindersSett
 
 private fun encodePromptState(state: NotificationPermissionPromptState): String {
     return JSONObject().apply {
-        put("hasShownPrePrompt", state.hasShownPrePrompt)
+        if (state.lastShownAtMillis != null) {
+            put("lastShownAtMillis", state.lastShownAtMillis)
+        }
         put("hasRequestedSystemPermission", state.hasRequestedSystemPermission)
-        put("hasDismissedPrePrompt", state.hasDismissedPrePrompt)
     }.toString()
 }
 
 private fun decodePromptState(rawValue: String): NotificationPermissionPromptState {
     val payload = JSONObject(rawValue)
     return NotificationPermissionPromptState(
-        hasShownPrePrompt = payload.getBoolean("hasShownPrePrompt"),
-        hasRequestedSystemPermission = payload.getBoolean("hasRequestedSystemPermission"),
-        hasDismissedPrePrompt = payload.getBoolean("hasDismissedPrePrompt")
+        lastShownAtMillis = if (payload.has("lastShownAtMillis")) payload.getLong("lastShownAtMillis") else null,
+        hasRequestedSystemPermission = payload.getBoolean("hasRequestedSystemPermission")
     )
 }
 

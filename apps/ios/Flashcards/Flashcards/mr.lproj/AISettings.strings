@@ -340,8 +340,8 @@
 "settings.test.animations.playAccessibility" = "%@ अ‍ॅनिमेशन चालवा, %@";
 "settings.test.technicalErrorPreview" = "तांत्रिक त्रुटीचे पूर्वावलोकन";
 "settings.test.technicalErrorPreview.value" = "पूर्वावलोकन पत्रक";
-"settings.test.storeReviewPromptReset" = "App Store अभिप्राय विनंती रीसेट करा";
-"settings.test.storeReviewPromptReset.value" = "स्थानिक स्थिती";
+"settings.test.section.reviewPrompts" = "उजळणीनंतरचे प्रॉम्प्ट";
+"settings.test.reviewPromptsReset" = "सर्व प्रॉम्प्टची स्थिती रीसेट करा";
 "settings.test.notificationDiagnostics" = "सूचनांचे निदान";
 "settings.test.notificationDiagnostics.value" = "फक्त वाचण्यासाठी";
 "settings.test.localSyncDiagnostics" = "स्थानिक समक्रमणाचे निदान";

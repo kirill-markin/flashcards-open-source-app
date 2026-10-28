@@ -340,8 +340,8 @@
 "settings.test.animations.playAccessibility" = "Animatie %@ afspelen, %@";
 "settings.test.technicalErrorPreview" = "Voorbeeld van technische fout";
 "settings.test.technicalErrorPreview.value" = "Voorbeeldvenster";
-"settings.test.storeReviewPromptReset" = "Verzoek om App Store-beoordeling resetten";
-"settings.test.storeReviewPromptReset.value" = "Lokale status";
+"settings.test.section.reviewPrompts" = "Meldingen na herhaling";
+"settings.test.reviewPromptsReset" = "Status van alle meldingen resetten";
 "settings.test.notificationDiagnostics" = "Meldingendiagnostiek";
 "settings.test.notificationDiagnostics.value" = "Alleen-lezen";
 "settings.test.localSyncDiagnostics" = "Diagnostiek voor lokale synchronisatie";

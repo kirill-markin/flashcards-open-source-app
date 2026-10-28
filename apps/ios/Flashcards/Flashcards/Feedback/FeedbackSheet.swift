@@ -127,6 +127,7 @@ struct FeedbackSheet: View {
         }
         .onChange(of: self.message) { _, nextMessage in
             self.errorMessage = nil
+            guard self.presentation.isTestPreview == false else { return }
             self.store.saveFeedbackDraftMessage(message: nextMessage)
         }
     }
@@ -137,13 +138,20 @@ struct FeedbackSheet: View {
             return
         }
 
-        self.message = self.store.loadFeedbackDraftMessage()
+        if self.presentation.isTestPreview == false {
+            self.message = self.store.loadFeedbackDraftMessage()
+        }
         self.hasLoadedDraft = true
     }
 
     @MainActor
     private func submit() async {
         guard self.canSend else {
+            return
+        }
+        guard self.presentation.isTestPreview == false else {
+            self.store.dismissFeedbackSheet()
+            self.dismiss()
             return
         }
 
@@ -169,7 +177,7 @@ struct FeedbackSheet: View {
 
 #Preview {
     FeedbackSheet(
-        presentation: makeFeedbackPresentation(trigger: .settings)
+        presentation: makeFeedbackPresentation(trigger: .settings, isTestPreview: false)
     )
     .environment(FlashcardsStore())
 }

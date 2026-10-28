@@ -340,8 +340,8 @@
 "settings.test.animations.playAccessibility" = "%@ ਐਨੀਮੇਸ਼ਨ ਚਲਾਓ, %@";
 "settings.test.technicalErrorPreview" = "ਤਕਨੀਕੀ ਗਲਤੀ ਦੀ ਝਲਕ";
 "settings.test.technicalErrorPreview.value" = "ਝਲਕ ਪੈਨਲ";
-"settings.test.storeReviewPromptReset" = "App Store ਸਮੀਖਿਆ ਬੇਨਤੀ ਰੀਸੈੱਟ ਕਰੋ";
-"settings.test.storeReviewPromptReset.value" = "ਸਥਾਨਕ ਸਥਿਤੀ";
+"settings.test.section.reviewPrompts" = "ਦੁਹਰਾਈ ਤੋਂ ਬਾਅਦ ਦੇ ਪ੍ਰੌਂਪਟ";
+"settings.test.reviewPromptsReset" = "ਸਾਰੇ ਪ੍ਰੌਂਪਟਾਂ ਦੀ ਸਥਿਤੀ ਰੀਸੈੱਟ ਕਰੋ";
 "settings.test.notificationDiagnostics" = "ਸੂਚਨਾ ਨਿਦਾਨ";
 "settings.test.notificationDiagnostics.value" = "ਸਿਰਫ਼ ਪੜ੍ਹਨ ਲਈ";
 "settings.test.localSyncDiagnostics" = "ਸਥਾਨਕ ਸਿੰਕ ਨਿਦਾਨ";

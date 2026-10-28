@@ -346,8 +346,8 @@
 "settings.test.animations.playAccessibility" = "تشغيل حركة %@، %@";
 "settings.test.technicalErrorPreview" = "معاينة الخطأ الفني";
 "settings.test.technicalErrorPreview.value" = "ورقة المعاينة";
-"settings.test.storeReviewPromptReset" = "إعادة ضبط مطالبة مراجعة App Store";
-"settings.test.storeReviewPromptReset.value" = "الحالة المحلية";
+"settings.test.section.reviewPrompts" = "المطالبات بعد المراجعة";
+"settings.test.reviewPromptsReset" = "إعادة ضبط حالة كل المطالبات";
 "settings.test.notificationDiagnostics" = "تشخيص الإشعارات";
 "settings.test.notificationDiagnostics.value" = "للقراءة فقط";
 "settings.test.localSyncDiagnostics" = "تشخيص المزامنة المحلية";

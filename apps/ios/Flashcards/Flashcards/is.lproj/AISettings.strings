@@ -340,8 +340,8 @@
 "settings.test.animations.playAccessibility" = "Spila hreyfimynd %@, %@";
 "settings.test.technicalErrorPreview" = "Forskoðun tæknivillu";
 "settings.test.technicalErrorPreview.value" = "Forskoða spjald";
-"settings.test.storeReviewPromptReset" = "Endurstilla beiðni um App Store-umsögn";
-"settings.test.storeReviewPromptReset.value" = "Staðbundin staða";
+"settings.test.section.reviewPrompts" = "Kvaðningar eftir upprifjun";
+"settings.test.reviewPromptsReset" = "Endurstilla stöðu allra kvaðninga";
 "settings.test.notificationDiagnostics" = "Greining tilkynninga";
 "settings.test.notificationDiagnostics.value" = "Skrifvarið";
 "settings.test.localSyncDiagnostics" = "Greining staðbundinnar samstillingar";

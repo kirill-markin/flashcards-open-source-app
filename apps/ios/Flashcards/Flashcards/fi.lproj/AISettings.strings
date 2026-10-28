@@ -340,8 +340,8 @@
 "settings.test.animations.playAccessibility" = "Toista animaatio %@, %@";
 "settings.test.technicalErrorPreview" = "Teknisen virheen esikatselu";
 "settings.test.technicalErrorPreview.value" = "Esikatselunäkymä";
-"settings.test.storeReviewPromptReset" = "Nollaa App Storen arviointipyyntö";
-"settings.test.storeReviewPromptReset.value" = "Paikallinen tila";
+"settings.test.section.reviewPrompts" = "Kertauksen jälkeiset kehotteet";
+"settings.test.reviewPromptsReset" = "Nollaa kaikkien kehotteiden tila";
 "settings.test.notificationDiagnostics" = "Ilmoitusten diagnostiikka";
 "settings.test.notificationDiagnostics.value" = "Vain luku";
 "settings.test.localSyncDiagnostics" = "Paikallisen synkronoinnin diagnostiikka";

@@ -25,7 +25,6 @@ internal data class PendingCloudAccountMethod(
     val userId: String,
     val workspaceId: String?,
     val activeWorkspaceId: String?,
-    val sessionBinding: String,
     val configuration: CloudServiceConfiguration,
     val method: CloudSignInMethod,
     val intent: CloudAccountMethodIntent,
@@ -78,8 +77,9 @@ internal class CloudAccountMethodStore(private val credentialStore: CloudCredent
         try {
             val fields = Json.parseToJsonElement(value) as? kotlinx.serialization.json.JsonObject
                 ?: throw SerializationException("Account proof must be an object.")
+            // Older records also carry a refresh-token sessionBinding; userId is the account binding.
             return Json.decodeFromJsonElement(PendingCloudAccountMethod.serializer(),
-                 kotlinx.serialization.json.JsonObject(mapOf("connection" to kotlinx.serialization.json.JsonNull) + fields))
+                 kotlinx.serialization.json.JsonObject(mapOf("connection" to kotlinx.serialization.json.JsonNull) + fields - "sessionBinding"))
         } catch (_: SerializationException) {
             throw IllegalStateException("Encrypted account proof is invalid. Sign out before trying again.")
         } catch (_: IllegalArgumentException) {

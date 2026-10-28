@@ -738,6 +738,10 @@ const trCatalog: TranslationCatalog = {
       description: "iOS ve Android yükleme istemini önizleyin.",
       value: "Önizleme",
     },
+    reviewPrompts: {
+      title: "Tekrar sonrası istemler",
+      resetAll: "Tüm istemlerin durumunu sıfırla",
+    },
   },
   settingsWorkspace: {
     decks: {

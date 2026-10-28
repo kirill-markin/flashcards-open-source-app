@@ -217,9 +217,9 @@ class LocalSyncRepository(
                 )
                 if (preferencesStore.currentCloudSettings().cloudState == CloudAccountState.LINKED) {
                     withContext(Dispatchers.IO) {
-                        preferencesStore.loadCredentials()?.let { credentials ->
+                        preferencesStore.currentCloudSettings().linkedUserId?.let { userId ->
                             preferencesStore.socialAuthStore.completeEmailSession(
-                                preferencesStore.currentServerConfiguration(), credentials.refreshToken
+                                preferencesStore.currentServerConfiguration(), userId
                             )
                         }
                     }

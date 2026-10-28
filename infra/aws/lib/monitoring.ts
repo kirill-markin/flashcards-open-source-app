@@ -498,7 +498,7 @@ export function monitoring(scope: Construct, props: MonitoringProps): void {
       evaluationPeriods: publicEndpointHeartbeatEvaluationPeriods,
       datapointsToAlarm: publicEndpointHeartbeatDatapointsToAlarm,
       alarmDescription:
-        `Public host ${target.host} did not answer ${target.probeUrl} with HTTP 200 for two ` +
+        `Public host ${target.host} did not answer ${target.probeUrl} with HTTP 200 or 429 for two ` +
         "external heartbeat probes, or the heartbeat itself stopped reporting",
       treatMissingData: cloudwatch.TreatMissingData.BREACHING,
     }), alertTopic);
@@ -1037,19 +1037,6 @@ export function monitoring(scope: Construct, props: MonitoringProps): void {
         metricValue: "$.message.succeeded",
       },
     );
-    // No default value: silence cannot clear a failed run or count as a successful completion.
-    notifyAlertTopic(new cloudwatch.Alarm(scope, job.id + "LambdaErrorAlarm", {
-      metric: outcomeMetricFilter.metric({
-        period: cdk.Duration.hours(storeAnalyticsImportScheduleHours),
-        statistic: "Minimum",
-      }),
-      threshold: 1,
-      comparisonOperator: cloudwatch.ComparisonOperator.LESS_THAN_THRESHOLD,
-      evaluationPeriods: 1,
-      alarmDescription: job.description + " failed; recovery requires a completed successful run",
-      treatMissingData: cloudwatch.TreatMissingData.IGNORE,
-    }), alertTopic);
-
     // Fill each missing hour so CloudWatch cannot reuse older successes from its extra lookback.
     notifyAlertTopic(new cloudwatch.Alarm(scope, job.id + "StaleAlarm", {
       metric: new cloudwatch.MathExpression({

@@ -136,6 +136,7 @@ internal class CloudIdentityTestEnvironment private constructor(
             loadReviewMediaAssetFile = ::unsupportedTestReviewMediaAssetFile,
             demoCardDraftProvider = ::testDemoCardDraft,
             onGuestUpgradeDemoCardCleanupFailed = ::throwGuestUpgradeDemoCardCleanupFailure,
+            onReviewPromptConfigFetched = {},
             onAnalyticsGuestIdentityLinkRequested = onAnalyticsGuestIdentityLinkRequested
         )
     }
@@ -181,7 +182,8 @@ internal class CloudIdentityTestEnvironment private constructor(
             appVersion = appVersion,
             loadReviewMediaAssetFile = ::unsupportedTestReviewMediaAssetFile,
             demoCardDraftProvider = ::testDemoCardDraft,
-            onGuestUpgradeDemoCardCleanupFailed = ::throwGuestUpgradeDemoCardCleanupFailure
+            onGuestUpgradeDemoCardCleanupFailed = ::throwGuestUpgradeDemoCardCleanupFailure,
+            onReviewPromptConfigFetched = {}
         )
         return RestartedCloudAccountRuntime(
             repository = repository,

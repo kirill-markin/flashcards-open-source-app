@@ -340,8 +340,8 @@
 "settings.test.animations.playAccessibility" = "Přehrát animaci %@, %@";
 "settings.test.technicalErrorPreview" = "Náhled technické chyby";
 "settings.test.technicalErrorPreview.value" = "Panel náhledu";
-"settings.test.storeReviewPromptReset" = "Resetovat výzvu k hodnocení v App Store";
-"settings.test.storeReviewPromptReset.value" = "Místní stav";
+"settings.test.section.reviewPrompts" = "Výzvy po opakování";
+"settings.test.reviewPromptsReset" = "Resetovat stav všech výzev";
 "settings.test.notificationDiagnostics" = "Diagnostika oznámení";
 "settings.test.notificationDiagnostics.value" = "Jen pro čtení";
 "settings.test.localSyncDiagnostics" = "Diagnostika místní synchronizace";

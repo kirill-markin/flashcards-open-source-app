@@ -340,8 +340,8 @@
 "settings.test.animations.playAccessibility" = "Αναπαραγωγή κινούμενου σχεδίου %@, %@";
 "settings.test.technicalErrorPreview" = "Προεπισκόπηση τεχνικού σφάλματος";
 "settings.test.technicalErrorPreview.value" = "Πλαίσιο προεπισκόπησης";
-"settings.test.storeReviewPromptReset" = "Επαναφορά προτροπής αξιολόγησης στο App Store";
-"settings.test.storeReviewPromptReset.value" = "Τοπική κατάσταση";
+"settings.test.section.reviewPrompts" = "Προτροπές μετά την επανάληψη";
+"settings.test.reviewPromptsReset" = "Επαναφορά κατάστασης όλων των προτροπών";
 "settings.test.notificationDiagnostics" = "Διαγνωστικά γνωστοποιήσεων";
 "settings.test.notificationDiagnostics.value" = "Μόνο για ανάγνωση";
 "settings.test.localSyncDiagnostics" = "Διαγνωστικά τοπικού συγχρονισμού";

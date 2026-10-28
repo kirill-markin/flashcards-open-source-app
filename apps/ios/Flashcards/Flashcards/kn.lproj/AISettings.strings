@@ -340,8 +340,8 @@
 "settings.test.animations.playAccessibility" = "%@ ಅನಿಮೇಶನ್ ಪ್ಲೇ ಮಾಡಿ, %@";
 "settings.test.technicalErrorPreview" = "ತಾಂತ್ರಿಕ ದೋಷದ ಮುನ್ನೋಟ";
 "settings.test.technicalErrorPreview.value" = "ಮುನ್ನೋಟ ಫಲಕ";
-"settings.test.storeReviewPromptReset" = "App Store ವಿಮರ್ಶೆ ವಿನಂತಿ ಮರುಹೊಂದಿಸಿ";
-"settings.test.storeReviewPromptReset.value" = "ಸ್ಥಳೀಯ ಸ್ಥಿತಿ";
+"settings.test.section.reviewPrompts" = "ಪುನರಾವರ್ತನೆಯ ನಂತರದ ಪ್ರಾಂಪ್ಟ್‌ಗಳು";
+"settings.test.reviewPromptsReset" = "ಎಲ್ಲ ಪ್ರಾಂಪ್ಟ್‌ಗಳ ಸ್ಥಿತಿಯನ್ನು ಮರುಹೊಂದಿಸಿ";
 "settings.test.notificationDiagnostics" = "ಅಧಿಸೂಚನೆಗಳ ರೋಗನಿರ್ಣಯ";
 "settings.test.notificationDiagnostics.value" = "ಓದಲು ಮಾತ್ರ";
 "settings.test.localSyncDiagnostics" = "ಸ್ಥಳೀಯ ಸಿಂಕ್ ರೋಗನಿರ್ಣಯ";

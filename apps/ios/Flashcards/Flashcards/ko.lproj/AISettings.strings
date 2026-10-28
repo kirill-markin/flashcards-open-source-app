@@ -340,8 +340,8 @@
 "settings.test.animations.playAccessibility" = "%@ 애니메이션 재생, %@";
 "settings.test.technicalErrorPreview" = "기술 오류 미리보기";
 "settings.test.technicalErrorPreview.value" = "미리보기 시트";
-"settings.test.storeReviewPromptReset" = "App Store 리뷰 요청 초기화";
-"settings.test.storeReviewPromptReset.value" = "로컬 상태";
+"settings.test.section.reviewPrompts" = "복습 후 안내";
+"settings.test.reviewPromptsReset" = "모든 안내 상태 초기화";
 "settings.test.notificationDiagnostics" = "알림 진단";
 "settings.test.notificationDiagnostics.value" = "읽기 전용";
 "settings.test.localSyncDiagnostics" = "로컬 동기화 진단";
