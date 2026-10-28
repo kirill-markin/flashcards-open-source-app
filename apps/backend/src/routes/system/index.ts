@@ -11,6 +11,7 @@ import {
 import { unsafeQuery } from "../../database/unsafe";
 import { updateGuestSessionAnalyticsPreferences } from "../../guestAuth/store/session";
 import { createSourceDiscoveryResponse } from "../../shared/sourceDiscovery";
+import { reviewPromptConfig } from "../../reviewPrompts/reviewPromptConfig";
 import { getSessionCsrfToken } from "../../auth/requestSecurity";
 import { getClientAccountIdentity, loadRequestContextFromRequest } from "../../server/requestContext";
 import type { AppEnv } from "../../server/app";
@@ -111,6 +112,7 @@ export function createSystemRoutes(options: SystemRoutesOptions): Hono<AppEnv> {
         createdAt: requestContext.userSettingsCreatedAt,
       },
       preferences: requestContext.preferences,
+      reviewPrompts: reviewPromptConfig,
     });
   });
 

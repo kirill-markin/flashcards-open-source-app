@@ -3,7 +3,8 @@ import { validateIanaTimeZone } from "../progress/timeZone";
 
 // The product analytics contract. Every client mirrors this file by hand and the server
 // rejects anything that is not declared here, which is what keeps event_properties free of
-// personal data and therefore safe to keep after an account is anonymized. A string property must
+// personal data, outside the two exceptions below, and therefore safe to keep after an account is
+// anonymized. A string property must
 // declare a bounded format and not merely a length cap: a length-capped free-text property would be
 // a client-controlled channel into a column that is retained indefinitely and that account
 // anonymization deliberately keeps intact.
@@ -16,6 +17,11 @@ import { validateIanaTimeZone } from "../progress/timeZone";
 // 64 characters, with neither end a space nor a hyphen - and sends no text at all otherwise. The
 // shape admits spaces, so a short phrase someone typed fits it; what the 64 characters rule out is a
 // long one, and the exception is taken with that in view.
+//
+// The `utm_*` values on `site_page_viewed` are the second deliberate exception, taken knowingly by
+// the owner: they are free text bounded only by length, so whatever a link carries is stored, a
+// personal detail an email tool wrote into a tag included. See
+// `productAnalyticsSiteCampaignTextPattern` below.
 //
 // schema_version stamps the catalog generation a stored row was accepted under, and it stayed 1
 // across the revision that retired the session and onboarding events and added the fact-shaped
@@ -48,6 +54,8 @@ export const productAnalyticsPropertyStringMaxLength = 200;
 // its shape instead: an owned host, then a path and query of unencoded tokens with no fragment, so
 // no space, no percent-encoding and no `#` can carry free text.
 export const productAnalyticsPropertyUrlMaxLength = 512;
+// Counted in UTF-16 code units, the unit the producer cuts a longer value by.
+export const productAnalyticsPropertyCampaignTextMaxLength = 500;
 const productAnalyticsPropertyUrlPathAndQueryPattern = /^\/[A-Za-z0-9\/._~-]*(?:\?[A-Za-z0-9\/._~=&-]*)?$/u;
 export const productAnalyticsPropertyKeyLimit = 25;
 
@@ -90,19 +98,14 @@ const productAnalyticsSitePagePathPattern = /^\/(?:[a-z0-9][a-z0-9._-]{0,78}\/){
 // the shape rule only; `productAnalyticsPropertyStringMaxLength` is the binding length rule.
 const productAnalyticsSiteReferrerHostPattern = /^[a-z0-9](?:[a-z0-9.-]{0,251}[a-z0-9])?$/u;
 
-// The `utm_*` values of an inbound link: a campaign token rather than a slug, so both separators are
-// admitted and neither is rewritten into the other. This repository's own campaign vocabulary is
-// snake_case - docs/marketing-links.md fixes `utm_source=flashcards_website` and names
-// `marketing_site`, `web_app_header`, `catalog_import` and the rest as buckets - while ad platforms
-// and other people's links spell campaigns with hyphens. Normalizing either way would break equality
-// with the campaign as spelled in the store and in the ad platform, which is the same equality
-// `store_link_clicked.placement` below is bound to keep.
-// Case is the one normalization taken: the producer lowercases before sending and this pattern
-// admits lowercase alone, so a campaign spelled with capitals is stored folded. The equality that
-// matters survives it, because every bucket docs/marketing-links.md owns is already lowercase, as is
-// `utm_source=flashcards_website`; what a fold can cost is a comparison against somebody else's
-// campaign that was spelled with capitals.
-const productAnalyticsSiteCampaignTokenPattern = /^[a-z0-9](?:[a-z0-9_-]{0,62}[a-z0-9])?$/u;
+// The `utm_*` values of an inbound link, the exception named at the top of this file: free text
+// with its case preserved exactly as the link spelled it, so it stays equal to the campaign as
+// spelled in the store and in the ad platform. The producer trims it, collapses whitespace runs and
+// strips control characters, and cuts a longer value to
+// `productAnalyticsPropertyCampaignTextMaxLength` rather than dropping it. The server keeps only what
+// the column and the contract need: no control character, no unpaired surrogate, which jsonb cannot
+// store, and neither end whitespace.
+const productAnalyticsSiteCampaignTextPattern = /^(?!\s)[^\p{Cc}\p{Cs}]*(?<!\s)$/u;
 
 // A language tag the marketing site offers a page in, lowercase, as a shape rather than the site's
 // current locale list: the backend has no reason to refuse an event because the site gained a
@@ -127,7 +130,17 @@ const productAnalyticsSiteSearchQueryPattern =
 
 // Acquisition context the marketing site reports on its own facts, derived on the site from the
 // referrer and the user agent, which are never sent raw.
-const productAnalyticsSiteSources = ["direct", "search", "social", "referral", "internal", "unknown"] as const;
+// `ai_assistant` is a referrer or a `utm_source` the site knows as an AI assistant, checked before
+// `referral`.
+const productAnalyticsSiteSources = [
+  "direct",
+  "search",
+  "social",
+  "ai_assistant",
+  "referral",
+  "internal",
+  "unknown",
+] as const;
 const productAnalyticsSiteDeviceCategories = ["desktop", "mobile", "tablet", "unknown"] as const;
 
 // The kind of marketing site page an event happened on.
@@ -212,6 +225,15 @@ const productAnalyticsPaywallEntryPoints = [
 ] as const;
 
 const productAnalyticsPaywallContentVersionPattern = /^[a-z0-9](?:[a-z0-9._-]{0,62}[a-z0-9])?$/u;
+
+// `day3` is the `paywall-second` prompt and `weekly` is `paywall-periodic`; the old names stay
+// because released apps send them.
+const productAnalyticsPaywallReviewTriggers = ["initial", "day3", "weekly"] as const;
+
+// The `version` of apps/backend/src/reviewPrompts/reviewPromptConfig.ts that chose an after-review
+// prompt, sent with the event recording that prompt's showing or request.
+const productAnalyticsReviewPromptConfigVersionPattern = /^[a-z0-9](?:[a-z0-9._-]{0,62}[a-z0-9])?$/u;
+
 const productAnalyticsTimeZonePattern = /^[A-Za-z][A-Za-z0-9_.+-]*(?:\/[A-Za-z0-9_.+-]+){0,3}$/u;
 
 // Why a provider pulled a purchase. `unknown` is the honest answer for a provider that reports a
@@ -530,6 +552,9 @@ type ProductAnalyticsPropertySpec =
     // The exact link a button or QR code carried at the moment of the event, query string included,
     // so the fact stays true after the link changes in code.
     | Readonly<{ kind: "url"; hosts: ReadonlyArray<string> }>
+    // Free text bounded by `productAnalyticsPropertyCampaignTextMaxLength`; see
+    // `productAnalyticsSiteCampaignTextPattern`.
+    | Readonly<{ kind: "campaignText" }>
     | Readonly<{ kind: "localDate" }>
     | Readonly<{ kind: "timeZone" }>
     // Every numeric property in this catalog is a counter or a measure. The table is append-only, so a
@@ -610,7 +635,9 @@ export const productAnalyticsEventCatalog = {
   screen_viewed: {
     serverOnly: false,
     requiresScreen: true,
-    properties: {},
+    properties: {
+      review_prompt_config_version: { kind: "string", pattern: productAnalyticsReviewPromptConfigVersionPattern, optional: true },
+    },
   },
   // Our own in-app prompts, which are ours to decide when to show. The OS-level result of the
   // permission dialog a person may then be handed is a separate event, because a person can accept
@@ -632,7 +659,9 @@ export const productAnalyticsEventCatalog = {
   store_review_requested: {
     serverOnly: false,
     requiresScreen: false,
-    properties: {},
+    properties: {
+      review_prompt_config_version: { kind: "string", pattern: productAnalyticsReviewPromptConfigVersionPattern, optional: true },
+    },
   },
   // The OS-level permission dialog, whose outcome the app only observes. The surface is carried by
   // the event's own screen and never duplicated into a property: there is exactly one place a
@@ -1638,12 +1667,13 @@ export const productAnalyticsEventCatalog = {
     properties: {
       entry_point: { kind: "enum", values: productAnalyticsPaywallEntryPoints },
       presentation_id: { kind: "string", pattern: productAnalyticsUuidPattern, optional: true },
-      review_trigger: { kind: "enum", values: ["initial", "day3", "weekly"], optional: true },
+      review_trigger: { kind: "enum", values: productAnalyticsPaywallReviewTriggers, optional: true },
       local_date: { kind: "localDate", optional: true },
       time_zone: { kind: "timeZone", optional: true },
       content_version: { kind: "string", pattern: productAnalyticsPaywallContentVersionPattern, optional: true },
       account_kind: { kind: "enum", values: ["guest", "registered"], optional: true },
       offer_type: { kind: "enum", values: ["free_trial", "standard"], optional: true },
+      review_prompt_config_version: { kind: "string", pattern: productAnalyticsReviewPromptConfigVersionPattern, optional: true },
     },
   },
   // Only an observed action: closing/back/swiping is dismissed, never an inferred free choice.
@@ -1654,7 +1684,7 @@ export const productAnalyticsEventCatalog = {
     properties: {
       presentation_id: { kind: "string", pattern: productAnalyticsUuidPattern },
       entry_point: { kind: "enum", values: productAnalyticsPaywallEntryPoints },
-      review_trigger: { kind: "enum", values: ["initial", "day3", "weekly"], optional: true },
+      review_trigger: { kind: "enum", values: productAnalyticsPaywallReviewTriggers, optional: true },
       outcome: { kind: "enum", values: ["free", "premium", "dismissed"] },
       offer_type: { kind: "enum", values: ["free_trial", "standard"], optional: true },
     },
@@ -1669,7 +1699,7 @@ export const productAnalyticsEventCatalog = {
       offer_type: { kind: "enum", values: ["free_trial", "standard"], optional: true },
       presentation_id: { kind: "string", pattern: productAnalyticsUuidPattern, optional: true },
       entry_point: { kind: "enum", values: productAnalyticsPaywallEntryPoints, optional: true },
-      review_trigger: { kind: "enum", values: ["initial", "day3", "weekly"], optional: true },
+      review_trigger: { kind: "enum", values: productAnalyticsPaywallReviewTriggers, optional: true },
     },
   },
   // What the store or checkout reported back to the client. `completed` is the client's view only;
@@ -1681,7 +1711,7 @@ export const productAnalyticsEventCatalog = {
       outcome: { kind: "enum", values: ["completed", "cancelled", "failed", "pending"] },
       presentation_id: { kind: "string", pattern: productAnalyticsUuidPattern, optional: true },
       entry_point: { kind: "enum", values: productAnalyticsPaywallEntryPoints, optional: true },
-      review_trigger: { kind: "enum", values: ["initial", "day3", "weekly"], optional: true },
+      review_trigger: { kind: "enum", values: productAnalyticsPaywallReviewTriggers, optional: true },
       // Sent only with `failed`: `<source>:<code>`, the provider's own code verbatim after the prefix.
       // `storekit` a StoreKit error, `play` a Play Billing response code constant name, `stripe` a
       // Stripe error code, `app` our own client or API error code, `nserror` an unrecognized Apple
@@ -1853,14 +1883,12 @@ export const productAnalyticsEventCatalog = {
   // Reporting none means leaving the key out: an explicit `null` or `""` is a value the property
   // does not allow, and that refuses the whole event rather than just the path.
   //
-  // `referrer_host` and the three `utm_*` properties say where the visit came from, which `source`
-  // only classifies into six buckets: the bucket cannot tell one search engine or one campaign from
-  // another. All four are optional in the same sense `page_path` is - a direct visit has no
-  // referrer, an uncampaigned link has no `utm_*`, and a value that does not fit its shape is left
-  // out rather than truncated. Real `utm_*` values arrive spelled however the link was written, so
-  // the producer lowercases all four before sending; the patterns admit lowercase alone, and the
-  // case fold is the one normalization a campaign token takes, for the reason stated beside
-  // `productAnalyticsSiteCampaignTokenPattern`. They sit on the page view alone because that is
+  // `referrer_host` and the five `utm_*` properties say where the visit came from, which `source`
+  // only classifies into buckets: the bucket cannot tell one search engine or one campaign from
+  // another. All six are optional in the same sense `page_path` is - a direct visit has no referrer
+  // and an uncampaigned link has no `utm_*`. A referrer host that does not fit its shape is left out
+  // rather than truncated; a `utm_*` value is free text, normalized and cut by the producer as stated
+  // beside `productAnalyticsSiteCampaignTextPattern`. They sit on the page view alone because that is
   // where a visit begins, rather than being repeated onto every row the visit goes on to produce.
   //
   // `time_zone`, `automation` and `screen_width_bucket` are browser signals that help tell a reader
@@ -1879,9 +1907,11 @@ export const productAnalyticsEventCatalog = {
       source: { kind: "enum", values: productAnalyticsSiteSources },
       device_category: { kind: "enum", values: productAnalyticsSiteDeviceCategories },
       referrer_host: { kind: "string", pattern: productAnalyticsSiteReferrerHostPattern, optional: true },
-      utm_source: { kind: "string", pattern: productAnalyticsSiteCampaignTokenPattern, optional: true },
-      utm_medium: { kind: "string", pattern: productAnalyticsSiteCampaignTokenPattern, optional: true },
-      utm_campaign: { kind: "string", pattern: productAnalyticsSiteCampaignTokenPattern, optional: true },
+      utm_source: { kind: "campaignText", optional: true },
+      utm_medium: { kind: "campaignText", optional: true },
+      utm_campaign: { kind: "campaignText", optional: true },
+      utm_content: { kind: "campaignText", optional: true },
+      utm_term: { kind: "campaignText", optional: true },
       time_zone: { kind: "timeZone", optional: true },
       automation: { kind: "enum", values: ["webdriver", "none"], optional: true },
       screen_width_bucket: { kind: "enum", values: ["xs", "sm", "md", "lg", "xl", "xxl"], optional: true },
@@ -2385,6 +2415,11 @@ function createRequiredPropertySchema(spec: ProductAnalyticsPropertySpec) {
   if (spec.kind === "url") {
     return z.string().min(1).max(productAnalyticsPropertyUrlMaxLength)
       .refine((value) => isAllowedHttpsUrl(value, spec.hosts));
+  }
+
+  if (spec.kind === "campaignText") {
+    return z.string().min(1).max(productAnalyticsPropertyCampaignTextMaxLength)
+      .regex(productAnalyticsSiteCampaignTextPattern);
   }
 
   return z.string().min(1).max(productAnalyticsPropertyStringMaxLength).regex(spec.pattern);
