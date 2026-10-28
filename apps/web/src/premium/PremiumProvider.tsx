@@ -1,4 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactElement, type ReactNode } from "react";
+import { reviewPromptConfig } from "../../../backend/src/reviewPrompts/reviewPromptConfig";
 import { track, type AnalyticsPaywallEntryPoint } from "../analytics";
 import { useAppData } from "../appData";
 import type { PaywallState, ReviewPaywallTrigger } from "../apiContracts/paywallState";
@@ -129,7 +130,7 @@ function PremiumSession(props: Readonly<{ children: ReactNode }>): ReactElement 
     // Email linking resumes the analytics exposure, but is another actual functional appearance.
     if (pending.request.reason === "offer" && pending.request.presentation !== null && pending.request.presentation !== undefined) return;
     track({ name: "paywall_shown", ...pending.analytics, localDate, timeZone,
-      ...(reviewTrigger === null ? {} : { reviewTrigger }), contentVersion: "union-v1",
+      ...(reviewTrigger === null ? {} : { reviewTrigger, reviewPromptConfigVersion: reviewPromptConfig.version }), contentVersion: "union-v1",
       accountKind: session?.profile.email === null ? "guest" : "registered",
       ...(displayedOfferType === undefined ? {} : { offerType: displayedOfferType }) });
   }

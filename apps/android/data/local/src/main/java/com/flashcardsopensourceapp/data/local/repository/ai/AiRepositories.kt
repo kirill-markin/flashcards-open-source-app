@@ -33,7 +33,6 @@ import com.flashcardsopensourceapp.data.local.model.ai.aiChatSessionsPageLimit
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudAccountState
 import com.flashcardsopensourceapp.data.local.model.cloud.StoredCloudCredentials
 import com.flashcardsopensourceapp.data.local.model.ai.buildAiChatRequestContent
-import com.flashcardsopensourceapp.data.local.model.cloud.shouldRefreshCloudIdToken
 import com.flashcardsopensourceapp.data.local.cloud.CloudPreferencesStore
 import com.flashcardsopensourceapp.data.local.cloud.remote.CloudRemoteGateway
 import com.flashcardsopensourceapp.data.local.network.SignedPutUploader
@@ -43,6 +42,7 @@ import com.flashcardsopensourceapp.data.local.repository.SyncRepository
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.guest.CloudGuestSessionCoordinator
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.guest.GuestCloudSessionRestoreResult
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.runtime.CloudOperationCoordinator
+import com.flashcardsopensourceapp.data.local.repository.cloudsync.runtime.refreshExpiredStoredCloudCredentials
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emitAll
@@ -686,23 +686,13 @@ class LocalAiChatRepository(
         storedCredentials: StoredCloudCredentials,
         authBaseUrl: String
     ): StoredCloudCredentials {
-        if (
-            shouldRefreshCloudIdToken(
-                idTokenExpiresAtMillis = storedCredentials.idTokenExpiresAtMillis,
-                nowMillis = System.currentTimeMillis()
-            ).not()
-        ) {
-            return storedCredentials
-        }
-
-        return cloudRemoteService.refreshIdToken(
-            refreshToken = storedCredentials.refreshToken,
-            authBaseUrl = authBaseUrl
-        ).also { credentials ->
-            withContext(Dispatchers.IO) {
-                preferencesStore.saveCredentials(credentials)
-            }
-        }
+        return refreshExpiredStoredCloudCredentials(
+            storedCredentials = storedCredentials,
+            authBaseUrl = authBaseUrl,
+            preferencesStore = preferencesStore,
+            remoteService = cloudRemoteService,
+            operationCoordinator = operationCoordinator
+        )
     }
 }
 

@@ -76,7 +76,6 @@ let mobileAppPromotionStateForTest: MobileAppPromotionState;
 
 function createEmptyMobileAppPromotionState(): MobileAppPromotionState {
   return {
-    lastPromptShownLocalDate: null,
     lastPromptShownAt: null,
     knownHasMobileReviewEvent: false,
   };
@@ -95,42 +94,17 @@ function createDailyReviewPoint(localDate: string, reviewCount: number): DailyRe
 
 function configureTodayReviewCount(localDate: string, reviewCount: number): void {
   progressMocks.loadLocalProgressDailyReviewsMock.mockResolvedValue([createDailyReviewPoint(localDate, reviewCount)]);
-  progressMocks.loadLocalProgressSummaryMock.mockResolvedValue({
-    currentStreakDays: 1,
-    longestStreakDays: 1,
-    hasReviewedToday: true,
-    lastReviewedOn: localDate,
-    activeReviewDays: 1,
-    streakFreeze: {
-      availableCredits: 0,
-      capacity: 2,
-      balanceUnits: 0,
-      unitsPerCredit: 7,
-      earnedUnitsPerStreakDay: 1,
-      nextCreditProgressUnits: 0,
-      nextCreditRequiredUnits: 7,
-    },
-  });
 }
 
-function configureFeedbackEligibleReviewActivity(localDate: string, reviewCount: number): void {
-  configureTodayReviewCount(localDate, reviewCount);
-  progressMocks.loadLocalProgressSummaryMock.mockResolvedValue({
-    currentStreakDays: 2,
-    longestStreakDays: 2,
-    hasReviewedToday: true,
-    lastReviewedOn: localDate,
-    activeReviewDays: 2,
-    streakFreeze: {
-      availableCredits: 0,
-      capacity: 2,
-      balanceUnits: 0,
-      unitsPerCredit: 7,
-      earnedUnitsPerStreakDay: 1,
-      nextCreditProgressUnits: 0,
-      nextCreditRequiredUnits: 7,
-    },
-  });
+function configureFeedbackEligibleReviewActivity(
+  previousLocalDate: string,
+  localDate: string,
+  reviewCount: number,
+): void {
+  progressMocks.loadLocalProgressDailyReviewsMock.mockResolvedValue([
+    createDailyReviewPoint(previousLocalDate, 1),
+    createDailyReviewPoint(localDate, reviewCount),
+  ]);
 }
 
 function configureMobileAppPromotionState(state: MobileAppPromotionState): void {
@@ -141,12 +115,10 @@ function configureMobileAppPromotionState(state: MobileAppPromotionState): void 
   mobileAppPromotionMocks.storeMobileAppPromotionPromptShownMock.mockImplementation(
     async (input: Readonly<{
       identityKey: string;
-      localDate: string;
       shownAt: string;
     }>): Promise<MobileAppPromotionState> => {
       mobileAppPromotionStateForTest = {
         ...mobileAppPromotionStateForTest,
-        lastPromptShownLocalDate: input.localDate,
         lastPromptShownAt: input.shownAt,
       };
       return mobileAppPromotionStateForTest;
@@ -155,19 +127,14 @@ function configureMobileAppPromotionState(state: MobileAppPromotionState): void 
   mobileAppPromotionMocks.clearMobileAppPromotionPromptShownIfCurrentMock.mockImplementation(
     async (input: Readonly<{
       identityKey: string;
-      localDate: string;
       shownAt: string;
     }>): Promise<MobileAppPromotionState> => {
-      if (
-        mobileAppPromotionStateForTest.lastPromptShownLocalDate !== input.localDate
-        || mobileAppPromotionStateForTest.lastPromptShownAt !== input.shownAt
-      ) {
+      if (mobileAppPromotionStateForTest.lastPromptShownAt !== input.shownAt) {
         return mobileAppPromotionStateForTest;
       }
 
       mobileAppPromotionStateForTest = {
         ...mobileAppPromotionStateForTest,
-        lastPromptShownLocalDate: null,
         lastPromptShownAt: null,
       };
       return mobileAppPromotionStateForTest;
@@ -299,7 +266,6 @@ describe("ReviewScreen mobile app promotion", () => {
   it("shows after five local reviews when the backend has no mobile review event", async () => {
     const shownState = {
       ...createEmptyMobileAppPromotionState(),
-      lastPromptShownLocalDate: "2026-03-10",
       lastPromptShownAt: "2026-03-10T12:00:00.000Z",
     };
     const shownDeferred = createDeferredPromise<MobileAppPromotionState>();
@@ -377,7 +343,7 @@ describe("ReviewScreen mobile app promotion", () => {
     apiMocks.loadReviewPlatformSummaryMock.mockImplementation(
       async (): Promise<Readonly<{ hasMobileReviewEvent: boolean }>> => summaryDeferred.promise,
     );
-    configureFeedbackEligibleReviewActivity("2026-03-10", 15);
+    configureFeedbackEligibleReviewActivity("2026-03-09", "2026-03-10", 15);
     prepareReviewQueue(3);
 
     await renderReviewScreen();
@@ -424,7 +390,7 @@ describe("ReviewScreen mobile app promotion", () => {
     apiMocks.loadReviewPlatformSummaryMock
       .mockImplementationOnce(async (): Promise<Readonly<{ hasMobileReviewEvent: boolean }>> => firstSummaryDeferred.promise)
       .mockImplementationOnce(async (): Promise<Readonly<{ hasMobileReviewEvent: boolean }>> => secondSummaryDeferred.promise);
-    configureFeedbackEligibleReviewActivity("2026-03-10", 15);
+    configureFeedbackEligibleReviewActivity("2026-03-09", "2026-03-10", 15);
     prepareReviewQueue(3);
 
     await renderReviewScreen();
@@ -488,11 +454,11 @@ describe("ReviewScreen mobile app promotion", () => {
     expect(apiMocks.loadFeedbackStateMock).not.toHaveBeenCalled();
   });
 
-  it("does not open automatic feedback when a stale mobile promotion check skips before the threshold", async () => {
-    const mobileActivityDeferred = createDeferredPromise<ReadonlyArray<DailyReviewPoint>>();
-    configureFeedbackEligibleReviewActivity("2026-03-10", 15);
+  it("does not open a prompt when the review prompt activity load becomes stale", async () => {
+    const activityDeferred = createDeferredPromise<ReadonlyArray<DailyReviewPoint>>();
+    configureFeedbackEligibleReviewActivity("2026-03-09", "2026-03-10", 15);
     progressMocks.loadLocalProgressDailyReviewsMock
-      .mockImplementationOnce(async (): Promise<ReadonlyArray<DailyReviewPoint>> => mobileActivityDeferred.promise)
+      .mockImplementationOnce(async (): Promise<ReadonlyArray<DailyReviewPoint>> => activityDeferred.promise)
       .mockResolvedValue([createDailyReviewPoint("2026-03-10", 15)]);
     prepareReviewQueue(1);
 
@@ -512,7 +478,7 @@ describe("ReviewScreen mobile app promotion", () => {
     await rerenderReviewScreen();
 
     await act(async () => {
-      mobileActivityDeferred.resolve([createDailyReviewPoint("2026-03-10", 4)]);
+      activityDeferred.resolve([createDailyReviewPoint("2026-03-09", 1), createDailyReviewPoint("2026-03-10", 15)]);
       await Promise.resolve();
     });
     await flushReviewPromptPromises();
@@ -529,13 +495,11 @@ describe("ReviewScreen mobile app promotion", () => {
     mobileAppPromotionMocks.storeMobileAppPromotionPromptShownMock.mockImplementation(
       async (input: Readonly<{
         identityKey: string;
-        localDate: string;
         shownAt: string;
       }>): Promise<MobileAppPromotionState> => {
         await shownDeferred.promise;
         mobileAppPromotionStateForTest = {
           ...mobileAppPromotionStateForTest,
-          lastPromptShownLocalDate: input.localDate,
           lastPromptShownAt: input.shownAt,
         };
         return mobileAppPromotionStateForTest;
@@ -555,7 +519,6 @@ describe("ReviewScreen mobile app promotion", () => {
     await act(async () => {
       shownDeferred.resolve({
         ...createEmptyMobileAppPromotionState(),
-        lastPromptShownLocalDate: "2026-03-10",
         lastPromptShownAt: "2026-03-10T12:00:00.000Z",
       });
       await Promise.resolve();
@@ -573,13 +536,11 @@ describe("ReviewScreen mobile app promotion", () => {
     mobileAppPromotionMocks.storeMobileAppPromotionPromptShownMock.mockImplementation(
       async (input: Readonly<{
         identityKey: string;
-        localDate: string;
         shownAt: string;
       }>): Promise<MobileAppPromotionState> => {
         await shownDeferred.promise;
         mobileAppPromotionStateForTest = {
           ...mobileAppPromotionStateForTest,
-          lastPromptShownLocalDate: input.localDate,
           lastPromptShownAt: input.shownAt,
         };
         return mobileAppPromotionStateForTest;
@@ -605,7 +566,6 @@ describe("ReviewScreen mobile app promotion", () => {
     await act(async () => {
       shownDeferred.resolve({
         ...createEmptyMobileAppPromotionState(),
-        lastPromptShownLocalDate: "2026-03-10",
         lastPromptShownAt: "2026-03-10T12:00:00.000Z",
       });
       await Promise.resolve();
@@ -618,10 +578,9 @@ describe("ReviewScreen mobile app promotion", () => {
     expect(queryMobileAppPromotionDialog()).toBeNull();
   });
 
-  it("does not show twice on the same local date", async () => {
+  it("does not show again within a day of the last showing", async () => {
     configureMobileAppPromotionState({
       ...createEmptyMobileAppPromotionState(),
-      lastPromptShownLocalDate: "2026-03-10",
       lastPromptShownAt: "2026-03-10T08:00:00.000Z",
     });
     configureTodayReviewCount("2026-03-10", 6);
@@ -636,11 +595,10 @@ describe("ReviewScreen mobile app promotion", () => {
     expect(mobileAppPromotionMocks.storeMobileAppPromotionPromptShownMock).not.toHaveBeenCalled();
   });
 
-  it("can show again on a new local date", async () => {
+  it("shows again once a day has passed since the last showing", async () => {
     vi.setSystemTime(new Date("2026-03-11T12:00:00.000Z"));
     configureMobileAppPromotionState({
       ...createEmptyMobileAppPromotionState(),
-      lastPromptShownLocalDate: "2026-03-10",
       lastPromptShownAt: "2026-03-10T08:00:00.000Z",
     });
     configureTodayReviewCount("2026-03-11", 5);

@@ -21,6 +21,7 @@ enum class AndroidObservationAction(
     REVIEW_REACTION_FAILURE(tagValue = "review_reaction_failure"),
     REVIEW_REACTION_LIFECYCLE(tagValue = "review_reaction_lifecycle"),
     REVIEW_SPEECH_FAILURE(tagValue = "review_speech_failure"),
+    REVIEW_PROMPT_EXCEPTION(tagValue = "review_prompt_exception"),
     APP_SCOPE_UNCAUGHT_EXCEPTION(tagValue = "app_scope_uncaught_exception"),
     APP_STARTUP_EXCEPTION(tagValue = "app_startup_exception"),
     APP_TECHNICAL_ERROR_DIALOG_EXCEPTION(tagValue = "app_technical_error_dialog_exception"),
@@ -777,6 +778,24 @@ sealed interface AndroidExceptionIssueEvent : AndroidObservationEvent {
         override val feature: AndroidObservationFeature = AndroidObservationFeature.REVIEW
         override val action: AndroidObservationAction = AndroidObservationAction.REVIEW_REACTION_FAILURE
         override val tags: AndroidObservationTags = reviewReactionObservationTags(stage = diagnostic.stage)
+    }
+
+    /** The after-review prompt walk failed; the review it followed is already saved. */
+    data class ReviewPromptException(
+        override val throwable: Throwable
+    ) : AndroidExceptionIssueEvent {
+        override val feature: AndroidObservationFeature = AndroidObservationFeature.REVIEW
+        override val action: AndroidObservationAction = AndroidObservationAction.REVIEW_PROMPT_EXCEPTION
+        override val tags: AndroidObservationTags = AndroidObservationTags(
+            userId = null,
+            workspaceId = null,
+            requestId = null,
+            statusCode = null,
+            code = null,
+            appVersion = null,
+            clientVersion = null,
+            versionCode = null
+        )
     }
 
     data class AppScopeUncaughtException(

@@ -141,6 +141,8 @@ final class FlashcardsStore {
     )
     var accountDeletionState: AccountDeletionState
     var accountDeletionSuccessMessage: String?
+    /// The after-review prompt rules: the cached remote config from `GET /me`, else the built-in defaults.
+    var activeReviewPromptConfig: ReviewPromptConfig
     var savedReviewPromptOpportunity: SavedReviewPromptOpportunity? = nil
     var isPremiumPresentationActive: Bool = false
     var isSavedReviewPromptSurfaceAvailable: Bool = false {
@@ -548,6 +550,7 @@ final class FlashcardsStore {
             decoder: decoder
         )
         self.isGuestSignInAfterReviewPromptPresented = false
+        self.activeReviewPromptConfig = loadActiveReviewPromptConfig(userDefaults: userDefaults, decoder: decoder)
         self.feedbackPresentation = nil
         self.presentedTechnicalError = nil
         self.feedbackPromptState = loadFeedbackPromptState(

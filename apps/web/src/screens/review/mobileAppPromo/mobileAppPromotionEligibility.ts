@@ -1,17 +1,13 @@
+import type { ReviewPromptSettings } from "../../../../../backend/src/reviewPrompts/reviewPromptConfig";
 import type { MobileAppPromotionState } from "../../../localDb/mobileAppPromotion/mobileAppPromotion";
-import { loadLocalProgressDailyReviews } from "../../../localDb/progress/progress";
-import { buildProgressDateContext } from "../../../progress/progressDates";
+import { isReviewPromptCooldownElapsed, parseReviewPromptShownAt } from "../prompts/reviewPromptRules";
 
-export type MobileAppPromotionReviewActivity = Readonly<{
-  today: string;
-  timeZone: string;
-  todayReviewCount: number;
-}>;
-
+/** The fixed rules and cooldown of the web promo; its config counter conditions are checked by the caller. */
 export type MobileAppPromotionEligibilityInput = Readonly<{
-  reviewActivity: Pick<MobileAppPromotionReviewActivity, "today" | "todayReviewCount">;
+  settings: ReviewPromptSettings;
   promptState: MobileAppPromotionState;
   hasMobileReviewEvent: boolean;
+  nowMillis: number;
 }>;
 
 export type MobileAppPromotionEligibilityResult = Readonly<{
@@ -20,11 +16,8 @@ export type MobileAppPromotionEligibilityResult = Readonly<{
     | "eligible"
     | "known_mobile_review_event"
     | "backend_mobile_review_event"
-    | "today_review_count"
-    | "shown_today";
+    | "shown_cooldown";
 }>;
-
-export const mobileAppPromotionMinimumReviewCount: number = 5;
 
 export function evaluateMobileAppPromotionEligibility(
   input: MobileAppPromotionEligibilityInput,
@@ -43,41 +36,16 @@ export function evaluateMobileAppPromotionEligibility(
     };
   }
 
-  if (input.reviewActivity.todayReviewCount < mobileAppPromotionMinimumReviewCount) {
+  const lastShownAtMillis = parseReviewPromptShownAt(input.promptState.lastPromptShownAt, "lastPromptShownAt");
+  if (isReviewPromptCooldownElapsed(input.settings, lastShownAtMillis, input.nowMillis) === false) {
     return {
       isEligible: false,
-      reason: "today_review_count",
-    };
-  }
-
-  if (input.promptState.lastPromptShownLocalDate === input.reviewActivity.today) {
-    return {
-      isEligible: false,
-      reason: "shown_today",
+      reason: "shown_cooldown",
     };
   }
 
   return {
     isEligible: true,
     reason: "eligible",
-  };
-}
-
-export async function loadMobileAppPromotionReviewActivity(
-  workspaceId: string,
-  now: Date,
-): Promise<MobileAppPromotionReviewActivity> {
-  const dateContext = buildProgressDateContext(now);
-  const todayReviews = await loadLocalProgressDailyReviews([workspaceId], {
-    timeZone: dateContext.timeZone,
-    from: dateContext.today,
-    to: dateContext.today,
-  });
-  const todayReviewCount = todayReviews.find((point) => point.date === dateContext.today)?.reviewCount ?? 0;
-
-  return {
-    today: dateContext.today,
-    timeZone: dateContext.timeZone,
-    todayReviewCount,
   };
 }

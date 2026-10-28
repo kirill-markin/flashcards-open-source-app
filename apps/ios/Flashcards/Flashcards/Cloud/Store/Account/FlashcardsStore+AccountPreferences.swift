@@ -117,6 +117,9 @@ extension FlashcardsStore {
             apiBaseUrl: session.apiBaseUrl,
             authorizationHeader: session.authorizationHeaderValue
         )
+        if let reviewPrompts = accountContext.reviewPrompts {
+            self.applyRemoteReviewPromptConfig(json: reviewPrompts)
+        }
         try self.applyRefreshedCloudAccountContext(
             accountContext: accountContext,
             session: session,

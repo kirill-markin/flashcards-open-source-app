@@ -7,7 +7,6 @@ import {
 } from "../core/database";
 
 export type MobileAppPromotionState = Readonly<{
-  lastPromptShownLocalDate: string | null;
   lastPromptShownAt: string | null;
   knownHasMobileReviewEvent: boolean;
 }>;
@@ -20,7 +19,6 @@ type MobileAppPromotionStateRecord = Readonly<{
 
 type MobileAppPromotionPromptShownInput = Readonly<{
   identityKey: FeedbackPromptIdentityKey;
-  localDate: string;
   shownAt: string;
 }>;
 
@@ -28,10 +26,10 @@ type MobileReviewEventKnownInput = Readonly<{
   identityKey: FeedbackPromptIdentityKey;
 }>;
 
-const mobileAppPromotionStateKeyPrefix = "mobile_app_promotion_state:";
+// v2: the record dropped `lastPromptShownLocalDate`, which tabs still on an older bundle require, so the two shapes never share a key.
+const mobileAppPromotionStateKeyPrefix = "mobile_app_promotion_state_v2:";
 
 export const emptyMobileAppPromotionState: MobileAppPromotionState = {
-  lastPromptShownLocalDate: null,
   lastPromptShownAt: null,
   knownHasMobileReviewEvent: false,
 };
@@ -51,28 +49,9 @@ function validateIsoTimestamp(timestamp: string, fieldName: keyof MobileAppPromo
   }
 }
 
-function validateIsoLocalDate(localDate: string, fieldName: keyof MobileAppPromotionState): void {
-  const dateMatch = /^(\d{4})-(\d{2})-(\d{2})$/u.exec(localDate);
-  if (dateMatch === null) {
-    throw new Error(`Invalid local mobile app promotion state: ${fieldName} must be an ISO local date`);
-  }
-
-  const year = Number(dateMatch[1]);
-  const month = Number(dateMatch[2]);
-  const day = Number(dateMatch[3]);
-  const dateValue = new Date(Date.UTC(year, month - 1, day));
-  if (
-    dateValue.getUTCFullYear() !== year
-    || dateValue.getUTCMonth() !== month - 1
-    || dateValue.getUTCDate() !== day
-  ) {
-    throw new Error(`Invalid local mobile app promotion state: ${fieldName} must be an ISO local date`);
-  }
-}
-
-function parseNullableStringField(
+function parseNullableTimestampField(
   objectValue: Readonly<Record<string, unknown>>,
-  fieldName: keyof Pick<MobileAppPromotionState, "lastPromptShownLocalDate" | "lastPromptShownAt">,
+  fieldName: keyof Pick<MobileAppPromotionState, "lastPromptShownAt">,
 ): string | null {
   const fieldValue = objectValue[fieldName];
   if (fieldValue === null) {
@@ -83,12 +62,7 @@ function parseNullableStringField(
     throw new Error(`Invalid local mobile app promotion state: ${fieldName} must be string or null`);
   }
 
-  if (fieldName === "lastPromptShownLocalDate") {
-    validateIsoLocalDate(fieldValue, fieldName);
-  } else {
-    validateIsoTimestamp(fieldValue, fieldName);
-  }
-
+  validateIsoTimestamp(fieldValue, fieldName);
   return fieldValue;
 }
 
@@ -110,8 +84,7 @@ function parseMobileAppPromotionState(value: unknown): MobileAppPromotionState {
   }
 
   return {
-    lastPromptShownLocalDate: parseNullableStringField(value, "lastPromptShownLocalDate"),
-    lastPromptShownAt: parseNullableStringField(value, "lastPromptShownAt"),
+    lastPromptShownAt: parseNullableTimestampField(value, "lastPromptShownAt"),
     knownHasMobileReviewEvent: parseBooleanField(value, "knownHasMobileReviewEvent"),
   };
 }
@@ -181,7 +154,6 @@ export async function storeMobileAppPromotionPromptShown(
   input: MobileAppPromotionPromptShownInput,
   throwIfIndexedDbOpenRecoveryFailed: () => void,
 ): Promise<MobileAppPromotionState> {
-  validateIsoLocalDate(input.localDate, "lastPromptShownLocalDate");
   validateIsoTimestamp(input.shownAt, "lastPromptShownAt");
 
   throwIfIndexedDbOpenRecoveryFailed();
@@ -189,7 +161,6 @@ export async function storeMobileAppPromotionPromptShown(
   throwIfIndexedDbOpenRecoveryFailed();
   const nextState: MobileAppPromotionState = {
     ...currentState,
-    lastPromptShownLocalDate: input.localDate,
     lastPromptShownAt: input.shownAt,
   };
   throwIfIndexedDbOpenRecoveryFailed();
@@ -202,22 +173,17 @@ export async function clearMobileAppPromotionPromptShownIfCurrent(
   input: MobileAppPromotionPromptShownInput,
   throwIfIndexedDbOpenRecoveryFailed: () => void,
 ): Promise<MobileAppPromotionState> {
-  validateIsoLocalDate(input.localDate, "lastPromptShownLocalDate");
   validateIsoTimestamp(input.shownAt, "lastPromptShownAt");
 
   throwIfIndexedDbOpenRecoveryFailed();
   const currentState = await loadMobileAppPromotionState(input.identityKey);
   throwIfIndexedDbOpenRecoveryFailed();
-  if (
-    currentState.lastPromptShownLocalDate !== input.localDate
-    || currentState.lastPromptShownAt !== input.shownAt
-  ) {
+  if (currentState.lastPromptShownAt !== input.shownAt) {
     return currentState;
   }
 
   const nextState: MobileAppPromotionState = {
     ...currentState,
-    lastPromptShownLocalDate: null,
     lastPromptShownAt: null,
   };
   throwIfIndexedDbOpenRecoveryFailed();
