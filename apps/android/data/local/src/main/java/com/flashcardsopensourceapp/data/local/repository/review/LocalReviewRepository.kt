@@ -18,7 +18,6 @@ import com.flashcardsopensourceapp.data.local.database.entities.WorkspaceEntity
 import com.flashcardsopensourceapp.data.local.database.entities.WorkspaceSchedulerSettingsEntity
 import com.flashcardsopensourceapp.data.local.model.cards.CardSummary
 import com.flashcardsopensourceapp.data.local.model.cards.DeckSummary
-import com.flashcardsopensourceapp.data.local.model.feedback.FeedbackPromptReviewActivity
 import com.flashcardsopensourceapp.data.local.model.media.MediaAsset
 import com.flashcardsopensourceapp.data.local.model.media.MediaAssetDownloadUrl
 import com.flashcardsopensourceapp.data.local.model.media.ReviewMediaAssetFile
@@ -45,6 +44,9 @@ import com.flashcardsopensourceapp.data.local.model.review.matchesReviewFilter
 import com.flashcardsopensourceapp.data.local.model.review.resolveReviewFilterFromTagNames
 import com.flashcardsopensourceapp.data.local.model.review.toReviewCard
 import com.flashcardsopensourceapp.data.local.repository.ReviewRepository
+import com.flashcardsopensourceapp.data.local.review.prompts.ReviewPromptCounters
+import com.flashcardsopensourceapp.data.local.review.prompts.countReviewPromptDays
+import com.flashcardsopensourceapp.data.local.review.prompts.reviewPromptTimeBucketMillis
 import com.flashcardsopensourceapp.data.local.repository.cards.toCardSummary
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.workspace.loadCurrentWorkspaceOrNull
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.workspace.observeCurrentWorkspace
@@ -68,6 +70,8 @@ import java.io.IOException
 import java.nio.file.AtomicMoveNotSupportedException
 import java.nio.file.Files
 import java.nio.file.StandardCopyOption
+import java.time.Instant
+import java.time.ZoneId
 import java.util.UUID
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -505,40 +509,18 @@ class LocalReviewRepository(
         )
     }
 
-    override suspend fun countRecordedReviews(): Int {
-        return database.reviewLogDao().countReviewLogs()
-    }
-
-    override suspend fun countRecordedReviewsInCurrentWorkspace(): Int {
-        val workspace: WorkspaceEntity = loadCurrentWorkspaceOrNull(
-            database = database,
-            preferencesStore = preferencesStore
-        ) ?: return 0
-
-        return database.reviewLogDao().countReviewLogs(workspaceId = workspace.workspaceId)
-    }
-
-    override suspend fun loadFeedbackPromptReviewActivity(
-        currentLocalDayStartMillis: Long,
-        nextLocalDayStartMillis: Long
-    ): FeedbackPromptReviewActivity {
-        val workspace: WorkspaceEntity = loadCurrentWorkspaceOrNull(
-            database = database,
-            preferencesStore = preferencesStore
-        ) ?: return FeedbackPromptReviewActivity(
-            currentLocalDayReviewCount = 0,
-            hasPreviousLocalReviewDay = false
-        )
-
-        return FeedbackPromptReviewActivity(
-            currentLocalDayReviewCount = database.reviewLogDao().countReviewLogsBetween(
-                workspaceId = workspace.workspaceId,
-                startMillis = currentLocalDayStartMillis,
-                endMillis = nextLocalDayStartMillis
+    override suspend fun loadReviewPromptCounters(nowMillis: Long, zoneId: ZoneId): ReviewPromptCounters {
+        val reviewLogDao = database.reviewLogDao()
+        val today = Instant.ofEpochMilli(nowMillis).atZone(zoneId).toLocalDate()
+        return ReviewPromptCounters(
+            totalReviews = reviewLogDao.countReviewLogs(),
+            reviewsToday = reviewLogDao.countReviewLogsBetween(
+                startMillis = today.atStartOfDay(zoneId).toInstant().toEpochMilli(),
+                endMillis = today.plusDays(1L).atStartOfDay(zoneId).toInstant().toEpochMilli()
             ),
-            hasPreviousLocalReviewDay = database.reviewLogDao().hasReviewLogsBefore(
-                workspaceId = workspace.workspaceId,
-                beforeMillis = currentLocalDayStartMillis
+            reviewDays = countReviewPromptDays(
+                timeBuckets = reviewLogDao.loadDistinctReviewTimeBuckets(bucketMillis = reviewPromptTimeBucketMillis),
+                zoneId = zoneId
             )
         )
     }

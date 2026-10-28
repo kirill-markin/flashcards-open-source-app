@@ -9,6 +9,7 @@ export type PaywallState = Readonly<{
   introTimeZone: string | null;
   followUpShownAt: string | null;
   lastShownAt: string | null;
+  periodicShownAt: string | null;
 }>;
 export type PaywallShownInput = Readonly<{
   presentationId: string;
@@ -57,6 +58,7 @@ export function parsePaywallState(value: unknown, endpoint: string, path: string
     introTimeZone: parseRequiredField(object, "introTimeZone", endpoint, path, parseNullableText),
     followUpShownAt: parseRequiredField(object, "followUpShownAt", endpoint, path, parseNullableInstant),
     lastShownAt: parseRequiredField(object, "lastShownAt", endpoint, path, parseNullableInstant),
+    periodicShownAt: parseRequiredField(object, "periodicShownAt", endpoint, path, parseNullableInstant),
   };
   if (state.introShownAt === null) {
     if (state.introLocalDate !== null || state.introTimeZone !== null) {

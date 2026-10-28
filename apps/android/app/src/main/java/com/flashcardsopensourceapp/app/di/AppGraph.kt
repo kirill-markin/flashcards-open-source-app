@@ -372,11 +372,9 @@ class AppGraph(
     )
     val storeReviewRequestManager = StoreReviewRequestManager(
         context = context,
-        reviewLogDao = database.reviewLogDao(),
         storeReviewRequestStore = storeReviewRequestStore,
         appVersion = appPackageInfo.versionName,
         analytics = analytics,
-        zoneIdProvider = ZoneId::systemDefault,
         currentTimeMillisProvider = {
             System.currentTimeMillis()
         }
@@ -609,6 +607,7 @@ class AppGraph(
         preferencesStore = cloudPreferencesStore,
         remoteService = cloudRemoteService,
         cloudGuestSessionCoordinator = cloudGuestSessionCoordinator,
+        operationCoordinator = cloudOperationCoordinator,
         syncRepository = syncRepository,
         appVersion = appPackageInfo.versionName,
         currentUiLocaleTag = { currentAppUiLocaleTag(context = context) ?: "und" },
@@ -625,13 +624,11 @@ class AppGraph(
     internal val reviewPaywallScheduler = PremiumReviewScheduler(
         repository = paywallRepository,
         preferencesStore = cloudPreferencesStore,
-        reviewLogDao = database.reviewLogDao(),
         presenter = premiumPresenter,
         appScope = appScope
     )
     val guestSignInAfterReviewPromptController = GuestSignInAfterReviewPromptController(
         cloudAccountRepository = cloudAccountRepository,
-        reviewRepository = reviewRepository,
         promptStore = guestSignInAfterReviewPromptStore,
         analytics = analytics
     )
@@ -639,7 +636,6 @@ class AppGraph(
         appScope = appScope,
         context = context,
         feedbackRepository = feedbackRepository,
-        reviewRepository = reviewRepository,
         promptStore = feedbackPromptStore,
         messageController = appMessageBus,
         observability = observability,

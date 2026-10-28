@@ -9,12 +9,12 @@ import com.flashcardsopensourceapp.data.local.model.cloud.CloudAccountState
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudSettings
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudServiceConfiguration
 import com.flashcardsopensourceapp.data.local.model.cloud.StoredCloudCredentials
-import com.flashcardsopensourceapp.data.local.model.cloud.shouldRefreshCloudIdToken
 import com.flashcardsopensourceapp.data.local.model.sync.CloudAccountSnapshot
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.account.CloudIdentityResetCoordinator
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.runtime.CloudOperationCoordinator
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.runtime.CloudSessionProvider
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.runtime.isRemoteAccountDeletedError
+import com.flashcardsopensourceapp.data.local.repository.cloudsync.runtime.refreshExpiredStoredCloudCredentials
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.sync.Mutex
@@ -181,36 +181,20 @@ internal class AnalyticsGuestIdentityLinkCoordinator(
      * with no user action behind it and no way back, so it must never reach a destructive reset.
      * A deleted account is sync's business, and sync answers it by preserving local data.
      *
-     * The refreshed credential is persisted, because a rotated refresh token invalidates the stored
-     * one, but only under the cloud operation lock and only over the credential this refresh started
-     * from: the refresh itself holds no lock, so a concurrent logout or sign-in must win. The account
-     * preferences [CloudSessionProvider.authenticatedSession] also saves are not written here.
+     * The account preferences [CloudSessionProvider.authenticatedSession] also saves are not
+     * written here.
      */
     private suspend fun analyticsGuestIdentityLinkCredentials(
         configuration: CloudServiceConfiguration,
         storedCredentials: StoredCloudCredentials
     ): StoredCloudCredentials {
-        if (
-            shouldRefreshCloudIdToken(
-                idTokenExpiresAtMillis = storedCredentials.idTokenExpiresAtMillis,
-                nowMillis = System.currentTimeMillis()
-            ).not()
-        ) {
-            return storedCredentials
-        }
-
-        val refreshedCredentials: StoredCloudCredentials = remoteService.refreshIdToken(
-            refreshToken = storedCredentials.refreshToken,
-            authBaseUrl = configuration.authBaseUrl
+        return refreshExpiredStoredCloudCredentials(
+            storedCredentials = storedCredentials,
+            authBaseUrl = configuration.authBaseUrl,
+            preferencesStore = preferencesStore,
+            remoteService = remoteService,
+            operationCoordinator = operationCoordinator
         )
-        operationCoordinator.runExclusive {
-            withContext(Dispatchers.IO) {
-                if (preferencesStore.loadCredentials() == storedCredentials) {
-                    preferencesStore.saveCredentials(refreshedCredentials)
-                }
-            }
-        }
-        return refreshedCredentials
     }
 
     /**

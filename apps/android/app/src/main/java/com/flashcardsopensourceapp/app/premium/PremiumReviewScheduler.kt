@@ -4,11 +4,10 @@ import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsPaywall
 import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsReviewPaywallTrigger
 import com.flashcardsopensourceapp.data.local.ai.diagnostics.AiChatDiagnosticsLogger
 import com.flashcardsopensourceapp.data.local.cloud.CloudPreferencesStore
-import com.flashcardsopensourceapp.data.local.database.review.ReviewLogDao
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudEntitlementStatus
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudPaywallImpression
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudPaywallState
 import com.flashcardsopensourceapp.data.local.repository.billing.LocalPaywallRepository
-import java.time.Duration
 import java.time.Instant
 import java.time.ZoneId
 import kotlinx.coroutines.CancellationException
@@ -21,7 +20,6 @@ import kotlinx.coroutines.launch
 internal class PremiumReviewScheduler(
     private val repository: LocalPaywallRepository,
     private val preferencesStore: CloudPreferencesStore,
-    private val reviewLogDao: ReviewLogDao,
     private val presenter: PremiumPresenter,
     appScope: CoroutineScope
 ) {
@@ -44,47 +42,49 @@ internal class PremiumReviewScheduler(
         }
     }
 
-    suspend fun consumeReviewOpportunity(): Boolean {
-        return try {
-            consumeAvailableReviewOpportunity()
-        } catch (error: CancellationException) {
-            throw error
-        } catch (error: Exception) {
-            reportFailure("review_paywall_evaluation_failed", error)
-            true
+    /** The account's last showing of this review paywall, the clock of its cooldown. */
+    fun lastShownAt(trigger: AnalyticsReviewPaywallTrigger): Instant? {
+        val state = loadReviewPaywallState() ?: return null
+        return when (trigger) {
+            AnalyticsReviewPaywallTrigger.INITIAL -> state.introShownAt
+            AnalyticsReviewPaywallTrigger.DAY3 -> state.followUpShownAt
+            AnalyticsReviewPaywallTrigger.WEEKLY -> state.periodicShownAt
         }
     }
 
-    private suspend fun consumeAvailableReviewOpportunity(): Boolean {
-        if (!isAppAvailable || isReviewSurfaceBusy || isStoreReviewInProgress || presenter.reason != null) return true
+    /**
+     * Shows this review paywall to a known free account. The first two are once per account; the
+     * periodic one repeats on its config cooldown. Each ignores the other paywalls.
+     */
+    fun tryShowReviewOffer(
+        trigger: AnalyticsReviewPaywallTrigger,
+        reviewPromptConfigVersion: String,
+        canPresent: () -> Boolean
+    ): Boolean {
+        if (!canPresent()) return false
         val identity = repository.currentIdentity() ?: return false
         val entitlement = preferencesStore.observeEntitlement().value ?: return false
         if (entitlement.status != CloudEntitlementStatus.NONE || entitlement.isTrial) return false
-        val zone = ZoneId.systemDefault()
-        val now = Instant.now()
-        val date = now.atZone(zone).toLocalDate()
-        val total = reviewLogDao.countReviewLogs()
-        val today = reviewLogDao.countReviewLogsBetween(
-            date.atStartOfDay(zone).toInstant().toEpochMilli(),
-            date.plusDays(1).atStartOfDay(zone).toInstant().toEpochMilli()
-        )
-        val state = repository.state(identity)
-        val trigger = when {
-            state.introShownAt == null && total >= 3 -> AnalyticsReviewPaywallTrigger.INITIAL
-            state.introShownAt == null -> null
-            state.followUpShownAt == null && today >= 2 &&
-                date >= requireNotNull(state.introLocalDate).plusDays(2) -> AnalyticsReviewPaywallTrigger.DAY3
-            state.followUpShownAt == null -> null
-            today >= 2 && state.lastShownAt != null &&
-                Duration.between(state.lastShownAt, now) >= Duration.ofDays(7) -> AnalyticsReviewPaywallTrigger.WEEKLY
-            else -> null
+        val state = loadReviewPaywallState() ?: return false
+        val isDue = when (trigger) {
+            AnalyticsReviewPaywallTrigger.INITIAL -> state.introShownAt == null
+            AnalyticsReviewPaywallTrigger.DAY3 -> state.followUpShownAt == null
+            AnalyticsReviewPaywallTrigger.WEEKLY -> true
         }
         requestSynchronization()
-        if (!isAppAvailable || isReviewSurfaceBusy || isStoreReviewInProgress || presenter.reason != null || repository.currentIdentity() != identity) return true
-        if (preferencesStore.observeEntitlement().value != entitlement) return true
-        if (trigger == null) return false
-        presenter.showReviewOffer(trigger, identity)
+        if (!isDue) return false
+        presenter.showReviewOffer(trigger, identity, reviewPromptConfigVersion)
         return true
+    }
+
+    private fun loadReviewPaywallState(): CloudPaywallState? {
+        val identity = repository.currentIdentity() ?: return null
+        return try {
+            repository.state(identity)
+        } catch (error: Exception) {
+            reportFailure("review_paywall_evaluation_failed", error)
+            null
+        }
     }
 
     fun recordShown(presentation: AnalyticsPaywallPresentation, now: Instant, zone: ZoneId) {
