@@ -152,7 +152,7 @@ final class CloudSessionRuntime {
             authBaseUrl: configuration.authBaseUrl
         )
         let updatedCredentials = StoredCloudCredentials(
-            refreshToken: storedCredentials.refreshToken,
+            refreshToken: refreshedToken.rotatedRefreshToken ?? storedCredentials.refreshToken,
             idToken: refreshedToken.idToken,
             idTokenExpiresAt: refreshedToken.idTokenExpiresAt
         )
