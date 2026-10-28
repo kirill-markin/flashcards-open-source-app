@@ -5,13 +5,16 @@ import { escapeSqlStringLiteral } from "../../sql";
 import { buildBreakdownSql, buildBreakdownValueSql, loadBreakdownReport } from "../levelOneMetrics/breakdownQuery";
 import { liveSourceBarFreshness, type BreakdownReport } from "../levelOneMetrics/breakdownReport";
 import { buildReportBucketsCteSql, type ReportPeriod } from "../levelOneMetrics/reportPeriod";
-import { assertIsString, assertValidDateRange, toInteger } from "../reportValues";
-import { buildSiteFirstViewsCtesSql, buildSiteMeasuredBucketsCteSql, buildSitePageKindSql } from "./breakdownQuery";
+import { assertIsString, assertValidDateRange } from "../reportValues";
+import {
+  buildSiteFirstViewsCtesSql,
+  buildSiteMeasuredBucketsCteSql,
+  buildSitePageKindSql,
+  loadTopMeasuredValues,
+  type ValueVisitors,
+} from "./breakdownQuery";
 
 export const topLandingPageKindCount = 3;
-export const topLandingPageCount = 20;
-
-export type LandingPageVisitors = Readonly<{ pagePath: string; visitors: number }>;
 
 /**
  * `landing_views(bucket_date, page_kind, page_path)`: exactly the first page views the landing page
@@ -84,10 +87,7 @@ export async function loadLandingPagePathReport(
   return loadBreakdownReport(config, sql, period, reportLabel, liveSourceBarFreshness, signal);
 }
 
-/**
- * The pages of the `pageKind` by-page chart with the most visitors summed over its bars, in the
- * order `buildSeriesRankCtesSql` ranks that chart's values, so the first five are its coloured ones.
- */
+/** The pages of the `pageKind` by-page chart with the most visitors over the selection, in that chart's order. */
 export async function loadTopLandingPages(
   config: AdminAppConfig,
   pageKind: string,
@@ -95,21 +95,7 @@ export async function loadTopLandingPages(
   period: ReportPeriod,
   reportLabel: string,
   signal: AbortSignal,
-): Promise<ReadonlyArray<LandingPageVisitors>> {
+): Promise<ReadonlyArray<ValueVisitors>> {
   const range = assertValidDateRange(dateRange, reportLabel);
-  const response = await runAdminQuery(config, `WITH ${buildLandingPagePathValuesCtesSql(pageKind, range, period)}
-SELECT dimension_value AS page_path, SUM(value_count) AS visitors
-FROM measured_values
-GROUP BY dimension_value
-HAVING SUM(value_count) > 0
-ORDER BY SUM(value_count) DESC, dimension_value
-LIMIT ${topLandingPageCount}`, signal);
-  const result = response.resultSets[0];
-  if (response.resultSets.length !== 1 || result === undefined) {
-    throw new Error(`${reportLabel} must return exactly one result set. Got ${response.resultSets.length}.`);
-  }
-  return result.rows.map((row) => ({
-    pagePath: assertIsString(row.page_path ?? null, reportLabel, "page_path"),
-    visitors: toInteger(row.visitors ?? null, reportLabel, "visitors"),
-  }));
+  return loadTopMeasuredValues(config, buildLandingPagePathValuesCtesSql(pageKind, range, period), reportLabel, signal);
 }

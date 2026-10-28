@@ -10,7 +10,7 @@ import {
 } from "../levelOneMetrics/breakdownQuery";
 import { liveSourceBarFreshness, type BreakdownReport } from "../levelOneMetrics/breakdownReport";
 import { buildReportBucketSql, buildReportBucketsCteSql, type ReportPeriod } from "../levelOneMetrics/reportPeriod";
-import { assertValidDateRange } from "../reportValues";
+import { assertIsString, assertValidDateRange, toInteger } from "../reportValues";
 import { buildSiteVisitorDaysCtesSql } from "./engagedVisitorsQuery";
 import { buildAppleProductPageViewRowSqlLines, buildStoreReportDateRangeSqlLines, loadStoreDelivery } from "./query";
 import { buildHashedSiteViewFilterSql, buildIdentifiedSiteViewFilterSql } from "./siteFactSql";
@@ -19,6 +19,12 @@ import { getStoreBarFreshness } from "./storeDataFreshness";
 export const whoSawUsBreakdownDimensions = [
   "web-engaged-country",
   "web-engaged-landing-page-type",
+  "web-engaged-device",
+  "web-engaged-source",
+  "web-engaged-browser-language",
+  "web-engaged-browser-locale",
+  "web-engaged-referrer",
+  "web-engaged-utm-campaign",
   "app-store-source-type",
   "app-store-territory",
 ] as const;
@@ -93,6 +99,18 @@ export function buildSitePageKindSql(rowAlias: string): string {
   return `${rowAlias}.event_properties ->> 'page_kind'`;
 }
 
+// The language subtag of the browser locale, so `en-US`, `en_GB` and `en` are all `en`.
+function buildSiteBrowserLanguageSql(rowAlias: string): string {
+  return `lower(split_part(translate(${rowAlias}.device_locale, '_', '-'), '-', 1))`;
+}
+
+// Tokens hold no spaces or parentheses, so neither the separator nor `(none)` can be read as part of one.
+function buildSiteUtmCampaignSql(rowAlias: string): string {
+  const tokenSqls = ["utm_source", "utm_medium", "utm_campaign"].map((key) => `${rowAlias}.event_properties ->> '${key}'`);
+  return `CASE WHEN COALESCE(${tokenSqls.join(", ")}) IS NOT NULL
+    THEN concat_ws(' / ', ${tokenSqls.map((tokenSql) => `COALESCE(${tokenSql}, '(none)')`).join(", ")}) END`;
+}
+
 /**
  * The `web` series' visitors, each under the value `valueSqlOf` reads off their first page view, so
  * a bar sums to the series' bar.
@@ -143,6 +161,18 @@ function buildMeasuredCtesSql(
       return buildSiteMeasuredCtesSql((rowAlias) => `${rowAlias}.country`, range, period);
     case "web-engaged-landing-page-type":
       return buildSiteMeasuredCtesSql(buildSitePageKindSql, range, period);
+    case "web-engaged-device":
+      return buildSiteMeasuredCtesSql((rowAlias) => `${rowAlias}.event_properties ->> 'device_category'`, range, period);
+    case "web-engaged-source":
+      return buildSiteMeasuredCtesSql((rowAlias) => `${rowAlias}.event_properties ->> 'source'`, range, period);
+    case "web-engaged-browser-language":
+      return buildSiteMeasuredCtesSql(buildSiteBrowserLanguageSql, range, period);
+    case "web-engaged-browser-locale":
+      return buildSiteMeasuredCtesSql((rowAlias) => `${rowAlias}.device_locale`, range, period);
+    case "web-engaged-referrer":
+      return buildSiteMeasuredCtesSql((rowAlias) => `${rowAlias}.event_properties ->> 'referrer_host'`, range, period);
+    case "web-engaged-utm-campaign":
+      return buildSiteMeasuredCtesSql(buildSiteUtmCampaignSql, range, period);
     case "app-store-source-type":
       return buildAppleMeasuredCtesSql("source_type", range, period);
     case "app-store-territory":
@@ -173,6 +203,12 @@ export async function loadWhoSawUsBreakdownReport(
   switch (dimension) {
     case "web-engaged-country":
     case "web-engaged-landing-page-type":
+    case "web-engaged-device":
+    case "web-engaged-source":
+    case "web-engaged-browser-language":
+    case "web-engaged-browser-locale":
+    case "web-engaged-referrer":
+    case "web-engaged-utm-campaign":
       return loadBreakdownReport(config, sql, period, reportLabel, liveSourceBarFreshness, signal);
     case "app-store-source-type":
     case "app-store-territory": {
@@ -180,4 +216,49 @@ export async function loadWhoSawUsBreakdownReport(
       return parseBreakdownReport(response, period, reportLabel, (bucket) => getStoreBarFreshness("app-store", storeDelivery, bucket));
     }
   }
+}
+
+export const topValueCount = 20;
+
+export type ValueVisitors = Readonly<{ value: string; visitors: number }>;
+
+/**
+ * Over `measuredValuesCtesSql`, CTEs ending in a breakdown's `measured_values`, its values with the
+ * most visitors summed over its bars, in the order `buildSeriesRankCtesSql` ranks that chart's
+ * values, so the first five are its coloured ones.
+ */
+export async function loadTopMeasuredValues(
+  config: AdminAppConfig,
+  measuredValuesCtesSql: string,
+  reportLabel: string,
+  signal: AbortSignal,
+): Promise<ReadonlyArray<ValueVisitors>> {
+  const response = await runAdminQuery(config, `WITH ${measuredValuesCtesSql}
+SELECT dimension_value, SUM(value_count) AS visitors
+FROM measured_values
+GROUP BY dimension_value
+HAVING SUM(value_count) > 0
+ORDER BY SUM(value_count) DESC, dimension_value
+LIMIT ${topValueCount}`, signal);
+  const result = response.resultSets[0];
+  if (response.resultSets.length !== 1 || result === undefined) {
+    throw new Error(`${reportLabel} must return exactly one result set. Got ${response.resultSets.length}.`);
+  }
+  return result.rows.map((row) => ({
+    value: assertIsString(row.dimension_value ?? null, reportLabel, "dimension_value"),
+    visitors: toInteger(row.visitors ?? null, reportLabel, "visitors"),
+  }));
+}
+
+/** The values of the `dimension` breakdown with the most visitors over the selection, in that chart's order. */
+export async function loadWhoSawUsTopValues(
+  config: AdminAppConfig,
+  dimension: WhoSawUsBreakdownDimension,
+  dateRange: AnalyticsDateRange,
+  period: ReportPeriod,
+  reportLabel: string,
+  signal: AbortSignal,
+): Promise<ReadonlyArray<ValueVisitors>> {
+  const range = assertValidDateRange(dateRange, reportLabel);
+  return loadTopMeasuredValues(config, buildMeasuredCtesSql(dimension, range, period), reportLabel, signal);
 }
