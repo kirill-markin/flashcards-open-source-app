@@ -121,8 +121,10 @@ final class FlashcardsStore {
     var reviewNotificationsSettings: ReviewNotificationsSettings
     var strictRemindersSettings: StrictRemindersSettings
     var reviewReminderAttentionState: ReviewReminderAttentionState?
-    var notificationPermissionPromptState: NotificationPermissionPromptState
     var isReviewNotificationPrePromptPresented: Bool
+    /// The OS permission read when the pre-prompt was presented; it decides what "Continue" opens.
+    var reviewNotificationPrePromptPermissionStatus: ReviewNotificationPermissionStatus
+    @ObservationIgnored var reviewNotificationPrePromptLastShownAt: Date?
     var guestSignInAfterReviewPromptState: GuestSignInAfterReviewPromptState
     var isGuestSignInAfterReviewPromptPresented: Bool
     var feedbackPresentation: FeedbackPresentation?
@@ -139,6 +141,8 @@ final class FlashcardsStore {
     )
     var accountDeletionState: AccountDeletionState
     var accountDeletionSuccessMessage: String?
+    /// The after-review prompt rules: the cached remote config from `GET /me`, else the built-in defaults.
+    var activeReviewPromptConfig: ReviewPromptConfig
     var savedReviewPromptOpportunity: SavedReviewPromptOpportunity? = nil
     var isPremiumPresentationActive: Bool = false
     var isSavedReviewPromptSurfaceAvailable: Bool = false {
@@ -538,16 +542,15 @@ final class FlashcardsStore {
             userDefaults: userDefaults,
             decoder: decoder
         )
-        self.notificationPermissionPromptState = loadNotificationPermissionPromptState(
-            userDefaults: userDefaults,
-            decoder: decoder
-        )
         self.isReviewNotificationPrePromptPresented = false
+        self.reviewNotificationPrePromptPermissionStatus = .notRequested
+        self.reviewNotificationPrePromptLastShownAt = loadReviewNotificationPrePromptLastShownAt(userDefaults: userDefaults)
         self.guestSignInAfterReviewPromptState = loadGuestSignInAfterReviewPromptState(
             userDefaults: userDefaults,
             decoder: decoder
         )
         self.isGuestSignInAfterReviewPromptPresented = false
+        self.activeReviewPromptConfig = loadActiveReviewPromptConfig(userDefaults: userDefaults, decoder: decoder)
         self.feedbackPresentation = nil
         self.presentedTechnicalError = nil
         self.feedbackPromptState = loadFeedbackPromptState(
