@@ -7,7 +7,7 @@ export type AdminNavigationPage = AnalyticsArea | "users" | "events";
 const analyticsAreaTestIds: Readonly<Record<AnalyticsArea, string | undefined>> = {
   "level-1-metrics": "analytics-level-1-metrics-tab",
   general: undefined,
-  funnels: undefined,
+  journeys: undefined,
   "review-prompts": "analytics-review-prompts-tab",
   "study-depth": "analytics-study-depth-tab",
   audience: "analytics-audience-tab",
