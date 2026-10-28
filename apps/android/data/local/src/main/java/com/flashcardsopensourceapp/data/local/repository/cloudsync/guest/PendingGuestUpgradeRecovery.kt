@@ -157,7 +157,7 @@ private suspend fun finalizePendingGuestUpgradeRecovery(
     )
     withContext(Dispatchers.IO) {
         preferencesStore.socialAuthStore.completeEmailSession(
-            pendingGuestUpgradeState.configuration, pendingGuestUpgradeState.credentials.refreshToken
+            pendingGuestUpgradeState.configuration, pendingGuestUpgradeState.accountSnapshot.userId
         )
         // Retain the social result before startup recovery can discard its guest completion route.
         preferencesStore.socialAuthStore.retainCompletedGuestUpgrade(
