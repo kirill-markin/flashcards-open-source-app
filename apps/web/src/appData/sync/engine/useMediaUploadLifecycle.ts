@@ -394,6 +394,7 @@ export function useMediaUploadLifecycle(params: UseMediaUploadLifecycleParams): 
     });
     mediaUploadPromisesRef.current.set(workspace.workspaceId, mediaUploadTask);
     runMediaUploadTransfersInBackground(mediaUploadTask, (error: unknown): void => {
+      if (abortController.signal.aborted) return;
       reportError(error, currentSession.userId, workspace.workspaceId);
     });
   }, [
