@@ -13,6 +13,7 @@ import {
   type AnalyticsFilterState,
 } from "./filters/analyticsFilters";
 import {
+  buildAnalyticsAreaDefaultDateRange,
   normalizeAnalyticsFilterState,
   parseAnalyticsFilterState,
   parseProvisionalAnalyticsFilterState,
@@ -33,7 +34,10 @@ import {
 import { funnelSections } from "./reports/funnels/funnelSections";
 import { reviewPromptFunnels } from "./reports/reviewPrompts/detailsQuery";
 import {
-  buildDefaultReportRange,
+  parseStudyDepthMaturityDays,
+  withStudyDepthMaturitySearchParams,
+} from "./reports/studyDepth/studyDepthUrl";
+import {
   buildLookbackReportRangeEndingOn,
   defaultReportRangeLookbackDays,
   todayUtcCalendarDate,
@@ -43,7 +47,14 @@ import {
   loadReviewEventsByDateReport,
   type ReviewEventsByDateRange,
 } from "./reports/reviewEventsByDate/query";
-import { eventsPath, getAdminRoutePath, parseAdminRoute, usersPath, type AdminRoute } from "./routing";
+import {
+  eventsPath,
+  getAdminRoutePath,
+  parseAdminRoute,
+  usersPath,
+  type AdminRoute,
+  type AnalyticsArea,
+} from "./routing";
 import { UserPage } from "./users/userPage/UserPage";
 import { UsersPage } from "./users/UsersPage";
 
@@ -166,14 +177,22 @@ function buildUnionRange(
 }
 
 /**
- * Every analytics area but Level 1 metrics, and every funnel and review prompt Details page, renders
- * the shared filter bar and carries its selection in the URL. Level 1 metrics and its Details pages
- * own their range and its available range, so entering them loads nothing here.
+ * The area whose shared filter bar the route renders, or `null` for a route without one. Every
+ * analytics area but Level 1 metrics, and every funnel and review prompt Details page, renders the
+ * shared filter bar and carries its selection in the URL. Level 1 metrics and its Details pages own
+ * their range and its available range, so entering them loads nothing here.
  */
-function doesRouteUseAnalyticsFilters(route: AdminRoute): boolean {
-  return (route.kind === "analyticsArea" && route.area !== "level-1-metrics")
-    || route.kind === "funnelDetails"
-    || route.kind === "reviewPromptDetails";
+function getAnalyticsFilterArea(route: AdminRoute): AnalyticsArea | null {
+  switch (route.kind) {
+    case "analyticsArea":
+      return route.area === "level-1-metrics" ? null : route.area;
+    case "funnelDetails":
+      return "funnels";
+    case "reviewPromptDetails":
+      return "review-prompts";
+    default:
+      return null;
+  }
 }
 
 /**
@@ -186,8 +205,8 @@ function doesRouteUseAnalyticsFilters(route: AdminRoute): boolean {
  * the way out.
  *
  * The Funnels anchors are validated on the way through, each against that funnel's own steps. The
- * Study-vs-AI controls are validated by their own parser, which falls back to the default for
- * anything outside the two closed option lists.
+ * Study-vs-AI controls and the Study depth maturity are validated by their own parsers, which fall
+ * back to the default for anything outside their closed option lists.
  */
 function buildAreaSearchParams(
   route: AdminRoute,
@@ -217,6 +236,13 @@ function buildAreaSearchParams(
     return withAiUsageControlSearchParams(
       filterSearchParams,
       parseAiUsageControls(currentSearchParams),
+    );
+  }
+
+  if (route.kind === "analyticsArea" && route.area === "study-depth") {
+    return withStudyDepthMaturitySearchParams(
+      filterSearchParams,
+      parseStudyDepthMaturityDays(currentSearchParams),
     );
   }
 
@@ -304,6 +330,9 @@ export default function App(): JSX.Element {
   const [rangeLookup, setRangeLookup] = useState<AnalyticsRangeLookup>({ status: "loading" });
   // Mirrors the looked-up available range for `applyFilters`, for the same reason as `filterStateRef`.
   const availableRangeRef = useRef<ReviewEventsByDateRange | null>(null);
+  // The last area that rendered the shared filter bar, whose default the date range is measured against
+  // when the next one opens; a page without the bar between two areas leaves it unchanged.
+  const lastFilterAreaRef = useRef<AnalyticsArea | null>(getAnalyticsFilterArea(route));
   const [rangeLookupRevision, setRangeLookupRevision] = useState<number>(0);
   // The available range is fetched at most once per page load. The latch is also the re-entry guard:
   // while that request is in flight no revision bump or area switch can start a second one.
@@ -327,10 +356,46 @@ export default function App(): JSX.Element {
     replaceWithCanonicalPath();
   }, []);
 
+  // Areas open on different default ranges, so a range still at the area's default moves to the next
+  // area's default on the way in, in the same render as the route change, so the area never queries
+  // the old one. Any other range is a choice and is kept. Before the range lookup returns, the lookup
+  // applies the current area's default itself.
+  const setRouteFollowingDefaultRange = useCallback((nextRoute: AdminRoute): void => {
+    setRoute(nextRoute);
+    const nextArea = getAnalyticsFilterArea(nextRoute);
+    const previousArea = lastFilterAreaRef.current;
+    if (nextArea === null) {
+      return;
+    }
+
+    lastFilterAreaRef.current = nextArea;
+    const currentFilters = filterStateRef.current;
+    const availableRange = availableRangeRef.current;
+    if (previousArea === null || currentFilters === null || availableRange === null) {
+      return;
+    }
+
+    const previousDefaultRange = buildAnalyticsAreaDefaultDateRange(previousArea, availableRange);
+    const nextDefaultRange = buildAnalyticsAreaDefaultDateRange(nextArea, availableRange);
+    if (
+      isSameDateRange(currentFilters.dateRange, previousDefaultRange) === false
+      || isSameDateRange(previousDefaultRange, nextDefaultRange)
+    ) {
+      return;
+    }
+
+    const nextFilters = { ...currentFilters, dateRange: nextDefaultRange };
+    filterStateRef.current = nextFilters;
+    setFilterState(nextFilters);
+    setReportState((currentState) => (currentState.status === "ready"
+      ? { ...currentState, isReportLoading: true }
+      : currentState));
+  }, []);
+
   useEffect(() => {
     function handlePopState(): void {
       replaceWithCanonicalPath();
-      setRoute(parseAdminRoute(window.location.pathname));
+      setRouteFollowingDefaultRange(parseAdminRoute(window.location.pathname));
     }
 
     window.addEventListener("popstate", handlePopState);
@@ -338,7 +403,7 @@ export default function App(): JSX.Element {
     return () => {
       window.removeEventListener("popstate", handlePopState);
     };
-  }, []);
+  }, [setRouteFollowingDefaultRange]);
 
   // `path` may carry a query string, which is pushed with it but never read as part of the route.
   const navigateToPath = useCallback((path: string): void => {
@@ -346,8 +411,8 @@ export default function App(): JSX.Element {
       window.history.pushState(null, "", path);
     }
 
-    setRoute(parseAdminRoute(new URL(path, window.location.origin).pathname));
-  }, []);
+    setRouteFollowingDefaultRange(parseAdminRoute(new URL(path, window.location.origin).pathname));
+  }, [setRouteFollowingDefaultRange]);
 
   const handleTerminalAdminError = useCallback((error: unknown, config: AdminAppConfig): boolean => {
     if (error instanceof AdminApiError) {
@@ -405,7 +470,8 @@ export default function App(): JSX.Element {
   }, [handleTerminalAdminError]);
 
   const sessionConfig = appState.status === "ready" ? appState.config : null;
-  const usesAnalyticsFilters = doesRouteUseAnalyticsFilters(route);
+  const filterArea = getAnalyticsFilterArea(route);
+  const usesAnalyticsFilters = filterArea !== null;
 
   // The first analytics area starts on the URL's selection at once, its range clamped to today and
   // the browser's default where the URL has none. A layout effect, so the area never paints without it.
@@ -458,15 +524,19 @@ export default function App(): JSX.Element {
           loadCatalogInstallFunnelAvailableRange(config, abortController.signal),
         ]);
         const availableRange = buildUnionRange(reviewAvailableRange, funnelAvailableRange);
-        const defaultRange = buildDefaultReportRange(availableRange, analyticsDefaultRangeLabel);
         // Only the two ranges are reconciled: every other field reads the same without the
         // available range, and one changed meanwhile is not in the URL yet. Unchanged ranges keep
         // the selection object, so nothing reloads.
-        const reconciledSelection = parseAnalyticsFilterState(openedSearchParams, availableRange);
+        const currentArea = lastFilterAreaRef.current;
+        if (currentArea === null) {
+          throw new Error("The analytics range lookup returned before any area with the shared filter bar opened.");
+        }
+
+        const reconciledSelection = parseAnalyticsFilterState(openedSearchParams, availableRange, currentArea);
         const currentFilters = filterStateRef.current;
 
         availableRangeRef.current = availableRange;
-        setRangeLookup({ status: "ready", availableRange, defaultRange });
+        setRangeLookup({ status: "ready", availableRange });
         if (
           currentFilters !== null
           && (
@@ -639,15 +709,16 @@ export default function App(): JSX.Element {
   // stepping through every click, and the single write this does on load is the canonicalization of a
   // hand-typed query string rather than a filter change of its own. The selection lives above the
   // areas, so switching area re-writes it onto the new path instead of being read back from it.
-  // Area-specific parameters - the Funnels charts' anchors and group-by fields, and the Study-vs-AI
-  // period length and audience - are carried over by `buildAreaSearchParams` above, on their own
-  // route only. It waits for the range lookup, whose available range the defaults are derived from.
+  // Area-specific parameters - the Funnels charts' anchors and group-by fields, the Study-vs-AI
+  // period length and audience, and the Study depth maturity - are carried over by
+  // `buildAreaSearchParams` above, on their own route only. It waits for the range lookup, whose
+  // available range the defaults are derived from.
   useEffect(() => {
-    if (filterState === null || rangeLookup.status !== "ready" || doesRouteUseAnalyticsFilters(route) === false) {
+    if (filterState === null || rangeLookup.status !== "ready" || filterArea === null) {
       return;
     }
 
-    const filterSearchParams = toAnalyticsFilterSearchParams(filterState, rangeLookup.availableRange);
+    const filterSearchParams = toAnalyticsFilterSearchParams(filterState, rangeLookup.availableRange, filterArea);
     const currentSearchParams = new URLSearchParams(window.location.search);
     const searchParams = buildAreaSearchParams(route, filterSearchParams, currentSearchParams);
     const serializedParams = searchParams.toString();
@@ -661,7 +732,7 @@ export default function App(): JSX.Element {
       "",
       `${window.location.pathname}${nextSearch}${window.location.hash}`,
     );
-  }, [filterState, rangeLookup, route]);
+  }, [filterArea, filterState, rangeLookup, route]);
 
   // Both Retry controls - the one in the failure banner over stale numbers and the one in the error
   // panel - reach the reports effect only through this revision bump, and the in-flight mark is
@@ -820,8 +891,8 @@ export default function App(): JSX.Element {
       adminEmail={appState.session.email}
       reportState={reportState}
       rangeLookup={rangeLookup}
-      defaultRange={rangeLookup.status === "ready"
-        ? rangeLookup.defaultRange
+      defaultRange={rangeLookup.status === "ready" && filterArea !== null
+        ? buildAnalyticsAreaDefaultDateRange(filterArea, rangeLookup.availableRange)
         : provisionalSelection?.defaultRange ?? null}
       filters={filterState}
       isSelectionSettling={isSelectionSettling}

@@ -214,6 +214,15 @@ const reviewPromptsAnalyticsFilterFields: ReadonlyArray<AnalyticsFilterField> = 
   "appUiLanguages",
 ];
 
+// Study depth counts reviews: a review carries its own platform, and the country and language judge
+// its person, because a server-derived `review_answered` row records neither.
+const studyDepthAnalyticsFilterFields: ReadonlyArray<AnalyticsFilterField> = [
+  "dateRange",
+  "eventPlatforms",
+  "connectionCountries",
+  "appUiLanguages",
+];
+
 // A prompt's Details page draws its funnels on a second range too, as the Funnels area does.
 export const reviewPromptDetailsAnalyticsFilterFields: ReadonlyArray<AnalyticsFilterField> = [
   "dateRange",
@@ -280,6 +289,7 @@ export const analyticsFilterFieldsByArea: Readonly<
   general: userScopedAnalyticsFilterFields,
   funnels: funnelsAnalyticsFilterFields,
   "review-prompts": reviewPromptsAnalyticsFilterFields,
+  "study-depth": studyDepthAnalyticsFilterFields,
   audience: userScopedAnalyticsFilterFields,
   "ai-usage": aiUsageAnalyticsFilterFields,
 };
@@ -453,6 +463,21 @@ const reviewPromptsAnalyticsFilterFieldExplanations: Readonly<
     "Keeps only showings of people whose events inside the selected date range recorded one of the app interface languages you pick. Picking nothing keeps every language.",
 };
 
+// The range picks the cohort by each person's first review, and everything after it is counted up to
+// now, so the shared "only events inside these days" wording would be false here.
+const studyDepthAnalyticsFilterFieldExplanations: Readonly<
+  Partial<Record<AnalyticsFilterField, string>>
+> = {
+  dateRange:
+    "Selects the cohort: the people whose first counted review falls on a UTC calendar day inside this range, both ends included. Their reviews and review days are then counted over their whole history up to now, past the last selected day. It opens on all time.",
+  eventPlatforms:
+    "Counts only the reviews recorded on the client platforms you pick, read from the review itself, so a person's first review is their first one on those platforms and their totals count only those reviews. A review with no resolved device is unattributed.",
+  connectionCountries:
+    "Keeps only people seen connecting from the countries you pick inside the selected range, which is connection geography rather than residence or nationality. A review carries no country of its own, so this judges the person and keeps all of their reviews. Detailed country history is kept for 90 days only. Picking nothing keeps every country.",
+  appUiLanguages:
+    "Keeps only people whose events inside the selected range recorded one of the app interface languages you pick. A review carries no language of its own, so this judges the person and keeps all of their reviews. Picking nothing keeps every language.",
+};
+
 // Audience renders neither the installs chart nor any other named section of General, so the shared
 // platform wording would send a reader looking for a section that is not on this screen. The fact it
 // carries is the same one, said without naming where it shows.
@@ -490,6 +515,7 @@ const analyticsFilterFieldExplanationOverridesByArea: Readonly<
   general: {},
   funnels: funnelsAnalyticsFilterFieldExplanations,
   "review-prompts": reviewPromptsAnalyticsFilterFieldExplanations,
+  "study-depth": studyDepthAnalyticsFilterFieldExplanations,
   audience: audienceAnalyticsFilterFieldExplanations,
   "ai-usage": aiUsageAnalyticsFilterFieldExplanations,
 };
@@ -533,6 +559,7 @@ const analyticsFilterFieldLabelOverridesByArea: Readonly<
   general: {},
   funnels: funnelsAnalyticsFilterFieldLabels,
   "review-prompts": { dateRange: "Date range of the showing" },
+  "study-depth": { dateRange: "First review of the person" },
   audience: {},
   "ai-usage": aiUsageAnalyticsFilterFieldLabels,
 };

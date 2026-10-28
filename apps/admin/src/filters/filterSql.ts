@@ -74,8 +74,8 @@ export function buildExcludedActorReasonSql(actorIdSqlExpression: string): strin
  * kept: `server_derived` and `backfill_derived` are the server's own observations, and
  * `authenticated_client` and `guest_client` are claims made on an authenticated request.
  *
- * APPLIED EVERYWHERE IT CAN DECIDE A PERSON, AND THIS IS THE WHOLE LIST. Twenty-one entries below
- * derive an actor-level fact from `analytics.product_events_resolved`, twenty in this package
+ * APPLIED EVERYWHERE IT CAN DECIDE A PERSON, AND THIS IS THE WHOLE LIST. Twenty-two entries below
+ * derive an actor-level fact from `analytics.product_events_resolved`, twenty-one in this package
  * and one outside it. Each is APPLIED or UNREACHABLE, and the two are not interchangeable: adding this
  * predicate to an UNREACHABLE entry is a no-op, and reading one as an omission produces a
  * remediation that converts the entries it happens to have been told about and stops. A shared
@@ -125,7 +125,7 @@ export function buildExcludedActorReasonSql(actorIdSqlExpression: string): strin
  *     non-NULL actor, so a locale only a signed-out visitor ever sent would be offered as a filter
  *     value.
  *
- * UNREACHABLE (6): SAFE FOR A DIFFERENT REASON, NOT CONVERTED. Every event these derive an actor
+ * UNREACHABLE (7): SAFE FOR A DIFFERENT REASON, NOT CONVERTED. Every event these derive an actor
  * from is either `serverOnly: true` in `apps/backend/src/productAnalytics/catalog.ts`, which the
  * collector refuses outright, or already carries a trust predicate of its own, so no row this
  * collector writes can reach them and this predicate would change nothing.
@@ -147,6 +147,7 @@ export function buildExcludedActorReasonSql(actorIdSqlExpression: string): strin
  *     a click decides nobody: every actor it emits is the server-origin install's own, which a click
  *     can only be matched to.
  *   - `filters/optionsQuery.ts`, the deck-slug list (`catalog_deck_installed`). By event name.
+ *   - `reports/studyDepth/query.ts`, the cohort and its depth (`review_answered`). By event name.
  *
  * OUTSIDE THIS PACKAGE (1), and it cannot take the rule from here.
  *   - `apps/backend/src/productAnalytics/syntheticActorDetector.ts` groups the whole event store by
@@ -470,13 +471,21 @@ export function buildConnectionCountriesFilterSql(
     return "TRUE";
   }
 
-  return buildSubqueryMembershipSql(actorIdSqlExpression, [
+  return buildSubqueryMembershipSql(actorIdSqlExpression, buildConnectionCountriesActorIdsSqlLines(connectionCountries, dateRange));
+}
+
+/** The `actor_id::text` rows, repeated per sample, that a non-empty country selection keeps. */
+export function buildConnectionCountriesActorIdsSqlLines(
+  connectionCountries: ReadonlyArray<string>,
+  dateRange: AnalyticsDateRange,
+): ReadonlyArray<string> {
+  return [
     "  SELECT country_samples.actor_id::text",
     "  FROM (",
     buildConnectionCountrySamplesSql(dateRange, null),
     "  ) AS country_samples",
     `  WHERE ${buildInPredicateSql("country_samples.country", connectionCountries)}`,
-  ]);
+  ];
 }
 
 /**
@@ -560,7 +569,15 @@ export function buildAppUiLanguagesFilterSql(
     return "TRUE";
   }
 
-  return buildSubqueryMembershipSql(actorIdSqlExpression, [
+  return buildSubqueryMembershipSql(actorIdSqlExpression, buildAppUiLanguagesActorIdsSqlLines(appUiLanguages, dateRange));
+}
+
+/** The `actor_id::text` rows, repeated per event, that a non-empty language selection keeps. */
+export function buildAppUiLanguagesActorIdsSqlLines(
+  appUiLanguages: ReadonlyArray<string>,
+  dateRange: AnalyticsDateRange,
+): ReadonlyArray<string> {
+  return [
     "  SELECT ui_locale_events.actor_id::text",
     "  FROM analytics.product_events_resolved AS ui_locale_events",
     `  WHERE ${buildInPredicateSql("ui_locale_events.ui_locale", appUiLanguages)}`,
@@ -570,7 +587,7 @@ export function buildAppUiLanguagesFilterSql(
     `    AND ${buildTrustedActorRowsFilterSql("ui_locale_events.trust_level")}`,
     `    AND ui_locale_events.occurred_at >= ${buildRangeStartSql(dateRange)}`,
     `    AND ui_locale_events.occurred_at < ${buildRangeEndSql(dateRange)}`,
-  ]);
+  ];
 }
 
 /**

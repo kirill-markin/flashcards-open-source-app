@@ -1,0 +1,106 @@
+/* Layout and marks of the Study depth area; the selected maturity button shares the Study vs AI rule
+   in `src/styles.css`, which loads after this file. */
+
+.study-depth-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 16px;
+  padding: 18px;
+  border-radius: 18px;
+  background: var(--panel);
+}
+
+.study-depth-controls h3 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.study-depth-control-modes {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 4px;
+  border: 1px solid var(--panel-border);
+  border-radius: 14px;
+}
+
+.study-depth-summary,
+.study-depth-note {
+  margin: 16px 0 0;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.study-depth-summary strong {
+  color: var(--text);
+  font-size: 15px;
+}
+
+.study-depth-chart-column {
+  margin-top: 24px;
+}
+
+.study-depth-chart-column h3 {
+  margin: 0;
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.study-depth-chart {
+  min-width: 960px;
+}
+
+.reach-bar-hit {
+  fill: transparent;
+}
+
+.reach-bar:hover .reach-bar-hit {
+  fill: rgba(255, 255, 255, 0.04);
+}
+
+.reach-bar-rect {
+  fill: var(--accent);
+}
+
+.reach-bar-rect-empty {
+  fill: var(--muted-soft);
+}
+
+.reach-bar-count {
+  fill: var(--text);
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.reach-bar-share,
+.reach-row-header {
+  fill: var(--muted);
+  font-size: 12px;
+}
+
+.reach-bar-threshold {
+  fill: var(--text);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.reach-bar-drop {
+  fill: var(--muted);
+  font-size: 12px;
+}
+
+.reach-bar-drop-largest {
+  fill: var(--text);
+  font-weight: 800;
+}
+
+/* Fewer people than a rate can be read from. */
+.reach-bar-unreliable .reach-bar-rect,
+.reach-bar-unreliable .reach-bar-value,
+.reach-bar-drop-unreliable {
+  opacity: 0.35;
+}

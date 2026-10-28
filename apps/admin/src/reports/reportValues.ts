@@ -106,6 +106,9 @@ export const lastSixtyDaysReportRangePreset: LookbackReportRangePreset = {
   lookbackDays: 60,
 };
 
+/** Also the window Study depth opens on. */
+export const allTimeReportRangePreset: ReportRangePreset = { id: "all-time", label: "All time", kind: "all-time" };
+
 // The one-click ranges every time filter offers, in row order.
 export const reportRangePresets: ReadonlyArray<ReportRangePreset> = [
   lastThreeDaysReportRangePreset,
@@ -115,7 +118,7 @@ export const reportRangePresets: ReadonlyArray<ReportRangePreset> = [
   { id: "last-90-days", label: "Last 90 days", kind: "lookback", lookbackDays: 90 },
   { id: "last-130-days", label: "Last 130 days", kind: "lookback", lookbackDays: 130 },
   { id: "last-360-days", label: "Last 360 days", kind: "lookback", lookbackDays: 360 },
-  { id: "all-time", label: "All time", kind: "all-time" },
+  allTimeReportRangePreset,
 ];
 
 export const reportRangePresetLabel = "Report range preset";

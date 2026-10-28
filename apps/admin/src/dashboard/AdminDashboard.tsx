@@ -28,6 +28,7 @@ import type { ReviewPromptId } from "../reports/reviewPrompts/reviewPromptDefini
 import { ReviewPromptDetailsHeader, ReviewPromptDetailsPage } from "../reports/reviewPrompts/ReviewPromptDetailsPage";
 import { ReviewPromptsArea } from "../reports/reviewPrompts/ReviewPromptsArea";
 import { SocialConnectionsSection } from "../reports/socialConnections/SocialConnectionsSection";
+import { StudyDepthArea } from "../reports/studyDepth/StudyDepthArea";
 import { WhoSawUsDatasetPage } from "../reports/whoSawUs/WhoSawUsDatasetPage";
 import type { AdminRoute, AnalyticsArea, FunnelDetail } from "../routing";
 import { getStableUserColorDomain, getUserColorScale } from "./userColors";
@@ -68,11 +69,7 @@ export type AdminReportState =
 export type AnalyticsRangeLookup =
   | Readonly<{ status: "loading" }>
   | Readonly<{ status: "error"; message: string }>
-  | Readonly<{
-      status: "ready";
-      availableRange: ReviewEventsByDateRange;
-      defaultRange: ReviewEventsByDateRange;
-    }>;
+  | Readonly<{ status: "ready"; availableRange: ReviewEventsByDateRange }>;
 
 const noOptions: ReadonlyArray<never> = [];
 
@@ -85,7 +82,7 @@ type AnalyticsReportSectionsProps = Readonly<{
   config: AdminAppConfig;
   reportState: AdminReportState;
   rangeLookup: AnalyticsRangeLookup;
-  /** The lookup's default once it returns, the browser-computed one until then. */
+  /** The area's default once the lookup returns, the browser-computed one until then. */
   defaultRange: ReviewEventsByDateRange;
   filters: AnalyticsFilterState;
   /** A filter change is still inside the reload debounce, so the areas that query on their own wait. */
@@ -260,6 +257,14 @@ function AnalyticsReportSections(props: AnalyticsReportSectionsProps): JSX.Eleme
         isRangeLoading={props.isSelectionSettling}
         onTerminalAdminError={props.onTerminalAdminError}
       />}
+
+      {/* Waits for the range lookup too, because the provisional range is not this area's all-time default. */}
+      {props.activeArea === "study-depth" ? <StudyDepthArea
+        config={props.config}
+        filters={props.filters}
+        isRangeLoading={props.isSelectionSettling || props.rangeLookup.status === "loading"}
+        onTerminalAdminError={props.onTerminalAdminError}
+      /> : null}
 
       {props.activeArea === "audience" ? <AudienceSection
         config={props.config}
