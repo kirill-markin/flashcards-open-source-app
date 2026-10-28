@@ -417,8 +417,8 @@ h2 {
   text-align: left;
 }
 
-/* Review prompts: not in the sideways-scrolling shell, which would clip the row tips that open below
-   their row, so the prose columns wrap instead. */
+/* Review prompts: the prose columns wrap, so the sideways-scrolling shell is needed only on narrow
+   screens. */
 .funnel-group-table.review-prompts-table .review-prompts-text-cell {
   color: var(--muted);
   text-align: left;
@@ -429,8 +429,22 @@ h2 {
   min-width: 220px;
 }
 
-.review-prompts-table thead th:nth-child(3) {
-  text-align: left;
+.funnel-group-table.review-prompts-table .review-prompts-never-cell {
+  color: var(--muted);
+  text-align: center;
+}
+
+/* The shell clips whatever reaches past the table's left or bottom edge, so every tip opens rightward
+   from its cell and the bottom rows' tips open upward. */
+.review-prompts-table tbody tr:nth-last-child(-n + 4) .explanation-tip-text {
+  top: auto;
+  bottom: calc(100% + 8px);
+}
+
+.review-prompts-config-version {
+  margin: 12px 0 0;
+  color: var(--muted);
+  font-size: 13px;
 }
 
 .review-prompts-table td .explained-heading-row {
@@ -445,11 +459,6 @@ h2 {
   width: min(420px, 80vw);
   white-space: normal;
   text-align: left;
-}
-
-.review-prompts-table td .explained-heading-row .explanation-tip-text {
-  right: 0;
-  left: auto;
 }
 
 .funnel-step {

@@ -59,11 +59,17 @@ type ReviewPromptMetadata = Readonly<{
   source: "product-events" | "support-tables";
 }>;
 
+/** A prompt's config conditions, or why it never appears. */
+export type ReviewPromptConfigRules =
+  | Readonly<{ kind: "active"; settings: ReviewPromptSettings }>
+  | Readonly<{ kind: "never"; reason: "Off" | "Not in order" }>;
+
 export type ReviewPrompt = ReviewPromptMetadata & Readonly<{
   id: ReviewPromptId;
-  /** When the prompt appears, in plain words, from its fixed rule and config settings. */
-  appearsWhen: string;
+  configRules: ReviewPromptConfigRules;
 }>;
+
+export const reviewPromptConfigVersion: string = reviewPromptConfig.version;
 
 /** A showing is Gone when its person neither opens the app nor answers a card for this long after it. */
 export const reviewPromptGoneWindowDays = 7;
@@ -160,31 +166,22 @@ const reviewPromptMetadata: Readonly<Record<ReviewPromptId, ReviewPromptMetadata
   },
 };
 
-function buildAppearsWhen(fixedRule: string, settings: ReviewPromptSettings, inOrder: boolean): string {
+function buildConfigRules(settings: ReviewPromptSettings, inOrder: boolean): ReviewPromptConfigRules {
   if (inOrder === false) {
-    return "Never: not in the review prompt config order";
+    return { kind: "never", reason: "Not in order" };
   }
 
   if (settings.enabled === false) {
-    return "Never: disabled in the review prompt config";
+    return { kind: "never", reason: "Off" };
   }
 
-  const conditions = [
-    ...(settings.minTotalReviews === undefined ? [] : [`${settings.minTotalReviews}+ reviews in total`]),
-    ...(settings.minReviewsToday === undefined ? [] : [`${settings.minReviewsToday}+ reviews today`]),
-    ...(settings.minReviewDays === undefined ? [] : [`${settings.minReviewDays}+ days with reviews`]),
-    ...(settings.cooldownDays === undefined
-      ? []
-      : [settings.cooldownDays === 1 ? "at most once a day" : `at most every ${settings.cooldownDays} days`]),
-  ];
-
-  return [fixedRule, ...conditions].join("; ");
+  return { kind: "active", settings };
 }
 
 export const reviewPrompts: ReadonlyArray<ReviewPrompt> = reviewPromptIds.map((id) => ({
   id,
   ...reviewPromptMetadata[id],
-  appearsWhen: buildAppearsWhen(reviewPromptMetadata[id].fixedRule, reviewPromptConfig.prompts[id], configuredOrder.includes(id)),
+  configRules: buildConfigRules(reviewPromptConfig.prompts[id], configuredOrder.includes(id)),
 }));
 
 export function getReviewPrompt(promptId: ReviewPromptId): ReviewPrompt {
