@@ -340,8 +340,8 @@
 "settings.test.animations.playAccessibility" = "Redă animația %@, %@";
 "settings.test.technicalErrorPreview" = "Previzualizarea erorii tehnice";
 "settings.test.technicalErrorPreview.value" = "Panou de previzualizare";
-"settings.test.storeReviewPromptReset" = "Resetează solicitarea recenziei în App Store";
-"settings.test.storeReviewPromptReset.value" = "Stare locală";
+"settings.test.section.reviewPrompts" = "Solicitări după recapitulare";
+"settings.test.reviewPromptsReset" = "Resetează starea tuturor solicitărilor";
 "settings.test.notificationDiagnostics" = "Diagnosticarea notificărilor";
 "settings.test.notificationDiagnostics.value" = "Doar citire";
 "settings.test.localSyncDiagnostics" = "Diagnosticarea sincronizării locale";

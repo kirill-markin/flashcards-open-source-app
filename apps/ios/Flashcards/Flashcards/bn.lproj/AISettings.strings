@@ -340,8 +340,8 @@
 "settings.test.animations.playAccessibility" = "%@ অ্যানিমেশন চালান, %@";
 "settings.test.technicalErrorPreview" = "প্রযুক্তিগত ত্রুটি পূর্বরূপ";
 "settings.test.technicalErrorPreview.value" = "পূর্বরূপ শীট";
-"settings.test.storeReviewPromptReset" = "App Store-এ রিভিউ দেওয়ার অনুরোধ রিসেট করুন";
-"settings.test.storeReviewPromptReset.value" = "স্থানীয় অবস্থা";
+"settings.test.section.reviewPrompts" = "পুনরালোচনার পরের প্রম্পট";
+"settings.test.reviewPromptsReset" = "সব প্রম্পটের অবস্থা রিসেট করুন";
 "settings.test.notificationDiagnostics" = "বিজ্ঞপ্তি ডায়াগনস্টিকস";
 "settings.test.notificationDiagnostics.value" = "শুধুমাত্র পঠনযোগ্য";
 "settings.test.localSyncDiagnostics" = "স্থানীয় সিঙ্ক ডায়াগনস্টিকস";

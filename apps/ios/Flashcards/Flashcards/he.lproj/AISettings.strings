@@ -340,8 +340,8 @@
 "settings.test.animations.playAccessibility" = "הפעלת הנפשת %@, %@";
 "settings.test.technicalErrorPreview" = "תצוגה מקדימה של שגיאה טכנית";
 "settings.test.technicalErrorPreview.value" = "תצוגה מקדימה של חלונית";
-"settings.test.storeReviewPromptReset" = "איפוס הבקשה לביקורת ב-App Store";
-"settings.test.storeReviewPromptReset.value" = "מצב מקומי";
+"settings.test.section.reviewPrompts" = "הנחיות אחרי חזרה";
+"settings.test.reviewPromptsReset" = "איפוס המצב של כל ההנחיות";
 "settings.test.notificationDiagnostics" = "אבחון התראות";
 "settings.test.notificationDiagnostics.value" = "לקריאה בלבד";
 "settings.test.localSyncDiagnostics" = "אבחון סנכרון מקומי";

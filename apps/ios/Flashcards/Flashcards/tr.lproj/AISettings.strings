@@ -340,8 +340,8 @@
 "settings.test.animations.playAccessibility" = "%@ animasyonunu oynat, %@";
 "settings.test.technicalErrorPreview" = "Teknik hata önizlemesi";
 "settings.test.technicalErrorPreview.value" = "Önizleme sayfası";
-"settings.test.storeReviewPromptReset" = "App Store değerlendirme istemini sıfırla";
-"settings.test.storeReviewPromptReset.value" = "Yerel durum";
+"settings.test.section.reviewPrompts" = "Tekrar sonrası istemler";
+"settings.test.reviewPromptsReset" = "Tüm istemlerin durumunu sıfırla";
 "settings.test.notificationDiagnostics" = "Bildirim Tanılaması";
 "settings.test.notificationDiagnostics.value" = "Salt okunur";
 "settings.test.localSyncDiagnostics" = "Yerel Eşzamanlama Tanılaması";

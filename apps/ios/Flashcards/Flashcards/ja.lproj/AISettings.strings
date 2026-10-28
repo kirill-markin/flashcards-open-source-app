@@ -346,8 +346,8 @@
 "settings.test.animations.playAccessibility" = "%@ のアニメーションを再生、%@";
 "settings.test.technicalErrorPreview" = "技術エラーのプレビュー";
 "settings.test.technicalErrorPreview.value" = "プレビューシート";
-"settings.test.storeReviewPromptReset" = "App Storeレビューのプロンプトをリセット";
-"settings.test.storeReviewPromptReset.value" = "ローカル状態";
+"settings.test.section.reviewPrompts" = "復習後のプロンプト";
+"settings.test.reviewPromptsReset" = "すべてのプロンプトの状態をリセット";
 "settings.test.notificationDiagnostics" = "通知診断";
 "settings.test.notificationDiagnostics.value" = "読み取り専用";
 "settings.test.localSyncDiagnostics" = "ローカル同期診断";

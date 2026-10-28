@@ -340,8 +340,8 @@
 "settings.test.animations.playAccessibility" = "Spela animationen %@, %@";
 "settings.test.technicalErrorPreview" = "Förhandsvisning av tekniskt fel";
 "settings.test.technicalErrorPreview.value" = "Förhandsvisningsblad";
-"settings.test.storeReviewPromptReset" = "Nollställ recensionsuppmaningen för App Store";
-"settings.test.storeReviewPromptReset.value" = "Lokalt tillstånd";
+"settings.test.section.reviewPrompts" = "Uppmaningar efter repetition";
+"settings.test.reviewPromptsReset" = "Nollställ status för alla uppmaningar";
 "settings.test.notificationDiagnostics" = "Notisdiagnostik";
 "settings.test.notificationDiagnostics.value" = "Skrivskyddat";
 "settings.test.localSyncDiagnostics" = "Diagnostik för lokal synkronisering";

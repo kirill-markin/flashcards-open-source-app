@@ -340,8 +340,8 @@
 "settings.test.animations.playAccessibility" = "Paleisti animaciją %@, %@";
 "settings.test.technicalErrorPreview" = "Techninės klaidos peržiūra";
 "settings.test.technicalErrorPreview.value" = "Peržiūros langas";
-"settings.test.storeReviewPromptReset" = "Atstatyti App Store įvertinimo prašymą";
-"settings.test.storeReviewPromptReset.value" = "Vietinė būsena";
+"settings.test.section.reviewPrompts" = "Raginimai po kartojimo";
+"settings.test.reviewPromptsReset" = "Atstatyti visų raginimų būseną";
 "settings.test.notificationDiagnostics" = "Pranešimų diagnostika";
 "settings.test.notificationDiagnostics.value" = "Tik skaityti";
 "settings.test.localSyncDiagnostics" = "Vietinio sinchronizavimo diagnostika";

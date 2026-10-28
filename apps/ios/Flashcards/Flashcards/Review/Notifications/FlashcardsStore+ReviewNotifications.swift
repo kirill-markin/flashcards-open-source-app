@@ -240,7 +240,11 @@ extension FlashcardsStore {
             screen: .notificationsPrePrompt
         )
         self.restoreSurfaceAfterNotificationPrePrompt()
-        let permissionStatus = self.reviewNotificationPrePromptPermissionStatus
+        self.continueToReviewNotificationPermission(permissionStatus: self.reviewNotificationPrePromptPermissionStatus)
+    }
+
+    /// The pre-prompt's Continue: the OS permission dialog while it can still show, otherwise system Settings.
+    func continueToReviewNotificationPermission(permissionStatus: ReviewNotificationPermissionStatus) {
         Task { @MainActor in
             do {
                 switch permissionStatus {
