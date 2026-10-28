@@ -27,8 +27,7 @@ export function PremiumOffer(props: PremiumOfferProps): ReactElement {
   const [technicalError, setTechnicalError] = useState<AppErrorPresentation | null>(null);
   const dialogRef = useRef<HTMLDialogElement | null>(null);
   const closeRef = useRef<HTMLButtonElement | null>(null);
-  const continueFreeRef = useRef<HTMLButtonElement | null>(null);
-  const premiumPurchaseRef = useRef<HTMLButtonElement | null>(null);
+  const headingRef = useRef<HTMLHeadingElement | null>(null);
   const titleId = useId();
   const bodyId = useId();
   const billing = useStripeBilling();
@@ -59,10 +58,11 @@ export function PremiumOffer(props: PremiumOfferProps): ReactElement {
 
   // Deliberately keyed to the view only: an offer that loads later never moves focus.
   useEffect(() => {
-    const premiumPurchase = premiumPurchaseRef.current;
-    const focusTarget = isEditingKey || !showOffer ? closeRef.current
-      : premiumPurchase !== null && !premiumPurchase.disabled ? premiumPurchase : continueFreeRef.current;
-    focusTarget?.focus();
+    if (isEditingKey || !showOffer) {
+      closeRef.current?.focus();
+    } else {
+      headingRef.current?.focus({ preventScroll: true });
+    }
   }, [isEditingKey, showOffer]);
 
   function showEditorTechnicalError(error: unknown): void {
@@ -105,7 +105,7 @@ export function PremiumOffer(props: PremiumOfferProps): ReactElement {
           </span>
         </button> : null}
       </div>
-      <h2 id={titleId} className="title premium-heading">
+      <h2 ref={headingRef} id={titleId} className="title premium-heading" tabIndex={-1}>
         {isEditingKey ? t("ownOpenAIKeySettings.title") : showOffer
           ? <>{headingBefore}<em>{headingEmphasis}</em>{headingAfter}</>
           : isAiLimit ? t("premium.limitTitle") : t("stripe.offer.title")}
@@ -134,7 +134,7 @@ export function PremiumOffer(props: PremiumOfferProps): ReactElement {
           </p>
           {showOffer ? <StripeOfferContent continuation={request.reason === "ai-limit" ? null : request.continuation ?? null}
             presentation={props.presentation} isPreview={isPreview} onContinueFree={props.onContinueFree}
-            onChoosePremium={props.onChoosePremium} continueFreeRef={continueFreeRef} premiumPurchaseRef={premiumPurchaseRef} /> : null}
+            onChoosePremium={props.onChoosePremium} /> : null}
           {isAiLimit ? (
             <div className="premium-key-context">
               <p className="subtitle">{t("stripe.ownKey.explanation")}</p>
