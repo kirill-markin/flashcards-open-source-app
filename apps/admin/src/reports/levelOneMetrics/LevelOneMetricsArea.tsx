@@ -1,11 +1,11 @@
 import type { JSX } from "react";
 import type { AdminAppConfig } from "../../config";
 import { defaultSiteVisitorFilterState } from "../../filters/analyticsFilters";
-import { WhoSawUsSection } from "../whoSawUs/WhoSawUsSection";
-import { WhoOpenedTheAppSection } from "../whoOpenedTheApp/WhoOpenedTheAppSection";
-import { WhoStudiedSection } from "../whoStudied/WhoStudiedSection";
-import { WhoCameBackSection } from "../whoCameBack/WhoCameBackSection";
 import { WhoPaidUsSection } from "../whoPaidUs/WhoPaidUsSection";
+import { WhoCameBackSection } from "../whoCameBack/WhoCameBackSection";
+import { WhoStudiedSection } from "../whoStudied/WhoStudiedSection";
+import { WhoOpenedTheAppSection } from "../whoOpenedTheApp/WhoOpenedTheAppSection";
+import { WhoSawUsSection } from "../whoSawUs/WhoSawUsSection";
 import { buildLevelOneMetricDetailsLink } from "./LevelOneMetricDetailsLink";
 import { LevelOneMetricsFrame, levelOneMetricsDateRangeFilterBar } from "./LevelOneMetricsFrame";
 import { useLevelOneMetricsSelection } from "./useLevelOneMetricsSelection";
@@ -26,27 +26,11 @@ export function LevelOneMetricsArea(
       onNavigate={props.onNavigate}
       renderCharts={(selection, search) => (
         <div className="level-1-metrics-grid">
-          <WhoSawUsSection
+          <WhoPaidUsSection
             config={props.config}
             dateRange={selection.dateRange}
             period={selection.period}
-            series="all"
-            siteFilters={defaultSiteVisitorFilterState}
-            detailsLink={buildLevelOneMetricDetailsLink("who-saw-us", search, props.onNavigate)}
-            onTerminalAdminError={props.onTerminalAdminError}
-          />
-          <WhoOpenedTheAppSection
-            config={props.config}
-            dateRange={selection.dateRange}
-            period={selection.period}
-            detailsLink={buildLevelOneMetricDetailsLink("who-opened-the-app", search, props.onNavigate)}
-            onTerminalAdminError={props.onTerminalAdminError}
-          />
-          <WhoStudiedSection
-            config={props.config}
-            dateRange={selection.dateRange}
-            period={selection.period}
-            detailsLink={buildLevelOneMetricDetailsLink("who-studied", search, props.onNavigate)}
+            detailsLink={buildLevelOneMetricDetailsLink("who-paid-us", search, props.onNavigate)}
             onTerminalAdminError={props.onTerminalAdminError}
           />
           <WhoCameBackSection
@@ -56,11 +40,27 @@ export function LevelOneMetricsArea(
             detailsLink={buildLevelOneMetricDetailsLink("who-came-back", search, props.onNavigate)}
             onTerminalAdminError={props.onTerminalAdminError}
           />
-          <WhoPaidUsSection
+          <WhoStudiedSection
             config={props.config}
             dateRange={selection.dateRange}
             period={selection.period}
-            detailsLink={buildLevelOneMetricDetailsLink("who-paid-us", search, props.onNavigate)}
+            detailsLink={buildLevelOneMetricDetailsLink("who-studied", search, props.onNavigate)}
+            onTerminalAdminError={props.onTerminalAdminError}
+          />
+          <WhoOpenedTheAppSection
+            config={props.config}
+            dateRange={selection.dateRange}
+            period={selection.period}
+            detailsLink={buildLevelOneMetricDetailsLink("who-opened-the-app", search, props.onNavigate)}
+            onTerminalAdminError={props.onTerminalAdminError}
+          />
+          <WhoSawUsSection
+            config={props.config}
+            dateRange={selection.dateRange}
+            period={selection.period}
+            series="all"
+            siteFilters={defaultSiteVisitorFilterState}
+            detailsLink={buildLevelOneMetricDetailsLink("who-saw-us", search, props.onNavigate)}
             onTerminalAdminError={props.onTerminalAdminError}
           />
         </div>

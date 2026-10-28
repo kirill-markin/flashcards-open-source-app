@@ -1,9 +1,20 @@
+import StoreKit
 import SwiftUI
 import UIKit
 
+/// The after-review prompt previews show the real prompt with working buttons but record nothing:
+/// no shown state, cooldown, prompt analytics or server prompt event.
 struct TestSettingsView: View {
+    @Environment(\.requestReview) private var requestReview
     @Environment(FlashcardsStore.self) private var store: FlashcardsStore
     @Environment(PremiumPresenter.self) private var premiumPresenter: PremiumPresenter
+
+    @State private var isHardReminderPreviewPresented: Bool = false
+    @State private var isNotificationPrePromptPreviewPresented: Bool = false
+    @State private var notificationPrePromptPreviewPermissionStatus: ReviewNotificationPermissionStatus = .notRequested
+    @State private var isGuestSignInPreviewPresented: Bool = false
+    @State private var isGuestSignInCloudSignInPresented: Bool = false
+    @State private var hasResetReviewPromptState: Bool = false
 
     var body: some View {
         List {
@@ -91,23 +102,156 @@ struct TestSettingsView: View {
                     )
                 }
                 .accessibilityIdentifier(UITestIdentifier.testSettingsAILimitPreview)
-
-                Button {
-                    store.clearStoreReviewPromptStateForTests()
-                } label: {
-                    SettingsNavigationRow(
-                        title: aiSettingsLocalized("settings.test.storeReviewPromptReset", "Reset App Store review prompt"),
-                        value: aiSettingsLocalized("settings.test.storeReviewPromptReset.value", "Local state"),
-                        systemImage: "star.bubble",
-                        attentionCount: nil
-                    )
-                }
             }
+
+            self.reviewPromptsSection
         }
         .listStyle(.insetGrouped)
         .accessibilityIdentifier(UITestIdentifier.testSettingsScreen)
         .navigationTitle(aiSettingsLocalized("settings.test.title", "Test"))
+        .reviewHardReminderAlert(isPresented: self.$isHardReminderPreviewPresented, onOK: {})
+        .reviewNotificationPrePromptAlert(
+            isPresented: self.$isNotificationPrePromptPreviewPresented,
+            permissionStatus: self.notificationPrePromptPreviewPermissionStatus,
+            onNotNow: {},
+            onContinue: {
+                store.continueToReviewNotificationPermission(
+                    permissionStatus: self.notificationPrePromptPreviewPermissionStatus
+                )
+            }
+        )
+        .guestSignInAfterReviewPromptAlert(
+            isPresented: self.$isGuestSignInPreviewPresented,
+            onLater: {},
+            onSignIn: {
+                self.isGuestSignInCloudSignInPresented = true
+            }
+        )
+        .cloudSignInSheet(
+            isPresented: self.$isGuestSignInCloudSignInPresented,
+            presentationContext: .standard(originSurface: .settings)
+        )
     }
+
+    private var reviewPromptsSection: some View {
+        let config: ReviewPromptConfig = store.activeReviewPromptConfig
+        return Section(aiSettingsLocalized("settings.test.section.reviewPrompts", "Prompts after review")) {
+            LabeledContent {
+                Text(verbatim: config.version)
+                    .font(.body.monospaced())
+            } label: {
+                Text(verbatim: "version")
+                    .font(.body.monospaced())
+            }
+            .accessibilityIdentifier(UITestIdentifier.testSettingsReviewPromptsConfigVersion)
+
+            ForEach(makeTestReviewPromptRows(config: config)) { row in
+                Button {
+                    self.openReviewPromptPreview(row: row)
+                } label: {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(verbatim: row.title)
+                            .font(.body.monospaced())
+                            .foregroundStyle(.primary)
+                        Text(verbatim: testReviewPromptSettingsText(settings: config.prompts[row.promptId.rawValue]))
+                            .font(.caption.monospaced())
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                .accessibilityIdentifier(UITestIdentifier.testSettingsReviewPromptRowPrefix + row.id)
+            }
+
+            Button {
+                store.clearReviewPromptStateForTests()
+                self.hasResetReviewPromptState = true
+            } label: {
+                SettingsNavigationRow(
+                    title: aiSettingsLocalized("settings.test.reviewPromptsReset", "Reset all prompt state"),
+                    value: self.hasResetReviewPromptState ? aiSettingsLocalized("common.ok", "OK") : nil,
+                    systemImage: "arrow.counterclockwise",
+                    attentionCount: nil
+                )
+            }
+            .accessibilityIdentifier(UITestIdentifier.testSettingsReviewPromptsResetRow)
+        }
+    }
+
+    private func openReviewPromptPreview(row: TestReviewPromptRow) {
+        switch row.promptId {
+        case .hardReminder:
+            self.isHardReminderPreviewPresented = true
+        case .paywallInitial, .paywallSecond, .paywallPeriodic:
+            self.premiumPresenter.present(reason: .offerPreview, analyticsEntryPoint: nil, entitlement: store.cloudEntitlement, identity: try? store.appleSubscriptionIdentity())
+        case .notificationsPrePrompt:
+            guard let permissionStatus = row.notificationPermissionStatus else {
+                preconditionFailure("A notifications pre-prompt test row has no permission status: \(row.id)")
+            }
+            self.notificationPrePromptPreviewPermissionStatus = permissionStatus
+            self.isNotificationPrePromptPreviewPresented = true
+        case .ratingRequest:
+            // The OS decides whether its rating dialog appears at all, e.g. never in TestFlight.
+            self.requestReview()
+        case .guestSignIn:
+            self.isGuestSignInPreviewPresented = true
+        case .automaticFeedback:
+            store.presentAutomaticFeedbackPromptTestPreview()
+        }
+    }
+}
+
+private struct TestReviewPromptRow: Identifiable {
+    let id: String
+    let title: String
+    let promptId: ReviewPromptId
+    /// Set only for the notifications pre-prompt: the permission status its Continue acts on.
+    let notificationPermissionStatus: ReviewNotificationPermissionStatus?
+}
+
+/// The prompts in config `order`, with the notifications pre-prompt split into its two Continue variants.
+private func makeTestReviewPromptRows(config: ReviewPromptConfig) -> [TestReviewPromptRow] {
+    reviewPromptWalk(config: config).flatMap { promptId -> [TestReviewPromptRow] in
+        guard promptId == .notificationsPrePrompt else {
+            return [
+                TestReviewPromptRow(
+                    id: promptId.rawValue,
+                    title: promptId.rawValue,
+                    promptId: promptId,
+                    notificationPermissionStatus: nil
+                )
+            ]
+        }
+        return [
+            TestReviewPromptRow(
+                id: "\(promptId.rawValue).system-dialog",
+                title: "\(promptId.rawValue) (system dialog)",
+                promptId: promptId,
+                notificationPermissionStatus: .notRequested
+            ),
+            TestReviewPromptRow(
+                id: "\(promptId.rawValue).settings",
+                title: "\(promptId.rawValue) (settings)",
+                promptId: promptId,
+                notificationPermissionStatus: .blocked
+            )
+        ]
+    }
+}
+
+/// The prompt's raw config settings as JSON; a prompt missing from `prompts` is `null`.
+private func testReviewPromptSettingsText(settings: ReviewPromptSettings?) -> String {
+    guard let settings else {
+        return "null"
+    }
+    let conditions: [(key: String, value: Int?)] = [
+        ("minTotalReviews", settings.minTotalReviews),
+        ("minReviewsToday", settings.minReviewsToday),
+        ("minReviewDays", settings.minReviewDays),
+        ("cooldownDays", settings.cooldownDays)
+    ]
+    let fields: [String] = ["\"enabled\":\(settings.enabled)"] + conditions.compactMap { condition in
+        condition.value.map { value in "\"\(condition.key)\":\(value)" }
+    }
+    return "{\(fields.joined(separator: ","))}"
 }
 
 struct TestAnimationsView: View {

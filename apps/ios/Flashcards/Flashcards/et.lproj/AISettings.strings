@@ -340,8 +340,8 @@
 "settings.test.animations.playAccessibility" = "Esita animatsioon %@, %@";
 "settings.test.technicalErrorPreview" = "Tehnilise vea eelvaade";
 "settings.test.technicalErrorPreview.value" = "Eelvaateleht";
-"settings.test.storeReviewPromptReset" = "Lähtesta App Store’i hinnangu küsimine";
-"settings.test.storeReviewPromptReset.value" = "Kohalik olek";
+"settings.test.section.reviewPrompts" = "Kordamisjärgsed viibad";
+"settings.test.reviewPromptsReset" = "Lähtesta kõigi viipade olek";
 "settings.test.notificationDiagnostics" = "Teavituste diagnostika";
 "settings.test.notificationDiagnostics.value" = "Ainult lugemiseks";
 "settings.test.localSyncDiagnostics" = "Kohaliku sünkroonimise diagnostika";

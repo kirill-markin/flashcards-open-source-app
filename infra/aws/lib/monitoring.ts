@@ -498,7 +498,7 @@ export function monitoring(scope: Construct, props: MonitoringProps): void {
       evaluationPeriods: publicEndpointHeartbeatEvaluationPeriods,
       datapointsToAlarm: publicEndpointHeartbeatDatapointsToAlarm,
       alarmDescription:
-        `Public host ${target.host} did not answer ${target.probeUrl} with HTTP 200 for two ` +
+        `Public host ${target.host} did not answer ${target.probeUrl} with HTTP 200 or 429 for two ` +
         "external heartbeat probes, or the heartbeat itself stopped reporting",
       treatMissingData: cloudwatch.TreatMissingData.BREACHING,
     }), alertTopic);

@@ -340,8 +340,8 @@
 "settings.test.animations.playAccessibility" = "Cheza uhuishaji wa %@, %@";
 "settings.test.technicalErrorPreview" = "Onyesho la awali la hitilafu ya kiufundi";
 "settings.test.technicalErrorPreview.value" = "Kidirisha cha onyesho la awali";
-"settings.test.storeReviewPromptReset" = "Weka upya ombi la kutoa maoni kwenye App Store";
-"settings.test.storeReviewPromptReset.value" = "Hali ya kifaa";
+"settings.test.section.reviewPrompts" = "Maombi baada ya marudio";
+"settings.test.reviewPromptsReset" = "Weka upya hali ya maombi yote";
 "settings.test.notificationDiagnostics" = "Uchunguzi wa Arifa";
 "settings.test.notificationDiagnostics.value" = "Kusoma tu";
 "settings.test.localSyncDiagnostics" = "Uchunguzi wa Usawazishaji wa Kifaa";

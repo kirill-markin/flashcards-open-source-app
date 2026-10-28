@@ -340,8 +340,8 @@
 "settings.test.animations.playAccessibility" = "Reproduciraj animaciju %@, %@";
 "settings.test.technicalErrorPreview" = "Pretpregled tehničke pogreške";
 "settings.test.technicalErrorPreview.value" = "Pretpregled lista";
-"settings.test.storeReviewPromptReset" = "Poništi upit za recenziju u App Storeu";
-"settings.test.storeReviewPromptReset.value" = "Lokalno stanje";
+"settings.test.section.reviewPrompts" = "Upiti nakon ponavljanja";
+"settings.test.reviewPromptsReset" = "Poništi stanje svih upita";
 "settings.test.notificationDiagnostics" = "Dijagnostika obavijesti";
 "settings.test.notificationDiagnostics.value" = "Samo za čitanje";
 "settings.test.localSyncDiagnostics" = "Dijagnostika lokalne sinkronizacije";

@@ -340,8 +340,8 @@
 "settings.test.animations.playAccessibility" = "เล่นภาพเคลื่อนไหว %@, %@";
 "settings.test.technicalErrorPreview" = "ตัวอย่างข้อผิดพลาดทางเทคนิค";
 "settings.test.technicalErrorPreview.value" = "หน้าต่างตัวอย่าง";
-"settings.test.storeReviewPromptReset" = "รีเซ็ตคำขอรีวิวใน App Store";
-"settings.test.storeReviewPromptReset.value" = "สถานะในเครื่อง";
+"settings.test.section.reviewPrompts" = "ข้อความแจ้งหลังการทบทวน";
+"settings.test.reviewPromptsReset" = "รีเซ็ตสถานะข้อความแจ้งทั้งหมด";
 "settings.test.notificationDiagnostics" = "การวินิจฉัยการแจ้งเตือน";
 "settings.test.notificationDiagnostics.value" = "อ่านอย่างเดียว";
 "settings.test.localSyncDiagnostics" = "การวินิจฉัยการซิงค์ในเครื่อง";

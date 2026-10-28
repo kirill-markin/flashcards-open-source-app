@@ -340,8 +340,8 @@
 "settings.test.animations.playAccessibility" = "Phát hiệu ứng %@, %@";
 "settings.test.technicalErrorPreview" = "Xem trước lỗi kỹ thuật";
 "settings.test.technicalErrorPreview.value" = "Bảng xem trước";
-"settings.test.storeReviewPromptReset" = "Đặt lại lời nhắc đánh giá App Store";
-"settings.test.storeReviewPromptReset.value" = "Trạng thái trên thiết bị";
+"settings.test.section.reviewPrompts" = "Lời nhắc sau khi ôn tập";
+"settings.test.reviewPromptsReset" = "Đặt lại trạng thái của mọi lời nhắc";
 "settings.test.notificationDiagnostics" = "Chẩn đoán thông báo";
 "settings.test.notificationDiagnostics.value" = "Chỉ đọc";
 "settings.test.localSyncDiagnostics" = "Chẩn đoán đồng bộ trên thiết bị";
