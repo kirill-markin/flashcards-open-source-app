@@ -746,6 +746,10 @@ const plCatalog: TranslationCatalog = {
       description: "Podejrzyj zachętę do instalacji na iOS i Androidzie.",
       value: "Podgląd",
     },
+    reviewPrompts: {
+      title: "Monity po powtórce",
+      resetAll: "Zresetuj stan wszystkich monitów",
+    },
   },
   settingsWorkspace: {
     decks: {

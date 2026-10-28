@@ -6,7 +6,7 @@ extension ReviewView {
     func presentPromptAfterSavedReview(opportunity: SavedReviewPromptOpportunity) async {
         guard self.isSavedReviewPromptOpportunityCurrent(opportunity) else { return }
         let now = Date()
-        let config = builtInReviewPromptConfig
+        let config = self.store.activeReviewPromptConfig
         let counters: ReviewPromptCounters
         do {
             counters = try self.store.loadReviewPromptCounters(now: now)
@@ -64,9 +64,13 @@ extension ReviewView {
                 trigger: .weekly, settings: settings, counters: counters, configVersion: configVersion, now: now
             )
         case .notificationsPrePrompt:
-            guard await self.store.isReviewNotificationPrePromptDue(settings: settings, counters: counters, now: now),
-                  self.isSavedReviewPromptOpportunityCurrent(opportunity) else { return false }
-            return self.store.presentReviewNotificationPrePromptIfAllowed(configVersion: configVersion)
+            guard let permissionStatus = await self.store.reviewNotificationPrePromptPermissionStatusIfDue(
+                settings: settings, counters: counters, now: now
+            ), self.isSavedReviewPromptOpportunityCurrent(opportunity) else { return false }
+            self.store.presentReviewNotificationPrePrompt(
+                permissionStatus: permissionStatus, configVersion: configVersion, now: now
+            )
+            return true
         case .ratingRequest:
             return self.store.prepareStoreReviewRequestAttemptIfDue(
                 settings: settings, counters: counters, configVersion: configVersion, now: now

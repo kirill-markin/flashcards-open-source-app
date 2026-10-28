@@ -738,6 +738,10 @@ export const jaCatalog = {
       description: "iOS と Android のインストール案内をプレビューします。",
       value: "プレビュー",
     },
+    reviewPrompts: {
+      title: "復習後のプロンプト",
+      resetAll: "すべてのプロンプトの状態をリセット",
+    },
   },
   settingsWorkspace: {
     decks: {

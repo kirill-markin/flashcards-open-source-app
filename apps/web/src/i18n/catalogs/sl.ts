@@ -754,6 +754,10 @@ const slCatalog: TranslationCatalog = {
       description: "Predogled poziva za namestitev aplikacije za iOS in Android.",
       value: "Predogled",
     },
+    reviewPrompts: {
+      title: "Pozivi po ponavljanju",
+      resetAll: "Ponastavi stanje vseh pozivov",
+    },
   },
   settingsWorkspace: {
     decks: {

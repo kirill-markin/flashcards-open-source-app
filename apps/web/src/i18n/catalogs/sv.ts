@@ -738,6 +738,10 @@ const svCatalog: TranslationCatalog = {
       description: "Förhandsgranska uppmaningen att installera iOS- och Android-appen.",
       value: "Förhandsgranska",
     },
+    reviewPrompts: {
+      title: "Uppmaningar efter repetition",
+      resetAll: "Återställ status för alla uppmaningar",
+    },
   },
   settingsWorkspace: {
     decks: {

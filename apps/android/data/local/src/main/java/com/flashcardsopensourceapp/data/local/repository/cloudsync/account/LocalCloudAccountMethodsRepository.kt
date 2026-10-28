@@ -485,15 +485,16 @@ class LocalCloudAccountMethodsRepository(
         requireContext(pending)
         val session = currentSession()
         requireRetained(pending)
-        check(session.accountSnapshot.userId == pending.userId && session.configuration == pending.configuration &&
-            digest(session.credentials.refreshToken) == pending.sessionBinding) { "The authenticated account changed. Start fresh verification." }
+        check(session.accountSnapshot.userId == pending.userId && session.configuration == pending.configuration) {
+            "The authenticated account changed. Start fresh verification."
+        }
         return session
     }
 
     private fun newPending(session: AuthenticatedCloudSession, method: CloudSignInMethod, epoch: String?): PendingCloudAccountMethod {
         val current = preferencesStore.currentCloudSettings()
         return PendingCloudAccountMethod(UUID.randomUUID().toString(), epoch, current.installationId, session.accountSnapshot.userId,
-            current.linkedWorkspaceId, current.activeWorkspaceId, digest(session.credentials.refreshToken), session.configuration,
+            current.linkedWorkspaceId, current.activeWorkspaceId, session.configuration,
             method, CloudAccountMethodIntent.REAUTH, CloudAccountMethodPhase.SUBMITTING, verifier(), null, null, null,
             null, null, null, null, false, null, null)
     }
@@ -505,7 +506,7 @@ class LocalCloudAccountMethodsRepository(
             current.linkedUserId == pending.userId && current.linkedWorkspaceId == pending.workspaceId &&
             current.activeWorkspaceId == pending.activeWorkspaceId && preferencesStore.currentServerConfiguration() == pending.configuration &&
             preferencesStore.currentAccountDeletionState() == AccountDeletionState.Hidden &&
-            preferencesStore.loadCredentials()?.refreshToken?.let(::digest) == pending.sessionBinding) {
+            preferencesStore.loadCredentials() != null) {
             "Account, session, installation, workspace or server changed. Start fresh verification."
         }
     }
@@ -549,5 +550,3 @@ private fun verifier(): String {
 }
 private fun challenge(value: String): String = Base64.encodeToString(MessageDigest.getInstance("SHA-256")
     .digest(value.toByteArray(Charsets.US_ASCII)), Base64.URL_SAFE or Base64.NO_PADDING or Base64.NO_WRAP)
-private fun digest(value: String): String = Base64.encodeToString(MessageDigest.getInstance("SHA-256")
-    .digest(value.toByteArray(Charsets.UTF_8)), Base64.URL_SAFE or Base64.NO_PADDING or Base64.NO_WRAP)

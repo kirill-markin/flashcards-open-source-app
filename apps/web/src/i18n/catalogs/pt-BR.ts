@@ -738,6 +738,10 @@ const ptBrCatalog: TranslationCatalog = {
       description: "Veja uma prévia do convite de instalação para iOS e Android.",
       value: "Prévia",
     },
+    reviewPrompts: {
+      title: "Avisos após a revisão",
+      resetAll: "Redefinir o estado de todos os avisos",
+    },
   },
   settingsWorkspace: {
     decks: {

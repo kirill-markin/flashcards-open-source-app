@@ -350,3 +350,11 @@ export async function restoreAutomaticFeedbackPromptShownIfCurrent(
   }));
   throwIfIndexedDbOpenRecoveryFailed();
 }
+
+export async function deleteAllFeedbackPromptStates(): Promise<void> {
+  await closeDatabaseAfterWrite(async (database) => {
+    await runReadwrite(database, ["meta"], (transaction) => transaction.objectStore("meta").delete(
+      IDBKeyRange.bound(feedbackPromptStateKeyPrefix, `${feedbackPromptStateKeyPrefix}￿`),
+    ));
+  });
+}

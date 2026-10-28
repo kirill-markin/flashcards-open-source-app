@@ -17,3 +17,11 @@ export function loadGuestSignInAfterReviewLastShownAt(userId: string): number | 
 export function saveGuestSignInAfterReviewLastShownAt(userId: string, lastShownAtMillis: number): void {
   window.localStorage.setItem(`${lastShownAtKeyPrefix}${userId}`, String(lastShownAtMillis));
 }
+
+export function clearAllGuestSignInAfterReviewLastShownAt(): void {
+  for (const key of Object.keys(window.localStorage)) {
+    if (key.startsWith(lastShownAtKeyPrefix)) {
+      window.localStorage.removeItem(key);
+    }
+  }
+}
