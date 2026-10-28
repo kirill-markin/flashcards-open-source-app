@@ -2,7 +2,7 @@
 import { act } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { MobileAppPromotionState } from "../../../localDb/mobileAppPromotion/mobileAppPromotion";
-import type { Card, DailyReviewPoint, FeedbackState, ReviewEvent } from "../../../types";
+import type { Card, DailyReviewPoint, FeedbackState, ReviewEvent, ReviewPlatformSummary } from "../../../types";
 import {
   clickElementAsync,
   createCard,
@@ -287,6 +287,7 @@ beforeEach(() => {
   apiMocks.loadFeedbackStateMock.mockResolvedValue(createFeedbackState());
   apiMocks.loadReviewPlatformSummaryMock.mockResolvedValue({
     hasMobileReviewEvent: false,
+    hasAgentReviewEvent: false,
   });
   apiMocks.recordFeedbackPromptEventMock.mockResolvedValue(createFeedbackState());
   apiMocks.submitFeedbackMock.mockResolvedValue(createFeedbackState());
@@ -343,9 +344,9 @@ describe("ReviewScreen mobile app promotion", () => {
   });
 
   it("defers overlapping mobile promotion checks until the next saved review", async () => {
-    const summaryDeferred = createDeferredPromise<Readonly<{ hasMobileReviewEvent: boolean }>>();
+    const summaryDeferred = createDeferredPromise<ReviewPlatformSummary>();
     apiMocks.loadReviewPlatformSummaryMock.mockImplementation(
-      async (): Promise<Readonly<{ hasMobileReviewEvent: boolean }>> => summaryDeferred.promise,
+      async (): Promise<ReviewPlatformSummary> => summaryDeferred.promise,
     );
     prepareReviewQueue(3);
 
@@ -365,6 +366,7 @@ describe("ReviewScreen mobile app promotion", () => {
     await act(async () => {
       summaryDeferred.resolve({
         hasMobileReviewEvent: false,
+        hasAgentReviewEvent: false,
       });
       await Promise.resolve();
     });
@@ -385,9 +387,9 @@ describe("ReviewScreen mobile app promotion", () => {
   });
 
   it("does not open automatic feedback when an overlapping mobile promotion check becomes stale", async () => {
-    const summaryDeferred = createDeferredPromise<Readonly<{ hasMobileReviewEvent: boolean }>>();
+    const summaryDeferred = createDeferredPromise<ReviewPlatformSummary>();
     apiMocks.loadReviewPlatformSummaryMock.mockImplementation(
-      async (): Promise<Readonly<{ hasMobileReviewEvent: boolean }>> => summaryDeferred.promise,
+      async (): Promise<ReviewPlatformSummary> => summaryDeferred.promise,
     );
     configureFeedbackEligibleReviewActivity(15);
     prepareReviewQueue(3);
@@ -409,6 +411,7 @@ describe("ReviewScreen mobile app promotion", () => {
     await act(async () => {
       summaryDeferred.resolve({
         hasMobileReviewEvent: false,
+        hasAgentReviewEvent: false,
       });
       await Promise.resolve();
     });
@@ -431,11 +434,11 @@ describe("ReviewScreen mobile app promotion", () => {
   });
 
   it("waits for the next saved review after a workspace change cancels a pending mobile promotion check", async () => {
-    const firstSummaryDeferred = createDeferredPromise<Readonly<{ hasMobileReviewEvent: boolean }>>();
-    const secondSummaryDeferred = createDeferredPromise<Readonly<{ hasMobileReviewEvent: boolean }>>();
+    const firstSummaryDeferred = createDeferredPromise<ReviewPlatformSummary>();
+    const secondSummaryDeferred = createDeferredPromise<ReviewPlatformSummary>();
     apiMocks.loadReviewPlatformSummaryMock
-      .mockImplementationOnce(async (): Promise<Readonly<{ hasMobileReviewEvent: boolean }>> => firstSummaryDeferred.promise)
-      .mockImplementationOnce(async (): Promise<Readonly<{ hasMobileReviewEvent: boolean }>> => secondSummaryDeferred.promise);
+      .mockImplementationOnce(async (): Promise<ReviewPlatformSummary> => firstSummaryDeferred.promise)
+      .mockImplementationOnce(async (): Promise<ReviewPlatformSummary> => secondSummaryDeferred.promise);
     configureFeedbackEligibleReviewActivity(15);
     prepareReviewQueue(3);
 
@@ -465,6 +468,7 @@ describe("ReviewScreen mobile app promotion", () => {
     await act(async () => {
       firstSummaryDeferred.resolve({
         hasMobileReviewEvent: false,
+        hasAgentReviewEvent: false,
       });
       await Promise.resolve();
     });
@@ -488,6 +492,7 @@ describe("ReviewScreen mobile app promotion", () => {
     await act(async () => {
       secondSummaryDeferred.resolve({
         hasMobileReviewEvent: false,
+        hasAgentReviewEvent: false,
       });
       await Promise.resolve();
     });
@@ -661,6 +666,7 @@ describe("ReviewScreen mobile app promotion", () => {
   it("does not show when the backend already knows about a mobile review event", async () => {
     apiMocks.loadReviewPlatformSummaryMock.mockResolvedValue({
       hasMobileReviewEvent: true,
+      hasAgentReviewEvent: false,
     });
     prepareReviewQueue(1);
 

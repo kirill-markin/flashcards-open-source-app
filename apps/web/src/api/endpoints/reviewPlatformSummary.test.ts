@@ -9,11 +9,13 @@ describe("review platform summary API endpoint", () => {
     const fetchMock = vi.fn<(...args: Array<unknown>) => Promise<Response>>()
       .mockResolvedValueOnce(createJsonResponse({
         hasMobileReviewEvent: false,
+        hasAgentReviewEvent: true,
       }));
     vi.stubGlobal("fetch", fetchMock);
 
     await expect(loadReviewPlatformSummary()).resolves.toEqual({
       hasMobileReviewEvent: false,
+      hasAgentReviewEvent: true,
     });
 
     expect(fetchMock).toHaveBeenCalledWith(
@@ -26,6 +28,7 @@ describe("review platform summary API endpoint", () => {
     const fetchMock = vi.fn<(...args: Array<unknown>) => Promise<Response>>()
       .mockResolvedValueOnce(createJsonResponse({
         hasMobileReviewEvent: "false",
+        hasAgentReviewEvent: false,
       }));
     vi.stubGlobal("fetch", fetchMock);
 
