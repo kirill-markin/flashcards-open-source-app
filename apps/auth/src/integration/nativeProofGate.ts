@@ -95,7 +95,9 @@ export async function handler(): Promise<Readonly<{ passed: true; checks: Readon
     const replay = await initiateNativeProofChallenge(principal);
     await expectRefused(answer(principal, replay, successProof));
     await setTimeout(1_100);
-    const refreshedClaims = await verifier.verify((await refreshTokens(tokens.refreshToken)).idToken);
+    const refreshed = await refreshTokens(tokens.refreshToken);
+    if (refreshed.refreshToken !== null) refreshCredentials.push(refreshed.refreshToken);
+    const refreshedClaims = await verifier.verify(refreshed.idToken);
     assert.equal(refreshedClaims.sub, principal.cognitoSubject);
     assert.equal(refreshedClaims.auth_time, originalClaims.auth_time);
     assert.ok(refreshedClaims.iat > originalClaims.iat);
@@ -106,7 +108,7 @@ export async function handler(): Promise<Readonly<{ passed: true; checks: Readon
     return { passed: true, checks: [
       "USER_AUTH/PASSWORD", "CUSTOM_AUTH", "forged-metadata", "wrong-client", "wrong-nonce",
       "expired-grant", "SQL-wrong-principal/username", "atomic-redemption", "session-and-grant-replay",
-      "REFRESH_TOKEN_AUTH", "internal-bridge", "signed-original-auth-time", "account-method-demo-transport-refusals",
+      "GetTokensFromRefreshToken", "internal-bridge", "signed-original-auth-time", "account-method-demo-transport-refusals",
     ] };
   } catch (error) {
     primaryError = error;

@@ -1,5 +1,6 @@
 export type CognitoOperation =
   | "InitiateAuth"
+  | "GetTokensFromRefreshToken"
   | "RespondToAuthChallenge"
   | "RevokeToken"
   | "AdminCreateUser"
@@ -31,6 +32,7 @@ export function createCognitoTypedError(metadata: CognitoErrorMetadata): Cognito
 
 function isCognitoOperation(value: unknown): value is CognitoOperation {
   return value === "InitiateAuth"
+    || value === "GetTokensFromRefreshToken"
     || value === "RespondToAuthChallenge"
     || value === "RevokeToken"
     || value === "AdminCreateUser"
