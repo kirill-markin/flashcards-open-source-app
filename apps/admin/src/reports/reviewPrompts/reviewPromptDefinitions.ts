@@ -1,22 +1,23 @@
+import {
+  reviewPromptConfig,
+  type ReviewPromptId,
+  type ReviewPromptSettings,
+} from "../../../../backend/src/reviewPrompts/reviewPromptConfig";
 import type { ReviewEventPlatform } from "../../adminApi";
 import type { AnalyticsFilterState } from "../../filters/analyticsFilters";
 import type { FunnelWarning } from "../funnels/funnelWarnings";
 import { paywallFirstPaymentWindowDays } from "../paywallFunnel/attributionQuery";
 
-/** Every prompt that can appear after a review, in table order; each id is also its Details path slug. */
-export const reviewPromptIds = [
-  "paywall-initial",
-  "paywall-day3",
-  "paywall-weekly",
-  "notifications-pre-prompt",
-  "hard-reminder",
-  "rating-request",
-  "web-mobile-app-promo",
-  "automatic-feedback",
-  "guest-sign-in",
-] as const;
+export type { ReviewPromptId };
 
-export type ReviewPromptId = (typeof reviewPromptIds)[number];
+// `order` is not checked to list every id once, so its first occurrences lead and ids it omits follow.
+const configuredOrder: ReadonlyArray<ReviewPromptId> = [...new Set(reviewPromptConfig.order)];
+
+/** Every prompt that can appear after a review, in table order; each id is also its Details path slug. */
+export const reviewPromptIds: ReadonlyArray<ReviewPromptId> = [
+  ...configuredOrder,
+  ...(Object.keys(reviewPromptConfig.prompts) as ReadonlyArray<ReviewPromptId>).filter((id) => configuredOrder.includes(id) === false),
+];
 
 export type ReviewPromptPlatform = Extract<ReviewEventPlatform, "web" | "ios" | "android">;
 
@@ -45,17 +46,23 @@ export type ReviewPromptActed =
   | Readonly<{ kind: "rule"; rule: string; window: ReviewPromptActedWindow }>
   | Readonly<{ kind: "unreported"; reason: string }>;
 
-export type ReviewPrompt = Readonly<{
-  id: ReviewPromptId;
+/** What the admin adds to a prompt's config settings. */
+type ReviewPromptMetadata = Readonly<{
   title: string;
-  /** When the prompt appears, in plain words; approximate. */
-  appearsWhen: string;
+  /** The prompt's fixed code rules from the config comment, in plain words. */
+  fixedRule: string;
   platforms: ReadonlyArray<ReviewPromptPlatform>;
   /** The platforms whose reporting of it is merged but in no released app yet; update after each release. */
   unreleasedPlatforms: ReadonlyArray<ReviewPromptPlatform>;
   acted: ReviewPromptActed;
   /** The support tables count every browser, while web product events need analytics consent. */
   source: "product-events" | "support-tables";
+}>;
+
+export type ReviewPrompt = ReviewPromptMetadata & Readonly<{
+  id: ReviewPromptId;
+  /** When the prompt appears, in plain words, from its fixed rule and config settings. */
+  appearsWhen: string;
 }>;
 
 /** A showing is Gone when its person neither opens the app nor answers a card for this long after it. */
@@ -74,47 +81,10 @@ const reviewPaywallActed: ReviewPromptActed = {
   window: { amount: paywallFirstPaymentWindowDays, unit: "day" },
 };
 
-export const reviewPrompts: ReadonlyArray<ReviewPrompt> = [
-  {
-    id: "paywall-initial",
-    title: "Paywall: initial",
-    appearsWhen: "After the 3rd review ever; free users only",
-    platforms: allPlatforms,
-    unreleasedPlatforms: [],
-    acted: reviewPaywallActed,
-    source: "product-events",
-  },
-  {
-    id: "paywall-day3",
-    title: "Paywall: day 3",
-    appearsWhen: "From the 3rd day after the first paywall, once 2 reviews are done that day",
-    platforms: allPlatforms,
-    unreleasedPlatforms: [],
-    acted: reviewPaywallActed,
-    source: "product-events",
-  },
-  {
-    id: "paywall-weekly",
-    title: "Paywall: weekly",
-    appearsWhen: "7+ days after the last paywall, once 2 reviews are done that day",
-    platforms: allPlatforms,
-    unreleasedPlatforms: [],
-    acted: reviewPaywallActed,
-    source: "product-events",
-  },
-  {
-    id: "notifications-pre-prompt",
-    title: "Notifications pre-prompt",
-    appearsWhen: "After the 6th review ever, if notifications are off; once per install",
-    platforms: mobilePlatforms,
-    unreleasedPlatforms: [],
-    acted: { kind: "rule", rule: "Notifications granted in the OS dialog", window: { amount: 1, unit: "day" } },
-    source: "product-events",
-  },
-  {
-    id: "hard-reminder",
+const reviewPromptMetadata: Readonly<Record<ReviewPromptId, ReviewPromptMetadata>> = {
+  "hard-reminder": {
     title: "“Hard” reminder",
-    appearsWhen: "When 5 of the last 8 answers in a session are Hard; at most every 3 days",
+    fixedRule: "A Hard answer with 5 of the last 8 in the session Hard",
     platforms: allPlatforms,
     unreleasedPlatforms: mobilePlatforms,
     acted: {
@@ -124,43 +94,98 @@ export const reviewPrompts: ReadonlyArray<ReviewPrompt> = [
     },
     source: "product-events",
   },
-  {
-    id: "rating-request",
+  "paywall-initial": {
+    title: "Paywall: initial",
+    fixedRule: "Free users only, once per account",
+    platforms: allPlatforms,
+    unreleasedPlatforms: [],
+    acted: reviewPaywallActed,
+    source: "product-events",
+  },
+  "paywall-second": {
+    title: "Paywall: second",
+    fixedRule: "Free users only, once per account",
+    platforms: allPlatforms,
+    unreleasedPlatforms: [],
+    acted: reviewPaywallActed,
+    source: "product-events",
+  },
+  "paywall-periodic": {
+    title: "Paywall: periodic",
+    fixedRule: "Free users only",
+    platforms: allPlatforms,
+    unreleasedPlatforms: [],
+    acted: reviewPaywallActed,
+    source: "product-events",
+  },
+  "notifications-pre-prompt": {
+    title: "Notifications pre-prompt",
+    fixedRule: "While notifications are not allowed",
+    platforms: mobilePlatforms,
+    unreleasedPlatforms: [],
+    acted: { kind: "rule", rule: "Notifications granted in the OS dialog", window: { amount: 1, unit: "day" } },
+    source: "product-events",
+  },
+  "rating-request": {
     title: "Store rating requested",
-    appearsWhen: "After the 5th review today, if the person also reviewed on an earlier day; once per app version, at most every 90 days (the OS may still hide it)",
+    fixedRule: "Once per app version (the OS may still hide it)",
     platforms: mobilePlatforms,
     unreleasedPlatforms: mobilePlatforms,
     acted: { kind: "unreported", reason: "Apple and Google return no result" },
     source: "product-events",
   },
-  {
-    id: "web-mobile-app-promo",
+  "web-mobile-app-promo": {
     title: "Web mobile-app promo",
-    appearsWhen: "After the 5th review today in a workspace, at most once a day, until the person reviews on mobile",
+    fixedRule: "Until the person reviews on mobile",
     platforms: ["web"],
     unreleasedPlatforms: [],
     acted: { kind: "rule", rule: "A store link clicked", window: { amount: 1, unit: "hour" } },
     source: "product-events",
   },
-  {
-    id: "automatic-feedback",
-    title: "Automatic feedback",
-    appearsWhen: "After the 15th review today in a workspace that also has an earlier review day; at most every 30 days",
-    platforms: allPlatforms,
-    unreleasedPlatforms: [],
-    acted: { kind: "rule", rule: "Feedback submitted from the prompt", window: { amount: 1, unit: "hour" } },
-    source: "support-tables",
-  },
-  {
-    id: "guest-sign-in",
+  "guest-sign-in": {
     title: "Guest sign-in prompt",
-    appearsWhen: "Guests only, after 20 reviews in the workspace; “Later” hides it for 7 days (iOS and web also wait for 10 more reviews)",
+    fixedRule: "Guests only",
     platforms: allPlatforms,
     unreleasedPlatforms: [],
     acted: { kind: "rule", rule: "Signed in, upgrading the guest", window: { amount: 7, unit: "day" } },
     source: "product-events",
   },
-];
+  "automatic-feedback": {
+    title: "Automatic feedback",
+    fixedRule: "Regardless of feedback sent",
+    platforms: allPlatforms,
+    unreleasedPlatforms: [],
+    acted: { kind: "rule", rule: "Feedback submitted from the prompt", window: { amount: 1, unit: "hour" } },
+    source: "support-tables",
+  },
+};
+
+function buildAppearsWhen(fixedRule: string, settings: ReviewPromptSettings, inOrder: boolean): string {
+  if (inOrder === false) {
+    return "Never: not in the review prompt config order";
+  }
+
+  if (settings.enabled === false) {
+    return "Never: disabled in the review prompt config";
+  }
+
+  const conditions = [
+    ...(settings.minTotalReviews === undefined ? [] : [`${settings.minTotalReviews}+ reviews in total`]),
+    ...(settings.minReviewsToday === undefined ? [] : [`${settings.minReviewsToday}+ reviews today`]),
+    ...(settings.minReviewDays === undefined ? [] : [`${settings.minReviewDays}+ days with reviews`]),
+    ...(settings.cooldownDays === undefined
+      ? []
+      : [settings.cooldownDays === 1 ? "at most once a day" : `at most every ${settings.cooldownDays} days`]),
+  ];
+
+  return [fixedRule, ...conditions].join("; ");
+}
+
+export const reviewPrompts: ReadonlyArray<ReviewPrompt> = reviewPromptIds.map((id) => ({
+  id,
+  ...reviewPromptMetadata[id],
+  appearsWhen: buildAppearsWhen(reviewPromptMetadata[id].fixedRule, reviewPromptConfig.prompts[id], configuredOrder.includes(id)),
+}));
 
 export function getReviewPrompt(promptId: ReviewPromptId): ReviewPrompt {
   const prompt = reviewPrompts.find((candidate) => candidate.id === promptId);
