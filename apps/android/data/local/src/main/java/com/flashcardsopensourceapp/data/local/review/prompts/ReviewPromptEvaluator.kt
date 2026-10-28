@@ -20,7 +20,7 @@ data class ReviewPromptCounters(
 
 /** One prompt as the walk sees it; ids without a handler are prompts this platform lacks. */
 data class ReviewPromptHandler(
-    /** The prompt's own last showing, the only clock its `cooldownDays` counts from. */
+    /** The only clock the prompt's `cooldownDays` counts from; the three review paywalls share one. */
     val loadLastShownAtMillis: suspend () -> Long?,
     /** Applies the prompt's fixed rules and shows it; false when they do not pass. */
     val tryShow: suspend (reviewPromptConfigVersion: String) -> Boolean
