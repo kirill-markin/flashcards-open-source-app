@@ -496,20 +496,6 @@ final class CloudSyncService: @unchecked Sendable {
         )
     }
 
-    func loadFeedbackState(
-        apiBaseUrl: String,
-        authorizationHeader: String
-    ) async throws -> FeedbackState {
-        let response: FeedbackStateEnvelope = try await self.transport.request(
-            apiBaseUrl: apiBaseUrl,
-            authorizationHeader: authorizationHeader,
-            path: "/feedback/state",
-            method: "GET",
-            body: Optional<String>.none
-        )
-        return response.feedbackState
-    }
-
     func recordFeedbackPromptEvent(
         apiBaseUrl: String,
         authorizationHeader: String,
