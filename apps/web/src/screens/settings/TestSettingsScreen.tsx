@@ -44,6 +44,7 @@ import {
   startReviewReactionLottiePrewarm,
 } from "../review/reactions/lottie/reviewReactionLottie";
 import { SettingsActionCard, SettingsGroup, SettingsNavigationCard, SettingsShell } from "./SettingsShared";
+import { TestReviewPromptsGroup } from "./TestReviewPromptsGroup";
 
 type Translate = (key: TranslationKey, values?: TranslationValues) => string;
 type FormatNumber = (value: number, options?: Readonly<Intl.NumberFormatOptions>) => string;
@@ -145,6 +146,7 @@ export function TestSettingsScreen(): ReactElement {
             />
           </div>
         </SettingsGroup>
+        <TestReviewPromptsGroup />
       </div>
       <MobileAppPromotionDialog
         isOpen={isMobileAppPromotionDialogOpen}

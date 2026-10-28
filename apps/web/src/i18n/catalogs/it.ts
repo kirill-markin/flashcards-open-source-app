@@ -738,6 +738,10 @@ const itCatalog: TranslationCatalog = {
       description: "Guarda in anteprima l’invito a installare le app iOS e Android.",
       value: "Anteprima",
     },
+    reviewPrompts: {
+      title: "Avvisi dopo il ripasso",
+      resetAll: "Reimposta lo stato di tutti gli avvisi",
+    },
   },
   settingsWorkspace: {
     decks: {

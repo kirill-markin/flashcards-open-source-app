@@ -746,6 +746,10 @@ const csCatalog: TranslationCatalog = {
       description: "Prohlédněte si výzvu k instalaci pro iOS a Android.",
       value: "Náhled",
     },
+    reviewPrompts: {
+      title: "Výzvy po opakování",
+      resetAll: "Obnovit stav všech výzev",
+    },
   },
   settingsWorkspace: {
     decks: {

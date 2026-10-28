@@ -746,6 +746,10 @@ const hrCatalog: TranslationCatalog = {
       description: "Pregledajte poziv na instalaciju za iOS i Android.",
       value: "Pregled",
     },
+    reviewPrompts: {
+      title: "Upiti nakon ponavljanja",
+      resetAll: "Poništi stanje svih upita",
+    },
   },
   settingsWorkspace: {
     decks: {
