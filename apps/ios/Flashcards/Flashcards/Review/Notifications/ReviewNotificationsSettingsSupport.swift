@@ -8,7 +8,8 @@ let defaultInactivityReminderWindowEndMinute: Int = 0
 
 let reviewNotificationsSettingsUserDefaultsKey: String = "review-notifications-settings"
 let legacyReviewNotificationsSettingsUserDefaultsKeyPrefix: String = "review-notifications-settings::"
-let reviewNotificationPromptStateUserDefaultsKey: String = "review-notification-prompt-state"
+/// Per install: the OS permission it asks about belongs to the install, so sign-out keeps it.
+let reviewNotificationPrePromptLastShownAtUserDefaultsKey: String = "review-notification-pre-prompt-last-shown-at"
 
 enum ReviewNotificationMode: String, Codable, CaseIterable, Identifiable, Hashable, Sendable {
     case daily
@@ -128,12 +129,6 @@ extension ReviewNotificationsSettings: Codable {
     }
 }
 
-struct NotificationPermissionPromptState: Codable, Hashable, Sendable {
-    let hasShownPrePrompt: Bool
-    let hasRequestedSystemPermission: Bool
-    let hasDismissedPrePrompt: Bool
-}
-
 func makeDefaultReviewNotificationsSettings() -> ReviewNotificationsSettings {
     // The app-level master defaults to enabled. Delivery is still gated by the
     // current system notification permission state.
@@ -152,14 +147,6 @@ func makeDefaultReviewNotificationsSettings() -> ReviewNotificationsSettings {
             idleMinutes: 120
         ),
         showAppIconBadge: true
-    )
-}
-
-func makeDefaultNotificationPermissionPromptState() -> NotificationPermissionPromptState {
-    NotificationPermissionPromptState(
-        hasShownPrePrompt: false,
-        hasRequestedSystemPermission: false,
-        hasDismissedPrePrompt: false
     )
 }
 
@@ -266,28 +253,16 @@ private func persistInitialReviewNotificationsSettings(
     }
 }
 
-func loadNotificationPermissionPromptState(
-    userDefaults: UserDefaults,
-    decoder: JSONDecoder
-) -> NotificationPermissionPromptState {
-    guard let data = userDefaults.data(forKey: reviewNotificationPromptStateUserDefaultsKey) else {
-        return makeDefaultNotificationPermissionPromptState()
+func loadReviewNotificationPrePromptLastShownAt(userDefaults: UserDefaults) -> Date? {
+    guard let rawValue = userDefaults.object(forKey: reviewNotificationPrePromptLastShownAtUserDefaultsKey) as? TimeInterval else {
+        return nil
     }
 
-    do {
-        return try decoder.decode(NotificationPermissionPromptState.self, from: data)
-    } catch {
-        captureReviewNotificationsSilentFailure(
-            error: error,
-            action: "review_notification_permission_prompt_state_load",
-            stage: "decode",
-            cloudSettings: nil,
-            workspaceId: nil,
-            configurationMode: nil
-        )
-        userDefaults.removeObject(forKey: reviewNotificationPromptStateUserDefaultsKey)
-        return makeDefaultNotificationPermissionPromptState()
-    }
+    return Date(timeIntervalSince1970: rawValue)
+}
+
+func persistReviewNotificationPrePromptLastShownAt(userDefaults: UserDefaults, lastShownAt: Date) {
+    userDefaults.set(lastShownAt.timeIntervalSince1970, forKey: reviewNotificationPrePromptLastShownAtUserDefaultsKey)
 }
 
 func captureReviewNotificationsSilentFailure(

@@ -121,8 +121,10 @@ final class FlashcardsStore {
     var reviewNotificationsSettings: ReviewNotificationsSettings
     var strictRemindersSettings: StrictRemindersSettings
     var reviewReminderAttentionState: ReviewReminderAttentionState?
-    var notificationPermissionPromptState: NotificationPermissionPromptState
     var isReviewNotificationPrePromptPresented: Bool
+    /// The OS permission read when the pre-prompt was presented; it decides what "Continue" opens.
+    var reviewNotificationPrePromptPermissionStatus: ReviewNotificationPermissionStatus
+    @ObservationIgnored var reviewNotificationPrePromptLastShownAt: Date?
     var guestSignInAfterReviewPromptState: GuestSignInAfterReviewPromptState
     var isGuestSignInAfterReviewPromptPresented: Bool
     var feedbackPresentation: FeedbackPresentation?
@@ -540,11 +542,9 @@ final class FlashcardsStore {
             userDefaults: userDefaults,
             decoder: decoder
         )
-        self.notificationPermissionPromptState = loadNotificationPermissionPromptState(
-            userDefaults: userDefaults,
-            decoder: decoder
-        )
         self.isReviewNotificationPrePromptPresented = false
+        self.reviewNotificationPrePromptPermissionStatus = .notRequested
+        self.reviewNotificationPrePromptLastShownAt = loadReviewNotificationPrePromptLastShownAt(userDefaults: userDefaults)
         self.guestSignInAfterReviewPromptState = loadGuestSignInAfterReviewPromptState(
             userDefaults: userDefaults,
             decoder: decoder
