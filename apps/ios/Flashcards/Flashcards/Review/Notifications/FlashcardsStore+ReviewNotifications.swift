@@ -410,43 +410,31 @@ extension FlashcardsStore {
         reviewedAt: Date,
         workspaceId: String,
         now: Date
-    ) -> Int {
-        let nextCount = self.userDefaults.integer(forKey: reviewNotificationSuccessfulReviewCountUserDefaultsKey) + 1
-        self.userDefaults.set(nextCount, forKey: reviewNotificationSuccessfulReviewCountUserDefaultsKey)
+    ) {
         self.userDefaults.set(now.timeIntervalSince1970, forKey: reviewNotificationLastActiveAtUserDefaultsKey)
         self.reconcileReviewNotifications(trigger: .reviewRecorded, now: now)
         self.clearReviewReminderAttention(workspaceId: workspaceId)
         self.clearAppIconBadge()
         self.recordSuccessfulStrictReminderReview(reviewedAt: reviewedAt, now: now)
-        return self.loadReviewNotificationPromptReviewCount(persistedReviewCount: nextCount)
     }
 
-    func resolveSuccessfulReviewNotificationPrePromptDecision(reviewCount: Int) async -> Bool {
-        defer {
-            self.requestGuestSignInAfterReviewPromptReconciliation()
-        }
-
-        let permissionStatus = await resolveReviewNotificationPermissionStatus()
-        guard permissionStatus == .notRequested else {
-            return false
-        }
-        guard hasEnoughReviewHistoryForNotificationPrompt(reviewCount: reviewCount) else {
-            return false
-        }
-        guard self.notificationPermissionPromptState.hasShownPrePrompt == false else {
-            return false
-        }
-        guard self.notificationPermissionPromptState.hasDismissedPrePrompt == false else {
-            return false
-        }
-        guard self.notificationPermissionPromptState.hasRequestedSystemPermission == false else {
+    /// The once-per-install flags block any repeat, so the config cooldown has no showing to count from.
+    func isReviewNotificationPrePromptDue(
+        settings: ReviewPromptSettings,
+        counters: ReviewPromptCounters,
+        now: Date
+    ) async -> Bool {
+        guard reviewPromptConfigAllows(settings: settings, counters: counters, lastShownAt: nil, now: now),
+              self.notificationPermissionPromptState.hasShownPrePrompt == false,
+              self.notificationPermissionPromptState.hasDismissedPrePrompt == false,
+              self.notificationPermissionPromptState.hasRequestedSystemPermission == false else {
             return false
         }
 
-        return true
+        return await resolveReviewNotificationPermissionStatus() == .notRequested
     }
 
-    func presentReviewNotificationPrePromptIfAllowed() -> Bool {
+    func presentReviewNotificationPrePromptIfAllowed(configVersion: String) -> Bool {
         guard self.notificationPermissionPromptState.hasShownPrePrompt == false else {
             return false
         }
@@ -475,43 +463,9 @@ extension FlashcardsStore {
         // before the alert becomes visible to them. It is not guarded on the visible tab, because
         // the prompt does present when they come back and a guard would drop the only denominator
         // its answers have.
-        Analytics.trackScreenViewed(.notificationsPrePrompt)
+        Analytics.trackReviewPromptScreenViewed(.notificationsPrePrompt, reviewPromptConfigVersion: configVersion)
 
         return true
-    }
-
-    private func loadReviewNotificationPromptReviewCount(persistedReviewCount: Int) -> Int {
-        guard let database = self.database else {
-            return persistedReviewCount
-        }
-
-        do {
-            return max(persistedReviewCount, try database.loadReviewEventCount())
-        } catch {
-            FlashcardsObservability.captureWarning(
-                .localDataRepair(
-                    LocalDataRepairWarning(
-                        action: "review_prompt_count_load_failed",
-                        scope: IOSObservationScope(
-                            feature: .notifications,
-                            userId: nil,
-                            workspaceId: self.workspace?.workspaceId,
-                            requestId: nil,
-                            clientRequestId: nil,
-                            sessionId: nil,
-                            runId: nil,
-                            cloudState: self.cloudSettings?.cloudState,
-                            configurationMode: nil
-                        ),
-                        workspaceId: self.workspace?.workspaceId,
-                        cardId: nil,
-                        reason: Flashcards.errorMessage(error: error),
-                        repair: "use_persisted_review_count"
-                    )
-                )
-            )
-            return persistedReviewCount
-        }
     }
 
     private func persistReviewNotificationsSettings() {

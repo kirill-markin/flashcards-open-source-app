@@ -125,7 +125,6 @@ final class FlashcardsStore {
     var isReviewNotificationPrePromptPresented: Bool
     var guestSignInAfterReviewPromptState: GuestSignInAfterReviewPromptState
     var isGuestSignInAfterReviewPromptPresented: Bool
-    var guestSignInAfterReviewPromptReconciliationToken: Int
     var feedbackPresentation: FeedbackPresentation?
     private(set) var presentedTechnicalError: TechnicalErrorPresentation?
     var feedbackPromptState: PersistedFeedbackPromptState
@@ -147,7 +146,6 @@ final class FlashcardsStore {
             if self.isSavedReviewPromptSurfaceAvailable == false {
                 self.savedReviewPromptOpportunity = nil
                 self.pendingStoreReviewRequestAttempt = nil
-                self.activeAutomaticFeedbackPromptTask?.cancel()
             }
         }
     }
@@ -263,8 +261,6 @@ final class FlashcardsStore {
     @ObservationIgnored var progressReviewScheduleLocalRevision: Int
     @ObservationIgnored var progressReviewedAtClientCache: ProgressReviewedAtClientCacheEntry?
     @ObservationIgnored var progressReviewScheduleLocalCache: ProgressReviewScheduleLocalCacheEntry?
-    @ObservationIgnored var activeAutomaticFeedbackPromptTask: Task<Void, Never>?
-    @ObservationIgnored var nextAutomaticFeedbackPromptRetryAt: Date?
     @ObservationIgnored var capturedTechnicalErrorCaptureContextIDs: Set<String>
     @ObservationIgnored var customGuestWorkspaceRetrySession: CloudLinkedSession?
 
@@ -281,7 +277,6 @@ final class FlashcardsStore {
     func shutdownForTests() {
         self.aiConsentRegistrationTask?.cancel()
         self.cachedAIChatStore?.shutdownForTests()
-        self.activeAutomaticFeedbackPromptTask?.cancel()
         self.reviewRuntime.cancelForAccountDeletion()
         self.cloudRuntime.cancelForAccountDeletion()
     }
@@ -553,7 +548,6 @@ final class FlashcardsStore {
             decoder: decoder
         )
         self.isGuestSignInAfterReviewPromptPresented = false
-        self.guestSignInAfterReviewPromptReconciliationToken = 0
         self.feedbackPresentation = nil
         self.presentedTechnicalError = nil
         self.feedbackPromptState = loadFeedbackPromptState(
@@ -649,8 +643,6 @@ final class FlashcardsStore {
         self.progressReviewScheduleLocalRevision = 0
         self.progressReviewedAtClientCache = nil
         self.progressReviewScheduleLocalCache = nil
-        self.activeAutomaticFeedbackPromptTask = nil
-        self.nextAutomaticFeedbackPromptRetryAt = nil
         self.capturedTechnicalErrorCaptureContextIDs = []
         self.customGuestWorkspaceRetrySession = nil
 

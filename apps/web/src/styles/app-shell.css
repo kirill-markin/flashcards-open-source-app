@@ -521,6 +521,12 @@
     grid-row: 2;
   }
 
+  .account-menu-button {
+    width: 54px;
+  }
+}
+
+@media (max-width: 768px), (max-width: 1100px) and (max-height: 500px) {
   .nav {
     display: none;
   }
@@ -531,9 +537,5 @@
 
   .mobile-nav-menu {
     display: grid;
-  }
-
-  .account-menu-button {
-    width: 54px;
   }
 }

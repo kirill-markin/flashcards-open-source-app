@@ -5,10 +5,9 @@ import Foundation
 /// The reminder deliberately keeps the rule set small:
 /// - remember only the last few ratings for the current in-memory review session
 /// - trigger only after a successful Hard review
-/// - persist only the last time the reminder was shown
+/// - persist only the last time the reminder was shown, for the review prompt config cooldown
 let reviewHardReminderRecentRatingLimit: Int = 8
 let reviewHardReminderHardRatingThreshold: Int = 5
-let reviewHardReminderCooldownSeconds: TimeInterval = 3 * 24 * 60 * 60
 let reviewHardReminderLastShownAtUserDefaultsKey: String = "review-hard-reminder-last-shown-at"
 
 /// Returns the next in-memory rating buffer for the current review session.
@@ -33,25 +32,10 @@ func countReviewHardRatings(recentRatings: [ReviewRating]) -> Int {
     }
 }
 
-/// Returns `true` when the reminder should be shown after the latest successful review.
-func shouldPresentReviewHardReminder(
-    recentRatings: [ReviewRating],
-    lastShownAt: Date?,
-    now: Date
-) -> Bool {
-    guard recentRatings.count >= reviewHardReminderRecentRatingLimit else {
-        return false
-    }
-
-    guard let lastShownAt else {
-        return countReviewHardRatings(recentRatings: recentRatings) >= reviewHardReminderHardRatingThreshold
-    }
-
-    guard now.timeIntervalSince(lastShownAt) >= reviewHardReminderCooldownSeconds else {
-        return false
-    }
-
-    return countReviewHardRatings(recentRatings: recentRatings) >= reviewHardReminderHardRatingThreshold
+/// Whether the full session window holds enough Hard answers.
+func hasFrequentReviewHardRatings(recentRatings: [ReviewRating]) -> Bool {
+    recentRatings.count >= reviewHardReminderRecentRatingLimit
+        && countReviewHardRatings(recentRatings: recentRatings) >= reviewHardReminderHardRatingThreshold
 }
 
 /// Loads the persisted cooldown timestamp for the review reminder.
