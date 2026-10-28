@@ -321,10 +321,10 @@ class AppGraph(
         }
     )
     val storeReviewRequestStore: StoreReviewRequestStore = SharedPreferencesStoreReviewRequestStore(context = context)
-    private val guestSignInAfterReviewPromptStore = SharedPreferencesGuestSignInAfterReviewPromptStore(
+    internal val guestSignInAfterReviewPromptStore = SharedPreferencesGuestSignInAfterReviewPromptStore(
         context = context
     )
-    private val feedbackPromptStore = SharedPreferencesFeedbackPromptStore(context = context)
+    internal val feedbackPromptStore = SharedPreferencesFeedbackPromptStore(context = context)
     private val notificationsStore = SharedPreferencesReviewNotificationsStore(context = context)
     val reviewNotificationsStore: ReviewNotificationsStore = notificationsStore
     val strictRemindersStore: StrictRemindersStore = notificationsStore

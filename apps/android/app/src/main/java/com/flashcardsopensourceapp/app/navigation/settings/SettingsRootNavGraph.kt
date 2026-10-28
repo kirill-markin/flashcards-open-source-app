@@ -51,6 +51,7 @@ import com.flashcardsopensourceapp.feature.friendinvite.createFriendInvitationVi
 import com.flashcardsopensourceapp.feature.review.reaction.TestAnimationsRoute
 import com.flashcardsopensourceapp.feature.settings.SettingsFriendInviteAvailability
 import com.flashcardsopensourceapp.feature.settings.SettingsRoute
+import com.flashcardsopensourceapp.feature.settings.TestReviewPromptPreview
 import com.flashcardsopensourceapp.feature.settings.TestSettingsRoute
 import com.flashcardsopensourceapp.feature.settings.ai.AiChatSuggestionsRoute
 import com.flashcardsopensourceapp.feature.settings.ai.OwnOpenAiKeyRoute
@@ -83,6 +84,7 @@ import com.flashcardsopensourceapp.feature.settings.workspace.current.createCurr
 import java.util.Locale
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.launch
 import org.xmlpull.v1.XmlPullParser
 
 internal fun NavGraphBuilder.registerSettingsRootDestinations(
@@ -676,7 +678,21 @@ internal fun NavGraphBuilder.registerSettingsRootDestinations(
         val technicalErrorTitle = stringResource(id = R.string.technical_error_dialog_default_title)
         val technicalErrorMessage = stringResource(id = R.string.technical_error_dialog_default_message)
         val technicalErrorDetails = stringResource(id = R.string.technical_error_dialog_preview_details)
+        val reviewPromptConfig = remember { appGraph.reviewPromptConfigStore.loadActiveConfig() }
+        var reviewPromptPreview by remember { mutableStateOf<TestReviewPromptPreview?>(null) }
 
+        TestReviewPromptPreviewDialogs(
+            appGraph = appGraph,
+            preview = reviewPromptPreview,
+            onOpenSignIn = {
+                navController.navigate(
+                    route = SettingsAccountSignInEmailDestination.createRoute(origin = AnalyticsSurface.SETTINGS)
+                )
+            },
+            onDismiss = {
+                reviewPromptPreview = null
+            }
+        )
         TestSettingsRoute(
             // A test preview is not a paywall showing, so it carries no entry point and reports nothing.
             onPreviewPremium = { premiumPresenter.showOfferPreview(paywallEntryPoint = null) },
@@ -699,6 +715,37 @@ internal fun NavGraphBuilder.registerSettingsRootDestinations(
             },
             onOpenLocalSyncDiagnostics = {
                 navController.navigate(route = SettingsLocalSyncDiagnosticsDestination.route)
+            },
+            reviewPromptConfig = reviewPromptConfig,
+            onPreviewReviewPrompt = { preview ->
+                when (preview) {
+                    TestReviewPromptPreview.PAYWALL_INITIAL,
+                    TestReviewPromptPreview.PAYWALL_SECOND,
+                    TestReviewPromptPreview.PAYWALL_PERIODIC -> premiumPresenter.showOfferPreview(paywallEntryPoint = null)
+                    TestReviewPromptPreview.RATING_REQUEST -> coroutineScope.launch {
+                        try {
+                            val activity = appGraph.storeReviewActivityProvider.currentActivity()
+                                ?: throw IllegalStateException("No resumed activity is available for the Google Play review flow.")
+                            appGraph.storeReviewRequestManager.launchReviewFlowPreview(activity = activity)
+                        } catch (error: CancellationException) {
+                            throw error
+                        } catch (error: Exception) {
+                            appGraph.showReportedTechnicalErrorDialog(
+                                title = technicalErrorTitle,
+                                message = technicalErrorMessage,
+                                technicalDetails = error.stackTraceToString()
+                            )
+                        }
+                    }
+                    TestReviewPromptPreview.HARD_REMINDER,
+                    TestReviewPromptPreview.NOTIFICATIONS_PRE_PROMPT_SYSTEM_DIALOG,
+                    TestReviewPromptPreview.NOTIFICATIONS_PRE_PROMPT_SETTINGS,
+                    TestReviewPromptPreview.GUEST_SIGN_IN,
+                    TestReviewPromptPreview.AUTOMATIC_FEEDBACK -> reviewPromptPreview = preview
+                }
+            },
+            onResetReviewPromptState = {
+                resetReviewPromptLocalState(appGraph = appGraph)
             },
             onBack = {
                 navController.popBackStack()
