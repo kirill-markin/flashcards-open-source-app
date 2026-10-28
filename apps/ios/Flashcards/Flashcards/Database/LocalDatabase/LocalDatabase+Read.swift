@@ -236,8 +236,8 @@ extension LocalDatabase {
         try self.cardStore.loadAppWideReviewEventCount(start: start, end: end)
     }
 
-    func loadAppWideReviewDayCount(timeZone: TimeZone) throws -> Int {
-        try self.cardStore.loadAppWideReviewDayCount(timeZone: timeZone)
+    func loadAppWideReviewDayCount(timeZone: TimeZone, dayStartHour: Int) throws -> Int {
+        try self.cardStore.loadAppWideReviewDayCount(timeZone: timeZone, dayStartHour: dayStartHour)
     }
 
     func loadCardsListSnapshot(

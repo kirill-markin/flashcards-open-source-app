@@ -47,13 +47,20 @@ func makeStoreReviewLocalCalendar(timeZone: TimeZone) -> Calendar {
     return calendar
 }
 
-func makeStoreReviewCurrentLocalDayRange(now: Date, calendar: Calendar) throws -> StoreReviewLocalDayRange {
-    let startOfToday = calendar.startOfDay(for: now)
-    guard let startOfTomorrow = calendar.date(byAdding: .day, value: 1, to: startOfToday) else {
+/// The local day containing `now` when each day starts at `dayStartHour`; calendar arithmetic keeps
+/// the boundary at that wall-clock hour on daylight-saving days.
+func makeStoreReviewCurrentLocalDayRange(
+    now: Date,
+    calendar: Calendar,
+    dayStartHour: Int
+) throws -> StoreReviewLocalDayRange {
+    guard let dayStartOnNowDate = calendar.date(bySettingHour: dayStartHour, minute: 0, second: 0, of: now),
+          let start = calendar.date(byAdding: .day, value: dayStartOnNowDate <= now ? 0 : -1, to: dayStartOnNowDate),
+          let end = calendar.date(byAdding: .day, value: 1, to: start) else {
         throw StoreReviewEligibilityError.nextLocalDayUnavailable(now)
     }
 
-    return StoreReviewLocalDayRange(start: startOfToday, end: startOfTomorrow)
+    return StoreReviewLocalDayRange(start: start, end: end)
 }
 
 func loadStoreReviewPromptState(userDefaults: UserDefaults) throws -> StoreReviewPromptState {

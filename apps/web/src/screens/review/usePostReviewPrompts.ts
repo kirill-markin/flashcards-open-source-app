@@ -74,6 +74,7 @@ import { evaluateMobileAppPromotionEligibility } from "./mobileAppPromo/mobileAp
 import type { MobileAppPromotionDialogProps } from "./mobileAppPromo/MobileAppPromotionDialog";
 import { loadReviewPromptCounters } from "./prompts/reviewPromptCounters";
 import {
+  getReviewPromptDayLimit,
   hasReviewPromptCounterConditions,
   isReviewPromptCooldownElapsed,
   listWebReviewPromptOrder,
@@ -715,7 +716,11 @@ export function usePostReviewPrompts(params: UsePostReviewPromptsParams): UsePos
   async function loadPromptCounters(): Promise<ReviewPromptCounters | null> {
     try {
       indexedDbOpenRecoveryState.throwIfFailed();
-      const counters = await loadReviewPromptCounters(reviewWorkspaceIds, new Date());
+      const counters = await loadReviewPromptCounters(
+        reviewWorkspaceIds,
+        new Date(),
+        getReviewPromptDayLimit(reviewPromptConfig),
+      );
       indexedDbOpenRecoveryState.throwIfFailed();
       return counters;
     } catch (error) {
