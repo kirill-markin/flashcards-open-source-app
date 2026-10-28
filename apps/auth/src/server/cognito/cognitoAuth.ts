@@ -310,7 +310,7 @@ async function verifyOtpPrincipalTokens(
     }
     // With USERNAME = email the code went to that address, so the challenge itself proves the mailbox even
     // though a first OTP sign-in's token still says email_verified=false. With a stored username the code went
-    // to the user-writable email attribute, so the verified claim stays required.
+    // to the email attribute, which may be unverified, so the verified claim stays required.
     if (requireEmailVerifiedClaim && payload.email_verified !== true) {
       throw new Error("Cognito EMAIL_OTP ID token email is not verified");
     }
