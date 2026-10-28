@@ -96,7 +96,8 @@ export async function handler(): Promise<Readonly<{ passed: true; checks: Readon
     await expectRefused(answer(principal, replay, successProof));
     await setTimeout(1_100);
     const refreshed = await refreshTokens(tokens.refreshToken);
-    if (refreshed.refreshToken !== null) refreshCredentials.push(refreshed.refreshToken);
+    // Rotation invalidates the original token, so cleanup must revoke only its replacement.
+    if (refreshed.refreshToken !== null) refreshCredentials[refreshCredentials.indexOf(tokens.refreshToken)] = refreshed.refreshToken;
     const refreshedClaims = await verifier.verify(refreshed.idToken);
     assert.equal(refreshedClaims.sub, principal.cognitoSubject);
     assert.equal(refreshedClaims.auth_time, originalClaims.auth_time);
