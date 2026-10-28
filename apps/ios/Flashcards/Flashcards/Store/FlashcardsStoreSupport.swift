@@ -202,7 +202,8 @@ extension CloudSyncServing {
             userId: account.userId,
             identity: account.identity,
             email: account.email,
-            preferences: account.preferences
+            preferences: account.preferences,
+            reviewPrompts: nil
         )
     }
 

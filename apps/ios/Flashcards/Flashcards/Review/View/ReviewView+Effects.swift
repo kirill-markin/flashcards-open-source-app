@@ -6,7 +6,7 @@ extension ReviewView {
     func presentPromptAfterSavedReview(opportunity: SavedReviewPromptOpportunity) async {
         guard self.isSavedReviewPromptOpportunityCurrent(opportunity) else { return }
         let now = Date()
-        let config = builtInReviewPromptConfig
+        let config = self.store.activeReviewPromptConfig
         let counters: ReviewPromptCounters
         do {
             counters = try self.store.loadReviewPromptCounters(now: now)
