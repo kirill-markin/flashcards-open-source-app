@@ -1,0 +1,99 @@
+// The after-review prompt rules: which prompt may follow a saved review, and when. Served to
+// authenticated apps as `reviewPrompts` in GET /me; web and admin import this file directly, so it
+// stays dependency-free.
+//
+// Built-in defaults are kept in sync with this file by hand:
+// - iOS: apps/ios/Flashcards/Flashcards/Review/Prompts/ReviewPromptConfigDefaults.swift
+// - Android: apps/android/data/local/src/main/java/com/flashcardsopensourceapp/data/local/review/prompts/ReviewPromptConfigDefaults.kt
+// Apps use the server values once they have them, but every release should ship the current
+// defaults; a small temporary difference is acceptable.
+//
+// Evaluation runs only after a review is successfully saved, and only when the review surface can
+// present a prompt; a busy surface skips that review with no retry. Walk `order`, skipping ids the
+// platform lacks (web: no notifications, no rating; mobile: no web promo). The first prompt that is
+// `enabled`, passes every condition present in its settings and passes its fixed code rules is
+// shown. At most one prompt follows each saved review.
+//
+// Counters include the review just saved and span every workspace in the local store:
+// - totalReviews: review events;
+// - reviewsToday: review events whose local date in the device's current time zone is today;
+// - reviewDays: distinct local dates with at least one review event.
+// An absent setting is no condition. `cooldownDays` passes when this same prompt was never shown,
+// or `now - lastShownAt(this prompt) >= cooldownDays * 24h`; it never counts from another prompt or
+// another event.
+//
+// A remote config with a `schemaVersion` other than 1, or with malformed values, is rejected whole:
+// the app reports the error and keeps its last valid cached config or built-in defaults. An unknown
+// prompt id is ignored; a prompt with a setting the app does not understand is treated as disabled.
+//
+// Fixed code rules, not configurable:
+// - hard-reminder: the saved answer is Hard and at least 5 of the last 8 answers in this review
+//   session are Hard.
+// - Paywalls: free users only. Each is independent of the others, and paywalls opened from
+//   Settings, the AI limit or premium features do not affect them.
+//   - paywall-initial: once per account (server `introShownAt` is null).
+//   - paywall-second: once per account (server `followUpShownAt` is null).
+//   - paywall-periodic: its cooldown clock is the server `periodicShownAt`.
+// - notifications-pre-prompt (mobile): only while the OS notification permission is not granted.
+//   "Continue" opens the OS permission dialog when the OS can still show it, otherwise the app's
+//   page in system Settings ("Open Settings"); "Later" does nothing else.
+// - rating-request (mobile): at most once per app version.
+// - web-mobile-app-promo (web): only until the person has a review from a mobile device.
+// - guest-sign-in: guests only; it stops only when the person is no longer a guest.
+// - automatic-feedback: feedback submissions do not affect its cooldown.
+
+export type ReviewPromptId =
+  | "hard-reminder"
+  | "paywall-initial"
+  | "paywall-second"
+  | "paywall-periodic"
+  | "notifications-pre-prompt"
+  | "rating-request"
+  | "web-mobile-app-promo"
+  | "guest-sign-in"
+  | "automatic-feedback";
+
+// Every count is a non-negative integer.
+export type ReviewPromptSettings = Readonly<{
+  enabled: boolean;
+  minTotalReviews?: number;
+  minReviewsToday?: number;
+  minReviewDays?: number;
+  cooldownDays?: number;
+}>;
+
+export type ReviewPromptConfig = Readonly<{
+  schemaVersion: 1;
+  // Recorded on prompt analytics events as `review_prompt_config_version`, so it must fit that
+  // property's pattern in apps/backend/src/productAnalytics/catalog.ts.
+  version: string;
+  order: ReadonlyArray<ReviewPromptId>;
+  prompts: Readonly<Record<ReviewPromptId, ReviewPromptSettings>>;
+}>;
+
+export const reviewPromptConfig: ReviewPromptConfig = {
+  schemaVersion: 1,
+  version: "2026-10-28-1",
+  order: [
+    "hard-reminder",
+    "paywall-initial",
+    "paywall-second",
+    "paywall-periodic",
+    "notifications-pre-prompt",
+    "rating-request",
+    "web-mobile-app-promo",
+    "guest-sign-in",
+    "automatic-feedback",
+  ],
+  prompts: {
+    "hard-reminder": { enabled: true, cooldownDays: 3 },
+    "paywall-initial": { enabled: true, minTotalReviews: 3 },
+    "paywall-second": { enabled: true, minReviewsToday: 2, minReviewDays: 2 },
+    "paywall-periodic": { enabled: true, minReviewsToday: 2, minReviewDays: 3, cooldownDays: 7 },
+    "notifications-pre-prompt": { enabled: true, minTotalReviews: 6, cooldownDays: 7 },
+    "rating-request": { enabled: true, minReviewsToday: 5, minReviewDays: 2, cooldownDays: 90 },
+    "web-mobile-app-promo": { enabled: true, minReviewsToday: 5, cooldownDays: 1 },
+    "guest-sign-in": { enabled: true, minTotalReviews: 20, cooldownDays: 7 },
+    "automatic-feedback": { enabled: true, minReviewsToday: 15, minReviewDays: 2, cooldownDays: 30 },
+  },
+};

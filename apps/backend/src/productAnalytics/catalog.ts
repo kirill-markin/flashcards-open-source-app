@@ -225,6 +225,15 @@ const productAnalyticsPaywallEntryPoints = [
 ] as const;
 
 const productAnalyticsPaywallContentVersionPattern = /^[a-z0-9](?:[a-z0-9._-]{0,62}[a-z0-9])?$/u;
+
+// `day3` is the `paywall-second` prompt and `weekly` is `paywall-periodic`; the old names stay
+// because released apps send them.
+const productAnalyticsPaywallReviewTriggers = ["initial", "day3", "weekly"] as const;
+
+// The `version` of apps/backend/src/reviewPrompts/reviewPromptConfig.ts that chose an after-review
+// prompt, sent with the event recording that prompt's showing or request.
+const productAnalyticsReviewPromptConfigVersionPattern = /^[a-z0-9](?:[a-z0-9._-]{0,62}[a-z0-9])?$/u;
+
 const productAnalyticsTimeZonePattern = /^[A-Za-z][A-Za-z0-9_.+-]*(?:\/[A-Za-z0-9_.+-]+){0,3}$/u;
 
 // Why a provider pulled a purchase. `unknown` is the honest answer for a provider that reports a
@@ -626,7 +635,9 @@ export const productAnalyticsEventCatalog = {
   screen_viewed: {
     serverOnly: false,
     requiresScreen: true,
-    properties: {},
+    properties: {
+      review_prompt_config_version: { kind: "string", pattern: productAnalyticsReviewPromptConfigVersionPattern, optional: true },
+    },
   },
   // Our own in-app prompts, which are ours to decide when to show. The OS-level result of the
   // permission dialog a person may then be handed is a separate event, because a person can accept
@@ -648,7 +659,9 @@ export const productAnalyticsEventCatalog = {
   store_review_requested: {
     serverOnly: false,
     requiresScreen: false,
-    properties: {},
+    properties: {
+      review_prompt_config_version: { kind: "string", pattern: productAnalyticsReviewPromptConfigVersionPattern, optional: true },
+    },
   },
   // The OS-level permission dialog, whose outcome the app only observes. The surface is carried by
   // the event's own screen and never duplicated into a property: there is exactly one place a
@@ -1654,12 +1667,13 @@ export const productAnalyticsEventCatalog = {
     properties: {
       entry_point: { kind: "enum", values: productAnalyticsPaywallEntryPoints },
       presentation_id: { kind: "string", pattern: productAnalyticsUuidPattern, optional: true },
-      review_trigger: { kind: "enum", values: ["initial", "day3", "weekly"], optional: true },
+      review_trigger: { kind: "enum", values: productAnalyticsPaywallReviewTriggers, optional: true },
       local_date: { kind: "localDate", optional: true },
       time_zone: { kind: "timeZone", optional: true },
       content_version: { kind: "string", pattern: productAnalyticsPaywallContentVersionPattern, optional: true },
       account_kind: { kind: "enum", values: ["guest", "registered"], optional: true },
       offer_type: { kind: "enum", values: ["free_trial", "standard"], optional: true },
+      review_prompt_config_version: { kind: "string", pattern: productAnalyticsReviewPromptConfigVersionPattern, optional: true },
     },
   },
   // Only an observed action: closing/back/swiping is dismissed, never an inferred free choice.
@@ -1670,7 +1684,7 @@ export const productAnalyticsEventCatalog = {
     properties: {
       presentation_id: { kind: "string", pattern: productAnalyticsUuidPattern },
       entry_point: { kind: "enum", values: productAnalyticsPaywallEntryPoints },
-      review_trigger: { kind: "enum", values: ["initial", "day3", "weekly"], optional: true },
+      review_trigger: { kind: "enum", values: productAnalyticsPaywallReviewTriggers, optional: true },
       outcome: { kind: "enum", values: ["free", "premium", "dismissed"] },
       offer_type: { kind: "enum", values: ["free_trial", "standard"], optional: true },
     },
@@ -1685,7 +1699,7 @@ export const productAnalyticsEventCatalog = {
       offer_type: { kind: "enum", values: ["free_trial", "standard"], optional: true },
       presentation_id: { kind: "string", pattern: productAnalyticsUuidPattern, optional: true },
       entry_point: { kind: "enum", values: productAnalyticsPaywallEntryPoints, optional: true },
-      review_trigger: { kind: "enum", values: ["initial", "day3", "weekly"], optional: true },
+      review_trigger: { kind: "enum", values: productAnalyticsPaywallReviewTriggers, optional: true },
     },
   },
   // What the store or checkout reported back to the client. `completed` is the client's view only;
@@ -1697,7 +1711,7 @@ export const productAnalyticsEventCatalog = {
       outcome: { kind: "enum", values: ["completed", "cancelled", "failed", "pending"] },
       presentation_id: { kind: "string", pattern: productAnalyticsUuidPattern, optional: true },
       entry_point: { kind: "enum", values: productAnalyticsPaywallEntryPoints, optional: true },
-      review_trigger: { kind: "enum", values: ["initial", "day3", "weekly"], optional: true },
+      review_trigger: { kind: "enum", values: productAnalyticsPaywallReviewTriggers, optional: true },
       // Sent only with `failed`: `<source>:<code>`, the provider's own code verbatim after the prefix.
       // `storekit` a StoreKit error, `play` a Play Billing response code constant name, `stripe` a
       // Stripe error code, `app` our own client or API error code, `nserror` an unrecognized Apple
