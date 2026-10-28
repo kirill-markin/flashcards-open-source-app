@@ -16,15 +16,7 @@
   }
 }
 
-@media (max-width: 768px) {
-  .review-layout {
-    grid-template-columns: 1fr;
-  }
-
-  .review-editor-overlay {
-    padding: 16px;
-  }
-
+@container review-screen (max-width: 768px) {
   .review-screen-head {
     flex-direction: row;
     flex-wrap: nowrap;
@@ -52,6 +44,16 @@
 
   .review-progress-shortcuts > .review-more-actions-trigger {
     display: inline-flex;
+  }
+}
+
+@media (max-width: 768px) {
+  .review-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .review-editor-overlay {
+    padding: 16px;
   }
 
   .review-pane,
