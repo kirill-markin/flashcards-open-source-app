@@ -40,6 +40,8 @@
   --page-title-line-height: 1;
   --page-title-font-weight: 720;
   --page-title-letter-spacing: -0.04em;
+  --screen-head-control-height: 44px;
+  --screen-head-spacing: 16px;
   --shell-frame-gap: 12px;
   --chat-toggle-floating-compact-height: 40px;
   --desktop-shell-gutter: var(--shell-frame-gap);

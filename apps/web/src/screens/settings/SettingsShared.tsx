@@ -48,20 +48,22 @@ type SettingsGroupProps = Readonly<{
 export function SettingsShell(props: SettingsShellProps): ReactElement {
   const { title, subtitle, activeTab, children, panelClassName } = props;
   const settingsPanelClassName = panelClassName === undefined
-    ? "panel settings-panel"
-    : `panel settings-panel ${panelClassName}`;
+    ? "panel screen-panel settings-panel"
+    : `panel screen-panel settings-panel ${panelClassName}`;
 
   return (
     <main className="container settings-page">
       <section className={settingsPanelClassName} data-active-tab={activeTab}>
         <div className="screen-head">
           <div>
-            <h1 className="panel-subtitle">{title}</h1>
-            {subtitle === null ? null : <p className="subtitle">{subtitle}</p>}
+            <h1 className="title">{title}</h1>
           </div>
         </div>
 
-        {children}
+        <div className="screen-body">
+          {subtitle === null ? null : <p className="subtitle">{subtitle}</p>}
+          {children}
+        </div>
       </section>
     </main>
   );
