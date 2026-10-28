@@ -1,14 +1,16 @@
-import { useEffect, useRef, useState, type JSX, type ReactNode } from "react";
+import { Fragment, useEffect, useRef, useState, type JSX, type ReactNode } from "react";
 import * as d3 from "d3";
 import { ChartAreaWithNote } from "../../charts/ChartAreaWithNote";
+import { ChartColorKey } from "../../charts/ChartLegends";
 import { ChartLoadingPlaceholder } from "../../charts/ChartLoadingPlaceholder";
 import { ChartTooltip, useChartTooltip } from "../../charts/ChartTooltip";
-import { chartWidth, stackedChartHeight } from "../../charts/chartPrimitives";
+import { buildFunnelComparisonTint, chartWidth, stackedChartHeight } from "../../charts/chartPrimitives";
 import { escapeHtml, formatGeneratedAt } from "../../charts/formatting";
 import { renderRateLineChart } from "../../charts/rateLineChart";
 import type { AdminAppConfig } from "../../config";
 import { ExplanationTip } from "../../explanations/ExplanationTip";
 import type { AnalyticsDateRange } from "../../filters/analyticsFilters";
+import { formatFunnelRangeSeriesLabel, type FunnelRangeKey } from "../funnels/funnelRangeReports";
 import {
   LevelOneMetricDetailsButton,
   type LevelOneMetricDetailsLink,
@@ -18,6 +20,7 @@ import {
   buildStudiedRetentionCurveSql,
   loadRetentionCurveReport,
   retentionCurveLastDay,
+  type RetentionCurveCohortFilters,
   type RetentionCurveDay,
   type RetentionCurveReport,
 } from "./query";
@@ -25,15 +28,24 @@ import {
 type RetentionCurveCopy = Readonly<{
   title: string;
   testId: string;
-  buildSql: (dateRange: AnalyticsDateRange, reportLabel: string) => string;
+  buildSql: (dateRange: AnalyticsDateRange, cohortFilters: RetentionCurveCohortFilters, reportLabel: string) => string;
   /** The activity-specific `<li>` items of the (i) explanation. */
   explanation: ReactNode;
 }>;
 
+/** One range's curve: A is the selected range, B the comparison range. */
+type RetentionCurveRange = Readonly<{
+  key: FunnelRangeKey;
+  /** `null` without a comparison, so a single curve reads as it always has. */
+  seriesLabel: string | null;
+  report: RetentionCurveReport;
+}>;
+
+/** Ready holds A first, then B when a comparison range is set. */
 type LoadState =
   | Readonly<{ status: "loading" }>
   | Readonly<{ status: "error"; message: string }>
-  | Readonly<{ status: "ready"; report: RetentionCurveReport }>;
+  | Readonly<{ status: "ready"; ranges: ReadonlyArray<RetentionCurveRange> }>;
 
 const studiedRetentionCurveCopy: RetentionCurveCopy = {
   title: "Who came back",
@@ -59,7 +71,11 @@ const appOpenRetentionCurveCopy: RetentionCurveCopy = {
 
 const tileDays: ReadonlyArray<number> = [1, 7, 30];
 const dayKeys: ReadonlyArray<string> = d3.range(retentionCurveLastDay + 1).map((dayNumber) => `${dayNumber}`);
-const curveColor = "#4e79a7";
+// B is a lighter tint of A, as in a funnel's range comparison, so the selected range stays the main line.
+const curveColors: Readonly<Record<FunnelRangeKey, string>> = {
+  a: "#4e79a7",
+  b: buildFunnelComparisonTint("#4e79a7"),
+};
 const formatCount = d3.format(",d");
 const formatRate = d3.format(".1%");
 
@@ -85,22 +101,51 @@ function describeDay(day: RetentionCurveDay, report: RetentionCurveReport): stri
     : `${formatRate(day.activeUsers / day.eligibleUsers)} active (${formatCount(day.activeUsers)} / ${formatCount(day.eligibleUsers)} eligible).`;
 }
 
-function RetentionCurveTile(props: Readonly<{ label: string; value: string; detail: string }>): JSX.Element {
+/** `text` named by its range once two ranges share the card. */
+function prefixRange(range: RetentionCurveRange, text: string): string {
+  return range.seriesLabel === null ? text : `${range.key.toUpperCase()} ${text}`;
+}
+
+function buildDayTooltipMetricsHtml(day: RetentionCurveDay, report: RetentionCurveReport): string {
+  return day.activeUsers === null
+    ? `<p>${escapeHtml(describeUnavailableDay(day, report))}</p>`
+    : [
+      `<div class="tooltip-metric"><span>Active</span><strong>${escapeHtml(formatRate(day.activeUsers / day.eligibleUsers))}</strong></div>`,
+      `<div class="tooltip-metric"><span>Active people</span><strong>${escapeHtml(formatCount(day.activeUsers))}</strong></div>`,
+      `<div class="tooltip-metric"><span>Eligible people</span><strong>${escapeHtml(formatCount(day.eligibleUsers))}</strong></div>`,
+    ].join("");
+}
+
+/** One value per range, A first. */
+function RetentionCurveTile(props: Readonly<{
+  label: string;
+  entries: ReadonlyArray<Readonly<{ key: FunnelRangeKey; value: string; detail: string }>>;
+}>): JSX.Element {
   return (
     <article className="metric-card">
       <p className="metric-label">{props.label}</p>
-      <p className="metric-value">{props.value}</p>
-      <p className="metric-detail">{props.detail}</p>
+      {props.entries.map((entry) => (
+        <Fragment key={entry.key}>
+          <p className="metric-value">{entry.value}</p>
+          <p className="metric-detail">{entry.detail}</p>
+        </Fragment>
+      ))}
     </article>
   );
 }
 
-function RetentionCurveSection(props: Readonly<{
-  copy: RetentionCurveCopy;
+type RetentionCurveSectionProps = Readonly<{
   config: AdminAppConfig;
   dateRange: AnalyticsDateRange;
-  detailsLink: LevelOneMetricDetailsLink | null;
+  cohortFilters: RetentionCurveCohortFilters;
+  /** Drawn as a second, lighter curve B; `null` is no comparison. */
+  comparisonDateRange: AnalyticsDateRange | null;
   onTerminalAdminError: (error: unknown, config: AdminAppConfig) => boolean;
+}>;
+
+function RetentionCurveSection(props: RetentionCurveSectionProps & Readonly<{
+  copy: RetentionCurveCopy;
+  detailsLink: LevelOneMetricDetailsLink | null;
 }>): JSX.Element {
   const { copy } = props;
   const chartRef = useRef<SVGSVGElement | null>(null);
@@ -113,42 +158,57 @@ function RetentionCurveSection(props: Readonly<{
     tooltipHandlers.hideTooltip();
     setState({ status: "loading" });
     const abortController = new AbortController();
-    void loadRetentionCurveReport(props.config, copy.buildSql(props.dateRange, reportLabel), reportLabel, abortController.signal).then((report) => {
-      if (!cancelled) setState({ status: "ready", report });
+    const requests: ReadonlyArray<Readonly<{ key: FunnelRangeKey; dateRange: AnalyticsDateRange }>> = props.comparisonDateRange === null
+      ? [{ key: "a", dateRange: props.dateRange }]
+      : [{ key: "a", dateRange: props.dateRange }, { key: "b", dateRange: props.comparisonDateRange }];
+    void Promise.all(requests.map(async (request): Promise<RetentionCurveRange> => {
+      const rangeLabel = `${reportLabel} on ${request.dateRange.from} – ${request.dateRange.to}`;
+      const report = await loadRetentionCurveReport(
+        props.config,
+        copy.buildSql(request.dateRange, props.cohortFilters, rangeLabel),
+        rangeLabel,
+        abortController.signal,
+      );
+      return {
+        key: request.key,
+        seriesLabel: props.comparisonDateRange === null ? null : formatFunnelRangeSeriesLabel(request.key, request.dateRange),
+        report,
+      };
+    })).then((ranges) => {
+      if (!cancelled) setState({ status: "ready", ranges });
     }).catch((error: unknown) => {
       if (cancelled || props.onTerminalAdminError(error, props.config)) return;
       setState({ status: "error", message: error instanceof Error ? error.message : `Unexpected ${copy.title} query error.` });
     });
     return () => { cancelled = true; abortController.abort(); };
-  }, [copy, props.config, props.dateRange, props.onTerminalAdminError, revision, tooltipHandlers]);
+  }, [copy, props.config, props.dateRange, props.cohortFilters, props.comparisonDateRange, props.onTerminalAdminError, revision, tooltipHandlers]);
   useEffect(() => {
     if (chartRef.current === null || state.status !== "ready") return;
-    const report = state.report;
-    const getKeyDay = (key: string): RetentionCurveDay => getDay(report, Number(key));
+    const ranges = state.ranges;
+    const getKeyDay = (range: RetentionCurveRange, key: string): RetentionCurveDay => getDay(range.report, Number(key));
     renderRateLineChart({
       svgElement: chartRef.current,
       keys: dayKeys,
-      lines: [{ getRate: (key) => getRate(getKeyDay(key)), color: curveColor }],
+      // B first, so A is drawn on top of it.
+      lines: [...ranges].reverse().map((range) => ({ getRate: (key: string) => getRate(getKeyDay(range, key)), color: curveColors[range.key] })),
       inProgressKey: null,
       yLabel: "Cohort active that day",
       xLabel: "Days since day 0 (UTC)",
       notes: [],
       formatTick: (key) => `D${key}`,
-      getLabel: (key) => `Day ${key}. ${describeDay(getKeyDay(key), report)}`,
-      getTooltipHtml: (key) => {
-        const day = getKeyDay(key);
-        return day.activeUsers === null
-          ? `<p class="tooltip-title">Day ${escapeHtml(key)}</p><p>${escapeHtml(describeUnavailableDay(day, report))}</p>`
-          : [
-            `<p class="tooltip-title">Day ${escapeHtml(key)}</p>`,
-            `<div class="tooltip-metric"><span>Active</span><strong>${escapeHtml(formatRate(day.activeUsers / day.eligibleUsers))}</strong></div>`,
-            `<div class="tooltip-metric"><span>Active people</span><strong>${escapeHtml(formatCount(day.activeUsers))}</strong></div>`,
-            `<div class="tooltip-metric"><span>Eligible people</span><strong>${escapeHtml(formatCount(day.eligibleUsers))}</strong></div>`,
-          ].join("");
-      },
+      getLabel: (key) => `Day ${key}. ${ranges.map((range) => prefixRange(range, describeDay(getKeyDay(range, key), range.report))).join(" ")}`,
+      getTooltipHtml: (key) => [
+        `<p class="tooltip-title">Day ${escapeHtml(key)}</p>`,
+        ...ranges.map((range) => [
+          range.seriesLabel === null ? "" : `<p class="tooltip-subtitle">${escapeHtml(range.seriesLabel)}</p>`,
+          buildDayTooltipMetricsHtml(getKeyDay(range, key), range.report),
+        ].join("")),
+      ].join(""),
       tooltipHandlers,
     });
   }, [state, tooltipHandlers]);
+  const isComparing = state.status === "ready" && state.ranges.length > 1;
+  const primaryRange = state.status === "ready" ? state.ranges[0] : undefined;
   return (
     <section className="dashboard-section" data-testid={`${copy.testId}-section`}>
       <header className="dashboard-section-header level-1-metric-section-header">
@@ -160,7 +220,9 @@ function RetentionCurveSection(props: Readonly<{
               <li>Each point is the share of the people eligible on day N who were active that day. D0 is 100% by definition.</li>
               <li>A person is eligible on day N only once that day is a complete UTC day, so the eligible group shrinks towards D{retentionCurveLastDay} for recent day 0s. A day with nobody eligible is unavailable, never 0%.</li>
               <li>The date range selects day 0, using only covered, complete UTC days; activity after the range end still counts through the latest complete UTC day. One curve covers the whole range, so Group by does not change it.</li>
-              {state.status === "ready" ? <li>Generated {formatGeneratedAt(state.report.generatedAtUtc)}.</li> : null}
+              <li>The platform, connection country and app interface language filters pick the cohort by first use: the platform is that of the event that is each person’s day 0, and a country or language keeps a person as it does on the funnels, over the same range. Activity on day N counts on any platform.</li>
+              <li>A comparison range draws the same curve for the people whose day 0 falls in it, as a lighter line B; the tiles, tooltip and data table show A and B.</li>
+              {primaryRange !== undefined ? <li>Generated {formatGeneratedAt(primaryRange.report.generatedAtUtc)}.</li> : null}
             </ul>
           </ExplanationTip>
         </div>
@@ -174,13 +236,26 @@ function RetentionCurveSection(props: Readonly<{
       ) : null}
       {state.status === "ready" ? (
         <section className="summary-grid">
-          <RetentionCurveTile label="Cohort" value={formatCount(state.report.cohortUsers)} detail="People with day 0 in range" />
-          {tileDays.map((dayNumber) => {
-            const day = getDay(state.report, dayNumber);
-            return day.activeUsers === null
-              ? <RetentionCurveTile key={dayNumber} label={`D${dayNumber}`} value="Unavailable" detail={describeUnavailableDay(day, state.report)} />
-              : <RetentionCurveTile key={dayNumber} label={`D${dayNumber}`} value={formatRate(day.activeUsers / day.eligibleUsers)} detail={`${formatCount(day.activeUsers)} / ${formatCount(day.eligibleUsers)} eligible`} />;
-          })}
+          <RetentionCurveTile
+            label="Cohort"
+            entries={state.ranges.map((range) => ({
+              key: range.key,
+              value: prefixRange(range, formatCount(range.report.cohortUsers)),
+              detail: "People with day 0 in range",
+            }))}
+          />
+          {tileDays.map((dayNumber) => (
+            <RetentionCurveTile
+              key={dayNumber}
+              label={`D${dayNumber}`}
+              entries={state.ranges.map((range) => {
+                const day = getDay(range.report, dayNumber);
+                return day.activeUsers === null
+                  ? { key: range.key, value: prefixRange(range, "Unavailable"), detail: describeUnavailableDay(day, range.report) }
+                  : { key: range.key, value: prefixRange(range, formatRate(day.activeUsers / day.eligibleUsers)), detail: `${formatCount(day.activeUsers)} / ${formatCount(day.eligibleUsers)} eligible` };
+              })}
+            />
+          ))}
         </section>
       ) : null}
       {state.status === "error" ? null : (
@@ -188,13 +263,25 @@ function RetentionCurveSection(props: Readonly<{
           <div className="chart-shell">
             <div className="chart-meta">
               <span>Share of the cohort active on day N · UTC</span>
+              {state.status === "ready" && isComparing ? (
+                <div className="chart-meta-right">
+                  <ChartColorKey
+                    ariaLabel={`${copy.title} color key`}
+                    keys={state.ranges.map((range) => range.key)}
+                    getColor={(key) => curveColors[key]}
+                    getLabel={(key) => state.ranges.find((range) => range.key === key)?.seriesLabel ?? key}
+                  />
+                </div>
+              ) : null}
             </div>
             <div className="chart-scroll">
               {state.status === "ready" ? (
                 <ChartAreaWithNote
                   viewBoxWidth={chartWidth}
                   viewBoxHeight={stackedChartHeight}
-                  note={state.report.cohortUsers === 0 ? "Nobody has day 0 in the covered, complete days of this range." : null}
+                  note={state.ranges.every((range) => range.report.cohortUsers === 0)
+                    ? `Nobody has day 0 in the covered, complete days of ${isComparing ? "either range" : "this range"}.`
+                    : null}
                 >
                   <svg ref={chartRef} role="group" aria-label={`${copy.title}: share of the cohort active on each day 0 to ${retentionCurveLastDay}`} />
                 </ChartAreaWithNote>
@@ -208,23 +295,32 @@ function RetentionCurveSection(props: Readonly<{
                     <thead>
                       <tr>
                         <th scope="col">Day</th>
-                        <th scope="col">Eligible people</th>
-                        <th scope="col">Active people</th>
-                        <th scope="col">Active %</th>
+                        {state.ranges.map((range) => (
+                          <Fragment key={range.key}>
+                            <th scope="col">{prefixRange(range, "Eligible people")}</th>
+                            <th scope="col">{prefixRange(range, "Active people")}</th>
+                            <th scope="col">{prefixRange(range, "Active %")}</th>
+                          </Fragment>
+                        ))}
                       </tr>
                     </thead>
                     <tbody>
-                      {state.report.days.map((day) => {
-                        const rate = getRate(day);
-                        return (
-                          <tr key={day.dayNumber}>
-                            <th scope="row">D{day.dayNumber}</th>
-                            <td>{formatCount(day.eligibleUsers)}</td>
-                            <td>{day.activeUsers === null ? "—" : formatCount(day.activeUsers)}</td>
-                            <td>{rate === null ? "Unavailable" : formatRate(rate)}</td>
-                          </tr>
-                        );
-                      })}
+                      {dayKeys.map((key) => (
+                        <tr key={key}>
+                          <th scope="row">D{key}</th>
+                          {state.ranges.map((range) => {
+                            const day = getDay(range.report, Number(key));
+                            const rate = getRate(day);
+                            return (
+                              <Fragment key={range.key}>
+                                <td>{formatCount(day.eligibleUsers)}</td>
+                                <td>{day.activeUsers === null ? "—" : formatCount(day.activeUsers)}</td>
+                                <td>{rate === null ? "Unavailable" : formatRate(rate)}</td>
+                              </Fragment>
+                            );
+                          })}
+                        </tr>
+                      ))}
                     </tbody>
                   </table>
                 </div>
@@ -239,36 +335,13 @@ function RetentionCurveSection(props: Readonly<{
 }
 
 /** Classic N-day retention of answered reviews over the whole selected range. */
-export function StudiedRetentionCurveSection(props: Readonly<{
-  config: AdminAppConfig;
-  dateRange: AnalyticsDateRange;
+export function StudiedRetentionCurveSection(props: RetentionCurveSectionProps & Readonly<{
   detailsLink: LevelOneMetricDetailsLink | null;
-  onTerminalAdminError: (error: unknown, config: AdminAppConfig) => boolean;
 }>): JSX.Element {
-  return (
-    <RetentionCurveSection
-      copy={studiedRetentionCurveCopy}
-      config={props.config}
-      dateRange={props.dateRange}
-      detailsLink={props.detailsLink}
-      onTerminalAdminError={props.onTerminalAdminError}
-    />
-  );
+  return <RetentionCurveSection {...props} copy={studiedRetentionCurveCopy} />;
 }
 
 /** Classic N-day retention of app opens over the whole selected range. */
-export function AppOpenRetentionCurveSection(props: Readonly<{
-  config: AdminAppConfig;
-  dateRange: AnalyticsDateRange;
-  onTerminalAdminError: (error: unknown, config: AdminAppConfig) => boolean;
-}>): JSX.Element {
-  return (
-    <RetentionCurveSection
-      copy={appOpenRetentionCurveCopy}
-      config={props.config}
-      dateRange={props.dateRange}
-      detailsLink={null}
-      onTerminalAdminError={props.onTerminalAdminError}
-    />
-  );
+export function AppOpenRetentionCurveSection(props: RetentionCurveSectionProps): JSX.Element {
+  return <RetentionCurveSection {...props} copy={appOpenRetentionCurveCopy} detailsLink={null} />;
 }
