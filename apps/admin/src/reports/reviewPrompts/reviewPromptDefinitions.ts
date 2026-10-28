@@ -142,7 +142,7 @@ const reviewPromptMetadata: Readonly<Record<ReviewPromptId, ReviewPromptMetadata
   },
   "web-mobile-app-promo": {
     title: "Web mobile-app promo",
-    fixedRule: "Until the person reviews on mobile",
+    fixedRule: "Until the person reviews on mobile or through an AI agent",
     platforms: ["web"],
     unreleasedPlatforms: [],
     acted: { kind: "rule", rule: "A store link clicked", window: { amount: 1, unit: "hour" } },

@@ -44,7 +44,8 @@
 //   "Continue" opens the OS permission dialog when the OS can still show it, otherwise the app's
 //   page in system Settings ("Open Settings"); "Later" does nothing else.
 // - rating-request (mobile): at most once per app version.
-// - web-mobile-app-promo (web): only until the person has a review from a mobile device.
+// - web-mobile-app-promo (web): only until the person has a review from a mobile device or an
+//   external agent connection (MCP or the agent API); in-app AI chat reviews do not count.
 // - guest-sign-in: guests only; it stops only when the person is no longer a guest.
 // - automatic-feedback: feedback submissions do not affect its cooldown.
 

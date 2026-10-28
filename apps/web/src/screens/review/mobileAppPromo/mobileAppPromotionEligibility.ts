@@ -7,6 +7,7 @@ export type MobileAppPromotionEligibilityInput = Readonly<{
   settings: ReviewPromptSettings;
   promptState: MobileAppPromotionState;
   hasMobileReviewEvent: boolean;
+  hasAgentReviewEvent: boolean;
   nowMillis: number;
 }>;
 
@@ -16,6 +17,7 @@ export type MobileAppPromotionEligibilityResult = Readonly<{
     | "eligible"
     | "known_mobile_review_event"
     | "backend_mobile_review_event"
+    | "backend_agent_review_event"
     | "shown_cooldown";
 }>;
 
@@ -33,6 +35,13 @@ export function evaluateMobileAppPromotionEligibility(
     return {
       isEligible: false,
       reason: "backend_mobile_review_event",
+    };
+  }
+
+  if (input.hasAgentReviewEvent) {
+    return {
+      isEligible: false,
+      reason: "backend_agent_review_event",
     };
   }
 

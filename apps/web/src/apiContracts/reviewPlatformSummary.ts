@@ -10,5 +10,6 @@ export function parseReviewPlatformSummaryResponse(value: unknown, endpoint: str
 
   return {
     hasMobileReviewEvent: parseRequiredField(objectValue, "hasMobileReviewEvent", endpoint, "", parseBoolean),
+    hasAgentReviewEvent: parseRequiredField(objectValue, "hasAgentReviewEvent", endpoint, "", parseBoolean),
   };
 }
