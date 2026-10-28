@@ -58,7 +58,7 @@ import {
   type ReviewPaywallPromptId,
 } from "../../premium/reviewPaywall/schedule";
 import { captureAppOperationError } from "../../observability/appOperationObservation";
-import type { FeedbackPromptEventType, FeedbackSubmissionRequest } from "../../types";
+import type { FeedbackPromptEventType, FeedbackSubmissionRequest, ReviewPlatformSummary } from "../../types";
 import type { GuestSignInAfterReviewPromptProps } from "./guest/GuestSignInAfterReviewPrompt";
 import {
   loadGuestSignInAfterReviewLastShownAt,
@@ -471,15 +471,16 @@ export function usePostReviewPrompts(params: UsePostReviewPromptsParams): UsePos
         settings,
         promptState,
         hasMobileReviewEvent: false,
+        hasAgentReviewEvent: false,
         nowMillis: Date.now(),
       });
       if (localEligibility.isEligible === false) {
         return { kind: "skipped" };
       }
 
-      let hasMobileReviewEvent: boolean;
+      let reviewPlatformSummary: ReviewPlatformSummary;
       try {
-        hasMobileReviewEvent = (await loadReviewPlatformSummary()).hasMobileReviewEvent;
+        reviewPlatformSummary = await loadReviewPlatformSummary();
         indexedDbOpenRecoveryState.throwIfFailed();
       } catch (error) {
         if (markIndexedDbOpenRecoveryFailure(error)) {
@@ -493,7 +494,7 @@ export function usePostReviewPrompts(params: UsePostReviewPromptsParams): UsePos
         return { kind: "cancelled" };
       }
 
-      if (hasMobileReviewEvent) {
+      if (reviewPlatformSummary.hasMobileReviewEvent || reviewPlatformSummary.hasAgentReviewEvent) {
         try {
           await storeKnownMobileReviewEvent({
             identityKey: promptContext.identityKey,
@@ -526,7 +527,8 @@ export function usePostReviewPrompts(params: UsePostReviewPromptsParams): UsePos
       const remoteEligibility = evaluateMobileAppPromotionEligibility({
         settings,
         promptState,
-        hasMobileReviewEvent,
+        hasMobileReviewEvent: reviewPlatformSummary.hasMobileReviewEvent,
+        hasAgentReviewEvent: reviewPlatformSummary.hasAgentReviewEvent,
         nowMillis: Date.now(),
       });
       if (remoteEligibility.isEligible === false || isReviewPromptUiBlocked()) {

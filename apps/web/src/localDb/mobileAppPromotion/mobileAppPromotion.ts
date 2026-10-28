@@ -8,6 +8,7 @@ import {
 
 export type MobileAppPromotionState = Readonly<{
   lastPromptShownAt: string | null;
+  /** Also set by an external agent review: any review that stops the promo. */
   knownHasMobileReviewEvent: boolean;
 }>;
 
