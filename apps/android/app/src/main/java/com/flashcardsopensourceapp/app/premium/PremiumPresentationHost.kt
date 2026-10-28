@@ -157,7 +157,8 @@ internal fun PremiumPresentationHost(
                         CloudAccountState.LINKED -> AnalyticsPaywallAccountKind.REGISTERED
                         else -> null
                     },
-                    offerType = displayedOfferType
+                    offerType = displayedOfferType,
+                    reviewPromptConfigVersion = presenter.reviewPromptConfigVersion
                 )
             )
         }

@@ -6,15 +6,12 @@ import androidx.activity.ComponentActivity
 import androidx.lifecycle.Lifecycle
 import com.flashcardsopensourceapp.core.observability.analytics.Analytics
 import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsEvent
-import com.flashcardsopensourceapp.data.local.database.review.ReviewLogDao
 import com.flashcardsopensourceapp.data.local.review.StoreReviewRequestStore
-import com.flashcardsopensourceapp.data.local.review.determineStoreReviewRequestEligibility
 import com.google.android.gms.tasks.Task
 import com.google.android.play.core.review.ReviewException
 import com.google.android.play.core.review.ReviewInfo
 import com.google.android.play.core.review.ReviewManager
 import com.google.android.play.core.review.ReviewManagerFactory
-import java.time.ZoneId
 import java.util.concurrent.atomic.AtomicReference
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
@@ -45,23 +42,32 @@ class StoreReviewActivityProvider {
 
 class StoreReviewRequestManager(
     context: Context,
-    private val reviewLogDao: ReviewLogDao,
     private val storeReviewRequestStore: StoreReviewRequestStore,
     private val appVersion: String,
     private val analytics: Analytics,
-    private val zoneIdProvider: () -> ZoneId,
     private val currentTimeMillisProvider: () -> Long
 ) {
     private val reviewManager: ReviewManager = ReviewManagerFactory.create(context.applicationContext)
     private val mutex = Mutex()
 
+    /** The last request, the clock of the rating prompt's cooldown. */
+    fun lastRequestedAtMillis(): Long? {
+        return storeReviewRequestStore.loadState().lastStoreReviewRequestedAt
+    }
+
+    /** Asks Google Play for its rating dialog at most once per app version. */
     suspend fun requestStoreReviewIfEligible(
         activity: ComponentActivity,
-        canPresent: () -> Boolean
+        canPresent: () -> Boolean,
+        reviewPromptConfigVersion: String
     ): Boolean {
         return mutex.withLock {
             try {
-                requestStoreReviewIfEligibleNow(activity = activity, canPresent = canPresent)
+                requestStoreReviewIfEligibleNow(
+                    activity = activity,
+                    canPresent = canPresent,
+                    reviewPromptConfigVersion = reviewPromptConfigVersion
+                )
             } catch (error: CancellationException) {
                 throw error
             } catch (error: Throwable) {
@@ -76,38 +82,35 @@ class StoreReviewRequestManager(
 
     private suspend fun requestStoreReviewIfEligibleNow(
         activity: ComponentActivity,
-        canPresent: () -> Boolean
+        canPresent: () -> Boolean,
+        reviewPromptConfigVersion: String
     ): Boolean {
         if (isStoreReviewActivityResumed(activity = activity).not() || !canPresent()) {
             return false
         }
+        if (storeReviewRequestStore.loadState().lastStoreReviewRequestedAppVersion == appVersion.trim()) {
+            return false
+        }
 
-        val nowMillis = currentTimeMillisProvider()
-        val eligibility = determineStoreReviewRequestEligibility(
-            reviewLogDao = reviewLogDao,
-            storeReviewRequestStore = storeReviewRequestStore,
-            nowMillis = nowMillis,
-            zoneId = zoneIdProvider(),
-            appVersion = appVersion
+        launchGooglePlayReviewFlow(
+            activity = activity,
+            canPresent = canPresent,
+            reviewPromptConfigVersion = reviewPromptConfigVersion
         )
-
-        if (eligibility.isEligible.not()) {
-            return false
-        }
-        if (isStoreReviewActivityResumed(activity = activity).not() || !canPresent()) {
-            return false
-        }
-
-        launchGooglePlayReviewFlow(activity = activity, canPresent = canPresent)
         return true
     }
 
     private suspend fun launchGooglePlayReviewFlow(
         activity: ComponentActivity,
-        canPresent: () -> Boolean
+        canPresent: () -> Boolean,
+        reviewPromptConfigVersion: String
     ) {
         try {
-            requestAndLaunchGooglePlayReviewFlow(activity = activity, canPresent = canPresent)
+            requestAndLaunchGooglePlayReviewFlow(
+                activity = activity,
+                canPresent = canPresent,
+                reviewPromptConfigVersion = reviewPromptConfigVersion
+            )
         } catch (error: CancellationException) {
             throw error
         } catch (error: Throwable) {
@@ -120,7 +123,8 @@ class StoreReviewRequestManager(
 
     private suspend fun requestAndLaunchGooglePlayReviewFlow(
         activity: ComponentActivity,
-        canPresent: () -> Boolean
+        canPresent: () -> Boolean,
+        reviewPromptConfigVersion: String
     ) {
         withContext(Dispatchers.Main.immediate) {
             val reviewInfo = awaitReviewInfoTask(task = reviewManager.requestReviewFlow())
@@ -134,7 +138,9 @@ class StoreReviewRequestManager(
                 requestedAtMillis = nowMillis,
                 appVersion = appVersion
             )
-            analytics.track(event = AnalyticsEvent.StoreReviewRequested)
+            analytics.track(
+                event = AnalyticsEvent.StoreReviewRequested(reviewPromptConfigVersion = reviewPromptConfigVersion)
+            )
             awaitReviewFlowCompletionTask(task = reviewManager.launchReviewFlow(activity, reviewInfo))
         }
     }
