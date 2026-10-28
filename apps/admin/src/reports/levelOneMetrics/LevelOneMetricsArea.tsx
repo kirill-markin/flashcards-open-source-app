@@ -1,6 +1,7 @@
 import type { JSX } from "react";
 import type { AdminAppConfig } from "../../config";
 import { defaultSiteVisitorFilterState } from "../../filters/analyticsFilters";
+import { unnarrowedRetentionCurveCohortFilters } from "../retentionCurve/query";
 import { StudiedRetentionCurveSection } from "../retentionCurve/RetentionCurveSections";
 import { WhoPaidUsSection } from "../whoPaidUs/WhoPaidUsSection";
 import { WhoStudiedSection } from "../whoStudied/WhoStudiedSection";
@@ -36,6 +37,8 @@ export function LevelOneMetricsArea(
           <StudiedRetentionCurveSection
             config={props.config}
             dateRange={selection.dateRange}
+            cohortFilters={unnarrowedRetentionCurveCohortFilters}
+            comparisonDateRange={null}
             detailsLink={buildLevelOneMetricDetailsLink("who-came-back", search, props.onNavigate)}
             onTerminalAdminError={props.onTerminalAdminError}
           />

@@ -37,6 +37,26 @@ export const appOpenActivitySource: DailyActivitySource = {
 };
 
 /**
+ * The `app_open_first_use_platform` CTE, composed after `buildAppOpenActivityCtesSql`: for each person
+ * whose first open falls in `range`, the `platform` of the `app_opened` that is that first open
+ * (earliest `occurred_at`, then `event_id`).
+ */
+export function buildAppOpenFirstUsePlatformCteSql(range: AnalyticsDateRange): string {
+  return `app_open_first_use_platform AS (
+  SELECT DISTINCT ON (range_opens.actor_id) range_opens.actor_id, range_opens.platform
+  FROM (
+    SELECT events.actor_id::text AS actor_id, events.occurred_at, events.event_id, events.platform
+    ${appOpenRowsFromSql}
+      AND events.occurred_at >= (${escapeSqlStringLiteral(range.from)}::date)::timestamp AT TIME ZONE 'UTC'
+      AND events.occurred_at < (${escapeSqlStringLiteral(range.to)}::date + 1)::timestamp AT TIME ZONE 'UTC'
+  ) AS range_opens
+  JOIN app_open_first_use ON app_open_first_use.actor_id = range_opens.actor_id
+    AND app_open_first_use.first_use_date = (range_opens.occurred_at AT TIME ZONE 'UTC')::date
+  ORDER BY range_opens.actor_id, range_opens.occurred_at, range_opens.event_id
+)`;
+}
+
+/**
  * The `app_open_last_opens` CTE, composed after `buildAppOpenActivityCtesSql`: one row per bucket of
  * the range and person `app_open_activity` counts in it, carrying that person's last `app_opened` in
  * the bucket (latest `occurred_at`, then `event_id`), so a breakdown places each person once per bar.

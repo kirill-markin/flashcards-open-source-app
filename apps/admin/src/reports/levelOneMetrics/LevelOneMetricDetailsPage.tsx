@@ -1,6 +1,7 @@
 import type { JSX, ReactNode } from "react";
 import type { AdminAppConfig } from "../../config";
 import { getAnalyticsAreaPath, type LevelOneMetricDetail } from "../../routing";
+import { unnarrowedRetentionCurveCohortFilters } from "../retentionCurve/query";
 import { AppOpenRetentionCurveSection, StudiedRetentionCurveSection } from "../retentionCurve/RetentionCurveSections";
 import { WhoCameBackBreakdownSections } from "../whoCameBack/WhoCameBackBreakdownSections";
 import { WhoCameBackSection } from "../whoCameBack/WhoCameBackSection";
@@ -91,12 +92,16 @@ function renderMetricSections(
           <StudiedRetentionCurveSection
             config={props.config}
             dateRange={selection.dateRange}
+            cohortFilters={unnarrowedRetentionCurveCohortFilters}
+            comparisonDateRange={null}
             detailsLink={null}
             onTerminalAdminError={props.onTerminalAdminError}
           />
           <AppOpenRetentionCurveSection
             config={props.config}
             dateRange={selection.dateRange}
+            cohortFilters={unnarrowedRetentionCurveCohortFilters}
+            comparisonDateRange={null}
             onTerminalAdminError={props.onTerminalAdminError}
           />
           <WhoCameBackSection

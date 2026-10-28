@@ -1,11 +1,16 @@
-import { runAdminQuery } from "../../adminApi";
+import { reviewEventPlatforms, runAdminQuery } from "../../adminApi";
 import type { AdminAppConfig } from "../../config";
-import type { AnalyticsDateRange } from "../../filters/analyticsFilters";
+import type { AnalyticsDateRange, AnalyticsFilterState } from "../../filters/analyticsFilters";
+import {
+  buildAppUiLanguagesFilterSql,
+  buildConnectionCountriesFilterSql,
+  buildEventPlatformsFilterSql,
+} from "../../filters/filterSql";
 import { escapeSqlStringLiteral } from "../../sql";
 import type { DailyActivitySource } from "../dailyNewReturning/query";
-import { reviewActivitySource } from "../levelOneMetrics/meaningfulActivitySql";
+import { buildActorFirstUsePlatformCteSql, reviewActivitySource } from "../levelOneMetrics/meaningfulActivitySql";
 import { assertValidDateRange, parseActivityCount, parseActivityDate, toInteger } from "../reportValues";
-import { appOpenActivitySource } from "../whoOpenedTheApp/appOpenActivitySql";
+import { appOpenActivitySource, buildAppOpenFirstUsePlatformCteSql } from "../whoOpenedTheApp/appOpenActivitySql";
 
 export const retentionCurveLastDay = 30;
 
@@ -15,6 +20,36 @@ export type RetentionCurveDay = Readonly<{
   eligibleUsers: number;
   activeUsers: number | null;
 }>;
+
+/** The filters that pick the cohort by each person's first use; activity on day N counts whatever they say. */
+export type RetentionCurveCohortFilters = Pick<AnalyticsFilterState, "eventPlatforms" | "connectionCountries" | "appUiLanguages">;
+
+/** Every platform, country and language: the whole cohort. */
+export const unnarrowedRetentionCurveCohortFilters: RetentionCurveCohortFilters = {
+  eventPlatforms: reviewEventPlatforms,
+  connectionCountries: [],
+  appUiLanguages: [],
+};
+
+/** A daily activity source with the CTE naming the platform of each person's first use in a range. */
+type RetentionCurveSource = Readonly<{
+  activity: DailyActivitySource;
+  firstUsePlatformCte: string;
+  /** Composed after `activity.ctesSql`; defines `firstUsePlatformCte` as `actor_id, platform`. */
+  buildFirstUsePlatformCteSql: (range: AnalyticsDateRange) => string;
+}>;
+
+const studiedRetentionCurveSource: RetentionCurveSource = {
+  activity: reviewActivitySource,
+  firstUsePlatformCte: "actor_first_use_platform",
+  buildFirstUsePlatformCteSql: buildActorFirstUsePlatformCteSql,
+};
+
+const appOpenRetentionCurveSource: RetentionCurveSource = {
+  activity: appOpenActivitySource,
+  firstUsePlatformCte: "app_open_first_use_platform",
+  buildFirstUsePlatformCteSql: buildAppOpenFirstUsePlatformCteSql,
+};
 
 export type RetentionCurveReport = Readonly<{
   generatedAtUtc: string;
@@ -26,19 +61,33 @@ export type RetentionCurveReport = Readonly<{
 
 // Classic bounded retention: the cohort is everyone whose day 0 is a covered, complete UTC day of the
 // range; day N counts only members whose day N is complete (right-censored), and a member is active
-// when the source holds an activity row on exactly that day.
-function buildRetentionCurveSql(source: DailyActivitySource, dateRange: AnalyticsDateRange, reportLabel: string): string {
+// when the source holds an activity row on exactly that day. The cohort filters narrow only the
+// cohort: the platform is that of the event that is the person's day 0, and the country and language
+// keep a person as the funnel filters do over the same range.
+function buildRetentionCurveSql(
+  source: RetentionCurveSource,
+  dateRange: AnalyticsDateRange,
+  cohortFilters: RetentionCurveCohortFilters,
+  reportLabel: string,
+): string {
   const range = assertValidDateRange(dateRange, reportLabel);
-  return `WITH ${source.ctesSql}, retention_clock AS (
+  const { activity } = source;
+  // The platform domain is closed, so every platform selected keeps everyone and skips the extra pass.
+  const isPlatformNarrowed = cohortFilters.eventPlatforms.length !== reviewEventPlatforms.length;
+  return `WITH ${activity.ctesSql}${isPlatformNarrowed ? `, ${source.buildFirstUsePlatformCteSql(range)}` : ""}, retention_clock AS (
   SELECT (now() AT TIME ZONE 'UTC')::date - 1 AS latest_complete_date
 ), retention_cohort AS MATERIALIZED (
   SELECT first_use.actor_id, first_use.first_use_date
-  FROM ${source.firstUseCte} AS first_use
-  CROSS JOIN ${source.coverageCte} AS coverage
-  CROSS JOIN retention_clock AS clock
+  FROM ${activity.firstUseCte} AS first_use
+  CROSS JOIN ${activity.coverageCte} AS coverage
+  CROSS JOIN retention_clock AS clock${isPlatformNarrowed ? `
+  JOIN ${source.firstUsePlatformCte} AS first_use_platform ON first_use_platform.actor_id = first_use.actor_id` : ""}
   WHERE first_use.first_use_date BETWEEN ${escapeSqlStringLiteral(range.from)}::date AND ${escapeSqlStringLiteral(range.to)}::date
     AND first_use.first_use_date >= coverage.history_from
-    AND first_use.first_use_date <= clock.latest_complete_date
+    AND first_use.first_use_date <= clock.latest_complete_date${isPlatformNarrowed ? `
+    AND ${buildEventPlatformsFilterSql("COALESCE(first_use_platform.platform, 'unattributed')", cohortFilters.eventPlatforms)}` : ""}
+    AND ${buildConnectionCountriesFilterSql("first_use.actor_id", cohortFilters.connectionCountries, range)}
+    AND ${buildAppUiLanguagesFilterSql("first_use.actor_id", cohortFilters.appUiLanguages, range)}
 ), retention_days AS (
   SELECT generate_series(0, ${retentionCurveLastDay}) AS day_number
 ), retention_counts AS (
@@ -49,7 +98,7 @@ function buildRetentionCurveSql(source: DailyActivitySource, dateRange: Analytic
   CROSS JOIN retention_clock AS clock
   LEFT JOIN retention_cohort AS cohort
     ON cohort.first_use_date + days.day_number <= clock.latest_complete_date
-  LEFT JOIN ${source.activityCte} AS activity
+  LEFT JOIN ${activity.activityCte} AS activity
     ON activity.actor_id = cohort.actor_id
     AND activity.activity_date = cohort.first_use_date + days.day_number
   GROUP BY days.day_number
@@ -59,19 +108,27 @@ SELECT counts.day_number, counts.eligible_users, counts.active_users,
   to_char(coverage.history_from, 'YYYY-MM-DD') AS history_from,
   to_char(clock.latest_complete_date, 'YYYY-MM-DD') AS latest_complete_date
 FROM retention_counts AS counts
-CROSS JOIN ${source.coverageCte} AS coverage
+CROSS JOIN ${activity.coverageCte} AS coverage
 CROSS JOIN retention_clock AS clock
 ORDER BY counts.day_number`;
 }
 
 /** Day 0 is the first-ever answered review, any rating; active on day N means an answered review that day. */
-export function buildStudiedRetentionCurveSql(dateRange: AnalyticsDateRange, reportLabel: string): string {
-  return buildRetentionCurveSql(reviewActivitySource, dateRange, reportLabel);
+export function buildStudiedRetentionCurveSql(
+  dateRange: AnalyticsDateRange,
+  cohortFilters: RetentionCurveCohortFilters,
+  reportLabel: string,
+): string {
+  return buildRetentionCurveSql(studiedRetentionCurveSource, dateRange, cohortFilters, reportLabel);
 }
 
 /** Day 0 is the first `app_opened`; active on day N means an `app_opened` that day. */
-export function buildAppOpenRetentionCurveSql(dateRange: AnalyticsDateRange, reportLabel: string): string {
-  return buildRetentionCurveSql(appOpenActivitySource, dateRange, reportLabel);
+export function buildAppOpenRetentionCurveSql(
+  dateRange: AnalyticsDateRange,
+  cohortFilters: RetentionCurveCohortFilters,
+  reportLabel: string,
+): string {
+  return buildRetentionCurveSql(appOpenRetentionCurveSource, dateRange, cohortFilters, reportLabel);
 }
 
 export async function loadRetentionCurveReport(
