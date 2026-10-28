@@ -12,9 +12,11 @@ import {
   buildReviewPromptWarnings,
   formatReviewPromptActedWindow,
   formatReviewPromptPlatforms,
+  reviewPromptConfigVersion,
   reviewPromptGoneWindowDays,
   reviewPrompts,
   type ReviewPrompt,
+  type ReviewPromptConfigRules,
   type ReviewPromptCoverage,
 } from "./reviewPromptDefinitions";
 
@@ -41,6 +43,30 @@ function formatCount(count: number): string {
   return count.toLocaleString("en-US");
 }
 
+function formatSetting(value: number | undefined): string {
+  return value === undefined ? "—" : formatCount(value);
+}
+
+function formatCooldown(days: number | undefined): string {
+  return days === undefined ? "—" : days === 1 ? "1 day" : `${formatCount(days)} days`;
+}
+
+function ReviewPromptConfigCells(props: Readonly<{ rules: ReviewPromptConfigRules }>): JSX.Element {
+  if (props.rules.kind === "never") {
+    return <td colSpan={4} className="review-prompts-never-cell">{props.rules.reason}</td>;
+  }
+
+  const { settings } = props.rules;
+  return (
+    <>
+      <td>{formatSetting(settings.minTotalReviews)}</td>
+      <td>{formatSetting(settings.minReviewsToday)}</td>
+      <td>{formatSetting(settings.minReviewDays)}</td>
+      <td>{formatCooldown(settings.cooldownDays)}</td>
+    </>
+  );
+}
+
 function ReviewPromptRow(props: Readonly<{
   prompt: ReviewPrompt;
   counts: ReviewPromptCounts;
@@ -56,6 +82,14 @@ function ReviewPromptRow(props: Readonly<{
 
   return (
     <tr data-testid={`${testId}-row`}>
+      <td>
+        <FunnelsLink
+          className={detailsButtonClassName}
+          path={getReviewPromptDetailsPath(prompt.id)}
+          testId={`${testId}-details-button`}
+          onNavigate={props.onNavigate}
+        >Details</FunnelsLink>
+      </td>
       <th scope="row" className="funnel-group-table-name">
         <div className="explained-heading-row">
           <span>{prompt.title}</span>
@@ -75,8 +109,6 @@ function ReviewPromptRow(props: Readonly<{
           })}
         </div>
       </th>
-      <td className="review-prompts-text-cell">{formatReviewPromptPlatforms(prompt)}</td>
-      <td className="review-prompts-text-cell review-prompts-rule-cell">{prompt.appearsWhen}</td>
       <td>{formatCount(counts.shownCount)}</td>
       <td>
         {prompt.acted.kind === "rule" ? (
@@ -96,14 +128,9 @@ function ReviewPromptRow(props: Readonly<{
         )}
       </td>
       <td>{formatCount(counts.goneCount)}</td>
-      <td>
-        <FunnelsLink
-          className={detailsButtonClassName}
-          path={getReviewPromptDetailsPath(prompt.id)}
-          testId={`${testId}-details-button`}
-          onNavigate={props.onNavigate}
-        >Details</FunnelsLink>
-      </td>
+      <td className="review-prompts-text-cell">{formatReviewPromptPlatforms(prompt)}</td>
+      <ReviewPromptConfigCells rules={prompt.configRules} />
+      <td className="review-prompts-text-cell review-prompts-rule-cell">{prompt.fixedRule}</td>
     </tr>
   );
 }
@@ -165,33 +192,42 @@ export function ReviewPromptsArea(
         </div>
       ) : null}
       {failure === null && table !== null && coverage !== null ? (
-        <table className="funnel-group-table review-prompts-table">
-          <thead>
-            <tr>
-              <th scope="col">Prompt</th>
-              <th scope="col">Platforms</th>
-              <th scope="col">When it appears</th>
-              <th scope="col">Shown</th>
-              <th scope="col">Acted</th>
-              <th scope="col">Gone</th>
-              <th scope="col"><span className="visually-hidden">Details</span></th>
-            </tr>
-          </thead>
-          <tbody>
-            {reviewPrompts.map((prompt) => (
-              <ReviewPromptRow
-                key={prompt.id}
-                prompt={prompt}
-                counts={table.counts[prompt.id]}
-                coverage={coverage}
-                filters={filters}
-                openWarningId={openWarningId}
-                onOpenWarningIdChange={setOpenWarningId}
-                onNavigate={props.onNavigate}
-              />
-            ))}
-          </tbody>
-        </table>
+        <>
+          <div className="funnel-group-table-shell">
+            <table className="funnel-group-table review-prompts-table">
+              <thead>
+                <tr>
+                  <th scope="col"><span className="visually-hidden">Details</span></th>
+                  <th scope="col">Prompt</th>
+                  <th scope="col">Shown</th>
+                  <th scope="col">Acted</th>
+                  <th scope="col">Gone</th>
+                  <th scope="col" className="review-prompts-text-cell">Platforms</th>
+                  <th scope="col">Total reviews ≥</th>
+                  <th scope="col">Reviews today ≥</th>
+                  <th scope="col">Review days ≥</th>
+                  <th scope="col">Cooldown</th>
+                  <th scope="col" className="review-prompts-text-cell">Fixed in code</th>
+                </tr>
+              </thead>
+              <tbody>
+                {reviewPrompts.map((prompt) => (
+                  <ReviewPromptRow
+                    key={prompt.id}
+                    prompt={prompt}
+                    counts={table.counts[prompt.id]}
+                    coverage={coverage}
+                    filters={filters}
+                    openWarningId={openWarningId}
+                    onOpenWarningIdChange={setOpenWarningId}
+                    onNavigate={props.onNavigate}
+                  />
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <p className="review-prompts-config-version">Config version {reviewPromptConfigVersion}</p>
+        </>
       ) : null}
     </section>
   );
