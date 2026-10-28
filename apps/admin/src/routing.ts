@@ -26,7 +26,7 @@ export const analyticsAreaLabels: Readonly<Record<AnalyticsArea, string>> = {
 };
 
 /** The Level 1 charts that have a Details page, by the slug of its path. */
-export const levelOneMetricDetails = ["who-saw-us", "who-opened-the-app", "who-studied", "who-came-back", "who-paid-us"] as const;
+export const levelOneMetricDetails = ["who-saw-us", "who-opened-the-app", "who-studied", "who-paid-us"] as const;
 
 export type LevelOneMetricDetail = (typeof levelOneMetricDetails)[number];
 
@@ -56,6 +56,8 @@ export type AdminRoute =
   | Readonly<{ kind: "levelOneMetricDetails"; metric: LevelOneMetricDetail }>
   | Readonly<{ kind: "whoSawUsDataset"; dataset: WhoSawUsDataset }>
   | Readonly<{ kind: "funnelDetails"; funnelId: FunnelDetail }>
+  /** The Journeys Retention card's Details page. */
+  | Readonly<{ kind: "retentionDetails" }>
   | Readonly<{ kind: "reviewPromptDetails"; promptId: ReviewPromptId }>
   | Readonly<{ kind: "users" }>
   | Readonly<{ kind: "user"; userId: string; tab: UserPageTab }>
@@ -88,6 +90,8 @@ export function getWhoSawUsDatasetPath(dataset: WhoSawUsDataset): string {
 export function getFunnelDetailsPath(funnelId: FunnelDetail): string {
   return `${getAnalyticsAreaPath("journeys")}/${funnelId}`;
 }
+
+export const retentionDetailsPath = `${getAnalyticsAreaPath("journeys")}/retention`;
 
 export function getReviewPromptDetailsPath(promptId: ReviewPromptId): string {
   return `${getAnalyticsAreaPath("review-prompts")}/${promptId}`;
@@ -126,6 +130,8 @@ export function getAdminRoutePath(route: AdminRoute): string {
       return getWhoSawUsDatasetPath(route.dataset);
     case "funnelDetails":
       return getFunnelDetailsPath(route.funnelId);
+    case "retentionDetails":
+      return retentionDetailsPath;
     case "reviewPromptDetails":
       return getReviewPromptDetailsPath(route.promptId);
     case "users":
@@ -196,13 +202,18 @@ function parseEventRoute(normalizedPathname: string): AdminRoute | null {
 /** The Journeys area's former path, which shared links still carry. */
 const legacyJourneysPathPattern = /^\/analytics\/funnels(?=\/|$)/u;
 
+/** The former Level 1 Details page of the retention charts, which shared links still carry. */
+const legacyRetentionDetailsPath = `${getAnalyticsAreaPath("level-1-metrics")}/who-came-back`;
+
 /**
- * `/` and `/analytics` parse to the default area, and a legacy `/analytics/funnels…` path to the
- * Journeys route at the same place, so canonicalizing the path is their redirect.
+ * `/` and `/analytics` parse to the default area, a legacy `/analytics/funnels…` path to the
+ * Journeys route at the same place, and the legacy retention Details path to the Retention Details
+ * page, so canonicalizing the path is their redirect.
  */
 export function parseAdminRoute(pathname: string): AdminRoute {
-  const normalizedPathname = stripTrailingSlashes(pathname)
+  const strippedPathname = stripTrailingSlashes(pathname)
     .replace(legacyJourneysPathPattern, getAnalyticsAreaPath("journeys"));
+  const normalizedPathname = strippedPathname === legacyRetentionDetailsPath ? retentionDetailsPath : strippedPathname;
 
   if (normalizedPathname === rootPath || normalizedPathname === analyticsIndexPath) {
     return { kind: "analyticsArea", area: defaultAnalyticsArea };
@@ -245,6 +256,10 @@ export function parseAdminRoute(pathname: string): AdminRoute {
   );
   if (dataset !== undefined) {
     return { kind: "whoSawUsDataset", dataset };
+  }
+
+  if (normalizedPathname === retentionDetailsPath) {
+    return { kind: "retentionDetails" };
   }
 
   const funnelId = funnelDetails.find(

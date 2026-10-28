@@ -94,6 +94,7 @@ export function WhoCameBackSection(props: Readonly<{
               <li>W1 is any answered review on days 7–13 after each person’s first-use day; W4 is days 28–34. The tooltip shows returned users / cohort users.</li>
               <li>Grouping changes only the cohort size; the W1 and W4 windows stay counted from each person’s own first day. A rate appears only after the cohort’s last selected first-use day has its full return window. Recent or uncovered cohorts are unavailable, never zero.</li>
               <li>The date range selects first-use dates; edge cohorts include only selected days. Returns after the selection end count through the latest complete UTC day.</li>
+              <li>Only the date range and this page’s own Group by apply: the platform, connection country, app interface language and Compare with filters change neither this chart nor its breakdowns.</li>
               <li>First use reads the full retained review history. Reviews never recorded in analytics cannot be reconstructed.</li>
               {state.status === "ready" ? <li>Generated {formatGeneratedAt(state.report.generatedAtUtc)}.</li> : null}
             </ul>

@@ -1,7 +1,7 @@
 import { Fragment, useEffect, useRef, useState, type JSX, type ReactNode } from "react";
 import * as d3 from "d3";
 import { ChartAreaWithNote } from "../../charts/ChartAreaWithNote";
-import { ChartColorKey } from "../../charts/ChartLegends";
+import { ChartColorKey, ChartColorKeyPlaceholder } from "../../charts/ChartLegends";
 import { ChartLoadingPlaceholder } from "../../charts/ChartLoadingPlaceholder";
 import { ChartTooltip, useChartTooltip } from "../../charts/ChartTooltip";
 import { buildFunnelComparisonTint, chartWidth, stackedChartHeight } from "../../charts/chartPrimitives";
@@ -10,11 +10,9 @@ import { renderRateLineChart } from "../../charts/rateLineChart";
 import type { AdminAppConfig } from "../../config";
 import { ExplanationTip } from "../../explanations/ExplanationTip";
 import type { AnalyticsDateRange } from "../../filters/analyticsFilters";
+import { retentionDetailsPath } from "../../routing";
 import { formatFunnelRangeSeriesLabel, type FunnelRangeKey } from "../funnels/funnelRangeReports";
-import {
-  LevelOneMetricDetailsButton,
-  type LevelOneMetricDetailsLink,
-} from "../levelOneMetrics/LevelOneMetricDetailsLink";
+import { FunnelsLink } from "../funnels/FunnelsLink";
 import {
   buildAppOpenRetentionCurveSql,
   buildStudiedRetentionCurveSql,
@@ -47,8 +45,10 @@ type LoadState =
   | Readonly<{ status: "error"; message: string }>
   | Readonly<{ status: "ready"; ranges: ReadonlyArray<RetentionCurveRange> }>;
 
+export const studiedRetentionCurveTitle = "Retention";
+
 const studiedRetentionCurveCopy: RetentionCurveCopy = {
-  title: "Who came back",
+  title: studiedRetentionCurveTitle,
   testId: "retention-curve-studied",
   buildSql: buildStudiedRetentionCurveSql,
   explanation: <>
@@ -140,12 +140,15 @@ type RetentionCurveSectionProps = Readonly<{
   cohortFilters: RetentionCurveCohortFilters;
   /** Drawn as a second, lighter curve B; `null` is no comparison. */
   comparisonDateRange: AnalyticsDateRange | null;
+  /** The shared selection is still settling after a filter change; the curve waits it out rather than querying per click. */
+  isRangeLoading: boolean;
   onTerminalAdminError: (error: unknown, config: AdminAppConfig) => boolean;
 }>;
 
 function RetentionCurveSection(props: RetentionCurveSectionProps & Readonly<{
   copy: RetentionCurveCopy;
-  detailsLink: LevelOneMetricDetailsLink | null;
+  /** Follows the card's Details link; `null` draws no Details button. */
+  onDetailsNavigate: ((path: string) => void) | null;
 }>): JSX.Element {
   const { copy } = props;
   const chartRef = useRef<SVGSVGElement | null>(null);
@@ -157,6 +160,7 @@ function RetentionCurveSection(props: RetentionCurveSectionProps & Readonly<{
     const reportLabel = `${copy.title} report`;
     tooltipHandlers.hideTooltip();
     setState({ status: "loading" });
+    if (props.isRangeLoading) return () => { cancelled = true; };
     const abortController = new AbortController();
     const requests: ReadonlyArray<Readonly<{ key: FunnelRangeKey; dateRange: AnalyticsDateRange }>> = props.comparisonDateRange === null
       ? [{ key: "a", dateRange: props.dateRange }]
@@ -181,7 +185,7 @@ function RetentionCurveSection(props: RetentionCurveSectionProps & Readonly<{
       setState({ status: "error", message: error instanceof Error ? error.message : `Unexpected ${copy.title} query error.` });
     });
     return () => { cancelled = true; abortController.abort(); };
-  }, [copy, props.config, props.dateRange, props.cohortFilters, props.comparisonDateRange, props.onTerminalAdminError, revision, tooltipHandlers]);
+  }, [copy, props.config, props.dateRange, props.cohortFilters, props.comparisonDateRange, props.isRangeLoading, props.onTerminalAdminError, revision, tooltipHandlers]);
   useEffect(() => {
     if (chartRef.current === null || state.status !== "ready") return;
     const ranges = state.ranges;
@@ -226,7 +230,14 @@ function RetentionCurveSection(props: RetentionCurveSectionProps & Readonly<{
             </ul>
           </ExplanationTip>
         </div>
-        {props.detailsLink !== null ? <LevelOneMetricDetailsButton link={props.detailsLink} /> : null}
+        {props.onDetailsNavigate !== null ? (
+          <FunnelsLink
+            className="filter-button filter-button-compact level-1-metric-details-link"
+            path={retentionDetailsPath}
+            testId="retention-details-button"
+            onNavigate={props.onDetailsNavigate}
+          >Details</FunnelsLink>
+        ) : null}
       </header>
       {state.status === "error" ? (
         <div className="report-state report-state-error">
@@ -263,16 +274,18 @@ function RetentionCurveSection(props: RetentionCurveSectionProps & Readonly<{
           <div className="chart-shell">
             <div className="chart-meta">
               <span>Share of the cohort active on day N · UTC</span>
-              {state.status === "ready" && isComparing ? (
+              {props.comparisonDateRange === null ? null : (
                 <div className="chart-meta-right">
-                  <ChartColorKey
-                    ariaLabel={`${copy.title} color key`}
-                    keys={state.ranges.map((range) => range.key)}
-                    getColor={(key) => curveColors[key]}
-                    getLabel={(key) => state.ranges.find((range) => range.key === key)?.seriesLabel ?? key}
-                  />
+                  {state.status === "ready" && isComparing ? (
+                    <ChartColorKey
+                      ariaLabel={`${copy.title} color key`}
+                      keys={state.ranges.map((range) => range.key)}
+                      getColor={(key) => curveColors[key]}
+                      getLabel={(key) => state.ranges.find((range) => range.key === key)?.seriesLabel ?? key}
+                    />
+                  ) : <ChartColorKeyPlaceholder />}
                 </div>
-              ) : null}
+              )}
             </div>
             <div className="chart-scroll">
               {state.status === "ready" ? (
@@ -336,12 +349,12 @@ function RetentionCurveSection(props: RetentionCurveSectionProps & Readonly<{
 
 /** Classic N-day retention of answered reviews over the whole selected range. */
 export function StudiedRetentionCurveSection(props: RetentionCurveSectionProps & Readonly<{
-  detailsLink: LevelOneMetricDetailsLink | null;
+  onDetailsNavigate: ((path: string) => void) | null;
 }>): JSX.Element {
   return <RetentionCurveSection {...props} copy={studiedRetentionCurveCopy} />;
 }
 
 /** Classic N-day retention of app opens over the whole selected range. */
 export function AppOpenRetentionCurveSection(props: RetentionCurveSectionProps): JSX.Element {
-  return <RetentionCurveSection {...props} copy={appOpenRetentionCurveCopy} detailsLink={null} />;
+  return <RetentionCurveSection {...props} copy={appOpenRetentionCurveCopy} onDetailsNavigate={null} />;
 }

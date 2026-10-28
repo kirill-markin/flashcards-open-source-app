@@ -24,13 +24,6 @@ export type RetentionCurveDay = Readonly<{
 /** The filters that pick the cohort by each person's first use; activity on day N counts whatever they say. */
 export type RetentionCurveCohortFilters = Pick<AnalyticsFilterState, "eventPlatforms" | "connectionCountries" | "appUiLanguages">;
 
-/** Every platform, country and language: the whole cohort. */
-export const unnarrowedRetentionCurveCohortFilters: RetentionCurveCohortFilters = {
-  eventPlatforms: reviewEventPlatforms,
-  connectionCountries: [],
-  appUiLanguages: [],
-};
-
 /** A daily activity source with the CTE naming the platform of each person's first use in a range. */
 type RetentionCurveSource = Readonly<{
   activity: DailyActivitySource;
