@@ -62,9 +62,9 @@ jobs:
           node-version-file: .nvmrc
           cache: npm
           cache-dependency-path: scripts/store-screenshots/package-lock.json
-      - uses: actions/setup-python@v6
+      - uses: actions/setup-python@v7
         with:
-          python-version: "3.12"
+          python-version: "3.15"
       - name: Download pinned native captures and gallery banners
         run: python3 scripts/media/download.py ios-native android-native android-feature-graphics
       - name: Install processor dependencies

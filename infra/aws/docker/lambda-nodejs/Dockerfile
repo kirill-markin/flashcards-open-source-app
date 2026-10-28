@@ -3,13 +3,13 @@ FROM $IMAGE
 
 RUN npm install --global --allow-scripts=yarn@1.22.22 yarn@1.22.22
 
-RUN npm install --global --allow-scripts=pnpm@12.11.2 pnpm@12.11.2
+RUN npm install --global --allow-scripts=pnpm@12.15.0 pnpm@12.15.0
 
-RUN npm install --global --allow-scripts=bun@1.4.3 bun@1.4.3
+RUN npm install --global --allow-scripts=bun@1.4.4 bun@1.4.4
 
 RUN npm install --global typescript
 
-ARG ESBUILD_VERSION=0.21
+ARG ESBUILD_VERSION=0.28.2
 RUN npm install --global --allow-scripts=esbuild@$ESBUILD_VERSION esbuild@$ESBUILD_VERSION
 
 RUN mkdir /tmp/npm-cache && \
