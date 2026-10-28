@@ -67,7 +67,7 @@ extension FlashcardsStore {
             message: trimmedMessage,
             now: now
         )
-        let feedbackState = try await self.withFeedbackCloudSession { cloudSyncService, session in
+        _ = try await self.withFeedbackCloudSession { cloudSyncService, session in
             try await cloudSyncService.submitFeedback(
                 apiBaseUrl: session.apiBaseUrl,
                 authorizationHeader: session.authorizationHeaderValue,
@@ -75,13 +75,6 @@ extension FlashcardsStore {
             )
         }
 
-        self.updateFeedbackPromptState(
-            state: makeFeedbackPromptStateAfterSubmission(
-                promptState: self.feedbackPromptState,
-                feedbackState: feedbackState,
-                submittedAt: Date()
-            )
-        )
         clearFeedbackDraft(
             identityKey: self.feedbackPromptIdentityKey,
             userDefaults: self.userDefaults
@@ -90,42 +83,29 @@ extension FlashcardsStore {
         self.enqueueTransientBanner(banner: makeFeedbackSentBanner())
     }
 
-    func startAutomaticFeedbackPromptCheckAfterSuccessfulReview(now: Date) {
-        guard self.activeAutomaticFeedbackPromptTask == nil else {
-            return
-        }
-        if let nextRetryAt = self.nextAutomaticFeedbackPromptRetryAt {
-            guard now >= nextRetryAt else {
-                return
-            }
-            self.nextAutomaticFeedbackPromptRetryAt = nil
-        }
-        guard self.isAutomaticFeedbackPromptBlockedByModal == false else {
-            return
-        }
-        guard isFeedbackAutomaticCooldownExpired(promptState: self.feedbackPromptState, now: now) else {
-            return
+    /// The cooldown counts only from the last automatic showing.
+    func presentAutomaticFeedbackPromptIfDue(
+        settings: ReviewPromptSettings,
+        counters: ReviewPromptCounters,
+        now: Date
+    ) -> Bool {
+        guard self.isAutomaticFeedbackPromptBlockedByModal == false,
+              reviewPromptConfigAllows(
+                settings: settings,
+                counters: counters,
+                lastShownAt: self.feedbackPromptState.lastAutomaticPromptShownAt,
+                now: now
+              ) else {
+            return false
         }
 
-        let opportunityId = self.savedReviewPromptOpportunity?.id
-        let task = Task { @MainActor [weak self] in
-            guard let self else {
-                return
-            }
-            defer {
-                self.activeAutomaticFeedbackPromptTask = nil
-            }
-            await self.runAutomaticFeedbackPromptCheck(now: now, opportunityId: opportunityId)
-        }
-        self.activeAutomaticFeedbackPromptTask = task
+        self.presentFeedbackSheet(trigger: .automatic)
+        return true
     }
 
     func clearFeedbackPromptState() {
         self.feedbackPresentation = nil
         self.feedbackPromptState = makeDefaultFeedbackPromptState()
-        self.activeAutomaticFeedbackPromptTask?.cancel()
-        self.activeAutomaticFeedbackPromptTask = nil
-        self.nextAutomaticFeedbackPromptRetryAt = nil
         clearFeedbackPromptPersistence(
             identityKey: self.feedbackPromptIdentityKey,
             userDefaults: self.userDefaults
@@ -133,7 +113,6 @@ extension FlashcardsStore {
     }
 
     func reloadFeedbackPromptStateForCurrentIdentity() {
-        self.nextAutomaticFeedbackPromptRetryAt = nil
         self.feedbackPromptState = loadFeedbackPromptState(
             identityKey: self.feedbackPromptIdentityKey,
             userDefaults: self.userDefaults,
@@ -141,103 +120,12 @@ extension FlashcardsStore {
         )
     }
 
-    private func runAutomaticFeedbackPromptCheck(now: Date, opportunityId: UUID?) async {
-        var failureStage: String = "start"
-        do {
-            failureStage = "resolve_workspace"
-            guard let workspaceId = self.workspace?.workspaceId else {
-                return
-            }
-            failureStage = "modal_gate"
-            guard self.isAutomaticFeedbackPromptBlockedByModal == false else {
-                return
-            }
-            failureStage = "local_cooldown_gate"
-            guard isFeedbackAutomaticCooldownExpired(promptState: self.feedbackPromptState, now: now) else {
-                return
-            }
-
-            failureStage = "load_review_activity"
-            let database = try requireLocalDatabase(database: self.database)
-            let reviewActivity = try database.loadFeedbackReviewActivitySummary(
-                workspaceId: workspaceId,
-                now: now,
-                timeZone: TimeZone.current
-            )
-            failureStage = "previous_review_day_gate"
-            guard reviewActivity.hasPreviousLocalReviewDay else {
-                return
-            }
-            failureStage = "current_day_review_count_gate"
-            guard reviewActivity.currentLocalDayReviewCount >= feedbackAutomaticReviewThreshold else {
-                return
-            }
-
-            if shouldFetchFeedbackServerState(promptState: self.feedbackPromptState, now: now) {
-                failureStage = "load_feedback_state"
-                let feedbackState = try await self.loadFeedbackStateFromServer()
-                try Task.checkCancellation()
-                guard self.savedReviewPromptOpportunity?.id == opportunityId else { return }
-                self.updateFeedbackPromptState(
-                    state: applyFeedbackServerState(
-                        promptState: self.feedbackPromptState,
-                        feedbackState: feedbackState,
-                        fetchedAt: Date()
-                    )
-                )
-            }
-            try Task.checkCancellation()
-            guard self.savedReviewPromptOpportunity?.id == opportunityId else { return }
-            failureStage = "post_server_cooldown_gate"
-            guard isFeedbackAutomaticCooldownExpired(promptState: self.feedbackPromptState, now: Date()) else {
-                return
-            }
-            failureStage = "post_server_modal_gate"
-            guard self.isAutomaticFeedbackPromptBlockedByModal == false else {
-                return
-            }
-
-            failureStage = "present_sheet"
-            self.nextAutomaticFeedbackPromptRetryAt = nil
-            self.presentFeedbackSheet(trigger: .automatic)
-        } catch is CancellationError {
-            return
-        } catch {
-            if self.shouldRetryAutomaticFeedbackPromptSilently(error: error, stage: failureStage) {
-                self.nextAutomaticFeedbackPromptRetryAt = Date().addingTimeInterval(
-                    feedbackAutomaticPromptFailureBackoffSeconds
-                )
-                return
-            }
-            self.captureFeedbackSilentFailure(
-                error: error,
-                action: "automatic_feedback_prompt_check",
-                stage: failureStage
-            )
-            return
-        }
-    }
-
-    private func loadFeedbackStateFromServer() async throws -> FeedbackState {
-        try await self.withFeedbackCloudSession { cloudSyncService, session in
-            try await cloudSyncService.loadFeedbackState(
-                apiBaseUrl: session.apiBaseUrl,
-                authorizationHeader: session.authorizationHeaderValue
-            )
-        }
-    }
-
     func recordAutomaticFeedbackPromptShownAfterPresentation(presentation: FeedbackPresentation) {
         guard presentation.trigger == .automatic,
               self.feedbackPresentation?.id == presentation.id else { return }
         let shownAt = Date()
         let identityKey = self.feedbackPromptIdentityKey
-        self.updateFeedbackPromptState(state: PersistedFeedbackPromptState(
-            lastAutomaticPromptShownAt: shownAt,
-            lastFeedbackSubmittedAt: self.feedbackPromptState.lastFeedbackSubmittedAt,
-            serverNextAutomaticPromptAt: self.feedbackPromptState.serverNextAutomaticPromptAt,
-            lastServerStateFetchedAt: self.feedbackPromptState.lastServerStateFetchedAt
-        ))
+        self.updateFeedbackPromptState(state: PersistedFeedbackPromptState(lastAutomaticPromptShownAt: shownAt))
         let request = makeFeedbackPromptEventRequest(
             workspaceId: self.workspace?.workspaceId,
             installationId: self.cloudSettings?.installationId,
@@ -247,7 +135,7 @@ extension FlashcardsStore {
         Task { @MainActor [weak self] in
             guard let self, self.feedbackPromptIdentityKey == identityKey else { return }
             do {
-                let feedbackState = try await self.withFeedbackCloudSession { cloudSyncService, session in
+                _ = try await self.withFeedbackCloudSession { cloudSyncService, session in
                     guard self.feedbackPromptIdentityKey == identityKey else { throw CancellationError() }
                     return try await cloudSyncService.recordFeedbackPromptEvent(
                         apiBaseUrl: session.apiBaseUrl,
@@ -255,12 +143,6 @@ extension FlashcardsStore {
                         request: request
                     )
                 }
-                guard self.feedbackPromptIdentityKey == identityKey else { return }
-                self.updateFeedbackPromptState(state: applyFeedbackServerState(
-                    promptState: self.feedbackPromptState,
-                    feedbackState: feedbackState,
-                    fetchedAt: Date()
-                ))
             } catch is CancellationError {
                 return
             } catch {
@@ -316,42 +198,6 @@ extension FlashcardsStore {
 
     private var feedbackPromptIdentityKey: FeedbackPromptIdentityKey {
         makeFeedbackPromptIdentityKey(cloudSettings: self.cloudSettings)
-    }
-
-    private func shouldRetryAutomaticFeedbackPromptSilently(
-        error: Error,
-        stage: String
-    ) -> Bool {
-        guard isFeedbackAutomaticPromptServerStage(stage: stage) else {
-            return false
-        }
-        if isRequestCancellationError(error: error) {
-            return true
-        }
-        if isSilentlyIgnorableNetworkTransportFailure(error: error) {
-            return true
-        }
-        // The cloud session this prompt uses captures its failures and rethrows them boxed in
-        // `ObservedTechnicalError`, so the status read has to look through the box.
-        let underlyingFailure = technicalErrorPresentationSource(error: error)
-        if let statusCode = feedbackFailureDiagnostics(error: underlyingFailure).statusCode,
-           isRetryableFeedbackAutomaticPromptStatusCode(statusCode) {
-            return true
-        }
-        return self.isAutomaticFeedbackPromptBlockedGateFailure(error: error)
-    }
-
-    private func isAutomaticFeedbackPromptBlockedGateFailure(error: Error) -> Bool {
-        guard case .blocked(let blockedMessage) = self.syncStatus else {
-            return false
-        }
-        guard let localStoreError = error as? LocalStoreError else {
-            return false
-        }
-        guard case .validation(let message) = localStoreError else {
-            return false
-        }
-        return message == blockedMessage
     }
 
     private func captureFeedbackSilentFailure(
@@ -429,12 +275,4 @@ private func feedbackFailureDiagnostics(error: Error) -> FeedbackFailureDiagnost
     }
 
     return FeedbackFailureDiagnostics(statusCode: nil, backendCode: nil, requestId: nil)
-}
-
-private func isFeedbackAutomaticPromptServerStage(stage: String) -> Bool {
-    stage == "load_feedback_state" || stage == "record_prompt_shown"
-}
-
-private func isRetryableFeedbackAutomaticPromptStatusCode(_ statusCode: Int) -> Bool {
-    statusCode == 408 || statusCode == 429 || (statusCode >= 500 && statusCode <= 599)
 }
