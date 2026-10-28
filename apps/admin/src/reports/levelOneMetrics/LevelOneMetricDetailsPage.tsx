@@ -13,7 +13,7 @@ import { WhoStudiedBreakdownSections } from "../whoStudied/WhoStudiedBreakdownSe
 import { WhoStudiedReviewEventSections } from "../whoStudied/WhoStudiedReviewEventSections";
 import { WhoStudiedSection } from "../whoStudied/WhoStudiedSection";
 import { LevelOneMetricDetailsHeader } from "./LevelOneMetricDetailsHeader";
-import { LevelOneMetricsFrame } from "./LevelOneMetricsFrame";
+import { LevelOneMetricsFrame, levelOneMetricsDateRangeFilterBar } from "./LevelOneMetricsFrame";
 import type { LevelOneMetricsSelection } from "./levelOneMetricsUrl";
 import { useLevelOneMetricsSelection } from "./useLevelOneMetricsSelection";
 
@@ -148,6 +148,7 @@ function ChartedLevelOneMetricDetailsPage(
 
       <LevelOneMetricsFrame
         selectionState={selectionState}
+        filterBar={levelOneMetricsDateRangeFilterBar}
         onNavigate={props.onNavigate}
         renderCharts={(selection) => (
           <div className="level-1-metrics-grid">{renderMetricSections(props, selection)}</div>

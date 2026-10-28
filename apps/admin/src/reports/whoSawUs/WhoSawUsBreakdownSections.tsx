@@ -1,8 +1,8 @@
-import { useEffect, useState, type JSX, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type JSX, type ReactNode } from "react";
 import * as d3 from "d3";
 import type { ChartNote } from "../../charts/chartNotes";
 import type { AdminAppConfig } from "../../config";
-import type { AnalyticsDateRange } from "../../filters/analyticsFilters";
+import type { AnalyticsDateRange, SiteVisitorFilterState } from "../../filters/analyticsFilters";
 import { BreakdownSection } from "../levelOneMetrics/BreakdownSection";
 import type { BreakdownReportLoader } from "../levelOneMetrics/breakdownReport";
 import type { ReportPeriod } from "../levelOneMetrics/reportPeriod";
@@ -41,6 +41,7 @@ type WhoSawUsBreakdown = Readonly<{
 }>;
 
 function buildWhoSawUsBreakdown(
+  siteFilters: SiteVisitorFilterState,
   dimension: WhoSawUsBreakdownDimension,
   title: string,
   explanation: ReactNode,
@@ -50,11 +51,11 @@ function buildWhoSawUsBreakdown(
     dimension,
     title,
     explanation,
-    loadReport: (config, dateRange, period, signal) => loadWhoSawUsBreakdownReport(config, dimension, dateRange, period, `${title} report`, signal),
+    loadReport: (config, dateRange, period, signal) => loadWhoSawUsBreakdownReport(config, dimension, dateRange, period, siteFilters, `${title} report`, signal),
     topValues: topValues === null ? null : {
       title: topValues.title,
       valueHeader: topValues.valueHeader,
-      loadTopValues: (config, dateRange, period, signal) => loadWhoSawUsTopValues(config, dimension, dateRange, period, `${topValues.title} report`, signal),
+      loadTopValues: (config, dateRange, period, signal) => loadWhoSawUsTopValues(config, dimension, dateRange, period, siteFilters, `${topValues.title} report`, signal),
     },
   };
 }
@@ -95,58 +96,62 @@ const appleRows = <li>The rows the Who saw us App Store series sums, product pag
 
 const appleFreshness = <li>A faded bar is not final: Apple’s numbers can still arrive or change for {storeNotFinalDayCounts["app-store"]} days, and in a week or month that runs past Apple’s newest delivered day. A bar none of whose days Apple has delivered yet is Not arrived yet, never zero.</li>;
 
-/** The breakdowns of each Who saw us dataset page. */
-const whoSawUsBreakdownsByGroup: Readonly<Record<WhoSawUsSeriesKey, ReadonlyArray<WhoSawUsBreakdown>>> = {
-  web: [
-    buildWhoSawUsBreakdown("web-engaged-country", "Web engaged visitors by country", <>
-      {webEngagedCohorts}
-      {webCountryValue}
-    </>, null),
-    buildWhoSawUsBreakdown("web-engaged-landing-page-type", "Web engaged visitors by landing page type", <>
-      {webEngagedCohorts}
-      {webLandingPageTypeValue}
-    </>, null),
-    buildWhoSawUsBreakdown("web-engaged-device", "Web engaged visitors by device", <>
-      {webEngagedCohorts}
-      {webDeviceValue}
-    </>, null),
-    buildWhoSawUsBreakdown("web-engaged-source", "Web engaged visitors by traffic source", <>
-      {webEngagedCohorts}
-      {webSourceValue}
-    </>, null),
-    buildWhoSawUsBreakdown("web-engaged-browser-language", "Web engaged visitors by browser language", <>
-      {webEngagedCohorts}
-      {webBrowserLanguageValue}
-    </>, null),
-    buildWhoSawUsBreakdown("web-engaged-browser-locale", "Web engaged visitors by browser locale", <>
-      {webEngagedCohorts}
-      {webBrowserLocaleValue}
-    </>, null),
-    buildWhoSawUsBreakdown("web-engaged-referrer", "Web engaged visitors by referrer site", <>
-      {webEngagedCohorts}
-      {webReferrerValue}
-      {buildTopValuesExplanation("referrer sites")}
-    </>, { title: `Top ${topValueCount} referrer sites of Web engaged visitors`, valueHeader: "Referrer site" }),
-    buildWhoSawUsBreakdown("web-engaged-utm-campaign", "Web engaged visitors by UTM campaign", <>
-      {webEngagedCohorts}
-      {webUtmCampaignValue}
-      {buildTopValuesExplanation("campaigns")}
-    </>, { title: `Top ${topValueCount} UTM campaigns of Web engaged visitors`, valueHeader: "Campaign" }),
-  ],
-  "app-store": [
-    buildWhoSawUsBreakdown("app-store-source-type", "App Store visitors by source type", <>
-      {appleRows}
-      <li>A row counts under its own source type, as Apple names it.</li>
-      {appleFreshness}
-    </>, null),
-    buildWhoSawUsBreakdown("app-store-territory", "App Store visitors by territory", <>
-      {appleRows}
-      <li>A row counts under its own territory, as Apple names it.</li>
-      {appleFreshness}
-    </>, null),
-  ],
-  "google-play": [],
-};
+/** The breakdowns of each Who saw us dataset page, their loaders bound to `siteFilters`. */
+function buildWhoSawUsBreakdownsByGroup(
+  siteFilters: SiteVisitorFilterState,
+): Readonly<Record<WhoSawUsSeriesKey, ReadonlyArray<WhoSawUsBreakdown>>> {
+  return {
+    web: [
+      buildWhoSawUsBreakdown(siteFilters, "web-engaged-country", "Web engaged visitors by country", <>
+        {webEngagedCohorts}
+        {webCountryValue}
+      </>, null),
+      buildWhoSawUsBreakdown(siteFilters, "web-engaged-landing-page-type", "Web engaged visitors by landing page type", <>
+        {webEngagedCohorts}
+        {webLandingPageTypeValue}
+      </>, null),
+      buildWhoSawUsBreakdown(siteFilters, "web-engaged-device", "Web engaged visitors by device", <>
+        {webEngagedCohorts}
+        {webDeviceValue}
+      </>, null),
+      buildWhoSawUsBreakdown(siteFilters, "web-engaged-source", "Web engaged visitors by traffic source", <>
+        {webEngagedCohorts}
+        {webSourceValue}
+      </>, null),
+      buildWhoSawUsBreakdown(siteFilters, "web-engaged-browser-language", "Web engaged visitors by browser language", <>
+        {webEngagedCohorts}
+        {webBrowserLanguageValue}
+      </>, null),
+      buildWhoSawUsBreakdown(siteFilters, "web-engaged-browser-locale", "Web engaged visitors by browser locale", <>
+        {webEngagedCohorts}
+        {webBrowserLocaleValue}
+      </>, null),
+      buildWhoSawUsBreakdown(siteFilters, "web-engaged-referrer", "Web engaged visitors by referrer site", <>
+        {webEngagedCohorts}
+        {webReferrerValue}
+        {buildTopValuesExplanation("referrer sites")}
+      </>, { title: `Top ${topValueCount} referrer sites of Web engaged visitors`, valueHeader: "Referrer site" }),
+      buildWhoSawUsBreakdown(siteFilters, "web-engaged-utm-campaign", "Web engaged visitors by UTM campaign", <>
+        {webEngagedCohorts}
+        {webUtmCampaignValue}
+        {buildTopValuesExplanation("campaigns")}
+      </>, { title: `Top ${topValueCount} UTM campaigns of Web engaged visitors`, valueHeader: "Campaign" }),
+    ],
+    "app-store": [
+      buildWhoSawUsBreakdown(siteFilters, "app-store-source-type", "App Store visitors by source type", <>
+        {appleRows}
+        <li>A row counts under its own source type, as Apple names it.</li>
+        {appleFreshness}
+      </>, null),
+      buildWhoSawUsBreakdown(siteFilters, "app-store-territory", "App Store visitors by territory", <>
+        {appleRows}
+        <li>A row counts under its own territory, as Apple names it.</li>
+        {appleFreshness}
+      </>, null),
+    ],
+    "google-play": [],
+  };
+}
 
 /** The notes of every Web engaged breakdown besides In progress. */
 export function buildWebEngagedBreakdownChartNotes(): ReadonlyArray<ChartNote> {
@@ -266,11 +271,18 @@ export function WhoSawUsBreakdownSections(props: Readonly<{
   config: AdminAppConfig;
   dateRange: AnalyticsDateRange;
   period: ReportPeriod;
+  /** Narrows the Web engaged breakdowns; the store rows carry nothing it could narrow. */
+  siteFilters: SiteVisitorFilterState;
   onTerminalAdminError: (error: unknown, config: AdminAppConfig) => boolean;
 }>): JSX.Element {
+  // Rebuilt only when the filters change, so each loader stays as stable as `BreakdownSection` requires.
+  const breakdowns = useMemo(
+    () => buildWhoSawUsBreakdownsByGroup(props.siteFilters)[props.group],
+    [props.siteFilters, props.group],
+  );
   return (
     <>
-      {whoSawUsBreakdownsByGroup[props.group].map((breakdown) => (
+      {breakdowns.map((breakdown) => (
         <div key={breakdown.dimension}>
           <WhoSawUsBreakdownSection
             config={props.config}
