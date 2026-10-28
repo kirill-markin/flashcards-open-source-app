@@ -614,7 +614,7 @@ export function usePostReviewPrompts(params: UsePostReviewPromptsParams): UsePos
     promptId: ReviewPaywallPromptId,
     settings: ReviewPromptSettings,
   ): ReviewPromptDecision {
-    if (reviewPaywall === null || !isKnownFreeEntitlement(readEntitlementSnapshot(userId))) {
+    if (isGuest || reviewPaywall === null || !isKnownFreeEntitlement(readEntitlementSnapshot(userId))) {
       return { kind: "skipped" };
     }
 

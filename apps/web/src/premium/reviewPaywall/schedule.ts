@@ -28,16 +28,25 @@ function readReviewPaywallShownAt(state: PaywallState, promptId: ReviewPaywallPr
   }
 }
 
-/** The fixed rules and cooldown of one review paywall; its config counter conditions are checked by the caller. */
+// Any after-review paywall showing restarts the cooldown of all three.
+function readLatestReviewPaywallShownAtMillis(state: PaywallState): number | null {
+  const shownAtMillis = [
+    parseReviewPromptShownAt(state.introShownAt, "introShownAt"),
+    parseReviewPromptShownAt(state.followUpShownAt, "followUpShownAt"),
+    parseReviewPromptShownAt(state.periodicShownAt, "periodicShownAt"),
+  ].filter((millis): millis is number => millis !== null);
+  return shownAtMillis.length === 0 ? null : Math.max(...shownAtMillis);
+}
+
+/** The fixed rules and shared cooldown of one review paywall; its config counter conditions are checked by the caller. */
 export function dueReviewPaywall(
   promptId: ReviewPaywallPromptId,
   settings: ReviewPromptSettings,
   state: PaywallState,
   nowMillis: number,
 ): ReviewPaywallTrigger | null {
-  const shownAt = readReviewPaywallShownAt(state, promptId);
-  if (promptId !== "paywall-periodic" && shownAt !== null) return null;
-  return isReviewPromptCooldownElapsed(settings, parseReviewPromptShownAt(shownAt, promptId), nowMillis)
+  if (promptId !== "paywall-periodic" && readReviewPaywallShownAt(state, promptId) !== null) return null;
+  return isReviewPromptCooldownElapsed(settings, readLatestReviewPaywallShownAtMillis(state), nowMillis)
     ? reviewPaywallTriggers[promptId]
     : null;
 }

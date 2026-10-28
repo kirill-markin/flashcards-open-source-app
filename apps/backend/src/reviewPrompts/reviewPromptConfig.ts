@@ -21,7 +21,7 @@
 // - reviewDays: distinct local days with at least one review event.
 // An absent setting is no condition. `cooldownDays` passes when this same prompt was never shown,
 // or `now - lastShownAt(this prompt) >= cooldownDays * 24h`; it never counts from another prompt or
-// another event.
+// another event, except that the three paywalls share one clock (see Paywalls below).
 //
 // A remote config with a `schemaVersion` other than 1, or with malformed values, is rejected whole:
 // the app reports the error and keeps its last valid cached config or built-in defaults. An unknown
@@ -30,11 +30,13 @@
 // Fixed code rules, not configurable:
 // - hard-reminder: the saved answer is Hard and at least 5 of the last 8 answers in this review
 //   session are Hard.
-// - Paywalls: free users only. Each is independent of the others, and paywalls opened from
-//   Settings, the AI limit or premium features do not affect them.
+// - Paywalls: free users only; on web, never guests (mobile guests do see them). The
+//   `cooldownDays` of a paywall counts from the latest after-review showing of any of the three
+//   (server `introShownAt`, `followUpShownAt`, `periodicShownAt`); paywalls opened from Settings,
+//   the AI limit or premium features do not affect them.
 //   - paywall-initial: once per account (server `introShownAt` is null).
 //   - paywall-second: once per account (server `followUpShownAt` is null).
-//   - paywall-periodic: its cooldown clock is the server `periodicShownAt`.
+//   - paywall-periodic: repeats whenever its conditions pass.
 // - notifications-pre-prompt (mobile): only while the OS notification permission is not granted.
 //   "Continue" opens the OS permission dialog when the OS can still show it, otherwise the app's
 //   page in system Settings ("Open Settings"); "Later" does nothing else.
