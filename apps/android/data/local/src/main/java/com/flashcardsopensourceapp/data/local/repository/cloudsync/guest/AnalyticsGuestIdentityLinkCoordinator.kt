@@ -172,7 +172,7 @@ internal class AnalyticsGuestIdentityLinkCoordinator(
     }
 
     /**
-     * The stored credential for the signed-in account, refreshed in memory only when it has expired.
+     * The stored credential for the signed-in account, refreshed only when it has expired.
      *
      * Deliberately **not** [CloudSessionProvider.authenticatedSession]. That helper turns a
      * `410 ACCOUNT_DELETED`, and a `linkedUserId` that does not match the fetched account, into
@@ -181,10 +181,10 @@ internal class AnalyticsGuestIdentityLinkCoordinator(
      * with no user action behind it and no way back, so it must never reach a destructive reset.
      * A deleted account is sync's business, and sync answers it by preserving local data.
      *
-     * Nothing is persisted here either. This path holds no cloud operation lock, so a refreshed
-     * credential written back — or the account preferences [CloudSessionProvider.authenticatedSession]
-     * also saves — could land after a concurrent logout had already cleared them, leaving
-     * `DISCONNECTED` with an orphan credential. The refreshed token lives for this request only.
+     * The refreshed credential is persisted, because a rotated refresh token invalidates the stored
+     * one, but only under the cloud operation lock and only over the credential this refresh started
+     * from: the refresh itself holds no lock, so a concurrent logout or sign-in must win. The account
+     * preferences [CloudSessionProvider.authenticatedSession] also saves are not written here.
      */
     private suspend fun analyticsGuestIdentityLinkCredentials(
         configuration: CloudServiceConfiguration,
@@ -199,10 +199,18 @@ internal class AnalyticsGuestIdentityLinkCoordinator(
             return storedCredentials
         }
 
-        return remoteService.refreshIdToken(
+        val refreshedCredentials: StoredCloudCredentials = remoteService.refreshIdToken(
             refreshToken = storedCredentials.refreshToken,
             authBaseUrl = configuration.authBaseUrl
         )
+        operationCoordinator.runExclusive {
+            withContext(Dispatchers.IO) {
+                if (preferencesStore.loadCredentials() == storedCredentials) {
+                    preferencesStore.saveCredentials(refreshedCredentials)
+                }
+            }
+        }
+        return refreshedCredentials
     }
 
     /**
