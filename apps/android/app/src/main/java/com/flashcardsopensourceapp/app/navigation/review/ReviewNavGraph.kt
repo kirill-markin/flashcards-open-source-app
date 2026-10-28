@@ -13,6 +13,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.State
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -29,6 +30,7 @@ import com.flashcardsopensourceapp.app.navigation.SettingsNavigationTarget
 import com.flashcardsopensourceapp.app.navigation.navigateToAiChat
 import com.flashcardsopensourceapp.app.navigation.navigateToTopLevelDestination
 import com.flashcardsopensourceapp.app.navigation.rememberRouteBackStackEntry
+import com.flashcardsopensourceapp.app.notifications.canShowNotificationPermissionDialog
 import com.flashcardsopensourceapp.app.notifications.hasNotificationPermission
 import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsCardCreateEntryPoint
 import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsEvent
@@ -39,6 +41,7 @@ import com.flashcardsopensourceapp.data.local.ai.diagnostics.AiChatDiagnosticsLo
 import com.flashcardsopensourceapp.data.local.model.review.ReviewFilter
 import com.flashcardsopensourceapp.data.local.notifications.ReviewNotificationsReconcileTrigger
 import com.flashcardsopensourceapp.data.local.notifications.StrictRemindersReconcileTrigger
+import com.flashcardsopensourceapp.feature.review.NotificationPermissionPromptContinueAction
 import com.flashcardsopensourceapp.feature.review.ReviewPreviewRoute
 import com.flashcardsopensourceapp.feature.review.ReviewRoute
 import com.flashcardsopensourceapp.feature.review.createReviewViewModelFactory
@@ -153,6 +156,20 @@ internal fun NavGraphBuilder.registerReviewNavGraph(
                 initialValue = com.flashcardsopensourceapp.data.local.model.sync.defaultAccountPreferences().copy(firstReviewOnboardingCompleted = null)
             )
             val reviewFilterRequest by appGraph.appHandoffCoordinator.observeReviewFilter().collectAsStateWithLifecycle()
+            // Resolved when the prompt appears, so its button text and its action stay one decision.
+            val notificationPermissionPromptContinueAction = remember(uiState.isNotificationPermissionPromptVisible) {
+                if (
+                    activity != null &&
+                    canShowNotificationPermissionDialog(
+                        activity = activity,
+                        hasRequestedSystemPermission = appGraph.reviewNotificationsStore.loadPromptState().hasRequestedSystemPermission
+                    )
+                ) {
+                    NotificationPermissionPromptContinueAction.REQUEST_PERMISSION
+                } else {
+                    NotificationPermissionPromptContinueAction.OPEN_NOTIFICATION_SETTINGS
+                }
+            }
 
             LaunchedEffect(reviewFilterRequest?.requestId, uiState) {
                 val request = reviewFilterRequest ?: return@LaunchedEffect
@@ -234,13 +251,21 @@ internal fun NavGraphBuilder.registerReviewNavGraph(
                 onRateEasy = { reviewViewModel.rateCard(rating = com.flashcardsopensourceapp.data.local.model.review.ReviewRating.EASY) },
                 onDismissHardAnswerReminder = reviewViewModel::dismissHardAnswerReminder,
                 onDismissErrorMessage = reviewViewModel::dismissErrorMessage,
+                notificationPermissionPromptContinueAction = notificationPermissionPromptContinueAction,
                 onDismissNotificationPermissionPrompt = reviewViewModel::dismissNotificationPermissionPrompt,
                 onContinueNotificationPermissionPrompt = {
                     reviewViewModel.continueNotificationPermissionPrompt()
-                    if (activity != null) {
-                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                    when (notificationPermissionPromptContinueAction) {
+                        NotificationPermissionPromptContinueAction.REQUEST_PERMISSION -> {
+                            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
+                                throw IllegalStateException(
+                                    "The notifications permission dialog requires API 33, but the device runs API ${Build.VERSION.SDK_INT}."
+                                )
+                            }
+                            reviewViewModel.markSystemNotificationPermissionRequested()
                             notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
-                        } else {
+                        }
+                        NotificationPermissionPromptContinueAction.OPEN_NOTIFICATION_SETTINGS -> {
                             context.startActivity(
                                 Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS)
                                     .putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName)

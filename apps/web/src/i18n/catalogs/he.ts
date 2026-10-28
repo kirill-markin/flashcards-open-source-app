@@ -738,6 +738,10 @@ const heCatalog: TranslationCatalog = {
       description: "צפה בהצעת ההתקנה ל-iOS ול-Android.",
       value: "תצוגה מקדימה",
     },
+    reviewPrompts: {
+      title: "הנחיות אחרי חזרה",
+      resetAll: "איפוס המצב של כל ההנחיות",
+    },
   },
   settingsWorkspace: {
     decks: {

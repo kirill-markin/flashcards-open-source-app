@@ -738,6 +738,10 @@ const mrCatalog: TranslationCatalog = {
       description: "iOS आणि Android इंस्टॉल सूचना पाहा.",
       value: "पूर्वावलोकन",
     },
+    reviewPrompts: {
+      title: "उजळणीनंतरचे प्रॉम्प्ट",
+      resetAll: "सर्व प्रॉम्प्टची स्थिती रीसेट करा",
+    },
   },
   settingsWorkspace: {
     decks: {

@@ -507,7 +507,15 @@ struct ReviewView: View {
             Button(String(localized: "Not now", table: reviewCardsStringsTableName), role: .cancel) {
                 store.dismissReviewNotificationPrePrompt(markDismissed: true)
             }
-            Button(String(localized: "Continue", table: reviewCardsStringsTableName)) {
+            Button(
+                store.reviewNotificationPrePromptPermissionStatus == .notRequested
+                    ? String(localized: "Continue", table: reviewCardsStringsTableName)
+                    : String(
+                        localized: "shared.action.open_settings",
+                        table: "Foundation",
+                        comment: "Permission action title to open Settings"
+                    )
+            ) {
                 store.continueReviewNotificationPrePrompt()
             }
         } message: {

@@ -26,7 +26,6 @@ import com.flashcardsopensourceapp.data.local.model.review.PendingReviewedCard
 import com.flashcardsopensourceapp.data.local.model.review.ReviewFilter
 import com.flashcardsopensourceapp.data.local.model.review.ReviewRating
 import com.flashcardsopensourceapp.data.local.model.review.ReviewSessionSnapshot
-import com.flashcardsopensourceapp.data.local.notifications.NotificationPermissionPromptState
 import com.flashcardsopensourceapp.data.local.notifications.ReviewNotificationsReconcileTrigger
 import com.flashcardsopensourceapp.data.local.notifications.ReviewNotificationsStore
 import com.flashcardsopensourceapp.data.local.review.ReviewPreferencesStore
@@ -321,17 +320,9 @@ class ReviewViewModel(
     }
 
     fun dismissNotificationPermissionPrompt() {
-        // `dismissed`, not `snoozed`: the stored state closes this pre-prompt for good rather than
-        // scheduling it to return.
-        reportNotificationPermissionPromptAnswer(outcome = AnalyticsPromptOutcome.DISMISSED)
+        // `snoozed`: the pre-prompt returns after its cooldown while notifications stay off.
+        reportNotificationPermissionPromptAnswer(outcome = AnalyticsPromptOutcome.SNOOZED)
         closeNotificationPermissionPrompt()
-        reviewNotificationsStore.savePromptState(
-            state = NotificationPermissionPromptState(
-                hasShownPrePrompt = true,
-                hasRequestedSystemPermission = false,
-                hasDismissedPrePrompt = true
-            )
-        )
     }
 
     fun continueNotificationPermissionPrompt() {
@@ -340,12 +331,11 @@ class ReviewViewModel(
         // still deny there, and that gap is the reason both events exist.
         reportNotificationPermissionPromptAnswer(outcome = AnalyticsPromptOutcome.ACCEPTED)
         closeNotificationPermissionPrompt()
+    }
+
+    fun markSystemNotificationPermissionRequested() {
         reviewNotificationsStore.savePromptState(
-            state = NotificationPermissionPromptState(
-                hasShownPrePrompt = true,
-                hasRequestedSystemPermission = true,
-                hasDismissedPrePrompt = false
-            )
+            state = reviewNotificationsStore.loadPromptState().copy(hasRequestedSystemPermission = true)
         )
     }
 
@@ -711,10 +701,12 @@ class ReviewViewModel(
                 }
             ),
             ReviewPromptId.NOTIFICATIONS_PRE_PROMPT to ReviewPromptHandler(
-                // Shown at most once per install, so it has no clock of its own yet.
-                loadLastShownAtMillis = { null },
+                loadLastShownAtMillis = { reviewNotificationsStore.loadPromptState().lastShownAtMillis },
                 tryShow = { reviewPromptConfigVersion ->
-                    tryShowNotificationPermissionPrompt(reviewPromptConfigVersion = reviewPromptConfigVersion)
+                    tryShowNotificationPermissionPrompt(
+                        nowMillis = nowMillis,
+                        reviewPromptConfigVersion = reviewPromptConfigVersion
+                    )
                 }
             )
         )
@@ -742,14 +734,8 @@ class ReviewViewModel(
         return true
     }
 
-    private fun tryShowNotificationPermissionPrompt(reviewPromptConfigVersion: String): Boolean {
-        val promptState = reviewNotificationsStore.loadPromptState()
-        if (
-            promptState.hasShownPrePrompt ||
-            promptState.hasRequestedSystemPermission ||
-            promptState.hasDismissedPrePrompt ||
-            shouldShowNotificationPermissionPrePrompt().not()
-        ) {
+    private fun tryShowNotificationPermissionPrompt(nowMillis: Long, reviewPromptConfigVersion: String): Boolean {
+        if (shouldShowNotificationPermissionPrePrompt().not()) {
             return false
         }
 
@@ -761,11 +747,7 @@ class ReviewViewModel(
             state.copy(isNotificationPermissionPromptVisible = true)
         }
         reviewNotificationsStore.savePromptState(
-            state = NotificationPermissionPromptState(
-                hasShownPrePrompt = true,
-                hasRequestedSystemPermission = false,
-                hasDismissedPrePrompt = false
-            )
+            state = reviewNotificationsStore.loadPromptState().copy(lastShownAtMillis = nowMillis)
         )
         return true
     }
