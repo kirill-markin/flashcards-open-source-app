@@ -75,7 +75,7 @@ const noOptions: ReadonlyArray<never> = [];
 
 type AnalyticsReportSectionsProps = Readonly<{
   activeArea: AnalyticsArea;
-  /** The funnel whose Details page the Funnels area shows, or `null` for the area itself. */
+  /** The funnel whose Details page the Journeys area shows, or `null` for the area itself. */
   funnelDetail: FunnelDetail | null;
   /** The prompt whose Details page the Review prompts area shows, or `null` for its table. */
   reviewPromptDetail: ReviewPromptId | null;
@@ -224,14 +224,14 @@ function AnalyticsReportSections(props: AnalyticsReportSectionsProps): JSX.Eleme
 
       {/*
         Only the General sections are drawn from the report state a failed reload leaves behind;
-        Audience and Funnels fetch their own data from the live selection and own their error states,
+        Audience and Journeys fetch their own data from the live selection and own their error states,
         so the stale mark stops here.
       */}
       {props.activeArea === "general" && reportState.status !== "error" ? <GeneralReportSections
         reportState={reportState}
       /> : null}
 
-      {props.activeArea === "funnels" ? <FunnelsArea
+      {props.activeArea === "journeys" ? <FunnelsArea
         config={props.config}
         filters={props.filters}
         funnelDetail={props.funnelDetail}
@@ -297,7 +297,7 @@ function getActiveArea(route: AdminDashboardRoute): AnalyticsArea {
     case "analyticsArea":
       return route.area;
     case "funnelDetails":
-      return "funnels";
+      return "journeys";
     case "reviewPromptDetails":
       return "review-prompts";
     case "levelOneMetricDetails":
@@ -409,7 +409,7 @@ export function AdminDashboard(
         <div className="report-reload-banner" role="alert">
           <div className="report-reload-banner-text">
             {/*
-              Funnels and Audience fetch their own numbers from the live selection, so on those areas
+              Journeys and Audience fetch their own numbers from the live selection, so on those areas
               the report on screen is not what the failure left behind. The shared range is loaded
               once per page load and cannot go stale, so the only thing the failed reload can leave
               behind there is the option lists, which are refetched with it whenever the range moves.

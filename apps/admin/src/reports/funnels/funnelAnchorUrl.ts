@@ -1,13 +1,13 @@
-// The URL codec for the step each Funnels chart is anchored on. It follows the filter codec in
+// The URL codec for the step each Journeys chart is anchored on. It follows the filter codec in
 // `filters/analyticsFiltersUrl.ts`: the anchor lives in the query string so a reload or a shared link
 // reopens the same view, the default (the first step) is never written, and reading ignores anything
 // it does not accept - an unknown, repeated or empty value opens on the default rather than throwing.
 //
 // The value is a stable step identifier rather than the display label, so renaming a step on screen
 // does not break links that are already shared. Each funnel has its own parameter, so anchoring one
-// chart leaves the others alone. The parameters belong to the Funnels area and the review prompt
+// chart leaves the others alone. The parameters belong to the Journeys area and the review prompt
 // Details pages only: area links carry a bare path, and the filter writer in `App.tsx` keeps them only
-// on the Funnels, funnel Details and review prompt Details routes. The URL is the anchor's one copy,
+// on the Journeys, funnel Details and review prompt Details routes. The URL is the anchor's one copy,
 // so every chart of a funnel on a page shares its anchor.
 
 /** One funnel's anchor contract: its URL parameter comes from `funnelId`, and `stepIds` are its steps in chart order. */

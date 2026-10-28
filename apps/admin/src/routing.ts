@@ -2,7 +2,7 @@ import { reviewPromptIds, type ReviewPromptId } from "./reports/reviewPrompts/re
 
 export const analyticsAreas = [
   "level-1-metrics",
-  "funnels",
+  "journeys",
   "review-prompts",
   "study-depth",
   "general",
@@ -18,7 +18,7 @@ export const defaultAnalyticsArea: AnalyticsArea = "level-1-metrics";
 export const analyticsAreaLabels: Readonly<Record<AnalyticsArea, string>> = {
   "level-1-metrics": "Level 1 metrics",
   general: "General",
-  funnels: "Funnels",
+  journeys: "Journeys",
   "review-prompts": "Review prompts",
   "study-depth": "Study depth",
   audience: "Audience",
@@ -86,7 +86,7 @@ export function getWhoSawUsDatasetPath(dataset: WhoSawUsDataset): string {
 }
 
 export function getFunnelDetailsPath(funnelId: FunnelDetail): string {
-  return `${getAnalyticsAreaPath("funnels")}/${funnelId}`;
+  return `${getAnalyticsAreaPath("journeys")}/${funnelId}`;
 }
 
 export function getReviewPromptDetailsPath(promptId: ReviewPromptId): string {
@@ -193,9 +193,16 @@ function parseEventRoute(normalizedPathname: string): AdminRoute | null {
   }
 }
 
-/** `/` and `/analytics` parse to the default area, so canonicalizing the path is their redirect. */
+/** The Journeys area's former path, which shared links still carry. */
+const legacyJourneysPathPattern = /^\/analytics\/funnels(?=\/|$)/u;
+
+/**
+ * `/` and `/analytics` parse to the default area, and a legacy `/analytics/funnels…` path to the
+ * Journeys route at the same place, so canonicalizing the path is their redirect.
+ */
 export function parseAdminRoute(pathname: string): AdminRoute {
-  const normalizedPathname = stripTrailingSlashes(pathname);
+  const normalizedPathname = stripTrailingSlashes(pathname)
+    .replace(legacyJourneysPathPattern, getAnalyticsAreaPath("journeys"));
 
   if (normalizedPathname === rootPath || normalizedPathname === analyticsIndexPath) {
     return { kind: "analyticsArea", area: defaultAnalyticsArea };

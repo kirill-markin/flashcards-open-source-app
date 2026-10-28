@@ -6,7 +6,7 @@ import { normalizeAnalyticsFilterState } from "../../filters/analyticsFiltersUrl
 import type { FunnelReportProps } from "./funnelSections";
 import type { FunnelChartGroups, FunnelStage } from "./FunnelStepsChart";
 
-// A funnel card counts its report on the main range A and, when the Funnels bar sets a comparison
+// A funnel card counts its report on the main range A and, when the Journeys bar sets a comparison
 // range, once more on range B with every other filter unchanged; the chart then draws the two as
 // series side by side, each measured from its own first step.
 
