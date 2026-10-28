@@ -163,6 +163,9 @@ extension FlashcardsStore {
     }
 
     func capturePaywallStateFailure(error: Error, stage: String) {
+        if isRequestCancellationError(error: error) || isSilentlyIgnorableNetworkTransportFailure(error: error) {
+            return
+        }
         FlashcardsObservability.captureSilentFailure(
             error: error,
             scope: IOSObservationScope(
