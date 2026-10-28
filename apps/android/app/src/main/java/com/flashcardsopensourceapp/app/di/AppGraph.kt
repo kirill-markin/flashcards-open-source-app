@@ -607,6 +607,7 @@ class AppGraph(
         preferencesStore = cloudPreferencesStore,
         remoteService = cloudRemoteService,
         cloudGuestSessionCoordinator = cloudGuestSessionCoordinator,
+        operationCoordinator = cloudOperationCoordinator,
         syncRepository = syncRepository,
         appVersion = appPackageInfo.versionName,
         currentUiLocaleTag = { currentAppUiLocaleTag(context = context) ?: "und" },
