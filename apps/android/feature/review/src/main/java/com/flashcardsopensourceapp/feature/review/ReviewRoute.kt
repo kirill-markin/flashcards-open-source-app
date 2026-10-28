@@ -94,6 +94,7 @@ fun ReviewRoute(
     onRateEasy: () -> Unit,
     onDismissHardAnswerReminder: () -> Unit,
     onDismissErrorMessage: () -> Unit,
+    notificationPermissionPromptContinueAction: NotificationPermissionPromptContinueAction,
     onDismissNotificationPermissionPrompt: () -> Unit,
     onContinueNotificationPermissionPrompt: () -> Unit,
     onOpenLeaderboard: () -> Unit,
@@ -544,7 +545,14 @@ fun ReviewRoute(
             },
             confirmButton = {
                 androidx.compose.material3.TextButton(onClick = onContinueNotificationPermissionPrompt) {
-                    androidx.compose.material3.Text(stringResource(id = R.string.review_continue))
+                    androidx.compose.material3.Text(
+                        stringResource(
+                            id = when (notificationPermissionPromptContinueAction) {
+                                NotificationPermissionPromptContinueAction.REQUEST_PERMISSION -> R.string.review_continue
+                                NotificationPermissionPromptContinueAction.OPEN_NOTIFICATION_SETTINGS -> R.string.review_open_settings
+                            }
+                        )
+                    )
                 }
             },
             dismissButton = {
