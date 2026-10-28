@@ -97,8 +97,8 @@ func paywallLocalDate(now: Date, timeZone: TimeZone) -> String {
     return formatter.string(from: now)
 }
 
-/// `state` must belong to a free account. Each review paywall is independent of the others and of
-/// paywalls opened anywhere else.
+/// `state` must belong to a free account. Every review paywall's cooldown counts from the latest
+/// after-review showing of any of the three; paywalls opened anywhere else do not count.
 func reviewPaywallTriggerIsDue(
     trigger: ReviewPaywallTrigger,
     state: PaywallState,
@@ -106,22 +106,18 @@ func reviewPaywallTriggerIsDue(
     counters: ReviewPromptCounters,
     now: Date
 ) -> Bool {
+    let lastShownAt = [state.introShownAt, state.followUpShownAt, state.periodicShownAt]
+        .compactMap { shownAt in shownAt.flatMap { parseIsoTimestamp(value: $0) } }
+        .max()
     switch trigger {
     case .initial:
         return state.introShownAt == nil
-            && reviewPromptConfigAllows(settings: settings, counters: counters, lastShownAt: nil, now: now)
+            && reviewPromptConfigAllows(settings: settings, counters: counters, lastShownAt: lastShownAt, now: now)
     case .day3:
         return state.followUpShownAt == nil
-            && reviewPromptConfigAllows(settings: settings, counters: counters, lastShownAt: nil, now: now)
+            && reviewPromptConfigAllows(settings: settings, counters: counters, lastShownAt: lastShownAt, now: now)
     case .weekly:
-        return reviewPromptConfigAllows(
-            settings: settings,
-            counters: counters,
-            lastShownAt: state.periodicShownAt.flatMap { periodicShownAt in
-                parseIsoTimestamp(value: periodicShownAt)
-            },
-            now: now
-        )
+        return reviewPromptConfigAllows(settings: settings, counters: counters, lastShownAt: lastShownAt, now: now)
     }
 }
 
