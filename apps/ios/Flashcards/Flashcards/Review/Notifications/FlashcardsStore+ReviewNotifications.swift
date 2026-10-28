@@ -216,14 +216,15 @@ extension FlashcardsStore {
 
     /**
      * The pre-prompt closed. `markDismissed` is what separates the two ways in: only "Not now" passes
-     * `true`, and it is the person declining. SwiftUI's own binding write-back passes `false` and
-     * runs behind whichever button was pressed, so reporting on it would double-count every answer.
+     * `true`, and it is a snooze, because the pre-prompt returns after its cooldown while notifications
+     * stay off. SwiftUI's own binding write-back passes `false` and runs behind whichever button was
+     * pressed, so reporting on it would double-count every answer.
      */
     func dismissReviewNotificationPrePrompt(markDismissed: Bool) {
         self.isReviewNotificationPrePromptPresented = false
         if markDismissed {
             Analytics.track(
-                .promptAnswered(prompt: .notificationsPrePrompt, outcome: .dismissed),
+                .promptAnswered(prompt: .notificationsPrePrompt, outcome: .snoozed),
                 screen: .notificationsPrePrompt
             )
             self.restoreSurfaceAfterNotificationPrePrompt()
