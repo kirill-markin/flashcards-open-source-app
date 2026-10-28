@@ -7,12 +7,13 @@ extension FlashcardsStore {
         let timeZone = TimeZone.current
         let today = try makeStoreReviewCurrentLocalDayRange(
             now: now,
-            calendar: makeStoreReviewLocalCalendar(timeZone: timeZone)
+            calendar: makeStoreReviewLocalCalendar(timeZone: timeZone),
+            dayStartHour: reviewPromptDayStartHour
         )
         return ReviewPromptCounters(
             totalReviews: try database.loadReviewEventCount(),
             reviewsToday: try database.loadAppWideReviewEventCount(start: today.start, end: today.end),
-            reviewDays: try database.loadAppWideReviewDayCount(timeZone: timeZone)
+            reviewDays: try database.loadAppWideReviewDayCount(timeZone: timeZone, dayStartHour: reviewPromptDayStartHour)
         )
     }
 

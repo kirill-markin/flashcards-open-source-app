@@ -13,8 +13,10 @@ const observabilityMocks = vi.hoisted(() => ({
 }));
 
 const progressMocks = vi.hoisted(() => ({
+  countLocalReviewEventsReviewedBetweenMock: vi.fn(),
   loadLocalProgressDailyReviewsMock: vi.fn(),
   loadLocalProgressSummaryMock: vi.fn(),
+  loadLocalRecentReviewDaysMock: vi.fn(),
 }));
 
 vi.mock("../../../observability/appOperationObservation", () => ({
@@ -22,8 +24,10 @@ vi.mock("../../../observability/appOperationObservation", () => ({
 }));
 
 vi.mock("../../../localDb/progress/progress", () => ({
+  countLocalReviewEventsReviewedBetween: progressMocks.countLocalReviewEventsReviewedBetweenMock,
   loadLocalProgressDailyReviews: progressMocks.loadLocalProgressDailyReviewsMock,
   loadLocalProgressSummary: progressMocks.loadLocalProgressSummaryMock,
+  loadLocalRecentReviewDays: progressMocks.loadLocalRecentReviewDaysMock,
 }));
 
 const {
@@ -35,8 +39,10 @@ const {
 
 beforeEach(() => {
   observabilityMocks.captureAppOperationErrorMock.mockReset();
+  progressMocks.countLocalReviewEventsReviewedBetweenMock.mockReset();
   progressMocks.loadLocalProgressDailyReviewsMock.mockReset();
   progressMocks.loadLocalProgressSummaryMock.mockReset();
+  progressMocks.loadLocalRecentReviewDaysMock.mockReset();
 });
 
 async function flushReviewScreenPromises(): Promise<void> {
@@ -59,7 +65,9 @@ describe("ReviewScreen review prompt observability", () => {
     state.reviewQueue = [card];
     state.reviewTimeline = [card];
     state.appData.submitReviewItem.mockImplementation(async (): Promise<Card> => card);
-    progressMocks.loadLocalProgressDailyReviewsMock.mockRejectedValue(activityLoadError);
+    progressMocks.loadLocalProgressDailyReviewsMock.mockResolvedValue([]);
+    progressMocks.countLocalReviewEventsReviewedBetweenMock.mockResolvedValue(0);
+    progressMocks.loadLocalRecentReviewDaysMock.mockRejectedValue(activityLoadError);
 
     await renderReviewScreen();
     await revealAnswer();

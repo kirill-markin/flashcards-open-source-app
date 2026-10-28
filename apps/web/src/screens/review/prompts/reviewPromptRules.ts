@@ -3,7 +3,6 @@ import type {
   ReviewPromptId,
   ReviewPromptSettings,
 } from "../../../../../backend/src/reviewPrompts/reviewPromptConfig";
-import type { DailyReviewPoint } from "../../../types";
 
 // The prompts this client has; the walk skips the other ids in the config order.
 const webReviewPromptIds = [
@@ -32,6 +31,14 @@ function isWebReviewPromptId(promptId: ReviewPromptId): promptId is WebReviewPro
 
 export function listWebReviewPromptOrder(config: ReviewPromptConfig): ReadonlyArray<WebReviewPromptId> {
   return config.order.filter(isWebReviewPromptId);
+}
+
+// The largest `minReviewDays` an enabled web prompt compares against.
+export function getReviewPromptDayLimit(config: ReviewPromptConfig): number {
+  return listWebReviewPromptOrder(config).reduce((limit, promptId) => {
+    const settings = config.prompts[promptId];
+    return settings.enabled && settings.minReviewDays !== undefined ? Math.max(limit, settings.minReviewDays) : limit;
+  }, 0);
 }
 
 export function hasReviewPromptCounterConditions(settings: ReviewPromptSettings): boolean {
@@ -70,15 +77,4 @@ export function parseReviewPromptShownAt(shownAt: string | null, fieldName: stri
   }
 
   return shownAtMillis;
-}
-
-export function buildReviewPromptCounters(
-  dailyReviews: ReadonlyArray<DailyReviewPoint>,
-  today: string,
-): ReviewPromptCounters {
-  return {
-    totalReviews: dailyReviews.reduce((total, point) => total + point.reviewCount, 0),
-    reviewsToday: dailyReviews.find((point) => point.date === today)?.reviewCount ?? 0,
-    reviewDays: dailyReviews.filter((point) => point.reviewCount > 0).length,
-  };
 }
