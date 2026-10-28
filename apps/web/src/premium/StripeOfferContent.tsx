@@ -12,6 +12,7 @@ type StripeOfferContentProps = Readonly<{
   onContinueFree: () => void;
   onChoosePremium: () => void;
   continueFreeRef: RefObject<HTMLButtonElement | null>;
+  premiumPurchaseRef: RefObject<HTMLButtonElement | null>;
 }>;
 
 export function StripeOfferContent(props: StripeOfferContentProps): ReactElement {
@@ -45,17 +46,6 @@ export function StripeOfferContent(props: StripeOfferContentProps): ReactElement
     void billing.purchase(props.continuation, props.presentation).finally(() => { purchasePendingRef.current = false; });
   }
   return <section className="premium-offer" data-testid="stripe-offer">
-    <section className="premium-plan premium-free-plan" aria-labelledby="premium-free-title">
-      <div className="premium-plan-header">
-        <h3 id="premium-free-title" className="panel-subtitle">{t("paywall.freeTitle")}</h3>
-        <p className="premium-free-price">{t("paywall.alwaysFree")}</p>
-      </div>
-      <p>{t("paywall.freeDescription")}</p>
-      <ul className="premium-benefits"><li>{t("paywall.freeBenefit")}</li></ul>
-      <button ref={props.continueFreeRef} type="button" className="premium-plan-button premium-free-button" data-testid="premium-continue-free" disabled={isPurchasing} onClick={props.onContinueFree}>
-        <span>{t("paywall.continueFree")}</span>{actionArrow}
-      </button>
-    </section>
     <section className="premium-plan premium-paid-plan" aria-labelledby="premium-paid-title">
       <div className="premium-plan-header">
         <h3 id="premium-paid-title" className="panel-subtitle">{t("stripe.offer.title")} <span aria-hidden="true">✦</span></h3>
@@ -68,7 +58,7 @@ export function StripeOfferContent(props: StripeOfferContentProps): ReactElement
         <li>{t("stripe.product.accentFeature")}</li>
       </ul>
       <p className="premium-creator-support">{creatorCopy[0]}<a href="https://kirill-markin.com/" target="_blank" rel="noreferrer">Kirill Markin</a>{creatorCopy[1]}</p>
-      {canPurchase ? <button type="button" className="premium-plan-button premium-paid-button"
+      {canPurchase ? <button ref={props.premiumPurchaseRef} type="button" className="premium-plan-button premium-paid-button"
         disabled={billing.busy || !isSessionVerified} data-testid="premium-purchase" onClick={choosePremium}>
         <span>{t(showsTrial ? "paywall.startTrial" : "stripe.offer.subscribe")}</span>{actionArrow}
       </button> : <p data-testid="premium-purchase-unavailable" role="status">
@@ -84,6 +74,17 @@ export function StripeOfferContent(props: StripeOfferContentProps): ReactElement
       </div>}
       <StripeBillingFeedback />
       {showPreviewMessage ? <p role="status" data-testid="premium-preview-message">{t("premium.previewNoPurchase")}</p> : null}
+    </section>
+    <section className="premium-plan premium-free-plan" aria-labelledby="premium-free-title">
+      <div className="premium-plan-header">
+        <h3 id="premium-free-title" className="panel-subtitle">{t("paywall.freeTitle")}</h3>
+        <p className="premium-free-price">{t("paywall.alwaysFree")}</p>
+      </div>
+      <p>{t("paywall.freeDescription")}</p>
+      <ul className="premium-benefits"><li>{t("paywall.freeBenefit")}</li></ul>
+      <button ref={props.continueFreeRef} type="button" className="premium-plan-button premium-free-button" data-testid="premium-continue-free" disabled={isPurchasing} onClick={props.onContinueFree}>
+        <span>{t("paywall.continueFree")}</span>{actionArrow}
+      </button>
     </section>
     <footer className="premium-footer">
       <div className="premium-utilities">
