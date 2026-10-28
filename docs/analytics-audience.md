@@ -32,7 +32,7 @@ where it is certain.
   [shared exclusion rule](admin-app.md#who-counts-as-a-person) drops, are a materialized view an
   [hourly job](../infra/aws/lib/scheduled-jobs/probable-android-burst-refresh.ts) refreshes, so a
   change reaches reports at the next refresh.
-- [Probable scraper-fleet visitors](../db/migrations/0230_probable_scraper_fleet_app_visitors.sql),
+- [Probable scraper-fleet visitors](../db/migrations/0231_probable_scraper_fleet_demo_card_passive.sql),
   marketing-site visitors by actor and by daily visitor hash and app guests with stored bot
   evidence and no activity, are a materialized view the same
   [hourly job](../infra/aws/lib/scheduled-jobs/probable-android-burst-refresh.ts) refreshes.
