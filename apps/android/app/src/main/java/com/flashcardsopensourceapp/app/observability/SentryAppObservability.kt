@@ -577,6 +577,7 @@ private fun exceptionContext(event: AndroidExceptionIssueEvent): SentryAndroidOb
     return when (event) {
         is AndroidExceptionIssueEvent.ReviewReactionFailure,
         is AndroidExceptionIssueEvent.ReviewPromptException,
+        is AndroidExceptionIssueEvent.ReviewPromptRemoteConfigException,
         is AndroidExceptionIssueEvent.AppScopeUncaughtException -> SentryAndroidObservationContext(
             feature = event.feature.tagValue,
             action = event.action.tagValue,

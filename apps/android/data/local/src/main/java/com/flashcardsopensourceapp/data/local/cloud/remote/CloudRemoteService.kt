@@ -610,16 +610,6 @@ class CloudRemoteService private constructor(
         )
     }
 
-    override suspend fun loadFeedbackState(
-        apiBaseUrl: String,
-        authorizationHeader: String
-    ): CloudFeedbackState {
-        return feedbackApi.loadFeedbackState(
-            apiBaseUrl = apiBaseUrl,
-            authorizationHeader = authorizationHeader
-        )
-    }
-
     override suspend fun recordFeedbackPromptEvent(
         apiBaseUrl: String,
         authorizationHeader: String,
