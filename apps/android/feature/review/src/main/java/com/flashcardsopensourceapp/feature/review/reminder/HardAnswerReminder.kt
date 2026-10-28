@@ -4,13 +4,6 @@ import com.flashcardsopensourceapp.data.local.model.review.ReviewRating
 
 internal const val hardAnswerReminderRecentRatingWindowSize: Int = 8
 internal const val hardAnswerReminderHardCountThreshold: Int = 5
-internal const val hardAnswerReminderCooldownMillis: Long = 3L * 24L * 60L * 60L * 1000L
-
-internal data class HardAnswerReminderDecision(
-    val recentReviewRatings: List<ReviewRating>,
-    val nextLastShownAtMillis: Long?,
-    val shouldShowReminder: Boolean
-)
 
 /**
  * Appends a review rating to the in-memory reminder window and trims it to the
@@ -29,55 +22,17 @@ internal fun appendRecentReviewRatings(
 }
 
 /**
- * Returns true when the current window has enough Hard answers to justify a reminder.
+ * The reminder's fixed rule: the saved answer is Hard and the session window, which already
+ * includes it, has enough Hard answers. Its cooldown comes from the review prompt config.
  */
-internal fun shouldShowHardAnswerReminder(recentReviewRatings: List<ReviewRating>): Boolean {
-    if (recentReviewRatings.size < hardAnswerReminderRecentRatingWindowSize) {
+internal fun shouldShowHardAnswerReminder(
+    savedRating: ReviewRating,
+    recentReviewRatings: List<ReviewRating>
+): Boolean {
+    if (savedRating != ReviewRating.HARD || recentReviewRatings.size < hardAnswerReminderRecentRatingWindowSize) {
         return false
     }
 
     val hardCount = recentReviewRatings.count { rating -> rating == ReviewRating.HARD }
     return hardCount >= hardAnswerReminderHardCountThreshold
-}
-
-/**
- * Returns true when the reminder is still inside its cooldown period.
- */
-internal fun isHardAnswerReminderOnCooldown(
-    lastShownAtMillis: Long?,
-    nowMillis: Long
-): Boolean {
-    if (lastShownAtMillis == null) {
-        return false
-    }
-
-    return nowMillis - lastShownAtMillis < hardAnswerReminderCooldownMillis
-}
-
-internal fun reduceHardAnswerReminderDecision(
-    recentReviewRatings: List<ReviewRating>,
-    nextRating: ReviewRating,
-    reviewedAtMillis: Long,
-    lastShownAtMillis: Long?
-): HardAnswerReminderDecision {
-    val nextRecentReviewRatings = appendRecentReviewRatings(
-        recentReviewRatings = recentReviewRatings,
-        nextRating = nextRating
-    )
-    val shouldShowReminder = nextRating == ReviewRating.HARD &&
-        shouldShowHardAnswerReminder(recentReviewRatings = nextRecentReviewRatings) &&
-        isHardAnswerReminderOnCooldown(
-            lastShownAtMillis = lastShownAtMillis,
-            nowMillis = reviewedAtMillis
-        ).not()
-
-    return HardAnswerReminderDecision(
-        recentReviewRatings = nextRecentReviewRatings,
-        nextLastShownAtMillis = if (shouldShowReminder) {
-            reviewedAtMillis
-        } else {
-            lastShownAtMillis
-        },
-        shouldShowReminder = shouldShowReminder
-    )
 }

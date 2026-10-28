@@ -52,8 +52,3 @@ data class CloudFeedbackSubmissionRequest(
     val message: String,
     val createdAtClient: String
 )
-
-data class FeedbackPromptReviewActivity(
-    val currentLocalDayReviewCount: Int,
-    val hasPreviousLocalReviewDay: Boolean
-)
