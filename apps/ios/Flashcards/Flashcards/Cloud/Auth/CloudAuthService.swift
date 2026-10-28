@@ -135,6 +135,8 @@ private struct RefreshTokenResponse: Decodable {
     let ok: Bool
     let idToken: String
     let expiresIn: Int
+    /// Cognito returns it only once refresh-token rotation is enabled.
+    let refreshToken: String?
 }
 
 private struct CloudAuthResponseDiagnostics {
@@ -309,7 +311,8 @@ final class CloudAuthService {
         )
         return CloudIdentityToken(
             idToken: response.idToken,
-            idTokenExpiresAt: makeIdTokenExpiryTimestamp(now: Date(), expiresInSeconds: response.expiresIn)
+            idTokenExpiresAt: makeIdTokenExpiryTimestamp(now: Date(), expiresInSeconds: response.expiresIn),
+            rotatedRefreshToken: response.refreshToken
         )
     }
 

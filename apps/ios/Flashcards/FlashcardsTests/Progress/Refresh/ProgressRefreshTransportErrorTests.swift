@@ -27,7 +27,8 @@ final class ProgressRefreshTransportErrorTests: ProgressStoreTestCase {
         )
         let refreshedToken = CloudIdentityToken(
             idToken: "id-token-refreshed",
-            idTokenExpiresAt: "2099-01-01T00:00:00.000Z"
+            idTokenExpiresAt: "2099-01-01T00:00:00.000Z",
+            rotatedRefreshToken: nil
         )
         let cloudAuthService = ProgressCloudAuthService(refreshedToken: refreshedToken)
         cloudAuthService.refreshIdTokenError = URLError(.timedOut)
