@@ -16,11 +16,13 @@ import {
   type ReachBar,
 } from "./reachBars";
 import { reachBarsChartHeight, renderReachBarsChart } from "./reachBarsChart";
+import { buildStudyDepthMatrix } from "./reachMatrix";
+import { StudyDepthMatrix } from "./StudyDepthMatrix";
 import {
-  parseStudyDepthMaturityDays,
+  parseStudyDepthControls,
   studyDepthMaturityDayOptions,
-  writeStudyDepthMaturityToUrl,
-  type StudyDepthMaturityDays,
+  writeStudyDepthControlsToUrl,
+  type StudyDepthControls,
 } from "./studyDepthUrl";
 import "./studyDepth.css";
 
@@ -102,14 +104,17 @@ export function StudyDepthArea(
 ): JSX.Element {
   const [loadState, setLoadState] = useState<LoadState>({ status: "loading" });
   const [revision, setRevision] = useState<number>(0);
-  const [maturityDays, setMaturityDays] = useState<StudyDepthMaturityDays>(
-    () => parseStudyDepthMaturityDays(new URLSearchParams(window.location.search)),
+  const [controls, setControls] = useState<StudyDepthControls>(
+    () => parseStudyDepthControls(new URLSearchParams(window.location.search)),
   );
 
-  const selectMaturityDays = useCallback((nextMaturityDays: StudyDepthMaturityDays): void => {
-    setMaturityDays(nextMaturityDays);
-    writeStudyDepthMaturityToUrl(nextMaturityDays);
+  const selectControls = useCallback((nextControls: StudyDepthControls): void => {
+    setControls(nextControls);
+    writeStudyDepthControlsToUrl(nextControls);
   }, []);
+
+  const maturityDays = controls.maturityDays;
+  const matrixMode = controls.matrixMode;
 
   useEffect(() => {
     let cancelled = false;
@@ -137,6 +142,9 @@ export function StudyDepthArea(
   const reviewDayBars = useMemo(() => (report === null || report.cohortPeopleCount === 0
     ? null
     : buildReachBars(report.cells, report.cohortPeopleCount, studyDepthReviewDayThresholds, (cell) => cell.reviewDayCount)), [report]);
+  const matrix = useMemo(() => (report === null || report.cohortPeopleCount === 0
+    ? null
+    : buildStudyDepthMatrix(report.cells, report.cohortPeopleCount, matrixMode)), [matrixMode, report]);
   const chartNote = report === null
     ? (loadState.status === "error" && !props.isRangeLoading ? null : "Loading study depth…")
     : report.cohortPeopleCount === 0
@@ -176,7 +184,7 @@ export function StudyDepthArea(
               data-testid={`study-depth-maturity-${option}`}
               aria-pressed={option === maturityDays}
               disabled={props.isRangeLoading}
-              onClick={() => selectMaturityDays(option)}
+              onClick={() => selectControls({ ...controls, maturityDays: option })}
             >{option} days</button>
           ))}
         </div>
@@ -218,6 +226,12 @@ export function StudyDepthArea(
             <li>A review day is the local date in the time zone the review was saved with, starting at {dayStart}, or the UTC date when none was saved</li>
           </ul>
         )}
+      />
+      <StudyDepthMatrix
+        matrix={matrix}
+        mode={matrixMode}
+        onSelectMode={(nextMatrixMode) => selectControls({ ...controls, matrixMode: nextMatrixMode })}
+        note={chartNote}
       />
 
       {report !== null && report.reviewCount > 0 ? (

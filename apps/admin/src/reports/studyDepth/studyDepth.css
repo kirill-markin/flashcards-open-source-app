@@ -1,4 +1,4 @@
-/* Layout and marks of the Study depth area; the selected maturity button shares the Study vs AI rule
+/* Layout and marks of the Study depth area; the selected maturity and matrix mode buttons share the Study vs AI rule
    in `src/styles.css`, which loads after this file. */
 
 .study-depth-controls {
@@ -102,5 +102,90 @@
 .reach-bar-unreliable .reach-bar-rect,
 .reach-bar-unreliable .reach-bar-value,
 .reach-bar-drop-unreliable {
+  opacity: 0.35;
+}
+
+.study-depth-matrix-modes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 12px 18px 0;
+}
+
+.study-depth-matrix-placeholder {
+  margin: 0;
+  padding: 24px 10px;
+  color: var(--muted);
+  font-size: 14px;
+  text-align: center;
+}
+
+.study-depth-matrix {
+  width: 100%;
+  min-width: 760px;
+  border-collapse: separate;
+  border-spacing: 2px;
+  table-layout: fixed;
+  font-variant-numeric: tabular-nums;
+}
+
+.study-depth-matrix th {
+  padding: 4px 6px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 400;
+  white-space: nowrap;
+}
+
+.study-depth-matrix thead th {
+  text-align: center;
+}
+
+/* `table-layout: fixed` sizes columns from the `<col>` elements, not from later rows. */
+.study-depth-matrix-label-col {
+  width: 72px;
+}
+
+.study-depth-matrix tbody th,
+.study-depth-matrix .study-depth-matrix-corner {
+  text-align: right;
+}
+
+.study-depth-matrix-cell {
+  height: 40px;
+  padding: 0;
+  border-radius: 4px;
+  color: var(--text);
+  line-height: 1.15;
+  text-align: center;
+}
+
+.study-depth-matrix-cell:hover {
+  outline: 2px solid var(--text);
+  outline-offset: -2px;
+}
+
+.study-depth-matrix-count,
+.study-depth-matrix-share {
+  display: block;
+}
+
+.study-depth-matrix-count {
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.study-depth-matrix-share {
+  font-size: 11px;
+  opacity: 0.85;
+}
+
+.study-depth-matrix-cell-empty {
+  border: 1px dashed var(--panel-border);
+  color: var(--muted-soft);
+}
+
+/* Fewer people than a rate can be read from. */
+.study-depth-matrix-cell-unreliable {
   opacity: 0.35;
 }
