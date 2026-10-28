@@ -13,21 +13,6 @@ import org.json.JSONObject
 internal class CloudFeedbackRemoteApi(
     private val httpClient: CloudJsonHttpClient
 ) {
-    suspend fun loadFeedbackState(
-        apiBaseUrl: String,
-        authorizationHeader: String
-    ): CloudFeedbackState {
-        val response = httpClient.getJson(
-            baseUrl = apiBaseUrl,
-            path = "/feedback/state",
-            authorizationHeader = authorizationHeader
-        )
-        return parseCloudFeedbackStateResponse(
-            response = response,
-            fieldPath = "feedback.state"
-        )
-    }
-
     suspend fun recordFeedbackPromptEvent(
         apiBaseUrl: String,
         authorizationHeader: String,

@@ -59,7 +59,7 @@ suspend fun showFirstEligibleReviewPrompt(
         if (canPresent().not()) {
             return
         }
-        val settings = config.prompts.getValue(promptId)
+        val settings = config.prompts[promptId] ?: continue
         if (passesReviewPromptConditions(settings = settings, counters = counters).not()) {
             continue
         }

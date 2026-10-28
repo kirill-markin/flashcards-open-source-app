@@ -110,6 +110,7 @@ internal fun NavGraphBuilder.registerReviewNavGraph(
             appReviewPromptHandlers = makeAppReviewPromptHandlers(appGraph = appGraph),
             onNotificationPermissionGranted = ::handleNotificationPermissionGranted,
             reviewPreferencesStore = appGraph.reviewPreferencesStore,
+            reviewPromptConfigStore = appGraph.reviewPromptConfigStore,
             analytics = appGraph.analytics,
             observability = appGraph.observability,
             visibleAppScreenRepository = appGraph.visibleAppScreenController,
