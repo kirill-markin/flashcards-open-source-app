@@ -107,11 +107,11 @@
 }
 
 .panel {
-  --panel-padding: 16px;
+  --panel-padding: var(--screen-head-spacing);
   --panel-radius: var(--radius-xl);
   --panel-inner-radius: calc(var(--panel-radius) / 2);
   display: grid;
-  gap: 16px;
+  gap: var(--screen-head-spacing);
   padding: var(--panel-padding);
   border: 1px solid var(--panel-border);
   border-radius: var(--panel-radius);
@@ -120,10 +120,31 @@
 }
 
 .chat-main-content > .container > .panel {
-  border-color: transparent;
+  border: 0;
   border-radius: 0;
   background: var(--bg);
   box-shadow: none;
+  padding-block-start: var(--screen-head-spacing);
+}
+
+.screen-panel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.screen-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  flex: 1;
+  gap: var(--screen-head-spacing);
+  align-content: start;
+  min-width: 0;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 
 .panel.state-panel,
@@ -196,9 +217,12 @@
 
 .screen-head {
   display: flex;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+  min-height: var(--screen-head-control-height);
   justify-content: space-between;
   gap: 12px;
-  align-items: flex-end;
+  align-items: center;
 }
 
 .screen-head > div:first-child {
@@ -216,9 +240,17 @@
 }
 
 .screen-actions > .badge {
-  min-height: 46px;
-  padding: 0 18px;
-  font-size: 16px;
+  min-height: var(--screen-head-control-height);
+  padding: 0 12px;
+  font-size: 15px;
+}
+
+.screen-head > .ghost-btn,
+.screen-actions > .ghost-btn,
+.screen-actions > .primary-btn {
+  width: auto;
+  min-height: var(--screen-head-control-height);
+  padding-inline: 16px;
 }
 
 .primary-btn,
@@ -499,11 +531,6 @@
 }
 
 @media (max-width: 1024px) {
-  .screen-head {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-
   .screen-actions {
     justify-content: flex-start;
   }

@@ -155,8 +155,8 @@ function buildPaywallSteps(promptId: ReviewPromptId): ReadonlyArray<ReviewPrompt
 
 const reviewPromptSteps: Readonly<Record<ReviewPromptId, ReadonlyArray<ReviewPromptStep>>> = {
   "paywall-initial": buildPaywallSteps("paywall-initial"),
-  "paywall-day3": buildPaywallSteps("paywall-day3"),
-  "paywall-weekly": buildPaywallSteps("paywall-weekly"),
+  "paywall-second": buildPaywallSteps("paywall-second"),
+  "paywall-periodic": buildPaywallSteps("paywall-periodic"),
   "notifications-pre-prompt": [
     shownStep,
     buildAcceptedStep("notifications-pre-prompt", "notifications_pre_prompt", "continue", "Continue tapped"),

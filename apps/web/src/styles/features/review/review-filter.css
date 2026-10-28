@@ -18,7 +18,7 @@
 
 .review-filter-trigger {
   min-width: 220px;
-  min-height: 44px;
+  min-height: var(--screen-head-control-height);
   justify-content: space-between;
   gap: 12px;
   padding-inline: 16px;

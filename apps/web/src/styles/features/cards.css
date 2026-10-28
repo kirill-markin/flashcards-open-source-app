@@ -1,7 +1,7 @@
 .cards-panel {
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  gap: var(--screen-head-spacing);
   height: 100%;
   min-height: 0;
   max-height: 100%;
@@ -373,8 +373,6 @@
   align-items: center;
   flex-wrap: wrap;
   margin-top: 14px;
-  padding-top: 14px;
-  border-top: 1px solid var(--divider);
 }
 
 .deck-card-stat {
