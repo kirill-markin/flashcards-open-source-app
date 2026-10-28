@@ -12,7 +12,13 @@ import { buildReportBucketSql, buildReportBucketsCteSql, type ReportPeriod } fro
 import { assertIsString, assertValidDateRange, toInteger } from "../reportValues";
 import { buildSiteFirstViewsCtesSql, buildSiteMeasuredBucketsCteSql } from "./engagedVisitorsQuery";
 import { buildAppleProductPageViewRowSqlLines, buildStoreReportDateRangeSqlLines, loadStoreDelivery } from "./query";
-import { buildSiteDeviceCategorySql, buildSiteSourceSql } from "./siteFactSql";
+import {
+  buildSiteBrowserLanguageSql,
+  buildSiteCountrySql,
+  buildSiteDeviceCategorySql,
+  buildSitePageKindSql,
+  buildSiteSourceSql,
+} from "./siteFactSql";
 import { getStoreBarFreshness } from "./storeDataFreshness";
 
 export const whoSawUsBreakdownDimensions = [
@@ -29,16 +35,6 @@ export const whoSawUsBreakdownDimensions = [
 ] as const;
 
 export type WhoSawUsBreakdownDimension = (typeof whoSawUsBreakdownDimensions)[number];
-
-// Shared so the landing page path charts split exactly the segments of `web-engaged-landing-page-type`.
-export function buildSitePageKindSql(rowAlias: string): string {
-  return `${rowAlias}.event_properties ->> 'page_kind'`;
-}
-
-// The language subtag of the browser locale, so `en-US`, `en_GB` and `en` are all `en`.
-function buildSiteBrowserLanguageSql(rowAlias: string): string {
-  return `lower(split_part(translate(${rowAlias}.device_locale, '_', '-'), '-', 1))`;
-}
 
 // Tokens hold no spaces or parentheses, so neither the separator nor `(none)` can be read as part of one.
 function buildSiteUtmCampaignSql(rowAlias: string): string {
@@ -97,7 +93,7 @@ function buildMeasuredCtesSql(
 ): string {
   switch (dimension) {
     case "web-engaged-country":
-      return buildSiteMeasuredCtesSql((rowAlias) => `${rowAlias}.country`, range, period, siteFilters);
+      return buildSiteMeasuredCtesSql(buildSiteCountrySql, range, period, siteFilters);
     case "web-engaged-landing-page-type":
       return buildSiteMeasuredCtesSql(buildSitePageKindSql, range, period, siteFilters);
     case "web-engaged-device":

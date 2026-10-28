@@ -6,6 +6,7 @@ import {
   buildDefaultAnalyticsFilterState,
   type AnalyticsFilterField,
 } from "../../filters/analyticsFilters";
+import { noSiteVisitorFilterOptions, type SiteVisitorFilterOptions } from "../../filters/optionsQuery";
 import type { LevelOneMetricsSelection } from "./levelOneMetricsUrl";
 import { parseReportPeriod, reportPeriodLabels, reportPeriods } from "./reportPeriod";
 import type { LevelOneMetricsSelectionState } from "./useLevelOneMetricsSelection";
@@ -15,15 +16,25 @@ const levelOneMetricsGroupByFieldId = "level-1-metrics-group-by";
 const noOptions: ReadonlyArray<never> = [];
 const noUserColorScale = getUserColorScale([]);
 
-/** The fields one Level 1 page's bar offers, and how the bar names itself and its `Reset all`. */
+export type SiteVisitorFilterOptionsLookup =
+  | Readonly<{ status: "loading" }>
+  | Readonly<{ status: "error"; message: string; retry: () => void }>
+  | Readonly<{ status: "ready"; options: SiteVisitorFilterOptions }>;
+
+/**
+ * The fields one Level 1 page's bar offers, what its site fields offer, and how the bar names itself
+ * and its `Reset all`.
+ */
 export type LevelOneMetricsFilterBar = Readonly<{
   fields: ReadonlyArray<AnalyticsFilterField>;
+  siteOptions: SiteVisitorFilterOptionsLookup;
   title: string;
   resetAllLabel: string;
 }>;
 
 export const levelOneMetricsDateRangeFilterBar: LevelOneMetricsFilterBar = {
   fields: analyticsFilterFieldsByArea["level-1-metrics"],
+  siteOptions: { status: "ready", options: noSiteVisitorFilterOptions },
   title: "Date range",
   resetAllLabel: "Reset the Level 1 metrics date range",
 };
@@ -44,6 +55,7 @@ export function LevelOneMetricsFrame(
   const rangeLookup = selectionState.rangeLookup;
   const dateRange = selectionState.selection.dateRange;
   const siteFilters = selectionState.selection.siteFilters;
+  const siteOptions = props.filterBar.siteOptions;
   // The site filters ride along on every page, so a page that does not offer them keeps them.
   const filters = useMemo(
     () => ({ ...buildDefaultAnalyticsFilterState(dateRange), ...siteFilters }),
@@ -70,7 +82,8 @@ export function LevelOneMetricsFrame(
         catalogSourceOptions={noOptions}
         catalogDeviceCategoryOptions={noOptions}
         catalogClickBrowserLanguageOptions={noOptions}
-        areOptionListsLoading={false}
+        siteVisitorOptions={siteOptions.status === "ready" ? siteOptions.options : noSiteVisitorFilterOptions}
+        areOptionListsLoading={siteOptions.status !== "ready"}
         isReportLoading={false}
         dateRangeError={selectionState.dateRangeError}
         userColorScale={noUserColorScale}
@@ -87,6 +100,14 @@ export function LevelOneMetricsFrame(
             type="button"
             onClick={selectionState.retryRangeLoad}
           >Retry</button>
+        </div>
+      ) : null}
+
+      {siteOptions.status === "error" ? (
+        <div className="report-state report-state-error" role="alert">
+          <strong>The filter options failed to load.</strong>
+          <span>{siteOptions.message}</span>
+          <button className="filter-button" type="button" onClick={siteOptions.retry}>Retry</button>
         </div>
       ) : null}
 

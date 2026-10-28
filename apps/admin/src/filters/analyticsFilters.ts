@@ -4,11 +4,7 @@ import {
   type ReviewEventCohort,
   type ReviewEventPlatform,
 } from "../adminApi";
-import type {
-  CatalogInstallDeviceCategory,
-  CatalogInstallPlacement,
-  CatalogInstallSource,
-} from "../reports/catalogInstallFunnel/query";
+import type { CatalogInstallPlacement } from "../reports/catalogInstallFunnel/query";
 import type { AnalyticsArea } from "../routing";
 
 // The one filter vocabulary every analytics area shares. It is declarative on purpose: it names the
@@ -26,7 +22,8 @@ import type { AnalyticsArea } from "../routing";
 export const deckVersionDiscriminatorLength = 8;
 
 // The marketing site's acquisition vocabulary, as `productAnalyticsSiteDeviceCategories` and
-// `productAnalyticsSiteSources` in `apps/backend/src/productAnalytics/catalog.ts` declare it.
+// `productAnalyticsSiteSources` in `apps/backend/src/productAnalytics/catalog.ts` declare it. The
+// catalog click fields read it too, off the site's `catalog_install_clicked`.
 export const siteDeviceCategories = ["desktop", "mobile", "tablet", "unknown"] as const;
 export const siteSources = ["direct", "search", "social", "referral", "internal", "unknown"] as const;
 
@@ -119,19 +116,28 @@ export type AnalyticsFilterState = Readonly<{
   appUiLanguages: ReadonlyArray<string>;
   installedDecks: ReadonlyArray<string>;
   catalogPlacements: ReadonlyArray<CatalogInstallPlacement>;
-  catalogSources: ReadonlyArray<CatalogInstallSource>;
-  catalogDeviceCategories: ReadonlyArray<CatalogInstallDeviceCategory>;
+  catalogSources: ReadonlyArray<SiteSource>;
+  catalogDeviceCategories: ReadonlyArray<SiteDeviceCategory>;
   catalogClickBrowserLanguages: ReadonlyArray<string>;
   siteDeviceCategories: ReadonlyArray<SiteDeviceCategory>;
   siteSources: ReadonlyArray<SiteSource>;
+  siteCountries: ReadonlyArray<string>;
+  siteBrowserLanguages: ReadonlyArray<string>;
+  sitePageKinds: ReadonlyArray<string>;
 }>;
 
 /** The fields that narrow marketing-site visitors by a value of their first page view. */
-export type SiteVisitorFilterState = Pick<AnalyticsFilterState, "siteDeviceCategories" | "siteSources">;
+export type SiteVisitorFilterState = Pick<
+  AnalyticsFilterState,
+  "siteDeviceCategories" | "siteSources" | "siteCountries" | "siteBrowserLanguages" | "sitePageKinds"
+>;
 
 export const defaultSiteVisitorFilterState: SiteVisitorFilterState = {
   siteDeviceCategories: [],
   siteSources: [],
+  siteCountries: [],
+  siteBrowserLanguages: [],
+  sitePageKinds: [],
 };
 
 /**
@@ -160,6 +166,9 @@ const analyticsFilterFieldOrder = {
   catalogClickBrowserLanguages: true,
   siteDeviceCategories: true,
   siteSources: true,
+  siteCountries: true,
+  siteBrowserLanguages: true,
+  sitePageKinds: true,
 } as const satisfies Readonly<Record<AnalyticsFilterField, true>>;
 
 /** Every field, in the order the filter bar offers them. */
@@ -187,6 +196,9 @@ const funnelsAnalyticsFilterFieldApplicability = {
   catalogClickBrowserLanguages: false,
   siteDeviceCategories: false,
   siteSources: false,
+  siteCountries: false,
+  siteBrowserLanguages: false,
+  sitePageKinds: false,
 } as const satisfies Readonly<Record<AnalyticsFilterField, boolean>>;
 
 const funnelsAnalyticsFilterFields: ReadonlyArray<AnalyticsFilterField> = analyticsFilterFields
@@ -216,6 +228,9 @@ export const webEngagedAnalyticsFilterFields: ReadonlyArray<AnalyticsFilterField
   "dateRange",
   "siteDeviceCategories",
   "siteSources",
+  "siteCountries",
+  "siteBrowserLanguages",
+  "sitePageKinds",
 ];
 
 // General and Audience draw no second series a comparison range could fill, and count people rather
@@ -236,6 +251,9 @@ const userScopedAnalyticsFilterFieldApplicability = {
   catalogClickBrowserLanguages: true,
   siteDeviceCategories: false,
   siteSources: false,
+  siteCountries: false,
+  siteBrowserLanguages: false,
+  sitePageKinds: false,
 } as const satisfies Readonly<Record<AnalyticsFilterField, boolean>>;
 
 const userScopedAnalyticsFilterFields: ReadonlyArray<AnalyticsFilterField> = analyticsFilterFields
@@ -285,6 +303,9 @@ const analyticsFilterFieldLabels: Readonly<Record<AnalyticsFilterField, string>>
   catalogClickBrowserLanguages: "Browser language at catalog click",
   siteDeviceCategories: "Device",
   siteSources: "Traffic source",
+  siteCountries: "Country",
+  siteBrowserLanguages: "Browser language",
+  sitePageKinds: "Landing page type",
 };
 
 // What the four click-based catalog fields all have to say, because the evidence behind them is one
@@ -389,6 +410,12 @@ const analyticsFilterFieldExplanations: Readonly<Record<AnalyticsFilterField, st
     "Keeps only the visitors whose first page view in the bar, or in the day for a cookieless visitor, came from a device category you pick, so a visitor who later switches devices counts only under the first. The site reads it from the browser's user agent: tablets include iPads that report themselves as a Mac, and an Android tablet in desktop-site mode counts as desktop. Picking nothing keeps every device.",
   siteSources:
     "Keeps only the visitors whose first page view in the bar, or in the day for a cookieless visitor, arrived from a traffic source you pick, so a visitor who later comes back another way counts only under the first. The site classifies it from the page's referrer, and internal is a link from another page of the site. Picking nothing keeps every source.",
+  siteCountries:
+    "Keeps only the visitors whose first page view in the bar, or in the day for a cookieless visitor, came from a country you pick, the one the site's collector derived from the request of that view. Views stored before late September 2026, and requests it could not place, are Unknown. Picking nothing keeps every country.",
+  siteBrowserLanguages:
+    "Keeps only the visitors whose first page view in the bar, or in the day for a cookieless visitor, reported a browser language you pick: the language part of the browser's locale, such as en from en-US, not the language of the page they opened. A view without a reported locale is Unknown. Picking nothing keeps every language.",
+  sitePageKinds:
+    "Keeps only the visitors whose first page view in the bar, or in the day for a cookieless visitor, was on a page type you pick, as the site reports it, such as home or blog_article. Picking nothing keeps every page type.",
 };
 
 // The date range changes meaning on most funnels: it places an entry by the event that anchors it and

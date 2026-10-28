@@ -6,8 +6,9 @@ import { buildBreakdownSql, buildBreakdownValueSql, loadBreakdownReport } from "
 import { liveSourceBarFreshness, type BreakdownReport } from "../levelOneMetrics/breakdownReport";
 import { buildReportBucketsCteSql, type ReportPeriod } from "../levelOneMetrics/reportPeriod";
 import { assertIsString, assertValidDateRange } from "../reportValues";
-import { buildSitePageKindSql, loadTopMeasuredValues, type ValueVisitors } from "./breakdownQuery";
+import { loadTopMeasuredValues, type ValueVisitors } from "./breakdownQuery";
 import { buildSiteFirstViewsCtesSql, buildSiteMeasuredBucketsCteSql } from "./engagedVisitorsQuery";
+import { buildSiteVisitorFilterValueSql } from "./siteFactSql";
 
 export const topLandingPageKindCount = 3;
 
@@ -21,7 +22,7 @@ function buildLandingViewsCtesSql(
   period: ReportPeriod,
   siteFilters: SiteVisitorFilterState,
 ): string {
-  return `${buildSiteFirstViewsCtesSql((rowAlias) => `${buildSitePageKindSql(rowAlias)} AS page_kind,
+  return `${buildSiteFirstViewsCtesSql((rowAlias) => `${buildSiteVisitorFilterValueSql("sitePageKinds", rowAlias)} AS page_kind,
       ${rowAlias}.event_properties ->> 'page_path' AS page_path`, range, period, siteFilters)}, landing_views AS (
   SELECT bucket_date, page_kind, page_path FROM identified_first_views
   UNION ALL

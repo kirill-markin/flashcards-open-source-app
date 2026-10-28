@@ -33,23 +33,7 @@ export const catalogInstallActivationWindowHours = 24;
 export const catalogInstallFunnelStartDate = "2026-09-23";
 
 export const catalogInstallPlacements = ["top", "middle", "bottom"] as const;
-export const catalogInstallSources = [
-  "direct",
-  "search",
-  "social",
-  "referral",
-  "internal",
-  "unknown",
-] as const;
-export const catalogInstallDeviceCategories = [
-  "desktop",
-  "mobile",
-  "tablet",
-  "unknown",
-] as const;
 export type CatalogInstallPlacement = (typeof catalogInstallPlacements)[number];
-export type CatalogInstallSource = (typeof catalogInstallSources)[number];
-export type CatalogInstallDeviceCategory = (typeof catalogInstallDeviceCategories)[number];
 
 export type CatalogInstallFunnelReport = Readonly<{
   observedAtUtc: string;
