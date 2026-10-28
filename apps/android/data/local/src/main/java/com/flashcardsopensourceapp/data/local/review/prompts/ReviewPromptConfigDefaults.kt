@@ -37,45 +37,66 @@ data class ReviewPromptConfig(
 
 val reviewPromptConfigDefaults: ReviewPromptConfig = ReviewPromptConfig(
     schemaVersion = 1,
-    version = "2026-10-28-1",
+    version = "2026-10-28-2",
     order = listOf(
-        ReviewPromptId.HARD_REMINDER,
+        ReviewPromptId.WEB_MOBILE_APP_PROMO,
+        ReviewPromptId.GUEST_SIGN_IN,
+        ReviewPromptId.RATING_REQUEST,
+        ReviewPromptId.AUTOMATIC_FEEDBACK,
         ReviewPromptId.PAYWALL_INITIAL,
         ReviewPromptId.PAYWALL_SECOND,
         ReviewPromptId.PAYWALL_PERIODIC,
         ReviewPromptId.NOTIFICATIONS_PRE_PROMPT,
-        ReviewPromptId.RATING_REQUEST,
-        ReviewPromptId.WEB_MOBILE_APP_PROMO,
-        ReviewPromptId.GUEST_SIGN_IN,
-        ReviewPromptId.AUTOMATIC_FEEDBACK
+        ReviewPromptId.HARD_REMINDER
     ),
     prompts = mapOf(
-        ReviewPromptId.HARD_REMINDER to ReviewPromptSettings(
+        ReviewPromptId.WEB_MOBILE_APP_PROMO to ReviewPromptSettings(
             enabled = true,
             minTotalReviews = null,
-            minReviewsToday = null,
+            minReviewsToday = 3,
+            minReviewDays = null,
+            cooldownDays = 1
+        ),
+        ReviewPromptId.GUEST_SIGN_IN to ReviewPromptSettings(
+            enabled = true,
+            minTotalReviews = null,
+            minReviewsToday = 5,
             minReviewDays = null,
             cooldownDays = 3
         ),
+        ReviewPromptId.RATING_REQUEST to ReviewPromptSettings(
+            enabled = true,
+            minTotalReviews = null,
+            minReviewsToday = 2,
+            minReviewDays = 2,
+            cooldownDays = 90
+        ),
+        ReviewPromptId.AUTOMATIC_FEEDBACK to ReviewPromptSettings(
+            enabled = true,
+            minTotalReviews = null,
+            minReviewsToday = 5,
+            minReviewDays = 3,
+            cooldownDays = 30
+        ),
         ReviewPromptId.PAYWALL_INITIAL to ReviewPromptSettings(
             enabled = true,
-            minTotalReviews = 3,
-            minReviewsToday = null,
-            minReviewDays = null,
+            minTotalReviews = null,
+            minReviewsToday = 2,
+            minReviewDays = 3,
             cooldownDays = null
         ),
         ReviewPromptId.PAYWALL_SECOND to ReviewPromptSettings(
             enabled = true,
             minTotalReviews = null,
             minReviewsToday = 2,
-            minReviewDays = 2,
-            cooldownDays = null
+            minReviewDays = 5,
+            cooldownDays = 2
         ),
         ReviewPromptId.PAYWALL_PERIODIC to ReviewPromptSettings(
             enabled = true,
             minTotalReviews = null,
             minReviewsToday = 2,
-            minReviewDays = 3,
+            minReviewDays = 15,
             cooldownDays = 7
         ),
         ReviewPromptId.NOTIFICATIONS_PRE_PROMPT to ReviewPromptSettings(
@@ -85,33 +106,12 @@ val reviewPromptConfigDefaults: ReviewPromptConfig = ReviewPromptConfig(
             minReviewDays = null,
             cooldownDays = 7
         ),
-        ReviewPromptId.RATING_REQUEST to ReviewPromptSettings(
+        ReviewPromptId.HARD_REMINDER to ReviewPromptSettings(
             enabled = true,
             minTotalReviews = null,
-            minReviewsToday = 5,
-            minReviewDays = 2,
-            cooldownDays = 90
-        ),
-        ReviewPromptId.WEB_MOBILE_APP_PROMO to ReviewPromptSettings(
-            enabled = true,
-            minTotalReviews = null,
-            minReviewsToday = 5,
-            minReviewDays = null,
-            cooldownDays = 1
-        ),
-        ReviewPromptId.GUEST_SIGN_IN to ReviewPromptSettings(
-            enabled = true,
-            minTotalReviews = 20,
             minReviewsToday = null,
             minReviewDays = null,
-            cooldownDays = 7
-        ),
-        ReviewPromptId.AUTOMATIC_FEEDBACK to ReviewPromptSettings(
-            enabled = true,
-            minTotalReviews = null,
-            minReviewsToday = 15,
-            minReviewDays = 2,
-            cooldownDays = 30
+            cooldownDays = 3
         )
     )
 )

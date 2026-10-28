@@ -5,7 +5,7 @@ import {
 } from "./automaticFeedbackPrompt";
 
 const nowMillis = new Date("2026-04-18T09:00:00.000Z").getTime();
-const settings = { enabled: true, minReviewsToday: 15, minReviewDays: 2, cooldownDays: 30 };
+const settings = { enabled: true, minReviewsToday: 5, minReviewDays: 3, cooldownDays: 30 };
 
 describe("automatic feedback prompt eligibility", () => {
   it("does not request backend state while the last automatic showing is within the cooldown", () => {

@@ -7,6 +7,9 @@
 // - Android: apps/android/data/local/src/main/java/com/flashcardsopensourceapp/data/local/review/prompts/ReviewPromptConfigDefaults.kt
 // Apps use the server values once they have them, but every release should ship the current
 // defaults; a small temporary difference is acceptable.
+// The admin Review prompts tab reads the order and every value from this file; only each prompt's
+// plain-words `fixedRule` in apps/admin/src/reports/reviewPrompts/reviewPromptDefinitions.ts is
+// synced by hand with the fixed code rules below.
 //
 // Evaluation runs only after a review is successfully saved, and only when the review surface can
 // present a prompt; a busy surface skips that review with no retry. Walk `order`, skipping ids the
@@ -74,27 +77,27 @@ export type ReviewPromptConfig = Readonly<{
 
 export const reviewPromptConfig: ReviewPromptConfig = {
   schemaVersion: 1,
-  version: "2026-10-28-1",
+  version: "2026-10-28-2",
   order: [
-    "hard-reminder",
+    "web-mobile-app-promo",
+    "guest-sign-in",
+    "rating-request",
+    "automatic-feedback",
     "paywall-initial",
     "paywall-second",
     "paywall-periodic",
     "notifications-pre-prompt",
-    "rating-request",
-    "web-mobile-app-promo",
-    "guest-sign-in",
-    "automatic-feedback",
+    "hard-reminder",
   ],
   prompts: {
-    "hard-reminder": { enabled: true, cooldownDays: 3 },
-    "paywall-initial": { enabled: true, minTotalReviews: 3 },
-    "paywall-second": { enabled: true, minReviewsToday: 2, minReviewDays: 2 },
-    "paywall-periodic": { enabled: true, minReviewsToday: 2, minReviewDays: 3, cooldownDays: 7 },
+    "web-mobile-app-promo": { enabled: true, minReviewsToday: 3, cooldownDays: 1 },
+    "guest-sign-in": { enabled: true, minReviewsToday: 5, cooldownDays: 3 },
+    "rating-request": { enabled: true, minReviewsToday: 2, minReviewDays: 2, cooldownDays: 90 },
+    "automatic-feedback": { enabled: true, minReviewsToday: 5, minReviewDays: 3, cooldownDays: 30 },
+    "paywall-initial": { enabled: true, minReviewsToday: 2, minReviewDays: 3 },
+    "paywall-second": { enabled: true, minReviewsToday: 2, minReviewDays: 5, cooldownDays: 2 },
+    "paywall-periodic": { enabled: true, minReviewsToday: 2, minReviewDays: 15, cooldownDays: 7 },
     "notifications-pre-prompt": { enabled: true, minTotalReviews: 6, cooldownDays: 7 },
-    "rating-request": { enabled: true, minReviewsToday: 5, minReviewDays: 2, cooldownDays: 90 },
-    "web-mobile-app-promo": { enabled: true, minReviewsToday: 5, cooldownDays: 1 },
-    "guest-sign-in": { enabled: true, minTotalReviews: 20, cooldownDays: 7 },
-    "automatic-feedback": { enabled: true, minReviewsToday: 15, minReviewDays: 2, cooldownDays: 30 },
+    "hard-reminder": { enabled: true, cooldownDays: 3 },
   },
 };
