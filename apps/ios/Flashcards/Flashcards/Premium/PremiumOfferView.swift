@@ -80,14 +80,14 @@ struct PremiumOfferView: View {
                     .listRowSeparator(.hidden)
 
                     Section {
-                        self.freePlan
-                    }
-                    .listRowSeparator(.hidden)
-
-                    Section {
                         self.premiumPlan
                     }
                     .listRowBackground(Color.orange.opacity(0.10))
+                    .listRowSeparator(.hidden)
+
+                    Section {
+                        self.freePlan
+                    }
                     .listRowSeparator(.hidden)
                 }
 

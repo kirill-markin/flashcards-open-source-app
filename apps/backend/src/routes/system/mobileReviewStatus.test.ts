@@ -81,6 +81,13 @@ function hasCurrentUserMobileReviewEvent(fixture: ReviewPlatformFixture): boolea
   );
 }
 
+function hasCurrentUserAgentReviewEvent(fixture: ReviewPlatformFixture): boolean {
+  return fixture.reviewEvents.some((reviewEvent) =>
+    reviewEvent.reviewedByUserId === fixture.currentUserId
+    && findReplicaForReview(reviewEvent, fixture.workspaceReplicas)?.actorKind === "agent_connection"
+  );
+}
+
 function createReviewPlatformExecutor(
   fixture: ReviewPlatformFixture,
 ): Readonly<{
@@ -96,13 +103,17 @@ function createReviewPlatformExecutor(
     ): Promise<pg.QueryResult<Row>> {
       recordedQueries.push({ text, params });
 
-      if (text === "SELECT content.current_user_has_mobile_review_event() AS has_mobile_review_event") {
+      if (
+        text === "SELECT content.current_user_has_mobile_review_event() AS has_mobile_review_event, "
+          + "content.current_user_has_agent_review_event() AS has_agent_review_event"
+      ) {
         if (params.length !== 0) {
           throw new Error("Review platform summary query must not accept request parameters.");
         }
 
         return createQueryResult([{
           has_mobile_review_event: hasCurrentUserMobileReviewEvent(fixture),
+          has_agent_review_event: hasCurrentUserAgentReviewEvent(fixture),
         }]) as unknown as pg.QueryResult<Row>;
       }
 
@@ -153,7 +164,7 @@ test("review platform summary returns false when the user has no reviews", async
     workspaceReplicas: [createClientReplica(IOS_REPLICA_ID, "ios")],
   });
 
-  assert.deepEqual(summary, { hasMobileReviewEvent: false });
+  assert.deepEqual(summary, { hasMobileReviewEvent: false, hasAgentReviewEvent: false });
   assert.equal(recordedQueries.length, 1);
 });
 
@@ -164,7 +175,7 @@ test("review platform summary returns false for web-only reviews", async () => {
     workspaceReplicas: [createClientReplica(WEB_REPLICA_ID, "web")],
   });
 
-  assert.deepEqual(summary, { hasMobileReviewEvent: false });
+  assert.deepEqual(summary, { hasMobileReviewEvent: false, hasAgentReviewEvent: false });
 });
 
 test("review platform summary returns true for iOS reviews", async () => {
@@ -174,7 +185,7 @@ test("review platform summary returns true for iOS reviews", async () => {
     workspaceReplicas: [createClientReplica(IOS_REPLICA_ID, "ios")],
   });
 
-  assert.deepEqual(summary, { hasMobileReviewEvent: true });
+  assert.deepEqual(summary, { hasMobileReviewEvent: true, hasAgentReviewEvent: false });
 });
 
 test("review platform summary returns true for Android reviews", async () => {
@@ -184,7 +195,7 @@ test("review platform summary returns true for Android reviews", async () => {
     workspaceReplicas: [createClientReplica(ANDROID_REPLICA_ID, "android")],
   });
 
-  assert.deepEqual(summary, { hasMobileReviewEvent: true });
+  assert.deepEqual(summary, { hasMobileReviewEvent: true, hasAgentReviewEvent: false });
 });
 
 test("review platform summary ignores another user's mobile reviews", async () => {
@@ -194,10 +205,10 @@ test("review platform summary ignores another user's mobile reviews", async () =
     workspaceReplicas: [createClientReplica(IOS_REPLICA_ID, "ios")],
   });
 
-  assert.deepEqual(summary, { hasMobileReviewEvent: false });
+  assert.deepEqual(summary, { hasMobileReviewEvent: false, hasAgentReviewEvent: false });
 });
 
-test("GET /me/review-platform-summary returns exactly one boolean for human transports", async () => {
+test("GET /me/review-platform-summary returns exactly two booleans for human transports", async () => {
   const transports: ReadonlyArray<RequestContext["transport"]> = ["session", "bearer", "guest"];
 
   for (const transport of transports) {
@@ -205,7 +216,7 @@ test("GET /me/review-platform-summary returns exactly one boolean for human tran
       transport,
       loadReviewPlatformSummaryFn: async (userId) => {
         assert.equal(userId, CURRENT_USER_ID);
-        return { hasMobileReviewEvent: true };
+        return { hasMobileReviewEvent: true, hasAgentReviewEvent: true };
       },
     });
 
@@ -213,8 +224,8 @@ test("GET /me/review-platform-summary returns exactly one boolean for human tran
     const payload = await response.json() as ReviewPlatformSummary;
 
     assert.equal(response.status, 200);
-    assert.deepEqual(payload, { hasMobileReviewEvent: true });
-    assert.deepEqual(Object.keys(payload), ["hasMobileReviewEvent"]);
+    assert.deepEqual(payload, { hasMobileReviewEvent: true, hasAgentReviewEvent: true });
+    assert.deepEqual(Object.keys(payload), ["hasMobileReviewEvent", "hasAgentReviewEvent"]);
   }
 });
 
@@ -224,7 +235,7 @@ test("GET /me/review-platform-summary rejects ApiKey authentication", async () =
     transport: "api_key",
     loadReviewPlatformSummaryFn: async () => {
       called = true;
-      return { hasMobileReviewEvent: true };
+      return { hasMobileReviewEvent: true, hasAgentReviewEvent: false };
     },
   });
 
