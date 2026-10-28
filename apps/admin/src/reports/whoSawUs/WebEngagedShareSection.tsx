@@ -11,7 +11,7 @@ import { escapeHtml, formatGeneratedAt } from "../../charts/formatting";
 import { renderRateLineChart } from "../../charts/rateLineChart";
 import type { AdminAppConfig } from "../../config";
 import { ExplanationTip } from "../../explanations/ExplanationTip";
-import type { AnalyticsDateRange } from "../../filters/analyticsFilters";
+import type { AnalyticsDateRange, SiteVisitorFilterState } from "../../filters/analyticsFilters";
 import {
   findInProgressBucketKey,
   formatReportBucketTick,
@@ -117,6 +117,7 @@ export function WebEngagedShareSection(props: Readonly<{
   config: AdminAppConfig;
   dateRange: AnalyticsDateRange;
   period: ReportPeriod;
+  siteFilters: SiteVisitorFilterState;
   onTerminalAdminError: (error: unknown, config: AdminAppConfig) => boolean;
 }>): JSX.Element {
   const chartRef = useRef<SVGSVGElement | null>(null);
@@ -128,14 +129,14 @@ export function WebEngagedShareSection(props: Readonly<{
     let cancelled = false;
     setLoadState({ status: "loading" });
     const abortController = new AbortController();
-    void loadWebTrafficCategoriesReport(props.config, props.dateRange, props.period, abortController.signal).then((report) => {
+    void loadWebTrafficCategoriesReport(props.config, props.dateRange, props.period, props.siteFilters, abortController.signal).then((report) => {
       if (!cancelled) setLoadState({ status: "ready", report });
     }).catch((error: unknown) => {
       if (cancelled || props.onTerminalAdminError(error, props.config)) return;
       setLoadState({ status: "error", message: error instanceof Error ? error.message : `Unexpected ${title} query error.` });
     });
     return () => { cancelled = true; abortController.abort(); };
-  }, [props.config, props.dateRange, props.period, props.onTerminalAdminError, revision]);
+  }, [props.config, props.dateRange, props.period, props.siteFilters, props.onTerminalAdminError, revision]);
 
   const chartModel = useMemo(
     () => (loadState.status === "ready" ? buildChartModel(loadState.report) : null),

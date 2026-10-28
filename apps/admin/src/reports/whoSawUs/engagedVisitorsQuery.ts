@@ -1,8 +1,16 @@
 import type { ChartNote } from "../../charts/chartNotes";
-import type { AnalyticsDateRange } from "../../filters/analyticsFilters";
+import type { AnalyticsDateRange, SiteVisitorFilterState } from "../../filters/analyticsFilters";
 import { escapeSqlStringLiteral } from "../../sql";
 import { buildHashedVisitorDaySql } from "../funnels/funnelAudienceSql";
-import { buildHashedSiteFactFilterSql, buildIdentifiedSiteFactFilterSql, buildSiteEventNamesSql } from "./siteFactSql";
+import { buildReportBucketSql, type ReportPeriod } from "../levelOneMetrics/reportPeriod";
+import {
+  buildHashedSiteFactFilterSql,
+  buildHashedSiteViewFilterSql,
+  buildIdentifiedSiteFactFilterSql,
+  buildIdentifiedSiteViewFilterSql,
+  buildSiteEventNamesSql,
+  buildSiteVisitorFilterSql,
+} from "./siteFactSql";
 
 /**
  * The site facts that make a visitor-day engaged beside its page views: every marketing-site event,
@@ -101,4 +109,78 @@ export function buildSiteVisitorDaysCtesSql(range: AnalyticsDateRange): string {
     "  HAVING COUNT(*) FILTER (WHERE hashed_fact.event_name = 'site_page_viewed') > 0",
     ")",
   ].join("\n");
+}
+
+/**
+ * Over `buildSiteVisitorDaysCtesSql`'s CTEs, the visitors the `web` series counts, keyed
+ * as `buildSiteFirstViewsCtesSql` counts a visitor once: `engaged_identified_visitors(bucket_date,
+ * actor_id)`, engaged on a day of that bucket, and `engaged_hashed_visitors(daily_visitor_hash,
+ * visit_date)`, engaged on that hash day.
+ */
+function buildSiteEngagedVisitorKeysCtesSql(range: AnalyticsDateRange, period: ReportPeriod): string {
+  return `${buildSiteVisitorDaysCtesSql(range)}, engaged_identified_visitors AS MATERIALIZED (
+  SELECT DISTINCT ${buildReportBucketSql(period, "visit_date")} AS bucket_date, actor_id
+  FROM identified_visitor_days
+  WHERE is_engaged
+), engaged_hashed_visitors AS MATERIALIZED (
+  SELECT daily_visitor_hash, visit_date
+  FROM hashed_visitor_days
+  WHERE is_engaged
+)`;
+}
+
+/**
+ * The first page view of each `web` series visitor in the unit the series counts them once in: the
+ * bucket for an identified visitor, the hash day for a cookieless one. Two CTEs,
+ * `identified_first_views` and `hashed_first_views`, each a `bucket_date` plus the columns
+ * `columnsSqlOf` selects off the view. Engagement keeps or drops a visitor's views whole, by
+ * `buildSiteEngagedVisitorKeysCtesSql`, so their first view is their first page view of that unit.
+ * `siteFilters` is tested on that first view only after it is picked, so it keeps or drops the
+ * visitor whole rather than moving them to a later view that matches.
+ */
+export function buildSiteFirstViewsCtesSql(
+  columnsSqlOf: (rowAlias: string) => string,
+  range: AnalyticsDateRange,
+  period: ReportPeriod,
+  siteFilters: SiteVisitorFilterState,
+): string {
+  const identifiedBucketSql = buildReportBucketSql(period, "(site_view.occurred_at AT TIME ZONE 'UTC')::date");
+  const hashedVisitorDaySql = buildHashedVisitorDaySql("hashed_view");
+  return `${buildSiteEngagedVisitorKeysCtesSql(range, period)}, identified_first_views AS (
+  SELECT first_view.* FROM (
+    SELECT DISTINCT ON (${identifiedBucketSql}, site_view.actor_id)
+      ${identifiedBucketSql} AS bucket_date,
+      ${buildSiteVisitorFilterSql("site_view", siteFilters)} AS passes_site_filters,
+      ${columnsSqlOf("site_view")}
+    FROM analytics.product_events_resolved AS site_view
+    WHERE ${buildIdentifiedSiteViewFilterSql("site_view", range)}
+    AND (${identifiedBucketSql}, site_view.actor_id) IN (SELECT bucket_date, actor_id FROM engaged_identified_visitors)
+    ORDER BY ${identifiedBucketSql}, site_view.actor_id, site_view.occurred_at, site_view.event_id
+  ) AS first_view
+  WHERE first_view.passes_site_filters
+), hashed_first_views AS (
+  SELECT first_view.* FROM (
+    SELECT DISTINCT ON (${hashedVisitorDaySql}, hashed_view.daily_visitor_hash)
+      ${buildReportBucketSql(period, hashedVisitorDaySql)} AS bucket_date,
+      ${buildSiteVisitorFilterSql("hashed_view", siteFilters)} AS passes_site_filters,
+      ${columnsSqlOf("hashed_view")}
+    FROM analytics.product_events_resolved AS hashed_view
+    WHERE ${buildHashedSiteViewFilterSql("hashed_view", range)}
+    AND (hashed_view.daily_visitor_hash, ${hashedVisitorDaySql}) IN (SELECT daily_visitor_hash, visit_date FROM engaged_hashed_visitors)
+    ORDER BY ${hashedVisitorDaySql}, hashed_view.daily_visitor_hash, hashed_view.occurred_at, hashed_view.event_id
+  ) AS first_view
+  WHERE first_view.passes_site_filters
+)`;
+}
+
+/**
+ * `measured_buckets` over `buildSiteVisitorDaysCtesSql`'s CTEs: the bars with a site visitor-day,
+ * engaged or not, so a bar without an engaged visitor counts zero, as on the `web` series.
+ */
+export function buildSiteMeasuredBucketsCteSql(period: ReportPeriod): string {
+  return `measured_buckets AS (
+  SELECT ${buildReportBucketSql(period, "visit_date")} AS bucket_date FROM identified_visitor_days
+  UNION
+  SELECT ${buildReportBucketSql(period, "visit_date")} AS bucket_date FROM hashed_visitor_days
+)`;
 }

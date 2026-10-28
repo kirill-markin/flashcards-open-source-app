@@ -11,7 +11,7 @@ import { renderWhoSawUsChart } from "../../charts/chartRenderers";
 import { escapeHtml, formatGeneratedAt } from "../../charts/formatting";
 import type { AdminAppConfig } from "../../config";
 import { ExplanationTip } from "../../explanations/ExplanationTip";
-import type { AnalyticsDateRange } from "../../filters/analyticsFilters";
+import type { AnalyticsDateRange, SiteVisitorFilterState } from "../../filters/analyticsFilters";
 import type { BarFreshness } from "../levelOneMetrics/breakdownReport";
 import {
   LevelOneMetricDetailsButton,
@@ -269,6 +269,8 @@ export function WhoSawUsSection(
     dateRange: AnalyticsDateRange;
     period: ReportPeriod;
     series: WhoSawUsChartSeries;
+    /** Narrows the `web` series alone; a chart that draws a store series passes the default. */
+    siteFilters: SiteVisitorFilterState;
     detailsLink: LevelOneMetricDetailsLink | null;
     onTerminalAdminError: (error: unknown, config: AdminAppConfig) => boolean;
   }>,
@@ -282,14 +284,14 @@ export function WhoSawUsSection(
     let cancelled = false;
     setLoadState({ status: "loading" });
     const abortController = new AbortController();
-    void loadWhoSawUsReport(props.config, props.dateRange, props.period, abortController.signal).then((report) => {
+    void loadWhoSawUsReport(props.config, props.dateRange, props.period, props.siteFilters, abortController.signal).then((report) => {
       if (!cancelled) setLoadState({ status: "ready", report });
     }).catch((error: unknown) => {
       if (cancelled || props.onTerminalAdminError(error, props.config)) return;
       setLoadState({ status: "error", message: error instanceof Error ? error.message : "Unexpected Who saw us query error." });
     });
     return () => { cancelled = true; abortController.abort(); };
-  }, [props.config, props.dateRange, props.period, props.onTerminalAdminError, revision]);
+  }, [props.config, props.dateRange, props.period, props.siteFilters, props.onTerminalAdminError, revision]);
 
   const seriesKeys = useMemo(() => getDrawnSeriesKeys(props.series), [props.series]);
   const chartModel = useMemo(

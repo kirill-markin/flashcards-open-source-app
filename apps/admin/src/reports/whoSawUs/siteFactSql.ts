@@ -1,4 +1,4 @@
-import type { AnalyticsDateRange } from "../../filters/analyticsFilters";
+import type { AnalyticsDateRange, SiteVisitorFilterState } from "../../filters/analyticsFilters";
 import { buildExcludedActorSqlLines } from "../../filters/filterSql";
 import { escapeSqlStringLiteral } from "../../sql";
 import {
@@ -89,4 +89,41 @@ export function buildHashedSiteViewRowsSql(rowAlias: string, range: AnalyticsDat
 /** The page views of the cookieless visitors the `web` series keeps, which its breakdowns' first views read. */
 export function buildHashedSiteViewFilterSql(rowAlias: string, range: AnalyticsDateRange): string {
   return buildHashedSiteFactFilterSql(rowAlias, siteViewEventNames, range);
+}
+
+export function buildSiteDeviceCategorySql(rowAlias: string): string {
+  return `${rowAlias}.event_properties ->> 'device_category'`;
+}
+
+export function buildSiteSourceSql(rowAlias: string): string {
+  return `${rowAlias}.event_properties ->> 'source'`;
+}
+
+// Each site visitor filter field beside the page view value it narrows, the one its breakdown reads.
+const siteVisitorFilterValueSqlOf: Readonly<
+  Record<keyof SiteVisitorFilterState, (rowAlias: string) => string>
+> = {
+  siteDeviceCategories: buildSiteDeviceCategorySql,
+  siteSources: buildSiteSourceSql,
+};
+
+const siteVisitorFilterFields = Object.keys(siteVisitorFilterValueSqlOf) as ReadonlyArray<keyof SiteVisitorFilterState>;
+
+export function isSiteVisitorFilterNarrowed(filters: SiteVisitorFilterState): boolean {
+  return siteVisitorFilterFields.some((field) => filters[field].length > 0);
+}
+
+/**
+ * Whether the page view `rowAlias` matches every narrowed site visitor filter, as one SQL boolean; an
+ * empty field keeps every value. Every Web engaged query tests it on a visitor's first page view in
+ * the unit it counts them once in, never on each view, so a visitor is kept or dropped whole.
+ */
+export function buildSiteVisitorFilterSql(rowAlias: string, filters: SiteVisitorFilterState): string {
+  const conditionSqls = siteVisitorFilterFields.flatMap((field) => {
+    const values: ReadonlyArray<string> = filters[field];
+    return values.length === 0
+      ? []
+      : [`${siteVisitorFilterValueSqlOf[field](rowAlias)} IN (${values.map(escapeSqlStringLiteral).join(", ")})`];
+  });
+  return conditionSqls.length === 0 ? "TRUE" : `(${conditionSqls.join(" AND ")})`;
 }
