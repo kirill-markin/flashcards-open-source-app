@@ -306,6 +306,55 @@ extension CardStore {
         )
     }
 
+    /// SQLite shifts a timestamp only by a fixed offset, so the history is split wherever the zone's
+    /// UTC offset changes and each part is dated with its own offset.
+    func loadAppWideReviewDayCount(timeZone: TimeZone) throws -> Int {
+        let bounds = try self.core.query(
+            sql: "SELECT MIN(reviewed_at_client), MAX(reviewed_at_client) FROM review_events",
+            values: []
+        ) { statement in
+            (
+                earliest: DatabaseCore.columnOptionalText(statement: statement, index: 0),
+                latest: DatabaseCore.columnOptionalText(statement: statement, index: 1)
+            )
+        }
+        guard let earliestValue = bounds.first?.earliest, let latestValue = bounds.first?.latest else {
+            return 0
+        }
+        guard let earliestReviewedAt = parseIsoTimestamp(value: earliestValue),
+              let latestReviewedAt = parseIsoTimestamp(value: latestValue) else {
+            throw LocalStoreError.database(
+                "Review event timestamps are not ISO-8601: earliest=\(earliestValue) latest=\(latestValue)"
+            )
+        }
+
+        let historyEnd = latestReviewedAt.addingTimeInterval(1)
+        var localDates: Set<String> = []
+        var periodStart = earliestReviewedAt
+        while periodStart < historyEnd {
+            let nextTransition = timeZone.nextDaylightSavingTimeTransition(after: periodStart)
+            let periodEnd = min(nextTransition ?? historyEnd, historyEnd)
+            let periodLocalDates = try self.core.query(
+                sql: """
+                SELECT DISTINCT date(reviewed_at_client, ?)
+                FROM review_events
+                WHERE reviewed_at_client >= ? AND reviewed_at_client < ?
+                """,
+                values: [
+                    .text("\(timeZone.secondsFromGMT(for: periodStart)) seconds"),
+                    .text(formatIsoTimestamp(date: periodStart)),
+                    .text(formatIsoTimestamp(date: periodEnd))
+                ]
+            ) { statement in
+                DatabaseCore.columnText(statement: statement, index: 0)
+            }
+            localDates.formUnion(periodLocalDates)
+            periodStart = periodEnd
+        }
+
+        return localDates.count
+    }
+
     func loadReviewCounts(
         workspaceId: String,
         reviewQueryDefinition: ReviewQueryDefinition,

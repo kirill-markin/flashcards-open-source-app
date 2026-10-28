@@ -339,15 +339,6 @@ final class ProgressCloudSyncService: CloudSyncServing {
         )
     }
 
-    func loadFeedbackState(
-        apiBaseUrl: String,
-        authorizationHeader: String
-    ) async throws -> FeedbackState {
-        _ = apiBaseUrl
-        _ = authorizationHeader
-        fatalError("Not used in progress tests.")
-    }
-
     func recordFeedbackPromptEvent(
         apiBaseUrl: String,
         authorizationHeader: String,

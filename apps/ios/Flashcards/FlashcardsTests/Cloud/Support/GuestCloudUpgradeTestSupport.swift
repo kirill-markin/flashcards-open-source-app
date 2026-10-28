@@ -210,15 +210,6 @@ final class GuestUpgradeDrainCloudSyncService: CloudSyncServing {
         fatalError("Not used in GuestCloudUpgradeDrainTests.")
     }
 
-    func loadFeedbackState(
-        apiBaseUrl: String,
-        authorizationHeader: String
-    ) async throws -> FeedbackState {
-        _ = apiBaseUrl
-        _ = authorizationHeader
-        fatalError("Not used in GuestCloudUpgradeDrainTests.")
-    }
-
     func recordFeedbackPromptEvent(
         apiBaseUrl: String,
         authorizationHeader: String,

@@ -20,7 +20,7 @@ enum PremiumPresentationReason: Equatable, Sendable {
     case aiLimit
     case premiumFeature(requiredTierRank: Int)
     case offerPreview
-    case review(ReviewPaywallTrigger)
+    case review(ReviewPaywallTrigger, reviewPromptConfigVersion: String)
 }
 
 struct PremiumPresentationRequest: Identifiable, Equatable {
@@ -30,7 +30,12 @@ struct PremiumPresentationRequest: Identifiable, Equatable {
     let identity: AppleSubscriptionIdentity?
 
     var reviewTrigger: ReviewPaywallTrigger? {
-        if case .review(let trigger) = self.reason { return trigger }
+        if case .review(let trigger, _) = self.reason { return trigger }
+        return nil
+    }
+
+    var reviewPromptConfigVersion: String? {
+        if case .review(_, let reviewPromptConfigVersion) = self.reason { return reviewPromptConfigVersion }
         return nil
     }
 
@@ -121,7 +126,8 @@ final class PremiumPresenter {
                     localDate: paywallLocalDate(now: now, timeZone: timeZone),
                     timeZone: timeZone.identifier,
                     accountKind: request.identity.map { $0.isGuest ? .guest : .registered },
-                    offerType: self.displayedOfferType
+                    offerType: self.displayedOfferType,
+                    reviewPromptConfigVersion: request.reviewPromptConfigVersion
                 ),
                 screen: screen
             )

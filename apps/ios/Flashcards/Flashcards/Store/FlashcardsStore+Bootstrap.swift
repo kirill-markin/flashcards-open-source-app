@@ -251,7 +251,6 @@ extension FlashcardsStore {
             trigger: didTransitionWorkspace ? .workspaceChanged : .filterChanged,
             now: now
         )
-        self.requestGuestSignInAfterReviewPromptReconciliation()
     }
 
     @discardableResult
@@ -283,8 +282,7 @@ extension FlashcardsStore {
                 return BootstrapSnapshotRefreshOutcome(
                     didChange: false,
                     workspaceChanged: false,
-                    cardsChanged: false,
-                    homeSnapshotChanged: false
+                    cardsChanged: false
                 )
             }
 
@@ -349,7 +347,6 @@ extension FlashcardsStore {
             || decksChanged
             || self.deckItems != nextDeckItems
             || self.homeSnapshot != resolvedHomeSnapshot
-        let homeSnapshotChanged = self.homeSnapshot != resolvedHomeSnapshot
 
         if reviewSourceChanged {
             self.reviewRuntime.invalidateReviewSource()
@@ -406,8 +403,7 @@ extension FlashcardsStore {
         return BootstrapSnapshotRefreshOutcome(
             didChange: didChange,
             workspaceChanged: workspaceChanged,
-            cardsChanged: cardsChanged,
-            homeSnapshotChanged: homeSnapshotChanged
+            cardsChanged: cardsChanged
         )
     }
 

@@ -193,10 +193,17 @@ final class CloudSessionRuntime {
             id: UUID().uuidString.lowercased(),
             refreshToken: refreshToken,
             task: Task { @MainActor in
-                try await cloudAuthService.refreshIdToken(
+                let refreshedToken = try await cloudAuthService.refreshIdToken(
                     refreshToken: refreshToken,
                     authBaseUrl: authBaseUrl
                 )
+                if let rotatedRefreshToken = refreshedToken.rotatedRefreshToken {
+                    try self.saveRotatedRefreshToken(
+                        rotatedRefreshToken: rotatedRefreshToken,
+                        sentRefreshToken: refreshToken
+                    )
+                }
+                return refreshedToken
             }
         )
         self.state.activeCloudCredentialRefresh = refresh
@@ -213,6 +220,25 @@ final class CloudSessionRuntime {
             }
             throw error
         }
+    }
+
+    /// Cognito stops accepting the sent refresh token shortly after rotating it, so the rotated one is
+    /// saved as soon as the refresh resolves, ahead of any caller's cancellation check. The save
+    /// happens only while the Keychain still holds the sent token, so an identity abandoned or
+    /// replaced during the refresh keeps its Keychain state.
+    private func saveRotatedRefreshToken(rotatedRefreshToken: String, sentRefreshToken: String) throws {
+        guard let storedCredentials = try self.credentialStore.loadCredentials(),
+              storedCredentials.refreshToken == sentRefreshToken else {
+            return
+        }
+
+        try self.credentialStore.saveCredentials(
+            credentials: StoredCloudCredentials(
+                refreshToken: rotatedRefreshToken,
+                idToken: storedCredentials.idToken,
+                idTokenExpiresAt: storedCredentials.idTokenExpiresAt
+            )
+        )
     }
 
     func prepareAuthenticatedCloudSessionForAI(
@@ -932,8 +958,9 @@ final class CloudSessionRuntime {
         self.state.activeGuestCloudSessionPreparation = nil
         self.state.activeGuestCloudSessionCreation?.task.cancel()
         self.state.activeGuestCloudSessionCreation = nil
-        self.state.activeCloudCredentialRefresh?.task.cancel()
-        self.state.activeCloudCredentialRefresh = nil
+        // The credential refresh belongs to the identity, which a workspace switch keeps, so it runs
+        // on: cancelling it would lose a refresh token Cognito may already have rotated, and keeping
+        // the slot lets callers after the switch join it instead of resending the same token.
     }
 
     /**

@@ -66,10 +66,6 @@ protocol CloudSyncServing {
         bearerToken: String,
         inviteeDisplayName: String
     ) async throws -> FriendInvitationCreateResponse
-    func loadFeedbackState(
-        apiBaseUrl: String,
-        authorizationHeader: String
-    ) async throws -> FeedbackState
     func recordFeedbackPromptEvent(
         apiBaseUrl: String,
         authorizationHeader: String,

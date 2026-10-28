@@ -1,6 +1,5 @@
 import Foundation
 
-let reviewNotificationPermissionPromptThreshold: Int = 6
 let defaultDailyReminderHour: Int = 10
 let defaultDailyReminderMinute: Int = 0
 
@@ -10,7 +9,6 @@ let defaultInactivityReminderWindowEndMinute: Int = 0
 let reviewNotificationsSettingsUserDefaultsKey: String = "review-notifications-settings"
 let legacyReviewNotificationsSettingsUserDefaultsKeyPrefix: String = "review-notifications-settings::"
 let reviewNotificationPromptStateUserDefaultsKey: String = "review-notification-prompt-state"
-let reviewNotificationSuccessfulReviewCountUserDefaultsKey: String = "review-notification-successful-review-count"
 
 enum ReviewNotificationMode: String, Codable, CaseIterable, Identifiable, Hashable, Sendable {
     case daily
@@ -163,10 +161,6 @@ func makeDefaultNotificationPermissionPromptState() -> NotificationPermissionPro
         hasRequestedSystemPermission: false,
         hasDismissedPrePrompt: false
     )
-}
-
-func hasEnoughReviewHistoryForNotificationPrompt(reviewCount: Int) -> Bool {
-    reviewCount >= reviewNotificationPermissionPromptThreshold
 }
 
 func reviewNotificationPendingRequestsLimit(strictRemindersSettings: StrictRemindersSettings) -> Int {
