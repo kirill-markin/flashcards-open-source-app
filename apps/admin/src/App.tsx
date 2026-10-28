@@ -32,6 +32,10 @@ import {
   withFunnelAnchorSearchParams,
 } from "./reports/funnels/funnelAnchorUrl";
 import { funnelSections } from "./reports/funnels/funnelSections";
+import {
+  parseRetentionDetailsPeriod,
+  withRetentionDetailsPeriodSearchParams,
+} from "./reports/retentionCurve/retentionDetailsUrl";
 import { reviewPromptFunnels } from "./reports/reviewPrompts/detailsQuery";
 import {
   parseStudyDepthControls,
@@ -178,7 +182,7 @@ function buildUnionRange(
 
 /**
  * The area whose shared filter bar the route renders, or `null` for a route without one. Every
- * analytics area but Level 1 metrics, and every funnel and review prompt Details page, renders the
+ * analytics area but Level 1 metrics, and every Journeys and review prompt Details page, renders the
  * shared filter bar and carries its selection in the URL. Level 1 metrics and its Details pages own
  * their range and its available range, so entering them loads nothing here.
  */
@@ -187,6 +191,7 @@ function getAnalyticsFilterArea(route: AdminRoute): AnalyticsArea | null {
     case "analyticsArea":
       return route.area === "level-1-metrics" ? null : route.area;
     case "funnelDetails":
+    case "retentionDetails":
       return "journeys";
     case "reviewPromptDetails":
       return "review-prompts";
@@ -205,18 +210,22 @@ function getAnalyticsFilterArea(route: AdminRoute): AnalyticsArea | null {
  * the way out.
  *
  * The Journeys anchors are validated on the way through, each against that funnel's own steps. The
- * Study-vs-AI controls and the Study depth maturity are validated by their own parsers, which fall
- * back to the default for anything outside their closed option lists.
+ * Retention Details Group by, the Study-vs-AI controls and the Study depth maturity are validated by
+ * their own parsers, which fall back to the default for anything outside their closed option lists.
  */
 function buildAreaSearchParams(
   route: AdminRoute,
   filterSearchParams: URLSearchParams,
   currentSearchParams: URLSearchParams,
 ): URLSearchParams {
-  // A funnel Details page carries every funnel's anchor, not only its own, so its back link returns
-  // to the Journeys area with the query string it left.
-  if (route.kind === "funnelDetails" || (route.kind === "analyticsArea" && route.area === "journeys")) {
-    return funnelSections.reduce(
+  // A Journeys Details page carries every funnel's anchor, so its back link returns to the Journeys
+  // area with the query string it left; the Retention Details page adds its own Group by.
+  if (
+    route.kind === "funnelDetails"
+    || route.kind === "retentionDetails"
+    || (route.kind === "analyticsArea" && route.area === "journeys")
+  ) {
+    const anchoredSearchParams = funnelSections.reduce(
       (nextSearchParams, funnel) => withFunnelAnchorSearchParams(
         nextSearchParams,
         funnel.anchor,
@@ -224,6 +233,9 @@ function buildAreaSearchParams(
       ),
       filterSearchParams,
     );
+    return route.kind === "retentionDetails"
+      ? withRetentionDetailsPeriodSearchParams(anchoredSearchParams, parseRetentionDetailsPeriod(currentSearchParams))
+      : anchoredSearchParams;
   }
 
   // A review prompt Details page carries its own funnel's anchor; the table has none.

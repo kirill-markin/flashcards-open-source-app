@@ -19,7 +19,7 @@ import { AiUsageCohortsSection } from "../reports/aiUsageCohorts/AiUsageCohortsS
 import { AudienceSection } from "../reports/audience/AudienceSection";
 import { CatalogInstallsSection } from "../reports/catalogInstalls/CatalogInstallsSection";
 import { FunnelDetailsHeader } from "../reports/funnels/FunnelDetailsHeader";
-import { FunnelsArea } from "../reports/funnels/FunnelsArea";
+import { FunnelsArea, type JourneysPage } from "../reports/funnels/FunnelsArea";
 import type { GeneralReportView } from "../reports/generalReportView";
 import { LevelOneMetricDetailsPage } from "../reports/levelOneMetrics/LevelOneMetricDetailsPage";
 import { LevelOneMetricsArea } from "../reports/levelOneMetrics/LevelOneMetricsArea";
@@ -30,7 +30,7 @@ import { ReviewPromptsArea } from "../reports/reviewPrompts/ReviewPromptsArea";
 import { SocialConnectionsSection } from "../reports/socialConnections/SocialConnectionsSection";
 import { StudyDepthArea } from "../reports/studyDepth/StudyDepthArea";
 import { WhoSawUsDatasetPage } from "../reports/whoSawUs/WhoSawUsDatasetPage";
-import type { AdminRoute, AnalyticsArea, FunnelDetail } from "../routing";
+import type { AdminRoute, AnalyticsArea } from "../routing";
 import { getStableUserColorDomain, getUserColorScale } from "./userColors";
 
 export type AdminReportsData = Readonly<{
@@ -75,8 +75,8 @@ const noOptions: ReadonlyArray<never> = [];
 
 type AnalyticsReportSectionsProps = Readonly<{
   activeArea: AnalyticsArea;
-  /** The funnel whose Details page the Journeys area shows, or `null` for the area itself. */
-  funnelDetail: FunnelDetail | null;
+  /** The Journeys page the route opens, or `null` off the Journeys tab. */
+  journeysPage: JourneysPage | null;
   /** The prompt whose Details page the Review prompts area shows, or `null` for its table. */
   reviewPromptDetail: ReviewPromptId | null;
   config: AdminAppConfig;
@@ -231,10 +231,10 @@ function AnalyticsReportSections(props: AnalyticsReportSectionsProps): JSX.Eleme
         reportState={reportState}
       /> : null}
 
-      {props.activeArea === "journeys" ? <FunnelsArea
+      {props.journeysPage !== null ? <FunnelsArea
         config={props.config}
         filters={props.filters}
-        funnelDetail={props.funnelDetail}
+        page={props.journeysPage}
         isReportLoading={props.isSelectionSettling}
         onNavigate={props.onNavigate}
         onTerminalAdminError={props.onTerminalAdminError}
@@ -285,11 +285,19 @@ function AnalyticsReportSections(props: AnalyticsReportSectionsProps): JSX.Eleme
 
 /**
  * The routes the dashboard shell renders: an analytics area, or a Level 1 Details, Who saw us
- * dataset, funnel Details or review prompt Details page under its tab.
+ * dataset, funnel Details, Retention Details or review prompt Details page under its tab.
  */
 export type AdminDashboardRoute = Extract<
   AdminRoute,
-  { kind: "analyticsArea" | "levelOneMetricDetails" | "whoSawUsDataset" | "funnelDetails" | "reviewPromptDetails" }
+  {
+    kind:
+      | "analyticsArea"
+      | "levelOneMetricDetails"
+      | "whoSawUsDataset"
+      | "funnelDetails"
+      | "retentionDetails"
+      | "reviewPromptDetails";
+  }
 >;
 
 function getActiveArea(route: AdminDashboardRoute): AnalyticsArea {
@@ -297,12 +305,28 @@ function getActiveArea(route: AdminDashboardRoute): AnalyticsArea {
     case "analyticsArea":
       return route.area;
     case "funnelDetails":
+    case "retentionDetails":
       return "journeys";
     case "reviewPromptDetails":
       return "review-prompts";
     case "levelOneMetricDetails":
     case "whoSawUsDataset":
       return "level-1-metrics";
+  }
+}
+
+function getJourneysPage(route: AdminDashboardRoute): JourneysPage | null {
+  switch (route.kind) {
+    case "analyticsArea":
+      return route.area === "journeys" ? { kind: "cards" } : null;
+    case "funnelDetails":
+      return { kind: "funnelDetails", funnelId: route.funnelId };
+    case "retentionDetails":
+      return { kind: "retentionDetails" };
+    case "levelOneMetricDetails":
+    case "whoSawUsDataset":
+    case "reviewPromptDetails":
+      return null;
   }
 }
 
@@ -326,7 +350,7 @@ export function AdminDashboard(
   }>,
 ): JSX.Element {
   const activeArea = getActiveArea(props.route);
-  const funnelDetail = props.route.kind === "funnelDetails" ? props.route.funnelId : null;
+  const journeysPage = getJourneysPage(props.route);
   const reviewPromptDetail = props.route.kind === "reviewPromptDetails" ? props.route.promptId : null;
   // Level 1 metrics loads and ranges its own charts, so nothing below about the General reports applies.
   const usesGeneralReports = activeArea !== "level-1-metrics";
@@ -384,11 +408,16 @@ export function AdminDashboard(
         />
       ) : null}
 
-      {props.route.kind === "analyticsArea" || props.route.kind === "funnelDetails" || props.route.kind === "reviewPromptDetails"
+      {props.route.kind === "analyticsArea"
+        || props.route.kind === "funnelDetails"
+        || props.route.kind === "retentionDetails"
+        || props.route.kind === "reviewPromptDetails"
         ? renderNavigation("")
         : null}
 
-      {funnelDetail === null ? null : <FunnelDetailsHeader funnelId={funnelDetail} onNavigate={props.onNavigate} />}
+      {journeysPage === null || journeysPage.kind === "cards"
+        ? null
+        : <FunnelDetailsHeader page={journeysPage} onNavigate={props.onNavigate} />}
       {reviewPromptDetail === null ? null : <ReviewPromptDetailsHeader promptId={reviewPromptDetail} onNavigate={props.onNavigate} />}
 
       {props.route.kind === "analyticsArea" && props.route.area === "level-1-metrics" ? (
@@ -433,7 +462,7 @@ export function AdminDashboard(
       {usesGeneralReports && props.filters !== null && props.defaultRange !== null ? (
         <AnalyticsReportSections
           activeArea={activeArea}
-          funnelDetail={funnelDetail}
+          journeysPage={journeysPage}
           reviewPromptDetail={reviewPromptDetail}
           config={props.config}
           reportState={props.reportState}

@@ -176,6 +176,7 @@ function RetentionWindowSection(props: Readonly<{
             <ul>
               <li>The cohorts of Retention by first-use cohort: W1 and W4, people whose first-ever answered review falls on the bucket’s selected days. A line is one value’s {retentionLabels[props.window]}: its people with any answered review on days {retentionWindowDays[props.window]} after their own first-use day, over its people in the cohort.</li>
               {props.breakdown.placement}
+              <li>Only the date range and this page’s own Group by apply; the other Journeys filters do not change it.</li>
               <li>The five values with the most cohort people over the selected first-use dates get their own line; the rest are summed into Other. A missing value is Unknown and ranks like any other.</li>
               <li>A value’s point is hidden where it has fewer than {minimumDrawnCohortUsers} people in the cohort, so its line breaks there; the tooltip still lists its rate and returned / cohort users.</li>
               <li>A rate appears only after the cohort’s last selected first-use day has its full window. Recent or uncovered cohorts are unavailable, never zero.</li>
@@ -261,7 +262,7 @@ function RetentionBreakdownPair(props: Readonly<{
   );
 }
 
-/** The Who came back Details breakdowns, one grid cell per window and dimension. */
+/** The Retention Details breakdowns, one grid cell per window and dimension. */
 export function WhoCameBackBreakdownSections(props: Readonly<{
   config: AdminAppConfig;
   dateRange: AnalyticsDateRange;

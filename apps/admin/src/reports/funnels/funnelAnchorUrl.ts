@@ -7,7 +7,7 @@
 // does not break links that are already shared. Each funnel has its own parameter, so anchoring one
 // chart leaves the others alone. The parameters belong to the Journeys area and the review prompt
 // Details pages only: area links carry a bare path, and the filter writer in `App.tsx` keeps them only
-// on the Journeys, funnel Details and review prompt Details routes. The URL is the anchor's one copy,
+// on the Journeys, Journeys Details and review prompt Details routes. The URL is the anchor's one copy,
 // so every chart of a funnel on a page shares its anchor.
 
 /** One funnel's anchor contract: its URL parameter comes from `funnelId`, and `stepIds` are its steps in chart order. */
