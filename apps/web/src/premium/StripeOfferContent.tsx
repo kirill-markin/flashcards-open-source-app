@@ -1,4 +1,4 @@
-import { useRef, useState, type ReactElement, type RefObject } from "react";
+import { useRef, useState, type ReactElement } from "react";
 import { useAppData } from "../appData";
 import { useI18n } from "../i18n";
 import type { PaywallPresentation, PremiumContinuation } from "./stripeIntent";
@@ -11,8 +11,6 @@ type StripeOfferContentProps = Readonly<{
   isPreview: boolean;
   onContinueFree: () => void;
   onChoosePremium: () => void;
-  continueFreeRef: RefObject<HTMLButtonElement | null>;
-  premiumPurchaseRef: RefObject<HTMLButtonElement | null>;
 }>;
 
 export function StripeOfferContent(props: StripeOfferContentProps): ReactElement {
@@ -58,7 +56,7 @@ export function StripeOfferContent(props: StripeOfferContentProps): ReactElement
         <li>{t("stripe.product.accentFeature")}</li>
       </ul>
       <p className="premium-creator-support">{creatorCopy[0]}<a href="https://kirill-markin.com/" target="_blank" rel="noreferrer">Kirill Markin</a>{creatorCopy[1]}</p>
-      {canPurchase ? <button ref={props.premiumPurchaseRef} type="button" className="premium-plan-button premium-paid-button"
+      {canPurchase ? <button type="button" className="premium-plan-button premium-paid-button"
         disabled={billing.busy || !isSessionVerified} data-testid="premium-purchase" onClick={choosePremium}>
         <span>{t(showsTrial ? "paywall.startTrial" : "stripe.offer.subscribe")}</span>{actionArrow}
       </button> : <p data-testid="premium-purchase-unavailable" role="status">
@@ -82,7 +80,7 @@ export function StripeOfferContent(props: StripeOfferContentProps): ReactElement
       </div>
       <p>{t("paywall.freeDescription")}</p>
       <ul className="premium-benefits"><li>{t("paywall.freeBenefit")}</li></ul>
-      <button ref={props.continueFreeRef} type="button" className="premium-plan-button premium-free-button" data-testid="premium-continue-free" disabled={isPurchasing} onClick={props.onContinueFree}>
+      <button type="button" className="premium-plan-button premium-free-button" data-testid="premium-continue-free" disabled={isPurchasing} onClick={props.onContinueFree}>
         <span>{t("paywall.continueFree")}</span>{actionArrow}
       </button>
     </section>

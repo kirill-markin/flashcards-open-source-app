@@ -114,6 +114,7 @@ export type ReviewCounts = Readonly<{
 
 export type ReviewPlatformSummary = Readonly<{
   hasMobileReviewEvent: boolean;
+  hasAgentReviewEvent: boolean;
 }>;
 
 export type ReviewQueueSnapshot = Readonly<{
