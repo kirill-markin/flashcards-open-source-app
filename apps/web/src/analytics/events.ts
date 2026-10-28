@@ -291,6 +291,8 @@ export type AnalyticsEvent =
   | Readonly<{
     name: "screen_viewed";
     screen: AnalyticsSurface;
+    // The `version` of the review prompt config that chose an after-review prompt surface.
+    reviewPromptConfigVersion?: string;
   }>
   | Readonly<{
     name: "auth_method_selected";
@@ -493,6 +495,7 @@ export type AnalyticsEvent =
     contentVersion?: string;
     accountKind?: "guest" | "registered";
     offerType?: AnalyticsPurchaseOfferType;
+    reviewPromptConfigVersion?: string;
   }>
   | Readonly<{
     name: "paywall_choice";
@@ -607,7 +610,9 @@ export function buildAnalyticsEventProperties(event: AnalyticsEvent): AnalyticsE
     case "app_opened":
       return { launch_type: event.launchType };
     case "screen_viewed":
-      return null;
+      return event.reviewPromptConfigVersion === undefined
+        ? null
+        : { review_prompt_config_version: event.reviewPromptConfigVersion };
     case "auth_method_selected":
       return { method: event.method };
     case "auth_code_form_shown":
@@ -678,6 +683,9 @@ export function buildAnalyticsEventProperties(event: AnalyticsEvent): AnalyticsE
         ...(event.contentVersion === undefined ? {} : { content_version: event.contentVersion }),
         ...(event.accountKind === undefined ? {} : { account_kind: event.accountKind }),
         ...(event.offerType === undefined ? {} : { offer_type: event.offerType }),
+        ...(event.reviewPromptConfigVersion === undefined
+          ? {}
+          : { review_prompt_config_version: event.reviewPromptConfigVersion }),
       };
     case "paywall_choice":
       return { presentation_id: event.presentationId, entry_point: event.entryPoint, outcome: event.outcome,
