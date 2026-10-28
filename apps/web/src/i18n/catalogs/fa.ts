@@ -738,6 +738,10 @@ const faCatalog: TranslationCatalog = {
       description: "درخواست نصب iOS و اندروید را پیش‌نمایش کنید.",
       value: "پیش‌نمایش",
     },
+    reviewPrompts: {
+      title: "اعلان‌های پس از مرور",
+      resetAll: "بازنشانی وضعیت همه اعلان‌ها",
+    },
   },
   settingsWorkspace: {
     decks: {

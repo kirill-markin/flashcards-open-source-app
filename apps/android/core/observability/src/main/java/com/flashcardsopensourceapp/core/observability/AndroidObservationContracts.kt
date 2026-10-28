@@ -22,6 +22,7 @@ enum class AndroidObservationAction(
     REVIEW_REACTION_LIFECYCLE(tagValue = "review_reaction_lifecycle"),
     REVIEW_SPEECH_FAILURE(tagValue = "review_speech_failure"),
     REVIEW_PROMPT_EXCEPTION(tagValue = "review_prompt_exception"),
+    REVIEW_PROMPT_REMOTE_CONFIG(tagValue = "review_prompt_remote_config"),
     APP_SCOPE_UNCAUGHT_EXCEPTION(tagValue = "app_scope_uncaught_exception"),
     APP_STARTUP_EXCEPTION(tagValue = "app_startup_exception"),
     APP_TECHNICAL_ERROR_DIALOG_EXCEPTION(tagValue = "app_technical_error_dialog_exception"),
@@ -121,7 +122,6 @@ enum class AndroidAnalyticsObservationName(
 enum class AndroidFeedbackPromptAction(
     val tagValue: String
 ) {
-    AUTOMATIC_FEEDBACK_STATE_LOAD_FAILED(tagValue = "automatic_feedback_state_load_failed"),
     AUTOMATIC_PROMPT_SHOWN_RECORD_FAILED(tagValue = "automatic_prompt_shown_record_failed")
 }
 
@@ -219,6 +219,15 @@ enum class AndroidReviewSpeechFailureStage(
     SET_VOICE(tagValue = "set_voice"),
     SPEAK(tagValue = "speak"),
     UTTERANCE_ERROR(tagValue = "utterance_error")
+}
+
+enum class AndroidReviewPromptRemoteConfigStage(
+    val tagValue: String
+) {
+    /** GET /me sent a config this build rejects; the active config stays. */
+    VALIDATE(tagValue = "validate"),
+    /** The cached config no longer reads; it is dropped for the built-in defaults. */
+    CACHE_LOAD(tagValue = "cache_load")
 }
 
 private fun reviewReactionObservationTags(stage: AndroidReviewReactionStage): AndroidObservationTags {
@@ -792,6 +801,24 @@ sealed interface AndroidExceptionIssueEvent : AndroidObservationEvent {
             requestId = null,
             statusCode = null,
             code = null,
+            appVersion = null,
+            clientVersion = null,
+            versionCode = null
+        )
+    }
+
+    data class ReviewPromptRemoteConfigException(
+        override val throwable: Throwable,
+        val stage: AndroidReviewPromptRemoteConfigStage
+    ) : AndroidExceptionIssueEvent {
+        override val feature: AndroidObservationFeature = AndroidObservationFeature.REVIEW
+        override val action: AndroidObservationAction = AndroidObservationAction.REVIEW_PROMPT_REMOTE_CONFIG
+        override val tags: AndroidObservationTags = AndroidObservationTags(
+            userId = null,
+            workspaceId = null,
+            requestId = null,
+            statusCode = null,
+            code = stage.tagValue,
             appVersion = null,
             clientVersion = null,
             versionCode = null

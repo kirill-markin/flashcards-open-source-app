@@ -738,6 +738,10 @@ const huCatalog: TranslationCatalog = {
       description: "Nézd meg az iOS- és Android-telepítési ajánlót.",
       value: "Előnézet",
     },
+    reviewPrompts: {
+      title: "Ismétlés utáni kérések",
+      resetAll: "Az összes kérés állapotának visszaállítása",
+    },
   },
   settingsWorkspace: {
     decks: {

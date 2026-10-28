@@ -737,6 +737,10 @@ const enCatalog = {
       description: "Preview the iOS and Android install prompt.",
       value: "Preview",
     },
+    reviewPrompts: {
+      title: "Prompts after review",
+      resetAll: "Reset all prompt state",
+    },
   },
   settingsWorkspace: {
     decks: {

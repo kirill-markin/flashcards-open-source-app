@@ -738,6 +738,10 @@ const viCatalog: TranslationCatalog = {
       description: "Xem trước lời nhắc cài đặt iOS và Android.",
       value: "Xem trước",
     },
+    reviewPrompts: {
+      title: "Lời nhắc sau khi ôn tập",
+      resetAll: "Đặt lại trạng thái của mọi lời nhắc",
+    },
   },
   settingsWorkspace: {
     decks: {
