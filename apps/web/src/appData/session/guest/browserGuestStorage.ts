@@ -99,7 +99,9 @@ export function requireBrowserGuestSyncReady(userId: string): void {
   const state = readBrowserGuestState();
   if (state?.status !== "owned" || state.owner.userId !== userId
     || (state.owner.pending !== null && !(drainingInThisTab && state.owner.pending.phase === "draining"))) {
-    throw new Error("Browser guest sync is paused while ownership is being converted.");
+    // A browser-level storage wipe fires no `storage` event; let this tab's listeners retire syncs and re-verify.
+    window.dispatchEvent(new Event(browserGuestStorageKey));
+    throw new Error("Browser guest ownership changed or is being converted; sync is paused.");
   }
 }
 
