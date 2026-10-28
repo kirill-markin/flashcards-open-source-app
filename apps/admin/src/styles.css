@@ -1632,6 +1632,14 @@ h2 {
   margin-top: 24px;
 }
 
+/* A free-text UTM tag runs to 500 characters, so it ellipsizes, its full text on hover. */
+.who-saw-us-utm-tag {
+  display: block;
+  max-width: 16em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 /* A table of long UTC times, too wide for one grid cell. */
 .level-1-metrics-grid .payment-import-status {
   grid-column: 1 / -1;

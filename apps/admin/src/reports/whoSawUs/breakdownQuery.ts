@@ -1,4 +1,5 @@
 import { runAdminQuery } from "../../adminApi";
+import { breakdownUnknownValue } from "../../charts/stackedBreakdownChart";
 import type { AdminAppConfig } from "../../config";
 import type { AnalyticsDateRange, SiteVisitorFilterState } from "../../filters/analyticsFilters";
 import {
@@ -36,7 +37,14 @@ export const whoSawUsBreakdownDimensions = [
 
 export type WhoSawUsBreakdownDimension = (typeof whoSawUsBreakdownDimensions)[number];
 
-// Tokens hold no spaces or parentheses, so neither the separator nor `(none)` can be read as part of one.
+// The site sends any other outside site as `other`, which would read like the chart's own Other.
+function buildSiteReferrerSql(rowAlias: string): string {
+  return `CASE WHEN ${rowAlias}.event_properties ->> 'referrer_host' = 'other' THEN 'Unlisted site'
+    ELSE ${rowAlias}.event_properties ->> 'referrer_host' END`;
+}
+
+// Free-text tags can themselves hold ` / ` or `(none)`, so this label is only read, never split; the
+// UTM table keeps the tags apart with `buildSiteUtmTagsSql`.
 function buildSiteUtmCampaignSql(rowAlias: string): string {
   const tokenSqls = ["utm_source", "utm_medium", "utm_campaign"].map((key) => `${rowAlias}.event_properties ->> '${key}'`);
   return `CASE WHEN COALESCE(${tokenSqls.join(", ")}) IS NOT NULL
@@ -105,7 +113,7 @@ function buildMeasuredCtesSql(
     case "web-engaged-browser-locale":
       return buildSiteMeasuredCtesSql((rowAlias) => `${rowAlias}.device_locale`, range, period, siteFilters);
     case "web-engaged-referrer":
-      return buildSiteMeasuredCtesSql((rowAlias) => `${rowAlias}.event_properties ->> 'referrer_host'`, range, period, siteFilters);
+      return buildSiteMeasuredCtesSql(buildSiteReferrerSql, range, period, siteFilters);
     case "web-engaged-utm-campaign":
       return buildSiteMeasuredCtesSql(buildSiteUtmCampaignSql, range, period, siteFilters);
     case "app-store-source-type":
@@ -199,4 +207,50 @@ export async function loadWhoSawUsTopValues(
 ): Promise<ReadonlyArray<ValueVisitors>> {
   const range = assertValidDateRange(dateRange, reportLabel);
   return loadTopMeasuredValues(config, buildMeasuredCtesSql(dimension, range, period, siteFilters), reportLabel, signal);
+}
+
+export const siteUtmTagKeys = ["utm_source", "utm_medium", "utm_campaign", "utm_content", "utm_term"] as const;
+
+export type SiteUtmTagKey = (typeof siteUtmTagKeys)[number];
+
+/** A tag the link left out is `null`; `tags` is `null` for a view with none of the five, the chart's Unknown. */
+export type UtmTagsVisitors = Readonly<{ tags: Readonly<Record<SiteUtmTagKey, string | null>> | null; visitors: number }>;
+
+/**
+ * The five tags as a JSON array, `null` for a missing one, so no tag text can blur two of them; no
+ * array for a view with none of them, so it reads Unknown.
+ */
+function buildSiteUtmTagsSql(rowAlias: string): string {
+  const tagSqls = siteUtmTagKeys.map((key) => `${rowAlias}.event_properties ->> '${key}'`);
+  return `CASE WHEN COALESCE(${tagSqls.join(", ")}) IS NOT NULL THEN jsonb_build_array(${tagSqls.join(", ")})::text END`;
+}
+
+function parseUtmTags(value: string, reportLabel: string): UtmTagsVisitors["tags"] {
+  const parsed: unknown = JSON.parse(value);
+  if (!Array.isArray(parsed) || parsed.length !== siteUtmTagKeys.length) {
+    throw new Error(`${reportLabel} must return a JSON array of ${siteUtmTagKeys.length} UTM tags. Got ${value}.`);
+  }
+  const tagAt = (index: number): string | null => {
+    const tag: unknown = parsed[index];
+    if (tag === null || typeof tag === "string") return tag;
+    throw new Error(`${reportLabel} must return each UTM tag as a string or null. Got ${value}.`);
+  };
+  return { utm_source: tagAt(0), utm_medium: tagAt(1), utm_campaign: tagAt(2), utm_content: tagAt(3), utm_term: tagAt(4) };
+}
+
+/** The Web engaged visitors' combinations of all five UTM tags with the most visitors over the selection. */
+export async function loadWebUtmTagsTopValues(
+  config: AdminAppConfig,
+  dateRange: AnalyticsDateRange,
+  period: ReportPeriod,
+  siteFilters: SiteVisitorFilterState,
+  reportLabel: string,
+  signal: AbortSignal,
+): Promise<ReadonlyArray<UtmTagsVisitors>> {
+  const range = assertValidDateRange(dateRange, reportLabel);
+  const rows = await loadTopMeasuredValues(config, buildSiteMeasuredCtesSql(buildSiteUtmTagsSql, range, period, siteFilters), reportLabel, signal);
+  return rows.map((row) => ({
+    tags: row.value === breakdownUnknownValue ? null : parseUtmTags(row.value, reportLabel),
+    visitors: row.visitors,
+  }));
 }
