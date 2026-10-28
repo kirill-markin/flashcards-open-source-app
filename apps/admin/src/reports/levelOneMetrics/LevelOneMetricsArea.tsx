@@ -1,12 +1,13 @@
 import type { JSX } from "react";
 import type { AdminAppConfig } from "../../config";
+import { defaultSiteVisitorFilterState } from "../../filters/analyticsFilters";
 import { WhoSawUsSection } from "../whoSawUs/WhoSawUsSection";
 import { WhoOpenedTheAppSection } from "../whoOpenedTheApp/WhoOpenedTheAppSection";
 import { WhoStudiedSection } from "../whoStudied/WhoStudiedSection";
 import { WhoCameBackSection } from "../whoCameBack/WhoCameBackSection";
 import { WhoPaidUsSection } from "../whoPaidUs/WhoPaidUsSection";
 import { buildLevelOneMetricDetailsLink } from "./LevelOneMetricDetailsLink";
-import { LevelOneMetricsFrame } from "./LevelOneMetricsFrame";
+import { LevelOneMetricsFrame, levelOneMetricsDateRangeFilterBar } from "./LevelOneMetricsFrame";
 import { useLevelOneMetricsSelection } from "./useLevelOneMetricsSelection";
 
 export function LevelOneMetricsArea(
@@ -21,6 +22,7 @@ export function LevelOneMetricsArea(
   return (
     <LevelOneMetricsFrame
       selectionState={selectionState}
+      filterBar={levelOneMetricsDateRangeFilterBar}
       onNavigate={props.onNavigate}
       renderCharts={(selection, search) => (
         <div className="level-1-metrics-grid">
@@ -29,6 +31,7 @@ export function LevelOneMetricsArea(
             dateRange={selection.dateRange}
             period={selection.period}
             series="all"
+            siteFilters={defaultSiteVisitorFilterState}
             detailsLink={buildLevelOneMetricDetailsLink("who-saw-us", search, props.onNavigate)}
             onTerminalAdminError={props.onTerminalAdminError}
           />

@@ -29,6 +29,8 @@ import {
   getAnalyticsFilterFieldExplanation,
   getAnalyticsFilterFieldLabel,
   parseAcceptedMinimumCount,
+  siteDeviceCategories,
+  siteSources,
   type AnalyticsDateRange,
   type AnalyticsFilterField,
   type AnalyticsFilterState,
@@ -1248,6 +1250,36 @@ export function AnalyticsFilterBar(props: AnalyticsFilterBarProps): JSX.Element 
         onSelectionChange: (catalogClickBrowserLanguages) => props.onFiltersChange({
           ...props.filters,
           catalogClickBrowserLanguages,
+        }),
+      });
+    }
+
+    if (field === "siteDeviceCategories") {
+      return buildOptionFieldView({
+        selectedValues: props.filters.siteDeviceCategories,
+        options: siteDeviceCategories.map(toPlainOptionChoice),
+        defaultValues: defaultFilters.siteDeviceCategories,
+        everyValueSummary: "Every device",
+        emptyOptionsMessage: "No device category is defined.",
+        resetLabel: "Select every device",
+        onSelectionChange: (selectedDeviceCategories) => props.onFiltersChange({
+          ...props.filters,
+          siteDeviceCategories: selectedDeviceCategories,
+        }),
+      });
+    }
+
+    if (field === "siteSources") {
+      return buildOptionFieldView({
+        selectedValues: props.filters.siteSources,
+        options: siteSources.map(toPlainOptionChoice),
+        defaultValues: defaultFilters.siteSources,
+        everyValueSummary: "Every source",
+        emptyOptionsMessage: "No traffic source is defined.",
+        resetLabel: "Select every source",
+        onSelectionChange: (selectedSources) => props.onFiltersChange({
+          ...props.filters,
+          siteSources: selectedSources,
         }),
       });
     }

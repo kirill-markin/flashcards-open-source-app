@@ -1,7 +1,6 @@
 import { runAdminQuery } from "../../adminApi";
 import type { AdminAppConfig } from "../../config";
-import type { AnalyticsDateRange } from "../../filters/analyticsFilters";
-import { buildHashedVisitorDaySql } from "../funnels/funnelAudienceSql";
+import type { AnalyticsDateRange, SiteVisitorFilterState } from "../../filters/analyticsFilters";
 import {
   buildBreakdownSql,
   buildBreakdownValueSql,
@@ -11,9 +10,9 @@ import {
 import { liveSourceBarFreshness, type BreakdownReport } from "../levelOneMetrics/breakdownReport";
 import { buildReportBucketSql, buildReportBucketsCteSql, type ReportPeriod } from "../levelOneMetrics/reportPeriod";
 import { assertIsString, assertValidDateRange, toInteger } from "../reportValues";
-import { buildSiteVisitorDaysCtesSql } from "./engagedVisitorsQuery";
+import { buildSiteFirstViewsCtesSql, buildSiteMeasuredBucketsCteSql } from "./engagedVisitorsQuery";
 import { buildAppleProductPageViewRowSqlLines, buildStoreReportDateRangeSqlLines, loadStoreDelivery } from "./query";
-import { buildHashedSiteViewFilterSql, buildIdentifiedSiteViewFilterSql } from "./siteFactSql";
+import { buildSiteDeviceCategorySql, buildSiteSourceSql } from "./siteFactSql";
 import { getStoreBarFreshness } from "./storeDataFreshness";
 
 export const whoSawUsBreakdownDimensions = [
@@ -30,69 +29,6 @@ export const whoSawUsBreakdownDimensions = [
 ] as const;
 
 export type WhoSawUsBreakdownDimension = (typeof whoSawUsBreakdownDimensions)[number];
-
-/**
- * Over `buildSiteVisitorDaysCtesSql`'s CTEs, the visitors the `web` series counts, keyed
- * as `buildSiteFirstViewsCtesSql` counts a visitor once: `engaged_identified_visitors(bucket_date,
- * actor_id)`, engaged on a day of that bucket, and `engaged_hashed_visitors(daily_visitor_hash,
- * visit_date)`, engaged on that hash day.
- */
-export function buildSiteEngagedVisitorKeysCtesSql(range: AnalyticsDateRange, period: ReportPeriod): string {
-  return `${buildSiteVisitorDaysCtesSql(range)}, engaged_identified_visitors AS MATERIALIZED (
-  SELECT DISTINCT ${buildReportBucketSql(period, "visit_date")} AS bucket_date, actor_id
-  FROM identified_visitor_days
-  WHERE is_engaged
-), engaged_hashed_visitors AS MATERIALIZED (
-  SELECT daily_visitor_hash, visit_date
-  FROM hashed_visitor_days
-  WHERE is_engaged
-)`;
-}
-
-/**
- * The first page view of each `web` series visitor in the unit the series counts them once in: the
- * bucket for an identified visitor, the hash day for a cookieless one. Two CTEs,
- * `identified_first_views` and `hashed_first_views`, each a `bucket_date` plus the columns
- * `columnsSqlOf` selects off the view. Engagement keeps or drops a visitor's views whole, by
- * `buildSiteEngagedVisitorKeysCtesSql`, so their first view is their first page view of that unit.
- */
-export function buildSiteFirstViewsCtesSql(
-  columnsSqlOf: (rowAlias: string) => string,
-  range: AnalyticsDateRange,
-  period: ReportPeriod,
-): string {
-  const identifiedBucketSql = buildReportBucketSql(period, "(site_view.occurred_at AT TIME ZONE 'UTC')::date");
-  const hashedVisitorDaySql = buildHashedVisitorDaySql("hashed_view");
-  return `${buildSiteEngagedVisitorKeysCtesSql(range, period)}, identified_first_views AS (
-  SELECT DISTINCT ON (${identifiedBucketSql}, site_view.actor_id)
-    ${identifiedBucketSql} AS bucket_date,
-    ${columnsSqlOf("site_view")}
-  FROM analytics.product_events_resolved AS site_view
-  WHERE ${buildIdentifiedSiteViewFilterSql("site_view", range)}
-  AND (${identifiedBucketSql}, site_view.actor_id) IN (SELECT bucket_date, actor_id FROM engaged_identified_visitors)
-  ORDER BY ${identifiedBucketSql}, site_view.actor_id, site_view.occurred_at, site_view.event_id
-), hashed_first_views AS (
-  SELECT DISTINCT ON (${hashedVisitorDaySql}, hashed_view.daily_visitor_hash)
-    ${buildReportBucketSql(period, hashedVisitorDaySql)} AS bucket_date,
-    ${columnsSqlOf("hashed_view")}
-  FROM analytics.product_events_resolved AS hashed_view
-  WHERE ${buildHashedSiteViewFilterSql("hashed_view", range)}
-  AND (hashed_view.daily_visitor_hash, ${hashedVisitorDaySql}) IN (SELECT daily_visitor_hash, visit_date FROM engaged_hashed_visitors)
-  ORDER BY ${hashedVisitorDaySql}, hashed_view.daily_visitor_hash, hashed_view.occurred_at, hashed_view.event_id
-)`;
-}
-
-/**
- * `measured_buckets` over `buildSiteVisitorDaysCtesSql`'s CTEs: the bars with a site visitor-day,
- * engaged or not, so a bar without an engaged visitor counts zero, as on the `web` series.
- */
-export function buildSiteMeasuredBucketsCteSql(period: ReportPeriod): string {
-  return `measured_buckets AS (
-  SELECT ${buildReportBucketSql(period, "visit_date")} AS bucket_date FROM identified_visitor_days
-  UNION
-  SELECT ${buildReportBucketSql(period, "visit_date")} AS bucket_date FROM hashed_visitor_days
-)`;
-}
 
 // Shared so the landing page path charts split exactly the segments of `web-engaged-landing-page-type`.
 export function buildSitePageKindSql(rowAlias: string): string {
@@ -119,8 +55,9 @@ function buildSiteMeasuredCtesSql(
   valueSqlOf: (rowAlias: string) => string,
   range: AnalyticsDateRange,
   period: ReportPeriod,
+  siteFilters: SiteVisitorFilterState,
 ): string {
-  return `${buildSiteFirstViewsCtesSql((rowAlias) => `${buildBreakdownValueSql(valueSqlOf(rowAlias))} AS dimension_value`, range, period)}, measured_values AS (
+  return `${buildSiteFirstViewsCtesSql((rowAlias) => `${buildBreakdownValueSql(valueSqlOf(rowAlias))} AS dimension_value`, range, period, siteFilters)}, measured_values AS (
   SELECT bucket_date, dimension_value, 1 AS value_count FROM identified_first_views
   UNION ALL
   SELECT bucket_date, dimension_value, 1 AS value_count FROM hashed_first_views
@@ -151,28 +88,30 @@ function buildAppleMeasuredCtesSql(
 }
 
 // A bar is available when its source has a row on any of its days, as in the Who saw us chart.
+// `siteFilters` narrows the website's visitors; the App Store rows carry nothing it could narrow.
 function buildMeasuredCtesSql(
   dimension: WhoSawUsBreakdownDimension,
   range: AnalyticsDateRange,
   period: ReportPeriod,
+  siteFilters: SiteVisitorFilterState,
 ): string {
   switch (dimension) {
     case "web-engaged-country":
-      return buildSiteMeasuredCtesSql((rowAlias) => `${rowAlias}.country`, range, period);
+      return buildSiteMeasuredCtesSql((rowAlias) => `${rowAlias}.country`, range, period, siteFilters);
     case "web-engaged-landing-page-type":
-      return buildSiteMeasuredCtesSql(buildSitePageKindSql, range, period);
+      return buildSiteMeasuredCtesSql(buildSitePageKindSql, range, period, siteFilters);
     case "web-engaged-device":
-      return buildSiteMeasuredCtesSql((rowAlias) => `${rowAlias}.event_properties ->> 'device_category'`, range, period);
+      return buildSiteMeasuredCtesSql(buildSiteDeviceCategorySql, range, period, siteFilters);
     case "web-engaged-source":
-      return buildSiteMeasuredCtesSql((rowAlias) => `${rowAlias}.event_properties ->> 'source'`, range, period);
+      return buildSiteMeasuredCtesSql(buildSiteSourceSql, range, period, siteFilters);
     case "web-engaged-browser-language":
-      return buildSiteMeasuredCtesSql(buildSiteBrowserLanguageSql, range, period);
+      return buildSiteMeasuredCtesSql(buildSiteBrowserLanguageSql, range, period, siteFilters);
     case "web-engaged-browser-locale":
-      return buildSiteMeasuredCtesSql((rowAlias) => `${rowAlias}.device_locale`, range, period);
+      return buildSiteMeasuredCtesSql((rowAlias) => `${rowAlias}.device_locale`, range, period, siteFilters);
     case "web-engaged-referrer":
-      return buildSiteMeasuredCtesSql((rowAlias) => `${rowAlias}.event_properties ->> 'referrer_host'`, range, period);
+      return buildSiteMeasuredCtesSql((rowAlias) => `${rowAlias}.event_properties ->> 'referrer_host'`, range, period, siteFilters);
     case "web-engaged-utm-campaign":
-      return buildSiteMeasuredCtesSql(buildSiteUtmCampaignSql, range, period);
+      return buildSiteMeasuredCtesSql(buildSiteUtmCampaignSql, range, period, siteFilters);
     case "app-store-source-type":
       return buildAppleMeasuredCtesSql("source_type", range, period);
     case "app-store-territory":
@@ -184,10 +123,11 @@ export function buildWhoSawUsBreakdownSql(
   dimension: WhoSawUsBreakdownDimension,
   dateRange: AnalyticsDateRange,
   period: ReportPeriod,
+  siteFilters: SiteVisitorFilterState,
   reportLabel: string,
 ): string {
   const range = assertValidDateRange(dateRange, reportLabel);
-  return buildBreakdownSql(`${buildReportBucketsCteSql(period, range)}, ${buildMeasuredCtesSql(dimension, range, period)}`);
+  return buildBreakdownSql(`${buildReportBucketsCteSql(period, range)}, ${buildMeasuredCtesSql(dimension, range, period, siteFilters)}`);
 }
 
 /** App Store bars carry the App Store's freshness; the website is recorded live. */
@@ -196,10 +136,11 @@ export async function loadWhoSawUsBreakdownReport(
   dimension: WhoSawUsBreakdownDimension,
   dateRange: AnalyticsDateRange,
   period: ReportPeriod,
+  siteFilters: SiteVisitorFilterState,
   reportLabel: string,
   signal: AbortSignal,
 ): Promise<BreakdownReport> {
-  const sql = buildWhoSawUsBreakdownSql(dimension, dateRange, period, reportLabel);
+  const sql = buildWhoSawUsBreakdownSql(dimension, dateRange, period, siteFilters, reportLabel);
   switch (dimension) {
     case "web-engaged-country":
     case "web-engaged-landing-page-type":
@@ -256,9 +197,10 @@ export async function loadWhoSawUsTopValues(
   dimension: WhoSawUsBreakdownDimension,
   dateRange: AnalyticsDateRange,
   period: ReportPeriod,
+  siteFilters: SiteVisitorFilterState,
   reportLabel: string,
   signal: AbortSignal,
 ): Promise<ReadonlyArray<ValueVisitors>> {
   const range = assertValidDateRange(dateRange, reportLabel);
-  return loadTopMeasuredValues(config, buildMeasuredCtesSql(dimension, range, period), reportLabel, signal);
+  return loadTopMeasuredValues(config, buildMeasuredCtesSql(dimension, range, period, siteFilters), reportLabel, signal);
 }

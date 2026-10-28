@@ -1,6 +1,6 @@
 import { useEffect, useState, type JSX } from "react";
 import type { AdminAppConfig } from "../../config";
-import type { AnalyticsDateRange } from "../../filters/analyticsFilters";
+import type { AnalyticsDateRange, SiteVisitorFilterState } from "../../filters/analyticsFilters";
 import { BreakdownLoadingChart } from "../levelOneMetrics/BreakdownSection";
 import type { BreakdownReportLoader } from "../levelOneMetrics/breakdownReport";
 import type { ReportPeriod } from "../levelOneMetrics/reportPeriod";
@@ -24,8 +24,8 @@ type LandingPagePathBreakdown = Readonly<{
 }>;
 
 /**
- * The ranked kinds keep the selection they were ranked over, so a chart never queries a range its
- * kind was not chosen for.
+ * The ranked kinds keep the selection they were ranked over, their loaders bound to its site filters,
+ * so a chart never queries a selection its kind was not chosen for.
  */
 type LoadState =
   | Readonly<{ status: "loading" }>
@@ -41,15 +41,15 @@ const testIdPrefix = "who-saw-us-engaged-landing-page-paths";
 const topKindsTitle = "Top engaged landing page types";
 const sectionsTitle = "Web engaged visitors by page, for the top landing page types";
 
-function buildLandingPagePathBreakdown(pageKind: string): LandingPagePathBreakdown {
+function buildLandingPagePathBreakdown(pageKind: string, siteFilters: SiteVisitorFilterState): LandingPagePathBreakdown {
   const title = `Web engaged visitors landing on ${pageKind} pages, by page`;
   const topPagesTitle = `Top ${topValueCount} ${pageKind} landing pages of Web engaged visitors`;
   return {
     pageKind,
     title,
-    loadReport: (config, dateRange, period, signal) => loadLandingPagePathReport(config, pageKind, dateRange, period, `${title} report`, signal),
+    loadReport: (config, dateRange, period, signal) => loadLandingPagePathReport(config, pageKind, dateRange, period, siteFilters, `${title} report`, signal),
     topPagesTitle,
-    loadTopPages: (config, dateRange, period, signal) => loadTopLandingPages(config, pageKind, dateRange, period, `${topPagesTitle} report`, signal),
+    loadTopPages: (config, dateRange, period, signal) => loadTopLandingPages(config, pageKind, dateRange, period, siteFilters, `${topPagesTitle} report`, signal),
   };
 }
 
@@ -61,6 +61,7 @@ export function WebLandingPagePathSections(props: Readonly<{
   config: AdminAppConfig;
   dateRange: AnalyticsDateRange;
   period: ReportPeriod;
+  siteFilters: SiteVisitorFilterState;
   onTerminalAdminError: (error: unknown, config: AdminAppConfig) => boolean;
 }>): JSX.Element {
   const [state, setState] = useState<LoadState>({ status: "loading" });
@@ -69,13 +70,13 @@ export function WebLandingPagePathSections(props: Readonly<{
     let cancelled = false;
     setState({ status: "loading" });
     const abortController = new AbortController();
-    void loadTopLandingPageKinds(props.config, props.dateRange, props.period, `${topKindsTitle} report`, abortController.signal).then((pageKinds) => {
+    void loadTopLandingPageKinds(props.config, props.dateRange, props.period, props.siteFilters, `${topKindsTitle} report`, abortController.signal).then((pageKinds) => {
       if (!cancelled) {
         setState({
           status: "ready",
           dateRange: props.dateRange,
           period: props.period,
-          breakdowns: pageKinds.map((pageKind) => buildLandingPagePathBreakdown(pageKind)),
+          breakdowns: pageKinds.map((pageKind) => buildLandingPagePathBreakdown(pageKind, props.siteFilters)),
         });
       }
     }).catch((error: unknown) => {
@@ -83,7 +84,7 @@ export function WebLandingPagePathSections(props: Readonly<{
       setState({ status: "error", message: error instanceof Error ? error.message : `Unexpected ${topKindsTitle} query error.` });
     });
     return () => { cancelled = true; abortController.abort(); };
-  }, [props.config, props.dateRange, props.period, props.onTerminalAdminError, revision]);
+  }, [props.config, props.dateRange, props.period, props.siteFilters, props.onTerminalAdminError, revision]);
 
   if (state.status === "loading") {
     return (

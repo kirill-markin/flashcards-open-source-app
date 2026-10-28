@@ -25,6 +25,14 @@ import type { AnalyticsArea } from "../routing";
 // one deck apart.
 export const deckVersionDiscriminatorLength = 8;
 
+// The marketing site's acquisition vocabulary, as `productAnalyticsSiteDeviceCategories` and
+// `productAnalyticsSiteSources` in `apps/backend/src/productAnalytics/catalog.ts` declare it.
+export const siteDeviceCategories = ["desktop", "mobile", "tablet", "unknown"] as const;
+export const siteSources = ["direct", "search", "social", "referral", "internal", "unknown"] as const;
+
+export type SiteDeviceCategory = (typeof siteDeviceCategories)[number];
+export type SiteSource = (typeof siteSources)[number];
+
 export type AnalyticsDateRange = Readonly<{
   from: string;
   to: string;
@@ -114,7 +122,17 @@ export type AnalyticsFilterState = Readonly<{
   catalogSources: ReadonlyArray<CatalogInstallSource>;
   catalogDeviceCategories: ReadonlyArray<CatalogInstallDeviceCategory>;
   catalogClickBrowserLanguages: ReadonlyArray<string>;
+  siteDeviceCategories: ReadonlyArray<SiteDeviceCategory>;
+  siteSources: ReadonlyArray<SiteSource>;
 }>;
+
+/** The fields that narrow marketing-site visitors by a value of their first page view. */
+export type SiteVisitorFilterState = Pick<AnalyticsFilterState, "siteDeviceCategories" | "siteSources">;
+
+export const defaultSiteVisitorFilterState: SiteVisitorFilterState = {
+  siteDeviceCategories: [],
+  siteSources: [],
+};
 
 /**
  * Every field the shared filter bar offers, which is every field of the selection: a field added to
@@ -140,6 +158,8 @@ const analyticsFilterFieldOrder = {
   catalogSources: true,
   catalogDeviceCategories: true,
   catalogClickBrowserLanguages: true,
+  siteDeviceCategories: true,
+  siteSources: true,
 } as const satisfies Readonly<Record<AnalyticsFilterField, true>>;
 
 /** Every field, in the order the filter bar offers them. */
@@ -165,6 +185,8 @@ const funnelsAnalyticsFilterFieldApplicability = {
   catalogSources: false,
   catalogDeviceCategories: false,
   catalogClickBrowserLanguages: false,
+  siteDeviceCategories: false,
+  siteSources: false,
 } as const satisfies Readonly<Record<AnalyticsFilterField, boolean>>;
 
 const funnelsAnalyticsFilterFields: ReadonlyArray<AnalyticsFilterField> = analyticsFilterFields
@@ -189,9 +211,35 @@ export const reviewPromptDetailsAnalyticsFilterFields: ReadonlyArray<AnalyticsFi
   "appUiLanguages",
 ];
 
-// General and Audience draw no second series a comparison range could fill.
+// The Who saw us Web engaged page narrows its marketing-site visitors by their first page view.
+export const webEngagedAnalyticsFilterFields: ReadonlyArray<AnalyticsFilterField> = [
+  "dateRange",
+  "siteDeviceCategories",
+  "siteSources",
+];
+
+// General and Audience draw no second series a comparison range could fill, and count people rather
+// than marketing-site visitors. Every field takes a side here for the same reason as on Funnels.
+const userScopedAnalyticsFilterFieldApplicability = {
+  dateRange: true,
+  comparisonDateRange: false,
+  users: true,
+  userCohorts: true,
+  eventPlatforms: true,
+  minimumEventCounts: true,
+  connectionCountries: true,
+  appUiLanguages: true,
+  installedDecks: true,
+  catalogPlacements: true,
+  catalogSources: true,
+  catalogDeviceCategories: true,
+  catalogClickBrowserLanguages: true,
+  siteDeviceCategories: false,
+  siteSources: false,
+} as const satisfies Readonly<Record<AnalyticsFilterField, boolean>>;
+
 const userScopedAnalyticsFilterFields: ReadonlyArray<AnalyticsFilterField> = analyticsFilterFields
-  .filter((field) => field !== "comparisonDateRange");
+  .filter((field) => userScopedAnalyticsFilterFieldApplicability[field]);
 
 // `ai-usage` offers the date range and nothing else, and the omissions are a decision rather than
 // unfinished wiring. That area plots one dot per person from two sources at once - review events and
@@ -202,7 +250,8 @@ const userScopedAnalyticsFilterFields: ReadonlyArray<AnalyticsFilterField> = ana
 // on screen beside its own two controls.
 const aiUsageAnalyticsFilterFields: ReadonlyArray<AnalyticsFilterField> = ["dateRange"];
 
-// `level-1-metrics` offers the date range alone, by decision: its chart adds marketing-site visitors
+// `level-1-metrics` offers the date range alone, by decision, except on the page that
+// `webEngagedAnalyticsFilterFields` serves: its chart adds marketing-site visitors
 // to store-reported aggregates, which carry no person, platform or locale a field could narrow.
 const levelOneMetricsAnalyticsFilterFields: ReadonlyArray<AnalyticsFilterField> = ["dateRange"];
 
@@ -234,6 +283,8 @@ const analyticsFilterFieldLabels: Readonly<Record<AnalyticsFilterField, string>>
   catalogSources: "Catalog traffic source",
   catalogDeviceCategories: "Device category at catalog click",
   catalogClickBrowserLanguages: "Browser language at catalog click",
+  siteDeviceCategories: "Device",
+  siteSources: "Traffic source",
 };
 
 // What the four click-based catalog fields all have to say, because the evidence behind them is one
@@ -332,6 +383,12 @@ const analyticsFilterFieldExplanations: Readonly<Record<AnalyticsFilterField, st
   catalogClickBrowserLanguages:
     "Keeps only users who completed a catalog install whose originating click reported one of the browser languages you pick, counted over their whole history; it is the browser setting at click time rather than the language the app is used in."
     + ` ${catalogClickAttributionExplanationTail}`,
+  // Offered on the Who saw us Web engaged page only. The unit is the one every chart there counts a
+  // visitor once in, the rule `buildSiteFirstViewsCtesSql` owns.
+  siteDeviceCategories:
+    "Keeps only the visitors whose first page view in the bar, or in the day for a cookieless visitor, came from a device category you pick, so a visitor who later switches devices counts only under the first. The site reads it from the browser's user agent: tablets include iPads that report themselves as a Mac, and an Android tablet in desktop-site mode counts as desktop. Picking nothing keeps every device.",
+  siteSources:
+    "Keeps only the visitors whose first page view in the bar, or in the day for a cookieless visitor, arrived from a traffic source you pick, so a visitor who later comes back another way counts only under the first. The site classifies it from the page's referrer, and internal is a link from another page of the site. Picking nothing keeps every source.",
 };
 
 // The date range changes meaning on most funnels: it places an entry by the event that anchors it and
@@ -481,6 +538,7 @@ export function buildDefaultAnalyticsFilterState(dateRange: AnalyticsDateRange):
     catalogSources: [],
     catalogDeviceCategories: [],
     catalogClickBrowserLanguages: [],
+    ...defaultSiteVisitorFilterState,
   };
 }
 
