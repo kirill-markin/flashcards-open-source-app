@@ -51,10 +51,6 @@
   letter-spacing: -0.04em;
 }
 
-.premium-heading:focus {
-  outline: none;
-}
-
 .premium-heading em {
   color: var(--premium-orange);
   font-style: normal;
