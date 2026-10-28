@@ -59,6 +59,9 @@ components_for_path() {
       echo "platform web" ;;
     apps/backend/src/reviewMetricsSql.ts)
       echo "platform admin" ;;
+    # The web and admin clients both compile these backend sources into their bundles.
+    apps/backend/src/reviewPrompts/*)
+      echo "platform web admin" ;;
     apps/backend/*|apps/auth/*|db/*)
       echo "platform" ;;
     apps/web/*|scripts/deploy/deploy-web.sh)
