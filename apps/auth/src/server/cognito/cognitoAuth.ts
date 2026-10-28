@@ -42,6 +42,8 @@ export type TokenResult = Readonly<{
 type RefreshResult = Readonly<{
   idToken: string;
   accessToken: string;
+  /** Present only when Cognito rotated the refresh token; otherwise the caller keeps the one it sent. */
+  refreshToken: string | null;
   expiresIn: number;
 }>;
 
@@ -367,6 +369,9 @@ function extractRefreshResult(
   return {
     idToken: extractRequiredStringField(authResult.IdToken, "IdToken", context),
     accessToken: extractRequiredStringField(authResult.AccessToken, "AccessToken", context),
+    refreshToken: typeof authResult.RefreshToken === "string" && authResult.RefreshToken !== ""
+      ? authResult.RefreshToken
+      : null,
     expiresIn: authResult.ExpiresIn as number,
   };
 }
@@ -524,17 +529,14 @@ export const __internal = {
 };
 
 export const refreshTokens = async (refreshToken: string): Promise<RefreshResult> => {
-  const result = await cognitoFetch("InitiateAuth", {
-    AuthFlow: "REFRESH_TOKEN_AUTH",
+  const result = await cognitoFetch("GetTokensFromRefreshToken", {
+    RefreshToken: refreshToken,
     ClientId: getClientId(),
-    AuthParameters: {
-      REFRESH_TOKEN: refreshToken,
-    },
   });
 
   log({ domain: "auth", action: "refresh_token" });
 
-  const tokens = extractRefreshResult(result, "Cognito REFRESH_TOKEN_AUTH");
+  const tokens = extractRefreshResult(result, "Cognito GetTokensFromRefreshToken");
   await assertNewlyIssuedSessionToken(tokens.idToken);
   return tokens;
 };
