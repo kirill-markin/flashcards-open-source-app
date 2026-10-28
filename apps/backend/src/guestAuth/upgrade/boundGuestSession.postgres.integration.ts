@@ -18,6 +18,7 @@ import {
 import { updateAccountPreferences } from "../../routes/system/account/accountPreferences";
 import { parseAccountPreferencesInput } from "../../routes/system/support";
 import { HttpError } from "../../shared/errors";
+import { loadPaywallState, recordPaywallShown, type PaywallShownInput } from "../../paywallState";
 import {
   authenticateGuestSession,
   completeGuestUpgrade,
@@ -288,6 +289,46 @@ test("guest merge adopts a guest accent only for a default destination and prese
       assert.equal(replay.outcome, "idempotent_replay");
       assert.equal((await ensureCognitoUserProfile(subject, null)).preferences.accentColor, "#EAB308");
     }
+  } finally {
+    try {
+      await removeAccounts(ownerPool, userIds, workspaceIds);
+    } finally {
+      await ownerPool.end();
+    }
+  }
+});
+
+test("only weekly appearances move the periodic paywall clock, and guest merge keeps the later one", async () => {
+  const ownerPool = new pg.Pool({ connectionString: requireOwnerDatabaseUrl() });
+  const userIds: Array<string> = [];
+  const workspaceIds: Array<string> = [];
+  const shown = (shownAt: string, reviewTrigger: PaywallShownInput["reviewTrigger"]): PaywallShownInput => ({
+    presentationId: randomUUID(), shownAt, localDate: shownAt.slice(0, 10), timeZone: "UTC", reviewTrigger,
+  });
+  try {
+    const guest = await createGuestSession("android", null);
+    userIds.push(guest.userId);
+    workspaceIds.push(guest.workspaceId);
+    const subject = randomUUID();
+    const target = await ensureCognitoUserProfile(subject, null);
+    userIds.push(target.userId);
+    const targetWorkspaceId = target.selectedWorkspaceId;
+    if (targetWorkspaceId === null) {
+      throw new Error(`Account ${target.userId} has no workspace.`);
+    }
+    workspaceIds.push(targetWorkspaceId);
+    await recordPaywallShown(target.userId, shown("2026-10-01T00:00:00.000Z", "weekly"));
+    const afterDay3 = await recordPaywallShown(target.userId, shown("2026-10-03T00:00:00.000Z", "day3"));
+    assert.equal(afterDay3.periodicShownAt, "2026-10-01T00:00:00.000Z");
+    assert.equal(afterDay3.lastShownAt, "2026-10-03T00:00:00.000Z");
+    await recordPaywallShown(guest.userId, shown("2026-10-02T00:00:00.000Z", "weekly"));
+
+    assert.equal((await prepareGuestUpgrade(guest.guestToken, subject, null)).mode, "merge_required");
+    await completeGuestUpgrade(guest.guestToken, subject, { type: "existing", workspaceId: targetWorkspaceId },
+      UPGRADE_CAPABILITIES);
+    const merged = await loadPaywallState(target.userId);
+    assert.equal(merged.periodicShownAt, "2026-10-02T00:00:00.000Z");
+    assert.equal(merged.lastShownAt, "2026-10-03T00:00:00.000Z");
   } finally {
     try {
       await removeAccounts(ownerPool, userIds, workspaceIds);

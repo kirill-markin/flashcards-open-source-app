@@ -73,6 +73,15 @@ export const createdRolesByMigration = new Map([
 // migration contracts retain their original cutoffs.
 export const boundaryDefinitions = Object.freeze([
   Object.freeze({
+    migrationFileName: "0232_paywall_periodic_shown_at.sql",
+    expectedMigrationCount: 234,
+    testFiles: Object.freeze([
+      "src/guestAuth/upgrade/boundGuestSession.postgres.integration.ts",
+      "src/aiConsent/consent.postgres.integration.ts",
+      "src/auth/accountRetirement.postgres.integration.ts",
+    ]),
+  }),
+  Object.freeze({
     migrationFileName: "0228_app_event_bot_evidence.sql",
     expectedMigrationCount: 230,
     testFiles: Object.freeze([
@@ -102,13 +111,10 @@ export const boundaryDefinitions = Object.freeze([
     testFiles: Object.freeze([
       "src/aiUsage/browserGuestTrial/budget.postgres.integration.ts",
       "src/aiUsage/aiUsage.postgres.integration.ts",
-      "src/guestAuth/upgrade/boundGuestSession.postgres.integration.ts",
-      "src/aiConsent/consent.postgres.integration.ts",
       "src/routes/system/account/accountPreferences.postgres.integration.ts",
       "src/workspaces/starterVisibility.postgres.integration.ts",
       "src/agent/reviews.postgres.integration.ts",
       "src/auth/stableClientAccountIdentity.postgres.integration.ts",
-      "src/auth/accountRetirement.postgres.integration.ts",
       "src/auth/surrogateUserId.postgres.integration.ts",
       "src/chat/runs/canonicalOwner.postgres.integration.ts",
       "src/chat/cardImages/operation.postgres.integration.ts",

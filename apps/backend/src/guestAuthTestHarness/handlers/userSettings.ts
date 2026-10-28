@@ -8,7 +8,7 @@ import {
 import { createQueryResult } from "../queryResult";
 
 const paywallStateColumns = "paywall_intro_shown_at, paywall_intro_local_date::TEXT, "
-  + "paywall_intro_time_zone, paywall_follow_up_shown_at, paywall_last_shown_at";
+  + "paywall_intro_time_zone, paywall_follow_up_shown_at, paywall_last_shown_at, paywall_periodic_shown_at";
 
 function createPaywallStateRow<Row extends pg.QueryResultRow>(settings: UserSettingsState): Row {
   return {
@@ -17,6 +17,7 @@ function createPaywallStateRow<Row extends pg.QueryResultRow>(settings: UserSett
     paywall_intro_time_zone: settings.paywall_intro_time_zone,
     paywall_follow_up_shown_at: settings.paywall_follow_up_shown_at,
     paywall_last_shown_at: settings.paywall_last_shown_at,
+    paywall_periodic_shown_at: settings.paywall_periodic_shown_at,
   } as unknown as Row;
 }
 
@@ -60,6 +61,7 @@ export function handleUserSettingsExecutorQuery<Row extends pg.QueryResultRow>(
     const introTimeZone = toNullableString(params[3]);
     const followUpShownAt = toNullableString(params[4]);
     const lastShownAt = toNullableString(params[5]);
+    const periodicShownAt = toNullableString(params[6]);
     const incomingIntroWins = introShownAt !== null && (
       current.paywall_intro_shown_at === null
       || paywallIntroOrderKey(introShownAt, introLocalDate, introTimeZone)
@@ -82,6 +84,10 @@ export function handleUserSettingsExecutorQuery<Row extends pg.QueryResultRow>(
         current.paywall_last_shown_at === null
         || Date.parse(lastShownAt) > Date.parse(current.paywall_last_shown_at)
       ) ? lastShownAt : current.paywall_last_shown_at,
+      paywall_periodic_shown_at: periodicShownAt !== null && (
+        current.paywall_periodic_shown_at === null
+        || Date.parse(periodicShownAt) > Date.parse(current.paywall_periodic_shown_at)
+      ) ? periodicShownAt : current.paywall_periodic_shown_at,
     };
     state.userSettings.set(userId, updated);
     return createQueryResult<Row>([createPaywallStateRow<Row>(updated)]);
