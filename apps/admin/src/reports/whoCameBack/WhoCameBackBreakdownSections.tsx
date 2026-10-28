@@ -174,7 +174,7 @@ function RetentionWindowSection(props: Readonly<{
           <h2>{title}</h2>
           <ExplanationTip label={`What ${title} shows`} explanationId={`${testId}-explanation`}>
             <ul>
-              <li>The cohorts of Who came back: people whose first-ever answered review falls on the bucket’s selected days. A line is one value’s {retentionLabels[props.window]}: its people with any answered review on days {retentionWindowDays[props.window]} after their own first-use day, over its people in the cohort.</li>
+              <li>The cohorts of Retention by first-use cohort: W1 and W4, people whose first-ever answered review falls on the bucket’s selected days. A line is one value’s {retentionLabels[props.window]}: its people with any answered review on days {retentionWindowDays[props.window]} after their own first-use day, over its people in the cohort.</li>
               {props.breakdown.placement}
               <li>The five values with the most cohort people over the selected first-use dates get their own line; the rest are summed into Other. A missing value is Unknown and ranks like any other.</li>
               <li>A value’s point is hidden where it has fewer than {minimumDrawnCohortUsers} people in the cohort, so its line breaks there; the tooltip still lists its rate and returned / cohort users.</li>

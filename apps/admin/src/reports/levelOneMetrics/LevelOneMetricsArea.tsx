@@ -1,8 +1,8 @@
 import type { JSX } from "react";
 import type { AdminAppConfig } from "../../config";
 import { defaultSiteVisitorFilterState } from "../../filters/analyticsFilters";
+import { StudiedRetentionCurveSection } from "../retentionCurve/RetentionCurveSections";
 import { WhoPaidUsSection } from "../whoPaidUs/WhoPaidUsSection";
-import { WhoCameBackSection } from "../whoCameBack/WhoCameBackSection";
 import { WhoStudiedSection } from "../whoStudied/WhoStudiedSection";
 import { WhoOpenedTheAppSection } from "../whoOpenedTheApp/WhoOpenedTheAppSection";
 import { WhoSawUsSection } from "../whoSawUs/WhoSawUsSection";
@@ -33,10 +33,9 @@ export function LevelOneMetricsArea(
             detailsLink={buildLevelOneMetricDetailsLink("who-paid-us", search, props.onNavigate)}
             onTerminalAdminError={props.onTerminalAdminError}
           />
-          <WhoCameBackSection
+          <StudiedRetentionCurveSection
             config={props.config}
             dateRange={selection.dateRange}
-            period={selection.period}
             detailsLink={buildLevelOneMetricDetailsLink("who-came-back", search, props.onNavigate)}
             onTerminalAdminError={props.onTerminalAdminError}
           />

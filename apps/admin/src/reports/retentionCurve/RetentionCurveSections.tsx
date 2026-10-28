@@ -10,6 +10,10 @@ import type { AdminAppConfig } from "../../config";
 import { ExplanationTip } from "../../explanations/ExplanationTip";
 import type { AnalyticsDateRange } from "../../filters/analyticsFilters";
 import {
+  LevelOneMetricDetailsButton,
+  type LevelOneMetricDetailsLink,
+} from "../levelOneMetrics/LevelOneMetricDetailsLink";
+import {
   buildAppOpenRetentionCurveSql,
   buildStudiedRetentionCurveSql,
   loadRetentionCurveReport,
@@ -31,28 +35,27 @@ type LoadState =
   | Readonly<{ status: "error"; message: string }>
   | Readonly<{ status: "ready"; report: RetentionCurveReport }>;
 
-const retentionCurveCopies: ReadonlyArray<RetentionCurveCopy> = [
-  {
-    title: "Retention curve by days: studied",
-    testId: "retention-curve-studied",
-    buildSql: buildStudiedRetentionCurveSql,
-    explanation: <>
-      <li>Day 0 is each person’s first-ever answered review, with any rating, on its UTC day.</li>
-      <li>Active on day N means at least one answered review, with any rating, on exactly the UTC day N days after day 0. Opening the app or AI chat alone does not count.</li>
-      <li>The same review history and actor exclusions as Who studied and Who came back.</li>
-    </>,
-  },
-  {
-    title: "Retention curve by days: opened the app",
-    testId: "retention-curve-opened-the-app",
-    buildSql: buildAppOpenRetentionCurveSql,
-    explanation: <>
-      <li>Day 0 is each person’s first recorded app open (<code>app_opened</code>) on iOS, Android, web or the agent API, on its UTC day.</li>
-      <li>Active on day N means at least one app open on exactly the UTC day N days after day 0; reviews do not count.</li>
-      <li>The same app-open history and actor exclusions as Who opened the app; early first opens are partly reconstructed, as there.</li>
-    </>,
-  },
-];
+const studiedRetentionCurveCopy: RetentionCurveCopy = {
+  title: "Who came back",
+  testId: "retention-curve-studied",
+  buildSql: buildStudiedRetentionCurveSql,
+  explanation: <>
+    <li>Day 0 is each person’s first-ever answered review, with any rating, on its UTC day.</li>
+    <li>Active on day N means at least one answered review, with any rating, on exactly the UTC day N days after day 0. Opening the app or AI chat alone does not count.</li>
+    <li>The same review history and actor exclusions as Who studied and Retention by first-use cohort: W1 and W4.</li>
+  </>,
+};
+
+const appOpenRetentionCurveCopy: RetentionCurveCopy = {
+  title: "Retention curve by days: opened the app",
+  testId: "retention-curve-opened-the-app",
+  buildSql: buildAppOpenRetentionCurveSql,
+  explanation: <>
+    <li>Day 0 is each person’s first recorded app open (<code>app_opened</code>) on iOS, Android, web or the agent API, on its UTC day.</li>
+    <li>Active on day N means at least one app open on exactly the UTC day N days after day 0; reviews do not count.</li>
+    <li>The same app-open history and actor exclusions as Who opened the app; early first opens are partly reconstructed, as there.</li>
+  </>,
+};
 
 const tileDays: ReadonlyArray<number> = [1, 7, 30];
 const dayKeys: ReadonlyArray<string> = d3.range(retentionCurveLastDay + 1).map((dayNumber) => `${dayNumber}`);
@@ -96,6 +99,7 @@ function RetentionCurveSection(props: Readonly<{
   copy: RetentionCurveCopy;
   config: AdminAppConfig;
   dateRange: AnalyticsDateRange;
+  detailsLink: LevelOneMetricDetailsLink | null;
   onTerminalAdminError: (error: unknown, config: AdminAppConfig) => boolean;
 }>): JSX.Element {
   const { copy } = props;
@@ -160,6 +164,7 @@ function RetentionCurveSection(props: Readonly<{
             </ul>
           </ExplanationTip>
         </div>
+        {props.detailsLink !== null ? <LevelOneMetricDetailsButton link={props.detailsLink} /> : null}
       </header>
       {state.status === "error" ? (
         <div className="report-state report-state-error">
@@ -233,23 +238,37 @@ function RetentionCurveSection(props: Readonly<{
   );
 }
 
-/** Classic N-day retention for the whole selected range, studied first, then opened the app. */
-export function RetentionCurveSections(props: Readonly<{
+/** Classic N-day retention of answered reviews over the whole selected range. */
+export function StudiedRetentionCurveSection(props: Readonly<{
+  config: AdminAppConfig;
+  dateRange: AnalyticsDateRange;
+  detailsLink: LevelOneMetricDetailsLink | null;
+  onTerminalAdminError: (error: unknown, config: AdminAppConfig) => boolean;
+}>): JSX.Element {
+  return (
+    <RetentionCurveSection
+      copy={studiedRetentionCurveCopy}
+      config={props.config}
+      dateRange={props.dateRange}
+      detailsLink={props.detailsLink}
+      onTerminalAdminError={props.onTerminalAdminError}
+    />
+  );
+}
+
+/** Classic N-day retention of app opens over the whole selected range. */
+export function AppOpenRetentionCurveSection(props: Readonly<{
   config: AdminAppConfig;
   dateRange: AnalyticsDateRange;
   onTerminalAdminError: (error: unknown, config: AdminAppConfig) => boolean;
 }>): JSX.Element {
   return (
-    <>
-      {retentionCurveCopies.map((copy) => (
-        <RetentionCurveSection
-          key={copy.testId}
-          copy={copy}
-          config={props.config}
-          dateRange={props.dateRange}
-          onTerminalAdminError={props.onTerminalAdminError}
-        />
-      ))}
-    </>
+    <RetentionCurveSection
+      copy={appOpenRetentionCurveCopy}
+      config={props.config}
+      dateRange={props.dateRange}
+      detailsLink={null}
+      onTerminalAdminError={props.onTerminalAdminError}
+    />
   );
 }
