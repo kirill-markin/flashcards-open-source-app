@@ -238,6 +238,14 @@ export function mcpGateway(scope: Construct, props: McpGatewayProps): McpGateway
     props.mcpAlternateDomainName,
     props.mcpAlternateCertificateArn,
   );
+  // The public MCP hosts the worker and the dispatcher answer as.
+  const mcpHostEnvironment = {
+    MCP_BASE_DOMAIN: props.baseDomain,
+    // The second host is absent unless both
+    // alternate context values are set, so the deployed environment of every
+    // other deployment is unchanged.
+    ...(mcpAlternateHost === undefined ? {} : { MCP_ALTERNATE_HOST: mcpAlternateHost }),
+  };
   const publicApiOrigin = parsePublicOrigin(
     props.apiBaseUrl ?? `https://api.${props.baseDomain}`,
     "apiBaseUrl",
@@ -264,7 +272,7 @@ export function mcpGateway(scope: Construct, props: McpGatewayProps): McpGateway
       DB_HOST: props.db.dbInstanceEndpointAddress,
       DB_NAME: "flashcards",
       [databasePoolMaxConnectionsEnvName]: databasePoolMaxConnectionsEnvValue,
-      MCP_BASE_DOMAIN: props.baseDomain,
+      ...mcpHostEnvironment,
       // The MCP sql_query and sql_execute tools return the shared agent
       // envelope; pin `docs.discoveryUrl` to the public API host instead of
       // resolving it against the mcp.<domain> request host.
@@ -276,10 +284,6 @@ export function mcpGateway(scope: Construct, props: McpGatewayProps): McpGateway
       // Origin of the card web link stated in the card_authoring guide that
       // get_guide serves.
       PUBLIC_APP_BASE_URL: props.publicAppOrigin,
-      // Second public MCP host the handler may answer as. Absent unless both
-      // alternate context values are set, so the deployed environment of every
-      // other deployment is unchanged.
-      ...(mcpAlternateHost === undefined ? {} : { MCP_ALTERNATE_HOST: mcpAlternateHost }),
     },
   });
 
@@ -307,6 +311,7 @@ export function mcpGateway(scope: Construct, props: McpGatewayProps): McpGateway
     environment: {
       MCP_WORKER_FUNCTION_NAME: mcpFn.functionName,
       MCP_TOKEN_LEASE_TABLE_NAME: tokenLeaseTable.tableName,
+      ...mcpHostEnvironment,
     },
   });
   mcpFn.grantInvoke(dispatcherFn);

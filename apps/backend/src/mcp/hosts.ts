@@ -16,8 +16,8 @@
  * the primary host keeps working there and is rejected on the alternate host,
  * and the reverse. The authorization server is the same for both hosts.
  *
- * These are pure functions over explicit arguments so the environment is read in
- * exactly one place, the entrypoint (apps/backend/src/entrypoints/lambda-mcp.ts).
+ * These are pure functions over explicit arguments so the environment is read
+ * only by the Lambda entrypoints (apps/backend/src/entrypoints/lambda-mcp*.ts).
  */
 
 import { normalizeRequestHost } from "../shared/requestHost";
