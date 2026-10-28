@@ -11,7 +11,7 @@ import { HttpError } from "./shared/errors";
 /** Shared GET/POST response. Instants are UTC ISO8601 with milliseconds; dates are YYYY-MM-DD.
  * The intro fields are all null or one coherent earliest appearance, and follow-up is earliest
  * day3 appearance. lastShownAt is the latest appearance from every entry point; periodicShownAt is
- * the latest weekly appearance, the cooldown clock of the periodic review paywall. */
+ * the latest weekly appearance. */
 export type PaywallState = Readonly<{
   introShownAt: string | null;
   introLocalDate: string | null;

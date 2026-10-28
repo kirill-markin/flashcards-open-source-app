@@ -19,6 +19,7 @@ type MobileReviewStatusRoutesOptions = Readonly<{
 
 type MobileReviewStatusRow = Readonly<{
   has_mobile_review_event: boolean;
+  has_agent_review_event: boolean;
 }>;
 
 function mapMobileReviewStatusRow(row: MobileReviewStatusRow | undefined): ReviewPlatformSummary {
@@ -30,8 +31,13 @@ function mapMobileReviewStatusRow(row: MobileReviewStatusRow | undefined): Revie
     throw new Error("Failed to load review platform summary: has_mobile_review_event was not a boolean.");
   }
 
+  if (typeof row.has_agent_review_event !== "boolean") {
+    throw new Error("Failed to load review platform summary: has_agent_review_event was not a boolean.");
+  }
+
   return {
     hasMobileReviewEvent: row.has_mobile_review_event,
+    hasAgentReviewEvent: row.has_agent_review_event,
   };
 }
 
@@ -39,7 +45,10 @@ export async function loadReviewPlatformSummaryInExecutor(
   executor: DatabaseExecutor,
 ): Promise<ReviewPlatformSummary> {
   const result = await executor.query<MobileReviewStatusRow>(
-    "SELECT content.current_user_has_mobile_review_event() AS has_mobile_review_event",
+    [
+      "SELECT content.current_user_has_mobile_review_event() AS has_mobile_review_event,",
+      "content.current_user_has_agent_review_event() AS has_agent_review_event",
+    ].join(" "),
     [],
   );
 
@@ -69,6 +78,7 @@ export function registerMobileReviewStatusRoute(
 
     return context.json({
       hasMobileReviewEvent: summary.hasMobileReviewEvent,
+      hasAgentReviewEvent: summary.hasAgentReviewEvent,
     } satisfies ReviewPlatformSummary);
   });
 }

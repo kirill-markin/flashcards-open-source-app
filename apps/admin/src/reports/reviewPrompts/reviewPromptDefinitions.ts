@@ -96,7 +96,7 @@ const reviewPromptMetadata: Readonly<Record<ReviewPromptId, ReviewPromptMetadata
   },
   "paywall-initial": {
     title: "Paywall: initial",
-    fixedRule: "Free users only, once per account",
+    fixedRule: "Free users only, not web guests, once per account; cooldown from any paywall",
     platforms: allPlatforms,
     unreleasedPlatforms: [],
     acted: reviewPaywallActed,
@@ -104,7 +104,7 @@ const reviewPromptMetadata: Readonly<Record<ReviewPromptId, ReviewPromptMetadata
   },
   "paywall-second": {
     title: "Paywall: second",
-    fixedRule: "Free users only, once per account",
+    fixedRule: "Free users only, not web guests, once per account; cooldown from any paywall",
     platforms: allPlatforms,
     unreleasedPlatforms: [],
     acted: reviewPaywallActed,
@@ -112,7 +112,7 @@ const reviewPromptMetadata: Readonly<Record<ReviewPromptId, ReviewPromptMetadata
   },
   "paywall-periodic": {
     title: "Paywall: periodic",
-    fixedRule: "Free users only",
+    fixedRule: "Free users only, not web guests; cooldown from any paywall",
     platforms: allPlatforms,
     unreleasedPlatforms: [],
     acted: reviewPaywallActed,

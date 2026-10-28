@@ -46,6 +46,7 @@ export type SystemRoutesOptions = Readonly<{
 
 export type ReviewPlatformSummary = Readonly<{
   hasMobileReviewEvent: boolean;
+  hasAgentReviewEvent: boolean;
 }>;
 
 export type LoadReviewPlatformSummaryFn = (userId: string) => Promise<ReviewPlatformSummary>;

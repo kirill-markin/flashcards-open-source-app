@@ -28,6 +28,7 @@ export function PremiumOffer(props: PremiumOfferProps): ReactElement {
   const dialogRef = useRef<HTMLDialogElement | null>(null);
   const closeRef = useRef<HTMLButtonElement | null>(null);
   const continueFreeRef = useRef<HTMLButtonElement | null>(null);
+  const premiumPurchaseRef = useRef<HTMLButtonElement | null>(null);
   const titleId = useId();
   const bodyId = useId();
   const billing = useStripeBilling();
@@ -56,8 +57,11 @@ export function PremiumOffer(props: PremiumOfferProps): ReactElement {
     };
   }, []);
 
+  // Deliberately keyed to the view only: an offer that loads later never moves focus.
   useEffect(() => {
-    const focusTarget = isEditingKey || !showOffer ? closeRef.current : continueFreeRef.current;
+    const premiumPurchase = premiumPurchaseRef.current;
+    const focusTarget = isEditingKey || !showOffer ? closeRef.current
+      : premiumPurchase !== null && !premiumPurchase.disabled ? premiumPurchase : continueFreeRef.current;
     focusTarget?.focus();
   }, [isEditingKey, showOffer]);
 
@@ -130,7 +134,7 @@ export function PremiumOffer(props: PremiumOfferProps): ReactElement {
           </p>
           {showOffer ? <StripeOfferContent continuation={request.reason === "ai-limit" ? null : request.continuation ?? null}
             presentation={props.presentation} isPreview={isPreview} onContinueFree={props.onContinueFree}
-            onChoosePremium={props.onChoosePremium} continueFreeRef={continueFreeRef} /> : null}
+            onChoosePremium={props.onChoosePremium} continueFreeRef={continueFreeRef} premiumPurchaseRef={premiumPurchaseRef} /> : null}
           {isAiLimit ? (
             <div className="premium-key-context">
               <p className="subtitle">{t("stripe.ownKey.explanation")}</p>
