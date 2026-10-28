@@ -19,10 +19,11 @@ import {
 
 const reportLabel = "Review prompt showings";
 
+// The `review_trigger` wire values shipped apps send, which stay apart from the prompt ids.
 export const paywallPromptIdsByReviewTrigger = {
   initial: "paywall-initial",
-  day3: "paywall-day3",
-  weekly: "paywall-weekly",
+  day3: "paywall-second",
+  weekly: "paywall-periodic",
 } as const satisfies Readonly<Record<string, ReviewPromptId>>;
 
 export const promptIdsByScreen = {
