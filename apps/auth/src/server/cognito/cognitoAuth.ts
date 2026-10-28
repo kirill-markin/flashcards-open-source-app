@@ -269,7 +269,7 @@ let emailPrincipalVerifier: ReturnType<typeof CognitoJwtVerifier.create> | undef
 export async function verifyEmailOtpPrincipal(
   email: string, code: string, session: string,
 ): Promise<CognitoEmailPrincipal & Readonly<{ authTime: number }>> {
-  return verifyOtpPrincipalTokens(email, await verifyEmailOtp(email, code, session));
+  return verifyOtpPrincipalTokens(email, await verifyEmailOtp(email, code, session), false);
 }
 
 /** Existing principal only: no provisioning, alias lookup or forced alias transfer. */
@@ -287,11 +287,11 @@ export async function initiateCurrentEmailOtp(email: string, username: string): 
 export async function verifyCurrentEmailOtpPrincipal(
   email: string, username: string, code: string, session: string,
 ): Promise<CognitoEmailPrincipal & Readonly<{ authTime: number }>> {
-  return verifyOtpPrincipalTokens(email, await verifyEmailOtp(username, code, session));
+  return verifyOtpPrincipalTokens(email, await verifyEmailOtp(username, code, session), true);
 }
 
 async function verifyOtpPrincipalTokens(
-  email: string, tokens: TokenResult,
+  email: string, tokens: TokenResult, requireEmailVerifiedClaim: boolean,
 ): Promise<CognitoEmailPrincipal & Readonly<{ authTime: number }>> {
   try {
     if (emailPrincipalVerifier === undefined) {
@@ -302,11 +302,21 @@ async function verifyOtpPrincipalTokens(
     const payload = await emailPrincipalVerifier.verify(tokens.idToken);
     const username = payload["cognito:username"];
     const now = Math.floor(Date.now() / 1_000);
-    if (typeof payload.sub !== "string" || payload.sub === "" || typeof username !== "string" || username === ""
-      || typeof payload.email !== "string" || payload.email.toLowerCase() !== email || payload.email_verified !== true
-      || !Number.isSafeInteger(payload.auth_time) || (payload.auth_time as number) < now - 60
+    if (typeof payload.sub !== "string" || payload.sub === "" || typeof username !== "string" || username === "") {
+      throw new Error("Cognito EMAIL_OTP ID token is missing subject or username");
+    }
+    if (typeof payload.email !== "string" || payload.email.toLowerCase() !== email) {
+      throw new Error("Cognito EMAIL_OTP ID token email does not match the challenged email");
+    }
+    // With USERNAME = email the code went to that address, so the challenge itself proves the mailbox even
+    // though a first OTP sign-in's token still says email_verified=false. With a stored username the code went
+    // to the user-writable email attribute, so the verified claim stays required.
+    if (requireEmailVerifiedClaim && payload.email_verified !== true) {
+      throw new Error("Cognito EMAIL_OTP ID token email is not verified");
+    }
+    if (!Number.isSafeInteger(payload.auth_time) || (payload.auth_time as number) < now - 60
       || (payload.auth_time as number) > now + 30) {
-      throw new Error("Cognito EMAIL_OTP did not return a fresh verified mailbox principal");
+      throw new Error("Cognito EMAIL_OTP ID token auth_time is missing, stale or in the future");
     }
     return { cognitoSubject: payload.sub, cognitoUsername: username, email, authTime: payload.auth_time as number };
   } catch (error) {
