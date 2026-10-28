@@ -340,8 +340,8 @@
 "settings.test.animations.playAccessibility" = "Відтворити анімацію %@, %@";
 "settings.test.technicalErrorPreview" = "Перегляд технічної помилки";
 "settings.test.technicalErrorPreview.value" = "Аркуш попереднього перегляду";
-"settings.test.storeReviewPromptReset" = "Скинути запит оцінки в App Store";
-"settings.test.storeReviewPromptReset.value" = "Локальний стан";
+"settings.test.section.reviewPrompts" = "Запити після повторення";
+"settings.test.reviewPromptsReset" = "Скинути стан усіх запитів";
 "settings.test.notificationDiagnostics" = "Діагностика сповіщень";
 "settings.test.notificationDiagnostics.value" = "Лише читання";
 "settings.test.localSyncDiagnostics" = "Діагностика локальної синхронізації";

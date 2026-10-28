@@ -134,42 +134,6 @@ struct RootTabView: View {
         )
     }
 
-    private var guestSignInAfterReviewPromptTitle: String {
-        String(
-            localized: "root_tab.guest_sign_in_after_review_prompt.title",
-            defaultValue: "Save your progress",
-            table: "Foundation",
-            comment: "Guest sign-in prompt title after reviewing enough cards"
-        )
-    }
-
-    private var guestSignInAfterReviewPromptMessage: String {
-        String(
-            localized: "root_tab.guest_sign_in_after_review_prompt.message",
-            defaultValue: "Sign in with email so these cards and review progress are not lost.",
-            table: "Foundation",
-            comment: "Guest sign-in prompt body after reviewing enough cards"
-        )
-    }
-
-    private var guestSignInAfterReviewPromptLaterTitle: String {
-        String(
-            localized: "root_tab.guest_sign_in_after_review_prompt.later",
-            defaultValue: "Later",
-            table: "Foundation",
-            comment: "Guest sign-in prompt secondary button"
-        )
-    }
-
-    private var guestSignInAfterReviewPromptSignInTitle: String {
-        String(
-            localized: "root_tab.guest_sign_in_after_review_prompt.sign_in",
-            defaultValue: "Sign in",
-            table: "Foundation",
-            comment: "Guest sign-in prompt primary button"
-        )
-    }
-
     private var accountDeletedTitle: String {
         String(
             localized: "root_tab.account_deleted.title",
@@ -628,25 +592,16 @@ struct RootTabView: View {
 
     private var tabRootAlerts: some View {
         self.tabRootSheets
-        .alert(
-            self.guestSignInAfterReviewPromptTitle,
-            isPresented: self.guestSignInAfterReviewPromptPresentation
-        ) {
-            Button(
-                self.guestSignInAfterReviewPromptLaterTitle,
-                role: .cancel
-            ) {
+        .guestSignInAfterReviewPromptAlert(
+            isPresented: self.guestSignInAfterReviewPromptPresentation,
+            onLater: {
                 store.snoozeGuestSignInAfterReviewPrompt()
-            }
-            Button(
-                self.guestSignInAfterReviewPromptSignInTitle
-            ) {
+            },
+            onSignIn: {
                 store.acceptGuestSignInAfterReviewPrompt()
                 self.isGuestSignInCloudSignInPresented = true
             }
-        } message: {
-            Text(self.guestSignInAfterReviewPromptMessage)
-        }
+        )
         .alert(
             self.accountDeletedTitle,
             isPresented: self.accountDeletionSuccessPresentation

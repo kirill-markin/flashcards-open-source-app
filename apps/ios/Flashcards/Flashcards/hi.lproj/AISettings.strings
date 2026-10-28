@@ -346,8 +346,8 @@
 "settings.test.animations.playAccessibility" = "%@ ऐनिमेशन चलाएं, %@";
 "settings.test.technicalErrorPreview" = "तकनीकी त्रुटि पूर्वावलोकन";
 "settings.test.technicalErrorPreview.value" = "पूर्वावलोकन शीट";
-"settings.test.storeReviewPromptReset" = "App Store समीक्षा प्रॉम्प्ट रीसेट करें";
-"settings.test.storeReviewPromptReset.value" = "स्थानीय स्थिति";
+"settings.test.section.reviewPrompts" = "समीक्षा के बाद के प्रॉम्प्ट";
+"settings.test.reviewPromptsReset" = "सभी प्रॉम्प्ट की स्थिति रीसेट करें";
 "settings.test.notificationDiagnostics" = "सूचना निदान";
 "settings.test.notificationDiagnostics.value" = "केवल पढ़ने योग्य";
 "settings.test.localSyncDiagnostics" = "स्थानीय सिंक निदान";

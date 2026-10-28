@@ -346,8 +346,8 @@
 "settings.test.animations.playAccessibility" = "播放 %@ 动画，%@";
 "settings.test.technicalErrorPreview" = "技术错误预览";
 "settings.test.technicalErrorPreview.value" = "预览表单";
-"settings.test.storeReviewPromptReset" = "重置 App Store 评论提示";
-"settings.test.storeReviewPromptReset.value" = "本地状态";
+"settings.test.section.reviewPrompts" = "复习后的提示";
+"settings.test.reviewPromptsReset" = "重置所有提示状态";
 "settings.test.notificationDiagnostics" = "通知诊断";
 "settings.test.notificationDiagnostics.value" = "只读";
 "settings.test.localSyncDiagnostics" = "本地同步诊断";

@@ -346,8 +346,8 @@
 "settings.test.animations.playAccessibility" = "Воспроизвести анимацию %@, %@";
 "settings.test.technicalErrorPreview" = "Предпросмотр технической ошибки";
 "settings.test.technicalErrorPreview.value" = "Лист предпросмотра";
-"settings.test.storeReviewPromptReset" = "Сбросить запрос отзыва в App Store";
-"settings.test.storeReviewPromptReset.value" = "Локальное состояние";
+"settings.test.section.reviewPrompts" = "Запросы после повторения";
+"settings.test.reviewPromptsReset" = "Сбросить состояние всех запросов";
 "settings.test.notificationDiagnostics" = "Диагностика уведомлений";
 "settings.test.notificationDiagnostics.value" = "Только чтение";
 "settings.test.localSyncDiagnostics" = "Локальная диагностика синхронизации";

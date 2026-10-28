@@ -16,6 +16,18 @@ extension FlashcardsStore {
         )
     }
 
+    /// Clears every local after-review prompt showing; the server-synced paywall history and the cached
+    /// remote config stay.
+    func clearReviewPromptStateForTests() {
+        self.reviewHardReminderLastShownAt = nil
+        self.userDefaults.removeObject(forKey: reviewHardReminderLastShownAtUserDefaultsKey)
+        self.reviewNotificationPrePromptLastShownAt = nil
+        self.userDefaults.removeObject(forKey: reviewNotificationPrePromptLastShownAtUserDefaultsKey)
+        self.clearStoreReviewPromptStateForTests()
+        self.clearGuestSignInAfterReviewPromptState()
+        self.clearAutomaticFeedbackPromptStateForTests()
+    }
+
     /// Adopts and caches a valid remote config; an invalid one is reported and the active config kept.
     func applyRemoteReviewPromptConfig(json: ReviewPromptRemoteConfigJSON) {
         let config: ReviewPromptConfig
