@@ -1,13 +1,19 @@
 import type { PaywallShownInput, PaywallState } from "../../apiContracts/paywallState";
 
 export const emptyPaywallState: PaywallState = {
-  introShownAt: null, introLocalDate: null, introTimeZone: null, followUpShownAt: null, lastShownAt: null,
+  introShownAt: null, introLocalDate: null, introTimeZone: null, followUpShownAt: null, lastShownAt: null, periodicShownAt: null,
 };
 
 function earlier(left: string | null, right: string | null): string | null {
   if (left === null) return right;
   if (right === null) return left;
   return Date.parse(left) <= Date.parse(right) ? left : right;
+}
+
+function later(left: string | null, right: string | null): string | null {
+  if (left === null) return right;
+  if (right === null) return left;
+  return Date.parse(left) >= Date.parse(right) ? left : right;
 }
 
 export function mergePaywallState(left: PaywallState, right: PaywallState): PaywallState {
@@ -22,8 +28,8 @@ export function mergePaywallState(left: PaywallState, right: PaywallState): Payw
     introLocalDate: intro.introLocalDate,
     introTimeZone: intro.introTimeZone,
     followUpShownAt: earlier(left.followUpShownAt, right.followUpShownAt),
-    lastShownAt: left.lastShownAt === null ? right.lastShownAt : right.lastShownAt === null ? left.lastShownAt
-      : Date.parse(left.lastShownAt) >= Date.parse(right.lastShownAt) ? left.lastShownAt : right.lastShownAt,
+    lastShownAt: later(left.lastShownAt, right.lastShownAt),
+    periodicShownAt: later(left.periodicShownAt, right.periodicShownAt),
   };
 }
 
@@ -34,5 +40,6 @@ export function applyPaywallShown(state: PaywallState, input: PaywallShownInput)
     introTimeZone: input.reviewTrigger === "initial" ? input.timeZone : null,
     followUpShownAt: input.reviewTrigger === "day3" ? input.shownAt : null,
     lastShownAt: input.shownAt,
+    periodicShownAt: input.reviewTrigger === "weekly" ? input.shownAt : null,
   });
 }

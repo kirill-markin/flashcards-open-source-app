@@ -9,11 +9,13 @@ export {
   registerAnalyticsSessionOwnerPublisher,
   reportIdentityFreeAnalyticsEvent,
   reset,
+  restoreCurrentAnalyticsSurface,
   setAnalyticsConfirmedOwner,
   setEnabled,
   setProductAnalyticsCollection,
   track,
   trackCatalogDeckInstallStarted,
+  trackReviewPromptScreenViewed,
   trackScreenViewed,
   trackScreenViewedOnDismiss,
 } from "./client";

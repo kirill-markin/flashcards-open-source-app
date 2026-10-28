@@ -3,7 +3,6 @@ type ReviewRating = 0 | 1 | 2 | 3;
 const reviewHardReminderStorageKey = "flashcards-review-hard-reminder-last-shown-at";
 const reviewHardReminderWindowSize = 8;
 const reviewHardReminderHardThreshold = 5;
-const reviewHardReminderCooldownMillis = 3 * 24 * 60 * 60 * 1000;
 
 function getBrowserStorage(): Storage | null {
   if (typeof window === "undefined") {
@@ -42,18 +41,10 @@ export function appendRecentReviewRatings(
 }
 
 /**
- * Returns true when the review window is full, Hard is frequent enough, and the cooldown has expired.
+ * Returns true when the saved answer is Hard, the review window is full, and Hard is frequent enough.
  */
-export function shouldShowReviewHardReminder(
-  recentRatings: ReadonlyArray<ReviewRating>,
-  lastShownAt: number | null,
-  nowMillis: number,
-): boolean {
-  if (recentRatings.length < reviewHardReminderWindowSize) {
-    return false;
-  }
-
-  if (lastShownAt !== null && nowMillis - lastShownAt < reviewHardReminderCooldownMillis) {
+export function shouldShowReviewHardReminder(recentRatings: ReadonlyArray<ReviewRating>): boolean {
+  if (recentRatings.length < reviewHardReminderWindowSize || recentRatings.at(-1) !== 1) {
     return false;
   }
 
