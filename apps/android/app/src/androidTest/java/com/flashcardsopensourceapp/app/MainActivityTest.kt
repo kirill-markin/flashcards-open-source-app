@@ -6,6 +6,7 @@ import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.assertContentDescriptionEquals
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsFocused
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsOff
 import androidx.compose.ui.test.assertIsOn
@@ -42,6 +43,8 @@ import com.flashcardsopensourceapp.feature.cards.cardEditorBackSummaryCardTag
 import com.flashcardsopensourceapp.feature.cards.cardEditorBackTextFieldTag
 import com.flashcardsopensourceapp.feature.cards.cardEditorFrontSummaryCardTag
 import com.flashcardsopensourceapp.feature.cards.cardEditorFrontTextFieldTag
+import com.flashcardsopensourceapp.feature.cards.cardTagsAddButtonTag
+import com.flashcardsopensourceapp.feature.cards.cardTagsInputFieldTag
 import com.flashcardsopensourceapp.feature.review.reviewAiCardButtonTag
 import com.flashcardsopensourceapp.feature.review.reviewEditCardButtonTag
 import com.flashcardsopensourceapp.feature.review.reviewEmptyStateContentTag
@@ -300,15 +303,15 @@ class MainActivityTest : FirebaseAppInstrumentationTimeoutTest() {
         waitForTagToExist(tag = cardEditorFrontTextFieldTag)
         recreateActivity()
         waitForTagToExist(tag = cardEditorFrontTextFieldTag)
-        composeRule.onNodeWithTag(cardEditorFrontTextFieldTag).performTextReplacement("Restored navigation card")
+        replaceTextFieldValue(tag = cardEditorFrontTextFieldTag, value = "Restored navigation card")
         tapVisibleBackButton()
 
         composeRule.onNodeWithText("Tags").performClick()
         waitForTextToExist(text = "Add a tag")
         recreateActivity()
         waitForTextToExist(text = "Add a tag")
-        composeRule.onNodeWithText("Add a tag").performTextInput("restored")
-        composeRule.onNodeWithText("Add tag").performClick()
+        replaceTextFieldValue(tag = cardTagsInputFieldTag, value = "restored")
+        composeRule.onNodeWithTag(cardTagsAddButtonTag).performScrollTo().performClick()
         tapVisibleBackButton()
 
         scrollToText(text = "Save")
@@ -757,7 +760,7 @@ class MainActivityTest : FirebaseAppInstrumentationTimeoutTest() {
             cardsCount
         )
         composeRule.waitUntil(timeoutMillis = uiTimeoutMillis) {
-            searchFieldValue(tag = workspaceTagsSearchFieldTag) == tag &&
+            textFieldValue(tag = workspaceTagsSearchFieldTag) == tag &&
                 composeRule.onAllNodesWithTag(workspaceTagRowTag(tag = tag)).fetchSemanticsNodes().isNotEmpty() &&
                 composeRule.onAllNodesWithTag(
                     testTag = workspaceTagCardsCountTag(tag = tag),
@@ -773,7 +776,7 @@ class MainActivityTest : FirebaseAppInstrumentationTimeoutTest() {
         }
     }
 
-    private fun searchFieldValue(tag: String): String? {
+    private fun textFieldValue(tag: String): String? {
         return composeRule.onAllNodesWithTag(tag)
             .fetchSemanticsNodes()
             .firstOrNull()
@@ -798,8 +801,8 @@ class MainActivityTest : FirebaseAppInstrumentationTimeoutTest() {
         if (tags.isNotEmpty()) {
             composeRule.onNodeWithText("Tags").performClick()
             tags.forEach { tag ->
-                composeRule.onNodeWithText("Add a tag").performTextInput(tag)
-                composeRule.onNodeWithText("Add tag").performClick()
+                replaceTextFieldValue(tag = cardTagsInputFieldTag, value = tag)
+                composeRule.onNodeWithTag(cardTagsAddButtonTag).performScrollTo().performClick()
             }
             tapVisibleBackButton()
         }
@@ -943,9 +946,17 @@ class MainActivityTest : FirebaseAppInstrumentationTimeoutTest() {
     private fun updateCardText(summaryTag: String, editorFieldTag: String, value: String) {
         composeRule.onNodeWithTag(summaryTag).performScrollTo()
         composeRule.onNodeWithTag(summaryTag).performClick()
-        composeRule.onNodeWithTag(editorFieldTag).fetchSemanticsNode()
-        composeRule.onNodeWithTag(editorFieldTag).performTextReplacement(value)
+        replaceTextFieldValue(tag = editorFieldTag, value = value)
         tapVisibleBackButton()
+    }
+
+    private fun replaceTextFieldValue(tag: String, value: String) {
+        waitForTagToExist(tag = tag)
+        composeRule.onNodeWithTag(tag).assertIsDisplayed().performClick().assertIsFocused()
+        composeRule.onNodeWithTag(tag).performTextReplacement(value)
+        composeRule.waitUntil(timeoutMillis = uiTimeoutMillis) {
+            textFieldValue(tag = tag) == value
+        }
     }
 
     private fun tapVisibleBackButton() {
