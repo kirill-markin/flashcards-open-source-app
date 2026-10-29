@@ -1,5 +1,6 @@
 package com.flashcardsopensourceapp.app
 
+import android.view.WindowInsets
 import androidx.annotation.PluralsRes
 import androidx.annotation.StringRes
 import androidx.compose.ui.semantics.SemanticsProperties
@@ -7,6 +8,7 @@ import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.assertContentDescriptionEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsFocused
+import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsOff
 import androidx.compose.ui.test.assertIsOn
@@ -43,6 +45,7 @@ import com.flashcardsopensourceapp.feature.cards.cardEditorBackSummaryCardTag
 import com.flashcardsopensourceapp.feature.cards.cardEditorBackTextFieldTag
 import com.flashcardsopensourceapp.feature.cards.cardEditorFrontSummaryCardTag
 import com.flashcardsopensourceapp.feature.cards.cardEditorFrontTextFieldTag
+import com.flashcardsopensourceapp.feature.cards.cardEditorSaveButtonTag
 import com.flashcardsopensourceapp.feature.cards.cardTagsAddButtonTag
 import com.flashcardsopensourceapp.feature.cards.cardTagsInputFieldTag
 import com.flashcardsopensourceapp.feature.review.reviewAiCardButtonTag
@@ -258,15 +261,7 @@ class MainActivityTest : FirebaseAppInstrumentationTimeoutTest() {
             editorFieldTag = cardEditorFrontTextFieldTag,
             value = "Updated Android card"
         )
-        scrollToText(text = "Save")
-        composeRule.waitUntil(timeoutMillis = uiTimeoutMillis) {
-            composeRule.onAllNodes(
-                matcher = hasClickAction().and(other = hasText("Save"))
-            ).fetchSemanticsNodes().isNotEmpty()
-        }
-        composeRule.onNode(
-            matcher = hasClickAction().and(other = hasText("Save"))
-        ).performClick()
+        saveCard()
 
         composeRule.waitUntil(timeoutMillis = uiTimeoutMillis) {
             composeRule.onAllNodesWithText("Updated Android card").fetchSemanticsNodes().isNotEmpty()
@@ -314,15 +309,7 @@ class MainActivityTest : FirebaseAppInstrumentationTimeoutTest() {
         composeRule.onNodeWithTag(cardTagsAddButtonTag).performScrollTo().performClick()
         tapVisibleBackButton()
 
-        scrollToText(text = "Save")
-        composeRule.waitUntil(timeoutMillis = uiTimeoutMillis) {
-            composeRule.onAllNodes(
-                matcher = hasClickAction().and(other = hasText("Save"))
-            ).fetchSemanticsNodes().isNotEmpty()
-        }
-        composeRule.onNode(
-            matcher = hasClickAction().and(other = hasText("Save"))
-        ).performClick()
+        saveCard()
         composeRule.waitUntil(timeoutMillis = uiTimeoutMillis) {
             composeRule.onAllNodesWithText("Search cards").fetchSemanticsNodes().isNotEmpty() &&
                 composeRule.onAllNodesWithText("Restored navigation card").fetchSemanticsNodes().isNotEmpty()
@@ -806,15 +793,7 @@ class MainActivityTest : FirebaseAppInstrumentationTimeoutTest() {
             }
             tapVisibleBackButton()
         }
-        scrollToText(text = "Save")
-        composeRule.waitUntil(timeoutMillis = uiTimeoutMillis) {
-            composeRule.onAllNodes(
-                matcher = hasClickAction().and(other = hasText("Save"))
-            ).fetchSemanticsNodes().isNotEmpty()
-        }
-        composeRule.onNode(
-            matcher = hasClickAction().and(other = hasText("Save"))
-        ).performClick()
+        saveCard()
         composeRule.waitUntil(timeoutMillis = uiTimeoutMillis) {
             composeRule.onAllNodesWithText("Search cards").fetchSemanticsNodes().isNotEmpty()
                 && composeRule.onAllNodesWithText(frontText).fetchSemanticsNodes().isNotEmpty()
@@ -959,11 +938,25 @@ class MainActivityTest : FirebaseAppInstrumentationTimeoutTest() {
         }
     }
 
+    private fun saveCard() {
+        composeRule.onNode(hasScrollToNodeAction())
+            .performScrollToNode(hasTestTag(cardEditorSaveButtonTag))
+        composeRule.onNodeWithTag(cardEditorSaveButtonTag)
+            .assertIsDisplayed()
+            .assertIsEnabled()
+            .performClick()
+    }
+
     private fun tapVisibleBackButton() {
         composeRule.waitUntil(timeoutMillis = uiTimeoutMillis) {
             isSettingsBackButtonVisible()
         }
         tapSettingsBackButton()
+        composeRule.waitUntil(timeoutMillis = uiTimeoutMillis) {
+            composeRule.runOnIdle {
+                composeRule.activity.window.decorView.rootWindowInsets.isVisible(WindowInsets.Type.ime()).not()
+            }
+        }
     }
 
     private fun openSettingsRow(rowTag: String) {
