@@ -1,5 +1,6 @@
-// Financial reporting intentionally has no actor join: erasure, grants and analytics exclusions
-// cannot remove a provider's production sale. Classification uses all retained chronology.
+import { buildExcludedActorSqlLines } from "../../filters/filterSql";
+
+// Only final events drop excluded people; unlinked payers count, and erasure alone never drops one. Classification uses all retained chronology.
 // Google orders of one subscription are `<root>`, `<root>..0`, `<root>..1`, ...; one is classified only
 // when the root and every earlier suffix are retained with known charge evidence, and after a free-trial
 // root the first positive suffix, even `..0`, is the first payment. Protobuf omits a zero `units`/`nanos`, read as 0, while an
@@ -19,7 +20,7 @@ export function buildPaymentHistoryCtesSql(): string {
     AND native_fields->>'type' = 'Auto-Renewable Subscription'
     AND native_fields->>'inAppOwnershipType' IS DISTINCT FROM 'FAMILY_SHARED'
 ), apple_events AS (
-  SELECT 'apple'::text AS provider, period.purchased_at AS event_at,
+  SELECT 'apple'::text AS provider, period.subject_id, period.purchased_at AS event_at,
     CASE WHEN period.is_trial AND period.price = 0 THEN 'trial'
       WHEN period.price > 0 THEN
         CASE WHEN EXISTS (
@@ -66,14 +67,14 @@ export function buildPaymentHistoryCtesSql(): string {
     AND EXISTS (SELECT 1 FROM jsonb_array_elements(orders.native_fields->'lineItems') AS item
       WHERE item ? 'subscriptionDetails')
 ), google_events AS (
-  SELECT 'google'::text AS provider, trial_at AS event_at, 'trial'::text AS series, false AS native_purchase
+  SELECT 'google'::text AS provider, subject_id, trial_at AS event_at, 'trial'::text AS series, false AS native_purchase
   FROM (
     SELECT root_id, subject_id, MIN(trial_at) AS trial_at
     FROM google_periods WHERE trial_at IS NOT NULL AND amount = 0
     GROUP BY root_id, subject_id
   ) AS trials
   UNION ALL
-  SELECT 'google', period.paid_at,
+  SELECT 'google', period.subject_id, period.paid_at,
     CASE WHEN (
       SELECT COUNT(*) FROM google_periods AS previous
       WHERE previous.root_id = period.root_id AND previous.subject_id = period.subject_id
@@ -89,7 +90,7 @@ export function buildPaymentHistoryCtesSql(): string {
     false
   FROM google_periods AS period WHERE period.amount > 0 AND period.paid_at IS NOT NULL
 ), stripe_paid_periods AS (
-  SELECT payment.invoice_id, invoice.subscription_id,
+  SELECT payment.invoice_id, invoice.subscription_id, payment.subject_id,
     MIN(to_timestamp((payment.native_fields->'status_transitions'->>'paid_at')::double precision)) AS paid_at
   FROM billing.stripe_payments AS payment
   LEFT JOIN billing.stripe_invoices AS invoice
@@ -98,15 +99,15 @@ export function buildPaymentHistoryCtesSql(): string {
     AND payment.status = 'paid' AND (payment.native_fields->>'amount_paid')::numeric > 0
     AND payment.native_fields->'status_transitions'->>'paid_at' IS NOT NULL
     AND (invoice.invoice_id IS NULL OR invoice.subscription_id IS NOT NULL)
-  GROUP BY payment.invoice_id, invoice.subscription_id
+  GROUP BY payment.invoice_id, invoice.subscription_id, payment.subject_id
 ), stripe_events AS (
-  SELECT 'stripe'::text AS provider,
+  SELECT 'stripe'::text AS provider, subject_id,
     to_timestamp((native_fields->>'trial_start')::double precision) AS event_at,
     'trial'::text AS series, false AS native_purchase
   FROM billing.stripe_subscriptions WHERE environment = 'production'
     AND native_fields->>'trial_start' IS NOT NULL
   UNION ALL
-  SELECT 'stripe', period.paid_at,
+  SELECT 'stripe', period.subject_id, period.paid_at,
     CASE WHEN NOT EXISTS (
       SELECT 1 FROM (VALUES ('stripe_subscriptions'), ('stripe_invoices'), ('stripe_payments')) AS required(source)
       WHERE NOT EXISTS (
@@ -125,9 +126,15 @@ export function buildPaymentHistoryCtesSql(): string {
     false
   FROM stripe_paid_periods AS period
 ), payment_events AS (
-  SELECT provider, event_at, series, native_purchase FROM apple_events
-  UNION ALL SELECT provider, event_at, series, native_purchase FROM google_events
-  UNION ALL SELECT provider, event_at, series, native_purchase FROM stripe_events
+  SELECT events.provider, events.event_at, events.series, events.native_purchase
+  FROM (
+    SELECT provider, subject_id, event_at, series, native_purchase FROM apple_events
+    UNION ALL SELECT provider, subject_id, event_at, series, native_purchase FROM google_events
+    UNION ALL SELECT provider, subject_id, event_at, series, native_purchase FROM stripe_events
+  ) AS events
+  JOIN billing.history_subjects AS subjects ON subjects.subject_id = events.subject_id
+  WHERE subjects.environment = 'production'
+${buildExcludedActorSqlLines("pg_catalog.lower(subjects.user_id)").join("\n")}
 )`;
 }
 
