@@ -240,7 +240,7 @@ struct AIChatMessageRow: View {
         switch part {
         case .text(let text):
             if message.role == .assistant {
-                AIChatLongTextView(text: text)
+                AIChatLongTextView(text: text, isSelectable: true)
                     .textSelection(.enabled)
                     .accessibilityIdentifier(UITestIdentifier.aiAssistantVisibleText)
             } else {
@@ -280,8 +280,12 @@ struct AIChatMessageRow: View {
                 .padding(.top, 4)
             } label: {
                 VStack(alignment: .leading, spacing: 4) {
-                    Label(aiChatCardAttachmentLabel(card: card), systemImage: "square.stack")
-                        .font(.subheadline.weight(.semibold))
+                    Label {
+                        MathContentText(text: aiChatCardAttachmentLabel(card: card), textStyle: .subheadline, weight: .semibold, parsedBlocks: aiChatCardAttachmentMathBlocks(card: card))
+                    } icon: {
+                        Image(systemName: "square.stack")
+                    }
+                    .font(.subheadline.weight(.semibold))
                     Text(aiSettingsLocalized("ai.message.card.promptContext", "Prompt context"))
                         .font(.caption)
                         .foregroundStyle(.secondary)
@@ -367,7 +371,9 @@ struct AIChatMessageRow: View {
                 AIChatLongTextView(
                     text: reasoningSummary.summary.isEmpty
                         ? aiSettingsLocalized("ai.message.reasoning.thinking", "Thinking...")
-                        : reasoningSummary.summary
+                        : reasoningSummary.summary,
+                    textStyle: .subheadline,
+                    isSelectable: true
                 )
                     .font(.subheadline)
                     .frame(maxWidth: .infinity, alignment: .leading)

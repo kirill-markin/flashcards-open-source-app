@@ -36,6 +36,7 @@ const REVIEW_MATH_FONT_DESCRIPTORS: ReadonlyArray<string> = [
 ];
 
 type ReviewMathBlockProps = Readonly<{
+  compact?: boolean;
   delimitedSource: string;
   formulaSource: string;
   inline: boolean;
@@ -68,7 +69,7 @@ async function loadReviewMathFonts(signal: AbortSignal): Promise<void> {
 }
 
 export function ReviewMathBlock(props: ReviewMathBlockProps): ReactElement {
-  const { delimitedSource, formulaSource, inline } = props;
+  const { compact = false, delimitedSource, formulaSource, inline } = props;
   const { t } = useI18n();
   const containerRef = useRef<HTMLElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -166,7 +167,7 @@ export function ReviewMathBlock(props: ReviewMathBlockProps): ReactElement {
     />
   );
 
-  if (inline) {
+  if (inline || compact) {
     return (
       <span
         ref={setContainerElement}

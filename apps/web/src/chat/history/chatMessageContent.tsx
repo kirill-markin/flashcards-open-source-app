@@ -1,8 +1,11 @@
-import type { ReactElement } from "react";
+import { useState, type ReactElement } from "react";
 import { isExpectedClipboardWriteError } from "../../access/browserAccess";
 import type { TranslationKey } from "../../i18n";
 import type { TranslationValues } from "../../i18n/types";
 import type { StoredMessage } from "./useChatHistory";
+import { ContentText } from "../../components/ContentText";
+import { MathText } from "../../components/MathText";
+import { hasEligibleReviewMath } from "../../screens/review/components/card/reviewMathBlocks";
 import { buildCardContextXml, formatCardAttachmentLabel } from "../attachments/chatCardParts";
 import { localizeChatTerminalError } from "../shared/chatTerminalErrorPolicy";
 
@@ -94,32 +97,72 @@ async function copyToolCallSection(
   t: Translate,
   onTechnicalError: ChatMessageTechnicalErrorHandler,
   canStartAction: () => boolean,
-): Promise<void> {
+): Promise<boolean> {
   if (canStartAction() === false) {
-    return;
+    return false;
   }
 
   if (typeof navigator.clipboard?.writeText !== "function") {
     window.alert(t("chatMessageContent.failedToCopy", { section: sectionTitle.toLowerCase() }));
-    return;
+    return false;
   }
 
   try {
     await navigator.clipboard.writeText(text);
+    return true;
   } catch (error) {
     if (canStartAction() === false) {
-      return;
+      return false;
     }
 
     if (isExpectedClipboardWriteError(error)) {
       window.alert(toClipboardErrorMessage(sectionTitle, t));
-      return;
+      return false;
     }
 
     if (onTechnicalError(error) === false) {
       window.alert(toClipboardErrorMessage(sectionTitle, t));
     }
+    return false;
   }
+}
+
+function ChatMathCopyButton(props: Readonly<{
+  text: string;
+  hasRenderedMath?: boolean;
+  sectionTitle: string;
+  t: Translate;
+  onTechnicalError: ChatMessageTechnicalErrorHandler;
+  canStartAction: () => boolean;
+}>): ReactElement | null {
+  const { text, hasRenderedMath, sectionTitle, t, onTechnicalError, canStartAction } = props;
+  const [status, setStatus] = useState<"idle" | "copying" | "copied">("idle");
+  if ((hasRenderedMath ?? (text.includes("$") && hasEligibleReviewMath(text))) === false) {
+    return null;
+  }
+
+  return (
+    <div className="chat-message-copy">
+      <button
+        type="button"
+        className="chat-tool-call-copy"
+        disabled={status === "copying" || canStartAction() === false}
+        aria-busy={status === "copying"}
+        data-testid="chat-math-copy"
+        onClick={() => {
+          setStatus("copying");
+          void copyToolCallSection(text, sectionTitle, t, onTechnicalError, canStartAction)
+            .then((copied) => setStatus(copied ? "copied" : "idle"));
+        }}
+      >
+        {t("chatMessageContent.copy")}
+      </button>
+      <span role="status" aria-live="polite">
+        {status === "copying" ? t("progressScreen.leaderboard.invite.copying")
+          : status === "copied" ? t("progressScreen.leaderboard.invite.copied") : ""}
+      </span>
+    </div>
+  );
 }
 
 function renderToolCallSection(
@@ -172,7 +215,7 @@ function renderCardAttachment(
       <summary className="chat-card-part-summary">
         <span className="chat-card-part-label">{t("chatMessageContent.card")}</span>
         <span className="chat-card-part-title" title={card.frontText}>
-          {formatCardAttachmentLabel(card)}
+          <MathText text={formatCardAttachmentLabel(card)} />
         </span>
       </summary>
       <div className="chat-card-part-body">
@@ -190,14 +233,14 @@ function renderCardAttachment(
 }
 
 /**
- * Renders persisted chat history parts without normalizing whitespace so the
- * transcript stays byte-for-byte faithful to stored assistant output.
+ * Live and persisted messages share the review renderer; stored source remains unchanged.
  */
 export function renderStoredMessageContent(
   message: StoredMessage,
   t: Translate,
   onTechnicalError: ChatMessageTechnicalErrorHandler,
   canStartAction: () => boolean,
+  renderContext: Readonly<{ workspaceId: string | null; localReadVersion: number }> = { workspaceId: null, localReadVersion: 0 },
 ): ReactElement {
   const elements: Array<ReactElement> = [];
   let previousPartNeedsTextSeparator = false;
@@ -209,7 +252,7 @@ export function renderStoredMessageContent(
         elements.push(<br key={`attachment-break-1-${index}`} />);
         elements.push(<br key={`attachment-break-2-${index}`} />);
       }
-      elements.push(<span key={`text-${index}`}>{localizeChatTerminalError(message.errorCode, part.text, t)}</span>);
+      elements.push(<ContentText key={`text-${index}`} text={localizeChatTerminalError(message.errorCode, part.text, t)} {...renderContext} />);
       previousPartNeedsTextSeparator = false;
       continue;
     }
@@ -247,7 +290,8 @@ export function renderStoredMessageContent(
             <span className="chat-tool-call-summary-main" title={reasoningText}>{t("chatMessageContent.reasoning")}</span>
             <span className="chat-tool-call-status">{reasoningStatusLabel(part.status, t)}</span>
           </summary>
-          <pre className="chat-tool-call-output">{reasoningText}</pre>
+          <div className="chat-tool-call-output"><ContentText text={reasoningText} {...renderContext} /></div>
+          <ChatMathCopyButton text={reasoningText} sectionTitle={t("chatMessageContent.reasoning")} t={t} onTechnicalError={onTechnicalError} canStartAction={canStartAction} />
         </details>,
       );
       previousPartNeedsTextSeparator = false;
@@ -276,5 +320,21 @@ export function renderStoredMessageContent(
     );
   }
 
-  return <>{elements}</>;
+  const textParts = message.content.filter((part) => part.type === "text");
+  const sourceText = textParts.map((part) => part.text).join("\n\n");
+  return <>
+    {elements}
+    <ChatMathCopyButton
+      key={sourceText}
+      text={sourceText}
+      hasRenderedMath={textParts.some((part) => {
+        const renderedText = localizeChatTerminalError(message.errorCode, part.text, t);
+        return renderedText.includes("$") && hasEligibleReviewMath(renderedText);
+      })}
+      sectionTitle={t(message.role === "user" ? "chatMessageContent.request" : "chatMessageContent.response")}
+      t={t}
+      onTechnicalError={onTechnicalError}
+      canStartAction={canStartAction}
+    />
+  </>;
 }

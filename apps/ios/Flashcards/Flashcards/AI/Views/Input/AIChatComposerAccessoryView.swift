@@ -63,10 +63,7 @@ extension AIChatView {
                                         Image(systemName: "square.stack")
                                             .foregroundStyle(.secondary)
                                             .fixedSize()
-                                        Text(aiChatCardAttachmentLabel(card: card))
-                                            .font(.caption)
-                                            .lineLimit(1)
-                                            .truncationMode(.tail)
+                                        MathContentText(text: aiChatCardAttachmentLabel(card: card), textStyle: .caption1, lineLimit: 1, parsedBlocks: aiChatCardAttachmentMathBlocks(card: card))
                                             .accessibilityIdentifier(UITestIdentifier.aiComposerCardAttachmentChip)
                                     case .unknown(let unknownAttachment):
                                         Image(systemName: "questionmark.square.dashed")
@@ -124,9 +121,7 @@ extension AIChatView {
                                     self.chatStore.applyComposerSuggestion(suggestion)
                                     self.isComposerFocused = true
                                 } label: {
-                                    Text(suggestion.text)
-                                        .font(.footnote)
-                                        .foregroundStyle(.primary)
+                                    MathContentText(text: suggestion.text, textStyle: .footnote)
                                         .padding(.horizontal, 12)
                                         .padding(.vertical, 9)
                                 }

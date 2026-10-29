@@ -334,10 +334,7 @@ private struct AIChatHistoryRowContent: View {
         HStack(alignment: .center, spacing: 12) {
             VStack(alignment: .leading, spacing: 4) {
                 HStack(alignment: .firstTextBaseline, spacing: 8) {
-                    Text(self.summary.title ?? aiChatHistoryUntitledChatTitle())
-                        .font(.headline)
-                        .foregroundStyle(.primary)
-                        .lineLimit(1)
+                    MathContentText(text: self.summary.title ?? aiChatHistoryUntitledChatTitle(), textStyle: .headline, weight: .semibold, lineLimit: 1)
                     if self.isCurrent {
                         Text(aiSettingsLocalized("ai.history.current", "Current"))
                             .font(.caption.weight(.semibold))
@@ -350,10 +347,7 @@ private struct AIChatHistoryRowContent: View {
                         .lineLimit(1)
                 }
                 if let preview = self.summary.preview {
-                    Text(preview)
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                        .lineLimit(1)
+                    MathContentText(text: preview, textStyle: .subheadline, color: .secondaryLabel, lineLimit: 1)
                 }
                 if let errorMessage = self.errorMessage {
                     Text(errorMessage)
