@@ -127,7 +127,7 @@ export function WhoPaidUsSection(props: Readonly<{
             <li>Subscription events in production per UTC day, week or month, counted by their actual UTC time and summed over the bar’s days. These are events, not unique people, revenue or active paying customers.</li>
             <li>Trial starts require native free-trial evidence. First payment is the first successful positive paid period in verified original subscription history; later successful periods are recurring, even when a provider labels the first charge a renewal.</li>
             <li>New Google order roots and new Stripe subscriptions begin new histories. Apple PURCHASE after an earlier paid period stays recurring. Reactivations are not new globally unique customers.</li>
-            <li>Refunds do not erase historical charges. Multiple Stripe invoice payments count once per paid invoice. Sandbox and gifts are excluded; real sales remain regardless of account attribution, erasure or analytics exclusions.</li>
+            <li>Refunds do not erase historical charges. Multiple Stripe invoice payments count once per paid invoice. Sandbox and gifts are excluded, and so are the people every Level 1 chart excludes; payments with no linked account still count, and erasure alone never drops one.</li>
             <li>Apple notification discovery and Google discoverable orders are partial merchant inventories. Known counts remain visible after an import failure; absent or unclassified history is unavailable. Stripe completed production catalog scans can prove zero only for a bar whose every day lies inside their covered window.</li>
             {state.status === "ready" ? <li>Generated {formatGeneratedAt(state.report.generatedAtUtc)}.</li> : null}
           </ul>
