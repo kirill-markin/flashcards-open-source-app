@@ -64,6 +64,7 @@
     "node": ">=24.22.1 <25"
   },
   "allowScripts": {
+    "@mongodb-js/zstd@7.0.0": true,
     "@sentry/cli@3.8.2": true,
     "esbuild@0.28.2": true
   }
