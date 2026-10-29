@@ -74,8 +74,8 @@ export function buildExcludedActorReasonSql(actorIdSqlExpression: string): strin
  * kept: `server_derived` and `backfill_derived` are the server's own observations, and
  * `authenticated_client` and `guest_client` are claims made on an authenticated request.
  *
- * APPLIED EVERYWHERE IT CAN DECIDE A PERSON, AND THIS IS THE WHOLE LIST. Twenty-two entries below
- * derive an actor-level fact from `analytics.product_events_resolved`, twenty-one in this package
+ * APPLIED EVERYWHERE IT CAN DECIDE A PERSON, AND THIS IS THE WHOLE LIST. Twenty-three entries below
+ * derive an actor-level fact from `analytics.product_events_resolved`, twenty-two in this package
  * and one outside it. Each is APPLIED or UNREACHABLE, and the two are not interchangeable: adding this
  * predicate to an UNREACHABLE entry is a no-op, and reading one as an omission produces a
  * remediation that converts the entries it happens to have been told about and stops. A shared
@@ -125,7 +125,7 @@ export function buildExcludedActorReasonSql(actorIdSqlExpression: string): strin
  *     non-NULL actor, so a locale only a signed-out visitor ever sent would be offered as a filter
  *     value.
  *
- * UNREACHABLE (7): SAFE FOR A DIFFERENT REASON, NOT CONVERTED. Every event these derive an actor
+ * UNREACHABLE (8): SAFE FOR A DIFFERENT REASON, NOT CONVERTED. Every event these derive an actor
  * from is either `serverOnly: true` in `apps/backend/src/productAnalytics/catalog.ts`, which the
  * collector refuses outright, or already carries a trust predicate of its own, so no row this
  * collector writes can reach them and this predicate would change nothing.
@@ -148,6 +148,7 @@ export function buildExcludedActorReasonSql(actorIdSqlExpression: string): strin
  *     can only be matched to.
  *   - `filters/optionsQuery.ts`, the deck-slug list (`catalog_deck_installed`). By event name.
  *   - `reports/studyDepth/query.ts`, the cohort and its depth (`review_answered`). By event name.
+ *   - `reports/whoPaidUs/cancellationsSql.ts`, `cancellations` (`autorenew_disabled`). By event name.
  *
  * OUTSIDE THIS PACKAGE (1), and it cannot take the rule from here.
  *   - `apps/backend/src/productAnalytics/syntheticActorDetector.ts` groups the whole event store by
