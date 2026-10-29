@@ -1830,6 +1830,11 @@ h2 {
   fill-opacity: 0.4;
 }
 
+.chart-zero-line {
+  stroke: var(--muted-soft);
+  stroke-width: 1;
+}
+
 .rate-line-not-final {
   stroke-opacity: 0.4;
 }

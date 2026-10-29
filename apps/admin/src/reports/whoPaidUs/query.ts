@@ -1,6 +1,7 @@
 import { runAdminQuery, type AdminQueryRow, type AdminQueryValue } from "../../adminApi";
 import type { AdminAppConfig } from "../../config";
 import type { AnalyticsDateRange } from "../../filters/analyticsFilters";
+import { isObjectValue } from "../../table/dataTableServerQuery";
 import {
   buildReportBucketColumnsSql,
   buildReportBucketsCteSql,
@@ -9,6 +10,7 @@ import {
   type ReportPeriod,
 } from "../levelOneMetrics/reportPeriod";
 import { assertIsString, assertValidDateRange, parseActivityCount, parseActivityDate } from "../reportValues";
+import { buildCancellationsSql } from "./cancellationsSql";
 import { buildPaymentCoverageCtesSql, buildPaymentHistoryCtesSql } from "./paymentHistorySql";
 
 const reportLabel = "Who paid us report";
@@ -23,6 +25,13 @@ export type PaymentProvider = (typeof paymentProviders)[number];
 export type PaymentSeries = (typeof paymentSeries)[number];
 export const paymentProviderLabels = { apple: "Apple", google: "Google", stripe: "Stripe" } as const;
 export const paymentSeriesLabels = { trial: "Trial starts", first: "First payments", recurring: "Recurring payments" } as const;
+// The provider survey codes of `autorenew_disabled` in apps/backend/src/productAnalytics/catalog.ts.
+export const cancellationSurveyReasonLabels = {
+  unused: "Not using it", too_expensive: "Too expensive", switched_service: "Switched service",
+  technical_issues: "Technical issues", missing_features: "Missing features", too_complex: "Too complex",
+  low_quality: "Low quality", customer_service: "Customer service", other: "Other",
+} as const;
+type CancellationSurveyReason = keyof typeof cancellationSurveyReasonLabels;
 
 export type ProviderPaymentBucket = Readonly<{
   counts: Readonly<Record<PaymentSeries, number | null>>;
@@ -30,9 +39,17 @@ export type ProviderPaymentBucket = Readonly<{
   unclassified: number;
   nativeRepurchases: number;
 }>;
+export type CancellationsBucket = Readonly<{
+  total: number;
+  trial: number;
+  paid: number;
+  surveyReasons: ReadonlyArray<Readonly<{ reason: CancellationSurveyReason; count: number }>>;
+}>;
 export type WhoPaidUsBucket = Readonly<{
   bucket: ReportBucket;
   providers: Readonly<Record<PaymentProvider, ProviderPaymentBucket>>;
+  /** Null before cancellations were tracked. */
+  cancellations: CancellationsBucket | null;
 }>;
 export type PaymentSourceCoverage = Readonly<{
   provider: PaymentProvider;
@@ -101,7 +118,8 @@ SELECT provider, source, COALESCE(status, 'missing') AS status,
   to_char(covered_from AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') AS covered_from,
   to_char(covered_to AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') AS covered_to,
   failure_code
-FROM latest_sources ORDER BY provider, source`;
+FROM latest_sources ORDER BY provider, source;
+${buildCancellationsSql(period, range)}`;
 }
 
 function parseProvider(value: AdminQueryValue): PaymentProvider {
@@ -121,6 +139,33 @@ function parseRequiredCount(row: AdminQueryRow, field: string): number {
   return value;
 }
 
+function parseCancellations(row: AdminQueryRow): CancellationsBucket | null {
+  const total = parseActivityCount(row.total ?? null, reportLabel, "total");
+  const trial = parseActivityCount(row.trial ?? null, reportLabel, "trial");
+  const paid = parseActivityCount(row.paid ?? null, reportLabel, "paid");
+  const surveyed = row.survey_reasons ?? null;
+  if (total === null && trial === null && paid === null && surveyed === null) return null;
+  if (total === null || trial === null || paid === null || !isObjectValue(surveyed)) {
+    throw new Error(`${reportLabel} returned partial cancellation counts or non-object survey reasons.`);
+  }
+  if (trial + paid !== total) {
+    throw new Error(`${reportLabel} returned ${total} cancellations but ${trial} trial and ${paid} paid; every counted autorenew_disabled needs period_type trial or paid.`);
+  }
+  const reasons = Object.keys(cancellationSurveyReasonLabels) as ReadonlyArray<CancellationSurveyReason>;
+  const unsupported = Object.keys(surveyed).filter((key) => !reasons.some((reason) => reason === key));
+  if (unsupported.length > 0) {
+    throw new Error(`${reportLabel} returned unsupported cancellation survey reasons: ${unsupported.join(", ")}.`);
+  }
+  return {
+    total, trial, paid,
+    surveyReasons: reasons.filter((reason) => surveyed[reason] !== undefined).map((reason) => {
+      const count = parseActivityCount(surveyed[reason] ?? null, reportLabel, `survey_reasons.${reason}`);
+      if (count === null) throw new Error(`${reportLabel} requires a count for survey reason ${reason}.`);
+      return { reason, count };
+    }),
+  };
+}
+
 export function getPaymentSeriesTotal(entry: WhoPaidUsBucket, series: PaymentSeries): number | null {
   const counts = paymentProviders.map((provider) => entry.providers[provider].counts[series]);
   const recorded = counts.reduce<number>((sum, count) => sum + (count ?? 0), 0);
@@ -136,10 +181,12 @@ export async function loadWhoPaidUsReport(
   const response = await runAdminQuery(config, buildWhoPaidUsSql(dateRange, period), signal);
   const bucketed = response.resultSets[0];
   const coverage = response.resultSets[1];
+  const cancelled = response.resultSets[2];
   const firstRow = bucketed?.rows[0];
-  if (response.resultSets.length !== 2 || bucketed === undefined || coverage === undefined || firstRow === undefined
-    || bucketed.rows.length % paymentProviders.length !== 0 || coverage.rows.length !== 5) {
-    throw new Error(`${reportLabel} must return each bucket/provider and five source coverage rows.`);
+  if (response.resultSets.length !== 3 || bucketed === undefined || coverage === undefined || cancelled === undefined
+    || firstRow === undefined || bucketed.rows.length % paymentProviders.length !== 0 || coverage.rows.length !== 5
+    || cancelled.rows.length * paymentProviders.length !== bucketed.rows.length) {
+    throw new Error(`${reportLabel} must return each bucket/provider, five source coverage rows and each bucket's cancellations.`);
   }
   const bucketsByKey = new Map<string, ReportBucket>();
   const rowsByKey = new Map<string, ProviderPaymentBucket>();
@@ -161,9 +208,22 @@ export async function loadWhoPaidUsReport(
       nativeRepurchases: parseRequiredCount(row, "native_repurchases"),
     });
   }
+  const cancellationsByKey = new Map<string, CancellationsBucket | null>();
+  for (const row of cancelled.rows) {
+    const bucket = parseReportBucket(row, reportLabel);
+    if (!bucketsByKey.has(bucket.key) || cancellationsByKey.has(bucket.key)) {
+      throw new Error(`${reportLabel} returned cancellations for an unknown or duplicate bucket ${bucket.key}.`);
+    }
+    cancellationsByKey.set(bucket.key, parseCancellations(row));
+  }
   const getProviderBucket = (key: string, provider: PaymentProvider): ProviderPaymentBucket => {
     const entry = rowsByKey.get(`${key}:${provider}`);
     if (entry === undefined) throw new Error(`${reportLabel} is missing a bucket/provider.`);
+    return entry;
+  };
+  const getCancellations = (key: string): CancellationsBucket | null => {
+    const entry = cancellationsByKey.get(key);
+    if (entry === undefined) throw new Error(`${reportLabel} is missing cancellations for bucket ${key}.`);
     return entry;
   };
   const seenSources = new Set<string>();
@@ -173,7 +233,7 @@ export async function loadWhoPaidUsReport(
     today: parseActivityDate(firstRow.today ?? null, reportLabel, "today"),
     buckets: [...bucketsByKey.values()].map((bucket) => ({ bucket, providers: {
       apple: getProviderBucket(bucket.key, "apple"), google: getProviderBucket(bucket.key, "google"), stripe: getProviderBucket(bucket.key, "stripe"),
-    } })),
+    }, cancellations: getCancellations(bucket.key) })),
     sources: coverage.rows.map((row) => {
       const provider = parseProvider(row.provider ?? null);
       const sourceName = assertIsString(row.source ?? null, reportLabel, "source");

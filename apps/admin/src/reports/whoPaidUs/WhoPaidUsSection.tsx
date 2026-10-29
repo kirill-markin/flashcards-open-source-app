@@ -23,9 +23,10 @@ import {
   reportPeriodAxisLabels,
   type ReportPeriod,
 } from "../levelOneMetrics/reportPeriod";
+import { cancellationsTrackedFrom } from "./cancellationsSql";
 import {
-  getPaymentSeriesTotal, loadWhoPaidUsReport, paymentProviderLabels, paymentProviders,
-  paymentSeries, paymentSeriesLabels, type PaymentSeries, type WhoPaidUsBucket, type WhoPaidUsReport,
+  cancellationSurveyReasonLabels, getPaymentSeriesTotal, loadWhoPaidUsReport, paymentProviderLabels, paymentProviders,
+  paymentSeries, paymentSeriesLabels, type CancellationsBucket, type PaymentSeries, type WhoPaidUsBucket, type WhoPaidUsReport,
 } from "./query";
 
 type LoadState =
@@ -33,6 +34,8 @@ type LoadState =
   | Readonly<{ status: "error"; message: string }>
   | Readonly<{ status: "ready"; report: WhoPaidUsReport }>;
 const formatCount = d3.format(",d");
+const chartKeys = [...paymentSeries, "cancellations"] as const;
+const chartKeyLabels = { ...paymentSeriesLabels, cancellations: "Cancellations" } as const;
 
 function describeSeries(entry: WhoPaidUsBucket, series: PaymentSeries): string {
   const total = getPaymentSeriesTotal(entry, series);
@@ -57,8 +60,28 @@ function describeRecordedTotal(entry: WhoPaidUsBucket): string {
     Apple subsequent payments labeled PURCHASE: ${formatCount(nativeRepurchases)} (included in recurring).`;
 }
 
+function describeSurveyReasons(cancellations: CancellationsBucket): string {
+  return cancellations.surveyReasons.map((entry) => `${cancellationSurveyReasonLabels[entry.reason]}: ${formatCount(entry.count)}`).join(", ");
+}
+
+function describeCancellations(cancellations: CancellationsBucket | null): string {
+  if (cancellations === null) return `Cancellations: unavailable before ${cancellationsTrackedFrom}.`;
+  const surveyed = cancellations.surveyReasons.length > 0 ? `; survey reasons: ${describeSurveyReasons(cancellations)}` : "";
+  return `Cancellations: ${formatCount(cancellations.total)} (in trial: ${formatCount(cancellations.trial)}; in a paid period: ${formatCount(cancellations.paid)}${surveyed}).`;
+}
+
 function describeBucket(entry: WhoPaidUsBucket, today: string): string {
-  return `${entry.bucket.to === today ? "In progress through today. " : ""}${paymentSeries.map((series) => `${paymentSeriesLabels[series]}: ${describeSeries(entry, series)}. ${describeProviderSeries(entry, series)}.`).join(" ")} ${describeRecordedTotal(entry)}`;
+  return `${entry.bucket.to === today ? "In progress through today. " : ""}${paymentSeries.map((series) => `${paymentSeriesLabels[series]}: ${describeSeries(entry, series)}. ${describeProviderSeries(entry, series)}.`).join(" ")} ${describeRecordedTotal(entry)} ${describeCancellations(entry.cancellations)}`;
+}
+
+function buildCancellationTooltipRows(cancellations: CancellationsBucket | null): string {
+  const rows: ReadonlyArray<readonly [string, number | null]> = [
+    ["Cancellations", cancellations?.total ?? null],
+    ["· in trial", cancellations?.trial ?? null],
+    ["· in a paid period", cancellations?.paid ?? null],
+    ...(cancellations?.surveyReasons ?? []).map((entry) => [`· survey: ${cancellationSurveyReasonLabels[entry.reason]}`, entry.count] as const),
+  ];
+  return rows.map(([label, count]) => `<tr><th scope="row">${escapeHtml(label)}</th><td>${formatNullableCount(count)}</td></tr>`).join("");
 }
 
 function formatNullableCount(count: number | null): string {
@@ -111,8 +134,9 @@ export function WhoPaidUsSection(props: Readonly<{
         const unclassified = paymentProviders.reduce((sum, provider) => sum + entry.providers[provider].unclassified, 0);
         return `<p class="tooltip-title">${escapeHtml(formatReportBucketTitle(state.report.period, entry.bucket))} UTC${key === inProgressKey ? " · in progress" : ""}</p>
           <table class="payment-tooltip-table"><thead><tr><th scope="col">Events</th><th scope="col">Recorded</th></tr></thead>
-          <tbody>${paymentSeries.map((series) => `<tr><th scope="row">${paymentSeriesLabels[series]}</th><td>${formatNullableCount(getPaymentSeriesTotal(entry, series))}</td></tr>`).join("")}</tbody></table>
+          <tbody>${paymentSeries.map((series) => `<tr><th scope="row">${paymentSeriesLabels[series]}</th><td>${formatNullableCount(getPaymentSeriesTotal(entry, series))}</td></tr>`).join("")}${buildCancellationTooltipRows(entry.cancellations)}</tbody></table>
           ${unclassified > 0 ? `<p class="payment-tooltip-note">Unclassified paid periods: ${formatCount(unclassified)}</p>` : ""}
+          ${entry.cancellations !== null && entry.bucket.from < cancellationsTrackedFrom ? `<p class="payment-tooltip-note">Cancellations count from ${cancellationsTrackedFrom}.</p>` : ""}
           <p class="payment-tooltip-note">Partial history; — means unavailable.</p>`;
       },
       tooltipHandlers,
@@ -128,6 +152,7 @@ export function WhoPaidUsSection(props: Readonly<{
             <li>Trial starts require native free-trial evidence. First payment is the first successful positive paid period in verified original subscription history; later successful periods are recurring, even when a provider labels the first charge a renewal.</li>
             <li>New Google order roots and new Stripe subscriptions begin new histories. Apple PURCHASE after an earlier paid period stays recurring. Reactivations are not new globally unique customers.</li>
             <li>Refunds do not erase historical charges. Multiple Stripe invoice payments count once per paid invoice. Sandbox and gifts are excluded, and so are the people every Level 1 chart excludes; payments with no linked account still count, and erasure alone never drops one.</li>
+            <li>Red bars below zero are cancellations: subscriptions whose auto-renewal the person turned off with Apple, Google Play or Stripe, during a trial or a paid period, counted on the UTC day of the provider’s own time for the change and excluding the same people as payments. Renewals a provider stopped after a failed charge are left out; a cancellation later undone still counts. Tracking starts on {cancellationsTrackedFrom} UTC, so a bar wholly before it is unavailable.</li>
             <li>Apple notification discovery and Google discoverable orders are partial merchant inventories. Known counts remain visible after an import failure; absent or unclassified history is unavailable. Stripe completed production catalog scans can prove zero only for a bar whose every day lies inside their covered window.</li>
             {state.status === "ready" ? <li>Generated {formatGeneratedAt(state.report.generatedAtUtc)}.</li> : null}
           </ul>
@@ -141,15 +166,16 @@ export function WhoPaidUsSection(props: Readonly<{
       </div> : null}
       {state.status === "error" ? null : <section className="chart-column"><div className="chart-shell">
         <div className="chart-meta"><span>Events per {props.period} · partial history</span>
-          <div className="chart-meta-right"><ChartColorKey ariaLabel="Payment event color key" keys={paymentSeries}
-            getColor={(series) => paymentColors[series]} getLabel={(series) => paymentSeriesLabels[series]} />
+          <div className="chart-meta-right"><ChartColorKey ariaLabel="Who paid us color key" keys={chartKeys}
+            getColor={(key) => paymentColors[key]} getLabel={(key) => chartKeyLabels[key]} />
           </div>
         </div>
         <div className="chart-scroll">
           {state.status === "ready" ? <ChartAreaWithNote viewBoxWidth={chartWidth} viewBoxHeight={stackedChartHeight}
-            note={state.report.buckets.every((entry) => paymentSeries.every((series) => getPaymentSeriesTotal(entry, series) === null))
-              ? "No classified events are available in this range." : null}>
-            <svg ref={chartRef} role="group" aria-label={`Who paid us: recorded trial starts, first payments and recurring payments per ${state.report.period}`} />
+            note={state.report.buckets.every((entry) => entry.cancellations === null
+              && paymentSeries.every((series) => getPaymentSeriesTotal(entry, series) === null))
+              ? "No classified events or cancellations are available in this range." : null}>
+            <svg ref={chartRef} role="group" aria-label={`Who paid us: recorded trial starts, first payments and recurring payments per ${state.report.period}, with cancellations below zero`} />
           </ChartAreaWithNote> : <ChartLoadingPlaceholder viewBoxWidth={chartWidth} viewBoxHeight={stackedChartHeight} label="Loading Who paid us…" />}
         </div>
         <ChartNotesKey notes={chartNotes} />
