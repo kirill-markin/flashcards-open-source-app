@@ -17,8 +17,9 @@ The top-level product scope matches the other clients:
 
 The browser opens a cloud-synced guest workspace immediately. **Guest · Sign in** saves the current
 workspace before opening the auth UI. Eligible [demo-only sign-in](../../docs/demo-card.md#guest-upgrade)
-enters an existing account automatically. Other guest content can merge into any accessible workspace
-or a new one. Keep this browser’s site data until conversion finishes: guest access depends
+enters an existing account automatically. Other guest content goes to a new workspace when the account
+has none, to its only workspace when it has one, and to the workspace or new one the user picks when it
+has several. Keep this browser’s site data until conversion finishes: guest access depends
 on its essential cookie, and clearing all site data can lose that access. An unverified guest cache
 opens read-only until its original session can be verified. Stripe purchases require sign-in.
 Nibomo-funded chat, dictation and images follow the [browser trial policy](../../docs/premium-offer.md#browser-guest-ai-trial).
@@ -42,8 +43,9 @@ database or a disposable, previously unmapped account:
    event IDs, the demo stays active, and the workspace list has no extra workspace.
 3. Reload and check the same cards and review progress. Confirm the pending conversion metadata is
    gone only after destination hot state and review history have loaded, and ordinary writes work.
-4. With another fresh guest, author a real card or edit the demo, then sign in to the existing account.
-   Confirm the transfer chooser appears and the authored or edited content survives the selected
+4. With another fresh guest, author a real card or edit the demo, then sign in to the same account.
+   Confirm it merges into the only workspace without a transfer chooser. Add a second workspace and
+   repeat: the chooser appears. Both times the authored or edited content survives the
    transfer, including after reload. Check demo retention against the [canonical contract](../../docs/demo-card.md#guest-upgrade).
 5. With a fresh guest holding only its unchanged demo, review it, wait for sync and sign in to the
    existing account. Confirm no transfer chooser appears, the destination account keeps its data,
