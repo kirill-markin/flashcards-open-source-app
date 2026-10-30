@@ -36,6 +36,7 @@ export function WhoOpenedTheAppBreakdownSections(props: Readonly<{
       metricTitle={metricTitle}
       testIdPrefix="who-opened-the-app"
       breakdowns={appOpenBreakdowns}
+      appVersionFilterNote={<li>The App version filter narrows these people as it narrows {metricTitle}, and only their opens on a selected version place them.</li>}
     />
   );
 }

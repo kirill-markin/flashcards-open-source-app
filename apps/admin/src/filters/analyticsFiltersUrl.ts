@@ -92,7 +92,7 @@ function isCalendarDate(value: string): boolean {
     && parsedDate.getUTCDate() === day;
 }
 
-function areStringListsEqual(
+export function areStringListsEqual(
   left: ReadonlyArray<string>,
   right: ReadonlyArray<string>,
 ): boolean {

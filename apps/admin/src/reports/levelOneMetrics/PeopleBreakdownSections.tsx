@@ -76,6 +76,8 @@ export function PeopleBreakdownSections(props: Readonly<{
   metricTitle: string;
   testIdPrefix: string;
   breakdowns: ReadonlyArray<PeopleBreakdown>;
+  /** The `<li>` saying how the App version filter narrows and places these people. */
+  appVersionFilterNote: ReactNode;
 }>): JSX.Element {
   // `BreakdownSection` reloads when its loader changes, so each one closes over the platforms and
   // versions here.
@@ -106,7 +108,7 @@ export function PeopleBreakdownSections(props: Readonly<{
             <li>The people of {props.metricTitle}, so each bar adds up to that chart’s bar for the same day, week or month.</li>
             {breakdown.placement}
             <li>The Platform filter narrows these people as it narrows {props.metricTitle}, and only their events on a selected platform place them.</li>
-            <li>The App version filter narrows these people as it narrows {props.metricTitle}.</li>
+            {props.appVersionFilterNote}
             <li>The five values with the most people over the available bars get their own colour; the rest are summed into Other. A missing value is Unknown and ranks like any other.</li>
             <li>The shared actor exclusions apply, and only credentialed rows count. Edge bars hold only the selected days. The bar holding today is in progress; a bar with days before retained history is unavailable, never zero.</li>
           </>}

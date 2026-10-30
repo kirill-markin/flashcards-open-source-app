@@ -1,7 +1,12 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { AdminAppConfig } from "../../config";
-import type { AnalyticsDateRange, AnalyticsFilterState } from "../../filters/analyticsFilters";
+import type {
+  AnalyticsDateRange,
+  AnalyticsFilterState,
+  SiteVisitorFilterState,
+} from "../../filters/analyticsFilters";
 import {
+  areStringListsEqual,
   normalizeAppVersions,
   normalizeEventPlatforms,
   normalizeSiteVisitorFilterState,
@@ -68,6 +73,14 @@ function buildProvisionalSelection(): ProvisionalLevelOneMetricsSelection {
 
 function isSameDateRange(left: AnalyticsDateRange, right: AnalyticsDateRange): boolean {
   return left.from === right.from && left.to === right.to;
+}
+
+function isSameSiteFilters(left: SiteVisitorFilterState, right: SiteVisitorFilterState): boolean {
+  return areStringListsEqual(left.siteDeviceCategories, right.siteDeviceCategories)
+    && areStringListsEqual(left.siteSources, right.siteSources)
+    && areStringListsEqual(left.siteCountries, right.siteCountries)
+    && areStringListsEqual(left.siteBrowserLanguages, right.siteBrowserLanguages)
+    && areStringListsEqual(left.sitePageKinds, right.sitePageKinds);
 }
 
 function validateRequestedRange(
@@ -175,12 +188,22 @@ export function useLevelOneMetricsSelection(
     }
 
     setDateRangeError("");
+    const eventPlatforms = normalizeEventPlatforms(nextFilters.eventPlatforms);
+    const appVersions = normalizeAppVersions(nextFilters.appVersions);
+    const siteFilters = normalizeSiteVisitorFilterState(nextFilters);
+    // An unchanged filter keeps its object, so the charts it cannot change do not reload.
     setSelection((currentSelection) => ({
       ...currentSelection,
       dateRange: nextFilters.dateRange,
-      eventPlatforms: normalizeEventPlatforms(nextFilters.eventPlatforms),
-      appVersions: normalizeAppVersions(nextFilters.appVersions),
-      siteFilters: normalizeSiteVisitorFilterState(nextFilters),
+      eventPlatforms: areStringListsEqual(currentSelection.eventPlatforms, eventPlatforms)
+        ? currentSelection.eventPlatforms
+        : eventPlatforms,
+      appVersions: areStringListsEqual(currentSelection.appVersions, appVersions)
+        ? currentSelection.appVersions
+        : appVersions,
+      siteFilters: isSameSiteFilters(currentSelection.siteFilters, siteFilters)
+        ? currentSelection.siteFilters
+        : siteFilters,
     }));
     return true;
   }, [availableRange, selectedDateRange]);
