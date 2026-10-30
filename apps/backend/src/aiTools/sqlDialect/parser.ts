@@ -33,6 +33,16 @@ import type {
 
 export { splitSqlStatements } from "./parserSplitting";
 
+// Statement keywords recorded as the rejected name of an unsupported statement;
+// any other first word, such as prose the model typed instead of SQL, records null.
+const UNSUPPORTED_STATEMENT_KEYWORDS: ReadonlySet<string> = new Set([
+  "ALTER", "ANALYZE", "ATTACH", "BEGIN", "CALL", "COMMIT", "COPY", "CREATE", "DECLARE", "DESCRIBE", "DETACH",
+  "DO", "DROP", "END", "EXECUTE", "EXPLAIN", "GRANT", "LOCK", "MERGE", "PRAGMA", "PREPARE", "REINDEX", "RELEASE",
+  "REPLACE", "REVOKE", "ROLLBACK", "SAVEPOINT", "SET", "SHOW", "START", "TABLE", "TRUNCATE", "UPSERT", "USE",
+  "VACUUM", "VALUES", "WITH",
+]);
+const PARSED_STATEMENT_KEYWORDS: ReadonlySet<string> = new Set(["SELECT", "INSERT", "UPDATE", "DELETE"]);
+
 function parseSimpleNumberClauseValue(value: string | undefined, keyword: string): number | null {
   if (value === undefined) {
     return null;
@@ -168,6 +178,19 @@ function parseSelectItem(source: SqlFromSource, value: string): SqlSelectItem {
   throw new SqlDialectError(`Unsupported SELECT item: ${trimmedValue}`, "unsupported_expression", null);
 }
 
+// The token after the resource name in a FROM segment the source grammar refused,
+// such as JOIN or an alias. A statement keyword is dropped because the other
+// unsupported_statement rejections record those, and it must keep one cause.
+function unsupportedSourceRejectedName(leadingSegment: string): string | null {
+  const match = leadingSegment.match(/^[a-z_][a-z0-9_]*\s+([a-z_][a-z0-9_]*)/i);
+  if (match === null) {
+    return null;
+  }
+
+  const token = upperCaseKeyword(match[1] ?? "");
+  return UNSUPPORTED_STATEMENT_KEYWORDS.has(token) || PARSED_STATEMENT_KEYWORDS.has(token) ? null : token;
+}
+
 function parseSelectStatement(normalizedSql: string): SqlSelectStatement {
   const selectPrefixMatch = normalizedSql.match(/^SELECT\s+/i);
   if (selectPrefixMatch === null) {
@@ -197,7 +220,11 @@ function parseSelectStatement(normalizedSql: string): SqlSelectStatement {
     /^([a-z_][a-z0-9_]*)(?:\s+UNNEST\s+([a-z_][a-z0-9_]*)\s+AS\s+([a-z_][a-z0-9_]*))?$/i,
   );
   if (sourceMatch === null) {
-    throw new SqlDialectError("Unsupported SELECT statement", "unsupported_statement", "SELECT");
+    throw new SqlDialectError(
+      "Unsupported SELECT statement",
+      "unsupported_statement",
+      unsupportedSourceRejectedName(extractedClauses.leadingSegment),
+    );
   }
 
   const source = parseFromSource(sourceMatch[1] ?? "", sourceMatch[2], sourceMatch[3]);
@@ -320,7 +347,11 @@ export function parseSqlStatement(value: string): ParsedSqlStatement {
     return parseDeleteStatement(normalizedSql);
   }
 
-  throw new SqlDialectError("Unsupported SQL statement", "unsupported_statement", statementKeyword);
+  throw new SqlDialectError(
+    "Unsupported SQL statement",
+    "unsupported_statement",
+    UNSUPPORTED_STATEMENT_KEYWORDS.has(statementKeyword) ? statementKeyword : null,
+  );
 }
 
 export function parseSqlStatements(value: string): ReadonlyArray<ParsedSqlStatement> {
