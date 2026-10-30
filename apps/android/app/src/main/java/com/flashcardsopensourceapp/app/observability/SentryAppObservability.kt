@@ -466,7 +466,8 @@ private fun warningContext(event: AndroidWarningIssueEvent): SentryAndroidObserv
                 workspaceId = sanitizeSentryIdentifier(value = event.workspaceId),
                 progressAction = sanitizeSentryContextValue(fieldName = "refreshAction", value = event.refreshAction),
                 scopeId = sanitizeSentryIdentifier(value = event.scopeId),
-                source = sanitizeSentryContextValue(fieldName = "source", value = event.source)
+                source = sanitizeSentryContextValue(fieldName = "source", value = event.source),
+                errorClass = sanitizeSentryContextValue(fieldName = "errorClass", value = event.errorClass)
             ),
             notifications = null,
             feedback = null,
@@ -481,7 +482,8 @@ private fun warningContext(event: AndroidWarningIssueEvent): SentryAndroidObserv
                 workspaceId = sanitizeSentryIdentifier(value = event.workspaceId),
                 progressAction = sanitizeSentryContextValue(fieldName = "repositoryAction", value = event.repositoryAction),
                 scopeId = sanitizeSentryIdentifier(value = event.scopeId),
-                source = sanitizeSentryContextValue(fieldName = "source", value = event.source)
+                source = sanitizeSentryContextValue(fieldName = "source", value = event.source),
+                errorClass = null
             ),
             notifications = null,
             feedback = null,
@@ -756,7 +758,8 @@ private fun exceptionContext(event: AndroidExceptionIssueEvent): SentryAndroidOb
                 workspaceId = sanitizeSentryIdentifier(value = event.workspaceId),
                 progressAction = sanitizeSentryContextValue(fieldName = "refreshAction", value = event.refreshAction),
                 scopeId = sanitizeSentryIdentifier(value = event.scopeId),
-                source = sanitizeSentryContextValue(fieldName = "source", value = event.source)
+                source = sanitizeSentryContextValue(fieldName = "source", value = event.source),
+                errorClass = null
             ),
             notifications = null,
             feedback = null,
@@ -771,7 +774,8 @@ private fun exceptionContext(event: AndroidExceptionIssueEvent): SentryAndroidOb
                 workspaceId = sanitizeSentryIdentifier(value = event.workspaceId),
                 progressAction = sanitizeSentryContextValue(fieldName = "repositoryAction", value = event.repositoryAction),
                 scopeId = sanitizeSentryIdentifier(value = event.scopeId),
-                source = sanitizeSentryContextValue(fieldName = "source", value = event.source)
+                source = sanitizeSentryContextValue(fieldName = "source", value = event.source),
+                errorClass = null
             ),
             notifications = null,
             feedback = null,
@@ -987,7 +991,7 @@ internal fun warningIssueFingerprint(event: AndroidWarningIssueEvent): List<Stri
     val groupKey: String = warningIssueGroupKey(event = event) ?: "no_group"
     val code: String = sanitizeSentryTagValue(fieldName = "code", value = event.tags.code) ?: "no_code"
     val statusCode: String = event.tags.statusCode?.toString() ?: "no_status"
-    return listOf(
+    val stableDimensions: List<String> = listOf(
         "android",
         event.feature.tagValue,
         event.action.tagValue,
@@ -995,6 +999,12 @@ internal fun warningIssueFingerprint(event: AndroidWarningIssueEvent): List<Stri
         code,
         statusCode
     )
+    return when (event) {
+        // One refresh action fails for unrelated causes (HTTP 404, TLS trust); each cause gets its own issue.
+        is AndroidWarningIssueEvent.ProgressRefreshWarning -> stableDimensions +
+            (sanitizeSentryTagValue(fieldName = "errorClass", value = event.errorClass) ?: "no_error_class")
+        else -> stableDimensions
+    }
 }
 
 internal fun exceptionIssueFingerprint(event: AndroidExceptionIssueEvent): List<String>? {
@@ -1167,7 +1177,8 @@ private data class SentryProgressContext(
     val workspaceId: String?,
     val progressAction: String?,
     val scopeId: String?,
-    val source: String?
+    val source: String?,
+    val errorClass: String?
 )
 
 internal data class SentryFeedbackContext(
