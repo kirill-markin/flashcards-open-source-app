@@ -222,33 +222,42 @@ function getAgentSqlService(surface: AgentSqlDetails["surface"]): BackendService
 }
 
 /**
- * Emits the single structured record for one agent SQL execution, following the
- * `logAdminQueryEvent` convention above (fingerprint + statement count +
- * duration + outcome, never the raw SQL). Unlike the admin variant nothing here
- * needs a CloudWatch-specific redaction, so this goes through the shared
- * `addBackendBreadcrumb` helper that writes the sanitized CloudWatch record and
- * the Sentry breadcrumb in one call.
- *
  * The route is synthetic (`agent-sql/<surface>`) because the same executor is
  * reached from an MCP tool call, a REST route, and the in-app chat tool.
  */
-export function logAgentSqlEvent(payload: AgentSqlLogPayload): void {
-  const scope: BackendObservationScope = createBackendObservationScope(
-    getAgentSqlService(payload.surface),
+export function createAgentSqlObservationScope(
+  surface: AgentSqlDetails["surface"],
+  userId: string,
+  workspaceId: string,
+): BackendObservationScope {
+  return createBackendObservationScope(
+    getAgentSqlService(surface),
     // Only the MCP surface publishes a request id, and it is what joins this
     // record to the `mcp_request` record for the same transport request. The
     // REST and chat surfaces publish none, so they keep recording null.
     getMcpRequestId(),
-    `agent-sql/${payload.surface}`,
+    `agent-sql/${surface}`,
     "POST",
-    payload.userId,
-    payload.workspaceId,
+    userId,
+    workspaceId,
     null,
     null,
     null,
     null,
     null,
   );
+}
+
+/**
+ * Emits the single structured record for one agent SQL execution, following the
+ * `logAdminQueryEvent` convention above (fingerprint + statement count +
+ * duration + outcome, never the raw SQL). Unlike the admin variant nothing here
+ * needs a CloudWatch-specific redaction, so this goes through the shared
+ * `addBackendBreadcrumb` helper that writes the sanitized CloudWatch record and
+ * the Sentry breadcrumb in one call.
+ */
+export function logAgentSqlEvent(payload: AgentSqlLogPayload): void {
+  const scope = createAgentSqlObservationScope(payload.surface, payload.userId, payload.workspaceId);
   const details: AgentSqlDetails = {
     surface: payload.surface,
     caller: payload.caller,

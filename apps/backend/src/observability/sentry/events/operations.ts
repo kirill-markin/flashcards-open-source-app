@@ -34,8 +34,8 @@ export type AdminQueryDetails = Readonly<{
  *
  * The error message is deliberately absent too: dialect errors quote the
  * offending SQL fragment verbatim, so the message carries flashcard content that
- * no delimiter heuristic can strip reliably. Unexpected failures still reach
- * Sentry with their full message and stack through `captureBackendException`.
+ * no delimiter heuristic can strip reliably. A failure's full SQL and message go
+ * to the 30-day failure log (`aiTools/agentSql/failureLog.ts`).
  */
 export type AgentSqlDetails = Readonly<{
   surface: AgentSqlSurface;
@@ -429,6 +429,23 @@ export type GlobalMetricsS3RetryDetails = Readonly<{
   statusCode: number | null;
   errorClass: string;
   errorMessage: string;
+}>;
+
+export type AgentSqlFailureLogRetryDetails = Readonly<{
+  operation: "create_log_stream" | "put_log_events";
+  attempt: number;
+  maxAttempts: number;
+  logGroupName: string;
+  logStreamName: string;
+  statusCode: number | null;
+  errorClass: string;
+  errorMessage: string;
+}>;
+
+/** Never the SQL or its error message: this record lands in a never-expiring log group. */
+export type AgentSqlFailureLogWriteFailureDetails = Readonly<{
+  surface: AgentSqlSurface;
+  sqlFingerprint: string;
 }>;
 
 export type CatalogDumpS3RetryDetails = Readonly<{
@@ -874,6 +891,7 @@ export type OperationsBreadcrumbEvent =
   | EventByAction<"multipart_completion_reconciliation_batch_completed", MultipartCompletionReconciliationBatchDetails>
   | EventByAction<"multipart_completion_reconciliation_job_terminally_failed", MultipartCompletionReconciliationTerminalFailureDetails>
   | EventByAction<"database_transient_retry", DatabaseTransientRetryDetails>
+  | EventByAction<"agent_sql_failure_log_retry", AgentSqlFailureLogRetryDetails>
   | EventByAction<"global_metrics_s3_retry", GlobalMetricsS3RetryDetails>
   | EventByAction<"catalog_dump_s3_retry", CatalogDumpS3RetryDetails>
   | EventByAction<"media_asset_storage_retry", MediaAssetStorageRetryDetails>
@@ -987,4 +1005,6 @@ export type OperationsExceptionEvent =
   | (EventByAction<"multipart_completion_reconciliation_batch_failed", MultipartCompletionReconciliationBatchDetails> & Readonly<{
     error: Error;
   }>)
-  | (EventByAction<"migration_failed", MigrationFailureDetails> & Readonly<{ error: Error }>);
+  | (EventByAction<"migration_failed", MigrationFailureDetails> & Readonly<{ error: Error }>)
+  | (EventByAction<"agent_sql_failure_log_write_failed", AgentSqlFailureLogWriteFailureDetails>
+    & Readonly<{ error: Error }>);

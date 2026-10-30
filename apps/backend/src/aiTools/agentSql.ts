@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import { HttpError } from "../shared/errors";
 import { logAgentSqlEvent } from "../server/logging";
 import { executeWithinAgentSqlDatabaseTimeBudget } from "./agentSql/databaseTimeBudget";
+import { writeAgentSqlFailureRecord } from "./agentSql/failureLog";
 import {
   DEFAULT_AGENT_TOOL_OPERATION_DEPENDENCIES,
   type AgentToolOperationDependencies,
@@ -198,9 +199,8 @@ function getAgentSqlErrorClass(error: unknown): string {
  * the offending SQL fragment verbatim, so the text carries flashcard content,
  * and no delimiter heuristic can strip it reliably: an unquoted or typographic
  * operand (`... WHERE front_text = Paris`) has no delimiter to find. Only the
- * low-cardinality dimensions below are recorded, and unexpected failures still
- * reach Sentry with their full message and stack through
- * `captureBackendException`, so nothing debuggable is lost.
+ * low-cardinality dimensions below are recorded; a failure's full SQL and
+ * message go to the 30-day failure log (`./agentSql/failureLog.ts`) instead.
  *
  * `execute` hands over the emitted result together with the size the budget
  * helpers already measured for it, so `resultChars` is the size of the payload
@@ -251,6 +251,11 @@ async function withAgentSqlTelemetry<Result extends AgentSqlExecutionResult>(
 
     return result;
   } catch (error) {
+    const failureDetails = {
+      errorCode: getAgentSqlErrorCode(error),
+      dialectReason: getAgentSqlDialectReason(error),
+      errorClass: getAgentSqlErrorClass(error),
+    };
     logAgentSqlEvent({
       ...executionDetails,
       succeeded: false,
@@ -262,9 +267,18 @@ async function withAgentSqlTelemetry<Result extends AgentSqlExecutionResult>(
       rowsOmitted: null,
       rowsTruncated: null,
       durationMs: Date.now() - startedAt,
-      errorCode: getAgentSqlErrorCode(error),
-      dialectReason: getAgentSqlDialectReason(error),
-      errorClass: getAgentSqlErrorClass(error),
+      ...failureDetails,
+    });
+    await writeAgentSqlFailureRecord({
+      surface: executionDetails.surface,
+      caller: executionDetails.caller,
+      userId: executionDetails.userId,
+      workspaceId: executionDetails.workspaceId,
+      connectionId: executionDetails.connectionId,
+      sqlFingerprint: executionDetails.sqlFingerprint,
+      ...failureDetails,
+      sql,
+      errorMessage: error instanceof Error ? error.message : String(error),
     });
 
     throw error;
