@@ -80,16 +80,22 @@ export type AgentSqlDetails = Readonly<{
  * handler reported -- whether its result was an error and the `error.code` it
  * sent -- and both are null when no handler ran.
  *
- * Of the body the transport owns, only a `tools/call` tool name is read: tool
- * arguments and results carry flashcard content and are never recorded, and
- * `responseChars` is a length measured off the response and never any of what
- * it contains.
+ * `toolCallArguments` is the compact JSON of the validated arguments the
+ * handler of the named tool received, cut at a few KB, so a session's tool
+ * calls can be read in full; it is null when no handler ran and for `sql_query`
+ * and `sql_execute`, whose SQL text never reaches this log group because the
+ * group never expires. Its name keeps it clear of the content-key redaction in
+ * `apps/backend/src/observability/sanitizer.ts`, which blanks a `toolArguments`
+ * field. The request body itself is read only for a `tools/call` tool name,
+ * tool results are never recorded, and `responseChars` is a length measured off
+ * the response and never any of what it contains.
  */
 export type McpRequestDetails = Readonly<{
   protocolVersion: string | null;
   jsonRpcMethod: string | null;
   toolName: string | null;
   toolExecuted: boolean | null;
+  toolCallArguments: string | null;
   toolIsError: boolean | null;
   toolErrorCode: string | null;
   caller: string | null;
