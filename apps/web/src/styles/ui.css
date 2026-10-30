@@ -124,7 +124,7 @@
   border-radius: 0;
   background: var(--bg);
   box-shadow: none;
-  padding-block-start: var(--screen-head-spacing);
+  padding-block-start: var(--screen-head-top-spacing);
 }
 
 .screen-panel {

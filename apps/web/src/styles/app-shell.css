@@ -473,9 +473,17 @@
 }
 
 @media (max-width: 768px) {
+  .app-shell {
+    --screen-head-top-spacing: var(--shell-frame-gap);
+  }
+
   .header-sticky {
     --header-inline-padding: var(--shell-frame-gap);
     padding: var(--shell-frame-gap) var(--header-inline-padding) 0;
+  }
+
+  .topbar-shell {
+    padding-block-end: 0;
   }
 
   .topbar-shell,
@@ -521,8 +529,11 @@
     grid-row: 2;
   }
 
+  .mobile-nav-toggle,
   .account-menu-button {
-    width: 54px;
+    width: 44px;
+    min-width: 44px;
+    min-height: 44px;
   }
 }
 
