@@ -6,8 +6,8 @@ final class LiveSmokeMacCatalystTests: LiveSmokeTestCase {
     @MainActor
     func testMacPointerRatingRestoresSpaceAndAllRatingKeys() throws {
         try self.launchApplication(launchScenario: .guestEmptyWorkspace, selectedTab: .cards)
-        try self.step("create five cards through the shared editor") {
-            for index in 1...5 {
+        try self.step("create seven cards through the shared editor") {
+            for index in 1...7 {
                 try self.createManualCard(
                     frontText: "Mac smoke question \(index)",
                     backText: "Answer \(index): inline $x^2$ and display math:\n\n$$\\frac{1}{2} + \\frac{1}{2} = 1$$"
@@ -17,7 +17,7 @@ final class LiveSmokeMacCatalystTests: LiveSmokeTestCase {
         try self.tapTabBarItem(identifier: LiveSmokeSelectedTab.review.itemIdentifier, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
         try self.assertElementExists(identifier: LiveSmokeIdentifier.reviewShowAnswerButton, timeout: LiveSmokeConfiguration.reviewInitialProbeTimeoutSeconds)
         self.app.activate()
-        let expectedQuestions = (1...5).map { "Mac smoke question \($0)" }
+        let expectedQuestions = (1...7).map { "Mac smoke question \($0)" }
         let reviewFront = self.app.descendants(matching: .any)
             .matching(identifier: "review.frontSelectableText").firstMatch
         let expectedCard = XCTNSPredicateExpectation(
@@ -74,6 +74,17 @@ final class LiveSmokeMacCatalystTests: LiveSmokeTestCase {
                 self.app.typeKey(revealKey.rawValue, modifierFlags: [])
                 try self.waitForReviewAnswerReveal()
                 self.app.typeKey(key, modifierFlags: [])
+                try self.assertElementDoesNotExist(identifier: LiveSmokeIdentifier.reviewRateGoodButton, timeout: LiveSmokeConfiguration.reviewInteractionTimeoutSeconds)
+            }
+        }
+
+        try self.step("reveal with Space and Return and rate with 1 while the sidebar holds focus") {
+            for revealKey in [XCUIKeyboardKey.space, XCUIKeyboardKey.return] {
+                try self.tapTabBarItem(identifier: LiveSmokeIdentifier.rootTabReviewItem, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+                try self.assertElementExists(identifier: LiveSmokeIdentifier.reviewShowAnswerButton, timeout: LiveSmokeConfiguration.reviewInteractionTimeoutSeconds)
+                self.app.typeKey(revealKey.rawValue, modifierFlags: [])
+                try self.waitForReviewAnswerReveal()
+                self.app.typeKey("1", modifierFlags: [])
                 try self.assertElementDoesNotExist(identifier: LiveSmokeIdentifier.reviewRateGoodButton, timeout: LiveSmokeConfiguration.reviewInteractionTimeoutSeconds)
             }
         }

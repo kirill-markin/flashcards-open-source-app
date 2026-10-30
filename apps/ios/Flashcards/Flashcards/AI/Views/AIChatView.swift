@@ -162,6 +162,12 @@ struct AIChatView: View {
                 actions: self.alertActionsContent,
                 message: self.alertMessageContent
             )
+            .reviewKeyboardBlockingPresentation(
+                isPresented: self.isFileImporterPresented
+                    || self.isPhotoPickerPresented
+                    || self.isCameraPresented
+                    || self.isAlertPresentedBinding.wrappedValue
+            )
     }
 
     var bodyLifecycleModifiers: some View {
@@ -881,11 +887,6 @@ struct AIChatView: View {
             from: nil,
             for: nil
         )
-        #if targetEnvironment(macCatalyst)
-        if self.isCompanion {
-            self.navigation.requestReviewKeyboardFocus()
-        }
-        #endif
     }
 
     func startNewChat() {

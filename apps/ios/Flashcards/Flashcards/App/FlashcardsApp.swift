@@ -333,13 +333,14 @@ struct FlashcardsApp: App {
                 }
                 .technicalErrorSheet(store: self.store)
         }
-        #if targetEnvironment(macCatalyst)
         .commands {
+            #if targetEnvironment(macCatalyst)
             CommandGroup(after: .sidebar) {
                 AICompanionMenuCommand(navigation: self.navigation)
             }
+            #endif
+            ReviewCommands()
         }
-        #endif
         .onChange(of: self.appleSubscriptionRuntimeState, initial: true) { _, state in
             self.appleSubscriptions.updateRuntime(identity: state.identity, isActive: state.isActive)
         }
