@@ -20,11 +20,7 @@ extension View {
             Button(
                 permissionStatus == .notRequested
                     ? String(localized: "Continue", table: reviewCardsStringsTableName)
-                    : String(
-                        localized: "shared.action.open_settings",
-                        table: "Foundation",
-                        comment: "Permission action title to open Settings"
-                    ),
+                    : permissionStatus.actionTitle,
                 action: onContinue
             )
         } message: {

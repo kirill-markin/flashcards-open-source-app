@@ -32,11 +32,19 @@ enum ReviewNotificationPermissionStatus: Hashable, Sendable {
     var actionTitle: String {
         switch self {
         case .allowed, .blocked:
+            #if targetEnvironment(macCatalyst)
+            return String(
+                localized: "shared.action.open_system_settings",
+                table: "Foundation",
+                comment: "Mac permission action title to open System Settings"
+            )
+            #else
             return String(
                 localized: "shared.action.open_settings",
                 table: "Foundation",
                 comment: "Permission action title to open Settings"
             )
+            #endif
         case .notRequested:
             return String(
                 localized: "review_notification_permission.allow_notifications",
