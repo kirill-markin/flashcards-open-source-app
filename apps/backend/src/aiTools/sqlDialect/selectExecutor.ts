@@ -221,7 +221,7 @@ function validatePredicate(source: SqlFromSource, predicate: SqlPredicate): void
   }
 
   if (predicate.type === "like" && LIKE_SUPPORTED_COLUMN_TYPES.has(columnDescriptor.type) === false) {
-    throw buildInvalidSqlError(`LIKE is not supported for column: ${predicate.columnName}`, "unsupported_expression", predicate.columnName);
+    throw buildInvalidSqlError(`LIKE is not supported for column: ${predicate.columnName}`, "unsupported_expression", "LIKE");
   }
 }
 

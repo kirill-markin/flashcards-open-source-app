@@ -43,7 +43,7 @@ function splitInsertReturningSegment(normalizedSql: string): Readonly<{
   }
 
   if (matches.length > 1) {
-    throw new SqlDialectError("Duplicate INSERT clause: RETURNING", "invalid_clause", null);
+    throw new SqlDialectError("Duplicate INSERT clause: RETURNING", "invalid_clause", "RETURNING");
   }
 
   return {

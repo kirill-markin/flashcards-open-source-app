@@ -364,6 +364,12 @@ export function findTopLevelClauseMatches<TName extends string>(
   return matches;
 }
 
+// Clause keywords come from the static clause definitions; underscores keep a
+// multi-word keyword such as GROUP BY a single identifier.
+function clauseRejectedName(keyword: string): string {
+  return keyword.replaceAll(" ", "_");
+}
+
 export function extractTopLevelClauses<TName extends string>(
   value: string,
   definitions: ReadonlyArray<TopLevelClauseDefinition<TName>>,
@@ -386,14 +392,15 @@ export function extractTopLevelClauses<TName extends string>(
 
   for (const [index, match] of matches.entries()) {
     if (clauseValues.has(match.name)) {
-      throw new SqlDialectError(`Duplicate ${context} clause: ${match.keyword}`, "invalid_clause", null);
+      throw new SqlDialectError(`Duplicate ${context} clause: ${match.keyword}`, "invalid_clause", clauseRejectedName(match.keyword));
     }
 
     const order = definitionOrder.get(match.name);
     if (order === undefined) {
-      throw new SqlDialectError(`Unknown ${context} clause: ${match.keyword}`, "unsupported_statement", null);
+      throw new SqlDialectError(`Unknown ${context} clause: ${match.keyword}`, "unsupported_statement", clauseRejectedName(match.keyword));
     }
     if (order < lastOrder) {
+      // Null, so (invalid_clause, <keyword>) means only a duplicate clause.
       throw new SqlDialectError(`Invalid ${context} clause order near ${match.keyword}`, "invalid_clause", null);
     }
 
