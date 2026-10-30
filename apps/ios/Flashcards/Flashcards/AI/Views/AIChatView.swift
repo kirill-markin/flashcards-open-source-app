@@ -118,7 +118,8 @@ struct AIChatView: View {
     @State var hasActiveUserScrollGesture: Bool
     @State var composerAttachmentViewportWidth: CGFloat?
     @State var deferredPresentationRequest: AIChatPresentationRequest?
-    @FocusState var isComposerFocused: Bool
+    @State var isComposerFocused: Bool
+    @State var refocusesComposerAfterSend: Bool
 
     @MainActor
     init(chatStore: AIChatStore, isCompanion: Bool = false, companionHostTab: AppTab? = nil) {
@@ -133,6 +134,8 @@ struct AIChatView: View {
         self.hasActiveUserScrollGesture = false
         self.composerAttachmentViewportWidth = nil
         self.deferredPresentationRequest = nil
+        self.isComposerFocused = false
+        self.refocusesComposerAfterSend = false
     }
 
     var body: some View {
@@ -875,6 +878,16 @@ struct AIChatView: View {
         self.chatStore.sendMessage()
     }
 
+    /// Hardware Return keeps the composer focused for the next message, as on web and in Messages.
+    func sendComposerMessageFromReturnKey() {
+        guard self.ensureExternalAIConsent() else {
+            return
+        }
+        self.chatStore.sendMessage()
+        // A started send disables the draft field, which drops its focus until the run starts.
+        self.refocusesComposerAfterSend = self.composerTextFieldDisabled
+    }
+
     func dismissComposerFocus() {
         self.chatStore.editorDiagnosticPresentation = self.composerDiagnosticPresentation
         self.chatStore.recordComposerEditing(operation: .focus, phase: .before, beforeUTF16Count: self.chatStore.inputText.utf16.count, afterUTF16Count: self.chatStore.inputText.utf16.count)
@@ -959,6 +972,12 @@ struct AIChatView: View {
             return
         }
 
+        if self.refocusesComposerAfterSend {
+            self.refocusesComposerAfterSend = false
+            if self.isPresentationActive {
+                self.isComposerFocused = true
+            }
+        }
         self.handleAIChatPresentationRequest(
             request: self.deferredPresentationRequest,
             source: .composerPhaseReady

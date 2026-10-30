@@ -124,9 +124,9 @@ final class LiveSmokeMacCatalystTests: LiveSmokeTestCase {
             for key in ["1", "2", "3", "4"] {
                 self.app.typeKey(key, modifierFlags: [])
             }
-            self.app.typeKey(XCUIKeyboardKey.return.rawValue, modifierFlags: [])
+            self.app.typeKey(XCUIKeyboardKey.return.rawValue, modifierFlags: .shift)
             self.app.typeText("Still drafting")
-            self.app.typeKey(XCUIKeyboardKey.return.rawValue, modifierFlags: [])
+            self.app.typeKey(XCUIKeyboardKey.return.rawValue, modifierFlags: .shift)
             self.app.typeText("Unsent")
             try self.waitForAiComposerValue("Mac draft 1234\nStill drafting\nUnsent", timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
             try self.waitForReviewAnswerReveal()
