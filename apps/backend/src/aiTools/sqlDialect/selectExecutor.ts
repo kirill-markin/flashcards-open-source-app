@@ -1,5 +1,5 @@
 import { buildInvalidSqlError } from "../sqlErrors";
-import { getSqlSourceColumnDescriptors } from "./schema";
+import { formatUnknownColumnMessage, getSqlSourceColumnDescriptors } from "./schema";
 import type {
   SqlAggregateFunctionName,
   SqlColumnType,
@@ -206,9 +206,13 @@ function validatePredicate(source: SqlFromSource, predicate: SqlPredicate): void
     return;
   }
 
-  const columnDescriptor = getSqlSourceColumnDescriptors(source)[predicate.columnName];
+  const availableColumns = getSqlSourceColumnDescriptors(source);
+  const columnDescriptor = availableColumns[predicate.columnName];
   if (columnDescriptor === undefined) {
-    throw buildInvalidSqlError(`Unknown column for ${source.resourceName}: ${predicate.columnName}`, "unknown_column");
+    throw buildInvalidSqlError(
+      formatUnknownColumnMessage(`Unknown column for ${source.resourceName}: ${predicate.columnName}`, Object.keys(availableColumns)),
+      "unknown_column",
+    );
   }
 
   if (columnDescriptor.filterable === false) {
@@ -387,7 +391,10 @@ function validateRowOrderBy(source: SqlFromSource, orderBy: ReadonlyArray<SqlSel
     }
     const columnDescriptor = availableColumns[item.expressionName];
     if (columnDescriptor === undefined) {
-      throw buildInvalidSqlError(`Unknown ORDER BY target: ${item.expressionName}`, "unknown_column");
+      throw buildInvalidSqlError(
+        formatUnknownColumnMessage(`Unknown ORDER BY target: ${item.expressionName}`, Object.keys(availableColumns)),
+        "unknown_column",
+      );
     }
 
     if (columnDescriptor.sortable === false) {
@@ -423,7 +430,10 @@ function validateAggregateSelect(statement: SqlSelectStatement): void {
 
   for (const groupColumn of statement.groupBy) {
     if (availableColumns[groupColumn] === undefined) {
-      throw buildInvalidSqlError(`Unknown GROUP BY column: ${groupColumn}`, "unknown_column");
+      throw buildInvalidSqlError(
+        formatUnknownColumnMessage(`Unknown GROUP BY column: ${groupColumn}`, Object.keys(availableColumns)),
+        "unknown_column",
+      );
     }
   }
 
@@ -450,7 +460,10 @@ function validateAggregateSelect(statement: SqlSelectStatement): void {
     const columnName = item.columnName ?? "";
     const columnDescriptor = availableColumns[columnName];
     if (columnDescriptor === undefined) {
-      throw buildInvalidSqlError(`Unknown aggregate column: ${columnName}`, "unknown_column");
+      throw buildInvalidSqlError(
+        formatUnknownColumnMessage(`Unknown aggregate column: ${columnName}`, Object.keys(availableColumns)),
+        "unknown_column",
+      );
     }
 
     if (item.functionName === "avg" || item.functionName === "sum") {
@@ -469,7 +482,11 @@ function validateAggregateSelect(statement: SqlSelectStatement): void {
       continue;
     }
 
-    throw buildInvalidSqlError(`Unknown ORDER BY target: ${item.expressionName}`, "unknown_column");
+    const availableTargets = [...new Set([...statement.groupBy, ...aggregateOutputNames])];
+    throw buildInvalidSqlError(
+      `Unknown ORDER BY target: ${item.expressionName}. Available ORDER BY targets: ${availableTargets.join(", ")}`,
+      "unknown_column",
+    );
   }
 }
 
