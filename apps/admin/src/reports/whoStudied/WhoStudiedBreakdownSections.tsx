@@ -38,6 +38,7 @@ export function WhoStudiedBreakdownSections(props: Readonly<{
       metricTitle={metricTitle}
       testIdPrefix="who-studied"
       breakdowns={whoStudiedBreakdowns}
+      appVersionFilterNote={<li>The App version filter narrows these people as it narrows {metricTitle}.</li>}
     />
   );
 }
