@@ -275,6 +275,7 @@ export function logAgentSqlEvent(payload: AgentSqlLogPayload): void {
     sqlFingerprint: payload.sqlFingerprint,
     errorCode: payload.errorCode,
     dialectReason: payload.dialectReason,
+    rejectedName: payload.rejectedName,
     errorClass: payload.errorClass,
   };
 

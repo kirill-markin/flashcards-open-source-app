@@ -147,7 +147,7 @@ filter message.domain = "backend" and message.action = "agent_sql"
        and message.succeeded = 0
        and message.caller != "nibomo-mcp-smoke/1"
 | stats count(*) as failures
-  by message.surface, message.errorCode, message.dialectReason, message.caller
+  by message.surface, message.errorCode, message.dialectReason, message.rejectedName, message.caller
 | sort failures desc
 | limit 20
 ```

@@ -451,6 +451,7 @@ export function getSqlColumnDescriptor(
   throw new SqlDialectError(
     `Unknown column for ${resourceName}: ${columnName}. Writable columns: ${writableColumnNames.join(", ")}`,
     "unknown_column",
+    columnName,
   );
 }
 
@@ -493,6 +494,7 @@ export function ensureSqlSourceColumnExists(source: SqlFromSource, columnName: s
     throw new SqlDialectError(
       formatUnknownColumnMessage(`Unknown column for ${source.resourceName}: ${columnName}`, Object.keys(availableColumns)),
       "unknown_column",
+      columnName,
     );
   }
 }
