@@ -37,6 +37,8 @@ On the MCP surface `caller` is the normalized request `User-Agent` ([why not cli
 
 Requests that never authenticate emit none, so the record count is the authenticated request count, not the total. A `message.method = "GET"` row is a client trying to open the standalone SSE stream that MCP revisions 2025-03-26 through 2025-11-25 allow; this stateless surface answers 405, which those clients accept, so a run of such rows is a client-compatibility signal rather than an incident.
 
+`message.toolCallArguments` holds the compact JSON of a tool call's validated arguments, and is null for `sql_query` and `sql_execute`, whose SQL text never reaches this log group.
+
 ## Dispatcher admission outcomes and timings
 
 Select the `/aws/lambda/<dispatcher function name>` log group for the
