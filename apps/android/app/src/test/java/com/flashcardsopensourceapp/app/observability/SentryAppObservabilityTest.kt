@@ -132,6 +132,7 @@ class SentryAppObservabilityTest {
                 refreshAction = "progress_review_schedule_remote_load_failed",
                 scopeId = "linked:user-1",
                 source = "review_schedule_remote_load",
+                errorClass = "java.security.cert.CertPathValidatorException",
                 appVersion = testAppVersion,
                 clientVersion = testAppVersion,
                 versionCode = testVersionCode
@@ -192,7 +193,8 @@ class SentryAppObservabilityTest {
                 "progress_refresh_warning",
                 "progress_review_schedule_remote_load_failed",
                 "progress_review_schedule_remote_load_failed",
-                "no_status"
+                "no_status",
+                "java.security.cert.CertPathValidatorException"
             ),
             warningIssueFingerprint(event = progressWarning)
         )
