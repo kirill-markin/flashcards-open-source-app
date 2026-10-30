@@ -303,6 +303,24 @@ export function buildEventPlatformsFilterSql(
   return buildInPredicateSql(platformSqlExpression, eventPlatforms);
 }
 
+/** False when every platform is selected, which the closed platform domain makes the same as no filter. */
+export function isEventPlatformsNarrowed(eventPlatforms: ReadonlyArray<ReviewEventPlatform>): boolean {
+  return eventPlatforms.length !== reviewEventPlatforms.length;
+}
+
+/**
+ * `AND` and the platform predicate, or `""` when every platform is selected, for a report whose
+ * default statement must stay the one it ran before the platform filter existed.
+ */
+export function buildEventPlatformsNarrowingSql(
+  platformSqlExpression: string,
+  eventPlatforms: ReadonlyArray<ReviewEventPlatform>,
+): string {
+  return isEventPlatformsNarrowed(eventPlatforms)
+    ? `AND ${buildEventPlatformsFilterSql(platformSqlExpression, eventPlatforms)}`
+    : "";
+}
+
 // `catalog_deck_installed` is the one counted event type with a visible counterpart on screen, the
 // `Catalog deck installs` section, and a threshold that counted more installs than that section shows
 // would let the threshold the filter bar names and that chart disagree about the same person. So this
@@ -848,5 +866,5 @@ export function isEveryUserCohortSelected(filters: AnalyticsFilterState): boolea
  */
 export function isCohortOrPlatformNarrowed(filters: AnalyticsFilterState): boolean {
   return isEveryUserCohortSelected(filters) === false
-    || filters.eventPlatforms.length !== reviewEventPlatforms.length;
+    || isEventPlatformsNarrowed(filters.eventPlatforms);
 }

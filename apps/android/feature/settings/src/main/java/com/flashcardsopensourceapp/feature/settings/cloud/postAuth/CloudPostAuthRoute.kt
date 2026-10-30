@@ -72,6 +72,7 @@ fun CloudPostAuthRoute(
     val shouldBlockBack = canNavigateBack.not() ||
         uiState.mode == CloudPostAuthMode.PROCESSING
         || uiState.mode == CloudPostAuthMode.READY_TO_AUTO_LINK
+        || uiState.mode == CloudPostAuthMode.CHOOSE_WORKSPACE
     val isBackEnabled = canNavigateBack &&
         uiState.mode != CloudPostAuthMode.PROCESSING &&
         uiState.mode != CloudPostAuthMode.READY_TO_AUTO_LINK
@@ -98,6 +99,8 @@ fun CloudPostAuthRoute(
         },
         onBack = if (isNameStepShown) {
             { isNameStepVisible = false }
+        } else if (uiState.mode == CloudPostAuthMode.CHOOSE_WORKSPACE) {
+            null
         } else {
             onBack
         },

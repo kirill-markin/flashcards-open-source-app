@@ -1,6 +1,11 @@
-import { runAdminQuery, type AdminQueryRow, type AdminQueryValue } from "../../adminApi";
+import { runAdminQuery, type AdminQueryRow, type AdminQueryValue, type ReviewEventPlatform } from "../../adminApi";
 import type { AdminAppConfig } from "../../config";
 import type { AnalyticsDateRange } from "../../filters/analyticsFilters";
+import {
+  buildEventPlatformsFilterSql,
+  buildEventPlatformsNarrowingSql,
+  isEventPlatformsNarrowed,
+} from "../../filters/filterSql";
 import { isObjectValue } from "../../table/dataTableServerQuery";
 import {
   buildReportBucketColumnsSql,
@@ -11,7 +16,12 @@ import {
 } from "../levelOneMetrics/reportPeriod";
 import { assertIsString, assertValidDateRange, parseActivityCount, parseActivityDate } from "../reportValues";
 import { buildCancellationsSql } from "./cancellationsSql";
-import { buildPaymentCoverageCtesSql, buildPaymentHistoryCtesSql } from "./paymentHistorySql";
+import {
+  buildPaymentCoverageCtesSql,
+  buildPaymentHistoryCtesSql,
+  buildPaymentProviderPlatformSql,
+  paymentProviderPlatforms,
+} from "./paymentHistorySql";
 
 const reportLabel = "Who paid us report";
 export const paymentSourceProviders = {
@@ -66,6 +76,8 @@ export type WhoPaidUsReport = Readonly<{
   generatedAtUtc: string;
   period: ReportPeriod;
   today: string;
+  /** The providers of the selected platforms; every other one counts nothing. */
+  providers: ReadonlyArray<PaymentProvider>;
   buckets: ReadonlyArray<WhoPaidUsBucket>;
   sources: ReadonlyArray<PaymentSourceCoverage>;
 }>;
@@ -76,9 +88,18 @@ SELECT (MIN(event_at) AT TIME ZONE 'UTC')::date AS history_from FROM payment_eve
 }
 
 // Events summed per bucket, since they are events rather than people. A bucket is complete only when
-// every latest Stripe catalog scan succeeded and covers all of its selected days.
-export function buildWhoPaidUsSql(dateRange: AnalyticsDateRange, period: ReportPeriod): string {
+// every latest Stripe catalog scan succeeded and covers all of its selected days. A provider outside
+// the selected platforms keeps its rows but joins no event and is complete, so it proves its zero.
+export function buildWhoPaidUsSql(
+  dateRange: AnalyticsDateRange,
+  period: ReportPeriod,
+  eventPlatforms: ReadonlyArray<ReviewEventPlatform>,
+): string {
   const range = assertValidDateRange(dateRange, reportLabel);
+  const providerPlatformSql = buildPaymentProviderPlatformSql("providers.provider");
+  const deselectedProviderSql = isEventPlatformsNarrowed(eventPlatforms)
+    ? `NOT (${buildEventPlatformsFilterSql(buildPaymentProviderPlatformSql("bucketed.provider"), eventPlatforms)}) OR `
+    : "";
   return `WITH ${buildPaymentHistoryCtesSql()}, ${buildPaymentCoverageCtesSql()}, ${buildReportBucketsCteSql(period, range)},
 providers(provider) AS (VALUES ('apple'), ('google'), ('stripe')),
 bucketed AS (
@@ -92,10 +113,11 @@ bucketed AS (
   LEFT JOIN payment_events AS event ON event.provider = providers.provider
     AND event.event_at >= buckets.selected_from::timestamp AT TIME ZONE 'UTC'
     AND event.event_at < (buckets.selected_to + 1)::timestamp AT TIME ZONE 'UTC'
+    ${buildEventPlatformsNarrowingSql(providerPlatformSql, eventPlatforms)}
   GROUP BY buckets.bucket_date, buckets.selected_from, buckets.selected_to, providers.provider
 ), covered AS (
   SELECT bucketed.*,
-    bucketed.provider = 'stripe' AND NOT EXISTS (
+    ${deselectedProviderSql}bucketed.provider = 'stripe' AND NOT EXISTS (
       SELECT 1 FROM latest_sources AS source WHERE source.provider = bucketed.provider
         AND (source.status IS DISTINCT FROM 'succeeded'
           OR source.covered_from > bucketed.selected_from::timestamp AT TIME ZONE 'UTC'
@@ -119,7 +141,7 @@ SELECT provider, source, COALESCE(status, 'missing') AS status,
   to_char(covered_to AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') AS covered_to,
   failure_code
 FROM latest_sources ORDER BY provider, source;
-${buildCancellationsSql(period, range)}`;
+${buildCancellationsSql(period, range, eventPlatforms)}`;
 }
 
 function parseProvider(value: AdminQueryValue): PaymentProvider {
@@ -176,9 +198,10 @@ export async function loadWhoPaidUsReport(
   config: AdminAppConfig,
   dateRange: AnalyticsDateRange,
   period: ReportPeriod,
+  eventPlatforms: ReadonlyArray<ReviewEventPlatform>,
   signal: AbortSignal,
 ): Promise<WhoPaidUsReport> {
-  const response = await runAdminQuery(config, buildWhoPaidUsSql(dateRange, period), signal);
+  const response = await runAdminQuery(config, buildWhoPaidUsSql(dateRange, period, eventPlatforms), signal);
   const bucketed = response.resultSets[0];
   const coverage = response.resultSets[1];
   const cancelled = response.resultSets[2];
@@ -231,6 +254,7 @@ export async function loadWhoPaidUsReport(
     generatedAtUtc: response.executedAtUtc,
     period,
     today: parseActivityDate(firstRow.today ?? null, reportLabel, "today"),
+    providers: paymentProviders.filter((provider) => eventPlatforms.includes(paymentProviderPlatforms[provider])),
     buckets: [...bucketsByKey.values()].map((bucket) => ({ bucket, providers: {
       apple: getProviderBucket(bucket.key, "apple"), google: getProviderBucket(bucket.key, "google"), stripe: getProviderBucket(bucket.key, "stripe"),
     }, cancellations: getCancellations(bucket.key) })),

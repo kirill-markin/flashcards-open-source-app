@@ -1,16 +1,23 @@
+import type { ReviewEventPlatform } from "../../adminApi";
 import type { AnalyticsDateRange } from "../../filters/analyticsFilters";
-import { buildExcludedActorSqlLines } from "../../filters/filterSql";
+import { buildEventPlatformsNarrowingSql, buildExcludedActorSqlLines } from "../../filters/filterSql";
 import { escapeSqlStringLiteral } from "../../sql";
 import { buildReportBucketColumnsSql, buildReportBucketsCteSql, type ReportPeriod } from "../levelOneMetrics/reportPeriod";
+import { buildPaymentProviderPlatformSql } from "./paymentHistorySql";
 
 // `reason` and `period_type` reached `autorenew_disabled` on 2026-10-04 15:58 UTC; this is the first full UTC day carrying both.
 export const cancellationsTrackedFrom = "2026-10-05";
 
 /**
  * Per bucket, the renewals a person turned off (`billing_error` is a failed charge, not a choice), on
- * the UTC day of the provider's own time. Every count is NULL for a bucket wholly before `cancellationsTrackedFrom`.
+ * the UTC day of the provider's own time, through the stores of `eventPlatforms`. Every count is NULL
+ * for a bucket wholly before `cancellationsTrackedFrom`.
  */
-export function buildCancellationsSql(period: ReportPeriod, range: AnalyticsDateRange): string {
+export function buildCancellationsSql(
+  period: ReportPeriod,
+  range: AnalyticsDateRange,
+  eventPlatforms: ReadonlyArray<ReviewEventPlatform>,
+): string {
   const trackedFromSql = `${escapeSqlStringLiteral(cancellationsTrackedFrom)}::date`;
   return `WITH ${buildReportBucketsCteSql(period, range)},
 cancellations AS (
@@ -23,6 +30,7 @@ cancellations AS (
     AND events.occurred_at >= ${trackedFromSql}::timestamp AT TIME ZONE 'UTC'
     AND events.occurred_at >= (${escapeSqlStringLiteral(range.from)}::date)::timestamp AT TIME ZONE 'UTC'
     AND events.occurred_at < (${escapeSqlStringLiteral(range.to)}::date + 1)::timestamp AT TIME ZONE 'UTC'
+    ${buildEventPlatformsNarrowingSql(buildPaymentProviderPlatformSql("events.event_properties->>'provider'"), eventPlatforms)}
 ${buildExcludedActorSqlLines("events.actor_id::text").join("\n")}
 ), bucketed AS (
   SELECT buckets.bucket_date, buckets.selected_from, buckets.selected_to,

@@ -9,6 +9,7 @@ import { buildInProgressChartNote, placeChartNotes } from "../../charts/chartNot
 import { chartWidth, stackedChartHeight } from "../../charts/chartPrimitives";
 import { escapeHtml, formatGeneratedAt } from "../../charts/formatting";
 import { paymentColors, renderWhoPaidUsChart } from "../../charts/whoPaidUsChart";
+import type { ReviewEventPlatform } from "../../adminApi";
 import type { AdminAppConfig } from "../../config";
 import { ExplanationTip } from "../../explanations/ExplanationTip";
 import type { AnalyticsDateRange } from "../../filters/analyticsFilters";
@@ -26,7 +27,8 @@ import {
 import { cancellationsTrackedFrom } from "./cancellationsSql";
 import {
   cancellationSurveyReasonLabels, getPaymentSeriesTotal, loadWhoPaidUsReport, paymentProviderLabels, paymentProviders,
-  paymentSeries, paymentSeriesLabels, type CancellationsBucket, type PaymentSeries, type WhoPaidUsBucket, type WhoPaidUsReport,
+  paymentSeries, paymentSeriesLabels, type CancellationsBucket, type PaymentProvider, type PaymentSeries, type WhoPaidUsBucket,
+  type WhoPaidUsReport,
 } from "./query";
 
 type LoadState =
@@ -43,8 +45,12 @@ function describeSeries(entry: WhoPaidUsBucket, series: PaymentSeries): string {
   return total === null ? "Unavailable" : `${formatCount(total)}${complete ? "" : " recorded; total incomplete"}`;
 }
 
-function describeProviderSeries(entry: WhoPaidUsBucket, series: PaymentSeries): string {
-  return paymentProviders.map((provider) => {
+function describeProviderSeries(
+  entry: WhoPaidUsBucket,
+  series: PaymentSeries,
+  providers: ReadonlyArray<PaymentProvider>,
+): string {
+  return providers.map((provider) => {
     const value = entry.providers[provider].counts[series];
     return `${paymentProviderLabels[provider]}: ${value === null ? "unavailable" : formatCount(value)}${entry.providers[provider].complete ? "" : " (partial history)"}`;
   }).join("; ");
@@ -70,8 +76,8 @@ function describeCancellations(cancellations: CancellationsBucket | null): strin
   return `Cancellations: ${formatCount(cancellations.total)} (in trial: ${formatCount(cancellations.trial)}; in a paid period: ${formatCount(cancellations.paid)}${surveyed}).`;
 }
 
-function describeBucket(entry: WhoPaidUsBucket, today: string): string {
-  return `${entry.bucket.to === today ? "In progress through today. " : ""}${paymentSeries.map((series) => `${paymentSeriesLabels[series]}: ${describeSeries(entry, series)}. ${describeProviderSeries(entry, series)}.`).join(" ")} ${describeRecordedTotal(entry)} ${describeCancellations(entry.cancellations)}`;
+function describeBucket(entry: WhoPaidUsBucket, report: WhoPaidUsReport): string {
+  return `${entry.bucket.to === report.today ? "In progress through today. " : ""}${paymentSeries.map((series) => `${paymentSeriesLabels[series]}: ${describeSeries(entry, series)}. ${describeProviderSeries(entry, series, report.providers)}.`).join(" ")} ${describeRecordedTotal(entry)} ${describeCancellations(entry.cancellations)}`;
 }
 
 function buildCancellationTooltipRows(cancellations: CancellationsBucket | null): string {
@@ -92,6 +98,7 @@ export function WhoPaidUsSection(props: Readonly<{
   config: AdminAppConfig;
   dateRange: AnalyticsDateRange;
   period: ReportPeriod;
+  eventPlatforms: ReadonlyArray<ReviewEventPlatform>;
   detailsLink: LevelOneMetricDetailsLink | null;
   onTerminalAdminError: (error: unknown, config: AdminAppConfig) => boolean;
 }>): JSX.Element {
@@ -104,14 +111,14 @@ export function WhoPaidUsSection(props: Readonly<{
     tooltipHandlers.hideTooltip();
     setState({ status: "loading" });
     const abortController = new AbortController();
-    void loadWhoPaidUsReport(props.config, props.dateRange, props.period, abortController.signal).then((report) => {
+    void loadWhoPaidUsReport(props.config, props.dateRange, props.period, props.eventPlatforms, abortController.signal).then((report) => {
       if (!cancelled) setState({ status: "ready", report });
     }).catch((error: unknown) => {
       if (cancelled || props.onTerminalAdminError(error, props.config)) return;
       setState({ status: "error", message: error instanceof Error ? error.message : "Unexpected Who paid us query error." });
     });
     return () => { cancelled = true; abortController.abort(); };
-  }, [props.config, props.dateRange, props.period, props.onTerminalAdminError, revision, tooltipHandlers]);
+  }, [props.config, props.dateRange, props.period, props.eventPlatforms, props.onTerminalAdminError, revision, tooltipHandlers]);
   const bucketsByKey = useMemo(() => new Map(state.status === "ready" ? state.report.buckets.map((entry) => [entry.bucket.key, entry]) : []), [state]);
   const chartNotes = useMemo(() => (state.status === "ready"
     ? placeChartNotes([buildInProgressChartNote(state.report.today)], state.report.buckets.map((entry) => entry.bucket))
@@ -128,7 +135,7 @@ export function WhoPaidUsSection(props: Readonly<{
       svgElement: chartRef.current, buckets: state.report.buckets, notes: chartNotes, inProgressKey,
       xLabel: reportPeriodAxisLabels[state.report.period],
       formatTick: (key) => formatReportBucketTick(state.report.period, key),
-      getLabel: (key) => `${formatReportBucketTitle(state.report.period, getBucket(key).bucket)} UTC. ${describeBucket(getBucket(key), state.report.today)}`,
+      getLabel: (key) => `${formatReportBucketTitle(state.report.period, getBucket(key).bucket)} UTC. ${describeBucket(getBucket(key), state.report)}`,
       getTooltipHtml: (key) => {
         const entry = getBucket(key);
         const unclassified = paymentProviders.reduce((sum, provider) => sum + entry.providers[provider].unclassified, 0);
@@ -153,6 +160,7 @@ export function WhoPaidUsSection(props: Readonly<{
             <li>New Google order roots and new Stripe subscriptions begin new histories. Apple PURCHASE after an earlier paid period stays recurring. Reactivations are not new globally unique customers.</li>
             <li>Refunds do not erase historical charges. Multiple Stripe invoice payments count once per paid invoice. Sandbox and gifts are excluded, and so are the people every Level 1 chart excludes; payments with no linked account still count, and erasure alone never drops one.</li>
             <li>Red bars below zero are cancellations: subscriptions whose auto-renewal the person turned off with Apple, Google Play or Stripe, during a trial or a paid period, counted on the UTC day of the provider’s own time for the change and excluding the same people as payments. Renewals a provider stopped after a failed charge are left out; a cancellation later undone still counts. Tracking starts on {cancellationsTrackedFrom} UTC, so a bar wholly before it is unavailable.</li>
+            <li>The Platform filter keeps the payments and cancellations of the selected platforms’ stores: Apple for iOS, Google Play for Android and Stripe for web. A store left out counts 0, and Agent API and Unresolved have no store.</li>
             <li>Apple notification discovery and Google discoverable orders are partial merchant inventories. Known counts remain visible after an import failure; absent or unclassified history is unavailable. Stripe completed production catalog scans can prove zero only for a bar whose every day lies inside their covered window.</li>
             {state.status === "ready" ? <li>Generated {formatGeneratedAt(state.report.generatedAtUtc)}.</li> : null}
           </ul>

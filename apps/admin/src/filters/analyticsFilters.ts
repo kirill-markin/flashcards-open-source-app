@@ -277,10 +277,13 @@ const userScopedAnalyticsFilterFields: ReadonlyArray<AnalyticsFilterField> = ana
 // on screen beside its own two controls.
 const aiUsageAnalyticsFilterFields: ReadonlyArray<AnalyticsFilterField> = ["dateRange"];
 
-// `level-1-metrics` offers the date range alone, by decision, except on the page that
-// `webEngagedAnalyticsFilterFields` serves: its chart adds marketing-site visitors
-// to store-reported aggregates, which carry no person, platform or locale a field could narrow.
-const levelOneMetricsAnalyticsFilterFields: ReadonlyArray<AnalyticsFilterField> = ["dateRange"];
+// `level-1-metrics` offers the date range and the platform, which every chart there can answer; how
+// each one reads a platform is the explanation below. The Who saw us dataset pages draw one source
+// that is a platform already, so they offer `whoSawUsDatasetAnalyticsFilterFields` instead, and the
+// Web engaged page `webEngagedAnalyticsFilterFields`.
+const levelOneMetricsAnalyticsFilterFields: ReadonlyArray<AnalyticsFilterField> = ["dateRange", "eventPlatforms"];
+
+export const whoSawUsDatasetAnalyticsFilterFields: ReadonlyArray<AnalyticsFilterField> = ["dateRange"];
 
 export const analyticsFilterFieldsByArea: Readonly<
   Record<AnalyticsArea, ReadonlyArray<AnalyticsFilterField>>
@@ -500,12 +503,15 @@ const aiUsageAnalyticsFilterFieldExplanations: Readonly<
 };
 
 // The store series are dated by the store's own report day rather than by an event, and their range can
-// start long before the website's, so the shared wording would be false here.
+// start long before the website's, and payments and store visitors carry no client platform, so both
+// shared wordings would be false here.
 const levelOneMetricsAnalyticsFilterFieldExplanations: Readonly<
   Partial<Record<AnalyticsFilterField, string>>
 > = {
   dateRange:
     "Shows only the UTC calendar days inside this range, both ends included. Website days come from page views and store days from the App Store and Google Play daily reports, so All time starts on the earliest day any of them has data.",
+  eventPlatforms:
+    "Who opened the app and Who studied count a person on a day only for an app open or answered review on a platform you pick, with Unresolved for one that carries no resolved device; new vs returning still reads their first use on any platform. Who paid us keeps the payments and cancellations of the matching stores: Apple for iOS, Google Play for Android and Stripe for web. Who saw us draws Web engaged for web, App Store for iOS and Google Play for Android, and Agent API or Unresolved adds no payment and no Who saw us series.",
 };
 
 const analyticsFilterFieldExplanationOverridesByArea: Readonly<
@@ -550,6 +556,7 @@ const levelOneMetricsAnalyticsFilterFieldLabels: Readonly<
   Partial<Record<AnalyticsFilterField, string>>
 > = {
   dateRange: "Date range of the days shown",
+  eventPlatforms: "Platform",
 };
 
 const analyticsFilterFieldLabelOverridesByArea: Readonly<

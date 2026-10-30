@@ -6,7 +6,7 @@ import { WhoStudiedSection } from "../whoStudied/WhoStudiedSection";
 import { WhoOpenedTheAppSection } from "../whoOpenedTheApp/WhoOpenedTheAppSection";
 import { WhoSawUsSection } from "../whoSawUs/WhoSawUsSection";
 import { buildLevelOneMetricDetailsLink } from "./LevelOneMetricDetailsLink";
-import { LevelOneMetricsFrame, levelOneMetricsDateRangeFilterBar } from "./LevelOneMetricsFrame";
+import { LevelOneMetricsFrame, levelOneMetricsFilterBar } from "./LevelOneMetricsFrame";
 import { useLevelOneMetricsSelection } from "./useLevelOneMetricsSelection";
 
 export function LevelOneMetricsArea(
@@ -21,7 +21,7 @@ export function LevelOneMetricsArea(
   return (
     <LevelOneMetricsFrame
       selectionState={selectionState}
-      filterBar={levelOneMetricsDateRangeFilterBar}
+      filterBar={levelOneMetricsFilterBar}
       onNavigate={props.onNavigate}
       renderCharts={(selection, search) => (
         <div className="level-1-metrics-grid">
@@ -29,6 +29,7 @@ export function LevelOneMetricsArea(
             config={props.config}
             dateRange={selection.dateRange}
             period={selection.period}
+            eventPlatforms={selection.eventPlatforms}
             detailsLink={buildLevelOneMetricDetailsLink("who-paid-us", search, props.onNavigate)}
             onTerminalAdminError={props.onTerminalAdminError}
           />
@@ -36,6 +37,7 @@ export function LevelOneMetricsArea(
             config={props.config}
             dateRange={selection.dateRange}
             period={selection.period}
+            eventPlatforms={selection.eventPlatforms}
             detailsLink={buildLevelOneMetricDetailsLink("who-studied", search, props.onNavigate)}
             onTerminalAdminError={props.onTerminalAdminError}
           />
@@ -43,6 +45,7 @@ export function LevelOneMetricsArea(
             config={props.config}
             dateRange={selection.dateRange}
             period={selection.period}
+            eventPlatforms={selection.eventPlatforms}
             detailsLink={buildLevelOneMetricDetailsLink("who-opened-the-app", search, props.onNavigate)}
             onTerminalAdminError={props.onTerminalAdminError}
           />
@@ -50,7 +53,7 @@ export function LevelOneMetricsArea(
             config={props.config}
             dateRange={selection.dateRange}
             period={selection.period}
-            series="all"
+            series={selection.eventPlatforms}
             siteFilters={defaultSiteVisitorFilterState}
             detailsLink={buildLevelOneMetricDetailsLink("who-saw-us", search, props.onNavigate)}
             onTerminalAdminError={props.onTerminalAdminError}
