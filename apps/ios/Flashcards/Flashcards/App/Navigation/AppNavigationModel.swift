@@ -81,9 +81,6 @@ func makeSettingsNavigationPath(destination: SettingsNavigationDestination) -> [
 final class AppNavigationModel {
     private(set) var selectedTab: AppTab
     private(set) var aiTabVisitID: UUID
-    #if targetEnvironment(macCatalyst)
-    private(set) var reviewKeyboardFocusRequestID: UUID? = nil
-    #endif
     var settingsPath: [SettingsNavigationDestination]
     var aiPath: NavigationPath
     var cardsPresentationRequest: CardsPresentationRequest?
@@ -91,6 +88,8 @@ final class AppNavigationModel {
     var progressPresentationRequest: ProgressPresentationRequest?
     var isAICompanionPresented: Bool = false
     private(set) var canPresentAICompanion: Bool = false
+    /// Open presentations that disable the Review commands; see `View.reviewKeyboardBlockingPresentation`.
+    private(set) var reviewKeyboardBlockingPresentationIDs: Set<UUID> = []
 
     var isAICompanionVisible: Bool {
         self.canPresentAICompanion && self.isAICompanionPresented
@@ -138,12 +137,17 @@ final class AppNavigationModel {
         self.selectedTab = tab
     }
 
-    #if targetEnvironment(macCatalyst)
-    func requestReviewKeyboardFocus() {
-        guard self.selectedTab == .review else { return }
-        self.reviewKeyboardFocusRequestID = UUID()
+    func setReviewKeyboardBlockingPresentation(id: UUID, isPresented: Bool) {
+        // Mutating the observed set notifies even when membership is unchanged.
+        guard self.reviewKeyboardBlockingPresentationIDs.contains(id) != isPresented else {
+            return
+        }
+        if isPresented {
+            self.reviewKeyboardBlockingPresentationIDs.insert(id)
+        } else {
+            self.reviewKeyboardBlockingPresentationIDs.remove(id)
+        }
     }
-    #endif
 
     func openCardCreation() {
         self.selectTab(.cards)
@@ -170,7 +174,6 @@ final class AppNavigationModel {
                 from: nil,
                 for: nil
             )
-            self.requestReviewKeyboardFocus()
         }
         #endif
         self.isAICompanionPresented.toggle()

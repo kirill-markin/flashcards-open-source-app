@@ -36,29 +36,46 @@
 .review-pane-head {
   display: flex;
   justify-content: space-between;
-  align-items: flex-start;
-  gap: 10px;
+  align-items: center;
+  gap: 8px;
 }
 
+/* Tags keep one line and scroll sideways. The 4px padding cancelled by the negative margin keeps
+   tag focus rings inside the scroller; the inline-end padding sits under the fade, so neither the
+   last tag nor a keyboard-focused one stays hidden behind it. */
 .review-pane-head-meta {
+  --review-pane-head-meta-fade: 24px;
   display: flex;
   flex: 1 1 0;
-  flex-wrap: wrap;
   align-items: center;
   gap: 8px;
   min-width: 0;
+  margin: -4px;
+  padding: 4px;
+  padding-inline-end: var(--review-pane-head-meta-fade);
+  overflow-x: auto;
+  scroll-padding-inline: 4px var(--review-pane-head-meta-fade);
+  scrollbar-width: none;
+  white-space: nowrap;
   font-size: 13px;
+  mask-image: linear-gradient(to right, #000 calc(100% - var(--review-pane-head-meta-fade)), transparent);
+}
+
+[dir="rtl"] .review-pane-head-meta {
+  mask-image: linear-gradient(to left, #000 calc(100% - var(--review-pane-head-meta-fade)), transparent);
+}
+
+.review-pane-head-meta::-webkit-scrollbar {
+  display: none;
 }
 
 .review-metadata-chip {
-  flex: 0 1 auto;
+  flex: 0 0 auto;
   gap: 6px;
   min-height: 30px;
-  min-width: 0;
-  max-width: 100%;
   padding: 5px 9px;
   border: 0;
-  overflow-wrap: anywhere;
+  white-space: nowrap;
 }
 
 .review-tag-button {

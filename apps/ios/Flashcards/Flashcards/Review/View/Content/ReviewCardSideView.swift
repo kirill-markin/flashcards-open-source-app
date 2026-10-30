@@ -177,6 +177,7 @@ struct ReviewCardSideView: View {
         } message: {
             Text(self.copyError ?? "")
         }
+        .reviewKeyboardBlockingPresentation(isPresented: self.copyError != nil)
     }
 
     private func resetCopiedFeedbackAfterDelay() async {
