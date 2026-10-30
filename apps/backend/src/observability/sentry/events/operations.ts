@@ -36,6 +36,8 @@ export type AdminQueryDetails = Readonly<{
  * offending SQL fragment verbatim, so the message carries flashcard content that
  * no delimiter heuristic can strip reliably. A failure's full SQL and message go
  * to the 30-day failure log (`aiTools/agentSql/failureLog.ts`).
+ * `rejectedName` is safe to keep: it is the identifier, function, or keyword the
+ * parser extracted for a dialect rejection, never literal text.
  */
 export type AgentSqlDetails = Readonly<{
   surface: AgentSqlSurface;
@@ -54,6 +56,7 @@ export type AgentSqlDetails = Readonly<{
   sqlFingerprint: string;
   errorCode: string | null;
   dialectReason: string | null;
+  rejectedName: string | null;
   errorClass: string | null;
 }>;
 

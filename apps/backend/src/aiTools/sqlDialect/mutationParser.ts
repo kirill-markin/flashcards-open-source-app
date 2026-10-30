@@ -43,7 +43,7 @@ function splitInsertReturningSegment(normalizedSql: string): Readonly<{
   }
 
   if (matches.length > 1) {
-    throw new SqlDialectError("Duplicate INSERT clause: RETURNING", "invalid_clause");
+    throw new SqlDialectError("Duplicate INSERT clause: RETURNING", "invalid_clause", null);
   }
 
   return {
@@ -70,13 +70,13 @@ function parseReturningClause(resourceName: "cards" | "decks", value: string): S
   const columnNames = splitTopLevel(value, ",").map((item) => {
     const columnName = item.trim().toLowerCase();
     if (/^[a-z_][a-z0-9_]*$/.test(columnName) === false) {
-      throw new SqlDialectError(`Unsupported RETURNING item: ${item.trim()}. ${RETURNING_CLAUSE_ERROR}`, "unsupported_expression");
+      throw new SqlDialectError(`Unsupported RETURNING item: ${item.trim()}. ${RETURNING_CLAUSE_ERROR}`, "unsupported_expression", null);
     }
 
     ensureSqlSourceColumnExists(source, columnName);
     return columnName;
   });
-  assert(columnNames.length > 0, RETURNING_CLAUSE_ERROR, "unsupported_expression");
+  assert(columnNames.length > 0, RETURNING_CLAUSE_ERROR, "unsupported_expression", null);
 
   return {
     type: "columns",
@@ -91,32 +91,34 @@ export function parseInsertStatement(normalizedSql: string): SqlInsertStatement 
     throw new SqlDialectError(
       "INSERT must list columns explicitly, e.g. INSERT INTO cards (front_text, back_text, tags) VALUES ('Q?', 'A', ('tag')). Array columns use a parenthesized list; () means empty.",
       "unsupported_statement",
+      "INSERT",
     );
   }
 
   const resourceName = (match[1] ?? "").toLowerCase();
   if (resourceName !== "cards" && resourceName !== "decks") {
-    throw new SqlDialectError(`INSERT is not supported for ${resourceName}`, "unsupported_statement");
+    throw new SqlDialectError(`INSERT is not supported for ${resourceName}`, "unsupported_statement", resourceName);
   }
 
   const columnNames = splitTopLevel(match[2] ?? "", ",").map((columnName) => {
     const normalizedColumnName = columnName.trim().toLowerCase();
     const columnDescriptor = getSqlColumnDescriptor(resourceName, normalizedColumnName);
     if (columnDescriptor.readOnly) {
-      throw new SqlDialectError(`Column is read-only: ${normalizedColumnName}`, "column_read_only");
+      throw new SqlDialectError(`Column is read-only: ${normalizedColumnName}`, "column_read_only", normalizedColumnName);
     }
 
     return normalizedColumnName;
   });
 
   const rows = splitTopLevel(match[3] ?? "", ",").map((row) => row.trim()).filter((row) => row.startsWith("("));
-  assert(rows.length > 0, "INSERT must include at least one VALUES row", "invalid_clause");
+  assert(rows.length > 0, "INSERT must include at least one VALUES row", "invalid_clause", null);
 
   const parsedRows = rows.map((row) => {
     assert(
       row.startsWith("(") && row.endsWith(")"),
       `Invalid VALUES row: each row must be wrapped in parentheses, e.g. ('Q?', 'A', ('tag')). Got: ${row}`,
       "invalid_clause",
+      null,
     );
     const values = splitTopLevel(row.slice(1, -1), ",").map((value, index) => {
       const columnName = columnNames[index];
@@ -124,6 +126,7 @@ export function parseInsertStatement(normalizedSql: string): SqlInsertStatement 
         throw new SqlDialectError(
           `VALUES row contains more values than the ${columnNames.length} declared column(s) (${columnNames.join(", ")}). Got: ${row}`,
           "invalid_clause",
+          null,
         );
       }
 
@@ -139,6 +142,7 @@ export function parseInsertStatement(normalizedSql: string): SqlInsertStatement 
       throw new SqlDialectError(
         `VALUES row does not match the ${columnNames.length} declared column(s) (${columnNames.join(", ")}); got ${values.length} value(s) in: ${row}`,
         "invalid_clause",
+        null,
       );
     }
 
@@ -159,13 +163,13 @@ function parseAssignments(resourceName: "cards" | "decks", value: string): SqlUp
   return splitTopLevel(value, ",").map((assignment) => {
     const match = assignment.match(/^([a-z_][a-z0-9_]*)\s*=\s*([\s\S]+)$/i);
     if (match === null) {
-      throw new SqlDialectError(`Unsupported assignment: ${assignment}`, "unsupported_expression");
+      throw new SqlDialectError(`Unsupported assignment: ${assignment}`, "unsupported_expression", null);
     }
 
     const columnName = (match[1] ?? "").toLowerCase();
     const columnDescriptor = getSqlColumnDescriptor(resourceName, columnName);
     if (columnDescriptor.readOnly) {
-      throw new SqlDialectError(`Column is read-only: ${columnName}`, "column_read_only");
+      throw new SqlDialectError(`Column is read-only: ${columnName}`, "column_read_only", columnName);
     }
 
     return {
@@ -180,12 +184,12 @@ function parseAssignments(resourceName: "cards" | "decks", value: string): SqlUp
 export function parseUpdateStatement(normalizedSql: string): SqlUpdateStatement {
   const match = normalizedSql.match(/^UPDATE\s+([a-z_][a-z0-9_]*)([\s\S]*)$/i);
   if (match === null) {
-    throw new SqlDialectError("Unsupported UPDATE statement", "unsupported_statement");
+    throw new SqlDialectError("Unsupported UPDATE statement", "unsupported_statement", "UPDATE");
   }
 
   const resourceName = (match[1] ?? "").toLowerCase();
   if (resourceName !== "cards" && resourceName !== "decks") {
-    throw new SqlDialectError(`UPDATE is not supported for ${resourceName}`, "unsupported_statement");
+    throw new SqlDialectError(`UPDATE is not supported for ${resourceName}`, "unsupported_statement", resourceName);
   }
 
   const source: SqlFromSource = {
@@ -206,7 +210,7 @@ export function parseUpdateStatement(normalizedSql: string): SqlUpdateStatement 
   const predicateValue = extractedClauses.clauseValues.get("where");
   const returningValue = extractedClauses.clauseValues.get("returning");
   if (extractedClauses.leadingSegment !== "" || assignmentsValue === undefined || predicateValue === undefined) {
-    throw new SqlDialectError("Unsupported UPDATE statement", "unsupported_statement");
+    throw new SqlDialectError("Unsupported UPDATE statement", "unsupported_statement", "UPDATE");
   }
 
   return {
@@ -222,12 +226,12 @@ export function parseUpdateStatement(normalizedSql: string): SqlUpdateStatement 
 export function parseDeleteStatement(normalizedSql: string): SqlDeleteStatement {
   const match = normalizedSql.match(/^DELETE\s+FROM\s+([a-z_][a-z0-9_]*)([\s\S]*)$/i);
   if (match === null) {
-    throw new SqlDialectError("Unsupported DELETE statement", "unsupported_statement");
+    throw new SqlDialectError("Unsupported DELETE statement", "unsupported_statement", "DELETE");
   }
 
   const resourceName = (match[1] ?? "").toLowerCase();
   if (resourceName !== "cards" && resourceName !== "decks") {
-    throw new SqlDialectError(`DELETE is not supported for ${resourceName}`, "unsupported_statement");
+    throw new SqlDialectError(`DELETE is not supported for ${resourceName}`, "unsupported_statement", resourceName);
   }
 
   const source: SqlFromSource = {
@@ -246,7 +250,7 @@ export function parseDeleteStatement(normalizedSql: string): SqlDeleteStatement 
   const predicateValue = extractedClauses.clauseValues.get("where");
   const returningValue = extractedClauses.clauseValues.get("returning");
   if (extractedClauses.leadingSegment !== "" || predicateValue === undefined) {
-    throw new SqlDialectError("Unsupported DELETE statement", "unsupported_statement");
+    throw new SqlDialectError("Unsupported DELETE statement", "unsupported_statement", "DELETE");
   }
 
   return {

@@ -24,7 +24,7 @@ import type {
 const MAXIMUM_PREDICATE_GROUP_DEPTH = 16;
 
 export function parseStringLiteral(value: string): string {
-  assert(value.startsWith("'") && value.endsWith("'"), "Expected a quoted string literal", "unsupported_expression");
+  assert(value.startsWith("'") && value.endsWith("'"), "Expected a quoted string literal", "unsupported_expression", null);
   return value.slice(1, -1).replaceAll("''", "'");
 }
 
@@ -54,7 +54,7 @@ export function parseSqlLiteral(value: string): SqlLiteral {
     return Number.parseFloat(trimmedValue);
   }
 
-  throw new SqlDialectError(`Unsupported literal: ${trimmedValue}`, "unsupported_expression");
+  throw new SqlDialectError(`Unsupported literal: ${trimmedValue}`, "unsupported_expression", null);
 }
 
 function parsePredicateValue(value: string): SqlPredicateValue {
@@ -76,6 +76,7 @@ function parsePostgresTextArrayElement(item: string, columnName: string, trimmed
     throw new SqlDialectError(
       `Array column "${columnName}" accepts only string elements, e.g. {a,b} or {"a","b"}. Got: ${trimmedValue}`,
       "invalid_value",
+      columnName,
     );
   }
 
@@ -116,6 +117,7 @@ export function parseStringArrayLiteralList(value: string, columnName: string): 
     throw new SqlDialectError(
       `Array column "${columnName}" expects a parenthesized list like ('tag1','tag2'), or () for an empty list. Got: ${trimmedValue}`,
       "invalid_value",
+      columnName,
     );
   }
 
@@ -129,6 +131,7 @@ export function parseStringArrayLiteralList(value: string, columnName: string): 
       throw new SqlDialectError(
         `Array column "${columnName}" accepts only quoted string literals, e.g. ('a','b'). Got: ${trimmedValue}`,
         "invalid_value",
+        columnName,
       );
     }
 
@@ -138,7 +141,7 @@ export function parseStringArrayLiteralList(value: string, columnName: string): 
 
 function parseLoweredStringLiteralList(value: string, operator: "IN" | "NOT IN"): ReadonlyArray<string> {
   const trimmedValue = value.trim();
-  assert(trimmedValue.startsWith("(") && trimmedValue.endsWith(")"), "Expected a parenthesized value list", "unsupported_expression");
+  assert(trimmedValue.startsWith("(") && trimmedValue.endsWith(")"), "Expected a parenthesized value list", "unsupported_expression", null);
   const innerValue = trimmedValue.slice(1, -1).trim();
   if (innerValue === "") {
     return [];
@@ -147,7 +150,7 @@ function parseLoweredStringLiteralList(value: string, operator: "IN" | "NOT IN")
   return splitTopLevel(innerValue, ",").map((item) => {
     const parsedValue = parseSqlLiteral(item);
     if (typeof parsedValue !== "string") {
-      throw new SqlDialectError(`LOWER(column) ${operator} (...) only supports string literals`, "unsupported_expression");
+      throw new SqlDialectError(`LOWER(column) ${operator} (...) only supports string literals`, "unsupported_expression", null);
     }
 
     return parsedValue;
@@ -289,7 +292,7 @@ function parsePredicate(source: SqlFromSource, value: string): SqlPredicate {
     };
   }
 
-  throw new SqlDialectError(`Unsupported predicate: ${trimmedValue}`, "unsupported_expression");
+  throw new SqlDialectError(`Unsupported predicate: ${trimmedValue}`, "unsupported_expression", null);
 }
 
 /**
@@ -365,12 +368,13 @@ function parsePredicateExpression(
     throw new SqlDialectError(
       `WHERE clause nests parenthesized groups deeper than the supported limit of ${MAXIMUM_PREDICATE_GROUP_DEPTH}`,
       "unsupported_expression",
+      null,
     );
   }
 
   const trimmedValue = value.trim();
   if (trimmedValue === "") {
-    throw new SqlDialectError("WHERE clause contains an empty predicate group", "empty_sql");
+    throw new SqlDialectError("WHERE clause contains an empty predicate group", "empty_sql", null);
   }
 
   const orSegments = splitTopLevelByKeyword(trimmedValue, "OR");

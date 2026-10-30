@@ -46,7 +46,7 @@ function parseSingleStatementSql(sql: string): ParsedSqlStatement {
     return parseSqlStatement(sql);
   } catch (error) {
     if (error instanceof SqlDialectError) {
-      throw buildInvalidSqlError(error.message, error.reason);
+      throw buildInvalidSqlError(error.message, error.reason, error.rejectedName);
     }
 
     throw error;
@@ -58,7 +58,7 @@ function splitStatementSqls(sql: string): ReadonlyArray<string> {
     return splitSqlStatements(sql);
   } catch (error) {
     if (error instanceof SqlDialectError) {
-      throw buildInvalidSqlError(error.message, error.reason);
+      throw buildInvalidSqlError(error.message, error.reason, error.rejectedName);
     }
 
     throw error;
@@ -71,7 +71,7 @@ function parseBatchStatements(statementSqls: ReadonlyArray<string>): ReadonlyArr
       return parseSqlStatement(statementSql);
     } catch (error) {
       if (error instanceof SqlDialectError) {
-        throw buildInvalidSqlError(`SQL batch statement ${index + 1} failed: ${error.message}`, error.reason);
+        throw buildInvalidSqlError(`SQL batch statement ${index + 1} failed: ${error.message}`, error.reason, error.rejectedName);
       }
 
       throw error;
@@ -83,11 +83,11 @@ function parseSqlBatch(sql: string): ReadonlyArray<ParsedSqlStatement> {
   const statementSqls = splitStatementSqls(sql);
 
   if (statementSqls.length === 0) {
-    throw buildInvalidSqlError("sql must not be empty", "empty_sql");
+    throw buildInvalidSqlError("sql must not be empty", "empty_sql", null);
   }
 
   if (statementSqls.length > MAX_SQL_BATCH_STATEMENT_COUNT) {
-    throw buildInvalidSqlError(`SQL batch must contain at most ${MAX_SQL_BATCH_STATEMENT_COUNT} statements`, "batch_too_large");
+    throw buildInvalidSqlError(`SQL batch must contain at most ${MAX_SQL_BATCH_STATEMENT_COUNT} statements`, "batch_too_large", null);
   }
 
   if (statementSqls.length === 1) {
@@ -174,6 +174,14 @@ function getAgentSqlDialectReason(error: unknown): string | null {
 }
 
 /**
+ * Reads the identifier, function, or keyword the dialect refused, which only
+ * `buildInvalidSqlError` sets, so every other failure records null.
+ */
+function getAgentSqlRejectedName(error: unknown): string | null {
+  return error instanceof HttpError ? error.details?.sqlRejectedName ?? null : null;
+}
+
+/**
  * Reads the same minification-safe `error.name` that `getBackendErrorLogDetails`
  * records. The constructor binding is not usable here: backend Lambdas are
  * bundled with esbuild `minify: true` and no `keepNames`, so `constructor.name`
@@ -246,6 +254,7 @@ async function withAgentSqlTelemetry<Result extends AgentSqlExecutionResult>(
       durationMs: Date.now() - startedAt,
       errorCode: null,
       dialectReason: null,
+      rejectedName: null,
       errorClass: null,
     });
 
@@ -268,6 +277,7 @@ async function withAgentSqlTelemetry<Result extends AgentSqlExecutionResult>(
       rowsTruncated: null,
       durationMs: Date.now() - startedAt,
       ...failureDetails,
+      rejectedName: getAgentSqlRejectedName(error),
     });
     await writeAgentSqlFailureRecord({
       surface: executionDetails.surface,
@@ -294,6 +304,7 @@ function parseSqlQueryBatch(sql: string): ReadonlyArray<AgentSqlReadStatement> {
   throw buildInvalidSqlError(
     "sql_query is read-only and accepts only SHOW TABLES, DESCRIBE, SHOW COLUMNS, and SELECT statements. Use sql_execute for INSERT, UPDATE, and DELETE.",
     "wrong_tool_for_statement",
+    statements.find(isSqlMutationStatement)?.type.toUpperCase() ?? null,
   );
 }
 
@@ -306,6 +317,7 @@ function parseSqlExecuteBatch(sql: string): ReadonlyArray<AgentSqlMutationStatem
   throw buildInvalidSqlError(
     "sql_execute is write-only and accepts only INSERT, UPDATE, and DELETE statements. Use sql_query for SHOW TABLES, DESCRIBE, SHOW COLUMNS, and SELECT.",
     "wrong_tool_for_statement",
+    statements.find(isSqlReadStatement)?.type.toUpperCase() ?? null,
   );
 }
 

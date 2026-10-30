@@ -114,7 +114,7 @@ export function splitSqlStatements(value: string): ReadonlyArray<string> {
       const statement = current.trim();
       const remainingValue = trimmedValue.slice(index + 1).trim();
       if (statement === "") {
-        throw new SqlDialectError("SQL batch contains an empty statement", "empty_sql");
+        throw new SqlDialectError("SQL batch contains an empty statement", "empty_sql", null);
       }
 
       statements.push(statement);
@@ -138,9 +138,14 @@ export function splitSqlStatements(value: string): ReadonlyArray<string> {
   return statements;
 }
 
-export function assert(condition: boolean, message: string, reason: SqlDialectReason): void {
+export function assert(
+  condition: boolean,
+  message: string,
+  reason: SqlDialectReason,
+  rejectedName: string | null,
+): void {
   if (condition === false) {
-    throw new SqlDialectError(message, reason);
+    throw new SqlDialectError(message, reason, rejectedName);
   }
 }
 
@@ -381,15 +386,15 @@ export function extractTopLevelClauses<TName extends string>(
 
   for (const [index, match] of matches.entries()) {
     if (clauseValues.has(match.name)) {
-      throw new SqlDialectError(`Duplicate ${context} clause: ${match.keyword}`, "invalid_clause");
+      throw new SqlDialectError(`Duplicate ${context} clause: ${match.keyword}`, "invalid_clause", null);
     }
 
     const order = definitionOrder.get(match.name);
     if (order === undefined) {
-      throw new SqlDialectError(`Unknown ${context} clause: ${match.keyword}`, "unsupported_statement");
+      throw new SqlDialectError(`Unknown ${context} clause: ${match.keyword}`, "unsupported_statement", null);
     }
     if (order < lastOrder) {
-      throw new SqlDialectError(`Invalid ${context} clause order near ${match.keyword}`, "invalid_clause");
+      throw new SqlDialectError(`Invalid ${context} clause order near ${match.keyword}`, "invalid_clause", null);
     }
 
     const nextMatch = matches[index + 1];

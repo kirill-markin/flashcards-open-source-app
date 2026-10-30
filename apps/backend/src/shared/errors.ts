@@ -77,6 +77,8 @@ export type HttpErrorDetails = Readonly<{
   catalogImageBlob?: CatalogImageBlobErrorDetails;
   reviewSchedule?: ReviewScheduleErrorDetails;
   retryAfterSeconds?: number;
+  // Agent SQL telemetry only, never part of a response.
+  sqlRejectedName?: string | null;
 }>;
 
 export type PublicSyncConflictDetails = Readonly<{
