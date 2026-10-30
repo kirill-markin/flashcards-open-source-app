@@ -325,7 +325,6 @@ export function ChatPanel(props: Props): ReactElement {
   const { handleKeyDown } = useChatComposerKeyboard({
     composerAction,
     sendPendingMessage,
-    stopMessage: handleStopMessage,
   });
   const hasDraftContent = hasChatDraftContent(inputText, pendingAttachments);
   const composerState = getChatComposerState({
