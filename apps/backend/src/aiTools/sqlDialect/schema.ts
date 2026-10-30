@@ -112,7 +112,7 @@ const cardColumnDescriptors: ReadonlyArray<SqlColumnDescriptor> = Object.freeze(
     nullable: false,
     readOnly: true,
     filterable: true,
-    sortable: false,
+    sortable: true,
     description: "Persisted FSRS state.",
   },
   {
@@ -120,8 +120,8 @@ const cardColumnDescriptors: ReadonlyArray<SqlColumnDescriptor> = Object.freeze(
     type: "integer",
     nullable: true,
     readOnly: true,
-    filterable: false,
-    sortable: false,
+    filterable: true,
+    sortable: true,
     description: "Persisted FSRS step index.",
   },
   {
@@ -129,8 +129,8 @@ const cardColumnDescriptors: ReadonlyArray<SqlColumnDescriptor> = Object.freeze(
     type: "number",
     nullable: true,
     readOnly: true,
-    filterable: false,
-    sortable: false,
+    filterable: true,
+    sortable: true,
     description: "Persisted FSRS stability.",
   },
   {
@@ -138,8 +138,8 @@ const cardColumnDescriptors: ReadonlyArray<SqlColumnDescriptor> = Object.freeze(
     type: "number",
     nullable: true,
     readOnly: true,
-    filterable: false,
-    sortable: false,
+    filterable: true,
+    sortable: true,
     description: "Persisted FSRS difficulty.",
   },
   {
@@ -147,8 +147,8 @@ const cardColumnDescriptors: ReadonlyArray<SqlColumnDescriptor> = Object.freeze(
     type: "datetime",
     nullable: true,
     readOnly: true,
-    filterable: false,
-    sortable: false,
+    filterable: true,
+    sortable: true,
     description: "Persisted last reviewed timestamp.",
   },
   {
@@ -156,8 +156,8 @@ const cardColumnDescriptors: ReadonlyArray<SqlColumnDescriptor> = Object.freeze(
     type: "integer",
     nullable: true,
     readOnly: true,
-    filterable: false,
-    sortable: false,
+    filterable: true,
+    sortable: true,
     description: "Persisted scheduled interval in days.",
   },
 ]);
