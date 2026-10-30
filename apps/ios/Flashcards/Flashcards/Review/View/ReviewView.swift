@@ -153,6 +153,20 @@ struct ReviewView: View {
         #endif
     }
 
+    /// Mac sidebar Review shows the companion toggle in its header instead of a navigation-bar row.
+    private var reviewHeaderOwnsCompanionToggle: Bool {
+        #if targetEnvironment(macCatalyst)
+        self.tabBarPlacement == .sidebar
+        #else
+        false
+        #endif
+    }
+
+    private var hidesReviewNavigationBar: Bool {
+        self.reviewHeaderOwnsCompanionToggle
+            || (self.showsFilterInReviewColumn && self.navigation.isAICompanionVisible && self.tabBarPlacement == .sidebar)
+    }
+
     private var nativeReviewContent: some View {
         ZStack {
             Group {
@@ -221,7 +235,7 @@ struct ReviewView: View {
         }
         .animation(self.reduceMotion ? nil : .smooth(duration: 0.35), value: self.navigation.isAICompanionVisible)
         .navigationTitle(self.showsFilterInReviewColumn ? "" : String(localized: "Review", table: reviewCardsStringsTableName))
-        .toolbar(self.showsFilterInReviewColumn && self.navigation.isAICompanionVisible && self.tabBarPlacement == .sidebar ? .hidden : .automatic, for: .navigationBar)
+        .toolbar(self.hidesReviewNavigationBar ? .hidden : .automatic, for: .navigationBar)
         // Keep iPad's shared tab/toolbar row stable when a card handoff focuses AI.
         // Switching from a large title can retain its empty band after keyboard dismissal.
         .navigationBarTitleDisplayMode(UIDevice.current.userInterfaceIdiom == .pad || self.dynamicTypeSize.isAccessibilitySize ? .inline : .automatic)
@@ -356,7 +370,9 @@ struct ReviewView: View {
                 }
         )
         .toolbar {
-            AICompanionToolbarItem()
+            if self.reviewHeaderOwnsCompanionToggle == false {
+                AICompanionToolbarItem()
+            }
             if self.usesCompactCompanionToolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     reviewFilterMenu
@@ -624,10 +640,24 @@ struct ReviewView: View {
             ? AnyLayout(VStackLayout(spacing: 12))
             : AnyLayout(HStackLayout(spacing: 12))
         return layout {
-            reviewFilterMenu
-                .nativeActionButtonStyle()
-                .controlSize(.regular)
-                .frame(maxWidth: .infinity, alignment: .leading)
+            HStack(spacing: 12) {
+                if self.reviewHeaderOwnsCompanionToggle
+                    && self.navigation.canPresentAICompanion
+                    && self.navigation.isAICompanionVisible == false {
+                    AICompanionToolbarButton(labelMinimumSize: 30)
+                        .labelStyle(.iconOnly)
+                        .nativeActionButtonStyle()
+                        .buttonBorderShape(.circle)
+                        .controlSize(.regular)
+                        .frame(minWidth: 44, minHeight: 44)
+                        .contentShape(Rectangle())
+                }
+
+                reviewFilterMenu
+                    .nativeActionButtonStyle()
+                    .controlSize(.regular)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
 
             Text(String(localized: "Review", table: reviewCardsStringsTableName))
                 .font(.headline)
