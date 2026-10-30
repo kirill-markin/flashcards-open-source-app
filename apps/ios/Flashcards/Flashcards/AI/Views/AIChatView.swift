@@ -376,13 +376,25 @@ struct AIChatView: View {
         }
     }
 
+    var openSettingsActionTitle: String {
+        #if targetEnvironment(macCatalyst)
+        return String(
+            localized: "shared.action.open_system_settings",
+            table: "Foundation",
+            comment: "Mac permission action title to open System Settings"
+        )
+        #else
+        return aiSettingsLocalized("common.openSettings", "Open Settings")
+        #endif
+    }
+
     @ViewBuilder
     func alertActionsContent() -> some View {
         if self.chatStore.activeAlert?.showsSettingsAction == true {
             Button(aiSettingsLocalized("common.cancel", "Cancel"), role: .cancel) {
                 self.chatStore.dismissAlert()
             }
-            Button(aiSettingsLocalized("common.openSettings", "Open Settings")) {
+            Button(self.openSettingsActionTitle) {
                 self.chatStore.dismissAlert()
                 Task { @MainActor in
                     do {

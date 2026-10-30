@@ -144,7 +144,15 @@ func localizedAccessPermissionPrimaryActionTitle(_ status: AccessPermissionStatu
     case .askEveryTime:
         return aiSettingsLocalized("settings.access.action.request", "Request access")
     case .allowed, .blocked, .limited:
+        #if targetEnvironment(macCatalyst)
+        return String(
+            localized: "shared.action.open_system_settings",
+            table: "Foundation",
+            comment: "Mac permission action title to open System Settings"
+        )
+        #else
         return aiSettingsLocalized("settings.access.action.openSettings", "Open Settings")
+        #endif
     case .unavailable:
         return nil
     }
@@ -209,7 +217,15 @@ func localizedReviewNotificationPermissionStatusTitle(_ status: ReviewNotificati
 func localizedReviewNotificationPermissionActionTitle(_ status: ReviewNotificationPermissionStatus) -> String {
     switch status {
     case .allowed, .blocked:
+        #if targetEnvironment(macCatalyst)
+        return String(
+            localized: "shared.action.open_system_settings",
+            table: "Foundation",
+            comment: "Mac permission action title to open System Settings"
+        )
+        #else
         return aiSettingsLocalized("settings.notifications.permission.action.openSettings", "Open Settings")
+        #endif
     case .notRequested:
         return aiSettingsLocalized("settings.notifications.permission.action.allow", "Allow Notifications")
     }

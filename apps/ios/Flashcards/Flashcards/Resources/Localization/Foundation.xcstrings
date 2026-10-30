@@ -7321,6 +7321,311 @@
         }
       }
     },
+    "ai_chat_alert.microphone.mac_message" : {
+      "comment" : "Mac AI chat alert message when microphone access is blocked",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "تم إيقاف الوصول إلى الميكروفون لتطبيق Nibomo. افتح إعدادات النظام للسماح به."
+          }
+        },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nibomo کے لیے مائیکروفون کی رسائی بند ہے۔ اجازت دینے کے لیے سسٹم سیٹنگز کھولیں۔"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Quyền truy cập micrô của Nibomo đang tắt. Mở Cài đặt hệ thống để cho phép."
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Imvume yemakrofoni ye-Nibomo ivaliwe. Vula izilungiselelo zesistimu ukuze uyivumele."
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nibomo ไม่มีสิทธิ์ใช้ไมโครโฟน เปิดการตั้งค่าระบบเพื่ออนุญาต"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nibomo için mikrofon erişimi kapalı. İzin vermek için Sistem Ayarları’nı açın."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Доступ Nibomo до мікрофона вимкнено. Відкрийте системні параметри, щоб дозволити його."
+          }
+        },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ufikiaji wa maikrofoni umezimwa kwa Nibomo. Fungua mipangilio ya mfumo ili kuuruhusu."
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nibomo-க்கு மைக்ரோஃபோன் அணுகல் முடக்கப்பட்டுள்ளது. அனுமதிக்க முறைமை அமைப்புகளைத் திறக்கவும்."
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nibomo కోసం మైక్రోఫోన్ అనుమతి ఆఫ్‌లో ఉంది. అనుమతించడానికి సిస్టమ్ సెట్టింగ్‌లను తెరవండి."
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Prístup k mikrofónu je pre Nibomo vypnutý. Povoľte ho v Systémových nastaveniach."
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dostop do mikrofona je za Nibomo izklopljen. Dovolite ga v nastavitvah sistema."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mikrofonåtkomst är avstängd för Nibomo. Tillåt den i Systeminställningar."
+          }
+        },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nibomo ਲਈ ਮਾਈਕ੍ਰੋਫ਼ੋਨ ਦੀ ਪਹੁੰਚ ਬੰਦ ਹੈ। ਮਨਜ਼ੂਰੀ ਦੇਣ ਲਈ ਸਿਸਟਮ ਸੈਟਿੰਗਾਂ ਖੋਲ੍ਹੋ।"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dostęp do mikrofonu jest wyłączony dla Nibomo. Otwórz Ustawienia systemowe, aby go włączyć."
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Accesul la microfon este dezactivat pentru Nibomo. Deschide Configurări sistem pentru a-l permite."
+          }
+        },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nibomo साठी मायक्रोफोनचा प्रवेश बंद आहे. परवानगी देण्यासाठी सिस्टम सेटिंग्ज उघडा."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mikrofontilgang er slått av for Nibomo. Åpne Systeminnstillinger for å tillate den."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Microfoontoegang is uitgeschakeld voor Nibomo. Open Systeeminstellingen om toegang toe te staan."
+          }
+        },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nibomo prieiga prie mikrofono išjungta. Atidarykite sistemos nustatymus ir ją įjunkite."
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nibomo piekļuve mikrofonam ir izslēgta. Lai to atļautu, atveriet sistēmas iestatījumus."
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nibomo-യ്ക്ക് മൈക്രോഫോൺ അനുമതി ഓഫാണ്. അനുവദിക്കാൻ സിസ്റ്റം ക്രമീകരണങ്ങൾ തുറക്കുക."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "L’accesso al microfono è disattivato per Nibomo. Apri Impostazioni di Sistema per consentirlo."
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nibomoಗೆ ಮೈಕ್ರೊಫೋನ್ ಪ್ರವೇಶ ನಿಷ್ಕ್ರಿಯವಾಗಿದೆ. ಅನುಮತಿಸಲು ಸಿಸ್ಟಮ್ ಸೆಟ್ಟಿಂಗ್‌ಗಳನ್ನು ತೆರೆಯಿರಿ."
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nibomo의 마이크 접근이 꺼져 있습니다. 시스템 설정에서 허용하세요."
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A Nibomo mikrofonhozzáférése ki van kapcsolva. Engedélyezd a Rendszerbeállításokban."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Akses mikrofon untuk Nibomo dinonaktifkan. Buka Pengaturan Sistem untuk mengizinkannya."
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Slökkt er á hljóðnemaaðgangi fyrir Nibomo. Opnaðu kerfisstillingar til að leyfa hann."
+          }
+        },
+        "gu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nibomo માટે માઇક્રોફોનની ઍક્સેસ બંધ છે. મંજૂરી આપવા સિસ્ટમ સેટિંગ્સ ખોલો."
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "הגישה למיקרופון כבויה עבור Nibomo. יש לפתוח את הגדרות המערכת כדי לאפשר אותה."
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pristup mikrofonu isključen je za Nibomo. Otvorite Postavke sustava da biste ga dopustili."
+          }
+        },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nibomo mikrofoni juurdepääs on välja lülitatud. Selle lubamiseks ava süsteemiseaded."
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "دسترسی Nibomo به میکروفون غیرفعال است. برای فعال کردن آن، تنظیمات سیستم را باز کنید."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nibomon mikrofonin käyttöoikeus on poistettu. Salli se Järjestelmäasetuksissa."
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Достъпът до микрофона е изключен за Nibomo. Отворете системните настройки, за да го разрешите."
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nibomo এর জন্য মাইক্রোফোন অ্যাক্সেস বন্ধ করা হয়েছে। অনুমতি দিতে সিস্টেম সেটিংস খুলুন।"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "L'accés al micròfon està desactivat per a Nibomo. Obriu Configuració del Sistema per permetre-ho."
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Přístup k mikrofonu je pro Nibomo vypnutý. Povolte jej v Nastavení systému."
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mikrofonadgang er slået fra for Nibomo. Åbn Systemindstillinger for at tillade den."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Η πρόσβαση στο μικρόφωνο είναι απενεργοποιημένη για το Nibomo. Επιτρέψτε την στις Ρυθμίσεις συστήματος."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Der Mikrofonzugriff für Nibomo ist deaktiviert. Öffne die Systemeinstellungen, um ihn zu erlauben."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Microphone access is turned off for Nibomo. Open System Settings to allow it."
+          }
+        },
+        "es-ES" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "El acceso al micrófono está desactivado para Nibomo. Abre Ajustes del Sistema para permitirlo."
+          }
+        },
+        "es-MX" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "El acceso al micrófono está desactivado para Nibomo. Abre Configuración del Sistema para permitirlo."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "L’accès au microphone est désactivé pour Nibomo. Ouvrez les Réglages Système pour l’autoriser."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nibomo के लिए माइक्रोफ़ोन एक्सेस बंद है। इसे अनुमति देने के लिए सिस्टम सेटिंग खोलें।"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nibomo のマイクへのアクセスはオフです。許可するには「システム設定」を開いてください。"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O acesso ao microfone está desativado para o Nibomo. Abra os Ajustes do Sistema para permitir."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Доступ к микрофону для Nibomo отключен. Откройте «Системные настройки», чтобы разрешить его."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nibomo 的麦克风访问权限已关闭。打开“系统设置”以允许访问。"
+          }
+        }
+      }
+    },
     "ai_chat_alert.microphone.title" : {
       "comment" : "AI chat alert title when microphone access is needed",
       "localizations" : {
@@ -7927,6 +8232,311 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Nibomo 的相机访问权限已关闭。打开“设置”以允许访问。"
+          }
+        }
+      }
+    },
+    "ai_chat_attachment_settings.camera.mac_message" : {
+      "comment" : "Mac AI chat alert message when camera access is blocked",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "تم إيقاف الوصول إلى الكاميرا لتطبيق Nibomo. افتح إعدادات النظام للسماح به."
+          }
+        },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nibomo کے لیے کیمرے کی رسائی بند ہے۔ اجازت دینے کے لیے سسٹم سیٹنگز کھولیں۔"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Quyền truy cập camera của Nibomo đang tắt. Mở Cài đặt hệ thống để cho phép."
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Imvume yekhamera ye-Nibomo ivaliwe. Vula izilungiselelo zesistimu ukuze uyivumele."
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nibomo ไม่มีสิทธิ์ใช้กล้อง เปิดการตั้งค่าระบบเพื่ออนุญาต"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nibomo için kamera erişimi kapalı. İzin vermek için Sistem Ayarları’nı açın."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Доступ Nibomo до камери вимкнено. Відкрийте системні параметри, щоб дозволити його."
+          }
+        },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ufikiaji wa kamera umezimwa kwa Nibomo. Fungua mipangilio ya mfumo ili kuuruhusu."
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nibomo-க்கு கேமரா அணுகல் முடக்கப்பட்டுள்ளது. அனுமதிக்க முறைமை அமைப்புகளைத் திறக்கவும்."
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nibomo కోసం కెమెరా అనుమతి ఆఫ్‌లో ఉంది. అనుమతించడానికి సిస్టమ్ సెట్టింగ్‌లను తెరవండి."
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Prístup k fotoaparátu je pre Nibomo vypnutý. Povoľte ho v Systémových nastaveniach."
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dostop do kamere je za Nibomo izklopljen. Dovolite ga v nastavitvah sistema."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kameraåtkomst är avstängd för Nibomo. Tillåt den i Systeminställningar."
+          }
+        },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nibomo ਲਈ ਕੈਮਰੇ ਦੀ ਪਹੁੰਚ ਬੰਦ ਹੈ। ਮਨਜ਼ੂਰੀ ਦੇਣ ਲਈ ਸਿਸਟਮ ਸੈਟਿੰਗਾਂ ਖੋਲ੍ਹੋ।"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dostęp do aparatu jest wyłączony dla Nibomo. Otwórz Ustawienia systemowe, aby go włączyć."
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Accesul la cameră este dezactivat pentru Nibomo. Deschide Configurări sistem pentru a-l permite."
+          }
+        },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nibomo साठी कॅमेऱ्याचा प्रवेश बंद आहे. परवानगी देण्यासाठी सिस्टम सेटिंग्ज उघडा."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kameratilgang er slått av for Nibomo. Åpne Systeminnstillinger for å tillate den."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cameratoegang is uitgeschakeld voor Nibomo. Open Systeeminstellingen om toegang toe te staan."
+          }
+        },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nibomo prieiga prie kameros išjungta. Atidarykite sistemos nustatymus ir ją įjunkite."
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nibomo piekļuve kamerai ir izslēgta. Lai to atļautu, atveriet sistēmas iestatījumus."
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nibomo-യ്ക്ക് ക്യാമറ അനുമതി ഓഫാണ്. അനുവദിക്കാൻ സിസ്റ്റം ക്രമീകരണങ്ങൾ തുറക്കുക."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "L’accesso alla fotocamera è disattivato per Nibomo. Apri Impostazioni di Sistema per consentirlo."
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nibomoಗೆ ಕ್ಯಾಮೆರಾ ಪ್ರವೇಶ ನಿಷ್ಕ್ರಿಯವಾಗಿದೆ. ಅನುಮತಿಸಲು ಸಿಸ್ಟಮ್ ಸೆಟ್ಟಿಂಗ್‌ಗಳನ್ನು ತೆರೆಯಿರಿ."
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nibomo의 카메라 접근이 꺼져 있습니다. 시스템 설정에서 허용하세요."
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A Nibomo kamerahozzáférése ki van kapcsolva. Engedélyezd a Rendszerbeállításokban."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Akses kamera untuk Nibomo dinonaktifkan. Buka Pengaturan Sistem untuk mengizinkannya."
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Slökkt er á myndavélaaðgangi fyrir Nibomo. Opnaðu kerfisstillingar til að leyfa hann."
+          }
+        },
+        "gu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nibomo માટે કૅમેરાની ઍક્સેસ બંધ છે. મંજૂરી આપવા સિસ્ટમ સેટિંગ્સ ખોલો."
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "הגישה למצלמה כבויה עבור Nibomo. יש לפתוח את הגדרות המערכת כדי לאפשר אותה."
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pristup kameri isključen je za Nibomo. Otvorite Postavke sustava da biste ga dopustili."
+          }
+        },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nibomo kaamerale juurdepääs on välja lülitatud. Selle lubamiseks ava süsteemiseaded."
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "دسترسی Nibomo به دوربین غیرفعال است. برای فعال کردن آن، تنظیمات سیستم را باز کنید."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nibomon kameran käyttöoikeus on poistettu. Salli se Järjestelmäasetuksissa."
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Достъпът до камерата е изключен за Nibomo. Отворете системните настройки, за да го разрешите."
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nibomo এর জন্য ক্যামেরা অ্যাক্সেস বন্ধ করা আছে। অনুমতি দিতে সিস্টেম সেটিংস খুলুন।"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "L'accés a la càmera està desactivat per a Nibomo. Obriu Configuració del Sistema per permetre-ho."
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Přístup k fotoaparátu je pro Nibomo vypnutý. Povolte jej v Nastavení systému."
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kameraadgang er slået fra for Nibomo. Åbn Systemindstillinger for at tillade den."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Η πρόσβαση στην κάμερα είναι απενεργοποιημένη για το Nibomo. Επιτρέψτε την στις Ρυθμίσεις συστήματος."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Der Kamerazugriff für Nibomo ist deaktiviert. Öffne die Systemeinstellungen, um ihn zu erlauben."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Camera access is turned off for Nibomo. Open System Settings to allow it."
+          }
+        },
+        "es-ES" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "El acceso a la cámara está desactivado para Nibomo. Abre Ajustes del Sistema para permitirlo."
+          }
+        },
+        "es-MX" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "El acceso a la cámara está desactivado para Nibomo. Abre Configuración del Sistema para permitirlo."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "L’accès à l’appareil photo est désactivé pour Nibomo. Ouvrez les Réglages Système pour l’autoriser."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nibomo के लिए कैमरा एक्सेस बंद है। इसे अनुमति देने के लिए सिस्टम सेटिंग खोलें।"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nibomo のカメラへのアクセスはオフです。許可するには「システム設定」を開いてください。"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O acesso à câmera está desativado para o Nibomo. Abra os Ajustes do Sistema para permitir."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Доступ к камере для Nibomo отключен. Откройте «Системные настройки», чтобы разрешить его."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nibomo 的相机访问权限已关闭。打开“系统设置”以允许访问。"
           }
         }
       }
@@ -8541,6 +9151,311 @@
         }
       }
     },
+    "ai_chat_attachment_settings.files.mac_message" : {
+      "comment" : "Mac AI chat alert message when file access is blocked",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "تم إيقاف الوصول إلى الملفات لتطبيق Nibomo. افتح إعدادات النظام للسماح به."
+          }
+        },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nibomo کے لیے فائلوں کی رسائی بند ہے۔ اجازت دینے کے لیے سسٹم سیٹنگز کھولیں۔"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Quyền truy cập tệp của Nibomo đang tắt. Mở Cài đặt hệ thống để cho phép."
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Imvume yamafayela ye-Nibomo ivaliwe. Vula izilungiselelo zesistimu ukuze uyivumele."
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nibomo ไม่มีสิทธิ์เข้าถึงไฟล์ เปิดการตั้งค่าระบบเพื่ออนุญาต"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nibomo için dosya erişimi kapalı. İzin vermek için Sistem Ayarları’nı açın."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Доступ Nibomo до файлів вимкнено. Відкрийте системні параметри, щоб дозволити його."
+          }
+        },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ufikiaji wa faili umezimwa kwa Nibomo. Fungua mipangilio ya mfumo ili kuuruhusu."
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nibomo-க்கு கோப்பு அணுகல் முடக்கப்பட்டுள்ளது. அனுமதிக்க முறைமை அமைப்புகளைத் திறக்கவும்."
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nibomo కోసం ఫైల్ అనుమతి ఆఫ్‌లో ఉంది. అనుమతించడానికి సిస్టమ్ సెట్టింగ్‌లను తెరవండి."
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Prístup k súborom je pre Nibomo vypnutý. Povoľte ho v Systémových nastaveniach."
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dostop do datotek je za Nibomo izklopljen. Dovolite ga v nastavitvah sistema."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Filåtkomst är avstängd för Nibomo. Tillåt den i Systeminställningar."
+          }
+        },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nibomo ਲਈ ਫ਼ਾਈਲਾਂ ਦੀ ਪਹੁੰਚ ਬੰਦ ਹੈ। ਮਨਜ਼ੂਰੀ ਦੇਣ ਲਈ ਸਿਸਟਮ ਸੈਟਿੰਗਾਂ ਖੋਲ੍ਹੋ।"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dostęp do plików jest wyłączony dla Nibomo. Otwórz Ustawienia systemowe, aby go włączyć."
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Accesul la fișiere este dezactivat pentru Nibomo. Deschide Configurări sistem pentru a-l permite."
+          }
+        },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nibomo साठी फाइलचा प्रवेश बंद आहे. परवानगी देण्यासाठी सिस्टम सेटिंग्ज उघडा."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Filtilgang er slått av for Nibomo. Åpne Systeminnstillinger for å tillate den."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bestandstoegang is uitgeschakeld voor Nibomo. Open Systeeminstellingen om toegang toe te staan."
+          }
+        },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nibomo prieiga prie failų išjungta. Atidarykite sistemos nustatymus ir ją įjunkite."
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nibomo piekļuve failiem ir izslēgta. Lai to atļautu, atveriet sistēmas iestatījumus."
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nibomo-യ്ക്ക് ഫയൽ അനുമതി ഓഫാണ്. അനുവദിക്കാൻ സിസ്റ്റം ക്രമീകരണങ്ങൾ തുറക്കുക."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "L’accesso ai file è disattivato per Nibomo. Apri Impostazioni di Sistema per consentirlo."
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nibomoಗೆ ಫೈಲ್ ಪ್ರವೇಶ ನಿಷ್ಕ್ರಿಯವಾಗಿದೆ. ಅನುಮತಿಸಲು ಸಿಸ್ಟಮ್ ಸೆಟ್ಟಿಂಗ್‌ಗಳನ್ನು ತೆರೆಯಿರಿ."
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nibomo의 파일 접근이 꺼져 있습니다. 시스템 설정에서 허용하세요."
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A Nibomo fájlhozzáférése ki van kapcsolva. Engedélyezd a Rendszerbeállításokban."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Akses file untuk Nibomo dinonaktifkan. Buka Pengaturan Sistem untuk mengizinkannya."
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Slökkt er á skráaaðgangi fyrir Nibomo. Opnaðu kerfisstillingar til að leyfa hann."
+          }
+        },
+        "gu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nibomo માટે ફાઇલોની ઍક્સેસ બંધ છે. મંજૂરી આપવા સિસ્ટમ સેટિંગ્સ ખોલો."
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "הגישה לקבצים כבויה עבור Nibomo. יש לפתוח את הגדרות המערכת כדי לאפשר אותה."
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pristup datotekama isključen je za Nibomo. Otvorite Postavke sustava da biste ga dopustili."
+          }
+        },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nibomo failidele juurdepääs on välja lülitatud. Selle lubamiseks ava süsteemiseaded."
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "دسترسی Nibomo به فایل‌ها غیرفعال است. برای فعال کردن آن، تنظیمات سیستم را باز کنید."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nibomon tiedostojen käyttöoikeus on poistettu. Salli se Järjestelmäasetuksissa."
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Достъпът до файлове е изключен за Nibomo. Отворете системните настройки, за да го разрешите."
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ফাইল অ্যাক্সেস Nibomo এর জন্য বন্ধ করা হয়েছে। অনুমতি দিতে সিস্টেম সেটিংস খুলুন।"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "L'accés al fitxer està desactivat per a Nibomo. Obriu Configuració del Sistema per permetre-ho."
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Přístup k souborům je pro Nibomo vypnutý. Povolte jej v Nastavení systému."
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Filadgang er slået fra for Nibomo. Åbn Systemindstillinger for at tillade den."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Η πρόσβαση στα αρχεία είναι απενεργοποιημένη για το Nibomo. Επιτρέψτε την στις Ρυθμίσεις συστήματος."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Der Dateizugriff für Nibomo ist deaktiviert. Öffne die Systemeinstellungen, um ihn zu erlauben."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "File access is turned off for Nibomo. Open System Settings to allow it."
+          }
+        },
+        "es-ES" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "El acceso a Archivos está desactivado para Nibomo. Abre Ajustes del Sistema para permitirlo."
+          }
+        },
+        "es-MX" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "El acceso a Archivos está desactivado para Nibomo. Abre Configuración del Sistema para permitirlo."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "L’accès aux fichiers est désactivé pour Nibomo. Ouvrez les Réglages Système pour l’autoriser."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nibomo के लिए फ़ाइल एक्सेस बंद है। इसे अनुमति देने के लिए सिस्टम सेटिंग खोलें।"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nibomo のファイルへのアクセスはオフです。許可するには「システム設定」を開いてください。"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O acesso a Arquivos está desativado para o Nibomo. Abra os Ajustes do Sistema para permitir."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Доступ к файлам для Nibomo отключен. Откройте «Системные настройки», чтобы разрешить его."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nibomo 的文件访问权限已关闭。打开“系统设置”以允许访问。"
+          }
+        }
+      }
+    },
     "ai_chat_attachment_settings.files.title" : {
       "comment" : "AI chat alert title when file access is needed",
       "localizations" : {
@@ -9147,6 +10062,311 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Nibomo 的照片访问权限已关闭。打开“设置”以允许访问。"
+          }
+        }
+      }
+    },
+    "ai_chat_attachment_settings.photos.mac_message" : {
+      "comment" : "Mac AI chat alert message when photo access is blocked",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "تم إيقاف الوصول إلى الصور لتطبيق Nibomo. افتح إعدادات النظام للسماح به."
+          }
+        },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nibomo کے لیے تصاویر کی رسائی بند ہے۔ اجازت دینے کے لیے سسٹم سیٹنگز کھولیں۔"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Quyền truy cập ảnh của Nibomo đang tắt. Mở Cài đặt hệ thống để cho phép."
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Imvume yezithombe ye-Nibomo ivaliwe. Vula izilungiselelo zesistimu ukuze uyivumele."
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nibomo ไม่มีสิทธิ์เข้าถึงรูปภาพ เปิดการตั้งค่าระบบเพื่ออนุญาต"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nibomo için fotoğraf erişimi kapalı. İzin vermek için Sistem Ayarları’nı açın."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Доступ Nibomo до фото вимкнено. Відкрийте системні параметри, щоб дозволити його."
+          }
+        },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ufikiaji wa picha umezimwa kwa Nibomo. Fungua mipangilio ya mfumo ili kuuruhusu."
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nibomo-க்கு புகைப்பட அணுகல் முடக்கப்பட்டுள்ளது. அனுமதிக்க முறைமை அமைப்புகளைத் திறக்கவும்."
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nibomo కోసం ఫొటోల అనుమతి ఆఫ్‌లో ఉంది. అనుమతించడానికి సిస్టమ్ సెట్టింగ్‌లను తెరవండి."
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Prístup k fotkám je pre Nibomo vypnutý. Povoľte ho v Systémových nastaveniach."
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dostop do fotografij je za Nibomo izklopljen. Dovolite ga v nastavitvah sistema."
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bildåtkomst är avstängd för Nibomo. Tillåt den i Systeminställningar."
+          }
+        },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nibomo ਲਈ ਫ਼ੋਟੋਆਂ ਦੀ ਪਹੁੰਚ ਬੰਦ ਹੈ। ਮਨਜ਼ੂਰੀ ਦੇਣ ਲਈ ਸਿਸਟਮ ਸੈਟਿੰਗਾਂ ਖੋਲ੍ਹੋ।"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dostęp do zdjęć jest wyłączony dla Nibomo. Otwórz Ustawienia systemowe, aby go włączyć."
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Accesul la poze este dezactivat pentru Nibomo. Deschide Configurări sistem pentru a-l permite."
+          }
+        },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nibomo साठी फोटोंचा प्रवेश बंद आहे. परवानगी देण्यासाठी सिस्टम सेटिंग्ज उघडा."
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bildetilgang er slått av for Nibomo. Åpne Systeminnstillinger for å tillate den."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fototoegang is uitgeschakeld voor Nibomo. Open Systeeminstellingen om toegang toe te staan."
+          }
+        },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nibomo prieiga prie nuotraukų išjungta. Atidarykite sistemos nustatymus ir ją įjunkite."
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nibomo piekļuve fotoattēliem ir izslēgta. Lai to atļautu, atveriet sistēmas iestatījumus."
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nibomo-യ്ക്ക് ഫോട്ടോ അനുമതി ഓഫാണ്. അനുവദിക്കാൻ സിസ്റ്റം ക്രമീകരണങ്ങൾ തുറക്കുക."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "L’accesso alle foto è disattivato per Nibomo. Apri Impostazioni di Sistema per consentirlo."
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nibomoಗೆ ಫೋಟೋ ಪ್ರವೇಶ ನಿಷ್ಕ್ರಿಯವಾಗಿದೆ. ಅನುಮತಿಸಲು ಸಿಸ್ಟಮ್ ಸೆಟ್ಟಿಂಗ್‌ಗಳನ್ನು ತೆರೆಯಿರಿ."
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nibomo의 사진 접근이 꺼져 있습니다. 시스템 설정에서 허용하세요."
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A Nibomo fotóhozzáférése ki van kapcsolva. Engedélyezd a Rendszerbeállításokban."
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Akses foto untuk Nibomo dinonaktifkan. Buka Pengaturan Sistem untuk mengizinkannya."
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Slökkt er á aðgangi að myndum fyrir Nibomo. Opnaðu kerfisstillingar til að leyfa hann."
+          }
+        },
+        "gu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nibomo માટે ફોટાની ઍક્સેસ બંધ છે. મંજૂરી આપવા સિસ્ટમ સેટિંગ્સ ખોલો."
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "הגישה לתמונות כבויה עבור Nibomo. יש לפתוח את הגדרות המערכת כדי לאפשר אותה."
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pristup fotografijama isključen je za Nibomo. Otvorite Postavke sustava da biste ga dopustili."
+          }
+        },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nibomo fotodele juurdepääs on välja lülitatud. Selle lubamiseks ava süsteemiseaded."
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "دسترسی Nibomo به عکس‌ها غیرفعال است. برای فعال کردن آن، تنظیمات سیستم را باز کنید."
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nibomon kuvien käyttöoikeus on poistettu. Salli se Järjestelmäasetuksissa."
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Достъпът до снимки е изключен за Nibomo. Отворете системните настройки, за да го разрешите."
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ফটো অ্যাক্সেস Nibomo এর জন্য বন্ধ করা হয়েছে। অনুমতি দিতে সিস্টেম সেটিংস খুলুন।"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "L'accés a les fotos està desactivat per a Nibomo. Obriu Configuració del Sistema per permetre-ho."
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Přístup k fotkám je pro Nibomo vypnutý. Povolte jej v Nastavení systému."
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fotoadgang er slået fra for Nibomo. Åbn Systemindstillinger for at tillade den."
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Η πρόσβαση στις φωτογραφίες είναι απενεργοποιημένη για το Nibomo. Επιτρέψτε την στις Ρυθμίσεις συστήματος."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Der Zugriff auf Fotos für Nibomo ist deaktiviert. Öffne die Systemeinstellungen, um ihn zu erlauben."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Photo access is turned off for Nibomo. Open System Settings to allow it."
+          }
+        },
+        "es-ES" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "El acceso a Fotos está desactivado para Nibomo. Abre Ajustes del Sistema para permitirlo."
+          }
+        },
+        "es-MX" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "El acceso a Fotos está desactivado para Nibomo. Abre Configuración del Sistema para permitirlo."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "L’accès aux photos est désactivé pour Nibomo. Ouvrez les Réglages Système pour l’autoriser."
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nibomo के लिए फ़ोटो एक्सेस बंद है। इसे अनुमति देने के लिए सिस्टम सेटिंग खोलें।"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nibomo の写真へのアクセスはオフです。許可するには「システム設定」を開いてください。"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O acesso às fotos está desativado para o Nibomo. Abra os Ajustes do Sistema para permitir."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Доступ к фото для Nibomo отключен. Откройте «Системные настройки», чтобы разрешить его."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nibomo 的照片访问权限已关闭。打开“系统设置”以允许访问。"
           }
         }
       }
@@ -56422,6 +57642,311 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "打开“设置”"
+          }
+        }
+      }
+    },
+    "shared.action.open_system_settings" : {
+      "comment" : "Mac permission action title to open System Settings",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "افتح إعدادات النظام"
+          }
+        },
+        "ur" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "سسٹم سیٹنگز کھولیں"
+          }
+        },
+        "vi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mở Cài đặt hệ thống"
+          }
+        },
+        "zu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vula izilungiselelo zesistimu"
+          }
+        },
+        "th" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "เปิดการตั้งค่าระบบ"
+          }
+        },
+        "tr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sistem Ayarları’nı aç"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Відкрити системні параметри"
+          }
+        },
+        "sw" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fungua mipangilio ya mfumo"
+          }
+        },
+        "ta" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "முறைமை அமைப்புகளைத் திறக்கவும்"
+          }
+        },
+        "te" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "సిస్టమ్ సెట్టింగ్‌లను తెరవండి"
+          }
+        },
+        "sk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Otvoriť systémové nastavenia"
+          }
+        },
+        "sl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Odpri nastavitve sistema"
+          }
+        },
+        "sv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Öppna Systeminställningar"
+          }
+        },
+        "pa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ਸਿਸਟਮ ਸੈਟਿੰਗਾਂ ਖੋਲ੍ਹੋ"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Otwórz Ustawienia systemowe"
+          }
+        },
+        "ro" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deschide Configurări sistem"
+          }
+        },
+        "mr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "सिस्टम सेटिंग्ज उघडा"
+          }
+        },
+        "nb" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Åpne Systeminnstillinger"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open Systeeminstellingen"
+          }
+        },
+        "lt" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Atidaryti sistemos nustatymus"
+          }
+        },
+        "lv" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Atvērt sistēmas iestatījumus"
+          }
+        },
+        "ml" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "സിസ്റ്റം ക്രമീകരണങ്ങൾ തുറക്കുക"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apri Impostazioni di Sistema"
+          }
+        },
+        "kn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ಸಿಸ್ಟಮ್ ಸೆಟ್ಟಿಂಗ್‌ಗಳನ್ನು ತೆರೆಯಿರಿ"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "시스템 설정 열기"
+          }
+        },
+        "hu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rendszerbeállítások megnyitása"
+          }
+        },
+        "id" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Buka Pengaturan Sistem"
+          }
+        },
+        "is" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Opna kerfisstillingar"
+          }
+        },
+        "gu" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "સિસ્ટમ સેટિંગ્સ ખોલો"
+          }
+        },
+        "he" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "פתיחת הגדרות המערכת"
+          }
+        },
+        "hr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Otvorite Postavke sustava"
+          }
+        },
+        "et" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ava süsteemiseaded"
+          }
+        },
+        "fa" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "باز کردن تنظیمات سیستم"
+          }
+        },
+        "fi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Avaa Järjestelmäasetukset"
+          }
+        },
+        "bg" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Отворете системните настройки"
+          }
+        },
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "সিস্টেম সেটিংস খুলুন"
+          }
+        },
+        "ca" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Obre Configuració del Sistema"
+          }
+        },
+        "cs" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Otevřít Nastavení systému"
+          }
+        },
+        "da" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Åbn Systemindstillinger"
+          }
+        },
+        "el" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Άνοιγμα ρυθμίσεων συστήματος"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Systemeinstellungen öffnen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open System Settings"
+          }
+        },
+        "es-ES" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Abrir Ajustes del Sistema"
+          }
+        },
+        "es-MX" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Abrir Configuración del Sistema"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ouvrir les Réglages Système"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "सिस्टम सेटिंग खोलें"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "システム設定を開く"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Abrir Ajustes do Sistema"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Открыть системные настройки"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "打开系统设置"
           }
         }
       }
