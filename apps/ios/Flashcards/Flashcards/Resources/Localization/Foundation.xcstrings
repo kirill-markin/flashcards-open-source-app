@@ -7058,7 +7058,7 @@
         "uk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Доступ Nibomo до мікрофона вимкнено. Відкрийте системні параметри, щоб дозволити його."
+            "value" : "Доступ Nibomo до мікрофона вимкнено. Відкрийте Системні параметри, щоб дозволити його."
           }
         },
         "sw" : {
@@ -7088,7 +7088,7 @@
         "sl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Dostop do mikrofona je za Nibomo izklopljen. Dovolite ga v nastavitvah sistema."
+            "value" : "Dostop do mikrofona je za Nibomo izklopljen. Dovolite ga v Nastavitvah sistema."
           }
         },
         "sv" : {
@@ -7973,7 +7973,7 @@
         "uk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Доступ Nibomo до камери вимкнено. Відкрийте системні параметри, щоб дозволити його."
+            "value" : "Доступ Nibomo до камери вимкнено. Відкрийте Системні параметри, щоб дозволити його."
           }
         },
         "sw" : {
@@ -8003,7 +8003,7 @@
         "sl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Dostop do kamere je za Nibomo izklopljen. Dovolite ga v nastavitvah sistema."
+            "value" : "Dostop do kamere je za Nibomo izklopljen. Dovolite ga v Nastavitvah sistema."
           }
         },
         "sv" : {
@@ -8888,7 +8888,7 @@
         "uk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Доступ Nibomo до файлів вимкнено. Відкрийте системні параметри, щоб дозволити його."
+            "value" : "Доступ Nibomo до файлів вимкнено. Відкрийте Системні параметри, щоб дозволити його."
           }
         },
         "sw" : {
@@ -8918,7 +8918,7 @@
         "sl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Dostop do datotek je za Nibomo izklopljen. Dovolite ga v nastavitvah sistema."
+            "value" : "Dostop do datotek je za Nibomo izklopljen. Dovolite ga v Nastavitvah sistema."
           }
         },
         "sv" : {
@@ -9803,7 +9803,7 @@
         "uk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Доступ Nibomo до фото вимкнено. Відкрийте системні параметри, щоб дозволити його."
+            "value" : "Доступ Nibomo до фото вимкнено. Відкрийте Системні параметри, щоб дозволити його."
           }
         },
         "sw" : {
@@ -9833,7 +9833,7 @@
         "sl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Dostop do fotografij je za Nibomo izklopljen. Dovolite ga v nastavitvah sistema."
+            "value" : "Dostop do fotografij je za Nibomo izklopljen. Dovolite ga v Nastavitvah sistema."
           }
         },
         "sv" : {
