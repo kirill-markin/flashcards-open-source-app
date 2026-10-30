@@ -1,4 +1,5 @@
 import { useEffect, useState, type JSX } from "react";
+import { reviewEventPlatforms } from "../../adminApi";
 import { formatGeneratedAt } from "../../charts/formatting";
 import type { AdminAppConfig } from "../../config";
 import type { AnalyticsDateRange } from "../../filters/analyticsFilters";
@@ -28,7 +29,7 @@ function formatNullableTime(value: string | null): string {
   return value === null ? "Unavailable" : formatGeneratedAt(value);
 }
 
-/** The latest production import attempt of every payment source behind Who paid us. */
+/** The latest production import attempt of every payment source behind Who paid us, whatever platforms are selected. */
 export function PaymentImportStatusSection(props: Readonly<{
   config: AdminAppConfig;
   dateRange: AnalyticsDateRange;
@@ -41,7 +42,7 @@ export function PaymentImportStatusSection(props: Readonly<{
     let cancelled = false;
     setState({ status: "loading" });
     const abortController = new AbortController();
-    void loadWhoPaidUsReport(props.config, props.dateRange, props.period, abortController.signal).then((report) => {
+    void loadWhoPaidUsReport(props.config, props.dateRange, props.period, reviewEventPlatforms, abortController.signal).then((report) => {
       if (!cancelled) setState({ status: "ready", report });
     }).catch((error: unknown) => {
       if (cancelled || props.onTerminalAdminError(error, props.config)) return;

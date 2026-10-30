@@ -4,6 +4,7 @@ import { AnalyticsFilterBar } from "../../filters/AnalyticsFilterBar";
 import {
   analyticsFilterFieldsByArea,
   buildDefaultAnalyticsFilterState,
+  whoSawUsDatasetAnalyticsFilterFields,
   type AnalyticsFilterField,
 } from "../../filters/analyticsFilters";
 import { noSiteVisitorFilterOptions, type SiteVisitorFilterOptions } from "../../filters/optionsQuery";
@@ -32,8 +33,15 @@ export type LevelOneMetricsFilterBar = Readonly<{
   resetAllLabel: string;
 }>;
 
-export const levelOneMetricsDateRangeFilterBar: LevelOneMetricsFilterBar = {
+export const levelOneMetricsFilterBar: LevelOneMetricsFilterBar = {
   fields: analyticsFilterFieldsByArea["level-1-metrics"],
+  siteOptions: { status: "ready", options: noSiteVisitorFilterOptions },
+  title: "Filters",
+  resetAllLabel: "Reset the Level 1 metrics filters",
+};
+
+export const levelOneMetricsDateRangeFilterBar: LevelOneMetricsFilterBar = {
+  fields: whoSawUsDatasetAnalyticsFilterFields,
   siteOptions: { status: "ready", options: noSiteVisitorFilterOptions },
   title: "Date range",
   resetAllLabel: "Reset the Level 1 metrics date range",
@@ -54,12 +62,13 @@ export function LevelOneMetricsFrame(
   const selectionState = props.selectionState;
   const rangeLookup = selectionState.rangeLookup;
   const dateRange = selectionState.selection.dateRange;
+  const eventPlatforms = selectionState.selection.eventPlatforms;
   const siteFilters = selectionState.selection.siteFilters;
   const siteOptions = props.filterBar.siteOptions;
-  // The site filters ride along on every page, so a page that does not offer them keeps them.
+  // The platform and site filters ride along on every page, so a page that does not offer them keeps them.
   const filters = useMemo(
-    () => ({ ...buildDefaultAnalyticsFilterState(dateRange), ...siteFilters }),
-    [dateRange, siteFilters],
+    () => ({ ...buildDefaultAnalyticsFilterState(dateRange), eventPlatforms, ...siteFilters }),
+    [dateRange, eventPlatforms, siteFilters],
   );
 
   return (

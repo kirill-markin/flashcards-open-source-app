@@ -1,4 +1,19 @@
+import type { ReviewEventPlatform } from "../../adminApi";
 import { buildExcludedActorSqlLines } from "../../filters/filterSql";
+import { escapeSqlStringLiteral } from "../../sql";
+import type { PaymentProvider } from "./query";
+
+/** The platform of a payment is the store it went through; no provider stands for agent or unattributed. */
+export const paymentProviderPlatforms = {
+  apple: "ios", google: "android", stripe: "web",
+} as const satisfies Readonly<Record<PaymentProvider, ReviewEventPlatform>>;
+
+/** The `paymentProviderPlatforms` platform of the provider code `providerSqlExpression`. */
+export function buildPaymentProviderPlatformSql(providerSqlExpression: string): string {
+  const branches = Object.entries(paymentProviderPlatforms)
+    .map(([provider, platform]) => `WHEN ${escapeSqlStringLiteral(provider)} THEN ${escapeSqlStringLiteral(platform)}`);
+  return `CASE ${providerSqlExpression} ${branches.join(" ")} END`;
+}
 
 // Only final events drop excluded people; unlinked payers count, and erasure alone never drops one. Classification uses all retained chronology.
 // Google orders of one subscription are `<root>`, `<root>..0`, `<root>..1`, ...; one is classified only

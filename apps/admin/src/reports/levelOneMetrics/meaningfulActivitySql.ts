@@ -1,5 +1,10 @@
+import type { ReviewEventPlatform } from "../../adminApi";
 import type { AnalyticsDateRange } from "../../filters/analyticsFilters";
-import { buildExcludedActorSqlLines, buildTrustedActorRowsFilterSql } from "../../filters/filterSql";
+import {
+  buildEventPlatformsNarrowingSql,
+  buildExcludedActorSqlLines,
+  buildTrustedActorRowsFilterSql,
+} from "../../filters/filterSql";
 import { escapeSqlStringLiteral } from "../../sql";
 import type { DailyActivitySource } from "../dailyNewReturning/query";
 import { buildReportBucketSql, type ReportPeriod } from "./reportPeriod";
@@ -41,29 +46,39 @@ export const reviewActivitySource: DailyActivitySource = {
   activityCte: "meaningful_activity",
   firstUseCte: "actor_first_use",
   coverageCte: "activity_coverage",
+  eventRowsFromSql: reviewRowsFromSql,
 };
 
-/** Every trusted `review_answered` of `range`, with its day and `period` bucket. */
-function buildRangeReviewsSql(period: ReportPeriod, range: AnalyticsDateRange): string {
+/** Every trusted `review_answered` of `range` on `eventPlatforms`, with its day and `period` bucket. */
+function buildRangeReviewsSql(
+  period: ReportPeriod,
+  range: AnalyticsDateRange,
+  eventPlatforms: ReadonlyArray<ReviewEventPlatform>,
+): string {
   return `SELECT events.actor_id::text AS actor_id,
       (events.occurred_at AT TIME ZONE 'UTC')::date AS activity_date,
       ${buildReportBucketSql(period, "(events.occurred_at AT TIME ZONE 'UTC')::date")} AS bucket_date,
       events.occurred_at, events.event_id, events.platform
     ${reviewRowsFromSql}
       AND events.occurred_at >= (${escapeSqlStringLiteral(range.from)}::date)::timestamp AT TIME ZONE 'UTC'
-      AND events.occurred_at < (${escapeSqlStringLiteral(range.to)}::date + 1)::timestamp AT TIME ZONE 'UTC'`;
+      AND events.occurred_at < (${escapeSqlStringLiteral(range.to)}::date + 1)::timestamp AT TIME ZONE 'UTC'
+      ${buildEventPlatformsNarrowingSql("COALESCE(events.platform, 'unattributed')", eventPlatforms)}`;
 }
 
 /**
  * The `meaningful_range_reviews` CTE, composed after `buildMeaningfulActivityCtesSql`: every
- * `review_answered` of the range that `meaningful_activity` counts, one row per review, so the shared
- * actor exclusions apply.
+ * `review_answered` of the range on `eventPlatforms` that `meaningful_activity` counts, one row per
+ * review, so the shared actor exclusions apply.
  */
-export function buildMeaningfulRangeReviewsCteSql(period: ReportPeriod, range: AnalyticsDateRange): string {
+export function buildMeaningfulRangeReviewsCteSql(
+  period: ReportPeriod,
+  range: AnalyticsDateRange,
+  eventPlatforms: ReadonlyArray<ReviewEventPlatform>,
+): string {
   return `meaningful_range_reviews AS (
   SELECT range_reviews.*
   FROM (
-    ${buildRangeReviewsSql(period, range)}
+    ${buildRangeReviewsSql(period, range, eventPlatforms)}
   ) AS range_reviews
   JOIN meaningful_activity USING (actor_id, activity_date)
 )`;
@@ -71,15 +86,19 @@ export function buildMeaningfulRangeReviewsCteSql(period: ReportPeriod, range: A
 
 /**
  * The `meaningful_last_reviews` CTE, composed after `buildMeaningfulActivityCtesSql`: one row per
- * bucket of the range and person `meaningful_activity` counts in it, carrying that person's last
- * `review_answered` in the bucket (latest `occurred_at`, then `event_id`), so a breakdown places each
- * person once per bar.
+ * bucket of the range and person `meaningful_activity` counts in it on `eventPlatforms`, carrying that
+ * person's last `review_answered` there in the bucket (latest `occurred_at`, then `event_id`), so a
+ * breakdown places each person once per bar.
  */
-export function buildMeaningfulLastReviewsCteSql(period: ReportPeriod, range: AnalyticsDateRange): string {
+export function buildMeaningfulLastReviewsCteSql(
+  period: ReportPeriod,
+  range: AnalyticsDateRange,
+  eventPlatforms: ReadonlyArray<ReviewEventPlatform>,
+): string {
   return `meaningful_last_reviews AS (
   SELECT DISTINCT ON (range_reviews.bucket_date, range_reviews.actor_id) range_reviews.*
   FROM (
-    ${buildRangeReviewsSql(period, range)}
+    ${buildRangeReviewsSql(period, range, eventPlatforms)}
   ) AS range_reviews
   JOIN meaningful_activity USING (actor_id, activity_date)
   ORDER BY range_reviews.bucket_date, range_reviews.actor_id, range_reviews.occurred_at DESC, range_reviews.event_id DESC

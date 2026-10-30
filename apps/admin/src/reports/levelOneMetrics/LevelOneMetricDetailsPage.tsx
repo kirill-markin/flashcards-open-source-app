@@ -10,7 +10,7 @@ import { WhoStudiedBreakdownSections } from "../whoStudied/WhoStudiedBreakdownSe
 import { WhoStudiedReviewEventSections } from "../whoStudied/WhoStudiedReviewEventSections";
 import { WhoStudiedSection } from "../whoStudied/WhoStudiedSection";
 import { LevelOneMetricDetailsHeader } from "./LevelOneMetricDetailsHeader";
-import { LevelOneMetricsFrame, levelOneMetricsDateRangeFilterBar } from "./LevelOneMetricsFrame";
+import { LevelOneMetricsFrame, levelOneMetricsFilterBar } from "./LevelOneMetricsFrame";
 import type { LevelOneMetricsSelection } from "./levelOneMetricsUrl";
 import { useLevelOneMetricsSelection } from "./useLevelOneMetricsSelection";
 
@@ -45,6 +45,7 @@ function renderMetricSections(
             config={props.config}
             dateRange={selection.dateRange}
             period={selection.period}
+            eventPlatforms={selection.eventPlatforms}
             detailsLink={null}
             onTerminalAdminError={props.onTerminalAdminError}
           />
@@ -52,6 +53,7 @@ function renderMetricSections(
             config={props.config}
             dateRange={selection.dateRange}
             period={selection.period}
+            eventPlatforms={selection.eventPlatforms}
             onTerminalAdminError={props.onTerminalAdminError}
           />
         </>
@@ -63,6 +65,7 @@ function renderMetricSections(
             config={props.config}
             dateRange={selection.dateRange}
             period={selection.period}
+            eventPlatforms={selection.eventPlatforms}
             detailsLink={null}
             onTerminalAdminError={props.onTerminalAdminError}
           />
@@ -70,12 +73,14 @@ function renderMetricSections(
             config={props.config}
             dateRange={selection.dateRange}
             period={selection.period}
+            eventPlatforms={selection.eventPlatforms}
             onTerminalAdminError={props.onTerminalAdminError}
           />
           <WhoStudiedReviewEventSections
             config={props.config}
             dateRange={selection.dateRange}
             period={selection.period}
+            eventPlatforms={selection.eventPlatforms}
             onNavigate={props.onNavigate}
             onTerminalAdminError={props.onTerminalAdminError}
           />
@@ -88,6 +93,7 @@ function renderMetricSections(
             config={props.config}
             dateRange={selection.dateRange}
             period={selection.period}
+            eventPlatforms={selection.eventPlatforms}
             detailsLink={null}
             onTerminalAdminError={props.onTerminalAdminError}
           />
@@ -95,6 +101,7 @@ function renderMetricSections(
             config={props.config}
             dateRange={selection.dateRange}
             period={selection.period}
+            eventPlatforms={selection.eventPlatforms}
             onTerminalAdminError={props.onTerminalAdminError}
           />
         </>
@@ -121,7 +128,7 @@ function ChartedLevelOneMetricDetailsPage(
 
       <LevelOneMetricsFrame
         selectionState={selectionState}
-        filterBar={levelOneMetricsDateRangeFilterBar}
+        filterBar={levelOneMetricsFilterBar}
         onNavigate={props.onNavigate}
         renderCharts={(selection) => (
           <div className="level-1-metrics-grid">{renderMetricSections(props, selection)}</div>
