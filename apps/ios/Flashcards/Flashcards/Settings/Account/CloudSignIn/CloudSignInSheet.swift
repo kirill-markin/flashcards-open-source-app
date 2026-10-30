@@ -59,8 +59,7 @@ struct CloudSignInSheet: View {
                 CloudWorkspaceSelectionSheet(
                     linkContext: linkContext,
                     isSelectionDisabled: self.store.cloudSignInAttempt.isPostAuthActionInFlight,
-                    onSelection: { self.completeLink(linkContext: linkContext, selection: $0) },
-                    onCancelled: { self.store.cloudSignInAttempt.workspaceLinkContext = nil }
+                    onSelection: { self.completeLink(linkContext: linkContext, selection: $0) }
                 )
                 .environment(self.store)
             } else if self.store.cloudSignInAttempt.isMailboxPresented {
@@ -80,6 +79,7 @@ struct CloudSignInSheet: View {
             self.store.cloudSignInAttempt.isPostAuthActionInFlight || self.isLoggingOut
                 || (self.store.cloudSignInAttempt.isMailboxPresented && self.store.cloudSignInAttempt.isNativeRequestInFlight)
                 || self.store.cloudSignInAttempt.postAuthFailureState?.kind == .guestLocalRecovery
+                || self.store.cloudSignInAttempt.workspaceLinkContext != nil
         )
         .onChange(of: self.store.cloudSignInAttempt.isMailboxPresented) { _, isPresented in
             if !isPresented && !self.store.cloudSignInAttempt.usesNativeSession {
