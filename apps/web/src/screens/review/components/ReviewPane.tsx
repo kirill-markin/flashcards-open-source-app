@@ -360,14 +360,14 @@ function ReviewActiveCardPane(props: ReviewActiveCardPaneProps): ReactElement {
       <div className="review-pane-head" ref={headerRef}>
         <div className="review-pane-head-meta">
           <ReviewCardTags onRequestTagFilter={onRequestTagFilter} tags={selectedCard.tags} />
-          <span className="badge review-metadata-chip">
-            <ReviewRepetitionBadgeIcon />
-            <span aria-hidden="true">{repetitionValue}</span>
-            <span className="review-metadata-chip-accessible-label">
-              {t("reviewScreen.repetitionBadgeAriaLabel", { value: repetitionValue })}
-            </span>
-          </span>
         </div>
+        <span className="badge review-metadata-chip">
+          <ReviewRepetitionBadgeIcon />
+          <span aria-hidden="true">{repetitionValue}</span>
+          <span className="review-metadata-chip-accessible-label">
+            {t("reviewScreen.repetitionBadgeAriaLabel", { value: repetitionValue })}
+          </span>
+        </span>
         <div className="review-pane-head-actions">
           <button
             type="button"
