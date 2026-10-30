@@ -460,11 +460,17 @@
 "settings.access.action.request" = "请求访问";
 "settings.access.action.openSettings" = "打开设置";
 "settings.access.guidance.photos.limited" = "照片图库的访问权限受到限制。您仍可选择照片作为 AI 附件。";
+"settings.access.guidance.mac.photos.limited" = "照片图库的访问权限受到限制。您仍可选择照片作为 AI 附件，或打开“系统设置”>“隐私与安全”>“照片”进行更改。";
 "settings.access.guidance.photos.blocked" = "照片图库的访问权限已关闭。您仍可选择照片作为 AI 附件。";
+"settings.access.guidance.mac.photos.blocked" = "照片图库的访问权限已关闭。您仍可选择照片作为 AI 附件，或打开“系统设置”>“隐私与安全”>“照片”进行更改。";
 "settings.access.guidance.camera.blocked" = "Nibomo 禁用相机访问。打开“设置”>“隐私和安全”>“相机”进行更改。";
+"settings.access.guidance.mac.camera.blocked" = "Nibomo 禁用摄像头访问。打开“系统设置”>“隐私与安全”>“摄像头”进行更改。";
 "settings.access.guidance.microphone.blocked" = "Nibomo 禁用麦克风访问。打开“设置”>“隐私和安全”>“麦克风”进行更改。";
+"settings.access.guidance.mac.microphone.blocked" = "Nibomo 禁用麦克风访问。打开“系统设置”>“隐私与安全”>“麦克风”进行更改。";
 "settings.access.guidance.askEveryTime" = "立即请求访问权限，如果您想手动管理，请稍后打开“设置”。";
+"settings.access.guidance.mac.askEveryTime" = "立即请求访问权限，如果您想手动管理，请稍后打开“系统设置”。";
 "settings.access.guidance.allowed" = "如果您想禁用此访问，请打开“设置”。";
+"settings.access.guidance.mac.allowed" = "如果您想禁用此访问，请打开“系统设置”>“隐私与安全”。";
 "settings.access.guidance.limited" = "打开“设置”以查看或扩展此访问权限。";
 "settings.access.guidance.unavailable" = "此访问在当前设备上不可用。";
 

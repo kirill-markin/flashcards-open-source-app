@@ -451,11 +451,17 @@
 "settings.access.action.request" = "Zahtevaj dostop";
 "settings.access.action.openSettings" = "Odpri Nastavitve";
 "settings.access.guidance.photos.limited" = "Dostop do knjižnice fotografij je omejen. Še vedno lahko izbirate fotografije za priloge v klepetu z AI.";
+"settings.access.guidance.mac.photos.limited" = "Dostop do knjižnice fotografij je omejen. Še vedno lahko izbirate fotografije za priloge v klepetu z AI ali dostop spremenite v Nastavitve sistema > Zasebnost in varnost > Fotografije.";
 "settings.access.guidance.photos.blocked" = "Dostop do knjižnice fotografij je izklopljen. Še vedno lahko izbirate fotografije za priloge v klepetu z AI.";
+"settings.access.guidance.mac.photos.blocked" = "Dostop do knjižnice fotografij je izklopljen. Še vedno lahko izbirate fotografije za priloge v klepetu z AI ali dostop spremenite v Nastavitve sistema > Zasebnost in varnost > Fotografije.";
 "settings.access.guidance.camera.blocked" = "Dostop do kamere je za Nibomo izklopljen. Spremenite ga v Nastavitve > Zasebnost in varnost > Kamera.";
+"settings.access.guidance.mac.camera.blocked" = "Dostop do kamere je za Nibomo izklopljen. Spremenite ga v Nastavitve sistema > Zasebnost in varnost > Kamera.";
 "settings.access.guidance.microphone.blocked" = "Dostop do mikrofona je za Nibomo izklopljen. Spremenite ga v Nastavitve > Zasebnost in varnost > Mikrofon.";
+"settings.access.guidance.mac.microphone.blocked" = "Dostop do mikrofona je za Nibomo izklopljen. Spremenite ga v Nastavitve sistema > Zasebnost in varnost > Mikrofon.";
 "settings.access.guidance.askEveryTime" = "Dostop zahtevajte zdaj ali ga pozneje ročno uredite v Nastavitvah.";
+"settings.access.guidance.mac.askEveryTime" = "Dostop zahtevajte zdaj ali ga pozneje ročno uredite v Nastavitvah sistema.";
 "settings.access.guidance.allowed" = "Če želite ta dostop izklopiti, odprite Nastavitve.";
+"settings.access.guidance.mac.allowed" = "Če želite ta dostop izklopiti, odprite Nastavitve sistema > Zasebnost in varnost.";
 "settings.access.guidance.limited" = "Za pregled ali razširitev dostopa odprite Nastavitve.";
 "settings.access.guidance.unavailable" = "Ta dostop v tej napravi ni na voljo.";
 "settings.account.row.openSourceValue" = "GitHub + MIT";

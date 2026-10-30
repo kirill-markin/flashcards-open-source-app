@@ -95,19 +95,6 @@ struct AccessPermissionDetailView: View {
 
                 Text(localizedAccessPermissionGuidance(kind: self.kind, status: self.status))
                     .foregroundStyle(.secondary)
-
-                #if targetEnvironment(macCatalyst)
-                if self.status == .allowed || self.status == .blocked || self.status == .limited {
-                    Text(
-                        String(
-                            localized: "access_permission_guidance.mac_settings",
-                            defaultValue: "In System Settings, open Privacy & Security and select this permission.",
-                            table: "Foundation"
-                        )
-                    )
-                    .foregroundStyle(.secondary)
-                }
-                #endif
             }
 
             if let primaryActionTitle = localizedAccessPermissionPrimaryActionTitle(self.status) {

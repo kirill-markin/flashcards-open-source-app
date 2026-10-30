@@ -451,11 +451,17 @@
 "settings.access.action.request" = "בקשת גישה";
 "settings.access.action.openSettings" = "פתיחת ההגדרות";
 "settings.access.guidance.photos.limited" = "הגישה לספריית התמונות מוגבלת. עדיין אפשר לבחור תמונות לצירוף לצ׳אט AI.";
+"settings.access.guidance.mac.photos.limited" = "הגישה לספריית התמונות מוגבלת. עדיין אפשר לבחור תמונות לצירוף לצ׳אט AI, או לפתוח את הגדרות המערכת > פרטיות ואבטחה > תמונות כדי לשנות זאת.";
 "settings.access.guidance.photos.blocked" = "הגישה לספריית התמונות כבויה. עדיין אפשר לבחור תמונות לצירוף לצ׳אט AI.";
+"settings.access.guidance.mac.photos.blocked" = "הגישה לספריית התמונות כבויה. עדיין אפשר לבחור תמונות לצירוף לצ׳אט AI, או לפתוח את הגדרות המערכת > פרטיות ואבטחה > תמונות כדי לשנות זאת.";
 "settings.access.guidance.camera.blocked" = "הגישה למצלמה כבויה עבור Nibomo. לשינוי, יש לפתוח הגדרות > פרטיות ואבטחה > מצלמה.";
+"settings.access.guidance.mac.camera.blocked" = "הגישה למצלמה כבויה עבור Nibomo. לשינוי, יש לפתוח הגדרות המערכת > פרטיות ואבטחה > מצלמה.";
 "settings.access.guidance.microphone.blocked" = "הגישה למיקרופון כבויה עבור Nibomo. לשינוי, יש לפתוח הגדרות > פרטיות ואבטחה > מיקרופון.";
+"settings.access.guidance.mac.microphone.blocked" = "הגישה למיקרופון כבויה עבור Nibomo. לשינוי, יש לפתוח הגדרות המערכת > פרטיות ואבטחה > מיקרופון.";
 "settings.access.guidance.askEveryTime" = "אפשר לבקש גישה כעת, או לפתוח את ההגדרות בהמשך לניהול ידני שלה.";
+"settings.access.guidance.mac.askEveryTime" = "אפשר לבקש גישה כעת, או לפתוח את הגדרות המערכת בהמשך לניהול ידני שלה.";
 "settings.access.guidance.allowed" = "כדי לבטל את הגישה, יש לפתוח את ההגדרות.";
+"settings.access.guidance.mac.allowed" = "כדי לבטל את הגישה, יש לפתוח את הגדרות המערכת > פרטיות ואבטחה.";
 "settings.access.guidance.limited" = "יש לפתוח את ההגדרות כדי לבדוק או להרחיב את הגישה.";
 "settings.access.guidance.unavailable" = "גישה זו אינה זמינה במכשיר הנוכחי.";
 "settings.account.row.openSourceValue" = "GitHub + MIT";

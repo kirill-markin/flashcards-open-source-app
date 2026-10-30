@@ -451,11 +451,17 @@
 "settings.access.action.request" = "Taotle juurdepääsu";
 "settings.access.action.openSettings" = "Ava seaded";
 "settings.access.guidance.photos.limited" = "Juurdepääs fotokogule on piiratud. Saad endiselt valida fotosid tehisintellektivestluse manusteks.";
+"settings.access.guidance.mac.photos.limited" = "Juurdepääs fotokogule on piiratud. Saad endiselt valida fotosid tehisintellektivestluse manusteks või selle muutmiseks avada Süsteemiseaded > Privaatsus ja turvalisus > Fotod.";
 "settings.access.guidance.photos.blocked" = "Juurdepääs fotokogule on välja lülitatud. Saad endiselt valida fotosid tehisintellektivestluse manusteks.";
+"settings.access.guidance.mac.photos.blocked" = "Juurdepääs fotokogule on välja lülitatud. Saad endiselt valida fotosid tehisintellektivestluse manusteks või selle muutmiseks avada Süsteemiseaded > Privaatsus ja turvalisus > Fotod.";
 "settings.access.guidance.camera.blocked" = "Nibomo kaamerale juurdepääs on välja lülitatud. Selle muutmiseks ava Seaded > Privaatsus ja turvalisus > Kaamera.";
+"settings.access.guidance.mac.camera.blocked" = "Nibomo kaamerale juurdepääs on välja lülitatud. Selle muutmiseks ava Süsteemiseaded > Privaatsus ja turvalisus > Kaamera.";
 "settings.access.guidance.microphone.blocked" = "Nibomo mikrofoni juurdepääs on välja lülitatud. Selle muutmiseks ava Seaded > Privaatsus ja turvalisus > Mikrofon.";
+"settings.access.guidance.mac.microphone.blocked" = "Nibomo mikrofoni juurdepääs on välja lülitatud. Selle muutmiseks ava Süsteemiseaded > Privaatsus ja turvalisus > Mikrofon.";
 "settings.access.guidance.askEveryTime" = "Taotle juurdepääsu kohe või ava seaded hiljem, et seda käsitsi hallata.";
+"settings.access.guidance.mac.askEveryTime" = "Taotle juurdepääsu kohe või ava Süsteemiseaded hiljem, et seda käsitsi hallata.";
 "settings.access.guidance.allowed" = "Kui soovid selle juurdepääsu välja lülitada, ava seaded.";
+"settings.access.guidance.mac.allowed" = "Kui soovid selle juurdepääsu välja lülitada, ava Süsteemiseaded > Privaatsus ja turvalisus.";
 "settings.access.guidance.limited" = "Selle juurdepääsu kontrollimiseks või laiendamiseks ava seaded.";
 "settings.access.guidance.unavailable" = "See juurdepääs pole selles seadmes saadaval.";
 "settings.account.row.openSourceValue" = "GitHub + MIT";

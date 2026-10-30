@@ -451,11 +451,17 @@
 "settings.access.action.request" = "Anmod om adgang";
 "settings.access.action.openSettings" = "Åbn Indstillinger";
 "settings.access.guidance.photos.limited" = "Adgangen til fotobiblioteket er begrænset. Du kan stadig vælge fotos til vedhæftning i AI-chatten.";
+"settings.access.guidance.mac.photos.limited" = "Adgangen til fotobiblioteket er begrænset. Du kan stadig vælge fotos til vedhæftning i AI-chatten eller åbne Systemindstillinger > Anonymitet & sikkerhed > Fotos for at ændre det.";
 "settings.access.guidance.photos.blocked" = "Adgangen til fotobiblioteket er slået fra. Du kan stadig vælge fotos til vedhæftning i AI-chatten.";
+"settings.access.guidance.mac.photos.blocked" = "Adgangen til fotobiblioteket er slået fra. Du kan stadig vælge fotos til vedhæftning i AI-chatten eller åbne Systemindstillinger > Anonymitet & sikkerhed > Fotos for at ændre det.";
 "settings.access.guidance.camera.blocked" = "Kameraadgang er slået fra for Nibomo. Åbn Indstillinger > Anonymitet & sikkerhed > Kamera for at ændre det.";
+"settings.access.guidance.mac.camera.blocked" = "Kameraadgang er slået fra for Nibomo. Åbn Systemindstillinger > Anonymitet & sikkerhed > Kamera for at ændre det.";
 "settings.access.guidance.microphone.blocked" = "Mikrofonadgang er slået fra for Nibomo. Åbn Indstillinger > Anonymitet & sikkerhed > Mikrofon for at ændre det.";
+"settings.access.guidance.mac.microphone.blocked" = "Mikrofonadgang er slået fra for Nibomo. Åbn Systemindstillinger > Anonymitet & sikkerhed > Mikrofon for at ændre det.";
 "settings.access.guidance.askEveryTime" = "Anmod om adgang nu, eller administrer den senere manuelt i Indstillinger.";
+"settings.access.guidance.mac.askEveryTime" = "Anmod om adgang nu, eller administrer den senere manuelt i Systemindstillinger.";
 "settings.access.guidance.allowed" = "Åbn Indstillinger, hvis du vil slå denne adgang fra.";
+"settings.access.guidance.mac.allowed" = "Åbn Systemindstillinger > Anonymitet & sikkerhed, hvis du vil slå denne adgang fra.";
 "settings.access.guidance.limited" = "Åbn Indstillinger for at gennemgå eller udvide denne adgang.";
 "settings.access.guidance.unavailable" = "Denne adgang er ikke tilgængelig på denne enhed.";
 "settings.account.row.openSourceValue" = "GitHub + MIT";

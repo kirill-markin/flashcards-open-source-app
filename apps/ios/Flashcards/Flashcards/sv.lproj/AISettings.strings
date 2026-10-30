@@ -451,11 +451,17 @@
 "settings.access.action.request" = "Begär åtkomst";
 "settings.access.action.openSettings" = "Öppna Inställningar";
 "settings.access.guidance.photos.limited" = "Åtkomst till bildbiblioteket är begränsad. Du kan fortfarande välja bilder som bilagor i AI-chatten.";
+"settings.access.guidance.mac.photos.limited" = "Åtkomst till bildbiblioteket är begränsad. Du kan fortfarande välja bilder som bilagor i AI-chatten, eller ändra det under Systeminställningar > Integritet och säkerhet > Bilder.";
 "settings.access.guidance.photos.blocked" = "Åtkomst till bildbiblioteket är avstängd. Du kan fortfarande välja bilder som bilagor i AI-chatten.";
+"settings.access.guidance.mac.photos.blocked" = "Åtkomst till bildbiblioteket är avstängd. Du kan fortfarande välja bilder som bilagor i AI-chatten, eller ändra det under Systeminställningar > Integritet och säkerhet > Bilder.";
 "settings.access.guidance.camera.blocked" = "Kameraåtkomst är avstängd för Nibomo. Ändra det under Inställningar > Integritet och säkerhet > Kamera.";
+"settings.access.guidance.mac.camera.blocked" = "Kameraåtkomst är avstängd för Nibomo. Ändra det under Systeminställningar > Integritet och säkerhet > Kamera.";
 "settings.access.guidance.microphone.blocked" = "Mikrofonåtkomst är avstängd för Nibomo. Ändra det under Inställningar > Integritet och säkerhet > Mikrofon.";
+"settings.access.guidance.mac.microphone.blocked" = "Mikrofonåtkomst är avstängd för Nibomo. Ändra det under Systeminställningar > Integritet och säkerhet > Mikrofon.";
 "settings.access.guidance.askEveryTime" = "Begär åtkomst nu eller hantera den manuellt i Inställningar senare.";
+"settings.access.guidance.mac.askEveryTime" = "Begär åtkomst nu eller hantera den manuellt i Systeminställningar senare.";
 "settings.access.guidance.allowed" = "Öppna Inställningar om du vill stänga av åtkomsten.";
+"settings.access.guidance.mac.allowed" = "Öppna Systeminställningar > Integritet och säkerhet om du vill stänga av åtkomsten.";
 "settings.access.guidance.limited" = "Öppna Inställningar för att granska eller utöka åtkomsten.";
 "settings.access.guidance.unavailable" = "Åtkomsten är inte tillgänglig på den här enheten.";
 "settings.account.row.openSourceValue" = "GitHub + MIT";

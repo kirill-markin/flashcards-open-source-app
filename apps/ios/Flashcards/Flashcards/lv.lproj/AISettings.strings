@@ -451,11 +451,17 @@
 "settings.access.action.request" = "Pieprasīt piekļuvi";
 "settings.access.action.openSettings" = "Atvērt iestatījumus";
 "settings.access.guidance.photos.limited" = "Piekļuve fotoattēlu bibliotēkai ir ierobežota. Joprojām varat atlasīt fotoattēlus MI sarunas pielikumiem.";
+"settings.access.guidance.mac.photos.limited" = "Piekļuve fotoattēlu bibliotēkai ir ierobežota. Joprojām varat atlasīt fotoattēlus MI sarunas pielikumiem vai, lai to mainītu, atvērt Sistēmas iestatījumi > Privātums un drošība > Fotoattēli.";
 "settings.access.guidance.photos.blocked" = "Piekļuve fotoattēlu bibliotēkai ir izslēgta. Joprojām varat atlasīt fotoattēlus MI sarunas pielikumiem.";
+"settings.access.guidance.mac.photos.blocked" = "Piekļuve fotoattēlu bibliotēkai ir izslēgta. Joprojām varat atlasīt fotoattēlus MI sarunas pielikumiem vai, lai to mainītu, atvērt Sistēmas iestatījumi > Privātums un drošība > Fotoattēli.";
 "settings.access.guidance.camera.blocked" = "Nibomo piekļuve kamerai ir izslēgta. Lai to mainītu, atveriet Iestatījumi > Privātums un drošība > Kamera.";
+"settings.access.guidance.mac.camera.blocked" = "Nibomo piekļuve kamerai ir izslēgta. Lai to mainītu, atveriet Sistēmas iestatījumi > Privātums un drošība > Kamera.";
 "settings.access.guidance.microphone.blocked" = "Nibomo piekļuve mikrofonam ir izslēgta. Lai to mainītu, atveriet Iestatījumi > Privātums un drošība > Mikrofons.";
+"settings.access.guidance.mac.microphone.blocked" = "Nibomo piekļuve mikrofonam ir izslēgta. Lai to mainītu, atveriet Sistēmas iestatījumi > Privātums un drošība > Mikrofons.";
 "settings.access.guidance.askEveryTime" = "Pieprasiet piekļuvi tagad vai vēlāk pārvaldiet to iestatījumos.";
+"settings.access.guidance.mac.askEveryTime" = "Pieprasiet piekļuvi tagad vai vēlāk pārvaldiet to sistēmas iestatījumos.";
 "settings.access.guidance.allowed" = "Lai izslēgtu šo piekļuvi, atveriet iestatījumus.";
+"settings.access.guidance.mac.allowed" = "Lai izslēgtu šo piekļuvi, atveriet Sistēmas iestatījumi > Privātums un drošība.";
 "settings.access.guidance.limited" = "Lai pārskatītu vai paplašinātu šo piekļuvi, atveriet iestatījumus.";
 "settings.access.guidance.unavailable" = "Šī piekļuve šajā ierīcē nav pieejama.";
 "settings.account.row.openSourceValue" = "GitHub + MIT";

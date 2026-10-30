@@ -451,11 +451,17 @@
 "settings.access.action.request" = "Prašyti prieigos";
 "settings.access.action.openSettings" = "Atidaryti nustatymus";
 "settings.access.guidance.photos.limited" = "Prieiga prie nuotraukų bibliotekos ribota. Vis tiek galite pasirinkti nuotraukas kaip DI pokalbio priedus.";
+"settings.access.guidance.mac.photos.limited" = "Prieiga prie nuotraukų bibliotekos ribota. Vis tiek galite pasirinkti nuotraukas kaip DI pokalbio priedus arba, norėdami ją pakeisti, atidaryti Sistemos nustatymai > Privatumas ir sauga > Nuotraukos.";
 "settings.access.guidance.photos.blocked" = "Prieiga prie nuotraukų bibliotekos išjungta. Vis tiek galite pasirinkti nuotraukas kaip DI pokalbio priedus.";
+"settings.access.guidance.mac.photos.blocked" = "Prieiga prie nuotraukų bibliotekos išjungta. Vis tiek galite pasirinkti nuotraukas kaip DI pokalbio priedus arba, norėdami ją pakeisti, atidaryti Sistemos nustatymai > Privatumas ir sauga > Nuotraukos.";
 "settings.access.guidance.camera.blocked" = "Nibomo prieiga prie kameros išjungta. Norėdami ją pakeisti, atidarykite Nustatymai > Privatumas ir sauga > Kamera.";
+"settings.access.guidance.mac.camera.blocked" = "Nibomo prieiga prie kameros išjungta. Norėdami ją pakeisti, atidarykite Sistemos nustatymai > Privatumas ir sauga > Kamera.";
 "settings.access.guidance.microphone.blocked" = "Nibomo prieiga prie mikrofono išjungta. Norėdami ją pakeisti, atidarykite Nustatymai > Privatumas ir sauga > Mikrofonas.";
+"settings.access.guidance.mac.microphone.blocked" = "Nibomo prieiga prie mikrofono išjungta. Norėdami ją pakeisti, atidarykite Sistemos nustatymai > Privatumas ir sauga > Mikrofonas.";
 "settings.access.guidance.askEveryTime" = "Prašykite prieigos dabar arba vėliau atidarykite nustatymus ir valdykite ją patys.";
+"settings.access.guidance.mac.askEveryTime" = "Prašykite prieigos dabar arba vėliau atidarykite sistemos nustatymus ir valdykite ją patys.";
 "settings.access.guidance.allowed" = "Norėdami išjungti šią prieigą, atidarykite nustatymus.";
+"settings.access.guidance.mac.allowed" = "Norėdami išjungti šią prieigą, atidarykite Sistemos nustatymai > Privatumas ir sauga.";
 "settings.access.guidance.limited" = "Norėdami peržiūrėti arba išplėsti šią prieigą, atidarykite nustatymus.";
 "settings.access.guidance.unavailable" = "Ši prieiga šiame įrenginyje nepasiekiama.";
 "settings.account.row.openSourceValue" = "GitHub + MIT";

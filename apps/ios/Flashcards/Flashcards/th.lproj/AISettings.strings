@@ -451,11 +451,17 @@
 "settings.access.action.request" = "ขอสิทธิ์";
 "settings.access.action.openSettings" = "เปิดการตั้งค่า";
 "settings.access.guidance.photos.limited" = "สิทธิ์เข้าถึงคลังรูปภาพถูกจำกัด คุณยังเลือกรูปเพื่อแนบในแชต AI ได้";
+"settings.access.guidance.mac.photos.limited" = "สิทธิ์เข้าถึงคลังรูปภาพถูกจำกัด คุณยังเลือกรูปเพื่อแนบในแชต AI ได้ หรือเปิดการตั้งค่าระบบ > ความเป็นส่วนตัวและความปลอดภัย > รูปภาพ เพื่อเปลี่ยนสิทธิ์";
 "settings.access.guidance.photos.blocked" = "สิทธิ์เข้าถึงคลังรูปภาพปิดอยู่ คุณยังเลือกรูปเพื่อแนบในแชต AI ได้";
+"settings.access.guidance.mac.photos.blocked" = "สิทธิ์เข้าถึงคลังรูปภาพปิดอยู่ คุณยังเลือกรูปเพื่อแนบในแชต AI ได้ หรือเปิดการตั้งค่าระบบ > ความเป็นส่วนตัวและความปลอดภัย > รูปภาพ เพื่อเปลี่ยนสิทธิ์";
 "settings.access.guidance.camera.blocked" = "Nibomo ไม่มีสิทธิ์ใช้กล้อง เปิดการตั้งค่า > ความเป็นส่วนตัวและความปลอดภัย > กล้อง เพื่อเปลี่ยนสิทธิ์";
+"settings.access.guidance.mac.camera.blocked" = "Nibomo ไม่มีสิทธิ์ใช้กล้อง เปิดการตั้งค่าระบบ > ความเป็นส่วนตัวและความปลอดภัย > กล้อง เพื่อเปลี่ยนสิทธิ์";
 "settings.access.guidance.microphone.blocked" = "Nibomo ไม่มีสิทธิ์ใช้ไมโครโฟน เปิดการตั้งค่า > ความเป็นส่วนตัวและความปลอดภัย > ไมโครโฟน เพื่อเปลี่ยนสิทธิ์";
+"settings.access.guidance.mac.microphone.blocked" = "Nibomo ไม่มีสิทธิ์ใช้ไมโครโฟน เปิดการตั้งค่าระบบ > ความเป็นส่วนตัวและความปลอดภัย > ไมโครโฟน เพื่อเปลี่ยนสิทธิ์";
 "settings.access.guidance.askEveryTime" = "ขอสิทธิ์ตอนนี้ หรือเปิดการตั้งค่าภายหลังเพื่อจัดการด้วยตนเอง";
+"settings.access.guidance.mac.askEveryTime" = "ขอสิทธิ์ตอนนี้ หรือเปิดการตั้งค่าระบบภายหลังเพื่อจัดการด้วยตนเอง";
 "settings.access.guidance.allowed" = "เปิดการตั้งค่าหากต้องการปิดสิทธิ์นี้";
+"settings.access.guidance.mac.allowed" = "เปิดการตั้งค่าระบบ > ความเป็นส่วนตัวและความปลอดภัย หากต้องการปิดสิทธิ์นี้";
 "settings.access.guidance.limited" = "เปิดการตั้งค่าเพื่อตรวจสอบหรือเพิ่มสิทธิ์นี้";
 "settings.access.guidance.unavailable" = "อุปกรณ์นี้ไม่รองรับสิทธิ์ดังกล่าว";
 "settings.account.row.openSourceValue" = "GitHub + MIT";

@@ -451,11 +451,17 @@
 "settings.access.action.request" = "Minta akses";
 "settings.access.action.openSettings" = "Buka Pengaturan";
 "settings.access.guidance.photos.limited" = "Akses ke perpustakaan foto dibatasi. Anda tetap dapat memilih foto untuk lampiran AI.";
+"settings.access.guidance.mac.photos.limited" = "Akses ke perpustakaan foto dibatasi. Anda tetap dapat memilih foto untuk lampiran AI, atau buka Pengaturan Sistem > Privasi & Keamanan > Foto untuk mengubahnya.";
 "settings.access.guidance.photos.blocked" = "Akses ke perpustakaan foto dinonaktifkan. Anda tetap dapat memilih foto untuk lampiran AI.";
+"settings.access.guidance.mac.photos.blocked" = "Akses ke perpustakaan foto dinonaktifkan. Anda tetap dapat memilih foto untuk lampiran AI, atau buka Pengaturan Sistem > Privasi & Keamanan > Foto untuk mengubahnya.";
 "settings.access.guidance.camera.blocked" = "Akses kamera untuk Nibomo dinonaktifkan. Buka Pengaturan > Privasi & Keamanan > Kamera untuk mengubahnya.";
+"settings.access.guidance.mac.camera.blocked" = "Akses kamera untuk Nibomo dinonaktifkan. Buka Pengaturan Sistem > Privasi & Keamanan > Kamera untuk mengubahnya.";
 "settings.access.guidance.microphone.blocked" = "Akses mikrofon untuk Nibomo dinonaktifkan. Buka Pengaturan > Privasi & Keamanan > Mikrofon untuk mengubahnya.";
+"settings.access.guidance.mac.microphone.blocked" = "Akses mikrofon untuk Nibomo dinonaktifkan. Buka Pengaturan Sistem > Privasi & Keamanan > Mikrofon untuk mengubahnya.";
 "settings.access.guidance.askEveryTime" = "Minta akses sekarang, atau buka Pengaturan nanti untuk mengelolanya secara manual.";
+"settings.access.guidance.mac.askEveryTime" = "Minta akses sekarang, atau buka Pengaturan Sistem nanti untuk mengelolanya secara manual.";
 "settings.access.guidance.allowed" = "Buka Pengaturan untuk menonaktifkan akses ini.";
+"settings.access.guidance.mac.allowed" = "Buka Pengaturan Sistem > Privasi & Keamanan untuk menonaktifkan akses ini.";
 "settings.access.guidance.limited" = "Buka Pengaturan untuk meninjau atau memperluas akses ini.";
 "settings.access.guidance.unavailable" = "Akses ini tidak tersedia di perangkat ini.";
 "settings.account.row.openSourceValue" = "GitHub + MIT";

@@ -161,35 +161,77 @@ func localizedAccessPermissionPrimaryActionTitle(_ status: AccessPermissionStatu
 func localizedAccessPermissionGuidance(kind: AccessPermissionKind, status: AccessPermissionStatus) -> String {
     switch (kind, status) {
     case (.photos, .limited):
+        #if targetEnvironment(macCatalyst)
+        return aiSettingsLocalized(
+            "settings.access.guidance.mac.photos.limited",
+            "Library access is limited. You can still choose photos for AI attachments, or open System Settings > Privacy & Security > Photos to change it."
+        )
+        #else
         return aiSettingsLocalized(
             "settings.access.guidance.photos.limited",
             "Library access is limited. You can still choose photos for AI attachments."
         )
+        #endif
     case (.photos, .blocked):
+        #if targetEnvironment(macCatalyst)
+        return aiSettingsLocalized(
+            "settings.access.guidance.mac.photos.blocked",
+            "Library access is off. You can still choose photos for AI attachments, or open System Settings > Privacy & Security > Photos to change it."
+        )
+        #else
         return aiSettingsLocalized(
             "settings.access.guidance.photos.blocked",
             "Library access is off. You can still choose photos for AI attachments."
         )
+        #endif
     case (.camera, .blocked):
+        #if targetEnvironment(macCatalyst)
+        return aiSettingsLocalized(
+            "settings.access.guidance.mac.camera.blocked",
+            "Camera access is turned off for Nibomo. Open System Settings > Privacy & Security > Camera to change it."
+        )
+        #else
         return aiSettingsLocalized(
             "settings.access.guidance.camera.blocked",
             "Camera access is turned off for Nibomo. Open Settings > Privacy & Security > Camera to change it."
         )
+        #endif
     case (.microphone, .blocked):
+        #if targetEnvironment(macCatalyst)
+        return aiSettingsLocalized(
+            "settings.access.guidance.mac.microphone.blocked",
+            "Microphone access is turned off for Nibomo. Open System Settings > Privacy & Security > Microphone to change it."
+        )
+        #else
         return aiSettingsLocalized(
             "settings.access.guidance.microphone.blocked",
             "Microphone access is turned off for Nibomo. Open Settings > Privacy & Security > Microphone to change it."
         )
+        #endif
     case (_, .askEveryTime):
+        #if targetEnvironment(macCatalyst)
+        return aiSettingsLocalized(
+            "settings.access.guidance.mac.askEveryTime",
+            "Request access now, or open System Settings later if you want to manage it manually."
+        )
+        #else
         return aiSettingsLocalized(
             "settings.access.guidance.askEveryTime",
             "Request access now, or open Settings later if you want to manage it manually."
         )
+        #endif
     case (_, .allowed):
+        #if targetEnvironment(macCatalyst)
+        return aiSettingsLocalized(
+            "settings.access.guidance.mac.allowed",
+            "Open System Settings > Privacy & Security if you want to turn this access off."
+        )
+        #else
         return aiSettingsLocalized(
             "settings.access.guidance.allowed",
             "Open Settings if you want to turn this access off."
         )
+        #endif
     case (_, .limited):
         return aiSettingsLocalized(
             "settings.access.guidance.limited",

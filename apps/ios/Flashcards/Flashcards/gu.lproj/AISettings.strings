@@ -451,11 +451,17 @@
 "settings.access.action.request" = "ઍક્સેસની વિનંતી કરો";
 "settings.access.action.openSettings" = "સેટિંગ્સ ખોલો";
 "settings.access.guidance.photos.limited" = "ફોટો લાઇબ્રેરીની ઍક્સેસ મર્યાદિત છે. તમે હજી પણ એઆઈ ચૅટમાં જોડવા માટે ફોટા પસંદ કરી શકો છો.";
+"settings.access.guidance.mac.photos.limited" = "ફોટો લાઇબ્રેરીની ઍક્સેસ મર્યાદિત છે. તમે હજી પણ એઆઈ ચૅટમાં જોડવા માટે ફોટા પસંદ કરી શકો છો, અથવા બદલવા માટે સિસ્ટમ સેટિંગ્સ > ગોપનીયતા અને સુરક્ષા > ફોટા ખોલો.";
 "settings.access.guidance.photos.blocked" = "ફોટો લાઇબ્રેરીની ઍક્સેસ બંધ છે. તમે હજી પણ એઆઈ ચૅટમાં જોડવા માટે ફોટા પસંદ કરી શકો છો.";
+"settings.access.guidance.mac.photos.blocked" = "ફોટો લાઇબ્રેરીની ઍક્સેસ બંધ છે. તમે હજી પણ એઆઈ ચૅટમાં જોડવા માટે ફોટા પસંદ કરી શકો છો, અથવા બદલવા માટે સિસ્ટમ સેટિંગ્સ > ગોપનીયતા અને સુરક્ષા > ફોટા ખોલો.";
 "settings.access.guidance.camera.blocked" = "Nibomo માટે કૅમેરાની ઍક્સેસ બંધ છે. બદલવા માટે સેટિંગ્સ > ગોપનીયતા અને સુરક્ષા > કૅમેરા ખોલો.";
+"settings.access.guidance.mac.camera.blocked" = "Nibomo માટે કૅમેરાની ઍક્સેસ બંધ છે. બદલવા માટે સિસ્ટમ સેટિંગ્સ > ગોપનીયતા અને સુરક્ષા > કૅમેરા ખોલો.";
 "settings.access.guidance.microphone.blocked" = "Nibomo માટે માઇક્રોફોનની ઍક્સેસ બંધ છે. બદલવા માટે સેટિંગ્સ > ગોપનીયતા અને સુરક્ષા > માઇક્રોફોન ખોલો.";
+"settings.access.guidance.mac.microphone.blocked" = "Nibomo માટે માઇક્રોફોનની ઍક્સેસ બંધ છે. બદલવા માટે સિસ્ટમ સેટિંગ્સ > ગોપનીયતા અને સુરક્ષા > માઇક્રોફોન ખોલો.";
 "settings.access.guidance.askEveryTime" = "હમણાં ઍક્સેસની વિનંતી કરો અથવા તેને જાતે સંચાલિત કરવા પછી સેટિંગ્સ ખોલો.";
+"settings.access.guidance.mac.askEveryTime" = "હમણાં ઍક્સેસની વિનંતી કરો અથવા તેને જાતે સંચાલિત કરવા પછી સિસ્ટમ સેટિંગ્સ ખોલો.";
 "settings.access.guidance.allowed" = "આ ઍક્સેસ બંધ કરવા માટે સેટિંગ્સ ખોલો.";
+"settings.access.guidance.mac.allowed" = "આ ઍક્સેસ બંધ કરવા માટે સિસ્ટમ સેટિંગ્સ > ગોપનીયતા અને સુરક્ષા ખોલો.";
 "settings.access.guidance.limited" = "આ ઍક્સેસ તપાસવા અથવા વધારવા માટે સેટિંગ્સ ખોલો.";
 "settings.access.guidance.unavailable" = "આ ઉપકરણ પર આ ઍક્સેસ ઉપલબ્ધ નથી.";
 "settings.account.row.openSourceValue" = "GitHub + MIT";

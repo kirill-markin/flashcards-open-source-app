@@ -451,11 +451,17 @@
 "settings.access.action.request" = "Óska eftir aðgangi";
 "settings.access.action.openSettings" = "Opna Stillingar";
 "settings.access.guidance.photos.limited" = "Aðgangur að myndasafni er takmarkaður. Þú getur samt valið myndir sem viðhengi í gervigreindarspjalli.";
+"settings.access.guidance.mac.photos.limited" = "Aðgangur að myndasafni er takmarkaður. Þú getur samt valið myndir sem viðhengi í gervigreindarspjalli eða opnað Kerfisstillingar > Persónuvernd og öryggi > Myndir til að breyta því.";
 "settings.access.guidance.photos.blocked" = "Slökkt er á aðgangi að myndasafni. Þú getur samt valið myndir sem viðhengi í gervigreindarspjalli.";
+"settings.access.guidance.mac.photos.blocked" = "Slökkt er á aðgangi að myndasafni. Þú getur samt valið myndir sem viðhengi í gervigreindarspjalli eða opnað Kerfisstillingar > Persónuvernd og öryggi > Myndir til að breyta því.";
 "settings.access.guidance.camera.blocked" = "Slökkt er á myndavélaaðgangi fyrir Nibomo. Opnaðu Stillingar > Persónuvernd og öryggi > Myndavél til að breyta því.";
+"settings.access.guidance.mac.camera.blocked" = "Slökkt er á myndavélaaðgangi fyrir Nibomo. Opnaðu Kerfisstillingar > Persónuvernd og öryggi > Myndavél til að breyta því.";
 "settings.access.guidance.microphone.blocked" = "Slökkt er á hljóðnemaaðgangi fyrir Nibomo. Opnaðu Stillingar > Persónuvernd og öryggi > Hljóðnemi til að breyta því.";
+"settings.access.guidance.mac.microphone.blocked" = "Slökkt er á hljóðnemaaðgangi fyrir Nibomo. Opnaðu Kerfisstillingar > Persónuvernd og öryggi > Hljóðnemi til að breyta því.";
 "settings.access.guidance.askEveryTime" = "Óskaðu eftir aðgangi núna eða opnaðu Stillingar síðar til að stjórna honum handvirkt.";
+"settings.access.guidance.mac.askEveryTime" = "Óskaðu eftir aðgangi núna eða opnaðu Kerfisstillingar síðar til að stjórna honum handvirkt.";
 "settings.access.guidance.allowed" = "Opnaðu Stillingar ef þú vilt slökkva á þessum aðgangi.";
+"settings.access.guidance.mac.allowed" = "Opnaðu Kerfisstillingar > Persónuvernd og öryggi ef þú vilt slökkva á þessum aðgangi.";
 "settings.access.guidance.limited" = "Opnaðu Stillingar til að skoða eða auka þennan aðgang.";
 "settings.access.guidance.unavailable" = "Þessi aðgangur er ekki tiltækur á þessu tæki.";
 "settings.account.row.openSourceValue" = "GitHub + MIT";

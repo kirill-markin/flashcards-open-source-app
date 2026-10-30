@@ -460,11 +460,17 @@
 "settings.access.action.request" = "طلب الوصول";
 "settings.access.action.openSettings" = "افتح الإعدادات";
 "settings.access.guidance.photos.limited" = "الوصول إلى مكتبة الصور محدود. لا يزال بإمكانك اختيار صور لإرفاقها بمحادثة الذكاء الاصطناعي.";
+"settings.access.guidance.mac.photos.limited" = "الوصول إلى مكتبة الصور محدود. لا يزال بإمكانك اختيار صور لإرفاقها بمحادثة الذكاء الاصطناعي، أو افتح إعدادات النظام > الخصوصية والأمن > الصور لتغييره.";
 "settings.access.guidance.photos.blocked" = "الوصول إلى مكتبة الصور معطّل. لا يزال بإمكانك اختيار صور لإرفاقها بمحادثة الذكاء الاصطناعي.";
+"settings.access.guidance.mac.photos.blocked" = "الوصول إلى مكتبة الصور معطّل. لا يزال بإمكانك اختيار صور لإرفاقها بمحادثة الذكاء الاصطناعي، أو افتح إعدادات النظام > الخصوصية والأمن > الصور لتغييره.";
 "settings.access.guidance.camera.blocked" = "تم تعطيل الوصول إلى الكاميرا لتطبيق Nibomo. افتح الإعدادات > الخصوصية والأمان > الكاميرا لتغييرها.";
+"settings.access.guidance.mac.camera.blocked" = "تم تعطيل الوصول إلى الكاميرا لتطبيق Nibomo. افتح إعدادات النظام > الخصوصية والأمن > الكاميرا لتغييرها.";
 "settings.access.guidance.microphone.blocked" = "تم تعطيل الوصول إلى الميكروفون لتطبيق Nibomo. افتح الإعدادات > الخصوصية والأمان > الميكروفون لتغييره.";
+"settings.access.guidance.mac.microphone.blocked" = "تم تعطيل الوصول إلى الميكروفون لتطبيق Nibomo. افتح إعدادات النظام > الخصوصية والأمن > الميكروفون لتغييره.";
 "settings.access.guidance.askEveryTime" = "اطلب الوصول الآن أو افتح الإعدادات لاحقًا إذا كنت تريد إدارتها يدويًا.";
+"settings.access.guidance.mac.askEveryTime" = "اطلب الوصول الآن أو افتح إعدادات النظام لاحقًا إذا كنت تريد إدارتها يدويًا.";
 "settings.access.guidance.allowed" = "افتح \"الإعدادات\" إذا كنت تريد تعطيل هذا الوصول.";
+"settings.access.guidance.mac.allowed" = "افتح \"إعدادات النظام\" > \"الخصوصية والأمن\" إذا كنت تريد تعطيل هذا الوصول.";
 "settings.access.guidance.limited" = "افتح \"الإعدادات\" لمراجعة هذا الوصول أو توسيعه.";
 "settings.access.guidance.unavailable" = "هذا الوصول غير متاح على الجهاز الحالي.";
 

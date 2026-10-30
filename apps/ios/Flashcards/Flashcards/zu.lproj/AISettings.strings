@@ -451,11 +451,17 @@
 "settings.access.action.request" = "Cela imvume";
 "settings.access.action.openSettings" = "Vula Izilungiselelo";
 "settings.access.guidance.photos.limited" = "Imvume yokufinyelela kumtapo wezithombe ikhawulelwe. Usengakhetha izithombe ozozinamathisela engxoxweni ye-AI.";
+"settings.access.guidance.mac.photos.limited" = "Imvume yokufinyelela kumtapo wezithombe ikhawulelwe. Usengakhetha izithombe ozozinamathisela engxoxweni ye-AI, noma uvule Izilungiselelo zesistimu > Ubumfihlo Nokuphepha > Izithombe ukuze uyishintshe.";
 "settings.access.guidance.photos.blocked" = "Imvume yokufinyelela kumtapo wezithombe ivaliwe. Usengakhetha izithombe ozozinamathisela engxoxweni ye-AI.";
+"settings.access.guidance.mac.photos.blocked" = "Imvume yokufinyelela kumtapo wezithombe ivaliwe. Usengakhetha izithombe ozozinamathisela engxoxweni ye-AI, noma uvule Izilungiselelo zesistimu > Ubumfihlo Nokuphepha > Izithombe ukuze uyishintshe.";
 "settings.access.guidance.camera.blocked" = "Imvume yekhamera ye-Nibomo ivaliwe. Vula Izilungiselelo > Ubumfihlo Nokuphepha > Ikhamera ukuze uyishintshe.";
+"settings.access.guidance.mac.camera.blocked" = "Imvume yekhamera ye-Nibomo ivaliwe. Vula Izilungiselelo zesistimu > Ubumfihlo Nokuphepha > Ikhamera ukuze uyishintshe.";
 "settings.access.guidance.microphone.blocked" = "Imvume yemakrofoni ye-Nibomo ivaliwe. Vula Izilungiselelo > Ubumfihlo Nokuphepha > Imakrofoni ukuze uyishintshe.";
+"settings.access.guidance.mac.microphone.blocked" = "Imvume yemakrofoni ye-Nibomo ivaliwe. Vula Izilungiselelo zesistimu > Ubumfihlo Nokuphepha > Imakrofoni ukuze uyishintshe.";
 "settings.access.guidance.askEveryTime" = "Cela imvume manje, noma uvule Izilungiselelo kamuva ukuze uzilawulele yona.";
+"settings.access.guidance.mac.askEveryTime" = "Cela imvume manje, noma uvule Izilungiselelo zesistimu kamuva ukuze uzilawulele yona.";
 "settings.access.guidance.allowed" = "Vula Izilungiselelo uma ufuna ukuvala le mvume.";
+"settings.access.guidance.mac.allowed" = "Vula Izilungiselelo zesistimu > Ubumfihlo Nokuphepha uma ufuna ukuvala le mvume.";
 "settings.access.guidance.limited" = "Vula Izilungiselelo ukuze ubuyekeze noma wandise le mvume.";
 "settings.access.guidance.unavailable" = "Le mvume ayitholakali kule divayisi.";
 "settings.account.row.openSourceValue" = "GitHub + MIT";

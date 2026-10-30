@@ -460,11 +460,17 @@
 "settings.access.action.request" = "Solicitar acesso";
 "settings.access.action.openSettings" = "Abrir Ajustes";
 "settings.access.guidance.photos.limited" = "O acesso à fototeca está limitado. Você ainda pode escolher fotos para anexar ao chat com IA.";
+"settings.access.guidance.mac.photos.limited" = "O acesso à fototeca está limitado. Você ainda pode escolher fotos para anexar ao chat com IA ou abrir Ajustes do Sistema > Privacidade e Segurança > Fotos para alterar.";
 "settings.access.guidance.photos.blocked" = "O acesso à fototeca está desativado. Você ainda pode escolher fotos para anexar ao chat com IA.";
+"settings.access.guidance.mac.photos.blocked" = "O acesso à fototeca está desativado. Você ainda pode escolher fotos para anexar ao chat com IA ou abrir Ajustes do Sistema > Privacidade e Segurança > Fotos para alterar.";
 "settings.access.guidance.camera.blocked" = "O acesso à câmera está desativado para o Nibomo. Abra Ajustes > Privacidade e Segurança > Câmera para alterar.";
+"settings.access.guidance.mac.camera.blocked" = "O acesso à câmera está desativado para o Nibomo. Abra Ajustes do Sistema > Privacidade e Segurança > Câmera para alterar.";
 "settings.access.guidance.microphone.blocked" = "O acesso ao microfone está desativado para o Nibomo. Abra Ajustes > Privacidade e Segurança > Microfone para alterar.";
+"settings.access.guidance.mac.microphone.blocked" = "O acesso ao microfone está desativado para o Nibomo. Abra Ajustes do Sistema > Privacidade e Segurança > Microfone para alterar.";
 "settings.access.guidance.askEveryTime" = "Solicite o acesso agora ou abra os Ajustes depois, se quiser gerenciá-lo manualmente.";
+"settings.access.guidance.mac.askEveryTime" = "Solicite o acesso agora ou abra os Ajustes do Sistema depois, se quiser gerenciá-lo manualmente.";
 "settings.access.guidance.allowed" = "Abra os Ajustes se quiser desativar esse acesso.";
+"settings.access.guidance.mac.allowed" = "Abra os Ajustes do Sistema > Privacidade e Segurança se quiser desativar esse acesso.";
 "settings.access.guidance.limited" = "Abra os Ajustes para revisar ou ampliar esse acesso.";
 "settings.access.guidance.unavailable" = "Esse acesso não está disponível no dispositivo atual.";
 

@@ -451,11 +451,17 @@
 "settings.access.action.request" = "Yêu cầu quyền truy cập";
 "settings.access.action.openSettings" = "Mở Cài đặt";
 "settings.access.guidance.photos.limited" = "Quyền truy cập thư viện ảnh bị giới hạn. Bạn vẫn có thể chọn ảnh để đính kèm trong trò chuyện AI.";
+"settings.access.guidance.mac.photos.limited" = "Quyền truy cập thư viện ảnh bị giới hạn. Bạn vẫn có thể chọn ảnh để đính kèm trong trò chuyện AI, hoặc mở Cài đặt hệ thống > Quyền riêng tư & Bảo mật > Ảnh để thay đổi.";
 "settings.access.guidance.photos.blocked" = "Quyền truy cập thư viện ảnh đang tắt. Bạn vẫn có thể chọn ảnh để đính kèm trong trò chuyện AI.";
+"settings.access.guidance.mac.photos.blocked" = "Quyền truy cập thư viện ảnh đang tắt. Bạn vẫn có thể chọn ảnh để đính kèm trong trò chuyện AI, hoặc mở Cài đặt hệ thống > Quyền riêng tư & Bảo mật > Ảnh để thay đổi.";
 "settings.access.guidance.camera.blocked" = "Quyền truy cập camera của Nibomo đang tắt. Mở Cài đặt > Quyền riêng tư & Bảo mật > Camera để thay đổi.";
+"settings.access.guidance.mac.camera.blocked" = "Quyền truy cập camera của Nibomo đang tắt. Mở Cài đặt hệ thống > Quyền riêng tư & Bảo mật > Camera để thay đổi.";
 "settings.access.guidance.microphone.blocked" = "Quyền truy cập micrô của Nibomo đang tắt. Mở Cài đặt > Quyền riêng tư & Bảo mật > Micrô để thay đổi.";
+"settings.access.guidance.mac.microphone.blocked" = "Quyền truy cập micrô của Nibomo đang tắt. Mở Cài đặt hệ thống > Quyền riêng tư & Bảo mật > Micrô để thay đổi.";
 "settings.access.guidance.askEveryTime" = "Yêu cầu quyền truy cập ngay hoặc mở Cài đặt sau để tự quản lý.";
+"settings.access.guidance.mac.askEveryTime" = "Yêu cầu quyền truy cập ngay hoặc mở Cài đặt hệ thống sau để tự quản lý.";
 "settings.access.guidance.allowed" = "Mở Cài đặt nếu bạn muốn tắt quyền truy cập này.";
+"settings.access.guidance.mac.allowed" = "Mở Cài đặt hệ thống > Quyền riêng tư & Bảo mật nếu bạn muốn tắt quyền truy cập này.";
 "settings.access.guidance.limited" = "Mở Cài đặt để xem lại hoặc mở rộng quyền truy cập này.";
 "settings.access.guidance.unavailable" = "Quyền truy cập này không khả dụng trên thiết bị hiện tại.";
 "settings.account.row.openSourceValue" = "GitHub + MIT";

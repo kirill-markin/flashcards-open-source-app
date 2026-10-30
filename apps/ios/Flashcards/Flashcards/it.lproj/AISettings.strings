@@ -451,11 +451,17 @@
 "settings.access.action.request" = "Richiedi accesso";
 "settings.access.action.openSettings" = "Apri Impostazioni";
 "settings.access.guidance.photos.limited" = "L’accesso alla libreria foto è limitato. Puoi comunque scegliere foto da allegare alla chat IA.";
+"settings.access.guidance.mac.photos.limited" = "L’accesso alla libreria foto è limitato. Puoi comunque scegliere foto da allegare alla chat IA, oppure aprire Impostazioni di Sistema > Privacy e Sicurezza > Foto per modificarlo.";
 "settings.access.guidance.photos.blocked" = "L’accesso alla libreria foto è disattivato. Puoi comunque scegliere foto da allegare alla chat IA.";
+"settings.access.guidance.mac.photos.blocked" = "L’accesso alla libreria foto è disattivato. Puoi comunque scegliere foto da allegare alla chat IA, oppure aprire Impostazioni di Sistema > Privacy e Sicurezza > Foto per modificarlo.";
 "settings.access.guidance.camera.blocked" = "L’accesso alla fotocamera è disattivato per Nibomo. Apri Impostazioni > Privacy e sicurezza > Fotocamera per modificarlo.";
+"settings.access.guidance.mac.camera.blocked" = "L’accesso alla fotocamera è disattivato per Nibomo. Apri Impostazioni di Sistema > Privacy e Sicurezza > Fotocamera per modificarlo.";
 "settings.access.guidance.microphone.blocked" = "L’accesso al microfono è disattivato per Nibomo. Apri Impostazioni > Privacy e sicurezza > Microfono per modificarlo.";
+"settings.access.guidance.mac.microphone.blocked" = "L’accesso al microfono è disattivato per Nibomo. Apri Impostazioni di Sistema > Privacy e Sicurezza > Microfono per modificarlo.";
 "settings.access.guidance.askEveryTime" = "Richiedi l’accesso ora oppure apri Impostazioni in seguito per gestirlo manualmente.";
+"settings.access.guidance.mac.askEveryTime" = "Richiedi l’accesso ora oppure apri Impostazioni di Sistema in seguito per gestirlo manualmente.";
 "settings.access.guidance.allowed" = "Apri Impostazioni per disattivare questo accesso.";
+"settings.access.guidance.mac.allowed" = "Apri Impostazioni di Sistema > Privacy e Sicurezza per disattivare questo accesso.";
 "settings.access.guidance.limited" = "Apri Impostazioni per controllare o ampliare questo accesso.";
 "settings.access.guidance.unavailable" = "Questo accesso non è disponibile sul dispositivo attuale.";
 "settings.account.row.openSourceValue" = "GitHub + MIT";

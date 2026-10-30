@@ -451,11 +451,17 @@
 "settings.access.action.request" = "Erişim iste";
 "settings.access.action.openSettings" = "Ayarlar’ı Aç";
 "settings.access.guidance.photos.limited" = "Fotoğraf arşivi erişimi sınırlı. Yapay zekâ sohbetine eklemek için yine de fotoğraf seçebilirsiniz.";
+"settings.access.guidance.mac.photos.limited" = "Fotoğraf arşivi erişimi sınırlı. Yapay zekâ sohbetine eklemek için yine de fotoğraf seçebilir veya değiştirmek için Sistem Ayarları > Gizlilik ve Güvenlik > Fotoğraflar’ı açabilirsiniz.";
 "settings.access.guidance.photos.blocked" = "Fotoğraf arşivi erişimi kapalı. Yapay zekâ sohbetine eklemek için yine de fotoğraf seçebilirsiniz.";
+"settings.access.guidance.mac.photos.blocked" = "Fotoğraf arşivi erişimi kapalı. Yapay zekâ sohbetine eklemek için yine de fotoğraf seçebilir veya değiştirmek için Sistem Ayarları > Gizlilik ve Güvenlik > Fotoğraflar’ı açabilirsiniz.";
 "settings.access.guidance.camera.blocked" = "Nibomo için kamera erişimi kapalı. Değiştirmek için Ayarlar > Gizlilik ve Güvenlik > Kamera’yı açın.";
+"settings.access.guidance.mac.camera.blocked" = "Nibomo için kamera erişimi kapalı. Değiştirmek için Sistem Ayarları > Gizlilik ve Güvenlik > Kamera’yı açın.";
 "settings.access.guidance.microphone.blocked" = "Nibomo için mikrofon erişimi kapalı. Değiştirmek için Ayarlar > Gizlilik ve Güvenlik > Mikrofon’u açın.";
+"settings.access.guidance.mac.microphone.blocked" = "Nibomo için mikrofon erişimi kapalı. Değiştirmek için Sistem Ayarları > Gizlilik ve Güvenlik > Mikrofon’u açın.";
 "settings.access.guidance.askEveryTime" = "Şimdi erişim isteyin veya daha sonra elle yönetmek için Ayarlar’ı açın.";
+"settings.access.guidance.mac.askEveryTime" = "Şimdi erişim isteyin veya daha sonra elle yönetmek için Sistem Ayarları’nı açın.";
 "settings.access.guidance.allowed" = "Bu erişimi kapatmak için Ayarlar’ı açın.";
+"settings.access.guidance.mac.allowed" = "Bu erişimi kapatmak için Sistem Ayarları > Gizlilik ve Güvenlik’i açın.";
 "settings.access.guidance.limited" = "Bu erişimi gözden geçirmek veya genişletmek için Ayarlar’ı açın.";
 "settings.access.guidance.unavailable" = "Bu erişim mevcut aygıtta kullanılamıyor.";
 "settings.account.row.openSourceValue" = "GitHub + MIT";

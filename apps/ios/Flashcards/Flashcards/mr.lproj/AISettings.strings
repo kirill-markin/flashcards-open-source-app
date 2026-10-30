@@ -451,11 +451,17 @@
 "settings.access.action.request" = "प्रवेशाची विनंती करा";
 "settings.access.action.openSettings" = "सेटिंग्ज उघडा";
 "settings.access.guidance.photos.limited" = "फोटो लायब्ररीचा ॲक्सेस मर्यादित आहे. AI चॅटला जोडण्यासाठी तुम्ही अजूनही फोटो निवडू शकता.";
+"settings.access.guidance.mac.photos.limited" = "फोटो लायब्ररीचा ॲक्सेस मर्यादित आहे. AI चॅटला जोडण्यासाठी तुम्ही अजूनही फोटो निवडू शकता, किंवा बदलण्यासाठी सिस्टम सेटिंग्ज > गोपनीयता आणि सुरक्षा > फोटो उघडा.";
 "settings.access.guidance.photos.blocked" = "फोटो लायब्ररीचा ॲक्सेस बंद आहे. AI चॅटला जोडण्यासाठी तुम्ही अजूनही फोटो निवडू शकता.";
+"settings.access.guidance.mac.photos.blocked" = "फोटो लायब्ररीचा ॲक्सेस बंद आहे. AI चॅटला जोडण्यासाठी तुम्ही अजूनही फोटो निवडू शकता, किंवा बदलण्यासाठी सिस्टम सेटिंग्ज > गोपनीयता आणि सुरक्षा > फोटो उघडा.";
 "settings.access.guidance.camera.blocked" = "Nibomo साठी कॅमेऱ्याचा प्रवेश बंद आहे. बदलण्यासाठी सेटिंग्ज > गोपनीयता आणि सुरक्षा > कॅमेरा उघडा.";
+"settings.access.guidance.mac.camera.blocked" = "Nibomo साठी कॅमेऱ्याचा प्रवेश बंद आहे. बदलण्यासाठी सिस्टम सेटिंग्ज > गोपनीयता आणि सुरक्षा > कॅमेरा उघडा.";
 "settings.access.guidance.microphone.blocked" = "Nibomo साठी मायक्रोफोनचा प्रवेश बंद आहे. बदलण्यासाठी सेटिंग्ज > गोपनीयता आणि सुरक्षा > मायक्रोफोन उघडा.";
+"settings.access.guidance.mac.microphone.blocked" = "Nibomo साठी मायक्रोफोनचा प्रवेश बंद आहे. बदलण्यासाठी सिस्टम सेटिंग्ज > गोपनीयता आणि सुरक्षा > मायक्रोफोन उघडा.";
 "settings.access.guidance.askEveryTime" = "आता प्रवेशाची विनंती करा किंवा स्वतः व्यवस्थापित करण्यासाठी नंतर सेटिंग्ज उघडा.";
+"settings.access.guidance.mac.askEveryTime" = "आता प्रवेशाची विनंती करा किंवा स्वतः व्यवस्थापित करण्यासाठी नंतर सिस्टम सेटिंग्ज उघडा.";
 "settings.access.guidance.allowed" = "हा प्रवेश बंद करायचा असल्यास सेटिंग्ज उघडा.";
+"settings.access.guidance.mac.allowed" = "हा प्रवेश बंद करायचा असल्यास सिस्टम सेटिंग्ज > गोपनीयता आणि सुरक्षा उघडा.";
 "settings.access.guidance.limited" = "हा प्रवेश पाहण्यासाठी किंवा वाढवण्यासाठी सेटिंग्ज उघडा.";
 "settings.access.guidance.unavailable" = "या उपकरणावर हा प्रवेश उपलब्ध नाही.";
 "settings.account.row.openSourceValue" = "GitHub + MIT";
