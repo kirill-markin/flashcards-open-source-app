@@ -218,6 +218,10 @@ function renderTagSuggestionMeta(option: TagOption, loadingLabel: string, newLab
   );
 }
 
+function isTagInputComposing(event: KeyboardEvent<HTMLInputElement>): boolean {
+  return event.nativeEvent.isComposing || event.nativeEvent.keyCode === 229;
+}
+
 export const CardTagsInput = forwardRef<CardTagsInputHandle, CardTagsInputProps>(function CardTagsInput(props, ref) {
   const { value, suggestions, placeholder, inputId, inputName, onChange, onEscape } = props;
   const { t } = useI18n();
@@ -296,6 +300,12 @@ export const CardTagsInput = forwardRef<CardTagsInputHandle, CardTagsInputProps>
   }
 
   function handleInputKeyDown(event: KeyboardEvent<HTMLInputElement>): void {
+    if (isTagInputComposing(event)) {
+      // The Cards filter popover closes on any document-level Escape.
+      event.stopPropagation();
+      return;
+    }
+
     if (event.key === "Escape") {
       event.preventDefault();
       event.stopPropagation();
