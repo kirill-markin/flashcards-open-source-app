@@ -579,6 +579,7 @@
 "settings.account.cloudSignIn.failure.cloudSetupFailed" = "Giriş yapıldı ancak bulut kurulumu başarısız oldu.";
 "settings.account.cloudSignIn.failure.accountUpgradeFailed" = "Giriş yapıldı ancak hesap yükseltmesi başarısız oldu.";
 "settings.account.cloudSignIn.failureDescription" = "Giriş başarılı ancak bulut çalışma alanı kurulumu veya ilk eşzamanlama tamamlanmadı.";
+"settings.account.cloudSignIn.chooseWorkspace" = "Çalışma alanı seç";
 "settings.account.cloudSignIn.sync.title" = "Hesabınız bulutla eşzamanlanıyor.";
 "settings.account.cloudSignIn.sync.message" = "Hesabınız eşitlenirken Nibomo'yu açık tutun. Bu işlem genellikle birkaç dakika sürer.";
 "settings.account.cloudSignIn.cloudSyncTitle" = "Bulut eşzamanlaması";

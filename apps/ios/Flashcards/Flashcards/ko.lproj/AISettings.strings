@@ -579,6 +579,7 @@
 "settings.account.cloudSignIn.failure.cloudSetupFailed" = "로그인했지만 클라우드 설정에 실패했습니다.";
 "settings.account.cloudSignIn.failure.accountUpgradeFailed" = "로그인했지만 계정 전환에 실패했습니다.";
 "settings.account.cloudSignIn.failureDescription" = "로그인은 성공했지만 클라우드 작업 공간 설정 또는 초기 동기화가 완료되지 않았습니다.";
+"settings.account.cloudSignIn.chooseWorkspace" = "작업 공간 선택";
 "settings.account.cloudSignIn.sync.title" = "계정을 클라우드와 동기화하고 있습니다.";
 "settings.account.cloudSignIn.sync.message" = "계정이 동기화되는 동안 Nibomo를 열어 두세요. 보통 몇 분 정도 걸립니다.";
 "settings.account.cloudSignIn.cloudSyncTitle" = "클라우드 동기화";

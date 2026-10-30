@@ -579,6 +579,7 @@
 "settings.account.cloudSignIn.failure.cloudSetupFailed" = "Đã đăng nhập nhưng thiết lập đám mây thất bại.";
 "settings.account.cloudSignIn.failure.accountUpgradeFailed" = "Đã đăng nhập nhưng nâng cấp tài khoản thất bại.";
 "settings.account.cloudSignIn.failureDescription" = "Bạn đã đăng nhập thành công nhưng thiết lập không gian làm việc đám mây hoặc đồng bộ ban đầu chưa hoàn tất.";
+"settings.account.cloudSignIn.chooseWorkspace" = "Chọn không gian làm việc";
 "settings.account.cloudSignIn.sync.title" = "Tài khoản của bạn đang đồng bộ với đám mây.";
 "settings.account.cloudSignIn.sync.message" = "Giữ Nibomo mở trong khi tài khoản của bạn đồng bộ. Quá trình này thường mất vài phút.";
 "settings.account.cloudSignIn.cloudSyncTitle" = "Đồng bộ đám mây";

@@ -579,6 +579,7 @@
 "settings.account.cloudSignIn.failure.cloudSetupFailed" = "Aangemeld, maar het instellen van de cloud is mislukt.";
 "settings.account.cloudSignIn.failure.accountUpgradeFailed" = "Aangemeld, maar de accountupgrade is mislukt.";
 "settings.account.cloudSignIn.failureDescription" = "Je bent aangemeld, maar het instellen van de cloudwerkruimte of de eerste synchronisatie is niet voltooid.";
+"settings.account.cloudSignIn.chooseWorkspace" = "Werkruimte kiezen";
 "settings.account.cloudSignIn.sync.title" = "Je account wordt met de cloud gesynchroniseerd.";
 "settings.account.cloudSignIn.sync.message" = "Houd Nibomo open terwijl je account wordt gesynchroniseerd. Dit duurt meestal een paar minuten.";
 "settings.account.cloudSignIn.cloudSyncTitle" = "Cloudsynchronisatie";

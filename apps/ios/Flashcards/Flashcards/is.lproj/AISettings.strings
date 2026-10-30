@@ -579,6 +579,7 @@
 "settings.account.cloudSignIn.failure.cloudSetupFailed" = "Innskráning tókst en skýjauppsetning mistókst.";
 "settings.account.cloudSignIn.failure.accountUpgradeFailed" = "Innskráning tókst en uppfærsla aðgangs mistókst.";
 "settings.account.cloudSignIn.failureDescription" = "Innskráning tókst en uppsetningu skýjavinnusvæðis eða upphafssamstillingu lauk ekki.";
+"settings.account.cloudSignIn.chooseWorkspace" = "Velja vinnusvæði";
 "settings.account.cloudSignIn.sync.title" = "Aðgangurinn þinn er að samstillast við skýið.";
 "settings.account.cloudSignIn.sync.message" = "Hafðu Nibomo opið á meðan reikningurinn þinn er samstilltur. Þetta tekur yfirleitt nokkrar mínútur.";
 "settings.account.cloudSignIn.cloudSyncTitle" = "Skýjasamstilling";

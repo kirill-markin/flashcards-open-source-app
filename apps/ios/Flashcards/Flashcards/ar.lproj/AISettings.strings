@@ -594,6 +594,7 @@
 "settings.account.cloudSignIn.failure.cloudSetupFailed" = "لقد قمت بتسجيل الدخول، ولكن فشل تكوين السحابة.";
 "settings.account.cloudSignIn.failure.accountUpgradeFailed" = "لقد قمت بتسجيل الدخول، ولكن فشل تحديث الحساب.";
 "settings.account.cloudSignIn.failureDescription" = "اكتمل تسجيل الدخول، ولكن لم يتم الانتهاء من إعداد مساحة العمل السحابية أو المزامنة الأولية.";
+"settings.account.cloudSignIn.chooseWorkspace" = "اختر مساحة العمل";
 "settings.account.cloudSignIn.sync.title" = "تتم الآن مزامنة حسابك مع السحابة.";
 "settings.account.cloudSignIn.sync.message" = "أبقِ Nibomo مفتوحًا أثناء مزامنة حسابك. يستغرق هذا عادةً بضع دقائق.";
 "settings.account.cloudSignIn.cloudSyncTitle" = "المزامنة السحابية";

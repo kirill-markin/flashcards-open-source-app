@@ -579,6 +579,7 @@
 "settings.account.cloudSignIn.failure.cloudSetupFailed" = "Autentificare reușită, dar configurarea cloudului a eșuat.";
 "settings.account.cloudSignIn.failure.accountUpgradeFailed" = "Autentificare reușită, dar actualizarea contului a eșuat.";
 "settings.account.cloudSignIn.failureDescription" = "Autentificarea a reușit, dar configurarea spațiului de lucru din cloud sau sincronizarea inițială nu s-a finalizat.";
+"settings.account.cloudSignIn.chooseWorkspace" = "Alege spațiul de lucru";
 "settings.account.cloudSignIn.sync.title" = "Contul tău se sincronizează cu cloudul.";
 "settings.account.cloudSignIn.sync.message" = "Ține Nibomo deschis în timp ce contul tău se sincronizează. De obicei durează câteva minute.";
 "settings.account.cloudSignIn.cloudSyncTitle" = "Sincronizare în cloud";

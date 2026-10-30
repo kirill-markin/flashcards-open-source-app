@@ -579,6 +579,7 @@
 "settings.account.cloudSignIn.failure.cloudSetupFailed" = "سائن اِن ہو گیا، مگر کلاؤڈ سیٹ اپ ناکام رہا۔";
 "settings.account.cloudSignIn.failure.accountUpgradeFailed" = "سائن اِن ہو گیا، مگر اکاؤنٹ اپ گریڈ ناکام رہا۔";
 "settings.account.cloudSignIn.failureDescription" = "آپ سائن اِن ہو گئے، مگر کلاؤڈ ورک اسپیس کا سیٹ اپ یا ابتدائی ہم وقت سازی مکمل نہیں ہوئی۔";
+"settings.account.cloudSignIn.chooseWorkspace" = "ورک اسپیس چنیں";
 "settings.account.cloudSignIn.sync.title" = "آپ کا اکاؤنٹ کلاؤڈ کے ساتھ ہم وقت ہو رہا ہے۔";
 "settings.account.cloudSignIn.sync.message" = "اپنا اکاؤنٹ سنک ہونے کے دوران Nibomo کھلا رکھیں۔ اس میں عموماً چند منٹ لگتے ہیں۔";
 "settings.account.cloudSignIn.cloudSyncTitle" = "کلاؤڈ ہم وقت سازی";

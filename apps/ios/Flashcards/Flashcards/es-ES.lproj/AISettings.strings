@@ -594,6 +594,7 @@
 "settings.account.cloudSignIn.failure.cloudSetupFailed" = "Se inicio sesion, pero fallo la configuracion de la nube.";
 "settings.account.cloudSignIn.failure.accountUpgradeFailed" = "Se inicio sesion, pero fallo la actualizacion de la cuenta.";
 "settings.account.cloudSignIn.failureDescription" = "El inicio de sesion se completo, pero la configuracion del espacio de trabajo en la nube o la sincronizacion inicial no terminaron.";
+"settings.account.cloudSignIn.chooseWorkspace" = "Elegir espacio de trabajo";
 "settings.account.cloudSignIn.sync.title" = "Tu cuenta se esta sincronizando con la nube.";
 "settings.account.cloudSignIn.sync.message" = "Mantén Nibomo abierto mientras se sincroniza tu cuenta. Esto suele tardar unos minutos.";
 "settings.account.cloudSignIn.cloudSyncTitle" = "Sincronizacion en la nube";

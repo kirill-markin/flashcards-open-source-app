@@ -579,6 +579,7 @@
 "settings.account.cloudSignIn.failure.cloudSetupFailed" = "உள்நுழைந்துவிட்டீர்கள்; ஆனால் கிளவுட் அமைப்பு தோல்வியடைந்தது.";
 "settings.account.cloudSignIn.failure.accountUpgradeFailed" = "உள்நுழைந்துவிட்டீர்கள்; ஆனால் கணக்கு மேம்பாடு தோல்வியடைந்தது.";
 "settings.account.cloudSignIn.failureDescription" = "உள்நுழைவு வெற்றி; ஆனால் கிளவுட் பணியிட அமைப்பு அல்லது முதல் ஒத்திசைவு முடியவில்லை.";
+"settings.account.cloudSignIn.chooseWorkspace" = "பணியிடத்தைத் தேர்ந்தெடு";
 "settings.account.cloudSignIn.sync.title" = "உங்கள் கணக்கு கிளவுடுடன் ஒத்திசைகிறது.";
 "settings.account.cloudSignIn.sync.message" = "உங்கள் கணக்கு ஒத்திசைக்கப்படும்போது Nibomo-ஐத் திறந்து வைத்திருங்கள். இதற்குப் பொதுவாகச் சில நிமிடங்கள் ஆகும்.";
 "settings.account.cloudSignIn.cloudSyncTitle" = "கிளவுட் ஒத்திசைவு";
