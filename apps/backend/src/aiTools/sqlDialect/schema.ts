@@ -112,7 +112,7 @@ const cardColumnDescriptors: ReadonlyArray<SqlColumnDescriptor> = Object.freeze(
     nullable: false,
     readOnly: true,
     filterable: true,
-    sortable: false,
+    sortable: true,
     description: "Persisted FSRS state.",
   },
   {
@@ -120,8 +120,8 @@ const cardColumnDescriptors: ReadonlyArray<SqlColumnDescriptor> = Object.freeze(
     type: "integer",
     nullable: true,
     readOnly: true,
-    filterable: false,
-    sortable: false,
+    filterable: true,
+    sortable: true,
     description: "Persisted FSRS step index.",
   },
   {
@@ -129,8 +129,8 @@ const cardColumnDescriptors: ReadonlyArray<SqlColumnDescriptor> = Object.freeze(
     type: "number",
     nullable: true,
     readOnly: true,
-    filterable: false,
-    sortable: false,
+    filterable: true,
+    sortable: true,
     description: "Persisted FSRS stability.",
   },
   {
@@ -138,8 +138,8 @@ const cardColumnDescriptors: ReadonlyArray<SqlColumnDescriptor> = Object.freeze(
     type: "number",
     nullable: true,
     readOnly: true,
-    filterable: false,
-    sortable: false,
+    filterable: true,
+    sortable: true,
     description: "Persisted FSRS difficulty.",
   },
   {
@@ -147,8 +147,8 @@ const cardColumnDescriptors: ReadonlyArray<SqlColumnDescriptor> = Object.freeze(
     type: "datetime",
     nullable: true,
     readOnly: true,
-    filterable: false,
-    sortable: false,
+    filterable: true,
+    sortable: true,
     description: "Persisted last reviewed timestamp.",
   },
   {
@@ -156,8 +156,8 @@ const cardColumnDescriptors: ReadonlyArray<SqlColumnDescriptor> = Object.freeze(
     type: "integer",
     nullable: true,
     readOnly: true,
-    filterable: false,
-    sortable: false,
+    filterable: true,
+    sortable: true,
     description: "Persisted scheduled interval in days.",
   },
 ]);
@@ -443,7 +443,13 @@ export function getSqlColumnDescriptor(
     }
   }
 
-  throw new SqlDialectError(`Unknown column for ${resourceName}: ${columnName}`, "unknown_column");
+  throw new SqlDialectError(
+    formatUnknownColumnMessage(
+      `Unknown column for ${resourceName}: ${columnName}`,
+      descriptor.columns.map((column) => column.columnName),
+    ),
+    "unknown_column",
+  );
 }
 
 export function getSqlSourceColumnDescriptors(
@@ -471,9 +477,20 @@ export function getSqlSourceColumnDescriptors(
   };
 }
 
+/**
+ * Lists the valid names in an `unknown_column` message so the agent's retry
+ * can pick a real column instead of guessing again.
+ */
+export function formatUnknownColumnMessage(message: string, availableColumnNames: ReadonlyArray<string>): string {
+  return `${message}. Available columns: ${availableColumnNames.join(", ")}`;
+}
+
 export function ensureSqlSourceColumnExists(source: SqlFromSource, columnName: string): void {
-  const descriptor = getSqlSourceColumnDescriptors(source)[columnName];
-  if (descriptor === undefined) {
-    throw new SqlDialectError(`Unknown column for ${source.resourceName}: ${columnName}`, "unknown_column");
+  const availableColumns = getSqlSourceColumnDescriptors(source);
+  if (availableColumns[columnName] === undefined) {
+    throw new SqlDialectError(
+      formatUnknownColumnMessage(`Unknown column for ${source.resourceName}: ${columnName}`, Object.keys(availableColumns)),
+      "unknown_column",
+    );
   }
 }
