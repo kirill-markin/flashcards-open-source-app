@@ -579,6 +579,7 @@
 "settings.account.cloudSignIn.failure.cloudSetupFailed" = "Вхід виконано, але налаштування хмари не вдалося.";
 "settings.account.cloudSignIn.failure.accountUpgradeFailed" = "Вхід виконано, але оновлення облікового запису не вдалося.";
 "settings.account.cloudSignIn.failureDescription" = "Ви ввійшли, але налаштування хмарного простору або початкова синхронізація не завершилися.";
+"settings.account.cloudSignIn.chooseWorkspace" = "Вибрати робочий простір";
 "settings.account.cloudSignIn.sync.title" = "Ваш обліковий запис синхронізується з хмарою.";
 "settings.account.cloudSignIn.sync.message" = "Тримайте Nibomo відкритим, поки ваш обліковий запис синхронізується. Зазвичай це триває кілька хвилин.";
 "settings.account.cloudSignIn.cloudSyncTitle" = "Хмарна синхронізація";

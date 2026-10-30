@@ -579,6 +579,7 @@
 "settings.account.cloudSignIn.failure.cloudSetupFailed" = "Η σύνδεση έγινε, αλλά η ρύθμιση cloud απέτυχε.";
 "settings.account.cloudSignIn.failure.accountUpgradeFailed" = "Η σύνδεση έγινε, αλλά η αναβάθμιση λογαριασμού απέτυχε.";
 "settings.account.cloudSignIn.failureDescription" = "Η σύνδεσή σας πέτυχε, αλλά η ρύθμιση χώρου εργασίας cloud ή ο αρχικός συγχρονισμός δεν ολοκληρώθηκε.";
+"settings.account.cloudSignIn.chooseWorkspace" = "Επιλογή χώρου εργασίας";
 "settings.account.cloudSignIn.sync.title" = "Ο λογαριασμός σας συγχρονίζεται με το cloud.";
 "settings.account.cloudSignIn.sync.message" = "Κρατήστε το Nibomo ανοιχτό όσο συγχρονίζεται ο λογαριασμός σας. Αυτό συνήθως διαρκεί λίγα λεπτά.";
 "settings.account.cloudSignIn.cloudSyncTitle" = "Συγχρονισμός cloud";

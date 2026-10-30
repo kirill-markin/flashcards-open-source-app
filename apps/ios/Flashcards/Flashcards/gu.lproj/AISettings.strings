@@ -579,6 +579,7 @@
 "settings.account.cloudSignIn.failure.cloudSetupFailed" = "સાઇન-ઇન થયું, પણ ક્લાઉડ સેટઅપ નિષ્ફળ થયું.";
 "settings.account.cloudSignIn.failure.accountUpgradeFailed" = "સાઇન-ઇન થયું, પણ ખાતાનું અપગ્રેડ નિષ્ફળ થયું.";
 "settings.account.cloudSignIn.failureDescription" = "તમારું સાઇન-ઇન સફળ થયું, પણ ક્લાઉડ કાર્યક્ષેત્રનું સેટઅપ અથવા પ્રારંભિક સિંક પૂર્ણ થયું નહીં.";
+"settings.account.cloudSignIn.chooseWorkspace" = "કાર્યક્ષેત્ર પસંદ કરો";
 "settings.account.cloudSignIn.sync.title" = "તમારું ખાતું ક્લાઉડ સાથે સિંક થઈ રહ્યું છે.";
 "settings.account.cloudSignIn.sync.message" = "તમારું ખાતું સિંક થાય ત્યાં સુધી Nibomo ખુલ્લું રાખો. સામાન્ય રીતે આમાં થોડી મિનિટ લાગે છે.";
 "settings.account.cloudSignIn.cloudSyncTitle" = "ક્લાઉડ સિંક";

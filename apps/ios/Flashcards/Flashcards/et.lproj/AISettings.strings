@@ -579,6 +579,7 @@
 "settings.account.cloudSignIn.failure.cloudSetupFailed" = "Sisselogimine õnnestus, kuid pilve seadistamine ebaõnnestus.";
 "settings.account.cloudSignIn.failure.accountUpgradeFailed" = "Sisselogimine õnnestus, kuid konto täiendamine ebaõnnestus.";
 "settings.account.cloudSignIn.failureDescription" = "Sisselogimine õnnestus, kuid pilvetööruumi seadistamine või algne sünkroonimine ei lõppenud.";
+"settings.account.cloudSignIn.chooseWorkspace" = "Vali tööruum";
 "settings.account.cloudSignIn.sync.title" = "Sinu kontot sünkroonitakse pilvega.";
 "settings.account.cloudSignIn.sync.message" = "Hoia Nibomo avatuna, kuni sinu kontot sünkroonitakse. Tavaliselt võtab see mõne minuti.";
 "settings.account.cloudSignIn.cloudSyncTitle" = "Pilvesünkroonimine";

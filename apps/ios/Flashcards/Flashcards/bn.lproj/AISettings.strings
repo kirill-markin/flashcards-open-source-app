@@ -579,6 +579,7 @@
 "settings.account.cloudSignIn.failure.cloudSetupFailed" = "সাইন ইন করেছেন, কিন্তু ক্লাউড সেটআপ ব্যর্থ হয়েছে।";
 "settings.account.cloudSignIn.failure.accountUpgradeFailed" = "সাইন ইন করেছেন, কিন্তু অ্যাকাউন্ট আপগ্রেড ব্যর্থ হয়েছে।";
 "settings.account.cloudSignIn.failureDescription" = "আপনার সাইন-ইন সফল হয়েছে, কিন্তু ক্লাউড কর্মক্ষেত্র সেটআপ বা প্রাথমিক সিঙ্ক শেষ হয়নি।";
+"settings.account.cloudSignIn.chooseWorkspace" = "কর্মক্ষেত্র চয়ন করুন";
 "settings.account.cloudSignIn.sync.title" = "আপনার অ্যাকাউন্ট ক্লাউডের সাথে সিঙ্ক হচ্ছে।";
 "settings.account.cloudSignIn.sync.message" = "আপনার অ্যাকাউন্ট সিঙ্ক হওয়ার সময় Nibomo খোলা রাখুন। এটি সাধারণত কয়েক মিনিট সময় নেয়।";
 "settings.account.cloudSignIn.cloudSyncTitle" = "ক্লাউড সিঙ্ক";

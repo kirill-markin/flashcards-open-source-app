@@ -594,6 +594,7 @@
 "settings.account.cloudSignIn.failure.cloudSetupFailed" = "Connexion réussie, mais la configuration du cloud a échoué.";
 "settings.account.cloudSignIn.failure.accountUpgradeFailed" = "Connexion réussie, mais la mise à niveau du compte a échoué.";
 "settings.account.cloudSignIn.failureDescription" = "Votre connexion a réussi, mais la configuration de l’espace de travail cloud ou la synchronisation initiale ne s’est pas terminée.";
+"settings.account.cloudSignIn.chooseWorkspace" = "Choisir un espace de travail";
 "settings.account.cloudSignIn.sync.title" = "Votre compte se synchronise avec le cloud.";
 "settings.account.cloudSignIn.sync.message" = "Gardez Nibomo ouvert pendant la synchronisation de votre compte. Cela prend généralement quelques minutes.";
 "settings.account.cloudSignIn.cloudSyncTitle" = "Synchronisation cloud";

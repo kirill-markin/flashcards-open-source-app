@@ -579,6 +579,7 @@
 "settings.account.cloudSignIn.failure.cloudSetupFailed" = "S'ha iniciat la sessió, però la configuració del núvol ha fallat.";
 "settings.account.cloudSignIn.failure.accountUpgradeFailed" = "S'ha iniciat la sessió, però l'actualització del compte ha fallat.";
 "settings.account.cloudSignIn.failureDescription" = "El vostre inici de sessió s'ha realitzat correctament, però la configuració de l'espai de treball al núvol o la sincronització inicial no s'han acabat.";
+"settings.account.cloudSignIn.chooseWorkspace" = "Trieu l'espai de treball";
 "settings.account.cloudSignIn.sync.title" = "El teu compte s'està sincronitzant amb el núvol.";
 "settings.account.cloudSignIn.sync.message" = "Manteniu Nibomo obert mentre se sincronitza el vostre compte. Això sol trigar uns minuts.";
 "settings.account.cloudSignIn.cloudSyncTitle" = "Sincronització al núvol";

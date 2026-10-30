@@ -579,6 +579,7 @@
 "settings.account.cloudSignIn.failure.cloudSetupFailed" = "Prihlásenie bolo úspešné, ale nastavenie cloudu zlyhalo.";
 "settings.account.cloudSignIn.failure.accountUpgradeFailed" = "Prihlásenie bolo úspešné, ale prevod účtu zlyhal.";
 "settings.account.cloudSignIn.failureDescription" = "Prihlásenie bolo úspešné, ale nastavenie cloudového pracovného priestoru alebo úvodná synchronizácia sa nedokončili.";
+"settings.account.cloudSignIn.chooseWorkspace" = "Vybrať pracovný priestor";
 "settings.account.cloudSignIn.sync.title" = "Váš účet sa synchronizuje s cloudom.";
 "settings.account.cloudSignIn.sync.message" = "Nechajte Nibomo otvorené, kým sa váš účet synchronizuje. Zvyčajne to trvá niekoľko minút.";
 "settings.account.cloudSignIn.cloudSyncTitle" = "Cloudová synchronizácia";

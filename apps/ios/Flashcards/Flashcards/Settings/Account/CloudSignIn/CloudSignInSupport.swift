@@ -335,6 +335,7 @@ enum CloudPostAuthRetryAction: Hashable {
     case prepareLink(verifiedContext: CloudVerifiedAuthContext)
     case completeLink(linkContext: CloudWorkspaceLinkContext, selection: CloudWorkspaceLinkSelection)
     case completeGuestLink(linkContext: CloudWorkspaceLinkContext, selection: CloudWorkspaceLinkSelection)
+    case chooseWorkspace(linkContext: CloudWorkspaceLinkContext)
     case syncOnly
 }
 
@@ -387,6 +388,15 @@ enum CloudPostAuthSyncOperation: Hashable {
     case completeLink(linkContext: CloudWorkspaceLinkContext, selection: CloudWorkspaceLinkSelection)
     case completeGuestLink(linkContext: CloudWorkspaceLinkContext, selection: CloudWorkspaceLinkSelection)
     case syncOnly
+
+    var linkContext: CloudWorkspaceLinkContext? {
+        switch self {
+        case .completeLink(let linkContext, _), .completeGuestLink(let linkContext, _):
+            return linkContext
+        case .syncOnly:
+            return nil
+        }
+    }
 }
 
 enum CloudPostAuthFailureKind: Hashable {

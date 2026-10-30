@@ -628,6 +628,8 @@ struct CloudSignInSheet: View {
             self.completeLink(linkContext: linkContext, selection: selection)
         case .completeGuestLink(let linkContext, let selection):
             self.presentPostAuthSync(operation: .completeGuestLink(linkContext: linkContext, selection: selection))
+        case .chooseWorkspace(let linkContext):
+            self.store.cloudSignInAttempt.workspaceLinkContext = linkContext
         case .syncOnly:
             self.presentPostAuthSync(operation: .syncOnly)
         }
@@ -738,7 +740,11 @@ struct CloudSignInSheet: View {
                 cloudState: self.store.cloudSettings?.cloudState
             )
             let retryAction: CloudPostAuthRetryAction
-            if self.store.cloudSignInAttempt.usesNativeSession {
+            // The server refuses the same non-empty workspace on every retry, so retry means picking another.
+            if case .remoteWorkspaceIsNotEmpty? = error as? CloudBootstrapEligibilityError,
+               let linkContext = syncState.operation.linkContext {
+                retryAction = .chooseWorkspace(linkContext: linkContext)
+            } else if self.store.cloudSignInAttempt.usesNativeSession {
                 switch syncState.operation {
                 case .completeLink(let context, let selection): retryAction = .completeLink(linkContext: context, selection: selection)
                 case .completeGuestLink: retryAction = failurePresentation.retryAction

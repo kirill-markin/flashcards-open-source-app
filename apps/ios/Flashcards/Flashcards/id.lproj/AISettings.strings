@@ -579,6 +579,7 @@
 "settings.account.cloudSignIn.failure.cloudSetupFailed" = "Berhasil masuk, tetapi penyiapan cloud gagal.";
 "settings.account.cloudSignIn.failure.accountUpgradeFailed" = "Berhasil masuk, tetapi peningkatan akun gagal.";
 "settings.account.cloudSignIn.failureDescription" = "Anda berhasil masuk, tetapi penyiapan ruang kerja cloud atau sinkronisasi awal belum selesai.";
+"settings.account.cloudSignIn.chooseWorkspace" = "Pilih ruang kerja";
 "settings.account.cloudSignIn.sync.title" = "Akun Anda sedang disinkronkan dengan cloud.";
 "settings.account.cloudSignIn.sync.message" = "Biarkan Nibomo tetap terbuka saat akun Anda disinkronkan. Ini biasanya memerlukan beberapa menit.";
 "settings.account.cloudSignIn.cloudSyncTitle" = "Sinkronisasi cloud";
