@@ -3,6 +3,7 @@ import UIKit
 
 private let reviewCardsStringsTableName: String = "ReviewCards"
 let reviewContentSurfaceCornerRadius: CGFloat = 24
+private let reviewCardSideCopiedFeedbackDuration: Duration = .seconds(3)
 
 struct ReviewCardSideView: View {
     let label: String
@@ -18,6 +19,8 @@ struct ReviewCardSideView: View {
     let surfaceStyle: ReviewCardSurfaceStyle
 
     @State private var hasCopied: Bool = false
+    /// Restarts the copied-feedback reset task on every successful copy.
+    @State private var successfulCopyCount: Int = 0
     @State private var copyError: String?
 
     init(
@@ -85,6 +88,7 @@ struct ReviewCardSideView: View {
                     do {
                         UIPasteboard.general.string = try reviewCardSideCopyText(sourceText: self.sourceText)
                         self.hasCopied = true
+                        self.successfulCopyCount += 1
                         UIAccessibility.post(notification: .announcement, argument: self.copyActionLabel)
                     } catch {
                         self.hasCopied = false
@@ -156,6 +160,9 @@ struct ReviewCardSideView: View {
         .onChange(of: self.sourceText) {
             self.hasCopied = false
         }
+        .task(id: self.successfulCopyCount) {
+            await self.resetCopiedFeedbackAfterDelay()
+        }
         .background(backgroundStyle, in: RoundedRectangle(cornerRadius: reviewContentSurfaceCornerRadius, style: .continuous))
         .alert(
             String(localized: "Copy", table: reviewCardsStringsTableName),
@@ -170,6 +177,20 @@ struct ReviewCardSideView: View {
         } message: {
             Text(self.copyError ?? "")
         }
+    }
+
+    private func resetCopiedFeedbackAfterDelay() async {
+        guard self.hasCopied else {
+            return
+        }
+
+        do {
+            try await Task.sleep(for: reviewCardSideCopiedFeedbackDuration)
+        } catch {
+            return
+        }
+
+        self.hasCopied = false
     }
 
     private var copyActionLabel: String {
