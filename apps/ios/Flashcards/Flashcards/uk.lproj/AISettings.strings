@@ -451,11 +451,17 @@
 "settings.access.action.request" = "Запросити доступ";
 "settings.access.action.openSettings" = "Відкрити Параметри";
 "settings.access.guidance.photos.limited" = "Доступ до фототеки обмежений. Ви й далі можете вибирати фотографії для вкладень у чаті з ШІ.";
+"settings.access.guidance.mac.photos.limited" = "Доступ до фототеки обмежений. Ви й далі можете вибирати фотографії для вкладень у чаті з ШІ або відкрити Системні параметри > Приватність і безпека > Фотографії, щоб змінити це.";
 "settings.access.guidance.photos.blocked" = "Доступ до фототеки вимкнений. Ви й далі можете вибирати фотографії для вкладень у чаті з ШІ.";
+"settings.access.guidance.mac.photos.blocked" = "Доступ до фототеки вимкнений. Ви й далі можете вибирати фотографії для вкладень у чаті з ШІ або відкрити Системні параметри > Приватність і безпека > Фотографії, щоб змінити це.";
 "settings.access.guidance.camera.blocked" = "Доступ Nibomo до камери вимкнено. Відкрийте Параметри > Приватність і безпека > Камера, щоб змінити це.";
+"settings.access.guidance.mac.camera.blocked" = "Доступ Nibomo до камери вимкнено. Відкрийте Системні параметри > Приватність і безпека > Камера, щоб змінити це.";
 "settings.access.guidance.microphone.blocked" = "Доступ Nibomo до мікрофона вимкнено. Відкрийте Параметри > Приватність і безпека > Мікрофон, щоб змінити це.";
+"settings.access.guidance.mac.microphone.blocked" = "Доступ Nibomo до мікрофона вимкнено. Відкрийте Системні параметри > Приватність і безпека > Мікрофон, щоб змінити це.";
 "settings.access.guidance.askEveryTime" = "Запросіть доступ зараз або відкрийте Параметри пізніше, щоб керувати ним вручну.";
+"settings.access.guidance.mac.askEveryTime" = "Запросіть доступ зараз або відкрийте Системні параметри пізніше, щоб керувати ним вручну.";
 "settings.access.guidance.allowed" = "Відкрийте Параметри, щоб вимкнути цей доступ.";
+"settings.access.guidance.mac.allowed" = "Відкрийте Системні параметри > Приватність і безпека, щоб вимкнути цей доступ.";
 "settings.access.guidance.limited" = "Відкрийте Параметри, щоб переглянути або розширити цей доступ.";
 "settings.access.guidance.unavailable" = "Цей доступ недоступний на поточному пристрої.";
 "settings.account.row.openSourceValue" = "GitHub + MIT";

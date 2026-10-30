@@ -460,11 +460,17 @@
 "settings.access.action.request" = "Zugriff anfordern";
 "settings.access.action.openSettings" = "Öffnen Sie Einstellungen";
 "settings.access.guidance.photos.limited" = "Der Zugriff auf die Fotomediathek ist eingeschränkt. Du kannst weiterhin Fotos als Anhänge im KI-Chat auswählen.";
+"settings.access.guidance.mac.photos.limited" = "Der Zugriff auf die Fotomediathek ist eingeschränkt. Du kannst weiterhin Fotos als Anhänge im KI-Chat auswählen oder Systemeinstellungen > Datenschutz & Sicherheit > Fotos öffnen, um ihn zu ändern.";
 "settings.access.guidance.photos.blocked" = "Der Zugriff auf die Fotomediathek ist deaktiviert. Du kannst weiterhin Fotos als Anhänge im KI-Chat auswählen.";
+"settings.access.guidance.mac.photos.blocked" = "Der Zugriff auf die Fotomediathek ist deaktiviert. Du kannst weiterhin Fotos als Anhänge im KI-Chat auswählen oder Systemeinstellungen > Datenschutz & Sicherheit > Fotos öffnen, um ihn zu ändern.";
 "settings.access.guidance.camera.blocked" = "Der Kamerazugriff ist für Nibomo deaktiviert. Öffnen Sie Einstellungen > Datenschutz und Sicherheit > Kamera, um sie zu ändern.";
+"settings.access.guidance.mac.camera.blocked" = "Der Kamerazugriff ist für Nibomo deaktiviert. Öffnen Sie Systemeinstellungen > Datenschutz & Sicherheit > Kamera, um ihn zu ändern.";
 "settings.access.guidance.microphone.blocked" = "Der Mikrofonzugriff ist für Nibomo deaktiviert. Öffnen Sie Einstellungen > Datenschutz und Sicherheit > Mikrofon, um es zu ändern.";
+"settings.access.guidance.mac.microphone.blocked" = "Der Mikrofonzugriff ist für Nibomo deaktiviert. Öffnen Sie Systemeinstellungen > Datenschutz & Sicherheit > Mikrofon, um ihn zu ändern.";
 "settings.access.guidance.askEveryTime" = "Fordern Sie jetzt den Zugriff an oder öffnen Sie später die Einstellungen, wenn Sie ihn manuell verwalten möchten.";
+"settings.access.guidance.mac.askEveryTime" = "Fordern Sie jetzt den Zugriff an oder öffnen Sie später die Systemeinstellungen, wenn Sie ihn manuell verwalten möchten.";
 "settings.access.guidance.allowed" = "Öffnen Sie die Einstellungen, wenn Sie diesen Zugriff deaktivieren möchten.";
+"settings.access.guidance.mac.allowed" = "Öffnen Sie Systemeinstellungen > Datenschutz & Sicherheit, wenn Sie diesen Zugriff deaktivieren möchten.";
 "settings.access.guidance.limited" = "Öffnen Sie „Einstellungen“, um diesen Zugriff zu überprüfen oder zu erweitern.";
 "settings.access.guidance.unavailable" = "Dieser Zugriff ist auf dem aktuellen Gerät nicht verfügbar.";
 

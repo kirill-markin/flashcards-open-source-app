@@ -451,11 +451,17 @@
 "settings.access.action.request" = "Hozzáférés kérése";
 "settings.access.action.openSettings" = "Beállítások megnyitása";
 "settings.access.guidance.photos.limited" = "A fotókönyvtárhoz való hozzáférés korlátozott. Továbbra is választhatsz fotókat az MI-csevegés mellékleteihez.";
+"settings.access.guidance.mac.photos.limited" = "A fotókönyvtárhoz való hozzáférés korlátozott. Továbbra is választhatsz fotókat az MI-csevegés mellékleteihez, vagy módosíthatod a Rendszerbeállítások > Adatvédelem és biztonság > Fotók alatt.";
 "settings.access.guidance.photos.blocked" = "A fotókönyvtárhoz való hozzáférés ki van kapcsolva. Továbbra is választhatsz fotókat az MI-csevegés mellékleteihez.";
+"settings.access.guidance.mac.photos.blocked" = "A fotókönyvtárhoz való hozzáférés ki van kapcsolva. Továbbra is választhatsz fotókat az MI-csevegés mellékleteihez, vagy módosíthatod a Rendszerbeállítások > Adatvédelem és biztonság > Fotók alatt.";
 "settings.access.guidance.camera.blocked" = "A Nibomo kamerahozzáférése ki van kapcsolva. Módosítsd a Beállítások > Adatvédelem és biztonság > Kamera alatt.";
+"settings.access.guidance.mac.camera.blocked" = "A Nibomo kamerahozzáférése ki van kapcsolva. Módosítsd a Rendszerbeállítások > Adatvédelem és biztonság > Kamera alatt.";
 "settings.access.guidance.microphone.blocked" = "A Nibomo mikrofonhozzáférése ki van kapcsolva. Módosítsd a Beállítások > Adatvédelem és biztonság > Mikrofon alatt.";
+"settings.access.guidance.mac.microphone.blocked" = "A Nibomo mikrofonhozzáférése ki van kapcsolva. Módosítsd a Rendszerbeállítások > Adatvédelem és biztonság > Mikrofon alatt.";
 "settings.access.guidance.askEveryTime" = "Kérj hozzáférést most, vagy kezeld később a Beállításokban.";
+"settings.access.guidance.mac.askEveryTime" = "Kérj hozzáférést most, vagy kezeld később a Rendszerbeállításokban.";
 "settings.access.guidance.allowed" = "A hozzáférés kikapcsolásához nyisd meg a Beállításokat.";
+"settings.access.guidance.mac.allowed" = "A hozzáférés kikapcsolásához nyisd meg a Rendszerbeállítások > Adatvédelem és biztonság részt.";
 "settings.access.guidance.limited" = "A hozzáférés ellenőrzéséhez vagy bővítéséhez nyisd meg a Beállításokat.";
 "settings.access.guidance.unavailable" = "Ez a hozzáférés ezen az eszközön nem érhető el.";
 "settings.account.row.openSourceValue" = "GitHub + MIT";

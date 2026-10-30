@@ -460,11 +460,17 @@
 "settings.access.action.request" = "アクセスのリクエスト";
 "settings.access.action.openSettings" = "設定を開く";
 "settings.access.guidance.photos.limited" = "写真ライブラリへのアクセスは制限されています。AIチャットに添付する写真は引き続き選べます。";
+"settings.access.guidance.mac.photos.limited" = "写真ライブラリへのアクセスは制限されています。AIチャットに添付する写真は引き続き選べます。または、[システム設定] > [プライバシーとセキュリティ] > [写真] を開いて変更することもできます。";
 "settings.access.guidance.photos.blocked" = "写真ライブラリへのアクセスはオフになっています。AIチャットに添付する写真は引き続き選べます。";
+"settings.access.guidance.mac.photos.blocked" = "写真ライブラリへのアクセスはオフになっています。AIチャットに添付する写真は引き続き選べます。または、[システム設定] > [プライバシーとセキュリティ] > [写真] を開いて変更することもできます。";
 "settings.access.guidance.camera.blocked" = "Nibomo ではカメラ アクセスが無効になっています。変更するには、[設定] > [プライバシーとセキュリティ] > [カメラ] を開いてください。";
+"settings.access.guidance.mac.camera.blocked" = "Nibomo ではカメラ アクセスが無効になっています。変更するには、[システム設定] > [プライバシーとセキュリティ] > [カメラ] を開いてください。";
 "settings.access.guidance.microphone.blocked" = "Nibomo ではマイク アクセスが無効になっています。 [設定] > [プライバシーとセキュリティ] > [マイク] を開いて変更します。";
+"settings.access.guidance.mac.microphone.blocked" = "Nibomo ではマイク アクセスが無効になっています。変更するには、[システム設定] > [プライバシーとセキュリティ] > [マイク] を開いてください。";
 "settings.access.guidance.askEveryTime" = "今すぐアクセスをリクエストするか、手動で管理する場合は後で設定を開いてください。";
+"settings.access.guidance.mac.askEveryTime" = "今すぐアクセスをリクエストするか、手動で管理する場合は後でシステム設定を開いてください。";
 "settings.access.guidance.allowed" = "このアクセスを無効にする場合は、[設定] を開きます。";
+"settings.access.guidance.mac.allowed" = "このアクセスを無効にする場合は、[システム設定] > [プライバシーとセキュリティ] を開きます。";
 "settings.access.guidance.limited" = "このアクセスを確認または拡張するには、[設定] を開いてください。";
 "settings.access.guidance.unavailable" = "このアクセスは現在のデバイスでは利用できません。";
 

@@ -451,11 +451,17 @@
 "settings.access.action.request" = "Solicită acces";
 "settings.access.action.openSettings" = "Deschide Configurări";
 "settings.access.guidance.photos.limited" = "Accesul la biblioteca foto este limitat. Poți alege în continuare fotografii de atașat la chatul IA.";
+"settings.access.guidance.mac.photos.limited" = "Accesul la biblioteca foto este limitat. Poți alege în continuare fotografii de atașat la chatul IA sau poți deschide Configurări sistem > Intimitate și securitate > Poze pentru a-l modifica.";
 "settings.access.guidance.photos.blocked" = "Accesul la biblioteca foto este dezactivat. Poți alege în continuare fotografii de atașat la chatul IA.";
+"settings.access.guidance.mac.photos.blocked" = "Accesul la biblioteca foto este dezactivat. Poți alege în continuare fotografii de atașat la chatul IA sau poți deschide Configurări sistem > Intimitate și securitate > Poze pentru a-l modifica.";
 "settings.access.guidance.camera.blocked" = "Accesul la cameră este dezactivat pentru Nibomo. Deschide Configurări > Intimitate și securitate > Cameră pentru a-l modifica.";
+"settings.access.guidance.mac.camera.blocked" = "Accesul la cameră este dezactivat pentru Nibomo. Deschide Configurări sistem > Intimitate și securitate > Cameră pentru a-l modifica.";
 "settings.access.guidance.microphone.blocked" = "Accesul la microfon este dezactivat pentru Nibomo. Deschide Configurări > Intimitate și securitate > Microfon pentru a-l modifica.";
+"settings.access.guidance.mac.microphone.blocked" = "Accesul la microfon este dezactivat pentru Nibomo. Deschide Configurări sistem > Intimitate și securitate > Microfon pentru a-l modifica.";
 "settings.access.guidance.askEveryTime" = "Solicită acces acum sau deschide Configurări mai târziu pentru a-l gestiona manual.";
+"settings.access.guidance.mac.askEveryTime" = "Solicită acces acum sau deschide Configurări sistem mai târziu pentru a-l gestiona manual.";
 "settings.access.guidance.allowed" = "Deschide Configurări dacă vrei să dezactivezi acest acces.";
+"settings.access.guidance.mac.allowed" = "Deschide Configurări sistem > Intimitate și securitate dacă vrei să dezactivezi acest acces.";
 "settings.access.guidance.limited" = "Deschide Configurări pentru a verifica sau extinde acest acces.";
 "settings.access.guidance.unavailable" = "Acest acces nu este disponibil pe dispozitivul actual.";
 "settings.account.row.openSourceValue" = "GitHub + MIT";

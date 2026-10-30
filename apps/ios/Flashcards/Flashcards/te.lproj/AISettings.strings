@@ -451,11 +451,17 @@
 "settings.access.action.request" = "అనుమతి కోరు";
 "settings.access.action.openSettings" = "సెట్టింగ్‌లను తెరువు";
 "settings.access.guidance.photos.limited" = "ఫోటో లైబ్రరీ యాక్సెస్ పరిమితంగా ఉంది. AI చాట్‌కు జోడించడానికి మీరు ఇప్పటికీ ఫోటోలను ఎంచుకోవచ్చు.";
+"settings.access.guidance.mac.photos.limited" = "ఫోటో లైబ్రరీ యాక్సెస్ పరిమితంగా ఉంది. AI చాట్‌కు జోడించడానికి మీరు ఇప్పటికీ ఫోటోలను ఎంచుకోవచ్చు, లేదా మార్చడానికి సిస్టమ్ సెట్టింగ్‌లు > గోప్యత మరియు భద్రత > ఫొటోలను తెరవండి.";
 "settings.access.guidance.photos.blocked" = "ఫోటో లైబ్రరీ యాక్సెస్ ఆఫ్‌లో ఉంది. AI చాట్‌కు జోడించడానికి మీరు ఇప్పటికీ ఫోటోలను ఎంచుకోవచ్చు.";
+"settings.access.guidance.mac.photos.blocked" = "ఫోటో లైబ్రరీ యాక్సెస్ ఆఫ్‌లో ఉంది. AI చాట్‌కు జోడించడానికి మీరు ఇప్పటికీ ఫోటోలను ఎంచుకోవచ్చు, లేదా మార్చడానికి సిస్టమ్ సెట్టింగ్‌లు > గోప్యత మరియు భద్రత > ఫొటోలను తెరవండి.";
 "settings.access.guidance.camera.blocked" = "Nibomo కోసం కెమెరా అనుమతి ఆఫ్‌లో ఉంది. మార్చడానికి సెట్టింగ్‌లు > గోప్యత మరియు భద్రత > కెమెరాను తెరవండి.";
+"settings.access.guidance.mac.camera.blocked" = "Nibomo కోసం కెమెరా అనుమతి ఆఫ్‌లో ఉంది. మార్చడానికి సిస్టమ్ సెట్టింగ్‌లు > గోప్యత మరియు భద్రత > కెమెరాను తెరవండి.";
 "settings.access.guidance.microphone.blocked" = "Nibomo కోసం మైక్రోఫోన్ అనుమతి ఆఫ్‌లో ఉంది. మార్చడానికి సెట్టింగ్‌లు > గోప్యత మరియు భద్రత > మైక్రోఫోన్‌ను తెరవండి.";
+"settings.access.guidance.mac.microphone.blocked" = "Nibomo కోసం మైక్రోఫోన్ అనుమతి ఆఫ్‌లో ఉంది. మార్చడానికి సిస్టమ్ సెట్టింగ్‌లు > గోప్యత మరియు భద్రత > మైక్రోఫోన్‌ను తెరవండి.";
 "settings.access.guidance.askEveryTime" = "ఇప్పుడే అనుమతి కోరండి లేదా తర్వాత స్వయంగా నిర్వహించడానికి సెట్టింగ్‌లను తెరవండి.";
+"settings.access.guidance.mac.askEveryTime" = "ఇప్పుడే అనుమతి కోరండి లేదా తర్వాత స్వయంగా నిర్వహించడానికి సిస్టమ్ సెట్టింగ్‌లను తెరవండి.";
 "settings.access.guidance.allowed" = "ఈ అనుమతిని ఆఫ్ చేయాలంటే సెట్టింగ్‌లను తెరవండి.";
+"settings.access.guidance.mac.allowed" = "ఈ అనుమతిని ఆఫ్ చేయాలంటే సిస్టమ్ సెట్టింగ్‌లు > గోప్యత మరియు భద్రతను తెరవండి.";
 "settings.access.guidance.limited" = "ఈ అనుమతిని పరిశీలించడానికి లేదా విస్తరించడానికి సెట్టింగ్‌లను తెరవండి.";
 "settings.access.guidance.unavailable" = "ఈ పరికరంలో ఈ అనుమతి అందుబాటులో లేదు.";
 "settings.account.row.openSourceValue" = "GitHub + MIT";

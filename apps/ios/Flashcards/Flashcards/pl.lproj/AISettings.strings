@@ -451,11 +451,17 @@
 "settings.access.action.request" = "Poproś o dostęp";
 "settings.access.action.openSettings" = "Otwórz Ustawienia";
 "settings.access.guidance.photos.limited" = "Dostęp do biblioteki zdjęć jest ograniczony. Nadal możesz wybierać zdjęcia jako załączniki w czacie AI.";
+"settings.access.guidance.mac.photos.limited" = "Dostęp do biblioteki zdjęć jest ograniczony. Nadal możesz wybierać zdjęcia jako załączniki w czacie AI albo, aby to zmienić, otworzyć Ustawienia systemowe > Prywatność i ochrona > Zdjęcia.";
 "settings.access.guidance.photos.blocked" = "Dostęp do biblioteki zdjęć jest wyłączony. Nadal możesz wybierać zdjęcia jako załączniki w czacie AI.";
+"settings.access.guidance.mac.photos.blocked" = "Dostęp do biblioteki zdjęć jest wyłączony. Nadal możesz wybierać zdjęcia jako załączniki w czacie AI albo, aby to zmienić, otworzyć Ustawienia systemowe > Prywatność i ochrona > Zdjęcia.";
 "settings.access.guidance.camera.blocked" = "Dostęp do aparatu jest wyłączony dla Nibomo. Aby to zmienić, otwórz Ustawienia > Prywatność i ochrona > Aparat.";
+"settings.access.guidance.mac.camera.blocked" = "Dostęp do kamery jest wyłączony dla Nibomo. Aby to zmienić, otwórz Ustawienia systemowe > Prywatność i ochrona > Kamera.";
 "settings.access.guidance.microphone.blocked" = "Dostęp do mikrofonu jest wyłączony dla Nibomo. Aby to zmienić, otwórz Ustawienia > Prywatność i ochrona > Mikrofon.";
+"settings.access.guidance.mac.microphone.blocked" = "Dostęp do mikrofonu jest wyłączony dla Nibomo. Aby to zmienić, otwórz Ustawienia systemowe > Prywatność i ochrona > Mikrofon.";
 "settings.access.guidance.askEveryTime" = "Poproś o dostęp teraz lub otwórz Ustawienia później, aby zarządzać nim ręcznie.";
+"settings.access.guidance.mac.askEveryTime" = "Poproś o dostęp teraz lub otwórz Ustawienia systemowe później, aby zarządzać nim ręcznie.";
 "settings.access.guidance.allowed" = "Otwórz Ustawienia, jeśli chcesz wyłączyć ten dostęp.";
+"settings.access.guidance.mac.allowed" = "Otwórz Ustawienia systemowe > Prywatność i ochrona, jeśli chcesz wyłączyć ten dostęp.";
 "settings.access.guidance.limited" = "Otwórz Ustawienia, aby sprawdzić lub rozszerzyć ten dostęp.";
 "settings.access.guidance.unavailable" = "Ten dostęp jest niedostępny na tym urządzeniu.";
 "settings.account.row.openSourceValue" = "GitHub + MIT";

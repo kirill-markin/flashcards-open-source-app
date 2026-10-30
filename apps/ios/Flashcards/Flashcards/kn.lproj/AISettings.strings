@@ -451,11 +451,17 @@
 "settings.access.action.request" = "ಪ್ರವೇಶ ವಿನಂತಿಸಿ";
 "settings.access.action.openSettings" = "ಸೆಟ್ಟಿಂಗ್‌ಗಳನ್ನು ತೆರೆಯಿರಿ";
 "settings.access.guidance.photos.limited" = "ಫೋಟೋ ಲೈಬ್ರರಿಯ ಪ್ರವೇಶ ಸೀಮಿತವಾಗಿದೆ. AI ಚಾಟ್‌ಗೆ ಲಗತ್ತಿಸಲು ನೀವು ಇನ್ನೂ ಫೋಟೋಗಳನ್ನು ಆಯ್ಕೆ ಮಾಡಬಹುದು.";
+"settings.access.guidance.mac.photos.limited" = "ಫೋಟೋ ಲೈಬ್ರರಿಯ ಪ್ರವೇಶ ಸೀಮಿತವಾಗಿದೆ. AI ಚಾಟ್‌ಗೆ ಲಗತ್ತಿಸಲು ನೀವು ಇನ್ನೂ ಫೋಟೋಗಳನ್ನು ಆಯ್ಕೆ ಮಾಡಬಹುದು, ಅಥವಾ ಬದಲಿಸಲು ಸಿಸ್ಟಮ್ ಸೆಟ್ಟಿಂಗ್‌ಗಳು > ಗೌಪ್ಯತೆ ಮತ್ತು ಭದ್ರತೆ > ಫೋಟೋಗಳು ತೆರೆಯಿರಿ.";
 "settings.access.guidance.photos.blocked" = "ಫೋಟೋ ಲೈಬ್ರರಿಯ ಪ್ರವೇಶ ನಿಷ್ಕ್ರಿಯವಾಗಿದೆ. AI ಚಾಟ್‌ಗೆ ಲಗತ್ತಿಸಲು ನೀವು ಇನ್ನೂ ಫೋಟೋಗಳನ್ನು ಆಯ್ಕೆ ಮಾಡಬಹುದು.";
+"settings.access.guidance.mac.photos.blocked" = "ಫೋಟೋ ಲೈಬ್ರರಿಯ ಪ್ರವೇಶ ನಿಷ್ಕ್ರಿಯವಾಗಿದೆ. AI ಚಾಟ್‌ಗೆ ಲಗತ್ತಿಸಲು ನೀವು ಇನ್ನೂ ಫೋಟೋಗಳನ್ನು ಆಯ್ಕೆ ಮಾಡಬಹುದು, ಅಥವಾ ಬದಲಿಸಲು ಸಿಸ್ಟಮ್ ಸೆಟ್ಟಿಂಗ್‌ಗಳು > ಗೌಪ್ಯತೆ ಮತ್ತು ಭದ್ರತೆ > ಫೋಟೋಗಳು ತೆರೆಯಿರಿ.";
 "settings.access.guidance.camera.blocked" = "Nibomoಗೆ ಕ್ಯಾಮೆರಾ ಪ್ರವೇಶ ನಿಷ್ಕ್ರಿಯವಾಗಿದೆ. ಬದಲಿಸಲು ಸೆಟ್ಟಿಂಗ್‌ಗಳು > ಗೌಪ್ಯತೆ ಮತ್ತು ಭದ್ರತೆ > ಕ್ಯಾಮೆರಾ ತೆರೆಯಿರಿ.";
+"settings.access.guidance.mac.camera.blocked" = "Nibomoಗೆ ಕ್ಯಾಮೆರಾ ಪ್ರವೇಶ ನಿಷ್ಕ್ರಿಯವಾಗಿದೆ. ಬದಲಿಸಲು ಸಿಸ್ಟಮ್ ಸೆಟ್ಟಿಂಗ್‌ಗಳು > ಗೌಪ್ಯತೆ ಮತ್ತು ಭದ್ರತೆ > ಕ್ಯಾಮೆರಾ ತೆರೆಯಿರಿ.";
 "settings.access.guidance.microphone.blocked" = "Nibomoಗೆ ಮೈಕ್ರೊಫೋನ್ ಪ್ರವೇಶ ನಿಷ್ಕ್ರಿಯವಾಗಿದೆ. ಬದಲಿಸಲು ಸೆಟ್ಟಿಂಗ್‌ಗಳು > ಗೌಪ್ಯತೆ ಮತ್ತು ಭದ್ರತೆ > ಮೈಕ್ರೊಫೋನ್ ತೆರೆಯಿರಿ.";
+"settings.access.guidance.mac.microphone.blocked" = "Nibomoಗೆ ಮೈಕ್ರೊಫೋನ್ ಪ್ರವೇಶ ನಿಷ್ಕ್ರಿಯವಾಗಿದೆ. ಬದಲಿಸಲು ಸಿಸ್ಟಮ್ ಸೆಟ್ಟಿಂಗ್‌ಗಳು > ಗೌಪ್ಯತೆ ಮತ್ತು ಭದ್ರತೆ > ಮೈಕ್ರೊಫೋನ್ ತೆರೆಯಿರಿ.";
 "settings.access.guidance.askEveryTime" = "ಈಗ ಪ್ರವೇಶವನ್ನು ವಿನಂತಿಸಿ ಅಥವಾ ನಂತರ ಕೈಯಾರೆ ನಿರ್ವಹಿಸಲು ಸೆಟ್ಟಿಂಗ್‌ಗಳನ್ನು ತೆರೆಯಿರಿ.";
+"settings.access.guidance.mac.askEveryTime" = "ಈಗ ಪ್ರವೇಶವನ್ನು ವಿನಂತಿಸಿ ಅಥವಾ ನಂತರ ಕೈಯಾರೆ ನಿರ್ವಹಿಸಲು ಸಿಸ್ಟಮ್ ಸೆಟ್ಟಿಂಗ್‌ಗಳನ್ನು ತೆರೆಯಿರಿ.";
 "settings.access.guidance.allowed" = "ಈ ಪ್ರವೇಶವನ್ನು ನಿಲ್ಲಿಸಲು ಸೆಟ್ಟಿಂಗ್‌ಗಳನ್ನು ತೆರೆಯಿರಿ.";
+"settings.access.guidance.mac.allowed" = "ಈ ಪ್ರವೇಶವನ್ನು ನಿಲ್ಲಿಸಲು ಸಿಸ್ಟಮ್ ಸೆಟ್ಟಿಂಗ್‌ಗಳು > ಗೌಪ್ಯತೆ ಮತ್ತು ಭದ್ರತೆ ತೆರೆಯಿರಿ.";
 "settings.access.guidance.limited" = "ಈ ಪ್ರವೇಶವನ್ನು ಪರಿಶೀಲಿಸಲು ಅಥವಾ ವಿಸ್ತರಿಸಲು ಸೆಟ್ಟಿಂಗ್‌ಗಳನ್ನು ತೆರೆಯಿರಿ.";
 "settings.access.guidance.unavailable" = "ಈ ಸಾಧನದಲ್ಲಿ ಈ ಪ್ರವೇಶ ಲಭ್ಯವಿಲ್ಲ.";
 "settings.account.row.openSourceValue" = "GitHub + MIT";

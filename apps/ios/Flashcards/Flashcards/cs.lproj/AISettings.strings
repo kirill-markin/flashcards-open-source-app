@@ -451,11 +451,17 @@
 "settings.access.action.request" = "Požádat o přístup";
 "settings.access.action.openSettings" = "Otevřít Nastavení";
 "settings.access.guidance.photos.limited" = "Přístup ke knihovně fotek je omezený. Fotky pro přílohy v AI chatu můžete vybírat i nadále.";
+"settings.access.guidance.mac.photos.limited" = "Přístup ke knihovně fotek je omezený. Fotky pro přílohy v AI chatu můžete vybírat i nadále, nebo přístup změnit v Nastavení systému > Soukromí a zabezpečení > Fotky.";
 "settings.access.guidance.photos.blocked" = "Přístup ke knihovně fotek je vypnutý. Fotky pro přílohy v AI chatu můžete vybírat i nadále.";
+"settings.access.guidance.mac.photos.blocked" = "Přístup ke knihovně fotek je vypnutý. Fotky pro přílohy v AI chatu můžete vybírat i nadále, nebo přístup změnit v Nastavení systému > Soukromí a zabezpečení > Fotky.";
 "settings.access.guidance.camera.blocked" = "Přístup k fotoaparátu je pro Nibomo vypnutý. Změníte jej v Nastavení > Soukromí a zabezpečení > Fotoaparát.";
+"settings.access.guidance.mac.camera.blocked" = "Přístup ke kameře je pro Nibomo vypnutý. Změníte jej v Nastavení systému > Soukromí a zabezpečení > Kamera.";
 "settings.access.guidance.microphone.blocked" = "Přístup k mikrofonu je pro Nibomo vypnutý. Změníte jej v Nastavení > Soukromí a zabezpečení > Mikrofon.";
+"settings.access.guidance.mac.microphone.blocked" = "Přístup k mikrofonu je pro Nibomo vypnutý. Změníte jej v Nastavení systému > Soukromí a zabezpečení > Mikrofon.";
 "settings.access.guidance.askEveryTime" = "Požádejte o přístup nyní, nebo jej později spravujte ručně v Nastavení.";
+"settings.access.guidance.mac.askEveryTime" = "Požádejte o přístup nyní, nebo jej později spravujte ručně v Nastavení systému.";
 "settings.access.guidance.allowed" = "Pokud chcete tento přístup vypnout, otevřete Nastavení.";
+"settings.access.guidance.mac.allowed" = "Pokud chcete tento přístup vypnout, otevřete Nastavení systému > Soukromí a zabezpečení.";
 "settings.access.guidance.limited" = "Otevřete Nastavení a zkontrolujte nebo rozšiřte tento přístup.";
 "settings.access.guidance.unavailable" = "Tento přístup není na tomto zařízení dostupný.";
 "settings.account.row.openSourceValue" = "GitHub + MIT";

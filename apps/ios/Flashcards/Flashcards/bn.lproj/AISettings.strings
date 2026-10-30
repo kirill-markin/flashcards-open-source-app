@@ -451,11 +451,17 @@
 "settings.access.action.request" = "অ্যাক্সেসের অনুরোধ করুন";
 "settings.access.action.openSettings" = "সেটিংস খুলুন";
 "settings.access.guidance.photos.limited" = "ফটো লাইব্রেরির অ্যাক্সেস সীমিত। আপনি এখনও এআই চ্যাটে সংযুক্ত করার জন্য ছবি বেছে নিতে পারেন।";
+"settings.access.guidance.mac.photos.limited" = "ফটো লাইব্রেরির অ্যাক্সেস সীমিত। আপনি এখনও এআই চ্যাটে সংযুক্ত করার জন্য ছবি বেছে নিতে পারেন, অথবা এটি পরিবর্তন করতে সিস্টেম সেটিংস > গোপনীয়তা ও নিরাপত্তা > ফটো খুলুন।";
 "settings.access.guidance.photos.blocked" = "ফটো লাইব্রেরির অ্যাক্সেস বন্ধ আছে। আপনি এখনও এআই চ্যাটে সংযুক্ত করার জন্য ছবি বেছে নিতে পারেন।";
+"settings.access.guidance.mac.photos.blocked" = "ফটো লাইব্রেরির অ্যাক্সেস বন্ধ আছে। আপনি এখনও এআই চ্যাটে সংযুক্ত করার জন্য ছবি বেছে নিতে পারেন, অথবা এটি পরিবর্তন করতে সিস্টেম সেটিংস > গোপনীয়তা ও নিরাপত্তা > ফটো খুলুন।";
 "settings.access.guidance.camera.blocked" = "Nibomo এর জন্য ক্যামেরা অ্যাক্সেস বন্ধ করা আছে। এটি পরিবর্তন করতে সেটিংস > গোপনীয়তা এবং নিরাপত্তা > ক্যামেরা খুলুন।";
+"settings.access.guidance.mac.camera.blocked" = "Nibomo এর জন্য ক্যামেরা অ্যাক্সেস বন্ধ করা আছে। এটি পরিবর্তন করতে সিস্টেম সেটিংস > গোপনীয়তা ও নিরাপত্তা > ক্যামেরা খুলুন।";
 "settings.access.guidance.microphone.blocked" = "Nibomo এর জন্য মাইক্রোফোন অ্যাক্সেস বন্ধ করা হয়েছে। এটি পরিবর্তন করতে সেটিংস > গোপনীয়তা ও নিরাপত্তা > মাইক্রোফোন খুলুন।";
+"settings.access.guidance.mac.microphone.blocked" = "Nibomo এর জন্য মাইক্রোফোন অ্যাক্সেস বন্ধ করা হয়েছে। এটি পরিবর্তন করতে সিস্টেম সেটিংস > গোপনীয়তা ও নিরাপত্তা > মাইক্রোফোন খুলুন।";
 "settings.access.guidance.askEveryTime" = "এখনই অ্যাক্সেসের জন্য অনুরোধ করুন, অথবা আপনি যদি ম্যানুয়ালি এটি পরিচালনা করতে চান তাহলে পরে সেটিংস খুলুন।";
+"settings.access.guidance.mac.askEveryTime" = "এখনই অ্যাক্সেসের জন্য অনুরোধ করুন, অথবা আপনি যদি ম্যানুয়ালি এটি পরিচালনা করতে চান তাহলে পরে সিস্টেম সেটিংস খুলুন।";
 "settings.access.guidance.allowed" = "আপনি যদি এই অ্যাক্সেস বন্ধ করতে চান তবে সেটিংস খুলুন।";
+"settings.access.guidance.mac.allowed" = "আপনি যদি এই অ্যাক্সেস বন্ধ করতে চান তবে সিস্টেম সেটিংস > গোপনীয়তা ও নিরাপত্তা খুলুন।";
 "settings.access.guidance.limited" = "এই অ্যাক্সেস পর্যালোচনা বা প্রসারিত করতে সেটিংস খুলুন।";
 "settings.access.guidance.unavailable" = "এই অ্যাক্সেস বর্তমান ডিভাইসে অনুপলব্ধ।";
 "settings.account.row.openSourceValue" = "GitHub + MIT";

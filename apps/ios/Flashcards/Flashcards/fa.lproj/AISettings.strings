@@ -451,11 +451,17 @@
 "settings.access.action.request" = "درخواست دسترسی";
 "settings.access.action.openSettings" = "باز کردن تنظیمات";
 "settings.access.guidance.photos.limited" = "دسترسی به کتابخانهٔ عکس‌ها محدود است. همچنان می‌توانید عکس‌هایی را برای پیوست به گفت‌وگوی هوش مصنوعی انتخاب کنید.";
+"settings.access.guidance.mac.photos.limited" = "دسترسی به کتابخانهٔ عکس‌ها محدود است. همچنان می‌توانید عکس‌هایی را برای پیوست به گفت‌وگوی هوش مصنوعی انتخاب کنید یا برای تغییر آن، تنظیمات سیستم > حریم خصوصی و امنیت > عکس‌ها را باز کنید.";
 "settings.access.guidance.photos.blocked" = "دسترسی به کتابخانهٔ عکس‌ها غیرفعال است. همچنان می‌توانید عکس‌هایی را برای پیوست به گفت‌وگوی هوش مصنوعی انتخاب کنید.";
+"settings.access.guidance.mac.photos.blocked" = "دسترسی به کتابخانهٔ عکس‌ها غیرفعال است. همچنان می‌توانید عکس‌هایی را برای پیوست به گفت‌وگوی هوش مصنوعی انتخاب کنید یا برای تغییر آن، تنظیمات سیستم > حریم خصوصی و امنیت > عکس‌ها را باز کنید.";
 "settings.access.guidance.camera.blocked" = "دسترسی Nibomo به دوربین غیرفعال است. برای تغییر آن، تنظیمات > حریم خصوصی و امنیت > دوربین را باز کنید.";
+"settings.access.guidance.mac.camera.blocked" = "دسترسی Nibomo به دوربین غیرفعال است. برای تغییر آن، تنظیمات سیستم > حریم خصوصی و امنیت > دوربین را باز کنید.";
 "settings.access.guidance.microphone.blocked" = "دسترسی Nibomo به میکروفون غیرفعال است. برای تغییر آن، تنظیمات > حریم خصوصی و امنیت > میکروفون را باز کنید.";
+"settings.access.guidance.mac.microphone.blocked" = "دسترسی Nibomo به میکروفون غیرفعال است. برای تغییر آن، تنظیمات سیستم > حریم خصوصی و امنیت > میکروفون را باز کنید.";
 "settings.access.guidance.askEveryTime" = "اکنون درخواست دسترسی دهید یا برای مدیریت دستی آن بعداً تنظیمات را باز کنید.";
+"settings.access.guidance.mac.askEveryTime" = "اکنون درخواست دسترسی دهید یا برای مدیریت دستی آن بعداً تنظیمات سیستم را باز کنید.";
 "settings.access.guidance.allowed" = "اگر می‌خواهید این دسترسی را غیرفعال کنید، تنظیمات را باز کنید.";
+"settings.access.guidance.mac.allowed" = "اگر می‌خواهید این دسترسی را غیرفعال کنید، تنظیمات سیستم > حریم خصوصی و امنیت را باز کنید.";
 "settings.access.guidance.limited" = "برای بررسی یا گسترش این دسترسی، تنظیمات را باز کنید.";
 "settings.access.guidance.unavailable" = "این دسترسی در دستگاه فعلی در دسترس نیست.";
 "settings.account.row.openSourceValue" = "GitHub + MIT";

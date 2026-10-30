@@ -460,11 +460,17 @@
 "settings.access.action.request" = "Solicitar acceso";
 "settings.access.action.openSettings" = "Abrir Ajustes";
 "settings.access.guidance.photos.limited" = "El acceso a la biblioteca de fotos está limitado. Puedes seguir eligiendo fotos para adjuntarlas al chat con IA.";
+"settings.access.guidance.mac.photos.limited" = "El acceso a la biblioteca de fotos está limitado. Puedes seguir eligiendo fotos para adjuntarlas al chat con IA o abrir Configuración del Sistema > Privacidad y seguridad > Fotos para cambiarlo.";
 "settings.access.guidance.photos.blocked" = "El acceso a la biblioteca de fotos está desactivado. Puedes seguir eligiendo fotos para adjuntarlas al chat con IA.";
+"settings.access.guidance.mac.photos.blocked" = "El acceso a la biblioteca de fotos está desactivado. Puedes seguir eligiendo fotos para adjuntarlas al chat con IA o abrir Configuración del Sistema > Privacidad y seguridad > Fotos para cambiarlo.";
 "settings.access.guidance.camera.blocked" = "El acceso a la camara esta desactivado para Nibomo. Abre Ajustes > Privacidad y seguridad > Camara para cambiarlo.";
+"settings.access.guidance.mac.camera.blocked" = "El acceso a la cámara está desactivado para Nibomo. Abre Configuración del Sistema > Privacidad y seguridad > Cámara para cambiarlo.";
 "settings.access.guidance.microphone.blocked" = "El acceso al microfono esta desactivado para Nibomo. Abre Ajustes > Privacidad y seguridad > Microfono para cambiarlo.";
+"settings.access.guidance.mac.microphone.blocked" = "El acceso al micrófono está desactivado para Nibomo. Abre Configuración del Sistema > Privacidad y seguridad > Micrófono para cambiarlo.";
 "settings.access.guidance.askEveryTime" = "Solicita acceso ahora o abre Ajustes mas tarde si quieres gestionarlo manualmente.";
+"settings.access.guidance.mac.askEveryTime" = "Solicita acceso ahora o abre Configuración del Sistema más tarde si quieres gestionarlo manualmente.";
 "settings.access.guidance.allowed" = "Abre Ajustes si quieres desactivar este acceso.";
+"settings.access.guidance.mac.allowed" = "Abre Configuración del Sistema > Privacidad y seguridad si quieres desactivar este acceso.";
 "settings.access.guidance.limited" = "Abre Ajustes para revisar o ampliar este acceso.";
 "settings.access.guidance.unavailable" = "Este acceso no esta disponible en el dispositivo actual.";
 

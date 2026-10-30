@@ -460,11 +460,17 @@
 "settings.access.action.request" = "पहुंच का अनुरोध करें";
 "settings.access.action.openSettings" = "सेटिंग्स खोलें";
 "settings.access.guidance.photos.limited" = "फ़ोटो लाइब्रेरी का ऐक्सेस सीमित है। आप अभी भी AI चैट में अटैच करने के लिए फ़ोटो चुन सकते हैं।";
+"settings.access.guidance.mac.photos.limited" = "फ़ोटो लाइब्रेरी का ऐक्सेस सीमित है। आप अभी भी AI चैट में अटैच करने के लिए फ़ोटो चुन सकते हैं, या इसे बदलने के लिए सिस्टम सेटिंग्ज़ > गोपनीयता और सुरक्षा > तस्वीर खोलें।";
 "settings.access.guidance.photos.blocked" = "फ़ोटो लाइब्रेरी का ऐक्सेस बंद है। आप अभी भी AI चैट में अटैच करने के लिए फ़ोटो चुन सकते हैं।";
+"settings.access.guidance.mac.photos.blocked" = "फ़ोटो लाइब्रेरी का ऐक्सेस बंद है। आप अभी भी AI चैट में अटैच करने के लिए फ़ोटो चुन सकते हैं, या इसे बदलने के लिए सिस्टम सेटिंग्ज़ > गोपनीयता और सुरक्षा > तस्वीर खोलें।";
 "settings.access.guidance.camera.blocked" = "Nibomo के लिए कैमरा एक्सेस अक्षम है। इसे बदलने के लिए सेटिंग्स > गोपनीयता और सुरक्षा > कैमरा खोलें।";
+"settings.access.guidance.mac.camera.blocked" = "Nibomo के लिए कैमरा एक्सेस अक्षम है। इसे बदलने के लिए सिस्टम सेटिंग्ज़ > गोपनीयता और सुरक्षा > कैमरा खोलें।";
 "settings.access.guidance.microphone.blocked" = "Nibomo के लिए माइक्रोफ़ोन एक्सेस अक्षम है। इसे बदलने के लिए सेटिंग्स > गोपनीयता और सुरक्षा > माइक्रोफ़ोन खोलें।";
+"settings.access.guidance.mac.microphone.blocked" = "Nibomo के लिए माइक्रोफ़ोन एक्सेस अक्षम है। इसे बदलने के लिए सिस्टम सेटिंग्ज़ > गोपनीयता और सुरक्षा > माइक्रोफ़ोन खोलें।";
 "settings.access.guidance.askEveryTime" = "यदि आप इसे मैन्युअल रूप से प्रबंधित करना चाहते हैं तो अभी पहुंच का अनुरोध करें या बाद में सेटिंग्स खोलें।";
+"settings.access.guidance.mac.askEveryTime" = "यदि आप इसे मैन्युअल रूप से प्रबंधित करना चाहते हैं तो अभी पहुंच का अनुरोध करें या बाद में सिस्टम सेटिंग्ज़ खोलें।";
 "settings.access.guidance.allowed" = "यदि आप इस एक्सेस को अक्षम करना चाहते हैं तो सेटिंग्स खोलें।";
+"settings.access.guidance.mac.allowed" = "यदि आप इस एक्सेस को अक्षम करना चाहते हैं तो सिस्टम सेटिंग्ज़ > गोपनीयता और सुरक्षा खोलें।";
 "settings.access.guidance.limited" = "इस पहुंच की समीक्षा या विस्तार करने के लिए सेटिंग्स खोलें।";
 "settings.access.guidance.unavailable" = "यह एक्सेस वर्तमान डिवाइस पर उपलब्ध नहीं है.";
 

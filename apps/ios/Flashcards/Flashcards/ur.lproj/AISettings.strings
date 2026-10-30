@@ -451,11 +451,17 @@
 "settings.access.action.request" = "رسائی کی درخواست کریں";
 "settings.access.action.openSettings" = "ترتیبات کھولیں";
 "settings.access.guidance.photos.limited" = "فوٹو لائبریری کی رسائی محدود ہے۔ آپ اب بھی مصنوعی ذہانت کی چیٹ میں منسلک کرنے کے لیے تصاویر منتخب کر سکتے ہیں۔";
+"settings.access.guidance.mac.photos.limited" = "فوٹو لائبریری کی رسائی محدود ہے۔ آپ اب بھی مصنوعی ذہانت کی چیٹ میں منسلک کرنے کے لیے تصاویر منتخب کر سکتے ہیں، یا اسے بدلنے کے لیے سسٹم سیٹنگز > رازداری اور سیکیورٹی > تصاویر کھولیں۔";
 "settings.access.guidance.photos.blocked" = "فوٹو لائبریری کی رسائی بند ہے۔ آپ اب بھی مصنوعی ذہانت کی چیٹ میں منسلک کرنے کے لیے تصاویر منتخب کر سکتے ہیں۔";
+"settings.access.guidance.mac.photos.blocked" = "فوٹو لائبریری کی رسائی بند ہے۔ آپ اب بھی مصنوعی ذہانت کی چیٹ میں منسلک کرنے کے لیے تصاویر منتخب کر سکتے ہیں، یا اسے بدلنے کے لیے سسٹم سیٹنگز > رازداری اور سیکیورٹی > تصاویر کھولیں۔";
 "settings.access.guidance.camera.blocked" = "Nibomo کے لیے کیمرے کی رسائی بند ہے۔ اسے بدلنے کے لیے ترتیبات > رازداری اور سیکیورٹی > کیمرا کھولیں۔";
+"settings.access.guidance.mac.camera.blocked" = "Nibomo کے لیے کیمرے کی رسائی بند ہے۔ اسے بدلنے کے لیے سسٹم سیٹنگز > رازداری اور سیکیورٹی > کیمرا کھولیں۔";
 "settings.access.guidance.microphone.blocked" = "Nibomo کے لیے مائیکروفون کی رسائی بند ہے۔ اسے بدلنے کے لیے ترتیبات > رازداری اور سیکیورٹی > مائیکروفون کھولیں۔";
+"settings.access.guidance.mac.microphone.blocked" = "Nibomo کے لیے مائیکروفون کی رسائی بند ہے۔ اسے بدلنے کے لیے سسٹم سیٹنگز > رازداری اور سیکیورٹی > مائیکروفون کھولیں۔";
 "settings.access.guidance.askEveryTime" = "ابھی رسائی کی درخواست کریں، یا بعد میں خود انتظام کرنے کے لیے ترتیبات کھولیں۔";
+"settings.access.guidance.mac.askEveryTime" = "ابھی رسائی کی درخواست کریں، یا بعد میں خود انتظام کرنے کے لیے سسٹم سیٹنگز کھولیں۔";
 "settings.access.guidance.allowed" = "اگر آپ یہ رسائی بند کرنا چاہتے ہیں تو ترتیبات کھولیں۔";
+"settings.access.guidance.mac.allowed" = "اگر آپ یہ رسائی بند کرنا چاہتے ہیں تو سسٹم سیٹنگز > رازداری اور سیکیورٹی کھولیں۔";
 "settings.access.guidance.limited" = "اس رسائی کا جائزہ لینے یا اسے بڑھانے کے لیے ترتیبات کھولیں۔";
 "settings.access.guidance.unavailable" = "اس آلے پر یہ رسائی دستیاب نہیں ہے۔";
 "settings.account.row.openSourceValue" = "GitHub + MIT";

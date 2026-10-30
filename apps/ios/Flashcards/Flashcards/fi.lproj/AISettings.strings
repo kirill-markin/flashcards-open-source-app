@@ -451,11 +451,17 @@
 "settings.access.action.request" = "Pyydä käyttöoikeutta";
 "settings.access.action.openSettings" = "Avaa asetukset";
 "settings.access.guidance.photos.limited" = "Kuvakirjaston käyttöoikeus on rajoitettu. Voit silti valita kuvia tekoälykeskustelun liitteiksi.";
+"settings.access.guidance.mac.photos.limited" = "Kuvakirjaston käyttöoikeus on rajoitettu. Voit silti valita kuvia tekoälykeskustelun liitteiksi tai muuttaa sitä kohdassa Järjestelmäasetukset > Tietosuoja ja suojaus > Kuvat.";
 "settings.access.guidance.photos.blocked" = "Kuvakirjaston käyttöoikeus on poistettu käytöstä. Voit silti valita kuvia tekoälykeskustelun liitteiksi.";
+"settings.access.guidance.mac.photos.blocked" = "Kuvakirjaston käyttöoikeus on poistettu käytöstä. Voit silti valita kuvia tekoälykeskustelun liitteiksi tai muuttaa sitä kohdassa Järjestelmäasetukset > Tietosuoja ja suojaus > Kuvat.";
 "settings.access.guidance.camera.blocked" = "Nibomon kameran käyttöoikeus on poistettu. Muuta sitä kohdassa Asetukset > Tietosuoja ja suojaus > Kamera.";
+"settings.access.guidance.mac.camera.blocked" = "Nibomon kameran käyttöoikeus on poistettu. Muuta sitä kohdassa Järjestelmäasetukset > Tietosuoja ja suojaus > Kamera.";
 "settings.access.guidance.microphone.blocked" = "Nibomon mikrofonin käyttöoikeus on poistettu. Muuta sitä kohdassa Asetukset > Tietosuoja ja suojaus > Mikrofoni.";
+"settings.access.guidance.mac.microphone.blocked" = "Nibomon mikrofonin käyttöoikeus on poistettu. Muuta sitä kohdassa Järjestelmäasetukset > Tietosuoja ja suojaus > Mikrofoni.";
 "settings.access.guidance.askEveryTime" = "Pyydä käyttöoikeutta nyt tai hallitse sitä myöhemmin asetuksissa.";
+"settings.access.guidance.mac.askEveryTime" = "Pyydä käyttöoikeutta nyt tai hallitse sitä myöhemmin Järjestelmäasetuksissa.";
 "settings.access.guidance.allowed" = "Avaa asetukset, jos haluat poistaa tämän käyttöoikeuden.";
+"settings.access.guidance.mac.allowed" = "Avaa Järjestelmäasetukset > Tietosuoja ja suojaus, jos haluat poistaa tämän käyttöoikeuden.";
 "settings.access.guidance.limited" = "Tarkista käyttöoikeus tai laajenna sitä avaamalla asetukset.";
 "settings.access.guidance.unavailable" = "Tämä käyttöoikeus ei ole saatavilla tällä laitteella.";
 "settings.account.row.openSourceValue" = "GitHub + MIT";

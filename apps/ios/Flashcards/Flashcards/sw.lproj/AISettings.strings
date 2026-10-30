@@ -451,11 +451,17 @@
 "settings.access.action.request" = "Omba ufikiaji";
 "settings.access.action.openSettings" = "Fungua Mipangilio";
 "settings.access.guidance.photos.limited" = "Ufikiaji wa maktaba ya picha umewekewa mipaka. Bado unaweza kuchagua picha za kuambatisha kwenye gumzo la AI.";
+"settings.access.guidance.mac.photos.limited" = "Ufikiaji wa maktaba ya picha umewekewa mipaka. Bado unaweza kuchagua picha za kuambatisha kwenye gumzo la AI, au fungua Mipangilio ya Mfumo > Faragha na Usalama > Picha ili kuubadilisha.";
 "settings.access.guidance.photos.blocked" = "Ufikiaji wa maktaba ya picha umezimwa. Bado unaweza kuchagua picha za kuambatisha kwenye gumzo la AI.";
+"settings.access.guidance.mac.photos.blocked" = "Ufikiaji wa maktaba ya picha umezimwa. Bado unaweza kuchagua picha za kuambatisha kwenye gumzo la AI, au fungua Mipangilio ya Mfumo > Faragha na Usalama > Picha ili kuubadilisha.";
 "settings.access.guidance.camera.blocked" = "Ufikiaji wa kamera umezimwa kwa Nibomo. Fungua Mipangilio > Faragha na Usalama > Kamera ili kuubadilisha.";
+"settings.access.guidance.mac.camera.blocked" = "Ufikiaji wa kamera umezimwa kwa Nibomo. Fungua Mipangilio ya Mfumo > Faragha na Usalama > Kamera ili kuubadilisha.";
 "settings.access.guidance.microphone.blocked" = "Ufikiaji wa maikrofoni umezimwa kwa Nibomo. Fungua Mipangilio > Faragha na Usalama > Maikrofoni ili kuubadilisha.";
+"settings.access.guidance.mac.microphone.blocked" = "Ufikiaji wa maikrofoni umezimwa kwa Nibomo. Fungua Mipangilio ya Mfumo > Faragha na Usalama > Maikrofoni ili kuubadilisha.";
 "settings.access.guidance.askEveryTime" = "Omba ufikiaji sasa, au fungua Mipangilio baadaye ili kuudhibiti mwenyewe.";
+"settings.access.guidance.mac.askEveryTime" = "Omba ufikiaji sasa, au fungua Mipangilio ya Mfumo baadaye ili kuudhibiti mwenyewe.";
 "settings.access.guidance.allowed" = "Fungua Mipangilio ikiwa unataka kuzima ufikiaji huu.";
+"settings.access.guidance.mac.allowed" = "Fungua Mipangilio ya Mfumo > Faragha na Usalama ikiwa unataka kuzima ufikiaji huu.";
 "settings.access.guidance.limited" = "Fungua Mipangilio ili kukagua au kupanua ufikiaji huu.";
 "settings.access.guidance.unavailable" = "Ufikiaji huu haupatikani kwenye kifaa hiki.";
 "settings.account.row.openSourceValue" = "GitHub + MIT";

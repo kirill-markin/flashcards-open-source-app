@@ -451,11 +451,17 @@
 "settings.access.action.request" = "접근 요청";
 "settings.access.action.openSettings" = "설정 열기";
 "settings.access.guidance.photos.limited" = "사진 보관함 접근 권한이 제한되어 있습니다. AI 첨부 파일로 사용할 사진은 계속 선택할 수 있습니다.";
+"settings.access.guidance.mac.photos.limited" = "사진 보관함 접근 권한이 제한되어 있습니다. AI 첨부 파일로 사용할 사진은 계속 선택할 수 있으며, 변경하려면 시스템 설정 > 개인정보 보호 및 보안 > 사진을 여세요.";
 "settings.access.guidance.photos.blocked" = "사진 보관함 접근 권한이 꺼져 있습니다. AI 첨부 파일로 사용할 사진은 계속 선택할 수 있습니다.";
+"settings.access.guidance.mac.photos.blocked" = "사진 보관함 접근 권한이 꺼져 있습니다. AI 첨부 파일로 사용할 사진은 계속 선택할 수 있으며, 변경하려면 시스템 설정 > 개인정보 보호 및 보안 > 사진을 여세요.";
 "settings.access.guidance.camera.blocked" = "Nibomo의 카메라 접근이 꺼져 있습니다. 설정 > 개인정보 보호 및 보안 > 카메라에서 변경하세요.";
+"settings.access.guidance.mac.camera.blocked" = "Nibomo의 카메라 접근이 꺼져 있습니다. 시스템 설정 > 개인정보 보호 및 보안 > 카메라에서 변경하세요.";
 "settings.access.guidance.microphone.blocked" = "Nibomo의 마이크 접근이 꺼져 있습니다. 설정 > 개인정보 보호 및 보안 > 마이크에서 변경하세요.";
+"settings.access.guidance.mac.microphone.blocked" = "Nibomo의 마이크 접근이 꺼져 있습니다. 시스템 설정 > 개인정보 보호 및 보안 > 마이크에서 변경하세요.";
 "settings.access.guidance.askEveryTime" = "지금 접근을 요청하거나 나중에 설정에서 직접 관리하세요.";
+"settings.access.guidance.mac.askEveryTime" = "지금 접근을 요청하거나 나중에 시스템 설정에서 직접 관리하세요.";
 "settings.access.guidance.allowed" = "이 접근을 끄려면 설정을 여세요.";
+"settings.access.guidance.mac.allowed" = "이 접근을 끄려면 시스템 설정 > 개인정보 보호 및 보안을 여세요.";
 "settings.access.guidance.limited" = "이 접근을 확인하거나 확대하려면 설정을 여세요.";
 "settings.access.guidance.unavailable" = "현재 기기에서는 이 접근을 사용할 수 없습니다.";
 "settings.account.row.openSourceValue" = "GitHub + MIT";

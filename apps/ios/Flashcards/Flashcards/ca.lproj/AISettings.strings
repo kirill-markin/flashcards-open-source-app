@@ -451,11 +451,17 @@
 "settings.access.action.request" = "Sol·licitar accés";
 "settings.access.action.openSettings" = "Obriu Configuració";
 "settings.access.guidance.photos.limited" = "L’accés a la fototeca és limitat. Encara pots triar fotos per adjuntar-les al xat amb IA.";
+"settings.access.guidance.mac.photos.limited" = "L’accés a la fototeca és limitat. Encara pots triar fotos per adjuntar-les al xat amb IA, o obrir Configuració del Sistema > Privacitat i seguretat > Fotos per canviar-ho.";
 "settings.access.guidance.photos.blocked" = "L’accés a la fototeca està desactivat. Encara pots triar fotos per adjuntar-les al xat amb IA.";
+"settings.access.guidance.mac.photos.blocked" = "L’accés a la fototeca està desactivat. Encara pots triar fotos per adjuntar-les al xat amb IA, o obrir Configuració del Sistema > Privacitat i seguretat > Fotos per canviar-ho.";
 "settings.access.guidance.camera.blocked" = "L'accés a la càmera està desactivat per a Nibomo. Obriu Configuració > Privadesa i seguretat > Càmera per canviar-ho.";
+"settings.access.guidance.mac.camera.blocked" = "L'accés a la càmera està desactivat per a Nibomo. Obriu Configuració del Sistema > Privacitat i seguretat > Càmera per canviar-ho.";
 "settings.access.guidance.microphone.blocked" = "L'accés al micròfon està desactivat per a Nibomo. Obriu Configuració > Privadesa i seguretat > Micròfon per canviar-lo.";
+"settings.access.guidance.mac.microphone.blocked" = "L'accés al micròfon està desactivat per a Nibomo. Obriu Configuració del Sistema > Privacitat i seguretat > Micròfon per canviar-lo.";
 "settings.access.guidance.askEveryTime" = "Sol·liciteu accés ara o obriu Configuració més tard si voleu gestionar-lo manualment.";
+"settings.access.guidance.mac.askEveryTime" = "Sol·liciteu accés ara o obriu Configuració del Sistema més tard si voleu gestionar-lo manualment.";
 "settings.access.guidance.allowed" = "Obriu Configuració si voleu desactivar aquest accés.";
+"settings.access.guidance.mac.allowed" = "Obriu Configuració del Sistema > Privacitat i seguretat si voleu desactivar aquest accés.";
 "settings.access.guidance.limited" = "Obriu Configuració per revisar o ampliar aquest accés.";
 "settings.access.guidance.unavailable" = "Aquest accés no està disponible al dispositiu actual.";
 "settings.account.row.openSourceValue" = "GitHub + MIT";

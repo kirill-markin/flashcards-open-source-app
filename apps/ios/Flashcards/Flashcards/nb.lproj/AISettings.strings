@@ -451,11 +451,17 @@
 "settings.access.action.request" = "Be om tilgang";
 "settings.access.action.openSettings" = "Åpne Innstillinger";
 "settings.access.guidance.photos.limited" = "Tilgangen til bildebiblioteket er begrenset. Du kan fortsatt velge bilder som vedlegg i KI-chatten.";
+"settings.access.guidance.mac.photos.limited" = "Tilgangen til bildebiblioteket er begrenset. Du kan fortsatt velge bilder som vedlegg i KI-chatten, eller åpne Systeminnstillinger > Personvern og sikkerhet > Bilder for å endre dette.";
 "settings.access.guidance.photos.blocked" = "Tilgangen til bildebiblioteket er slått av. Du kan fortsatt velge bilder som vedlegg i KI-chatten.";
+"settings.access.guidance.mac.photos.blocked" = "Tilgangen til bildebiblioteket er slått av. Du kan fortsatt velge bilder som vedlegg i KI-chatten, eller åpne Systeminnstillinger > Personvern og sikkerhet > Bilder for å endre dette.";
 "settings.access.guidance.camera.blocked" = "Kameratilgang er slått av for Nibomo. Åpne Innstillinger > Personvern og sikkerhet > Kamera for å endre dette.";
+"settings.access.guidance.mac.camera.blocked" = "Kameratilgang er slått av for Nibomo. Åpne Systeminnstillinger > Personvern og sikkerhet > Kamera for å endre dette.";
 "settings.access.guidance.microphone.blocked" = "Mikrofontilgang er slått av for Nibomo. Åpne Innstillinger > Personvern og sikkerhet > Mikrofon for å endre dette.";
+"settings.access.guidance.mac.microphone.blocked" = "Mikrofontilgang er slått av for Nibomo. Åpne Systeminnstillinger > Personvern og sikkerhet > Mikrofon for å endre dette.";
 "settings.access.guidance.askEveryTime" = "Be om tilgang nå, eller åpne Innstillinger senere hvis du vil administrere den selv.";
+"settings.access.guidance.mac.askEveryTime" = "Be om tilgang nå, eller åpne Systeminnstillinger senere hvis du vil administrere den selv.";
 "settings.access.guidance.allowed" = "Åpne Innstillinger hvis du vil slå av denne tilgangen.";
+"settings.access.guidance.mac.allowed" = "Åpne Systeminnstillinger > Personvern og sikkerhet hvis du vil slå av denne tilgangen.";
 "settings.access.guidance.limited" = "Åpne Innstillinger for å se gjennom eller utvide tilgangen.";
 "settings.access.guidance.unavailable" = "Denne tilgangen er ikke tilgjengelig på denne enheten.";
 "settings.account.row.openSourceValue" = "GitHub + MIT";
