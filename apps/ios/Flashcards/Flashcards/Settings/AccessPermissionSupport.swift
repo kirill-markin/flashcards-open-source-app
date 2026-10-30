@@ -357,7 +357,16 @@ func openApplicationSettings() async throws {
 
 @MainActor
 func openNotificationSettings() async throws {
-    try await openSystemSettings(urlString: UIApplication.openNotificationSettingsURLString)
+    #if targetEnvironment(macCatalyst)
+    guard let bundleIdentifier = Bundle.main.bundleIdentifier else {
+        throw SystemSettingsError.invalidLink
+    }
+    let settingsUrlString: String =
+        "x-apple.systempreferences:com.apple.Notifications-Settings.extension?id=\(bundleIdentifier)"
+    #else
+    let settingsUrlString: String = UIApplication.openNotificationSettingsURLString
+    #endif
+    try await openSystemSettings(urlString: settingsUrlString)
 }
 
 @MainActor
