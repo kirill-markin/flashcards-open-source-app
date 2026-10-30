@@ -96,11 +96,15 @@ export async function runAnalyticsConsentBannerFlow(browser: Browser, testInfo: 
       await expect(copyStatus).not.toBeEmpty({ timeout: localUiTimeoutMs });
       await expect(banner).toBeVisible();
 
+      // React keeps attributes it did not set across re-renders, so a reload or a remount of the
+      // share screen drops this marker. The copy status cannot stand in for it: a successful copy
+      // clears itself after a few seconds, which the real consent round trip can outlast.
+      await copyButton.evaluate((element) => { element.dataset.liveSmokeBeforeConsent = "set"; });
       await page.getByTestId("analytics-consent-allow").click();
       await expect(banner).toBeHidden({ timeout: externalUiTimeoutMs });
       // Answering it must neither reload the page nor disturb what the visitor was doing.
+      await expect(copyButton).toHaveAttribute("data-live-smoke-before-consent", "set");
       await expect(copyButton).toBeVisible();
-      await expect(copyStatus).not.toBeEmpty();
     } catch (error) {
       const failure = normalizeError(error);
       await diagnostics.attachFailureDetails(testInfo, failure);
