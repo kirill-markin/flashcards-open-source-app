@@ -579,6 +579,7 @@
 "settings.account.cloudSignIn.failure.cloudSetupFailed" = "ಸೈನ್ ಇನ್ ಆಗಿದೆ, ಆದರೆ ಕ್ಲೌಡ್ ಹೊಂದಿಕೆ ವಿಫಲವಾಗಿದೆ.";
 "settings.account.cloudSignIn.failure.accountUpgradeFailed" = "ಸೈನ್ ಇನ್ ಆಗಿದೆ, ಆದರೆ ಖಾತೆ ಉನ್ನತೀಕರಣ ವಿಫಲವಾಗಿದೆ.";
 "settings.account.cloudSignIn.failureDescription" = "ಸೈನ್ ಇನ್ ಯಶಸ್ವಿಯಾಗಿದೆ, ಆದರೆ ಕ್ಲೌಡ್ ಕಾರ್ಯಸ್ಥಳ ಹೊಂದಿಕೆ ಅಥವಾ ಆರಂಭಿಕ ಸಿಂಕ್ ಮುಗಿದಿಲ್ಲ.";
+"settings.account.cloudSignIn.chooseWorkspace" = "ಕಾರ್ಯಸ್ಥಳ ಆಯ್ಕೆಮಾಡಿ";
 "settings.account.cloudSignIn.sync.title" = "ನಿಮ್ಮ ಖಾತೆ ಕ್ಲೌಡ್‌ನೊಂದಿಗೆ ಸಿಂಕ್ ಆಗುತ್ತಿದೆ.";
 "settings.account.cloudSignIn.sync.message" = "ನಿಮ್ಮ ಖಾತೆ ಸಿಂಕ್ ಆಗುವಾಗ Nibomo ತೆರೆದಿಡಿ. ಸಾಮಾನ್ಯವಾಗಿ ಕೆಲವು ನಿಮಿಷಗಳು ಬೇಕಾಗುತ್ತವೆ.";
 "settings.account.cloudSignIn.cloudSyncTitle" = "ಕ್ಲೌಡ್ ಸಿಂಕ್";

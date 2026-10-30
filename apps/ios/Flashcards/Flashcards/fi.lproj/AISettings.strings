@@ -579,6 +579,7 @@
 "settings.account.cloudSignIn.failure.cloudSetupFailed" = "Kirjautuminen onnistui, mutta pilven käyttöönotto epäonnistui.";
 "settings.account.cloudSignIn.failure.accountUpgradeFailed" = "Kirjautuminen onnistui, mutta tilin päivitys epäonnistui.";
 "settings.account.cloudSignIn.failureDescription" = "Kirjautuminen onnistui, mutta pilvityötilan käyttöönotto tai alkusynkronointi ei valmistunut.";
+"settings.account.cloudSignIn.chooseWorkspace" = "Valitse työtila";
 "settings.account.cloudSignIn.sync.title" = "Tiliäsi synkronoidaan pilveen.";
 "settings.account.cloudSignIn.sync.message" = "Pidä Nibomo auki, kun tilisi synkronoidaan. Tämä kestää yleensä muutaman minuutin.";
 "settings.account.cloudSignIn.cloudSyncTitle" = "Pilvisynkronointi";

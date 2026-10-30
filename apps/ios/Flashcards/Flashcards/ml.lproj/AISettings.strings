@@ -579,6 +579,7 @@
 "settings.account.cloudSignIn.failure.cloudSetupFailed" = "സൈൻ ഇൻ ചെയ്തു, പക്ഷേ ക്ലൗഡ് സജ്ജീകരണം പരാജയപ്പെട്ടു.";
 "settings.account.cloudSignIn.failure.accountUpgradeFailed" = "സൈൻ ഇൻ ചെയ്തു, പക്ഷേ അക്കൗണ്ട് അപ്‌ഗ്രേഡ് പരാജയപ്പെട്ടു.";
 "settings.account.cloudSignIn.failureDescription" = "സൈൻ ഇൻ വിജയിച്ചു, പക്ഷേ ക്ലൗഡ് വർക്ക്‌സ്‌പേസ് സജ്ജീകരണമോ ആദ്യ സമന്വയമോ പൂർത്തിയായില്ല.";
+"settings.account.cloudSignIn.chooseWorkspace" = "വർക്ക്‌സ്‌പേസ് തിരഞ്ഞെടുക്കുക";
 "settings.account.cloudSignIn.sync.title" = "നിങ്ങളുടെ അക്കൗണ്ട് ക്ലൗഡുമായി സമന്വയിപ്പിക്കുകയാണ്.";
 "settings.account.cloudSignIn.sync.message" = "നിങ്ങളുടെ അക്കൗണ്ട് സമന്വയിപ്പിക്കുമ്പോൾ Nibomo തുറന്നുവെക്കുക. സാധാരണയായി ഏതാനും മിനിറ്റുകൾ എടുക്കും.";
 "settings.account.cloudSignIn.cloudSyncTitle" = "ക്ലൗഡ് സമന്വയം";

@@ -579,6 +579,7 @@
 "settings.account.cloudSignIn.failure.cloudSetupFailed" = "Zalogowano, ale konfiguracja chmury nie powiodła się.";
 "settings.account.cloudSignIn.failure.accountUpgradeFailed" = "Zalogowano, ale uaktualnienie konta nie powiodło się.";
 "settings.account.cloudSignIn.failureDescription" = "Logowanie powiodło się, ale konfiguracja obszaru roboczego w chmurze lub początkowa synchronizacja nie została zakończona.";
+"settings.account.cloudSignIn.chooseWorkspace" = "Wybierz obszar roboczy";
 "settings.account.cloudSignIn.sync.title" = "Twoje konto synchronizuje się z chmurą.";
 "settings.account.cloudSignIn.sync.message" = "Pozostaw Nibomo otwarte podczas synchronizacji konta. Zwykle trwa to kilka minut.";
 "settings.account.cloudSignIn.cloudSyncTitle" = "Synchronizacja z chmurą";

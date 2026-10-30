@@ -579,6 +579,7 @@
 "settings.account.cloudSignIn.failure.cloudSetupFailed" = "साइन-इन झाले, पण क्लाउड सेटअप अयशस्वी झाला.";
 "settings.account.cloudSignIn.failure.accountUpgradeFailed" = "साइन-इन झाले, पण खाते अपग्रेड अयशस्वी झाले.";
 "settings.account.cloudSignIn.failureDescription" = "साइन-इन यशस्वी झाले, पण क्लाउड कार्यक्षेत्राचा सेटअप किंवा सुरुवातीचे समक्रमण पूर्ण झाले नाही.";
+"settings.account.cloudSignIn.chooseWorkspace" = "कार्यक्षेत्र निवडा";
 "settings.account.cloudSignIn.sync.title" = "तुमचे खाते क्लाउडशी समक्रमित होत आहे.";
 "settings.account.cloudSignIn.sync.message" = "तुमचे खाते सिंक होत असताना Nibomo उघडे ठेवा. यासाठी सहसा काही मिनिटे लागतात.";
 "settings.account.cloudSignIn.cloudSyncTitle" = "क्लाउड समक्रमण";

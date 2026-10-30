@@ -579,6 +579,7 @@
 "settings.account.cloudSignIn.failure.cloudSetupFailed" = "Inloggningen lyckades, men molnkonfigurationen misslyckades.";
 "settings.account.cloudSignIn.failure.accountUpgradeFailed" = "Inloggningen lyckades, men kontouppgraderingen misslyckades.";
 "settings.account.cloudSignIn.failureDescription" = "Inloggningen lyckades, men konfigurationen av molnarbetsytan eller den första synkroniseringen slutfördes inte.";
+"settings.account.cloudSignIn.chooseWorkspace" = "Välj arbetsyta";
 "settings.account.cloudSignIn.sync.title" = "Ditt konto synkroniseras med molnet.";
 "settings.account.cloudSignIn.sync.message" = "Håll Nibomo öppet medan ditt konto synkroniseras. Detta tar vanligtvis några minuter.";
 "settings.account.cloudSignIn.cloudSyncTitle" = "Molnsynkronisering";

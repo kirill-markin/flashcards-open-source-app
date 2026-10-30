@@ -579,6 +579,7 @@
 "settings.account.cloudSignIn.failure.cloudSetupFailed" = "సైన్ ఇన్ అయింది, కానీ క్లౌడ్ సెటప్ విఫలమైంది.";
 "settings.account.cloudSignIn.failure.accountUpgradeFailed" = "సైన్ ఇన్ అయింది, కానీ ఖాతా అప్‌గ్రేడ్ విఫలమైంది.";
 "settings.account.cloudSignIn.failureDescription" = "మీ సైన్ ఇన్ విజయవంతమైంది, కానీ క్లౌడ్ వర్క్‌స్పేస్ సెటప్ లేదా ప్రారంభ సింక్ పూర్తి కాలేదు.";
+"settings.account.cloudSignIn.chooseWorkspace" = "వర్క్‌స్పేస్ ఎంచుకో";
 "settings.account.cloudSignIn.sync.title" = "మీ ఖాతా క్లౌడ్‌తో సింక్ అవుతోంది.";
 "settings.account.cloudSignIn.sync.message" = "మీ ఖాతా సింక్ అవుతున్నప్పుడు Nibomo తెరిచి ఉంచండి. దీనికి సాధారణంగా కొన్ని నిమిషాలు పడుతుంది.";
 "settings.account.cloudSignIn.cloudSyncTitle" = "క్లౌడ్ సింక్";

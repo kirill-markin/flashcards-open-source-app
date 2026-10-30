@@ -579,6 +579,7 @@
 "settings.account.cloudSignIn.failure.cloudSetupFailed" = "Prijava je uspjela, ali postavljanje oblaka nije.";
 "settings.account.cloudSignIn.failure.accountUpgradeFailed" = "Prijava je uspjela, ali nadogradnja računa nije.";
 "settings.account.cloudSignIn.failureDescription" = "Vaša je prijava uspjela, ali postavljanje radnog prostora u oblaku ili početna sinkronizacija nisu završeni.";
+"settings.account.cloudSignIn.chooseWorkspace" = "Odaberi radni prostor";
 "settings.account.cloudSignIn.sync.title" = "Vaš se račun sinkronizira s oblakom.";
 "settings.account.cloudSignIn.sync.message" = "Držite Nibomo otvorenim dok se vaš račun sinkronizira. To obično traje nekoliko minuta.";
 "settings.account.cloudSignIn.cloudSyncTitle" = "Sinkronizacija s oblakom";

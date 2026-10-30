@@ -579,6 +579,7 @@
 "settings.account.cloudSignIn.failure.cloudSetupFailed" = "Ungenile, kodwa ukumiswa kwefu kuhlulekile.";
 "settings.account.cloudSignIn.failure.accountUpgradeFailed" = "Ungenile, kodwa ukuthuthukiswa kwe-akhawunti kuhlulekile.";
 "settings.account.cloudSignIn.failureDescription" = "Ukungena kuphumelele, kodwa ukumiswa kwendawo yokusebenza yefu noma ukuvumelanisa kokuqala akuqedwanga.";
+"settings.account.cloudSignIn.chooseWorkspace" = "Khetha indawo yokusebenza";
 "settings.account.cloudSignIn.sync.title" = "I-akhawunti yakho ivumelaniswa nefu.";
 "settings.account.cloudSignIn.sync.message" = "Gcina i-Nibomo ivuliwe ngenkathi i-akhawunti yakho ivumelaniswa. Lokhu kuvame ukuthatha imizuzu embalwa.";
 "settings.account.cloudSignIn.cloudSyncTitle" = "Ukuvumelanisa kwefu";

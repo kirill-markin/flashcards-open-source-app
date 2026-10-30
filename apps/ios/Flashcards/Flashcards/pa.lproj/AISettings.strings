@@ -579,6 +579,7 @@
 "settings.account.cloudSignIn.failure.cloudSetupFailed" = "ਸਾਈਨ ਇਨ ਹੋ ਗਿਆ ਪਰ ਕਲਾਊਡ ਸੈਟਅੱਪ ਅਸਫਲ ਰਿਹਾ।";
 "settings.account.cloudSignIn.failure.accountUpgradeFailed" = "ਸਾਈਨ ਇਨ ਹੋ ਗਿਆ ਪਰ ਖਾਤਾ ਅੱਪਗ੍ਰੇਡ ਅਸਫਲ ਰਿਹਾ।";
 "settings.account.cloudSignIn.failureDescription" = "ਤੁਹਾਡਾ ਸਾਈਨ ਇਨ ਸਫਲ ਰਿਹਾ ਪਰ ਕਲਾਊਡ ਵਰਕਸਪੇਸ ਸੈਟਅੱਪ ਜਾਂ ਸ਼ੁਰੂਆਤੀ ਸਿੰਕ ਮੁਕੰਮਲ ਨਹੀਂ ਹੋਇਆ।";
+"settings.account.cloudSignIn.chooseWorkspace" = "ਵਰਕਸਪੇਸ ਚੁਣੋ";
 "settings.account.cloudSignIn.sync.title" = "ਤੁਹਾਡਾ ਖਾਤਾ ਕਲਾਊਡ ਨਾਲ ਸਿੰਕ ਹੋ ਰਿਹਾ ਹੈ।";
 "settings.account.cloudSignIn.sync.message" = "ਤੁਹਾਡਾ ਖਾਤਾ ਸਿੰਕ ਹੋਣ ਦੌਰਾਨ Nibomo ਖੁੱਲ੍ਹਾ ਰੱਖੋ। ਇਸ ਵਿੱਚ ਆਮ ਤੌਰ ਉੱਤੇ ਕੁਝ ਮਿੰਟ ਲੱਗਦੇ ਹਨ।";
 "settings.account.cloudSignIn.cloudSyncTitle" = "ਕਲਾਊਡ ਸਿੰਕ";

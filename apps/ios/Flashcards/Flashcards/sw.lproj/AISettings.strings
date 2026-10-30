@@ -579,6 +579,7 @@
 "settings.account.cloudSignIn.failure.cloudSetupFailed" = "Umeingia, lakini usanidi wa wingu umeshindwa.";
 "settings.account.cloudSignIn.failure.accountUpgradeFailed" = "Umeingia, lakini uboreshaji wa akaunti umeshindwa.";
 "settings.account.cloudSignIn.failureDescription" = "Umefanikiwa kuingia, lakini usanidi wa nafasi ya kazi ya wingu au usawazishaji wa kwanza haukukamilika.";
+"settings.account.cloudSignIn.chooseWorkspace" = "Chagua nafasi ya kazi";
 "settings.account.cloudSignIn.sync.title" = "Akaunti yako inasawazishwa na wingu.";
 "settings.account.cloudSignIn.sync.message" = "Weka Nibomo wazi wakati akaunti yako inasawazishwa. Kwa kawaida hii huchukua dakika chache.";
 "settings.account.cloudSignIn.cloudSyncTitle" = "Usawazishaji wa wingu";

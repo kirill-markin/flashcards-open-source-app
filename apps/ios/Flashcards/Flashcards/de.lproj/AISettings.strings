@@ -594,6 +594,7 @@
 "settings.account.cloudSignIn.failure.cloudSetupFailed" = "Ich habe mich angemeldet, aber die Cloud-Konfiguration ist fehlgeschlagen.";
 "settings.account.cloudSignIn.failure.accountUpgradeFailed" = "Ich habe mich angemeldet, aber die Kontoaktualisierung ist fehlgeschlagen.";
 "settings.account.cloudSignIn.failureDescription" = "Die Anmeldung wurde abgeschlossen, aber die Einrichtung des Cloud-Arbeitsbereichs oder die anfängliche Synchronisierung wurde nicht abgeschlossen.";
+"settings.account.cloudSignIn.chooseWorkspace" = "Arbeitsbereich wählen";
 "settings.account.cloudSignIn.sync.title" = "Ihr Konto wird mit der Cloud synchronisiert.";
 "settings.account.cloudSignIn.sync.message" = "Lassen Sie Nibomo geöffnet, während Ihr Konto synchronisiert wird. Dies dauert normalerweise einige Minuten.";
 "settings.account.cloudSignIn.cloudSyncTitle" = "Cloud-Synchronisierung";

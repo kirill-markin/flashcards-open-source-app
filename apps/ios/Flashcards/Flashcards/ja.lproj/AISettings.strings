@@ -594,6 +594,7 @@
 "settings.account.cloudSignIn.failure.cloudSetupFailed" = "ログインしましたが、クラウド構成に失敗しました。";
 "settings.account.cloudSignIn.failure.accountUpgradeFailed" = "ログインしましたが、アカウントの更新に失敗しました。";
 "settings.account.cloudSignIn.failureDescription" = "ログインは完了しましたが、クラウド ワークスペースのセットアップまたは初期同期が完了していません。";
+"settings.account.cloudSignIn.chooseWorkspace" = "ワークスペースを選択";
 "settings.account.cloudSignIn.sync.title" = "アカウントはクラウドと同期しています。";
 "settings.account.cloudSignIn.sync.message" = "アカウントの同期中はNibomoを開いたままにしてください。通常、これには数分かかります。";
 "settings.account.cloudSignIn.cloudSyncTitle" = "クラウド同期";

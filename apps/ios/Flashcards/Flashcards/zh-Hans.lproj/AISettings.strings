@@ -594,6 +594,7 @@
 "settings.account.cloudSignIn.failure.cloudSetupFailed" = "我登录了，但是云端配置失败。";
 "settings.account.cloudSignIn.failure.accountUpgradeFailed" = "我已登录，但帐户更新失败。";
 "settings.account.cloudSignIn.failureDescription" = "登录已完成，但云工作区设置或初始同步未完成。";
+"settings.account.cloudSignIn.chooseWorkspace" = "选择工作空间";
 "settings.account.cloudSignIn.sync.title" = "您的帐户正在与云端同步。";
 "settings.account.cloudSignIn.sync.message" = "同步账户时，请保持 Nibomo 打开。这通常需要几分钟。";
 "settings.account.cloudSignIn.cloudSyncTitle" = "云同步";
