@@ -426,8 +426,12 @@ export function getSqlResourceDescriptor(resourceName: SqlResourceName): SqlReso
   return getDescriptor(resourceName);
 }
 
+/**
+ * Lists only writable columns when the name is unknown, because its INSERT and
+ * UPDATE callers reject a read-only column right after.
+ */
 export function getSqlColumnDescriptor(
-  resourceName: SqlResourceName,
+  resourceName: "cards" | "decks",
   columnName: string,
 ): SqlColumnDescriptor {
   const descriptor = getDescriptor(resourceName);
@@ -436,18 +440,16 @@ export function getSqlColumnDescriptor(
     return columnDescriptor;
   }
 
-  if (resourceName === "cards" || resourceName === "decks") {
-    const legacyColumnDescriptor = legacySqlMutationColumnDescriptors[resourceName][columnName];
-    if (legacyColumnDescriptor !== undefined) {
-      return legacyColumnDescriptor;
-    }
+  const legacyColumnDescriptor = legacySqlMutationColumnDescriptors[resourceName][columnName];
+  if (legacyColumnDescriptor !== undefined) {
+    return legacyColumnDescriptor;
   }
 
+  const writableColumnNames = descriptor.columns
+    .filter((column) => column.readOnly === false)
+    .map((column) => column.columnName);
   throw new SqlDialectError(
-    formatUnknownColumnMessage(
-      `Unknown column for ${resourceName}: ${columnName}`,
-      descriptor.columns.map((column) => column.columnName),
-    ),
+    `Unknown column for ${resourceName}: ${columnName}. Writable columns: ${writableColumnNames.join(", ")}`,
     "unknown_column",
   );
 }
