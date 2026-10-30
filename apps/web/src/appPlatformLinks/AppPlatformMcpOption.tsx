@@ -1,4 +1,5 @@
-import { useState, type ReactElement } from "react";
+import { useEffect, useState, type ReactElement } from "react";
+import { copiedFeedbackDurationMs } from "../access/browserAccess";
 import { useI18n } from "../i18n";
 
 export const publicMcpServerUrl: string = "https://mcp.nibomo.com/mcp";
@@ -22,6 +23,14 @@ export function AppPlatformMcpOption(props: AppPlatformMcpOptionProps): ReactEle
       ? t("appPlatformLinks.mcp.copyFailed")
       : t("appPlatformLinks.mcp.copy");
   const copyStatusMessage: string = copyStatus === "idle" ? "" : copyButtonLabel;
+
+  useEffect(() => {
+    if (copyStatus !== "copied") {
+      return;
+    }
+    const timeoutId = window.setTimeout(() => setCopyStatus("idle"), copiedFeedbackDurationMs);
+    return () => window.clearTimeout(timeoutId);
+  }, [copyStatus]);
 
   async function copyMcpServerUrl(): Promise<void> {
     setCopyStatus("idle");

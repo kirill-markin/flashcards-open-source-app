@@ -55,6 +55,9 @@ export async function requestBrowserMediaPermission(kind: BrowserMediaPermission
   }
 }
 
+// How long a copy control shows its success confirmation before returning to idle.
+export const copiedFeedbackDurationMs: number = 3000;
+
 export function isExpectedClipboardWriteError(error: unknown): boolean {
   return error instanceof DOMException
     && (error.name === "NotAllowedError" || error.name === "SecurityError");

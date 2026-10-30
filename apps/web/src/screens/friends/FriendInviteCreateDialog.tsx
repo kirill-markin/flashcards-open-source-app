@@ -1,4 +1,4 @@
-import { useState, type ReactElement } from "react";
+import { useEffect, useState, type ReactElement } from "react";
 import { createPortal } from "react-dom";
 import { trackScreenViewedOnDismiss, useAnalyticsScreenView, type AnalyticsSurface } from "../../analytics";
 import {
@@ -6,7 +6,7 @@ import {
   createFriendInvitation,
   isAuthRedirectError,
 } from "../../api";
-import { isExpectedClipboardWriteError } from "../../access/browserAccess";
+import { copiedFeedbackDurationMs, isExpectedClipboardWriteError } from "../../access/browserAccess";
 import { useAppData } from "../../appData";
 import {
   markIndexedDbOpenRecoveryFailureAndCheckActive,
@@ -63,8 +63,17 @@ export function FriendInviteCreateDialog(props: FriendInviteCreateDialogProps): 
   const [isCopying, setIsCopying] = useState<boolean>(false);
   const [isSharing, setIsSharing] = useState<boolean>(false);
   const technicalErrorMessage = t("appError.technicalError.message");
+  const copiedStatusMessage = t("progressScreen.leaderboard.invite.copied");
   // Both call sites render this dialog only while it is open, so mounting it is the entry into it.
   useAnalyticsScreenView("friend_invite");
+
+  useEffect(() => {
+    if (statusMessage !== copiedStatusMessage) {
+      return;
+    }
+    const timeoutId = window.setTimeout(() => setStatusMessage(""), copiedFeedbackDurationMs);
+    return () => window.clearTimeout(timeoutId);
+  }, [statusMessage, copiedStatusMessage]);
 
   function closeDialog(): void {
     if (indexedDbOpenRecoveryState.hasFailed()) {
@@ -166,7 +175,7 @@ export function FriendInviteCreateDialog(props: FriendInviteCreateDialogProps): 
 
       await navigator.clipboard.writeText(createdInvite.inviteUrl);
       indexedDbOpenRecoveryState.throwIfFailed();
-      setStatusMessage(t("progressScreen.leaderboard.invite.copied"));
+      setStatusMessage(copiedStatusMessage);
     } catch (error) {
       if (markIndexedDbOpenRecoveryFailureAndCheckActive(indexedDbOpenRecoveryState, error)) {
         return;

@@ -1,4 +1,5 @@
 import { useEffect, useState, type ReactElement } from "react";
+import { copiedFeedbackDurationMs } from "../../../access/browserAccess";
 import { ApiContractError, createAgentApiKey, listAgentApiKeys, revokeAgentApiKey } from "../../../api";
 import { useAppData } from "../../../appData";
 import {
@@ -41,6 +42,14 @@ export function AgentConnectionsScreen(): ReactElement {
 
     void loadConnections();
   }, [indexedDbOpenRecoveryState, isSessionVerified]);
+
+  useEffect(() => {
+    if (isCopied === false) {
+      return;
+    }
+    const timeoutId = window.setTimeout(() => setIsCopied(false), copiedFeedbackDurationMs);
+    return () => window.clearTimeout(timeoutId);
+  }, [isCopied]);
 
   async function loadConnections(): Promise<void> {
     if (indexedDbOpenRecoveryState.hasFailed()) {
@@ -148,6 +157,7 @@ export function AgentConnectionsScreen(): ReactElement {
       return;
     }
 
+    setIsCopied(false);
     try {
       await navigator.clipboard.writeText(generatedApiKey);
       indexedDbOpenRecoveryState.throwIfFailed();
