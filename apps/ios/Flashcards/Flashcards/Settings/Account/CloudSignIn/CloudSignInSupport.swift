@@ -744,6 +744,14 @@ func makeCloudWorkspacePostAuthRoute(
         return .autoLink(.existing(workspaceId: workspace.workspaceId))
     }
 
+    // With several workspaces offered, a guest merge must not go to the server-selected one unasked.
+    let selectedWorkspaces = workspaces.filter { $0.isSelected }
+    if linkContext.guestUpgradeMode != .mergeRequired,
+       selectedWorkspaces.count == 1,
+       let workspace = selectedWorkspaces.first {
+        return .autoLink(.existing(workspaceId: workspace.workspaceId))
+    }
+
     return .chooseWorkspace
 }
 
