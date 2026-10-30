@@ -10,7 +10,8 @@
     "lint": "tsc --noEmit",
     "test": "node scripts/run-tests.mjs",
     "test:postgres-integration": "node scripts/run-postgres-integrations.mjs",
-    "test:mcp": "node --test --import tsx src/entrypoints/lambda-mcp.test.ts src/mcp/server.test.ts src/mcp/requestLimits.integration.test.ts"
+    "test:mcp": "node --test --import tsx src/entrypoints/lambda-mcp.test.ts src/mcp/server.test.ts src/mcp/requestLimits.integration.test.ts",
+    "postinstall": "node scripts/patch-just-bash.mts node_modules"
   },
   "dependencies": {
     "@apple/app-store-server-library": "3.1.0",
@@ -29,7 +30,7 @@
     "fflate": "^0.8.3",
     "google-auth-library": "11.3.2",
     "hono": "^4.13.14",
-    "just-bash": "^3.6.0",
+    "just-bash": "3.6.0",
     "mammoth": "^1.13.0",
     "maxmind": "^5.0.7",
     "openai": "^7.45.1",
