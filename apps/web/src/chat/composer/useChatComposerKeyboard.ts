@@ -52,6 +52,11 @@ export function useChatComposerKeyboard(params: UseChatComposerKeyboardParams): 
       return;
     }
 
+    // This Enter confirms an IME composition; Safari reports it only as keyCode 229.
+    if (event.nativeEvent.isComposing || event.nativeEvent.keyCode === 229) {
+      return;
+    }
+
     event.preventDefault();
 
     // A running reply stops only from the stop button, so a quick Enter never ends an answer.
