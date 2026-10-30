@@ -256,7 +256,7 @@ export function normalizeAnalyticsFilterState(state: AnalyticsFilterState): Anal
     comparisonDateRange: state.comparisonDateRange,
     users: normalizeOpaqueList(state.users),
     userCohorts: normalizeEnumList(state.userCohorts, reviewEventCohorts),
-    eventPlatforms: normalizeEnumList(state.eventPlatforms, reviewEventPlatforms),
+    eventPlatforms: normalizeEventPlatforms(state.eventPlatforms),
     minimumEventCounts: normalizeMinimumEventCounts(state.minimumEventCounts),
     connectionCountries: normalizeOpaqueList(state.connectionCountries),
     appUiLanguages: normalizeOpaqueList(state.appUiLanguages),
@@ -267,6 +267,27 @@ export function normalizeAnalyticsFilterState(state: AnalyticsFilterState): Anal
     catalogClickBrowserLanguages: normalizeOpaqueList(state.catalogClickBrowserLanguages),
     ...normalizeSiteVisitorFilterState(state),
   };
+}
+
+/** The platform field of `normalizeAnalyticsFilterState`, for a selection that holds it outside that state. */
+export function normalizeEventPlatforms(
+  eventPlatforms: ReadonlyArray<ReviewEventPlatform>,
+): ReadonlyArray<ReviewEventPlatform> {
+  return normalizeEnumList(eventPlatforms, reviewEventPlatforms);
+}
+
+/** Writes the platform field unless every platform is selected; `parseEventPlatforms` reads it back. */
+export function setEventPlatformsParam(
+  searchParams: URLSearchParams,
+  eventPlatforms: ReadonlyArray<ReviewEventPlatform>,
+): void {
+  setEnumListParam(
+    searchParams,
+    eventPlatformsParamName,
+    eventPlatforms,
+    reviewEventPlatforms,
+    reviewEventPlatforms,
+  );
 }
 
 /** The site visitor fields of `normalizeAnalyticsFilterState`, for a selection that holds only those. */
@@ -353,13 +374,7 @@ export function toAnalyticsFilterSearchParams(
     defaults.userCohorts,
     reviewEventCohorts,
   );
-  setEnumListParam(
-    searchParams,
-    eventPlatformsParamName,
-    state.eventPlatforms,
-    defaults.eventPlatforms,
-    reviewEventPlatforms,
-  );
+  setEventPlatformsParam(searchParams, state.eventPlatforms);
 
   const minimumEventCounts = normalizeMinimumEventCounts(state.minimumEventCounts);
   if (
@@ -662,6 +677,16 @@ export function parseProvisionalAnalyticsFilterState(
   );
 }
 
+/** The platform field a query string carries, every platform when absent or malformed. */
+export function parseEventPlatforms(searchParams: URLSearchParams): ReadonlyArray<ReviewEventPlatform> {
+  return parseEnumList<ReviewEventPlatform>(
+    searchParams,
+    eventPlatformsParamName,
+    reviewEventPlatforms,
+    reviewEventPlatforms,
+  );
+}
+
 /** The site visitor fields a query string carries, each at its default when absent or malformed. */
 export function parseSiteVisitorFilterState(searchParams: URLSearchParams): SiteVisitorFilterState {
   return {
@@ -713,12 +738,7 @@ function parseAnalyticsFilterStateOnDateRanges(
       reviewEventCohorts,
       defaults.userCohorts,
     ),
-    eventPlatforms: parseEnumList<ReviewEventPlatform>(
-      searchParams,
-      eventPlatformsParamName,
-      reviewEventPlatforms,
-      defaults.eventPlatforms,
-    ),
+    eventPlatforms: parseEventPlatforms(searchParams),
     minimumEventCounts: parseMinimumEventCounts(searchParams, defaults.minimumEventCounts),
     connectionCountries: parseOpaqueList(
       searchParams,

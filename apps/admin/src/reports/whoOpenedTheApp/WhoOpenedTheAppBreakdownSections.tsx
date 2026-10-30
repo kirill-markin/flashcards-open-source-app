@@ -1,4 +1,5 @@
 import type { JSX } from "react";
+import type { ReviewEventPlatform } from "../../adminApi";
 import type { AdminAppConfig } from "../../config";
 import type { AnalyticsDateRange } from "../../filters/analyticsFilters";
 import { buildPeopleBreakdowns, PeopleBreakdownSections } from "../levelOneMetrics/PeopleBreakdownSections";
@@ -20,6 +21,7 @@ export function WhoOpenedTheAppBreakdownSections(props: Readonly<{
   config: AdminAppConfig;
   dateRange: AnalyticsDateRange;
   period: ReportPeriod;
+  eventPlatforms: ReadonlyArray<ReviewEventPlatform>;
   onTerminalAdminError: (error: unknown, config: AdminAppConfig) => boolean;
 }>): JSX.Element {
   return (
@@ -27,6 +29,7 @@ export function WhoOpenedTheAppBreakdownSections(props: Readonly<{
       config={props.config}
       dateRange={props.dateRange}
       period={props.period}
+      eventPlatforms={props.eventPlatforms}
       onTerminalAdminError={props.onTerminalAdminError}
       metricTitle={metricTitle}
       testIdPrefix="who-opened-the-app"

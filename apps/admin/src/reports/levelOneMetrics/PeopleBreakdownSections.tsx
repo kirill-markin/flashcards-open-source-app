@@ -1,4 +1,5 @@
-import type { JSX, ReactNode } from "react";
+import { useMemo, type JSX, type ReactNode } from "react";
+import type { ReviewEventPlatform } from "../../adminApi";
 import { isReviewEventPlatform, platformLabels } from "../../charts/chartPrimitives";
 import type { AdminAppConfig } from "../../config";
 import type { AnalyticsDateRange } from "../../filters/analyticsFilters";
@@ -7,12 +8,20 @@ import type { BreakdownReport, BreakdownReportLoader } from "./breakdownReport";
 import { peopleBreakdownDimensions, type PeopleBreakdownDimension } from "./peopleBreakdownQuery";
 import type { ReportPeriod } from "./reportPeriod";
 
+type PeopleBreakdownReportLoader = (
+  config: AdminAppConfig,
+  dateRange: AnalyticsDateRange,
+  period: ReportPeriod,
+  eventPlatforms: ReadonlyArray<ReviewEventPlatform>,
+  signal: AbortSignal,
+) => Promise<BreakdownReport>;
+
 export type PeopleBreakdown = Readonly<{
   dimension: PeopleBreakdownDimension;
   title: string;
   /** The `<li>` saying which value a person counts under. */
   placement: ReactNode;
-  loadReport: BreakdownReportLoader;
+  loadReport: PeopleBreakdownReportLoader;
   formatValue: (value: string) => string;
 }>;
 
@@ -37,6 +46,7 @@ export function buildPeopleBreakdowns(
     dimension: PeopleBreakdownDimension,
     dateRange: AnalyticsDateRange,
     period: ReportPeriod,
+    eventPlatforms: ReadonlyArray<ReviewEventPlatform>,
     reportLabel: string,
     signal: AbortSignal,
   ) => Promise<BreakdownReport>,
@@ -47,7 +57,7 @@ export function buildPeopleBreakdowns(
       dimension,
       title,
       placement: placements[dimension],
-      loadReport: (config, dateRange, period, signal) => loadReport(config, dimension, dateRange, period, `${title} report`, signal),
+      loadReport: (config, dateRange, period, eventPlatforms, signal) => loadReport(config, dimension, dateRange, period, eventPlatforms, `${title} report`, signal),
       formatValue: dimension === "platform" ? showPlatform : showValue,
     };
   });
@@ -58,14 +68,26 @@ export function PeopleBreakdownSections(props: Readonly<{
   config: AdminAppConfig;
   dateRange: AnalyticsDateRange;
   period: ReportPeriod;
+  eventPlatforms: ReadonlyArray<ReviewEventPlatform>;
   onTerminalAdminError: (error: unknown, config: AdminAppConfig) => boolean;
   metricTitle: string;
   testIdPrefix: string;
   breakdowns: ReadonlyArray<PeopleBreakdown>;
 }>): JSX.Element {
+  // `BreakdownSection` reloads when its loader changes, so each one closes over the platforms here.
+  const loadedBreakdowns = useMemo(() => props.breakdowns.map((breakdown) => ({
+    breakdown,
+    loadReport: ((config, dateRange, period, signal) => breakdown.loadReport(
+      config,
+      dateRange,
+      period,
+      props.eventPlatforms,
+      signal,
+    )) satisfies BreakdownReportLoader,
+  })), [props.breakdowns, props.eventPlatforms]);
   return (
     <>
-      {props.breakdowns.map((breakdown) => (
+      {loadedBreakdowns.map(({ breakdown, loadReport }) => (
         <BreakdownSection
           key={breakdown.dimension}
           config={props.config}
@@ -78,13 +100,14 @@ export function PeopleBreakdownSections(props: Readonly<{
           explanation={<>
             <li>The people of {props.metricTitle}, so each bar adds up to that chart’s bar for the same day, week or month.</li>
             {breakdown.placement}
+            <li>The Platform filter narrows these people as it narrows {props.metricTitle}, and only their events on a selected platform place them.</li>
             <li>The five values with the most people over the available bars get their own colour; the rest are summed into Other. A missing value is Unknown and ranks like any other.</li>
             <li>The shared actor exclusions apply, and only credentialed rows count. Edge bars hold only the selected days. The bar holding today is in progress; a bar with days before retained history is unavailable, never zero.</li>
           </>}
           countLabel="Unique people"
           unavailableBarText="Unavailable: retained source history does not cover all of its days."
           noAvailableBarText="Retained source history does not cover this range."
-          loadReport={breakdown.loadReport}
+          loadReport={loadReport}
           formatValue={breakdown.formatValue}
           buildExtraNotes={null}
           keyLink={null}

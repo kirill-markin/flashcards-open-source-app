@@ -1,8 +1,10 @@
-import type { JSX } from "react";
+import { useMemo, type JSX } from "react";
+import type { ReviewEventPlatform } from "../../adminApi";
 import type { AdminAppConfig } from "../../config";
 import type { AnalyticsDateRange } from "../../filters/analyticsFilters";
 import { getUserPath } from "../../routing";
 import { BreakdownSection } from "../levelOneMetrics/BreakdownSection";
+import type { BreakdownReportLoader } from "../levelOneMetrics/breakdownReport";
 import { showPlatform } from "../levelOneMetrics/PeopleBreakdownSections";
 import type { ReportPeriod } from "../levelOneMetrics/reportPeriod";
 import {
@@ -18,6 +20,7 @@ const getPersonPath = (value: string): string | null => (isNamedPerson(value) ? 
 const reviewEventsCount = <li>Every answered review of the Who studied people, with any rating, so a person adds each of their reviews to a bar, not one point.</li>;
 
 const reviewEventsRules = <>
+  <li>The Platform filter keeps only the reviews recorded on a selected platform, Unresolved being a review with no resolved device.</li>
   <li>The shared actor exclusions apply, and only credentialed rows count. A guest, and several guests merged into one account, count as that one person. Edge bars hold only the selected days. The bar holding today is in progress; a bar with days before retained history is unavailable, never zero.</li>
   <li>Later offline review syncs can revise past bars.</li>
 </>;
@@ -27,9 +30,18 @@ export function WhoStudiedReviewEventSections(props: Readonly<{
   config: AdminAppConfig;
   dateRange: AnalyticsDateRange;
   period: ReportPeriod;
+  eventPlatforms: ReadonlyArray<ReviewEventPlatform>;
   onNavigate: (path: string) => void;
   onTerminalAdminError: (error: unknown, config: AdminAppConfig) => boolean;
 }>): JSX.Element {
+  const eventPlatforms = props.eventPlatforms;
+  // `BreakdownSection` reloads when its loader changes, so each one closes over the platforms here.
+  const loadByPerson = useMemo((): BreakdownReportLoader => (config, dateRange, period, signal) => (
+    loadReviewEventsByPersonReport(config, dateRange, period, eventPlatforms, signal)
+  ), [eventPlatforms]);
+  const loadByPlatform = useMemo((): BreakdownReportLoader => (config, dateRange, period, signal) => (
+    loadReviewEventsByPlatformReport(config, dateRange, period, eventPlatforms, signal)
+  ), [eventPlatforms]);
   return (
     <>
       <BreakdownSection
@@ -48,7 +60,7 @@ export function WhoStudiedReviewEventSections(props: Readonly<{
         countLabel="Review events"
         unavailableBarText="Unavailable: retained source history does not cover all of its days."
         noAvailableBarText="Retained source history does not cover this range."
-        loadReport={loadReviewEventsByPersonReport}
+        loadReport={loadByPerson}
         formatValue={showValue}
         buildExtraNotes={null}
         keyLink={{ getPath: getPersonPath, onNavigate: props.onNavigate }}
@@ -69,7 +81,7 @@ export function WhoStudiedReviewEventSections(props: Readonly<{
         countLabel="Review events"
         unavailableBarText="Unavailable: retained source history does not cover all of its days."
         noAvailableBarText="Retained source history does not cover this range."
-        loadReport={loadReviewEventsByPlatformReport}
+        loadReport={loadByPlatform}
         formatValue={showPlatform}
         buildExtraNotes={null}
         keyLink={null}

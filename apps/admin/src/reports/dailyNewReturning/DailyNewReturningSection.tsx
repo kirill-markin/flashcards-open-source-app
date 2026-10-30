@@ -9,6 +9,7 @@ import { buildInProgressChartNote, placeChartNotes } from "../../charts/chartNot
 import { chartWidth, stackedChartHeight } from "../../charts/chartPrimitives";
 import { renderDailyNewReturningChart } from "../../charts/dailyNewReturningChart";
 import { escapeHtml, formatGeneratedAt } from "../../charts/formatting";
+import type { ReviewEventPlatform } from "../../adminApi";
 import type { AdminAppConfig } from "../../config";
 import { ExplanationTip } from "../../explanations/ExplanationTip";
 import type { AnalyticsDateRange } from "../../filters/analyticsFilters";
@@ -44,7 +45,7 @@ function describeBucket(entry: NewReturningBucket, report: DailyNewReturningRepo
 /** Why the chart draws no bar, or null when it draws one. */
 function describeEmptyChart(report: DailyNewReturningReport): string | null {
   if (report.buckets.every((entry) => entry.newUsers === null)) return "Retained source history does not cover this range.";
-  if (report.buckets.every((entry) => (entry.newUsers ?? 0) + (entry.returningUsers ?? 0) === 0)) return "No people in the covered days after exclusions.";
+  if (report.buckets.every((entry) => (entry.newUsers ?? 0) + (entry.returningUsers ?? 0) === 0)) return "No people in the covered days after exclusions and the platform filter.";
   return null;
 }
 
@@ -53,6 +54,7 @@ export function DailyNewReturningSection(props: Readonly<{
   config: AdminAppConfig;
   dateRange: AnalyticsDateRange;
   period: ReportPeriod;
+  eventPlatforms: ReadonlyArray<ReviewEventPlatform>;
   onTerminalAdminError: (error: unknown, config: AdminAppConfig) => boolean;
   title: string;
   testId: string;
@@ -72,14 +74,14 @@ export function DailyNewReturningSection(props: Readonly<{
     tooltipHandlers.hideTooltip();
     setState({ status: "loading" });
     const abortController = new AbortController();
-    void loadDailyNewReturningReport(props.config, props.source, props.dateRange, props.period, reportLabel, abortController.signal).then((report) => {
+    void loadDailyNewReturningReport(props.config, props.source, props.dateRange, props.period, props.eventPlatforms, reportLabel, abortController.signal).then((report) => {
       if (!cancelled) setState({ status: "ready", report });
     }).catch((error: unknown) => {
       if (cancelled || props.onTerminalAdminError(error, props.config)) return;
       setState({ status: "error", message: error instanceof Error ? error.message : `Unexpected ${props.title} query error.` });
     });
     return () => { cancelled = true; abortController.abort(); };
-  }, [props.config, props.source, props.dateRange, props.period, props.onTerminalAdminError, props.title, reportLabel, revision, tooltipHandlers]);
+  }, [props.config, props.source, props.dateRange, props.period, props.eventPlatforms, props.onTerminalAdminError, props.title, reportLabel, revision, tooltipHandlers]);
   const bucketsByKey = useMemo(() => new Map(state.status === "ready" ? state.report.buckets.map((entry) => [entry.bucket.key, entry]) : []), [state]);
   const chartNotes = useMemo(() => (state.status === "ready"
     ? placeChartNotes([buildInProgressChartNote(state.report.today)], state.report.buckets.map((entry) => entry.bucket))

@@ -1,4 +1,4 @@
-import { runAdminQuery, type AdminQueryResponse } from "../../adminApi";
+import { runAdminQuery, type AdminQueryResponse, type ReviewEventPlatform } from "../../adminApi";
 import { breakdownOtherValue, breakdownUnknownValue } from "../../charts/stackedBreakdownChart";
 import type { AdminAppConfig } from "../../config";
 import type { AnalyticsDateRange } from "../../filters/analyticsFilters";
@@ -21,16 +21,17 @@ export function isNamedPerson(value: string): boolean {
   return value !== breakdownOtherValue && value !== breakdownUnknownValue;
 }
 
-// Every answered review the Who studied people made in an available bar, each under `valueSql` over
-// its `meaningful_range_reviews` row.
+// Every answered review on a selected platform the Who studied people made in an available bar, each
+// under `valueSql` over its `meaningful_range_reviews` row.
 function buildReviewEventsBreakdownSql(
   valueSql: string,
   dateRange: AnalyticsDateRange,
   period: ReportPeriod,
+  eventPlatforms: ReadonlyArray<ReviewEventPlatform>,
   reportLabel: string,
 ): string {
   const range = assertValidDateRange(dateRange, reportLabel);
-  return buildBreakdownSql(`${buildMeaningfulActivityCtesSql()}, ${buildReportBucketsCteSql(period, range)}, ${buildMeaningfulRangeReviewsCteSql(period, range)}, measured_buckets AS (
+  return buildBreakdownSql(`${buildMeaningfulActivityCtesSql()}, ${buildReportBucketsCteSql(period, range)}, ${buildMeaningfulRangeReviewsCteSql(period, range, eventPlatforms)}, measured_buckets AS (
   SELECT buckets.bucket_date
   FROM report_buckets AS buckets
   CROSS JOIN activity_coverage AS coverage
@@ -50,10 +51,14 @@ function buildReviewEventsBreakdownSql(
  * with `pg_catalog.lower` because `actor_id` renders canonical lowercase hex while `user_id` is an
  * unconstrained TEXT key.
  */
-function buildReviewEventsByPersonSql(dateRange: AnalyticsDateRange, period: ReportPeriod): string {
+function buildReviewEventsByPersonSql(
+  dateRange: AnalyticsDateRange,
+  period: ReportPeriod,
+  eventPlatforms: ReadonlyArray<ReviewEventPlatform>,
+): string {
   return `SELECT breakdown.*, actor_email.email AS series_email
 FROM (
-${buildReviewEventsBreakdownSql("review.actor_id", dateRange, period, personReportLabel)}
+${buildReviewEventsBreakdownSql("review.actor_id", dateRange, period, eventPlatforms, personReportLabel)}
 ) AS breakdown
 LEFT JOIN (
   SELECT pg_catalog.lower(settings.user_id) AS actor_id, MIN(NULLIF(btrim(settings.email), '')) AS email
@@ -82,9 +87,10 @@ export async function loadReviewEventsByPersonReport(
   config: AdminAppConfig,
   dateRange: AnalyticsDateRange,
   period: ReportPeriod,
+  eventPlatforms: ReadonlyArray<ReviewEventPlatform>,
   signal: AbortSignal,
 ): Promise<BreakdownReport> {
-  const response = await runAdminQuery(config, buildReviewEventsByPersonSql(dateRange, period), signal);
+  const response = await runAdminQuery(config, buildReviewEventsByPersonSql(dateRange, period, eventPlatforms), signal);
   return {
     ...parseBreakdownReport(response, period, personReportLabel, liveSourceBarFreshness),
     valueLabels: parsePersonLabels(response),
@@ -95,11 +101,12 @@ export function loadReviewEventsByPlatformReport(
   config: AdminAppConfig,
   dateRange: AnalyticsDateRange,
   period: ReportPeriod,
+  eventPlatforms: ReadonlyArray<ReviewEventPlatform>,
   signal: AbortSignal,
 ): Promise<BreakdownReport> {
   return loadBreakdownReport(
     config,
-    buildReviewEventsBreakdownSql("review.platform", dateRange, period, platformReportLabel),
+    buildReviewEventsBreakdownSql("review.platform", dateRange, period, eventPlatforms, platformReportLabel),
     period,
     platformReportLabel,
     liveSourceBarFreshness,
