@@ -1,7 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { AdminAppConfig } from "../../config";
 import type { AnalyticsDateRange, AnalyticsFilterState } from "../../filters/analyticsFilters";
-import { normalizeEventPlatforms, normalizeSiteVisitorFilterState } from "../../filters/analyticsFiltersUrl";
+import {
+  normalizeAppVersions,
+  normalizeEventPlatforms,
+  normalizeSiteVisitorFilterState,
+} from "../../filters/analyticsFiltersUrl";
 import {
   buildLookbackReportRangeEndingOn,
   buildPresetReportRange,
@@ -86,7 +90,7 @@ function validateRequestedRange(
 }
 
 /**
- * The date range, platforms, site filters and Group by every Level 1 page shares. It is read from the URL at once, reconciled
+ * The date range, platforms, app versions, site filters and Group by every Level 1 page shares. It is read from the URL at once, reconciled
  * with the available range when the lookup returns, and from then on written back with
  * `replaceState`, so Back leaves the page instead of stepping through every change.
  */
@@ -155,8 +159,8 @@ export function useLevelOneMetricsSelection(
 
   const selectedDateRange = selection.dateRange;
 
-  // Only a new range is judged against the available range, so a platform or site filter applies
-  // before the lookup returns too.
+  // Only a new range is judged against the available range, so a platform, version or site filter
+  // applies before the lookup returns too.
   const applyFilters = useCallback((nextFilters: AnalyticsFilterState): boolean => {
     if (isSameDateRange(nextFilters.dateRange, selectedDateRange) === false) {
       if (availableRange === null) {
@@ -175,6 +179,7 @@ export function useLevelOneMetricsSelection(
       ...currentSelection,
       dateRange: nextFilters.dateRange,
       eventPlatforms: normalizeEventPlatforms(nextFilters.eventPlatforms),
+      appVersions: normalizeAppVersions(nextFilters.appVersions),
       siteFilters: normalizeSiteVisitorFilterState(nextFilters),
     }));
     return true;

@@ -47,6 +47,7 @@ export const reviewActivitySource: DailyActivitySource = {
   firstUseCte: "actor_first_use",
   coverageCte: "activity_coverage",
   eventRowsFromSql: reviewRowsFromSql,
+  eventRowsAppVersionSql: null,
 };
 
 /** Every trusted `review_answered` of `range` on `eventPlatforms`, with its day and `period` bucket. */

@@ -12,6 +12,7 @@ import { liveSourceBarFreshness, type BreakdownReport } from "../levelOneMetrics
 import { buildMeaningfulActivityCtesSql, buildMeaningfulRangeReviewsCteSql } from "../levelOneMetrics/meaningfulActivitySql";
 import { buildReportBucketsCteSql, type ReportPeriod } from "../levelOneMetrics/reportPeriod";
 import { assertIsString, assertValidDateRange } from "../reportValues";
+import { buildLastAppOpenVersionPeopleCtesSql } from "../whoOpenedTheApp/appOpenActivitySql";
 
 const personReportLabel = "Review events by person report";
 const platformReportLabel = "Review events by platform report";
@@ -22,16 +23,23 @@ export function isNamedPerson(value: string): boolean {
 }
 
 // Every answered review on a selected platform the Who studied people made in an available bar, each
-// under `valueSql` over its `meaningful_range_reviews` row.
+// under `valueSql` over its `meaningful_range_reviews` row; an app version selection keeps a person's
+// reviews in a bar as Who studied keeps the person there.
 function buildReviewEventsBreakdownSql(
   valueSql: string,
   dateRange: AnalyticsDateRange,
   period: ReportPeriod,
   eventPlatforms: ReadonlyArray<ReviewEventPlatform>,
+  appVersions: ReadonlyArray<string>,
   reportLabel: string,
 ): string {
   const range = assertValidDateRange(dateRange, reportLabel);
-  return buildBreakdownSql(`${buildMeaningfulActivityCtesSql()}, ${buildReportBucketsCteSql(period, range)}, ${buildMeaningfulRangeReviewsCteSql(period, range, eventPlatforms)}, measured_buckets AS (
+  const isVersionNarrowed = appVersions.length > 0;
+  const appVersionPeopleCtesSql = isVersionNarrowed
+    ? `, ${buildLastAppOpenVersionPeopleCtesSql(period, range, eventPlatforms, appVersions)}`
+    : "";
+  const appVersionPeopleJoinSql = isVersionNarrowed ? "\n  JOIN app_version_people USING (bucket_date, actor_id)" : "";
+  return buildBreakdownSql(`${buildMeaningfulActivityCtesSql()}, ${buildReportBucketsCteSql(period, range)}, ${buildMeaningfulRangeReviewsCteSql(period, range, eventPlatforms)}${appVersionPeopleCtesSql}, measured_buckets AS (
   SELECT buckets.bucket_date
   FROM report_buckets AS buckets
   CROSS JOIN activity_coverage AS coverage
@@ -41,7 +49,7 @@ function buildReviewEventsBreakdownSql(
     ${buildBreakdownValueSql(valueSql)} AS dimension_value,
     1 AS value_count
   FROM meaningful_range_reviews AS review
-  JOIN measured_buckets USING (bucket_date)
+  JOIN measured_buckets USING (bucket_date)${appVersionPeopleJoinSql}
 )`);
 }
 
@@ -55,10 +63,11 @@ function buildReviewEventsByPersonSql(
   dateRange: AnalyticsDateRange,
   period: ReportPeriod,
   eventPlatforms: ReadonlyArray<ReviewEventPlatform>,
+  appVersions: ReadonlyArray<string>,
 ): string {
   return `SELECT breakdown.*, actor_email.email AS series_email
 FROM (
-${buildReviewEventsBreakdownSql("review.actor_id", dateRange, period, eventPlatforms, personReportLabel)}
+${buildReviewEventsBreakdownSql("review.actor_id", dateRange, period, eventPlatforms, appVersions, personReportLabel)}
 ) AS breakdown
 LEFT JOIN (
   SELECT pg_catalog.lower(settings.user_id) AS actor_id, MIN(NULLIF(btrim(settings.email), '')) AS email
@@ -88,9 +97,10 @@ export async function loadReviewEventsByPersonReport(
   dateRange: AnalyticsDateRange,
   period: ReportPeriod,
   eventPlatforms: ReadonlyArray<ReviewEventPlatform>,
+  appVersions: ReadonlyArray<string>,
   signal: AbortSignal,
 ): Promise<BreakdownReport> {
-  const response = await runAdminQuery(config, buildReviewEventsByPersonSql(dateRange, period, eventPlatforms), signal);
+  const response = await runAdminQuery(config, buildReviewEventsByPersonSql(dateRange, period, eventPlatforms, appVersions), signal);
   return {
     ...parseBreakdownReport(response, period, personReportLabel, liveSourceBarFreshness),
     valueLabels: parsePersonLabels(response),
@@ -102,11 +112,12 @@ export function loadReviewEventsByPlatformReport(
   dateRange: AnalyticsDateRange,
   period: ReportPeriod,
   eventPlatforms: ReadonlyArray<ReviewEventPlatform>,
+  appVersions: ReadonlyArray<string>,
   signal: AbortSignal,
 ): Promise<BreakdownReport> {
   return loadBreakdownReport(
     config,
-    buildReviewEventsBreakdownSql("review.platform", dateRange, period, eventPlatforms, platformReportLabel),
+    buildReviewEventsBreakdownSql("review.platform", dateRange, period, eventPlatforms, appVersions, platformReportLabel),
     period,
     platformReportLabel,
     liveSourceBarFreshness,

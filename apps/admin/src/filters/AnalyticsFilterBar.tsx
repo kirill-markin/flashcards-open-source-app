@@ -72,6 +72,7 @@ const searchableFilterOptionCount = 15;
 // The fields whose values come from the caller's option lists rather than from a closed set.
 const optionListFields: ReadonlySet<AnalyticsFilterField> = new Set<AnalyticsFilterField>([
   "users",
+  "appVersions",
   "connectionCountries",
   "appUiLanguages",
   "installedDecks",
@@ -124,6 +125,8 @@ type AnalyticsFilterBarProps = Readonly<{
   connectionCountryOptions: ReadonlyArray<string>;
   /** Every app UI locale tag the range can offer, from that same query. */
   appUiLanguageOptions: ReadonlyArray<string>;
+  /** Every app version the range's app opens recorded, newest first; only Level 1 offers the field. */
+  appVersionOptions: ReadonlyArray<string>;
   /**
    * What the five catalog fields can offer. Unlike every list above, these are not scoped to the
    * range: the decks name every deck version ever installed, and the four dimensions name what the
@@ -1135,6 +1138,21 @@ export function AnalyticsFilterBar(props: AnalyticsFilterBarProps): JSX.Element 
           </>
         ),
       };
+    }
+
+    if (field === "appVersions") {
+      return buildOptionFieldView({
+        selectedValues: props.filters.appVersions,
+        options: props.appVersionOptions.map(toPlainOptionChoice),
+        defaultValues: defaultFilters.appVersions,
+        everyValueSummary: "Every version",
+        emptyOptionsMessage: "No app open in this range recorded an app version.",
+        resetLabel: "Select every version",
+        onSelectionChange: (appVersions) => props.onFiltersChange({
+          ...props.filters,
+          appVersions,
+        }),
+      });
     }
 
     if (field === "connectionCountries") {

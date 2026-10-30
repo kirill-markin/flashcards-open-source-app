@@ -21,6 +21,7 @@ const reviewEventsCount = <li>Every answered review of the Who studied people, w
 
 const reviewEventsRules = <>
   <li>The Platform filter keeps only the reviews recorded on a selected platform, Unresolved being a review with no resolved device.</li>
+  <li>The App version filter keeps a person’s reviews in a bar only when Who studied keeps that person there: their last app open in it is on a selected version.</li>
   <li>The shared actor exclusions apply, and only credentialed rows count. A guest, and several guests merged into one account, count as that one person. Edge bars hold only the selected days. The bar holding today is in progress; a bar with days before retained history is unavailable, never zero.</li>
   <li>Later offline review syncs can revise past bars.</li>
 </>;
@@ -31,17 +32,20 @@ export function WhoStudiedReviewEventSections(props: Readonly<{
   dateRange: AnalyticsDateRange;
   period: ReportPeriod;
   eventPlatforms: ReadonlyArray<ReviewEventPlatform>;
+  appVersions: ReadonlyArray<string>;
   onNavigate: (path: string) => void;
   onTerminalAdminError: (error: unknown, config: AdminAppConfig) => boolean;
 }>): JSX.Element {
   const eventPlatforms = props.eventPlatforms;
-  // `BreakdownSection` reloads when its loader changes, so each one closes over the platforms here.
+  const appVersions = props.appVersions;
+  // `BreakdownSection` reloads when its loader changes, so each one closes over the platforms and
+  // versions here.
   const loadByPerson = useMemo((): BreakdownReportLoader => (config, dateRange, period, signal) => (
-    loadReviewEventsByPersonReport(config, dateRange, period, eventPlatforms, signal)
-  ), [eventPlatforms]);
+    loadReviewEventsByPersonReport(config, dateRange, period, eventPlatforms, appVersions, signal)
+  ), [eventPlatforms, appVersions]);
   const loadByPlatform = useMemo((): BreakdownReportLoader => (config, dateRange, period, signal) => (
-    loadReviewEventsByPlatformReport(config, dateRange, period, eventPlatforms, signal)
-  ), [eventPlatforms]);
+    loadReviewEventsByPlatformReport(config, dateRange, period, eventPlatforms, appVersions, signal)
+  ), [eventPlatforms, appVersions]);
   return (
     <>
       <BreakdownSection

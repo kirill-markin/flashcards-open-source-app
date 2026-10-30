@@ -111,6 +111,7 @@ export type AnalyticsFilterState = Readonly<{
   users: ReadonlyArray<string>;
   userCohorts: ReadonlyArray<ReviewEventCohort>;
   eventPlatforms: ReadonlyArray<ReviewEventPlatform>;
+  appVersions: ReadonlyArray<string>;
   minimumEventCounts: ReadonlyArray<AnalyticsMinimumEventCount>;
   connectionCountries: ReadonlyArray<string>;
   appUiLanguages: ReadonlyArray<string>;
@@ -156,6 +157,7 @@ const analyticsFilterFieldOrder = {
   users: true,
   userCohorts: true,
   eventPlatforms: true,
+  appVersions: true,
   minimumEventCounts: true,
   connectionCountries: true,
   appUiLanguages: true,
@@ -186,6 +188,7 @@ const funnelsAnalyticsFilterFieldApplicability = {
   users: false,
   userCohorts: false,
   eventPlatforms: true,
+  appVersions: false,
   minimumEventCounts: false,
   connectionCountries: true,
   appUiLanguages: true,
@@ -250,6 +253,7 @@ const userScopedAnalyticsFilterFieldApplicability = {
   users: true,
   userCohorts: true,
   eventPlatforms: true,
+  appVersions: false,
   minimumEventCounts: true,
   connectionCountries: true,
   appUiLanguages: true,
@@ -277,11 +281,12 @@ const userScopedAnalyticsFilterFields: ReadonlyArray<AnalyticsFilterField> = ana
 // on screen beside its own two controls.
 const aiUsageAnalyticsFilterFields: ReadonlyArray<AnalyticsFilterField> = ["dateRange"];
 
-// `level-1-metrics` offers the date range and the platform, which every chart there can answer; how
-// each one reads a platform is the explanation below. The Who saw us dataset pages draw one source
-// that is a platform already, so they offer `whoSawUsDatasetAnalyticsFilterFields` instead, and the
-// Web engaged page `webEngagedAnalyticsFilterFields`.
-const levelOneMetricsAnalyticsFilterFields: ReadonlyArray<AnalyticsFilterField> = ["dateRange", "eventPlatforms"];
+// `level-1-metrics` offers the date range and the platform, which every chart there can answer, and
+// the app version, which only the app open and study charts can; how each one reads them is the
+// explanation below. The Who saw us dataset pages draw one source that is a platform already, so they
+// offer `whoSawUsDatasetAnalyticsFilterFields` instead, and the Web engaged page
+// `webEngagedAnalyticsFilterFields`.
+const levelOneMetricsAnalyticsFilterFields: ReadonlyArray<AnalyticsFilterField> = ["dateRange", "eventPlatforms", "appVersions"];
 
 export const whoSawUsDatasetAnalyticsFilterFields: ReadonlyArray<AnalyticsFilterField> = ["dateRange"];
 
@@ -306,6 +311,7 @@ const analyticsFilterFieldLabels: Readonly<Record<AnalyticsFilterField, string>>
   users: "Specific users",
   userCohorts: "New vs returning users",
   eventPlatforms: "Client platform of events",
+  appVersions: "App version",
   minimumEventCounts: "Users with at least N events",
   connectionCountries: "Connection country of the user",
   appUiLanguages: "App interface language of the user",
@@ -366,6 +372,9 @@ const analyticsFilterFieldExplanations: Readonly<Record<AnalyticsFilterField, st
   // data because its events are judged by the platform their own row carries.
   eventPlatforms:
     "Keeps only events recorded on the client platforms you pick, read from the event row itself, where unattributed is the bucket for every event that carries no resolved device. The catalog install event never carries a platform, so picking any device platform empties the Catalog deck installs section.",
+  // Offered on Level 1 metrics only, so this is that area's wording.
+  appVersions:
+    "Who opened the app counts a person on a day only for an app open on a version you pick, and Who studied counts a person in a bar only when their last app open there, on a selected platform, is on a version you pick, so someone with no app open in the bar, such as an agent-only learner, drops out. New vs returning still reads their first use on any version. Who paid us and Who saw us carry no app version and are not narrowed by it; picking nothing keeps every version.",
   // Cut from the on-screen text, and the expensive part of this field:
   // - app opens are counted as stored event rows, and reconstructed history adds at most one
   //   synthetic app open per person per UTC day, written only where the live client series holds
@@ -591,6 +600,7 @@ export function buildDefaultAnalyticsFilterState(dateRange: AnalyticsDateRange):
     users: [],
     userCohorts: [...reviewEventCohorts],
     eventPlatforms: [...reviewEventPlatforms],
+    appVersions: [],
     minimumEventCounts: [],
     connectionCountries: [],
     appUiLanguages: [],

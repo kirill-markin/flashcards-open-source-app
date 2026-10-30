@@ -13,6 +13,7 @@ type PeopleBreakdownReportLoader = (
   dateRange: AnalyticsDateRange,
   period: ReportPeriod,
   eventPlatforms: ReadonlyArray<ReviewEventPlatform>,
+  appVersions: ReadonlyArray<string>,
   signal: AbortSignal,
 ) => Promise<BreakdownReport>;
 
@@ -47,6 +48,7 @@ export function buildPeopleBreakdowns(
     dateRange: AnalyticsDateRange,
     period: ReportPeriod,
     eventPlatforms: ReadonlyArray<ReviewEventPlatform>,
+    appVersions: ReadonlyArray<string>,
     reportLabel: string,
     signal: AbortSignal,
   ) => Promise<BreakdownReport>,
@@ -57,7 +59,7 @@ export function buildPeopleBreakdowns(
       dimension,
       title,
       placement: placements[dimension],
-      loadReport: (config, dateRange, period, eventPlatforms, signal) => loadReport(config, dimension, dateRange, period, eventPlatforms, `${title} report`, signal),
+      loadReport: (config, dateRange, period, eventPlatforms, appVersions, signal) => loadReport(config, dimension, dateRange, period, eventPlatforms, appVersions, `${title} report`, signal),
       formatValue: dimension === "platform" ? showPlatform : showValue,
     };
   });
@@ -69,12 +71,14 @@ export function PeopleBreakdownSections(props: Readonly<{
   dateRange: AnalyticsDateRange;
   period: ReportPeriod;
   eventPlatforms: ReadonlyArray<ReviewEventPlatform>;
+  appVersions: ReadonlyArray<string>;
   onTerminalAdminError: (error: unknown, config: AdminAppConfig) => boolean;
   metricTitle: string;
   testIdPrefix: string;
   breakdowns: ReadonlyArray<PeopleBreakdown>;
 }>): JSX.Element {
-  // `BreakdownSection` reloads when its loader changes, so each one closes over the platforms here.
+  // `BreakdownSection` reloads when its loader changes, so each one closes over the platforms and
+  // versions here.
   const loadedBreakdowns = useMemo(() => props.breakdowns.map((breakdown) => ({
     breakdown,
     loadReport: ((config, dateRange, period, signal) => breakdown.loadReport(
@@ -82,9 +86,10 @@ export function PeopleBreakdownSections(props: Readonly<{
       dateRange,
       period,
       props.eventPlatforms,
+      props.appVersions,
       signal,
     )) satisfies BreakdownReportLoader,
-  })), [props.breakdowns, props.eventPlatforms]);
+  })), [props.breakdowns, props.eventPlatforms, props.appVersions]);
   return (
     <>
       {loadedBreakdowns.map(({ breakdown, loadReport }) => (
@@ -101,6 +106,7 @@ export function PeopleBreakdownSections(props: Readonly<{
             <li>The people of {props.metricTitle}, so each bar adds up to that chart’s bar for the same day, week or month.</li>
             {breakdown.placement}
             <li>The Platform filter narrows these people as it narrows {props.metricTitle}, and only their events on a selected platform place them.</li>
+            <li>The App version filter narrows these people as it narrows {props.metricTitle}.</li>
             <li>The five values with the most people over the available bars get their own colour; the rest are summed into Other. A missing value is Unknown and ranks like any other.</li>
             <li>The shared actor exclusions apply, and only credentialed rows count. Edge bars hold only the selected days. The bar holding today is in progress; a bar with days before retained history is unavailable, never zero.</li>
           </>}

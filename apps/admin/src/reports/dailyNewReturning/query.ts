@@ -1,7 +1,7 @@
 import { runAdminQuery, type ReviewEventPlatform } from "../../adminApi";
 import type { AdminAppConfig } from "../../config";
 import type { AnalyticsDateRange } from "../../filters/analyticsFilters";
-import { buildEventPlatformsFilterSql, isEventPlatformsNarrowed } from "../../filters/filterSql";
+import { buildAppVersionsNarrowingSql, buildEventPlatformsNarrowingSql } from "../../filters/filterSql";
 import { escapeSqlStringLiteral } from "../../sql";
 import {
   buildReportBucketColumnsSql,
@@ -12,6 +12,7 @@ import {
   type ReportPeriod,
 } from "../levelOneMetrics/reportPeriod";
 import { assertValidDateRange, parseActivityCount, parseActivityDate } from "../reportValues";
+import { buildLastAppOpenVersionPeopleCtesSql } from "../whoOpenedTheApp/appOpenActivitySql";
 
 /**
  * The CTEs one new/returning chart counts, by name. `activityCte` holds one `(actor_id, activity_date)` row
@@ -19,7 +20,9 @@ import { assertValidDateRange, parseActivityCount, parseActivityDate } from "../
  * `first_use_date` over all retained history, and `coverageCte` one `history_from` row: the
  * source's first retained day, before which no day is measured. `eventRowsFromSql` is the
  * `FROM analytics.product_events_resolved AS events WHERE ...` of the rows `activityCte` is built from,
- * so a platform selection can narrow a range's person-days by those rows' own platform.
+ * so a platform selection can narrow a range's person-days by those rows' own platform, and
+ * `eventRowsAppVersionSql` their app version, or null for rows that record none, whose people a version
+ * selection keeps in a bar by their last app open there instead.
  */
 export type DailyActivitySource = Readonly<{
   ctesSql: string;
@@ -27,6 +30,7 @@ export type DailyActivitySource = Readonly<{
   firstUseCte: string;
   coverageCte: string;
   eventRowsFromSql: string;
+  eventRowsAppVersionSql: string | null;
 }>;
 
 export type NewReturningBucket = Readonly<{
@@ -45,31 +49,43 @@ export type DailyNewReturningReport = Readonly<{
 // Unique people per bucket, counted in SQL rather than summed over days: new when the person's
 // first-ever activity day is one of the bucket's selected days, returning when it is earlier, so each
 // person active in a bucket is in exactly one part of its bar. A bucket is measured only when retained
-// history covers all of its selected days. A platform selection keeps a person-day only when one of its
-// rows is on a selected platform, while first use stays the person's first day on any platform.
+// history covers all of its selected days. A platform or app version selection keeps a person-day only
+// when one of its rows matches it, or, for rows with no app version, a person in a bar only when their
+// last app open there is on a selected version; first use stays the person's first day anywhere.
 export function buildDailyNewReturningSql(
   source: DailyActivitySource,
   dateRange: AnalyticsDateRange,
   period: ReportPeriod,
   eventPlatforms: ReadonlyArray<ReviewEventPlatform>,
+  appVersions: ReadonlyArray<string>,
   reportLabel: string,
 ): string {
   const range = assertValidDateRange(dateRange, reportLabel);
-  const isNarrowed = isEventPlatformsNarrowed(eventPlatforms);
-  // The selected platforms' person-days are computed once and joined: an `IN (SELECT ...)` against the
+  const eventRowsNarrowingSql = [
+    buildEventPlatformsNarrowingSql("COALESCE(events.platform, 'unattributed')", eventPlatforms),
+    source.eventRowsAppVersionSql === null ? "" : buildAppVersionsNarrowingSql(source.eventRowsAppVersionSql, appVersions),
+  ].filter((sql) => sql !== "").map((sql) => `\n    ${sql}`).join("");
+  // The selected person-days are computed once and joined: an `IN (SELECT ...)` against the
   // statistics-less activity CTE plans as a nested loop that rescans the range per row (see
   // `buildSubqueryMembershipSql`).
-  const platformDaysCteSql = isNarrowed ? `, platform_days AS MATERIALIZED (
+  const selectedDaysCteSql = eventRowsNarrowingSql === "" ? "" : `, selected_days AS MATERIALIZED (
   SELECT DISTINCT events.actor_id::text AS actor_id, (events.occurred_at AT TIME ZONE 'UTC')::date AS activity_date
   ${source.eventRowsFromSql}
     AND events.occurred_at >= (${escapeSqlStringLiteral(range.from)}::date)::timestamp AT TIME ZONE 'UTC'
-    AND events.occurred_at < (${escapeSqlStringLiteral(range.to)}::date + 1)::timestamp AT TIME ZONE 'UTC'
-    AND ${buildEventPlatformsFilterSql("COALESCE(events.platform, 'unattributed')", eventPlatforms)}
-)` : "";
-  const platformDaysJoinSql = isNarrowed ? "\n  JOIN platform_days USING (actor_id, activity_date)" : "";
-  return `WITH ${source.ctesSql}, ${buildReportBucketsCteSql(period, range)}${platformDaysCteSql}, bucket_activity AS (
-  SELECT ${buildReportBucketSql(period, "activity.activity_date")} AS bucket_date, activity.actor_id
-  FROM ${source.activityCte} AS activity${platformDaysJoinSql}
+    AND events.occurred_at < (${escapeSqlStringLiteral(range.to)}::date + 1)::timestamp AT TIME ZONE 'UTC'${eventRowsNarrowingSql}
+)`;
+  const selectedDaysJoinSql = eventRowsNarrowingSql === "" ? "" : "\n  JOIN selected_days USING (actor_id, activity_date)";
+  const isNarrowedByLastAppOpen = source.eventRowsAppVersionSql === null && appVersions.length > 0;
+  const appVersionPeopleCtesSql = isNarrowedByLastAppOpen
+    ? `, ${buildLastAppOpenVersionPeopleCtesSql(period, range, eventPlatforms, appVersions)}`
+    : "";
+  const bucketDateSql = buildReportBucketSql(period, "activity.activity_date");
+  const appVersionPeopleJoinSql = isNarrowedByLastAppOpen
+    ? `\n  JOIN app_version_people ON app_version_people.actor_id = activity.actor_id AND app_version_people.bucket_date = ${bucketDateSql}`
+    : "";
+  return `WITH ${source.ctesSql}, ${buildReportBucketsCteSql(period, range)}${selectedDaysCteSql}${appVersionPeopleCtesSql}, bucket_activity AS (
+  SELECT ${bucketDateSql} AS bucket_date, activity.actor_id
+  FROM ${source.activityCte} AS activity${selectedDaysJoinSql}${appVersionPeopleJoinSql}
   WHERE activity.activity_date BETWEEN ${escapeSqlStringLiteral(range.from)}::date AND ${escapeSqlStringLiteral(range.to)}::date
 ), bucket_users AS (
   SELECT buckets.bucket_date, buckets.selected_from, buckets.selected_to,
@@ -96,10 +112,11 @@ export async function loadDailyNewReturningReport(
   dateRange: AnalyticsDateRange,
   period: ReportPeriod,
   eventPlatforms: ReadonlyArray<ReviewEventPlatform>,
+  appVersions: ReadonlyArray<string>,
   reportLabel: string,
   signal: AbortSignal,
 ): Promise<DailyNewReturningReport> {
-  const response = await runAdminQuery(config, buildDailyNewReturningSql(source, dateRange, period, eventPlatforms, reportLabel), signal);
+  const response = await runAdminQuery(config, buildDailyNewReturningSql(source, dateRange, period, eventPlatforms, appVersions, reportLabel), signal);
   const result = response.resultSets[0];
   const firstRow = result?.rows[0];
   if (response.resultSets.length !== 1 || result === undefined || firstRow === undefined) {

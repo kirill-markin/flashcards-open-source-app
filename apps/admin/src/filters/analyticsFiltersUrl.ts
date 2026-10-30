@@ -57,6 +57,7 @@ const comparisonDateRangeToParamName = "compare-to";
 const usersParamName = "users";
 const userCohortsParamName = "cohorts";
 const eventPlatformsParamName = "platforms";
+const appVersionsParamName = "app-versions";
 const minimumEventCountsParamName = "min-events";
 const connectionCountriesParamName = "countries";
 const appUiLanguagesParamName = "languages";
@@ -257,6 +258,7 @@ export function normalizeAnalyticsFilterState(state: AnalyticsFilterState): Anal
     users: normalizeOpaqueList(state.users),
     userCohorts: normalizeEnumList(state.userCohorts, reviewEventCohorts),
     eventPlatforms: normalizeEventPlatforms(state.eventPlatforms),
+    appVersions: normalizeAppVersions(state.appVersions),
     minimumEventCounts: normalizeMinimumEventCounts(state.minimumEventCounts),
     connectionCountries: normalizeOpaqueList(state.connectionCountries),
     appUiLanguages: normalizeOpaqueList(state.appUiLanguages),
@@ -288,6 +290,19 @@ export function setEventPlatformsParam(
     reviewEventPlatforms,
     reviewEventPlatforms,
   );
+}
+
+/** The app version field of `normalizeAnalyticsFilterState`, for a selection that holds it outside that state. */
+export function normalizeAppVersions(appVersions: ReadonlyArray<string>): ReadonlyArray<string> {
+  return normalizeOpaqueList(appVersions);
+}
+
+/** Writes the app version field unless no version is picked; `parseAppVersions` reads it back. */
+export function setAppVersionsParam(
+  searchParams: URLSearchParams,
+  appVersions: ReadonlyArray<string>,
+): void {
+  setOpaqueListParam(searchParams, appVersionsParamName, appVersions, []);
 }
 
 /** The site visitor fields of `normalizeAnalyticsFilterState`, for a selection that holds only those. */
@@ -375,6 +390,7 @@ export function toAnalyticsFilterSearchParams(
     reviewEventCohorts,
   );
   setEventPlatformsParam(searchParams, state.eventPlatforms);
+  setAppVersionsParam(searchParams, state.appVersions);
 
   const minimumEventCounts = normalizeMinimumEventCounts(state.minimumEventCounts);
   if (
@@ -687,6 +703,11 @@ export function parseEventPlatforms(searchParams: URLSearchParams): ReadonlyArra
   );
 }
 
+/** The app version field a query string carries, every version when absent or malformed. */
+export function parseAppVersions(searchParams: URLSearchParams): ReadonlyArray<string> {
+  return parseOpaqueList(searchParams, appVersionsParamName, []);
+}
+
 /** The site visitor fields a query string carries, each at its default when absent or malformed. */
 export function parseSiteVisitorFilterState(searchParams: URLSearchParams): SiteVisitorFilterState {
   return {
@@ -739,6 +760,7 @@ function parseAnalyticsFilterStateOnDateRanges(
       defaults.userCohorts,
     ),
     eventPlatforms: parseEventPlatforms(searchParams),
+    appVersions: parseAppVersions(searchParams),
     minimumEventCounts: parseMinimumEventCounts(searchParams, defaults.minimumEventCounts),
     connectionCountries: parseOpaqueList(
       searchParams,
