@@ -12,6 +12,7 @@ export function WhoOpenedTheAppSection(props: Readonly<{
   dateRange: AnalyticsDateRange;
   period: ReportPeriod;
   eventPlatforms: ReadonlyArray<ReviewEventPlatform>;
+  appVersions: ReadonlyArray<string>;
   detailsLink: LevelOneMetricDetailsLink | null;
   onTerminalAdminError: (error: unknown, config: AdminAppConfig) => boolean;
 }>): JSX.Element {
@@ -21,6 +22,7 @@ export function WhoOpenedTheAppSection(props: Readonly<{
       dateRange={props.dateRange}
       period={props.period}
       eventPlatforms={props.eventPlatforms}
+      appVersions={props.appVersions}
       onTerminalAdminError={props.onTerminalAdminError}
       detailsLink={props.detailsLink}
       title="Who opened the app"
@@ -32,6 +34,7 @@ export function WhoOpenedTheAppSection(props: Readonly<{
         <li>One point per person per bar, however many opens, days or devices: a week or month counts each person once, never the sum of its days. A guest, and several guests merged into one account, count as that one person. A scheduled agent client opens a day for its owner on every day it runs.</li>
         <li>New means the person’s first recorded app open is on one of the bar’s days; returning means an earlier first open. First open reads all retained history, regardless of this date selection.</li>
         <li>The Platform filter keeps a person on a day only when they opened the app on a selected platform that day, Unresolved being an open with no resolved device; their first open still counts on any platform.</li>
+        <li>The App version filter keeps a person on a day only when they opened the app on a selected version that day; their first open still counts on any version.</li>
         <li>The shared actor exclusions apply, and only credentialed rows count. Edge bars hold only the selected days. The bar holding today is shown and in progress; a bar with days before retained history is unavailable, never zero.</li>
         <li>App opens from before the clients reported them are partly reconstructed, so early first-open dates, and the new/returning split around them, are approximate.</li>
       </>}

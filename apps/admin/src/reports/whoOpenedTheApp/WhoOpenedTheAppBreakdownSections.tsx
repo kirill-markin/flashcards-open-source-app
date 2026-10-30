@@ -22,6 +22,7 @@ export function WhoOpenedTheAppBreakdownSections(props: Readonly<{
   dateRange: AnalyticsDateRange;
   period: ReportPeriod;
   eventPlatforms: ReadonlyArray<ReviewEventPlatform>;
+  appVersions: ReadonlyArray<string>;
   onTerminalAdminError: (error: unknown, config: AdminAppConfig) => boolean;
 }>): JSX.Element {
   return (
@@ -30,6 +31,7 @@ export function WhoOpenedTheAppBreakdownSections(props: Readonly<{
       dateRange={props.dateRange}
       period={props.period}
       eventPlatforms={props.eventPlatforms}
+      appVersions={props.appVersions}
       onTerminalAdminError={props.onTerminalAdminError}
       metricTitle={metricTitle}
       testIdPrefix="who-opened-the-app"

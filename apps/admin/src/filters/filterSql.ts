@@ -321,6 +321,22 @@ export function buildEventPlatformsNarrowingSql(
     : "";
 }
 
+/** Picking no app version keeps every version, an unknown one included, so an empty selection is no filter. */
+export function buildAppVersionsFilterSql(
+  appVersionSqlExpression: string,
+  appVersions: ReadonlyArray<string>,
+): string {
+  return appVersions.length === 0 ? "TRUE" : buildInPredicateSql(appVersionSqlExpression, appVersions);
+}
+
+/** `AND` and the app version predicate, or `""` when no version is picked, as `buildEventPlatformsNarrowingSql`. */
+export function buildAppVersionsNarrowingSql(
+  appVersionSqlExpression: string,
+  appVersions: ReadonlyArray<string>,
+): string {
+  return appVersions.length === 0 ? "" : `AND ${buildInPredicateSql(appVersionSqlExpression, appVersions)}`;
+}
+
 // `catalog_deck_installed` is the one counted event type with a visible counterpart on screen, the
 // `Catalog deck installs` section, and a threshold that counted more installs than that section shows
 // would let the threshold the filter bar names and that chart disagree about the same person. So this

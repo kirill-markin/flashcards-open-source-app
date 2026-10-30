@@ -1,20 +1,17 @@
-import { useEffect, useState, type JSX, type ReactNode } from "react";
+import type { JSX, ReactNode } from "react";
 import type { AdminAppConfig } from "../../config";
-import {
-  defaultSiteVisitorFilterState,
-  webEngagedAnalyticsFilterFields,
-  type AnalyticsDateRange,
-} from "../../filters/analyticsFilters";
+import { defaultSiteVisitorFilterState, webEngagedAnalyticsFilterFields } from "../../filters/analyticsFilters";
 import { loadSiteVisitorFilterOptions } from "../../filters/optionsQuery";
 import { getLevelOneMetricDetailsPath, type WhoSawUsDataset } from "../../routing";
 import { LevelOneMetricDetailsHeader } from "../levelOneMetrics/LevelOneMetricDetailsHeader";
 import {
   LevelOneMetricsFrame,
   levelOneMetricsDateRangeFilterBar,
+  noAppVersionOptions,
   type LevelOneMetricsFilterBar,
-  type SiteVisitorFilterOptionsLookup,
 } from "../levelOneMetrics/LevelOneMetricsFrame";
 import type { LevelOneMetricsSelection } from "../levelOneMetrics/levelOneMetricsUrl";
+import { useFilterOptionsLookup } from "../levelOneMetrics/useFilterOptionsLookup";
 import {
   useLevelOneMetricsSelection,
   type LevelOneMetricsSelectionState,
@@ -27,36 +24,10 @@ import { whoSawUsSeriesLabels, WhoSawUsSection } from "./WhoSawUsSection";
 
 const webEngagedFilterBar: Omit<LevelOneMetricsFilterBar, "siteOptions"> = {
   fields: webEngagedAnalyticsFilterFields,
+  appVersionOptions: noAppVersionOptions,
   title: "Filters",
   resetAllLabel: "Reset the Web engaged filters",
 };
-
-/** The Web engaged page's site filter options over the selected range. */
-function useSiteVisitorFilterOptions(
-  config: AdminAppConfig,
-  dateRange: AnalyticsDateRange,
-  onTerminalAdminError: (error: unknown, config: AdminAppConfig) => boolean,
-): SiteVisitorFilterOptionsLookup {
-  const [lookup, setLookup] = useState<SiteVisitorFilterOptionsLookup>({ status: "loading" });
-  const [revision, setRevision] = useState<number>(0);
-  useEffect(() => {
-    let cancelled = false;
-    setLookup({ status: "loading" });
-    const abortController = new AbortController();
-    void loadSiteVisitorFilterOptions(config, dateRange, abortController.signal).then((options) => {
-      if (!cancelled) setLookup({ status: "ready", options });
-    }).catch((error: unknown) => {
-      if (cancelled || onTerminalAdminError(error, config)) return;
-      setLookup({
-        status: "error",
-        message: error instanceof Error ? error.message : "Unexpected Web engaged filter options error.",
-        retry: () => setRevision((value) => value + 1),
-      });
-    });
-    return () => { cancelled = true; abortController.abort(); };
-  }, [config, dateRange, onTerminalAdminError, revision]);
-  return lookup;
-}
 
 function WebEngagedFrame(
   props: Readonly<{
@@ -67,9 +38,11 @@ function WebEngagedFrame(
     renderCharts: (selection: LevelOneMetricsSelection) => ReactNode;
   }>,
 ): JSX.Element {
-  const siteOptions = useSiteVisitorFilterOptions(
+  const siteOptions = useFilterOptionsLookup(
     props.config,
     props.selectionState.selection.dateRange,
+    loadSiteVisitorFilterOptions,
+    "Unexpected Web engaged filter options error.",
     props.onTerminalAdminError,
   );
   return (
@@ -106,6 +79,7 @@ export function WhoSawUsDatasetPage(
           dateRange={selection.dateRange}
           period={selection.period}
           series={props.dataset}
+          appVersions={selection.appVersions}
           siteFilters={siteFilters}
           detailsLink={null}
           onTerminalAdminError={props.onTerminalAdminError}
