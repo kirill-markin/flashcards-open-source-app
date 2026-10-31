@@ -58,21 +58,44 @@ private struct AIChatComposerFocusBridge<Content: View>: View {
     var body: some View {
         self.content(self.$isTextFieldFocused)
             .onAppear {
-                self.isTextFieldFocused = self.isFocused
+                self.applyFocusRequest(self.isFocused)
             }
             .onDisappear {
                 self.isFocused = false
             }
             .onChange(of: self.isFocused) { _, isFocused in
-                if self.isTextFieldFocused != isFocused {
-                    self.isTextFieldFocused = isFocused
-                }
+                self.applyFocusRequest(isFocused)
             }
             .onChange(of: self.isTextFieldFocused) { _, isTextFieldFocused in
                 if self.isFocused != isTextFieldFocused {
                     self.isFocused = isTextFieldFocused
                 }
             }
+    }
+
+    /// SwiftUI silently drops a focus request the field cannot take, so on the next main-actor
+    /// turn the plain flag reads the real state back instead of staying stuck on the request.
+    private func applyFocusRequest(_ isFocused: Bool) {
+        guard self.isTextFieldFocused != isFocused else { return }
+        self.isTextFieldFocused = isFocused
+        Task { @MainActor in
+            guard self.isFocused == isFocused, self.isTextFieldFocused != isFocused else { return }
+            self.isFocused = self.isTextFieldFocused
+        }
+    }
+}
+
+/// Each modifier set also matches numeric-pad Enter, and the commands take priority over the text view.
+@MainActor
+private func makeComposerReturnKeyCommands(modifierFlags: [UIKeyModifierFlags], action: Selector) -> [UIKeyCommand] {
+    modifierFlags.flatMap { flags in
+        [flags, flags.union(.numericPad)].flatMap { flags in
+            ["\r", "\u{3}"].map { input in
+                let command = UIKeyCommand(input: input, modifierFlags: flags, action: action)
+                command.wantsPriorityOverSystemBehavior = true
+                return command
+            }
+        }
     }
 }
 
@@ -93,20 +116,19 @@ final class AIChatComposerKeyboardController: UIHostingController<AnyView> {
     override var keyCommands: [UIKeyCommand]? {
         let inheritedCommands = super.keyCommands ?? []
         guard self.focusedTextInput != nil else { return inheritedCommands }
-        // Exact modifier matching leaves Shift+Return and Option+Return to the text view.
-        let returnCommands = [UIKeyModifierFlags(), .numericPad].flatMap { modifierFlags in
-            ["\r", "\u{3}"].map {
-                UIKeyCommand(input: $0, modifierFlags: modifierFlags, action: #selector(self.composerReturn(_:)))
-            }
-        }
-        for command in returnCommands {
-            command.wantsPriorityOverSystemBehavior = true
-        }
-        return inheritedCommands + returnCommands
+        return inheritedCommands
+            + makeComposerReturnKeyCommands(
+                modifierFlags: [UIKeyModifierFlags()],
+                action: #selector(self.composerReturn(_:))
+            )
+            + makeComposerReturnKeyCommands(
+                modifierFlags: [.shift, .alternate],
+                action: #selector(self.composerLineBreak(_:))
+            )
     }
 
     override func canPerformAction(_ action: Selector, withSender sender: Any?) -> Bool {
-        if action == #selector(self.composerReturn(_:)) {
+        if action == #selector(self.composerReturn(_:)) || action == #selector(self.composerLineBreak(_:)) {
             // Marked text means an input method is composing; Return must confirm it instead.
             guard let textInput = self.focusedTextInput else { return false }
             return textInput.markedTextRange == nil
@@ -118,5 +140,10 @@ final class AIChatComposerKeyboardController: UIHostingController<AnyView> {
     @objc private func composerReturn(_ command: UIKeyCommand) {
         guard self.canSend?() == true else { return }
         self.onSend?()
+    }
+
+    /// Inserts a plain "\n"; Mac text input can otherwise insert a line separator (U+2028).
+    @objc private func composerLineBreak(_ command: UIKeyCommand) {
+        self.focusedTextInput?.insertText("\n")
     }
 }
