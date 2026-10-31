@@ -1389,6 +1389,9 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
   // Lambda selects the exact public-route CORS policy without another gateway resource hierarchy.
   rootProxyOptions.integration = rootProxyAny.integration;
   rootProxyOptions.methodResponses = undefined;
+  restApi.latestDeployment!.addToLogicalId({
+    rootProxyOptionsIntegration: rootProxyOptions.integration,
+  });
   addTextContentHandlingToMockOptionsMethods(restApi);
 
   // Every API custom domain maps the same robots.txt API, so it is created once
