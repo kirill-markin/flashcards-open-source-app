@@ -1378,8 +1378,9 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
   // stack's 500-resource CloudFormation limit.
   // Includes the authenticated POST /agent/reviews/{next,reveal,submit} routes.
   // Keep these on the existing greedy integration, like the agent SQL routes.
-  const rootProxy = restApi.root.addResource("{proxy+}");
-  const rootProxyAny = rootProxy.addMethod("ANY", integration).node.defaultChild;
+  restApi.root.addResource("{proxy+}").addMethod("ANY", integration);
+  const rootProxy = restApi.root.getResource("{proxy+}")!;
+  const rootProxyAny = rootProxy.node.findChild("ANY").node.defaultChild;
   const rootProxyOptions = rootProxy.node.findChild("OPTIONS").node.defaultChild;
   if (!apigw.CfnMethod.isCfnMethod(rootProxyAny)
     || !apigw.CfnMethod.isCfnMethod(rootProxyOptions)) {
