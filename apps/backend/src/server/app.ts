@@ -27,6 +27,7 @@ import { createFeedbackRoutes } from "../routes/feedback";
 import { appleNotificationPath, createAppleBillingRoutes } from "../routes/appleBilling";
 import { createGoogleBillingRoutes } from "../routes/googleBilling";
 import { createStripeBillingRoutes, isStripeWebhookRequest } from "../routes/stripeBilling";
+import { createRegionalPricingRoutes, regionalOfferPath } from "../routes/regionalPricing";
 import { googleNotificationPath } from "../billing/google/notifications";
 import { createGlobalSnapshotRoutes, globalSnapshotPath } from "../routes/globalSnapshot";
 import { createMediaAssetsRoutes } from "../routes/mediaAssets";
@@ -228,6 +229,12 @@ function isAnalyticsVisitorPath(path: string): boolean {
   return analyticsVisitorPaths.has(path);
 }
 
+function isRegionalOfferPath(path: string): boolean {
+  return [regionalOfferPath, `/v1${regionalOfferPath}`].some(
+    (candidate) => path === candidate || path === `${candidate}/`,
+  );
+}
+
 function getPublicCatalogCorsOrigin(origin: string): string | null {
   if (origin === "") {
     return null;
@@ -261,6 +268,16 @@ function createMountedApp(
     ...getConfiguredAnonymousAnalyticsCorsOrigins(),
     ...localAnonymousAnalyticsOrigins,
   ];
+  const regionalOfferAllowedOrigins = [
+    ...getConfiguredPublicCatalogCorsOrigins(),
+    ...localAnonymousAnalyticsOrigins,
+  ];
+  const regionalOfferCorsMiddleware = cors({
+    origin: (origin) => getAnonymousAnalyticsCorsOrigin(origin, regionalOfferAllowedOrigins),
+    allowMethods: ["GET", "OPTIONS"],
+    allowHeaders: ["content-type", "sentry-trace", "baggage"],
+    exposeHeaders: ["cache-control", "content-type", "x-request-id", "retry-after"],
+  });
   const publicCatalogCorsMiddleware = cors({
     origin: (origin) => getPublicCatalogCorsOrigin(origin),
     allowMethods: ["GET", "OPTIONS"],
@@ -325,6 +342,12 @@ function createMountedApp(
     });
   });
   app.use("*", async (context, next) => {
+    if (isRegionalOfferPath(context.req.path)) {
+      context.header("Cache-Control", "no-store");
+      context.header("CDN-Cache-Control", "no-store");
+      return regionalOfferCorsMiddleware(context, next);
+    }
+
     if (isPublicCatalogPath(context.req.path)) {
       return publicCatalogCorsMiddleware(context, next);
     }
@@ -344,6 +367,7 @@ function createMountedApp(
   app.use("*", async (context, next) => {
     if (
       isPublicCatalogPath(context.req.path)
+      || isRegionalOfferPath(context.req.path)
       || isAnonymousAnalyticsPath(context.req.path)
       || (context.req.method === "POST"
         && [appleNotificationPath, `/v1${appleNotificationPath}`].includes(context.req.path))
@@ -363,6 +387,10 @@ function createMountedApp(
   });
 
   app.onError((error, context) => {
+    if (isRegionalOfferPath(context.req.path)) {
+      context.header("Cache-Control", "no-store");
+      context.header("CDN-Cache-Control", "no-store");
+    }
     const requestId = context.get("requestId");
     logRequestError(requestId, context.req.path, context.req.method, error);
     const normalizedError = normalizeCaughtError(error);
@@ -403,7 +431,7 @@ function createMountedApp(
       context.req.header("authorization"),
     );
     const agentConnectionManagementRequest = isAgentConnectionManagementPath(context.req.path);
-    const publicCatalogRequest = isPublicCatalogPath(context.req.path);
+    const publicCatalogRequest = isPublicCatalogPath(context.req.path) || isRegionalOfferPath(context.req.path);
 
     if (error instanceof AuthError) {
       context.status(error.statusCode as ContentfulStatusCode);
@@ -534,6 +562,7 @@ function createMountedApp(
   app.route("/", createAppleBillingRoutes({ allowedOrigins }));
   app.route("/", createGoogleBillingRoutes({ allowedOrigins }));
   app.route("/", createStripeBillingRoutes({ allowedOrigins }));
+  app.route("/", createRegionalPricingRoutes());
   app.route("/", createWorkspacePackageRoutes({ allowedOrigins }));
   app.route("/", createMediaAssetsRoutes({ allowedOrigins }));
   app.route("/", createProductAnalyticsRoutes({ allowedOrigins }));

@@ -1274,6 +1274,25 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
   });
   globalSnapshot.addMethod("GET", integration);
 
+  const versionedApi = restApi.root.addResource("v1");
+  versionedApi.addMethod("ANY", integration);
+  versionedApi.addResource("{proxy+}").addMethod("ANY", integration);
+  for (const apiRoot of [restApi.root, versionedApi]) {
+    const billing = apiRoot.addResource("billing");
+    billing.addMethod("ANY", integration);
+    billing.addResource("{proxy+}").addMethod("ANY", integration);
+    const regionalOffer = billing.addResource("regional-offer");
+    const regionalOfferGet = regionalOffer.addMethod("GET", integration).node.defaultChild;
+    const regionalOfferOptions = regionalOffer.node.findChild("OPTIONS").node.defaultChild;
+    if (!apigw.CfnMethod.isCfnMethod(regionalOfferGet)
+      || !apigw.CfnMethod.isCfnMethod(regionalOfferOptions)) {
+      throw new Error("Regional offer GET and OPTIONS must be API Gateway methods.");
+    }
+    // Replace only this inherited mock: Lambda owns its public origins, no-store and request ID.
+    regionalOfferOptions.integration = regionalOfferGet.integration;
+    regionalOfferOptions.methodResponses = undefined;
+  }
+
   const catalog = restApi.root.addResource("catalog", {
     defaultCorsPreflightOptions: createPublicCatalogCorsPreflightOptions(publicCatalogAllowedOrigins),
   });

@@ -5,8 +5,7 @@ import { loadCognitoIdentityMappingInExecutor, lockCognitoIdentityLifecycleInExe
 import { applyUserDatabaseScopeInExecutor, type DatabaseExecutor } from "../../database";
 import { unsafeTransaction } from "../../database/unsafe";
 import { requireStripeOfferAvailable, resolveStripeOffer, type StripeResolvedOffer,
-  type RegionalPricingBand, type StripeOfferSelection } from "../regionalPricing/offers";
-import { stripeCatalog } from "./catalog";
+  type RegionalPricingBand } from "../regionalPricing/offers";
 import { StripeBillingError, type StripeCheckoutAttempt, type StripeCheckoutStatus,
   type StripeCustomerIdentity, type StripeEnvironment } from "./contracts";
 import type { StripeProvider } from "./provider";
@@ -166,13 +165,6 @@ export async function loadStripeCheckoutAttemptInExecutor(
   return result.rows[0] === undefined ? null : toCheckout(result.rows[0]);
 }
 
-export function requireStripeCheckoutReservationOfferAvailable(offer: StripeResolvedOffer): void {
-  requireStripeOfferAvailable(offer);
-  // Keep writes compatible until every pre-regional Checkout invocation has drained.
-  if (offer.selectedCountry !== null) throw new StripeBillingError("STRIPE_COUNTRY_UNAVAILABLE", false,
-    "Country-selected Checkout is unavailable during the regional pricing rollout. Retry after activation.");
-}
-
 // Caller holds lockStripeAccountInExecutor and commits this reservation before calling Stripe.
 // Reconciliation must close the prior attempt and record any consumed trial before reserving again.
 export async function reserveStripeCheckoutAttemptInExecutor(
@@ -194,10 +186,8 @@ export async function reserveStripeCheckoutAttemptInExecutor(
   }
   const trialDays = await getStripeAccountTrialEligibilityInExecutor(executor, identity.userId, identity.environment) ? 7 : 0;
   const attemptId = randomUUID();
-  const resolvedOffer = selectedOffer ?? resolveStripeOffer(identity.environment, null);
-  requireStripeCheckoutReservationOfferAvailable(resolvedOffer);
-  const offer: StripeOfferSelection = { selectedCountry: null, pricingBand: "full",
-    priceId: stripeCatalog[identity.environment].priceId, checkoutMode: "legacy" };
+  const offer = selectedOffer ?? resolveStripeOffer(identity.environment, null);
+  requireStripeOfferAvailable(offer);
   await executor.query(`INSERT INTO billing.stripe_checkout_attempts
     (attempt_id, identity_id, environment, user_id, trial_days, locale, expires_at,
       selected_country, pricing_band, price_id, checkout_mode)
