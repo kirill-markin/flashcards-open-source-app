@@ -40,6 +40,12 @@
       "lookupKey": "nibomo_premium_monthly",
       "nickname": "Nibomo Premium Monthly",
       "catalogTrialPeriodDays": null
+    },
+    "discountedPrice": {
+      "currency": "usd",
+      "unitAmount": 349,
+      "interval": "month",
+      "taxBehavior": "inclusive"
     }
   },
   "portal": {
@@ -130,7 +136,8 @@
         "apiVersion": "2026-09-30.endive",
         "eventCount": 30,
         "eventTypesSource": "../../apps/backend/src/billing/stripe/state.ts"
-      }
+      },
+      "discountedPriceId": "price_1UWZpMCVkVWAch1VvqKgvUc1"
     },
     "live": {
       "accountId": "acct_1KrGW6E3K3xV54Nr",
@@ -200,7 +207,8 @@
         "apiVersion": "2026-09-30.endive",
         "eventCount": 30,
         "eventTypesSource": "../../apps/backend/src/billing/stripe/state.ts"
-      }
+      },
+      "discountedPriceId": "price_1UWZpNE3K3xV54NrDlTNJoIl"
     }
   },
   "communications": {
@@ -242,5 +250,17 @@
     "secretArn": "arn:aws:secretsmanager:eu-central-1:506210661494:secret:flashcards-open-source-app/stripe-billing-juxXCn",
     "secretConsumer": "http_backend_only",
     "acceptanceProcedure": "../stripe-subscriptions.md#observed-sandbox-acceptance"
+  },
+  "regionalPreparation": {
+    "verifiedAt": "2026-10-31",
+    "priceReadbackVerified": true,
+    "existingProductsPreserved": true,
+    "standardPricesPreserved": true,
+    "productTaxCode": "txcd_10105001",
+    "managedActivation": "pending",
+    "taxCoverageEnforcement": "pending",
+    "regionalCheckoutActivation": "blocked",
+    "sdkVersion": "23.0.1",
+    "apiVersion": "2026-09-30.endive"
   }
 }
