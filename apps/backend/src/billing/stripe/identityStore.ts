@@ -4,6 +4,9 @@ import { isDeletedSubjectInExecutor } from "../../auth/deletedSubjects";
 import { loadCognitoIdentityMappingInExecutor, lockCognitoIdentityLifecycleInExecutor, lockAccountLifecyclesInExecutor } from "../../auth/userIdentities";
 import { applyUserDatabaseScopeInExecutor, type DatabaseExecutor } from "../../database";
 import { unsafeTransaction } from "../../database/unsafe";
+import { requireStripeOfferAvailable, resolveStripeOffer, type StripeResolvedOffer,
+  type RegionalPricingBand, type StripeOfferSelection } from "../regionalPricing/offers";
+import { stripeCatalog } from "./catalog";
 import { StripeBillingError, type StripeCheckoutAttempt, type StripeCheckoutStatus,
   type StripeCustomerIdentity, type StripeEnvironment } from "./contracts";
 import type { StripeProvider } from "./provider";
@@ -15,6 +18,7 @@ type IdentityRow = Readonly<{
 type CheckoutRow = Readonly<{
   attempt_id: string; identity_id: string; environment: StripeEnvironment; user_id: string;
   customer_id: string; session_id: string | null; status: StripeCheckoutStatus;
+  selected_country: string | null; pricing_band: RegionalPricingBand; price_id: string; checkout_mode: "legacy" | "managed";
   trial_days: 0 | 7; locale: Stripe.Checkout.SessionCreateParams.Locale;
   expires_at: Date; created_at: Date; account_deleted_at: Date | null;
 }>;
@@ -28,6 +32,7 @@ function toIdentity(row: IdentityRow): StripeCustomerIdentity {
 function toCheckout(row: CheckoutRow): StripeCheckoutAttempt {
   return { attemptId: row.attempt_id, identityId: row.identity_id, environment: row.environment,
     userId: row.user_id, customerId: row.customer_id, sessionId: row.session_id, status: row.status,
+    selectedCountry: row.selected_country, pricingBand: row.pricing_band, priceId: row.price_id, checkoutMode: row.checkout_mode,
     trialDays: row.trial_days, locale: row.locale, expiresAt: row.expires_at, createdAt: row.created_at,
     accountDeletedAt: row.account_deleted_at };
 }
@@ -148,7 +153,8 @@ export async function recordStripeTrialConsumptionInExecutor(
 const checkoutColumns = `attempt.attempt_id, attempt.identity_id, attempt.environment,
   auth.canonical_account_id(attempt.user_id) AS user_id,
   identity.customer_id, attempt.session_id, attempt.status, attempt.trial_days, attempt.locale,
-  attempt.expires_at, attempt.created_at, attempt.account_deleted_at`;
+  attempt.expires_at, attempt.created_at, attempt.account_deleted_at,
+  attempt.selected_country, attempt.pricing_band, attempt.price_id, attempt.checkout_mode`;
 
 export async function loadStripeCheckoutAttemptInExecutor(
   executor: DatabaseExecutor, attemptId: string, environment: StripeEnvironment,
@@ -160,10 +166,18 @@ export async function loadStripeCheckoutAttemptInExecutor(
   return result.rows[0] === undefined ? null : toCheckout(result.rows[0]);
 }
 
+export function requireStripeCheckoutReservationOfferAvailable(offer: StripeResolvedOffer): void {
+  requireStripeOfferAvailable(offer);
+  // Keep writes compatible until every pre-regional Checkout invocation has drained.
+  if (offer.selectedCountry !== null) throw new StripeBillingError("STRIPE_COUNTRY_UNAVAILABLE", false,
+    "Country-selected Checkout is unavailable during the regional pricing rollout. Retry after activation.");
+}
+
 // Caller holds lockStripeAccountInExecutor and commits this reservation before calling Stripe.
 // Reconciliation must close the prior attempt and record any consumed trial before reserving again.
 export async function reserveStripeCheckoutAttemptInExecutor(
   executor: DatabaseExecutor, identity: StripeCustomerIdentity, locale: Stripe.Checkout.SessionCreateParams.Locale,
+  selectedOffer?: StripeResolvedOffer,
 ): Promise<StripeCheckoutAttempt> {
   const identities = await executor.query<IdentityRow>(`SELECT identity_id, environment, auth.canonical_account_id(user_id) AS user_id, customer_id,
     is_primary, created_at, account_deleted_at FROM billing.stripe_customer_identities
@@ -180,10 +194,16 @@ export async function reserveStripeCheckoutAttemptInExecutor(
   }
   const trialDays = await getStripeAccountTrialEligibilityInExecutor(executor, identity.userId, identity.environment) ? 7 : 0;
   const attemptId = randomUUID();
+  const resolvedOffer = selectedOffer ?? resolveStripeOffer(identity.environment, null);
+  requireStripeCheckoutReservationOfferAvailable(resolvedOffer);
+  const offer: StripeOfferSelection = { selectedCountry: null, pricingBand: "full",
+    priceId: stripeCatalog[identity.environment].priceId, checkoutMode: "legacy" };
   await executor.query(`INSERT INTO billing.stripe_checkout_attempts
-    (attempt_id, identity_id, environment, user_id, trial_days, locale, expires_at)
-    VALUES ($1, $2, $3, $4, $5, $6, now() + interval '1 hour')`,
-  [attemptId, identity.identityId, identity.environment, identity.userId, trialDays, locale]);
+    (attempt_id, identity_id, environment, user_id, trial_days, locale, expires_at,
+      selected_country, pricing_band, price_id, checkout_mode)
+    VALUES ($1, $2, $3, $4, $5, $6, now() + interval '1 hour', $7, $8, $9, $10)`,
+  [attemptId, identity.identityId, identity.environment, identity.userId, trialDays, locale,
+    offer.selectedCountry, offer.pricingBand, offer.priceId, offer.checkoutMode]);
   return await loadStripeCheckoutAttemptInExecutor(executor, attemptId, identity.environment) ?? storageConflict();
 }
 
@@ -194,6 +214,8 @@ export async function recordStripeCheckoutSessionInExecutor(
   const customerId = typeof session.customer === "string" ? session.customer : session.customer?.id;
   if (customerId !== attempt.customerId || session.client_reference_id !== attempt.attemptId
     || session.livemode !== (attempt.environment === "production")
+    || (session.managed_payments?.enabled === true) !== (attempt.checkoutMode === "managed")
+    || session.line_items?.data[0]?.price?.id !== attempt.priceId
     || (session.status !== "open" && session.status !== "complete" && session.status !== "expired")) {
     return storageConflict();
   }

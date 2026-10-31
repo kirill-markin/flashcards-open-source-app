@@ -30,38 +30,68 @@ non-trial purchase copy. A mobile trial history does not consume this trial.
 The live account's historical default API version is preserved for its other
 integrations; this integration always sends its pinned version. Catalog and endpoint readiness do not establish a Live purchase or email delivery.
 
-## Regional catalog preparation and Managed activation gate
+## Regional offers and Managed activation gate
 
-The **2026-10-31** provider readback confirmed a USD 3.49 monthly, tax-inclusive
-Price alongside each existing USD 6.99 Price on the same Nibomo product. The
-[configuration inventory](stripe-subscriptions/configuration.json) records the actual
-identifiers and product tax code. Existing standard Prices remain readable and
-are still selected by current Checkout callers. Both Prices grant the same Premium
-entitlement; existing subscriptions are not converted.
+The [regional resolver](../apps/backend/src/billing/regionalPricing/offers.ts) owns
+country-to-band-to-Price selection over the canonical country lists and known catalog,
+with Managed Payments as its target sale mode. Existing attempts retain their frozen
+mode and Price; existing subscriptions are never converted. Migration `0234` must deploy
+before the country-aware backend and dependent web/public-offer consumers. Its additive
+defaults preserve old backend inserts during deployment.
 
-The provider has a dormant `createManagedCheckout` entry point, with an explicit
-selected Price and Managed mode. Its caller must persist those choices before the
-first provider call and reuse them on recovery. `retrieveManagedCheckout` verifies
-the selected Price and the returned Session/Subscription Managed markers. The
-ordinary Checkout entry point keeps its legacy payload. Regional reservation and
-country-selection wiring remain separate work.
+The reader deployment keeps new reservations in legacy mode, with no selected country,
+the full band and the current standard Price. New country-selected reservations fail
+explicitly as unavailable; requote rejects before expiring the current Session. This bridge also covers Sandbox, where Checkout stays enabled:
+old invocations can adopt a pending reservation between transactions. After this backend
+is fully deployed and the old Lambda timeout has elapsed, the following public-offer
+deployment replaces the reservation bridge with the resolved Managed offer, including
+for omitted country. Deploy compatible readers before enabling Managed writes. Keep
+`STRIPE_CHECKOUT_LIVE_ENABLED=false` until final acceptance and the separate CI-only
+activation below.
 
-Managed Payments activation and real Managed purchase acceptance are **pending**.
-Before regional sales, verify account eligibility/onboarding, support contact and
-hosted branding, then exercise a real sandbox Managed Checkout and its return,
-trial and subscription-management flow. Stripe's
-[Checkout migration guide](https://docs.stripe.com/payments/managed-payments/update-checkout)
-defines the Managed request parameters and excludes conversion of existing subscriptions.
+Offer and subscription queries accept optional `country=XX`; Checkout accepts optional
+`{ "country": "XX" }`, with `{}` still valid. Codes are normalized to uppercase and unknown
+codes fail explicitly. `basePrice` remains available to old clients. `selectedOffer` identifies
+the requested new sale; pending Checkout `offer` identifies its frozen original selection
+and provider amount, and each subscription's `basePrice` describes its actual purchased Price.
+Country, band, Price and mode commit with locale, trial and expiry before the first Session POST.
+Retries retain that attempt and its idempotency key. An omitted country resumes an
+existing attempt unchanged; new reservations follow the deployment bridge above.
 
-Stripe's [tax coverage](https://docs.stripe.com/payments/managed-payments/tax-compliance)
-applies only in its published markets. Before activating regional reservations or
-client purchase flows, prove that the actual account/Checkout controls reject
-uncovered billing countries, including a buyer changing country inside Checkout,
-or obtain an explicit uncovered-market policy decision. A pre-Checkout country
-selector alone does not satisfy this gate. Stripe support confirmed that optional
-paid Radar Plus/Pro custom billing-country blocking is available; plan selection,
-configuration and enforcement verification remain pending. No Radar rule or
-coverage enforcement is implemented by this provider adapter.
+A changed country never silently replaces an open offer: the Checkout response includes
+its original `offer` and `requoteRequired`. The human-only
+`POST /v1/billing/stripe/checkout/requote` accepts `{ "attemptId": "...", "country": "XX" }`.
+It rechecks ownership and subscriptions, recovers the original attempt if necessary, confirms
+provider expiration, then reserves a new offer through the ordinary Checkout flow. Completion
+races require reconciliation. Country changes do not reset account trial history. The shared
+resolver performs no identity/subscription reads; no anonymous offer endpoint is exposed here.
+
+The independent [tax coverage config](../apps/backend/src/billing/regionalPricing/taxCoverage.json)
+records Stripe's 82 published codes, including all EU27. An uncovered selected country makes
+new sales unavailable. The selector is a commercial preference, not evidence of billing
+jurisdiction, card origin or sanctions eligibility. Customers across the EU may choose any
+supported EU offer; no residence/card-country matching is enforced.
+
+Production Managed Payments is configured Ready to use, with Nibomo's explicit AI product tax
+code and inclusive Prices. Shared Consulting tax defaults remain separate. Radar Plus is
+approved and the Nibomo-scoped rules are enabled at 100%: production
+`ssr_1UWa7JE3K3xV54NrXpF9XY20`, sandbox `ssr_1UWaH0CVkVWAch1VcPotdcoB`.
+They block when `::customer:nibomo_tax_coverage_required:: = 'true'` and
+`billing_address_country` is missing or outside the coverage config. Before a new Managed
+Session POST, after the existing-subscription guard, the backend verifies Nibomo Customer
+ownership and sets/verifies `customer.metadata.nibomo_tax_coverage_required='true'`.
+Customer metadata scopes the documented Radar attribute across payments and renewals;
+Session/Subscription metadata alone does not. Legacy retries and bulk customer history are
+never tagged. Keep the configured rule's country set aligned with the config. Serbia coverage
+applies only while the seller is not VAT-registered in Serbia; a registration requires an
+operator coverage/rule review before further sales there.
+
+Real sandbox allowed-country purchase and blocked/missing billing-country acceptance,
+including a buyer changing country inside hosted Checkout and subsequent renewal handling,
+remain final activation gates. Configuration readiness is not proof of that acceptance.
+References: [Managed Checkout migration](https://docs.stripe.com/payments/managed-payments/update-checkout),
+[tax coverage](https://docs.stripe.com/payments/managed-payments/tax-compliance), and
+[Radar metadata attributes](https://docs.stripe.com/radar/rules/reference#metadata-attributes).
 
 ## Authoritative copy and localization
 

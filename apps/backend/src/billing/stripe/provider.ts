@@ -13,7 +13,6 @@ import {
   type StripeEnvironment, type StripeEnvironmentSecret, type StripeInvoiceFinancialState,
 } from "./contracts";
 
-// The regional reservation owner must persist both fields before calling the Managed adapter.
 export type StripeManagedCheckoutAttempt = StripeCheckoutAttempt & Readonly<{
   priceId: string;
   checkoutMode: "managed";
@@ -106,7 +105,7 @@ export class StripeProvider {
     requireMatch(matchesStripeCatalogPrice(this.#catalog, price));
   }
 
-  private async retrieveCheckoutPrice(priceId: string): Promise<Stripe.Price> {
+  async retrieveCheckoutPrice(priceId: string): Promise<Stripe.Price> {
     requireMatch(this.#catalog.knownPrices.some((price) => price.priceId === priceId));
     const price = await callStripe("retrieve price", () => this.#client.prices.retrieve(priceId));
     this.requirePrice(price);
@@ -172,7 +171,7 @@ export class StripeProvider {
       "Stripe Checkout returned no recurring price.");
     this.requirePrice(price);
     requireMatch(expectedPriceId === null || price.id === expectedPriceId);
-    return session;
+    return { ...session, line_items: lines };
   }
 
   async retrieveCheckout(sessionId: string, customerId: string): Promise<Stripe.Checkout.Session> {
@@ -195,7 +194,8 @@ export class StripeProvider {
   }
 
   async createCheckout(attempt: StripeCheckoutAttempt, verifiedAccountEmail: string): Promise<Stripe.Checkout.Session> {
-    const session = await this.createCheckoutSession(attempt, verifiedAccountEmail, this.#catalog.priceId, {
+    requireMatch(attempt.checkoutMode === "legacy" && attempt.priceId === this.#catalog.priceId);
+    const session = await this.createCheckoutSession(attempt, verifiedAccountEmail, attempt.priceId, {
       ...checkoutParameters(attempt, this.#catalog, this.#catalog.priceId),
       automatic_tax: { enabled: true }, adaptive_pricing: { enabled: true },
       payment_method_collection: "always", customer_update: { address: "auto", name: "auto" },
@@ -231,8 +231,8 @@ export class StripeProvider {
     sessionId: string, customerId: string, priceId: string,
   ): Promise<Stripe.Checkout.Session> {
     const session = await callStripe("retrieve checkout", () => this.#client.checkout.sessions.retrieve(sessionId));
-    await this.validateCheckout(session, customerId, priceId);
-    return this.validateManagedCheckout(session, customerId, priceId);
+    const verified = await this.validateCheckout(session, customerId, priceId);
+    return this.validateManagedCheckout(verified, customerId, priceId);
   }
 
   private async createCheckoutSession(
@@ -267,6 +267,16 @@ export class StripeProvider {
       this.requireEnvironment(updated);
       requireMatch(updated.id === attempt.customerId && updated.metadata.application === "nibomo"
         && updated.metadata.nibomo_identity_id === attempt.identityId && updated.email === verifiedAccountEmail);
+    }
+    if (attempt.checkoutMode === "managed") {
+      // Customer metadata is the Radar attribute that also reaches subscription renewals.
+      const marked = customer.metadata.nibomo_tax_coverage_required === "true" ? customer
+        : await callStripe("mark managed customer tax coverage", () => this.#client.customers.update(attempt.customerId,
+          { metadata: { nibomo_tax_coverage_required: "true" } }));
+      this.requireEnvironment(marked);
+      requireMatch(marked.id === attempt.customerId && marked.metadata.application === "nibomo"
+        && marked.metadata.nibomo_identity_id === attempt.identityId
+        && marked.metadata.nibomo_tax_coverage_required === "true");
     }
     const session = await callStripe("create checkout", () => this.#client.checkout.sessions.create(params,
       { idempotencyKey: `nibomo:checkout:${this.environment}:${attempt.attemptId}` }));
