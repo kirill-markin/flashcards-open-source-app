@@ -1274,29 +1274,6 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
   });
   globalSnapshot.addMethod("GET", integration);
 
-  const versionedApi = restApi.root.addResource("v1");
-  versionedApi.addMethod("ANY", integration);
-  versionedApi.addResource("{proxy+}").addMethod("ANY", integration);
-  const billing = restApi.root.addResource("billing");
-  billing.addMethod("ANY", integration);
-  billing.addResource("{proxy+}").addMethod("ANY", integration);
-  const rootRegionalOffer = billing.addResource("regional-offer");
-  const versionedBilling = versionedApi.addResource("billing");
-  versionedBilling.addMethod("ANY", integration);
-  versionedBilling.addResource("{proxy+}").addMethod("ANY", integration);
-  const versionedRegionalOffer = versionedBilling.addResource("regional-offer");
-  for (const regionalOffer of [rootRegionalOffer, versionedRegionalOffer]) {
-    const regionalOfferGet = regionalOffer.addMethod("GET", integration).node.defaultChild;
-    const regionalOfferOptions = regionalOffer.node.findChild("OPTIONS").node.defaultChild;
-    if (!apigw.CfnMethod.isCfnMethod(regionalOfferGet)
-      || !apigw.CfnMethod.isCfnMethod(regionalOfferOptions)) {
-      throw new Error("Regional offer GET and OPTIONS must be API Gateway methods.");
-    }
-    // Replace only this inherited mock: Lambda owns its public origins, no-store and request ID.
-    regionalOfferOptions.integration = regionalOfferGet.integration;
-    regionalOfferOptions.methodResponses = undefined;
-  }
-
   const catalog = restApi.root.addResource("catalog", {
     defaultCorsPreflightOptions: createPublicCatalogCorsPreflightOptions(publicCatalogAllowedOrigins),
   });
@@ -1401,7 +1378,16 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
   // stack's 500-resource CloudFormation limit.
   // Includes the authenticated POST /agent/reviews/{next,reveal,submit} routes.
   // Keep these on the existing greedy integration, like the agent SQL routes.
-  restApi.root.addResource("{proxy+}").addMethod("ANY", integration);
+  const rootProxy = restApi.root.addResource("{proxy+}");
+  const rootProxyAny = rootProxy.addMethod("ANY", integration).node.defaultChild;
+  const rootProxyOptions = rootProxy.node.findChild("OPTIONS").node.defaultChild;
+  if (!apigw.CfnMethod.isCfnMethod(rootProxyAny)
+    || !apigw.CfnMethod.isCfnMethod(rootProxyOptions)) {
+    throw new Error("Root proxy ANY and OPTIONS must be API Gateway methods.");
+  }
+  // Lambda selects the exact public-route CORS policy without another gateway resource hierarchy.
+  rootProxyOptions.integration = rootProxyAny.integration;
+  rootProxyOptions.methodResponses = undefined;
   addTextContentHandlingToMockOptionsMethods(restApi);
 
   // Every API custom domain maps the same robots.txt API, so it is created once
