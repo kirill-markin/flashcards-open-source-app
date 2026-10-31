@@ -75,8 +75,9 @@ is unchanged; legacy web tokens remain analytics-only. See
 ## Price and products
 
 One monthly subscription at a base price of USD 6.99, with a 7-day free trial. No annual plan and
-no lifetime product is for sale for now. The price is the same on every provider. Regional prices
-and their formatting come from the store, never from our code.
+no lifetime product is for sale for now. The [regional pricing policy](regional-subscription-pricing.md)
+defines the target country bands and provider approach. Native prices and their formatting come
+from the store.
 
 ## Plan name
 
