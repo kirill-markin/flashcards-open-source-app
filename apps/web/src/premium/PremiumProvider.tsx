@@ -9,6 +9,7 @@ import { useReviewPaywallState } from "./reviewPaywall/useReviewPaywallState";
 import type { AiUsageStatus } from "../types";
 import type { EntitlementSnapshot } from "../types/entitlement";
 import { readEntitlementSnapshot, useEntitlementSnapshot } from "./entitlementStore";
+import { useRegionalCountry, type RegionalCountry } from "./regionalCountry";
 import { PremiumOffer } from "./PremiumOffer";
 import { StripeBillingContext, useAccountStripeBilling } from "./useStripeBilling";
 import { canCollectPaywallAnalytics, isStripeBillingInvalidated, readStripeBillingGeneration, subscribeToStripeBillingInvalidation, type PaywallPresentation, type PremiumContinuation } from "./stripeIntent";
@@ -50,10 +51,11 @@ export function usePremiumPresenter(): PremiumPresenter | null {
 
 export function PremiumProvider(props: Readonly<{ children: ReactNode }>): ReactElement {
   const userId = useAppData().session?.userId ?? null;
-  return <PremiumSession key={userId} {...props} />;
+  const regional = useRegionalCountry();
+  return <PremiumSession key={userId} regional={regional} {...props} />;
 }
 
-function PremiumSession(props: Readonly<{ children: ReactNode }>): ReactElement {
+function PremiumSession(props: Readonly<{ children: ReactNode; regional: RegionalCountry }>): ReactElement {
   const { session } = useAppData();
   const userId = session?.userId ?? null;
   const billingGeneration = readStripeBillingGeneration();
@@ -74,7 +76,7 @@ function PremiumSession(props: Readonly<{ children: ReactNode }>): ReactElement 
     pendingRef.current = null;
     setPresentation(null);
   }, []);
-  const billing = useAccountStripeBilling(consumePendingOfferContinuation);
+  const billing = useAccountStripeBilling(consumePendingOfferContinuation, props.regional);
   const displayedOfferType = billing.offer?.checkoutAvailable === true && billing.offer.basePrice !== null
     && entitlement !== null && !hasPremiumAccess(entitlement, 20)
     ? session?.profile.email === null || billing.offer.trialEligible === true ? "free_trial" : "standard" : undefined;

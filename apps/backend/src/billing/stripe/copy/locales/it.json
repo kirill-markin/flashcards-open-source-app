@@ -53,5 +53,10 @@
   "email.refundReceiptBody": "Il tuo rimborso di {price} è stato emesso. Visualizza i dettagli: {url}",
   "deletion.warning": "Eliminando il tuo account Nibomo, annulli i rinnovi futuri dei tuoi abbonamenti Nibomo fatturati tramite Stripe. Perderai l’accesso a questo account. Gli abbonamenti fatturati tramite Apple o Google devono essere annullati separatamente presso il rispettivo fornitore.",
   "deletion.cancelling": "Annullamento dei rinnovi dei tuoi abbonamenti Stripe prima di eliminare l’account...",
-  "deletion.cancellationFailed": "Non è stato possibile confermare l’annullamento dei rinnovi dei tuoi abbonamenti Stripe. Il tuo account non è stato eliminato. Riprova o contatta l’assistenza."
+  "deletion.cancellationFailed": "Non è stato possibile confermare l’annullamento dei rinnovi dei tuoi abbonamenti Stripe. Il tuo account non è stato eliminato. Riprova o contatta l’assistenza.",
+  "offer.pricesFor": "Prezzi per {country}",
+  "offer.changeCountry": "Cambia paese",
+  "offer.chooseCountry": "Scegli un paese",
+  "checkout.originalOffer": "Pagamento in sospeso: {price} al mese",
+  "checkout.requote": "Sostituisci il pagamento con questa offerta"
 }

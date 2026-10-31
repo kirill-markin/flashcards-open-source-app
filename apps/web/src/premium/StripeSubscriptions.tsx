@@ -7,10 +7,11 @@ import { hasPremiumAccess } from "./PremiumProvider";
 import { useStripeBilling } from "./useStripeBilling";
 
 export function StripeSubscriptions(props: Readonly<{ entitlement: EntitlementSnapshot | null }>): ReactElement {
-  const { t, formatDate } = useI18n();
+  const { t, formatDate, formatNumber, locale } = useI18n();
   const billing = useStripeBilling();
   const { isSessionVerified } = useAppData();
   const details = billing.details;
+  const countryNames = new Intl.DisplayNames([locale], { type: "region" });
   const hasSubscription = details?.customers.some((customer) => customer.subscriptions.some((subscription) => !subscription.invalidated
     && (subscription.status === "active" || subscription.status === "in_grace"))) === true;
   return <section className="premium-subscriptions" data-testid="stripe-subscriptions">
@@ -43,10 +44,21 @@ export function StripeSubscriptions(props: Readonly<{ entitlement: EntitlementSn
     </article>)}
     {details !== null && details.pendingCheckouts.length > 0 ? <div className="content-card content-card-section" data-testid="stripe-pending-checkout">
       <p className="subtitle">{t("stripe.checkout.delayed")}</p>
-      {props.entitlement !== null && !hasPremiumAccess(props.entitlement, 20) ? (
-        <button type="button" className="ghost-btn" disabled={billing.busy || !isSessionVerified} data-testid="stripe-resume-checkout"
-          onClick={() => void billing.purchase(null, null)}>{t("common.continue")}</button>
-      ) : null}
+      {details.pendingCheckouts.map((attempt) => <div key={attempt.attemptId} data-testid="stripe-pending-offer">
+        <p>{t("stripe.checkout.originalOffer", { price: formatNumber(attempt.offer.basePrice.unitAmount / 100,
+          { style: "currency", currency: attempt.offer.basePrice.currency.toUpperCase(), currencyDisplay: "code" }) })}</p>
+        {attempt.offer.selectedCountry === null ? null : <p>{t("stripe.offer.pricesFor", {
+          country: countryNames.of(attempt.offer.selectedCountry) ?? attempt.offer.selectedCountry })}</p>}
+        {props.entitlement !== null && !hasPremiumAccess(props.entitlement, 20) ? <>
+          <button type="button" className="ghost-btn" disabled={billing.busy || !isSessionVerified}
+            data-testid="stripe-resume-checkout" onClick={() => void billing.resumeCheckout(attempt)}>{t("common.continue")}</button>
+          {billing.regional.country !== null && attempt.offer.selectedCountry !== billing.regional.country ? (
+            <button type="button" className="ghost-btn" disabled={billing.busy || !isSessionVerified
+                || billing.offer?.selectedOffer?.selectedCountry !== billing.regional.country} data-testid="stripe-requote-checkout"
+              onClick={() => void billing.requote(attempt.attemptId)}>{t("stripe.checkout.requote")}</button>
+          ) : null}
+        </> : null}
+      </div>)}
     </div> : null}
     <nav className="premium-legal" aria-label={t("stripe.subscription.manage")} data-testid="subscription-mobile-management">
       <a href="https://apps.apple.com/account/subscriptions" target="_blank" rel="noreferrer"

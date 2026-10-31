@@ -5,7 +5,7 @@ import { isAwaitingAnalyticsConsentDecision, track, type AnalyticsPurchaseErrorC
 import { ApiError, buildLoginUrl, isAuthRedirectError, updateAccountPreferences } from "../api";
 import {
   createStripeCheckout, createStripePortal, loadStripeOffer, loadStripeSubscriptions,
-  reconcileStripeCheckoutReturn, type StripeRequestIdentity,
+  reconcileStripeCheckoutReturn, requoteStripeCheckout, type StripeRequestIdentity,
 } from "../api/endpoints/stripeBilling";
 import { parseStripeSessionId, parseStripeUuid, type StripeCheckout, type StripeDetails, type StripeOffer } from "../apiContracts/stripeBilling";
 import { useAppData } from "../appData";
@@ -13,12 +13,14 @@ import { beginGuestSignIn } from "../appData/session/guest/browserGuestConversio
 import { readPendingGuestConversion } from "../appData/session/guest/browserGuestStorage";
 import { useI18n } from "../i18n";
 import { queueAccentColorWrite } from "../appData/session/accentColorWrite";
+import type { RegionalCountry } from "./regionalCountry";
 import { readEntitlementIdentityGeneration, readEntitlementSnapshot, subscribeToEntitlement } from "./entitlementStore";
 import { activateVerifiedStripeBillingSession, cancelGuestStripeCheckout, consumeStripeContinuation, consumeStripeIntent, isCurrentStripeIntent, isStripeBillingInvalidated,
   guestStripeCheckoutReturnUrl, readStripeBillingGeneration, readStripeIntent, storeGuestStripeCheckout, storeStripeIntent,
   subscribeToStripeBillingInvalidation, type PaywallPresentation, type PremiumContinuation, type StripeIntent } from "./stripeIntent";
 
 type BillingIdentity = StripeRequestIdentity & Readonly<{ entitlementGeneration: number; billingGeneration: number }>;
+type PendingCheckout = StripeDetails["pendingCheckouts"][number];
 
 // The collector rejects the whole event when the code breaks the catalog pattern, so every branch
 // passes a non-empty value and the result is sanitized and capped to `[A-Za-z0-9_.-]{1,96}`.
@@ -32,7 +34,8 @@ function toPurchaseErrorCode(caught: unknown): AnalyticsPurchaseErrorCode {
 type BillingStatus = "idle" | "loading" | "opening" | "confirming" | "confirmed" | "delayed" | "interrupted";
 export type StripeBilling = Readonly<{
   offer: StripeOffer | null; details: StripeDetails | null; error: unknown;
-  status: BillingStatus; busy: boolean;
+  status: BillingStatus; busy: boolean; regional: RegionalCountry;
+  requote: (attemptId: string) => Promise<void>; resumeCheckout: (attempt: PendingCheckout) => Promise<void>;
   refresh: () => Promise<void>;
   resumePremiumContinuation: (continuation: PremiumContinuation) => void;
   purchase: (continuation: PremiumContinuation | null, presentation: PaywallPresentation | null) => Promise<void>;
@@ -46,9 +49,13 @@ export function useStripeBilling(): StripeBilling {
   return billing;
 }
 
-export function useAccountStripeBilling(consumePendingOfferContinuation: (continuation: PremiumContinuation) => void): StripeBilling {
+export function useAccountStripeBilling(consumePendingOfferContinuation: (continuation: PremiumContinuation) => void, regional: RegionalCountry): StripeBilling {
   const { session, activeWorkspace, isSessionVerified, runSync, drainGuestWorkspace, setAccountPreferences, setErrorMessage } = useAppData();
   const { locale } = useI18n();
+  const country = regional.country;
+  const countryRef = useRef(country);
+  countryRef.current = country;
+  const restoredCountryRef = useRef(false);
   const guestSignInRef = useRef({ activeWorkspace, drainGuestWorkspace, locale, setErrorMessage });
   guestSignInRef.current = { activeWorkspace, drainGuestWorkspace, locale, setErrorMessage };
   const userId = session?.userId ?? null;
@@ -192,7 +199,7 @@ export function useAccountStripeBilling(consumePendingOfferContinuation: (contin
       if (!isCurrent(identity) || isAuthRedirectError(caught)) throw caught;
       returnError = caught;
     }
-    const next = await loadStripeSubscriptions(identity);
+    const next = await loadStripeSubscriptions(identity, country);
     if (!isCurrent(identity)) return;
     setDetails(next);
     setOffer(next);
@@ -224,26 +231,30 @@ export function useAccountStripeBilling(consumePendingOfferContinuation: (contin
       const search = query.toString();
       void navigateRef.current({ pathname: window.location.pathname, search: search === "" ? "" : `?${search}`, hash: window.location.hash }, { replace: true });
     }
-  }, [applyPremiumContinuation, isCurrent]);
+  }, [applyPremiumContinuation, country, isCurrent]);
 
   const refresh = useCallback((): Promise<void> => runOperation("confirming", async (identity) => {
     if (sessionRef.current?.profile.email != null) {
       await refreshOwned(identity);
     } else {
-      const next = await loadStripeOffer(identity);
+      const next = await loadStripeOffer(identity, country);
       if (isCurrent(identity)) { setOffer(next); setStatus("idle"); }
     }
-  }), [isCurrent, refreshOwned, runOperation]);
+  }), [country, isCurrent, refreshOwned, runOperation]);
 
   const purchase = useCallback((continuation: PremiumContinuation | null, presentation: PaywallPresentation | null): Promise<void> => runOperation("opening", async (identity) => {
     const currentSession = sessionRef.current;
     if (currentSession === null) throw new Error("A verified session is required to start Premium.");
+    if (country !== countryRef.current || country === null) throw new Error("Choose a country and wait for its offer before continuing.");
+    if (offer?.selectedOffer?.selectedCountry !== country && currentSession.profile.email !== null) {
+      throw new Error("Refresh the selected country offer before opening Checkout.");
+    }
     if (currentSession.profile.email === null) {
       const guest = guestSignInRef.current;
       if (currentSession.browserGuestCapabilities?.isGuest !== true || guest.activeWorkspace === null) {
         throw new Error("A verified browser guest workspace is required to start Premium sign-in.");
       }
-      const token = storeGuestStripeCheckout(identity.userId, continuation, presentation);
+      const token = storeGuestStripeCheckout(identity.userId, continuation, presentation, country);
       try {
         const returnUrl = guestStripeCheckoutReturnUrl(identity.userId);
         if (returnUrl === null) throw new Error("The Premium sign-in choice could not be saved. Retry sign-in.");
@@ -276,14 +287,14 @@ export function useAccountStripeBilling(consumePendingOfferContinuation: (contin
       return;
     }
     const previous = readStripeIntent(identity.userId);
-    const pending: StripeIntent = { userId: identity.userId, presentation: presentation ?? previous?.presentation ?? null, attemptId: previous?.attemptId ?? null, sessionId: previous?.sessionId ?? null, continuation: continuation ?? previous?.continuation ?? null, reportedReturn: previous?.reportedReturn ?? null };
+    const pending: StripeIntent = { userId: identity.userId, country, presentation: presentation ?? previous?.presentation ?? null, attemptId: previous?.attemptId ?? null, sessionId: previous?.sessionId ?? null, continuation: continuation ?? previous?.continuation ?? null, reportedReturn: previous?.reportedReturn ?? null };
     storeStripeIntent(pending);
     let result: StripeCheckout;
     try {
       track({ name: "purchase_started", ...pending.presentation,
         ...(offer?.trialEligible === null || offer?.trialEligible === undefined ? {}
           : { offerType: offer.trialEligible ? "free_trial" : "standard" }) });
-      result = await createStripeCheckout(identity);
+      result = await createStripeCheckout(identity, country);
     } catch (caught) {
       if (isCurrent(identity) && !isAuthRedirectError(caught)) track({ name: "purchase_finished", outcome: "failed", errorCode: toPurchaseErrorCode(caught), ...pending.presentation });
       throw caught;
@@ -298,8 +309,13 @@ export function useAccountStripeBilling(consumePendingOfferContinuation: (contin
       if (pending.continuation !== null) applyPremiumContinuation(identity, pending.continuation);
       return;
     }
+    if (result.outcome === "checkout" && result.requoteRequired) {
+      await refreshOwned(identity);
+      setStatus("delayed");
+      return;
+    }
     const pendingContinuation = continuation !== null || previous?.attemptId === result.attemptId ? currentPending.continuation : null;
-    storeStripeIntent({ userId: identity.userId, presentation: pending.presentation ?? null, attemptId: result.attemptId, sessionId: result.sessionId, continuation: pendingContinuation, reportedReturn: null });
+    storeStripeIntent({ userId: identity.userId, country, presentation: pending.presentation ?? null, attemptId: result.attemptId, sessionId: result.sessionId, continuation: pendingContinuation, reportedReturn: null });
     if (result.outcome === "checkout") {
       window.location.assign(result.url);
     } else {
@@ -309,7 +325,51 @@ export function useAccountStripeBilling(consumePendingOfferContinuation: (contin
       void navigateRef.current({ pathname: window.location.pathname, search: query.toString(), hash: window.location.hash }, { replace: true });
       await refreshOwned(identity);
     }
-  }), [applyPremiumContinuation, isCurrent, offer, refreshOwned, runOperation]);
+  }), [applyPremiumContinuation, country, isCurrent, offer, refreshOwned, runOperation]);
+
+  const resumeCheckout = useCallback((attempt: PendingCheckout): Promise<void> => runOperation("opening", async (identity) => {
+    const result = await createStripeCheckout(identity, attempt.offer.selectedCountry);
+    if (!isCurrent(identity)) return;
+    if (result.outcome === "checkout") {
+      const frozen = attempt.offer;
+      const returned = result.offer;
+      if (result.attemptId !== attempt.attemptId || (attempt.sessionId !== null && result.sessionId !== attempt.sessionId)
+        || result.requoteRequired || returned.selectedCountry !== frozen.selectedCountry || returned.pricingBand !== frozen.pricingBand
+        || returned.priceId !== frozen.priceId || returned.checkoutMode !== frozen.checkoutMode
+        || returned.basePrice.currency !== frozen.basePrice.currency || returned.basePrice.unitAmount !== frozen.basePrice.unitAmount
+        || returned.basePrice.interval !== frozen.basePrice.interval || returned.basePrice.taxBehavior !== frozen.basePrice.taxBehavior) {
+        await refreshOwned(identity);
+        if (isCurrent(identity)) throw new Error("The displayed Checkout expired or changed. Review the refreshed offer and choose again.");
+        return;
+      }
+      const previous = readStripeIntent(identity.userId);
+      const matchingIntent = previous?.attemptId === attempt.attemptId
+        && (previous.sessionId === null || previous.sessionId === result.sessionId) ? previous : null;
+      storeStripeIntent({ userId: identity.userId, country: result.offer.selectedCountry,
+        attemptId: result.attemptId, sessionId: result.sessionId, continuation: matchingIntent?.continuation ?? null,
+        presentation: matchingIntent?.presentation ?? null, reportedReturn: null });
+      window.location.assign(result.url);
+    } else {
+      await refreshOwned(identity);
+    }
+  }), [isCurrent, refreshOwned, runOperation]);
+
+  const requote = useCallback((attemptId: string): Promise<void> => runOperation("opening", async (identity) => {
+    if (country === null || country !== countryRef.current || offer?.selectedOffer?.selectedCountry !== country) {
+      throw new Error("Choose a country and refresh its offer before replacing Checkout.");
+    }
+    const previous = readStripeIntent(identity.userId);
+    const result = await requoteStripeCheckout(identity, attemptId, country);
+    if (!isCurrent(identity)) return;
+    if (result.outcome === "checkout") {
+      if (result.requoteRequired || result.offer.selectedCountry !== country) throw new Error("Checkout returned a different country. Refresh its status.");
+      storeStripeIntent({ userId: identity.userId, country, attemptId: result.attemptId, sessionId: result.sessionId,
+        continuation: previous?.continuation ?? null, presentation: previous?.presentation ?? null, reportedReturn: null });
+      window.location.assign(result.url);
+    } else {
+      await refreshOwned(identity);
+    }
+  }), [country, isCurrent, offer, refreshOwned, runOperation]);
 
   const manage = useCallback((identityId: string): Promise<void> => runOperation("loading", async (identity) => {
     const result = await createStripePortal(identity, identityId);
@@ -337,11 +397,18 @@ export function useAccountStripeBilling(consumePendingOfferContinuation: (contin
     const unsubscribeInvalidation = subscribeToStripeBillingInvalidation(resetBilling);
     if (canLoad) {
       void runOperation("loading", async (identity) => {
-        readStripeIntent(identity.userId);
+        const saved = readStripeIntent(identity.userId);
+        if (!restoredCountryRef.current) {
+          restoredCountryRef.current = true;
+          if (saved?.checkoutAfterSignIn != null && saved.country != null && saved.country !== country) {
+            regional.restore(saved.country);
+            return;
+          }
+        }
         if (isRegistered && window.location.pathname.endsWith("/settings/subscription")) {
           await refreshOwned(identity);
         } else {
-          const next = await loadStripeOffer(identity);
+          const next = await loadStripeOffer(identity, country);
           if (isCurrent(identity)) { setOffer(next); setStatus("idle"); }
         }
       });
@@ -353,7 +420,8 @@ export function useAccountStripeBilling(consumePendingOfferContinuation: (contin
       unsubscribe();
       unsubscribeInvalidation();
     };
-  }, [canLoad, csrfToken, isCurrent, isRegistered, isSessionVerified, refreshOwned, runOperation, userId]);
+  }, [canLoad, country, csrfToken, isCurrent, isRegistered, isSessionVerified, refreshOwned, runOperation, userId]);
 
-  return { offer, details, error, status, busy, refresh, resumePremiumContinuation, purchase, manage };
+  const matchingOffer = offer?.selectedOffer?.selectedCountry === country || offer?.selectedOffer === null ? offer : null;
+  return { offer: matchingOffer, details, error, status, busy, regional, requote, resumeCheckout, refresh, resumePremiumContinuation, purchase, manage };
 }

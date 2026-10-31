@@ -89,6 +89,26 @@ References: [Managed Checkout migration](https://docs.stripe.com/payments/manage
 [tax coverage](https://docs.stripe.com/payments/managed-payments/tax-compliance), and
 [Radar metadata attributes](https://docs.stripe.com/radar/rules/reference#metadata-attributes).
 
+## Browser country preference
+
+The web offer consumes `pricing_country=XX` once at app entry, then uses a remembered manual
+choice, then the credential-free public IP suggestion. Only known uppercase codes from the
+[canonical country list](../apps/backend/src/billing/regionalPricing/countries.json) are accepted.
+Language changes formatting and country names only. Unknown detection leaves a manual selector;
+provider failures expose retry without inventing a price.
+
+Manual selection writes `nibomo_pricing_country=XX`, `Path=/`, `Secure`, `SameSite=Lax`,
+`Max-Age=31536000`, and `Domain=nibomo.com` only on that domain or its subdomains. Local and
+permanent legacy hosts use a host-only cookie. Automatic IP suggestions never write this cookie.
+Website links carry `pricing_country` across hosts; neither preference authorizes sign-in or payment.
+Storage denial keeps the current selection usable and reports a diagnostic.
+
+The existing Premium intent carries only the country through sign-in and guest conversion. The
+backend resolves it again after sign-in. Public offers describe production; authenticated billing
+alone determines account availability and trial eligibility, including the configured Sandbox account.
+Pending Checkout displays its frozen provider offer; changing it requires the explicit replacement
+button and backend requote action. Purchased subscriptions keep their actual management destination.
+
 ## Authoritative copy and localization
 
 [locales/en.json](../apps/backend/src/billing/stripe/copy/locales/en.json) is the English source;
@@ -97,7 +117,7 @@ every [web locale catalog](../apps/web/src/i18n/catalogs/) imports its own map f
 [typed adapter](../apps/web/src/i18n/stripeCatalog.ts), and the
 [billing email dispatcher](../apps/backend/src/billing/stripe/email.ts) reads the same maps.
 
-Keep `{count}`, `{price}`, `{date}`, `{provider}` and `{url}` verbatim in translations.
+Keep `{count}`, `{price}`, `{date}`, `{provider}`, `{url}` and `{country}` verbatim in translations.
 `{count}` is a locale-formatted backend allowance (currently 1000 for Premium and
 lifetime); Stripe product text is rendered with that selected offer value before
 upload, never with a literal placeholder. `{price}` is the provider-derived,

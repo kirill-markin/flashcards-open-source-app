@@ -53,5 +53,10 @@
   "email.refundReceiptBody": "בוצע עבורכם החזר כספי בסך {price}. לצפייה בפרטים: {url}",
   "deletion.warning": "מחיקת חשבון Nibomo מבטלת חידושים עתידיים של המינויים שלכם ל-Nibomo המחויבים דרך Stripe. תאבדו את הגישה לחשבון הזה. מינויים המחויבים דרך Apple או Google יש לבטל בנפרד דרך אותו ספק.",
   "deletion.cancelling": "מבטלים את חידושי המינויים שלכם דרך Stripe לפני מחיקת החשבון...",
-  "deletion.cancellationFailed": "לא הצלחנו לאשר את ביטול חידושי המינויים שלכם דרך Stripe. החשבון שלכם לא נמחק. נסו שוב או פנו לתמיכה."
+  "deletion.cancellationFailed": "לא הצלחנו לאשר את ביטול חידושי המינויים שלכם דרך Stripe. החשבון שלכם לא נמחק. נסו שוב או פנו לתמיכה.",
+  "offer.pricesFor": "מחירים עבור {country}",
+  "offer.changeCountry": "שינוי מדינה",
+  "offer.chooseCountry": "בחירת מדינה",
+  "checkout.originalOffer": "תשלום ממתין: {price} לחודש",
+  "checkout.requote": "החלפת התשלום בהצעה זו"
 }

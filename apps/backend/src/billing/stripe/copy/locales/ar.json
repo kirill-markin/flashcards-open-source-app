@@ -53,5 +53,10 @@
   "email.refundReceiptBody": "تم رد مبلغ {price} إليك. اطّلع على التفاصيل: {url}",
   "deletion.warning": "يؤدي حذف حسابك في Nibomo إلى إلغاء التجديدات المستقبلية لاشتراكاتك في Nibomo التي تُحصّل رسومها عبر Stripe. ستفقد الوصول إلى هذا الحساب. يجب إلغاء الاشتراكات التي تُحصّل رسومها عبر Apple أو Google بشكل منفصل من خلال مقدم الخدمة المعني.",
   "deletion.cancelling": "جارٍ إلغاء تجديدات اشتراكاتك عبر Stripe قبل حذف حسابك...",
-  "deletion.cancellationFailed": "تعذر تأكيد إلغاء تجديدات اشتراكاتك عبر Stripe. لم يُحذف حسابك. حاول مجددًا أو تواصل مع الدعم."
+  "deletion.cancellationFailed": "تعذر تأكيد إلغاء تجديدات اشتراكاتك عبر Stripe. لم يُحذف حسابك. حاول مجددًا أو تواصل مع الدعم.",
+  "offer.pricesFor": "الأسعار لـ {country}",
+  "offer.changeCountry": "تغيير البلد",
+  "offer.chooseCountry": "اختر بلداً",
+  "checkout.originalOffer": "الدفع المعلّق: {price} شهرياً",
+  "checkout.requote": "استبدال الدفع بهذا العرض"
 }
