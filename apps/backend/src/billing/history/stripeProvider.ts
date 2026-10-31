@@ -1,6 +1,6 @@
 import type Stripe from "stripe";
 import { z } from "zod";
-import type { StripeCatalog } from "../stripe/catalog";
+import { matchesStripeCatalogPrice, type StripeCatalog } from "../stripe/catalog";
 import { StripeBillingError, type StripeEnvironment } from "../stripe/contracts";
 import { BillingHistoryError } from "./store";
 import {
@@ -116,7 +116,7 @@ export class StripeHistoryProvider {
   }
 
   private matchesPrice(price: Readonly<{ id: string; product: string | Readonly<{ id: string }> }>): boolean {
-    const matchesId = price.id === this.catalog.priceId;
+    const matchesId = this.catalog.knownPrices.some((entry) => entry.priceId === price.id);
     const matchesProduct = objectId(price.product) === this.catalog.productId;
     if (matchesId !== matchesProduct) throw new StripeBillingError("STRIPE_IDENTITY_MISMATCH", false,
       "Stripe history contains an unconfigured price for the Nibomo product. Verify the catalog before importing.");
@@ -144,7 +144,9 @@ export class StripeHistoryProvider {
   private ownsSubscription(subscription: Stripe.Subscription): boolean {
     const matches = subscription.items.data.map((item) => {
       this.requireEnvironment(item.price);
-      return this.matchesPrice(item.price);
+      const matches = this.matchesPrice(item.price);
+      if (matches) requireHistoryMatch(matchesStripeCatalogPrice(this.catalog, item.price));
+      return matches;
     });
     if (!matches.some(Boolean)) return false;
     requireHistoryMatch(matches.every(Boolean) && objectId(subscription.customer) !== null);
@@ -153,15 +155,16 @@ export class StripeHistoryProvider {
 
   async subscriptionsPage(cursor: string | null, requestedTo: Date): Promise<StripeHistoryPage<StripeSubscriptionHistory>> {
     const page = await this.read("history subscriptions", () => this.client.subscriptions.list({
-      price: this.catalog.priceId, status: "all", limit: 20,
+      status: "all", limit: 20,
       created: { gte: 0, lt: requestedTo.getTime() / 1000 },
       ...(cursor === null ? {} : { starting_after: cursor }),
     }));
     const data: Array<StripeSubscriptionHistory> = [];
     for (const input of page.data) {
       const subscription = await this.completeSubscription(input);
-      requireHistoryMatch(this.ownsSubscription(subscription));
-      data.push(parseNative(stripeSubscriptionHistorySchema, normalizeSubscriptionDecimals(subscription)));
+      if (this.ownsSubscription(subscription)) {
+        data.push(parseNative(stripeSubscriptionHistorySchema, normalizeSubscriptionDecimals(subscription)));
+      }
     }
     return { data, nextCursor: pageCursor(page) };
   }

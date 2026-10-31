@@ -5,13 +5,37 @@ import { stripeCheckoutCustomText } from "./checkoutPresentation";
 import { z } from "zod";
 import { loadStripeEnvironmentSecret, parseStripeBillingSecret } from "./config";
 import {
-  stripeApiVersion, stripeCatalog, stripeCheckoutSuccessUrl, stripePremiumMonthlyAmount,
+  matchesStripeCatalogPrice, stripeApiVersion, stripeCatalog, stripeCheckoutSuccessUrl,
   stripeSubscriptionReturnUrl, type StripeCatalog,
 } from "./catalog";
 import {
   StripeBillingError, type StripeCheckoutAttempt, type StripeCustomerIdentity,
   type StripeEnvironment, type StripeEnvironmentSecret, type StripeInvoiceFinancialState,
 } from "./contracts";
+
+// The regional reservation owner must persist both fields before calling the Managed adapter.
+export type StripeManagedCheckoutAttempt = StripeCheckoutAttempt & Readonly<{
+  priceId: string;
+  checkoutMode: "managed";
+}>;
+
+function checkoutParameters(
+  attempt: StripeCheckoutAttempt, catalog: StripeCatalog, priceId: string,
+): Stripe.Checkout.SessionCreateParams {
+  const metadata = { application: "nibomo", nibomo_checkout_attempt_id: attempt.attemptId };
+  return {
+    mode: "subscription", customer: attempt.customerId, client_reference_id: attempt.attemptId,
+    line_items: [{ price: priceId, quantity: 1 }],
+    branding_settings: { display_name: "Nibomo", icon: { type: "file", file: catalog.iconFileId } },
+    subscription_data: { metadata, billing_mode: { type: "flexible" }, ...(attempt.trialDays === 7 ? {
+      trial_period_days: 7, trial_settings: { end_behavior: { missing_payment_method: "cancel" } },
+    } : {}) },
+    custom_text: stripeCheckoutCustomText(attempt.locale),
+    metadata, locale: attempt.locale, expires_at: Math.floor(attempt.expiresAt.getTime() / 1000),
+    success_url: `${stripeCheckoutSuccessUrl}&checkout=success&checkout_attempt_id=${attempt.attemptId}`,
+    cancel_url: `${stripeSubscriptionReturnUrl}?checkout=cancelled&checkout_attempt_id=${attempt.attemptId}`,
+  };
+}
 
 function objectId(value: string | Readonly<{ id: string }> | null): string | null {
   return typeof value === "string" ? value : value?.id ?? null;
@@ -79,19 +103,19 @@ export class StripeProvider {
   }
 
   private requirePrice(price: Stripe.Price): void {
-    this.requireEnvironment(price);
-    requireMatch(price.id === this.#catalog.priceId && objectId(price.product) === this.#catalog.productId
-      && price.currency === "usd" && price.unit_amount === stripePremiumMonthlyAmount
-      && price.tax_behavior === "inclusive" && price.type === "recurring"
-      && price.recurring?.interval === "month" && price.recurring.interval_count === 1
-      && price.recurring.usage_type === "licensed");
+    requireMatch(matchesStripeCatalogPrice(this.#catalog, price));
+  }
+
+  private async retrieveCheckoutPrice(priceId: string): Promise<Stripe.Price> {
+    requireMatch(this.#catalog.knownPrices.some((price) => price.priceId === priceId));
+    const price = await callStripe("retrieve price", () => this.#client.prices.retrieve(priceId));
+    this.requirePrice(price);
+    requireMatch(price.id === priceId && price.active);
+    return price;
   }
 
   async retrieveKnownPrice(): Promise<Stripe.Price> {
-    const price = await callStripe("retrieve price", () => this.#client.prices.retrieve(this.#catalog.priceId));
-    this.requirePrice(price);
-    requireMatch(price.active);
-    return price;
+    return this.retrieveCheckoutPrice(this.#catalog.priceId);
   }
 
   async retrieveCustomer(customerId: string): Promise<Stripe.Customer> {
@@ -134,7 +158,9 @@ export class StripeProvider {
     return customer;
   }
 
-  private async validateCheckout(session: Stripe.Checkout.Session, customerId: string): Promise<Stripe.Checkout.Session> {
+  private async validateCheckout(
+    session: Stripe.Checkout.Session, customerId: string, expectedPriceId: string | null,
+  ): Promise<Stripe.Checkout.Session> {
     this.requireEnvironment(session);
     requireMatch(session.mode === "subscription" && objectId(session.customer) === customerId
       && session.metadata?.application === "nibomo");
@@ -145,12 +171,13 @@ export class StripeProvider {
     if (price === null) throw new StripeBillingError("STRIPE_RESPONSE_INVALID", false,
       "Stripe Checkout returned no recurring price.");
     this.requirePrice(price);
+    requireMatch(expectedPriceId === null || price.id === expectedPriceId);
     return session;
   }
 
   async retrieveCheckout(sessionId: string, customerId: string): Promise<Stripe.Checkout.Session> {
     const session = await callStripe("retrieve checkout", () => this.#client.checkout.sessions.retrieve(sessionId));
-    return this.validateCheckout(session, customerId);
+    return this.validateCheckout(session, customerId, null);
   }
 
   async listCheckouts(customerId: string): Promise<ReadonlyArray<Stripe.Checkout.Session>> {
@@ -163,28 +190,73 @@ export class StripeProvider {
       return result;
     });
     const result: Array<Stripe.Checkout.Session> = [];
-    for (const session of sessions) result.push(await this.validateCheckout(session, customerId));
+    for (const session of sessions) result.push(await this.validateCheckout(session, customerId, null));
     return result;
   }
 
   async createCheckout(attempt: StripeCheckoutAttempt, verifiedAccountEmail: string): Promise<Stripe.Checkout.Session> {
+    const session = await this.createCheckoutSession(attempt, verifiedAccountEmail, this.#catalog.priceId, {
+      ...checkoutParameters(attempt, this.#catalog, this.#catalog.priceId),
+      automatic_tax: { enabled: true }, adaptive_pricing: { enabled: true },
+      payment_method_collection: "always", customer_update: { address: "auto", name: "auto" },
+    });
+    requireMatch(session.managed_payments?.enabled !== true);
+    return session;
+  }
+
+  async createManagedCheckout(
+    attempt: StripeManagedCheckoutAttempt, verifiedAccountEmail: string,
+  ): Promise<Stripe.Checkout.Session> {
+    requireMatch(attempt.checkoutMode === "managed");
+    const priceId = attempt.priceId;
+    const session = await this.createCheckoutSession(attempt, verifiedAccountEmail, priceId, {
+      ...checkoutParameters(attempt, this.#catalog, priceId), managed_payments: { enabled: true },
+    });
+    return this.validateManagedCheckout(session, attempt.customerId, priceId);
+  }
+
+  private async validateManagedCheckout(
+    session: Stripe.Checkout.Session, customerId: string, priceId: string,
+  ): Promise<Stripe.Checkout.Session> {
+    requireMatch(session.managed_payments?.enabled === true);
+    const subscriptionId = objectId(session.subscription);
+    if (subscriptionId !== null) {
+      const subscription = await this.retrieveSubscription(subscriptionId, customerId);
+      requireMatch(subscription.managed_payments?.enabled === true && subscription.items.data[0].price.id === priceId);
+    }
+    return session;
+  }
+
+  async retrieveManagedCheckout(
+    sessionId: string, customerId: string, priceId: string,
+  ): Promise<Stripe.Checkout.Session> {
+    const session = await callStripe("retrieve checkout", () => this.#client.checkout.sessions.retrieve(sessionId));
+    await this.validateCheckout(session, customerId, priceId);
+    return this.validateManagedCheckout(session, customerId, priceId);
+  }
+
+  private async createCheckoutSession(
+    attempt: StripeCheckoutAttempt, verifiedAccountEmail: string, priceId: string,
+    params: Stripe.Checkout.SessionCreateParams,
+  ): Promise<Stripe.Checkout.Session> {
     requireMatch(attempt.environment === this.environment && attempt.accountDeletedAt === null
       && attempt.status !== "abandoned" && z.uuid().safeParse(attempt.attemptId).success
       && (attempt.trialDays === 0 || attempt.trialDays === 7));
     if (attempt.sessionId !== null) {
-      const session = await this.retrieveCheckout(attempt.sessionId, attempt.customerId);
+      const session = await callStripe("retrieve checkout", () =>
+        this.#client.checkout.sessions.retrieve(attempt.sessionId!));
       requireMatch(session.client_reference_id === attempt.attemptId);
-      return session;
+      return this.validateCheckout(session, attempt.customerId, priceId);
     }
     // The absolute expiry and frozen parameters are reused on every POST, including an ambiguous retry.
     if (attempt.expiresAt.getTime() <= Date.now() + 30 * 60 * 1000) {
       const matches = (await this.listCheckouts(attempt.customerId))
         .filter((session) => session.client_reference_id === attempt.attemptId);
-      if (matches.length === 1) return matches[0];
+      if (matches.length === 1) return this.validateCheckout(matches[0], attempt.customerId, priceId);
       throw new StripeBillingError("STRIPE_RECOVERY_REQUIRED", false,
         "The Checkout creation window expired. Reconcile this attempt before reserving another.");
     }
-    await this.retrieveKnownPrice();
+    await this.retrieveCheckoutPrice(priceId);
     const customer = await this.retrieveCustomer(attempt.customerId);
     requireMatch(customer.metadata.nibomo_identity_id === attempt.identityId);
     if (!z.email().safeParse(verifiedAccountEmail).success) throw new StripeBillingError("STRIPE_EMAIL_REQUIRED", false,
@@ -196,23 +268,10 @@ export class StripeProvider {
       requireMatch(updated.id === attempt.customerId && updated.metadata.application === "nibomo"
         && updated.metadata.nibomo_identity_id === attempt.identityId && updated.email === verifiedAccountEmail);
     }
-    const metadata = { application: "nibomo", nibomo_checkout_attempt_id: attempt.attemptId };
-    const session = await callStripe("create checkout", () => this.#client.checkout.sessions.create({
-      mode: "subscription", customer: attempt.customerId, client_reference_id: attempt.attemptId,
-      line_items: [{ price: this.#catalog.priceId, quantity: 1 }],
-      automatic_tax: { enabled: true }, adaptive_pricing: { enabled: true },
-      payment_method_collection: "always", customer_update: { address: "auto", name: "auto" },
-      branding_settings: { display_name: "Nibomo", icon: { type: "file", file: this.#catalog.iconFileId } },
-      subscription_data: { metadata, billing_mode: { type: "flexible" }, ...(attempt.trialDays === 7 ? {
-        trial_period_days: 7, trial_settings: { end_behavior: { missing_payment_method: "cancel" } },
-      } : {}) },
-      custom_text: stripeCheckoutCustomText(attempt.locale),
-      metadata, locale: attempt.locale, expires_at: Math.floor(attempt.expiresAt.getTime() / 1000),
-      success_url: `${stripeCheckoutSuccessUrl}&checkout=success&checkout_attempt_id=${attempt.attemptId}`,
-      cancel_url: `${stripeSubscriptionReturnUrl}?checkout=cancelled&checkout_attempt_id=${attempt.attemptId}`,
-    }, { idempotencyKey: `nibomo:checkout:${this.environment}:${attempt.attemptId}` }));
+    const session = await callStripe("create checkout", () => this.#client.checkout.sessions.create(params,
+      { idempotencyKey: `nibomo:checkout:${this.environment}:${attempt.attemptId}` }));
     requireMatch(session.client_reference_id === attempt.attemptId);
-    return this.validateCheckout(session, attempt.customerId);
+    return this.validateCheckout(session, attempt.customerId, priceId);
   }
 
   async expireCheckout(sessionId: string, customerId: string): Promise<Stripe.Checkout.Session> {
@@ -220,7 +279,7 @@ export class StripeProvider {
     if (session.status !== "open") return session;
     const expired = await callStripe("expire checkout", () => this.#client.checkout.sessions.expire(sessionId, {},
       { idempotencyKey: `nibomo:expire:${this.environment}:${sessionId}` }));
-    return this.validateCheckout(expired, customerId);
+    return this.validateCheckout(expired, customerId, null);
   }
 
   async createPortal(
@@ -257,7 +316,7 @@ export class StripeProvider {
       const result: Array<Stripe.Subscription> = [];
       for await (const subscription of this.#client.subscriptions.list({ customer: customerId, status: "all", limit: 100 })) {
         this.requireEnvironment(subscription);
-        if (subscription.items.data.some((item) => item.price.id === this.#catalog.priceId
+        if (subscription.items.data.some((item) => this.#catalog.knownPrices.some((price) => price.priceId === item.price.id)
           || objectId(item.price.product) === this.#catalog.productId)) {
           result.push(this.validateSubscription(subscription, customerId));
         }

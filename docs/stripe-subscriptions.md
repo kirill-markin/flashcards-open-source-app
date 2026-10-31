@@ -30,6 +30,39 @@ non-trial purchase copy. A mobile trial history does not consume this trial.
 The live account's historical default API version is preserved for its other
 integrations; this integration always sends its pinned version. Catalog and endpoint readiness do not establish a Live purchase or email delivery.
 
+## Regional catalog preparation and Managed activation gate
+
+The **2026-10-31** provider readback confirmed a USD 3.49 monthly, tax-inclusive
+Price alongside each existing USD 6.99 Price on the same Nibomo product. The
+[configuration inventory](stripe-subscriptions/configuration.json) records the actual
+identifiers and product tax code. Existing standard Prices remain readable and
+are still selected by current Checkout callers. Both Prices grant the same Premium
+entitlement; existing subscriptions are not converted.
+
+The provider has a dormant `createManagedCheckout` entry point, with an explicit
+selected Price and Managed mode. Its caller must persist those choices before the
+first provider call and reuse them on recovery. `retrieveManagedCheckout` verifies
+the selected Price and the returned Session/Subscription Managed markers. The
+ordinary Checkout entry point keeps its legacy payload. Regional reservation and
+country-selection wiring remain separate work.
+
+Managed Payments activation and real Managed purchase acceptance are **pending**.
+Before regional sales, verify account eligibility/onboarding, support contact and
+hosted branding, then exercise a real sandbox Managed Checkout and its return,
+trial and subscription-management flow. Stripe's
+[Checkout migration guide](https://docs.stripe.com/payments/managed-payments/update-checkout)
+defines the Managed request parameters and excludes conversion of existing subscriptions.
+
+Stripe's [tax coverage](https://docs.stripe.com/payments/managed-payments/tax-compliance)
+applies only in its published markets. Before activating regional reservations or
+client purchase flows, prove that the actual account/Checkout controls reject
+uncovered billing countries, including a buyer changing country inside Checkout,
+or obtain an explicit uncovered-market policy decision. A pre-Checkout country
+selector alone does not satisfy this gate. Stripe support confirmed that optional
+paid Radar Plus/Pro custom billing-country blocking is available; plan selection,
+configuration and enforcement verification remain pending. No Radar rule or
+coverage enforcement is implemented by this provider adapter.
+
 ## Authoritative copy and localization
 
 [locales/en.json](../apps/backend/src/billing/stripe/copy/locales/en.json) is the English source;
