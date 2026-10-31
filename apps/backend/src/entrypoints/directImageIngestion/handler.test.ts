@@ -21,11 +21,17 @@ import {
   directImageIngestionIntegrationEnvelopeMs,
   directImageIngestionLambdaInvokeTimeoutMs,
   directImageIngestionMaximumOnDemandInitMs,
+  directImageIngestionMinimumAcquisitionBudgetMs,
   directImageIngestionRequestBudgetMs,
   directImageIngestionResponseMarginMs,
   publicRestApiIntegrationTimeoutMs,
   getDirectImageIngestionRequestTiming,
 } from "../../server/mediaRequests/directImageIngestionRequestTiming";
+
+const preAcquisitionIngressAgeLimitMs =
+  directImageIngestionIntegrationEnvelopeMs
+  - directImageIngestionResponseMarginMs
+  - directImageIngestionMinimumAcquisitionBudgetMs;
 
 const directImagePath =
   "/workspaces/11111111-1111-4111-8111-111111111111/media-assets/images";
@@ -187,19 +193,21 @@ test("Lambda remaining time clamps the application deadline", async () => {
   );
 });
 
-test("cold-start age rejects before route work at the pre-acquisition cutoff", async () => {
+test("cold-start age does not consume the handler's request budget", async () => {
   const ingressAtMs = 1_000_000;
-  let handleCalls = 0;
+  const observedAtMs =
+    ingressAtMs
+    + directImageIngestionRequestBudgetMs
+    - directImageIngestionMinimumAcquisitionBudgetMs;
+  let observedRequestDeadlineAtMs: number | null = null;
   const handler = createDirectImageIngestionLambdaHandler({
     allowedOriginsFn: () => [allowedOrigin],
     handleRequestFn: async () => {
-      handleCalls += 1;
+      observedRequestDeadlineAtMs =
+        getDirectImageIngestionRequestTiming()?.requestDeadlineAtMs ?? null;
       return createSuccessResult();
     },
-    nowFn: () =>
-      ingressAtMs
-      + directImageIngestionRequestBudgetMs
-      - 10_000,
+    nowFn: () => observedAtMs,
   });
 
   const result = await handler(
@@ -207,9 +215,11 @@ test("cold-start age rejects before route work at the pre-acquisition cutoff", a
     createLambdaContext(directImageIngestionLambdaInvokeTimeoutMs),
   );
 
-  assert.equal(result.statusCode, 503);
-  assert.equal(handleCalls, 0);
-  assert.equal(result.headers?.["retry-after"], "1");
+  assert.equal(result.statusCode, 200);
+  assert.equal(
+    observedRequestDeadlineAtMs,
+    observedAtMs + directImageIngestionRequestBudgetMs,
+  );
 });
 
 test("old ingress rejects before route work with credentialed CORS", async () => {
@@ -221,7 +231,7 @@ test("old ingress rejects before route work with credentialed CORS", async () =>
       handleCalls += 1;
       return createSuccessResult();
     },
-    nowFn: () => ingressAtMs + directImageIngestionRequestBudgetMs,
+    nowFn: () => ingressAtMs + preAcquisitionIngressAgeLimitMs,
   });
 
   const result = await handler(
@@ -231,6 +241,7 @@ test("old ingress rejects before route work with credentialed CORS", async () =>
 
   assert.equal(result.statusCode, 503);
   assert.equal(handleCalls, 0);
+  assert.equal(result.headers?.["retry-after"], "1");
   assert.equal(result.headers?.["access-control-allow-origin"], allowedOrigin);
   assert.equal(result.headers?.["access-control-allow-credentials"], "true");
   assert.match(
@@ -258,7 +269,7 @@ test("outer API-key deadline failures preserve the published agent error envelop
     const handler = createDirectImageIngestionLambdaHandler({
       allowedOriginsFn: () => [allowedOrigin],
       handleRequestFn: async () => createSuccessResult(),
-      nowFn: () => ingressAtMs + directImageIngestionRequestBudgetMs,
+      nowFn: () => ingressAtMs + preAcquisitionIngressAgeLimitMs,
     });
 
     const result = await handler(
@@ -404,7 +415,7 @@ test("early response does not grant CORS to an unallowed or absent origin", asyn
   const handler = createDirectImageIngestionLambdaHandler({
     allowedOriginsFn: () => [allowedOrigin],
     handleRequestFn: async () => createSuccessResult(),
-    nowFn: () => ingressAtMs + directImageIngestionRequestBudgetMs,
+    nowFn: () => ingressAtMs + preAcquisitionIngressAgeLimitMs,
   });
 
   for (const origin of ["https://unallowed.example", null]) {
