@@ -1,9 +1,7 @@
 import Foundation
 import Observation
 import SwiftUI
-#if targetEnvironment(macCatalyst)
 import UIKit
-#endif
 
 func makeSettingsNavigationPath(destination: SettingsNavigationDestination) -> [SettingsNavigationDestination] {
     switch destination {
@@ -165,7 +163,6 @@ final class AppNavigationModel {
             self.selectTab(.ai)
             return
         }
-        #if targetEnvironment(macCatalyst)
         if self.isAICompanionVisible {
             // End typing before SwiftUI removes the focused composer.
             UIApplication.shared.sendAction(
@@ -175,7 +172,6 @@ final class AppNavigationModel {
                 for: nil
             )
         }
-        #endif
         self.isAICompanionPresented.toggle()
     }
 
