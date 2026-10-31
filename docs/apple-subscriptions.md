@@ -11,6 +11,10 @@ and the completed early-user lifetime gift. The
 [canonical English App Review notes](subscription-store-metadata.md#canonical-english-app-review-notes)
 are the only source for the subscription's reviewer text.
 
+Regional changes to an existing subscription follow the
+[native-store pricing runbook](regional-subscription-pricing-stores.md), including
+baseline capture, subscriber effects and readback.
+
 ## Backend sources
 
 [Routes](../apps/backend/src/routes/appleBilling.ts) (including the transaction `intent` contract),

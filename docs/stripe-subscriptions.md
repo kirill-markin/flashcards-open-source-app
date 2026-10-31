@@ -234,6 +234,14 @@ the private transport and sender, with display name Nibomo.
 Resend acceptance is recorded separately from inbox delivery, which still needs the checks below.
 Use only sanitized error codes and provider message IDs when recording evidence.
 
+For subscriptions whose verified Stripe `managed_payments.enabled` is true, Link sends mandatory
+payment/invoice and refund receipts, regardless of the shared Dashboard receipt settings. Nibomo
+suppresses its overlapping receipts before projection and outbox reservation. Legacy subscriptions
+and their queued deliveries keep their existing Nibomo receipt and retry behavior. Link also sends a
+trial-start email; its mandatory trial-ending reminder applies only to trials longer than seven days.
+Nibomo retains its trial-ending reminder for the seven-day trial. See
+[Managed Payments email ownership](https://docs.stripe.com/payments/managed-payments/how-it-works).
+
 After normal cloud checks and deployment, using only an authorized sandbox
 review account and a controlled real inbox:
 

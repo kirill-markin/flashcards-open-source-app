@@ -229,6 +229,12 @@ export async function dispatchStripeLifecycleEmails(
   const notices = await unsafeTransaction(async (executor) => {
     const recipient = await lockRecipient(executor, provider, customerId, subscriptionIds);
     if (recipient === null) return [];
+    if (eventType !== "customer.subscription.trial_will_end") {
+      requireStripeEmailData(subscriptionIds.length === 1);
+      const subscription = await provider.retrieveSubscription(subscriptionIds[0], customerId);
+      // Link owns Managed payment/refund receipts; trial-ending reminders remain product-owned.
+      if (subscription.managed_payments?.enabled === true) return [];
+    }
     return loadNotices(executor, provider, customerId, recipient.identityId, eventType, reference);
   });
   const failures: Array<StripeBillingError> = [];
