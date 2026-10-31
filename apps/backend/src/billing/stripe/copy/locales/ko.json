@@ -53,5 +53,10 @@
   "email.refundReceiptBody": "{price} 환불이 처리되었습니다. 자세한 내용을 확인하세요: {url}",
   "deletion.warning": "Nibomo 계정을 삭제하면 Stripe를 통해 청구되는 Nibomo 구독의 향후 갱신이 취소됩니다. 이 계정에 대한 이용 권한을 잃게 됩니다. Apple 또는 Google을 통해 청구되는 구독은 해당 서비스에서 별도로 취소해야 합니다.",
   "deletion.cancelling": "계정을 삭제하기 전에 Stripe 구독의 갱신을 취소하는 중...",
-  "deletion.cancellationFailed": "Stripe 구독의 갱신 취소를 확인하지 못했습니다. 계정은 삭제되지 않았습니다. 다시 시도하거나 지원팀에 문의하세요."
+  "deletion.cancellationFailed": "Stripe 구독의 갱신 취소를 확인하지 못했습니다. 계정은 삭제되지 않았습니다. 다시 시도하거나 지원팀에 문의하세요.",
+  "offer.pricesFor": "{country} 기준 가격",
+  "offer.changeCountry": "국가 변경",
+  "offer.chooseCountry": "국가 선택",
+  "checkout.originalOffer": "미완료 결제: 월 {price}",
+  "checkout.requote": "이 혜택으로 결제 바꾸기"
 }

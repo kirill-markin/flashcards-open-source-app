@@ -53,5 +53,10 @@
   "email.refundReceiptBody": "Izvedli smo vam vračilo v višini {price}. Oglejte si podrobnosti: {url}",
   "deletion.warning": "Z izbrisom računa Nibomo prekličete prihodnje obnovitve svojih naročnin Nibomo, ki se zaračunavajo prek Stripe. Izgubili boste dostop do tega računa. Naročnine, ki se zaračunavajo prek Appla ali Googla, morate preklicati ločeno pri ustreznem ponudniku.",
   "deletion.cancelling": "Preklicevanje obnovitev vaših naročnin Stripe pred izbrisom računa...",
-  "deletion.cancellationFailed": "Preklica obnovitev vaših naročnin Stripe nismo mogli potrditi. Vaš račun ni bil izbrisan. Poskusite znova ali se obrnite na podporo."
+  "deletion.cancellationFailed": "Preklica obnovitev vaših naročnin Stripe nismo mogli potrditi. Vaš račun ni bil izbrisan. Poskusite znova ali se obrnite na podporo.",
+  "offer.pricesFor": "Cene za {country}",
+  "offer.changeCountry": "Spremeni državo",
+  "offer.chooseCountry": "Izberite državo",
+  "checkout.originalOffer": "Nedokončan nakup: {price} na mesec",
+  "checkout.requote": "Zamenjaj nakup s to ponudbo"
 }

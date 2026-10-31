@@ -53,5 +53,10 @@
   "email.refundReceiptBody": "Rambursarea ta în valoare de {price} a fost efectuată. Vezi detaliile: {url}",
   "deletion.warning": "Ștergerea contului Nibomo anulează reînnoirile viitoare ale abonamentelor tale Nibomo facturate prin Stripe. Vei pierde accesul la acest cont. Abonamentele facturate prin Apple sau Google trebuie anulate separat prin furnizorul respectiv.",
   "deletion.cancelling": "Se anulează reînnoirile abonamentelor tale Stripe înainte de ștergerea contului...",
-  "deletion.cancellationFailed": "Nu am putut confirma anularea reînnoirilor abonamentelor tale Stripe. Contul tău nu a fost șters. Încearcă din nou sau contactează asistența."
+  "deletion.cancellationFailed": "Nu am putut confirma anularea reînnoirilor abonamentelor tale Stripe. Contul tău nu a fost șters. Încearcă din nou sau contactează asistența.",
+  "offer.pricesFor": "Prețuri pentru {country}",
+  "offer.changeCountry": "Schimbă țara",
+  "offer.chooseCountry": "Alege o țară",
+  "checkout.originalOffer": "Plată în așteptare: {price} pe lună",
+  "checkout.requote": "Înlocuiește plata cu această ofertă"
 }

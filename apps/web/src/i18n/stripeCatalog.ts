@@ -10,7 +10,7 @@ type StripeCatalog = {
 };
 
 function formatStripeMessage(message: string): string {
-  return message.replace(/\{(count|price|date|provider|url)\}/g, "{{$1}}");
+  return message.replace(/\{(count|price|date|provider|url|country)\}/g, "{{$1}}");
 }
 
 export function createStripeCatalog(copy: StripeCopy): StripeCatalog {
@@ -26,6 +26,9 @@ export function createStripeCatalog(copy: StripeCopy): StripeCatalog {
     },
     offer: {
       title: formatStripeMessage(copy["offer.title"]),
+      pricesFor: formatStripeMessage(copy["offer.pricesFor"]),
+      changeCountry: formatStripeMessage(copy["offer.changeCountry"]),
+      chooseCountry: formatStripeMessage(copy["offer.chooseCountry"]),
       description: formatStripeMessage(copy["offer.description"]),
       aiBenefit: formatStripeMessage(copy["offer.aiBenefit"]),
       accentBenefit: formatStripeMessage(copy["offer.accentBenefit"]),
@@ -60,6 +63,8 @@ export function createStripeCatalog(copy: StripeCopy): StripeCatalog {
     },
     checkout: {
       opening: formatStripeMessage(copy["checkout.opening"]),
+      originalOffer: formatStripeMessage(copy["checkout.originalOffer"]),
+      requote: formatStripeMessage(copy["checkout.requote"]),
       confirming: formatStripeMessage(copy["checkout.confirming"]),
       confirmed: formatStripeMessage(copy["checkout.confirmed"]),
       delayed: formatStripeMessage(copy["checkout.delayed"]),

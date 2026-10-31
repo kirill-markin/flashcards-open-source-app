@@ -53,5 +53,10 @@
   "email.refundReceiptBody": "Vi har refundert {price} til deg. Se detaljer: {url}",
   "deletion.warning": "Hvis du sletter Nibomo-kontoen din, stoppes fremtidige fornyelser av Nibomo-abonnementene dine som faktureres via Stripe. Du mister tilgangen til denne kontoen. Abonnementer som faktureres via Apple eller Google, må sies opp separat hos den aktuelle leverandøren.",
   "deletion.cancelling": "Stopper fornyelser av Stripe-abonnementene dine før kontoen slettes...",
-  "deletion.cancellationFailed": "Vi kunne ikke bekrefte at fornyelsene av Stripe-abonnementene dine er stoppet. Kontoen din er ikke slettet. Prøv igjen eller kontakt brukerstøtte."
+  "deletion.cancellationFailed": "Vi kunne ikke bekrefte at fornyelsene av Stripe-abonnementene dine er stoppet. Kontoen din er ikke slettet. Prøv igjen eller kontakt brukerstøtte.",
+  "offer.pricesFor": "Priser for {country}",
+  "offer.changeCountry": "Endre land",
+  "offer.chooseCountry": "Velg et land",
+  "checkout.originalOffer": "Ufullført betaling: {price} per måned",
+  "checkout.requote": "Erstatt betalingen med dette tilbudet"
 }

@@ -53,5 +53,10 @@
   "email.refundReceiptBody": "Deine Erstattung über {price} wurde veranlasst. Hier findest du die Details: {url}",
   "deletion.warning": "Wenn du dein Nibomo-Konto löschst, werden künftige Verlängerungen deiner über Stripe abgerechneten Nibomo-Abonnements gekündigt. Du verlierst den Zugang zu diesem Konto. Über Apple oder Google abgerechnete Abonnements musst du separat beim jeweiligen Anbieter kündigen.",
   "deletion.cancelling": "Die Verlängerungen deiner Stripe-Abonnements werden vor dem Löschen deines Kontos gekündigt...",
-  "deletion.cancellationFailed": "Wir konnten die Kündigung der Verlängerungen deiner Stripe-Abonnements nicht bestätigen. Dein Konto wurde nicht gelöscht. Versuche es erneut oder kontaktiere den Support."
+  "deletion.cancellationFailed": "Wir konnten die Kündigung der Verlängerungen deiner Stripe-Abonnements nicht bestätigen. Dein Konto wurde nicht gelöscht. Versuche es erneut oder kontaktiere den Support.",
+  "offer.pricesFor": "Preise für {country}",
+  "offer.changeCountry": "Land ändern",
+  "offer.chooseCountry": "Land auswählen",
+  "checkout.originalOffer": "Ausstehender Kauf: {price} pro Monat",
+  "checkout.requote": "Kauf durch dieses Angebot ersetzen"
 }

@@ -53,5 +53,10 @@
   "email.refundReceiptBody": "Jums grąžinta {price}. Peržiūrėkite išsamią informaciją: {url}",
   "deletion.warning": "Ištrynus „Nibomo“ paskyrą, atšaukiami būsimi jūsų „Nibomo“ prenumeratų, už kurias mokate per „Stripe“, atnaujinimai. Prarasite prieigą prie šios paskyros. Prenumeratas, už kurias mokate per „Apple“ arba „Google“, turite atšaukti atskirai per atitinkamą teikėją.",
   "deletion.cancelling": "Prieš ištrinant paskyrą atšaukiami jūsų „Stripe“ prenumeratų atnaujinimai...",
-  "deletion.cancellationFailed": "Nepavyko patvirtinti jūsų „Stripe“ prenumeratų atnaujinimų atšaukimo. Jūsų paskyra nebuvo ištrinta. Bandykite dar kartą arba kreipkitės į pagalbos tarnybą."
+  "deletion.cancellationFailed": "Nepavyko patvirtinti jūsų „Stripe“ prenumeratų atnaujinimų atšaukimo. Jūsų paskyra nebuvo ištrinta. Bandykite dar kartą arba kreipkitės į pagalbos tarnybą.",
+  "offer.pricesFor": "Kainos šaliai: {country}",
+  "offer.changeCountry": "Keisti šalį",
+  "offer.chooseCountry": "Pasirinkite šalį",
+  "checkout.originalOffer": "Nebaigtas mokėjimas: {price} per mėnesį",
+  "checkout.requote": "Pakeisti mokėjimą šiuo pasiūlymu"
 }

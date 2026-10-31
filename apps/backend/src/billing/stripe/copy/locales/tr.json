@@ -53,5 +53,10 @@
   "email.refundReceiptBody": "{price} tutarındaki iadeniz gerçekleştirildi. Ayrıntıları görüntüleyin: {url}",
   "deletion.warning": "Nibomo hesabınızı silmek, Stripe üzerinden faturalandırılan Nibomo aboneliklerinizin gelecekteki yenilemelerini iptal eder. Bu hesaba erişiminizi kaybedersiniz. Apple veya Google üzerinden faturalandırılan abonelikler, ilgili sağlayıcı üzerinden ayrıca iptal edilmelidir.",
   "deletion.cancelling": "Hesabınız silinmeden önce Stripe aboneliklerinizin yenilemeleri iptal ediliyor...",
-  "deletion.cancellationFailed": "Stripe aboneliklerinizin yenilemelerinin iptal edildiğini doğrulayamadık. Hesabınız silinmedi. Yeniden deneyin veya destek ekibiyle iletişime geçin."
+  "deletion.cancellationFailed": "Stripe aboneliklerinizin yenilemelerinin iptal edildiğini doğrulayamadık. Hesabınız silinmedi. Yeniden deneyin veya destek ekibiyle iletişime geçin.",
+  "offer.pricesFor": "{country} için fiyatlar",
+  "offer.changeCountry": "Ülkeyi değiştir",
+  "offer.chooseCountry": "Bir ülke seçin",
+  "checkout.originalOffer": "Tamamlanmamış ödeme: aylık {price}",
+  "checkout.requote": "Ödemeyi bu teklifle değiştir"
 }

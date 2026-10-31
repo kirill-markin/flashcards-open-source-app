@@ -1,6 +1,7 @@
 import { isAnalyticsEnabledForCurrentRuntime, isAwaitingAnalyticsConsentDecision, isProductAnalyticsCollectionEnabled, type AnalyticsPaywallEntryPoint } from "../analytics";
 import { ApiContractError, parseObject, parseString } from "../apiContracts/core";
 import { parseStripeSessionId, parseStripeUuid } from "../apiContracts/stripeBilling";
+import { validatedPricingCountry } from "./regionalCountry";
 import type { SessionInfo } from "../types";
 
 const intentKey = "flashcards-stripe-intent";
@@ -89,6 +90,7 @@ export function readPremiumReturnContinuation(query: URLSearchParams): PremiumCo
 export type StripeIntent = Readonly<{
   userId: string;
   checkoutAfterSignIn?: string | null;
+  country?: string | null;
   attemptId: string | null;
   sessionId: string | null;
   continuation: PremiumContinuation | null;
@@ -123,7 +125,7 @@ export function readStripeIntent(userId: string): StripeIntent | null {
       continuation = parsePremiumContinuation(value.continuation);
     }
     return {
-      userId, continuation,
+      userId, continuation, country: validatedPricingCountry(value.country),
       checkoutAfterSignIn: value.checkoutAfterSignIn === undefined || value.checkoutAfterSignIn === null ? null
         : parseStripeUuid(value.checkoutAfterSignIn, "localStorage", "stripeIntent.checkoutAfterSignIn"),
       presentation: value.presentation === undefined || value.presentation === null || !canCollectPaywallAnalytics() ? null
@@ -143,6 +145,7 @@ export function readStripeIntent(userId: string): StripeIntent | null {
 export function isCurrentStripeIntent(expected: StripeIntent): boolean {
   const current = readStripeIntent(expected.userId);
   return current !== null && current.attemptId === expected.attemptId && current.sessionId === expected.sessionId
+    && (current.country ?? null) === (expected.country ?? null)
     && (current.checkoutAfterSignIn ?? null) === (expected.checkoutAfterSignIn ?? null)
     && current.continuation?.accentColor === expected.continuation?.accentColor
     && current.continuation?.requiredRank === expected.continuation?.requiredRank;
@@ -160,9 +163,9 @@ export function consumeStripeContinuation(expected: StripeIntent): PremiumContin
   return expected.continuation;
 }
 
-export function storeGuestStripeCheckout(userId: string, continuation: PremiumContinuation | null, presentation: PaywallPresentation | null): string {
+export function storeGuestStripeCheckout(userId: string, continuation: PremiumContinuation | null, presentation: PaywallPresentation | null, country: string | null): string {
   const token = crypto.randomUUID();
-  storeStripeIntent({ userId, checkoutAfterSignIn: token, continuation, presentation,
+  storeStripeIntent({ userId, checkoutAfterSignIn: token, continuation, presentation, country,
     attemptId: null, sessionId: null, reportedReturn: null });
   return token;
 }

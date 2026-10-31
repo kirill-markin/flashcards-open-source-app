@@ -53,5 +53,10 @@
   "email.refundReceiptBody": "Vrátili jsme vám částku {price}. Zobrazte si podrobnosti: {url}",
   "deletion.warning": "Smazáním účtu Nibomo se zruší budoucí obnovování vašich předplatných Nibomo účtovaných přes Stripe. Ztratíte přístup k tomuto účtu. Předplatná účtovaná přes Apple nebo Google je nutné zrušit samostatně u příslušného poskytovatele.",
   "deletion.cancelling": "Rušíme obnovování vašich předplatných Stripe před smazáním účtu...",
-  "deletion.cancellationFailed": "Nepodařilo se potvrdit zrušení obnovování vašich předplatných Stripe. Váš účet nebyl smazán. Zkuste to znovu nebo kontaktujte podporu."
+  "deletion.cancellationFailed": "Nepodařilo se potvrdit zrušení obnovování vašich předplatných Stripe. Váš účet nebyl smazán. Zkuste to znovu nebo kontaktujte podporu.",
+  "offer.pricesFor": "Ceny pro {country}",
+  "offer.changeCountry": "Změnit zemi",
+  "offer.chooseCountry": "Vyberte zemi",
+  "checkout.originalOffer": "Nedokončená platba: {price} měsíčně",
+  "checkout.requote": "Nahradit platbu touto nabídkou"
 }

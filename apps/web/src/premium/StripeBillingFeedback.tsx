@@ -8,7 +8,8 @@ import { useStripeBilling } from "./useStripeBilling";
 export function StripeBillingFeedback(): ReactElement {
   const { t } = useI18n();
   const billing = useStripeBilling();
-  const presentation = billing.error === null ? null : buildAppErrorPresentation(billing.error, buildPresentationMessages(t));
+  const error = billing.error ?? billing.regional.error;
+  const presentation = error === null ? null : buildAppErrorPresentation(error, buildPresentationMessages(t));
   const accountChanged = billing.error instanceof ApiError && ["STRIPE_IDENTITY_MISMATCH", "STRIPE_ACCOUNT_RETIRED", "SESSION_ACCOUNT_CHANGED"].includes(billing.error.code ?? "");
   return <div aria-live="polite" aria-busy={billing.busy} data-testid="stripe-feedback">
     {billing.status === "idle" ? null : <p className="subtitle" role="status" data-testid="stripe-status">

@@ -53,5 +53,10 @@
   "email.refundReceiptBody": "Izvršen vam je povrat u iznosu od {price}. Pogledajte pojedinosti: {url}",
   "deletion.warning": "Brisanjem računa za Nibomo otkazuju se buduće obnove vaših pretplata na Nibomo koje se naplaćuju putem Stripea. Izgubit ćete pristup ovom računu. Pretplate koje se naplaćuju putem Applea ili Googlea morate otkazati zasebno putem tog pružatelja.",
   "deletion.cancelling": "Otkazivanje obnova vaših pretplata putem Stripea prije brisanja računa...",
-  "deletion.cancellationFailed": "Nismo mogli potvrditi otkazivanje obnova vaših pretplata putem Stripea. Vaš račun nije izbrisan. Pokušajte ponovno ili se obratite podršci."
+  "deletion.cancellationFailed": "Nismo mogli potvrditi otkazivanje obnova vaših pretplata putem Stripea. Vaš račun nije izbrisan. Pokušajte ponovno ili se obratite podršci.",
+  "offer.pricesFor": "Cijene za {country}",
+  "offer.changeCountry": "Promijeni državu",
+  "offer.chooseCountry": "Odaberite državu",
+  "checkout.originalOffer": "Nedovršena kupnja: {price} mjesečno",
+  "checkout.requote": "Zamijeni kupnju ovom ponudom"
 }
