@@ -91,6 +91,10 @@ export function AccountMenu(props: Props): ReactElement {
     }
 
     function handleKeyDown(event: KeyboardEvent): void {
+      if (event.isComposing || event.keyCode === 229) {
+        return;
+      }
+
       if (event.key === "Escape") {
         closeAndResetMenuAndFocusButton();
       }

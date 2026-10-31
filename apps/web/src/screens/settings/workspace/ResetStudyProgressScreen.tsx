@@ -56,6 +56,10 @@ export function ResetStudyProgressScreen(): ReactElement {
     }
 
     const handleKeyDown = (event: KeyboardEvent): void => {
+      if (event.isComposing || event.keyCode === 229) {
+        return;
+      }
+
       if (event.key === "Escape" && isResetPreviewLoading === false && isResetExecuting === false) {
         closeResetDialog();
       }
