@@ -9,37 +9,35 @@ struct ReviewKeyboardActions {
     let rate: (@MainActor (ReviewRating) -> Void)?
 }
 
-extension FocusedValues {
-    @Entry var reviewKeyboardActions: ReviewKeyboardActions?
-}
-
-/// Scene-level Review keys work wherever keyboard focus is in the window, including the sidebar.
+/// The Review menu shows the keys and serves pointer clicks. The window's `ReviewKeyCommandController`
+/// binds the same keys with priority over focus and text editing; either way, one key press runs one action.
 struct ReviewCommands: Commands {
-    @FocusedValue(\.reviewKeyboardActions) private var actions: ReviewKeyboardActions?
+    @FocusedValue(\.reviewKeyCommandTarget) private var target: ReviewKeyCommandTarget?
 
     var body: some Commands {
         CommandMenu(String(localized: "Review", table: reviewCardsStringsTableName)) {
-            // SwiftUI binds one shortcut per item, so each reveal key needs its own item.
-            self.showAnswerButton(key: .space, modifiers: [])
-            self.showAnswerButton(key: .return, modifiers: [])
-            self.showAnswerButton(key: KeyEquivalent("\u{3}"), modifiers: .numericPad)
-            Divider()
-            ForEach(ReviewRating.allCases) { rating in
-                Button(localizedReviewRatingTitle(rating: rating)) {
-                    self.actions?.rate?(rating)
-                }
-                .keyboardShortcut(KeyEquivalent(Character(String(rating.rawValue + 1))), modifiers: [])
-                .disabled(self.actions?.rate == nil)
-            }
+            ReviewMenuItems(target: self.target)
         }
     }
+}
 
-    private func showAnswerButton(key: KeyEquivalent, modifiers: EventModifiers) -> some View {
+private struct ReviewMenuItems: View {
+    let target: ReviewKeyCommandTarget?
+
+    var body: some View {
         Button(String(localized: "Show answer", table: reviewCardsStringsTableName)) {
-            self.actions?.revealAnswer?()
+            self.target?.actions?.revealAnswer?()
         }
-        .keyboardShortcut(key, modifiers: modifiers)
-        .disabled(self.actions?.revealAnswer == nil)
+        .keyboardShortcut(.space, modifiers: [])
+        .disabled(self.target?.actions?.revealAnswer == nil)
+        Divider()
+        ForEach(ReviewRating.allCases) { rating in
+            Button(localizedReviewRatingTitle(rating: rating)) {
+                self.target?.actions?.rate?(rating)
+            }
+            .keyboardShortcut(KeyEquivalent(Character(reviewRatingKey(rating))), modifiers: [])
+            .disabled(self.target?.actions?.rate == nil)
+        }
     }
 }
 
@@ -129,6 +127,10 @@ struct ReviewTextEditingObserver: UIViewRepresentable {
             // UIKit can post these while SwiftUI is updating, for example when @FocusState focuses a field.
             DispatchQueue.main.async { [weak self] in
                 guard let self else { return }
+                // An input can stop editing or leave this window without posting an end notification.
+                for input in self.editingInputs.allObjects where input.window !== self.window || isEditingTextInput(input) == false {
+                    self.editingInputs.remove(input)
+                }
                 self.onEditingChange?(self.editingInputs.allObjects.isEmpty == false)
             }
         }
@@ -136,8 +138,14 @@ struct ReviewTextEditingObserver: UIViewRepresentable {
 }
 
 @MainActor
+private func isEditingTextInput(_ view: UIView) -> Bool {
+    if let field = view as? UITextField { return field.isEditing }
+    if let textView = view as? UITextView { return textView.isEditable && textView.isFirstResponder }
+    return false
+}
+
+@MainActor
 private func editingTextInput(in view: UIView) -> UIView? {
-    if let field = view as? UITextField, field.isEditing { return field }
-    if let textView = view as? UITextView, textView.isEditable, textView.isFirstResponder { return textView }
+    if isEditingTextInput(view) { return view }
     return view.subviews.lazy.compactMap { editingTextInput(in: $0) }.first
 }

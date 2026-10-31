@@ -220,7 +220,7 @@ struct FlashcardsApp: App {
 
     var body: some Scene {
         WindowGroup {
-            RootTabView()
+            ReviewKeyCommandOwner { RootTabView() }
                 .tint(store.effectiveAccountAccentColor.color)
                 .accentColor(store.effectiveAccountAccentColor.color)
                 .onOpenURL { url in

@@ -322,7 +322,7 @@ struct ReviewView: View {
         .background {
             ReviewTextEditingObserver(isEditing: self.$isTextInputEditing)
         }
-        .focusedSceneValue(\.reviewKeyboardActions, self.reviewKeyboardActions)
+        .reviewKeyCommandActions(self.reviewKeyboardActions)
         .ignoresSafeArea(UIDevice.current.userInterfaceIdiom == .pad || self.navigation.canPresentAICompanion == false || self.isKeyboardDocked ? [] : .keyboard, edges: .bottom)
         .simultaneousGesture(
             DragGesture(minimumDistance: 0)
