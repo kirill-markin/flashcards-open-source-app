@@ -1,5 +1,7 @@
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import test from "node:test";
 import { Hono } from "hono";
 import type pg from "pg";
@@ -77,6 +79,10 @@ const entitlementSnapshotStateQuery = [
   "FROM billing.entitlement_snapshots",
   "WHERE user_id = $1",
 ].join(" ");
+
+const stripeRegionalCheckoutMigrationSql = readFileSync(resolve(
+  __dirname, "../../../../db/migrations/0234_stripe_regional_checkout.sql",
+), "utf8");
 
 function createSyncPullApp(userId: string, workspaceId: string): Hono<AppEnv> {
   const requestContext: RequestContext = {
@@ -1006,6 +1012,8 @@ test("private account billing union retains aliases, paid history and every mont
       const nativeBefore = await client.query<{ facts: ReadonlyArray<object> }>(`SELECT jsonb_agg(
         to_jsonb(transaction_row)) AS facts FROM billing.apple_transactions AS transaction_row
         WHERE original_transaction_id = $1`, [`apple-${sourceIdentityId}`]);
+      // Preserve 0206's transfer functions while supplying the current Stripe reader's schema.
+      await client.query(stripeRegionalCheckoutMigrationSql);
       const attemptBefore = await loadStripeCheckoutAttemptInExecutor(executor, sourceAttemptId, "production");
       const openAttemptBefore = await loadStripeCheckoutAttemptInExecutor(executor, targetAttemptId, "production");
       assert.notEqual(attemptBefore, null);
