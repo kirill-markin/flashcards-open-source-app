@@ -1,4 +1,4 @@
-import { useRef, useState, type ReactElement } from "react";
+import { useId, useRef, useState, type ReactElement } from "react";
 import { useAppData } from "../appData";
 import { useI18n } from "../i18n";
 import type { PaywallPresentation, PremiumContinuation } from "./stripeIntent";
@@ -20,6 +20,9 @@ export function StripeOfferContent(props: StripeOfferContentProps): ReactElement
   const billing = useStripeBilling();
   const [showPreviewMessage, setShowPreviewMessage] = useState(false);
   const purchasePendingRef = useRef(false);
+  const countryDialogRef = useRef<HTMLDialogElement | null>(null);
+  const countryTriggerRef = useRef<HTMLButtonElement | null>(null);
+  const countryDialogId = useId();
   const offer = billing.offer;
   const guest = session?.profile.email === null;
   const publicQuote = billing.regional.quote;
@@ -51,18 +54,6 @@ export function StripeOfferContent(props: StripeOfferContentProps): ReactElement
     void billing.purchase(props.continuation, props.presentation).finally(() => { purchasePendingRef.current = false; });
   }
   return <section className="premium-offer" data-testid="stripe-offer">
-    <div className="content-card-section" data-testid="premium-country">
-      {country === null ? null : <p aria-live="polite">{t("stripe.offer.pricesFor", { country: countryNames.of(country) ?? country })}</p>}
-      <label htmlFor="premium-pricing-country">{t("stripe.offer.changeCountry")}</label>{" "}
-      <select id="premium-pricing-country" data-testid="premium-country-select" value={country ?? ""}
-        disabled={billing.busy && billing.status !== "loading"} onChange={(event) => billing.regional.select(event.target.value)}>
-        <option value="" disabled>{t("stripe.offer.chooseCountry")}</option>
-        {countries.map((entry) => <option key={entry.code} value={entry.code}>{entry.name}</option>)}
-      </select>
-      {billing.regional.loading && offer?.basePrice == null ? <p role="status">{t("common.loading")}</p> : null}
-      {billing.regional.error === null ? null : <button type="button" className="ghost-btn" data-testid="premium-country-retry"
-        onClick={billing.regional.retry}>{t("common.retry")}</button>}
-    </div>
     <section className="premium-plan premium-paid-plan" aria-labelledby="premium-paid-title">
       <div className="premium-plan-header">
         <h3 id="premium-paid-title" className="panel-subtitle">{t("stripe.offer.title")} <span aria-hidden="true">✦</span></h3>
@@ -104,6 +95,43 @@ export function StripeOfferContent(props: StripeOfferContentProps): ReactElement
       </button>
     </section>
     <footer className="premium-footer">
+      <div className="premium-country" data-testid="premium-country">
+        <div className="premium-country-line">
+          {country === null ? null : <>
+            <span aria-live="polite">{t("stripe.offer.pricesFor", { country: countryNames.of(country) ?? country })}</span>
+            <span aria-hidden="true">·</span>
+          </>}
+          <button ref={countryTriggerRef} type="button" className="ghost-btn premium-country-trigger"
+            data-testid="premium-country-change" aria-haspopup="dialog" aria-controls={countryDialogId}
+            disabled={billing.busy && billing.status !== "loading"} onClick={() => countryDialogRef.current?.showModal()}>
+            {t(country === null ? "stripe.offer.chooseCountry" : "stripe.offer.changeCountry")}
+          </button>
+        </div>
+        {billing.regional.loading && offer?.basePrice == null ? <p role="status">{t("common.loading")}</p> : null}
+        {billing.regional.error === null ? null : <button type="button" className="ghost-btn" data-testid="premium-country-retry"
+          onClick={billing.regional.retry}>{t("common.retry")}</button>}
+      </div>
+      <dialog ref={countryDialogRef} id={countryDialogId} className="panel premium-dialog premium-country-dialog"
+        dir={direction} aria-labelledby={`${countryDialogId}-title`} data-testid="premium-country-dialog"
+        onCancel={(event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          countryDialogRef.current?.close();
+        }}
+        onClose={(event) => {
+          event.stopPropagation();
+          countryTriggerRef.current?.focus({ preventScroll: true });
+        }}>
+        <h3 id={`${countryDialogId}-title`} className="panel-subtitle">{t("stripe.offer.changeCountry")}</h3>
+        <label className="form-label" htmlFor={`${countryDialogId}-select`}>{t("stripe.offer.chooseCountry")}</label>
+        <select id={`${countryDialogId}-select`} className="settings-input" data-testid="premium-country-select" value={country ?? ""}
+          disabled={billing.busy && billing.status !== "loading"} onChange={(event) => billing.regional.select(event.target.value)}>
+          <option value="" disabled>{t("stripe.offer.chooseCountry")}</option>
+          {countries.map((entry) => <option key={entry.code} value={entry.code}>{entry.name}</option>)}
+        </select>
+        <button type="button" className="premium-plan-button premium-free-button" data-testid="premium-country-close"
+          onClick={() => countryDialogRef.current?.close()}>{t("premium.close")}</button>
+      </dialog>
       <div className="premium-utilities">
         <button type="button" className="ghost-btn" data-testid="premium-refresh" disabled={props.isPreview || billing.busy || !isSessionVerified}
           onClick={() => { billing.regional.retry(); void billing.refresh(); }}>{t("stripe.subscription.refresh")}</button>
