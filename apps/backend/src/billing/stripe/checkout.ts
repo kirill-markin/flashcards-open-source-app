@@ -1,4 +1,6 @@
 import type Stripe from "stripe";
+import { describeStripeOffer, requireStripeOfferAvailable, resolveStripeOffer,
+  type StripeOfferDetails } from "../regionalPricing/offers";
 import { z } from "zod";
 import { isConfiguredDemoEmail } from "../../auth/demoEmailAccess";
 import type { DatabaseExecutor } from "../../database";
@@ -11,7 +13,8 @@ import { publishStripeTransitions, type StripeCommittedTransition } from "./fact
 import { abandonStripeCheckoutAttemptInExecutor, getOrCreateStripeCustomer,
   hasStripeTrialConsumptionInExecutor, listStripeCheckoutAttemptsInExecutor, loadStripeCheckoutAttemptInExecutor,
   lockStripeAccountInExecutor, lockStripePersonIdentitiesInExecutor,
-  recordStripeCheckoutSessionInExecutor, recordStripeTrialConsumptionInExecutor, reserveStripeCheckoutAttemptInExecutor } from "./identityStore";
+  recordStripeCheckoutSessionInExecutor, recordStripeTrialConsumptionInExecutor, requireStripeCheckoutReservationOfferAvailable,
+  reserveStripeCheckoutAttemptInExecutor } from "./identityStore";
 import { loadStripeProvider, type StripeProvider } from "./provider";
 import { reconcileStripeSubscriptionsInExecutor } from "./service";
 
@@ -26,7 +29,7 @@ export type StripeAccountContext = Readonly<{
 }>;
 export type StripeCheckoutResult =
   | Readonly<{ outcome: "checkout"; attemptId: string; sessionId: string; url: string;
-      expiresAt: string; trialDays: 0 | 7 }>
+      expiresAt: string; trialDays: 0 | 7; offer: StripeOfferDetails; requoteRequired: boolean }>
   | Readonly<{ outcome: "existing_subscription"; identityId: string }>
   | Readonly<{ outcome: "complete"; attemptId: string; sessionId: string }>;
 export type StripeCheckoutReturn = Readonly<{ attemptId: string; sessionId: string }>;
@@ -67,6 +70,8 @@ export function requireOwnedStripeCheckout(
     || session.metadata?.nibomo_checkout_attempt_id !== attempt.attemptId
     || session.metadata?.application !== "nibomo" || session.mode !== "subscription"
     || customerId !== attempt.customerId || session.livemode !== (attempt.environment === "production")
+    || (session.managed_payments?.enabled === true) !== (attempt.checkoutMode === "managed")
+    || session.line_items?.data[0]?.price?.id !== attempt.priceId
     || (attempt.sessionId !== null && attempt.sessionId !== session.id)) {
     throw new StripeBillingError("STRIPE_IDENTITY_MISMATCH", false,
       "Checkout does not belong to this account and operation. Open Subscription settings for the current account.");
@@ -152,12 +157,19 @@ function requireCheckoutEnabled(context: StripeAccountContext): void {
     "New Stripe purchases are unavailable. Existing subscriptions can still be managed in Subscription settings.");
 }
 
-function checkoutResult(attempt: StripeCheckoutAttempt, session: Stripe.Checkout.Session): StripeCheckoutResult {
+function checkoutResult(
+  attempt: StripeCheckoutAttempt, session: Stripe.Checkout.Session, country: string | undefined,
+): StripeCheckoutResult {
   if (session.status === "complete") return { outcome: "complete", attemptId: attempt.attemptId, sessionId: session.id };
   if (session.status !== "open" || session.url === null) throw new StripeBillingError("STRIPE_RECOVERY_REQUIRED", true,
     "Checkout is no longer open. Refresh Subscription settings before starting another purchase.");
+  const price = session.line_items?.data[0]?.price;
+  if (price === null || price === undefined) throw new StripeBillingError("STRIPE_RESPONSE_INVALID", false,
+    "Stripe returned no verified price for the reserved Checkout.");
   return { outcome: "checkout", attemptId: attempt.attemptId, sessionId: session.id, url: session.url,
-    expiresAt: new Date(session.expires_at * 1000).toISOString(), trialDays: attempt.trialDays };
+    expiresAt: new Date(session.expires_at * 1000).toISOString(), trialDays: attempt.trialDays,
+    offer: describeStripeOffer(attempt, price), requoteRequired: country !== undefined
+      && resolveStripeOffer(attempt.environment, country).selectedCountry !== attempt.selectedCountry };
 }
 
 async function prepareStripeCheckoutInExecutor(
@@ -190,13 +202,15 @@ async function prepareStripeCheckoutInExecutor(
   return { context, existing: null, attempt: pending[0] ?? null, transitions };
 }
 
-export async function createStripeCheckout(actor: StripeHumanActor): Promise<StripeCheckoutResult> {
+export async function createStripeCheckout(actor: StripeHumanActor, country?: string): Promise<StripeCheckoutResult> {
+  if (country !== undefined) resolveStripeOffer("production", country);
   const prepared = await unsafeTransaction((executor) => prepareStripeCheckoutInExecutor(executor, actor));
   await publishStripeTransitions(prepared.transitions);
   if (prepared.existing !== null) return prepared.existing;
   let reservedAttempt = prepared.attempt;
   if (reservedAttempt === null) {
     requireCheckoutEnabled(prepared.context);
+    requireStripeOfferAvailable(resolveStripeOffer(prepared.context.environment, country ?? null));
     const provider = await loadStripeProvider(prepared.context.environment);
     const identity = await getOrCreateStripeCustomer(actor.subject, actor.userId, provider);
     const reserved = await unsafeTransaction(async (executor) => {
@@ -206,7 +220,7 @@ export async function createStripeCheckout(actor: StripeHumanActor): Promise<Str
       if (current.context.environment !== identity.environment) throw new StripeBillingError("STRIPE_STORAGE_CONFLICT", true,
         "Billing account eligibility changed. Refresh Subscription settings.");
       return { ...current, attempt: await reserveStripeCheckoutAttemptInExecutor(executor, identity,
-        stripeHostedLocale(current.context.locale)) };
+        stripeHostedLocale(current.context.locale), resolveStripeOffer(current.context.environment, country ?? null)) };
     });
     await publishStripeTransitions(reserved.transitions);
     if (reserved.existing !== null) return reserved.existing;
@@ -230,7 +244,9 @@ export async function createStripeCheckout(actor: StripeHumanActor): Promise<Str
         "The pending Checkout environment is no longer eligible for new purchases.");
     }
     const provider = await loadStripeProvider(environment);
-    const session = await provider.createCheckout(attempt, current.context.email);
+    const session = attempt.checkoutMode === "managed"
+      ? await provider.createManagedCheckout({ ...attempt, checkoutMode: "managed" }, current.context.email)
+      : await provider.createCheckout(attempt, current.context.email);
     requireOwnedStripeCheckout(attempt, session);
     await recordStripeCheckoutSessionInExecutor(executor, attempt, session);
     const identity = current.context.identities.find((candidate) => candidate.identityId === attempt.identityId);
@@ -238,11 +254,54 @@ export async function createStripeCheckout(actor: StripeHumanActor): Promise<Str
       "Checkout identity changed during completion. Refresh Subscription settings.");
     const completed = session.status === "complete"
       ? await observeStripeCustomerInExecutor(executor, identity, provider) : null;
-    return { result: checkoutResult(attempt, session),
+    return { result: checkoutResult(attempt, session, country),
       transitions: [...current.transitions, ...(completed?.transitions ?? [])] };
   });
   await publishStripeTransitions(created.transitions);
   return created.result;
+}
+
+export async function requoteStripeCheckout(
+  actor: StripeHumanActor, attemptId: string, country: string,
+): Promise<StripeCheckoutResult> {
+  const expired = await unsafeTransaction(async (executor) => {
+    const current = await prepareStripeCheckoutInExecutor(executor, actor);
+    if (current.existing !== null) return { existing: current.existing, transitions: current.transitions };
+    requireCheckoutEnabled(current.context);
+    requireStripeCheckoutReservationOfferAvailable(resolveStripeOffer(current.context.environment, country));
+    const attempt = await loadStripeCheckoutAttemptInExecutor(executor, attemptId, current.context.environment);
+    if (attempt === null || attempt.userId !== actor.userId || attempt.accountDeletedAt !== null
+      || !current.context.identities.some((identity) => identity.identityId === attempt.identityId)) {
+      throw new StripeBillingError("STRIPE_IDENTITY_MISMATCH", false, "The Checkout to replace is not owned by this account.");
+    }
+    if (current.attempt !== null && current.attempt.attemptId !== attemptId) {
+      const requested = resolveStripeOffer(current.context.environment, country);
+      if ((attempt.status === "expired" || attempt.status === "abandoned")
+        && current.attempt.checkoutMode === "managed" && current.attempt.selectedCountry === requested.selectedCountry) {
+        return { existing: null, transitions: current.transitions };
+      }
+      throw new StripeBillingError("STRIPE_STORAGE_CONFLICT", false,
+        "Another Checkout is pending. Refresh its offer before replacing it.");
+    }
+    if (attempt.status === "pending" || attempt.status === "open") {
+      const provider = await loadStripeProvider(attempt.environment);
+      const recovered = attempt.checkoutMode === "managed"
+        ? await provider.createManagedCheckout({ ...attempt, checkoutMode: "managed" }, current.context.email)
+        : await provider.createCheckout(attempt, current.context.email);
+      requireOwnedStripeCheckout(attempt, recovered);
+      const session = await provider.expireCheckout(recovered.id, attempt.customerId);
+      requireOwnedStripeCheckout(attempt, session);
+      await recordStripeCheckoutSessionInExecutor(executor, attempt, session);
+      if (session.status !== "expired") throw new StripeBillingError("STRIPE_RECOVERY_REQUIRED", true,
+        "Checkout completed while replacing the offer. Refresh Subscription settings.");
+    } else if (attempt.status !== "expired" && attempt.status !== "abandoned") {
+      throw new StripeBillingError("STRIPE_RECOVERY_REQUIRED", false,
+        "A completed Checkout cannot be requoted. Refresh Subscription settings.");
+    }
+    return { existing: null, transitions: current.transitions };
+  });
+  await publishStripeTransitions(expired.transitions);
+  return expired.existing ?? createStripeCheckout(actor, country);
 }
 
 export async function reconcileStripeCheckoutReturn(
