@@ -23,6 +23,10 @@ struct RootTabView: View {
     @State private var premiumPresenter: PremiumPresenter = PremiumPresenter()
     @State private var isGuestSignInCloudSignInPresented: Bool = false
     @State private var isKeyboardDocked: Bool = false
+    #if targetEnvironment(macCatalyst)
+    @State private var macSidebarVisibility: NavigationSplitViewVisibility = .all
+    @Environment(\.sidebarRowSize) private var sidebarRowSize
+    #endif
 
     private var isGuestSignInAfterReviewPromptBlockedByModal: Bool {
         self.isGuestSignInCloudSignInPresented
@@ -216,6 +220,17 @@ struct RootTabView: View {
                 self.tabRoot
             }
         }
+        #if targetEnvironment(macCatalyst)
+        .backgroundPreferenceValue(MacToolbarPreferenceKey.self) { preferences in
+            MacWindowAppearance(configuration: self.macToolbarConfiguration(preferences), onSidebarVisibilityChange: { isVisible in
+                withAnimation(self.reduceMotion ? nil : .default) {
+                    self.macSidebarVisibility = isVisible ? .all : .detailOnly
+                }
+            })
+                .allowsHitTesting(false)
+                .accessibilityHidden(true)
+        }
+        #endif
         .onChange(of: self.subscriptionIdentity) { _, _ in
             self.clearPremiumPresentationForIdentityChange()
         }
@@ -249,14 +264,13 @@ struct RootTabView: View {
             .environment(self.premiumPresenter)
     }
 
-    private var tabRootBase: some View {
-        @Bindable var navigation = self.navigation
-        let selectedTabBinding = Binding<AppTab>(
+    private var selectedTabBinding: Binding<AppTab> {
+        Binding<AppTab>(
             get: {
-                navigation.selectedTab
+                self.navigation.selectedTab
             },
             set: { nextTab in
-                let previousTab = navigation.selectedTab
+                let previousTab = self.navigation.selectedTab
                 prepareVisibleTabForPresentationWithBreadcrumb(
                     store: self.store,
                     selectedTab: nextTab,
@@ -266,11 +280,14 @@ struct RootTabView: View {
                     isRecoveryGateActive: self.store.cloudCredentialRecoveryState != nil,
                     now: Date()
                 )
-                navigation.selectTab(nextTab)
+                self.navigation.selectTab(nextTab)
             }
         )
+    }
 
-        return TabView(selection: selectedTabBinding) {
+    private var tabRootBase: some View {
+        @Bindable var navigation = self.navigation
+        return TabView(selection: self.selectedTabBinding) {
             Tab(value: AppTab.review) {
                 self.reviewTab
                     .background {
@@ -347,6 +364,47 @@ struct RootTabView: View {
 
     @ViewBuilder
     private var tabRootPresentation: some View {
+        #if targetEnvironment(macCatalyst)
+        NavigationSplitView(columnVisibility: self.$macSidebarVisibility) {
+            List(selection: Binding<AppTab?>(
+                get: { self.navigation.selectedTab },
+                set: { if let tab = $0 { self.selectedTabBinding.wrappedValue = tab } }
+            )) {
+                self.macSidebarRow(.review, identifier: UITestIdentifier.rootTabReviewItem)
+                    .badge(self.reviewReminderAttentionBadgeCount)
+                    .tag(AppTab.review)
+                self.macSidebarRow(.progress, identifier: UITestIdentifier.rootTabProgressItem)
+                self.macSidebarRow(.ai, identifier: UITestIdentifier.rootTabAIItem)
+                self.macSidebarRow(.cards, identifier: UITestIdentifier.rootTabCardsItem)
+                self.macSidebarRow(.settings, identifier: UITestIdentifier.rootTabSettingsItem)
+                    .badge(self.settingsAttentionSummary.settingsTabCount)
+                    .tag(AppTab.settings)
+            }
+            .listStyle(.sidebar)
+            .environment(\.defaultMinListRowHeight, MacSidebarRowMetrics(size: self.sidebarRowSize).rowHeight)
+            .scrollContentBackground(.hidden)
+            .navigationSplitViewColumnWidth(min: 220, ideal: 280, max: 400)
+            .toolbar(.hidden, for: .navigationBar)
+        } detail: {
+            // Retain the native tab container's per-screen state behind the sidebar.
+            self.tabRootBase
+                .tabViewStyle(.tabBarOnly)
+                .toolbar(.hidden, for: .tabBar)
+                .modifier(MacDetailToolbarBackdrop(context: MacToolbarBackdropContext(
+                    selectedTab: self.navigation.selectedTab,
+                    companionVisible: self.navigation.isAICompanionVisible && self.navigation.canPresentAICompanion,
+                    aiDepth: self.navigation.aiPath.count,
+                    settingsDepth: self.navigation.settingsPath.count
+                )))
+                .background {
+                    AICompanionAvailabilityObserver { isAvailable in
+                        self.navigation.updateAICompanionAvailability(isAvailable)
+                    }
+                    .allowsHitTesting(false)
+                    .accessibilityHidden(true)
+                }
+        }
+        #else
         if #available(iOS 26.0, *) {
             self.tabRootBase
                 .tabViewStyle(.sidebarAdaptable)
@@ -355,7 +413,17 @@ struct RootTabView: View {
             self.tabRootBase
                 .tabViewStyle(.sidebarAdaptable)
         }
+        #endif
     }
+
+    #if targetEnvironment(macCatalyst)
+    private func macSidebarRow(_ tab: AppTab, identifier: String) -> some View {
+        Label(tab.localizedTitle, systemImage: tab.systemImage)
+            .macSidebarIconColumn(MacSidebarRowMetrics(size: self.sidebarRowSize))
+            .tag(tab)
+            .accessibilityIdentifier(identifier)
+    }
+    #endif
 
     private func tabLabel(_ tab: AppTab, identifier: String) -> some View {
         Label(tab.localizedTitle, systemImage: tab.systemImage)
@@ -373,6 +441,12 @@ struct RootTabView: View {
     // Their screen-owned drafts and presentations survive sidebar transitions.
     @ViewBuilder
     private func aiCompanionHost<Content: View>(for hostTab: AppTab, @ViewBuilder content: () -> Content) -> some View {
+        #if targetEnvironment(macCatalyst)
+        NavigationStack {
+            self.aiCompanionColumns(for: hostTab, content: content)
+                .toolbar(.hidden, for: .navigationBar)
+        }
+        #else
         if UIDevice.current.userInterfaceIdiom == .pad {
             NavigationStack {
                 self.aiCompanionColumns(for: hostTab, content: content)
@@ -384,31 +458,101 @@ struct RootTabView: View {
                 self.aiCompanionColumns(for: hostTab, content: content)
             }
         }
+        #endif
     }
+
+    #if targetEnvironment(macCatalyst)
+    private func macToolbarConfiguration(_ preferences: MacToolbarPreferences) -> MacWindowToolbarConfiguration {
+        let tab = self.navigation.selectedTab
+        if let recovery = self.store.cloudCredentialRecoveryState ?? self.store.cloudSignInAttempt.credentialRecoveryPresentation {
+            return MacWindowToolbarConfiguration(
+                tab: tab, title: makeCloudCredentialRecoveryGatePresentation(reason: recovery.reason).title,
+                leading: [], trailing: []
+            )
+        }
+        let header = preferences.headers.last { $0.tab == tab }
+        let isNested = (tab == .ai && self.navigation.aiPath.isEmpty == false)
+            || (tab == .settings && self.navigation.settingsPath.isEmpty == false)
+        let role: MacToolbarContribution.Role = isNested ? .navigation : .screen
+        let screen = preferences.contributions.last { $0.tab == tab && $0.role == role }
+        var leading: [MacToolbarGroup] = []
+        if isNested {
+            leading.append(MacToolbarGroup(identifier: "nibomo.navigation", actions: [MacToolbarAction(
+                identifier: "mac.navigation.back", symbol: "chevron.backward",
+                label: aiSettingsLocalized("common.back", "Back"),
+                perform: { _ in
+                    if let header, header.isPresented {
+                        header.dismiss()
+                    } else if tab == .ai, self.navigation.aiPath.isEmpty == false {
+                        self.navigation.aiPath.removeLast()
+                    } else if tab == .settings, self.navigation.settingsPath.isEmpty == false {
+                        self.navigation.settingsPath.removeLast()
+                    }
+                }
+            )]))
+        } else if self.navigation.canPresentAICompanion && tab != .ai && tab != .settings {
+            let companion = preferences.contributions.last { $0.tab == tab && $0.role == .companion }
+            let toggle = MacToolbarAction(
+                identifier: UITestIdentifier.aiCompanionToggle,
+                symbol: "bubble.left.and.bubble.right",
+                label: String(localized: self.navigation.isAICompanionVisible ? "ai_companion.hide" : "ai_companion.show", table: "Foundation"),
+                isSelected: self.navigation.isAICompanionVisible,
+                perform: { _ in
+                    withAnimation(self.reduceMotion ? nil : .smooth(duration: 0.35)) {
+                        self.navigation.toggleAICompanion()
+                    }
+                }
+            )
+            leading.append(MacToolbarGroup(identifier: "nibomo.companion", actions: [toggle] + (companion?.companionActions ?? [])))
+        }
+        leading += screen?.leading ?? []
+        let title = header.flatMap { $0.title.isEmpty ? nil : $0.title } ?? tab.localizedTitle
+        return MacWindowToolbarConfiguration(
+            tab: tab, title: isNested ? title : "",
+            leading: leading, trailing: screen?.trailing ?? [], search: screen?.search
+        )
+    }
+    #endif
 
     // Native edge bars keep their outer bounds. Regular-width content reserves chat space.
     @ViewBuilder
     private func aiCompanionColumns<Content: View>(for hostTab: AppTab, @ViewBuilder content: () -> Content) -> some View {
         let hostContent = content()
-        let isVisible = self.navigation.isAICompanionVisible
+        let isRequested = self.navigation.isAICompanionVisible
             && self.navigation.selectedTab == hostTab
         let isPad = UIDevice.current.userInterfaceIdiom == .pad
         // Duo chat stays on the physical left; iPad retains logical leading.
         let isLeading = isPad || self.layoutDirection == .leftToRight
         GeometryReader { geometry in
+            #if targetEnvironment(macCatalyst)
+            // Apply the current layout proposal immediately during a resize,
+            // before the observer publishes the updated toolbar availability.
+            let isVisible = isRequested && fitsMacAICompanionColumns(geometry.size)
+            #else
+            let isVisible = isRequested
+            #endif
             let leftInset = self.layoutDirection == .leftToRight ? geometry.safeAreaInsets.leading : geometry.safeAreaInsets.trailing
             let rightInset = self.layoutDirection == .leftToRight ? geometry.safeAreaInsets.trailing : geometry.safeAreaInsets.leading
             // The content excludes native edge bars. Include their asymmetric
             // insets when locating the full window's midpoint on inner landscape.
+            #if targetEnvironment(macCatalyst)
+            // Keep study content dominant instead of stretching chat over half a desktop.
+            let width = min(480, max(360, geometry.size.width * 0.38))
+            #else
             let width = isPad
                 ? geometry.size.width / 2
                 : max(0, min(geometry.size.width, (geometry.size.width + rightInset - leftInset) / 2))
+            #endif
             HStack(spacing: 0) {
                 Color.clear
                     .frame(width: isVisible && isLeading ? width : 0)
                     .accessibilityHidden(true)
                 hostContent
+                    #if targetEnvironment(macCatalyst)
+                    .frame(minWidth: 0, maxWidth: .infinity, maxHeight: .infinity)
+                    #else
                     .frame(width: isPad ? geometry.size.width - (isVisible ? width : 0) : nil)
+                    #endif
                 Color.clear
                     .frame(width: isVisible && !isLeading ? width : 0)
                     .accessibilityHidden(true)
@@ -425,7 +569,8 @@ struct RootTabView: View {
                         .transition(.move(edge: isLeading ? .leading : .trailing).combined(with: .opacity))
                 }
             }
-            .animation(self.reduceMotion ? nil : .smooth(duration: 0.35), value: isVisible)
+            .animation(self.reduceMotion ? nil : .smooth(duration: 0.35), value: isRequested)
+
         }
         // The paired columns share one keyboard boundary and one layout proposal.
         .ignoresSafeArea(isPad && self.isKeyboardDocked == false ? .keyboard : [], edges: .all)
@@ -435,6 +580,7 @@ struct RootTabView: View {
         self.tabRootPresentation
         .ignoresSafeArea(UIDevice.current.userInterfaceIdiom == .pad || self.isKeyboardDocked || self.navigation.canPresentAICompanion == false ? [] : .keyboard, edges: .bottom)
         .environment(\.isKeyboardDocked, self.isKeyboardDocked)
+        #if !targetEnvironment(macCatalyst)
         .background {
             AICompanionAvailabilityObserver { isAvailable in
                 self.navigation.updateAICompanionAvailability(isAvailable)
@@ -443,6 +589,7 @@ struct RootTabView: View {
             .allowsHitTesting(false)
             .accessibilityHidden(true)
         }
+        #endif
         .background {
             DockedKeyboardObserver(isDocked: self.$isKeyboardDocked)
                 .ignoresSafeArea()
@@ -624,6 +771,9 @@ struct RootTabView: View {
                     self.reviewReminderAttentionBadgeMarker
                 }
         }
+        #if targetEnvironment(macCatalyst)
+        .environment(\.macToolbarOwnerTab, .review)
+        #endif
     }
 
     @ViewBuilder
@@ -642,6 +792,9 @@ struct RootTabView: View {
         self.aiCompanionHost(for: .progress) {
             ProgressScreen()
         }
+        #if targetEnvironment(macCatalyst)
+        .environment(\.macToolbarOwnerTab, .progress)
+        #endif
     }
 
     private func aiTab(aiPath: Binding<NavigationPath>) -> some View {
@@ -665,13 +818,22 @@ struct RootTabView: View {
             .navigationDestination(for: AIChatHistoryListRoute.self) { _ in
                 AIChatHistoryView(chatStore: store.aiChatStore)
             }
+            #if targetEnvironment(macCatalyst)
+            .toolbar(.hidden, for: .navigationBar)
+            #endif
         }
+        #if targetEnvironment(macCatalyst)
+        .environment(\.macToolbarOwnerTab, .ai)
+        #endif
     }
 
     private var cardsTab: some View {
         self.aiCompanionHost(for: .cards) {
             CardsScreen()
         }
+        #if targetEnvironment(macCatalyst)
+        .environment(\.macToolbarOwnerTab, .cards)
+        #endif
     }
 
     private func settingsTab(settingsPath: Binding<[SettingsNavigationDestination]>) -> some View {
@@ -680,7 +842,13 @@ struct RootTabView: View {
                 .navigationDestination(for: SettingsNavigationDestination.self) { destination in
                     self.settingsDestinationView(destination: destination)
                 }
+                #if targetEnvironment(macCatalyst)
+                .toolbar(.hidden, for: .navigationBar)
+                #endif
         }
+        #if targetEnvironment(macCatalyst)
+        .environment(\.macToolbarOwnerTab, .settings)
+        #endif
     }
 
     @ViewBuilder
@@ -755,6 +923,70 @@ struct RootTabView: View {
         }
     }
 }
+
+#if targetEnvironment(macCatalyst)
+private struct MacDetailToolbarBackdrop: ViewModifier {
+    let context: MacToolbarBackdropContext
+
+    @ViewBuilder
+    func body(content: Content) -> some View {
+        if #available(iOS 26.0, *) {
+            content
+                .scrollEdgeEffectHidden(true, for: .top)
+                .overlay {
+                    MacSharedToolbarBackdrop(contextID: self.context)
+                        .ignoresSafeArea(.container, edges: .top)
+                        .allowsHitTesting(false)
+                }
+        } else {
+            content
+        }
+    }
+}
+
+/// Native macOS sidebar geometry for the System Settings sidebar size, which Catalyst
+/// reports as `sidebarRowSize` and already applies to the row's text and symbol.
+/// Mac points come from AppKit's source list on macOS 27.2: 24/32/40-point rows, with the
+/// icon centred 17/19/20 and the title starting 32.5/36/38.5 points inside the selection.
+/// Widths count from Catalyst's own 6.2-point content inset, which badged rows also keep;
+/// a custom leading row inset would misalign them. Divided by Catalyst's 77% scale.
+private struct MacSidebarRowMetrics {
+    private static let interfaceScale: CGFloat = 0.77
+
+    let rowHeight: CGFloat
+    let iconWidth: CGFloat
+    let iconToTitleSpacing: CGFloat
+
+    init(size: SidebarRowSize) {
+        let mac: (row: CGFloat, icon: CGFloat, spacing: CGFloat)
+        switch size {
+        case .small:
+            mac = (24, 21.6, 4.7)
+        case .large:
+            mac = (40, 27.6, 4.7)
+        case .medium:
+            mac = (32, 25.6, 4.2)
+        @unknown default:
+            mac = (32, 25.6, 4.2)
+        }
+        self.rowHeight = mac.row / Self.interfaceScale
+        self.iconWidth = mac.icon / Self.interfaceScale
+        self.iconToTitleSpacing = mac.spacing / Self.interfaceScale
+    }
+}
+
+private extension View {
+    @ViewBuilder
+    func macSidebarIconColumn(_ metrics: MacSidebarRowMetrics) -> some View {
+        if #available(iOS 26.0, *) {
+            self.labelReservedIconWidth(metrics.iconWidth)
+                .labelIconToTitleSpacing(metrics.iconToTitleSpacing)
+        } else {
+            self
+        }
+    }
+}
+#endif
 
 #Preview {
     let store = FlashcardsStore()

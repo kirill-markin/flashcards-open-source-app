@@ -3,6 +3,15 @@ import XCTest
 
 extension LiveSmokeTestCase {
     @MainActor
+    var nativeAlerts: XCUIElementQuery {
+        #if targetEnvironment(macCatalyst)
+        self.app.sheets.matching(NSPredicate(format: "label == %@", "alert"))
+        #else
+        self.app.alerts
+        #endif
+    }
+
+    @MainActor
     func tapWorkspaceWarningContinuePreservingAlerts(timeout: TimeInterval) throws {
         #if targetEnvironment(macCatalyst)
         let identifier = "workspaceWarning.alert.action-button--999"
@@ -40,7 +49,7 @@ extension LiveSmokeTestCase {
     @MainActor
     func tapAlertButton(label: String, timeout: TimeInterval) throws {
         let identifier = "alert.\(label)"
-        let button = self.app.alerts.buttons[label].firstMatch
+        let button = self.nativeAlerts.buttons[label].firstMatch
         try self.runWithInlineRawScreenStateOnFailure(action: "tap_alert_button.\(label)") {
             if self.waitForOptionalElement(
                 button,
@@ -67,7 +76,7 @@ extension LiveSmokeTestCase {
     @MainActor
     func tapAlertButtonPreservingAlerts(label: String, timeout: TimeInterval) throws {
         let identifier = "alert.\(label)"
-        let button = self.app.alerts.buttons[label].firstMatch
+        let button = self.nativeAlerts.buttons[label].firstMatch
         try self.runWithInlineRawScreenStateOnFailure(action: "tap_alert_button_preserving_alerts.\(label)") {
             let deadline = Date().addingTimeInterval(timeout)
             while Date() < deadline && button.exists == false {

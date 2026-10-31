@@ -61,7 +61,7 @@ struct CurrentWorkspaceView: View {
         }
         .listStyle(.insetGrouped)
         .accessibilityIdentifier(UITestIdentifier.currentWorkspaceScreen)
-        .navigationTitle(aiSettingsLocalized("settings.currentWorkspace.title", "Workspace"))
+        .nativeNavigationTitle(aiSettingsLocalized("settings.currentWorkspace.title", "Workspace"))
         .sheet(isPresented: self.$isWorkspacePickerPresented) {
             CurrentWorkspacePickerContainer(
                 workspaces: self.linkedWorkspaces,

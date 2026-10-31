@@ -7,7 +7,7 @@ private let reviewBottomBarTopPadding: CGFloat = 8
 private let reviewBottomBarBottomPadding: CGFloat = 8
 private let reviewBottomBarButtonSpacing: CGFloat = 10
 private let reviewToolbarBadgeSpacing: CGFloat = 4
-private let reviewAnswerButtonMinHeight: CGFloat = 44
+private let reviewAnswerButtonMinHeight: CGFloat = appMinimumTouchTarget
 private let showAnswerButtonMinHeight: CGFloat = 56
 let emptyBackTextPlaceholder: String = String(localized: "No back text", table: reviewCardsStringsTableName)
 private let reviewQueuePreviewPageSize: Int = 50
@@ -24,6 +24,7 @@ private struct ReviewFilterPresentationContext: Equatable {
 
 struct ReviewView: View {
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    @Environment(\.locale) private var locale
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @Environment(\.tabBarPlacement) private var tabBarPlacement
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -112,10 +113,14 @@ struct ReviewView: View {
     }
 
     private var preparedRevealStatesTaskId: String {
-        makePreparedReviewRevealStatesTaskId(
+        let presentedStateId = self.currentCard.map {
+            makePreparedReviewRevealStateId(card: $0, schedulerSettings: store.schedulerSettings)
+        } ?? "no-presented-card"
+        let queueStateId = makePreparedReviewRevealStatesTaskId(
             reviewQueue: store.effectiveReviewQueue,
             schedulerSettings: store.schedulerSettings
         )
+        return "\(presentedStateId)|\(queueStateId)"
     }
 
     private var shouldShowReviewLoader: Bool {
@@ -147,7 +152,7 @@ struct ReviewView: View {
 
     private var showsFilterInReviewColumn: Bool {
         #if targetEnvironment(macCatalyst)
-        true
+        false
         #else
         self.usesPairedReviewSpacing && self.usesCompactCompanionToolbar == false
         #endif
@@ -220,8 +225,10 @@ struct ReviewView: View {
             self.lastPresentedReviewWorkspaceId = self.store.workspace?.workspaceId
         }
         .animation(self.reduceMotion ? nil : .smooth(duration: 0.35), value: self.navigation.isAICompanionVisible)
-        .navigationTitle(self.showsFilterInReviewColumn ? "" : String(localized: "Review", table: reviewCardsStringsTableName))
+        .nativeNavigationTitle(self.showsFilterInReviewColumn ? "" : String(localized: "Review", table: reviewCardsStringsTableName))
+        #if !targetEnvironment(macCatalyst)
         .toolbar(self.showsFilterInReviewColumn && self.navigation.isAICompanionVisible && self.tabBarPlacement == .sidebar ? .hidden : .automatic, for: .navigationBar)
+        #endif
         // Keep iPad's shared tab/toolbar row stable when a card handoff focuses AI.
         // Switching from a large title can retain its empty band after keyboard dismissal.
         .navigationBarTitleDisplayMode(UIDevice.current.userInterfaceIdiom == .pad || self.dynamicTypeSize.isAccessibilitySize ? .inline : .automatic)
@@ -296,7 +303,7 @@ struct ReviewView: View {
             self.dismissActiveReviewReactions(reason: "screen_disappeared")
         }
         .task(id: preparedRevealStatesTaskId) {
-            await self.refreshPreparedRevealStates(reviewQueue: store.effectiveReviewQueue)
+            await self.refreshPreparedRevealStates(reviewQueue: store.effectiveReviewQueue, presentedCard: self.currentCard)
         }
         .task(id: store.localReadVersion) {
             await self.reloadReviewMetadata()
@@ -346,6 +353,7 @@ struct ReviewView: View {
                 onInput: self.handleReviewKeyboardInput
             )
             .frame(width: 1, height: 1)
+            .accessibilityHidden(true)
             #endif
         }
         .ignoresSafeArea(UIDevice.current.userInterfaceIdiom == .pad || self.navigation.canPresentAICompanion == false || self.isKeyboardDocked ? [] : .keyboard, edges: .bottom)
@@ -355,7 +363,11 @@ struct ReviewView: View {
                     self.dismissActiveReviewReactions(reason: "interaction")
                 }
         )
+        #if targetEnvironment(macCatalyst)
+        .macToolbarContribution(self.macReviewToolbar)
+        #endif
         .toolbar {
+            #if !targetEnvironment(macCatalyst)
             AICompanionToolbarItem()
             if self.usesCompactCompanionToolbar {
                 ToolbarItem(placement: .topBarTrailing) {
@@ -373,13 +385,61 @@ struct ReviewView: View {
                     reviewFilterMenu
                 }
                 ToolbarItemGroup(placement: .topBarTrailing) {
-                    // Keeping a third glass action collapses these shortcuts into overflow.
                     reviewLeaderboardButton
                     reviewProgressBadgeButton
                 }
             }
+            #endif
         }
     }
+
+    #if targetEnvironment(macCatalyst)
+    private var macReviewToolbar: MacToolbarContribution {
+        let streak = self.store.reviewProgressBadgeState
+        let badge = makeReviewProgressBadgePresentation(badgeState: streak)
+        let leaderboard = self.store.reviewLeaderboardBadgeState
+        var actions: [MacToolbarAction] = []
+        actions.append(MacToolbarAction(
+            identifier: UITestIdentifier.reviewLeaderboardShortcut, symbol: "trophy.fill",
+            label: self.reviewLeaderboardButtonAccessibilityLabel(badgeState: leaderboard),
+            symbolColor: UIColor(Color.yellow),
+            title: leaderboard.rank?.formatted(),
+            value: self.reviewLeaderboardButtonAccessibilityValue(badgeState: leaderboard),
+            isEnabled: leaderboard.isInteractive,
+            perform: { _ in self.openProgressWithPresentationBreadcrumb(target: .leaderboard) }
+        ))
+        actions.append(MacToolbarAction(
+            identifier: UITestIdentifier.reviewProgressBadge, symbol: badge.iconSystemName,
+            label: self.reviewProgressBadgeAccessibilityLabel(badgeState: streak),
+            symbolColor: streak.hasReviewedToday ? UIColor(self.store.effectiveAccountAccentColor.color) : nil,
+            title: formatReviewProgressBadgeValue(badgeState: streak),
+            value: self.reviewProgressBadgeAccessibilityValue(badgeState: streak),
+            isEnabled: streak.isInteractive,
+            perform: { _ in self.openProgressWithPresentationBreadcrumb(target: .streak) }
+        ))
+        let filter = MacToolbarAction(
+            identifier: UITestIdentifier.reviewFilterMenu, symbol: "line.3.horizontal.decrease", label: self.selectedReviewFilterTitle,
+            title: self.selectedReviewFilterTitle,
+            perform: { context in
+                self.beginReviewFiltering()
+                context.presentPopover(isPresented: self.$isReviewFilterPopoverPresented) {
+                    ReviewFilterPopover(
+                        reviewFilter: self.$reviewFilterDraft, decks: self.store.decks,
+                        tagSummaries: self.reviewTagSummaries,
+                        onEditDecks: self.dismissReviewFilterPopoverAndOpenDecks
+                    )
+                    .environment(\.locale, self.locale)
+                    .tint(self.store.effectiveAccountAccentColor.color)
+                }
+            }
+        )
+        return MacToolbarContribution(
+            tab: .review,
+            leading: [MacToolbarGroup(identifier: "nibomo.reviewFilter", actions: [filter])],
+            trailing: [MacToolbarGroup(identifier: "nibomo.reviewActions", actions: actions, usesSharedBezel: true)]
+        )
+    }
+    #endif
 
     private var reviewContentWithSheets: some View {
         self.reviewContentWithOnboarding
@@ -660,38 +720,38 @@ struct ReviewView: View {
     }
 
     private var reviewFilterMenu: some View {
-        Button {
-            let committedFilter = store.selectedReviewFilter
-            self.reviewFilterDraft = committedFilter
-            self.reviewFilterPresentationContext = ReviewFilterPresentationContext(
-                workspaceId: store.workspace?.workspaceId,
-                committedFilter: committedFilter
-            )
-            self.isReviewFilterPopoverPresented = true
-        } label: {
-            if self.usesCompactCompanionToolbar {
-                Image(systemName: "line.3.horizontal.decrease")
+        let action = self.beginReviewFiltering
+        return Group {
+            Button(action: action) {
+            Group {
+                if self.usesCompactCompanionToolbar {
+                    Image(systemName: "line.3.horizontal.decrease")
+                        .foregroundStyle(Color.primary)
+                } else {
+                    HStack(spacing: 4) {
+                        Text(self.selectedReviewFilterTitle)
+                            .lineLimit(1)
+                            .truncationMode(.tail)
+                            .frame(maxWidth: self.showsFilterInReviewColumn ? nil : 180, alignment: .leading)
+                        Image(systemName: "chevron.down")
+                            .font(.caption.weight(.semibold))
+                    }
                     .foregroundStyle(Color.primary)
-            } else {
-                HStack(spacing: 4) {
-                    Text(self.selectedReviewFilterTitle)
-                        .lineLimit(1)
-                        .truncationMode(.tail)
-                        .frame(maxWidth: self.showsFilterInReviewColumn ? nil : 180, alignment: .leading)
-                    Image(systemName: "chevron.down")
-                        .font(.caption.weight(.semibold))
+                    .frame(minHeight: self.showsFilterInReviewColumn ? appMinimumTouchTarget : nil)
+                    .fixedSize(horizontal: self.showsFilterInReviewColumn == false, vertical: false)
+                    .contentShape(Rectangle())
                 }
-                .foregroundStyle(Color.primary)
-                .frame(minHeight: self.showsFilterInReviewColumn ? 30 : nil)
-                .fixedSize(horizontal: self.showsFilterInReviewColumn == false, vertical: false)
             }
         }
         .tint(Color.primary)
+        .labelStyle(.titleAndIcon)
         .accessibilityIdentifier(UITestIdentifier.reviewFilterMenu)
         .accessibilityLabel(self.usesCompactCompanionToolbar
             ? String(localized: "Filters", table: reviewCardsStringsTableName)
             : self.selectedReviewFilterTitle)
         .accessibilityValue(self.usesCompactCompanionToolbar ? self.selectedReviewFilterTitle : "")
+        }
+        #if !targetEnvironment(macCatalyst)
         .popover(isPresented: self.$isReviewFilterPopoverPresented) {
             ReviewFilterPopover(
                 reviewFilter: self.$reviewFilterDraft,
@@ -701,6 +761,7 @@ struct ReviewView: View {
             )
             .presentationCompactAdaptation(.popover)
         }
+        #endif
         .id(store.selectedReviewFilter.id)
     }
 
@@ -779,6 +840,13 @@ struct ReviewView: View {
         }
     }
 
+    private func beginReviewFiltering() {
+        let committedFilter = self.store.selectedReviewFilter
+        self.reviewFilterDraft = committedFilter
+        self.reviewFilterPresentationContext = ReviewFilterPresentationContext(workspaceId: self.store.workspace?.workspaceId, committedFilter: committedFilter)
+        self.isReviewFilterPopoverPresented = true
+    }
+
     private func activeCardContentView(card: Card, preparedRevealState: PreparedReviewRevealState) -> some View {
         return VStack(alignment: .leading, spacing: 20) {
             if screenErrorMessage.isEmpty == false {
@@ -804,8 +872,13 @@ struct ReviewView: View {
                 } label: {
                     Image(systemName: "pencil.circle.fill")
                         .font(.title3)
+                        #if targetEnvironment(macCatalyst)
+                        .frame(minWidth: appMinimumTouchTarget, minHeight: appMinimumTouchTarget)
+                        .contentShape(Rectangle())
+                        #endif
                 }
                 .accessibilityLabel(String(localized: "Edit card", table: reviewCardsStringsTableName))
+                .accessibilityIdentifier(UITestIdentifier.reviewEditCardButton)
             }
             .font(.subheadline)
             .foregroundStyle(.secondary)
@@ -959,10 +1032,11 @@ struct ReviewView: View {
                     .lineLimit(1)
             }
             .fixedSize(horizontal: true, vertical: false)
-            .frame(minWidth: self.showsFilterInReviewColumn ? 44 : nil, minHeight: self.showsFilterInReviewColumn ? 44 : nil)
+            .frame(minWidth: self.showsFilterInReviewColumn ? appMinimumTouchTarget : nil, minHeight: self.showsFilterInReviewColumn ? appMinimumTouchTarget : nil)
             .contentShape(Rectangle())
         }
         .disabled(badgeState.isInteractive == false)
+        .labelStyle(.titleAndIcon)
         .accessibilityIdentifier(UITestIdentifier.reviewProgressBadge)
         .accessibilityLabel(self.reviewProgressBadgeAccessibilityLabel(badgeState: badgeState))
         .accessibilityValue(self.reviewProgressBadgeAccessibilityValue(badgeState: badgeState))
@@ -998,9 +1072,10 @@ struct ReviewView: View {
                         .foregroundStyle(Color.yellow)
                 }
             }
-            .frame(minWidth: self.showsFilterInReviewColumn ? 44 : nil, minHeight: self.showsFilterInReviewColumn ? 44 : nil)
+            .frame(minWidth: self.showsFilterInReviewColumn ? appMinimumTouchTarget : nil, minHeight: self.showsFilterInReviewColumn ? appMinimumTouchTarget : nil)
             .contentShape(Rectangle())
         }
+        .labelStyle(.titleAndIcon)
         .disabled(badgeState.isInteractive == false)
         .accessibilityIdentifier(UITestIdentifier.reviewLeaderboardShortcut)
         .accessibilityLabel(self.reviewLeaderboardButtonAccessibilityLabel(badgeState: badgeState))
@@ -1031,6 +1106,7 @@ struct ReviewView: View {
     }
 
     private func reviewLeaderboardButtonAccessibilityValue(badgeState: ReviewLeaderboardBadgeState) -> String {
+        guard AutomationRun.current.isUITestLaunch else { return "" }
         let rankValue = badgeState.rank.map { rank in
             "\(rank)"
         } ?? "nil"
@@ -1068,6 +1144,7 @@ struct ReviewView: View {
     }
 
     private func reviewProgressBadgeAccessibilityValue(badgeState: ReviewProgressBadgeState) -> String {
+        guard AutomationRun.current.isUITestLaunch else { return "" }
         let components: [String] = [
             "streakDays=\(badgeState.streakDays)",
             "hasReviewedToday=\(badgeState.hasReviewedToday ? "true" : "false")"

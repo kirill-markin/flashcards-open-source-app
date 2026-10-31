@@ -61,7 +61,7 @@ struct AppIconSettingsView: View {
         }
         .listStyle(.insetGrouped)
         .accessibilityIdentifier(UITestIdentifier.appIconSettingsScreen)
-        .navigationTitle(appIconSettingsTitle())
+        .nativeNavigationTitle(appIconSettingsTitle())
         .onChange(of: self.store.accountPreferencesIdentityKey) { _, _ in
             self.pendingSelection = nil
         }

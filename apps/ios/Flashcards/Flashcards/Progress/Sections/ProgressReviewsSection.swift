@@ -226,7 +226,7 @@ struct ProgressReviewsSection: View {
                         Button(action: self.showPreviousPage) {
                             Image(systemName: "chevron.backward")
                                 .font(.body.weight(.semibold))
-                                .frame(minWidth: 44, minHeight: 44)
+                                .frame(minWidth: appMinimumTouchTarget, minHeight: appMinimumTouchTarget)
                                 .contentShape(Rectangle())
                         }
                         .disabled(self.selectedPageIndex == 0)
@@ -242,7 +242,7 @@ struct ProgressReviewsSection: View {
                         Button(action: self.showNextPage) {
                             Image(systemName: "chevron.forward")
                                 .font(.body.weight(.semibold))
-                                .frame(minWidth: 44, minHeight: 44)
+                                .frame(minWidth: appMinimumTouchTarget, minHeight: appMinimumTouchTarget)
                                 .contentShape(Rectangle())
                         }
                         .disabled(self.selectedPageIndex >= self.chartPages.count - 1)
@@ -423,45 +423,53 @@ private struct ProgressReviewsRatingLegendRow: View {
     let onTap: () -> Void
 
     var body: some View {
-        HStack(spacing: 10) {
-            Circle()
-                .fill(progressReviewRatingColor(rating: self.entry.rating))
-                .overlay(
-                    Circle().strokeBorder(Color.primary.opacity(0.08), lineWidth: 0.5)
-                )
-                .frame(
-                    width: progressReviewsLegendMarkerSize,
-                    height: progressReviewsLegendMarkerSize
-                )
-                .accessibilityHidden(true)
-
-            Text(progressReviewRatingTitle(rating: self.entry.rating))
-                .font(.subheadline)
-                .foregroundStyle(.primary)
-
-            Spacer(minLength: 12)
-
-            Text(self.detailText)
-                .font(.subheadline.monospacedDigit())
-                .foregroundStyle(.secondary)
-        }
-        .background(
-            RoundedRectangle(cornerRadius: 8, style: .continuous)
-                .fill(.tint.opacity(self.isSelected ? 0.12 : 0))
-                .padding(.horizontal, -8)
-                .padding(.vertical, -4)
-        )
-        .opacity(self.isAnyRatingSelected && self.isSelected == false ? 0.35 : 1.0)
-        .contentShape(Rectangle())
-        .onTapGesture {
+        Button {
             guard self.entry.count > 0 else {
                 return
             }
-
             self.onTap()
+        } label: {
+            HStack(spacing: 10) {
+                Circle()
+                    .fill(progressReviewRatingColor(rating: self.entry.rating))
+                    .overlay(
+                        Circle().strokeBorder(Color.primary.opacity(0.08), lineWidth: 0.5)
+                    )
+                    .frame(
+                        width: progressReviewsLegendMarkerSize,
+                        height: progressReviewsLegendMarkerSize
+                    )
+                    .accessibilityHidden(true)
+
+                Text(progressReviewRatingTitle(rating: self.entry.rating))
+                    .font(.subheadline)
+                    .foregroundStyle(.primary)
+
+                Spacer(minLength: 12)
+
+                Text(self.detailText)
+                    .font(.subheadline.monospacedDigit())
+                    .foregroundStyle(.secondary)
+            }
+            #if targetEnvironment(macCatalyst)
+            .frame(minHeight: appMinimumTouchTarget)
+            #endif
+            .background(
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    .fill(.tint.opacity(self.isSelected ? 0.12 : 0))
+                    .padding(.horizontal, -8)
+                    .padding(.vertical, -4)
+            )
+            .opacity(self.isAnyRatingSelected && self.isSelected == false ? 0.35 : 1.0)
+            .contentShape(Rectangle())
         }
+        .buttonStyle(.plain)
+        #if targetEnvironment(macCatalyst)
+        .disabled(self.entry.count == 0)
+        #endif
         .accessibilityElement(children: .ignore)
-        .accessibilityAddTraits(self.entry.count > 0 ? .isButton : [])
+        .accessibilityAddTraits(.isButton)
+        .accessibilityAddTraits(self.isSelected ? .isSelected : [])
         .accessibilityLabel(progressReviewRatingTitle(rating: self.entry.rating))
         .accessibilityValue(self.detailText)
     }

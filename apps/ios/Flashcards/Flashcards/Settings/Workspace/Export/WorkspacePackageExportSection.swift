@@ -236,6 +236,8 @@ struct WorkspacePackageExportSection: View {
                             .foregroundStyle(.tint)
                     }
                 }
+                .frame(minHeight: appMinimumTouchTarget)
+                .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
             .disabled(self.isBusy)

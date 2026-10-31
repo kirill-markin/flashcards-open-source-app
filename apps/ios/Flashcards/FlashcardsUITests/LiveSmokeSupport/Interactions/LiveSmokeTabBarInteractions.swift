@@ -178,7 +178,7 @@ extension LiveSmokeTestCase {
         }
 
         self.logActionStart(action: action, identifier: identifier)
-        element.tap()
+        element.clickOrTap()
         self.logActionEnd(action: action, identifier: identifier, result: "success", note: note)
     }
 }

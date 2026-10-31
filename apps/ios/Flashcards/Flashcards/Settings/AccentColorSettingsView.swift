@@ -133,7 +133,7 @@ struct AccentColorSettingsView: View {
             }
         }
         .listStyle(.insetGrouped)
-        .navigationTitle(accentColorSettingsTitle())
+        .nativeNavigationTitle(accentColorSettingsTitle())
         .accessibilityIdentifier(UITestIdentifier.accentColorSettingsScreen)
         .task(id: self.accountPreparationAttempt) {
             self.resetDraft()

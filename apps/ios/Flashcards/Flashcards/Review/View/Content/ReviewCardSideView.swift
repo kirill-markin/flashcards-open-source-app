@@ -53,6 +53,10 @@ struct ReviewCardSideView: View {
                     .font(.caption)
                     .textCase(.uppercase)
                     .foregroundStyle(.secondary)
+                    #if targetEnvironment(macCatalyst)
+                    .frame(minWidth: appMinimumTouchTarget, minHeight: appMinimumTouchTarget, alignment: .leading)
+                    #endif
+                    .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
             .accessibilityIdentifier(self.surfaceStyle == .front
@@ -97,7 +101,7 @@ struct ReviewCardSideView: View {
                         .padding(6)
                         .frame(minWidth: 32, minHeight: 32)
                         .background(.thinMaterial, in: Capsule())
-                        .frame(minWidth: 44, minHeight: 44)
+                        .frame(minWidth: appMinimumTouchTarget, minHeight: appMinimumTouchTarget)
                         .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
@@ -114,7 +118,7 @@ struct ReviewCardSideView: View {
                             .padding(6)
                             .frame(minWidth: 32, minHeight: 32)
                             .background(.thinMaterial, in: Capsule())
-                            .frame(minWidth: 44, minHeight: 44)
+                            .frame(minWidth: appMinimumTouchTarget, minHeight: appMinimumTouchTarget)
                             .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
@@ -142,7 +146,7 @@ struct ReviewCardSideView: View {
                             .padding(.horizontal, 11)
                             .frame(minHeight: 32)
                             .background(self.aiButtonAccentColor.color, in: Capsule())
-                            .frame(minWidth: 44, minHeight: 44)
+                            .frame(minWidth: appMinimumTouchTarget, minHeight: appMinimumTouchTarget)
                             .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)

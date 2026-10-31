@@ -39,8 +39,11 @@ private struct TagInputRow: View {
                 } label: {
                     Image(systemName: "xmark.circle.fill")
                         .foregroundStyle(.secondary)
+                        .frame(minWidth: appMinimumTouchTarget, minHeight: appMinimumTouchTarget)
+                        .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
+                .accessibilityLabel(String(localized: "Delete", table: reviewCardsStringsTableName))
             }
         }
     }
@@ -84,6 +87,7 @@ private struct TagPickerRow: View {
                     .foregroundStyle(.tint)
             }
         }
+        .frame(minHeight: appMinimumTouchTarget)
         .contentShape(Rectangle())
     }
 }

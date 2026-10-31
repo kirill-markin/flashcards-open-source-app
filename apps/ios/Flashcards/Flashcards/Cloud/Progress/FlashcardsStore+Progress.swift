@@ -1005,7 +1005,11 @@ extension FlashcardsStore {
                 return
             }
 
-            Task { @MainActor in
+            // A queued refresh must not outlive the store's test database shutdown.
+            let taskID = UUID()
+            self.visibleProgressRefreshTasks[taskID] = Task { @MainActor [weak self] in
+                guard let self, Task.isCancelled == false else { return }
+                defer { self.visibleProgressRefreshTasks[taskID] = nil }
                 await self.refreshVisibleProgressIfNeeded(now: now)
             }
         } catch {

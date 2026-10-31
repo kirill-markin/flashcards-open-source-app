@@ -33,7 +33,23 @@ struct NotificationDiagnosticsView: View {
         }
         .listStyle(.insetGrouped)
         .accessibilityIdentifier(UITestIdentifier.notificationDiagnosticsScreen)
-        .navigationTitle(aiSettingsLocalized("settings.notificationDiagnostics.title", "Notification Diagnostics"))
+        .nativeNavigationTitle(aiSettingsLocalized("settings.notificationDiagnostics.title", "Notification Diagnostics"))
+        #if targetEnvironment(macCatalyst)
+        .macToolbarContribution(MacToolbarContribution(
+            tab: .settings,
+            role: .navigation,
+            trailing: [MacToolbarGroup(identifier: "settings.notificationDiagnostics.actions", actions: [
+                MacToolbarAction(
+                    identifier: "settings.notificationDiagnostics.refresh",
+                    symbol: "arrow.clockwise",
+                    label: aiSettingsLocalized("settings.notificationDiagnostics.refresh", "Refresh"),
+                    isEnabled: self.isLoading == false
+                ) { _ in
+                    Task { @MainActor in await self.reloadSnapshot() }
+                }
+            ])]
+        ))
+        #else
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Button {
@@ -47,6 +63,7 @@ struct NotificationDiagnosticsView: View {
                 .accessibilityLabel(aiSettingsLocalized("settings.notificationDiagnostics.refresh", "Refresh"))
             }
         }
+        #endif
         .task(id: store.workspace?.workspaceId) {
             await self.reloadSnapshot()
         }

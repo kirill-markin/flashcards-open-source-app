@@ -309,10 +309,16 @@ struct AIChatMessageRow: View {
                                         .font(.caption.weight(.semibold))
                                         .foregroundStyle(.secondary)
                                     Spacer(minLength: 0)
-                                    Button(section.copyButtonTitle) {
+                                    Button {
                                         UIPasteboard.general.string = section.text
+                                    } label: {
+                                        Text(section.copyButtonTitle)
+                                            #if !targetEnvironment(macCatalyst)
+                                            .frame(minWidth: 44, minHeight: 44)
+                                            #endif
+                                            .contentShape(Rectangle())
                                     }
-                                    .buttonStyle(.plain)
+                                    .nativeInlineActionButtonStyle()
                                     .font(.caption.weight(.semibold))
                                     .accessibilityLabel(section.copyAccessibilityLabel)
                                 }

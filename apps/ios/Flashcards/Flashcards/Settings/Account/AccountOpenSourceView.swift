@@ -289,7 +289,7 @@ struct AccountOpenSourceView: View {
             }
         }
         .listStyle(.insetGrouped)
-        .navigationTitle(aiSettingsLocalized("settings.account.openSource.title", "Open Source"))
+        .nativeNavigationTitle(aiSettingsLocalized("settings.account.openSource.title", "Open Source"))
     }
 }
 

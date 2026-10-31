@@ -26,7 +26,7 @@ struct ResetStudyProgressView: View {
         }
         .listStyle(.insetGrouped)
         .accessibilityIdentifier(UITestIdentifier.resetStudyProgressScreen)
-        .navigationTitle(aiSettingsLocalized("settings.row.resetStudyProgress", "Reset Study Progress"))
+        .nativeNavigationTitle(aiSettingsLocalized("settings.row.resetStudyProgress", "Reset Study Progress"))
         .alert(aiSettingsLocalized("settings.workspace.resetAlertTitle", "Reset all progress?"), isPresented: self.$isResetProgressAlertPresented) {
             Button(aiSettingsLocalized("common.cancel", "Cancel"), role: .cancel) {}
             Button(aiSettingsLocalized("common.continue", "Continue"), role: .destructive) {

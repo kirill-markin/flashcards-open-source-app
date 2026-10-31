@@ -6,6 +6,45 @@ private enum ReviewFilterToggleValue: String {
 }
 
 final class LiveSmokeReviewTests: LiveSmokeTestCase {
+    #if !targetEnvironment(macCatalyst)
+    @MainActor
+    func testLiveSmokeReviewAndComposerNativeSizing() throws {
+        try self.launchApplication(launchScenario: .guestAIReviewCard, selectedTab: .review)
+        try self.assertElementExists(identifier: LiveSmokeIdentifier.reviewShowAnswerButton, timeout: LiveSmokeConfiguration.reviewInitialProbeTimeoutSeconds)
+        func capture(_ name: String) {
+            let image = XCTAttachment(screenshot: self.app.screenshot())
+            image.name = name
+            image.lifetime = .keepAlways
+            self.add(image)
+        }
+        capture("mobile-native-review-tag-row")
+        try self.tapTabBarItem(identifier: LiveSmokeSelectedTab.progress.itemIdentifier, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+        try self.assertScreenVisible(screen: .progress, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+        XCTAssertTrue(self.app.staticTexts["Streak"].firstMatch.waitForExistence(timeout: LiveSmokeConfiguration.longUiTimeoutSeconds))
+        capture("mobile-native-progress-top")
+        self.app.scrollViews[LiveSmokeIdentifier.progressScreen].firstMatch.swipeUp()
+        capture("mobile-native-progress-scrolled")
+        try self.tapTabBarItem(identifier: LiveSmokeSelectedTab.ai.itemIdentifier, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+        if self.app.buttons[LiveSmokeIdentifier.aiConsentAcceptButton].waitForExistence(timeout: LiveSmokeConfiguration.optionalProbeTimeoutSeconds) {
+            try self.tapButton(identifier: LiveSmokeIdentifier.aiConsentAcceptButton, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+            try self.waitForAiComposerAfterConsent()
+        }
+        let composer = try self.waitForAiComposerUsable(timeout: LiveSmokeConfiguration.longUiTimeoutSeconds)
+        capture("mobile-native-composer-idle")
+        try self.typeTextSafely("Unsent native control sizing check", intoElement: composer,
+            identifier: LiveSmokeIdentifier.aiComposerTextField, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+        capture("mobile-native-composer-focused")
+        try self.tapButton(identifier: LiveSmokeIdentifier.aiComposerDismissKeyboardButton, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+        try self.waitForAiComposerValue("Unsent native control sizing check", timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+        capture("mobile-native-composer-dismissed")
+        let geometry = XCTAttachment(string: self.app.debugDescription)
+        geometry.name = "mobile-native-control-hierarchy"
+        geometry.lifetime = .keepAlways
+        self.add(geometry)
+        try self.assertElementDoesNotExist(identifier: LiveSmokeIdentifier.aiMessageRow, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+    }
+    #endif
+
     @MainActor
     func testLiveSmokeManualCardReviewFlow() throws {
         try self.launchApplication(launchScenario: .guestManualReviewCard, selectedTab: .review)
@@ -82,7 +121,7 @@ final class LiveSmokeReviewTests: LiveSmokeTestCase {
                 timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds
             )
 
-            lowerTagToggle.tap()
+            lowerTagToggle.clickOrTap()
             try self.assertReviewFilterToggleValue(
                 identifier: lowerTagToggleIdentifier,
                 expectedValue: .on,
@@ -106,7 +145,7 @@ final class LiveSmokeReviewTests: LiveSmokeTestCase {
             self.app.descendants(matching: .any)
                 .matching(identifier: LiveSmokeIdentifier.reviewFilterAllCardsToggle)
                 .firstMatch
-                .tap()
+                .clickOrTap()
 
             try self.assertReviewFilterToggleValue(
                 identifier: LiveSmokeIdentifier.reviewFilterAllCardsToggle,
@@ -156,7 +195,7 @@ final class LiveSmokeReviewTests: LiveSmokeTestCase {
                 timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds
             )
 
-            self.app.descendants(matching: .any).matching(identifier: tagToggleIdentifier).firstMatch.tap()
+            self.app.descendants(matching: .any).matching(identifier: tagToggleIdentifier).firstMatch.clickOrTap()
 
             try self.assertReviewFilterToggleValue(
                 identifier: LiveSmokeIdentifier.reviewFilterAllCardsToggle,
@@ -190,7 +229,7 @@ final class LiveSmokeReviewTests: LiveSmokeTestCase {
             self.app.descendants(matching: .any)
                 .matching(identifier: LiveSmokeIdentifier.reviewFilterAllCardsToggle)
                 .firstMatch
-                .tap()
+                .clickOrTap()
 
             try self.assertReviewFilterToggleValue(
                 identifier: LiveSmokeIdentifier.reviewFilterAllCardsToggle,
@@ -254,11 +293,11 @@ final class LiveSmokeReviewTests: LiveSmokeTestCase {
         let deadline = Date().addingTimeInterval(LiveSmokeConfiguration.shortUiTimeoutSeconds)
         while Date() < deadline {
             if button.exists && button.isHittable {
-                button.tap()
+                button.clickOrTap()
                 return
             }
 
-            scrollSurface.swipeUp()
+            scrollSurface.scrollTowardLaterContent()
             RunLoop.current.run(until: Date(timeIntervalSinceNow: 0.2))
         }
 
@@ -280,7 +319,7 @@ final class LiveSmokeReviewTests: LiveSmokeTestCase {
                 return
             }
 
-            scrollSurface.swipeDown()
+            scrollSurface.scrollTowardEarlierContent()
             RunLoop.current.run(until: Date(timeIntervalSinceNow: 0.2))
         }
 
@@ -303,6 +342,6 @@ final class LiveSmokeReviewTests: LiveSmokeTestCase {
             )
         }
 
-        dismissRegion.tap()
+        dismissRegion.clickOrTap()
     }
 }

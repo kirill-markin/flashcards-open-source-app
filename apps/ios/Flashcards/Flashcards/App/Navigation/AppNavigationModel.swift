@@ -83,6 +83,7 @@ final class AppNavigationModel {
     private(set) var aiTabVisitID: UUID
     #if targetEnvironment(macCatalyst)
     private(set) var reviewKeyboardFocusRequestID: UUID? = nil
+    private(set) var cardSearchFocusRequestID: UUID? = nil
     #endif
     var settingsPath: [SettingsNavigationDestination]
     var aiPath: NavigationPath
@@ -142,6 +143,15 @@ final class AppNavigationModel {
     func requestReviewKeyboardFocus() {
         guard self.selectedTab == .review else { return }
         self.reviewKeyboardFocusRequestID = UUID()
+    }
+
+    func searchCards() {
+        self.selectTab(.cards)
+        self.cardSearchFocusRequestID = UUID()
+    }
+
+    func clearCardSearchFocusRequest() {
+        self.cardSearchFocusRequestID = nil
     }
     #endif
 

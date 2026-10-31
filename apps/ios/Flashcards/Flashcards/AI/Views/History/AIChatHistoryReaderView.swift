@@ -30,8 +30,11 @@ struct AIChatHistoryReaderView: View {
 
     var body: some View {
         self.content
-            .navigationTitle(self.summary.title ?? aiChatHistoryUntitledChatTitle())
+            .nativeNavigationTitle(self.summary.title ?? aiChatHistoryUntitledChatTitle())
             .navigationBarTitleDisplayMode(.inline)
+            #if targetEnvironment(macCatalyst)
+            .macToolbarContribution(MacToolbarContribution(tab: .ai, role: .navigation))
+            #endif
             .nativeBottomBar(alignment: .center) {
                 Text(aiSettingsLocalized("ai.history.readOnlyNotice", "Read-only: old chats can't be continued."))
                     .font(.footnote)

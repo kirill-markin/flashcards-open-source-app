@@ -79,6 +79,7 @@ struct CloudWorkspaceSelectionRow: View {
                     .foregroundStyle(.secondary)
             }
         }
+        .frame(minHeight: appMinimumTouchTarget)
         .contentShape(Rectangle())
         .padding(.vertical, 2)
     }

@@ -231,6 +231,7 @@ final class FlashcardsStore {
     @ObservationIgnored var progressReviewScheduleServerBaseCache: PersistedReviewScheduleServerBase?
     @ObservationIgnored var progressLeaderboardServerBaseCache: PersistedProgressLeaderboardServerBase?
     @ObservationIgnored var progressStreakLeaderboardServerBaseCache: PersistedProgressStreakLeaderboardServerBase?
+    @ObservationIgnored var visibleProgressRefreshTasks: [UUID: Task<Void, Never>] = [:]
     @ObservationIgnored var progressObservedScopeKey: ProgressScopeKey?
     @ObservationIgnored var progressErrorState: ProgressErrorState
     @ObservationIgnored var progressSummaryInvalidatedScopeKeys: Set<ProgressSummaryScopeKey>
@@ -279,6 +280,8 @@ final class FlashcardsStore {
     }
 
     func shutdownForTests() {
+        self.visibleProgressRefreshTasks.values.forEach { $0.cancel() }
+        self.visibleProgressRefreshTasks.removeAll()
         self.aiConsentRegistrationTask?.cancel()
         self.cachedAIChatStore?.shutdownForTests()
         self.reviewRuntime.cancelForAccountDeletion()

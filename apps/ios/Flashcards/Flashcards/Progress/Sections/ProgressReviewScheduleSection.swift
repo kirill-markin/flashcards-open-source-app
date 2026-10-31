@@ -180,44 +180,53 @@ private struct ProgressReviewScheduleLegendRow: View {
     let onTap: () -> Void
 
     var body: some View {
-        HStack(spacing: 10) {
-            Circle()
-                .fill(progressReviewScheduleBucketColor(key: self.bucket.key))
-                .overlay(
-                    Circle().strokeBorder(Color.primary.opacity(0.08), lineWidth: 0.5)
-                )
-                .frame(
-                    width: progressReviewScheduleLegendMarkerSize,
-                    height: progressReviewScheduleLegendMarkerSize
-                )
-                .accessibilityHidden(true)
-
-            Text(progressReviewScheduleBucketTitle(key: self.bucket.key))
-                .font(.subheadline)
-                .foregroundStyle(.primary)
-
-            Spacer(minLength: 12)
-
-            Text(self.detailText)
-                .font(.subheadline.monospacedDigit())
-                .foregroundStyle(.secondary)
-        }
-        .background(
-            RoundedRectangle(cornerRadius: 8, style: .continuous)
-                .fill(.tint.opacity(self.isSelected ? 0.12 : 0))
-                .padding(.horizontal, -8)
-                .padding(.vertical, -4)
-        )
-        .opacity(self.isAnySelected && self.isSelected == false ? 0.35 : 1.0)
-        .contentShape(Rectangle())
-        .onTapGesture {
+        Button {
             guard self.bucket.count > 0 else {
                 return
             }
             self.onTap()
+        } label: {
+            HStack(spacing: 10) {
+                Circle()
+                    .fill(progressReviewScheduleBucketColor(key: self.bucket.key))
+                    .overlay(
+                        Circle().strokeBorder(Color.primary.opacity(0.08), lineWidth: 0.5)
+                    )
+                    .frame(
+                        width: progressReviewScheduleLegendMarkerSize,
+                        height: progressReviewScheduleLegendMarkerSize
+                    )
+                    .accessibilityHidden(true)
+
+                Text(progressReviewScheduleBucketTitle(key: self.bucket.key))
+                    .font(.subheadline)
+                    .foregroundStyle(.primary)
+
+                Spacer(minLength: 12)
+
+                Text(self.detailText)
+                    .font(.subheadline.monospacedDigit())
+                    .foregroundStyle(.secondary)
+            }
+            #if targetEnvironment(macCatalyst)
+            .frame(minHeight: appMinimumTouchTarget)
+            #endif
+            .background(
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    .fill(.tint.opacity(self.isSelected ? 0.12 : 0))
+                    .padding(.horizontal, -8)
+                    .padding(.vertical, -4)
+            )
+            .opacity(self.isAnySelected && self.isSelected == false ? 0.35 : 1.0)
+            .contentShape(Rectangle())
         }
+        .buttonStyle(.plain)
+        #if targetEnvironment(macCatalyst)
+        .disabled(self.bucket.count == 0)
+        #endif
         .accessibilityElement(children: .ignore)
-        .accessibilityAddTraits(self.bucket.count > 0 ? .isButton : [])
+        .accessibilityAddTraits(.isButton)
+        .accessibilityAddTraits(self.isSelected ? .isSelected : [])
         .accessibilityLabel(progressReviewScheduleBucketTitle(key: self.bucket.key))
         .accessibilityValue(
             progressReviewScheduleBucketAccessibilityValue(

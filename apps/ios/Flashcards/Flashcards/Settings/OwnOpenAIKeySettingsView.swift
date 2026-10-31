@@ -65,7 +65,7 @@ struct OwnOpenAIKeySettingsView: View {
         }
         .listStyle(.insetGrouped)
         .accessibilityIdentifier(UITestIdentifier.ownOpenAIKeySettingsScreen)
-        .navigationTitle(aiSettingsLocalized("settings.ownOpenAIKey.title", "Your OpenAI key"))
+        .nativeNavigationTitle(aiSettingsLocalized("settings.ownOpenAIKey.title", "Your OpenAI key"))
         .onAppear {
             self.loadApiKey()
         }

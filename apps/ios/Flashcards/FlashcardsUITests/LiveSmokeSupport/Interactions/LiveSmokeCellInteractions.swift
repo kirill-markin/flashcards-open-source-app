@@ -34,7 +34,7 @@ extension LiveSmokeTestCase {
         }
 
         self.logActionStart(action: "tap_cell", identifier: identifier)
-        cell.tap()
+        cell.clickOrTap()
         self.logActionEnd(action: "tap_cell", identifier: identifier, result: "success", note: "cell tapped")
     }
 }

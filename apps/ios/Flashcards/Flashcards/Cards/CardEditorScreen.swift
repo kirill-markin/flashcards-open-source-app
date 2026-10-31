@@ -646,7 +646,7 @@ private struct CardEditorManagedImagePreview: View {
                     .symbolRenderingMode(.hierarchical)
                     .foregroundStyle(.secondary)
                     .background(.regularMaterial, in: Circle())
-                    .frame(minWidth: 44, minHeight: 44)
+                    .frame(minWidth: appMinimumTouchTarget, minHeight: appMinimumTouchTarget)
                     .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
