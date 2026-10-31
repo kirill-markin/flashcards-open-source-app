@@ -29,7 +29,6 @@ function checkoutParameters(
     subscription_data: { metadata, billing_mode: { type: "flexible" }, ...(attempt.trialDays === 7 ? {
       trial_period_days: 7, trial_settings: { end_behavior: { missing_payment_method: "cancel" } },
     } : {}) },
-    custom_text: stripeCheckoutCustomText(attempt.locale),
     metadata, locale: attempt.locale, expires_at: Math.floor(attempt.expiresAt.getTime() / 1000),
     success_url: `${stripeCheckoutSuccessUrl}&checkout=success&checkout_attempt_id=${attempt.attemptId}`,
     cancel_url: `${stripeSubscriptionReturnUrl}?checkout=cancelled&checkout_attempt_id=${attempt.attemptId}`,
@@ -197,6 +196,7 @@ export class StripeProvider {
     requireMatch(attempt.checkoutMode === "legacy" && attempt.priceId === this.#catalog.priceId);
     const session = await this.createCheckoutSession(attempt, verifiedAccountEmail, attempt.priceId, {
       ...checkoutParameters(attempt, this.#catalog, this.#catalog.priceId),
+      custom_text: stripeCheckoutCustomText(attempt.locale),
       automatic_tax: { enabled: true }, adaptive_pricing: { enabled: true },
       payment_method_collection: "always", customer_update: { address: "auto", name: "auto" },
     });
