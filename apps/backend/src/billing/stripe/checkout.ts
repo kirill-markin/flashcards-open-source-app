@@ -13,7 +13,7 @@ import { publishStripeTransitions, type StripeCommittedTransition } from "./fact
 import { abandonStripeCheckoutAttemptInExecutor, getOrCreateStripeCustomer,
   hasStripeTrialConsumptionInExecutor, listStripeCheckoutAttemptsInExecutor, loadStripeCheckoutAttemptInExecutor,
   lockStripeAccountInExecutor, lockStripePersonIdentitiesInExecutor,
-  recordStripeCheckoutSessionInExecutor, recordStripeTrialConsumptionInExecutor, requireStripeCheckoutReservationOfferAvailable,
+  recordStripeCheckoutSessionInExecutor, recordStripeTrialConsumptionInExecutor,
   reserveStripeCheckoutAttemptInExecutor } from "./identityStore";
 import { loadStripeProvider, type StripeProvider } from "./provider";
 import { reconcileStripeSubscriptionsInExecutor } from "./service";
@@ -268,7 +268,7 @@ export async function requoteStripeCheckout(
     const current = await prepareStripeCheckoutInExecutor(executor, actor);
     if (current.existing !== null) return { existing: current.existing, transitions: current.transitions };
     requireCheckoutEnabled(current.context);
-    requireStripeCheckoutReservationOfferAvailable(resolveStripeOffer(current.context.environment, country));
+    requireStripeOfferAvailable(resolveStripeOffer(current.context.environment, country));
     const attempt = await loadStripeCheckoutAttemptInExecutor(executor, attemptId, current.context.environment);
     if (attempt === null || attempt.userId !== actor.userId || attempt.accountDeletedAt !== null
       || !current.context.identities.some((identity) => identity.identityId === attempt.identityId)) {

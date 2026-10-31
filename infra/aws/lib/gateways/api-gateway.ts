@@ -1379,6 +1379,16 @@ export function apiGateway(scope: Construct, props: ApiGatewayProps): ApiGateway
   // Includes the authenticated POST /agent/reviews/{next,reveal,submit} routes.
   // Keep these on the existing greedy integration, like the agent SQL routes.
   restApi.root.addResource("{proxy+}").addMethod("ANY", integration);
+  const rootProxy = restApi.root.getResource("{proxy+}")!;
+  const rootProxyAny = rootProxy.node.findChild("ANY").node.defaultChild;
+  const rootProxyOptions = rootProxy.node.findChild("OPTIONS").node.defaultChild;
+  if (!apigw.CfnMethod.isCfnMethod(rootProxyAny)
+    || !apigw.CfnMethod.isCfnMethod(rootProxyOptions)) {
+    throw new Error("Root proxy ANY and OPTIONS must be API Gateway methods.");
+  }
+  // Lambda selects the exact public-route CORS policy without another gateway resource hierarchy.
+  rootProxyOptions.integration = rootProxyAny.integration;
+  rootProxyOptions.methodResponses = undefined;
   addTextContentHandlingToMockOptionsMethods(restApi);
 
   // Every API custom domain maps the same robots.txt API, so it is created once

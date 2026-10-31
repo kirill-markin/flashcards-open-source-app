@@ -39,15 +39,10 @@ mode and Price; existing subscriptions are never converted. Migration `0234` mus
 before the country-aware backend and dependent web/public-offer consumers. Its additive
 defaults preserve old backend inserts during deployment.
 
-The reader deployment keeps new reservations in legacy mode, with no selected country,
-the full band and the current standard Price. New country-selected reservations fail
-explicitly as unavailable; requote rejects before expiring the current Session. This bridge also covers Sandbox, where Checkout stays enabled:
-old invocations can adopt a pending reservation between transactions. After this backend
-is fully deployed and the old Lambda timeout has elapsed, the following public-offer
-deployment replaces the reservation bridge with the resolved Managed offer, including
-for omitted country. Deploy compatible readers before enabling Managed writes. Keep
-`STRIPE_CHECKOUT_LIVE_ENABLED=false` until final acceptance and the separate CI-only
-activation below.
+All new reservations use the resolved Managed offer, including when country is omitted.
+Existing attempts keep their frozen legacy or Managed selection. Keep
+`STRIPE_CHECKOUT_LIVE_ENABLED=false` until real Managed acceptance, the dependent web
+selector and public marketing offer are deployed, and the separate CI-only activation below.
 
 Offer and subscription queries accept optional `country=XX`; Checkout accepts optional
 `{ "country": "XX" }`, with `{}` still valid. Codes are normalized to uppercase and unknown
@@ -56,7 +51,7 @@ the requested new sale; pending Checkout `offer` identifies its frozen original 
 and provider amount, and each subscription's `basePrice` describes its actual purchased Price.
 Country, band, Price and mode commit with locale, trial and expiry before the first Session POST.
 Retries retain that attempt and its idempotency key. An omitted country resumes an
-existing attempt unchanged; new reservations follow the deployment bridge above.
+existing attempt unchanged.
 
 A changed country never silently replaces an open offer: the Checkout response includes
 its original `offer` and `requoteRequired`. The human-only
@@ -64,7 +59,8 @@ its original `offer` and `requoteRequired`. The human-only
 It rechecks ownership and subscriptions, recovers the original attempt if necessary, confirms
 provider expiration, then reserves a new offer through the ordinary Checkout flow. Completion
 races require reconciliation. Country changes do not reset account trial history. The shared
-resolver performs no identity/subscription reads; no anonymous offer endpoint is exposed here.
+resolver performs no identity/subscription reads. The display-only
+[public offer](regional-subscription-pricing.md#public-web-offer) uses the same resolver.
 
 The independent [tax coverage config](../apps/backend/src/billing/regionalPricing/taxCoverage.json)
 records Stripe's 82 published codes, including all EU27. An uncovered selected country makes
