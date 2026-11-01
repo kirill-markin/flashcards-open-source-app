@@ -44,22 +44,6 @@ extension LocalDatabase {
         try self.core.scalarInt(sql: "SELECT COUNT(*) FROM review_events", values: [])
     }
 
-    func hasReviewEvent(workspaceId: String, after date: Date) throws -> Bool {
-        try self.core.scalarInt(
-            sql: """
-            SELECT EXISTS(
-                SELECT 1
-                FROM review_events
-                WHERE workspace_id = ? AND reviewed_at_client > ?
-            )
-            """,
-            values: [
-                .text(workspaceId),
-                .text(formatIsoTimestamp(date: date))
-            ]
-        ) == 1
-    }
-
     func hasReviewEvent(workspaceId: String, start: Date, end: Date) throws -> Bool {
         try self.core.scalarInt(
             sql: """
