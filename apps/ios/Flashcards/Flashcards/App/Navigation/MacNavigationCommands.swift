@@ -35,7 +35,13 @@ struct MacNavigationCommands: Commands {
         }
         CommandGroup(after: .newItem) {
             Button(String(localized: "New card", table: "ReviewCards")) {
-                self.perform { self.navigation.openCardCreation() }
+                self.perform {
+                    Analytics.track(
+                        .cardCreateStarted(entryPoint: .quickAction),
+                        screen: analyticsSurface(tab: self.navigation.selectedTab)
+                    )
+                    self.navigation.openCardCreation()
+                }
             }
             .keyboardShortcut("n", modifiers: [.command, .shift])
             .disabled(self.isAvailable == false)
