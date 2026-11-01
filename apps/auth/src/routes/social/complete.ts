@@ -2,7 +2,7 @@ import { Hono } from "hono";
 import type { AuthAppEnv } from "../../server/apiErrors.js";
 import { completeNativeSignIn, completeAccountProviderContinuation } from "../../server/social/completeSignIn.js";
 import { parseNativeSignIn, parseSocialObject, parseAccountProviderContinuation, parseCompletionHandle } from "../../server/social/publicContract.js";
-import { reportAuthFact, reportSignInSucceededWithMethod } from "../../server/analytics/signInFunnel.js";
+import { reportAuthFact, reportSignInSucceeded } from "../../server/analytics/signInFunnel.js";
 import { getSocialRequestSource } from "../../server/social/requestSource.js";
 import { requireSocialRateLimit, type SocialPublicAction } from "../../server/social/rateLimit.js";
 import { readSocialJson, requireSocialRequest, socialErrorResponse } from "./http.js";
@@ -50,7 +50,7 @@ app.post("/api/social/complete", async (c) => {
     } else if (request.action === "mailbox_verify") {
       await reportAuthFact(c, { eventName: "auth_code_verification_finished", method, outcome: "verified" });
     } else if ("signInHint" in response) {
-      await reportSignInSucceededWithMethod(c, response.signInHint.method);
+      await reportSignInSucceeded(c, response.signInHint.method);
     }
     return c.json(response);
   } catch (error) {
