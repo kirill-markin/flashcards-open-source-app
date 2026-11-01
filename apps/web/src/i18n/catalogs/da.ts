@@ -1076,7 +1076,7 @@ const daCatalog: TranslationCatalog = {
       createWithAi: "Opret med AI",
       edit: "Rediger",
       retry: "Prøv igen",
-      revealAnswer: "Vis svaret",
+      revealAnswer: "Vis svar",
       switchToAllCards: "skift til bunken Alle kort",
     },
     aiOpenAriaLabel: "Åbn kortets side ({{side}}) i AI-chatten",
