@@ -1,4 +1,6 @@
+import type { Handler } from "aws-lambda";
 import * as Sentry from "@sentry/aws-serverless";
+import { completeLambdaInvocation, runLambdaInvocation } from "../sentry-invocation";
 
 type PreSignUpEvent = {
   request: {
@@ -53,14 +55,35 @@ if (dsn === undefined || dsn.trim() === "") {
     tracesSampleRate: tracesSampleRateRaw === undefined
       ? undefined
       : Number.parseFloat(tracesSampleRateRaw),
-    sendDefaultPii: false,
+    dataCollection: {
+      userInfo: false,
+      cookies: false,
+      httpHeaders: false,
+      httpBodies: [],
+      urlQueryParams: false,
+      graphQL: { document: false, variables: false },
+      genAI: { inputs: false, outputs: false },
+      mcp: { inputs: false, outputs: false },
+      databaseQueryData: false,
+      queues: false,
+      stackFrameVariables: false,
+      frameContextLines: 0,
+    },
+    traceLifecycle: "stream",
+    attachStacktrace: false,
     beforeSend,
   });
   Sentry.setTag("service", "pre-signup");
+  Sentry.setAttribute("service", "pre-signup");
 }
 
-export const handler = Sentry.wrapHandler(async (event: PreSignUpEvent) => {
+const preSignUpHandler = async (event: PreSignUpEvent) => {
   event.response.autoConfirmUser = false;
   event.response.autoVerifyEmail = false;
   return event;
-});
+};
+
+export const handler: Handler<PreSignUpEvent, PreSignUpEvent> =
+  (event, context, callback) => runLambdaInvocation(event, context, (span) => Sentry.wrapHandler(
+    (invocationEvent: PreSignUpEvent) => completeLambdaInvocation(span, () => preSignUpHandler(invocationEvent)),
+  )(event, context, callback));

@@ -22,6 +22,17 @@ const supportedBundlingOptions = new Set([
   "volumes", "environment", "commandHooks",
 ]);
 const repoRoot = resolveFromRepoRoot();
+const sentryBuildAdapter = resolveFromRepoRoot("infra", "aws", "sentry-lambda-build.mjs");
+const dockerBuildRepoRoot = "/sentry-build-repo";
+
+interface InstrumentedGraph {
+  readonly inputs: ReadonlyArray<string>;
+  readonly buildInputs: ReadonlyArray<string>;
+}
+
+function shellQuote(value: string): string {
+  return "'" + value.replace(/'/g, "'\\''") + "'";
+}
 
 // DockerImage.fromBuild builds eagerly, which costs a base-image pull even when
 // every bundle is a cache hit. This carries fromBuild's tag and hash, so asset
@@ -139,24 +150,18 @@ export function createCachedNodejsFunction(
     ]),
     ...bundling.externalModules ?? [],
   ];
-  // The graph uses the same resolver, version, target and externals as CDK's
-  // bundler. write:false produces dependency metadata without staging an asset.
-  const graph = esbuild.buildSync({
+  const buildOptions = {
     absWorkingDir: projectRoot,
     entryPoints: [props.entry],
-    bundle: true,
-    write: false,
-    metafile: true,
-    platform: "node",
-    target: "node24",
-    format: "cjs",
     minify: bundling.minify,
     external: [...externalModules, ...bundling.nodeModules ?? []],
-    outfile: "index.js",
-    logLevel: "warning",
-  });
-  if (graph.metafile === undefined) throw new Error(`Missing esbuild input graph for Lambda ${id}`);
-  const inputs = Object.keys(graph.metafile.inputs).map((file) => path.resolve(projectRoot, file));
+    outfile: path.join(projectRoot, "index.js"),
+  };
+  // CDK is synchronous; a child runs the same async plugin for the graph and final asset.
+  const graph = JSON.parse(execFileSync(process.execPath, [
+    sentryBuildAdapter, JSON.stringify({ ...buildOptions, write: false }), require.resolve("esbuild"),
+  ], { encoding: "utf8", maxBuffer: 16 * 1024 * 1024 }).trim()) as InstrumentedGraph;
+  const inputs = [...graph.inputs];
   inputs.forEach(assertStaticImports);
   const hookCommands = {
     beforeBundling: bundling.commandHooks?.beforeBundling("/asset-input", "/asset-output") ?? [],
@@ -168,6 +173,8 @@ export function createCachedNodejsFunction(
   }
   const files = [...new Set([
     ...inputs,
+    ...graph.buildInputs,
+    sentryBuildAdapter,
     ...inputs.flatMap(configurationFiles),
     ...(copiedAssetPaths ?? []).flatMap(filesUnder),
     depsLockFilePath,
@@ -187,7 +194,8 @@ export function createCachedNodejsFunction(
   ])].sort();
   const identity = crypto.createHash("sha256");
   identity.update(JSON.stringify({
-    schema: 1,
+    schema: 2,
+    instrumentation: "sentry-orchestrion",
     entry: relativePath(props.entry),
     handler: props.handler,
     runtime: props.runtime.name,
@@ -225,6 +233,34 @@ export function createCachedNodejsFunction(
             }),
           }
         : {}),
+      // CDK installs native nodeModules first. Rebuild from source with channel injection,
+      // then run the existing copy/injection hooks against the final JavaScript and map.
+      commandHooks: {
+        beforeBundling: (inputDir, outputDir) => bundling.commandHooks?.beforeBundling(inputDir, outputDir) ?? [],
+        beforeInstall: (inputDir, outputDir) => bundling.commandHooks?.beforeInstall(inputDir, outputDir) ?? [],
+        afterBundling: (inputDir, outputDir) => {
+          const buildRoot = bundling.forceDockerBundling ? dockerBuildRepoRoot : repoRoot;
+          const finalOptions = {
+            ...buildOptions,
+            absWorkingDir: path.join(buildRoot, relativePath(projectRoot)),
+            entryPoints: [path.join(buildRoot, relativePath(props.entry!))],
+            outfile: path.join(outputDir, "index.js"),
+            write: true,
+          };
+          const esbuildModule = bundling.forceDockerBundling
+            ? '"$(npm root -g)/esbuild"' : shellQuote(require.resolve("esbuild"));
+          return [
+            `node ${shellQuote(path.join(buildRoot, relativePath(sentryBuildAdapter)))} ${shellQuote(JSON.stringify(finalOptions))} ${esbuildModule} > /dev/null`,
+            ...bundling.commandHooks?.afterBundling(inputDir, outputDir) ?? [],
+          ];
+        },
+      },
+      ...(bundling.forceDockerBundling ? {
+        volumes: [
+          ...bundling.volumes ?? [],
+          { hostPath: repoRoot, containerPath: dockerBuildRepoRoot, consistency: cdk.DockerVolumeConsistency.CONSISTENT },
+        ],
+      } : {}),
       esbuildVersion: esbuild.version,
       assetHash: identity.digest("hex"),
     },
