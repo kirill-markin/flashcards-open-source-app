@@ -14,7 +14,7 @@ import { assertNewlyIssuedSessionToken, IssuedSessionValidationError, verifiedBr
 import { PrincipalSessionError } from "../social/principalSessions.js";
 import { CognitoJwtVerifier } from "aws-jwt-verify";
 import { assertAppleRelayDeliveryAllowed } from "../social/appleNotifications.js";
-import { log, maskEmail } from "../logger.js";
+import { log } from "../logger.js";
 
 type CognitoErrorResponse = Readonly<{
   cognitoType: string;
@@ -443,7 +443,7 @@ export const verifyEmailOtp = async (
     },
   });
 
-  log({ domain: "auth", action: "verify_code", maskedEmail: maskEmail(email) });
+  log({ domain: "auth", action: "verify_code", email });
 
   const tokens = extractTokenResult(result, "Cognito RespondToAuthChallenge");
   return { ...tokens, [verifiedBrowserSession]: await assertNewlyIssuedSessionToken(tokens.idToken) };
@@ -466,7 +466,7 @@ async function signInWithPasswordViaCognito(
   });
 
   if (initialResult.AuthenticationResult !== undefined) {
-    log({ domain: "auth", action: "sign_in_password", maskedEmail: maskEmail(email) });
+    log({ domain: "auth", action: "sign_in_password", email });
     return extractTokenResult(initialResult, "Cognito InitiateAuth");
   }
 
@@ -486,7 +486,7 @@ async function signInWithPasswordViaCognito(
     });
 
     if (selectedChallengeResult.AuthenticationResult !== undefined) {
-      log({ domain: "auth", action: "sign_in_password", maskedEmail: maskEmail(email) });
+      log({ domain: "auth", action: "sign_in_password", email });
       return extractTokenResult(selectedChallengeResult, "Cognito RespondToAuthChallenge");
     }
 
@@ -512,7 +512,7 @@ async function signInWithPasswordViaCognito(
     },
   });
 
-  log({ domain: "auth", action: "sign_in_password", maskedEmail: maskEmail(email) });
+  log({ domain: "auth", action: "sign_in_password", email });
   return extractTokenResult(passwordResult, "Cognito RespondToAuthChallenge");
 }
 

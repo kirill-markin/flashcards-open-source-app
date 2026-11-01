@@ -17,10 +17,8 @@ type AuthSentryConfig = Readonly<{
   tracesSampleRate: number;
 }>;
 
-const emailPattern = /\b[A-Z0-9._%+-]{1,64}@[A-Z0-9.-]+\.[A-Z]{2,}\b/gi;
 const secretKeyPattern = /otp|token|secret|password|code|authorization|cookie/i;
 const redactedSecretValue = "<redacted>";
-const maskedEmailValue = "<masked-email>";
 
 let authSentryInitialized = false;
 
@@ -98,10 +96,9 @@ export function getAuthSentryConfig(env: NodeJS.ProcessEnv): AuthSentryConfig | 
   };
 }
 
-function maskSensitiveText(value: string): string {
+function stripUrlQueries(value: string): string {
   return value.replace(/\b([A-Za-z][A-Za-z0-9+.-]*:\/{1,2}[^\s"'<>?#)]+)(?:\?[^\s"'<>#)]*)?(?:#[^\s"'<>)]*)?/g, "$1")
-    .replace(/(\/api\/social\/[^\s"'<>?#)]+)(?:\?[^\s"'<>#)]*)?(?:#[^\s"'<>)]*)?/g, "$1")
-    .replace(emailPattern, maskedEmailValue);
+    .replace(/(\/api\/social\/[^\s"'<>?#)]+)(?:\?[^\s"'<>#)]*)?(?:#[^\s"'<>)]*)?/g, "$1");
 }
 
 function scrubHttpTelemetryFields(fields: Record<string, unknown>): void {
@@ -111,14 +108,14 @@ function scrubHttpTelemetryFields(fields: Record<string, unknown>): void {
     if (["code", "state", "nonce", "query", "querystring", "httpquery", "urlquery", "urlfragment"].includes(normalized)
       || /(?:authorization|cookie|csrf|password|secret|idtoken|accesstoken|refreshtoken|codeverifier)$/.test(normalized)) {
       fields[key] = redactedSecretValue;
-    } else if (typeof value === "string") fields[key] = maskSensitiveText(value);
+    } else if (typeof value === "string") fields[key] = stripUrlQueries(value);
   }
 }
 
 function scrubAuthSentrySpan(span: AuthSentrySpan): AuthSentrySpan {
   const attributes = { ...span.attributes };
   scrubHttpTelemetryFields(attributes);
-  return { ...span, name: maskSensitiveText(span.name), attributes };
+  return { ...span, name: stripUrlQueries(span.name), attributes };
 }
 
 function redactHeaderValues(headers: Record<string, unknown>): void {
@@ -126,7 +123,7 @@ function redactHeaderValues(headers: Record<string, unknown>): void {
     const value = headers[headerName];
     if (secretKeyPattern.test(headerName)) {
       headers[headerName] = redactedSecretValue;
-    } else if (typeof value === "string") headers[headerName] = maskSensitiveText(value);
+    } else if (typeof value === "string") headers[headerName] = stripUrlQueries(value);
   }
 }
 
@@ -147,7 +144,7 @@ function scrubAuthSentryRequest(request: AuthSentryEvent["request"]): void {
 function scrubAuthSentryBreadcrumbs(breadcrumbs: AuthSentryEvent["breadcrumbs"]): void {
   for (const breadcrumb of breadcrumbs ?? []) {
     if (breadcrumb.data !== undefined) scrubHttpTelemetryFields(breadcrumb.data);
-    if (typeof breadcrumb.message === "string") breadcrumb.message = maskSensitiveText(breadcrumb.message);
+    if (typeof breadcrumb.message === "string") breadcrumb.message = stripUrlQueries(breadcrumb.message);
   }
 }
 
@@ -157,14 +154,14 @@ function scrubAuthSentryEvent(event: AuthSentryEvent): AuthSentryEvent {
   if (event.contexts?.trace?.data !== undefined) scrubHttpTelemetryFields(event.contexts.trace.data);
 
   if (typeof event.message === "string") {
-    event.message = maskSensitiveText(event.message);
+    event.message = stripUrlQueries(event.message);
   }
 
   const exceptionValues = event.exception?.values;
   if (exceptionValues !== undefined) {
     for (const exceptionValue of exceptionValues) {
       if (typeof exceptionValue.value === "string") {
-        exceptionValue.value = maskSensitiveText(exceptionValue.value);
+        exceptionValue.value = stripUrlQueries(exceptionValue.value);
       }
     }
   }
