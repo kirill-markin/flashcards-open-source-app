@@ -141,7 +141,7 @@ test("backend Sentry beforeSend drops automatic recaptures of manually captured 
   assert.equal(beforeSend(automaticEvent, { originalException: error }), null);
 });
 
-test("backend Sentry beforeSend redacts exception text and request query strings", () => {
+test("backend Sentry beforeSend keeps exception text and request data and redacts secrets", () => {
   resetBackendSentryForTests();
   let capturedInitOptions: CapturedSentryInitOptions | null = null;
 
@@ -164,23 +164,20 @@ test("backend Sentry beforeSend redacts exception text and request query strings
   const beforeSend = requireBeforeSend(initOptions.beforeSend);
   const sanitized = requireSynchronousSentryHookResult(beforeSend({
     type: undefined,
-    message: "provider returned private user text user@example.com",
+    message: "provider returned user text for user@example.com",
     exception: {
       values: [
         {
           type: "ProviderError",
-          value: "provider returned private user text user@example.com",
+          value: "provider returned user text for user@example.com",
           stacktrace: {
             frames: [
               {
-                context_line: "const prompt = 'private user text';",
+                context_line: "const prompt = 'user text';",
                 filename: "/var/task/src/chat/runtime.ts",
                 function: "runProviderCall",
                 lineno: 42,
                 colno: 7,
-                vars: {
-                  prompt: "private user text",
-                },
               },
             ],
           },
@@ -188,20 +185,27 @@ test("backend Sentry beforeSend redacts exception text and request query strings
       ],
     },
     request: {
-      query_string: "token=secret&search=private",
+      query_string: "token=secret&search=cards",
       url: "https://api.example.invalid/v1/cards?token=secret#debug",
+      data: "{\"frontText\":\"question\",\"password\":\"hunter2\"}",
+      cookies: { session: "cookie-value" },
+      headers: {
+        authorization: "Bearer token-value",
+        cookie: "session=cookie-value",
+        "set-cookie": "session=cookie-value",
+        "x-api-key": "api-key-value",
+        "x-openai-api-key": "sk-proj-123456789012345678901234",
+        "content-type": "application/json",
+      },
     },
     contexts: {
       backend: {
         adminEmail: "local-admin@localhost",
-        userEmail: "user@example.com",
         safeText:
           "contact user@example.com with key sk-proj-123456789012345678901234 and jwt eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c",
         serializedPayload: JSON.stringify({
           authorization: "Bearer token-value",
-          query: "token=secret&search=private",
           email: "payload@example.com",
-          safeText: "contact payload@example.com",
           nested: {
             hasToken: true,
             tokenCount: 7,
@@ -210,8 +214,8 @@ test("backend Sentry beforeSend redacts exception text and request query strings
         }),
       },
       rawRequest: {
-        queryString: "query=private",
-        querystring: "userText=private",
+        queryString: "search=cards",
+        requestBody: { frontText: "question", backText: "answer" },
       },
     },
   }, {}));
@@ -220,46 +224,50 @@ test("backend Sentry beforeSend redacts exception text and request query strings
   if (sanitized === null) {
     throw new Error("Expected backend Sentry beforeSend to keep the event.");
   }
-  assert.equal(sanitized?.message, "<redacted-content>");
-  assert.equal(sanitized?.exception?.values?.[0]?.type, "ProviderError");
-  assert.equal(sanitized?.exception?.values?.[0]?.value, "<redacted-content>");
-  assert.deepEqual(sanitized?.exception?.values?.[0]?.stacktrace?.frames?.[0], {
-    context_line: "<redacted-content>",
-    filename: "/var/task/src/chat/runtime.ts",
-    function: "runProviderCall",
-    lineno: 42,
-    colno: 7,
-    vars: "<redacted-content>",
-  });
-  assert.equal(sanitized?.request?.query_string, "<redacted-content>");
-  assert.equal(sanitized?.request?.url, "https://api.example.invalid/v1/cards");
-  assert.equal(sanitized?.contexts?.backend?.adminEmail, "<redacted-content>");
-  assert.equal(sanitized?.contexts?.backend?.userEmail, "<redacted-content>");
+  assert.equal(sanitized.message, "provider returned user text for user@example.com");
+  assert.equal(sanitized.exception?.values?.[0]?.value, "provider returned user text for user@example.com");
   assert.equal(
-    sanitized?.contexts?.backend?.safeText,
-    "contact <masked-email> with key <masked-api-key> and jwt <masked-jwt>",
+    sanitized.exception?.values?.[0]?.stacktrace?.frames?.[0]?.context_line,
+    "const prompt = 'user text';",
   );
-  const serializedPayload = sanitized?.contexts?.backend?.serializedPayload;
+  assert.deepEqual(sanitized.request, {
+    query_string: "<redacted-secret>",
+    url: "https://api.example.invalid/v1/cards",
+    data: "{\"frontText\":\"question\",\"password\":\"<redacted-secret>\"}",
+    headers: {
+      authorization: "<redacted-secret>",
+      cookie: "<redacted-secret>",
+      "set-cookie": "<redacted-secret>",
+      "x-api-key": "<redacted-secret>",
+      "content-type": "application/json",
+    },
+  });
+  assert.equal(sanitized.contexts?.backend?.adminEmail, "local-admin@localhost");
+  assert.equal(
+    sanitized.contexts?.backend?.safeText,
+    "contact user@example.com with key <masked-api-key> and jwt <masked-jwt>",
+  );
+  const serializedPayload = sanitized.contexts?.backend?.serializedPayload;
   assert.equal(typeof serializedPayload, "string");
   if (typeof serializedPayload !== "string") {
     throw new Error("Expected serialized Sentry payload to remain a string.");
   }
   assert.deepEqual(JSON.parse(serializedPayload), {
     authorization: "<redacted-secret>",
-    query: "<redacted-content>",
-    email: "<redacted-content>",
-    safeText: "contact <masked-email>",
+    email: "payload@example.com",
     nested: {
       hasToken: true,
       tokenCount: 7,
       sessionToken: "<redacted-secret>",
     },
   });
-  assert.equal(sanitized?.contexts?.rawRequest?.queryString, "<redacted-content>");
-  assert.equal(sanitized?.contexts?.rawRequest?.querystring, "<redacted-content>");
+  assert.deepEqual(sanitized.contexts?.rawRequest, {
+    queryString: "search=cards",
+    requestBody: { frontText: "question", backText: "answer" },
+  });
 });
 
-test("backend Sentry beforeSend preserves structural database exception diagnostics", () => {
+test("backend Sentry beforeSend tags structural database exception diagnostics", () => {
   resetBackendSentryForTests();
   let capturedInitOptions: CapturedSentryInitOptions | null = null;
 
@@ -302,38 +310,8 @@ test("backend Sentry beforeSend preserves structural database exception diagnost
         {
           type: databaseError.name,
           value: databaseError.message,
-          stacktrace: {
-            frames: [
-              {
-                context_line: "await executor.query(sql, [frontText]);",
-                vars: {
-                  frontText: "private question",
-                  backText: "private answer",
-                },
-              },
-            ],
-          },
         },
       ],
-    },
-    request: {
-      headers: {
-        authorization: "Bearer token-value",
-      },
-    },
-    contexts: {
-      backend: {
-        prompt: "private prompt",
-        sqlState: "23503",
-        constraint: "workspace_replicas_workspace_id_fkey",
-        table: "workspace_replicas",
-      },
-      rawRequest: {
-        requestBody: {
-          frontText: "private question",
-          backText: "private answer",
-        },
-      },
     },
   }, { originalException: databaseError }));
 
@@ -341,138 +319,11 @@ test("backend Sentry beforeSend preserves structural database exception diagnost
   if (sanitized === null) {
     throw new Error("Expected backend Sentry beforeSend to keep the event.");
   }
-  assert.match(sanitized.message ?? "", /SQLSTATE 23503/);
-  assert.match(sanitized.message ?? "", /workspace_replicas_workspace_id_fkey/);
-  assert.match(String(sanitized.exception?.values?.[0]?.value), /SQLSTATE 23503/);
-  assert.match(String(sanitized.exception?.values?.[0]?.value), /workspace_replicas_workspace_id_fkey/);
+  assert.equal(sanitized.message, databaseError.message);
+  assert.equal(sanitized.exception?.values?.[0]?.value, databaseError.message);
   assert.equal(sanitized.tags?.["db.sql_state"], "23503");
   assert.equal(sanitized.tags?.["db.constraint"], "workspace_replicas_workspace_id_fkey");
   assert.equal(sanitized.tags?.["db.table"], "workspace_replicas");
-  assert.deepEqual(sanitized.request, {});
-  assert.equal(sanitized.contexts?.backend?.prompt, "<redacted-content>");
-  assert.equal(sanitized.contexts?.backend?.sqlState, "23503");
-  assert.equal(sanitized.contexts?.backend?.constraint, "workspace_replicas_workspace_id_fkey");
-  assert.equal(sanitized.contexts?.backend?.table, "workspace_replicas");
-  assert.equal(sanitized.contexts?.rawRequest?.requestBody, "<redacted-content>");
-  assert.deepEqual(sanitized.exception?.values?.[0]?.stacktrace?.frames?.[0], {
-    context_line: "<redacted-content>",
-    vars: "<redacted-content>",
-  });
-});
-
-test("backend Sentry beforeSend does not preserve content-bearing database exception messages", () => {
-  resetBackendSentryForTests();
-  let capturedInitOptions: CapturedSentryInitOptions | null = null;
-
-  initializeBackendSentryWithDeps(
-    "backend-api",
-    {
-      SENTRY_DSN: "https://example.invalid/1",
-      SENTRY_ENVIRONMENT: "production",
-      SENTRY_RELEASE: "abc123",
-      SENTRY_TRACES_SAMPLE_RATE: "0",
-    },
-    {
-      init: (options) => {
-        capturedInitOptions = options;
-      },
-    },
-  );
-
-  type DatabaseInputError = Error & {
-    code: string;
-  };
-
-  const databaseError = new Error("invalid input syntax for type uuid: \"private-user-text\"") as DatabaseInputError;
-  databaseError.name = "DatabaseError";
-  databaseError.code = "22P02";
-
-  const initOptions = requireCapturedSentryInitOptions(capturedInitOptions);
-  const beforeSend = requireBeforeSend(initOptions.beforeSend);
-  const sanitized = requireSynchronousSentryHookResult(beforeSend({
-    type: undefined,
-    message: databaseError.message,
-    exception: {
-      values: [
-        {
-          type: databaseError.name,
-          value: databaseError.message,
-          stacktrace: {
-            frames: [],
-          },
-        },
-      ],
-    },
-  }, { originalException: databaseError }));
-
-  assert.notEqual(sanitized, null);
-  if (sanitized === null) {
-    throw new Error("Expected backend Sentry beforeSend to keep the event.");
-  }
-  assert.equal(sanitized.message, "DatabaseError: SQLSTATE 22P02");
-  assert.equal(sanitized.exception?.values?.[0]?.value, "DatabaseError: SQLSTATE 22P02");
-  assert.doesNotMatch(sanitized.message ?? "", /private-user-text/);
-  assert.doesNotMatch(String(sanitized.exception?.values?.[0]?.value), /private-user-text/);
-});
-
-test("backend Sentry beforeSend preserves typed warning action title only", () => {
-  resetBackendSentryForTests();
-  let capturedInitOptions: CapturedSentryInitOptions | null = null;
-
-  initializeBackendSentryWithDeps(
-    "backend-api",
-    {
-      SENTRY_DSN: "https://example.invalid/1",
-      SENTRY_ENVIRONMENT: "production",
-      SENTRY_RELEASE: "abc123",
-      SENTRY_TRACES_SAMPLE_RATE: "0",
-    },
-    {
-      init: (options) => {
-        capturedInitOptions = options;
-      },
-    },
-  );
-
-  const initOptions = requireCapturedSentryInitOptions(capturedInitOptions);
-  const beforeSend = requireBeforeSend(initOptions.beforeSend);
-  const sanitized = requireSynchronousSentryHookResult(beforeSend({
-    type: undefined,
-    level: "warning",
-    message: "global_snapshot_error",
-    tags: {
-      "backend.manual_warning_capture": "true",
-      "backend.action": "global_snapshot_error",
-    },
-    contexts: {
-      backend: {
-        action: "global_snapshot_error",
-        message: "Snapshot unavailable for user@example.com",
-      },
-      rawRequest: {
-        queryString: "token=secret&search=private",
-      },
-    },
-    extra: {
-      details: {
-        message: "S3 object missing for user@example.com",
-      },
-    },
-  }, {}));
-
-  assert.notEqual(sanitized, null);
-  if (sanitized === null) {
-    throw new Error("Expected backend Sentry beforeSend to keep the event.");
-  }
-  assert.equal(sanitized.message, "global_snapshot_error");
-  assert.equal(sanitized.tags?.["backend.action"], "global_snapshot_error");
-  assert.equal(sanitized.contexts?.backend?.message, "<redacted-content>");
-  assert.equal(sanitized.contexts?.rawRequest?.queryString, "<redacted-content>");
-  assert.deepEqual(sanitized.extra, {
-    details: {
-      message: "<redacted-content>",
-    },
-  });
 });
 
 test("backend Sentry scope preserves raw backend identifiers before capture", () => {
@@ -750,7 +601,7 @@ test("backend Sentry beforeSend preserves raw backend and entity identifiers", (
   assert.match(serializedPayload, /11111111-2222-4333-8444-555555555555/);
 });
 
-test("backend Sentry beforeSendSpan sanitizes span payloads", () => {
+test("backend Sentry beforeSendSpan redacts span secrets", () => {
   resetBackendSentryForTests();
   let capturedInitOptions: CapturedSentryInitOptions | null = null;
 
@@ -774,14 +625,10 @@ test("backend Sentry beforeSendSpan sanitizes span payloads", () => {
   const sanitized = beforeSendSpan({
     attributes: {
       authorization: "Bearer token-value",
-      query: "token=secret&search=private",
-      "gen_ai.prompt": "private prompt",
-      "gen_ai.completion": "private completion",
-      "gen_ai.prompt.0.content": "private prompt part",
-      tool_arguments: "{\"frontText\":\"private question\"}",
-      "http.request.header.x-user": "private header",
-      "http.response.body": "private response body",
-      output: "private output",
+      query: "token=secret&search=cards",
+      "gen_ai.prompt": "user prompt",
+      tool_arguments: "{\"frontText\":\"question\"}",
+      "http.request.header.x-user": "header value",
       hasArguments: true,
       hasToken: true,
       input_tokens: 11,
@@ -793,7 +640,7 @@ test("backend Sentry beforeSendSpan sanitizes span payloads", () => {
       "gen_ai.usage.output_tokens": 12,
       "sentry.op": "http.client",
     },
-    name: "POST /v1/cards?token=secret&query=private",
+    name: "POST /v1/cards?token=secret&query=cards",
     parent_span_id: "2222222222222222",
     span_id: "1111111111111111",
     start_timestamp: 1,
@@ -806,14 +653,10 @@ test("backend Sentry beforeSendSpan sanitizes span payloads", () => {
   assert.equal(sanitized.name, "POST /v1/cards");
   assert.deepEqual(sanitized.attributes, {
     authorization: "<redacted-secret>",
-    query: "<redacted-content>",
-    "gen_ai.prompt": "<redacted-content>",
-    "gen_ai.completion": "<redacted-content>",
-    "gen_ai.prompt.0.content": "<redacted-content>",
-    tool_arguments: "<redacted-content>",
-    "http.request.header.x-user": "<redacted-content>",
-    "http.response.body": "<redacted-content>",
-    output: "<redacted-content>",
+    query: "<redacted-secret>",
+    "gen_ai.prompt": "user prompt",
+    tool_arguments: "{\"frontText\":\"question\"}",
+    "http.request.header.x-user": "header value",
     hasArguments: true,
     hasToken: true,
     input_tokens: 11,
@@ -835,9 +678,9 @@ test("backend Sentry beforeSendSpan sanitizes span payloads", () => {
     end_timestamp: 2,
     status: "ok",
     is_segment: true,
-    attributes: { input: "private input", "sentry.op": "http.server" },
+    attributes: { userOpenAIApiKey: "sk-proj-123456789012345678901234", "sentry.op": "http.server" },
   });
   assert.equal(segment.name, "GET /v1/cards");
-  assert.equal(segment.attributes.input, "<redacted-content>");
+  assert.equal("userOpenAIApiKey" in segment.attributes, false);
   assert.equal(segment.attributes["backend.service"], "chat-worker");
 });

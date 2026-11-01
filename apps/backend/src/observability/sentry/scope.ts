@@ -4,10 +4,7 @@ import type {
   BackendObservationScope,
   BackendService,
 } from "./events";
-import {
-  redactExceptionTextFields,
-  sanitizeBackendSentryTelemetryValue,
-} from "./redaction";
+import { sanitizeBackendSentryTelemetryValue } from "./redaction";
 
 type BackendSentryContextData = Parameters<Sentry.Scope["setContext"]>[1];
 
@@ -48,7 +45,7 @@ export function setSentryScope(scope: Sentry.Scope, observationScope: BackendObs
 
   scope.setContext(
     "backend",
-    sanitizeBackendSentryTelemetryValue(redactExceptionTextFields(observationScope)) as BackendSentryContextData,
+    sanitizeBackendSentryTelemetryValue(observationScope) as BackendSentryContextData,
   );
 }
 

@@ -332,8 +332,7 @@ export type ChatSandboxInvokeRetriedDetails = Readonly<{
 
 /**
  * The shape of a follow-up composer suggestions response that yielded no suggestions, without any of
- * its text. Field names avoid the sanitizer's content keys (`message`, `output`, `content`), which
- * would replace these values with `<redacted-content>`.
+ * its text.
  */
 export type ChatComposerSuggestionsResponseDetails = Readonly<{
   responseStatus: string | null;

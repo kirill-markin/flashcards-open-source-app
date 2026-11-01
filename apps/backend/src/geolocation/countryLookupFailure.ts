@@ -13,12 +13,6 @@ const countryLookupFailureSentryThrottleMs = 5 * 60 * 1000;
  *
  * Each call site holds its own reporter, so a broken database is reported once per lookup site
  * rather than only on whichever site happened to fail first.
- *
- * The detail carrying the error text must use one of the key names in the Sentry redaction set
- * (`exceptionTextFieldNames` in apps/backend/src/observability/sentry/redaction.ts), so that Sentry
- * receives `<redacted-content>`; `errorMessage` is the conventional choice here. CloudWatch keeps
- * the text whatever the key is called, because a warning carries no `error` and
- * ../observability/cloudWatch.ts redacts a record's details only when it does.
  */
 export function createCountryLookupFailureReporter(): (warning: BackendWarningEvent) => void {
   let capturedAtMs: number | null = null;
