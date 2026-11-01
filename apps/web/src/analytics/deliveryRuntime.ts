@@ -11,7 +11,7 @@ import {
 import { hasLoggedInCookie } from "../appData/session/activation/warmStart";
 import { readStoredWebGuestSession, resetWebGuestSession } from "../appData/session/guest/webGuestSession";
 import { isAutomationRun } from "../automationRun";
-import { isAuthenticatedAppPath } from "../routes";
+import { isAuthenticatedAppPath, isCatalogImportPath, isFriendInvitePath } from "../routes";
 import {
   isAwaitingAnalyticsConsentDecision,
   readAnalyticsConsentDecision,
@@ -843,7 +843,9 @@ export function createAnalyticsDeliveryRuntime(
    * Whether a confirmed account owner can still arrive on this load, which is what an authenticated
    * send waits for. The publisher lives in the app data provider: of the public routes rendered above
    * `AuthenticatedApp`, the catalog import and the friend invite mount it only after their own first
-   * load, and the share page never does, so a browser carrying `logged_in` there may wait forever.
+   * load, so they count before it mounts, and the share page never does. A catalog or invite page
+   * that dead-ends before the mount therefore loses its held events with the document rather than
+   * filing a signed-in person's activity credential-free.
    *
    * Read live from the address bar rather than latched, because a client-side navigation reaches the
    * authenticated routes without a reload, and a publisher that has mounted answers for itself.
@@ -851,7 +853,9 @@ export function createAnalyticsDeliveryRuntime(
   function canPublishSessionOwnerOnThisRoute(): boolean {
     return confirmedOwnerId !== null
       || sessionOwnerPublisherCount !== 0
-      || isAuthenticatedAppPath(window.location.pathname);
+      || isAuthenticatedAppPath(window.location.pathname)
+      || isCatalogImportPath(window.location.pathname)
+      || isFriendInvitePath(window.location.pathname);
   }
 
   /**
@@ -1108,11 +1112,10 @@ export function createAnalyticsDeliveryRuntime(
    *
    * "Can ever become sendable" is true of `/share` only because every link out of it is a
    * full-document `<a href>`, so no client-side navigation reaches `AuthenticatedApp` within one
-   * document. `/invite/:token` and `/catalog/import/:id` mount the session layer only after their
-   * first load, and the catalog route also navigates into the app client-side, so a flush taken on
-   * either before that mount spends a signed-in refused person's `app_opened` on the collector
-   * irreversibly, where waiting a moment would have shipped it under their account. Either keep the
-   * share links full-document, or narrow this branch before adding one.
+   * document. Either keep the share links full-document, or count `/share` in
+   * `canPublishSessionOwnerOnThisRoute` before adding one, as `/invite/:token` and
+   * `/catalog/import/:id` are: a flush taken before their late session layer mounts would otherwise
+   * spend a signed-in refused person's `app_opened` on the collector irreversibly.
    */
   function canDeliverHeldEventsWithoutIdentity(): boolean {
     if (readAnalyticsConsentDecision() !== "declined") {
@@ -1289,7 +1292,7 @@ export function createAnalyticsDeliveryRuntime(
    * Drains what a signed-in browser that refused consent is holding, batch by batch. It waits rather
    * than falling back to the collector when the credential is not sendable yet: those events are the
    * account's, and reporting them identity-free would file a signed-in person's activity as a
-   * visitor's. The wait is bounded by the route — where no owner can be published at all,
+   * visitor's. The wait is bounded by the route — on one that never mounts a publisher,
    * `canDeliverHeldEventsWithoutIdentity` routes them to the collector instead of here.
    */
   async function deliverHeldEventsUnderAccount(flushGeneration: number): Promise<void> {
