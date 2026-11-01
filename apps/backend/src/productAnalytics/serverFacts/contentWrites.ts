@@ -51,6 +51,7 @@ import {
   type WorkspaceReplicaPlatformFacts,
   type WorkspaceReplicaPlatformRow,
 } from "./replicaPlatforms";
+import type { AiChatRunClientDevice } from "./reviewAnswers";
 import {
   deriveServerDerivedProductAnalyticsEventId,
   type ServerDerivedProductAnalyticsEvent,
@@ -256,6 +257,22 @@ export function declareContentCreationSource(
   source: ContentCreationSource,
 ): void {
   declaredContentCreationSources.set(executor, source);
+}
+
+// The device the in-app chat run writing through this transaction was started from, keyed by the
+// executor like the declarations above. It is declared per transaction rather than resolved from
+// the replica, because one ai_chat replica is shared by every member and session of a workspace.
+const declaredContentWriteAiChatClients = new WeakMap<DatabaseExecutor, AiChatRunClientDevice | null>();
+
+/**
+ * Names the chat run device for this transaction's writes through an ai_chat replica, or null when
+ * no run device is known for this transaction.
+ */
+export function declareContentWriteAiChatClient(
+  executor: DatabaseExecutor,
+  device: AiChatRunClientDevice | null,
+): void {
+  declaredContentWriteAiChatClients.set(executor, device);
 }
 
 // Everything one replica decides for the writes attributed to it. It is the shared attribution
@@ -579,7 +596,8 @@ function toContentWriteEvent(
     // through an agent_connection replica storing 'web' while being no browser, and the AI chat
     // through an ai_chat replica whose hardcoded 'web' describes no device either.
     // toWorkspaceReplicaPlatform is what keeps that rule, so the machine API resolves to agent from
-    // its actor kind rather than from that column, and the AI chat resolves to nothing at all.
+    // its actor kind rather than from that column, and the AI chat takes the device its chat run
+    // declared (see emitCollectedContentWrites).
     //
     // Null stays the answer for everything the resolution cannot justify - a replica the guard turns
     // down, a replica the scoped read did not reach, a resolution the drain could not make - because
@@ -735,6 +753,8 @@ async function emitCollectedContentWrites(
   // what the writing was. Only the workspace-package import declares one today.
   const declaredSource = declaredContentCreationSources.get(executor) ?? null;
   declaredContentCreationSources.delete(executor);
+  const aiChatClient = declaredContentWriteAiChatClients.get(executor) ?? null;
+  declaredContentWriteAiChatClients.delete(executor);
   // The server timestamp every event of this drain carries. The drain's stop clock is no longer read
   // here: it belongs to the request rather than to this drain, so it is the budget's.
   const recordedAt = new Date();
@@ -758,13 +778,16 @@ async function emitCollectedContentWrites(
     budget,
     (write) => {
       const attribution = attributionByReplicaId.get(write.replicaId);
+      // An ai_chat replica's platform column describes no device, so its writes take the chat
+      // run's device instead, as ./reviewAnswers.ts does for chat reviews.
+      const isAiChat = attribution?.source === "ai_chat";
       return toContentWriteEvent(
         write,
         actorUserId,
         recordedAt,
-        attribution?.platform ?? null,
-        attribution?.osName ?? null,
-        attribution?.deviceType ?? null,
+        isAiChat ? (aiChatClient?.platform ?? null) : (attribution?.platform ?? null),
+        isAiChat ? (aiChatClient?.osName ?? null) : (attribution?.osName ?? null),
+        isAiChat ? (aiChatClient?.deviceType ?? null) : (attribution?.deviceType ?? null),
         declaredSource ?? attribution?.source ?? null,
       );
     },

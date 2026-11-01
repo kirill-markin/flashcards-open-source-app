@@ -217,10 +217,7 @@ async function recordGuestUpgradeCompletedAnalytics(
       guestSessionId: completion.guestSessionId,
       workspaceId: completion.targetWorkspaceId,
       anonymousId: null,
-      // auth.guest_sessions.platform would supply this from a server-stored source, but this path
-      // does not read the session row and reporting the platform of upgrades is not what this change
-      // is for; a producer that starts reading it may fill this in.
-      platform: null,
+      platform: completion.guestPlatform,
       osName: null,
       deviceType: null,
       properties: {},
