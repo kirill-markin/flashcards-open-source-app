@@ -111,6 +111,9 @@ struct CardsScreen: View {
     @State private var cardsLoadErrorMessage: String = ""
     @State private var cardsSnapshot: CardsListSnapshot = CardsListSnapshot(cards: [], totalCount: 0)
     @State private var availableTagSuggestions: [TagSuggestion] = []
+    /// Workspace data the tag suggestions were read from. Only typing a query reuses them;
+    /// appearing, clearing search and closing the editor read them again.
+    @State private var tagSuggestionsSourceKey: String?
     @State private var isLoading: Bool = true
 
     private var activeFilterDimensionCount: Int {
@@ -212,6 +215,7 @@ struct CardsScreen: View {
             }
         }
         .onAppear {
+            self.tagSuggestionsSourceKey = nil
             self.handleCardsPresentationRequest(request: navigation.cardsPresentationRequest)
         }
         .onChange(of: navigation.cardsPresentationRequest) { _, request in
@@ -683,6 +687,7 @@ struct CardsScreen: View {
     }
 
     private func finishCardEditorSession() {
+        self.tagSuggestionsSourceKey = nil
         self.cardFormState.navigationPath = NavigationPath()
         self.cardFormState.editorSessionId = UUID()
         self.cardFormState.mediaAssetIdsReadyForUpload = []
@@ -715,6 +720,7 @@ struct CardsScreen: View {
             self.cardsLoadErrorMessage = ""
             self.cardsSnapshot = CardsListSnapshot(cards: [], totalCount: 0)
             self.availableTagSuggestions = []
+            self.tagSuggestionsSourceKey = nil
             self.isLoading = false
             return
         }
@@ -731,14 +737,18 @@ struct CardsScreen: View {
                 filter: self.committedFilter
             )
             self.reconcileEditingCardFormState()
-            let tagsSummary = try database.loadWorkspaceTagsSummary(workspaceId: workspaceId)
-            self.cardsLoadErrorMessage = ""
-            self.availableTagSuggestions = tagsSummary.tags.map { tagSummary in
-                TagSuggestion(
-                    tag: tagSummary.tag,
-                    countState: .ready(cardsCount: tagSummary.cardsCount)
-                )
+            let tagSourceKey = "\(workspaceId)|\(store.localReadVersion)"
+            if self.tagSuggestionsSourceKey != tagSourceKey || self.searchText.isEmpty {
+                let tagsSummary = try database.loadWorkspaceTagsSummary(workspaceId: workspaceId)
+                self.availableTagSuggestions = tagsSummary.tags.map { tagSummary in
+                    TagSuggestion(
+                        tag: tagSummary.tag,
+                        countState: .ready(cardsCount: tagSummary.cardsCount)
+                    )
+                }
+                self.tagSuggestionsSourceKey = tagSourceKey
             }
+            self.cardsLoadErrorMessage = ""
         } catch {
             self.screenErrorMessage = ""
             self.cardsLoadErrorMessage = localizedCardsLoadFailedMessage()
