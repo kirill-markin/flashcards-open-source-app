@@ -370,7 +370,7 @@ extension FlashcardsStore {
             // those awaits and cannot re-gate them, so the cancel has to be re-read right here.
             // This one check also covers `finishCloudLink` below, which nothing suspends before.
             try Task.checkCancellation()
-            try self.cloudRuntime.saveCredentials(credentials: linkContext.credentials)
+            try self.saveSignInCredentials(credentials: linkContext.credentials)
             let configuration = try self.currentCloudServiceConfiguration()
             let linkedSession = CloudLinkedSession(
                 userId: linkContext.userId,
@@ -593,10 +593,10 @@ extension FlashcardsStore {
         let storedCredentials = try self.cloudRuntime.loadCredentials()
         if let storedCredentials {
             if storedCredentials.refreshToken != linkContextCredentials.refreshToken {
-                try self.cloudRuntime.saveCredentials(credentials: linkContextCredentials)
+                try self.saveSignInCredentials(credentials: linkContextCredentials)
             }
         } else {
-            try self.cloudRuntime.saveCredentials(credentials: linkContextCredentials)
+            try self.saveSignInCredentials(credentials: linkContextCredentials)
         }
 
         return try await self.cloudRuntime.refreshCloudCredentials(
