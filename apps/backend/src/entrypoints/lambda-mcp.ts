@@ -318,7 +318,7 @@ async function handleMcpTransportRequest(
   // Every tool the request runs, in call order, with its serialized arguments.
   // The last one is what the record names, so a batched request still produces
   // exactly one record.
-  const invokedTools: Array<Readonly<{ toolName: string; toolCallArguments: string }>> = [];
+  const invokedTools: Array<Readonly<{ toolName: string; toolCallArguments: string | null }>> = [];
   // Every outcome a handler reports, kept and chosen the same way.
   const toolOutcomes: Array<McpToolOutcome> = [];
   const server = createMcpServer(
