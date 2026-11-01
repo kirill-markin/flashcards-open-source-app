@@ -1076,7 +1076,7 @@ const hiCatalog: TranslationCatalog = {
       createWithAi: "AI से बनाएँ",
       edit: "संपादित करें",
       retry: "फिर से कोशिश करें",
-      revealAnswer: "उत्तर दिखाएँ",
+      revealAnswer: "उत्तर दिखाएं",
       switchToAllCards: "सभी कार्ड डेक पर जाएँ",
     },
     aiOpenAriaLabel: "AI चैट में कार्ड खोलें: {{side}}",

@@ -1076,7 +1076,7 @@ const koCatalog: TranslationCatalog = {
       createWithAi: "AI로 만들기",
       edit: "편집",
       retry: "다시 시도",
-      revealAnswer: "정답 보기",
+      revealAnswer: "답 보기",
       switchToAllCards: "모든 카드 덱으로 전환",
     },
     aiOpenAriaLabel: "{{side}} 카드를 AI 채팅에서 열기",
