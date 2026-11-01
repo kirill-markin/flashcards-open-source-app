@@ -56,6 +56,9 @@ export type GuestUpgradeCompletion = Readonly<{
   // The guest identity that was upgraded. The caller needs it after the transaction commits to
   // record the conversion and to link the guest's earlier analytics events to the account.
   guestUserId: string;
+  // Null on a replay: the merge path deletes the guest session row, and the history row does not
+  // keep its platform.
+  guestPlatform: GuestSessionPlatform | null;
   targetSubjectUserId: string;
   targetUserId: string;
   targetWorkspaceId: string;

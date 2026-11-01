@@ -11,7 +11,7 @@
 import { randomBytes } from "node:crypto";
 import type { LoginPageLocale } from "../../routes/browser/loginPageLocale.js";
 
-export type AuthAnalyticsSurface = "signin" | "settings";
+export type AuthAnalyticsSurface = "signin" | "oauth_consent" | "settings";
 
 export type AuthAnalyticsEventName =
   | "screen_viewed"
@@ -179,11 +179,13 @@ export type AuthAnalyticsWireEvent = Readonly<{
   uiLocale: LoginPageLocale | null;
   // `screen` carries two readings in the server catalog and this producer sends both, so the two are
   // never collapsed here. On `screen_viewed`, `signin_code_requested` and `signin_succeeded` it is
-  // the ordinary reading — where the person is — which is the sign-in screen itself. On
-  // `signin_failed` it is the entry point: the surface that owned the sign-in control the person
-  // tapped, and the catalog's surface comment forbids `signin` there. This origin is reached by a
+  // the ordinary reading — where the person is — which is the sign-in screen itself, or the OAuth
+  // consent page when the request carries that page's marker. On `signin_failed` it is the entry
+  // point: the surface that owned the sign-in control the person tapped, and the catalog's surface
+  // comment forbids `signin` there. The login page is reached by a
   // redirect from a client that names no surface, so it cannot know the entry point, and the same
-  // comment says a sign-in that cannot be attributed to one reports no `screen` at all. That is why
+  // comment says a sign-in that cannot be attributed to one reports no `screen` at all; the OAuth
+  // consent page owns its sign-in control, so its failures carry `oauth_consent`. That is why
   // the catalog gives `signin_failed` `requiresScreen: false` while the other three require a
   // surface, and why a funnel must not read the three screens the same way.
   screen: AuthAnalyticsSurface | null;
@@ -282,42 +284,6 @@ export function createSignInScreenViewedEvent(
   );
 }
 
-export function createSignInCodeRequestedEvent(
-  anonymousId: string,
-  nowMs: number,
-  uiLocale: LoginPageLocale | null,
-): AuthAnalyticsWireEvent {
-  return createAuthAnalyticsEvent(
-    { eventName: "signin_code_requested", screen: "signin", properties: null },
-    anonymousId,
-    nowMs,
-    uiLocale,
-  );
-}
-
-export function createSignInSucceededEvent(
-  anonymousId: string,
-  nowMs: number,
-  uiLocale: LoginPageLocale | null,
-): AuthAnalyticsWireEvent {
-  return createAuthAnalyticsEvent(
-    { eventName: "signin_succeeded", screen: "signin", properties: null },
-    anonymousId,
-    nowMs,
-    uiLocale,
-  );
-}
-
-/** The reason is fixed when the branch that refused the sign-in is taken, not when the event is sent. */
-export function createSignInFailedEventFactory(reason: AuthSignInFailureReason): AuthAnalyticsEventFactory {
-  return (anonymousId, nowMs, uiLocale) => createAuthAnalyticsEvent(
-    { eventName: "signin_failed", screen: null, properties: { reason } },
-    anonymousId,
-    nowMs,
-    uiLocale,
-  );
-}
-
 function buildAuthAnalyticsFactProperties(fact: AuthAnalyticsFact): AuthAnalyticsEventProperties {
   switch (fact.eventName) {
     case "auth_account_connection":
@@ -380,6 +346,7 @@ export function createSignInSucceededWithMethodEventFactory(
   );
 }
 
+/** The reason is fixed when the branch that refused the sign-in is taken, not when the event is sent. */
 export function createSignInFailedWithMethodEventFactory(
   method: AuthAnalyticsMethod,
   reason: AuthSignInFailureReason,

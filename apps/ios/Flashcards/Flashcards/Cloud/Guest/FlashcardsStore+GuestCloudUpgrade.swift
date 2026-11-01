@@ -54,7 +54,7 @@ extension FlashcardsStore {
                     throw LocalStoreError.validation(localizedCloudCredentialRecoveryInterruptedUpgradeAccountMessage())
                 }
                 if pendingState.requiresCompletion {
-                    try self.cloudRuntime.saveCredentials(credentials: linkContext.credentials)
+                    try self.saveSignInCredentials(credentials: linkContext.credentials)
                     return try await self.performPendingGuestUpgradeResume(trigger: trigger)
                 }
                 guard linkContext.demoOnlyDestinationWorkspaceId == nil,
@@ -89,7 +89,7 @@ extension FlashcardsStore {
                 )
                 try await self.flushGuestAIConsentBeforeUpgrade(guest: guestSession)
                 try Task.checkCancellation()
-                try self.cloudRuntime.saveCredentials(credentials: linkContext.credentials)
+                try self.saveSignInCredentials(credentials: linkContext.credentials)
                 let inFlightState = try pendingGuestUpgradeInFlightState(
                     linkContext: linkContext,
                     configuration: configuration,
@@ -301,7 +301,7 @@ extension FlashcardsStore {
             return nil
         }
 
-        try self.cloudRuntime.saveCredentials(credentials: linkContext.credentials)
+        try self.saveSignInCredentials(credentials: linkContext.credentials)
         try await self.finalizePendingGuestUpgradeCompletion(
             state: completedState,
             trigger: trigger
