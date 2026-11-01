@@ -8,6 +8,7 @@
   container-type: inline-size;
   container-name: review-screen;
   grid-template-rows: auto minmax(0, 1fr);
+  row-gap: var(--screen-head-top-spacing);
   height: var(--review-screen-panel-height);
   min-height: var(--review-screen-panel-height);
   max-height: var(--review-screen-panel-height);
@@ -18,13 +19,16 @@
   --review-screen-panel-height: 100%;
 }
 
+/* The panes' top padding is transparent; rising by it leaves the panel row gap as the visible gap below the head. */
 .review-layout {
+  --review-pane-padding: 12px;
   display: grid;
   grid-template-columns: minmax(0, calc((100% - 10px) * 0.6));
   gap: 10px;
   align-items: stretch;
   justify-content: center;
   min-height: 0;
+  margin-block-start: calc(-1 * var(--review-pane-padding));
 }
 
 .review-layout-queue-open {

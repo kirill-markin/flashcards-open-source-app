@@ -1,6 +1,5 @@
 .review-pane,
 .review-queue-panel {
-  --review-pane-padding: 12px;
   --review-pane-radius: var(--panel-inner-radius, var(--radius-lg));
   --review-pane-inner-radius: calc(var(--review-pane-radius) / 2);
   --review-card-radius: var(--panel-inner-radius, var(--radius-lg));
