@@ -45,7 +45,7 @@ Run these checks on the supported iOS target after obtaining a development build
    Healthy playback, pending loading, replacement, navigation, Low Power,
    Reduce Motion and memory-warning cancellation must create breadcrumbs only.
    Confirm ios.review_reactions contains a start and at most one terminal
-   breadcrumb per played reaction, with no frame-level entries or card text/email.
+   breadcrumb per played reaction, with no frame-level entries.
 
 Lottie's automatic rendering engine remains enabled. Completion interruption
 and bounded cleanup timeout are cancellation breadcrumbs, not proof of a
