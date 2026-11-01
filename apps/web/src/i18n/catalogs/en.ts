@@ -1528,7 +1528,9 @@ const enCatalog = {
   },
   chatMessageContent: {
     card: "Card",
+    copied: "Copied.",
     copy: "Copy",
+    copying: "Copying...",
     failedToCopy: "Failed to copy {{section}}.",
     id: "ID {{value}}",
     imageAttached: "[image attached]",

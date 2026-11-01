@@ -1529,7 +1529,9 @@ const deCatalog: TranslationCatalog = {
   },
   chatMessageContent: {
     card: "Karte",
+    copied: "Kopiert.",
     copy: "Kopieren",
+    copying: "Wird kopiert...",
     failedToCopy: "{{section}} konnte nicht kopiert werden.",
     id: "ID {{value}}",
     imageAttached: "[Bild angehängt]",

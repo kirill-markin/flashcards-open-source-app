@@ -1531,7 +1531,9 @@ const hiCatalog: TranslationCatalog = {
   },
   chatMessageContent: {
     card: "कार्ड",
+    copied: "कॉपी हो गया।",
     copy: "कॉपी करें",
+    copying: "कॉपी हो रहा है...",
     failedToCopy: "{{section}} कॉपी नहीं हो पाया।",
     id: "ID {{value}}",
     imageAttached: "[छवि संलग्न]",

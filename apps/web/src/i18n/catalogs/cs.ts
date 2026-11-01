@@ -1544,7 +1544,9 @@ const csCatalog: TranslationCatalog = {
   },
   chatMessageContent: {
     card: "Kartička",
+    copied: "Zkopírováno.",
     copy: "Kopírovat",
+    copying: "Kopírování...",
     failedToCopy: "Nepodařilo se zkopírovat: {{section}}.",
     id: "ID {{value}}",
     imageAttached: "[obrázek přiložen]",
