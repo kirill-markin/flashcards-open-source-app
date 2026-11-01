@@ -1529,7 +1529,9 @@ const heCatalog: TranslationCatalog = {
   },
   chatMessageContent: {
     card: "כרטיס",
+    copied: "הועתק.",
     copy: "העתקה",
+    copying: "מעתיק...",
     failedToCopy: "ההעתקה של {{section}} נכשלה.",
     id: "מזהה {{value}}",
     imageAttached: "[תמונה מצורפת]",

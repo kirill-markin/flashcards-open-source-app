@@ -1529,7 +1529,9 @@ export const zhHansCatalog = {
   },
   chatMessageContent: {
     card: "卡片",
+    copied: "已复制。",
     copy: "复制",
+    copying: "正在复制...",
     failedToCopy: "无法复制 {{section}}。",
     id: "ID {{value}}",
     imageAttached: "[已附加图片]",

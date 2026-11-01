@@ -1529,7 +1529,9 @@ const teCatalog: TranslationCatalog = {
   },
   chatMessageContent: {
     card: "కార్డు",
+    copied: "కాపీ అయింది.",
     copy: "కాపీ చేయి",
+    copying: "కాపీ చేస్తోంది...",
     failedToCopy: "{{section}} కాపీ చేయలేకపోయాము.",
     id: "ID {{value}}",
     imageAttached: "[చిత్రం జోడించబడింది]",

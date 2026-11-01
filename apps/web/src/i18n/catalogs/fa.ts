@@ -1529,7 +1529,9 @@ const faCatalog: TranslationCatalog = {
   },
   chatMessageContent: {
     card: "کارت",
+    copied: "کپی شد.",
     copy: "کپی",
+    copying: "در حال کپی...",
     failedToCopy: "کپی {{section}} ناموفق بود.",
     id: "شناسه {{value}}",
     imageAttached: "[تصویر پیوست شد]",

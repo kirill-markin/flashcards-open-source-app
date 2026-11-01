@@ -1559,7 +1559,9 @@ const slCatalog: TranslationCatalog = {
   },
   chatMessageContent: {
     card: "Kartica",
+    copied: "Kopirano.",
     copy: "Kopiraj",
+    copying: "Kopiranje ...",
     failedToCopy: "Kopiranje ni uspelo: {{section}}.",
     id: "ID {{value}}",
     imageAttached: "[priložena slika]",
