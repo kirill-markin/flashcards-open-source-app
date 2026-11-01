@@ -59,7 +59,7 @@ export function renderAuthMethods(locale: LoginPageLocale): string {
       <input type="hidden" name="redirect_uri" value="">
       <input type="hidden" name="locale" value="${locale}">
       <input type="hidden" name="ui_locale" value="${locale}">
-      <input type="hidden" name="screen" value="signin" disabled>
+      <input type="hidden" name="screen" value="" disabled>
       <button id="signin-${provider}" class="auth-method auth-${provider}" type="submit">
         ${provider === "google" ? googleIcon : appleIcon}<span>${copy[provider]}</span>
       </button>
@@ -90,7 +90,8 @@ export const authEntryScript = `
     configureBrowserHints();
     stepMethods.querySelectorAll(".auth-provider-form").forEach(function(form) {
       form.elements.redirect_uri.value = returnUri;
-      form.elements.screen.disabled = analyticsScreen !== "signin" || collectionDisabled;
+      form.elements.screen.value = analyticsScreen;
+      form.elements.screen.disabled = collectionDisabled;
       form.addEventListener("submit", function() {
         var method = form.querySelector("button").id === "signin-google" ? "google" : "apple";
         authFact("auth_method_selected", method);

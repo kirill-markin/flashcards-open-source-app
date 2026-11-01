@@ -189,7 +189,7 @@ async function providerCallback(c: Context<AuthAppEnv>): Promise<Response> {
     const nonce = randomBytes(32).toString("base64url");
     protectBrowserDocument(c, nonce);
     const restartUri = state.intent === "login"
-      ? `/api/social/${state.provider}/start?${new URLSearchParams({ client: "web", redirect_uri: state.redirectUri, ...(state.locale === undefined ? {} : { locale: state.locale }), ...(state.analytics.screen === "signin" ? { screen: "signin", ui_locale: state.analytics.uiLocale ?? "" } : {}) })}`
+      ? `/api/social/${state.provider}/start?${new URLSearchParams({ client: "web", redirect_uri: state.redirectUri, ...(state.locale === undefined ? {} : { locale: state.locale }), ...(state.analytics.screen === "signin" || state.analytics.screen === "oauth_consent" ? { screen: state.analytics.screen, ui_locale: state.analytics.uiLocale ?? "" } : {}) })}`
       : managementReturnUri(state, "account_method_cancelled", "AUTH_ATTEMPT_RESTART_REQUIRED");
     return c.html(renderBrowserMailboxContinuation({ csrfToken: continuation.state,
       providerEmail: result.enrollment.providerEmail, expiresAt: state.expiresAt, restartUri,

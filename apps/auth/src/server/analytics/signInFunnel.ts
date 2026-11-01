@@ -47,6 +47,7 @@ import {
   createSignInFailedWithMethodEventFactory,
   createSignInScreenViewedEvent,
   type AuthAnalyticsEventFactory,
+  type AuthAnalyticsSurface,
   type AuthSignInFailureReason,
 } from "./catalog.js";
 import { postAnonymousAnalyticsEvent, type AuthAnalyticsCall } from "./client.js";
@@ -104,10 +105,11 @@ import {
 const analyticsReportBudgetMs = 150;
 
 /**
- * The login page marks its own calls with this, and it is what makes these events mean what they
- * claim. Every route instrumented here is shared with callers that are not sign-in funnel entries,
- * and the visitor cookie cannot tell them apart: it is the product domain's, so every browser that
- * holds one carries it onto all of them.
+ * The login page and the OAuth consent page mark their own calls with a `screen` query naming their
+ * surface, and that marker is what makes these events mean what they claim. Every route instrumented
+ * here is shared with callers that are not sign-in funnel entries, and the visitor cookie cannot tell
+ * them apart: it is the product domain's, so every browser that holds one carries it onto all of
+ * them.
  *
  *   `POST /api/refresh-session` has four callers, and a 401 means something different to each: the
  *   login page shows the sign-in form; the OAuth consent page shows its own form to agent and MCP
@@ -116,7 +118,7 @@ const analyticsReportBudgetMs = 150;
  *   operator. Only the first is a funnel entry.
  *
  *   `POST /api/send-code` and `POST /api/verify-code` have two browser callers, `templates/login.ts`
- *   and the OAuth consent page in `templates/authorize.ts`.
+ *   and the OAuth consent page in `templates/authorize.ts`, each marking its own surface.
  *
  *   Both routes have two non-browser callers as well, and they are listed because the marker is what
  *   a later change is checked against, not because either can be counted today. The iOS client
@@ -128,7 +130,16 @@ const analyticsReportBudgetMs = 150;
  *   under `scripts/checks/` call both routes too, and are excluded the same way.
  *
  */
-const signInScreenMarker = "signin";
+function readAuthAnalyticsScreen(marker: string | undefined): AuthAnalyticsSurface | null {
+  switch (marker) {
+    case "signin":
+    case "oauth_consent":
+    case "settings":
+      return marker;
+    default:
+      return null;
+  }
+}
 
 function logReportFailure(c: Context<AuthAppEnv>, errorMessage: string, failed: number | undefined): void {
   logWarning({
@@ -267,7 +278,10 @@ async function reportSignInFunnelEvents(
         const event = createEvent(anonymousId, occurredAt, context.uiLocale);
         if (context.screen === "settings" && !event.eventName.startsWith("auth_")) return Promise.resolve();
         return postAnonymousAnalyticsEvent(createReportCall(c, userAgent, remaining),
-          { ...event, screen: event.eventName.startsWith("auth_") ? context.screen : event.screen,
+          // The factories' `signin` names whichever sign-in surface marked this request. The consent
+          // page is also its own `signin_failed` entry point; the login page's stays unattributed.
+          { ...event, screen: event.eventName.startsWith("auth_") || event.screen === "signin"
+            || (event.eventName === "signin_failed" && context.screen === "oauth_consent") ? context.screen : event.screen,
             clientSentAt: new Date().toISOString() });
       }));
     } finally {
@@ -325,10 +339,10 @@ export async function reportAuthFact(c: Context<AuthAppEnv>, fact: AuthAnalytics
   await reportSignInFunnelEvent(c, createAuthAnalyticsFactEventFactory(fact));
 }
 
-export type AuthAnalyticsContext = Readonly<{ screen: "signin" | "settings" | null; uiLocale: LoginPageLocale | null }>;
+export type AuthAnalyticsContext = Readonly<{ screen: AuthAnalyticsSurface | null; uiLocale: LoginPageLocale | null }>;
 
 export function readAuthAnalyticsContext(c: Context<AuthAppEnv>): AuthAnalyticsContext {
-  return { screen: c.req.query("screen") === signInScreenMarker ? "signin" : c.req.query("screen") === "settings" ? "settings" : null,
+  return { screen: readAuthAnalyticsScreen(c.req.query("screen")),
     uiLocale: normalizeSupportedLoginPageLocale(c.req.query("ui_locale") ?? "") };
 }
 
