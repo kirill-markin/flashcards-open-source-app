@@ -22,6 +22,8 @@ enum ReviewRenderedContent {
     case paragraphPlain(String)
     case markdown(MarkdownContent)
     case managedMarkdown(ReviewManagedMarkdownContent)
+    /// Native text surfaces keep their literal prose and render only accepted math.
+    case mathText([ReviewMathBlock])
 }
 
 struct ReviewManagedMarkdownContent {

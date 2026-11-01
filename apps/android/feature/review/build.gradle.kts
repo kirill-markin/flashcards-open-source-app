@@ -47,7 +47,6 @@ dependencies {
     implementation(libs.markdown.renderer)
     implementation(libs.markdown.renderer.m3)
     implementation(libs.markdown.renderer.coil3)
-    implementation(libs.ratex.android)
 
     testImplementation(libs.junit4)
 }

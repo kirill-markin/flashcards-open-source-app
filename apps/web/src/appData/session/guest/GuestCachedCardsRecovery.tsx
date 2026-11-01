@@ -1,5 +1,6 @@
 import { useEffect, useState, type ReactElement } from "react";
 import { useI18n } from "../../../i18n";
+import { MathText } from "../../../components/MathText";
 import { loadAllActiveCardsForSql } from "../../../localDb/cards/cards";
 import { normalizeCaughtError } from "../../../observability/webObservability";
 import type { Card } from "../../../types";
@@ -58,9 +59,9 @@ export function GuestCachedCardsRecovery(props: Props): ReactElement {
         {cards.map((card) => (
           <article className="panel" key={card.cardId} data-testid="guest-cached-card">
             <h2>{t("cardsScreen.table.front")}</h2>
-            <pre style={{ whiteSpace: "pre-wrap", overflowWrap: "anywhere" }}>{card.frontText}</pre>
+            <div style={{ whiteSpace: "pre-wrap", overflowWrap: "anywhere" }}><MathText text={card.frontText} /></div>
             <h2>{t("cardsScreen.table.back")}</h2>
-            <pre style={{ whiteSpace: "pre-wrap", overflowWrap: "anywhere" }}>{card.backText}</pre>
+            <div style={{ whiteSpace: "pre-wrap", overflowWrap: "anywhere" }}><MathText text={card.backText} /></div>
           </article>
         ))}
       </section>

@@ -366,13 +366,17 @@ struct ReviewMarkdownText: View {
 struct ReviewMathFormulaView: View {
     let formula: ReviewFormulaContent
     let surfaceStyle: ReviewCardSurfaceStyle
+    var textFontSize: CGFloat? = nil
+    var textColor: Color? = nil
 
     @ScaledMetric(relativeTo: .body) private var formulaFontSize: CGFloat = 18
     #if targetEnvironment(macCatalyst)
     @State private var rendering: MacReviewFormulaState
 
-    init(formula: ReviewFormulaContent, surfaceStyle: ReviewCardSurfaceStyle) {
+    init(formula: ReviewFormulaContent, surfaceStyle: ReviewCardSurfaceStyle, textFontSize: CGFloat? = nil, textColor: Color? = nil) {
         self.init(formula: formula, surfaceStyle: surfaceStyle, rendering: MacReviewFormulaState())
+        self.textFontSize = textFontSize
+        self.textColor = textColor
     }
 
     init(formula: ReviewFormulaContent, surfaceStyle: ReviewCardSurfaceStyle, rendering: MacReviewFormulaState) {
@@ -401,8 +405,8 @@ struct ReviewMathFormulaView: View {
             if self.renderFailed {
                 VStack(alignment: .leading, spacing: 6) {
                     Text(self.formula.originalSource)
-                        .font(.body.monospaced())
-                        .foregroundStyle(reviewMarkdownTextColor(surfaceStyle: self.surfaceStyle))
+                        .font(self.textFontSize.map { .system(size: $0, design: .monospaced) } ?? .body.monospaced())
+                        .foregroundStyle(self.textColor ?? reviewMarkdownTextColor(surfaceStyle: self.surfaceStyle))
                         .fixedSize(horizontal: false, vertical: true)
 
                     Label(
@@ -419,9 +423,9 @@ struct ReviewMathFormulaView: View {
                 ScrollView(.horizontal, showsIndicators: false) {
                     RaTeXFormula(
                         latex: self.formula.latex,
-                        fontSize: self.formulaFontSize,
+                        fontSize: self.textFontSize ?? self.formulaFontSize,
                         displayMode: true,
-                        color: reviewMathFormulaColor,
+                        color: self.textColor ?? reviewMathFormulaColor,
                         onError: { error in
                             reviewMathFormulaLogger.error(
                                 "Review formula rendering failed. latex=\(self.formula.latex, privacy: .private(mask: .hash)) error=\(error.localizedDescription, privacy: .public)"

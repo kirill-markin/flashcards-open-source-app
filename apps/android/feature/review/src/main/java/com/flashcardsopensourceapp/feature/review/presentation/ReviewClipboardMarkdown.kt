@@ -1,5 +1,7 @@
 package com.flashcardsopensourceapp.feature.review
 
+import com.flashcardsopensourceapp.core.ui.content.MathBlock
+import com.flashcardsopensourceapp.core.ui.content.extractMathBlocks
 import com.flashcardsopensourceapp.data.local.model.media.parseManagedMediaReference
 import org.intellij.markdown.MarkdownElementTypes
 import org.intellij.markdown.ast.ASTNode
@@ -15,10 +17,10 @@ internal fun reviewSideMarkdownForClipboard(
 ): String {
     // Mask accepted math without changing source offsets or normalizing escaped dollars.
     val mediaMarkdown: CharSequence = buildString(capacity = sourceText.length) {
-        extractReviewMathBlocks(markdown = sourceText).blocks.forEach { block ->
+        extractMathBlocks(markdown = sourceText).blocks.forEach { block ->
             when (block) {
-                is ReviewMathBlock.Markdown -> append(block.markdown)
-                is ReviewMathBlock.Formula -> block.delimitedSource.forEach { character ->
+                is MathBlock.Markdown -> append(block.markdown)
+                is MathBlock.Formula -> block.delimitedSource.forEach { character ->
                     append(if (character == '\r' || character == '\n') character else ' ')
                 }
             }

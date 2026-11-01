@@ -1,4 +1,5 @@
 .chat-msg {
+  min-width: 0;
   --chat-msg-padding-block: 11px;
   --chat-msg-radius: var(--radius-md);
   --chat-msg-inner-radius: calc(var(--chat-msg-radius) / 2);
@@ -23,6 +24,15 @@
   align-self: flex-start;
   background: var(--surface-elevated);
   border-color: transparent;
+}
+
+.chat-message-copy {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+  color: var(--text-secondary);
+  font-size: 12px;
 }
 
 .chat-streaming-indicator {
