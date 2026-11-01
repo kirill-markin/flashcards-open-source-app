@@ -2,6 +2,54 @@ import Foundation
 import XCTest
 
 extension LiveSmokeTestCase {
+    #if targetEnvironment(macCatalyst)
+    @MainActor
+    func macReviewStatusButtons(timeout: TimeInterval) throws -> (leaderboard: XCUIElement, streak: XCUIElement) {
+        // NSToolbarItemGroup's momentary factory exposes numeric Button labels,
+        // empty system-owned identifiers, and action descriptions only as AX Help.
+        // Identify its native container, then retain the factory's action order.
+        let deadline = Date().addingTimeInterval(timeout)
+        var matches: [(window: XCUIElement, toolbar: XCUIElement, group: XCUIElement)] = []
+        repeat {
+            matches = self.app.windows.allElementsBoundByIndex.flatMap { window in
+                window.children(matching: .toolbar).allElementsBoundByIndex.flatMap { toolbar in
+                    toolbar.children(matching: .any).allElementsBoundByIndex.compactMap { group -> (window: XCUIElement, toolbar: XCUIElement, group: XCUIElement)? in
+                        // XCUI retains the factory's inner segmented group;
+                        // CUA's AX summary flattens that otherwise empty level.
+                        guard group.elementType == .group, group.identifier.isEmpty,
+                              group.descendants(matching: .button).count == 2,
+                              group.children(matching: .group).count == 1,
+                              group.children(matching: .group).firstMatch.children(matching: .button).count == 2 else { return nil }
+                        return (window: window, toolbar: toolbar, group: group)
+                    }
+                }
+            }
+            if matches.count == 1 { break }
+            RunLoop.current.run(until: Date(timeIntervalSinceNow: liveSmokeFocusPollIntervalSeconds))
+        } while Date() < deadline
+
+        let match = try XCTUnwrap(matches.count == 1 ? matches.first : nil,
+            "Expected one anonymous two-Button factory group directly in the main window's native toolbar; found \(matches.count).")
+        let buttons = match.group.descendants(matching: .button).allElementsBoundByIndex
+        let pair = try XCTUnwrap(buttons.count == 2 ? (leaderboard: buttons[0], streak: buttons[1]) : nil,
+            "Expected the native factory's two ordered Button children to remain present.")
+        for button in buttons {
+            XCTAssertEqual(button.elementType, .button)
+            XCTAssertTrue(button.identifier.isEmpty, "Factory child identifiers belong to the system.")
+            XCTAssertTrue(button.isEnabled && button.isHittable, "Native Review status buttons must accept independent clicks.")
+            XCTAssertFalse(button.frame.isEmpty)
+            XCTAssertTrue(match.group.frame.contains(button.frame))
+            XCTAssertTrue(match.toolbar.frame.contains(button.frame))
+            XCTAssertTrue(match.window.frame.contains(button.frame))
+        }
+        XCTAssertEqual(buttons[0].frame.midY, buttons[1].frame.midY, accuracy: 1)
+        let frames = buttons.map(\.frame).sorted { $0.minX < $1.minX }
+        XCTAssertLessThanOrEqual(frames[0].maxX, frames[1].minX + 0.5,
+            "Native status buttons must have distinct, nonoverlapping hit regions.")
+        return pair
+    }
+    #endif
+
     @MainActor
     func tapButton(identifier: String, timeout: TimeInterval) throws {
         let button = self.app.buttons[identifier].firstMatch
@@ -34,7 +82,7 @@ extension LiveSmokeTestCase {
             }
 
             self.logActionStart(action: "tap_button_preserving_alerts", identifier: identifier)
-            button.tap()
+            button.clickOrTap()
             self.logActionEnd(
                 action: "tap_button_preserving_alerts",
                 identifier: identifier,
@@ -91,7 +139,16 @@ extension LiveSmokeTestCase {
             }
 
             while Date() < deadline {
-                if button.exists && button.isHittable {
+                #if targetEnvironment(macCatalyst)
+                let viewport = try self.macSettingsContentViewport(settingsList)
+                let isInsideVisibleContent = button.exists && button.frame.isEmpty == false
+                    && viewport.contains(button.frame)
+                #else
+                let navigationBar = self.app.navigationBars.firstMatch
+                let viewportTop = max(settingsList.frame.minY, navigationBar.exists ? navigationBar.frame.maxY : settingsList.frame.minY)
+                let isInsideVisibleContent = true
+                #endif
+                if button.exists && button.isHittable && isInsideVisibleContent {
                     try self.tapExistingButton(
                         button,
                         identifier: identifier,
@@ -101,8 +158,9 @@ extension LiveSmokeTestCase {
                     return
                 }
 
-                let navigationBar = self.app.navigationBars.firstMatch
-                let viewportTop = max(settingsList.frame.minY, navigationBar.exists ? navigationBar.frame.maxY : settingsList.frame.minY)
+                #if targetEnvironment(macCatalyst)
+                let viewportTop = viewport.minY
+                #endif
                 if button.exists && button.frame.isEmpty == false && button.frame.minY < viewportTop {
                     try self.scrollSettingsRootContentTowardEarlierRows(timeout: timeout)
                 } else {
@@ -154,6 +212,9 @@ extension LiveSmokeTestCase {
     func tapFirstNavigationBackButton() throws {
         var navigationBarButton = self.app.navigationBars.buttons["BackButton"].firstMatch
         let toolbarBackButton = self.app.toolbars.buttons["BackButton"].firstMatch
+        #if targetEnvironment(macCatalyst)
+        let compactToolbarBackButton = self.app.toolbars.buttons["mac.navigation.back"].firstMatch
+        #endif
         try self.runWithInlineRawScreenStateOnFailure(action: "tap_back_button.navigation.backButton") {
             #if !targetEnvironment(macCatalyst)
             if #unavailable(iOS 26.0), let source = try self.iOS18SettingsBackSource() {
@@ -186,6 +247,12 @@ extension LiveSmokeTestCase {
                     backButton = toolbarBackButton
                     break
                 }
+                #if targetEnvironment(macCatalyst)
+                if compactToolbarBackButton.exists && compactToolbarBackButton.isEnabled && compactToolbarBackButton.isHittable {
+                    backButton = compactToolbarBackButton
+                    break
+                }
+                #endif
                 RunLoop.current.run(until: Date(timeIntervalSinceNow: liveSmokeFocusPollIntervalSeconds))
             }
             self.logSmokeBreadcrumb(
@@ -347,7 +414,7 @@ extension LiveSmokeTestCase {
             )
         }
         self.logActionStart(action: "tap_back", identifier: sourceIdentifier)
-        backButton.tap()
+        backButton.clickOrTap()
         try self.assertElementDoesNotExist(identifier: sourceIdentifier, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
         try self.assertScreenVisible(screen: .settings, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
         self.logActionEnd(action: "tap_back", identifier: sourceIdentifier, result: "success", note: "native back button reached Settings")
@@ -399,7 +466,7 @@ extension LiveSmokeTestCase {
         }
 
         self.logActionStart(action: action, identifier: identifier)
-        button.tap()
+        button.clickOrTap()
         self.logActionEnd(action: action, identifier: identifier, result: "success", note: note)
     }
 
@@ -419,7 +486,19 @@ extension LiveSmokeTestCase {
         }
 
         self.logActionStart(action: action, identifier: identifier)
-        button.tap()
+        button.clickOrTap()
         self.logActionEnd(action: action, identifier: identifier, result: "success", note: note)
+    }
+}
+
+// Catalyst acceptance exercises the Mac pointer path; physical direct touch is a separate check.
+extension XCUIElement {
+    @MainActor
+    func clickOrTap() {
+        #if targetEnvironment(macCatalyst)
+        self.click()
+        #else
+        self.tap()
+        #endif
     }
 }

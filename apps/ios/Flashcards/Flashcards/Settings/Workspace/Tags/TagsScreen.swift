@@ -65,6 +65,10 @@ struct TagsScreen: View {
                                     .font(.subheadline.monospacedDigit())
                                     .foregroundStyle(.secondary)
                             }
+                            #if targetEnvironment(macCatalyst)
+                            .frame(minHeight: appMinimumTouchTarget)
+                            #endif
+                            .contentShape(Rectangle())
                         }
                         .buttonStyle(.plain)
                         .padding(.vertical, 4)
@@ -98,7 +102,20 @@ struct TagsScreen: View {
             }
         }
         .listStyle(.insetGrouped)
-        .navigationTitle(aiSettingsLocalized("settings.workspace.row.tags", "Tags"))
+        .nativeNavigationTitle(aiSettingsLocalized("settings.workspace.row.tags", "Tags"))
+        #if targetEnvironment(macCatalyst)
+        .macToolbarContribution(MacToolbarContribution(
+            tab: .settings,
+            role: .navigation,
+            search: MacToolbarSearch(
+                text: self.searchText,
+                prompt: aiSettingsLocalized("settings.workspace.tags.searchPrompt", "Search tags"),
+                focusRequest: nil,
+                onChange: { self.searchText = $0 },
+                onFocusRequestHandled: {}
+            )
+        ))
+        #else
         .searchable(
             text: self.$searchText,
             isPresented: self.$isSearchPresented,
@@ -106,6 +123,7 @@ struct TagsScreen: View {
             prompt: aiSettingsLocalized("settings.workspace.tags.searchPrompt", "Search tags")
         )
         .nativeSearchToolbar(horizontalSizeClass: self.horizontalSizeClass)
+        #endif
         .task(id: store.localReadVersion) {
             await self.reloadTagsSummary()
         }

@@ -53,7 +53,7 @@ struct AIChatSuggestionsSettingsView: View {
         }
         .listStyle(.insetGrouped)
         .accessibilityIdentifier(UITestIdentifier.aiChatSuggestionsSettingsScreen)
-        .navigationTitle(aiSettingsLocalized("settings.aiChatSuggestions.title", "AI Chat Suggestions"))
+        .nativeNavigationTitle(aiSettingsLocalized("settings.aiChatSuggestions.title", "AI Chat Suggestions"))
         .onChange(of: self.store.accountPreferencesIdentityKey) { _, _ in
             self.pendingSelection = nil
         }

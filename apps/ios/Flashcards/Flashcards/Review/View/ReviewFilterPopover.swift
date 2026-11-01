@@ -124,7 +124,7 @@ struct ReviewFilterPopover: View {
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.horizontal, reviewFilterRowHorizontalPadding)
             .padding(.vertical, reviewFilterRowVerticalPadding)
-            .frame(minHeight: 44)
+            .frame(minHeight: appMinimumTouchTarget)
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
@@ -163,7 +163,7 @@ struct ReviewFilterPopover: View {
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.horizontal, reviewFilterRowHorizontalPadding)
             .padding(.vertical, reviewFilterRowVerticalPadding)
-            .frame(minHeight: 44)
+            .frame(minHeight: appMinimumTouchTarget)
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)

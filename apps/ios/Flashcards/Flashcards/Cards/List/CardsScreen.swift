@@ -90,6 +90,7 @@ struct CardsScreen: View {
     @Environment(\.tabBarPlacement) private var tabBarPlacement
 
     @State private var editorPresentation: CardEditorPresentation? = nil
+    @State private var pendingDeletion: Card? = nil
     @State private var isFilterSheetPresented: Bool = false
     @State private var searchText: String = ""
     @State private var committedFilter: CardFilter? = nil
@@ -110,6 +111,9 @@ struct CardsScreen: View {
     @State private var cardsLoadErrorMessage: String = ""
     @State private var cardsSnapshot: CardsListSnapshot = CardsListSnapshot(cards: [], totalCount: 0)
     @State private var availableTagSuggestions: [TagSuggestion] = []
+    /// Workspace data the tag suggestions were read from. Only typing a query reuses them;
+    /// appearing, clearing search and closing the editor read them again.
+    @State private var tagSuggestionsSourceKey: String?
     @State private var isLoading: Bool = true
 
     private var activeFilterDimensionCount: Int {
@@ -133,6 +137,27 @@ struct CardsScreen: View {
 
     var body: some View {
         self.bodyContent
+        #if targetEnvironment(macCatalyst)
+        .macToolbarContribution(self.macCardsToolbar)
+        #endif
+        .confirmationDialog(
+            String(localized: "Delete card", table: reviewCardsStringsTableName),
+            isPresented: Binding(
+                get: { self.pendingDeletion != nil },
+                set: { if $0 == false { self.pendingDeletion = nil } }
+            ),
+            titleVisibility: .visible,
+            presenting: self.pendingDeletion
+        ) { card in
+            Button(String(localized: "Delete card", table: reviewCardsStringsTableName), role: .destructive) {
+                self.withCurrentCard(card) { currentCard in
+                    self.deleteCard(cardId: currentCard.cardId)
+                }
+            }
+            Button(String(localized: "Cancel", table: reviewCardsStringsTableName), role: .cancel) {}
+        } message: { card in
+            Text(card.frontText)
+        }
         .sheet(
             item: self.$editorPresentation,
             onDismiss: {
@@ -190,6 +215,7 @@ struct CardsScreen: View {
             }
         }
         .onAppear {
+            self.tagSuggestionsSourceKey = nil
             self.handleCardsPresentationRequest(request: navigation.cardsPresentationRequest)
         }
         .onChange(of: navigation.cardsPresentationRequest) { _, request in
@@ -249,6 +275,30 @@ struct CardsScreen: View {
                         }
                         .accessibilityIdentifier(UITestIdentifier.cardsCardRow)
                         .buttonStyle(.plain)
+                        .contextMenu {
+                            Button {
+                                self.withCurrentCard(card, action: self.beginEditing)
+                            } label: {
+                                Label(String(localized: "Edit card", table: reviewCardsStringsTableName), systemImage: "pencil")
+                            }
+                            Button {
+                                self.withCurrentCard(card) { currentCard in
+                                    self.navigation.openAICardHandoff(card: AIChatCardReference(
+                                        cardId: currentCard.cardId,
+                                        frontText: currentCard.frontText,
+                                        backText: currentCard.backText,
+                                        tags: currentCard.tags
+                                    ))
+                                }
+                            } label: {
+                                Label(String(localized: "Edit with AI", table: reviewCardsStringsTableName), systemImage: "sparkles")
+                            }
+                            Button(role: .destructive) {
+                                self.withCurrentCard(card) { self.pendingDeletion = $0 }
+                            } label: {
+                                Label(String(localized: "Delete card", table: reviewCardsStringsTableName), systemImage: "trash")
+                            }
+                        }
                         .swipeActions(edge: .trailing, allowsFullSwipe: false) {
                             Button(role: .destructive) {
                                 self.deleteCard(cardId: card.cardId)
@@ -264,15 +314,18 @@ struct CardsScreen: View {
         }
         .listStyle(.insetGrouped)
         .accessibilityIdentifier(UITestIdentifier.cardsScreen)
-        .navigationTitle(UIDevice.current.userInterfaceIdiom == .pad ? "" : String(localized: "Cards", table: reviewCardsStringsTableName))
+        .nativeNavigationTitle(UIDevice.current.userInterfaceIdiom == .pad ? "" : String(localized: "Cards", table: reviewCardsStringsTableName))
         .navigationBarTitleDisplayMode(UIDevice.current.userInterfaceIdiom == .pad ? .inline : .automatic)
+        #if !targetEnvironment(macCatalyst)
         .searchable(
             text: self.$searchText,
             placement: .automatic,
             prompt: String(localized: "Search cards", table: reviewCardsStringsTableName)
         )
         .nativeSearchToolbar(horizontalSizeClass: self.usesTopTabNavigation ? .compact : self.horizontalSizeClass)
+        #endif
         .toolbar {
+            #if !targetEnvironment(macCatalyst)
             AICompanionToolbarItem()
             if UIDevice.current.userInterfaceIdiom == .pad && self.usesTopTabNavigation == false && self.usesPairedCompanionToolbar == false {
                 if #available(iOS 26.0, *) {
@@ -286,50 +339,107 @@ struct CardsScreen: View {
                     }
                 }
             }
-            ToolbarItem(placement: .topBarTrailing) {
-                Button {
-                    self.beginFiltering()
-                } label: {
-                    Image(systemName: activeFilterDimensionCount == 0
-                          ? "line.3.horizontal.decrease.circle"
-                          : "line.3.horizontal.decrease.circle.fill")
-                        .foregroundStyle(Color.primary)
-                        .frame(minWidth: UIDevice.current.userInterfaceIdiom == .pad ? 30 : nil, minHeight: UIDevice.current.userInterfaceIdiom == .pad ? 30 : nil)
-                }
-                .frame(minWidth: UIDevice.current.userInterfaceIdiom == .pad ? 44 : nil, minHeight: UIDevice.current.userInterfaceIdiom == .pad ? 44 : nil)
-                .accessibilityLabel(
-                    activeFilterDimensionCount == 0
-                        ? String(localized: "Filter cards", table: reviewCardsStringsTableName)
-                        : String(
-                            format: String(localized: "Filter cards (%@ active)", table: reviewCardsStringsTableName),
-                            locale: Locale.current,
-                            activeFilterDimensionCount.formatted()
-                        )
-                )
-            }
-
-            ToolbarItem(placement: .topBarTrailing) {
-                Button {
-                    // Emitted at the intent site rather than in beginCreating(), which is also the
-                    // convergence point for a request routed here from the Review screen and would
-                    // count that one twice.
-                    Analytics.track(.cardCreateStarted(entryPoint: .cards), screen: .cards)
-                    self.beginCreating()
-                } label: {
-                    Label(String(localized: "Add card", table: reviewCardsStringsTableName), systemImage: "plus")
-                        .foregroundStyle(Color.primary)
-                        .frame(minWidth: UIDevice.current.userInterfaceIdiom == .pad ? 30 : nil, minHeight: UIDevice.current.userInterfaceIdiom == .pad ? 30 : nil)
-                }
-                .frame(minWidth: UIDevice.current.userInterfaceIdiom == .pad ? 44 : nil, minHeight: UIDevice.current.userInterfaceIdiom == .pad ? 44 : nil)
-                .tint(Color.primary)
-                .accessibilityIdentifier(UITestIdentifier.cardsAddButton)
-            }
+            ToolbarItem(placement: .topBarTrailing) { self.filterToolbarButton }
+            ToolbarItem(placement: .topBarTrailing) { self.addToolbarButton }
+            #endif
         }
 
     }
 
+    #if targetEnvironment(macCatalyst)
+    private var macCardsToolbar: MacToolbarContribution {
+        MacToolbarContribution(
+            tab: .cards,
+            trailing: [MacToolbarGroup(identifier: "nibomo.cardsActions", actions: [
+                MacToolbarAction(identifier: UITestIdentifier.cardsFilterButton, symbol: "line.3.horizontal.decrease", label: self.filterToolbarAccessibilityLabel, isSelected: self.activeFilterDimensionCount > 0, perform: { _ in self.beginFiltering() }),
+                MacToolbarAction(identifier: UITestIdentifier.cardsAddButton, symbol: "plus", label: String(localized: "Add card", table: reviewCardsStringsTableName), perform: { _ in self.beginCreatingFromToolbar() })
+            ])],
+            search: MacToolbarSearch(
+                text: self.searchText, prompt: String(localized: "Search cards", table: reviewCardsStringsTableName),
+                focusRequest: self.navigation.cardSearchFocusRequestID,
+                onChange: { self.searchText = $0 }, onFocusRequestHandled: self.navigation.clearCardSearchFocusRequest
+            )
+        )
+    }
+    #endif
+
+    private var filterToolbarButton: some View {
+        Button {
+            self.beginFiltering()
+        } label: {
+            let symbolName = self.activeFilterDimensionCount == 0 ? "line.3.horizontal.decrease.circle" : "line.3.horizontal.decrease.circle.fill"
+            let symbolColor = Color.primary
+            Image(systemName: symbolName)
+                .foregroundStyle(symbolColor)
+                .frame(minWidth: UIDevice.current.userInterfaceIdiom == .pad ? 30 : nil, minHeight: UIDevice.current.userInterfaceIdiom == .pad ? 30 : nil)
+                .contentShape(Rectangle())
+        }
+        .frame(minWidth: UIDevice.current.userInterfaceIdiom == .pad ? 44 : nil, minHeight: UIDevice.current.userInterfaceIdiom == .pad ? 44 : nil)
+        .accessibilityIdentifier(UITestIdentifier.cardsFilterButton)
+        .accessibilityLabel(self.filterToolbarAccessibilityLabel)
+    }
+
+    private var filterToolbarAccessibilityLabel: String {
+        self.activeFilterDimensionCount == 0
+                ? String(localized: "Filter cards", table: reviewCardsStringsTableName)
+                : String(
+                    format: String(localized: "Filter cards (%@ active)", table: reviewCardsStringsTableName),
+                    locale: Locale.current,
+                    activeFilterDimensionCount.formatted()
+                )
+    }
+
+    private var addToolbarButton: some View {
+        let action = self.beginCreatingFromToolbar
+        return Group {
+            Button(action: action) {
+            Label(String(localized: "Add card", table: reviewCardsStringsTableName), systemImage: "plus")
+                .foregroundStyle(Color.primary)
+                .frame(minWidth: UIDevice.current.userInterfaceIdiom == .pad ? 30 : nil, minHeight: UIDevice.current.userInterfaceIdiom == .pad ? 30 : nil)
+                .contentShape(Rectangle())
+        }
+        .frame(minWidth: UIDevice.current.userInterfaceIdiom == .pad ? 44 : nil, minHeight: UIDevice.current.userInterfaceIdiom == .pad ? 44 : nil)
+        .tint(Color.primary)
+        .accessibilityIdentifier(UITestIdentifier.cardsAddButton)
+        }
+    }
+
+    private func beginCreatingFromToolbar() {
+        // Requests routed from Review have their own intent event.
+        Analytics.track(.cardCreateStarted(entryPoint: .cards), screen: .cards)
+        self.beginCreating()
+    }
+
     private var queryReloadKey: String {
         "\(self.searchText)|\(self.committedFilter?.tags.joined(separator: ",") ?? "")|\(store.localReadVersion)"
+    }
+
+    private func withCurrentCard(_ card: Card, action: (Card) -> Void) {
+        // A presented menu/confirmation must not act on another workspace or card revision.
+        guard self.store.workspace?.workspaceId == card.workspaceId,
+              let database = self.store.database else { return }
+        do {
+            let current = try database.loadActiveCard(workspaceId: card.workspaceId, cardId: card.cardId)
+            guard current.lastOperationId == card.lastOperationId else {
+                self.showCardChangedNotice()
+                return
+            }
+            action(current)
+        } catch LocalStoreError.notFound {
+            self.showCardChangedNotice()
+        } catch {
+            self.store.presentTechnicalError(error)
+        }
+    }
+
+    private func showCardChangedNotice() {
+        self.store.enqueueTransientBanner(banner: TransientBanner(
+            id: UUID().uuidString.lowercased(),
+            message: String(localized: "cards.card_changed", table: reviewCardsStringsTableName),
+            kind: .cardChanged,
+            dismissDelayNanoseconds: transientBannerDefaultDismissDelayNanoseconds
+        ))
+        Task { await self.reloadCardsSnapshot() }
     }
 
     private func beginCreating() {
@@ -511,7 +621,11 @@ struct CardsScreen: View {
     }
 
     private func dismissCardsSearch() {
+        #if targetEnvironment(macCatalyst)
+        UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+        #else
         self.dismissSearch()
+        #endif
     }
 
     private func saveCard() {
@@ -573,6 +687,7 @@ struct CardsScreen: View {
     }
 
     private func finishCardEditorSession() {
+        self.tagSuggestionsSourceKey = nil
         self.cardFormState.navigationPath = NavigationPath()
         self.cardFormState.editorSessionId = UUID()
         self.cardFormState.mediaAssetIdsReadyForUpload = []
@@ -605,6 +720,7 @@ struct CardsScreen: View {
             self.cardsLoadErrorMessage = ""
             self.cardsSnapshot = CardsListSnapshot(cards: [], totalCount: 0)
             self.availableTagSuggestions = []
+            self.tagSuggestionsSourceKey = nil
             self.isLoading = false
             return
         }
@@ -621,14 +737,18 @@ struct CardsScreen: View {
                 filter: self.committedFilter
             )
             self.reconcileEditingCardFormState()
-            let tagsSummary = try database.loadWorkspaceTagsSummary(workspaceId: workspaceId)
-            self.cardsLoadErrorMessage = ""
-            self.availableTagSuggestions = tagsSummary.tags.map { tagSummary in
-                TagSuggestion(
-                    tag: tagSummary.tag,
-                    countState: .ready(cardsCount: tagSummary.cardsCount)
-                )
+            let tagSourceKey = "\(workspaceId)|\(store.localReadVersion)"
+            if self.tagSuggestionsSourceKey != tagSourceKey || self.searchText.isEmpty {
+                let tagsSummary = try database.loadWorkspaceTagsSummary(workspaceId: workspaceId)
+                self.availableTagSuggestions = tagsSummary.tags.map { tagSummary in
+                    TagSuggestion(
+                        tag: tagSummary.tag,
+                        countState: .ready(cardsCount: tagSummary.cardsCount)
+                    )
+                }
+                self.tagSuggestionsSourceKey = tagSourceKey
             }
+            self.cardsLoadErrorMessage = ""
         } catch {
             self.screenErrorMessage = ""
             self.cardsLoadErrorMessage = localizedCardsLoadFailedMessage()
@@ -726,7 +846,11 @@ struct CardRow: View {
         }
         .fixedSize(horizontal: false, vertical: true)
         .padding(.vertical, 4)
+        #if targetEnvironment(macCatalyst)
+        .frame(maxWidth: .infinity, minHeight: appMinimumTouchTarget, alignment: .leading)
+        #else
         .frame(maxWidth: .infinity, alignment: .leading)
+        #endif
         .contentShape(Rectangle())
     }
 

@@ -72,7 +72,7 @@ struct AgentConnectionsView: View {
             }
         }
         .listStyle(.insetGrouped)
-        .navigationTitle(aiSettingsLocalized("settings.account.agentConnections.title", "Agent Connections"))
+        .nativeNavigationTitle(aiSettingsLocalized("settings.account.agentConnections.title", "Agent Connections"))
         .task(id: store.cloudSettings?.cloudState == .linked) {
             await self.reloadAgentConnectionsIfNeeded()
         }

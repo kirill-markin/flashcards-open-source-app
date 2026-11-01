@@ -34,7 +34,29 @@ struct LocalSyncDiagnosticsView: View {
         }
         .listStyle(.insetGrouped)
         .accessibilityIdentifier(UITestIdentifier.localSyncDiagnosticsScreen)
-        .navigationTitle(aiSettingsLocalized("settings.localSyncDiagnostics.title", "Local Sync Diagnostics"))
+        .nativeNavigationTitle(aiSettingsLocalized("settings.localSyncDiagnostics.title", "Local Sync Diagnostics"))
+        #if targetEnvironment(macCatalyst)
+        .macToolbarContribution(MacToolbarContribution(
+            tab: .settings,
+            role: .navigation,
+            trailing: [MacToolbarGroup(identifier: "settings.localSyncDiagnostics.actions", actions: [
+                MacToolbarAction(
+                    identifier: "settings.localSyncDiagnostics.copy",
+                    symbol: "doc.on.doc",
+                    label: aiSettingsLocalized("settings.localSyncDiagnostics.copy", "Copy diagnostics"),
+                    isEnabled: self.snapshot != nil
+                ) { _ in self.copySnapshot() },
+                MacToolbarAction(
+                    identifier: "settings.localSyncDiagnostics.refresh",
+                    symbol: "arrow.clockwise",
+                    label: aiSettingsLocalized("settings.localSyncDiagnostics.refresh", "Refresh"),
+                    isEnabled: self.isLoading == false
+                ) { _ in
+                    Task { @MainActor in await self.reloadSnapshot() }
+                }
+            ])]
+        ))
+        #else
         .toolbar {
             ToolbarItemGroup(placement: .topBarTrailing) {
                 Button {
@@ -56,6 +78,7 @@ struct LocalSyncDiagnosticsView: View {
                 .accessibilityLabel(aiSettingsLocalized("settings.localSyncDiagnostics.refresh", "Refresh"))
             }
         }
+        #endif
         .task(id: store.workspace?.workspaceId) {
             await self.reloadSnapshot()
         }

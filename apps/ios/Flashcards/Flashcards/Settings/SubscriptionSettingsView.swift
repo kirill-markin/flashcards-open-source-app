@@ -131,7 +131,7 @@ struct SubscriptionSettingsView: View {
         }
         .listStyle(.insetGrouped)
         .accessibilityIdentifier(UITestIdentifier.subscriptionSettingsScreen)
-        .navigationTitle(aiSettingsLocalized("settings.subscription.title", "Subscription"))
+        .nativeNavigationTitle(aiSettingsLocalized("settings.subscription.title", "Subscription"))
         .task(id: self.accountPreparationAttempt) {
             self.isPreparingAccount = true
             self.accountPreparationError = nil

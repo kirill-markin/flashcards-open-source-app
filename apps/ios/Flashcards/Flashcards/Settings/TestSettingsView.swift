@@ -108,7 +108,7 @@ struct TestSettingsView: View {
         }
         .listStyle(.insetGrouped)
         .accessibilityIdentifier(UITestIdentifier.testSettingsScreen)
-        .navigationTitle(aiSettingsLocalized("settings.test.title", "Test"))
+        .nativeNavigationTitle(aiSettingsLocalized("settings.test.title", "Test"))
         .reviewHardReminderAlert(isPresented: self.$isHardReminderPreviewPresented, onOK: {})
         .reviewNotificationPrePromptAlert(
             isPresented: self.$isNotificationPrePromptPreviewPresented,
@@ -314,7 +314,7 @@ struct TestAnimationsView: View {
                 onEventFinished: self.removeFinishedReviewReactionEvent(eventId:action:reason:)
             )
         }
-        .navigationTitle(aiSettingsLocalized("settings.test.animations.title", "Animations"))
+        .nativeNavigationTitle(aiSettingsLocalized("settings.test.animations.title", "Animations"))
         .onAppear {
             self.isReviewReactionScreenVisible = true
             self.prewarmReviewReactionLottieAssets()

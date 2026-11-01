@@ -2,11 +2,16 @@ import SwiftUI
 
 extension AIChatView {
     var usesCompactCompanionToolbar: Bool {
+        #if targetEnvironment(macCatalyst)
+        self.isCompanion && self.isPresentationActive
+        #else
         self.isCompanion && self.isPresentationActive
             && UIDevice.current.userInterfaceIdiom == .pad
             && (self.companionHostTab != .review || self.tabBarPlacement == .topBar)
+        #endif
     }
 
+    #if !targetEnvironment(macCatalyst)
     private var companionNewChatToolbarPlacement: ToolbarItemPlacement {
         self.usesCompactCompanionToolbar ? .topBarLeading : .topBarTrailing
     }
@@ -46,6 +51,7 @@ extension AIChatView {
             }
         }
     }
+    #endif
 
     /// Sidebar Review and phone companions keep controls inside the inset header.
     @ViewBuilder
@@ -91,7 +97,7 @@ extension AIChatView {
             .nativeActionButtonStyle()
             .buttonBorderShape(.circle)
             .controlSize(.regular)
-            .frame(minWidth: 44, minHeight: 44)
+            .frame(minWidth: appMinimumTouchTarget, minHeight: appMinimumTouchTarget)
             .contentShape(Rectangle())
     }
 
@@ -100,6 +106,7 @@ extension AIChatView {
         let button = Button(action: self.startNewChat) {
             Label(aiSettingsLocalized("ai.newChat", "New"), systemImage: "square.and.pencil")
                 .frame(minWidth: UIDevice.current.userInterfaceIdiom == .pad ? 30 : nil, minHeight: UIDevice.current.userInterfaceIdiom == .pad ? 30 : nil)
+                .contentShape(Rectangle())
         }
         .accessibilityIdentifier(UITestIdentifier.aiNewChatButton)
         .disabled(self.isNewChatDisabled || self.chatStore.isChatInteractive == false)
@@ -110,7 +117,7 @@ extension AIChatView {
                 .tint(Color.primary)
                 .nativeActionButtonStyle()
                 .controlSize(.regular)
-                .frame(minWidth: 44, minHeight: 44)
+                .frame(minWidth: appMinimumTouchTarget, minHeight: appMinimumTouchTarget)
                 .contentShape(Rectangle())
         } else {
             button

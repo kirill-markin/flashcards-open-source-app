@@ -14,7 +14,7 @@ struct WorkspaceExportView: View {
             )
         }
         .listStyle(.insetGrouped)
-        .navigationTitle(aiSettingsLocalized("settings.workspace.row.export", "Export"))
+        .nativeNavigationTitle(aiSettingsLocalized("settings.workspace.row.export", "Export"))
         .sheet(
             item: self.$exportShareItem,
             onDismiss: {

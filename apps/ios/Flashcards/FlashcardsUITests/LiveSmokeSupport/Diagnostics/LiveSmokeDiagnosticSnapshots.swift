@@ -77,7 +77,7 @@ extension LiveSmokeTestCase {
             return "<app not running>"
         }
 
-        let alerts = self.elements(query: self.app.alerts).map { alert in
+        let alerts = self.elements(query: self.nativeAlerts).map { alert in
             let buttons = self.elements(query: alert.buttons)
                 .map(\.label)
                 .joined(separator: ", ")

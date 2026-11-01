@@ -21,7 +21,7 @@ struct DangerZoneView: View {
         }
         .listStyle(.insetGrouped)
         .accessibilityIdentifier(UITestIdentifier.dangerZoneScreen)
-        .navigationTitle(aiSettingsLocalized("settings.account.dangerZone.title", "Danger Zone"))
+        .nativeNavigationTitle(aiSettingsLocalized("settings.account.dangerZone.title", "Danger Zone"))
         .alert(aiSettingsLocalized("settings.account.dangerZone.alertTitle", "Delete this account?"), isPresented: self.$isDeleteAccountAlertPresented) {
             Button(aiSettingsLocalized("common.cancel", "Cancel"), role: .cancel) {}
             Button(aiSettingsLocalized("common.continue", "Continue"), role: .destructive) {

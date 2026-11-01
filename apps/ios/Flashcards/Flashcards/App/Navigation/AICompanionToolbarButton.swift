@@ -1,5 +1,6 @@
 import SwiftUI
 
+#if !targetEnvironment(macCatalyst)
 struct AICompanionToolbarItem: ToolbarContent {
     @Environment(AppNavigationModel.self) private var navigation
 
@@ -27,6 +28,7 @@ struct AICompanionToolbarItem: ToolbarContent {
         }
     }
 }
+#endif
 
 struct AICompanionToolbarButton: View {
     var labelMinimumSize: CGFloat? = nil
@@ -51,18 +53,21 @@ struct AICompanionToolbarButton: View {
         }
     }
 
+    @ViewBuilder
     private var button: some View {
-        Button {
+        let action = {
             withAnimation(self.reduceMotion ? nil : .smooth(duration: 0.35)) {
                 self.navigation.toggleAICompanion()
             }
-        } label: {
+        }
+        Button(action: action) {
             Label(
                 String(localized: self.navigation.isAICompanionVisible
                        ? "ai_companion.hide" : "ai_companion.show", table: "Foundation"),
                 systemImage: "bubble.left.and.bubble.right"
             )
             .frame(minWidth: self.labelMinimumSize, minHeight: self.labelMinimumSize)
+            .contentShape(Rectangle())
         }
         .accessibilityIdentifier(UITestIdentifier.aiCompanionToggle)
     }

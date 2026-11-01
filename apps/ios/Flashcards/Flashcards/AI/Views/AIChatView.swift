@@ -140,6 +140,9 @@ struct AIChatView: View {
 
     var body: some View {
         self.bodyPresentationModifiers
+            #if targetEnvironment(macCatalyst)
+            .macToolbarContribution(self.macChatToolbar)
+            #endif
     }
 
     var bodyPresentationModifiers: some View {
@@ -238,11 +241,13 @@ struct AIChatView: View {
                                 .background(.bar)
                         }
                     }
+                    #if !targetEnvironment(macCatalyst)
                     .toolbar {
                         if self.usesCompactCompanionToolbar {
                             self.companionToolbarContent
                         }
                     }
+                    #endif
             } else {
                 self.companionBody
                     .nativeTopBar(alignment: .center) {
@@ -251,13 +256,39 @@ struct AIChatView: View {
             }
         } else {
             self.bodyCommonModifiers
-                .navigationTitle(aiSettingsLocalized("ai.title", "AI"))
+                .nativeNavigationTitle(aiSettingsLocalized("ai.title", "AI"))
                 .navigationBarTitleDisplayMode(.inline)
+                #if !targetEnvironment(macCatalyst)
                 .toolbar {
                     self.toolbarContent
                 }
+                #endif
         }
     }
+
+    #if targetEnvironment(macCatalyst)
+    private var macChatToolbar: MacToolbarContribution? {
+        guard self.isPresentationActive else { return nil }
+        var actions = [MacToolbarAction(
+            identifier: UITestIdentifier.aiHistoryButton, symbol: "list.bullet",
+            label: aiSettingsLocalized("ai.history.button", "History"),
+            isEnabled: self.chatStore.dictationState == .idle,
+            perform: { _ in self.openChatHistory() }
+        )]
+        if self.accessState == .ready {
+            actions.append(MacToolbarAction(
+                identifier: UITestIdentifier.aiNewChatButton, symbol: "square.and.pencil",
+                label: aiSettingsLocalized("ai.newChat", "New"),
+                isEnabled: self.isNewChatDisabled == false && self.chatStore.isChatInteractive,
+                perform: { _ in self.startNewChat() }
+            ))
+        }
+        if self.isCompanion {
+            return MacToolbarContribution(tab: self.companionHostTab ?? self.navigation.selectedTab, role: .companion, companionActions: actions)
+        }
+        return MacToolbarContribution(tab: .ai, trailing: [MacToolbarGroup(identifier: "nibomo.aiActions", actions: actions)])
+    }
+    #endif
 
     var companionBody: some View {
         self.bodyCommonModifiers
@@ -434,6 +465,7 @@ struct AIChatView: View {
         )
     }
 
+    #if !targetEnvironment(macCatalyst)
     @ToolbarContentBuilder
     var toolbarContent: some ToolbarContent {
         ToolbarItem(placement: .topBarTrailing) {
@@ -450,16 +482,10 @@ struct AIChatView: View {
             }
         }
     }
+    #endif
 
     var historyToolbarButton: some View {
-        Button {
-            self.dismissComposerFocus()
-            // History uses the AI tab's native stack; the shared draft and study tab survive.
-            if self.isCompanion {
-                self.navigation.selectTab(.ai)
-            }
-            self.navigation.aiPath.append(AIChatHistoryListRoute())
-        } label: {
+        Button(action: self.openChatHistory) {
             Image(systemName: "list.bullet")
         }
         .accessibilityLabel(aiSettingsLocalized("ai.history.button", "History"))
@@ -467,7 +493,13 @@ struct AIChatView: View {
         .disabled(self.chatStore.dictationState != .idle)
     }
 
-    private var newChatToolbarButton: some View {
+    private func openChatHistory() {
+        self.dismissComposerFocus()
+        if self.isCompanion { self.navigation.selectTab(.ai) }
+        self.navigation.aiPath.append(AIChatHistoryListRoute())
+    }
+
+    var newChatToolbarButton: some View {
         Button(action: self.startNewChat) {
             Label(aiSettingsLocalized("ai.newChat", "New"), systemImage: "square.and.pencil")
         }
@@ -1122,12 +1154,24 @@ struct AIChatView: View {
 
 }
 
+#if targetEnvironment(macCatalyst)
+let aiChatComposerControlSpacing: CGFloat = 8
+let aiChatComposerTextVerticalPadding: CGFloat = 8
+let aiChatComposerSuggestionHorizontalPadding: CGFloat = 0
+let aiChatComposerSuggestionVerticalPadding: CGFloat = 0
+#else
+let aiChatComposerControlSpacing: CGFloat = 12
+let aiChatComposerTextVerticalPadding: CGFloat = 12
+let aiChatComposerSuggestionHorizontalPadding: CGFloat = 12
+let aiChatComposerSuggestionVerticalPadding: CGFloat = 9
+#endif
+
 let aiChatComposerMaximumLineCount: Int = 5
 let aiChatComposerTopPadding: CGFloat = 8
 let aiChatComposerSendButtonInset: CGFloat = 8
 let aiChatComposerSendButtonVisualSize: CGFloat = 28
-let aiChatComposerSendButtonHitSize: CGFloat = 44
-let aiChatComposerSendButtonReservedTrailingPadding: CGFloat = 44
+let aiChatComposerSendButtonHitSize: CGFloat = appMinimumTouchTarget
+let aiChatComposerSendButtonReservedTrailingPadding: CGFloat = aiChatComposerSendButtonHitSize
 let aiChatComposerStatusLaneHeight: CGFloat = 24
 let aiChatComposerStatusLaneSpacing: CGFloat = 8
 let aiChatComposerDictationTextFieldTopPadding: CGFloat = 12 + aiChatComposerStatusLaneHeight + aiChatComposerStatusLaneSpacing

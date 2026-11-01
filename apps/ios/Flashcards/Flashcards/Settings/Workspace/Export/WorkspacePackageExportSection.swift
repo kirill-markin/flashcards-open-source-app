@@ -236,6 +236,10 @@ struct WorkspacePackageExportSection: View {
                             .foregroundStyle(.tint)
                     }
                 }
+                #if targetEnvironment(macCatalyst)
+                .frame(minHeight: appMinimumTouchTarget)
+                #endif
+                .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
             .disabled(self.isBusy)
