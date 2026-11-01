@@ -5,11 +5,19 @@ extension View {
     /// Keeps mobile navigation titles and emits specific Mac destination metadata.
     func nativeNavigationTitle(_ title: String) -> some View {
         #if targetEnvironment(macCatalyst)
-        self.navigationTitle("")
-            .toolbar(.hidden, for: .navigationBar)
-            .background { MacNavigationHeaderEmitter(title: title) }
+        self.modifier(MacNavigationTitle(title: title))
         #else
         self.navigationTitle(title)
+        #endif
+    }
+
+    /// Apply to a modal sheet's `NavigationStack`: on Mac its screens keep the sheet's
+    /// navigation bar, because the window toolbar cannot reach a sheet.
+    func macModalSheetNavigation() -> some View {
+        #if targetEnvironment(macCatalyst)
+        self.environment(\.isInMacModalSheet, true)
+        #else
+        self
         #endif
     }
 
@@ -28,6 +36,25 @@ extension View {
 }
 
 #if targetEnvironment(macCatalyst)
+extension EnvironmentValues {
+    @Entry var isInMacModalSheet: Bool = false
+}
+
+private struct MacNavigationTitle: ViewModifier {
+    @Environment(\.isInMacModalSheet) private var isInMacModalSheet
+    let title: String
+
+    func body(content: Content) -> some View {
+        if self.isInMacModalSheet {
+            content.navigationTitle(self.title)
+        } else {
+            content.navigationTitle("")
+                .toolbar(.hidden, for: .navigationBar)
+                .background { MacNavigationHeaderEmitter(title: self.title) }
+        }
+    }
+}
+
 struct MacToolbarBackdropContext: Equatable {
     let selectedTab: AppTab
     let companionVisible: Bool

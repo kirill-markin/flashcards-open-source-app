@@ -161,6 +161,7 @@ struct PremiumOfferView: View {
                 }
             }
         }
+        .macModalSheetNavigation()
         .onChange(of: self.displayedOfferType, initial: true) { _, offerType in
             self.presenter.updateDisplayedOffer(requestId: self.request.id, offerType: offerType)
         }
