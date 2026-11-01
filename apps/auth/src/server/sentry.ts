@@ -188,6 +188,8 @@ export function initializeAuthSentry(): void {
     environment: config.environment,
     release: config.release,
     tracesSampleRate: config.tracesSampleRate,
+    // Replaces the default Hono integration: error capture is owned by our onError handlers, which apply the reporting policy.
+    integrations: [Sentry.honoIntegration({ shouldHandleError: () => false })],
     dataCollection: {
       userInfo: false,
       cookies: false,
