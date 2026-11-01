@@ -206,8 +206,8 @@ test("trusted chat and usage retain immutable identity while authorization follo
         "SELECT worker_claimed_at::text AS token FROM ai.chat_runs WHERE run_id=$1", [running.runId],
       )).rows[0].token, initialLease);
       await markQueuedChatRunDispatchFailed(source, fixture.workspaceId, dispatchFailed.runId);
-      assert.equal(await failQueuedChatRun(source, fixture.workspaceId, prepareFailed.runId, { code: null, message: "conversion rejected" }), true);
-      assert.equal(await failQueuedChatRun(source, fixture.workspaceId, prepareFailed.runId, { code: null, message: "repeat" }), false);
+      assert.notEqual(await failQueuedChatRun(source, fixture.workspaceId, prepareFailed.runId, { code: null, message: "conversion rejected" }), null);
+      assert.equal(await failQueuedChatRun(source, fixture.workspaceId, prepareFailed.runId, { code: null, message: "repeat" }), null);
       assert.deepEqual((await owner.query(
         "SELECT run_id,status,last_error_message FROM ai.chat_runs WHERE run_id=ANY($1::uuid[]) ORDER BY run_id",
         [[dispatchFailed.runId, prepareFailed.runId]],

@@ -62,6 +62,7 @@ import type {
   ProductAnalyticsDeviceType,
   ProductAnalyticsOsName,
 } from "../../productAnalytics/catalog";
+import type { AiChatRunClientDevice } from "../../productAnalytics/serverFacts/reviewAnswers";
 import { CHAT_RUN_HEARTBEAT_INTERVAL_MS, isChatRunHeartbeatStale } from "../worker/lease";
 import { getChatRunClaimStateWithExecutor } from "./claimFence";
 import { transactionWithChatWorkerOwnerScope } from "./ownerScope";
@@ -93,6 +94,14 @@ import type {
   ClaimedChatRun,
   PreparedChatRun,
 } from "./types";
+
+function readChatRunClientDevice(run: ChatRunRow): AiChatRunClientDevice {
+  return {
+    platform: run.client_platform,
+    osName: run.client_os_name,
+    deviceType: run.client_device_type,
+  };
+}
 
 /**
  * Only the current (latest) chat session accepts new turns; older sessions are read-only.
@@ -204,6 +213,7 @@ export async function prepareChatRun(
         deduplicated: true,
         shouldInvokeWorker: existingRun.status === "queued",
         initiatingAuthIsSignedIn: existingRun.initiating_auth_is_signed_in,
+        clientDevice: readChatRunClientDevice(existingRun),
         browserGuestAiTrial: existingRun.browser_guest_ai_trial === true,
       };
     }
@@ -290,6 +300,7 @@ export async function prepareChatRun(
       deduplicated: false,
       shouldInvokeWorker: true,
       initiatingAuthIsSignedIn: run.initiating_auth_is_signed_in,
+      clientDevice: readChatRunClientDevice(run),
       browserGuestAiTrial: run.browser_guest_ai_trial === true,
     };
   }).catch((error: unknown) => {
@@ -703,19 +714,20 @@ export async function markQueuedChatRunDispatchFailed(
 
 /**
  * Fails a queued run the worker could not prepare for its claim, so the turn ends with `terminalError`
- * instead of staying queued until stale-run recovery interrupts it. Returns whether it failed the run; a
- * run that is no longer queued belongs to whoever moved it on and is left as it is.
+ * instead of staying queued until stale-run recovery interrupts it. Returns the failed run's stored
+ * device, or null when it failed nothing; a run that is no longer queued belongs to whoever moved it on
+ * and is left as it is.
  */
 export async function failQueuedChatRun(
   userId: string,
   workspaceId: string,
   runId: string,
   terminalError: ChatTerminalError,
-): Promise<boolean> {
+): Promise<AiChatRunClientDevice | null> {
   return transactionWithChatWorkerOwnerScope(userId, workspaceId, async (executor, scope) => {
     const run = await selectChatRunForUpdateWithExecutor(executor, scope, runId);
     if (run === null || run.status !== "queued") {
-      return false;
+      return null;
     }
 
     await updateChatItemWithExecutor(executor, scope, {
@@ -750,7 +762,7 @@ export async function failQueuedChatRun(
         "run_failed",
       );
     }
-    return true;
+    return readChatRunClientDevice(run);
   });
 }
 
