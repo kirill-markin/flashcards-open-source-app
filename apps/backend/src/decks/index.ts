@@ -36,8 +36,10 @@ import {
   collectContentAuthoringUpdate,
   collectContentCreation,
   collectContentDeletion,
+  declareContentWriteAiChatClient,
   transactionWithWorkspaceScopeReportingContentWrites,
 } from "../productAnalytics/serverFacts/contentWrites";
+import type { AiChatRunClientDevice } from "../productAnalytics/serverFacts/reviewAnswers";
 
 type TimestampValue = Date | string;
 type ErrorFactory = (message: string) => Error;
@@ -990,10 +992,12 @@ export async function createDecks(
   userId: string,
   workspaceId: string,
   items: ReadonlyArray<BulkCreateDeckItem>,
+  aiChatClient: AiChatRunClientDevice | null,
 ): Promise<ReadonlyArray<Deck>> {
   validateDeckBatchCount(items.length);
 
   return transactionWithWorkspaceScopeReportingContentWrites({ userId, workspaceId }, async (executor) => {
+    declareContentWriteAiChatClient(executor, aiChatClient);
     const createdDecks: Array<Deck> = [];
     for (const item of items) {
       createdDecks.push(await createDeckInExecutor(executor, workspaceId, item.input, item.metadata));
@@ -1007,11 +1011,13 @@ export async function updateDecks(
   userId: string,
   workspaceId: string,
   items: ReadonlyArray<BulkUpdateDeckItem>,
+  aiChatClient: AiChatRunClientDevice | null,
 ): Promise<ReadonlyArray<Deck>> {
   validateDeckBatchCount(items.length);
   validateUniqueDeckIds(items.map((item) => item.deckId));
 
   return transactionWithWorkspaceScopeReportingContentWrites({ userId, workspaceId }, async (executor) => {
+    declareContentWriteAiChatClient(executor, aiChatClient);
     const updatedDecks: Array<Deck> = [];
     for (const item of items) {
       updatedDecks.push(await updateDeckInExecutor(executor, workspaceId, item.deckId, item.input, item.metadata));
@@ -1025,11 +1031,13 @@ export async function deleteDecks(
   userId: string,
   workspaceId: string,
   items: ReadonlyArray<BulkDeleteDeckItem>,
+  aiChatClient: AiChatRunClientDevice | null,
 ): Promise<BulkDeleteDecksResult> {
   validateDeckBatchCount(items.length);
   validateUniqueDeckIds(items.map((item) => item.deckId));
 
   return transactionWithWorkspaceScopeReportingContentWrites({ userId, workspaceId }, async (executor) => {
+    declareContentWriteAiChatClient(executor, aiChatClient);
     const deletedDeckIds: Array<string> = [];
     for (const item of items) {
       const deletedDeck = await deleteDeckInExecutor(executor, workspaceId, item.deckId, item.metadata);

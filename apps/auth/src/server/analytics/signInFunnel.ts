@@ -39,15 +39,15 @@ import { type AuthAppEnv, getRequestId, getTraceId } from "../apiErrors.js";
 import { logWarning } from "../logger.js";
 import { getPublicApiBaseUrl, getPublicAuthBaseUrl } from "../publicUrls.js";
 import {
-  createSignInCodeRequestedEvent,
+  createSignInCodeRequestedWithMethodEventFactory,
   createAuthAnalyticsFactEventFactory,
   createSignInSucceededWithMethodEventFactory,
   type AuthAnalyticsFact,
   type AuthAnalyticsMethod,
-  createSignInFailedEventFactory,
+  createSignInFailedWithMethodEventFactory,
   createSignInScreenViewedEvent,
-  createSignInSucceededEvent,
   type AuthAnalyticsEventFactory,
+  type AuthAnalyticsSurface,
   type AuthSignInFailureReason,
 } from "./catalog.js";
 import { postAnonymousAnalyticsEvent, type AuthAnalyticsCall } from "./client.js";
@@ -105,10 +105,11 @@ import {
 const analyticsReportBudgetMs = 150;
 
 /**
- * The login page marks its own calls with this, and it is what makes these events mean what they
- * claim. Every route instrumented here is shared with callers that are not sign-in funnel entries,
- * and the visitor cookie cannot tell them apart: it is the product domain's, so every browser that
- * holds one carries it onto all of them.
+ * The login page and the OAuth consent page mark their own calls with a `screen` query naming their
+ * surface, and that marker is what makes these events mean what they claim. Every route instrumented
+ * here is shared with callers that are not sign-in funnel entries, and the visitor cookie cannot tell
+ * them apart: it is the product domain's, so every browser that holds one carries it onto all of
+ * them.
  *
  *   `POST /api/refresh-session` has four callers, and a 401 means something different to each: the
  *   login page shows the sign-in form; the OAuth consent page shows its own form to agent and MCP
@@ -117,7 +118,7 @@ const analyticsReportBudgetMs = 150;
  *   operator. Only the first is a funnel entry.
  *
  *   `POST /api/send-code` and `POST /api/verify-code` have two browser callers, `templates/login.ts`
- *   and the OAuth consent page in `templates/authorize.ts`.
+ *   and the OAuth consent page in `templates/authorize.ts`, each marking its own surface.
  *
  *   Both routes have two non-browser callers as well, and they are listed because the marker is what
  *   a later change is checked against, not because either can be counted today. The iOS client
@@ -129,15 +130,25 @@ const analyticsReportBudgetMs = 150;
  *   under `scripts/checks/` call both routes too, and are excluded the same way.
  *
  */
-const signInScreenMarker = "signin";
+function readAuthAnalyticsScreen(marker: string | undefined): AuthAnalyticsSurface | null {
+  switch (marker) {
+    case "signin":
+    case "oauth_consent":
+    case "settings":
+      return marker;
+    default:
+      return null;
+  }
+}
 
-function logReportFailure(c: Context<AuthAppEnv>, errorMessage: string): void {
+function logReportFailure(c: Context<AuthAppEnv>, errorMessage: string, failed: number | undefined): void {
   logWarning({
     domain: "auth",
     action: "analytics_ingest_error",
     requestId: getRequestId(c),
     traceId: getTraceId(c),
     route: c.req.path,
+    failed,
     errorMessage,
   });
 }
@@ -183,7 +194,8 @@ function createReportCall(c: Context<AuthAppEnv>, userAgent: string, timeoutMs: 
 }
 
 /**
- * Reports one funnel step of a request the login page marked as its own.
+ * Reports one funnel step of a request the login page marked as its own, or adds it to the request's
+ * collection while `startCollectingAuthEvents` is in effect.
  *
  * The wait is awaited on purpose. There is no `waitUntil` on this Lambda, so work left running after
  * the response is frozen with the container and resumes, if ever, inside an unrelated later
@@ -195,12 +207,31 @@ function createReportCall(c: Context<AuthAppEnv>, userAgent: string, timeoutMs: 
 async function reportSignInFunnelEvent(
   c: Context<AuthAppEnv>,
   createEvent: AuthAnalyticsEventFactory,
-  context: AuthAnalyticsContext,
 ): Promise<void> {
-  await reportSignInFunnelEvents(c, [{ createEvent, occurredAt: Date.now() }], context);
+  const observed: ObservedAuthAnalyticsEvent = { createEvent, occurredAt: Date.now() };
+  const collected = c.get("analyticsCollectedEvents");
+  if (collected !== undefined) {
+    c.set("analyticsCollectedEvents", [...collected, observed]);
+    return;
+  }
+  await reportSignInFunnelEvents(c, [observed], readAuthAnalyticsContext(c));
 }
 
 export type ObservedAuthAnalyticsEvent = Readonly<{ createEvent: AuthAnalyticsEventFactory; occurredAt: number }>;
+
+/**
+ * Holds this request's funnel events until `sendCollectedAuthEvents`, so they go out in one parallel
+ * send under the request's one budget instead of queueing behind each other's waits.
+ */
+export function startCollectingAuthEvents(c: Context<AuthAppEnv>): void {
+  c.set("analyticsCollectedEvents", []);
+}
+
+export async function sendCollectedAuthEvents(c: Context<AuthAppEnv>): Promise<void> {
+  const collected = c.get("analyticsCollectedEvents") ?? [];
+  c.set("analyticsCollectedEvents", undefined);
+  await reportSignInFunnelEvents(c, collected, readAuthAnalyticsContext(c));
+}
 
 async function reportSignInFunnelEvents(
   c: Context<AuthAppEnv>,
@@ -227,42 +258,54 @@ async function reportSignInFunnelEvents(
         c,
         "Sign-in funnel event was not reported: the request carried no User-Agent to forward, and "
           + "the collector would have stored the row as automated.",
+        events.length,
       );
       return;
     }
 
     const remaining = c.get("analyticsReportBudgetRemainingMs") ?? analyticsReportBudgetMs;
-    if (remaining <= 0) return;
+    if (remaining <= 0) {
+      logReportFailure(
+        c,
+        "Sign-in funnel events were not reported: this request already spent its analytics report budget.",
+        events.length,
+      );
+      return;
+    }
     const startedAt = performance.now();
     try {
       await Promise.all(events.map(({ createEvent, occurredAt }) => {
         const event = createEvent(anonymousId, occurredAt, context.uiLocale);
         if (context.screen === "settings" && !event.eventName.startsWith("auth_")) return Promise.resolve();
         return postAnonymousAnalyticsEvent(createReportCall(c, userAgent, remaining),
-          { ...event, screen: event.eventName.startsWith("auth_") ? context.screen : event.screen,
+          // The factories' `signin` names whichever sign-in surface marked this request. The consent
+          // page is also its own `signin_failed` entry point; the login page's stays unattributed.
+          { ...event, screen: event.eventName.startsWith("auth_") || event.screen === "signin"
+            || (event.eventName === "signin_failed" && context.screen === "oauth_consent") ? context.screen : event.screen,
             clientSentAt: new Date().toISOString() });
       }));
     } finally {
       c.set("analyticsReportBudgetRemainingMs", Math.max(0, remaining - Math.max(1, Math.ceil(performance.now() - startedAt))));
     }
   } catch (error) {
-    logReportFailure(c, error instanceof Error ? error.message : String(error));
+    logReportFailure(c, error instanceof Error ? error.message : String(error), undefined);
   }
 }
 
 export async function reportSignInScreenViewed(c: Context<AuthAppEnv>): Promise<void> {
-  await reportSignInFunnelEvent(c, createSignInScreenViewedEvent, readAuthAnalyticsContext(c));
+  await reportSignInFunnelEvent(c, createSignInScreenViewedEvent);
 }
 
 export async function reportSignInCodeRequested(c: Context<AuthAppEnv>): Promise<void> {
-  await reportSignInFunnelEvent(c, createSignInCodeRequestedEvent, readAuthAnalyticsContext(c));
+  await reportSignInFunnelEvent(c, createSignInCodeRequestedWithMethodEventFactory("email"));
 }
 
 export async function reportSignInFailed(
   c: Context<AuthAppEnv>,
+  method: AuthAnalyticsMethod,
   reason: AuthSignInFailureReason,
 ): Promise<void> {
-  await reportSignInFunnelEvent(c, createSignInFailedEventFactory(reason), readAuthAnalyticsContext(c));
+  await reportSignInFunnelEvent(c, createSignInFailedWithMethodEventFactory(method, reason));
 }
 
 /**
@@ -280,30 +323,26 @@ export async function reportSignInFailed(
  * The shared visitor id is left alone, here and on every logout route. It is the product domain's
  * rather than this origin's, and nothing about a sign-in is a reason to end it.
  */
-export async function reportSignInSucceeded(c: Context<AuthAppEnv>): Promise<void> {
+export async function reportSignInSucceeded(c: Context<AuthAppEnv>, method: AuthAnalyticsMethod): Promise<void> {
   try {
     if (hasAuthAnalyticsGuestSession(c)) {
       clearAuthAnalyticsGuestSession(c);
     }
   } catch (error) {
-    logReportFailure(c, error instanceof Error ? error.message : String(error));
+    logReportFailure(c, error instanceof Error ? error.message : String(error), undefined);
   }
 
-  await reportSignInFunnelEvent(c, createSignInSucceededEvent, readAuthAnalyticsContext(c));
+  await reportSignInFunnelEvent(c, createSignInSucceededWithMethodEventFactory(method));
 }
 
 export async function reportAuthFact(c: Context<AuthAppEnv>, fact: AuthAnalyticsFact): Promise<void> {
-  await reportSignInFunnelEvent(c, createAuthAnalyticsFactEventFactory(fact), readAuthAnalyticsContext(c));
+  await reportSignInFunnelEvent(c, createAuthAnalyticsFactEventFactory(fact));
 }
 
-export async function reportSignInSucceededWithMethod(c: Context<AuthAppEnv>, method: AuthAnalyticsMethod): Promise<void> {
-  await reportSignInFunnelEvent(c, createSignInSucceededWithMethodEventFactory(method), readAuthAnalyticsContext(c));
-}
-
-export type AuthAnalyticsContext = Readonly<{ screen: "signin" | "settings" | null; uiLocale: LoginPageLocale | null }>;
+export type AuthAnalyticsContext = Readonly<{ screen: AuthAnalyticsSurface | null; uiLocale: LoginPageLocale | null }>;
 
 export function readAuthAnalyticsContext(c: Context<AuthAppEnv>): AuthAnalyticsContext {
-  return { screen: c.req.query("screen") === signInScreenMarker ? "signin" : c.req.query("screen") === "settings" ? "settings" : null,
+  return { screen: readAuthAnalyticsScreen(c.req.query("screen")),
     uiLocale: normalizeSupportedLoginPageLocale(c.req.query("ui_locale") ?? "") };
 }
 

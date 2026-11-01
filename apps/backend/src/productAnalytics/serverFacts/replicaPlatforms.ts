@@ -22,7 +22,8 @@ export type WorkspaceReplicaPlatformFacts = Readonly<{
   // The installation behind this replica declared itself automation
   // (db/migrations/0141_sync_installation_automation_marker.sql). It is carried beside the platform
   // rather than folded into it, because the two answer different questions: a null platform still
-  // stores an event with no device on it, while automation stores no event at all.
+  // stores an event with no device on it, while automation stores no event at all, except
+  // catalog_deck_installed (../../catalog/distribution/install/index.ts), which ignores it.
   isAutomation: boolean;
 }>;
 
@@ -50,13 +51,11 @@ export type WorkspaceReplicaAttribution = Readonly<{
 /**
  * The analytics platform one replica acted under, or null where none can be justified.
  *
- * Shared by the server-derived producers that resolve a replica - ./reviewAnswers.ts and
- * ./contentWrites.ts - so that one replica cannot be read two ways, and by the writers that
+ * Shared by the server-derived producers that resolve a replica - ./reviewAnswers.ts,
+ * ./contentWrites.ts and ../../catalog/distribution/install/index.ts - so that one replica cannot be read two ways, and by the writers that
  * already hold the facts they ensured the replica with, so that a platform named up front and one
- * read back later cannot disagree. The one reader that bypasses it is ./reviewAnswers.ts for an
- * ai_chat replica: a chat review takes its device from its chat run rather than from the replica,
- * so the same ai_chat replica can give a device on review_answered and still gives null on
- * card_created and deck_created.
+ * read back later cannot disagree. Both producers bypass it for an ai_chat replica: a chat review
+ * or chat content write takes its device from its chat run rather than from the replica.
  *
  * Only a client_installation replica is a device a person used. The other actor kinds
  * (db/migrations/0035_sync_installations_and_workspace_replicas.sql) each store something in
@@ -95,7 +94,8 @@ function toWorkspaceReplicaPlatform(
  *
  * An automation installation is reported as automation whatever its platform resolves to: the
  * platform is still derived, and is still the answer for the events of every other replica, but for
- * this one it never reaches an event because the producers drop those facts before they emit.
+ * this one it never reaches an event because the producers drop those facts before they emit. The
+ * exception is ../../catalog/distribution/install/index.ts, which emits it regardless.
  */
 export function toWorkspaceReplicaAttribution(
   replica: WorkspaceReplicaPlatformFacts,

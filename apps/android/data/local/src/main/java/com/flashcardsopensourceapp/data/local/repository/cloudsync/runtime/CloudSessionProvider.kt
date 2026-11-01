@@ -176,7 +176,7 @@ internal class CloudSessionProvider(
         }
 
         operationCoordinator.runExclusive {
-            resetCoordinator.resetLocalStateForCloudIdentityChange()
+            resetCoordinator.resetLocalStateForLinkedAccountMismatch()
         }
         throw IllegalStateException(
             "Cloud account changed during authenticated session refresh. Local cloud identity was reset; sign in again."
