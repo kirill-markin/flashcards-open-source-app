@@ -68,7 +68,13 @@ Mac on a supported macOS, with an installed Apple Development certificate and pr
 for `com.flashcards-open-source-app.app.development`, that certificate and that Mac
 (`MAC_CATALYST_APP_DEVELOPMENT` for Catalyst). A certificate alone is insufficient.
 
-Keep a temporary signing xcconfig outside the repository, substituting the
+For an Xcode-managed profile, retain automatic signing and pass
+`-allowProvisioningUpdates -allowProvisioningDeviceRegistration` to the build
+below, omitting its manual `-xcconfig`. Xcode needs a signed-in account on the
+intended team. Do not assign an Xcode-managed profile to manual signing; Xcode
+rejects that combination. Apply the same identity/profile verification below.
+
+For a manually created profile, keep a temporary signing xcconfig outside the repository, substituting the
 installed, unexpired profile's UUID. This dispatches on `PRODUCT_MODULE_NAME`: only
 `Flashcards` uses manual provisioning; `FlashcardsUITests` and `FlashcardsTests`
 retain automatic signing with no app profile assigned to the UI runner.
@@ -85,7 +91,10 @@ CODE_SIGN_INJECT_BASE_ENTITLEMENTS[sdk=macosx*][config=Debug] = YES
 
 Debug uses `com.flashcards-open-source-app.app.development` on every Apple platform,
 with its own sandbox, database, preferences and private Keychain credential services.
-UI-test resets affect that development installation. Release keeps the production
+UI-test scenarios reset that development installation's local data and credentials.
+Do not run them against a development installation containing personal study state;
+use safely isolated disposable state, or record nondestructive manual verification
+and the unrun fixture cases explicitly. Release keeps the production
 identity. External marketing-capture signing configuration retains its explicit
 capture-only bundle override. Do not override ordinary Debug tests to production.
 
@@ -131,20 +140,106 @@ as a passing suite. Every selected required non-UI/UI case must execute and pass
 
 ## Native smoke evidence
 
-The `LocalMac` plan selects the full existing non-UI bundle and every Mac-eligible UI flow without adding tests or heavy GitHub PR jobs. Mac reuses real guest card creation/review, guest AI, Settings/Progress, notification routing, own-key persistence and linked account/workspace sync flows. The plan excludes the phone-only class and marketing capture; existing iPad keyboard, companion and wide consent flows apply. These exclusions are not skipped/passed results. The notification foreground-return smoke uses Command-H instead of the unavailable Home button.
+### Input and window conventions
+
+Keep Catalyst's shared screen state, forms and text interactions. Mac commands
+live in one native unified toolbar whose standard items the system sizes and
+styles; do not wrap them in custom glass or force label heights. Screens supply
+items through [`macToolbarContribution`](../apps/ios/Flashcards/Flashcards/App/Navigation/MacToolbarConfiguration.swift)
+and pushed titles through [`nativeNavigationTitle`](../apps/ios/Flashcards/Flashcards/NativeNavigationTitle.swift).
+Sidebar selection identifies root pages, so their toolbar titles stay hidden;
+pushed destinations keep their title and Back, and modal flows keep Save/Cancel.
+See Apple's [Catalyst toolbar tutorial](https://developer.apple.com/tutorials/mac-catalyst/adding-a-toolbar)
+and [SwiftUI Group Lab](https://developer.apple.com/videos/play/wwdc2026/8120/).
+
+The sidebar is a native navigation split view with the system sidebar material
+and selection; [`MacSidebarRowMetrics`](../apps/ios/Flashcards/Flashcards/App/Navigation/RootTabView.swift)
+matches the System Settings row size. Do not add custom row fonts or insets,
+overlay the window with a custom titlebar material, or suppress scroll-edge
+effects globally. Keep the shared tab container behind the detail pane to retain
+per-screen state.
+
+On macOS 27 the toolbar is transparent at rest and shows a backdrop once content
+scrolls under it ([WWDC26](https://developer.apple.com/videos/play/wwdc2026/102/)).
+Catalyst's scroll-edge effect targets one scroll view and cannot span the AI
+companion beside a page, so [`MacSharedToolbarBackdrop`](../apps/ios/Flashcards/Flashcards/NativeNavigationTitle.swift)
+places one system bar material across the split detail, shown when either pane
+scrolls under the toolbar; the sidebar keeps its own edge effect. Verify
+rest/scrolled states, sidebar show/hide, pushed destinations and resizing visually.
+See Apple's [Catalyst sidebar material](https://developer.apple.com/documentation/uikit/uisplitviewcontroller/primarybackgroundstyle)
+and [scroll-edge guidance](https://developer.apple.com/design/human-interface-guidelines/scroll-views).
+
+Glass is reserved primarily for toolbar and floating chat controls; reading
+surfaces and inline actions stay restrained, Review answer/rating actions stay
+prominent, and Edit sits beside the card metadata rather than among window
+commands. Custom plain controls use [`appMinimumTouchTarget`](../apps/ios/Flashcards/Flashcards/NativeActionButtonStyles.swift);
+it sets a pointer target, not a visible bezel or toolbar height. Preserve
+iPhone/iPad target behavior separately. Check real outer-edge pointer actions,
+native hover/press, disabled/inactive appearance, containment and narrow→wide
+state restoration rather than AX frames alone.
+See [Design for touch on Mac](https://developer.apple.com/videos/play/tech-talks/111456/)
+and [pointing-device guidance](https://developer.apple.com/design/human-interface-guidelines/pointing-devices).
+
+Navigation menu commands and their shortcuts live in [`MacNavigationCommands`](../apps/ios/Flashcards/Flashcards/App/Navigation/MacNavigationCommands.swift)
+and the Review menu in [`ReviewCommands`](../apps/ios/Flashcards/Flashcards/Review/Keyboard/ReviewCommands.swift);
+Review keys take priority over keyboard focus through
+[`ReviewKeyCommandOwner`](../apps/ios/Flashcards/Flashcards/Review/Keyboard/ReviewKeyCommandOwner.swift),
+while editors and AI keep their normal text input. Composer Escape is a UIKit key
+command with [priority over text input](https://developer.apple.com/documentation/uikit/uikeycommand/wantspriorityoversystembehavior),
+because a SwiftUI key handler alone can lose Escape to the native text system.
+Verify Escape followed immediately by a rating key, including a multiline draft
+and an app deactivation/reactivation.
+See Apple's [keyboard focus guidance](https://developer.apple.com/videos/play/wwdc2021/10260/)
+and [Mac Catalyst responder guidance](https://developer.apple.com/videos/play/wwdc2021/10053/).
+
+For focused manual acceptance on isolated development data: resize narrow,
+wide and tall windows with an unsent AI draft and revealed answer; verify both
+survive. Exercise menu commands from each section and while an editor/picker is
+open. Right-click/long-press a card, edit/cancel, attach it to AI, and cancel a
+delete confirmation. Switch workspace or sync a changed card while a menu is
+open; it must not act on another workspace or revision. Tab to Progress legend
+buttons and activate them; scroll starting on a legend/card without activating
+it. Check the outer edges of custom targets, native text selection, VoiceOver,
+Reduce Motion, Reduce Transparency and Increase Contrast. Record unavailable
+physical touch/Sidecar and accessibility checks as gaps.
+
+Mac XCUITest flows activate the app and synthesize input; coordinate an idle
+desktop before running them while someone works. Quit any installed development
+copy before enumeration or XCTest so the runner owns the only process with that
+bundle identity. Mac pointer synthesis does not verify physical touch. Headless
+simulator checks can run independently. Report actual runtime and SDK separately.
+
+### Existing native flows
+
+The `LocalMac` plan selects the full existing non-UI bundle and every Mac-eligible UI flow without heavy GitHub PR jobs. Mac reuses real guest card creation/review, guest AI, Settings/Progress, notification routing, own-key persistence and linked account/workspace sync flows. The plan excludes the phone-only class and marketing capture; existing iPad keyboard, companion and wide consent flows apply. These exclusions are not skipped/passed results. The notification foreground-return smoke uses Command-H instead of the unavailable Home button.
 
 `LiveSmokeMacCatalystTests` compiles only for Catalyst and adds:
 
-- five cards created through the real editor, with inline/display math; Space
+- native toolbar containment and sizing, settled screenshots of every main
+  section and the ready companion, and window tiling/restoration of an unsent
+  draft and revealed answer;
+- seven cards created through the real editor, with inline/display math; Space
   reveals, a pointer click rates, then Space reveals the next card without a
-  focus click; keys 1–4 rate only a revealed answer;
+  focus click; keys 1–4 rate only a revealed answer; Space and Return reveal and
+  1 rates while the sidebar holds focus;
 - a wide AI companion with an attached review card; after hovering a rating,
   Space/1–4 must enter the focused composer and the unsent draft must survive
-  Cards/Progress/Review navigation.
+  Cards/Progress/Review navigation;
+- nondestructive current-workspace checks without a fixture launch scenario,
+  never rating, saving or sending personal content: sidebar focus and
+  wide→narrow→wide restoration, toolbar backdrop over recreated Review/chat
+  scroll views, toolbar search text, and Settings after AI history.
 
 The shared launcher passes `FLASHCARDS_AUTOMATION_RUN=1` to the app process.
 Catalyst runs on a real Mac, so simulator detection alone is insufficient.
 Verify `automation_run_decided` reports `isAutomation=true` before interaction. Keep the existing non-production Sentry override for these tests.
+
+For app-bound computer use, bind the absolute installed development `.app` path.
+Build products and retained backups share its bundle identifier, so bundle-ID
+lookup can be ambiguous. Prefer background app-bound controls and screenshots;
+serialize any foreground interval with other agents on the same desktop, and
+never run desktop-driving XCTest concurrently. Retain fresh tool errors and
+verification limits rather than counting an unavailable interaction as passed.
 
 Successful Mac smokes retain `mac-review-formulas` and
 `mac-ai-companion-focus` window/screen image attachments. Inspect rendered

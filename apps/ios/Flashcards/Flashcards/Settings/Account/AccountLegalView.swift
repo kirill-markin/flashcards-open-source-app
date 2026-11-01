@@ -112,7 +112,7 @@ struct AccountLegalView: View {
             }
         }
         .listStyle(.insetGrouped)
-        .navigationTitle(aiSettingsLocalized("settings.account.legal.title", "Legal"))
+        .nativeNavigationTitle(aiSettingsLocalized("settings.account.legal.title", "Legal"))
         .sheet(isPresented: self.$isDisclosurePresented) {
             NavigationStack {
                 AIConsentDisclosureView(
@@ -163,7 +163,7 @@ struct AccountSupportView: View {
             }
         }
         .listStyle(.insetGrouped)
-        .navigationTitle(aiSettingsLocalized("settings.account.support.title", "Support"))
+        .nativeNavigationTitle(aiSettingsLocalized("settings.account.support.title", "Support"))
     }
 }
 

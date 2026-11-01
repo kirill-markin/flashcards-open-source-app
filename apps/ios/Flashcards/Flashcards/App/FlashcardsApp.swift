@@ -34,23 +34,6 @@ private func nextProgressContextRolloverDate(now: Date) -> Date {
     return nextDay
 }
 
-#if targetEnvironment(macCatalyst)
-private struct AICompanionMenuCommand: View {
-    let navigation: AppNavigationModel
-
-    var body: some View {
-        Button(String(localized: self.navigation.isAICompanionVisible
-                      ? "ai_companion.hide" : "ai_companion.show", table: "Foundation")) {
-            withAnimation(UIAccessibility.isReduceMotionEnabled ? nil : .smooth(duration: 0.35)) {
-                self.navigation.toggleAICompanion()
-            }
-        }
-        .keyboardShortcut("a", modifiers: [.command, .option])
-        .disabled(self.navigation.selectedTab == .ai || self.navigation.selectedTab == .settings)
-    }
-}
-#endif
-
 @main
 struct FlashcardsApp: App {
     @Environment(\.scenePhase) private var scenePhase
@@ -335,9 +318,10 @@ struct FlashcardsApp: App {
         }
         .commands {
             #if targetEnvironment(macCatalyst)
-            CommandGroup(after: .sidebar) {
-                AICompanionMenuCommand(navigation: self.navigation)
-            }
+            MacNavigationCommands(
+                navigation: self.navigation,
+                isAvailable: self.isStartupReadyForBackgroundWork && self.isCloudCredentialRecoveryGateActive == false
+            )
             #endif
             ReviewCommands()
         }

@@ -89,7 +89,7 @@ struct CloudCredentialRecoveryGateView: View {
                 }
             }
             .accessibilityIdentifier(UITestIdentifier.cloudCredentialRecoveryGateScreen)
-            .navigationTitle(self.presentation.title)
+            .nativeNavigationTitle(self.presentation.title)
             .navigationBarTitleDisplayMode(.inline)
         }
         .onAppear {

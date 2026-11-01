@@ -153,6 +153,7 @@ extension AIChatView {
                                 self.navigation.openSettings(destination: .accountStatus)
                             }
                         )
+                        .macToolbarScrollSurface("chat")
                         .id(message.id)
                         .listRowInsets(EdgeInsets(
                             top: 0,
@@ -179,6 +180,7 @@ extension AIChatView {
                 // This separate section keeps the target fixed at section 1, item 0.
                 Color.clear
                     .frame(height: 0)
+                    .macToolbarScrollSurface("chat")
                     .id(AIChatTranscriptScrollTarget.bottom)
                     .listRowInsets(EdgeInsets())
                     .listRowSeparator(.hidden)

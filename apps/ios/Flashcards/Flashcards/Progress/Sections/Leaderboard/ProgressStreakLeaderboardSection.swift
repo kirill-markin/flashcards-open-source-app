@@ -62,8 +62,13 @@ struct ProgressStreakLeaderboardSection: View {
             } label: {
                 Image(systemName: "info.circle")
                     .font(.body)
+                    #if targetEnvironment(macCatalyst)
+                    .frame(minWidth: appMinimumTouchTarget, minHeight: appMinimumTouchTarget)
+                    #endif
+                    .contentShape(Rectangle())
             }
             .buttonStyle(.borderless)
+            .accessibilityIdentifier(UITestIdentifier.progressStreakLeaderboardInfoButton)
             .accessibilityLabel(
                 String(
                     localized: "progress.screen.streak_leaderboard.info.accessibility_label",
@@ -168,6 +173,10 @@ private struct ProgressStreakLeaderboardParticipantRowView: View {
                 self.onOpenProfile(selectedProfile)
             } label: {
                 self.content
+                    #if targetEnvironment(macCatalyst)
+                    .frame(minHeight: appMinimumTouchTarget)
+                    #endif
+                    .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
             .contentShape(Rectangle())

@@ -9,6 +9,9 @@ class LiveSmokeTestCase: XCTestCase {
     var currentLaunchLocalization: LiveSmokeLaunchLocalization = .english
     var additionalLaunchEnvironment: [String: String] = [:]
     var additionalLaunchArguments: [String] = []
+    #if targetEnvironment(macCatalyst)
+    var hasPreparedInitialMacWindow = false
+    #endif
 
     override func setUpWithError() throws {
         try super.setUpWithError()
@@ -28,6 +31,9 @@ class LiveSmokeTestCase: XCTestCase {
         self.currentLaunchLocalization = .english
         self.additionalLaunchEnvironment = [:]
         self.additionalLaunchArguments = []
+        #if targetEnvironment(macCatalyst)
+        self.hasPreparedInitialMacWindow = false
+        #endif
         try super.tearDownWithError()
     }
 

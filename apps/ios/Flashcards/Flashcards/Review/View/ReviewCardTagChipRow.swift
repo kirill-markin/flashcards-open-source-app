@@ -37,13 +37,17 @@ struct ReviewCardTagChipRow: View {
     private var chips: some View {
         HStack(spacing: reviewCardTagChipSpacing) {
             ForEach(self.tags, id: \.self) { tag in
-                Button(tag) {
+                Button {
                     self.onSelectTag(tag)
+                } label: {
+                    Text(tag)
                 }
                 .accessibilityIdentifier(UITestIdentifier.reviewCardTagChipPrefix + tag)
                 .buttonStyle(.bordered)
                 .buttonBorderShape(.capsule)
+                #if !targetEnvironment(macCatalyst)
                 .controlSize(.small)
+                #endif
                 .lineLimit(1)
                 .accessibilityHint(
                     String(

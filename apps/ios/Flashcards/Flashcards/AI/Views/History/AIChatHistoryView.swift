@@ -34,13 +34,27 @@ struct AIChatHistoryView: View {
 
     var body: some View {
         self.content
-            .navigationTitle(aiSettingsLocalized("ai.history.title", "Chat history"))
+            .nativeNavigationTitle(aiSettingsLocalized("ai.history.title", "Chat history"))
             .navigationBarTitleDisplayMode(.inline)
+            #if targetEnvironment(macCatalyst)
+            .macToolbarContribution(MacToolbarContribution(
+                tab: .ai,
+                role: .navigation,
+                search: MacToolbarSearch(
+                    text: self.model.searchQuery,
+                    prompt: aiSettingsLocalized("ai.history.searchPlaceholder", "Search chats"),
+                    focusRequest: nil,
+                    onChange: { self.model.searchQuery = $0 },
+                    onFocusRequestHandled: {}
+                )
+            ))
+            #else
             .searchable(
                 text: self.$model.searchQuery,
                 placement: .navigationBarDrawer(displayMode: .always),
                 prompt: aiSettingsLocalized("ai.history.searchPlaceholder", "Search chats")
             )
+            #endif
             .task(id: self.model.searchQuery) {
                 await self.model.handleSearchQueryChange()
             }

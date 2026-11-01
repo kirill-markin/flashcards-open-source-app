@@ -49,7 +49,7 @@ struct AccessSettingsView: View {
             }
         }
         .listStyle(.insetGrouped)
-        .navigationTitle(aiSettingsLocalized("settings.access.title", "Access"))
+        .nativeNavigationTitle(aiSettingsLocalized("settings.access.title", "Access"))
         .accessibilityIdentifier(UITestIdentifier.accessSettingsScreen)
         .onAppear {
             self.permissions = accessPermissionSummaries()
@@ -114,7 +114,7 @@ struct AccessPermissionDetailView: View {
             }
         }
         .listStyle(.insetGrouped)
-        .navigationTitle(localizedAccessPermissionKindTitle(self.kind))
+        .nativeNavigationTitle(localizedAccessPermissionKindTitle(self.kind))
         .onAppear {
             self.refreshStatus()
         }

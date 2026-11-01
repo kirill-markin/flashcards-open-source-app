@@ -57,6 +57,9 @@ struct ThisDeviceSettingsView: View {
 
                 LabeledContent(aiSettingsLocalized("settings.thisDevice.appVersion", "App version")) {
                     Text(self.appVersion)
+                        #if targetEnvironment(macCatalyst)
+                        .frame(minWidth: appMinimumTouchTarget, minHeight: appMinimumTouchTarget, alignment: .trailing)
+                        #endif
                         .contentShape(Rectangle())
                         .onTapGesture {
                             self.handleAppVersionTap(now: Date())
@@ -91,7 +94,7 @@ struct ThisDeviceSettingsView: View {
             }
         }
         .listStyle(.insetGrouped)
-        .navigationTitle(aiSettingsLocalized("settings.thisDevice.title", "Device"))
+        .nativeNavigationTitle(aiSettingsLocalized("settings.thisDevice.title", "Device"))
         .accessibilityIdentifier(UITestIdentifier.thisDeviceSettingsScreen)
     }
 

@@ -232,7 +232,7 @@ struct AccountStatusView: View {
         }
         .listStyle(.insetGrouped)
         .accessibilityIdentifier(UITestIdentifier.accountStatusScreen)
-        .navigationTitle(aiSettingsLocalized("settings.account.status.title", "Account Status"))
+        .nativeNavigationTitle(aiSettingsLocalized("settings.account.status.title", "Account Status"))
         .sheet(isPresented: self.$isAccountMethodsPresented) {
             AccountMethodsView(store: self.store, entry: self.accountMethodsEntry).environment(self.store)
         }

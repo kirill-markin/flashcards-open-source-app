@@ -29,7 +29,7 @@ struct FeedbackSettingsView: View {
         }
         .listStyle(.insetGrouped)
         .accessibilityIdentifier(UITestIdentifier.feedbackSettingsScreen)
-        .navigationTitle(aiSettingsLocalized("settings.row.sendFeedback", "Send Feedback"))
+        .nativeNavigationTitle(aiSettingsLocalized("settings.row.sendFeedback", "Send Feedback"))
     }
 }
 

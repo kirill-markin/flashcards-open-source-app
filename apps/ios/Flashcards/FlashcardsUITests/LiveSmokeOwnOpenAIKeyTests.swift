@@ -10,12 +10,12 @@ final class LiveSmokeOwnOpenAIKeyTests: LiveSmokeTestCase {
         let toggle = self.app.switches["ownOpenAIKeySettings.toggle"].firstMatch.switches.firstMatch
         XCTAssertTrue(toggle.waitForExistence(timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds))
         XCTAssertEqual(toggle.value as? String, "0")
-        toggle.tap()
+        toggle.clickOrTap()
 
         let field = self.app.secureTextFields["ownOpenAIKeySettings.keyField"].firstMatch
         XCTAssertTrue(field.waitForExistence(timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds))
         XCTAssertTrue(field.isEnabled)
-        field.tap()
+        field.clickOrTap()
         field.typeText(testKey)
         try self.tapFirstNavigationBackButton()
         self.app.terminate()
@@ -27,16 +27,16 @@ final class LiveSmokeOwnOpenAIKeyTests: LiveSmokeTestCase {
         let restoredField = self.app.secureTextFields["ownOpenAIKeySettings.keyField"].firstMatch
         XCTAssertEqual((restoredField.value as? String)?.count, testKey.count)
 
-        restoredToggle.tap()
+        restoredToggle.clickOrTap()
         XCTAssertFalse(restoredField.exists)
-        restoredToggle.tap()
+        restoredToggle.clickOrTap()
         XCTAssertEqual((restoredField.value as? String)?.count, testKey.count)
-        restoredField.tap()
+        restoredField.clickOrTap()
         restoredField.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: testKey.count))
         try self.tapFirstNavigationBackButton()
         try self.openOwnKeySettings()
         XCTAssertEqual(self.app.secureTextFields["ownOpenAIKeySettings.keyField"].firstMatch.value as? String, "")
-        self.app.switches["ownOpenAIKeySettings.toggle"].firstMatch.switches.firstMatch.tap()
+        self.app.switches["ownOpenAIKeySettings.toggle"].firstMatch.switches.firstMatch.clickOrTap()
     }
 
     @MainActor
