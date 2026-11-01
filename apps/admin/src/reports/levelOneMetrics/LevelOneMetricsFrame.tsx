@@ -72,7 +72,7 @@ export const levelOneMetricsDateRangeFilterBar: LevelOneMetricsFilterBar = {
 };
 
 /** A failed option list, which disables only the fields that pick from it. */
-function FilterOptionsError<Options>(props: Readonly<{ lookup: FilterOptionsLookup<Options> }>): JSX.Element | null {
+export function FilterOptionsError<Options>(props: Readonly<{ lookup: FilterOptionsLookup<Options> }>): JSX.Element | null {
   if (props.lookup.status !== "error") return null;
   return (
     <div className="report-state report-state-error" role="alert">
