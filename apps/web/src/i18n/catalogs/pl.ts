@@ -1080,6 +1080,10 @@ const plCatalog: TranslationCatalog = {
   },
   reviewScreen: {
     copyAriaLabel: "Kopiuj: {{side}}",
+    copying: "Kopiowanie...",
+    copied: "Skopiowano.",
+    copyUnavailable: "Schowek nie jest dostępny w tej przeglądarce.",
+    copyFailed: "Nie udało się skopiować.",
     selectTextAriaLabel: "Zaznacz i skopiuj tekst: {{side}}",
     actions: {
       createCard: "Utwórz kartę",

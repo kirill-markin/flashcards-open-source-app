@@ -1070,6 +1070,10 @@ const heCatalog: TranslationCatalog = {
   },
   reviewScreen: {
     copyAriaLabel: "העתקת {{side}}",
+    copying: "מעתיק...",
+    copied: "הועתק.",
+    copyUnavailable: "הלוח אינו זמין בדפדפן הזה.",
+    copyFailed: "ההעתקה נכשלה.",
     selectTextAriaLabel: "בחירה והעתקה של טקסט: {{side}}",
     actions: {
       createCard: "יצירת כרטיס",

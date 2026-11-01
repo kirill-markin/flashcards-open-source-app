@@ -1070,6 +1070,10 @@ const nlCatalog: TranslationCatalog = {
   },
   reviewScreen: {
     copyAriaLabel: "{{side}} kopiëren",
+    copying: "Kopiëren...",
+    copied: "Gekopieerd.",
+    copyUnavailable: "Het klembord is niet beschikbaar in deze browser.",
+    copyFailed: "Kopiëren mislukt.",
     selectTextAriaLabel: "Tekst selecteren en kopiëren: {{side}}",
     actions: {
       createCard: "Kaart maken",

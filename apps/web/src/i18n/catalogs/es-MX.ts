@@ -1070,6 +1070,10 @@ const esMxCatalog: TranslationCatalog = {
   },
   reviewScreen: {
     copyAriaLabel: "Copiar {{side}}",
+    copying: "Copiando...",
+    copied: "Copiado.",
+    copyUnavailable: "El portapapeles no está disponible en este navegador.",
+    copyFailed: "No se pudo copiar.",
     selectTextAriaLabel: "Seleccionar y copiar texto: {{side}}",
     actions: {
       createCard: "Crear tarjeta",

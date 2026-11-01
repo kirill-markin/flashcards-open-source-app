@@ -1070,6 +1070,10 @@ const paCatalog: TranslationCatalog = {
   },
   reviewScreen: {
     copyAriaLabel: "{{side}} ਕਾਪੀ ਕਰੋ",
+    copying: "ਕਾਪੀ ਹੋ ਰਿਹਾ ਹੈ...",
+    copied: "ਕਾਪੀ ਹੋ ਗਿਆ.",
+    copyUnavailable: "ਇਸ ਬ੍ਰਾਊਜ਼ਰ ਵਿੱਚ ਕਲਿੱਪਬੋਰਡ ਉਪਲਬਧ ਨਹੀਂ ਹੈ.",
+    copyFailed: "ਕਾਪੀ ਅਸਫਲ ਰਹੀ.",
     selectTextAriaLabel: "ਲਿਖਤ ਚੁਣੋ ਅਤੇ ਕਾਪੀ ਕਰੋ: {{side}}",
     actions: {
       createCard: "ਕਾਰਡ ਬਣਾਓ",

@@ -1070,6 +1070,10 @@ const itCatalog: TranslationCatalog = {
   },
   reviewScreen: {
     copyAriaLabel: "Copia {{side}}",
+    copying: "Copia in corso...",
+    copied: "Copiato.",
+    copyUnavailable: "Gli appunti non sono disponibili in questo browser.",
+    copyFailed: "Copia non riuscita.",
     selectTextAriaLabel: "Seleziona e copia il testo: {{side}}",
     actions: {
       createCard: "Crea una carta",

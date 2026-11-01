@@ -1070,6 +1070,10 @@ const etCatalog: TranslationCatalog = {
   },
   reviewScreen: {
     copyAriaLabel: "Kopeeri: {{side}}",
+    copying: "Kopeerimine...",
+    copied: "Kopeeritud.",
+    copyUnavailable: "Lõikelaud pole selles brauseris saadaval.",
+    copyFailed: "Kopeerimine ebaõnnestus.",
     selectTextAriaLabel: "Vali ja kopeeri tekst: {{side}}",
     actions: {
       createCard: "Loo kaart",

@@ -1070,6 +1070,10 @@ export const jaCatalog = {
   },
   reviewScreen: {
     copyAriaLabel: "{{side}}をコピー",
+    copying: "コピー中...",
+    copied: "コピーしました。",
+    copyUnavailable: "このブラウザではクリップボードを利用できません。",
+    copyFailed: "コピーできませんでした。",
     selectTextAriaLabel: "テキストを選択してコピー：{{side}}",
     actions: {
       createCard: "カードを作成",

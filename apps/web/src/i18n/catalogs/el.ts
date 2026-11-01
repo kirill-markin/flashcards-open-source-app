@@ -1070,6 +1070,10 @@ const elCatalog: TranslationCatalog = {
   },
   reviewScreen: {
     copyAriaLabel: "Αντιγραφή: {{side}}",
+    copying: "Γίνεται αντιγραφή...",
+    copied: "Αντιγράφηκε.",
+    copyUnavailable: "Το πρόχειρο δεν είναι διαθέσιμο σε αυτό το πρόγραμμα περιήγησης.",
+    copyFailed: "Η αντιγραφή απέτυχε.",
     selectTextAriaLabel: "Επιλογή και αντιγραφή κειμένου: {{side}}",
     actions: {
       createCard: "Δημιουργία κάρτας",

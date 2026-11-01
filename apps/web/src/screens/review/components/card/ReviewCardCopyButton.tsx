@@ -21,12 +21,12 @@ export function ReviewCardCopyButton(props: ReviewCardCopyButtonProps): ReactEle
   const isCopyingRef = useRef(false);
   const ariaLabel = t("reviewScreen.copyAriaLabel", { side: sideLabel });
   const statusMessage = status === "copying"
-    ? t("progressScreen.leaderboard.invite.copying")
+    ? t("reviewScreen.copying")
     : status === "copied"
-      ? t("progressScreen.leaderboard.invite.copied")
+      ? t("reviewScreen.copied")
       : status === "unavailable"
-        ? t("progressScreen.leaderboard.invite.clipboardUnavailable")
-        : status === "failed" ? t("appPlatformLinks.mcp.copyFailed") : "";
+        ? t("reviewScreen.copyUnavailable")
+        : status === "failed" ? t("reviewScreen.copyFailed") : "";
   const hasFailed = status === "failed" || status === "unavailable";
 
   useLayoutEffect(() => {

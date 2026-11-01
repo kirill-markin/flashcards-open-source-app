@@ -1070,6 +1070,10 @@ const guCatalog: TranslationCatalog = {
   },
   reviewScreen: {
     copyAriaLabel: "{{side}} કૉપિ કરો",
+    copying: "કૉપી થઈ રહ્યું છે...",
+    copied: "કૉપી થયું.",
+    copyUnavailable: "આ બ્રાઉઝરમાં ક્લિપબોર્ડ ઉપલબ્ધ નથી.",
+    copyFailed: "કૉપી થયું નહીં.",
     selectTextAriaLabel: "લખાણ પસંદ કરો અને કૉપિ કરો: {{side}}",
     actions: {
       createCard: "કાર્ડ બનાવો",

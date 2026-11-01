@@ -1070,6 +1070,10 @@ const taCatalog: TranslationCatalog = {
   },
   reviewScreen: {
     copyAriaLabel: "{{side}} நகலெடு",
+    copying: "நகலெடுக்கிறது...",
+    copied: "நகலெடுக்கப்பட்டது.",
+    copyUnavailable: "இந்த உலாவியில் கிளிப்போர்டு கிடைக்கவில்லை.",
+    copyFailed: "நகலெடுக்க முடியவில்லை.",
     selectTextAriaLabel: "உரையைத் தேர்ந்தெடுத்து நகலெடுக்கவும்: {{side}}",
     actions: {
       createCard: "அட்டையை உருவாக்கு",

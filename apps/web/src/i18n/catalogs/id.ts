@@ -1070,6 +1070,10 @@ const idCatalog: TranslationCatalog = {
   },
   reviewScreen: {
     copyAriaLabel: "Salin {{side}}",
+    copying: "Menyalin...",
+    copied: "Tersalin.",
+    copyUnavailable: "Papan klip tidak tersedia di peramban ini.",
+    copyFailed: "Gagal menyalin.",
     selectTextAriaLabel: "Pilih dan salin teks: {{side}}",
     actions: {
       createCard: "Buat kartu",
