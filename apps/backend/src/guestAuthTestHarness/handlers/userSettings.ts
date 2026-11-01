@@ -212,6 +212,36 @@ export function handleUserSettingsExecutorQuery<Row extends pg.QueryResultRow>(
     return createQueryResult<Row>([{ user_id: userId } as unknown as Row]);
   }
 
+  if (text === "SELECT first_review_onboarding_completed FROM org.user_settings WHERE user_id = $1") {
+    const userId = String(params[0]);
+    scope.requireCurrentUserScope(userId);
+    const row = state.userSettings.get(userId);
+    return createQueryResult<Row>(row === undefined ? [] : [{
+      first_review_onboarding_completed: row.first_review_onboarding_completed,
+    } as unknown as Row]);
+  }
+
+  if (
+    text === "UPDATE org.user_settings SET first_review_onboarding_completed = first_review_onboarding_completed"
+      + " OR $2::BOOLEAN WHERE user_id = $1 RETURNING user_id"
+  ) {
+    const userId = String(params[0]);
+    const guestCompleted = params[1];
+    if (typeof guestCompleted !== "boolean") {
+      throw new Error(`Unexpected first-review onboarding value for ${userId}: ${String(guestCompleted)}.`);
+    }
+    scope.requireCurrentUserScope(userId);
+    const current = state.userSettings.get(userId);
+    if (current === undefined) {
+      return createQueryResult<Row>([]);
+    }
+    state.userSettings.set(userId, {
+      ...current,
+      first_review_onboarding_completed: current.first_review_onboarding_completed || guestCompleted,
+    });
+    return createQueryResult<Row>([{ user_id: userId } as unknown as Row]);
+  }
+
   if (text === "UPDATE org.user_settings SET email = $1 WHERE user_id = $2") {
     const email = params[0] === null ? null : String(params[0]);
     const userId = String(params[1]);

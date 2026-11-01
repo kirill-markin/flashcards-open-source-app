@@ -14,6 +14,7 @@ import type {
   ProductAnalyticsDeviceType,
   ProductAnalyticsOsName,
 } from "../../../productAnalytics/catalog";
+import type { AiChatRunClientDevice } from "../../../productAnalytics/serverFacts/reviewAnswers";
 import { resolveAccessibleChatWorkspaceId } from "../../../server/requestContext";
 import { createPublicHttpErrorDetails, HttpError } from "../../../shared/errors";
 import {
@@ -182,8 +183,14 @@ function getGeneratedImageToolSafeErrorCode(
 /** There is no agent connection behind the chat, so its SQL runs under this fixed label. */
 const chatSqlConnectionId = "chat-v2";
 
-/** The chat's SQL writes, from its tools and from the sandbox's SQL bridge, carry the workspace's AI-chat replica. */
-function createChatSqlOperationDependencies(signal: AbortSignal | null): AgentToolOperationDependencies {
+/**
+ * The chat's SQL writes, from its tools and from the sandbox's SQL bridge, carry the workspace's
+ * AI-chat replica. That replica names no device, so their analytics device is aiChatClient.
+ */
+function createChatSqlOperationDependencies(
+  signal: AbortSignal | null,
+  aiChatClient: AiChatRunClientDevice | null,
+): AgentToolOperationDependencies {
   return {
     ...DEFAULT_AGENT_TOOL_OPERATION_DEPENDENCIES,
     ensureAgentSyncReplica: async (workspaceId: string, userId: string): Promise<string> =>
@@ -193,11 +200,16 @@ function createChatSqlOperationDependencies(signal: AbortSignal | null): AgentTo
         "web",
         signal,
       ),
+    aiChatClient,
   };
 }
 
 function createToolDependencies(context: OpenAIToolContext): AgentToolOperationDependencies {
-  return createChatSqlOperationDependencies(context.signal);
+  return createChatSqlOperationDependencies(context.signal, {
+    platform: context.clientPlatform,
+    osName: context.clientOsName,
+    deviceType: context.clientDeviceType,
+  });
 }
 
 /**
@@ -1168,7 +1180,8 @@ export async function executeChatSandboxSqlCall(
       surface: "chat-sandbox",
       caller: null,
     } as const;
-    const operationDependencies = createChatSqlOperationDependencies(null);
+    // The bridge's capability carries no run device, so the writes it makes name none.
+    const operationDependencies = createChatSqlOperationDependencies(null, null);
     const result = kind === "query"
       ? await runChatSqlQuery(sqlContext, parsed.sql, operationDependencies)
       : await runChatSqlExecute(sqlContext, parsed.sql, operationDependencies);

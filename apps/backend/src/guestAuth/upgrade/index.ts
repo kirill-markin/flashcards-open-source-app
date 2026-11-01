@@ -34,6 +34,7 @@ import {
   assertTargetWorkspaceAccessInExecutor,
   carryGuestAccentColorToAccountInExecutor,
   carryGuestAnalyticsConsentToAccountInExecutor,
+  carryGuestFirstReviewOnboardingToAccountInExecutor,
   carryGuestProductAnalyticsEnabledToAccountInExecutor,
   loadGuestSessionRecordInExecutor,
   loadGuestSessionWithUserSettingsLockInExecutor,
@@ -789,6 +790,11 @@ async function completeGuestUpgradeWithAdmissionInExecutor(
   );
 
   await carryGuestAccentColorToAccountInExecutor(
+    executor,
+    guestSession.userId,
+    guestUpgradeResolution.targetUserId,
+  );
+  await carryGuestFirstReviewOnboardingToAccountInExecutor(
     executor,
     guestSession.userId,
     guestUpgradeResolution.targetUserId,

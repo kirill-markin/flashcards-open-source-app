@@ -14,7 +14,7 @@
   "dependencies": {
     "@floating-ui/react-dom": "^2.1.9",
     "@kirill-markin/ratex-wasm": "https://github.com/kirill-markin/RaTeX/releases/download/fork-packages-0.1.15-1/kirill-markin-ratex-wasm-0.1.15-fork.1.tgz",
-    "@sentry/react": "^10.77.1",
+    "@sentry/react": "^10.78.0",
     "heic-to": "^1.6.7",
     "lottie-web": "^5.13.0",
     "micromark": "^4.0.3",
