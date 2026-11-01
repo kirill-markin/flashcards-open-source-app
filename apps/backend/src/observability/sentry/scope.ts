@@ -17,6 +17,12 @@ function getScopeTagValue(value: string | null): string | undefined {
 
 export function setSentryScope(scope: Sentry.Scope, observationScope: BackendObservationScope): void {
   scope.setTag("backend.service", observationScope.service);
+  scope.setAttributes({
+    "backend.service": observationScope.service,
+    ...Object.fromEntries(Object.entries(observationScope).filter(
+      ([key, value]) => key !== "service" && value !== null && value !== "",
+    )),
+  });
   const requestId = getScopeTagValue(observationScope.requestId);
   const route = getScopeTagValue(observationScope.route);
   const method = getScopeTagValue(observationScope.method);

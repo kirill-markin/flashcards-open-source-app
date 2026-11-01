@@ -46,16 +46,6 @@ export function requireBeforeSendSpan(
   return beforeSendSpan;
 }
 
-export function requireBeforeSendTransaction(
-  beforeSendTransaction: CapturedSentryInitOptions["beforeSendTransaction"],
-): NonNullable<CapturedSentryInitOptions["beforeSendTransaction"]> {
-  if (beforeSendTransaction === undefined) {
-    throw new Error("Expected backend Sentry beforeSendTransaction to be configured.");
-  }
-
-  return beforeSendTransaction;
-}
-
 export function requireSynchronousSentryHookResult<Result>(
   result: Result | PromiseLike<Result>,
 ): Result {

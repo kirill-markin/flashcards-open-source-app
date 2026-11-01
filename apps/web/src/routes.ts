@@ -14,6 +14,9 @@ export const progressLeaderboardRoute: string = `${progressRoute}#${progressLead
 export const shareRoute: string = "/share";
 export const friendInviteRoutePrefix: string = "/invite";
 export const friendInviteRoutePattern: string = `${friendInviteRoutePrefix}/:token`;
+export function isFriendInvitePath(pathname: string): boolean {
+  return new RegExp(`^${friendInviteRoutePrefix}/[^/]+/*$`, "i").test(pathname);
+}
 export const catalogImportRoutePrefix: string = "/catalog/import";
 export const catalogImportRoutePattern: string = `${catalogImportRoutePrefix}/:packageVersionId`;
 export function isCatalogImportPath(pathname: string): boolean {

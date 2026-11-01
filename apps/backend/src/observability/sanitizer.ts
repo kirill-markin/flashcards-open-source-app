@@ -205,7 +205,7 @@ function shouldRedactSecretEntry(key: string, value: unknown): boolean {
   return shouldRedactSecretKey(key) && typeof value !== "boolean";
 }
 
-function shouldRedactContentKey(key: string): boolean {
+export function shouldRedactContentKey(key: string): boolean {
   const normalizedKey = normalizeTelemetryKey(key);
   return contentKeyNames.includes(normalizedKey)
     || contentKeyFragments.some((fragment) => normalizedKey.includes(fragment));

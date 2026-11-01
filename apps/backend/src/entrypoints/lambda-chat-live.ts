@@ -13,7 +13,6 @@ import {
   type ChatLiveBootstrapFailureDetails,
   continueBackendTrace,
   createBackendObservationScope,
-  flushBackendSentry,
   type BackendTraceCarrier,
   initializeBackendSentry,
   normalizeCaughtError,
@@ -313,7 +312,6 @@ async function liveStreamHandler(
     const stream = awslambda.HttpResponseStream.from(responseStream, metadata);
     stream.write(JSON.stringify(errorResponse.body));
     stream.end();
-    await flushBackendSentry(2000);
     return;
   }
 
@@ -372,7 +370,6 @@ async function liveStreamHandler(
         requestId,
       }),
     ));
-    await flushBackendSentry(2000);
   } catch (error) {
     captureBackendException({
       action: "chat_live_stream_crashed",
@@ -394,7 +391,6 @@ async function liveStreamHandler(
         clientVersion: params.clientVersion ?? null,
       },
     });
-    await flushBackendSentry(2000);
     if (stream.destroyed === false && stream.writableEnded === false) {
       stream.end();
     }
@@ -433,11 +429,7 @@ const chatLiveStreamHandler: StreamifyHandler<APIGatewayProxyEventV2, void> = as
       scope: observationScope,
       details: createChatLiveBootstrapFailureDetails(event, normalizedError),
     });
-    try {
-      writeChatLiveBootstrapErrorResponse(responseStream, requestId);
-    } finally {
-      await flushBackendSentry(2000);
-    }
+    writeChatLiveBootstrapErrorResponse(responseStream, requestId);
   }
 };
 

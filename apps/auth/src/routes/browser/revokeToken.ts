@@ -31,8 +31,8 @@ app.post("/api/revoke-token", async (c) => {
   try {
     await revokeToken(refreshToken);
     clearBrowserSessionCookies(c);
-    // Retired along with the session, under the rule in `clearAuthAnalyticsGuestSession`'s
-    // docstring. A caller holding neither cookie is unaffected by either clear.
+    // Retired along with the session, as housekeeping. A caller holding neither cookie is
+    // unaffected by either clear.
     clearAuthAnalyticsGuestSession(c);
     return c.json({ ok: true });
   } catch (err) {

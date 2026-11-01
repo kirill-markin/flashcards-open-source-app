@@ -21,11 +21,9 @@ type SentryInitOptions = Parameters<typeof Sentry.init>[0];
 type SentryBeforeBreadcrumb = NonNullable<SentryInitOptions["beforeBreadcrumb"]>;
 type SentryBeforeSend = NonNullable<SentryInitOptions["beforeSend"]>;
 type SentryBeforeSendSpan = NonNullable<SentryInitOptions["beforeSendSpan"]>;
-type SentryBeforeSendTransaction = NonNullable<SentryInitOptions["beforeSendTransaction"]>;
 type SentryBreadcrumb = Parameters<SentryBeforeBreadcrumb>[0];
 type SentryEvent = Parameters<SentryBeforeSend>[0];
-type SentrySpan = Parameters<SentryBeforeSendSpan>[0];
-type SentryTransactionEvent = Parameters<SentryBeforeSendTransaction>[0];
+type SentryStreamedSpan = Parameters<SentryBeforeSendSpan>[0];
 
 type UnknownObject = Readonly<{
   readonly [key: string]: unknown;
@@ -440,12 +438,8 @@ const beforeSend: SentryBeforeSend = (event: SentryEvent): SentryEvent | null =>
   return prepareSentryEventForSend(event);
 };
 
-const beforeSendSpan: SentryBeforeSendSpan = (span: SentrySpan): SentrySpan => {
-  return sanitizeUnknown(span, null, []) as SentrySpan;
-};
-
-const beforeSendTransaction: SentryBeforeSendTransaction = (event: SentryTransactionEvent): SentryTransactionEvent => {
-  return sanitizeUnknown(event, null, []) as SentryTransactionEvent;
+const beforeSendSpan: SentryBeforeSendSpan = (span: SentryStreamedSpan): SentryStreamedSpan => {
+  return sanitizeUnknown(span, null, []) as SentryStreamedSpan;
 };
 
 const sentryDsn = resolveSentryDsn();
@@ -466,11 +460,23 @@ if (sentryDsn !== null) {
     ],
     tracesSampleRate: resolveTracesSampleRate(),
     tracePropagationTargets: buildTracePropagationTargets(),
-    sendDefaultPii: false,
+    dataCollection: {
+      userInfo: false,
+      cookies: false,
+      httpHeaders: false,
+      httpBodies: [],
+      urlQueryParams: false,
+      genAI: { inputs: false, outputs: false },
+      mcp: { inputs: false, outputs: false },
+      graphQL: { document: false, variables: false },
+      databaseQueryData: false,
+      queues: false,
+      stackFrameVariables: false,
+      frameContextLines: 7,
+    },
     beforeBreadcrumb,
     beforeSend,
     beforeSendSpan,
-    beforeSendTransaction,
   });
 }
 

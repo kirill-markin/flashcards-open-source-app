@@ -13,7 +13,6 @@ import {
   type CapturedSentryInitOptions,
   requireBeforeSend,
   requireBeforeSendSpan,
-  requireBeforeSendTransaction,
   requireCapturedSentryInitOptions,
   requireSynchronousSentryHookResult,
   withCapturedConsole,
@@ -22,6 +21,7 @@ import {
 type CapturedScope = Readonly<{
   scope: Parameters<typeof setSentryScope>[0];
   tags: Map<string, string>;
+  attributes: Map<string, unknown>;
   users: Array<Parameters<Parameters<typeof setSentryScope>[0]["setUser"]>[0]>;
   contexts: Map<string, Parameters<Parameters<typeof setSentryScope>[0]["setContext"]>[1]>;
 }>;
@@ -32,12 +32,17 @@ function createCapturedScope(): CapturedScope {
   type ScopeContext = Parameters<Scope["setContext"]>[1];
 
   const tags: Map<string, string> = new Map();
+  const attributes: Map<string, unknown> = new Map();
   const users: Array<ScopeUser> = [];
   const contexts: Map<string, ScopeContext> = new Map();
   let scope: Scope;
   scope = {
     setTag: (key: string, value: string): Scope => {
       tags.set(key, value);
+      return scope;
+    },
+    setAttributes: (values: Parameters<Scope["setAttributes"]>[0]): Scope => {
+      for (const [key, value] of Object.entries(values)) attributes.set(key, value);
       return scope;
     },
     setUser: (user: ScopeUser): Scope => {
@@ -53,6 +58,7 @@ function createCapturedScope(): CapturedScope {
   return {
     scope,
     tags,
+    attributes,
     users,
     contexts,
   };
@@ -342,15 +348,12 @@ test("backend Sentry beforeSend preserves structural database exception diagnost
   assert.equal(sanitized.tags?.["db.sql_state"], "23503");
   assert.equal(sanitized.tags?.["db.constraint"], "workspace_replicas_workspace_id_fkey");
   assert.equal(sanitized.tags?.["db.table"], "workspace_replicas");
-  assert.deepEqual(sanitized.request, { headers: { authorization: "<redacted-secret>" } });
-  assert.equal(sanitized.contexts?.backend?.prompt, "private prompt");
+  assert.deepEqual(sanitized.request, {});
+  assert.equal(sanitized.contexts?.backend?.prompt, "<redacted-content>");
   assert.equal(sanitized.contexts?.backend?.sqlState, "23503");
   assert.equal(sanitized.contexts?.backend?.constraint, "workspace_replicas_workspace_id_fkey");
   assert.equal(sanitized.contexts?.backend?.table, "workspace_replicas");
-  assert.deepEqual(sanitized.contexts?.rawRequest?.requestBody, {
-    frontText: "private question",
-    backText: "private answer",
-  });
+  assert.equal(sanitized.contexts?.rawRequest?.requestBody, "<redacted-content>");
   assert.deepEqual(sanitized.exception?.values?.[0]?.stacktrace?.frames?.[0], {
     context_line: "<redacted-content>",
     vars: "<redacted-content>",
@@ -496,6 +499,9 @@ test("backend Sentry scope preserves raw backend identifiers before capture", ()
   );
 
   assert.equal(capturedUnsafeScope.tags.get("backend.service"), "chat-live");
+  assert.equal(capturedUnsafeScope.attributes.get("backend.service"), "chat-live");
+  assert.equal(capturedUnsafeScope.attributes.get("requestId"), backendRequestId);
+  assert.equal(capturedUnsafeScope.attributes.get("workspaceId"), "workspace-1");
   assert.equal(capturedUnsafeScope.tags.get("route"), "/v1/chat/live");
   assert.equal(capturedUnsafeScope.tags.get("method"), "GET");
   assert.equal(capturedUnsafeScope.tags.get("requestId"), backendRequestId);
@@ -765,9 +771,8 @@ test("backend Sentry beforeSendSpan sanitizes span payloads", () => {
 
   const initOptions = requireCapturedSentryInitOptions(capturedInitOptions);
   const beforeSendSpan = requireBeforeSendSpan(initOptions.beforeSendSpan);
-  const beforeSendTransaction = requireBeforeSendTransaction(initOptions.beforeSendTransaction);
   const sanitized = beforeSendSpan({
-    data: {
+    attributes: {
       authorization: "Bearer token-value",
       query: "token=secret&search=private",
       "gen_ai.prompt": "private prompt",
@@ -784,28 +789,31 @@ test("backend Sentry beforeSendSpan sanitizes span payloads", () => {
       outputLength: 42,
       sessionToken: "session-token-value",
       tokenCount: 7,
+      "gen_ai.usage.input_tokens": 11,
+      "gen_ai.usage.output_tokens": 12,
+      "sentry.op": "http.client",
     },
-    description: "POST /v1/cards?token=secret&query=private",
-    op: "http.client",
+    name: "POST /v1/cards?token=secret&query=private",
     parent_span_id: "2222222222222222",
     span_id: "1111111111111111",
     start_timestamp: 1,
     status: "ok",
-    timestamp: 2,
+    end_timestamp: 2,
+    is_segment: false,
     trace_id: "11111111111111111111111111111111",
   });
 
-  assert.equal(sanitized.description, "POST /v1/cards");
-  assert.deepEqual(sanitized.data, {
+  assert.equal(sanitized.name, "POST /v1/cards");
+  assert.deepEqual(sanitized.attributes, {
     authorization: "<redacted-secret>",
     query: "<redacted-content>",
-    "gen_ai.prompt": "private prompt",
-    "gen_ai.completion": "private completion",
-    "gen_ai.prompt.0.content": "private prompt part",
-    tool_arguments: "{\"frontText\":\"private question\"}",
-    "http.request.header.x-user": "private header",
-    "http.response.body": "private response body",
-    output: "private output",
+    "gen_ai.prompt": "<redacted-content>",
+    "gen_ai.completion": "<redacted-content>",
+    "gen_ai.prompt.0.content": "<redacted-content>",
+    tool_arguments: "<redacted-content>",
+    "http.request.header.x-user": "<redacted-content>",
+    "http.response.body": "<redacted-content>",
+    output: "<redacted-content>",
     hasArguments: true,
     hasToken: true,
     input_tokens: 11,
@@ -813,36 +821,23 @@ test("backend Sentry beforeSendSpan sanitizes span payloads", () => {
     outputLength: 42,
     sessionToken: "<redacted-secret>",
     tokenCount: 7,
+    "gen_ai.usage.input_tokens": 11,
+    "gen_ai.usage.output_tokens": 12,
+    "sentry.op": "http.client",
+    "backend.service": "chat-worker",
   });
 
-  const sanitizedTransaction = requireSynchronousSentryHookResult(beforeSendTransaction({
-    type: "transaction",
-    transaction: "GET /v1/cards?token=secret",
-    spans: [
-      {
-        data: {
-          input: "private input",
-          hasArguments: true,
-        },
-        description: "GET /v1/cards?token=secret",
-        op: "http.server",
-        parent_span_id: "1111111111111111",
-        span_id: "2222222222222222",
-        start_timestamp: 1,
-        status: "ok",
-        timestamp: 2,
-        trace_id: "11111111111111111111111111111111",
-      },
-    ],
-  }, {}));
-
-  assert.notEqual(sanitizedTransaction, null);
-  if (sanitizedTransaction === null) {
-    throw new Error("Expected backend Sentry beforeSendTransaction to keep the event.");
-  }
-  assert.equal(sanitizedTransaction.transaction, "GET /v1/cards");
-  assert.deepEqual(sanitizedTransaction.spans?.[0]?.data, {
-    input: "private input",
-    hasArguments: true,
+  const segment = beforeSendSpan({
+    trace_id: "11111111111111111111111111111111",
+    span_id: "2222222222222222",
+    name: "GET /v1/cards?token=secret",
+    start_timestamp: 1,
+    end_timestamp: 2,
+    status: "ok",
+    is_segment: true,
+    attributes: { input: "private input", "sentry.op": "http.server" },
   });
+  assert.equal(segment.name, "GET /v1/cards");
+  assert.equal(segment.attributes.input, "<redacted-content>");
+  assert.equal(segment.attributes["backend.service"], "chat-worker");
 });
