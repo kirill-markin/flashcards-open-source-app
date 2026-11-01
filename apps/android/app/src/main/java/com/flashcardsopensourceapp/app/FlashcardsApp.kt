@@ -49,9 +49,13 @@ import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteType
 import androidx.compose.material3.adaptive.navigationsuite.rememberNavigationSuiteScaffoldState
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.testTag
 import androidx.compose.ui.semantics.testTagsAsResourceId
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
@@ -77,7 +81,7 @@ import com.flashcardsopensourceapp.app.navigation.currentVisibleAppScreen
 import com.flashcardsopensourceapp.app.navigation.currentTopLevelDestination
 import com.flashcardsopensourceapp.app.navigation.isWithinRoutePrefix
 import com.flashcardsopensourceapp.app.navigation.navigateToTopLevelDestination
-import com.flashcardsopensourceapp.app.navigation.reviewReminderAttentionBadgeTag
+import com.flashcardsopensourceapp.app.navigation.reviewOverdueBadgeTag
 import com.flashcardsopensourceapp.app.navigation.settings.SettingsAccountMethodsDestination
 import com.flashcardsopensourceapp.app.navigation.settings.SettingsAccountSignInEmailDestination
 import com.flashcardsopensourceapp.app.navigation.topLevelDestinations
@@ -110,6 +114,7 @@ import com.flashcardsopensourceapp.core.ui.renderTechnicalErrorDetails
 import com.flashcardsopensourceapp.core.ui.theme.FlashcardsTheme
 import com.flashcardsopensourceapp.core.observability.AndroidReviewReactionSource
 import com.flashcardsopensourceapp.feature.review.reaction.rememberReviewReactionLottieConfigurationStore
+import com.flashcardsopensourceapp.feature.settings.R as SettingsR
 import com.flashcardsopensourceapp.feature.settings.SettingsAttentionBadge
 import com.flashcardsopensourceapp.feature.settings.SettingsAttentionSummary
 import com.flashcardsopensourceapp.feature.settings.makeSettingsAttentionIssues
@@ -416,7 +421,11 @@ fun FlashcardsApp(
         val settingsAttentionSummary: SettingsAttentionSummary = makeSettingsAttentionSummary(
             issues = makeSettingsAttentionIssues(cloudState = cloudSettings.cloudState)
         )
-        val reviewReminderAttentionState by appGraph.reviewReminderAttentionController.attentionState.collectAsStateWithLifecycle()
+        // Collection restarts on every return to the foreground, so a resume re-reads the count.
+        val reviewOverdueBadgeCountFlow = remember(appGraph) {
+            appGraph.reviewRepository.observeReviewOverdueBadgeCount()
+        }
+        val reviewOverdueBadgeCount by reviewOverdueBadgeCountFlow.collectAsStateWithLifecycle(initialValue = 0)
         val currentCanRunImmediateAutoSync by rememberUpdatedState(newValue = canRunImmediateAutoSync)
         val currentCanRefreshCloudAccountContext by rememberUpdatedState(newValue = canRefreshCloudAccountContext)
         val currentVisibleAppScreenState by rememberUpdatedState(newValue = currentVisibleAppScreen)
@@ -503,15 +512,6 @@ fun FlashcardsApp(
                 AnalyticsEvent.ScreenViewed(screen = visitedSurface)
             }
             appGraph.analytics.track(event = event)
-        }
-
-        LaunchedEffect(isAppResumed, appGraph.reviewReminderAttentionController) {
-            if (isAppResumed.not()) {
-                return@LaunchedEffect
-            }
-
-            appGraph.reviewReminderAttentionController.reloadFromStore()
-            appGraph.reviewReminderAttentionController.reconcileWithReviewHistory()
         }
 
         LaunchedEffect(
@@ -716,9 +716,9 @@ fun FlashcardsApp(
             navigationSuiteItems = {
                 topLevelDestinations.forEach { destination ->
                     val destinationBadge: (@Composable () -> Unit)? = when {
-                        destination == ReviewDestination && reviewReminderAttentionState != null -> {
+                        destination == ReviewDestination && reviewOverdueBadgeCount > 0 -> {
                             {
-                                ReviewReminderAttentionBadge()
+                                ReviewOverdueBadge(count = reviewOverdueBadgeCount)
                             }
                         }
                         destination == SettingsDestination && settingsAttentionSummary.settingsTabCount > 0 -> {
@@ -874,14 +874,30 @@ private fun shouldHideNavigationSuite(
     return navigationSuiteType == NavigationSuiteType.NavigationBar && isImeVisible
 }
 
+private const val reviewOverdueBadgeMaxDisplayedCount: Int = 99
+
 @Composable
-private fun ReviewReminderAttentionBadge() {
+private fun ReviewOverdueBadge(count: Int) {
+    val badgeContentDescription: String = pluralStringResource(
+        SettingsR.plurals.settings_workspace_deck_due_summary,
+        count,
+        count
+    )
     Badge(
-        modifier = Modifier.testTag(reviewReminderAttentionBadgeTag),
+        modifier = Modifier.clearAndSetSemantics {
+            testTag = reviewOverdueBadgeTag
+            contentDescription = badgeContentDescription
+        },
         containerColor = MaterialTheme.colorScheme.error,
         contentColor = MaterialTheme.colorScheme.onError
     ) {
-        Text(text = "1")
+        Text(
+            text = if (count > reviewOverdueBadgeMaxDisplayedCount) {
+                "$reviewOverdueBadgeMaxDisplayedCount+"
+            } else {
+                count.toString()
+            }
+        )
     }
 }
 

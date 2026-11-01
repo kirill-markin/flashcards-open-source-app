@@ -3,6 +3,7 @@ package com.flashcardsopensourceapp.data.local.repository.review
 import com.flashcardsopensourceapp.data.local.database.core.AppDatabase
 import com.flashcardsopensourceapp.data.local.database.entities.CardWithRelations
 import com.flashcardsopensourceapp.data.local.database.entities.DeckEntity
+import com.flashcardsopensourceapp.data.local.database.review.ReviewOverdueCountRow
 import com.flashcardsopensourceapp.data.local.database.review.ReviewTagCardRow
 import com.flashcardsopensourceapp.data.local.database.review.activeReviewRecentPriorityWindowMillis
 import com.flashcardsopensourceapp.data.local.model.cards.CardSummary
@@ -19,11 +20,18 @@ import com.flashcardsopensourceapp.data.local.model.scheduling.makeDefaultWorksp
 import com.flashcardsopensourceapp.data.local.model.review.matchesReviewFilter
 import com.flashcardsopensourceapp.data.local.model.cards.normalizeTagKey
 import com.flashcardsopensourceapp.data.local.repository.decks.decodeDeckFilterDefinition
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.emitAll
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.transformLatest
 
 internal const val reviewSessionCanonicalQueueSize: Int = 8
 internal const val reviewSessionQueueLookaheadSize: Int = 1
@@ -208,6 +216,58 @@ internal fun observeReviewDueCount(
         )
 
         is ReviewTagPredicate.ExactTagNames -> database.reviewCountDao().observeReviewDueCountByAnyTags(
+            workspaceId = workspaceId,
+            nowMillis = nowMillis,
+            tagNames = tagPredicate.tagNames
+        )
+    }
+}
+
+/**
+ * Re-queries with a fresh `now` once the next card becomes due, so the count stays current without
+ * polling. Every collection owns its own clock.
+ */
+@OptIn(ExperimentalCoroutinesApi::class)
+internal fun observeReviewOverdueCount(
+    database: AppDatabase,
+    workspaceId: String,
+    predicate: ReviewQueuePredicate
+): Flow<Int> {
+    return flow {
+        val nowMillisState = MutableStateFlow(value = System.currentTimeMillis())
+        emitAll(
+            nowMillisState.flatMapLatest { nowMillis ->
+                observeReviewOverdueCountRow(
+                    database = database,
+                    workspaceId = workspaceId,
+                    nowMillis = nowMillis,
+                    predicate = predicate
+                )
+            }.transformLatest { row ->
+                emit(row.overdueCount)
+                val nextDueAtMillis: Long = row.nextDueAtMillis ?: return@transformLatest
+                delay(timeMillis = nextDueAtMillis - System.currentTimeMillis())
+                // At least the next due time, so that card counts even if the wall clock lags the delay.
+                nowMillisState.value = maxOf(System.currentTimeMillis(), nextDueAtMillis)
+            }
+        )
+    }
+}
+
+private fun observeReviewOverdueCountRow(
+    database: AppDatabase,
+    workspaceId: String,
+    nowMillis: Long,
+    predicate: ReviewQueuePredicate
+): Flow<ReviewOverdueCountRow> {
+    return when (val tagPredicate: ReviewTagPredicate = predicate.tagPredicate) {
+        ReviewTagPredicate.MatchNone -> flowOf(ReviewOverdueCountRow(overdueCount = 0, nextDueAtMillis = null))
+        ReviewTagPredicate.None -> database.reviewCountDao().observeReviewOverdueCount(
+            workspaceId = workspaceId,
+            nowMillis = nowMillis
+        )
+
+        is ReviewTagPredicate.ExactTagNames -> database.reviewCountDao().observeReviewOverdueCountByAnyTags(
             workspaceId = workspaceId,
             nowMillis = nowMillis,
             tagNames = tagPredicate.tagNames
