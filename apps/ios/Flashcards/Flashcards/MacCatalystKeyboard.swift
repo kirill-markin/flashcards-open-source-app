@@ -51,9 +51,26 @@ private func isActiveKeyboardWindow(_ window: UIWindow?) -> Bool {
 }
 
 @MainActor
+private enum FirstResponderProbe {
+    static weak var responder: UIResponder?
+}
+
+private extension UIResponder {
+    @objc func nibomoReportFirstResponder(_ sender: Any?) {
+        FirstResponderProbe.responder = self
+    }
+}
+
+/// The first responder inside `view`. A nil-targeted action reaches it directly; walking
+/// the window's view tree instead cost seconds while the companion laid out.
+@MainActor
 private func firstResponderView(in view: UIView) -> UIView? {
-    if view.isFirstResponder { return view }
-    return view.subviews.lazy.compactMap { firstResponderView(in: $0) }.first
+    FirstResponderProbe.responder = nil
+    defer { FirstResponderProbe.responder = nil }
+    UIApplication.shared.sendAction(#selector(UIResponder.nibomoReportFirstResponder(_:)), to: nil, from: nil, for: nil)
+    guard let responder = FirstResponderProbe.responder as? UIView, responder.isFirstResponder,
+          responder.isDescendant(of: view) else { return nil }
+    return responder
 }
 
 @MainActor
