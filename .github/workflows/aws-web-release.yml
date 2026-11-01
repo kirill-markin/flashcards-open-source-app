@@ -321,6 +321,25 @@ jobs:
         with:
           registry-type: public
 
+      # Fills the docker layer cache in the background while the steps below run,
+      # so a Docker-bundled Lambda cache miss in CDK synth skips the base-image
+      # pull. The platform and build args must match OnDemandDockerImage in
+      # infra/aws/lib/lambda-input-cache.ts, or CDK builds from scratch.
+      - name: Start Lambda bundling image prebuild
+        if: ${{ needs.changes.outputs.deploy_platform == 'true' }}
+        run: |
+          set -euo pipefail
+          esbuild_version="$(jq -er '.packages["node_modules/esbuild"].version' infra/aws/package-lock.json)"
+          (
+            status=0
+            docker build --platform linux/arm64 \
+              --build-arg IMAGE=public.ecr.aws/sam/build-nodejs24.x \
+              --build-arg "ESBUILD_VERSION=${esbuild_version}" \
+              infra/aws/docker/lambda-nodejs \
+              > "${RUNNER_TEMP}/lambda-bundling-image.log" 2>&1 || status=$?
+            echo "${status}" > "${RUNNER_TEMP}/lambda-bundling-image.exit"
+          ) &
+
       - name: Restore Lambda asset cache
         id: lambda_cache
         if: ${{ needs.changes.outputs.deploy_platform == 'true' }}
@@ -386,6 +405,16 @@ jobs:
                 exit 1 ;;
             esac
           done
+
+      - name: Wait for Lambda bundling image prebuild
+        if: ${{ needs.changes.outputs.deploy_platform == 'true' }}
+        timeout-minutes: 10
+        run: |
+          while [[ ! -f "${RUNNER_TEMP}/lambda-bundling-image.exit" ]]; do
+            sleep 2
+          done
+          cat "${RUNNER_TEMP}/lambda-bundling-image.log"
+          exit "$(cat "${RUNNER_TEMP}/lambda-bundling-image.exit")"
 
       - name: CDK deploy with selected cleanup state
         if: ${{ needs.changes.outputs.deploy_platform == 'true' }}
