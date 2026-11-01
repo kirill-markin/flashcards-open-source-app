@@ -79,6 +79,9 @@ struct CloudWorkspaceSelectionRow: View {
                     .foregroundStyle(.secondary)
             }
         }
+        #if targetEnvironment(macCatalyst)
+        .frame(minHeight: appMinimumTouchTarget)
+        #endif
         .contentShape(Rectangle())
         .padding(.vertical, 2)
     }

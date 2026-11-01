@@ -1,28 +1,23 @@
-import type { SanitizedTelemetryValue } from "./sanitizer";
+import {
+  sanitizeBackendTelemetryValue,
+  type SanitizedTelemetryValue,
+} from "./sanitizer";
 import type {
   BackendErrorLogDetails,
   BackendLogEvent,
 } from "./sentry/events";
-import {
-  redactCloudWatchExceptionDetailTextFields,
-  sanitizeCloudWatchLogValue,
-  sanitizeInternalErrorText,
-} from "./sentry/redaction";
-
-function getLogRecordDetails(event: BackendLogEvent): unknown {
-  return "error" in event ? redactCloudWatchExceptionDetailTextFields(event.details) : event.details;
-}
+import { sanitizeInternalErrorText } from "./sentry/redaction";
 
 export function createCloudWatchRecord(
   event: BackendLogEvent,
 ): SanitizedTelemetryValue {
   const errorContext = "error" in event ? getBackendErrorLogDetails(event.error) : {};
   const message = "message" in event ? { message: event.message } : {};
-  return sanitizeCloudWatchLogValue({
+  return sanitizeBackendTelemetryValue({
     domain: "backend",
     action: event.action,
     ...event.scope,
-    ...(getLogRecordDetails(event) as Readonly<Record<string, unknown>>),
+    ...event.details,
     ...message,
     ...errorContext,
   });

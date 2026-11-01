@@ -12,7 +12,6 @@ import {
   manualBackendCaptureTagName,
   manualBackendCaptureTagValue,
   manualBackendWarningCaptureTagName,
-  redactExceptionTextFields,
   sanitizeBackendSentryTelemetryValue,
 } from "./redaction";
 import { setSentryScope } from "./scope";
@@ -25,7 +24,7 @@ const mediaBlobWriterFenceActionTagName = "backend.media_blob_fence_action";
 
 // Read structurally instead of importing MediaBlobWriterFenceError so observability
 // keeps no dependency on media asset domain code. The action is a fixed vocabulary of
-// internal fence identifiers and is the only fence detail exposed to Sentry.
+// internal fence identifiers.
 function readMediaBlobWriterFenceAction(error: Error): string | null {
   if (error.name !== mediaBlobWriterFenceErrorName) {
     return null;
@@ -36,10 +35,10 @@ function readMediaBlobWriterFenceAction(error: Error): string | null {
 }
 
 function getSentryData(event: BackendLogEvent): BackendSentryBreadcrumbData {
-  return sanitizeBackendSentryTelemetryValue(redactExceptionTextFields({
+  return sanitizeBackendSentryTelemetryValue({
     scope: event.scope,
     details: event.details,
-  })) as BackendSentryBreadcrumbData;
+  }) as BackendSentryBreadcrumbData;
 }
 
 export function addBackendBreadcrumb(event: BackendBreadcrumbEvent): void {
@@ -67,7 +66,7 @@ function captureBackendWarningImpl(
     setSentryScope(scope, event.scope);
     scope.setContext(
       "backend.details",
-      sanitizeBackendSentryTelemetryValue(redactExceptionTextFields(event.details)) as BackendSentryContextData,
+      sanitizeBackendSentryTelemetryValue(event.details) as BackendSentryContextData,
     );
     scope.setTag(manualBackendWarningCaptureTagName, manualBackendCaptureTagValue);
     scope.setTag(backendActionTagName, event.action);
@@ -94,7 +93,7 @@ export function captureBackendException(event: BackendExceptionEvent): void {
     setSentryScope(scope, event.scope);
     scope.setContext(
       "backend.details",
-      sanitizeBackendSentryTelemetryValue(redactExceptionTextFields(event.details)) as BackendSentryContextData,
+      sanitizeBackendSentryTelemetryValue(event.details) as BackendSentryContextData,
     );
     scope.setTag(manualBackendCaptureTagName, manualBackendCaptureTagValue);
     scope.setTag(backendActionTagName, event.action);

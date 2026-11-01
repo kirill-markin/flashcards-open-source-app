@@ -171,7 +171,7 @@ test("invalid chat transcription audio failures create a breadcrumb without a Se
       upstreamStatus: 422,
       upstreamRequestId: "upstream-request-1",
       errorClass: "Error",
-      errorMessage: "Audio processing failed for <masked-email>",
+      errorMessage: "Audio processing failed for user@example.com",
     });
   } finally {
     sentryModule.addBreadcrumb = originalAddBreadcrumb;
@@ -204,7 +204,7 @@ test("unexpected chat transcription failures keep safe warning details", async (
     assert.equal(record.action, "chat_transcription_failed");
     assert.equal(record.fileExtension, "m4a");
     assert.equal(record.upstreamRequestId, "upstream-request-2");
-    assert.equal(record.errorMessage, "Provider failed with <masked-email>");
+    assert.equal(record.errorMessage, "Provider failed with user@example.com");
     assert.equal("fileName" in record, false);
     assert.equal("upstreamMessage" in record, false);
     assert.equal("sanitizedMessage" in record, false);

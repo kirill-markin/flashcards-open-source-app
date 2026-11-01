@@ -1,6 +1,25 @@
 import SwiftUI
 
+// Scaled-iPad Catalyst renders at 77%: 48 UIKit points give a 36.96-point Mac target.
+// Native toolbar/menu controls keep their system sizing and input adaptation.
+let appMinimumTouchTarget: CGFloat = {
+    #if targetEnvironment(macCatalyst)
+    48
+    #else
+    44
+    #endif
+}()
+
 extension View {
+    @ViewBuilder
+    func nativeInlineActionButtonStyle() -> some View {
+        #if targetEnvironment(macCatalyst)
+        self.buttonStyle(.borderless)
+        #else
+        self.buttonStyle(.plain)
+        #endif
+    }
+
     @ViewBuilder
     func nativeActionButtonStyle() -> some View {
         if #available(iOS 26.0, *) {

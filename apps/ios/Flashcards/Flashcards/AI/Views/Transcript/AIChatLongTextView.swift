@@ -97,8 +97,14 @@ struct AIChatLongTextView: View {
         if self.preview.isTruncated {
             VStack(alignment: .leading, spacing: 8) {
                 MathContentText(text: self.preview.text, textStyle: self.textStyle, isSelectable: self.isSelectable, isInteractive: true)
-                Button(aiSettingsLocalized("ai.message.fullResponse.show", "Show full response")) {
+                Button {
                     self.isFullResponsePresented = true
+                } label: {
+                    Text(aiSettingsLocalized("ai.message.fullResponse.show", "Show full response"))
+                        #if targetEnvironment(macCatalyst)
+                        .frame(minWidth: appMinimumTouchTarget, minHeight: appMinimumTouchTarget)
+                        #endif
+                        .contentShape(Rectangle())
                 }
                 .font(.subheadline.weight(.semibold))
             }

@@ -60,7 +60,7 @@ struct ReviewAnimationsSettingsView: View {
         }
         .listStyle(.insetGrouped)
         .accessibilityIdentifier(UITestIdentifier.reviewAnimationsSettingsScreen)
-        .navigationTitle(aiSettingsLocalized("settings.reviewAnimations.title", "Review Animations"))
+        .nativeNavigationTitle(aiSettingsLocalized("settings.reviewAnimations.title", "Review Animations"))
         .task {
             await self.refreshCloudAccountContext()
         }

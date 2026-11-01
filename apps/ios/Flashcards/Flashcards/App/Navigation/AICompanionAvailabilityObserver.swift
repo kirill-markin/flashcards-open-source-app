@@ -1,7 +1,13 @@
 import SwiftUI
 import UIKit
 
-/// Uses the owning window rather than the keyboard-reduced study viewport.
+#if targetEnvironment(macCatalyst)
+func fitsMacAICompanionColumns(_ size: CGSize) -> Bool {
+    size.width >= 1000 && size.height >= 600
+}
+#endif
+
+/// Mac observes the sidebar's detail column; mobile uses the full owning window.
 struct AICompanionAvailabilityObserver: UIViewRepresentable {
     let onChange: (Bool) -> Void
 
@@ -34,11 +40,18 @@ struct AICompanionAvailabilityObserver: UIViewRepresentable {
 
         func reportAvailability() {
             guard let window = self.window else { return }
-            let size = window.bounds.size
             // Two study columns need a large landscape window. Ordinary phones
             // and Duo's outer display have a short side below 600 points.
+            #if targetEnvironment(macCatalyst)
+            // The observer fills the detail column, so the sidebar is already excluded.
+            let size = self.bounds.size
+            let isAvailable = fitsMacAICompanionColumns(size)
+                && self.traitCollection.horizontalSizeClass == .regular
+            #else
+            let size = window.bounds.size
             let isAvailable = size.width >= 900 && size.height >= 600
                 && size.width > size.height && self.traitCollection.horizontalSizeClass == .regular
+            #endif
             guard isAvailable != self.lastAvailability else { return }
             self.lastAvailability = isAvailable
             // UIKit may lay out during a SwiftUI update. Ignore stale callbacks

@@ -75,6 +75,7 @@ private struct ProgressStreakCard: View {
             )
         }
         .id(ProgressScreenSectionID.streak)
+        .accessibilityElement(children: .contain)
         .accessibilityIdentifier(UITestIdentifier.progressStreakSection)
         .accessibilityValue(progressSummaryUITestValue(summary: self.summary))
         .modifier(ProgressCardModifier())
@@ -104,6 +105,7 @@ private struct ProgressLeaderboardCard: View {
                 )
             }
             .id(ProgressScreenSectionID.leaderboard)
+            .accessibilityElement(children: .contain)
             .accessibilityIdentifier(UITestIdentifier.progressLeaderboardSection)
             .modifier(ProgressCardModifier())
         }
@@ -127,6 +129,7 @@ private struct ProgressStreakLeaderboardCard: View {
                 )
             }
             .id(ProgressScreenSectionID.streakLeaderboard)
+            .accessibilityElement(children: .contain)
             .accessibilityIdentifier(UITestIdentifier.progressStreakLeaderboardSection)
             .modifier(ProgressCardModifier())
         }
@@ -152,6 +155,7 @@ private struct ProgressReviewsCard: View {
                 selectionResetKey: self.selectionResetKey
             )
         }
+        .accessibilityElement(children: .contain)
         .accessibilityIdentifier(UITestIdentifier.progressReviewsSection)
         .modifier(ProgressCardModifier())
     }
@@ -165,6 +169,7 @@ private struct ProgressReviewScheduleCard: View {
             VStack(alignment: .leading, spacing: 0) {
                 ProgressReviewScheduleSection(snapshot: snapshot)
             }
+            .accessibilityElement(children: .contain)
             .accessibilityIdentifier(UITestIdentifier.progressReviewScheduleSection)
             .modifier(ProgressCardModifier())
         }

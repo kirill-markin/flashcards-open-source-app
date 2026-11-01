@@ -191,10 +191,6 @@ async function resolveAnonymousEventRequestFacts(
     return withheldAnonymousEventRequestFacts;
   }
 
-  // `errorMessage` is in the Sentry redaction set
-  // (apps/backend/src/observability/sentry/redaction.ts), so Sentry receives `<redacted-content>`
-  // while CloudWatch keeps the text; the rule for naming this detail is in
-  // ../geolocation/countryLookupFailure.ts.
   const countryLookup = getDirectRequestCountryLookup();
   const country = countryLookup === null
     ? null

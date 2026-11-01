@@ -171,6 +171,32 @@ private struct CloudLastSignInBadge: ViewModifier {
 
     func body(content: Content) -> some View {
         if let hint = self.store.cloudNativeSignIn.rememberedHint, hint.method == self.method {
+            #if targetEnvironment(macCatalyst)
+            VStack(alignment: .trailing, spacing: 4) {
+                content
+                    .help(hint.email.map(maskedCloudSignInEmail) ?? aiSettingsLocalized("settings.account.cloudSignIn.lastUsed", "Last used"))
+                Button {
+                    self.isPresented = !self.isPresented && hint.email != nil
+                } label: {
+                    Text(aiSettingsLocalized("settings.account.cloudSignIn.lastUsed", "Last used"))
+                        .font(.caption2)
+                        .padding(.horizontal, 6).padding(.vertical, 3)
+                        .background(.regularMaterial, in: Capsule())
+                        .frame(minWidth: appMinimumTouchTarget, minHeight: appMinimumTouchTarget)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityIdentifier("cloudSignIn.lastUsed.\(self.method.rawValue)")
+                .popover(isPresented: self.$isPresented) {
+                    if let email = hint.email {
+                        Text(maskedCloudSignInEmail(email))
+                            .font(.caption)
+                            .padding(8)
+                            .presentationCompactAdaptation(.popover)
+                    }
+                }
+            }
+            #else
             content
                 .help(hint.email.map(maskedCloudSignInEmail) ?? aiSettingsLocalized("settings.account.cloudSignIn.lastUsed", "Last used"))
                 .overlay(alignment: .topTrailing) {
@@ -194,6 +220,7 @@ private struct CloudLastSignInBadge: ViewModifier {
                         }
                     }
                 }
+            #endif
         } else {
             content
         }

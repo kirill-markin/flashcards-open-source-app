@@ -13,4 +13,4 @@ if [[ ! -d "$app_path" || "$app_path" != *.app ]]; then
     exit 1
 fi
 
-exec /usr/bin/open -n --env FLASHCARDS_AUTOMATION_RUN=1 "$app_path"
+exec /usr/bin/open -g -n --env FLASHCARDS_AUTOMATION_RUN=1 "$app_path"

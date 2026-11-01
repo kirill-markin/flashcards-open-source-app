@@ -15,6 +15,7 @@ private struct ProgressPresentationTaskID: Hashable {
 }
 
 struct ProgressScreen: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(FlashcardsStore.self) private var store: FlashcardsStore
     @Environment(AppNavigationModel.self) private var navigation: AppNavigationModel
     @Environment(\.tabBarPlacement) private var tabBarPlacement
@@ -97,7 +98,7 @@ struct ProgressScreen: View {
             }
             .background(Color(uiColor: .systemGroupedBackground))
             .accessibilityIdentifier(UITestIdentifier.progressScreen)
-            .navigationTitle(
+            .nativeNavigationTitle(
                 (self.usesTopTabNavigation || self.usesPairedCompanionToolbar) ? "" : String(
                     localized: "progress.screen.title",
                     defaultValue: "Progress",
@@ -114,7 +115,9 @@ struct ProgressScreen: View {
             }
         }
         .toolbar {
+            #if !targetEnvironment(macCatalyst)
             AICompanionToolbarItem()
+            #endif
         }
 
     }
@@ -156,7 +159,7 @@ struct ProgressScreen: View {
             return
         }
 
-        withAnimation {
+        withAnimation(self.reduceMotion ? nil : .default) {
             proxy.scrollTo(self.progressScreenSectionID(target: request.target), anchor: .top)
         }
         self.navigation.clearProgressPresentationRequest(id: request.id)

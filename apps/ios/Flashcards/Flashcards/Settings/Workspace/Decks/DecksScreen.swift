@@ -81,7 +81,27 @@ struct DecksScreen: View {
         }
         .modifier(DeckDeletionConfirmation(pendingDeletion: self.$pendingDeletion, onDelete: self.deleteDeck))
         .listStyle(.insetGrouped)
-        .navigationTitle(aiSettingsLocalized("settings.workspace.row.decks", "Decks"))
+        .nativeNavigationTitle(aiSettingsLocalized("settings.workspace.row.decks", "Decks"))
+        #if targetEnvironment(macCatalyst)
+        .macToolbarContribution(MacToolbarContribution(
+            tab: .settings,
+            role: .navigation,
+            trailing: [MacToolbarGroup(identifier: "settings.decks.actions", actions: [
+                MacToolbarAction(
+                    identifier: "settings.decks.add",
+                    symbol: "plus",
+                    label: aiSettingsLocalized("settings.workspace.decks.newDeck", "New deck")
+                ) { _ in self.beginCreating() }
+            ])],
+            search: MacToolbarSearch(
+                text: self.searchText,
+                prompt: aiSettingsLocalized("settings.workspace.decks.searchPrompt", "Search decks"),
+                focusRequest: nil,
+                onChange: { self.searchText = $0 },
+                onFocusRequestHandled: {}
+            )
+        ))
+        #else
         .searchable(
             text: self.$searchText,
             isPresented: self.$isSearchPresented,
@@ -89,6 +109,7 @@ struct DecksScreen: View {
             prompt: aiSettingsLocalized("settings.workspace.decks.searchPrompt", "Search decks")
         )
         .nativeSearchToolbar(horizontalSizeClass: self.horizontalSizeClass)
+        #endif
         .task(id: store.localReadVersion) {
             await self.reloadDecksSnapshot()
         }
@@ -106,7 +127,7 @@ struct DecksScreen: View {
             // no other way, so the path is the whole question. `DeckDetailScreen.onDisappear` reads
             // the same value for the opposite decision — the list still on the path is what it lands
             // on — so the two must stay separate rather than be merged into one guard.
-            guard self.navigation.settingsPath.contains(.workspaceDecks) == false else {
+            guard self.navigation.isWorkspaceDecksOnSettingsPath == false else {
                 return
             }
 
@@ -115,6 +136,7 @@ struct DecksScreen: View {
         .navigationDestination(item: self.$createdDeckDestination) { destination in
             DeckDetailScreen(destination: destination)
         }
+        #if !targetEnvironment(macCatalyst)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Button {
@@ -124,6 +146,7 @@ struct DecksScreen: View {
                 }
             }
         }
+        #endif
         .sheet(
             isPresented: $isEditorPresented,
             onDismiss: {
@@ -469,7 +492,7 @@ private struct DeckDetailScreen: View {
             }
         }
         .listStyle(.insetGrouped)
-        .navigationTitle(detailState?.title ?? aiSettingsLocalized("settings.workspace.decks.deck", "Deck"))
+        .nativeNavigationTitle(detailState?.title ?? aiSettingsLocalized("settings.workspace.decks.deck", "Deck"))
         .task(id: "\(self.currentDeckId ?? "all")|\(store.localReadVersion)") {
             await self.reloadDetailState()
         }
@@ -491,9 +514,24 @@ private struct DeckDetailScreen: View {
             // the destination and the tracker guard refuses.
             Analytics.trackScreenViewedOnDismiss(
                 of: .deckDetail,
-                restoring: self.navigation.settingsPath.contains(.workspaceDecks) ? .decks : .settings
+                restoring: self.navigation.isWorkspaceDecksOnSettingsPath ? .decks : .settings
             )
         }
+        #if targetEnvironment(macCatalyst)
+        .macToolbarContribution(MacToolbarContribution(
+            tab: .settings,
+            role: .navigation,
+            trailing: self.detailState?.allowsEditing == true ? [
+                MacToolbarGroup(identifier: "settings.deckDetail.actions", actions: [
+                    MacToolbarAction(
+                        identifier: "settings.deckDetail.edit",
+                        symbol: "pencil",
+                        label: aiSettingsLocalized("common.edit", "Edit")
+                    ) { _ in self.beginEditing() }
+                ])
+            ] : []
+        ))
+        #else
         .toolbar {
             if detailState?.allowsEditing == true {
                 ToolbarItem(placement: .topBarTrailing) {
@@ -503,6 +541,7 @@ private struct DeckDetailScreen: View {
                 }
             }
         }
+        #endif
         .sheet(
             isPresented: $isEditorPresented,
             onDismiss: {

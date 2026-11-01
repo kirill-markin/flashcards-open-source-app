@@ -14,7 +14,7 @@ struct LeaderboardParticipationSettingsView: View {
         }
         .listStyle(.insetGrouped)
         .accessibilityIdentifier(UITestIdentifier.leaderboardParticipationSettingsScreen)
-        .navigationTitle(aiSettingsLocalized("settings.leaderboardParticipation.title", "Leaderboard participation"))
+        .nativeNavigationTitle(aiSettingsLocalized("settings.leaderboardParticipation.title", "Leaderboard participation"))
         .task {
             await self.refreshCommunityProfile()
         }

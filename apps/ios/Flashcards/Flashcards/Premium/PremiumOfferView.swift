@@ -161,6 +161,7 @@ struct PremiumOfferView: View {
                 }
             }
         }
+        .macModalSheetNavigation()
         .onChange(of: self.displayedOfferType, initial: true) { _, offerType in
             self.presenter.updateDisplayedOffer(requestId: self.request.id, offerType: offerType)
         }
@@ -396,7 +397,9 @@ struct PremiumOfferView: View {
             } label: {
                 Label(aiSettingsLocalized("common.close", "Close"), systemImage: "xmark")
                     .labelStyle(.iconOnly)
+                    #if !targetEnvironment(macCatalyst)
                     .frame(minWidth: 44, minHeight: 44)
+                    #endif
                     .contentShape(Rectangle())
             }
             .accessibilityIdentifier(UITestIdentifier.premiumCloseButton)
