@@ -57,7 +57,10 @@ touches migrations or the migration runner waits for it before CDK applies them,
 because an applied migration cannot be rolled back; other releases deploy
 without waiting. A failure turns the release red and clears the platform SHA, so
 the next run redeploys the platform. Seeding and post-deploy checks run beside
-the smokes, and a failure clears every selected SHA, like a failed deploy. The deploy job
+the smokes, and a failure clears every selected SHA, like a failed deploy. The
+deployed Node runtime proof runs after the smokes, because it reads their
+invocations, and a failure clears the platform SHA. A failed Lambda source map
+upload turns the release red but still records the SHAs. The deploy job
 reuses only the integrity-checked Lambda asset cache and regenerates its private
 CDK context and templates. Build-stage summaries report elapsed seconds,
 restored cache keys, and built/reused Lambda counts.
