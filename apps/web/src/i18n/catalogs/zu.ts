@@ -1070,6 +1070,10 @@ const zuCatalog: TranslationCatalog = {
   },
   reviewScreen: {
     copyAriaLabel: "Kopisha {{side}}",
+    copying: "Kuyakopishwa...",
+    copied: "Kukopishiwe.",
+    copyUnavailable: "Ibhodi lokunamathisela alitholakali kulesi siphequluli.",
+    copyFailed: "Ukukopisha kuhlulekile.",
     selectTextAriaLabel: "Khetha futhi ukopishe umbhalo: {{side}}",
     actions: {
       createCard: "Dala ikhadi",

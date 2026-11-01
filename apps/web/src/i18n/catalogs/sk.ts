@@ -1080,6 +1080,10 @@ const skCatalog: TranslationCatalog = {
   },
   reviewScreen: {
     copyAriaLabel: "Kopírovať: {{side}}",
+    copying: "Kopíruje sa...",
+    copied: "Skopírované.",
+    copyUnavailable: "Schránka nie je v tomto prehliadači dostupná.",
+    copyFailed: "Kopírovanie zlyhalo.",
     selectTextAriaLabel: "Vybrať a skopírovať text: {{side}}",
     actions: {
       createCard: "Vytvoriť kartu",

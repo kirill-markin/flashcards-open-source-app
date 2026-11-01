@@ -1070,6 +1070,10 @@ const fiCatalog: TranslationCatalog = {
   },
   reviewScreen: {
     copyAriaLabel: "Kopioi {{side}}",
+    copying: "Kopioidaan...",
+    copied: "Kopioitu.",
+    copyUnavailable: "Leikepöytä ei ole käytettävissä tässä selaimessa.",
+    copyFailed: "Kopiointi epäonnistui.",
     selectTextAriaLabel: "Valitse ja kopioi teksti: {{side}}",
     actions: {
       createCard: "Luo kortti",

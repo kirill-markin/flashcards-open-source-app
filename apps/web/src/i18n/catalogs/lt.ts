@@ -1080,6 +1080,10 @@ const ltCatalog: TranslationCatalog = {
   },
   reviewScreen: {
     copyAriaLabel: "Kopijuoti: {{side}}",
+    copying: "Kopijuojama...",
+    copied: "Nukopijuota.",
+    copyUnavailable: "Iškarpinė šioje naršyklėje nepasiekiama.",
+    copyFailed: "Nepavyko nukopijuoti.",
     selectTextAriaLabel: "Pažymėti ir kopijuoti tekstą: {{side}}",
     actions: {
       createCard: "Sukurti kortelę",

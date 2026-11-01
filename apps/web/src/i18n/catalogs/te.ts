@@ -1070,6 +1070,10 @@ const teCatalog: TranslationCatalog = {
   },
   reviewScreen: {
     copyAriaLabel: "{{side}} కాపీ చేయండి",
+    copying: "కాపీ చేస్తోంది...",
+    copied: "కాపీ అయింది.",
+    copyUnavailable: "ఈ బ్రౌజర్‌లో క్లిప్‌బోర్డ్ అందుబాటులో లేదు.",
+    copyFailed: "కాపీ విఫలమైంది.",
     selectTextAriaLabel: "వచనాన్ని ఎంచుకుని కాపీ చేయండి: {{side}}",
     actions: {
       createCard: "కార్డు సృష్టించు",

@@ -1070,6 +1070,10 @@ export const zhHansCatalog = {
   },
   reviewScreen: {
     copyAriaLabel: "复制{{side}}",
+    copying: "正在复制...",
+    copied: "已复制。",
+    copyUnavailable: "此浏览器无法使用剪贴板。",
+    copyFailed: "复制失败。",
     selectTextAriaLabel: "选择并复制文本：{{side}}",
     actions: {
       createCard: "创建卡片",

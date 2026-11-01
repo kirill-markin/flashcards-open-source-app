@@ -1070,6 +1070,10 @@ const urCatalog: TranslationCatalog = {
   },
   reviewScreen: {
     copyAriaLabel: "{{side}} کاپی کریں",
+    copying: "کاپی ہو رہا ہے...",
+    copied: "کاپی ہو گیا۔",
+    copyUnavailable: "اس براؤزر میں کلپ بورڈ دستیاب نہیں ہے۔",
+    copyFailed: "کاپی نہیں ہو سکا۔",
     selectTextAriaLabel: "متن منتخب کریں اور کاپی کریں: {{side}}",
     actions: {
       createCard: "کارڈ بنائیں",

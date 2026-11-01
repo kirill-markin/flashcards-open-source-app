@@ -1070,6 +1070,10 @@ const knCatalog: TranslationCatalog = {
   },
   reviewScreen: {
     copyAriaLabel: "{{side}} ನಕಲಿಸಿ",
+    copying: "ನಕಲಿಸಲಾಗುತ್ತಿದೆ...",
+    copied: "ನಕಲಿಸಲಾಗಿದೆ.",
+    copyUnavailable: "ಈ ಬ್ರೌಸರ್‌ನಲ್ಲಿ ಕ್ಲಿಪ್‌ಬೋರ್ಡ್ ಲಭ್ಯವಿಲ್ಲ.",
+    copyFailed: "ನಕಲಿಸಲಾಗಲಿಲ್ಲ.",
     selectTextAriaLabel: "ಪಠ್ಯವನ್ನು ಆಯ್ಕೆಮಾಡಿ ಮತ್ತು ನಕಲಿಸಿ: {{side}}",
     actions: {
       createCard: "ಕಾರ್ಡ್ ರಚಿಸಿ",

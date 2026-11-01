@@ -1070,6 +1070,10 @@ const caCatalog: TranslationCatalog = {
   },
   reviewScreen: {
     copyAriaLabel: "Copia {{side}}",
+    copying: "S'està copiant...",
+    copied: "Copiat.",
+    copyUnavailable: "El porta-retalls no està disponible en aquest navegador.",
+    copyFailed: "No s'ha pogut copiar.",
     selectTextAriaLabel: "Selecciona i copia el text: {{side}}",
     actions: {
       createCard: "Crea una targeta",

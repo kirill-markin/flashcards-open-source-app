@@ -1070,6 +1070,10 @@ const isCatalog: TranslationCatalog = {
   },
   reviewScreen: {
     copyAriaLabel: "Afrita {{side}}",
+    copying: "Afritar...",
+    copied: "Afritað.",
+    copyUnavailable: "Klippiborð er ekki tiltækt í þessum vafra.",
+    copyFailed: "Afritun mistókst.",
     selectTextAriaLabel: "Velja og afrita texta: {{side}}",
     actions: {
       createCard: "Búa til spjald",

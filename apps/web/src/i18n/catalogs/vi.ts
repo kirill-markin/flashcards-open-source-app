@@ -1070,6 +1070,10 @@ const viCatalog: TranslationCatalog = {
   },
   reviewScreen: {
     copyAriaLabel: "Sao chép {{side}}",
+    copying: "Đang sao chép...",
+    copied: "Đã sao chép.",
+    copyUnavailable: "Bảng nhớ tạm không khả dụng trong trình duyệt này.",
+    copyFailed: "Sao chép thất bại.",
     selectTextAriaLabel: "Chọn và sao chép văn bản: {{side}}",
     actions: {
       createCard: "Tạo thẻ",

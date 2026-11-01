@@ -1070,6 +1070,10 @@ const mlCatalog: TranslationCatalog = {
   },
   reviewScreen: {
     copyAriaLabel: "{{side}} പകർത്തുക",
+    copying: "പകർത്തുന്നു...",
+    copied: "പകർത്തി.",
+    copyUnavailable: "ഈ ബ്രൗസറിൽ ക്ലിപ്പ്ബോർഡ് ലഭ്യമല്ല.",
+    copyFailed: "പകർത്താനായില്ല.",
     selectTextAriaLabel: "ടെക്സ്റ്റ് തിരഞ്ഞെടുത്ത് പകർത്തുക: {{side}}",
     actions: {
       createCard: "കാർഡ് സൃഷ്ടിക്കുക",

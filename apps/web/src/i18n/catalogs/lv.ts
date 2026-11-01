@@ -1070,6 +1070,10 @@ const lvCatalog: TranslationCatalog = {
   },
   reviewScreen: {
     copyAriaLabel: "Kopēt: {{side}}",
+    copying: "Kopē...",
+    copied: "Nokopēts.",
+    copyUnavailable: "Starpliktuve šajā pārlūkā nav pieejama.",
+    copyFailed: "Neizdevās nokopēt.",
     selectTextAriaLabel: "Atlasīt un kopēt tekstu: {{side}}",
     actions: {
       createCard: "Izveidot kartīti",

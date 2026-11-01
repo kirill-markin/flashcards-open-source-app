@@ -1070,6 +1070,10 @@ const esEsCatalog: TranslationCatalog = {
   },
   reviewScreen: {
     copyAriaLabel: "Copiar {{side}}",
+    copying: "Copiando...",
+    copied: "Copiado.",
+    copyUnavailable: "El portapapeles no está disponible en este navegador.",
+    copyFailed: "Error al copiar.",
     selectTextAriaLabel: "Seleccionar y copiar texto: {{side}}",
     actions: {
       createCard: "Crear tarjeta",

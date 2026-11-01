@@ -1070,6 +1070,10 @@ const nbCatalog: TranslationCatalog = {
   },
   reviewScreen: {
     copyAriaLabel: "Kopier {{side}}",
+    copying: "Kopierer...",
+    copied: "Kopiert.",
+    copyUnavailable: "Utklippstavlen er ikke tilgjengelig i denne nettleseren.",
+    copyFailed: "Kopieringen mislyktes.",
     selectTextAriaLabel: "Marker og kopier tekst: {{side}}",
     actions: {
       createCard: "Lag kort",

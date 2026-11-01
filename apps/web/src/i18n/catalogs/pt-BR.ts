@@ -1070,6 +1070,10 @@ const ptBrCatalog: TranslationCatalog = {
   },
   reviewScreen: {
     copyAriaLabel: "Copiar {{side}}",
+    copying: "Copiando...",
+    copied: "Copiado.",
+    copyUnavailable: "A área de transferência não está disponível neste navegador.",
+    copyFailed: "Falha ao copiar.",
     selectTextAriaLabel: "Selecionar e copiar texto: {{side}}",
     actions: {
       createCard: "Criar cartão",

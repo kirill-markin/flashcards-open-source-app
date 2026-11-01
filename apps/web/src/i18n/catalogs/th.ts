@@ -1070,6 +1070,10 @@ const thCatalog: TranslationCatalog = {
   },
   reviewScreen: {
     copyAriaLabel: "คัดลอก{{side}}",
+    copying: "กำลังคัดลอก...",
+    copied: "คัดลอกแล้ว",
+    copyUnavailable: "เบราว์เซอร์นี้ใช้คลิปบอร์ดไม่ได้",
+    copyFailed: "คัดลอกไม่สำเร็จ",
     selectTextAriaLabel: "เลือกและคัดลอกข้อความ: {{side}}",
     actions: {
       createCard: "สร้างการ์ด",

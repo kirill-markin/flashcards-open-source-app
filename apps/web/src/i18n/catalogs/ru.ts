@@ -1080,6 +1080,10 @@ export const ruCatalog = {
   },
   reviewScreen: {
     copyAriaLabel: "Копировать: {{side}}",
+    copying: "Копируем...",
+    copied: "Скопировано.",
+    copyUnavailable: "Буфер обмена недоступен в этом браузере.",
+    copyFailed: "Не удалось скопировать.",
     selectTextAriaLabel: "Выделить и скопировать текст: {{side}}",
     actions: {
       createCard: "Создать карточку",

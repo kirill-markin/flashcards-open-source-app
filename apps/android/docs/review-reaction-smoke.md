@@ -33,7 +33,7 @@ These checks are manual; normal PR checks remain in cloud CI.
    before shipping; do not inject OOM or native process crashes.
 7. Inspect each genuine failure in Sentry: original exception/stack, release and
    device context, review_reaction source/stage, variant/asset, readiness and
-   ready/pending/failed counts, Battery Saver and animator settings. Confirm no
-   card text or email appears in reaction context. Ordinary loading, disablement,
+   ready/pending/failed counts, Battery Saver and animator settings.
+   Ordinary loading, disablement,
    replacement and cancellation produce breadcrumbs only. Review preload uses
    the app composition's store lifetime; Test Animations uses its screen lifetime.
