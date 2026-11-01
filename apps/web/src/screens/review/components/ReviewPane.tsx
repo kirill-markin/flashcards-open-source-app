@@ -11,6 +11,7 @@ import type { ReviewLoadingSnapshot } from "../../shared/loadingSnapshots";
 import { ReviewRepetitionBadgeIcon } from "../../shared/ReviewProgressBadgeIcon";
 import { ReviewCardSide, ReviewCardSpeechButton, ReviewEditIcon } from "./card/ReviewCardSide";
 import { ReviewCardTags } from "./ReviewCardTags";
+import { ReviewEyeIcon, ReviewRatingIcon } from "./ReviewIcons";
 import { reviewRatingShortcutKeys } from "../input/reviewShortcutKeys";
 import type { ReviewShortcutPointerEnterHandler } from "../input/useReviewKeyboardShortcuts";
 import type { ReviewButtonOption } from "./reviewRatingOptions";
@@ -224,7 +225,10 @@ function ReviewLoadingPane(props: ReviewLoadingPaneProps): ReactElement {
           disabled
           data-testid="review-reveal-answer"
         >
-          {t("reviewScreen.actions.revealAnswer")}
+          <span className="review-reveal-btn-content">
+            <ReviewEyeIcon />
+            <span>{t("reviewScreen.actions.revealAnswer")}</span>
+          </span>
         </button>
       </div>
     </>
@@ -290,7 +294,10 @@ function ReviewRatingButtonColumn(props: ReviewRatingButtonColumnProps): ReactEl
           onPointerEnter={onShortcutButtonPointerEnter}
           data-testid={`review-rate-${option.testId}`}
         >
-          <span className="rating-btn-title">{option.title}</span>
+          <span className="rating-btn-title-row">
+            <ReviewRatingIcon rating={option.rating} />
+            <span className="rating-btn-title">{option.title}</span>
+          </span>
           <span className="rating-btn-subtitle">{option.intervalDescription}</span>
           <ReviewShortcutHint keyLabel={reviewRatingShortcutKeys[option.rating]} />
         </button>
@@ -471,7 +478,10 @@ function ReviewActiveCardPane(props: ReviewActiveCardPaneProps): ReactElement {
             onPointerEnter={onShortcutButtonPointerEnter}
             data-testid="review-reveal-answer"
           >
-            {t("reviewScreen.actions.revealAnswer")}
+            <span className="review-reveal-btn-content">
+              <ReviewEyeIcon />
+              <span>{t("reviewScreen.actions.revealAnswer")}</span>
+            </span>
             <ReviewShortcutHint keyLabel={`${t("reviewScreen.shortcuts.spaceKey")} / ${t("reviewScreen.shortcuts.enterKey")}`} />
           </button>
         )}
