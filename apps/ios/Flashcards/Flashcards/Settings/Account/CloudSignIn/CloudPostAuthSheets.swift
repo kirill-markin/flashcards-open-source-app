@@ -163,7 +163,7 @@ struct CloudPostAuthFailureSheet: View {
                     }
 
                     Section {
-                        Button(aiSettingsLocalized("common.retry", "Retry")) {
+                        Button(self.retryButtonTitle) {
                             self.onRetry()
                         }
                         .disabled(self.isRetryButtonDisabled)
@@ -198,6 +198,15 @@ struct CloudPostAuthFailureSheet: View {
                     }
                 )
             }
+        }
+    }
+
+    private var retryButtonTitle: String {
+        switch self.state.retryAction {
+        case .chooseWorkspace:
+            return aiSettingsLocalized("settings.account.cloudSignIn.chooseWorkspace", "Choose workspace")
+        case .prepareLink, .completeLink, .completeGuestLink, .syncOnly:
+            return aiSettingsLocalized("common.retry", "Retry")
         }
     }
 

@@ -61,6 +61,11 @@
     --review-pane-padding: 10px;
   }
 
+  /* The card, its tags and the action dock line up with the page title. */
+  .review-pane {
+    padding-inline: 0;
+  }
+
   .review-pane-head-actions {
     width: auto;
   }
@@ -73,10 +78,5 @@
   .review-card-surface {
     min-height: 150px;
     padding: 12px;
-  }
-
-  /* Room for the floating AI chat pill, which on a phone rests just above the action dock. */
-  .review-card-stack {
-    padding-bottom: calc(var(--chat-toggle-floating-compact-height) + var(--shell-frame-gap));
   }
 }

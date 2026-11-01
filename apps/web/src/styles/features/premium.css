@@ -84,7 +84,8 @@
 
 .premium-dialog button:focus-visible,
 .premium-dialog summary:focus-visible,
-.premium-dialog a:focus-visible {
+.premium-dialog a:focus-visible,
+.premium-country-dialog select:focus-visible {
   outline: 2px solid var(--premium-orange);
   outline-offset: 3px;
 }
@@ -301,6 +302,52 @@
   text-align: center;
   text-decoration: underline;
   text-underline-offset: 3px;
+}
+
+.premium-country {
+  display: grid;
+  justify-items: center;
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+  line-height: 1.5;
+  text-align: center;
+}
+
+.premium-country p {
+  margin: 0;
+}
+
+.premium-country-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0 6px;
+}
+
+.premium-dialog .premium-country-trigger {
+  min-height: 44px;
+  padding: 4px 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font-size: inherit;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.premium-dialog.premium-country-dialog {
+  width: min(360px, calc(100vw - 32px));
+  gap: 12px;
+  border-radius: 22px;
+}
+
+.premium-country-dialog .panel-subtitle {
+  margin: 0;
+}
+
+.premium-country-dialog .settings-input {
+  background: var(--panel);
 }
 
 .premium-key-context {

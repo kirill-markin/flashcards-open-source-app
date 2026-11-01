@@ -14,7 +14,6 @@
   }
 
   .chat-layout-shell {
-    --chat-toggle-floating-height: var(--chat-toggle-floating-compact-height);
     gap: 0;
     padding-inline: var(--shell-frame-gap);
   }

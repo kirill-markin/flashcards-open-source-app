@@ -33,23 +33,47 @@ enum AIChatAttachmentSettingsSource: String, Equatable {
     var message: String {
         switch self {
         case .camera:
+            #if targetEnvironment(macCatalyst)
+            return String(
+                localized: "ai_chat_attachment_settings.camera.mac_message",
+                table: "Foundation",
+                comment: "Mac AI chat alert message when camera access is blocked"
+            )
+            #else
             return String(
                 localized: "ai_chat_attachment_settings.camera.message",
                 table: "Foundation",
                 comment: "AI chat alert message when camera access is blocked"
             )
+            #endif
         case .photos:
+            #if targetEnvironment(macCatalyst)
+            return String(
+                localized: "ai_chat_attachment_settings.photos.mac_message",
+                table: "Foundation",
+                comment: "Mac AI chat alert message when photo access is blocked"
+            )
+            #else
             return String(
                 localized: "ai_chat_attachment_settings.photos.message",
                 table: "Foundation",
                 comment: "AI chat alert message when photo access is blocked"
             )
+            #endif
         case .files:
+            #if targetEnvironment(macCatalyst)
+            return String(
+                localized: "ai_chat_attachment_settings.files.mac_message",
+                table: "Foundation",
+                comment: "Mac AI chat alert message when file access is blocked"
+            )
+            #else
             return String(
                 localized: "ai_chat_attachment_settings.files.message",
                 table: "Foundation",
                 comment: "AI chat alert message when file access is blocked"
             )
+            #endif
         }
     }
 }
@@ -88,11 +112,19 @@ enum AIChatAlert: Identifiable, Equatable {
     var message: String {
         switch self {
         case .microphoneSettings:
+            #if targetEnvironment(macCatalyst)
+            return String(
+                localized: "ai_chat_alert.microphone.mac_message",
+                table: "Foundation",
+                comment: "Mac AI chat alert message when microphone access is blocked"
+            )
+            #else
             return String(
                 localized: "ai_chat_alert.microphone.message",
                 table: "Foundation",
                 comment: "AI chat alert message when microphone access is blocked"
             )
+            #endif
         case .attachmentSettings(let source):
             return source.message
         case .generalError(_, let message):

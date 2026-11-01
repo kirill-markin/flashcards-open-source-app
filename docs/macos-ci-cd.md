@@ -211,11 +211,11 @@ Command-Shift-F opens Cards search, preserving native Command-F text finding.
 Navigation commands must respect modal editors
 and confirmations. Card context menus use workspace/card identity and reject
 changed revisions before editing, AI handoff or confirmed deletion.
-Study shortcuts belong to the active responder only while no visible native
-control owns keyboard focus. The hidden shortcut receiver must not create a
-Tab stop or consume a focused control's Space activation. A clicked sidebar row
-keeps native focus; while study is active, the sidebar column offers the same
-Space/Return/1–4 commands. Editors and AI retain their normal text input.
+The Review menu lists Space (Show answer) and 1–4. The window's key-command
+controller gives Space, Return and 1–4 priority over keyboard focus, so they work
+while a sidebar row or another control holds focus; they are disabled while text
+is being edited or a sheet, alert or picker covers Review. Editors and AI retain
+their normal text input.
 Composer Escape uses a UIKit key command in that composer's responder chain,
 with [priority over text input](https://developer.apple.com/documentation/uikit/uikeycommand/wantspriorityoversystembehavior).
 Verify Escape followed immediately by a rating key, including a multiline draft
@@ -263,9 +263,10 @@ The `LocalMac` plan selects the full existing non-UI bundle and every Mac-eligib
   keeps keyboard focus. It compares rating, composer, companion and sidebar
   frames before and after native wide→narrow→wide resizing, without rating,
   saving or sending personal study content;
-- five cards created through the real editor, with inline/display math; Space
+- seven cards created through the real editor, with inline/display math; Space
   reveals, a pointer click rates, then Space reveals the next card without a
-  focus click; keys 1–4 rate only a revealed answer;
+  focus click; keys 1–4 rate only a revealed answer; Space and Return reveal and
+  1 rates while the sidebar holds focus;
 - a wide AI companion with an attached review card; after hovering a rating,
   Space/1–4 must enter the focused composer and the unsent draft must survive
   Cards/Progress/Review navigation;

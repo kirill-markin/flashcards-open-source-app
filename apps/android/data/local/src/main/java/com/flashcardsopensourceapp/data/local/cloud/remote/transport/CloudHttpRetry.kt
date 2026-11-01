@@ -1,5 +1,6 @@
 package com.flashcardsopensourceapp.data.local.cloud.remote.transport
 
+import com.flashcardsopensourceapp.data.local.network.isNonRetryableTlsFailure
 import okhttp3.Protocol
 import org.json.JSONObject
 import java.io.IOException
@@ -54,8 +55,12 @@ internal fun shouldRetryTransientCloudHttpResponse(
 
 internal fun shouldRetryTransientCloudIOException(
     retryEligible: Boolean,
-    attemptNumber: Int
+    attemptNumber: Int,
+    error: IOException
 ): Boolean {
+    if (isNonRetryableTlsFailure(error = error)) {
+        return false
+    }
     return retryEligible && attemptNumber < cloudHttpTransientRetryMaxAttemptCount
 }
 

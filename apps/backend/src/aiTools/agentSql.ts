@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import { HttpError } from "../shared/errors";
 import { logAgentSqlEvent } from "../server/logging";
 import { executeWithinAgentSqlDatabaseTimeBudget } from "./agentSql/databaseTimeBudget";
+import { writeAgentSqlFailureRecord } from "./agentSql/failureLog";
 import {
   DEFAULT_AGENT_TOOL_OPERATION_DEPENDENCIES,
   type AgentToolOperationDependencies,
@@ -45,7 +46,7 @@ function parseSingleStatementSql(sql: string): ParsedSqlStatement {
     return parseSqlStatement(sql);
   } catch (error) {
     if (error instanceof SqlDialectError) {
-      throw buildInvalidSqlError(error.message, error.reason);
+      throw buildInvalidSqlError(error.message, error.reason, error.rejectedName);
     }
 
     throw error;
@@ -57,7 +58,7 @@ function splitStatementSqls(sql: string): ReadonlyArray<string> {
     return splitSqlStatements(sql);
   } catch (error) {
     if (error instanceof SqlDialectError) {
-      throw buildInvalidSqlError(error.message, error.reason);
+      throw buildInvalidSqlError(error.message, error.reason, error.rejectedName);
     }
 
     throw error;
@@ -70,7 +71,7 @@ function parseBatchStatements(statementSqls: ReadonlyArray<string>): ReadonlyArr
       return parseSqlStatement(statementSql);
     } catch (error) {
       if (error instanceof SqlDialectError) {
-        throw buildInvalidSqlError(`SQL batch statement ${index + 1} failed: ${error.message}`, error.reason);
+        throw buildInvalidSqlError(`SQL batch statement ${index + 1} failed: ${error.message}`, error.reason, error.rejectedName);
       }
 
       throw error;
@@ -82,11 +83,11 @@ function parseSqlBatch(sql: string): ReadonlyArray<ParsedSqlStatement> {
   const statementSqls = splitStatementSqls(sql);
 
   if (statementSqls.length === 0) {
-    throw buildInvalidSqlError("sql must not be empty", "empty_sql");
+    throw buildInvalidSqlError("sql must not be empty", "empty_sql", null);
   }
 
   if (statementSqls.length > MAX_SQL_BATCH_STATEMENT_COUNT) {
-    throw buildInvalidSqlError(`SQL batch must contain at most ${MAX_SQL_BATCH_STATEMENT_COUNT} statements`, "batch_too_large");
+    throw buildInvalidSqlError(`SQL batch must contain at most ${MAX_SQL_BATCH_STATEMENT_COUNT} statements`, "batch_too_large", null);
   }
 
   if (statementSqls.length === 1) {
@@ -173,6 +174,14 @@ function getAgentSqlDialectReason(error: unknown): string | null {
 }
 
 /**
+ * Reads the identifier, function, or keyword the dialect refused, which only
+ * `buildInvalidSqlError` sets, so every other failure records null.
+ */
+function getAgentSqlRejectedName(error: unknown): string | null {
+  return error instanceof HttpError ? error.details?.sqlRejectedName ?? null : null;
+}
+
+/**
  * Reads the same minification-safe `error.name` that `getBackendErrorLogDetails`
  * records. The constructor binding is not usable here: backend Lambdas are
  * bundled with esbuild `minify: true` and no `keepNames`, so `constructor.name`
@@ -198,9 +207,8 @@ function getAgentSqlErrorClass(error: unknown): string {
  * the offending SQL fragment verbatim, so the text carries flashcard content,
  * and no delimiter heuristic can strip it reliably: an unquoted or typographic
  * operand (`... WHERE front_text = Paris`) has no delimiter to find. Only the
- * low-cardinality dimensions below are recorded, and unexpected failures still
- * reach Sentry with their full message and stack through
- * `captureBackendException`, so nothing debuggable is lost.
+ * low-cardinality dimensions below are recorded; a failure's full SQL and
+ * message go to the 30-day failure log (`./agentSql/failureLog.ts`) instead.
  *
  * `execute` hands over the emitted result together with the size the budget
  * helpers already measured for it, so `resultChars` is the size of the payload
@@ -246,11 +254,17 @@ async function withAgentSqlTelemetry<Result extends AgentSqlExecutionResult>(
       durationMs: Date.now() - startedAt,
       errorCode: null,
       dialectReason: null,
+      rejectedName: null,
       errorClass: null,
     });
 
     return result;
   } catch (error) {
+    const failureDetails = {
+      errorCode: getAgentSqlErrorCode(error),
+      dialectReason: getAgentSqlDialectReason(error),
+      errorClass: getAgentSqlErrorClass(error),
+    };
     logAgentSqlEvent({
       ...executionDetails,
       succeeded: false,
@@ -262,9 +276,19 @@ async function withAgentSqlTelemetry<Result extends AgentSqlExecutionResult>(
       rowsOmitted: null,
       rowsTruncated: null,
       durationMs: Date.now() - startedAt,
-      errorCode: getAgentSqlErrorCode(error),
-      dialectReason: getAgentSqlDialectReason(error),
-      errorClass: getAgentSqlErrorClass(error),
+      ...failureDetails,
+      rejectedName: getAgentSqlRejectedName(error),
+    });
+    await writeAgentSqlFailureRecord({
+      surface: executionDetails.surface,
+      caller: executionDetails.caller,
+      userId: executionDetails.userId,
+      workspaceId: executionDetails.workspaceId,
+      connectionId: executionDetails.connectionId,
+      sqlFingerprint: executionDetails.sqlFingerprint,
+      ...failureDetails,
+      sql,
+      errorMessage: error instanceof Error ? error.message : String(error),
     });
 
     throw error;
@@ -280,6 +304,7 @@ function parseSqlQueryBatch(sql: string): ReadonlyArray<AgentSqlReadStatement> {
   throw buildInvalidSqlError(
     "sql_query is read-only and accepts only SHOW TABLES, DESCRIBE, SHOW COLUMNS, and SELECT statements. Use sql_execute for INSERT, UPDATE, and DELETE.",
     "wrong_tool_for_statement",
+    statements.find(isSqlMutationStatement)?.type.toUpperCase() ?? null,
   );
 }
 
@@ -292,6 +317,7 @@ function parseSqlExecuteBatch(sql: string): ReadonlyArray<AgentSqlMutationStatem
   throw buildInvalidSqlError(
     "sql_execute is write-only and accepts only INSERT, UPDATE, and DELETE statements. Use sql_query for SHOW TABLES, DESCRIBE, SHOW COLUMNS, and SELECT.",
     "wrong_tool_for_statement",
+    statements.find(isSqlReadStatement)?.type.toUpperCase() ?? null,
   );
 }
 

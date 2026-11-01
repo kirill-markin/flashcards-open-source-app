@@ -57,6 +57,7 @@ const comparisonDateRangeToParamName = "compare-to";
 const usersParamName = "users";
 const userCohortsParamName = "cohorts";
 const eventPlatformsParamName = "platforms";
+const appVersionsParamName = "app-versions";
 const minimumEventCountsParamName = "min-events";
 const connectionCountriesParamName = "countries";
 const appUiLanguagesParamName = "languages";
@@ -91,7 +92,7 @@ function isCalendarDate(value: string): boolean {
     && parsedDate.getUTCDate() === day;
 }
 
-function areStringListsEqual(
+export function areStringListsEqual(
   left: ReadonlyArray<string>,
   right: ReadonlyArray<string>,
 ): boolean {
@@ -256,7 +257,8 @@ export function normalizeAnalyticsFilterState(state: AnalyticsFilterState): Anal
     comparisonDateRange: state.comparisonDateRange,
     users: normalizeOpaqueList(state.users),
     userCohorts: normalizeEnumList(state.userCohorts, reviewEventCohorts),
-    eventPlatforms: normalizeEnumList(state.eventPlatforms, reviewEventPlatforms),
+    eventPlatforms: normalizeEventPlatforms(state.eventPlatforms),
+    appVersions: normalizeAppVersions(state.appVersions),
     minimumEventCounts: normalizeMinimumEventCounts(state.minimumEventCounts),
     connectionCountries: normalizeOpaqueList(state.connectionCountries),
     appUiLanguages: normalizeOpaqueList(state.appUiLanguages),
@@ -267,6 +269,40 @@ export function normalizeAnalyticsFilterState(state: AnalyticsFilterState): Anal
     catalogClickBrowserLanguages: normalizeOpaqueList(state.catalogClickBrowserLanguages),
     ...normalizeSiteVisitorFilterState(state),
   };
+}
+
+/** The platform field of `normalizeAnalyticsFilterState`, for a selection that holds it outside that state. */
+export function normalizeEventPlatforms(
+  eventPlatforms: ReadonlyArray<ReviewEventPlatform>,
+): ReadonlyArray<ReviewEventPlatform> {
+  return normalizeEnumList(eventPlatforms, reviewEventPlatforms);
+}
+
+/** Writes the platform field unless every platform is selected; `parseEventPlatforms` reads it back. */
+export function setEventPlatformsParam(
+  searchParams: URLSearchParams,
+  eventPlatforms: ReadonlyArray<ReviewEventPlatform>,
+): void {
+  setEnumListParam(
+    searchParams,
+    eventPlatformsParamName,
+    eventPlatforms,
+    reviewEventPlatforms,
+    reviewEventPlatforms,
+  );
+}
+
+/** The app version field of `normalizeAnalyticsFilterState`, for a selection that holds it outside that state. */
+export function normalizeAppVersions(appVersions: ReadonlyArray<string>): ReadonlyArray<string> {
+  return normalizeOpaqueList(appVersions);
+}
+
+/** Writes the app version field unless no version is picked; `parseAppVersions` reads it back. */
+export function setAppVersionsParam(
+  searchParams: URLSearchParams,
+  appVersions: ReadonlyArray<string>,
+): void {
+  setOpaqueListParam(searchParams, appVersionsParamName, appVersions, []);
 }
 
 /** The site visitor fields of `normalizeAnalyticsFilterState`, for a selection that holds only those. */
@@ -353,13 +389,8 @@ export function toAnalyticsFilterSearchParams(
     defaults.userCohorts,
     reviewEventCohorts,
   );
-  setEnumListParam(
-    searchParams,
-    eventPlatformsParamName,
-    state.eventPlatforms,
-    defaults.eventPlatforms,
-    reviewEventPlatforms,
-  );
+  setEventPlatformsParam(searchParams, state.eventPlatforms);
+  setAppVersionsParam(searchParams, state.appVersions);
 
   const minimumEventCounts = normalizeMinimumEventCounts(state.minimumEventCounts);
   if (
@@ -662,6 +693,21 @@ export function parseProvisionalAnalyticsFilterState(
   );
 }
 
+/** The platform field a query string carries, every platform when absent or malformed. */
+export function parseEventPlatforms(searchParams: URLSearchParams): ReadonlyArray<ReviewEventPlatform> {
+  return parseEnumList<ReviewEventPlatform>(
+    searchParams,
+    eventPlatformsParamName,
+    reviewEventPlatforms,
+    reviewEventPlatforms,
+  );
+}
+
+/** The app version field a query string carries, every version when absent or malformed. */
+export function parseAppVersions(searchParams: URLSearchParams): ReadonlyArray<string> {
+  return parseOpaqueList(searchParams, appVersionsParamName, []);
+}
+
 /** The site visitor fields a query string carries, each at its default when absent or malformed. */
 export function parseSiteVisitorFilterState(searchParams: URLSearchParams): SiteVisitorFilterState {
   return {
@@ -713,12 +759,8 @@ function parseAnalyticsFilterStateOnDateRanges(
       reviewEventCohorts,
       defaults.userCohorts,
     ),
-    eventPlatforms: parseEnumList<ReviewEventPlatform>(
-      searchParams,
-      eventPlatformsParamName,
-      reviewEventPlatforms,
-      defaults.eventPlatforms,
-    ),
+    eventPlatforms: parseEventPlatforms(searchParams),
+    appVersions: parseAppVersions(searchParams),
     minimumEventCounts: parseMinimumEventCounts(searchParams, defaults.minimumEventCounts),
     connectionCountries: parseOpaqueList(
       searchParams,

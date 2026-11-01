@@ -87,8 +87,13 @@ export function GuestConversionScreen(props: Readonly<{ returnUrl: string }>): R
         if (prepared.mode === "bound") fresh.current = false;
         await complete(prepared.pending.selection ?? { type: "create_new" });
       } else {
-        setWorkspaces((await listWorkspaces()).filter((workspace) => workspace.isVisible !== false));
-        setPhase("choose");
+        const visibleWorkspaces = (await listWorkspaces()).filter((workspace) => workspace.isVisible !== false);
+        if (prepared.pending.selectionRequired || visibleWorkspaces.length > 1) {
+          setWorkspaces(visibleWorkspaces);
+          setPhase("choose");
+        } else {
+          await complete(visibleWorkspaces.length === 0 ? { type: "create_new" } : { type: "existing", workspaceId: visibleWorkspaces[0].workspaceId });
+        }
       }
     } catch (failure) {
       fresh.current = false; demo.current = null;

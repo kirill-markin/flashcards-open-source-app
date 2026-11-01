@@ -1,4 +1,5 @@
 import type Stripe from "stripe";
+import type { RegionalPricingBand } from "../regionalPricing/offers";
 import type {
   ProductAnalyticsAutorenewDisabledReason, ProductAnalyticsCancellationSurveyReason,
 } from "../../productAnalytics/catalog";
@@ -16,6 +17,7 @@ export type StripeBillingErrorCode =
   | "STRIPE_RESPONSE_INVALID" | "STRIPE_SIGNATURE_INVALID" | "STRIPE_IDENTITY_MISMATCH"
   | "STRIPE_ACCOUNT_RETIRED" | "STRIPE_EMAIL_REQUIRED" | "STRIPE_RECOVERY_REQUIRED"
   | "STRIPE_STORAGE_CONFLICT" | "STRIPE_EMAIL_DATA_INVALID"
+  | "STRIPE_COUNTRY_INVALID" | "STRIPE_COUNTRY_UNAVAILABLE"
   | "STRIPE_EMAIL_FAILED" | "STRIPE_EMAIL_RECOVERY_REQUIRED";
 
 export class StripeBillingError extends Error {
@@ -45,6 +47,10 @@ export type StripeCheckoutAttempt = Readonly<{
   sessionId: string | null;
   status: StripeCheckoutStatus;
   trialDays: 0 | 7;
+  selectedCountry: string | null;
+  pricingBand: RegionalPricingBand;
+  priceId: string;
+  checkoutMode: "legacy" | "managed";
   locale: Stripe.Checkout.SessionCreateParams.Locale;
   expiresAt: Date;
   createdAt: Date;

@@ -53,5 +53,10 @@
   "email.refundReceiptBody": "Din återbetalning på {price} har genomförts. Se detaljer: {url}",
   "deletion.warning": "Om du raderar ditt Nibomo-konto stoppas framtida förnyelser av dina Nibomo-prenumerationer som debiteras via Stripe. Du förlorar åtkomsten till det här kontot. Prenumerationer som debiteras via Apple eller Google måste sägas upp separat hos respektive leverantör.",
   "deletion.cancelling": "Stoppar förnyelser av dina Stripe-prenumerationer innan kontot raderas...",
-  "deletion.cancellationFailed": "Vi kunde inte bekräfta att förnyelserna av dina Stripe-prenumerationer har stoppats. Ditt konto har inte raderats. Försök igen eller kontakta supporten."
+  "deletion.cancellationFailed": "Vi kunde inte bekräfta att förnyelserna av dina Stripe-prenumerationer har stoppats. Ditt konto har inte raderats. Försök igen eller kontakta supporten.",
+  "offer.pricesFor": "Priser för {country}",
+  "offer.changeCountry": "Byt land",
+  "offer.chooseCountry": "Välj ett land",
+  "checkout.originalOffer": "Ofullständig betalning: {price} per månad",
+  "checkout.requote": "Ersätt betalningen med det här erbjudandet"
 }

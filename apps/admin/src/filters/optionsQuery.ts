@@ -469,3 +469,43 @@ export async function loadSiteVisitorFilterOptions(
 
   return optionsByField;
 }
+
+const appVersionOptionsReportLabel = "App version filter options";
+
+// Every version a trusted `app_opened` of the range recorded, the rows the Level 1 version filter reads,
+// after the shared exclusions. A NULL or empty version is not offered: no selection can match it.
+function buildAppVersionFilterOptionsSql(dateRange: AnalyticsDateRange): string {
+  return [
+    "SELECT DISTINCT resolved.app_version AS app_version",
+    "FROM analytics.product_events_resolved AS resolved",
+    "WHERE resolved.event_name = 'app_opened'",
+    "  AND resolved.app_version <> ''",
+    "  AND resolved.actor_id IS NOT NULL",
+    `  AND ${buildTrustedActorRowsFilterSql("resolved.trust_level")}`,
+    "  AND resolved.occurred_at >= (",
+    `    (${escapeSqlStringLiteral(dateRange.from)}::date)::timestamp AT TIME ZONE 'UTC'`,
+    "  )",
+    "  AND resolved.occurred_at < (",
+    `    (${escapeSqlStringLiteral(dateRange.to)}::date + INTERVAL '1 day')::timestamp AT TIME ZONE 'UTC'`,
+    "  )",
+    ...buildExcludedActorSqlLines("resolved.actor_id::text"),
+  ].join("\n");
+}
+
+/** Loaded by the Level 1 bar, newest version first, comparing dotted parts as numbers so 1.10 follows 1.9. */
+export async function loadAppVersionFilterOptions(
+  config: AdminAppConfig,
+  dateRange: AnalyticsDateRange,
+  signal: AbortSignal,
+): Promise<ReadonlyArray<string>> {
+  const range = assertValidDateRange(dateRange, appVersionOptionsReportLabel);
+  const response = await runAdminQuery(config, buildAppVersionFilterOptionsSql(range), signal);
+  const result = response.resultSets[0];
+  if (response.resultSets.length !== 1 || result === undefined) {
+    throw new Error(`${appVersionOptionsReportLabel} must return exactly one result set. Got ${response.resultSets.length}.`);
+  }
+
+  return result.rows
+    .map((row) => assertIsString(row.app_version ?? null, appVersionOptionsReportLabel, "app_version"))
+    .sort((left, right) => right.localeCompare(left, "en", { numeric: true }));
+}

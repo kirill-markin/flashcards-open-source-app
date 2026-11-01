@@ -53,5 +53,10 @@
   "email.refundReceiptBody": "S'ha emès el teu reemborsament de {price}. Consulta'n els detalls: {url}",
   "deletion.warning": "Si suprimeixes el compte de Nibomo, es cancel·len les renovacions futures de les teves subscripcions de Nibomo facturades a través de Stripe. Perdràs l’accés a aquest compte. Les subscripcions facturades a través d’Apple o Google s’han de cancel·lar per separat amb el proveïdor corresponent.",
   "deletion.cancelling": "S’estan cancel·lant les renovacions de les teves subscripcions de Stripe abans de suprimir el compte...",
-  "deletion.cancellationFailed": "No hem pogut confirmar la cancel·lació de les renovacions de les teves subscripcions de Stripe. El compte no s’ha suprimit. Torna-ho a provar o contacta amb el servei d’assistència."
+  "deletion.cancellationFailed": "No hem pogut confirmar la cancel·lació de les renovacions de les teves subscripcions de Stripe. El compte no s’ha suprimit. Torna-ho a provar o contacta amb el servei d’assistència.",
+  "offer.pricesFor": "Preus per a {country}",
+  "offer.changeCountry": "Canvia el país",
+  "offer.chooseCountry": "Tria un país",
+  "checkout.originalOffer": "Pagament pendent: {price} al mes",
+  "checkout.requote": "Substitueix el pagament per aquesta oferta"
 }

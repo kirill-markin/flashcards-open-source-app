@@ -1,4 +1,5 @@
 import type { JSX } from "react";
+import type { ReviewEventPlatform } from "../../adminApi";
 import type { AdminAppConfig } from "../../config";
 import type { AnalyticsDateRange } from "../../filters/analyticsFilters";
 import { buildPeopleBreakdowns, PeopleBreakdownSections } from "../levelOneMetrics/PeopleBreakdownSections";
@@ -20,6 +21,8 @@ export function WhoOpenedTheAppBreakdownSections(props: Readonly<{
   config: AdminAppConfig;
   dateRange: AnalyticsDateRange;
   period: ReportPeriod;
+  eventPlatforms: ReadonlyArray<ReviewEventPlatform>;
+  appVersions: ReadonlyArray<string>;
   onTerminalAdminError: (error: unknown, config: AdminAppConfig) => boolean;
 }>): JSX.Element {
   return (
@@ -27,10 +30,13 @@ export function WhoOpenedTheAppBreakdownSections(props: Readonly<{
       config={props.config}
       dateRange={props.dateRange}
       period={props.period}
+      eventPlatforms={props.eventPlatforms}
+      appVersions={props.appVersions}
       onTerminalAdminError={props.onTerminalAdminError}
       metricTitle={metricTitle}
       testIdPrefix="who-opened-the-app"
       breakdowns={appOpenBreakdowns}
+      appVersionFilterNote={<li>The App version filter narrows these people as it narrows {metricTitle}, and only their opens on a selected version place them.</li>}
     />
   );
 }

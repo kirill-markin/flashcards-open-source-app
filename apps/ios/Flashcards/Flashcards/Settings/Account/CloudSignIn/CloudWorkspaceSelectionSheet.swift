@@ -6,7 +6,6 @@ struct CloudWorkspaceSelectionSheet: View {
     let linkContext: CloudWorkspaceLinkContext
     let isSelectionDisabled: Bool
     let onSelection: (CloudWorkspaceLinkSelection) -> Void
-    let onCancelled: () -> Void
 
     @State private var isCreateNameStepPresented: Bool = false
 
@@ -53,13 +52,6 @@ struct CloudWorkspaceSelectionSheet: View {
             .accessibilityIdentifier(UITestIdentifier.cloudWorkspaceChooserScreen)
             .navigationTitle(aiSettingsLocalized("settings.currentWorkspace.chooseWorkspaceTitle", "Choose workspace"))
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button(aiSettingsLocalized("common.close", "Close")) {
-                        self.onCancelled()
-                    }
-                }
-            }
             .navigationDestination(isPresented: self.$isCreateNameStepPresented) {
                 CloudWorkspaceCreateNameView(
                     isSubmitting: self.isSelectionDisabled,

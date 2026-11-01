@@ -204,6 +204,7 @@ type McpRequestRecordInput = Readonly<{
   response: Response | null;
   toolName: string | null;
   toolExecuted: boolean | null;
+  toolCallArguments: string | null;
   toolIsError: boolean | null;
   toolErrorCode: string | null;
 }>;
@@ -258,6 +259,7 @@ async function emitMcpRequestRecord(input: McpRequestRecordInput): Promise<void>
     jsonRpcMethod: normalizeMcpTelemetryValue(input.request.headers.get("mcp-method")),
     toolName: input.toolName,
     toolExecuted: input.toolExecuted,
+    toolCallArguments: input.toolCallArguments,
     toolIsError: input.toolIsError,
     toolErrorCode: input.toolErrorCode,
     statusCode: input.statusCode,
@@ -313,9 +315,10 @@ async function handleMcpTransportRequest(
   const caller = normalizeMcpTelemetryValue(request.headers.get("user-agent"));
   const headerToolName = normalizeMcpTelemetryValue(request.headers.get("mcp-name"));
   const bodyToolName = await readCallToolNameFromRequestBody(request);
-  // Every tool the request runs, in call order. The last one is what the record
-  // names, so a batched request still produces exactly one record.
-  const invokedToolNames: Array<string> = [];
+  // Every tool the request runs, in call order, with its serialized arguments.
+  // The last one is what the record names, so a batched request still produces
+  // exactly one record.
+  const invokedTools: Array<Readonly<{ toolName: string; toolCallArguments: string | null }>> = [];
   // Every outcome a handler reports, kept and chosen the same way.
   const toolOutcomes: Array<McpToolOutcome> = [];
   const server = createMcpServer(
@@ -324,8 +327,8 @@ async function handleMcpTransportRequest(
     getIconUrl(baseDomain),
     {
       caller,
-      recordInvokedTool: (toolName) => {
-        invokedToolNames.push(toolName);
+      recordInvokedTool: (toolName, toolCallArguments) => {
+        invokedTools.push({ toolName, toolCallArguments });
       },
       recordToolOutcome: (outcome) => {
         toolOutcomes.push(outcome);
@@ -340,7 +343,8 @@ async function handleMcpTransportRequest(
     allowedHosts: [...getAllowedMcpHosts(baseDomain, getAlternateMcpHost())],
   });
   const emitRequestRecord = (statusCode: number, response: Response | null): Promise<void> => {
-    const invokedToolName = invokedToolNames.at(-1) ?? null;
+    const invokedTool = invokedTools.at(-1) ?? null;
+    const invokedToolName = invokedTool === null ? null : invokedTool.toolName;
     const toolName = invokedToolName ?? bodyToolName ?? headerToolName;
     const toolOutcome = toolOutcomes.at(-1) ?? null;
     return emitMcpRequestRecord({
@@ -352,6 +356,7 @@ async function handleMcpTransportRequest(
       response,
       toolName,
       toolExecuted: toolName === null ? null : invokedToolName !== null,
+      toolCallArguments: invokedTool === null ? null : invokedTool.toolCallArguments,
       toolIsError: toolOutcome === null ? null : toolOutcome.isError,
       toolErrorCode: toolOutcome === null ? null : toolOutcome.errorCode,
     });
@@ -467,6 +472,7 @@ function buildMcpRoutes(app: Hono<McpAppEnv>): Hono<McpAppEnv> {
         response,
         toolName: null,
         toolExecuted: null,
+        toolCallArguments: null,
         toolIsError: null,
         toolErrorCode: null,
       });

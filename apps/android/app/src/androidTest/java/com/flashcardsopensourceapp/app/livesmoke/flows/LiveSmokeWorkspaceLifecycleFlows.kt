@@ -4,6 +4,8 @@ package com.flashcardsopensourceapp.app.livesmoke.flows
 
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getOrNull
+import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onAllNodesWithText
@@ -104,8 +106,25 @@ internal fun LiveSmokeContext.createEphemeralWorkspace(workspaceName: String): E
         timeoutMillis = internalUiTimeoutMillis,
         context = "while opening the new workspace name step"
     )
-    // Created under a different name so the rename below still changes it.
+    clickTag(tag = currentWorkspaceNewNameFieldTag, label = "Workspace name")
     composeRule.onNodeWithTag(currentWorkspaceNewNameFieldTag).performTextReplacement("$workspaceName new")
+    waitUntilWithMitigation(
+        timeoutMillis = internalUiTimeoutMillis,
+        context = "while verifying the new workspace name before creating it"
+    ) {
+        composeRule.onAllNodesWithTag(currentWorkspaceNewNameFieldTag)
+            .fetchSemanticsNodes()
+            .singleOrNull()
+            ?.config
+            ?.getOrNull(SemanticsProperties.EditableText)
+            ?.text == "$workspaceName new"
+    }
+    composeRule.onNodeWithTag(currentWorkspaceChangeSheetListTag).performScrollToNode(
+        matcher = hasTestTag(currentWorkspaceNewNameCreateButtonTag)
+    )
+    composeRule.onNodeWithTag(currentWorkspaceNewNameCreateButtonTag)
+        .assertIsDisplayed()
+        .assertIsEnabled()
     clickTag(tag = currentWorkspaceNewNameCreateButtonTag, label = "Create")
     val createdWorkspaceSelection: LinkedWorkspaceSelectionSnapshot = waitForLinkedWorkspaceSelectionToChange(
         previousWorkspaceId = selectedWorkspaceIdBeforeCreate,

@@ -53,5 +53,10 @@
   "email.refundReceiptBody": "Je terugbetaling van {price} is uitgevoerd. Bekijk de details: {url}",
   "deletion.warning": "Als je je Nibomo-account verwijdert, worden toekomstige verlengingen van je via Stripe gefactureerde Nibomo-abonnementen geannuleerd. Je verliest de toegang tot dit account. Abonnementen die via Apple of Google worden gefactureerd, moet je apart bij die aanbieder opzeggen.",
   "deletion.cancelling": "De verlengingen van je Stripe-abonnementen worden geannuleerd voordat je account wordt verwijderd...",
-  "deletion.cancellationFailed": "We konden niet bevestigen dat de verlengingen van je Stripe-abonnementen zijn geannuleerd. Je account is niet verwijderd. Probeer het opnieuw of neem contact op met de ondersteuning."
+  "deletion.cancellationFailed": "We konden niet bevestigen dat de verlengingen van je Stripe-abonnementen zijn geannuleerd. Je account is niet verwijderd. Probeer het opnieuw of neem contact op met de ondersteuning.",
+  "offer.pricesFor": "Prijzen voor {country}",
+  "offer.changeCountry": "Land wijzigen",
+  "offer.chooseCountry": "Kies een land",
+  "checkout.originalOffer": "Openstaande betaling: {price} per maand",
+  "checkout.requote": "Betaling vervangen door deze aanbieding"
 }

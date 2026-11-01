@@ -34,10 +34,7 @@ struct ReviewView: View {
     @Environment(FlashcardsStore.self) var store: FlashcardsStore
     @Environment(AppNavigationModel.self) private var navigation: AppNavigationModel
     @Environment(PremiumPresenter.self) var premiumPresenter: PremiumPresenter
-    @FocusState private var isReviewKeyboardFocused: Bool
-    #if targetEnvironment(macCatalyst)
-    @State private var reviewKeyboardFocusRequest: StudyKeyboardFocusRequest?
-    #endif
+    @State private var isTextInputEditing: Bool = false
 
     @StateObject private var reviewSpeechController = ReviewSpeechController()
     @State var isAnswerVisible: Bool = false
@@ -158,6 +155,10 @@ struct ReviewView: View {
         #endif
     }
 
+    private var hidesReviewNavigationBar: Bool {
+        self.showsFilterInReviewColumn && self.navigation.isAICompanionVisible && self.tabBarPlacement == .sidebar
+    }
+
     private var nativeReviewContent: some View {
         ZStack {
             Group {
@@ -227,42 +228,17 @@ struct ReviewView: View {
         .animation(self.reduceMotion ? nil : .smooth(duration: 0.35), value: self.navigation.isAICompanionVisible)
         .nativeNavigationTitle(self.showsFilterInReviewColumn ? "" : String(localized: "Review", table: reviewCardsStringsTableName))
         #if !targetEnvironment(macCatalyst)
-        .toolbar(self.showsFilterInReviewColumn && self.navigation.isAICompanionVisible && self.tabBarPlacement == .sidebar ? .hidden : .automatic, for: .navigationBar)
+        .toolbar(self.hidesReviewNavigationBar ? .hidden : .automatic, for: .navigationBar)
         #endif
         // Keep iPad's shared tab/toolbar row stable when a card handoff focuses AI.
         // Switching from a large title can retain its empty band after keyboard dismissal.
         .navigationBarTitleDisplayMode(UIDevice.current.userInterfaceIdiom == .pad || self.dynamicTypeSize.isAccessibilitySize ? .inline : .automatic)
         .onAppear {
             self.isReviewReactionScreenVisible = true
-            if self.canUseReviewKeyboardShortcuts && self.navigation.isAIChatVisible == false {
-                self.requestAutomaticReviewKeyboardFocus()
-            }
             if self.areReviewReactionAnimationsEnabled {
                 self.prewarmReviewReactionLottieAssets()
             }
         }
-        .onChange(of: self.shouldShowReviewLoader) { _, isLoading in
-            if isLoading == false && self.canUseReviewKeyboardShortcuts && self.navigation.isAIChatVisible == false {
-                self.requestAutomaticReviewKeyboardFocus()
-            }
-        }
-        #if targetEnvironment(macCatalyst)
-        .onChange(of: self.canUseReviewKeyboardShortcuts, initial: true) { _, isAvailable in
-            if isAvailable {
-                self.requestAutomaticReviewKeyboardFocus()
-            }
-        }
-        .onChange(of: self.navigation.isAICompanionVisible) { _, isVisible in
-            if isVisible == false && self.canUseReviewKeyboardShortcuts {
-                self.requestAutomaticReviewKeyboardFocus()
-            }
-        }
-        .onChange(of: self.navigation.reviewKeyboardFocusRequestID) { _, _ in
-            if self.canUseReviewKeyboardShortcuts {
-                self.requestAutomaticReviewKeyboardFocus()
-            }
-        }
-        #endif
         .onChange(of: self.areReviewReactionAnimationsEnabled) { _, isEnabled in
             if isEnabled {
                 self.prewarmReviewReactionLottieAssets()
@@ -292,10 +268,6 @@ struct ReviewView: View {
         }
         .onDisappear {
             self.textSelection = nil
-            self.isReviewKeyboardFocused = false
-            #if targetEnvironment(macCatalyst)
-            self.reviewKeyboardFocusRequest = nil
-            #endif
             self.isReviewReactionScreenVisible = false
             self.store.isSavedReviewPromptSurfaceAvailable = false
             self.reviewSpeechController.stopSpeech()
@@ -345,17 +317,9 @@ struct ReviewView: View {
         .catalystReviewShortcutHintOverlay()
         #endif
         .background {
-            #if targetEnvironment(macCatalyst)
-            MacStudyKeyboardReceiver(
-                isEnabled: self.canUseReviewKeyboardShortcuts,
-                isStudyActive: self.canUseReviewKeyboardShortcuts,
-                focusRequest: self.reviewKeyboardFocusRequest,
-                onInput: self.handleReviewKeyboardInput
-            )
-            .frame(width: 1, height: 1)
-            .accessibilityHidden(true)
-            #endif
+            ReviewTextEditingObserver(isEditing: self.$isTextInputEditing)
         }
+        .reviewKeyCommandActions(self.reviewKeyboardActions)
         .ignoresSafeArea(UIDevice.current.userInterfaceIdiom == .pad || self.navigation.canPresentAICompanion == false || self.isKeyboardDocked ? [] : .keyboard, edges: .bottom)
         .simultaneousGesture(
             DragGesture(minimumDistance: 0)
@@ -460,22 +424,13 @@ struct ReviewView: View {
                 )
             }
         }
-        .sheet(item: self.$textSelection, onDismiss: {
-            if self.navigation.isAIChatVisible == false {
-                self.focusReviewKeyboard()
-            }
-        }) { selection in
+        .sheet(item: self.$textSelection) { selection in
             ReviewCardTextSelectionSheet(selection: selection)
         }
         .sheet(
             isPresented: self.$isEditorPresented,
             onDismiss: {
                 Analytics.trackScreenViewedOnDismiss(of: .cardEditor, restoring: .review)
-                #if targetEnvironment(macCatalyst)
-                if self.canUseReviewKeyboardShortcuts {
-                    self.requestAutomaticReviewKeyboardFocus()
-                }
-                #endif
             }
         ) {
             NavigationStack(path: self.$cardFormState.navigationPath) {
@@ -820,14 +775,10 @@ struct ReviewView: View {
                 ) {
                     activeCardContentView(card: card, preparedRevealState: preparedRevealState)
                         .padding(.vertical, 20)
-                        .background(ReviewOutsideTextTapReceiver(onTap: self.focusReviewKeyboard))
+                        .background(ReviewOutsideTextTapReceiver())
                         .macToolbarScrollSurface("review")
                 }
             }
-            .modifier(ReviewHardwareKeyboardModifier(
-                isFocused: self.$isReviewKeyboardFocused,
-                onKeyPress: self.handleReviewKeyPress
-            ))
             .onChange(of: isAnswerVisible) { wasVisible, isVisible in
                 guard wasVisible == false, isVisible else {
                     return
@@ -1173,10 +1124,6 @@ struct ReviewView: View {
     private func openReviewTextSelection(card: Card, side: ReviewCardSurfaceStyle) {
         guard self.currentCard?.cardId == card.cardId else { return }
         guard side == .front || self.isAnswerVisible else { return }
-        self.isReviewKeyboardFocused = false
-        #if targetEnvironment(macCatalyst)
-        self.reviewKeyboardFocusRequest = nil
-        #endif
         self.textSelection = ReviewCardTextSelection(
             id: UUID(),
             cardId: card.cardId,
@@ -1232,50 +1179,32 @@ struct ReviewView: View {
             && self.store.accountDeletionState == .hidden
             && self.store.accountDeletionSuccessMessage == nil
             && self.premiumPresenter.request == nil
+            && self.navigation.reviewKeyboardBlockingPresentationIDs.isEmpty
     }
 
-    private func handleReviewKeyPress(_ press: KeyPress) -> KeyPress.Result {
-        // Only the study surface owns these unmodified keys; focused editors/chat keep typing.
-        guard self.canUseReviewKeyboardShortcuts, press.modifiers.isEmpty else {
-            return .ignored
+    private var reviewKeyboardActions: ReviewKeyboardActions? {
+        guard self.canUseReviewKeyboardShortcuts, self.isTextInputEditing == false, let card = self.currentCard else {
+            return nil
         }
-        let input = press.key == .space ? " " : press.characters
-        return self.handleReviewKeyboardInput(input) ? .handled : .ignored
-    }
-
-    private func handleReviewKeyboardInput(_ input: String) -> Bool {
-        guard self.canUseReviewKeyboardShortcuts else { return false }
-        self.dismissActiveReviewReactions(reason: "interaction")
-        if input == " " || input == "\r" || input == "\u{3}" {
-            guard self.isAnswerVisible == false else { return false }
-            self.revealReviewAnswer()
-            return true
+        if self.isAnswerVisible == false {
+            return ReviewKeyboardActions(
+                revealAnswer: {
+                    self.dismissActiveReviewReactions(reason: "interaction")
+                    self.revealReviewAnswer()
+                },
+                rate: nil
+            )
         }
-        guard self.isAnswerVisible, let card = self.currentCard,
-              self.cachedPreparedCurrentRevealState?.reviewAnswerGridOptions != nil,
-              let number = Int(input), let rating = ReviewRating(rawValue: number - 1) else {
-            return false
+        guard self.cachedPreparedCurrentRevealState?.reviewAnswerGridOptions != nil else {
+            return nil
         }
-        self.rateReviewCard(cardId: card.cardId, rating: rating)
-        return true
-    }
-
-    private func focusReviewKeyboard() {
-        if self.canUseReviewKeyboardShortcuts {
-            #if targetEnvironment(macCatalyst)
-            self.reviewKeyboardFocusRequest = .study(UUID())
-            #else
-            self.isReviewKeyboardFocused = true
-            #endif
-        }
-    }
-
-    private func requestAutomaticReviewKeyboardFocus() {
-        #if targetEnvironment(macCatalyst)
-        self.reviewKeyboardFocusRequest = .automatic(UUID())
-        #else
-        self.isReviewKeyboardFocused = true
-        #endif
+        return ReviewKeyboardActions(
+            revealAnswer: nil,
+            rate: { rating in
+                self.dismissActiveReviewReactions(reason: "interaction")
+                self.rateReviewCard(cardId: card.cardId, rating: rating)
+            }
+        )
     }
 
     private func cancelReviewCardEditor() {
@@ -1309,7 +1238,6 @@ struct ReviewView: View {
 
     private var showAnswerButton: some View {
         Button {
-            self.focusReviewKeyboard()
             self.revealReviewAnswer()
         } label: {
             Label(String(localized: "Show answer", table: reviewCardsStringsTableName), systemImage: "eye")
@@ -1364,7 +1292,6 @@ struct ReviewView: View {
 
     private func reviewAnswerButton(cardId: String, option: ReviewAnswerOption) -> some View {
         Button {
-            self.focusReviewKeyboard()
             self.rateReviewCard(cardId: cardId, rating: option.rating)
         } label: {
             VStack(alignment: .center, spacing: 4) {
@@ -1533,41 +1460,15 @@ private func reviewRepetitionBadge(reps: Int) -> some View {
     }
 }
 
-private struct ReviewHardwareKeyboardModifier: ViewModifier {
-    var isFocused: FocusState<Bool>.Binding
-    var onKeyPress: (KeyPress) -> KeyPress.Result
-
-    @ViewBuilder
-    func body(content: Content) -> some View {
-        #if targetEnvironment(macCatalyst)
-        content
-        #else
-        if UIDevice.current.userInterfaceIdiom == .pad {
-            content
-                .focusable()
-                .focusEffectDisabled()
-                .focused(self.isFocused)
-                .onKeyPress(keys: [.space, "1", "2", "3", "4"], phases: .down, action: self.onKeyPress)
-        } else {
-            content
-        }
-        #endif
-    }
-}
-
+/// Tapping outside the card text clears its selection.
 private struct ReviewOutsideTextTapReceiver: UIViewRepresentable {
-    let onTap: () -> Void
-
     func makeUIView(context: Context) -> ReviewOutsideTextTapView {
         let view = ReviewOutsideTextTapView()
         view.isUserInteractionEnabled = false
-        view.onTap = self.onTap
         return view
     }
 
-    func updateUIView(_ view: ReviewOutsideTextTapView, context: Context) {
-        view.onTap = self.onTap
-    }
+    func updateUIView(_ view: ReviewOutsideTextTapView, context: Context) {}
 
     static func dismantleUIView(_ view: ReviewOutsideTextTapView, coordinator: Void) {
         view.removeOutsideTapGesture()
@@ -1575,8 +1476,7 @@ private struct ReviewOutsideTextTapReceiver: UIViewRepresentable {
 }
 
 private final class ReviewOutsideTextTapView: UIView, UIGestureRecognizerDelegate {
-    var onTap: (() -> Void)?
-    private lazy var outsideTap = UITapGestureRecognizer(target: self, action: #selector(self.returnToStudy))
+    private lazy var outsideTap = UITapGestureRecognizer(target: self, action: #selector(self.clearTextSelection))
 
     override func didMoveToWindow() {
         super.didMoveToWindow()
@@ -1612,7 +1512,7 @@ private final class ReviewOutsideTextTapView: UIView, UIGestureRecognizerDelegat
         true
     }
 
-    @objc private func returnToStudy() {
+    @objc private func clearTextSelection() {
         func resignSelection(in view: UIView) {
             if let selector = view as? ReviewSelectionTextView, selector.isFirstResponder {
                 selector.resignFirstResponder()
@@ -1620,6 +1520,5 @@ private final class ReviewOutsideTextTapView: UIView, UIGestureRecognizerDelegat
             for child in view.subviews { resignSelection(in: child) }
         }
         if let surface = self.outsideTap.view { resignSelection(in: surface) }
-        self.onTap?()
     }
 }

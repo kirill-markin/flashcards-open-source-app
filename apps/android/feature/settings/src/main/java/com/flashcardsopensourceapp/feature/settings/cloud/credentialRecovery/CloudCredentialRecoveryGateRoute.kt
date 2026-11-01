@@ -101,7 +101,8 @@ fun CloudCredentialRecoveryGateRoute(
                 if (
                     isRecoveryStateActive &&
                     postAuthUiState.mode != CloudPostAuthMode.PROCESSING &&
-                    postAuthUiState.mode != CloudPostAuthMode.READY_TO_AUTO_LINK
+                    postAuthUiState.mode != CloudPostAuthMode.READY_TO_AUTO_LINK &&
+                    postAuthUiState.mode != CloudPostAuthMode.CHOOSE_WORKSPACE
                 ) {
                     onBackToOverview()
                 }

@@ -53,5 +53,10 @@
   "email.refundReceiptBody": "Umerejeshewa {price}. Tazama maelezo: {url}",
   "deletion.warning": "Kufuta akaunti yako ya Nibomo kunaghairi usasishaji wa baadaye wa usajili wako wa Nibomo unaotozwa kupitia Stripe. Utapoteza ufikiaji wa akaunti hii. Usajili unaotozwa kupitia Apple au Google lazima ughairiwe kando kupitia mtoa huduma huyo.",
   "deletion.cancelling": "Inaghairi usasishaji wa usajili wako wa Stripe kabla ya kufuta akaunti yako...",
-  "deletion.cancellationFailed": "Hatukuweza kuthibitisha kughairiwa kwa usasishaji wa usajili wako wa Stripe. Akaunti yako haijafutwa. Jaribu tena au wasiliana na usaidizi."
+  "deletion.cancellationFailed": "Hatukuweza kuthibitisha kughairiwa kwa usasishaji wa usajili wako wa Stripe. Akaunti yako haijafutwa. Jaribu tena au wasiliana na usaidizi.",
+  "offer.pricesFor": "Bei za {country}",
+  "offer.changeCountry": "Badilisha nchi",
+  "offer.chooseCountry": "Chagua nchi",
+  "checkout.originalOffer": "Malipo hayajakamilika: {price} kwa mwezi",
+  "checkout.requote": "Badilisha malipo kwa ofa hii"
 }

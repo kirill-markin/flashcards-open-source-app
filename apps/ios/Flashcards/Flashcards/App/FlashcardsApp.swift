@@ -203,7 +203,7 @@ struct FlashcardsApp: App {
 
     var body: some Scene {
         WindowGroup {
-            RootTabView()
+            ReviewKeyCommandOwner { RootTabView() }
                 .tint(store.effectiveAccountAccentColor.color)
                 .accentColor(store.effectiveAccountAccentColor.color)
                 .onOpenURL { url in
@@ -316,14 +316,15 @@ struct FlashcardsApp: App {
                 }
                 .technicalErrorSheet(store: self.store)
         }
-        #if targetEnvironment(macCatalyst)
         .commands {
+            #if targetEnvironment(macCatalyst)
             MacNavigationCommands(
                 navigation: self.navigation,
                 isAvailable: self.isStartupReadyForBackgroundWork && self.isCloudCredentialRecoveryGateActive == false
             )
+            #endif
+            ReviewCommands()
         }
-        #endif
         .onChange(of: self.appleSubscriptionRuntimeState, initial: true) { _, state in
             self.appleSubscriptions.updateRuntime(identity: state.identity, isActive: state.isActive)
         }

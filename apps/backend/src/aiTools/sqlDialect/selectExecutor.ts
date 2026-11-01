@@ -1,5 +1,5 @@
 import { buildInvalidSqlError } from "../sqlErrors";
-import { getSqlSourceColumnDescriptors } from "./schema";
+import { formatUnknownColumnMessage, getSqlSourceColumnDescriptors } from "./schema";
 import type {
   SqlAggregateFunctionName,
   SqlColumnType,
@@ -52,11 +52,11 @@ export function normalizeSqlLimit(limit: number | null, maximumLimit: number): n
   }
 
   if (limit === 0) {
-    throw buildInvalidSqlError("LIMIT must be greater than 0", "invalid_clause");
+    throw buildInvalidSqlError("LIMIT must be greater than 0", "invalid_clause", null);
   }
 
   if (limit < 0) {
-    throw buildInvalidSqlError("LIMIT must be greater than 0", "invalid_clause");
+    throw buildInvalidSqlError("LIMIT must be greater than 0", "invalid_clause", null);
   }
 
   return Math.min(limit, maximumLimit);
@@ -68,7 +68,7 @@ export function normalizeSqlOffset(offset: number | null): number {
   }
 
   if (offset < 0) {
-    throw buildInvalidSqlError("OFFSET must be a non-negative integer", "invalid_clause");
+    throw buildInvalidSqlError("OFFSET must be a non-negative integer", "invalid_clause", null);
   }
 
   return offset;
@@ -200,23 +200,28 @@ const LIKE_SUPPORTED_COLUMN_TYPES: ReadonlySet<SqlColumnType> = new Set<SqlColum
 function validatePredicate(source: SqlFromSource, predicate: SqlPredicate): void {
   if (predicate.type === "match") {
     if (predicate.query.trim() === "") {
-      throw buildInvalidSqlError("MATCH query must not be empty", "empty_sql");
+      throw buildInvalidSqlError("MATCH query must not be empty", "empty_sql", null);
     }
 
     return;
   }
 
-  const columnDescriptor = getSqlSourceColumnDescriptors(source)[predicate.columnName];
+  const availableColumns = getSqlSourceColumnDescriptors(source);
+  const columnDescriptor = availableColumns[predicate.columnName];
   if (columnDescriptor === undefined) {
-    throw buildInvalidSqlError(`Unknown column for ${source.resourceName}: ${predicate.columnName}`, "unknown_column");
+    throw buildInvalidSqlError(
+      formatUnknownColumnMessage(`Unknown column for ${source.resourceName}: ${predicate.columnName}`, Object.keys(availableColumns)),
+      "unknown_column",
+      predicate.columnName,
+    );
   }
 
   if (columnDescriptor.filterable === false) {
-    throw buildInvalidSqlError(`Column is not filterable: ${predicate.columnName}`, "column_not_filterable");
+    throw buildInvalidSqlError(`Column is not filterable: ${predicate.columnName}`, "column_not_filterable", predicate.columnName);
   }
 
   if (predicate.type === "like" && LIKE_SUPPORTED_COLUMN_TYPES.has(columnDescriptor.type) === false) {
-    throw buildInvalidSqlError(`LIKE is not supported for column: ${predicate.columnName}`, "unsupported_expression");
+    throw buildInvalidSqlError(`LIKE is not supported for column: ${predicate.columnName}`, "unsupported_expression", "LIKE");
   }
 }
 
@@ -338,7 +343,7 @@ function applyOrderBy(
   return [...rows].sort((left, right) => {
     for (const item of orderBy) {
       if (item.type !== "column") {
-        throw buildInvalidSqlError("RANDOM() must be the only ORDER BY item", "unsupported_expression");
+        throw buildInvalidSqlError("RANDOM() must be the only ORDER BY item", "unsupported_expression", "RANDOM");
       }
       const comparison = compareRowValues(left[item.expressionName], right[item.expressionName]);
       if (comparison !== 0) {
@@ -387,11 +392,15 @@ function validateRowOrderBy(source: SqlFromSource, orderBy: ReadonlyArray<SqlSel
     }
     const columnDescriptor = availableColumns[item.expressionName];
     if (columnDescriptor === undefined) {
-      throw buildInvalidSqlError(`Unknown ORDER BY target: ${item.expressionName}`, "unknown_column");
+      throw buildInvalidSqlError(
+        formatUnknownColumnMessage(`Unknown ORDER BY target: ${item.expressionName}`, Object.keys(availableColumns)),
+        "unknown_column",
+        item.expressionName,
+      );
     }
 
     if (columnDescriptor.sortable === false) {
-      throw buildInvalidSqlError(`Column is not sortable: ${item.expressionName}`, "unsupported_expression");
+      throw buildInvalidSqlError(`Column is not sortable: ${item.expressionName}`, "unsupported_expression", item.expressionName);
     }
   }
 }
@@ -423,19 +432,23 @@ function validateAggregateSelect(statement: SqlSelectStatement): void {
 
   for (const groupColumn of statement.groupBy) {
     if (availableColumns[groupColumn] === undefined) {
-      throw buildInvalidSqlError(`Unknown GROUP BY column: ${groupColumn}`, "unknown_column");
+      throw buildInvalidSqlError(
+        formatUnknownColumnMessage(`Unknown GROUP BY column: ${groupColumn}`, Object.keys(availableColumns)),
+        "unknown_column",
+        groupColumn,
+      );
     }
   }
 
   const aggregateOutputNames = new Set<string>();
   for (const item of statement.selectItems) {
     if (item.type === "wildcard") {
-      throw buildInvalidSqlError("SELECT * cannot be mixed with aggregate projections", "invalid_grouping");
+      throw buildInvalidSqlError("SELECT * cannot be mixed with aggregate projections", "invalid_grouping", null);
     }
 
     if (item.type === "column") {
       if (statement.groupBy.includes(item.columnName) === false) {
-        throw buildInvalidSqlError(`Grouped SELECT must list ${item.columnName} in GROUP BY`, "invalid_grouping");
+        throw buildInvalidSqlError(`Grouped SELECT must list ${item.columnName} in GROUP BY`, "invalid_grouping", item.columnName);
       }
       aggregateOutputNames.add(item.alias ?? item.columnName);
       continue;
@@ -450,12 +463,17 @@ function validateAggregateSelect(statement: SqlSelectStatement): void {
     const columnName = item.columnName ?? "";
     const columnDescriptor = availableColumns[columnName];
     if (columnDescriptor === undefined) {
-      throw buildInvalidSqlError(`Unknown aggregate column: ${columnName}`, "unknown_column");
+      throw buildInvalidSqlError(
+        formatUnknownColumnMessage(`Unknown aggregate column: ${columnName}`, Object.keys(availableColumns)),
+        "unknown_column",
+        columnName,
+      );
     }
 
     if (item.functionName === "avg" || item.functionName === "sum") {
       if (columnDescriptor.type !== "integer" && columnDescriptor.type !== "number") {
-        throw buildInvalidSqlError(`${item.functionName.toUpperCase()} only supports numeric columns`, "unsupported_expression");
+        const functionName = item.functionName.toUpperCase();
+        throw buildInvalidSqlError(`${functionName} only supports numeric columns`, "unsupported_expression", functionName);
       }
     }
   }
@@ -469,7 +487,12 @@ function validateAggregateSelect(statement: SqlSelectStatement): void {
       continue;
     }
 
-    throw buildInvalidSqlError(`Unknown ORDER BY target: ${item.expressionName}`, "unknown_column");
+    const availableTargets = [...new Set([...statement.groupBy, ...aggregateOutputNames])];
+    throw buildInvalidSqlError(
+      `Unknown ORDER BY target: ${item.expressionName}. Available ORDER BY targets: ${availableTargets.join(", ")}`,
+      "unknown_column",
+      item.expressionName,
+    );
   }
 }
 
@@ -527,7 +550,7 @@ function buildAggregateOutputRow(
 
   for (const item of selectItems) {
     if (item.type === "wildcard") {
-      throw buildInvalidSqlError("Aggregate SELECT cannot project *", "invalid_grouping");
+      throw buildInvalidSqlError("Aggregate SELECT cannot project *", "invalid_grouping", null);
     }
 
     if (item.type === "column") {
@@ -583,7 +606,7 @@ function projectSelectRow(row: SqlRow, selectItems: ReadonlyArray<SqlSelectItem>
 
   for (const item of selectItems) {
     if (item.type !== "column") {
-      throw buildInvalidSqlError("Projected SELECT can only include columns", "unsupported_expression");
+      throw buildInvalidSqlError("Projected SELECT can only include columns", "unsupported_expression", null);
     }
 
     outputEntries.push([item.alias ?? item.columnName, row[item.columnName] ?? null] as const);
@@ -604,7 +627,7 @@ function isWildcardSelect(statement: SqlSelectStatement): boolean {
 
 function validateSelectProjection(selectItems: ReadonlyArray<SqlSelectItem>): void {
   if (selectItems.length > 1 && selectItems.some((item) => item.type === "wildcard")) {
-    throw buildInvalidSqlError("SELECT * cannot be mixed with other projections", "unsupported_expression");
+    throw buildInvalidSqlError("SELECT * cannot be mixed with other projections", "unsupported_expression", null);
   }
 }
 

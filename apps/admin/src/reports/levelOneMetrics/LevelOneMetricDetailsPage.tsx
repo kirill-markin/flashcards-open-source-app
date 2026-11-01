@@ -10,7 +10,7 @@ import { WhoStudiedBreakdownSections } from "../whoStudied/WhoStudiedBreakdownSe
 import { WhoStudiedReviewEventSections } from "../whoStudied/WhoStudiedReviewEventSections";
 import { WhoStudiedSection } from "../whoStudied/WhoStudiedSection";
 import { LevelOneMetricDetailsHeader } from "./LevelOneMetricDetailsHeader";
-import { LevelOneMetricsFrame, levelOneMetricsDateRangeFilterBar } from "./LevelOneMetricsFrame";
+import { LevelOneMetricsFrame, useLevelOneMetricsFilterBar } from "./LevelOneMetricsFrame";
 import type { LevelOneMetricsSelection } from "./levelOneMetricsUrl";
 import { useLevelOneMetricsSelection } from "./useLevelOneMetricsSelection";
 
@@ -45,6 +45,8 @@ function renderMetricSections(
             config={props.config}
             dateRange={selection.dateRange}
             period={selection.period}
+            eventPlatforms={selection.eventPlatforms}
+            appVersions={selection.appVersions}
             detailsLink={null}
             onTerminalAdminError={props.onTerminalAdminError}
           />
@@ -52,6 +54,8 @@ function renderMetricSections(
             config={props.config}
             dateRange={selection.dateRange}
             period={selection.period}
+            eventPlatforms={selection.eventPlatforms}
+            appVersions={selection.appVersions}
             onTerminalAdminError={props.onTerminalAdminError}
           />
         </>
@@ -63,6 +67,8 @@ function renderMetricSections(
             config={props.config}
             dateRange={selection.dateRange}
             period={selection.period}
+            eventPlatforms={selection.eventPlatforms}
+            appVersions={selection.appVersions}
             detailsLink={null}
             onTerminalAdminError={props.onTerminalAdminError}
           />
@@ -70,12 +76,16 @@ function renderMetricSections(
             config={props.config}
             dateRange={selection.dateRange}
             period={selection.period}
+            eventPlatforms={selection.eventPlatforms}
+            appVersions={selection.appVersions}
             onTerminalAdminError={props.onTerminalAdminError}
           />
           <WhoStudiedReviewEventSections
             config={props.config}
             dateRange={selection.dateRange}
             period={selection.period}
+            eventPlatforms={selection.eventPlatforms}
+            appVersions={selection.appVersions}
             onNavigate={props.onNavigate}
             onTerminalAdminError={props.onTerminalAdminError}
           />
@@ -88,6 +98,8 @@ function renderMetricSections(
             config={props.config}
             dateRange={selection.dateRange}
             period={selection.period}
+            eventPlatforms={selection.eventPlatforms}
+            appVersions={selection.appVersions}
             detailsLink={null}
             onTerminalAdminError={props.onTerminalAdminError}
           />
@@ -95,6 +107,7 @@ function renderMetricSections(
             config={props.config}
             dateRange={selection.dateRange}
             period={selection.period}
+            eventPlatforms={selection.eventPlatforms}
             onTerminalAdminError={props.onTerminalAdminError}
           />
         </>
@@ -107,6 +120,7 @@ function ChartedLevelOneMetricDetailsPage(
   props: LevelOneMetricDetailsPageProps<ChartedLevelOneMetricDetail>,
 ): JSX.Element {
   const selectionState = useLevelOneMetricsSelection(props.config, props.onTerminalAdminError);
+  const filterBar = useLevelOneMetricsFilterBar(props.config, selectionState.selection.dateRange, props.onTerminalAdminError);
 
   return (
     <>
@@ -121,7 +135,7 @@ function ChartedLevelOneMetricDetailsPage(
 
       <LevelOneMetricsFrame
         selectionState={selectionState}
-        filterBar={levelOneMetricsDateRangeFilterBar}
+        filterBar={filterBar}
         onNavigate={props.onNavigate}
         renderCharts={(selection) => (
           <div className="level-1-metrics-grid">{renderMetricSections(props, selection)}</div>

@@ -3,6 +3,7 @@ import { z } from "zod";
 import { unsafeTransaction } from "../../database/unsafe";
 import type { PurchaseStatus } from "../resolver";
 import { resolveEntitlementLimits } from "../limits";
+import { describeStripeOffer, resolveStripeOffer, type StripeOfferDetails, type StripeOfferPrice } from "../regionalPricing/offers";
 import { stripeHostedLocale } from "./checkoutPresentation";
 import { lockStripeHumanAccountInExecutor, observeStripeAccountInExecutor,
   stripeSubscriptionCanBill, type StripeHumanActor } from "./checkout";
@@ -18,52 +19,62 @@ export type StripeSubscriptionDetails = Readonly<{
   subscriptions: ReadonlyArray<Readonly<{
     subscriptionId: string; status: PurchaseStatus; providerStatus: string;
     isTrial: boolean; willRenew: boolean; until: string; trialEnd: string | null;
-    cancelAt: string | null; invalidated: boolean;
+    cancelAt: string | null; invalidated: boolean; basePrice: StripeOfferPrice;
   }>>;
 }>;
 export type StripeBillingDetails = Readonly<{
   environment: StripeEnvironment;
   checkoutAvailable: boolean;
   premiumAiMonthlyMessages: number | null;
-  checkoutUnavailableReason: "purchases_disabled" | "existing_subscription" | "checkout_pending" | null;
-  basePrice: Readonly<{ currency: string; unitAmount: number; interval: "month"; taxBehavior: "inclusive" }> | null;
+  checkoutUnavailableReason: "purchases_disabled" | "existing_subscription" | "checkout_pending" | "country_unavailable" | null;
+  basePrice: StripeOfferPrice | null;
+  selectedOffer: StripeOfferDetails | null;
   trialEligible: boolean | null;
   customers: ReadonlyArray<StripeSubscriptionDetails>;
   pendingCheckouts: ReadonlyArray<Readonly<{
     attemptId: string; identityId: string; sessionId: string | null;
-    status: "pending" | "open"; expiresAt: string;
+    status: "pending" | "open"; expiresAt: string; offer: StripeOfferDetails;
   }>>;
 }>;
 export type StripeBillingOffer = Pick<StripeBillingDetails,
-  "environment" | "premiumAiMonthlyMessages" | "checkoutAvailable" | "checkoutUnavailableReason" | "basePrice" | "trialEligible">;
+  "environment" | "premiumAiMonthlyMessages" | "checkoutAvailable" | "checkoutUnavailableReason" | "basePrice" | "trialEligible" | "selectedOffer">;
 
 export type StripePortalResult = Readonly<{ url: string }>;
 
-async function getStripeOfferPrice(environment: StripeEnvironment): Promise<NonNullable<StripeBillingOffer["basePrice"]>> {
-  const price = await (await loadStripeProvider(environment)).retrieveKnownPrice();
-  if (price.unit_amount === null) throw new StripeBillingError("STRIPE_RESPONSE_INVALID", false,
-    "Stripe returned no verified base price amount.");
-  return { currency: price.currency, unitAmount: price.unit_amount, interval: "month", taxBehavior: "inclusive" };
+async function getStripeOffer(environment: StripeEnvironment, country: string | null): Promise<StripeOfferDetails> {
+  const offer = resolveStripeOffer(environment, country);
+  const price = await (await loadStripeProvider(environment)).retrieveCheckoutPrice(offer.priceId);
+  return describeStripeOffer(offer, price);
 }
 
-export async function getStripeGuestOffer(): Promise<StripeBillingOffer> {
+export async function getStripeGuestOffer(country?: string): Promise<StripeBillingOffer> {
   const checkoutEnabled = process.env.STRIPE_CHECKOUT_LIVE_ENABLED === "true";
+  const selection = resolveStripeOffer("production", country ?? null);
+  const selectedOffer = checkoutEnabled ? await getStripeOffer("production", country ?? null) : null;
   return {
-    environment: "production", checkoutAvailable: checkoutEnabled,
-    checkoutUnavailableReason: checkoutEnabled ? null : "purchases_disabled",
+    environment: "production", checkoutAvailable: checkoutEnabled && selection.salesAvailable,
+    checkoutUnavailableReason: !checkoutEnabled ? "purchases_disabled" : selection.salesAvailable ? null : "country_unavailable",
     premiumAiMonthlyMessages: resolveEntitlementLimits("premium", "account").aiMonthlyMessages,
-    basePrice: checkoutEnabled ? await getStripeOfferPrice("production") : null, trialEligible: null,
+    basePrice: selectedOffer?.basePrice ?? null, selectedOffer, trialEligible: null,
   };
 }
 
-export async function getStripeBillingDetails(actor: StripeHumanActor): Promise<StripeBillingDetails> {
+export async function getStripeBillingDetails(actor: StripeHumanActor, country?: string): Promise<StripeBillingDetails> {
   const observed = await unsafeTransaction(async (executor) => {
     const context = await lockStripeHumanAccountInExecutor(executor, actor);
     const observations = await observeStripeAccountInExecutor(executor, context);
     const hasSubscription = observations.some((customer) => customer.subscriptions.some(stripeSubscriptionCanBill));
     const pending = observations.flatMap((customer) => customer.pending);
     const trialEligible = await getStripeAccountTrialEligibilityInExecutor(executor, actor.userId, context.environment);
-    const basePrice = context.checkoutEnabled ? await getStripeOfferPrice(context.environment) : null;
+    const selection = resolveStripeOffer(context.environment, country ?? null);
+    const selectedOffer = context.checkoutEnabled ? await getStripeOffer(context.environment, country ?? null) : null;
+    const pendingCheckouts: Array<StripeBillingDetails["pendingCheckouts"][number]> = [];
+    for (const attempt of pending) {
+      const price = await (await loadStripeProvider(attempt.environment)).retrieveCheckoutPrice(attempt.priceId);
+      pendingCheckouts.push({ attemptId: attempt.attemptId, identityId: attempt.identityId,
+        sessionId: attempt.sessionId, status: attempt.status === "open" ? "open" : "pending",
+        expiresAt: attempt.expiresAt.toISOString(), offer: describeStripeOffer(attempt, price) });
+    }
     const customers = observations.map((customer): StripeSubscriptionDetails => ({
       identityId: customer.identity.identityId, environment: customer.identity.environment,
       managementAvailable: true,
@@ -76,18 +87,18 @@ export async function getStripeBillingDetails(actor: StripeHumanActor): Promise<
           willRenew: transition.state.willRenew, until: transition.state.until.toISOString(),
           trialEnd: subscription.trial_end === null ? null : new Date(subscription.trial_end * 1000).toISOString(),
           cancelAt: subscription.cancel_at === null ? null : new Date(subscription.cancel_at * 1000).toISOString(),
-          invalidated: transition.purchase.invalidated_at !== null };
+          invalidated: transition.purchase.invalidated_at !== null,
+          basePrice: { currency: subscription.items.data[0].price.currency,
+            unitAmount: subscription.items.data[0].price.unit_amount!, interval: "month", taxBehavior: "inclusive" } };
       }),
     }));
     const result: StripeBillingDetails = {
       premiumAiMonthlyMessages: resolveEntitlementLimits("premium", "account").aiMonthlyMessages,
-      environment: context.environment, checkoutAvailable: context.checkoutEnabled && !hasSubscription && pending.length === 0,
+      environment: context.environment, checkoutAvailable: context.checkoutEnabled && selection.salesAvailable && !hasSubscription && pending.length === 0,
       checkoutUnavailableReason: !context.checkoutEnabled ? "purchases_disabled"
-        : hasSubscription ? "existing_subscription" : pending.length > 0 ? "checkout_pending" : null,
-      basePrice, trialEligible, customers,
-      pendingCheckouts: pending.map((attempt) => ({ attemptId: attempt.attemptId, identityId: attempt.identityId,
-        sessionId: attempt.sessionId, status: attempt.status === "open" ? "open" : "pending",
-        expiresAt: attempt.expiresAt.toISOString() })),
+        : hasSubscription ? "existing_subscription" : pending.length > 0 ? "checkout_pending"
+          : selection.salesAvailable ? null : "country_unavailable",
+      basePrice: selectedOffer?.basePrice ?? null, selectedOffer, trialEligible, customers, pendingCheckouts,
     };
     return { result, transitions: observations.flatMap((customer) => customer.transitions) };
   });

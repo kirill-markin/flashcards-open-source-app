@@ -19,23 +19,41 @@ export type SqlDialectReason =
   | "invalid_grouping"
   | "invalid_value";
 
+const maximumRejectedNameLength = 120;
+
 /**
  * Parse-time rejection of model-authored SQL. The parse wrappers in
  * `apps/backend/src/aiTools/agentSql.ts` turn it into `buildInvalidSqlError`.
+ *
+ * `rejectedName` is the identifier, function, or keyword the dialect refused, as
+ * the parser extracted it, or null when the only detail is a SQL fragment.
  */
 export class SqlDialectError extends Error {
-  constructor(message: string, readonly reason: SqlDialectReason) {
+  constructor(message: string, readonly reason: SqlDialectReason, readonly rejectedName: string | null) {
     super(message);
     this.name = "SqlDialectError";
   }
 }
 
-export function buildInvalidSqlError(message: string, reason: SqlDialectReason): HttpError {
+// The name is recorded permanently in telemetry, so anything not shaped like a
+// single SQL identifier, such as a quoted literal some callers pass unvalidated,
+// is dropped rather than stored.
+function normalizeRejectedName(rejectedName: string): string | null {
+  const trimmedName = rejectedName.trim();
+  return /^[A-Za-z_][A-Za-z0-9_]*$/.test(trimmedName) ? trimmedName.slice(0, maximumRejectedNameLength) : null;
+}
+
+export function buildInvalidSqlError(
+  message: string,
+  reason: SqlDialectReason,
+  rejectedName: string | null,
+): HttpError {
   return new HttpError(400, message, "QUERY_INVALID_SQL", {
     validationIssues: [{
       path: "sql",
       code: reason,
       message,
     }],
+    sqlRejectedName: rejectedName === null ? null : normalizeRejectedName(rejectedName),
   });
 }

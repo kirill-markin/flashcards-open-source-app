@@ -34,9 +34,11 @@
   padding-inline: 0;
 }
 
-.chat-layout-shell-sidebar-closed .screen-body,
-.chat-layout-shell-sidebar-closed .cards-scroll {
-  padding-block-end: calc(var(--chat-toggle-floating-height) + var(--shell-frame-gap));
+@media (min-width: 769px) {
+  .chat-layout-shell-sidebar-closed .screen-body,
+  .chat-layout-shell-sidebar-closed .cards-scroll {
+    padding-block-end: calc(var(--chat-toggle-floating-height) + var(--shell-frame-gap));
+  }
 }
 
 .chat-sidebar,
@@ -102,7 +104,7 @@
   justify-content: space-between;
   align-items: center;
   gap: 12px;
-  min-height: calc(var(--screen-head-control-height) + 2 * var(--screen-head-spacing) - 1px);
+  min-height: calc(var(--screen-head-control-height) + 2 * var(--screen-head-top-spacing) - 1px);
   padding: 12px 14px;
   border-bottom: 1px solid transparent;
   background: var(--bg);
@@ -251,9 +253,7 @@
   /* Lifted clear of the consent strip while it is up. The strip is fixed to the same edge and
      deliberately below this button's layer, and `#root`'s padding can only move in-flow content, so
      this is the one bottom-anchored control that has to read the published height itself. The
-     fallback is 0px, which is every moment there is no strip. On a phone it also clears Review's
-     full-width action dock, whose clearance `ReviewPane` publishes from the same edge; the dock
-     already sits above the strip, hence `max()` there. */
+     fallback is 0px, which is every moment there is no strip. */
   bottom: calc(var(--shell-frame-gap) + var(--analytics-consent-banner-height, 0px));
   inset-inline-start: var(--shell-frame-gap);
   z-index: var(--z-index-floating-control);
@@ -273,14 +273,10 @@
   background: var(--surface-hover);
 }
 
+/* On a phone the pill would cover content; AI chat stays reachable from the navigation menu. */
 @media (max-width: 768px) {
   .chat-toggle-floating {
-    bottom: calc(
-      var(--shell-frame-gap) +
-        max(var(--analytics-consent-banner-height, 0px), var(--review-actions-dock-clearance, 0px))
-    );
-    padding: 0 14px;
-    font-size: 14px;
+    display: none;
   }
 }
 

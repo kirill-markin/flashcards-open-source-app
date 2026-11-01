@@ -53,5 +53,10 @@
   "email.refundReceiptBody": "{price}の返金処理が完了しました。詳細をご確認ください：{url}",
   "deletion.warning": "Nibomoアカウントを削除すると、Stripe経由で請求されるNibomoサブスクリプションの今後の更新が停止されます。このアカウントにはアクセスできなくなります。AppleまたはGoogle経由で請求されるサブスクリプションは、それぞれのサービスで別途解約する必要があります。",
   "deletion.cancelling": "アカウントの削除前に、Stripeサブスクリプションの更新を停止しています...",
-  "deletion.cancellationFailed": "Stripeサブスクリプションの更新停止を確認できませんでした。アカウントは削除されていません。再試行するか、サポートにお問い合わせください。"
+  "deletion.cancellationFailed": "Stripeサブスクリプションの更新停止を確認できませんでした。アカウントは削除されていません。再試行するか、サポートにお問い合わせください。",
+  "offer.pricesFor": "{country}向けの料金",
+  "offer.changeCountry": "国を変更",
+  "offer.chooseCountry": "国を選択",
+  "checkout.originalOffer": "未完了の購入：月額{price}",
+  "checkout.requote": "このオファーで購入手続きをやり直す"
 }

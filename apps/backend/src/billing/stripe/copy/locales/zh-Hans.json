@@ -53,5 +53,10 @@
   "email.refundReceiptBody": "已为你退还 {price}。查看详情：{url}",
   "deletion.warning": "删除 Nibomo 账户会取消该账户下通过 Stripe 计费的 Nibomo 订阅的后续续订。你将失去对此账户的访问权限。通过 Apple 或 Google 计费的订阅必须在相应平台单独取消。",
   "deletion.cancelling": "正在取消你的 Stripe 订阅续订，完成后将删除账户...",
-  "deletion.cancellationFailed": "无法确认你的 Stripe 订阅续订已取消。你的账户尚未删除。请重试或联系支持团队。"
+  "deletion.cancellationFailed": "无法确认你的 Stripe 订阅续订已取消。你的账户尚未删除。请重试或联系支持团队。",
+  "offer.pricesFor": "{country}的价格",
+  "offer.changeCountry": "更改国家或地区",
+  "offer.chooseCountry": "选择国家或地区",
+  "checkout.originalOffer": "未完成的结账：每月{price}",
+  "checkout.requote": "使用此优惠替换结账"
 }

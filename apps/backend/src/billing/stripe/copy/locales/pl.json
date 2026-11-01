@@ -53,5 +53,10 @@
   "email.refundReceiptBody": "Zleciliśmy Twój zwrot w wysokości {price}. Zobacz szczegóły: {url}",
   "deletion.warning": "Usunięcie konta Nibomo anuluje przyszłe odnowienia Twoich subskrypcji Nibomo rozliczanych przez Stripe. Utracisz dostęp do tego konta. Subskrypcje rozliczane przez Apple lub Google trzeba anulować osobno u danego dostawcy.",
   "deletion.cancelling": "Anulowanie odnowień subskrypcji Stripe przed usunięciem konta...",
-  "deletion.cancellationFailed": "Nie udało się potwierdzić anulowania odnowień Twoich subskrypcji Stripe. Twoje konto nie zostało usunięte. Spróbuj ponownie lub skontaktuj się z pomocą techniczną."
+  "deletion.cancellationFailed": "Nie udało się potwierdzić anulowania odnowień Twoich subskrypcji Stripe. Twoje konto nie zostało usunięte. Spróbuj ponownie lub skontaktuj się z pomocą techniczną.",
+  "offer.pricesFor": "Ceny dla {country}",
+  "offer.changeCountry": "Zmień kraj",
+  "offer.chooseCountry": "Wybierz kraj",
+  "checkout.originalOffer": "Niedokończona płatność: {price} miesięcznie",
+  "checkout.requote": "Zastąp płatność tą ofertą"
 }

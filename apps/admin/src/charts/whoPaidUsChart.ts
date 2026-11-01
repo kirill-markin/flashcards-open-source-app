@@ -4,7 +4,7 @@ import { chartMargin, stackedChartHeight, type ChartTooltipHandlers } from "./ch
 import { renderChartNotes, type PlacedChartNote } from "./chartNotes";
 import { renderMeaningfulActivityFrame, renderMeaningfulActivityHitTargets } from "./meaningfulActivityFrame";
 
-export const paymentColors = { trial: "#4e79a7", first: "#59a14f", recurring: "#f28e2b" } as const;
+export const paymentColors = { trial: "#4e79a7", first: "#59a14f", recurring: "#f28e2b", cancellations: "#e15759" } as const;
 
 export function renderWhoPaidUsChart(params: Readonly<{
   svgElement: SVGSVGElement;
@@ -28,16 +28,25 @@ export function renderWhoPaidUsChart(params: Readonly<{
       return segment;
     }).filter((segment) => segment.count !== null);
   });
+  // Cancellations are drawn below zero, and the axis labels them as positive counts.
+  const cancellations = params.buckets.flatMap((entry) => entry.cancellations === null ? []
+    : [{ key: entry.bucket.key, series: "cancellations" as const, low: -entry.cancellations.total, high: 0 }]);
   const peak = d3.max(segments, (segment) => segment.high) ?? 0;
-  const y = d3.scaleLinear().domain([0, Math.max(1, peak)]).nice()
+  const trough = d3.min(cancellations, (segment) => segment.low) ?? 0;
+  // One tick count for nice() and ticks(), so both domain ends, including the one below zero, are labeled ticks.
+  const tickCount = 6;
+  const y = d3.scaleLinear().domain([trough, Math.max(1, peak)]).nice(tickCount)
     .range([stackedChartHeight - chartMargin.top - chartMargin.bottom, 0]);
-  const frame = renderMeaningfulActivityFrame(params.svgElement, keys, y, y.ticks(6).filter(Number.isInteger),
-    "Recorded subscription events", params.xLabel, d3.format(",d"), params.formatTick);
-  frame.group.selectAll(".bar-segment").data(segments).join("rect")
+  const formatCount = d3.format(",d");
+  const frame = renderMeaningfulActivityFrame(params.svgElement, keys, y, y.ticks(tickCount).filter(Number.isInteger),
+    "Recorded subscription events", params.xLabel, (value) => formatCount(Math.abs(value)), params.formatTick);
+  frame.group.selectAll(".bar-segment").data([...segments, ...cancellations]).join("rect")
     .attr("class", "bar-segment").classed("bar-segment-not-final", (segment) => segment.key === params.inProgressKey)
     .attr("fill", (segment) => paymentColors[segment.series])
     .attr("x", (segment) => frame.x(segment.key) ?? 0).attr("width", frame.x.bandwidth())
     .attr("y", (segment) => y(segment.high)).attr("height", (segment) => y(segment.low) - y(segment.high)).attr("rx", 2);
+  frame.group.append("line").attr("class", "chart-zero-line")
+    .attr("x1", 0).attr("x2", frame.x.range()[1]).attr("y1", y(0)).attr("y2", y(0));
   renderMeaningfulActivityHitTargets(frame, keys, params.getLabel, params.getTooltipHtml, params.tooltipHandlers);
   renderChartNotes(frame.group, frame.x, frame.innerHeight, params.notes, params.tooltipHandlers);
 }

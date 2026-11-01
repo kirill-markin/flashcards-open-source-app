@@ -180,6 +180,7 @@ function AnalyticsReportSections(props: AnalyticsReportSectionsProps): JSX.Eleme
         userOptions={userOptions}
         connectionCountryOptions={filterOptions?.connectionCountries ?? noOptions}
         appUiLanguageOptions={filterOptions?.appUiLanguages ?? noOptions}
+        appVersionOptions={noOptions}
         catalogDeckOptions={filterOptions?.catalogDecks ?? noOptions}
         catalogPlacementOptions={filterOptions?.catalogPlacements ?? noOptions}
         catalogSourceOptions={filterOptions?.catalogSources ?? noOptions}

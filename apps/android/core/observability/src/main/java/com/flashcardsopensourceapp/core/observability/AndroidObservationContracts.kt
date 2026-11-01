@@ -631,6 +631,7 @@ sealed interface AndroidWarningIssueEvent : AndroidObservationEvent {
         val refreshAction: String,
         val scopeId: String?,
         val source: String?,
+        val errorClass: String,
         val appVersion: String?,
         val clientVersion: String?,
         val versionCode: Int?

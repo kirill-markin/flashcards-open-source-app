@@ -35,7 +35,7 @@ import {
   resolveAccessibleAgentWorkspaceId,
   type WorkspaceRequestContext,
 } from "../server/requestContext";
-import { getMcpRequestId } from "./requestTelemetry";
+import { getMcpRequestId, serializeMcpToolCallArguments } from "./requestTelemetry";
 import { MAX_MCP_TOOL_INPUT_ELEMENTS } from "./requestLimits";
 import { requireMcpToolOutputSchema } from "./outputSchemas";
 import { createPublicHttpErrorDetails, HttpError, type PublicHttpErrorDetails } from "../shared/errors";
@@ -203,7 +203,8 @@ const DEFAULT_MCP_SERVER_DEPENDENCIES: McpServerDependencies = {
  * `recordInvokedTool` reports the tool a handler is about to run, so the
  * transport record names the invoked tool whatever the client's protocol
  * revision is: the `Mcp-Name` header only becomes REQUIRED in MCP revision
- * 2026-07-28 and most live callers are older. A batched request reports each
+ * 2026-07-28 and most live callers are older. It also reports the call's
+ * serialized arguments, null for the SQL tools. A batched request reports each
  * tool it runs, and the entrypoint keeps the last one so it still emits exactly
  * one record.
  *
@@ -215,7 +216,7 @@ const DEFAULT_MCP_SERVER_DEPENDENCIES: McpServerDependencies = {
  */
 export type McpRequestTelemetryChannel = Readonly<{
   caller: string | null;
-  recordInvokedTool: (toolName: string) => void;
+  recordInvokedTool: (toolName: string, toolCallArguments: string | null) => void;
   recordToolOutcome: (outcome: McpToolOutcome) => void;
 }>;
 
@@ -223,6 +224,15 @@ export type McpToolOutcome = Readonly<
   | { isError: false; errorCode: null }
   | { isError: true; errorCode: string }
 >;
+
+/**
+ * Tools whose arguments the `mcp_request` record never carries: their SQL text must not reach the
+ * MCP log group, which never expires.
+ */
+const TOOLS_WITHOUT_RECORDED_ARGUMENTS: ReadonlySet<string> = new Set([
+  SQL_QUERY_TOOL_NAME,
+  SQL_EXECUTE_TOOL_NAME,
+]);
 
 /** The `error.code` a failed tool call's envelope sends to the client. */
 function getToolErrorCode(error: unknown): string {
@@ -604,10 +614,17 @@ export function createMcpServerWithDependencies(
         outputSchema: requireMcpToolOutputSchema(spec.name),
         annotations: { ...presentation.annotations, title: presentation.title },
       },
-      async (rawInput: unknown): Promise<CallToolResult> => {
-        telemetry.recordInvokedTool(spec.name);
+      // The SDK hands the handler its own parse of the arguments with `spec.inputSchema`, so this is
+      // the validated, normalized input rather than the request body.
+      async (validatedInput: unknown): Promise<CallToolResult> => {
+        telemetry.recordInvokedTool(
+          spec.name,
+          TOOLS_WITHOUT_RECORDED_ARGUMENTS.has(spec.name)
+            ? null
+            : serializeMcpToolCallArguments(validatedInput),
+        );
         try {
-          const result = await spec.execute(toolContext, rawInput);
+          const result = await spec.execute(toolContext, validatedInput);
           const toolResult: CallToolResult = {
             ...buildToolResult(createToolSuccessEnvelope(result.data)),
             structuredContent: { data: result.data },

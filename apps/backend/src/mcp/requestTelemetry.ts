@@ -1,14 +1,17 @@
 /**
  * Per-request telemetry plumbing for the MCP surface: the normalizer every
  * client-controlled label goes through, the tool name a `tools/call` body
- * carries, and the request id that joins the `mcp_request` record with the
- * `agent_sql` records emitted underneath it.
+ * carries, the serialized arguments of a tool call, and the request id that
+ * joins the `mcp_request` record with the `agent_sql` records emitted
+ * underneath it.
  */
 import { AsyncLocalStorage } from "node:async_hooks";
 import { readRequestBody } from "@modelcontextprotocol/sdk/server/requestBody.js";
+import { cutHeadAtCodePoint } from "../shared/codePointCuts";
 import { MAX_MCP_REQUEST_BODY_BYTES } from "./requestLimits";
 
 const MAX_MCP_TELEMETRY_VALUE_CHARS = 120;
+const MAX_MCP_TOOL_CALL_ARGUMENTS_CHARS = 4_000;
 
 type McpRequestTelemetryContext = Readonly<{
   requestId: string;
@@ -35,6 +38,15 @@ export function normalizeMcpTelemetryValue(value: string | null): string | null 
   return trimmedValue.length <= MAX_MCP_TELEMETRY_VALUE_CHARS
     ? trimmedValue
     : trimmedValue.slice(0, MAX_MCP_TELEMETRY_VALUE_CHARS);
+}
+
+/**
+ * A tool call's validated arguments as the `mcp_request` record holds them:
+ * compact JSON, cut so one record stays small. A cut value is no longer valid
+ * JSON, which is how a reader tells it was cut.
+ */
+export function serializeMcpToolCallArguments(validatedInput: unknown): string {
+  return cutHeadAtCodePoint(JSON.stringify(validatedInput), MAX_MCP_TOOL_CALL_ARGUMENTS_CHARS);
 }
 
 function readCallToolName(payload: unknown): string | null {

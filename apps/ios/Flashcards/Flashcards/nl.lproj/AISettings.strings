@@ -451,11 +451,17 @@
 "settings.access.action.request" = "Toegang aanvragen";
 "settings.access.action.openSettings" = "Instellingen openen";
 "settings.access.guidance.photos.limited" = "Toegang tot de fotobibliotheek is beperkt. Je kunt nog steeds foto’s kiezen als bijlagen in de AI-chat.";
+"settings.access.guidance.mac.photos.limited" = "Toegang tot de fotobibliotheek is beperkt. Je kunt nog steeds foto’s kiezen als bijlagen in de AI-chat, of Systeeminstellingen > Privacy en beveiliging > Foto's openen om dit te wijzigen.";
 "settings.access.guidance.photos.blocked" = "Toegang tot de fotobibliotheek is uitgeschakeld. Je kunt nog steeds foto’s kiezen als bijlagen in de AI-chat.";
+"settings.access.guidance.mac.photos.blocked" = "Toegang tot de fotobibliotheek is uitgeschakeld. Je kunt nog steeds foto’s kiezen als bijlagen in de AI-chat, of Systeeminstellingen > Privacy en beveiliging > Foto's openen om dit te wijzigen.";
 "settings.access.guidance.camera.blocked" = "Cameratoegang is uitgeschakeld voor Nibomo. Open Instellingen > Privacy en beveiliging > Camera om dit te wijzigen.";
+"settings.access.guidance.mac.camera.blocked" = "Cameratoegang is uitgeschakeld voor Nibomo. Open Systeeminstellingen > Privacy en beveiliging > Camera om dit te wijzigen.";
 "settings.access.guidance.microphone.blocked" = "Microfoontoegang is uitgeschakeld voor Nibomo. Open Instellingen > Privacy en beveiliging > Microfoon om dit te wijzigen.";
+"settings.access.guidance.mac.microphone.blocked" = "Microfoontoegang is uitgeschakeld voor Nibomo. Open Systeeminstellingen > Privacy en beveiliging > Microfoon om dit te wijzigen.";
 "settings.access.guidance.askEveryTime" = "Vraag nu toegang aan of open later Instellingen om dit zelf te beheren.";
+"settings.access.guidance.mac.askEveryTime" = "Vraag nu toegang aan of open later Systeeminstellingen om dit zelf te beheren.";
 "settings.access.guidance.allowed" = "Open Instellingen als je deze toegang wilt uitschakelen.";
+"settings.access.guidance.mac.allowed" = "Open Systeeminstellingen > Privacy en beveiliging als je deze toegang wilt uitschakelen.";
 "settings.access.guidance.limited" = "Open Instellingen om deze toegang te bekijken of uit te breiden.";
 "settings.access.guidance.unavailable" = "Deze toegang is niet beschikbaar op dit apparaat.";
 "settings.account.row.openSourceValue" = "GitHub + MIT";
@@ -573,6 +579,7 @@
 "settings.account.cloudSignIn.failure.cloudSetupFailed" = "Aangemeld, maar het instellen van de cloud is mislukt.";
 "settings.account.cloudSignIn.failure.accountUpgradeFailed" = "Aangemeld, maar de accountupgrade is mislukt.";
 "settings.account.cloudSignIn.failureDescription" = "Je bent aangemeld, maar het instellen van de cloudwerkruimte of de eerste synchronisatie is niet voltooid.";
+"settings.account.cloudSignIn.chooseWorkspace" = "Werkruimte kiezen";
 "settings.account.cloudSignIn.sync.title" = "Je account wordt met de cloud gesynchroniseerd.";
 "settings.account.cloudSignIn.sync.message" = "Houd Nibomo open terwijl je account wordt gesynchroniseerd. Dit duurt meestal een paar minuten.";
 "settings.account.cloudSignIn.cloudSyncTitle" = "Cloudsynchronisatie";

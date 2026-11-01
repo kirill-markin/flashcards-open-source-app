@@ -42,7 +42,10 @@ export function createChatSandboxFunction(scope: Construct): lambdaNodejs.Nodejs
     logGroup,
     ...backendStructuredLoggingProps,
     ...backendNodejsProjectPaths,
-    copiedAssetPaths: [resolveFromRepoRoot("apps", "backend", "scripts", "install-lambda-node-modules.mts")],
+    copiedAssetPaths: [
+      resolveFromRepoRoot("apps", "backend", "scripts", "install-lambda-node-modules.mts"),
+      resolveFromRepoRoot("apps", "backend", "scripts", "patch-just-bash.mts"),
+    ],
     bundling: {
       minify: true,
       sourceMap: true,
@@ -55,6 +58,7 @@ export function createChatSandboxFunction(scope: Construct): lambdaNodejs.Nodejs
         // CDK's nodeModules manifest drops npm overrides before installing the locked graph.
         afterBundling: (inputDir: string, outputDir: string) => [
           `node "${inputDir}/scripts/install-lambda-node-modules.mts" "${inputDir}" "${outputDir}" ${chatSandboxNodeModules.join(" ")}`,
+          `node "${inputDir}/scripts/patch-just-bash.mts" "${outputDir}/node_modules"`,
         ],
       },
     },

@@ -4,9 +4,11 @@ import { createLiveSmokeDiagnostics } from "../../live-smoke.diagnostics";
 import { buildWorkspaceRoute, cardsRoute, reviewRoute } from "../../../src/routes";
 import { databaseName } from "../../../src/localDb/core/databaseSchema";
 import type { BrowserGuestOwner, BrowserGuestStoredState } from "../../../src/appData/session/guest/browserGuestStorage";
-import type { BrowserGuestUpgradeResult } from "../../../src/apiContracts/guestAuth";
+import type { BrowserGuestUpgradeResult, GuestUpgradeSelection } from "../../../src/apiContracts/guestAuth";
 import { externalUiTimeoutMs, liveSmokeBrowserLocale, reviewPostSubmitTimeoutMs } from "../config";
 import type { LiveSmokeSession } from "../types";
+
+const upgradeCompleteRoute = "**/guest-auth/browser/upgrade/complete";
 
 type GuestSnapshot = Readonly<{
   cards: ReadonlyArray<Readonly<{ cardId: string; deletedAt: string | null; tags: ReadonlyArray<string>; reps: number }>>;
@@ -156,13 +158,27 @@ export async function runGuestConversionFlow(session: LiveSmokeSession): Promise
   expect(await guestOwner(page)).toEqual(originalOwner);
   expect(await page.evaluate(() => localStorage.getItem("flashcards-browser-reauth-required"))).toBeNull();
 
+  const firstSelections: Array<GuestUpgradeSelection> = [];
+  await page.route(upgradeCompleteRoute, async (route) => {
+    const { selection } = route.request().postDataJSON() as Readonly<{ selection: GuestUpgradeSelection }>;
+    firstSelections.push(selection);
+    // Cleanup deletes this destination, so smoke work must never land unasked in the account's only workspace.
+    if (selection.type === "existing") await route.abort("failed");
+    else await route.continue();
+  });
   await authenticateGuest(session);
-  if (await page.getByTestId("guest-destinations").isVisible()) {
+  // The list appears only for an account with several workspaces; a bind or an automatic create leaves exactly one.
+  const accountShowsDestinations = await page.getByTestId("guest-destinations").isVisible();
+  if (accountShowsDestinations) {
     await trackedClick(diagnostics, "open the new destination workspace form", page.getByTestId("guest-create-workspace"));
     await trackedFill(diagnostics, "name the new destination workspace", page.getByTestId("guest-create-workspace-name-input"), "Guest smoke workspace");
     await trackedClick(diagnostics, "keep the demo by creating a new destination workspace", page.getByTestId("guest-create-workspace-submit"));
   }
+  if (firstSelections.some((selection) => selection.type === "existing")) {
+    throw new Error("The configured review account has exactly one workspace, so the guest merges into it without a choice. Give that account a second workspace before running the smoke.");
+  }
   await waitForRegisteredDestination(page);
+  await page.unroute(upgradeCompleteRoute);
   const destinationId = await page.getByTestId("topbar-active-workspace").getAttribute("data-workspace-id");
   if (!destinationId) throw new Error("Converted workspace id is unavailable");
   session.ownedWorkspaceId = destinationId;
@@ -181,18 +197,20 @@ export async function runGuestConversionFlow(session: LiveSmokeSession): Promise
     const guestSession: LiveSmokeSession = { ...session, context, page: guestPage, diagnostics: createLiveSmokeDiagnostics(guestPage) };
     try {
       const merging = await createGuestCard(guestSession);
-      await authenticateGuest(guestSession);
       if (resume) {
-        await guestPage.route("**/guest-auth/browser/upgrade/complete", async (route) => {
+        await guestPage.route(upgradeCompleteRoute, async (route) => {
           await route.fetch();
           await route.abort("failed");
         });
       }
-      await trackedClick(guestSession.diagnostics, "merge guest work into the owned existing workspace",
-        guestPage.locator(`[data-testid="guest-destination"][data-workspace-id="${destinationId}"]`));
+      await authenticateGuest(guestSession);
+      if (accountShowsDestinations) {
+        await trackedClick(guestSession.diagnostics, "merge guest work into the owned existing workspace",
+          guestPage.locator(`[data-testid="guest-destination"][data-workspace-id="${destinationId}"]`));
+      }
       if (resume) {
         await expect(guestPage.getByTestId("guest-conversion-error")).toBeVisible({ timeout: externalUiTimeoutMs });
-        await guestPage.unroute("**/guest-auth/browser/upgrade/complete");
+        await guestPage.unroute(upgradeCompleteRoute);
         await guestPage.reload();
       }
       await waitForRegisteredDestination(guestPage);
@@ -227,7 +245,7 @@ export async function runGuestConversionFlow(session: LiveSmokeSession): Promise
       const selection = { type: "existing", workspaceId: destinationId, discardDemoOnly: true };
       let loseCompletion = recovery !== "none";
       let completionCount = 0;
-      await guestPage.route("**/guest-auth/browser/upgrade/complete", async (route) => {
+      await guestPage.route(upgradeCompleteRoute, async (route) => {
         const pending = (await guestOwner(guestPage)).pending;
         expect(pending?.phase).toBe("completing");
         expect(pending?.selection).toEqual(selection);

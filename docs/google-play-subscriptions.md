@@ -5,6 +5,9 @@ Human setup and handoff for Android billing. Product decisions live in
 [Premium entitlements](premium-entitlements.md), and catalog IDs and all 51
 Google Play locales in [Subscription store metadata](subscription-store-metadata.md#google-play).
 
+Regional price changes follow the [native-store pricing runbook](regional-subscription-pricing-stores.md),
+including baseline capture, trial alignment and legacy-cohort limits.
+
 ## Readiness
 
 Readback as of 2026-10-04. Android billing and the backend are implemented and deployed; the

@@ -1,7 +1,7 @@
 import { Buffer } from "node:buffer";
 import { Hono } from "hono";
 import { z } from "zod";
-import { createStripeCheckout, reconcileStripeCheckoutReturn, type StripeHumanActor } from "../billing/stripe/checkout";
+import { createStripeCheckout, requoteStripeCheckout, reconcileStripeCheckoutReturn, type StripeHumanActor } from "../billing/stripe/checkout";
 import { StripeBillingError, type StripeEnvironment } from "../billing/stripe/contracts";
 import { createStripePortal, getStripeBillingDetails, getStripeGuestOffer, type StripeBillingDetails, type StripeBillingOffer } from "../billing/stripe/portal";
 import { handleStripeWebhook } from "../billing/stripe/service";
@@ -22,9 +22,15 @@ const environmentSchema = z.enum(["production", "sandbox"]);
 const sessionIdSchema = z.string().regex(/^cs_[A-Za-z0-9_]+$/).max(255);
 const dateSchema = z.iso.datetime();
 const hostedUrlSchema = z.url().refine((value) => new URL(value).protocol === "https:");
+const countrySchema = z.string().trim().toUpperCase().regex(/^[A-Z]{2}$/);
+const offerPriceSchema = z.object({ currency: z.string().regex(/^[a-z]{3}$/), unitAmount: z.number().int().nonnegative(),
+  interval: z.literal("month"), taxBehavior: z.literal("inclusive") });
+const offerDetailsSchema = z.object({ selectedCountry: countrySchema.nullable(), pricingBand: z.enum(["full", "discounted"]),
+  priceId: z.string().min(1), checkoutMode: z.enum(["legacy", "managed"]), basePrice: offerPriceSchema });
 const checkoutResultSchema = z.discriminatedUnion("outcome", [
   z.object({ outcome: z.literal("checkout"), attemptId: z.uuid(), sessionId: sessionIdSchema,
-    url: hostedUrlSchema, expiresAt: dateSchema, trialDays: z.union([z.literal(0), z.literal(7)]) }),
+    url: hostedUrlSchema, expiresAt: dateSchema, trialDays: z.union([z.literal(0), z.literal(7)]),
+    offer: offerDetailsSchema, requoteRequired: z.boolean() }),
   z.object({ outcome: z.literal("existing_subscription"), identityId: z.uuid() }),
   z.object({ outcome: z.literal("complete"), attemptId: z.uuid(), sessionId: sessionIdSchema }),
 ]);
@@ -36,18 +42,18 @@ const billingDetailsSchema = z.object({
   environment: environmentSchema,
   checkoutAvailable: z.boolean(),
   premiumAiMonthlyMessages: z.number().int().nonnegative().nullable(),
-  checkoutUnavailableReason: z.enum(["purchases_disabled", "existing_subscription", "checkout_pending"]).nullable(),
-  basePrice: z.object({ currency: z.string().regex(/^[a-z]{3}$/), unitAmount: z.number().int().nonnegative(),
-    interval: z.literal("month"), taxBehavior: z.literal("inclusive") }).nullable(),
+  checkoutUnavailableReason: z.enum(["purchases_disabled", "existing_subscription", "checkout_pending", "country_unavailable"]).nullable(),
+  basePrice: offerPriceSchema.nullable(),
+  selectedOffer: offerDetailsSchema.nullable(),
   trialEligible: z.boolean().nullable(),
   customers: z.array(z.object({ identityId: z.uuid(), environment: environmentSchema,
     managementAvailable: z.boolean(), subscriptions: z.array(z.object({
       subscriptionId: z.string().min(1), status: z.enum(["active", "in_grace", "expired", "revoked"]),
       providerStatus: z.string().min(1), isTrial: z.boolean(), willRenew: z.boolean(), until: dateSchema,
-      trialEnd: dateSchema.nullable(), cancelAt: dateSchema.nullable(), invalidated: z.boolean(),
+      trialEnd: dateSchema.nullable(), cancelAt: dateSchema.nullable(), invalidated: z.boolean(), basePrice: offerPriceSchema,
     })) })),
   pendingCheckouts: z.array(z.object({ attemptId: z.uuid(), identityId: z.uuid(), sessionId: sessionIdSchema.nullable(),
-    status: z.enum(["pending", "open"]), expiresAt: dateSchema })),
+    status: z.enum(["pending", "open"]), expiresAt: dateSchema, offer: offerDetailsSchema })),
 });
 
 export type { StripeBillingOffer } from "../billing/stripe/portal";
@@ -74,7 +80,8 @@ function stripeHttpError(error: unknown): HttpError {
       : error.code === "STRIPE_ACCOUNT_RETIRED" ? 410
         : error.code === "STRIPE_EMAIL_REQUIRED" || error.code === "STRIPE_IDENTITY_MISMATCH" ? 403
           : error.code === "STRIPE_RECOVERY_REQUIRED" || error.code === "STRIPE_STORAGE_CONFLICT" ? 409
-            : error.code === "STRIPE_SIGNATURE_INVALID" ? 400 : 502;
+            : error.code === "STRIPE_SIGNATURE_INVALID" || error.code === "STRIPE_COUNTRY_INVALID"
+              || error.code === "STRIPE_COUNTRY_UNAVAILABLE" ? 400 : 502;
     console.warn(JSON.stringify({ event: "stripe_billing_request_failed", errorCode: error.code, retryable: error.retryable }));
     return new HttpError(status, error.message, error.code);
   }
@@ -95,6 +102,12 @@ async function parseStripeInput<Value>(request: Request, schema: z.ZodType<Value
     "Stripe billing request body exceeds 4096 bytes.", "STRIPE_BODY_TOO_LARGE");
   const parsed = schema.safeParse(body);
   if (!parsed.success) throw new HttpError(400, "Invalid Stripe billing request fields.", "STRIPE_INPUT_INVALID");
+  return parsed.data;
+}
+
+function parseStripeCountry(country: string | undefined): string | undefined {
+  const parsed = countrySchema.optional().safeParse(country);
+  if (!parsed.success) throw new HttpError(400, "Choose a two-letter country code.", "STRIPE_COUNTRY_INVALID");
   return parsed.data;
 }
 
@@ -175,37 +188,46 @@ export function createStripeBillingRoutes(options: Readonly<{ allowedOrigins: Re
     });
   }
   app.get("/billing/stripe/offer", async (context) => {
+    const country = parseStripeCountry(context.req.query("country"));
     const { requestContext } = await loadRequestContextFromRequest(context.req.raw, options.allowedOrigins);
     if (requestContext.transport === "guest") {
       try {
         return context.json(parsePublicResult<StripeBillingOffer>(billingDetailsSchema.pick({ environment: true,
           premiumAiMonthlyMessages: true, checkoutAvailable: true, checkoutUnavailableReason: true,
-          basePrice: true, trialEligible: true }), await getStripeGuestOffer()));
+          basePrice: true, trialEligible: true, selectedOffer: true }), await getStripeGuestOffer(country)));
       } catch (error) { throw stripeHttpError(error); }
     }
     const actor = requireStripeHumanActor(requestContext);
     try {
-      const details = parsePublicResult<StripeBillingDetails>(billingDetailsSchema, await getStripeBillingDetails(actor));
+      const details = parsePublicResult<StripeBillingDetails>(billingDetailsSchema, await getStripeBillingDetails(actor, country));
       const offer: StripeBillingOffer = {
         premiumAiMonthlyMessages: details.premiumAiMonthlyMessages,
         environment: details.environment, checkoutAvailable: details.checkoutAvailable,
         checkoutUnavailableReason: details.checkoutUnavailableReason, basePrice: details.basePrice,
-        trialEligible: details.trialEligible,
+        trialEligible: details.trialEligible, selectedOffer: details.selectedOffer,
       };
       return context.json(offer);
     } catch (error) { throw stripeHttpError(error); }
   });
   app.get("/billing/stripe/subscriptions", async (context) => {
+    const country = parseStripeCountry(context.req.query("country"));
     const actor = await loadStripeHumanActor(context.req.raw, options.allowedOrigins);
     try {
-      return context.json(parsePublicResult<StripeBillingDetails>(billingDetailsSchema, await getStripeBillingDetails(actor)));
+      return context.json(parsePublicResult<StripeBillingDetails>(billingDetailsSchema, await getStripeBillingDetails(actor, country)));
     } catch (error) { throw stripeHttpError(error); }
   });
   app.post("/billing/stripe/checkout", async (context) => {
     const actor = await loadStripeHumanActor(context.req.raw, options.allowedOrigins);
-    await parseStripeInput(context.req.raw, z.object({}).strict());
+    const input = await parseStripeInput(context.req.raw, z.object({ country: countrySchema.optional() }).strict());
     try {
-      return context.json(parsePublicResult(checkoutResultSchema, await createStripeCheckout(actor)));
+      return context.json(parsePublicResult(checkoutResultSchema, await createStripeCheckout(actor, input.country)));
+    } catch (error) { throw stripeHttpError(error); }
+  });
+  app.post("/billing/stripe/checkout/requote", async (context) => {
+    const actor = await loadStripeHumanActor(context.req.raw, options.allowedOrigins);
+    const input = await parseStripeInput(context.req.raw, z.object({ attemptId: z.uuid(), country: countrySchema }).strict());
+    try {
+      return context.json(parsePublicResult(checkoutResultSchema, await requoteStripeCheckout(actor, input.attemptId, input.country)));
     } catch (error) { throw stripeHttpError(error); }
   });
   app.post("/billing/stripe/checkout/return", async (context) => {
