@@ -1,4 +1,5 @@
 import * as Sentry from "@sentry/aws-serverless";
+import { cutHeadAtCodePoint } from "../../shared/codePointCuts";
 import type { BackendService } from "./events";
 import {
   sanitizeSentryEvent,
@@ -17,6 +18,7 @@ type BackendSentryIntegration = Parameters<BackendSentryIntegrationFactory>[0][n
 type BackendSentryBeforeBreadcrumb = NonNullable<BackendSentryInitOptions["beforeBreadcrumb"]>;
 type BackendSentryBreadcrumb = Parameters<BackendSentryBeforeBreadcrumb>[0];
 type BackendSentryBreadcrumbHint = Parameters<BackendSentryBeforeBreadcrumb>[1];
+type BackendSentryBreadcrumbData = NonNullable<BackendSentryBreadcrumb["data"]>;
 
 type BackendSentryConfig =
   | Readonly<{ enabled: false }>
@@ -32,6 +34,13 @@ const initializedServices = new Set<BackendService>();
 const disabledDefaultIntegrationNames = new Set<string>(["Postgres", "OpenAI", "Hono"]);
 const consoleBreadcrumbCategory = "console";
 const backendLogRecordDomain = "backend";
+// The SDK keeps the latest 100 breadcrumbs, cuts each `message` only at 2048 characters and leaves
+// every `data` string uncut, and an `agent_sql` record reaches Sentry with its SQL and error message
+// three times (explicit breadcrumb data, the restored console message, the console `arguments`).
+// At this cap a full trail of failing-SQL breadcrumbs stays under Sentry's 1 MB event limit even
+// for multi-byte text, with little headroom: re-measure before raising it. CloudWatch keeps the full value.
+const maximumSentryBreadcrumbStringChars = 1_000;
+const sentryBreadcrumbTruncationMarker = "...[truncated]";
 
 let currentBackendService: BackendService | null = null;
 
@@ -183,6 +192,63 @@ function restoreBackendConsoleBreadcrumbMessage(
   }
 }
 
+function capSentryBreadcrumbString(value: string): string {
+  return value.length <= maximumSentryBreadcrumbStringChars
+    ? value
+    : `${cutHeadAtCodePoint(value, maximumSentryBreadcrumbStringChars)}${sentryBreadcrumbTruncationMarker}`;
+}
+
+function isPlainSentryBreadcrumbObject(value: unknown): value is Readonly<Record<string, unknown>> {
+  if (typeof value !== "object" || value === null) {
+    return false;
+  }
+
+  const prototype: unknown = Object.getPrototypeOf(value);
+  return prototype === Object.prototype || prototype === null;
+}
+
+// Walks only as deep as the SDK's default `normalizeDepth` (3) keeps objects, which also bounds a
+// circular value. Only strings, arrays and plain objects are rebuilt; anything else (an Error handed
+// to console) is left for the SDK's own normalization. Keep it equal to `normalizeDepth`.
+const sentryBreadcrumbNormalizeDepth = 3;
+
+function capSentryBreadcrumbValue(value: unknown, remainingDepth: number): unknown {
+  if (typeof value === "string") {
+    return capSentryBreadcrumbString(value);
+  }
+
+  if (remainingDepth === 0) {
+    return value;
+  }
+
+  if (Array.isArray(value)) {
+    return (value as ReadonlyArray<unknown>).map((item) => capSentryBreadcrumbValue(item, remainingDepth - 1));
+  }
+
+  if (isPlainSentryBreadcrumbObject(value)) {
+    return capSentryBreadcrumbData(value, remainingDepth);
+  }
+
+  return value;
+}
+
+function capSentryBreadcrumbData(
+  data: Readonly<Record<string, unknown>>,
+  remainingDepth: number,
+): BackendSentryBreadcrumbData {
+  return Object.fromEntries(
+    Object.entries(data).map(([key, value]) => [key, capSentryBreadcrumbValue(value, remainingDepth - 1)]),
+  );
+}
+
+function capSentryBreadcrumbStrings(breadcrumb: BackendSentryBreadcrumb): BackendSentryBreadcrumb {
+  return {
+    ...breadcrumb,
+    ...(breadcrumb.message === undefined ? {} : { message: capSentryBreadcrumbString(breadcrumb.message) }),
+    ...(breadcrumb.data === undefined ? {} : { data: capSentryBreadcrumbData(breadcrumb.data, sentryBreadcrumbNormalizeDepth) }),
+  };
+}
+
 export function initializeBackendSentryWithDeps(
   service: BackendService,
   env: NodeJS.ProcessEnv,
@@ -220,7 +286,9 @@ export function initializeBackendSentryWithDeps(
     },
     traceLifecycle: "stream",
     attachStacktrace: false,
-    beforeBreadcrumb: (breadcrumb, hint) => restoreBackendConsoleBreadcrumbMessage(breadcrumb, hint),
+    beforeBreadcrumb: (breadcrumb, hint) => capSentryBreadcrumbStrings(
+      restoreBackendConsoleBreadcrumbMessage(breadcrumb, hint),
+    ),
     beforeSend: (event, hint) => {
       const sanitizedEvent = sanitizeSentryEvent(event, hint);
       if (sanitizedEvent === null

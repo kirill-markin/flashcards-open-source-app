@@ -72,9 +72,9 @@ function readCallToolName(payload: unknown): string | null {
  * The tool a `tools/call` body names, so a call the SDK refuses before any
  * handler runs -- an unknown tool, or arguments its input schema rejects -- is
  * still recorded as an attempt on that tool rather than as a nameless request.
- * Only `params.name` is read; the arguments carry flashcard content and are
- * never touched. A batch reports its last `tools/call`, the rule the in-process
- * tool name already follows.
+ * Only `params.name` is read; the handler records the validated arguments. A
+ * batch reports its last `tools/call`, the rule the in-process tool name
+ * already follows.
  *
  * Purely observational, like the normalizer above: a body this cannot read is
  * null and never an error, and it reads a clone, so the body the transport
