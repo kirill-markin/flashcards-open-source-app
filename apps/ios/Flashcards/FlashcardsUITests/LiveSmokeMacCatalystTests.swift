@@ -83,6 +83,222 @@ final class LiveSmokeMacCatalystTests: LiveSmokeTestCase {
         try self.verifyCurrentWorkspaceSidebarAndRestoration()
     }
 
+    /// Nondestructive: scroll surfaces SwiftUI creates after launch or a companion transition,
+    /// without navigation, still drive the toolbar backdrop. Reveals once; never rates.
+    @MainActor
+    func testMacToolbarBackdropFollowsRecreatedStudySurfaces() throws {
+        guard #available(iOS 26.0, *) else {
+            throw XCTSkip("The shared toolbar backdrop and its geometry marker require macOS 26.")
+        }
+        // Teardown blocks run even after a failed assertion stops the test.
+        self.addMacWindowRestorationTeardown()
+        // A cold launch on Review swaps its loader for the card without any navigation.
+        try self.launchApplication(launchScenario: nil, selectedTab: .review)
+        let showAnswer = self.app.buttons[LiveSmokeIdentifier.reviewShowAnswerButton]
+        try XCTSkipUnless(showAnswer.waitForExistence(timeout: LiveSmokeConfiguration.reviewInteractionTimeoutSeconds),
+            "The current workspace has no unrevealed card to verify without rating.")
+        self.waitForBackdropRegistration("review")
+        self.attachMacWindowScreenshot(name: "mac-backdrop-review-launch")
+
+        // A sidebar row keeps keyboard focus; a click on blank card space returns it to study.
+        let sidebar = self.app.collectionViews["Sidebar"].firstMatch
+        if !sidebar.exists || !sidebar.isHittable {
+            self.app.buttons["mac.sidebar.toggle"].click()
+            XCTAssertEqual(XCTWaiter.wait(for: [XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
+                sidebar.exists && sidebar.isHittable
+            }, object: nil)], timeout: 5), .completed)
+        }
+        try self.tapTabBarItem(identifier: LiveSmokeSelectedTab.review.itemIdentifier, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+        let review = self.app.descendants(matching: .any).matching(identifier: LiveSmokeIdentifier.reviewScreen).firstMatch
+        XCTAssertTrue(review.exists && showAnswer.exists)
+        review.coordinate(withNormalizedOffset: CGVector(dx: 0.02, dy: 0.5)).click()
+        self.app.typeKey(XCUIKeyboardKey.space.rawValue, modifierFlags: [])
+        try self.waitForReviewAnswerReveal()
+
+        let edit = self.app.buttons["review.editCardButton"]
+        let editTop = edit.frame.minY
+        review.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).scroll(byDeltaX: 0, deltaY: -250)
+        RunLoop.current.run(until: Date().addingTimeInterval(0.7))
+        let scrolled = !edit.exists || abs(edit.frame.minY - editTop) > 10
+        let reviewFields = self.backdropFields()
+        self.attachMacWindowScreenshot(name: "mac-backdrop-review-scrolled-\(scrolled)")
+        self.attachBackdropValue(name: "mac-backdrop-review-scrolled-\(scrolled)")
+        if scrolled { XCTAssertEqual(reviewFields["visible"], "1", "Scrolled Review content must show the backdrop.") }
+        review.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).scroll(byDeltaX: 0, deltaY: 500)
+        RunLoop.current.run(until: Date().addingTimeInterval(0.7))
+
+        // The companion's transcript registers while it slides in.
+        let toggle = self.app.buttons[LiveSmokeIdentifier.aiCompanionToggle]
+        XCTAssertTrue(toggle.waitForExistence(timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds))
+        if !toggle.isSelected {
+            self.addTeardownBlock { [weak self] in
+                MainActor.assumeIsolated {
+                    guard let app = self?.app, app.state == .runningForeground else { return }
+                    let toggle = app.buttons[LiveSmokeIdentifier.aiCompanionToggle]
+                    if toggle.exists && toggle.isSelected { toggle.click() }
+                }
+            }
+            toggle.click()
+        }
+        try self.assertAiEntrySurfaceVisible()
+        if self.app.buttons[LiveSmokeIdentifier.aiConsentAcceptButton].exists {
+            self.attachBackdropValue(name: "mac-backdrop-companion-consent-pending")
+        } else {
+            self.waitForBackdropRegistration("chat")
+            self.waitForBackdropRegistration("review")
+            self.attachMacWindowScreenshot(name: "mac-backdrop-companion")
+            try self.verifyComposerOwnsTextAndEscape()
+        }
+        try self.waitForReviewAnswerReveal()
+    }
+
+    /// With an empty draft only: Space types into the focused composer, Escape returns focus,
+    /// and the temporary letters-only text is removed. Nothing is sent or rated.
+    @MainActor
+    private func verifyComposerOwnsTextAndEscape() throws {
+        let composer = try self.waitForAiComposerUsable(timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+        func draft() -> String {
+            let value = self.elementValue(element: composer)
+            return value == composer.placeholderValue || value == composer.label ? "" : value
+        }
+        guard draft().isEmpty else {
+            self.attachBackdropValue(name: "mac-composer-check-skipped-existing-draft")
+            return
+        }
+        let text = "escape check"
+        // Registered after the companion's, so it runs first: remove only this check's text.
+        self.addTeardownBlock { [weak self] in
+            MainActor.assumeIsolated {
+                guard let self, let app = self.app, app.state == .runningForeground else { return }
+                let composer = self.aiComposerTextFieldElement()
+                guard composer.exists else { return }
+                let value = self.elementValue(element: composer)
+                guard !value.isEmpty, value != composer.placeholderValue, value != composer.label,
+                      text.hasPrefix(value) else { return }
+                self.clearFocusedText(in: composer)
+            }
+        }
+        composer.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).click()
+        composer.typeText(text)
+        try self.waitForAiComposerValue(text, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+        self.app.typeKey(XCUIKeyboardKey.escape.rawValue, modifierFlags: [])
+        let released = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
+            !self.elementHasKeyboardFocus(element: composer)
+        }, object: nil)
+        XCTAssertEqual(XCTWaiter.wait(for: [released], timeout: 5), .completed, "Escape must leave the composer.")
+        XCTAssertEqual(draft(), text, "Escape keeps the unsent draft.")
+        self.clearFocusedText(in: composer)
+        let cleared = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in draft().isEmpty }, object: nil)
+        XCTAssertEqual(XCTWaiter.wait(for: [cleared], timeout: 5), .completed, "Draft: \(draft())")
+    }
+
+    /// Nondestructive: typing in the native toolbar search keeps the text and cursor, then clears.
+    @MainActor
+    func testMacCardsToolbarSearchKeepsTypedText() throws {
+        self.addMacWindowRestorationTeardown()
+        try self.launchApplication(launchScenario: nil, selectedTab: .cards)
+        try self.assertScreenVisible(screen: .cards, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+        let field = self.app.descendants(matching: .any).matching(identifier: "cards.searchField").firstMatch
+        XCTAssertTrue(field.waitForExistence(timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds))
+        func text() -> String {
+            let value = self.elementValue(element: field)
+            return value == field.placeholderValue ? "" : value
+        }
+        try XCTSkipUnless(text().isEmpty, "Leave an existing search query untouched.")
+        let first = "nibomo toolbar ", second = "search check"
+        self.addTeardownBlock { [weak self] in
+            MainActor.assumeIsolated {
+                guard let self, let app = self.app, app.state == .runningForeground else { return }
+                let field = app.descendants(matching: .any).matching(identifier: "cards.searchField").firstMatch
+                guard field.exists else { return }
+                let value = self.elementValue(element: field)
+                guard !value.isEmpty, value != field.placeholderValue, (first + second).hasPrefix(value) else { return }
+                self.clearFocusedText(in: field)
+                app.typeKey(XCUIKeyboardKey.escape.rawValue, modifierFlags: [])
+            }
+        }
+        field.click()
+        field.typeText(first)
+        // Let the model round-trip before continuing at the same cursor position.
+        RunLoop.current.run(until: Date().addingTimeInterval(0.5))
+        field.typeText(second)
+        let typed = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in text() == first + second }, object: nil)
+        XCTAssertEqual(XCTWaiter.wait(for: [typed], timeout: 5), .completed, "Search text: \(text())")
+        self.attachMacWindowScreenshot(name: "mac-cards-search-typed")
+        self.clearFocusedText(in: field)
+        let cleared = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in text().isEmpty }, object: nil)
+        XCTAssertEqual(XCTWaiter.wait(for: [cleared], timeout: 5), .completed, "Search text: \(text())")
+        self.app.typeKey(XCUIKeyboardKey.escape.rawValue, modifierFlags: [])
+    }
+
+    /// Undo the launcher's one Fill before the app terminates, whatever the test's outcome.
+    @MainActor
+    private func addMacWindowRestorationTeardown() {
+        self.addTeardownBlock { [weak self] in
+            MainActor.assumeIsolated {
+                guard let self, let app = self.app, app.state == .runningForeground else { return }
+                self.returnMacWindowToPreviousSize()
+            }
+        }
+    }
+
+    /// Select all and delete with single native edit keys in a clicked text control.
+    @MainActor
+    private func clearFocusedText(in element: XCUIElement) {
+        element.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).click()
+        self.app.typeKey("a", modifierFlags: .command)
+        self.app.typeKey(XCUIKeyboardKey.delete.rawValue, modifierFlags: [])
+    }
+
+    /// Undo the launcher's one Fill using the native tiling history.
+    @MainActor
+    private func returnMacWindowToPreviousSize() {
+        self.app.menuBars.menuBarItems["com.apple.menu.window"].click()
+        let previous = self.app.menuItems["Return to Previous Size"].firstMatch
+        if previous.exists && previous.isEnabled {
+            previous.click()
+        } else {
+            self.app.typeKey(XCUIKeyboardKey.escape.rawValue, modifierFlags: [])
+        }
+    }
+
+    @MainActor
+    private func backdropFields() -> [String: String] {
+        let geometry = self.app.staticTexts["mac.toolbar.backdrop.geometry"]
+        guard geometry.waitForExistence(timeout: 5) else { return [:] }
+        return Dictionary(self.elementValue(element: geometry).split(separator: ";").compactMap { field in
+            let pair = field.split(separator: "=", maxSplits: 1, omittingEmptySubsequences: false)
+            return pair.count == 2 ? (String(pair[0]), String(pair[1])) : nil
+        }, uniquingKeysWith: { _, last in last })
+    }
+
+    @MainActor
+    private func waitForBackdropRegistration(_ surface: String) {
+        let registered = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
+            (self.backdropFields()["registered"] ?? "").split(separator: ",").contains(Substring(surface))
+        }, object: nil)
+        let result = XCTWaiter.wait(for: [registered], timeout: 10)
+        self.attachBackdropValue(name: "mac-backdrop-registration-\(surface)")
+        XCTAssertEqual(result, .completed, "The \(surface) scroll view must drive the toolbar backdrop without navigation.")
+    }
+
+    @MainActor
+    private func attachBackdropValue(name: String) {
+        let attachment = XCTAttachment(string: self.backdropFields().sorted { $0.key < $1.key }
+            .map { "\($0.key)=\($0.value)" }.joined(separator: ";"))
+        attachment.name = name
+        attachment.lifetime = .keepAlways
+        self.add(attachment)
+    }
+
+    @MainActor
+    private func attachMacWindowScreenshot(name: String) {
+        let attachment = XCTAttachment(screenshot: self.app.windows.firstMatch.screenshot())
+        attachment.name = name + "-window"
+        attachment.lifetime = .keepAlways
+        self.add(attachment)
+    }
+
     /// Navigation, reveal and unsent input only; never rate, save, send or reset study data.
     @MainActor
     private func verifyCurrentWorkspaceSidebarAndRestoration() throws {

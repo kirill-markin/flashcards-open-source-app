@@ -821,6 +821,7 @@ struct ReviewView: View {
                     activeCardContentView(card: card, preparedRevealState: preparedRevealState)
                         .padding(.vertical, 20)
                         .background(ReviewOutsideTextTapReceiver(onTap: self.focusReviewKeyboard))
+                        .macToolbarScrollSurface("review")
                 }
             }
             .modifier(ReviewHardwareKeyboardModifier(

@@ -183,6 +183,10 @@ private struct MacNavigationVisibilityObserver: UIViewRepresentable {
         override func didMoveToWindow() {
             super.didMoveToWindow()
             self.reportVisibility()
+            // A page's views enter the window together; the toolbar backdrop finds its scroll view.
+            if self.window != nil {
+                NotificationCenter.default.post(name: MacToolbarScrollSurfaces.pageDidAppear, object: self)
+            }
         }
         func reportVisibility() {
             let visible = self.window != nil

@@ -148,7 +148,7 @@ commands use one native unified `UITitlebar.toolbar`, populated with standard
 intrinsic size, glass, hover, pressed and inactive appearance. Do not wrap them
 in SwiftUI glass capsules or force custom label heights. Related rank/streak
 actions share a native toolbar item group; only their symbols receive the mobile
-status colors, and native titles determine the width as values change. Sidebar selection
+status colors, and the group keeps the system's item sizing. Sidebar selection
 identifies root pages, so root toolbar titles and repeated app-name headings
 remain hidden; specific pushed destinations may retain their title and Back.
 Modal flows retain standard Save/Cancel navigation.
@@ -173,7 +173,9 @@ content scrolls under the toolbar. This is system material with app-managed plac
 and visibility, not the automatic scroll-edge effect. Detail-only suppression avoids
 stacking the two effects; the native sidebar keeps its own edge behavior. The backdrop
 uses the scroll views' native toolbar insets, covers both panes, and never overlays
-the window or sidebar.
+the window or sidebar. Surfaces SwiftUI recreates in place, Review's card and the chat
+transcript, register their scroll view from inside their content; other pages are found
+once when they appear, never during resizing.
 Keep the native toolbar controls above it and verify rest/scrolled states, sidebar
 show/hide, pushed destinations and resizing visually.
 See Apple's [Catalyst sidebar material](https://developer.apple.com/documentation/uikit/uisplitviewcontroller/primarybackgroundstyle)
