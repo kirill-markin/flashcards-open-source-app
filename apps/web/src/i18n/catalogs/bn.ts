@@ -1070,6 +1070,10 @@ const bnCatalog: TranslationCatalog = {
   },
   reviewScreen: {
     copyAriaLabel: "{{side}} কপি করুন",
+    copying: "কপি করা হচ্ছে...",
+    copied: "কপি করা হয়েছে।",
+    copyUnavailable: "এই ব্রাউজারে ক্লিপবোর্ড উপলভ্য নয়।",
+    copyFailed: "কপি করা যায়নি।",
     selectTextAriaLabel: "লেখা নির্বাচন করে কপি করুন: {{side}}",
     actions: {
       createCard: "কার্ড তৈরি করুন",

@@ -1070,6 +1070,10 @@ const koCatalog: TranslationCatalog = {
   },
   reviewScreen: {
     copyAriaLabel: "{{side}} 복사",
+    copying: "복사하는 중...",
+    copied: "복사했습니다.",
+    copyUnavailable: "이 브라우저에서는 클립보드를 사용할 수 없습니다.",
+    copyFailed: "복사하지 못했습니다.",
     selectTextAriaLabel: "텍스트 선택 및 복사: {{side}}",
     actions: {
       createCard: "카드 만들기",

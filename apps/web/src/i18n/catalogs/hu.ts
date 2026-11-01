@@ -1070,6 +1070,10 @@ const huCatalog: TranslationCatalog = {
   },
   reviewScreen: {
     copyAriaLabel: "Másolás: {{side}}",
+    copying: "Másolás folyamatban...",
+    copied: "Másolva.",
+    copyUnavailable: "A vágólap nem érhető el ebben a böngészőben.",
+    copyFailed: "A másolás nem sikerült.",
     selectTextAriaLabel: "Szöveg kijelölése és másolása: {{side}}",
     actions: {
       createCard: "Kártya létrehozása",

@@ -1070,6 +1070,10 @@ const trCatalog: TranslationCatalog = {
   },
   reviewScreen: {
     copyAriaLabel: "{{side}} kopyala",
+    copying: "Kopyalanıyor...",
+    copied: "Kopyalandı.",
+    copyUnavailable: "Bu tarayıcıda pano kullanılamıyor.",
+    copyFailed: "Kopyalanamadı.",
     selectTextAriaLabel: "Metni seç ve kopyala: {{side}}",
     actions: {
       createCard: "Kart oluştur",

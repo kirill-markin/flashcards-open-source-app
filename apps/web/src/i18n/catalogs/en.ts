@@ -1069,6 +1069,10 @@ const enCatalog = {
   },
   reviewScreen: {
     copyAriaLabel: "Copy {{side}}",
+    copying: "Copying...",
+    copied: "Copied.",
+    copyUnavailable: "Clipboard is not available in this browser.",
+    copyFailed: "Copy failed.",
     selectTextAriaLabel: "Select and copy text: {{side}}",
     actions: {
       createCard: "Create card",

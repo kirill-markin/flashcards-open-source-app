@@ -1080,6 +1080,10 @@ const roCatalog: TranslationCatalog = {
   },
   reviewScreen: {
     copyAriaLabel: "Copiază {{side}}",
+    copying: "Se copiază...",
+    copied: "Copiat.",
+    copyUnavailable: "Clipboardul nu este disponibil în acest browser.",
+    copyFailed: "Copierea a eșuat.",
     selectTextAriaLabel: "Selectează și copiază textul: {{side}}",
     actions: {
       createCard: "Creează o fișă",

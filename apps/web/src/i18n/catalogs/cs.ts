@@ -1080,6 +1080,10 @@ const csCatalog: TranslationCatalog = {
   },
   reviewScreen: {
     copyAriaLabel: "Kopírovat: {{side}}",
+    copying: "Kopírování...",
+    copied: "Zkopírováno.",
+    copyUnavailable: "Schránka není v tomto prohlížeči dostupná.",
+    copyFailed: "Kopírování selhalo.",
     selectTextAriaLabel: "Vybrat a zkopírovat text: {{side}}",
     actions: {
       createCard: "Vytvořit kartičku",

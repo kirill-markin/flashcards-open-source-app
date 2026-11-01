@@ -1070,6 +1070,10 @@ const daCatalog: TranslationCatalog = {
   },
   reviewScreen: {
     copyAriaLabel: "Kopiér {{side}}",
+    copying: "Kopierer...",
+    copied: "Kopieret.",
+    copyUnavailable: "Udklipsholderen er ikke tilgængelig i denne browser.",
+    copyFailed: "Kopiering mislykkedes.",
     selectTextAriaLabel: "Markér og kopiér tekst: {{side}}",
     actions: {
       createCard: "Opret kort",

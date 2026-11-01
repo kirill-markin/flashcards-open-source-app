@@ -1070,6 +1070,10 @@ const frCatalog: TranslationCatalog = {
   },
   reviewScreen: {
     copyAriaLabel: "Copier {{side}}",
+    copying: "Copie en cours...",
+    copied: "Copié.",
+    copyUnavailable: "Le presse-papiers n'est pas disponible dans ce navigateur.",
+    copyFailed: "Échec de la copie.",
     selectTextAriaLabel: "Sélectionner et copier le texte : {{side}}",
     actions: {
       createCard: "Créer une carte",

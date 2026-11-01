@@ -1070,6 +1070,10 @@ const mrCatalog: TranslationCatalog = {
   },
   reviewScreen: {
     copyAriaLabel: "{{side}} कॉपी करा",
+    copying: "कॉपी करत आहे...",
+    copied: "कॉपी केले.",
+    copyUnavailable: "या ब्राउझरमध्ये क्लिपबोर्ड उपलब्ध नाही.",
+    copyFailed: "कॉपी अयशस्वी.",
     selectTextAriaLabel: "मजकूर निवडा आणि कॉपी करा: {{side}}",
     actions: {
       createCard: "कार्ड तयार करा",

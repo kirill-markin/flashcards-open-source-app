@@ -1070,6 +1070,10 @@ const deCatalog: TranslationCatalog = {
   },
   reviewScreen: {
     copyAriaLabel: "{{side}} kopieren",
+    copying: "Wird kopiert...",
+    copied: "Kopiert.",
+    copyUnavailable: "Die Zwischenablage ist in diesem Browser nicht verfügbar.",
+    copyFailed: "Kopieren fehlgeschlagen.",
     selectTextAriaLabel: "Text auswählen und kopieren: {{side}}",
     actions: {
       createCard: "Karte erstellen",

@@ -1070,6 +1070,10 @@ const arCatalog: TranslationCatalog = {
   },
   reviewScreen: {
     copyAriaLabel: "نسخ {{side}}",
+    copying: "جارٍ النسخ...",
+    copied: "تم النسخ.",
+    copyUnavailable: "الحافظة غير متاحة في هذا المتصفح.",
+    copyFailed: "فشل النسخ.",
     selectTextAriaLabel: "تحديد النص ونسخه: {{side}}",
     actions: {
       createCard: "أنشئ بطاقة",

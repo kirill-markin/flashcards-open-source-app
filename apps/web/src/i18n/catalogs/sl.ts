@@ -1090,6 +1090,10 @@ const slCatalog: TranslationCatalog = {
   },
   reviewScreen: {
     copyAriaLabel: "Kopiraj: {{side}}",
+    copying: "Kopiranje ...",
+    copied: "Kopirano.",
+    copyUnavailable: "Odložišče v tem brskalniku ni na voljo.",
+    copyFailed: "Kopiranje ni uspelo.",
     selectTextAriaLabel: "Izberi in kopiraj besedilo: {{side}}",
     actions: {
       createCard: "Ustvari kartico",

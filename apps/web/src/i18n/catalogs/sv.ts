@@ -1070,6 +1070,10 @@ const svCatalog: TranslationCatalog = {
   },
   reviewScreen: {
     copyAriaLabel: "Kopiera {{side}}",
+    copying: "Kopierar...",
+    copied: "Kopierat.",
+    copyUnavailable: "Urklipp är inte tillgängligt i den här webbläsaren.",
+    copyFailed: "Kopieringen misslyckades.",
     selectTextAriaLabel: "Markera och kopiera text: {{side}}",
     actions: {
       createCard: "Skapa kort",

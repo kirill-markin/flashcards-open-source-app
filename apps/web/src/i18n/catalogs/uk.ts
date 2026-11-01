@@ -1080,6 +1080,10 @@ const ukCatalog: TranslationCatalog = {
   },
   reviewScreen: {
     copyAriaLabel: "Копіювати: {{side}}",
+    copying: "Копіювання...",
+    copied: "Скопійовано.",
+    copyUnavailable: "Буфер обміну недоступний у цьому браузері.",
+    copyFailed: "Не вдалося скопіювати.",
     selectTextAriaLabel: "Виділити й скопіювати текст: {{side}}",
     actions: {
       createCard: "Створити картку",

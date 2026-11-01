@@ -1080,6 +1080,10 @@ const hrCatalog: TranslationCatalog = {
   },
   reviewScreen: {
     copyAriaLabel: "Kopiraj: {{side}}",
+    copying: "Kopiranje...",
+    copied: "Kopirano.",
+    copyUnavailable: "Međuspremnik nije dostupan u ovom pregledniku.",
+    copyFailed: "Kopiranje nije uspjelo.",
     selectTextAriaLabel: "Odaberi i kopiraj tekst: {{side}}",
     actions: {
       createCard: "Stvori karticu",

@@ -1070,6 +1070,10 @@ const faCatalog: TranslationCatalog = {
   },
   reviewScreen: {
     copyAriaLabel: "کپی {{side}}",
+    copying: "در حال کپی...",
+    copied: "کپی شد.",
+    copyUnavailable: "کلیپ‌بورد در این مرورگر در دسترس نیست.",
+    copyFailed: "کپی ناموفق بود.",
     selectTextAriaLabel: "انتخاب و کپی متن: {{side}}",
     actions: {
       createCard: "ساخت کارت",

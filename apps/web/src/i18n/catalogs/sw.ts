@@ -1070,6 +1070,10 @@ const swCatalog: TranslationCatalog = {
   },
   reviewScreen: {
     copyAriaLabel: "Nakili {{side}}",
+    copying: "Inanakili...",
+    copied: "Imenakiliwa.",
+    copyUnavailable: "Ubao wa kunakili haupatikani kwenye kivinjari hiki.",
+    copyFailed: "Kunakili kumeshindwa.",
     selectTextAriaLabel: "Chagua na unakili maandishi: {{side}}",
     actions: {
       createCard: "Unda kadi",

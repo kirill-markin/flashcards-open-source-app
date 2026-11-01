@@ -1070,6 +1070,10 @@ const bgCatalog: TranslationCatalog = {
   },
   reviewScreen: {
     copyAriaLabel: "Копиране: {{side}}",
+    copying: "Копира се...",
+    copied: "Копирано.",
+    copyUnavailable: "Клипбордът не е достъпен в този браузър.",
+    copyFailed: "Копирането не бе успешно.",
     selectTextAriaLabel: "Избиране и копиране на текст: {{side}}",
     actions: {
       createCard: "Създаване на карта",
