@@ -1529,7 +1529,9 @@ const viCatalog: TranslationCatalog = {
   },
   chatMessageContent: {
     card: "Thẻ",
+    copied: "Đã sao chép.",
     copy: "Sao chép",
+    copying: "Đang sao chép...",
     failedToCopy: "Không sao chép được {{section}}.",
     id: "ID {{value}}",
     imageAttached: "[đã đính kèm hình ảnh]",

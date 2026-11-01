@@ -271,22 +271,17 @@ private struct CardTextPreviewRow: View {
         formatCardTextPreview(text: text)
     }
 
-    private var previewStyle: AnyShapeStyle {
-        text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-            ? AnyShapeStyle(.tertiary)
-            : AnyShapeStyle(.primary)
-    }
-
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
             Text(field.title)
                 .font(.body)
                 .foregroundStyle(.secondary)
 
-            Text(previewText)
-                .foregroundStyle(previewStyle)
-                .multilineTextAlignment(.leading)
-                .lineLimit(3)
+            MathContentText(
+                text: self.previewText,
+                color: self.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? .tertiaryLabel : .label,
+                lineLimit: 3
+            )
         }
         .padding(.vertical, 4)
     }
@@ -666,6 +661,10 @@ private func formatCardTextPreview(text: String) -> String {
 
     if trimmedText.isEmpty {
         return String(localized: "Tap to edit", table: reviewCardsStringsTableName)
+    }
+
+    if case .segmented = extractReviewMathBlocks(text: trimmedText) {
+        return trimmedText
     }
 
     return trimmedText

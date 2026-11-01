@@ -8,6 +8,7 @@ import {
 import { ALL_CARDS_REVIEW_FILTER, isCardDue } from "../../../../appData/domain";
 import { ALL_CARDS_DECK_SLUG } from "../../../../deckFilters";
 import { useI18n } from "../../../../i18n";
+import { MathText } from "../../../../components/MathText";
 import { buildSettingsDeckEditRoute, reviewRoute, settingsDecksRoute } from "../../../../routes";
 import { useWorkspacePath, type WorkspacePathBuilder } from "../../../../useWorkspacePath";
 import { loadCardsMatchingDeck } from "../../../../localDb/cards/cards";
@@ -311,8 +312,8 @@ export function DeckDetailScreen(): ReactElement {
                           <span className="badge">{formatTagSummary(card.tags, t)}</span>
                         )}
                       </div>
-                      <h3 className="panel-subtitle">{card.frontText}</h3>
-                      <p className="subtitle">{card.backText === "" ? t("common.noBackText") : card.backText}</p>
+                      <h3 className="panel-subtitle"><MathText text={card.frontText} /></h3>
+                      <p className="subtitle"><MathText text={card.backText === "" ? t("common.noBackText") : card.backText} /></p>
                       <div className="review-meta">
                         <span>{t("deckDetail.meta.due", { value: formatNullableDateTime(card.dueAt, formatDateTime, t) })}</span>
                         <span>{t("deckDetail.meta.reps", { count: formatNumber(card.reps) })}</span>

@@ -1529,7 +1529,9 @@ const lvCatalog: TranslationCatalog = {
   },
   chatMessageContent: {
     card: "Kartīte",
+    copied: "Nokopēts.",
     copy: "Kopēt",
+    copying: "Kopē...",
     failedToCopy: "Neizdevās nokopēt: {{section}}.",
     id: "ID {{value}}",
     imageAttached: "[pievienots attēls]",

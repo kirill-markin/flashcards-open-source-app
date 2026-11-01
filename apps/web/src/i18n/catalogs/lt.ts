@@ -1544,7 +1544,9 @@ const ltCatalog: TranslationCatalog = {
   },
   chatMessageContent: {
     card: "Kortelė",
+    copied: "Nukopijuota.",
     copy: "Kopijuoti",
+    copying: "Kopijuojama...",
     failedToCopy: "Nepavyko nukopijuoti: {{section}}.",
     id: "ID {{value}}",
     imageAttached: "[pridėtas paveikslėlis]",

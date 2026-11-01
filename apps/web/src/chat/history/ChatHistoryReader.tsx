@@ -1,6 +1,7 @@
 import { useEffect, useEffectEvent, useRef, useState } from "react";
 import { getChatSnapshot } from "../../api";
 import { useI18n } from "../../i18n";
+import { MathText } from "../../components/MathText";
 import type { ChatSessionHistoryMessage, ChatSessionHistorySummary } from "../../types";
 import { renderStoredMessageContent } from "./chatMessageContent";
 import {
@@ -74,7 +75,7 @@ export function ChatHistoryReader(props: {
     <div className="chat-history-panel" data-testid="chat-history-reader">
       <div className="chat-header">
         <div>
-          <span className="chat-header-title">{summary.title ?? t("chatPanel.history.untitledChat")}</span>
+          <span className="chat-header-title"><MathText text={summary.title ?? t("chatPanel.history.untitledChat")} /></span>
           <p className="chat-subtitle">
             {formatDate(summary.lastActivityAt)}
             {" · "}
@@ -119,6 +120,7 @@ export function ChatHistoryReader(props: {
                   t,
                   onMessageTechnicalError,
                   canStartMessageAction,
+                  { workspaceId, localReadVersion: 0 },
                 )}
               </div>
             ))

@@ -1529,7 +1529,9 @@ const nlCatalog: TranslationCatalog = {
   },
   chatMessageContent: {
     card: "Kaart",
+    copied: "Gekopieerd.",
     copy: "Kopiëren",
+    copying: "Kopiëren...",
     failedToCopy: "{{section}} kopiëren is mislukt.",
     id: "ID {{value}}",
     imageAttached: "[afbeelding toegevoegd]",

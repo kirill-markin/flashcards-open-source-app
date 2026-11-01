@@ -11,6 +11,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.flashcardsopensourceapp.core.ui.content.MathText
 
 @Composable
 internal fun NavigationSummaryCard(
@@ -19,7 +20,8 @@ internal fun NavigationSummaryCard(
     summary: String,
     supportingText: String,
     icon: @Composable () -> Unit,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    contentSource: String? = null
 ) {
     Card(
         modifier = modifier
@@ -34,7 +36,11 @@ internal fun NavigationSummaryCard(
                 Column(
                     verticalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
-                    Text(summary)
+                    if (contentSource == null) {
+                        Text(summary)
+                    } else {
+                        MathText(text = contentSource, plainText = summary)
+                    }
                     Text(
                         text = supportingText,
                         color = MaterialTheme.colorScheme.onSurfaceVariant

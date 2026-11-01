@@ -1529,7 +1529,9 @@ const arCatalog: TranslationCatalog = {
   },
   chatMessageContent: {
     card: "بطاقة",
+    copied: "تم النسخ.",
     copy: "نسخ",
+    copying: "جارٍ النسخ...",
     failedToCopy: "فشل نسخ {{section}}.",
     id: "ID {{value}}",
     imageAttached: "[تم إرفاق صورة]",

@@ -1529,7 +1529,9 @@ const isCatalog: TranslationCatalog = {
   },
   chatMessageContent: {
     card: "Spjald",
+    copied: "Afritað.",
     copy: "Afrita",
+    copying: "Afritar...",
     failedToCopy: "Ekki tókst að afrita: {{section}}.",
     id: "Auðkenni {{value}}",
     imageAttached: "[mynd í viðhengi]",

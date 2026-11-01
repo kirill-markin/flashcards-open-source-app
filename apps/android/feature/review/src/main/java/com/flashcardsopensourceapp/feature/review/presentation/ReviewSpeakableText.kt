@@ -1,18 +1,24 @@
 package com.flashcardsopensourceapp.feature.review
 
+import com.flashcardsopensourceapp.core.ui.content.MathBlock
+import com.flashcardsopensourceapp.core.ui.content.isMarkdownFenceClosingLine
+import com.flashcardsopensourceapp.core.ui.content.markdownFenceMarker
+import com.flashcardsopensourceapp.core.ui.content.markdownHorizontalRuleRegex
+import com.flashcardsopensourceapp.core.ui.content.markdownTableDelimiterRegex
+
 internal fun makeReviewSpeakableText(
-    mathBlocks: List<ReviewMathBlock>
+    mathBlocks: List<MathBlock>
 ): String {
-    if (mathBlocks.any { block -> block is ReviewMathBlock.Formula }) {
+    if (mathBlocks.any { block -> block is MathBlock.Formula }) {
         var preservesNextOpeningBlockPrefix: Boolean = false
         val speakableSegments: List<String> = buildList {
             mathBlocks.forEach { block ->
                 when (block) {
-                    is ReviewMathBlock.Formula -> {
+                    is MathBlock.Formula -> {
                         add(block.source)
                         preservesNextOpeningBlockPrefix = block.continuesParagraph
                     }
-                    is ReviewMathBlock.Markdown -> {
+                    is MathBlock.Markdown -> {
                         val segment: String = makeReviewSpeakableTextWithoutMath(
                             text = block.normalizedMarkdown,
                             preservesOpeningBlockPrefix = preservesNextOpeningBlockPrefix
@@ -28,7 +34,7 @@ internal fun makeReviewSpeakableText(
         return speakableSegments.joinToString(separator = "\n")
     }
 
-    val markdownBlock: ReviewMathBlock.Markdown = mathBlocks.single() as ReviewMathBlock.Markdown
+    val markdownBlock: MathBlock.Markdown = mathBlocks.single() as MathBlock.Markdown
     return makeReviewSpeakableTextWithoutMath(
         text = markdownBlock.normalizedMarkdown,
         preservesOpeningBlockPrefix = false
@@ -51,11 +57,11 @@ private fun makeReviewSpeakableTextWithoutMath(
         var activeFenceMarker: String? = null
 
         text.lines().forEachIndexed { lineIndex, line ->
-            val fenceMarker: String? = reviewFenceMarker(line = line)
+            val fenceMarker: String? = markdownFenceMarker(line = line)
             val currentFenceMarker: String? = activeFenceMarker
 
             if (currentFenceMarker != null) {
-                if (isReviewFenceClosingLine(line = line, openingMarker = currentFenceMarker)) {
+                if (isMarkdownFenceClosingLine(line = line, openingMarker = currentFenceMarker)) {
                     activeFenceMarker = null
                 }
                 return@forEachIndexed
@@ -85,7 +91,7 @@ private fun normalizeReviewSpeakableMarkdownLine(line: String): String {
     if (trimmedLine.isEmpty()) {
         return ""
     }
-    if (reviewHorizontalRuleRegex.matches(trimmedLine) || reviewTableDelimiterRegex.matches(trimmedLine)) {
+    if (markdownHorizontalRuleRegex.matches(trimmedLine) || markdownTableDelimiterRegex.matches(trimmedLine)) {
         return ""
     }
 

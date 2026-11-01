@@ -11,6 +11,34 @@ enum ReviewMathBlock {
     case formula(ReviewFormulaContent)
 }
 
+func containsReviewMathDelimiter(text: String) -> Bool {
+    text.contains("$") || text.contains("\\(") || text.contains("\\[")
+}
+
+func reviewMathTextPrefix(text: String, characterLimit: Int) -> String {
+    precondition(characterLimit > 0)
+    var end = text.index(text.startIndex, offsetBy: characterLimit, limitedBy: text.endIndex) ?? text.endIndex
+    guard end != text.endIndex else { return text }
+    // Truncation may omit a formula, but must never turn accepted TeX into a partial source.
+    if containsReviewMathDelimiter(text: text), case .segmented(let blocks) = extractReviewMathBlocks(text: text) {
+        var start = text.startIndex
+        for block in blocks {
+            let source: String
+            switch block {
+            case .markdown(let value): source = value
+            case .formula(let formula): source = formula.originalSource
+            }
+            let blockEnd = text.index(start, offsetBy: source.count)
+            if case .formula = block, start < end, end < blockEnd {
+                end = start
+                break
+            }
+            start = blockEnd
+        }
+    }
+    return String(text[..<end])
+}
+
 private struct ReviewMathSourceLine {
     let content: String
     let separator: String
