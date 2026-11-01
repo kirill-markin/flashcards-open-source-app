@@ -67,7 +67,7 @@ The web producer therefore never queues an identity-free event: it sends one dir
 [`toIdentityFreeAnalyticsWireEvent`](../apps/web/src/analytics/wire.ts) builds. A browser that
 refused the identifier reports under its account credential, a sign-in or a browser guest, once
 the session layer verifies it, and through this collector while it holds neither, carrying no
-`anonymousId` either way; on a public route where no session layer has mounted and the browser
+`anonymousId` either way; on a public route that never mounts a session layer, while the browser
 holds no browser guest, its in-memory events go out here instead
 ([the branch that reads this](../apps/web/src/analytics/deliveryRuntime.ts)).
 

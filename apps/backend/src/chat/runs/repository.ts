@@ -63,6 +63,9 @@ export type ChatRunClaimRow = Readonly<{
   status: ChatRunStatus;
   worker_claimed_at: string | null;
   cancel_requested_at: string | null;
+  client_platform: ProductAnalyticsClientReportablePlatform | null;
+  client_os_name: ProductAnalyticsOsName | null;
+  client_device_type: ProductAnalyticsDeviceType | null;
 }>;
 
 export type ChatRunHeartbeatRow = Readonly<{
@@ -165,7 +168,10 @@ const SELECT_CHAT_RUN_CLAIM_FOR_UPDATE_SQL = `
     session_id,
     status,
     worker_claimed_at::text AS worker_claimed_at,
-    cancel_requested_at
+    cancel_requested_at,
+    client_platform,
+    client_os_name,
+    client_device_type
   FROM ai.chat_runs
   WHERE run_id = $1
   FOR UPDATE
