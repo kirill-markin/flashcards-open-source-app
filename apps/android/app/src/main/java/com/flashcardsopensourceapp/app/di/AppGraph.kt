@@ -52,7 +52,6 @@ import com.flashcardsopensourceapp.core.ui.TestModeStore
 import com.flashcardsopensourceapp.core.ui.VisibleAppScreenController
 import com.flashcardsopensourceapp.app.navigation.AppHandoffCoordinator
 import com.flashcardsopensourceapp.app.notifications.NotificationDeliveryGate
-import com.flashcardsopensourceapp.app.notifications.review.ReviewReminderAttentionController
 import com.flashcardsopensourceapp.app.notifications.review.ReviewNotificationsManager
 import com.flashcardsopensourceapp.app.notifications.strict.AndroidStrictRemindersScheduler
 import com.flashcardsopensourceapp.app.notifications.strict.StrictRemindersManager
@@ -329,11 +328,6 @@ class AppGraph(
     val reviewNotificationsStore: ReviewNotificationsStore = notificationsStore
     val strictRemindersStore: StrictRemindersStore = notificationsStore
     val notificationDeliveryGate = NotificationDeliveryGate()
-    val reviewReminderAttentionController = ReviewReminderAttentionController(
-        reviewNotificationsStore = reviewNotificationsStore,
-        reviewLogDao = database.reviewLogDao(),
-        notificationDeliveryGate = notificationDeliveryGate
-    )
     private val localProgressCacheStore = LocalProgressCacheStore(
         database = database,
         timeProvider = SystemTimeProvider
@@ -355,7 +349,6 @@ class AppGraph(
         reviewPreferencesStore = reviewPreferencesStore,
         reviewNotificationsStore = reviewNotificationsStore,
         strictRemindersStore = strictRemindersStore,
-        attentionController = reviewReminderAttentionController,
         notificationDeliveryGate = notificationDeliveryGate,
         observability = observability,
         analytics = analytics,
@@ -446,6 +439,7 @@ class AppGraph(
     val reviewRepository: ReviewRepository = LocalReviewRepository(
         database = database,
         preferencesStore = cloudPreferencesStore,
+        reviewPreferencesStore = reviewPreferencesStore,
         syncLocalStore = syncLocalStore,
         localProgressCacheStore = localProgressCacheStore,
         timeProvider = SystemTimeProvider,
@@ -914,7 +908,6 @@ class AppGraph(
                         importedReviewAtMillis = latestReviewedAtMillis,
                         nowMillis = nowMillis
                     )
-                    reviewReminderAttentionController.reconcileWithReviewHistory()
                 } else {
                     strictRemindersManager.reconcileStrictReminders(
                         trigger = StrictRemindersReconcileTrigger.REVIEW_HISTORY_IMPORTED,
@@ -1052,7 +1045,6 @@ class AppGraph(
         if (workspaceId != null) {
             reviewNotificationsStore.migrateLegacySettings(currentWorkspaceId = workspaceId)
         }
-        reviewReminderAttentionController.clear()
         val nowMillis = System.currentTimeMillis()
         reviewNotificationsManager.reconcileCurrentWorkspaceReviewNotificationsAndWait(
             trigger = ReviewNotificationsReconcileTrigger.WORKSPACE_CHANGED,
