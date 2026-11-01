@@ -482,7 +482,7 @@ class LocalSyncRepository(
             return
         }
 
-        resetCoordinator.resetLocalStateForCloudIdentityChange()
+        resetCoordinator.resetLocalStateForLinkedAccountMismatch()
         throw CloudLinkedAccountMismatchException(
             "Cloud account changed during sync. Local cloud identity was reset; sign in again."
         )
