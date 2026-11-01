@@ -24,7 +24,6 @@ export {
 export {
   getBackendSentryConfig,
   initializeBackendSentryWithDeps,
-  isBackendSentryInitializedForOpenTelemetry,
 } from "./config";
 export {
   hasCapturedBackendException,

@@ -1,11 +1,3 @@
-/**
- * Sentry initialization for the auth service Lambda.
- *
- * Self-contained module (the auth package does not import from apps/backend):
- * hard-requires SENTRY_DSN on Lambda, stays disabled off-Lambda so local
- * `tsx`/tests run without Sentry, and scrubs PII (emails, OTPs, tokens,
- * cookies, authorization headers) before events leave the process.
- */
 import * as Sentry from "@sentry/aws-serverless";
 
 declare const authTraceIdBrand: unique symbol;
@@ -124,9 +116,9 @@ function scrubHttpTelemetryFields(fields: Record<string, unknown>): void {
 }
 
 function scrubAuthSentrySpan(span: AuthSentrySpan): AuthSentrySpan {
-  if (typeof span.description === "string") span.description = maskSensitiveText(span.description);
-  if (span.data !== undefined) scrubHttpTelemetryFields(span.data);
-  return span;
+  const attributes = { ...span.attributes };
+  scrubHttpTelemetryFields(attributes);
+  return { ...span, name: maskSensitiveText(span.name), attributes };
 }
 
 function redactHeaderValues(headers: Record<string, unknown>): void {
@@ -196,16 +188,90 @@ export function initializeAuthSentry(): void {
     environment: config.environment,
     release: config.release,
     tracesSampleRate: config.tracesSampleRate,
-    sendDefaultPii: false,
+    dataCollection: {
+      userInfo: false,
+      cookies: false,
+      httpHeaders: false,
+      httpBodies: [],
+      urlQueryParams: false,
+      graphQL: { document: false, variables: false },
+      genAI: { inputs: false, outputs: false },
+      mcp: { inputs: false, outputs: false },
+      databaseQueryData: false,
+      queues: false,
+      stackFrameVariables: false,
+      frameContextLines: 0,
+    },
+    traceLifecycle: "stream",
+    attachStacktrace: false,
     beforeSend: (event) => scrubAuthSentryEvent(event),
     beforeSendSpan: (span) => scrubAuthSentrySpan(span),
-    beforeSendTransaction: (event) => {
-      scrubAuthSentryRequest(event.request);
-      scrubAuthSentryBreadcrumbs(event.breadcrumbs);
-      for (const span of event.spans ?? []) scrubAuthSentrySpan(span);
-      if (event.contexts?.trace?.data !== undefined) scrubHttpTelemetryFields(event.contexts.trace.data);
-      return event;
-    },
   });
   Sentry.setTag("service", "auth");
+  Sentry.setAttribute("service", "auth");
+}
+
+let invocationHandled = false;
+
+type InvocationContext = Readonly<{
+  functionName: string;
+  awsRequestId: string;
+  invokedFunctionArn: string;
+  clientContext?: Readonly<{ custom?: Readonly<Record<string, unknown>> }>;
+}>;
+type InvocationSpan = Parameters<Parameters<typeof Sentry.startSpanManual>[1]>[0];
+
+function readTraceHeaders(event: unknown): Readonly<Record<string, string>> {
+  if (typeof event !== "object" || event === null || !("headers" in event)
+    || typeof event.headers !== "object" || event.headers === null) return {};
+  return Object.fromEntries(Object.entries(event.headers).flatMap(([name, value]) =>
+    typeof value === "string" ? [[name.toLowerCase(), value]] : []));
+}
+
+export function runLambdaInvocation<Result>(
+  event: unknown,
+  context: InvocationContext,
+  callback: (span: InvocationSpan) => Result,
+): Result {
+  const coldStart = !invocationHandled
+    && process.env.AWS_LAMBDA_INITIALIZATION_TYPE !== "provisioned-concurrency"
+    && process.uptime() < 10;
+  invocationHandled = true;
+  const headers = readTraceHeaders(event);
+  const custom = context.clientContext?.custom;
+  const sentryTrace = typeof custom?.["sentry-trace"] === "string"
+    ? custom["sentry-trace"] : headers["sentry-trace"];
+  const baggage = typeof custom?.["sentry-trace"] === "string"
+    ? (typeof custom.baggage === "string" ? custom.baggage : undefined) : headers.baggage;
+  return Sentry.withIsolationScope(() => Sentry.continueTrace({ sentryTrace, baggage }, () =>
+    Sentry.startSpanManual({
+      name: context.functionName,
+      op: "function.aws",
+      forceTransaction: true,
+      attributes: {
+        "sentry.origin": "manual.function.aws_serverless",
+        "sentry.kind": "server",
+        "faas.name": context.functionName,
+        "faas.coldstart": coldStart,
+        "faas.invocation_id": context.awsRequestId,
+        "cloud.resource_id": context.invokedFunctionArn,
+        "cloud.provider": "aws",
+        "cloud.platform": "aws_lambda",
+      },
+    }, callback)));
+}
+
+export async function completeLambdaInvocation<Result>(
+  span: InvocationSpan,
+  callback: () => Promise<Result>,
+): Promise<Result> {
+  try {
+    return await callback();
+  } catch (error) {
+    span.setStatus({ code: 2, message: "internal_error" });
+    throw error;
+  } finally {
+    // The SDK wrapper flushes only after this invocation span has ended.
+    span.end();
+  }
 }
