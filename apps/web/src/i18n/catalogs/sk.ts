@@ -1544,7 +1544,9 @@ const skCatalog: TranslationCatalog = {
   },
   chatMessageContent: {
     card: "Karta",
+    copied: "Skopírované.",
     copy: "Kopírovať",
+    copying: "Kopíruje sa...",
     failedToCopy: "Nepodarilo sa skopírovať: {{section}}.",
     id: "ID {{value}}",
     imageAttached: "[priložený obrázok]",

@@ -1529,7 +1529,9 @@ const zuCatalog: TranslationCatalog = {
   },
   chatMessageContent: {
     card: "Ikhadi",
+    copied: "Kukopishiwe.",
     copy: "Kopisha",
+    copying: "Kuyakopishwa...",
     failedToCopy: "Ukukopisha kuhlulekile: {{section}}.",
     id: "I-ID: {{value}}",
     imageAttached: "[isithombe sinamathiselwe]",

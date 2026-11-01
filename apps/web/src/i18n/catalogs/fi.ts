@@ -1529,7 +1529,9 @@ const fiCatalog: TranslationCatalog = {
   },
   chatMessageContent: {
     card: "Kortti",
+    copied: "Kopioitu.",
     copy: "Kopioi",
+    copying: "Kopioidaan...",
     failedToCopy: "Kohteen {{section}} kopiointi epäonnistui.",
     id: "Tunnus {{value}}",
     imageAttached: "[kuva liitetty]",

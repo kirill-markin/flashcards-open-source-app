@@ -82,18 +82,12 @@ export type AuthLogEvent = Readonly<{
   emailEnrollment?: ProviderEmailEnrollmentOutcome;
   emailAuthority?: ProviderEmail["authority"] | null;
   privateRelay?: boolean | null;
-  maskedEmail?: string;
+  email?: string;
   ipAddress?: string;
   error?: string;
 }>;
 
 export type AuthLogger = (event: AuthLogEvent) => void;
-
-export const maskEmail = (email: string): string => {
-  const [local, domain] = email.split("@");
-  if (!local || !domain) return "***";
-  return `${local[0]}***@${domain}`;
-};
 
 export const log: AuthLogger = (event) => {
   console.log(JSON.stringify(event));

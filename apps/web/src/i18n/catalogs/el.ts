@@ -1529,7 +1529,9 @@ const elCatalog: TranslationCatalog = {
   },
   chatMessageContent: {
     card: "Κάρτα",
+    copied: "Αντιγράφηκε.",
     copy: "Αντιγραφή",
+    copying: "Γίνεται αντιγραφή...",
     failedToCopy: "Δεν ήταν δυνατή η αντιγραφή: {{section}}.",
     id: "Αναγνωριστικό {{value}}",
     imageAttached: "[επισυνάφθηκε εικόνα]",

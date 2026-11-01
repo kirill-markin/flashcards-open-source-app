@@ -1529,7 +1529,9 @@ const thCatalog: TranslationCatalog = {
   },
   chatMessageContent: {
     card: "การ์ด",
+    copied: "คัดลอกแล้ว",
     copy: "คัดลอก",
+    copying: "กำลังคัดลอก...",
     failedToCopy: "คัดลอก {{section}} ไม่สำเร็จ",
     id: "ID {{value}}",
     imageAttached: "[แนบรูปภาพ]",

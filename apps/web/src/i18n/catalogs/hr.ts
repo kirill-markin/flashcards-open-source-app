@@ -1544,7 +1544,9 @@ const hrCatalog: TranslationCatalog = {
   },
   chatMessageContent: {
     card: "Kartica",
+    copied: "Kopirano.",
     copy: "Kopiraj",
+    copying: "Kopiranje...",
     failedToCopy: "Kopiranje nije uspjelo: {{section}}.",
     id: "ID {{value}}",
     imageAttached: "[slika je priložena]",

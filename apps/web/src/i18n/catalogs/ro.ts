@@ -1544,7 +1544,9 @@ const roCatalog: TranslationCatalog = {
   },
   chatMessageContent: {
     card: "Fișă",
+    copied: "Copiat.",
     copy: "Copiază",
+    copying: "Se copiază...",
     failedToCopy: "Copierea a eșuat: {{section}}.",
     id: "ID {{value}}",
     imageAttached: "[imagine atașată]",

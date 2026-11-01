@@ -1529,7 +1529,9 @@ const svCatalog: TranslationCatalog = {
   },
   chatMessageContent: {
     card: "Kort",
+    copied: "Kopierat.",
     copy: "Kopiera",
+    copying: "Kopierar...",
     failedToCopy: "Det gick inte att kopiera {{section}}.",
     id: "ID {{value}}",
     imageAttached: "[bild bifogad]",

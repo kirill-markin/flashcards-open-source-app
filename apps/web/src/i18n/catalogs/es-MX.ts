@@ -1529,7 +1529,9 @@ const esMxCatalog: TranslationCatalog = {
   },
   chatMessageContent: {
     card: "Tarjeta",
+    copied: "Copiado.",
     copy: "Copiar",
+    copying: "Copiando...",
     failedToCopy: "No se pudo copiar {{section}}.",
     id: "ID {{value}}",
     imageAttached: "[imagen adjunta]",

@@ -1529,7 +1529,9 @@ const nbCatalog: TranslationCatalog = {
   },
   chatMessageContent: {
     card: "Kort",
+    copied: "Kopiert.",
     copy: "Kopier",
+    copying: "Kopierer...",
     failedToCopy: "Kunne ikke kopiere {{section}}.",
     id: "ID {{value}}",
     imageAttached: "[bilde vedlagt]",
