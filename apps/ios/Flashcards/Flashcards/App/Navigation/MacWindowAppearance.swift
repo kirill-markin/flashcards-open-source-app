@@ -548,10 +548,18 @@ struct MacWindowAppearance: UIViewRepresentable {
         override func editingRect(forBounds bounds: CGRect) -> CGRect { self.textRect(forBounds: bounds) }
         override func placeholderRect(forBounds bounds: CGRect) -> CGRect { self.textRect(forBounds: bounds) }
 
+        /// Without the platter (before macOS 26) the field draws its own bordered shape at
+        /// the system field height, matching that era's smaller toolbar controls.
+        private static let borderedHeight: CGFloat = {
+            let field = UISearchTextField()
+            field.font = UIFont.preferredFont(forTextStyle: .body)
+            return field.sizeThatFits(UIView.layoutFittingCompressedSize).height
+        }()
+
         override var intrinsicContentSize: CGSize {
             // Do not ask UITextField's intrinsic implementation to call back into
             // sizeThatFits; both sizing paths must return this same toolbar size.
-            CGSize(width: 240, height: Self.height)
+            CGSize(width: 240, height: Self.usesToolbarPlatter ? Self.height : Self.borderedHeight)
         }
         override func sizeThatFits(_ size: CGSize) -> CGSize { self.intrinsicContentSize }
         func updateToolbarFittingSize() {

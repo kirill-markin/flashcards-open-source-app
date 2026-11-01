@@ -226,6 +226,10 @@ private struct ProgressReviewScheduleLegendRow: View {
         #endif
         .accessibilityElement(children: .ignore)
         .accessibilityAddTraits(.isButton)
+        // An empty bucket has no action; Mac already exposes it as a disabled button.
+        #if !targetEnvironment(macCatalyst)
+        .accessibilityRemoveTraits(self.bucket.count > 0 ? [] : .isButton)
+        #endif
         .accessibilityAddTraits(self.isSelected ? .isSelected : [])
         .accessibilityLabel(progressReviewScheduleBucketTitle(key: self.bucket.key))
         .accessibilityValue(
