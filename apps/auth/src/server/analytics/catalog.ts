@@ -284,42 +284,6 @@ export function createSignInScreenViewedEvent(
   );
 }
 
-export function createSignInCodeRequestedEvent(
-  anonymousId: string,
-  nowMs: number,
-  uiLocale: LoginPageLocale | null,
-): AuthAnalyticsWireEvent {
-  return createAuthAnalyticsEvent(
-    { eventName: "signin_code_requested", screen: "signin", properties: null },
-    anonymousId,
-    nowMs,
-    uiLocale,
-  );
-}
-
-export function createSignInSucceededEvent(
-  anonymousId: string,
-  nowMs: number,
-  uiLocale: LoginPageLocale | null,
-): AuthAnalyticsWireEvent {
-  return createAuthAnalyticsEvent(
-    { eventName: "signin_succeeded", screen: "signin", properties: null },
-    anonymousId,
-    nowMs,
-    uiLocale,
-  );
-}
-
-/** The reason is fixed when the branch that refused the sign-in is taken, not when the event is sent. */
-export function createSignInFailedEventFactory(reason: AuthSignInFailureReason): AuthAnalyticsEventFactory {
-  return (anonymousId, nowMs, uiLocale) => createAuthAnalyticsEvent(
-    { eventName: "signin_failed", screen: null, properties: { reason } },
-    anonymousId,
-    nowMs,
-    uiLocale,
-  );
-}
-
 function buildAuthAnalyticsFactProperties(fact: AuthAnalyticsFact): AuthAnalyticsEventProperties {
   switch (fact.eventName) {
     case "auth_account_connection":
@@ -382,6 +346,7 @@ export function createSignInSucceededWithMethodEventFactory(
   );
 }
 
+/** The reason is fixed when the branch that refused the sign-in is taken, not when the event is sent. */
 export function createSignInFailedWithMethodEventFactory(
   method: AuthAnalyticsMethod,
   reason: AuthSignInFailureReason,

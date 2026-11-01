@@ -214,7 +214,7 @@ export function createVerifyCodeApp(dependencies: VerifyCodeDependencies): Hono<
       // person this counts reaches here from a tab that already holds the CSRF token of the same
       // challenge and an eight-digit code, so both conditions hold for every expiry the UI produces.
       if (csrfMatch && codeIsWellFormed) {
-        await reportSignInFailed(c, "expired_code");
+        await reportSignInFailed(c, "email", "expired_code");
       }
       return jsonAuthError(c, 400, "OTP_SESSION_EXPIRED", "Code expired. Request a new one.");
     }
@@ -231,7 +231,7 @@ export function createVerifyCodeApp(dependencies: VerifyCodeDependencies): Hono<
     const attemptState = await dependencies.getOtpVerifyAttemptState(payload.e, payload.s, nowMs);
     if (attemptState.status === "locked") {
       logLockedVerifyAttempt(requestId, c.req.path, "Challenge is locked after too many invalid attempts");
-      await reportSignInFailed(c, "rate_limited");
+      await reportSignInFailed(c, "email", "rate_limited");
       return jsonAuthError(c, 429, "OTP_TOO_MANY_ATTEMPTS", "Too many invalid attempts. Request a new code.");
     }
 
@@ -243,7 +243,7 @@ export function createVerifyCodeApp(dependencies: VerifyCodeDependencies): Hono<
       if (err instanceof PrincipalSessionError) throw err;
       if (err instanceof IssuedSessionValidationError) {
         dependencies.clearOtpSessionCookie(c);
-        await reportSignInFailed(c, "server_error");
+        await reportSignInFailed(c, "email", "server_error");
         // The resend cache can return this consumed challenge for the remaining 180-second TTL.
         return jsonAuthError(c, 503, "SERVICE_UNAVAILABLE",
           "The code was accepted, but session validation could not complete. Wait 3 minutes, then reload the page and request a fresh code. Do not reuse this code.");
@@ -278,7 +278,7 @@ export function createVerifyCodeApp(dependencies: VerifyCodeDependencies): Hono<
           });
           // The code genuinely was rejected; the 503 is about the bookkeeping that could not record
           // it, so the funnel reports what happened to the person.
-          await reportSignInFailed(c, "invalid_code");
+          await reportSignInFailed(c, "email", "invalid_code");
           // Avoid Retry-After here because replaying verify-code can consume Cognito attempts.
           return c.json({
             error: INVALID_CODE_RECORD_DB_FAILURE_MESSAGE,
@@ -288,7 +288,7 @@ export function createVerifyCodeApp(dependencies: VerifyCodeDependencies): Hono<
         }
         if (result.locked) {
           logLockedVerifyAttempt(requestId, c.req.path, message);
-          await reportSignInFailed(c, "rate_limited");
+          await reportSignInFailed(c, "email", "rate_limited");
           return jsonAuthError(c, 429, "OTP_TOO_MANY_ATTEMPTS", "Too many invalid attempts. Request a new code.");
         }
       }
@@ -303,7 +303,7 @@ export function createVerifyCodeApp(dependencies: VerifyCodeDependencies): Hono<
         reasonCategory: failure.reasonCategory,
         error: message,
       });
-      await reportSignInFailed(c, signInFailureReasonByVerifyFailureCode[failure.code]);
+      await reportSignInFailed(c, "email", signInFailureReasonByVerifyFailureCode[failure.code]);
       return jsonAuthError(c, 400, failure.code, failure.publicMessage);
     }
 
@@ -313,7 +313,7 @@ export function createVerifyCodeApp(dependencies: VerifyCodeDependencies): Hono<
     // Reports the sign-in. Bounded and best-effort: the person is signed in above whatever happens
     // here, and the budget that keeps this from delaying the response is derived in
     // server/analytics/signInFunnel.ts.
-    await reportSignInSucceeded(c);
+    await reportSignInSucceeded(c, "email");
 
     return c.json({
       ok: true,

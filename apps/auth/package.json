@@ -15,7 +15,7 @@
     "@aws-sdk/client-lambda": "^3.1158.0",
     "@aws-sdk/client-secrets-manager": "^3.1158.0",
     "@hono/node-server": "^2.1.5",
-    "@sentry/aws-serverless": "^10.77.1",
+    "@sentry/aws-serverless": "^10.78.0",
     "aws-jwt-verify": "^5.2.1",
     "hono": "^4.13.14",
     "pg": "^8.23.1"
