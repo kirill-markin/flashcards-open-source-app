@@ -229,9 +229,8 @@ export function createAnalyticsDeliveryRuntime(
   let confirmedOwnerId: string | null = null;
   /**
    * How many session layers are mounted right now. The session layer is the only thing that confirms
-   * an account owner, and it is mounted only under the authenticated app shell, so while this is
-   * above zero an account owner can still arrive on this page load and nothing may go out
-   * credential-free. That rule is what keeps a signed-in person's `app_opened` on the authenticated
+   * an account owner, so while this is above zero an account owner can still arrive on this page load
+   * and nothing may go out credential-free. That rule is what keeps a signed-in person's `app_opened` on the authenticated
    * ingest: an actor whose `app_opened` rows all came from the collector reads as an actor with no
    * `app_opened` at all and is auto-excluded, with only a human restore to undo it
    * (apps/backend/src/productAnalytics/syntheticActorDetector.ts).
@@ -842,9 +841,9 @@ export function createAnalyticsDeliveryRuntime(
 
   /**
    * Whether a confirmed account owner can still arrive on this load, which is what an authenticated
-   * send waits for. The publisher lives in the app data provider, and only `AuthenticatedApp` mounts
-   * it: on the public routes rendered above it — the catalog import, the friend invite, the share
-   * page — a browser carrying `logged_in` never gets one, so waiting there is waiting forever.
+   * send waits for. The publisher lives in the app data provider: of the public routes rendered above
+   * `AuthenticatedApp`, the catalog import and the friend invite mount it only after their own first
+   * load, and the share page never does, so a browser carrying `logged_in` there may wait forever.
    *
    * Read live from the address bar rather than latched, because a client-side navigation reaches the
    * authenticated routes without a reload, and a publisher that has mounted answers for itself.
@@ -1102,18 +1101,18 @@ export function createAnalyticsDeliveryRuntime(
    * signed-in person's events are the account's, reported under their `user_id` on the authenticated
    * ingest, and an actor whose `app_opened` rows all came from the collector reads as an actor with
    * no `app_opened` at all. Where no credential can ever become sendable — a browser carrying
-   * `logged_in` on a route the session layer never mounts on — the choice is not between the two
-   * transports but between the collector and losing the events with the document, because a refused
-   * browser holds them in memory and has no queue to leave them in. The collector wins that: the
-   * person refused being identified, which is exactly what an identity-free row is.
+   * `logged_in` on `/share`, which the session layer never mounts on — the choice is not between the
+   * two transports but between the collector and losing the events with the document, because a
+   * refused browser holds them in memory and has no queue to leave them in. The collector wins that:
+   * the person refused being identified, which is exactly what an identity-free row is.
    *
-   * "Can ever become sendable" is true of those routes only because every link out of the public
-   * screens is a full-document `<a href>`, so no client-side navigation reaches `AuthenticatedApp`
-   * within one document. Add a react-router `<Link>` from `/share`, `/invite/:token` or
-   * `/catalog/import/:id` into the app and that stops holding: a flush taken on the public route
-   * spends a signed-in refused person's `app_opened` on the collector irreversibly, where waiting a
-   * moment would have shipped it under their account. Either keep those links full-document, or
-   * narrow this branch before adding one.
+   * "Can ever become sendable" is true of `/share` only because every link out of it is a
+   * full-document `<a href>`, so no client-side navigation reaches `AuthenticatedApp` within one
+   * document. `/invite/:token` and `/catalog/import/:id` mount the session layer only after their
+   * first load, and the catalog route also navigates into the app client-side, so a flush taken on
+   * either before that mount spends a signed-in refused person's `app_opened` on the collector
+   * irreversibly, where waiting a moment would have shipped it under their account. Either keep the
+   * share links full-document, or narrow this branch before adding one.
    */
   function canDeliverHeldEventsWithoutIdentity(): boolean {
     if (readAnalyticsConsentDecision() !== "declined") {

@@ -645,9 +645,8 @@ export function useWorkspaceLifecycle(params: UseWorkspaceLifecycleParams): Work
 
   // Announces, for as long as this layer is mounted, that an account owner can still be published on
   // this page load. Analytics reports nothing credential-free while that holds, so a signed-in
-  // person's events wait for their session rather than going out as a visitor's. The public catalog,
-  // invite and share routes mount no session layer, so a visitor there is measured as one unless
-  // this browser's own `logged_in` cookie says an account owns it.
+  // person's events wait for their session rather than going out as a visitor's. The share route
+  // mounts no session layer.
   useEffect(() => {
     return registerAnalyticsSessionOwnerPublisher();
   }, []);
