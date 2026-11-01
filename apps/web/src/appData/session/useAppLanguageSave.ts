@@ -1,5 +1,6 @@
 import { useEffect, type Dispatch, type SetStateAction } from "react";
 import { updateAccountPreferences } from "../../api";
+import { BrowserGuestSessionInvalidatedError } from "../../api/transport/transport";
 import type { Locale } from "../../i18n";
 import { captureAppOperationError } from "../../observability/appOperationObservation";
 import { readEntitlementIdentityGeneration } from "../../premium/entitlementStore";
@@ -49,7 +50,8 @@ export function useAppLanguageSave(input: AppLanguageSaveInput): void {
           : { ...currentSession, profile: { ...currentSession.profile, locale } });
       },
       (error: unknown): void => {
-        if (isCurrentIdentity() === false) {
+        // The browser-guest pause aborts this request by design; the next verified load saves the locale.
+        if (isCurrentIdentity() === false || error instanceof BrowserGuestSessionInvalidatedError) {
           return;
         }
 
