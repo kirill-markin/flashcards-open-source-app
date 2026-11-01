@@ -65,7 +65,9 @@ struct TagsScreen: View {
                                     .font(.subheadline.monospacedDigit())
                                     .foregroundStyle(.secondary)
                             }
+                            #if targetEnvironment(macCatalyst)
                             .frame(minHeight: appMinimumTouchTarget)
+                            #endif
                             .contentShape(Rectangle())
                         }
                         .buttonStyle(.plain)

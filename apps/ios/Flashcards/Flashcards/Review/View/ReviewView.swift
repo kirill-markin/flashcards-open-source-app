@@ -692,7 +692,7 @@ struct ReviewView: View {
                             .font(.caption.weight(.semibold))
                     }
                     .foregroundStyle(Color.primary)
-                    .frame(minHeight: self.showsFilterInReviewColumn ? appMinimumTouchTarget : nil)
+                    .frame(minHeight: self.showsFilterInReviewColumn ? 30 : nil)
                     .fixedSize(horizontal: self.showsFilterInReviewColumn == false, vertical: false)
                     .contentShape(Rectangle())
                 }

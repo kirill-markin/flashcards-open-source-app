@@ -195,7 +195,9 @@ extension AIChatView {
                         .padding(.top, self.chatStore.dictationState == .idle ? aiChatComposerTextVerticalPadding : aiChatComposerDictationTextFieldTopPadding)
                         .padding(.trailing, aiChatComposerSendButtonReservedTrailingPadding)
                         .padding(.bottom, aiChatComposerTextVerticalPadding)
+                        #if targetEnvironment(macCatalyst)
                         .frame(minHeight: aiChatComposerSendButtonHitSize)
+                        #endif
                         .contentShape(Rectangle())
                         .onTapGesture {
                             isTextFieldFocused.wrappedValue = true

@@ -396,7 +396,9 @@ struct PremiumOfferView: View {
             } label: {
                 Label(aiSettingsLocalized("common.close", "Close"), systemImage: "xmark")
                     .labelStyle(.iconOnly)
-                    .frame(minWidth: nativeToolbarLabelMinimumDimension, minHeight: nativeToolbarLabelMinimumDimension)
+                    #if !targetEnvironment(macCatalyst)
+                    .frame(minWidth: 44, minHeight: 44)
+                    #endif
                     .contentShape(Rectangle())
             }
             .accessibilityIdentifier(UITestIdentifier.premiumCloseButton)

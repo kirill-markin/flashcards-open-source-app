@@ -10,15 +10,6 @@ let appMinimumTouchTarget: CGFloat = {
     #endif
 }()
 
-// System toolbar controls own their metrics; retain only the existing iPad label target.
-var nativeToolbarLabelMinimumDimension: CGFloat? {
-    #if targetEnvironment(macCatalyst)
-    nil
-    #else
-    UIDevice.current.userInterfaceIdiom == .pad ? 30 : nil
-    #endif
-}
-
 extension View {
     @ViewBuilder
     func nativeInlineActionButtonStyle() -> some View {

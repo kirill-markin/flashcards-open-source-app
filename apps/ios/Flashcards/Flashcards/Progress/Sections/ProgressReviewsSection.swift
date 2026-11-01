@@ -469,6 +469,10 @@ private struct ProgressReviewsRatingLegendRow: View {
         #endif
         .accessibilityElement(children: .ignore)
         .accessibilityAddTraits(.isButton)
+        // An empty rating has no action; Mac already exposes it as a disabled button.
+        #if !targetEnvironment(macCatalyst)
+        .accessibilityRemoveTraits(self.entry.count > 0 ? [] : .isButton)
+        #endif
         .accessibilityAddTraits(self.isSelected ? .isSelected : [])
         .accessibilityLabel(progressReviewRatingTitle(rating: self.entry.rating))
         .accessibilityValue(self.detailText)

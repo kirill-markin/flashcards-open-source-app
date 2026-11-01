@@ -313,9 +313,6 @@ struct AIChatMessageRow: View {
                                         UIPasteboard.general.string = section.text
                                     } label: {
                                         Text(section.copyButtonTitle)
-                                            #if !targetEnvironment(macCatalyst)
-                                            .frame(minWidth: 44, minHeight: 44)
-                                            #endif
                                             .contentShape(Rectangle())
                                     }
                                     .nativeInlineActionButtonStyle()

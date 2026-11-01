@@ -371,10 +371,10 @@ struct CardsScreen: View {
             let symbolColor = Color.primary
             Image(systemName: symbolName)
                 .foregroundStyle(symbolColor)
-                .frame(minWidth: nativeToolbarLabelMinimumDimension, minHeight: nativeToolbarLabelMinimumDimension)
+                .frame(minWidth: UIDevice.current.userInterfaceIdiom == .pad ? 30 : nil, minHeight: UIDevice.current.userInterfaceIdiom == .pad ? 30 : nil)
                 .contentShape(Rectangle())
         }
-        .frame(minWidth: nativeToolbarLabelMinimumDimension, minHeight: nativeToolbarLabelMinimumDimension)
+        .frame(minWidth: UIDevice.current.userInterfaceIdiom == .pad ? 44 : nil, minHeight: UIDevice.current.userInterfaceIdiom == .pad ? 44 : nil)
         .accessibilityIdentifier(UITestIdentifier.cardsFilterButton)
         .accessibilityLabel(self.filterToolbarAccessibilityLabel)
     }
@@ -395,10 +395,10 @@ struct CardsScreen: View {
             Button(action: action) {
             Label(String(localized: "Add card", table: reviewCardsStringsTableName), systemImage: "plus")
                 .foregroundStyle(Color.primary)
-                .frame(minWidth: nativeToolbarLabelMinimumDimension, minHeight: nativeToolbarLabelMinimumDimension)
+                .frame(minWidth: UIDevice.current.userInterfaceIdiom == .pad ? 30 : nil, minHeight: UIDevice.current.userInterfaceIdiom == .pad ? 30 : nil)
                 .contentShape(Rectangle())
         }
-        .frame(minWidth: nativeToolbarLabelMinimumDimension, minHeight: nativeToolbarLabelMinimumDimension)
+        .frame(minWidth: UIDevice.current.userInterfaceIdiom == .pad ? 44 : nil, minHeight: UIDevice.current.userInterfaceIdiom == .pad ? 44 : nil)
         .tint(Color.primary)
         .accessibilityIdentifier(UITestIdentifier.cardsAddButton)
         }
@@ -848,7 +848,11 @@ struct CardRow: View {
         }
         .fixedSize(horizontal: false, vertical: true)
         .padding(.vertical, 4)
+        #if targetEnvironment(macCatalyst)
         .frame(maxWidth: .infinity, minHeight: appMinimumTouchTarget, alignment: .leading)
+        #else
+        .frame(maxWidth: .infinity, alignment: .leading)
+        #endif
         .contentShape(Rectangle())
     }
 

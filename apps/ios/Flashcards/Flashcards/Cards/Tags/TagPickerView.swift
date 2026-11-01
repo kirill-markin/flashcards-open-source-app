@@ -39,7 +39,9 @@ private struct TagInputRow: View {
                 } label: {
                     Image(systemName: "xmark.circle.fill")
                         .foregroundStyle(.secondary)
+                        #if targetEnvironment(macCatalyst)
                         .frame(minWidth: appMinimumTouchTarget, minHeight: appMinimumTouchTarget)
+                        #endif
                         .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
@@ -87,7 +89,9 @@ private struct TagPickerRow: View {
                     .foregroundStyle(.tint)
             }
         }
+        #if targetEnvironment(macCatalyst)
         .frame(minHeight: appMinimumTouchTarget)
+        #endif
         .contentShape(Rectangle())
     }
 }
