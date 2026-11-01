@@ -106,7 +106,7 @@ export function createSendCodeApp(dependencies: SendCodeDependencies): Hono<Auth
       // value for a request refused before a code could be sent, and it therefore also carries a
       // mistyped address: the catalog has no value for one, and this item does not add one. Read it
       // on this route as "no code was sent", not as "the service broke".
-      await reportSignInFailed(c, "server_error");
+      await reportSignInFailed(c, "email", "server_error");
       return jsonAuthError(c, 400, "INVALID_EMAIL", "Enter a valid email address.");
     }
 
@@ -124,12 +124,12 @@ export function createSendCodeApp(dependencies: SendCodeDependencies): Hono<Auth
       } catch (error) {
         if (error instanceof PrincipalSessionError) throw error;
         if (error instanceof IssuedSessionValidationError) {
-          await reportSignInFailed(c, "server_error");
+          await reportSignInFailed(c, "email", "server_error");
           return jsonAuthError(c, 503, "SERVICE_UNAVAILABLE",
             "Authentication succeeded, but session validation could not complete. Try signing in again shortly.");
         }
         if (isRejectedPasswordSignIn(error)) {
-          await reportSignInFailed(c, "invalid_code");
+          await reportSignInFailed(c, "email", "invalid_code");
           return jsonAuthError(c, 401, "PASSWORD_SIGN_IN_FAILED", "Email or password is incorrect.");
         }
 
@@ -149,7 +149,7 @@ export function createSendCodeApp(dependencies: SendCodeDependencies): Hono<Auth
           reportCognitoProviderOutage(c, cognitoProviderOutage, "PASSWORD_SIGN_IN_FAILED");
           c.header("Retry-After", "1");
         }
-        await reportSignInFailed(c, "server_error");
+        await reportSignInFailed(c, "email", "server_error");
         return jsonAuthError(c, statusCode, "PASSWORD_SIGN_IN_FAILED", "Password sign-in failed. Try again.");
       }
 
@@ -164,7 +164,7 @@ export function createSendCodeApp(dependencies: SendCodeDependencies): Hono<Auth
       // This branch completes a sign-in inside `send-code`, so it owes the same success sequence as
       // `verify-code`: the event, and the retired guest cookie an older build may have left on this
       // browser.
-      await reportSignInSucceeded(c);
+      await reportSignInSucceeded(c, "email");
       return c.json({
         ok: true,
         idToken: tokens.idToken,
@@ -189,7 +189,7 @@ export function createSendCodeApp(dependencies: SendCodeDependencies): Hono<Auth
         code: "INVALID_EMAIL",
         reasonCategory: "reserved_email_domain",
       });
-      await reportSignInFailed(c, "server_error");
+      await reportSignInFailed(c, "email", "server_error");
       return jsonAuthError(c, 400, "INVALID_EMAIL", "Enter a valid email address.");
     }
 
@@ -198,7 +198,7 @@ export function createSendCodeApp(dependencies: SendCodeDependencies): Hono<Auth
 
     if (rateLimitDecision.kind === "block_ip_limit") {
       await dependencies.recordOtpSendDecision(email, ipAddress, "blocked_ip_limit", null);
-      await reportSignInFailed(c, "rate_limited");
+      await reportSignInFailed(c, "email", "rate_limited");
       return jsonAuthError(c, 429, "RATE_LIMITED", "Too many requests. Try again later.");
     }
 
@@ -211,7 +211,7 @@ export function createSendCodeApp(dependencies: SendCodeDependencies): Hono<Auth
         dependencies.jitterDelay(),
       ]);
       if (existingOtpSessionToken === null) {
-        await reportSignInFailed(c, "rate_limited");
+        await reportSignInFailed(c, "email", "rate_limited");
         return jsonAuthError(c, 429, "RATE_LIMITED", "Too many requests. Try again later.");
       }
 
@@ -219,7 +219,7 @@ export function createSendCodeApp(dependencies: SendCodeDependencies): Hono<Auth
       try {
         payload = dependencies.parseSignedOtpSessionToken(existingOtpSessionToken);
       } catch {
-        await reportSignInFailed(c, "rate_limited");
+        await reportSignInFailed(c, "email", "rate_limited");
         return jsonAuthError(c, 429, "RATE_LIMITED", "Too many requests. Try again later.");
       }
 
@@ -248,7 +248,7 @@ export function createSendCodeApp(dependencies: SendCodeDependencies): Hono<Auth
             errorCode: err.reasonCode,
             errorMessage: err.message,
           });
-          await reportSignInFailed(c, "server_error");
+          await reportSignInFailed(c, "email", "server_error");
           return jsonAuthError(c, 400, "INVALID_EMAIL", "Enter a valid email address.");
         }
 
@@ -268,7 +268,7 @@ export function createSendCodeApp(dependencies: SendCodeDependencies): Hono<Auth
           reportCognitoProviderOutage(c, cognitoProviderOutage, "OTP_SEND_FAILED");
           c.header("Retry-After", "1");
         }
-        await reportSignInFailed(c, "server_error");
+        await reportSignInFailed(c, "email", "server_error");
         return jsonAuthError(c, statusCode, "OTP_SEND_FAILED", "Could not send a code. Try again.");
       }
 
@@ -305,7 +305,7 @@ export function createSendCodeApp(dependencies: SendCodeDependencies): Hono<Auth
         // An email may already be on its way, but this response carries no CSRF token and no OTP
         // session, so the person cannot go on: a failed sign-in attempt, and this one really is the
         // service.
-        await reportSignInFailed(c, "server_error");
+        await reportSignInFailed(c, "email", "server_error");
         // Avoid Retry-After here because replaying send-code can duplicate email delivery.
         return c.json({
           error: POST_EMAIL_DB_FAILURE_MESSAGE,

@@ -39,14 +39,13 @@ import { type AuthAppEnv, getRequestId, getTraceId } from "../apiErrors.js";
 import { logWarning } from "../logger.js";
 import { getPublicApiBaseUrl, getPublicAuthBaseUrl } from "../publicUrls.js";
 import {
-  createSignInCodeRequestedEvent,
+  createSignInCodeRequestedWithMethodEventFactory,
   createAuthAnalyticsFactEventFactory,
   createSignInSucceededWithMethodEventFactory,
   type AuthAnalyticsFact,
   type AuthAnalyticsMethod,
-  createSignInFailedEventFactory,
+  createSignInFailedWithMethodEventFactory,
   createSignInScreenViewedEvent,
-  createSignInSucceededEvent,
   type AuthAnalyticsEventFactory,
   type AuthSignInFailureReason,
 } from "./catalog.js";
@@ -131,13 +130,14 @@ const analyticsReportBudgetMs = 150;
  */
 const signInScreenMarker = "signin";
 
-function logReportFailure(c: Context<AuthAppEnv>, errorMessage: string): void {
+function logReportFailure(c: Context<AuthAppEnv>, errorMessage: string, failed: number | undefined): void {
   logWarning({
     domain: "auth",
     action: "analytics_ingest_error",
     requestId: getRequestId(c),
     traceId: getTraceId(c),
     route: c.req.path,
+    failed,
     errorMessage,
   });
 }
@@ -183,7 +183,8 @@ function createReportCall(c: Context<AuthAppEnv>, userAgent: string, timeoutMs: 
 }
 
 /**
- * Reports one funnel step of a request the login page marked as its own.
+ * Reports one funnel step of a request the login page marked as its own, or adds it to the request's
+ * collection while `startCollectingAuthEvents` is in effect.
  *
  * The wait is awaited on purpose. There is no `waitUntil` on this Lambda, so work left running after
  * the response is frozen with the container and resumes, if ever, inside an unrelated later
@@ -195,12 +196,31 @@ function createReportCall(c: Context<AuthAppEnv>, userAgent: string, timeoutMs: 
 async function reportSignInFunnelEvent(
   c: Context<AuthAppEnv>,
   createEvent: AuthAnalyticsEventFactory,
-  context: AuthAnalyticsContext,
 ): Promise<void> {
-  await reportSignInFunnelEvents(c, [{ createEvent, occurredAt: Date.now() }], context);
+  const observed: ObservedAuthAnalyticsEvent = { createEvent, occurredAt: Date.now() };
+  const collected = c.get("analyticsCollectedEvents");
+  if (collected !== undefined) {
+    c.set("analyticsCollectedEvents", [...collected, observed]);
+    return;
+  }
+  await reportSignInFunnelEvents(c, [observed], readAuthAnalyticsContext(c));
 }
 
 export type ObservedAuthAnalyticsEvent = Readonly<{ createEvent: AuthAnalyticsEventFactory; occurredAt: number }>;
+
+/**
+ * Holds this request's funnel events until `sendCollectedAuthEvents`, so they go out in one parallel
+ * send under the request's one budget instead of queueing behind each other's waits.
+ */
+export function startCollectingAuthEvents(c: Context<AuthAppEnv>): void {
+  c.set("analyticsCollectedEvents", []);
+}
+
+export async function sendCollectedAuthEvents(c: Context<AuthAppEnv>): Promise<void> {
+  const collected = c.get("analyticsCollectedEvents") ?? [];
+  c.set("analyticsCollectedEvents", undefined);
+  await reportSignInFunnelEvents(c, collected, readAuthAnalyticsContext(c));
+}
 
 async function reportSignInFunnelEvents(
   c: Context<AuthAppEnv>,
@@ -227,12 +247,20 @@ async function reportSignInFunnelEvents(
         c,
         "Sign-in funnel event was not reported: the request carried no User-Agent to forward, and "
           + "the collector would have stored the row as automated.",
+        events.length,
       );
       return;
     }
 
     const remaining = c.get("analyticsReportBudgetRemainingMs") ?? analyticsReportBudgetMs;
-    if (remaining <= 0) return;
+    if (remaining <= 0) {
+      logReportFailure(
+        c,
+        "Sign-in funnel events were not reported: this request already spent its analytics report budget.",
+        events.length,
+      );
+      return;
+    }
     const startedAt = performance.now();
     try {
       await Promise.all(events.map(({ createEvent, occurredAt }) => {
@@ -246,23 +274,24 @@ async function reportSignInFunnelEvents(
       c.set("analyticsReportBudgetRemainingMs", Math.max(0, remaining - Math.max(1, Math.ceil(performance.now() - startedAt))));
     }
   } catch (error) {
-    logReportFailure(c, error instanceof Error ? error.message : String(error));
+    logReportFailure(c, error instanceof Error ? error.message : String(error), undefined);
   }
 }
 
 export async function reportSignInScreenViewed(c: Context<AuthAppEnv>): Promise<void> {
-  await reportSignInFunnelEvent(c, createSignInScreenViewedEvent, readAuthAnalyticsContext(c));
+  await reportSignInFunnelEvent(c, createSignInScreenViewedEvent);
 }
 
 export async function reportSignInCodeRequested(c: Context<AuthAppEnv>): Promise<void> {
-  await reportSignInFunnelEvent(c, createSignInCodeRequestedEvent, readAuthAnalyticsContext(c));
+  await reportSignInFunnelEvent(c, createSignInCodeRequestedWithMethodEventFactory("email"));
 }
 
 export async function reportSignInFailed(
   c: Context<AuthAppEnv>,
+  method: AuthAnalyticsMethod,
   reason: AuthSignInFailureReason,
 ): Promise<void> {
-  await reportSignInFunnelEvent(c, createSignInFailedEventFactory(reason), readAuthAnalyticsContext(c));
+  await reportSignInFunnelEvent(c, createSignInFailedWithMethodEventFactory(method, reason));
 }
 
 /**
@@ -280,24 +309,20 @@ export async function reportSignInFailed(
  * The shared visitor id is left alone, here and on every logout route. It is the product domain's
  * rather than this origin's, and nothing about a sign-in is a reason to end it.
  */
-export async function reportSignInSucceeded(c: Context<AuthAppEnv>): Promise<void> {
+export async function reportSignInSucceeded(c: Context<AuthAppEnv>, method: AuthAnalyticsMethod): Promise<void> {
   try {
     if (hasAuthAnalyticsGuestSession(c)) {
       clearAuthAnalyticsGuestSession(c);
     }
   } catch (error) {
-    logReportFailure(c, error instanceof Error ? error.message : String(error));
+    logReportFailure(c, error instanceof Error ? error.message : String(error), undefined);
   }
 
-  await reportSignInFunnelEvent(c, createSignInSucceededEvent, readAuthAnalyticsContext(c));
+  await reportSignInFunnelEvent(c, createSignInSucceededWithMethodEventFactory(method));
 }
 
 export async function reportAuthFact(c: Context<AuthAppEnv>, fact: AuthAnalyticsFact): Promise<void> {
-  await reportSignInFunnelEvent(c, createAuthAnalyticsFactEventFactory(fact), readAuthAnalyticsContext(c));
-}
-
-export async function reportSignInSucceededWithMethod(c: Context<AuthAppEnv>, method: AuthAnalyticsMethod): Promise<void> {
-  await reportSignInFunnelEvent(c, createSignInSucceededWithMethodEventFactory(method), readAuthAnalyticsContext(c));
+  await reportSignInFunnelEvent(c, createAuthAnalyticsFactEventFactory(fact));
 }
 
 export type AuthAnalyticsContext = Readonly<{ screen: "signin" | "settings" | null; uiLocale: LoginPageLocale | null }>;
