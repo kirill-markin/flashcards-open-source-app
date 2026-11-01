@@ -5,14 +5,13 @@ private let marketingScreenshotLocalizationEnvironmentKey: String = "FLASHCARDS_
 enum FlashcardsUITestLaunchScenario: String {
     case guestEmptyWorkspace = "guest_empty_workspace"
     case guestManualReviewCard = "guest_manual_review_card"
-    case guestManualReviewCardWithReminderAttention = "guest_manual_review_card_with_reminder_attention"
     case guestAIReviewCard = "guest_ai_review_card"
     case marketingScreenshots = "marketing_screenshots"
     case marketingGuestSessionCleanup = "marketing_guest_session_cleanup"
 
     var requiresGuestCloudBootstrap: Bool {
         switch self {
-        case .guestEmptyWorkspace, .guestManualReviewCard, .guestManualReviewCardWithReminderAttention, .guestAIReviewCard:
+        case .guestEmptyWorkspace, .guestManualReviewCard, .guestAIReviewCard:
             return false
         case .marketingScreenshots:
             return true
@@ -25,7 +24,7 @@ enum FlashcardsUITestLaunchScenario: String {
         switch self {
         case .marketingScreenshots, .marketingGuestSessionCleanup:
             return true
-        case .guestEmptyWorkspace, .guestManualReviewCard, .guestManualReviewCardWithReminderAttention, .guestAIReviewCard:
+        case .guestEmptyWorkspace, .guestManualReviewCard, .guestAIReviewCard:
             return false
         }
     }
@@ -2767,8 +2766,6 @@ extension FlashcardsStore {
             return
         case .guestManualReviewCard:
             try self.createUITestCard(card: FlashcardsUITestLaunchScenarioData.manualReviewCard, context: context)
-        case .guestManualReviewCardWithReminderAttention:
-            try self.createUITestCard(card: FlashcardsUITestLaunchScenarioData.manualReviewCard, context: context)
         case .guestAIReviewCard:
             try self.createUITestCard(card: FlashcardsUITestLaunchScenarioData.aiReviewCard, context: context)
         case .marketingScreenshots:
@@ -2777,19 +2774,6 @@ extension FlashcardsStore {
         case .marketingGuestSessionCleanup:
             return
         }
-    }
-
-    func markUITestReviewReminderAttentionAfterNotificationCleanup() async throws {
-        while let task = self.activeReviewNotificationsRescheduleTask {
-            await task.value
-        }
-
-        let context = try requireLocalMutationContext(database: self.database, workspace: self.workspace)
-        self.markReviewReminderAttention(
-            workspaceId: context.workspaceId,
-            requestId: "ui-test-review-reminder-attention",
-            deliveredAtMillis: epochMillis(date: Date())
-        )
     }
 
     private func createUITestMarketingScreenshotsData(

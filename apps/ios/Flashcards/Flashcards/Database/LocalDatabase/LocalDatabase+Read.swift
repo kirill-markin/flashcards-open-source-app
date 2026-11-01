@@ -135,6 +135,18 @@ extension LocalDatabase {
         )
     }
 
+    func loadReviewOverdueSnapshot(
+        workspaceId: String,
+        reviewQueryDefinition: ReviewQueryDefinition,
+        now: Date
+    ) throws -> ReviewOverdueSnapshot {
+        try self.cardStore.loadReviewOverdueSnapshot(
+            workspaceId: workspaceId,
+            reviewQueryDefinition: reviewQueryDefinition,
+            now: now
+        )
+    }
+
     func loadReviewTimelinePage(
         workspaceId: String,
         reviewQueryDefinition: ReviewQueryDefinition,
