@@ -1,6 +1,7 @@
 package com.flashcardsopensourceapp.feature.review
 
 import android.net.Uri
+import com.flashcardsopensourceapp.core.ui.R as CoreUiR
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -30,6 +31,12 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.flashcardsopensourceapp.core.ui.content.InlineMathContent
+import com.flashcardsopensourceapp.core.ui.content.InlineMathFormula
+import com.flashcardsopensourceapp.core.ui.content.InlineMathRenderState
+import com.flashcardsopensourceapp.core.ui.content.countInlineMathMarkers
+import com.flashcardsopensourceapp.core.ui.content.inlineMathMarker
+import com.flashcardsopensourceapp.core.ui.content.rememberInlineMathContent
 import com.mikepenz.markdown.coil3.Coil3ImageTransformerImpl
 import com.mikepenz.markdown.m3.Markdown
 import com.mikepenz.markdown.m3.markdownColor
@@ -68,17 +75,17 @@ private object ReviewNetworkImageTransformer : ImageTransformer {
 @Composable
 internal fun ReviewMarkdownText(
     markdown: String,
-    inlineFormulas: List<ReviewInlineMathFormula>,
+    inlineFormulas: List<InlineMathFormula>,
     modifier: Modifier
 ) {
     val platformUriHandler: UriHandler = LocalUriHandler.current
     val reviewUriHandler: UriHandler = remember(platformUriHandler) {
         makeReviewMarkdownUriHandler(platformUriHandler = platformUriHandler)
     }
-    val inlineMathContent: ReviewInlineMathContent = rememberReviewInlineMathContent(
+    val inlineMathContent: InlineMathContent = rememberInlineMathContent(
         formulas = inlineFormulas
     )
-    val mathErrorMessage: String = stringResource(id = R.string.review_math_render_failed)
+    val mathErrorMessage: String = stringResource(id = CoreUiR.string.review_math_render_failed)
     val mathErrorColor: Color = MaterialTheme.colorScheme.error
     val inlineMathAnnotator: MarkdownAnnotator = remember(
         inlineFormulas,
@@ -180,13 +187,13 @@ internal fun ReviewMarkdownText(
 }
 
 /**
- * Replaces every [reviewInlineMathMarker] with its formula, so an accepted `$…$` span stays on the
+ * Replaces every [inlineMathMarker] with its formula, so an accepted `$…$` span stays on the
  * surrounding text baseline inside its paragraph instead of becoming a block of its own, and writes
  * every dollar the contract keeps literal back from the source.
  */
 private fun makeReviewInlineMathAnnotator(
-    formulas: List<ReviewInlineMathFormula>,
-    renderStates: Map<String, ReviewInlineMathRenderState>,
+    formulas: List<InlineMathFormula>,
+    renderStates: Map<String, InlineMathRenderState>,
     errorMessage: String,
     errorColor: Color
 ): MarkdownAnnotator {
@@ -203,13 +210,13 @@ private fun makeReviewInlineMathAnnotator(
             return@markdownAnnotator false
         }
         val nodeText: String = content.substring(startIndex = startOffset, endIndex = endOffset)
-        if (isDollarNode.not() && nodeText.contains(char = reviewInlineMathMarker).not()) {
+        if (isDollarNode.not() && nodeText.contains(char = inlineMathMarker).not()) {
             return@markdownAnnotator false
         }
         appendReviewMathNodeText(
             nodeText = nodeText,
             formulas = formulas,
-            firstFormulaIndex = countReviewInlineMathMarkers(
+            firstFormulaIndex = countInlineMathMarkers(
                 text = content.substring(startIndex = 0, endIndex = startOffset)
             ),
             renderStates = renderStates,
@@ -228,9 +235,9 @@ private fun makeReviewInlineMathAnnotator(
  */
 private fun AnnotatedString.Builder.appendReviewMathNodeText(
     nodeText: String,
-    formulas: List<ReviewInlineMathFormula>,
+    formulas: List<InlineMathFormula>,
     firstFormulaIndex: Int,
-    renderStates: Map<String, ReviewInlineMathRenderState>,
+    renderStates: Map<String, InlineMathRenderState>,
     errorMessage: String,
     errorColor: Color
 ) {
@@ -248,7 +255,7 @@ private fun AnnotatedString.Builder.appendReviewMathNodeText(
         processEscapes = true
     )
     literalText.forEach { character ->
-        if (character == reviewInlineMathMarker) {
+        if (character == inlineMathMarker) {
             formulas.getOrNull(index = formulaIndex)?.let { formula ->
                 appendReviewInlineMathFormula(
                     formula = formula,
@@ -265,12 +272,12 @@ private fun AnnotatedString.Builder.appendReviewMathNodeText(
 }
 
 private fun AnnotatedString.Builder.appendReviewInlineMathFormula(
-    formula: ReviewInlineMathFormula,
-    renderState: ReviewInlineMathRenderState?,
+    formula: InlineMathFormula,
+    renderState: InlineMathRenderState?,
     errorMessage: String,
     errorColor: Color
 ) {
-    if (renderState is ReviewInlineMathRenderState.Failed) {
+    if (renderState is InlineMathRenderState.Failed) {
         // A rejected formula stays visible as its original delimited source next to a localized error.
         withStyle(style = SpanStyle(color = errorColor, fontFamily = FontFamily.Monospace)) {
             append(formula.delimitedSource)

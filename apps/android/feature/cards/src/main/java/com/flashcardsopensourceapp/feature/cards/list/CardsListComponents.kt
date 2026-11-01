@@ -37,6 +37,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.flashcardsopensourceapp.core.ui.content.MathText
 import com.flashcardsopensourceapp.data.local.model.cards.CardFilter
 import com.flashcardsopensourceapp.data.local.model.cards.CardSummary
 import com.flashcardsopensourceapp.data.local.model.cards.buildCardFilter
@@ -66,7 +67,7 @@ internal fun CardRow(
     ) {
         ListItem(
             headlineContent = {
-                Text(
+                MathText(
                     text = card.frontText,
                     style = MaterialTheme.typography.titleMedium,
                     modifier = Modifier.testTag(cardsCardFrontTextTag)

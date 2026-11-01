@@ -254,8 +254,7 @@ private struct ReviewQueuePreviewCardRow: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(alignment: .top, spacing: 12) {
-                Text(card.frontText)
-                    .font(.headline)
+                MathContentText(text: card.frontText, textStyle: .headline, weight: .semibold)
                     .frame(maxWidth: .infinity, alignment: .leading)
 
                 if isCurrent {
@@ -271,10 +270,7 @@ private struct ReviewQueuePreviewCardRow: View {
                 }
             }
 
-            Text(card.backText)
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-                .lineLimit(2)
+            MathContentText(text: card.backText, textStyle: .subheadline, color: .secondaryLabel, lineLimit: 2)
 
             HStack(spacing: 12) {
                 Label(localizedDueDateLabel(value: card.dueAt), systemImage: "clock")

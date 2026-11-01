@@ -299,7 +299,7 @@ const reviewMarkdownComponents: Components = {
   },
 };
 
-function ReviewCardMarkdown(props: Readonly<{
+export function ReviewCardMarkdown(props: Readonly<{
   localReadVersion: number;
   text: string;
   workspaceId: string | null;

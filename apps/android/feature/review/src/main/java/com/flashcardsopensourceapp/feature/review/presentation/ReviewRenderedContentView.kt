@@ -10,6 +10,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.key
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.flashcardsopensourceapp.core.ui.content.MathFormulaBlock
 import com.flashcardsopensourceapp.data.local.model.media.MediaAssetDownloadUrl
 import com.flashcardsopensourceapp.data.local.model.media.ReviewMediaAssetFile
 
@@ -67,7 +68,7 @@ fun ReviewRenderedContentView(
                                 )
                             }
 
-                            is ReviewManagedMarkdownBlock.Formula -> ReviewMathFormulaBlock(
+                            is ReviewManagedMarkdownBlock.Formula -> MathFormulaBlock(
                                 source = block.source,
                                 delimitedSource = block.delimitedSource,
                                 modifier = Modifier.fillMaxWidth()

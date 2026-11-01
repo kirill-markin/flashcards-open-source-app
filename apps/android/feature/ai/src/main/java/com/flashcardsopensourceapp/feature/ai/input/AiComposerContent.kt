@@ -14,8 +14,8 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.Send
 import androidx.compose.material.icons.outlined.AttachFile
-import androidx.compose.material.icons.outlined.CollectionsBookmark
 import androidx.compose.material.icons.outlined.Close
+import androidx.compose.material.icons.outlined.CollectionsBookmark
 import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material.icons.outlined.Image
 import androidx.compose.material.icons.outlined.Mic
@@ -48,6 +48,11 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.flashcardsopensourceapp.core.ui.bidiWrap
+import com.flashcardsopensourceapp.core.ui.content.MathText
+import com.flashcardsopensourceapp.core.ui.currentResourceLocale
+import com.flashcardsopensourceapp.data.local.model.ai.AiChatAttachment
+import com.flashcardsopensourceapp.data.local.model.ai.AiChatDictationState
 import com.flashcardsopensourceapp.feature.ai.AiUiState
 import com.flashcardsopensourceapp.feature.ai.R
 import com.flashcardsopensourceapp.feature.ai.aiComposerMessageFieldTag
@@ -57,10 +62,6 @@ import com.flashcardsopensourceapp.feature.ai.aiComposerSendButtonTag
 import com.flashcardsopensourceapp.feature.ai.aiComposerSuggestionPrefixTag
 import com.flashcardsopensourceapp.feature.ai.aiComposerSuggestionRowTag
 import com.flashcardsopensourceapp.feature.ai.input.dictationStatusLabel
-import com.flashcardsopensourceapp.core.ui.bidiWrap
-import com.flashcardsopensourceapp.core.ui.currentResourceLocale
-import com.flashcardsopensourceapp.data.local.model.ai.AiChatAttachment
-import com.flashcardsopensourceapp.data.local.model.ai.AiChatDictationState
 import com.flashcardsopensourceapp.feature.ai.strings.aiTextProvider
 import com.flashcardsopensourceapp.feature.ai.ui.RepairStatusCard
 
@@ -135,12 +136,17 @@ internal fun AiComposer(
                             onClick = {},
                             modifier = Modifier.testTag(tag = aiComposerPendingAttachmentTag),
                             label = {
-                                Text(
+                                if (attachment is AiChatAttachment.Card) {
+                                    MathText(
+                                        text = attachment.frontText,
+                                        formatText = cardAttachmentTextFormatter(),
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                } else Text(
                                     text = when (attachment) {
                                         is AiChatAttachment.Binary -> attachment.fileName
-                                        is AiChatAttachment.Card -> aiCardAttachmentLabel(
-                                            frontText = attachment.frontText
-                                        )
+                                        is AiChatAttachment.Card -> attachment.frontText
                                         is AiChatAttachment.Unknown -> attachment.summaryText
                                     },
                                     maxLines = 1,
@@ -399,20 +405,19 @@ internal fun AiComposer(
     }
 }
 
+
 @Composable
-private fun aiCardAttachmentLabel(frontText: String): String {
+private fun cardAttachmentTextFormatter(): (String) -> String {
     val context = LocalContext.current
     val locale = currentResourceLocale(resources = context.resources)
-    val trimmedFrontText = frontText.trim()
-    if (trimmedFrontText.isEmpty()) {
-        return stringResource(id = R.string.ai_card_attachment_fallback_title)
+    return { text ->
+        if (text.isBlank()) {
+            context.getString(R.string.ai_card_attachment_fallback_title)
+        } else {
+            context.getString(
+                R.string.ai_card_attachment_title,
+                bidiWrap(text = text.trim().take(72), locale = locale)
+            )
+        }
     }
-
-    return stringResource(
-        id = R.string.ai_card_attachment_title,
-        bidiWrap(
-            text = trimmedFrontText.take(n = 72),
-            locale = locale
-        )
-    )
 }

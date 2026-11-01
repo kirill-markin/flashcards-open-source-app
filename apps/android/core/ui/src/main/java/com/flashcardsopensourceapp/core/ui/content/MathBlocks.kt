@@ -1,20 +1,20 @@
-package com.flashcardsopensourceapp.feature.review
+package com.flashcardsopensourceapp.core.ui.content
 
-internal sealed interface ReviewMathBlock {
+sealed interface MathBlock {
     data class Markdown(
         val markdown: String,
         val normalizedMarkdown: String
-    ) : ReviewMathBlock
+    ) : MathBlock
 
     data class Formula(
         val source: String,
         val delimitedSource: String,
         val continuesParagraph: Boolean
-    ) : ReviewMathBlock
+    ) : MathBlock
 }
 
-internal data class ReviewMathBlockExtraction(
-    val blocks: List<ReviewMathBlock>,
+data class MathBlockExtraction(
+    val blocks: List<MathBlock>,
     val requiresMarkdownRendering: Boolean
 )
 
@@ -72,7 +72,7 @@ private val reviewBareLinkRegex: Regex = Regex(
 private val reviewBareEmailRegex: Regex = Regex(
     pattern = """[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}"""
 )
-internal fun extractReviewMathBlocks(markdown: String): ReviewMathBlockExtraction {
+fun extractMathBlocks(markdown: String): MathBlockExtraction {
     val lines: List<ReviewMathLine> = makeReviewMathLines(markdown = markdown)
     val extraction: ReviewMathExtraction = extractReviewMathCandidates(
         markdown = markdown,
@@ -89,7 +89,7 @@ internal fun extractReviewMathBlocks(markdown: String): ReviewMathBlockExtractio
         extraction.candidates.sortedBy { candidate -> candidate.startOffset }
     }
 
-    return ReviewMathBlockExtraction(
+    return MathBlockExtraction(
         blocks = makeReviewMathBlocks(
             markdown = markdown,
             candidates = candidates,
@@ -113,7 +113,7 @@ private fun hasReviewReferenceDefinitionOutsideProtectedContexts(
             line.startOffset >= candidate.startOffset &&
                 line.contentEndOffset <= candidate.endOffset
         }
-        val fenceMarker: String? = reviewFenceMarker(line = line.content)
+        val fenceMarker: String? = markdownFenceMarker(line = line.content)
         val displayFenceRunLength: Int? = reviewDisplayFenceRunLength(line = line.content)
         when {
             isInsideDisplayMath -> lineIndex += 1
@@ -157,7 +157,7 @@ private fun extractReviewMathCandidates(
 
     while (lineIndex < lines.size) {
         val line: ReviewMathLine = lines[lineIndex]
-        val fenceMarker: String? = reviewFenceMarker(line = line.content)
+        val fenceMarker: String? = markdownFenceMarker(line = line.content)
         val displayFenceRunLength: Int? = reviewDisplayFenceRunLength(line = line.content)
         val singleLineDisplayCandidate: ReviewMathCandidate? = makeReviewSingleLineDisplayCandidate(
             lines = lines,
@@ -225,7 +225,7 @@ private fun extractReviewMathCandidates(
                 val nextLine: ReviewMathLine? = lines.getOrNull(index = paragraphEndIndex)
                 val isSetextOrTable: Boolean = nextLine != null && (
                     reviewSetextBoundaryRegex.matches(nextLine.content) ||
-                        reviewTableDelimiterRegex.matches(nextLine.content)
+                        markdownTableDelimiterRegex.matches(nextLine.content)
                     )
                 if (isSetextOrTable.not()) {
                     val paragraphExtraction: ReviewMathExtraction? = extractReviewInlineParagraph(
@@ -290,7 +290,7 @@ private fun reviewLineIndexAfterFence(
     while (lineIndex < lines.size) {
         val line: String = lines[lineIndex].content
         if (isReviewIndentedCodeLine(line = line).not() &&
-            isReviewFenceClosingLine(line = line, openingMarker = marker)
+            isMarkdownFenceClosingLine(line = line, openingMarker = marker)
         ) {
             return lineIndex + 1
         }
@@ -643,7 +643,7 @@ private fun hasReviewMarkdownHardBreak(line: String): Boolean {
 
 private fun isReviewParagraphBoundary(line: String): Boolean {
     return isReviewBlankLine(line = line) ||
-        reviewFenceMarker(line = line) != null ||
+        markdownFenceMarker(line = line) != null ||
         isReviewIndentedCodeLine(line = line) ||
         isReviewContainerLine(line = line) ||
         isReviewRawHtmlLine(line = line) ||
@@ -653,8 +653,8 @@ private fun isReviewParagraphBoundary(line: String): Boolean {
 private fun isReviewSingleLineBoundary(line: String): Boolean {
     return reviewAtxHeadingRegex.containsMatchIn(line) ||
         reviewSetextBoundaryRegex.matches(line) ||
-        reviewHorizontalRuleRegex.matches(line) ||
-        reviewTableDelimiterRegex.matches(line)
+        markdownHorizontalRuleRegex.matches(line) ||
+        markdownTableDelimiterRegex.matches(line)
 }
 
 private fun isReviewContainerLine(line: String): Boolean {
@@ -697,7 +697,7 @@ private fun makeReviewMathBlocks(
     markdown: String,
     candidates: List<ReviewMathCandidate>,
     escapedDollarOffsets: List<Int>
-): List<ReviewMathBlock> {
+): List<MathBlock> {
     if (candidates.isEmpty()) {
         return listOf(
             makeReviewMarkdownBlock(
@@ -723,7 +723,7 @@ private fun makeReviewMathBlocks(
                 )
             }
             add(
-                ReviewMathBlock.Formula(
+                MathBlock.Formula(
                     source = candidate.source,
                     delimitedSource = candidate.delimitedSource,
                     continuesParagraph = candidate.kind == ReviewMathCandidateKind.INLINE
@@ -749,7 +749,7 @@ private fun makeReviewMarkdownBlock(
     startOffset: Int,
     endOffset: Int,
     escapedDollarOffsets: List<Int>
-): ReviewMathBlock.Markdown {
+): MathBlock.Markdown {
     val rawMarkdown: String = markdown.substring(startIndex = startOffset, endIndex = endOffset)
     val removedOffsets: Set<Int> = escapedDollarOffsets.filter { offset ->
         offset >= startOffset && offset < endOffset
@@ -761,8 +761,38 @@ private fun makeReviewMarkdownBlock(
             }
         }
     }
-    return ReviewMathBlock.Markdown(
+    return MathBlock.Markdown(
         markdown = rawMarkdown,
         normalizedMarkdown = normalizedMarkdown
     )
 }
+
+private val reviewFenceOpeningRegex: Regex = Regex(pattern = """^\s{0,3}(`{3,}|~{3,})(.*)$""")
+private val reviewFenceClosingRegex: Regex = Regex(pattern = """^\s{0,3}(`{3,}|~{3,})\s*$""")
+
+fun markdownFenceMarker(line: String): String? {
+    val match: MatchResult = reviewFenceOpeningRegex.matchEntire(input = line) ?: return null
+    val marker: String = match.groupValues[1]
+    val info: String = match.groupValues[2]
+    if (marker.first() == '`' && info.contains('`')) {
+        return null
+    }
+
+    return marker
+}
+
+fun isMarkdownFenceClosingLine(
+    line: String,
+    openingMarker: String
+): Boolean {
+    val match: MatchResult = reviewFenceClosingRegex.matchEntire(input = line) ?: return false
+    val closingMarker: String = match.groupValues[1]
+    return closingMarker.first() == openingMarker.first() &&
+        closingMarker.length >= openingMarker.length
+}
+
+
+val markdownHorizontalRuleRegex: Regex = Regex(pattern = """^\s{0,3}(?:-{3,}|\*{3,}|_{3,})\s*$""")
+val markdownTableDelimiterRegex: Regex = Regex(
+    pattern = """^\s*\|?(?:\s*:?-{3,}:?\s*\|)+\s*:?-{3,}:?\s*\|?\s*$"""
+)

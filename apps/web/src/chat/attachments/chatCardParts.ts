@@ -1,4 +1,5 @@
 import type { Card, ContentPart } from "../../types";
+import { hasEligibleReviewMath } from "../../screens/review/components/card/reviewMathBlocks";
 
 export type ChatCardSnapshot = Readonly<{
   cardId: string;
@@ -64,6 +65,10 @@ export function buildCardContextXml(card: ChatCardSnapshot): string {
 
 export function formatCardAttachmentLabel(card: ChatCardSnapshot): string {
   const trimmedFrontText = card.frontText.trim();
+  // CSS clips the rendered label; slicing source could cut a formula in half.
+  if (trimmedFrontText.includes("$") && hasEligibleReviewMath(trimmedFrontText)) {
+    return trimmedFrontText;
+  }
   if (trimmedFrontText.length <= 48) {
     return trimmedFrontText === "" ? "Untitled card" : trimmedFrontText;
   }

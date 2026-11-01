@@ -17,6 +17,7 @@ import {
   isBinaryPendingAttachment,
 } from "../attachments/FileAttachment";
 import { formatCardAttachmentLabel } from "../attachments/chatCardParts";
+import { MathText } from "../../components/MathText";
 import { formatChatAttachmentLimitMessages } from "../shared/chatSizePolicy";
 import {
   formatAiLimitReachedMessageForHeldUsage,
@@ -549,6 +550,7 @@ export function ChatPanel(props: Props): ReactElement {
                   t,
                   handleMessageTechnicalError,
                   canStartMessageAction,
+                  { workspaceId: activeWorkspaceId, localReadVersion: appData.localReadVersion },
                 )}
                 {isLastAssistant ? (
                   <span className="chat-streaming-indicator">
@@ -620,7 +622,7 @@ export function ChatPanel(props: Props): ReactElement {
               >
                 {isBinaryPendingAttachment(attachment)
                   ? attachment.fileName
-                  : `${t("chatPanel.pendingAttachmentCardPrefix")} · ${formatCardAttachmentLabel(attachment)}`}
+                  : <span className="chat-attachment-card-label">{t("chatPanel.pendingAttachmentCardPrefix")}{" · "}<MathText text={formatCardAttachmentLabel(attachment)} /></span>}
                 <button
                   type="button"
                   className="chat-attachment-remove"
@@ -661,7 +663,7 @@ export function ChatPanel(props: Props): ReactElement {
                   requestComposerFocusRestore();
                 }}
               >
-                {suggestion.text}
+                <MathText text={suggestion.text} />
               </button>
             ))}
           </div>
