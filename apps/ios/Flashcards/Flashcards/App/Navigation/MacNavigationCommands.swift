@@ -57,10 +57,7 @@ struct MacNavigationCommands: Commands {
                   $0.activationState == .foregroundActive && ($0 as? UIWindowScene)?.keyWindow != nil
               }) as? UIWindowScene,
               let root = scene.keyWindow?.rootViewController else { return }
-        func hasPresentation(_ controller: UIViewController) -> Bool {
-            controller.presentedViewController != nil || controller.children.contains(where: hasPresentation)
-        }
-        guard hasPresentation(root) == false else { return }
+        guard hasCoveringPresentation(root) == false else { return }
         action()
     }
 }

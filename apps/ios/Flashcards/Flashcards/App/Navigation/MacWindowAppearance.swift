@@ -330,10 +330,7 @@ struct MacWindowAppearance: UIViewRepresentable {
         private func actionContext(item: NSToolbarItem) -> MacToolbarActionContext? {
             guard let window = self.bridgeView?.window, window.windowScene === self.scene,
                   let root = window.rootViewController else { return nil }
-            func isCovered(_ controller: UIViewController) -> Bool {
-                controller.presentedViewController != nil || controller.children.contains(where: isCovered)
-            }
-            guard !isCovered(root) else { return nil }
+            guard !hasCoveringPresentation(root) else { return nil }
             return MacToolbarActionContext(item: item, presenter: root)
         }
 

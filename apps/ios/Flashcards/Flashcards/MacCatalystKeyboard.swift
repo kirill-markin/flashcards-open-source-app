@@ -75,7 +75,7 @@ private func hasEditableResponder(in window: UIWindow) -> Bool {
 }
 
 @MainActor
-private func hasCoveringPresentation(_ controller: UIViewController) -> Bool {
+func hasCoveringPresentation(_ controller: UIViewController) -> Bool {
     controller.presentedViewController != nil || controller.children.contains(where: hasCoveringPresentation)
 }
 
