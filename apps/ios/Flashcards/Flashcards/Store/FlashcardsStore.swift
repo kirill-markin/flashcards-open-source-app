@@ -78,6 +78,7 @@ final class FlashcardsStore {
     var presentedReviewCard: Card?
     /// Signals a transient Review presentation reset after an explicit workspace switch or progress reset.
     var reviewPresentationResetRevision: Int = 0
+    var reviewOverdueBadgeCount: Int = 0
     var reviewCounts: ReviewCounts
     var isReviewHeadLoading: Bool
     var isReviewCountsLoading: Bool
