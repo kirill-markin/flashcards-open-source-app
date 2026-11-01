@@ -123,5 +123,6 @@ The sync approach and the data model changed multiple times during development. 
 - For CloudWatch investigations, avoid complex OR filter patterns. Fetch fresh events first, then filter locally by `requestId` and chat error signals.
 - For live SSE issues, correlate the CloudWatch structured log, the `X-Request-Id` response header, and the client-visible error body.
 - Prioritize clear, actionable errors.
+- Logs and error reports mask only secrets (passwords, tokens, API keys, cookies); keep everything else readable, including user content, so failures can be debugged.
 
 Backend changes must remain backward-compatible with already released client versions by default. Do not break backend-facing contracts or behavior that shipped clients rely on unless the user explicitly asks for a breaking change. For the web, iOS, and Android clients, preserving obsolete client implementations is not a goal; keep the latest codepath clean and current while supporting the mobile OS versions declared in the platform READMEs.
