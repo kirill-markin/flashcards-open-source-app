@@ -9,10 +9,14 @@ final class ReviewKeyCommandTarget {
     private(set) var actions: ReviewKeyboardActions?
     @ObservationIgnored private weak var publisher: AnyObject?
     @ObservationIgnored var onAvailabilityChange: (@MainActor (Bool) -> Void)?
+    /// Publishing runs inside SwiftUI's tracked view updates; reading `actions` there would
+    /// subscribe the publisher to its own write and re-run it endlessly.
+    @ObservationIgnored private var isAvailable = false
 
     func publish(actions: ReviewKeyboardActions?, from publisher: AnyObject) {
-        let wasAvailable = self.actions != nil
+        let wasAvailable = self.isAvailable
         self.publisher = publisher
+        self.isAvailable = actions != nil
         self.actions = actions
         if wasAvailable != (actions != nil) {
             self.onAvailabilityChange?(actions != nil)
