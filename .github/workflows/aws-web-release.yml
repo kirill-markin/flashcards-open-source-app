@@ -313,8 +313,8 @@ jobs:
           role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
 
-      # CDK bundling pulls public.ecr.aws/sam/build-nodejs24.x on a Lambda input
-      # cache miss. The action authenticates ECR Public in us-east-1 itself.
+      # The bundling image prebuild below pulls public.ecr.aws/sam/build-nodejs24.x.
+      # The action authenticates ECR Public in us-east-1 itself.
       - name: Log in to Amazon ECR Public
         if: ${{ needs.changes.outputs.deploy_platform == 'true' }}
         uses: aws-actions/amazon-ecr-login@v2.1.7
@@ -337,7 +337,9 @@ jobs:
               --build-arg "ESBUILD_VERSION=${esbuild_version}" \
               infra/aws/docker/lambda-nodejs \
               > "${RUNNER_TEMP}/lambda-bundling-image.log" 2>&1 || status=$?
-            echo "${status}" > "${RUNNER_TEMP}/lambda-bundling-image.exit"
+            # The wait step polls for the file, so it appears only once complete.
+            echo "${status}" > "${RUNNER_TEMP}/lambda-bundling-image.exit.tmp"
+            mv "${RUNNER_TEMP}/lambda-bundling-image.exit.tmp" "${RUNNER_TEMP}/lambda-bundling-image.exit"
           ) &
 
       - name: Restore Lambda asset cache
