@@ -7,6 +7,7 @@ export const jaCatalog = {
     title: "ゲスト",
     signIn: "サインイン",
     saveProgress: "進捗を保存",
+    saveProgressAction: "進捗を保存",
     reminder: "メールでサインインして、これらのカードと復習の進捗を失わないようにしましょう。",
     later: "後で",
     warning: "他のデバイスでもアクセスを維持するにはサインインしてください。サイトデータを消去するとゲストとしてアクセスできなくなる場合があります。",

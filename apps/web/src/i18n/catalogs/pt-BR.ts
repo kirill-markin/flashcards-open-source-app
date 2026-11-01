@@ -7,6 +7,7 @@ const ptBrCatalog: TranslationCatalog = {
     title: "Convidado",
     signIn: "Entrar",
     saveProgress: "Salve seu progresso",
+    saveProgressAction: "Salvar",
     reminder: "Entre com e-mail para não perder estes cartões nem o seu progresso de revisão.",
     later: "Depois",
     warning: "Entre para manter o acesso em outros dispositivos. Limpar os dados do site pode causar a perda do acesso de visitante.",

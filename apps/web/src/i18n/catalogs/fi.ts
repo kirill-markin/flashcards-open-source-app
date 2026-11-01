@@ -7,6 +7,7 @@ const fiCatalog: TranslationCatalog = {
     title: "Vieras",
     signIn: "Kirjaudu",
     saveProgress: "Tallenna edistymisesi",
+    saveProgressAction: "Tallenna",
     reminder: "Kirjaudu sähköpostilla, jotta nämä kortit ja kertausedistyminen eivät katoa.",
     later: "Myöhemmin",
     warning: "Kirjaudu sisään, jotta pääset tietoihin muillakin laitteilla. Sivustotietojen poistaminen voi viedä vieraskäyttöoikeuden.",

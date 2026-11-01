@@ -6,6 +6,7 @@ const enCatalog = {
     title: "Guest",
     signIn: "Sign in",
     saveProgress: "Save your progress",
+    saveProgressAction: "Save progress",
     reminder: "Sign in with email so these cards and review progress are not lost.",
     later: "Later",
     warning: "Sign in to keep access on other devices. Clearing site data can lose guest access.",

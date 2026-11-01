@@ -7,6 +7,7 @@ const itCatalog: TranslationCatalog = {
     title: "Ospite",
     signIn: "Accedi",
     saveProgress: "Salva i tuoi progressi",
+    saveProgressAction: "Salva i progressi",
     reminder: "Accedi con l’email per non perdere queste schede e i progressi dei ripassi.",
     later: "Più avanti",
     warning: "Accedi per mantenere l’accesso su altri dispositivi. Cancellare i dati del sito può far perdere l’accesso ospite.",

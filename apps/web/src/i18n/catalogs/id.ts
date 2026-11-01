@@ -7,6 +7,7 @@ const idCatalog: TranslationCatalog = {
     title: "Tamu",
     signIn: "Masuk",
     saveProgress: "Simpan kemajuan Anda",
+    saveProgressAction: "Simpan",
     reminder: "Masuk dengan email agar kartu dan kemajuan pengulangan ini tidak hilang.",
     later: "Nanti",
     warning: "Masuk agar tetap dapat mengakses di perangkat lain. Menghapus data situs dapat menghilangkan akses tamu.",

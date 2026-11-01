@@ -7,6 +7,7 @@ const trCatalog: TranslationCatalog = {
     title: "Misafir",
     signIn: "Giriş yap",
     saveProgress: "İlerlemenizi kaydedin",
+    saveProgressAction: "Kaydet",
     reminder: "Bu kartların ve tekrar ilerlemenizin kaybolmaması için e-posta ile giriş yapın.",
     later: "Daha sonra",
     warning: "Diğer cihazlarda erişimi korumak için giriş yapın. Site verilerini temizlemek misafir erişimini kaybettirebilir.",

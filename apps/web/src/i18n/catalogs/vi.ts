@@ -7,6 +7,7 @@ const viCatalog: TranslationCatalog = {
     title: "Khách",
     signIn: "Đăng nhập",
     saveProgress: "Lưu tiến độ của bạn",
+    saveProgressAction: "Lưu tiến độ",
     reminder: "Đăng nhập bằng email để không mất các thẻ và tiến độ ôn tập này.",
     later: "Sau đó",
     warning: "Đăng nhập để tiếp tục truy cập trên thiết bị khác. Xóa dữ liệu trang web có thể làm mất quyền truy cập khách.",

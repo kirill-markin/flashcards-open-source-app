@@ -962,7 +962,7 @@ export function AppShell(): ReactElement {
                 <span className="mobile-nav-toggle-line" aria-hidden="true" />
                 <span className="mobile-nav-toggle-line" aria-hidden="true" />
               </button>
-              {isGuest ? <GuestSignIn label={`${t("guest.title")} · ${t("guest.signIn")}`} testId="guest-sign-in" /> : <AccountMenu
+              {isGuest ? <GuestSignIn label={t("guest.saveProgressAction")} testId="guest-sign-in" /> : <AccountMenu
                 workspaces={availableWorkspaces.filter((workspace) => workspace.isVisible !== false)}
                 currentWorkspaceId={activeWorkspace?.workspaceId ?? ""}
                 currentWorkspaceName={activeWorkspace?.name ?? t("common.unavailable")}

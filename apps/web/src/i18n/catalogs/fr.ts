@@ -7,6 +7,7 @@ const frCatalog: TranslationCatalog = {
     title: "Invité",
     signIn: "Se connecter",
     saveProgress: "Enregistrez votre progression",
+    saveProgressAction: "Enregistrer",
     reminder: "Connectez-vous avec votre e-mail pour ne pas perdre ces cartes ni votre progression de révision.",
     later: "Plus tard",
     warning: "Connectez-vous pour garder l’accès sur d’autres appareils. Effacer les données du site peut faire perdre l’accès invité.",

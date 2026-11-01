@@ -7,6 +7,7 @@ const ltCatalog: TranslationCatalog = {
     title: "Svečias",
     signIn: "Prisijungti",
     saveProgress: "Išsaugokite pažangą",
+    saveProgressAction: "Išsaugoti",
     reminder: "Prisijunkite el. paštu, kad neprarastumėte šių kortelių ir kartojimo pažangos.",
     later: "Vėliau",
     warning: "Prisijunkite, kad išlaikytumėte prieigą kituose įrenginiuose. Išvalę svetainės duomenis galite prarasti svečio prieigą.",

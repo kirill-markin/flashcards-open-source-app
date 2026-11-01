@@ -7,6 +7,7 @@ const nbCatalog: TranslationCatalog = {
     title: "Gjest",
     signIn: "Logg inn",
     saveProgress: "Lagre fremdriften din",
+    saveProgressAction: "Lagre fremdrift",
     reminder: "Logg inn med e-post, slik at disse kortene og repetisjonsfremdriften ikke går tapt.",
     later: "Senere",
     warning: "Logg inn for å beholde tilgang på andre enheter. Sletting av nettstedsdata kan føre til at gjestetilgangen går tapt.",

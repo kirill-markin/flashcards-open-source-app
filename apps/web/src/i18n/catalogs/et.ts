@@ -7,6 +7,7 @@ const etCatalog: TranslationCatalog = {
     title: "Külaline",
     signIn: "Logi sisse",
     saveProgress: "Salvesta oma edenemine",
+    saveProgressAction: "Salvesta",
     reminder: "Logi sisse e-postiga, et need kaardid ja kordamise edenemine ei läheks kaotsi.",
     later: "Hiljem",
     warning: "Logi sisse, et säilitada juurdepääs teistes seadmetes. Saidiandmete kustutamine võib kaotada külalise juurdepääsu.",

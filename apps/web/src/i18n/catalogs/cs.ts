@@ -7,6 +7,7 @@ const csCatalog: TranslationCatalog = {
     title: "Host",
     signIn: "Přihlásit se",
     saveProgress: "Uložte svůj pokrok",
+    saveProgressAction: "Uložit pokrok",
     reminder: "Přihlaste se e-mailem, aby se tyto kartičky a pokrok v opakování neztratily.",
     later: "Později",
     warning: "Přihlaste se, abyste si zachovali přístup na jiných zařízeních. Smazáním dat webu můžete ztratit přístup hosta.",

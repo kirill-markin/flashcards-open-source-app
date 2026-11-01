@@ -7,6 +7,7 @@ const skCatalog: TranslationCatalog = {
     title: "Hosť",
     signIn: "Prihlásiť sa",
     saveProgress: "Uložte si pokrok",
+    saveProgressAction: "Uložiť pokrok",
     reminder: "Prihláste sa e-mailom, aby sa tieto karty a pokrok v opakovaní nestratili.",
     later: "Neskôr",
     warning: "Prihláste sa, aby ste si zachovali prístup na iných zariadeniach. Vymazaním údajov webu môžete stratiť prístup hosťa.",
