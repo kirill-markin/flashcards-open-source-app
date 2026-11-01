@@ -3,6 +3,7 @@ import { cutHeadAtCodePoint } from "../shared/codePointCuts";
 import { HttpError } from "../shared/errors";
 import { logAgentSqlEvent } from "../server/logging";
 import { executeWithinAgentSqlDatabaseTimeBudget } from "./agentSql/databaseTimeBudget";
+import { writeAgentSqlFailureRecord } from "./agentSql/failureLog";
 import {
   DEFAULT_AGENT_TOOL_OPERATION_DEPENDENCIES,
   type AgentToolOperationDependencies,
@@ -196,10 +197,7 @@ const maximumRecordedSqlChars = 64_000;
 const maximumRecordedErrorMessageChars = 20_000;
 
 function getAgentSqlErrorMessage(error: unknown): string {
-  return cutHeadAtCodePoint(
-    error instanceof Error ? error.message : String(error),
-    maximumRecordedErrorMessageChars,
-  );
+  return error instanceof Error ? error.message : String(error);
 }
 
 /**
@@ -213,6 +211,13 @@ function getAgentSqlErrorMessage(error: unknown): string {
  * `CallToolResult`, so nothing above them ever reaches `app.onError`; anything
  * recorded higher up would leave every MCP dialect rejection unobserved, which
  * is the blind spot this exists to close.
+ *
+ * An MCP record carries no SQL text or error message: the Claude connector
+ * directory forbids collecting extraneous conversation data, even for logging,
+ * and the Lambda log groups never expire. Dialect and batch errors quote the offending
+ * SQL fragment verbatim, so the message is SQL text too. An MCP failure's full
+ * SQL and message go to the 30-day failure log (`./agentSql/failureLog.ts`)
+ * instead.
  *
  * `execute` hands over the emitted result together with the size the budget
  * helpers already measured for it, so `resultChars` is the size of the payload
@@ -233,13 +238,14 @@ async function withAgentSqlTelemetry<Result extends AgentSqlExecutionResult>(
   execute: () => Promise<AgentSqlEmission<Result>>,
 ): Promise<Result> {
   const startedAt = Date.now();
+  const recordsSqlText = context.surface !== "mcp";
   const executionDetails = {
     userId: context.userId,
     workspaceId: context.workspaceId,
     surface: context.surface,
     caller: context.caller ?? null,
     connectionId: context.connectionId,
-    sql: cutHeadAtCodePoint(sql, maximumRecordedSqlChars),
+    sql: recordsSqlText ? cutHeadAtCodePoint(sql, maximumRecordedSqlChars) : null,
     sqlLength: sql.length,
     sqlFingerprint: getAgentSqlFingerprint(sql),
   };
@@ -266,6 +272,12 @@ async function withAgentSqlTelemetry<Result extends AgentSqlExecutionResult>(
 
     return result;
   } catch (error) {
+    const failureDetails = {
+      errorCode: getAgentSqlErrorCode(error),
+      dialectReason: getAgentSqlDialectReason(error),
+      errorClass: getAgentSqlErrorClass(error),
+    };
+    const errorMessage = getAgentSqlErrorMessage(error);
     logAgentSqlEvent({
       ...executionDetails,
       succeeded: false,
@@ -277,12 +289,25 @@ async function withAgentSqlTelemetry<Result extends AgentSqlExecutionResult>(
       rowsOmitted: null,
       rowsTruncated: null,
       durationMs: Date.now() - startedAt,
-      errorCode: getAgentSqlErrorCode(error),
-      dialectReason: getAgentSqlDialectReason(error),
+      ...failureDetails,
       rejectedName: getAgentSqlRejectedName(error),
-      errorClass: getAgentSqlErrorClass(error),
-      errorMessage: getAgentSqlErrorMessage(error),
+      errorMessage: recordsSqlText
+        ? cutHeadAtCodePoint(errorMessage, maximumRecordedErrorMessageChars)
+        : null,
     });
+    if (!recordsSqlText) {
+      await writeAgentSqlFailureRecord({
+        surface: executionDetails.surface,
+        caller: executionDetails.caller,
+        userId: executionDetails.userId,
+        workspaceId: executionDetails.workspaceId,
+        connectionId: executionDetails.connectionId,
+        sqlFingerprint: executionDetails.sqlFingerprint,
+        ...failureDetails,
+        sql,
+        errorMessage,
+      });
+    }
 
     throw error;
   }
