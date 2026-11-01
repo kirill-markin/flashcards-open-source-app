@@ -7,6 +7,8 @@ import {
   deriveServerDerivedProductAnalyticsEventId,
   emitServerDerivedProductAnalyticsEvent,
 } from "../../productAnalytics/serverFacts/serverEvents";
+import type { AiChatRunClientDevice } from "../../productAnalytics/serverFacts/reviewAnswers";
+import type { GuestSessionPlatform } from "../../guestAuth/types";
 import type { ChatRunActor } from "./types";
 
 export type AiRunFailedReason =
@@ -28,6 +30,7 @@ export async function recordAiMessageSentAnalytics(
   workspaceId: string,
   runId: string,
   actor: ChatRunActor,
+  clientDevice: AiChatRunClientDevice,
 ): Promise<void> {
   // The turn is observed as it happens, so the two timestamps are one moment and there is no skew
   // to keep recoverable.
@@ -42,11 +45,9 @@ export async function recordAiMessageSentAnalytics(
     guestSessionId: actor.guestSessionId,
     workspaceId,
     anonymousId: null,
-    // The run carries no server-stored platform for the actor, and the request headers that do name
-    // one are a client claim this row must not repeat.
-    platform: null,
-    osName: null,
-    deviceType: null,
+    platform: clientDevice.platform,
+    osName: clientDevice.osName,
+    deviceType: clientDevice.deviceType,
     properties: {},
     details: null,
   });
@@ -64,6 +65,7 @@ export async function recordAiRunFailedAnalytics(
   workspaceId: string,
   runId: string,
   reason: AiRunFailedReason,
+  clientDevice: AiChatRunClientDevice,
 ): Promise<void> {
   const observedAt = new Date();
   await emitServerDerivedProductAnalyticsEvent({
@@ -80,11 +82,9 @@ export async function recordAiRunFailedAnalytics(
     guestSessionId: null,
     workspaceId,
     anonymousId: null,
-    // Null for the reason spelled out on the producer above: the only platform this path could read
-    // is the one the client claimed in the request that started the run.
-    platform: null,
-    osName: null,
-    deviceType: null,
+    platform: clientDevice.platform,
+    osName: clientDevice.osName,
+    deviceType: clientDevice.deviceType,
     properties: { reason },
     details: null,
   });
@@ -112,6 +112,7 @@ export async function recordAiLimitReachedAnalytics(
   sessionId: string | null,
   clientRequestId: string,
   actor: ChatRunActor,
+  guestPlatform: GuestSessionPlatform | null,
   refusal: AiLimitReachedRefusal,
 ): Promise<void> {
   const observedAt = new Date();
@@ -128,8 +129,9 @@ export async function recordAiLimitReachedAnalytics(
     guestSessionId: actor.guestSessionId,
     workspaceId,
     anonymousId: null,
-    // Null for the reason spelled out on `recordAiMessageSentAnalytics`.
-    platform: null,
+    // A refused send stores no run to read a device from, so only a guest's stored session platform
+    // is reported; the request headers are a client claim this row must not repeat.
+    platform: guestPlatform,
     osName: null,
     deviceType: null,
     properties: {

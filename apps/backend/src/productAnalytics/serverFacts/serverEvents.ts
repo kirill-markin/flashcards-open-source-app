@@ -51,10 +51,10 @@ import { insertProductAnalyticsEvents, insertProductAnalyticsIdentityLink } from
 // kind:
 //   - agent_connection stores 'web' (apps/backend/src/agent/syncIdentity.ts) even though the client
 //     is the machine API and not a browser, so the column names the wrong client outright.
-//   - ai_chat stores whatever the chat tool layer passed, and both production call sites in
+//   - ai_chat stores whatever the chat tool layer passed, and the production call sites in
 //     apps/backend/src/chat/openai/tools/tools.ts hardcode "web". The value describes nothing about
-//     the device the person was on: ai_chat is not a platform source, and a producer passes null
-//     unless it can justify a value from something other than this column.
+//     the device the person was on, so an in-app chat fact takes its device from the run's
+//     ai.chat_runs row instead, which stores the device the run was started from, or passes null.
 //   - workspace_seed and workspace_reset store 'system', which is no client at all.
 // A producer that cannot name the one replica row behind the fact has an additional problem before
 // any of this: a lookup by workspace alone can return an unrelated replica, so it passes null
