@@ -1,8 +1,8 @@
 import { createHash } from "node:crypto";
+import { cutHeadAtCodePoint } from "../shared/codePointCuts";
 import { HttpError } from "../shared/errors";
 import { logAgentSqlEvent } from "../server/logging";
 import { executeWithinAgentSqlDatabaseTimeBudget } from "./agentSql/databaseTimeBudget";
-import { writeAgentSqlFailureRecord } from "./agentSql/failureLog";
 import {
   DEFAULT_AGENT_TOOL_OPERATION_DEPENDENCIES,
   type AgentToolOperationDependencies,
@@ -191,6 +191,17 @@ function getAgentSqlErrorClass(error: unknown): string {
   return error instanceof Error ? error.name : typeof error;
 }
 
+// Keep one record well below the CloudWatch event size limit; `sqlLength` still counts the whole statement.
+const maximumRecordedSqlChars = 64_000;
+const maximumRecordedErrorMessageChars = 20_000;
+
+function getAgentSqlErrorMessage(error: unknown): string {
+  return cutHeadAtCodePoint(
+    error instanceof Error ? error.message : String(error),
+    maximumRecordedErrorMessageChars,
+  );
+}
+
 /**
  * Emits exactly one structured `agent_sql` record per execution, on success and
  * on failure alike, so the failure ratio of the agent SQL surface is computable
@@ -202,13 +213,6 @@ function getAgentSqlErrorClass(error: unknown): string {
  * `CallToolResult`, so nothing above them ever reaches `app.onError`; anything
  * recorded higher up would leave every MCP dialect rejection unobserved, which
  * is the blind spot this exists to close.
- *
- * The record carries no error message on purpose. Dialect and batch errors quote
- * the offending SQL fragment verbatim, so the text carries flashcard content,
- * and no delimiter heuristic can strip it reliably: an unquoted or typographic
- * operand (`... WHERE front_text = Paris`) has no delimiter to find. Only the
- * low-cardinality dimensions below are recorded; a failure's full SQL and
- * message go to the 30-day failure log (`./agentSql/failureLog.ts`) instead.
  *
  * `execute` hands over the emitted result together with the size the budget
  * helpers already measured for it, so `resultChars` is the size of the payload
@@ -235,6 +239,7 @@ async function withAgentSqlTelemetry<Result extends AgentSqlExecutionResult>(
     surface: context.surface,
     caller: context.caller ?? null,
     connectionId: context.connectionId,
+    sql: cutHeadAtCodePoint(sql, maximumRecordedSqlChars),
     sqlLength: sql.length,
     sqlFingerprint: getAgentSqlFingerprint(sql),
   };
@@ -256,15 +261,11 @@ async function withAgentSqlTelemetry<Result extends AgentSqlExecutionResult>(
       dialectReason: null,
       rejectedName: null,
       errorClass: null,
+      errorMessage: null,
     });
 
     return result;
   } catch (error) {
-    const failureDetails = {
-      errorCode: getAgentSqlErrorCode(error),
-      dialectReason: getAgentSqlDialectReason(error),
-      errorClass: getAgentSqlErrorClass(error),
-    };
     logAgentSqlEvent({
       ...executionDetails,
       succeeded: false,
@@ -276,19 +277,11 @@ async function withAgentSqlTelemetry<Result extends AgentSqlExecutionResult>(
       rowsOmitted: null,
       rowsTruncated: null,
       durationMs: Date.now() - startedAt,
-      ...failureDetails,
+      errorCode: getAgentSqlErrorCode(error),
+      dialectReason: getAgentSqlDialectReason(error),
       rejectedName: getAgentSqlRejectedName(error),
-    });
-    await writeAgentSqlFailureRecord({
-      surface: executionDetails.surface,
-      caller: executionDetails.caller,
-      userId: executionDetails.userId,
-      workspaceId: executionDetails.workspaceId,
-      connectionId: executionDetails.connectionId,
-      sqlFingerprint: executionDetails.sqlFingerprint,
-      ...failureDetails,
-      sql,
-      errorMessage: error instanceof Error ? error.message : String(error),
+      errorClass: getAgentSqlErrorClass(error),
+      errorMessage: getAgentSqlErrorMessage(error),
     });
 
     throw error;

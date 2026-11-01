@@ -6,7 +6,7 @@ Every agent SQL execution emits one `agent_sql` CloudWatch record, on success an
 
 - Every backend Lambda uses the Lambda JSON log format ([`backend-lambda-logging.ts`](../infra/aws/lib/backend-lambda-logging.ts)), so the record sits under `message`: address a field as `message.<field>` in Logs Insights and as `$.message.<field>` in a metric filter.
 - The envelope's own `requestId` is the Lambda invocation id. `message.requestId` is the `X-Request-Id` response header on the MCP worker, and joins `mcp_request`, the `agent_sql` records under it and the request's Sentry captures; REST and chat `agent_sql` records carry null. Dispatcher records carry the API Gateway request id there instead ([joining them to the worker](#dispatcher-admission-outcomes-and-timings)).
-- The `agent_sql` record carries no raw SQL or error message, so group failures by `sqlFingerprint`, `errorCode` and `dialectReason`, and read a specific failure in [the failure log](#reading-one-failure).
+- Group failures by `sqlFingerprint`, `errorCode` and `dialectReason`, and read a specific failure's `sql` and `errorMessage` [by its fingerprint or request id](#reading-one-failure).
 - `workspaceId` is the workspace the call targeted, so chat SQL grouped by workspace can show workspaces the chat session did not have open.
 - If a log group renders `message.succeeded`, `message.rowsOmitted`, `message.rowsTruncated`, `message.toolExecuted` or `message.toolIsError` as `true`/`false` instead of `1`/`0`, compare against `"true"` and `"false"` in the queries below.
 
@@ -20,16 +20,16 @@ The function names are the `BackendFunctionName`, `McpFunctionName`, and `ChatWo
 
 ## Reading one failure
 
-Every failed execution on every surface also writes one record with its full SQL and exact error message to the `/flashcards-open-source-app/agent-sql-failures` log group, which keeps it 30 days; a record too large for one CloudWatch event keeps the head of both and sets `truncated` ([writer](../apps/backend/src/aiTools/agentSql/failureLog.ts)). The backend writes it directly, so fields sit at the top level rather than under `message`. Filter on the `sqlFingerprint` or the non-null `requestId` of the `agent_sql` record:
+Every `agent_sql` record carries the statement in `sql`, and a failed one also carries its exact `errorMessage`; `sqlLength` exceeds the length of `sql` when the record cut the statement. Filter on the `sqlFingerprint`, or on the non-null `requestId` of an MCP call:
 
 ```
-filter sqlFingerprint = "<sqlFingerprint>"
-| fields @timestamp, requestId, surface, caller, errorCode, dialectReason, errorMessage, sql
+filter message.action = "agent_sql" and message.succeeded = 0
+       and message.sqlFingerprint = "<sqlFingerprint>"
+| fields @timestamp, message.requestId, message.surface, message.caller,
+         message.errorCode, message.dialectReason, message.errorMessage, message.sql
 | sort @timestamp desc
 | limit 20
 ```
-
-A record that could not be written leaves an `agent_sql_failure_log_write_failed` exception, without the SQL or message, in the surface's own Lambda log group and in Sentry.
 
 ## The chat sandbox SQL record
 
@@ -50,7 +50,7 @@ On the MCP surface `caller` is the normalized request `User-Agent` ([why not cli
 
 Requests that never authenticate emit none, so the record count is the authenticated request count, not the total. A `message.method = "GET"` row is a client trying to open the standalone SSE stream that MCP revisions 2025-03-26 through 2025-11-25 allow; this stateless surface answers 405, which those clients accept, so a run of such rows is a client-compatibility signal rather than an incident.
 
-`message.toolCallArguments` holds the compact JSON of a tool call's validated arguments, and is null for `sql_query` and `sql_execute`, whose SQL text never reaches this log group.
+`message.toolCallArguments` holds the compact JSON of a tool call's validated arguments, for every tool including `sql_query` and `sql_execute`.
 
 ## Dispatcher admission outcomes and timings
 

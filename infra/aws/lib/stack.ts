@@ -50,7 +50,6 @@ import {
 import { mediaAssets } from "./media-assets";
 import { catalogDump } from "./catalog-dump";
 import { geoLiteCountry } from "./geolite-country";
-import { agentSqlFailureLog } from "./agent-sql-failure-log";
 import { parsePublicOrigin } from "./public-origin";
 import { resolvePublishedApiOrigin } from "./published-api-origin";
 
@@ -634,7 +633,6 @@ export class FlashcardsOpenSourceAppStack extends cdk.Stack {
       userPoolClientId: authResult.userPoolClient.userPoolClientId,
     });
     const geoLiteCountryBucket = geoLiteCountry(this, api.backendFn);
-    agentSqlFailureLog(this, [api.backendFn, mcpApi.mcpFn, api.chatWorkerFn]);
     addDatabaseMigrationDependency(api.backendFn, migrationGate);
     addDatabaseMigrationDependency(api.directImageIngestionFn, migrationGate);
     addDatabaseMigrationDependency(mcpApi.mcpFn, migrationGate);
