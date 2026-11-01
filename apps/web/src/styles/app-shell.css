@@ -457,6 +457,7 @@
   .topbar-brand-block {
     grid-column: 1;
     grid-row: 1;
+    align-self: center;
   }
 
   .topbar-actions {
@@ -518,6 +519,10 @@
   .topbar-brand,
   .topbar-sync-status {
     align-self: baseline;
+  }
+
+  .topbar-brand {
+    min-height: 44px;
   }
 
   .topbar-actions {
