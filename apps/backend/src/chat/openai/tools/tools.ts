@@ -1160,6 +1160,7 @@ export async function executeChatSandboxSqlCall(
   sql: string,
   explicitWorkspaceId: string | null,
   session: Readonly<{ userId: string; workspaceId: string }>,
+  runClientDevice: AiChatRunClientDevice,
 ): Promise<ChatSandboxSqlCall> {
   const toolName = kind === "query" ? SQL_QUERY_TOOL_SPEC.name : SQL_EXECUTE_TOOL_SPEC.name;
   const startedAt = Date.now();
@@ -1180,8 +1181,7 @@ export async function executeChatSandboxSqlCall(
       surface: "chat-sandbox",
       caller: null,
     } as const;
-    // The bridge's capability carries no run device, so the writes it makes name none.
-    const operationDependencies = createChatSqlOperationDependencies(null, null);
+    const operationDependencies = createChatSqlOperationDependencies(null, runClientDevice);
     const result = kind === "query"
       ? await runChatSqlQuery(sqlContext, parsed.sql, operationDependencies)
       : await runChatSqlExecute(sqlContext, parsed.sql, operationDependencies);
