@@ -56,18 +56,9 @@ export function hasAuthAnalyticsGuestSession(context: Context): boolean {
 /**
  * Retires the guest credential a previous build left on this browser.
  *
- * The rule it enforces has not changed with the mint that is gone. The token's one claim is that
- * this browser's signed-out run belongs to the account of the sign-in it is heading for, and it is
- * settled by binding it to exactly one account, once, in an append-only table that is
- * first-link-wins with no repair path. This service no longer makes that binding — the funnel's rows
- * resolve through the visitor's own shared id instead — so every outcome now leaves the claim void,
- * and a void claim's token must not survive: offered again at the next sign-in on this browser,
- * which need not be the same person, it would hand this browser's whole signed-out tail to that
- * account, permanently. The cost is one returning browser's continuity, the undercount preferred
- * here.
- *
- * A session that only expired settles nothing and offers nothing, so those paths clear the session
- * cookies and leave this one to the sign-in or logout that follows.
+ * Housekeeping, not a guarantee: nothing reads that token any more, so a copy left behind is inert
+ * until it expires, every copy by about 2026-12-23. Paths where a session only expired clear the
+ * session cookies and leave this one to the sign-in or logout that follows.
  *
  * What the clear leaves behind is a guest session nobody holds, which the 90-day web guest reaper in
  * `apps/backend/src/guestAuth/reaper/` collects. Revoking it here would be a second cross-service
