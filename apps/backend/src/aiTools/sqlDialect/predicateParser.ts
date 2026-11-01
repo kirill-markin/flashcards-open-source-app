@@ -196,7 +196,7 @@ function parsePredicate(source: SqlFromSource, value: string): SqlPredicate {
   }
 
   const loweredInPredicate = trimmedValue.match(
-    /^LOWER\s*\(\s*([a-z_][a-z0-9_]*)\s*\)\s+(NOT\s+IN|IN)\s*(\(.+\))$/i,
+    /^LOWER\s*\(\s*([a-z_][a-z0-9_]*)\s*\)\s+(NOT\s+IN|IN)\s*(\([\s\S]+\))$/i,
   );
   if (loweredInPredicate !== null) {
     const columnName = (loweredInPredicate[1] ?? "").toLowerCase();
@@ -246,7 +246,7 @@ function parsePredicate(source: SqlFromSource, value: string): SqlPredicate {
     };
   }
 
-  const overlapPredicate = trimmedValue.match(/^([a-z_][a-z0-9_]*)\s+OVERLAP\s*(.+)$/i);
+  const overlapPredicate = trimmedValue.match(/^([a-z_][a-z0-9_]*)\s+OVERLAP\s*([\s\S]+)$/i);
   if (overlapPredicate !== null) {
     const columnName = (overlapPredicate[1] ?? "").toLowerCase();
     ensureSqlSourceColumnExists(source, columnName);
@@ -257,7 +257,7 @@ function parsePredicate(source: SqlFromSource, value: string): SqlPredicate {
     };
   }
 
-  const inPredicate = trimmedValue.match(/^([a-z_][a-z0-9_]*)\s+IN\s*(\(.+\))$/i);
+  const inPredicate = trimmedValue.match(/^([a-z_][a-z0-9_]*)\s+IN\s*(\([\s\S]+\))$/i);
   if (inPredicate !== null) {
     const columnName = (inPredicate[1] ?? "").toLowerCase();
     ensureSqlSourceColumnExists(source, columnName);
@@ -270,7 +270,7 @@ function parsePredicate(source: SqlFromSource, value: string): SqlPredicate {
     };
   }
 
-  const comparisonPredicate = trimmedValue.match(/^([a-z_][a-z0-9_]*)\s*(=|<=|>=|<|>)\s*(.+)$/i);
+  const comparisonPredicate = trimmedValue.match(/^([a-z_][a-z0-9_]*)\s*(=|<=|>=|<|>)\s*([\s\S]+)$/i);
   if (comparisonPredicate !== null) {
     const columnName = (comparisonPredicate[1] ?? "").toLowerCase();
     ensureSqlSourceColumnExists(source, columnName);
