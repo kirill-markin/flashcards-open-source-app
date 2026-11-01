@@ -254,8 +254,8 @@ jobs:
 
   aws_deploy:
     name: Deploy AWS release
-    needs: [changes, node_runtime_startup]
-    if: ${{ !cancelled() && needs.changes.outputs.deploy_any == 'true' && (needs.node_runtime_startup.result == 'success' || needs.node_runtime_startup.result == 'skipped') }}
+    needs: changes
+    if: ${{ !cancelled() && needs.changes.outputs.deploy_any == 'true' }}
     runs-on: ubuntu-24.04-arm
     timeout-minutes: 180
 
@@ -336,6 +336,34 @@ jobs:
         run: |
           bash scripts/deploy/prepare-lambda-build-inputs.sh
           python3 scripts/deploy/prepare-node-runtime.py
+
+      # Waiting here instead of in `needs` overlaps the preparation above with
+      # the startup checks; nothing deploys before both pass.
+      - name: Wait for patched Node startup checks
+        if: ${{ needs.changes.outputs.deploy_platform == 'true' }}
+        timeout-minutes: 30
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          while true; do
+            pending="false"
+            for job in "Patched Node startup (x86_64)" "Patched Node startup (arm64)"; do
+              conclusion="$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}/jobs" --paginate \
+                --jq ".jobs[] | select(.name == \"${job}\") | .conclusion // \"pending\"")"
+              case "${conclusion}" in
+                success) ;;
+                ""|pending) pending="true" ;;
+                *)
+                  echo "::error::${job} ended '${conclusion}', so this release deploys nothing to AWS."
+                  exit 1 ;;
+              esac
+            done
+            if [[ "${pending}" == "false" ]]; then
+              exit 0
+            fi
+            sleep 10
+          done
 
       # An applied migration cannot be rolled back, so a release that changes
       # migrations waits for the PostgreSQL checks before CDK applies them.
@@ -491,22 +519,20 @@ jobs:
           path: ${{ runner.temp }}/node-runtime-evidence
           if-no-files-found: error
 
-      # Uploads in the background while the steps below publish assets; nothing
-      # rewrites cdk.out after the last CDK deploy above. "Finish Lambda source
-      # map upload" waits for it and fails the job if it failed.
-      - name: Start Lambda source map upload
+      # Only the files upload-lambda-source-maps.py reads, in the cdk.out layout.
+      - name: Upload Lambda source map inputs
         if: ${{ needs.changes.outputs.deploy_platform == 'true' }}
-        env:
-          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
-          SENTRY_ORG: ${{ vars.SENTRY_ORG }}
-          SENTRY_PROJECT: ${{ vars.SENTRY_BACKEND_PROJECT }}
-        run: |
-          (
-            status=0
-            python3 scripts/deploy/upload-lambda-source-maps.py infra/aws/cdk.out \
-              > "${RUNNER_TEMP}/source-maps.log" 2>&1 || status=$?
-            echo "${status}" > "${RUNNER_TEMP}/source-maps.exit"
-          ) &
+        uses: actions/upload-artifact@v7
+        with:
+          name: lambda-source-map-inputs
+          path: |
+            infra/aws/cdk.out/manifest.json
+            infra/aws/cdk.out/*.assets.json
+            infra/aws/cdk.out/*.template.json
+            infra/aws/cdk.out/asset.*/index.js
+            infra/aws/cdk.out/asset.*/index.js.map
+          if-no-files-found: error
+          retention-days: 1
 
       - name: Save current Lambda assets
         if: ${{ needs.changes.outputs.deploy_platform == 'true' }}
@@ -534,16 +560,6 @@ jobs:
         if: ${{ needs.changes.outputs.deploy_platform == 'true' }}
         run: bash scripts/checks/check-api-health.sh --stack-name ${{ env.STACK_NAME }}
 
-      - name: Finish Lambda source map upload
-        if: ${{ needs.changes.outputs.deploy_platform == 'true' }}
-        timeout-minutes: 10
-        run: |
-          while [[ ! -f "${RUNNER_TEMP}/source-maps.exit" ]]; do
-            sleep 2
-          done
-          cat "${RUNNER_TEMP}/source-maps.log"
-          exit "$(cat "${RUNNER_TEMP}/source-maps.exit")"
-
       - name: Summarize deployed release
         run: |
           {
@@ -558,6 +574,40 @@ jobs:
               echo "Manual admin smoke remains required for \`https://admin.<domain>\`."
             fi
           } >> "${GITHUB_STEP_SUMMARY}"
+
+  lambda_source_maps:
+    name: Upload Lambda source maps
+    needs:
+      - changes
+      - aws_deploy
+    if: ${{ !cancelled() && needs.aws_deploy.result == 'success' && needs.changes.outputs.deploy_platform == 'true' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: apps/backend/package-lock.json
+
+      - name: Install Sentry CLI
+        run: npm ci --prefix apps/backend
+
+      - name: Download Lambda source map inputs
+        uses: actions/download-artifact@v8
+        with:
+          name: lambda-source-map-inputs
+          path: ${{ runner.temp }}/lambda-source-map-inputs
+
+      - name: Upload Lambda source maps to Sentry
+        env:
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          SENTRY_ORG: ${{ vars.SENTRY_ORG }}
+          SENTRY_PROJECT: ${{ vars.SENTRY_BACKEND_PROJECT }}
+        run: python3 scripts/deploy/upload-lambda-source-maps.py "${RUNNER_TEMP}/lambda-source-map-inputs"
 
   # Seeding and checks that need the deployed release run beside the smokes
   # instead of delaying them. A failure clears the selected SHAs like a failed
@@ -600,10 +650,6 @@ jobs:
     needs:
       - changes
       - aws_deploy
-      - post_deploy_seeding
-      - web_smoke
-      - agent_api_smoke
-      - mcp_smoke
     if: ${{ !cancelled() && needs.aws_deploy.result == 'success' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 30
@@ -636,15 +682,36 @@ jobs:
         if: ${{ needs.changes.outputs.deploy_platform == 'true' }}
         run: bash scripts/checks/check-native-proof-bridge.sh --stack-name ${{ env.STACK_NAME }} --region ${{ env.AWS_REGION }}
 
+  # Runs after the smokes because the proof reads their release invocations
+  # on both architectures from the Lambda logs.
+  node_runtime_proof:
+    name: Deployed Node runtime proof
+    needs:
+      - changes
+      - aws_deploy
+      - web_smoke
+      - agent_api_smoke
+      - mcp_smoke
+    if: ${{ !cancelled() && needs.aws_deploy.result == 'success' && needs.changes.outputs.deploy_platform == 'true' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v6.3.0
+        with:
+          role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
       - name: Download checksum-verified runtime evidence
-        if: ${{ needs.changes.outputs.deploy_platform == 'true' }}
         uses: actions/download-artifact@v8
         with:
           name: node-runtime-evidence
           path: ${{ runner.temp }}/node-runtime-evidence
 
       - name: Verify every deployed Node runtime and direct process proof on both architectures
-        if: ${{ needs.changes.outputs.deploy_platform == 'true' }}
         run: python3 scripts/checks/check-node-runtime-deployed.py "${RUNNER_TEMP}/node-runtime-evidence"
 
   # Scope note: this job never loads the deployed web assets. It builds `dist`
@@ -932,9 +999,11 @@ jobs:
 
   # A component's SHA advances only after its deploy, the post-deploy seeding
   # and checks, and its smokes pass. The platform also needs the PostgreSQL
-  # checks and the agent API, MCP and web smokes; web needs the web smoke.
-  # The main-release concurrency group serializes runs, including reruns, so
-  # the next run reads these values only after this job has finished.
+  # checks, the agent API, MCP and web smokes, and the deployed Node runtime
+  # proof; web needs the web smoke. The Lambda source map upload is not a
+  # dependency: it does not change production. The main-release concurrency
+  # group serializes runs, including reruns, so the next run reads these
+  # values only after this job has finished.
   #
   # A selected component that may have changed production without being
   # verified is cleared: its parameter is overwritten with
@@ -963,6 +1032,7 @@ jobs:
       - web_smoke
       - agent_api_smoke
       - mcp_smoke
+      - node_runtime_proof
     if: ${{ always() && needs.changes.result == 'success' && needs.aws_deploy.result != 'skipped' }}
     runs-on: ubuntu-24.04
 
@@ -985,6 +1055,7 @@ jobs:
           WEB_SMOKE_RESULT: ${{ needs.web_smoke.result }}
           AGENT_API_SMOKE_RESULT: ${{ needs.agent_api_smoke.result }}
           MCP_SMOKE_RESULT: ${{ needs.mcp_smoke.result }}
+          NODE_RUNTIME_PROOF_RESULT: ${{ needs.node_runtime_proof.result }}
           PLATFORM_READ_SHA: ${{ needs.changes.outputs.platform_read_sha }}
           WEB_READ_SHA: ${{ needs.changes.outputs.web_read_sha }}
           ADMIN_READ_SHA: ${{ needs.changes.outputs.admin_read_sha }}
@@ -1060,6 +1131,8 @@ jobs:
                   echo "agent API smoke did not pass (\`${AGENT_API_SMOKE_RESULT}\`)"
                 elif [[ "${MCP_SMOKE_RESULT}" != "success" ]]; then
                   echo "MCP smoke did not pass (\`${MCP_SMOKE_RESULT}\`)"
+                elif [[ "${NODE_RUNTIME_PROOF_RESULT}" != "success" ]]; then
+                  echo "deployed Node runtime proof did not pass (\`${NODE_RUNTIME_PROOF_RESULT}\`)"
                 fi
                 ;;
               web)
@@ -1146,6 +1219,8 @@ jobs:
       - web_smoke
       - agent_api_smoke
       - mcp_smoke
+      - node_runtime_proof
+      - lambda_source_maps
       - record_deployed_shas
     runs-on: ubuntu-24.04
 
@@ -1171,6 +1246,8 @@ jobs:
               aws_release_status="post_deploy_seeding_failed"
             elif [[ "${{ needs.post_deploy_checks.result }}" != "success" ]]; then
               aws_release_status="post_deploy_checks_failed"
+            elif [[ "${deploy_platform}" == "true" && "${{ needs.node_runtime_proof.result }}" != "success" ]]; then
+              aws_release_status="node_runtime_proof_failed"
             elif [[ ( "${deploy_web}" == "true" || "${deploy_platform}" == "true" ) && "${{ needs.web_smoke.result }}" != "success" ]]; then
               aws_release_status="web_smoke_failed"
             elif [[ "${deploy_platform}" == "true" && "${{ needs.agent_api_smoke.result }}" != "success" ]]; then
@@ -1179,6 +1256,8 @@ jobs:
               aws_release_status="mcp_smoke_failed"
             elif [[ "${{ needs.record_deployed_shas.result }}" != "success" ]]; then
               aws_release_status="deployed_sha_record_failed"
+            elif [[ "${deploy_platform}" == "true" && "${{ needs.lambda_source_maps.result }}" != "success" ]]; then
+              aws_release_status="lambda_source_maps_failed"
             else
               aws_release_status="released"
             fi
@@ -1204,6 +1283,8 @@ jobs:
             echo "- Web smoke job: \`${{ needs.web_smoke.result }}\`"
             echo "- Agent API smoke job: \`${{ needs.agent_api_smoke.result }}\`"
             echo "- MCP smoke job: \`${{ needs.mcp_smoke.result }}\`"
+            echo "- Deployed Node runtime proof job: \`${{ needs.node_runtime_proof.result }}\`"
+            echo "- Upload Lambda source maps job: \`${{ needs.lambda_source_maps.result }}\`"
             echo "- Record deployed SHAs job: \`${{ needs.record_deployed_shas.result }}\`"
             echo "- Run details: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
           } >> "${GITHUB_STEP_SUMMARY}"
