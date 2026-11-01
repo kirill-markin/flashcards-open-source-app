@@ -1076,7 +1076,7 @@ const itCatalog: TranslationCatalog = {
       createWithAi: "Crea con l’AI",
       edit: "Modifica",
       retry: "Riprova",
-      revealAnswer: "Mostra la risposta",
+      revealAnswer: "Mostra risposta",
       switchToAllCards: "passa al mazzo di tutte le carte",
     },
     aiOpenAriaLabel: "Apri il {{side}} della carta nella chat AI",

@@ -1076,7 +1076,7 @@ const svCatalog: TranslationCatalog = {
       createWithAi: "Skapa med AI",
       edit: "Redigera",
       retry: "Försök igen",
-      revealAnswer: "Visa svaret",
+      revealAnswer: "Visa svar",
       switchToAllCards: "byt till kortleken Alla kort",
     },
     aiOpenAriaLabel: "Öppna kortets sida ({{side}}) i AI-chatten",

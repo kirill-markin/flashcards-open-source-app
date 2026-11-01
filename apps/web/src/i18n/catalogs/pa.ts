@@ -1076,7 +1076,7 @@ const paCatalog: TranslationCatalog = {
       createWithAi: "AI ਨਾਲ ਬਣਾਓ",
       edit: "ਸੋਧੋ",
       retry: "ਮੁੜ ਕੋਸ਼ਿਸ਼",
-      revealAnswer: "ਜਵਾਬ ਵਿਖਾਓ",
+      revealAnswer: "ਜਵਾਬ ਦਿਖਾਓ",
       switchToAllCards: "ਸਾਰੇ ਕਾਰਡਾਂ ਵਾਲੇ ਡੈੱਕ ਉੱਤੇ ਜਾਓ",
     },
     aiOpenAriaLabel: "AI ਚੈਟ ਵਿੱਚ ਕਾਰਡ ਖੋਲ੍ਹੋ: {{side}}",

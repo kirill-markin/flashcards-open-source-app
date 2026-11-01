@@ -1076,7 +1076,7 @@ const thCatalog: TranslationCatalog = {
       createWithAi: "สร้างด้วย AI",
       edit: "แก้ไข",
       retry: "ลองใหม่",
-      revealAnswer: "เฉลยคำตอบ",
+      revealAnswer: "แสดงคำตอบ",
       switchToAllCards: "สลับไปที่เด็คการ์ดทั้งหมด",
     },
     aiOpenAriaLabel: "เปิด{{side}}ของการ์ดในแชท AI",

@@ -1076,7 +1076,7 @@ const trCatalog: TranslationCatalog = {
       createWithAi: "AI ile oluştur",
       edit: "Düzenle",
       retry: "Yeniden dene",
-      revealAnswer: "Cevabı göster",
+      revealAnswer: "Yanıtı göster",
       switchToAllCards: "tüm kartlar destesine geç",
     },
     aiOpenAriaLabel: "{{side}} kartını AI sohbetinde aç",
