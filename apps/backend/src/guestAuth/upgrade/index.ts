@@ -34,6 +34,7 @@ import {
   assertTargetWorkspaceAccessInExecutor,
   carryGuestAccentColorToAccountInExecutor,
   carryGuestAnalyticsConsentToAccountInExecutor,
+  carryGuestFirstReviewOnboardingToAccountInExecutor,
   carryGuestProductAnalyticsEnabledToAccountInExecutor,
   loadGuestSessionRecordInExecutor,
   loadGuestSessionWithUserSettingsLockInExecutor,
@@ -254,6 +255,7 @@ async function createGuestUpgradeReplayCompletionInExecutor(
     outcome: "idempotent_replay",
     guestSessionId: replay.sourceGuestSessionId,
     guestUserId: replay.sourceGuestUserId,
+    guestPlatform: null,
     targetSubjectUserId: replay.targetSubjectUserId,
     targetUserId: replay.targetUserId,
     targetWorkspaceId: replay.targetWorkspaceId,
@@ -642,6 +644,7 @@ async function completeGuestUpgradeWithAdmissionInExecutor(
       outcome: "fresh_completion",
       guestSessionId: guestSession.sessionId,
       guestUserId: guestSession.userId,
+      guestPlatform: guestSession.platform,
       targetSubjectUserId: cognitoSubject,
       targetUserId,
       targetWorkspaceId: guestWorkspaceId,
@@ -791,6 +794,11 @@ async function completeGuestUpgradeWithAdmissionInExecutor(
     guestSession.userId,
     guestUpgradeResolution.targetUserId,
   );
+  await carryGuestFirstReviewOnboardingToAccountInExecutor(
+    executor,
+    guestSession.userId,
+    guestUpgradeResolution.targetUserId,
+  );
 
   await transferPaywallStateToUpgradedAccountInExecutor(
     executor,
@@ -815,6 +823,7 @@ async function completeGuestUpgradeWithAdmissionInExecutor(
     outcome: "fresh_completion",
     guestSessionId: guestSession.sessionId,
     guestUserId: guestSession.userId,
+    guestPlatform: guestSession.platform,
     targetSubjectUserId: cognitoSubject,
     targetUserId: guestUpgradeResolution.targetUserId,
     targetWorkspaceId: guestUpgradeResolution.targetWorkspaceId,

@@ -9,6 +9,7 @@ export type AuthAppEnv = {
     traceId: AuthTraceId | null;
     logger: AuthLogger;
     analyticsReportBudgetRemainingMs: number | undefined;
+    analyticsCollectedEvents: ReadonlyArray<import("./analytics/signInFunnel.js").ObservedAuthAnalyticsEvent> | undefined;
   };
 };
 

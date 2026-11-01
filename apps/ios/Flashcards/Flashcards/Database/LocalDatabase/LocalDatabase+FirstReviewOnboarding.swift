@@ -27,6 +27,10 @@ extension LocalDatabase {
         if state.ownerUserId != owner {
             // Only the existing guest creation path may bind an anonymous local edit.
             let bindsLocalGuest = state.ownerUserId == nil && cloud.cloudState == .guest
+            // A completed onboarding carries to the next owner this row passes to, pending so adoption
+            // ignores that account's stale snapshot until the push stores it; a reset never carries.
+            // An account switch wipes this row first and relies on `seedCarriedFirstReviewOnboardingCompletion`.
+            let carriesCompletion = state.isKnown && state.completed
             try self.core.execute(
                 sql: """
                 UPDATE first_review_onboarding SET owner_user_id = ?,
@@ -34,15 +38,28 @@ extension LocalDatabase {
                 WHERE settings_id = 1
                 """,
                 values: [
-                    ownerValue, .integer(bindsLocalGuest && state.completed ? 1 : 0),
-                    .integer(bindsLocalGuest && state.isKnown ? 1 : 0),
-                    .integer(bindsLocalGuest && state.pending ? 1 : 0),
+                    ownerValue, .integer(carriesCompletion || (bindsLocalGuest && state.completed) ? 1 : 0),
+                    .integer(carriesCompletion || (bindsLocalGuest && state.isKnown) ? 1 : 0),
+                    .integer(carriesCompletion || (bindsLocalGuest && state.pending) ? 1 : 0),
                     .text(bindsLocalGuest ? state.generation : UUID().uuidString),
                     .text(try self.core.encodeJsonString(value: bindsLocalGuest ? state.reviewTransitionTokens : []))
                 ]
             )
         }
         return try self.readFirstReviewOnboarding()
+    }
+
+    /// Restores a departing owner's completion into the ownerless row a wiped account switch recreated,
+    /// so the owner change to the next account carries it. Emits no event.
+    func seedCarriedFirstReviewOnboardingCompletion() throws {
+        _ = try self.loadFirstReviewOnboarding()
+        try self.core.execute(
+            sql: """
+            UPDATE first_review_onboarding SET completed = 1, is_known = 1, pending = 1, generation = ?
+            WHERE settings_id = 1
+            """,
+            values: [.text(UUID().uuidString)]
+        )
     }
 
     func readFirstReviewOnboardingGeneration() throws -> String {
@@ -76,7 +93,7 @@ extension LocalDatabase {
     func setFirstReviewOnboardingCompleted(completed: Bool, reviewToken: String?) throws -> Bool {
         let state = try self.loadFirstReviewOnboarding()
         guard state.completed != completed || state.isKnown == false else { return false }
-        let tokens = state.completed == false && completed
+        let tokens = state.isKnown && state.completed == false && completed
             ? state.reviewTransitionTokens + (reviewToken.map { [$0] } ?? [])
             : state.reviewTransitionTokens
         try self.core.execute(

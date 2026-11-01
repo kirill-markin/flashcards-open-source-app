@@ -395,6 +395,7 @@ class AppGraph(
                 phase = "demo_card_seed_reset"
             )
         },
+        onFirstReviewOnboardingPersistenceFailed = ::reportFirstReviewOnboardingPersistenceFailure,
         onCloudIdentityReset = {
             strictRemindersManager.clearForCloudIdentityReset()
             // Queued events belong to the person who is leaving, and the server attributes a batch
@@ -404,9 +405,10 @@ class AppGraph(
             // the teardown's precondition and its clears. The bounded drain that saves those events
             // runs earlier, at the control the person pressed.
             //
-            // Reached from exactly the three `CloudIdentityResetCoordinator` entry points that end
-            // one person's use of this install: `resetLocalStateForCloudIdentityChange` (logout, an
-            // account switch detected mid-sync or mid-refresh, an account deletion, a server
+            // Reached from exactly the `CloudIdentityResetCoordinator` entry points that end one
+            // person's use of this install: `resetLocalStateForSignOut` (logout),
+            // `resetLocalStateForLinkedAccountMismatch` (an account switch detected mid-sync or
+            // mid-refresh), `resetLocalStateForCloudIdentityChange` (an account deletion, a server
             // change), `eraseLocalDataForCredentialRecovery` (the credential-recovery erase) and
             // `disconnectDeletedCloudIdentityPreservingLocalState` (a `410 ACCOUNT_DELETED` sync
             // answer, i.e. the account was deleted elsewhere).
@@ -429,8 +431,8 @@ class AppGraph(
             analytics.reset()
             // Released here rather than at the control that set it. By the time this hook runs,
             // `CloudIdentityResetCoordinator` has already cleared the stored credentials — before
-            // this call in every one of its three boundary entry points — so a retry past this point
-            // can no longer post a second row under the departing credential. Left unreleased, a
+            // this call in every one of its boundary entry points — so a retry past this point can
+            // no longer post a second row under the departing credential. Left unreleased, a
             // teardown that threw after those clears would strand the flag set and silence the next
             // person's sign-out on this install.
             pendingSignOutReport.release()
@@ -453,16 +455,7 @@ class AppGraph(
         ),
         mediaAssetDownloader = OkHttpReviewMediaAssetDownloader(okHttpClient = okHttpClient),
         analytics = analytics,
-        onFirstReviewOnboardingPersistenceFailed = { error ->
-            appMessageBus.showTechnicalError(
-                error = com.flashcardsopensourceapp.core.ui.makeAppTechnicalError(
-                    title = applicationContext.getString(com.flashcardsopensourceapp.feature.settings.R.string.settings_first_review_onboarding_title),
-                    message = applicationContext.getString(com.flashcardsopensourceapp.feature.settings.R.string.settings_first_review_onboarding_save_failed),
-                    throwable = error
-                ),
-                throwable = error
-            )
-        },
+        onFirstReviewOnboardingPersistenceFailed = ::reportFirstReviewOnboardingPersistenceFailure,
         onFirstReviewOnboardingSaved = { refreshAccountContextInBackground(source = "first_review_onboarding") }
     )
     private val cloudGuestSessionCoordinator = CloudGuestSessionCoordinator(
@@ -1091,6 +1084,17 @@ class AppGraph(
                 error = error
             )
         }
+    }
+
+    private fun reportFirstReviewOnboardingPersistenceFailure(error: Exception) {
+        appMessageBus.showTechnicalError(
+            error = com.flashcardsopensourceapp.core.ui.makeAppTechnicalError(
+                title = applicationContext.getString(com.flashcardsopensourceapp.feature.settings.R.string.settings_first_review_onboarding_title),
+                message = applicationContext.getString(com.flashcardsopensourceapp.feature.settings.R.string.settings_first_review_onboarding_save_failed),
+                throwable = error
+            ),
+            throwable = error
+        )
     }
 
     private fun reportDemoCardFailure(workspaceId: String, phase: String, error: Exception) {

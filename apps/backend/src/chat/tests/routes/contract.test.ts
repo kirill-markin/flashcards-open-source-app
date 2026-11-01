@@ -564,6 +564,7 @@ test("POST /chat captures unexpected live envelope failures before returning the
       deduplicated: false,
       shouldInvokeWorker: false,
       initiatingAuthIsSignedIn: true,
+      clientDevice: { platform: null, osName: null, deviceType: null },
     }),
     getRecoveredChatSessionFn: async () => ({
       snapshot: createRunningSnapshot(),
@@ -821,6 +822,7 @@ test("POST /chat fails with a stable contract code when a running response canno
       deduplicated: false,
       shouldInvokeWorker: false,
       initiatingAuthIsSignedIn: true,
+      clientDevice: { platform: null, osName: null, deviceType: null },
     }),
     getRecoveredChatSessionFn: async () => ({
       snapshot: createRunningSnapshot(),

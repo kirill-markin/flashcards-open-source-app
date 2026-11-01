@@ -89,7 +89,7 @@ Run it locally with `make local-admin` on `http://localhost:3001` before merge; 
 ### General and the shared filters ([dashboard](../apps/admin/src/dashboard/AdminDashboard.tsx), [filter model](../apps/admin/src/filters/analyticsFilters.ts))
 
 - `/analytics/general` shows its two sections in order, each chart rendering.
-- `Catalog deck installs` is empty or nearly empty on production ([why](../apps/admin/src/reports/catalogInstalls/query.ts)); selecting any device platform empties only that section, and hovering a segment names the deck slug.
+- `Catalog deck installs` is empty or nearly empty on production ([why](../apps/admin/src/reports/catalogInstalls/query.ts)); selecting a device platform drops its older, platform-less installs, and hovering a segment names the deck slug.
 - The default range is the one [`buildAnalyticsAreaDefaultDateRange`](../apps/admin/src/filters/analyticsFiltersUrl.ts) returns, and the picker widens back to the earliest selectable day; over days only the deck funnel carries, General shows an empty tail.
 - Every filter popup names what it filters and how; the date popup's second click applies the range; a threshold such as `1.5` stays named as not applied.
 - A burst of filter clicks shows `Updating` at once, keeps the controls live and ends in one reload; `Reset all` restores the default range and clears every other filter.
