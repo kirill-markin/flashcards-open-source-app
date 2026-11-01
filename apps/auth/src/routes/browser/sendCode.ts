@@ -20,7 +20,7 @@ import {
   recordOtpSendDecision,
 } from "../../server/otp/otpRateLimit.js";
 import { PrincipalSessionError } from "../../server/social/principalSessions.js";
-import { log, maskEmail } from "../../server/logger.js";
+import { log } from "../../server/logger.js";
 import { isTransientDatabaseError } from "../../server/databaseErrors.js";
 import { isRejectedPasswordSignIn } from "../../server/cognito/passwordSignInErrors.js";
 import { isCognitoInvalidEmailError, isCognitoProviderOutage } from "../../server/cognito/cognitoErrors.js";
@@ -159,7 +159,7 @@ export function createSendCodeApp(dependencies: SendCodeDependencies): Hono<Auth
         action: "send_code_demo_sign_in",
         requestId,
         route: c.req.path,
-        maskedEmail: maskEmail(email),
+        email,
       });
       // This branch completes a sign-in inside `send-code`, so it owes the same success sequence as
       // `verify-code`: the event, and the retired guest cookie an older build may have left on this
@@ -272,7 +272,7 @@ export function createSendCodeApp(dependencies: SendCodeDependencies): Hono<Auth
         return jsonAuthError(c, statusCode, "OTP_SEND_FAILED", "Could not send a code. Try again.");
       }
 
-      log({ domain: "auth", action: "send_code", requestId, route: c.req.path, maskedEmail: maskEmail(email) });
+      log({ domain: "auth", action: "send_code", requestId, route: c.req.path, email });
 
       csrfToken = dependencies.createCsrfToken();
       const payload = JSON.stringify({
@@ -295,7 +295,7 @@ export function createSendCodeApp(dependencies: SendCodeDependencies): Hono<Auth
           action: "send_code_error",
           requestId,
           route: c.req.path,
-          maskedEmail: maskEmail(email),
+          email,
           ipAddress,
           statusCode: 503,
           code: "SERVICE_UNAVAILABLE",

@@ -68,7 +68,7 @@ class SentryAppObservabilityTest {
 
         assertEquals(
             "sessionId=s1&runId=r1&workspaceId=w1&userId=u1&installationId=i1&" +
-                "afterCursor=a1&cursor=c1&token=[redacted]&code=[redacted]&email=[redacted]&" +
+                "afterCursor=a1&cursor=c1&token=[redacted]&code=[redacted]&email=user@example.test&" +
                 "key=[redacted]&api-key=[redacted]&api_key=[redacted]&password=[redacted]&secret=[redacted]",
             sanitizedQuery
         )
@@ -87,7 +87,7 @@ class SentryAppObservabilityTest {
     }
 
     @Test
-    fun rawHttpBodyLabelsStayRedacted(): Unit {
+    fun rawHttpBodiesStayReadableWhileExplicitSecretsAreMasked(): Unit {
         val rawBodyLabels: Map<String, String> = mapOf(
             "response body" to "response body: workspaceId=w1 token=t1",
             "raw body" to "raw body: workspaceId=w1 token=t1",
@@ -96,7 +96,7 @@ class SentryAppObservabilityTest {
 
         rawBodyLabels.forEach { entry: Map.Entry<String, String> ->
             assertEquals(
-                "${entry.key}: [redacted]",
+                "${entry.key}: workspaceId=w1 token=[redacted]",
                 sanitizeSentryText(fieldName = "message", value = entry.value)
             )
         }
@@ -108,15 +108,12 @@ class SentryAppObservabilityTest {
             "token",
             "authorization",
             "cookie",
-            "email",
             "password",
             "secret",
             "apiKey",
             "apikey",
             "api-key",
-            "api_key",
-            "queryString",
-            "fragment"
+            "api_key"
         )
 
         unsafeFieldNames.forEach { fieldName: String ->

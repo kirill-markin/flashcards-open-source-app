@@ -1529,7 +1529,9 @@ const idCatalog: TranslationCatalog = {
   },
   chatMessageContent: {
     card: "Kartu",
+    copied: "Tersalin.",
     copy: "Salin",
+    copying: "Menyalin...",
     failedToCopy: "Gagal menyalin {{section}}.",
     id: "ID {{value}}",
     imageAttached: "[gambar dilampirkan]",

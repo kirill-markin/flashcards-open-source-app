@@ -1529,7 +1529,9 @@ const knCatalog: TranslationCatalog = {
   },
   chatMessageContent: {
     card: "ಕಾರ್ಡ್",
+    copied: "ನಕಲಿಸಲಾಗಿದೆ.",
     copy: "ನಕಲಿಸಿ",
+    copying: "ನಕಲಿಸಲಾಗುತ್ತಿದೆ...",
     failedToCopy: "{{section}} ನಕಲಿಸಲಾಗಲಿಲ್ಲ.",
     id: "ID {{value}}",
     imageAttached: "[ಚಿತ್ರ ಲಗತ್ತಿಸಲಾಗಿದೆ]",

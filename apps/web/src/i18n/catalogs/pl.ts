@@ -1544,7 +1544,9 @@ const plCatalog: TranslationCatalog = {
   },
   chatMessageContent: {
     card: "Karta",
+    copied: "Skopiowano.",
     copy: "Kopiuj",
+    copying: "Kopiowanie...",
     failedToCopy: "Nie udało się skopiować: {{section}}.",
     id: "ID {{value}}",
     imageAttached: "[dołączono obraz]",

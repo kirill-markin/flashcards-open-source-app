@@ -1529,7 +1529,9 @@ const bgCatalog: TranslationCatalog = {
   },
   chatMessageContent: {
     card: "Карта",
+    copied: "Копирано.",
     copy: "Копиране",
+    copying: "Копира се...",
     failedToCopy: "Неуспешно копиране: {{section}}.",
     id: "ID {{value}}",
     imageAttached: "[прикачено изображение]",

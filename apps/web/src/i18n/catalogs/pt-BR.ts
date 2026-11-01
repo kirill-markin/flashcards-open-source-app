@@ -1529,7 +1529,9 @@ const ptBrCatalog: TranslationCatalog = {
   },
   chatMessageContent: {
     card: "Cartão",
+    copied: "Copiado.",
     copy: "Copiar",
+    copying: "Copiando...",
     failedToCopy: "Falha ao copiar {{section}}.",
     id: "ID {{value}}",
     imageAttached: "[imagem anexada]",

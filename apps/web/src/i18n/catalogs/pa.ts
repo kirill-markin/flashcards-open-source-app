@@ -1529,7 +1529,9 @@ const paCatalog: TranslationCatalog = {
   },
   chatMessageContent: {
     card: "ਕਾਰਡ",
+    copied: "ਕਾਪੀ ਹੋ ਗਿਆ.",
     copy: "ਕਾਪੀ ਕਰੋ",
+    copying: "ਕਾਪੀ ਹੋ ਰਿਹਾ ਹੈ...",
     failedToCopy: "{{section}} ਕਾਪੀ ਨਹੀਂ ਹੋਇਆ.",
     id: "ID {{value}}",
     imageAttached: "[ਚਿੱਤਰ ਨੱਥੀ ਕੀਤਾ]",
