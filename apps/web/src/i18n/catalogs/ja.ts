@@ -1529,7 +1529,9 @@ export const jaCatalog = {
   },
   chatMessageContent: {
     card: "カード",
+    copied: "コピーしました。",
     copy: "コピー",
+    copying: "コピー中...",
     failedToCopy: "{{section}} のコピーに失敗しました。",
     id: "ID {{value}}",
     imageAttached: "[画像を添付]",

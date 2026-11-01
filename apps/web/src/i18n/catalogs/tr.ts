@@ -1529,7 +1529,9 @@ const trCatalog: TranslationCatalog = {
   },
   chatMessageContent: {
     card: "Kart",
+    copied: "Kopyalandı.",
     copy: "Kopyala",
+    copying: "Kopyalanıyor...",
     failedToCopy: "{{section}} kopyalanamadı.",
     id: "Kimlik {{value}}",
     imageAttached: "[görsel eklendi]",

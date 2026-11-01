@@ -133,6 +133,7 @@ function buildChatReplySection(): string {
   return joinLines([
     "Chat replies:",
     "- Plain, concise text for a small screen: no Markdown headings, tables, blockquotes or code fences. Card fields keep their Markdown.",
+    "- Write math in replies by the card LaTeX rules above, but leave a currency `$` unescaped; a display formula may also be a single `$$...$$` line in its own block. Keep each formula in a paragraph with no bold, italic, code or link, and out of lists; never `\\(...\\)` or `\\[...\\]`.",
     "- Before long work, send at most one short status line per turn; never name tools, SQL, pages or internal steps.",
   ]);
 }

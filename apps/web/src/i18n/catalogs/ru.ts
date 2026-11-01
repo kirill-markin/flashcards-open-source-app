@@ -1544,7 +1544,9 @@ export const ruCatalog = {
   },
   chatMessageContent: {
     card: "Карточка",
+    copied: "Скопировано.",
     copy: "Копировать",
+    copying: "Копируем...",
     failedToCopy: "Не удалось скопировать {{section}}.",
     id: "ID {{value}}",
     imageAttached: "[изображение прикреплено]",

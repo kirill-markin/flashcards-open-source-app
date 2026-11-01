@@ -1529,7 +1529,9 @@ const frCatalog: TranslationCatalog = {
   },
   chatMessageContent: {
     card: "Carte",
+    copied: "Copié.",
     copy: "Copier",
+    copying: "Copie en cours...",
     failedToCopy: "Impossible de copier {{section}}.",
     id: "ID {{value}}",
     imageAttached: "[image jointe]",

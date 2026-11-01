@@ -318,16 +318,9 @@ private fun aiWarningFailureMessage(
     } else {
         "${topFrame.className}.${topFrame.methodName}:${topFrame.lineNumber}"
     }
-    return "reason=$reason errorType=${error::class.java.name} " +
-        "errorMessage=${redactedAiWarningErrorMessage(value = error.message)} topFrame=$topFrameText"
-}
-
-private fun redactedAiWarningErrorMessage(value: String?): String {
-    return if (value.isNullOrBlank()) {
-        "null"
-    } else {
-        "[redacted]"
-    }
+    // The Sentry adapter masks secrets and truncates; the message goes last so truncation keeps the rest.
+    return "reason=$reason errorType=${error::class.java.name} topFrame=$topFrameText " +
+        "errorMessage=${error.message ?: "null"}"
 }
 
 private class AiChatRuntimeAppObservability(

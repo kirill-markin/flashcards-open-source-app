@@ -1529,7 +1529,9 @@ const bnCatalog: TranslationCatalog = {
   },
   chatMessageContent: {
     card: "কার্ড",
+    copied: "কপি করা হয়েছে।",
     copy: "কপি করুন",
+    copying: "কপি করা হচ্ছে...",
     failedToCopy: "{{section}} কপি করা যায়নি।",
     id: "ID {{value}}",
     imageAttached: "[ছবি সংযুক্ত]",

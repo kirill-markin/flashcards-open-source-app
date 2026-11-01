@@ -1529,7 +1529,9 @@ const mlCatalog: TranslationCatalog = {
   },
   chatMessageContent: {
     card: "കാർഡ്",
+    copied: "പകർത്തി.",
     copy: "പകർത്തുക",
+    copying: "പകർത്തുന്നു...",
     failedToCopy: "{{section}} പകർത്താനായില്ല.",
     id: "ID {{value}}",
     imageAttached: "[ചിത്രം ചേർത്തു]",

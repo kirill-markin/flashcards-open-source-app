@@ -344,23 +344,7 @@ private func safeIOSNetworkTransportEndpointPath(_ endpointPath: String) -> Stri
     guard normalizedPath.count <= 240 else {
         return nil
     }
-
-    let redactedPath: String = normalizedPath
-        .split(separator: "/", omittingEmptySubsequences: false)
-        .map { segment in
-            // Classification trims the segment, so emit the trimmed value too; otherwise a
-            // segment judged safe can still fail the allowed-character guard below.
-            let segmentValue: String = String(segment).trimmingCharacters(in: .whitespacesAndNewlines)
-            guard shouldRedactIOSNetworkTransportEndpointPathSegment(segmentValue) else {
-                return segmentValue
-            }
-            return filteredDiagnosticValue
-        }
-        .joined(separator: "/")
-    guard redactedPath.rangeOfCharacter(from: iosNetworkTransportEndpointPathAllowedCharacters.inverted) == nil else {
-        return nil
-    }
-    return redactedPath
+    return normalizedPath
 }
 
 private func fallbackIOSNetworkTransportEndpointPath(_ endpointPath: String) -> String {
@@ -372,31 +356,6 @@ private func fallbackIOSNetworkTransportEndpointPath(_ endpointPath: String) -> 
         .split(separator: "#", maxSplits: 1, omittingEmptySubsequences: false)
         .first
         .map(String.init) ?? ""
-}
-
-private let iosNetworkTransportEndpointPathAllowedCharacters: CharacterSet = CharacterSet(
-    charactersIn: "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789._~:/-%[]"
-)
-
-private func shouldRedactIOSNetworkTransportEndpointPathSegment(_ segment: String) -> Bool {
-    let decodedSegment: String = segment.removingPercentEncoding ?? segment
-    guard decodedSegment.isEmpty == false else {
-        return false
-    }
-
-    if decodedSegment.range(
-        of: #"^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"#,
-        options: .regularExpression
-    ) != nil {
-        return true
-    }
-
-    if decodedSegment.count >= 20,
-       decodedSegment.range(of: #"^[A-Za-z0-9_-]+$"#, options: .regularExpression) != nil {
-        return true
-    }
-
-    return safeIOSNetworkTransportIdentifier(decodedSegment) == nil
 }
 
 private func iosNetworkTransportAPIHostDiagnostics(
@@ -425,8 +384,8 @@ private func iosNetworkTransportAPIHostDiagnostics(
     )
 }
 
-// Network transport identifiers (hosts, HTTP methods, NSError domains, endpoint path
-// segments) are machine-shaped, so they keep the strict allowlist. `safeDiagnosticIdentifier`
+// Network transport identifiers (hosts, HTTP methods, NSError domains) are machine-shaped,
+// so they keep the strict allowlist. `safeDiagnosticIdentifier`
 // itself allows a wider punctuation set for code-authored descriptions; these transport
 // identifiers deliberately do not use it.
 private let iosNetworkTransportIdentifierAllowedCharacters: CharacterSet = CharacterSet(
