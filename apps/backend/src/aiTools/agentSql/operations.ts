@@ -41,6 +41,7 @@ import {
   type UpdateDeckInput,
 } from "../../decks";
 import { HttpError } from "../../shared/errors";
+import type { AiChatRunClientDevice } from "../../productAnalytics/serverFacts/reviewAnswers";
 import { ensureAgentSyncReplica } from "../../agent/syncIdentity";
 import {
   getWorkspaceSchedulerSettings,
@@ -127,6 +128,9 @@ export type AgentToolOperationDependencies = Readonly<{
   updateDecks: typeof updateDecks;
   getWorkspaceSchedulerSettings: typeof getWorkspaceSchedulerSettings;
   listUserWorkspacesForSelectedWorkspace: typeof listUserWorkspacesForSelectedWorkspace;
+  // The device the in-app chat run issuing these calls was started from, and null on every other
+  // surface; content writes through the chat's ai_chat replica take their analytics device from it.
+  aiChatClient: AiChatRunClientDevice | null;
 }>;
 
 type AgentMutationContext = Readonly<{
@@ -290,6 +294,7 @@ export const DEFAULT_AGENT_TOOL_OPERATION_DEPENDENCIES: AgentToolOperationDepend
   updateDecks,
   getWorkspaceSchedulerSettings,
   listUserWorkspacesForSelectedWorkspace,
+  aiChatClient: null,
 });
 
 /**
@@ -538,7 +543,7 @@ export async function createAgentCardsOperation(
     input: toCreateCardInput(card),
     metadata: metadata[index],
   }));
-  const cards = await dependencies.createCards(input.userId, input.workspaceId, items);
+  const cards = await dependencies.createCards(input.userId, input.workspaceId, items, dependencies.aiChatClient);
 
   return {
     cards,
@@ -559,7 +564,7 @@ export async function updateAgentCardsOperation(
     input: toUpdateCardInput(update),
     metadata: metadata[index],
   }));
-  const cards = await dependencies.updateCards(input.userId, input.workspaceId, items);
+  const cards = await dependencies.updateCards(input.userId, input.workspaceId, items, dependencies.aiChatClient);
 
   return {
     cards,
@@ -580,7 +585,7 @@ export async function deleteAgentCardsOperation(
     metadata: metadata[index],
   }));
 
-  return dependencies.deleteCards(input.userId, input.workspaceId, items);
+  return dependencies.deleteCards(input.userId, input.workspaceId, items, dependencies.aiChatClient);
 }
 
 /**
@@ -595,7 +600,7 @@ export async function createAgentDecksOperation(
     input: toCreateDeckInput(deck),
     metadata: metadata[index],
   }));
-  const decks = await dependencies.createDecks(input.userId, input.workspaceId, items);
+  const decks = await dependencies.createDecks(input.userId, input.workspaceId, items, dependencies.aiChatClient);
 
   return {
     decks,
@@ -629,7 +634,7 @@ export async function updateAgentDecksOperation(
       metadata: metadata[index],
     };
   });
-  const decks = await dependencies.updateDecks(input.userId, input.workspaceId, items);
+  const decks = await dependencies.updateDecks(input.userId, input.workspaceId, items, dependencies.aiChatClient);
 
   return {
     decks,
@@ -650,5 +655,5 @@ export async function deleteAgentDecksOperation(
     metadata: metadata[index],
   }));
 
-  return dependencies.deleteDecks(input.userId, input.workspaceId, items);
+  return dependencies.deleteDecks(input.userId, input.workspaceId, items, dependencies.aiChatClient);
 }
