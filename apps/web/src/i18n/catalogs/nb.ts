@@ -1076,7 +1076,7 @@ const nbCatalog: TranslationCatalog = {
       createWithAi: "Lag med AI",
       edit: "Rediger",
       retry: "Prøv igjen",
-      revealAnswer: "Vis svaret",
+      revealAnswer: "Vis svar",
       switchToAllCards: "bytt til kortstokken Alle kort",
     },
     aiOpenAriaLabel: "Åpne kortsiden ({{side}}) i AI-chatten",
