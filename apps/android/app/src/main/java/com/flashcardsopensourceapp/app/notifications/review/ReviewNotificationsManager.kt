@@ -129,7 +129,6 @@ class ReviewNotificationsManager(
     private val reviewPreferencesStore: ReviewPreferencesStore,
     private val reviewNotificationsStore: ReviewNotificationsStore,
     private val strictRemindersStore: StrictRemindersStore,
-    private val attentionController: ReviewReminderAttentionController,
     private val notificationDeliveryGate: NotificationDeliveryGate,
     private val observability: AppObservability,
     private val analytics: Analytics,
@@ -299,7 +298,7 @@ class ReviewNotificationsManager(
         val workspaceId = currentWorkspaceIdProvider()
         if (workspaceId == null) {
             clearReviewScheduling()
-            clearDeliveredReviewReminderState()
+            clearDeliveredReviewReminderNotifications()
             onDeliveredCleanupCompleted()
             return
         }
@@ -357,7 +356,7 @@ class ReviewNotificationsManager(
 
         val settings = reviewNotificationsStore.loadSettings()
         if (settings.isEnabled.not()) {
-            clearDeliveredReviewReminderState()
+            clearDeliveredReviewReminderNotifications()
             if (deliveredCleanupCompleted.not()) {
                 onDeliveredCleanupCompleted()
             }
@@ -555,13 +554,6 @@ class ReviewNotificationsManager(
     suspend fun clearDeliveredReviewReminderNotifications() {
         notificationDeliveryGate.runExclusive {
             clearDeliveredReviewReminderNotificationsInsideGate()
-        }
-    }
-
-    private suspend fun clearDeliveredReviewReminderState() {
-        notificationDeliveryGate.runExclusive {
-            clearDeliveredReviewReminderNotificationsInsideGate()
-            attentionController.clearInsideGate()
         }
     }
 
