@@ -1529,7 +1529,9 @@ const etCatalog: TranslationCatalog = {
   },
   chatMessageContent: {
     card: "Kaart",
+    copied: "Kopeeritud.",
     copy: "Kopeeri",
+    copying: "Kopeerimine...",
     failedToCopy: "Kopeerimine ebaõnnestus: {{section}}.",
     id: "ID {{value}}",
     imageAttached: "[pilt manustatud]",

@@ -1529,7 +1529,9 @@ const swCatalog: TranslationCatalog = {
   },
   chatMessageContent: {
     card: "Kadi",
+    copied: "Imenakiliwa.",
     copy: "Nakili",
+    copying: "Inanakili...",
     failedToCopy: "Imeshindwa kunakili {{section}}.",
     id: "ID {{value}}",
     imageAttached: "[picha imeambatishwa]",

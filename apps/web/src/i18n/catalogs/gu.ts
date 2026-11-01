@@ -1529,7 +1529,9 @@ const guCatalog: TranslationCatalog = {
   },
   chatMessageContent: {
     card: "કાર્ડ",
+    copied: "કૉપી થયું.",
     copy: "કૉપી કરો",
+    copying: "કૉપી થઈ રહ્યું છે...",
     failedToCopy: "{{section}} કૉપી થઈ શક્યું નહીં.",
     id: "ID {{value}}",
     imageAttached: "[છબી જોડી]",

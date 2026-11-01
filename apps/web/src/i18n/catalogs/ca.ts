@@ -1529,7 +1529,9 @@ const caCatalog: TranslationCatalog = {
   },
   chatMessageContent: {
     card: "Targeta",
+    copied: "Copiat.",
     copy: "Copia",
+    copying: "S'està copiant...",
     failedToCopy: "No s'ha pogut copiar {{section}}.",
     id: "ID {{value}}",
     imageAttached: "[imatge adjunta]",
