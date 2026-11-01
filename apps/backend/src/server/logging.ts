@@ -216,11 +216,7 @@ export function createAgentSqlObservationScope(
   );
 }
 
-/**
- * Emits the single structured record for one agent SQL execution, following the
- * `logAdminQueryEvent` convention above (fingerprint + statement count +
- * duration + outcome, never the raw SQL).
- */
+/** Emits the single structured record for one agent SQL execution. */
 export function logAgentSqlEvent(payload: AgentSqlLogPayload): void {
   const scope = createAgentSqlObservationScope(payload.surface, payload.userId, payload.workspaceId);
   const details: AgentSqlDetails = {
@@ -236,12 +232,14 @@ export function logAgentSqlEvent(payload: AgentSqlLogPayload): void {
     rowsOmitted: payload.rowsOmitted,
     rowsTruncated: payload.rowsTruncated,
     durationMs: payload.durationMs,
+    sql: payload.sql,
     sqlLength: payload.sqlLength,
     sqlFingerprint: payload.sqlFingerprint,
     errorCode: payload.errorCode,
     dialectReason: payload.dialectReason,
     rejectedName: payload.rejectedName,
     errorClass: payload.errorClass,
+    errorMessage: payload.errorMessage,
   };
 
   addBackendBreadcrumb({

@@ -204,19 +204,17 @@ const DEFAULT_MCP_SERVER_DEPENDENCIES: McpServerDependencies = {
  * transport record names the invoked tool whatever the client's protocol
  * revision is: the `Mcp-Name` header only becomes REQUIRED in MCP revision
  * 2026-07-28 and most live callers are older. It also reports the call's
- * serialized arguments, null for the SQL tools. A batched request reports each
- * tool it runs, and the entrypoint keeps the last one so it still emits exactly
- * one record.
+ * serialized arguments. A batched request reports each tool it runs, and the
+ * entrypoint keeps the last one so it still emits exactly one record.
  *
  * `recordToolOutcome` reports, once per handler run, whether the tool answered
  * with an error result and the code that result carries. A failed tool call is
  * still a successful JSON-RPC response, so the transport status cannot tell it
- * apart. Only the code is reported, never the message, which can quote
- * flashcard content.
+ * apart.
  */
 export type McpRequestTelemetryChannel = Readonly<{
   caller: string | null;
-  recordInvokedTool: (toolName: string, toolCallArguments: string | null) => void;
+  recordInvokedTool: (toolName: string, toolCallArguments: string) => void;
   recordToolOutcome: (outcome: McpToolOutcome) => void;
 }>;
 
@@ -224,15 +222,6 @@ export type McpToolOutcome = Readonly<
   | { isError: false; errorCode: null }
   | { isError: true; errorCode: string }
 >;
-
-/**
- * Tools whose arguments the `mcp_request` record never carries: their SQL text must not reach the
- * MCP log group, which never expires.
- */
-const TOOLS_WITHOUT_RECORDED_ARGUMENTS: ReadonlySet<string> = new Set([
-  SQL_QUERY_TOOL_NAME,
-  SQL_EXECUTE_TOOL_NAME,
-]);
 
 /** The `error.code` a failed tool call's envelope sends to the client. */
 function getToolErrorCode(error: unknown): string {
@@ -617,12 +606,7 @@ export function createMcpServerWithDependencies(
       // The SDK hands the handler its own parse of the arguments with `spec.inputSchema`, so this is
       // the validated, normalized input rather than the request body.
       async (validatedInput: unknown): Promise<CallToolResult> => {
-        telemetry.recordInvokedTool(
-          spec.name,
-          TOOLS_WITHOUT_RECORDED_ARGUMENTS.has(spec.name)
-            ? null
-            : serializeMcpToolCallArguments(validatedInput),
-        );
+        telemetry.recordInvokedTool(spec.name, serializeMcpToolCallArguments(validatedInput));
         try {
           const result = await spec.execute(toolContext, validatedInput);
           const toolResult: CallToolResult = {
