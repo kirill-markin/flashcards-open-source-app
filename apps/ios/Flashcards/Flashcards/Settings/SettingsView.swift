@@ -425,7 +425,7 @@ struct SettingsView: View {
         }
         .listStyle(.insetGrouped)
         .accessibilityIdentifier(UITestIdentifier.settingsScreen)
-        .navigationTitle(aiSettingsLocalized("settings.title", "Settings"))
+        .nativeNavigationTitle(aiSettingsLocalized("settings.title", "Settings"))
         .onAppear {
             store.triggerCloudAccountContextRefreshIfActive(surfacesGlobalErrorMessage: false)
         }

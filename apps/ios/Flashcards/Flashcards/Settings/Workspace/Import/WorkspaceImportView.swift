@@ -136,7 +136,7 @@ struct WorkspaceImportView: View {
             }
         }
         .listStyle(.insetGrouped)
-        .navigationTitle(aiSettingsLocalized("settings.workspace.import.title", "Import"))
+        .nativeNavigationTitle(aiSettingsLocalized("settings.workspace.import.title", "Import"))
         .accessibilityIdentifier(UITestIdentifier.workspaceImportScreen)
         .fileImporter(
             isPresented: self.$isFileImporterPresented,

@@ -249,6 +249,9 @@ extension LiveSmokeTestCase {
 
         self.logActionStart(action: action, identifier: "application")
         self.app.launch()
+        #if targetEnvironment(macCatalyst)
+        self.app.activate()
+        #endif
         try self.waitForApplicationToReachForeground(timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
         try self.verifyAutomationRunDecision(timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
         if let launchScenario = request.launchScenario {
@@ -257,6 +260,9 @@ extension LiveSmokeTestCase {
                 timeout: LiveSmokeConfiguration.launchPreparationTimeoutSeconds
             )
         }
+        #if targetEnvironment(macCatalyst)
+        try self.prepareInitialMacWindowIfNeeded()
+        #endif
         if request.appNotificationTapType == nil {
             try self.waitForSelectedTabScreen(
                 selectedTab: request.selectedTab,
@@ -265,6 +271,23 @@ extension LiveSmokeTestCase {
         }
         self.logActionEnd(action: action, identifier: "application", result: "success", note: note)
     }
+
+    #if targetEnvironment(macCatalyst)
+    @MainActor
+    private func prepareInitialMacWindowIfNeeded() throws {
+        guard self.hasPreparedInitialMacWindow == false else { return }
+        // iPad landscape smokes require a wide desktop too. Preserve subsequent
+        // relaunch/resize states rather than inheriting another case's half tile.
+        let windowMenu = self.app.menuBars.menuBarItems["com.apple.menu.window"]
+        XCTAssertTrue(windowMenu.waitForExistence(timeout: 5))
+        windowMenu.click()
+        let fill = self.app.menuItems["_zoomFill:"].firstMatch
+        XCTAssertTrue(fill.waitForExistence(timeout: 5))
+        fill.click()
+        RunLoop.current.run(until: Date().addingTimeInterval(0.5))
+        self.hasPreparedInitialMacWindow = true
+    }
+    #endif
 
     @MainActor
     private func verifyAutomationRunDecision(timeout: TimeInterval) throws {

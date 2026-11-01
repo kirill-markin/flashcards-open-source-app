@@ -47,6 +47,7 @@ enum TransientBannerKind: Hashable, Sendable {
     case aiChatActiveRun
     case reviewUpdatedOnAnotherDevice
     case cardsUpdatedFromCloud
+    case cardChanged
     case workspaceChangesRequireAccount
     case reviewSpeechUnavailable
     case testModeEnabled
@@ -63,6 +64,8 @@ enum TransientBannerKind: Hashable, Sendable {
             return "arrow.triangle.2.circlepath.circle.fill"
         case .cardsUpdatedFromCloud:
             return "rectangle.stack.badge.person.crop"
+        case .cardChanged:
+            return "arrow.triangle.2.circlepath"
         case .workspaceChangesRequireAccount:
             return "gearshape.fill"
         case .reviewSpeechUnavailable:

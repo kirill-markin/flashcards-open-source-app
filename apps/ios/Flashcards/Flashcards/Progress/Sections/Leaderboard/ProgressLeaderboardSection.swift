@@ -83,8 +83,13 @@ struct ProgressLeaderboardSection: View {
             } label: {
                 Image(systemName: "info.circle")
                     .font(.body)
+                    #if targetEnvironment(macCatalyst)
+                    .frame(minWidth: appMinimumTouchTarget, minHeight: appMinimumTouchTarget)
+                    #endif
+                    .contentShape(Rectangle())
             }
             .buttonStyle(.borderless)
+            .accessibilityIdentifier(UITestIdentifier.progressLeaderboardInfoButton)
             .accessibilityLabel(
                 String(
                     localized: "progress.screen.leaderboard.info.accessibility_label",
@@ -112,7 +117,11 @@ struct ProgressLeaderboardSection: View {
                     )
                 )
             }
+            #if targetEnvironment(macCatalyst)
+            .frame(maxWidth: .infinity, minHeight: appMinimumTouchTarget, alignment: .center)
+            #else
             .frame(maxWidth: .infinity, alignment: .center)
+            #endif
         }
         .buttonStyle(.borderedProminent)
         .accessibilityIdentifier(UITestIdentifier.progressLeaderboardInviteFriendButton)
@@ -213,15 +222,17 @@ struct ProgressLeaderboardSection: View {
                 )
             )
         } actions: {
-            Button(
-                String(
+            Button(action: self.onOpenCloudSignIn) {
+                Text(String(
                     localized: "progress.screen.leaderboard.sign_in.button",
                     defaultValue: "Sign in or sign up",
                     table: "Foundation",
                     comment: "Progress leaderboard sign-in placeholder button"
-                )
-            ) {
-                self.onOpenCloudSignIn()
+                ))
+                #if targetEnvironment(macCatalyst)
+                .frame(minWidth: appMinimumTouchTarget, minHeight: appMinimumTouchTarget)
+                #endif
+                .contentShape(Rectangle())
             }
             .accessibilityIdentifier(UITestIdentifier.progressLeaderboardSignInButton)
         }
@@ -248,15 +259,19 @@ struct ProgressLeaderboardSection: View {
                 )
             )
         } actions: {
-            Button(
-                String(
+            Button {
+                self.navigation.openSettings(destination: .leaderboardParticipation)
+            } label: {
+                Text(String(
                     localized: "progress.screen.leaderboard.participation_disabled.button",
                     defaultValue: "Open rating leaderboard settings",
                     table: "Foundation",
                     comment: "Progress rating leaderboard participation-disabled placeholder button"
-                )
-            ) {
-                self.navigation.openSettings(destination: .leaderboardParticipation)
+                ))
+                #if targetEnvironment(macCatalyst)
+                .frame(minWidth: appMinimumTouchTarget, minHeight: appMinimumTouchTarget)
+                #endif
+                .contentShape(Rectangle())
             }
             .accessibilityIdentifier(UITestIdentifier.progressLeaderboardOpenSettingsButton)
         }
@@ -415,6 +430,10 @@ private struct ProgressLeaderboardParticipantRowView: View {
             self.onOpenProfile(self.selectedProfile)
         } label: {
             self.content
+                #if targetEnvironment(macCatalyst)
+                .frame(minHeight: appMinimumTouchTarget)
+                #endif
+                .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
         .contentShape(Rectangle())

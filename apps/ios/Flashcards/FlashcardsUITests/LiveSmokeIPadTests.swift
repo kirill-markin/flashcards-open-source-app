@@ -22,7 +22,11 @@ final class LiveSmokeIPadTests: LiveSmokeTestCase {
         let composer = try self.waitForAiComposerUsable(timeout: LiveSmokeConfiguration.longUiTimeoutSeconds)
         try self.focusElementForTextInput(composer, identifier: LiveSmokeIdentifier.aiComposerTextField, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
         composer.typeText("Keep this unsent companion draft")
+        #if targetEnvironment(macCatalyst)
+        self.app.typeKey(XCUIKeyboardKey.escape.rawValue, modifierFlags: [])
+        #else
         try self.tapButton(identifier: LiveSmokeIdentifier.aiComposerDismissKeyboardButton, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+        #endif
 
         for destination in [LiveSmokeSelectedTab.cards, .progress, .review] {
             try self.tapTabBarItem(identifier: destination.itemIdentifier, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
@@ -50,7 +54,7 @@ final class LiveSmokeIPadTests: LiveSmokeTestCase {
             self.app.activate()
 #else
             let studySurface = self.app.descendants(matching: .any).matching(identifier: LiveSmokeIdentifier.reviewScreen).firstMatch
-            studySurface.tap()
+            studySurface.clickOrTap()
 #endif
             try self.tapButton(identifier: LiveSmokeIdentifier.reviewCardTagChipPrefix + "smoke-guest-ai-review", timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
 #if targetEnvironment(macCatalyst)
@@ -66,7 +70,7 @@ final class LiveSmokeIPadTests: LiveSmokeTestCase {
 #if targetEnvironment(macCatalyst)
             self.app.activate()
 #else
-            studySurface.tap()
+            studySurface.clickOrTap()
 #endif
             self.app.typeKey(key, modifierFlags: [])
             XCTAssertTrue(self.app.buttons[LiveSmokeIdentifier.reviewShowAnswerButton].exists, "A rating key must not submit a hidden answer.")
@@ -94,7 +98,7 @@ final class LiveSmokeIPadTests: LiveSmokeTestCase {
 #if targetEnvironment(macCatalyst)
             self.app.activate()
 #else
-            studySurface.tap()
+            studySurface.clickOrTap()
 #endif
             self.app.typeKey(key, modifierFlags: [])
             try self.assertElementDoesNotExist(identifier: LiveSmokeIdentifier.reviewRateGoodButton, timeout: LiveSmokeConfiguration.reviewInteractionTimeoutSeconds)

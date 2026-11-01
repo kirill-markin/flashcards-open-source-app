@@ -260,7 +260,7 @@ struct LanguageSettingsView: View {
         }
         .listStyle(.insetGrouped)
         .accessibilityIdentifier(UITestIdentifier.languageSettingsScreen)
-        .navigationTitle(aiSettingsLocalized("settings.language.title", "Language"))
+        .nativeNavigationTitle(aiSettingsLocalized("settings.language.title", "Language"))
     }
 
     private var systemDescription: String {

@@ -49,6 +49,7 @@ extension LiveSmokeTestCase {
 
         var primaryFailure: Error?
         var shouldDeleteWorkspace = false
+        var workspaceNameForCleanup = context.createdWorkspaceName
 
         do {
             try beforeSignIn()
@@ -73,7 +74,9 @@ extension LiveSmokeTestCase {
             }
 
             try self.step("rename the linked workspace for this run") {
-                try self.renameLinkedWorkspace(workspaceName: context.workspaceName)
+                try self.renameLinkedWorkspace(workspaceName: context.workspaceName) {
+                    workspaceNameForCleanup = context.workspaceName
+                }
             }
 
             try scenario()
@@ -88,7 +91,7 @@ extension LiveSmokeTestCase {
             do {
                 try self.step("delete the isolated workspace") {
                     try beforeDelete()
-                    try self.deleteEphemeralWorkspace(workspaceName: context.workspaceName)
+                    try self.deleteEphemeralWorkspace(workspaceName: workspaceNameForCleanup)
                 }
             } catch {
                 if primaryFailure == nil {
@@ -205,7 +208,10 @@ extension LiveSmokeTestCase {
     }
 
     @MainActor
-    func renameLinkedWorkspace(workspaceName: String) throws {
+    func renameLinkedWorkspace(
+        workspaceName: String,
+        onRenameCommitted: @MainActor () -> Void = {}
+    ) throws {
         try self.assertScreenVisible(screen: .settings, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
         try self.tapButtonScrollingIntoView(
             identifier: LiveSmokeIdentifier.settingsCurrentWorkspaceRow,
@@ -233,6 +239,7 @@ extension LiveSmokeTestCase {
             identifier: LiveSmokeIdentifier.currentWorkspaceRenameSheet,
             timeout: LiveSmokeConfiguration.longUiTimeoutSeconds
         )
+        onRenameCommitted()
         try self.tapFirstNavigationBackButton()
         try self.assertTextExists(workspaceName, timeout: LiveSmokeConfiguration.longUiTimeoutSeconds)
     }
@@ -388,34 +395,23 @@ extension LiveSmokeTestCase {
                 let settingsList = self.app.collectionViews[LiveSmokeIdentifier.settingsScreen].firstMatch
                 let accountStatusRow = settingsList.buttons[LiveSmokeIdentifier.settingsAccountStatusRow].firstMatch
                 if accountStatusRow.exists && accountStatusRow.isHittable {
+                    #if targetEnvironment(macCatalyst)
+                    let viewport = try self.macSettingsContentViewport(settingsList)
+                    let hasNavigationChrome = true
+                    #else
                     let navigationBar = self.app.navigationBars.firstMatch
                     let tabBar = self.app.tabBars.firstMatch
-                    #if targetEnvironment(macCatalyst)
-                    let settingsWindows = self.app.children(matching: .window)
-                        .containing(.any, identifier: LiveSmokeIdentifier.settingsScreen)
-                    let settingsWindowCount = settingsWindows.count
-                    guard settingsWindowCount == 1 else {
-                        throw LiveSmokeFailure.unexpectedAccountState(
-                            message: "Expected one top-level native window containing '\(LiveSmokeIdentifier.settingsScreen)' for the Settings viewport; found \(settingsWindowCount).",
-                            screen: self.currentScreenSummary(),
-                            step: self.currentStepTitle
-                        )
-                    }
-                    let viewportFrame = settingsList.frame.intersection(settingsWindows.element.frame)
-                    #else
-                    let viewportFrame = settingsList.frame.intersection(self.app.frame)
+                    let frame = settingsList.frame.intersection(self.app.frame)
+                    let chrome = navigationBar.exists ? navigationBar.frame : .zero
+                    let top = max(frame.minY, chrome.maxY)
+                    let bottom = tabBar.exists && tabBar.frame.minY > top
+                        ? min(frame.maxY, tabBar.frame.minY) : frame.maxY
+                    let viewport = CGRect(x: frame.minX, y: top, width: frame.width, height: max(0, bottom - top))
+                    let hasNavigationChrome = chrome.isEmpty == false
                     #endif
-                    let viewportTop = max(viewportFrame.minY, navigationBar.exists ? navigationBar.frame.maxY : viewportFrame.minY)
-                    let viewportBottom = tabBar.exists && tabBar.frame.minY > viewportTop
-                        ? min(viewportFrame.maxY, tabBar.frame.minY)
-                        : viewportFrame.maxY
                     let rowFrame = accountStatusRow.frame
-                    let isInsideVisibleContent = navigationBar.exists
-                        && navigationBar.frame.isEmpty == false
-                        && rowFrame.isEmpty == false
-                        && rowFrame.minY >= viewportTop
-                        && rowFrame.maxY <= viewportBottom
-                        && viewportFrame.contains(rowFrame)
+                    let isInsideVisibleContent = hasNavigationChrome && rowFrame.isEmpty == false
+                        && viewport.contains(rowFrame)
                     if isInsideVisibleContent {
                         try self.tapExistingButton(
                             accountStatusRow,
@@ -432,7 +428,7 @@ extension LiveSmokeTestCase {
             }
 
             throw LiveSmokeFailure.unexpectedAccountState(
-                message: "'\(LiveSmokeIdentifier.settingsAccountStatusRow)' did not become hittable fully inside the Settings viewport below its navigation bar within \(formatDuration(seconds: timeout)).",
+                message: "'\(LiveSmokeIdentifier.settingsAccountStatusRow)' did not become hittable fully inside the Settings viewport below its navigation controls within \(formatDuration(seconds: timeout)).",
                 screen: self.currentScreenSummary(),
                 step: self.currentStepTitle
             )
@@ -568,7 +564,7 @@ extension LiveSmokeTestCase {
                 }
             }
 
-            chooserList.swipeUp()
+            chooserList.scrollTowardLaterContent()
             RunLoop.current.run(until: Date(timeIntervalSinceNow: liveSmokeFocusPollIntervalSeconds))
         }
 

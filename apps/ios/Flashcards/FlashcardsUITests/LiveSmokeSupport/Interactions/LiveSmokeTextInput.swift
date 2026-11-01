@@ -207,7 +207,7 @@ extension LiveSmokeTestCase {
 
         while Date() < deadline {
             if element.exists && element.isHittable {
-                element.tap()
+                element.clickOrTap()
                 if self.elementHasKeyboardFocus(element: element) {
                     let durationSeconds = Date().timeIntervalSince(startedAt)
                     self.logSmokeBreadcrumb(

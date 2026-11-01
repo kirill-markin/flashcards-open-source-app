@@ -2,10 +2,11 @@ import SwiftUI
 import UIKit
 
 struct AIChatDictationStatusLane: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     let statusText: String
 
     var body: some View {
-        TimelineView(.animation(minimumInterval: aiChatTypingIndicatorAnimationStepSeconds)) { context in
+        TimelineView(.animation(minimumInterval: aiChatTypingIndicatorAnimationStepSeconds, paused: self.reduceMotion)) { context in
             let activeDotCount = aiChatTypingIndicatorActiveDotCount(date: context.date)
 
             HStack(spacing: 10) {
@@ -30,10 +31,12 @@ struct AIChatDictationStatusLane: View {
     }
 }
 
+@MainActor
 func aiChatComposerAccessoryIcon(systemName: String) -> some View {
     Image(systemName: systemName)
         .font(.system(size: 15, weight: .medium))
         .frame(width: 16, height: 16)
+        .contentShape(Rectangle())
 }
 
 extension AIChatView {
@@ -44,7 +47,7 @@ extension AIChatView {
             maxWidth: flashcardsReadableContentMaxWidth,
             horizontalPadding: self.chatContentHorizontalPadding
         ) {
-            VStack(alignment: .leading, spacing: 12) {
+            VStack(alignment: .leading, spacing: aiChatComposerControlSpacing) {
                 if self.chatStore.pendingAttachments.isEmpty == false {
                     ScrollView(.horizontal, showsIndicators: false) {
                         HStack(spacing: 8) {
@@ -85,10 +88,12 @@ extension AIChatView {
                                     } label: {
                                         Image(systemName: "xmark.circle.fill")
                                             .foregroundStyle(.secondary)
+                                            #if !targetEnvironment(macCatalyst)
                                             .frame(minWidth: 44, minHeight: 44)
+                                            #endif
                                             .contentShape(Rectangle())
                                     }
-                                    .buttonStyle(.plain)
+                                    .nativeInlineActionButtonStyle()
                                     .fixedSize()
                                     .disabled(self.chatStore.canModifyDraftAttachments == false)
                                     .accessibilityLabel(aiSettingsLocalized("common.delete", "Delete"))
@@ -122,15 +127,17 @@ extension AIChatView {
                                     self.isComposerFocused = true
                                 } label: {
                                     MathContentText(text: suggestion.text, textStyle: .footnote)
-                                        .padding(.horizontal, 12)
-                                        .padding(.vertical, 9)
+                                        .padding(.horizontal, aiChatComposerSuggestionHorizontalPadding)
+                                        .padding(.vertical, aiChatComposerSuggestionVerticalPadding)
                                 }
+                                #if targetEnvironment(macCatalyst)
+                                .buttonStyle(.bordered)
+                                .buttonBorderShape(.capsule)
+                                #else
                                 .buttonStyle(.plain)
                                 .background(.thinMaterial, in: Capsule())
-                                .overlay {
-                                    Capsule()
-                                        .strokeBorder(.tint.opacity(0.18), lineWidth: 1)
-                                }
+                                .overlay { Capsule().strokeBorder(.tint.opacity(0.18), lineWidth: 1) }
+                                #endif
                                 .accessibilityIdentifier("\(UITestIdentifier.aiComposerSuggestionPrefix)\(index)")
                             }
                         }
@@ -180,14 +187,21 @@ extension AIChatView {
                         .focused(isTextFieldFocused)
                         .lineLimit(1...aiChatComposerMaximumLineCount)
                         .padding(.leading, 12)
-                        .padding(.top, self.chatStore.dictationState == .idle ? 12 : aiChatComposerDictationTextFieldTopPadding)
+                        .padding(.top, self.chatStore.dictationState == .idle ? aiChatComposerTextVerticalPadding : aiChatComposerDictationTextFieldTopPadding)
                         .padding(.trailing, aiChatComposerSendButtonReservedTrailingPadding)
-                        .padding(.bottom, 12)
+                        .padding(.bottom, aiChatComposerTextVerticalPadding)
+                        #if targetEnvironment(macCatalyst)
+                        .frame(minHeight: aiChatComposerSendButtonHitSize)
+                        #endif
                         .contentShape(Rectangle())
                         .onTapGesture {
                             isTextFieldFocused.wrappedValue = true
                         }
                         .accessibilityIdentifier(UITestIdentifier.aiComposerTextField)
+                        .modifier(ComposerKeyboardModifier(
+                            isEnabled: self.isPresentationActive,
+                            onDismiss: self.dismissComposerFocus
+                        ))
 
                         Button {
                             self.handlePrimaryComposerAction()
@@ -230,6 +244,7 @@ extension AIChatView {
                 .overlay(alignment: .topLeading) {
                     if self.chatStore.dictationState != .idle {
                         AIChatDictationStatusLane(statusText: self.dictationStatusText)
+                            .allowsHitTesting(false)
                             .accessibilityIdentifier(UITestIdentifier.aiDictationStatus)
                             .accessibilityValue(String(describing: self.chatStore.dictationState))
                             .padding(.top, 12)
@@ -245,13 +260,15 @@ extension AIChatView {
 
                     HStack(spacing: 8) {
                         if self.isComposerFocused {
-                            Button(String(
-                                localized: "ai.composer.dismiss_keyboard",
-                                defaultValue: "Done",
-                                table: "Foundation",
-                                comment: "Dismiss the AI composer keyboard"
-                            )) {
+                            Button {
                                 self.dismissComposerFocus()
+                            } label: {
+                                Text(String(
+                                    localized: "ai.composer.dismiss_keyboard",
+                                    defaultValue: "Done",
+                                    table: "Foundation",
+                                    comment: "Dismiss the AI composer keyboard"
+                                ))
                             }
                             .nativeActionButtonStyle()
                             .accessibilityIdentifier(UITestIdentifier.aiComposerDismissKeyboardButton)

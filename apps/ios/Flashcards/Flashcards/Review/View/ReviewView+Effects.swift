@@ -236,9 +236,11 @@ extension ReviewView {
         }
     }
 
-    func refreshPreparedRevealStates(reviewQueue: [Card]) async {
+    func refreshPreparedRevealStates(reviewQueue: [Card], presentedCard: Card?) async {
         let now = Date()
-        let currentCard = currentReviewCard(reviewQueue: reviewQueue)
+        // The retained presentation can differ from the queue while submissions
+        // and local edits reconcile. Prepare the same card the view renders.
+        let currentCard = presentedCard
         let nextCard = nextReviewCard(reviewQueue: reviewQueue)
         if currentCard != nil || nextCard != nil {
             await Task.yield()

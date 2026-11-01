@@ -45,7 +45,7 @@ struct DeleteCurrentWorkspaceView: View {
         }
         .listStyle(.insetGrouped)
         .accessibilityIdentifier(UITestIdentifier.deleteCurrentWorkspaceScreen)
-        .navigationTitle(aiSettingsLocalized("settings.row.deleteCurrentWorkspace", "Delete Current Workspace"))
+        .nativeNavigationTitle(aiSettingsLocalized("settings.row.deleteCurrentWorkspace", "Delete Current Workspace"))
         .alert(aiSettingsLocalized("settings.workspace.overview.deleteAlertTitle", "Delete this workspace?"), isPresented: self.$isDeleteWorkspaceAlertPresented) {
             Button(aiSettingsLocalized("common.cancel", "Cancel"), role: .cancel) {}
             Button(aiSettingsLocalized("common.continue", "Continue"), role: .destructive) {

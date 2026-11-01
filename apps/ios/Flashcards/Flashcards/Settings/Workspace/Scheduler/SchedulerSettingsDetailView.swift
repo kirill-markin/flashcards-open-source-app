@@ -118,7 +118,7 @@ struct SchedulerSettingsDetailView: View {
             }
         }
         .listStyle(.insetGrouped)
-        .navigationTitle(aiSettingsLocalized("settings.workspace.scheduler.title", "Scheduler settings"))
+        .nativeNavigationTitle(aiSettingsLocalized("settings.workspace.scheduler.title", "Scheduler settings"))
         .accessibilityIdentifier(UITestIdentifier.schedulerSettingsScreen)
         .nativeBottomBar(alignment: .trailing) {
             if self.focusedField != nil {

@@ -63,7 +63,7 @@ final class LiveSmokeReviewTests: LiveSmokeTestCase {
                 timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds
             )
 
-            lowerTagToggle.tap()
+            lowerTagToggle.clickOrTap()
             try self.assertReviewFilterToggleValue(
                 identifier: lowerTagToggleIdentifier,
                 expectedValue: .on,
@@ -87,7 +87,7 @@ final class LiveSmokeReviewTests: LiveSmokeTestCase {
             self.app.descendants(matching: .any)
                 .matching(identifier: LiveSmokeIdentifier.reviewFilterAllCardsToggle)
                 .firstMatch
-                .tap()
+                .clickOrTap()
 
             try self.assertReviewFilterToggleValue(
                 identifier: LiveSmokeIdentifier.reviewFilterAllCardsToggle,
@@ -137,7 +137,7 @@ final class LiveSmokeReviewTests: LiveSmokeTestCase {
                 timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds
             )
 
-            self.app.descendants(matching: .any).matching(identifier: tagToggleIdentifier).firstMatch.tap()
+            self.app.descendants(matching: .any).matching(identifier: tagToggleIdentifier).firstMatch.clickOrTap()
 
             try self.assertReviewFilterToggleValue(
                 identifier: LiveSmokeIdentifier.reviewFilterAllCardsToggle,
@@ -171,7 +171,7 @@ final class LiveSmokeReviewTests: LiveSmokeTestCase {
             self.app.descendants(matching: .any)
                 .matching(identifier: LiveSmokeIdentifier.reviewFilterAllCardsToggle)
                 .firstMatch
-                .tap()
+                .clickOrTap()
 
             try self.assertReviewFilterToggleValue(
                 identifier: LiveSmokeIdentifier.reviewFilterAllCardsToggle,
@@ -235,11 +235,11 @@ final class LiveSmokeReviewTests: LiveSmokeTestCase {
         let deadline = Date().addingTimeInterval(LiveSmokeConfiguration.shortUiTimeoutSeconds)
         while Date() < deadline {
             if button.exists && button.isHittable {
-                button.tap()
+                button.clickOrTap()
                 return
             }
 
-            scrollSurface.swipeUp()
+            scrollSurface.scrollTowardLaterContent()
             RunLoop.current.run(until: Date(timeIntervalSinceNow: 0.2))
         }
 
@@ -261,7 +261,7 @@ final class LiveSmokeReviewTests: LiveSmokeTestCase {
                 return
             }
 
-            scrollSurface.swipeDown()
+            scrollSurface.scrollTowardEarlierContent()
             RunLoop.current.run(until: Date(timeIntervalSinceNow: 0.2))
         }
 
@@ -284,6 +284,6 @@ final class LiveSmokeReviewTests: LiveSmokeTestCase {
             )
         }
 
-        dismissRegion.tap()
+        dismissRegion.clickOrTap()
     }
 }

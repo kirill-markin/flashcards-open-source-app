@@ -50,9 +50,11 @@ enum MarketingScreenshotEnvironment {
     static let aiDraftKey: String = "FLASHCARDS_MARKETING_SCREENSHOT_AI_DRAFT"
 }
 
+private let marketingExpectedStreakDays: Int = 12
+
 private let marketingExpectedProgressSummaryValue: String = [
-    "currentStreakDays=12",
-    "longestStreakDays=12",
+    "currentStreakDays=\(marketingExpectedStreakDays)",
+    "longestStreakDays=\(marketingExpectedStreakDays)",
     "hasReviewedToday=true",
     "activeReviewDays=16",
     "streakFreezeAvailableCredits=1",
@@ -60,7 +62,7 @@ private let marketingExpectedProgressSummaryValue: String = [
 ].joined(separator: ";")
 
 private let marketingExpectedReviewProgressBadgeValue: String = [
-    "streakDays=12",
+    "streakDays=\(marketingExpectedStreakDays)",
     "hasReviewedToday=true"
 ].joined(separator: ";")
 
@@ -252,6 +254,23 @@ class MarketingManualScreenshotTestCase: LiveSmokeTestCase {
 
     @MainActor
     func assertReviewProgressBadge() throws {
+        #if targetEnvironment(macCatalyst)
+        let wasRevealed = self.app.buttons[LiveSmokeIdentifier.reviewRateGoodButton].exists
+        let badge = try self.macMarketingReviewProgressBadge()
+        try self.tapButton(button: badge, identifier: LiveSmokeIdentifier.reviewProgressBadge,
+            timeout: LiveSmokeConfiguration.longUiTimeoutSeconds)
+        // The native factory does not expose the app's diagnostic AX value.
+        // Preserve the fixture's day/review-state assertion on the real Progress section.
+        try self.waitForLoadedProgressScreen()
+        try self.tapTabBarItem(selectedTab: .review, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+        try self.assertScreenVisible(screen: .review, timeout: LiveSmokeConfiguration.longUiTimeoutSeconds)
+        if wasRevealed {
+            try self.waitForReviewAnswerReveal()
+        } else {
+            try self.assertElementExists(identifier: LiveSmokeIdentifier.reviewShowAnswerButton,
+                timeout: LiveSmokeConfiguration.longUiTimeoutSeconds)
+        }
+        #else
         let reviewProgressBadge = self.app.buttons[LiveSmokeIdentifier.reviewProgressBadge]
         if try self.waitForElementValue(
             reviewProgressBadge,
@@ -268,15 +287,43 @@ class MarketingManualScreenshotTestCase: LiveSmokeTestCase {
                 step: self.currentStepTitle
             )
         }
+        #endif
     }
+
+    #if targetEnvironment(macCatalyst)
+    @MainActor
+    private func macMarketingReviewProgressBadge() throws -> XCUIElement {
+        let badge = try self.macReviewStatusButtons(timeout: LiveSmokeConfiguration.longUiTimeoutSeconds).streak
+        let fixture = try self.marketingLocaleFixture()
+        let expectedLabel = marketingExpectedStreakDays.formatted(.number.locale(Locale(identifier: fixture.appleLocale)))
+        let expected = XCTNSPredicateExpectation(predicate: NSPredicate(format: "label == %@", expectedLabel), object: badge)
+        guard XCTWaiter.wait(for: [expected], timeout: LiveSmokeConfiguration.longUiTimeoutSeconds) == .completed else {
+            throw LiveSmokeFailure.unexpectedElementValue(
+                identifier: LiveSmokeIdentifier.reviewProgressBadge,
+                expectedValue: expectedLabel,
+                actualValue: badge.label,
+                timeoutSeconds: LiveSmokeConfiguration.longUiTimeoutSeconds,
+                screen: self.currentScreenSummary(),
+                step: self.currentStepTitle
+            )
+        }
+        return badge
+    }
+    #endif
 
     @MainActor
     func openMarketingProgressFromReviewBadge() throws {
+        #if targetEnvironment(macCatalyst)
+        let badge = try self.macMarketingReviewProgressBadge()
+        try self.tapButton(button: badge, identifier: LiveSmokeIdentifier.reviewProgressBadge,
+            timeout: LiveSmokeConfiguration.longUiTimeoutSeconds)
+        #else
         try self.assertReviewProgressBadge()
         try self.tapButton(
             identifier: LiveSmokeIdentifier.reviewProgressBadge,
             timeout: LiveSmokeConfiguration.longUiTimeoutSeconds
         )
+        #endif
         try self.waitForLoadedProgressScreen()
     }
 

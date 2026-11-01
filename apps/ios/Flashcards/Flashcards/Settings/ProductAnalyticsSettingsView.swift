@@ -41,7 +41,7 @@ struct ProductAnalyticsSettingsView: View {
         }
         .listStyle(.insetGrouped)
         .accessibilityIdentifier(UITestIdentifier.productAnalyticsSettingsScreen)
-        .navigationTitle(aiSettingsLocalized("settings.productAnalytics.title", "Product Analytics"))
+        .nativeNavigationTitle(aiSettingsLocalized("settings.productAnalytics.title", "Product Analytics"))
         .task {
             await self.refreshCloudAccountContext()
         }

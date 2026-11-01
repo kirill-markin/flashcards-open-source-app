@@ -87,11 +87,9 @@ export type AgentSqlDetails = Readonly<{
  * handler of the named tool received, cut at a few KB, so a session's tool
  * calls can be read in full; it is null when no handler ran and for `sql_query`
  * and `sql_execute`, whose SQL text never reaches this log group because the
- * group never expires. Its name keeps it clear of the content-key redaction in
- * `apps/backend/src/observability/sanitizer.ts`, which blanks a `toolArguments`
- * field. The request body itself is read only for a `tools/call` tool name,
- * tool results are never recorded, and `responseChars` is a length measured off
- * the response and never any of what it contains.
+ * group never expires. The request body itself is read only for a `tools/call`
+ * tool name, tool results are never recorded, and `responseChars` is a length
+ * measured off the response and never any of what it contains.
  */
 export type McpRequestDetails = Readonly<{
   protocolVersion: string | null;

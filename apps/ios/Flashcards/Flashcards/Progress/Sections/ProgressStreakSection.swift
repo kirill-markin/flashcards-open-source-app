@@ -237,8 +237,13 @@ private struct ProgressFreezeBankChip: View {
                 Capsule()
                     .strokeBorder(progressFrozenStreakBorderColor, lineWidth: 1)
             }
+            #if targetEnvironment(macCatalyst)
+            .frame(minWidth: appMinimumTouchTarget, minHeight: appMinimumTouchTarget)
+            #endif
+            .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+        .accessibilityIdentifier(UITestIdentifier.progressFreezeInfoButton)
         .fixedSize(horizontal: true, vertical: false)
         .accessibilityLabel(self.accessibilityLabel)
         .accessibilityHint(

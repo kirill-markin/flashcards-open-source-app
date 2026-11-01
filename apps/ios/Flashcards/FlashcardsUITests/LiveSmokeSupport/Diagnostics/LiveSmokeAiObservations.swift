@@ -64,7 +64,7 @@ extension LiveSmokeTestCase {
     func latestVisibleAssistantErrorMessage() -> String? {
         let element = self.visibleAssistantErrorElement()
         guard element.exists else {
-            let alert = self.app.alerts.firstMatch
+            let alert = self.nativeAlerts.firstMatch
             guard alert.exists else {
                 return nil
             }
