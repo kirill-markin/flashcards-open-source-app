@@ -132,14 +132,17 @@ export const browserHintStorageScript = `
     function consume(current, origin) {
       const raw = read(session(), acceptedKey);
       if (raw === null) return null;
-      remove(session(), acceptedKey);
-      const accepted = parse(raw);
-      if (!accepted || accepted.generation !== generation()) return null;
+      let accepted;
+      try { accepted = parse(raw); } catch (error) { remove(session(), acceptedKey); throw error; }
+      if (!accepted || accepted.generation !== generation()) { remove(session(), acceptedKey); return null; }
       if (!method(accepted.method) || !validBinding(accepted) || !Number.isSafeInteger(accepted.acceptedAt)) {
+        remove(session(), acceptedKey);
         throw new Error("Pending sign-in context is invalid. Clear site data for this auth origin and sign in again.");
       }
-      if (!validBinding(current) || accepted.subject !== current.subject || accepted.authTime !== current.authTime
-        || accepted.acceptedAt > Date.now() || Date.now() - accepted.acceptedAt > lifetimeMs) return null;
+      if (accepted.acceptedAt > Date.now() || Date.now() - accepted.acceptedAt > lifetimeMs) { remove(session(), acceptedKey); return null; }
+      // A consume for another session or before the cookie arrives must leave this context for the right one.
+      if (!validBinding(current) || accepted.subject !== current.subject || accepted.authTime !== current.authTime) return null;
+      remove(session(), acceptedKey);
       const suggestion = accepted.connectionSuggestion;
       return { method: accepted.method, ...(suggestion === undefined || suggestion.origin !== origin ? {} : {
         connectionSuggestion: { suggestion: suggestion.suggestion, expiresAt: suggestion.expiresAt },

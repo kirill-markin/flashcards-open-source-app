@@ -4,7 +4,8 @@ import { requireWorkspaceMediaUploadsCompleted } from "../../../localDb/mediaTra
 import { isBrowserGuestSessionVerified, pauseBrowserGuestSession } from "../../../api/transport/transport";
 import { GuestConversionRequiredError, loadBrowserProductSession, loadCachedBrowserGuestOwner, readBrowserGuestVerificationGeneration, requireBrowserGuestVerificationGeneration, restoreBrowserGuestSessionAfterCleanup } from "../guest/browserGuestSession";
 import { invalidateBrowserGuestOwnership, readBrowserGuestState, readPendingGuestConversion, runWithBrowserGuestLock, subscribeToBrowserGuestChanges } from "../guest/browserGuestStorage";
-import { consumeAcceptedBrowserSignInMethod, readBrowserSignInInformationGeneration } from "../../../api/browserHints";
+import { readBrowserSignInInformationGeneration } from "../../../api/browserHints";
+import { clearAcceptedSignIn, markSessionAcceptedTracked, readAcceptedSignIn, readStoredAcceptedSignIn } from "../acceptedSignIn";
 import { readPendingConnection, storePendingConnection } from "../../../screens/settings/account/accountConnectionPending";
 import { getAppConfig } from "../../../config";
 import { projectSessionToLocalOwner } from "../../../api/transport/sessionIdentity";
@@ -164,10 +165,13 @@ export function useWorkspaceLifecycle(params: UseWorkspaceLifecycleParams): Work
   // active workspace id instead of the workspace object: publishing the same
   // workspace as a new object must not tear down and restart that timer.
   const activeWorkspaceId = activeWorkspace?.workspaceId ?? null;
-  // One-use method consumption must survive a ready-to-ready workspace switch.
+  // Account readiness is reported once, not again on a ready-to-ready workspace switch.
   const hasReadyWorkspace = activeWorkspaceId !== null;
   const sessionUserId = session?.userId ?? null;
   const [guestConversionPending, setGuestConversionPending] = useState(() => readPendingGuestConversion() !== null);
+  const [sessionAcceptedUserId, setSessionAcceptedUserId] = useState<string | null>(null);
+  // The owner whose sign-in method is reported or known absent on this page load.
+  const settledSignInUserIdRef = useRef<string | null>(null);
   const initializePromiseRef = useRef<Promise<void> | null>(null);
   const resumePromiseRef = useRef<Promise<void> | null>(null);
   const analyticsReadyRef = useRef<Readonly<{ userId: string; ready: Promise<void> }> | null>(null);
@@ -202,9 +206,11 @@ export function useWorkspaceLifecycle(params: UseWorkspaceLifecycleParams): Work
     return true;
   }, [discardAllSyncWork, indexedDbOpenRecoveryState, setActiveWorkspace, setAvailableWorkspaces, setCloudSettings, setSession, setSessionErrorMessage, setSessionLoadState, setSessionTechnicalError, setSessionVerificationState, setTechnicalError, t]);
 
+  // Session acceptance does not wait for a workspace: workspace selection is part of signing in.
   useEffect(() => {
-    if (sessionLoadState !== "ready" || sessionVerificationState !== "verified"
-      || session?.browserGuestCapabilities?.isGuest === true || sessionUserId === null || !hasReadyWorkspace) return;
+    if ((sessionLoadState !== "ready" && sessionLoadState !== "selecting_workspace") || sessionVerificationState !== "verified"
+      || session?.browserGuestCapabilities?.isGuest === true || sessionUserId === null
+      || settledSignInUserIdRef.current === sessionUserId) return;
     const userId = sessionUserId;
     const generation = readEntitlementIdentityGeneration();
     const informationGeneration = readBrowserSignInInformationGeneration();
@@ -219,21 +225,47 @@ export function useWorkspaceLifecycle(params: UseWorkspaceLifecycleParams): Work
       if (!isCurrent()) return;
       const verified = await revalidateSessionRequest();
       if (!isCurrent() || verified.userId !== userId) return;
-      const method = await consumeAcceptedBrowserSignInMethod((suggestion) => {
-        if (!isCurrent()) return;
-        if (readPendingConnection(userId) !== null) return;
-        storePendingConnection({ userId, phase: "suggestion", suggestion: suggestion.suggestion,
-          csrfToken: suggestion.suggestion, expiresAt: Date.parse(suggestion.expiresAt) });
-        window.location.assign(getAppConfig().appBaseUrl + "/settings/account-status");
-      });
-      if (method === null || !isCurrent()) return;
-      track({ name: "auth_session_accepted", screen: "signin", method });
-      track({ name: "auth_account_ready", screen: "signin", method });
+      // Stored before any later check, so a superseded run leaves the answer to the next one.
+      const accepted = await readAcceptedSignIn(userId);
+      if (accepted === null) {
+        settledSignInUserIdRef.current = userId;
+        return;
+      }
+      if (!isCurrent()) return;
+      if (!accepted.sessionAcceptedTracked) track({ name: "auth_session_accepted", screen: "signin", method: accepted.method });
+      markSessionAcceptedTracked(userId);
+      setSessionAcceptedUserId(userId);
     })().catch((error: unknown): void => {
       if (isCurrent()) setErrorMessage(normalizeCaughtError(error).message);
     });
     return () => { current = false; };
-  }, [hasReadyWorkspace, indexedDbOpenRecoveryState, session?.browserGuestCapabilities?.isGuest, sessionUserId, sessionLoadState, sessionVerificationState, setErrorMessage]);
+  }, [indexedDbOpenRecoveryState, session?.browserGuestCapabilities?.isGuest, sessionUserId, sessionLoadState, sessionVerificationState, setErrorMessage]);
+
+  // A guest conversion is ready only once its guest credential is retired.
+  useEffect(() => {
+    if (sessionLoadState !== "ready" || sessionVerificationState !== "verified" || !hasReadyWorkspace
+      || session?.browserGuestCapabilities?.isGuest === true || sessionUserId === null
+      || sessionAcceptedUserId !== sessionUserId || guestConversionPending
+      || indexedDbOpenRecoveryState.hasFailed() || readAnalyticsSessionOwnerId() !== sessionUserId) return;
+    try {
+      const accepted = readStoredAcceptedSignIn();
+      if (accepted?.userId !== sessionUserId || !accepted.sessionAcceptedTracked) return;
+      track({ name: "auth_account_ready", screen: "signin", method: accepted.method });
+      if (accepted.guestUpgradeCompleted) {
+        track({ name: "auth_guest_upgrade_finished", screen: "signin", method: accepted.method, outcome: "completed" });
+      }
+      clearAcceptedSignIn();
+      settledSignInUserIdRef.current = sessionUserId;
+      // Handed off only now, so it never interrupts workspace selection.
+      const suggestion = accepted.connectionSuggestion;
+      if (suggestion === null || readPendingConnection(sessionUserId) !== null) return;
+      storePendingConnection({ userId: sessionUserId, phase: "suggestion", suggestion: suggestion.suggestion,
+        csrfToken: suggestion.suggestion, expiresAt: Date.parse(suggestion.expiresAt) });
+      window.location.assign(getAppConfig().appBaseUrl + "/settings/account-status");
+    } catch (error) {
+      setErrorMessage(normalizeCaughtError(error).message);
+    }
+  }, [guestConversionPending, hasReadyWorkspace, indexedDbOpenRecoveryState, session?.browserGuestCapabilities?.isGuest, sessionAcceptedUserId, sessionUserId, sessionLoadState, sessionVerificationState, setErrorMessage]);
 
   useEffect(() => {
     let hadPending = readPendingGuestConversion() !== null;
