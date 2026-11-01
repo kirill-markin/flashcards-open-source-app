@@ -11,7 +11,17 @@ import {
   captureBackendWarning,
   createBackendObservationScope,
   getBackendErrorLogDetails,
+  type BackendObservationScope,
 } from "../../../observability/sentry";
+import type {
+  ProductAnalyticsDeviceType,
+  ProductAnalyticsOsName,
+  ProductAnalyticsPlatform,
+} from "../../../productAnalytics/catalog";
+import {
+  toWorkspaceReplicaRowAttribution,
+  type WorkspaceReplicaPlatformRow,
+} from "../../../productAnalytics/serverFacts/replicaPlatforms";
 import {
   deriveServerDerivedProductAnalyticsEventId,
   emitServerDerivedProductAnalyticsEvent,
@@ -385,6 +395,93 @@ async function loadCatalogDeckInstalledPackageSlug(
   return { resolved: true, packageSlug };
 }
 
+type CatalogDeckInstalledDevice = Readonly<{
+  platform: ProductAnalyticsPlatform | null;
+  osName: ProductAnalyticsOsName | null;
+  deviceType: ProductAnalyticsDeviceType | null;
+}>;
+
+const unresolvedCatalogDeckInstalledDevice: CatalogDeckInstalledDevice = {
+  platform: null,
+  osName: null,
+  deviceType: null,
+};
+
+/**
+ * Reads the device of the replica a committed install was written as.
+ *
+ * Outside the install transaction for the reason loadCatalogDeckInstalledPackageSlug is. A device
+ * that cannot be read costs the event its device, never the event, so every such outcome is
+ * reported here and answered with nulls.
+ */
+async function loadCatalogDeckInstalledDevice(
+  userId: string,
+  workspaceId: string,
+  installId: string,
+  replicaId: string,
+  observationScope: BackendObservationScope,
+): Promise<CatalogDeckInstalledDevice> {
+  let replica: WorkspaceReplicaPlatformRow | null;
+  try {
+    replica = await transactionWithWorkspaceScopeReadOnly(
+      { userId, workspaceId },
+      async (executor) => {
+        // The replica read of ../../../productAnalytics/serverFacts/reviewAnswers.ts, for one replica.
+        const result = await executor.query<WorkspaceReplicaPlatformRow>(
+          [
+            "SELECT replicas.replica_id, replicas.actor_kind, replicas.platform,",
+            "installations.os_name, installations.device_type,",
+            "COALESCE(installations.is_automation, FALSE) AS is_automation",
+            "FROM sync.workspace_replicas AS replicas",
+            "LEFT JOIN sync.installations AS installations",
+            "ON installations.installation_id = replicas.installation_id",
+            "WHERE replicas.replica_id = $1",
+          ].join(" "),
+          [replicaId],
+        );
+        return result.rows[0] ?? null;
+      },
+    );
+  } catch (error) {
+    const errorDetails = getBackendErrorLogDetails(error);
+    captureBackendWarning({
+      action: "catalog_deck_installed_device_unresolved",
+      scope: observationScope,
+      details: {
+        installId,
+        replicaId,
+        reason: "workspace_replica_read_failed",
+        errorClass: errorDetails.errorClass,
+        errorMessage: errorDetails.errorMessage,
+      },
+    });
+    return unresolvedCatalogDeckInstalledDevice;
+  }
+
+  if (replica === null) {
+    captureBackendWarning({
+      action: "catalog_deck_installed_device_unresolved",
+      scope: observationScope,
+      details: {
+        installId,
+        replicaId,
+        reason: "workspace_replica_row_missing",
+        errorClass: null,
+        errorMessage: null,
+      },
+    });
+    return unresolvedCatalogDeckInstalledDevice;
+  }
+
+  // The installation's automation marker is not applied to this event.
+  const attribution = toWorkspaceReplicaRowAttribution(replica);
+  return {
+    platform: attribution.platform,
+    osName: attribution.osName,
+    deviceType: attribution.deviceType,
+  };
+}
+
 export async function installCatalogPackageVersion(
   userId: string,
   workspaceId: string,
@@ -397,6 +494,19 @@ export async function installCatalogPackageVersion(
   ));
   // The same normalization already succeeded inside the transaction, so it cannot throw here.
   const normalizedWorkspaceId = normalizeCatalogWorkspaceId(workspaceId);
+  const observationScope = createBackendObservationScope(
+    "backend-api",
+    null,
+    null,
+    null,
+    userId,
+    normalizedWorkspaceId,
+    null,
+    null,
+    actor.guestSessionId,
+    null,
+    null,
+  );
   // package_slug means catalog.packages.slug across this repository, and the client's
   // catalog_deck_install_started carries that same value, so the pair only joins into a funnel when
   // this event carries it too. result.packageVersion.slug is the package version's frozen copy of
@@ -414,19 +524,7 @@ export async function installCatalogPackageVersion(
     // conflicted on event_id with the original emission anyway.
     captureBackendWarning({
       action: "catalog_deck_installed_analytics_skipped",
-      scope: createBackendObservationScope(
-        "backend-api",
-        null,
-        null,
-        null,
-        userId,
-        normalizedWorkspaceId,
-        null,
-        null,
-        actor.guestSessionId,
-        null,
-        null,
-      ),
+      scope: observationScope,
       details: {
         packageId: result.packageVersion.packageId,
         installId: result.summary.installId,
@@ -437,6 +535,14 @@ export async function installCatalogPackageVersion(
     });
     return result;
   }
+
+  const device = await loadCatalogDeckInstalledDevice(
+    userId,
+    workspaceId,
+    result.summary.installId,
+    input.lastModifiedByReplicaId,
+    observationScope,
+  );
 
   // Emitted after the transaction committed, so the analytics row only ever reports an install the
   // workspace actually kept. The install is observed as it happens, so the two timestamps are one
@@ -464,11 +570,9 @@ export async function installCatalogPackageVersion(
     // a guest install whose own app events never arrived. user_id still names this row's actor, and
     // no identity link is written for the id, so it resolves no other row onto this guest.
     anonymousId: actor.analyticsVisitorId,
-    // The install names no server-stored replica or guest session row here, and the request headers
-    // that do name a platform are a client claim this row must not repeat.
-    platform: null,
-    osName: null,
-    deviceType: null,
+    platform: device.platform,
+    osName: device.osName,
+    deviceType: device.deviceType,
     properties: {
       package_slug: packageSlug.packageSlug,
       card_count: result.summary.cardCount,
