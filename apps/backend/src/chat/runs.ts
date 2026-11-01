@@ -23,7 +23,7 @@ export {
 
 export {
   assertActiveChatRunClaimWithExecutor,
-  getChatRunClaimStateWithExecutor,
+  getActiveChatRunClientDeviceWithExecutor,
   InactiveChatRunClaimError,
 } from "./runs/claimFence";
 export type { ChatRunClaimFenceParams, ChatRunClaimState } from "./runs/claimFence";
