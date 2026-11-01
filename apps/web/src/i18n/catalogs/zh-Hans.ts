@@ -7,6 +7,7 @@ export const zhHansCatalog = {
     title: "访客",
     signIn: "登录",
     saveProgress: "保存你的进度",
+    saveProgressAction: "保存进度",
     reminder: "使用电子邮件登录，以免这些卡片和复习进度丢失。",
     later: "稍后",
     warning: "登录后即可在其他设备上继续访问。清除网站数据可能导致访客访问权限丢失。",

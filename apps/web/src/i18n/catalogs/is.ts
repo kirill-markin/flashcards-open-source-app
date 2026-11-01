@@ -7,6 +7,7 @@ const isCatalog: TranslationCatalog = {
     title: "Gestur",
     signIn: "Skrá inn",
     saveProgress: "Vista framvindu þína",
+    saveProgressAction: "Vista framvindu",
     reminder: "Skráðu þig inn með netfangi svo þessi spjöld og framvinda glatist ekki.",
     later: "Síðar",
     warning: "Skráðu þig inn til að halda aðgangi í öðrum tækjum. Hreinsun vefgagna getur valdið því að gestaaðgangur glatist.",

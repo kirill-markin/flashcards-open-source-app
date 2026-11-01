@@ -7,6 +7,7 @@ const caCatalog: TranslationCatalog = {
     title: "Convidat",
     signIn: "Inicia la sessió",
     saveProgress: "Guarda el teu progrés",
+    saveProgressAction: "Desa el progrés",
     reminder: "Inicia la sessió amb el correu electrònic per no perdre aquestes targetes i el progrés dels repassos.",
     later: "Més tard",
     warning: "Inicia sessió per conservar l’accés en altres dispositius. Esborrar les dades del lloc pot fer perdre l’accés de convidat.",

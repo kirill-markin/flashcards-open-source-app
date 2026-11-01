@@ -7,6 +7,7 @@ const plCatalog: TranslationCatalog = {
     title: "Gość",
     signIn: "Zaloguj się",
     saveProgress: "Zapisz swoje postępy",
+    saveProgressAction: "Zapisz postępy",
     reminder: "Zaloguj się przez e-mail, aby nie stracić fiszek i postępów w powtórkach.",
     later: "Później",
     warning: "Zaloguj się, aby zachować dostęp na innych urządzeniach. Wyczyszczenie danych witryny może spowodować utratę dostępu gościa.",

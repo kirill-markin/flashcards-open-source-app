@@ -7,6 +7,7 @@ const huCatalog: TranslationCatalog = {
     title: "Vendég",
     signIn: "Bejelentkezés",
     saveProgress: "Haladás mentése",
+    saveProgressAction: "Mentés",
     reminder: "Jelentkezz be e-maillel, hogy a kártyáid és a tanulási haladásod ne vesszen el.",
     later: "Később",
     warning: "Jelentkezz be, hogy más eszközökön is megmaradjon a hozzáférésed. A webhelyadatok törlése elveszítheti a vendéghozzáférést.",

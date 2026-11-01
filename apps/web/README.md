@@ -15,7 +15,7 @@ The top-level product scope matches the other clients:
 
 ## Optional sign-in
 
-The browser opens a cloud-synced guest workspace immediately. **Guest · Sign in** saves the current
+The browser opens a cloud-synced guest workspace immediately. **Save progress** saves the current
 workspace before opening the auth UI. Eligible [demo-only sign-in](../../docs/demo-card.md#guest-upgrade)
 enters an existing account automatically. Other guest content goes to a new workspace when the account
 has none, to its only workspace when it has one, and to the workspace or new one the user picks when it
@@ -38,7 +38,7 @@ database or a disposable, previously unmapped account:
 
 1. Open the app with a fresh browser profile, record the guest user/workspace/card IDs from local
    ownership metadata and IndexedDB, create a card, and review the demo. Wait for sync.
-2. Press **Guest · Sign in** and authenticate as the unmapped account. The bind finishes without a
+2. Press **Save progress** and authenticate as the unmapped account. The bind finishes without a
    destination chooser. Confirm the account keeps the same user ID, workspace ID, card IDs and review
    event IDs, the demo stays active, and the workspace list has no extra workspace.
 3. Reload and check the same cards and review progress. Confirm the pending conversion metadata is

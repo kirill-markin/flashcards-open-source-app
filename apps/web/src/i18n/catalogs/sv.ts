@@ -7,6 +7,7 @@ const svCatalog: TranslationCatalog = {
     title: "Gäst",
     signIn: "Logga in",
     saveProgress: "Spara dina framsteg",
+    saveProgressAction: "Spara framsteg",
     reminder: "Logga in med e-post så att korten och dina repetitionsframsteg inte går förlorade.",
     later: "Senare",
     warning: "Logga in för att behålla åtkomst på andra enheter. Om webbplatsdata rensas kan gäståtkomsten gå förlorad.",

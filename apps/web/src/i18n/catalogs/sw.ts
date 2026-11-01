@@ -7,6 +7,7 @@ const swCatalog: TranslationCatalog = {
     title: "Mgeni",
     signIn: "Ingia",
     saveProgress: "Hifadhi maendeleo yako",
+    saveProgressAction: "Hifadhi",
     reminder: "Ingia kwa barua pepe ili kadi hizi na maendeleo ya marudio yasipotee.",
     later: "Baadaye",
     warning: "Ingia ili kudumisha ufikiaji kwenye vifaa vingine. Kufuta data ya tovuti kunaweza kupoteza ufikiaji wa mgeni.",

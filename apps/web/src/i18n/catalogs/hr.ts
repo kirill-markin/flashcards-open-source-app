@@ -7,6 +7,7 @@ const hrCatalog: TranslationCatalog = {
     title: "Gost",
     signIn: "Prijavi se",
     saveProgress: "Spremite svoj napredak",
+    saveProgressAction: "Spremi",
     reminder: "Prijavite se e-poštom kako se ove kartice i napredak ponavljanja ne bi izgubili.",
     later: "Kasnije",
     warning: "Prijavite se kako biste zadržali pristup na drugim uređajima. Brisanje podataka web-mjesta može dovesti do gubitka gostujućeg pristupa.",

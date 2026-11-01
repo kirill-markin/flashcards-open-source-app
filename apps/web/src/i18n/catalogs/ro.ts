@@ -7,6 +7,7 @@ const roCatalog: TranslationCatalog = {
     title: "Vizitator",
     signIn: "Autentifică-te",
     saveProgress: "Salvează-ți progresul",
+    saveProgressAction: "Salvează",
     reminder: "Autentifică-te prin e-mail pentru a nu pierde aceste fișe și progresul recapitulărilor.",
     later: "Mai târziu",
     warning: "Autentifică-te pentru a păstra accesul pe alte dispozitive. Ștergerea datelor site-ului poate duce la pierderea accesului de oaspete.",

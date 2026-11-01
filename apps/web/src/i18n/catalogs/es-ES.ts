@@ -7,6 +7,7 @@ const esEsCatalog: TranslationCatalog = {
     title: "Invitado",
     signIn: "Iniciar sesión",
     saveProgress: "Guarda tu progreso",
+    saveProgressAction: "Guardar",
     reminder: "Inicia sesión con tu correo para que estas tarjetas y tu progreso de repaso no se pierdan.",
     later: "Más tarde",
     warning: "Inicia sesión para mantener el acceso en otros dispositivos. Borrar los datos del sitio puede hacerte perder el acceso de invitado.",

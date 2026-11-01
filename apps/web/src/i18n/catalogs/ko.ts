@@ -7,6 +7,7 @@ const koCatalog: TranslationCatalog = {
     title: "게스트",
     signIn: "로그인",
     saveProgress: "진행 상황 저장",
+    saveProgressAction: "진행 상황 저장",
     reminder: "카드와 복습 진행 상황을 잃지 않도록 이메일로 로그인하세요.",
     later: "이후",
     warning: "다른 기기에서도 계속 이용하려면 로그인하세요. 사이트 데이터를 지우면 게스트 접근 권한을 잃을 수 있습니다.",

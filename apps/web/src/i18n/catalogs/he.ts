@@ -7,6 +7,7 @@ const heCatalog: TranslationCatalog = {
     title: "אורח",
     signIn: "כניסה",
     saveProgress: "שמירת ההתקדמות שלך",
+    saveProgressAction: "שמירה",
     reminder: "יש להיכנס עם דוא״ל כדי שהכרטיסיות וההתקדמות בחזרות לא יאבדו.",
     later: "בהמשך",
     warning: "יש להתחבר כדי לשמור על הגישה במכשירים אחרים. ניקוי נתוני האתר עלול לגרום לאובדן גישת האורח.",

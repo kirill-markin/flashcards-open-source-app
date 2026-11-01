@@ -7,6 +7,7 @@ const daCatalog: TranslationCatalog = {
     title: "Gæst",
     signIn: "Log ind",
     saveProgress: "Gem dine fremskridt",
+    saveProgressAction: "Gem fremskridt",
     reminder: "Log ind med e-mail, så disse kort og dine fremskridt ikke går tabt.",
     later: "Senere",
     warning: "Log ind for at bevare adgang på andre enheder. Rydning af webstedsdata kan medføre tab af gæsteadgang.",

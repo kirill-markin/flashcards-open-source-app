@@ -7,6 +7,7 @@ const zuCatalog: TranslationCatalog = {
     title: "Isivakashi",
     signIn: "Ngena",
     saveProgress: "Londoloza inqubekelaphambili yakho",
+    saveProgressAction: "Londoloza",
     reminder: "Ngena nge-imeyili ukuze la makhadi nenqubekelaphambili yokubukeza kungalahleki.",
     later: "Kamuva",
     warning: "Ngena ngemvume ukuze ugcine ukufinyelela kwamanye amadivayisi. Ukusula idatha yesayithi kungalahlekisa ukufinyelela kwesivakashi.",

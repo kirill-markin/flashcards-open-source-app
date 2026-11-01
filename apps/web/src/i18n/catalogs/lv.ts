@@ -7,6 +7,7 @@ const lvCatalog: TranslationCatalog = {
     title: "Viesis",
     signIn: "Pierakstīties",
     saveProgress: "Saglabājiet progresu",
+    saveProgressAction: "Saglabāt",
     reminder: "Pierakstieties ar e-pastu, lai nezaudētu šīs kartītes un atkārtošanas progresu.",
     later: "Vēlāk",
     warning: "Pierakstieties, lai saglabātu piekļuvi citās ierīcēs. Vietnes datu dzēšana var izraisīt viesa piekļuves zaudēšanu.",

@@ -7,6 +7,7 @@ const slCatalog: TranslationCatalog = {
     title: "Gost",
     signIn: "Prijava",
     saveProgress: "Shranite napredek",
+    saveProgressAction: "Shrani napredek",
     reminder: "Prijavite se z e-pošto, da se te kartice in napredek pri ponavljanju ne izgubijo.",
     later: "Pozneje",
     warning: "Prijavite se, da ohranite dostop na drugih napravah. Brisanje podatkov spletnega mesta lahko povzroči izgubo gostujočega dostopa.",

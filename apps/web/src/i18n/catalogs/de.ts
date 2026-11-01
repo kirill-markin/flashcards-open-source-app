@@ -7,6 +7,7 @@ const deCatalog: TranslationCatalog = {
     title: "Gast",
     signIn: "Anmelden",
     saveProgress: "Fortschritt sichern",
+    saveProgressAction: "Speichern",
     reminder: "Melde dich mit E-Mail an, damit diese Karten und dein Wiederholungsfortschritt nicht verloren gehen.",
     later: "Später",
     warning: "Melde dich an, um auf anderen Geräten Zugriff zu behalten. Das Löschen der Websitedaten kann den Gastzugriff verlieren lassen.",

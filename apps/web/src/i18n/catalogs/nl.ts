@@ -7,6 +7,7 @@ const nlCatalog: TranslationCatalog = {
     title: "Gast",
     signIn: "Aanmelden",
     saveProgress: "Sla je voortgang op",
+    saveProgressAction: "Opslaan",
     reminder: "Meld je aan met e-mail zodat deze kaarten en je herhaalvoortgang niet verloren gaan.",
     later: "Later",
     warning: "Meld je aan om toegang op andere apparaten te behouden. Het wissen van websitegegevens kan je gasttoegang verwijderen.",
