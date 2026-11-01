@@ -78,7 +78,7 @@ app.get("/logout", async (c) => {
   }
 
   clearBrowserSessionCookies(c);
-  // Retired along with the session, under the rule in `clearAuthAnalyticsGuestSession`'s docstring.
+  // Retired along with the session, as housekeeping.
   clearAuthAnalyticsGuestSession(c);
   return c.redirect(appendLoggedOutMarker(redirectUri), 302);
 });

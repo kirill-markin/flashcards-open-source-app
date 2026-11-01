@@ -116,6 +116,12 @@ async function providerCallback(c: Context<AuthAppEnv>): Promise<Response> {
       claimedState = state;
       if (parameters.has("error")) {
         clearBrowserState(c, state);
+        // Read without throwing so a repeated or empty value still gets the `denied` redirect; only the
+        // user-cancel codes (Google, Apple) count as `cancelled`.
+        const providerError = parameters.get("error");
+        if (state.analytics.screen === "settings") events.push({ createEvent: createAuthAnalyticsFactEventFactory({
+          eventName: "auth_account_connection", action: "proof",
+          outcome: providerError === "access_denied" || providerError === "user_cancelled_authorize" ? "cancelled" : "failed" }), occurredAt: Date.now() });
         if (state.client === "android") return c.redirect(androidReturn("denied", state.attempt), 303);
         const denied = new URL(state.redirectUri);
         denied.hash = new URLSearchParams({ status: "denied", attempt: state.attempt }).toString();

@@ -114,7 +114,7 @@ export default defineConfig(({ command }) => {
     build: {
       // The HEIC decoder is fetched only for HEIC uploads; its WASM payload is about 3 MB.
       chunkSizeWarningLimit: 3000,
-      sourcemap: shouldUploadSentrySourceMaps,
+      sourcemap: shouldUploadSentrySourceMaps ? "hidden" : false,
     },
     test: {
       include: ["src/**/*.test.ts", "src/**/*.test.tsx", "test/**/*.test.ts", "test/**/*.test.tsx"],

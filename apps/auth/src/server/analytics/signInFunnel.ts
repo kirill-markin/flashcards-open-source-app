@@ -312,13 +312,10 @@ export async function reportSignInFailed(
  * Reports the sign-in, and retires the guest credential a build from before this change may have
  * left on this browser.
  *
- * The clear runs first and outside the marker gate, exactly as it did when this service minted that
- * cookie: a token left behind on the OAuth consent page is one this service must never leave live.
- * Nothing links it to this account any more — that call is gone with the mint — so dropping it is the whole retirement, and
- * it is the right way round: `analytics.identity_links` is append-only and first-link-wins on the
- * guest user id, so a surviving token offered at the next sign-in on this browser, which need not be
- * the same person, would hand that browser's signed-out tail to the wrong account permanently. The
- * 90-day web guest reaper collects the session itself.
+ * The clear runs first and outside the marker gate, so it also drops a token left behind on the OAuth
+ * consent page. It is housekeeping, not a guarantee: nothing reads that cookie any more, the browser
+ * social callbacks report their sign-in without passing through here, and every copy expires by about
+ * 2026-12-23. The 90-day web guest reaper collects the session itself.
  *
  * The shared visitor id is left alone, here and on every logout route. It is the product domain's
  * rather than this origin's, and nothing about a sign-in is a reason to end it.

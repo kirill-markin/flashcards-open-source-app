@@ -1,10 +1,11 @@
 import type { Context } from "hono";
 import { z } from "zod";
 import { executeChatSandboxSqlCall } from "../../chat/openai/tools/tools";
-import { getChatRunClaimStateWithExecutor } from "../../chat/runs";
+import { getActiveChatRunClientDeviceWithExecutor } from "../../chat/runs";
 import { transactionWithWorkspaceScope } from "../../database";
 import { writeCloudWatchRecord } from "../../observability/cloudWatch";
 import { createBackendObservationScope } from "../../observability/sentry";
+import type { AiChatRunClientDevice } from "../../productAnalytics/serverFacts/reviewAnswers";
 import type { AppEnv } from "../../server/app";
 import { parseJsonBody } from "../../server/requestParsing";
 import { cutHeadAtCodePoint } from "../../shared/codePointCuts";
@@ -27,21 +28,22 @@ const maximumLoggedSqlChars = 64_000;
 /**
  * A signed capability is not enough on its own: the run it names must still be its session's running
  * run under the claim the worker minted it with, so a stopped, finished or reclaimed run refuses the
- * calls its sandbox still makes.
+ * calls its sandbox still makes. Returns that run's stored device, which the writes the call makes carry.
  */
-async function assertChatRunStillActive(capability: ChatSandboxSqlCapability): Promise<void> {
+async function readActiveChatRunClientDevice(capability: ChatSandboxSqlCapability): Promise<AiChatRunClientDevice> {
   const scope = { userId: capability.userId, workspaceId: capability.workspaceId };
-  const state = await transactionWithWorkspaceScope(scope, async (executor) => getChatRunClaimStateWithExecutor(
+  const device = await transactionWithWorkspaceScope(scope, async (executor) => getActiveChatRunClientDeviceWithExecutor(
     executor,
     { ...scope, runId: capability.runId, sessionId: capability.sessionId, claimToken: capability.claimToken },
   ));
-  if (state !== "active") {
+  if (device === null) {
     throw new HttpError(
       403,
       "The chat run this command belongs to is no longer running, so its code may not run SQL.",
       "CHAT_SANDBOX_SQL_RUN_INACTIVE",
     );
   }
+  return device;
 }
 
 /**
@@ -64,8 +66,8 @@ export async function handleChatSandboxSqlRequest(context: Context<AppEnv>): Pro
   }
 
   const body = parsedBody.data;
-  await assertChatRunStillActive(capability);
-  const call = await executeChatSandboxSqlCall(body.kind, body.sql, body.workspaceId, capability);
+  const runClientDevice = await readActiveChatRunClientDevice(capability);
+  const call = await executeChatSandboxSqlCall(body.kind, body.sql, body.workspaceId, capability, runClientDevice);
   writeCloudWatchRecord({
     action: "chat_sandbox_sql",
     scope: createBackendObservationScope(

@@ -52,9 +52,7 @@ app.get("/logout-local", async (c) => {
   }
 
   clearBrowserSessionCookies(c);
-  // The account this browser measured under has been deleted, so the guest credential that could
-  // still be bound to another one is retired with it, under the rule in
-  // `clearAuthAnalyticsGuestSession`'s docstring.
+  // Retired along with the account, as housekeeping.
   clearAuthAnalyticsGuestSession(c);
   return c.redirect(appendAccountDeletedMarkers(redirectUri), 302);
 });
