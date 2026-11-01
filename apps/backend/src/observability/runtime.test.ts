@@ -115,7 +115,7 @@ function createExceptionEvent(
   };
 }
 
-test("runtime observability emits redacted structured CloudWatch records without a sink", () => {
+test("runtime observability emits structured CloudWatch records with secrets masked without a sink", () => {
   resetBackendRuntimeObservability();
   const scope = createScope("backend-api", "fallback");
   const error = new Error("request failed for user@example.com");
@@ -145,19 +145,14 @@ test("runtime observability emits redacted structured CloudWatch records without
     sqlState: null,
     errorCode: "ECONNRESET",
     errorClass: "Error",
-    errorMessage: "retry failed for <masked-email>",
+    errorMessage: "retry failed for user@example.com",
   });
   const warningRecord = parseRecord(warningMessages[0] ?? "");
   assert.equal(warningRecord.errorMessage, "pool rejected <masked-api-key>");
   const exceptionRecord = parseRecord(exceptionMessages[0] ?? "");
-  assert.equal(exceptionRecord.message, "<redacted-content>");
-  assert.equal(exceptionRecord.errorMessage, "request failed for <masked-email>");
-  assert.equal(typeof exceptionRecord.errorStack, "string");
-  assert.equal(
-    typeof exceptionRecord.errorStack === "string"
-      && exceptionRecord.errorStack.includes("user@example.com"),
-    false,
-  );
+  assert.equal(exceptionRecord.message, "private request body");
+  assert.equal(exceptionRecord.errorMessage, "request failed for user@example.com");
+  assert.equal(exceptionRecord.errorStack, error.stack);
   assert.equal(hasCapturedBackendException(error), true);
 });
 

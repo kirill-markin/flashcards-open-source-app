@@ -2,10 +2,8 @@ import { AuthError, authVerificationTemporarilyUnavailableCode } from "../auth";
 import { getMcpRequestId } from "../mcp/requestTelemetry";
 import { HttpError } from "../shared/errors";
 import { createBackendFailureDetails } from "../observability/failureDetails";
-import { sanitizeBackendTelemetryValue } from "../observability/sanitizer";
 import {
   addBackendBreadcrumb,
-  addBackendSentryBreadcrumb,
   createBackendObservationScope,
   getBackendErrorLogDetails,
   type AdminQueryDetails,
@@ -27,10 +25,6 @@ export type ErrorLogContext = BackendErrorLogDetails;
 type AdminQueryLogPayload = Readonly<{
   requestId: string;
 }> & AdminQueryDetails;
-
-type CloudWatchAdminQueryDetails = Omit<AdminQueryDetails, "adminEmail"> & Readonly<{
-  adminEmail: string;
-}>;
 
 type AgentSqlLogPayload = Readonly<{
   userId: string;
@@ -109,25 +103,6 @@ function createErrorLevelRequestErrorDetails(
   };
 }
 
-function redactAdminEmailForCloudWatch(adminEmail: string): string {
-  const sanitizedValue = sanitizeBackendTelemetryValue(adminEmail);
-  if (typeof sanitizedValue !== "string") {
-    throw new Error("Expected sanitized adminEmail to remain a string");
-  }
-
-  return sanitizedValue === adminEmail ? "<redacted-admin-email>" : sanitizedValue;
-}
-
-function createCloudWatchAdminQueryDetails(details: AdminQueryDetails): CloudWatchAdminQueryDetails {
-  return {
-    adminEmail: redactAdminEmailForCloudWatch(details.adminEmail),
-    statementCount: details.statementCount,
-    durationMs: details.durationMs,
-    success: details.success,
-    sqlFingerprint: details.sqlFingerprint,
-  };
-}
-
 export function logRequestError(
   requestId: string,
   path: string,
@@ -196,14 +171,7 @@ export function logAdminQueryEvent(
     sqlFingerprint: payload.sqlFingerprint,
   };
 
-  console.log({
-    domain: "backend",
-    action: "admin_query",
-    ...scope,
-    ...createCloudWatchAdminQueryDetails(details),
-  });
-
-  addBackendSentryBreadcrumb({
+  addBackendBreadcrumb({
     action: "admin_query",
     scope,
     details,
@@ -251,10 +219,7 @@ export function createAgentSqlObservationScope(
 /**
  * Emits the single structured record for one agent SQL execution, following the
  * `logAdminQueryEvent` convention above (fingerprint + statement count +
- * duration + outcome, never the raw SQL). Unlike the admin variant nothing here
- * needs a CloudWatch-specific redaction, so this goes through the shared
- * `addBackendBreadcrumb` helper that writes the sanitized CloudWatch record and
- * the Sentry breadcrumb in one call.
+ * duration + outcome, never the raw SQL).
  */
 export function logAgentSqlEvent(payload: AgentSqlLogPayload): void {
   const scope = createAgentSqlObservationScope(payload.surface, payload.userId, payload.workspaceId);

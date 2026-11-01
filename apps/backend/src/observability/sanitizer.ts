@@ -12,7 +12,6 @@ export type SanitizedTelemetryValue =
   | SanitizedObject;
 
 const redactedSecretValue = "<redacted-secret>";
-const redactedContentValue = "<redacted-content>";
 const redactedBase64Value = "<redacted-base64>";
 
 const secretKeyFragments: ReadonlyArray<string> = [
@@ -28,6 +27,9 @@ const secretKeyFragments: ReadonlyArray<string> = [
 
 const operationalTokenMetricKeyNames: ReadonlySet<string> = new Set([
   "completiontokens",
+  "genaiusageinputtokens",
+  "genaiusageoutputtokens",
+  "genaiusagetotaltokens",
   "inputtokens",
   "outputtokens",
   "prompttokens",
@@ -35,153 +37,36 @@ const operationalTokenMetricKeyNames: ReadonlySet<string> = new Set([
   "totaltokens",
 ]);
 
-const contentKeyNames: ReadonlyArray<string> = [
-  "args",
-  "arguments",
-  "fronttext",
-  "backtext",
-  "completion",
-  "completions",
-  "content",
-  "contextline",
-  "functionarguments",
-  "functionargs",
-  "genaicompletion",
-  "genaicompletions",
-  "genaiinputmessages",
-  "genaioutputmessages",
-  "genaiprompt",
-  "genaiprompts",
-  "headers",
-  "httpquery",
-  "httprequestheaders",
-  "httpresponseheaders",
-  "turninput",
-  "localmessages",
-  "message",
-  "messagecontent",
-  "modelinput",
-  "modeloutput",
-  "input",
-  "inputmessages",
-  "output",
-  "outputmessages",
-  "postcontext",
-  "precontext",
-  "prompt",
-  "prompts",
-  "query",
-  "querystring",
-  "requestquerystring",
-  "requestbody",
-  "requestheaders",
-  "responsebody",
-  "responseheaders",
-  "rawbody",
-  "rawresponsebody",
-  "search",
-  "searchparams",
-  "toolarguments",
-  "toolargs",
-  "urlquery",
-  "urlsearchparams",
-  "vars",
-  "body",
-  "filedata",
-  "imageurl",
-];
-
-const contentKeyFragments: ReadonlyArray<string> = [
-  "functionarguments",
-  "functionargs",
-  "genaicompletion",
-  "genaiprompt",
-  "httpbody",
-  "httpquery",
-  "httpheader",
-  "httprequestbody",
-  "httprequestheader",
-  "httpresponsebody",
-  "httpresponseheader",
-  "inputmessages",
-  "messagecontent",
-  "outputmessages",
-  "rawbody",
-  "rawresponsebody",
-  "requestbody",
-  "requestquerystring",
-  "requestheader",
-  "responsebody",
-  "responseheader",
-  "searchparams",
-  "toolarguments",
-  "toolargs",
-  "urlquery",
-  "urlsearchparams",
-];
-
-const exceptionTextKeyNames: ReadonlySet<string> = new Set([
-  "errormessage",
-  "errorstack",
-  "errorvalue",
-  "exceptionmessage",
-  "exceptionvalue",
-  "rawstack",
-  "stack",
-]);
-
-const rawQuerySensitiveKeyNames: ReadonlySet<string> = new Set([
-  "email",
-  "input",
-  "message",
-  "prompt",
-  "q",
-  "query",
-  "search",
-  "user",
-  "userid",
-]);
-
-const rawQuerySensitiveKeyFragments: ReadonlyArray<string> = [
-  "message",
-  "prompt",
-  "query",
-  "search",
-  "user",
-];
-
-const maskPatterns: ReadonlyArray<Readonly<{
+type TextMaskPattern = Readonly<{
   pattern: RegExp;
   replacement: string;
-}>> = [
+}>;
+
+// Secret text masks shared by the CloudWatch and Sentry paths.
+export const secretTextMaskPatterns: ReadonlyArray<TextMaskPattern> = [
   {
-    pattern: /\b[A-Z0-9._%+-]{1,64}@[A-Z0-9.-]+\.[A-Z]{2,}\b/gi,
-    replacement: "<masked-email>",
-  },
-  {
-    pattern: /(?<![-\w])\+\d{10,15}(?![-\w])/g,
-    replacement: "<masked-phone>",
-  },
-  {
-    pattern: /(?<![-\w])(?:\+\d{1,3}[\s.-]?)?(?:\(\d{3}\)|\d{3})[\s.-]\d{3}[\s.-]\d{4}(?![-\w])/g,
-    replacement: "<masked-phone>",
-  },
-  {
-    pattern: /(?<![-\w])1?[2-9]\d{2}[2-9]\d{6}(?![-\w])/g,
-    replacement: "<masked-phone>",
+    // Google Play purchase tokens embedded in androidpublisher URL paths; keeps the `:acknowledge`-style suffix.
+    // First, so no other mask can split a token; at most two segments before `tokens/` keeps matching linear.
+    pattern: /(\/purchases\/(?:[^\s"'<>?#):/]+\/){0,2}tokens\/)[^\s"'<>?#):/]+/g,
+    replacement: "$1<masked-purchase-token>",
   },
   {
     pattern: /\b(?:sk|pk|rk)[_-][A-Za-z0-9_-]{16,}\b/g,
     replacement: "<masked-api-key>",
   },
   {
+    pattern: /\beyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\b/g,
+    replacement: "<masked-jwt>",
+  },
+];
+
+const maskPatterns: ReadonlyArray<TextMaskPattern> = [
+  {
+    // Before the secret masks, so a key-like run inside the payload cannot split the data URL.
     pattern: /\bdata:[A-Za-z0-9!#$&^_.+-]+\/[A-Za-z0-9!#$&^_.+-]+(?:;[A-Za-z0-9!#$&^_.+-]+=[A-Za-z0-9!#$&^_.+-]+)*;base64,[A-Za-z0-9+/=_-]+/gi,
     replacement: redactedBase64Value,
   },
-  {
-    pattern: /(?<![-\w])\d{12,19}(?![-\w])/g,
-    replacement: "<masked-number>",
-  },
+  ...secretTextMaskPatterns,
 ];
 
 function normalizeTelemetryKey(key: string): string {
@@ -193,7 +78,7 @@ function shouldRedactSecretKey(key: string): boolean {
   return secretKeyFragments.some((fragment) => normalizedKey.includes(fragment));
 }
 
-function isOperationalTokenMetricKey(key: string): boolean {
+export function isOperationalTokenMetricKey(key: string): boolean {
   return operationalTokenMetricKeyNames.has(normalizeTelemetryKey(key));
 }
 
@@ -205,50 +90,11 @@ function shouldRedactSecretEntry(key: string, value: unknown): boolean {
   return shouldRedactSecretKey(key) && typeof value !== "boolean";
 }
 
-export function shouldRedactContentKey(key: string): boolean {
-  const normalizedKey = normalizeTelemetryKey(key);
-  return contentKeyNames.includes(normalizedKey)
-    || contentKeyFragments.some((fragment) => normalizedKey.includes(fragment));
+function isSecretRawQueryKey(key: string): boolean {
+  return shouldRedactSecretKey(key) && isOperationalTokenMetricKey(key) === false;
 }
 
-function shouldRedactExceptionTextKey(key: string, value: unknown): boolean {
-  return typeof value === "string" && exceptionTextKeyNames.has(normalizeTelemetryKey(key));
-}
-
-function isTextContentPart(value: unknown): value is Readonly<{
-  type: string;
-  text: string;
-}> {
-  return typeof value === "object"
-    && value !== null
-    && "type" in value
-    && "text" in value
-    && (value as Readonly<{ type: unknown }>).type === "text"
-    && typeof (value as Readonly<{ text: unknown }>).text === "string";
-}
-
-function isSentryExceptionValue(value: unknown): value is Readonly<{
-  type?: unknown;
-  value?: unknown;
-  stacktrace?: unknown;
-}> {
-  return typeof value === "object"
-    && value !== null
-    && ("value" in value || "type" in value)
-    && ("stacktrace" in value || "mechanism" in value);
-}
-
-function isSensitiveRawQueryKey(key: string): boolean {
-  const normalizedKey = normalizeTelemetryKey(key);
-  return rawQuerySensitiveKeyNames.has(normalizedKey)
-    || rawQuerySensitiveKeyFragments.some((fragment) => normalizedKey.includes(fragment))
-    || (
-      secretKeyFragments.some((fragment) => normalizedKey.includes(fragment))
-      && operationalTokenMetricKeyNames.has(normalizedKey) === false
-    );
-}
-
-function isSensitiveRawQueryString(value: string): boolean {
+export function isSecretRawQueryString(value: string): boolean {
   const trimmedValue = value.trim().replace(/^\?/, "");
   if (
     trimmedValue === ""
@@ -260,7 +106,7 @@ function isSensitiveRawQueryString(value: string): boolean {
 
   return trimmedValue
     .split(/[&;]/)
-    .some((part) => isSensitiveRawQueryKey(part.split("=", 1)[0] ?? ""));
+    .some((part) => isSecretRawQueryKey(part.split("=", 1)[0] ?? ""));
 }
 
 function isSerializedJsonContainerString(value: string): boolean {
@@ -303,8 +149,8 @@ function sanitizeString(value: string): string {
     .replace(/\b(https?:\/\/[^\s?#"'<>]+)\?(?!<redacted-query>)[^\s"'<>)]*/gi, "$1?<redacted-query>")
     .replace(/(?<![A-Za-z0-9])((?:\/[A-Za-z0-9._~!$&'()*+,;=:@%-]+)+)\?(?!<redacted-query>)[^\s"'<>)]*/g, "$1?<redacted-query>");
 
-  if (isSensitiveRawQueryString(valueWithoutUrlQueries)) {
-    return redactedContentValue;
+  if (isSecretRawQueryString(valueWithoutUrlQueries)) {
+    return redactedSecretValue;
   }
 
   return maskPatterns.reduce(
@@ -326,33 +172,14 @@ function sanitizeTelemetryEntry(
     return redactedSecretValue;
   }
 
-  if (shouldRedactExceptionTextKey(key, value)) {
-    return redactedContentValue;
-  }
-
-  if (shouldRedactContentKey(key)) {
-    return redactedContentValue;
-  }
-
   return sanitizeBackendTelemetryValue(value);
 }
 
 function sanitizeTelemetryObject(
   value: Readonly<Record<string, unknown>>,
 ): SanitizedObject {
-  const redactTextContentPart = isTextContentPart(value);
-  const redactSentryExceptionValue = isSentryExceptionValue(value);
   return Object.fromEntries(
-    Object.entries(value).map(([key, childValue]) => {
-      const normalizedKey = normalizeTelemetryKey(key);
-      return [
-        key,
-        (redactTextContentPart && normalizedKey === "text")
-          || (redactSentryExceptionValue && normalizedKey === "value" && typeof childValue === "string")
-          ? redactedContentValue
-          : sanitizeTelemetryEntry(key, childValue),
-      ];
-    }),
+    Object.entries(value).map(([key, childValue]) => [key, sanitizeTelemetryEntry(key, childValue)]),
   );
 }
 

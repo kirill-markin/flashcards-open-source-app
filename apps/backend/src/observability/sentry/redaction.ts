@@ -1,7 +1,9 @@
 import type * as Sentry from "@sentry/aws-serverless";
 import {
+  isOperationalTokenMetricKey,
+  isSecretRawQueryString,
   sanitizeBackendTelemetryValue,
-  shouldRedactContentKey,
+  secretTextMaskPatterns,
   type SanitizedTelemetryValue,
 } from "../sanitizer";
 import {
@@ -14,17 +16,11 @@ type BackendSentryInitOptions = NonNullable<Parameters<typeof Sentry.init>[0]>;
 type BackendSentryEvent = Parameters<NonNullable<BackendSentryInitOptions["beforeSend"]>>[0];
 type BackendSentryEventHint = Parameters<NonNullable<BackendSentryInitOptions["beforeSend"]>>[1];
 type BackendSentrySpan = Parameters<NonNullable<BackendSentryInitOptions["beforeSendSpan"]>>[0];
-type SentryExceptionValue = Readonly<Record<string, unknown>> & Readonly<{
-  type?: unknown;
-  value?: unknown;
-}>;
 type DatabaseExceptionDiagnostics = Readonly<{
-  errorClass: string | null;
   errorCode: string | null;
   sqlState: string | null;
   constraint: string | null;
   table: string | null;
-  errorMessage: string | null;
 }>;
 
 export const manualBackendCaptureTagName = "backend.manual_capture";
@@ -32,28 +28,7 @@ export const manualBackendWarningCaptureTagName = "backend.manual_warning_captur
 export const backendActionTagName = "backend.action";
 export const manualBackendCaptureTagValue = "true";
 
-const redactedExceptionTextValue = "<redacted-content>";
 const redactedSentrySecretValue = "<redacted-secret>";
-const exceptionTextFieldNames: ReadonlySet<string> = new Set([
-  "errormessage",
-  "errorstack",
-  "errorvalue",
-  "exceptionmessage",
-  "exceptionvalue",
-  "contextline",
-  "message",
-  "providererrormessage",
-  "rawstack",
-  "stack",
-  "value",
-]);
-const exceptionPayloadFieldNames: ReadonlySet<string> = new Set([
-  "vars",
-]);
-const cloudWatchActionableExceptionTextFieldNames: ReadonlySet<string> = new Set([
-  "errormessage",
-  "errorstack",
-]);
 const sentrySecretKeyFragments: ReadonlyArray<string> = [
   "authorization",
   "cookie",
@@ -64,53 +39,8 @@ const sentrySecretKeyFragments: ReadonlyArray<string> = [
   "token",
   "apikey",
 ];
-const sentryOperationalTokenMetricKeyNames: ReadonlySet<string> = new Set([
-  "completiontokens",
-  "genaiusageinputtokens",
-  "genaiusageoutputtokens",
-  "genaiusagetotaltokens",
-  "inputtokens",
-  "outputtokens",
-  "prompttokens",
-  "tokencount",
-  "totaltokens",
-]);
-const sentryQueryLikeKeyNames: ReadonlySet<string> = new Set([
-  "fragment",
-  "httpquery",
-  "query",
-  "querystring",
-  "requestquerystring",
-  "search",
-  "searchparams",
-  "urlquery",
-  "urlsearchparams",
-]);
 const sentryAbsoluteUrlWithQueryOrFragmentPattern = /\b([A-Za-z][A-Za-z0-9+.-]*:\/\/[^\s"'<>?#)]+)(?:\?[^\s"'<>#)]*)?(?:#[^\s"'<>)]*)?/g;
 const sentryRelativeUrlWithQueryOrFragmentPattern = /(^|[\s("'])(\/[^\s"'<>?#)]+)(?:\?[^\s"'<>#)]*)?(?:#[^\s"'<>)]*)?/g;
-const sentryTextMaskPatterns: ReadonlyArray<Readonly<{
-  pattern: RegExp;
-  replacement: string;
-}>> = [
-  {
-    // Google Play purchase tokens embedded in androidpublisher URL paths; keeps the `:acknowledge`-style suffix.
-    // First, so no other mask can split a token; at most two segments before `tokens/` keeps matching linear.
-    pattern: /(\/purchases\/(?:[^\s"'<>?#):/]+\/){0,2}tokens\/)[^\s"'<>?#):/]+/g,
-    replacement: "$1<masked-purchase-token>",
-  },
-  {
-    pattern: /\b[A-Z0-9._%+-]{1,64}@[A-Z0-9.-]+\.[A-Z]{2,}\b/gi,
-    replacement: "<masked-email>",
-  },
-  {
-    pattern: /\b(?:sk|pk|rk)[_-][A-Za-z0-9_-]{16,}\b/g,
-    replacement: "<masked-api-key>",
-  },
-  {
-    pattern: /\beyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\b/g,
-    replacement: "<masked-jwt>",
-  },
-];
 // Dropped rather than masked wherever they appear - request headers, extra, contexts, span data - so the
 // person's own OpenAI key never reaches Sentry in any form.
 const droppedSentryKeyNames: ReadonlySet<string> = new Set([
@@ -130,18 +60,6 @@ function isManuallyCapturedSentryEvent(event: BackendSentryEvent): boolean {
   return event.tags?.[manualBackendCaptureTagName] === manualBackendCaptureTagValue;
 }
 
-function getManualBackendWarningMessage(event: BackendSentryEvent): string | null {
-  if (event.tags?.[manualBackendWarningCaptureTagName] !== manualBackendCaptureTagValue) {
-    return null;
-  }
-
-  if (typeof event.message !== "string") {
-    return null;
-  }
-
-  return event.tags?.[backendActionTagName] === event.message ? event.message : null;
-}
-
 function shouldDropPreviouslyCapturedBackendException(
   event: BackendSentryEvent,
   hint: BackendSentryEventHint,
@@ -159,34 +77,19 @@ export function sanitizeSentryEvent(event: BackendSentryEvent, hint: BackendSent
     return null;
   }
 
-  const manualBackendWarningMessage = getManualBackendWarningMessage(event);
   const request = event.request === undefined ? undefined : { ...event.request };
   if (request !== undefined) {
-    delete request.data;
     delete request.cookies;
-    delete request.headers;
   }
-  const sanitizedEvent = sanitizeBackendSentryTelemetryValue(redactExceptionTextFields({
+  const sanitizedEvent = sanitizeBackendSentryTelemetryValue({
     ...event,
     ...(request === undefined ? {} : { request }),
-  })) as unknown as typeof event;
-  const sanitizedEventWithDatabaseDiagnostics = restoreSentryDatabaseExceptionDiagnostics(
-    event,
-    sanitizedEvent,
-    hint,
-  );
-  if (manualBackendWarningMessage === null) {
-    return sanitizedEventWithDatabaseDiagnostics;
-  }
-
-  return {
-    ...sanitizedEventWithDatabaseDiagnostics,
-    message: manualBackendWarningMessage,
-  };
+  }) as unknown as typeof event;
+  return addSentryDatabaseExceptionDiagnosticTags(sanitizedEvent, hint);
 }
 
 export function sanitizeSentrySpan(span: BackendSentrySpan): BackendSentrySpan {
-  return sanitizeBackendSentryTelemetryValue(redactExceptionTextFields(span)) as unknown as typeof span;
+  return sanitizeBackendSentryTelemetryValue(span) as unknown as typeof span;
 }
 
 function normalizeTelemetryKey(key: string): string {
@@ -198,28 +101,16 @@ function shouldRedactSentrySecretKey(key: string): boolean {
   return sentrySecretKeyFragments.some((fragment) => normalizedKey.includes(fragment));
 }
 
-function isSentryOperationalTokenMetricKey(key: string): boolean {
-  return sentryOperationalTokenMetricKeyNames.has(normalizeTelemetryKey(key));
-}
-
 function shouldRedactSentrySecretEntry(key: string, value: unknown): boolean {
   if (typeof value === "boolean") {
     return false;
   }
 
-  if (typeof value === "number" && isSentryOperationalTokenMetricKey(key)) {
+  if (typeof value === "number" && isOperationalTokenMetricKey(key)) {
     return false;
   }
 
   return shouldRedactSentrySecretKey(key);
-}
-
-function shouldRedactSentryQueryLikeKey(key: string): boolean {
-  return sentryQueryLikeKeyNames.has(normalizeTelemetryKey(key));
-}
-
-function shouldRedactSentryStructuredEmailKey(key: string): boolean {
-  return normalizeTelemetryKey(key).endsWith("email");
 }
 
 function sanitizeBackendSentryTelemetryObject(
@@ -238,10 +129,6 @@ function sanitizeBackendSentryTelemetryEntry(
 ): readonly [string, SanitizedTelemetryValue] {
   if (shouldRedactSentrySecretEntry(key, value)) {
     return [key, redactedSentrySecretValue];
-  }
-
-  if (shouldRedactContentKey(key) || shouldRedactSentryQueryLikeKey(key) || shouldRedactSentryStructuredEmailKey(key)) {
-    return [key, redactedExceptionTextValue];
   }
 
   return [
@@ -292,9 +179,14 @@ function sanitizeSentryTextValue(value: string): string {
     return serializedJsonValue;
   }
 
-  return sentryTextMaskPatterns.reduce(
+  const valueWithoutUrlQueries = stripSentryUrlQueryAndFragment(value);
+  if (isSecretRawQueryString(valueWithoutUrlQueries)) {
+    return redactedSentrySecretValue;
+  }
+
+  return secretTextMaskPatterns.reduce(
     (sanitizedValue, maskPattern) => sanitizedValue.replace(maskPattern.pattern, maskPattern.replacement),
-    stripSentryUrlQueryAndFragment(value),
+    valueWithoutUrlQueries,
   );
 }
 
@@ -349,12 +241,10 @@ function readDatabaseExceptionDiagnostics(error: unknown): DatabaseExceptionDiag
     ?? readStringField(errorRecord, "sqlstate")
     ?? (code !== null && isSqlState(code) ? code : null);
   const diagnostics: DatabaseExceptionDiagnostics = {
-    errorClass: error instanceof Error && error.name.trim() !== "" ? error.name : null,
     errorCode: readStringField(errorRecord, "errorCode") ?? code,
     sqlState,
     constraint: readStringField(errorRecord, "constraint"),
     table: readStringField(errorRecord, "table"),
-    errorMessage: error instanceof Error ? error.message : readStringField(errorRecord, "message"),
   };
 
   if (
@@ -368,44 +258,6 @@ function readDatabaseExceptionDiagnostics(error: unknown): DatabaseExceptionDiag
   return diagnostics;
 }
 
-function isSafeDatabaseExceptionMessage(
-  message: string,
-  diagnostics: DatabaseExceptionDiagnostics,
-): boolean {
-  return diagnostics.constraint !== null && message.includes(diagnostics.constraint);
-}
-
-function createDatabaseExceptionDiagnosticValue(
-  diagnostics: DatabaseExceptionDiagnostics,
-): string | null {
-  const diagnosticParts: Array<string> = [];
-  if (diagnostics.sqlState !== null) {
-    diagnosticParts.push(`SQLSTATE ${diagnostics.sqlState}`);
-  }
-  if (diagnostics.errorCode !== null && diagnostics.errorCode !== diagnostics.sqlState) {
-    diagnosticParts.push(`code ${diagnostics.errorCode}`);
-  }
-  if (diagnostics.constraint !== null) {
-    diagnosticParts.push(`constraint ${diagnostics.constraint}`);
-  }
-  if (diagnostics.table !== null) {
-    diagnosticParts.push(`table ${diagnostics.table}`);
-  }
-  if (diagnosticParts.length === 0) {
-    return null;
-  }
-
-  const label = diagnostics.errorClass ?? "DatabaseError";
-  if (
-    diagnostics.errorMessage !== null
-    && isSafeDatabaseExceptionMessage(diagnostics.errorMessage, diagnostics)
-  ) {
-    return `${label}: ${sanitizeInternalErrorText(diagnostics.errorMessage)} (${diagnosticParts.join(", ")})`;
-  }
-
-  return `${label}: ${diagnosticParts.join(", ")}`;
-}
-
 function createDatabaseDiagnosticTags(
   diagnostics: DatabaseExceptionDiagnostics,
 ): Readonly<Record<string, string>> {
@@ -417,119 +269,22 @@ function createDatabaseDiagnosticTags(
   return tags;
 }
 
-function restoreSentryExceptionValue(
-  value: SentryExceptionValue,
-  diagnosticValue: string,
-): SentryExceptionValue {
-  if (typeof value.value !== "string") {
-    return value;
-  }
-
-  return {
-    ...value,
-    value: diagnosticValue,
-  };
-}
-
-function restoreSentryDatabaseExceptionValues(
+function addSentryDatabaseExceptionDiagnosticTags(
   event: BackendSentryEvent,
-  diagnosticValue: string,
+  hint: BackendSentryEventHint,
 ): BackendSentryEvent {
-  const exceptionRecord = readRecord(event.exception);
-  const exceptionValues = exceptionRecord?.values;
-  if (Array.isArray(exceptionValues) === false) {
+  const diagnostics = readDatabaseExceptionDiagnostics(hint.originalException);
+  if (diagnostics === null) {
     return event;
   }
 
   return {
     ...event,
-    exception: {
-      ...event.exception,
-      values: exceptionValues.map((value) => {
-        const exceptionValue = readRecord(value);
-        return exceptionValue === null
-          ? value
-          : restoreSentryExceptionValue(exceptionValue as SentryExceptionValue, diagnosticValue);
-      }),
-    },
-  };
-}
-
-function restoreSentryDatabaseExceptionDiagnostics(
-  originalEvent: BackendSentryEvent,
-  sanitizedEvent: BackendSentryEvent,
-  hint: BackendSentryEventHint,
-): BackendSentryEvent {
-  const diagnostics = readDatabaseExceptionDiagnostics(hint.originalException);
-  if (diagnostics === null) {
-    return sanitizedEvent;
-  }
-
-  const diagnosticValue = createDatabaseExceptionDiagnosticValue(diagnostics);
-  if (diagnosticValue === null) {
-    return sanitizedEvent;
-  }
-
-  const eventWithExceptionValue = restoreSentryDatabaseExceptionValues(sanitizedEvent, diagnosticValue);
-  return {
-    ...eventWithExceptionValue,
-    message: typeof originalEvent.message === "string" ? diagnosticValue : eventWithExceptionValue.message,
     tags: {
-      ...eventWithExceptionValue.tags,
+      ...event.tags,
       ...createDatabaseDiagnosticTags(diagnostics),
     },
   };
-}
-
-function shouldRedactExceptionTextField(key: string, value: unknown): boolean {
-  const normalizedKey = normalizeTelemetryKey(key);
-  return exceptionPayloadFieldNames.has(normalizedKey)
-    || (typeof value === "string" && exceptionTextFieldNames.has(normalizedKey));
-}
-
-export function redactExceptionTextFields(value: unknown): unknown {
-  if (Array.isArray(value)) {
-    return value.map((item) => redactExceptionTextFields(item));
-  }
-
-  if (typeof value !== "object" || value === null) {
-    return value;
-  }
-
-  return Object.fromEntries(
-    Object.entries(value as Readonly<Record<string, unknown>>).map(([key, childValue]) => [
-      key,
-      shouldRedactExceptionTextField(key, childValue)
-        ? redactedExceptionTextValue
-        : redactExceptionTextFields(childValue),
-    ]),
-  );
-}
-
-function shouldRedactCloudWatchExceptionDetailTextField(key: string, value: unknown): boolean {
-  const normalizedKey = normalizeTelemetryKey(key);
-  return typeof value === "string"
-    && exceptionTextFieldNames.has(normalizedKey)
-    && cloudWatchActionableExceptionTextFieldNames.has(normalizedKey) === false;
-}
-
-export function redactCloudWatchExceptionDetailTextFields(value: unknown): unknown {
-  if (Array.isArray(value)) {
-    return value.map((item) => redactCloudWatchExceptionDetailTextFields(item));
-  }
-
-  if (typeof value !== "object" || value === null) {
-    return value;
-  }
-
-  return Object.fromEntries(
-    Object.entries(value as Readonly<Record<string, unknown>>).map(([key, childValue]) => [
-      key,
-      shouldRedactCloudWatchExceptionDetailTextField(key, childValue)
-        ? redactedExceptionTextValue
-        : redactCloudWatchExceptionDetailTextFields(childValue),
-    ]),
-  );
 }
 
 export function sanitizeInternalErrorText(value: string): string {
@@ -539,47 +294,4 @@ export function sanitizeInternalErrorText(value: string): string {
   }
 
   return sanitizedValue;
-}
-
-function shouldPreserveCloudWatchActionableErrorText(key: string, value: unknown): value is string {
-  return typeof value === "string" && cloudWatchActionableExceptionTextFieldNames.has(normalizeTelemetryKey(key));
-}
-
-function readSanitizedTelemetryEntry(key: string, value: unknown): SanitizedTelemetryValue {
-  const sanitizedObject = sanitizeBackendTelemetryValue({ [key]: value });
-  if (typeof sanitizedObject !== "object" || sanitizedObject === null || Array.isArray(sanitizedObject)) {
-    throw new Error("Expected sanitized telemetry entry to remain an object");
-  }
-
-  return (sanitizedObject as Readonly<Record<string, SanitizedTelemetryValue>>)[key];
-}
-
-function sanitizeCloudWatchLogEntry(key: string, value: unknown): SanitizedTelemetryValue {
-  if (shouldPreserveCloudWatchActionableErrorText(key, value)) {
-    return sanitizeInternalErrorText(value);
-  }
-
-  const sanitizedValue = readSanitizedTelemetryEntry(key, value);
-  if (typeof sanitizedValue !== "object" || sanitizedValue === null) {
-    return sanitizedValue;
-  }
-
-  return sanitizeCloudWatchLogValue(value);
-}
-
-export function sanitizeCloudWatchLogValue(value: unknown): SanitizedTelemetryValue {
-  if (Array.isArray(value)) {
-    return value.map((item) => sanitizeCloudWatchLogValue(item));
-  }
-
-  if (typeof value !== "object" || value === null) {
-    return sanitizeBackendTelemetryValue(value);
-  }
-
-  return Object.fromEntries(
-    Object.entries(value as Readonly<Record<string, unknown>>).map(([key, childValue]) => [
-      key,
-      sanitizeCloudWatchLogEntry(key, childValue),
-    ]),
-  );
 }

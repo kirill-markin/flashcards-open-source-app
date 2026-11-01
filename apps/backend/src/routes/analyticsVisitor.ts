@@ -74,9 +74,6 @@ async function isConsentRequiredForRequest(context: Context<AppEnv>): Promise<bo
   try {
     return isConsentRequiredCountry(await countryLookup());
   } catch (error) {
-    // The detail is named `errorMessage` because that exact key is what the Sentry redaction set
-    // matches (apps/backend/src/observability/sentry/redaction.ts): CloudWatch keeps the text and
-    // Sentry receives `<redacted-content>`. Any other name silently ships the raw text to Sentry.
     const warning: BackendWarningEvent = {
       action: "analytics_visitor_country_lookup_failed",
       message: "Analytics visitor country lookup failed; the caller is treated as consent-required.",
