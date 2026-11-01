@@ -35,9 +35,9 @@ export function startBackendSpan<Result>(
 export function wrapBackendHandler<TEvent, TResult>(
   handler: Handler<TEvent, TResult>,
 ): Handler<TEvent, TResult> {
-  return (event, context, callback) => runLambdaInvocation(event, context, (span) =>
+  return (event, context) => runLambdaInvocation(event, context, (span) =>
     Sentry.wrapHandler<TEvent, TResult>((invocationEvent, invocationContext) =>
-      completeLambdaInvocation(span, () => invokeHandler(handler, invocationEvent, invocationContext)))(event, context, callback));
+      completeLambdaInvocation(span, () => invokeHandler(handler, invocationEvent, invocationContext)))(event, context, () => {}));
 }
 
 function invokeHandler<TEvent, TResult>(

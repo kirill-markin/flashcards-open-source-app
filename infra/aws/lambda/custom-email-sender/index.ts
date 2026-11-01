@@ -475,6 +475,6 @@ const customEmailSenderHandler = async (event: CustomEmailSenderEvent): Promise<
   });
 
 export const handler: Handler<CustomEmailSenderEvent, CustomEmailSenderEvent> =
-  (event, context, callback) => runLambdaInvocation(event, context, (span) => Sentry.wrapHandler(
+  (event, context) => runLambdaInvocation(event, context, (span) => Sentry.wrapHandler(
     (invocationEvent: CustomEmailSenderEvent) => completeLambdaInvocation(span, () => customEmailSenderHandler(invocationEvent)),
-  )(event, context, callback));
+  )(event, context, () => {}));

@@ -84,6 +84,6 @@ const preSignUpHandler = async (event: PreSignUpEvent) => {
 };
 
 export const handler: Handler<PreSignUpEvent, PreSignUpEvent> =
-  (event, context, callback) => runLambdaInvocation(event, context, (span) => Sentry.wrapHandler(
+  (event, context) => runLambdaInvocation(event, context, (span) => Sentry.wrapHandler(
     (invocationEvent: PreSignUpEvent) => completeLambdaInvocation(span, () => preSignUpHandler(invocationEvent)),
-  )(event, context, callback));
+  )(event, context, () => {}));
