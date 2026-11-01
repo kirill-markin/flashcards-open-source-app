@@ -99,7 +99,7 @@ export function readBrowserSignInInformationGeneration(): number {
   return informationGeneration;
 }
 
-/** Call only after the real account/workspace acceptance completes. Missing historical context has no attribution. */
+/** One-use, answered only for the current session cookie's sign-in. Missing historical context has no attribution. */
 export async function consumeAcceptedBrowserSignInMethod(
   onSuggestion: (suggestion: BrowserConnectionSuggestion) => void,
 ): Promise<AcceptedBrowserSignInMethod | null> {
