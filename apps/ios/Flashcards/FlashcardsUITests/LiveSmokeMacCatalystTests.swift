@@ -231,6 +231,39 @@ final class LiveSmokeMacCatalystTests: LiveSmokeTestCase {
         self.app.typeKey(XCUIKeyboardKey.escape.rawValue, modifierFlags: [])
     }
 
+    /// Nondestructive: the split detail shares one navigation state across sections, so writing
+    /// Settings' path after the AI stack was used must not trap SwiftUI. Opens only read-only screens.
+    @MainActor
+    func testMacCrossSectionNavigationKeepsSplitDetailAlive() throws {
+        self.addMacWindowRestorationTeardown()
+        try self.launchApplication(launchScenario: nil, selectedTab: .ai)
+        try self.assertScreenVisible(screen: .ai, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+        try self.tapButton(identifier: "ai.historyButton", timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+        try self.tapButton(identifier: "mac.navigation.back", timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+        self.waitForMacToolbarTitleAbsent(identifier: "mac.toolbar.title.ai")
+
+        try self.tapTabBarItem(identifier: LiveSmokeSelectedTab.review.itemIdentifier, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+        try self.assertScreenVisible(screen: .review, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+        try self.tapButton(identifier: LiveSmokeIdentifier.reviewFilterMenu, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+        try self.assertElementExists(identifier: LiveSmokeIdentifier.reviewFilterScrollSurface, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+        RunLoop.current.run(until: Date().addingTimeInterval(0.5))
+        self.attachMacWindowScreenshot(name: "mac-review-filter-popover")
+        let editDecks = self.app.descendants(matching: .any).matching(NSPredicate(format: "label == %@", "Edit decks")).firstMatch
+        XCTAssertTrue(editDecks.waitForExistence(timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds))
+        editDecks.click()
+        // Edit decks pushes Decks onto Settings: the toolbar offers Back.
+        XCTAssertTrue(self.app.staticTexts["mac.toolbar.title.settings"].waitForExistence(timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds))
+        XCTAssertTrue(self.app.buttons["mac.navigation.back"].exists, "Edit decks must open a pushed Settings page.")
+        self.attachMacWindowScreenshot(name: "mac-edit-decks-opened")
+        try self.tapButton(identifier: "mac.navigation.back", timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+        try self.assertScreenVisible(screen: .settings, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+
+        try self.tapTabBarItem(identifier: LiveSmokeSelectedTab.review.itemIdentifier, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+        self.app.typeKey(",", modifierFlags: .command)
+        try self.assertScreenVisible(screen: .settings, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+        XCTAssertEqual(self.app.state, .runningForeground)
+    }
+
     /// Undo the launcher's one Fill before the app terminates, whatever the test's outcome.
     @MainActor
     private func addMacWindowRestorationTeardown() {

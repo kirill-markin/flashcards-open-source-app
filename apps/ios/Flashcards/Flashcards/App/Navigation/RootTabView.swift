@@ -836,7 +836,7 @@ struct RootTabView: View {
         #endif
     }
 
-    private func settingsTab(settingsPath: Binding<[SettingsNavigationDestination]>) -> some View {
+    private func settingsTab(settingsPath: Binding<SettingsNavigationPath>) -> some View {
         NavigationStack(path: settingsPath) {
             SettingsView()
                 .navigationDestination(for: SettingsNavigationDestination.self) { destination in

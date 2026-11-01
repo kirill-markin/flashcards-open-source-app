@@ -127,7 +127,7 @@ struct DecksScreen: View {
             // no other way, so the path is the whole question. `DeckDetailScreen.onDisappear` reads
             // the same value for the opposite decision — the list still on the path is what it lands
             // on — so the two must stay separate rather than be merged into one guard.
-            guard self.navigation.settingsPath.contains(.workspaceDecks) == false else {
+            guard self.navigation.isWorkspaceDecksOnSettingsPath == false else {
                 return
             }
 
@@ -514,7 +514,7 @@ private struct DeckDetailScreen: View {
             // the destination and the tracker guard refuses.
             Analytics.trackScreenViewedOnDismiss(
                 of: .deckDetail,
-                restoring: self.navigation.settingsPath.contains(.workspaceDecks) ? .decks : .settings
+                restoring: self.navigation.isWorkspaceDecksOnSettingsPath ? .decks : .settings
             )
         }
         #if targetEnvironment(macCatalyst)

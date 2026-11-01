@@ -5,6 +5,15 @@ import SwiftUI
 import UIKit
 #endif
 
+#if targetEnvironment(macCatalyst)
+/// The Mac split view keeps one navigation state for its detail column and compares the paths
+/// of every tab's stack inside it; a typed array beside `NavigationPath` stacks traps SwiftUI
+/// with `AnyNavigationPath.Error.comparisonTypeMismatch`, so Settings uses `NavigationPath` there.
+typealias SettingsNavigationPath = NavigationPath
+#else
+typealias SettingsNavigationPath = [SettingsNavigationDestination]
+#endif
+
 func makeSettingsNavigationPath(destination: SettingsNavigationDestination) -> [SettingsNavigationDestination] {
     switch destination {
     case .subscription:
@@ -85,7 +94,7 @@ final class AppNavigationModel {
     private(set) var reviewKeyboardFocusRequestID: UUID? = nil
     private(set) var cardSearchFocusRequestID: UUID? = nil
     #endif
-    var settingsPath: [SettingsNavigationDestination]
+    var settingsPath: SettingsNavigationPath
     var aiPath: NavigationPath
     var cardsPresentationRequest: CardsPresentationRequest?
     var aiChatPresentationRequest: AIChatPresentationRequest?
@@ -105,7 +114,7 @@ final class AppNavigationModel {
     init() {
         self.selectedTab = .review
         self.aiTabVisitID = UUID()
-        self.settingsPath = []
+        self.settingsPath = SettingsNavigationPath()
         self.aiPath = NavigationPath()
         self.cardsPresentationRequest = nil
         self.aiChatPresentationRequest = nil
@@ -121,7 +130,7 @@ final class AppNavigationModel {
     ) {
         self.selectedTab = selectedTab
         self.aiTabVisitID = UUID()
-        self.settingsPath = settingsPath
+        self.settingsPath = SettingsNavigationPath(settingsPath)
         self.aiPath = NavigationPath()
         self.cardsPresentationRequest = cardsPresentationRequest
         self.aiChatPresentationRequest = aiChatPresentationRequest
@@ -220,7 +229,18 @@ final class AppNavigationModel {
 
     func openSettings(destination: SettingsNavigationDestination) {
         self.selectTab(.settings)
-        self.settingsPath = makeSettingsNavigationPath(destination: destination)
+        self.settingsPath = SettingsNavigationPath(makeSettingsNavigationPath(destination: destination))
+    }
+
+    /// Whether the Decks list is still on the Settings stack.
+    var isWorkspaceDecksOnSettingsPath: Bool {
+        #if targetEnvironment(macCatalyst)
+        // `NavigationPath` is opaque. Decks is reachable only as the first Settings screen and
+        // pushes its details by view, so while the list exists any path still holds it.
+        self.settingsPath.isEmpty == false
+        #else
+        self.settingsPath.contains(.workspaceDecks)
+        #endif
     }
 
     func clearCardsPresentationRequest() {

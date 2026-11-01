@@ -268,7 +268,11 @@ The `LocalMac` plan selects the full existing non-UI bundle and every Mac-eligib
   focus click; keys 1–4 rate only a revealed answer;
 - a wide AI companion with an attached review card; after hovering a rating,
   Space/1–4 must enter the focused composer and the unsent draft must survive
-  Cards/Progress/Review navigation.
+  Cards/Progress/Review navigation;
+- nondestructive current-workspace checks: Review and chat scroll views created
+  after launch or the companion's transition drive the toolbar backdrop; toolbar
+  search keeps typed text; Settings opened from another section after AI history
+  keeps the app alive. Temporary text is removed in teardown.
 
 The shared launcher passes `FLASHCARDS_AUTOMATION_RUN=1` to the app process.
 Catalyst runs on a real Mac, so simulator detection alone is insufficient.

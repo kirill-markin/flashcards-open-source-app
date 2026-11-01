@@ -26,7 +26,7 @@ struct MacNavigationCommands: Commands {
         CommandGroup(replacing: .appSettings) {
             Button(AppTab.settings.localizedTitle) {
                 self.perform {
-                    self.navigation.settingsPath = []
+                    self.navigation.settingsPath = SettingsNavigationPath()
                     self.navigation.selectTab(.settings)
                 }
             }
