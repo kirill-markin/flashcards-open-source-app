@@ -34,6 +34,7 @@ export function buildReviewPromptsAreaFilters(filters: AnalyticsFilterState): An
   return {
     ...buildDefaultAnalyticsFilterState(filters.dateRange),
     eventPlatforms: filters.eventPlatforms,
+    appVersions: filters.appVersions,
     connectionCountries: filters.connectionCountries,
     appUiLanguages: filters.appUiLanguages,
   };

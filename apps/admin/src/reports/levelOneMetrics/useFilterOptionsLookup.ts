@@ -7,7 +7,7 @@ export type FilterOptionsLookup<Options> =
   | Readonly<{ status: "error"; message: string; retry: () => void }>
   | Readonly<{ status: "ready"; options: Options }>;
 
-/** One Level 1 bar's option list over the selected range; `loadOptions` must be stable, as a module-level loader is. */
+/** One filter bar's option list over the selected range; `loadOptions` must be stable, as a module-level loader is. */
 export function useFilterOptionsLookup<Options>(
   config: AdminAppConfig,
   dateRange: AnalyticsDateRange,
