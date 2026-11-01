@@ -395,6 +395,9 @@ export const productAnalyticsSurfaces = [
   // could only be reported as no screen at all.
   "signin",
   "credential_recovery",
+  // The auth origin's `/authorize` page, where an MCP or agent client's user signs in and approves
+  // access. It is reported apart from `signin` so agent sign-ins never read as web-app logins.
+  "oauth_consent",
   // Our own in-app prompts, each shown in front of the app until the person answers or closes it.
   // `prompt_answered.prompt` repeats every value here that has an answer verbatim, so an answer joins
   // to its surface by equality; the two spellings have to stay identical for that join to keep
@@ -764,10 +767,11 @@ export const productAnalyticsEventCatalog = {
   // — the spec union above makes serverOnly together with requiresScreen unwritable in any case.
   //
   // Both require a surface so a producer always names where the sign-in happened: the auth origin
-  // sends `signin`, and a client adopting these would send `signin` or `credential_recovery`. That
-  // is `screen` in its ordinary reading, where the person is now, and not the entry-point reading
-  // the surface comment above reserves for `signin_failed` alone, so a funnel must not read the
-  // three events' screens the same way. Optional method never changes those historical boundaries.
+  // sends `signin` or `oauth_consent`, and a client adopting these would send `signin` or
+  // `credential_recovery`. That is `screen` in its ordinary reading, where the person is now, and
+  // not the entry-point reading the surface comment above reserves for `signin_failed` alone, so a
+  // funnel must not read the three events' screens the same way. Optional method never changes
+  // those historical boundaries.
   signin_code_requested: {
     serverOnly: false,
     requiresScreen: true,

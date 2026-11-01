@@ -67,6 +67,7 @@ function createAgentToolDependencies(): AgentToolOperationDependencies {
     updateDecks: async () => unusedDependency("updateDecks"),
     getWorkspaceSchedulerSettings: async () => unusedDependency("getWorkspaceSchedulerSettings"),
     listUserWorkspacesForSelectedWorkspace: async () => unusedDependency("listUserWorkspacesForSelectedWorkspace"),
+    aiChatClient: null,
   };
 }
 

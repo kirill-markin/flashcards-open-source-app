@@ -167,6 +167,11 @@ export async function persistFailedChatRun(
     input.params.workspaceId,
     input.params.runId,
     classifyChatRunFailureCategory(input.error),
+    {
+      platform: input.params.clientPlatform,
+      osName: input.params.clientOsName,
+      deviceType: input.params.clientDeviceType,
+    },
   );
   const lifecycleState = input.readLifecycleState();
   logTerminalStatePersisted(

@@ -99,6 +99,7 @@ export type {
   AdminQueryDetails,
   AgentSqlDetails,
   CatalogDeckInstalledAnalyticsSkippedDetails,
+  CatalogDeckInstalledDeviceUnresolvedDetails,
   CatalogDumpFailureDetails,
   CatalogDumpGeneratedDetails,
   CatalogDumpMediaPublishedDetails,

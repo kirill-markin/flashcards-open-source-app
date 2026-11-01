@@ -696,6 +696,16 @@ export type CatalogDeckInstalledAnalyticsSkippedDetails = Readonly<{
   errorMessage: string | null;
 }>;
 
+// The install's catalog_deck_installed row was still emitted, with no device on it, because the
+// replica the install was written as could not be read back after commit.
+export type CatalogDeckInstalledDeviceUnresolvedDetails = Readonly<{
+  installId: string;
+  replicaId: string;
+  reason: "workspace_replica_row_missing" | "workspace_replica_read_failed";
+  errorClass: string | null;
+  errorMessage: string | null;
+}>;
+
 // A deliberate skip, not a dropped write: the acceptance committed and neither friendship_created
 // row was attempted, because the directed community.friendships row both events are derived from
 // could not be read. Reported under its own action so it never looks like
@@ -949,6 +959,7 @@ export type OperationsWarningEvent =
   | EventByAction<"product_analytics_identity_link_write_failed", ProductAnalyticsIdentityLinkWriteFailureDetails>
   | EventByAction<"guest_upgrade_analytics_skipped", GuestUpgradeAnalyticsSkippedDetails>
   | EventByAction<"catalog_deck_installed_analytics_skipped", CatalogDeckInstalledAnalyticsSkippedDetails>
+  | EventByAction<"catalog_deck_installed_device_unresolved", CatalogDeckInstalledDeviceUnresolvedDetails>
   | EventByAction<"friendship_created_analytics_skipped", FriendshipCreatedAnalyticsSkippedDetails>
   | EventByAction<"entitlement_changed_analytics_skipped", EntitlementChangedAnalyticsSkippedDetails>
   | (EventByAction<

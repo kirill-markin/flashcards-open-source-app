@@ -34,6 +34,37 @@ export async function carryGuestAccentColorToAccountInExecutor(
   }
 }
 
+/** A completed onboarding carries onto the account; a guest who has not completed it never resets the account's. */
+export async function carryGuestFirstReviewOnboardingToAccountInExecutor(
+  executor: DatabaseExecutor,
+  guestUserId: string,
+  targetUserId: string,
+): Promise<void> {
+  await applyUserDatabaseScopeInExecutor(executor, { userId: guestUserId });
+  const guestResult = await executor.query<Readonly<{ first_review_onboarding_completed: boolean }>>(
+    "SELECT first_review_onboarding_completed FROM org.user_settings WHERE user_id = $1",
+    [guestUserId],
+  );
+  const guestSettings = guestResult.rows[0];
+  if (guestSettings === undefined) {
+    throw new Error(`Cannot transfer first-review onboarding: guest user ${guestUserId} has no settings.`);
+  }
+
+  await applyUserDatabaseScopeInExecutor(executor, { userId: targetUserId });
+  const targetResult = await executor.query(
+    [
+      "UPDATE org.user_settings",
+      "SET first_review_onboarding_completed = first_review_onboarding_completed OR $2::BOOLEAN",
+      "WHERE user_id = $1",
+      "RETURNING user_id",
+    ].join(" "),
+    [targetUserId, guestSettings.first_review_onboarding_completed],
+  );
+  if (targetResult.rows.length === 0) {
+    throw new Error(`Cannot transfer first-review onboarding: target user ${targetUserId} has no settings.`);
+  }
+}
+
 export async function updateUserEmailInExecutor(
   executor: DatabaseExecutor,
   userId: string,

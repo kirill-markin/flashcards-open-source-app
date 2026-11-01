@@ -267,6 +267,7 @@ export const renderAuthorizePage = (
       var entryCopy = ${toScriptJson(entryCopy)};
       var uiLocale = ${toScriptJson(locale)};
       var collectionDisabled = new URLSearchParams(window.location.search).get("analytics_collection") === "off";
+      var authFactScreen = "oauth_consent";
       ${authEntryScript}
 
       var csrfToken = "";
@@ -384,7 +385,7 @@ export const renderAuthorizePage = (
 
         browserHints.beginOptional("email");
 
-        fetch("api/send-code?screen=signin&ui_locale=" + encodeURIComponent(uiLocale) + "&action=" + codeAction, {
+        fetch("api/send-code?screen=oauth_consent&ui_locale=" + encodeURIComponent(uiLocale) + "&action=" + codeAction, {
           method: "POST",
           headers: collectionDisabled
             ? { "Content-Type": "application/json", "X-Product-Analytics-Enabled": "0" }
@@ -439,7 +440,7 @@ export const renderAuthorizePage = (
         document.getElementById("otp-other-methods").disabled = true;
         verifyBtn.textContent = copy.verifying;
 
-        fetch("api/verify-code?screen=signin&ui_locale=" + encodeURIComponent(uiLocale), {
+        fetch("api/verify-code?screen=oauth_consent&ui_locale=" + encodeURIComponent(uiLocale), {
           method: "POST",
           headers: collectionDisabled
             ? { "Content-Type": "application/json", "X-Product-Analytics-Enabled": "0" }
@@ -529,7 +530,7 @@ export const renderAuthorizePage = (
 
       var returnUri = new URL(window.location.href);
       returnUri.searchParams.set("locale", uiLocale);
-      configureAuthMethods(returnUri.toString(), "signin");
+      configureAuthMethods(returnUri.toString(), authFactScreen);
       void tryRefreshSession();
     })();
   </script>

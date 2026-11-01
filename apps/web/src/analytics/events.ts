@@ -31,9 +31,10 @@
  */
 
 /**
- * Mirrors `productAnalyticsSurfaces` in catalog order. Two values are kept only so the mirror stays
- * comparable to the catalog by eye: `notifications_pre_prompt`, the prompt above that this app does
- * not have, and `settings_legal`, a screen this app does have but never reports under its own value.
+ * Mirrors `productAnalyticsSurfaces` in catalog order. Three values are kept only so the mirror
+ * stays comparable to the catalog by eye: `notifications_pre_prompt`, the prompt above that this app
+ * does not have, `oauth_consent`, the auth origin's own page, and `settings_legal`, a screen this
+ * app does have but never reports under its own value.
  *
  * `signin` and `credential_recovery` are reachable, from `resolveRootGateReport` in `App.tsx`.
  * The email and code steps of signing in do live on the auth service's origin, but the catalog
@@ -58,6 +59,7 @@ export type AnalyticsSurface =
   | "tags"
   | "signin"
   | "credential_recovery"
+  | "oauth_consent"
   | "notifications_pre_prompt"
   | "signin_after_review_prompt"
   | "mobile_app_prompt"

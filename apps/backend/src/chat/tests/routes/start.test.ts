@@ -74,6 +74,7 @@ test("POST /chat can return an active run before the current turn appears in mes
         deduplicated: true,
         shouldInvokeWorker: false,
         initiatingAuthIsSignedIn: true,
+        clientDevice: { platform: null, osName: null, deviceType: null },
       };
     },
     invokeChatWorkerFn: async () => {
@@ -231,6 +232,7 @@ test("POST /chat dispatches worker without a route-supplied trace carrier", asyn
         deduplicated: false,
         shouldInvokeWorker: true,
         initiatingAuthIsSignedIn: false,
+        clientDevice: { platform: null, osName: null, deviceType: null },
       };
     },
     invokeChatWorkerFn: async (payload) => {
@@ -355,6 +357,7 @@ test("POST /chat reports the sent turn when the worker dispatch fails", async ()
       deduplicated: false,
       shouldInvokeWorker: true,
       initiatingAuthIsSignedIn: false,
+      clientDevice: { platform: null, osName: null, deviceType: null },
     }),
     invokeChatWorkerFn: async () => {
       invokeCallCount += 1;
@@ -478,6 +481,7 @@ test("POST /chat without uiLocale preserves the legacy request contract", async 
         deduplicated: false,
         shouldInvokeWorker: false,
         initiatingAuthIsSignedIn: true,
+        clientDevice: { platform: null, osName: null, deviceType: null },
       };
     },
     getRecoveredChatSessionFn: async () => ({

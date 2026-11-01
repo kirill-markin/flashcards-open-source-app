@@ -457,6 +457,7 @@
   .topbar-brand-block {
     grid-column: 1;
     grid-row: 1;
+    align-self: center;
   }
 
   .topbar-actions {
@@ -505,7 +506,7 @@
     display: inline;
   }
 
-  /* The device pills take a full-width line under the logo, the sync status and the actions. */
+  /* The device pills take a full-width line under the logo and the actions. */
   .topbar {
     grid-template-columns: minmax(0, auto) minmax(0, 1fr) auto;
   }
@@ -515,9 +516,12 @@
     display: contents;
   }
 
-  .topbar-brand,
   .topbar-sync-status {
-    align-self: baseline;
+    display: none;
+  }
+
+  .topbar-brand {
+    min-height: 44px;
   }
 
   .topbar-actions {
