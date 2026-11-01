@@ -142,85 +142,53 @@ as a passing suite. Every selected required non-UI/UI case must execute and pass
 
 ### Input and window conventions
 
-Keep Catalyst's shared screen state, forms and text interactions. Main Mac
-commands use one native unified `UITitlebar.toolbar`, populated with standard
-`NSToolbarItem` buttons bridged from `UIBarButtonItem`. The system owns their
-intrinsic size, glass, hover, pressed and inactive appearance. Do not wrap them
-in SwiftUI glass capsules or force custom label heights. Related rank/streak
-actions share a native toolbar item group; only their symbols receive the mobile
-status colors, and the group keeps the system's item sizing. Sidebar selection
-identifies root pages, so root toolbar titles and repeated app-name headings
-remain hidden; specific pushed destinations may retain their title and Back.
-Modal flows retain standard Save/Cancel navigation.
+Keep Catalyst's shared screen state, forms and text interactions. Mac commands
+live in one native unified toolbar whose standard items the system sizes and
+styles; do not wrap them in custom glass or force label heights. Screens supply
+items through [`macToolbarContribution`](../apps/ios/Flashcards/Flashcards/App/Navigation/MacToolbarConfiguration.swift)
+and pushed titles through [`nativeNavigationTitle`](../apps/ios/Flashcards/Flashcards/NativeNavigationTitle.swift).
+Sidebar selection identifies root pages, so their toolbar titles stay hidden;
+pushed destinations keep their title and Back, and modal flows keep Save/Cancel.
 See Apple's [Catalyst toolbar tutorial](https://developer.apple.com/tutorials/mac-catalyst/adding-a-toolbar)
 and [SwiftUI Group Lab](https://developer.apple.com/videos/play/wwdc2026/8120/).
 
-Use a native navigation split view for the Mac sidebar, with the system sidebar
-background and a primary tracking separator in the toolbar. The sidebar owns its
-full height, including the area beside the window controls. Its rows follow the
-System Settings sidebar size: Catalyst sizes the text and symbols, and
-`MacSidebarRowMetrics` supplies AppKit's row height and icon/title positions.
-Keep the system selection; do not add custom row fonts or leading insets. Keep the shared tab
-container behind the detail pane to retain per-screen state. Do not overlay the
-window with a custom titlebar material or suppress scroll-edge effects globally.
-On macOS 27 the toolbar is
-transparent at rest and shows a uniform backdrop once content scrolls under it
-([WWDC26](https://developer.apple.com/videos/play/wwdc2026/102/)). Catalyst's
-UIKit scroll-edge API targets one scroll view; it cannot share the effect across
-the adjacent AI companion and page. `MacSharedToolbarBackdrop` therefore uses one
-standard system bar material inside the split detail, visible when either pane's
-content scrolls under the toolbar. This is system material with app-managed placement
-and visibility, not the automatic scroll-edge effect. Detail-only suppression avoids
-stacking the two effects; the native sidebar keeps its own edge behavior. The backdrop
-uses the scroll views' native toolbar insets, covers both panes, and never overlays
-the window or sidebar. Surfaces SwiftUI recreates in place, Review's card and the chat
-transcript, register their scroll view from inside their content; other pages are found
-once when they appear, never during resizing.
-Keep the native toolbar controls above it and verify rest/scrolled states, sidebar
-show/hide, pushed destinations and resizing visually.
+The sidebar is a native navigation split view with the system sidebar material
+and selection; [`MacSidebarRowMetrics`](../apps/ios/Flashcards/Flashcards/App/Navigation/RootTabView.swift)
+matches the System Settings row size. Do not add custom row fonts or insets,
+overlay the window with a custom titlebar material, or suppress scroll-edge
+effects globally. Keep the shared tab container behind the detail pane to retain
+per-screen state.
+
+On macOS 27 the toolbar is transparent at rest and shows a backdrop once content
+scrolls under it ([WWDC26](https://developer.apple.com/videos/play/wwdc2026/102/)).
+Catalyst's scroll-edge effect targets one scroll view and cannot span the AI
+companion beside a page, so [`MacSharedToolbarBackdrop`](../apps/ios/Flashcards/Flashcards/NativeNavigationTitle.swift)
+places one system bar material across the split detail, shown when either pane
+scrolls under the toolbar; the sidebar keeps its own edge effect. Verify
+rest/scrolled states, sidebar show/hide, pushed destinations and resizing visually.
 See Apple's [Catalyst sidebar material](https://developer.apple.com/documentation/uikit/uisplitviewcontroller/primarybackgroundstyle)
 and [scroll-edge guidance](https://developer.apple.com/design/human-interface-guidelines/scroll-views).
 
-`macToolbarContribution` supplies actions and `nativeNavigationTitle` promotes
-specific pushed titles while hiding the separate UIKit navigation bar. Native
-items retain modal guards and anchored popovers. Search is the narrow custom-view
-exception: Catalyst does not support `NSSearchToolbarItem`, so the native
-`UISearchTextField` uses `NSUIViewToolbarItem` with a preferred width, scoped focus
-and cursor-preserving updates. On macOS 26+ the bordered item supplies the native
-glass platter at the 36-point toolbar button height, as Finder's search does; the
-field stays borderless. Do not add a second glass wrapper.
-
-Place Edit beside the card metadata, not among window commands. Keep content tags
-and chat suggestions compact: native styled controls supply their own padding;
-do not insert a minimum 48-point label and let a bordered/glass style pad it again.
 Glass is reserved primarily for toolbar and floating chat controls; reading
-surfaces and inline content actions stay restrained. Review answer/rating actions
-remain intentionally prominent. Preserve iPhone/iPad target behavior separately.
-
-For genuinely custom plain controls, `appMinimumTouchTarget` accounts for scaled
-Catalyst's 77% factor and Apple's 36×36 Mac-point target guidance. This does not
-prescribe a universal visible bezel or toolbar height. Check real outer-edge
-pointer actions, native hover/press behavior, disabled/inactive appearance,
-containment, and narrow→wide state restoration rather than AX frames alone.
+surfaces and inline actions stay restrained, Review answer/rating actions stay
+prominent, and Edit sits beside the card metadata rather than among window
+commands. Custom plain controls use [`appMinimumTouchTarget`](../apps/ios/Flashcards/Flashcards/NativeActionButtonStyles.swift);
+it sets a pointer target, not a visible bezel or toolbar height. Preserve
+iPhone/iPad target behavior separately. Check real outer-edge pointer actions,
+native hover/press, disabled/inactive appearance, containment and narrow→wide
+state restoration rather than AX frames alone.
 See [Design for touch on Mac](https://developer.apple.com/videos/play/tech-talks/111456/)
 and [pointing-device guidance](https://developer.apple.com/design/human-interface-guidelines/pointing-devices).
 
-The View menu exposes sections with Command-1–5 and AI companion with
-Command-Shift-A. Command-comma opens Settings, Command-Shift-N creates a card, and
-Command-Shift-F opens Cards search, preserving native Command-F text finding.
-Navigation commands must respect modal editors
-and confirmations. Card context menus use workspace/card identity and reject
-changed revisions before editing, AI handoff or confirmed deletion.
-The Review menu lists Space (Show answer) and 1–4. The window's key-command
-controller gives Space, Return and 1–4 priority over keyboard focus, so they work
-while a sidebar row or another control holds focus; they are disabled while text
-is being edited or a sheet, alert or picker covers Review. Editors and AI retain
-their normal text input.
-Composer Escape uses a UIKit key command in that composer's responder chain,
-with [priority over text input](https://developer.apple.com/documentation/uikit/uikeycommand/wantspriorityoversystembehavior).
+Navigation menu commands and their shortcuts live in [`MacNavigationCommands`](../apps/ios/Flashcards/Flashcards/App/Navigation/MacNavigationCommands.swift)
+and the Review menu in [`ReviewCommands`](../apps/ios/Flashcards/Flashcards/Review/Keyboard/ReviewCommands.swift);
+Review keys take priority over keyboard focus through
+[`ReviewKeyCommandOwner`](../apps/ios/Flashcards/Flashcards/Review/Keyboard/ReviewKeyCommandOwner.swift),
+while editors and AI keep their normal text input. Composer Escape is a UIKit key
+command with [priority over text input](https://developer.apple.com/documentation/uikit/uikeycommand/wantspriorityoversystembehavior),
+because a SwiftUI key handler alone can lose Escape to the native text system.
 Verify Escape followed immediately by a rating key, including a multiline draft
-and an app deactivation/reactivation; a SwiftUI key handler alone can lose Escape
-to the native text system.
+and an app deactivation/reactivation.
 See Apple's [keyboard focus guidance](https://developer.apple.com/videos/play/wwdc2021/10260/)
 and [Mac Catalyst responder guidance](https://developer.apple.com/videos/play/wwdc2021/10053/).
 
@@ -235,18 +203,11 @@ it. Check the outer edges of custom targets, native text selection, VoiceOver,
 Reduce Motion, Reduce Transparency and Increase Contrast. Record unavailable
 physical touch/Sidecar and accessibility checks as gaps.
 
-The marked launch helper uses `open -g` to preserve foreground focus. Mac
-XCUITest flows call `activate()` and synthesize input; coordinate an idle desktop
-before running them while someone works. Quit any installed development copy
-before enumeration or XCTest so the runner owns the only process with that
-bundle identity. Each Mac smoke starts with native Fill once; subsequent
-relaunch/resize states remain intact, so wide companion flows do not inherit
-another case's half tile. Settings viewport assertions use the actual titlebar
-toolbar, retaining full row containment below it. Shared smoke interactions use pointer clicks and wheel scrolling
-on Catalyst, retaining touch taps/swipes on iPhone/iPad; Mac pointer synthesis does
-not verify physical touch. Recognize Catalyst alerts as native macOS sheets.
-Headless simulator checks can run
-independently. Report actual runtime and SDK separately.
+Mac XCUITest flows activate the app and synthesize input; coordinate an idle
+desktop before running them while someone works. Quit any installed development
+copy before enumeration or XCTest so the runner owns the only process with that
+bundle identity. Mac pointer synthesis does not verify physical touch. Headless
+simulator checks can run independently. Report actual runtime and SDK separately.
 
 ### Existing native flows
 
@@ -254,15 +215,9 @@ The `LocalMac` plan selects the full existing non-UI bundle and every Mac-eligib
 
 `LiveSmokeMacCatalystTests` compiles only for Catalyst and adds:
 
-- non-overlapping controls contained in the actual native toolbar, with system
-  sizing; actual filter/editor actions, settled screenshots of every main
-  section and the ready companion, and native window tiling/restoration with a preserved
-  unsent draft and revealed answer, with every rating still inside the window;
-- a nondestructive current-workspace sidebar/scroll/restoration flow without a
-  fixture launch scenario. Space reveals the answer while the clicked sidebar row
-  keeps keyboard focus. It compares rating, composer, companion and sidebar
-  frames before and after native wide→narrow→wide resizing, without rating,
-  saving or sending personal study content;
+- native toolbar containment and sizing, settled screenshots of every main
+  section and the ready companion, and window tiling/restoration of an unsent
+  draft and revealed answer;
 - seven cards created through the real editor, with inline/display math; Space
   reveals, a pointer click rates, then Space reveals the next card without a
   focus click; keys 1–4 rate only a revealed answer; Space and Return reveal and
@@ -270,10 +225,10 @@ The `LocalMac` plan selects the full existing non-UI bundle and every Mac-eligib
 - a wide AI companion with an attached review card; after hovering a rating,
   Space/1–4 must enter the focused composer and the unsent draft must survive
   Cards/Progress/Review navigation;
-- nondestructive current-workspace checks: Review and chat scroll views created
-  after launch or the companion's transition drive the toolbar backdrop; toolbar
-  search keeps typed text; Settings opened from another section after AI history
-  keeps the app alive. Temporary text is removed in teardown.
+- nondestructive current-workspace checks without a fixture launch scenario,
+  never rating, saving or sending personal content: sidebar focus and
+  wide→narrow→wide restoration, toolbar backdrop over recreated Review/chat
+  scroll views, toolbar search text, and Settings after AI history.
 
 The shared launcher passes `FLASHCARDS_AUTOMATION_RUN=1` to the app process.
 Catalyst runs on a real Mac, so simulator detection alone is insufficient.
