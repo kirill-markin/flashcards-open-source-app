@@ -1,6 +1,6 @@
 # Catalog install facts
 
-What the marketing-site to web-app catalog import flow records: independent facts in `analytics.product_events`, with any funnel over them assembled at analysis time. The flow creates no guest user, workspace or visitor identity of its own.
+What the marketing-site to web-app catalog import flow records: independent facts in `analytics.product_events`, with any funnel over them assembled at analysis time.
 
 - Event catalog, owning every fact's properties and the retired names still accepted: [`catalog.ts`](../apps/backend/src/productAnalytics/catalog.ts)
 - Collector: [anonymous client analytics](anonymous-client-analytics.md); browser identity: [analytics visitor identity](analytics-visitor-identity.md)
