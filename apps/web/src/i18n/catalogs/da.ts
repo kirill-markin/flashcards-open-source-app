@@ -1529,7 +1529,9 @@ const daCatalog: TranslationCatalog = {
   },
   chatMessageContent: {
     card: "Kort",
+    copied: "Kopieret.",
     copy: "Kopiér",
+    copying: "Kopierer...",
     failedToCopy: "{{section}} kunne ikke kopieres.",
     id: "ID {{value}}",
     imageAttached: "[billede vedhæftet]",

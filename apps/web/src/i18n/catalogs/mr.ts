@@ -1529,7 +1529,9 @@ const mrCatalog: TranslationCatalog = {
   },
   chatMessageContent: {
     card: "कार्ड",
+    copied: "कॉपी केले.",
     copy: "कॉपी करा",
+    copying: "कॉपी करत आहे...",
     failedToCopy: "{{section}} कॉपी करता आले नाही.",
     id: "ID {{value}}",
     imageAttached: "[प्रतिमा जोडली]",

@@ -1544,7 +1544,9 @@ const ukCatalog: TranslationCatalog = {
   },
   chatMessageContent: {
     card: "Картка",
+    copied: "Скопійовано.",
     copy: "Копіювати",
+    copying: "Копіювання...",
     failedToCopy: "Не вдалося скопіювати {{section}}.",
     id: "ID {{value}}",
     imageAttached: "[зображення додано]",

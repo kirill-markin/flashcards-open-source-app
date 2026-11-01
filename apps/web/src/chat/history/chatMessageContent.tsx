@@ -158,8 +158,8 @@ function ChatMathCopyButton(props: Readonly<{
         {t("chatMessageContent.copy")}
       </button>
       <span role="status" aria-live="polite">
-        {status === "copying" ? t("progressScreen.leaderboard.invite.copying")
-          : status === "copied" ? t("progressScreen.leaderboard.invite.copied") : ""}
+        {status === "copying" ? t("chatMessageContent.copying")
+          : status === "copied" ? t("chatMessageContent.copied") : ""}
       </span>
     </div>
   );

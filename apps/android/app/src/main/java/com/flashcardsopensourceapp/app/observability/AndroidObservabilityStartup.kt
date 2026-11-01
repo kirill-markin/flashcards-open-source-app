@@ -135,15 +135,15 @@ private fun sentryOkHttpInterceptor(): SentryOkHttpInterceptor {
 
 private fun sanitizeOkHttpSentrySpan(span: ISpan): ISpan {
     span.setDescription(sanitizeSentryUrl(value = span.description))
-    span.setData(SpanDataConvention.HTTP_QUERY_KEY, null)
-    span.setData(SpanDataConvention.HTTP_FRAGMENT_KEY, null)
-    sanitizeOkHttpSentrySpanUrlData(span = span, dataKey = sentryHttpUrlSpanDataKey)
-    sanitizeOkHttpSentrySpanUrlData(span = span, dataKey = sentryUrlFullSpanDataKey)
-    sanitizeOkHttpSentrySpanUrlData(span = span, dataKey = sentryUrlSpanDataKey)
+    sanitizeOkHttpSentrySpanData(span = span, dataKey = SpanDataConvention.HTTP_QUERY_KEY)
+    sanitizeOkHttpSentrySpanData(span = span, dataKey = SpanDataConvention.HTTP_FRAGMENT_KEY)
+    sanitizeOkHttpSentrySpanData(span = span, dataKey = sentryHttpUrlSpanDataKey)
+    sanitizeOkHttpSentrySpanData(span = span, dataKey = sentryUrlFullSpanDataKey)
+    sanitizeOkHttpSentrySpanData(span = span, dataKey = sentryUrlSpanDataKey)
     return span
 }
 
-private fun sanitizeOkHttpSentrySpanUrlData(
+private fun sanitizeOkHttpSentrySpanData(
     span: ISpan,
     dataKey: String
 ) {
@@ -212,8 +212,8 @@ private fun sanitizeSentryEvent(event: SentryEvent): SentryEvent {
     if (request != null) {
         request.url = sanitizeSentryUrl(value = request.url)
         request.queryString = sanitizeSentryQueryString(value = request.queryString)
-        request.fragment = null
-        request.data = null
+        request.fragment = sanitizeSentryContextValue(fieldName = "fragment", value = request.fragment)
+        request.data = request.data?.let { data -> sanitizeObjectValue(fieldName = "data", value = data) }
         request.cookies = null
         request.headers = request.headers?.let(::sanitizeHeaders)
         request.envs = request.envs?.let(::sanitizeHeaders)
@@ -226,7 +226,7 @@ private fun sanitizeSentryEvent(event: SentryEvent): SentryEvent {
 
     sanitizeEventMessage(message = event.message)
     event.exceptions?.forEach { exception ->
-        exception.value = exception.value?.let { "[redacted-exception-message]" }
+        exception.value = exception.value?.let { value -> maskSentrySecrets(value = value) }
         val mechanism = exception.mechanism
         if (mechanism != null) {
             mechanism.description = mechanism.description?.let { description ->
@@ -239,15 +239,13 @@ private fun sanitizeSentryEvent(event: SentryEvent): SentryEvent {
 
     val user = event.user
     if (user != null) {
-        user.email = null
-        user.username = null
         user.ipAddress = null
     }
 
     val response = event.contexts.response
     if (response != null) {
         response.cookies = null
-        response.data = null
+        response.data = response.data?.let { data -> sanitizeObjectValue(fieldName = "data", value = data) }
         response.headers = response.headers?.let(::sanitizeHeaders)
     }
 
@@ -266,12 +264,7 @@ private fun sanitizeSentryBreadcrumb(breadcrumb: Breadcrumb): Breadcrumb? {
     data.keys.forEach { key ->
         val value = data[key]
         if (value is String) {
-            val sanitizedValue = if (key.contains(other = "url", ignoreCase = true)) {
-                sanitizeSentryUrl(value = value) ?: "[redacted]"
-            } else {
-                sanitizeSentryText(fieldName = key, value = value)
-            }
-            breadcrumb.setData(key, sanitizedValue)
+            breadcrumb.setData(key, sanitizeSentryText(fieldName = key, value = value))
         }
     }
     breadcrumb.message = breadcrumb.message?.let { message ->
@@ -282,13 +275,7 @@ private fun sanitizeSentryBreadcrumb(breadcrumb: Breadcrumb): Breadcrumb? {
 
 private fun sanitizeHeaders(headers: Map<String, String>): Map<String, String> {
     return headers.mapValues { entry ->
-        if (isUnsafeSentryFieldName(fieldName = entry.key)) {
-            "[redacted]"
-        } else if (entry.key.contains(other = "url", ignoreCase = true)) {
-            sanitizeSentryUrl(value = entry.value) ?: "[redacted]"
-        } else {
-            sanitizeSentryText(fieldName = entry.key, value = entry.value)
-        }
+        sanitizeSentryText(fieldName = entry.key, value = entry.value)
     }
 }
 
@@ -323,13 +310,7 @@ private fun sanitizeObjectValue(
     value: Any
 ): Any {
     return when (value) {
-        is String -> {
-            if (fieldName.contains(other = "url", ignoreCase = true)) {
-                sanitizeSentryUrl(value = value) ?: "[redacted]"
-            } else {
-                sanitizeSentryText(fieldName = fieldName, value = value)
-            }
-        }
+        is String -> sanitizeSentryText(fieldName = fieldName, value = value)
         is Map<*, *> -> sanitizeUntypedMap(fields = value)
         else -> value
     }

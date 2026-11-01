@@ -1529,7 +1529,9 @@ const taCatalog: TranslationCatalog = {
   },
   chatMessageContent: {
     card: "அட்டை",
+    copied: "நகலெடுக்கப்பட்டது.",
     copy: "நகலெடு",
+    copying: "நகலெடுக்கிறது...",
     failedToCopy: "{{section}} நகலெடுக்க முடியவில்லை.",
     id: "ID {{value}}",
     imageAttached: "[படம் இணைக்கப்பட்டது]",

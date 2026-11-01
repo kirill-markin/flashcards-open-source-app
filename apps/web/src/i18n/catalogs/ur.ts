@@ -1529,7 +1529,9 @@ const urCatalog: TranslationCatalog = {
   },
   chatMessageContent: {
     card: "کارڈ",
+    copied: "کاپی ہو گیا۔",
     copy: "کاپی کریں",
+    copying: "کاپی ہو رہا ہے...",
     failedToCopy: "{{section}} کاپی نہیں ہو سکا۔",
     id: "ID {{value}}",
     imageAttached: "[تصویر منسلک]",

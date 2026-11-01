@@ -33,9 +33,15 @@ type MutableUnknownObject = {
   [key: string]: unknown;
 };
 
+type SecretTextMask = Readonly<{
+  pattern: RegExp;
+  replacement: string;
+}>;
+
 const localBuildId = "local";
 const redactedValue = "[Filtered]";
-const redactedMessageValue = "[Filtered message]";
+// Matches the Sentry SDK normalizer marker.
+const circularValue = "[Circular ~]";
 const chatLiveLambdaFunctionUrlPattern = /^https:\/\/[a-z0-9-]+\.lambda-url\.[a-z0-9-]+\.on\.aws\/\?(?=[^#]*\bsessionId=)(?=[^#]*\brunId=)/u;
 const absoluteUrlPattern = /\bhttps?:\/\/[^\s"'<>]+/giu;
 const relativeUrlPattern = /(^|[\s"'(])((?:\/|\.\.?\/)[^\s"'<>]*)/gu;
@@ -61,7 +67,16 @@ const normalizedQuerySearchContainerNames = [
   "url",
   "window",
 ] as const;
-const keptBreadcrumbMessageCategoryPrefixes = ["web.", "sentry."] as const;
+const secretAssignmentTextPattern = /(^|[^A-Za-z0-9_.-])([A-Za-z0-9_.-]+)(["']?\s*[=:]\s*)("[^"]*"|'[^']*'|[^\s"'&,;=]+?(?=[.)!?:=]*(?:[\s"'&,;]|$)))/gu;
+const secretTextMasks: ReadonlyArray<SecretTextMask> = [
+  { pattern: /\b((?:proxy-)?authorization\s*:\s*)((?:Basic|Bearer|Digest)\s+)?[^\s"',;]+/giu, replacement: `$1$2${redactedValue}` },
+  { pattern: /\b((?:set-)?cookie\s*:\s*)[^\r\n"']+/giu, replacement: `$1${redactedValue}` },
+  { pattern: /\bBearer\s+[A-Za-z0-9._~+/-]+=*/giu, replacement: `Bearer ${redactedValue}` },
+  { pattern: /\b(?:sk|rk)[_-][A-Za-z0-9_-]{16,}\b/gu, replacement: redactedValue },
+  { pattern: /\beyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\b/gu, replacement: redactedValue },
+  // Replaced for event size, not secrecy.
+  { pattern: /\bdata:([a-z0-9.+-]+\/[a-z0-9.+-]+);base64,[A-Za-z0-9+/=]+/giu, replacement: `data:$1;base64,${redactedValue}` },
+];
 
 export const webSentryRelease = `web@${webPackageInfo.version}+${resolveBuildId()}`;
 export const isWebSentryEnabled = resolveSentryDsn() !== null;
@@ -178,7 +193,7 @@ function splitSensitiveKeyWords(key: string): ReadonlyArray<string> {
 }
 
 function isQuerySearchKey(key: string, normalizedKey: string): boolean {
-  if (splitSensitiveKeyWords(key).some((word: string): boolean => word === "query" || word === "search")) {
+  if (splitSensitiveKeyWords(key).some((word: string): boolean => word === "query" || word === "search" || word === "fragment")) {
     return true;
   }
 
@@ -193,52 +208,47 @@ function isQuerySearchKey(key: string, normalizedKey: string): boolean {
   });
 }
 
-function shouldRedactValueForKey(key: string): boolean {
+function isSecretKey(key: string): boolean {
   const normalizedKey = normalizeSensitiveKey(key);
   return normalizedKey.includes("token")
     || normalizedKey.includes("authorization")
     || normalizedKey.includes("cookie")
     || normalizedKey.includes("csrf")
-    || normalizedKey.includes("sessionsecret")
+    || normalizedKey.includes("secret")
     || normalizedKey.includes("password")
     || normalizedKey.includes("credential")
-    || normalizedKey === "secret"
-    || isQuerySearchKey(key, normalizedKey)
-    || normalizedKey === "fragment"
-    || normalizedKey.includes("fronttext")
-    || normalizedKey.includes("backtext")
-    || normalizedKey.includes("cardtext")
-    || normalizedKey.includes("cardfront")
-    || normalizedKey.includes("cardback")
-    || normalizedKey.includes("aitext")
-    || normalizedKey.endsWith("input")
-    || normalizedKey.endsWith("output")
-    || normalizedKey.includes("prompt")
-    || normalizedKey.includes("completion")
-    || normalizedKey === "text"
-    || normalizedKey === "base64data"
-    || normalizedKey === "payloadsnippet";
+    || normalizedKey.includes("apikey")
+    || splitSensitiveKeyWords(key).some((word: string): boolean => word.startsWith("otp"));
 }
 
-function pathMatches(path: ReadonlyArray<string>, expectedPath: ReadonlyArray<string>): boolean {
-  if (path.length !== expectedPath.length) {
-    return false;
-  }
-
-  return expectedPath.every((expectedSegment, index) => path[index] === expectedSegment);
+// `code` and `state` carry OAuth values, `completion` the account-method
+// return proof (`accountMethodReturn.ts`), and signatures sign presigned URLs.
+function isSecretUrlParameterName(name: string): boolean {
+  const normalizedName = normalizeSensitiveKey(name);
+  return isSecretKey(name)
+    || normalizedName === "code"
+    || normalizedName === "state"
+    || normalizedName === "completion"
+    || normalizedName === "key"
+    || normalizedName === "sig"
+    || normalizedName.includes("signature");
 }
 
-function isBreadcrumbArgumentsPath(path: ReadonlyArray<string>): boolean {
-  return pathMatches(path, ["data", "arguments"])
-    || pathMatches(path, ["breadcrumbs", "data", "arguments"]);
-}
+function maskSecretUrlParameters(parameters: string): string {
+  return parameters
+    .split("&")
+    .map((parameter: string): string => {
+      const separatorIndex = parameter.indexOf("=");
+      if (separatorIndex === -1) {
+        return parameter;
+      }
 
-function getUrlBase(): string {
-  if (typeof window === "undefined") {
-    return "https://flashcards-open-source-app.invalid";
-  }
-
-  return window.location.origin;
+      const rawName = parameter.slice(0, separatorIndex);
+      return isSecretUrlParameterName(rawName.replace(/^[?#]/u, ""))
+        ? `${rawName}=${redactedValue}`
+        : parameter;
+    })
+    .join("&");
 }
 
 function splitTrailingUrlPunctuation(value: string): Readonly<{
@@ -256,33 +266,46 @@ function splitTrailingUrlPunctuation(value: string): Readonly<{
   };
 }
 
-function stripUrlQueryAndFragment(value: string): string {
+function maskSecretUrlQueryAndFragment(value: string): string {
   const { token, trailing } = splitTrailingUrlPunctuation(value);
-  try {
-    const url = new URL(token);
-    url.search = "";
-    url.hash = "";
-    return `${url.toString()}${trailing}`;
-  } catch {
-    try {
-      const url = new URL(token, getUrlBase());
-      url.search = "";
-      url.hash = "";
-      if (token.startsWith("//")) {
-        return `//${url.host}${url.pathname}${trailing}`;
-      }
-
-      return `${url.pathname}${trailing}`;
-    } catch {
-      return value;
-    }
-  }
+  const fragmentStart = token.indexOf("#");
+  const beforeFragment = fragmentStart === -1 ? token : token.slice(0, fragmentStart);
+  const fragment = fragmentStart === -1 ? "" : token.slice(fragmentStart);
+  const queryStart = beforeFragment.indexOf("?");
+  const path = queryStart === -1 ? beforeFragment : beforeFragment.slice(0, queryStart);
+  const query = queryStart === -1 ? "" : beforeFragment.slice(queryStart);
+  return `${path}${maskSecretUrlParameters(query)}${maskSecretUrlParameters(fragment)}${trailing}`;
 }
 
-function sanitizeUrlText(value: string): string {
-  return value
-    .replace(absoluteUrlPattern, (url: string): string => stripUrlQueryAndFragment(url))
-    .replace(relativeUrlPattern, (match: string, prefix: string, url: string): string => `${prefix}${stripUrlQueryAndFragment(url)}`);
+// Masks `name=value`, `"name": "value"` and `name: "value"` text; unquoted
+// `name: value` reads as prose, so only the header masks in `secretTextMasks` cover it.
+function maskSecretAssignments(value: string): string {
+  return value.replace(
+    secretAssignmentTextPattern,
+    (match: string, prefix: string, name: string, separator: string, secret: string): string => {
+      const quote = secret.startsWith("\"") || secret.startsWith("'") ? secret.charAt(0) : "";
+      if (isSecretKey(name) === false || (separator.trim() === ":" && quote === "")) {
+        return match;
+      }
+
+      return `${prefix}${name}${separator}${quote}${redactedValue}${quote}`;
+    },
+  );
+}
+
+function maskSecretText(value: string): string {
+  return maskSecretAssignments(secretTextMasks
+    .reduce((text: string, mask: SecretTextMask): string => text.replace(mask.pattern, mask.replacement), value))
+    .replace(absoluteUrlPattern, (url: string): string => maskSecretUrlQueryAndFragment(url))
+    .replace(relativeUrlPattern, (match: string, prefix: string, url: string): string => `${prefix}${maskSecretUrlQueryAndFragment(url)}`);
+}
+
+function sanitizeString(value: string, key: string | null): string {
+  if (key !== null && isQuerySearchKey(key, normalizeSensitiveKey(key))) {
+    return maskSecretText(maskSecretUrlParameters(value));
+  }
+
+  return maskSecretText(value);
 }
 
 function isPlainObject(value: unknown): value is UnknownObject {
@@ -291,7 +314,35 @@ function isPlainObject(value: unknown): value is UnknownObject {
     && Array.isArray(value) === false;
 }
 
-function sanitizeConsoleBreadcrumbArgument(value: unknown): unknown {
+function hasPlainPrototype(value: object): boolean {
+  const prototype = Object.getPrototypeOf(value);
+  return prototype === Object.prototype || prototype === null;
+}
+
+function sanitizeObjectEntries(value: object, ancestors: WeakSet<object>): MutableUnknownObject {
+  const sanitizedObject: MutableUnknownObject = {};
+  for (const [entryKey, entryValue] of Object.entries(value)) {
+    sanitizedObject[entryKey] = sanitizeUnknown(entryValue, entryKey, ancestors);
+  }
+
+  return sanitizedObject;
+}
+
+// `message` and `stack` are non-enumerable, so they are copied explicitly.
+function sanitizeError(error: Error, ancestors: WeakSet<object>): MutableUnknownObject {
+  return {
+    name: maskSecretText(error.name),
+    message: maskSecretText(error.message),
+    stack: error.stack === undefined ? undefined : maskSecretText(error.stack),
+    ...sanitizeObjectEntries(error, ancestors),
+  };
+}
+
+// Console breadcrumbs carry raw `console.*` arguments, so this sees DOM nodes,
+// React fibers and cycles. Non-plain objects pass through for the SDK's own
+// normalization, and `ancestors` holds only the current path, so repeated
+// non-cyclic references stay intact.
+function sanitizeUnknown(value: unknown, key: string | null, ancestors: WeakSet<object>): unknown {
   if (
     typeof value === "number"
     || typeof value === "boolean"
@@ -301,89 +352,41 @@ function sanitizeConsoleBreadcrumbArgument(value: unknown): unknown {
     return value;
   }
 
-  return redactedValue;
-}
-
-function sanitizeConsoleBreadcrumbArguments(value: unknown): unknown {
-  if (Array.isArray(value)) {
-    return value.map((item: unknown): unknown => sanitizeConsoleBreadcrumbArgument(item));
-  }
-
-  return sanitizeConsoleBreadcrumbArgument(value);
-}
-
-// A breadcrumb keeps its message only when this app authored that message or
-// when the message merely restates an event this app itself captured. The
-// `web.` categories come from `addWebBreadcrumb` in `webObservability.ts`, the
-// single place this app adds breadcrumbs, and the SDK's `sentry.` categories
-// describe the captured event or transaction whose own text already ships.
-// Everything else the SDK derives from the page or from user actions: console
-// breadcrumbs join the console arguments, and the default DOM breadcrumbs
-// serialize the clicked element path including its `aria-label`, `title`,
-// `alt`, `name` and `id`, all of which carry user-authored content in this app.
-// Every breadcrumb this app and the Sentry SDK emit carries a `category`, and
-// the event itself, `logentry` and `exception.values[]` never do, so a missing
-// or non-string `category` means keep the message. A new breadcrumb source that
-// omits `category`, or that reuses a kept prefix for page-derived text, would
-// ship its message unredacted, so re-check this when adding one.
-function shouldRedactBreadcrumbMessage(value: UnknownObject): boolean {
-  const category = value.category;
-  return typeof category === "string"
-    && keptBreadcrumbMessageCategoryPrefixes.some((prefix: string): boolean => category.startsWith(prefix)) === false;
-}
-
-function sanitizeUnknown(value: unknown, key: string | null, path: ReadonlyArray<string>): unknown {
-  if (isBreadcrumbArgumentsPath(path)) {
-    return sanitizeConsoleBreadcrumbArguments(value);
-  }
-
-  if (typeof value === "string") {
-    if (key !== null && shouldRedactValueForKey(key)) {
-      return redactedValue;
-    }
-
-    return sanitizeUrlText(value);
-  }
-
-  if (key !== null && shouldRedactValueForKey(key)) {
+  // `base64Data` holds chat image bytes, replaced for event size.
+  if (key !== null && (isSecretKey(key) || normalizeSensitiveKey(key) === "base64data")) {
     return redactedValue;
   }
 
-  if (
-    typeof value === "number"
-    || typeof value === "boolean"
-    || value === null
-    || value === undefined
-  ) {
+  if (typeof value === "string") {
+    return sanitizeString(value, key);
+  }
+
+  const isArray = Array.isArray(value);
+  const isError = value instanceof Error;
+  if (typeof value !== "object" || (isArray === false && isError === false && hasPlainPrototype(value) === false)) {
     return value;
   }
 
-  if (Array.isArray(value)) {
-    return value.map((item: unknown): unknown => sanitizeUnknown(item, null, path));
+  if (ancestors.has(value)) {
+    return circularValue;
   }
 
-  if (isPlainObject(value)) {
-    // Checked here, where the sibling `category` is still visible.
-    const redactsMessage = shouldRedactBreadcrumbMessage(value);
-    const sanitizedObject: MutableUnknownObject = {};
-    for (const [entryKey, entryValue] of Object.entries(value)) {
-      sanitizedObject[entryKey] = redactsMessage && entryKey === "message"
-        ? redactedMessageValue
-        : sanitizeUnknown(entryValue, entryKey, [...path, entryKey]);
-    }
-
-    return sanitizedObject;
-  }
-
-  return value;
+  ancestors.add(value);
+  const sanitizedValue = isArray
+    ? value.map((item: unknown): unknown => sanitizeUnknown(item, null, ancestors))
+    : isError
+      ? sanitizeError(value, ancestors)
+      : sanitizeObjectEntries(value, ancestors);
+  ancestors.delete(value);
+  return sanitizedValue;
 }
 
 export function sanitizeSentryEventForPrivacy(event: SentryEvent): SentryEvent {
-  return sanitizeUnknown(event, null, []) as SentryEvent;
+  return sanitizeUnknown(event, null, new WeakSet<object>()) as SentryEvent;
 }
 
 export function sanitizeSentryBreadcrumbForPrivacy(breadcrumb: SentryBreadcrumb): SentryBreadcrumb | null {
-  return sanitizeUnknown(breadcrumb, null, []) as SentryBreadcrumb;
+  return sanitizeUnknown(breadcrumb, null, new WeakSet<object>()) as SentryBreadcrumb;
 }
 
 function getEventContextObject(event: SentryEvent, name: string): UnknownObject | null {
@@ -439,7 +442,7 @@ const beforeSend: SentryBeforeSend = (event: SentryEvent): SentryEvent | null =>
 };
 
 const beforeSendSpan: SentryBeforeSendSpan = (span: SentryStreamedSpan): SentryStreamedSpan => {
-  return sanitizeUnknown(span, null, []) as SentryStreamedSpan;
+  return sanitizeUnknown(span, null, new WeakSet<object>()) as SentryStreamedSpan;
 };
 
 const sentryDsn = resolveSentryDsn();

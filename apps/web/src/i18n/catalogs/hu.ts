@@ -1529,7 +1529,9 @@ const huCatalog: TranslationCatalog = {
   },
   chatMessageContent: {
     card: "Kártya",
+    copied: "Másolva.",
     copy: "Másolás",
+    copying: "Másolás folyamatban...",
     failedToCopy: "Nem sikerült másolni: {{section}}.",
     id: "Azonosító: {{value}}",
     imageAttached: "[kép csatolva]",

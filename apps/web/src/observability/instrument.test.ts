@@ -50,22 +50,18 @@ vi.mock("./instrument", async () => {
 type SentryPrivacyEvent = Parameters<typeof sanitizeSentryEventForPrivacy>[0];
 type SentryPrivacyBreadcrumb = Parameters<typeof sanitizeSentryBreadcrumbForPrivacy>[0];
 
-const sensitiveCardText = "What is the private answer on this card?";
-const sensitiveAiText = "Generate cards from this private AI prompt and completion.";
+const cardText = "What is the answer on this card?";
+const aiText = "Generate cards from this AI prompt and completion.";
 const sensitiveTokenText = "Authorization: Bearer private-token-value";
-const sensitiveBase64Text = "data:image/png;base64,cHJpdmF0ZS1jYXJkLWltYWdlLWRhdGE=";
-const sensitiveMessageText = "User message contains the backText private answer.";
-
-function serializeEvent(event: SentryPrivacyEvent): string {
-  return JSON.stringify(event);
-}
+const base64Text = "data:image/png;base64,cHJpdmF0ZS1jYXJkLWltYWdlLWRhdGE=";
+const messageText = "User message contains the backText answer.";
 
 beforeEach(() => {
   vi.clearAllMocks();
 });
 
 describe("Sentry privacy sanitizer", () => {
-  it("keeps event message, logentry message, and exception values while redacting sensitive keys", () => {
+  it("keeps event message, logentry message, exception values, and card and AI content", () => {
     const event: SentryPrivacyEvent = {
       type: undefined,
       message: "Can't find variable: indexedDB",
@@ -99,10 +95,10 @@ describe("Sentry privacy sanitizer", () => {
         },
       ],
       extra: {
-        aiInput: sensitiveAiText,
-        cardFrontText: sensitiveCardText,
-        completionText: sensitiveAiText,
-        prompt: sensitiveAiText,
+        aiInput: aiText,
+        cardFrontText: cardText,
+        completionText: aiText,
+        prompt: aiText,
       },
     };
 
@@ -115,23 +111,22 @@ describe("Sentry privacy sanitizer", () => {
     expect(sanitizedEvent.breadcrumbs?.[0]?.message).toBe("Opened card 0192f0c1-0000-7000-8000-000000000001");
     expect(sanitizedEvent.exception?.values?.[0]?.type).toBe("RootRenderError");
     expect(sanitizedEvent.exception?.values?.[0]?.stacktrace?.frames?.[0]?.function).toBe("App");
-    expect(serializeEvent(sanitizedEvent)).not.toContain(sensitiveCardText);
-    expect(serializeEvent(sanitizedEvent)).not.toContain(sensitiveAiText);
+    expect(sanitizedEvent.extra).toEqual(event.extra);
   });
 
-  it("scrubs page-derived breadcrumb messages and raw console arguments while keeping the captured event description", () => {
+  it("keeps breadcrumb messages and console arguments while masking secrets", () => {
     const breadcrumb: SentryPrivacyBreadcrumb = {
       category: "console",
       level: "warning",
-      message: `Console warning leaked card text: ${sensitiveCardText}`,
+      message: `Console warning with card text: ${cardText}`,
       data: {
         arguments: [
           sensitiveTokenText,
-          `frontText=${sensitiveCardText}`,
-          `AI prompt and completion: ${sensitiveAiText}`,
-          sensitiveBase64Text,
-          { message: sensitiveMessageText, token: sensitiveTokenText },
-          [sensitiveCardText, sensitiveAiText],
+          `frontText=${cardText}`,
+          `AI prompt and completion: ${aiText}`,
+          base64Text,
+          { message: messageText, token: sensitiveTokenText },
+          [cardText, aiText],
           409,
           true,
           null,
@@ -146,30 +141,25 @@ describe("Sentry privacy sanitizer", () => {
       throw new Error("Expected console breadcrumb to be kept after privacy sanitization");
     }
 
-    expect(sanitizedBreadcrumb.message).toBe("[Filtered message]");
+    expect(sanitizedBreadcrumb.message).toBe(`Console warning with card text: ${cardText}`);
     expect(sanitizedBreadcrumb.data?.arguments).toEqual([
-      "[Filtered]",
-      "[Filtered]",
-      "[Filtered]",
-      "[Filtered]",
-      "[Filtered]",
-      "[Filtered]",
+      "Authorization: Bearer [Filtered]",
+      `frontText=${cardText}`,
+      `AI prompt and completion: ${aiText}`,
+      "data:image/png;base64,[Filtered]",
+      { message: messageText, token: "[Filtered]" },
+      [cardText, aiText],
       409,
       true,
       null,
     ]);
     expect(sanitizedBreadcrumb.data?.logger).toBe("console");
-    const serializedBreadcrumb = JSON.stringify(sanitizedBreadcrumb);
-    expect(serializedBreadcrumb).not.toContain(sensitiveTokenText);
-    expect(serializedBreadcrumb).not.toContain(sensitiveCardText);
-    expect(serializedBreadcrumb).not.toContain(sensitiveAiText);
-    expect(serializedBreadcrumb).not.toContain(sensitiveBase64Text);
-    expect(serializedBreadcrumb).not.toContain(sensitiveMessageText);
+    expect(JSON.stringify(sanitizedBreadcrumb)).not.toContain("private-token-value");
 
     const domBreadcrumb: SentryPrivacyBreadcrumb = {
       category: "ui.click",
       level: "info",
-      message: `div[role="option"][aria-label="${sensitiveCardText}"]`,
+      message: `div[role="option"][aria-label="${cardText}"]`,
     };
 
     const sanitizedDomBreadcrumb = sanitizeSentryBreadcrumbForPrivacy(domBreadcrumb);
@@ -178,9 +168,8 @@ describe("Sentry privacy sanitizer", () => {
       throw new Error("Expected DOM breadcrumb to be kept after privacy sanitization");
     }
 
-    expect(sanitizedDomBreadcrumb.message).toBe("[Filtered message]");
+    expect(sanitizedDomBreadcrumb.message).toBe(`div[role="option"][aria-label="${cardText}"]`);
     expect(sanitizedDomBreadcrumb.category).toBe("ui.click");
-    expect(JSON.stringify(sanitizedDomBreadcrumb)).not.toContain(sensitiveCardText);
 
     const capturedEventBreadcrumb: SentryPrivacyBreadcrumb = {
       category: "sentry.event",
@@ -269,36 +258,39 @@ describe("Sentry privacy sanitizer", () => {
     expect(sanitizedBreadcrumb.data?.reloadSkipReason).toBe(null);
   });
 
-  it("redacts normalized query and search key variants without redacting route names", () => {
+  it("masks only secret parameters in query values and URLs", () => {
     const event: SentryPrivacyEvent = {
       type: undefined,
       extra: {
-        query_string: "frontText=private-card-front",
-        "url.query": "cardBack=private-card-back",
-        "http.query": "prompt=private-ai-prompt",
-        searchParams: "completion=private-ai-completion",
+        query_string: "frontText=card-front",
+        "url.query": "code=oauth-code&state=oauth-state&locale=de",
+        "http.query": "prompt=ai-prompt",
+        searchParams: "?premium_checkout_token=checkout-token&premium=checkout",
         route: "review.search",
+        errorMessage: "Request failed for https://chat-live.example.com/?sessionId=s1&runId=r1&access_token=t1.",
       },
     };
 
     const sanitizedEvent = sanitizeSentryEventForPrivacy(event);
 
-    expect(sanitizedEvent.extra?.query_string).toBe("[Filtered]");
-    expect(sanitizedEvent.extra?.["url.query"]).toBe("[Filtered]");
-    expect(sanitizedEvent.extra?.["http.query"]).toBe("[Filtered]");
-    expect(sanitizedEvent.extra?.searchParams).toBe("[Filtered]");
+    expect(sanitizedEvent.extra?.query_string).toBe("frontText=card-front");
+    expect(sanitizedEvent.extra?.["url.query"]).toBe("code=[Filtered]&state=[Filtered]&locale=de");
+    expect(sanitizedEvent.extra?.["http.query"]).toBe("prompt=ai-prompt");
+    expect(sanitizedEvent.extra?.searchParams).toBe("?premium_checkout_token=[Filtered]&premium=checkout");
     expect(sanitizedEvent.extra?.route).toBe("review.search");
+    expect(sanitizedEvent.extra?.errorMessage)
+      .toBe("Request failed for https://chat-live.example.com/?sessionId=s1&runId=r1&access_token=[Filtered].");
   });
 
-  it("keeps message-like context fields while still redacting sensitive keys", () => {
+  it("keeps message-like and content context fields", () => {
     const event: SentryPrivacyEvent = {
       type: undefined,
       message: "web.chat_live_stream_failed",
       extra: {
         errorMessage: "Request failed with status 502 for POST /v1/chat/live",
         statusMessage: "Backend returned an empty body",
-        aiText: sensitiveAiText,
-        cardFrontText: sensitiveCardText,
+        aiText,
+        cardFrontText: cardText,
         messageCount: 3,
       },
     };
@@ -308,11 +300,9 @@ describe("Sentry privacy sanitizer", () => {
     expect(sanitizedEvent.message).toBe("web.chat_live_stream_failed");
     expect(sanitizedEvent.extra?.errorMessage).toBe("Request failed with status 502 for POST /v1/chat/live");
     expect(sanitizedEvent.extra?.statusMessage).toBe("Backend returned an empty body");
-    expect(sanitizedEvent.extra?.aiText).toBe("[Filtered]");
-    expect(sanitizedEvent.extra?.cardFrontText).toBe("[Filtered]");
+    expect(sanitizedEvent.extra?.aiText).toBe(aiText);
+    expect(sanitizedEvent.extra?.cardFrontText).toBe(cardText);
     expect(sanitizedEvent.extra?.messageCount).toBe(3);
-    expect(serializeEvent(sanitizedEvent)).not.toContain(sensitiveCardText);
-    expect(serializeEvent(sanitizedEvent)).not.toContain(sensitiveAiText);
   });
 
   it("drops non-actionable unknown progress timezone warnings", () => {
@@ -332,7 +322,7 @@ describe("Sentry privacy sanitizer", () => {
     expect(prepareSentryEventForSend(event)).toBeNull();
   });
 
-  it("keeps unusual invalid timezone warnings and sanitizes sensitive fields", () => {
+  it("keeps unusual invalid timezone warnings and masks secret fields", () => {
     const event: SentryPrivacyEvent = {
       type: undefined,
       message: "web.progress_timezone_invalid",
@@ -345,7 +335,8 @@ describe("Sentry privacy sanitizer", () => {
         },
       },
       extra: {
-        cardFrontText: sensitiveCardText,
+        authorization: sensitiveTokenText,
+        cardFrontText: cardText,
       },
     };
 
@@ -357,11 +348,11 @@ describe("Sentry privacy sanitizer", () => {
 
     expect(preparedEvent.message).toBe("web.progress_timezone_invalid");
     expect(preparedEvent.contexts?.["web.warning"]?.observedTimeZone).toBe("Invalid/Timezone");
-    expect(preparedEvent.extra?.cardFrontText).toBe("[Filtered]");
-    expect(serializeEvent(preparedEvent)).not.toContain(sensitiveCardText);
+    expect(preparedEvent.extra?.authorization).toBe("[Filtered]");
+    expect(preparedEvent.extra?.cardFrontText).toBe(cardText);
   });
 
-  it("keeps unrelated errors and sanitizes them before send", () => {
+  it("keeps unrelated errors and masks their secrets before send", () => {
     const event: SentryPrivacyEvent = {
       type: undefined,
       exception: {
@@ -373,7 +364,8 @@ describe("Sentry privacy sanitizer", () => {
         ],
       },
       extra: {
-        cardFrontText: sensitiveCardText,
+        authorization: sensitiveTokenText,
+        cardFrontText: cardText,
       },
     };
 
@@ -384,8 +376,8 @@ describe("Sentry privacy sanitizer", () => {
     }
 
     expect(preparedEvent.exception?.values?.[0]?.value).toBe("Can't find variable: indexedDB");
-    expect(preparedEvent.extra?.cardFrontText).toBe("[Filtered]");
-    expect(serializeEvent(preparedEvent)).not.toContain(sensitiveCardText);
+    expect(preparedEvent.extra?.authorization).toBe("[Filtered]");
+    expect(preparedEvent.extra?.cardFrontText).toBe(cardText);
   });
 
   it("does not capture browser API network errors as Sentry exceptions", () => {

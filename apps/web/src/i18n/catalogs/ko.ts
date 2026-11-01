@@ -1529,7 +1529,9 @@ const koCatalog: TranslationCatalog = {
   },
   chatMessageContent: {
     card: "카드",
+    copied: "복사했습니다.",
     copy: "복사",
+    copying: "복사하는 중...",
     failedToCopy: "{{section}}을(를) 복사하지 못했습니다.",
     id: "ID {{value}}",
     imageAttached: "[이미지 첨부됨]",

@@ -37,8 +37,8 @@ func sanitizeSentryEvent(_ event: Event) -> Event? {
         request.headers = sanitizedHeaders(request.headers)
         request.cookies = nil
         request.url = request.url.map(redactedURLString)
-        request.fragment = nil
-        request.queryString = nil
+        request.fragment = request.fragment.map(redactedQueryString)
+        request.queryString = request.queryString.map(redactedQueryString)
     }
     event.extra = sanitizedDictionary(event.extra)
     event.context = sanitizedContextDictionary(event.context)
@@ -78,8 +78,11 @@ func sanitizeSentrySpan(_ span: any Span) -> (any Span)? {
 
 private func sanitizedSpanDataValue(_ value: Any, key: String) -> Any {
     let normalizedKey: String = normalizedDiagnosticKey(key)
-    if isSensitiveKey(key) || isSensitiveURLComponentKey(key) {
+    if isSensitiveKey(key) {
         return filteredDiagnosticValue
+    }
+    if isURLQueryComponentKey(key), let queryString = value as? String {
+        return redactedQueryString(queryString)
     }
     if normalizedKey.contains("url"), let urlString = value as? String {
         return redactedURLString(urlString)
@@ -118,8 +121,10 @@ private func sanitizedBreadcrumbData(_ dictionary: [String: Any]?) -> [String: A
     var sanitized: [String: Any] = [:]
     for (key, value) in dictionary {
         let normalizedKey: String = normalizedDiagnosticKey(key)
-        if isSensitiveKey(key) || isSensitiveURLComponentKey(key) {
+        if isSensitiveKey(key) {
             sanitized[key] = "[Filtered]"
+        } else if isURLQueryComponentKey(key), let queryString = value as? String {
+            sanitized[key] = redactedQueryString(queryString)
         } else if normalizedKey == "url", let urlString = value as? String {
             sanitized[key] = redactedURLString(urlString)
         } else {
@@ -165,8 +170,10 @@ func sanitizedDictionary(_ dictionary: [String: Any]?) -> [String: Any]? {
     var sanitized: [String: Any] = [:]
     for (key, value) in dictionary {
         let normalizedKey: String = normalizedDiagnosticKey(key)
-        if isSensitiveKey(key) || isSensitiveURLComponentKey(key) {
+        if isSensitiveKey(key) {
             sanitized[key] = "[Filtered]"
+        } else if isURLQueryComponentKey(key), let queryString = value as? String {
+            sanitized[key] = redactedQueryString(queryString)
         } else if normalizedKey == "url", let urlString = value as? String {
             sanitized[key] = redactedURLString(urlString)
         } else {
@@ -184,8 +191,10 @@ func sanitizedStringDictionary(_ dictionary: [String: String]?) -> [String: Stri
     var sanitized: [String: String] = [:]
     for (key, value) in dictionary {
         let normalizedKey: String = normalizedDiagnosticKey(key)
-        if isSensitiveKey(key) || isSensitiveURLComponentKey(key) {
+        if isSensitiveKey(key) {
             sanitized[key] = "[Filtered]"
+        } else if isURLQueryComponentKey(key) {
+            sanitized[key] = redactedQueryString(value)
         } else if normalizedKey == "url" {
             sanitized[key] = redactedURLString(value)
         } else {
@@ -220,19 +229,21 @@ func isSensitiveKey(_ key: String) -> Bool {
         "refreshtoken",
         "idtoken",
         "otpsessiontoken",
+        "otpcode",
         "token",
         "password",
         "secret",
-        "email"
+        "apikey",
+        "signature"
     ]
     return sensitiveFragments.contains { fragment in
         normalizedKey.contains(fragment)
     }
 }
 
-private func isSensitiveURLComponentKey(_ key: String) -> Bool {
+private func isURLQueryComponentKey(_ key: String) -> Bool {
     let normalizedKey: String = normalizedDiagnosticKey(key)
-    let sensitiveKeys: Set<String> = [
+    let queryComponentKeys: Set<String> = [
         "query",
         "querystring",
         "httpquery",
@@ -241,7 +252,7 @@ private func isSensitiveURLComponentKey(_ key: String) -> Bool {
         "httpfragment",
         "urlfragment"
     ]
-    if sensitiveKeys.contains(normalizedKey) {
+    if queryComponentKeys.contains(normalizedKey) {
         return true
     }
 
@@ -259,73 +270,36 @@ private func normalizedDiagnosticKey(_ key: String) -> String {
 }
 
 private func redactedURLString(_ value: String) -> String {
-    guard let redactedURL: String = redactedAbsoluteURLString(value) else {
-        if let redactedRelativeURL: String = redactedRelativeURLString(value) {
-            return redactedSensitiveString(redactedRelativeURL)
-        }
-        return redactedString(value)
-    }
-
-    return redactedSensitiveString(redactedURL)
+    redactedSensitiveString(redactedURLQueryAndFragment(value))
 }
 
-private func redactedAbsoluteURLString(_ value: String) -> String? {
-    guard var components = URLComponents(string: value),
-          components.scheme != nil,
-          components.host != nil else {
-        return nil
+private func redactedURLQueryAndFragment(_ value: String) -> String {
+    let fragmentParts: [Substring] = value.split(separator: "#", maxSplits: 1, omittingEmptySubsequences: false)
+    let queryParts: [Substring] = fragmentParts[0].split(separator: "?", maxSplits: 1, omittingEmptySubsequences: false)
+    var redactedValue: String = String(queryParts[0])
+    if queryParts.count == 2 {
+        redactedValue += "?" + redactedQueryString(String(queryParts[1]))
     }
-
-    components.query = nil
-    components.fragment = nil
-    components.path = redactedURLPath(components.path)
-    return components.string ?? value
+    if fragmentParts.count == 2 {
+        redactedValue += "#" + redactedQueryString(String(fragmentParts[1]))
+    }
+    return redactedValue
 }
 
-private func redactedRelativeURLString(_ value: String) -> String? {
-    guard var components = URLComponents(string: value),
-          components.path.hasPrefix("/") else {
-        return nil
-    }
-
-    components.query = nil
-    components.fragment = nil
-    components.path = redactedURLPath(components.path)
-    return components.string ?? value
-}
-
-private func redactedURLPath(_ path: String) -> String {
-    path
-        .split(separator: "/", omittingEmptySubsequences: false)
-        .map { segment -> String in
-            let segmentValue: String = String(segment)
-            guard shouldRedactURLPathSegment(segmentValue) else {
-                return segmentValue
+// Fragments are parsed like queries because OAuth-style fragments carry `access_token=...` pairs.
+private func redactedQueryString(_ query: String) -> String {
+    let redactedPairs: String = query
+        .split(separator: "&", omittingEmptySubsequences: false)
+        .map { pair -> String in
+            let parts: [Substring] = pair.split(separator: "=", maxSplits: 1, omittingEmptySubsequences: false)
+            let name: String = String(parts[0])
+            guard parts.count == 2, isSensitiveKey(name.removingPercentEncoding ?? name) else {
+                return String(pair)
             }
-            return "[Filtered]"
+            return "\(name)=\(filteredDiagnosticValue)"
         }
-        .joined(separator: "/")
-}
-
-private func shouldRedactURLPathSegment(_ segment: String) -> Bool {
-    let decodedSegment: String = segment.removingPercentEncoding ?? segment
-    guard decodedSegment.isEmpty == false else {
-        return false
-    }
-
-    if decodedSegment.range(
-        of: #"^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"#,
-        options: .regularExpression
-    ) != nil {
-        return true
-    }
-
-    if decodedSegment.count >= 20,
-       decodedSegment.range(of: #"^[A-Za-z0-9_-]+$"#, options: .regularExpression) != nil {
-        return true
-    }
-
-    return false
+        .joined(separator: "&")
+    return redactedSensitiveString(redactedPairs)
 }
 
 private func redactedString(_ value: String) -> String {
@@ -374,37 +348,34 @@ private func redactedEmbeddedURLStrings(_ value: String) -> String {
             continue
         }
         let matchedURL: String = String(redactedValue[range])
-        let replacement: String = redactedAbsoluteURLString(matchedURL) ?? redactedSensitiveString(matchedURL)
-        redactedValue.replaceSubrange(range, with: replacement)
+        redactedValue.replaceSubrange(range, with: redactedURLQueryAndFragment(matchedURL))
     }
     return redactedValue
 }
 
 private func redactedSensitiveString(_ value: String) -> String {
-    let emailPattern: String = #"[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}"#
-    let emailRegex: NSRegularExpression? = try? NSRegularExpression(
-        pattern: emailPattern,
-        options: [.caseInsensitive]
-    )
+    // An OpenAI secret key always starts with "sk-", including the user-supplied key the app forwards.
+    let openAIKeyPattern: String = #"(?<![A-Za-z0-9_-])sk-[A-Za-z0-9_-]{20,}"#
+    let openAIKeyRegex: NSRegularExpression? = try? NSRegularExpression(pattern: openAIKeyPattern)
     let fullRange: NSRange = NSRange(value.startIndex..<value.endIndex, in: value)
-    let emailRedacted: String = emailRegex?.stringByReplacingMatches(
+    let keyRedacted: String = openAIKeyRegex?.stringByReplacingMatches(
         in: value,
         options: [],
         range: fullRange,
-        withTemplate: "[Filtered email]"
+        withTemplate: "[Filtered key]"
     ) ?? value
 
     // A JWT header is base64url of a JSON object, so a real token always starts with "eyJ".
     // Requiring that prefix keeps hostnames, version strings and dotted type names readable.
     let jwtPattern: String = #"(?<![A-Za-z0-9_-])eyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}"#
     let jwtRegex: NSRegularExpression? = try? NSRegularExpression(pattern: jwtPattern)
-    let jwtRange: NSRange = NSRange(emailRedacted.startIndex..<emailRedacted.endIndex, in: emailRedacted)
+    let jwtRange: NSRange = NSRange(keyRedacted.startIndex..<keyRedacted.endIndex, in: keyRedacted)
     return jwtRegex?.stringByReplacingMatches(
-        in: emailRedacted,
+        in: keyRedacted,
         options: [],
         range: jwtRange,
         withTemplate: "[Filtered token]"
-    ) ?? emailRedacted
+    ) ?? keyRedacted
 }
 
 func stringifyContext(_ context: [String: Any]) -> [String: String] {
