@@ -232,6 +232,11 @@ private struct MacToolbarPopoverContent<Content: View>: View {
 
 private final class MacToolbarPopoverController: UIHostingController<AnyView>, UIPopoverPresentationControllerDelegate {
     var onDismiss: (() -> Void)?
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        // Let the system popover material show instead of the hosting view's opaque fill.
+        self.view.backgroundColor = .clear
+    }
     override func viewDidDisappear(_ animated: Bool) {
         super.viewDidDisappear(animated)
         self.onDismiss?()
