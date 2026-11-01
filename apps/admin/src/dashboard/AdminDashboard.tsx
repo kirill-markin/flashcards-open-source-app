@@ -13,7 +13,11 @@ import {
   reviewPromptDetailsAnalyticsFilterFields,
   type AnalyticsFilterState,
 } from "../filters/analyticsFilters";
-import { noSiteVisitorFilterOptions, type AnalyticsFilterOptions } from "../filters/optionsQuery";
+import {
+  loadAppVersionFilterOptions,
+  noSiteVisitorFilterOptions,
+  type AnalyticsFilterOptions,
+} from "../filters/optionsQuery";
 import { AdminNavigation } from "../navigation/AdminNavigation";
 import { AiUsageCohortsSection } from "../reports/aiUsageCohorts/AiUsageCohortsSection";
 import { AudienceSection } from "../reports/audience/AudienceSection";
@@ -23,6 +27,8 @@ import { FunnelsArea, type JourneysPage } from "../reports/funnels/FunnelsArea";
 import type { GeneralReportView } from "../reports/generalReportView";
 import { LevelOneMetricDetailsPage } from "../reports/levelOneMetrics/LevelOneMetricDetailsPage";
 import { LevelOneMetricsArea } from "../reports/levelOneMetrics/LevelOneMetricsArea";
+import { FilterOptionsError } from "../reports/levelOneMetrics/LevelOneMetricsFrame";
+import { useFilterOptionsLookup } from "../reports/levelOneMetrics/useFilterOptionsLookup";
 import type { ReviewEventsByDateRange } from "../reports/reviewEventsByDate/query";
 import type { ReviewPromptId } from "../reports/reviewPrompts/reviewPromptDefinitions";
 import { ReviewPromptDetailsHeader, ReviewPromptDetailsPage } from "../reports/reviewPrompts/ReviewPromptDetailsPage";
@@ -72,6 +78,11 @@ export type AnalyticsRangeLookup =
   | Readonly<{ status: "ready"; availableRange: ReviewEventsByDateRange }>;
 
 const noOptions: ReadonlyArray<never> = [];
+
+/** The app version options of a bar that does not offer the field, so it queries nothing. */
+async function loadNoAppVersionOptions(): Promise<ReadonlyArray<string>> {
+  return noOptions;
+}
 
 type AnalyticsReportSectionsProps = Readonly<{
   activeArea: AnalyticsArea;
@@ -153,6 +164,20 @@ function AnalyticsReportSections(props: AnalyticsReportSectionsProps): JSX.Eleme
   const isReportLoading = props.activeArea === "general"
     ? reportState.status === "loading" || (reportState.status === "ready" && reportState.isReportLoading)
     : props.isSelectionSettling;
+  const fields = props.reviewPromptDetail === null
+    ? analyticsFilterFieldsByArea[props.activeArea]
+    : reviewPromptDetailsAnalyticsFilterFields;
+  const offersAppVersions = fields.includes("appVersions");
+  // Keyed on the days rather than the object, so another filter's apply does not reload the versions.
+  const { from, to } = props.filters.dateRange;
+  const appVersionOptionsDateRange = useMemo(() => ({ from, to }), [from, to]);
+  const appVersionOptions = useFilterOptionsLookup(
+    props.config,
+    appVersionOptionsDateRange,
+    offersAppVersions ? loadAppVersionFilterOptions : loadNoAppVersionOptions,
+    "Unexpected app version filter options error.",
+    props.onTerminalAdminError,
+  );
 
   // The user colour domain comes from the range-scoped options rather than from the reports on
   // screen, so a person keeps one colour wherever they appear. The options span every section's
@@ -167,9 +192,7 @@ function AnalyticsReportSections(props: AnalyticsReportSectionsProps): JSX.Eleme
     <>
       <AnalyticsFilterBar
         area={props.activeArea}
-        fields={props.reviewPromptDetail === null
-          ? analyticsFilterFieldsByArea[props.activeArea]
-          : reviewPromptDetailsAnalyticsFilterFields}
+        fields={fields}
         title="Filters"
         headingLevel={2}
         headingId="analytics-filters-title"
@@ -180,14 +203,14 @@ function AnalyticsReportSections(props: AnalyticsReportSectionsProps): JSX.Eleme
         userOptions={userOptions}
         connectionCountryOptions={filterOptions?.connectionCountries ?? noOptions}
         appUiLanguageOptions={filterOptions?.appUiLanguages ?? noOptions}
-        appVersionOptions={noOptions}
+        appVersionOptions={appVersionOptions.status === "ready" ? appVersionOptions.options : noOptions}
         catalogDeckOptions={filterOptions?.catalogDecks ?? noOptions}
         catalogPlacementOptions={filterOptions?.catalogPlacements ?? noOptions}
         catalogSourceOptions={filterOptions?.catalogSources ?? noOptions}
         catalogDeviceCategoryOptions={filterOptions?.catalogDeviceCategories ?? noOptions}
         catalogClickBrowserLanguageOptions={filterOptions?.catalogClickBrowserLanguages ?? noOptions}
         siteVisitorOptions={noSiteVisitorFilterOptions}
-        areOptionListsLoading={filterOptions === null}
+        areOptionListsLoading={filterOptions === null || (offersAppVersions && appVersionOptions.status !== "ready")}
         isReportLoading={isReportLoading}
         dateRangeError={props.dateRangeError}
         userColorScale={userColorScale}
@@ -206,6 +229,8 @@ function AnalyticsReportSections(props: AnalyticsReportSectionsProps): JSX.Eleme
           >Retry</button>
         </div>
       ) : null}
+
+      <FilterOptionsError lookup={appVersionOptions} />
 
       {/* Every other area renders without the General batch, which only fills the option lists there. */}
       {reportState.status === "error" ? (

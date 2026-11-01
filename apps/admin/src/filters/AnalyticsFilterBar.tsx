@@ -125,7 +125,7 @@ type AnalyticsFilterBarProps = Readonly<{
   connectionCountryOptions: ReadonlyArray<string>;
   /** Every app UI locale tag the range can offer, from that same query. */
   appUiLanguageOptions: ReadonlyArray<string>;
-  /** Every app version the range's app opens recorded, newest first; only Level 1 offers the field. */
+  /** Every app version the range's app opens recorded, newest first; only bars that offer `appVersions` fill it. */
   appVersionOptions: ReadonlyArray<string>;
   /**
    * What the five catalog fields can offer. Unlike every list above, these are not scoped to the
