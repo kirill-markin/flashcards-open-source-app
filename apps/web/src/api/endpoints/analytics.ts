@@ -51,12 +51,17 @@ function readRejectedCount(value: unknown): number {
  *
  * `X-Client-Platform` and `X-Client-Version` are the only source of the append-only `platform` and
  * `app_version` columns, and this repository sets them per endpoint rather than globally.
+ *
+ * A `keepalive` caller keeps the body at or under ~48 KB: the browser allows 64 KB of keepalive
+ * bodies in flight per page, shared with every other keepalive request on it.
  */
 export async function sendAnalyticsEventsBatch(
   batch: AnalyticsWireBatch,
+  keepalive: boolean,
 ): Promise<AnalyticsIngestResult> {
   const requestInit: RequestInit = {
     method: "POST",
+    keepalive,
     headers: {
       "X-Client-Platform": "web",
       "X-Client-Version": webAppVersion,
