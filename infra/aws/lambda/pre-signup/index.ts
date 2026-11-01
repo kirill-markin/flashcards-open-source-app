@@ -15,28 +15,14 @@ type PreSignUpEvent = {
 type SentryInitOptions = NonNullable<Parameters<typeof Sentry.init>[0]>;
 type SentryEvent = Parameters<NonNullable<SentryInitOptions["beforeSend"]>>[0];
 
-const emailPattern = /\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/gi;
-
 function isAwsLambdaRuntime(): boolean {
   return (process.env.AWS_EXECUTION_ENV ?? "").startsWith("AWS_Lambda_")
     || (process.env.AWS_LAMBDA_FUNCTION_NAME ?? "") !== "";
 }
 
-function maskEmails(value: string): string {
-  return value.replace(emailPattern, "<masked-email>");
-}
-
 function beforeSend(event: SentryEvent): SentryEvent | null {
   if (event.request !== undefined) {
     delete event.request.data;
-  }
-  if (event.message !== undefined) {
-    event.message = maskEmails(event.message);
-  }
-  for (const exceptionValue of event.exception?.values ?? []) {
-    if (exceptionValue.value !== undefined) {
-      exceptionValue.value = maskEmails(exceptionValue.value);
-    }
   }
   return event;
 }

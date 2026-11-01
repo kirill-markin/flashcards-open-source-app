@@ -56,7 +56,6 @@ type HandlerDependencies = Readonly<{
 
 const { decrypt } = buildClient(CommitmentPolicy.REQUIRE_ENCRYPT_ALLOW_DECRYPT);
 
-const EMAIL_PATTERN = /\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/gi;
 const SENSITIVE_KEY_PATTERN = /code|otp|token|secret/i;
 
 type SentryInitFunction = typeof Sentry.init;
@@ -67,10 +66,6 @@ type SentryErrorEvent = Parameters<SentryBeforeSend>[0];
 function isAwsLambdaRuntime(env: NodeJS.ProcessEnv): boolean {
   return (env.AWS_EXECUTION_ENV ?? "").startsWith("AWS_Lambda_")
     || (env.AWS_LAMBDA_FUNCTION_NAME ?? "") !== "";
-}
-
-function maskSensitiveText(value: string): string {
-  return value.replace(EMAIL_PATTERN, "<masked-email>");
 }
 
 function redactSensitiveKeys(value: unknown): unknown {
@@ -88,29 +83,12 @@ function redactSensitiveKeys(value: unknown): unknown {
     return result;
   }
 
-  if (typeof value === "string") {
-    return maskSensitiveText(value);
-  }
-
   return value;
 }
 
 function scrubCustomEmailSenderEvent(event: SentryErrorEvent): SentryErrorEvent {
   if (event.request !== undefined) {
     delete event.request.data;
-  }
-
-  if (event.message !== undefined) {
-    event.message = maskSensitiveText(event.message);
-  }
-
-  const exceptionValues = event.exception?.values;
-  if (exceptionValues !== undefined) {
-    for (const exceptionValue of exceptionValues) {
-      if (exceptionValue.value !== undefined) {
-        exceptionValue.value = maskSensitiveText(exceptionValue.value);
-      }
-    }
   }
 
   if (event.extra !== undefined) {
@@ -186,19 +164,6 @@ function getEnvironment(): CustomEmailSenderEnvironment {
     resendFromEmail: getRequiredEnvironmentValue("RESEND_FROM_EMAIL"),
     resendFromName: getRequiredEnvironmentValue("RESEND_FROM_NAME"),
   };
-}
-
-function maskEmail(email: string): string {
-  const [localPart, domainPart] = email.split("@");
-  if (localPart === undefined || domainPart === undefined) {
-    return "***";
-  }
-
-  if (localPart.length <= 2) {
-    return `${localPart[0] ?? "*"}*@${domainPart}`;
-  }
-
-  return `${localPart[0]}***${localPart[localPart.length - 1]}@${domainPart}`;
 }
 
 function escapeHtml(value: string): string {
@@ -372,11 +337,9 @@ function reportPermanentRecipientRejection(
 ): void {
   Sentry.withScope((scope) => {
     scope.setTag("action", "custom_email_sender_permanent_recipient_rejection");
-    // Keys and values are chosen to survive `scrubCustomEmailSenderEvent`: a `statusCode` key
-    // matches SENSITIVE_KEY_PATTERN, and even a masked address still matches EMAIL_PATTERN, so both
-    // would arrive redacted. The bare domain names the refused recipient without exposing anyone.
+    // `resendStatus`, not `statusCode`: a key matching SENSITIVE_KEY_PATTERN arrives redacted.
     scope.setContext("custom_email_sender", {
-      recipientDomain: payload.toEmail.slice(payload.toEmail.lastIndexOf("@") + 1),
+      email: payload.toEmail,
       resendErrorBody: responseText,
       resendStatus: statusCode,
       subject: payload.subject,
@@ -408,7 +371,7 @@ export async function sendResendEmail(
     console.log(JSON.stringify({
       domain: "auth",
       action: "custom_email_sender_send",
-      maskedEmail: maskEmail(payload.toEmail),
+      email: payload.toEmail,
       resendEmailId: responseBody.id ?? null,
       statusCode: response.status,
       subject: payload.subject,
@@ -420,7 +383,7 @@ export async function sendResendEmail(
   console.error(JSON.stringify({
     domain: "auth",
     action: "custom_email_sender_send_error",
-    maskedEmail: maskEmail(payload.toEmail),
+    email: payload.toEmail,
     resendErrorBody: responseText,
     statusCode: response.status,
     subject: payload.subject,
