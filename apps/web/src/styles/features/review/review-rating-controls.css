@@ -12,11 +12,17 @@
   z-index: 1;
   margin-top: auto;
   padding-top: 8px;
+  padding-bottom: var(--review-pane-padding);
   border: none;
   border-radius: 0;
-  background: var(--bg);
+  /* Card text stays visible around the buttons; only the strip below them fades into the page. */
+  background: linear-gradient(transparent, var(--bg)) bottom / 100% calc(var(--review-pane-padding) + 16px) no-repeat;
   backdrop-filter: none;
-  box-shadow: 0 var(--review-pane-padding) 0 var(--bg);
+}
+
+/* The translucent banner would let scrolled card text show through. */
+.review-actions-dock > .error-banner {
+  background: linear-gradient(rgba(112, 20, 28, 0.38), rgba(112, 20, 28, 0.38)), var(--bg);
 }
 
 .review-reveal-btn {
