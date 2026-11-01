@@ -738,6 +738,10 @@ const frCatalog: TranslationCatalog = {
       description: "Prévisualisez l'invitation à installer l'application iOS et Android.",
       value: "Aperçu",
     },
+    reviewPrompts: {
+      title: "Invites après la révision",
+      resetAll: "Réinitialiser l'état de toutes les invites",
+    },
   },
   settingsWorkspace: {
     decks: {

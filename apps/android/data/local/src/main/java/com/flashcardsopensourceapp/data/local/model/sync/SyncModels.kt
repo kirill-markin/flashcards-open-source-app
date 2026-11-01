@@ -5,6 +5,7 @@ import com.flashcardsopensourceapp.data.local.model.cards.CardMetadata
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudAccountState
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudSettings
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspaceSummary
+import com.flashcardsopensourceapp.data.local.review.prompts.RemoteReviewPromptConfig
 
 enum class SyncEntityType {
     CARD,
@@ -130,14 +131,16 @@ data class CloudAccountSnapshot(
     val email: String?,
     val preferences: AccountPreferences,
     val workspaces: List<CloudWorkspaceSummary>,
-    val authenticatedIdentity: CloudAuthenticatedAccountIdentity?
+    val authenticatedIdentity: CloudAuthenticatedAccountIdentity?,
+    /** Null when GET /me has no `reviewPrompts`, which keeps the current config. */
+    val reviewPromptConfig: RemoteReviewPromptConfig?
 ) {
     constructor(
         userId: String,
         email: String?,
         preferences: AccountPreferences,
         workspaces: List<CloudWorkspaceSummary>
-    ) : this(userId, email, preferences, workspaces, null)
+    ) : this(userId, email, preferences, workspaces, null, null)
 }
 
 data class CloudAuthenticatedAccountIdentity(

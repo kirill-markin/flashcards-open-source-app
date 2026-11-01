@@ -4,24 +4,30 @@ import {
   type ReviewEventCohort,
   type ReviewEventPlatform,
 } from "../adminApi";
+import { catalogInstallPlacements, type CatalogInstallPlacement } from "../reports/catalogInstallFunnel/query";
 import {
-  catalogInstallDeviceCategories,
-  catalogInstallPlacements,
-  catalogInstallSources,
-  type CatalogInstallDeviceCategory,
-  type CatalogInstallPlacement,
-  type CatalogInstallSource,
-} from "../reports/catalogInstallFunnel/query";
-import { buildDefaultReportRange } from "../reports/reportValues";
+  allTimeReportRangePreset,
+  buildLookbackReportRange,
+  buildPresetReportRange,
+  defaultReportRangeLookbackDays,
+  lastNinetyDaysReportRangePreset,
+} from "../reports/reportValues";
+import type { AnalyticsArea } from "../routing";
 import {
   analyticsThresholdEventTypes,
   buildDefaultAnalyticsFilterState,
+  defaultSiteVisitorFilterState,
   isAcceptedMinimumCount,
   parseAcceptedMinimumCount,
+  siteDeviceCategories,
+  siteSources,
   type AnalyticsDateRange,
   type AnalyticsFilterState,
   type AnalyticsMinimumEventCount,
   type AnalyticsThresholdEventType,
+  type SiteDeviceCategory,
+  type SiteSource,
+  type SiteVisitorFilterState,
 } from "./analyticsFilters";
 
 // The URL codec for `AnalyticsFilterState`. The selection lives in the query string, so a reload or a
@@ -51,6 +57,7 @@ const comparisonDateRangeToParamName = "compare-to";
 const usersParamName = "users";
 const userCohortsParamName = "cohorts";
 const eventPlatformsParamName = "platforms";
+const appVersionsParamName = "app-versions";
 const minimumEventCountsParamName = "min-events";
 const connectionCountriesParamName = "countries";
 const appUiLanguagesParamName = "languages";
@@ -59,6 +66,11 @@ const catalogPlacementsParamName = "placements";
 const catalogSourcesParamName = "sources";
 const catalogDeviceCategoriesParamName = "device-categories";
 const catalogClickBrowserLanguagesParamName = "click-languages";
+const siteDeviceCategoriesParamName = "site-devices";
+const siteSourcesParamName = "site-sources";
+const siteCountriesParamName = "site-countries";
+const siteBrowserLanguagesParamName = "site-languages";
+const sitePageKindsParamName = "site-page-types";
 
 const listSeparator = ",";
 const minimumEventCountSeparator = ":";
@@ -80,7 +92,7 @@ function isCalendarDate(value: string): boolean {
     && parsedDate.getUTCDate() === day;
 }
 
-function areStringListsEqual(
+export function areStringListsEqual(
   left: ReadonlyArray<string>,
   right: ReadonlyArray<string>,
 ): boolean {
@@ -199,13 +211,34 @@ function formatMinimumEventCount(entry: AnalyticsMinimumEventCount): string {
   return `${entry.eventType}${minimumEventCountSeparator}${entry.minimumCount}`;
 }
 
-/** Every filter cleared, on the default window of the range the data actually covers. */
+/**
+ * The lookback an area opens on. Journeys opens on 90 days, because Retention needs about 65 for W4
+ * and D30 to have matured cohorts. Study depth opens on all time, which only the available range can
+ * place, so this is its window until that range is known.
+ */
+export function getAnalyticsAreaDefaultLookbackDays(area: AnalyticsArea): number {
+  return area === "journeys" ? lastNinetyDaysReportRangePreset.lookbackDays : defaultReportRangeLookbackDays;
+}
+
+/**
+ * The window an area opens on. Study depth opens on all time, because its cohort is people by their
+ * first review and a recent window would hold only people who started too late to come back.
+ */
+export function buildAnalyticsAreaDefaultDateRange(
+  area: AnalyticsArea,
+  availableRange: AnalyticsDateRange,
+): AnalyticsDateRange {
+  return area === "study-depth"
+    ? buildPresetReportRange(allTimeReportRangePreset, availableRange, analyticsFilterReportLabel)
+    : buildLookbackReportRange(availableRange, getAnalyticsAreaDefaultLookbackDays(area), analyticsFilterReportLabel);
+}
+
+/** Every filter cleared, on the area's default window of the range the data actually covers. */
 export function buildDefaultAnalyticsFilterStateForAvailableRange(
+  area: AnalyticsArea,
   availableRange: AnalyticsDateRange,
 ): AnalyticsFilterState {
-  return buildDefaultAnalyticsFilterState(
-    buildDefaultReportRange(availableRange, analyticsFilterReportLabel),
-  );
+  return buildDefaultAnalyticsFilterState(buildAnalyticsAreaDefaultDateRange(area, availableRange));
 }
 
 /**
@@ -224,19 +257,102 @@ export function normalizeAnalyticsFilterState(state: AnalyticsFilterState): Anal
     comparisonDateRange: state.comparisonDateRange,
     users: normalizeOpaqueList(state.users),
     userCohorts: normalizeEnumList(state.userCohorts, reviewEventCohorts),
-    eventPlatforms: normalizeEnumList(state.eventPlatforms, reviewEventPlatforms),
+    eventPlatforms: normalizeEventPlatforms(state.eventPlatforms),
+    appVersions: normalizeAppVersions(state.appVersions),
     minimumEventCounts: normalizeMinimumEventCounts(state.minimumEventCounts),
     connectionCountries: normalizeOpaqueList(state.connectionCountries),
     appUiLanguages: normalizeOpaqueList(state.appUiLanguages),
     installedDecks: normalizeOpaqueList(state.installedDecks),
     catalogPlacements: normalizeEnumList(state.catalogPlacements, catalogInstallPlacements),
-    catalogSources: normalizeEnumList(state.catalogSources, catalogInstallSources),
-    catalogDeviceCategories: normalizeEnumList(
-      state.catalogDeviceCategories,
-      catalogInstallDeviceCategories,
-    ),
+    catalogSources: normalizeEnumList(state.catalogSources, siteSources),
+    catalogDeviceCategories: normalizeEnumList(state.catalogDeviceCategories, siteDeviceCategories),
     catalogClickBrowserLanguages: normalizeOpaqueList(state.catalogClickBrowserLanguages),
+    ...normalizeSiteVisitorFilterState(state),
   };
+}
+
+/** The platform field of `normalizeAnalyticsFilterState`, for a selection that holds it outside that state. */
+export function normalizeEventPlatforms(
+  eventPlatforms: ReadonlyArray<ReviewEventPlatform>,
+): ReadonlyArray<ReviewEventPlatform> {
+  return normalizeEnumList(eventPlatforms, reviewEventPlatforms);
+}
+
+/** Writes the platform field unless every platform is selected; `parseEventPlatforms` reads it back. */
+export function setEventPlatformsParam(
+  searchParams: URLSearchParams,
+  eventPlatforms: ReadonlyArray<ReviewEventPlatform>,
+): void {
+  setEnumListParam(
+    searchParams,
+    eventPlatformsParamName,
+    eventPlatforms,
+    reviewEventPlatforms,
+    reviewEventPlatforms,
+  );
+}
+
+/** The app version field of `normalizeAnalyticsFilterState`, for a selection that holds it outside that state. */
+export function normalizeAppVersions(appVersions: ReadonlyArray<string>): ReadonlyArray<string> {
+  return normalizeOpaqueList(appVersions);
+}
+
+/** Writes the app version field unless no version is picked; `parseAppVersions` reads it back. */
+export function setAppVersionsParam(
+  searchParams: URLSearchParams,
+  appVersions: ReadonlyArray<string>,
+): void {
+  setOpaqueListParam(searchParams, appVersionsParamName, appVersions, []);
+}
+
+/** The site visitor fields of `normalizeAnalyticsFilterState`, for a selection that holds only those. */
+export function normalizeSiteVisitorFilterState(state: SiteVisitorFilterState): SiteVisitorFilterState {
+  return {
+    siteDeviceCategories: normalizeEnumList(state.siteDeviceCategories, siteDeviceCategories),
+    siteSources: normalizeEnumList(state.siteSources, siteSources),
+    siteCountries: normalizeOpaqueList(state.siteCountries),
+    siteBrowserLanguages: normalizeOpaqueList(state.siteBrowserLanguages),
+    sitePageKinds: normalizeOpaqueList(state.sitePageKinds),
+  };
+}
+
+/** Writes the site visitor fields that differ from their default; `parseSiteVisitorFilterState` reads them back. */
+export function setSiteVisitorFilterParams(
+  searchParams: URLSearchParams,
+  state: SiteVisitorFilterState,
+): void {
+  setEnumListParam(
+    searchParams,
+    siteDeviceCategoriesParamName,
+    state.siteDeviceCategories,
+    defaultSiteVisitorFilterState.siteDeviceCategories,
+    siteDeviceCategories,
+  );
+  setEnumListParam(
+    searchParams,
+    siteSourcesParamName,
+    state.siteSources,
+    defaultSiteVisitorFilterState.siteSources,
+    siteSources,
+  );
+  setOpaqueListParam(
+    searchParams,
+    siteCountriesParamName,
+    state.siteCountries,
+    defaultSiteVisitorFilterState.siteCountries,
+  );
+  setOpaqueListParam(
+    searchParams,
+    siteBrowserLanguagesParamName,
+    state.siteBrowserLanguages,
+    defaultSiteVisitorFilterState.siteBrowserLanguages,
+  );
+  setOpaqueListParam(
+    searchParams,
+    sitePageKindsParamName,
+    state.sitePageKinds,
+    defaultSiteVisitorFilterState.sitePageKinds,
+  );
 }
 
 /** Writes both ends only when the range differs from `defaultDateRange`; `parseDateRange` reads them back. */
@@ -254,8 +370,9 @@ export function setDateRangeParams(
 export function toAnalyticsFilterSearchParams(
   state: AnalyticsFilterState,
   availableRange: AnalyticsDateRange,
+  area: AnalyticsArea,
 ): URLSearchParams {
-  const defaults = buildDefaultAnalyticsFilterStateForAvailableRange(availableRange);
+  const defaults = buildDefaultAnalyticsFilterStateForAvailableRange(area, availableRange);
   const searchParams = new URLSearchParams();
 
   setDateRangeParams(searchParams, state.dateRange, defaults.dateRange);
@@ -272,13 +389,8 @@ export function toAnalyticsFilterSearchParams(
     defaults.userCohorts,
     reviewEventCohorts,
   );
-  setEnumListParam(
-    searchParams,
-    eventPlatformsParamName,
-    state.eventPlatforms,
-    defaults.eventPlatforms,
-    reviewEventPlatforms,
-  );
+  setEventPlatformsParam(searchParams, state.eventPlatforms);
+  setAppVersionsParam(searchParams, state.appVersions);
 
   const minimumEventCounts = normalizeMinimumEventCounts(state.minimumEventCounts);
   if (
@@ -323,14 +435,14 @@ export function toAnalyticsFilterSearchParams(
     catalogSourcesParamName,
     state.catalogSources,
     defaults.catalogSources,
-    catalogInstallSources,
+    siteSources,
   );
   setEnumListParam(
     searchParams,
     catalogDeviceCategoriesParamName,
     state.catalogDeviceCategories,
     defaults.catalogDeviceCategories,
-    catalogInstallDeviceCategories,
+    siteDeviceCategories,
   );
   setOpaqueListParam(
     searchParams,
@@ -338,6 +450,7 @@ export function toAnalyticsFilterSearchParams(
     state.catalogClickBrowserLanguages,
     defaults.catalogClickBrowserLanguages,
   );
+  setSiteVisitorFilterParams(searchParams, state);
 
   return searchParams;
 }
@@ -543,15 +656,16 @@ function clampRequestedDateRangeToAvailableRange(
  * The selection a query string asks for, filled in from the defaults for every field it does not
  * carry. `availableRange` is the full range the data covers, and both directions turn it into
  * defaults through the same builder, so this is the exact inverse of `toAnalyticsFilterSearchParams`
- * called with the same `availableRange` - for every selection whose range lies inside that window,
- * which is every selection the app itself can hold, because a wider one is clamped here on the way
- * in and refused on the way to the reports.
+ * called with the same `availableRange` and `area` - for every selection whose range lies inside
+ * that window, which is every selection the app itself can hold, because a wider one is clamped here
+ * on the way in and refused on the way to the reports.
  */
 export function parseAnalyticsFilterState(
   searchParams: URLSearchParams,
   availableRange: AnalyticsDateRange,
+  area: AnalyticsArea,
 ): AnalyticsFilterState {
-  const defaults = buildDefaultAnalyticsFilterStateForAvailableRange(availableRange);
+  const defaults = buildDefaultAnalyticsFilterStateForAvailableRange(area, availableRange);
 
   return parseAnalyticsFilterStateOnDateRanges(
     searchParams,
@@ -579,6 +693,54 @@ export function parseProvisionalAnalyticsFilterState(
   );
 }
 
+/** The platform field a query string carries, every platform when absent or malformed. */
+export function parseEventPlatforms(searchParams: URLSearchParams): ReadonlyArray<ReviewEventPlatform> {
+  return parseEnumList<ReviewEventPlatform>(
+    searchParams,
+    eventPlatformsParamName,
+    reviewEventPlatforms,
+    reviewEventPlatforms,
+  );
+}
+
+/** The app version field a query string carries, every version when absent or malformed. */
+export function parseAppVersions(searchParams: URLSearchParams): ReadonlyArray<string> {
+  return parseOpaqueList(searchParams, appVersionsParamName, []);
+}
+
+/** The site visitor fields a query string carries, each at its default when absent or malformed. */
+export function parseSiteVisitorFilterState(searchParams: URLSearchParams): SiteVisitorFilterState {
+  return {
+    siteDeviceCategories: parseEnumList<SiteDeviceCategory>(
+      searchParams,
+      siteDeviceCategoriesParamName,
+      siteDeviceCategories,
+      defaultSiteVisitorFilterState.siteDeviceCategories,
+    ),
+    siteSources: parseEnumList<SiteSource>(
+      searchParams,
+      siteSourcesParamName,
+      siteSources,
+      defaultSiteVisitorFilterState.siteSources,
+    ),
+    siteCountries: parseOpaqueList(
+      searchParams,
+      siteCountriesParamName,
+      defaultSiteVisitorFilterState.siteCountries,
+    ),
+    siteBrowserLanguages: parseOpaqueList(
+      searchParams,
+      siteBrowserLanguagesParamName,
+      defaultSiteVisitorFilterState.siteBrowserLanguages,
+    ),
+    sitePageKinds: parseOpaqueList(
+      searchParams,
+      sitePageKindsParamName,
+      defaultSiteVisitorFilterState.sitePageKinds,
+    ),
+  };
+}
+
 // Every field but the two ranges reads the same whether or not the available range is known.
 function parseAnalyticsFilterStateOnDateRanges(
   searchParams: URLSearchParams,
@@ -597,12 +759,8 @@ function parseAnalyticsFilterStateOnDateRanges(
       reviewEventCohorts,
       defaults.userCohorts,
     ),
-    eventPlatforms: parseEnumList<ReviewEventPlatform>(
-      searchParams,
-      eventPlatformsParamName,
-      reviewEventPlatforms,
-      defaults.eventPlatforms,
-    ),
+    eventPlatforms: parseEventPlatforms(searchParams),
+    appVersions: parseAppVersions(searchParams),
     minimumEventCounts: parseMinimumEventCounts(searchParams, defaults.minimumEventCounts),
     connectionCountries: parseOpaqueList(
       searchParams,
@@ -617,16 +775,16 @@ function parseAnalyticsFilterStateOnDateRanges(
       catalogInstallPlacements,
       defaults.catalogPlacements,
     ),
-    catalogSources: parseEnumList<CatalogInstallSource>(
+    catalogSources: parseEnumList<SiteSource>(
       searchParams,
       catalogSourcesParamName,
-      catalogInstallSources,
+      siteSources,
       defaults.catalogSources,
     ),
-    catalogDeviceCategories: parseEnumList<CatalogInstallDeviceCategory>(
+    catalogDeviceCategories: parseEnumList<SiteDeviceCategory>(
       searchParams,
       catalogDeviceCategoriesParamName,
-      catalogInstallDeviceCategories,
+      siteDeviceCategories,
       defaults.catalogDeviceCategories,
     ),
     catalogClickBrowserLanguages: parseOpaqueList(
@@ -634,5 +792,6 @@ function parseAnalyticsFilterStateOnDateRanges(
       catalogClickBrowserLanguagesParamName,
       defaults.catalogClickBrowserLanguages,
     ),
+    ...parseSiteVisitorFilterState(searchParams),
   };
 }

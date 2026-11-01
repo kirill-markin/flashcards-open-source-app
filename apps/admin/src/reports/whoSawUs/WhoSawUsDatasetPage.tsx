@@ -1,16 +1,64 @@
 import type { JSX, ReactNode } from "react";
 import type { AdminAppConfig } from "../../config";
+import { defaultSiteVisitorFilterState, webEngagedAnalyticsFilterFields } from "../../filters/analyticsFilters";
+import { loadSiteVisitorFilterOptions } from "../../filters/optionsQuery";
 import { getLevelOneMetricDetailsPath, type WhoSawUsDataset } from "../../routing";
 import { LevelOneMetricDetailsHeader } from "../levelOneMetrics/LevelOneMetricDetailsHeader";
-import { LevelOneMetricsFrame } from "../levelOneMetrics/LevelOneMetricsFrame";
-import { useLevelOneMetricsSelection } from "../levelOneMetrics/useLevelOneMetricsSelection";
+import {
+  LevelOneMetricsFrame,
+  levelOneMetricsDateRangeFilterBar,
+  noAppVersionOptions,
+  type LevelOneMetricsFilterBar,
+} from "../levelOneMetrics/LevelOneMetricsFrame";
+import type { LevelOneMetricsSelection } from "../levelOneMetrics/levelOneMetricsUrl";
+import { useFilterOptionsLookup } from "../levelOneMetrics/useFilterOptionsLookup";
+import {
+  useLevelOneMetricsSelection,
+  type LevelOneMetricsSelectionState,
+} from "../levelOneMetrics/useLevelOneMetricsSelection";
 import { WebEngagedShareSection } from "./WebEngagedShareSection";
 import { WebLandingPagePathSections } from "./WebLandingPagePathSections";
 import { WebTrafficCategoriesSection } from "./WebTrafficCategoriesSection";
 import { WhoSawUsBreakdownSections } from "./WhoSawUsBreakdownSections";
 import { whoSawUsSeriesLabels, WhoSawUsSection } from "./WhoSawUsSection";
 
-/** One Who saw us series alone, on the Level 1 selection, followed by its own breakdowns. */
+const webEngagedFilterBar: Omit<LevelOneMetricsFilterBar, "siteOptions"> = {
+  fields: webEngagedAnalyticsFilterFields,
+  appVersionOptions: noAppVersionOptions,
+  title: "Filters",
+  resetAllLabel: "Reset the Web engaged filters",
+};
+
+function WebEngagedFrame(
+  props: Readonly<{
+    selectionState: LevelOneMetricsSelectionState;
+    config: AdminAppConfig;
+    onNavigate: (path: string) => void;
+    onTerminalAdminError: (error: unknown, config: AdminAppConfig) => boolean;
+    renderCharts: (selection: LevelOneMetricsSelection) => ReactNode;
+  }>,
+): JSX.Element {
+  const siteOptions = useFilterOptionsLookup(
+    props.config,
+    props.selectionState.selection.dateRange,
+    loadSiteVisitorFilterOptions,
+    "Unexpected Web engaged filter options error.",
+    props.onTerminalAdminError,
+  );
+  return (
+    <LevelOneMetricsFrame
+      selectionState={props.selectionState}
+      filterBar={{ ...webEngagedFilterBar, siteOptions }}
+      onNavigate={props.onNavigate}
+      renderCharts={props.renderCharts}
+    />
+  );
+}
+
+/**
+ * One Who saw us series alone, on the Level 1 selection, followed by its own breakdowns. Only the
+ * Web engaged page offers and applies the site filters, to every chart and table on it.
+ */
 export function WhoSawUsDatasetPage(
   props: Readonly<{
     dataset: WhoSawUsDataset;
@@ -22,6 +70,64 @@ export function WhoSawUsDatasetPage(
   }>,
 ): JSX.Element {
   const selectionState = useLevelOneMetricsSelection(props.config, props.onTerminalAdminError);
+  const renderCharts = (selection: LevelOneMetricsSelection): ReactNode => {
+    const siteFilters = props.dataset === "web" ? selection.siteFilters : defaultSiteVisitorFilterState;
+    return (
+      <div className="level-1-metrics-grid" data-testid={`who-saw-us-dataset-${props.dataset}-page`}>
+        <WhoSawUsSection
+          config={props.config}
+          dateRange={selection.dateRange}
+          period={selection.period}
+          series={props.dataset}
+          appVersions={selection.appVersions}
+          siteFilters={siteFilters}
+          detailsLink={null}
+          onTerminalAdminError={props.onTerminalAdminError}
+        />
+        <WhoSawUsBreakdownSections
+          group={props.dataset}
+          config={props.config}
+          dateRange={selection.dateRange}
+          period={selection.period}
+          siteFilters={siteFilters}
+          onTerminalAdminError={props.onTerminalAdminError}
+        />
+        {props.dataset === "google-play" ? (
+          <p className="report-state" data-testid="who-saw-us-google-play-no-breakdowns-note">
+            No breakdowns: at our volume Google Play reports every country, traffic source and search term as Other, so a split would show one Other bar. Verified 2026-10-19 over all imported days.
+          </p>
+        ) : null}
+        {props.dataset === "web" ? (
+          <>
+            <WebLandingPagePathSections
+              config={props.config}
+              dateRange={selection.dateRange}
+              period={selection.period}
+              siteFilters={siteFilters}
+              onTerminalAdminError={props.onTerminalAdminError}
+            />
+            <header className="level-1-metrics-group-heading" data-testid="who-saw-us-web-traffic-categories-heading">
+              <h2>Engaged vs all web traffic</h2>
+            </header>
+            <WebTrafficCategoriesSection
+              config={props.config}
+              dateRange={selection.dateRange}
+              period={selection.period}
+              siteFilters={siteFilters}
+              onTerminalAdminError={props.onTerminalAdminError}
+            />
+            <WebEngagedShareSection
+              config={props.config}
+              dateRange={selection.dateRange}
+              period={selection.period}
+              siteFilters={siteFilters}
+              onTerminalAdminError={props.onTerminalAdminError}
+            />
+          </>
+        ) : null}
+      </div>
+    );
+  };
 
   return (
     <>
@@ -34,59 +140,22 @@ export function WhoSawUsDatasetPage(
         onNavigate={props.onNavigate}
       />
 
-      <LevelOneMetricsFrame
-        selectionState={selectionState}
-        onNavigate={props.onNavigate}
-        renderCharts={(selection) => (
-          <div className="level-1-metrics-grid" data-testid={`who-saw-us-dataset-${props.dataset}-page`}>
-            <WhoSawUsSection
-              config={props.config}
-              dateRange={selection.dateRange}
-              period={selection.period}
-              series={props.dataset}
-              detailsLink={null}
-              onTerminalAdminError={props.onTerminalAdminError}
-            />
-            <WhoSawUsBreakdownSections
-              group={props.dataset}
-              config={props.config}
-              dateRange={selection.dateRange}
-              period={selection.period}
-              onTerminalAdminError={props.onTerminalAdminError}
-            />
-            {props.dataset === "google-play" ? (
-              <p className="report-state" data-testid="who-saw-us-google-play-no-breakdowns-note">
-                No breakdowns: at our volume Google Play reports every country, traffic source and search term as Other, so a split would show one Other bar. Verified 2026-10-19 over all imported days.
-              </p>
-            ) : null}
-            {props.dataset === "web" ? (
-              <>
-                <WebLandingPagePathSections
-                  config={props.config}
-                  dateRange={selection.dateRange}
-                  period={selection.period}
-                  onTerminalAdminError={props.onTerminalAdminError}
-                />
-                <header className="level-1-metrics-group-heading" data-testid="who-saw-us-web-traffic-categories-heading">
-                  <h2>Engaged vs all web traffic</h2>
-                </header>
-                <WebTrafficCategoriesSection
-                  config={props.config}
-                  dateRange={selection.dateRange}
-                  period={selection.period}
-                  onTerminalAdminError={props.onTerminalAdminError}
-                />
-                <WebEngagedShareSection
-                  config={props.config}
-                  dateRange={selection.dateRange}
-                  period={selection.period}
-                  onTerminalAdminError={props.onTerminalAdminError}
-                />
-              </>
-            ) : null}
-          </div>
-        )}
-      />
+      {props.dataset === "web" ? (
+        <WebEngagedFrame
+          selectionState={selectionState}
+          config={props.config}
+          onNavigate={props.onNavigate}
+          onTerminalAdminError={props.onTerminalAdminError}
+          renderCharts={renderCharts}
+        />
+      ) : (
+        <LevelOneMetricsFrame
+          selectionState={selectionState}
+          filterBar={levelOneMetricsDateRangeFilterBar}
+          onNavigate={props.onNavigate}
+          renderCharts={renderCharts}
+        />
+      )}
     </>
   );
 }

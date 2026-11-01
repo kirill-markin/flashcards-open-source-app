@@ -9,11 +9,13 @@ export {
   registerAnalyticsSessionOwnerPublisher,
   reportIdentityFreeAnalyticsEvent,
   reset,
+  restoreCurrentAnalyticsSurface,
   setAnalyticsConfirmedOwner,
   setEnabled,
   setProductAnalyticsCollection,
   track,
   trackCatalogDeckInstallStarted,
+  trackReviewPromptScreenViewed,
   trackScreenViewed,
   trackScreenViewedOnDismiss,
 } from "./client";
@@ -28,6 +30,7 @@ export type {
   AnalyticsSyncFailureReason,
 } from "./events";
 export {
+  toAnalyticsAuthGuestUpgradeFailureOutcome,
   toAnalyticsMediaUploadFailureReason,
   toAnalyticsReviewAnswerFailureReason,
   toAnalyticsSyncFailureReason,

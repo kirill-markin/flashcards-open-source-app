@@ -746,6 +746,10 @@ const ltCatalog: TranslationCatalog = {
       description: "Peržiūrėkite iOS ir Android diegimo raginimą.",
       value: "Peržiūra",
     },
+    reviewPrompts: {
+      title: "Raginimai po kartojimo",
+      resetAll: "Atkurti visų raginimų būseną",
+    },
   },
   settingsWorkspace: {
     decks: {

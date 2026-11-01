@@ -738,6 +738,10 @@ const heCatalog: TranslationCatalog = {
       description: "צפה בהצעת ההתקנה ל-iOS ול-Android.",
       value: "תצוגה מקדימה",
     },
+    reviewPrompts: {
+      title: "הנחיות אחרי חזרה",
+      resetAll: "איפוס המצב של כל ההנחיות",
+    },
   },
   settingsWorkspace: {
     decks: {
@@ -1072,7 +1076,7 @@ const heCatalog: TranslationCatalog = {
       createWithAi: "יצירה עם AI",
       edit: "עריכה",
       retry: "נסה שוב",
-      revealAnswer: "הצג תשובה",
+      revealAnswer: "הצגת התשובה",
       switchToAllCards: "עבור לחפיסת כל הכרטיסים",
     },
     aiOpenAriaLabel: "פתח את {{side}} של הכרטיס בצ'אט AI",

@@ -74,6 +74,7 @@ export function createUserSettingsState(userId: string, workspaceId: string | nu
     paywall_intro_time_zone: null,
     paywall_follow_up_shown_at: null,
     paywall_last_shown_at: null,
+    paywall_periodic_shown_at: null,
   };
 }
 

@@ -59,8 +59,7 @@ struct CloudSignInSheet: View {
                 CloudWorkspaceSelectionSheet(
                     linkContext: linkContext,
                     isSelectionDisabled: self.store.cloudSignInAttempt.isPostAuthActionInFlight,
-                    onSelection: { self.completeLink(linkContext: linkContext, selection: $0) },
-                    onCancelled: { self.store.cloudSignInAttempt.workspaceLinkContext = nil }
+                    onSelection: { self.completeLink(linkContext: linkContext, selection: $0) }
                 )
                 .environment(self.store)
             } else if self.store.cloudSignInAttempt.isMailboxPresented {
@@ -80,6 +79,7 @@ struct CloudSignInSheet: View {
             self.store.cloudSignInAttempt.isPostAuthActionInFlight || self.isLoggingOut
                 || (self.store.cloudSignInAttempt.isMailboxPresented && self.store.cloudSignInAttempt.isNativeRequestInFlight)
                 || self.store.cloudSignInAttempt.postAuthFailureState?.kind == .guestLocalRecovery
+                || self.store.cloudSignInAttempt.workspaceLinkContext != nil
         )
         .onChange(of: self.store.cloudSignInAttempt.isMailboxPresented) { _, isPresented in
             if !isPresented && !self.store.cloudSignInAttempt.usesNativeSession {
@@ -628,6 +628,8 @@ struct CloudSignInSheet: View {
             self.completeLink(linkContext: linkContext, selection: selection)
         case .completeGuestLink(let linkContext, let selection):
             self.presentPostAuthSync(operation: .completeGuestLink(linkContext: linkContext, selection: selection))
+        case .chooseWorkspace(let linkContext):
+            self.store.cloudSignInAttempt.workspaceLinkContext = linkContext
         case .syncOnly:
             self.presentPostAuthSync(operation: .syncOnly)
         }
@@ -738,7 +740,11 @@ struct CloudSignInSheet: View {
                 cloudState: self.store.cloudSettings?.cloudState
             )
             let retryAction: CloudPostAuthRetryAction
-            if self.store.cloudSignInAttempt.usesNativeSession {
+            // The server refuses the same non-empty workspace on every retry, so retry means picking another.
+            if case .remoteWorkspaceIsNotEmpty? = error as? CloudBootstrapEligibilityError,
+               let linkContext = syncState.operation.linkContext {
+                retryAction = .chooseWorkspace(linkContext: linkContext)
+            } else if self.store.cloudSignInAttempt.usesNativeSession {
                 switch syncState.operation {
                 case .completeLink(let context, let selection): retryAction = .completeLink(linkContext: context, selection: selection)
                 case .completeGuestLink: retryAction = failurePresentation.retryAction

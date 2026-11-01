@@ -34,6 +34,23 @@ private func nextProgressContextRolloverDate(now: Date) -> Date {
     return nextDay
 }
 
+#if targetEnvironment(macCatalyst)
+private struct AICompanionMenuCommand: View {
+    let navigation: AppNavigationModel
+
+    var body: some View {
+        Button(String(localized: self.navigation.isAICompanionVisible
+                      ? "ai_companion.hide" : "ai_companion.show", table: "Foundation")) {
+            withAnimation(UIAccessibility.isReduceMotionEnabled ? nil : .smooth(duration: 0.35)) {
+                self.navigation.toggleAICompanion()
+            }
+        }
+        .keyboardShortcut("a", modifiers: [.command, .option])
+        .disabled(self.navigation.selectedTab == .ai || self.navigation.selectedTab == .settings)
+    }
+}
+#endif
+
 @main
 struct FlashcardsApp: App {
     @Environment(\.scenePhase) private var scenePhase
@@ -203,7 +220,7 @@ struct FlashcardsApp: App {
 
     var body: some Scene {
         WindowGroup {
-            RootTabView()
+            ReviewKeyCommandOwner { RootTabView() }
                 .tint(store.effectiveAccountAccentColor.color)
                 .accentColor(store.effectiveAccountAccentColor.color)
                 .onOpenURL { url in
@@ -315,6 +332,14 @@ struct FlashcardsApp: App {
                     await self.runCloudSyncPollingLoop()
                 }
                 .technicalErrorSheet(store: self.store)
+        }
+        .commands {
+            #if targetEnvironment(macCatalyst)
+            CommandGroup(after: .sidebar) {
+                AICompanionMenuCommand(navigation: self.navigation)
+            }
+            #endif
+            ReviewCommands()
         }
         .onChange(of: self.appleSubscriptionRuntimeState, initial: true) { _, state in
             self.appleSubscriptions.updateRuntime(identity: state.identity, isActive: state.isActive)

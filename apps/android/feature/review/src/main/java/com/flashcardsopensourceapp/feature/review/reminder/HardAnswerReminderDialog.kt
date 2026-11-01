@@ -10,7 +10,7 @@ import androidx.compose.ui.res.stringResource
  * Native Material dialog that reminds the user which answer button to use.
  */
 @Composable
-internal fun HardAnswerReminderDialog(
+fun HardAnswerReminderDialog(
     onDismissRequest: () -> Unit
 ) {
     AlertDialog(

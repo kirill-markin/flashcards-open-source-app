@@ -217,7 +217,6 @@ interface CloudRemoteGateway {
         authorizationHeader: String,
         request: CloudFriendInvitationCreateRequest
     ): CloudFriendInvitationCreateResponse
-    suspend fun loadFeedbackState(apiBaseUrl: String, authorizationHeader: String): CloudFeedbackState
     suspend fun recordFeedbackPromptEvent(
         apiBaseUrl: String,
         authorizationHeader: String,

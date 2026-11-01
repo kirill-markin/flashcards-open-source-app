@@ -1,7 +1,7 @@
 /**
  * Token refresh endpoint for mobile clients.
- * Accepts a refresh token, calls Cognito REFRESH_TOKEN_AUTH,
- * and returns new id/access tokens.
+ * Accepts a refresh token, calls Cognito GetTokensFromRefreshToken,
+ * and returns a new id token plus a rotated refresh token when Cognito issued one.
  */
 import { Hono } from "hono";
 import { type AuthAppEnv, getRequestId, jsonAuthError } from "../../server/apiErrors.js";
@@ -36,6 +36,7 @@ export function createRefreshTokenApp(dependencies: RefreshTokenDependencies): H
         ok: true,
         idToken: tokens.idToken,
         expiresIn: tokens.expiresIn,
+        ...(tokens.refreshToken === null ? {} : { refreshToken: tokens.refreshToken }),
       });
     } catch (error) {
       if (isTerminalRefreshFailure(error)) {

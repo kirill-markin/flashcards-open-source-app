@@ -738,6 +738,10 @@ const trCatalog: TranslationCatalog = {
       description: "iOS ve Android yükleme istemini önizleyin.",
       value: "Önizleme",
     },
+    reviewPrompts: {
+      title: "Tekrar sonrası istemler",
+      resetAll: "Tüm istemlerin durumunu sıfırla",
+    },
   },
   settingsWorkspace: {
     decks: {
@@ -1072,7 +1076,7 @@ const trCatalog: TranslationCatalog = {
       createWithAi: "AI ile oluştur",
       edit: "Düzenle",
       retry: "Yeniden dene",
-      revealAnswer: "Cevabı göster",
+      revealAnswer: "Yanıtı göster",
       switchToAllCards: "tüm kartlar destesine geç",
     },
     aiOpenAriaLabel: "{{side}} kartını AI sohbetinde aç",

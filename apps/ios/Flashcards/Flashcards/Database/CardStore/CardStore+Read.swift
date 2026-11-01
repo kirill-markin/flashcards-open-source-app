@@ -306,6 +306,57 @@ extension CardStore {
         )
     }
 
+    /// A review's day is the local date of its wall-clock time minus `dayStartHour` hours. SQLite
+    /// shifts a timestamp only by a fixed offset, so the history is split wherever the zone's UTC
+    /// offset changes and each part is dated with its own offset.
+    func loadAppWideReviewDayCount(timeZone: TimeZone, dayStartHour: Int) throws -> Int {
+        let bounds = try self.core.query(
+            sql: "SELECT MIN(reviewed_at_client), MAX(reviewed_at_client) FROM review_events",
+            values: []
+        ) { statement in
+            (
+                earliest: DatabaseCore.columnOptionalText(statement: statement, index: 0),
+                latest: DatabaseCore.columnOptionalText(statement: statement, index: 1)
+            )
+        }
+        guard let earliestValue = bounds.first?.earliest, let latestValue = bounds.first?.latest else {
+            return 0
+        }
+        guard let earliestReviewedAt = parseIsoTimestamp(value: earliestValue),
+              let latestReviewedAt = parseIsoTimestamp(value: latestValue) else {
+            throw LocalStoreError.database(
+                "Review event timestamps are not ISO-8601: earliest=\(earliestValue) latest=\(latestValue)"
+            )
+        }
+
+        let historyEnd = latestReviewedAt.addingTimeInterval(1)
+        var localDates: Set<String> = []
+        var periodStart = earliestReviewedAt
+        while periodStart < historyEnd {
+            let nextTransition = timeZone.nextDaylightSavingTimeTransition(after: periodStart)
+            let periodEnd = min(nextTransition ?? historyEnd, historyEnd)
+            let periodLocalDates = try self.core.query(
+                sql: """
+                SELECT DISTINCT date(reviewed_at_client, ?, ?)
+                FROM review_events
+                WHERE reviewed_at_client >= ? AND reviewed_at_client < ?
+                """,
+                values: [
+                    .text("\(timeZone.secondsFromGMT(for: periodStart)) seconds"),
+                    .text("-\(dayStartHour) hours"),
+                    .text(formatIsoTimestamp(date: periodStart)),
+                    .text(formatIsoTimestamp(date: periodEnd))
+                ]
+            ) { statement in
+                DatabaseCore.columnText(statement: statement, index: 0)
+            }
+            localDates.formUnion(periodLocalDates)
+            periodStart = periodEnd
+        }
+
+        return localDates.count
+    }
+
     func loadReviewCounts(
         workspaceId: String,
         reviewQueryDefinition: ReviewQueryDefinition,
@@ -342,6 +393,41 @@ extension CardStore {
         }
 
         return reviewCounts
+    }
+
+    func loadReviewOverdueSnapshot(
+        workspaceId: String,
+        reviewQueryDefinition: ReviewQueryDefinition,
+        now: Date
+    ) throws -> ReviewOverdueSnapshot {
+        let querySQL = try self.makeReviewQuerySQL(reviewQueryDefinition: reviewQueryDefinition)
+        let nowMillis = epochMillis(date: now)
+
+        let snapshots = try self.core.query(
+            sql: """
+            SELECT
+                COALESCE(SUM(CASE WHEN due_at_millis <= ? THEN 1 ELSE 0 END), 0) AS overdue_count,
+                MIN(CASE WHEN due_at_millis > ? THEN due_at_millis END) AS next_due_at_millis
+            FROM cards
+            WHERE workspace_id = ? AND deleted_at IS NULL
+                AND due_at IS NOT NULL
+                AND due_at_millis IS NOT NULL\(querySQL.clause)
+            """,
+            values: [.integer(nowMillis), .integer(nowMillis), .text(workspaceId)] + querySQL.values
+        ) { statement in
+            ReviewOverdueSnapshot(
+                overdueCount: Int(DatabaseCore.columnInt64(statement: statement, index: 0)),
+                nextDueAt: DatabaseCore.columnOptionalInt(statement: statement, index: 1).map { nextDueAtMillis in
+                    Date(timeIntervalSince1970: TimeInterval(nextDueAtMillis) / 1_000)
+                }
+            )
+        }
+
+        guard let snapshot = snapshots.first else {
+            throw LocalStoreError.database("Expected review overdue query to return one row")
+        }
+
+        return snapshot
     }
 
     /**

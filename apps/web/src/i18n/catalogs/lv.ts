@@ -738,6 +738,10 @@ const lvCatalog: TranslationCatalog = {
       description: "Priekšskatiet iOS un Android instalēšanas uzvedni.",
       value: "Priekšskatīt",
     },
+    reviewPrompts: {
+      title: "Uzvednes pēc atkārtošanas",
+      resetAll: "Atiestatīt visu uzvedņu stāvokli",
+    },
   },
   settingsWorkspace: {
     decks: {

@@ -340,8 +340,8 @@
 "settings.test.animations.playAccessibility" = "Reproduciraj animaciju %@, %@";
 "settings.test.technicalErrorPreview" = "Pretpregled tehničke pogreške";
 "settings.test.technicalErrorPreview.value" = "Pretpregled lista";
-"settings.test.storeReviewPromptReset" = "Poništi upit za recenziju u App Storeu";
-"settings.test.storeReviewPromptReset.value" = "Lokalno stanje";
+"settings.test.section.reviewPrompts" = "Upiti nakon ponavljanja";
+"settings.test.reviewPromptsReset" = "Poništi stanje svih upita";
 "settings.test.notificationDiagnostics" = "Dijagnostika obavijesti";
 "settings.test.notificationDiagnostics.value" = "Samo za čitanje";
 "settings.test.localSyncDiagnostics" = "Dijagnostika lokalne sinkronizacije";
@@ -451,11 +451,17 @@
 "settings.access.action.request" = "Zatraži pristup";
 "settings.access.action.openSettings" = "Otvori Postavke";
 "settings.access.guidance.photos.limited" = "Pristup biblioteci fotografija je ograničen. I dalje možete birati fotografije za privitke u AI chatu.";
+"settings.access.guidance.mac.photos.limited" = "Pristup biblioteci fotografija je ograničen. I dalje možete birati fotografije za privitke u AI chatu ili za promjenu otvoriti Postavke sustava > Privatnost i sigurnost > Foto.";
 "settings.access.guidance.photos.blocked" = "Pristup biblioteci fotografija je isključen. I dalje možete birati fotografije za privitke u AI chatu.";
+"settings.access.guidance.mac.photos.blocked" = "Pristup biblioteci fotografija je isključen. I dalje možete birati fotografije za privitke u AI chatu ili za promjenu otvoriti Postavke sustava > Privatnost i sigurnost > Foto.";
 "settings.access.guidance.camera.blocked" = "Pristup kameri isključen je za Nibomo. Za promjenu otvorite Postavke > Privatnost i sigurnost > Kamera.";
+"settings.access.guidance.mac.camera.blocked" = "Pristup kameri isključen je za Nibomo. Za promjenu otvorite Postavke sustava > Privatnost i sigurnost > Kamera.";
 "settings.access.guidance.microphone.blocked" = "Pristup mikrofonu isključen je za Nibomo. Za promjenu otvorite Postavke > Privatnost i sigurnost > Mikrofon.";
+"settings.access.guidance.mac.microphone.blocked" = "Pristup mikrofonu isključen je za Nibomo. Za promjenu otvorite Postavke sustava > Privatnost i sigurnost > Mikrofon.";
 "settings.access.guidance.askEveryTime" = "Zatražite pristup sada ili otvorite Postavke kasnije da biste njime upravljali ručno.";
+"settings.access.guidance.mac.askEveryTime" = "Zatražite pristup sada ili otvorite Postavke sustava kasnije da biste njime upravljali ručno.";
 "settings.access.guidance.allowed" = "Otvorite Postavke ako želite isključiti ovaj pristup.";
+"settings.access.guidance.mac.allowed" = "Otvorite Postavke sustava > Privatnost i sigurnost ako želite isključiti ovaj pristup.";
 "settings.access.guidance.limited" = "Otvorite Postavke da biste pregledali ili proširili ovaj pristup.";
 "settings.access.guidance.unavailable" = "Ovaj pristup nije dostupan na trenutačnom uređaju.";
 "settings.account.row.openSourceValue" = "GitHub + MIT";
@@ -573,6 +579,7 @@
 "settings.account.cloudSignIn.failure.cloudSetupFailed" = "Prijava je uspjela, ali postavljanje oblaka nije.";
 "settings.account.cloudSignIn.failure.accountUpgradeFailed" = "Prijava je uspjela, ali nadogradnja računa nije.";
 "settings.account.cloudSignIn.failureDescription" = "Vaša je prijava uspjela, ali postavljanje radnog prostora u oblaku ili početna sinkronizacija nisu završeni.";
+"settings.account.cloudSignIn.chooseWorkspace" = "Odaberi radni prostor";
 "settings.account.cloudSignIn.sync.title" = "Vaš se račun sinkronizira s oblakom.";
 "settings.account.cloudSignIn.sync.message" = "Držite Nibomo otvorenim dok se vaš račun sinkronizira. To obično traje nekoliko minuta.";
 "settings.account.cloudSignIn.cloudSyncTitle" = "Sinkronizacija s oblakom";

@@ -53,5 +53,10 @@
   "email.refundReceiptBody": "Pengembalian dana Anda sebesar {price} telah diproses. Lihat detail: {url}",
   "deletion.warning": "Menghapus akun Nibomo akan membatalkan perpanjangan berikutnya dari langganan Nibomo Anda yang ditagih melalui Stripe. Anda akan kehilangan akses ke akun ini. Langganan yang ditagih melalui Apple atau Google harus dibatalkan secara terpisah melalui penyedia tersebut.",
   "deletion.cancelling": "Membatalkan perpanjangan langganan Stripe sebelum menghapus akun Anda...",
-  "deletion.cancellationFailed": "Kami tidak dapat mengonfirmasi pembatalan perpanjangan langganan Stripe Anda. Akun Anda belum dihapus. Coba lagi atau hubungi dukungan."
+  "deletion.cancellationFailed": "Kami tidak dapat mengonfirmasi pembatalan perpanjangan langganan Stripe Anda. Akun Anda belum dihapus. Coba lagi atau hubungi dukungan.",
+  "offer.pricesFor": "Harga untuk {country}",
+  "offer.changeCountry": "Ubah negara",
+  "offer.chooseCountry": "Pilih negara",
+  "checkout.originalOffer": "Pembayaran tertunda: {price} per bulan",
+  "checkout.requote": "Ganti pembayaran dengan penawaran ini"
 }

@@ -1,6 +1,6 @@
 {
   "name": "flashcards-open-source-app-aws",
-  "version": "1.37.0",
+  "version": "1.38.0",
   "private": true,
   "scripts": {
     "build": "tsc",
@@ -13,15 +13,16 @@
   },
   "dependencies": {
     "@aws-crypto/client-node": "^5.0.2",
-    "@aws-sdk/client-cloudwatch": "^3.1151.0",
-    "@aws-sdk/client-s3": "^3.1151.0",
-    "@sentry/aws-serverless": "^10.76.2",
-    "aws-cdk-lib": "^2.273.0",
+    "@aws-sdk/client-cloudwatch": "^3.1158.0",
+    "@aws-sdk/client-s3": "^3.1158.0",
+    "@sentry/aws-serverless": "^11.10.0",
+    "aws-cdk-lib": "^2.275.0",
     "constructs": "^10.8.1"
   },
   "devDependencies": {
+    "@sentry/server-utils": "^11.10.0",
     "@types/node": "^24.19.2",
-    "aws-cdk": "^2.1145.0",
+    "aws-cdk": "^2.1146.1",
     "esbuild": "^0.28.2",
     "ts-node": "^10.9.2",
     "typescript": "^6.0.3"

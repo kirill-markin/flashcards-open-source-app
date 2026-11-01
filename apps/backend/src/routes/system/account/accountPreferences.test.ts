@@ -4,6 +4,7 @@ import { resolve } from "node:path";
 import test from "node:test";
 import type { AccountPreferences } from "../../../auth/ensureUser";
 import type { GuestSessionAnalyticsPreferencesUpdate } from "../../../guestAuth/store/session";
+import { reviewPromptConfig } from "../../../reviewPrompts/reviewPromptConfig";
 import {
   createDefaultAccountPreferences,
   createSystemTestApp,
@@ -38,6 +39,7 @@ test("GET /me includes account preferences", async () => {
       analyticsConsent: null,
       productAnalyticsEnabled: null,
     },
+    reviewPrompts: reviewPromptConfig,
   });
 });
 

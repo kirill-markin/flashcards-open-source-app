@@ -48,7 +48,7 @@ jobs:
       - uses: google-github-actions/setup-gcloud@v3
         with:
           project_id: ${{ vars.GCP_PROJECT_ID }}
-          version: '589.0.0'
+          version: '591.0.0'
           install_components: beta
 
       - name: Read and privately archive provider diagnostics

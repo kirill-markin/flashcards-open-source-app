@@ -81,21 +81,30 @@ struct CloudAccountContext: Hashable, Sendable {
     let identity: CloudAccountIdentity
     let email: String?
     let preferences: AccountPreferences
+    let reviewPrompts: ReviewPromptRemoteConfigJSON?
 
     init(userId: String, email: String?, preferences: AccountPreferences) {
         self.init(
             userId: userId,
             identity: CloudAccountIdentity(originalUserId: userId, canonicalAccountId: nil, linkedAccountIds: nil),
             email: email,
-            preferences: preferences
+            preferences: preferences,
+            reviewPrompts: nil
         )
     }
 
-    init(userId: String, identity: CloudAccountIdentity, email: String?, preferences: AccountPreferences) {
+    init(
+        userId: String,
+        identity: CloudAccountIdentity,
+        email: String?,
+        preferences: AccountPreferences,
+        reviewPrompts: ReviewPromptRemoteConfigJSON?
+    ) {
         self.userId = userId
         self.identity = identity
         self.email = email
         self.preferences = preferences
+        self.reviewPrompts = reviewPrompts
     }
 }
 
@@ -120,7 +129,8 @@ private func makeCloudAccountContext(
         userId: identity.localContinuityUserId(cloudSettings: cloudSettings),
         identity: identity,
         email: meResponse.profile.email,
-        preferences: preferences
+        preferences: preferences,
+        reviewPrompts: meResponse.reviewPrompts
     )
 }
 
@@ -494,20 +504,6 @@ final class CloudSyncService: @unchecked Sendable {
             method: "POST",
             body: FriendInvitationCreateRequest(inviteeDisplayName: inviteeDisplayName)
         )
-    }
-
-    func loadFeedbackState(
-        apiBaseUrl: String,
-        authorizationHeader: String
-    ) async throws -> FeedbackState {
-        let response: FeedbackStateEnvelope = try await self.transport.request(
-            apiBaseUrl: apiBaseUrl,
-            authorizationHeader: authorizationHeader,
-            path: "/feedback/state",
-            method: "GET",
-            body: Optional<String>.none
-        )
-        return response.feedbackState
     }
 
     func recordFeedbackPromptEvent(

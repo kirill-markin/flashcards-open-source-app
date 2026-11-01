@@ -18,7 +18,6 @@ import com.flashcardsopensourceapp.data.local.database.entities.WorkspaceEntity
 import com.flashcardsopensourceapp.data.local.database.entities.WorkspaceSchedulerSettingsEntity
 import com.flashcardsopensourceapp.data.local.model.cards.CardSummary
 import com.flashcardsopensourceapp.data.local.model.cards.DeckSummary
-import com.flashcardsopensourceapp.data.local.model.feedback.FeedbackPromptReviewActivity
 import com.flashcardsopensourceapp.data.local.model.media.MediaAsset
 import com.flashcardsopensourceapp.data.local.model.media.MediaAssetDownloadUrl
 import com.flashcardsopensourceapp.data.local.model.media.ReviewMediaAssetFile
@@ -45,6 +44,11 @@ import com.flashcardsopensourceapp.data.local.model.review.matchesReviewFilter
 import com.flashcardsopensourceapp.data.local.model.review.resolveReviewFilterFromTagNames
 import com.flashcardsopensourceapp.data.local.model.review.toReviewCard
 import com.flashcardsopensourceapp.data.local.repository.ReviewRepository
+import com.flashcardsopensourceapp.data.local.review.prompts.ReviewPromptCounters
+import com.flashcardsopensourceapp.data.local.review.prompts.countReviewPromptDays
+import com.flashcardsopensourceapp.data.local.review.prompts.reviewPromptDayOf
+import com.flashcardsopensourceapp.data.local.review.prompts.reviewPromptDayStartMillis
+import com.flashcardsopensourceapp.data.local.review.prompts.reviewPromptTimeBucketMillis
 import com.flashcardsopensourceapp.data.local.repository.cards.toCardSummary
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.workspace.loadCurrentWorkspaceOrNull
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.workspace.observeCurrentWorkspace
@@ -54,9 +58,11 @@ import com.flashcardsopensourceapp.data.local.repository.shared.TimeProvider
 import com.flashcardsopensourceapp.data.local.repository.workspace.makeWorkspaceTagsSummary
 import com.flashcardsopensourceapp.data.local.repository.workspace.makeWorkspaceTagsSummaryFromStoredTagNames
 import com.flashcardsopensourceapp.data.local.repository.workspace.toWorkspaceSchedulerSettings
+import com.flashcardsopensourceapp.data.local.review.ReviewPreferencesStore
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
@@ -68,12 +74,14 @@ import java.io.IOException
 import java.nio.file.AtomicMoveNotSupportedException
 import java.nio.file.Files
 import java.nio.file.StandardCopyOption
+import java.time.ZoneId
 import java.util.UUID
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class LocalReviewRepository(
     private val database: AppDatabase,
     private val preferencesStore: CloudPreferencesStore,
+    private val reviewPreferencesStore: ReviewPreferencesStore,
     private val syncLocalStore: SyncLocalStore,
     private val localProgressCacheStore: LocalProgressCacheStore,
     private val timeProvider: TimeProvider,
@@ -260,6 +268,49 @@ class LocalReviewRepository(
                 }
             }
         }
+    }
+
+    override fun observeReviewOverdueBadgeCount(): Flow<Int> {
+        return observeCurrentWorkspace(
+            database = database,
+            preferencesStore = preferencesStore
+        ).map { workspace ->
+            workspace?.workspaceId
+        }.distinctUntilChanged().flatMapLatest { workspaceId ->
+            if (workspaceId == null) {
+                return@flatMapLatest flowOf(0)
+            }
+
+            combine(
+                reviewPreferencesStore.observeSelectedReviewFilter(workspaceId = workspaceId),
+                database.deckDao().observeDecks(),
+                database.tagDao().observeReviewTagNames(workspaceId = workspaceId)
+            ) { selectedFilter, decks, storedTagNames ->
+                val decksForResolution: List<DeckSummary> = decks.filter { deck ->
+                    deck.workspaceId == workspaceId && deck.deletedAtMillis == null
+                }.map { deck ->
+                    toReviewDeckSummary(
+                        deck = deck,
+                        dueCards = 0
+                    )
+                }
+                makeReviewQueuePredicate(
+                    selectedFilter = resolveReviewFilterFromTagNames(
+                        selectedFilter = selectedFilter,
+                        decks = decksForResolution,
+                        tagNames = storedTagNames
+                    ),
+                    decks = decksForResolution,
+                    storedTagNames = storedTagNames
+                )
+            }.distinctUntilChanged().flatMapLatest { predicate ->
+                observeReviewOverdueCount(
+                    database = database,
+                    workspaceId = workspaceId,
+                    predicate = predicate
+                )
+            }
+        }.distinctUntilChanged()
     }
 
     override fun observeReviewMediaAssets(): Flow<List<MediaAsset>> {
@@ -505,40 +556,18 @@ class LocalReviewRepository(
         )
     }
 
-    override suspend fun countRecordedReviews(): Int {
-        return database.reviewLogDao().countReviewLogs()
-    }
-
-    override suspend fun countRecordedReviewsInCurrentWorkspace(): Int {
-        val workspace: WorkspaceEntity = loadCurrentWorkspaceOrNull(
-            database = database,
-            preferencesStore = preferencesStore
-        ) ?: return 0
-
-        return database.reviewLogDao().countReviewLogs(workspaceId = workspace.workspaceId)
-    }
-
-    override suspend fun loadFeedbackPromptReviewActivity(
-        currentLocalDayStartMillis: Long,
-        nextLocalDayStartMillis: Long
-    ): FeedbackPromptReviewActivity {
-        val workspace: WorkspaceEntity = loadCurrentWorkspaceOrNull(
-            database = database,
-            preferencesStore = preferencesStore
-        ) ?: return FeedbackPromptReviewActivity(
-            currentLocalDayReviewCount = 0,
-            hasPreviousLocalReviewDay = false
-        )
-
-        return FeedbackPromptReviewActivity(
-            currentLocalDayReviewCount = database.reviewLogDao().countReviewLogsBetween(
-                workspaceId = workspace.workspaceId,
-                startMillis = currentLocalDayStartMillis,
-                endMillis = nextLocalDayStartMillis
+    override suspend fun loadReviewPromptCounters(nowMillis: Long, zoneId: ZoneId): ReviewPromptCounters {
+        val reviewLogDao = database.reviewLogDao()
+        val today = reviewPromptDayOf(epochMillis = nowMillis, zoneId = zoneId)
+        return ReviewPromptCounters(
+            totalReviews = reviewLogDao.countReviewLogs(),
+            reviewsToday = reviewLogDao.countReviewLogsBetween(
+                startMillis = reviewPromptDayStartMillis(day = today, zoneId = zoneId),
+                endMillis = reviewPromptDayStartMillis(day = today.plusDays(1L), zoneId = zoneId)
             ),
-            hasPreviousLocalReviewDay = database.reviewLogDao().hasReviewLogsBefore(
-                workspaceId = workspace.workspaceId,
-                beforeMillis = currentLocalDayStartMillis
+            reviewDays = countReviewPromptDays(
+                timeBuckets = reviewLogDao.loadDistinctReviewTimeBuckets(bucketMillis = reviewPromptTimeBucketMillis),
+                zoneId = zoneId
             )
         )
     }

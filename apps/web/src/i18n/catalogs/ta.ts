@@ -738,6 +738,10 @@ const taCatalog: TranslationCatalog = {
       description: "iOS மற்றும் Android நிறுவல் அறிவுறுத்தலை முன்னோட்டமிடவும்.",
       value: "முன்னோட்டம்",
     },
+    reviewPrompts: {
+      title: "மீள்பயிற்சிக்குப் பிந்தைய அறிவுறுத்தல்கள்",
+      resetAll: "அனைத்து அறிவுறுத்தல்களின் நிலையையும் மீட்டமை",
+    },
   },
   settingsWorkspace: {
     decks: {

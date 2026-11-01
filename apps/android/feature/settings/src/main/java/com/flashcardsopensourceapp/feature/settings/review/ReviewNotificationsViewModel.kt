@@ -5,7 +5,6 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
-import com.flashcardsopensourceapp.data.local.notifications.NotificationPermissionPromptState
 import com.flashcardsopensourceapp.data.local.notifications.ReviewNotificationMode
 import com.flashcardsopensourceapp.data.local.notifications.ReviewNotificationsSettings
 import com.flashcardsopensourceapp.data.local.notifications.ReviewNotificationsStore
@@ -129,13 +128,8 @@ class ReviewNotificationsViewModel(
         if (uiState.value.isLoaded.not()) {
             return
         }
-        val promptState = reviewNotificationsStore.loadPromptState()
         reviewNotificationsStore.savePromptState(
-            state = NotificationPermissionPromptState(
-                hasShownPrePrompt = promptState.hasShownPrePrompt,
-                hasRequestedSystemPermission = true,
-                hasDismissedPrePrompt = promptState.hasDismissedPrePrompt
-            )
+            state = reviewNotificationsStore.loadPromptState().copy(hasRequestedSystemPermission = true)
         )
         refreshVersion.update { version -> version + 1 }
     }

@@ -1,5 +1,4 @@
 .chat-input-area {
-  border-top: 1px solid var(--divider);
   padding: 12px 14px 14px;
   padding-bottom: max(14px, calc(env(safe-area-inset-bottom) + 14px));
   display: flex;

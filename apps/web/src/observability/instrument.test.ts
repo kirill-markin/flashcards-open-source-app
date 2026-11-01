@@ -67,6 +67,7 @@ beforeEach(() => {
 describe("Sentry privacy sanitizer", () => {
   it("keeps event message, logentry message, and exception values while redacting sensitive keys", () => {
     const event: SentryPrivacyEvent = {
+      type: undefined,
       message: "Can't find variable: indexedDB",
       logentry: {
         message: "React error boundary captured a render failure",
@@ -199,6 +200,7 @@ describe("Sentry privacy sanitizer", () => {
 
   it("keeps safe observability messages for Sentry issue grouping", () => {
     const event: SentryPrivacyEvent = {
+      type: undefined,
       message: "web.api_contract_warning",
       exception: {
         values: [
@@ -224,6 +226,7 @@ describe("Sentry privacy sanitizer", () => {
 
   it("keeps arbitrary TypeError exception values readable", () => {
     const event: SentryPrivacyEvent = {
+      type: undefined,
       exception: {
         values: [
           {
@@ -268,6 +271,7 @@ describe("Sentry privacy sanitizer", () => {
 
   it("redacts normalized query and search key variants without redacting route names", () => {
     const event: SentryPrivacyEvent = {
+      type: undefined,
       extra: {
         query_string: "frontText=private-card-front",
         "url.query": "cardBack=private-card-back",
@@ -288,6 +292,7 @@ describe("Sentry privacy sanitizer", () => {
 
   it("keeps message-like context fields while still redacting sensitive keys", () => {
     const event: SentryPrivacyEvent = {
+      type: undefined,
       message: "web.chat_live_stream_failed",
       extra: {
         errorMessage: "Request failed with status 502 for POST /v1/chat/live",
@@ -312,6 +317,7 @@ describe("Sentry privacy sanitizer", () => {
 
   it("drops non-actionable unknown progress timezone warnings", () => {
     const event: SentryPrivacyEvent = {
+      type: undefined,
       message: "web.progress_timezone_invalid",
       contexts: {
         "web.warning": {
@@ -328,6 +334,7 @@ describe("Sentry privacy sanitizer", () => {
 
   it("keeps unusual invalid timezone warnings and sanitizes sensitive fields", () => {
     const event: SentryPrivacyEvent = {
+      type: undefined,
       message: "web.progress_timezone_invalid",
       contexts: {
         "web.warning": {
@@ -356,6 +363,7 @@ describe("Sentry privacy sanitizer", () => {
 
   it("keeps unrelated errors and sanitizes them before send", () => {
     const event: SentryPrivacyEvent = {
+      type: undefined,
       exception: {
         values: [
           {

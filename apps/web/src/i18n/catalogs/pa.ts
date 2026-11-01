@@ -738,6 +738,10 @@ const paCatalog: TranslationCatalog = {
       description: "iOS ਅਤੇ Android ਇੰਸਟਾਲ ਸੱਦੇ ਦੀ ਝਲਕ ਵੇਖੋ.",
       value: "ਝਲਕ",
     },
+    reviewPrompts: {
+      title: "ਦੁਹਰਾਈ ਤੋਂ ਬਾਅਦ ਦੇ ਪ੍ਰੋਂਪਟ",
+      resetAll: "ਸਾਰੇ ਪ੍ਰੋਂਪਟਾਂ ਦੀ ਸਥਿਤੀ ਰੀਸੈੱਟ ਕਰੋ",
+    },
   },
   settingsWorkspace: {
     decks: {
@@ -1072,7 +1076,7 @@ const paCatalog: TranslationCatalog = {
       createWithAi: "AI ਨਾਲ ਬਣਾਓ",
       edit: "ਸੋਧੋ",
       retry: "ਮੁੜ ਕੋਸ਼ਿਸ਼",
-      revealAnswer: "ਜਵਾਬ ਵਿਖਾਓ",
+      revealAnswer: "ਜਵਾਬ ਦਿਖਾਓ",
       switchToAllCards: "ਸਾਰੇ ਕਾਰਡਾਂ ਵਾਲੇ ਡੈੱਕ ਉੱਤੇ ਜਾਓ",
     },
     aiOpenAriaLabel: "AI ਚੈਟ ਵਿੱਚ ਕਾਰਡ ਖੋਲ੍ਹੋ: {{side}}",

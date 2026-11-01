@@ -738,6 +738,10 @@ const mrCatalog: TranslationCatalog = {
       description: "iOS आणि Android इंस्टॉल सूचना पाहा.",
       value: "पूर्वावलोकन",
     },
+    reviewPrompts: {
+      title: "उजळणीनंतरचे प्रॉम्प्ट",
+      resetAll: "सर्व प्रॉम्प्टची स्थिती रीसेट करा",
+    },
   },
   settingsWorkspace: {
     decks: {
@@ -1072,7 +1076,7 @@ const mrCatalog: TranslationCatalog = {
       createWithAi: "AI ने तयार करा",
       edit: "संपादित करा",
       retry: "पुन्हा प्रयत्न करा",
-      revealAnswer: "उत्तर उघडा",
+      revealAnswer: "उत्तर दाखवा",
       switchToAllCards: "सर्व कार्डे संचावर जा",
     },
     aiOpenAriaLabel: "AI चॅटमध्ये कार्ड उघडा: {{side}}",

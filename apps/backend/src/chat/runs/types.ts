@@ -10,6 +10,7 @@ import type {
   ProductAnalyticsDeviceType,
   ProductAnalyticsOsName,
 } from "../../productAnalytics/catalog";
+import type { AiChatRunClientDevice } from "../../productAnalytics/serverFacts/reviewAnswers";
 import type {
   ChatSessionRunState,
   ChatSessionSnapshot,
@@ -47,6 +48,8 @@ export type PreparedChatRun = Readonly<{
   deduplicated: boolean;
   shouldInvokeWorker: boolean;
   initiatingAuthIsSignedIn: boolean;
+  // As the run row stores it; a replay reports the device of the request that started the run.
+  clientDevice: AiChatRunClientDevice;
 }>;
 
 export type ChatRunDiagnostics = Readonly<{

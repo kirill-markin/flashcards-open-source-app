@@ -738,6 +738,10 @@ const caCatalog: TranslationCatalog = {
       description: "Previsualitza l'avís d'instal·lació per a iOS i Android.",
       value: "Vista prèvia",
     },
+    reviewPrompts: {
+      title: "Avisos després del repàs",
+      resetAll: "Restableix l'estat de tots els avisos",
+    },
   },
   settingsWorkspace: {
     decks: {

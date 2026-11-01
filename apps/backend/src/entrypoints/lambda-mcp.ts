@@ -39,10 +39,10 @@ import { parsePublicOrigin } from "../shared/publicUrls";
 import {
   buildMcpProtectedResourceMetadata,
   getAllowedMcpHosts,
-  getMcpProtectedResourceMetadataUrl,
   getMcpResourceUrl,
   resolveMcpHost,
 } from "../mcp/hosts";
+import { buildMcpBearerChallenge, extractBearerToken } from "../mcp/bearerChallenge";
 import {
   captureBackendException,
   createBackendObservationScope,
@@ -147,34 +147,9 @@ function buildProtectedResourceMetadata(
   );
 }
 
-const BEARER_PREFIX_PATTERN = /^Bearer\s+(\S+)$/i;
-
-/**
- * Builds the shared Bearer 401 challenge so an unauthenticated or invalid-token
- * `/mcp` request points spec-current MCP clients at the PRM document. The
- * challenge names the metadata URL of the host the client actually used, so a
- * client on the alternate host is never sent across to the primary host.
- */
 function buildBearerChallenge(c: Context, mcpHost: string): Response {
-  return c.json(
-    {
-      error: "invalid_token",
-      error_description: "A valid OAuth Bearer token is required to access the MCP resource.",
-    },
-    401,
-    {
-      "WWW-Authenticate": `Bearer resource_metadata="${getMcpProtectedResourceMetadataUrl(mcpHost)}"`,
-    },
-  );
-}
-
-function extractBearerToken(authorization: string | undefined): string | null {
-  if (authorization === undefined) {
-    return null;
-  }
-
-  const match = BEARER_PREFIX_PATTERN.exec(authorization.trim());
-  return match === null ? null : match[1];
+  const challenge = buildMcpBearerChallenge(mcpHost);
+  return c.json(challenge.body, challenge.statusCode, { "WWW-Authenticate": challenge.wwwAuthenticate });
 }
 
 /**
@@ -229,6 +204,7 @@ type McpRequestRecordInput = Readonly<{
   response: Response | null;
   toolName: string | null;
   toolExecuted: boolean | null;
+  toolCallArguments: string | null;
   toolIsError: boolean | null;
   toolErrorCode: string | null;
 }>;
@@ -283,6 +259,7 @@ async function emitMcpRequestRecord(input: McpRequestRecordInput): Promise<void>
     jsonRpcMethod: normalizeMcpTelemetryValue(input.request.headers.get("mcp-method")),
     toolName: input.toolName,
     toolExecuted: input.toolExecuted,
+    toolCallArguments: input.toolCallArguments,
     toolIsError: input.toolIsError,
     toolErrorCode: input.toolErrorCode,
     statusCode: input.statusCode,
@@ -338,9 +315,10 @@ async function handleMcpTransportRequest(
   const caller = normalizeMcpTelemetryValue(request.headers.get("user-agent"));
   const headerToolName = normalizeMcpTelemetryValue(request.headers.get("mcp-name"));
   const bodyToolName = await readCallToolNameFromRequestBody(request);
-  // Every tool the request runs, in call order. The last one is what the record
-  // names, so a batched request still produces exactly one record.
-  const invokedToolNames: Array<string> = [];
+  // Every tool the request runs, in call order, with its serialized arguments.
+  // The last one is what the record names, so a batched request still produces
+  // exactly one record.
+  const invokedTools: Array<Readonly<{ toolName: string; toolCallArguments: string | null }>> = [];
   // Every outcome a handler reports, kept and chosen the same way.
   const toolOutcomes: Array<McpToolOutcome> = [];
   const server = createMcpServer(
@@ -349,8 +327,8 @@ async function handleMcpTransportRequest(
     getIconUrl(baseDomain),
     {
       caller,
-      recordInvokedTool: (toolName) => {
-        invokedToolNames.push(toolName);
+      recordInvokedTool: (toolName, toolCallArguments) => {
+        invokedTools.push({ toolName, toolCallArguments });
       },
       recordToolOutcome: (outcome) => {
         toolOutcomes.push(outcome);
@@ -365,7 +343,8 @@ async function handleMcpTransportRequest(
     allowedHosts: [...getAllowedMcpHosts(baseDomain, getAlternateMcpHost())],
   });
   const emitRequestRecord = (statusCode: number, response: Response | null): Promise<void> => {
-    const invokedToolName = invokedToolNames.at(-1) ?? null;
+    const invokedTool = invokedTools.at(-1) ?? null;
+    const invokedToolName = invokedTool === null ? null : invokedTool.toolName;
     const toolName = invokedToolName ?? bodyToolName ?? headerToolName;
     const toolOutcome = toolOutcomes.at(-1) ?? null;
     return emitMcpRequestRecord({
@@ -377,6 +356,7 @@ async function handleMcpTransportRequest(
       response,
       toolName,
       toolExecuted: toolName === null ? null : invokedToolName !== null,
+      toolCallArguments: invokedTool === null ? null : invokedTool.toolCallArguments,
       toolIsError: toolOutcome === null ? null : toolOutcome.isError,
       toolErrorCode: toolOutcome === null ? null : toolOutcome.errorCode,
     });
@@ -440,7 +420,9 @@ function buildMcpRoutes(app: Hono<McpAppEnv>): Hono<McpAppEnv> {
     // request arrived on, so an OAuth token is accepted only on the host whose
     // resource identifier it carries.
     const mcpHost = getRequestMcpHost(c, baseDomain);
-    const token = extractBearerToken(c.req.header("authorization"));
+    const authorization = c.req.header("authorization");
+    const token = authorization === undefined ? null : extractBearerToken(authorization);
+    // The dispatcher answers most of these itself; see lambda-mcp-dispatcher.ts.
     if (token === null) {
       return buildBearerChallenge(c, mcpHost);
     }
@@ -490,6 +472,7 @@ function buildMcpRoutes(app: Hono<McpAppEnv>): Hono<McpAppEnv> {
         response,
         toolName: null,
         toolExecuted: null,
+        toolCallArguments: null,
         toolIsError: null,
         toolErrorCode: null,
       });

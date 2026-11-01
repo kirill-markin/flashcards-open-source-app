@@ -340,8 +340,8 @@
 "settings.test.animations.playAccessibility" = "Toista animaatio %@, %@";
 "settings.test.technicalErrorPreview" = "Teknisen virheen esikatselu";
 "settings.test.technicalErrorPreview.value" = "Esikatselunäkymä";
-"settings.test.storeReviewPromptReset" = "Nollaa App Storen arviointipyyntö";
-"settings.test.storeReviewPromptReset.value" = "Paikallinen tila";
+"settings.test.section.reviewPrompts" = "Kertauksen jälkeiset kehotteet";
+"settings.test.reviewPromptsReset" = "Nollaa kaikkien kehotteiden tila";
 "settings.test.notificationDiagnostics" = "Ilmoitusten diagnostiikka";
 "settings.test.notificationDiagnostics.value" = "Vain luku";
 "settings.test.localSyncDiagnostics" = "Paikallisen synkronoinnin diagnostiikka";
@@ -451,11 +451,17 @@
 "settings.access.action.request" = "Pyydä käyttöoikeutta";
 "settings.access.action.openSettings" = "Avaa asetukset";
 "settings.access.guidance.photos.limited" = "Kuvakirjaston käyttöoikeus on rajoitettu. Voit silti valita kuvia tekoälykeskustelun liitteiksi.";
+"settings.access.guidance.mac.photos.limited" = "Kuvakirjaston käyttöoikeus on rajoitettu. Voit silti valita kuvia tekoälykeskustelun liitteiksi tai muuttaa sitä kohdassa Järjestelmäasetukset > Tietosuoja ja suojaus > Kuvat.";
 "settings.access.guidance.photos.blocked" = "Kuvakirjaston käyttöoikeus on poistettu käytöstä. Voit silti valita kuvia tekoälykeskustelun liitteiksi.";
+"settings.access.guidance.mac.photos.blocked" = "Kuvakirjaston käyttöoikeus on poistettu käytöstä. Voit silti valita kuvia tekoälykeskustelun liitteiksi tai muuttaa sitä kohdassa Järjestelmäasetukset > Tietosuoja ja suojaus > Kuvat.";
 "settings.access.guidance.camera.blocked" = "Nibomon kameran käyttöoikeus on poistettu. Muuta sitä kohdassa Asetukset > Tietosuoja ja suojaus > Kamera.";
+"settings.access.guidance.mac.camera.blocked" = "Nibomon kameran käyttöoikeus on poistettu. Muuta sitä kohdassa Järjestelmäasetukset > Tietosuoja ja suojaus > Kamera.";
 "settings.access.guidance.microphone.blocked" = "Nibomon mikrofonin käyttöoikeus on poistettu. Muuta sitä kohdassa Asetukset > Tietosuoja ja suojaus > Mikrofoni.";
+"settings.access.guidance.mac.microphone.blocked" = "Nibomon mikrofonin käyttöoikeus on poistettu. Muuta sitä kohdassa Järjestelmäasetukset > Tietosuoja ja suojaus > Mikrofoni.";
 "settings.access.guidance.askEveryTime" = "Pyydä käyttöoikeutta nyt tai hallitse sitä myöhemmin asetuksissa.";
+"settings.access.guidance.mac.askEveryTime" = "Pyydä käyttöoikeutta nyt tai hallitse sitä myöhemmin Järjestelmäasetuksissa.";
 "settings.access.guidance.allowed" = "Avaa asetukset, jos haluat poistaa tämän käyttöoikeuden.";
+"settings.access.guidance.mac.allowed" = "Avaa Järjestelmäasetukset > Tietosuoja ja suojaus, jos haluat poistaa tämän käyttöoikeuden.";
 "settings.access.guidance.limited" = "Tarkista käyttöoikeus tai laajenna sitä avaamalla asetukset.";
 "settings.access.guidance.unavailable" = "Tämä käyttöoikeus ei ole saatavilla tällä laitteella.";
 "settings.account.row.openSourceValue" = "GitHub + MIT";
@@ -573,6 +579,7 @@
 "settings.account.cloudSignIn.failure.cloudSetupFailed" = "Kirjautuminen onnistui, mutta pilven käyttöönotto epäonnistui.";
 "settings.account.cloudSignIn.failure.accountUpgradeFailed" = "Kirjautuminen onnistui, mutta tilin päivitys epäonnistui.";
 "settings.account.cloudSignIn.failureDescription" = "Kirjautuminen onnistui, mutta pilvityötilan käyttöönotto tai alkusynkronointi ei valmistunut.";
+"settings.account.cloudSignIn.chooseWorkspace" = "Valitse työtila";
 "settings.account.cloudSignIn.sync.title" = "Tiliäsi synkronoidaan pilveen.";
 "settings.account.cloudSignIn.sync.message" = "Pidä Nibomo auki, kun tilisi synkronoidaan. Tämä kestää yleensä muutaman minuutin.";
 "settings.account.cloudSignIn.cloudSyncTitle" = "Pilvisynkronointi";

@@ -738,6 +738,10 @@ const svCatalog: TranslationCatalog = {
       description: "Förhandsgranska uppmaningen att installera iOS- och Android-appen.",
       value: "Förhandsgranska",
     },
+    reviewPrompts: {
+      title: "Uppmaningar efter repetition",
+      resetAll: "Återställ status för alla uppmaningar",
+    },
   },
   settingsWorkspace: {
     decks: {
@@ -1072,7 +1076,7 @@ const svCatalog: TranslationCatalog = {
       createWithAi: "Skapa med AI",
       edit: "Redigera",
       retry: "Försök igen",
-      revealAnswer: "Visa svaret",
+      revealAnswer: "Visa svar",
       switchToAllCards: "byt till kortleken Alla kort",
     },
     aiOpenAriaLabel: "Öppna kortets sida ({{side}}) i AI-chatten",

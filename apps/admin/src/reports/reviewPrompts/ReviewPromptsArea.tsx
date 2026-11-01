@@ -12,9 +12,11 @@ import {
   buildReviewPromptWarnings,
   formatReviewPromptActedWindow,
   formatReviewPromptPlatforms,
+  reviewPromptConfigVersion,
   reviewPromptGoneWindowDays,
   reviewPrompts,
   type ReviewPrompt,
+  type ReviewPromptConfigRules,
   type ReviewPromptCoverage,
 } from "./reviewPromptDefinitions";
 
@@ -32,6 +34,7 @@ export function buildReviewPromptsAreaFilters(filters: AnalyticsFilterState): An
   return {
     ...buildDefaultAnalyticsFilterState(filters.dateRange),
     eventPlatforms: filters.eventPlatforms,
+    appVersions: filters.appVersions,
     connectionCountries: filters.connectionCountries,
     appUiLanguages: filters.appUiLanguages,
   };
@@ -41,21 +44,73 @@ function formatCount(count: number): string {
   return count.toLocaleString("en-US");
 }
 
+function formatSetting(value: number | undefined): string {
+  return value === undefined ? "—" : formatCount(value);
+}
+
+function formatCooldown(days: number | undefined): string {
+  return days === undefined ? "—" : days === 1 ? "1 day" : `${formatCount(days)} days`;
+}
+
+/** A count from the table query: a spinner while it runs, and a dash once it failed. */
+function ReviewPromptCount(props: Readonly<{ count: number | null; isLoading: boolean }>): JSX.Element {
+  if (props.isLoading) {
+    return (
+      <span>
+        <span className="review-prompts-count-spinner" aria-hidden="true" />
+        <span className="visually-hidden">Loading</span>
+      </span>
+    );
+  }
+
+  return <span>{props.count === null ? "—" : formatCount(props.count)}</span>;
+}
+
+function ReviewPromptConfigCells(props: Readonly<{ rules: ReviewPromptConfigRules }>): JSX.Element {
+  if (props.rules.kind === "never") {
+    return <td colSpan={4} className="review-prompts-never-cell">{props.rules.reason}</td>;
+  }
+
+  const { settings } = props.rules;
+  return (
+    <>
+      <td>{formatSetting(settings.minTotalReviews)}</td>
+      <td>{formatSetting(settings.minReviewsToday)}</td>
+      <td>{formatSetting(settings.minReviewDays)}</td>
+      <td>{formatCooldown(settings.cooldownDays)}</td>
+    </>
+  );
+}
+
 function ReviewPromptRow(props: Readonly<{
   prompt: ReviewPrompt;
-  counts: ReviewPromptCounts;
-  coverage: ReviewPromptCoverage;
+  /** `null` while the table query runs or after it failed. */
+  counts: ReviewPromptCounts | null;
+  isCountsLoading: boolean;
+  /** `null` while the coverage query runs or after it failed. */
+  coverage: ReviewPromptCoverage | null;
   filters: AnalyticsFilterState;
   openWarningId: string | null;
   onOpenWarningIdChange: (update: (current: string | null) => string | null) => void;
   onNavigate: (path: string) => void;
 }>): JSX.Element {
   const { prompt, counts } = props;
-  const warnings = buildReviewPromptWarnings(prompt, counts, props.coverage, props.filters);
+  // Shown only once both queries are in, because coverage contributes notes of its own.
+  const warnings = counts !== null && props.coverage !== null
+    ? buildReviewPromptWarnings(prompt, counts, props.coverage, props.filters)
+    : [];
   const testId = `review-prompt-${prompt.id}`;
 
   return (
     <tr data-testid={`${testId}-row`}>
+      <td>
+        <FunnelsLink
+          className={detailsButtonClassName}
+          path={getReviewPromptDetailsPath(prompt.id)}
+          testId={`${testId}-details-button`}
+          onNavigate={props.onNavigate}
+        >Details</FunnelsLink>
+      </td>
       <th scope="row" className="funnel-group-table-name">
         <div className="explained-heading-row">
           <span>{prompt.title}</span>
@@ -75,13 +130,11 @@ function ReviewPromptRow(props: Readonly<{
           })}
         </div>
       </th>
-      <td className="review-prompts-text-cell">{formatReviewPromptPlatforms(prompt)}</td>
-      <td className="review-prompts-text-cell review-prompts-rule-cell">{prompt.appearsWhen}</td>
-      <td>{formatCount(counts.shownCount)}</td>
+      <td><ReviewPromptCount count={counts?.shownCount ?? null} isLoading={props.isCountsLoading} /></td>
       <td>
         {prompt.acted.kind === "rule" ? (
           <div className="explained-heading-row">
-            <span>{formatCount(counts.actedCount)}</span>
+            <ReviewPromptCount count={counts?.actedCount ?? null} isLoading={props.isCountsLoading} />
             <ExplanationTip label={`When ${prompt.title} counts as Acted`} explanationId={`${testId}-acted-explanation`}>
               {prompt.acted.rule} within {formatReviewPromptActedWindow(prompt.acted.window)}
             </ExplanationTip>
@@ -95,15 +148,10 @@ function ReviewPromptRow(props: Readonly<{
           </div>
         )}
       </td>
-      <td>{formatCount(counts.goneCount)}</td>
-      <td>
-        <FunnelsLink
-          className={detailsButtonClassName}
-          path={getReviewPromptDetailsPath(prompt.id)}
-          testId={`${testId}-details-button`}
-          onNavigate={props.onNavigate}
-        >Details</FunnelsLink>
-      </td>
+      <td><ReviewPromptCount count={counts?.goneCount ?? null} isLoading={props.isCountsLoading} /></td>
+      <td className="review-prompts-text-cell">{formatReviewPromptPlatforms(prompt)}</td>
+      <ReviewPromptConfigCells rules={prompt.configRules} />
+      <td className="review-prompts-text-cell review-prompts-rule-cell">{prompt.fixedRule}</td>
     </tr>
   );
 }
@@ -131,6 +179,7 @@ export function ReviewPromptsArea(
     getErrorMessage,
   );
   const coverageLoad = useReviewPromptCoverage(props.config, props.onTerminalAdminError);
+  const isCountsLoading = state.status === "loading";
   const table = state.status === "ready" ? state.ranges[0]?.report ?? null : null;
   const coverage = coverageLoad.state.status === "ready" ? coverageLoad.state.coverage : null;
   const failure = state.status === "error"
@@ -157,24 +206,27 @@ export function ReviewPromptsArea(
         </div>
       </header>
 
-      {failure === null && (table === null || coverage === null) ? <p className="report-state" aria-live="polite">Loading review prompts…</p> : null}
       {failure !== null ? (
         <div className="report-state report-state-error">
           <strong>Review prompts query failed.</strong><span>{failure.message}</span>
           <button className="filter-button" type="button" onClick={failure.retry}>Retry</button>
         </div>
       ) : null}
-      {failure === null && table !== null && coverage !== null ? (
-        <table className="funnel-group-table review-prompts-table">
+      <div className="funnel-group-table-shell">
+        <table className="funnel-group-table review-prompts-table" aria-busy={isCountsLoading}>
           <thead>
             <tr>
+              <th scope="col"><span className="visually-hidden">Details</span></th>
               <th scope="col">Prompt</th>
-              <th scope="col">Platforms</th>
-              <th scope="col">When it appears</th>
               <th scope="col">Shown</th>
               <th scope="col">Acted</th>
               <th scope="col">Gone</th>
-              <th scope="col"><span className="visually-hidden">Details</span></th>
+              <th scope="col" className="review-prompts-text-cell">Platforms</th>
+              <th scope="col">Total reviews ≥</th>
+              <th scope="col">Reviews today ≥</th>
+              <th scope="col">Review days ≥</th>
+              <th scope="col">Cooldown</th>
+              <th scope="col" className="review-prompts-text-cell">Fixed in code</th>
             </tr>
           </thead>
           <tbody>
@@ -182,7 +234,8 @@ export function ReviewPromptsArea(
               <ReviewPromptRow
                 key={prompt.id}
                 prompt={prompt}
-                counts={table.counts[prompt.id]}
+                counts={table === null ? null : table.counts[prompt.id]}
+                isCountsLoading={isCountsLoading}
                 coverage={coverage}
                 filters={filters}
                 openWarningId={openWarningId}
@@ -192,7 +245,8 @@ export function ReviewPromptsArea(
             ))}
           </tbody>
         </table>
-      ) : null}
+      </div>
+      <p className="review-prompts-config-version">Config version {reviewPromptConfigVersion}</p>
     </section>
   );
 }

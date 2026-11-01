@@ -53,5 +53,10 @@
   "email.refundReceiptBody": "Olemme tehneet sinulle palautuksen, jonka summa on {price}. Katso lisätiedot: {url}",
   "deletion.warning": "Nibomo-tilisi poistaminen estää Stripen kautta laskutettavien Nibomo-tilaustesi tulevat uusiutumiset. Menetät tämän tilin käyttöoikeuden. Applen tai Googlen kautta laskutettavat tilaukset on peruutettava erikseen kyseisen palveluntarjoajan kautta.",
   "deletion.cancelling": "Peruutetaan Stripe-tilaustesi uusiutumiset ennen tilisi poistamista...",
-  "deletion.cancellationFailed": "Emme voineet vahvistaa Stripe-tilaustesi uusiutumisten peruutusta. Tiliäsi ei ole poistettu. Yritä uudelleen tai ota yhteyttä tukeen."
+  "deletion.cancellationFailed": "Emme voineet vahvistaa Stripe-tilaustesi uusiutumisten peruutusta. Tiliäsi ei ole poistettu. Yritä uudelleen tai ota yhteyttä tukeen.",
+  "offer.pricesFor": "Hinnat maalle {country}",
+  "offer.changeCountry": "Vaihda maata",
+  "offer.chooseCountry": "Valitse maa",
+  "checkout.originalOffer": "Keskeneräinen maksu: {price} kuukaudessa",
+  "checkout.requote": "Korvaa maksu tällä tarjouksella"
 }

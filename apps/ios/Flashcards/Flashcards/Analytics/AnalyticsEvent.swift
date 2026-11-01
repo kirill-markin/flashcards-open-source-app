@@ -35,7 +35,8 @@ enum AnalyticsEvent: Sendable, Equatable {
     case firstReviewOnboardingCompleted(source: AnalyticsFirstReviewOnboardingSource)
     case firstReviewOnboardingReset
     case appOpened(launchType: AnalyticsLaunchType)
-    case screenViewed(screen: AnalyticsSurface)
+    /// `reviewPromptConfigVersion` is set only on a prompt chosen by the after-review prompt walk.
+    case screenViewed(screen: AnalyticsSurface, reviewPromptConfigVersion: String?)
     /**
      * The two middle steps of the sign-in funnel, read against `signInFailed`.
      *
@@ -174,7 +175,7 @@ enum AnalyticsEvent: Sendable, Equatable {
     case catalogDeckInstallStarted(packageSlug: String)
     /// The premium offer sheet reaching the screen, once per presentation. The test-settings previews
     /// have no entry point and report nothing.
-    case paywallShown(presentation: AnalyticsPaywallPresentation, localDate: String, timeZone: String, accountKind: AnalyticsPaywallAccountKind?, offerType: AnalyticsPurchaseOfferType?)
+    case paywallShown(presentation: AnalyticsPaywallPresentation, localDate: String, timeZone: String, accountKind: AnalyticsPaywallAccountKind?, offerType: AnalyticsPurchaseOfferType?, reviewPromptConfigVersion: String?)
     case paywallChoice(presentation: AnalyticsPaywallPresentation, outcome: AnalyticsPaywallChoiceOutcome, offerType: AnalyticsPurchaseOfferType?)
     /// The store purchase sheet being launched, after the account and offer checks passed.
     case purchaseStarted(offerType: AnalyticsPurchaseOfferType, presentation: AnalyticsPaywallPresentation?)
@@ -187,7 +188,7 @@ enum AnalyticsEvent: Sendable, Equatable {
     case subscriptionManagementOpened(destination: AnalyticsSubscriptionManagementDestination)
     /// The app asked StoreKit for its rating dialog. StoreKit reports neither whether the dialog
     /// appeared nor the answer, so this is the request alone.
-    case storeReviewRequested
+    case storeReviewRequested(reviewPromptConfigVersion: String)
     case analyticsEventsDropped(reason: AnalyticsDroppedReason, count: Int)
 }
 
@@ -279,9 +280,10 @@ enum AnalyticsPrompt: String, Sendable, Equatable {
  *
  * Both iOS prompts are UIKit-backed alerts, which cannot be closed without pressing a button, so
  * every answer here comes from a button and each prompt produces only the outcomes its buttons mean:
- * the after-review sign-in prompt reports `accepted` or `snoozed` — its "Later" really does snooze
- * for a week — and the notifications pre-prompt reports `accepted` or `dismissed`. A programmatic
- * teardown, such as a cloud identity reset closing a prompt nobody answered, reports nothing.
+ * both report `accepted` or `snoozed`, because each one's decline button only postpones it — the
+ * after-review sign-in prompt's "Later" for a week, the notifications pre-prompt's "Not now" until
+ * its cooldown ends. A programmatic teardown, such as a cloud identity reset closing a prompt nobody
+ * answered, reports nothing.
  */
 enum AnalyticsPromptOutcome: String, Sendable, Equatable {
     case accepted
@@ -728,7 +730,7 @@ extension AnalyticsEvent {
      */
     var declaredScreen: AnalyticsSurface? {
         switch self {
-        case .screenViewed(let screen):
+        case .screenViewed(let screen, _):
             return screen
         // The catalog requires a surface on the flip, and the flip has no home other than the review
         // screen. Declaring it here rather than leaving it to the call site is what keeps a caller
@@ -785,8 +787,9 @@ extension AnalyticsEvent {
             return [:]
         case .appOpened(let launchType):
             return ["launch_type": .string(launchType.rawValue)]
-        case .screenViewed:
-            return [:]
+        case .screenViewed(_, let reviewPromptConfigVersion):
+            guard let reviewPromptConfigVersion else { return [:] }
+            return ["review_prompt_config_version": .string(reviewPromptConfigVersion)]
         case .signInCodeRequested, .signInSucceeded:
             return [:]
         case .signInFailed(let reason):
@@ -851,13 +854,14 @@ extension AnalyticsEvent {
             return ["reason": .string(reason.rawValue)]
         case .catalogDeckInstallStarted(let packageSlug):
             return ["package_slug": .string(packageSlug)]
-        case .paywallShown(let presentation, let localDate, let timeZone, let accountKind, let offerType):
+        case .paywallShown(let presentation, let localDate, let timeZone, let accountKind, let offerType, let reviewPromptConfigVersion):
             var properties = presentation.attributionProperties
             properties["local_date"] = .string(localDate)
             properties["time_zone"] = .string(timeZone)
             properties["content_version"] = .string("union-v1")
             if let accountKind { properties["account_kind"] = .string(accountKind.rawValue) }
             if let offerType { properties["offer_type"] = .string(offerType.rawValue) }
+            if let reviewPromptConfigVersion { properties["review_prompt_config_version"] = .string(reviewPromptConfigVersion) }
             return properties
         case .paywallChoice(let presentation, let outcome, let offerType):
             var properties = presentation.attributionProperties
@@ -875,8 +879,8 @@ extension AnalyticsEvent {
             return ["outcome": .string(outcome.rawValue)]
         case .subscriptionManagementOpened(let destination):
             return ["destination": .string(destination.rawValue)]
-        case .storeReviewRequested:
-            return [:]
+        case .storeReviewRequested(let reviewPromptConfigVersion):
+            return ["review_prompt_config_version": .string(reviewPromptConfigVersion)]
         case .analyticsEventsDropped(let reason, let count):
             return [
                 "reason": .string(reason.rawValue),

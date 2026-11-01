@@ -9,12 +9,12 @@ import com.flashcardsopensourceapp.data.local.model.cloud.CloudAccountState
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudSettings
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudServiceConfiguration
 import com.flashcardsopensourceapp.data.local.model.cloud.StoredCloudCredentials
-import com.flashcardsopensourceapp.data.local.model.cloud.shouldRefreshCloudIdToken
 import com.flashcardsopensourceapp.data.local.model.sync.CloudAccountSnapshot
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.account.CloudIdentityResetCoordinator
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.runtime.CloudOperationCoordinator
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.runtime.CloudSessionProvider
 import com.flashcardsopensourceapp.data.local.repository.cloudsync.runtime.isRemoteAccountDeletedError
+import com.flashcardsopensourceapp.data.local.repository.cloudsync.runtime.refreshExpiredStoredCloudCredentials
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.sync.Mutex
@@ -172,36 +172,28 @@ internal class AnalyticsGuestIdentityLinkCoordinator(
     }
 
     /**
-     * The stored credential for the signed-in account, refreshed in memory only when it has expired.
+     * The stored credential for the signed-in account, refreshed only when it has expired.
      *
      * Deliberately **not** [CloudSessionProvider.authenticatedSession]. That helper turns a
-     * `410 ACCOUNT_DELETED`, and a `linkedUserId` that does not match the fetched account, into
-     * `resetLocalStateForCloudIdentityChange()` — which runs `database.clearAllTables()`. This path
+     * `410 ACCOUNT_DELETED`, and a `linkedUserId` that does not match the fetched account, into a
+     * `CloudIdentityResetCoordinator` reset — which runs `database.clearAllTables()`. This path
      * is the only unattended caller in the app: it runs on every app start and after every sign-in,
      * with no user action behind it and no way back, so it must never reach a destructive reset.
      * A deleted account is sync's business, and sync answers it by preserving local data.
      *
-     * Nothing is persisted here either. This path holds no cloud operation lock, so a refreshed
-     * credential written back — or the account preferences [CloudSessionProvider.authenticatedSession]
-     * also saves — could land after a concurrent logout had already cleared them, leaving
-     * `DISCONNECTED` with an orphan credential. The refreshed token lives for this request only.
+     * The account preferences [CloudSessionProvider.authenticatedSession] also saves are not
+     * written here.
      */
     private suspend fun analyticsGuestIdentityLinkCredentials(
         configuration: CloudServiceConfiguration,
         storedCredentials: StoredCloudCredentials
     ): StoredCloudCredentials {
-        if (
-            shouldRefreshCloudIdToken(
-                idTokenExpiresAtMillis = storedCredentials.idTokenExpiresAtMillis,
-                nowMillis = System.currentTimeMillis()
-            ).not()
-        ) {
-            return storedCredentials
-        }
-
-        return remoteService.refreshIdToken(
-            refreshToken = storedCredentials.refreshToken,
-            authBaseUrl = configuration.authBaseUrl
+        return refreshExpiredStoredCloudCredentials(
+            storedCredentials = storedCredentials,
+            authBaseUrl = configuration.authBaseUrl,
+            preferencesStore = preferencesStore,
+            remoteService = remoteService,
+            operationCoordinator = operationCoordinator
         )
     }
 

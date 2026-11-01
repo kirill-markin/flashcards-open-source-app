@@ -384,7 +384,7 @@ test("direct ingestion uses one sub-29-second deadline, token, capability chain,
   assert.deepEqual(harness.failureCalls, []);
 });
 
-test("an exhausted ingress budget stops before normalization, acquisition, or storage", async () => {
+test("an exhausted preprocessing budget stops before normalization, acquisition, or storage", async () => {
   const harness = createHarness(null);
   const requestDeadline = createRequestDeadline();
   harness.setNowMs(requestDeadline.preprocessingDeadlineAtMs);
@@ -393,7 +393,7 @@ test("an exhausted ingress budget stops before normalization, acquisition, or st
     ...harness.dependencies,
     normalizeImageBytesForCardFn: async () => {
       normalizationCalls += 1;
-      throw new Error("Normalization must not start after its ingress cutoff.");
+      throw new Error("Normalization must not start after its preprocessing cutoff.");
     },
   };
 

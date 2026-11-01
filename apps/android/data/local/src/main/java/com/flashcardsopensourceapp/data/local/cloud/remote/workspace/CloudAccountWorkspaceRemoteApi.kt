@@ -3,6 +3,7 @@ package com.flashcardsopensourceapp.data.local.cloud.remote.workspace
 import com.flashcardsopensourceapp.data.local.cloud.remote.transport.CloudJsonHttpClient
 import com.flashcardsopensourceapp.data.local.cloud.remote.transport.buildPaginatedCloudPath
 import com.flashcardsopensourceapp.data.local.cloud.wire.optCloudBooleanOrNull
+import com.flashcardsopensourceapp.data.local.cloud.wire.parseReviewPromptConfig
 import com.flashcardsopensourceapp.data.local.cloud.wire.requireCloudArray
 import com.flashcardsopensourceapp.data.local.cloud.wire.requireCloudBoolean
 import com.flashcardsopensourceapp.data.local.cloud.wire.requireCloudInt
@@ -21,6 +22,7 @@ import com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspaceDeleteRe
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspaceResetProgressPreview
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspaceResetProgressResult
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspaceSummary
+import com.flashcardsopensourceapp.data.local.review.prompts.RemoteReviewPromptConfig
 import org.json.JSONObject
 
 internal class CloudAccountWorkspaceRemoteApi(
@@ -68,7 +70,8 @@ internal class CloudAccountWorkspaceRemoteApi(
             email = profile.requireCloudNullableString("email", "me.profile.email"),
             preferences = preferences,
             workspaces = workspaces,
-            authenticatedIdentity = parseAuthenticatedAccountIdentity(response = meResponse, userId = userId)
+            authenticatedIdentity = parseAuthenticatedAccountIdentity(response = meResponse, userId = userId),
+            reviewPromptConfig = parseRemoteReviewPromptConfig(response = meResponse)
         )
     }
 
@@ -283,6 +286,23 @@ private fun parseAuthenticatedAccountIdentity(response: JSONObject, userId: Stri
         throw CloudContractMismatchException("Cloud account identity must include the credential and canonical account IDs.")
     }
     return CloudAuthenticatedAccountIdentity(userId, canonicalAccountId, linkedAccountIds)
+}
+
+/** A malformed value is returned as rejected, never thrown: it must not fail the account fetch. */
+private fun parseRemoteReviewPromptConfig(response: JSONObject): RemoteReviewPromptConfig? {
+    if (response.has("reviewPrompts").not()) {
+        return null
+    }
+    return try {
+        RemoteReviewPromptConfig.Valid(
+            config = parseReviewPromptConfig(
+                json = response.requireCloudObject("reviewPrompts", "me.reviewPrompts"),
+                fieldPath = "me.reviewPrompts"
+            )
+        )
+    } catch (error: CloudContractMismatchException) {
+        RemoteReviewPromptConfig.Rejected(error = error)
+    }
 }
 
 internal fun parseCloudWorkspace(

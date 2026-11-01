@@ -120,7 +120,7 @@ internal data class PendingCloudSocialSignIn(
 @Serializable
 internal data class PendingCloudEmailSignIn(
     val configuration: CloudServiceConfiguration,
-    val refreshToken: String,
+    val userId: String,
     val hint: CloudSuccessfulSignInHint?
 )
 
@@ -193,8 +193,8 @@ internal class CloudSocialAuthStore(private val credentialStore: CloudCredential
             "Remembering a sign-in requires an accepted Nibomo session."
         }
         credentialStore.update { secrets ->
-            check(connection == null || secrets.refreshToken == accepted.credentials.refreshToken) {
-                "The completed connection suggestion belongs to a different installed session."
+            check(connection == null || (secrets.refreshToken != null && connection.userId == pending.acceptedUserId)) {
+                "The completed connection suggestion belongs to a different signed-in account."
             }
             secrets.copy(pendingSocialSignIn = null, pendingEmailSignIn = null,
                 pendingAccountMethod = connection?.let { Json.encodeToString(it.copy(epoch = secrets.accountMethodEpoch)) },
@@ -210,16 +210,19 @@ internal class CloudSocialAuthStore(private val credentialStore: CloudCredential
         }
     }
 
-    fun completeEmailSession(configuration: CloudServiceConfiguration, refreshToken: String) {
+    fun completeEmailSession(configuration: CloudServiceConfiguration, userId: String) {
         credentialStore.update { secrets ->
             val value = secrets.pendingEmailSignIn ?: return@update secrets
-            val pending = decodeSocialAuthState {
-                val fields = Json.parseToJsonElement(value) as? JsonObject
+            val fields = decodeSocialAuthState {
+                Json.parseToJsonElement(value) as? JsonObject
                     ?: throw SerializationException("Pending email sign-in must be an object.")
+            }
+            // A record staged without its account cannot prove which sign-in it belongs to.
+            if ("userId" !in fields) return@update secrets
+            val pending = decodeSocialAuthState {
                 Json.decodeFromJsonElement<PendingCloudEmailSignIn>(JsonObject(fields - "rememberSignIn"))
             }
-            if (pending.configuration != configuration || pending.refreshToken != refreshToken ||
-                secrets.refreshToken != refreshToken) {
+            if (pending.configuration != configuration || pending.userId != userId || secrets.refreshToken == null) {
                 return@update secrets
             }
             secrets.copy(pendingEmailSignIn = null, successfulSignInHint = when {

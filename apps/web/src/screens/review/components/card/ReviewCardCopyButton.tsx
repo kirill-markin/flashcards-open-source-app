@@ -1,4 +1,5 @@
-import { useLayoutEffect, useRef, useState, type ReactElement } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type ReactElement } from "react";
+import { copiedFeedbackDurationMs } from "../../../../access/browserAccess";
 import { useAppErrorDialog } from "../../../../appError/AppErrorContext";
 import { useI18n } from "../../../../i18n";
 import { reviewSideMarkdownForClipboard } from "./reviewClipboardMarkdown";
@@ -34,6 +35,14 @@ export function ReviewCardCopyButton(props: ReviewCardCopyButtonProps): ReactEle
       isMountedRef.current = false;
     };
   }, []);
+
+  useEffect(() => {
+    if (status !== "copied") {
+      return;
+    }
+    const timeoutId = window.setTimeout(() => setStatus("idle"), copiedFeedbackDurationMs);
+    return () => window.clearTimeout(timeoutId);
+  }, [status]);
 
   async function copySide(): Promise<void> {
     if (isCopyingRef.current) {

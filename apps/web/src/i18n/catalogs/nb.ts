@@ -738,6 +738,10 @@ const nbCatalog: TranslationCatalog = {
       description: "Forhåndsvis installasjonsdialogen for iOS og Android.",
       value: "Forhåndsvisning",
     },
+    reviewPrompts: {
+      title: "Meldinger etter repetisjon",
+      resetAll: "Tilbakestill tilstanden for alle meldinger",
+    },
   },
   settingsWorkspace: {
     decks: {
@@ -1072,7 +1076,7 @@ const nbCatalog: TranslationCatalog = {
       createWithAi: "Lag med AI",
       edit: "Rediger",
       retry: "Prøv igjen",
-      revealAnswer: "Vis svaret",
+      revealAnswer: "Vis svar",
       switchToAllCards: "bytt til kortstokken Alle kort",
     },
     aiOpenAriaLabel: "Åpne kortsiden ({{side}}) i AI-chatten",

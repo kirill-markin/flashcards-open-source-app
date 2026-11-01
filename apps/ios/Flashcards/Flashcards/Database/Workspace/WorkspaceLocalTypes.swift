@@ -18,7 +18,6 @@ struct BootstrapSnapshotRefreshOutcome: Hashable, Sendable {
     let didChange: Bool
     let workspaceChanged: Bool
     let cardsChanged: Bool
-    let homeSnapshotChanged: Bool
 }
 
 struct AppBootstrapSnapshot: Hashable, Sendable {

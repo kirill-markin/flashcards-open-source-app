@@ -417,8 +417,8 @@ h2 {
   text-align: left;
 }
 
-/* Review prompts: not in the sideways-scrolling shell, which would clip the row tips that open below
-   their row, so the prose columns wrap instead. */
+/* Review prompts: the prose columns wrap, so the sideways-scrolling shell is needed only on narrow
+   screens. */
 .funnel-group-table.review-prompts-table .review-prompts-text-cell {
   color: var(--muted);
   text-align: left;
@@ -429,8 +429,46 @@ h2 {
   min-width: 220px;
 }
 
-.review-prompts-table thead th:nth-child(3) {
-  text-align: left;
+.funnel-group-table.review-prompts-table .review-prompts-never-cell {
+  color: var(--muted);
+  text-align: center;
+}
+
+/* The shell clips whatever reaches past the table's left or bottom edge, so every tip opens rightward
+   from its cell and the bottom rows' tips open upward. */
+.review-prompts-table tbody tr:nth-last-child(-n + 4) .explanation-tip-text {
+  top: auto;
+  bottom: calc(100% + 8px);
+}
+
+.review-prompts-config-version {
+  margin: 12px 0 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+/* Stands in for a count while the table query runs. */
+.review-prompts-count-spinner {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border: 2px solid var(--panel-border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  vertical-align: middle;
+  animation: review-prompts-count-spin 0.8s linear infinite;
+}
+
+@keyframes review-prompts-count-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .review-prompts-count-spinner {
+    animation-duration: 2.4s;
+  }
 }
 
 .review-prompts-table td .explained-heading-row {
@@ -445,11 +483,6 @@ h2 {
   width: min(420px, 80vw);
   white-space: normal;
   text-align: left;
-}
-
-.review-prompts-table td .explained-heading-row .explanation-tip-text {
-  right: 0;
-  left: auto;
 }
 
 .funnel-step {
@@ -1049,7 +1082,9 @@ h2 {
  * the selected mode keeps its accent border instead of dropping back to the neutral hover one.
  */
 .ai-usage-mode-selected,
-.ai-usage-mode-selected:not(:disabled):hover {
+.ai-usage-mode-selected:not(:disabled):hover,
+.study-depth-mode-selected,
+.study-depth-mode-selected:not(:disabled):hover {
   border-color: var(--accent-strong);
   background: var(--accent);
 }
@@ -1628,8 +1663,16 @@ h2 {
   cursor: not-allowed;
 }
 
-.landing-page-path-top-pages .funnel-group-table-shell {
+.who-saw-us-top-values .funnel-group-table-shell {
   margin-top: 24px;
+}
+
+/* A free-text UTM tag runs to 500 characters, so it ellipsizes, its full text on hover. */
+.who-saw-us-utm-tag {
+  display: block;
+  max-width: 16em;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* A table of long UTC times, too wide for one grid cell. */
@@ -1785,6 +1828,11 @@ h2 {
 
 .bar-segment-not-final {
   fill-opacity: 0.4;
+}
+
+.chart-zero-line {
+  stroke: var(--muted-soft);
+  stroke-width: 1;
 }
 
 .rate-line-not-final {

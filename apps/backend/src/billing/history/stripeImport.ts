@@ -52,7 +52,8 @@ const checkpointSchema = z.object({ version: z.literal(1), cursor: z.string().mi
 
 function inventoryKey(environment: StripeEnvironment): string {
   const catalog = stripeCatalog[environment];
-  return `nibomo:${catalog.accountId}:${catalog.productId}:${catalog.priceId}:global_lists_without_test_clocks`;
+  const priceIds = catalog.knownPrices.map((price) => price.priceId).sort().join(",");
+  return `nibomo:${catalog.accountId}:${catalog.productId}:${priceIds}:global_lists_without_test_clocks`;
 }
 
 function importFailure(error: Error): string {

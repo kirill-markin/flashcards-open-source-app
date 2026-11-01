@@ -1,9 +1,6 @@
 import type { JSX, ReactNode } from "react";
 import type { AdminAppConfig } from "../../config";
 import { getAnalyticsAreaPath, type LevelOneMetricDetail } from "../../routing";
-import { RetentionCurveSections } from "../retentionCurve/RetentionCurveSections";
-import { WhoCameBackBreakdownSections } from "../whoCameBack/WhoCameBackBreakdownSections";
-import { WhoCameBackSection } from "../whoCameBack/WhoCameBackSection";
 import { WhoOpenedTheAppBreakdownSections } from "../whoOpenedTheApp/WhoOpenedTheAppBreakdownSections";
 import { WhoOpenedTheAppSection } from "../whoOpenedTheApp/WhoOpenedTheAppSection";
 import { WhoPaidUsBreakdownSections } from "../whoPaidUs/WhoPaidUsBreakdownSections";
@@ -13,7 +10,7 @@ import { WhoStudiedBreakdownSections } from "../whoStudied/WhoStudiedBreakdownSe
 import { WhoStudiedReviewEventSections } from "../whoStudied/WhoStudiedReviewEventSections";
 import { WhoStudiedSection } from "../whoStudied/WhoStudiedSection";
 import { LevelOneMetricDetailsHeader } from "./LevelOneMetricDetailsHeader";
-import { LevelOneMetricsFrame } from "./LevelOneMetricsFrame";
+import { LevelOneMetricsFrame, useLevelOneMetricsFilterBar } from "./LevelOneMetricsFrame";
 import type { LevelOneMetricsSelection } from "./levelOneMetricsUrl";
 import { useLevelOneMetricsSelection } from "./useLevelOneMetricsSelection";
 
@@ -23,7 +20,6 @@ type ChartedLevelOneMetricDetail = Exclude<LevelOneMetricDetail, "who-saw-us">;
 const levelOneMetricDetailLabels: Readonly<Record<ChartedLevelOneMetricDetail, string>> = {
   "who-opened-the-app": "Who opened the app",
   "who-studied": "Who studied",
-  "who-came-back": "Who came back",
   "who-paid-us": "Who paid us",
 };
 
@@ -49,6 +45,8 @@ function renderMetricSections(
             config={props.config}
             dateRange={selection.dateRange}
             period={selection.period}
+            eventPlatforms={selection.eventPlatforms}
+            appVersions={selection.appVersions}
             detailsLink={null}
             onTerminalAdminError={props.onTerminalAdminError}
           />
@@ -56,6 +54,8 @@ function renderMetricSections(
             config={props.config}
             dateRange={selection.dateRange}
             period={selection.period}
+            eventPlatforms={selection.eventPlatforms}
+            appVersions={selection.appVersions}
             onTerminalAdminError={props.onTerminalAdminError}
           />
         </>
@@ -67,6 +67,8 @@ function renderMetricSections(
             config={props.config}
             dateRange={selection.dateRange}
             period={selection.period}
+            eventPlatforms={selection.eventPlatforms}
+            appVersions={selection.appVersions}
             detailsLink={null}
             onTerminalAdminError={props.onTerminalAdminError}
           />
@@ -74,36 +76,17 @@ function renderMetricSections(
             config={props.config}
             dateRange={selection.dateRange}
             period={selection.period}
+            eventPlatforms={selection.eventPlatforms}
+            appVersions={selection.appVersions}
             onTerminalAdminError={props.onTerminalAdminError}
           />
           <WhoStudiedReviewEventSections
             config={props.config}
             dateRange={selection.dateRange}
             period={selection.period}
+            eventPlatforms={selection.eventPlatforms}
+            appVersions={selection.appVersions}
             onNavigate={props.onNavigate}
-            onTerminalAdminError={props.onTerminalAdminError}
-          />
-        </>
-      );
-    case "who-came-back":
-      return (
-        <>
-          <WhoCameBackSection
-            config={props.config}
-            dateRange={selection.dateRange}
-            period={selection.period}
-            detailsLink={null}
-            onTerminalAdminError={props.onTerminalAdminError}
-          />
-          <RetentionCurveSections
-            config={props.config}
-            dateRange={selection.dateRange}
-            onTerminalAdminError={props.onTerminalAdminError}
-          />
-          <WhoCameBackBreakdownSections
-            config={props.config}
-            dateRange={selection.dateRange}
-            period={selection.period}
             onTerminalAdminError={props.onTerminalAdminError}
           />
         </>
@@ -115,6 +98,8 @@ function renderMetricSections(
             config={props.config}
             dateRange={selection.dateRange}
             period={selection.period}
+            eventPlatforms={selection.eventPlatforms}
+            appVersions={selection.appVersions}
             detailsLink={null}
             onTerminalAdminError={props.onTerminalAdminError}
           />
@@ -122,6 +107,7 @@ function renderMetricSections(
             config={props.config}
             dateRange={selection.dateRange}
             period={selection.period}
+            eventPlatforms={selection.eventPlatforms}
             onTerminalAdminError={props.onTerminalAdminError}
           />
         </>
@@ -134,6 +120,7 @@ function ChartedLevelOneMetricDetailsPage(
   props: LevelOneMetricDetailsPageProps<ChartedLevelOneMetricDetail>,
 ): JSX.Element {
   const selectionState = useLevelOneMetricsSelection(props.config, props.onTerminalAdminError);
+  const filterBar = useLevelOneMetricsFilterBar(props.config, selectionState.selection.dateRange, props.onTerminalAdminError);
 
   return (
     <>
@@ -148,6 +135,7 @@ function ChartedLevelOneMetricDetailsPage(
 
       <LevelOneMetricsFrame
         selectionState={selectionState}
+        filterBar={filterBar}
         onNavigate={props.onNavigate}
         renderCharts={(selection) => (
           <div className="level-1-metrics-grid">{renderMetricSections(props, selection)}</div>

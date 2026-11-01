@@ -1,9 +1,13 @@
 package com.flashcardsopensourceapp.data.local.review
 
 import android.content.Context
+import android.content.SharedPreferences
 import androidx.core.content.edit
 import com.flashcardsopensourceapp.data.local.model.review.ReviewFilter
 import com.flashcardsopensourceapp.data.local.model.review.makeReviewTagFilter
+import kotlinx.coroutines.channels.awaitClose
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.callbackFlow
 import org.json.JSONArray
 import org.json.JSONObject
 
@@ -25,6 +29,9 @@ interface ReviewPreferencesStore {
     /** Loads the selected review filter for a workspace. */
     fun loadSelectedReviewFilter(workspaceId: String): ReviewFilter
 
+    /** Emits the selected review filter for a workspace now and after every change. */
+    fun observeSelectedReviewFilter(workspaceId: String): Flow<ReviewFilter>
+
     /** Persists the selected review filter for a workspace. */
     fun saveSelectedReviewFilter(workspaceId: String, reviewFilter: ReviewFilter)
 
@@ -36,6 +43,8 @@ interface ReviewPreferencesStore {
 
     /** Persists the timestamp of the last hard-answer reminder shown on this device. */
     fun saveHardAnswerReminderLastShownAt(timestampMillis: Long)
+
+    fun clearHardAnswerReminderLastShownAt()
 }
 
 class SharedPreferencesReviewPreferencesStore(
@@ -53,6 +62,22 @@ class SharedPreferencesReviewPreferencesStore(
         } catch (_: Exception) {
             clearSelectedReviewFilter(workspaceId = workspaceId)
             ReviewFilter.AllCards
+        }
+    }
+
+    override fun observeSelectedReviewFilter(workspaceId: String): Flow<ReviewFilter> {
+        val key = makeSelectedReviewFilterKey(workspaceId = workspaceId)
+        return callbackFlow {
+            val listener = SharedPreferences.OnSharedPreferenceChangeListener { _, changedKey ->
+                if (changedKey == null || changedKey == key) {
+                    trySend(loadSelectedReviewFilter(workspaceId = workspaceId))
+                }
+            }
+            trySend(loadSelectedReviewFilter(workspaceId = workspaceId))
+            preferences.registerOnSharedPreferenceChangeListener(listener)
+            awaitClose {
+                preferences.unregisterOnSharedPreferenceChangeListener(listener)
+            }
         }
     }
 
@@ -82,6 +107,12 @@ class SharedPreferencesReviewPreferencesStore(
     override fun saveHardAnswerReminderLastShownAt(timestampMillis: Long) {
         preferences.edit(commit = true) {
             putLong(hardAnswerReminderLastShownAtKey, timestampMillis)
+        }
+    }
+
+    override fun clearHardAnswerReminderLastShownAt() {
+        preferences.edit(commit = true) {
+            remove(hardAnswerReminderLastShownAtKey)
         }
     }
 }

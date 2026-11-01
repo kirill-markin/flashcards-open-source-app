@@ -53,5 +53,10 @@
   "email.refundReceiptBody": "Your refund of {price} was issued. View details: {url}",
   "deletion.warning": "Deleting your Nibomo account cancels future renewals of your Nibomo subscriptions billed through Stripe. You will lose access to this account. Subscriptions billed through Apple or Google must be canceled separately through that provider.",
   "deletion.cancelling": "Canceling your Stripe subscription renewals before deleting your account...",
-  "deletion.cancellationFailed": "We couldn't confirm cancellation of your Stripe subscription renewals. Your account has not been deleted. Try again or contact support."
+  "deletion.cancellationFailed": "We couldn't confirm cancellation of your Stripe subscription renewals. Your account has not been deleted. Try again or contact support.",
+  "offer.pricesFor": "Prices for {country}",
+  "offer.changeCountry": "Change country",
+  "offer.chooseCountry": "Choose a country",
+  "checkout.originalOffer": "Pending checkout: {price} per month",
+  "checkout.requote": "Replace checkout with this offer"
 }

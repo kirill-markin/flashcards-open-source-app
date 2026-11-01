@@ -53,5 +53,10 @@
   "email.refundReceiptBody": "Seu reembolso de {price} foi emitido. Veja os detalhes: {url}",
   "deletion.warning": "Excluir sua conta do Nibomo cancela as renovações futuras das suas assinaturas do Nibomo cobradas pelo Stripe. Você perderá o acesso a esta conta. Assinaturas cobradas pela Apple ou pelo Google devem ser canceladas separadamente pelo respectivo provedor.",
   "deletion.cancelling": "Cancelando as renovações das suas assinaturas do Stripe antes de excluir sua conta...",
-  "deletion.cancellationFailed": "Não foi possível confirmar o cancelamento das renovações das suas assinaturas do Stripe. Sua conta não foi excluída. Tente novamente ou entre em contato com o suporte."
+  "deletion.cancellationFailed": "Não foi possível confirmar o cancelamento das renovações das suas assinaturas do Stripe. Sua conta não foi excluída. Tente novamente ou entre em contato com o suporte.",
+  "offer.pricesFor": "Preços para {country}",
+  "offer.changeCountry": "Alterar país",
+  "offer.chooseCountry": "Escolha um país",
+  "checkout.originalOffer": "Pagamento pendente: {price} por mês",
+  "checkout.requote": "Substituir o pagamento por esta oferta"
 }

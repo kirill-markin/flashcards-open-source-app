@@ -1,12 +1,12 @@
 import type { JSX } from "react";
 import type { AdminAppConfig } from "../../config";
-import { WhoSawUsSection } from "../whoSawUs/WhoSawUsSection";
-import { WhoOpenedTheAppSection } from "../whoOpenedTheApp/WhoOpenedTheAppSection";
-import { WhoStudiedSection } from "../whoStudied/WhoStudiedSection";
-import { WhoCameBackSection } from "../whoCameBack/WhoCameBackSection";
+import { defaultSiteVisitorFilterState } from "../../filters/analyticsFilters";
 import { WhoPaidUsSection } from "../whoPaidUs/WhoPaidUsSection";
+import { WhoStudiedSection } from "../whoStudied/WhoStudiedSection";
+import { WhoOpenedTheAppSection } from "../whoOpenedTheApp/WhoOpenedTheAppSection";
+import { WhoSawUsSection } from "../whoSawUs/WhoSawUsSection";
 import { buildLevelOneMetricDetailsLink } from "./LevelOneMetricDetailsLink";
-import { LevelOneMetricsFrame } from "./LevelOneMetricsFrame";
+import { LevelOneMetricsFrame, useLevelOneMetricsFilterBar } from "./LevelOneMetricsFrame";
 import { useLevelOneMetricsSelection } from "./useLevelOneMetricsSelection";
 
 export function LevelOneMetricsArea(
@@ -17,47 +17,50 @@ export function LevelOneMetricsArea(
   }>,
 ): JSX.Element {
   const selectionState = useLevelOneMetricsSelection(props.config, props.onTerminalAdminError);
+  const filterBar = useLevelOneMetricsFilterBar(props.config, selectionState.selection.dateRange, props.onTerminalAdminError);
 
   return (
     <LevelOneMetricsFrame
       selectionState={selectionState}
+      filterBar={filterBar}
       onNavigate={props.onNavigate}
       renderCharts={(selection, search) => (
         <div className="level-1-metrics-grid">
-          <WhoSawUsSection
+          <WhoPaidUsSection
             config={props.config}
             dateRange={selection.dateRange}
             period={selection.period}
-            series="all"
-            detailsLink={buildLevelOneMetricDetailsLink("who-saw-us", search, props.onNavigate)}
-            onTerminalAdminError={props.onTerminalAdminError}
-          />
-          <WhoOpenedTheAppSection
-            config={props.config}
-            dateRange={selection.dateRange}
-            period={selection.period}
-            detailsLink={buildLevelOneMetricDetailsLink("who-opened-the-app", search, props.onNavigate)}
+            eventPlatforms={selection.eventPlatforms}
+            appVersions={selection.appVersions}
+            detailsLink={buildLevelOneMetricDetailsLink("who-paid-us", search, props.onNavigate)}
             onTerminalAdminError={props.onTerminalAdminError}
           />
           <WhoStudiedSection
             config={props.config}
             dateRange={selection.dateRange}
             period={selection.period}
+            eventPlatforms={selection.eventPlatforms}
+            appVersions={selection.appVersions}
             detailsLink={buildLevelOneMetricDetailsLink("who-studied", search, props.onNavigate)}
             onTerminalAdminError={props.onTerminalAdminError}
           />
-          <WhoCameBackSection
+          <WhoOpenedTheAppSection
             config={props.config}
             dateRange={selection.dateRange}
             period={selection.period}
-            detailsLink={buildLevelOneMetricDetailsLink("who-came-back", search, props.onNavigate)}
+            eventPlatforms={selection.eventPlatforms}
+            appVersions={selection.appVersions}
+            detailsLink={buildLevelOneMetricDetailsLink("who-opened-the-app", search, props.onNavigate)}
             onTerminalAdminError={props.onTerminalAdminError}
           />
-          <WhoPaidUsSection
+          <WhoSawUsSection
             config={props.config}
             dateRange={selection.dateRange}
             period={selection.period}
-            detailsLink={buildLevelOneMetricDetailsLink("who-paid-us", search, props.onNavigate)}
+            series={selection.eventPlatforms}
+            appVersions={selection.appVersions}
+            siteFilters={defaultSiteVisitorFilterState}
+            detailsLink={buildLevelOneMetricDetailsLink("who-saw-us", search, props.onNavigate)}
             onTerminalAdminError={props.onTerminalAdminError}
           />
         </div>

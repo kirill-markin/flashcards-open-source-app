@@ -217,9 +217,9 @@ class LocalSyncRepository(
                 )
                 if (preferencesStore.currentCloudSettings().cloudState == CloudAccountState.LINKED) {
                     withContext(Dispatchers.IO) {
-                        preferencesStore.loadCredentials()?.let { credentials ->
+                        preferencesStore.currentCloudSettings().linkedUserId?.let { userId ->
                             preferencesStore.socialAuthStore.completeEmailSession(
-                                preferencesStore.currentServerConfiguration(), credentials.refreshToken
+                                preferencesStore.currentServerConfiguration(), userId
                             )
                         }
                     }
@@ -482,7 +482,7 @@ class LocalSyncRepository(
             return
         }
 
-        resetCoordinator.resetLocalStateForCloudIdentityChange()
+        resetCoordinator.resetLocalStateForLinkedAccountMismatch()
         throw CloudLinkedAccountMismatchException(
             "Cloud account changed during sync. Local cloud identity was reset; sign in again."
         )

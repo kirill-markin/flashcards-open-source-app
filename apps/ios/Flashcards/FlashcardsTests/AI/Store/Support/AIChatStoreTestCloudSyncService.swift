@@ -194,15 +194,6 @@ extension AIChatStoreTestSupport {
             fatalError("Not used in AIChatStoreTestSupport.")
         }
 
-        func loadFeedbackState(
-            apiBaseUrl: String,
-            authorizationHeader: String
-        ) async throws -> FeedbackState {
-            _ = apiBaseUrl
-            _ = authorizationHeader
-            fatalError("Not used in AIChatStoreTestSupport.")
-        }
-
         func recordFeedbackPromptEvent(
             apiBaseUrl: String,
             authorizationHeader: String,

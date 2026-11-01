@@ -738,6 +738,10 @@ const isCatalog: TranslationCatalog = {
       description: "Forskoða hvatningu til að setja upp iOS- og Android-forritið.",
       value: "Forskoða",
     },
+    reviewPrompts: {
+      title: "Kvaðningar eftir upprifjun",
+      resetAll: "Endurstilla stöðu allra kvaðninga",
+    },
   },
   settingsWorkspace: {
     decks: {

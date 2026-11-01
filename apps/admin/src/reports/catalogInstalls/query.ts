@@ -197,11 +197,9 @@ const catalogInstallCohortSqlExpression = [
 // Almost every install in production history is an admin install, so a near-empty chart is the
 // intended default rather than a defect.
 //
-// PLATFORM IS ALWAYS `unattributed`. The producer writes NULL on purpose - the install names no
-// server-stored replica or guest session row, and the request headers that do name a platform are a
-// client claim - and the `0120` backfill wrote none either. The bucket is still derived with the same
-// CASE as every other report rather than invented, so the section obeys the shared platform filter,
-// which means selecting any device platform empties it.
+// PLATFORM is the installing replica's device from the release that added it on. Older rows, the
+// `0120` backfill, and installs whose device could not be read stay `unattributed`, so selecting a
+// device platform drops them. The bucket is derived with the same CASE as every other report.
 export function buildCatalogInstallsSql(filters: AnalyticsFilterState): string {
   const dateRange = assertValidDateRange(filters.dateRange, catalogInstallsReportLabel);
   const from = dateRange.from;

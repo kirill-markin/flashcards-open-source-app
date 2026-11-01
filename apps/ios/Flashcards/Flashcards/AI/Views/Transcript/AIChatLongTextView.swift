@@ -105,6 +105,7 @@ struct AIChatLongTextView: View {
             .sheet(isPresented: self.$isFullResponsePresented) {
                 AIChatFullResponseView(text: self.text)
             }
+            .reviewKeyboardBlockingPresentation(isPresented: self.isFullResponsePresented)
         } else {
             MathContentText(text: self.preview.text, textStyle: self.textStyle, isSelectable: self.isSelectable, isInteractive: true)
         }

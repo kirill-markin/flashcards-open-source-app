@@ -9,18 +9,13 @@ import com.flashcardsopensourceapp.core.observability.AppObservability
 import com.flashcardsopensourceapp.core.ui.TransientMessageController
 import com.flashcardsopensourceapp.data.local.cloud.remote.CloudRemoteException
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudCredentialRecoveryRequiredException
-import com.flashcardsopensourceapp.data.local.model.feedback.CloudFeedbackState
 import com.flashcardsopensourceapp.data.local.model.feedback.CloudFeedbackTrigger
 import com.flashcardsopensourceapp.data.local.model.feedback.cloudFeedbackMessageMaximumLength
 import com.flashcardsopensourceapp.data.local.repository.FeedbackRepository
-import com.flashcardsopensourceapp.data.local.repository.ReviewRepository
 import java.io.IOException
-import java.time.ZoneId
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -39,7 +34,6 @@ class FeedbackPromptController(
     private val appScope: CoroutineScope,
     context: Context,
     private val feedbackRepository: FeedbackRepository,
-    private val reviewRepository: ReviewRepository,
     private val promptStore: FeedbackPromptStore,
     private val messageController: TransientMessageController,
     private val observability: AppObservability,
@@ -66,7 +60,6 @@ class FeedbackPromptController(
             isAppModalActive = false
         )
     )
-    private var automaticReevaluationJob: Job? = null
     private val automaticPromptShownEventRecorded = AtomicBoolean(false)
 
     fun observeUiState(): StateFlow<FeedbackPromptUiState> {
@@ -79,7 +72,6 @@ class FeedbackPromptController(
             return
         }
 
-        automaticReevaluationJob?.cancel()
         val currentUiState = uiStateMutable.value
         if (
             currentUiState.isVisible.not() ||
@@ -99,16 +91,19 @@ class FeedbackPromptController(
         )
     }
 
-    fun cancelAutomaticReevaluation() {
-        automaticReevaluationJob?.cancel()
+    /** Only an automatic showing stamps this clock, so feedback sent from Settings never delays it. */
+    fun lastAutomaticPromptShownAtMillis(): Long? {
+        return promptStore.loadState(identityKey = feedbackPromptIdentityKeyProvider())
+            .lastAutomaticFeedbackPromptShownAtMillis
     }
 
-    fun requestAutomaticReevaluation(canPresent: () -> Boolean) {
-        automaticReevaluationJob?.cancel()
-        if (!canPresent()) return
-        automaticReevaluationJob = appScope.launch(Dispatchers.Main.immediate) {
-            reevaluateAutomaticPrompt(canPresent = canPresent)
+    fun tryShowAutomaticPrompt(canPresent: () -> Boolean): Boolean {
+        if (!canPresent() || isAutomaticPromptContextBlocked(context = contextMutable.value)) {
+            return false
         }
+
+        showAutomaticPrompt(identityKey = feedbackPromptIdentityKeyProvider())
+        return true
     }
 
     fun openSettingsFeedback() {
@@ -176,12 +171,7 @@ class FeedbackPromptController(
         val identityKey = activeFeedbackPromptIdentityKeyMutable.value
         promptStore.recordAutomaticPromptShown(identityKey = identityKey, nowMillis = nowMillis)
         appScope.launch {
-            val feedbackState = recordAutomaticPromptShownOrNull() ?: return@launch
-            promptStore.recordFetchedFeedbackState(
-                identityKey = identityKey,
-                feedbackState = feedbackState,
-                nowMillis = System.currentTimeMillis()
-            )
+            reportAutomaticPromptShown()
         }
     }
 
@@ -208,14 +198,9 @@ class FeedbackPromptController(
 
         appScope.launch {
             try {
-                val feedbackState = feedbackRepository.submitFeedback(
+                feedbackRepository.submitFeedback(
                     trigger = currentUiState.trigger,
                     message = trimmedMessage
-                )
-                promptStore.recordFeedbackSubmitted(
-                    identityKey = identityKey,
-                    feedbackState = feedbackState,
-                    nowMillis = System.currentTimeMillis()
                 )
                 promptStore.clearDraftMessage(identityKey = identityKey)
                 uiStateMutable.value = FeedbackPromptUiState(
@@ -243,75 +228,6 @@ class FeedbackPromptController(
         }
     }
 
-    private suspend fun reevaluateAutomaticPrompt(canPresent: () -> Boolean) {
-        val nowMillis = System.currentTimeMillis()
-        val context = contextMutable.value
-        if (uiStateMutable.value.isVisible || !canPresent()) {
-            return
-        }
-
-        val identityKey = feedbackPromptIdentityKeyProvider()
-        val localDayWindow = feedbackPromptLocalDayWindow(
-            nowMillis = nowMillis,
-            zoneId = ZoneId.systemDefault()
-        )
-        val reviewActivity = reviewRepository.loadFeedbackPromptReviewActivity(
-            currentLocalDayStartMillis = localDayWindow.startMillis,
-            nextLocalDayStartMillis = localDayWindow.endMillis
-        )
-        var promptState = promptStore.loadState(identityKey = identityKey)
-        if (
-            isAutomaticFeedbackPromptLocallyEligible(
-                reviewActivity = reviewActivity,
-                promptState = promptState,
-                nowMillis = nowMillis,
-                context = context
-            ).not()
-        ) {
-            return
-        }
-
-        if (shouldFetchFeedbackState(promptState = promptState, nowMillis = nowMillis)) {
-            if (canAttemptFeedbackStateFetch(promptState = promptState, nowMillis = nowMillis).not()) {
-                return
-            }
-            when (val result = loadFeedbackStateForAutomaticPrompt()) {
-                FeedbackStateFetchResult.Failed -> {
-                    promptStore.recordFeedbackStateFetchAttempt(
-                        identityKey = identityKey,
-                        nowMillis = System.currentTimeMillis()
-                    )
-                    return
-                }
-                FeedbackStateFetchResult.NoExistingCloudSession -> Unit
-                is FeedbackStateFetchResult.Loaded -> {
-                    promptStore.recordFetchedFeedbackState(
-                        identityKey = identityKey,
-                        feedbackState = result.feedbackState,
-                        nowMillis = System.currentTimeMillis()
-                    )
-                    promptState = promptStore.loadState(identityKey = identityKey)
-                }
-            }
-        }
-
-        if (
-            isAutomaticFeedbackPromptLocallyEligible(
-                reviewActivity = reviewActivity,
-                promptState = promptState,
-                nowMillis = System.currentTimeMillis(),
-                context = contextMutable.value
-            ).not()
-        ) {
-            return
-        }
-        if (uiStateMutable.value.isVisible || !canPresent()) {
-            return
-        }
-
-        showAutomaticPrompt(identityKey = identityKey)
-    }
-
     private fun showAutomaticPrompt(identityKey: FeedbackPromptIdentityKey) {
         automaticPromptShownEventRecorded.set(false)
         activeFeedbackPromptIdentityKeyMutable.value = identityKey
@@ -324,27 +240,8 @@ class FeedbackPromptController(
         )
     }
 
-    private suspend fun loadFeedbackStateForAutomaticPrompt(): FeedbackStateFetchResult {
-        return try {
-            val feedbackState = feedbackRepository.loadFeedbackStateForExistingCloudSession()
-            if (feedbackState == null) {
-                FeedbackStateFetchResult.NoExistingCloudSession
-            } else {
-                FeedbackStateFetchResult.Loaded(feedbackState = feedbackState)
-            }
-        } catch (error: CancellationException) {
-            throw error
-        } catch (error: Exception) {
-            captureAutomaticFeedbackPromptException(
-                error = error,
-                promptAction = AndroidFeedbackPromptAction.AUTOMATIC_FEEDBACK_STATE_LOAD_FAILED
-            )
-            FeedbackStateFetchResult.Failed
-        }
-    }
-
-    private suspend fun recordAutomaticPromptShownOrNull(): CloudFeedbackState? {
-        return try {
+    private suspend fun reportAutomaticPromptShown() {
+        try {
             feedbackRepository.recordAutomaticPromptShownForExistingCloudSession()
         } catch (error: CancellationException) {
             throw error
@@ -353,7 +250,6 @@ class FeedbackPromptController(
                 error = error,
                 promptAction = AndroidFeedbackPromptAction.AUTOMATIC_PROMPT_SHOWN_RECORD_FAILED
             )
-            null
         }
     }
 
@@ -411,10 +307,4 @@ private fun shouldSkipAutomaticFeedbackPromptExceptionCapture(error: Throwable):
 
 private fun isAutomaticPromptContextBlocked(context: FeedbackPromptContext): Boolean {
     return context.isAppResumed.not() || context.isAuthFlowActive || context.isAppModalActive
-}
-
-private sealed interface FeedbackStateFetchResult {
-    data class Loaded(val feedbackState: CloudFeedbackState) : FeedbackStateFetchResult
-    data object NoExistingCloudSession : FeedbackStateFetchResult
-    data object Failed : FeedbackStateFetchResult
 }

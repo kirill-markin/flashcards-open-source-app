@@ -4,11 +4,7 @@ import {
   type ReviewEventCohort,
   type ReviewEventPlatform,
 } from "../adminApi";
-import type {
-  CatalogInstallDeviceCategory,
-  CatalogInstallPlacement,
-  CatalogInstallSource,
-} from "../reports/catalogInstallFunnel/query";
+import type { CatalogInstallPlacement } from "../reports/catalogInstallFunnel/query";
 import type { AnalyticsArea } from "../routing";
 
 // The one filter vocabulary every analytics area shares. It is declarative on purpose: it names the
@@ -24,6 +20,15 @@ import type { AnalyticsArea } from "../routing";
 // How much of a version UUID the deck-version filter's summary shows to tell two picked versions of
 // one deck apart.
 export const deckVersionDiscriminatorLength = 8;
+
+// The marketing site's acquisition vocabulary, as `productAnalyticsSiteDeviceCategories` and
+// `productAnalyticsSiteSources` in `apps/backend/src/productAnalytics/catalog.ts` declare it. The
+// catalog click fields read it too, off the site's `catalog_install_clicked`.
+export const siteDeviceCategories = ["desktop", "mobile", "tablet", "unknown"] as const;
+export const siteSources = ["direct", "search", "social", "ai_assistant", "referral", "internal", "unknown"] as const;
+
+export type SiteDeviceCategory = (typeof siteDeviceCategories)[number];
+export type SiteSource = (typeof siteSources)[number];
 
 export type AnalyticsDateRange = Readonly<{
   from: string;
@@ -101,20 +106,40 @@ export function parseAcceptedMinimumCount(rawMinimumCount: string): number | und
  */
 export type AnalyticsFilterState = Readonly<{
   dateRange: AnalyticsDateRange;
-  /** The Funnels area's second range, drawn beside `dateRange` as series B; `null` is no comparison. */
+  /** The Journeys area's second range, drawn beside `dateRange` as series B; `null` is no comparison. */
   comparisonDateRange: AnalyticsDateRange | null;
   users: ReadonlyArray<string>;
   userCohorts: ReadonlyArray<ReviewEventCohort>;
   eventPlatforms: ReadonlyArray<ReviewEventPlatform>;
+  appVersions: ReadonlyArray<string>;
   minimumEventCounts: ReadonlyArray<AnalyticsMinimumEventCount>;
   connectionCountries: ReadonlyArray<string>;
   appUiLanguages: ReadonlyArray<string>;
   installedDecks: ReadonlyArray<string>;
   catalogPlacements: ReadonlyArray<CatalogInstallPlacement>;
-  catalogSources: ReadonlyArray<CatalogInstallSource>;
-  catalogDeviceCategories: ReadonlyArray<CatalogInstallDeviceCategory>;
+  catalogSources: ReadonlyArray<SiteSource>;
+  catalogDeviceCategories: ReadonlyArray<SiteDeviceCategory>;
   catalogClickBrowserLanguages: ReadonlyArray<string>;
+  siteDeviceCategories: ReadonlyArray<SiteDeviceCategory>;
+  siteSources: ReadonlyArray<SiteSource>;
+  siteCountries: ReadonlyArray<string>;
+  siteBrowserLanguages: ReadonlyArray<string>;
+  sitePageKinds: ReadonlyArray<string>;
 }>;
+
+/** The fields that narrow marketing-site visitors by a value of their first page view. */
+export type SiteVisitorFilterState = Pick<
+  AnalyticsFilterState,
+  "siteDeviceCategories" | "siteSources" | "siteCountries" | "siteBrowserLanguages" | "sitePageKinds"
+>;
+
+export const defaultSiteVisitorFilterState: SiteVisitorFilterState = {
+  siteDeviceCategories: [],
+  siteSources: [],
+  siteCountries: [],
+  siteBrowserLanguages: [],
+  sitePageKinds: [],
+};
 
 /**
  * Every field the shared filter bar offers, which is every field of the selection: a field added to
@@ -132,6 +157,7 @@ const analyticsFilterFieldOrder = {
   users: true,
   userCohorts: true,
   eventPlatforms: true,
+  appVersions: true,
   minimumEventCounts: true,
   connectionCountries: true,
   appUiLanguages: true,
@@ -140,6 +166,11 @@ const analyticsFilterFieldOrder = {
   catalogSources: true,
   catalogDeviceCategories: true,
   catalogClickBrowserLanguages: true,
+  siteDeviceCategories: true,
+  siteSources: true,
+  siteCountries: true,
+  siteBrowserLanguages: true,
+  sitePageKinds: true,
 } as const satisfies Readonly<Record<AnalyticsFilterField, true>>;
 
 /** Every field, in the order the filter bar offers them. */
@@ -147,7 +178,7 @@ export const analyticsFilterFields: ReadonlyArray<AnalyticsFilterField> = Object
   analyticsFilterFieldOrder,
 ) as Array<AnalyticsFilterField>;
 
-// The Funnels bar is shared by every funnel on the area, so it offers only the fields they all
+// The Journeys bar is shared by every funnel on the area, so it offers only the fields they all
 // share. The users, cohort and threshold fields ask something only an account answers, and a funnel's
 // top steps happen before sign-in, so they are absent rather than empty. Every field takes a side here
 // for the same reason the order above is exhaustive.
@@ -157,6 +188,7 @@ const funnelsAnalyticsFilterFieldApplicability = {
   users: false,
   userCohorts: false,
   eventPlatforms: true,
+  appVersions: false,
   minimumEventCounts: false,
   connectionCountries: true,
   appUiLanguages: true,
@@ -165,33 +197,82 @@ const funnelsAnalyticsFilterFieldApplicability = {
   catalogSources: false,
   catalogDeviceCategories: false,
   catalogClickBrowserLanguages: false,
+  siteDeviceCategories: false,
+  siteSources: false,
+  siteCountries: false,
+  siteBrowserLanguages: false,
+  sitePageKinds: false,
 } as const satisfies Readonly<Record<AnalyticsFilterField, boolean>>;
 
 const funnelsAnalyticsFilterFields: ReadonlyArray<AnalyticsFilterField> = analyticsFilterFields
   .filter((field) => funnelsAnalyticsFilterFieldApplicability[field]);
 
-// Review prompts count showings: a showing carries its own platform and belongs to one person, which
-// is all these fields ask. The table draws no second series, and the person-level fields Funnels
+// Review prompts count showings: a showing carries its own platform and app version and belongs to one
+// person, which is all these fields ask. The table draws no second series, and the person-level fields Journeys
 // leaves out are left out here for the same reason.
 const reviewPromptsAnalyticsFilterFields: ReadonlyArray<AnalyticsFilterField> = [
   "dateRange",
   "eventPlatforms",
+  "appVersions",
   "connectionCountries",
   "appUiLanguages",
 ];
 
-// A prompt's Details page draws its funnels on a second range too, as the Funnels area does.
-export const reviewPromptDetailsAnalyticsFilterFields: ReadonlyArray<AnalyticsFilterField> = [
+// Study depth counts reviews: a review carries its own platform, and the country and language judge
+// its person, because a server-derived `review_answered` row records neither.
+const studyDepthAnalyticsFilterFields: ReadonlyArray<AnalyticsFilterField> = [
   "dateRange",
-  "comparisonDateRange",
   "eventPlatforms",
   "connectionCountries",
   "appUiLanguages",
 ];
 
-// General and Audience draw no second series a comparison range could fill.
+// A prompt's Details page draws its funnels on a second range too, as the Journeys area does.
+export const reviewPromptDetailsAnalyticsFilterFields: ReadonlyArray<AnalyticsFilterField> = [
+  "dateRange",
+  "comparisonDateRange",
+  "eventPlatforms",
+  "appVersions",
+  "connectionCountries",
+  "appUiLanguages",
+];
+
+// The Who saw us Web engaged page narrows its marketing-site visitors by their first page view.
+export const webEngagedAnalyticsFilterFields: ReadonlyArray<AnalyticsFilterField> = [
+  "dateRange",
+  "siteDeviceCategories",
+  "siteSources",
+  "siteCountries",
+  "siteBrowserLanguages",
+  "sitePageKinds",
+];
+
+// General and Audience draw no second series a comparison range could fill, and count people rather
+// than marketing-site visitors. Every field takes a side here for the same reason as on Journeys.
+const userScopedAnalyticsFilterFieldApplicability = {
+  dateRange: true,
+  comparisonDateRange: false,
+  users: true,
+  userCohorts: true,
+  eventPlatforms: true,
+  appVersions: false,
+  minimumEventCounts: true,
+  connectionCountries: true,
+  appUiLanguages: true,
+  installedDecks: true,
+  catalogPlacements: true,
+  catalogSources: true,
+  catalogDeviceCategories: true,
+  catalogClickBrowserLanguages: true,
+  siteDeviceCategories: false,
+  siteSources: false,
+  siteCountries: false,
+  siteBrowserLanguages: false,
+  sitePageKinds: false,
+} as const satisfies Readonly<Record<AnalyticsFilterField, boolean>>;
+
 const userScopedAnalyticsFilterFields: ReadonlyArray<AnalyticsFilterField> = analyticsFilterFields
-  .filter((field) => field !== "comparisonDateRange");
+  .filter((field) => userScopedAnalyticsFilterFieldApplicability[field]);
 
 // `ai-usage` offers the date range and nothing else, and the omissions are a decision rather than
 // unfinished wiring. That area plots one dot per person from two sources at once - review events and
@@ -202,17 +283,23 @@ const userScopedAnalyticsFilterFields: ReadonlyArray<AnalyticsFilterField> = ana
 // on screen beside its own two controls.
 const aiUsageAnalyticsFilterFields: ReadonlyArray<AnalyticsFilterField> = ["dateRange"];
 
-// `level-1-metrics` offers the date range alone, by decision: its chart adds marketing-site visitors
-// to store-reported aggregates, which carry no person, platform or locale a field could narrow.
-const levelOneMetricsAnalyticsFilterFields: ReadonlyArray<AnalyticsFilterField> = ["dateRange"];
+// `level-1-metrics` offers the date range and the platform, which every chart there can answer, and
+// the app version, which only the app open and study charts can; how each one reads them is the
+// explanation below. The Who saw us dataset pages draw one source that is a platform already, so they
+// offer `whoSawUsDatasetAnalyticsFilterFields` instead, and the Web engaged page
+// `webEngagedAnalyticsFilterFields`.
+const levelOneMetricsAnalyticsFilterFields: ReadonlyArray<AnalyticsFilterField> = ["dateRange", "eventPlatforms", "appVersions"];
+
+export const whoSawUsDatasetAnalyticsFilterFields: ReadonlyArray<AnalyticsFilterField> = ["dateRange"];
 
 export const analyticsFilterFieldsByArea: Readonly<
   Record<AnalyticsArea, ReadonlyArray<AnalyticsFilterField>>
 > = {
   "level-1-metrics": levelOneMetricsAnalyticsFilterFields,
   general: userScopedAnalyticsFilterFields,
-  funnels: funnelsAnalyticsFilterFields,
+  journeys: funnelsAnalyticsFilterFields,
   "review-prompts": reviewPromptsAnalyticsFilterFields,
+  "study-depth": studyDepthAnalyticsFilterFields,
   audience: userScopedAnalyticsFilterFields,
   "ai-usage": aiUsageAnalyticsFilterFields,
 };
@@ -226,6 +313,7 @@ const analyticsFilterFieldLabels: Readonly<Record<AnalyticsFilterField, string>>
   users: "Specific users",
   userCohorts: "New vs returning users",
   eventPlatforms: "Client platform of events",
+  appVersions: "App version",
   minimumEventCounts: "Users with at least N events",
   connectionCountries: "Connection country of the user",
   appUiLanguages: "App interface language of the user",
@@ -234,6 +322,11 @@ const analyticsFilterFieldLabels: Readonly<Record<AnalyticsFilterField, string>>
   catalogSources: "Catalog traffic source",
   catalogDeviceCategories: "Device category at catalog click",
   catalogClickBrowserLanguages: "Browser language at catalog click",
+  siteDeviceCategories: "Device",
+  siteSources: "Traffic source",
+  siteCountries: "Country",
+  siteBrowserLanguages: "Browser language",
+  sitePageKinds: "Landing page type",
 };
 
 // What the four click-based catalog fields all have to say, because the evidence behind them is one
@@ -248,7 +341,7 @@ const catalogClickAttributionExplanationTail =
   "Attribution covers completed installs only, so a click that never became an install can never match here, and an install whose click was never recorded carries no click values at all.";
 
 // Shown next to each filter, so it has to be readable by someone who never opens this code. These are
-// the wordings of the user-scoped areas, where a row is a person or an event of a person; `funnels`
+// the wordings of the user-scoped areas, where a row is a person or an event of a person; `journeys`
 // overrides the ones whose meaning genuinely changes there.
 //
 // Two or three sentences each, on purpose: what the field counts, then the one thing that would
@@ -257,9 +350,9 @@ const catalogClickAttributionExplanationTail =
 const analyticsFilterFieldExplanations: Readonly<Record<AnalyticsFilterField, string>> = {
   dateRange:
     "Counts only events whose UTC calendar day falls inside this range. Both the first and the last day are included, and the day is the UTC day rather than the reader's own.",
-  // Offered on Funnels and on review prompt Details pages only.
+  // Offered on Journeys and on review prompt Details pages only.
   comparisonDateRange:
-    "An optional second entry range, empty by default. When it is set, every funnel is counted again on it with every other filter unchanged, and drawn beside the main range as series B, each series measured from its own first step.",
+    "An optional second entry range, empty by default. When it is set, every funnel is counted again on it with every other filter unchanged, and drawn beside the main range as series B, each series measured from its own first step. On Retention it draws a second, lighter curve whose cohort is the people whose day 0 falls in this range.",
   users:
     "Keeps only events produced by the people you pick. The match is on the resolved actor id, so a guest and the account that guest became stay one person; picking nobody keeps every user.",
   // The on-screen sentence now carries the split rule itself, including its one exception.
@@ -281,6 +374,9 @@ const analyticsFilterFieldExplanations: Readonly<Record<AnalyticsFilterField, st
   // data because its events are judged by the platform their own row carries.
   eventPlatforms:
     "Keeps only events recorded on the client platforms you pick, read from the event row itself, where unattributed is the bucket for every event that carries no resolved device. The catalog install event never carries a platform, so picking any device platform empties the Catalog deck installs section.",
+  // Level 1 metrics' wording; Review prompts overrides it.
+  appVersions:
+    "Who opened the app counts a person on a day only for an app open on a version you pick, and Who studied counts a person in a bar only when their last app open there, on a selected platform, is on a version you pick, so someone with no app open in the bar, such as an agent-only learner, drops out. New vs returning still reads their first use on any version. Who paid us and Who saw us carry no app version and are not narrowed by it; picking nothing keeps every version.",
   // Cut from the on-screen text, and the expensive part of this field:
   // - app opens are counted as stored event rows, and reconstructed history adds at most one
   //   synthetic app open per person per UTC day, written only where the live client series holds
@@ -332,6 +428,18 @@ const analyticsFilterFieldExplanations: Readonly<Record<AnalyticsFilterField, st
   catalogClickBrowserLanguages:
     "Keeps only users who completed a catalog install whose originating click reported one of the browser languages you pick, counted over their whole history; it is the browser setting at click time rather than the language the app is used in."
     + ` ${catalogClickAttributionExplanationTail}`,
+  // Offered on the Who saw us Web engaged page only. The unit is the one every chart there counts a
+  // visitor once in, the rule `buildSiteFirstViewsCtesSql` owns.
+  siteDeviceCategories:
+    "Keeps only the visitors whose first page view in the bar, or in the day for a cookieless visitor, came from a device category you pick, so a visitor who later switches devices counts only under the first. The site reads it from the browser's user agent: tablets include iPads that report themselves as a Mac, and an Android tablet in desktop-site mode counts as desktop. Picking nothing keeps every device.",
+  siteSources:
+    "Keeps only the visitors whose first page view in the bar, or in the day for a cookieless visitor, arrived from a traffic source you pick, so a visitor who later comes back another way counts only under the first. The site classifies it from the page's referrer: ai_assistant is a known AI assistant site, such as chatgpt.com, or a link whose utm_source names one, and internal is a link from another page of the site. Picking nothing keeps every source.",
+  siteCountries:
+    "Keeps only the visitors whose first page view in the bar, or in the day for a cookieless visitor, came from a country you pick, the one the site's collector derived from the request of that view. Views stored before late September 2026, and requests it could not place, are Unknown. Picking nothing keeps every country.",
+  siteBrowserLanguages:
+    "Keeps only the visitors whose first page view in the bar, or in the day for a cookieless visitor, reported a browser language you pick: the language part of the browser's locale, such as en from en-US, not the language of the page they opened. A view without a reported locale is Unknown. Picking nothing keeps every language.",
+  sitePageKinds:
+    "Keeps only the visitors whose first page view in the bar, or in the day for a cookieless visitor, was on a page type you pick, as the site reports it, such as home or blog_article. Picking nothing keeps every page type.",
 };
 
 // The date range changes meaning on most funnels: it places an entry by the event that anchors it and
@@ -341,15 +449,15 @@ const funnelsAnalyticsFilterFieldExplanations: Readonly<
   Partial<Record<AnalyticsFilterField, string>>
 > = {
   dateRange:
-    "Selects who enters most funnels by the UTC calendar day of the event that anchors them rather than bounding every event counted here, with the first and the last day both included. Their later steps still count for at least seven days after that anchoring event, so it can have happened past the last selected day, and a range whose last days are less than seven days old is still filling rather than finished. The anchor is a person's first app launch on iOS, Android or web in the first launch funnel, a person's first deck install inside the range for the deck funnel's review steps, their first sign-in method choice in the sign-in funnel, and their first paywall shown in the paywall funnel. The deck funnel's page view, click and install steps count only events inside the range. The blog funnel has no anchor: it counts the people who viewed a blog article inside the selected days, and each later step only inside those same days.",
+    "Selects who enters most funnels by the UTC calendar day of the event that anchors them rather than bounding every event counted here, with the first and the last day both included. Their later steps still count for at least seven days after that anchoring event, so it can have happened past the last selected day, and a range whose last days are less than seven days old is still filling rather than finished. The anchor is a person's first app launch on iOS, Android or web in the first launch funnel, a person's first deck install inside the range for the deck funnel's review steps, their first sign-in method choice in the sign-in funnel, and their first paywall shown in the paywall funnel. The deck funnel's page view, click and install steps count only events inside the range. The blog funnel has no anchor: it counts the people who viewed a blog article inside the selected days, and each later step only inside those same days. On Retention it selects the cohort by day 0, a person's first-ever answered review, or first app launch on the opened-the-app curve, and each day N after it counts even past the last selected day.",
   eventPlatforms:
-    "In the first launch funnel, keeps only the people whose first app launch was on one of the platforms you pick, so a selection without iOS, Android or web empties it. In the blog funnel, reads the blog article page view, which the site always reports as web, so a selection without web empties it. In the deck funnel, narrows the deck page views and install clicks, which the public collector stamps as web itself, so picking any other platform on its own empties those two steps; a server install carries no platform, so the install and review steps ignore it.",
+    "In the first launch funnel, keeps only the people whose first app launch was on one of the platforms you pick, so a selection without iOS, Android or web empties it. In the blog funnel, reads the blog article page view, which the site always reports as web, so a selection without web empties it. In the deck funnel, narrows the deck page views and install clicks, which the public collector stamps as web itself, so picking any other platform on its own empties those two steps; a server install carries no platform, so the install and review steps ignore it. On Retention, keeps only the people whose day 0 was on a platform you pick, while their later activity counts on any platform.",
   // Every funnel applies both on the identity it counts, the way General applies them; a
   // cookieless visitor of the deck and blog funnels has no identity and answers both from the row.
   connectionCountries:
-    "Narrows every funnel to people seen connecting from the countries you pick, which is connection geography rather than residence or nationality. Picking nothing keeps every country.",
+    "Narrows every funnel to people seen connecting from the countries you pick, which is connection geography rather than residence or nationality. On Retention it narrows only who enters the cohort, so their later activity counts from anywhere. Picking nothing keeps every country.",
   appUiLanguages:
-    "Narrows every funnel to people whose events recorded one of the app interface languages you pick. Picking nothing keeps every language.",
+    "Narrows every funnel to people whose events recorded one of the app interface languages you pick. On Retention it narrows only who enters the cohort, so their later activity counts in any language. Picking nothing keeps every language.",
 };
 
 // A showing is placed by its own day and platform, while Acted and Gone look past it, so the shared
@@ -363,10 +471,27 @@ const reviewPromptsAnalyticsFilterFieldExplanations: Readonly<
     "An optional second range of showings, empty by default. When it is set, every funnel on a prompt's Details page is counted again on it with every other filter unchanged, and drawn beside the main range as series B; the daily outcome chart stays on the main range.",
   eventPlatforms:
     "Keeps only the showings recorded on the client platforms you pick, read from the showing itself. Each prompt runs only on some platforms, so a selection without them empties its row.",
+  appVersions:
+    "Keeps only the showings recorded on the app versions you pick, read from the showing itself as the platform is. A showing that recorded no version drops out once any version is picked; picking nothing keeps every version.",
   connectionCountries:
     "Keeps only showings of people seen connecting from the countries you pick, which is connection geography rather than residence or nationality. Picking nothing keeps every country.",
   appUiLanguages:
     "Keeps only showings of people whose events inside the selected date range recorded one of the app interface languages you pick. Picking nothing keeps every language.",
+};
+
+// The range picks the cohort by each person's first review, and everything after it is counted up to
+// now, so the shared "only events inside these days" wording would be false here.
+const studyDepthAnalyticsFilterFieldExplanations: Readonly<
+  Partial<Record<AnalyticsFilterField, string>>
+> = {
+  dateRange:
+    "Selects the cohort: the people whose first counted review falls on a UTC calendar day inside this range, both ends included. Their reviews and review days are then counted over their whole history up to now, past the last selected day. It opens on all time.",
+  eventPlatforms:
+    "Counts only the reviews recorded on the client platforms you pick, read from the review itself, so a person's first review is their first one on those platforms and their totals count only those reviews. A review with no resolved device is unattributed.",
+  connectionCountries:
+    "Keeps only people seen connecting from the countries you pick inside the selected range, which is connection geography rather than residence or nationality. A review carries no country of its own, so this judges the person and keeps all of their reviews. Detailed country history is kept for 90 days only. Picking nothing keeps every country.",
+  appUiLanguages:
+    "Keeps only people whose events inside the selected range recorded one of the app interface languages you pick. A review carries no language of its own, so this judges the person and keeps all of their reviews. Picking nothing keeps every language.",
 };
 
 // Audience renders neither the installs chart nor any other named section of General, so the shared
@@ -391,12 +516,15 @@ const aiUsageAnalyticsFilterFieldExplanations: Readonly<
 };
 
 // The store series are dated by the store's own report day rather than by an event, and their range can
-// start long before the website's, so the shared wording would be false here.
+// start long before the website's, and payments and store visitors carry no client platform, so both
+// shared wordings would be false here.
 const levelOneMetricsAnalyticsFilterFieldExplanations: Readonly<
   Partial<Record<AnalyticsFilterField, string>>
 > = {
   dateRange:
     "Shows only the UTC calendar days inside this range, both ends included. Website days come from page views and store days from the App Store and Google Play daily reports, so All time starts on the earliest day any of them has data.",
+  eventPlatforms:
+    "Who opened the app and Who studied count a person on a day only for an app open or answered review on a platform you pick, with Unresolved for one that carries no resolved device; new vs returning still reads their first use on any platform. Who paid us keeps the payments and cancellations of the matching stores: Apple for iOS, Google Play for Android and Stripe for web. Who saw us draws Web engaged for web, App Store for iOS and Google Play for Android, and Agent API or Unresolved adds no payment and no Who saw us series.",
 };
 
 const analyticsFilterFieldExplanationOverridesByArea: Readonly<
@@ -404,8 +532,9 @@ const analyticsFilterFieldExplanationOverridesByArea: Readonly<
 > = {
   "level-1-metrics": levelOneMetricsAnalyticsFilterFieldExplanations,
   general: {},
-  funnels: funnelsAnalyticsFilterFieldExplanations,
+  journeys: funnelsAnalyticsFilterFieldExplanations,
   "review-prompts": reviewPromptsAnalyticsFilterFieldExplanations,
+  "study-depth": studyDepthAnalyticsFilterFieldExplanations,
   audience: audienceAnalyticsFilterFieldExplanations,
   "ai-usage": aiUsageAnalyticsFilterFieldExplanations,
 };
@@ -422,7 +551,7 @@ export function getAnalyticsFilterFieldExplanation(
 // A label has to be a full phrase somebody can read without opening this file, so a field whose
 // subject genuinely changes in an area is renamed here rather than neutralised into a name that fits
 // everywhere and says nothing. The date range is that field: on the user-scoped areas it bounds the
-// events being counted, while on `funnels` it only places an entry by the event that anchors it, and
+// events being counted, while on `journeys` it only places an entry by the event that anchors it, and
 // the later steps run past it, which is what the explanation above says.
 const funnelsAnalyticsFilterFieldLabels: Readonly<
   Partial<Record<AnalyticsFilterField, string>>
@@ -440,6 +569,7 @@ const levelOneMetricsAnalyticsFilterFieldLabels: Readonly<
   Partial<Record<AnalyticsFilterField, string>>
 > = {
   dateRange: "Date range of the days shown",
+  eventPlatforms: "Platform",
 };
 
 const analyticsFilterFieldLabelOverridesByArea: Readonly<
@@ -447,8 +577,9 @@ const analyticsFilterFieldLabelOverridesByArea: Readonly<
 > = {
   "level-1-metrics": levelOneMetricsAnalyticsFilterFieldLabels,
   general: {},
-  funnels: funnelsAnalyticsFilterFieldLabels,
+  journeys: funnelsAnalyticsFilterFieldLabels,
   "review-prompts": { dateRange: "Date range of the showing" },
+  "study-depth": { dateRange: "First review of the person" },
   audience: {},
   "ai-usage": aiUsageAnalyticsFilterFieldLabels,
 };
@@ -473,6 +604,7 @@ export function buildDefaultAnalyticsFilterState(dateRange: AnalyticsDateRange):
     users: [],
     userCohorts: [...reviewEventCohorts],
     eventPlatforms: [...reviewEventPlatforms],
+    appVersions: [],
     minimumEventCounts: [],
     connectionCountries: [],
     appUiLanguages: [],
@@ -481,6 +613,7 @@ export function buildDefaultAnalyticsFilterState(dateRange: AnalyticsDateRange):
     catalogSources: [],
     catalogDeviceCategories: [],
     catalogClickBrowserLanguages: [],
+    ...defaultSiteVisitorFilterState,
   };
 }
 

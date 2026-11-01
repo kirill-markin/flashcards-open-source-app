@@ -34,6 +34,7 @@ import com.flashcardsopensourceapp.core.ui.theme.FlashcardsTheme
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressLeaderboardWindowKey
 import com.flashcardsopensourceapp.data.local.model.review.ReviewFilter
 import com.flashcardsopensourceapp.data.local.model.review.ReviewTagFilterOption
+import com.flashcardsopensourceapp.feature.review.NotificationPermissionPromptContinueAction
 import com.flashcardsopensourceapp.feature.review.R as ReviewStringResources
 import com.flashcardsopensourceapp.feature.review.ReviewEmptyState
 import com.flashcardsopensourceapp.feature.review.ReviewLeaderboardBadgeState
@@ -176,6 +177,7 @@ class ReviewRouteTest : FirebaseAppInstrumentationTimeoutTest() {
                     onRateEasy = {},
                     onDismissHardAnswerReminder = {},
                     onDismissErrorMessage = {},
+                    notificationPermissionPromptContinueAction = NotificationPermissionPromptContinueAction.REQUEST_PERMISSION,
                     onDismissNotificationPermissionPrompt = {},
                     onContinueNotificationPermissionPrompt = {}
                 )
@@ -494,6 +496,7 @@ private fun ReviewRouteTestContent(
             onRateEasy = {},
             onDismissHardAnswerReminder = {},
             onDismissErrorMessage = {},
+            notificationPermissionPromptContinueAction = NotificationPermissionPromptContinueAction.REQUEST_PERMISSION,
             onDismissNotificationPermissionPrompt = {},
             onContinueNotificationPermissionPrompt = {},
             onOpenLeaderboard = {},

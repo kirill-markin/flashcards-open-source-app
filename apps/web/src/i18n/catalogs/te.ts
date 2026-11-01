@@ -738,6 +738,10 @@ const teCatalog: TranslationCatalog = {
       description: "iOS, Android ఇన్‌స్టాల్ సూచనను ప్రివ్యూ చూడండి.",
       value: "ప్రివ్యూ",
     },
+    reviewPrompts: {
+      title: "పునశ్చరణ తర్వాతి ప్రాంప్ట్‌లు",
+      resetAll: "అన్ని ప్రాంప్ట్‌ల స్థితిని రీసెట్ చేయండి",
+    },
   },
   settingsWorkspace: {
     decks: {

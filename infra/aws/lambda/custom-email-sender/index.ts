@@ -1,5 +1,7 @@
+import type { Handler } from "aws-lambda";
 import { CommitmentPolicy, buildClient, KmsKeyringNode } from "@aws-crypto/client-node";
 import * as Sentry from "@sentry/aws-serverless";
+import { completeLambdaInvocation, runLambdaInvocation } from "../sentry-invocation";
 
 type TriggerSource =
   | "CustomEmailSender_Authentication"
@@ -143,10 +145,26 @@ function initializeCustomEmailSenderSentryWithDeps(
     tracesSampleRate: tracesSampleRateRaw === undefined || tracesSampleRateRaw.trim() === ""
       ? undefined
       : Number.parseFloat(tracesSampleRateRaw),
-    sendDefaultPii: false,
+    dataCollection: {
+      userInfo: false,
+      cookies: false,
+      httpHeaders: false,
+      httpBodies: [],
+      urlQueryParams: false,
+      graphQL: { document: false, variables: false },
+      genAI: { inputs: false, outputs: false },
+      mcp: { inputs: false, outputs: false },
+      databaseQueryData: false,
+      queues: false,
+      stackFrameVariables: false,
+      frameContextLines: 0,
+    },
+    traceLifecycle: "stream",
+    attachStacktrace: false,
     beforeSend: (event) => scrubCustomEmailSenderEvent(event),
   });
   Sentry.setTag("service", "custom-email-sender");
+  Sentry.setAttribute("service", "custom-email-sender");
 }
 
 initializeCustomEmailSenderSentryWithDeps(process.env, Sentry.init);
@@ -450,10 +468,13 @@ export async function handleCustomEmailSenderEvent(
   return event;
 }
 
-export const handler = Sentry.wrapHandler(
-  async (event: CustomEmailSenderEvent): Promise<CustomEmailSenderEvent> =>
-    handleCustomEmailSenderEvent(event, getEnvironment(), {
-      decryptCode: decryptSecretCode,
-      fetchFn: fetch,
-    }),
-);
+const customEmailSenderHandler = async (event: CustomEmailSenderEvent): Promise<CustomEmailSenderEvent> =>
+  handleCustomEmailSenderEvent(event, getEnvironment(), {
+    decryptCode: decryptSecretCode,
+    fetchFn: fetch,
+  });
+
+export const handler: Handler<CustomEmailSenderEvent, CustomEmailSenderEvent> =
+  (event, context) => runLambdaInvocation(event, context, (span) => Sentry.wrapHandler(
+    (invocationEvent: CustomEmailSenderEvent) => completeLambdaInvocation(span, () => customEmailSenderHandler(invocationEvent)),
+  )(event, context, () => {}));

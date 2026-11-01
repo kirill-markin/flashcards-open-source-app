@@ -31,9 +31,10 @@
  */
 
 /**
- * Mirrors `productAnalyticsSurfaces` in catalog order. Two values are kept only so the mirror stays
- * comparable to the catalog by eye: `notifications_pre_prompt`, the prompt above that this app does
- * not have, and `settings_legal`, a screen this app does have but never reports under its own value.
+ * Mirrors `productAnalyticsSurfaces` in catalog order. Three values are kept only so the mirror
+ * stays comparable to the catalog by eye: `notifications_pre_prompt`, the prompt above that this app
+ * does not have, `oauth_consent`, the auth origin's own page, and `settings_legal`, a screen this
+ * app does have but never reports under its own value.
  *
  * `signin` and `credential_recovery` are reachable, from `resolveRootGateReport` in `App.tsx`.
  * The email and code steps of signing in do live on the auth service's origin, but the catalog
@@ -58,6 +59,7 @@ export type AnalyticsSurface =
   | "tags"
   | "signin"
   | "credential_recovery"
+  | "oauth_consent"
   | "notifications_pre_prompt"
   | "signin_after_review_prompt"
   | "mobile_app_prompt"
@@ -291,6 +293,8 @@ export type AnalyticsEvent =
   | Readonly<{
     name: "screen_viewed";
     screen: AnalyticsSurface;
+    // The `version` of the review prompt config that chose an after-review prompt surface.
+    reviewPromptConfigVersion?: string;
   }>
   | Readonly<{
     name: "auth_method_selected";
@@ -493,6 +497,7 @@ export type AnalyticsEvent =
     contentVersion?: string;
     accountKind?: "guest" | "registered";
     offerType?: AnalyticsPurchaseOfferType;
+    reviewPromptConfigVersion?: string;
   }>
   | Readonly<{
     name: "paywall_choice";
@@ -607,7 +612,9 @@ export function buildAnalyticsEventProperties(event: AnalyticsEvent): AnalyticsE
     case "app_opened":
       return { launch_type: event.launchType };
     case "screen_viewed":
-      return null;
+      return event.reviewPromptConfigVersion === undefined
+        ? null
+        : { review_prompt_config_version: event.reviewPromptConfigVersion };
     case "auth_method_selected":
       return { method: event.method };
     case "auth_code_form_shown":
@@ -678,6 +685,9 @@ export function buildAnalyticsEventProperties(event: AnalyticsEvent): AnalyticsE
         ...(event.contentVersion === undefined ? {} : { content_version: event.contentVersion }),
         ...(event.accountKind === undefined ? {} : { account_kind: event.accountKind }),
         ...(event.offerType === undefined ? {} : { offer_type: event.offerType }),
+        ...(event.reviewPromptConfigVersion === undefined
+          ? {}
+          : { review_prompt_config_version: event.reviewPromptConfigVersion }),
       };
     case "paywall_choice":
       return { presentation_id: event.presentationId, entry_point: event.entryPoint, outcome: event.outcome,

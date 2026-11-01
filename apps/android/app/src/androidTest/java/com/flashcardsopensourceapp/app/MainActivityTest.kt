@@ -1,11 +1,14 @@
 package com.flashcardsopensourceapp.app
 
+import android.view.WindowInsets
 import androidx.annotation.PluralsRes
 import androidx.annotation.StringRes
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.assertContentDescriptionEquals
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsFocused
+import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsOff
 import androidx.compose.ui.test.assertIsOn
@@ -42,6 +45,9 @@ import com.flashcardsopensourceapp.feature.cards.cardEditorBackSummaryCardTag
 import com.flashcardsopensourceapp.feature.cards.cardEditorBackTextFieldTag
 import com.flashcardsopensourceapp.feature.cards.cardEditorFrontSummaryCardTag
 import com.flashcardsopensourceapp.feature.cards.cardEditorFrontTextFieldTag
+import com.flashcardsopensourceapp.feature.cards.cardEditorSaveButtonTag
+import com.flashcardsopensourceapp.feature.cards.cardTagsAddButtonTag
+import com.flashcardsopensourceapp.feature.cards.cardTagsInputFieldTag
 import com.flashcardsopensourceapp.feature.review.reviewAiCardButtonTag
 import com.flashcardsopensourceapp.feature.review.reviewEditCardButtonTag
 import com.flashcardsopensourceapp.feature.review.reviewEmptyStateContentTag
@@ -255,15 +261,7 @@ class MainActivityTest : FirebaseAppInstrumentationTimeoutTest() {
             editorFieldTag = cardEditorFrontTextFieldTag,
             value = "Updated Android card"
         )
-        scrollToText(text = "Save")
-        composeRule.waitUntil(timeoutMillis = uiTimeoutMillis) {
-            composeRule.onAllNodes(
-                matcher = hasClickAction().and(other = hasText("Save"))
-            ).fetchSemanticsNodes().isNotEmpty()
-        }
-        composeRule.onNode(
-            matcher = hasClickAction().and(other = hasText("Save"))
-        ).performClick()
+        saveCard()
 
         composeRule.waitUntil(timeoutMillis = uiTimeoutMillis) {
             composeRule.onAllNodesWithText("Updated Android card").fetchSemanticsNodes().isNotEmpty()
@@ -300,26 +298,18 @@ class MainActivityTest : FirebaseAppInstrumentationTimeoutTest() {
         waitForTagToExist(tag = cardEditorFrontTextFieldTag)
         recreateActivity()
         waitForTagToExist(tag = cardEditorFrontTextFieldTag)
-        composeRule.onNodeWithTag(cardEditorFrontTextFieldTag).performTextReplacement("Restored navigation card")
+        replaceTextFieldValue(tag = cardEditorFrontTextFieldTag, value = "Restored navigation card")
         tapVisibleBackButton()
 
         composeRule.onNodeWithText("Tags").performClick()
         waitForTextToExist(text = "Add a tag")
         recreateActivity()
         waitForTextToExist(text = "Add a tag")
-        composeRule.onNodeWithText("Add a tag").performTextInput("restored")
-        composeRule.onNodeWithText("Add tag").performClick()
+        replaceTextFieldValue(tag = cardTagsInputFieldTag, value = "restored")
+        composeRule.onNodeWithTag(cardTagsAddButtonTag).performScrollTo().performClick()
         tapVisibleBackButton()
 
-        scrollToText(text = "Save")
-        composeRule.waitUntil(timeoutMillis = uiTimeoutMillis) {
-            composeRule.onAllNodes(
-                matcher = hasClickAction().and(other = hasText("Save"))
-            ).fetchSemanticsNodes().isNotEmpty()
-        }
-        composeRule.onNode(
-            matcher = hasClickAction().and(other = hasText("Save"))
-        ).performClick()
+        saveCard()
         composeRule.waitUntil(timeoutMillis = uiTimeoutMillis) {
             composeRule.onAllNodesWithText("Search cards").fetchSemanticsNodes().isNotEmpty() &&
                 composeRule.onAllNodesWithText("Restored navigation card").fetchSemanticsNodes().isNotEmpty()
@@ -757,7 +747,7 @@ class MainActivityTest : FirebaseAppInstrumentationTimeoutTest() {
             cardsCount
         )
         composeRule.waitUntil(timeoutMillis = uiTimeoutMillis) {
-            searchFieldValue(tag = workspaceTagsSearchFieldTag) == tag &&
+            textFieldValue(tag = workspaceTagsSearchFieldTag) == tag &&
                 composeRule.onAllNodesWithTag(workspaceTagRowTag(tag = tag)).fetchSemanticsNodes().isNotEmpty() &&
                 composeRule.onAllNodesWithTag(
                     testTag = workspaceTagCardsCountTag(tag = tag),
@@ -773,7 +763,7 @@ class MainActivityTest : FirebaseAppInstrumentationTimeoutTest() {
         }
     }
 
-    private fun searchFieldValue(tag: String): String? {
+    private fun textFieldValue(tag: String): String? {
         return composeRule.onAllNodesWithTag(tag)
             .fetchSemanticsNodes()
             .firstOrNull()
@@ -798,20 +788,12 @@ class MainActivityTest : FirebaseAppInstrumentationTimeoutTest() {
         if (tags.isNotEmpty()) {
             composeRule.onNodeWithText("Tags").performClick()
             tags.forEach { tag ->
-                composeRule.onNodeWithText("Add a tag").performTextInput(tag)
-                composeRule.onNodeWithText("Add tag").performClick()
+                replaceTextFieldValue(tag = cardTagsInputFieldTag, value = tag)
+                composeRule.onNodeWithTag(cardTagsAddButtonTag).performScrollTo().performClick()
             }
             tapVisibleBackButton()
         }
-        scrollToText(text = "Save")
-        composeRule.waitUntil(timeoutMillis = uiTimeoutMillis) {
-            composeRule.onAllNodes(
-                matcher = hasClickAction().and(other = hasText("Save"))
-            ).fetchSemanticsNodes().isNotEmpty()
-        }
-        composeRule.onNode(
-            matcher = hasClickAction().and(other = hasText("Save"))
-        ).performClick()
+        saveCard()
         composeRule.waitUntil(timeoutMillis = uiTimeoutMillis) {
             composeRule.onAllNodesWithText("Search cards").fetchSemanticsNodes().isNotEmpty()
                 && composeRule.onAllNodesWithText(frontText).fetchSemanticsNodes().isNotEmpty()
@@ -943,9 +925,26 @@ class MainActivityTest : FirebaseAppInstrumentationTimeoutTest() {
     private fun updateCardText(summaryTag: String, editorFieldTag: String, value: String) {
         composeRule.onNodeWithTag(summaryTag).performScrollTo()
         composeRule.onNodeWithTag(summaryTag).performClick()
-        composeRule.onNodeWithTag(editorFieldTag).fetchSemanticsNode()
-        composeRule.onNodeWithTag(editorFieldTag).performTextReplacement(value)
+        replaceTextFieldValue(tag = editorFieldTag, value = value)
         tapVisibleBackButton()
+    }
+
+    private fun replaceTextFieldValue(tag: String, value: String) {
+        waitForTagToExist(tag = tag)
+        composeRule.onNodeWithTag(tag).assertIsDisplayed().performClick().assertIsFocused()
+        composeRule.onNodeWithTag(tag).performTextReplacement(value)
+        composeRule.waitUntil(timeoutMillis = uiTimeoutMillis) {
+            textFieldValue(tag = tag) == value
+        }
+    }
+
+    private fun saveCard() {
+        composeRule.onNode(hasScrollToNodeAction())
+            .performScrollToNode(hasTestTag(cardEditorSaveButtonTag))
+        composeRule.onNodeWithTag(cardEditorSaveButtonTag)
+            .assertIsDisplayed()
+            .assertIsEnabled()
+            .performClick()
     }
 
     private fun tapVisibleBackButton() {
@@ -953,6 +952,11 @@ class MainActivityTest : FirebaseAppInstrumentationTimeoutTest() {
             isSettingsBackButtonVisible()
         }
         tapSettingsBackButton()
+        composeRule.waitUntil(timeoutMillis = uiTimeoutMillis) {
+            composeRule.runOnIdle {
+                composeRule.activity.window.decorView.rootWindowInsets.isVisible(WindowInsets.Type.ime()).not()
+            }
+        }
     }
 
     private fun openSettingsRow(rowTag: String) {

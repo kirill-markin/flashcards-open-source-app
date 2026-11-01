@@ -44,22 +44,6 @@ extension LocalDatabase {
         try self.core.scalarInt(sql: "SELECT COUNT(*) FROM review_events", values: [])
     }
 
-    func hasReviewEvent(workspaceId: String, after date: Date) throws -> Bool {
-        try self.core.scalarInt(
-            sql: """
-            SELECT EXISTS(
-                SELECT 1
-                FROM review_events
-                WHERE workspace_id = ? AND reviewed_at_client > ?
-            )
-            """,
-            values: [
-                .text(workspaceId),
-                .text(formatIsoTimestamp(date: date))
-            ]
-        ) == 1
-    }
-
     func hasReviewEvent(workspaceId: String, start: Date, end: Date) throws -> Bool {
         try self.core.scalarInt(
             sql: """
@@ -75,50 +59,6 @@ extension LocalDatabase {
                 .text(formatIsoTimestamp(date: end))
             ]
         ) == 1
-    }
-
-    func loadFeedbackReviewActivitySummary(
-        workspaceId: String,
-        now: Date,
-        timeZone: TimeZone
-    ) throws -> FeedbackReviewActivitySummary {
-        var calendar = Calendar(identifier: .gregorian)
-        calendar.timeZone = timeZone
-        let currentDayStart = calendar.startOfDay(for: now)
-        guard let nextDayStart = calendar.date(byAdding: .day, value: 1, to: currentDayStart) else {
-            throw LocalStoreError.validation("Feedback review activity day boundary could not be computed")
-        }
-
-        let currentDayReviewCount = try self.core.scalarInt(
-            sql: """
-            SELECT COUNT(*)
-            FROM review_events
-            WHERE workspace_id = ? AND reviewed_at_client >= ? AND reviewed_at_client < ?
-            """,
-            values: [
-                .text(workspaceId),
-                .text(formatIsoTimestamp(date: currentDayStart)),
-                .text(formatIsoTimestamp(date: nextDayStart))
-            ]
-        )
-        let previousLocalReviewDayExists = try self.core.scalarInt(
-            sql: """
-            SELECT EXISTS(
-                SELECT 1
-                FROM review_events
-                WHERE workspace_id = ? AND reviewed_at_client < ?
-            )
-            """,
-            values: [
-                .text(workspaceId),
-                .text(formatIsoTimestamp(date: currentDayStart))
-            ]
-        ) == 1
-
-        return FeedbackReviewActivitySummary(
-            hasPreviousLocalReviewDay: previousLocalReviewDayExists,
-            currentLocalDayReviewCount: currentDayReviewCount
-        )
     }
 
     func loadActiveDecks(workspaceId: String) throws -> [Deck] {
@@ -173,6 +113,18 @@ extension LocalDatabase {
         now: Date
     ) throws -> ReviewCounts {
         try self.cardStore.loadReviewCounts(
+            workspaceId: workspaceId,
+            reviewQueryDefinition: reviewQueryDefinition,
+            now: now
+        )
+    }
+
+    func loadReviewOverdueSnapshot(
+        workspaceId: String,
+        reviewQueryDefinition: ReviewQueryDefinition,
+        now: Date
+    ) throws -> ReviewOverdueSnapshot {
+        try self.cardStore.loadReviewOverdueSnapshot(
             workspaceId: workspaceId,
             reviewQueryDefinition: reviewQueryDefinition,
             now: now
@@ -278,6 +230,10 @@ extension LocalDatabase {
 
     func loadAppWideReviewEventCount(start: Date, end: Date) throws -> Int {
         try self.cardStore.loadAppWideReviewEventCount(start: start, end: end)
+    }
+
+    func loadAppWideReviewDayCount(timeZone: TimeZone, dayStartHour: Int) throws -> Int {
+        try self.cardStore.loadAppWideReviewDayCount(timeZone: timeZone, dayStartHour: dayStartHour)
     }
 
     func loadCardsListSnapshot(

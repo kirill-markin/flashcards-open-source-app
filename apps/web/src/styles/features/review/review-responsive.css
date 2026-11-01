@@ -16,15 +16,7 @@
   }
 }
 
-@media (max-width: 768px) {
-  .review-layout {
-    grid-template-columns: 1fr;
-  }
-
-  .review-editor-overlay {
-    padding: 16px;
-  }
-
+@container review-screen (max-width: 768px) {
   .review-screen-head {
     flex-direction: row;
     flex-wrap: nowrap;
@@ -53,10 +45,35 @@
   .review-progress-shortcuts > .review-more-actions-trigger {
     display: inline-flex;
   }
+}
+
+@media (max-width: 768px) {
+  .review-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .review-editor-overlay {
+    padding: 16px;
+  }
 
   .review-pane,
   .review-queue-panel {
     --review-pane-padding: 10px;
+  }
+
+  /* The action dock sits on the bottom edge of the page. */
+  .container:has(> .review-screen-panel) {
+    padding-block-end: 0;
+  }
+
+  .review-screen-panel {
+    --review-screen-panel-height: 100%;
+    padding-block-end: 0;
+  }
+
+  /* The card, its tags and the action dock line up with the page title. */
+  .review-pane {
+    padding-inline: 0;
   }
 
   .review-pane-head-actions {
@@ -71,10 +88,5 @@
   .review-card-surface {
     min-height: 150px;
     padding: 12px;
-  }
-
-  /* Room for the floating AI chat pill, which on a phone rests just above the action dock. */
-  .review-card-stack {
-    padding-bottom: calc(var(--chat-toggle-floating-compact-height) + var(--shell-frame-gap));
   }
 }

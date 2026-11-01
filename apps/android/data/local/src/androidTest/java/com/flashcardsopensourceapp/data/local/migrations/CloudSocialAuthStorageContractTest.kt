@@ -160,25 +160,25 @@ class CloudSocialAuthStorageContractTest {
         val emailHint = requireNotNull(parseCloudEmailSignInHint(JSONObject().put("signInHint",
             JSONObject().put("method", "email").put("email", "proved@example.com"))))
         restarted.socialAuthStore.stageEmailSession(PendingCloudEmailSignIn(
-            configuration, "session-refresh", emailHint
+            configuration, "session-user", emailHint
         ))
         val emailRestarted = CloudPreferencesStore(context, database)
         assertNull(emailRestarted.socialAuthStore.loadHint(configuration))
-        emailRestarted.socialAuthStore.completeEmailSession(configuration, "session-refresh")
+        emailRestarted.socialAuthStore.completeEmailSession(configuration, "session-user")
         assertNull(emailRestarted.socialAuthStore.loadHint(configuration))
         restarted.saveCredentials(StoredCloudCredentials("session-refresh", "session-id", Long.MAX_VALUE))
-        emailRestarted.socialAuthStore.completeEmailSession(configuration, "foreign-refresh")
+        emailRestarted.socialAuthStore.completeEmailSession(configuration, "foreign-user")
         assertNull(emailRestarted.socialAuthStore.loadHint(configuration))
-        emailRestarted.socialAuthStore.completeEmailSession(configuration, "session-refresh")
+        emailRestarted.socialAuthStore.completeEmailSession(configuration, "session-user")
         assertEquals(emailHint, restarted.socialAuthStore.loadHint(configuration))
         restarted.socialAuthStore.stageEmailSession(PendingCloudEmailSignIn(
-            configuration, "session-refresh", emailHint
+            configuration, "session-user", emailHint
         ))
         CloudCredentialStore(context).update { secrets ->
             secrets.copy(pendingEmailSignIn = JSONObject(requireNotNull(secrets.pendingEmailSignIn))
                 .put("rememberSignIn", false).toString())
         }
-        emailRestarted.socialAuthStore.completeEmailSession(configuration, "session-refresh")
+        emailRestarted.socialAuthStore.completeEmailSession(configuration, "session-user")
         assertEquals(emailHint, restarted.socialAuthStore.loadHint(configuration))
         restarted.clearCredentialsRetainingSignInHint()
         val signedOut = CloudPreferencesStore(context, database)
@@ -186,11 +186,11 @@ class CloudSocialAuthStorageContractTest {
         assertNull(signedOut.socialAuthStore.loadPending())
         assertEquals(emailHint, signedOut.socialAuthStore.loadHint(configuration))
         signedOut.socialAuthStore.stageEmailSession(PendingCloudEmailSignIn(
-            configuration, "session-refresh", emailHint
+            configuration, "session-user", emailHint
         ))
         signedOut.clearCredentials()
         signedOut.saveCredentials(StoredCloudCredentials("session-refresh", "session-id", Long.MAX_VALUE))
-        restarted.socialAuthStore.completeEmailSession(configuration, "session-refresh")
+        restarted.socialAuthStore.completeEmailSession(configuration, "session-user")
         assertNull(restarted.socialAuthStore.loadHint(configuration))
     }
 

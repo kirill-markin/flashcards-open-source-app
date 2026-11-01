@@ -336,7 +336,7 @@ export function ProgressScreen(): ReactElement {
 
   return (
     <main className="container">
-      <section className="panel progress-panel">
+      <section className="panel screen-panel progress-panel">
         <div className="screen-head">
           <div>
             <h1 className="title">{t("progressScreen.title")}</h1>
@@ -347,82 +347,83 @@ export function ProgressScreen(): ReactElement {
           </button>
         </div>
 
-        {isLoading && progress === null ? <p className="subtitle">{t("loading.progress")}</p> : null}
+        <div className="screen-body">
+          {isLoading && progress === null ? <p className="subtitle">{t("loading.progress")}</p> : null}
 
-        {visibleProgressErrorMessage !== "" ? (
-          <>
-            <p className="error-banner">{visibleProgressErrorMessage}</p>
-          </>
-        ) : null}
+          {visibleProgressErrorMessage !== "" ? (
+            <>
+              <p className="error-banner">{visibleProgressErrorMessage}</p>
+            </>
+          ) : null}
 
-        {progress !== null ? (
-          <div className="progress-layout">
-            <ProgressStreakSection
-              title={t("progressScreen.streakTitle")}
-              sectionId={progressStreakHash}
-              sectionRef={streakSectionRef}
-              summary={progressStreakSummary}
-              infoText={progressStreakInfoText}
-              infoToggleLabel={t("progressScreen.streakInfoToggleLabel")}
-              isInfoVisible={isStreakInfoVisible}
-              onToggleInfo={() => setIsStreakInfoVisible((previous) => previous === false)}
-              streakWeeks={streakWeeks}
-              formatDayAriaLabel={formatProgressStreakDayAriaLabel}
-            />
-
-            <ProgressLeaderboardSection
-              sectionId={progressLeaderboardHash}
-              sectionRef={leaderboardSectionRef}
-              sourceState={progressSourceState.leaderboard}
-              canRenderServerBase={canRenderLeaderboardServerBase}
-              selectedWindowKey={selectedLeaderboardWindowKey}
-              onSelectWindowKey={setSelectedLeaderboardWindowKey}
-              isInfoVisible={isLeaderboardInfoVisible}
-              onToggleInfo={() => setIsLeaderboardInfoVisible((previous) => previous === false)}
-              onOpenProfile={handleOpenLeaderboardProfile}
-              onOpenInviteDialog={() => setIsInviteDialogOpen(true)}
-            />
-
-            <ProgressStreakLeaderboardSection
-              sourceState={progressSourceState.streakLeaderboard}
-              canRenderServerBase={canRenderLeaderboardServerBase}
-              isInfoVisible={isStreakLeaderboardInfoVisible}
-              onToggleInfo={() => setIsStreakLeaderboardInfoVisible((previous) => previous === false)}
-              onOpenProfile={handleOpenLeaderboardProfile}
-            />
-
-            <ProgressReviewsChartSection
-              title={t("progressScreen.reviewsTitle")}
-              pageRangeLabel={pageRangeLabel}
-              visiblePage={visiblePage}
-              chartGuideLabels={chartGuideLabels}
-              legendLabel={t("progressScreen.reviewsBreakdown.legendLabel")}
-              ratingLegendItems={chartRatingLegendItems}
-              selection={visibleReviewsChartSelection}
-              navigation={chartNavigation}
-              onSelectPageStartLocalDate={handleSelectChartPageStartLocalDate}
-              onSelectDay={handleSelectReviewsChartDay}
-              onSelectRating={handleSelectReviewsChartRating}
-              onClearSelection={handleClearReviewsChartSelection}
-            />
-
-            {reviewSchedule !== null ? (
-              <ProgressReviewScheduleSection
-                title={t("progressScreen.reviewSchedule.title")}
-                totalCardsLabel={t("progressScreen.reviewSchedule.totalCards", {
-                  count: formatNumber(reviewSchedule.totalCards),
-                })}
-                legendLabel={t("progressScreen.reviewSchedule.legendLabel")}
-                selectedBucket={selectedReviewScheduleBucket}
-                bucketViews={reviewScheduleBucketViews}
-                donutSegments={reviewScheduleDonutSegments}
-                onSelectBucket={handleSelectReviewScheduleBucket}
-                onClearSelection={handleClearReviewScheduleSelection}
+          {progress !== null ? (
+            <div className="progress-layout">
+              <ProgressStreakSection
+                title={t("progressScreen.streakTitle")}
+                sectionId={progressStreakHash}
+                sectionRef={streakSectionRef}
+                summary={progressStreakSummary}
+                infoText={progressStreakInfoText}
+                infoToggleLabel={t("progressScreen.streakInfoToggleLabel")}
+                isInfoVisible={isStreakInfoVisible}
+                onToggleInfo={() => setIsStreakInfoVisible((previous) => previous === false)}
+                streakWeeks={streakWeeks}
+                formatDayAriaLabel={formatProgressStreakDayAriaLabel}
               />
-            ) : null}
-          </div>
-        ) : null}
 
+              <ProgressLeaderboardSection
+                sectionId={progressLeaderboardHash}
+                sectionRef={leaderboardSectionRef}
+                sourceState={progressSourceState.leaderboard}
+                canRenderServerBase={canRenderLeaderboardServerBase}
+                selectedWindowKey={selectedLeaderboardWindowKey}
+                onSelectWindowKey={setSelectedLeaderboardWindowKey}
+                isInfoVisible={isLeaderboardInfoVisible}
+                onToggleInfo={() => setIsLeaderboardInfoVisible((previous) => previous === false)}
+                onOpenProfile={handleOpenLeaderboardProfile}
+                onOpenInviteDialog={() => setIsInviteDialogOpen(true)}
+              />
+
+              <ProgressStreakLeaderboardSection
+                sourceState={progressSourceState.streakLeaderboard}
+                canRenderServerBase={canRenderLeaderboardServerBase}
+                isInfoVisible={isStreakLeaderboardInfoVisible}
+                onToggleInfo={() => setIsStreakLeaderboardInfoVisible((previous) => previous === false)}
+                onOpenProfile={handleOpenLeaderboardProfile}
+              />
+
+              <ProgressReviewsChartSection
+                title={t("progressScreen.reviewsTitle")}
+                pageRangeLabel={pageRangeLabel}
+                visiblePage={visiblePage}
+                chartGuideLabels={chartGuideLabels}
+                legendLabel={t("progressScreen.reviewsBreakdown.legendLabel")}
+                ratingLegendItems={chartRatingLegendItems}
+                selection={visibleReviewsChartSelection}
+                navigation={chartNavigation}
+                onSelectPageStartLocalDate={handleSelectChartPageStartLocalDate}
+                onSelectDay={handleSelectReviewsChartDay}
+                onSelectRating={handleSelectReviewsChartRating}
+                onClearSelection={handleClearReviewsChartSelection}
+              />
+
+              {reviewSchedule !== null ? (
+                <ProgressReviewScheduleSection
+                  title={t("progressScreen.reviewSchedule.title")}
+                  totalCardsLabel={t("progressScreen.reviewSchedule.totalCards", {
+                    count: formatNumber(reviewSchedule.totalCards),
+                  })}
+                  legendLabel={t("progressScreen.reviewSchedule.legendLabel")}
+                  selectedBucket={selectedReviewScheduleBucket}
+                  bucketViews={reviewScheduleBucketViews}
+                  donutSegments={reviewScheduleDonutSegments}
+                  onSelectBucket={handleSelectReviewScheduleBucket}
+                  onClearSelection={handleClearReviewScheduleSelection}
+                />
+              ) : null}
+            </div>
+          ) : null}
+        </div>
         {/*
           Rendered here rather than inside the leaderboard section, which lives in the
           `progress !== null` subtree above. The dialog reports `friend_invite` as the screen on

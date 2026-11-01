@@ -8,6 +8,7 @@ import {
 import { FunnelSectionHeader } from "../funnels/FunnelSectionHeader";
 import type { FunnelSectionProps } from "../funnels/funnelSections";
 import {
+  formatPercentage,
   FunnelStepsChart,
   FunnelStepsEmptyChart,
   FunnelStepsLoadingChart,
@@ -15,6 +16,7 @@ import {
 import { buildFunnelEmptyRangeNote, buildFunnelRangeWarnings } from "../funnels/funnelWarnings";
 import { firstLaunchEngagedReviewThreshold } from "../firstLaunchFunnel/query";
 import {
+  catalogInstallActivationWindowHours,
   catalogInstallConversionWindowDays,
   catalogInstallFunnelStartDate,
   loadCatalogInstallFunnelReport,
@@ -25,20 +27,24 @@ import {
 } from "./reportModel";
 
 export { catalogInstallFunnelAnchor } from "./reportModel";
-export const catalogInstallFunnelTitle = "Deck page to install";
+export const catalogInstallFunnelTitle = "Deck click to activation";
 
 function getErrorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : "Unexpected deck page to install funnel error.";
+  return error instanceof Error ? error.message : "Unexpected deck click to activation funnel error.";
 }
 
 function buildStartDateNote(dateRange: AnalyticsFilterState["dateRange"]): string | null {
-  if (dateRange.to < catalogInstallFunnelStartDate) {
-    return `People count from ${catalogInstallFunnelStartDate}, the site's first full day of identified deck page views, so the selected range has no data.`;
-  }
-
   return dateRange.from < catalogInstallFunnelStartDate
-    ? `People count from ${catalogInstallFunnelStartDate}, the site's first full day of identified deck page views, so there is no data before that day.`
+    ? `Deck-page traffic coverage starts on ${catalogInstallFunnelStartDate}, the first full day of identified deck page views. Earlier traffic is unavailable; the click cohort still uses its recorded click history.`
     : null;
+}
+
+function formatCount(count: number): string {
+  return count.toLocaleString("en-US");
+}
+
+function formatRepeatCount(count: number, matureCount: number): string {
+  return matureCount === 0 ? "—" : `${formatCount(count)} (${formatPercentage(count, matureCount)})`;
 }
 
 export function CatalogInstallFunnelSection(props: FunnelSectionProps): JSX.Element {
@@ -55,9 +61,9 @@ export function CatalogInstallFunnelSection(props: FunnelSectionProps): JSX.Elem
   const warnings = useMemo(() => rangeViews.flatMap((range) => buildFunnelRangeWarnings(range, {
     "start-date": buildStartDateNote(range.dateRange),
     "country-start-date": buildHashedVisitorCountryStartDateNote(connectionCountries, range.dateRange),
-    maturing: range.report.maturingInstallerCount === 0
+    maturing: range.report.maturingClickerCount === 0
       ? null
-      : `${range.report.maturingInstallerCount.toLocaleString("en-US")} of ${range.report.installerCount.toLocaleString("en-US")} installers first installed less than ${catalogInstallConversionWindowDays} days ago; their review steps are still filling in.`,
+      : `${formatCount(range.report.maturingClickerCount)} clickers are still inside their ${catalogInstallActivationWindowHours}-hour activation window; their remaining steps are not confirmed drop-offs.`,
     empty: buildFunnelEmptyRangeNote(rangeViews, range),
   })), [connectionCountries, rangeViews]);
   const primaryRange = rangeViews[0];
@@ -73,18 +79,18 @@ export function CatalogInstallFunnelSection(props: FunnelSectionProps): JSX.Elem
 
       {loadState.status === "loading" ? (
         <FunnelStepsLoadingChart
-          countLabel="Visitors"
+          countLabel="First-ever clickers"
           dateRange={props.filters.dateRange}
           isGrouped={isComparing}
-          label="Loading deck page to install funnel…"
+          label="Loading deck click to activation funnel…"
         />
       ) : null}
       {isReady && hasEntries === false ? (
         <FunnelStepsEmptyChart
-          countLabel="Visitors"
+          countLabel="First-ever clickers"
           dateRange={props.filters.dateRange}
           isGrouped={isComparing}
-          note={<><strong>No deck page views, install clicks or installs match these filters.</strong><span>Cookieless visitors are counted here through their daily hash, so this is every deck page view in range, and no earlier traffic history is inferred from Vercel aggregates.</span></>}
+          note={<><strong>No first-ever eligible identified clicks match these filters.</strong><span>Independent traffic and installs appear in coverage below; missing identity cannot establish conversion.</span></>}
         />
       ) : null}
 
@@ -93,19 +99,72 @@ export function CatalogInstallFunnelSection(props: FunnelSectionProps): JSX.Elem
           anchor={catalogInstallFunnelAnchor}
           stages={primaryRange.stages}
           groups={groups}
-          countLabel="Visitors"
+          countLabel="First-ever clickers"
           dateRange={props.filters.dateRange}
         />
       ) : null}
 
       {isReady ? (
-        <details className="funnel-explainer">
-          <summary>How it&rsquo;s counted</summary>
-          <p>The first three steps are each counted on their own over the selected UTC days, from {catalogInstallFunnelStartDate}, with no link, order or time window between them, so a later step can be larger than an earlier one and a share can pass 100%. A deck page view and an install click count each visitor once: by the <code>analytics_visitor</code> cookie or account they carry, or, for a cookieless visitor, once per daily hash per UTC day, so a visitor who consents partway through a day counts twice. An install counts each person with a server-origin <code>catalog_deck_installed</code> once; every install comes through the web import page.</p>
-          <p>Only the four review steps are linked, to the people counted at the install: each person&rsquo;s reviews from their first install in range to seven days after it, anywhere in the product rather than in the installed deck, because <code>review_answered</code> names no deck: one review, two reviews, reviews on two UTC days, then {firstLaunchEngagedReviewThreshold} reviews over three UTC days. A person whose first install is less than seven days old is not a confirmed drop-off.</p>
-          <p>The client platform narrows the deck page views and install clicks, which the site always reports as web, so a selection without web empties those two steps; a server install carries no platform, so the install and review steps ignore it. The connection country and the app interface language keep an identified visitor or installer the way they keep a person on General, and keep a cookieless visitor by that row&rsquo;s own country and interface language.</p>
-          <p>The delisted test deck, test accounts, admins, excluded actors and detected automation are left out of every step. A cookieless visitor has no actor, so only the test-deck, automated-client and scraper-fleet rules reach them.</p>
-        </details>
+        <>
+          {rangeViews.map((range) => (
+            <p key={range.key} className="report-note">
+              <strong>{range.seriesLabel ?? `${range.dateRange.from} – ${range.dateRange.to}`}: </strong>
+              {formatCount(range.report.cohortClickerCount)} first-ever eligible identified clickers; {formatCount(range.report.maturingClickerCount)} still maturing at {range.report.observedAtUtc}.
+              {" "}Activation counts and shares are observed so far within {catalogInstallActivationWindowHours} hours of each click. Maturing clickers remain in the denominator; unfinished steps are not confirmed drop-offs.
+            </p>
+          ))}
+
+          <h3>Seven-day study after first click</h3>
+          <p>Any-card activity in the {catalogInstallConversionWindowDays} days after the same cohort&rsquo;s first click, whether or not a linked install was observed. Only clickers with full follow-up enter these counts and shares; maturing clickers are shown separately.</p>
+          <div className="table-scroll">
+            <table className="funnel-group-table">
+              <thead><tr><th scope="col">Click cohort (UTC)</th><th scope="col">Full 7 days</th><th scope="col">Maturing</th><th scope="col">1+ review</th><th scope="col">2+ reviews</th><th scope="col">2+ review days</th><th scope="col">{firstLaunchEngagedReviewThreshold}+ reviews on 3+ days</th></tr></thead>
+              <tbody>
+                {rangeViews.map(({ key, seriesLabel, dateRange, report }) => (
+                  <tr key={key}>
+                    <th scope="row">{seriesLabel ?? `${dateRange.from} – ${dateRange.to}`}</th>
+                    <td>{formatCount(report.matureRepeatClickerCount)}</td>
+                    <td>{formatCount(report.cohortClickerCount - report.matureRepeatClickerCount)}</td>
+                    <td>{formatRepeatCount(report.oneReviewClickerCount, report.matureRepeatClickerCount)}</td>
+                    <td>{formatRepeatCount(report.twoReviewsClickerCount, report.matureRepeatClickerCount)}</td>
+                    <td>{formatRepeatCount(report.twoReviewDaysClickerCount, report.matureRepeatClickerCount)}</td>
+                    <td>{formatRepeatCount(report.engagedReturningClickerCount, report.matureRepeatClickerCount)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          <h3>Independent coverage counts</h3>
+          <p>Each total counts its selected UTC days independently. These are coverage counts with no conversion ratios: installs may have no attributable click. Traffic combines identified visitors and cookieless visitor-days; consent partway through a day can count twice. Daily hashes cannot link a visitor across hosts.</p>
+          <div className="table-scroll">
+            <table className="funnel-group-table">
+              <thead><tr><th scope="col">Event range (UTC)</th><th scope="col">Deck-page visitors</th><th scope="col">Cookieless viewer-days</th><th scope="col">Install-click visitors</th><th scope="col">Cookieless clicker-days</th><th scope="col">Server installers (all acquisition platforms)</th></tr></thead>
+              <tbody>
+                {rangeViews.map(({ key, seriesLabel, dateRange, report }) => (
+                  <tr key={key}>
+                    <th scope="row">{seriesLabel ?? `${dateRange.from} – ${dateRange.to}`}</th>
+                    <td>{formatCount(report.deckPageViewerCount)}</td>
+                    <td>{formatCount(report.cookielessDeckPageViewerCount)}</td>
+                    <td>{formatCount(report.installClickerCount)}</td>
+                    <td>{formatCount(report.cookielessInstallClickerCount)}</td>
+                    <td>{formatCount(report.installerCount)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          <details className="funnel-explainer">
+            <summary>How it&rsquo;s counted</summary>
+            <p>The activation cohort contains each resolved actor&rsquo;s first-ever eligible web <code>catalog_install_clicked</code>, selected before the date and audience filters. It requires an actor, the original visitor <code>anonymous_id</code> and a package version. Every matching clicker stays in the denominator even if nothing else is observed. Repeated clicks do not create new cohort members.</p>
+            <p>A server <code>catalog_deck_installed</code> must name the clicked package version and occur after the click, within {catalogInstallActivationWindowHours} hours. Activation then requires a persisted <code>review_answered</code> at or after that installation and within the same {catalogInstallActivationWindowHours} hours from the click. Each clicker counts at most once per stage. This ordered activation metric differs from the experiment&rsquo;s any-review metric, which does not require installation.</p>
+            <p>Direct resolved actor matches count. A guest or account can also match through the click&rsquo;s original visitor id on a trusted web observation or a server installation of the clicked package, after the click and within follow-up. Activation uses only associations observed within {catalogInstallActivationWindowHours} hours; seven-day study can use associations observed within {catalogInstallConversionWindowDays} days. This is browser attribution, including possible account switches, without new identity links. Missing visitor identity and unlinked installs remain unattributable.</p>
+            <p>Reviews can be of any card: the facts carry no card or deck identity, so neither activation nor seven-day study measures retention in the installed deck. Review days are UTC dates. Follow-up can extend past the selected range end, up to the report observation time.</p>
+            <p>Client platform selects the acquisition click and all its outcomes; without web the cohort is empty. Independent server-install coverage has no acquisition platform and ignores that filter. Country and app interface language select the click actor using the shared person filters; independent identified traffic and install coverage use their own actors, and cookieless coverage uses each row&rsquo;s country and language.</p>
+            <p>The delisted test deck and the shared test-account, admin, excluded-actor and automation rules are excluded from the cohort and its study actors. Cookieless coverage has no actor, so only its test-deck, automated-client and scraper-fleet rules can reach it. Historical facts are read directly.</p>
+          </details>
+        </>
       ) : null}
     </section>
   );

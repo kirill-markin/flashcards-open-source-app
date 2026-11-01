@@ -132,6 +132,7 @@ class SentryAppObservabilityTest {
                 refreshAction = "progress_review_schedule_remote_load_failed",
                 scopeId = "linked:user-1",
                 source = "review_schedule_remote_load",
+                errorClass = "java.security.cert.CertPathValidatorException",
                 appVersion = testAppVersion,
                 clientVersion = testAppVersion,
                 versionCode = testVersionCode
@@ -192,7 +193,8 @@ class SentryAppObservabilityTest {
                 "progress_refresh_warning",
                 "progress_review_schedule_remote_load_failed",
                 "progress_review_schedule_remote_load_failed",
-                "no_status"
+                "no_status",
+                "java.security.cert.CertPathValidatorException"
             ),
             warningIssueFingerprint(event = progressWarning)
         )
@@ -222,15 +224,6 @@ class SentryAppObservabilityTest {
 
     @Test
     fun feedbackPromptExceptionFingerprintAndContextUseStablePromptFields(): Unit {
-        val stateLoadEvent: AndroidExceptionIssueEvent.FeedbackPromptException =
-            AndroidExceptionIssueEvent.FeedbackPromptException(
-                throwable = RuntimeException("state load failed"),
-                promptAction = AndroidFeedbackPromptAction.AUTOMATIC_FEEDBACK_STATE_LOAD_FAILED,
-                trigger = AndroidFeedbackPromptTrigger.AUTOMATIC,
-                appVersion = testAppVersion,
-                clientVersion = testAppVersion,
-                versionCode = testVersionCode
-            )
         val promptShownEvent: AndroidExceptionIssueEvent.FeedbackPromptException =
             AndroidExceptionIssueEvent.FeedbackPromptException(
                 throwable = RuntimeException("prompt shown record failed"),
@@ -246,25 +239,16 @@ class SentryAppObservabilityTest {
                 "android",
                 "feedback",
                 "feedback_prompt_exception",
-                "automatic_feedback_state_load_failed"
-            ),
-            exceptionIssueFingerprint(event = stateLoadEvent)
-        )
-        assertEquals(
-            listOf(
-                "android",
-                "feedback",
-                "feedback_prompt_exception",
                 "automatic_prompt_shown_record_failed"
             ),
             exceptionIssueFingerprint(event = promptShownEvent)
         )
         assertEquals(
             SentryFeedbackContext(
-                promptAction = "automatic_feedback_state_load_failed",
+                promptAction = "automatic_prompt_shown_record_failed",
                 trigger = "automatic"
             ),
-            feedbackPromptContext(event = stateLoadEvent)
+            feedbackPromptContext(event = promptShownEvent)
         )
     }
 }

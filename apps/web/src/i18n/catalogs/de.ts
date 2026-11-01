@@ -738,6 +738,10 @@ const deCatalog: TranslationCatalog = {
       description: "Zeige die iOS- und Android-Installationsaufforderung.",
       value: "Vorschau",
     },
+    reviewPrompts: {
+      title: "Hinweise nach dem Wiederholen",
+      resetAll: "Status aller Hinweise zurücksetzen",
+    },
   },
   settingsWorkspace: {
     decks: {

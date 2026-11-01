@@ -297,6 +297,7 @@ export function createPostChatHandler(dependencies: ChatRouteDependencies): Hand
             subjectUserId: requestContext.subjectUserId,
             guestSessionId: requestContext.guestSessionId,
           },
+          requestContext.guestPlatform,
           {
             tier: allowance.tier,
             accountKind: allowance.accountKind,
@@ -343,6 +344,7 @@ export function createPostChatHandler(dependencies: ChatRouteDependencies): Hand
           subjectUserId: requestContext.subjectUserId,
           guestSessionId: requestContext.guestSessionId,
         },
+        preparedRun.clientDevice,
       );
     }
 

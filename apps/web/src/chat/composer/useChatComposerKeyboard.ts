@@ -6,7 +6,6 @@ const MOBILE_CHAT_BREAKPOINT_QUERY = "(max-width: 768px)";
 type UseChatComposerKeyboardParams = Readonly<{
   composerAction: ChatComposerAction;
   sendPendingMessage: () => Promise<void>;
-  stopMessage: () => Promise<void>;
 }>;
 
 export type ChatComposerKeyboard = Readonly<{
@@ -26,7 +25,6 @@ export function useChatComposerKeyboard(params: UseChatComposerKeyboardParams): 
   const {
     composerAction,
     sendPendingMessage,
-    stopMessage,
   } = params;
   const [isMobileChatLayout, setIsMobileChatLayout] = useState<boolean>(matchesMobileChatBreakpoint);
 
@@ -54,10 +52,15 @@ export function useChatComposerKeyboard(params: UseChatComposerKeyboardParams): 
       return;
     }
 
+    // This Enter confirms an IME composition; Safari reports it only as keyCode 229.
+    if (event.nativeEvent.isComposing || event.nativeEvent.keyCode === 229) {
+      return;
+    }
+
     event.preventDefault();
 
+    // A running reply stops only from the stop button, so a quick Enter never ends an answer.
     if (composerAction === "stop") {
-      void stopMessage();
       return;
     }
 

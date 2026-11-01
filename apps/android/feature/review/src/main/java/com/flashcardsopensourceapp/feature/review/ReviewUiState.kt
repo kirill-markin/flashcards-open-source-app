@@ -28,6 +28,11 @@ enum class ReviewRelocationTarget {
     BACK
 }
 
+enum class NotificationPermissionPromptContinueAction {
+    REQUEST_PERMISSION,
+    OPEN_NOTIFICATION_SETTINGS
+}
+
 data class ReviewUiState(
     val isLoading: Boolean,
     val requestedFilter: ReviewFilter,

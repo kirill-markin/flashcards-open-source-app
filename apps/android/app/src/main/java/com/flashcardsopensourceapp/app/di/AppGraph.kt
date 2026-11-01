@@ -32,6 +32,7 @@ import com.flashcardsopensourceapp.app.analytics.isProductAnalyticsDisabledForPr
 import com.flashcardsopensourceapp.app.automation.resolveAutomationEnvironment
 import com.flashcardsopensourceapp.core.observability.AndroidAnalyticsObservationName
 import com.flashcardsopensourceapp.core.observability.AndroidExceptionIssueEvent
+import com.flashcardsopensourceapp.core.observability.AndroidReviewPromptRemoteConfigStage
 import com.flashcardsopensourceapp.core.observability.AndroidWarningIssueEvent
 import com.flashcardsopensourceapp.core.observability.analytics.Analytics
 import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsClient
@@ -51,7 +52,6 @@ import com.flashcardsopensourceapp.core.ui.TestModeStore
 import com.flashcardsopensourceapp.core.ui.VisibleAppScreenController
 import com.flashcardsopensourceapp.app.navigation.AppHandoffCoordinator
 import com.flashcardsopensourceapp.app.notifications.NotificationDeliveryGate
-import com.flashcardsopensourceapp.app.notifications.review.ReviewReminderAttentionController
 import com.flashcardsopensourceapp.app.notifications.review.ReviewNotificationsManager
 import com.flashcardsopensourceapp.app.notifications.strict.AndroidStrictRemindersScheduler
 import com.flashcardsopensourceapp.app.notifications.strict.StrictRemindersManager
@@ -93,6 +93,8 @@ import com.flashcardsopensourceapp.data.local.review.ReviewPreferencesStore
 import com.flashcardsopensourceapp.data.local.review.SharedPreferencesReviewPreferencesStore
 import com.flashcardsopensourceapp.data.local.review.SharedPreferencesStoreReviewRequestStore
 import com.flashcardsopensourceapp.data.local.review.StoreReviewRequestStore
+import com.flashcardsopensourceapp.data.local.review.prompts.RemoteReviewPromptConfig
+import com.flashcardsopensourceapp.data.local.review.prompts.ReviewPromptConfigStore
 import com.flashcardsopensourceapp.data.local.repository.AiChatRepository
 import com.flashcardsopensourceapp.data.local.repository.sync.AutoSyncEventRepository
 import com.flashcardsopensourceapp.data.local.repository.CardsRepository
@@ -311,20 +313,21 @@ class AppGraph(
      */
     val pendingSignOutReport = PendingSignOutReport()
     val reviewPreferencesStore: ReviewPreferencesStore = SharedPreferencesReviewPreferencesStore(context = context)
+    val reviewPromptConfigStore = ReviewPromptConfigStore(
+        context = context,
+        onCacheUnreadable = { error ->
+            reportReviewPromptRemoteConfigFailure(error = error, stage = AndroidReviewPromptRemoteConfigStage.CACHE_LOAD)
+        }
+    )
     val storeReviewRequestStore: StoreReviewRequestStore = SharedPreferencesStoreReviewRequestStore(context = context)
-    private val guestSignInAfterReviewPromptStore = SharedPreferencesGuestSignInAfterReviewPromptStore(
+    internal val guestSignInAfterReviewPromptStore = SharedPreferencesGuestSignInAfterReviewPromptStore(
         context = context
     )
-    private val feedbackPromptStore = SharedPreferencesFeedbackPromptStore(context = context)
+    internal val feedbackPromptStore = SharedPreferencesFeedbackPromptStore(context = context)
     private val notificationsStore = SharedPreferencesReviewNotificationsStore(context = context)
     val reviewNotificationsStore: ReviewNotificationsStore = notificationsStore
     val strictRemindersStore: StrictRemindersStore = notificationsStore
     val notificationDeliveryGate = NotificationDeliveryGate()
-    val reviewReminderAttentionController = ReviewReminderAttentionController(
-        reviewNotificationsStore = reviewNotificationsStore,
-        reviewLogDao = database.reviewLogDao(),
-        notificationDeliveryGate = notificationDeliveryGate
-    )
     private val localProgressCacheStore = LocalProgressCacheStore(
         database = database,
         timeProvider = SystemTimeProvider
@@ -346,7 +349,6 @@ class AppGraph(
         reviewPreferencesStore = reviewPreferencesStore,
         reviewNotificationsStore = reviewNotificationsStore,
         strictRemindersStore = strictRemindersStore,
-        attentionController = reviewReminderAttentionController,
         notificationDeliveryGate = notificationDeliveryGate,
         observability = observability,
         analytics = analytics,
@@ -372,11 +374,9 @@ class AppGraph(
     )
     val storeReviewRequestManager = StoreReviewRequestManager(
         context = context,
-        reviewLogDao = database.reviewLogDao(),
         storeReviewRequestStore = storeReviewRequestStore,
         appVersion = appPackageInfo.versionName,
         analytics = analytics,
-        zoneIdProvider = ZoneId::systemDefault,
         currentTimeMillisProvider = {
             System.currentTimeMillis()
         }
@@ -395,6 +395,7 @@ class AppGraph(
                 phase = "demo_card_seed_reset"
             )
         },
+        onFirstReviewOnboardingPersistenceFailed = ::reportFirstReviewOnboardingPersistenceFailure,
         onCloudIdentityReset = {
             strictRemindersManager.clearForCloudIdentityReset()
             // Queued events belong to the person who is leaving, and the server attributes a batch
@@ -404,9 +405,10 @@ class AppGraph(
             // the teardown's precondition and its clears. The bounded drain that saves those events
             // runs earlier, at the control the person pressed.
             //
-            // Reached from exactly the three `CloudIdentityResetCoordinator` entry points that end
-            // one person's use of this install: `resetLocalStateForCloudIdentityChange` (logout, an
-            // account switch detected mid-sync or mid-refresh, an account deletion, a server
+            // Reached from exactly the `CloudIdentityResetCoordinator` entry points that end one
+            // person's use of this install: `resetLocalStateForSignOut` (logout),
+            // `resetLocalStateForLinkedAccountMismatch` (an account switch detected mid-sync or
+            // mid-refresh), `resetLocalStateForCloudIdentityChange` (an account deletion, a server
             // change), `eraseLocalDataForCredentialRecovery` (the credential-recovery erase) and
             // `disconnectDeletedCloudIdentityPreservingLocalState` (a `410 ACCOUNT_DELETED` sync
             // answer, i.e. the account was deleted elsewhere).
@@ -429,8 +431,8 @@ class AppGraph(
             analytics.reset()
             // Released here rather than at the control that set it. By the time this hook runs,
             // `CloudIdentityResetCoordinator` has already cleared the stored credentials — before
-            // this call in every one of its three boundary entry points — so a retry past this point
-            // can no longer post a second row under the departing credential. Left unreleased, a
+            // this call in every one of its boundary entry points — so a retry past this point can
+            // no longer post a second row under the departing credential. Left unreleased, a
             // teardown that threw after those clears would strand the flag set and silence the next
             // person's sign-out on this install.
             pendingSignOutReport.release()
@@ -439,6 +441,7 @@ class AppGraph(
     val reviewRepository: ReviewRepository = LocalReviewRepository(
         database = database,
         preferencesStore = cloudPreferencesStore,
+        reviewPreferencesStore = reviewPreferencesStore,
         syncLocalStore = syncLocalStore,
         localProgressCacheStore = localProgressCacheStore,
         timeProvider = SystemTimeProvider,
@@ -452,16 +455,7 @@ class AppGraph(
         ),
         mediaAssetDownloader = OkHttpReviewMediaAssetDownloader(okHttpClient = okHttpClient),
         analytics = analytics,
-        onFirstReviewOnboardingPersistenceFailed = { error ->
-            appMessageBus.showTechnicalError(
-                error = com.flashcardsopensourceapp.core.ui.makeAppTechnicalError(
-                    title = applicationContext.getString(com.flashcardsopensourceapp.feature.settings.R.string.settings_first_review_onboarding_title),
-                    message = applicationContext.getString(com.flashcardsopensourceapp.feature.settings.R.string.settings_first_review_onboarding_save_failed),
-                    throwable = error
-                ),
-                throwable = error
-            )
-        },
+        onFirstReviewOnboardingPersistenceFailed = ::reportFirstReviewOnboardingPersistenceFailure,
         onFirstReviewOnboardingSaved = { refreshAccountContextInBackground(source = "first_review_onboarding") }
     )
     private val cloudGuestSessionCoordinator = CloudGuestSessionCoordinator(
@@ -517,6 +511,7 @@ class AppGraph(
                 error = error
             )
         },
+        onReviewPromptConfigFetched = ::applyRemoteReviewPromptConfig,
         onAnalyticsGuestIdentityLinkRequested = ::requestAnalyticsGuestIdentityLink,
         onProductAnalyticsPreferencePushRefused = ::reportProductAnalyticsPreferencePushRefused
     )
@@ -609,6 +604,7 @@ class AppGraph(
         preferencesStore = cloudPreferencesStore,
         remoteService = cloudRemoteService,
         cloudGuestSessionCoordinator = cloudGuestSessionCoordinator,
+        operationCoordinator = cloudOperationCoordinator,
         syncRepository = syncRepository,
         appVersion = appPackageInfo.versionName,
         currentUiLocaleTag = { currentAppUiLocaleTag(context = context) ?: "und" },
@@ -625,13 +621,11 @@ class AppGraph(
     internal val reviewPaywallScheduler = PremiumReviewScheduler(
         repository = paywallRepository,
         preferencesStore = cloudPreferencesStore,
-        reviewLogDao = database.reviewLogDao(),
         presenter = premiumPresenter,
         appScope = appScope
     )
     val guestSignInAfterReviewPromptController = GuestSignInAfterReviewPromptController(
         cloudAccountRepository = cloudAccountRepository,
-        reviewRepository = reviewRepository,
         promptStore = guestSignInAfterReviewPromptStore,
         analytics = analytics
     )
@@ -639,7 +633,6 @@ class AppGraph(
         appScope = appScope,
         context = context,
         feedbackRepository = feedbackRepository,
-        reviewRepository = reviewRepository,
         promptStore = feedbackPromptStore,
         messageController = appMessageBus,
         observability = observability,
@@ -847,6 +840,22 @@ class AppGraph(
         }
     }
 
+    private fun applyRemoteReviewPromptConfig(remoteConfig: RemoteReviewPromptConfig) {
+        when (remoteConfig) {
+            is RemoteReviewPromptConfig.Valid -> reviewPromptConfigStore.saveRemoteConfig(config = remoteConfig.config)
+            is RemoteReviewPromptConfig.Rejected -> reportReviewPromptRemoteConfigFailure(
+                error = remoteConfig.error,
+                stage = AndroidReviewPromptRemoteConfigStage.VALIDATE
+            )
+        }
+    }
+
+    private fun reportReviewPromptRemoteConfigFailure(error: Throwable, stage: AndroidReviewPromptRemoteConfigStage) {
+        observability.captureException(
+            event = AndroidExceptionIssueEvent.ReviewPromptRemoteConfigException(throwable = error, stage = stage)
+        )
+    }
+
     /**
      * The one report for a product-analytics answer the server will refuse the same way forever.
      * The repository stops re-issuing that push, so this fires once rather than on every refresh.
@@ -892,7 +901,6 @@ class AppGraph(
                         importedReviewAtMillis = latestReviewedAtMillis,
                         nowMillis = nowMillis
                     )
-                    reviewReminderAttentionController.reconcileWithReviewHistory()
                 } else {
                     strictRemindersManager.reconcileStrictReminders(
                         trigger = StrictRemindersReconcileTrigger.REVIEW_HISTORY_IMPORTED,
@@ -1030,7 +1038,6 @@ class AppGraph(
         if (workspaceId != null) {
             reviewNotificationsStore.migrateLegacySettings(currentWorkspaceId = workspaceId)
         }
-        reviewReminderAttentionController.clear()
         val nowMillis = System.currentTimeMillis()
         reviewNotificationsManager.reconcileCurrentWorkspaceReviewNotificationsAndWait(
             trigger = ReviewNotificationsReconcileTrigger.WORKSPACE_CHANGED,
@@ -1077,6 +1084,17 @@ class AppGraph(
                 error = error
             )
         }
+    }
+
+    private fun reportFirstReviewOnboardingPersistenceFailure(error: Exception) {
+        appMessageBus.showTechnicalError(
+            error = com.flashcardsopensourceapp.core.ui.makeAppTechnicalError(
+                title = applicationContext.getString(com.flashcardsopensourceapp.feature.settings.R.string.settings_first_review_onboarding_title),
+                message = applicationContext.getString(com.flashcardsopensourceapp.feature.settings.R.string.settings_first_review_onboarding_save_failed),
+                throwable = error
+            ),
+            throwable = error
+        )
     }
 
     private fun reportDemoCardFailure(workspaceId: String, phase: String, error: Exception) {

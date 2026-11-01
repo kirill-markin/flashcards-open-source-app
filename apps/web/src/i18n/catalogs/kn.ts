@@ -738,6 +738,10 @@ const knCatalog: TranslationCatalog = {
       description: "iOS ಮತ್ತು Android ಇನ್‌ಸ್ಟಾಲ್ ಪ್ರಾಂಪ್ಟ್ ನೋಡಿ.",
       value: "ಮುನ್ನೋಟ",
     },
+    reviewPrompts: {
+      title: "ಪುನರಾವರ್ತನೆಯ ನಂತರದ ಪ್ರಾಂಪ್ಟ್‌ಗಳು",
+      resetAll: "ಎಲ್ಲಾ ಪ್ರಾಂಪ್ಟ್‌ಗಳ ಸ್ಥಿತಿಯನ್ನು ಮರುಹೊಂದಿಸಿ",
+    },
   },
   settingsWorkspace: {
     decks: {

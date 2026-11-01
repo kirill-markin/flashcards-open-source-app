@@ -169,14 +169,10 @@ extension FlashcardsStore {
         )
     }
 
-    func reconcileReviewReminderAttentionAfterReviewLogs(now _: Date) {
-        guard let state = self.reviewReminderAttentionState else {
-            return
-        }
-        guard isReviewReminderAttentionVisible(
-            state: state,
-            workspaceId: self.workspace?.workspaceId
-        ) else {
+    /// Any review today in the current workspace, including one synced from another device, clears the
+    /// icon badge even without saved attention: the badge stays after its delivered reminder is dismissed.
+    func reconcileReviewReminderAttentionAfterReviewLogs(now: Date) {
+        guard let workspaceId = self.workspace?.workspaceId else {
             return
         }
         guard let database = self.database else {
@@ -184,9 +180,16 @@ extension FlashcardsStore {
         }
 
         do {
-            let deliveredAt = Date(timeIntervalSince1970: TimeInterval(state.deliveredAtMillis) / 1_000)
-            if try database.hasReviewEvent(workspaceId: state.workspaceId, after: deliveredAt) {
-                self.clearReviewReminderAttention(workspaceId: state.workspaceId)
+            let calendar = Calendar.autoupdatingCurrent
+            let startOfToday = calendar.startOfDay(for: now)
+            guard let startOfTomorrow = calendar.date(byAdding: .day, value: 1, to: startOfToday) else {
+                throw LocalStoreError.validation(
+                    "Review reminder attention next day start could not be computed for \(formatIsoTimestamp(date: startOfToday))"
+                )
+            }
+            if try database.hasReviewEvent(workspaceId: workspaceId, start: startOfToday, end: startOfTomorrow) {
+                self.clearReviewReminderAttention(workspaceId: workspaceId)
+                self.clearAppIconBadge()
             }
         } catch {
             FlashcardsObservability.captureWarning(
@@ -196,7 +199,7 @@ extension FlashcardsStore {
                         scope: IOSObservationScope(
                             feature: .notifications,
                             userId: nil,
-                            workspaceId: state.workspaceId,
+                            workspaceId: workspaceId,
                             requestId: nil,
                             clientRequestId: nil,
                             sessionId: nil,
@@ -204,7 +207,7 @@ extension FlashcardsStore {
                             cloudState: self.cloudSettings?.cloudState,
                             configurationMode: nil
                         ),
-                        workspaceId: state.workspaceId,
+                        workspaceId: workspaceId,
                         cardId: nil,
                         reason: Flashcards.errorMessage(error: error),
                         repair: "keep_review_reminder_attention_state"
@@ -216,21 +219,15 @@ extension FlashcardsStore {
 
     /**
      * The pre-prompt closed. `markDismissed` is what separates the two ways in: only "Not now" passes
-     * `true`, and it is the person declining. SwiftUI's own binding write-back passes `false` and
-     * runs behind whichever button was pressed, so reporting on it would double-count every answer.
+     * `true`, and it is a snooze, because the pre-prompt returns after its cooldown while notifications
+     * stay off. SwiftUI's own binding write-back passes `false` and runs behind whichever button was
+     * pressed, so reporting on it would double-count every answer.
      */
     func dismissReviewNotificationPrePrompt(markDismissed: Bool) {
         self.isReviewNotificationPrePromptPresented = false
         if markDismissed {
-            self.updateNotificationPermissionPromptState(
-                state: NotificationPermissionPromptState(
-                    hasShownPrePrompt: true,
-                    hasRequestedSystemPermission: self.notificationPermissionPromptState.hasRequestedSystemPermission,
-                    hasDismissedPrePrompt: true
-                )
-            )
             Analytics.track(
-                .promptAnswered(prompt: .notificationsPrePrompt, outcome: .dismissed),
+                .promptAnswered(prompt: .notificationsPrePrompt, outcome: .snoozed),
                 screen: .notificationsPrePrompt
             )
             self.restoreSurfaceAfterNotificationPrePrompt()
@@ -239,24 +236,28 @@ extension FlashcardsStore {
 
     func continueReviewNotificationPrePrompt() {
         self.isReviewNotificationPrePromptPresented = false
-        self.updateNotificationPermissionPromptState(
-            state: NotificationPermissionPromptState(
-                hasShownPrePrompt: true,
-                hasRequestedSystemPermission: self.notificationPermissionPromptState.hasRequestedSystemPermission,
-                hasDismissedPrePrompt: self.notificationPermissionPromptState.hasDismissedPrePrompt
-            )
-        )
         // Accepting our prompt and being granted the OS permission are separate facts, reported
-        // separately: the system dialog that follows can still be denied, and the gap between the two
-        // is the whole reason this app asks first.
+        // separately: the system dialog or Settings page that follows can still leave it off, and the
+        // gap between the two is the whole reason this app asks first.
         Analytics.track(
             .promptAnswered(prompt: .notificationsPrePrompt, outcome: .accepted),
             screen: .notificationsPrePrompt
         )
         self.restoreSurfaceAfterNotificationPrePrompt()
+        self.continueToReviewNotificationPermission(permissionStatus: self.reviewNotificationPrePromptPermissionStatus)
+    }
+
+    /// The pre-prompt's Continue: the OS permission dialog while it can still show, otherwise system Settings.
+    func continueToReviewNotificationPermission(permissionStatus: ReviewNotificationPermissionStatus) {
         Task { @MainActor in
             do {
-                _ = try await self.requestReviewNotificationPermissionFromSettings(now: Date())
+                switch permissionStatus {
+                case .notRequested:
+                    _ = try await self.requestReviewNotificationPermissionFromSettings(now: Date())
+                case .allowed, .blocked:
+                    // The OS shows its permission dialog only once per install.
+                    try await openNotificationSettings()
+                }
             } catch {
                 self.presentTechnicalError(error)
             }
@@ -283,14 +284,6 @@ extension FlashcardsStore {
         if currentPermissionStatus == .blocked {
             return .blocked
         }
-
-        self.updateNotificationPermissionPromptState(
-            state: NotificationPermissionPromptState(
-                hasShownPrePrompt: true,
-                hasRequestedSystemPermission: true,
-                hasDismissedPrePrompt: self.notificationPermissionPromptState.hasDismissedPrePrompt
-            )
-        )
 
         let notificationCenter = UNUserNotificationCenter.current()
         let notificationSettings: UNNotificationSettings
@@ -410,61 +403,43 @@ extension FlashcardsStore {
         reviewedAt: Date,
         workspaceId: String,
         now: Date
-    ) -> Int {
-        let nextCount = self.userDefaults.integer(forKey: reviewNotificationSuccessfulReviewCountUserDefaultsKey) + 1
-        self.userDefaults.set(nextCount, forKey: reviewNotificationSuccessfulReviewCountUserDefaultsKey)
+    ) {
         self.userDefaults.set(now.timeIntervalSince1970, forKey: reviewNotificationLastActiveAtUserDefaultsKey)
         self.reconcileReviewNotifications(trigger: .reviewRecorded, now: now)
         self.clearReviewReminderAttention(workspaceId: workspaceId)
         self.clearAppIconBadge()
         self.recordSuccessfulStrictReminderReview(reviewedAt: reviewedAt, now: now)
-        return self.loadReviewNotificationPromptReviewCount(persistedReviewCount: nextCount)
     }
 
-    func resolveSuccessfulReviewNotificationPrePromptDecision(reviewCount: Int) async -> Bool {
-        defer {
-            self.requestGuestSignInAfterReviewPromptReconciliation()
+    /// The current OS permission when the pre-prompt is due, `nil` when it is not: it repeats on its
+    /// config cooldown for as long as the permission is not granted.
+    func reviewNotificationPrePromptPermissionStatusIfDue(
+        settings: ReviewPromptSettings,
+        counters: ReviewPromptCounters,
+        now: Date
+    ) async -> ReviewNotificationPermissionStatus? {
+        guard reviewPromptConfigAllows(
+            settings: settings,
+            counters: counters,
+            lastShownAt: self.reviewNotificationPrePromptLastShownAt,
+            now: now
+        ) else {
+            return nil
         }
 
         let permissionStatus = await resolveReviewNotificationPermissionStatus()
-        guard permissionStatus == .notRequested else {
-            return false
-        }
-        guard hasEnoughReviewHistoryForNotificationPrompt(reviewCount: reviewCount) else {
-            return false
-        }
-        guard self.notificationPermissionPromptState.hasShownPrePrompt == false else {
-            return false
-        }
-        guard self.notificationPermissionPromptState.hasDismissedPrePrompt == false else {
-            return false
-        }
-        guard self.notificationPermissionPromptState.hasRequestedSystemPermission == false else {
-            return false
-        }
-
-        return true
+        return permissionStatus == .allowed ? nil : permissionStatus
     }
 
-    func presentReviewNotificationPrePromptIfAllowed() -> Bool {
-        guard self.notificationPermissionPromptState.hasShownPrePrompt == false else {
-            return false
-        }
-        guard self.notificationPermissionPromptState.hasDismissedPrePrompt == false else {
-            return false
-        }
-        guard self.notificationPermissionPromptState.hasRequestedSystemPermission == false else {
-            return false
-        }
-
+    func presentReviewNotificationPrePrompt(
+        permissionStatus: ReviewNotificationPermissionStatus,
+        configVersion: String,
+        now: Date
+    ) {
+        self.reviewNotificationPrePromptLastShownAt = now
+        persistReviewNotificationPrePromptLastShownAt(userDefaults: self.userDefaults, lastShownAt: now)
+        self.reviewNotificationPrePromptPermissionStatus = permissionStatus
         self.isReviewNotificationPrePromptPresented = true
-        self.updateNotificationPermissionPromptState(
-            state: NotificationPermissionPromptState(
-                hasShownPrePrompt: true,
-                hasRequestedSystemPermission: false,
-                hasDismissedPrePrompt: false
-            )
-        )
         // The showing, which `prompt_answered` is the other half of. Without it the answers have no
         // denominator and no acceptance rate can be computed.
         //
@@ -475,43 +450,7 @@ extension FlashcardsStore {
         // before the alert becomes visible to them. It is not guarded on the visible tab, because
         // the prompt does present when they come back and a guard would drop the only denominator
         // its answers have.
-        Analytics.trackScreenViewed(.notificationsPrePrompt)
-
-        return true
-    }
-
-    private func loadReviewNotificationPromptReviewCount(persistedReviewCount: Int) -> Int {
-        guard let database = self.database else {
-            return persistedReviewCount
-        }
-
-        do {
-            return max(persistedReviewCount, try database.loadReviewEventCount())
-        } catch {
-            FlashcardsObservability.captureWarning(
-                .localDataRepair(
-                    LocalDataRepairWarning(
-                        action: "review_prompt_count_load_failed",
-                        scope: IOSObservationScope(
-                            feature: .notifications,
-                            userId: nil,
-                            workspaceId: self.workspace?.workspaceId,
-                            requestId: nil,
-                            clientRequestId: nil,
-                            sessionId: nil,
-                            runId: nil,
-                            cloudState: self.cloudSettings?.cloudState,
-                            configurationMode: nil
-                        ),
-                        workspaceId: self.workspace?.workspaceId,
-                        cardId: nil,
-                        reason: Flashcards.errorMessage(error: error),
-                        repair: "use_persisted_review_count"
-                    )
-                )
-            )
-            return persistedReviewCount
-        }
+        Analytics.trackReviewPromptScreenViewed(.notificationsPrePrompt, reviewPromptConfigVersion: configVersion)
     }
 
     private func persistReviewNotificationsSettings() {
@@ -552,24 +491,4 @@ extension FlashcardsStore {
             )
         }
     }
-
-    private func updateNotificationPermissionPromptState(state: NotificationPermissionPromptState) {
-        self.notificationPermissionPromptState = state
-
-        do {
-            let data = try self.encoder.encode(state)
-            self.userDefaults.set(data, forKey: reviewNotificationPromptStateUserDefaultsKey)
-        } catch {
-            captureReviewNotificationsSilentFailure(
-                error: error,
-                action: "review_notification_permission_prompt_state_save",
-                stage: "encode",
-                cloudSettings: self.cloudSettings,
-                workspaceId: self.workspace?.workspaceId,
-                configurationMode: try? self.currentCloudServiceConfiguration().mode
-            )
-            self.userDefaults.removeObject(forKey: reviewNotificationPromptStateUserDefaultsKey)
-        }
-    }
-
 }

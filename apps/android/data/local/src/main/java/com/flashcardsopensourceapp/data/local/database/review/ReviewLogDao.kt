@@ -63,30 +63,8 @@ interface ReviewLogDao {
     )
     suspend fun hasReviewLogsBefore(workspaceId: String, beforeMillis: Long): Boolean
 
-    @Query(
-        """
-        SELECT EXISTS(
-            SELECT 1
-            FROM review_logs
-            WHERE workspaceId = :workspaceId
-                AND reviewedAtMillis > :afterMillis
-            LIMIT 1
-        )
-        """
-    )
-    suspend fun hasReviewLogsAfter(workspaceId: String, afterMillis: Long): Boolean
-
-    @Query(
-        """
-        SELECT EXISTS(
-            SELECT 1
-            FROM review_logs
-            WHERE reviewedAtMillis < :endMillis
-            LIMIT 1
-        )
-        """
-    )
-    suspend fun hasReviewLogsBefore(endMillis: Long): Boolean
+    @Query("SELECT DISTINCT reviewedAtMillis / :bucketMillis FROM review_logs")
+    suspend fun loadDistinctReviewTimeBuckets(bucketMillis: Long): List<Long>
 
     @Query(
         """

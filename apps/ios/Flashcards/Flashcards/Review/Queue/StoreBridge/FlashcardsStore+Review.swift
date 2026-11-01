@@ -584,7 +584,7 @@ extension FlashcardsStore {
         let now = Date()
         self.reviewRuntime.invalidateReviewSource()
         let reviewedAt = parseIsoTimestamp(value: request.reviewedAtClient) ?? now
-        let reviewCount = self.recordSuccessfulReviewNotificationEffects(
+        self.recordSuccessfulReviewNotificationEffects(
             reviewedAt: reviewedAt,
             workspaceId: request.workspaceId,
             now: now
@@ -650,10 +650,9 @@ extension FlashcardsStore {
         }
 
         self.pendingStoreReviewRequestAttempt = nil
-        self.activeAutomaticFeedbackPromptTask?.cancel()
         self.savedReviewPromptOpportunity = SavedReviewPromptOpportunity(
             id: UUID(), workspaceId: request.workspaceId,
-            rating: request.rating, reviewCount: reviewCount,
+            rating: request.rating,
             reviewFilter: request.reviewContext.selectedReviewFilter
         )
         triggerSuccessfulReviewCloudSync()
@@ -712,7 +711,6 @@ extension FlashcardsStore {
         if didStartReviewLoadDuringRefresh == false {
             self.startReviewLoad(reviewFilter: self.selectedReviewFilter, now: now)
         }
-        self.requestGuestSignInAfterReviewPromptReconciliation()
     }
 
     func handleReviewSubmissionFailure(request: ReviewSubmissionRequest, submissionError: Error) async {

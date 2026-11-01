@@ -15,6 +15,7 @@ import com.flashcardsopensourceapp.data.local.model.cloud.CloudAppleBrowserLaunc
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudAppleBrowserReturn
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudAppleBrowserStatus
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudAuthMethods
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudEmailSession
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudGuestUpgradeMode
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudOtpChallenge
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudPendingSocialSignIn
@@ -168,14 +169,17 @@ class LocalCloudSocialSignInRepository(
     ): CloudWorkspaceLinkContext = operationCoordinator.runExclusive {
         requireAccountIsNotDeleting()
         val configuration = preferencesStore.currentServerConfiguration()
-        accountRepository.verifyEmailCodeSession(challenge, code, onVerificationStarted) { session ->
+        var verified: CloudEmailSession? = null
+        val context = accountRepository.verifyEmailCodeSession(challenge, code, onVerificationStarted) { session ->
             onVerified()
-            withContext(NonCancellable + Dispatchers.IO) {
-                preferencesStore.socialAuthStore.stageEmailSession(PendingCloudEmailSignIn(
-                    configuration, session.credentials.refreshToken, session.signInHint
-                ))
-            }
+            verified = session
         }
+        // The invalid-stored-state route returns a context without verifying a code; only a verified code stages.
+        val session = verified ?: return@runExclusive context
+        withContext(NonCancellable + Dispatchers.IO) {
+            preferencesStore.socialAuthStore.stageEmailSession(PendingCloudEmailSignIn(configuration, context.userId, session.signInHint))
+        }
+        context
     }
 
     override suspend fun completeEmailSignInHint(context: CloudWorkspaceLinkContext) {
@@ -185,7 +189,7 @@ class LocalCloudSocialSignInRepository(
             }
             withContext(Dispatchers.IO) {
                 preferencesStore.socialAuthStore.completeEmailSession(
-                    preferencesStore.currentServerConfiguration(), context.credentials.refreshToken
+                    preferencesStore.currentServerConfiguration(), context.userId
                 )
             }
         }
@@ -330,9 +334,6 @@ class LocalCloudSocialSignInRepository(
                     com.flashcardsopensourceapp.data.local.cloud.PendingCloudAccountMethod(
                         UUID.randomUUID().toString(), preferencesStore.accountMethodStore.epoch(), settings.installationId,
                         requireNotNull(settings.linkedUserId), settings.linkedWorkspaceId, settings.activeWorkspaceId,
-                        Base64.encodeToString(MessageDigest.getInstance("SHA-256").digest(
-                            accepted.credentials.refreshToken.toByteArray(Charsets.UTF_8)),
-                            Base64.URL_SAFE or Base64.NO_PADDING or Base64.NO_WRAP),
                         pending.configuration, if (pending.provider == CloudSocialProvider.GOOGLE)
                             com.flashcardsopensourceapp.data.local.model.cloud.CloudSignInMethod.GOOGLE
                             else com.flashcardsopensourceapp.data.local.model.cloud.CloudSignInMethod.APPLE,

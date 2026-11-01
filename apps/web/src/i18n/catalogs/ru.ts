@@ -746,6 +746,10 @@ export const ruCatalog = {
       description: "Предпросмотр предложения установить iOS- и Android-приложение.",
       value: "Предпросмотр",
     },
+    reviewPrompts: {
+      title: "Подсказки после повторения",
+      resetAll: "Сбросить состояние всех подсказок",
+    },
   },
   settingsWorkspace: {
     decks: {

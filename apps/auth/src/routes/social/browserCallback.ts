@@ -116,6 +116,12 @@ async function providerCallback(c: Context<AuthAppEnv>): Promise<Response> {
       claimedState = state;
       if (parameters.has("error")) {
         clearBrowserState(c, state);
+        // Read without throwing so a repeated or empty value still gets the `denied` redirect; only the
+        // user-cancel codes (Google, Apple) count as `cancelled`.
+        const providerError = parameters.get("error");
+        if (state.analytics.screen === "settings") events.push({ createEvent: createAuthAnalyticsFactEventFactory({
+          eventName: "auth_account_connection", action: "proof",
+          outcome: providerError === "access_denied" || providerError === "user_cancelled_authorize" ? "cancelled" : "failed" }), occurredAt: Date.now() });
         if (state.client === "android") return c.redirect(androidReturn("denied", state.attempt), 303);
         const denied = new URL(state.redirectUri);
         denied.hash = new URLSearchParams({ status: "denied", attempt: state.attempt }).toString();
@@ -189,7 +195,7 @@ async function providerCallback(c: Context<AuthAppEnv>): Promise<Response> {
     const nonce = randomBytes(32).toString("base64url");
     protectBrowserDocument(c, nonce);
     const restartUri = state.intent === "login"
-      ? `/api/social/${state.provider}/start?${new URLSearchParams({ client: "web", redirect_uri: state.redirectUri, ...(state.locale === undefined ? {} : { locale: state.locale }), ...(state.analytics.screen === "signin" ? { screen: "signin", ui_locale: state.analytics.uiLocale ?? "" } : {}) })}`
+      ? `/api/social/${state.provider}/start?${new URLSearchParams({ client: "web", redirect_uri: state.redirectUri, ...(state.locale === undefined ? {} : { locale: state.locale }), ...(state.analytics.screen === "signin" || state.analytics.screen === "oauth_consent" ? { screen: state.analytics.screen, ui_locale: state.analytics.uiLocale ?? "" } : {}) })}`
       : managementReturnUri(state, "account_method_cancelled", "AUTH_ATTEMPT_RESTART_REQUIRED");
     return c.html(renderBrowserMailboxContinuation({ csrfToken: continuation.state,
       providerEmail: result.enrollment.providerEmail, expiresAt: state.expiresAt, restartUri,

@@ -738,6 +738,10 @@ export const zhHansCatalog = {
       description: "预览 iOS 和 Android 安装提示。",
       value: "预览",
     },
+    reviewPrompts: {
+      title: "复习后的提示",
+      resetAll: "重置所有提示状态",
+    },
   },
   settingsWorkspace: {
     decks: {

@@ -13,8 +13,10 @@ const observabilityMocks = vi.hoisted(() => ({
 }));
 
 const progressMocks = vi.hoisted(() => ({
+  countLocalReviewEventsReviewedBetweenMock: vi.fn(),
   loadLocalProgressDailyReviewsMock: vi.fn(),
   loadLocalProgressSummaryMock: vi.fn(),
+  loadLocalRecentReviewDaysMock: vi.fn(),
 }));
 
 vi.mock("../../../observability/appOperationObservation", () => ({
@@ -22,8 +24,10 @@ vi.mock("../../../observability/appOperationObservation", () => ({
 }));
 
 vi.mock("../../../localDb/progress/progress", () => ({
+  countLocalReviewEventsReviewedBetween: progressMocks.countLocalReviewEventsReviewedBetweenMock,
   loadLocalProgressDailyReviews: progressMocks.loadLocalProgressDailyReviewsMock,
   loadLocalProgressSummary: progressMocks.loadLocalProgressSummaryMock,
+  loadLocalRecentReviewDays: progressMocks.loadLocalRecentReviewDaysMock,
 }));
 
 const {
@@ -35,8 +39,10 @@ const {
 
 beforeEach(() => {
   observabilityMocks.captureAppOperationErrorMock.mockReset();
+  progressMocks.countLocalReviewEventsReviewedBetweenMock.mockReset();
   progressMocks.loadLocalProgressDailyReviewsMock.mockReset();
   progressMocks.loadLocalProgressSummaryMock.mockReset();
+  progressMocks.loadLocalRecentReviewDaysMock.mockReset();
 });
 
 async function flushReviewScreenPromises(): Promise<void> {
@@ -46,8 +52,8 @@ async function flushReviewScreenPromises(): Promise<void> {
   });
 }
 
-describe("ReviewScreen feedback observability", () => {
-  it("reports automatic feedback activity load failures through app operation observation", async () => {
+describe("ReviewScreen review prompt observability", () => {
+  it("reports review prompt activity load failures through app operation observation", async () => {
     const activityLoadError = new Error("Progress activity failed");
     const state = getState();
     const card = createCard({
@@ -59,10 +65,9 @@ describe("ReviewScreen feedback observability", () => {
     state.reviewQueue = [card];
     state.reviewTimeline = [card];
     state.appData.submitReviewItem.mockImplementation(async (): Promise<Card> => card);
-    progressMocks.loadLocalProgressSummaryMock.mockRejectedValue(activityLoadError);
-    progressMocks.loadLocalProgressDailyReviewsMock.mockResolvedValue([
-      { date: "2026-03-10", reviewCount: 4, againCount: 0, hardCount: 0, goodCount: 4, easyCount: 0 },
-    ]);
+    progressMocks.loadLocalProgressDailyReviewsMock.mockResolvedValue([]);
+    progressMocks.countLocalReviewEventsReviewedBetweenMock.mockResolvedValue(0);
+    progressMocks.loadLocalRecentReviewDaysMock.mockRejectedValue(activityLoadError);
 
     await renderReviewScreen();
     await revealAnswer();
@@ -77,8 +82,8 @@ describe("ReviewScreen feedback observability", () => {
 
     expect(observabilityMocks.captureAppOperationErrorMock).toHaveBeenCalledTimes(1);
     expect(observabilityMocks.captureAppOperationErrorMock).toHaveBeenCalledWith(activityLoadError, {
-      feature: "feedback",
-      operation: "feedback_activity_load",
+      feature: "review",
+      operation: "review_prompt_activity_load",
       userId: null,
       workspaceId: "workspace-1",
       installationId: null,

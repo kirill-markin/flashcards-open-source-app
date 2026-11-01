@@ -25,6 +25,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -94,7 +95,7 @@ internal fun PremiumPresentationHost(
     var isEditingOwnKey by remember(presentation, reason) { mutableStateOf(false) }
     var renewalAtMillis: Long? by remember(presentation, reason) { mutableStateOf(null) }
     var allowance: PremiumAllowanceState by remember(presentation, reason) { mutableStateOf(PremiumAllowanceState.Loading) }
-    var usageRequestVersion by remember(presentation, reason) { mutableStateOf(0) }
+    var usageRequestVersion by remember(presentation, reason) { mutableIntStateOf(0) }
     var hasRequestedEntitlement by remember(presentation, reason) { mutableStateOf(false) }
     var hasReportedShown by remember(presentation, reason) { mutableStateOf(presenter.hasReportedShown) }
     val isAiLimit = reason is PremiumReason.AiLimit || reason == PremiumReason.AiLimitPreview
@@ -157,7 +158,8 @@ internal fun PremiumPresentationHost(
                         CloudAccountState.LINKED -> AnalyticsPaywallAccountKind.REGISTERED
                         else -> null
                     },
-                    offerType = displayedOfferType
+                    offerType = displayedOfferType,
+                    reviewPromptConfigVersion = presenter.reviewPromptConfigVersion
                 )
             )
         }
@@ -277,12 +279,6 @@ internal fun PremiumPresentationHost(
                         }
                     }
                     if (isOfferVisible) {
-                        PremiumFreePlan(onContinueFree = {
-                            if (presenter.reason == reason && presenter.presentation == presentation) {
-                                reportChoice(AnalyticsPaywallChoice.FREE)
-                                presenter.dismiss()
-                            }
-                        })
                         PremiumStoreOffer(
                             connector = appGraph.googlePlaySubscriptionConnector,
                             entitlement = presenter.entitlement,
@@ -293,6 +289,12 @@ internal fun PremiumPresentationHost(
                             onRetryAllowance = { usageRequestVersion += 1 },
                             onChoosePremium = { reportChoice(AnalyticsPaywallChoice.PREMIUM) }
                         )
+                        PremiumFreePlan(onContinueFree = {
+                            if (presenter.reason == reason && presenter.presentation == presentation) {
+                                reportChoice(AnalyticsPaywallChoice.FREE)
+                                presenter.dismiss()
+                            }
+                        })
                     } else if (!isAiLimit) {
                         Text(
                             text = presenter.entitlement?.tierDisplayName.orEmpty(),

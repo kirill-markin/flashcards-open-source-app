@@ -738,6 +738,10 @@ const urCatalog: TranslationCatalog = {
       description: "iOS اور Android انسٹال کرنے کی درخواست کا پیش منظر دیکھیں۔",
       value: "پیش منظر",
     },
+    reviewPrompts: {
+      title: "دہرائی کے بعد کے پرامپٹس",
+      resetAll: "تمام پرامپٹس کی حالت ری سیٹ کریں",
+    },
   },
   settingsWorkspace: {
     decks: {

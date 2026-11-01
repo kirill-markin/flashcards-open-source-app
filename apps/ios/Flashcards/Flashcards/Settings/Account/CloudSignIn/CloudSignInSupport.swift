@@ -73,6 +73,7 @@ struct CloudSignInAttemptState {
     var hasRecordedAccountReady = false
     var hasRecordedSessionAccepted = false
     var verifiedMethod: CloudSignInMethod?
+    var signInStepSurface: AnalyticsSurface?
     var sessionConfiguration: CloudServiceConfiguration?
     var credentialRecoveryPresentation: CloudCredentialRecoveryState?
     var hasRequestedProvider = false
@@ -309,7 +310,32 @@ extension FlashcardsStore {
     /// reported here: one event per attempt that authenticated, whatever post-auth then makes of it.
     func recordCloudSignInVerified(screen: AnalyticsSurface) {
         self.isCloudSignInAttemptOpen = false
+        self.cloudSignInAttempt.signInStepSurface = screen
         Analytics.track(.signInSucceededWithMethod(method: self.cloudSignInAttempt.selectedMethod.analyticsMethod, screen: screen))
+    }
+
+    /// Every sign-in credential write goes through here, so `auth_session_accepted` marks the moment
+    /// the session is stored rather than the end of the first sync.
+    func saveSignInCredentials(credentials: StoredCloudCredentials) throws {
+        try self.cloudRuntime.saveCredentials(credentials: credentials)
+        self.recordCloudSignInSessionStored(credentials: credentials)
+    }
+
+    /// The save paths also run outside a sign-in attempt, such as a pending guest upgrade resumed
+    /// later, so only credentials the current verified attempt is linking count. Never throws: a stored
+    /// session must not fail on an analytics question, so an unreadable configuration records nothing.
+    private func recordCloudSignInSessionStored(credentials: StoredCloudCredentials) {
+        let attempt = self.cloudSignInAttempt
+        guard !attempt.hasRecordedSessionAccepted,
+              let method = attempt.verifiedMethod,
+              let screen = attempt.signInStepSurface,
+              let configuration = attempt.sessionConfiguration else { return }
+        let inFlightRefreshToken = attempt.postAuthSyncState?.operation.linkContext?.credentials.refreshToken
+            ?? attempt.postAuthLoadingState?.verifiedContext.credentials.refreshToken
+        guard credentials.refreshToken == inFlightRefreshToken,
+              (try? self.currentCloudServiceConfiguration()) == configuration else { return }
+        self.cloudSignInAttempt.hasRecordedSessionAccepted = true
+        Analytics.track(.authSessionAccepted(method: method.analyticsMethod, screen: screen))
     }
 
     private var isCloudCredentialRecoveryGateActive: Bool {
@@ -335,6 +361,7 @@ enum CloudPostAuthRetryAction: Hashable {
     case prepareLink(verifiedContext: CloudVerifiedAuthContext)
     case completeLink(linkContext: CloudWorkspaceLinkContext, selection: CloudWorkspaceLinkSelection)
     case completeGuestLink(linkContext: CloudWorkspaceLinkContext, selection: CloudWorkspaceLinkSelection)
+    case chooseWorkspace(linkContext: CloudWorkspaceLinkContext)
     case syncOnly
 }
 
@@ -387,6 +414,15 @@ enum CloudPostAuthSyncOperation: Hashable {
     case completeLink(linkContext: CloudWorkspaceLinkContext, selection: CloudWorkspaceLinkSelection)
     case completeGuestLink(linkContext: CloudWorkspaceLinkContext, selection: CloudWorkspaceLinkSelection)
     case syncOnly
+
+    var linkContext: CloudWorkspaceLinkContext? {
+        switch self {
+        case .completeLink(let linkContext, _), .completeGuestLink(let linkContext, _):
+            return linkContext
+        case .syncOnly:
+            return nil
+        }
+    }
 }
 
 enum CloudPostAuthFailureKind: Hashable {
@@ -741,6 +777,14 @@ func makeCloudWorkspacePostAuthRoute(
     }
 
     if workspaces.count == 1, let workspace = workspaces.first {
+        return .autoLink(.existing(workspaceId: workspace.workspaceId))
+    }
+
+    // With several workspaces offered, a guest merge must not go to the server-selected one unasked.
+    let selectedWorkspaces = workspaces.filter { $0.isSelected }
+    if linkContext.guestUpgradeMode != .mergeRequired,
+       selectedWorkspaces.count == 1,
+       let workspace = selectedWorkspaces.first {
         return .autoLink(.existing(workspaceId: workspace.workspaceId))
     }
 

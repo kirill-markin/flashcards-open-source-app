@@ -2,36 +2,31 @@ import Foundation
 
 @MainActor
 extension FlashcardsStore {
-    func reconcileGuestSignInAfterReviewPrompt(
-        isModalOrAuthFlowActive: Bool,
+    /// Guests only: the prompt stops only when the person is no longer a guest.
+    func presentGuestSignInAfterReviewPromptIfDue(
+        settings: ReviewPromptSettings,
+        counters: ReviewPromptCounters,
+        configVersion: String,
         now: Date
-    ) {
-        guard self.isGuestSignInAfterReviewPromptPresented == false else {
-            return
-        }
-        guard shouldPresentGuestSignInAfterReviewPrompt(
-            cloudState: self.cloudSettings?.cloudState,
-            reviewedCount: self.homeSnapshot.reviewedCount,
-            promptState: self.guestSignInAfterReviewPromptState,
-            now: now,
-            isModalOrAuthFlowActive: isModalOrAuthFlowActive
-        ) else {
-            return
+    ) -> Bool {
+        guard self.isGuestSignInAfterReviewPromptPresented == false,
+              self.cloudSettings?.cloudState == .guest,
+              reviewPromptConfigAllows(
+                settings: settings,
+                counters: counters,
+                lastShownAt: self.guestSignInAfterReviewPromptState.lastShownAt,
+                now: now
+              ) else {
+            return false
         }
 
-        self.markGuestSignInAfterReviewPromptShown(
-            reviewedCount: self.homeSnapshot.reviewedCount,
-            now: now
-        )
+        self.updateGuestSignInAfterReviewPromptState(state: GuestSignInAfterReviewPromptState(lastShownAt: now))
         self.isGuestSignInAfterReviewPromptPresented = true
         // The showing and the answer are two facts, and this is the showing. Recording only the
         // answer — which is what the retired `onboarding_step_completed` did — leaves no denominator,
         // so no acceptance rate can ever be computed from it.
-        Analytics.trackScreenViewed(.signInAfterReviewPrompt)
-    }
-
-    func requestGuestSignInAfterReviewPromptReconciliation() {
-        self.guestSignInAfterReviewPromptReconciliationToken = self.guestSignInAfterReviewPromptReconciliationToken &+ 1
+        Analytics.trackReviewPromptScreenViewed(.signInAfterReviewPrompt, reviewPromptConfigVersion: configVersion)
+        return true
     }
 
     /**
@@ -46,13 +41,7 @@ extension FlashcardsStore {
         self.isGuestSignInAfterReviewPromptPresented = false
     }
 
-    func acceptGuestSignInAfterReviewPrompt(now: Date) {
-        self.updateGuestSignInAfterReviewPromptState(
-            state: makeAcceptedGuestSignInAfterReviewPromptState(
-                promptState: self.guestSignInAfterReviewPromptState,
-                now: now
-            )
-        )
+    func acceptGuestSignInAfterReviewPrompt() {
         self.isGuestSignInAfterReviewPromptPresented = false
         // No surface is restored here: accepting opens the sign-in sheet, which reports `signin` as
         // it begins its attempt. Closing that sheet is what hands the tab underneath back, and it
@@ -63,17 +52,10 @@ extension FlashcardsStore {
         )
     }
 
-    func snoozeGuestSignInAfterReviewPrompt(reviewedCount: Int, now: Date) {
-        self.updateGuestSignInAfterReviewPromptState(
-            state: makeSnoozedGuestSignInAfterReviewPromptState(
-                promptState: self.guestSignInAfterReviewPromptState,
-                reviewedCount: reviewedCount,
-                now: now
-            )
-        )
+    func snoozeGuestSignInAfterReviewPrompt() {
         self.isGuestSignInAfterReviewPromptPresented = false
-        // "Later" is `snoozed` rather than `dismissed`: it holds the prompt back for a week and a
-        // further ten reviews, which is a different answer from walking away from it.
+        // "Later" is `snoozed` rather than `dismissed`: it holds the prompt back for its cooldown,
+        // which is a different answer from walking away from it.
         Analytics.track(
             .promptAnswered(prompt: .signInAfterReviewPrompt, outcome: .snoozed),
             screen: .signInAfterReviewPrompt
@@ -88,16 +70,6 @@ extension FlashcardsStore {
         self.guestSignInAfterReviewPromptState = makeDefaultGuestSignInAfterReviewPromptState()
         self.isGuestSignInAfterReviewPromptPresented = false
         self.userDefaults.removeObject(forKey: guestSignInAfterReviewPromptUserDefaultsKey)
-    }
-
-    private func markGuestSignInAfterReviewPromptShown(reviewedCount: Int, now: Date) {
-        self.updateGuestSignInAfterReviewPromptState(
-            state: makeGuestSignInAfterReviewPromptShownState(
-                promptState: self.guestSignInAfterReviewPromptState,
-                reviewedCount: reviewedCount,
-                now: now
-            )
-        )
     }
 
     private func updateGuestSignInAfterReviewPromptState(state: GuestSignInAfterReviewPromptState) {

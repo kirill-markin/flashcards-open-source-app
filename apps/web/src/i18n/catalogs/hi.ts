@@ -738,6 +738,10 @@ const hiCatalog: TranslationCatalog = {
       description: "iOS और Android इंस्टॉल प्रॉम्प्ट का प्रीव्यू देखें।",
       value: "प्रीव्यू",
     },
+    reviewPrompts: {
+      title: "रिव्यू के बाद के प्रॉम्प्ट",
+      resetAll: "सभी प्रॉम्प्ट की स्थिति रीसेट करें",
+    },
   },
   settingsWorkspace: {
     decks: {
@@ -1072,7 +1076,7 @@ const hiCatalog: TranslationCatalog = {
       createWithAi: "AI से बनाएँ",
       edit: "संपादित करें",
       retry: "फिर से कोशिश करें",
-      revealAnswer: "उत्तर दिखाएँ",
+      revealAnswer: "उत्तर दिखाएं",
       switchToAllCards: "सभी कार्ड डेक पर जाएँ",
     },
     aiOpenAriaLabel: "AI चैट में कार्ड खोलें: {{side}}",

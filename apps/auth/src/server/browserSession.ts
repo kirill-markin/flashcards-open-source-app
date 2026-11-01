@@ -14,7 +14,8 @@ import { parseCookieDomainCandidates, resolveCookieDomain } from "./cookieDomain
 import { log } from "./logger.js";
 import { assertVerifiedPrincipalSession, PrincipalSessionError } from "./social/principalSessions.js";
 
-const SESSION_COOKIE_MAX_AGE_SECONDS = 3_024_000;
+// 400 days, the browser cap on cookie lifetime.
+const SESSION_COOKIE_MAX_AGE_SECONDS = 34_560_000;
 
 export const verifiedBrowserSession = Symbol("verified browser session presentation");
 export type BrowserSessionPresentation = Readonly<{ subject: string; authTime: number }>;

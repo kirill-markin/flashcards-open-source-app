@@ -40,7 +40,6 @@ type ManagedMediaLoadState =
     status: "ready";
     mediaAsset: MediaAsset;
     objectUrlLease: ManagedMediaObjectUrlLease;
-    releaseProvisionalObjectUrlLease: (() => void) | null;
     url: string;
   }>;
 type ManagedMediaObjectUrlRetention = Readonly<{
@@ -305,6 +304,8 @@ export function ManagedMediaReference(props: Readonly<{
   const { indexedDbOpenRecoveryState } = useAppErrorDialog();
   const [loadState, setLoadState] = useState<ManagedMediaLoadState>({ status: "loading" });
   const loadStateRef = useRef<ManagedMediaLoadState>(loadState);
+  // Leases acquired by a loader run and published into loadState but not yet adopted by a committed render, oldest first.
+  const unadoptedObjectUrlLeasesRef = useRef<ReadonlyArray<ManagedMediaObjectUrlLease>>([]);
 
   function updateLoadState(nextLoadState: ManagedMediaLoadState): void {
     loadStateRef.current = nextLoadState;
@@ -339,14 +340,27 @@ export function ManagedMediaReference(props: Readonly<{
       return undefined;
     }
 
-    if (loadState.status === "ready") {
-      loadState.releaseProvisionalObjectUrlLease?.();
+    const unadoptedLeases = unadoptedObjectUrlLeasesRef.current;
+    const adoptedIndex = unadoptedLeases.indexOf(committedObjectUrlLease);
+    if (adoptedIndex === -1) {
+      throw new Error(`Managed media object URL adoption failed: committed lease was not published for key=${committedObjectUrlLease.key}`);
     }
+
+    // Leases published before the committed one were superseded before any render committed them.
+    unadoptedObjectUrlLeasesRef.current = unadoptedLeases.slice(adoptedIndex + 1);
+    unadoptedLeases.slice(0, adoptedIndex).forEach(releaseManagedMediaObjectUrl);
 
     return () => {
       releaseManagedMediaObjectUrl(committedObjectUrlLease);
     };
   }, [committedObjectUrlLease]);
+
+  useEffect(() => {
+    return () => {
+      unadoptedObjectUrlLeasesRef.current.forEach(releaseManagedMediaObjectUrl);
+      unadoptedObjectUrlLeasesRef.current = [];
+    };
+  }, []);
 
   useEffect(() => {
     if (referenceState !== "ready") {
@@ -355,10 +369,6 @@ export function ManagedMediaReference(props: Readonly<{
 
     let isCancelled = false;
     let provisionalObjectUrlLease: ManagedMediaObjectUrlLease | null = null;
-
-    function clearProvisionalObjectUrlLease(): void {
-      provisionalObjectUrlLease = null;
-    }
 
     function releaseProvisionalObjectUrlLease(): void {
       if (provisionalObjectUrlLease === null) {
@@ -466,14 +476,15 @@ export function ManagedMediaReference(props: Readonly<{
         releaseProvisionalObjectUrlLease();
         return;
       }
+      if (provisionalObjectUrlLease !== null) {
+        unadoptedObjectUrlLeasesRef.current = [...unadoptedObjectUrlLeasesRef.current, provisionalObjectUrlLease];
+        provisionalObjectUrlLease = null;
+      }
       updateLoadState({
         imageDimensions,
         status: "ready",
         mediaAsset: loadResult.mediaAsset,
         objectUrlLease: objectUrlRetention.objectUrlLease,
-        releaseProvisionalObjectUrlLease: objectUrlRetention.isAcquiredLease
-          ? clearProvisionalObjectUrlLease
-          : null,
         url: objectUrlRetention.objectUrlLease.url,
       });
     }

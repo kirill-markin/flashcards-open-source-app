@@ -34,8 +34,10 @@ export type AdminQueryDetails = Readonly<{
  *
  * The error message is deliberately absent too: dialect errors quote the
  * offending SQL fragment verbatim, so the message carries flashcard content that
- * no delimiter heuristic can strip reliably. Unexpected failures still reach
- * Sentry with their full message and stack through `captureBackendException`.
+ * no delimiter heuristic can strip reliably. A failure's full SQL and message go
+ * to the 30-day failure log (`aiTools/agentSql/failureLog.ts`).
+ * `rejectedName` is safe to keep: it is the identifier, function, or keyword the
+ * parser extracted for a dialect rejection, never literal text.
  */
 export type AgentSqlDetails = Readonly<{
   surface: AgentSqlSurface;
@@ -54,6 +56,7 @@ export type AgentSqlDetails = Readonly<{
   sqlFingerprint: string;
   errorCode: string | null;
   dialectReason: string | null;
+  rejectedName: string | null;
   errorClass: string | null;
 }>;
 
@@ -80,16 +83,22 @@ export type AgentSqlDetails = Readonly<{
  * handler reported -- whether its result was an error and the `error.code` it
  * sent -- and both are null when no handler ran.
  *
- * Of the body the transport owns, only a `tools/call` tool name is read: tool
- * arguments and results carry flashcard content and are never recorded, and
- * `responseChars` is a length measured off the response and never any of what
- * it contains.
+ * `toolCallArguments` is the compact JSON of the validated arguments the
+ * handler of the named tool received, cut at a few KB, so a session's tool
+ * calls can be read in full; it is null when no handler ran and for `sql_query`
+ * and `sql_execute`, whose SQL text never reaches this log group because the
+ * group never expires. Its name keeps it clear of the content-key redaction in
+ * `apps/backend/src/observability/sanitizer.ts`, which blanks a `toolArguments`
+ * field. The request body itself is read only for a `tools/call` tool name,
+ * tool results are never recorded, and `responseChars` is a length measured off
+ * the response and never any of what it contains.
  */
 export type McpRequestDetails = Readonly<{
   protocolVersion: string | null;
   jsonRpcMethod: string | null;
   toolName: string | null;
   toolExecuted: boolean | null;
+  toolCallArguments: string | null;
   toolIsError: boolean | null;
   toolErrorCode: string | null;
   caller: string | null;
@@ -431,6 +440,23 @@ export type GlobalMetricsS3RetryDetails = Readonly<{
   errorMessage: string;
 }>;
 
+export type AgentSqlFailureLogRetryDetails = Readonly<{
+  operation: "create_log_stream" | "put_log_events";
+  attempt: number;
+  maxAttempts: number;
+  logGroupName: string;
+  logStreamName: string;
+  statusCode: number | null;
+  errorClass: string;
+  errorMessage: string;
+}>;
+
+/** Never the SQL or its error message: this record lands in a never-expiring log group. */
+export type AgentSqlFailureLogWriteFailureDetails = Readonly<{
+  surface: AgentSqlSurface;
+  sqlFingerprint: string;
+}>;
+
 export type CatalogDumpS3RetryDetails = Readonly<{
   /**
    * The retry helper is shared by the artifact write, the pointer read, and the
@@ -670,6 +696,16 @@ export type CatalogDeckInstalledAnalyticsSkippedDetails = Readonly<{
   errorMessage: string | null;
 }>;
 
+// The install's catalog_deck_installed row was still emitted, with no device on it, because the
+// replica the install was written as could not be read back after commit.
+export type CatalogDeckInstalledDeviceUnresolvedDetails = Readonly<{
+  installId: string;
+  replicaId: string;
+  reason: "workspace_replica_row_missing" | "workspace_replica_read_failed";
+  errorClass: string | null;
+  errorMessage: string | null;
+}>;
+
 // A deliberate skip, not a dropped write: the acceptance committed and neither friendship_created
 // row was attempted, because the directed community.friendships row both events are derived from
 // could not be read. Reported under its own action so it never looks like
@@ -864,6 +900,7 @@ export type OperationsBreadcrumbEvent =
   | EventByAction<"google_history_retry", StoreAnalyticsAppleRetryDetails>
   | EventByAction<"google_history_import_completed", GoogleHistoryImportCompletedDetails>
   | EventByAction<"google_history_source_failed", GoogleHistorySourceFailureDetails>
+  | EventByAction<"google_reconciliation_run", Readonly<{ succeeded: 0 | 1 }>>
   | EventByAction<"generated_media_promotion_batch_completed", GeneratedMediaPromotionBatchDetails>
   | EventByAction<"geolite_country_database_loaded", GeoLiteCountryDatabaseLoadedDetails>
   | EventByAction<"geolite_asn_database_loaded", GeoLiteCountryDatabaseLoadedDetails>
@@ -873,6 +910,7 @@ export type OperationsBreadcrumbEvent =
   | EventByAction<"multipart_completion_reconciliation_batch_completed", MultipartCompletionReconciliationBatchDetails>
   | EventByAction<"multipart_completion_reconciliation_job_terminally_failed", MultipartCompletionReconciliationTerminalFailureDetails>
   | EventByAction<"database_transient_retry", DatabaseTransientRetryDetails>
+  | EventByAction<"agent_sql_failure_log_retry", AgentSqlFailureLogRetryDetails>
   | EventByAction<"global_metrics_s3_retry", GlobalMetricsS3RetryDetails>
   | EventByAction<"catalog_dump_s3_retry", CatalogDumpS3RetryDetails>
   | EventByAction<"media_asset_storage_retry", MediaAssetStorageRetryDetails>
@@ -921,6 +959,7 @@ export type OperationsWarningEvent =
   | EventByAction<"product_analytics_identity_link_write_failed", ProductAnalyticsIdentityLinkWriteFailureDetails>
   | EventByAction<"guest_upgrade_analytics_skipped", GuestUpgradeAnalyticsSkippedDetails>
   | EventByAction<"catalog_deck_installed_analytics_skipped", CatalogDeckInstalledAnalyticsSkippedDetails>
+  | EventByAction<"catalog_deck_installed_device_unresolved", CatalogDeckInstalledDeviceUnresolvedDetails>
   | EventByAction<"friendship_created_analytics_skipped", FriendshipCreatedAnalyticsSkippedDetails>
   | EventByAction<"entitlement_changed_analytics_skipped", EntitlementChangedAnalyticsSkippedDetails>
   | (EventByAction<
@@ -986,4 +1025,6 @@ export type OperationsExceptionEvent =
   | (EventByAction<"multipart_completion_reconciliation_batch_failed", MultipartCompletionReconciliationBatchDetails> & Readonly<{
     error: Error;
   }>)
-  | (EventByAction<"migration_failed", MigrationFailureDetails> & Readonly<{ error: Error }>);
+  | (EventByAction<"migration_failed", MigrationFailureDetails> & Readonly<{ error: Error }>)
+  | (EventByAction<"agent_sql_failure_log_write_failed", AgentSqlFailureLogWriteFailureDetails>
+    & Readonly<{ error: Error }>);

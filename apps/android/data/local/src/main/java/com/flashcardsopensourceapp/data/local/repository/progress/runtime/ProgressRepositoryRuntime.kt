@@ -104,6 +104,7 @@ internal fun logProgressRefreshWarning(
             refreshAction = event,
             scopeId = scopeId,
             source = source,
+            errorClass = generateSequence(seed = error) { throwable: Throwable -> throwable.cause }.last()::class.java.name,
             appVersion = observationVersions.appVersion,
             clientVersion = observationVersions.clientVersion,
             versionCode = observationVersions.versionCode

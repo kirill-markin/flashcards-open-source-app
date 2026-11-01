@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type JSX, type ReactNode } from "react";
 import * as d3 from "d3";
+import type { ReviewEventPlatform } from "../../adminApi";
 import { ChartAreaWithNote } from "../../charts/ChartAreaWithNote";
 import { ChartColorKey } from "../../charts/ChartLegends";
 import { ChartLoadingPlaceholder } from "../../charts/ChartLoadingPlaceholder";
@@ -11,7 +12,7 @@ import { renderWhoSawUsChart } from "../../charts/chartRenderers";
 import { escapeHtml, formatGeneratedAt } from "../../charts/formatting";
 import type { AdminAppConfig } from "../../config";
 import { ExplanationTip } from "../../explanations/ExplanationTip";
-import type { AnalyticsDateRange } from "../../filters/analyticsFilters";
+import type { AnalyticsDateRange, SiteVisitorFilterState } from "../../filters/analyticsFilters";
 import type { BarFreshness } from "../levelOneMetrics/breakdownReport";
 import {
   LevelOneMetricDetailsButton,
@@ -49,12 +50,26 @@ export const whoSawUsSeriesColors: Readonly<Record<WhoSawUsSeriesKey, string>> =
   "google-play": "#59a14f",
 };
 
-/** The main Level 1 chart stacks every series; a dataset page draws its own one alone. */
-export type WhoSawUsChartSeries = "all" | WhoSawUsSeriesKey;
+/** The platform each series is seen on; agent and unattributed have none. */
+const whoSawUsSeriesPlatforms: Readonly<Record<WhoSawUsSeriesKey, ReviewEventPlatform>> = {
+  web: "web",
+  "app-store": "ios",
+  "google-play": "android",
+};
+
+/**
+ * The main Level 1 chart stacks the series of the selected platforms, given as that selection; a
+ * dataset page draws its own one alone.
+ */
+export type WhoSawUsChartSeries = ReadonlyArray<ReviewEventPlatform> | WhoSawUsSeriesKey;
 
 function getDrawnSeriesKeys(series: WhoSawUsChartSeries): ReadonlyArray<WhoSawUsSeriesKey> {
-  return series === "all" ? whoSawUsSeriesKeys : [series];
+  return typeof series === "string"
+    ? [series]
+    : whoSawUsSeriesKeys.filter((key) => series.includes(whoSawUsSeriesPlatforms[key]));
 }
+
+const noDrawnSeriesNote = "No Who saw us series exists for the selected platforms: Web engaged is web, App Store is iOS and Google Play is Android.";
 
 function buildSeriesChartNotes(seriesKey: WhoSawUsSeriesKey, today: string): ReadonlyArray<ChartNote> {
   return seriesKey === "web"
@@ -193,6 +208,8 @@ const allSeriesExplanation = <>
       {whoSawUsSeriesKeys.map((key) => (
         <li key={key}><strong>{whoSawUsSeriesLabels[key]}:</strong> {whoSawUsSeriesDescriptions[key]}</li>
       ))}
+      <li><strong>Platform filter:</strong> draws only the series of the selected platforms: Web engaged for web, App Store for iOS and Google Play for Android; Agent API and Unresolved have none</li>
+      <li><strong>App version filter:</strong> not applied, because site and store visitors carry no app version</li>
       <li><strong>Weeks and months:</strong> an identified Web engaged visitor counts once per bar, engaged on any of its days; cookieless engaged visitors and store visitors are summed over the bar's days, because the cookieless id changes every day and the stores send no visitor ids</li>
     </ul>
   </li>
@@ -269,6 +286,10 @@ export function WhoSawUsSection(
     dateRange: AnalyticsDateRange;
     period: ReportPeriod;
     series: WhoSawUsChartSeries;
+    /** Never narrows the chart; a non-empty selection only shows that it does not. */
+    appVersions: ReadonlyArray<string>;
+    /** Narrows the `web` series alone; a chart that draws a store series passes the default. */
+    siteFilters: SiteVisitorFilterState;
     detailsLink: LevelOneMetricDetailsLink | null;
     onTerminalAdminError: (error: unknown, config: AdminAppConfig) => boolean;
   }>,
@@ -282,14 +303,14 @@ export function WhoSawUsSection(
     let cancelled = false;
     setLoadState({ status: "loading" });
     const abortController = new AbortController();
-    void loadWhoSawUsReport(props.config, props.dateRange, props.period, abortController.signal).then((report) => {
+    void loadWhoSawUsReport(props.config, props.dateRange, props.period, props.siteFilters, abortController.signal).then((report) => {
       if (!cancelled) setLoadState({ status: "ready", report });
     }).catch((error: unknown) => {
       if (cancelled || props.onTerminalAdminError(error, props.config)) return;
       setLoadState({ status: "error", message: error instanceof Error ? error.message : "Unexpected Who saw us query error." });
     });
     return () => { cancelled = true; abortController.abort(); };
-  }, [props.config, props.dateRange, props.period, props.onTerminalAdminError, revision]);
+  }, [props.config, props.dateRange, props.period, props.siteFilters, props.onTerminalAdminError, revision]);
 
   const seriesKeys = useMemo(() => getDrawnSeriesKeys(props.series), [props.series]);
   const chartModel = useMemo(
@@ -350,13 +371,19 @@ export function WhoSawUsSection(
           <h2>Who saw us</h2>
           <ExplanationTip label="What Who saw us shows" explanationId="who-saw-us-explanation">
             <ul>
-              {props.series === "all" ? allSeriesExplanation : renderOneSeriesExplanation(props.series)}
+              {typeof props.series === "string" ? renderOneSeriesExplanation(props.series) : allSeriesExplanation}
               {loadState.status === "ready" ? <li>Generated {formatGeneratedAt(loadState.report.generatedAtUtc)}.</li> : null}
             </ul>
           </ExplanationTip>
         </div>
         {props.detailsLink !== null ? <LevelOneMetricDetailsButton link={props.detailsLink} /> : null}
       </header>
+
+      {props.appVersions.length > 0 ? (
+        <p className="activity-coverage-note" data-testid="who-saw-us-app-version-note">
+          Not filtered by app version: site and store visitors carry no app version.
+        </p>
+      ) : null}
 
       {loadState.status === "error" ? (
         <div className="report-state report-state-error">
@@ -382,7 +409,11 @@ export function WhoSawUsSection(
             </div>
             <div className="chart-scroll">
               {loadState.status === "ready" ? (
-                <ChartAreaWithNote viewBoxWidth={chartWidth} viewBoxHeight={stackedChartHeight} note={null}>
+                <ChartAreaWithNote
+                  viewBoxWidth={chartWidth}
+                  viewBoxHeight={stackedChartHeight}
+                  note={seriesKeys.length === 0 ? noDrawnSeriesNote : null}
+                >
                   <svg ref={chartRef} />
                 </ChartAreaWithNote>
               ) : (

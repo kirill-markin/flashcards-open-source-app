@@ -16,6 +16,7 @@ import {
 import type { ProgressCacheStateRecord, ProgressDailyCountRecord } from "../core/database";
 import {
   closeDatabaseAfter,
+  describeIndexedDbError,
   getAllFromStore,
   getFromStore,
   runReadonly,
@@ -454,6 +455,105 @@ async function loadWorkspaceReviewEvents(
     "reviewEvents",
     (store) => store.getAll(keyRange),
   ) as Promise<ReadonlyArray<ReviewEvent>>;
+}
+
+const reviewEventsTimeIndexName = "workspaceId_reviewedAtClient_reviewEventId";
+
+// `reviewedAtClient` is stored as `Date.toISOString()` output, so key order is time order.
+export async function countLocalReviewEventsReviewedBetween(
+  workspaceIds: ReadonlyArray<string>,
+  fromReviewedAtClient: string,
+  toReviewedAtClientExclusive: string,
+): Promise<number> {
+  if (workspaceIds.length === 0) {
+    return 0;
+  }
+
+  return closeDatabaseAfter(async (database) => {
+    const workspaceCounts = await Promise.all(workspaceIds.map((workspaceId) => runReadonly(
+      database,
+      "reviewEvents",
+      (store) => store.index(reviewEventsTimeIndexName).count(IDBKeyRange.bound(
+        [workspaceId, fromReviewedAtClient],
+        [workspaceId, toReviewedAtClientExclusive],
+        false,
+        true,
+      )),
+    )));
+
+    return workspaceCounts.reduce((total, workspaceCount) => total + workspaceCount, 0);
+  });
+}
+
+function loadWorkspacesRecentReviewDays(
+  database: IDBDatabase,
+  workspaceIds: ReadonlyArray<string>,
+  mapReviewEventToDay: (reviewEvent: ReviewEvent) => string,
+  dayLimit: number,
+): Promise<ReadonlySet<string>> {
+  return new Promise((resolve, reject) => {
+    const reviewDays = new Set<string>();
+    let mappingError: Error | null = null;
+    const transaction = database.transaction("reviewEvents", "readonly");
+    const timeIndex = transaction.objectStore("reviewEvents").index(reviewEventsTimeIndexName);
+
+    transaction.oncomplete = () => {
+      resolve(reviewDays);
+    };
+    transaction.onabort = () => {
+      reject(mappingError ?? describeIndexedDbError("IndexedDB recent review days read failed", transaction.error));
+    };
+
+    for (const workspaceId of workspaceIds) {
+      const workspaceDays = new Set<string>();
+      const request = timeIndex.openCursor(
+        IDBKeyRange.bound([workspaceId, ""], [workspaceId, progressRecordKeyHighValue]),
+        "prev",
+      );
+      request.onsuccess = () => {
+        const cursor = request.result;
+        if (cursor === null) {
+          return;
+        }
+
+        let reviewDay: string;
+        try {
+          reviewDay = mapReviewEventToDay(cursor.value as ReviewEvent);
+        } catch (error: unknown) {
+          mappingError = error instanceof Error ? error : new Error(String(error));
+          transaction.abort();
+          return;
+        }
+
+        workspaceDays.add(reviewDay);
+        reviewDays.add(reviewDay);
+        if (workspaceDays.size < dayLimit) {
+          cursor.continue();
+        }
+      };
+    }
+  });
+}
+
+/**
+ * Walks each workspace's review events newest first and stops once that workspace has yielded
+ * `dayLimit` distinct days; returns the union of those days across workspaces.
+ */
+export async function loadLocalRecentReviewDays(
+  workspaceIds: ReadonlyArray<string>,
+  mapReviewEventToDay: (reviewEvent: ReviewEvent) => string,
+  dayLimit: number,
+): Promise<ReadonlySet<string>> {
+  if (workspaceIds.length === 0 || dayLimit === 0) {
+    return new Set();
+  }
+
+  return closeDatabaseAfter((database) => loadWorkspacesRecentReviewDays(
+    database,
+    workspaceIds,
+    mapReviewEventToDay,
+    dayLimit,
+  ));
 }
 
 /**

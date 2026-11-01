@@ -1,11 +1,12 @@
 .chat-page {
   display: flex;
   justify-content: center;
-  padding: var(--shell-frame-gap) 0;
+  padding: var(--chat-shell-pane-top) 0 var(--chat-shell-pane-bottom);
 }
 
 .chat-layout-shell {
-  --chat-shell-pane-top: var(--shell-frame-gap);
+  --chat-toggle-floating-height: 52px;
+  --chat-shell-pane-top: 0px;
   --chat-shell-pane-bottom: var(--shell-frame-gap);
   --chat-shell-content-height: 100%;
   --chat-shell-pane-offset: calc(var(--chat-shell-pane-top) + var(--chat-shell-pane-bottom));
@@ -31,6 +32,13 @@
 .chat-layout-shell-sidebar-closed .chat-main-content,
 .chat-layout-shell-fullscreen .chat-main-content {
   padding-inline: 0;
+}
+
+@media (min-width: 769px) {
+  .chat-layout-shell-sidebar-closed .screen-body,
+  .chat-layout-shell-sidebar-closed .cards-scroll {
+    padding-block-end: calc(var(--chat-toggle-floating-height) + var(--shell-frame-gap));
+  }
 }
 
 .chat-sidebar,
@@ -96,19 +104,35 @@
   justify-content: space-between;
   align-items: center;
   gap: 12px;
+  min-height: calc(var(--screen-head-control-height) + 2 * var(--screen-head-top-spacing) - 1px);
   padding: 12px 14px;
-  border-bottom: 1px solid var(--divider);
+  border-bottom: 1px solid transparent;
   background: var(--bg);
   flex-shrink: 0;
 }
 
 .chat-header-actions {
   display: flex;
+  flex-shrink: 0;
   gap: 6px;
   align-items: stretch;
 }
 
+.chat-header > div:first-child {
+  min-width: 0;
+}
+
+@media (min-width: 769px) {
+  .chat-sidebar {
+    max-width: calc(100% - 320px - var(--shell-frame-gap));
+  }
+}
+
 .chat-header-title {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   font-size: var(--page-title-font-size);
   line-height: var(--page-title-line-height);
   font-weight: var(--page-title-font-weight);
@@ -229,13 +253,11 @@
   /* Lifted clear of the consent strip while it is up. The strip is fixed to the same edge and
      deliberately below this button's layer, and `#root`'s padding can only move in-flow content, so
      this is the one bottom-anchored control that has to read the published height itself. The
-     fallback is 0px, which is every moment there is no strip. On a phone it also clears Review's
-     full-width action dock, whose clearance `ReviewPane` publishes from the same edge; the dock
-     already sits above the strip, hence `max()` there. */
+     fallback is 0px, which is every moment there is no strip. */
   bottom: calc(var(--shell-frame-gap) + var(--analytics-consent-banner-height, 0px));
   inset-inline-start: var(--shell-frame-gap);
   z-index: var(--z-index-floating-control);
-  min-height: 52px;
+  min-height: var(--chat-toggle-floating-height);
   padding: 0 22px;
   border: 1px solid transparent;
   border-radius: var(--radius-pill);
@@ -251,15 +273,10 @@
   background: var(--surface-hover);
 }
 
+/* On a phone the pill would cover content; AI chat stays reachable from the navigation menu. */
 @media (max-width: 768px) {
   .chat-toggle-floating {
-    bottom: calc(
-      var(--shell-frame-gap) +
-        max(var(--analytics-consent-banner-height, 0px), var(--review-actions-dock-clearance, 0px))
-    );
-    min-height: var(--chat-toggle-floating-compact-height);
-    padding: 0 14px;
-    font-size: 14px;
+    display: none;
   }
 }
 
@@ -277,7 +294,6 @@
 
 .chat-history-search {
   padding: 12px 14px;
-  border-bottom: 1px solid var(--divider);
   flex-shrink: 0;
 }
 
@@ -316,7 +332,6 @@
   align-items: center;
   gap: 8px;
   padding: 12px 4px;
-  border-bottom: 1px solid var(--divider);
 }
 
 .chat-history-item-main {

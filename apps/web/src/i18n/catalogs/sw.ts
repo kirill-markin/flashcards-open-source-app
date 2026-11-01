@@ -738,6 +738,10 @@ const swCatalog: TranslationCatalog = {
       description: "Angalia ombi la kusakinisha la iOS na Android.",
       value: "Onyesho la awali",
     },
+    reviewPrompts: {
+      title: "Vidokezo baada ya marudio",
+      resetAll: "Weka upya hali ya vidokezo vyote",
+    },
   },
   settingsWorkspace: {
     decks: {

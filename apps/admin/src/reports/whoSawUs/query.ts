@@ -1,7 +1,7 @@
 import { runAdminQuery, type AdminQueryResultSet, type AdminQueryValue } from "../../adminApi";
 import type { ChartNote } from "../../charts/chartNotes";
 import type { AdminAppConfig } from "../../config";
-import type { AnalyticsDateRange } from "../../filters/analyticsFilters";
+import type { AnalyticsDateRange, SiteVisitorFilterState } from "../../filters/analyticsFilters";
 import { escapeSqlStringLiteral } from "../../sql";
 import {
   buildReportBucketColumnsSql,
@@ -12,7 +12,8 @@ import {
   type ReportPeriod,
 } from "../levelOneMetrics/reportPeriod";
 import { assertIsString, assertValidDateRange, parseActivityCount, parseActivityDate } from "../reportValues";
-import { buildSiteVisitorDaysCtesSql } from "./engagedVisitorsQuery";
+import { buildSiteFirstViewsCtesSql, buildSiteMeasuredBucketsCteSql, buildSiteVisitorDaysCtesSql } from "./engagedVisitorsQuery";
+import { isSiteVisitorFilterNarrowed } from "./siteFactSql";
 
 const reportLabel = "Who saw us report";
 const storeDeliveryLabel = "Who saw us store delivery";
@@ -217,6 +218,48 @@ export async function loadWhoSawUsAvailableRange(config: AdminAppConfig, signal:
 }
 
 /**
+ * `site_visitors(bucket_date, visitor_count)`, whose sum per bucket is the `web` series' bar, holding
+ * a bucket exactly where it has a site visitor-day. Narrowed, each engaged visitor is judged by
+ * `buildSiteFirstViewsCtesSql`, so a bar is that segment of every Web engaged breakdown's bar; with
+ * nothing narrowed every engaged visitor passes, and the cheaper visitor-day count is the same number.
+ */
+function buildSiteVisitorsCtesSql(
+  range: AnalyticsDateRange,
+  period: ReportPeriod,
+  siteFilters: SiteVisitorFilterState,
+): string {
+  if (isSiteVisitorFilterNarrowed(siteFilters)) {
+    return [
+      `${buildSiteFirstViewsCtesSql(() => "1 AS visitor_count", range, period, siteFilters)}, ${buildSiteMeasuredBucketsCteSql(period)}, site_visitors AS (`,
+      "  SELECT measured_buckets.bucket_date, 0 AS visitor_count FROM measured_buckets",
+      "  UNION ALL",
+      "  SELECT identified_first_views.bucket_date, identified_first_views.visitor_count FROM identified_first_views",
+      "  UNION ALL",
+      "  SELECT hashed_first_views.bucket_date, hashed_first_views.visitor_count FROM hashed_first_views",
+      ")",
+    ].join("\n");
+  }
+
+  const identifiedBucketSql = buildReportBucketSql(period, "identified.visit_date");
+  const hashedBucketSql = buildReportBucketSql(period, "hashed.visit_date");
+  return [
+    `${buildSiteVisitorDaysCtesSql(range)}, site_visitors AS (`,
+    "  SELECT",
+    `    ${identifiedBucketSql} AS bucket_date,`,
+    "    COUNT(DISTINCT identified.actor_id) FILTER (WHERE identified.is_engaged) AS visitor_count",
+    "  FROM identified_visitor_days AS identified",
+    `  GROUP BY ${identifiedBucketSql}`,
+    "  UNION ALL",
+    "  SELECT",
+    `    ${hashedBucketSql} AS bucket_date,`,
+    "    COUNT(*) FILTER (WHERE hashed.is_engaged) AS visitor_count",
+    "  FROM hashed_visitor_days AS hashed",
+    `  GROUP BY ${hashedBucketSql}`,
+    ")",
+  ].join("\n");
+}
+
+/**
  * One row per bucket of the range, each series an approximate count of unique visitors or NULL.
  *
  * `web` is the marketing site's engaged visitors over `buildSiteVisitorDaysCtesSql`: distinct identified
@@ -234,30 +277,23 @@ export async function loadWhoSawUsAvailableRange(config: AdminAppConfig, signal:
  * sums over the store's breakdown rows, so a visitor seen in two of them counts twice. Apple's value
  * strings are matched case-insensitively because no imported file has confirmed their exact case.
  *
+ * `siteFilters` narrows `web` alone, by `buildSiteVisitorsCtesSql`: the store rows carry nothing it
+ * could narrow.
+ *
  * TODO: someone who reaches the store page from our website, by a store badge or the site's QR code,
  * can count in both `web` and `app-store` or `google-play`. Removing that overlap is a known later task.
  */
-export function buildWhoSawUsSql(dateRange: AnalyticsDateRange, period: ReportPeriod): string {
+export function buildWhoSawUsSql(
+  dateRange: AnalyticsDateRange,
+  period: ReportPeriod,
+  siteFilters: SiteVisitorFilterState,
+): string {
   const range = assertValidDateRange(dateRange, reportLabel);
-  const identifiedBucketSql = buildReportBucketSql(period, "identified.visit_date");
-  const hashedBucketSql = buildReportBucketSql(period, "hashed.visit_date");
   const appleBucketSql = buildReportBucketSql(period, "apple_visitors.visit_date");
   const playBucketSql = buildReportBucketSql(period, "play_visitors.visit_date");
 
   return [
-    `WITH ${buildReportBucketsCteSql(period, range)}, ${buildSiteVisitorDaysCtesSql(range)}, site_visitors AS (`,
-    "  SELECT",
-    `    ${identifiedBucketSql} AS bucket_date,`,
-    "    COUNT(DISTINCT identified.actor_id) FILTER (WHERE identified.is_engaged) AS visitor_count",
-    "  FROM identified_visitor_days AS identified",
-    `  GROUP BY ${identifiedBucketSql}`,
-    "  UNION ALL",
-    "  SELECT",
-    `    ${hashedBucketSql} AS bucket_date,`,
-    "    COUNT(*) FILTER (WHERE hashed.is_engaged) AS visitor_count",
-    "  FROM hashed_visitor_days AS hashed",
-    `  GROUP BY ${hashedBucketSql}`,
-    "), apple_visitors AS (",
+    `WITH ${buildReportBucketsCteSql(period, range)}, ${buildSiteVisitorsCtesSql(range, period, siteFilters)}, apple_visitors AS (`,
     "  SELECT engagement.report_date AS visit_date, engagement.unique_counts AS visitor_count",
     "  FROM store_analytics.apple_discovery_engagement AS engagement",
     `  WHERE ${buildAppleProductPageViewRowSqlLines("engagement", "unique_counts").join("\n    AND ")}`,
@@ -313,10 +349,11 @@ export async function loadWhoSawUsReport(
   config: AdminAppConfig,
   dateRange: AnalyticsDateRange,
   period: ReportPeriod,
+  siteFilters: SiteVisitorFilterState,
   signal: AbortSignal,
 ): Promise<WhoSawUsReport> {
   const [response, storeDelivery] = await Promise.all([
-    runAdminQuery(config, buildWhoSawUsSql(dateRange, period), signal),
+    runAdminQuery(config, buildWhoSawUsSql(dateRange, period, siteFilters), signal),
     loadStoreDelivery(config, signal),
   ]);
   const resultSet = getSingleResultSet(response.resultSets, reportLabel);

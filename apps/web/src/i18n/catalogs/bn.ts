@@ -738,6 +738,10 @@ const bnCatalog: TranslationCatalog = {
       description: "iOS ও Android ইনস্টল প্রম্পট দেখুন।",
       value: "পূর্বরূপ",
     },
+    reviewPrompts: {
+      title: "পুনরালোচনার পরের প্রম্পট",
+      resetAll: "সব প্রম্পটের অবস্থা রিসেট করুন",
+    },
   },
   settingsWorkspace: {
     decks: {

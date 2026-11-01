@@ -1,3 +1,13 @@
+@media (max-height: 500px) {
+  .chat-textarea {
+    min-height: 48px;
+  }
+
+  .chat-messages {
+    padding-block: 12px;
+  }
+}
+
 @media (max-width: 768px) {
   .chat-page {
     padding-inline: 0;
@@ -9,6 +19,7 @@
   }
 
   .chat-sidebar {
+    min-width: 0;
     position: fixed;
     top: var(--shell-frame-gap);
     inset-inline-start: var(--shell-frame-gap);

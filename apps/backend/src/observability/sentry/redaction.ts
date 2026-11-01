@@ -1,6 +1,7 @@
 import type * as Sentry from "@sentry/aws-serverless";
 import {
   sanitizeBackendTelemetryValue,
+  shouldRedactContentKey,
   type SanitizedTelemetryValue,
 } from "../sanitizer";
 import {
@@ -13,7 +14,6 @@ type BackendSentryInitOptions = NonNullable<Parameters<typeof Sentry.init>[0]>;
 type BackendSentryEvent = Parameters<NonNullable<BackendSentryInitOptions["beforeSend"]>>[0];
 type BackendSentryEventHint = Parameters<NonNullable<BackendSentryInitOptions["beforeSend"]>>[1];
 type BackendSentrySpan = Parameters<NonNullable<BackendSentryInitOptions["beforeSendSpan"]>>[0];
-type BackendSentryTransactionEvent = Parameters<NonNullable<BackendSentryInitOptions["beforeSendTransaction"]>>[0];
 type SentryExceptionValue = Readonly<Record<string, unknown>> & Readonly<{
   type?: unknown;
   value?: unknown;
@@ -66,6 +66,9 @@ const sentrySecretKeyFragments: ReadonlyArray<string> = [
 ];
 const sentryOperationalTokenMetricKeyNames: ReadonlySet<string> = new Set([
   "completiontokens",
+  "genaiusageinputtokens",
+  "genaiusageoutputtokens",
+  "genaiusagetotaltokens",
   "inputtokens",
   "outputtokens",
   "prompttokens",
@@ -157,7 +160,16 @@ export function sanitizeSentryEvent(event: BackendSentryEvent, hint: BackendSent
   }
 
   const manualBackendWarningMessage = getManualBackendWarningMessage(event);
-  const sanitizedEvent = sanitizeBackendSentryTelemetryValue(redactExceptionTextFields(event)) as unknown as typeof event;
+  const request = event.request === undefined ? undefined : { ...event.request };
+  if (request !== undefined) {
+    delete request.data;
+    delete request.cookies;
+    delete request.headers;
+  }
+  const sanitizedEvent = sanitizeBackendSentryTelemetryValue(redactExceptionTextFields({
+    ...event,
+    ...(request === undefined ? {} : { request }),
+  })) as unknown as typeof event;
   const sanitizedEventWithDatabaseDiagnostics = restoreSentryDatabaseExceptionDiagnostics(
     event,
     sanitizedEvent,
@@ -175,12 +187,6 @@ export function sanitizeSentryEvent(event: BackendSentryEvent, hint: BackendSent
 
 export function sanitizeSentrySpan(span: BackendSentrySpan): BackendSentrySpan {
   return sanitizeBackendSentryTelemetryValue(redactExceptionTextFields(span)) as unknown as typeof span;
-}
-
-export function sanitizeSentryTransactionEvent(
-  event: BackendSentryTransactionEvent,
-): BackendSentryTransactionEvent {
-  return sanitizeBackendSentryTelemetryValue(redactExceptionTextFields(event)) as unknown as typeof event;
 }
 
 function normalizeTelemetryKey(key: string): string {
@@ -234,7 +240,7 @@ function sanitizeBackendSentryTelemetryEntry(
     return [key, redactedSentrySecretValue];
   }
 
-  if (shouldRedactSentryQueryLikeKey(key) || shouldRedactSentryStructuredEmailKey(key)) {
+  if (shouldRedactContentKey(key) || shouldRedactSentryQueryLikeKey(key) || shouldRedactSentryStructuredEmailKey(key)) {
     return [key, redactedExceptionTextValue];
   }
 

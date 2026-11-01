@@ -738,6 +738,10 @@ const mlCatalog: TranslationCatalog = {
       description: "iOS, Android ഇൻസ്റ്റാൾ നിർദ്ദേശം കാണുക.",
       value: "പ്രിവ്യൂ",
     },
+    reviewPrompts: {
+      title: "അവലോകനത്തിന് ശേഷമുള്ള പ്രോംപ്റ്റുകൾ",
+      resetAll: "എല്ലാ പ്രോംപ്റ്റുകളുടെയും നില പുനഃസജ്ജമാക്കുക",
+    },
   },
   settingsWorkspace: {
     decks: {

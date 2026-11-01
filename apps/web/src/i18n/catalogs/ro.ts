@@ -746,6 +746,10 @@ const roCatalog: TranslationCatalog = {
       description: "Previzualizează îndemnul de instalare pentru iOS și Android.",
       value: "Previzualizare",
     },
+    reviewPrompts: {
+      title: "Solicitări după recapitulare",
+      resetAll: "Resetează starea tuturor solicitărilor",
+    },
   },
   settingsWorkspace: {
     decks: {

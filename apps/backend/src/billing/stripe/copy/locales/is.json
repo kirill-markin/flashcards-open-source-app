@@ -53,5 +53,10 @@
   "email.refundReceiptBody": "Við höfum endurgreitt þér {price}. Skoðaðu nánari upplýsingar: {url}",
   "deletion.warning": "Ef þú eyðir Nibomo-aðganginum þínum falla framtíðarendurnýjanir Nibomo-áskrifta þinna sem innheimtar eru í gegnum Stripe niður. Þú missir aðgang að þessum reikningi. Áskriftum sem innheimtar eru í gegnum Apple eða Google þarf að segja upp sérstaklega hjá viðkomandi þjónustuveitanda.",
   "deletion.cancelling": "Stöðva endurnýjanir Stripe-áskrifta þinna áður en aðganginum er eytt...",
-  "deletion.cancellationFailed": "Við gátum ekki staðfest að endurnýjanir Stripe-áskrifta þinna hafi verið stöðvaðar. Aðganginum þínum hefur ekki verið eytt. Reyndu aftur eða hafðu samband við þjónustuver."
+  "deletion.cancellationFailed": "Við gátum ekki staðfest að endurnýjanir Stripe-áskrifta þinna hafi verið stöðvaðar. Aðganginum þínum hefur ekki verið eytt. Reyndu aftur eða hafðu samband við þjónustuver.",
+  "offer.pricesFor": "Verð fyrir {country}",
+  "offer.changeCountry": "Breyta landi",
+  "offer.chooseCountry": "Veldu land",
+  "checkout.originalOffer": "Ólokin greiðsla: {price} á mánuði",
+  "checkout.requote": "Skipta greiðslunni út fyrir þetta tilboð"
 }

@@ -13,23 +13,30 @@ import {
   reviewPromptDetailsAnalyticsFilterFields,
   type AnalyticsFilterState,
 } from "../filters/analyticsFilters";
-import type { AnalyticsFilterOptions } from "../filters/optionsQuery";
+import {
+  loadAppVersionFilterOptions,
+  noSiteVisitorFilterOptions,
+  type AnalyticsFilterOptions,
+} from "../filters/optionsQuery";
 import { AdminNavigation } from "../navigation/AdminNavigation";
 import { AiUsageCohortsSection } from "../reports/aiUsageCohorts/AiUsageCohortsSection";
 import { AudienceSection } from "../reports/audience/AudienceSection";
 import { CatalogInstallsSection } from "../reports/catalogInstalls/CatalogInstallsSection";
 import { FunnelDetailsHeader } from "../reports/funnels/FunnelDetailsHeader";
-import { FunnelsArea } from "../reports/funnels/FunnelsArea";
+import { FunnelsArea, type JourneysPage } from "../reports/funnels/FunnelsArea";
 import type { GeneralReportView } from "../reports/generalReportView";
 import { LevelOneMetricDetailsPage } from "../reports/levelOneMetrics/LevelOneMetricDetailsPage";
 import { LevelOneMetricsArea } from "../reports/levelOneMetrics/LevelOneMetricsArea";
+import { FilterOptionsError } from "../reports/levelOneMetrics/LevelOneMetricsFrame";
+import { useFilterOptionsLookup } from "../reports/levelOneMetrics/useFilterOptionsLookup";
 import type { ReviewEventsByDateRange } from "../reports/reviewEventsByDate/query";
 import type { ReviewPromptId } from "../reports/reviewPrompts/reviewPromptDefinitions";
 import { ReviewPromptDetailsHeader, ReviewPromptDetailsPage } from "../reports/reviewPrompts/ReviewPromptDetailsPage";
 import { ReviewPromptsArea } from "../reports/reviewPrompts/ReviewPromptsArea";
 import { SocialConnectionsSection } from "../reports/socialConnections/SocialConnectionsSection";
+import { StudyDepthArea } from "../reports/studyDepth/StudyDepthArea";
 import { WhoSawUsDatasetPage } from "../reports/whoSawUs/WhoSawUsDatasetPage";
-import type { AdminRoute, AnalyticsArea, FunnelDetail } from "../routing";
+import type { AdminRoute, AnalyticsArea } from "../routing";
 import { getStableUserColorDomain, getUserColorScale } from "./userColors";
 
 export type AdminReportsData = Readonly<{
@@ -68,24 +75,25 @@ export type AdminReportState =
 export type AnalyticsRangeLookup =
   | Readonly<{ status: "loading" }>
   | Readonly<{ status: "error"; message: string }>
-  | Readonly<{
-      status: "ready";
-      availableRange: ReviewEventsByDateRange;
-      defaultRange: ReviewEventsByDateRange;
-    }>;
+  | Readonly<{ status: "ready"; availableRange: ReviewEventsByDateRange }>;
 
 const noOptions: ReadonlyArray<never> = [];
 
+/** The app version options of a bar that does not offer the field, so it queries nothing. */
+async function loadNoAppVersionOptions(): Promise<ReadonlyArray<string>> {
+  return noOptions;
+}
+
 type AnalyticsReportSectionsProps = Readonly<{
   activeArea: AnalyticsArea;
-  /** The funnel whose Details page the Funnels area shows, or `null` for the area itself. */
-  funnelDetail: FunnelDetail | null;
+  /** The Journeys page the route opens, or `null` off the Journeys tab. */
+  journeysPage: JourneysPage | null;
   /** The prompt whose Details page the Review prompts area shows, or `null` for its table. */
   reviewPromptDetail: ReviewPromptId | null;
   config: AdminAppConfig;
   reportState: AdminReportState;
   rangeLookup: AnalyticsRangeLookup;
-  /** The lookup's default once it returns, the browser-computed one until then. */
+  /** The area's default once the lookup returns, the browser-computed one until then. */
   defaultRange: ReviewEventsByDateRange;
   filters: AnalyticsFilterState;
   /** A filter change is still inside the reload debounce, so the areas that query on their own wait. */
@@ -156,6 +164,20 @@ function AnalyticsReportSections(props: AnalyticsReportSectionsProps): JSX.Eleme
   const isReportLoading = props.activeArea === "general"
     ? reportState.status === "loading" || (reportState.status === "ready" && reportState.isReportLoading)
     : props.isSelectionSettling;
+  const fields = props.reviewPromptDetail === null
+    ? analyticsFilterFieldsByArea[props.activeArea]
+    : reviewPromptDetailsAnalyticsFilterFields;
+  const offersAppVersions = fields.includes("appVersions");
+  // Keyed on the days rather than the object, so another filter's apply does not reload the versions.
+  const { from, to } = props.filters.dateRange;
+  const appVersionOptionsDateRange = useMemo(() => ({ from, to }), [from, to]);
+  const appVersionOptions = useFilterOptionsLookup(
+    props.config,
+    appVersionOptionsDateRange,
+    offersAppVersions ? loadAppVersionFilterOptions : loadNoAppVersionOptions,
+    "Unexpected app version filter options error.",
+    props.onTerminalAdminError,
+  );
 
   // The user colour domain comes from the range-scoped options rather than from the reports on
   // screen, so a person keeps one colour wherever they appear. The options span every section's
@@ -170,9 +192,7 @@ function AnalyticsReportSections(props: AnalyticsReportSectionsProps): JSX.Eleme
     <>
       <AnalyticsFilterBar
         area={props.activeArea}
-        fields={props.reviewPromptDetail === null
-          ? analyticsFilterFieldsByArea[props.activeArea]
-          : reviewPromptDetailsAnalyticsFilterFields}
+        fields={fields}
         title="Filters"
         headingLevel={2}
         headingId="analytics-filters-title"
@@ -183,12 +203,14 @@ function AnalyticsReportSections(props: AnalyticsReportSectionsProps): JSX.Eleme
         userOptions={userOptions}
         connectionCountryOptions={filterOptions?.connectionCountries ?? noOptions}
         appUiLanguageOptions={filterOptions?.appUiLanguages ?? noOptions}
+        appVersionOptions={appVersionOptions.status === "ready" ? appVersionOptions.options : noOptions}
         catalogDeckOptions={filterOptions?.catalogDecks ?? noOptions}
         catalogPlacementOptions={filterOptions?.catalogPlacements ?? noOptions}
         catalogSourceOptions={filterOptions?.catalogSources ?? noOptions}
         catalogDeviceCategoryOptions={filterOptions?.catalogDeviceCategories ?? noOptions}
         catalogClickBrowserLanguageOptions={filterOptions?.catalogClickBrowserLanguages ?? noOptions}
-        areOptionListsLoading={filterOptions === null}
+        siteVisitorOptions={noSiteVisitorFilterOptions}
+        areOptionListsLoading={filterOptions === null || (offersAppVersions && appVersionOptions.status !== "ready")}
         isReportLoading={isReportLoading}
         dateRangeError={props.dateRangeError}
         userColorScale={userColorScale}
@@ -208,6 +230,8 @@ function AnalyticsReportSections(props: AnalyticsReportSectionsProps): JSX.Eleme
         </div>
       ) : null}
 
+      <FilterOptionsError lookup={appVersionOptions} />
+
       {/* Every other area renders without the General batch, which only fills the option lists there. */}
       {reportState.status === "error" ? (
         <div className="report-state report-state-error">
@@ -226,17 +250,17 @@ function AnalyticsReportSections(props: AnalyticsReportSectionsProps): JSX.Eleme
 
       {/*
         Only the General sections are drawn from the report state a failed reload leaves behind;
-        Audience and Funnels fetch their own data from the live selection and own their error states,
+        Audience and Journeys fetch their own data from the live selection and own their error states,
         so the stale mark stops here.
       */}
       {props.activeArea === "general" && reportState.status !== "error" ? <GeneralReportSections
         reportState={reportState}
       /> : null}
 
-      {props.activeArea === "funnels" ? <FunnelsArea
+      {props.journeysPage !== null ? <FunnelsArea
         config={props.config}
         filters={props.filters}
-        funnelDetail={props.funnelDetail}
+        page={props.journeysPage}
         isReportLoading={props.isSelectionSettling}
         onNavigate={props.onNavigate}
         onTerminalAdminError={props.onTerminalAdminError}
@@ -260,6 +284,14 @@ function AnalyticsReportSections(props: AnalyticsReportSectionsProps): JSX.Eleme
         onTerminalAdminError={props.onTerminalAdminError}
       />}
 
+      {/* Waits for the range lookup too, because the provisional range is not this area's all-time default. */}
+      {props.activeArea === "study-depth" ? <StudyDepthArea
+        config={props.config}
+        filters={props.filters}
+        isRangeLoading={props.isSelectionSettling || props.rangeLookup.status === "loading"}
+        onTerminalAdminError={props.onTerminalAdminError}
+      /> : null}
+
       {props.activeArea === "audience" ? <AudienceSection
         config={props.config}
         filters={props.filters}
@@ -279,11 +311,19 @@ function AnalyticsReportSections(props: AnalyticsReportSectionsProps): JSX.Eleme
 
 /**
  * The routes the dashboard shell renders: an analytics area, or a Level 1 Details, Who saw us
- * dataset, funnel Details or review prompt Details page under its tab.
+ * dataset, funnel Details, Retention Details or review prompt Details page under its tab.
  */
 export type AdminDashboardRoute = Extract<
   AdminRoute,
-  { kind: "analyticsArea" | "levelOneMetricDetails" | "whoSawUsDataset" | "funnelDetails" | "reviewPromptDetails" }
+  {
+    kind:
+      | "analyticsArea"
+      | "levelOneMetricDetails"
+      | "whoSawUsDataset"
+      | "funnelDetails"
+      | "retentionDetails"
+      | "reviewPromptDetails";
+  }
 >;
 
 function getActiveArea(route: AdminDashboardRoute): AnalyticsArea {
@@ -291,12 +331,28 @@ function getActiveArea(route: AdminDashboardRoute): AnalyticsArea {
     case "analyticsArea":
       return route.area;
     case "funnelDetails":
-      return "funnels";
+    case "retentionDetails":
+      return "journeys";
     case "reviewPromptDetails":
       return "review-prompts";
     case "levelOneMetricDetails":
     case "whoSawUsDataset":
       return "level-1-metrics";
+  }
+}
+
+function getJourneysPage(route: AdminDashboardRoute): JourneysPage | null {
+  switch (route.kind) {
+    case "analyticsArea":
+      return route.area === "journeys" ? { kind: "cards" } : null;
+    case "funnelDetails":
+      return { kind: "funnelDetails", funnelId: route.funnelId };
+    case "retentionDetails":
+      return { kind: "retentionDetails" };
+    case "levelOneMetricDetails":
+    case "whoSawUsDataset":
+    case "reviewPromptDetails":
+      return null;
   }
 }
 
@@ -320,7 +376,7 @@ export function AdminDashboard(
   }>,
 ): JSX.Element {
   const activeArea = getActiveArea(props.route);
-  const funnelDetail = props.route.kind === "funnelDetails" ? props.route.funnelId : null;
+  const journeysPage = getJourneysPage(props.route);
   const reviewPromptDetail = props.route.kind === "reviewPromptDetails" ? props.route.promptId : null;
   // Level 1 metrics loads and ranges its own charts, so nothing below about the General reports applies.
   const usesGeneralReports = activeArea !== "level-1-metrics";
@@ -378,11 +434,16 @@ export function AdminDashboard(
         />
       ) : null}
 
-      {props.route.kind === "analyticsArea" || props.route.kind === "funnelDetails" || props.route.kind === "reviewPromptDetails"
+      {props.route.kind === "analyticsArea"
+        || props.route.kind === "funnelDetails"
+        || props.route.kind === "retentionDetails"
+        || props.route.kind === "reviewPromptDetails"
         ? renderNavigation("")
         : null}
 
-      {funnelDetail === null ? null : <FunnelDetailsHeader funnelId={funnelDetail} onNavigate={props.onNavigate} />}
+      {journeysPage === null || journeysPage.kind === "cards"
+        ? null
+        : <FunnelDetailsHeader page={journeysPage} onNavigate={props.onNavigate} />}
       {reviewPromptDetail === null ? null : <ReviewPromptDetailsHeader promptId={reviewPromptDetail} onNavigate={props.onNavigate} />}
 
       {props.route.kind === "analyticsArea" && props.route.area === "level-1-metrics" ? (
@@ -403,7 +464,7 @@ export function AdminDashboard(
         <div className="report-reload-banner" role="alert">
           <div className="report-reload-banner-text">
             {/*
-              Funnels and Audience fetch their own numbers from the live selection, so on those areas
+              Journeys and Audience fetch their own numbers from the live selection, so on those areas
               the report on screen is not what the failure left behind. The shared range is loaded
               once per page load and cannot go stale, so the only thing the failed reload can leave
               behind there is the option lists, which are refetched with it whenever the range moves.
@@ -427,7 +488,7 @@ export function AdminDashboard(
       {usesGeneralReports && props.filters !== null && props.defaultRange !== null ? (
         <AnalyticsReportSections
           activeArea={activeArea}
-          funnelDetail={funnelDetail}
+          journeysPage={journeysPage}
           reviewPromptDetail={reviewPromptDetail}
           config={props.config}
           reportState={props.reportState}

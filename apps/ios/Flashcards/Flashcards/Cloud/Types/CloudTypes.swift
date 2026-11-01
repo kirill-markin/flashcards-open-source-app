@@ -507,6 +507,7 @@ private struct CloudCredentialRecoveryUnknownCodingKey: CodingKey {
 struct CloudIdentityToken: Hashable {
     let idToken: String
     let idTokenExpiresAt: String
+    let rotatedRefreshToken: String?
 }
 
 struct CloudSettings: Codable, Hashable, Sendable {

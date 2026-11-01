@@ -12,7 +12,6 @@ import org.json.JSONArray
 import org.json.JSONException
 import org.json.JSONObject
 
-const val reviewNotificationPermissionPromptThreshold: Int = 6
 const val defaultDailyReminderHour: Int = 10
 const val defaultDailyReminderMinute: Int = 0
 const val dailyReminderSchedulingHorizonDays: Int = 7
@@ -30,9 +29,7 @@ private const val strictRemindersSettingsKey: String = "strict-reminders-setting
 private const val strictRemindersScheduledPayloadsKey: String = "strict-reminders-scheduled-payloads"
 private const val strictRemindersLastCompletedReviewAtKey: String = "strict-reminders-last-completed-review-at"
 private const val reviewNotificationsPromptStateKey: String = "review-notifications-prompt-state"
-private const val reviewNotificationsSuccessfulReviewCountKey: String = "review-notifications-successful-review-count"
 private const val reviewNotificationsLastActiveAtKey: String = "review-notifications-last-active-at"
-private const val reviewReminderAttentionStateKey: String = "review-reminder-attention-state"
 private const val reportedScheduledReviewNotificationsKey: String = "reported-scheduled-review-notifications"
 private const val reportedScheduledStrictRemindersKey: String = "reported-scheduled-strict-reminders"
 private const val reviewNotificationsModeDaily: String = "daily"
@@ -75,9 +72,10 @@ data class ReviewNotificationsSettings(
 )
 
 data class NotificationPermissionPromptState(
-    val hasShownPrePrompt: Boolean,
-    val hasRequestedSystemPermission: Boolean,
-    val hasDismissedPrePrompt: Boolean
+    /** The review pre-prompt's last showing, its cooldown clock. */
+    val lastShownAtMillis: Long?,
+    /** Whether this install ever asked the OS for the permission, from any surface. */
+    val hasRequestedSystemPermission: Boolean
 )
 
 data class PersistedReviewFilter(
@@ -103,24 +101,6 @@ data class CurrentReviewNotificationCard(
     val frontText: String
 )
 
-data class ReviewReminderAttentionState(
-    val workspaceId: String,
-    val requestId: String,
-    val deliveredAtMillis: Long
-) {
-    init {
-        require(workspaceId.isNotBlank()) {
-            "Review reminder attention state requires a workspaceId."
-        }
-        require(requestId.isNotBlank()) {
-            "Review reminder attention state requires a requestId."
-        }
-        require(deliveredAtMillis >= 0L) {
-            "Review reminder attention state requires a non-negative deliveredAtMillis."
-        }
-    }
-}
-
 fun defaultReviewNotificationsSettings(): ReviewNotificationsSettings {
     return ReviewNotificationsSettings(
         isEnabled = true,
@@ -142,9 +122,8 @@ fun defaultReviewNotificationsSettings(): ReviewNotificationsSettings {
 
 fun defaultNotificationPermissionPromptState(): NotificationPermissionPromptState {
     return NotificationPermissionPromptState(
-        hasShownPrePrompt = false,
-        hasRequestedSystemPermission = false,
-        hasDismissedPrePrompt = false
+        lastShownAtMillis = null,
+        hasRequestedSystemPermission = false
     )
 }
 
@@ -162,14 +141,9 @@ interface ReviewNotificationsStore {
     fun saveSettings(settings: ReviewNotificationsSettings)
     fun loadPromptState(): NotificationPermissionPromptState
     fun savePromptState(state: NotificationPermissionPromptState)
-    fun loadSuccessfulReviewCount(): Int
-    fun saveSuccessfulReviewCount(count: Int)
     fun loadLastActiveAtMillis(): Long?
     fun saveLastActiveAtMillis(timestampMillis: Long)
     fun clearLastActiveAtMillis()
-    fun loadReviewReminderAttentionState(): ReviewReminderAttentionState?
-    fun markReviewReminderAttention(state: ReviewReminderAttentionState)
-    fun clearReviewReminderAttention()
     fun loadScheduledPayloads(): List<ScheduledReviewNotificationPayload>
     fun saveScheduledPayloads(payloads: List<ScheduledReviewNotificationPayload>)
     fun loadReportedScheduledReviewNotifications(): Map<String, Long>
@@ -309,16 +283,6 @@ class SharedPreferencesReviewNotificationsStore(
         }
     }
 
-    override fun loadSuccessfulReviewCount(): Int {
-        return preferences.getInt(reviewNotificationsSuccessfulReviewCountKey, 0)
-    }
-
-    override fun saveSuccessfulReviewCount(count: Int) {
-        preferences.edit(commit = true) {
-            putInt(reviewNotificationsSuccessfulReviewCountKey, count)
-        }
-    }
-
     override fun loadLastActiveAtMillis(): Long? {
         if (preferences.contains(reviewNotificationsLastActiveAtKey).not()) {
             return null
@@ -336,35 +300,6 @@ class SharedPreferencesReviewNotificationsStore(
     override fun clearLastActiveAtMillis() {
         preferences.edit(commit = true) {
             remove(reviewNotificationsLastActiveAtKey)
-        }
-    }
-
-    override fun loadReviewReminderAttentionState(): ReviewReminderAttentionState? {
-        val rawValue = preferences.getString(reviewReminderAttentionStateKey, null)
-            ?: return null
-
-        return try {
-            decodeReviewReminderAttentionState(rawValue = rawValue)
-        } catch (_: Exception) {
-            preferences.edit(commit = true) {
-                remove(reviewReminderAttentionStateKey)
-            }
-            null
-        }
-    }
-
-    override fun markReviewReminderAttention(state: ReviewReminderAttentionState) {
-        preferences.edit(commit = true) {
-            putString(
-                reviewReminderAttentionStateKey,
-                encodeReviewReminderAttentionState(state = state)
-            )
-        }
-    }
-
-    override fun clearReviewReminderAttention() {
-        preferences.edit(commit = true) {
-            remove(reviewReminderAttentionStateKey)
         }
     }
 
@@ -899,35 +834,18 @@ private fun decodeStrictRemindersSettings(rawValue: String): StrictRemindersSett
 
 private fun encodePromptState(state: NotificationPermissionPromptState): String {
     return JSONObject().apply {
-        put("hasShownPrePrompt", state.hasShownPrePrompt)
+        if (state.lastShownAtMillis != null) {
+            put("lastShownAtMillis", state.lastShownAtMillis)
+        }
         put("hasRequestedSystemPermission", state.hasRequestedSystemPermission)
-        put("hasDismissedPrePrompt", state.hasDismissedPrePrompt)
     }.toString()
 }
 
 private fun decodePromptState(rawValue: String): NotificationPermissionPromptState {
     val payload = JSONObject(rawValue)
     return NotificationPermissionPromptState(
-        hasShownPrePrompt = payload.getBoolean("hasShownPrePrompt"),
-        hasRequestedSystemPermission = payload.getBoolean("hasRequestedSystemPermission"),
-        hasDismissedPrePrompt = payload.getBoolean("hasDismissedPrePrompt")
-    )
-}
-
-private fun encodeReviewReminderAttentionState(state: ReviewReminderAttentionState): String {
-    return JSONObject().apply {
-        put("workspaceId", state.workspaceId)
-        put("requestId", state.requestId)
-        put("deliveredAtMillis", state.deliveredAtMillis)
-    }.toString()
-}
-
-private fun decodeReviewReminderAttentionState(rawValue: String): ReviewReminderAttentionState {
-    val payload = JSONObject(rawValue)
-    return ReviewReminderAttentionState(
-        workspaceId = payload.getString("workspaceId"),
-        requestId = payload.getString("requestId"),
-        deliveredAtMillis = payload.getLong("deliveredAtMillis")
+        lastShownAtMillis = if (payload.has("lastShownAtMillis")) payload.getLong("lastShownAtMillis") else null,
+        hasRequestedSystemPermission = payload.getBoolean("hasRequestedSystemPermission")
     )
 }
 

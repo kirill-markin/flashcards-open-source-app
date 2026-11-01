@@ -75,8 +75,9 @@ is unchanged; legacy web tokens remain analytics-only. See
 ## Price and products
 
 One monthly subscription at a base price of USD 6.99, with a 7-day free trial. No annual plan and
-no lifetime product is for sale for now. The price is the same on every provider. Regional prices
-and their formatting come from the store, never from our code.
+no lifetime product is for sale for now. The [regional pricing policy](regional-subscription-pricing.md)
+defines the target country bands and provider approach. Native prices and their formatting come
+from the store.
 
 ## Plan name
 
@@ -110,6 +111,10 @@ to Stripe with the verified account email. Account trial history selects a trial
 with the charge shown before confirmation when the trial has been consumed. Existing Premium access skips
 Checkout and resumes any pending feature choice.
 
+## Plan order
+
+Every shared Premium offer shows the Premium plan first and the Free plan second.
+
 ## Style settings
 
 The Style section of Settings holds the custom styles: Accent color, Review Animations, AI Chat
@@ -142,23 +147,14 @@ The wire contract is [account preference parsing](../apps/backend/src/routes/sys
 
 On web, iOS, and Android, automatic review offers apply only to a known free entitlement, for
 existing and new users alike. Unknown entitlement, premium, an active trial, and lifetime never
-qualify. Successfully saved reviews count, including Again.
+qualify. Thresholds, cooldowns, and order live in
+[reviewPromptConfig.ts](../apps/backend/src/reviewPrompts/reviewPromptConfig.ts).
 
-- The first automatic offer is due after three cumulative reviews. Its actual appearance defines
-  Day 1 by that appearance's local calendar date and timezone.
-- The second is due once today is at least two calendar dates after Day 1 and the person has saved
-  at least two reviews today. Missing that date leaves the offer due for a later qualifying day.
-- After the second appearance, recurring offers require two reviews today and at least seven full
-  24-hour periods since any actual paywall appearance.
+Display history is functional account state and syncs even when product analytics is off; guest
+upgrades and connected accounts retain it.
 
-Manual offers from Settings, AI limits, or premium features reset the last-appearance clock without
-consuming either of the first two review stages. Display history is functional account state and
-syncs even when product analytics is off; guest upgrades and connected accounts retain it.
-
-Only a saved app review can trigger an automatic offer. Review guidance takes priority, then a due
-paywall, then optional prompts on later reviews. At most one presentation follows each review;
-a busy surface skips until the next saved review. Dismissal never chains another prompt, and no
-timer or catch-up presentation opens an offer.
+Only a saved app review can trigger an automatic offer, and at most one presentation follows each
+review; no timer or catch-up presentation opens an offer.
 
 MCP may later offer a card-shaped soft paywall with an explicit choice to continue free. This is
 deferred; it adds no tool or schema contract now.

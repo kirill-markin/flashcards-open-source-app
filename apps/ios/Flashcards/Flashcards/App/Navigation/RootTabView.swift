@@ -3,12 +3,17 @@ import StoreKit
 import SwiftUI
 import UIKit
 
-private let rootTabUITestLaunchScenarioEnvironmentKey: String = "FLASHCARDS_UI_TEST_LAUNCH_SCENARIO"
-
 private struct StoreReviewRequestTaskID: Hashable {
     let isSceneActive: Bool
     let isPresentationBlocked: Bool
     let requestAttemptId: String?
+}
+
+private struct ReviewOverdueBadgeTaskID: Hashable {
+    let workspaceId: String?
+    let reviewFilter: ReviewFilter
+    let localReadVersion: Int
+    let isSceneActive: Bool
 }
 
 struct RootTabView: View {
@@ -55,15 +60,19 @@ struct RootTabView: View {
         )
     }
 
-    private var reviewReminderAttentionBadgeCount: Int {
-        isReviewReminderAttentionVisible(
-            state: store.reviewReminderAttentionState,
-            workspaceId: store.workspace?.workspaceId
-        ) ? 1 : 0
+    private var reviewOverdueBadgeTaskID: ReviewOverdueBadgeTaskID {
+        ReviewOverdueBadgeTaskID(
+            workspaceId: store.workspace?.workspaceId,
+            reviewFilter: store.selectedReviewFilter,
+            localReadVersion: store.localReadVersion,
+            isSceneActive: self.scenePhase == .active
+        )
     }
 
-    private var shouldExposeReviewReminderAttentionBadgeMarker: Bool {
-        ProcessInfo.processInfo.environment[rootTabUITestLaunchScenarioEnvironmentKey] != nil
+    private var reviewOverdueBadgeLabel: Text? {
+        makeReviewOverdueBadgeLabel(overdueCount: store.reviewOverdueBadgeCount).map { label in
+            Text(label)
+        }
     }
 
     private var guestSignInAfterReviewPromptPresentation: Binding<Bool> {
@@ -131,42 +140,6 @@ struct RootTabView: View {
                     store.feedbackPresentation = presentation
                 }
             }
-        )
-    }
-
-    private var guestSignInAfterReviewPromptTitle: String {
-        String(
-            localized: "root_tab.guest_sign_in_after_review_prompt.title",
-            defaultValue: "Save your progress",
-            table: "Foundation",
-            comment: "Guest sign-in prompt title after reviewing enough cards"
-        )
-    }
-
-    private var guestSignInAfterReviewPromptMessage: String {
-        String(
-            localized: "root_tab.guest_sign_in_after_review_prompt.message",
-            defaultValue: "Sign in with email so these cards and review progress are not lost.",
-            table: "Foundation",
-            comment: "Guest sign-in prompt body after reviewing enough cards"
-        )
-    }
-
-    private var guestSignInAfterReviewPromptLaterTitle: String {
-        String(
-            localized: "root_tab.guest_sign_in_after_review_prompt.later",
-            defaultValue: "Later",
-            table: "Foundation",
-            comment: "Guest sign-in prompt secondary button"
-        )
-    }
-
-    private var guestSignInAfterReviewPromptSignInTitle: String {
-        String(
-            localized: "root_tab.guest_sign_in_after_review_prompt.sign_in",
-            defaultValue: "Sign in",
-            table: "Foundation",
-            comment: "Guest sign-in prompt primary button"
         )
     }
 
@@ -320,7 +293,7 @@ struct RootTabView: View {
                 self.tabLabel(.review, identifier: UITestIdentifier.rootTabReviewItem)
             }
             .accessibilityIdentifier(UITestIdentifier.rootTabReviewItem, isEnabled: true)
-            .badge(self.reviewReminderAttentionBadgeCount)
+            .badge(self.reviewOverdueBadgeLabel)
 
             Tab(value: AppTab.progress) {
                 self.progressTab
@@ -516,6 +489,9 @@ struct RootTabView: View {
         .task(id: self.storeReviewRequestTaskID) {
             await self.requestStoreReviewIfNeeded()
         }
+        .task(id: self.reviewOverdueBadgeTaskID) {
+            await self.store.runReviewOverdueBadgeUpdates()
+        }
         .overlay {
             ZStack {
                 GlobalTransientBannerHost()
@@ -628,28 +604,16 @@ struct RootTabView: View {
 
     private var tabRootAlerts: some View {
         self.tabRootSheets
-        .alert(
-            self.guestSignInAfterReviewPromptTitle,
-            isPresented: self.guestSignInAfterReviewPromptPresentation
-        ) {
-            Button(
-                self.guestSignInAfterReviewPromptLaterTitle,
-                role: .cancel
-            ) {
-                store.snoozeGuestSignInAfterReviewPrompt(
-                    reviewedCount: store.homeSnapshot.reviewedCount,
-                    now: Date()
-                )
-            }
-            Button(
-                self.guestSignInAfterReviewPromptSignInTitle
-            ) {
-                store.acceptGuestSignInAfterReviewPrompt(now: Date())
+        .guestSignInAfterReviewPromptAlert(
+            isPresented: self.guestSignInAfterReviewPromptPresentation,
+            onLater: {
+                store.snoozeGuestSignInAfterReviewPrompt()
+            },
+            onSignIn: {
+                store.acceptGuestSignInAfterReviewPrompt()
                 self.isGuestSignInCloudSignInPresented = true
             }
-        } message: {
-            Text(self.guestSignInAfterReviewPromptMessage)
-        }
+        )
         .alert(
             self.accountDeletedTitle,
             isPresented: self.accountDeletionSuccessPresentation
@@ -668,21 +632,6 @@ struct RootTabView: View {
     private var reviewTab: some View {
         self.aiCompanionHost(for: .review) {
             ReviewView()
-                .overlay(alignment: .topLeading) {
-                    self.reviewReminderAttentionBadgeMarker
-                }
-        }
-    }
-
-    @ViewBuilder
-    private var reviewReminderAttentionBadgeMarker: some View {
-        if self.shouldExposeReviewReminderAttentionBadgeMarker && self.reviewReminderAttentionBadgeCount > 0 {
-            Color.clear
-                .frame(width: 1, height: 1)
-                .allowsHitTesting(false)
-                .accessibilityElement(children: .ignore)
-                .accessibilityIdentifier(UITestIdentifier.rootTabReviewReminderBadge)
-                .accessibilityValue(String(self.reviewReminderAttentionBadgeCount))
         }
     }
 

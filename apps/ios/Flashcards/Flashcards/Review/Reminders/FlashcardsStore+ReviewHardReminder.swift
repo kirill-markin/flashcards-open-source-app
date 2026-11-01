@@ -19,17 +19,22 @@ extension FlashcardsStore {
         self.restoreSurfaceAfterReviewHardReminder()
     }
 
-    func handleSuccessfulReviewHardReminder(rating: ReviewRating, now: Date) {
-        guard rating == .hard else {
-            return
-        }
-
-        guard shouldPresentReviewHardReminder(
-            recentRatings: self.reviewHardReminderRecentRatings,
-            lastShownAt: self.reviewHardReminderLastShownAt,
-            now: now
-        ) else {
-            return
+    func presentReviewHardReminderIfDue(
+        rating: ReviewRating,
+        settings: ReviewPromptSettings,
+        counters: ReviewPromptCounters,
+        configVersion: String,
+        now: Date
+    ) -> Bool {
+        guard rating == .hard,
+              hasFrequentReviewHardRatings(recentRatings: self.reviewHardReminderRecentRatings),
+              reviewPromptConfigAllows(
+                settings: settings,
+                counters: counters,
+                lastShownAt: self.reviewHardReminderLastShownAt,
+                now: now
+              ) else {
+            return false
         }
 
         self.reviewHardReminderLastShownAt = now
@@ -37,7 +42,8 @@ extension FlashcardsStore {
         self.isReviewHardReminderPresented = true
         // Reported from the state that presents the alert, which SwiftUI gives no appearance
         // callback for. The reminder has no answer to report, so the showing is its only fact.
-        Analytics.trackScreenViewed(.reviewHardReminder)
+        Analytics.trackReviewPromptScreenViewed(.reviewHardReminder, reviewPromptConfigVersion: configVersion)
+        return true
     }
 
     /// The tab the person is on rather than `.review`, the same reading the other post-review prompts

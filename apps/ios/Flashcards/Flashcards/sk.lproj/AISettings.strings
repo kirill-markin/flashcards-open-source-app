@@ -340,8 +340,8 @@
 "settings.test.animations.playAccessibility" = "Prehrať animáciu %@, %@";
 "settings.test.technicalErrorPreview" = "Náhľad technickej chyby";
 "settings.test.technicalErrorPreview.value" = "Panel náhľadu";
-"settings.test.storeReviewPromptReset" = "Obnoviť výzvu na hodnotenie v App Store";
-"settings.test.storeReviewPromptReset.value" = "Miestny stav";
+"settings.test.section.reviewPrompts" = "Výzvy po opakovaní";
+"settings.test.reviewPromptsReset" = "Obnoviť stav všetkých výziev";
 "settings.test.notificationDiagnostics" = "Diagnostika hlásení";
 "settings.test.notificationDiagnostics.value" = "Iba na čítanie";
 "settings.test.localSyncDiagnostics" = "Diagnostika miestnej synchronizácie";
@@ -451,11 +451,17 @@
 "settings.access.action.request" = "Požiadať o prístup";
 "settings.access.action.openSettings" = "Otvoriť Nastavenia";
 "settings.access.guidance.photos.limited" = "Prístup ku knižnici fotiek je obmedzený. Stále môžete vyberať fotky ako prílohy v AI chate.";
+"settings.access.guidance.mac.photos.limited" = "Prístup ku knižnici fotiek je obmedzený. Stále môžete vyberať fotky ako prílohy v AI chate alebo prístup zmeniť v Systémových nastaveniach > Súkromie a bezpečnosť > Fotky.";
 "settings.access.guidance.photos.blocked" = "Prístup ku knižnici fotiek je vypnutý. Stále môžete vyberať fotky ako prílohy v AI chate.";
+"settings.access.guidance.mac.photos.blocked" = "Prístup ku knižnici fotiek je vypnutý. Stále môžete vyberať fotky ako prílohy v AI chate alebo prístup zmeniť v Systémových nastaveniach > Súkromie a bezpečnosť > Fotky.";
 "settings.access.guidance.camera.blocked" = "Prístup k fotoaparátu je pre Nibomo vypnutý. Zmeňte ho v Nastavenia > Súkromie a bezpečnosť > Kamera.";
+"settings.access.guidance.mac.camera.blocked" = "Prístup ku kamere je pre Nibomo vypnutý. Zmeňte ho v Systémových nastaveniach > Súkromie a bezpečnosť > Kamera.";
 "settings.access.guidance.microphone.blocked" = "Prístup k mikrofónu je pre Nibomo vypnutý. Zmeňte ho v Nastavenia > Súkromie a bezpečnosť > Mikrofón.";
+"settings.access.guidance.mac.microphone.blocked" = "Prístup k mikrofónu je pre Nibomo vypnutý. Zmeňte ho v Systémových nastaveniach > Súkromie a bezpečnosť > Mikrofón.";
 "settings.access.guidance.askEveryTime" = "Požiadajte o prístup teraz alebo ho neskôr spravujte ručne v Nastaveniach.";
+"settings.access.guidance.mac.askEveryTime" = "Požiadajte o prístup teraz alebo ho neskôr spravujte ručne v Systémových nastaveniach.";
 "settings.access.guidance.allowed" = "Ak chcete tento prístup vypnúť, otvorte Nastavenia.";
+"settings.access.guidance.mac.allowed" = "Ak chcete tento prístup vypnúť, otvorte Systémové nastavenia > Súkromie a bezpečnosť.";
 "settings.access.guidance.limited" = "Ak chcete tento prístup skontrolovať alebo rozšíriť, otvorte Nastavenia.";
 "settings.access.guidance.unavailable" = "Tento prístup nie je na tomto zariadení dostupný.";
 "settings.account.row.openSourceValue" = "GitHub + MIT";
@@ -573,6 +579,7 @@
 "settings.account.cloudSignIn.failure.cloudSetupFailed" = "Prihlásenie bolo úspešné, ale nastavenie cloudu zlyhalo.";
 "settings.account.cloudSignIn.failure.accountUpgradeFailed" = "Prihlásenie bolo úspešné, ale prevod účtu zlyhal.";
 "settings.account.cloudSignIn.failureDescription" = "Prihlásenie bolo úspešné, ale nastavenie cloudového pracovného priestoru alebo úvodná synchronizácia sa nedokončili.";
+"settings.account.cloudSignIn.chooseWorkspace" = "Vybrať pracovný priestor";
 "settings.account.cloudSignIn.sync.title" = "Váš účet sa synchronizuje s cloudom.";
 "settings.account.cloudSignIn.sync.message" = "Nechajte Nibomo otvorené, kým sa váš účet synchronizuje. Zvyčajne to trvá niekoľko minút.";
 "settings.account.cloudSignIn.cloudSyncTitle" = "Cloudová synchronizácia";

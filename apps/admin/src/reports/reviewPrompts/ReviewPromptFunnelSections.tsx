@@ -180,7 +180,7 @@ export function ReviewPromptFunnelSection(
           <ul>
             {funnel.steps.map((step) => <li key={step.id}><strong>{step.label}:</strong> {step.rule}</li>)}
           </ul>
-          <p>The platform is the showing&rsquo;s own; the country and language filters keep a person as the table does. Test accounts, admins and excluded actors are left out.</p>
+          <p>The platform and app version are the showing&rsquo;s own; the country and language filters keep a person as the table does. Test accounts, admins and excluded actors are left out.</p>
         </details>
       ) : null}
     </section>

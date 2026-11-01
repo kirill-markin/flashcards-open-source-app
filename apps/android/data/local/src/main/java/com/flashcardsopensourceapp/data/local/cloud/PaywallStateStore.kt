@@ -83,7 +83,12 @@ class PaywallStateStore(context: Context) {
     }
 
     private fun loadState(identity: String): CloudPaywallState = preferences.getString("state:$identity", null)
-        ?.let { parseCloudPaywallState(JSONObject(it)) } ?: emptyCloudPaywallState
+        ?.let { stored ->
+            // State saved by app versions before periodicShownAt lacks the key; the server starts them at null too.
+            val json = JSONObject(stored)
+            if (!json.has("periodicShownAt")) json.put("periodicShownAt", JSONObject.NULL)
+            parseCloudPaywallState(json)
+        } ?: emptyCloudPaywallState
 
     private fun loadPending(identity: String): List<CloudPaywallImpression> {
         val json = JSONArray(preferences.getString("pending:$identity", "[]"))

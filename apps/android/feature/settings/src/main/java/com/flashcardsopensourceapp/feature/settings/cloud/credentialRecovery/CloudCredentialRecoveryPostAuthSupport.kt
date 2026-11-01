@@ -7,6 +7,7 @@ import com.flashcardsopensourceapp.data.local.model.cloud.CloudGuestUpgradeMode
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspaceLinkContext
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspaceLinkSelection
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspacePostAuthRoute
+import com.flashcardsopensourceapp.data.local.model.cloud.CloudWorkspaceSummary
 import com.flashcardsopensourceapp.feature.settings.R
 import com.flashcardsopensourceapp.feature.settings.SettingsStringResolver
 import com.flashcardsopensourceapp.feature.settings.cloud.buildAutomaticWorkspaceSelection
@@ -18,7 +19,7 @@ internal fun buildCloudPostAuthPendingSelection(
         CloudWorkspacePostAuthRoute.NONE -> linkContext.demoOnlyDestinationWorkspaceId?.let { workspaceId ->
             CloudWorkspaceLinkSelection.Existing(workspaceId = workspaceId, discardDemoOnly = true)
         } ?: if (linkContext.guestUpgradeMode == CloudGuestUpgradeMode.MERGE_REQUIRED) {
-            null
+            buildGuestMergeWorkspaceSelection(workspaces = linkContext.workspaces)
         } else {
             buildAutomaticWorkspaceSelection(
                 preferredWorkspaceId = linkContext.preferredWorkspaceId,
@@ -39,6 +40,21 @@ internal fun buildCloudPostAuthPendingSelection(
 
         CloudWorkspacePostAuthRoute.PENDING_GUEST_UPGRADE_RECOVERY,
         CloudWorkspacePostAuthRoute.INVALID_STORED_STATE -> null
+    }
+}
+
+/**
+ * A guest merge never follows the preferred or server-selected workspace unasked:
+ * it continues automatically only when the account offers no or exactly one workspace.
+ */
+private fun buildGuestMergeWorkspaceSelection(
+    workspaces: List<CloudWorkspaceSummary>
+): CloudWorkspaceLinkSelection? {
+    val visibleWorkspaces = workspaces.filter(CloudWorkspaceSummary::isVisible)
+    return when (visibleWorkspaces.size) {
+        0 -> CloudWorkspaceLinkSelection.CreateNew(name = null)
+        1 -> CloudWorkspaceLinkSelection.Existing(workspaceId = visibleWorkspaces.single().workspaceId)
+        else -> null
     }
 }
 

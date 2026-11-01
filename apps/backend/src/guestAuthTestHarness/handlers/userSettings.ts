@@ -8,7 +8,7 @@ import {
 import { createQueryResult } from "../queryResult";
 
 const paywallStateColumns = "paywall_intro_shown_at, paywall_intro_local_date::TEXT, "
-  + "paywall_intro_time_zone, paywall_follow_up_shown_at, paywall_last_shown_at";
+  + "paywall_intro_time_zone, paywall_follow_up_shown_at, paywall_last_shown_at, paywall_periodic_shown_at";
 
 function createPaywallStateRow<Row extends pg.QueryResultRow>(settings: UserSettingsState): Row {
   return {
@@ -17,6 +17,7 @@ function createPaywallStateRow<Row extends pg.QueryResultRow>(settings: UserSett
     paywall_intro_time_zone: settings.paywall_intro_time_zone,
     paywall_follow_up_shown_at: settings.paywall_follow_up_shown_at,
     paywall_last_shown_at: settings.paywall_last_shown_at,
+    paywall_periodic_shown_at: settings.paywall_periodic_shown_at,
   } as unknown as Row;
 }
 
@@ -60,6 +61,7 @@ export function handleUserSettingsExecutorQuery<Row extends pg.QueryResultRow>(
     const introTimeZone = toNullableString(params[3]);
     const followUpShownAt = toNullableString(params[4]);
     const lastShownAt = toNullableString(params[5]);
+    const periodicShownAt = toNullableString(params[6]);
     const incomingIntroWins = introShownAt !== null && (
       current.paywall_intro_shown_at === null
       || paywallIntroOrderKey(introShownAt, introLocalDate, introTimeZone)
@@ -82,6 +84,10 @@ export function handleUserSettingsExecutorQuery<Row extends pg.QueryResultRow>(
         current.paywall_last_shown_at === null
         || Date.parse(lastShownAt) > Date.parse(current.paywall_last_shown_at)
       ) ? lastShownAt : current.paywall_last_shown_at,
+      paywall_periodic_shown_at: periodicShownAt !== null && (
+        current.paywall_periodic_shown_at === null
+        || Date.parse(periodicShownAt) > Date.parse(current.paywall_periodic_shown_at)
+      ) ? periodicShownAt : current.paywall_periodic_shown_at,
     };
     state.userSettings.set(userId, updated);
     return createQueryResult<Row>([createPaywallStateRow<Row>(updated)]);
@@ -202,6 +208,36 @@ export function handleUserSettingsExecutorQuery<Row extends pg.QueryResultRow>(
     state.userSettings.set(userId, {
       ...current,
       accent_color: current.accent_color === "#FF6719" ? String(params[1]) : current.accent_color,
+    });
+    return createQueryResult<Row>([{ user_id: userId } as unknown as Row]);
+  }
+
+  if (text === "SELECT first_review_onboarding_completed FROM org.user_settings WHERE user_id = $1") {
+    const userId = String(params[0]);
+    scope.requireCurrentUserScope(userId);
+    const row = state.userSettings.get(userId);
+    return createQueryResult<Row>(row === undefined ? [] : [{
+      first_review_onboarding_completed: row.first_review_onboarding_completed,
+    } as unknown as Row]);
+  }
+
+  if (
+    text === "UPDATE org.user_settings SET first_review_onboarding_completed = first_review_onboarding_completed"
+      + " OR $2::BOOLEAN WHERE user_id = $1 RETURNING user_id"
+  ) {
+    const userId = String(params[0]);
+    const guestCompleted = params[1];
+    if (typeof guestCompleted !== "boolean") {
+      throw new Error(`Unexpected first-review onboarding value for ${userId}: ${String(guestCompleted)}.`);
+    }
+    scope.requireCurrentUserScope(userId);
+    const current = state.userSettings.get(userId);
+    if (current === undefined) {
+      return createQueryResult<Row>([]);
+    }
+    state.userSettings.set(userId, {
+      ...current,
+      first_review_onboarding_completed: current.first_review_onboarding_completed || guestCompleted,
     });
     return createQueryResult<Row>([{ user_id: userId } as unknown as Row]);
   }

@@ -118,7 +118,8 @@ struct AIChatView: View {
     @State var hasActiveUserScrollGesture: Bool
     @State var composerAttachmentViewportWidth: CGFloat?
     @State var deferredPresentationRequest: AIChatPresentationRequest?
-    @FocusState var isComposerFocused: Bool
+    @State var isComposerFocused: Bool
+    @State var refocusesComposerAfterSend: Bool
 
     @MainActor
     init(chatStore: AIChatStore, isCompanion: Bool = false, companionHostTab: AppTab? = nil) {
@@ -133,6 +134,8 @@ struct AIChatView: View {
         self.hasActiveUserScrollGesture = false
         self.composerAttachmentViewportWidth = nil
         self.deferredPresentationRequest = nil
+        self.isComposerFocused = false
+        self.refocusesComposerAfterSend = false
     }
 
     var body: some View {
@@ -161,6 +164,12 @@ struct AIChatView: View {
                 isPresented: self.isAlertPresentedBinding,
                 actions: self.alertActionsContent,
                 message: self.alertMessageContent
+            )
+            .reviewKeyboardBlockingPresentation(
+                isPresented: self.isFileImporterPresented
+                    || self.isPhotoPickerPresented
+                    || self.isCameraPresented
+                    || self.isAlertPresentedBinding.wrappedValue
             )
     }
 
@@ -376,13 +385,25 @@ struct AIChatView: View {
         }
     }
 
+    var openSettingsActionTitle: String {
+        #if targetEnvironment(macCatalyst)
+        return String(
+            localized: "shared.action.open_system_settings",
+            table: "Foundation",
+            comment: "Mac permission action title to open System Settings"
+        )
+        #else
+        return aiSettingsLocalized("common.openSettings", "Open Settings")
+        #endif
+    }
+
     @ViewBuilder
     func alertActionsContent() -> some View {
         if self.chatStore.activeAlert?.showsSettingsAction == true {
             Button(aiSettingsLocalized("common.cancel", "Cancel"), role: .cancel) {
                 self.chatStore.dismissAlert()
             }
-            Button(aiSettingsLocalized("common.openSettings", "Open Settings")) {
+            Button(self.openSettingsActionTitle) {
                 self.chatStore.dismissAlert()
                 Task { @MainActor in
                     do {
@@ -857,6 +878,16 @@ struct AIChatView: View {
         self.chatStore.sendMessage()
     }
 
+    /// Hardware Return keeps the composer focused for the next message, as on web and in Messages.
+    func sendComposerMessageFromReturnKey() {
+        guard self.ensureExternalAIConsent() else {
+            return
+        }
+        self.chatStore.sendMessage()
+        // A started send disables the draft field, which drops its focus until the run starts.
+        self.refocusesComposerAfterSend = self.composerTextFieldDisabled
+    }
+
     func dismissComposerFocus() {
         self.chatStore.editorDiagnosticPresentation = self.composerDiagnosticPresentation
         self.chatStore.recordComposerEditing(operation: .focus, phase: .before, beforeUTF16Count: self.chatStore.inputText.utf16.count, afterUTF16Count: self.chatStore.inputText.utf16.count)
@@ -869,11 +900,6 @@ struct AIChatView: View {
             from: nil,
             for: nil
         )
-        #if targetEnvironment(macCatalyst)
-        if self.isCompanion {
-            self.navigation.requestReviewKeyboardFocus()
-        }
-        #endif
     }
 
     func startNewChat() {
@@ -946,6 +972,12 @@ struct AIChatView: View {
             return
         }
 
+        if self.refocusesComposerAfterSend {
+            self.refocusesComposerAfterSend = false
+            if self.isPresentationActive {
+                self.isComposerFocused = true
+            }
+        }
         self.handleAIChatPresentationRequest(
             request: self.deferredPresentationRequest,
             source: .composerPhaseReady

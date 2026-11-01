@@ -6,7 +6,7 @@ Every agent SQL execution emits one `agent_sql` CloudWatch record, on success an
 
 - Every backend Lambda uses the Lambda JSON log format ([`backend-lambda-logging.ts`](../infra/aws/lib/backend-lambda-logging.ts)), so the record sits under `message`: address a field as `message.<field>` in Logs Insights and as `$.message.<field>` in a metric filter.
 - The envelope's own `requestId` is the Lambda invocation id. `message.requestId` is the `X-Request-Id` response header on the MCP worker, and joins `mcp_request`, the `agent_sql` records under it and the request's Sentry captures; REST and chat `agent_sql` records carry null. Dispatcher records carry the API Gateway request id there instead ([joining them to the worker](#dispatcher-admission-outcomes-and-timings)).
-- Raw SQL and error messages are never recorded, so group failures by `sqlFingerprint`, `errorCode` and `dialectReason`, and read a specific failure in Sentry.
+- The `agent_sql` record carries no raw SQL or error message, so group failures by `sqlFingerprint`, `errorCode` and `dialectReason`, and read a specific failure in [the failure log](#reading-one-failure).
 - `workspaceId` is the workspace the call targeted, so chat SQL grouped by workspace can show workspaces the chat session did not have open.
 - If a log group renders `message.succeeded`, `message.rowsOmitted`, `message.rowsTruncated`, `message.toolExecuted` or `message.toolIsError` as `true`/`false` instead of `1`/`0`, compare against `"true"` and `"false"` in the queries below.
 
@@ -17,6 +17,19 @@ Every agent SQL execution emits one `agent_sql` CloudWatch record, on success an
 - Chat worker Lambda log group (`service = "chat-worker"`): `agent_sql` on surface `chat-tool`.
 
 The function names are the `BackendFunctionName`, `McpFunctionName`, and `ChatWorkerFunctionName` stack outputs; query the three log groups together to compare surfaces. The stack declares the backend API group's retention through a CloudFormation custom resource that is re-applied only when its own properties change, so a retention set by hand silently diverges until it is reverted; change retention in the stack.
+
+## Reading one failure
+
+Every failed execution on every surface also writes one record with its full SQL and exact error message to the `/flashcards-open-source-app/agent-sql-failures` log group, which keeps it 30 days; a record too large for one CloudWatch event keeps the head of both and sets `truncated` ([writer](../apps/backend/src/aiTools/agentSql/failureLog.ts)). The backend writes it directly, so fields sit at the top level rather than under `message`. Filter on the `sqlFingerprint` or the non-null `requestId` of the `agent_sql` record:
+
+```
+filter sqlFingerprint = "<sqlFingerprint>"
+| fields @timestamp, requestId, surface, caller, errorCode, dialectReason, errorMessage, sql
+| sort @timestamp desc
+| limit 20
+```
+
+A record that could not be written leaves an `agent_sql_failure_log_write_failed` exception, without the SQL or message, in the surface's own Lambda log group and in Sentry.
 
 ## The chat sandbox SQL record
 
@@ -37,13 +50,15 @@ On the MCP surface `caller` is the normalized request `User-Agent` ([why not cli
 
 Requests that never authenticate emit none, so the record count is the authenticated request count, not the total. A `message.method = "GET"` row is a client trying to open the standalone SSE stream that MCP revisions 2025-03-26 through 2025-11-25 allow; this stateless surface answers 405, which those clients accept, so a run of such rows is a client-compatibility signal rather than an incident.
 
+`message.toolCallArguments` holds the compact JSON of a tool call's validated arguments, and is null for `sql_query` and `sql_execute`, whose SQL text never reaches this log group.
+
 ## Dispatcher admission outcomes and timings
 
 Select the `/aws/lambda/<dispatcher function name>` log group for the
 `McpDispatcher` Lambda in the deployed stack, then run this Logs Insights query:
 
 ```
-filter message.action in ["mcp_worker_completed", "mcp_worker_capacity_rejected", "mcp_client_capacity_rejected", "mcp_dispatch_failed"]
+filter message.action in ["mcp_unauthenticated_challenge", "mcp_worker_completed", "mcp_worker_capacity_rejected", "mcp_client_capacity_rejected", "mcp_dispatch_failed"]
 | stats count(*) as requests,
         avg(message.durationMs) as avgDurationMs,
         pct(message.durationMs, 50) as p50DurationMs,
@@ -54,6 +69,7 @@ filter message.action in ["mcp_worker_completed", "mcp_worker_capacity_rejected"
 
 The [dispatcher](../apps/backend/src/entrypoints/lambda-mcp-dispatcher.ts) owns these records:
 
+- `mcp_unauthenticated_challenge`: the dispatcher answered a `/mcp` request without a bearer token with the OAuth 401 challenge itself, without invoking the worker.
 - `mcp_worker_completed`: the worker returned a valid proxy response, including 401, 405 and 5xx. `attempts` above 1 means admission throttles were absorbed.
 - `mcp_worker_capacity_rejected`: the admission retries were exhausted and the client received 429 for shared worker capacity; the MCP capacity alarm in [`monitoring.ts`](../infra/aws/lib/monitoring.ts) counts only these. The worker's `Throttles` metric also counts absorbed attempts.
 - `mcp_client_capacity_rejected`: a 429 before any Invoke, because that bearer token already holds its share of in-flight requests; one client is busy, not the pool.
@@ -131,7 +147,7 @@ filter message.domain = "backend" and message.action = "agent_sql"
        and message.succeeded = 0
        and message.caller != "nibomo-mcp-smoke/1"
 | stats count(*) as failures
-  by message.surface, message.errorCode, message.dialectReason, message.caller
+  by message.surface, message.errorCode, message.dialectReason, message.rejectedName, message.caller
 | sort failures desc
 | limit 20
 ```

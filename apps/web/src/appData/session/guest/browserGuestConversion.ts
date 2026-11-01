@@ -37,7 +37,7 @@ export async function beginGuestSignIn(userId: string, workspaceId: string, drai
       throw new Error("Guest preference owner differs from the verified sign-in workspace.");
     }
     savePending({ phase: "draining", sourceUserId: userId, sourceWorkspaceId: workspaceId,
-      guestWorkspaceSyncedAndOutboxDrained: false, destinationUserId: null, selection: null, result: null });
+      guestWorkspaceSyncedAndOutboxDrained: false, destinationUserId: null, selection: null, selectionRequired: false, result: null });
     primeGuestSession(userId, probe.guestSession.csrfToken);
     return session;
   });
@@ -141,7 +141,7 @@ export async function completePendingGuestConversion(selection: GuestUpgradeSele
     } catch (error) {
       if (selection.type === "existing" && selection.discardDemoOnly === true
         && error instanceof ApiError && error.statusCode === 409 && error.code === "GUEST_UPGRADE_DEMO_ONLY_NOT_ELIGIBLE") {
-        savePending({ ...pending, phase: "prepared", selection: null });
+        savePending({ ...pending, phase: "prepared", selection: null, selectionRequired: true });
       }
       throw error;
     }

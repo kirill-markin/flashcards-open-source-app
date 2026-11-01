@@ -703,6 +703,43 @@ export async function loadReviewQueueSnapshot(
   });
 }
 
+export type ReviewOverdueSummary = Readonly<{
+  overdueCount: number;
+  nextDueAtMillis: number | null;
+}>;
+
+/** New cards (`dueAt` null) and malformed `dueAt` values are neither overdue nor upcoming. */
+export async function loadReviewOverdueSummary(
+  workspaceId: string,
+  reviewFilter: ReviewFilter,
+  nowTimestamp: number,
+): Promise<ReviewOverdueSummary> {
+  return closeDatabaseAfter(async (database) => {
+    const filterResolution = await resolveReviewFilterFromIndexedDb(database, workspaceId, reviewFilter);
+    let overdueCount = 0;
+    let nextDueAtMillis: number | null = null;
+
+    await iterateLocalStoredCardsByCreatedAtDesc(database, workspaceId, (card) => {
+      if (
+        card.deletedAt !== null
+        || card.dueAtMillis === null
+        || matchesResolvedReviewFilter(card, filterResolution) === false
+      ) {
+        return true;
+      }
+
+      if (card.dueAtMillis <= nowTimestamp) {
+        overdueCount += 1;
+      } else if (nextDueAtMillis === null || card.dueAtMillis < nextDueAtMillis) {
+        nextDueAtMillis = card.dueAtMillis;
+      }
+      return true;
+    });
+
+    return { overdueCount, nextDueAtMillis };
+  });
+}
+
 export async function loadReviewQueueChunk(
   workspaceId: string,
   reviewFilter: ReviewFilter,

@@ -54,10 +54,6 @@
   display: none;
 }
 
-.chat-tool-call-section {
-  border-top: 1px solid var(--divider);
-}
-
 .chat-tool-call-section-header {
   display: flex;
   align-items: center;

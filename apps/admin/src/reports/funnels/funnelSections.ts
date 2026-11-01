@@ -26,7 +26,7 @@ import type { FunnelAnchor } from "./funnelAnchorUrl";
 /** What a funnel card loads its report from. */
 export type FunnelReportProps = Readonly<{
   config: AdminAppConfig;
-  /** The selection the Funnels area applies; each funnel applies the fields it can answer and says which it cannot. */
+  /** The selection the Journeys area applies; each funnel applies the fields it can answer and says which it cannot. */
   filters: AnalyticsFilterState;
   /** The shared selection is still settling after a filter change; a funnel waits it out rather than querying per click. */
   isRangeLoading: boolean;

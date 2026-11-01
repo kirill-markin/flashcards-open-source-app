@@ -340,8 +340,8 @@
 "settings.test.animations.playAccessibility" = "%@ ਐਨੀਮੇਸ਼ਨ ਚਲਾਓ, %@";
 "settings.test.technicalErrorPreview" = "ਤਕਨੀਕੀ ਗਲਤੀ ਦੀ ਝਲਕ";
 "settings.test.technicalErrorPreview.value" = "ਝਲਕ ਪੈਨਲ";
-"settings.test.storeReviewPromptReset" = "App Store ਸਮੀਖਿਆ ਬੇਨਤੀ ਰੀਸੈੱਟ ਕਰੋ";
-"settings.test.storeReviewPromptReset.value" = "ਸਥਾਨਕ ਸਥਿਤੀ";
+"settings.test.section.reviewPrompts" = "ਦੁਹਰਾਈ ਤੋਂ ਬਾਅਦ ਦੇ ਪ੍ਰੌਂਪਟ";
+"settings.test.reviewPromptsReset" = "ਸਾਰੇ ਪ੍ਰੌਂਪਟਾਂ ਦੀ ਸਥਿਤੀ ਰੀਸੈੱਟ ਕਰੋ";
 "settings.test.notificationDiagnostics" = "ਸੂਚਨਾ ਨਿਦਾਨ";
 "settings.test.notificationDiagnostics.value" = "ਸਿਰਫ਼ ਪੜ੍ਹਨ ਲਈ";
 "settings.test.localSyncDiagnostics" = "ਸਥਾਨਕ ਸਿੰਕ ਨਿਦਾਨ";
@@ -451,11 +451,17 @@
 "settings.access.action.request" = "ਪਹੁੰਚ ਮੰਗੋ";
 "settings.access.action.openSettings" = "ਸੈਟਿੰਗਾਂ ਖੋਲ੍ਹੋ";
 "settings.access.guidance.photos.limited" = "ਫ਼ੋਟੋ ਲਾਇਬ੍ਰੇਰੀ ਦੀ ਪਹੁੰਚ ਸੀਮਤ ਹੈ। ਤੁਸੀਂ ਅਜੇ ਵੀ ਏਆਈ ਚੈਟ ਵਿੱਚ ਜੋੜਨ ਲਈ ਫ਼ੋਟੋਆਂ ਚੁਣ ਸਕਦੇ ਹੋ।";
+"settings.access.guidance.mac.photos.limited" = "ਫ਼ੋਟੋ ਲਾਇਬ੍ਰੇਰੀ ਦੀ ਪਹੁੰਚ ਸੀਮਤ ਹੈ। ਤੁਸੀਂ ਅਜੇ ਵੀ ਏਆਈ ਚੈਟ ਵਿੱਚ ਜੋੜਨ ਲਈ ਫ਼ੋਟੋਆਂ ਚੁਣ ਸਕਦੇ ਹੋ, ਜਾਂ ਇਸਨੂੰ ਬਦਲਣ ਲਈ ਸਿਸਟਮ ਸੈਟਿੰਗਾਂ > ਪਰਦੇਦਾਰੀ ਅਤੇ ਸੁਰੱਖਿਆ > ਫ਼ੋਟੋਆਂ ਖੋਲ੍ਹੋ।";
 "settings.access.guidance.photos.blocked" = "ਫ਼ੋਟੋ ਲਾਇਬ੍ਰੇਰੀ ਦੀ ਪਹੁੰਚ ਬੰਦ ਹੈ। ਤੁਸੀਂ ਅਜੇ ਵੀ ਏਆਈ ਚੈਟ ਵਿੱਚ ਜੋੜਨ ਲਈ ਫ਼ੋਟੋਆਂ ਚੁਣ ਸਕਦੇ ਹੋ।";
+"settings.access.guidance.mac.photos.blocked" = "ਫ਼ੋਟੋ ਲਾਇਬ੍ਰੇਰੀ ਦੀ ਪਹੁੰਚ ਬੰਦ ਹੈ। ਤੁਸੀਂ ਅਜੇ ਵੀ ਏਆਈ ਚੈਟ ਵਿੱਚ ਜੋੜਨ ਲਈ ਫ਼ੋਟੋਆਂ ਚੁਣ ਸਕਦੇ ਹੋ, ਜਾਂ ਇਸਨੂੰ ਬਦਲਣ ਲਈ ਸਿਸਟਮ ਸੈਟਿੰਗਾਂ > ਪਰਦੇਦਾਰੀ ਅਤੇ ਸੁਰੱਖਿਆ > ਫ਼ੋਟੋਆਂ ਖੋਲ੍ਹੋ।";
 "settings.access.guidance.camera.blocked" = "Nibomo ਲਈ ਕੈਮਰੇ ਦੀ ਪਹੁੰਚ ਬੰਦ ਹੈ। ਇਸਨੂੰ ਬਦਲਣ ਲਈ ਸੈਟਿੰਗਾਂ > ਪਰਦੇਦਾਰੀ ਅਤੇ ਸੁਰੱਖਿਆ > ਕੈਮਰਾ ਖੋਲ੍ਹੋ।";
+"settings.access.guidance.mac.camera.blocked" = "Nibomo ਲਈ ਕੈਮਰੇ ਦੀ ਪਹੁੰਚ ਬੰਦ ਹੈ। ਇਸਨੂੰ ਬਦਲਣ ਲਈ ਸਿਸਟਮ ਸੈਟਿੰਗਾਂ > ਪਰਦੇਦਾਰੀ ਅਤੇ ਸੁਰੱਖਿਆ > ਕੈਮਰਾ ਖੋਲ੍ਹੋ।";
 "settings.access.guidance.microphone.blocked" = "Nibomo ਲਈ ਮਾਈਕ੍ਰੋਫ਼ੋਨ ਦੀ ਪਹੁੰਚ ਬੰਦ ਹੈ। ਇਸਨੂੰ ਬਦਲਣ ਲਈ ਸੈਟਿੰਗਾਂ > ਪਰਦੇਦਾਰੀ ਅਤੇ ਸੁਰੱਖਿਆ > ਮਾਈਕ੍ਰੋਫ਼ੋਨ ਖੋਲ੍ਹੋ।";
+"settings.access.guidance.mac.microphone.blocked" = "Nibomo ਲਈ ਮਾਈਕ੍ਰੋਫ਼ੋਨ ਦੀ ਪਹੁੰਚ ਬੰਦ ਹੈ। ਇਸਨੂੰ ਬਦਲਣ ਲਈ ਸਿਸਟਮ ਸੈਟਿੰਗਾਂ > ਪਰਦੇਦਾਰੀ ਅਤੇ ਸੁਰੱਖਿਆ > ਮਾਈਕ੍ਰੋਫ਼ੋਨ ਖੋਲ੍ਹੋ।";
 "settings.access.guidance.askEveryTime" = "ਹੁਣੇ ਪਹੁੰਚ ਮੰਗੋ ਜਾਂ ਇਸਨੂੰ ਖੁਦ ਸੰਭਾਲਣ ਲਈ ਬਾਅਦ ਵਿੱਚ ਸੈਟਿੰਗਾਂ ਖੋਲ੍ਹੋ।";
+"settings.access.guidance.mac.askEveryTime" = "ਹੁਣੇ ਪਹੁੰਚ ਮੰਗੋ ਜਾਂ ਇਸਨੂੰ ਖੁਦ ਸੰਭਾਲਣ ਲਈ ਬਾਅਦ ਵਿੱਚ ਸਿਸਟਮ ਸੈਟਿੰਗਾਂ ਖੋਲ੍ਹੋ।";
 "settings.access.guidance.allowed" = "ਇਹ ਪਹੁੰਚ ਬੰਦ ਕਰਨ ਲਈ ਸੈਟਿੰਗਾਂ ਖੋਲ੍ਹੋ।";
+"settings.access.guidance.mac.allowed" = "ਇਹ ਪਹੁੰਚ ਬੰਦ ਕਰਨ ਲਈ ਸਿਸਟਮ ਸੈਟਿੰਗਾਂ > ਪਰਦੇਦਾਰੀ ਅਤੇ ਸੁਰੱਖਿਆ ਖੋਲ੍ਹੋ।";
 "settings.access.guidance.limited" = "ਇਸ ਪਹੁੰਚ ਨੂੰ ਦੇਖਣ ਜਾਂ ਵਧਾਉਣ ਲਈ ਸੈਟਿੰਗਾਂ ਖੋਲ੍ਹੋ।";
 "settings.access.guidance.unavailable" = "ਇਸ ਡਿਵਾਈਸ ਉੱਤੇ ਇਹ ਪਹੁੰਚ ਉਪਲਬਧ ਨਹੀਂ ਹੈ।";
 "settings.account.row.openSourceValue" = "GitHub + MIT";
@@ -573,6 +579,7 @@
 "settings.account.cloudSignIn.failure.cloudSetupFailed" = "ਸਾਈਨ ਇਨ ਹੋ ਗਿਆ ਪਰ ਕਲਾਊਡ ਸੈਟਅੱਪ ਅਸਫਲ ਰਿਹਾ।";
 "settings.account.cloudSignIn.failure.accountUpgradeFailed" = "ਸਾਈਨ ਇਨ ਹੋ ਗਿਆ ਪਰ ਖਾਤਾ ਅੱਪਗ੍ਰੇਡ ਅਸਫਲ ਰਿਹਾ।";
 "settings.account.cloudSignIn.failureDescription" = "ਤੁਹਾਡਾ ਸਾਈਨ ਇਨ ਸਫਲ ਰਿਹਾ ਪਰ ਕਲਾਊਡ ਵਰਕਸਪੇਸ ਸੈਟਅੱਪ ਜਾਂ ਸ਼ੁਰੂਆਤੀ ਸਿੰਕ ਮੁਕੰਮਲ ਨਹੀਂ ਹੋਇਆ।";
+"settings.account.cloudSignIn.chooseWorkspace" = "ਵਰਕਸਪੇਸ ਚੁਣੋ";
 "settings.account.cloudSignIn.sync.title" = "ਤੁਹਾਡਾ ਖਾਤਾ ਕਲਾਊਡ ਨਾਲ ਸਿੰਕ ਹੋ ਰਿਹਾ ਹੈ।";
 "settings.account.cloudSignIn.sync.message" = "ਤੁਹਾਡਾ ਖਾਤਾ ਸਿੰਕ ਹੋਣ ਦੌਰਾਨ Nibomo ਖੁੱਲ੍ਹਾ ਰੱਖੋ। ਇਸ ਵਿੱਚ ਆਮ ਤੌਰ ਉੱਤੇ ਕੁਝ ਮਿੰਟ ਲੱਗਦੇ ਹਨ।";
 "settings.account.cloudSignIn.cloudSyncTitle" = "ਕਲਾਊਡ ਸਿੰਕ";

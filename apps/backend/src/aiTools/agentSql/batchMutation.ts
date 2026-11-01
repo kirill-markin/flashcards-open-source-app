@@ -17,7 +17,10 @@ import {
   type DeckFilterDefinition,
   type UpdateDeckInput,
 } from "../../decks";
-import { transactionWithWorkspaceScopeReportingContentWrites } from "../../productAnalytics/serverFacts/contentWrites";
+import {
+  declareContentWriteAiChatClient,
+  transactionWithWorkspaceScopeReportingContentWrites,
+} from "../../productAnalytics/serverFacts/contentWrites";
 import { HttpError } from "../../shared/errors";
 import type { LegacyEffortLevel } from "../../sync/contracts/legacyEffort";
 import { isLegacyEffortLevel } from "../../sync/contracts/legacyEffort";
@@ -121,35 +124,35 @@ function buildCardUpdatePatch(
   for (const assignment of assignments) {
     if (assignment.columnName === "front_text") {
       if (typeof assignment.value !== "string") {
-        throw buildInvalidSqlError("front_text must be a string", "invalid_value");
+        throw buildInvalidSqlError("front_text must be a string", "invalid_value", "front_text");
       }
       frontText = assignment.value;
     }
 
     if (assignment.columnName === "back_text") {
       if (typeof assignment.value !== "string") {
-        throw buildInvalidSqlError("back_text must be a string", "invalid_value");
+        throw buildInvalidSqlError("back_text must be a string", "invalid_value", "back_text");
       }
       backText = assignment.value;
     }
 
     if (assignment.columnName === "card_type") {
       if (typeof assignment.value !== "string") {
-        throw buildInvalidSqlError("card_type must be a string", "invalid_value");
+        throw buildInvalidSqlError("card_type must be a string", "invalid_value", "card_type");
       }
       cardType = assignment.value;
     }
 
     if (assignment.columnName === "tags") {
       if (Array.isArray(assignment.value) === false) {
-        throw buildInvalidSqlError("tags must be a string array", "invalid_value");
+        throw buildInvalidSqlError("tags must be a string array", "invalid_value", "tags");
       }
       tags = assignment.value.filter((item): item is string => typeof item === "string");
     }
 
     if (assignment.columnName === "effort_level") {
       if (isLegacyEffortLevel(assignment.value) === false) {
-        throw buildInvalidSqlError("effort_level must be fast, medium, or long", "invalid_value");
+        throw buildInvalidSqlError("effort_level must be fast, medium, or long", "invalid_value", "effort_level");
       }
       legacyEffortLevel = assignment.value;
     }
@@ -171,7 +174,7 @@ function normalizeLegacyEffortLevels(value: ReadonlyArray<unknown>): ReadonlyArr
       return item;
     }
 
-    throw buildInvalidSqlError("effort_levels must contain only fast, medium, or long", "invalid_value");
+    throw buildInvalidSqlError("effort_levels must contain only fast, medium, or long", "invalid_value", "effort_levels");
   });
 }
 
@@ -196,21 +199,21 @@ function buildResolvedDeckUpdateInput(
   for (const assignment of assignments) {
     if (assignment.columnName === "name") {
       if (typeof assignment.value !== "string") {
-        throw buildInvalidSqlError("name must be a string", "invalid_value");
+        throw buildInvalidSqlError("name must be a string", "invalid_value", "name");
       }
       name = assignment.value;
     }
 
     if (assignment.columnName === "effort_levels") {
       if (Array.isArray(assignment.value) === false) {
-        throw buildInvalidSqlError("effort_levels must be a string array", "invalid_value");
+        throw buildInvalidSqlError("effort_levels must be a string array", "invalid_value", "effort_levels");
       }
       legacyEffortLevels = normalizeLegacyEffortLevels(assignment.value);
     }
 
     if (assignment.columnName === "tags") {
       if (Array.isArray(assignment.value) === false) {
-        throw buildInvalidSqlError("tags must be a string array", "invalid_value");
+        throw buildInvalidSqlError("tags must be a string array", "invalid_value", "tags");
       }
       tags = assignment.value.filter((item): item is string => typeof item === "string");
     }
@@ -243,6 +246,7 @@ export async function executeSqlMutationBatch(
   );
 
   return transactionWithWorkspaceScopeReportingContentWrites({ userId: context.userId, workspaceId: context.workspaceId }, async (executor) => {
+    declareContentWriteAiChatClient(executor, dependencies.aiChatClient);
     let state: MutationBatchState = {
       cards: await listCardsInExecutor(executor, context.workspaceId),
       decks: await listDecksInExecutor(executor, context.workspaceId),

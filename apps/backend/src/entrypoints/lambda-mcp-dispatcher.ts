@@ -14,6 +14,8 @@ import {
 import type { APIGatewayProxyEvent, APIGatewayProxyResult, Context } from "aws-lambda";
 import { createHash } from "node:crypto";
 import { z } from "zod";
+import { buildMcpBearerChallenge, extractBearerToken } from "../mcp/bearerChallenge";
+import { resolveMcpHost } from "../mcp/hosts";
 import { normalizeMcpTelemetryValue } from "../mcp/requestTelemetry";
 
 const minimumRetryAfterSeconds = 1;
@@ -23,7 +25,8 @@ const clientLeaseSlotCount = 4;
 const clientLeaseTtlSeconds = 60;
 const clientCapacityRetryAfterSeconds = 1;
 const loggedTokenHashPrefixLength = 12;
-const bearerTokenPattern = /^Bearer\s+(\S+)$/i;
+// Format 1.0 events carry the public mapped path, the one the worker routes on.
+const mcpResourcePath = "/mcp";
 const dynamoDbClient = new DynamoDBClient({
   requestHandler: { connectionTimeout: 1_000, requestTimeout: 2_000 },
 });
@@ -72,8 +75,8 @@ function getHeaderValues(event: APIGatewayProxyEvent, headerName: string): Reado
 
 function getBearerToken(event: APIGatewayProxyEvent): string | null {
   for (const value of getHeaderValues(event, "authorization")) {
-    const token = bearerTokenPattern.exec(value.trim())?.[1];
-    if (token !== undefined) {
+    const token = extractBearerToken(value);
+    if (token !== null) {
       return token;
     }
   }
@@ -191,10 +194,43 @@ export async function handler(
     if (leaseTableName === undefined || leaseTableName.trim() === "") {
       throw new Error("MCP_TOKEN_LEASE_TABLE_NAME is required");
     }
+    const baseDomain = process.env.MCP_BASE_DOMAIN;
+    if (baseDomain === undefined || baseDomain.trim() === "") {
+      throw new Error("MCP_BASE_DOMAIN is required");
+    }
 
-    // Requests without a bearer token skip the limiter: the worker answers them
-    // with a cheap 401.
     const token = getBearerToken(event);
+    // Answered here so token-less handshake loops never occupy a worker slot.
+    if (token === null && event.path === mcpResourcePath) {
+      const mcpHost = resolveMcpHost(
+        getHeaderValues(event, "host")[0],
+        baseDomain.trim(),
+        process.env.MCP_ALTERNATE_HOST,
+      );
+      const challenge = buildMcpBearerChallenge(mcpHost);
+      console.log({
+        action: "mcp_unauthenticated_challenge",
+        requestId,
+        dispatcherRequestId: context.awsRequestId,
+        method,
+        statusCode: challenge.statusCode,
+        durationMs: Math.round(performance.now() - startedAt),
+        userAgent: normalizeMcpTelemetryValue(getHeaderValues(event, "user-agent")[0] ?? null),
+      });
+      return {
+        statusCode: challenge.statusCode,
+        headers: {
+          "Content-Type": "application/json",
+          "WWW-Authenticate": challenge.wwwAuthenticate,
+          "X-Request-Id": requestId,
+        },
+        // The worker's router answers HEAD as GET without a body.
+        body: method === "HEAD" ? "" : JSON.stringify(challenge.body),
+        isBase64Encoded: false,
+      };
+    }
+
+    // Other requests without a bearer token skip the limiter.
     if (token !== null) {
       phase = "client_lease";
       const tokenHash = createHash("sha256").update(token).digest("hex");

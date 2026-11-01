@@ -43,7 +43,7 @@ export function createRefreshSessionApp(dependencies: RefreshSessionDependencies
 
     try {
       const tokens = await dependencies.refreshTokens(refreshToken);
-      dependencies.setBrowserSessionCookies(c, tokens.idToken, refreshToken);
+      dependencies.setBrowserSessionCookies(c, tokens.idToken, tokens.refreshToken ?? refreshToken);
       logger({
         domain: "auth",
         action: "refresh_session",

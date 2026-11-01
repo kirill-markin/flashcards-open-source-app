@@ -78,8 +78,6 @@ extension FlashcardsStore {
         )
         clearStoredReviewFilters(userDefaults: self.userDefaults)
         clearStoredStrictReminders(userDefaults: self.userDefaults)
-        self.userDefaults.removeObject(forKey: reviewNotificationPromptStateUserDefaultsKey)
-        self.userDefaults.removeObject(forKey: reviewNotificationSuccessfulReviewCountUserDefaultsKey)
         self.userDefaults.removeObject(forKey: reviewNotificationLastActiveAtUserDefaultsKey)
         self.userDefaults.removeObject(forKey: accountDeletionPendingUserDefaultsKey)
         self.userDefaults.removeObject(forKey: aiChatExternalProviderConsentUserDefaultsKey)
@@ -98,7 +96,6 @@ extension FlashcardsStore {
         self.applyReviewPublishedState(
             reviewState: ReviewQueueRuntime.makeInitialPublishedState(selectedReviewFilter: .allCards)
         )
-        self.notificationPermissionPromptState = makeDefaultNotificationPermissionPromptState()
         self.isReviewNotificationPrePromptPresented = false
         self.accountDeletionState = .hidden
         self.accountDeletionSuccessMessage = nil
@@ -173,7 +170,31 @@ extension FlashcardsStore {
 
         if linkedUserId != nextUserId {
             try self.throwIfLinkedWorkspaceUnavailableRecoveryRequired()
+            // Only this switch carries a completed onboarding to the next account; the shared reset
+            // also serves logout and account deletion, which must not. The carry is best-effort: an
+            // onboarding storage failure is reported and never blocks the sign-in. Nothing may suspend
+            // between this read and the reset, which also cancels any stale push to the departing account.
+            let carriesOnboardingCompletion: Bool
+            do {
+                let departingOnboarding = try requireLocalDatabase(database: self.database).loadFirstReviewOnboarding()
+                carriesOnboardingCompletion = departingOnboarding.isKnown && departingOnboarding.completed
+            } catch {
+                self.captureAccountPreferencesSilentFailure(
+                    error: error, action: "first_review_onboarding_carry", stage: "local_read"
+                )
+                carriesOnboardingCompletion = false
+            }
             try self.resetLocalStateForCloudIdentityChange()
+            if carriesOnboardingCompletion {
+                do {
+                    try requireLocalDatabase(database: self.database).seedCarriedFirstReviewOnboardingCompletion()
+                } catch {
+                    self.captureAccountPreferencesSilentFailure(
+                        error: error, action: "first_review_onboarding_carry", stage: "local_write"
+                    )
+                }
+                self.reloadFirstReviewOnboardingReportingFailure()
+            }
         }
     }
 

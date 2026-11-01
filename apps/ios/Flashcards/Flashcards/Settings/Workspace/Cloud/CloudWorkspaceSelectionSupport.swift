@@ -17,7 +17,7 @@ func makeCloudWorkspaceSelectionItems(
         CloudWorkspaceSelectionItem(
             id: workspace.workspaceId,
             title: workspace.name,
-            subtitle: workspace.createdAt,
+            subtitle: formatOptionalIsoTimestampForDisplay(value: workspace.createdAt),
             symbolName: nil,
             showsSelectedIndicator: workspace.isSelected,
             selection: .existing(workspaceId: workspace.workspaceId)
@@ -67,7 +67,7 @@ struct CloudWorkspaceSelectionRow: View {
 
                 if let subtitle = self.item.subtitle {
                     Text(subtitle)
-                        .font(.caption.monospaced())
+                        .font(.caption)
                         .foregroundStyle(.secondary)
                 }
             }

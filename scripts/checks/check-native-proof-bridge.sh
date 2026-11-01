@@ -55,7 +55,7 @@ if invocation.get('FunctionError') or invocation.get('StatusCode') != 200:
 result = json.load(open(sys.argv[2]))
 expected = {'USER_AUTH/PASSWORD', 'CUSTOM_AUTH', 'forged-metadata', 'wrong-client', 'wrong-nonce',
             'expired-grant', 'SQL-wrong-principal/username', 'atomic-redemption', 'session-and-grant-replay',
-            'REFRESH_TOKEN_AUTH', 'internal-bridge', 'signed-original-auth-time', 'account-method-demo-transport-refusals'}
+            'GetTokensFromRefreshToken', 'internal-bridge', 'signed-original-auth-time', 'account-method-demo-transport-refusals'}
 if result.get('passed') is not True or set(result.get('checks', [])) != expected:
     raise SystemExit('Private native proof bridge gate did not return all required passing facts')
 print('Native proof bridge cloud gate passed: ' + ', '.join(sorted(expected)))

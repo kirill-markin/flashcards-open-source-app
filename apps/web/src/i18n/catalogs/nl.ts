@@ -738,6 +738,10 @@ const nlCatalog: TranslationCatalog = {
       description: "Bekijk de installatieprompt voor iOS en Android.",
       value: "Voorbeeld",
     },
+    reviewPrompts: {
+      title: "Meldingen na herhalen",
+      resetAll: "Status van alle meldingen resetten",
+    },
   },
   settingsWorkspace: {
     decks: {

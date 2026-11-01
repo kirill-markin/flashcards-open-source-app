@@ -3,6 +3,7 @@ import { googleReconciliationEventSchema, reconcileGoogleSubscriptions } from ".
 import { runWithApiGatewayCountry } from "../geolocation/requestCountry";
 import type { APIGatewayProxyResult, LambdaEvent } from "hono/aws-lambda";
 import {
+  addBackendBreadcrumb,
   captureBackendException,
   createBackendObservationScope,
   initializeBackendSentry,
@@ -213,12 +214,17 @@ export const handler = wrapBackendHandler(async (
   if ("source" in event) {
     const internal = googleReconciliationEventSchema.safeParse(event);
     if (!internal.success) throw new Error("Invalid internal backend invocation.");
-    try {
-      await reconcileGoogleSubscriptions(() => context.getRemainingTimeInMillis());
-    } catch {
-      // Database/SDK exceptions can contain purchase tokens; the scheduler boundary is sanitized.
-      throw new Error("Google scheduled reconciliation failed; inspect sanitized reconciliation diagnostics.");
-    }
+    // Database/SDK exceptions can contain purchase tokens, so only the outcome leaves this boundary.
+    // The run does not fail the invocation: GoogleSubscriptionReconciliationFailedAlarm pages instead.
+    const succeeded = await reconcileGoogleSubscriptions(() => context.getRemainingTimeInMillis())
+      .then((): 1 => 1, (): 0 => 0);
+    addBackendBreadcrumb({
+      action: "google_reconciliation_run",
+      scope: createBackendObservationScope(
+        "backend-api", context.awsRequestId, null, null, null, null, null, null, null, null, null,
+      ),
+      details: { succeeded },
+    });
     return { statusCode: 204, body: "", isBase64Encoded: false, headers: {} };
   }
   return backendApiBootstrapHandler(event, context);

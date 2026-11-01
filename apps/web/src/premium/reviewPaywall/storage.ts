@@ -2,7 +2,8 @@ import { ApiContractError } from "../../apiContracts/core";
 import { parsePaywallShownInput, parsePaywallState, type PaywallShownInput, type PaywallState } from "../../apiContracts/paywallState";
 import { applyPaywallShown, mergePaywallState } from "./state";
 
-const storageKeyPrefix = "flashcards-paywall-state:";
+// v2: cached states from before `periodicShownAt` fail the current contract, so they are not read.
+const storageKeyPrefix = "flashcards-paywall-state-v2:";
 const pendingKeyPrefix = "flashcards-paywall-pending:";
 
 function decode(raw: string): unknown {

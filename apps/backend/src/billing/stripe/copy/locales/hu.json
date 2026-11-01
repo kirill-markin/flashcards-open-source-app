@@ -53,5 +53,10 @@
   "email.refundReceiptBody": "Elindítottuk a visszatérítésedet, amelynek összege {price}. A részleteket itt tekintheted meg: {url}",
   "deletion.warning": "A Nibomo-fiókod törlése leállítja a Stripe-on keresztül számlázott Nibomo-előfizetéseid jövőbeli megújulásait. Elveszíted a hozzáférést ehhez a fiókhoz. Az Apple vagy a Google által számlázott előfizetéseket külön, az adott szolgáltatónál kell lemondanod.",
   "deletion.cancelling": "A Stripe-előfizetéseid megújulásainak leállítása a fiókod törlése előtt...",
-  "deletion.cancellationFailed": "Nem sikerült megerősíteni a Stripe-előfizetéseid megújulásainak leállítását. A fiókodat nem töröltük. Próbáld újra, vagy fordulj az ügyfélszolgálathoz."
+  "deletion.cancellationFailed": "Nem sikerült megerősíteni a Stripe-előfizetéseid megújulásainak leállítását. A fiókodat nem töröltük. Próbáld újra, vagy fordulj az ügyfélszolgálathoz.",
+  "offer.pricesFor": "Árak ehhez az országhoz: {country}",
+  "offer.changeCountry": "Ország módosítása",
+  "offer.chooseCountry": "Válasszon országot",
+  "checkout.originalOffer": "Függőben lévő fizetés: {price} havonta",
+  "checkout.requote": "Fizetés cseréje erre az ajánlatra"
 }

@@ -464,12 +464,21 @@ sealed interface AnalyticsEvent {
         )
     }
 
-    /** `screen` is non-null here on purpose: the server rejects `screen_viewed` without it. */
+    /**
+     * `screen` is non-null here on purpose: the server rejects `screen_viewed` without it.
+     * `reviewPromptConfigVersion` is set only on the showing of an after-review prompt, naming the
+     * config version that chose it.
+     */
     data class ScreenViewed(
-        override val screen: AnalyticsSurface
+        override val screen: AnalyticsSurface,
+        val reviewPromptConfigVersion: String?
     ) : AnalyticsEvent {
+        constructor(screen: AnalyticsSurface) : this(screen, null)
+
         override val eventName: String = "screen_viewed"
-        override val properties: Map<String, AnalyticsPropertyValue> = emptyMap()
+        override val properties: Map<String, AnalyticsPropertyValue> = reviewPromptConfigVersion?.let {
+            mapOf("review_prompt_config_version" to AnalyticsPropertyValue.Text(value = it))
+        } ?: emptyMap()
     }
 
     /**
@@ -777,10 +786,14 @@ sealed interface AnalyticsEvent {
      * appeared nor what the person answered, so this is the last fact the app can know. Only a
      * finished review asks for it, so the person is on the review screen.
      */
-    data object StoreReviewRequested : AnalyticsEvent {
+    data class StoreReviewRequested(
+        val reviewPromptConfigVersion: String
+    ) : AnalyticsEvent {
         override val eventName: String = "store_review_requested"
         override val screen: AnalyticsSurface = AnalyticsSurface.REVIEW
-        override val properties: Map<String, AnalyticsPropertyValue> = emptyMap()
+        override val properties: Map<String, AnalyticsPropertyValue> = mapOf(
+            "review_prompt_config_version" to AnalyticsPropertyValue.Text(value = reviewPromptConfigVersion)
+        )
     }
 
     data class ReviewAnswerFailed(
@@ -904,7 +917,9 @@ sealed interface AnalyticsEvent {
         override val screen: AnalyticsSurface?,
         val reviewTrigger: AnalyticsReviewPaywallTrigger?,
         val accountKind: AnalyticsPaywallAccountKind?,
-        val offerType: AnalyticsPurchaseOfferType?
+        val offerType: AnalyticsPurchaseOfferType?,
+        // Only on a review paywall: the after-review prompt config version that chose it.
+        val reviewPromptConfigVersion: String?
     ) : AnalyticsEvent {
         constructor(
             presentation: AnalyticsPaywallPresentation,
@@ -912,7 +927,7 @@ sealed interface AnalyticsEvent {
             timeZone: String,
             contentVersion: String,
             screen: AnalyticsSurface?
-        ) : this(presentation, localDate, timeZone, contentVersion, screen, null, null, null)
+        ) : this(presentation, localDate, timeZone, contentVersion, screen, null, null, null, null)
 
         override val eventName: String = "paywall_shown"
         override val properties: Map<String, AnalyticsPropertyValue> = mapOf(
@@ -927,6 +942,8 @@ sealed interface AnalyticsEvent {
             mapOf("account_kind" to AnalyticsPropertyValue.Text(value = it.wireValue))
         } ?: emptyMap()) + (offerType?.let {
             mapOf("offer_type" to AnalyticsPropertyValue.Text(value = it.wireValue))
+        } ?: emptyMap()) + (reviewPromptConfigVersion?.let {
+            mapOf("review_prompt_config_version" to AnalyticsPropertyValue.Text(value = it))
         } ?: emptyMap())
     }
 

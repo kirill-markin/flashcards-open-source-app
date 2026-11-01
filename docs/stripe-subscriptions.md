@@ -30,6 +30,85 @@ non-trial purchase copy. A mobile trial history does not consume this trial.
 The live account's historical default API version is preserved for its other
 integrations; this integration always sends its pinned version. Catalog and endpoint readiness do not establish a Live purchase or email delivery.
 
+## Regional offers and Managed activation gate
+
+The [regional resolver](../apps/backend/src/billing/regionalPricing/offers.ts) owns
+country-to-band-to-Price selection over the canonical country lists and known catalog,
+with Managed Payments as its target sale mode. Existing attempts retain their frozen
+mode and Price; existing subscriptions are never converted. Migration `0234` must deploy
+before the country-aware backend and dependent web/public-offer consumers. Its additive
+defaults preserve old backend inserts during deployment.
+
+All new reservations use the resolved Managed offer, including when country is omitted.
+Existing attempts keep their frozen legacy or Managed selection. Keep
+`STRIPE_CHECKOUT_LIVE_ENABLED=false` until real Managed acceptance, the dependent web
+selector and public marketing offer are deployed, and the separate CI-only activation below.
+
+Offer and subscription queries accept optional `country=XX`; Checkout accepts optional
+`{ "country": "XX" }`, with `{}` still valid. Codes are normalized to uppercase and unknown
+codes fail explicitly. `basePrice` remains available to old clients. `selectedOffer` identifies
+the requested new sale; pending Checkout `offer` identifies its frozen original selection
+and provider amount, and each subscription's `basePrice` describes its actual purchased Price.
+Country, band, Price and mode commit with locale, trial and expiry before the first Session POST.
+Retries retain that attempt and its idempotency key. An omitted country resumes an
+existing attempt unchanged.
+
+A changed country never silently replaces an open offer: the Checkout response includes
+its original `offer` and `requoteRequired`. The human-only
+`POST /v1/billing/stripe/checkout/requote` accepts `{ "attemptId": "...", "country": "XX" }`.
+It rechecks ownership and subscriptions, recovers the original attempt if necessary, confirms
+provider expiration, then reserves a new offer through the ordinary Checkout flow. Completion
+races require reconciliation. Country changes do not reset account trial history. The shared
+resolver performs no identity/subscription reads. The display-only
+[public offer](regional-subscription-pricing.md#public-web-offer) uses the same resolver.
+
+The independent [tax coverage config](../apps/backend/src/billing/regionalPricing/taxCoverage.json)
+records Stripe's 82 published codes, including all EU27. An uncovered selected country makes
+new sales unavailable. The selector is a commercial preference, not evidence of billing
+jurisdiction, card origin or sanctions eligibility. Customers across the EU may choose any
+supported EU offer; no residence/card-country matching is enforced.
+
+Production Managed Payments is configured Ready to use, with Nibomo's explicit AI product tax
+code and inclusive Prices. Shared Consulting tax defaults remain separate. Radar Plus is
+approved and the Nibomo-scoped rules are enabled at 100%: production
+`ssr_1UWa7JE3K3xV54NrXpF9XY20`, sandbox `ssr_1UWaH0CVkVWAch1VcPotdcoB`.
+They block when `::customer:nibomo_tax_coverage_required:: = 'true'` and
+`billing_address_country` is missing or outside the coverage config. Before a new Managed
+Session POST, after the existing-subscription guard, the backend verifies Nibomo Customer
+ownership and sets/verifies `customer.metadata.nibomo_tax_coverage_required='true'`.
+Customer metadata scopes the documented Radar attribute across payments and renewals;
+Session/Subscription metadata alone does not. Legacy retries and bulk customer history are
+never tagged. Keep the configured rule's country set aligned with the config. Serbia coverage
+applies only while the seller is not VAT-registered in Serbia; a registration requires an
+operator coverage/rule review before further sales there.
+
+Real sandbox allowed-country purchase and blocked/missing billing-country acceptance,
+including a buyer changing country inside hosted Checkout and subsequent renewal handling,
+remain final activation gates. Configuration readiness is not proof of that acceptance.
+References: [Managed Checkout migration](https://docs.stripe.com/payments/managed-payments/update-checkout),
+[tax coverage](https://docs.stripe.com/payments/managed-payments/tax-compliance), and
+[Radar metadata attributes](https://docs.stripe.com/radar/rules/reference#metadata-attributes).
+
+## Browser country preference
+
+The web offer consumes `pricing_country=XX` once at app entry, then uses a remembered manual
+choice, then the credential-free public IP suggestion. Only known uppercase codes from the
+[canonical country list](../apps/backend/src/billing/regionalPricing/countries.json) are accepted.
+Language changes formatting and country names only. Unknown detection leaves a manual selector;
+provider failures expose retry without inventing a price.
+
+Manual selection writes `nibomo_pricing_country=XX`, `Path=/`, `Secure`, `SameSite=Lax`,
+`Max-Age=31536000`, and `Domain=nibomo.com` only on that domain or its subdomains. Local and
+permanent legacy hosts use a host-only cookie. Automatic IP suggestions never write this cookie.
+Website links carry `pricing_country` across hosts; neither preference authorizes sign-in or payment.
+Storage denial keeps the current selection usable and reports a diagnostic.
+
+The existing Premium intent carries only the country through sign-in and guest conversion. The
+backend resolves it again after sign-in. Public offers describe production; authenticated billing
+alone determines account availability and trial eligibility, including the configured Sandbox account.
+Pending Checkout displays its frozen provider offer; changing it requires the explicit replacement
+button and backend requote action. Purchased subscriptions keep their actual management destination.
+
 ## Authoritative copy and localization
 
 [locales/en.json](../apps/backend/src/billing/stripe/copy/locales/en.json) is the English source;
@@ -38,7 +117,7 @@ every [web locale catalog](../apps/web/src/i18n/catalogs/) imports its own map f
 [typed adapter](../apps/web/src/i18n/stripeCatalog.ts), and the
 [billing email dispatcher](../apps/backend/src/billing/stripe/email.ts) reads the same maps.
 
-Keep `{count}`, `{price}`, `{date}`, `{provider}` and `{url}` verbatim in translations.
+Keep `{count}`, `{price}`, `{date}`, `{provider}`, `{url}` and `{country}` verbatim in translations.
 `{count}` is a locale-formatted backend allowance (currently 1000 for Premium and
 lifetime); Stripe product text is rendered with that selected offer value before
 upload, never with a literal placeholder. `{price}` is the provider-derived,
@@ -200,6 +279,14 @@ retries and deduplication. The existing HTTP backend `RESEND_API_KEY` and `RESEN
 the private transport and sender, with display name Nibomo.
 Resend acceptance is recorded separately from inbox delivery, which still needs the checks below.
 Use only sanitized error codes and provider message IDs when recording evidence.
+
+For subscriptions whose verified Stripe `managed_payments.enabled` is true, Link sends mandatory
+payment/invoice and refund receipts, regardless of the shared Dashboard receipt settings. Nibomo
+suppresses its overlapping receipts before projection and outbox reservation. Legacy subscriptions
+and their queued deliveries keep their existing Nibomo receipt and retry behavior. Link also sends a
+trial-start email; its mandatory trial-ending reminder applies only to trials longer than seven days.
+Nibomo retains its trial-ending reminder for the seven-day trial. See
+[Managed Payments email ownership](https://docs.stripe.com/payments/managed-payments/how-it-works).
 
 After normal cloud checks and deployment, using only an authorized sandbox
 review account and a controlled real inbox:

@@ -4,7 +4,6 @@ import * as Sentry from "@sentry/aws-serverless";
 import {
   getBackendSentryConfig,
   initializeBackendSentryWithDeps,
-  isBackendSentryInitializedForOpenTelemetry,
   resetBackendSentryForTests,
 } from "./config";
 import {
@@ -108,7 +107,7 @@ test("backend Sentry init preserves safe integrations only", () => {
   }
 });
 
-test("backend Sentry init uses its own OpenTelemetry provider without extra span processors", () => {
+test("backend Sentry init restricts collection and uses native streamed spans", () => {
   resetBackendSentryForTests();
   let capturedInitOptions: CapturedSentryInitOptions | null = null;
 
@@ -128,11 +127,27 @@ test("backend Sentry init uses its own OpenTelemetry provider without extra span
   );
 
   const initOptions = requireCapturedSentryInitOptions(capturedInitOptions);
-  assert.equal(initOptions.openTelemetrySpanProcessors, undefined);
-  assert.equal(isBackendSentryInitializedForOpenTelemetry(), true);
+  assert.equal(initOptions.enableOpenTelemetrySetup, undefined);
+  assert.equal(initOptions.traceLifecycle, "stream");
+  assert.equal(initOptions.attachStacktrace, false);
+  assert.equal(initOptions.beforeSendTransaction, undefined);
+  assert.deepEqual(initOptions.dataCollection, {
+    userInfo: false,
+    cookies: false,
+    httpHeaders: false,
+    httpBodies: [],
+    urlQueryParams: false,
+    graphQL: { document: false, variables: false },
+    genAI: { inputs: false, outputs: false },
+    mcp: { inputs: false, outputs: false },
+    databaseQueryData: false,
+    queues: false,
+    stackFrameVariables: false,
+    frameContextLines: 0,
+  });
 });
 
-test("backend Sentry OpenTelemetry state is false until enabled init succeeds", () => {
+test("backend Sentry skips disabled initialization and propagates initialization failures", () => {
   resetBackendSentryForTests();
   initializeBackendSentryWithDeps(
     "backend-api",
@@ -143,7 +158,6 @@ test("backend Sentry OpenTelemetry state is false until enabled init succeeds", 
       },
     },
   );
-  assert.equal(isBackendSentryInitializedForOpenTelemetry(), false);
 
   resetBackendSentryForTests();
   assert.throws(
@@ -163,5 +177,4 @@ test("backend Sentry OpenTelemetry state is false until enabled init succeeds", 
     ),
     /init failed/,
   );
-  assert.equal(isBackendSentryInitializedForOpenTelemetry(), false);
 });

@@ -738,6 +738,10 @@ const esMxCatalog: TranslationCatalog = {
       description: "Previsualiza el aviso de instalación para iOS y Android.",
       value: "Vista previa",
     },
+    reviewPrompts: {
+      title: "Avisos después del repaso",
+      resetAll: "Restablecer el estado de todos los avisos",
+    },
   },
   settingsWorkspace: {
     decks: {

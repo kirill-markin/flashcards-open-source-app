@@ -11,6 +11,7 @@ import type { ReviewLoadingSnapshot } from "../../shared/loadingSnapshots";
 import { ReviewRepetitionBadgeIcon } from "../../shared/ReviewProgressBadgeIcon";
 import { ReviewCardSide, ReviewCardSpeechButton, ReviewEditIcon } from "./card/ReviewCardSide";
 import { ReviewCardTags } from "./ReviewCardTags";
+import { ReviewEyeIcon, ReviewRatingIcon } from "./ReviewIcons";
 import { reviewRatingShortcutKeys } from "../input/reviewShortcutKeys";
 import type { ReviewShortcutPointerEnterHandler } from "../input/useReviewKeyboardShortcuts";
 import type { ReviewButtonOption } from "./reviewRatingOptions";
@@ -32,8 +33,6 @@ const REVIEW_SCROLL_INTO_VIEW_OPTIONS = {
   container: "nearest",
   inline: "nearest",
 } as const satisfies ScrollIntoViewOptions & { container: "nearest" };
-/** Published on `:root`: the distance from the viewport's bottom edge to the dock's top edge. */
-const REVIEW_ACTIONS_DOCK_CLEARANCE_PROPERTY = "--review-actions-dock-clearance";
 
 export type ReviewPaneProps = Readonly<{
   showFirstReviewOnboarding: boolean;
@@ -71,7 +70,6 @@ type ReviewLoadingPaneProps = Readonly<{
   onRequestTagFilter: (tag: string) => void;
   onRequestTextSelection: (side: ReviewSpeechSide) => void;
   reviewLoadingSnapshot: ReviewLoadingSnapshot | null;
-  surfaceRef: RefObject<HTMLElement | null>;
   workspaceId: string | null;
 }>;
 
@@ -119,44 +117,6 @@ type ReviewShortcutHintProps = Readonly<{
 function handleDisabledSpeechToggle(): void {
 }
 
-/**
- * Lets the fixed AI chat button rest above the action dock. Re-measured when the dock changes
- * between Reveal, the rating grid and the error, and when the pane resizes with the viewport,
- * header or consent strip.
- */
-function usePublishedReviewActionsDockClearance(
-  paneRef: RefObject<HTMLElement | null>,
-  dockRef: RefObject<HTMLDivElement | null>,
-): void {
-  useLayoutEffect(() => {
-    const pane: HTMLElement | null = paneRef.current;
-    const dock: HTMLDivElement | null = dockRef.current;
-    // Absent in jsdom; without it the button keeps its corner.
-    if (pane === null || dock === null || typeof ResizeObserver === "undefined") {
-      return undefined;
-    }
-    const rootStyle = document.documentElement.style;
-    const publishDockClearance = (): void => {
-      // The sticky dock sits highest at the end of the scroll, resting on the pane's bottom padding.
-      const panePaddingBottom = Number.parseFloat(getComputedStyle(pane).paddingBottom);
-      const dockTop = pane.getBoundingClientRect().bottom - panePaddingBottom - dock.offsetHeight;
-      rootStyle.setProperty(
-        REVIEW_ACTIONS_DOCK_CLEARANCE_PROPERTY,
-        `${document.documentElement.clientHeight - dockTop}px`,
-      );
-    };
-
-    publishDockClearance();
-    const observer = new ResizeObserver(publishDockClearance);
-    observer.observe(pane);
-    observer.observe(dock);
-    return (): void => {
-      observer.disconnect();
-      rootStyle.removeProperty(REVIEW_ACTIONS_DOCK_CLEARANCE_PROPERTY);
-    };
-  }, [paneRef, dockRef]);
-}
-
 function ReviewShortcutHint(props: ReviewShortcutHintProps): ReactElement {
   const { keyLabel } = props;
   const { t } = useI18n();
@@ -178,12 +138,9 @@ function ReviewLoadingPane(props: ReviewLoadingPaneProps): ReactElement {
     onRequestTagFilter,
     onRequestTextSelection,
     reviewLoadingSnapshot,
-    surfaceRef,
     workspaceId,
   } = props;
   const { t } = useI18n();
-  const controlsRef = useRef<HTMLDivElement>(null);
-  usePublishedReviewActionsDockClearance(surfaceRef, controlsRef);
   const frontSideLabel = t("reviewScreen.sides.front");
   const frontSpeechButtonAriaLabel = t("reviewScreen.speakAriaLabel.start", {
     side: frontSideLabel.toLowerCase(),
@@ -261,14 +218,17 @@ function ReviewLoadingPane(props: ReviewLoadingPaneProps): ReactElement {
       <div className="review-meta review-meta-loading">
         <span>{reviewLoadingSnapshot === null ? t("reviewScreen.loading.reviewQueue") : t("reviewScreen.loading.snapshot")}</span>
       </div>
-      <div className="review-actions-dock" ref={controlsRef}>
+      <div className="review-actions-dock">
         <button
           type="button"
           className="primary-btn review-reveal-btn"
           disabled
           data-testid="review-reveal-answer"
         >
-          {t("reviewScreen.actions.revealAnswer")}
+          <span className="review-reveal-btn-content">
+            <ReviewEyeIcon />
+            <span>{t("reviewScreen.actions.revealAnswer")}</span>
+          </span>
         </button>
       </div>
     </>
@@ -334,7 +294,10 @@ function ReviewRatingButtonColumn(props: ReviewRatingButtonColumnProps): ReactEl
           onPointerEnter={onShortcutButtonPointerEnter}
           data-testid={`review-rate-${option.testId}`}
         >
-          <span className="rating-btn-title">{option.title}</span>
+          <span className="rating-btn-title-row">
+            <ReviewRatingIcon rating={option.rating} />
+            <span className="rating-btn-title">{option.title}</span>
+          </span>
           <span className="rating-btn-subtitle">{option.intervalDescription}</span>
           <ReviewShortcutHint keyLabel={reviewRatingShortcutKeys[option.rating]} />
         </button>
@@ -381,7 +344,6 @@ function ReviewActiveCardPane(props: ReviewActiveCardPaneProps): ReactElement {
   const backTargetRef = useRef<HTMLDivElement>(null);
   const previousCardIdRef = useRef<string | null>(null);
   const wasAnswerVisibleRef = useRef(false);
-  usePublishedReviewActionsDockClearance(surfaceRef, controlsRef);
 
   useLayoutEffect(() => {
     const didCardChange = previousCardIdRef.current !== selectedCard.cardId;
@@ -405,14 +367,14 @@ function ReviewActiveCardPane(props: ReviewActiveCardPaneProps): ReactElement {
       <div className="review-pane-head" ref={headerRef}>
         <div className="review-pane-head-meta">
           <ReviewCardTags onRequestTagFilter={onRequestTagFilter} tags={selectedCard.tags} />
-          <span className="badge review-metadata-chip">
-            <ReviewRepetitionBadgeIcon />
-            <span aria-hidden="true">{repetitionValue}</span>
-            <span className="review-metadata-chip-accessible-label">
-              {t("reviewScreen.repetitionBadgeAriaLabel", { value: repetitionValue })}
-            </span>
-          </span>
         </div>
+        <span className="badge review-metadata-chip">
+          <ReviewRepetitionBadgeIcon />
+          <span aria-hidden="true">{repetitionValue}</span>
+          <span className="review-metadata-chip-accessible-label">
+            {t("reviewScreen.repetitionBadgeAriaLabel", { value: repetitionValue })}
+          </span>
+        </span>
         <div className="review-pane-head-actions">
           <button
             type="button"
@@ -516,7 +478,10 @@ function ReviewActiveCardPane(props: ReviewActiveCardPaneProps): ReactElement {
             onPointerEnter={onShortcutButtonPointerEnter}
             data-testid="review-reveal-answer"
           >
-            {t("reviewScreen.actions.revealAnswer")}
+            <span className="review-reveal-btn-content">
+              <ReviewEyeIcon />
+              <span>{t("reviewScreen.actions.revealAnswer")}</span>
+            </span>
             <ReviewShortcutHint keyLabel={`${t("reviewScreen.shortcuts.spaceKey")} / ${t("reviewScreen.shortcuts.enterKey")}`} />
           </button>
         )}
@@ -588,7 +553,6 @@ export function ReviewPane(props: ReviewPaneProps): ReactElement {
           onRequestTagFilter={onRequestTagFilter}
           onRequestTextSelection={onRequestTextSelection}
           reviewLoadingSnapshot={reviewLoadingSnapshot}
-          surfaceRef={surfaceRef}
           workspaceId={workspaceId}
         />
       ) : null}

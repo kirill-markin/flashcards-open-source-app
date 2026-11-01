@@ -22,6 +22,7 @@ export type UserSettingsState = Readonly<{
   paywall_intro_time_zone: string | null;
   paywall_follow_up_shown_at: string | null;
   paywall_last_shown_at: string | null;
+  paywall_periodic_shown_at: string | null;
 }>;
 
 export type WorkspaceState = Readonly<{

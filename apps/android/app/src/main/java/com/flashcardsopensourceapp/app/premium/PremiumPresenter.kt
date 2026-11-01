@@ -46,6 +46,8 @@ internal class PremiumPresenter(private val accountIdentityProvider: () -> Strin
         private set
     var reviewTrigger: AnalyticsReviewPaywallTrigger? = null
         private set
+    var reviewPromptConfigVersion: String? = null
+        private set
     var presentationIdentity: String? = null
         private set
     private var identity: CloudSettings? = null
@@ -76,10 +78,15 @@ internal class PremiumPresenter(private val accountIdentityProvider: () -> Strin
             ?: PremiumReason.TestOfferPreview
     }
 
-    fun showReviewOffer(trigger: AnalyticsReviewPaywallTrigger, accountIdentity: String) {
+    fun showReviewOffer(
+        trigger: AnalyticsReviewPaywallTrigger,
+        accountIdentity: String,
+        reviewPromptConfigVersion: String
+    ) {
         if (reason != null) return
         presentationIdentity = accountIdentity
         reviewTrigger = trigger
+        this.reviewPromptConfigVersion = reviewPromptConfigVersion
         presentation = AnalyticsPaywallPresentation(UUID.randomUUID().toString(), AnalyticsPaywallEntryPoint.REVIEW)
         reason = PremiumReason.OfferPreview(AnalyticsPaywallEntryPoint.REVIEW)
     }
@@ -143,6 +150,7 @@ internal class PremiumPresenter(private val accountIdentityProvider: () -> Strin
         hasReportedShown = false
         presentationIdentity = null
         reviewTrigger = null
+        reviewPromptConfigVersion = null
         continuation?.invoke(result)
     }
 }

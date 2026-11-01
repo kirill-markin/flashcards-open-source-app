@@ -6,7 +6,6 @@ import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsPrompt
 import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsPromptOutcome
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudSettings
 import com.flashcardsopensourceapp.data.local.repository.CloudAccountRepository
-import com.flashcardsopensourceapp.data.local.repository.ReviewRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -15,19 +14,19 @@ import kotlinx.coroutines.flow.update
 
 data class GuestSignInAfterReviewPromptUiState(
     val isVisible: Boolean,
-    val reviewCount: Int
+    /** The config version that chose the visible prompt, for its `screen_viewed`. */
+    val reviewPromptConfigVersion: String?
 )
 
 class GuestSignInAfterReviewPromptController(
     private val cloudAccountRepository: CloudAccountRepository,
-    private val reviewRepository: ReviewRepository,
     private val promptStore: GuestSignInAfterReviewPromptStore,
     private val analytics: Analytics
 ) {
     private val uiStateMutable = MutableStateFlow(
         GuestSignInAfterReviewPromptUiState(
             isVisible = false,
-            reviewCount = 0
+            reviewPromptConfigVersion = null
         )
     )
     private val contextMutable = MutableStateFlow(
@@ -47,9 +46,30 @@ class GuestSignInAfterReviewPromptController(
         }
     }
 
-    suspend fun tryShowAfterReview(canPresent: () -> Boolean): Boolean {
-        reevaluate(canPresent = canPresent)
-        return uiStateMutable.value.isVisible
+    /** Every showing starts the cooldown, whether or not the person answers it. */
+    fun lastShownAtMillis(): Long? {
+        return promptStore.loadLastShownAtMillis()
+    }
+
+    suspend fun tryShowAfterReview(canPresent: () -> Boolean, reviewPromptConfigVersion: String): Boolean {
+        if (!canPresent()) return false
+        val cloudSettings: CloudSettings = cloudAccountRepository.observeCloudSettings().first()
+        if (
+            isGuestSignInAfterReviewPromptAllowed(
+                cloudState = cloudSettings.cloudState,
+                context = contextMutable.value
+            ).not() ||
+            !canPresent()
+        ) {
+            return false
+        }
+
+        promptStore.recordShown(nowMillis = System.currentTimeMillis())
+        uiStateMutable.value = GuestSignInAfterReviewPromptUiState(
+            isVisible = true,
+            reviewPromptConfigVersion = reviewPromptConfigVersion
+        )
+        return true
     }
 
     fun dismissForLater() {
@@ -58,10 +78,6 @@ class GuestSignInAfterReviewPromptController(
             return
         }
 
-        promptStore.recordSnoozed(
-            nowMillis = System.currentTimeMillis(),
-            reviewCount = currentUiState.reviewCount
-        )
         uiStateMutable.value = currentUiState.copy(isVisible = false)
         analytics.track(
             event = AnalyticsEvent.PromptAnswered(
@@ -77,58 +93,12 @@ class GuestSignInAfterReviewPromptController(
             return
         }
 
-        promptStore.recordAccepted(nowMillis = System.currentTimeMillis())
         uiStateMutable.value = currentUiState.copy(isVisible = false)
         analytics.track(
             event = AnalyticsEvent.PromptAnswered(
                 prompt = AnalyticsPrompt.SIGNIN_AFTER_REVIEW_PROMPT,
                 outcome = AnalyticsPromptOutcome.ACCEPTED
             )
-        )
-    }
-
-    private suspend fun reevaluate(canPresent: () -> Boolean) {
-        if (!canPresent()) return
-        val nowMillis: Long = System.currentTimeMillis()
-        val context: GuestSignInAfterReviewPromptContext = contextMutable.value
-        val cloudSettings: CloudSettings = cloudAccountRepository.observeCloudSettings().first()
-        val reviewCount: Int = reviewRepository.countRecordedReviewsInCurrentWorkspace()
-        val promptState: GuestSignInAfterReviewPromptState = promptStore.loadState()
-        val shouldShowPrompt: Boolean = isGuestSignInAfterReviewPromptVisible(
-            cloudState = cloudSettings.cloudState,
-            reviewedCount = reviewCount,
-            promptState = promptState,
-            nowMillis = nowMillis,
-            context = context
-        )
-
-        if (shouldShowPrompt.not()) {
-            uiStateMutable.update { state ->
-                state.copy(
-                    isVisible = false,
-                    reviewCount = reviewCount
-                )
-            }
-            return
-        }
-
-        val currentCloudSettings = cloudAccountRepository.observeCloudSettings().first()
-        if (context != contextMutable.value || cloudSettings != currentCloudSettings || !canPresent()
-        ) return
-
-        val currentUiState: GuestSignInAfterReviewPromptUiState = uiStateMutable.value
-        if (currentUiState.isVisible) {
-            uiStateMutable.value = currentUiState.copy(reviewCount = reviewCount)
-            return
-        }
-
-        promptStore.recordShown(
-            nowMillis = nowMillis,
-            reviewCount = reviewCount
-        )
-        uiStateMutable.value = GuestSignInAfterReviewPromptUiState(
-            isVisible = true,
-            reviewCount = reviewCount
         )
     }
 }

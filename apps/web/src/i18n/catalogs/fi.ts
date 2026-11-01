@@ -738,6 +738,10 @@ const fiCatalog: TranslationCatalog = {
       description: "Esikatsele iOS- ja Android-asennuskehotetta.",
       value: "Esikatselu",
     },
+    reviewPrompts: {
+      title: "Kehotteet kertauksen jälkeen",
+      resetAll: "Nollaa kaikkien kehotteiden tila",
+    },
   },
   settingsWorkspace: {
     decks: {

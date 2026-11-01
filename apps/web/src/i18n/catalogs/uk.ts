@@ -746,6 +746,10 @@ const ukCatalog: TranslationCatalog = {
       description: "Перегляньте запит на встановлення для iOS та Android.",
       value: "Перегляд",
     },
+    reviewPrompts: {
+      title: "Підказки після повторення",
+      resetAll: "Скинути стан усіх підказок",
+    },
   },
   settingsWorkspace: {
     decks: {

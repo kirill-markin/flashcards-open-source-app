@@ -266,9 +266,9 @@
 "settings.subscription.manage" = "सदस्यता प्रबंधित करें";
 "settings.language.title" = "भाषा";
 "settings.language.systemDescription" = "iOS ऐप की भाषा नियंत्रित करता है। iOS सेटिंग्स में Nibomo खोलें और भाषा चुनें। अगर भाषा दिखाई नहीं देती, तो पहले सेटिंग्स > सामान्य > भाषा और क्षेत्र में दूसरी भाषा जोड़ें। iOS यह विकल्प तभी दिखाता है जब डिवाइस में एक से ज़्यादा पसंदीदा भाषाएँ हों।";
-"settings.language.macSystemDescription" = "Mac पर Nibomo की भाषा बदलने के लिए सिस्टम सेटिंग > सामान्य > भाषा और क्षेत्र > ऐप्लिकेशन में जाएँ।";
+"settings.language.macSystemDescription" = "Mac पर Nibomo की भाषा बदलने के लिए सिस्टम सेटिंग्ज़ > सामान्य > भाषा और क्षेत्र > ऐप्लिकेशन में जाएँ।";
 "settings.language.action.openAppSettings" = "Nibomo सेटिंग्स खोलें";
-"settings.language.action.openSystemSettings" = "सिस्टम सेटिंग खोलें";
+"settings.language.action.openSystemSettings" = "सिस्टम सेटिंग्ज़ खोलें";
 "settings.language.section.supportedLanguages" = "समर्थित भाषाएं";
 "settings.language.supported.english" = "अंग्रेज़ी";
 "settings.language.supported.arabic" = "अरबी";
@@ -346,8 +346,8 @@
 "settings.test.animations.playAccessibility" = "%@ ऐनिमेशन चलाएं, %@";
 "settings.test.technicalErrorPreview" = "तकनीकी त्रुटि पूर्वावलोकन";
 "settings.test.technicalErrorPreview.value" = "पूर्वावलोकन शीट";
-"settings.test.storeReviewPromptReset" = "App Store समीक्षा प्रॉम्प्ट रीसेट करें";
-"settings.test.storeReviewPromptReset.value" = "स्थानीय स्थिति";
+"settings.test.section.reviewPrompts" = "समीक्षा के बाद के प्रॉम्प्ट";
+"settings.test.reviewPromptsReset" = "सभी प्रॉम्प्ट की स्थिति रीसेट करें";
 "settings.test.notificationDiagnostics" = "सूचना निदान";
 "settings.test.notificationDiagnostics.value" = "केवल पढ़ने योग्य";
 "settings.test.localSyncDiagnostics" = "स्थानीय सिंक निदान";
@@ -460,11 +460,17 @@
 "settings.access.action.request" = "पहुंच का अनुरोध करें";
 "settings.access.action.openSettings" = "सेटिंग्स खोलें";
 "settings.access.guidance.photos.limited" = "फ़ोटो लाइब्रेरी का ऐक्सेस सीमित है। आप अभी भी AI चैट में अटैच करने के लिए फ़ोटो चुन सकते हैं।";
+"settings.access.guidance.mac.photos.limited" = "फ़ोटो लाइब्रेरी का ऐक्सेस सीमित है। आप अभी भी AI चैट में अटैच करने के लिए फ़ोटो चुन सकते हैं, या इसे बदलने के लिए सिस्टम सेटिंग्ज़ > गोपनीयता और सुरक्षा > तस्वीर खोलें।";
 "settings.access.guidance.photos.blocked" = "फ़ोटो लाइब्रेरी का ऐक्सेस बंद है। आप अभी भी AI चैट में अटैच करने के लिए फ़ोटो चुन सकते हैं।";
+"settings.access.guidance.mac.photos.blocked" = "फ़ोटो लाइब्रेरी का ऐक्सेस बंद है। आप अभी भी AI चैट में अटैच करने के लिए फ़ोटो चुन सकते हैं, या इसे बदलने के लिए सिस्टम सेटिंग्ज़ > गोपनीयता और सुरक्षा > तस्वीर खोलें।";
 "settings.access.guidance.camera.blocked" = "Nibomo के लिए कैमरा एक्सेस अक्षम है। इसे बदलने के लिए सेटिंग्स > गोपनीयता और सुरक्षा > कैमरा खोलें।";
+"settings.access.guidance.mac.camera.blocked" = "Nibomo के लिए कैमरा एक्सेस अक्षम है। इसे बदलने के लिए सिस्टम सेटिंग्ज़ > गोपनीयता और सुरक्षा > कैमरा खोलें।";
 "settings.access.guidance.microphone.blocked" = "Nibomo के लिए माइक्रोफ़ोन एक्सेस अक्षम है। इसे बदलने के लिए सेटिंग्स > गोपनीयता और सुरक्षा > माइक्रोफ़ोन खोलें।";
+"settings.access.guidance.mac.microphone.blocked" = "Nibomo के लिए माइक्रोफ़ोन एक्सेस अक्षम है। इसे बदलने के लिए सिस्टम सेटिंग्ज़ > गोपनीयता और सुरक्षा > माइक्रोफ़ोन खोलें।";
 "settings.access.guidance.askEveryTime" = "यदि आप इसे मैन्युअल रूप से प्रबंधित करना चाहते हैं तो अभी पहुंच का अनुरोध करें या बाद में सेटिंग्स खोलें।";
+"settings.access.guidance.mac.askEveryTime" = "यदि आप इसे मैन्युअल रूप से प्रबंधित करना चाहते हैं तो अभी पहुंच का अनुरोध करें या बाद में सिस्टम सेटिंग्ज़ खोलें।";
 "settings.access.guidance.allowed" = "यदि आप इस एक्सेस को अक्षम करना चाहते हैं तो सेटिंग्स खोलें।";
+"settings.access.guidance.mac.allowed" = "यदि आप इस एक्सेस को अक्षम करना चाहते हैं तो सिस्टम सेटिंग्ज़ > गोपनीयता और सुरक्षा खोलें।";
 "settings.access.guidance.limited" = "इस पहुंच की समीक्षा या विस्तार करने के लिए सेटिंग्स खोलें।";
 "settings.access.guidance.unavailable" = "यह एक्सेस वर्तमान डिवाइस पर उपलब्ध नहीं है.";
 
@@ -588,6 +594,7 @@
 "settings.account.cloudSignIn.failure.cloudSetupFailed" = "मैंने लॉग इन किया, लेकिन क्लाउड कॉन्फ़िगरेशन विफल रहा।";
 "settings.account.cloudSignIn.failure.accountUpgradeFailed" = "मैंने लॉग इन किया, लेकिन खाता अपडेट विफल रहा।";
 "settings.account.cloudSignIn.failureDescription" = "लॉगिन पूरा हो गया, लेकिन क्लाउड वर्कस्पेस सेटअप या प्रारंभिक सिंक समाप्त नहीं हुआ।";
+"settings.account.cloudSignIn.chooseWorkspace" = "कार्यस्थान चुनें";
 "settings.account.cloudSignIn.sync.title" = "आपका खाता क्लाउड के साथ समन्वयित हो रहा है।";
 "settings.account.cloudSignIn.sync.message" = "आपका खाता सिंक होने के दौरान Nibomo खुला रखें। इसमें आमतौर पर कुछ मिनट लगते हैं।";
 "settings.account.cloudSignIn.cloudSyncTitle" = "क्लाउड सिंक";

@@ -12,6 +12,8 @@ export type PendingGuestConversion = Readonly<{
   guestWorkspaceSyncedAndOutboxDrained: boolean;
   destinationUserId: string | null;
   selection: GuestUpgradeSelection | null;
+  // After a demo-only refusal the transfer needs an explicit choice (docs/demo-card.md#guest-upgrade).
+  selectionRequired: boolean;
   result: BrowserGuestUpgradeResult | null;
 }>;
 export type BrowserGuestOwner = Readonly<{
@@ -53,6 +55,7 @@ export function readBrowserGuestState(): BrowserGuestStoredState | null {
       guestWorkspaceSyncedAndOutboxDrained: parseBoolean(saved.guestWorkspaceSyncedAndOutboxDrained, "browser guest storage", "guestWorkspaceSyncedAndOutboxDrained"),
       destinationUserId: parseNullableString(saved.destinationUserId, "browser guest storage", "destinationUserId"),
       selection,
+      selectionRequired: saved.selectionRequired === undefined ? false : parseBoolean(saved.selectionRequired, "browser guest storage", "selectionRequired"),
       result: saved.result === null ? null : parseBrowserGuestUpgradeResult(saved.result, "browser guest storage"),
     };
   }
@@ -99,7 +102,9 @@ export function requireBrowserGuestSyncReady(userId: string): void {
   const state = readBrowserGuestState();
   if (state?.status !== "owned" || state.owner.userId !== userId
     || (state.owner.pending !== null && !(drainingInThisTab && state.owner.pending.phase === "draining"))) {
-    throw new Error("Browser guest sync is paused while ownership is being converted.");
+    // A browser-level storage wipe fires no `storage` event; let this tab's listeners retire syncs and re-verify.
+    window.dispatchEvent(new Event(browserGuestStorageKey));
+    throw new Error("Browser guest ownership changed or is being converted; sync is paused.");
   }
 }
 

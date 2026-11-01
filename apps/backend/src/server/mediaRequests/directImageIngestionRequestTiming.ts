@@ -73,14 +73,18 @@ export function createDirectImageIngestionRequestTiming(
   }
 
   const lambdaDeadlineAtMs = observedAtMs + remainingInvocationTimeMs;
+  const integrationDeadlineAtMs =
+    ingressAtMs + directImageIngestionIntegrationEnvelopeMs;
+  // The work budget starts when the handler runs: on-demand init is already
+  // paid for by the integration envelope, which still caps the response.
   const requestDeadlineAtMs = Math.min(
-    ingressAtMs + directImageIngestionRequestBudgetMs,
+    observedAtMs + directImageIngestionRequestBudgetMs,
     lambdaDeadlineAtMs - directImageIngestionResponseMarginMs,
+    integrationDeadlineAtMs - directImageIngestionResponseMarginMs,
   );
   return Object.freeze({
     ingressAtMs,
-    integrationDeadlineAtMs:
-      ingressAtMs + directImageIngestionIntegrationEnvelopeMs,
+    integrationDeadlineAtMs,
     requestDeadlineAtMs,
     preprocessingDeadlineAtMs:
       requestDeadlineAtMs - directImageIngestionMinimumAcquisitionBudgetMs,

@@ -62,10 +62,10 @@ export function createCatalogInstallReportScope(): CatalogInstallReportScope {
  * funnel has no identity-free form to fall back to.
  *
  * The browser's own answer is all there is here, and that is an accepted limit of this route rather
- * than an oversight. The public catalog import route runs no session, so nothing reconciles the
- * account's answer onto this browser, and these rows are posted with `credentials: "omit"` so the
- * collector has no account to consult either. A person whose account says `false`, arriving on a
- * browser that has never answered, therefore still reports this funnel until they sign in.
+ * than an oversight. The account's answer reaches this browser only once the session layer verifies
+ * that account's session, and these rows are posted with `credentials: "omit"` so the collector has
+ * no account to consult either. A person whose account says `false`, arriving on a browser that has
+ * never answered, therefore still reports this funnel until then, even when already signed in.
  */
 function isCatalogInstallAnalyticsAllowed(): boolean {
   return isAnalyticsEnabledForCurrentRuntime()

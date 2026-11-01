@@ -8,6 +8,7 @@
     <string name="review_strict_reminder_body_3h">Keep your streak today. Review before midnight. 3 hours left.</string>
     <string name="review_strict_reminder_body_2h">Keep your streak today. Review before midnight. 2 hours left.</string>
     <string name="review_continue">Continue</string>
+    <string name="review_open_settings">Open Settings</string>
     <string name="review_not_now">Not now</string>
     <string name="review_preview_back_content_description">Back</string>
     <string name="review_preview_empty_title">No matching cards</string>

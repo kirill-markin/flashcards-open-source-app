@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import type { ReviewRating } from "../../../../backend/src/scheduling";
-import { track, trackScreenViewed, trackScreenViewedOnDismiss } from "../../analytics";
+import { track } from "../../analytics";
 import { useAppData, useReviewLeaderboardBadge, useReviewProgressBadge } from "../../appData";
 import { collectAccessibleWorkspaceIds } from "../../appData/progress/state/progressScope";
 import { useReviewPaywallPresenter } from "../../premium/PremiumProvider";
@@ -29,13 +29,9 @@ import { useReviewCardEditor } from "./components/card/useReviewCardEditor";
 import { useReviewScreenData, type ReviewSubmissionOutcome } from "./data/useReviewScreenData";
 import { resolveReviewFilterTitle } from "./data/reviewScreenDataState";
 import { useReviewFilterMenu } from "./filters/useReviewFilterMenu";
+import type { GuestSignInAfterReviewPromptProps } from "./guest/GuestSignInAfterReviewPrompt";
 import type { ReviewHardReminderDialogProps } from "./hardReminder/ReviewHardReminderDialog";
-import {
-  appendRecentReviewRatings,
-  loadReviewHardReminderLastShownAt,
-  saveReviewHardReminderLastShownAt,
-  shouldShowReviewHardReminder,
-} from "./hardReminder/reviewHardReminder";
+import { appendRecentReviewRatings } from "./hardReminder/reviewHardReminder";
 import { useReviewKeyboardShortcuts } from "./input/useReviewKeyboardShortcuts";
 import type { MobileAppPromotionDialogProps } from "./mobileAppPromo/MobileAppPromotionDialog";
 import { usePostReviewPrompts } from "./usePostReviewPrompts";
@@ -47,6 +43,7 @@ export type UseReviewScreenControllerResult = Readonly<{
   dismissReviewReactions: UseReviewRatingReactionsResult["dismissReactions"];
   editorModalProps: ReviewEditorModalProps;
   feedbackDialogProps: FeedbackDialogProps;
+  guestSignInPromptProps: GuestSignInAfterReviewPromptProps;
   hardReminderDialogProps: ReviewHardReminderDialogProps;
   headerProps: ReviewScreenHeaderProps;
   mobileAppPromotionDialogProps: MobileAppPromotionDialogProps;
@@ -60,13 +57,12 @@ export type UseReviewScreenControllerResult = Readonly<{
 
 export type UseReviewScreenControllerParams = Readonly<{
   reviewReactionAnimationsEnabled: boolean;
-  isGuestSignInPromptVisible: boolean;
 }>;
 
 export function useReviewScreenController(
   params: UseReviewScreenControllerParams,
 ): UseReviewScreenControllerResult {
-  const { reviewReactionAnimationsEnabled, isGuestSignInPromptVisible } = params;
+  const { reviewReactionAnimationsEnabled } = params;
   const {
     activeWorkspace,
     availableWorkspaces,
@@ -97,12 +93,10 @@ export function useReviewScreenController(
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [reviewSubmitState, setReviewSubmitState] = useState<ReviewSubmitState>("idle");
   const [lastSubmittedReview, setLastSubmittedReview] = useState<LastSubmittedReview | null>(null);
-  const [isHardReminderVisible, setIsHardReminderVisible] = useState<boolean>(false);
   const [isReviewQueuePanelOpen, setIsReviewQueuePanelOpen] = useState<boolean>(false);
   const [tagFilterRequest, setTagFilterRequest] = useState<ReviewTagFilterRequest | null>(null);
   const [textSelectionRequest, setTextSelectionRequest] = useState<ReviewTextSelectionRequest | null>(null);
   const isTagFilterDialogOpen = tagFilterRequest !== null;
-  const [hardReminderLastShownAt, setHardReminderLastShownAt] = useState<number | null>(() => loadReviewHardReminderLastShownAt());
   const recentReviewRatingsRef = useRef<Array<ReviewRating>>([]);
   const revealedCardIdRef = useRef<string | null>(null);
   const lastCapturedReviewButtonErrorKeyRef = useRef<string>("");
@@ -238,7 +232,11 @@ export function useReviewScreenController(
   const {
     beginSavedReviewPromptOpportunity,
     feedbackDialogProps,
+    guestSignInPromptProps,
+    hardReminderDialogProps,
     isFeedbackDialogOpen,
+    isGuestSignInPromptVisible,
+    isHardReminderVisible,
     isMobileAppPromotionDialogOpen,
     maybeOpenPostReviewPrompt,
     mobileAppPromotionDialogProps,
@@ -246,9 +244,10 @@ export function useReviewScreenController(
     indexedDbOpenRecoveryState,
     installationId: cloudSettings?.installationId ?? null,
     isEditorPresented,
-    isHardReminderVisible,
+    isGuest: session?.browserGuestCapabilities?.isGuest === true,
     isReviewFilterMenuOpen,
     isReviewMoreActionsMenuOpen,
+    isSessionVerified,
     isTagFilterDialogOpen,
     isTextSelectionDialogOpen,
     linkedUserId: cloudSettings?.linkedUserId ?? null,
@@ -325,22 +324,7 @@ export function useReviewScreenController(
       beginSavedReviewPromptOpportunity();
       const nextRecentReviewRatings = appendRecentReviewRatings(recentReviewRatingsRef.current, rating);
       recentReviewRatingsRef.current = nextRecentReviewRatings;
-
-      let didShowHardReminder = false;
-      if (rating === 1) {
-        const nowMillis = Date.now();
-        if (shouldShowReviewHardReminder(nextRecentReviewRatings, hardReminderLastShownAt, nowMillis)) {
-          setHardReminderLastShownAt(nowMillis);
-          saveReviewHardReminderLastShownAt(nowMillis);
-          trackScreenViewed("review_hard_reminder");
-          setIsHardReminderVisible(true);
-          didShowHardReminder = true;
-        }
-      }
-
-      if (didShowHardReminder === false) {
-        void maybeOpenPostReviewPrompt();
-      }
+      void maybeOpenPostReviewPrompt(nextRecentReviewRatings);
     } finally {
       if (reviewSubmissionOutcome !== "cancelled" && indexedDbOpenRecoveryState.hasFailed() === false) {
         setIsSubmitting(false);
@@ -396,11 +380,6 @@ export function useReviewScreenController(
       }
       throw error;
     }
-  }
-
-  function handleDismissHardReminder(): void {
-    trackScreenViewedOnDismiss({ dismissed: "review_hard_reminder", restored: "review" });
-    setIsHardReminderVisible(false);
   }
 
   /**
@@ -543,8 +522,6 @@ export function useReviewScreenController(
 
   useEffect(() => {
     recentReviewRatingsRef.current = [];
-    trackScreenViewedOnDismiss({ dismissed: "review_hard_reminder", restored: "review" });
-    setIsHardReminderVisible(false);
     setTagFilterRequest(null);
   }, [activeWorkspace?.workspaceId]);
 
@@ -653,10 +630,8 @@ export function useReviewScreenController(
       tagSuggestions,
     },
     feedbackDialogProps,
-    hardReminderDialogProps: {
-      isOpen: isHardReminderVisible,
-      onDismiss: handleDismissHardReminder,
-    },
+    guestSignInPromptProps,
+    hardReminderDialogProps,
     mobileAppPromotionDialogProps,
     headerProps: {
       filterMenuProps: {

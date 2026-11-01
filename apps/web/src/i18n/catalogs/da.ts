@@ -738,6 +738,10 @@ const daCatalog: TranslationCatalog = {
       description: "Se opfordringen til at installere iOS- og Android-appen.",
       value: "Forhåndsvisning",
     },
+    reviewPrompts: {
+      title: "Opfordringer efter repetition",
+      resetAll: "Nulstil tilstanden for alle opfordringer",
+    },
   },
   settingsWorkspace: {
     decks: {
@@ -1072,7 +1076,7 @@ const daCatalog: TranslationCatalog = {
       createWithAi: "Opret med AI",
       edit: "Rediger",
       retry: "Prøv igen",
-      revealAnswer: "Vis svaret",
+      revealAnswer: "Vis svar",
       switchToAllCards: "skift til bunken Alle kort",
     },
     aiOpenAriaLabel: "Åbn kortets side ({{side}}) i AI-chatten",

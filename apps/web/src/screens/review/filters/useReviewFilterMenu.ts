@@ -430,6 +430,10 @@ export function useReviewFilterMenu(params: UseReviewFilterMenuParams): UseRevie
     }
 
     function handleKeyDown(event: KeyboardEvent): void {
+      if (event.isComposing || event.keyCode === 229) {
+        return;
+      }
+
       if (event.key === "Escape") {
         closeReviewFilterMenuAndFocusTrigger();
       }

@@ -145,7 +145,7 @@ extension FlashcardsStore {
         )
         self.reviewRuntime.invalidateReviewSource()
         let reviewedAt = parseIsoTimestamp(value: reviewedAtClient) ?? now
-        _ = self.recordSuccessfulReviewNotificationEffects(
+        self.recordSuccessfulReviewNotificationEffects(
             reviewedAt: reviewedAt,
             workspaceId: context.workspaceId,
             now: now

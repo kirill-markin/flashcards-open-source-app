@@ -436,7 +436,8 @@ internal class CloudJsonHttpClient(
                 if (
                     shouldRetryTransientCloudIOException(
                         retryEligible = retryEligible,
-                        attemptNumber = attemptNumber
+                        attemptNumber = attemptNumber,
+                        error = error
                     )
                 ) {
                     val connectionSnapshot = connectionObservation.snapshot()
@@ -654,7 +655,8 @@ internal class CloudJsonHttpClient(
                 if (
                     shouldRetryTransientCloudIOException(
                         retryEligible = retryEligible,
-                        attemptNumber = attemptNumber
+                        attemptNumber = attemptNumber,
+                        error = error
                     )
                 ) {
                     val connectionSnapshot = connectionObservation.snapshot()

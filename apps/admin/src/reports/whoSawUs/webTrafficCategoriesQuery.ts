@@ -7,7 +7,7 @@ import {
 } from "../../../../backend/src/reviewMetricsSql";
 import { runAdminQuery, type AdminQueryRow } from "../../adminApi";
 import type { AdminAppConfig } from "../../config";
-import type { AnalyticsDateRange } from "../../filters/analyticsFilters";
+import type { AnalyticsDateRange, SiteVisitorFilterState } from "../../filters/analyticsFilters";
 import { buildHashedVisitorDaySql } from "../funnels/funnelAudienceSql";
 import {
   buildReportBucketColumnsSql,
@@ -19,7 +19,7 @@ import {
 } from "../levelOneMetrics/reportPeriod";
 import { assertValidDateRange, parseActivityCount, parseActivityDate } from "../reportValues";
 import { buildIdentifiedVisitorDaySql, buildSiteVisitorDaysCtesSql } from "./engagedVisitorsQuery";
-import { buildHashedSiteViewRowsSql, buildIdentifiedSiteViewRowsSql } from "./siteFactSql";
+import { buildHashedSiteViewRowsSql, buildIdentifiedSiteViewRowsSql, buildSiteVisitorFilterSql } from "./siteFactSql";
 
 const reportLabel = "Engaged vs all web traffic report";
 
@@ -69,8 +69,17 @@ const ownAndTestActorIdArms: ReadonlyArray<ReadonlyArray<string>> = [
  * visitor: an identified actor the shared exclusion rule drops is `own-and-test` in one of
  * `ownAndTestActorIdArms`, otherwise `bots`, and a cookieless visitor-day is `bots`, since only its
  * automated rows or a scraper-fleet hash can drop it.
+ *
+ * `siteFilters` keeps a visitor whose first page view of these rows in the unit the series counts
+ * them once in, the bucket or the hash day, matches it, as `buildSiteFirstViewsCtesSql` judges the
+ * series' visitors. A visitor the series keeps has the same first view in both, so `engaged` stays
+ * the filtered series' bar.
  */
-export function buildWebTrafficCategoriesSql(dateRange: AnalyticsDateRange, period: ReportPeriod): string {
+export function buildWebTrafficCategoriesSql(
+  dateRange: AnalyticsDateRange,
+  period: ReportPeriod,
+  siteFilters: SiteVisitorFilterState,
+): string {
   const range = assertValidDateRange(dateRange, reportLabel);
   const identifiedBucketSql = buildReportBucketSql(period, "all_identified.visit_date");
   const hashedBucketSql = buildReportBucketSql(period, "all_hashed.visit_date");
@@ -81,13 +90,19 @@ export function buildWebTrafficCategoriesSql(dateRange: AnalyticsDateRange, peri
     `WITH ${buildReportBucketsCteSql(period, range)}, ${buildSiteVisitorDaysCtesSql(range)}, own_and_test_actors(actor_id) AS (`,
     ownAndTestActorIdArms.map((arm) => arm.map((line) => `  ${line}`).join("\n")).join("\n  UNION ALL\n"),
     "), all_identified_visitor_days AS (",
-    `  SELECT DISTINCT site_view.actor_id, ${identifiedDaySql} AS visit_date`,
+    `  SELECT DISTINCT ON (site_view.actor_id, ${identifiedDaySql})`,
+    `    site_view.actor_id, ${identifiedDaySql} AS visit_date,`,
+    `    ${buildSiteVisitorFilterSql("site_view", siteFilters)} AS passes_site_filters`,
     "  FROM analytics.product_events_resolved AS site_view",
     `  WHERE ${buildIdentifiedSiteViewRowsSql("site_view", range)}`,
+    `  ORDER BY site_view.actor_id, ${identifiedDaySql}, site_view.occurred_at, site_view.event_id`,
     "), all_hashed_visitor_days AS (",
-    `  SELECT DISTINCT hashed_view.daily_visitor_hash, ${hashedDaySql} AS visit_date`,
+    `  SELECT DISTINCT ON (hashed_view.daily_visitor_hash, ${hashedDaySql})`,
+    `    hashed_view.daily_visitor_hash, ${hashedDaySql} AS visit_date,`,
+    `    ${buildSiteVisitorFilterSql("hashed_view", siteFilters)} AS passes_site_filters`,
     "  FROM analytics.product_events_resolved AS hashed_view",
     `  WHERE ${buildHashedSiteViewRowsSql("hashed_view", range)}`,
+    `  ORDER BY hashed_view.daily_visitor_hash, ${hashedDaySql}, hashed_view.occurred_at, hashed_view.event_id`,
     "), categorized_visitors AS (",
     "  SELECT",
     `    ${identifiedBucketSql} AS bucket_date,`,
@@ -101,6 +116,8 @@ export function buildWebTrafficCategoriesSql(dateRange: AnalyticsDateRange, peri
     "  LEFT JOIN identified_visitor_days AS identified",
     "    ON identified.actor_id = all_identified.actor_id AND identified.visit_date = all_identified.visit_date",
     `  GROUP BY ${identifiedBucketSql}, all_identified.actor_id`,
+    // The bucket's first view is its earliest day's.
+    "  HAVING (array_agg(all_identified.passes_site_filters ORDER BY all_identified.visit_date))[1]",
     "  UNION ALL",
     "  SELECT",
     `    ${hashedBucketSql} AS bucket_date,`,
@@ -112,6 +129,12 @@ export function buildWebTrafficCategoriesSql(dateRange: AnalyticsDateRange, peri
     "  FROM all_hashed_visitor_days AS all_hashed",
     "  LEFT JOIN hashed_visitor_days AS hashed",
     "    ON hashed.daily_visitor_hash = all_hashed.daily_visitor_hash AND hashed.visit_date = all_hashed.visit_date",
+    "  WHERE all_hashed.passes_site_filters",
+    // A bucket whose visitors the site filters all drop still counts zero rather than No data, as on the series.
+    "  UNION ALL",
+    `  SELECT DISTINCT ${identifiedBucketSql} AS bucket_date, NULL AS category FROM all_identified_visitor_days AS all_identified`,
+    "  UNION ALL",
+    `  SELECT DISTINCT ${hashedBucketSql} AS bucket_date, NULL AS category FROM all_hashed_visitor_days AS all_hashed`,
     "), category_buckets AS (",
     "  SELECT",
     "    categorized_visitors.bucket_date,",
@@ -158,9 +181,10 @@ export async function loadWebTrafficCategoriesReport(
   config: AdminAppConfig,
   dateRange: AnalyticsDateRange,
   period: ReportPeriod,
+  siteFilters: SiteVisitorFilterState,
   signal: AbortSignal,
 ): Promise<WebTrafficCategoriesReport> {
-  const response = await runAdminQuery(config, buildWebTrafficCategoriesSql(dateRange, period), signal);
+  const response = await runAdminQuery(config, buildWebTrafficCategoriesSql(dateRange, period, siteFilters), signal);
   const resultSet = response.resultSets[0];
   const firstRow = resultSet?.rows[0];
   if (response.resultSets.length !== 1 || resultSet === undefined || firstRow === undefined) {

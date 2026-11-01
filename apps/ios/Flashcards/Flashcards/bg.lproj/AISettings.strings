@@ -340,8 +340,8 @@
 "settings.test.animations.playAccessibility" = "Пускане на %@ анимация, %@";
 "settings.test.technicalErrorPreview" = "Предварителен преглед на техническа грешка";
 "settings.test.technicalErrorPreview.value" = "Лист за предварителен преглед";
-"settings.test.storeReviewPromptReset" = "Нулиране на поканата за оценка в App Store";
-"settings.test.storeReviewPromptReset.value" = "Локално състояние";
+"settings.test.section.reviewPrompts" = "Подкани след преговор";
+"settings.test.reviewPromptsReset" = "Нулиране на състоянието на всички подкани";
 "settings.test.notificationDiagnostics" = "Диагностика на известията";
 "settings.test.notificationDiagnostics.value" = "Само за четене";
 "settings.test.localSyncDiagnostics" = "Локална диагностика на синхронизиране";
@@ -451,11 +451,17 @@
 "settings.access.action.request" = "Поискайте достъп";
 "settings.access.action.openSettings" = "Отворете Настройки";
 "settings.access.guidance.photos.limited" = "Достъпът до библиотеката със снимки е ограничен. Все още можете да избирате снимки за прикачване към чата с ИИ.";
+"settings.access.guidance.mac.photos.limited" = "Достъпът до библиотеката със снимки е ограничен. Все още можете да избирате снимки за прикачване към чата с ИИ или да отворите Системни настройки > Поверителност и сигурност > Снимки, за да го промените.";
 "settings.access.guidance.photos.blocked" = "Достъпът до библиотеката със снимки е изключен. Все още можете да избирате снимки за прикачване към чата с ИИ.";
+"settings.access.guidance.mac.photos.blocked" = "Достъпът до библиотеката със снимки е изключен. Все още можете да избирате снимки за прикачване към чата с ИИ или да отворите Системни настройки > Поверителност и сигурност > Снимки, за да го промените.";
 "settings.access.guidance.camera.blocked" = "Достъпът до камерата е изключен за Nibomo. Отворете Настройки > Поверителност и сигурност > Камера, за да го промените.";
+"settings.access.guidance.mac.camera.blocked" = "Достъпът до камерата е изключен за Nibomo. Отворете Системни настройки > Поверителност и сигурност > Камера, за да го промените.";
 "settings.access.guidance.microphone.blocked" = "Достъпът до микрофона е изключен за Nibomo. Отворете Настройки > Поверителност и сигурност > Микрофон, за да го промените.";
+"settings.access.guidance.mac.microphone.blocked" = "Достъпът до микрофона е изключен за Nibomo. Отворете Системни настройки > Поверителност и сигурност > Микрофон, за да го промените.";
 "settings.access.guidance.askEveryTime" = "Поискайте достъп сега или отворете Настройки по-късно, ако искате да го управлявате ръчно.";
+"settings.access.guidance.mac.askEveryTime" = "Поискайте достъп сега или отворете Системни настройки по-късно, ако искате да го управлявате ръчно.";
 "settings.access.guidance.allowed" = "Отворете Настройки, ако искате да изключите този достъп.";
+"settings.access.guidance.mac.allowed" = "Отворете Системни настройки > Поверителност и сигурност, ако искате да изключите този достъп.";
 "settings.access.guidance.limited" = "Отворете Настройки, за да прегледате или разширите този достъп.";
 "settings.access.guidance.unavailable" = "Този достъп не е наличен на текущото устройство.";
 "settings.account.row.openSourceValue" = "GitHub + MIT";
@@ -573,6 +579,7 @@
 "settings.account.cloudSignIn.failure.cloudSetupFailed" = "Влезли сте, но настройката на облака е неуспешна.";
 "settings.account.cloudSignIn.failure.accountUpgradeFailed" = "Влязохте, но надстройката на акаунта не бе успешна.";
 "settings.account.cloudSignIn.failureDescription" = "Вашето влизане бе успешно, но настройката на работното пространство в облака или първоначалното синхронизиране не завършиха.";
+"settings.account.cloudSignIn.chooseWorkspace" = "Изберете работно пространство";
 "settings.account.cloudSignIn.sync.title" = "Вашият акаунт се синхронизира с облака.";
 "settings.account.cloudSignIn.sync.message" = "Дръжте Nibomo отворено, докато акаунтът ви се синхронизира. Това обикновено отнема няколко минути.";
 "settings.account.cloudSignIn.cloudSyncTitle" = "Синхронизиране в облак";

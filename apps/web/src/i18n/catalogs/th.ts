@@ -738,6 +738,10 @@ const thCatalog: TranslationCatalog = {
       description: "ดูตัวอย่างข้อความชวนติดตั้งแอป iOS และ Android",
       value: "ตัวอย่าง",
     },
+    reviewPrompts: {
+      title: "ข้อความแจ้งหลังทบทวน",
+      resetAll: "รีเซ็ตสถานะข้อความแจ้งทั้งหมด",
+    },
   },
   settingsWorkspace: {
     decks: {
@@ -1072,7 +1076,7 @@ const thCatalog: TranslationCatalog = {
       createWithAi: "สร้างด้วย AI",
       edit: "แก้ไข",
       retry: "ลองใหม่",
-      revealAnswer: "เฉลยคำตอบ",
+      revealAnswer: "แสดงคำตอบ",
       switchToAllCards: "สลับไปที่เด็คการ์ดทั้งหมด",
     },
     aiOpenAriaLabel: "เปิด{{side}}ของการ์ดในแชท AI",

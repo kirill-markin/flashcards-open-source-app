@@ -738,6 +738,10 @@ const bgCatalog: TranslationCatalog = {
       description: "Прегледайте подканата за инсталиране за iOS и Android.",
       value: "Преглед",
     },
+    reviewPrompts: {
+      title: "Подкани след преговор",
+      resetAll: "Нулиране на състоянието на всички подкани",
+    },
   },
   settingsWorkspace: {
     decks: {

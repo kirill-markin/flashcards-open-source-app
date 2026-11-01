@@ -45,14 +45,14 @@ export type AnalyticsRootGate =
  * navigates to afterwards can reach it. `vite.config.mts` runs the web tests under `jsdom`, so
  * `window` answers on every import path.
  *
- * Latched once, which makes it right only while no public route reaches an authenticated address by
- * client-side navigation. None does today, and it was checked: the catalog success panel hands out
- * an absolute `webHref` built from `getAppConfig().appBaseUrl`, `FriendInviteScreen` uses an
- * `<a href>`, and `CatalogImportAuthenticatedFlow` mounts its own `AppDataProvider` without
- * `AppShell`, so the document is replaced rather than navigated. A `<Link to>` or `navigate()` added
- * from `/catalog/import/:id`, `/invite/:token` or `/share` into `/w/<id>/…` would carry this `open`
- * across the authenticated mount and have the destination route report itself on the first commit
- * while the shell's gate is still up — exactly the phantom view this signal exists to prevent.
+ * Latched once, so a client-side navigation from a public route carries this `open` into the
+ * authenticated shell. The catalog route's study navigates into `/w/<id>/…` are safe because each
+ * requires a ready, verified session, so the destination `AppDataProvider` starts `ready` from the
+ * warm-start snapshot the catalog's provider wrote. A navigate without that precondition would have
+ * the destination report itself on the first commit while the shell's gate is still up — exactly
+ * the phantom view this signal exists to prevent. The catalog's Back link is one: it can also leave
+ * from `selecting_workspace` to `/`, where this provider wrote no snapshot, and that rare phantom
+ * is accepted.
  * Resetting the latch on a mount or an unmount is not the remedy; that was weighed and rejected for
  * the dev-only StrictMode interleaving it introduces.
  */

@@ -81,6 +81,13 @@ private fun hasTransientTransportMessage(error: Throwable): Boolean {
     return transportMessageFragments.any { fragment -> message.contains(fragment) }
 }
 
+fun isNonRetryableTlsFailure(error: IOException): Boolean {
+    if (error is SSLPeerUnverifiedException || error is SSLProtocolException) {
+        return true
+    }
+    return error is SSLException && hasNonRetryableTlsCause(error = error)
+}
+
 private fun hasNonRetryableTlsCause(error: Throwable): Boolean {
     var currentCause: Throwable? = error.cause
     while (currentCause != null) {

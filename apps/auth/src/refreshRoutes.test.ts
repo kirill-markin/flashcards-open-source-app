@@ -12,6 +12,7 @@ import { continueAuthTrace } from "./server/sentry.js";
 type RefreshResult = Readonly<{
   idToken: string;
   accessToken: string;
+  refreshToken: string | null;
   expiresIn: number;
 }>;
 
@@ -19,6 +20,7 @@ function createRefreshResult(): RefreshResult {
   return {
     idToken: "id-token",
     accessToken: "access-token",
+    refreshToken: null,
     expiresIn: 3600,
   };
 }

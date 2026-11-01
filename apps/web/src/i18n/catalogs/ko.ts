@@ -738,6 +738,10 @@ const koCatalog: TranslationCatalog = {
       description: "iOS와 Android 설치 안내를 미리 봅니다.",
       value: "미리 보기",
     },
+    reviewPrompts: {
+      title: "복습 후 안내",
+      resetAll: "모든 안내 상태 초기화",
+    },
   },
   settingsWorkspace: {
     decks: {
@@ -1072,7 +1076,7 @@ const koCatalog: TranslationCatalog = {
       createWithAi: "AI로 만들기",
       edit: "편집",
       retry: "다시 시도",
-      revealAnswer: "정답 보기",
+      revealAnswer: "답 보기",
       switchToAllCards: "모든 카드 덱으로 전환",
     },
     aiOpenAriaLabel: "{{side}} 카드를 AI 채팅에서 열기",

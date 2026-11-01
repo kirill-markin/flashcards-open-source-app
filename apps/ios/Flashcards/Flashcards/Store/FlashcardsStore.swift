@@ -78,6 +78,7 @@ final class FlashcardsStore {
     var presentedReviewCard: Card?
     /// Signals a transient Review presentation reset after an explicit workspace switch or progress reset.
     var reviewPresentationResetRevision: Int = 0
+    var reviewOverdueBadgeCount: Int = 0
     var reviewCounts: ReviewCounts
     var isReviewHeadLoading: Bool
     var isReviewCountsLoading: Bool
@@ -121,11 +122,12 @@ final class FlashcardsStore {
     var reviewNotificationsSettings: ReviewNotificationsSettings
     var strictRemindersSettings: StrictRemindersSettings
     var reviewReminderAttentionState: ReviewReminderAttentionState?
-    var notificationPermissionPromptState: NotificationPermissionPromptState
     var isReviewNotificationPrePromptPresented: Bool
+    /// The OS permission read when the pre-prompt was presented; it decides what "Continue" opens.
+    var reviewNotificationPrePromptPermissionStatus: ReviewNotificationPermissionStatus
+    @ObservationIgnored var reviewNotificationPrePromptLastShownAt: Date?
     var guestSignInAfterReviewPromptState: GuestSignInAfterReviewPromptState
     var isGuestSignInAfterReviewPromptPresented: Bool
-    var guestSignInAfterReviewPromptReconciliationToken: Int
     var feedbackPresentation: FeedbackPresentation?
     private(set) var presentedTechnicalError: TechnicalErrorPresentation?
     var feedbackPromptState: PersistedFeedbackPromptState
@@ -140,6 +142,8 @@ final class FlashcardsStore {
     )
     var accountDeletionState: AccountDeletionState
     var accountDeletionSuccessMessage: String?
+    /// The after-review prompt rules: the cached remote config from `GET /me`, else the built-in defaults.
+    var activeReviewPromptConfig: ReviewPromptConfig
     var savedReviewPromptOpportunity: SavedReviewPromptOpportunity? = nil
     var isPremiumPresentationActive: Bool = false
     var isSavedReviewPromptSurfaceAvailable: Bool = false {
@@ -147,7 +151,6 @@ final class FlashcardsStore {
             if self.isSavedReviewPromptSurfaceAvailable == false {
                 self.savedReviewPromptOpportunity = nil
                 self.pendingStoreReviewRequestAttempt = nil
-                self.activeAutomaticFeedbackPromptTask?.cancel()
             }
         }
     }
@@ -263,8 +266,6 @@ final class FlashcardsStore {
     @ObservationIgnored var progressReviewScheduleLocalRevision: Int
     @ObservationIgnored var progressReviewedAtClientCache: ProgressReviewedAtClientCacheEntry?
     @ObservationIgnored var progressReviewScheduleLocalCache: ProgressReviewScheduleLocalCacheEntry?
-    @ObservationIgnored var activeAutomaticFeedbackPromptTask: Task<Void, Never>?
-    @ObservationIgnored var nextAutomaticFeedbackPromptRetryAt: Date?
     @ObservationIgnored var capturedTechnicalErrorCaptureContextIDs: Set<String>
     @ObservationIgnored var customGuestWorkspaceRetrySession: CloudLinkedSession?
 
@@ -281,7 +282,6 @@ final class FlashcardsStore {
     func shutdownForTests() {
         self.aiConsentRegistrationTask?.cancel()
         self.cachedAIChatStore?.shutdownForTests()
-        self.activeAutomaticFeedbackPromptTask?.cancel()
         self.reviewRuntime.cancelForAccountDeletion()
         self.cloudRuntime.cancelForAccountDeletion()
     }
@@ -543,17 +543,15 @@ final class FlashcardsStore {
             userDefaults: userDefaults,
             decoder: decoder
         )
-        self.notificationPermissionPromptState = loadNotificationPermissionPromptState(
-            userDefaults: userDefaults,
-            decoder: decoder
-        )
         self.isReviewNotificationPrePromptPresented = false
+        self.reviewNotificationPrePromptPermissionStatus = .notRequested
+        self.reviewNotificationPrePromptLastShownAt = loadReviewNotificationPrePromptLastShownAt(userDefaults: userDefaults)
         self.guestSignInAfterReviewPromptState = loadGuestSignInAfterReviewPromptState(
             userDefaults: userDefaults,
             decoder: decoder
         )
         self.isGuestSignInAfterReviewPromptPresented = false
-        self.guestSignInAfterReviewPromptReconciliationToken = 0
+        self.activeReviewPromptConfig = loadActiveReviewPromptConfig(userDefaults: userDefaults, decoder: decoder)
         self.feedbackPresentation = nil
         self.presentedTechnicalError = nil
         self.feedbackPromptState = loadFeedbackPromptState(
@@ -649,8 +647,6 @@ final class FlashcardsStore {
         self.progressReviewScheduleLocalRevision = 0
         self.progressReviewedAtClientCache = nil
         self.progressReviewScheduleLocalCache = nil
-        self.activeAutomaticFeedbackPromptTask = nil
-        self.nextAutomaticFeedbackPromptRetryAt = nil
         self.capturedTechnicalErrorCaptureContextIDs = []
         self.customGuestWorkspaceRetrySession = nil
 

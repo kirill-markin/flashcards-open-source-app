@@ -340,8 +340,8 @@
 "settings.test.animations.playAccessibility" = "Spila hreyfimynd %@, %@";
 "settings.test.technicalErrorPreview" = "Forskoðun tæknivillu";
 "settings.test.technicalErrorPreview.value" = "Forskoða spjald";
-"settings.test.storeReviewPromptReset" = "Endurstilla beiðni um App Store-umsögn";
-"settings.test.storeReviewPromptReset.value" = "Staðbundin staða";
+"settings.test.section.reviewPrompts" = "Kvaðningar eftir upprifjun";
+"settings.test.reviewPromptsReset" = "Endurstilla stöðu allra kvaðninga";
 "settings.test.notificationDiagnostics" = "Greining tilkynninga";
 "settings.test.notificationDiagnostics.value" = "Skrifvarið";
 "settings.test.localSyncDiagnostics" = "Greining staðbundinnar samstillingar";
@@ -451,11 +451,17 @@
 "settings.access.action.request" = "Óska eftir aðgangi";
 "settings.access.action.openSettings" = "Opna Stillingar";
 "settings.access.guidance.photos.limited" = "Aðgangur að myndasafni er takmarkaður. Þú getur samt valið myndir sem viðhengi í gervigreindarspjalli.";
+"settings.access.guidance.mac.photos.limited" = "Aðgangur að myndasafni er takmarkaður. Þú getur samt valið myndir sem viðhengi í gervigreindarspjalli eða opnað Kerfisstillingar > Persónuvernd og öryggi > Myndir til að breyta því.";
 "settings.access.guidance.photos.blocked" = "Slökkt er á aðgangi að myndasafni. Þú getur samt valið myndir sem viðhengi í gervigreindarspjalli.";
+"settings.access.guidance.mac.photos.blocked" = "Slökkt er á aðgangi að myndasafni. Þú getur samt valið myndir sem viðhengi í gervigreindarspjalli eða opnað Kerfisstillingar > Persónuvernd og öryggi > Myndir til að breyta því.";
 "settings.access.guidance.camera.blocked" = "Slökkt er á myndavélaaðgangi fyrir Nibomo. Opnaðu Stillingar > Persónuvernd og öryggi > Myndavél til að breyta því.";
+"settings.access.guidance.mac.camera.blocked" = "Slökkt er á myndavélaaðgangi fyrir Nibomo. Opnaðu Kerfisstillingar > Persónuvernd og öryggi > Myndavél til að breyta því.";
 "settings.access.guidance.microphone.blocked" = "Slökkt er á hljóðnemaaðgangi fyrir Nibomo. Opnaðu Stillingar > Persónuvernd og öryggi > Hljóðnemi til að breyta því.";
+"settings.access.guidance.mac.microphone.blocked" = "Slökkt er á hljóðnemaaðgangi fyrir Nibomo. Opnaðu Kerfisstillingar > Persónuvernd og öryggi > Hljóðnemi til að breyta því.";
 "settings.access.guidance.askEveryTime" = "Óskaðu eftir aðgangi núna eða opnaðu Stillingar síðar til að stjórna honum handvirkt.";
+"settings.access.guidance.mac.askEveryTime" = "Óskaðu eftir aðgangi núna eða opnaðu Kerfisstillingar síðar til að stjórna honum handvirkt.";
 "settings.access.guidance.allowed" = "Opnaðu Stillingar ef þú vilt slökkva á þessum aðgangi.";
+"settings.access.guidance.mac.allowed" = "Opnaðu Kerfisstillingar > Persónuvernd og öryggi ef þú vilt slökkva á þessum aðgangi.";
 "settings.access.guidance.limited" = "Opnaðu Stillingar til að skoða eða auka þennan aðgang.";
 "settings.access.guidance.unavailable" = "Þessi aðgangur er ekki tiltækur á þessu tæki.";
 "settings.account.row.openSourceValue" = "GitHub + MIT";
@@ -573,6 +579,7 @@
 "settings.account.cloudSignIn.failure.cloudSetupFailed" = "Innskráning tókst en skýjauppsetning mistókst.";
 "settings.account.cloudSignIn.failure.accountUpgradeFailed" = "Innskráning tókst en uppfærsla aðgangs mistókst.";
 "settings.account.cloudSignIn.failureDescription" = "Innskráning tókst en uppsetningu skýjavinnusvæðis eða upphafssamstillingu lauk ekki.";
+"settings.account.cloudSignIn.chooseWorkspace" = "Velja vinnusvæði";
 "settings.account.cloudSignIn.sync.title" = "Aðgangurinn þinn er að samstillast við skýið.";
 "settings.account.cloudSignIn.sync.message" = "Hafðu Nibomo opið á meðan reikningurinn þinn er samstilltur. Þetta tekur yfirleitt nokkrar mínútur.";
 "settings.account.cloudSignIn.cloudSyncTitle" = "Skýjasamstilling";

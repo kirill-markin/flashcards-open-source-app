@@ -120,9 +120,11 @@ internal class CloudAuthRemoteApi(
         require(expiresIn > 0) {
             "Cloud refresh-token response is missing expiresIn."
         }
+        // Cognito returns a new refresh token only once refresh-token rotation is enabled.
+        val rotatedRefreshToken = response.optCloudStringOrNull("refreshToken", "refreshToken.refreshToken")
 
         return buildStoredCloudCredentials(
-            refreshToken = refreshToken,
+            refreshToken = rotatedRefreshToken?.takeIf { it.isNotBlank() } ?: refreshToken,
             idToken = idToken,
             expiresInSeconds = expiresIn
         )

@@ -1,3 +1,4 @@
+import type { ReviewEventPlatform } from "../../adminApi";
 import type { AdminAppConfig } from "../../config";
 import type { AnalyticsDateRange } from "../../filters/analyticsFilters";
 import { liveSourceBarFreshness, type BreakdownBucket, type BreakdownReport } from "../levelOneMetrics/breakdownReport";
@@ -19,15 +20,16 @@ function sumProviderEvents(entry: WhoPaidUsBucket, provider: PaymentProvider): n
 
 /**
  * Available exactly when the Who paid us bar shows a recorded total, which these provider counts add up to.
- * Only Stripe can be `complete` in the SQL, so an available bar always holds a recorded classified event;
- * if Apple or Google could be complete, an available bar could total 0 and the "never zero" copy would break.
+ * Only Stripe and a provider outside the selected platforms can be `complete` in the SQL, so an available bar
+ * holds a recorded classified event while Apple or Google is selected, and can total a proven 0 otherwise;
+ * the breakdown's explanation states both cases.
  */
-function buildProviderBucket(entry: WhoPaidUsBucket): BreakdownBucket {
+function buildProviderBucket(entry: WhoPaidUsBucket, providers: ReadonlyArray<PaymentProvider>): BreakdownBucket {
   return {
     bucket: entry.bucket,
     countsByValue: paymentSeries.every((series) => getPaymentSeriesTotal(entry, series) === null)
       ? null
-      : new Map<string, number>(paymentProviders.map((provider) => [provider, sumProviderEvents(entry, provider)])),
+      : new Map<string, number>(providers.map((provider) => [provider, sumProviderEvents(entry, provider)])),
     freshness: liveSourceBarFreshness(entry.bucket),
   };
 }
@@ -38,9 +40,9 @@ function buildWhoPaidUsProviderBreakdownReport(report: WhoPaidUsReport): Breakdo
     generatedAtUtc: report.generatedAtUtc,
     period: report.period,
     today: report.today,
-    values: paymentProviders,
+    values: report.providers,
     valueLabels: null,
-    buckets: report.buckets.map(buildProviderBucket),
+    buckets: report.buckets.map((entry) => buildProviderBucket(entry, report.providers)),
   };
 }
 
@@ -48,7 +50,8 @@ export async function loadWhoPaidUsProviderBreakdownReport(
   config: AdminAppConfig,
   dateRange: AnalyticsDateRange,
   period: ReportPeriod,
+  eventPlatforms: ReadonlyArray<ReviewEventPlatform>,
   signal: AbortSignal,
 ): Promise<BreakdownReport> {
-  return buildWhoPaidUsProviderBreakdownReport(await loadWhoPaidUsReport(config, dateRange, period, signal));
+  return buildWhoPaidUsProviderBreakdownReport(await loadWhoPaidUsReport(config, dateRange, period, eventPlatforms, signal));
 }

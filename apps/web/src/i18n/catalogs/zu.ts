@@ -738,6 +738,10 @@ const zuCatalog: TranslationCatalog = {
       description: "Buka kuqala isicelo sokufaka se-iOS ne-Android.",
       value: "Buka kuqala",
     },
+    reviewPrompts: {
+      title: "Iziyalezo ngemva kokubuyekeza",
+      resetAll: "Setha kabusha isimo sazo zonke iziyalezo",
+    },
   },
   settingsWorkspace: {
     decks: {

@@ -340,8 +340,8 @@
 "settings.test.animations.playAccessibility" = "Esita animatsioon %@, %@";
 "settings.test.technicalErrorPreview" = "Tehnilise vea eelvaade";
 "settings.test.technicalErrorPreview.value" = "Eelvaateleht";
-"settings.test.storeReviewPromptReset" = "Lähtesta App Store’i hinnangu küsimine";
-"settings.test.storeReviewPromptReset.value" = "Kohalik olek";
+"settings.test.section.reviewPrompts" = "Kordamisjärgsed viibad";
+"settings.test.reviewPromptsReset" = "Lähtesta kõigi viipade olek";
 "settings.test.notificationDiagnostics" = "Teavituste diagnostika";
 "settings.test.notificationDiagnostics.value" = "Ainult lugemiseks";
 "settings.test.localSyncDiagnostics" = "Kohaliku sünkroonimise diagnostika";
@@ -451,11 +451,17 @@
 "settings.access.action.request" = "Taotle juurdepääsu";
 "settings.access.action.openSettings" = "Ava seaded";
 "settings.access.guidance.photos.limited" = "Juurdepääs fotokogule on piiratud. Saad endiselt valida fotosid tehisintellektivestluse manusteks.";
+"settings.access.guidance.mac.photos.limited" = "Juurdepääs fotokogule on piiratud. Saad endiselt valida fotosid tehisintellektivestluse manusteks või selle muutmiseks avada Süsteemiseaded > Privaatsus ja turvalisus > Fotod.";
 "settings.access.guidance.photos.blocked" = "Juurdepääs fotokogule on välja lülitatud. Saad endiselt valida fotosid tehisintellektivestluse manusteks.";
+"settings.access.guidance.mac.photos.blocked" = "Juurdepääs fotokogule on välja lülitatud. Saad endiselt valida fotosid tehisintellektivestluse manusteks või selle muutmiseks avada Süsteemiseaded > Privaatsus ja turvalisus > Fotod.";
 "settings.access.guidance.camera.blocked" = "Nibomo kaamerale juurdepääs on välja lülitatud. Selle muutmiseks ava Seaded > Privaatsus ja turvalisus > Kaamera.";
+"settings.access.guidance.mac.camera.blocked" = "Nibomo kaamerale juurdepääs on välja lülitatud. Selle muutmiseks ava Süsteemiseaded > Privaatsus ja turvalisus > Kaamera.";
 "settings.access.guidance.microphone.blocked" = "Nibomo mikrofoni juurdepääs on välja lülitatud. Selle muutmiseks ava Seaded > Privaatsus ja turvalisus > Mikrofon.";
+"settings.access.guidance.mac.microphone.blocked" = "Nibomo mikrofoni juurdepääs on välja lülitatud. Selle muutmiseks ava Süsteemiseaded > Privaatsus ja turvalisus > Mikrofon.";
 "settings.access.guidance.askEveryTime" = "Taotle juurdepääsu kohe või ava seaded hiljem, et seda käsitsi hallata.";
+"settings.access.guidance.mac.askEveryTime" = "Taotle juurdepääsu kohe või ava Süsteemiseaded hiljem, et seda käsitsi hallata.";
 "settings.access.guidance.allowed" = "Kui soovid selle juurdepääsu välja lülitada, ava seaded.";
+"settings.access.guidance.mac.allowed" = "Kui soovid selle juurdepääsu välja lülitada, ava Süsteemiseaded > Privaatsus ja turvalisus.";
 "settings.access.guidance.limited" = "Selle juurdepääsu kontrollimiseks või laiendamiseks ava seaded.";
 "settings.access.guidance.unavailable" = "See juurdepääs pole selles seadmes saadaval.";
 "settings.account.row.openSourceValue" = "GitHub + MIT";
@@ -573,6 +579,7 @@
 "settings.account.cloudSignIn.failure.cloudSetupFailed" = "Sisselogimine õnnestus, kuid pilve seadistamine ebaõnnestus.";
 "settings.account.cloudSignIn.failure.accountUpgradeFailed" = "Sisselogimine õnnestus, kuid konto täiendamine ebaõnnestus.";
 "settings.account.cloudSignIn.failureDescription" = "Sisselogimine õnnestus, kuid pilvetööruumi seadistamine või algne sünkroonimine ei lõppenud.";
+"settings.account.cloudSignIn.chooseWorkspace" = "Vali tööruum";
 "settings.account.cloudSignIn.sync.title" = "Sinu kontot sünkroonitakse pilvega.";
 "settings.account.cloudSignIn.sync.message" = "Hoia Nibomo avatuna, kuni sinu kontot sünkroonitakse. Tavaliselt võtab see mõne minuti.";
 "settings.account.cloudSignIn.cloudSyncTitle" = "Pilvesünkroonimine";

@@ -11,7 +11,17 @@ extension Analytics {
             return
         }
 
-        self.track(.screenViewed(screen: surface))
+        self.track(.screenViewed(screen: surface, reviewPromptConfigVersion: nil))
+    }
+
+    /// `trackScreenViewed` for a prompt chosen by the after-review prompt walk, carrying the version
+    /// of the config that chose it.
+    static func trackReviewPromptScreenViewed(_ surface: AnalyticsSurface, reviewPromptConfigVersion: String) {
+        guard self.surfaceTracker.beginViewing(surface: surface) else {
+            return
+        }
+
+        self.track(.screenViewed(screen: surface, reviewPromptConfigVersion: reviewPromptConfigVersion))
     }
 
     /**
@@ -27,7 +37,7 @@ extension Analytics {
             return
         }
 
-        self.track(.screenViewed(screen: surface))
+        self.track(.screenViewed(screen: surface, reviewPromptConfigVersion: nil))
     }
 
     /**
@@ -95,7 +105,7 @@ extension Analytics {
             return
         }
 
-        self.track(.screenViewed(screen: restoredSurface))
+        self.track(.screenViewed(screen: restoredSurface, reviewPromptConfigVersion: nil))
     }
 
     /**

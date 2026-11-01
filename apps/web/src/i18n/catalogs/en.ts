@@ -737,6 +737,10 @@ const enCatalog = {
       description: "Preview the iOS and Android install prompt.",
       value: "Preview",
     },
+    reviewPrompts: {
+      title: "Prompts after review",
+      resetAll: "Reset all prompt state",
+    },
   },
   settingsWorkspace: {
     decks: {
@@ -1071,7 +1075,7 @@ const enCatalog = {
       createWithAi: "Create with AI",
       edit: "Edit",
       retry: "Retry",
-      revealAnswer: "Reveal answer",
+      revealAnswer: "Show answer",
       switchToAllCards: "switch to all cards deck",
     },
     aiOpenAriaLabel: "Open {{side}} card in AI chat",

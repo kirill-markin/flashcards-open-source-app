@@ -1,6 +1,9 @@
 import { useEffect, useRef, useState, type ReactElement } from "react";
 import { ApiError, buildLoginUrl, listWorkspaces } from "../../../../api";
+import { toAnalyticsAuthGuestUpgradeFailureOutcome, track } from "../../../../analytics";
 import { useAppData } from "../../../../appData";
+import { bindAcceptedSignIn, consumeAcceptedSignIn, readStoredAcceptedSignIn, recordGuestUpgradeCompleted,
+  withdrawGuestUpgradeCompleted, type AcceptedSignInAnswer } from "../../../../appData/session/acceptedSignIn";
 import { applyFinalizedGuestConversion, completePendingGuestConversion, probePendingGuestConversion,
   reconcileGuestConversionDrops, resumeGuestAfterCancelledSignIn, resumePendingGuestConversion, retireGuestCredential, verifyRetiredGuestConversion } from "../../../../appData/session/guest/browserGuestConversion";
 import { readPendingGuestConversion, runWithBrowserGuestLock, subscribeToBrowserGuestChanges } from "../../../../appData/session/guest/browserGuestStorage";
@@ -35,6 +38,29 @@ export function GuestConversionScreen(props: Readonly<{ returnUrl: string }>): R
   const demo = useRef<GuestDemoCapture | null>(null);
   const destination = useRef<string | null>(null);
   const warning = useRef("");
+  // In memory until the destination is verified: the bridge answers for whoever owns the session cookie.
+  const signInAnswer = useRef<Promise<AcceptedSignInAnswer | null> | null>(null);
+
+  function reportSignInStorageFailure(failure: unknown): void {
+    latest.current.setErrorMessage(describeFailure(failure));
+  }
+
+  function bindVerifiedDestination(userId: string | null): void {
+    destination.current = userId;
+    if (userId === null) return;
+    void signInAnswer.current?.then((answer) => {
+      try { if (answer !== null) bindAcceptedSignIn(userId, answer); } catch (failure) { reportSignInStorageFailure(failure); }
+    });
+  }
+
+  function reportUpgradeFailure(failure: unknown): void {
+    const outcome = toAnalyticsAuthGuestUpgradeFailureOutcome(failure);
+    const destinationUserId = destination.current;
+    void signInAnswer.current?.then((answer) => {
+      try { if (destinationUserId !== null) withdrawGuestUpgradeCompleted(destinationUserId); } catch (storageFailure) { reportSignInStorageFailure(storageFailure); }
+      if (answer !== null) track({ name: "auth_guest_upgrade_finished", screen: "signin", method: answer.method, outcome });
+    });
+  }
 
   function reportCleanupFailure(failure: unknown): void {
     warning.current = `${t("guest.cleanupFailed")} ${describeFailure(failure)}`;
@@ -76,26 +102,44 @@ export function GuestConversionScreen(props: Readonly<{ returnUrl: string }>): R
       if (!probe.registeredSession.present) { setPhase("auth"); return; }
       if (pending.phase === "completed") {
         fresh.current = false;
-        destination.current = pending.destinationUserId;
+        bindVerifiedDestination(pending.destinationUserId);
         setPhase("hydrate");
         await latest.current.initialize();
         return;
       }
       const prepared = await resumePendingGuestConversion();
-      destination.current = prepared.session.userId;
+      bindVerifiedDestination(prepared.session.userId);
       if (prepared.mode === "bound" || prepared.pending.selection !== null) {
         if (prepared.mode === "bound") fresh.current = false;
         await complete(prepared.pending.selection ?? { type: "create_new" });
       } else {
-        setWorkspaces((await listWorkspaces()).filter((workspace) => workspace.isVisible !== false));
-        setPhase("choose");
+        const visibleWorkspaces = (await listWorkspaces()).filter((workspace) => workspace.isVisible !== false);
+        if (prepared.pending.selectionRequired || visibleWorkspaces.length > 1) {
+          setWorkspaces(visibleWorkspaces);
+          setPhase("choose");
+        } else {
+          await complete(visibleWorkspaces.length === 0 ? { type: "create_new" } : { type: "existing", workspaceId: visibleWorkspaces[0].workspaceId });
+        }
       }
     } catch (failure) {
       fresh.current = false; demo.current = null;
+      reportUpgradeFailure(failure);
       setError(describeFailure(failure)); setPhase("error");
     } finally { running.current = false; setAttempt((value) => value + 1); }
   }
 
+  // Read before the attempt, so a failed upgrade still reports its method. A failed read is retried
+  // and reported by the session lifecycle once the account session is accepted.
+  useEffect(() => {
+    if (signInAnswer.current !== null) return;
+    const savedDestinationUserId = initial.current?.destinationUserId ?? null;
+    signInAnswer.current = (async (): Promise<AcceptedSignInAnswer | null> => {
+      // Bound under a destination verified earlier, so the bridge context stays for its own reader.
+      const stored = readStoredAcceptedSignIn();
+      if (stored !== null && stored.userId === savedDestinationUserId) return stored;
+      return consumeAcceptedSignIn();
+    })().catch((): null => null);
+  }, []);
   useEffect(() => { void resume(); }, []);
   useEffect(() => subscribeToBrowserGuestChanges(() => setSharedVersion((value) => value + 1)), []);
   useEffect(() => {
@@ -133,6 +177,11 @@ export function GuestConversionScreen(props: Readonly<{ returnUrl: string }>): R
         if (!bindGuestStripeCheckout(pending.sourceUserId, destinationUserId)) {
           latest.current.setErrorMessage("The saved Premium choice changed in this browser. Open the Premium offer again to continue purchasing.");
         }
+        // Recorded first: account readiness, which reports it, waits only for this retirement.
+        try {
+          await signInAnswer.current;
+          await recordGuestUpgradeCompleted(destinationUserId);
+        } catch (failure) { reportSignInStorageFailure(failure); }
         await retireGuestCredential(destinationUserId);
       } catch (failure) {
         demo.current = null; fresh.current = false;
@@ -141,6 +190,7 @@ export function GuestConversionScreen(props: Readonly<{ returnUrl: string }>): R
           await verifyRetiredGuestConversion(destinationUserId);
           await latest.current.initialize();
         } catch (retirementFailure) {
+          reportUpgradeFailure(retirementFailure);
           setError(describeFailure(retirementFailure)); setPhase("error");
         }
       } finally { running.current = false; setAttempt((value) => value + 1); }
@@ -151,7 +201,7 @@ export function GuestConversionScreen(props: Readonly<{ returnUrl: string }>): R
     if (running.current) return;
     running.current = true; setPhase("loading"); setError("");
     try { await complete(selection); }
-    catch (failure) { demo.current = null; fresh.current = false; setError(describeFailure(failure)); setPhase("error"); }
+    catch (failure) { demo.current = null; fresh.current = false; reportUpgradeFailure(failure); setError(describeFailure(failure)); setPhase("error"); }
     finally { running.current = false; setAttempt((value) => value + 1); }
   }
   async function cancel(): Promise<void> {

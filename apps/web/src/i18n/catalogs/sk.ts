@@ -746,6 +746,10 @@ const skCatalog: TranslationCatalog = {
       description: "Ukážka výzvy na inštaláciu pre iOS a Android.",
       value: "Ukážka",
     },
+    reviewPrompts: {
+      title: "Výzvy po opakovaní",
+      resetAll: "Obnoviť stav všetkých výziev",
+    },
   },
   settingsWorkspace: {
     decks: {

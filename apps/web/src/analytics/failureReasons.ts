@@ -8,7 +8,9 @@ import {
   HeicConverterUnavailableError,
   UnsupportedImagePreparationError,
 } from "../media/imagePreparation";
+import { isIndexedDbUnavailableError } from "../localDb/core/indexedDbAvailability";
 import type {
+  AnalyticsAuthGuestUpgradeOutcome,
   AnalyticsDictationFailureReason,
   AnalyticsMediaUploadFailureReason,
   AnalyticsReviewAnswerFailureReason,
@@ -26,6 +28,42 @@ function isBrowserOffline(): boolean {
 
 function isQuotaExceededError(error: unknown): boolean {
   return error instanceof DOMException && error.name === "QuotaExceededError";
+}
+
+function isAbortOrTimeoutName(name: string): boolean {
+  return name === "AbortError" || name === "TimeoutError";
+}
+
+export function toAnalyticsAuthGuestUpgradeFailureOutcome(
+  error: unknown,
+): Exclude<AnalyticsAuthGuestUpgradeOutcome, "completed"> {
+  // Local database failures carry their IndexedDB operation.
+  if (isQuotaExceededError(error) || isIndexedDbUnavailableError(error)
+    || (error instanceof Error && "indexedDbOperation" in error)) {
+    return "storage_error";
+  }
+
+  if (error instanceof ApiNetworkError) {
+    return isAbortOrTimeoutName(error.originalErrorName) ? "timeout" : "offline";
+  }
+
+  if (error instanceof ApiError) {
+    if (error.statusCode === 409) {
+      return "conflict";
+    }
+
+    if (error.statusCode === 408 || error.statusCode === 504) {
+      return "timeout";
+    }
+
+    return "server_error";
+  }
+
+  if (error instanceof DOMException && isAbortOrTimeoutName(error.name)) {
+    return "timeout";
+  }
+
+  return isBrowserOffline() ? "offline" : "server_error";
 }
 
 export function toAnalyticsSyncFailureReason(error: unknown): AnalyticsSyncFailureReason {

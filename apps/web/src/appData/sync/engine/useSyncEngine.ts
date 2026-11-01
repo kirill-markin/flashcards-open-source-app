@@ -713,8 +713,23 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
         }
       }
     };
+    const runGuestSyncTask = async (): Promise<void> => {
+      try {
+        await runWithBrowserGuestWorkLock(syncSignal, createSyncTask);
+      } catch (error) {
+        // Aborted while queued for the guest lock, before createSyncTask could check its generation.
+        markIndexedDbOpenRecoveryFailure(normalizeCaughtError(error));
+        indexedDbOpenRecoveryState.throwIfFailed();
+
+        if (isCurrentWorkspaceSync(workspaceId, syncGeneration, workspaceSyncGeneration) === false) {
+          return;
+        }
+
+        throw error;
+      }
+    };
     const syncTask = session.browserGuestCapabilities?.isGuest === true
-      ? runWithBrowserGuestWorkLock(syncSignal, createSyncTask)
+      ? runGuestSyncTask()
       : createSyncTask();
 
     syncPromisesRef.current.set(workspaceId, syncTask);
