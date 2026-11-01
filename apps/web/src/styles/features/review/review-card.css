@@ -27,6 +27,11 @@
   background: transparent;
 }
 
+/* The sticky dock owns the bottom spacing, so its fade reaches the pane edge. */
+.review-pane:has(> .review-actions-dock) {
+  padding-block-end: 0;
+}
+
 .review-queue-panel {
   grid-template-rows: auto minmax(0, 1fr);
   overflow: hidden;

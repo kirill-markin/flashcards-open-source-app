@@ -61,6 +61,16 @@
     --review-pane-padding: 10px;
   }
 
+  /* The action dock sits on the bottom edge of the page. */
+  .container:has(> .review-screen-panel) {
+    padding-block-end: 0;
+  }
+
+  .review-screen-panel {
+    --review-screen-panel-height: 100%;
+    padding-block-end: 0;
+  }
+
   /* The card, its tags and the action dock line up with the page title. */
   .review-pane {
     padding-inline: 0;
