@@ -555,17 +555,18 @@
 }
 
 .guest-sign-in-control { display: inline-flex; flex-wrap: wrap; gap: 8px; align-items: center; }
-.guest-account-attention-target {
+.guest-account-attention-target,
+.review-overdue-badge-target {
   position: relative;
 }
 
-.guest-attention {
+.guest-attention,
+.review-overdue-badge {
   position: absolute;
   top: -4px;
   right: -4px;
   display: grid;
   place-items: center;
-  width: 20px;
   height: 20px;
   border-radius: 999px;
   background: #c72e38;
@@ -574,4 +575,14 @@
   font-weight: 700;
   line-height: 1;
   pointer-events: none;
+}
+
+.guest-attention {
+  width: 20px;
+}
+
+.review-overdue-badge {
+  box-sizing: border-box;
+  min-width: 20px;
+  padding: 0 5px;
 }

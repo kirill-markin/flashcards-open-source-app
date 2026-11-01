@@ -16,6 +16,7 @@ import {
   isEntryWorkspaceUnavailable,
   subscribeToEntryWorkspaceActivation,
   useAppData,
+  useReviewOverdueCount,
   type SessionLoadState,
 } from "./appData";
 import { AppErrorDialogProvider } from "./appError/AppErrorContext";
@@ -91,6 +92,7 @@ import { CardFormScreen } from "./screens/cards/form/CardFormScreen";
 import { CardsScreen } from "./screens/cards/list/CardsScreen";
 import { FriendInviteScreen } from "./screens/invite/FriendInviteScreen";
 import { ProgressScreen } from "./screens/progress/ProgressScreen";
+import { ReviewOverdueBadge } from "./screens/review/ReviewOverdueBadge";
 import { ReviewScreen } from "./screens/review/ReviewScreen";
 import { ShareAppScreen } from "./screens/share/ShareAppScreen";
 
@@ -112,6 +114,18 @@ const primaryNavigationItems: ReadonlyArray<PrimaryNavigationItem> = [
   { route: cardsRoute, labelKey: "navigation.cards" },
   { route: settingsHubRoute, labelKey: "navigation.settings" },
 ];
+
+function buildPrimaryNavigationBadgeTargetClassName(route: string): string {
+  if (route === settingsHubRoute) {
+    return " guest-account-attention-target";
+  }
+
+  if (route === reviewRoute) {
+    return " review-overdue-badge-target";
+  }
+
+  return "";
+}
 
 const mobileNavigationViewportPaddingPx: number = 12;
 const mobileNavigationOffsetPx: number = 8;
@@ -575,6 +589,7 @@ export function AppShell(): ReactElement {
   } = useAppData();
   const isGuest = session?.browserGuestCapabilities?.isGuest === true;
   const workspacePath = useWorkspacePath();
+  const reviewOverdueCount = useReviewOverdueCount();
   const { indexedDbOpenRecoveryState } = useAppErrorDialog();
   const [isMobileNavigationOpen, setIsMobileNavigationOpen] = useState<boolean>(false);
   const topbarShellRef = useRef<HTMLElement | null>(null);
@@ -925,9 +940,10 @@ export function AppShell(): ReactElement {
             <nav className="nav" aria-label={t("shell.primaryNavigation")}>
               <div className="nav-links">
                 {primaryNavigationItems.map((item) => (
-                  <NavLink key={item.route} className={({ isActive }) => `nav-link${isActive ? " nav-link-active" : ""}${item.route === settingsHubRoute ? " guest-account-attention-target" : ""}`} to={workspacePath(item.route)}>
+                  <NavLink key={item.route} className={({ isActive }) => `nav-link${isActive ? " nav-link-active" : ""}${buildPrimaryNavigationBadgeTargetClassName(item.route)}`} to={workspacePath(item.route)}>
                     {t(item.labelKey)}
                     {item.route === settingsHubRoute ? <GuestAccountAttentionBadge /> : null}
+                    {item.route === reviewRoute ? <ReviewOverdueBadge overdueCount={reviewOverdueCount} /> : null}
                   </NavLink>
                 ))}
               </div>
@@ -983,12 +999,13 @@ export function AppShell(): ReactElement {
             {primaryNavigationItems.map((item) => (
               <NavLink
                 key={item.route}
-                className={({ isActive }) => `mobile-nav-link${isActive ? " mobile-nav-link-active" : ""}${item.route === settingsHubRoute ? " guest-account-attention-target" : ""}`}
+                className={({ isActive }) => `mobile-nav-link${isActive ? " mobile-nav-link-active" : ""}${buildPrimaryNavigationBadgeTargetClassName(item.route)}`}
                 to={workspacePath(item.route)}
                 onClick={closeMobileNavigation}
               >
                 {t(item.labelKey)}
                 {item.route === settingsHubRoute ? <GuestAccountAttentionBadge /> : null}
+                {item.route === reviewRoute ? <ReviewOverdueBadge overdueCount={reviewOverdueCount} /> : null}
               </NavLink>
             ))}
           </AnchoredFloatingOverlay>
