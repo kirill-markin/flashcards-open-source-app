@@ -718,7 +718,7 @@ struct AILiveStreamFailureDetails: Sendable, Hashable {
     let eventType: String?
     let outcome: String?
     let decoderSummary: String?
-    let rawSnippetLength: Int?
+    let rawSnippet: String?
     let idleTimeoutSeconds: TimeInterval?
     let isError: Bool?
     let isStopped: Bool?

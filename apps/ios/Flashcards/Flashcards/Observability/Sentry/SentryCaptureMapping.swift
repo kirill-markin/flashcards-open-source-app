@@ -569,7 +569,7 @@ extension SentryObservabilityAdapter {
                 )
             )
         case .aiChatFailed(let error, let scope, let details):
-            let context: [String: Any] = self.aiChatFailureDiagnosticsContext(details)
+            let context: [String: Any] = self.aiChatFailureDiagnosticsContext(error: error, diagnostics: details)
             return ExceptionPayload(
                 error: error,
                 observation: ObservationPayload(
@@ -584,6 +584,7 @@ extension SentryObservabilityAdapter {
             )
         case .aiLiveStreamFailed(let error, let scope, let details):
             let context: [String: Any] = [
+                "message_summary": errorMessage(error: error),
                 "session_id": details.sessionId,
                 "run_id": details.runId ?? "",
                 "after_cursor": details.afterCursor ?? "",
@@ -597,9 +598,8 @@ extension SentryObservabilityAdapter {
                 "error_kind": details.errorKind?.rawValue ?? "",
                 "event_type": details.eventType ?? "",
                 "outcome": details.outcome ?? "",
-                "has_decoder_summary": details.decoderSummary == nil ? "false" : "true",
-                "decoder_summary_length": details.decoderSummary.map { decoderSummary in String(decoderSummary.count) } ?? "",
-                "raw_snippet_length": details.rawSnippetLength.map { rawSnippetLength in String(rawSnippetLength) } ?? "",
+                "decoder_summary": details.decoderSummary ?? "",
+                "raw_snippet": details.rawSnippet ?? "",
                 "idle_timeout_seconds": details.idleTimeoutSeconds.map { idleTimeoutSeconds in String(idleTimeoutSeconds) } ?? "",
                 "is_error": details.isError.map { isError in String(isError) } ?? "",
                 "is_stopped": details.isStopped.map { isStopped in String(isStopped) } ?? "",
@@ -981,8 +981,9 @@ extension SentryObservabilityAdapter {
         stringifyContext(self.notificationTapContext(observation))
     }
 
-    private static func aiChatFailureDiagnosticsContext(_ diagnostics: AIChatFailureDiagnostics) -> [String: Any] {
+    private static func aiChatFailureDiagnosticsContext(error: Error, diagnostics: AIChatFailureDiagnostics) -> [String: Any] {
         [
+            "message_summary": errorMessage(error: error),
             "client_request_id": diagnostics.clientRequestId,
             "backend_request_id": diagnostics.backendRequestId ?? "",
             "stage": diagnostics.stage.rawValue,
@@ -992,9 +993,8 @@ extension SentryObservabilityAdapter {
             "tool_name": diagnostics.toolName ?? "",
             "tool_call_id": diagnostics.toolCallId ?? "",
             "line_number": diagnostics.lineNumber.map { lineNumber in String(lineNumber) } ?? "",
-            "raw_snippet_length": diagnostics.rawSnippet.map(\.count).map { rawSnippetLength in String(rawSnippetLength) } ?? "",
-            "has_decoder_summary": diagnostics.decoderSummary == nil ? "false" : "true",
-            "decoder_summary_length": diagnostics.decoderSummary.map { decoderSummary in String(decoderSummary.count) } ?? "",
+            "raw_snippet": diagnostics.rawSnippet ?? "",
+            "decoder_summary": diagnostics.decoderSummary ?? "",
             "continuation_attempt": diagnostics.continuationAttempt.map { continuationAttempt in String(continuationAttempt) } ?? "",
             "continuation_tool_call_count": String(diagnostics.continuationToolCallIds.count)
         ]
@@ -1054,7 +1054,7 @@ extension SentryObservabilityAdapter {
             operations=\(observation.operationsCount.map { operationsCount in String(operationsCount) } ?? "-", privacy: .public) \
             reviewScheduleImpactingOperations=\(observation.reviewScheduleImpactingOperationCount.map { reviewScheduleImpactingOperationCount in String(reviewScheduleImpactingOperationCount) } ?? "-", privacy: .public) \
             changes=\(observation.changesCount.map { changesCount in String(changesCount) } ?? "-", privacy: .public) \
-            error=\(observation.errorSummary ?? "-", privacy: .private)
+            error=\(sanitizedObservationLogValue(observation.errorSummary), privacy: .public)
             """
         )
     }
