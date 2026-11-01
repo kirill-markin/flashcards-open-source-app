@@ -29,7 +29,7 @@ type BackendSentryConfig =
   }>;
 
 const initializedServices = new Set<BackendService>();
-const disabledDefaultIntegrationNames = new Set<string>(["Postgres", "OpenAI"]);
+const disabledDefaultIntegrationNames = new Set<string>(["Postgres", "OpenAI", "Hono"]);
 const consoleBreadcrumbCategory = "console";
 const backendLogRecordDomain = "backend";
 
@@ -109,11 +109,11 @@ function createConfiguredSentryIntegrations(
   const filteredIntegrations = defaultIntegrations.filter(
     (integration) => disabledDefaultIntegrationNames.has(integration.name) === false,
   );
-  const integrationsWithHono = appendSentryIntegrationIfMissing(
-    filteredIntegrations,
-    "Hono",
-    Sentry.honoIntegration(),
-  );
+  const integrationsWithHono = [
+    ...filteredIntegrations,
+    // Error capture is owned by our onError handlers (captureBackendException), which apply the reported/excluded-code policy.
+    Sentry.honoIntegration({ shouldHandleError: () => false }),
+  ];
   const integrationsWithHttp = appendSentryIntegrationIfMissing(
     integrationsWithHono,
     "Http",
