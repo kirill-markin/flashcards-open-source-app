@@ -122,6 +122,12 @@ struct ReviewCounts: Hashable, Sendable {
     let totalCount: Int
 }
 
+/// Overdue cards exclude new cards; `nextDueAt` is the earliest future due time.
+struct ReviewOverdueSnapshot: Hashable, Sendable {
+    let overdueCount: Int
+    let nextDueAt: Date?
+}
+
 enum ReviewQueryDefinition: Hashable, Sendable {
     case allCards
     case deck(filterDefinition: DeckFilterDefinition)
