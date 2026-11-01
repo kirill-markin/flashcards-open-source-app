@@ -39,6 +39,8 @@ The card currently displayed to the user remains pinned until it is answered, ev
 Cards that become due after `Again` or another short-step review can therefore rise ahead of a large old-overdue tail on the next normal queue refresh or review action.
 There is no requirement to refresh an idle review screen solely because a card crosses into the due window.
 
+The Review tab badge counts active cards with `dueAt <= now` under the current workspace's selected Review filter; new cards are excluded. It is hidden at 0, shows `99+` above 99, and refreshes on filter change, local data change, app foreground, and at the next card's due time.
+
 ## Dedicated agent review adapter
 
 The [conversational review contract](conversational-reviews.md) exposes the existing
