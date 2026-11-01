@@ -15,7 +15,7 @@ import {
   recordOtpSendDecision,
   type OtpRateLimitDecision,
 } from "../../server/otp/otpRateLimit.js";
-import { log, maskEmail } from "../../server/logger.js";
+import { log } from "../../server/logger.js";
 import { getPublicAuthBaseUrl, getPublicApiBaseUrl } from "../../server/publicUrls.js";
 import { isTransientDatabaseError } from "../../server/databaseErrors.js";
 import { isCognitoInvalidEmailError, isCognitoProviderOutage } from "../../server/cognito/cognitoErrors.js";
@@ -171,7 +171,7 @@ export function createAgentSendCodeApp(dependencies: AgentSendCodeDependencies):
         action: "agent_send_code_blocked_ip_limit",
         requestId,
         route: c.req.path,
-        maskedEmail: maskEmail(email),
+        email,
         ipAddress,
         statusCode: 429,
       });
@@ -243,7 +243,7 @@ export function createAgentSendCodeApp(dependencies: AgentSendCodeDependencies):
           action: "agent_send_code_error",
           requestId,
           route: c.req.path,
-          maskedEmail: maskEmail(email),
+          email,
           ipAddress,
           statusCode,
           error: error instanceof Error ? error.message : String(error),
@@ -277,7 +277,7 @@ export function createAgentSendCodeApp(dependencies: AgentSendCodeDependencies):
           action: "agent_send_code_error",
           requestId,
           route: c.req.path,
-          maskedEmail: maskEmail(email),
+          email,
           ipAddress,
           statusCode: 503,
           code: "SERVICE_UNAVAILABLE",
