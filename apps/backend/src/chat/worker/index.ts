@@ -96,18 +96,19 @@ export async function convertLegacyAttachmentsBeforeClaim(
     if (error instanceof HttpError && error.statusCode === 409 && error.code === "ACCOUNT_SCOPE_CHANGED") {
       throw error;
     }
-    const failed = await failQueuedChatRun(
+    const failedRunClientDevice = await failQueuedChatRun(
       userId,
       event.workspaceId,
       event.runId,
       createPublicTerminalError(error),
     );
-    if (failed) {
+    if (failedRunClientDevice !== null) {
       await recordAiRunFailedAnalytics(
         userId,
         event.workspaceId,
         event.runId,
         classifyChatRunFailureCategory(error),
+        failedRunClientDevice,
       );
     }
     throw error;

@@ -6,7 +6,6 @@ import android.util.Log
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import com.flashcardsopensourceapp.app.FlashcardsApplication
-import com.flashcardsopensourceapp.app.di.AppGraph
 import com.flashcardsopensourceapp.app.notifications.addNotificationWorkerBreadcrumb
 import com.flashcardsopensourceapp.app.notifications.hasNotificationPermission
 import com.flashcardsopensourceapp.app.notifications.reviewReminderNotificationKind
@@ -164,12 +163,6 @@ open class ReviewNotificationWorker(
                 requestId = requestId,
                 showAppIconBadge = finalSettings.showAppIconBadge
             )
-            markDeliveredReviewReminderInsideGate(
-                appGraph = appGraph,
-                workspaceId = workspaceId,
-                requestId = requestId,
-                deliveredAtMillis = System.currentTimeMillis()
-            )
             addWorkerBreadcrumb(
                 stage = "worker_notification_posted",
                 requestId = requestId,
@@ -178,19 +171,6 @@ open class ReviewNotificationWorker(
             )
             Result.success()
         }
-    }
-
-    private fun markDeliveredReviewReminderInsideGate(
-        appGraph: AppGraph,
-        workspaceId: String,
-        requestId: String,
-        deliveredAtMillis: Long
-    ) {
-        appGraph.reviewReminderAttentionController.markDeliveredReviewReminderInsideGate(
-            workspaceId = workspaceId,
-            requestId = requestId,
-            deliveredAtMillis = deliveredAtMillis
-        )
     }
 
     private fun logRecoverableFailure(

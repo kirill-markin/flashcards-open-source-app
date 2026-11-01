@@ -25,7 +25,7 @@
     "@hono/node-server": "^2.1.5",
     "@modelcontextprotocol/sdk": "^1.32.2",
     "@opentelemetry/instrumentation": "^0.223.0",
-    "@sentry/aws-serverless": "^10.77.1",
+    "@sentry/aws-serverless": "^10.78.0",
     "aws-jwt-verify": "^5.2.1",
     "fflate": "^0.8.3",
     "google-auth-library": "11.3.2",

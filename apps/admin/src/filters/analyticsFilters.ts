@@ -207,12 +207,13 @@ const funnelsAnalyticsFilterFieldApplicability = {
 const funnelsAnalyticsFilterFields: ReadonlyArray<AnalyticsFilterField> = analyticsFilterFields
   .filter((field) => funnelsAnalyticsFilterFieldApplicability[field]);
 
-// Review prompts count showings: a showing carries its own platform and belongs to one person, which
-// is all these fields ask. The table draws no second series, and the person-level fields Journeys
+// Review prompts count showings: a showing carries its own platform and app version and belongs to one
+// person, which is all these fields ask. The table draws no second series, and the person-level fields Journeys
 // leaves out are left out here for the same reason.
 const reviewPromptsAnalyticsFilterFields: ReadonlyArray<AnalyticsFilterField> = [
   "dateRange",
   "eventPlatforms",
+  "appVersions",
   "connectionCountries",
   "appUiLanguages",
 ];
@@ -231,6 +232,7 @@ export const reviewPromptDetailsAnalyticsFilterFields: ReadonlyArray<AnalyticsFi
   "dateRange",
   "comparisonDateRange",
   "eventPlatforms",
+  "appVersions",
   "connectionCountries",
   "appUiLanguages",
 ];
@@ -372,7 +374,7 @@ const analyticsFilterFieldExplanations: Readonly<Record<AnalyticsFilterField, st
   // data because its events are judged by the platform their own row carries.
   eventPlatforms:
     "Keeps only events recorded on the client platforms you pick, read from the event row itself, where unattributed is the bucket for every event that carries no resolved device. The catalog install event never carries a platform, so picking any device platform empties the Catalog deck installs section.",
-  // Offered on Level 1 metrics only, so this is that area's wording.
+  // Level 1 metrics' wording; Review prompts overrides it.
   appVersions:
     "Who opened the app counts a person on a day only for an app open on a version you pick, and Who studied counts a person in a bar only when their last app open there, on a selected platform, is on a version you pick, so someone with no app open in the bar, such as an agent-only learner, drops out. New vs returning still reads their first use on any version. Who paid us and Who saw us carry no app version and are not narrowed by it; picking nothing keeps every version.",
   // Cut from the on-screen text, and the expensive part of this field:
@@ -469,6 +471,8 @@ const reviewPromptsAnalyticsFilterFieldExplanations: Readonly<
     "An optional second range of showings, empty by default. When it is set, every funnel on a prompt's Details page is counted again on it with every other filter unchanged, and drawn beside the main range as series B; the daily outcome chart stays on the main range.",
   eventPlatforms:
     "Keeps only the showings recorded on the client platforms you pick, read from the showing itself. Each prompt runs only on some platforms, so a selection without them empties its row.",
+  appVersions:
+    "Keeps only the showings recorded on the app versions you pick, read from the showing itself as the platform is. A showing that recorded no version drops out once any version is picked; picking nothing keeps every version.",
   connectionCountries:
     "Keeps only showings of people seen connecting from the countries you pick, which is connection geography rather than residence or nationality. Picking nothing keeps every country.",
   appUiLanguages:

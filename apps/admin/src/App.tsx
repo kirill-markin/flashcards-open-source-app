@@ -119,13 +119,14 @@ function isSameOptionalDateRange(
   return left === null || right === null ? left === right : isSameDateRange(left, right);
 }
 
-// General's reports do not read the Journeys-only comparison range, so its batch is keyed on the
-// selection with it blanked: picking a comparison neither reloads General nor takes query slots ahead
-// of the funnel cards. Keyed on content, because every apply makes a new selection object.
+// General's reports do not read the comparison range or the app version, so its batch is keyed on the
+// selection with them blanked: picking either neither reloads General nor takes query slots ahead of
+// the cards that read it. Keyed on content, because every apply makes a new selection object.
 function toGeneralReportFilters(filters: AnalyticsFilterState): AnalyticsFilterState {
   return normalizeAnalyticsFilterState({
     ...filters,
     comparisonDateRange: null,
+    appVersions: [],
   });
 }
 

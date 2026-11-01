@@ -84,9 +84,6 @@ private struct FlashcardsUITestLaunchCoordinator {
                 processInfo: self.processInfo
             )
             try store.reload(now: Date(), refreshVisibleProgress: false)
-            if self.launchScenario == .guestManualReviewCardWithReminderAttention {
-                try await store.markUITestReviewReminderAttentionAfterNotificationCleanup()
-            }
             return
         }
 

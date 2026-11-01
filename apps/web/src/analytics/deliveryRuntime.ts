@@ -81,6 +81,8 @@ const retryBaseDelayMs = 1000;
 const retryMaxDelayMs = 60 * 60 * 1000;
 const sustainedFailureWindowMs = 60 * 60 * 1000;
 const periodicFlushIntervalMs = 60 * 1000;
+/** Summed event bytes of one page-hide batch; the envelope adds well under 1 KB to reach ~48 KB. */
+const pageHideBatchEventByteLimit = 47 * 1024;
 
 /**
  * How long a pressed control waits for the queue to drain before it destroys the credential behind
@@ -171,6 +173,18 @@ export function createAnalyticsDeliveryRuntime(
   let browserCredentialAbsenceVerified = false;
   let pendingRecords: Array<AnalyticsQueueRecord> = [];
   /**
+   * The newest records this load queued that no response has settled yet, kept after they are
+   * persisted so a hide can send them without waiting for IndexedDB (`sendPageHideBatch`).
+   */
+  let unacknowledgedRecords: Array<AnalyticsQueueRecord> = [];
+  /**
+   * What a page-hide request or a held-event flush request is carrying now. The held flush and the
+   * page-hide senders skip these, so a held event's refusal is counted once and a hide does not
+   * spend its budget on them again; a queued flush reads IndexedDB and resends them on purpose
+   * (the server ignores the repeated event id).
+   */
+  const inFlightEventIds = new Set<string>();
+  /**
    * What this browser collected while it could write nothing to the device: before it knew whether
    * it had to ask for consent, while it was waiting for the answer, and for the rest of the load
    * when the answer was a refusal. They carry no session id, because obtaining one is itself a
@@ -215,9 +229,8 @@ export function createAnalyticsDeliveryRuntime(
   let confirmedOwnerId: string | null = null;
   /**
    * How many session layers are mounted right now. The session layer is the only thing that confirms
-   * an account owner, and it is mounted only under the authenticated app shell, so while this is
-   * above zero an account owner can still arrive on this page load and nothing may go out
-   * credential-free. That rule is what keeps a signed-in person's `app_opened` on the authenticated
+   * an account owner, so while this is above zero an account owner can still arrive on this page load
+   * and nothing may go out credential-free. That rule is what keeps a signed-in person's `app_opened` on the authenticated
    * ingest: an actor whose `app_opened` rows all came from the collector reads as an actor with no
    * `app_opened` at all and is auto-excluded, with only a human restore to undo it
    * (apps/backend/src/productAnalytics/syntheticActorDetector.ts).
@@ -339,6 +352,19 @@ export function createAnalyticsDeliveryRuntime(
     pendingDropCounts.set(reason, (pendingDropCounts.get(reason) ?? 0) + count);
   }
 
+  function addPendingRecord(record: AnalyticsQueueRecord): void {
+    pendingRecords.push(record);
+    unacknowledgedRecords.push(record);
+    // One hide sends at most one batch, and the stored copy covers anything older.
+    if (unacknowledgedRecords.length > batchEventLimit) {
+      unacknowledgedRecords.shift();
+    }
+  }
+
+  function forgetUnacknowledgedRecords(eventIds: ReadonlySet<string>): void {
+    unacknowledgedRecords = unacknowledgedRecords.filter((record) => eventIds.has(record.eventId) === false);
+  }
+
   /** Returns the collected wire event, or null when the event was dropped instead. */
   function enqueueEvent(event: AnalyticsEvent, surface: AnalyticsSurface | null): AnalyticsWireEvent | null {
     const nowMs = Date.now();
@@ -350,7 +376,7 @@ export function createAnalyticsDeliveryRuntime(
       return null;
     }
 
-    pendingRecords.push({
+    addPendingRecord({
       eventId: wireEvent.eventId,
       sessionId,
       createdAtMs: nowMs,
@@ -432,7 +458,7 @@ export function createAnalyticsDeliveryRuntime(
     heldWireEvents = [];
     const sessionId = readAnalyticsSessionId(Date.now());
     for (const wireEvent of adoptedWireEvents) {
-      pendingRecords.push(toQueueRecord(wireEvent, sessionId));
+      addPendingRecord(toQueueRecord(wireEvent, sessionId));
     }
   }
 
@@ -472,7 +498,7 @@ export function createAnalyticsDeliveryRuntime(
       return;
     }
 
-    pendingRecords.push(toQueueRecord(coldOpenWireEvent, readAnalyticsSessionId(Date.now())));
+    addPendingRecord(toQueueRecord(coldOpenWireEvent, readAnalyticsSessionId(Date.now())));
   }
 
   /** A refused browser never claims the queue; its held events ship on the account's credential. */
@@ -617,9 +643,9 @@ export function createAnalyticsDeliveryRuntime(
    * The wire envelope carries one session id for the whole batch, so a batch stops at the first event
    * from a different session.
    */
-  function takeLeadingSessionRun(
-    events: ReadonlyArray<QueuedAnalyticsEvent>,
-  ): ReadonlyArray<QueuedAnalyticsEvent> {
+  function takeLeadingSessionRun<SessionRecord extends AnalyticsQueueRecord>(
+    events: ReadonlyArray<SessionRecord>,
+  ): ReadonlyArray<SessionRecord> {
     const batchSessionId = events[0].sessionId;
     const boundaryIndex = events.findIndex((event) => event.sessionId !== batchSessionId);
     return boundaryIndex === -1 ? events : events.slice(0, boundaryIndex);
@@ -666,6 +692,7 @@ export function createAnalyticsDeliveryRuntime(
    * otherwise let the backlog drain re-read and resend the same events without end.
    */
   async function purgeSentEvents(events: ReadonlyArray<QueuedAnalyticsEvent>): Promise<boolean> {
+    forgetUnacknowledgedRecords(new Set(events.map((event) => event.eventId)));
     try {
       await removeAnalyticsEvents(events);
       return true;
@@ -814,9 +841,9 @@ export function createAnalyticsDeliveryRuntime(
 
   /**
    * Whether a confirmed account owner can still arrive on this load, which is what an authenticated
-   * send waits for. The publisher lives in the app data provider, and only `AuthenticatedApp` mounts
-   * it: on the public routes rendered above it — the catalog import, the friend invite, the share
-   * page — a browser carrying `logged_in` never gets one, so waiting there is waiting forever.
+   * send waits for. The publisher lives in the app data provider: of the public routes rendered above
+   * `AuthenticatedApp`, the catalog import and the friend invite mount it only after their own first
+   * load, and the share page never does, so a browser carrying `logged_in` there may wait forever.
    *
    * Read live from the address bar rather than latched, because a client-side navigation reaches the
    * authenticated routes without a reload, and a publisher that has mounted answers for itself.
@@ -984,7 +1011,7 @@ export function createAnalyticsDeliveryRuntime(
 
     let result: AnalyticsIngestResult;
     try {
-      result = await sendAnalyticsEventsBatch(buildWireBatch(toWireEvents(events), events[0].sessionId));
+      result = await sendAnalyticsEventsBatch(buildWireBatch(toWireEvents(events), events[0].sessionId), false);
     } catch (error) {
       await handleDeliveryFailure(error, events, flushGeneration);
       return;
@@ -1074,18 +1101,18 @@ export function createAnalyticsDeliveryRuntime(
    * signed-in person's events are the account's, reported under their `user_id` on the authenticated
    * ingest, and an actor whose `app_opened` rows all came from the collector reads as an actor with
    * no `app_opened` at all. Where no credential can ever become sendable — a browser carrying
-   * `logged_in` on a route the session layer never mounts on — the choice is not between the two
-   * transports but between the collector and losing the events with the document, because a refused
-   * browser holds them in memory and has no queue to leave them in. The collector wins that: the
-   * person refused being identified, which is exactly what an identity-free row is.
+   * `logged_in` on `/share`, which the session layer never mounts on — the choice is not between the
+   * two transports but between the collector and losing the events with the document, because a
+   * refused browser holds them in memory and has no queue to leave them in. The collector wins that:
+   * the person refused being identified, which is exactly what an identity-free row is.
    *
-   * "Can ever become sendable" is true of those routes only because every link out of the public
-   * screens is a full-document `<a href>`, so no client-side navigation reaches `AuthenticatedApp`
-   * within one document. Add a react-router `<Link>` from `/share`, `/invite/:token` or
-   * `/catalog/import/:id` into the app and that stops holding: a flush taken on the public route
-   * spends a signed-in refused person's `app_opened` on the collector irreversibly, where waiting a
-   * moment would have shipped it under their account. Either keep those links full-document, or
-   * narrow this branch before adding one.
+   * "Can ever become sendable" is true of `/share` only because every link out of it is a
+   * full-document `<a href>`, so no client-side navigation reaches `AuthenticatedApp` within one
+   * document. `/invite/:token` and `/catalog/import/:id` mount the session layer only after their
+   * first load, and the catalog route also navigates into the app client-side, so a flush taken on
+   * either before that mount spends a signed-in refused person's `app_opened` on the collector
+   * irreversibly, where waiting a moment would have shipped it under their account. Either keep the
+   * share links full-document, or narrow this branch before adding one.
    */
   function canDeliverHeldEventsWithoutIdentity(): boolean {
     if (readAnalyticsConsentDecision() !== "declined") {
@@ -1189,58 +1216,73 @@ export function createAnalyticsDeliveryRuntime(
     }
 
     remainingFlushRequestCount -= 1;
-    let result: AnalyticsIngestResult;
+    // The outermost call reserves the whole batch until it returns, so the half a split has not
+    // posted yet stays out of a page-hide request; a nested call finds its ids reserved and owns none.
+    const ownedEventIds = wireEvents
+      .map((wireEvent) => wireEvent.eventId)
+      .filter((eventId) => inFlightEventIds.has(eventId) === false);
+    for (const eventId of ownedEventIds) {
+      inFlightEventIds.add(eventId);
+    }
+
     try {
-      result = await sendAnalyticsEventsBatch(buildWireBatch(wireEvents, null));
-    } catch (error) {
+      let result: AnalyticsIngestResult;
+      try {
+        result = await sendAnalyticsEventsBatch(buildWireBatch(wireEvents, null), false);
+      } catch (error) {
+        if (flushGeneration !== analyticsGeneration) {
+          return false;
+        }
+
+        const statusCode = error instanceof ApiError ? error.statusCode : 0;
+        if (statusCode !== 400 && statusCode !== 413) {
+          armDeliveryBackoff(error, statusCode);
+          return false;
+        }
+
+        // Resending the same bytes fails identically forever.
+        reportAnalyticsInvalidBatch(statusCode);
+        if (wireEvents.length === 1) {
+          releaseHeldEvents(wireEvents);
+          // A refused drop event must not regenerate itself, exactly as on the queued transports.
+          if (isDropOnlyBatch(wireEvents) === false) {
+            countDropped("rejected", 1);
+          }
+
+          return true;
+        }
+
+        const midpoint = Math.ceil(wireEvents.length / 2);
+        const wasFirstHalfSettled = await deliverHeldBatchUnderAccount(
+          wireEvents.slice(0, midpoint),
+          flushGeneration,
+        );
+        if (wasFirstHalfSettled === false) {
+          return false;
+        }
+
+        return await deliverHeldBatchUnderAccount(wireEvents.slice(midpoint), flushGeneration);
+      }
+
+      consecutiveFailureCount = 0;
+      firstDeliveryFailureAtMs = null;
+      lastFailureStatusCode = null;
+      retryNotBeforeMs = 0;
       if (flushGeneration !== analyticsGeneration) {
         return false;
       }
 
-      const statusCode = error instanceof ApiError ? error.statusCode : 0;
-      if (statusCode !== 400 && statusCode !== 413) {
-        armDeliveryBackoff(error, statusCode);
-        return false;
+      releaseHeldEvents(wireEvents);
+      if (isDropOnlyBatch(wireEvents) === false) {
+        countDropped("rejected", result.rejectedCount);
       }
 
-      // Resending the same bytes fails identically forever.
-      reportAnalyticsInvalidBatch(statusCode);
-      if (wireEvents.length === 1) {
-        releaseHeldEvents(wireEvents);
-        // A refused drop event must not regenerate itself, exactly as on the queued transports.
-        if (isDropOnlyBatch(wireEvents) === false) {
-          countDropped("rejected", 1);
-        }
-
-        return true;
+      return true;
+    } finally {
+      for (const eventId of ownedEventIds) {
+        inFlightEventIds.delete(eventId);
       }
-
-      const midpoint = Math.ceil(wireEvents.length / 2);
-      const wasFirstHalfSettled = await deliverHeldBatchUnderAccount(
-        wireEvents.slice(0, midpoint),
-        flushGeneration,
-      );
-      if (wasFirstHalfSettled === false) {
-        return false;
-      }
-
-      return await deliverHeldBatchUnderAccount(wireEvents.slice(midpoint), flushGeneration);
     }
-
-    consecutiveFailureCount = 0;
-    firstDeliveryFailureAtMs = null;
-    lastFailureStatusCode = null;
-    retryNotBeforeMs = 0;
-    if (flushGeneration !== analyticsGeneration) {
-      return false;
-    }
-
-    releaseHeldEvents(wireEvents);
-    if (isDropOnlyBatch(wireEvents) === false) {
-      countDropped("rejected", result.rejectedCount);
-    }
-
-    return true;
   }
 
   /**
@@ -1261,13 +1303,158 @@ export function createAnalyticsDeliveryRuntime(
         return;
       }
 
-      const wasSettled = await deliverHeldBatchUnderAccount(
-        heldWireEvents.slice(0, batchEventLimit),
-        flushGeneration,
-      );
+      // A page-hide request already carrying an event settles it, and its refusals, itself.
+      const wireEvents = heldWireEvents
+        .filter((wireEvent) => inFlightEventIds.has(wireEvent.eventId) === false)
+        .slice(0, batchEventLimit);
+      if (wireEvents.length === 0) {
+        return;
+      }
+
+      const wasSettled = await deliverHeldBatchUnderAccount(wireEvents, flushGeneration);
       if (wasSettled === false) {
         return;
       }
+    }
+  }
+
+  /** How many leading events, up to one batch, fit one page-hide body. */
+  function countPageHideBatchEvents(eventByteSizes: ReadonlyArray<number>): number {
+    let totalByteSize = 0;
+    let eventCount = 0;
+    for (const byteSize of eventByteSizes.slice(0, batchEventLimit)) {
+      if (totalByteSize + byteSize > pageHideBatchEventByteLimit) {
+        break;
+      }
+
+      totalByteSize += byteSize;
+      eventCount += 1;
+    }
+
+    return eventCount;
+  }
+
+  /**
+   * Posts one page-hide batch on a request that outlives the document. A failure arms the usual
+   * backoff and leaves the events to the flushes after it, which isolate a refused event themselves.
+   */
+  function sendPageHideRequest(
+    batch: AnalyticsWireBatch,
+    handleDelivered: (result: AnalyticsIngestResult) => void,
+  ): void {
+    const flushGeneration = analyticsGeneration;
+    const eventIds = batch.events.map((wireEvent) => wireEvent.eventId);
+    for (const eventId of eventIds) {
+      inFlightEventIds.add(eventId);
+    }
+
+    void sendAnalyticsEventsBatch(batch, true)
+      .then(
+        (result: AnalyticsIngestResult): void => {
+          consecutiveFailureCount = 0;
+          firstDeliveryFailureAtMs = null;
+          lastFailureStatusCode = null;
+          retryNotBeforeMs = 0;
+          if (flushGeneration !== analyticsGeneration) {
+            return;
+          }
+
+          handleDelivered(result);
+        },
+        (error: unknown): void => {
+          if (flushGeneration !== analyticsGeneration) {
+            return;
+          }
+
+          const statusCode = error instanceof ApiError ? error.statusCode : 0;
+          if (statusCode !== 400 && statusCode !== 413) {
+            armDeliveryBackoff(error, statusCode);
+          }
+        },
+      )
+      .finally((): void => {
+        for (const eventId of eventIds) {
+          inFlightEventIds.delete(eventId);
+        }
+      })
+      .catch((): void => undefined);
+  }
+
+  /**
+   * A delivered record only leaves memory: its stored copy stays as the backup, the next flush sends
+   * it again, and the server ignores the repeated event id. That flush is also what counts its
+   * refusals, so they are not counted here as well.
+   */
+  function sendQueuedRecordsBeforePageHide(): void {
+    const unsentRecords = unacknowledgedRecords.filter(
+      (record) => inFlightEventIds.has(record.eventId) === false,
+    );
+    if (unsentRecords.length === 0) {
+      return;
+    }
+
+    const sessionRun = takeLeadingSessionRun(unsentRecords);
+    const records = sessionRun.slice(0, countPageHideBatchEvents(sessionRun.map((record) => record.byteSize)));
+    sendPageHideRequest(
+      buildWireBatch(records.map((record) => record.wireEvent), records[0].sessionId),
+      (): void => {
+        forgetUnacknowledgedRecords(new Set(records.map((record) => record.eventId)));
+      },
+    );
+  }
+
+  /** Held events have no stored copy, so a delivered batch is settled exactly as the flush settles it. */
+  function sendHeldEventsBeforePageHide(): void {
+    const unsentWireEvents = heldWireEvents.filter(
+      (wireEvent) => inFlightEventIds.has(wireEvent.eventId) === false,
+    );
+    if (unsentWireEvents.length === 0) {
+      return;
+    }
+
+    const wireEvents = unsentWireEvents.slice(
+      0,
+      countPageHideBatchEvents(unsentWireEvents.map(measureAnalyticsWireEventBytes)),
+    );
+    sendPageHideRequest(buildWireBatch(wireEvents, null), (result: AnalyticsIngestResult): void => {
+      releaseHeldEvents(wireEvents);
+      if (isDropOnlyBatch(wireEvents) === false) {
+        countDropped("rejected", result.rejectedCount);
+      }
+    });
+  }
+
+  /**
+   * Sends the oldest events this page holds in memory unsettled when the tab is hidden or closed. The
+   * flush a hide starts awaits IndexedDB before its request, and a closing tab is gone before that.
+   * Only where that flush would send on the account credential: the queue owner reconciled with the
+   * confirmed one and a cached CSRF token, as last known here. A delay this client chose itself is
+   * not honoured, for the reason `runDrainPasses` gives; a server `Retry-After` is.
+   */
+  function sendPageHideBatch(): void {
+    try {
+      if (
+        isProductAnalyticsCollecting() === false
+        || isAwaitingAnalyticsConsentDecision()
+        || Date.now() < serverDirectedRetryNotBeforeMs
+        || hasSendableSessionCredential() === false
+      ) {
+        return;
+      }
+
+      if (readAnalyticsConsentDecision() === "declined") {
+        if (canDeliverHeldEventsWithoutIdentity() === false) {
+          sendHeldEventsBeforePageHide();
+        }
+
+        return;
+      }
+
+      if (isQueueOwnerReconciled) {
+        sendQueuedRecordsBeforePageHide();
+      }
+    } catch {
+      // Nothing scheduled by analytics may surface as an uncaught error.
     }
   }
 
@@ -1619,6 +1806,11 @@ export function createAnalyticsDeliveryRuntime(
       hasOpenedAnalyticsQueue = true;
       try {
         const claim = await claimAnalyticsQueueOwner(userId);
+        if (claim.didReplaceForeignOwner) {
+          // What this load had already appended went with the replaced owner's queue.
+          unacknowledgedRecords = unacknowledgedRecords.filter((record) => pendingRecords.includes(record));
+        }
+
         // Out of memory and not yet discarded means it was appended under the owner this claim
         // replaced, and went with that owner's queue.
         const didDiscardColdOpen = claim.didReplaceForeignOwner
@@ -1960,6 +2152,7 @@ export function createAnalyticsDeliveryRuntime(
       + (shouldDiscardHeldEvents ? heldWireEvents.length : 0)
       - keptColdOpenCount;
     pendingRecords = [];
+    unacknowledgedRecords = [];
     if (shouldDiscardHeldEvents) {
       heldWireEvents = [];
     }
@@ -2297,6 +2490,7 @@ export function createAnalyticsDeliveryRuntime(
     function handleVisibilityChange(): void {
       if (document.visibilityState === "hidden") {
         persistTrackedAnalyticsEvents();
+        sendPageHideBatch();
         flush();
       }
     }
@@ -2319,6 +2513,7 @@ export function createAnalyticsDeliveryRuntime(
 
     function handlePageHide(): void {
       persistTrackedAnalyticsEvents();
+      sendPageHideBatch();
     }
 
     document.addEventListener("visibilitychange", handleVisibilityChange);

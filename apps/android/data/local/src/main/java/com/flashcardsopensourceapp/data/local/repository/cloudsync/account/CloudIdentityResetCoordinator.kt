@@ -28,21 +28,30 @@ class CloudIdentityResetCoordinator(
      * cloud state allows local card writes again. `:app` seeds the onboarding demo card here.
      */
     private val onLocalWorkspaceRecreated: suspend (workspaceId: String) -> Unit,
+    /** Reports a failed onboarding carry; the reset continues, so a failed carry costs only the carry. */
+    private val onFirstReviewOnboardingPersistenceFailed: (Exception) -> Unit,
     private val onCloudIdentityReset: suspend () -> Unit = {}
 ) {
     private val resetMutex = Mutex()
 
     suspend fun resetLocalStateForCloudIdentityChange() {
-        resetLocalIdentity(cloudPreferencesStore::clearCredentials)
+        resetLocalIdentity(cloudPreferencesStore::clearCredentials, carriesCompletedOnboarding = false)
+    }
+
+    /** The credential authenticates an account other than the linked one: an owner change, so a completed onboarding carries. */
+    suspend fun resetLocalStateForLinkedAccountMismatch() {
+        resetLocalIdentity(cloudPreferencesStore::clearCredentials, carriesCompletedOnboarding = true)
     }
 
     suspend fun resetLocalStateForSignOut() {
-        resetLocalIdentity(cloudPreferencesStore::clearCredentialsRetainingSignInHint)
+        resetLocalIdentity(cloudPreferencesStore::clearCredentialsRetainingSignInHint, carriesCompletedOnboarding = false)
     }
 
-    private suspend fun resetLocalIdentity(clearSession: () -> Unit) {
+    private suspend fun resetLocalIdentity(clearSession: () -> Unit, carriesCompletedOnboarding: Boolean) {
         withContext(Dispatchers.IO) {
             resetMutex.withLock {
+                val carriedOnboarding = carriesCompletedOnboarding &&
+                    cloudPreferencesStore.currentAccountPreferences().firstReviewOnboardingCompleted == true
                 clearSession()
                 cloudPreferencesStore.clearCloudCredentialRecoveryState()
                 cloudPreferencesStore.clearAccountPreferences()
@@ -65,6 +74,17 @@ class CloudIdentityResetCoordinator(
                     linkedEmail = null,
                     activeWorkspaceId = activeWorkspaceId
                 )
+                if (carriedOnboarding) {
+                    // Pending, so the next owner's changeOwner carries it and the push writes true; no analytics event.
+                    try {
+                        cloudPreferencesStore.saveFirstReviewOnboardingCompletedForOwner(
+                            completed = true,
+                            owner = cloudPreferencesStore.firstReviewOnboardingOwner()
+                        )
+                    } catch (error: Exception) {
+                        onFirstReviewOnboardingPersistenceFailed(error)
+                    }
+                }
                 cloudPreferencesStore.clearAccountDeletionState()
                 onLocalWorkspaceRecreated(activeWorkspaceId)
             }

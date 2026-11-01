@@ -1075,7 +1075,7 @@ const enCatalog = {
       createWithAi: "Create with AI",
       edit: "Edit",
       retry: "Retry",
-      revealAnswer: "Reveal answer",
+      revealAnswer: "Show answer",
       switchToAllCards: "switch to all cards deck",
     },
     aiOpenAriaLabel: "Open {{side}} card in AI chat",

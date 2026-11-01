@@ -1,6 +1,7 @@
 import type { AnalyticsFilterState } from "../../filters/analyticsFilters";
 import {
   buildAppUiLanguagesFilterSql,
+  buildAppVersionsFilterSql,
   buildConnectionCountriesFilterSql,
   buildEventPlatformsFilterSql,
   buildExcludedActorSqlLines,
@@ -82,8 +83,9 @@ function buildActedWindowEndsAtSql(alias: string): string {
  * and `gone_state` (`stayed`, `gone` or `maturing`).
  *
  * A showing is one paywall presentation, one prompt `screen_viewed`, one `store_review_requested` or
- * one automatic feedback prompt row, placed in the range by its own UTC day. The platform filter
- * reads the showing; the country and language filters and the exclusion rule judge its person.
+ * one automatic feedback prompt row, placed in the range by its own UTC day. The platform and app
+ * version filters read the showing; the country and language filters and the exclusion rule judge its
+ * person.
  * Gone is no `app_opened` and no `review_answered` by that person in the 7 days after it, and stays
  * `maturing` while those days are not over.
  *
@@ -158,6 +160,7 @@ export function buildReviewPromptShowingsCtes(filters: AnalyticsFilterState): st
       ${buildPromptPlatformsSql("candidate")}
     )
     AND ${buildEventPlatformsFilterSql("COALESCE(candidate.platform, 'unattributed')", filters.eventPlatforms)}
+    AND ${buildAppVersionsFilterSql("candidate.app_version", filters.appVersions)}
     AND ${buildConnectionCountriesFilterSql("candidate.actor_id", filters.connectionCountries, filters.dateRange)}
     AND ${buildAppUiLanguagesFilterSql("candidate.actor_id", filters.appUiLanguages, filters.dateRange)}
     ${buildExcludedActorSqlLines("candidate.actor_id").join("\n")}

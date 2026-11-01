@@ -4,8 +4,10 @@ import {
   collectContentAuthoringUpdate,
   collectContentCreation,
   collectContentDeletion,
+  declareContentWriteAiChatClient,
   transactionWithWorkspaceScopeReportingContentWrites,
 } from "../productAnalytics/serverFacts/contentWrites";
+import type { AiChatRunClientDevice } from "../productAnalytics/serverFacts/reviewAnswers";
 import { HttpError } from "../shared/errors";
 import {
   incomingLwwMetadataWins,
@@ -623,10 +625,12 @@ export async function createCards(
   userId: string,
   workspaceId: string,
   items: ReadonlyArray<BulkCreateCardItem>,
+  aiChatClient: AiChatRunClientDevice | null,
 ): Promise<ReadonlyArray<Card>> {
   validateCardBatchCount(items.length);
 
   return transactionWithWorkspaceScopeReportingContentWrites({ userId, workspaceId }, async (executor) => {
+    declareContentWriteAiChatClient(executor, aiChatClient);
     const createdCards: Array<Card> = [];
     for (const item of items) {
       createdCards.push(await createCardInExecutor(executor, workspaceId, item.input, item.metadata));
@@ -756,11 +760,13 @@ export async function updateCards(
   userId: string,
   workspaceId: string,
   items: ReadonlyArray<BulkUpdateCardItem>,
+  aiChatClient: AiChatRunClientDevice | null,
 ): Promise<ReadonlyArray<Card>> {
   validateCardBatchCount(items.length);
   validateUniqueCardIds(items.map((item) => item.cardId));
 
   return transactionWithWorkspaceScopeReportingContentWrites({ userId, workspaceId }, async (executor) => {
+    declareContentWriteAiChatClient(executor, aiChatClient);
     const updatedCards: Array<Card> = [];
     for (const item of items) {
       updatedCards.push(
@@ -835,11 +841,13 @@ export async function deleteCards(
   userId: string,
   workspaceId: string,
   items: ReadonlyArray<BulkDeleteCardItem>,
+  aiChatClient: AiChatRunClientDevice | null,
 ): Promise<BulkDeleteCardsResult> {
   validateCardBatchCount(items.length);
   validateUniqueCardIds(items.map((item) => item.cardId));
 
   return transactionWithWorkspaceScopeReportingContentWrites({ userId, workspaceId }, async (executor) => {
+    declareContentWriteAiChatClient(executor, aiChatClient);
     const deletedCardIds: Array<string> = [];
     for (const item of items) {
       const deletedCard = await deleteCardInExecutor(executor, workspaceId, item.cardId, item.metadata);

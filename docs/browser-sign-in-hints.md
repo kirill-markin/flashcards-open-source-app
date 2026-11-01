@@ -3,8 +3,9 @@
 The auth-origin [storage core](../apps/auth/src/templates/browserHints.ts) and
 [bridge document](../apps/auth/src/routes/browser/browserHints.ts) provide presentation metadata.
 The [web client](../apps/web/src/api/browserHints.ts) exposes only accepted-method consumption and
-deletion cleanup. Call consumption after the actual account and workspace are ready. Keep
-deletion cleanup available even when the session is absent.
+deletion cleanup. [The tab's accepted sign-in](../apps/web/src/appData/session/acceptedSignIn.ts)
+consumes once and keeps the method until account readiness is reported. Keep deletion cleanup
+available even when the session is absent.
 
 The [auth controls](../apps/auth/src/templates/browserHintControls.ts) expose small last-used method
 badges and compact masked-email hints. Successful sign-in saves its hint automatically, regardless
@@ -16,13 +17,14 @@ clear never confirms that data is gone.
 
 [UI facts](../apps/auth/src/routes/browser/authFact.ts) use the existing auth producer and live shared
 consent cookies. [Email request/verification facts](../apps/auth/src/routes/browser/emailAuthFacts.ts)
-and provider callbacks observe their own results. Web session-accepted and account-ready are distinct
-facts after fresh method consumption, a revalidated same-user cookie, actual workspace readiness
-and preference reconciliation. Cookie issuance alone reports neither fact. OAuth-only consent
-continuations have no method bound to their persisted cookie at that boundary, so omit these facts.
-Legacy sessions have no method inference. Web guests own no product data and run no guest upgrade;
-the legacy analytics identity link remains its existing background operation, rather than a
-fabricated upgrade fact.
+and provider callbacks observe their own results. Web session-accepted follows method consumption,
+a revalidated same-user cookie and preference reconciliation, including at workspace selection;
+account-ready follows actual workspace readiness and, after a guest conversion, guest credential
+retirement. Cookie issuance alone reports neither fact. OAuth-only consent continuations have no
+method bound to their persisted cookie at that boundary, so omit these facts. Legacy sessions have
+no method inference. The browser guest conversion reads the method when it opens and reports each
+failed upgrade with it; a completed upgrade is reported after account-ready. The legacy analytics
+identity link remains its existing background operation, rather than a fabricated upgrade fact.
 
 No bridge response contains email or session identity. Origins must be the matching same-site pair;
 cross-family framing does not share storage or cookies. Native sessionStorage opener cloning can
@@ -38,7 +40,7 @@ database fixtures cannot establish positive acceptance. Keep private evidence ou
 
 1. On `app.nibomo.com`, sign in through Google, Apple and email in the same tab. Observe the auth
    response's successful hint and accepted-session metadata without copying their values into
-   logs. After real account/workspace acceptance, consumption must return the initiating method
+   logs. After real session acceptance, consumption must return the initiating method
    once, then absence. Secondary mailbox OTP must retain the initiating provider. Repeat on
    `app.flashcards-open-source-app.com` with its matching auth host.
 2. Refresh the session before consumption: original authentication time must still match. Sign in

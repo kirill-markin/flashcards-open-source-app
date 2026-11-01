@@ -58,9 +58,11 @@ import com.flashcardsopensourceapp.data.local.repository.shared.TimeProvider
 import com.flashcardsopensourceapp.data.local.repository.workspace.makeWorkspaceTagsSummary
 import com.flashcardsopensourceapp.data.local.repository.workspace.makeWorkspaceTagsSummaryFromStoredTagNames
 import com.flashcardsopensourceapp.data.local.repository.workspace.toWorkspaceSchedulerSettings
+import com.flashcardsopensourceapp.data.local.review.ReviewPreferencesStore
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
@@ -79,6 +81,7 @@ import java.util.UUID
 class LocalReviewRepository(
     private val database: AppDatabase,
     private val preferencesStore: CloudPreferencesStore,
+    private val reviewPreferencesStore: ReviewPreferencesStore,
     private val syncLocalStore: SyncLocalStore,
     private val localProgressCacheStore: LocalProgressCacheStore,
     private val timeProvider: TimeProvider,
@@ -265,6 +268,49 @@ class LocalReviewRepository(
                 }
             }
         }
+    }
+
+    override fun observeReviewOverdueBadgeCount(): Flow<Int> {
+        return observeCurrentWorkspace(
+            database = database,
+            preferencesStore = preferencesStore
+        ).map { workspace ->
+            workspace?.workspaceId
+        }.distinctUntilChanged().flatMapLatest { workspaceId ->
+            if (workspaceId == null) {
+                return@flatMapLatest flowOf(0)
+            }
+
+            combine(
+                reviewPreferencesStore.observeSelectedReviewFilter(workspaceId = workspaceId),
+                database.deckDao().observeDecks(),
+                database.tagDao().observeReviewTagNames(workspaceId = workspaceId)
+            ) { selectedFilter, decks, storedTagNames ->
+                val decksForResolution: List<DeckSummary> = decks.filter { deck ->
+                    deck.workspaceId == workspaceId && deck.deletedAtMillis == null
+                }.map { deck ->
+                    toReviewDeckSummary(
+                        deck = deck,
+                        dueCards = 0
+                    )
+                }
+                makeReviewQueuePredicate(
+                    selectedFilter = resolveReviewFilterFromTagNames(
+                        selectedFilter = selectedFilter,
+                        decks = decksForResolution,
+                        tagNames = storedTagNames
+                    ),
+                    decks = decksForResolution,
+                    storedTagNames = storedTagNames
+                )
+            }.distinctUntilChanged().flatMapLatest { predicate ->
+                observeReviewOverdueCount(
+                    database = database,
+                    workspaceId = workspaceId,
+                    predicate = predicate
+                )
+            }
+        }.distinctUntilChanged()
     }
 
     override fun observeReviewMediaAssets(): Flow<List<MediaAsset>> {

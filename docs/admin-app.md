@@ -89,7 +89,7 @@ Run it locally with `make local-admin` on `http://localhost:3001` before merge; 
 ### General and the shared filters ([dashboard](../apps/admin/src/dashboard/AdminDashboard.tsx), [filter model](../apps/admin/src/filters/analyticsFilters.ts))
 
 - `/analytics/general` shows its two sections in order, each chart rendering.
-- `Catalog deck installs` is empty or nearly empty on production ([why](../apps/admin/src/reports/catalogInstalls/query.ts)); selecting any device platform empties only that section, and hovering a segment names the deck slug.
+- `Catalog deck installs` is empty or nearly empty on production ([why](../apps/admin/src/reports/catalogInstalls/query.ts)); selecting a device platform drops its older, platform-less installs, and hovering a segment names the deck slug.
 - The default range is the one [`buildAnalyticsAreaDefaultDateRange`](../apps/admin/src/filters/analyticsFiltersUrl.ts) returns, and the picker widens back to the earliest selectable day; over days only the deck funnel carries, General shows an empty tail.
 - Every filter popup names what it filters and how; the date popup's second click applies the range; a threshold such as `1.5` stays named as not applied.
 - A burst of filter clicks shows `Updating` at once, keeps the controls live and ends in one reload; `Reset all` restores the default range and clears every other filter.
@@ -115,7 +115,7 @@ Run it locally with `make local-admin` on `http://localhost:3001` before merge; 
 
 ### Review prompts ([config](../apps/backend/src/reviewPrompts/reviewPromptConfig.ts), [definitions](../apps/admin/src/reports/reviewPrompts/reviewPromptDefinitions.ts), [showings](../apps/admin/src/reports/reviewPrompts/showingsSql.ts), [Details steps](../apps/admin/src/reports/reviewPrompts/detailsQuery.ts))
 
-- `Review prompts` is the third tab: one table row per prompt in the config's `order` under a bar of date range, client platform, connection country and app interface language, each row with a `Details` button.
+- `Review prompts` is the third tab: one table row per prompt in the config's `order` under a bar of date range, client platform, app version, connection country and app interface language, each row with a `Details` button.
 - Columns: `Details`, prompt, Shown, Acted, Gone, platforms, one per config condition (`—` when unset; `Off` or `Not in order`, listed last, when it never appears) and the rule fixed in code; the config `version` sits under the table, which scrolls sideways on a narrow screen. Acted and Gone are each at most Shown, every Acted number has an `(i)` with its rule, and `Store rating requested` shows `—` for Acted with an `(i)` naming why.
 - A ⚠ beside a prompt appears only while the selection triggers it: a range starting before the day a selected platform first reported it, a selected platform with no report yet, naming the latest mobile app version in use there, Web selected on `Automatic feedback`, or showings still inside their Gone or Acted window.
 - Pick only Web: the notifications pre-prompt and rating request rows read 0 with no ⚠, and the Journeys and General tabs keep the same selection.

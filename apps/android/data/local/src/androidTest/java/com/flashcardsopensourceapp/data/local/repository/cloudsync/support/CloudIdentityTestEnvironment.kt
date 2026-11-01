@@ -97,7 +97,8 @@ internal class CloudIdentityTestEnvironment private constructor(
                 aiChatStagedAttachmentStore = AiChatStagedAttachmentStore(context = context),
                 guestAiSessionStore = guestAiSessionStore,
                 ownOpenAiKeyStore = createOwnOpenAiKeyStore(context = context),
-                onLocalWorkspaceRecreated = {}
+                onLocalWorkspaceRecreated = {},
+                onFirstReviewOnboardingPersistenceFailed = { throw it }
             )
             return CloudIdentityTestEnvironment(
                 context = context,
@@ -158,7 +159,8 @@ internal class CloudIdentityTestEnvironment private constructor(
             aiChatStagedAttachmentStore = AiChatStagedAttachmentStore(context = context),
             guestAiSessionStore = restartedGuestAiSessionStore,
             ownOpenAiKeyStore = createOwnOpenAiKeyStore(context = context),
-            onLocalWorkspaceRecreated = {}
+            onLocalWorkspaceRecreated = {},
+            onFirstReviewOnboardingPersistenceFailed = { throw it }
         )
         val restartedSyncLocalStore = SyncLocalStore(
             database = database,
@@ -210,7 +212,8 @@ internal class CloudIdentityTestEnvironment private constructor(
             aiChatStagedAttachmentStore = AiChatStagedAttachmentStore(context = context),
             guestAiSessionStore = restartedGuestAiSessionStore,
             ownOpenAiKeyStore = createOwnOpenAiKeyStore(context = context),
-            onLocalWorkspaceRecreated = {}
+            onLocalWorkspaceRecreated = {},
+            onFirstReviewOnboardingPersistenceFailed = { throw it }
         )
         val restartedSyncLocalStore = SyncLocalStore(
             database = database,

@@ -12,11 +12,17 @@
   z-index: 1;
   margin-top: auto;
   padding-top: 8px;
+  padding-bottom: var(--review-pane-padding);
   border: none;
   border-radius: 0;
-  background: var(--bg);
+  /* Card text stays visible around the buttons; only the strip below them fades into the page. */
+  background: linear-gradient(transparent, var(--bg)) bottom / 100% calc(var(--review-pane-padding) + 16px) no-repeat;
   backdrop-filter: none;
-  box-shadow: 0 var(--review-pane-padding) 0 var(--bg);
+}
+
+/* The translucent banner would let scrolled card text show through. */
+.review-actions-dock > .error-banner {
+  background: linear-gradient(rgba(112, 20, 28, 0.38), rgba(112, 20, 28, 0.38)), var(--bg);
 }
 
 .review-reveal-btn {
@@ -26,12 +32,12 @@
 .rating-bar {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 6px;
+  gap: 10px;
 }
 
 .rating-bar-column {
   display: grid;
-  gap: 6px;
+  gap: 10px;
 }
 
 .rating-btn {
@@ -45,7 +51,7 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 2px;
+  gap: 4px;
   padding: 8px 10px;
   text-align: center;
   color: #fff6f3;
@@ -56,20 +62,58 @@
   background: var(--accent-strong);
 }
 
+.rating-btn-title-row {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  max-width: 100%;
+}
+
+.rating-btn-title-row > .review-btn-icon {
+  flex: none;
+  width: 20px;
+  height: 20px;
+}
+
 .rating-btn-title {
-  font-size: 16px;
-  font-weight: 700;
+  font-size: 17px;
+  font-weight: 600;
   letter-spacing: -0.03em;
 }
 
 .rating-btn-subtitle {
-  font-size: 13px;
+  font-size: 11px;
   color: rgba(255, 246, 243, 0.82);
 }
 
 .rating-btn:disabled {
   opacity: 0.55;
   cursor: default;
+}
+
+.review-reveal-btn {
+  min-height: 56px;
+  font-size: 17px;
+  font-weight: 400;
+}
+
+.review-reveal-btn-content {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  max-width: 100%;
+}
+
+.review-reveal-btn-content > .review-btn-icon {
+  flex: none;
+  width: 22px;
+  height: 22px;
+}
+
+[dir="rtl"] .review-btn-icon-again {
+  transform: scaleX(-1);
 }
 
 /* Keyboard shortcut hints exist only for desktop pointers. */

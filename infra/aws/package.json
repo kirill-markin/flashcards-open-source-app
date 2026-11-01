@@ -15,7 +15,7 @@
     "@aws-crypto/client-node": "^5.0.2",
     "@aws-sdk/client-cloudwatch": "^3.1158.0",
     "@aws-sdk/client-s3": "^3.1158.0",
-    "@sentry/aws-serverless": "^10.77.1",
+    "@sentry/aws-serverless": "^10.78.0",
     "aws-cdk-lib": "^2.275.0",
     "constructs": "^10.8.1"
   },

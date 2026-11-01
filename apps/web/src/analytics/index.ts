@@ -30,6 +30,7 @@ export type {
   AnalyticsSyncFailureReason,
 } from "./events";
 export {
+  toAnalyticsAuthGuestUpgradeFailureOutcome,
   toAnalyticsMediaUploadFailureReason,
   toAnalyticsReviewAnswerFailureReason,
   toAnalyticsSyncFailureReason,

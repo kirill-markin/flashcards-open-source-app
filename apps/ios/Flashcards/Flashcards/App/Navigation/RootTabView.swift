@@ -3,12 +3,17 @@ import StoreKit
 import SwiftUI
 import UIKit
 
-private let rootTabUITestLaunchScenarioEnvironmentKey: String = "FLASHCARDS_UI_TEST_LAUNCH_SCENARIO"
-
 private struct StoreReviewRequestTaskID: Hashable {
     let isSceneActive: Bool
     let isPresentationBlocked: Bool
     let requestAttemptId: String?
+}
+
+private struct ReviewOverdueBadgeTaskID: Hashable {
+    let workspaceId: String?
+    let reviewFilter: ReviewFilter
+    let localReadVersion: Int
+    let isSceneActive: Bool
 }
 
 struct RootTabView: View {
@@ -59,15 +64,19 @@ struct RootTabView: View {
         )
     }
 
-    private var reviewReminderAttentionBadgeCount: Int {
-        isReviewReminderAttentionVisible(
-            state: store.reviewReminderAttentionState,
-            workspaceId: store.workspace?.workspaceId
-        ) ? 1 : 0
+    private var reviewOverdueBadgeTaskID: ReviewOverdueBadgeTaskID {
+        ReviewOverdueBadgeTaskID(
+            workspaceId: store.workspace?.workspaceId,
+            reviewFilter: store.selectedReviewFilter,
+            localReadVersion: store.localReadVersion,
+            isSceneActive: self.scenePhase == .active
+        )
     }
 
-    private var shouldExposeReviewReminderAttentionBadgeMarker: Bool {
-        ProcessInfo.processInfo.environment[rootTabUITestLaunchScenarioEnvironmentKey] != nil
+    private var reviewOverdueBadgeLabel: Text? {
+        makeReviewOverdueBadgeLabel(overdueCount: store.reviewOverdueBadgeCount).map { label in
+            Text(label)
+        }
     }
 
     private var guestSignInAfterReviewPromptPresentation: Binding<Bool> {
@@ -301,7 +310,7 @@ struct RootTabView: View {
                 self.tabLabel(.review, identifier: UITestIdentifier.rootTabReviewItem)
             }
             .accessibilityIdentifier(UITestIdentifier.rootTabReviewItem, isEnabled: true)
-            .badge(self.reviewReminderAttentionBadgeCount)
+            .badge(self.reviewOverdueBadgeLabel)
 
             Tab(value: AppTab.progress) {
                 self.progressTab
@@ -371,7 +380,7 @@ struct RootTabView: View {
                 set: { if let tab = $0 { self.selectedTabBinding.wrappedValue = tab } }
             )) {
                 self.macSidebarRow(.review, identifier: UITestIdentifier.rootTabReviewItem)
-                    .badge(self.reviewReminderAttentionBadgeCount)
+                    .badge(self.reviewOverdueBadgeLabel)
                     .tag(AppTab.review)
                 self.macSidebarRow(.progress, identifier: UITestIdentifier.rootTabProgressItem)
                 self.macSidebarRow(.ai, identifier: UITestIdentifier.rootTabAIItem)
@@ -627,6 +636,9 @@ struct RootTabView: View {
         .task(id: self.storeReviewRequestTaskID) {
             await self.requestStoreReviewIfNeeded()
         }
+        .task(id: self.reviewOverdueBadgeTaskID) {
+            await self.store.runReviewOverdueBadgeUpdates()
+        }
         .overlay {
             ZStack {
                 GlobalTransientBannerHost()
@@ -767,25 +779,10 @@ struct RootTabView: View {
     private var reviewTab: some View {
         self.aiCompanionHost(for: .review) {
             ReviewView()
-                .overlay(alignment: .topLeading) {
-                    self.reviewReminderAttentionBadgeMarker
-                }
         }
         #if targetEnvironment(macCatalyst)
         .environment(\.macToolbarOwnerTab, .review)
         #endif
-    }
-
-    @ViewBuilder
-    private var reviewReminderAttentionBadgeMarker: some View {
-        if self.shouldExposeReviewReminderAttentionBadgeMarker && self.reviewReminderAttentionBadgeCount > 0 {
-            Color.clear
-                .frame(width: 1, height: 1)
-                .allowsHitTesting(false)
-                .accessibilityElement(children: .ignore)
-                .accessibilityIdentifier(UITestIdentifier.rootTabReviewReminderBadge)
-                .accessibilityValue(String(self.reviewReminderAttentionBadgeCount))
-        }
     }
 
     private var progressTab: some View {

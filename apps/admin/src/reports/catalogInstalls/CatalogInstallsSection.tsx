@@ -164,9 +164,10 @@ export function CatalogInstallsSection(
                 </ul>
               </li>
               <li>
-                <strong>Platform:</strong> the event carries none, so every install sits in the <strong>Unresolved</strong> bucket
+                <strong>Platform:</strong> the device the install was made on
                 <ul>
-                  <li>Picking any device platform empties this section</li>
+                  <li>Older installs, and installs whose device could not be read, sit in <strong>Unresolved</strong></li>
+                  <li>Picking a device platform leaves them out</li>
                 </ul>
               </li>
             </ul>

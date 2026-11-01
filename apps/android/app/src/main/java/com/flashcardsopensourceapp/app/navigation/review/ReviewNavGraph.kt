@@ -101,7 +101,6 @@ internal fun NavGraphBuilder.registerReviewNavGraph(
                 )
             },
             onSuccessfulReviewRecorded = { reviewedAtMillis ->
-                appGraph.reviewReminderAttentionController.clearAfterSuccessfulReview()
                 appGraph.strictRemindersManager.recordSuccessfulReview(
                     reviewedAtMillis = reviewedAtMillis,
                     nowMillis = System.currentTimeMillis()

@@ -129,6 +129,7 @@ internal fun createTestReviewRepository(runtime: LocalDatabaseTestRuntime): Revi
     return LocalReviewRepository(
         database = runtime.database,
         preferencesStore = runtime.preferencesStore,
+        reviewPreferencesStore = SharedPreferencesReviewPreferencesStore(context = runtime.context),
         syncLocalStore = runtime.syncLocalStore,
         localProgressCacheStore = LocalProgressCacheStore(
             database = runtime.database,

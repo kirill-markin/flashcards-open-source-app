@@ -43,7 +43,11 @@ internal class FirstReviewOnboardingPreferencesStore(private val preferences: Sh
         val previousOwner = preferences.getString(ownerKey, null)
         if (previousOwner == owner) return
         val editor = preferences.edit().putString(ownerKey, owner)
-        if (!isNewGuestBinding) {
+        if (currentValue() == true) {
+            // A completed onboarding stays with the device; pending makes reconcile ignore the new
+            // owner's stale false until the push writes true. A reset is never carried.
+            editor.remove(provisionalKey).putBoolean(initializedKey, true).putBoolean(pendingKey, true)
+        } else if (!isNewGuestBinding) {
             editor.remove(valueKey).remove(pendingKey).remove(initializedKey).remove(provisionalKey)
         }
         // Generation never resets: an in-flight reply must not acknowledge a later identity.

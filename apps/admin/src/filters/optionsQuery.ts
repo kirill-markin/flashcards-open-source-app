@@ -472,8 +472,7 @@ export async function loadSiteVisitorFilterOptions(
 
 const appVersionOptionsReportLabel = "App version filter options";
 
-// Every version a trusted `app_opened` of the range recorded, the rows the Level 1 version filter reads,
-// after the shared exclusions. A NULL or empty version is not offered: no selection can match it.
+// Every version a trusted `app_opened` of the range recorded, after the shared exclusions. A NULL or empty version is not offered: no selection can match it.
 function buildAppVersionFilterOptionsSql(dateRange: AnalyticsDateRange): string {
   return [
     "SELECT DISTINCT resolved.app_version AS app_version",
@@ -492,7 +491,7 @@ function buildAppVersionFilterOptionsSql(dateRange: AnalyticsDateRange): string 
   ].join("\n");
 }
 
-/** Loaded by the Level 1 bar, newest version first, comparing dotted parts as numbers so 1.10 follows 1.9. */
+/** Newest version first, comparing dotted parts as numbers so 1.10 follows 1.9. */
 export async function loadAppVersionFilterOptions(
   config: AdminAppConfig,
   dateRange: AnalyticsDateRange,

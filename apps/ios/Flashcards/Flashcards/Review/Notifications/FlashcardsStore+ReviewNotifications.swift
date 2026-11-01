@@ -169,14 +169,10 @@ extension FlashcardsStore {
         )
     }
 
-    func reconcileReviewReminderAttentionAfterReviewLogs(now _: Date) {
-        guard let state = self.reviewReminderAttentionState else {
-            return
-        }
-        guard isReviewReminderAttentionVisible(
-            state: state,
-            workspaceId: self.workspace?.workspaceId
-        ) else {
+    /// Any review today in the current workspace, including one synced from another device, clears the
+    /// icon badge even without saved attention: the badge stays after its delivered reminder is dismissed.
+    func reconcileReviewReminderAttentionAfterReviewLogs(now: Date) {
+        guard let workspaceId = self.workspace?.workspaceId else {
             return
         }
         guard let database = self.database else {
@@ -184,9 +180,16 @@ extension FlashcardsStore {
         }
 
         do {
-            let deliveredAt = Date(timeIntervalSince1970: TimeInterval(state.deliveredAtMillis) / 1_000)
-            if try database.hasReviewEvent(workspaceId: state.workspaceId, after: deliveredAt) {
-                self.clearReviewReminderAttention(workspaceId: state.workspaceId)
+            let calendar = Calendar.autoupdatingCurrent
+            let startOfToday = calendar.startOfDay(for: now)
+            guard let startOfTomorrow = calendar.date(byAdding: .day, value: 1, to: startOfToday) else {
+                throw LocalStoreError.validation(
+                    "Review reminder attention next day start could not be computed for \(formatIsoTimestamp(date: startOfToday))"
+                )
+            }
+            if try database.hasReviewEvent(workspaceId: workspaceId, start: startOfToday, end: startOfTomorrow) {
+                self.clearReviewReminderAttention(workspaceId: workspaceId)
+                self.clearAppIconBadge()
             }
         } catch {
             FlashcardsObservability.captureWarning(
@@ -196,7 +199,7 @@ extension FlashcardsStore {
                         scope: IOSObservationScope(
                             feature: .notifications,
                             userId: nil,
-                            workspaceId: state.workspaceId,
+                            workspaceId: workspaceId,
                             requestId: nil,
                             clientRequestId: nil,
                             sessionId: nil,
@@ -204,7 +207,7 @@ extension FlashcardsStore {
                             cloudState: self.cloudSettings?.cloudState,
                             configurationMode: nil
                         ),
-                        workspaceId: state.workspaceId,
+                        workspaceId: workspaceId,
                         cardId: nil,
                         reason: Flashcards.errorMessage(error: error),
                         repair: "keep_review_reminder_attention_state"

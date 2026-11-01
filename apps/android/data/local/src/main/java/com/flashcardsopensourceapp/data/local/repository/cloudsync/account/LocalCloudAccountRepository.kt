@@ -1065,7 +1065,7 @@ class LocalCloudAccountRepository(
 
         val expectedUserId = cloudSettings.linkedUserId?.trim()?.ifEmpty { null }
         if (expectedUserId != null && expectedUserId != accountSnapshot.userId) {
-            resetCoordinator.resetLocalStateForCloudIdentityChange()
+            resetCoordinator.resetLocalStateForLinkedAccountMismatch()
             throw IllegalStateException(
                 "Cloud account changed during account context refresh. Local cloud identity was reset; sign in again."
             )

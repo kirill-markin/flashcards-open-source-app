@@ -175,8 +175,8 @@ internal class AnalyticsGuestIdentityLinkCoordinator(
      * The stored credential for the signed-in account, refreshed only when it has expired.
      *
      * Deliberately **not** [CloudSessionProvider.authenticatedSession]. That helper turns a
-     * `410 ACCOUNT_DELETED`, and a `linkedUserId` that does not match the fetched account, into
-     * `resetLocalStateForCloudIdentityChange()` — which runs `database.clearAllTables()`. This path
+     * `410 ACCOUNT_DELETED`, and a `linkedUserId` that does not match the fetched account, into a
+     * `CloudIdentityResetCoordinator` reset — which runs `database.clearAllTables()`. This path
      * is the only unattended caller in the app: it runs on every app start and after every sign-in,
      * with no user action behind it and no way back, so it must never reach a destructive reset.
      * A deleted account is sync's business, and sync answers it by preserving local data.
