@@ -52,7 +52,6 @@ struct MacWindowAppearance: UIViewRepresentable {
         private weak var bridgeView: WindowView?
         private weak var scene: UIWindowScene?
         private weak var splitViewController: UISplitViewController?
-        private var sidebarWidth: CGFloat?
         private var sidebarItem: NSToolbarItem?
         var onSidebarVisibilityChange: (Bool) -> Void
         private var toolbar: NSToolbar?
@@ -99,15 +98,11 @@ struct MacWindowAppearance: UIViewRepresentable {
                 || self.configuration.search?.prompt != configuration.search?.prompt {
                 self.searchField.resignFirstResponder()
             }
+            if didChangeTab, let root = view.window?.rootViewController {
+                dismissMacToolbarPopover(presentedBy: root)
+            }
             self.configuration = configuration
             self.refreshSidebar(view: view)
-            if didChangeTab {
-                // UIKit may finish selecting the new tab after this SwiftUI update.
-                DispatchQueue.main.async { [weak self, weak view] in
-                    guard let view else { return }
-                    self?.refreshSidebar(view: view)
-                }
-            }
             // Several SwiftUI passes per section switch publish the same presentation;
             // only its closures change. Skip native toolbar work when nothing visible did.
             let presentation = MacToolbarPresentation(configuration)
@@ -168,7 +163,6 @@ struct MacWindowAppearance: UIViewRepresentable {
             self.searchItem = nil
             self.scene = nil
             self.splitViewController = nil
-            self.sidebarWidth = nil
             self.sidebarItem = nil
             self.bridgeView = nil
         }
@@ -182,28 +176,13 @@ struct MacWindowAppearance: UIViewRepresentable {
 
         @discardableResult
         private func configureSidebar(in window: UIWindow) -> Bool {
-            func findSelectedSplit(in controller: UIViewController) -> UISplitViewController? {
-                if let tabs = controller as? UITabBarController {
-                    return tabs.selectedViewController.flatMap { findSelectedSplit(in: $0) }
-                }
-                if let navigation = controller as? UINavigationController {
-                    return navigation.visibleViewController.flatMap { findSelectedSplit(in: $0) }
-                }
+            func findSplit(in controller: UIViewController) -> UISplitViewController? {
                 if let split = controller as? UISplitViewController { return split }
-                return controller.children.lazy.compactMap { findSelectedSplit(in: $0) }.first
+                return controller.children.lazy.compactMap { findSplit(in: $0) }.first
             }
-            let split = window.rootViewController.flatMap { findSelectedSplit(in: $0) }
+            let split = window.rootViewController.flatMap { findSplit(in: $0) }
             let didChangeSplit = self.splitViewController !== split
-            if didChangeSplit {
-                // Read the user's actual divider position before restoring it in the next tab.
-                if let previous = self.splitViewController, previous.primaryColumnWidth > 0 {
-                    self.sidebarWidth = previous.primaryColumnWidth
-                }
-                self.splitViewController = split
-                if let split, let width = self.sidebarWidth {
-                    split.preferredPrimaryColumnWidth = width
-                }
-            }
+            self.splitViewController = split
             guard let split else { return didChangeSplit }
             if didChangeSplit == false, self.sidebarItem != nil { return false }
             if self.sidebarItem == nil {
@@ -233,26 +212,19 @@ struct MacWindowAppearance: UIViewRepresentable {
                 self.refreshSidebar(view: view)
             }
             guard let split = self.splitViewController, let item = self.sidebarItem,
-                  let context = self.actionContext(item: item) else { return }
+                  self.actionContext(item: item) != nil else { return }
             let isVisible: Bool
             if #available(iOS 26.0, *) {
                 isVisible = split.isShowing(.primary)
             } else {
                 isVisible = !split.isCollapsed && split.displayMode != .secondaryOnly
             }
-            for sidebar in self.sidebarSplits(in: context.presenter) {
-                if isVisible {
-                    sidebar.hide(.primary)
-                } else {
-                    sidebar.show(.primary)
-                }
+            if isVisible {
+                split.hide(.primary)
+            } else {
+                split.show(.primary)
             }
             self.onSidebarVisibilityChange(!isVisible)
-        }
-
-        private func sidebarSplits(in controller: UIViewController) -> [UISplitViewController] {
-            if let split = controller as? UISplitViewController { return [split] }
-            return controller.children.flatMap { self.sidebarSplits(in: $0) }
         }
 
         private func refreshItems() {

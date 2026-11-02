@@ -230,6 +230,14 @@ private struct MacToolbarPopoverContent<Content: View>: View {
     }
 }
 
+/// A toolbar popover belongs to its section's views, which a section switch removes.
+@MainActor
+func dismissMacToolbarPopover(presentedBy presenter: UIViewController) {
+    guard let popover = presenter.presentedViewController as? MacToolbarPopoverController,
+          popover.isBeingDismissed == false else { return }
+    popover.dismiss(animated: true)
+}
+
 private final class MacToolbarPopoverController: UIHostingController<AnyView>, UIPopoverPresentationControllerDelegate {
     var onDismiss: (() -> Void)?
     override func viewDidLoad() {

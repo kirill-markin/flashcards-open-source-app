@@ -156,8 +156,10 @@ The sidebar is a native navigation split view with the system sidebar material
 and selection; [`MacSidebarRowMetrics`](../apps/ios/Flashcards/Flashcards/App/Navigation/RootTabView.swift)
 matches the System Settings row size. Do not add custom row fonts or insets,
 overlay the window with a custom titlebar material, or suppress scroll-edge
-effects globally. Keep the shared tab container behind the detail pane to retain
-per-screen state.
+effects globally. The window is one split view whose detail shows only the
+selected section, so what must survive a section switch (open page, unsent
+input, revealed answer, scroll) lives in the app-owned models injected by
+[`FlashcardsApp`](../apps/ios/Flashcards/Flashcards/App/FlashcardsApp.swift).
 
 On macOS 27 the toolbar is transparent at rest and shows a backdrop once content
 scrolls under it ([WWDC26](https://developer.apple.com/videos/play/wwdc2026/102/)).
@@ -228,7 +230,10 @@ The `LocalMac` plan selects the full existing non-UI bundle and every Mac-eligib
 - nondestructive current-workspace checks without a fixture launch scenario,
   never rating, saving or sending personal content: sidebar focus and
   wide→narrow→wide restoration, toolbar backdrop over recreated Review/chat
-  scroll views, toolbar search text, and Settings after AI history.
+  scroll views, toolbar search text, and Settings after AI history;
+- Settings pages opened from other sections: Review's Edit decks before and
+  after Settings was shown and scrolled, and the Progress leaderboard
+  placeholder when participation is already off.
 
 The shared launcher passes `FLASHCARDS_AUTOMATION_RUN=1` to the app process.
 Catalyst runs on a real Mac, so simulator detection alone is insufficient.
