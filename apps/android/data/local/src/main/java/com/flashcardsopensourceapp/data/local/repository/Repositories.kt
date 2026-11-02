@@ -67,6 +67,8 @@ import com.flashcardsopensourceapp.data.local.model.review.ReviewCard
 import com.flashcardsopensourceapp.data.local.model.review.ReviewFilter
 import com.flashcardsopensourceapp.data.local.model.review.ReviewRating
 import com.flashcardsopensourceapp.data.local.review.prompts.ReviewPromptCounters
+import com.flashcardsopensourceapp.data.local.model.review.ReviewFilterOptions
+import com.flashcardsopensourceapp.data.local.model.review.ReviewSessionQueryInputs
 import com.flashcardsopensourceapp.data.local.model.review.ReviewSessionSnapshot
 import com.flashcardsopensourceapp.data.local.model.review.ReviewTimelinePage
 import com.flashcardsopensourceapp.data.local.model.sync.SyncStatusSnapshot
@@ -120,11 +122,14 @@ interface WorkspaceRepository {
 }
 
 interface ReviewRepository {
+    /** Changed [queryInputs] re-run only the bounded queue window and counts, not the workspace-wide reads. */
     fun observeReviewSession(
         selectedFilter: ReviewFilter,
-        pendingReviewedCards: Set<PendingReviewedCard>,
-        presentedCardId: String?
+        queryInputs: Flow<ReviewSessionQueryInputs>
     ): Flow<ReviewSessionSnapshot>
+
+    /** Deck and tag choices with due counts; collect only while the filter sheet is open. */
+    fun observeReviewFilterOptions(): Flow<ReviewFilterOptions>
 
     /** New and due cards in the current workspace under its persisted Review filter. */
     fun observeReviewDueBadgeCount(): Flow<Int>

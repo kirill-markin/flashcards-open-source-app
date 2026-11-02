@@ -37,13 +37,22 @@ internal data class ProgressQualifiedReviewActivity(
 internal val progressLeaderboardRecentQualifiedReviewLookbackMillis: Long =
     (requireNotNull(ProgressLeaderboardWindowKey.LAST_30_DAYS.rollingWindowHours) + 24L) * 60L * 60L * 1000L
 
+// The two whole-history reads: every card's due date and the qualified review-log aggregation.
+// They stay off the rating path: LocalProgressRepository collects them only while Progress is
+// visible, at start, and once after scheduleDeferredProgressRefresh. Each delivery is a new
+// instance, which is how the repository tells new heavy inputs from a light-only change.
+// See docs/fsrs-scheduling-logic.md#non-blocking-review.
+internal data class ProgressHeavyInputs(
+    val reviewScheduleCards: List<ProgressReviewScheduleCardDueEntity>,
+    val qualifiedReviewActivity: ProgressQualifiedReviewActivity
+)
+
 internal data class ProgressObservedInputs(
     val cloudSettings: CloudSettings,
     val workspaces: List<WorkspaceEntity>,
     val localDayCounts: List<ProgressLocalDayCountEntity>,
     val reviewHistoryStates: List<ProgressReviewHistoryStateEntity>,
     val localCacheStates: List<ProgressLocalCacheStateEntity>,
-    val reviewScheduleCards: List<ProgressReviewScheduleCardDueEntity>,
     val pendingReviewOutboxEntries: List<OutboxEntryEntity>,
     val pendingCardUpsertOutboxEntries: List<OutboxEntryEntity>,
     val syncStates: List<SyncStateEntity>,
@@ -53,7 +62,7 @@ internal data class ProgressObservedInputs(
     val reviewScheduleCaches: List<ProgressReviewScheduleCacheEntity>,
     val leaderboardCaches: List<ProgressLeaderboardCacheEntity>,
     val streakLeaderboardCaches: List<ProgressStreakLeaderboardCacheEntity>,
-    val qualifiedReviewActivity: ProgressQualifiedReviewActivity
+    val heavyInputs: ProgressHeavyInputs
 )
 
 private data class ProgressObservedBaseInputs(
@@ -62,7 +71,6 @@ private data class ProgressObservedBaseInputs(
     val localDayCounts: List<ProgressLocalDayCountEntity>,
     val reviewHistoryStates: List<ProgressReviewHistoryStateEntity>,
     val localCacheStates: List<ProgressLocalCacheStateEntity>,
-    val reviewScheduleCards: List<ProgressReviewScheduleCardDueEntity>,
     val pendingReviewOutboxEntries: List<OutboxEntryEntity>,
     val pendingCardUpsertOutboxEntries: List<OutboxEntryEntity>,
     val syncStates: List<SyncStateEntity>,
@@ -78,8 +86,7 @@ private data class ProgressLocalCacheObservedInputs(
 private data class ProgressPrimaryObservedInputs(
     val cloudSettings: CloudSettings,
     val workspaces: List<WorkspaceEntity>,
-    val localCacheInputs: ProgressLocalCacheObservedInputs,
-    val reviewScheduleCards: List<ProgressReviewScheduleCardDueEntity>
+    val localCacheInputs: ProgressLocalCacheObservedInputs
 )
 
 private data class ProgressSyncObservedInputs(
@@ -99,14 +106,11 @@ private data class ProgressObservedSeriesInputs(
     val seriesCaches: List<ProgressSeriesCacheEntity>
 )
 
-internal fun observeProgressInputs(
+internal fun observeProgressHeavyInputs(
     database: AppDatabase,
-    preferencesStore: CloudPreferencesStore,
-    syncRepository: SyncRepository,
     timeProvider: TimeProvider
-): Flow<ProgressObservedInputs> {
+): Flow<ProgressHeavyInputs> {
     val localCacheDao = database.progressLocalCacheDao()
-    val remoteCacheDao = database.progressRemoteCacheDao()
     val qualifiedReviewActivityFlow = combine(
         localCacheDao.observeProgressQualifiedReviewWorkspaceCounts(),
         localCacheDao.observeProgressQualifiedReviewTimes(
@@ -119,6 +123,25 @@ internal fun observeProgressInputs(
             recentReviewTimes = recentReviewTimes
         )
     }
+    return combine(
+        database.progressCardDao().observeProgressReviewScheduleCardDueDates(),
+        qualifiedReviewActivityFlow
+    ) { reviewScheduleCards, qualifiedReviewActivity ->
+        ProgressHeavyInputs(
+            reviewScheduleCards = reviewScheduleCards,
+            qualifiedReviewActivity = qualifiedReviewActivity
+        )
+    }
+}
+
+internal fun observeProgressInputs(
+    database: AppDatabase,
+    preferencesStore: CloudPreferencesStore,
+    syncRepository: SyncRepository,
+    heavyInputs: Flow<ProgressHeavyInputs>
+): Flow<ProgressObservedInputs> {
+    val localCacheDao = database.progressLocalCacheDao()
+    val remoteCacheDao = database.progressRemoteCacheDao()
     val localCacheInputsFlow = combine(
         localCacheDao.observeProgressLocalDayCounts(),
         localCacheDao.observeProgressReviewHistoryStates(),
@@ -133,14 +156,12 @@ internal fun observeProgressInputs(
     val primaryInputsFlow = combine(
         preferencesStore.observeCloudSettings(),
         database.workspaceDao().observeWorkspaces(),
-        localCacheInputsFlow,
-        database.progressCardDao().observeProgressReviewScheduleCardDueDates()
-    ) { cloudSettings, workspaces, localCacheInputs, reviewScheduleCards ->
+        localCacheInputsFlow
+    ) { cloudSettings, workspaces, localCacheInputs ->
         ProgressPrimaryObservedInputs(
             cloudSettings = cloudSettings,
             workspaces = workspaces,
-            localCacheInputs = localCacheInputs,
-            reviewScheduleCards = reviewScheduleCards
+            localCacheInputs = localCacheInputs
         )
     }
     val syncInputsFlow = combine(
@@ -166,7 +187,6 @@ internal fun observeProgressInputs(
             localDayCounts = primaryInputs.localCacheInputs.localDayCounts,
             reviewHistoryStates = primaryInputs.localCacheInputs.reviewHistoryStates,
             localCacheStates = primaryInputs.localCacheInputs.localCacheStates,
-            reviewScheduleCards = primaryInputs.reviewScheduleCards,
             pendingReviewOutboxEntries = syncInputs.pendingReviewOutboxEntries,
             pendingCardUpsertOutboxEntries = syncInputs.pendingCardUpsertOutboxEntries,
             syncStates = syncInputs.syncStates,
@@ -196,15 +216,14 @@ internal fun observeProgressInputs(
         remoteCacheDao.observeProgressReviewScheduleCaches(),
         remoteCacheDao.observeProgressLeaderboardCaches(),
         remoteCacheDao.observeProgressStreakLeaderboardCaches(),
-        qualifiedReviewActivityFlow
-    ) { seriesInputs, reviewScheduleCaches, leaderboardCaches, streakLeaderboardCaches, qualifiedReviewActivity ->
+        heavyInputs
+    ) { seriesInputs, reviewScheduleCaches, leaderboardCaches, streakLeaderboardCaches, latestHeavyInputs ->
         ProgressObservedInputs(
             cloudSettings = seriesInputs.summaryInputs.baseInputs.cloudSettings,
             workspaces = seriesInputs.summaryInputs.baseInputs.workspaces,
             localDayCounts = seriesInputs.summaryInputs.baseInputs.localDayCounts,
             reviewHistoryStates = seriesInputs.summaryInputs.baseInputs.reviewHistoryStates,
             localCacheStates = seriesInputs.summaryInputs.baseInputs.localCacheStates,
-            reviewScheduleCards = seriesInputs.summaryInputs.baseInputs.reviewScheduleCards,
             pendingReviewOutboxEntries = seriesInputs.summaryInputs.baseInputs.pendingReviewOutboxEntries,
             pendingCardUpsertOutboxEntries = seriesInputs.summaryInputs.baseInputs.pendingCardUpsertOutboxEntries,
             syncStates = seriesInputs.summaryInputs.baseInputs.syncStates,
@@ -214,7 +233,7 @@ internal fun observeProgressInputs(
             reviewScheduleCaches = reviewScheduleCaches,
             leaderboardCaches = leaderboardCaches,
             streakLeaderboardCaches = streakLeaderboardCaches,
-            qualifiedReviewActivity = qualifiedReviewActivity
+            heavyInputs = latestHeavyInputs
         )
     }
 }

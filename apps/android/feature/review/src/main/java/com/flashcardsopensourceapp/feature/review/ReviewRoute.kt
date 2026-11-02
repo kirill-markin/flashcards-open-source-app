@@ -22,6 +22,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.geometry.Rect
@@ -101,7 +102,8 @@ fun ReviewRoute(
     onOpenLeaderboard: () -> Unit,
     onOpenProgress: () -> Unit,
     onScreenVisible: () -> Unit,
-    onReviewSurfaceBusyChanged: (Boolean) -> Unit
+    onReviewSurfaceBusyChanged: (Boolean) -> Unit,
+    onFilterSheetVisibilityChanged: (Boolean) -> Unit
 ) {
     var filterSheetTransaction by rememberSaveable(
         stateSaver = reviewFilterSheetTransactionSaver
@@ -163,10 +165,13 @@ fun ReviewRoute(
         )
     }
     val currentLoadManagedMediaFile = rememberUpdatedState(newValue = onLoadManagedMediaFile)
-    val reviewImagePreparer = remember(context) {
+    // Outlives each image-set effect below, so a rating cancels only the jobs the preparer drops.
+    val reviewImagePreparationScope = rememberCoroutineScope()
+    val reviewImagePreparer = remember(context, reviewImagePreparationScope) {
         ReviewImagePreparer(
             context = context,
             imageLoader = SingletonImageLoader.get(context),
+            preparationScope = reviewImagePreparationScope,
             loadManagedMediaFile = { mediaAssetId -> currentLoadManagedMediaFile.value(mediaAssetId) }
         )
     }
@@ -174,15 +179,19 @@ fun ReviewRoute(
         currentCard = uiState.preparedCurrentCard,
         nextCard = uiState.preparedNextCard
     )
-    // Restarts only when the image set changes, cancelling the previous card pair's preparation.
     LaunchedEffect(reviewImagePreparer, reviewImageAssetsToPrepare) {
-        reviewImagePreparer.prepareImages(mediaAssets = reviewImageAssetsToPrepare)
+        reviewImagePreparer.prepareOnly(mediaAssets = reviewImageAssetsToPrepare)
     }
     val isReviewSurfaceBusy = filterSheetTransaction.isVisible || tagFilterRequest != null ||
         uiState.isHardAnswerReminderVisible || uiState.isNotificationPermissionPromptVisible
     SideEffect { onReviewSurfaceBusyChanged(isReviewSurfaceBusy) }
     DisposableEffect(Unit) {
         onDispose { onReviewSurfaceBusyChanged(true) }
+    }
+    // Filter options and deck due counts load only while the sheet is open.
+    DisposableEffect(filterSheetTransaction.isVisible) {
+        onFilterSheetVisibilityChanged(filterSheetTransaction.isVisible)
+        onDispose { onFilterSheetVisibilityChanged(false) }
     }
 
     fun dismissReviewReactions(): Unit {
@@ -502,6 +511,7 @@ fun ReviewRoute(
             selectedFilter = filterSheetTransaction.draftSelection,
             availableDeckFilters = uiState.availableDeckFilters,
             availableTagFilters = uiState.availableTagFilters,
+            areFilterOptionsLoaded = uiState.areFilterOptionsLoaded,
             onDismiss = ::finalizeFilterSheetSelection,
             onSelectFilter = { nextFilter ->
                 filterSheetTransaction = filterSheetTransaction.copy(
