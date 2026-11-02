@@ -15,8 +15,9 @@ import coil3.size.Scale
 import com.flashcardsopensourceapp.data.local.model.media.MediaAsset
 import com.flashcardsopensourceapp.data.local.model.media.ReviewMediaAssetFile
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.IOException
@@ -31,15 +32,20 @@ internal data class ReviewResolvedImageFile(
 )
 
 /**
- * Decodes the images of the current card's back and the next card's both sides into Coil's memory
+ * Decodes the images of the current card and the next card's both sides into Coil's memory
  * cache, so they draw on the first frame after a rating or reveal.
  * See docs/fsrs-scheduling-logic.md#non-blocking-review.
  */
 internal class ReviewImagePreparer(
     private val context: Context,
     private val imageLoader: ImageLoader,
+    private val preparationScope: CoroutineScope,
     private val loadManagedMediaFile: suspend (String) -> ReviewMediaAssetFile
 ) {
+    // Main thread only. A finished job stays until its image leaves the wanted set, so a failed
+    // download is neither retried nor logged again on every rating while the image stays wanted.
+    private val preparationJobsByMemoryCacheKey: MutableMap<String, Job> = mutableMapOf()
+
     private val resolvedImageFilesByMemoryCacheKey =
         object : LinkedHashMap<String, ReviewResolvedImageFile>(16, 0.75f, true) {
             override fun removeEldestEntry(
@@ -82,10 +88,22 @@ internal class ReviewImagePreparer(
         return imageLoader.memoryCache?.get(key = memoryCacheKey) != null
     }
 
-    suspend fun prepareImages(mediaAssets: List<MediaAsset>) {
-        coroutineScope {
-            mediaAssets.forEach { mediaAsset ->
-                launch {
+    /**
+     * Cancels only preparation whose image left [mediaAssets]; an image still wanted after a rating
+     * keeps its in-flight download and decode instead of restarting it.
+     */
+    fun prepareOnly(mediaAssets: List<MediaAsset>) {
+        val mediaAssetsByMemoryCacheKey: Map<String, MediaAsset> = mediaAssets.associateBy { mediaAsset ->
+            reviewManagedMediaImageMemoryCacheKey(mediaAsset = mediaAsset)
+        }
+        val unwantedMemoryCacheKeys: Set<String> =
+            preparationJobsByMemoryCacheKey.keys - mediaAssetsByMemoryCacheKey.keys
+        unwantedMemoryCacheKeys.forEach { memoryCacheKey ->
+            preparationJobsByMemoryCacheKey.remove(memoryCacheKey)?.cancel()
+        }
+        mediaAssetsByMemoryCacheKey.forEach { (memoryCacheKey, mediaAsset) ->
+            preparationJobsByMemoryCacheKey.getOrPut(memoryCacheKey) {
+                preparationScope.launch {
                     prepareImage(mediaAsset = mediaAsset)
                 }
             }
@@ -123,12 +141,20 @@ internal class ReviewImagePreparer(
     }
 }
 
-/** Images to decode ahead: the current card's back and both sides of the next card. */
+/**
+ * Images to decode ahead: the current card's back and both sides of the next card. The shown front
+ * stays in the set so a rating does not cancel the preparation it started as the next card's front.
+ */
 internal fun reviewImageAssetsToPrepare(
     currentCard: PreparedReviewCardPresentation?,
     nextCard: PreparedReviewCardPresentation?
 ): List<MediaAsset> {
-    return listOfNotNull(currentCard?.backContent, nextCard?.frontContent, nextCard?.backContent)
+    return listOfNotNull(
+        currentCard?.frontContent,
+        currentCard?.backContent,
+        nextCard?.frontContent,
+        nextCard?.backContent
+    )
         .flatMap { content -> reviewRenderedContentImageAssets(content = content) }
         .distinctBy { mediaAsset -> mediaAsset.mediaAssetId }
 }
