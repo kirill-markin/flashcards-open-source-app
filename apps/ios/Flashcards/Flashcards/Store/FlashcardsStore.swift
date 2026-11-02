@@ -73,7 +73,6 @@ final class FlashcardsStore {
     var isProductAnalyticsEnabled: Bool
     var cards: [Card]
     var decks: [Deck]
-    var deckItems: [DeckListItem]
     var selectedReviewFilter: ReviewFilter
     var reviewQueue: [Card]
     var presentedReviewCard: Card?
@@ -84,7 +83,6 @@ final class FlashcardsStore {
     var isReviewHeadLoading: Bool
     var isReviewCountsLoading: Bool
     var isReviewQueueChunkLoading: Bool
-    var homeSnapshot: HomeSnapshot
     var progressSnapshot: ProgressSnapshot?
     var reviewScheduleSnapshot: ReviewScheduleSnapshot?
     var progressLeaderboardSnapshot: ProgressLeaderboardSnapshot?
@@ -160,6 +158,13 @@ final class FlashcardsStore {
     var pendingStoreReviewRequestAttempt: StoreReviewRequestAttempt?
     var uiTestLaunchPreparationStatus: FlashcardsUITestLaunchPreparationStatus
     var localReadVersion: Int
+    /// Bumped when a rating or elapsed time changes due data; screens showing due data listen to it and
+    /// `localReadVersion`, other screens only to `localReadVersion`.
+    var reviewScheduleVersion: Int = 0
+    @ObservationIgnored var activeReviewDataRebuildTask: Task<Void, Never>? = nil
+    @ObservationIgnored var reviewDataLeftForegroundAt: Date? = nil
+    @ObservationIgnored var nextDueRefreshTask: Task<Void, Never>? = nil
+    @ObservationIgnored var nextDueRefreshAt: Date? = nil
 
     @ObservationIgnored let database: LocalDatabase?
     @ObservationIgnored let dependencies: FlashcardsStoreDependencies
@@ -234,6 +239,9 @@ final class FlashcardsStore {
     @ObservationIgnored var progressLeaderboardServerBaseCache: PersistedProgressLeaderboardServerBase?
     @ObservationIgnored var progressStreakLeaderboardServerBaseCache: PersistedProgressStreakLeaderboardServerBase?
     @ObservationIgnored var visibleProgressRefreshTasks: [UUID: Task<Void, Never>] = [:]
+    @ObservationIgnored var deferredProgressRefreshTask: Task<Void, Never>?
+    @ObservationIgnored var reviewProgressBadgeSource: ReviewProgressBadgeSource?
+    @ObservationIgnored var progressSnapshotPublishedClientRevision: Int?
     @ObservationIgnored var progressObservedScopeKey: ProgressScopeKey?
     @ObservationIgnored var progressErrorState: ProgressErrorState
     @ObservationIgnored var progressSummaryInvalidatedScopeKeys: Set<ProgressSummaryScopeKey>
@@ -284,7 +292,10 @@ final class FlashcardsStore {
     func shutdownForTests() {
         self.visibleProgressRefreshTasks.values.forEach { $0.cancel() }
         self.visibleProgressRefreshTasks.removeAll()
+        self.deferredProgressRefreshTask?.cancel()
         self.aiConsentRegistrationTask?.cancel()
+        self.activeReviewDataRebuildTask?.cancel()
+        self.nextDueRefreshTask?.cancel()
         self.cachedAIChatStore?.shutdownForTests()
         self.reviewRuntime.cancelForAccountDeletion()
         self.cloudRuntime.cancelForAccountDeletion()
@@ -483,7 +494,6 @@ final class FlashcardsStore {
         )
         self.cards = []
         self.decks = []
-        self.deckItems = []
         self.selectedReviewFilter = initialReviewPublishedState.selectedReviewFilter
         self.reviewQueue = initialReviewPublishedState.reviewQueue
         self.presentedReviewCard = initialReviewPublishedState.presentedReviewCard
@@ -491,13 +501,6 @@ final class FlashcardsStore {
         self.isReviewHeadLoading = initialReviewPublishedState.isReviewHeadLoading
         self.isReviewCountsLoading = initialReviewPublishedState.isReviewCountsLoading
         self.isReviewQueueChunkLoading = initialReviewPublishedState.isReviewQueueChunkLoading
-        self.homeSnapshot = HomeSnapshot(
-            deckCount: 0,
-            totalCards: 0,
-            dueCount: 0,
-            newCount: 0,
-            reviewedCount: 0
-        )
         self.progressSnapshot = nil
         self.reviewScheduleSnapshot = nil
         self.progressLeaderboardSnapshot = nil
@@ -658,7 +661,7 @@ final class FlashcardsStore {
             do {
                 let now = Date()
                 if initialCloudCredentialRecoveryState == nil {
-                    try self.reload(now: now, refreshVisibleProgress: false)
+                    try self.rebuildReviewData(reason: .initialLoad, now: now)
                 } else {
                     try self.reloadLocalStateForCredentialRecoveryGate(now: now)
                 }

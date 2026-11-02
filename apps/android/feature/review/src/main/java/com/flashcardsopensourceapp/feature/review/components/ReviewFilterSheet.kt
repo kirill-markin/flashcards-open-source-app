@@ -4,10 +4,12 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.material3.Checkbox
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.ListItem
@@ -40,6 +42,7 @@ internal fun ReviewFilterSheet(
     selectedFilter: ReviewFilter,
     availableDeckFilters: List<ReviewDeckFilterOption>,
     availableTagFilters: List<ReviewTagFilterOption>,
+    areFilterOptionsLoaded: Boolean,
     onDismiss: () -> Unit,
     onSelectFilter: (ReviewFilter) -> Unit,
     onToggleTag: (String) -> Unit,
@@ -97,6 +100,22 @@ internal fun ReviewFilterSheet(
                         onSelectFilter(nextFilter)
                     }
                 )
+            }
+
+            if (areFilterOptionsLoaded.not()) {
+                item {
+                    ListItem(
+                        headlineContent = {
+                            Text(stringResource(id = R.string.review_loading))
+                        },
+                        leadingContent = {
+                            CircularProgressIndicator(
+                                strokeWidth = 2.dp,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+                    )
+                }
             }
 
             if (availableDeckFilters.isNotEmpty()) {

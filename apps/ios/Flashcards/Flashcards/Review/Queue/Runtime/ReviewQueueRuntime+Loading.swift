@@ -9,6 +9,8 @@ struct ReviewHeadLoadRequest {
     let reviewQueryDefinition: ReviewQueryDefinition
     let now: Date
     let seedQueueSize: Int
+    /// Kept behind the preserved shown card while the head loads and placed first in the loaded queue.
+    let preservedNextReviewCard: Card?
 }
 
 struct ReviewLoadPlan {
@@ -24,7 +26,8 @@ extension ReviewQueueRuntime {
         workspaceId: String,
         databaseURL: URL,
         now: Date,
-        preservedPresentedReviewCard: Card?
+        preservedPresentedReviewCard: Card?,
+        preservedNextReviewCard: Card?
     ) -> ReviewLoadPlan {
         self.cancelActiveReviewLoads()
 
@@ -33,7 +36,7 @@ extension ReviewQueueRuntime {
 
         let nextPublishedState = ReviewQueuePublishedState(
             selectedReviewFilter: resolvedReviewQuery.reviewFilter,
-            reviewQueue: [],
+            reviewQueue: preservedNextReviewCard.map { card in [card] } ?? [],
             presentedReviewCard: preservedPresentedReviewCard,
             reviewCounts: ReviewCounts(dueCount: 0, totalCount: 0),
             isReviewHeadLoading: true,
@@ -53,7 +56,8 @@ extension ReviewQueueRuntime {
             resolvedReviewFilter: resolvedReviewQuery.reviewFilter,
             reviewQueryDefinition: resolvedReviewQuery.queryDefinition,
             now: now,
-            seedQueueSize: self.reviewSeedQueueSize
+            seedQueueSize: self.reviewSeedQueueSize,
+            preservedNextReviewCard: preservedNextReviewCard
         )
 
         let countsRequest = ReviewCountsLoadRequest(
@@ -80,6 +84,7 @@ extension ReviewQueueRuntime {
     mutating func applyReviewHeadLoadSuccess(
         publishedState: ReviewQueuePublishedState,
         reviewHeadState: ReviewHeadLoadState,
+        preparedNextReviewCard: Card?,
         requestId: String,
         sourceVersion: Int
     ) -> ReviewQueuePublishedState? {
@@ -89,12 +94,16 @@ extension ReviewQueueRuntime {
 
         self.state.hasMoreReviewQueueCards = reviewHeadState.hasMoreCards
         self.clearActiveReviewLoad(requestId: requestId)
+        let reviewQueue = reviewQueueKeepingPreparedNextCard(
+            reviewQueue: reviewHeadState.seedReviewQueue,
+            preparedNextCard: preparedNextReviewCard
+        )
 
         return ReviewQueuePublishedState(
             selectedReviewFilter: reviewHeadState.resolvedReviewFilter,
-            reviewQueue: reviewHeadState.seedReviewQueue,
+            reviewQueue: reviewQueue,
             presentedReviewCard: self.resolvePresentedReviewCard(
-                reviewQueue: reviewHeadState.seedReviewQueue,
+                reviewQueue: reviewQueue,
                 pendingReviewCardIds: publishedState.pendingReviewCardIds,
                 preferredPresentedReviewCard: publishedState.presentedReviewCard
             ),

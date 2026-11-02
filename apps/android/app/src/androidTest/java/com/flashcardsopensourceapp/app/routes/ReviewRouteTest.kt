@@ -114,6 +114,7 @@ class ReviewRouteTest : FirebaseAppInstrumentationTimeoutTest() {
                         preparedNextCard = null,
                         availableDeckFilters = emptyList(),
                         availableTagFilters = emptyList(),
+                        areFilterOptionsLoaded = true,
                         reviewLeaderboardBadge = ReviewLeaderboardBadgeState(
                             rank = leaderboardRank,
                             windowKey = ProgressLeaderboardWindowKey.LAST_24_HOURS,
@@ -170,6 +171,7 @@ class ReviewRouteTest : FirebaseAppInstrumentationTimeoutTest() {
                         screenVisibleCalls += 1
                     },
                     onReviewSurfaceBusyChanged = {},
+                    onFilterSheetVisibilityChanged = {},
                     onRevealAnswer = {},
                     onRateAgain = {},
                     onRateHard = {},
@@ -502,7 +504,8 @@ private fun ReviewRouteTestContent(
             onOpenLeaderboard = {},
             onOpenProgress = {},
             onScreenVisible = onScreenVisible,
-            onReviewSurfaceBusyChanged = {}
+            onReviewSurfaceBusyChanged = {},
+            onFilterSheetVisibilityChanged = {}
         )
     }
 }
@@ -528,6 +531,7 @@ private fun reviewRouteUiState(
             ReviewTagFilterOption(tag = reviewRouteFirstTag, totalCount = 1),
             ReviewTagFilterOption(tag = reviewRouteSecondTag, totalCount = 1)
         ),
+        areFilterOptionsLoaded = true,
         reviewLeaderboardBadge = ReviewLeaderboardBadgeState(
             rank = null,
             windowKey = null,

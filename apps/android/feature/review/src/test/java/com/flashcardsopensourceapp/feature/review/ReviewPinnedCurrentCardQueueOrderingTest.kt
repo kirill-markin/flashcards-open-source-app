@@ -47,6 +47,7 @@ class ReviewPinnedCurrentCardQueueOrderingTest {
         val sessionSnapshot = makePinnedReviewSessionSnapshot(
             canonicalCards = canonicalCards,
             presentedCard = pinnedCard,
+            preparedNextCard = canonicalCards.first(),
             dueCount = 4,
             remainingCount = 4,
             totalCount = 4
@@ -58,7 +59,7 @@ class ReviewPinnedCurrentCardQueueOrderingTest {
         )
         assertEquals("pinned-old-card", sessionSnapshot.presentedCard?.cardId)
         assertEquals(
-            setOf("recent-due-1115-card", "recent-due-1155-card", "pinned-old-card"),
+            setOf("recent-due-1115-card", "recent-due-1155-card", "null-due-card", "pinned-old-card"),
             sessionSnapshot.answerOptionsByCardId.keys
         )
 
@@ -68,14 +69,16 @@ class ReviewPinnedCurrentCardQueueOrderingTest {
                 presentedCard = sessionSnapshot.presentedCard
             )
         )
-        val displayedQueue = buildDisplayedReviewQueue(
-            sessionCards = sessionSnapshot.cards,
-            displayedCurrentCard = displayedCurrentCard
+        val displayedNextCard = requireNotNull(
+            resolveDisplayedNextCard(
+                sessionCards = sessionSnapshot.cards,
+                sessionPreparedNextCard = sessionSnapshot.preparedNextCard,
+                preparedNextCardId = null,
+                displayedCurrentCard = displayedCurrentCard
+            )
         )
-        assertEquals(
-            listOf("pinned-old-card", "recent-due-1115-card", "recent-due-1155-card", "null-due-card"),
-            displayedQueue.map { card -> card.cardId }
-        )
+        assertEquals("pinned-old-card", displayedCurrentCard.cardId)
+        assertEquals("recent-due-1115-card", displayedNextCard.cardId)
 
         val pinnedAnswerOptions = requireNotNull(
             resolveDisplayedSessionAnswerOptions(
@@ -90,7 +93,7 @@ class ReviewPinnedCurrentCardQueueOrderingTest {
 
         val preparedNextAnswerOptions = requireNotNull(
             resolveDisplayedSessionAnswerOptions(
-                displayedCard = displayedQueue[1],
+                displayedCard = displayedNextCard,
                 answerOptionsByCardId = sessionSnapshot.answerOptionsByCardId
             )
         )
@@ -99,6 +102,7 @@ class ReviewPinnedCurrentCardQueueOrderingTest {
         val afterAnswerSnapshot = makePinnedReviewSessionSnapshot(
             canonicalCards = canonicalCards,
             presentedCard = canonicalCards.first(),
+            preparedNextCard = canonicalCards[1],
             dueCount = 4,
             remainingCount = 3,
             totalCount = 4
@@ -118,7 +122,7 @@ class ReviewPinnedCurrentCardQueueOrderingTest {
 
         assertEquals("recent-due-1115-card", displayedCardAfterAnswer.cardId)
         assertEquals(
-            setOf("recent-due-1115-card", "recent-due-1155-card"),
+            setOf("recent-due-1115-card", "recent-due-1155-card", "null-due-card"),
             afterAnswerSnapshot.answerOptionsByCardId.keys
         )
         assertEquals(afterAnswerSnapshot.answerOptions, answerOptionsAfterAnswer)
@@ -130,6 +134,7 @@ private const val pinnedReviewOneDayMillis: Long = 24L * 60L * 60L * 1_000L
 private fun makePinnedReviewSessionSnapshot(
     canonicalCards: List<CardSummary>,
     presentedCard: CardSummary?,
+    preparedNextCard: CardSummary?,
     dueCount: Int,
     remainingCount: Int,
     totalCount: Int
@@ -139,12 +144,13 @@ private fun makePinnedReviewSessionSnapshot(
         decks = emptyList(),
         canonicalCards = canonicalCards,
         presentedCard = presentedCard,
+        preparedNextCard = preparedNextCard,
         dueCount = dueCount,
         remainingCount = remainingCount,
         totalCount = totalCount,
         hasMoreCards = false,
-        availableDeckFilters = emptyList(),
-        availableTagFilters = emptyList(),
+        reviewTagNames = emptyList(),
+        nextDueAtMillis = null,
         settings = makeDefaultWorkspaceSchedulerSettings(
             workspaceId = pinnedReviewWorkspaceId,
             updatedAtMillis = pinnedReviewNowMillis

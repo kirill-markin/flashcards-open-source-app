@@ -1,9 +1,7 @@
 package com.flashcardsopensourceapp.feature.review
 
 import com.flashcardsopensourceapp.data.local.model.review.ReviewCard
-import com.flashcardsopensourceapp.data.local.model.review.ReviewDeckFilterOption
 import com.flashcardsopensourceapp.data.local.model.review.ReviewSessionSnapshot
-import com.flashcardsopensourceapp.data.local.model.review.ReviewTagFilterOption
 
 internal data class VisibleAutoSyncChangeSignature(
     val selectedFilterTitle: String,
@@ -11,9 +9,7 @@ internal data class VisibleAutoSyncChangeSignature(
     val preparedCurrentCard: PreparedReviewCardPresentation?,
     val remainingCount: Int,
     val totalCount: Int,
-    val hasMoreCards: Boolean,
-    val availableDeckFilters: List<ReviewDeckFilterOption>,
-    val availableTagFilters: List<ReviewTagFilterOption>
+    val hasMoreCards: Boolean
 )
 
 internal fun makeVisibleAutoSyncChangeSignature(
@@ -26,9 +22,7 @@ internal fun makeVisibleAutoSyncChangeSignature(
         preparedCurrentCard = preparedCurrentCard,
         remainingCount = sessionSnapshot.remainingCount,
         totalCount = sessionSnapshot.totalCount,
-        hasMoreCards = sessionSnapshot.hasMoreCards,
-        availableDeckFilters = sessionSnapshot.availableDeckFilters,
-        availableTagFilters = sessionSnapshot.availableTagFilters
+        hasMoreCards = sessionSnapshot.hasMoreCards
     )
 }
 
@@ -64,6 +58,7 @@ internal fun applySuccessfulAutoSyncReviewState(
     val nextPresentedCard = sessionSnapshot.presentedCard
     return state.copy(
         presentedCard = nextPresentedCard,
+        preparedNextCardId = sessionSnapshot.preparedNextCard?.cardId,
         revealedCardId = if (state.revealedCardId == nextPresentedCard?.cardId) {
             state.revealedCardId
         } else {

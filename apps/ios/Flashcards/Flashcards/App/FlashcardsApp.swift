@@ -254,6 +254,7 @@ struct FlashcardsApp: App {
                         store.triggerCloudAccountContextRefreshIfActive(surfacesGlobalErrorMessage: false)
                         store.reconcileReviewNotifications(trigger: .appActive, now: now)
                         store.reconcileStrictReminders(trigger: .appActive, now: now)
+                        store.rebuildReviewDataAfterReturningIfNeeded(now: now)
                     } else if nextPhase == .background {
                         // No analytics work in this branch on purpose. `scenePhase` is per scene and
                         // `UIApplicationSupportsMultipleScenes` is on, while every analytics reaction
@@ -262,6 +263,7 @@ struct FlashcardsApp: App {
                         // once, to the app-level `UIApplication` notifications, in
                         // `ReviewNotificationsAppDelegate`.
                         let now = Date()
+                        store.recordReviewDataLeftForeground(now: now)
                         runAppBackgroundTask(name: "AppBackgroundNotificationReconcile") {
                             await store.reconcileAppBackgroundNotifications(now: now)
                         }
@@ -314,6 +316,12 @@ struct FlashcardsApp: App {
                 .task(id: self.cloudSyncPollingTaskID) {
                     await self.runCloudSyncPollingLoop()
                 }
+                .task(id: self.isReviewDataSafetyRebuildActive) {
+                    guard self.isReviewDataSafetyRebuildActive else {
+                        return
+                    }
+                    await self.store.runReviewDataSafetyRebuilds()
+                }
                 .technicalErrorSheet(store: self.store)
         }
         .commands {
@@ -346,6 +354,12 @@ struct FlashcardsApp: App {
             fastPollingUntil: self.store.cloudSyncFastPollingUntil,
             isSyncBlocked: self.store.isCloudSyncBlocked
         )
+    }
+
+    private var isReviewDataSafetyRebuildActive: Bool {
+        self.isStartupReadyForBackgroundWork
+            && self.scenePhase == .active
+            && self.isCloudCredentialRecoveryGateActive == false
     }
 
     private var isAppNotificationTapConsumptionReady: Bool {

@@ -1,11 +1,8 @@
 package com.flashcardsopensourceapp.feature.review
 
-import com.flashcardsopensourceapp.data.local.model.cards.normalizeTagKey
 import com.flashcardsopensourceapp.data.local.model.review.PendingReviewedCard
 import com.flashcardsopensourceapp.data.local.model.review.ReviewCard
-import com.flashcardsopensourceapp.data.local.model.review.ReviewDeckFilterOption
 import com.flashcardsopensourceapp.data.local.model.review.ReviewFilter
-import com.flashcardsopensourceapp.data.local.model.review.ReviewTagFilterOption
 import kotlinx.coroutines.CancellationException
 
 internal fun clearPendingReviewedCard(
@@ -100,8 +97,7 @@ private fun findOwnedReviewQueueObservationSuppression(
         state = state,
         newlyDueCards = queueChange.addedCards
     ) && removedSubmissions.any { submission ->
-        submission.presentedCard == null &&
-            submission.reviewedCard.cardId == previousSignature.presentedCard?.cardId
+        submission.presentedCard == null
     }
     if (showsOwnedNextCard.not() && showsNewlyDueCardAfterOwnedLastCard.not()) {
         return null
@@ -116,16 +112,6 @@ private fun findOwnedReviewQueueObservationSuppression(
             queueSubmissionCount = removedSubmissions.size,
             committedSubmissionCount = committedSubmissions.size,
             maxNewlyDueCardCount = queueChange.addedCards.size
-        ).not()
-    ) {
-        return null
-    }
-    if (
-        isOwnedReviewFilterOptionChange(
-            previousSignature = previousSignature,
-            nextSignature = nextSignature,
-            committedReviewedCards = committedSubmissions.map(OwnedReviewSubmission::reviewedCard),
-            possiblyNewlyDueCards = queueChange.addedCards
         ).not()
     ) {
         return null
@@ -196,11 +182,6 @@ private fun findOwnedReviewCommitObservationSuppression(
             queueSubmissionCount = submissions.size,
             committedSubmissionCount = submissions.size,
             maxNewlyDueCardCount = newlyDueCards.size
-        ) && isOwnedReviewFilterOptionChange(
-            previousSignature = previousSignature,
-            nextSignature = nextSignature,
-            committedReviewedCards = submissions.map(OwnedReviewSubmission::reviewedCard),
-            possiblyNewlyDueCards = newlyDueCards
         )
     } ?: return null
 
@@ -335,96 +316,6 @@ private fun isOwnedReviewCountChange(
     return dueCountDelta > 0 || remainingCountDelta > 0 || maxNewlyDueCardCount > 0
 }
 
-private fun isOwnedReviewFilterOptionChange(
-    previousSignature: ObservedReviewSessionSignature,
-    nextSignature: ObservedReviewSessionSignature,
-    committedReviewedCards: List<ReviewCard>,
-    possiblyNewlyDueCards: List<ReviewCard>
-): Boolean {
-    val dueCountDelta = previousSignature.dueCount - nextSignature.dueCount
-    if (dueCountDelta == 0 && possiblyNewlyDueCards.isEmpty()) {
-        return previousSignature.availableDeckFilters == nextSignature.availableDeckFilters &&
-            previousSignature.availableTagFilters == nextSignature.availableTagFilters
-    }
-
-    return hasOwnedDeckFilterOptionChange(
-        previousOptions = previousSignature.availableDeckFilters,
-        nextOptions = nextSignature.availableDeckFilters,
-        committedReviewedCards = committedReviewedCards,
-        possiblyNewlyDueCards = possiblyNewlyDueCards
-    ) && hasOwnedTagFilterOptionChange(
-        previousOptions = previousSignature.availableTagFilters,
-        nextOptions = nextSignature.availableTagFilters,
-        committedReviewedCards = committedReviewedCards,
-        possiblyNewlyDueCards = possiblyNewlyDueCards
-    )
-}
-
-private fun hasOwnedDeckFilterOptionChange(
-    previousOptions: List<ReviewDeckFilterOption>,
-    nextOptions: List<ReviewDeckFilterOption>,
-    committedReviewedCards: List<ReviewCard>,
-    possiblyNewlyDueCards: List<ReviewCard>
-): Boolean {
-    if (previousOptions.size != nextOptions.size) {
-        return false
-    }
-
-    val nextOptionsByDeckId = nextOptions.associateBy { option ->
-        option.deckId
-    }
-    return previousOptions.all { previousOption ->
-        val nextOption = nextOptionsByDeckId[previousOption.deckId] ?: return false
-        val countDelta = previousOption.totalCount - nextOption.totalCount
-        nextOption.title == previousOption.title &&
-            nextOption.tags == previousOption.tags &&
-            countDelta >= -possiblyNewlyDueCards.size &&
-            countDelta <= committedReviewedCards.size
-    }
-}
-
-private fun hasOwnedTagFilterOptionChange(
-    previousOptions: List<ReviewTagFilterOption>,
-    nextOptions: List<ReviewTagFilterOption>,
-    committedReviewedCards: List<ReviewCard>,
-    possiblyNewlyDueCards: List<ReviewCard>
-): Boolean {
-    val previousOptionsByTagKey = previousOptions.associateBy { option ->
-        normalizeTagKey(tag = option.tag)
-    }
-    val nextOptionsByTagKey = nextOptions.associateBy { option ->
-        normalizeTagKey(tag = option.tag)
-    }
-    if (
-        nextOptionsByTagKey.keys.any { tagKey ->
-            previousOptionsByTagKey.containsKey(tagKey).not()
-        }
-    ) {
-        return false
-    }
-    val committedReviewTagKeysByCard: List<Set<String>> = committedReviewedCards.map(::normalizedTagKeys)
-    val possiblyNewlyDueTagKeysByCard: List<Set<String>> = possiblyNewlyDueCards.map(::normalizedTagKeys)
-
-    return previousOptions.all { previousOption ->
-        val tagKey: String = normalizeTagKey(tag = previousOption.tag)
-        val committedDelta: Int = committedReviewTagKeysByCard.count { committedReviewTagKeys ->
-            committedReviewTagKeys.contains(tagKey)
-        }
-        val maxNewlyDueDelta: Int = possiblyNewlyDueTagKeysByCard.count { newlyDueTagKeys ->
-            newlyDueTagKeys.contains(tagKey)
-        }
-        val minExpectedCount: Int = maxOf(0, previousOption.totalCount - committedDelta)
-        val nextCount: Int = nextOptionsByTagKey[tagKey]?.totalCount ?: return@all false
-        nextCount >= minExpectedCount && nextCount <= minExpectedCount + maxNewlyDueDelta
-    }
-}
-
-private fun normalizedTagKeys(card: ReviewCard): Set<String> {
-    return card.tags.map { tag ->
-        normalizeTagKey(tag = tag)
-    }.toSet()
-}
-
 internal fun markOwnedReviewSubmissionCommitPendingObservation(
     ownedReviewSubmissions: Map<PendingReviewedCard, OwnedReviewSubmission>,
     pendingReviewedCard: PendingReviewedCard
@@ -484,11 +375,13 @@ internal fun isCurrentReviewSubmissionContext(
 internal fun applyOptimisticReviewSubmission(
     state: ReviewDraftState,
     nextPresentedCard: ReviewCard?,
+    nextPreparedNextCardId: String?,
     pendingReviewedCard: PendingReviewedCard,
     optimisticPreparedCurrentCard: PreparedReviewCardPresentation?
 ): ReviewDraftState {
     return state.copy(
         presentedCard = nextPresentedCard,
+        preparedNextCardId = nextPreparedNextCardId,
         revealedCardId = null,
         pendingReviewedCards = state.pendingReviewedCards + pendingReviewedCard,
         optimisticPreparedCurrentCard = optimisticPreparedCurrentCard,
@@ -554,6 +447,8 @@ internal fun applyFailedReviewSubmission(
 
     return state.copy(
         presentedCard = validRollbackCard,
+        // The card shown after the failed rating is prepared next again.
+        preparedNextCardId = state.presentedCard?.cardId?.takeIf { cardId -> cardId != validRollbackCard.cardId },
         pendingReviewedCards = pendingReviewedCards,
         optimisticPreparedCurrentCard = null,
         errorMessage = errorMessage

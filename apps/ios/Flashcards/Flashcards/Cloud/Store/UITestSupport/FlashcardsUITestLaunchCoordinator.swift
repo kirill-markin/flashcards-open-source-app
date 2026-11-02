@@ -83,7 +83,7 @@ private struct FlashcardsUITestLaunchCoordinator {
                 launchScenario: self.launchScenario,
                 processInfo: self.processInfo
             )
-            try store.reload(now: Date(), refreshVisibleProgress: false)
+            try store.rebuildReviewData(reason: .initialLoad, now: Date())
             return
         }
 

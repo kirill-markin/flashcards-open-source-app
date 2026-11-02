@@ -47,6 +47,8 @@ data class ReviewUiState(
     val preparedNextCard: PreparedReviewCardPresentation?,
     val availableDeckFilters: List<ReviewDeckFilterOption>,
     val availableTagFilters: List<ReviewTagFilterOption>,
+    /** False until the open filter sheet's first options load. */
+    val areFilterOptionsLoaded: Boolean,
     val reviewLeaderboardBadge: ReviewLeaderboardBadgeState,
     val reviewProgressBadge: ReviewProgressBadgeState,
     val isPreviewLoading: Boolean,

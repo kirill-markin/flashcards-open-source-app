@@ -10,11 +10,29 @@ import com.flashcardsopensourceapp.data.local.model.review.ReviewRating
 import com.flashcardsopensourceapp.data.local.repository.shared.TimeProvider
 import java.time.Instant
 import java.time.ZoneId
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
+
+private const val committedReviewBufferCapacity: Int = 64
 
 class LocalProgressCacheStore(
     private val database: AppDatabase,
     private val timeProvider: TimeProvider
 ) {
+    private val committedReviews = MutableSharedFlow<ReviewLogEntity>(
+        extraBufferCapacity = committedReviewBufferCapacity
+    )
+
+    fun observeCommittedReviews(): Flow<ReviewLogEntity> {
+        return committedReviews.asSharedFlow()
+    }
+
+    // Call after the transaction that ran recordReviewInTransaction commits, never inside it.
+    suspend fun publishCommittedReview(reviewLog: ReviewLogEntity) {
+        committedReviews.emit(value = reviewLog)
+    }
+
     suspend fun recordReviewInTransaction(
         reviewLog: ReviewLogEntity,
         updatedAtMillis: Long

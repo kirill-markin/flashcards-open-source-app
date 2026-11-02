@@ -544,6 +544,7 @@ class MainActivityTest : FirebaseAppInstrumentationTimeoutTest() {
         waitForTagToExist(tag = reviewFilterButtonTag)
         composeRule.onNodeWithTag(reviewFilterButtonTag).performClick()
         waitForTagToExist(tag = reviewFilterSheetTag)
+        waitForReviewFilterTagOptions(tags = listOf("Alpha", "Beta", "Gamma"))
         composeRule.onNodeWithTag(reviewFilterAllCardsOptionTag).assertIsOn()
         composeRule.onNodeWithTag(reviewFilterTagOptionTag(tag = "Alpha")).assertIsOn()
         composeRule.onNodeWithTag(reviewFilterTagOptionTag(tag = "Beta")).assertIsOn()
@@ -571,6 +572,7 @@ class MainActivityTest : FirebaseAppInstrumentationTimeoutTest() {
 
         composeRule.onNodeWithTag(reviewFilterButtonTag).performClick()
         waitForTagToExist(tag = reviewFilterSheetTag)
+        waitForReviewFilterTagOptions(tags = listOf("Alpha", "Beta", "Gamma"))
         composeRule.onNodeWithTag(reviewFilterAllCardsOptionTag).assertIsOff()
         composeRule.onNodeWithTag(reviewFilterTagOptionTag(tag = "Alpha")).assertIsOff()
         composeRule.onNodeWithTag(reviewFilterTagOptionTag(tag = "Beta")).assertIsOff()
@@ -588,6 +590,7 @@ class MainActivityTest : FirebaseAppInstrumentationTimeoutTest() {
 
         recreateActivity()
         waitForTagToExist(tag = reviewFilterSheetTag)
+        waitForReviewFilterTagOptions(tags = listOf("Alpha", "Beta", "Gamma"))
         composeRule.onNodeWithTag(reviewFilterAllCardsOptionTag).assertIsOff()
         composeRule.onNodeWithTag(reviewFilterTagOptionTag(tag = "Alpha")).assertIsOn()
         composeRule.onNodeWithTag(reviewFilterTagOptionTag(tag = "Beta")).assertIsOff()
@@ -607,6 +610,7 @@ class MainActivityTest : FirebaseAppInstrumentationTimeoutTest() {
 
         composeRule.onNodeWithTag(reviewFilterButtonTag).performClick()
         waitForTagToExist(tag = reviewFilterSheetTag)
+        waitForReviewFilterTagOptions(tags = listOf("Alpha", "Beta", "Gamma"))
         composeRule.onNodeWithTag(reviewFilterTagOptionTag(tag = "Beta")).performClick()
         composeRule.onNodeWithTag(reviewFilterTagOptionTag(tag = "Alpha")).assertIsOn()
         composeRule.onNodeWithTag(reviewFilterTagOptionTag(tag = "Beta")).assertIsOn()
@@ -633,6 +637,7 @@ class MainActivityTest : FirebaseAppInstrumentationTimeoutTest() {
 
         composeRule.onNodeWithTag(reviewFilterButtonTag).performClick()
         waitForTagToExist(tag = reviewFilterSheetTag)
+        waitForReviewFilterTagOptions(tags = listOf("Alpha", "Beta", "Gamma"))
         composeRule.onNodeWithTag(reviewFilterTagOptionTag(tag = "Alpha")).assertIsOn()
         composeRule.onNodeWithTag(reviewFilterTagOptionTag(tag = "Beta")).assertIsOn()
         composeRule.onNodeWithTag(reviewFilterTagOptionTag(tag = "Gamma")).assertIsOff()
@@ -655,6 +660,7 @@ class MainActivityTest : FirebaseAppInstrumentationTimeoutTest() {
         )
 
         composeRule.onNodeWithTag(reviewFilterButtonTag).performClick()
+        waitForReviewFilterTagOptions(tags = listOf("Alpha", "Beta", "Gamma"))
         composeRule.onNodeWithTag(reviewFilterAllCardsOptionTag).assertIsOn()
         composeRule.onNodeWithTag(reviewFilterTagOptionTag(tag = "Alpha")).assertIsOn()
         composeRule.onNodeWithTag(reviewFilterTagOptionTag(tag = "Beta")).assertIsOn()
@@ -1002,6 +1008,13 @@ class MainActivityTest : FirebaseAppInstrumentationTimeoutTest() {
     private fun waitForTagToExist(tag: String) {
         composeRule.waitUntil(timeoutMillis = uiTimeoutMillis) {
             countNodesWithTagInAnySemanticsTree(tag = tag) > 0
+        }
+    }
+
+    /** Filter options load after the sheet opens, so wait for each tag row before asserting on it. */
+    private fun waitForReviewFilterTagOptions(tags: List<String>) {
+        tags.forEach { tag ->
+            waitForTagToExist(tag = reviewFilterTagOptionTag(tag = tag))
         }
     }
 

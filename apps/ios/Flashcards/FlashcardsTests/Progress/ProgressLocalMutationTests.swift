@@ -43,6 +43,11 @@ final class ProgressLocalMutationTests: ProgressStoreTestCase {
         XCTAssertEqual(.serverBase, initialSnapshot.summarySourceState)
         XCTAssertEqual(.serverBase, initialSnapshot.seriesSourceState)
         XCTAssertEqual(2, progressReviewCount(snapshot: initialSnapshot, localDate: requestRange.to))
+        try self.addReviewedCard(
+            database: database,
+            workspaceId: workspace.workspaceId,
+            reviewedAtClient: "2026-04-18T12:30:00.000Z"
+        )
 
         context.store.handleProgressLocalMutation(
             now: now,
@@ -50,11 +55,13 @@ final class ProgressLocalMutationTests: ProgressStoreTestCase {
             reviewedTimeZone: "UTC",
             rating: .good
         )
+        // A rating recalculates the charts only when Progress is shown.
+        _ = try context.store.prepareProgressSnapshot(now: now)
 
         XCTAssertEqual(1, context.cloudSyncService.loadProgressSummaryCallCount)
         XCTAssertEqual(1, context.cloudSyncService.loadProgressSeriesCallCount)
         let progressSnapshot = try XCTUnwrap(context.store.progressSnapshot)
-        XCTAssertEqual(initialSnapshot.summarySourceState, progressSnapshot.summarySourceState)
+        XCTAssertEqual(.serverBaseWithPendingLocalOverlay, progressSnapshot.summarySourceState)
         XCTAssertEqual(.serverBaseWithPendingLocalOverlay, progressSnapshot.seriesSourceState)
         XCTAssertFalse(progressSnapshot.isApproximate)
         XCTAssertEqual(3, progressReviewCount(snapshot: progressSnapshot, localDate: requestRange.to))
@@ -132,9 +139,11 @@ final class ProgressLocalMutationTests: ProgressStoreTestCase {
             reviewedTimeZone: "UTC",
             rating: .good
         )
+        // A rating recalculates the charts only when Progress is shown.
+        _ = try context.store.prepareProgressSnapshot(now: now)
 
         let progressSnapshot = try XCTUnwrap(context.store.progressSnapshot)
-        XCTAssertEqual(.serverBase, progressSnapshot.summarySourceState)
+        XCTAssertEqual(.serverBaseWithPendingLocalOverlay, progressSnapshot.summarySourceState)
         XCTAssertEqual(.localOnly, progressSnapshot.seriesSourceState)
         XCTAssertEqual(1, progressReviewCount(snapshot: progressSnapshot, localDate: "2026-04-02"))
         XCTAssertEqual(1, progressReviewCount(snapshot: progressSnapshot, localDate: "2026-04-03"))
@@ -218,6 +227,8 @@ final class ProgressLocalMutationTests: ProgressStoreTestCase {
             reviewedTimeZone: "UTC",
             rating: .good
         )
+        // A rating recalculates the charts only when Progress is shown.
+        _ = try context.store.prepareProgressSnapshot(now: now)
 
         let progressSnapshot = try XCTUnwrap(context.store.progressSnapshot)
         XCTAssertEqual(.localOnly, progressSnapshot.summarySourceState)
@@ -340,6 +351,11 @@ final class ProgressLocalMutationTests: ProgressStoreTestCase {
         defer { context.tearDown() }
 
         await context.store.refreshProgressIfNeeded(now: now)
+        try self.addReviewedCard(
+            database: database,
+            workspaceId: workspace.workspaceId,
+            reviewedAtClient: formatIsoTimestamp(date: yesterdayReviewDate)
+        )
 
         context.store.handleProgressLocalMutation(
             now: now,
@@ -347,6 +363,8 @@ final class ProgressLocalMutationTests: ProgressStoreTestCase {
             reviewedTimeZone: "UTC",
             rating: .good
         )
+        // A rating recalculates the charts only when Progress is shown.
+        _ = try context.store.prepareProgressSnapshot(now: now)
 
         let progressSnapshot = try XCTUnwrap(context.store.progressSnapshot)
         XCTAssertEqual(0, progressReviewCount(snapshot: progressSnapshot, localDate: yesterdayLocalDate))
@@ -399,17 +417,26 @@ final class ProgressLocalMutationTests: ProgressStoreTestCase {
         await context.store.refreshProgressIfNeeded(now: now)
         let initialSnapshot = try XCTUnwrap(context.store.progressSnapshot)
         XCTAssertEqual(.missed, progressStreakState(snapshot: initialSnapshot, localDate: "2026-04-17"))
+        let reviewedAtClient = try makeReviewedAtClientForTests(
+            localDate: "2026-04-16",
+            hour: 12,
+            timeZoneIdentifier: requestRange.timeZone
+        )
+        try self.addReviewedCard(
+            database: database,
+            workspaceId: workspace.workspaceId,
+            reviewedAtClient: reviewedAtClient,
+            reviewedTimeZone: requestRange.timeZone
+        )
 
         context.store.handleProgressLocalMutation(
             now: now,
-            reviewedAtClient: try makeReviewedAtClientForTests(
-                localDate: "2026-04-16",
-                hour: 12,
-                timeZoneIdentifier: requestRange.timeZone
-            ),
+            reviewedAtClient: reviewedAtClient,
             reviewedTimeZone: requestRange.timeZone,
             rating: .good
         )
+        // A rating recalculates the charts only when Progress is shown.
+        _ = try context.store.prepareProgressSnapshot(now: now)
 
         let progressSnapshot = try XCTUnwrap(context.store.progressSnapshot)
         XCTAssertEqual(.missed, progressStreakState(snapshot: progressSnapshot, localDate: "2026-04-16"))
@@ -473,17 +500,25 @@ final class ProgressLocalMutationTests: ProgressStoreTestCase {
         await context.store.refreshProgressIfNeeded(now: now)
         let initialSnapshot = try XCTUnwrap(context.store.progressSnapshot)
         XCTAssertEqual(.frozen, progressStreakState(snapshot: initialSnapshot, localDate: frozenLocalDate))
+        let reviewedAtClient = try makeReviewedAtClientForTests(
+            localDate: requestRange.to,
+            hour: 12,
+            timeZoneIdentifier: requestRange.timeZone
+        )
+        try self.addReviewedCard(
+            database: database,
+            workspaceId: workspace.workspaceId,
+            reviewedAtClient: reviewedAtClient
+        )
 
         context.store.handleProgressLocalMutation(
             now: now,
-            reviewedAtClient: try makeReviewedAtClientForTests(
-                localDate: requestRange.to,
-                hour: 12,
-                timeZoneIdentifier: requestRange.timeZone
-            ),
+            reviewedAtClient: reviewedAtClient,
             reviewedTimeZone: "UTC",
             rating: .good
         )
+        // A rating recalculates the charts only when Progress is shown.
+        _ = try context.store.prepareProgressSnapshot(now: now)
 
         let progressSnapshot = try XCTUnwrap(context.store.progressSnapshot)
         XCTAssertEqual(.frozen, progressStreakState(snapshot: progressSnapshot, localDate: frozenLocalDate))
@@ -584,6 +619,11 @@ final class ProgressLocalMutationTests: ProgressStoreTestCase {
         )
         XCTAssertEqual(2, initialReadyState.viewerRank)
         XCTAssertEqual(0, initialReadyState.viewerStreakDays)
+        try self.addReviewedCard(
+            database: database,
+            workspaceId: workspace.workspaceId,
+            reviewedAtClient: "2026-06-10T12:15:00.000Z"
+        )
 
         context.store.handleProgressLocalMutation(
             now: now,
@@ -591,6 +631,8 @@ final class ProgressLocalMutationTests: ProgressStoreTestCase {
             reviewedTimeZone: "UTC",
             rating: .good
         )
+        // A rating recalculates the charts only when Progress is shown.
+        _ = try context.store.prepareProgressSnapshot(now: now)
 
         let progressSnapshot = try XCTUnwrap(context.store.progressSnapshot)
         XCTAssertEqual(1, progressSnapshot.summary.currentStreakDays)
@@ -663,6 +705,8 @@ final class ProgressLocalMutationTests: ProgressStoreTestCase {
             reviewedTimeZone: "UTC",
             rating: .good
         )
+        // A rating recalculates the charts only when Progress is shown.
+        _ = try context.store.prepareProgressSnapshot(now: rolloverNow)
 
         let progressSnapshot = try XCTUnwrap(context.store.progressSnapshot)
         XCTAssertEqual(rolloverRequestRange.to, progressSnapshot.scopeKey.to)
