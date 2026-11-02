@@ -71,7 +71,6 @@ import androidx.compose.ui.unit.dp
 import com.flashcardsopensourceapp.core.ui.bidiWrap
 import com.flashcardsopensourceapp.core.ui.currentResourceLocale
 import com.flashcardsopensourceapp.data.local.model.media.MediaAssetDownloadUrl
-import com.flashcardsopensourceapp.data.local.model.media.ReviewMediaAssetFile
 import java.text.NumberFormat
 
 private val reviewShowAnswerContentBottomPadding = 120.dp
@@ -116,7 +115,7 @@ internal fun ReviewContent(
     onCreateCard: () -> Unit,
     onCreateCardWithAi: () -> Unit,
     onSwitchToAllCards: () -> Unit,
-    onLoadManagedMediaFile: suspend (String) -> ReviewMediaAssetFile,
+    reviewImagePreparer: ReviewImagePreparer,
     onLoadManagedMediaDownloadUrl: suspend (String) -> MediaAssetDownloadUrl,
     onConsumeRelocationTarget: (String?, Boolean) -> ReviewRelocationTarget?,
     onToggleFrontSpeech: () -> Unit,
@@ -202,7 +201,7 @@ internal fun ReviewContent(
                                 card.tags
                             )
                         },
-                        onLoadManagedMediaFile = onLoadManagedMediaFile,
+                        reviewImagePreparer = reviewImagePreparer,
                         onLoadManagedMediaDownloadUrl = onLoadManagedMediaDownloadUrl,
                         onToggleFrontSpeech = onToggleFrontSpeech,
                         onToggleBackSpeech = onToggleBackSpeech,
@@ -323,7 +322,7 @@ private fun ReviewCardContent(
     activeSpeechSide: ReviewSpeechSide?,
     onOpenCurrentCard: () -> Unit,
     onOpenCurrentCardWithAi: () -> Unit,
-    onLoadManagedMediaFile: suspend (String) -> ReviewMediaAssetFile,
+    reviewImagePreparer: ReviewImagePreparer,
     onLoadManagedMediaDownloadUrl: suspend (String) -> MediaAssetDownloadUrl,
     onToggleFrontSpeech: () -> Unit,
     onToggleBackSpeech: () -> Unit,
@@ -406,7 +405,7 @@ private fun ReviewCardContent(
                         .testTag(reviewSelectFrontTextButtonTag),
                     onSelectText = onSelectFrontText,
                     contentModifier = Modifier.testTag(reviewCurrentCardFrontContentTag),
-                    onLoadManagedMediaFile = onLoadManagedMediaFile,
+                    reviewImagePreparer = reviewImagePreparer,
                     onLoadManagedMediaDownloadUrl = onLoadManagedMediaDownloadUrl,
                     isSpeechPlaying = activeSpeechSide == ReviewSpeechSide.FRONT,
                     onToggleSpeech = onToggleFrontSpeech,
@@ -428,7 +427,7 @@ private fun ReviewCardContent(
                         labelModifier = Modifier.testTag(reviewSelectBackTextButtonTag),
                         onSelectText = onSelectBackText,
                         contentModifier = Modifier,
-                        onLoadManagedMediaFile = onLoadManagedMediaFile,
+                        reviewImagePreparer = reviewImagePreparer,
                         onLoadManagedMediaDownloadUrl = onLoadManagedMediaDownloadUrl,
                         isSpeechPlaying = activeSpeechSide == ReviewSpeechSide.BACK,
                         onToggleSpeech = onToggleBackSpeech,
@@ -494,7 +493,7 @@ private fun ReviewCardSideSection(
     labelModifier: Modifier,
     onSelectText: () -> Unit,
     contentModifier: Modifier,
-    onLoadManagedMediaFile: suspend (String) -> ReviewMediaAssetFile,
+    reviewImagePreparer: ReviewImagePreparer,
     onLoadManagedMediaDownloadUrl: suspend (String) -> MediaAssetDownloadUrl,
     isSpeechPlaying: Boolean,
     onToggleSpeech: () -> Unit,
@@ -538,7 +537,7 @@ private fun ReviewCardSideSection(
             SelectionContainer {
                 ReviewRenderedContentView(
                     content = content,
-                    onLoadManagedMediaFile = onLoadManagedMediaFile,
+                    reviewImagePreparer = reviewImagePreparer,
                     onLoadManagedMediaDownloadUrl = onLoadManagedMediaDownloadUrl,
                     modifier = contentModifier
                 )
