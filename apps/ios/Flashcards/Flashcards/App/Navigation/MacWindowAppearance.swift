@@ -37,6 +37,10 @@ struct MacWindowAppearance: UIViewRepresentable {
             super.didMoveToWindow()
             self.coordinator?.attach(view: self)
         }
+        override func layoutSubviews() {
+            super.layoutSubviews()
+            self.coordinator?.refreshSidebar(view: self)
+        }
     }
 
     @MainActor
@@ -48,6 +52,7 @@ struct MacWindowAppearance: UIViewRepresentable {
         private weak var bridgeView: WindowView?
         private weak var scene: UIWindowScene?
         private weak var splitViewController: UISplitViewController?
+        private var sidebarWidth: CGFloat?
         private var sidebarItem: NSToolbarItem?
         var onSidebarVisibilityChange: (Bool) -> Void
         private var toolbar: NSToolbar?
@@ -89,11 +94,20 @@ struct MacWindowAppearance: UIViewRepresentable {
         }
 
         func update(configuration: MacWindowToolbarConfiguration, view: WindowView) {
-            if self.configuration.tab != configuration.tab || self.configuration.title != configuration.title
+            let didChangeTab = self.configuration.tab != configuration.tab
+            if didChangeTab || self.configuration.title != configuration.title
                 || self.configuration.search?.prompt != configuration.search?.prompt {
                 self.searchField.resignFirstResponder()
             }
             self.configuration = configuration
+            self.refreshSidebar(view: view)
+            if didChangeTab {
+                // UIKit may finish selecting the new tab after this SwiftUI update.
+                DispatchQueue.main.async { [weak self, weak view] in
+                    guard let view else { return }
+                    self?.refreshSidebar(view: view)
+                }
+            }
             // Several SwiftUI passes per section switch publish the same presentation;
             // only its closures change. Skip native toolbar work when nothing visible did.
             let presentation = MacToolbarPresentation(configuration)
@@ -154,17 +168,45 @@ struct MacWindowAppearance: UIViewRepresentable {
             self.searchItem = nil
             self.scene = nil
             self.splitViewController = nil
+            self.sidebarWidth = nil
             self.sidebarItem = nil
             self.bridgeView = nil
         }
 
-        private func configureSidebar(in window: UIWindow) {
-            func findSplit(in controller: UIViewController) -> UISplitViewController? {
-                if let split = controller as? UISplitViewController { return split }
-                return controller.children.lazy.compactMap { findSplit(in: $0) }.first
+        func refreshSidebar(view: WindowView) {
+            guard let window = view.window, window.windowScene === self.scene else { return }
+            if self.configureSidebar(in: window) {
+                self.refreshItems()
             }
-            guard let root = window.rootViewController, let split = findSplit(in: root) else { return }
-            if self.splitViewController !== split {
+        }
+
+        @discardableResult
+        private func configureSidebar(in window: UIWindow) -> Bool {
+            func findSelectedSplit(in controller: UIViewController) -> UISplitViewController? {
+                if let tabs = controller as? UITabBarController {
+                    return tabs.selectedViewController.flatMap { findSelectedSplit(in: $0) }
+                }
+                if let navigation = controller as? UINavigationController {
+                    return navigation.visibleViewController.flatMap { findSelectedSplit(in: $0) }
+                }
+                if let split = controller as? UISplitViewController { return split }
+                return controller.children.lazy.compactMap { findSelectedSplit(in: $0) }.first
+            }
+            let split = window.rootViewController.flatMap { findSelectedSplit(in: $0) }
+            let didChangeSplit = self.splitViewController !== split
+            if didChangeSplit {
+                // Read the user's actual divider position before restoring it in the next tab.
+                if let previous = self.splitViewController, previous.primaryColumnWidth > 0 {
+                    self.sidebarWidth = previous.primaryColumnWidth
+                }
+                self.splitViewController = split
+                if let split, let width = self.sidebarWidth {
+                    split.preferredPrimaryColumnWidth = width
+                }
+            }
+            guard let split else { return didChangeSplit }
+            if didChangeSplit == false, self.sidebarItem != nil { return false }
+            if self.sidebarItem == nil {
                 let button = UIBarButtonItem(image: UIImage(systemName: "sidebar.left"), style: .plain,
                     target: self, action: #selector(self.toggleSidebar))
                 button.accessibilityIdentifier = "mac.sidebar.toggle"
@@ -177,7 +219,6 @@ struct MacWindowAppearance: UIViewRepresentable {
                 item.autovalidates = false
                 self.sidebarItem = item
             }
-            self.splitViewController = split
             // This public Catalyst style supplies the native full-height sidebar material.
             split.primaryBackgroundStyle = .sidebar
             let primary = split.viewController(for: .primary)
@@ -185,9 +226,13 @@ struct MacWindowAppearance: UIViewRepresentable {
             primary?.viewIfLoaded?.isOpaque = false
             (primary as? UINavigationController)?.topViewController?.viewIfLoaded?.backgroundColor = .clear
             (primary as? UINavigationController)?.topViewController?.viewIfLoaded?.isOpaque = false
+            return didChangeSplit
         }
 
         @objc private func toggleSidebar() {
+            if let view = self.bridgeView {
+                self.refreshSidebar(view: view)
+            }
             guard let split = self.splitViewController, let item = self.sidebarItem,
                   self.actionContext(item: item) != nil else { return }
             let isVisible: Bool

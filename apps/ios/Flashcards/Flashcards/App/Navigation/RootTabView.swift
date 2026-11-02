@@ -298,6 +298,11 @@ struct RootTabView: View {
         @Bindable var navigation = self.navigation
         return TabView(selection: self.selectedTabBinding) {
             Tab(value: AppTab.review) {
+                #if targetEnvironment(macCatalyst)
+                self.macTabContent(for: .review) {
+                    self.reviewTab
+                }
+                #else
                 self.reviewTab
                     .background {
                         if UIDevice.current.userInterfaceIdiom == .phone {
@@ -306,6 +311,7 @@ struct RootTabView: View {
                                 .accessibilityHidden(true)
                         }
                     }
+                #endif
             } label: {
                 self.tabLabel(.review, identifier: UITestIdentifier.rootTabReviewItem)
             }
@@ -313,6 +319,11 @@ struct RootTabView: View {
             .badge(self.reviewDueBadgeLabel)
 
             Tab(value: AppTab.progress) {
+                #if targetEnvironment(macCatalyst)
+                self.macTabContent(for: .progress) {
+                    self.progressTab
+                }
+                #else
                 self.progressTab
                     .background {
                         if UIDevice.current.userInterfaceIdiom == .phone {
@@ -321,12 +332,18 @@ struct RootTabView: View {
                                 .accessibilityHidden(true)
                         }
                     }
+                #endif
             } label: {
                 self.tabLabel(.progress, identifier: UITestIdentifier.rootTabProgressItem)
             }
             .accessibilityIdentifier(UITestIdentifier.rootTabProgressItem, isEnabled: true)
 
             Tab(value: AppTab.ai) {
+                #if targetEnvironment(macCatalyst)
+                self.macTabContent(for: .ai) {
+                    self.aiTab(aiPath: $navigation.aiPath)
+                }
+                #else
                 self.aiTab(aiPath: $navigation.aiPath)
                     .background {
                         if UIDevice.current.userInterfaceIdiom == .phone {
@@ -335,12 +352,18 @@ struct RootTabView: View {
                                 .accessibilityHidden(true)
                         }
                     }
+                #endif
             } label: {
                 self.tabLabel(.ai, identifier: UITestIdentifier.rootTabAIItem)
             }
             .accessibilityIdentifier(UITestIdentifier.rootTabAIItem, isEnabled: true)
 
             Tab(value: AppTab.cards) {
+                #if targetEnvironment(macCatalyst)
+                self.macTabContent(for: .cards) {
+                    self.cardsTab
+                }
+                #else
                 self.cardsTab
                     .background {
                         if UIDevice.current.userInterfaceIdiom == .phone {
@@ -349,12 +372,18 @@ struct RootTabView: View {
                                 .accessibilityHidden(true)
                         }
                     }
+                #endif
             } label: {
                 self.tabLabel(.cards, identifier: UITestIdentifier.rootTabCardsItem)
             }
             .accessibilityIdentifier(UITestIdentifier.rootTabCardsItem, isEnabled: true)
 
             Tab(value: AppTab.settings) {
+                #if targetEnvironment(macCatalyst)
+                self.macTabContent(for: .settings) {
+                    self.settingsTab(settingsPath: $navigation.settingsPath)
+                }
+                #else
                 self.settingsTab(settingsPath: $navigation.settingsPath)
                     .background {
                         if UIDevice.current.userInterfaceIdiom == .phone {
@@ -363,6 +392,7 @@ struct RootTabView: View {
                                 .accessibilityHidden(true)
                         }
                     }
+                #endif
             } label: {
                 self.tabLabel(.settings, identifier: UITestIdentifier.rootTabSettingsItem)
             }
@@ -374,45 +404,9 @@ struct RootTabView: View {
     @ViewBuilder
     private var tabRootPresentation: some View {
         #if targetEnvironment(macCatalyst)
-        NavigationSplitView(columnVisibility: self.$macSidebarVisibility) {
-            List(selection: Binding<AppTab?>(
-                get: { self.navigation.selectedTab },
-                set: { if let tab = $0 { self.selectedTabBinding.wrappedValue = tab } }
-            )) {
-                self.macSidebarRow(.review, identifier: UITestIdentifier.rootTabReviewItem)
-                    .badge(self.reviewDueBadgeLabel)
-                    .tag(AppTab.review)
-                self.macSidebarRow(.progress, identifier: UITestIdentifier.rootTabProgressItem)
-                self.macSidebarRow(.ai, identifier: UITestIdentifier.rootTabAIItem)
-                self.macSidebarRow(.cards, identifier: UITestIdentifier.rootTabCardsItem)
-                self.macSidebarRow(.settings, identifier: UITestIdentifier.rootTabSettingsItem)
-                    .badge(self.settingsAttentionSummary.settingsTabCount)
-                    .tag(AppTab.settings)
-            }
-            .listStyle(.sidebar)
-            .environment(\.defaultMinListRowHeight, MacSidebarRowMetrics(size: self.sidebarRowSize).rowHeight)
-            .scrollContentBackground(.hidden)
-            .navigationSplitViewColumnWidth(min: 220, ideal: 280, max: 400)
-            .toolbar(.hidden, for: .navigationBar)
-        } detail: {
-            // Retain the native tab container's per-screen state behind the sidebar.
-            self.tabRootBase
-                .tabViewStyle(.tabBarOnly)
-                .toolbar(.hidden, for: .tabBar)
-                .modifier(MacDetailToolbarBackdrop(context: MacToolbarBackdropContext(
-                    selectedTab: self.navigation.selectedTab,
-                    companionVisible: self.navigation.isAICompanionVisible && self.navigation.canPresentAICompanion,
-                    aiDepth: self.navigation.aiPath.count,
-                    settingsDepth: self.navigation.settingsPath.count
-                )))
-                .background {
-                    AICompanionAvailabilityObserver { isAvailable in
-                        self.navigation.updateAICompanionAvailability(isAvailable)
-                    }
-                    .allowsHitTesting(false)
-                    .accessibilityHidden(true)
-                }
-        }
+        self.tabRootBase
+            .tabViewStyle(.tabBarOnly)
+            .toolbar(.hidden, for: .tabBar)
         #else
         if #available(iOS 26.0, *) {
             self.tabRootBase
@@ -426,6 +420,52 @@ struct RootTabView: View {
     }
 
     #if targetEnvironment(macCatalyst)
+    // Each retained tab owns its split detail and navigation destinations.
+    private func macTabContent<Content: View>(for tab: AppTab, @ViewBuilder content: () -> Content) -> some View {
+        NavigationSplitView(columnVisibility: self.$macSidebarVisibility) {
+            self.macSidebar
+        } detail: {
+            content()
+                .modifier(MacDetailToolbarBackdrop(context: MacToolbarBackdropContext(
+                    selectedTab: tab,
+                    companionVisible: self.navigation.isAICompanionVisible && self.navigation.canPresentAICompanion,
+                    aiDepth: self.navigation.aiPath.count,
+                    settingsDepth: self.navigation.settingsPath.count
+                )))
+                .background {
+                    if self.navigation.selectedTab == tab {
+                        AICompanionAvailabilityObserver { isAvailable in
+                            self.navigation.updateAICompanionAvailability(isAvailable)
+                        }
+                        .allowsHitTesting(false)
+                        .accessibilityHidden(true)
+                    }
+                }
+        }
+    }
+
+    private var macSidebar: some View {
+        List(selection: Binding<AppTab?>(
+            get: { self.navigation.selectedTab },
+            set: { if let tab = $0 { self.selectedTabBinding.wrappedValue = tab } }
+        )) {
+            self.macSidebarRow(.review, identifier: UITestIdentifier.rootTabReviewItem)
+                .badge(self.reviewDueBadgeLabel)
+                .tag(AppTab.review)
+            self.macSidebarRow(.progress, identifier: UITestIdentifier.rootTabProgressItem)
+            self.macSidebarRow(.ai, identifier: UITestIdentifier.rootTabAIItem)
+            self.macSidebarRow(.cards, identifier: UITestIdentifier.rootTabCardsItem)
+            self.macSidebarRow(.settings, identifier: UITestIdentifier.rootTabSettingsItem)
+                .badge(self.settingsAttentionSummary.settingsTabCount)
+                .tag(AppTab.settings)
+        }
+        .listStyle(.sidebar)
+        .environment(\.defaultMinListRowHeight, MacSidebarRowMetrics(size: self.sidebarRowSize).rowHeight)
+        .scrollContentBackground(.hidden)
+        .navigationSplitViewColumnWidth(min: 220, ideal: 280, max: 400)
+        .toolbar(.hidden, for: .navigationBar)
+    }
+
     private func macSidebarRow(_ tab: AppTab, identifier: String) -> some View {
         Label(tab.localizedTitle, systemImage: tab.systemImage)
             .macSidebarIconColumn(MacSidebarRowMetrics(size: self.sidebarRowSize))
