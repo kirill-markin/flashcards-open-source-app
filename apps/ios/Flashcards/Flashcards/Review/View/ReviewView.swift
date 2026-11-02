@@ -34,16 +34,11 @@ struct ReviewView: View {
     @Environment(FlashcardsStore.self) var store: FlashcardsStore
     @Environment(AppNavigationModel.self) private var navigation: AppNavigationModel
     @Environment(PremiumPresenter.self) var premiumPresenter: PremiumPresenter
+    @Environment(ReviewScreenModel.self) var reviewScreen: ReviewScreenModel
     @State private var isTextInputEditing: Bool = false
 
     @StateObject private var reviewSpeechController = ReviewSpeechController()
-    @State var isAnswerVisible: Bool = false
     @State private var textSelection: ReviewCardTextSelection? = nil
-    @State private var lastPresentedReviewCardId: String? = nil
-    @State private var lastPresentedReviewWorkspaceId: String? = nil
-    @State var preparedRevealState: PreparedReviewRevealState? = nil
-    @State var preparedNextRevealState: PreparedReviewRevealState? = nil
-    @State var preparedImageCache: ReviewPreparedImageCache = ReviewPreparedImageCache()
     @State var isReviewReactionScreenVisible: Bool = false
     @State var reviewReactionLottiePrewarmTask: Task<Void, Never>?
     @State var reviewReactionLottiePrewarmId: UUID?
@@ -206,11 +201,17 @@ struct ReviewView: View {
             self.textSelection = nil
             self.dismissReviewFilterPopoverIfContextDiverged()
         }
-        .onChange(of: store.selectedReviewFilter) { _, _ in
-            self.textSelection = nil
-            self.isAnswerVisible = false
-            self.reviewSpeechController.stopSpeech()
-            self.dismissReviewFilterPopoverIfContextDiverged()
+        .onChange(of: store.selectedReviewFilter, initial: true) { previousFilter, filter in
+            if previousFilter != filter {
+                self.textSelection = nil
+                self.reviewSpeechController.stopSpeech()
+                self.dismissReviewFilterPopoverIfContextDiverged()
+            }
+            // The model outlives this view, so a filter changed while Review was off screen resets it here.
+            if self.reviewScreen.presentedReviewFilter != filter {
+                self.reviewScreen.presentedReviewFilter = filter
+                self.reviewScreen.endPresentation()
+            }
         }
         .onChange(of: self.canPresentSavedReviewPrompt, initial: true) { _, isAvailable in
             self.store.isSavedReviewPromptSurfaceAvailable = isAvailable
@@ -221,12 +222,18 @@ struct ReviewView: View {
                 await self.presentPromptAfterSavedReview(opportunity: opportunity)
             }
         }
-        .onChange(of: store.reviewPresentationResetRevision) { _, _ in
-            self.textSelection = nil
-            self.isAnswerVisible = false
-            self.reviewSpeechController.stopSpeech()
-            self.lastPresentedReviewCardId = self.currentCard?.cardId
-            self.lastPresentedReviewWorkspaceId = self.store.workspace?.workspaceId
+        .onChange(of: store.reviewPresentationResetRevision, initial: true) { previousRevision, revision in
+            if previousRevision != revision {
+                self.textSelection = nil
+                self.reviewSpeechController.stopSpeech()
+            }
+            // Same as the filter reset: a reset made while Review was off screen applies on recreation.
+            if self.reviewScreen.presentedReviewPresentationResetRevision != revision {
+                self.reviewScreen.presentedReviewPresentationResetRevision = revision
+                self.reviewScreen.endPresentation()
+                self.reviewScreen.lastPresentedReviewCardId = self.currentCard?.cardId
+                self.reviewScreen.lastPresentedReviewWorkspaceId = self.store.workspace?.workspaceId
+            }
         }
         .animation(self.reduceMotion ? nil : .smooth(duration: 0.35), value: self.navigation.isAICompanionVisible)
         .nativeNavigationTitle(self.showsFilterInReviewColumn ? "" : String(localized: "Review", table: reviewCardsStringsTableName))
@@ -301,7 +308,7 @@ struct ReviewView: View {
                    self.shouldShowReviewLoader == false,
                    self.currentCard != nil,
                    self.store.firstReviewOnboardingCompleted == false,
-                   let anchor = anchors[self.isAnswerVisible ? .rating(.again) : .showAnswer] {
+                   let anchor = anchors[self.reviewScreen.isAnswerVisible ? .rating(.again) : .showAnswer] {
                     let target = geometry[anchor]
                     if target.width > 0, target.height > 0,
                        CGRect(origin: .zero, size: geometry.size).contains(target) {
@@ -569,7 +576,7 @@ struct ReviewView: View {
         .onChange(of: store.workspace?.workspaceId) { _, _ in
             self.reviewTagFilterRequest = nil
         }
-        .environment(self.preparedImageCache)
+        .environment(self.reviewScreen.preparedImageCache)
     }
 
     @ViewBuilder
@@ -616,9 +623,9 @@ struct ReviewView: View {
             // Preserve the unfinished presentation when a reload temporarily removes its card.
             return
         }
-        if let previousCardId = self.lastPresentedReviewCardId, previousCardId != cardId {
+        if let previousCardId = self.reviewScreen.lastPresentedReviewCardId, previousCardId != cardId {
             let isMigratedPresentation: Bool
-            if let sourceWorkspaceId = self.lastPresentedReviewWorkspaceId,
+            if let sourceWorkspaceId = self.reviewScreen.lastPresentedReviewWorkspaceId,
                let destinationWorkspaceId = self.store.workspace?.workspaceId,
                sourceWorkspaceId != destinationWorkspaceId {
                 isMigratedPresentation = forkedCardIdForWorkspace(
@@ -630,11 +637,11 @@ struct ReviewView: View {
                 isMigratedPresentation = false
             }
             if !isMigratedPresentation {
-                self.isAnswerVisible = false
+                self.reviewScreen.endPresentation()
             }
         }
-        self.lastPresentedReviewCardId = cardId
-        self.lastPresentedReviewWorkspaceId = self.store.workspace?.workspaceId
+        self.reviewScreen.lastPresentedReviewCardId = cardId
+        self.reviewScreen.lastPresentedReviewWorkspaceId = self.store.workspace?.workspaceId
     }
 
     private var reviewCompanionHeader: some View {
@@ -771,7 +778,8 @@ struct ReviewView: View {
     }
 
     private func activeCardView(card: Card, preparedRevealState: PreparedReviewRevealState) -> some View {
-        ScrollViewReader { proxy in
+        @Bindable var reviewScreen = self.reviewScreen
+        return ScrollViewReader { proxy in
             ScrollView {
                 ReadableContentLayout(
                     maxWidth: flashcardsReadableContentMaxWidth,
@@ -783,7 +791,17 @@ struct ReviewView: View {
                         .macToolbarScrollSurface("review")
                 }
             }
-            .onChange(of: isAnswerVisible) { wasVisible, isVisible in
+            .scrollPosition($reviewScreen.cardScrollPosition)
+            // `ScrollPosition` measures y from the inset-adjusted top, unlike `contentOffset`.
+            .onScrollGeometryChange(for: CGFloat.self) { geometry in
+                geometry.contentOffset.y + geometry.contentInsets.top
+            } action: { _, offsetY in
+                reviewScreen.cardScrollOffset = ReviewCardScrollOffset(cardId: card.cardId, y: offsetY)
+            }
+            .onAppear {
+                restoreReviewCardScrollOffset(reviewScreen: reviewScreen, cardId: card.cardId)
+            }
+            .onChange(of: self.reviewScreen.isAnswerVisible) { wasVisible, isVisible in
                 guard wasVisible == false, isVisible else {
                     return
                 }
@@ -794,6 +812,15 @@ struct ReviewView: View {
                 proxy.scrollTo(ReviewCardScrollTarget.front, anchor: .top)
             }
         }
+    }
+
+    /// A recreated Review returns to its unfinished presentation's offset; anything else starts at the top.
+    private func restoreReviewCardScrollOffset(reviewScreen: ReviewScreenModel, cardId: String) {
+        guard let offset = reviewScreen.cardScrollOffset, offset.cardId == cardId else {
+            reviewScreen.cardScrollPosition.scrollTo(edge: .top)
+            return
+        }
+        reviewScreen.cardScrollPosition.scrollTo(y: offset.y)
     }
 
     private func beginReviewFiltering() {
@@ -865,7 +892,7 @@ struct ReviewView: View {
             .id(card.cardId)
             .id(ReviewCardScrollTarget.front)
 
-            if isAnswerVisible {
+            if self.reviewScreen.isAnswerVisible {
                 ReviewCardSideView(
                     label: String(localized: "Back", table: reviewCardsStringsTableName),
                     content: preparedRevealState.backContent,
@@ -894,7 +921,7 @@ struct ReviewView: View {
                     .foregroundStyle(.red)
             }
 
-            if isAnswerVisible, self.dynamicTypeSize.isAccessibilitySize,
+            if self.reviewScreen.isAnswerVisible, self.dynamicTypeSize.isAccessibilitySize,
                let options = preparedRevealState.reviewAnswerGridOptions {
                 reviewAnswerButtonsGrid(cardId: card.cardId, options: options)
             }
@@ -903,7 +930,7 @@ struct ReviewView: View {
 
     @ViewBuilder
     private func reviewBottomBar(card: Card, preparedRevealState: PreparedReviewRevealState) -> some View {
-        if isAnswerVisible {
+        if self.reviewScreen.isAnswerVisible {
             if let options = preparedRevealState.reviewAnswerGridOptions {
                 reviewAnswerButtonsGrid(cardId: card.cardId, options: options)
             }
@@ -916,7 +943,7 @@ struct ReviewView: View {
         Group {
             if self.shouldShowReviewLoader {
                 EmptyView()
-            } else if !(isAnswerVisible && self.dynamicTypeSize.isAccessibilitySize),
+            } else if !(self.reviewScreen.isAnswerVisible && self.dynamicTypeSize.isAccessibilitySize),
                       let currentCard, let preparedRevealState = self.cachedPreparedCurrentRevealState {
                 reviewBottomBarContainer {
                     reviewBottomBar(card: currentCard, preparedRevealState: preparedRevealState)
@@ -1133,7 +1160,7 @@ struct ReviewView: View {
 
     private func openReviewTextSelection(card: Card, side: ReviewCardSurfaceStyle) {
         guard self.currentCard?.cardId == card.cardId else { return }
-        guard side == .front || self.isAnswerVisible else { return }
+        guard side == .front || self.reviewScreen.isAnswerVisible else { return }
         self.textSelection = ReviewCardTextSelection(
             id: UUID(),
             cardId: card.cardId,
@@ -1196,7 +1223,7 @@ struct ReviewView: View {
         guard self.canUseReviewKeyboardShortcuts, self.isTextInputEditing == false, let card = self.currentCard else {
             return nil
         }
-        if self.isAnswerVisible == false {
+        if self.reviewScreen.isAnswerVisible == false {
             return ReviewKeyboardActions(
                 revealAnswer: {
                     self.dismissActiveReviewReactions(reason: "interaction")
@@ -1233,8 +1260,8 @@ struct ReviewView: View {
      * absorbs a double tap landing before SwiftUI swaps the bottom bar for the rating buttons.
      */
     private func revealReviewAnswer() {
-        guard self.isAnswerVisible == false else { return }
-        self.isAnswerVisible = true
+        guard self.reviewScreen.isAnswerVisible == false else { return }
+        self.reviewScreen.isAnswerVisible = true
         Analytics.track(.reviewCardRevealed)
     }
 
@@ -1338,7 +1365,7 @@ struct ReviewView: View {
     }
 
     private func reviewActionErrorMessage(card: Card) -> String? {
-        guard isAnswerVisible else {
+        guard self.reviewScreen.isAnswerVisible else {
             return nil
         }
 
@@ -1482,6 +1509,7 @@ private func reviewRepetitionBadge(reps: Int) -> some View {
             .environment(FlashcardsStore())
             .environment(AppNavigationModel())
             .environment(PremiumPresenter())
+            .environment(ReviewScreenModel())
     }
 }
 
