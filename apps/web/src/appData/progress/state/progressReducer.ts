@@ -61,6 +61,7 @@ export type ProgressSourceAction =
     localFallback: ProgressSummarySnapshot;
     localFallbackActiveDates: ReadonlyArray<string>;
     hasPendingLocalReviews: boolean;
+    didApplyLocalRatingDuringLoad: boolean;
     canRenderServerBase: boolean;
   }>
   | Readonly<{
@@ -253,6 +254,27 @@ function createStreakLeaderboardStateWithCurrentSummary(
   }, canRenderServerBase);
 }
 
+type SummaryLocalReviewFields = Readonly<{
+  localFallback: ProgressSummarySnapshot | null;
+  localFallbackActiveDates: ReadonlyArray<string>;
+  hasPendingLocalReviews: boolean;
+}>;
+
+function addLocalRatingTodayToSummaryFields(
+  fields: SummaryLocalReviewFields,
+  referenceLocalDate: string,
+): SummaryLocalReviewFields {
+  return {
+    localFallback: fields.localFallback === null
+      ? null
+      : addLocalReviewTodayToSummarySnapshot(fields.localFallback, referenceLocalDate),
+    localFallbackActiveDates: fields.localFallbackActiveDates.includes(referenceLocalDate)
+      ? fields.localFallbackActiveDates
+      : [...fields.localFallbackActiveDates, referenceLocalDate],
+    hasPendingLocalReviews: true,
+  };
+}
+
 function reduceProgressSourceState(
   state: ProgressSourceState,
   action: ProgressSourceAction,
@@ -370,11 +392,18 @@ function reduceProgressSourceState(
         return state;
       }
 
-      const nextSummaryState = createNextSummaryState(state.summary, {
-        scopeKey: action.scopeKey,
+      const loadedLocalSummary: SummaryLocalReviewFields = {
         localFallback: action.localFallback,
         localFallbackActiveDates: action.localFallbackActiveDates,
         hasPendingLocalReviews: action.hasPendingLocalReviews,
+      };
+      const referenceLocalDate = state.summary.referenceLocalDate;
+      // A scan started before a rating must not take back its "reviewed today": docs/fsrs-scheduling-logic.md#non-blocking-review
+      const nextSummaryState = createNextSummaryState(state.summary, {
+        scopeKey: action.scopeKey,
+        ...(action.didApplyLocalRatingDuringLoad && referenceLocalDate !== null
+          ? addLocalRatingTodayToSummaryFields(loadedLocalSummary, referenceLocalDate)
+          : loadedLocalSummary),
         isLoading: false,
       }, action.canRenderServerBase);
 
@@ -394,15 +423,11 @@ function reduceProgressSourceState(
         return state;
       }
 
-      const nextSummaryState = createNextSummaryState(state.summary, {
-        localFallback: state.summary.localFallback === null
-          ? null
-          : addLocalReviewTodayToSummarySnapshot(state.summary.localFallback, referenceLocalDate),
-        localFallbackActiveDates: state.summary.localFallbackActiveDates.includes(referenceLocalDate)
-          ? state.summary.localFallbackActiveDates
-          : [...state.summary.localFallbackActiveDates, referenceLocalDate],
-        hasPendingLocalReviews: true,
-      }, action.canRenderServerBase);
+      const nextSummaryState = createNextSummaryState(
+        state.summary,
+        addLocalRatingTodayToSummaryFields(state.summary, referenceLocalDate),
+        action.canRenderServerBase,
+      );
 
       return {
         ...state,

@@ -65,7 +65,7 @@ export async function pullHotChanges(input: WorkspaceRemoteSyncInput): Promise<R
     if (await doHotSyncEntriesAffectReviewSchedule(input.workspaceId, pullResult.changes)) {
       didChangeReviewSchedule = true;
     }
-    if (await doHotSyncEntriesChangeLocalData(input.workspaceId, pullResult.changes)) {
+    if (didApplyRemoteChanges === false && await doHotSyncEntriesChangeLocalData(input.workspaceId, pullResult.changes)) {
       didApplyRemoteChanges = true;
     }
     if (input.hasFailed()) {
