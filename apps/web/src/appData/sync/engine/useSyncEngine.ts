@@ -51,6 +51,7 @@ import {
   applyRatingToVisibleProgressBadges,
   fullDeferredProgressRefresh,
   mergeDeferredProgressRefreshes,
+  progressDeferredRefreshDelayMs,
   scheduleDeferredProgressRefresh,
   type DeferredProgressRefresh,
 } from "../../progress/invalidation/deferredProgressRefresh";
@@ -531,8 +532,8 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
   refreshWorkspaceViewAfterRemoteChangesRef.current = refreshWorkspaceViewAfterRemoteChanges;
 
   // Another tab's write or applied pull re-reads this tab, Progress included, as a sync that applied remote changes
-  // would, and only once it is shown, so ratings in one tab never make a hidden one do heavy work:
-  // docs/fsrs-scheduling-logic.md#non-blocking-review
+  // would: a shown tab 3 s after the last such change or at once when focused, a hidden one only once it is shown, so
+  // ratings in one window never re-read another window per rating: docs/fsrs-scheduling-logic.md#non-blocking-review
   useEffect(() => {
     if (activeWorkspaceId === null) {
       return;
@@ -540,7 +541,15 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
 
     const workspaceId = activeWorkspaceId;
     let pendingProgressRefreshFromOtherTabs: DeferredProgressRefresh | null = null;
+    let refreshFromOtherTabsTimeoutId: number | null = null;
+    function clearRefreshFromOtherTabsTimeout(): void {
+      if (refreshFromOtherTabsTimeoutId !== null) {
+        window.clearTimeout(refreshFromOtherTabsTimeoutId);
+        refreshFromOtherTabsTimeoutId = null;
+      }
+    }
     function refreshAfterChangesFromOtherTabs(): void {
+      clearRefreshFromOtherTabsTimeout();
       if (pendingProgressRefreshFromOtherTabs === null) {
         return;
       }
@@ -553,28 +562,44 @@ export function useSyncEngine(params: UseSyncEngineParams): SyncEngine {
       pendingProgressRefreshFromOtherTabs = pendingProgressRefreshFromOtherTabs === null
         ? progressRefresh
         : mergeDeferredProgressRefreshes(pendingProgressRefreshFromOtherTabs, progressRefresh);
+    }
+    function handleChangeFromOtherTabs(progressRefresh: DeferredProgressRefresh): void {
+      addPendingChangeFromOtherTabs(progressRefresh);
       if (document.visibilityState === "visible") {
-        refreshAfterChangesFromOtherTabs();
+        clearRefreshFromOtherTabsTimeout();
+        refreshFromOtherTabsTimeoutId = window.setTimeout(refreshAfterChangesFromOtherTabs, progressDeferredRefreshDelayMs);
       }
     }
     function handleVisibilityChange(): void {
       if (document.visibilityState === "visible") {
         refreshAfterChangesFromOtherTabs();
+      } else {
+        clearRefreshFromOtherTabsTimeout();
       }
+    }
+    // Side-by-side windows both stay visible, so moving to this one fires only focus; with nothing pending it is a no-op.
+    function handleWindowFocus(): void {
+      refreshAfterChangesFromOtherTabs();
     }
     // A page restored from the back/forward cache missed every announcement made while it was cached.
     function handlePageShow(event: PageTransitionEvent): void {
       if (event.persisted) {
         addPendingChangeFromOtherTabs(fullDeferredProgressRefresh);
+        if (document.visibilityState === "visible") {
+          refreshAfterChangesFromOtherTabs();
+        }
       }
     }
 
-    const unsubscribe = subscribeToWorkspaceLocalDataChangesFromOtherTabs(workspaceId, addPendingChangeFromOtherTabs);
+    const unsubscribe = subscribeToWorkspaceLocalDataChangesFromOtherTabs(workspaceId, handleChangeFromOtherTabs);
     document.addEventListener("visibilitychange", handleVisibilityChange);
+    window.addEventListener("focus", handleWindowFocus);
     window.addEventListener("pageshow", handlePageShow);
     return () => {
       unsubscribe();
+      clearRefreshFromOtherTabsTimeout();
       document.removeEventListener("visibilitychange", handleVisibilityChange);
+      window.removeEventListener("focus", handleWindowFocus);
       window.removeEventListener("pageshow", handlePageShow);
     };
   }, [activeWorkspaceId]);
