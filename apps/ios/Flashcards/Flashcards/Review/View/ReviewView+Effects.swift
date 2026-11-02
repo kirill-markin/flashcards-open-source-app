@@ -212,7 +212,7 @@ extension ReviewView {
         do {
             try store.enqueueReviewSubmission(cardId: cardId, rating: rating)
             // An enqueued rating ends this presentation, even if the card returns next.
-            self.isAnswerVisible = false
+            self.reviewScreen.endPresentation()
             self.screenErrorMessage = ""
         } catch {
             if let inlineErrorMessage = reviewSubmissionInlineErrorMessage(error: error) {
@@ -282,8 +282,8 @@ extension ReviewView {
             return
         }
 
-        self.preparedRevealState = currentPreparedRevealStatePreparation?.state
-        self.preparedNextRevealState = nextPreparedNextRevealStatePreparation?.state
+        self.reviewScreen.preparedRevealState = currentPreparedRevealStatePreparation?.state
+        self.reviewScreen.preparedNextRevealState = nextPreparedNextRevealStatePreparation?.state
         if let technicalError = currentPreparedRevealStatePreparation?.technicalError {
             store.presentTechnicalError(technicalError)
         }
@@ -303,9 +303,9 @@ extension ReviewView {
             imagePreparationSides.append(ReviewImagePreparationSide(cardId: nextCard.cardId, content: nextState.frontContent))
             imagePreparationSides.append(ReviewImagePreparationSide(cardId: nextCard.cardId, content: nextState.backContent))
         }
-        self.preparedImageCache.retainPreparedImages(for: currentSides)
-        self.preparedImageCache.releaseImagesOutside(sides: currentSides + imagePreparationSides)
-        await self.preparedImageCache.prepareReviewImages(for: imagePreparationSides, store: store)
+        self.reviewScreen.preparedImageCache.retainPreparedImages(for: currentSides)
+        self.reviewScreen.preparedImageCache.releaseImagesOutside(sides: currentSides + imagePreparationSides)
+        await self.reviewScreen.preparedImageCache.prepareReviewImages(for: imagePreparationSides, store: store)
     }
 
     /// A card the task has not prepared yet, such as one an edit just changed, builds the same pure state inline
@@ -317,10 +317,10 @@ extension ReviewView {
             schedulerSettings: store.schedulerSettings
         )
 
-        if let preparedRevealState, preparedRevealState.id == preparedRevealStateId {
+        if let preparedRevealState = self.reviewScreen.preparedRevealState, preparedRevealState.id == preparedRevealStateId {
             return preparedRevealState
         }
-        if let preparedNextRevealState, preparedNextRevealState.id == preparedRevealStateId {
+        if let preparedNextRevealState = self.reviewScreen.preparedNextRevealState, preparedNextRevealState.id == preparedRevealStateId {
             return preparedNextRevealState
         }
 

@@ -15,6 +15,7 @@ struct SyncStatusPresentation: Equatable {
 
 struct SettingsView: View {
     @Environment(FlashcardsStore.self) private var store: FlashcardsStore
+    @Environment(SettingsScrollModel.self) private var settingsScroll: SettingsScrollModel
 
     @State private var isCloudSignInPresented: Bool = false
     @State private var isFriendInvitePresented: Bool = false
@@ -61,6 +62,7 @@ struct SettingsView: View {
                     )
                 }
                 .accessibilityIdentifier(UITestIdentifier.settingsReviewInAppStoreRow)
+                .rememberedListRow(id: UITestIdentifier.settingsReviewInAppStoreRow)
 
                 NavigationLink(value: SettingsNavigationDestination.feedback) {
                     SettingsNavigationRow(
@@ -71,6 +73,7 @@ struct SettingsView: View {
                     )
                 }
                 .accessibilityIdentifier(UITestIdentifier.settingsPrivateFeedbackRow)
+                .rememberedListRow(id: UITestIdentifier.settingsPrivateFeedbackRow)
             }
 
             Section(aiSettingsLocalized("settings.section.share", "Share")) {
@@ -85,6 +88,7 @@ struct SettingsView: View {
                     )
                 }
                 .accessibilityIdentifier(UITestIdentifier.settingsShareAppRow)
+                .rememberedListRow(id: UITestIdentifier.settingsShareAppRow)
             }
 
             Section(aiSettingsLocalized("settings.section.account", "Account")) {
@@ -97,6 +101,7 @@ struct SettingsView: View {
                     )
                 }
                 .accessibilityIdentifier(UITestIdentifier.settingsAccountStatusRow)
+                .rememberedListRow(id: UITestIdentifier.settingsAccountStatusRow)
 
                 NavigationLink(value: SettingsNavigationDestination.currentWorkspace) {
                     SettingsNavigationRow(
@@ -107,6 +112,7 @@ struct SettingsView: View {
                     )
                 }
                 .accessibilityIdentifier(UITestIdentifier.settingsCurrentWorkspaceRow)
+                .rememberedListRow(id: UITestIdentifier.settingsCurrentWorkspaceRow)
 
                 NavigationLink(value: SettingsNavigationDestination.subscription) {
                     SettingsNavigationRow(
@@ -117,6 +123,7 @@ struct SettingsView: View {
                     )
                 }
                 .accessibilityIdentifier(UITestIdentifier.settingsSubscriptionRow)
+                .rememberedListRow(id: UITestIdentifier.settingsSubscriptionRow)
             }
 
             Section(aiSettingsLocalized("settings.section.style", "Style")) {
@@ -136,6 +143,7 @@ struct SettingsView: View {
                     }
                 }
                 .accessibilityIdentifier(UITestIdentifier.settingsAccentColorRow)
+                .rememberedListRow(id: UITestIdentifier.settingsAccentColorRow)
 
                 NavigationLink(value: SettingsNavigationDestination.reviewAnimations) {
                     SettingsNavigationRow(
@@ -148,6 +156,7 @@ struct SettingsView: View {
                     )
                 }
                 .accessibilityIdentifier(UITestIdentifier.settingsReviewAnimationsRow)
+                .rememberedListRow(id: UITestIdentifier.settingsReviewAnimationsRow)
 
                 NavigationLink(value: SettingsNavigationDestination.aiChatSuggestions) {
                     SettingsNavigationRow(
@@ -158,6 +167,7 @@ struct SettingsView: View {
                     )
                 }
                 .accessibilityIdentifier(UITestIdentifier.settingsAIChatSuggestionsRow)
+                .rememberedListRow(id: UITestIdentifier.settingsAIChatSuggestionsRow)
 
                 if UIApplication.shared.supportsAlternateIcons {
                     NavigationLink(value: SettingsNavigationDestination.appIcon) {
@@ -169,6 +179,7 @@ struct SettingsView: View {
                         )
                     }
                     .accessibilityIdentifier(UITestIdentifier.settingsAppIconRow)
+                    .rememberedListRow(id: UITestIdentifier.settingsAppIconRow)
                 }
             }
 
@@ -182,6 +193,7 @@ struct SettingsView: View {
                     )
                 }
                 .accessibilityIdentifier(UITestIdentifier.settingsReviewRemindersRow)
+                .rememberedListRow(id: UITestIdentifier.settingsReviewRemindersRow)
 
                 NavigationLink(value: SettingsNavigationDestination.leaderboardParticipation) {
                     SettingsNavigationRow(
@@ -192,6 +204,7 @@ struct SettingsView: View {
                     )
                 }
                 .accessibilityIdentifier(UITestIdentifier.settingsLeaderboardParticipationRow)
+                .rememberedListRow(id: UITestIdentifier.settingsLeaderboardParticipationRow)
 
                 NavigationLink(value: SettingsNavigationDestination.language) {
                     SettingsNavigationRow(
@@ -202,6 +215,7 @@ struct SettingsView: View {
                     )
                 }
                 .accessibilityIdentifier(UITestIdentifier.settingsLanguageRow)
+                .rememberedListRow(id: UITestIdentifier.settingsLanguageRow)
 
                 NavigationLink(value: SettingsNavigationDestination.access) {
                     SettingsNavigationRow(
@@ -212,6 +226,7 @@ struct SettingsView: View {
                     )
                 }
                 .accessibilityIdentifier(UITestIdentifier.settingsAccessRow)
+                .rememberedListRow(id: UITestIdentifier.settingsAccessRow)
 
                 NavigationLink(value: SettingsNavigationDestination.workspaceDecks) {
                     SettingsNavigationRow(
@@ -222,6 +237,7 @@ struct SettingsView: View {
                     )
                 }
                 .accessibilityIdentifier(UITestIdentifier.settingsDecksRow)
+                .rememberedListRow(id: UITestIdentifier.settingsDecksRow)
 
                 NavigationLink(value: SettingsNavigationDestination.workspaceTags) {
                     SettingsNavigationRow(
@@ -232,6 +248,7 @@ struct SettingsView: View {
                     )
                 }
                 .accessibilityIdentifier(UITestIdentifier.settingsTagsRow)
+                .rememberedListRow(id: UITestIdentifier.settingsTagsRow)
 
                 NavigationLink(value: SettingsNavigationDestination.workspaceImport) {
                     SettingsNavigationRow(
@@ -242,6 +259,7 @@ struct SettingsView: View {
                     )
                 }
                 .accessibilityIdentifier(UITestIdentifier.settingsImportRow)
+                .rememberedListRow(id: UITestIdentifier.settingsImportRow)
 
                 NavigationLink(value: SettingsNavigationDestination.workspaceExport) {
                     SettingsNavigationRow(
@@ -252,6 +270,7 @@ struct SettingsView: View {
                     )
                 }
                 .accessibilityIdentifier(UITestIdentifier.settingsExportRow)
+                .rememberedListRow(id: UITestIdentifier.settingsExportRow)
             }
 
             Section(aiSettingsLocalized("settings.section.support", "Support")) {
@@ -264,6 +283,7 @@ struct SettingsView: View {
                     )
                 }
                 .accessibilityIdentifier(UITestIdentifier.settingsFeedbackRow)
+                .rememberedListRow(id: UITestIdentifier.settingsFeedbackRow)
 
                 NavigationLink(value: SettingsNavigationDestination.accountSupport) {
                     SettingsNavigationRow(
@@ -274,6 +294,7 @@ struct SettingsView: View {
                     )
                 }
                 .accessibilityIdentifier(UITestIdentifier.settingsSupportRow)
+                .rememberedListRow(id: UITestIdentifier.settingsSupportRow)
 
                 NavigationLink(value: SettingsNavigationDestination.accountLegal) {
                     SettingsNavigationRow(
@@ -284,6 +305,7 @@ struct SettingsView: View {
                     )
                 }
                 .accessibilityIdentifier(UITestIdentifier.settingsLegalRow)
+                .rememberedListRow(id: UITestIdentifier.settingsLegalRow)
 
                 NavigationLink(value: SettingsNavigationDestination.accountOpenSource) {
                     SettingsNavigationRow(
@@ -294,6 +316,7 @@ struct SettingsView: View {
                     )
                 }
                 .accessibilityIdentifier(UITestIdentifier.settingsOpenSourceRow)
+                .rememberedListRow(id: UITestIdentifier.settingsOpenSourceRow)
             }
 
             Section(aiSettingsLocalized("settings.section.advanced", "Advanced")) {
@@ -315,6 +338,7 @@ struct SettingsView: View {
                     }
                 }
                 .accessibilityIdentifier(UITestIdentifier.settingsFirstReviewOnboardingToggle)
+                .rememberedListRow(id: UITestIdentifier.settingsFirstReviewOnboardingToggle)
 
                 NavigationLink(value: SettingsNavigationDestination.ownOpenAIKey) {
                     SettingsNavigationRow(
@@ -327,6 +351,7 @@ struct SettingsView: View {
                     )
                 }
                 .accessibilityIdentifier(UITestIdentifier.settingsOwnOpenAIKeyRow)
+                .rememberedListRow(id: UITestIdentifier.settingsOwnOpenAIKeyRow)
 
                 NavigationLink(value: SettingsNavigationDestination.workspaceScheduler) {
                     SettingsNavigationRow(
@@ -337,6 +362,7 @@ struct SettingsView: View {
                     )
                 }
                 .accessibilityIdentifier(UITestIdentifier.settingsSchedulingRow)
+                .rememberedListRow(id: UITestIdentifier.settingsSchedulingRow)
 
                 NavigationLink(value: SettingsNavigationDestination.accountAgentConnections) {
                     SettingsNavigationRow(
@@ -347,6 +373,7 @@ struct SettingsView: View {
                     )
                 }
                 .accessibilityIdentifier(UITestIdentifier.settingsAgentConnectionsRow)
+                .rememberedListRow(id: UITestIdentifier.settingsAgentConnectionsRow)
 
                 NavigationLink(value: SettingsNavigationDestination.accountServer) {
                     SettingsNavigationRow(
@@ -357,6 +384,7 @@ struct SettingsView: View {
                     )
                 }
                 .accessibilityIdentifier(UITestIdentifier.settingsServerRow)
+                .rememberedListRow(id: UITestIdentifier.settingsServerRow)
 
                 NavigationLink(value: SettingsNavigationDestination.device) {
                     SettingsNavigationRow(
@@ -367,6 +395,7 @@ struct SettingsView: View {
                     )
                 }
                 .accessibilityIdentifier(UITestIdentifier.settingsDeviceDiagnosticsRow)
+                .rememberedListRow(id: UITestIdentifier.settingsDeviceDiagnosticsRow)
 
                 NavigationLink(value: SettingsNavigationDestination.productAnalytics) {
                     SettingsNavigationRow(
@@ -379,6 +408,7 @@ struct SettingsView: View {
                     )
                 }
                 .accessibilityIdentifier(UITestIdentifier.settingsProductAnalyticsRow)
+                .rememberedListRow(id: UITestIdentifier.settingsProductAnalyticsRow)
 
                 NavigationLink(value: SettingsNavigationDestination.resetStudyProgress) {
                     SettingsNavigationRow(
@@ -389,6 +419,7 @@ struct SettingsView: View {
                     )
                 }
                 .accessibilityIdentifier(UITestIdentifier.settingsResetStudyProgressRow)
+                .rememberedListRow(id: UITestIdentifier.settingsResetStudyProgressRow)
 
                 NavigationLink(value: SettingsNavigationDestination.deleteCurrentWorkspace) {
                     SettingsNavigationRow(
@@ -399,6 +430,7 @@ struct SettingsView: View {
                     )
                 }
                 .accessibilityIdentifier(UITestIdentifier.settingsDeleteCurrentWorkspaceRow)
+                .rememberedListRow(id: UITestIdentifier.settingsDeleteCurrentWorkspaceRow)
 
                 NavigationLink(value: SettingsNavigationDestination.accountDangerZone) {
                     SettingsNavigationRow(
@@ -409,6 +441,7 @@ struct SettingsView: View {
                     )
                 }
                 .accessibilityIdentifier(UITestIdentifier.settingsDeleteAccountRow)
+                .rememberedListRow(id: UITestIdentifier.settingsDeleteAccountRow)
 
                 if store.isTestModeEnabled {
                     NavigationLink(value: SettingsNavigationDestination.test) {
@@ -420,10 +453,12 @@ struct SettingsView: View {
                         )
                     }
                     .accessibilityIdentifier(UITestIdentifier.settingsTestRow)
+                    .rememberedListRow(id: UITestIdentifier.settingsTestRow)
                 }
             }
         }
         .listStyle(.insetGrouped)
+        .rememberedListScroll(topRowID: Bindable(self.settingsScroll).settingsTopRowID, isContentReady: true)
         .accessibilityIdentifier(UITestIdentifier.settingsScreen)
         .nativeNavigationTitle(aiSettingsLocalized("settings.title", "Settings"))
         .onAppear {
@@ -448,6 +483,7 @@ struct SettingsView: View {
             )
         }
         .accessibilityIdentifier(UITestIdentifier.settingsInviteFriendButton)
+        .rememberedListRow(id: UITestIdentifier.settingsInviteFriendButton)
         .accessibilityLabel(aiSettingsLocalized("settings.inviteFriend.button", "Add Friend"))
     }
 
@@ -553,6 +589,7 @@ func isSyncInFlight(status: SyncStatus) -> Bool {
     NavigationStack {
         SettingsView()
             .environment(FlashcardsStore())
+            .environment(SettingsScrollModel())
     }
 }
 
@@ -560,6 +597,7 @@ func isSyncInFlight(status: SyncStatus) -> Bool {
     NavigationStack {
         SettingsView()
             .environment(FlashcardsStore())
+            .environment(SettingsScrollModel())
     }
     .arabicRTLPreview()
 }

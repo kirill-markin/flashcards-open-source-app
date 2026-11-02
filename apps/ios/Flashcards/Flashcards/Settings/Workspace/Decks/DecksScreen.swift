@@ -3,6 +3,7 @@ import SwiftUI
 struct DecksScreen: View {
     @Environment(FlashcardsStore.self) private var store: FlashcardsStore
     @Environment(AppNavigationModel.self) private var navigation: AppNavigationModel
+    @Environment(SettingsScrollModel.self) private var settingsScroll: SettingsScrollModel
     @Environment(\.locale) private var locale
     @Environment(\.dismissSearch) private var dismissSearch
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
@@ -11,7 +12,6 @@ struct DecksScreen: View {
     @State private var deckFormState: DeckFormState = emptyDeckFormState()
     @State private var editorErrorMessage: String = ""
     @State private var pendingDeletion: DeckDeletionTarget? = nil
-    @State private var createdDeckDestination: DeckScreenDestination? = nil
     @State private var decksSnapshot: DecksListSnapshot = DecksListSnapshot(
         deckSummaries: [],
         allCardsStats: DeckCardStats(totalCards: 0, dueCards: 0, newCards: 0, reviewedCards: 0)
@@ -52,14 +52,10 @@ struct DecksScreen: View {
                 } else {
                     ForEach(self.filteredDeckListEntries) { deckListEntry in
                         if let persistedDeckId = deckListEntry.persistedDeckId {
-                            NavigationLink {
-                                DeckDetailScreen(destination: deckListEntry.destination)
-                                    #if targetEnvironment(macCatalyst)
-                                    .environment(\.macToolbarOwnerTab, .settings)
-                                    #endif
-                            } label: {
+                            NavigationLink(value: SettingsNavigationDestination.workspaceDeckDetail(deckListEntry.destination)) {
                                 DeckListRow(deckListEntry: deckListEntry)
                             }
+                            .rememberedListRow(id: deckListEntry.id)
                             .swipeActions(edge: .trailing, allowsFullSwipe: false) {
                                 Button {
                                     self.pendingDeletion = DeckDeletionTarget(
@@ -72,14 +68,10 @@ struct DecksScreen: View {
                                 .tint(.red)
                             }
                         } else {
-                            NavigationLink {
-                                DeckDetailScreen(destination: deckListEntry.destination)
-                                    #if targetEnvironment(macCatalyst)
-                                    .environment(\.macToolbarOwnerTab, .settings)
-                                    #endif
-                            } label: {
+                            NavigationLink(value: SettingsNavigationDestination.workspaceDeckDetail(deckListEntry.destination)) {
                                 DeckListRow(deckListEntry: deckListEntry)
                             }
+                            .rememberedListRow(id: deckListEntry.id)
                         }
                     }
                 }
@@ -87,6 +79,10 @@ struct DecksScreen: View {
         }
         .modifier(DeckDeletionConfirmation(pendingDeletion: self.$pendingDeletion, onDelete: self.deleteDeck))
         .listStyle(.insetGrouped)
+        .rememberedListScroll(
+            topRowID: self.settingsScroll.topRowID(\.decksTopRowID, whileOnPath: { self.navigation.isWorkspaceDecksOnSettingsPath }),
+            isContentReady: self.isLoading == false
+        )
         .nativeNavigationTitle(aiSettingsLocalized("settings.workspace.row.decks", "Decks"))
         #if targetEnvironment(macCatalyst)
         .macToolbarContribution(MacToolbarContribution(
@@ -127,8 +123,8 @@ struct DecksScreen: View {
             // record a view the person never had and hide their next real one behind the dedupe. The
             // tracker guard cannot settle that one, because it would depend on
             // `DeckDetailScreen.onAppear` winning a race SwiftUI does not order — and every deck open
-            // would take that race. The settings path answers it from state instead: the push is
-            // destination-based and leaves `workspaceDecks` on the path, a tab switch away leaves it
+            // would take that race. The settings path answers it from state instead: the push appends
+            // the deck detail and leaves `workspaceDecks` on the path, a tab switch away leaves it
             // there too, and only the pop back to Settings has removed it. This screen is reachable
             // no other way, so the path is the whole question. `DeckDetailScreen.onDisappear` reads
             // the same value for the opposite decision — the list still on the path is what it lands
@@ -138,12 +134,6 @@ struct DecksScreen: View {
             }
 
             Analytics.trackScreenViewedOnDismiss(of: .decks, restoring: .settings)
-        }
-        .navigationDestination(item: self.$createdDeckDestination) { destination in
-            DeckDetailScreen(destination: destination)
-                #if targetEnvironment(macCatalyst)
-                .environment(\.macToolbarOwnerTab, .settings)
-                #endif
         }
         #if !targetEnvironment(macCatalyst)
         .toolbar {
@@ -210,7 +200,9 @@ struct DecksScreen: View {
             let createdDeck: Deck = try store.createDeck(input: makeDeckEditorInput(formState: deckFormState))
             self.editorErrorMessage = ""
             self.isEditorPresented = false
-            self.createdDeckDestination = .deck(deckId: createdDeck.deckId)
+            self.navigation.settingsPath.append(
+                SettingsNavigationDestination.workspaceDeckDetail(.deck(deckId: createdDeck.deckId))
+            )
         } catch {
             self.store.presentTechnicalError(error)
         }
@@ -317,18 +309,9 @@ private struct DeckListRow: View {
     }
 }
 
-private enum DeckScreenDestination: Hashable, Identifiable {
+enum DeckScreenDestination: Hashable, Sendable {
     case allCards
     case deck(deckId: String)
-
-    var id: String {
-        switch self {
-        case .allCards:
-            return "all-cards"
-        case .deck(let deckId):
-            return "deck-\(deckId)"
-        }
-    }
 }
 
 private struct DeckScreenListItem: Identifiable, Hashable {
@@ -413,7 +396,7 @@ private enum DeckDetailScreenState {
     }
 }
 
-private struct DeckDetailScreen: View {
+struct DeckDetailScreen: View {
     @Environment(FlashcardsStore.self) private var store: FlashcardsStore
     @Environment(AppNavigationModel.self) private var navigation: AppNavigationModel
     @Environment(\.dismiss) private var dismiss

@@ -72,6 +72,7 @@ enum SettingsNavigationDestination: Hashable, Sendable {
     case workspaceExport
     case workspaceImport
     case workspaceDecks
+    case workspaceDeckDetail(DeckScreenDestination)
     case workspaceTags
     case accountStatus
     case accountLegal

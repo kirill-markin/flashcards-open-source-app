@@ -295,15 +295,11 @@ struct RootTabView: View {
         )
     }
 
+    #if !targetEnvironment(macCatalyst)
     private var tabRootBase: some View {
         @Bindable var navigation = self.navigation
         return TabView(selection: self.selectedTabBinding) {
             Tab(value: AppTab.review) {
-                #if targetEnvironment(macCatalyst)
-                self.macTabContent(for: .review) {
-                    self.reviewTab
-                }
-                #else
                 self.reviewTab
                     .background {
                         if UIDevice.current.userInterfaceIdiom == .phone {
@@ -312,7 +308,6 @@ struct RootTabView: View {
                                 .accessibilityHidden(true)
                         }
                     }
-                #endif
             } label: {
                 self.tabLabel(.review, identifier: UITestIdentifier.rootTabReviewItem)
             }
@@ -320,11 +315,6 @@ struct RootTabView: View {
             .badge(self.reviewDueBadgeLabel)
 
             Tab(value: AppTab.progress) {
-                #if targetEnvironment(macCatalyst)
-                self.macTabContent(for: .progress) {
-                    self.progressTab
-                }
-                #else
                 self.progressTab
                     .background {
                         if UIDevice.current.userInterfaceIdiom == .phone {
@@ -333,18 +323,12 @@ struct RootTabView: View {
                                 .accessibilityHidden(true)
                         }
                     }
-                #endif
             } label: {
                 self.tabLabel(.progress, identifier: UITestIdentifier.rootTabProgressItem)
             }
             .accessibilityIdentifier(UITestIdentifier.rootTabProgressItem, isEnabled: true)
 
             Tab(value: AppTab.ai) {
-                #if targetEnvironment(macCatalyst)
-                self.macTabContent(for: .ai) {
-                    self.aiTab(aiPath: $navigation.aiPath)
-                }
-                #else
                 self.aiTab(aiPath: $navigation.aiPath)
                     .background {
                         if UIDevice.current.userInterfaceIdiom == .phone {
@@ -353,18 +337,12 @@ struct RootTabView: View {
                                 .accessibilityHidden(true)
                         }
                     }
-                #endif
             } label: {
                 self.tabLabel(.ai, identifier: UITestIdentifier.rootTabAIItem)
             }
             .accessibilityIdentifier(UITestIdentifier.rootTabAIItem, isEnabled: true)
 
             Tab(value: AppTab.cards) {
-                #if targetEnvironment(macCatalyst)
-                self.macTabContent(for: .cards) {
-                    self.cardsTab
-                }
-                #else
                 self.cardsTab
                     .background {
                         if UIDevice.current.userInterfaceIdiom == .phone {
@@ -373,18 +351,12 @@ struct RootTabView: View {
                                 .accessibilityHidden(true)
                         }
                     }
-                #endif
             } label: {
                 self.tabLabel(.cards, identifier: UITestIdentifier.rootTabCardsItem)
             }
             .accessibilityIdentifier(UITestIdentifier.rootTabCardsItem, isEnabled: true)
 
             Tab(value: AppTab.settings) {
-                #if targetEnvironment(macCatalyst)
-                self.macTabContent(for: .settings) {
-                    self.settingsTab(settingsPath: $navigation.settingsPath)
-                }
-                #else
                 self.settingsTab(settingsPath: $navigation.settingsPath)
                     .background {
                         if UIDevice.current.userInterfaceIdiom == .phone {
@@ -393,7 +365,6 @@ struct RootTabView: View {
                                 .accessibilityHidden(true)
                         }
                     }
-                #endif
             } label: {
                 self.tabLabel(.settings, identifier: UITestIdentifier.rootTabSettingsItem)
             }
@@ -401,13 +372,30 @@ struct RootTabView: View {
             .badge(self.settingsAttentionSummary.settingsTabCount)
         }
     }
+    #endif
 
     @ViewBuilder
     private var tabRootPresentation: some View {
         #if targetEnvironment(macCatalyst)
-        self.tabRootBase
-            .tabViewStyle(.tabBarOnly)
-            .toolbar(.hidden, for: .tabBar)
+        NavigationSplitView(columnVisibility: self.$macSidebarVisibility) {
+            self.macSidebar
+        } detail: {
+            self.macDetail(for: self.navigation.selectedTab)
+                .modifier(MacDetailToolbarBackdrop(context: MacToolbarBackdropContext(
+                    selectedTab: self.navigation.selectedTab,
+                    companionVisible: self.navigation.isAICompanionVisible && self.navigation.canPresentAICompanion,
+                    aiDepth: self.navigation.aiPath.count,
+                    settingsDepth: self.navigation.settingsPath.count
+                )))
+                .background {
+                    AICompanionAvailabilityObserver { isAvailable in
+                        self.navigation.updateAICompanionAvailability(isAvailable)
+                    }
+                    .allowsHitTesting(false)
+                    .accessibilityHidden(true)
+                }
+        }
+        .ignoresSafeArea(.container, edges: .top)
         #else
         if #available(iOS 26.0, *) {
             self.tabRootBase
@@ -421,29 +409,37 @@ struct RootTabView: View {
     }
 
     #if targetEnvironment(macCatalyst)
-    // Each retained tab owns its split detail and navigation destinations.
-    private func macTabContent<Content: View>(for tab: AppTab, @ViewBuilder content: () -> Content) -> some View {
-        NavigationSplitView(columnVisibility: self.$macSidebarVisibility) {
-            self.macSidebar
-        } detail: {
-            content()
-                .modifier(MacDetailToolbarBackdrop(context: MacToolbarBackdropContext(
-                    selectedTab: tab,
-                    companionVisible: self.navigation.isAICompanionVisible && self.navigation.canPresentAICompanion,
-                    aiDepth: self.navigation.aiPath.count,
-                    settingsDepth: self.navigation.settingsPath.count
-                )))
-                .background {
-                    if self.navigation.selectedTab == tab {
-                        AICompanionAvailabilityObserver { isAvailable in
-                            self.navigation.updateAICompanionAvailability(isAvailable)
-                        }
-                        .allowsHitTesting(false)
-                        .accessibilityHidden(true)
-                    }
-                }
+    /// The detail shows only the selected section; what must survive a switch lives in
+    /// the navigation model and the app-owned screen models.
+    @ViewBuilder
+    private func macDetail(for tab: AppTab) -> some View {
+        switch tab {
+        case .review:
+            self.reviewTab
+        case .progress:
+            self.progressTab
+        case .ai:
+            self.aiTab(aiPath: self.macSectionPath(\.aiPath, section: .ai))
+        case .cards:
+            self.cardsTab
+        case .settings:
+            self.settingsTab(settingsPath: self.macSectionPath(\.settingsPath, section: .settings))
         }
-        .ignoresSafeArea(.container, edges: .top)
+    }
+
+    /// SwiftUI writes an empty path back while it tears down a section's stack, after the
+    /// selection has moved on; accept writes only from the shown section to keep its pages.
+    private func macSectionPath<Path>(
+        _ path: ReferenceWritableKeyPath<AppNavigationModel, Path>,
+        section: AppTab
+    ) -> Binding<Path> {
+        Binding(
+            get: { self.navigation[keyPath: path] },
+            set: { nextPath in
+                guard self.navigation.selectedTab == section else { return }
+                self.navigation[keyPath: path] = nextPath
+            }
+        )
     }
 
     private var macSidebar: some View {
@@ -945,6 +941,8 @@ struct RootTabView: View {
             WorkspaceImportView()
         case .workspaceDecks:
             DecksScreen()
+        case .workspaceDeckDetail(let destination):
+            DeckDetailScreen(destination: destination)
         case .workspaceTags:
             TagsScreen()
         case .accountStatus:
@@ -1039,5 +1037,8 @@ private extension View {
         .environment(store)
         .environment(AppleSubscriptionService(store: store, session: .shared))
         .environment(AppNavigationModel())
+        .environment(SettingsScrollModel())
+        .environment(CardsScreenModel())
+        .environment(ReviewScreenModel())
         .environment(ProgressScreenState())
 }

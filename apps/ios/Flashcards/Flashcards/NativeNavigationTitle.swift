@@ -126,7 +126,7 @@ struct MacSharedToolbarBackdrop: UIViewRepresentable {
     func updateUIView(_ view: BackdropView, context: Context) {
         if view.contextID != self.contextID {
             view.contextID = self.contextID
-            // UIKit installs the selected tab's view after SwiftUI publishes its state.
+            // The detail installs the selected section's views after SwiftUI publishes its state.
             view.scheduleDiscovery()
         }
         view.setNeedsLayout()

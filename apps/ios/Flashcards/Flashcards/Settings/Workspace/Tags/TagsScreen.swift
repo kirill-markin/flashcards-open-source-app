@@ -11,6 +11,7 @@ private func formatCardsCount(_ cardsCount: Int) -> String {
 struct TagsScreen: View {
     @Environment(FlashcardsStore.self) private var store: FlashcardsStore
     @Environment(AppNavigationModel.self) private var navigation: AppNavigationModel
+    @Environment(SettingsScrollModel.self) private var settingsScroll: SettingsScrollModel
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
 
     @State private var tagsSummary: WorkspaceTagsSummary = WorkspaceTagsSummary(tags: [], totalCards: 0)
@@ -73,6 +74,7 @@ struct TagsScreen: View {
                         .buttonStyle(.plain)
                         .padding(.vertical, 4)
                         .accessibilityLabel("\(aiSettingsLocalized("settings.workspace.decks.openReview", "Open review")): \(tagSummary.tag)")
+                        .rememberedListRow(id: tagSummary.tag)
                     }
                 }
             }
@@ -102,6 +104,10 @@ struct TagsScreen: View {
             }
         }
         .listStyle(.insetGrouped)
+        .rememberedListScroll(
+            topRowID: self.settingsScroll.topRowID(\.tagsTopRowID, whileOnPath: { self.navigation.isWorkspaceTagsOnSettingsPath }),
+            isContentReady: self.isLoading == false
+        )
         .nativeNavigationTitle(aiSettingsLocalized("settings.workspace.row.tags", "Tags"))
         #if targetEnvironment(macCatalyst)
         .macToolbarContribution(MacToolbarContribution(
@@ -180,5 +186,6 @@ private func workspaceTagSummariesMatchingSearchText(
         TagsScreen()
             .environment(FlashcardsStore())
             .environment(AppNavigationModel())
+            .environment(SettingsScrollModel())
     }
 }

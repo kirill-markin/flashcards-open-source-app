@@ -231,8 +231,8 @@ final class LiveSmokeMacCatalystTests: LiveSmokeTestCase {
         self.app.typeKey(XCUIKeyboardKey.escape.rawValue, modifierFlags: [])
     }
 
-    /// Nondestructive: the split detail shares one navigation state across sections, so writing
-    /// Settings' path after the AI stack was used must not trap SwiftUI. Opens only read-only screens.
+    /// Nondestructive: the split detail swaps section stacks, so writing Settings' path after
+    /// the AI stack was used must not trap SwiftUI. Opens only read-only screens.
     @MainActor
     func testMacCrossSectionNavigationKeepsSplitDetailAlive() throws {
         self.addMacWindowRestorationTeardown()
@@ -262,6 +262,70 @@ final class LiveSmokeMacCatalystTests: LiveSmokeTestCase {
         self.app.typeKey(",", modifierFlags: .command)
         try self.assertScreenVisible(screen: .settings, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
         XCTAssertEqual(self.app.state, .runningForeground)
+    }
+
+    /// Review's Edit decks lands on Decks whether Settings was never shown or was left scrolled,
+    /// and Settings keeps that page while another section is shown.
+    @MainActor
+    func testMacEditDecksLandsOnDecksFromReview() throws {
+        self.addMacWindowRestorationTeardown()
+        try self.launchApplication(launchScenario: .guestManualReviewCard, selectedTab: .review)
+        try self.step("open Decks before Settings was ever shown") {
+            try self.openDecksFromReviewFilter()
+            try self.tapTabBarItem(selectedTab: .review, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+            try self.assertScreenVisible(screen: .review, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+            try self.tapTabBarItem(selectedTab: .settings, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+            self.waitForMacSettingsPage(title: "Decks")
+            try self.tapButton(identifier: "mac.navigation.back", timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+            try self.assertScreenVisible(screen: .settings, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+        }
+        try self.step("open Decks after Settings was scrolled") {
+            for _ in 0..<3 {
+                try self.scrollSettingsRootContent(timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+            }
+            try self.tapTabBarItem(selectedTab: .review, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+            try self.openDecksFromReviewFilter()
+            try self.tapButton(identifier: "mac.navigation.back", timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+            try self.assertScreenVisible(screen: .settings, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+        }
+    }
+
+    /// Nondestructive: the Progress placeholder shown while rating participation is off opens
+    /// its Settings page. Only an account with participation already off shows it.
+    @MainActor
+    func testMacLeaderboardParticipationLandsOnSettingsPage() throws {
+        self.addMacWindowRestorationTeardown()
+        try self.launchApplication(launchScenario: nil, selectedTab: .progress)
+        try self.assertScreenVisible(screen: .progress, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+        let openSettings = self.app.buttons["progress.leaderboard.openSettingsButton"]
+        try XCTSkipUnless(openSettings.waitForExistence(timeout: LiveSmokeConfiguration.longUiTimeoutSeconds),
+            "The current account participates in the rating leaderboard; changing that is not nondestructive.")
+        openSettings.click()
+        try self.assertScreenVisible(screen: .leaderboardParticipationSettings, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+        XCTAssertTrue(self.app.buttons["mac.navigation.back"].waitForExistence(timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds),
+            "Leaderboard participation must open as a pushed Settings page.")
+        try self.tapButton(identifier: "mac.navigation.back", timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+        try self.assertScreenVisible(screen: .settings, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+    }
+
+    @MainActor
+    private func openDecksFromReviewFilter() throws {
+        try self.tapButton(identifier: LiveSmokeIdentifier.reviewFilterMenu, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+        try self.assertElementExists(identifier: LiveSmokeIdentifier.reviewFilterScrollSurface, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
+        let editDecks = self.app.descendants(matching: .any).matching(NSPredicate(format: "label == %@", "Edit decks")).firstMatch
+        XCTAssertTrue(editDecks.waitForExistence(timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds))
+        editDecks.click()
+        self.waitForMacSettingsPage(title: "Decks")
+        self.attachMacWindowScreenshot(name: "mac-edit-decks-opened")
+    }
+
+    @MainActor
+    private func waitForMacSettingsPage(title: String) {
+        let header = self.app.staticTexts["mac.toolbar.title.settings"]
+        let shown = XCTNSPredicateExpectation(predicate: NSPredicate(format: "exists == true AND label == %@", title), object: header)
+        XCTAssertEqual(XCTWaiter.wait(for: [shown], timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds), .completed,
+            "Expected the pushed Settings page \(title); found \(header.exists ? header.label : "no title").")
+        XCTAssertTrue(self.app.buttons["mac.navigation.back"].exists, "A pushed Settings page offers Back.")
     }
 
     /// Undo the launcher's one Fill before the app terminates, whatever the test's outcome.

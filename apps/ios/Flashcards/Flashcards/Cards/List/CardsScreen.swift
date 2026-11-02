@@ -85,6 +85,7 @@ enum CardEditorPresentation: Hashable, Identifiable {
 struct CardsScreen: View {
     @Environment(FlashcardsStore.self) private var store: FlashcardsStore
     @Environment(AppNavigationModel.self) private var navigation: AppNavigationModel
+    @Environment(CardsScreenModel.self) private var cardsModel: CardsScreenModel
     @Environment(\.dismissSearch) private var dismissSearch
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @Environment(\.tabBarPlacement) private var tabBarPlacement
@@ -92,8 +93,8 @@ struct CardsScreen: View {
     @State private var editorPresentation: CardEditorPresentation? = nil
     @State private var pendingDeletion: Card? = nil
     @State private var isFilterSheetPresented: Bool = false
-    @State private var searchText: String = ""
-    @State private var committedFilter: CardFilter? = nil
+    @State private var listTopInset: CGFloat = 0
+    @State private var cardIdsBelowListTop: Set<String> = []
     @State private var draftFilter: CardFilter? = nil
     @State private var cardFormState: CardFormState = CardFormState(
         editorSessionId: UUID(),
@@ -109,15 +110,23 @@ struct CardsScreen: View {
     )
     @State private var screenErrorMessage: String = ""
     @State private var cardsLoadErrorMessage: String = ""
-    @State private var cardsSnapshot: CardsListSnapshot = CardsListSnapshot(cards: [], totalCount: 0)
     @State private var availableTagSuggestions: [TagSuggestion] = []
     /// Workspace data the tag suggestions were read from. Only typing a query reuses them;
     /// appearing, clearing search and closing the editor read them again.
     @State private var tagSuggestionsSourceKey: String?
-    @State private var isLoading: Bool = true
 
     private var activeFilterDimensionCount: Int {
-        cardFilterActiveDimensionCount(filter: committedFilter)
+        cardFilterActiveDimensionCount(filter: self.cardsModel.committedFilter)
+    }
+
+    /// Nil until the current workspace's list has loaded once.
+    private var currentWorkspaceCardsSnapshot: CardsListSnapshot? {
+        guard let loadedSnapshot = self.cardsModel.loadedSnapshot,
+              loadedSnapshot.workspaceId == self.store.workspace?.workspaceId else {
+            return nil
+        }
+
+        return loadedSnapshot.snapshot
     }
 
     private var usesTopTabNavigation: Bool {
@@ -136,7 +145,9 @@ struct CardsScreen: View {
     }
 
     var body: some View {
-        self.bodyContent
+        ScrollViewReader { scrollProxy in
+            self.bodyContent(scrollProxy: scrollProxy)
+        }
         #if targetEnvironment(macCatalyst)
         .macToolbarContribution(self.macCardsToolbar)
         #endif
@@ -231,8 +242,9 @@ struct CardsScreen: View {
         self.editorPresentation = nil
     }
 
-    private var bodyContent: some View {
-        List {
+    private func bodyContent(scrollProxy: ScrollViewProxy) -> some View {
+        @Bindable var cardsModel = self.cardsModel
+        return List {
             if screenErrorMessage.isEmpty == false {
                 Section {
                     Text(screenErrorMessage)
@@ -246,79 +258,114 @@ struct CardsScreen: View {
             }
 
             Section {
-                if self.isLoading {
-                    Text(String(localized: "Loading cards…", table: reviewCardsStringsTableName))
-                        .foregroundStyle(.secondary)
-                } else if self.cardsLoadErrorMessage.isEmpty == false {
+                if self.cardsLoadErrorMessage.isEmpty == false {
                     Text(self.cardsLoadErrorMessage)
                         .foregroundStyle(.secondary)
-                } else if self.cardsSnapshot.totalCount == 0 {
-                    Text(String(localized: "You haven't created any cards yet.", table: reviewCardsStringsTableName))
-                        .foregroundStyle(.secondary)
-                } else if self.cardsSnapshot.cards.isEmpty {
-                    ContentUnavailableView(
-                        String(localized: "No Matching Cards", table: reviewCardsStringsTableName),
-                        systemImage: activeFilterDimensionCount == 0 ? "magnifyingglass" : "line.3.horizontal.decrease.circle",
-                        description: Text(
-                            searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && activeFilterDimensionCount > 0
-                                ? String(localized: "Try clearing filters.", table: reviewCardsStringsTableName)
-                                : String(localized: "Try a different search or clear filters.", table: reviewCardsStringsTableName)
+                } else if let cardsSnapshot = self.currentWorkspaceCardsSnapshot {
+                    if cardsSnapshot.totalCount == 0 {
+                        Text(String(localized: "You haven't created any cards yet.", table: reviewCardsStringsTableName))
+                            .foregroundStyle(.secondary)
+                    } else if cardsSnapshot.cards.isEmpty {
+                        ContentUnavailableView(
+                            String(localized: "No Matching Cards", table: reviewCardsStringsTableName),
+                            systemImage: activeFilterDimensionCount == 0 ? "magnifyingglass" : "line.3.horizontal.decrease.circle",
+                            description: Text(
+                                self.cardsModel.searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && activeFilterDimensionCount > 0
+                                    ? String(localized: "Try clearing filters.", table: reviewCardsStringsTableName)
+                                    : String(localized: "Try a different search or clear filters.", table: reviewCardsStringsTableName)
+                            )
                         )
-                    )
-                } else {
-                    ForEach(self.cardsSnapshot.cards) { card in
-                        Button {
-                            self.beginEditing(card: card)
-                        } label: {
-                            CardRow(card: card)
-                                .contentShape(Rectangle())
-                        }
-                        .accessibilityIdentifier(UITestIdentifier.cardsCardRow)
-                        .buttonStyle(.plain)
-                        .contextMenu {
+                    } else {
+                        ForEach(cardsSnapshot.cards) { card in
                             Button {
-                                self.withCurrentCard(card, action: self.beginEditing)
+                                self.beginEditing(card: card)
                             } label: {
-                                Label(String(localized: "Edit card", table: reviewCardsStringsTableName), systemImage: "pencil")
+                                CardRow(card: card)
+                                    .contentShape(Rectangle())
                             }
-                            Button {
-                                self.withCurrentCard(card) { currentCard in
-                                    self.navigation.openAICardHandoff(card: AIChatCardReference(
-                                        cardId: currentCard.cardId,
-                                        frontText: currentCard.frontText,
-                                        backText: currentCard.backText,
-                                        tags: currentCard.tags
-                                    ))
+                            .accessibilityIdentifier(UITestIdentifier.cardsCardRow)
+                            .onGeometryChange(for: Bool.self, of: { geometry in
+                                geometry.frame(in: .scrollView).midY > self.listTopInset
+                            }) { isBelowListTop in
+                                if isBelowListTop {
+                                    self.cardIdsBelowListTop.insert(card.id)
+                                } else {
+                                    self.cardIdsBelowListTop.remove(card.id)
                                 }
-                            } label: {
-                                Label(String(localized: "Edit with AI", table: reviewCardsStringsTableName), systemImage: "sparkles")
                             }
-                            Button(role: .destructive) {
-                                self.withCurrentCard(card) { self.pendingDeletion = $0 }
-                            } label: {
-                                Label(String(localized: "Delete card", table: reviewCardsStringsTableName), systemImage: "trash")
+                            .onDisappear {
+                                self.cardIdsBelowListTop.remove(card.id)
                             }
-                        }
-                        .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                            Button(role: .destructive) {
-                                self.deleteCard(cardId: card.cardId)
-                            } label: {
-                                Label(String(localized: "Delete", table: reviewCardsStringsTableName), systemImage: "trash")
+                            .buttonStyle(.plain)
+                            .contextMenu {
+                                Button {
+                                    self.withCurrentCard(card, action: self.beginEditing)
+                                } label: {
+                                    Label(String(localized: "Edit card", table: reviewCardsStringsTableName), systemImage: "pencil")
+                                }
+                                Button {
+                                    self.withCurrentCard(card) { currentCard in
+                                        self.navigation.openAICardHandoff(card: AIChatCardReference(
+                                            cardId: currentCard.cardId,
+                                            frontText: currentCard.frontText,
+                                            backText: currentCard.backText,
+                                            tags: currentCard.tags
+                                        ))
+                                    }
+                                } label: {
+                                    Label(String(localized: "Edit with AI", table: reviewCardsStringsTableName), systemImage: "sparkles")
+                                }
+                                Button(role: .destructive) {
+                                    self.withCurrentCard(card) { self.pendingDeletion = $0 }
+                                } label: {
+                                    Label(String(localized: "Delete card", table: reviewCardsStringsTableName), systemImage: "trash")
+                                }
+                            }
+                            .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                                Button(role: .destructive) {
+                                    self.deleteCard(cardId: card.cardId)
+                                } label: {
+                                    Label(String(localized: "Delete", table: reviewCardsStringsTableName), systemImage: "trash")
+                                }
                             }
                         }
                     }
+                } else {
+                    Text(String(localized: "Loading cards…", table: reviewCardsStringsTableName))
+                        .foregroundStyle(.secondary)
                 }
             } header: {
                 Text(String(localized: "Cards", table: reviewCardsStringsTableName))
             }
         }
         .listStyle(.insetGrouped)
+        .onScrollGeometryChange(for: Bool.self, of: { geometry in
+            geometry.containerSize.height > 0 && geometry.contentSize.height > 0
+        }) { _, isLaidOut in
+            // A new list ignores scrolling until it has geometry.
+            if isLaidOut, let listTopCardId = self.cardsModel.listTopCardId {
+                scrollProxy.scrollTo(listTopCardId, anchor: .top)
+            }
+        }
+        .onScrollGeometryChange(for: CGFloat.self, of: { $0.contentInsets.top }) { _, topInset in
+            self.listTopInset = topInset
+        }
+        .onScrollPhaseChange { oldPhase, newPhase, context in
+            // A new list reports `.idle` before layout; only a settled scroll is a position.
+            guard oldPhase != .idle, newPhase == .idle else {
+                return
+            }
+            let isAtTop = context.geometry.contentOffset.y + context.geometry.contentInsets.top <= 1
+            self.cardsModel.listTopCardId = isAtTop
+                ? nil
+                : self.currentWorkspaceCardsSnapshot?.cards.first { self.cardIdsBelowListTop.contains($0.id) }?.id
+        }
         .accessibilityIdentifier(UITestIdentifier.cardsScreen)
         .nativeNavigationTitle(UIDevice.current.userInterfaceIdiom == .pad ? "" : String(localized: "Cards", table: reviewCardsStringsTableName))
         .navigationBarTitleDisplayMode(UIDevice.current.userInterfaceIdiom == .pad ? .inline : .automatic)
         #if !targetEnvironment(macCatalyst)
         .searchable(
-            text: self.$searchText,
+            text: $cardsModel.searchText,
             placement: .automatic,
             prompt: String(localized: "Search cards", table: reviewCardsStringsTableName)
         )
@@ -355,9 +402,9 @@ struct CardsScreen: View {
                 MacToolbarAction(identifier: UITestIdentifier.cardsAddButton, symbol: "plus", label: String(localized: "Add card", table: reviewCardsStringsTableName), perform: { _ in self.beginCreatingFromToolbar() })
             ])],
             search: MacToolbarSearch(
-                text: self.searchText, prompt: String(localized: "Search cards", table: reviewCardsStringsTableName),
+                text: self.cardsModel.searchText, prompt: String(localized: "Search cards", table: reviewCardsStringsTableName),
                 focusRequest: self.navigation.cardSearchFocusRequestID,
-                onChange: { self.searchText = $0 }, onFocusRequestHandled: self.navigation.clearCardSearchFocusRequest
+                onChange: { self.cardsModel.searchText = $0 }, onFocusRequestHandled: self.navigation.clearCardSearchFocusRequest
             )
         )
     }
@@ -411,7 +458,7 @@ struct CardsScreen: View {
     }
 
     private var queryReloadKey: String {
-        "\(self.searchText)|\(self.committedFilter?.tags.joined(separator: ",") ?? "")|\(store.localReadVersion)|\(store.reviewScheduleVersion)"
+        "\(self.cardsModel.searchText)|\(self.cardsModel.committedFilter?.tags.joined(separator: ",") ?? "")|\(store.localReadVersion)|\(store.reviewScheduleVersion)"
     }
 
     private func withCurrentCard(_ card: Card, action: (Card) -> Void) {
@@ -480,7 +527,7 @@ struct CardsScreen: View {
 
     private func beginFiltering() {
         self.dismissCardsSearch()
-        self.draftFilter = self.committedFilter
+        self.draftFilter = self.cardsModel.committedFilter
         self.isFilterSheetPresented = true
     }
 
@@ -694,11 +741,11 @@ struct CardsScreen: View {
     }
 
     private func applyFilters() {
-        self.committedFilter = buildCardFilter(
+        self.cardsModel.committedFilter = buildCardFilter(
             tags: self.draftFilter?.tags ?? [],
             referenceTags: self.availableTagSuggestions.map(\.tag)
         )
-        self.draftFilter = self.committedFilter
+        self.draftFilter = self.cardsModel.committedFilter
         self.isFilterSheetPresented = false
     }
 
@@ -718,27 +765,32 @@ struct CardsScreen: View {
     private func reloadCardsSnapshot() async {
         guard let database = store.database, let workspaceId = store.workspace?.workspaceId else {
             self.cardsLoadErrorMessage = ""
-            self.cardsSnapshot = CardsListSnapshot(cards: [], totalCount: 0)
+            self.cardsModel.loadedSnapshot = LoadedCardsListSnapshot(
+                workspaceId: store.workspace?.workspaceId,
+                snapshot: CardsListSnapshot(cards: [], totalCount: 0)
+            )
             self.availableTagSuggestions = []
             self.tagSuggestionsSourceKey = nil
-            self.isLoading = false
             return
         }
 
-        self.isLoading = true
+        self.cardsModel.adoptWorkspace(workspaceId: workspaceId)
         if self.screenErrorMessage == String(localized: "Loading cards…", table: reviewCardsStringsTableName) {
             self.screenErrorMessage = ""
         }
 
         do {
-            self.cardsSnapshot = try database.loadCardsListSnapshot(
+            self.cardsModel.loadedSnapshot = LoadedCardsListSnapshot(
                 workspaceId: workspaceId,
-                searchText: self.searchText,
-                filter: self.committedFilter
+                snapshot: try database.loadCardsListSnapshot(
+                    workspaceId: workspaceId,
+                    searchText: self.cardsModel.searchText,
+                    filter: self.cardsModel.committedFilter
+                )
             )
             self.reconcileEditingCardFormState()
             let tagSourceKey = "\(workspaceId)|\(store.localReadVersion)"
-            if self.tagSuggestionsSourceKey != tagSourceKey || self.searchText.isEmpty {
+            if self.tagSuggestionsSourceKey != tagSourceKey || self.cardsModel.searchText.isEmpty {
                 let tagsSummary = try database.loadWorkspaceTagsSummary(workspaceId: workspaceId)
                 self.availableTagSuggestions = tagsSummary.tags.map { tagSummary in
                     TagSuggestion(
@@ -754,8 +806,6 @@ struct CardsScreen: View {
             self.cardsLoadErrorMessage = localizedCardsLoadFailedMessage()
             store.presentTechnicalError(error)
         }
-
-        self.isLoading = false
     }
 }
 
@@ -868,5 +918,6 @@ struct CardRow: View {
         CardsScreen()
             .environment(FlashcardsStore())
             .environment(AppNavigationModel())
+            .environment(CardsScreenModel())
     }
 }
