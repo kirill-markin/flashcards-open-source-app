@@ -856,6 +856,9 @@ struct RootTabView: View {
             }
             .navigationDestination(for: AIChatHistoryListRoute.self) { _ in
                 AIChatHistoryView(chatStore: store.aiChatStore)
+                    #if targetEnvironment(macCatalyst)
+                    .environment(\.macToolbarOwnerTab, .ai)
+                    #endif
             }
             #if targetEnvironment(macCatalyst)
             .toolbar(.hidden, for: .navigationBar)
@@ -880,6 +883,9 @@ struct RootTabView: View {
             SettingsView()
                 .navigationDestination(for: SettingsNavigationDestination.self) { destination in
                     self.settingsDestinationView(destination: destination)
+                        #if targetEnvironment(macCatalyst)
+                        .environment(\.macToolbarOwnerTab, .settings)
+                        #endif
                 }
                 #if targetEnvironment(macCatalyst)
                 .toolbar(.hidden, for: .navigationBar)

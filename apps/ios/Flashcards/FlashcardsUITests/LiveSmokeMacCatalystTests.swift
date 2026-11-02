@@ -496,8 +496,7 @@ final class LiveSmokeMacCatalystTests: LiveSmokeTestCase {
         try self.assertElementExists(identifier: LiveSmokeIdentifier.cardEditorScreen, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
         self.app.typeKey(XCUIKeyboardKey.escape.rawValue, modifierFlags: [])
         try self.assertElementDoesNotExist(identifier: LiveSmokeIdentifier.cardEditorScreen, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
-        self.app.buttons[LiveSmokeIdentifier.aiCompanionToggle]
-            .coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.08)).click()
+        self.app.buttons[LiveSmokeIdentifier.aiCompanionToggle].click()
         try self.assertAiEntrySurfaceVisible()
         // The companion animates for 0.35 seconds; inspect its settled presentation.
         RunLoop.current.run(until: Date().addingTimeInterval(0.5))
