@@ -3,7 +3,7 @@ package com.flashcardsopensourceapp.data.local.repository.review
 import com.flashcardsopensourceapp.data.local.database.core.AppDatabase
 import com.flashcardsopensourceapp.data.local.database.entities.CardWithRelations
 import com.flashcardsopensourceapp.data.local.database.entities.DeckEntity
-import com.flashcardsopensourceapp.data.local.database.review.ReviewOverdueCountRow
+import com.flashcardsopensourceapp.data.local.database.review.ReviewDueBadgeCountRow
 import com.flashcardsopensourceapp.data.local.database.review.ReviewTagCardRow
 import com.flashcardsopensourceapp.data.local.database.review.activeReviewRecentPriorityWindowMillis
 import com.flashcardsopensourceapp.data.local.model.cards.CardSummary
@@ -228,7 +228,7 @@ internal fun observeReviewDueCount(
  * polling. Every collection owns its own clock.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
-internal fun observeReviewOverdueCount(
+internal fun observeReviewDueBadgeCountForPredicate(
     database: AppDatabase,
     workspaceId: String,
     predicate: ReviewQueuePredicate
@@ -237,14 +237,14 @@ internal fun observeReviewOverdueCount(
         val nowMillisState = MutableStateFlow(value = System.currentTimeMillis())
         emitAll(
             nowMillisState.flatMapLatest { nowMillis ->
-                observeReviewOverdueCountRow(
+                observeReviewDueBadgeCountRow(
                     database = database,
                     workspaceId = workspaceId,
                     nowMillis = nowMillis,
                     predicate = predicate
                 )
             }.transformLatest { row ->
-                emit(row.overdueCount)
+                emit(row.dueCount)
                 val nextDueAtMillis: Long = row.nextDueAtMillis ?: return@transformLatest
                 delay(timeMillis = nextDueAtMillis - System.currentTimeMillis())
                 // At least the next due time, so that card counts even if the wall clock lags the delay.
@@ -254,20 +254,20 @@ internal fun observeReviewOverdueCount(
     }
 }
 
-private fun observeReviewOverdueCountRow(
+private fun observeReviewDueBadgeCountRow(
     database: AppDatabase,
     workspaceId: String,
     nowMillis: Long,
     predicate: ReviewQueuePredicate
-): Flow<ReviewOverdueCountRow> {
+): Flow<ReviewDueBadgeCountRow> {
     return when (val tagPredicate: ReviewTagPredicate = predicate.tagPredicate) {
-        ReviewTagPredicate.MatchNone -> flowOf(ReviewOverdueCountRow(overdueCount = 0, nextDueAtMillis = null))
-        ReviewTagPredicate.None -> database.reviewCountDao().observeReviewOverdueCount(
+        ReviewTagPredicate.MatchNone -> flowOf(ReviewDueBadgeCountRow(dueCount = 0, nextDueAtMillis = null))
+        ReviewTagPredicate.None -> database.reviewCountDao().observeReviewDueBadgeCount(
             workspaceId = workspaceId,
             nowMillis = nowMillis
         )
 
-        is ReviewTagPredicate.ExactTagNames -> database.reviewCountDao().observeReviewOverdueCountByAnyTags(
+        is ReviewTagPredicate.ExactTagNames -> database.reviewCountDao().observeReviewDueBadgeCountByAnyTags(
             workspaceId = workspaceId,
             nowMillis = nowMillis,
             tagNames = tagPredicate.tagNames

@@ -270,7 +270,7 @@ class LocalReviewRepository(
         }
     }
 
-    override fun observeReviewOverdueBadgeCount(): Flow<Int> {
+    override fun observeReviewDueBadgeCount(): Flow<Int> {
         return observeCurrentWorkspace(
             database = database,
             preferencesStore = preferencesStore
@@ -304,7 +304,7 @@ class LocalReviewRepository(
                     storedTagNames = storedTagNames
                 )
             }.distinctUntilChanged().flatMapLatest { predicate ->
-                observeReviewOverdueCount(
+                observeReviewDueBadgeCountForPredicate(
                     database = database,
                     workspaceId = workspaceId,
                     predicate = predicate

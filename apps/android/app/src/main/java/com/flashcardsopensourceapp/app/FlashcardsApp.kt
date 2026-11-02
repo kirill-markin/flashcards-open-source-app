@@ -47,6 +47,7 @@ import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteScaffo
 import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteScaffoldValue
 import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteType
 import androidx.compose.material3.adaptive.navigationsuite.rememberNavigationSuiteScaffoldState
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.pluralStringResource
@@ -81,7 +82,7 @@ import com.flashcardsopensourceapp.app.navigation.currentVisibleAppScreen
 import com.flashcardsopensourceapp.app.navigation.currentTopLevelDestination
 import com.flashcardsopensourceapp.app.navigation.isWithinRoutePrefix
 import com.flashcardsopensourceapp.app.navigation.navigateToTopLevelDestination
-import com.flashcardsopensourceapp.app.navigation.reviewOverdueBadgeTag
+import com.flashcardsopensourceapp.app.navigation.reviewDueBadgeTag
 import com.flashcardsopensourceapp.app.navigation.settings.SettingsAccountMethodsDestination
 import com.flashcardsopensourceapp.app.navigation.settings.SettingsAccountSignInEmailDestination
 import com.flashcardsopensourceapp.app.navigation.topLevelDestinations
@@ -124,6 +125,8 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
+import java.text.NumberFormat
+import java.util.Locale
 
 private const val startupLoadingTag: String = "app.startupLoading"
 private const val startupErrorTag: String = "app.startupError"
@@ -422,10 +425,10 @@ fun FlashcardsApp(
             issues = makeSettingsAttentionIssues(cloudState = cloudSettings.cloudState)
         )
         // Collection restarts on every return to the foreground, so a resume re-reads the count.
-        val reviewOverdueBadgeCountFlow = remember(appGraph) {
-            appGraph.reviewRepository.observeReviewOverdueBadgeCount()
+        val reviewDueBadgeCountFlow = remember(appGraph) {
+            appGraph.reviewRepository.observeReviewDueBadgeCount()
         }
-        val reviewOverdueBadgeCount by reviewOverdueBadgeCountFlow.collectAsStateWithLifecycle(initialValue = 0)
+        val reviewDueBadgeCount by reviewDueBadgeCountFlow.collectAsStateWithLifecycle(initialValue = 0)
         val currentCanRunImmediateAutoSync by rememberUpdatedState(newValue = canRunImmediateAutoSync)
         val currentCanRefreshCloudAccountContext by rememberUpdatedState(newValue = canRefreshCloudAccountContext)
         val currentVisibleAppScreenState by rememberUpdatedState(newValue = currentVisibleAppScreen)
@@ -716,9 +719,9 @@ fun FlashcardsApp(
             navigationSuiteItems = {
                 topLevelDestinations.forEach { destination ->
                     val destinationBadge: (@Composable () -> Unit)? = when {
-                        destination == ReviewDestination && reviewOverdueBadgeCount > 0 -> {
+                        destination == ReviewDestination && reviewDueBadgeCount > 0 -> {
                             {
-                                ReviewOverdueBadge(count = reviewOverdueBadgeCount)
+                                ReviewDueBadge(count = reviewDueBadgeCount)
                             }
                         }
                         destination == SettingsDestination && settingsAttentionSummary.settingsTabCount > 0 -> {
@@ -874,30 +877,26 @@ private fun shouldHideNavigationSuite(
     return navigationSuiteType == NavigationSuiteType.NavigationBar && isImeVisible
 }
 
-private const val reviewOverdueBadgeMaxDisplayedCount: Int = 99
-
 @Composable
-private fun ReviewOverdueBadge(count: Int) {
+private fun ReviewDueBadge(count: Int) {
     val badgeContentDescription: String = pluralStringResource(
         SettingsR.plurals.settings_workspace_deck_due_summary,
         count,
         count
     )
+    val locale: Locale = LocalConfiguration.current.locales[0]
+    val countFormatter: NumberFormat = remember(locale) {
+        NumberFormat.getIntegerInstance(locale)
+    }
     Badge(
         modifier = Modifier.clearAndSetSemantics {
-            testTag = reviewOverdueBadgeTag
+            testTag = reviewDueBadgeTag
             contentDescription = badgeContentDescription
         },
         containerColor = MaterialTheme.colorScheme.error,
         contentColor = MaterialTheme.colorScheme.onError
     ) {
-        Text(
-            text = if (count > reviewOverdueBadgeMaxDisplayedCount) {
-                "$reviewOverdueBadgeMaxDisplayedCount+"
-            } else {
-                count.toString()
-            }
-        )
+        Text(text = countFormatter.format(count))
     }
 }
 

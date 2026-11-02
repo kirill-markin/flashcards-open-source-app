@@ -9,8 +9,8 @@ data class ReviewTagCardRow(
     val cardId: String
 )
 
-data class ReviewOverdueCountRow(
-    val overdueCount: Int,
+data class ReviewDueBadgeCountRow(
+    val dueCount: Int,
     val nextDueAtMillis: Long?
 )
 
@@ -109,29 +109,26 @@ interface ReviewCountDao {
         tagNames: List<String>
     ): Int
 
-    // New cards (dueAtMillis IS NULL) are never overdue.
     @Query(
         """
         SELECT
-            COUNT(CASE WHEN dueAtMillis <= :nowMillis THEN 1 END) AS overdueCount,
+            COUNT(CASE WHEN dueAtMillis IS NULL OR dueAtMillis <= :nowMillis THEN 1 END) AS dueCount,
             MIN(CASE WHEN dueAtMillis > :nowMillis THEN dueAtMillis END) AS nextDueAtMillis
         FROM cards
         WHERE workspaceId = :workspaceId
             AND deletedAtMillis IS NULL
-            AND dueAtMillis IS NOT NULL
         """
     )
-    fun observeReviewOverdueCount(workspaceId: String, nowMillis: Long): Flow<ReviewOverdueCountRow>
+    fun observeReviewDueBadgeCount(workspaceId: String, nowMillis: Long): Flow<ReviewDueBadgeCountRow>
 
     @Query(
         """
         SELECT
-            COUNT(CASE WHEN dueAtMillis <= :nowMillis THEN 1 END) AS overdueCount,
+            COUNT(CASE WHEN dueAtMillis IS NULL OR dueAtMillis <= :nowMillis THEN 1 END) AS dueCount,
             MIN(CASE WHEN dueAtMillis > :nowMillis THEN dueAtMillis END) AS nextDueAtMillis
         FROM cards
         WHERE workspaceId = :workspaceId
             AND deletedAtMillis IS NULL
-            AND dueAtMillis IS NOT NULL
             AND EXISTS (
                 SELECT 1
                 FROM card_tags
@@ -142,11 +139,11 @@ interface ReviewCountDao {
             )
         """
     )
-    fun observeReviewOverdueCountByAnyTags(
+    fun observeReviewDueBadgeCountByAnyTags(
         workspaceId: String,
         nowMillis: Long,
         tagNames: List<String>
-    ): Flow<ReviewOverdueCountRow>
+    ): Flow<ReviewDueBadgeCountRow>
 
     @Query(
         """

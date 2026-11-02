@@ -126,8 +126,8 @@ interface ReviewRepository {
         presentedCardId: String?
     ): Flow<ReviewSessionSnapshot>
 
-    /** Overdue cards in the current workspace under its persisted Review filter. */
-    fun observeReviewOverdueBadgeCount(): Flow<Int>
+    /** New and due cards in the current workspace under its persisted Review filter. */
+    fun observeReviewDueBadgeCount(): Flow<Int>
 
     fun observeReviewMediaAssets(): Flow<List<MediaAsset>>
 
