@@ -1,29 +1,24 @@
 import Foundation
 
-private let reviewOverdueBadgeMaxDisplayedCount: Int = 99
-
 /// Returns nil when the Review tab badge should be hidden.
-func makeReviewOverdueBadgeLabel(overdueCount: Int) -> String? {
-    guard overdueCount > 0 else {
+func makeReviewDueBadgeLabel(dueCount: Int) -> String? {
+    guard dueCount > 0 else {
         return nil
     }
-    guard overdueCount <= reviewOverdueBadgeMaxDisplayedCount else {
-        return "\(reviewOverdueBadgeMaxDisplayedCount.formatted())+"
-    }
 
-    return overdueCount.formatted()
+    return dueCount.formatted()
 }
 
 @MainActor
 extension FlashcardsStore {
-    /// Publishes the overdue count for the current workspace and Review filter, then sleeps until the next
+    /// Publishes the due count for the current workspace and Review filter, then sleeps until the next
     /// card becomes due. The caller cancels and restarts it whenever the workspace, the Review filter, local
     /// data, or the scene phase changes.
-    func runReviewOverdueBadgeUpdates() async {
+    func runReviewDueBadgeUpdates() async {
         do {
             while true {
                 guard let database = self.database, let workspaceId = self.workspace?.workspaceId else {
-                    self.reviewOverdueBadgeCount = 0
+                    self.reviewDueBadgeCount = 0
                     return
                 }
 
@@ -31,7 +26,7 @@ extension FlashcardsStore {
                     workspaceId: workspaceId,
                     reviewFilter: self.selectedReviewFilter
                 )
-                let snapshot = try await loadReviewOverdueSnapshotInBackground(
+                let snapshot = try await loadReviewDueBadgeSnapshotInBackground(
                     databaseURL: database.databaseURL,
                     workspaceId: workspaceId,
                     reviewQueryDefinition: resolvedReviewQuery.queryDefinition,
@@ -39,7 +34,7 @@ extension FlashcardsStore {
                 )
                 // The detached query ignores cancellation, so a superseded run must not publish its result.
                 try Task.checkCancellation()
-                self.reviewOverdueBadgeCount = snapshot.overdueCount
+                self.reviewDueBadgeCount = snapshot.dueCount
 
                 guard let nextDueAt = snapshot.nextDueAt else {
                     return

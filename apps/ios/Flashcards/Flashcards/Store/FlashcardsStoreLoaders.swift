@@ -151,16 +151,16 @@ func defaultReviewCountsLoader(
     }.value
 }
 
-func loadReviewOverdueSnapshotInBackground(
+func loadReviewDueBadgeSnapshotInBackground(
     databaseURL: URL,
     workspaceId: String,
     reviewQueryDefinition: ReviewQueryDefinition,
     now: Date
-) async throws -> ReviewOverdueSnapshot {
+) async throws -> ReviewDueBadgeSnapshot {
     try await Task.detached(priority: .utility) {
         try Task.checkCancellation()
         return try withTemporaryLocalLoaderDatabase(databaseURL: databaseURL) { database in
-            try database.loadReviewOverdueSnapshot(
+            try database.loadReviewDueBadgeSnapshot(
                 workspaceId: workspaceId,
                 reviewQueryDefinition: reviewQueryDefinition,
                 now: now

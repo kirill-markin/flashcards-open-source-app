@@ -119,12 +119,12 @@ extension LocalDatabase {
         )
     }
 
-    func loadReviewOverdueSnapshot(
+    func loadReviewDueBadgeSnapshot(
         workspaceId: String,
         reviewQueryDefinition: ReviewQueryDefinition,
         now: Date
-    ) throws -> ReviewOverdueSnapshot {
-        try self.cardStore.loadReviewOverdueSnapshot(
+    ) throws -> ReviewDueBadgeSnapshot {
+        try self.cardStore.loadReviewDueBadgeSnapshot(
             workspaceId: workspaceId,
             reviewQueryDefinition: reviewQueryDefinition,
             now: now
