@@ -4,6 +4,8 @@ private enum ReviewStateReconcileTrigger: Equatable {
     case cloudSyncSilently
     case cloudSyncWithVisibleChangeBanner
     case localReview
+    /// A saved rating from a session the user has since left; the current session did not advance.
+    case staleLocalReview
 }
 
 private enum ReviewOperationLoadKind: String {
@@ -167,9 +169,9 @@ extension FlashcardsStore {
                 resolvedReviewFilter: resolvedReviewQuery.reviewFilter
             )
         let currentEffectiveQueue = self.reviewRuntime.effectiveReviewQueue(publishedState: currentReviewState)
-        let preservedPresentedReviewCard = startsNewSession ? nil : presentedReviewCardForBackgroundRefresh(
+        let validatedShownReviewCard = startsNewSession ? nil : presentedReviewCardForBackgroundRefresh(
             reviewQueue: [],
-            presentedCardId: currentReviewState.presentedReviewCard?.cardId,
+            presentedCardId: currentReviewCard(reviewQueue: currentEffectiveQueue)?.cardId,
             pendingReviewCardIds: currentReviewState.pendingReviewCardIds,
             resolvedReviewFilter: resolvedReviewQuery.reviewFilter,
             decks: self.decks,
@@ -177,7 +179,7 @@ extension FlashcardsStore {
             now: now
         )
         // The same still-in-review check as the shown card.
-        let preservedNextReviewCard = preservedPresentedReviewCard == nil ? nil : presentedReviewCardForBackgroundRefresh(
+        let validatedNextReviewCard = startsNewSession ? nil : presentedReviewCardForBackgroundRefresh(
             reviewQueue: [],
             presentedCardId: nextReviewCard(reviewQueue: currentEffectiveQueue)?.cardId,
             pendingReviewCardIds: currentReviewState.pendingReviewCardIds,
@@ -186,6 +188,10 @@ extension FlashcardsStore {
             cards: self.cards,
             now: now
         )
+        // A shown card that left review advances to the prepared next card; the head load prepares a new next card.
+        // See docs/fsrs-scheduling-logic.md#non-blocking-review.
+        let preservedPresentedReviewCard = validatedShownReviewCard ?? validatedNextReviewCard
+        let preservedNextReviewCard = validatedShownReviewCard == nil ? nil : validatedNextReviewCard
         let plan = self.reviewRuntime.startReviewLoad(
             publishedState: currentReviewState,
             resolvedReviewQuery: resolvedReviewQuery,
@@ -416,6 +422,8 @@ extension FlashcardsStore {
                     errorSummary: nil
                 )
                 self.applyReviewPublishedState(reviewState: nextReviewState)
+                // The request belongs to the active load of the selected filter, so its due count is the badge's.
+                self.reviewDueBadgeCount = reviewCounts.dueCount
             } catch is CancellationError {
                 return
             } catch {
@@ -783,7 +791,9 @@ extension FlashcardsStore {
         self.applyStaleReviewSubmissionCompletion(request: request)
         do {
             try await self.applyRatedCardLocally(workspaceId: request.workspaceId, cardId: request.cardId, now: now)
-            _ = try await self.reconcileReviewState(now: now, trigger: .localReview)
+            // This rating did not advance the current session, so its prepared next card stays.
+            // See docs/fsrs-scheduling-logic.md#non-blocking-review.
+            _ = try await self.reconcileReviewState(now: now, trigger: .staleLocalReview)
         } catch {
             self.settleReviewSourceRefreshFailure(error: error)
         }
@@ -939,6 +949,13 @@ extension FlashcardsStore {
         guard workspaceId == self.workspace?.workspaceId else {
             return false
         }
+        // The Review badge counts the same due cards for the same filter, so it needs no query of its own. Fresh
+        // counts publish it even when the queue result below is dropped, because a rating rereads nothing else.
+        // See docs/fsrs-scheduling-logic.md#non-blocking-review.
+        if requestedReviewFilter == self.selectedReviewFilter,
+           self.reviewRuntime.reviewSourceVersionMatches(sourceVersion: reviewSourceVersion) {
+            self.reviewDueBadgeCount = reviewCounts.dueCount
+        }
         guard currentReviewState == self.currentReviewPublishedState() else {
             return false
         }
@@ -949,8 +966,6 @@ extension FlashcardsStore {
         guard self.reviewRuntime.shouldApplyReviewReconciliation(generation: reconciliationGeneration) else {
             return false
         }
-        // The Review badge counts the same due cards for the same filter, so it needs no query of its own.
-        self.reviewDueBadgeCount = reviewCounts.dueCount
         // The same still-in-review check as the shown card.
         let preparedNextReviewCard = presentedReviewCardForBackgroundRefresh(
             reviewQueue: reviewQueueWindowState.reviewQueue,
