@@ -136,6 +136,8 @@ extension FlashcardsStore {
             self.cards = self.cards.filter { card in
                 card.cardId != cardId
             }
+            // Screens keyed on this version drop the deleted card. See docs/fsrs-scheduling-logic.md#non-blocking-review.
+            self.localReadVersion += 1
         }
         self.resumeReviewLoadsInvalidatedBySourceChange(now: now)
         self.reviewScheduleVersion += 1

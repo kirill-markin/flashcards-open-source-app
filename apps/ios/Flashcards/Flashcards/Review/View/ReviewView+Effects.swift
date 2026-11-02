@@ -308,7 +308,10 @@ extension ReviewView {
         await self.preparedImageCache.prepareReviewImages(for: imagePreparationSides, store: store)
     }
 
-    func cachedPreparedRevealState(card: Card) -> PreparedReviewRevealState? {
+    /// A card the task has not prepared yet, such as one an edit just changed, builds the same pure state inline
+    /// so it never falls back to the loader and keeps its reveal and scroll state; the task still stores it and
+    /// presents its technical error. See docs/fsrs-scheduling-logic.md#non-blocking-review.
+    func displayedRevealState(card: Card) -> PreparedReviewRevealState {
         let preparedRevealStateId = makePreparedReviewRevealStateId(
             card: card,
             schedulerSettings: store.schedulerSettings
@@ -321,7 +324,11 @@ extension ReviewView {
             return preparedNextRevealState
         }
 
-        return nil
+        return makePreparedReviewRevealStatePreparation(
+            card: card,
+            schedulerSettings: store.schedulerSettings,
+            now: Date()
+        ).state
     }
 }
 
