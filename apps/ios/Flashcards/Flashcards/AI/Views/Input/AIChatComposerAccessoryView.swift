@@ -180,6 +180,11 @@ extension AIChatView {
                     .disabled(self.composerTextFieldDisabled)
                     .autocorrectionDisabled(true)
                     .focused(self.$isComposerFocused)
+                    #if targetEnvironment(macCatalyst)
+                    .onKeyPress(keys: [.return, KeyEquivalent("\u{3}")], phases: [.down, .repeat, .up]) { press in
+                        return self.macComposerReturnKeyOwner.handleKeyPress(press)
+                    }
+                    #endif
                     .lineLimit(1...aiChatComposerMaximumLineCount)
                     .padding(.leading, 12)
                     .padding(.top, self.chatStore.dictationState == .idle ? aiChatComposerTextVerticalPadding : aiChatComposerDictationTextFieldTopPadding)
@@ -235,6 +240,16 @@ extension AIChatView {
                     .accessibilityIdentifier(UITestIdentifier.aiComposerSendButton)
                 }
                 .background {
+                    #if targetEnvironment(macCatalyst)
+                    AIChatComposerKeyboardObserver(
+                        isEnabled: self.isPresentationActive,
+                        canSend: { self.chatStore.canSendMessage },
+                        onSend: self.sendComposerMessageFromReturnKey,
+                        macReturnKeyOwner: self.macComposerReturnKeyOwner
+                    )
+                    .allowsHitTesting(false)
+                    .accessibilityHidden(true)
+                    #else
                     AIChatComposerKeyboardObserver(
                         isEnabled: self.isPresentationActive,
                         canSend: { self.chatStore.canSendMessage },
@@ -242,6 +257,7 @@ extension AIChatView {
                     )
                     .allowsHitTesting(false)
                     .accessibilityHidden(true)
+                    #endif
                 }
                 .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
                 .overlay(alignment: .topLeading) {

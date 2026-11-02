@@ -119,6 +119,9 @@ struct AIChatView: View {
     @State var composerAttachmentViewportWidth: CGFloat?
     @State var deferredPresentationRequest: AIChatPresentationRequest?
     @FocusState var isComposerFocused: Bool
+    #if targetEnvironment(macCatalyst)
+    @State var macComposerReturnKeyOwner = MacComposerReturnKeyOwner()
+    #endif
     @State var refocusesComposerAfterSend: Bool
 
     @MainActor
