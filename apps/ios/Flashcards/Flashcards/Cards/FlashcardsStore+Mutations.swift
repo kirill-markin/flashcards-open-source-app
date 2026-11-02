@@ -18,14 +18,30 @@ extension FlashcardsStore {
         )
     }
 
-    /// An edit shows at once instead of after the background rebuild. That rebuild then finds these cards
-    /// unchanged, so the loads the edit invalidated resume and other screens reread here.
+    /// An edit shows at once, also on the shown and prepared next Review cards, instead of after the background
+    /// rebuild. That rebuild then finds these cards unchanged, so the loads the edit invalidated resume and other
+    /// screens reread here; a card the edit takes out of review leaves through that rebuild.
     /// See docs/fsrs-scheduling-logic.md#non-blocking-review.
     private func replaceEditedCardsInMemory(editedCards: [Card], now: Date) {
         let editedCardsById = Dictionary(uniqueKeysWithValues: editedCards.map { card in (card.cardId, card) })
-        self.cards = self.cards.map { card in
+        func editedCard(card: Card) -> Card {
             editedCardsById[card.cardId] ?? card
         }
+        self.cards = self.cards.map(editedCard)
+        let currentReviewState = self.currentReviewPublishedState()
+        self.applyReviewPublishedState(
+            reviewState: ReviewQueuePublishedState(
+                selectedReviewFilter: currentReviewState.selectedReviewFilter,
+                reviewQueue: currentReviewState.reviewQueue.map(editedCard),
+                presentedReviewCard: currentReviewState.presentedReviewCard.map(editedCard),
+                reviewCounts: currentReviewState.reviewCounts,
+                isReviewHeadLoading: currentReviewState.isReviewHeadLoading,
+                isReviewCountsLoading: currentReviewState.isReviewCountsLoading,
+                isReviewQueueChunkLoading: currentReviewState.isReviewQueueChunkLoading,
+                pendingReviewCardIds: currentReviewState.pendingReviewCardIds,
+                reviewSubmissionFailure: currentReviewState.reviewSubmissionFailure
+            )
+        )
         self.resumeReviewLoadsInvalidatedBySourceChange(now: now)
         self.localReadVersion += 1
     }

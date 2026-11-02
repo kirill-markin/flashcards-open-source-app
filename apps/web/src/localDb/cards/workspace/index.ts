@@ -11,6 +11,7 @@ import {
   closeDatabaseAfter,
   closeDatabaseAfterWrite,
   type DatabaseStores,
+  describeIndexedDbError,
   getFromStore,
   runReadwrite,
   type StoredCard,
@@ -192,24 +193,43 @@ export async function loadWorkspaceTagsSummary(workspaceId: string): Promise<Wor
   });
 }
 
-async function loadStoredSyncWriteStamp(
-  database: IDBDatabase,
+function requestStoredSyncWriteStamp(
+  transaction: IDBTransaction,
   workspaceId: string,
   entry: SyncBootstrapEntry,
-): Promise<SyncWriteStamp | null> {
+): IDBRequest {
   if (entry.entityType === "card") {
-    return await getFromStore<StoredCard>(database, "cards", [workspaceId, entry.payload.cardId]) ?? null;
+    return transaction.objectStore("cards").get([workspaceId, entry.payload.cardId]);
   }
 
   if (entry.entityType === "deck") {
-    return await getFromStore<Deck>(database, "decks", [workspaceId, entry.payload.deckId]) ?? null;
+    return transaction.objectStore("decks").get([workspaceId, entry.payload.deckId]);
   }
 
   if (entry.entityType === "media_asset") {
-    return await getFromStore<StoredMediaAsset>(database, "mediaAssets", [workspaceId, entry.payload.mediaAssetId]) ?? null;
+    return transaction.objectStore("mediaAssets").get([workspaceId, entry.payload.mediaAssetId]);
   }
 
-  return (await getFromStore<WorkspaceSettingsRecord>(database, "workspaceSettings", workspaceId))?.settings ?? null;
+  return transaction.objectStore("workspaceSettings").get(workspaceId);
+}
+
+function readStoredSyncWriteStamp(
+  entry: SyncBootstrapEntry,
+  storedRecord: IDBRequest["result"],
+): SyncWriteStamp | null {
+  if (entry.entityType === "card") {
+    return (storedRecord as StoredCard | undefined) ?? null;
+  }
+
+  if (entry.entityType === "deck") {
+    return (storedRecord as Deck | undefined) ?? null;
+  }
+
+  if (entry.entityType === "media_asset") {
+    return (storedRecord as StoredMediaAsset | undefined) ?? null;
+  }
+
+  return (storedRecord as WorkspaceSettingsRecord | undefined)?.settings ?? null;
 }
 
 /**
@@ -226,20 +246,45 @@ export async function doHotSyncEntriesChangeLocalData(
     return false;
   }
 
-  return closeDatabaseAfter(async (database) => {
-    for (const entry of entries) {
-      const storedStamp = await loadStoredSyncWriteStamp(database, workspaceId, entry);
-      if (
-        storedStamp === null
-        || storedStamp.lastOperationId !== entry.payload.lastOperationId
-        || storedStamp.clientUpdatedAt !== entry.payload.clientUpdatedAt
-      ) {
-        return true;
-      }
-    }
+  return closeDatabaseAfter((database) => new Promise<boolean>((resolve, reject) => {
+    const transaction = database.transaction(["cards", "decks", "mediaAssets", "workspaceSettings"], "readonly");
+    let doesChangeLocalData = false;
+    let firstRequestError: Error | null = null;
 
-    return false;
-  });
+    transaction.onerror = () => {
+      reject(firstRequestError ?? describeIndexedDbError("IndexedDB hot sync echo check failed", transaction.error));
+    };
+
+    transaction.onabort = () => {
+      reject(firstRequestError ?? describeIndexedDbError("IndexedDB hot sync echo check aborted", transaction.error));
+    };
+
+    transaction.oncomplete = () => {
+      resolve(doesChangeLocalData);
+    };
+
+    for (const entry of entries) {
+      const request = requestStoredSyncWriteStamp(transaction, workspaceId, entry);
+      request.onerror = () => {
+        if (firstRequestError === null) {
+          firstRequestError = describeIndexedDbError(
+            `IndexedDB hot sync echo check get failed: workspaceId=${workspaceId}, entityType=${entry.entityType}, entityId=${entry.entityId}`,
+            request.error,
+          );
+        }
+      };
+      request.onsuccess = () => {
+        const storedStamp = readStoredSyncWriteStamp(entry, request.result);
+        if (
+          storedStamp === null
+          || storedStamp.lastOperationId !== entry.payload.lastOperationId
+          || storedStamp.clientUpdatedAt !== entry.payload.clientUpdatedAt
+        ) {
+          doesChangeLocalData = true;
+        }
+      };
+    }
+  }));
 }
 
 export async function applyHotSyncPage(
