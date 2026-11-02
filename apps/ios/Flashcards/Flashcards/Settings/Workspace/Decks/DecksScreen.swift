@@ -116,7 +116,7 @@ struct DecksScreen: View {
         )
         .nativeSearchToolbar(horizontalSizeClass: self.horizontalSizeClass)
         #endif
-        .task(id: store.localReadVersion) {
+        .task(id: "\(store.localReadVersion)|\(store.reviewScheduleVersion)") {
             await self.reloadDecksSnapshot()
         }
         .onAppear {
@@ -502,7 +502,7 @@ private struct DeckDetailScreen: View {
         }
         .listStyle(.insetGrouped)
         .nativeNavigationTitle(detailState?.title ?? aiSettingsLocalized("settings.workspace.decks.deck", "Deck"))
-        .task(id: "\(self.currentDeckId ?? "all")|\(store.localReadVersion)") {
+        .task(id: "\(self.currentDeckId ?? "all")|\(store.localReadVersion)|\(store.reviewScheduleVersion)") {
             await self.reloadDetailState()
         }
         .onAppear {

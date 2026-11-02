@@ -411,7 +411,7 @@ struct CardsScreen: View {
     }
 
     private var queryReloadKey: String {
-        "\(self.searchText)|\(self.committedFilter?.tags.joined(separator: ",") ?? "")|\(store.localReadVersion)"
+        "\(self.searchText)|\(self.committedFilter?.tags.joined(separator: ",") ?? "")|\(store.localReadVersion)|\(store.reviewScheduleVersion)"
     }
 
     private func withCurrentCard(_ card: Card, action: (Card) -> Void) {

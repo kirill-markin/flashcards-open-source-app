@@ -49,8 +49,6 @@ struct LoadedBootstrapSnapshot: Sendable {
     let snapshot: AppBootstrapSnapshot
     let cards: [Card]
     let decks: [Deck]
-    let deckItems: [DeckListItem]
-    let homeSnapshot: HomeSnapshot
 }
 
 private func withTemporaryLocalLoaderDatabase<Result>(
@@ -78,35 +76,32 @@ private func withTemporaryLocalLoaderDatabase<Result>(
 }
 
 func defaultBootstrapSnapshotLoader(
-    databaseURL: URL,
-    now: Date
+    databaseURL: URL
 ) async throws -> LoadedBootstrapSnapshot {
     try await Task.detached(priority: .userInitiated) {
         try Task.checkCancellation()
         return try withTemporaryLocalLoaderDatabase(databaseURL: databaseURL) { database in
             try database.core.inReadTransaction {
                 let snapshot = try database.loadBootstrapSnapshot()
-                let cards = try database.loadActiveCards(workspaceId: snapshot.workspace.workspaceId)
-                let decks = try database.loadActiveDecks(workspaceId: snapshot.workspace.workspaceId)
-                let overviewSnapshot = try database.loadWorkspaceOverviewSnapshot(
-                    workspaceId: snapshot.workspace.workspaceId,
-                    workspaceName: snapshot.workspace.name,
-                    now: now
-                )
                 return LoadedBootstrapSnapshot(
                     snapshot: snapshot,
-                    cards: cards,
-                    decks: decks,
-                    deckItems: makeDeckListItems(decks: decks, cards: cards, now: now),
-                    homeSnapshot: HomeSnapshot(
-                        deckCount: overviewSnapshot.deckCount,
-                        totalCards: overviewSnapshot.totalCards,
-                        dueCount: overviewSnapshot.dueCount,
-                        newCount: overviewSnapshot.newCount,
-                        reviewedCount: overviewSnapshot.reviewedCount
-                    )
+                    cards: try database.loadActiveCards(workspaceId: snapshot.workspace.workspaceId),
+                    decks: try database.loadActiveDecks(workspaceId: snapshot.workspace.workspaceId)
                 )
             }
+        }
+    }.value
+}
+
+func loadActiveCardInBackground(
+    databaseURL: URL,
+    workspaceId: String,
+    cardId: String
+) async throws -> Card {
+    try await Task.detached(priority: .userInitiated) {
+        try Task.checkCancellation()
+        return try withTemporaryLocalLoaderDatabase(databaseURL: databaseURL) { database in
+            try database.loadActiveCard(workspaceId: workspaceId, cardId: cardId)
         }
     }.value
 }

@@ -121,15 +121,14 @@ struct ReviewView: View {
         return "\(presentedStateId)|\(queueStateId)"
     }
 
+    /// A kept card stays on screen while a rebuild loads the queue behind it.
+    /// See docs/fsrs-scheduling-logic.md#non-blocking-review.
     private var shouldShowReviewLoader: Bool {
-        if store.isReviewHeadLoading {
-            return true
-        }
         if let currentCard {
             return self.cachedPreparedRevealState(card: currentCard) == nil
         }
 
-        return store.isReviewQueueChunkLoading
+        return store.isReviewHeadLoading || store.isReviewQueueChunkLoading
     }
 
     private var usesPairedReviewSpacing: Bool {

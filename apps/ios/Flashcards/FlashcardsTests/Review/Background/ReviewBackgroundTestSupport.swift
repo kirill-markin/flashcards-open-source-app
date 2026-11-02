@@ -38,62 +38,6 @@ extension ProgressStoreTestCase {
         store.globalErrorMessage = ""
         return store
     }
-
-    @MainActor
-    func prepareReviewReloadFailureState(
-        store: FlashcardsStore,
-        card: Card,
-        reviewFilter: ReviewFilter
-    ) -> ReviewQueuePublishedState {
-        let publishedState = ReviewQueuePublishedState(
-            selectedReviewFilter: reviewFilter,
-            reviewQueue: [card],
-            presentedReviewCard: card,
-            reviewCounts: ReviewCounts(dueCount: 7, totalCount: 9),
-            isReviewHeadLoading: true,
-            isReviewCountsLoading: true,
-            isReviewQueueChunkLoading: true,
-            pendingReviewCardIds: [],
-            reviewSubmissionFailure: ReviewSubmissionFailure(
-                id: "existing-review-failure",
-                message: "Existing review failure"
-            )
-        )
-        store.applyReviewPublishedState(reviewState: publishedState)
-        store.reviewRuntime.state.activeReviewLoadTask = Task {}
-        store.reviewRuntime.state.activeReviewLoadRequestId = "head-request"
-        store.reviewRuntime.state.activeReviewCountsTask = Task {}
-        store.reviewRuntime.state.activeReviewCountsRequestId = "counts-request"
-        store.reviewRuntime.state.activeReviewQueueChunkTask = Task {}
-        store.reviewRuntime.state.activeReviewQueueChunkRequestId = "chunk-request"
-        store.reviewRuntime.state.hasMoreReviewQueueCards = true
-        return publishedState
-    }
-
-    @MainActor
-    func assertSettledReviewReloadFailure(
-        store: FlashcardsStore,
-        publishedState: ReviewQueuePublishedState,
-        errorFragment: String
-    ) {
-        XCTAssertEqual(store.selectedReviewFilter, publishedState.selectedReviewFilter)
-        XCTAssertEqual(store.reviewQueue, publishedState.reviewQueue)
-        XCTAssertEqual(store.presentedReviewCard, publishedState.presentedReviewCard)
-        XCTAssertEqual(store.reviewCounts, publishedState.reviewCounts)
-        XCTAssertEqual(store.pendingReviewCardIds, publishedState.pendingReviewCardIds)
-        XCTAssertEqual(store.reviewSubmissionFailure, publishedState.reviewSubmissionFailure)
-        XCTAssertFalse(store.isReviewHeadLoading)
-        XCTAssertFalse(store.isReviewCountsLoading)
-        XCTAssertFalse(store.isReviewQueueChunkLoading)
-        XCTAssertNil(store.reviewRuntime.state.activeReviewLoadTask)
-        XCTAssertNil(store.reviewRuntime.state.activeReviewLoadRequestId)
-        XCTAssertNil(store.reviewRuntime.state.activeReviewCountsTask)
-        XCTAssertNil(store.reviewRuntime.state.activeReviewCountsRequestId)
-        XCTAssertNil(store.reviewRuntime.state.activeReviewQueueChunkTask)
-        XCTAssertNil(store.reviewRuntime.state.activeReviewQueueChunkRequestId)
-        XCTAssertFalse(store.reviewRuntime.state.hasMoreReviewQueueCards)
-        XCTAssertTrue(store.globalErrorMessage.contains(errorFragment))
-    }
 }
 
 actor ReviewReconcileAsyncGate {
