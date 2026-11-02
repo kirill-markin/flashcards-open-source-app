@@ -130,7 +130,7 @@ final class AIChatComposerKeyboardCommandView: UIView {
 
     private func eligibleController() -> UIViewController? {
         guard self.isEnabled, let window = self.window, isActiveKeyboardWindow(window),
-              let responder = firstResponderView(in: window),
+              let responder = keyboardFirstResponderView(in: window),
               let textInput = responder as? UITextInput,
               textInput.markedTextRange == nil,
               self.convert(self.bounds, to: window).intersects(responder.convert(responder.bounds, to: window)) else { return nil }
@@ -159,7 +159,7 @@ final class AIChatComposerKeyboardCommandView: UIView {
               let view = self.commandOwners[identifier]?.view,
               view.eligibleController() != nil,
               let window = view.window,
-              let textInput = firstResponderView(in: window) as? UITextInput else { return }
+              let textInput = keyboardFirstResponderView(in: window) as? UITextInput else { return }
         // Mac text input can insert U+2028 instead of the draft's plain newline.
         textInput.insertText("\n")
     }
