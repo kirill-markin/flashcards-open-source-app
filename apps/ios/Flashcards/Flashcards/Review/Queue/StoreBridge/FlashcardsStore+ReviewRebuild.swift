@@ -107,25 +107,47 @@ extension FlashcardsStore {
             throw LocalStoreError.uninitialized("Local database is unavailable")
         }
 
-        let ratedCard = try await loadActiveCardInBackground(
-            databaseURL: databaseURL,
-            workspaceId: workspaceId,
-            cardId: cardId
-        )
+        let ratedCard: Card?
+        do {
+            ratedCard = try await loadActiveCardInBackground(
+                databaseURL: databaseURL,
+                workspaceId: workspaceId,
+                cardId: cardId
+            )
+        } catch LocalStoreError.notFound {
+            // A sync deleted the card after the rating; it leaves review like any deleted card.
+            // See docs/fsrs-scheduling-logic.md#non-blocking-review.
+            ratedCard = nil
+        }
         guard workspaceId == self.workspace?.workspaceId else {
             return
         }
-        self.cards = self.cards.map { card in
-            card.cardId == ratedCard.cardId ? ratedCard : card
+        if let ratedCard {
+            self.cards = self.cards.map { card in
+                card.cardId == ratedCard.cardId ? ratedCard : card
+            }
+        } else {
+            self.cards = self.cards.filter { card in
+                card.cardId != cardId
+            }
         }
         self.resumeReviewLoadsInvalidatedBySourceChange(now: now)
         self.reviewScheduleVersion += 1
         // "Again in 1 minute" can come due before the armed timer; only the timer moves, nothing is reread.
-        if let ratedDueAt = ratedCard.dueAt.flatMap({ dueAt in parseIsoTimestamp(value: dueAt) }),
+        if let ratedDueAt = ratedCard?.dueAt.flatMap({ dueAt in parseIsoTimestamp(value: dueAt) }),
            ratedDueAt > now,
-           self.nextDueRefreshAt.map({ nextDueRefreshAt in ratedDueAt < nextDueRefreshAt }) ?? true {
+           self.armedNextDueRefreshAt().map({ nextDueRefreshAt in ratedDueAt < nextDueRefreshAt }) ?? true {
             self.scheduleNextDueRefresh(nextDueAt: ratedDueAt)
         }
+    }
+
+    /// A fired or cancelled timer leaves nothing armed. A timer past its time that has not woken yet stays armed:
+    /// it re-arms at the earliest due time, the rated card included.
+    private func armedNextDueRefreshAt() -> Date? {
+        guard let nextDueRefreshTask = self.nextDueRefreshTask, nextDueRefreshTask.isCancelled == false else {
+            return nil
+        }
+        return self.nextDueRefreshAt
     }
 
     /**
@@ -142,6 +164,11 @@ extension FlashcardsStore {
         self.nextDueRefreshTask = Task { @MainActor in
             do {
                 try await Task.sleep(for: .seconds(max(0, nextDueAt.timeIntervalSinceNow)))
+                try Task.checkCancellation()
+                // A fired timer is unarmed: a rating during this refresh arms its own timer without cancelling
+                // this one, which then re-arms at the earliest due time.
+                self.nextDueRefreshTask = nil
+                self.nextDueRefreshAt = nil
                 _ = try await self.refreshReviewState(now: Date(), mode: .backgroundReconcileSilently)
             } catch is CancellationError {
                 return
