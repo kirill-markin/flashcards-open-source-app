@@ -1,5 +1,7 @@
 import Foundation
 
+let progressDeferredRefreshDelay: Duration = .seconds(3)
+
 struct ProgressOperationRefreshNeeds: Sendable, Hashable {
     let summary: Bool?
     let series: Bool?
@@ -795,6 +797,8 @@ extension FlashcardsStore {
         self.prepareProgressForCurrentVisibleTabAndRefreshIfNeeded(now: now)
     }
 
+    /// A rating patches only the Review streak badge, in memory; charts, summary and leaderboards wait
+    /// for the deferred refresh or the Progress screen. See docs/fsrs-scheduling-logic.md#non-blocking-review.
     func handleProgressLocalMutation(
         now: Date,
         reviewedAtClient: String,
@@ -803,71 +807,97 @@ extension FlashcardsStore {
     ) {
         do {
             let scopeKey = try self.prepareProgressScope(now: now)
-            let scheduleScopeKey = reviewScheduleScopeKey(seriesScopeKey: scopeKey)
             self.progressReviewedAtClientRevision += 1
             self.progressReviewScheduleLocalRevision += 1
             self.invalidateProgressSummaryAndSeries(
                 scopeKey: scopeKey,
                 summaryScopeKey: progressSummaryScopeKey(seriesScopeKey: scopeKey)
             )
-            try self.markProgressReviewSchedulePendingLocalOverlay(scopeKey: scheduleScopeKey)
-            try self.publishReviewProgressBadgeState(scopeKey: scopeKey)
-            let leaderboardScopeKey = self.currentProgressLeaderboardScopeKey(seriesScopeKey: scopeKey)
-            self.publishReviewScheduleSnapshotIsolatingErrors(
-                scopeKey: scheduleScopeKey
+            try self.markProgressReviewSchedulePendingLocalOverlay(
+                scopeKey: reviewScheduleScopeKey(seriesScopeKey: scopeKey)
             )
-            // Re-render the cached leaderboard so the viewer's live qualified
-            // count reflects the just-submitted review immediately.
-            self.publishProgressLeaderboardSnapshotIsolatingErrors(
-                scopeKey: leaderboardScopeKey,
-                now: now
-            )
-
-            guard let progressSnapshot = self.progressSnapshot else {
-                self.publishProgressStreakLeaderboardSnapshotIsolatingErrors(
-                    scopeKey: leaderboardScopeKey,
-                    seriesScopeKey: scopeKey,
-                    now: now
-                )
-                self.clearProgressErrorMessage()
-                return
-            }
-
-            guard progressSnapshot.scopeKey == scopeKey else {
-                try self.publishProgressSnapshot(scopeKey: scopeKey)
-                self.publishProgressStreakLeaderboardSnapshotIsolatingErrors(
-                    scopeKey: leaderboardScopeKey,
-                    seriesScopeKey: scopeKey,
-                    now: now
-                )
-                self.clearProgressErrorMessage()
-                return
-            }
-
-            let reviewedAtClientSources = try self.loadProgressReviewedAtClientSources()
-            let activeReviewLocalDates = try progressActiveDatesFromReviewedAtClientSources(
-                sources: reviewedAtClientSources,
-                timeZone: scopeKey.timeZone
-            )
-            let patchedSnapshot = try patchProgressSnapshot(
-                snapshot: progressSnapshot,
+            try self.applyRatingToVisibleProgressBadges(
                 scopeKey: scopeKey,
                 reviewedAtClient: reviewedAtClient,
                 reviewedTimeZone: reviewedTimeZone,
-                rating: rating,
-                activeReviewLocalDates: activeReviewLocalDates
-            )
-            self.applyProgressSnapshot(snapshot: patchedSnapshot)
-            self.publishProgressStreakLeaderboardSnapshotIsolatingErrors(
-                scopeKey: leaderboardScopeKey,
-                seriesScopeKey: scopeKey,
-                now: now
+                rating: rating
             )
             self.clearProgressErrorMessage()
         } catch {
             self.presentTechnicalError(error)
             self.replaceProgressErrorMessage(message: localizedProgressUnavailableErrorMessage())
         }
+        self.scheduleDeferredProgressRefresh()
+    }
+
+    func applyRatingToVisibleProgressBadges(
+        scopeKey: ProgressScopeKey,
+        reviewedAtClient: String,
+        reviewedTimeZone: String?,
+        rating: ReviewRating
+    ) throws {
+        guard let badgeSource = self.reviewProgressBadgeSource,
+              badgeSource.scopeKey == scopeKey else {
+            // Nothing is rendered for this scope yet: the first rating after a date or account change.
+            try self.publishReviewProgressBadgeState(scopeKey: scopeKey)
+            return
+        }
+
+        self.applyReviewProgressBadgeSummary(
+            summary: try progressSummaryAfterLocalRating(
+                summary: badgeSource.summary,
+                scopeKey: scopeKey,
+                reviewedAtClient: reviewedAtClient,
+                reviewedTimeZone: reviewedTimeZone,
+                rating: rating
+            ),
+            scopeKey: scopeKey
+        )
+    }
+
+    /// Debounced, so a burst of ratings or syncs costs one refresh after the last of them.
+    func scheduleDeferredProgressRefresh() {
+        self.deferredProgressRefreshTask?.cancel()
+        self.deferredProgressRefreshTask = Task { @MainActor [weak self] in
+            do {
+                try await Task.sleep(for: progressDeferredRefreshDelay)
+            } catch {
+                // Cancelled: a newer rating or sync scheduled its own refresh.
+                return
+            }
+            guard let self else { return }
+            await self.runDeferredProgressRefresh(now: Date())
+        }
+    }
+
+    /// Recomputes the Review badges, or a Progress screen that stayed open while queued ratings landed;
+    /// other tabs recompute when shown.
+    func runDeferredProgressRefresh(now: Date) async {
+        let visibleTab = self.currentVisibleTab
+        guard isProgressConsumerTab(tab: visibleTab) else {
+            return
+        }
+
+        do {
+            // A superseded read would make the publishes below reread the history on main.
+            guard try await self.preloadProgressReviewedAtClientSourcesOffMain(now: now) else {
+                return
+            }
+        } catch {
+            if isRequestCancellationError(error: error) {
+                return
+            }
+
+            self.presentTechnicalError(error)
+            self.replaceProgressErrorMessage(message: localizedProgressUnavailableErrorMessage())
+            return
+        }
+
+        guard Task.isCancelled == false, self.currentVisibleTab == visibleTab else {
+            return
+        }
+
+        await self.refreshVisibleProgressIfNeeded(now: now)
     }
 
     func handleReviewScheduleLocalCardStateDidChange(now: Date) {
@@ -892,12 +922,12 @@ extension FlashcardsStore {
         syncResult: CloudSyncResult
     ) async {
         do {
-            let isReviewVisible = self.currentVisibleTab == .review
+            let isProgressVisible = self.currentVisibleTab == .progress
             let scopeKey: ProgressScopeKey
-            if isReviewVisible {
-                scopeKey = try self.prepareProgressScope(now: now)
-            } else {
+            if isProgressVisible {
                 scopeKey = try self.prepareProgressSnapshot(now: now)
+            } else {
+                scopeKey = try self.prepareProgressScope(now: now)
             }
             let summaryScopeKey = progressSummaryScopeKey(seriesScopeKey: scopeKey)
             let scheduleScopeKey = reviewScheduleScopeKey(seriesScopeKey: scopeKey)
@@ -922,9 +952,8 @@ extension FlashcardsStore {
                         syncResult: syncResult
                     )
                 }
-                if isReviewVisible {
-                    try self.publishReviewProgressBadgeState(scopeKey: scopeKey)
-                } else if self.progressSummaryServerBaseCache == nil || self.progressSeriesServerBaseCache == nil {
+                if isProgressVisible
+                    && (self.progressSummaryServerBaseCache == nil || self.progressSeriesServerBaseCache == nil) {
                     try self.publishProgressSnapshot(scopeKey: scopeKey)
                 }
             } else {
@@ -934,10 +963,18 @@ extension FlashcardsStore {
                 )
             }
 
-            if reviewScheduleDataChanged && isReviewVisible == false {
+            // Off the Progress screen a sync takes a rating's deferred path; see docs/fsrs-scheduling-logic.md#non-blocking-review.
+            guard isProgressVisible else {
+                if self.currentVisibleTab == .review {
+                    self.scheduleDeferredProgressRefresh()
+                }
+                return
+            }
+
+            if reviewScheduleDataChanged {
                 self.publishReviewScheduleSnapshotIsolatingErrors(scopeKey: scheduleScopeKey)
             }
-            if reviewProgressDataChanged && isReviewVisible == false {
+            if reviewProgressDataChanged {
                 self.publishProgressLeaderboardSnapshotIsolatingErrors(
                     scopeKey: self.currentProgressLeaderboardScopeKey(seriesScopeKey: scopeKey),
                     now: now
@@ -947,10 +984,6 @@ extension FlashcardsStore {
                     seriesScopeKey: scopeKey,
                     now: now
                 )
-            }
-
-            guard isProgressConsumerTab(tab: self.currentVisibleTab) else {
-                return
             }
 
             guard self.activeProgressCloudSession(scopeKey: scopeKey) != nil else {

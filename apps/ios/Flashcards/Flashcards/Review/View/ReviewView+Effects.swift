@@ -226,11 +226,24 @@ extension ReviewView {
 
     func reloadReviewMetadata() async {
         do {
-            let tagsSummary = try store.loadWorkspaceTagsSummary()
+            let database = try requireLocalDatabase(database: store.database)
+            let workspaceId = try requireWorkspaceId(workspace: store.workspace)
+            // Reads every card tag, so it stays off the main thread; see docs/fsrs-scheduling-logic.md#non-blocking-review.
+            let tagsSummary = try await loadWorkspaceTagsSummaryInBackground(
+                databaseURL: database.databaseURL,
+                workspaceId: workspaceId
+            )
+            // A newer reload replaced this one while the read ran.
+            guard Task.isCancelled == false else {
+                return
+            }
             self.reviewTagSummaries = tagsSummary.tags
             self.totalCardsCount = tagsSummary.totalCards
             self.screenErrorMessage = ""
         } catch {
+            guard Task.isCancelled == false else {
+                return
+            }
             self.screenErrorMessage = ""
             store.presentTechnicalError(error)
         }

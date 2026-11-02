@@ -689,6 +689,8 @@ final class ProgressSyncCompletionTests: ProgressStoreTestCase {
                 entitlement: nil
             )
         )
+        // On Review, a sync refreshes the badges on the deferred path.
+        await context.store.runDeferredProgressRefresh(now: now)
         await self.waitForProgressRefreshCallCounts(
             cloudSyncService: context.cloudSyncService,
             summaryCount: initialSummaryCallCount + 1,
@@ -787,6 +789,8 @@ final class ProgressSyncCompletionTests: ProgressStoreTestCase {
                 entitlement: nil
             )
         )
+        // On Review, a sync refreshes the badges on the deferred path.
+        await context.store.runDeferredProgressRefresh(now: now)
         await self.waitForProgressRefreshCallCounts(
             cloudSyncService: context.cloudSyncService,
             summaryCount: initialSummaryCallCount + 1,
