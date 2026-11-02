@@ -31,6 +31,32 @@ enum LiveSmokeFailure: LocalizedError {
     case appDidNotReachForeground(timeoutSeconds: TimeInterval, appState: String, step: String)
     case uiTestLaunchPreparationFailed(launchScenario: String, message: String, screen: String, step: String)
 
+    /// The element the failing helper was waiting on, when the failure names one.
+    var targetIdentifier: String? {
+        switch self {
+        case .missingElement(let identifier, _, _, _),
+             .elementDidNotDisappear(let identifier, _, _, _),
+             .disabledElement(let identifier, _, _),
+             .textInputNotReady(let identifier, _, _, _, _, _, _, _, _, _),
+             .unexpectedElementLabel(let identifier, _, _, _, _, _),
+             .unexpectedElementValue(let identifier, _, _, _, _, _),
+             .missingScreen(_, let identifier, _, _, _):
+            return identifier
+        case .stepFailed,
+             .missingText,
+             .missingBackButton,
+             .currentWorkspacePickerNotVisible,
+             .unexpectedAccountState,
+             .unexpectedReviewState,
+             .aiRunDidNotFinish,
+             .aiRunReportedError,
+             .unexpectedAiConversationState,
+             .appDidNotReachForeground,
+             .uiTestLaunchPreparationFailed:
+            return nil
+        }
+    }
+
     var errorDescription: String? {
         switch self {
         case .stepFailed(let title, let durationSeconds, let underlyingMessage):

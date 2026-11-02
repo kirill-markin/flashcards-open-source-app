@@ -24,6 +24,30 @@ enum FlashcardsObservability {
     }
 
     @MainActor
+    static func startReviewNextCardVisibleSpan(ratedCardId: String) {
+        SentryObservabilityAdapter.startReviewNextCardVisibleSpan(ratedCardId: ratedCardId)
+    }
+
+    @MainActor
+    static func finishReviewNextCardVisibleSpan(shownCardId: String, hasImages: Bool) {
+        SentryObservabilityAdapter.finishReviewNextCardVisibleSpan(shownCardId: shownCardId, hasImages: hasImages)
+    }
+
+    /// An empty review screen has no next card to measure.
+    @MainActor
+    static func discardReviewNextCardVisibleSpan() {
+        SentryObservabilityAdapter.discardReviewNextCardVisibleSpan()
+    }
+
+    static func startReviewAfterRatingWorkSpan(ratedAt: Date) -> ReviewTimingSpan {
+        SentryObservabilityAdapter.startReviewAfterRatingWorkSpan(ratedAt: ratedAt)
+    }
+
+    static func finishReviewAfterRatingWorkSpan(_ span: ReviewTimingSpan) {
+        SentryObservabilityAdapter.finishReviewAfterRatingWorkSpan(span)
+    }
+
+    @MainActor
     static func recordReviewReaction(
         action: ReviewReactionLifecycleAction,
         variant: ReviewReactionVariant?,

@@ -14,6 +14,7 @@ import androidx.compose.runtime.State
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -112,6 +113,7 @@ internal fun NavGraphBuilder.registerReviewNavGraph(
             reviewPromptConfigStore = appGraph.reviewPromptConfigStore,
             analytics = appGraph.analytics,
             observability = appGraph.observability,
+            performanceTracing = appGraph.performanceTracing,
             visibleAppScreenRepository = appGraph.visibleAppScreenController,
             workspaceRepository = appGraph.workspaceRepository
         )
@@ -175,6 +177,20 @@ internal fun NavGraphBuilder.registerReviewNavGraph(
                 val didSelectFilter = reviewViewModel.selectFilterForHandoff(reviewFilter = request.reviewFilter)
                 if (didSelectFilter) {
                     appGraph.appHandoffCoordinator.consumeReviewFilter(requestId = request.requestId)
+                }
+            }
+
+            LaunchedEffect(uiState.isLoading, uiState.preparedCurrentCard?.card?.cardId, uiState.emptyState) {
+                if (uiState.isLoading) {
+                    return@LaunchedEffect
+                }
+                val shownCard = uiState.preparedCurrentCard
+                if (shownCard != null) {
+                    // The next frame callback runs after the frame that first draws this card.
+                    withFrameNanos { }
+                    reviewViewModel.onReviewCardDrawn(shownCard = shownCard)
+                } else if (uiState.emptyState != null) {
+                    reviewViewModel.onReviewEmptyStateDrawn()
                 }
             }
 

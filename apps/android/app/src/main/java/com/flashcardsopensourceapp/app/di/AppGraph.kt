@@ -41,6 +41,7 @@ import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsNetwork
 import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsSyncFailureReporter
 import com.flashcardsopensourceapp.core.observability.analytics.PendingSignOutReport
 import com.flashcardsopensourceapp.core.observability.AppObservability
+import com.flashcardsopensourceapp.core.observability.AppPerformanceTracing
 import com.flashcardsopensourceapp.core.observability.ClientDeviceType
 import com.flashcardsopensourceapp.core.observability.CloudObservationIdentity
 import com.flashcardsopensourceapp.core.observability.currentClientDeviceType
@@ -179,6 +180,7 @@ private data class NotificationsWorkspaceObservation(
 class AppGraph(
     context: Context,
     val observability: AppObservability,
+    val performanceTracing: AppPerformanceTracing,
     private val okHttpClient: OkHttpClient
 ) {
     private val applicationContext: Context = context.applicationContext

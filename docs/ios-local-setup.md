@@ -191,7 +191,7 @@ For iOS, `My Mac` can be used only for iOS compile smoke-checks such as `build` 
 
 ## Local native acceptance
 
-For every new release, complete the unsigned device Release archive in [the release procedure](release/ios.md#ios) and all three local test gates below on the accepted native inputs. Run one destination per invocation, sequentially; latest iPhone and iPad must use the same latest supported iOS major. Pin device UUID/model, actual OS, Xcode/SDK, exact source SHA, scheme, test plan, test-plan configuration and build configuration in the [ledger](release/evidence.md#release-ledger).
+For every new release, complete the unsigned device Release archive in [the release procedure](release/ios.md#ios) and all three local test gates below on the accepted native inputs. Run one destination per invocation, sequentially; latest iPhone and iPad must use the same latest supported iOS major. Pin device UUID/model, actual OS, Xcode/SDK, [source snapshot](release/evidence.md#source-snapshots), scheme, test plan, test-plan configuration and build configuration in the [ledger](release/evidence.md#release-ledger).
 
 Use shared scheme **Flashcards Native Acceptance**, `-only-test-configuration Acceptance` (the test-plan configuration), and Debug build configuration. The original **Flashcards Open Source App** archive scheme does not establish these local gates. Catalyst acceptance uses the explicit [LocalMac plan](macos-ci-cd.md#signed-local-native-acceptance).
 
@@ -241,7 +241,7 @@ xcodebuild \
 
 The ad-hoc signing overrides enable simulator app/runner signing and their Keychain access. Inspect full logs, named results and `.xcresult` attachments even after a successful command. The plans' `diagnosticCollectionPolicy=Never` leaves ordinary XCTest logs/results and explicit screenshot/hierarchy attachments available; retain failure artifacts before rerunning. Record measured durations and evidence sizes separately from targets.
 
-During diagnosis, append `-only-testing:'<target>/<class>/<method>'` before `test` to rerun an affected selected method. Such filtered results are diagnostic evidence, not a complete acceptance gate. After fixes, require a complete all-green affected plan on accepted inputs; retain successful unchanged gates only under [bounded source equivalence](release/evidence.md#resume-and-artifact-reuse). Do not force new native runs for docs-only/unrelated changes when that comparison proves all relevant native inputs unchanged. Do not reuse failed or interrupted results as passes.
+During diagnosis, append `-only-testing:'<target>/<class>/<method>'` before `test` to rerun an affected selected method. Such filtered results are diagnostic evidence; they count toward acceptance only under [targeted recovery](release/evidence.md#targeted-recovery). Reuse successful unchanged gates under [source snapshots](release/evidence.md#source-snapshots). Do not reuse failed or interrupted results as passes.
 
 ## iOS 18 compatibility smoke
 

@@ -29,7 +29,8 @@ authorize dispatch, signed local execution, submission or publication. Apply the
 ## Preflight and Cloud gates
 
 3. Require the normal strict `Repository static checks` gate on merged
-   preparation/fixes. Pin intended `main` SHA with no uncommitted source changes.
+   preparation/fixes. Pin intended `main` SHA for the Cloud archive; local
+   acceptance binds to a matching [source snapshot](evidence.md#source-snapshots).
    Inspect saved [Mac workflow configuration](../macos-ci-cd.md#xcode-cloud)
    API-first: **macOS Release Build** enabled, main-only manual eligibility,
    SCM repository/ref, current Xcode/SDK, shared project and original
@@ -56,13 +57,14 @@ authorize dispatch, signed local execution, submission or publication. Apply the
    existing non-UI bundle and all Mac-eligible UI flows. Independently discover
    the full inventory from source, plan, target/configuration and destination;
    never infer it from green results or freeze a historical count.
-   Every selected required case must execute and pass. Retain full logs,
+   Every selected required case must pass, in one complete attempt or under
+   [targeted recovery](evidence.md#targeted-recovery). Retain full logs,
    `.xcresult`, named non-UI/UI results, diagnostics and inspected
    [formula/focus screenshots](../macos-ci-cd.md#native-smoke-evidence).
    Investigate missing cases, unexpected skips, failures or interrupted runs; fix identifiable app/test defects and apply the standing policy to unavailable testing before dispatch.
    Keep genuine app provisioning, automatic test-runner signing, sandbox and
    private Keychain storage; do not fabricate identities, disable signing or
-   filter required tests. Verify the app-process automation marker before
+   filter required tests outside [targeted recovery](evidence.md#targeted-recovery). Verify the app-process automation marker before
    interaction under [the automation marker](../ios-ci-cd.md#automation-marker).
 5. During an authorized release, start only **macOS Release Build**
    (`9d704b65-5254-4f04-be24-bebc0f0cfc7d`) on that accepted `main` SHA.
@@ -78,13 +80,13 @@ authorize dispatch, signed local execution, submission or publication. Apply the
    and signing/Keychain diagnoses unchanged, separately from current local
    evidence; no old failure becomes a pass. Record unavailable local acceptance under the standing policy; identifiable app/test failures still require fixes. Cloud distribution archive remains mandatory.
 7. Fix all source/build/test failures through normal PR/CI and repeat the
-   affected gates at corrected SHA. Retain a successful archive only under
+   affected gates on the corrected [source snapshot](evidence.md#source-snapshots). Retain a successful archive only under
    [bounded source equivalence](evidence.md#resume-and-artifact-reuse): compare
    app code/resources/localizations, dependencies/lockfiles, project/scheme/test plans,
    settings, relevant test source/selection, hooks, remote workflow values, toolchain/signing/distribution inputs.
    Save original archive SHA/run and corrected test SHA/run, exact scope/diff
-   and why each retained gate applies. Test-only fixes still require a fresh
-   complete native suite; equivalence never changes a failure to a pass.
+   and why each retained gate applies. Test-only fixes follow
+   [targeted recovery](evidence.md#targeted-recovery); equivalence never changes a failure to a pass.
 
 ## Exact artifact and review preparation
 

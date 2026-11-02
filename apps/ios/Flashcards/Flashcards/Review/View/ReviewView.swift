@@ -43,6 +43,7 @@ struct ReviewView: View {
     @State private var lastPresentedReviewWorkspaceId: String? = nil
     @State var preparedRevealState: PreparedReviewRevealState? = nil
     @State var preparedNextRevealState: PreparedReviewRevealState? = nil
+    @State var preparedImageCache: ReviewPreparedImageCache = ReviewPreparedImageCache()
     @State var isReviewReactionScreenVisible: Bool = false
     @State var reviewReactionLottiePrewarmTask: Task<Void, Never>?
     @State var reviewReactionLottiePrewarmId: UUID?
@@ -168,6 +169,9 @@ struct ReviewView: View {
                     activeCardView(card: currentCard, preparedRevealState: preparedRevealState)
                 } else {
                     emptyStateView
+                        .onAppear {
+                            FlashcardsObservability.discardReviewNextCardVisibleSpan()
+                        }
                 }
             }
 
@@ -566,6 +570,7 @@ struct ReviewView: View {
         .onChange(of: store.workspace?.workspaceId) { _, _ in
             self.reviewTagFilterRequest = nil
         }
+        .environment(self.preparedImageCache)
     }
 
     @ViewBuilder
@@ -852,6 +857,12 @@ struct ReviewView: View {
                 onOpenAi: {},
                 surfaceStyle: .front
             )
+            .onAppear {
+                FlashcardsObservability.finishReviewNextCardVisibleSpan(
+                    shownCardId: card.cardId,
+                    hasImages: reviewRenderedContentHasImages(content: preparedRevealState.frontContent)
+                )
+            }
             .id(card.cardId)
             .id(ReviewCardScrollTarget.front)
 
@@ -1230,6 +1241,8 @@ struct ReviewView: View {
 
     private func rateReviewCard(cardId: String, rating: ReviewRating) {
         guard self.store.isReviewPending(cardId: cardId) == false else { return }
+        // Tap-to-next-card time; non-blocking review plans read it as their before/after number.
+        FlashcardsObservability.startReviewNextCardVisibleSpan(ratedCardId: cardId)
         if self.areReviewReactionAnimationsEnabled {
             self.emitReviewReaction(rating: rating)
         }
@@ -1413,6 +1426,19 @@ private func reviewAnswerButtonIdentifier(rating: ReviewRating) -> String {
     }
 
     return "review.rating.\(rating.rawValue)"
+}
+
+private func reviewRenderedContentHasImages(content: ReviewRenderedContent) -> Bool {
+    guard case .managedMarkdown(let managedContent) = content else {
+        return false
+    }
+
+    return managedContent.blocks.contains { block in
+        guard case .managedMedia(let reference) = block else {
+            return false
+        }
+        return reference.isImageSyntax
+    }
 }
 
 private func reviewTagFilterAlertMessage(request: ReviewTagFilterRequest) -> String {

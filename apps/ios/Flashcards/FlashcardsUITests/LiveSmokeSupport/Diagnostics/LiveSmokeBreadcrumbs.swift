@@ -2,7 +2,49 @@ import Foundation
 
 private let liveSmokePlaceholderScreenSummary: String = "screens=[-] nav=[-] alerts=[-] tabs=[-]"
 
+struct LiveSmokeBreadcrumbFields: Decodable {
+    let event: String
+    let action: String
+    let identifier: String
+    let timeoutSeconds: String
+    let result: String
+    let note: String
+}
+
 extension LiveSmokeTestCase {
+    /// What a failing step was waiting on: the latest non-step breadcrumb when it ended in failure,
+    /// else the latest non-step start whose end was never logged.
+    @MainActor
+    func pendingSmokeBreadcrumb() throws -> LiveSmokeBreadcrumbFields? {
+        let decoder = JSONDecoder()
+        let breadcrumbs = try self.recentBreadcrumbs
+            .map { breadcrumb in
+                try decoder.decode(LiveSmokeBreadcrumbFields.self, from: Data(breadcrumb.line.utf8))
+            }
+            .filter { breadcrumb in
+                breadcrumb.event.hasPrefix("step_") == false
+            }
+
+        if let last = breadcrumbs.last, last.event.hasSuffix("_end"), last.result == "failure" {
+            return last
+        }
+
+        var openStarts: [LiveSmokeBreadcrumbFields] = []
+        for breadcrumb in breadcrumbs {
+            if breadcrumb.event.hasSuffix("_start") {
+                openStarts.append(breadcrumb)
+            } else if breadcrumb.event.hasSuffix("_end") {
+                let kind = breadcrumb.event.dropLast("_end".count)
+                if let index = openStarts.lastIndex(where: { start in
+                    start.event.dropLast("_start".count) == kind && start.action == breadcrumb.action
+                }) {
+                    openStarts.remove(at: index)
+                }
+            }
+        }
+        return openStarts.last
+    }
+
     @MainActor
     func logSmokeBreadcrumb(
         event: String,
