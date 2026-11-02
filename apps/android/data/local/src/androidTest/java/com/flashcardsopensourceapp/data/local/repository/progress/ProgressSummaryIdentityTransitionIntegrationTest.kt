@@ -15,6 +15,7 @@ import com.flashcardsopensourceapp.data.local.repository.cloudsync.support.FakeC
 import com.flashcardsopensourceapp.data.local.repository.progress.cache.LocalProgressCacheStore
 import com.flashcardsopensourceapp.data.local.repository.progress.cache.ProgressLocalCacheReadinessCoordinator
 import com.flashcardsopensourceapp.data.local.repository.progress.inputs.createProgressClockSnapshot
+import com.flashcardsopensourceapp.data.local.repository.progress.inputs.observeProgressHeavyInputs
 import com.flashcardsopensourceapp.data.local.repository.progress.inputs.observeProgressInputs
 import com.flashcardsopensourceapp.data.local.repository.progress.orchestration.ProgressSummaryOrchestration
 import com.flashcardsopensourceapp.data.local.repository.progress.runtime.ProgressBackgroundLauncher
@@ -68,7 +69,10 @@ class ProgressSummaryIdentityTransitionIntegrationTest {
                 database = environment.database,
                 preferencesStore = environment.cloudPreferencesStore,
                 syncRepository = syncRepository,
-                timeProvider = SystemTimeProvider
+                heavyInputs = observeProgressHeavyInputs(
+                    database = environment.database,
+                    timeProvider = SystemTimeProvider
+                )
             ).first()
             assertEquals(CloudAccountState.LINKED, linkedInputs.cloudSettings.cloudState)
             assertTrue(linkedInputs.syncStates.isNotEmpty())

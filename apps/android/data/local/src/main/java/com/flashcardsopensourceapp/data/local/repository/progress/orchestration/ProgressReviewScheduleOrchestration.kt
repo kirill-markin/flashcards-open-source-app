@@ -66,6 +66,12 @@ internal class ProgressReviewScheduleOrchestration(
         return snapshotMutable.asStateFlow()
     }
 
+    // Keeps on-demand refreshes on current inputs while the snapshot itself waits for the next
+    // full Progress recompute; see docs/fsrs-scheduling-logic.md#non-blocking-review.
+    fun rememberLatestInputs(inputs: ProgressObservedInputs) {
+        latestInputsMutable.value = inputs
+    }
+
     fun handleInputs(
         inputs: ProgressObservedInputs,
         clockSnapshot: ProgressClockSnapshot
@@ -367,7 +373,7 @@ internal class ProgressReviewScheduleOrchestration(
             scopeKey = scopeKey,
             cloudState = inputs.cloudSettings.cloudState,
             workspaceIds = workspaceIds,
-            reviewScheduleCards = inputs.reviewScheduleCards,
+            reviewScheduleCards = inputs.heavyInputs.reviewScheduleCards,
             serverBase = findProgressReviewScheduleServerBase(
                 reviewScheduleCaches = inputs.reviewScheduleCaches,
                 scopeKey = scopeKey
@@ -379,7 +385,7 @@ internal class ProgressReviewScheduleOrchestration(
                 workspaceIds = workspaceIds
             ),
             reviewScheduleFingerprint = createReviewScheduleFingerprint(
-                reviewScheduleCards = inputs.reviewScheduleCards,
+                reviewScheduleCards = inputs.heavyInputs.reviewScheduleCards,
                 pendingCardUpsertOutboxEntries = inputs.pendingCardUpsertOutboxEntries,
                 workspaceIds = workspaceIds
             ),
