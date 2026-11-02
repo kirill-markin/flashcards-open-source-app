@@ -16,7 +16,7 @@ import {
   isEntryWorkspaceUnavailable,
   subscribeToEntryWorkspaceActivation,
   useAppData,
-  useReviewOverdueCount,
+  useReviewDueBadgeCount,
   type SessionLoadState,
 } from "./appData";
 import { AppErrorDialogProvider } from "./appError/AppErrorContext";
@@ -92,7 +92,7 @@ import { CardFormScreen } from "./screens/cards/form/CardFormScreen";
 import { CardsScreen } from "./screens/cards/list/CardsScreen";
 import { FriendInviteScreen } from "./screens/invite/FriendInviteScreen";
 import { ProgressScreen } from "./screens/progress/ProgressScreen";
-import { ReviewOverdueBadge } from "./screens/review/ReviewOverdueBadge";
+import { ReviewDueBadge } from "./screens/review/ReviewDueBadge";
 import { ReviewScreen } from "./screens/review/ReviewScreen";
 import { ShareAppScreen } from "./screens/share/ShareAppScreen";
 
@@ -121,7 +121,7 @@ function buildPrimaryNavigationBadgeTargetClassName(route: string): string {
   }
 
   if (route === reviewRoute) {
-    return " review-overdue-badge-target";
+    return " review-due-badge-target";
   }
 
   return "";
@@ -589,7 +589,7 @@ export function AppShell(): ReactElement {
   } = useAppData();
   const isGuest = session?.browserGuestCapabilities?.isGuest === true;
   const workspacePath = useWorkspacePath();
-  const reviewOverdueCount = useReviewOverdueCount();
+  const reviewDueCount = useReviewDueBadgeCount();
   const { indexedDbOpenRecoveryState } = useAppErrorDialog();
   const [isMobileNavigationOpen, setIsMobileNavigationOpen] = useState<boolean>(false);
   const topbarShellRef = useRef<HTMLElement | null>(null);
@@ -943,7 +943,7 @@ export function AppShell(): ReactElement {
                   <NavLink key={item.route} className={({ isActive }) => `nav-link${isActive ? " nav-link-active" : ""}${buildPrimaryNavigationBadgeTargetClassName(item.route)}`} to={workspacePath(item.route)}>
                     {t(item.labelKey)}
                     {item.route === settingsHubRoute ? <GuestAccountAttentionBadge /> : null}
-                    {item.route === reviewRoute ? <ReviewOverdueBadge overdueCount={reviewOverdueCount} /> : null}
+                    {item.route === reviewRoute ? <ReviewDueBadge dueCount={reviewDueCount} /> : null}
                   </NavLink>
                 ))}
               </div>
@@ -1005,7 +1005,7 @@ export function AppShell(): ReactElement {
               >
                 {t(item.labelKey)}
                 {item.route === settingsHubRoute ? <GuestAccountAttentionBadge /> : null}
-                {item.route === reviewRoute ? <ReviewOverdueBadge overdueCount={reviewOverdueCount} /> : null}
+                {item.route === reviewRoute ? <ReviewDueBadge dueCount={reviewDueCount} /> : null}
               </NavLink>
             ))}
           </AnchoredFloatingOverlay>

@@ -556,12 +556,12 @@
 
 .guest-sign-in-control { display: inline-flex; flex-wrap: wrap; gap: 8px; align-items: center; }
 .guest-account-attention-target,
-.review-overdue-badge-target {
+.review-due-badge-target {
   position: relative;
 }
 
 .guest-attention,
-.review-overdue-badge {
+.review-due-badge {
   position: absolute;
   top: -4px;
   right: -4px;
@@ -581,7 +581,7 @@
   width: 20px;
 }
 
-.review-overdue-badge {
+.review-due-badge {
   box-sizing: border-box;
   min-width: 20px;
   padding: 0 5px;
