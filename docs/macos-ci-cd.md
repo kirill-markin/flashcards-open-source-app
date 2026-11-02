@@ -54,7 +54,7 @@ signing only for `macosx`; iOS test signing settings remain unchanged.
 
 Inspect saved settings through [Xcode Cloud access](xcode-cloud-data-access.md); the [macOS release procedure](release/macos.md) owns preflight and dispatch. Only the two [Apple release builds](ios-ci-cd.md#native-release-gate) stay enabled; preserve disabled test workflows and masked secrets. TestFlight internal distribution is not XCTest or proof of the new uploaded build.
 
-Xcode Cloud owns distribution archives. Full signed local acceptance below is the normal mandatory pre-dispatch path; PR static checks cannot establish Catalyst compatibility. Do not retry Cloud tests each release. Retain historical failed Cloud results and their signing diagnosis: Cloud's ad hoc Mac Test identity can fail to authorize the private Keychain identity ([Apple DTS](https://developer.apple.com/forums/thread/724812)). Local evidence never rewrites that failure.
+Xcode Cloud owns distribution archives. Full signed local acceptance below, or its [targeted recovery](release/evidence.md#targeted-recovery), is the normal mandatory pre-dispatch path; PR static checks cannot establish Catalyst compatibility. Do not retry Cloud tests each release. Retain historical failed Cloud results and their signing diagnosis: Cloud's ad hoc Mac Test identity can fail to authorize the private Keychain identity ([Apple DTS](https://developer.apple.com/forums/thread/724812)). Local evidence never rewrites that failure.
 
 <a id="signed-local-native-alternative"></a>
 
@@ -133,7 +133,7 @@ xcodebuild -xctestrun '<generated-LocalMac-xctestrun>' \
 
 Keep the sandbox and secure storage; do not add sharing, fabricate identifiers,
 disable signing or bypass Keychain cleanup. Keep the same Xcode and built
-products for both phases; do not edit the generated manifest or add test filters.
+products for both phases; do not edit the generated manifest, and add test filters only for [targeted recovery](release/evidence.md#targeted-recovery).
 Inspect the completed `.xcresult`, every selected named result, warnings and
 attachments. Build/signature success, partial or interrupted runs do not count
 as a passing suite. Every selected required non-UI/UI case must execute and pass; unexpected skips, missing cases or failures block release. Save actual local evidence, retaining any historical failed Cloud results separately, in the [release ledger](release/evidence.md#release-ledger).

@@ -35,6 +35,8 @@ does not change this CLI, its schemas, required inventories or exit codes.
 Preserve failed/skipped/missing native evidence and the resulting blocked report;
 never manufacture a passing gate or relabel historical records. Publication
 with unavailable testing requires the separately retained operator readiness decision and remaining platform gates under that policy.
+Publication with an Apple local gate passed under [targeted recovery](evidence.md#targeted-recovery)
+requires its recovery record, operator readiness decision and remaining platform gates.
 
 ## macOS Readiness Boundary
 
@@ -51,11 +53,13 @@ selected attempt or evidence changes.
    code, and uploaded build ID or signed AAB checksum. Pin the original archive
    source separately from a corrected test source. Collect each required local
    preflight, cloud run/action/attempt, archive/upload, and Device Run session
-   identity from its actual source. Use the [iOS](ios.md) and [Android](android.md) procedures and the
+   identity from its actual source; record local runs' SHAs under
+   [source snapshots](evidence.md#source-snapshots). Use the [iOS](ios.md) and [Android](android.md) procedures and the
    [Xcode Cloud evidence guide](../xcode-cloud-data-access.md). Do not dispatch
    or publish just to fill in this file.
 2. Establish the complete configured test inventory independently of passing
-   results, at the source SHA used by that gate. Save the scheme/test plan or
+   results, at the source used by that gate (for local runs, its recorded
+   [source snapshot](evidence.md#source-snapshots)). Save the scheme/test plan or
    Gradle/instrumentation selection, source test declarations, selected devices,
    configurations and any exclusions in the release record. Include all selected
    cases and destinations, including failing, manually excluded and platform-guarded cases. For
@@ -81,9 +85,13 @@ selected attempt or evidence changes.
    states to passed. Preserve exact skip reasons. Reconcile case exports with
    native counts and all pages. A green workflow summary cannot override a
    failed case or a failed action: record the actual gate/action status.
-5. Normalize each retry as an explicitly selected complete attempt. Preserve
-   earlier failures and their resolution in the record; never collapse a
-   failed destination into a passing one or mix unrelated runs. Record evidence
+5. Record each attempt as its own native attempt with its actual results.
+   Preserve earlier failures and their resolution in the record; never collapse a
+   failed destination into a passing one or mix unrelated runs. An iOS local
+   gate recovered from several attempts keeps the latest full-plan attempt whose
+   app inputs remain valid as its `results` entry with its real status and
+   source; its report stays blocked, and it lists the reruns in the
+   [recovery record](evidence.md#targeted-recovery). Record evidence
    references that resolve to retained native exports, action status, full
    logs, artifact metadata, configuration and source comparisons. Inspect logs
    and adjudicate every notice under the [warning policy](README.md#release-warning-policy).
@@ -320,7 +328,8 @@ This historical disposition cannot satisfy schema-3/4 gates, the local smoke, iO
 ## Bounded source equivalence
 
 A result identity must exactly match its expected gate identity; there is no
-exception for wrong run, build, artifact, version, or recorded SHA. If a gate's
+exception for wrong run, build, artifact, version, or recorded SHA. Local runs record their SHA under
+[source snapshots](evidence.md#source-snapshots). If a gate's
 expected source differs from the target source, require exactly one matching
 `equivalences` entry for that gate:
 
