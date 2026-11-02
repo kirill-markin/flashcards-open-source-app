@@ -13,7 +13,8 @@ struct ProgressLoadedSections: View {
     let isProgressRefreshing: Bool
     let leaderboardRefreshMessage: String
     let streakLeaderboardRefreshMessage: String
-    @Binding var selectedLeaderboardWindowKey: LeaderboardWindowKey?
+    @Binding var leaderboardWindowSelection: ProgressLeaderboardWindowSelection?
+    @Binding var reviewChartPageSelection: ProgressReviewChartPageSelection?
     let onOpenCloudSignIn: () -> Void
     let onOpenFriendInvite: () -> Void
     let onOpenProfile: (ProgressLeaderboardSelectedProfile) -> Void
@@ -25,7 +26,7 @@ struct ProgressLoadedSections: View {
             snapshot: self.leaderboardSnapshot,
             isRefreshing: self.isProgressRefreshing,
             leaderboardRefreshMessage: self.leaderboardRefreshMessage,
-            selectedWindowKey: self.$selectedLeaderboardWindowKey,
+            windowSelection: self.$leaderboardWindowSelection,
             onOpenCloudSignIn: self.onOpenCloudSignIn,
             onOpenFriendInvite: self.onOpenFriendInvite,
             onOpenProfile: self.onOpenProfile
@@ -38,7 +39,10 @@ struct ProgressLoadedSections: View {
             onOpenProfile: self.onOpenProfile
         )
 
-        ProgressReviewsCard(progressSnapshot: self.progressSnapshot)
+        ProgressReviewsCard(
+            progressSnapshot: self.progressSnapshot,
+            pageSelection: self.$reviewChartPageSelection
+        )
 
         ProgressReviewScheduleCard(snapshot: self.reviewScheduleSnapshot)
     }
@@ -86,7 +90,7 @@ private struct ProgressLeaderboardCard: View {
     let snapshot: ProgressLeaderboardSnapshot?
     let isRefreshing: Bool
     let leaderboardRefreshMessage: String
-    @Binding var selectedWindowKey: LeaderboardWindowKey?
+    @Binding var windowSelection: ProgressLeaderboardWindowSelection?
     let onOpenCloudSignIn: () -> Void
     let onOpenFriendInvite: () -> Void
     let onOpenProfile: (ProgressLeaderboardSelectedProfile) -> Void
@@ -98,7 +102,7 @@ private struct ProgressLeaderboardCard: View {
                     snapshot: snapshot,
                     isRefreshing: self.isRefreshing,
                     leaderboardRefreshMessage: self.leaderboardRefreshMessage,
-                    selectedWindowKey: self.$selectedWindowKey,
+                    windowSelection: self.$windowSelection,
                     onOpenCloudSignIn: self.onOpenCloudSignIn,
                     onOpenFriendInvite: self.onOpenFriendInvite,
                     onOpenProfile: self.onOpenProfile
@@ -140,11 +144,13 @@ private struct ProgressReviewsCard: View {
     private let chartDays: [ProgressChartDay]
     private let selectionResetKey: String
     private let presentationCalendar: Calendar
+    @Binding private var pageSelection: ProgressReviewChartPageSelection?
 
-    init(progressSnapshot: ProgressSnapshot) {
+    init(progressSnapshot: ProgressSnapshot, pageSelection: Binding<ProgressReviewChartPageSelection?>) {
         self.chartDays = progressSnapshot.chartData.chartDays
         self.selectionResetKey = progressSnapshot.scopeKey.storageKey
         self.presentationCalendar = progressSnapshot.presentationCalendar
+        self._pageSelection = pageSelection
     }
 
     var body: some View {
@@ -152,7 +158,8 @@ private struct ProgressReviewsCard: View {
             ProgressReviewsSection(
                 chartDays: self.chartDays,
                 chartCalendar: self.presentationCalendar,
-                selectionResetKey: self.selectionResetKey
+                selectionResetKey: self.selectionResetKey,
+                pageSelection: self.$pageSelection
             )
         }
         .accessibilityElement(children: .contain)

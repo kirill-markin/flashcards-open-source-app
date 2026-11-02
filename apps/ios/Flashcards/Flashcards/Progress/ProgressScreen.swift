@@ -18,8 +18,8 @@ struct ProgressScreen: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(FlashcardsStore.self) private var store: FlashcardsStore
     @Environment(AppNavigationModel.self) private var navigation: AppNavigationModel
+    @Environment(ProgressScreenState.self) private var progressState: ProgressScreenState
     @Environment(\.tabBarPlacement) private var tabBarPlacement
-    @State private var selectedLeaderboardWindowKey: LeaderboardWindowKey?
     @State private var selectedLeaderboardProfile: ProgressLeaderboardSelectedProfile?
     @State private var isCloudSignInPresented: Bool = false
     @State private var isFriendInvitePresented: Bool = false
@@ -68,7 +68,8 @@ struct ProgressScreen: View {
     }
 
     private var bodyContent: some View {
-        ScrollViewReader { proxy in
+        @Bindable var progressState = self.progressState
+        return ScrollViewReader { proxy in
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: 20) {
                     ProgressErrorBanner(message: self.store.progressErrorMessage)
@@ -82,7 +83,8 @@ struct ProgressScreen: View {
                             isProgressRefreshing: self.store.isProgressRefreshing,
                             leaderboardRefreshMessage: self.store.progressErrorState.leaderboardRefreshMessage,
                             streakLeaderboardRefreshMessage: self.store.progressErrorState.streakLeaderboardRefreshMessage,
-                            selectedLeaderboardWindowKey: self.$selectedLeaderboardWindowKey,
+                            leaderboardWindowSelection: $progressState.leaderboardWindowSelection,
+                            reviewChartPageSelection: $progressState.reviewChartPageSelection,
                             onOpenCloudSignIn: self.openCloudSignInFlow,
                             onOpenFriendInvite: self.openFriendInviteFlow,
                             onOpenProfile: self.openLeaderboardProfile
@@ -95,6 +97,16 @@ struct ProgressScreen: View {
                 .frame(maxWidth: .infinity, alignment: .center)
                 .padding(.horizontal, 16)
                 .padding(.vertical, 20)
+            }
+            .scrollPosition($progressState.scrollPosition)
+            .onScrollPhaseChange { _, newPhase, context in
+                let geometry = context.geometry
+                // A recreated scroll view starts at the bound position, so the resting offset becomes it.
+                // Pull-to-refresh rests above the top edge; binding that offset would hold the refresh gap open.
+                guard newPhase == .idle, geometry.contentOffset.y >= -geometry.contentInsets.top else {
+                    return
+                }
+                self.progressState.scrollPosition = ScrollPosition(point: geometry.contentOffset)
             }
             .background(Color(uiColor: .systemGroupedBackground))
             .accessibilityIdentifier(UITestIdentifier.progressScreen)
@@ -145,7 +157,7 @@ struct ProgressScreen: View {
             return
         }
         if request.target == .leaderboard {
-            self.selectedLeaderboardWindowKey = nil
+            self.progressState.leaderboardWindowSelection = nil
         }
 
         guard self.isProgressPresentationTargetAvailable(target: request.target) else {
@@ -189,5 +201,6 @@ struct ProgressScreen: View {
         ProgressScreen()
             .environment(FlashcardsStore())
             .environment(AppNavigationModel())
+            .environment(ProgressScreenState())
     }
 }
