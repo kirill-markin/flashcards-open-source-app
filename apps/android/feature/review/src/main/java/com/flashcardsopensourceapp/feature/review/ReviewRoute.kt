@@ -102,7 +102,8 @@ fun ReviewRoute(
     onOpenLeaderboard: () -> Unit,
     onOpenProgress: () -> Unit,
     onScreenVisible: () -> Unit,
-    onReviewSurfaceBusyChanged: (Boolean) -> Unit
+    onReviewSurfaceBusyChanged: (Boolean) -> Unit,
+    onFilterSheetVisibilityChanged: (Boolean) -> Unit
 ) {
     var filterSheetTransaction by rememberSaveable(
         stateSaver = reviewFilterSheetTransactionSaver
@@ -186,6 +187,11 @@ fun ReviewRoute(
     SideEffect { onReviewSurfaceBusyChanged(isReviewSurfaceBusy) }
     DisposableEffect(Unit) {
         onDispose { onReviewSurfaceBusyChanged(true) }
+    }
+    // Filter options and deck due counts load only while the sheet is open.
+    DisposableEffect(filterSheetTransaction.isVisible) {
+        onFilterSheetVisibilityChanged(filterSheetTransaction.isVisible)
+        onDispose { onFilterSheetVisibilityChanged(false) }
     }
 
     fun dismissReviewReactions(): Unit {
@@ -505,6 +511,7 @@ fun ReviewRoute(
             selectedFilter = filterSheetTransaction.draftSelection,
             availableDeckFilters = uiState.availableDeckFilters,
             availableTagFilters = uiState.availableTagFilters,
+            areFilterOptionsLoaded = uiState.areFilterOptionsLoaded,
             onDismiss = ::finalizeFilterSheetSelection,
             onSelectFilter = { nextFilter ->
                 filterSheetTransaction = filterSheetTransaction.copy(

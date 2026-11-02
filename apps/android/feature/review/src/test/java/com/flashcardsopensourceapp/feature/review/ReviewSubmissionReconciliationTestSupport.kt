@@ -64,6 +64,7 @@ internal fun makePinnedReviewDraftState(
     return ReviewDraftState(
         requestedFilter = requestedFilter,
         presentedCard = presentedCard,
+        preparedNextCardId = null,
         revealedCardId = null,
         reviewedInSessionCount = reviewedInSessionCount,
         pendingReviewedCards = pendingReviewedCards,

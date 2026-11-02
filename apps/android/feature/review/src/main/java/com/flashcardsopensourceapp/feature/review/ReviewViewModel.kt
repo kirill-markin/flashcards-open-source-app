@@ -26,7 +26,9 @@ import com.flashcardsopensourceapp.data.local.model.media.MediaAssetDownloadUrl
 import com.flashcardsopensourceapp.data.local.model.media.ReviewMediaAssetFile
 import com.flashcardsopensourceapp.data.local.model.review.PendingReviewedCard
 import com.flashcardsopensourceapp.data.local.model.review.ReviewFilter
+import com.flashcardsopensourceapp.data.local.model.review.ReviewFilterOptions
 import com.flashcardsopensourceapp.data.local.model.review.ReviewRating
+import com.flashcardsopensourceapp.data.local.model.review.ReviewSessionQueryInputs
 import com.flashcardsopensourceapp.data.local.model.review.ReviewSessionSnapshot
 import com.flashcardsopensourceapp.data.local.notifications.ReviewNotificationsReconcileTrigger
 import com.flashcardsopensourceapp.data.local.notifications.ReviewNotificationsStore
@@ -45,7 +47,10 @@ import com.flashcardsopensourceapp.data.local.repository.ReviewRepository
 import com.flashcardsopensourceapp.data.local.repository.SyncBlockedException
 import com.flashcardsopensourceapp.data.local.repository.WorkspaceRepository
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -53,6 +58,8 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.getAndUpdate
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
@@ -101,19 +108,37 @@ class ReviewViewModel(
     private val draftState = MutableStateFlow(
         value = makeWorkspaceScopedDraftState(reviewFilter = ReviewFilter.AllCards)
     )
+    private val reviewDataRebuild = MutableStateFlow(
+        value = ReviewDataRebuild(reason = ReviewDataRebuildReason.INITIAL_LOAD, generation = 0L)
+    )
+    /** The queue's "now"; it moves only on a rebuild or at the next due time, never on a rating. */
+    private val reviewSessionNowMillis = MutableStateFlow(value = System.currentTimeMillis())
+    private val isFilterSheetVisible = MutableStateFlow(value = false)
 
-    private val reviewSessionState = draftState.flatMapLatest { state ->
-        reviewRepository.observeReviewSession(
-            selectedFilter = state.requestedFilter,
+    // Draft changes such as reveal, prompts, or preview must not restart the queries, so only the
+    // query inputs reach the repository. See docs/fsrs-scheduling-logic.md#non-blocking-review.
+    private val reviewSessionQueryInputs = combine(draftState, reviewSessionNowMillis) { state, nowMillis ->
+        ReviewSessionQueryInputs(
             pendingReviewedCards = state.pendingReviewedCards,
-            presentedCardId = state.presentedCard?.cardId
+            presentedCardId = state.presentedCard?.cardId,
+            preparedNextCardId = state.preparedNextCardId,
+            nowMillis = nowMillis
+        )
+    }.distinctUntilChanged()
+
+    // Every requested-filter change goes through [rebuildReviewSession], which restarts this flow.
+    private val reviewSessionState = reviewDataRebuild.flatMapLatest {
+        val requestedFilter = draftState.value.requestedFilter
+        reviewRepository.observeReviewSession(
+            selectedFilter = requestedFilter,
+            queryInputs = reviewSessionQueryInputs
         ).map { sessionSnapshot ->
             ObservedReviewSessionState(
-                requestedFilter = state.requestedFilter,
+                requestedFilter = requestedFilter,
                 sessionSnapshot = sessionSnapshot
             )
         }
-    }.stateIn(
+    }.flowOn(Dispatchers.Default).stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(stopTimeoutMillis = 5_000L),
         initialValue = ObservedReviewSessionState(
@@ -160,6 +185,19 @@ class ReviewViewModel(
         started = SharingStarted.WhileSubscribed(stopTimeoutMillis = 5_000L),
         initialValue = emptyList()
     )
+    private val reviewPresentationInputs = combine(
+        reviewMediaAssetsState,
+        // Null until the open sheet's first load, so the sheet can show it is still loading.
+        isFilterSheetVisible.flatMapLatest { isVisible ->
+            if (isVisible) {
+                reviewRepository.observeReviewFilterOptions()
+            } else {
+                flowOf<ReviewFilterOptions?>(null)
+            }
+        }
+    ) { mediaAssets, filterOptions ->
+        mediaAssets to filterOptions
+    }
 
     private var pendingAutoSyncRequestId: String? = null
     private var visibleAutoSyncChangeSignatureAtStart: VisibleAutoSyncChangeSignature? = null
@@ -171,6 +209,10 @@ class ReviewViewModel(
     private var reviewAfterRatingWork: Map<PendingReviewedCard, ReviewAfterRatingWork> = emptyMap()
     private var reviewSessionGeneration: Long = 0L
     private var reviewFilterGeneration: Long = 0L
+    private var scheduledNextDueAtMillis: Long? = null
+    private var nextDueRefreshJob: Job? = null
+    private var safetyRebuildJob: Job? = null
+    private var reviewScreenStoppedAtMillis: Long? = null
     private var activeWorkspaceId: String? = null
     private var workspaceGeneration: Long = 0L
     private var handledPresentedCardId: String? = null
@@ -185,18 +227,19 @@ class ReviewViewModel(
         draftState,
         appMetadataState,
         progressBadgeInputsState,
-        reviewMediaAssetsState
-    ) { reviewSessionState, state, appMetadata, progressBadgeInputs, mediaAssets ->
+        reviewPresentationInputs
+    ) { reviewSessionState, state, appMetadata, progressBadgeInputs, presentationInputs ->
         mapToReviewUiState(
             sessionSnapshot = reviewSessionState.sessionSnapshot,
             state = state,
             appMetadata = appMetadata,
             progressSummarySnapshot = progressBadgeInputs.first,
             progressLeaderboardSnapshot = progressBadgeInputs.second,
-            mediaAssets = mediaAssets,
+            mediaAssets = presentationInputs.first,
+            filterOptions = presentationInputs.second,
             textProvider = textProvider
         )
-    }.stateIn(
+    }.flowOn(Dispatchers.Default).stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(stopTimeoutMillis = 5_000L),
         initialValue = initialReviewUiState(textProvider = textProvider)
@@ -230,6 +273,7 @@ class ReviewViewModel(
                 reviewFilter = reviewFilter
             )
         }
+        rebuildReviewSession(reason = ReviewDataRebuildReason.FILTER_CHANGED)
         persistSelectedReviewFilter(reviewFilter = reviewFilter)
         onReviewNotificationsChanged(ReviewNotificationsReconcileTrigger.FILTER_CHANGED)
     }
@@ -455,6 +499,66 @@ class ReviewViewModel(
         }
     }
 
+    fun updateFilterSheetVisibility(isVisible: Boolean) {
+        isFilterSheetVisible.value = isVisible
+    }
+
+    fun onReviewScreenStarted() {
+        val nowMillis = System.currentTimeMillis()
+        reviewResumeRebuildReason(
+            stoppedAtMillis = reviewScreenStoppedAtMillis,
+            sessionNowMillis = reviewSessionNowMillis.value,
+            nowMillis = nowMillis,
+            zoneId = ZoneId.systemDefault()
+        )?.let(::rebuildReviewSession)
+        reviewScreenStoppedAtMillis = null
+        safetyRebuildJob?.cancel()
+        safetyRebuildJob = viewModelScope.launch {
+            while (true) {
+                delay(duration = reviewSafetyRebuildInterval)
+                rebuildReviewSession(
+                    reason = reviewSafetyIntervalRebuildReason(
+                        sessionNowMillis = reviewSessionNowMillis.value,
+                        nowMillis = System.currentTimeMillis(),
+                        zoneId = ZoneId.systemDefault()
+                    )
+                )
+            }
+        }
+    }
+
+    fun onReviewScreenStopped() {
+        reviewScreenStoppedAtMillis = System.currentTimeMillis()
+        safetyRebuildJob?.cancel()
+        safetyRebuildJob = null
+    }
+
+    /** The only entry point for a full rebuild; see [ReviewDataRebuildReason]. */
+    private fun rebuildReviewSession(reason: ReviewDataRebuildReason) {
+        reviewSessionNowMillis.value = System.currentTimeMillis()
+        reviewDataRebuild.update { rebuild ->
+            ReviewDataRebuild(reason = reason, generation = rebuild.generation + 1L)
+        }
+    }
+
+    /**
+     * One timer at the earliest future due time moves the queue's "now", which re-runs only the bounded
+     * queue window and counts. See docs/fsrs-scheduling-logic.md#non-blocking-review.
+     */
+    private fun scheduleNextDueRefresh(nextDueAtMillis: Long?) {
+        if (nextDueAtMillis == scheduledNextDueAtMillis) {
+            return
+        }
+        scheduledNextDueAtMillis = nextDueAtMillis
+        nextDueRefreshJob?.cancel()
+        val dueAtMillis = nextDueAtMillis ?: return
+        nextDueRefreshJob = viewModelScope.launch {
+            delay(timeMillis = dueAtMillis - System.currentTimeMillis())
+            // At least the due time, so that card counts even if the wall clock lags the delay.
+            reviewSessionNowMillis.value = maxOf(System.currentTimeMillis(), dueAtMillis)
+        }
+    }
+
     fun onScreenVisible() {
         viewModelScope.launch {
             progressRepository.refreshSummaryIfInvalidated()
@@ -515,6 +619,14 @@ class ReviewViewModel(
     fun rateCard(rating: ReviewRating) {
         val currentCard = uiState.value.preparedCurrentCard?.card ?: return
         val cardId = currentCard.cardId
+        val pendingReviewedCard = PendingReviewedCard(
+            cardId = cardId,
+            updatedAtMillis = currentCard.updatedAtMillis
+        )
+        // uiState is mapped off Main, so a fast second tap can still see the card this rating replaced.
+        if (draftState.value.pendingReviewedCards.contains(pendingReviewedCard)) {
+            return
+        }
         // Tap-to-next-card time; non-blocking review plans read it as their before/after number.
         pendingReviewNextCardVisible = PendingReviewNextCardVisible(
             span = performanceTracing.startSpan(name = AppPerformanceSpanName.REVIEW_NEXT_CARD_VISIBLE),
@@ -522,13 +634,14 @@ class ReviewViewModel(
         )
         val optimisticPreparedCurrentCard = uiState.value.preparedNextCard
         val nextPresentedCard = optimisticPreparedCurrentCard?.card
+        val nextPreparedNextCardId = chooseNextCardIdAfterRating(
+            sessionCards = reviewSessionState.value.sessionSnapshot.cards,
+            nextPresentedCard = nextPresentedCard,
+            pendingReviewedCards = draftState.value.pendingReviewedCards + pendingReviewedCard
+        )
         val operationWorkspaceGeneration = workspaceGeneration
         val submittedSessionContext = captureReviewSubmissionSessionContext()
         val reviewedAtMillis = System.currentTimeMillis()
-        val pendingReviewedCard = PendingReviewedCard(
-            cardId = cardId,
-            updatedAtMillis = currentCard.updatedAtMillis
-        )
         // Rating until the review is recorded and the review session re-emits; non-blocking review
         // plans read it as their before/after number.
         reviewAfterRatingWork = reviewAfterRatingWork + (
@@ -551,6 +664,7 @@ class ReviewViewModel(
             applyOptimisticReviewSubmission(
                 state = state,
                 nextPresentedCard = nextPresentedCard,
+                nextPreparedNextCardId = nextPreparedNextCardId,
                 pendingReviewedCard = pendingReviewedCard,
                 optimisticPreparedCurrentCard = optimisticPreparedCurrentCard
             )
@@ -621,6 +735,7 @@ class ReviewViewModel(
                     captureCurrentContext = ::captureReviewSubmissionSessionContext
                 )
                 if (operationWorkspaceGeneration != workspaceGeneration) {
+                    reviewAfterRatingWork = reviewAfterRatingWork - pendingReviewedCard
                     return@launch
                 }
                 draftState.update { state ->
@@ -899,6 +1014,7 @@ class ReviewViewModel(
                 }
 
                 draftState.value = makeWorkspaceScopedDraftState(reviewFilter = restoredFilter)
+                rebuildReviewSession(reason = ReviewDataRebuildReason.WORKSPACE_CHANGED)
             }
         }
     }
@@ -920,7 +1036,7 @@ class ReviewViewModel(
                 val resolvedFilterToApply = reviewFilterResolutionToApply(
                     requestedFilter = requestedFilter,
                     resolvedFilter = sessionSnapshot.selectedFilter,
-                    availableTagFilters = sessionSnapshot.availableTagFilters
+                    availableTagNames = sessionSnapshot.reviewTagNames
                 ) ?: return@collect
 
                 reviewFilterGeneration += 1L
@@ -932,6 +1048,7 @@ class ReviewViewModel(
                         reviewFilter = resolvedFilterToApply
                     )
                 }
+                rebuildReviewSession(reason = ReviewDataRebuildReason.FILTER_CHANGED)
                 reviewPreferencesStore.saveSelectedReviewFilter(
                     workspaceId = workspaceId,
                     reviewFilter = resolvedFilterToApply
@@ -948,6 +1065,7 @@ class ReviewViewModel(
                     return@collect
                 }
                 settleReviewAfterRatingWorkOnSessionEmission()
+                scheduleNextDueRefresh(nextDueAtMillis = sessionSnapshot.nextDueAtMillis)
                 val currentState = draftState.value
                 if (observedState.requestedFilter != currentState.requestedFilter) {
                     return@collect
@@ -978,12 +1096,18 @@ class ReviewViewModel(
                     }
 
                     val nextPresentedCard = sessionSnapshot.presentedCard
-                    if (nextPresentedCard == state.presentedCard) {
+                    // Pins the session's next card so later background refreshes keep it next.
+                    val nextPreparedNextCardId = sessionSnapshot.preparedNextCard?.cardId
+                    if (
+                        nextPresentedCard == state.presentedCard
+                        && nextPreparedNextCardId == state.preparedNextCardId
+                    ) {
                         return@update state
                     }
 
                     state.copy(
                         presentedCard = nextPresentedCard,
+                        preparedNextCardId = nextPreparedNextCardId,
                         revealedCardId = if (state.revealedCardId == nextPresentedCard?.cardId) {
                             state.revealedCardId
                         } else {
