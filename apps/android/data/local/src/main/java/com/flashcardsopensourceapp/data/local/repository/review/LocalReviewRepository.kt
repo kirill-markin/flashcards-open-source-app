@@ -685,7 +685,7 @@ class LocalReviewRepository(
     override suspend fun recordReview(cardId: String, rating: ReviewRating, reviewedAtMillis: Long) {
         preferencesStore.runWithLocalOutboxMutationAllowed {
             val onboardingOwner = preferencesStore.firstReviewOnboardingOwner()
-            database.withTransaction {
+            val committedReviewLog: ReviewLogEntity = database.withTransaction {
                 val card: CardEntity = requireNotNull(database.cardDao().loadCard(cardId = cardId)) {
                     "Cannot review missing card: $cardId"
                 }
@@ -756,7 +756,9 @@ class LocalReviewRepository(
                     tags = cardSummary.tags,
                     affectsReviewSchedule = true
                 )
+                reviewLog
             }
+            localProgressCacheStore.publishCommittedReview(reviewLog = committedReviewLog)
             try {
                 if (preferencesStore.saveFirstReviewOnboardingCompletedForOwner(true, onboardingOwner)) {
                     analytics.track(AnalyticsEvent.FirstReviewOnboardingCompleted(FirstReviewOnboardingSource.REVIEW))

@@ -62,6 +62,12 @@ internal class ProgressSeriesOrchestration(
         return snapshotMutable.asStateFlow()
     }
 
+    // Keeps on-demand refreshes on current inputs while the snapshot itself waits for the next
+    // full Progress recompute; see docs/fsrs-scheduling-logic.md#non-blocking-review.
+    fun rememberLatestInputs(inputs: ProgressObservedInputs) {
+        latestInputsMutable.value = inputs
+    }
+
     fun handleInputs(
         inputs: ProgressObservedInputs,
         clockSnapshot: ProgressClockSnapshot
