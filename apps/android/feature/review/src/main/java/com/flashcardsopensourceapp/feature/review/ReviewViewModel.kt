@@ -1008,7 +1008,7 @@ class ReviewViewModel(
             preparedCurrentCard = preparedCurrentCardAfterSync
         )
         if (
-            shouldShowVisibleAutoSyncChangeMessage(
+            hasNewVisibleAutoSyncChange(
                 visibleSignatureBeforeSync = visibleSignatureBeforeSync,
                 nextVisibleChangeSignature = nextVisibleChangeSignature,
                 lastVisibleAutoSyncChangeSignature = lastVisibleAutoSyncChangeSignature
@@ -1024,7 +1024,14 @@ class ReviewViewModel(
             )
         }
         lastVisibleAutoSyncChangeSignature = nextVisibleChangeSignature
-        messageController.showMessage(message = textProvider.reviewUpdatedOnAnotherDeviceMessage)
+        if (
+            shouldShowReviewUpdatedOnAnotherDeviceMessage(
+                visibleSignatureBeforeSync = visibleSignatureBeforeSync,
+                nextVisibleChangeSignature = nextVisibleChangeSignature
+            )
+        ) {
+            messageController.showMessage(message = textProvider.reviewUpdatedOnAnotherDeviceMessage)
+        }
     }
 }
 

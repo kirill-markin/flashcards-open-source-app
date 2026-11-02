@@ -60,6 +60,7 @@ internal fun findOwnedReviewSessionObservationSuppression(
     ) ?: findOwnedReviewCommitObservationSuppression(
         previousSignature = previous,
         nextSignature = nextSignature,
+        state = state,
         ownedReviewSubmissions = ownedReviewSubmissions
     )
 }
@@ -80,22 +81,29 @@ private fun findOwnedReviewQueueObservationSuppression(
     state: ReviewDraftState,
     ownedReviewSubmissions: Map<PendingReviewedCard, OwnedReviewSubmission>
 ): OwnedReviewSessionObservationSuppression? {
-    if (nextSignature.presentedCard != state.presentedCard) {
-        return null
-    }
-    val removedSubmissions = findOwnedReviewSubmissionsRemovedFromQueue(
+    val queueChange = matchOwnedSubmissionsIgnoringNewlyDueCards(
         previousCards = previousSignature.reviewCards,
         nextCards = nextSignature.reviewCards,
+        nextHasMoreCards = nextSignature.hasMoreCards,
         ownedReviewSubmissions = ownedReviewSubmissions
     ) ?: return null
+    val removedSubmissions = queueChange.removedSubmissions
     if (removedSubmissions.isEmpty()) {
         return null
     }
-    if (
+    val showsOwnedNextCard = nextSignature.presentedCard == state.presentedCard &&
         removedSubmissions.any { submission ->
             submission.presentedCard == nextSignature.presentedCard
-        }.not()
-    ) {
+        }
+    val showsNewlyDueCardAfterOwnedLastCard = isNewlyDueCardShownOnOwnedEmptyScreen(
+        nextPresentedCard = nextSignature.presentedCard,
+        state = state,
+        newlyDueCards = queueChange.addedCards
+    ) && removedSubmissions.any { submission ->
+        submission.presentedCard == null &&
+            submission.reviewedCard.cardId == previousSignature.presentedCard?.cardId
+    }
+    if (showsOwnedNextCard.not() && showsNewlyDueCardAfterOwnedLastCard.not()) {
         return null
     }
     val committedSubmissions = removedSubmissions.filter { submission ->
@@ -106,7 +114,8 @@ private fun findOwnedReviewQueueObservationSuppression(
             previousSignature = previousSignature,
             nextSignature = nextSignature,
             queueSubmissionCount = removedSubmissions.size,
-            committedSubmissionCount = committedSubmissions.size
+            committedSubmissionCount = committedSubmissions.size,
+            maxNewlyDueCardCount = queueChange.addedCards.size
         ).not()
     ) {
         return null
@@ -115,7 +124,8 @@ private fun findOwnedReviewQueueObservationSuppression(
         isOwnedReviewFilterOptionChange(
             previousSignature = previousSignature,
             nextSignature = nextSignature,
-            committedReviewedCards = committedSubmissions.map(OwnedReviewSubmission::reviewedCard)
+            committedReviewedCards = committedSubmissions.map(OwnedReviewSubmission::reviewedCard),
+            possiblyNewlyDueCards = queueChange.addedCards
         ).not()
     ) {
         return null
@@ -131,18 +141,38 @@ private fun findOwnedReviewQueueObservationSuppression(
 private fun findOwnedReviewCommitObservationSuppression(
     previousSignature: ObservedReviewSessionSignature,
     nextSignature: ObservedReviewSessionSignature,
+    state: ReviewDraftState,
     ownedReviewSubmissions: Map<PendingReviewedCard, OwnedReviewSubmission>
 ): OwnedReviewSessionObservationSuppression? {
-    if (previousSignature.reviewCards != nextSignature.reviewCards) {
+    val keepsPresentedCard = previousSignature.presentedCard == nextSignature.presentedCard
+    if (keepsPresentedCard.not() && previousSignature.presentedCard != null) {
         return null
     }
-    if (previousSignature.presentedCard != nextSignature.presentedCard) {
+    val queueChange = matchOwnedSubmissionsIgnoringNewlyDueCards(
+        previousCards = previousSignature.reviewCards,
+        nextCards = nextSignature.reviewCards,
+        nextHasMoreCards = nextSignature.hasMoreCards,
+        ownedReviewSubmissions = ownedReviewSubmissions
+    ) ?: return null
+    if (queueChange.removedSubmissions.isNotEmpty()) {
+        return null
+    }
+    // No reviewed card left the window, so nothing slid in behind one: every added card became due.
+    val newlyDueCards = queueChange.addedCards
+    if (
+        keepsPresentedCard.not() &&
+        isNewlyDueCardShownOnOwnedEmptyScreen(
+            nextPresentedCard = nextSignature.presentedCard,
+            state = state,
+            newlyDueCards = newlyDueCards
+        ).not()
+    ) {
         return null
     }
     val dueCountDelta = previousSignature.dueCount - nextSignature.dueCount
     val remainingCountDelta = previousSignature.remainingCount - nextSignature.remainingCount
-    val observedReviewCount = maxOf(dueCountDelta, remainingCountDelta)
-    if (observedReviewCount <= 0) {
+    val observedReviewCount = maxOf(dueCountDelta, remainingCountDelta) + newlyDueCards.size
+    if (observedReviewCount < 0 || (observedReviewCount == 0 && newlyDueCards.isEmpty())) {
         return null
     }
     val observableOwnedSubmissions = ownedReviewSubmissions.values.filter { submission ->
@@ -157,15 +187,20 @@ private fun findOwnedReviewCommitObservationSuppression(
         size = observedReviewCount
     )
     val matchingSubmissions = submissionCombinations.firstOrNull { submissions ->
-        isOwnedReviewCountChange(
+        val explainsPresentedCard = keepsPresentedCard || submissions.any { submission ->
+            submission.presentedCard == null
+        }
+        explainsPresentedCard && isOwnedReviewCountChange(
             previousSignature = previousSignature,
             nextSignature = nextSignature,
             queueSubmissionCount = submissions.size,
-            committedSubmissionCount = submissions.size
+            committedSubmissionCount = submissions.size,
+            maxNewlyDueCardCount = newlyDueCards.size
         ) && isOwnedReviewFilterOptionChange(
             previousSignature = previousSignature,
             nextSignature = nextSignature,
-            committedReviewedCards = submissions.map(OwnedReviewSubmission::reviewedCard)
+            committedReviewedCards = submissions.map(OwnedReviewSubmission::reviewedCard),
+            possiblyNewlyDueCards = newlyDueCards
         )
     } ?: return null
 
@@ -176,29 +211,75 @@ private fun findOwnedReviewCommitObservationSuppression(
     )
 }
 
-private fun findOwnedReviewSubmissionsRemovedFromQueue(
+/**
+ * Rating the last queued card leaves no prepared next card, so the screen empties and the session shows
+ * its first queued card, which can be a card that has just become due. That is the same session; a remote
+ * change that replaces a card still on screen never matches. See docs/fsrs-scheduling-logic.md#non-blocking-review.
+ */
+private fun isNewlyDueCardShownOnOwnedEmptyScreen(
+    nextPresentedCard: ReviewCard?,
+    state: ReviewDraftState,
+    newlyDueCards: List<ReviewCard>
+): Boolean {
+    return state.presentedCard == null &&
+        nextPresentedCard != null &&
+        newlyDueCards.contains(nextPresentedCard)
+}
+
+private data class OwnedReviewQueueChange(
+    val removedSubmissions: List<OwnedReviewSubmission>,
+    /** Cards that entered the window: newly due cards, or cards that slid in behind removed ones. */
+    val addedCards: List<ReviewCard>
+)
+
+/**
+ * Cards that become due while the user reviews, such as returning "Again" cards, may enter the queue
+ * window at any position and push tail cards out of it; that is not a session change. Returns null only
+ * when a card left the queue without an owned submission explaining it, or the kept cards changed order.
+ * See docs/fsrs-scheduling-logic.md#non-blocking-review.
+ */
+private fun matchOwnedSubmissionsIgnoringNewlyDueCards(
     previousCards: List<ReviewCard>,
     nextCards: List<ReviewCard>,
+    nextHasMoreCards: Boolean,
     ownedReviewSubmissions: Map<PendingReviewedCard, OwnedReviewSubmission>
-): List<OwnedReviewSubmission>? {
-    // Return null when nextCards introduces a card that was not present in previousCards,
-    // because the canonical queue can only shrink between observations during owned reviews.
+): OwnedReviewQueueChange? {
     val ownedReviewSubmissionsByCardId = ownedReviewSubmissions.values.associateBy { submission ->
         submission.reviewedCard.cardId
     }
+    val previousCardSet: Set<ReviewCard> = previousCards.toSet()
+    val nextCardSet: Set<ReviewCard> = nextCards.toSet()
+    val nextCardIds: Set<String> = nextCards.map(ReviewCard::cardId).toSet()
+    val keptCards = previousCards.filter(nextCardSet::contains)
+    if (nextCards.filter(previousCardSet::contains) != keptCards) {
+        return null
+    }
+    val lastKeptCardIndex = previousCards.indexOfLast(nextCardSet::contains)
     val removedSubmissions = mutableListOf<OwnedReviewSubmission>()
-    var nextCardIndex: Int = 0
-    previousCards.forEach { previousCard ->
-        val nextCard = nextCards.getOrNull(index = nextCardIndex)
-        if (nextCard == previousCard) {
-            nextCardIndex += 1
-        } else {
-            val ownedSubmission = ownedReviewSubmissionsByCardId[previousCard.cardId] ?: return null
-            removedSubmissions.add(ownedSubmission)
+    var pushedOutCardCount: Int = 0
+    previousCards.forEachIndexed { index, previousCard ->
+        if (nextCardSet.contains(previousCard)) {
+            return@forEachIndexed
         }
+        val ownedSubmission = ownedReviewSubmissionsByCardId[previousCard.cardId]
+        if (ownedSubmission != null) {
+            removedSubmissions.add(ownedSubmission)
+            return@forEachIndexed
+        }
+        if (index < lastKeptCardIndex || nextCardIds.contains(previousCard.cardId)) {
+            return null
+        }
+        pushedOutCardCount += 1
+    }
+    val addedCards = nextCards.filterNot(previousCardSet::contains)
+    if (pushedOutCardCount > 0 && (nextHasMoreCards.not() || pushedOutCardCount > addedCards.size)) {
+        return null
     }
 
-    return removedSubmissions
+    return OwnedReviewQueueChange(
+        removedSubmissions = removedSubmissions,
+        addedCards = addedCards
+    )
 }
 
 private const val maxOwnedReviewSubmissionCombinationInputSize: Int = 8
@@ -207,12 +288,12 @@ private fun makeOwnedReviewSubmissionCombinations(
     ownedReviewSubmissions: List<OwnedReviewSubmission>,
     size: Int
 ): List<List<OwnedReviewSubmission>> {
+    if (size == 0) {
+        return listOf(emptyList())
+    }
     // Avoid combinatorial work on the UI thread when many submissions queue up.
     if (ownedReviewSubmissions.size > maxOwnedReviewSubmissionCombinationInputSize) {
         return emptyList()
-    }
-    if (size == 0) {
-        return listOf(emptyList())
     }
     if (ownedReviewSubmissions.size < size) {
         return emptyList()
@@ -234,31 +315,34 @@ private fun makeOwnedReviewSubmissionCombinations(
     return combinationsWithFirst + combinationsWithoutFirst
 }
 
+/** Newly due cards raise both counts, so each may drop by less than the owned reviews explain. */
 private fun isOwnedReviewCountChange(
     previousSignature: ObservedReviewSessionSignature,
     nextSignature: ObservedReviewSessionSignature,
     queueSubmissionCount: Int,
-    committedSubmissionCount: Int
+    committedSubmissionCount: Int,
+    maxNewlyDueCardCount: Int
 ): Boolean {
     val dueCountDelta = previousSignature.dueCount - nextSignature.dueCount
     val remainingCountDelta = previousSignature.remainingCount - nextSignature.remainingCount
-    if (dueCountDelta < 0 || dueCountDelta > committedSubmissionCount) {
+    if (dueCountDelta < -maxNewlyDueCardCount || dueCountDelta > committedSubmissionCount) {
         return false
     }
-    if (remainingCountDelta < 0 || remainingCountDelta > queueSubmissionCount) {
+    if (remainingCountDelta < -maxNewlyDueCardCount || remainingCountDelta > queueSubmissionCount) {
         return false
     }
 
-    return dueCountDelta > 0 || remainingCountDelta > 0
+    return dueCountDelta > 0 || remainingCountDelta > 0 || maxNewlyDueCardCount > 0
 }
 
 private fun isOwnedReviewFilterOptionChange(
     previousSignature: ObservedReviewSessionSignature,
     nextSignature: ObservedReviewSessionSignature,
-    committedReviewedCards: List<ReviewCard>
+    committedReviewedCards: List<ReviewCard>,
+    possiblyNewlyDueCards: List<ReviewCard>
 ): Boolean {
     val dueCountDelta = previousSignature.dueCount - nextSignature.dueCount
-    if (dueCountDelta == 0) {
+    if (dueCountDelta == 0 && possiblyNewlyDueCards.isEmpty()) {
         return previousSignature.availableDeckFilters == nextSignature.availableDeckFilters &&
             previousSignature.availableTagFilters == nextSignature.availableTagFilters
     }
@@ -266,18 +350,21 @@ private fun isOwnedReviewFilterOptionChange(
     return hasOwnedDeckFilterOptionChange(
         previousOptions = previousSignature.availableDeckFilters,
         nextOptions = nextSignature.availableDeckFilters,
-        committedReviewedCards = committedReviewedCards
+        committedReviewedCards = committedReviewedCards,
+        possiblyNewlyDueCards = possiblyNewlyDueCards
     ) && hasOwnedTagFilterOptionChange(
         previousOptions = previousSignature.availableTagFilters,
         nextOptions = nextSignature.availableTagFilters,
-        committedReviewedCards = committedReviewedCards
+        committedReviewedCards = committedReviewedCards,
+        possiblyNewlyDueCards = possiblyNewlyDueCards
     )
 }
 
 private fun hasOwnedDeckFilterOptionChange(
     previousOptions: List<ReviewDeckFilterOption>,
     nextOptions: List<ReviewDeckFilterOption>,
-    committedReviewedCards: List<ReviewCard>
+    committedReviewedCards: List<ReviewCard>,
+    possiblyNewlyDueCards: List<ReviewCard>
 ): Boolean {
     if (previousOptions.size != nextOptions.size) {
         return false
@@ -291,7 +378,7 @@ private fun hasOwnedDeckFilterOptionChange(
         val countDelta = previousOption.totalCount - nextOption.totalCount
         nextOption.title == previousOption.title &&
             nextOption.tags == previousOption.tags &&
-            countDelta >= 0 &&
+            countDelta >= -possiblyNewlyDueCards.size &&
             countDelta <= committedReviewedCards.size
     }
 }
@@ -299,7 +386,8 @@ private fun hasOwnedDeckFilterOptionChange(
 private fun hasOwnedTagFilterOptionChange(
     previousOptions: List<ReviewTagFilterOption>,
     nextOptions: List<ReviewTagFilterOption>,
-    committedReviewedCards: List<ReviewCard>
+    committedReviewedCards: List<ReviewCard>,
+    possiblyNewlyDueCards: List<ReviewCard>
 ): Boolean {
     val previousOptionsByTagKey = previousOptions.associateBy { option ->
         normalizeTagKey(tag = option.tag)
@@ -314,21 +402,27 @@ private fun hasOwnedTagFilterOptionChange(
     ) {
         return false
     }
-    val committedReviewTagKeysByCard: List<Set<String>> = committedReviewedCards.map { reviewedCard ->
-        reviewedCard.tags.map { tag ->
-            normalizeTagKey(tag = tag)
-        }.toSet()
-    }
+    val committedReviewTagKeysByCard: List<Set<String>> = committedReviewedCards.map(::normalizedTagKeys)
+    val possiblyNewlyDueTagKeysByCard: List<Set<String>> = possiblyNewlyDueCards.map(::normalizedTagKeys)
 
     return previousOptions.all { previousOption ->
         val tagKey: String = normalizeTagKey(tag = previousOption.tag)
-        val expectedDelta: Int = committedReviewTagKeysByCard.count { committedReviewTagKeys ->
+        val committedDelta: Int = committedReviewTagKeysByCard.count { committedReviewTagKeys ->
             committedReviewTagKeys.contains(tagKey)
         }
-        val expectedCount = previousOption.totalCount - expectedDelta
-        val nextOption = nextOptionsByTagKey[tagKey]
-        nextOption?.totalCount == maxOf(0, expectedCount)
+        val maxNewlyDueDelta: Int = possiblyNewlyDueTagKeysByCard.count { newlyDueTagKeys ->
+            newlyDueTagKeys.contains(tagKey)
+        }
+        val minExpectedCount: Int = maxOf(0, previousOption.totalCount - committedDelta)
+        val nextCount: Int = nextOptionsByTagKey[tagKey]?.totalCount ?: return@all false
+        nextCount >= minExpectedCount && nextCount <= minExpectedCount + maxNewlyDueDelta
     }
+}
+
+private fun normalizedTagKeys(card: ReviewCard): Set<String> {
+    return card.tags.map { tag ->
+        normalizeTagKey(tag = tag)
+    }.toSet()
 }
 
 internal fun markOwnedReviewSubmissionCommitPendingObservation(
