@@ -165,16 +165,40 @@ extension AIChatStore {
         guard let database = self.flashcardsStore.database else {
             throw LocalStoreError.uninitialized("Local database is unavailable")
         }
+        // Applying a sync result resets the status to idle; a blocked status clears only through its own recovery.
+        if case .blocked(let message) = self.flashcardsStore.syncStatus {
+            throw LocalStoreError.validation(message)
+        }
 
         let syncResult = try await self.flashcardsStore.runLinkedSync(linkedSession: linkedSession)
-        try await self.flashcardsStore.applySyncResultWithoutBlockingReset(
-            syncResult: syncResult,
-            now: Date(),
-            trigger: self.flashcardsStore.manualCloudSyncTrigger(now: Date())
-        )
+        self.startApplyingLinkedSyncResult(syncResult: syncResult)
         let outboxEntries = try database.loadOutboxEntries(workspaceId: workspaceId, limit: Int.max)
         if outboxEntries.isEmpty == false {
             throw LocalStoreError.validation("AI chat is blocked until all pending sync operations are uploaded.")
+        }
+    }
+
+    /**
+     An AI send or post-sync never waits for, or fails from, the Review rebuild a sync result can start: a failed
+     rebuild keeps `hasUnrebuiltSyncWrites` set, so the next applied sync retries it.
+     */
+    func startApplyingLinkedSyncResult(syncResult: CloudSyncResult) {
+        Task { @MainActor in
+            do {
+                try await self.flashcardsStore.applySyncResultWithoutBlockingReset(
+                    syncResult: syncResult,
+                    now: Date(),
+                    trigger: self.flashcardsStore.manualCloudSyncTrigger(now: Date())
+                )
+            } catch {
+                logAIChatStoreEvent(
+                    action: "ai_sync_result_apply_failed",
+                    metadata: [
+                        "workspaceId": self.flashcardsStore.workspace?.workspaceId ?? "",
+                        "errorSummary": Flashcards.errorMessage(error: error)
+                    ]
+                )
+            }
         }
     }
 

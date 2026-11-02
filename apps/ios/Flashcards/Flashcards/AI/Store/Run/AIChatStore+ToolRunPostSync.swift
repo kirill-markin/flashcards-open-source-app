@@ -130,14 +130,9 @@ extension AIChatStore {
                 let syncResult = try await self.flashcardsStore.runLinkedSyncPreservingSessionContext(
                     linkedSession: linkedSession
                 )
-                // The sync itself settles the post-sync; a failed rebuild stays pending in the store's
-                // `hasUnrebuiltSyncWrites`, and the awaited rebuild can move the history scope.
+                // The sync itself settles the post-sync; the rebuild it starts can move the history scope.
                 await self.completeToolRunPostSyncAfterSuccess(origin: origin)
-                try await self.flashcardsStore.applySyncResultWithoutBlockingReset(
-                    syncResult: syncResult,
-                    now: Date(),
-                    trigger: self.flashcardsStore.manualCloudSyncTrigger(now: Date())
-                )
+                self.startApplyingLinkedSyncResult(syncResult: syncResult)
             } catch {
                 if self.isCurrentToolRunPostSyncOrigin(origin) && self.pendingToolRunPostSync {
                     self.schedulePersistCurrentState()
