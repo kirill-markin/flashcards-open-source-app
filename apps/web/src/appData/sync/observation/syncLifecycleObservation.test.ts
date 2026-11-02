@@ -928,6 +928,7 @@ describe("sync lifecycle observation", () => {
     await expect(runWorkspaceRemoteSync(createRemoteSyncInput())).resolves.toEqual({
       didChangeProgressHistory: false,
       didChangeReviewSchedule: false,
+      didApplyRemoteChanges: true,
     });
     expect(observabilityMocks.addWebBreadcrumbMock).toHaveBeenCalledWith(expect.objectContaining({
       action: "persistent_storage",
@@ -953,6 +954,7 @@ describe("sync lifecycle observation", () => {
     await expect(runWorkspaceRemoteSync(createRemoteSyncInput())).resolves.toEqual({
       didChangeProgressHistory: false,
       didChangeReviewSchedule: false,
+      didApplyRemoteChanges: true,
     });
   });
 });

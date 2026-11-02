@@ -75,6 +75,7 @@ export function useReviewScreenController(
     workspaceSettings,
     isSyncing,
     localReadVersion,
+    syncAppliedRemoteChangesVersion,
     getCardById,
     refreshLocalData,
     runMediaUploadTransfers,
@@ -138,6 +139,7 @@ export function useReviewScreenController(
     selectedReviewFilter,
     setErrorMessage,
     submitReviewItem,
+    syncAppliedRemoteChangesVersion,
     userId: session?.userId ?? null,
   });
   const selectedCard = currentReviewCard(activeReviewQueue);

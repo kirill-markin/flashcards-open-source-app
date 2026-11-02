@@ -148,6 +148,7 @@ export function AppDataProvider(props: Props): ReactElement {
   const [workspaceSettings, setWorkspaceSettings] = useState<WorkspaceSchedulerSettings | null>(null);
   const [cloudSettings, setCloudSettings] = useState<CloudSettings | null>(null);
   const [localReadVersion, setLocalReadVersion] = useState<number>(0);
+  const [syncAppliedRemoteChangesVersion, setSyncAppliedRemoteChangesVersion] = useState<number>(0);
   const [localReviewSchedule, setLocalReviewSchedule] = useState<LocalReviewSchedule>(initialLocalReviewSchedule);
   const [localCardCount, setLocalCardCount] = useState<number>(0);
   const [isSyncing, setIsSyncing] = useState<boolean>(false);
@@ -270,6 +271,7 @@ export function AppDataProvider(props: Props): ReactElement {
     setWorkspaceSettings,
     setCloudSettings,
     setLocalReadVersion,
+    setSyncAppliedRemoteChangesVersion,
     setLocalReviewSchedule,
     setIsSyncing,
     setErrorMessage,
@@ -419,6 +421,7 @@ export function AppDataProvider(props: Props): ReactElement {
     }));
     setWorkspaceSettings(null);
     setLocalReadVersion(0);
+    setSyncAppliedRemoteChangesVersion(0);
     setLocalReviewSchedule(initialLocalReviewSchedule);
     setLocalCardCount(0);
     setIsSyncing(false);
@@ -565,6 +568,7 @@ export function AppDataProvider(props: Props): ReactElement {
     workspaceSettings,
     cloudSettings,
     localReadVersion,
+    syncAppliedRemoteChangesVersion,
     reviewScheduleVersion: localReviewSchedule.reviewScheduleVersion,
     lastLocalReview: localReviewSchedule.lastLocalReview,
     localCardCount,

@@ -3,6 +3,7 @@ import { pullSyncChanges } from "../../../api";
 import { webAppVersion } from "../../../clientIdentity";
 import {
   applyHotSyncPage,
+  doHotSyncEntriesChangeLocalData,
   loadLastAppliedHotChangeId,
 } from "../../../localDb/cards/workspace";
 import { syncIncrementalPageSize } from "./constants";
@@ -22,16 +23,19 @@ export async function pullHotChanges(input: WorkspaceRemoteSyncInput): Promise<R
     return {
       didChangeProgressHistory: false,
       didChangeReviewSchedule: false,
+      didApplyRemoteChanges: false,
     };
   }
   input.requireWorkspaceSyncNotDiscarded(input.workspaceId);
   let didChangeReviewSchedule = false;
+  let didApplyRemoteChanges = false;
 
   while (true) {
     if (input.hasFailed()) {
       return {
         didChangeProgressHistory: false,
         didChangeReviewSchedule,
+        didApplyRemoteChanges,
       };
     }
     input.requireWorkspaceSyncNotDiscarded(input.workspaceId);
@@ -49,6 +53,7 @@ export async function pullHotChanges(input: WorkspaceRemoteSyncInput): Promise<R
       return {
         didChangeProgressHistory: false,
         didChangeReviewSchedule,
+        didApplyRemoteChanges,
       };
     }
     input.requireWorkspaceSyncNotDiscarded(input.workspaceId);
@@ -60,10 +65,14 @@ export async function pullHotChanges(input: WorkspaceRemoteSyncInput): Promise<R
     if (await doHotSyncEntriesAffectReviewSchedule(input.workspaceId, pullResult.changes)) {
       didChangeReviewSchedule = true;
     }
+    if (await doHotSyncEntriesChangeLocalData(input.workspaceId, pullResult.changes)) {
+      didApplyRemoteChanges = true;
+    }
     if (input.hasFailed()) {
       return {
         didChangeProgressHistory: false,
         didChangeReviewSchedule,
+        didApplyRemoteChanges,
       };
     }
     input.requireWorkspaceSyncNotDiscarded(input.workspaceId);
@@ -72,6 +81,7 @@ export async function pullHotChanges(input: WorkspaceRemoteSyncInput): Promise<R
       return {
         didChangeProgressHistory: false,
         didChangeReviewSchedule,
+        didApplyRemoteChanges,
       };
     }
     await applyHotSyncPage(input.workspaceId, pullResult.changes, {
@@ -82,6 +92,7 @@ export async function pullHotChanges(input: WorkspaceRemoteSyncInput): Promise<R
       return {
         didChangeProgressHistory: false,
         didChangeReviewSchedule,
+        didApplyRemoteChanges,
       };
     }
     input.requireWorkspaceSyncNotDiscarded(input.workspaceId);
@@ -97,5 +108,6 @@ export async function pullHotChanges(input: WorkspaceRemoteSyncInput): Promise<R
   return {
     didChangeProgressHistory: false,
     didChangeReviewSchedule,
+    didApplyRemoteChanges,
   };
 }

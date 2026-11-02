@@ -59,6 +59,7 @@ import {
   filterPendingReviewCards,
   findNextReviewDueAtMillis,
   insertReviewedCardIntoTimeline,
+  isMissingDeckReviewFilterFallback,
   isPreservablePresentedCard,
   isReviewSessionSignatureCompatible,
   isReviewSessionSignatureEqual,
@@ -95,6 +96,7 @@ type UseReviewScreenDataParams = Readonly<{
   selectedReviewFilter: ReviewFilter;
   setErrorMessage: (message: string) => void;
   submitReviewItem: (cardId: string, rating: 0 | 1 | 2 | 3) => Promise<Card>;
+  syncAppliedRemoteChangesVersion: number;
   userId: string | null;
 }>;
 
@@ -188,6 +190,7 @@ export function useReviewScreenData(params: UseReviewScreenDataParams): UseRevie
     selectedReviewFilter,
     setErrorMessage,
     submitReviewItem,
+    syncAppliedRemoteChangesVersion,
     userId,
   } = params;
   const { formatCount, messages, t } = useI18n();
@@ -234,6 +237,7 @@ export function useReviewScreenData(params: UseReviewScreenDataParams): UseRevie
   const carriedReviewDataContextRef = useRef<CarriedReviewDataContext | null>(null);
   const afterRatingWorkRef = useRef<PendingReviewAfterRatingWork | null>(null);
   const observedLocalReadVersionRef = useRef<number>(localReadVersion);
+  const observedSyncAppliedRemoteChangesVersionRef = useRef<number>(syncAppliedRemoteChangesVersion);
   const reviewDataLoadGenerationRef = useRef<number>(0);
   const ratingSequenceRef = useRef<number>(0);
   const locallyRatedCardsRef = useRef<ReadonlyMap<string, LocallyRatedCard>>(new Map());
@@ -361,7 +365,7 @@ export function useReviewScreenData(params: UseReviewScreenDataParams): UseRevie
     );
   }
 
-  // The only entry point for a full rebuild besides a workspace, filter or local card change:
+  // The only entry point for a full rebuild besides a workspace, filter, local card or sync-applied change:
   // docs/fsrs-scheduling-logic.md#non-blocking-review
   function rebuildReviewData(reason: ReviewDataRebuildReason): void {
     setReviewDataRebuildRequest((currentRequest) => ({
@@ -695,10 +699,13 @@ export function useReviewScreenData(params: UseReviewScreenDataParams): UseRevie
       reviewDataContextKey,
       activeWorkspaceId,
       hasLocalReadVersionChanged: observedLocalReadVersionRef.current !== localReadVersion,
+      hasSyncAppliedRemoteChanges: observedSyncAppliedRemoteChangesVersionRef.current !== syncAppliedRemoteChangesVersion,
       requestedReason: reviewDataRebuildRequest.reason,
     });
     observedLocalReadVersionRef.current = localReadVersion;
-    const isNewReviewSession = startsNewReviewSession(rebuildReason);
+    observedSyncAppliedRemoteChangesVersionRef.current = syncAppliedRemoteChangesVersion;
+    const isNewReviewSessionReason = startsNewReviewSession(rebuildReason);
+    const previousResolvedReviewFilter = resolvedReviewFilterRef.current;
     reviewDataLoadGenerationRef.current += 1;
     const ratingSequenceAtStart = ratingSequenceRef.current;
     const loadStartTimestamp = Date.now();
@@ -777,6 +784,11 @@ export function useReviewScreenData(params: UseReviewScreenDataParams): UseRevie
             nextResolvedReviewFilter.kind === "tags" ? nextResolvedReviewFilter.tags.length : 0,
             messages.common.countLabels.tag,
           ),
+        );
+        const isNewReviewSession = isNewReviewSessionReason || isMissingDeckReviewFilterFallback(
+          requestedReviewFilter,
+          previousResolvedReviewFilter,
+          nextResolvedReviewFilter,
         );
         const previousPresentedCard = isNewReviewSession ? null : presentedCardRef.current;
         const previousPreparedNextCard = isNewReviewSession
@@ -940,7 +952,14 @@ export function useReviewScreenData(params: UseReviewScreenDataParams): UseRevie
     return () => {
       isCancelled = true;
     };
-  }, [activeWorkspaceId, indexedDbOpenRecoveryState, localReadVersion, reviewDataContextKey, reviewDataRebuildRequest]);
+  }, [
+    activeWorkspaceId,
+    indexedDbOpenRecoveryState,
+    localReadVersion,
+    reviewDataContextKey,
+    reviewDataRebuildRequest,
+    syncAppliedRemoteChangesVersion,
+  ]);
 
   async function handleReview(card: Card, rating: 0 | 1 | 2 | 3): Promise<ReviewSubmissionOutcome> {
     // Rating until its submission and in-memory update settle; non-blocking review plans read it as

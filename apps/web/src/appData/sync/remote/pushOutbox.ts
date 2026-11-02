@@ -31,6 +31,7 @@ export async function pushOutbox(input: WorkspaceRemoteSyncInput): Promise<Remot
     return {
       didChangeProgressHistory: false,
       didChangeReviewSchedule: false,
+      didApplyRemoteChanges: false,
     };
   }
   input.requireWorkspaceSyncNotDiscarded(input.workspaceId);
@@ -42,6 +43,7 @@ export async function pushOutbox(input: WorkspaceRemoteSyncInput): Promise<Remot
       return {
         didChangeProgressHistory,
         didChangeReviewSchedule,
+        didApplyRemoteChanges: false,
       };
     }
     input.requireWorkspaceSyncNotDiscarded(input.workspaceId);
@@ -65,6 +67,7 @@ export async function pushOutbox(input: WorkspaceRemoteSyncInput): Promise<Remot
         return {
           didChangeProgressHistory,
           didChangeReviewSchedule,
+          didApplyRemoteChanges: false,
         };
       }
       input.requireWorkspaceSyncNotDiscarded(input.workspaceId);
@@ -75,6 +78,7 @@ export async function pushOutbox(input: WorkspaceRemoteSyncInput): Promise<Remot
             return {
               didChangeProgressHistory,
               didChangeReviewSchedule,
+              didApplyRemoteChanges: false,
             };
           }
           input.requireWorkspaceSyncNotDiscarded(input.workspaceId);
@@ -83,6 +87,7 @@ export async function pushOutbox(input: WorkspaceRemoteSyncInput): Promise<Remot
             return {
               didChangeProgressHistory,
               didChangeReviewSchedule,
+              didApplyRemoteChanges: false,
             };
           }
           if (reviewScheduleOperationIds.has(result.operationId)) {
@@ -126,6 +131,7 @@ export async function pushOutbox(input: WorkspaceRemoteSyncInput): Promise<Remot
       return {
         didChangeProgressHistory,
         didChangeReviewSchedule,
+        didApplyRemoteChanges: false,
       };
     }
     input.requireWorkspaceSyncNotDiscarded(input.workspaceId);
@@ -134,5 +140,6 @@ export async function pushOutbox(input: WorkspaceRemoteSyncInput): Promise<Remot
   return {
     didChangeProgressHistory,
     didChangeReviewSchedule,
+    didApplyRemoteChanges: false,
   };
 }

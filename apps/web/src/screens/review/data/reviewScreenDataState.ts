@@ -38,6 +38,7 @@ type ReviewDataRebuildInputs = Readonly<{
   reviewDataContextKey: string;
   activeWorkspaceId: string | null;
   hasLocalReadVersionChanged: boolean;
+  hasSyncAppliedRemoteChanges: boolean;
   requestedReason: ReviewDataRebuildReason;
 }>;
 
@@ -54,13 +55,30 @@ export function resolveReviewDataRebuildReason(inputs: ReviewDataRebuildInputs):
     return "filterChanged";
   }
 
-  // Sync still moves `localReadVersion` too, so its rebuilds arrive under this reason.
+  if (inputs.hasSyncAppliedRemoteChanges) {
+    return "syncAppliedRemoteChanges";
+  }
+
   return inputs.hasLocalReadVersionChanged ? "localCardsChanged" : inputs.requestedReason;
 }
 
 /** Only the user's own scope choice starts a new session; every other rebuild keeps the shown card. */
 export function startsNewReviewSession(reason: ReviewDataRebuildReason): boolean {
   return reason === "initialLoad" || reason === "filterChanged" || reason === "workspaceChanged";
+}
+
+/**
+ * A selected deck that no longer exists falls back to all cards, a new scope that starts a new session; a tag
+ * selection that comes to cover every tag stays the same scope: docs/fsrs-scheduling-logic.md#non-blocking-review
+ */
+export function isMissingDeckReviewFilterFallback(
+  requestedReviewFilter: ReviewFilter,
+  previousResolvedReviewFilter: ReviewFilter,
+  nextResolvedReviewFilter: ReviewFilter,
+): boolean {
+  return requestedReviewFilter.kind === "deck"
+    && nextResolvedReviewFilter.kind === "allCards"
+    && previousResolvedReviewFilter.kind !== "allCards";
 }
 
 export type PendingReviewSnapshot = Readonly<{
