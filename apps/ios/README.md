@@ -69,7 +69,7 @@ Do not mix destination-based `NavigationLink { ... }` pushes with value-based or
 
 ## Testing Rule
 
-Follow the [local native acceptance procedure](../../docs/ios-local-setup.md#local-native-acceptance): full latest-iPhone UI and existing non-UI tests, focused latest-iPad tests, and the minimum iOS 18 compatibility selection. Mac releases require the full signed [LocalMac acceptance](../../docs/macos-ci-cd.md#signed-local-native-acceptance). Xcode Cloud provides [release archives](../../docs/ios-ci-cd.md#native-release-gate); its test workflows remain disabled. Apple testing stays in Xcode Cloud or local Xcode; local execution follows the [repository testing policy](../../AGENTS.md#testing-philosophy).
+Follow the [local native acceptance procedure](../../docs/ios-local-setup.md#local-native-acceptance): full latest-iPhone UI and existing non-UI tests, focused latest-iPad tests, and the minimum iOS 18 compatibility selection. Mac releases require the full signed [LocalMac acceptance](../../docs/macos-ci-cd.md#signed-local-native-acceptance) or its [targeted recovery](../../docs/release/evidence.md#targeted-recovery). Xcode Cloud provides [release archives](../../docs/ios-ci-cd.md#native-release-gate); its test workflows remain disabled. Apple testing stays in Xcode Cloud or local Xcode; local execution follows the [repository testing policy](../../AGENTS.md#testing-philosophy).
 
 - Do not try to cover the iOS app exhaustively with tests
 - Do not add isolated unit tests by default

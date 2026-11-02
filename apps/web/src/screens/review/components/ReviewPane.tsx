@@ -1,9 +1,13 @@
-import { useLayoutEffect, useRef, useState, type ReactElement, type RefObject } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type ReactElement, type RefObject } from "react";
 import { FirstReviewOnboardingOverlay } from "../onboarding/FirstReviewOnboardingOverlay";
 import { Link } from "react-router";
 import type { ReviewRating } from "../../../../../backend/src/scheduling";
 import { track } from "../../../analytics";
 import { useI18n } from "../../../i18n";
+import {
+  discardReviewNextCardVisibleSpan,
+  finishReviewNextCardVisibleSpan,
+} from "../../../observability/reviewTimingSpans";
 import { cardsRoute, chatRoute } from "../../../routes";
 import { useWorkspacePath } from "../../../useWorkspacePath";
 import type { Card } from "../../../types";
@@ -533,6 +537,16 @@ export function ReviewPane(props: ReviewPaneProps): ReactElement {
   } = props;
   const reviewPaneState = resolveReviewPaneState(isInitialReviewLoad, selectedCard);
   const reviewPaneEmptyReason = resolveReviewPaneEmptyReason(isInitialReviewLoad, selectedCard, hasCards);
+
+  useEffect(() => {
+    if (reviewPaneState === "empty") {
+      discardReviewNextCardVisibleSpan();
+      return;
+    }
+    if (reviewPaneState === "card" && selectedCard !== null) {
+      finishReviewNextCardVisibleSpan(selectedCard.cardId, selectedCard.frontText);
+    }
+  }, [reviewPaneState, selectedCard?.cardId]);
 
   return (
     <section
