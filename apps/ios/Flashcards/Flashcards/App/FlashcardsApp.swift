@@ -41,6 +41,7 @@ struct FlashcardsApp: App {
     @State private var appleSubscriptions: AppleSubscriptionService
     @State private var store: FlashcardsStore
     @State private var navigation: AppNavigationModel
+    @State private var cardsScreenModel: CardsScreenModel
     @State private var reviewScreen: ReviewScreenModel
     @State private var progressScreenState: ProgressScreenState
     @State private var progressContextWatcherRefreshToken: Int
@@ -195,6 +196,7 @@ struct FlashcardsApp: App {
                 progressPresentationRequest: nil
             )
         )
+        _cardsScreenModel = State(initialValue: CardsScreenModel())
         _reviewScreen = State(initialValue: ReviewScreenModel())
         _progressScreenState = State(initialValue: ProgressScreenState())
         _progressContextWatcherRefreshToken = State(initialValue: 0)
@@ -216,6 +218,7 @@ struct FlashcardsApp: App {
                 .environment(store)
                 .environment(self.appleSubscriptions)
                 .environment(navigation)
+                .environment(self.cardsScreenModel)
                 .environment(self.reviewScreen)
                 .environment(self.progressScreenState)
                 .environment(\.isLowPowerModeEnabled, self.isLowPowerModeEnabled)
