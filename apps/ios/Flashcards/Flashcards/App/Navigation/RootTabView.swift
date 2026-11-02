@@ -443,6 +443,7 @@ struct RootTabView: View {
                     }
                 }
         }
+        .ignoresSafeArea(.container, edges: .top)
     }
 
     private var macSidebar: some View {
