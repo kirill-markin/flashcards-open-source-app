@@ -111,6 +111,8 @@ data class ReviewSessionSnapshot(
     val selectedFilterTitle: String,
     val cards: List<ReviewCard>,
     val presentedCard: ReviewCard?,
+    /** The card a rating shows next; see docs/fsrs-scheduling-logic.md#non-blocking-review. */
+    val preparedNextCard: ReviewCard?,
     val answerOptions: List<ReviewAnswerOption>,
     val nextAnswerOptions: List<ReviewAnswerOption>,
     val answerOptionsByCardId: Map<String, List<ReviewAnswerOption>>,
@@ -118,9 +120,29 @@ data class ReviewSessionSnapshot(
     val remainingCount: Int,
     val totalCount: Int,
     val hasMoreCards: Boolean,
-    val availableDeckFilters: List<ReviewDeckFilterOption>,
-    val availableTagFilters: List<ReviewTagFilterOption>,
+    /** Stored workspace tag names, so a requested tag filter can be checked without loading filter options. */
+    val reviewTagNames: List<String>,
+    /** The earliest future due time in the filter, for the one next-due refresh timer. */
+    val nextDueAtMillis: Long?,
     val isLoading: Boolean
+)
+
+/**
+ * Everything the bounded review queue query reads besides the filter. A rating changes only these, so
+ * it re-runs the queue window, the pinned cards, and counts, never the workspace-wide reads.
+ * See docs/fsrs-scheduling-logic.md#non-blocking-review.
+ */
+data class ReviewSessionQueryInputs(
+    val pendingReviewedCards: Set<PendingReviewedCard>,
+    val presentedCardId: String?,
+    val preparedNextCardId: String?,
+    val nowMillis: Long
+)
+
+/** Filter sheet choices with their due counts, loaded only while the filter sheet is open. */
+data class ReviewFilterOptions(
+    val deckFilters: List<ReviewDeckFilterOption>,
+    val tagFilters: List<ReviewTagFilterOption>
 )
 
 data class ReviewTimelinePage(

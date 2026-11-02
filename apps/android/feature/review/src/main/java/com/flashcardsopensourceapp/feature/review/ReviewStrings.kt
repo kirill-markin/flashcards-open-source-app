@@ -4,7 +4,6 @@ import android.content.Context
 import android.content.res.Resources
 import android.icu.text.ListFormatter
 import android.os.Build
-import com.flashcardsopensourceapp.data.local.model.review.ReviewDeckFilterOption
 import com.flashcardsopensourceapp.data.local.model.review.ReviewFilter
 import com.flashcardsopensourceapp.data.local.model.review.ReviewIntervalDescription
 import com.flashcardsopensourceapp.data.local.notifications.StrictReminderTimeOffset
@@ -106,15 +105,14 @@ class ReviewTextProvider(
             .format(Instant.ofEpochMilli(dueAtMillis).atZone(ZoneId.systemDefault()))
     }
 
+    /** [deckTitle] is the resolved deck's name, used only for a deck filter. */
     fun filterTitle(
         selectedFilter: ReviewFilter,
-        availableDeckFilters: List<ReviewDeckFilterOption>
+        deckTitle: String
     ): String {
         return when (selectedFilter) {
             ReviewFilter.AllCards -> allCardsTitle()
-            is ReviewFilter.Deck -> availableDeckFilters.firstOrNull { deck ->
-                deck.deckId == selectedFilter.deckId
-            }?.title ?: allCardsTitle()
+            is ReviewFilter.Deck -> deckTitle
 
             is ReviewFilter.Tags -> when (selectedFilter.tags.size) {
                 0 -> resources.getString(R.string.review_no_tags_label)

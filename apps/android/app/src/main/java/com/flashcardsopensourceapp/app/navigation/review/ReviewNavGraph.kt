@@ -17,6 +17,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.compose.LifecycleStartEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavGraphBuilder
@@ -180,6 +181,13 @@ internal fun NavGraphBuilder.registerReviewNavGraph(
                 }
             }
 
+            LifecycleStartEffect(reviewViewModel) {
+                reviewViewModel.onReviewScreenStarted()
+                onStopOrDispose {
+                    reviewViewModel.onReviewScreenStopped()
+                }
+            }
+
             LaunchedEffect(uiState.isLoading, uiState.preparedCurrentCard?.card?.cardId, uiState.emptyState) {
                 if (uiState.isLoading) {
                     return@LaunchedEffect
@@ -310,7 +318,8 @@ internal fun NavGraphBuilder.registerReviewNavGraph(
                 onReviewSurfaceBusyChanged = { isBusy ->
                     reviewViewModel.updateReviewSurfaceBusy(isBusy)
                     appGraph.reviewPaywallScheduler.isReviewSurfaceBusy = isBusy
-                }
+                },
+                onFilterSheetVisibilityChanged = reviewViewModel::updateFilterSheetVisibility
             )
         }
 

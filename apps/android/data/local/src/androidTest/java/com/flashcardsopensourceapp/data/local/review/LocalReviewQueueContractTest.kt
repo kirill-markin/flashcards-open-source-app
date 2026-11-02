@@ -9,6 +9,7 @@ import com.flashcardsopensourceapp.data.local.model.review.PendingReviewedCard
 import com.flashcardsopensourceapp.data.local.model.review.ReviewFilter
 import com.flashcardsopensourceapp.data.local.model.review.ReviewIntervalDescription
 import com.flashcardsopensourceapp.data.local.model.review.ReviewRating
+import com.flashcardsopensourceapp.data.local.model.review.ReviewSessionQueryInputs
 import com.flashcardsopensourceapp.data.local.model.cards.buildDeckFilterDefinition
 import com.flashcardsopensourceapp.data.local.support.LocalDatabaseTestRuntime
 import com.flashcardsopensourceapp.data.local.support.bootstrapTestWorkspace
@@ -20,6 +21,7 @@ import com.flashcardsopensourceapp.data.local.support.createTestReviewRepository
 import com.flashcardsopensourceapp.data.local.support.makeDueReviewOrderingCardEntity
 import com.flashcardsopensourceapp.data.local.support.makeNewReviewOrderingCardEntity
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -90,23 +92,41 @@ class LocalReviewQueueContractTest {
 
         val allCardsSnapshot = reviewRepository.observeReviewSession(
             selectedFilter = ReviewFilter.Deck(deckId = "missing-deck"),
-            pendingReviewedCards = emptySet(),
-            presentedCardId = null
+            queryInputs = flowOf(
+                ReviewSessionQueryInputs(
+                    pendingReviewedCards = emptySet(),
+                    presentedCardId = null,
+                    preparedNextCardId = null,
+                    nowMillis = System.currentTimeMillis()
+                )
+            )
         ).first()
         val pendingSnapshot = reviewRepository.observeReviewSession(
             selectedFilter = ReviewFilter.AllCards,
-            pendingReviewedCards = setOf(
-                PendingReviewedCard(
-                    cardId = orderedCards.first().cardId,
-                    updatedAtMillis = orderedCards.first().updatedAtMillis
+            queryInputs = flowOf(
+                ReviewSessionQueryInputs(
+                    pendingReviewedCards = setOf(
+                        PendingReviewedCard(
+                            cardId = orderedCards.first().cardId,
+                            updatedAtMillis = orderedCards.first().updatedAtMillis
+                        )
+                    ),
+                    presentedCardId = null,
+                    preparedNextCardId = null,
+                    nowMillis = System.currentTimeMillis()
                 )
-            ),
-            presentedCardId = null
+            )
         ).first()
         val tagSnapshot = reviewRepository.observeReviewSession(
             selectedFilter = ReviewFilter.Tags(tags = listOf("ui")),
-            pendingReviewedCards = emptySet(),
-            presentedCardId = null
+            queryInputs = flowOf(
+                ReviewSessionQueryInputs(
+                    pendingReviewedCards = emptySet(),
+                    presentedCardId = null,
+                    preparedNextCardId = null,
+                    nowMillis = System.currentTimeMillis()
+                )
+            )
         ).first()
         assertEquals(ReviewFilter.AllCards, allCardsSnapshot.selectedFilter)
         assertEquals(3, allCardsSnapshot.dueCount)
@@ -232,8 +252,14 @@ class LocalReviewQueueContractTest {
 
         val sessionSnapshot = reviewRepository.observeReviewSession(
             selectedFilter = ReviewFilter.AllCards,
-            pendingReviewedCards = emptySet(),
-            presentedCardId = null
+            queryInputs = flowOf(
+                ReviewSessionQueryInputs(
+                    pendingReviewedCards = emptySet(),
+                    presentedCardId = null,
+                    preparedNextCardId = null,
+                    nowMillis = System.currentTimeMillis()
+                )
+            )
         ).first()
         val timelinePage = reviewRepository.loadReviewTimelinePage(
             selectedFilter = ReviewFilter.AllCards,
@@ -280,8 +306,14 @@ class LocalReviewQueueContractTest {
 
         val sessionSnapshot = reviewRepository.observeReviewSession(
             selectedFilter = ReviewFilter.AllCards,
-            pendingReviewedCards = emptySet(),
-            presentedCardId = null
+            queryInputs = flowOf(
+                ReviewSessionQueryInputs(
+                    pendingReviewedCards = emptySet(),
+                    presentedCardId = null,
+                    preparedNextCardId = null,
+                    nowMillis = System.currentTimeMillis()
+                )
+            )
         ).first()
 
         assertEquals(8, sessionSnapshot.cards.size)
@@ -345,13 +377,25 @@ class LocalReviewQueueContractTest {
 
         val preservedSnapshot = reviewRepository.observeReviewSession(
             selectedFilter = ReviewFilter.AllCards,
-            pendingReviewedCards = emptySet(),
-            presentedCardId = "old-presented-card"
+            queryInputs = flowOf(
+                ReviewSessionQueryInputs(
+                    pendingReviewedCards = emptySet(),
+                    presentedCardId = "old-presented-card",
+                    preparedNextCardId = null,
+                    nowMillis = System.currentTimeMillis()
+                )
+            )
         ).first()
         val futurePresentedSnapshot = reviewRepository.observeReviewSession(
             selectedFilter = ReviewFilter.AllCards,
-            pendingReviewedCards = emptySet(),
-            presentedCardId = "future-presented-card"
+            queryInputs = flowOf(
+                ReviewSessionQueryInputs(
+                    pendingReviewedCards = emptySet(),
+                    presentedCardId = "future-presented-card",
+                    preparedNextCardId = null,
+                    nowMillis = System.currentTimeMillis()
+                )
+            )
         ).first()
 
         assertEquals(
