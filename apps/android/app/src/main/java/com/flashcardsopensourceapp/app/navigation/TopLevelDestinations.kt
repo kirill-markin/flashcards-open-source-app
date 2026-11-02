@@ -29,7 +29,7 @@ fun topLevelDestinationTestTag(route: String): String {
     return "top_level_destination_$route"
 }
 
-const val reviewOverdueBadgeTag: String = "top_level_destination_review_overdue_badge"
+const val reviewDueBadgeTag: String = "top_level_destination_review_due_badge"
 
 data object ReviewDestination : TopLevelDestination {
     override val route: String = "review"
