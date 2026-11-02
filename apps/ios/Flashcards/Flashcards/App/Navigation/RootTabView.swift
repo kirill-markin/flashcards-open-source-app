@@ -166,7 +166,8 @@ struct RootTabView: View {
     @MainActor
     private func requestStoreReviewIfNeeded() async {
         guard let requestAttempt = store.pendingStoreReviewRequestAttempt else { return }
-        guard self.scenePhase == .active, self.isStoreReviewRequestBlockedByPresentation == false,
+        guard AutomationRun.current.isAutomation == false,
+              self.scenePhase == .active, self.isStoreReviewRequestBlockedByPresentation == false,
               self.store.isSavedReviewPromptSurfaceAvailable else {
             store.consumeStoreReviewRequestAttempt(attemptId: requestAttempt.id)
             return
