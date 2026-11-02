@@ -79,6 +79,7 @@ export function useProgressSummarySourcePipeline(
     scopeKey,
   } = params;
   const localLoadSequenceRef = useRef<number>(0);
+  const localRatingSequenceRef = useRef<number>(0);
   const serverRefreshPromisesRef = useRef<Map<ProgressScopeKey, Promise<void>>>(new Map());
   const requestedRefreshKeysRef = useRef<Map<ProgressScopeKey, string>>(new Map());
 
@@ -117,6 +118,7 @@ export function useProgressSummarySourcePipeline(
 
     const currentSequence = localLoadSequenceRef.current + 1;
     localLoadSequenceRef.current = currentSequence;
+    const ratingSequenceAtLoadStart = localRatingSequenceRef.current;
 
     void Promise.all([
       runRecoveryGuardedProgressLocalRead(
@@ -151,6 +153,7 @@ export function useProgressSummarySourcePipeline(
         }, "local_only", true),
         localFallbackActiveDates,
         hasPendingLocalReviews,
+        didApplyLocalRatingDuringLoad: localRatingSequenceRef.current !== ratingSequenceAtLoadStart,
         canRenderServerBase: canLoadServerBaseRef.current,
       });
     }).catch((error: unknown) => {
@@ -193,6 +196,7 @@ export function useProgressSummarySourcePipeline(
   ]);
 
   useEffect(() => subscribeToVisibleProgressRatings(() => {
+    localRatingSequenceRef.current += 1;
     const currentScopeKey = currentScopeKeyRef.current;
     if (currentScopeKey === null) {
       return;

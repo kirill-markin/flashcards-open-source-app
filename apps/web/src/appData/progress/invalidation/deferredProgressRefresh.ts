@@ -96,11 +96,15 @@ export function scheduleDeferredProgressRefresh(refresh: DeferredProgressRefresh
   deferredProgressRefreshTimeoutId = window.setTimeout(runDeferredProgressRefresh, progressDeferredRefreshDelayMs);
 }
 
-/** Mounted by the Progress screen: showing it runs a pending deferred refresh at once. */
+/**
+ * Mounted by the Progress screen. A fresh mount loads fresh data, so a pending deferred refresh is dropped instead
+ * of invalidating it into a second load: docs/fsrs-scheduling-logic.md#non-blocking-review
+ */
 export function useDeferredProgressRefreshWhileShown(): void {
   useEffect(() => {
     shownProgressScreenCount += 1;
-    runDeferredProgressRefresh();
+    clearDeferredProgressRefreshTimeout();
+    pendingDeferredProgressRefresh = noDeferredProgressRefresh;
     return () => {
       shownProgressScreenCount -= 1;
     };
