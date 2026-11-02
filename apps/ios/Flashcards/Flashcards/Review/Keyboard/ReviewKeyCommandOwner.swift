@@ -93,7 +93,12 @@ private struct ReviewKeyCommandHost<Content: View>: UIViewControllerRepresentabl
     private func rootView(context: Context) -> AnyView {
         var environment = context.environment
         environment.reviewKeyCommandTarget = self.target
-        return AnyView(self.content.environment(\.self, environment))
+        return AnyView(self.content.transformEnvironment(\.self) { hostedEnvironment in
+            // Accessibility activation belongs to the inner hosting controller.
+            let accessibilityEnabled = hostedEnvironment.accessibilityEnabled
+            hostedEnvironment = environment
+            hostedEnvironment.accessibilityEnabled = accessibilityEnabled
+        })
     }
 }
 
