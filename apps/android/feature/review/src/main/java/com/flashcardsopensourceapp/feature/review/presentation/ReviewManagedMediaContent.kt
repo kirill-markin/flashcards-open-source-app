@@ -2,9 +2,6 @@ package com.flashcardsopensourceapp.feature.review
 
 import android.content.ClipData
 import android.content.ClipboardManager
-import android.content.Context
-import android.graphics.BitmapFactory
-import android.net.Uri
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -59,24 +56,18 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import coil3.compose.SubcomposeAsyncImage
 import coil3.compose.SubcomposeAsyncImageContent
-import coil3.request.CachePolicy
-import coil3.request.ImageRequest
 import com.flashcardsopensourceapp.data.local.model.media.MediaAsset
 import com.flashcardsopensourceapp.data.local.model.media.MediaAssetDownloadUrl
 import com.flashcardsopensourceapp.data.local.model.media.ManagedMediaReferenceState
-import com.flashcardsopensourceapp.data.local.model.media.ReviewMediaAssetFile
 import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
-import java.io.IOException
 
 private val reviewManagedMediaIconSize = 22.dp
 private val reviewManagedMediaActionIconSize = 18.dp
-private val reviewManagedMediaImageMaxWidth = 520.dp
+internal val reviewManagedMediaImageMaxWidth = 520.dp
 private const val reviewManagedMediaImagePlaceholderAspectRatio = 4f / 3f
 private val reviewManagedMediaImagePlaceholderHeight = 180.dp
 private val reviewManagedMediaSurfaceCornerRadius = 12.dp
@@ -98,8 +89,7 @@ private sealed interface ReviewManagedMediaFileState {
     data object Loading : ReviewManagedMediaFileState
 
     data class Ready(
-        val mediaFile: ReviewMediaAssetFile,
-        val imageAspectRatio: Float?
+        val imageFile: ReviewResolvedImageFile
     ) : ReviewManagedMediaFileState
 
     data object Unavailable : ReviewManagedMediaFileState
@@ -115,7 +105,7 @@ private enum class ReviewManagedMediaAttachmentActionState {
 @Composable
 internal fun ReviewManagedMediaContent(
     reference: ReviewManagedMediaReference,
-    onLoadManagedMediaFile: suspend (String) -> ReviewMediaAssetFile,
+    reviewImagePreparer: ReviewImagePreparer,
     onLoadManagedMediaDownloadUrl: suspend (String) -> MediaAssetDownloadUrl
 ) {
     val mediaAsset = reference.mediaAsset
@@ -199,7 +189,7 @@ internal fun ReviewManagedMediaContent(
         ReviewManagedMediaCategory.IMAGE -> ReviewManagedMediaImageFile(
             mediaAsset = checkNotNull(mediaAsset),
             label = label,
-            onLoadManagedMediaFile = onLoadManagedMediaFile
+            reviewImagePreparer = reviewImagePreparer
         )
 
         ReviewManagedMediaCategory.ATTACHMENT -> ReviewManagedMediaAttachment(
@@ -222,21 +212,35 @@ internal fun ReviewManagedMediaContent(
 private fun ReviewManagedMediaImageFile(
     mediaAsset: MediaAsset,
     label: String,
-    onLoadManagedMediaFile: suspend (String) -> ReviewMediaAssetFile
+    reviewImagePreparer: ReviewImagePreparer
 ) {
-    val context = LocalContext.current
-    val currentLoadManagedMediaFile = rememberUpdatedState(newValue = onLoadManagedMediaFile)
+    // A resolved file starts ready: sized from its header, and drawn on the first frame once prepared.
+    // Only a file not yet known on disk shows the 4:3 loading frame.
+    // See docs/fsrs-scheduling-logic.md#non-blocking-review.
+    val resolvedImageFile: ReviewResolvedImageFile? = remember(
+        mediaAsset.mediaAssetId,
+        mediaAsset.updatedAtMillis,
+        mediaAsset.deletedAtMillis
+    ) {
+        reviewImagePreparer.resolvedImageFile(mediaAsset = mediaAsset)
+    }
     val mediaFileState by produceState<ReviewManagedMediaFileState>(
-        initialValue = ReviewManagedMediaFileState.Loading,
+        initialValue = if (resolvedImageFile != null) {
+            ReviewManagedMediaFileState.Ready(imageFile = resolvedImageFile)
+        } else {
+            ReviewManagedMediaFileState.Loading
+        },
         key1 = mediaAsset.mediaAssetId,
         key2 = mediaAsset.updatedAtMillis,
         key3 = mediaAsset.deletedAtMillis
     ) {
+        if (resolvedImageFile != null) {
+            value = ReviewManagedMediaFileState.Ready(imageFile = resolvedImageFile)
+            return@produceState
+        }
         value = try {
-            val mediaFile: ReviewMediaAssetFile = currentLoadManagedMediaFile.value(mediaAsset.mediaAssetId)
             ReviewManagedMediaFileState.Ready(
-                mediaFile = mediaFile,
-                imageAspectRatio = reviewManagedMediaImageAspectRatio(context = context, uri = mediaFile.uri)
+                imageFile = reviewImagePreparer.resolveImageFile(mediaAssetId = mediaAsset.mediaAssetId)
             )
         } catch (error: Throwable) {
             if (error is CancellationException) {
@@ -283,10 +287,10 @@ private fun ReviewManagedMediaImageFile(
 
         is ReviewManagedMediaFileState.Ready -> ReviewManagedMediaImage(
             label = label,
-            mediaAssetId = state.mediaFile.mediaAsset.mediaAssetId,
-            sha256 = state.mediaFile.mediaAsset.sha256,
-            uri = state.mediaFile.uri,
-            imageAspectRatio = state.imageAspectRatio
+            imageFile = state.imageFile,
+            onImageLoadFailed = {
+                reviewImagePreparer.forgetResolvedImageFile(mediaAsset = state.imageFile.mediaFile.mediaAsset)
+            }
         )
     }
 }
@@ -294,28 +298,21 @@ private fun ReviewManagedMediaImageFile(
 @Composable
 private fun ReviewManagedMediaImage(
     label: String,
-    mediaAssetId: String,
-    sha256: String,
-    uri: String,
-    imageAspectRatio: Float?
+    imageFile: ReviewResolvedImageFile,
+    onImageLoadFailed: () -> Unit
 ) {
     val context = LocalContext.current
-    val memoryCacheKey = remember(mediaAssetId, sha256) {
-        reviewManagedMediaImageMemoryCacheKey(mediaAssetId = mediaAssetId, sha256 = sha256)
-    }
+    val mediaFile = imageFile.mediaFile
+    val imageAspectRatio = imageFile.imageAspectRatio
 
-    key(memoryCacheKey) {
+    key(reviewManagedMediaImageMemoryCacheKey(mediaAsset = mediaFile.mediaAsset)) {
         val imageSizeModifier: Modifier = if (imageAspectRatio != null) {
             Modifier.aspectRatio(ratio = imageAspectRatio)
         } else {
             Modifier.height(reviewManagedMediaImagePlaceholderHeight)
         }
-        val imageRequest = remember(context, uri) {
-            ImageRequest.Builder(context)
-                .data(uri)
-                .memoryCacheKey(memoryCacheKey)
-                .diskCachePolicy(CachePolicy.DISABLED)
-                .build()
+        val imageRequest = remember(context, mediaFile) {
+            reviewManagedMediaImageRequestBuilder(context = context, mediaFile = mediaFile).build()
         }
         SubcomposeAsyncImage(
             model = imageRequest,
@@ -356,6 +353,7 @@ private fun ReviewManagedMediaImage(
                     modifier = Modifier.fillMaxSize()
                 )
             },
+            onError = { onImageLoadFailed() },
             modifier = Modifier.reviewManagedMediaImageFrame(sizeModifier = imageSizeModifier)
         )
     }
@@ -370,55 +368,6 @@ private fun Modifier.reviewManagedMediaImageFrame(sizeModifier: Modifier): Modif
         .widthIn(max = reviewManagedMediaImageMaxWidth)
         .fillMaxWidth()
         .then(sizeModifier)
-}
-
-private fun reviewManagedMediaImageMemoryCacheKey(
-    mediaAssetId: String,
-    sha256: String
-): String {
-    return "review-managed-media:$mediaAssetId:$sha256"
-}
-
-private suspend fun reviewManagedMediaImageAspectRatio(
-    context: Context,
-    uri: String
-): Float? {
-    return withContext(Dispatchers.IO) {
-        val options = BitmapFactory.Options().apply {
-            inJustDecodeBounds = true
-        }
-        try {
-            context.contentResolver.openInputStream(Uri.parse(uri)).use { inputStream ->
-                if (inputStream == null) {
-                    return@withContext null
-                }
-                BitmapFactory.decodeStream(inputStream, null, options)
-            }
-            reviewManagedMediaImageAspectRatio(width = options.outWidth, height = options.outHeight)
-        } catch (error: IOException) {
-            null
-        } catch (error: SecurityException) {
-            null
-        } catch (error: IllegalArgumentException) {
-            null
-        }
-    }
-}
-
-private fun reviewManagedMediaImageAspectRatio(
-    width: Int,
-    height: Int
-): Float? {
-    if (width <= 0 || height <= 0) {
-        return null
-    }
-
-    val aspectRatio: Float = width.toFloat() / height.toFloat()
-    if (aspectRatio.isFinite().not()) {
-        return null
-    }
-
-    return aspectRatio
 }
 
 @Composable
@@ -728,6 +677,19 @@ private fun classifyReviewManagedMediaCategory(
         normalizedMimeType.startsWith(prefix = "video/") -> ReviewManagedMediaCategory.VIDEO
         else -> ReviewManagedMediaCategory.ATTACHMENT
     }
+}
+
+/** The asset [ReviewManagedMediaContent] renders as an image file, or null for any other state. */
+internal fun reviewManagedMediaImageFileAsset(reference: ReviewManagedMediaReference): MediaAsset? {
+    val mediaAsset: MediaAsset = reference.mediaAsset ?: return null
+    if (reference.state != ManagedMediaReferenceState.READY || mediaAsset.deletedAtMillis != null) {
+        return null
+    }
+    val category = classifyReviewManagedMediaCategory(
+        mimeType = mediaAsset.mimeType,
+        isImageSyntax = reference.isImageSyntax
+    )
+    return if (category == ReviewManagedMediaCategory.IMAGE) mediaAsset else null
 }
 
 private fun reviewManagedMediaCategoryIcon(category: ReviewManagedMediaCategory): ImageVector {
