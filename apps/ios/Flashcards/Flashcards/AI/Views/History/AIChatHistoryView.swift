@@ -103,6 +103,9 @@ struct AIChatHistoryView: View {
                         self.model.removeUnavailableSession(sessionId: sessionId)
                     }
                 )
+                #if targetEnvironment(macCatalyst)
+                .environment(\.macToolbarOwnerTab, .ai)
+                #endif
             }
             .alert(
                 aiSettingsLocalized("ai.history.rename", "Rename"),

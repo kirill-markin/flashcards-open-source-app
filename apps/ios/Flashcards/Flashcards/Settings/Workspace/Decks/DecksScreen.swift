@@ -54,6 +54,9 @@ struct DecksScreen: View {
                         if let persistedDeckId = deckListEntry.persistedDeckId {
                             NavigationLink {
                                 DeckDetailScreen(destination: deckListEntry.destination)
+                                    #if targetEnvironment(macCatalyst)
+                                    .environment(\.macToolbarOwnerTab, .settings)
+                                    #endif
                             } label: {
                                 DeckListRow(deckListEntry: deckListEntry)
                             }
@@ -71,6 +74,9 @@ struct DecksScreen: View {
                         } else {
                             NavigationLink {
                                 DeckDetailScreen(destination: deckListEntry.destination)
+                                    #if targetEnvironment(macCatalyst)
+                                    .environment(\.macToolbarOwnerTab, .settings)
+                                    #endif
                             } label: {
                                 DeckListRow(deckListEntry: deckListEntry)
                             }
@@ -135,6 +141,9 @@ struct DecksScreen: View {
         }
         .navigationDestination(item: self.$createdDeckDestination) { destination in
             DeckDetailScreen(destination: destination)
+                #if targetEnvironment(macCatalyst)
+                .environment(\.macToolbarOwnerTab, .settings)
+                #endif
         }
         #if !targetEnvironment(macCatalyst)
         .toolbar {
