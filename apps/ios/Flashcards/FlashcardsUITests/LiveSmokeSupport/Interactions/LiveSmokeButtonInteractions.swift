@@ -224,6 +224,9 @@ extension LiveSmokeTestCase {
             if #unavailable(iOS 26.0), let historyBackButton = try self.iOS18AIHistoryBackButton() {
                 navigationBarButton = historyBackButton
             }
+            if #unavailable(iOS 26.0), let editorBackButton = try self.iOS18CardEditorBackButton() {
+                navigationBarButton = editorBackButton
+            }
             #endif
             let timeout = LiveSmokeConfiguration.shortUiTimeoutSeconds
             self.logSmokeBreadcrumb(
@@ -282,6 +285,40 @@ extension LiveSmokeTestCase {
     }
 
     #if !targetEnvironment(macCatalyst)
+    @MainActor
+    private func iOS18CardEditorBackButton() throws -> XCUIElement? {
+        let editorIdentifiers = [LiveSmokeIdentifier.cardEditorFrontTextEditor, LiveSmokeIdentifier.cardEditorBackTextEditor]
+        let editors = editorIdentifiers.map { self.app.textViews[$0].firstMatch }
+            .filter { $0.exists && $0.isHittable }
+        guard editors.isEmpty == false else {
+            return nil
+        }
+
+        let navigationBars = self.elements(query: self.app.navigationBars).filter(\.isHittable)
+        guard self.currentLaunchLocalization == .english,
+              editors.count == 1,
+              self.app.alerts.count == 0,
+              navigationBars.count == 1 else {
+            throw LiveSmokeFailure.unexpectedAccountState(
+                message: "Native iOS 18 card editor back lookup requires an English launch, one active text editor, one navigation bar, and no alert.",
+                screen: self.currentScreenSummary(),
+                step: self.currentStepTitle
+            )
+        }
+
+        let expectedTitle = editors[0].identifier == LiveSmokeIdentifier.cardEditorFrontTextEditor ? "Front" : "Back"
+        let navigationBar = navigationBars[0]
+        let buttons = navigationBar.buttons.matching(NSPredicate(format: "label IN %@", ["New card", "Edit card"]))
+        guard navigationBar.identifier == expectedTitle, buttons.count == 1 else {
+            throw LiveSmokeFailure.unexpectedAccountState(
+                message: "Expected the \(expectedTitle) navigation bar with one native card editor back button; found \(navigationBar.identifier) and \(buttons.count) matching buttons.",
+                screen: self.currentScreenSummary(),
+                step: self.currentStepTitle
+            )
+        }
+        return buttons.firstMatch
+    }
+
     @MainActor
     private func iOS18AIHistoryBackButton() throws -> XCUIElement? {
         let reader = self.app.collectionViews[LiveSmokeIdentifier.aiHistoryReader].firstMatch
