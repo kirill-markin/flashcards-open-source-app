@@ -87,8 +87,9 @@ Use this routine checklist; the linked procedures own the detailed gates.
 8. **Hand off actual states.** Report [channel status and remaining actions](evidence.md#release-ledger),
    public links, both Releases/source SHAs and retained version. Separate completed work from external review and public availability.
 
-On failure, inspect evidence, fix and merge through normal CI, then repeat only
-affected gates and revalidate artifact reuse. Update the target SHA and notes.
+On failure, inspect evidence, fix, repeat only affected gates on a recorded
+[source snapshot](evidence.md#source-snapshots) or under [targeted recovery](evidence.md#targeted-recovery),
+merge through normal CI and revalidate artifact reuse; Android gates follow the [Android procedure](android.md). Update the target SHA and notes.
 If a fix affects an already published artifact, ask the user how to handle that platform.
 
 ### Early preflight
@@ -111,7 +112,7 @@ Machine/provider setup, legal acceptance and runtime provisioning are setup work
 repeat them only when missing or newly required. Older-OS manual walkthroughs
 apply to first support expansion or affected OS-specific changes, as defined in
 [iOS](ios.md) and [Android](android.md#first-release-api-30-walkthrough).
-Under the [standing policy](#standing-best-effort-release-policy), for every new iOS release complete [full local native acceptance](../ios-local-setup.md#local-native-acceptance) on latest iPhone, focused latest iPad and actual iOS 18, then retain Cloud archive/signing. Mac requires full signed `LocalMac` acceptance before its Cloud archive. Only **iOS Release Build** and **macOS Release Build** stay enabled; do not routinely dispatch disabled test workflows. Android retains its four sequential Device Run sessions.
+Under the [standing policy](#standing-best-effort-release-policy), for every new iOS release complete [full local native acceptance](../ios-local-setup.md#local-native-acceptance) on latest iPhone, focused latest iPad and actual iOS 18, then retain Cloud archive/signing. Mac requires full signed `LocalMac` acceptance before its Cloud archive. Either may pass under [targeted recovery](evidence.md#targeted-recovery). Only **iOS Release Build** and **macOS Release Build** stay enabled; do not routinely dispatch disabled test workflows. Android retains its four sequential Device Run sessions.
 
 ## Release Inventory and Completion
 
@@ -200,7 +201,11 @@ For each exception, record in the [release ledger](evidence.md#release-ledger)
 the exact notice, versions, owner and dependency/toolchain chain, upstream
 remediation assessment, affected-flow and gate evidence, security assessment,
 and reason it qualifies. Reassess each release and adopt supported fixes when
-available. Reuse documented qualifying decisions under this standing policy
+available. Reuse a retained diagnosis while the notice, relevant
+component/toolchain versions and runtime context match; reinvestigate
+materially changed evidence or behavior. Per-release assessments required
+above, including the payment SDK upgrade/security check and the Sentry setter
+recheck, still apply. Reuse documented qualifying decisions under this standing policy
 without repeated user approval. Changes to product/security behavior, broader
 dependency replacement, SDK forks or internal patches, and incompatible
 dependency overrides require separate scope and authorization.

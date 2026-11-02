@@ -12,6 +12,7 @@ import { ALL_CARDS_REVIEW_FILTER, currentReviewCard, isReviewFilterEqual } from 
 import type { FeedbackDialogProps } from "../../feedback/FeedbackDialog";
 import { useI18n } from "../../i18n";
 import { normalizeCaughtError } from "../../observability/webObservability";
+import { startReviewNextCardVisibleSpan } from "../../observability/reviewTimingSpans";
 import { useAiCardHandoff } from "../../chat/handoff/useAiCardHandoff";
 import { useTransientMessage } from "../../useTransientMessage";
 import { completeCatalogImmediateStudy } from "../catalog/catalogImmediateAttempt";
@@ -302,6 +303,8 @@ export function useReviewScreenController(
       return;
     }
 
+    // Tap-to-next-card time; non-blocking review plans read it as their before/after number.
+    startReviewNextCardVisibleSpan(card.cardId);
     emitReviewReaction(rating);
     setIsSubmitting(true);
     setReviewSubmitState("submitting");

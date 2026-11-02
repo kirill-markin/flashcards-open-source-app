@@ -13,6 +13,8 @@ import com.flashcardsopensourceapp.core.ui.VisibleAppScreenRepository
 import com.flashcardsopensourceapp.core.ui.makeAppTechnicalError
 import com.flashcardsopensourceapp.core.observability.AndroidExceptionIssueEvent
 import com.flashcardsopensourceapp.core.observability.AppObservability
+import com.flashcardsopensourceapp.core.observability.AppPerformanceSpanName
+import com.flashcardsopensourceapp.core.observability.AppPerformanceTracing
 import com.flashcardsopensourceapp.core.observability.analytics.Analytics
 import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsEvent
 import com.flashcardsopensourceapp.core.observability.analytics.AnalyticsPrompt
@@ -80,6 +82,7 @@ class ReviewViewModel(
     private val reviewPromptConfigStore: ReviewPromptConfigStore,
     private val analytics: Analytics,
     private val observability: AppObservability,
+    private val performanceTracing: AppPerformanceTracing,
     visibleAppScreenRepository: VisibleAppScreenRepository,
     workspaceRepository: WorkspaceRepository,
     private val textProvider: ReviewTextProvider
@@ -163,6 +166,9 @@ class ReviewViewModel(
     private var lastVisibleAutoSyncChangeSignature: VisibleAutoSyncChangeSignature? = null
     private var lastObservedReviewSessionSignature: ObservedReviewSessionSignature? = null
     private var ownedReviewSubmissions: Map<PendingReviewedCard, OwnedReviewSubmission> = emptyMap()
+    // One rating is on screen at a time; a newer rating replaces an unfinished span, which is then never sent.
+    private var pendingReviewNextCardVisible: PendingReviewNextCardVisible? = null
+    private var reviewAfterRatingWork: Map<PendingReviewedCard, ReviewAfterRatingWork> = emptyMap()
     private var reviewSessionGeneration: Long = 0L
     private var reviewFilterGeneration: Long = 0L
     private var activeWorkspaceId: String? = null
@@ -509,6 +515,11 @@ class ReviewViewModel(
     fun rateCard(rating: ReviewRating) {
         val currentCard = uiState.value.preparedCurrentCard?.card ?: return
         val cardId = currentCard.cardId
+        // Tap-to-next-card time; non-blocking review plans read it as their before/after number.
+        pendingReviewNextCardVisible = PendingReviewNextCardVisible(
+            span = performanceTracing.startSpan(name = AppPerformanceSpanName.REVIEW_NEXT_CARD_VISIBLE),
+            ratedCardId = cardId
+        )
         val optimisticPreparedCurrentCard = uiState.value.preparedNextCard
         val nextPresentedCard = optimisticPreparedCurrentCard?.card
         val operationWorkspaceGeneration = workspaceGeneration
@@ -517,6 +528,15 @@ class ReviewViewModel(
         val pendingReviewedCard = PendingReviewedCard(
             cardId = cardId,
             updatedAtMillis = currentCard.updatedAtMillis
+        )
+        // Rating until the review is recorded and the review session re-emits; non-blocking review
+        // plans read it as their before/after number.
+        reviewAfterRatingWork = reviewAfterRatingWork + (
+            pendingReviewedCard to ReviewAfterRatingWork(
+                span = performanceTracing.startSpan(name = AppPerformanceSpanName.REVIEW_AFTER_RATING_WORK),
+                isReviewRecorded = false,
+                sessionEmissionCount = 0L
+            )
         )
         ownedReviewSubmissions = ownedReviewSubmissions + (
             pendingReviewedCard to OwnedReviewSubmission(
@@ -544,7 +564,13 @@ class ReviewViewModel(
                     reviewedAtMillis = reviewedAtMillis
                 )
                 if (operationWorkspaceGeneration != workspaceGeneration) {
+                    reviewAfterRatingWork = reviewAfterRatingWork - pendingReviewedCard
                     return@launch
+                }
+                reviewAfterRatingWork[pendingReviewedCard]?.let { work ->
+                    reviewAfterRatingWork = reviewAfterRatingWork + (
+                        pendingReviewedCard to work.copy(isReviewRecorded = true)
+                    )
                 }
                 val currentSessionContext = captureReviewSubmissionSessionContext()
                 val isCurrentSubmissionContext = isCurrentReviewSubmissionContext(
@@ -583,6 +609,7 @@ class ReviewViewModel(
                     throw error
                 }
                 if (operationWorkspaceGeneration != workspaceGeneration) {
+                    reviewAfterRatingWork = reviewAfterRatingWork - pendingReviewedCard
                     return@launch
                 }
                 val currentSessionContextBeforeLookup = captureReviewSubmissionSessionContext()
@@ -620,8 +647,37 @@ class ReviewViewModel(
                     throwable = error
                 )
                 ownedReviewSubmissions = ownedReviewSubmissions - pendingReviewedCard
+                reviewAfterRatingWork[pendingReviewedCard]?.let(::finishReviewAfterRatingWorkSpan)
+                reviewAfterRatingWork = reviewAfterRatingWork - pendingReviewedCard
             }
         }
+    }
+
+    fun onReviewCardDrawn(shownCard: PreparedReviewCardPresentation) {
+        val pending = pendingReviewNextCardVisible ?: return
+        if (pending.ratedCardId == shownCard.card.cardId) {
+            return
+        }
+
+        pendingReviewNextCardVisible = null
+        finishReviewNextCardVisibleSpan(
+            span = pending.span,
+            hasImages = reviewRenderedContentHasImages(content = shownCard.frontContent)
+        )
+    }
+
+    /** An empty review screen has no next card to measure. */
+    fun onReviewEmptyStateDrawn() {
+        pendingReviewNextCardVisible = null
+    }
+
+    private fun settleReviewAfterRatingWorkOnSessionEmission() {
+        val countedWork = reviewAfterRatingWork.mapValues { (_, work) ->
+            work.copy(sessionEmissionCount = work.sessionEmissionCount + 1L)
+        }
+        val settledWork = countedWork.filterValues(ReviewAfterRatingWork::isReviewRecorded)
+        settledWork.values.forEach(::finishReviewAfterRatingWorkSpan)
+        reviewAfterRatingWork = countedWork - settledWork.keys
     }
 
     private fun captureReviewSubmissionSessionContext(): ReviewSubmissionSessionContext {
@@ -891,6 +947,7 @@ class ReviewViewModel(
                 if (sessionSnapshot.isLoading) {
                     return@collect
                 }
+                settleReviewAfterRatingWorkOnSessionEmission()
                 val currentState = draftState.value
                 if (observedState.requestedFilter != currentState.requestedFilter) {
                     return@collect
@@ -1082,6 +1139,7 @@ fun createReviewViewModelFactory(
     reviewPromptConfigStore: ReviewPromptConfigStore,
     analytics: Analytics,
     observability: AppObservability,
+    performanceTracing: AppPerformanceTracing,
     visibleAppScreenRepository: VisibleAppScreenRepository,
     workspaceRepository: WorkspaceRepository
 ): ViewModelProvider.Factory {
@@ -1104,6 +1162,7 @@ fun createReviewViewModelFactory(
                 reviewPromptConfigStore = reviewPromptConfigStore,
                 analytics = analytics,
                 observability = observability,
+                performanceTracing = performanceTracing,
                 visibleAppScreenRepository = visibleAppScreenRepository,
                 workspaceRepository = workspaceRepository,
                 textProvider = reviewTextProvider(context = application)
