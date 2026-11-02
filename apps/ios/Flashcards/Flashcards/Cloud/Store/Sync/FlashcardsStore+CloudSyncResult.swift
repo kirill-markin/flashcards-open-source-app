@@ -1,51 +1,36 @@
 import Foundation
 
+/**
+ Whether the sync wrote anything Review reads: pulled or bootstrapped entities, pulled or imported review
+ history, or a local id repair each record their entity type. Pushes and outbox cleanup record none, so a
+ sync after a rating or an idle polling tick rebuilds nothing. See docs/fsrs-scheduling-logic.md#non-blocking-review.
+ */
+func syncAppliedRemoteChanges(result: CloudSyncResult) -> Bool {
+    result.changedEntityTypes.isEmpty == false
+}
+
 @MainActor
 extension FlashcardsStore {
-    /**
-     Applies sync side effects through diff-aware bootstrap and review
-     reconciliation so no-op syncs do not trigger a blocking review reload.
-     */
+    /// Called right after the sync returns, before anything that can throw, so a caller that fails or never
+    /// applies the result still leaves the next applied sync to rebuild.
+    func markUnrebuiltSyncWritesIfNeeded(syncResult: CloudSyncResult) {
+        if syncAppliedRemoteChanges(result: syncResult) {
+            self.hasUnrebuiltSyncWrites = true
+        }
+    }
+
+    /// Pushed reviews still reach Progress through `handleProgressSyncCompletion` when nothing was rebuilt.
     func applySyncResultWithoutBlockingReset(
         syncResult: CloudSyncResult,
         now: Date,
         trigger: CloudSyncTrigger
     ) async throws {
-        let bootstrapRefreshOutcome = try await self.refreshBootstrapSnapshotWithoutReset(now: now)
-        let didResetVolatileReviewSelection = self.resetVolatileReviewSelectionAfterLocalIdRepairIfNeeded(
-            syncResult: syncResult,
-            now: now
-        )
-        let shouldRefreshReviewState = didResetVolatileReviewSelection == false
-            && (syncResult.reviewDataChanged || bootstrapRefreshOutcome.cardsChanged)
-        let didRefreshReviewState: Bool
-        if shouldRefreshReviewState {
-            let reviewRefreshMode: ReviewRefreshMode
-            if trigger.allowsVisibleChangeBanner || syncResult.appliedPullChanges {
-                reviewRefreshMode = .backgroundReconcileWithVisibleChangeBanner
-            } else {
-                reviewRefreshMode = .backgroundReconcileSilently
-            }
-            didRefreshReviewState = try await self.refreshReviewState(
+        if self.hasUnrebuiltSyncWrites || syncAppliedRemoteChanges(result: syncResult) {
+            try await self.rebuildReviewDataAfterSyncAppliedRemoteChanges(
+                syncResult: syncResult,
                 now: now,
-                mode: reviewRefreshMode
+                allowsVisibleChangeBanner: trigger.allowsVisibleChangeBanner
             )
-            self.reconcileStrictReminders(trigger: .reviewHistoryImported, now: now)
-        } else {
-            didRefreshReviewState = didResetVolatileReviewSelection
-            if didResetVolatileReviewSelection {
-                self.reconcileStrictReminders(trigger: .reviewHistoryImported, now: now)
-            }
-        }
-        if trigger.allowsVisibleChangeBanner {
-            self.enqueueBackgroundSyncVisibleChangeBannerIfNeeded(
-                bootstrapRefreshOutcome: bootstrapRefreshOutcome
-            )
-        }
-        if bootstrapRefreshOutcome.didChange
-            || didRefreshReviewState
-            || syncResult.changedEntityTypes.contains(.mediaAsset) {
-            self.localReadVersion += 1
         }
         await self.handleProgressSyncCompletion(
             now: now,
@@ -54,6 +39,63 @@ extension FlashcardsStore {
         self.lastSuccessfulCloudSyncAt = nowIsoTimestamp()
         self.syncStatus = .idle
         self.globalErrorMessage = ""
+    }
+
+    /**
+     The `.syncAppliedRemoteChanges` rebuild. Unlike `rebuildReviewData(reason:now:)`'s background rebuilds it is
+     awaited, so the sync fails with it and can report a shown card that left review on another device.
+     It also shows what earlier syncs wrote without a rebuild, so the flag is cleared before reading and
+     restored on failure.
+     */
+    private func rebuildReviewDataAfterSyncAppliedRemoteChanges(
+        syncResult: CloudSyncResult,
+        now: Date,
+        allowsVisibleChangeBanner: Bool
+    ) async throws {
+        self.hasUnrebuiltSyncWrites = false
+        do {
+            try await self.rebuildReviewDataForSyncResult(
+                syncResult: syncResult,
+                now: now,
+                allowsVisibleChangeBanner: allowsVisibleChangeBanner
+            )
+        } catch {
+            self.hasUnrebuiltSyncWrites = true
+            throw error
+        }
+    }
+
+    private func rebuildReviewDataForSyncResult(
+        syncResult: CloudSyncResult,
+        now: Date,
+        allowsVisibleChangeBanner: Bool
+    ) async throws {
+        self.addReviewDataRebuildBreadcrumb(reason: .syncAppliedRemoteChanges)
+        let bootstrapRefreshOutcome = try await self.refreshBootstrapSnapshotWithoutReset(now: now)
+        let didResetVolatileReviewSelection = self.resetVolatileReviewSelectionAfterLocalIdRepairIfNeeded(
+            syncResult: syncResult,
+            now: now
+        )
+        if didResetVolatileReviewSelection == false {
+            let reviewRefreshMode: ReviewRefreshMode
+            if allowsVisibleChangeBanner || syncResult.appliedPullChanges {
+                reviewRefreshMode = .backgroundReconcileWithVisibleChangeBanner
+            } else {
+                reviewRefreshMode = .backgroundReconcileSilently
+            }
+            _ = try await self.refreshReviewState(
+                now: now,
+                mode: reviewRefreshMode
+            )
+        }
+        self.reconcileStrictReminders(trigger: .reviewHistoryImported, now: now)
+        if allowsVisibleChangeBanner {
+            self.enqueueBackgroundSyncVisibleChangeBannerIfNeeded(
+                bootstrapRefreshOutcome: bootstrapRefreshOutcome
+            )
+        }
+        // Reached only when the database holds sync writes, so every local reader rereads.
+        self.localReadVersion += 1
     }
 
     func failureErrorAfterApplyingLocalIdRepairSideEffectsIfNeeded(

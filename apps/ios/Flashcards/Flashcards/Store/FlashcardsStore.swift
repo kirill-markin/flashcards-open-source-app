@@ -165,6 +165,10 @@ final class FlashcardsStore {
     @ObservationIgnored var reviewDataLeftForegroundAt: Date? = nil
     @ObservationIgnored var nextDueRefreshTask: Task<Void, Never>? = nil
     @ObservationIgnored var nextDueRefreshAt: Date? = nil
+    /// The database holds sync writes Review has not rebuilt from yet: set as soon as a sync applied remote
+    /// changes, or failed after possibly applying pulled pages, and cleared by the sync rebuild in
+    /// `applySyncResultWithoutBlockingReset`. See docs/fsrs-scheduling-logic.md#non-blocking-review.
+    @ObservationIgnored var hasUnrebuiltSyncWrites: Bool = false
 
     @ObservationIgnored let database: LocalDatabase?
     @ObservationIgnored let dependencies: FlashcardsStoreDependencies

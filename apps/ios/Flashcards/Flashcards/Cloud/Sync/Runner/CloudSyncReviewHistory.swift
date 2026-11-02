@@ -135,14 +135,17 @@ extension CloudSyncRunner {
                 )
             )
 
+            // The pull returns our own pushed reviews too; only rows actually inserted count as applied.
             for reviewEvent in reviewHistoryEnvelope.reviewEvents {
-                try self.database.applyReviewHistoryEvent(
+                let didInsert = try self.database.applyReviewHistoryEvent(
                     workspaceId: workspaceId,
                     reviewEvent: CloudSyncMapper.makeReviewEvent(payload: reviewEvent)
                 )
+                if didInsert {
+                    appliedReviewEventCount += 1
+                }
             }
 
-            appliedReviewEventCount += reviewHistoryEnvelope.reviewEvents.count
             afterReviewSequenceId = reviewHistoryEnvelope.nextReviewSequenceId
             try self.database.setLastAppliedReviewSequenceId(
                 workspaceId: workspaceId,

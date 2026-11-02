@@ -290,7 +290,7 @@ extension LocalDatabase {
     /// - `apps/ios/Flashcards/Flashcards/Cloud/Sync/CloudSyncService.swift`
     /// - `apps/android/data/local/src/main/java/com/flashcardsopensourceapp/data/local/cloud/sync/SyncLocalStore.kt`
     /// - the iOS sync tests that cover review-history application semantics
-    func applyReviewHistoryEvent(workspaceId: String, reviewEvent: ReviewEvent) throws {
+    func applyReviewHistoryEvent(workspaceId: String, reviewEvent: ReviewEvent) throws -> Bool {
         try self.core.inTransaction {
             try self.syncApplier.applyReviewHistoryEvent(workspaceId: workspaceId, reviewEvent: reviewEvent)
         }
