@@ -43,6 +43,7 @@ struct ReviewView: View {
     @State private var lastPresentedReviewWorkspaceId: String? = nil
     @State var preparedRevealState: PreparedReviewRevealState? = nil
     @State var preparedNextRevealState: PreparedReviewRevealState? = nil
+    @State var preparedImageCache: ReviewPreparedImageCache = ReviewPreparedImageCache()
     @State var isReviewReactionScreenVisible: Bool = false
     @State var reviewReactionLottiePrewarmTask: Task<Void, Never>?
     @State var reviewReactionLottiePrewarmId: UUID?
@@ -569,6 +570,7 @@ struct ReviewView: View {
         .onChange(of: store.workspace?.workspaceId) { _, _ in
             self.reviewTagFilterRequest = nil
         }
+        .environment(self.preparedImageCache)
     }
 
     @ViewBuilder
