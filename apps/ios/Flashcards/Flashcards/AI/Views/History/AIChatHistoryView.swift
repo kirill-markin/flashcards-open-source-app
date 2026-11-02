@@ -4,7 +4,6 @@ func aiChatHistoryUntitledChatTitle() -> String {
     aiSettingsLocalized("ai.history.untitledChat", "Untitled chat")
 }
 
-/// History rows and requests belong to one account and workspace, so a change there closes the history screens.
 @MainActor
 func aiChatHistoryScope(flashcardsStore: FlashcardsStore) -> [String?] {
     [
@@ -12,6 +11,16 @@ func aiChatHistoryScope(flashcardsStore: FlashcardsStore) -> [String?] {
         flashcardsStore.cloudSettings?.activeWorkspaceId,
         flashcardsStore.cloudSettings?.linkedUserId
     ]
+}
+
+private func isPreservedGuestHistoryBootstrap(
+    previousScope: [String?],
+    nextScope: [String?],
+    link: PreservedGuestWorkspaceLink?
+) -> Bool {
+    guard let link else { return false }
+    return previousScope == [link.sourceWorkspaceId, link.sourceWorkspaceId, nil]
+        && nextScope == [link.targetWorkspaceId, link.targetWorkspaceId, link.userId]
 }
 
 struct AIChatHistoryView: View {
@@ -76,7 +85,14 @@ struct AIChatHistoryView: View {
                     self.renameDraft = limitedDraft
                 }
             }
-            .onChange(of: aiChatHistoryScope(flashcardsStore: self.flashcardsStore)) { _, _ in
+            .onChange(of: aiChatHistoryScope(flashcardsStore: self.flashcardsStore)) { previousScope, nextScope in
+                if isPreservedGuestHistoryBootstrap(
+                    previousScope: previousScope,
+                    nextScope: nextScope,
+                    link: self.flashcardsStore.preservedGuestWorkspaceLink
+                ) {
+                    return
+                }
                 self.navigation.popAIToLiveChat()
             }
             .navigationDestination(for: AIChatHistoryReaderRoute.self) { route in

@@ -32,6 +32,7 @@ extension FlashcardsStore {
     }
 
     private func clearLocalStateForCloudIdentityChange() throws -> LocalDatabase {
+        self.preservedGuestWorkspaceLink = nil
         // The identity boundary logout and account deletion share. It rotates anonymous_id and
         // discards whatever analytics events are still queued: they belong to the person leaving,
         // and this function never suspends before the credentials are cleared below, so anything

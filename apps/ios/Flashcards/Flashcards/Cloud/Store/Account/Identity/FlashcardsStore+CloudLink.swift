@@ -1,5 +1,11 @@
 import Foundation
 
+struct PreservedGuestWorkspaceLink: Equatable {
+    let sourceWorkspaceId: String
+    let targetWorkspaceId: String
+    let userId: String
+}
+
 enum CloudBootstrapEligibilityError: LocalizedError {
     case remoteWorkspaceIsNotEmpty
 
@@ -857,6 +863,7 @@ extension FlashcardsStore {
     }
 
     private func performCloudLink(linkedSession: CloudLinkedSession, trigger: CloudSyncTrigger) async throws {
+        self.preservedGuestWorkspaceLink = nil
         if self.cloudSettings?.cloudState == .linked
             && self.cloudSettings?.linkedUserId == linkedSession.userId {
             let database = try requireLocalDatabase(database: self.database)
@@ -914,6 +921,13 @@ extension FlashcardsStore {
                     database: context.database,
                     session: linkedSession
                 )
+                if remoteWorkspaceIsEmpty {
+                    self.preservedGuestWorkspaceLink = PreservedGuestWorkspaceLink(
+                        sourceWorkspaceId: context.workspaceId,
+                        targetWorkspaceId: linkedSession.workspaceId,
+                        userId: linkedSession.userId
+                    )
+                }
             }
 
             self.cloudRuntime.setActiveCloudSession(linkedSession: linkedSession)
