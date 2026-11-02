@@ -35,7 +35,7 @@ extension FlashcardsStore {
         if editingCardId == nil {
             self.handleReviewScheduleLocalCardStateDidChange(now: now)
         }
-        self.refreshLocalReadModels(now: now)
+        try self.rebuildReviewData(reason: .localCardsChanged, now: now)
         self.triggerCloudSyncIfLinked(trigger: self.localMutationCloudSyncTrigger(now: now))
     }
 
@@ -61,7 +61,7 @@ extension FlashcardsStore {
         let createdCards = try context.database.createCards(workspaceId: context.workspaceId, inputs: inputs)
         self.reviewRuntime.invalidateReviewSource()
         self.handleReviewScheduleLocalCardStateDidChange(now: now)
-        try self.reloadAfterReviewSourceMutation(now: now)
+        try self.rebuildReviewData(reason: .localCardsChanged, now: now)
         self.triggerCloudSyncIfLinked(trigger: self.localMutationCloudSyncTrigger(now: now))
         return createdCards
     }
@@ -72,7 +72,7 @@ extension FlashcardsStore {
         _ = try context.database.deleteCard(workspaceId: context.workspaceId, cardId: cardId)
         self.reviewRuntime.invalidateReviewSource()
         self.handleReviewScheduleLocalCardStateDidChange(now: now)
-        self.refreshLocalReadModels(now: now)
+        try self.rebuildReviewData(reason: .localCardsChanged, now: now)
         self.triggerCloudSyncIfLinked(trigger: self.localMutationCloudSyncTrigger(now: now))
     }
 
@@ -81,7 +81,7 @@ extension FlashcardsStore {
         let now = Date()
         let updatedCards = try context.database.updateCards(workspaceId: context.workspaceId, updates: updates)
         self.reviewRuntime.invalidateReviewSource()
-        try self.reloadAfterReviewSourceMutation(now: now)
+        try self.rebuildReviewData(reason: .localCardsChanged, now: now)
         self.triggerCloudSyncIfLinked(trigger: self.localMutationCloudSyncTrigger(now: now))
         return updatedCards
     }
@@ -92,7 +92,7 @@ extension FlashcardsStore {
         let result = try context.database.deleteCards(workspaceId: context.workspaceId, cardIds: cardIds)
         self.reviewRuntime.invalidateReviewSource()
         self.handleReviewScheduleLocalCardStateDidChange(now: now)
-        try self.reloadAfterReviewSourceMutation(now: now)
+        try self.rebuildReviewData(reason: .localCardsChanged, now: now)
         self.triggerCloudSyncIfLinked(trigger: self.localMutationCloudSyncTrigger(now: now))
         return result
     }
@@ -102,7 +102,7 @@ extension FlashcardsStore {
         let now = Date()
         let createdDeck = try context.database.createDeck(workspaceId: context.workspaceId, input: input)
         self.reviewRuntime.invalidateReviewSource()
-        self.refreshLocalReadModels(now: now)
+        try self.rebuildReviewData(reason: .localCardsChanged, now: now)
         self.triggerCloudSyncIfLinked(trigger: self.localMutationCloudSyncTrigger(now: now))
         return createdDeck
     }
@@ -116,7 +116,7 @@ extension FlashcardsStore {
             input: input
         )
         self.reviewRuntime.invalidateReviewSource()
-        self.refreshLocalReadModels(now: now)
+        try self.rebuildReviewData(reason: .localCardsChanged, now: now)
         self.triggerCloudSyncIfLinked(trigger: self.localMutationCloudSyncTrigger(now: now))
     }
 
@@ -125,33 +125,7 @@ extension FlashcardsStore {
         let now = Date()
         _ = try context.database.deleteDeck(workspaceId: context.workspaceId, deckId: deckId)
         self.reviewRuntime.invalidateReviewSource()
-        self.refreshLocalReadModels(now: now)
-        self.triggerCloudSyncIfLinked(trigger: self.localMutationCloudSyncTrigger(now: now))
-    }
-
-    func submitReview(cardId: String, rating: ReviewRating) throws {
-        let context = try self.requireLocalOutboxMutationContext()
-        let now = Date()
-        let reviewedAtClient = nowIsoTimestamp()
-        let reviewedTimeZone = TimeZone.current.identifier
-        _ = try context.database.submitReview(
-            workspaceId: context.workspaceId,
-            reviewSubmission: ReviewSubmission(
-                cardId: cardId,
-                rating: rating,
-                reviewedAtClient: reviewedAtClient,
-                reviewedTimeZone: reviewedTimeZone
-            )
-        )
-        self.reviewRuntime.invalidateReviewSource()
-        let reviewedAt = parseIsoTimestamp(value: reviewedAtClient) ?? now
-        self.recordSuccessfulReviewNotificationEffects(
-            reviewedAt: reviewedAt,
-            workspaceId: context.workspaceId,
-            now: now
-        )
-        self.handleReviewScheduleLocalCardStateDidChange(now: now)
-        self.refreshLocalReadModels(now: now)
+        try self.rebuildReviewData(reason: .localCardsChanged, now: now)
         self.triggerCloudSyncIfLinked(trigger: self.localMutationCloudSyncTrigger(now: now))
     }
 
@@ -207,7 +181,7 @@ extension FlashcardsStore {
         )
         let now = Date()
         self.reviewRuntime.invalidateReviewSource()
-        try self.reloadAfterReviewSourceMutation(now: now)
+        try self.rebuildReviewData(reason: .localCardsChanged, now: now)
         self.triggerCloudSyncIfLinked(trigger: self.localMutationCloudSyncTrigger(now: now))
     }
 
@@ -241,7 +215,7 @@ extension FlashcardsStore {
             reviewFilter: requestedReviewFilter
         )
         guard resolvedReviewQuery.reviewFilter == requestedReviewFilter else {
-            self.startReviewLoad(reviewFilter: requestedReviewFilter, now: Date())
+            self.rebuildReviewDataReportingFailure(reason: .filterChanged(requestedReviewFilter), now: Date())
             throw CancellationError()
         }
 
@@ -260,7 +234,7 @@ extension FlashcardsStore {
             throw CancellationError()
         }
         guard self.reviewRuntime.reviewSourceVersionMatches(sourceVersion: reviewSourceVersion) else {
-            self.startReviewLoad(reviewFilter: requestedReviewFilter, now: Date())
+            self.restartReviewLoadKeepingShownCard(now: Date())
             throw CancellationError()
         }
         return reviewTimelinePage

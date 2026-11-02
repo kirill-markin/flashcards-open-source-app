@@ -3,8 +3,6 @@ import Foundation
 private struct LoadedLocalReadModels {
     let cards: [Card]
     let decks: [Deck]
-    let deckItems: [DeckListItem]
-    let homeSnapshot: HomeSnapshot
 }
 
 private struct BootstrapReadExpectation: Sendable {
@@ -16,27 +14,11 @@ private struct BootstrapReadExpectation: Sendable {
 
 private func loadLocalReadModels(
     database: LocalDatabase,
-    snapshot: AppBootstrapSnapshot,
-    now: Date
+    snapshot: AppBootstrapSnapshot
 ) throws -> LoadedLocalReadModels {
-    let cards = try database.loadActiveCards(workspaceId: snapshot.workspace.workspaceId)
-    let decks = try database.loadActiveDecks(workspaceId: snapshot.workspace.workspaceId)
-    let overviewSnapshot = try database.loadWorkspaceOverviewSnapshot(
-        workspaceId: snapshot.workspace.workspaceId,
-        workspaceName: snapshot.workspace.name,
-        now: now
-    )
-    return LoadedLocalReadModels(
-        cards: cards,
-        decks: decks,
-        deckItems: makeDeckListItems(decks: decks, cards: cards, now: now),
-        homeSnapshot: HomeSnapshot(
-            deckCount: overviewSnapshot.deckCount,
-            totalCards: overviewSnapshot.totalCards,
-            dueCount: overviewSnapshot.dueCount,
-            newCount: overviewSnapshot.newCount,
-            reviewedCount: overviewSnapshot.reviewedCount
-        )
+    LoadedLocalReadModels(
+        cards: try database.loadActiveCards(workspaceId: snapshot.workspace.workspaceId),
+        decks: try database.loadActiveDecks(workspaceId: snapshot.workspace.workspaceId)
     )
 }
 
@@ -91,17 +73,21 @@ extension FlashcardsStore {
         self.resetReviewRuntimeForWorkspace(nextWorkspaceId: nextWorkspaceId)
     }
 
+    /// Identity and workspace transitions reload the whole workspace as a workspace change.
     func reload() throws {
-        try self.reload(now: Date(), refreshVisibleProgress: true)
+        try self.rebuildReviewData(reason: .workspaceChanged, now: Date())
     }
 
+    /// Reads on the main actor; only `rebuildReviewData(reason:now:)` calls it.
     func reload(
         now: Date,
-        refreshVisibleProgress: Bool
+        refreshVisibleProgress: Bool,
+        shownCardIntent: ReviewShownCardIntent
     ) throws {
         try self.reload(
             now: now,
             refreshVisibleProgress: refreshVisibleProgress,
+            shownCardIntent: shownCardIntent,
             resolvedReviewQueryLoader: loadResolvedReviewQueryForReload
         )
     }
@@ -109,6 +95,7 @@ extension FlashcardsStore {
     private func reload(
         now: Date,
         refreshVisibleProgress: Bool,
+        shownCardIntent: ReviewShownCardIntent,
         resolvedReviewQueryLoader: (
             LocalDatabase,
             String,
@@ -122,8 +109,7 @@ extension FlashcardsStore {
         let bootstrapSnapshot = try database.loadBootstrapSnapshot()
         let localReadModels = try loadLocalReadModels(
             database: database,
-            snapshot: bootstrapSnapshot,
-            now: now
+            snapshot: bootstrapSnapshot
         )
         let reviewFilter = self.reviewFilterForReload(snapshot: bootstrapSnapshot)
         let resolvedReviewQuery = try resolvedReviewQueryLoader(
@@ -135,6 +121,8 @@ extension FlashcardsStore {
             snapshot: bootstrapSnapshot,
             localReadModels: localReadModels,
             resolvedReviewQuery: resolvedReviewQuery,
+            requestedReviewFilter: reviewFilter,
+            shownCardIntent: shownCardIntent,
             databaseURL: database.databaseURL,
             now: now,
             refreshVisibleProgress: refreshVisibleProgress
@@ -149,8 +137,7 @@ extension FlashcardsStore {
         let bootstrapSnapshot = try database.loadBootstrapSnapshot()
         let localReadModels = try loadLocalReadModels(
             database: database,
-            snapshot: bootstrapSnapshot,
-            now: now
+            snapshot: bootstrapSnapshot
         )
         self.applyLoadedCredentialRecoveryGateSnapshot(
             snapshot: bootstrapSnapshot,
@@ -192,14 +179,14 @@ extension FlashcardsStore {
         self.reloadFeedbackPromptStateForCurrentIdentity()
         self.cards = localReadModels.cards
         self.decks = localReadModels.decks
-        self.deckItems = localReadModels.deckItems
-        self.homeSnapshot = localReadModels.homeSnapshot
     }
 
     private func applyLoadedBootstrapSnapshot(
         snapshot: AppBootstrapSnapshot,
         localReadModels: LoadedLocalReadModels,
         resolvedReviewQuery: ResolvedReviewQuery,
+        requestedReviewFilter: ReviewFilter,
+        shownCardIntent: ReviewShownCardIntent,
         databaseURL: URL,
         now: Date,
         refreshVisibleProgress: Bool
@@ -240,6 +227,8 @@ extension FlashcardsStore {
         self.cachedAIChatStore?.refreshAccessContextIfNeeded()
         self.startResolvedReviewLoad(
             resolvedReviewQuery: resolvedReviewQuery,
+            requestedReviewFilter: requestedReviewFilter,
+            shownCardIntent: shownCardIntent,
             workspaceId: snapshot.workspace.workspaceId,
             databaseURL: databaseURL,
             now: now
@@ -275,8 +264,7 @@ extension FlashcardsStore {
         while true {
             let expectation = try self.beginBootstrapRead()
             let loadedSnapshot = try await defaultBootstrapSnapshotLoader(
-                databaseURL: expectation.databaseURL,
-                now: now
+                databaseURL: expectation.databaseURL
             )
             if self.publishedBootstrapLoadSequence > expectation.loadStartSequence {
                 return BootstrapSnapshotRefreshOutcome(
@@ -326,8 +314,6 @@ extension FlashcardsStore {
         let bootstrapSnapshot = loadedSnapshot.snapshot
         let nextCards = loadedSnapshot.cards
         let nextDecks = loadedSnapshot.decks
-        let nextDeckItems = loadedSnapshot.deckItems
-        let resolvedHomeSnapshot = loadedSnapshot.homeSnapshot
 
         let previousWorkspaceId = self.workspace?.workspaceId
         let didSwitchWorkspace = previousWorkspaceId != bootstrapSnapshot.workspace.workspaceId
@@ -337,16 +323,12 @@ extension FlashcardsStore {
         let decksChanged = self.decks != nextDecks
         let schedulerSettingsChanged = self.schedulerSettings != bootstrapSnapshot.schedulerSettings
         let reviewSourceChanged = cardsChanged || decksChanged || schedulerSettingsChanged
-        let shouldRestartActiveReviewLoad = reviewSourceChanged
-            && (self.isReviewHeadLoading || self.isReviewCountsLoading || self.isReviewQueueChunkLoading)
         let didChange = workspaceChanged
             || self.userSettings != bootstrapSnapshot.userSettings
             || self.schedulerSettings != bootstrapSnapshot.schedulerSettings
             || self.cloudSettings != bootstrapSnapshot.cloudSettings
             || cardsChanged
             || decksChanged
-            || self.deckItems != nextDeckItems
-            || self.homeSnapshot != resolvedHomeSnapshot
 
         if reviewSourceChanged {
             self.reviewRuntime.invalidateReviewSource()
@@ -361,19 +343,9 @@ extension FlashcardsStore {
         self.reloadFeedbackPromptStateForCurrentIdentity()
         self.cards = nextCards
         self.decks = nextDecks
-        self.deckItems = nextDeckItems
-        self.homeSnapshot = resolvedHomeSnapshot
         self.globalErrorMessage = ""
-        if shouldRestartActiveReviewLoad {
-            // A head load keeps the shown card on an empty queue, so it restarts instead of settling.
-            if self.isReviewHeadLoading || (self.reviewQueue.isEmpty && self.presentedReviewCard == nil) {
-                self.startReviewLoad(reviewFilter: self.selectedReviewFilter, now: now)
-            } else {
-                let settledReviewState = self.reviewRuntime.settleInvalidatedReviewLoads(
-                    publishedState: self.currentReviewPublishedState()
-                )
-                self.applyReviewPublishedState(reviewState: settledReviewState)
-            }
+        if reviewSourceChanged {
+            self.resumeReviewLoadsInvalidatedBySourceChange(now: now)
         }
         if didTransitionWorkspace {
             self.clearScheduledNotificationStorageForWorkspaceSwitch(
@@ -471,44 +443,6 @@ extension FlashcardsStore {
             pendingReviewCardIds: self.pendingReviewCardIds,
             reviewSubmissionFailure: self.reviewSubmissionFailure
         )
-    }
-
-    func reloadAfterReviewSourceMutation(now: Date) throws {
-        try self.reloadAfterReviewSourceMutation(
-            now: now,
-            resolvedReviewQueryLoader: loadResolvedReviewQueryForReload
-        )
-    }
-
-    func reloadAfterReviewSourceMutation(
-        now: Date,
-        resolvedReviewQueryLoader: (
-            LocalDatabase,
-            String,
-            ReviewFilter
-        ) throws -> ResolvedReviewQuery
-    ) throws {
-        do {
-            try self.reload(
-                now: now,
-                refreshVisibleProgress: true,
-                resolvedReviewQueryLoader: resolvedReviewQueryLoader
-            )
-        } catch {
-            self.settleReviewSourceRefreshFailure(error: error)
-            throw error
-        }
-    }
-
-    @discardableResult
-    func refreshLocalReadModels(now: Date) -> Bool {
-        do {
-            try self.reload(now: now, refreshVisibleProgress: true)
-            return true
-        } catch {
-            self.settleReviewSourceRefreshFailure(error: error)
-            return false
-        }
     }
 
     func settleReviewSourceRefreshFailure(error: Error) {

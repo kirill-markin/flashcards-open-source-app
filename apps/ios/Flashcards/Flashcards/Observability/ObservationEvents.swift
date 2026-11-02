@@ -135,6 +135,7 @@ enum ForegroundOperationAction: String, Sendable, Hashable {
     case reviewStateRefresh = "review_state_refresh"
     case reviewCountsLoad = "review_counts_load"
     case reviewQueueLoad = "review_queue_load"
+    case reviewDataRebuild = "review_data_rebuild"
     case progressBadgeRefresh = "progress_badge_refresh"
     case progressRefresh = "progress_refresh"
     case progressManualRefresh = "progress_manual_refresh"

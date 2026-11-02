@@ -1,13 +1,5 @@
 import Foundation
 
-struct HomeSnapshot: Codable, Hashable, Sendable {
-    let deckCount: Int
-    let totalCards: Int
-    let dueCount: Int
-    let newCount: Int
-    let reviewedCount: Int
-}
-
 struct CardsListSnapshot: Hashable, Sendable {
     let cards: [Card]
     let totalCount: Int
@@ -31,16 +23,6 @@ struct DeckSummary: Identifiable, Hashable, Sendable {
 struct DecksListSnapshot: Hashable, Sendable {
     let deckSummaries: [DeckSummary]
     let allCardsStats: DeckCardStats
-}
-
-struct WorkspaceOverviewSnapshot: Hashable, Sendable {
-    let workspaceName: String
-    let deckCount: Int
-    let tagsCount: Int
-    let totalCards: Int
-    let dueCount: Int
-    let newCount: Int
-    let reviewedCount: Int
 }
 
 struct DeckListItem: Identifiable, Hashable, Sendable {

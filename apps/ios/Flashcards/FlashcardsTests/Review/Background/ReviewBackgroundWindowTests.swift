@@ -158,7 +158,7 @@ final class ReviewBackgroundWindowTests: ProgressStoreTestCase {
             credentialStore: credentialStore,
             guestCredentialStore: guestCredentialStore,
             reviewCounts: expectedCounts,
-            expectedWindowLimit: currentQueue.count,
+            expectedWindowLimit: nil,
             windowLimitRecorder: windowLimitRecorder,
             refreshedWindow: refreshedWindow,
             hasMoreCards: true
@@ -188,14 +188,15 @@ final class ReviewBackgroundWindowTests: ProgressStoreTestCase {
 
         XCTAssertTrue(didRefresh)
         XCTAssertFalse(didRefreshAgain)
-        XCTAssertEqual(store.reviewQueue.map(\.cardId), refreshedWindow.map(\.cardId))
+        // The prepared next card stays behind the shown card; newly due cards go after it.
+        XCTAssertEqual(store.reviewQueue.map(\.cardId), [currentQueue[1].cardId] + refreshedWindow.map(\.cardId))
         XCTAssertEqual(store.presentedReviewCard?.cardId, presentedCard.cardId)
         XCTAssertEqual(store.effectiveReviewQueue.first?.cardId, presentedCard.cardId)
-        XCTAssertEqual(store.effectiveReviewQueue.dropFirst().first?.cardId, refreshedWindow[0].cardId)
+        XCTAssertEqual(store.effectiveReviewQueue.dropFirst().first?.cardId, currentQueue[1].cardId)
         XCTAssertEqual(store.reviewCounts, expectedCounts)
         XCTAssertFalse(store.isReviewQueueChunkLoading)
         let recordedWindowLimits = await windowLimitRecorder.snapshot()
-        XCTAssertEqual(recordedWindowLimits, [currentQueue.count, currentQueue.count])
+        XCTAssertEqual(recordedWindowLimits, [currentQueue.count, currentQueue.count + 1])
     }
 
     @MainActor
@@ -288,7 +289,7 @@ final class ReviewBackgroundWindowTests: ProgressStoreTestCase {
         credentialStore: CloudCredentialStore,
         guestCredentialStore: GuestCloudCredentialStore,
         reviewCounts: ReviewCounts,
-        expectedWindowLimit: Int,
+        expectedWindowLimit: Int?,
         windowLimitRecorder: ReviewWindowLimitRecorder?,
         refreshedWindow: [Card],
         hasMoreCards: Bool
@@ -314,7 +315,9 @@ final class ReviewBackgroundWindowTests: ProgressStoreTestCase {
             },
             reviewQueueWindowLoader: { _, _, _, _, limit in
                 await windowLimitRecorder?.record(limit: limit)
-                XCTAssertEqual(expectedWindowLimit, limit)
+                if let expectedWindowLimit {
+                    XCTAssertEqual(expectedWindowLimit, limit)
+                }
                 return ReviewQueueWindowLoadState(
                     reviewQueue: refreshedWindow,
                     hasMoreCards: hasMoreCards

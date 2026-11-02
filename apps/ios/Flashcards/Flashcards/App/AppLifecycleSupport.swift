@@ -165,7 +165,7 @@ func logAppForegroundOperationBreadcrumb(
                 deckCount: store.decks.count,
                 pendingOutboxOperationCount: nil,
                 reviewQueueCount: store.reviewQueue.count,
-                reviewDueCount: store.homeSnapshot.dueCount,
+                reviewDueCount: store.reviewCounts.dueCount,
                 cloudSyncBlocked: store.isCloudSyncBlocked,
                 errorSummary: error.map { operationError in Flashcards.errorMessage(error: operationError) }
             )

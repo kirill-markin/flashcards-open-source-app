@@ -254,24 +254,6 @@ func makeDeckCardStats(cards: [Card], now: Date) -> DeckCardStats {
     )
 }
 
-func makeHomeSnapshot(cards: [Card], deckCount: Int, now: Date) -> HomeSnapshot {
-    let activeCards = deriveActiveCards(cards: cards)
-
-    return HomeSnapshot(
-        deckCount: deckCount,
-        totalCards: activeCards.count,
-        dueCount: activeCards.filter { card in
-            isCardDue(card: card, now: now)
-        }.count,
-        newCount: activeCards.filter { card in
-            isCardNew(card: card)
-        }.count,
-        reviewedCount: activeCards.filter { card in
-            isCardReviewed(card: card)
-        }.count
-    )
-}
-
 func cardsMatchingDeck(deck: Deck, cards: [Card]) -> [Card] {
     deriveActiveCards(cards: cards).filter { card in
         matchesDeckFilterDefinition(filterDefinition: deck.filterDefinition, card: card)
@@ -288,14 +270,4 @@ func makeDeckListItem(deck: Deck, cards: [Card], now: Date) -> DeckListItem {
         newCards: stats.newCards,
         reviewedCards: stats.reviewedCards
     )
-}
-
-func makeDeckListItems(decks: [Deck], cards: [Card], now: Date) -> [DeckListItem] {
-    decks.map { deck in
-        makeDeckListItem(
-            deck: deck,
-            cards: cardsMatchingDeck(deck: deck, cards: cards),
-            now: now
-        )
-    }
 }

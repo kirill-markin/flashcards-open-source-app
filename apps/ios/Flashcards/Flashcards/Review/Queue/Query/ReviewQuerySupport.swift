@@ -303,6 +303,27 @@ func presentedReviewCardForBackgroundRefresh(
     return presentedCard
 }
 
+/// Keeps the prepared next card right behind the shown card; newly due or reordered cards go after it.
+/// See docs/fsrs-scheduling-logic.md#non-blocking-review.
+func reviewQueueKeepingPreparedNextCard(reviewQueue: [Card], preparedNextCard: Card?) -> [Card] {
+    guard let preparedNextCard else {
+        return reviewQueue
+    }
+
+    return [preparedNextCard] + reviewQueue.filter { card in
+        card.cardId != preparedNextCard.cardId
+    }
+}
+
+/// A deck filter resolves to all cards only when the deck no longer exists; tags resolve to all cards when they
+/// cover every tag, which is the same scope, not a fallback.
+func isMissingDeckReviewFilterFallback(requestedReviewFilter: ReviewFilter, resolvedReviewFilter: ReviewFilter) -> Bool {
+    guard case .deck = requestedReviewFilter else {
+        return false
+    }
+    return resolvedReviewFilter == .allCards
+}
+
 private func insertReviewQueueCandidate(
     card: Card,
     currentTopCards: [Card],

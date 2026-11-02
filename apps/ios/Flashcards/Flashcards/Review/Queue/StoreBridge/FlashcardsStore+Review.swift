@@ -1,6 +1,6 @@
 import Foundation
 
-private enum ReviewStateReconcileTrigger {
+private enum ReviewStateReconcileTrigger: Equatable {
     case cloudSyncSilently
     case cloudSyncWithVisibleChangeBanner
     case localReview
@@ -105,14 +105,25 @@ private func addReviewForegroundOperationBreadcrumb(
 extension FlashcardsStore {
     func selectReviewFilter(reviewFilter: ReviewFilter) {
         self.extendCloudSyncFastPolling(now: Date())
-        self.startReviewLoad(reviewFilter: reviewFilter, now: Date())
+        self.rebuildReviewDataReportingFailure(reason: .filterChanged(reviewFilter), now: Date())
         self.reconcileReviewNotifications(trigger: .filterChanged, now: Date())
     }
 
+    /// Starts a new Review session for `reviewFilter`. Full rebuilds go through `rebuildReviewData(reason:now:)`.
     @discardableResult
     func startReviewLoad(reviewFilter: ReviewFilter, now: Date) -> Bool {
+        self.startReviewLoad(reviewFilter: reviewFilter, shownCardIntent: .startNewSession, now: now)
+    }
+
+    /// Reloads the selected scope after its in-flight load or source was invalidated; the shown card stays.
+    @discardableResult
+    func restartReviewLoadKeepingShownCard(now: Date) -> Bool {
+        self.startReviewLoad(reviewFilter: self.selectedReviewFilter, shownCardIntent: .keepShownCard, now: now)
+    }
+
+    private func startReviewLoad(reviewFilter: ReviewFilter, shownCardIntent: ReviewShownCardIntent, now: Date) -> Bool {
         do {
-            try self.startReviewLoadOrThrow(reviewFilter: reviewFilter, now: now)
+            try self.startReviewLoadOrThrow(reviewFilter: reviewFilter, shownCardIntent: shownCardIntent, now: now)
             return true
         } catch {
             self.globalErrorMessage = Flashcards.errorMessage(error: error)
@@ -120,7 +131,7 @@ extension FlashcardsStore {
         }
     }
 
-    func startReviewLoadOrThrow(reviewFilter: ReviewFilter, now: Date) throws {
+    func startReviewLoadOrThrow(reviewFilter: ReviewFilter, shownCardIntent: ReviewShownCardIntent, now: Date) throws {
         let database = try requireLocalDatabase(database: self.database)
         let workspaceId = try requireWorkspaceId(workspace: self.workspace)
         let resolvedReviewQuery = try database.loadResolvedReviewQuery(
@@ -129,6 +140,8 @@ extension FlashcardsStore {
         )
         self.startResolvedReviewLoad(
             resolvedReviewQuery: resolvedReviewQuery,
+            requestedReviewFilter: reviewFilter,
+            shownCardIntent: shownCardIntent,
             workspaceId: workspaceId,
             databaseURL: database.databaseURL,
             now: now
@@ -137,19 +150,36 @@ extension FlashcardsStore {
 
     func startResolvedReviewLoad(
         resolvedReviewQuery: ResolvedReviewQuery,
+        requestedReviewFilter: ReviewFilter,
+        shownCardIntent: ReviewShownCardIntent,
         workspaceId: String,
         databaseURL: URL,
         now: Date
     ) {
         let currentReviewState = self.currentReviewPublishedState()
-        // The shown card must never change before it is rated: replacing it during a reload reads as a blink.
-        // Only a filter change starts empty; a workspace switch resets the presentation before it loads.
-        // The card is validated against the fresh `cards`, not the queue being replaced.
-        // See docs/fsrs-scheduling-logic.md#non-blocking-review.
-        let isReviewFilterChange = resolvedReviewQuery.reviewFilter != currentReviewState.selectedReviewFilter
-        let preservedPresentedReviewCard = isReviewFilterChange ? nil : presentedReviewCardForBackgroundRefresh(
+        // The shown card and the prepared next card must never change before the shown card is rated: replacing
+        // either during a reload reads as a blink. Only a new scope starts empty, including the fallback when the
+        // requested deck no longer exists. Both cards are validated against the fresh `cards`, not the queue being
+        // replaced. See docs/fsrs-scheduling-logic.md#non-blocking-review.
+        let startsNewSession = shownCardIntent == .startNewSession
+            || isMissingDeckReviewFilterFallback(
+                requestedReviewFilter: requestedReviewFilter,
+                resolvedReviewFilter: resolvedReviewQuery.reviewFilter
+            )
+        let currentEffectiveQueue = self.reviewRuntime.effectiveReviewQueue(publishedState: currentReviewState)
+        let preservedPresentedReviewCard = startsNewSession ? nil : presentedReviewCardForBackgroundRefresh(
             reviewQueue: [],
             presentedCardId: currentReviewState.presentedReviewCard?.cardId,
+            pendingReviewCardIds: currentReviewState.pendingReviewCardIds,
+            resolvedReviewFilter: resolvedReviewQuery.reviewFilter,
+            decks: self.decks,
+            cards: self.cards,
+            now: now
+        )
+        // The same still-in-review check as the shown card.
+        let preservedNextReviewCard = preservedPresentedReviewCard == nil ? nil : presentedReviewCardForBackgroundRefresh(
+            reviewQueue: [],
+            presentedCardId: nextReviewCard(reviewQueue: currentEffectiveQueue)?.cardId,
             pendingReviewCardIds: currentReviewState.pendingReviewCardIds,
             resolvedReviewFilter: resolvedReviewQuery.reviewFilter,
             decks: self.decks,
@@ -162,7 +192,8 @@ extension FlashcardsStore {
             workspaceId: workspaceId,
             databaseURL: databaseURL,
             now: now,
-            preservedPresentedReviewCard: preservedPresentedReviewCard
+            preservedPresentedReviewCard: preservedPresentedReviewCard,
+            preservedNextReviewCard: preservedNextReviewCard
         )
         self.applyReviewPublishedState(reviewState: plan.publishedState)
         self.persistSelectedReviewFilter(reviewFilter: plan.publishedState.selectedReviewFilter)
@@ -193,9 +224,20 @@ extension FlashcardsStore {
                     plan.headRequest.now,
                     plan.headRequest.seedQueueSize
                 )
+                // A card rated or changed during the load may have left review since the load started.
+                let preparedNextReviewCard = presentedReviewCardForBackgroundRefresh(
+                    reviewQueue: reviewHeadState.seedReviewQueue,
+                    presentedCardId: plan.headRequest.preservedNextReviewCard?.cardId,
+                    pendingReviewCardIds: self.pendingReviewCardIds,
+                    resolvedReviewFilter: reviewHeadState.resolvedReviewFilter,
+                    decks: self.decks,
+                    cards: self.cards,
+                    now: plan.headRequest.now
+                )
                 guard let nextReviewState = self.reviewRuntime.applyReviewHeadLoadSuccess(
                     publishedState: self.currentReviewPublishedState(),
                     reviewHeadState: reviewHeadState,
+                    preparedNextReviewCard: preparedNextReviewCard,
                     requestId: plan.headRequest.requestId,
                     sourceVersion: plan.headRequest.sourceVersion
                 ) else {
@@ -269,7 +311,11 @@ extension FlashcardsStore {
             let didRefresh: Bool
             switch mode {
             case .blockingReset:
-                try self.startReviewLoadOrThrow(reviewFilter: self.selectedReviewFilter, now: now)
+                try self.startReviewLoadOrThrow(
+                    reviewFilter: self.selectedReviewFilter,
+                    shownCardIntent: .keepShownCard,
+                    now: now
+                )
                 addReviewForegroundOperationBreadcrumb(
                     store: self,
                     action: .reviewStateRefresh,
@@ -420,7 +466,7 @@ extension FlashcardsStore {
             return
         }
         guard resolvedReviewQuery.reviewFilter == requestedReviewFilter else {
-            self.startReviewLoad(reviewFilter: requestedReviewFilter, now: now)
+            self.rebuildReviewDataReportingFailure(reason: .filterChanged(requestedReviewFilter), now: now)
             return
         }
 
@@ -619,11 +665,10 @@ extension FlashcardsStore {
             return
         }
 
-        let bootstrapRefreshOutcome: BootstrapSnapshotRefreshOutcome
-        let didReconcileReviewState: Bool
+        // A rating never reads the whole workspace. See docs/fsrs-scheduling-logic.md#non-blocking-review.
         do {
-            bootstrapRefreshOutcome = try await self.refreshBootstrapSnapshotWithoutProgressContextRefresh(now: now)
-            didReconcileReviewState = try await self.reconcileReviewState(
+            try await self.applyRatedCardLocally(workspaceId: request.workspaceId, cardId: request.cardId, now: now)
+            _ = try await self.reconcileReviewState(
                 now: now,
                 trigger: .localReview
             )
@@ -640,7 +685,8 @@ extension FlashcardsStore {
             request: request,
             validationContext: completionValidationContext
         ) else {
-            await self.applyStaleSuccessfulReviewSubmissionCompletion(request: request, now: now)
+            // The rated card and the queue window are already current; only the pending state settles.
+            self.applyStaleReviewSubmissionCompletion(request: request)
             return
         }
 
@@ -661,9 +707,6 @@ extension FlashcardsStore {
             reviewedTimeZone: request.reviewedTimeZone,
             rating: request.rating
         )
-        if bootstrapRefreshOutcome.didChange || didReconcileReviewState {
-            self.localReadVersion += 1
-        }
         func triggerSuccessfulReviewCloudSync() {
             self.triggerCloudSyncIfLinked(
                 trigger: CloudSyncTrigger(
@@ -738,20 +781,11 @@ extension FlashcardsStore {
         now: Date
     ) async {
         self.applyStaleReviewSubmissionCompletion(request: request)
-        let reviewLoadRequestIdBeforeRefresh = self.reviewRuntime.state.activeReviewLoadRequestId
         do {
-            try await self.refreshBootstrapSnapshotWithoutReset(now: now)
+            try await self.applyRatedCardLocally(workspaceId: request.workspaceId, cardId: request.cardId, now: now)
+            _ = try await self.reconcileReviewState(now: now, trigger: .localReview)
         } catch {
             self.settleReviewSourceRefreshFailure(error: error)
-            return
-        }
-        self.localReadVersion += 1
-        // A load started during the refresh already reads the post-submission database.
-        let activeReviewLoadRequestId = self.reviewRuntime.state.activeReviewLoadRequestId
-        let didStartReviewLoadDuringRefresh = activeReviewLoadRequestId != nil
-            && activeReviewLoadRequestId != reviewLoadRequestIdBeforeRefresh
-        if didStartReviewLoadDuringRefresh == false {
-            self.startReviewLoad(reviewFilter: self.selectedReviewFilter, now: now)
         }
     }
 
@@ -856,11 +890,24 @@ extension FlashcardsStore {
             workspaceId: workspaceId,
             reviewFilter: requestedReviewFilter
         )
+        // A missing deck is a new scope, so it starts a new session instead of keeping the shown card.
+        if isMissingDeckReviewFilterFallback(
+            requestedReviewFilter: requestedReviewFilter,
+            resolvedReviewFilter: resolvedReviewQuery.reviewFilter
+        ) {
+            try self.rebuildReviewData(reason: .filterChanged(requestedReviewFilter), now: now)
+            return true
+        }
         let currentReviewState = self.currentReviewPublishedState()
         let reviewSourceVersion = self.reviewRuntime.currentReviewSourceVersion()
         let reconciliationGeneration = self.reviewRuntime.beginReviewReconciliation()
         let currentEffectiveQueue = self.reviewRuntime.effectiveReviewQueue(publishedState: currentReviewState)
         let currentCardId = currentReviewCard(reviewQueue: currentEffectiveQueue)?.cardId
+        // Only a rating moves the shown card off position 0, so only its reconcile may choose a new prepared next
+        // card; every other refresh keeps it. See docs/fsrs-scheduling-logic.md#non-blocking-review.
+        let currentPreparedNextCardId = trigger == .localReview
+            ? nil
+            : nextReviewCard(reviewQueue: currentEffectiveQueue)?.cardId
         let currentSignature = makeReviewSessionSignature(
             selectedReviewFilter: currentReviewState.selectedReviewFilter,
             reviewQueue: currentEffectiveQueue,
@@ -896,13 +943,29 @@ extension FlashcardsStore {
             return false
         }
         guard self.reviewRuntime.reviewSourceVersionMatches(sourceVersion: reviewSourceVersion) else {
-            self.startReviewLoad(reviewFilter: requestedReviewFilter, now: now)
+            self.restartReviewLoadKeepingShownCard(now: now)
             return false
         }
         guard self.reviewRuntime.shouldApplyReviewReconciliation(generation: reconciliationGeneration) else {
             return false
         }
-        let refreshedReviewQueue = reviewQueueWindowState.reviewQueue
+        // The Review badge counts the same due cards for the same filter, so it needs no query of its own.
+        self.reviewDueBadgeCount = reviewCounts.dueCount
+        // The same still-in-review check as the shown card.
+        let preparedNextReviewCard = presentedReviewCardForBackgroundRefresh(
+            reviewQueue: reviewQueueWindowState.reviewQueue,
+            presentedCardId: currentPreparedNextCardId,
+            pendingReviewCardIds: currentReviewState.pendingReviewCardIds,
+            resolvedReviewFilter: resolvedReviewQuery.reviewFilter,
+            decks: self.decks,
+            cards: self.cards,
+            now: now
+        )
+        // If the shown card left review, the prepared next card is first here and becomes the shown card.
+        let refreshedReviewQueue = reviewQueueKeepingPreparedNextCard(
+            reviewQueue: reviewQueueWindowState.reviewQueue,
+            preparedNextCard: preparedNextReviewCard
+        )
         let preservedPresentedReviewCard = presentedReviewCardForBackgroundRefresh(
             reviewQueue: reviewQueueWindowState.reviewQueue,
             presentedCardId: currentCardId,
