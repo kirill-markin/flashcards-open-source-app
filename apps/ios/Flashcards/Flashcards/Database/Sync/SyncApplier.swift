@@ -31,6 +31,9 @@ struct SyncApplier {
 
     /// Applies one hot-state bootstrap entry by merging canonical mutable state
     /// into the local mirror with the same LWW comparator as the backend.
+    /// `didApply` means local state changed: our own write coming back is stored as the server
+    /// row (the server stamps its derived replica id and `updatedAt`) but does not count as applied,
+    /// so a sync after a rating rebuilds nothing (docs/fsrs-scheduling-logic.md#non-blocking-review).
     func applySyncBootstrapEntry(workspaceId: String, entry: SyncBootstrapEntry) throws -> SyncApplyResult {
         let cardStore = CardStore(core: self.core)
         let deckStore = DeckStore(core: self.core)
@@ -40,8 +43,19 @@ struct SyncApplier {
         switch entry.payload {
         case .card(let card):
             let existingCard = try cardStore.loadOptionalCardIncludingDeleted(workspaceId: workspaceId, cardId: card.cardId)
-            if let existingCard, compareLwwCard(left: existingCard, right: card) > 0 {
-                return .skipped
+            if let existingCard {
+                if isOwnWriteEcho(
+                    existingOperationId: existingCard.lastOperationId,
+                    existingClientUpdatedAt: existingCard.clientUpdatedAt,
+                    incomingOperationId: card.lastOperationId,
+                    incomingClientUpdatedAt: card.clientUpdatedAt
+                ) {
+                    try self.upsertRemoteCard(workspaceId: workspaceId, card: card, cardStore: cardStore)
+                    return .skipped
+                }
+                if compareLwwCard(left: existingCard, right: card) > 0 {
+                    return .skipped
+                }
             }
 
             let reviewScheduleImpact = remoteCardReviewScheduleImpact(existingCard: existingCard, remoteCard: card)
@@ -49,8 +63,19 @@ struct SyncApplier {
             return SyncApplyResult(didApply: true, reviewScheduleImpact: reviewScheduleImpact)
         case .deck(let deck):
             let existingDeck = try deckStore.loadOptionalDeckIncludingDeleted(workspaceId: workspaceId, deckId: deck.deckId)
-            if let existingDeck, compareLwwDeck(left: existingDeck, right: deck) > 0 {
-                return .skipped
+            if let existingDeck {
+                if isOwnWriteEcho(
+                    existingOperationId: existingDeck.lastOperationId,
+                    existingClientUpdatedAt: existingDeck.clientUpdatedAt,
+                    incomingOperationId: deck.lastOperationId,
+                    incomingClientUpdatedAt: deck.clientUpdatedAt
+                ) {
+                    try self.upsertRemoteDeck(workspaceId: workspaceId, deck: deck, deckStore: deckStore)
+                    return .skipped
+                }
+                if compareLwwDeck(left: existingDeck, right: deck) > 0 {
+                    return .skipped
+                }
             }
 
             try self.upsertRemoteDeck(workspaceId: workspaceId, deck: deck, deckStore: deckStore)
@@ -60,14 +85,38 @@ struct SyncApplier {
                 workspaceId: workspaceId,
                 mediaAssetId: mediaAsset.mediaAssetId
             )
-            if let existingMediaAsset, compareLwwMediaAsset(left: existingMediaAsset, right: mediaAsset) > 0 {
-                return .skipped
+            if let existingMediaAsset {
+                if isOwnWriteEcho(
+                    existingOperationId: existingMediaAsset.lastOperationId,
+                    existingClientUpdatedAt: existingMediaAsset.clientUpdatedAt,
+                    incomingOperationId: mediaAsset.lastOperationId,
+                    incomingClientUpdatedAt: mediaAsset.clientUpdatedAt
+                ) {
+                    try mediaAssetStore.upsertMediaAsset(workspaceId: workspaceId, mediaAsset: mediaAsset)
+                    return .skipped
+                }
+                if compareLwwMediaAsset(left: existingMediaAsset, right: mediaAsset) > 0 {
+                    return .skipped
+                }
             }
 
             try mediaAssetStore.upsertMediaAsset(workspaceId: workspaceId, mediaAsset: mediaAsset)
             return SyncApplyResult(didApply: true, reviewScheduleImpact: false)
         case .workspaceSchedulerSettings(let settings):
             let existingSettings = try workspaceSettingsStore.loadWorkspaceSchedulerSettings(workspaceId: workspaceId)
+            if isOwnWriteEcho(
+                existingOperationId: existingSettings.lastOperationId,
+                existingClientUpdatedAt: existingSettings.clientUpdatedAt,
+                incomingOperationId: settings.lastOperationId,
+                incomingClientUpdatedAt: settings.clientUpdatedAt
+            ) {
+                try self.upsertRemoteWorkspaceSettings(
+                    workspaceId: workspaceId,
+                    settings: settings,
+                    workspaceSettingsStore: workspaceSettingsStore
+                )
+                return .skipped
+            }
             if compareLwwWorkspaceSettings(left: existingSettings, right: settings) <= 0 {
                 try self.upsertRemoteWorkspaceSettings(
                     workspaceId: workspaceId,
@@ -108,8 +157,9 @@ struct SyncApplier {
     }
 
     /// Applies one immutable review-history event and ignores duplicates created
-    /// by retries or cross-device imports.
-    func applyReviewHistoryEvent(workspaceId: String, reviewEvent: ReviewEvent) throws {
+    /// by retries, cross-device imports, or our own pushed reviews echoed back.
+    /// Returns whether a row was inserted.
+    func applyReviewHistoryEvent(workspaceId: String, reviewEvent: ReviewEvent) throws -> Bool {
         try self.insertRemoteReviewEvent(workspaceId: workspaceId, reviewEvent: reviewEvent)
     }
 
@@ -317,8 +367,8 @@ struct SyncApplier {
         )
     }
 
-    private func insertRemoteReviewEvent(workspaceId: String, reviewEvent: ReviewEvent) throws {
-        _ = try self.core.execute(
+    private func insertRemoteReviewEvent(workspaceId: String, reviewEvent: ReviewEvent) throws -> Bool {
+        let insertedRowCount = try self.core.execute(
             sql: """
             INSERT OR IGNORE INTO review_events (
                 review_event_id,
@@ -345,6 +395,7 @@ struct SyncApplier {
                 .text(reviewEvent.reviewedAtServer)
             ]
         )
+        return insertedRowCount > 0
     }
 }
 
@@ -381,6 +432,18 @@ private func compareLwwTuple(
     }
 
     return 0
+}
+
+/// The same operation with the same client timestamp is this device's write coming back. The replica id
+/// cannot tell: the server stores one derived from workspace and installation, not the local installation id.
+/// A server-side content merge bumps `clientUpdatedAt`, so it still counts as a remote change.
+private func isOwnWriteEcho(
+    existingOperationId: String,
+    existingClientUpdatedAt: String,
+    incomingOperationId: String,
+    incomingClientUpdatedAt: String
+) -> Bool {
+    existingOperationId == incomingOperationId && existingClientUpdatedAt == incomingClientUpdatedAt
 }
 
 private func compareLwwCard(left: Card, right: Card) -> Int {

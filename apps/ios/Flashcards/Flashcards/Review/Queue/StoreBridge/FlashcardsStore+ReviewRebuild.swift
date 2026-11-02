@@ -3,9 +3,10 @@ import Foundation
 /*
  A rating updates only the rated card, the queue, counts and badge in memory (`applyRatedCardLocally`).
  Everything else that rereads Review data is a full rebuild, and `rebuildReviewData(reason:now:)` is its only
- entry point: initial load, filter change, workspace change, local card/deck/scheduler changes, a sync that
- applied remote changes, return after a long absence or a date change, and a safety rebuild while the app is
- open. A rebuild never swaps the shown card or the prepared next card except for a new scope.
+ entry point: initial load, filter change, workspace change, local card/deck/scheduler changes, return after a
+ long absence or a date change, and a safety rebuild while the app is open. A sync that applied remote changes
+ rebuilds awaited in `applySyncResultWithoutBlockingReset` under the same breadcrumb. A rebuild never swaps the
+ shown card or the prepared next card except for a new scope.
  See docs/fsrs-scheduling-logic.md#non-blocking-review.
  */
 
@@ -264,7 +265,7 @@ extension FlashcardsStore {
         }
     }
 
-    private func addReviewDataRebuildBreadcrumb(reason: ReviewDataRebuildReason) {
+    func addReviewDataRebuildBreadcrumb(reason: ReviewDataRebuildReason) {
         let scope = IOSObservationScope(
             feature: .storeReview,
             userId: self.cloudSettings?.linkedUserId,

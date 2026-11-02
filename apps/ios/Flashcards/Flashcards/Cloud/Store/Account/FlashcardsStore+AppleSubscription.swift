@@ -117,7 +117,14 @@ extension FlashcardsStore {
         try self.requireAppleSubscriptionIdentity(identity)
         let syncResult = try await self.withAppleSubscriptionSession(identity: identity) { session in
             try self.throwIfCustomGuestWorkspacePausedDuringSync(linkedSession: session)
-            let result = try await self.cloudRuntime.runLinkedSync(linkedSession: session)
+            let result: CloudSyncResult
+            do {
+                result = try await self.cloudRuntime.runLinkedSync(linkedSession: session)
+                self.markUnrebuiltSyncWritesIfNeeded(syncResult: result)
+            } catch {
+                self.hasUnrebuiltSyncWrites = true
+                throw error
+            }
             try self.requireAppleSubscriptionIdentity(identity)
             self.applyPulledCloudEntitlement(syncResult: result, linkedSession: session)
             return result

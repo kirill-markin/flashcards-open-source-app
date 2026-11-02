@@ -166,7 +166,12 @@ extension AIChatStore {
             throw LocalStoreError.uninitialized("Local database is unavailable")
         }
 
-        _ = try await self.flashcardsStore.runLinkedSync(linkedSession: linkedSession)
+        let syncResult = try await self.flashcardsStore.runLinkedSync(linkedSession: linkedSession)
+        try await self.flashcardsStore.applySyncResultWithoutBlockingReset(
+            syncResult: syncResult,
+            now: Date(),
+            trigger: self.flashcardsStore.manualCloudSyncTrigger(now: Date())
+        )
         let outboxEntries = try database.loadOutboxEntries(workspaceId: workspaceId, limit: Int.max)
         if outboxEntries.isEmpty == false {
             throw LocalStoreError.validation("AI chat is blocked until all pending sync operations are uploaded.")

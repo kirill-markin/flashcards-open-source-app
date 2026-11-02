@@ -709,9 +709,11 @@ extension FlashcardsStore {
             } else {
                 syncResult = try await self.cloudRuntime.runLinkedSync(linkedSession: linkedSession)
             }
+            self.markUnrebuiltSyncWritesIfNeeded(syncResult: syncResult)
             self.applyPulledCloudEntitlement(syncResult: syncResult, linkedSession: linkedSession)
             return syncResult
         } catch {
+            self.hasUnrebuiltSyncWrites = true
             let failureError = try await self.failureErrorAfterApplyingLocalIdRepairSideEffectsIfNeeded(
                 error: error,
                 now: Date()
@@ -762,9 +764,11 @@ extension FlashcardsStore {
                     linkedSession: linkedSession
                 )
             }
+            self.markUnrebuiltSyncWritesIfNeeded(syncResult: syncResult)
             self.applyPulledCloudEntitlement(syncResult: syncResult, linkedSession: linkedSession)
             return syncResult
         } catch {
+            self.hasUnrebuiltSyncWrites = true
             let failureError = try await self.failureErrorAfterApplyingLocalIdRepairSideEffectsIfNeeded(
                 error: error,
                 now: Date()
