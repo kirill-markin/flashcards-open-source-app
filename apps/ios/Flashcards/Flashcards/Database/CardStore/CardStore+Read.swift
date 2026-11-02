@@ -395,28 +395,38 @@ extension CardStore {
         return reviewCounts
     }
 
-    func loadReviewOverdueSnapshot(
+    func loadReviewDueBadgeSnapshot(
         workspaceId: String,
         reviewQueryDefinition: ReviewQueryDefinition,
         now: Date
-    ) throws -> ReviewOverdueSnapshot {
+    ) throws -> ReviewDueBadgeSnapshot {
         let querySQL = try self.makeReviewQuerySQL(reviewQueryDefinition: reviewQueryDefinition)
         let nowMillis = epochMillis(date: now)
 
         let snapshots = try self.core.query(
             sql: """
             SELECT
-                COALESCE(SUM(CASE WHEN due_at_millis <= ? THEN 1 ELSE 0 END), 0) AS overdue_count,
-                MIN(CASE WHEN due_at_millis > ? THEN due_at_millis END) AS next_due_at_millis
+                COALESCE(
+                    SUM(
+                        CASE
+                            WHEN \(cardStoreActiveReviewDueEligibilitySQL) THEN 1
+                            ELSE 0
+                        END
+                    ),
+                    0
+                ) AS due_count,
+                MIN(
+                    CASE
+                        WHEN due_at IS NOT NULL AND due_at_millis > ? THEN due_at_millis
+                    END
+                ) AS next_due_at_millis
             FROM cards
-            WHERE workspace_id = ? AND deleted_at IS NULL
-                AND due_at IS NOT NULL
-                AND due_at_millis IS NOT NULL\(querySQL.clause)
+            WHERE workspace_id = ? AND deleted_at IS NULL\(querySQL.clause)
             """,
             values: [.integer(nowMillis), .integer(nowMillis), .text(workspaceId)] + querySQL.values
         ) { statement in
-            ReviewOverdueSnapshot(
-                overdueCount: Int(DatabaseCore.columnInt64(statement: statement, index: 0)),
+            ReviewDueBadgeSnapshot(
+                dueCount: Int(DatabaseCore.columnInt64(statement: statement, index: 0)),
                 nextDueAt: DatabaseCore.columnOptionalInt(statement: statement, index: 1).map { nextDueAtMillis in
                     Date(timeIntervalSince1970: TimeInterval(nextDueAtMillis) / 1_000)
                 }
@@ -424,7 +434,7 @@ extension CardStore {
         }
 
         guard let snapshot = snapshots.first else {
-            throw LocalStoreError.database("Expected review overdue query to return one row")
+            throw LocalStoreError.database("Expected review due badge query to return one row")
         }
 
         return snapshot
