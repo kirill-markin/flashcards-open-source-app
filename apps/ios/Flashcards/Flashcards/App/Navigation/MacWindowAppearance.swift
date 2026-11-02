@@ -219,7 +219,6 @@ struct MacWindowAppearance: UIViewRepresentable {
                 item.autovalidates = false
                 self.sidebarItem = item
             }
-            // This public Catalyst style supplies the native full-height sidebar material.
             split.primaryBackgroundStyle = .sidebar
             let primary = split.viewController(for: .primary)
             primary?.viewIfLoaded?.backgroundColor = .clear
@@ -234,14 +233,26 @@ struct MacWindowAppearance: UIViewRepresentable {
                 self.refreshSidebar(view: view)
             }
             guard let split = self.splitViewController, let item = self.sidebarItem,
-                  self.actionContext(item: item) != nil else { return }
+                  let context = self.actionContext(item: item) else { return }
             let isVisible: Bool
             if #available(iOS 26.0, *) {
                 isVisible = split.isShowing(.primary)
             } else {
                 isVisible = !split.isCollapsed && split.displayMode != .secondaryOnly
             }
+            for sidebar in self.sidebarSplits(in: context.presenter) {
+                if isVisible {
+                    sidebar.hide(.primary)
+                } else {
+                    sidebar.show(.primary)
+                }
+            }
             self.onSidebarVisibilityChange(!isVisible)
+        }
+
+        private func sidebarSplits(in controller: UIViewController) -> [UISplitViewController] {
+            if let split = controller as? UISplitViewController { return [split] }
+            return controller.children.flatMap { self.sidebarSplits(in: $0) }
         }
 
         private func refreshItems() {
