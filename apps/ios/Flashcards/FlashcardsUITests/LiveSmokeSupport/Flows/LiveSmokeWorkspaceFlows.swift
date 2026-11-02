@@ -193,10 +193,14 @@ extension LiveSmokeTestCase {
             timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds
         )
         try self.assertCurrentWorkspacePickerIsVisible()
+        #if targetEnvironment(macCatalyst)
+        try self.tapCreateWorkspaceInCurrentPicker(timeout: LiveSmokeConfiguration.longUiTimeoutSeconds)
+        #else
         try self.tapButtonScrollingIntoView(
             identifier: LiveSmokeIdentifier.currentWorkspaceCreateButton,
             timeout: LiveSmokeConfiguration.longUiTimeoutSeconds
         )
+        #endif
         try self.submitCreateWorkspaceName(workspaceName: workspaceName)
         try self.assertElementDoesNotExist(
             identifier: LiveSmokeIdentifier.currentWorkspacePickerScreen,
@@ -206,6 +210,64 @@ extension LiveSmokeTestCase {
         try self.tapFirstNavigationBackButton()
         try self.assertScreenVisible(screen: .settings, timeout: LiveSmokeConfiguration.shortUiTimeoutSeconds)
     }
+
+    #if targetEnvironment(macCatalyst)
+    @MainActor
+    private func tapCreateWorkspaceInCurrentPicker(timeout: TimeInterval) throws {
+        let identifier = LiveSmokeIdentifier.currentWorkspaceCreateButton
+        let sheets = self.app.sheets.containing(.any, identifier: LiveSmokeIdentifier.currentWorkspacePickerScreen)
+        try self.runWithInlineRawScreenStateOnFailure(action: "tap_current_workspace_create") {
+            let deadline = Date().addingTimeInterval(timeout)
+            while Date() < deadline {
+                let count = sheets.count
+                guard count <= 1 else {
+                    throw LiveSmokeFailure.unexpectedAccountState(
+                        message: "Expected one native workspace picker sheet; found \(count).",
+                        screen: self.currentScreenSummary(),
+                        step: self.currentStepTitle
+                    )
+                }
+                if count == 1 {
+                    let sheet = sheets.element
+                    let picker = sheet.collectionViews[LiveSmokeIdentifier.currentWorkspacePickerScreen].firstMatch
+                    let navigationBar = sheet.navigationBars.firstMatch
+                    if picker.exists && navigationBar.exists {
+                        let bounds = picker.frame.intersection(sheet.frame)
+                        if bounds.isEmpty == false {
+                            let top = max(bounds.minY, navigationBar.frame.maxY)
+                            let viewport = CGRect(x: bounds.minX, y: top, width: bounds.width, height: max(0, bounds.maxY - top))
+                            let button = picker.buttons[identifier].firstMatch
+                            if button.exists && button.isHittable {
+                                let frame = button.frame
+                                if frame.isEmpty == false && viewport.contains(frame) {
+                                    self.add(self.makeTextAttachment(
+                                        name: "Mac workspace create viewport",
+                                        text: "sheet=\(sheet.frame);picker=\(picker.frame);viewport=\(viewport);button=\(frame)"
+                                    ))
+                                    try self.tapExistingButton(
+                                        button,
+                                        identifier: identifier,
+                                        action: "tap_current_workspace_create",
+                                        note: "button fully inside modal content viewport"
+                                    )
+                                    return
+                                }
+                            }
+                        }
+                        picker.scrollTowardLaterContent()
+                    }
+                }
+                RunLoop.current.run(until: Date(timeIntervalSinceNow: liveSmokeFocusPollIntervalSeconds))
+            }
+            throw LiveSmokeFailure.missingElement(
+                identifier: identifier,
+                timeoutSeconds: timeout,
+                screen: self.currentScreenSummary(),
+                step: self.currentStepTitle
+            )
+        }
+    }
+    #endif
 
     @MainActor
     func renameLinkedWorkspace(
