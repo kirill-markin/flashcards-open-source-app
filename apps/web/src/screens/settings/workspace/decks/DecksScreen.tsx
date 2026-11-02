@@ -65,7 +65,7 @@ const emptyDecksSnapshot: DecksListSnapshot = {
 };
 
 export function DecksScreen(): ReactElement {
-  const { activeWorkspace, cloudSettings, localReadVersion, refreshLocalData, session } = useAppData();
+  const { activeWorkspace, cloudSettings, localReadVersion, refreshLocalData, reviewScheduleVersion, session } = useAppData();
   const { indexedDbOpenRecoveryState, showCapturedTechnicalError } = useAppErrorDialog();
   const { locale, messages, t, formatNumber, selectCountLabel } = useI18n();
   const workspacePath = useWorkspacePath();
@@ -85,6 +85,8 @@ export function DecksScreen(): ReactElement {
     installationId: cloudSettings?.installationId ?? null,
   };
 
+  // Deck due counts follow local ratings only while this screen is mounted:
+  // docs/fsrs-scheduling-logic.md#non-blocking-review
   useEffect(() => {
     let isCancelled = false;
 
@@ -145,7 +147,7 @@ export function DecksScreen(): ReactElement {
     return () => {
       isCancelled = true;
     };
-  }, [activeWorkspace, indexedDbOpenRecoveryState, localReadVersion]);
+  }, [activeWorkspace, indexedDbOpenRecoveryState, localReadVersion, reviewScheduleVersion]);
 
   const deckListEntries = makeDeckListEntries(decksSnapshot, workspacePath, locale);
 
