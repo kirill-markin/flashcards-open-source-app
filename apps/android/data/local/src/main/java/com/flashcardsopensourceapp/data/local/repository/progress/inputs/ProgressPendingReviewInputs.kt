@@ -1,6 +1,7 @@
 package com.flashcardsopensourceapp.data.local.repository.progress.inputs
 
 import com.flashcardsopensourceapp.data.local.database.entities.OutboxEntryEntity
+import com.flashcardsopensourceapp.data.local.database.entities.ReviewLogEntity
 import com.flashcardsopensourceapp.data.local.model.review.ReviewRating
 import com.flashcardsopensourceapp.data.local.repository.progress.runtime.logProgressRepositoryWarning
 import java.time.DateTimeException
@@ -69,6 +70,21 @@ internal fun createProgressPendingReviewLocalDates(
             )
         }
     }
+}
+
+// Same local date a pending review-event outbox entry for this review log resolves to.
+internal fun createProgressPendingReviewLocalDate(
+    reviewLog: ReviewLogEntity,
+    fallbackTimeZone: String
+): ProgressPendingReviewLocalDate {
+    return ProgressPendingReviewLocalDate(
+        workspaceId = reviewLog.workspaceId,
+        localDate = Instant.ofEpochMilli(reviewLog.reviewedAtMillis)
+            .atZone(ZoneId.of(reviewLog.reviewedTimeZone ?: fallbackTimeZone))
+            .toLocalDate()
+            .toString(),
+        rating = reviewLog.rating
+    )
 }
 
 internal fun hasPendingProgressReviewScheduleCardChanges(

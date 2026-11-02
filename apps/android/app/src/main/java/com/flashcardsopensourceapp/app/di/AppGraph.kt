@@ -50,6 +50,7 @@ import com.flashcardsopensourceapp.core.ui.AppMessageBus
 import com.flashcardsopensourceapp.core.ui.AppTechnicalError
 import com.flashcardsopensourceapp.core.ui.renderTechnicalErrorDetails
 import com.flashcardsopensourceapp.core.ui.TestModeStore
+import com.flashcardsopensourceapp.core.ui.VisibleAppScreen
 import com.flashcardsopensourceapp.core.ui.VisibleAppScreenController
 import com.flashcardsopensourceapp.app.navigation.AppHandoffCoordinator
 import com.flashcardsopensourceapp.app.notifications.NotificationDeliveryGate
@@ -654,7 +655,10 @@ class AppGraph(
         observability = observability,
         appVersion = appPackageInfo.versionName,
         versionCode = appPackageInfo.longVersionCode.toInt(),
-        timeProvider = SystemTimeProvider
+        timeProvider = SystemTimeProvider,
+        isProgressScreenShown = visibleAppScreenController.observeVisibleAppScreen().map { screen ->
+            screen == VisibleAppScreen.PROGRESS
+        }
     )
     val progressContextRefreshController = ProgressContextRefreshController(
         appScope = appScope,
