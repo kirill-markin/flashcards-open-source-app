@@ -226,11 +226,24 @@ extension ReviewView {
 
     func reloadReviewMetadata() async {
         do {
-            let tagsSummary = try store.loadWorkspaceTagsSummary()
+            let database = try requireLocalDatabase(database: store.database)
+            let workspaceId = try requireWorkspaceId(workspace: store.workspace)
+            // Reads every card tag, so it stays off the main thread; see docs/fsrs-scheduling-logic.md#non-blocking-review.
+            let tagsSummary = try await loadWorkspaceTagsSummaryInBackground(
+                databaseURL: database.databaseURL,
+                workspaceId: workspaceId
+            )
+            // A newer reload replaced this one while the read ran.
+            guard Task.isCancelled == false else {
+                return
+            }
             self.reviewTagSummaries = tagsSummary.tags
             self.totalCardsCount = tagsSummary.totalCards
             self.screenErrorMessage = ""
         } catch {
+            guard Task.isCancelled == false else {
+                return
+            }
             self.screenErrorMessage = ""
             store.presentTechnicalError(error)
         }
@@ -276,20 +289,22 @@ extension ReviewView {
         }
 
         // Images follow the text so a slow download never delays the next card's text and answer buttons.
+        var currentSides: [ReviewImagePreparationSide] = []
         var imagePreparationSides: [ReviewImagePreparationSide] = []
         if let currentCard, let currentState = currentPreparedRevealStatePreparation?.state {
             let currentBackSide = ReviewImagePreparationSide(cardId: currentCard.cardId, content: currentState.backContent)
-            self.preparedImageCache.retainPreparedImages(for: [
+            currentSides = [
                 ReviewImagePreparationSide(cardId: currentCard.cardId, content: currentState.frontContent),
                 currentBackSide
-            ])
+            ]
             imagePreparationSides.append(currentBackSide)
         }
-        self.preparedImageCache.releaseImagesOutside(cardIds: Set([currentCard?.cardId, nextCard?.cardId].compactMap { $0 }))
         if let nextCard, let nextState = nextPreparedNextRevealStatePreparation?.state {
             imagePreparationSides.append(ReviewImagePreparationSide(cardId: nextCard.cardId, content: nextState.frontContent))
             imagePreparationSides.append(ReviewImagePreparationSide(cardId: nextCard.cardId, content: nextState.backContent))
         }
+        self.preparedImageCache.retainPreparedImages(for: currentSides)
+        self.preparedImageCache.releaseImagesOutside(sides: currentSides + imagePreparationSides)
         await self.preparedImageCache.prepareReviewImages(for: imagePreparationSides, store: store)
     }
 

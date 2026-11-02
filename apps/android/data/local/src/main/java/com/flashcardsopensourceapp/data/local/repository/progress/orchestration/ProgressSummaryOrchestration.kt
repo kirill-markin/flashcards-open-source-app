@@ -2,8 +2,10 @@ package com.flashcardsopensourceapp.data.local.repository.progress.orchestration
 
 import com.flashcardsopensourceapp.core.observability.AppObservability
 import com.flashcardsopensourceapp.data.local.database.core.AppDatabase
+import com.flashcardsopensourceapp.data.local.database.entities.ReviewLogEntity
 import com.flashcardsopensourceapp.data.local.database.entities.WorkspaceEntity
 import com.flashcardsopensourceapp.data.local.model.cloud.CloudAccountState
+import com.flashcardsopensourceapp.data.local.model.progress.ProgressSummaryScopeKey
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressSummarySnapshot
 import com.flashcardsopensourceapp.data.local.repository.CloudAccountRepository
 import com.flashcardsopensourceapp.data.local.repository.SyncRepository
@@ -15,8 +17,10 @@ import com.flashcardsopensourceapp.data.local.repository.progress.cache.toCloudP
 import com.flashcardsopensourceapp.data.local.repository.progress.cache.toCloudProgressSummaryOrNull
 import com.flashcardsopensourceapp.data.local.repository.progress.inputs.ProgressClockSnapshot
 import com.flashcardsopensourceapp.data.local.repository.progress.inputs.ProgressObservedInputs
+import com.flashcardsopensourceapp.data.local.repository.progress.inputs.ProgressPendingReviewLocalDate
 import com.flashcardsopensourceapp.data.local.repository.progress.inputs.createProgressClockSnapshot
 import com.flashcardsopensourceapp.data.local.repository.progress.inputs.createProgressPendingReviewFingerprintEntries
+import com.flashcardsopensourceapp.data.local.repository.progress.inputs.createProgressPendingReviewLocalDate
 import com.flashcardsopensourceapp.data.local.repository.progress.inputs.createProgressPendingReviewLocalDates
 import com.flashcardsopensourceapp.data.local.repository.progress.runtime.ProgressBackgroundLauncher
 import com.flashcardsopensourceapp.data.local.repository.progress.runtime.ProgressObservationVersions
@@ -47,6 +51,12 @@ internal data class ProgressSummaryHandledInputs(
     val currentStoreState: ProgressSummaryStoreState
 )
 
+// A committed rating's local date, kept until the observed day counts cover it.
+private data class ProgressSummaryRatingPatch(
+    val scopeKey: ProgressSummaryScopeKey,
+    val localDate: ProgressPendingReviewLocalDate
+)
+
 internal class ProgressSummaryOrchestration(
     private val database: AppDatabase,
     private val cloudAccountRepository: CloudAccountRepository,
@@ -61,6 +71,11 @@ internal class ProgressSummaryOrchestration(
     private val latestInputsMutable = MutableStateFlow<ProgressObservedInputs?>(null)
     private val latestStoreStateMutable = MutableStateFlow<ProgressSummaryStoreState?>(null)
     private val refreshCoordinator = ProgressRefreshCoordinator()
+    // Guards ratingPatches and orders their updates with observed inputs. Every store state
+    // built under it merges the patches, so an observed emission that still lacks a rating
+    // (Room re-queries each table separately) cannot publish the badge without it.
+    private val snapshotPublishLock = Any()
+    private var ratingPatches: List<ProgressSummaryRatingPatch> = emptyList()
 
     fun observeSnapshot(): Flow<ProgressSummarySnapshot?> {
         return snapshotMutable.asStateFlow()
@@ -70,20 +85,60 @@ internal class ProgressSummaryOrchestration(
         inputs: ProgressObservedInputs,
         clockSnapshot: ProgressClockSnapshot
     ): ProgressSummaryHandledInputs {
-        latestInputsMutable.value = inputs
-        val previousStoreState = latestStoreStateMutable.value
-        val currentStoreState = createProgressSummaryStoreState(
-            inputs = createStoreInputs(
+        synchronized(snapshotPublishLock) {
+            latestInputsMutable.value = inputs
+            ratingPatches = retainUncoveredRatingPatches(
                 inputs = inputs,
                 clockSnapshot = clockSnapshot
             )
-        )
-        latestStoreStateMutable.value = currentStoreState
-        publishSnapshotIfChanged(snapshot = currentStoreState.snapshot)
-        return ProgressSummaryHandledInputs(
-            previousStoreState = previousStoreState,
-            currentStoreState = currentStoreState
-        )
+            val previousStoreState = latestStoreStateMutable.value
+            val currentStoreState = createProgressSummaryStoreState(
+                inputs = createStoreInputs(
+                    inputs = inputs,
+                    clockSnapshot = clockSnapshot
+                )
+            )
+            latestStoreStateMutable.value = currentStoreState
+            publishSnapshotIfChanged(snapshot = currentStoreState.snapshot)
+            return ProgressSummaryHandledInputs(
+                previousStoreState = previousStoreState,
+                currentStoreState = currentStoreState
+            )
+        }
+    }
+
+    // Publishes the badge fields (streak, reviewed today) for a just-committed review and keeps
+    // its local date as a patch until observed day counts cover it. The summary depends only on
+    // which dates are active, so a date both patched and observed counts once.
+    fun applyRating(
+        reviewLog: ReviewLogEntity,
+        clockSnapshot: ProgressClockSnapshot
+    ) {
+        synchronized(snapshotPublishLock) {
+            val latestInputs = latestInputsMutable.value ?: return
+            val scopeKey = createProgressSummaryScopeKey(
+                cloudSettings = latestInputs.cloudSettings,
+                today = clockSnapshot.today,
+                zoneId = clockSnapshot.zoneId
+            )
+            ratingPatches = ratingPatches + ProgressSummaryRatingPatch(
+                scopeKey = scopeKey,
+                localDate = createProgressPendingReviewLocalDate(
+                    reviewLog = reviewLog,
+                    fallbackTimeZone = scopeKey.timeZone
+                )
+            )
+            val storeInputs = createStoreInputs(
+                inputs = latestInputs,
+                clockSnapshot = clockSnapshot
+            )
+            if (storeInputs.isLocalCacheReady.not()) {
+                return
+            }
+            publishSnapshotIfChanged(
+                snapshot = createProgressSummaryStoreState(inputs = storeInputs).snapshot
+            )
+        }
     }
 
     fun launchSyncCompletedRefreshIfNeeded(
@@ -326,15 +381,39 @@ internal class ProgressSummaryOrchestration(
     }
 
     private fun currentStoreState(): ProgressSummaryStoreState? {
-        val latestInputs = latestInputsMutable.value ?: return null
-        return createProgressSummaryStoreState(
-            inputs = createStoreInputs(
-                inputs = latestInputs,
-                clockSnapshot = createProgressClockSnapshot(timeProvider = timeProvider)
+        synchronized(snapshotPublishLock) {
+            val latestInputs = latestInputsMutable.value ?: return null
+            return createProgressSummaryStoreState(
+                inputs = createStoreInputs(
+                    inputs = latestInputs,
+                    clockSnapshot = createProgressClockSnapshot(timeProvider = timeProvider)
+                )
             )
-        )
+        }
     }
 
+    // Call with snapshotPublishLock held. A patch is dropped once the day counts the rating's
+    // transaction wrote are observed, or when the scope (account, time zone, today) changes.
+    private fun retainUncoveredRatingPatches(
+        inputs: ProgressObservedInputs,
+        clockSnapshot: ProgressClockSnapshot
+    ): List<ProgressSummaryRatingPatch> {
+        val scopeKey = createProgressSummaryScopeKey(
+            cloudSettings = inputs.cloudSettings,
+            today = clockSnapshot.today,
+            zoneId = clockSnapshot.zoneId
+        )
+        return ratingPatches.filter { patch ->
+            patch.scopeKey == scopeKey && inputs.localDayCounts.none { dayCount ->
+                dayCount.timeZone == scopeKey.timeZone &&
+                    dayCount.workspaceId == patch.localDate.workspaceId &&
+                    dayCount.localDate == patch.localDate.localDate &&
+                    dayCount.reviewCount > 0
+            }
+        }
+    }
+
+    // Call with snapshotPublishLock held: it merges ratingPatches.
     private fun createStoreInputs(
         inputs: ProgressObservedInputs,
         clockSnapshot: ProgressClockSnapshot
@@ -378,10 +457,13 @@ internal class ProgressSummaryOrchestration(
                     pendingReviewOutboxEntries = inputs.pendingReviewOutboxEntries,
                     workspaceIds = workspaceIds,
                     timeZone = scopeKey.timeZone
-                )
+                ) + ratingPatches.filter { patch ->
+                    patch.scopeKey == scopeKey
+                }.map(ProgressSummaryRatingPatch::localDate)
             } else {
                 emptyList()
             },
+            // Outbox entries only, never ratingPatches: a patch must not look like a sync change.
             reviewHistoryFingerprint = createReviewHistoryFingerprint(
                 reviewHistoryStates = inputs.reviewHistoryStates,
                 pendingReviewEntries = pendingReviewFingerprintEntries,

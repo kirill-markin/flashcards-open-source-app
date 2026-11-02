@@ -3,9 +3,11 @@ package com.flashcardsopensourceapp.feature.review
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressLeaderboardSnapshot
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressSummarySnapshot
 import com.flashcardsopensourceapp.data.local.model.media.MediaAsset
+import com.flashcardsopensourceapp.data.local.model.review.PendingReviewedCard
 import com.flashcardsopensourceapp.data.local.model.review.ReviewAnswerOption
 import com.flashcardsopensourceapp.data.local.model.review.ReviewCard
 import com.flashcardsopensourceapp.data.local.model.review.ReviewFilter
+import com.flashcardsopensourceapp.data.local.model.review.ReviewFilterOptions
 import com.flashcardsopensourceapp.data.local.model.review.ReviewSessionSnapshot
 import com.flashcardsopensourceapp.data.local.model.sync.AppMetadataStorage
 import com.flashcardsopensourceapp.data.local.model.sync.AppMetadataSummary
@@ -37,6 +39,7 @@ internal fun initialReviewUiState(textProvider: ReviewTextProvider): ReviewUiSta
         preparedNextCard = null,
         availableDeckFilters = emptyList(),
         availableTagFilters = emptyList(),
+        areFilterOptionsLoaded = false,
         reviewLeaderboardBadge = createEmptyReviewLeaderboardBadgeState(),
         reviewProgressBadge = createEmptyReviewProgressBadgeState(),
         isPreviewLoading = false,
@@ -56,6 +59,7 @@ internal fun loadingReviewSessionSnapshot(textProvider: ReviewTextProvider): Rev
         selectedFilterTitle = textProvider.allCardsTitle(),
         cards = emptyList(),
         presentedCard = null,
+        preparedNextCard = null,
         answerOptions = emptyList(),
         nextAnswerOptions = emptyList(),
         answerOptionsByCardId = emptyMap(),
@@ -63,8 +67,8 @@ internal fun loadingReviewSessionSnapshot(textProvider: ReviewTextProvider): Rev
         remainingCount = 0,
         totalCount = 0,
         hasMoreCards = false,
-        availableDeckFilters = emptyList(),
-        availableTagFilters = emptyList(),
+        reviewTagNames = emptyList(),
+        nextDueAtMillis = null,
         isLoading = true
     )
 }
@@ -76,6 +80,7 @@ internal fun mapToReviewUiState(
     progressSummarySnapshot: ProgressSummarySnapshot?,
     progressLeaderboardSnapshot: ProgressLeaderboardSnapshot?,
     mediaAssets: List<MediaAsset>,
+    filterOptions: ReviewFilterOptions?,
     textProvider: ReviewTextProvider
 ): ReviewUiState {
     val mediaAssetsById = mediaAssets.associateBy { mediaAsset ->
@@ -86,10 +91,6 @@ internal fun mapToReviewUiState(
             sessionCards = sessionSnapshot.cards,
             presentedCard = sessionSnapshot.presentedCard
         )
-    val displayedQueue = buildDisplayedReviewQueue(
-        sessionCards = sessionSnapshot.cards,
-        displayedCurrentCard = displayedCurrentCard
-    )
     val optimisticPreparedCurrentCard = state.optimisticPreparedCurrentCard?.let { presentation ->
         refreshPreparedReviewCardPresentationMedia(
             presentation = presentation,
@@ -108,7 +109,12 @@ internal fun mapToReviewUiState(
         null
     }
     val currentPreparedCard = optimisticPreparedCurrentCard ?: sessionPreparedCurrentCard
-    val displayedNextCard = displayedQueue.getOrNull(index = 1)
+    val displayedNextCard = resolveDisplayedNextCard(
+        sessionCards = sessionSnapshot.cards,
+        sessionPreparedNextCard = sessionSnapshot.preparedNextCard,
+        preparedNextCardId = state.preparedNextCardId,
+        displayedCurrentCard = displayedCurrentCard
+    )
     val preparedNextCard = prepareDisplayedSessionCardPresentation(
         displayedCard = displayedNextCard,
         answerOptionsByCardId = sessionSnapshot.answerOptionsByCardId,
@@ -128,7 +134,7 @@ internal fun mapToReviewUiState(
         selectedFilter = sessionSnapshot.selectedFilter,
         selectedFilterTitle = textProvider.filterTitle(
             selectedFilter = sessionSnapshot.selectedFilter,
-            availableDeckFilters = sessionSnapshot.availableDeckFilters
+            deckTitle = sessionSnapshot.selectedFilterTitle
         ),
         remainingCount = sessionSnapshot.remainingCount,
         totalCount = sessionSnapshot.totalCount,
@@ -137,8 +143,9 @@ internal fun mapToReviewUiState(
         currentCardIdForEditing = currentPreparedCard?.card?.cardId,
         preparedCurrentCard = currentPreparedCard,
         preparedNextCard = preparedNextCard,
-        availableDeckFilters = sessionSnapshot.availableDeckFilters,
-        availableTagFilters = sessionSnapshot.availableTagFilters,
+        availableDeckFilters = filterOptions?.deckFilters ?: emptyList(),
+        availableTagFilters = filterOptions?.tagFilters ?: emptyList(),
+        areFilterOptionsLoaded = filterOptions != null,
         reviewLeaderboardBadge = progressLeaderboardSnapshot?.toReviewLeaderboardBadgeState()
             ?: createEmptyReviewLeaderboardBadgeState(),
         reviewProgressBadge = progressSummarySnapshot?.toReviewProgressBadgeState()
@@ -193,22 +200,38 @@ internal fun resolveDisplayedCurrentCard(
     } ?: presentedCard ?: sessionCards.firstOrNull()
 }
 
-internal fun buildDisplayedReviewQueue(
+/**
+ * The pinned prepared next card while it is still queued, so background refreshes queue newly due cards
+ * behind it. A rating pins its choice before the session re-emits, so the draft pin wins over the
+ * session's own choice. See docs/fsrs-scheduling-logic.md#non-blocking-review.
+ */
+internal fun resolveDisplayedNextCard(
     sessionCards: List<ReviewCard>,
+    sessionPreparedNextCard: ReviewCard?,
+    preparedNextCardId: String?,
     displayedCurrentCard: ReviewCard?
-): List<ReviewCard> {
-    if (displayedCurrentCard == null) {
-        return sessionCards
+): ReviewCard? {
+    val pinnedNextCard = sessionCards.firstOrNull { card ->
+        card.cardId == preparedNextCardId
     }
+    return listOfNotNull(pinnedNextCard, sessionPreparedNextCard).firstOrNull { card ->
+        card.cardId != displayedCurrentCard?.cardId
+    }
+}
 
-    return buildList {
-        add(displayedCurrentCard)
-        sessionCards.forEach { card ->
-            if (card.cardId != displayedCurrentCard.cardId) {
-                add(card)
-            }
-        }
-    }
+/** A rating's new next card: the first queued card other than the card it shows and the cards already rated. */
+internal fun chooseNextCardIdAfterRating(
+    sessionCards: List<ReviewCard>,
+    nextPresentedCard: ReviewCard?,
+    pendingReviewedCards: Set<PendingReviewedCard>
+): String? {
+    val shownCard = nextPresentedCard ?: return null
+    val ratedCardIds: Set<String> = pendingReviewedCards.map { pendingReviewedCard ->
+        pendingReviewedCard.cardId
+    }.toSet()
+    return sessionCards.firstOrNull { card ->
+        card.cardId != shownCard.cardId && ratedCardIds.contains(card.cardId).not()
+    }?.cardId
 }
 
 internal fun resolveDisplayedSessionAnswerOptions(

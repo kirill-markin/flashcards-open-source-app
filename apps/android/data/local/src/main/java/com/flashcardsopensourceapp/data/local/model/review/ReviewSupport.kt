@@ -161,24 +161,6 @@ fun reviewFilterTitle(
     }
 }
 
-private fun dueCardsMatchingReviewFilter(
-    selectedFilter: ReviewFilter,
-    decks: List<DeckSummary>,
-    cards: List<CardSummary>,
-    reviewedAtMillis: Long
-): List<CardSummary> {
-    return sortCardsForReviewQueue(
-        nowMillis = reviewedAtMillis,
-        cards = cards.filter { card ->
-            card.deletedAtMillis == null && matchesReviewFilter(
-                filter = selectedFilter,
-                decks = decks,
-                card = card
-            ) && isCardDue(card = card, nowMillis = reviewedAtMillis)
-        }
-    )
-}
-
 private fun cardsMatchingReviewFilter(
     selectedFilter: ReviewFilter,
     decks: List<DeckSummary>,
@@ -224,148 +206,25 @@ fun buildReviewDeckFilterOptions(decks: List<DeckSummary>): List<ReviewDeckFilte
     )
 }
 
-fun buildReviewTagFilterOptions(cards: List<CardSummary>, reviewedAtMillis: Long): List<ReviewTagFilterOption> {
-    val dueCards = cards.filter { card ->
-        isCardDue(card = card, nowMillis = reviewedAtMillis)
-    }
-    val cardIdsByTagKey: Map<String, Set<String>> = dueCards
-        .flatMap { card ->
-            card.tags.map { tag ->
-                normalizeTagKey(tag = tag) to card.cardId
-            }
-        }
-        .groupBy(
-            keySelector = { (tagKey, _) -> tagKey },
-            valueTransform = { (_, cardId) -> cardId }
-        )
-        .mapValues { (_, cardIds) ->
-            cardIds.toSet()
-        }
-    val tagNamesByKey: Map<String, List<String>> = dueCards
-        .flatMap(CardSummary::tags)
-        .groupBy { tag ->
-            normalizeTagKey(tag = tag)
-        }
-
-    return tagNamesByKey.map { (tagKey, equivalentTagNames) ->
-        val canonicalTagName: String = equivalentTagNames.minOrNull()
-            ?: error("Review tag identity group cannot be empty.")
-        ReviewTagFilterOption(
-            tag = canonicalTagName,
-            totalCount = cardIdsByTagKey[tagKey]?.size ?: 0
-        )
-    }.sortedWith(
-        compareBy<ReviewTagFilterOption> { option ->
-            option.tag.lowercase()
-        }.thenBy { option ->
-            option.tag
-        }
-    )
-}
-
-fun buildReviewSessionSnapshot(
-    selectedFilter: ReviewFilter,
-    pendingReviewedCards: Set<PendingReviewedCard>,
-    presentedCardId: String?,
-    decks: List<DeckSummary>,
-    cards: List<CardSummary>,
-    tagsSummary: WorkspaceTagsSummary,
-    settings: WorkspaceSchedulerSettings,
-    reviewedAtMillis: Long
-): ReviewSessionSnapshot {
-    val resolvedFilter = resolveReviewFilter(
-        selectedFilter = selectedFilter,
-        decks = decks,
-        tagsSummary = tagsSummary
-    )
-    val matchingCards = dueCardsMatchingReviewFilter(
-        selectedFilter = resolvedFilter,
-        decks = decks,
-        cards = cards,
-        reviewedAtMillis = reviewedAtMillis
-    )
-    val totalMatchingCards = cardsMatchingReviewFilter(
-        selectedFilter = resolvedFilter,
-        decks = decks,
-        cards = cards
-    ).filter { card ->
-        card.deletedAtMillis == null
-    }
-    val remainingCards = matchingCards.filter { card ->
-        matchesPendingReviewedCard(
-            pendingReviewedCards = pendingReviewedCards,
-            card = card
-        ).not()
-    }
-    val currentCard = remainingCards.firstOrNull()
-    val nextCard = remainingCards.getOrNull(index = 1)
-    val presentedCardSummary = presentedCardId?.let { cardId ->
-        remainingCards.firstOrNull { card ->
-            card.cardId == cardId
-        }
-    }
-    val answerOptionCards = listOfNotNull(
-        currentCard,
-        nextCard,
-        presentedCardSummary
-    ).distinctBy { card ->
-        card.cardId
-    }
-    val answerOptionsByCardId = buildReviewAnswerOptionsByCardId(
-        cards = answerOptionCards,
-        settings = settings,
-        reviewedAtMillis = reviewedAtMillis
-    )
-
-    return ReviewSessionSnapshot(
-        selectedFilter = resolvedFilter,
-        selectedFilterTitle = reviewFilterTitle(
-            selectedFilter = resolvedFilter,
-            decks = decks
-        ),
-        cards = remainingCards.map(::toReviewCard),
-        presentedCard = (presentedCardSummary ?: currentCard)?.let(::toReviewCard),
-        answerOptions = currentCard?.let { card ->
-            answerOptionsByCardId[card.cardId]
-        } ?: emptyList(),
-        nextAnswerOptions = nextCard?.let { card ->
-            answerOptionsByCardId[card.cardId]
-        } ?: emptyList(),
-        answerOptionsByCardId = answerOptionsByCardId,
-        dueCount = matchingCards.size,
-        remainingCount = remainingCards.size,
-        totalCount = totalMatchingCards.size,
-        hasMoreCards = false,
-        availableDeckFilters = buildReviewDeckFilterOptions(decks = decks),
-        availableTagFilters = buildReviewTagFilterOptions(
-            cards = cards,
-            reviewedAtMillis = reviewedAtMillis
-        ),
-        isLoading = false
-    )
-}
-
 fun buildBoundedReviewSessionSnapshot(
     selectedFilter: ReviewFilter,
     decks: List<DeckSummary>,
     canonicalCards: List<CardSummary>,
     presentedCard: CardSummary?,
+    preparedNextCard: CardSummary?,
     dueCount: Int,
     remainingCount: Int,
     totalCount: Int,
     hasMoreCards: Boolean,
-    availableDeckFilters: List<ReviewDeckFilterOption>,
-    availableTagFilters: List<ReviewTagFilterOption>,
+    reviewTagNames: List<String>,
+    nextDueAtMillis: Long?,
     settings: WorkspaceSchedulerSettings,
     reviewedAtMillis: Long
 ): ReviewSessionSnapshot {
     val currentCard = canonicalCards.firstOrNull()
     val nextCard = canonicalCards.getOrNull(index = 1)
-    val answerOptionCards = listOfNotNull(
-        currentCard,
-        nextCard,
-        presentedCard
-    ).distinctBy { card ->
+    // Every window card, so the card a rating prepares next already has answer buttons.
+    val answerOptionCards = (canonicalCards + listOfNotNull(presentedCard, preparedNextCard)).distinctBy { card ->
         card.cardId
     }
     val answerOptionsByCardId = buildReviewAnswerOptionsByCardId(
@@ -382,6 +241,7 @@ fun buildBoundedReviewSessionSnapshot(
         ),
         cards = canonicalCards.map(::toReviewCard),
         presentedCard = (presentedCard ?: currentCard)?.let(::toReviewCard),
+        preparedNextCard = preparedNextCard?.let(::toReviewCard),
         answerOptions = currentCard?.let { card ->
             answerOptionsByCardId[card.cardId]
         } ?: emptyList(),
@@ -393,8 +253,8 @@ fun buildBoundedReviewSessionSnapshot(
         remainingCount = remainingCount,
         totalCount = totalCount,
         hasMoreCards = hasMoreCards,
-        availableDeckFilters = availableDeckFilters,
-        availableTagFilters = availableTagFilters,
+        reviewTagNames = reviewTagNames,
+        nextDueAtMillis = nextDueAtMillis,
         isLoading = false
     )
 }

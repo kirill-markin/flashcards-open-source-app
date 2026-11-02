@@ -3,14 +3,14 @@ package com.flashcardsopensourceapp.feature.review
 import com.flashcardsopensourceapp.data.local.model.cards.normalizeTagKey
 import com.flashcardsopensourceapp.data.local.model.review.PendingReviewedCard
 import com.flashcardsopensourceapp.data.local.model.review.ReviewCard
-import com.flashcardsopensourceapp.data.local.model.review.ReviewDeckFilterOption
 import com.flashcardsopensourceapp.data.local.model.review.ReviewFilter
 import com.flashcardsopensourceapp.data.local.model.review.ReviewSessionSnapshot
-import com.flashcardsopensourceapp.data.local.model.review.ReviewTagFilterOption
 
 internal data class ReviewDraftState(
     val requestedFilter: ReviewFilter,
     val presentedCard: ReviewCard?,
+    /** The prepared next card, pinned across background refreshes; see docs/fsrs-scheduling-logic.md#non-blocking-review. */
+    val preparedNextCardId: String?,
     val revealedCardId: String?,
     val reviewedInSessionCount: Int,
     val pendingReviewedCards: Set<PendingReviewedCard>,
@@ -68,15 +68,14 @@ internal data class ObservedReviewSessionSignature(
     val dueCount: Int,
     val remainingCount: Int,
     val totalCount: Int,
-    val hasMoreCards: Boolean,
-    val availableDeckFilters: List<ReviewDeckFilterOption>,
-    val availableTagFilters: List<ReviewTagFilterOption>
+    val hasMoreCards: Boolean
 )
 
 internal fun makeWorkspaceScopedDraftState(reviewFilter: ReviewFilter): ReviewDraftState {
     return ReviewDraftState(
         requestedFilter = reviewFilter,
         presentedCard = null,
+        preparedNextCardId = null,
         revealedCardId = null,
         reviewedInSessionCount = 0,
         pendingReviewedCards = emptySet(),
@@ -99,6 +98,7 @@ internal fun applyReviewFilterChange(
     return state.copy(
         requestedFilter = reviewFilter,
         presentedCard = null,
+        preparedNextCardId = null,
         revealedCardId = null,
         optimisticPreparedCurrentCard = null,
         previewCards = emptyList(),
@@ -119,6 +119,7 @@ internal fun applyResolvedReviewFilter(
     return state.copy(
         requestedFilter = reviewFilter,
         presentedCard = null,
+        preparedNextCardId = null,
         revealedCardId = null,
         optimisticPreparedCurrentCard = null,
         previewCards = emptyList(),
@@ -135,14 +136,14 @@ internal fun applyResolvedReviewFilter(
 internal fun reviewFilterResolutionToApply(
     requestedFilter: ReviewFilter,
     resolvedFilter: ReviewFilter,
-    availableTagFilters: List<ReviewTagFilterOption>
+    availableTagNames: List<String>
 ): ReviewFilter? {
     if (requestedFilter == resolvedFilter) {
         return null
     }
     if (requestedFilter is ReviewFilter.Tags) {
-        val availableTagKeys: Set<String> = availableTagFilters.map { tagFilter ->
-            normalizeTagKey(tag = tagFilter.tag)
+        val availableTagKeys: Set<String> = availableTagNames.map { tagName ->
+            normalizeTagKey(tag = tagName)
         }.toSet()
         val hasMissingRequestedTag: Boolean = requestedFilter.tags.any { tagName ->
             availableTagKeys.contains(normalizeTagKey(tag = tagName)).not()
@@ -180,8 +181,6 @@ internal fun makeObservedReviewSessionSignature(
         dueCount = sessionSnapshot.dueCount,
         remainingCount = sessionSnapshot.remainingCount,
         totalCount = sessionSnapshot.totalCount,
-        hasMoreCards = sessionSnapshot.hasMoreCards,
-        availableDeckFilters = sessionSnapshot.availableDeckFilters,
-        availableTagFilters = sessionSnapshot.availableTagFilters
+        hasMoreCards = sessionSnapshot.hasMoreCards
     )
 }

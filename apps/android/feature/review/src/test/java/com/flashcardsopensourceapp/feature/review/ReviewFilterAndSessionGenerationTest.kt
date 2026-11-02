@@ -23,26 +23,14 @@ class ReviewFilterAndSessionGenerationTest {
             presentedCard = currentCard,
             dueCount = 1,
             remainingCount = 1,
-            totalCount = 1,
-            availableTagFilters = listOf(
-                ReviewTagFilterOption(
-                    tag = "shared",
-                    totalCount = 1
-                )
-            )
+            totalCount = 1
         )
         val nextSignature = createObservedReviewSessionSignature(
             reviewCards = listOf(currentCard),
             presentedCard = currentCard,
             dueCount = 2,
             remainingCount = 2,
-            totalCount = 2,
-            availableTagFilters = listOf(
-                ReviewTagFilterOption(
-                    tag = "shared",
-                    totalCount = 2
-                )
-            )
+            totalCount = 2
         )
         val state = makePinnedReviewDraftState(
             requestedFilter = ReviewFilter.AllCards,
@@ -84,26 +72,14 @@ class ReviewFilterAndSessionGenerationTest {
             presentedCard = submittedCard,
             dueCount = 2,
             remainingCount = 2,
-            totalCount = 2,
-            availableTagFilters = listOf(
-                ReviewTagFilterOption(
-                    tag = "owned",
-                    totalCount = 2
-                )
-            )
+            totalCount = 2
         )
         val nextSignature = createObservedReviewSessionSignature(
             reviewCards = listOf(nextCard),
             presentedCard = nextCard,
             dueCount = 2,
             remainingCount = 1,
-            totalCount = 2,
-            availableTagFilters = listOf(
-                ReviewTagFilterOption(
-                    tag = "owned",
-                    totalCount = 2
-                )
-            )
+            totalCount = 2
         )
         val state = makePinnedReviewDraftState(
             requestedFilter = ReviewFilter.AllCards,
@@ -163,26 +139,14 @@ class ReviewFilterAndSessionGenerationTest {
             presentedCard = nextCard,
             dueCount = 2,
             remainingCount = 1,
-            totalCount = 2,
-            availableTagFilters = listOf(
-                ReviewTagFilterOption(
-                    tag = "owned",
-                    totalCount = 2
-                )
-            )
+            totalCount = 2
         )
         val nextSignature = createObservedReviewSessionSignature(
             reviewCards = listOf(nextCard),
             presentedCard = nextCard,
             dueCount = 1,
             remainingCount = 1,
-            totalCount = 2,
-            availableTagFilters = listOf(
-                ReviewTagFilterOption(
-                    tag = "owned",
-                    totalCount = 1
-                )
-            )
+            totalCount = 2
         )
         val state = makePinnedReviewDraftState(
             requestedFilter = ReviewFilter.AllCards,
@@ -221,67 +185,6 @@ class ReviewFilterAndSessionGenerationTest {
     }
 
     @Test
-    fun ownedLocalReviewMatchesCommittedTagsByNormalizedKey() {
-        val decomposedTag = "E\u0301clair"
-        val submittedCard = makePinnedReviewCard(
-            cardId = "normalized-tag-card",
-            tags = listOf("Éclair", decomposedTag),
-            updatedAtMillis = 46L
-        )
-        val pendingReviewedCard = PendingReviewedCard(
-            cardId = submittedCard.cardId,
-            updatedAtMillis = submittedCard.updatedAtMillis
-        )
-        val previousSignature = createObservedReviewSessionSignature(
-            reviewCards = emptyList(),
-            presentedCard = null,
-            dueCount = 1,
-            remainingCount = 1,
-            totalCount = 1,
-            availableTagFilters = listOf(
-                ReviewTagFilterOption(tag = "Éclair", totalCount = 1)
-            )
-        )
-        val nextSignature = createObservedReviewSessionSignature(
-            reviewCards = emptyList(),
-            presentedCard = null,
-            dueCount = 0,
-            remainingCount = 0,
-            totalCount = 1,
-            availableTagFilters = listOf(
-                ReviewTagFilterOption(tag = decomposedTag, totalCount = 0)
-            )
-        )
-        val state = makePinnedReviewDraftState(
-            requestedFilter = ReviewFilter.AllCards,
-            presentedCard = null,
-            reviewedInSessionCount = 0,
-            pendingReviewedCards = setOf(pendingReviewedCard),
-            optimisticPreparedCurrentCard = null,
-            errorMessage = ""
-        )
-        val ownedReviewSubmissions = mapOf(
-            pendingReviewedCard to makeOwnedReviewSubmission(
-                pendingReviewedCard = pendingReviewedCard,
-                reviewedCard = submittedCard,
-                presentedCard = null,
-                observationState = OwnedReviewSubmissionObservationState.COMMIT_PENDING_OBSERVATION
-            )
-        )
-
-        val suppression = requireNotNull(
-            findOwnedReviewSessionObservationSuppression(
-                previousSignature = previousSignature,
-                nextSignature = nextSignature,
-                state = state,
-                ownedReviewSubmissions = ownedReviewSubmissions
-            )
-        )
-
-        assertEquals(setOf(pendingReviewedCard), suppression.consumedPendingReviewedCards)
-    }
-
-    @Test
     fun localWritePendingMarkerDoesNotSuppressExternalDueDropWithUnchangedQueue() {
         val submittedCard = makePinnedReviewCard(
             cardId = "local-write-pending-card",
@@ -302,21 +205,14 @@ class ReviewFilterAndSessionGenerationTest {
             presentedCard = currentCard,
             dueCount = 2,
             remainingCount = 1,
-            totalCount = 2,
-            availableTagFilters = listOf(
-                ReviewTagFilterOption(
-                    tag = "owned",
-                    totalCount = 1
-                )
-            )
+            totalCount = 2
         )
         val nextSignature = createObservedReviewSessionSignature(
             reviewCards = listOf(currentCard),
             presentedCard = currentCard,
             dueCount = 1,
             remainingCount = 1,
-            totalCount = 2,
-            availableTagFilters = emptyList()
+            totalCount = 2
         )
         val state = makePinnedReviewDraftState(
             requestedFilter = ReviewFilter.AllCards,
@@ -384,26 +280,14 @@ class ReviewFilterAndSessionGenerationTest {
             presentedCard = secondSubmittedCard,
             dueCount = 3,
             remainingCount = 2,
-            totalCount = 3,
-            availableTagFilters = listOf(
-                ReviewTagFilterOption(
-                    tag = "rapid",
-                    totalCount = 3
-                )
-            )
+            totalCount = 3
         )
         val nextSignature = createObservedReviewSessionSignature(
             reviewCards = listOf(nextCard),
             presentedCard = nextCard,
             dueCount = 3,
             remainingCount = 1,
-            totalCount = 3,
-            availableTagFilters = listOf(
-                ReviewTagFilterOption(
-                    tag = "rapid",
-                    totalCount = 3
-                )
-            )
+            totalCount = 3
         )
         val state = makePinnedReviewDraftState(
             requestedFilter = ReviewFilter.AllCards,
@@ -448,169 +332,6 @@ class ReviewFilterAndSessionGenerationTest {
     }
 
     @Test
-    fun rapidOwnedReviewConsumesMatchingMarkerWhenTagRowsReachZero() {
-        val firstSubmittedCard = makePinnedReviewCard(
-            cardId = "rapid-zero-first-card",
-            tags = listOf("other"),
-            updatedAtMillis = 50L
-        )
-        val secondSubmittedCard = makePinnedReviewCard(
-            cardId = "rapid-zero-second-card",
-            tags = listOf("exhausted", "fast"),
-            updatedAtMillis = 51L
-        )
-        val nextCard = makePinnedReviewCard(
-            cardId = "rapid-zero-next-card",
-            tags = emptyList(),
-            updatedAtMillis = 52L
-        )
-        val firstPendingCard = PendingReviewedCard(
-            cardId = firstSubmittedCard.cardId,
-            updatedAtMillis = firstSubmittedCard.updatedAtMillis
-        )
-        val secondPendingCard = PendingReviewedCard(
-            cardId = secondSubmittedCard.cardId,
-            updatedAtMillis = secondSubmittedCard.updatedAtMillis
-        )
-        val previousSignature = createObservedReviewSessionSignature(
-            reviewCards = listOf(nextCard),
-            presentedCard = nextCard,
-            dueCount = 1,
-            remainingCount = 1,
-            totalCount = 2,
-            availableTagFilters = listOf(
-                ReviewTagFilterOption(tag = "exhausted", totalCount = 1),
-                ReviewTagFilterOption(tag = "fast", totalCount = 1),
-                ReviewTagFilterOption(tag = "other", totalCount = 0)
-            )
-        )
-        val nextSignature = createObservedReviewSessionSignature(
-            reviewCards = listOf(nextCard),
-            presentedCard = nextCard,
-            dueCount = 0,
-            remainingCount = 0,
-            totalCount = 2,
-            availableTagFilters = listOf(
-                ReviewTagFilterOption(tag = "exhausted", totalCount = 0),
-                ReviewTagFilterOption(tag = "fast", totalCount = 0),
-                ReviewTagFilterOption(tag = "other", totalCount = 0)
-            )
-        )
-        val state = makePinnedReviewDraftState(
-            requestedFilter = ReviewFilter.AllCards,
-            presentedCard = nextCard,
-            reviewedInSessionCount = 0,
-            pendingReviewedCards = setOf(firstPendingCard, secondPendingCard),
-            optimisticPreparedCurrentCard = makePreparedReviewCardPresentation(card = nextCard),
-            errorMessage = ""
-        )
-        val ownedReviewSubmissions = mapOf(
-            firstPendingCard to makeOwnedReviewSubmission(
-                pendingReviewedCard = firstPendingCard,
-                reviewedCard = firstSubmittedCard,
-                presentedCard = nextCard,
-                observationState = OwnedReviewSubmissionObservationState.COMMIT_PENDING_OBSERVATION
-            ),
-            secondPendingCard to makeOwnedReviewSubmission(
-                pendingReviewedCard = secondPendingCard,
-                reviewedCard = secondSubmittedCard,
-                presentedCard = nextCard,
-                observationState = OwnedReviewSubmissionObservationState.COMMIT_PENDING_OBSERVATION
-            )
-        )
-        val suppression = requireNotNull(
-            findOwnedReviewSessionObservationSuppression(
-                previousSignature = previousSignature,
-                nextSignature = nextSignature,
-                state = state,
-                ownedReviewSubmissions = ownedReviewSubmissions
-            )
-        )
-
-        assertFalse(
-            shouldAdvanceReviewSessionGeneration(
-                previousSignature = previousSignature,
-                nextSignature = nextSignature,
-                state = state,
-                ownedReviewSubmissions = ownedReviewSubmissions
-            )
-        )
-        assertEquals(setOf(secondPendingCard), suppression.consumedPendingReviewedCards)
-    }
-
-    @Test
-    fun concurrentDeckTagChangeAdvancesGenerationDuringOwnedReview() {
-        val submittedCard = makePinnedReviewCard(
-            cardId = "deck-definition-change-card",
-            tags = listOf("fast"),
-            updatedAtMillis = 53L
-        )
-        val pendingReviewedCard = PendingReviewedCard(
-            cardId = submittedCard.cardId,
-            updatedAtMillis = submittedCard.updatedAtMillis
-        )
-        val previousSignature = createObservedReviewSessionSignature(
-            reviewCards = emptyList(),
-            presentedCard = null,
-            dueCount = 1,
-            remainingCount = 1,
-            totalCount = 1,
-            availableTagFilters = listOf(ReviewTagFilterOption(tag = "fast", totalCount = 1))
-        )
-        val nextSignature = createObservedReviewSessionSignature(
-            reviewCards = emptyList(),
-            presentedCard = null,
-            dueCount = 0,
-            remainingCount = 0,
-            totalCount = 1,
-            availableTagFilters = listOf(ReviewTagFilterOption(tag = "fast", totalCount = 0))
-        ).copy(
-            availableDeckFilters = listOf(
-                ReviewDeckFilterOption(
-                    deckId = "all-fast",
-                    title = "All fast",
-                    totalCount = 0,
-                    tags = listOf("changed")
-                )
-            )
-        )
-        val state = makePinnedReviewDraftState(
-            requestedFilter = ReviewFilter.AllCards,
-            presentedCard = null,
-            reviewedInSessionCount = 0,
-            pendingReviewedCards = setOf(pendingReviewedCard),
-            optimisticPreparedCurrentCard = null,
-            errorMessage = ""
-        )
-        val ownedReviewSubmissions = mapOf(
-            pendingReviewedCard to makeOwnedReviewSubmission(
-                pendingReviewedCard = pendingReviewedCard,
-                reviewedCard = submittedCard,
-                presentedCard = null,
-                observationState = OwnedReviewSubmissionObservationState.COMMIT_PENDING_OBSERVATION
-            )
-        )
-
-        assertEquals(
-            null,
-            findOwnedReviewSessionObservationSuppression(
-                previousSignature = previousSignature,
-                nextSignature = nextSignature,
-                state = state,
-                ownedReviewSubmissions = ownedReviewSubmissions
-            )
-        )
-        assertTrue(
-            shouldAdvanceReviewSessionGeneration(
-                previousSignature = previousSignature,
-                nextSignature = nextSignature,
-                state = state,
-                ownedReviewSubmissions = ownedReviewSubmissions
-            )
-        )
-    }
-
-    @Test
     fun sameFilterSelectionDoesNotAdvanceFilterGeneration() {
         val currentGeneration = 7L
         val activeFilter = ReviewFilter.Tags(tags = listOf("active"))
@@ -637,9 +358,7 @@ class ReviewFilterAndSessionGenerationTest {
     fun missingRequestedTagsStayUnchangedAcrossRepeatedFilterResolutions() {
         val requestedFilter = ReviewFilter.Tags(tags = listOf("Alpha", "missing"))
         val resolvedQueryFilter = ReviewFilter.Tags(tags = listOf("Alpha"))
-        val availableTagFilters = listOf(
-            ReviewTagFilterOption(tag = "Alpha", totalCount = 1)
-        )
+        val availableTagNames = listOf("Alpha")
 
         repeat(times = 2) {
             assertEquals(
@@ -647,7 +366,7 @@ class ReviewFilterAndSessionGenerationTest {
                 reviewFilterResolutionToApply(
                     requestedFilter = requestedFilter,
                     resolvedFilter = resolvedQueryFilter,
-                    availableTagFilters = availableTagFilters
+                    availableTagNames = availableTagNames
                 )
             )
         }
@@ -656,7 +375,7 @@ class ReviewFilterAndSessionGenerationTest {
             reviewFilterResolutionToApply(
                 requestedFilter = ReviewFilter.Tags(tags = listOf("Alpha")),
                 resolvedFilter = ReviewFilter.AllCards,
-                availableTagFilters = availableTagFilters
+                availableTagNames = availableTagNames
             )
         )
     }
@@ -779,8 +498,7 @@ private fun createObservedReviewSessionSignature(
     presentedCard: ReviewCard?,
     dueCount: Int,
     remainingCount: Int,
-    totalCount: Int,
-    availableTagFilters: List<ReviewTagFilterOption>
+    totalCount: Int
 ): ObservedReviewSessionSignature {
     return ObservedReviewSessionSignature(
         requestedFilter = ReviewFilter.AllCards,
@@ -791,16 +509,7 @@ private fun createObservedReviewSessionSignature(
         dueCount = dueCount,
         remainingCount = remainingCount,
         totalCount = totalCount,
-        hasMoreCards = false,
-        availableDeckFilters = listOf(
-            ReviewDeckFilterOption(
-                deckId = "all-fast",
-                title = "All fast",
-                totalCount = dueCount,
-                tags = listOf("fast")
-            )
-        ),
-        availableTagFilters = availableTagFilters
+        hasMoreCards = false
     )
 }
 

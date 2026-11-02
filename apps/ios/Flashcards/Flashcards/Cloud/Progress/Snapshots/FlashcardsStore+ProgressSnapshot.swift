@@ -70,8 +70,11 @@ extension FlashcardsStore {
                 userCalendar: Calendar.autoupdatingCurrent
             )
 
+            // Local review data changes leave the charts stale until Progress is shown;
+            // see docs/fsrs-scheduling-logic.md#non-blocking-review.
             if self.progressSnapshot?.scopeKey != scopeKey
-                || self.progressSnapshot?.presentationCalendar != presentationCalendar {
+                || self.progressSnapshot?.presentationCalendar != presentationCalendar
+                || self.progressSnapshotPublishedClientRevision != self.progressReviewedAtClientRevision {
                 try self.publishProgressSnapshot(scopeKey: scopeKey)
             }
             if self.reviewScheduleSnapshot?.scopeKey != scheduleScopeKey
@@ -134,6 +137,7 @@ extension FlashcardsStore {
             calendar: calendar
         )
         self.applyProgressSnapshot(snapshot: snapshot)
+        self.progressSnapshotPublishedClientRevision = self.progressReviewedAtClientRevision
     }
 
     private func makeProgressRenderedSummaryAndSeries(
@@ -475,9 +479,9 @@ extension FlashcardsStore {
     }
 
     private func currentProgressStreakDays(seriesScopeKey: ProgressScopeKey) throws -> Int? {
-        if let progressSnapshot = self.progressSnapshot,
-           progressSnapshot.scopeKey == seriesScopeKey {
-            return progressSnapshot.summary.currentStreakDays
+        if let badgeSource = self.reviewProgressBadgeSource,
+           badgeSource.scopeKey == seriesScopeKey {
+            return badgeSource.summary.currentStreakDays
         }
 
         let reviewedAtClientSources = try self.loadProgressReviewedAtClientSources()
@@ -534,14 +538,23 @@ extension FlashcardsStore {
             reviewedAtClientSources: reviewedAtClientSources
         )
 
-        self.applyReviewProgressBadgeState(
-            badgeState: makeReviewProgressBadgeState(summary: renderedProgress.renderedSummary.summary)
+        self.applyReviewProgressBadgeSummary(
+            summary: renderedProgress.renderedSummary.summary,
+            scopeKey: scopeKey
         )
+    }
+
+    func applyReviewProgressBadgeSummary(summary: ProgressSummary, scopeKey: ProgressScopeKey) {
+        self.reviewProgressBadgeSource = ReviewProgressBadgeSource(scopeKey: scopeKey, summary: summary)
+        self.applyReviewProgressBadgeState(badgeState: makeReviewProgressBadgeState(summary: summary))
     }
 
     func applyProgressSnapshot(snapshot: ProgressSnapshot?) {
         if self.progressSnapshot != snapshot {
             self.progressSnapshot = snapshot
+        }
+        self.reviewProgressBadgeSource = snapshot.map { snapshot in
+            ReviewProgressBadgeSource(scopeKey: snapshot.scopeKey, summary: snapshot.summary)
         }
         if snapshot == nil {
             self.applyReviewScheduleSnapshot(snapshot: nil)
@@ -591,6 +604,40 @@ extension FlashcardsStore {
         ).reviewSchedule
     }
 
+    /// Reads the whole review history off the main thread, so the publishes after it hit the cache.
+    /// Returns false when a rating, sync or scope change superseded the read and left the cache stale.
+    func preloadProgressReviewedAtClientSourcesOffMain(now: Date) async throws -> Bool {
+        let scopeKey = try self.prepareProgressScope(now: now)
+        let cacheKey = self.makeProgressReviewedAtClientCacheKey(scopeKey: scopeKey)
+        if self.progressReviewedAtClientCache?.key == cacheKey {
+            return true
+        }
+
+        let database = try requireLocalDatabase(database: self.database)
+        let workspaceIds = try self.loadCanonicalProgressWorkspaceIds(database: database)
+        let sources = try await loadProgressReviewedAtClientSourcesInBackground(
+            databaseURL: database.databaseURL,
+            workspaceIds: workspaceIds,
+            installationId: cacheKey.installationId
+        )
+        // A rating or sync during the read bumped the revision and owns the next read.
+        guard self.progressObservedScopeKey == scopeKey,
+              self.makeProgressReviewedAtClientCacheKey(scopeKey: scopeKey) == cacheKey else {
+            return false
+        }
+
+        self.progressReviewedAtClientCache = ProgressReviewedAtClientCacheEntry(key: cacheKey, sources: sources)
+        return true
+    }
+
+    private func makeProgressReviewedAtClientCacheKey(scopeKey: ProgressScopeKey) -> ProgressReviewedAtClientCacheKey {
+        ProgressReviewedAtClientCacheKey(
+            workspaceMembershipKey: scopeKey.workspaceMembershipKey,
+            installationId: self.cloudSettings?.installationId,
+            revision: self.progressReviewedAtClientRevision
+        )
+    }
+
     private func ensureProgressReviewedAtClientCacheEntry(
         database: LocalDatabase,
         workspaceIds: [String]
@@ -600,20 +647,17 @@ extension FlashcardsStore {
                 "Progress reviewed-at-client cache requires a prepared progress scope"
             )
         }
-        let cacheKey = ProgressReviewedAtClientCacheKey(
-            workspaceMembershipKey: scopeKey.workspaceMembershipKey,
-            installationId: self.cloudSettings?.installationId,
-            revision: self.progressReviewedAtClientRevision
-        )
+        let cacheKey = self.makeProgressReviewedAtClientCacheKey(scopeKey: scopeKey)
         if let entry = self.progressReviewedAtClientCache, entry.key == cacheKey {
             return entry
         }
 
         let entry = ProgressReviewedAtClientCacheEntry(
             key: cacheKey,
-            sources: try self.computeProgressReviewedAtClientSources(
+            sources: try readProgressReviewedAtClientSources(
                 database: database,
-                workspaceIds: workspaceIds
+                workspaceIds: workspaceIds,
+                installationId: cacheKey.installationId
             )
         )
         self.progressReviewedAtClientCache = entry
@@ -663,76 +707,6 @@ extension FlashcardsStore {
         )
         self.progressReviewScheduleLocalCache = entry
         return entry
-    }
-
-    private func computeProgressReviewedAtClientSources(
-        database: LocalDatabase,
-        workspaceIds: [String]
-    ) throws -> ProgressReviewedAtClientSources {
-        var canonicalReviewEvents: [ProgressReviewEventSource] = []
-        var canonicalQualifiedReviewEvents: [ProgressQualifiedReviewEventSource] = []
-        for workspaceId in workspaceIds {
-            for reviewEvent in try database.loadReviewEvents(workspaceId: workspaceId) {
-                canonicalReviewEvents.append(
-                    ProgressReviewEventSource(
-                        reviewEventId: reviewEvent.reviewEventId,
-                        reviewedAtClient: reviewEvent.reviewedAtClient,
-                        reviewedTimeZone: reviewEvent.reviewedTimeZone,
-                        rating: reviewEvent.rating
-                    )
-                )
-                if reviewEvent.rating != .again {
-                    canonicalQualifiedReviewEvents.append(
-                        ProgressQualifiedReviewEventSource(
-                            reviewEventId: reviewEvent.reviewEventId,
-                            reviewedAtClient: reviewEvent.reviewedAtClient
-                        )
-                    )
-                }
-            }
-        }
-
-        var pendingReviewEvents: [ProgressReviewEventSource] = []
-        var pendingQualifiedReviewEvents: [ProgressQualifiedReviewEventSource] = []
-        if let installationId = self.cloudSettings?.installationId {
-            for workspaceId in workspaceIds {
-                let pendingPayloads = try database.loadPendingReviewEventPayloads(
-                    workspaceId: workspaceId,
-                    installationId: installationId
-                )
-                for pendingPayload in pendingPayloads {
-                    guard let pendingRating = ReviewRating(rawValue: pendingPayload.rating) else {
-                        throw LocalStoreError.validation(
-                            "Pending review event rating is invalid: \(pendingPayload.rating)"
-                        )
-                    }
-
-                    pendingReviewEvents.append(
-                        ProgressReviewEventSource(
-                            reviewEventId: pendingPayload.reviewEventId,
-                            reviewedAtClient: pendingPayload.reviewedAtClient,
-                            reviewedTimeZone: pendingPayload.reviewedTimeZone,
-                            rating: pendingRating
-                        )
-                    )
-                    if pendingRating != .again {
-                        pendingQualifiedReviewEvents.append(
-                            ProgressQualifiedReviewEventSource(
-                                reviewEventId: pendingPayload.reviewEventId,
-                                reviewedAtClient: pendingPayload.reviewedAtClient
-                            )
-                        )
-                    }
-                }
-            }
-        }
-
-        return ProgressReviewedAtClientSources(
-            canonicalReviewEvents: canonicalReviewEvents,
-            pendingReviewEvents: pendingReviewEvents,
-            canonicalQualifiedReviewEvents: canonicalQualifiedReviewEvents,
-            pendingQualifiedReviewEvents: pendingQualifiedReviewEvents
-        )
     }
 
     private func computeReviewSchedulePendingLocalOverlayState(
@@ -840,6 +814,83 @@ extension FlashcardsStore {
 
         return workspaceIds
     }
+}
+
+/// The summary behind the Review streak badge, patched in memory per rating.
+struct ReviewProgressBadgeSource: Hashable, Sendable {
+    let scopeKey: ProgressScopeKey
+    let summary: ProgressSummary
+}
+
+func readProgressReviewedAtClientSources(
+    database: LocalDatabase,
+    workspaceIds: [String],
+    installationId: String?
+) throws -> ProgressReviewedAtClientSources {
+    var canonicalReviewEvents: [ProgressReviewEventSource] = []
+    var canonicalQualifiedReviewEvents: [ProgressQualifiedReviewEventSource] = []
+    for workspaceId in workspaceIds {
+        for reviewEvent in try database.loadReviewEvents(workspaceId: workspaceId) {
+            canonicalReviewEvents.append(
+                ProgressReviewEventSource(
+                    reviewEventId: reviewEvent.reviewEventId,
+                    reviewedAtClient: reviewEvent.reviewedAtClient,
+                    reviewedTimeZone: reviewEvent.reviewedTimeZone,
+                    rating: reviewEvent.rating
+                )
+            )
+            if reviewEvent.rating != .again {
+                canonicalQualifiedReviewEvents.append(
+                    ProgressQualifiedReviewEventSource(
+                        reviewEventId: reviewEvent.reviewEventId,
+                        reviewedAtClient: reviewEvent.reviewedAtClient
+                    )
+                )
+            }
+        }
+    }
+
+    var pendingReviewEvents: [ProgressReviewEventSource] = []
+    var pendingQualifiedReviewEvents: [ProgressQualifiedReviewEventSource] = []
+    if let installationId {
+        for workspaceId in workspaceIds {
+            let pendingPayloads = try database.loadPendingReviewEventPayloads(
+                workspaceId: workspaceId,
+                installationId: installationId
+            )
+            for pendingPayload in pendingPayloads {
+                guard let pendingRating = ReviewRating(rawValue: pendingPayload.rating) else {
+                    throw LocalStoreError.validation(
+                        "Pending review event rating is invalid: \(pendingPayload.rating)"
+                    )
+                }
+
+                pendingReviewEvents.append(
+                    ProgressReviewEventSource(
+                        reviewEventId: pendingPayload.reviewEventId,
+                        reviewedAtClient: pendingPayload.reviewedAtClient,
+                        reviewedTimeZone: pendingPayload.reviewedTimeZone,
+                        rating: pendingRating
+                    )
+                )
+                if pendingRating != .again {
+                    pendingQualifiedReviewEvents.append(
+                        ProgressQualifiedReviewEventSource(
+                            reviewEventId: pendingPayload.reviewEventId,
+                            reviewedAtClient: pendingPayload.reviewedAtClient
+                        )
+                    )
+                }
+            }
+        }
+    }
+
+    return ProgressReviewedAtClientSources(
+        canonicalReviewEvents: canonicalReviewEvents,
+        pendingReviewEvents: pendingReviewEvents,
+        canonicalQualifiedReviewEvents: canonicalQualifiedReviewEvents,
+        pendingQualifiedReviewEvents: pendingQualifiedReviewEvents
+    )
 }
 
 private func makeProgressWorkspaceMembershipKey(workspaceIds: [String]) -> String {

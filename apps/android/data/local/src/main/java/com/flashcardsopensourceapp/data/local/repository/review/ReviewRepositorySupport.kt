@@ -27,10 +27,13 @@ import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.transformLatest
 
 internal const val reviewSessionCanonicalQueueSize: Int = 8
@@ -60,20 +63,9 @@ internal data class ReviewSessionQueryBase(
     val workspaceId: String,
     val resolvedFilter: ReviewFilter,
     val predicate: ReviewQueuePredicate,
-    val deckEntities: List<DeckEntity>,
     val decksForResolution: List<DeckSummary>,
     val storedTagNames: List<String>,
-    val settings: WorkspaceSchedulerSettings,
-    val nowMillis: Long
-)
-
-internal data class ReviewSessionQueueState(
-    val canonicalCards: List<CardSummary>,
-    val presentedCard: CardSummary?,
-    val dueCount: Int,
-    val remainingCount: Int,
-    val totalCount: Int,
-    val hasMoreCards: Boolean
+    val settings: WorkspaceSchedulerSettings
 )
 
 internal fun makeEmptyReviewSessionSnapshot(nowMillis: Long): ReviewSessionSnapshot {
@@ -82,12 +74,13 @@ internal fun makeEmptyReviewSessionSnapshot(nowMillis: Long): ReviewSessionSnaps
         decks = emptyList(),
         canonicalCards = emptyList(),
         presentedCard = null,
+        preparedNextCard = null,
         dueCount = 0,
         remainingCount = 0,
         totalCount = 0,
         hasMoreCards = false,
-        availableDeckFilters = emptyList(),
-        availableTagFilters = emptyList(),
+        reviewTagNames = emptyList(),
+        nextDueAtMillis = null,
         settings = makeDefaultWorkspaceSchedulerSettings(
             workspaceId = "",
             updatedAtMillis = nowMillis
@@ -202,27 +195,6 @@ internal fun observeActiveReviewQueue(
     }
 }
 
-internal fun observeReviewDueCount(
-    database: AppDatabase,
-    workspaceId: String,
-    nowMillis: Long,
-    predicate: ReviewQueuePredicate
-): Flow<Int> {
-    return when (val tagPredicate: ReviewTagPredicate = predicate.tagPredicate) {
-        ReviewTagPredicate.MatchNone -> flowOf(0)
-        ReviewTagPredicate.None -> database.reviewCountDao().observeReviewDueCount(
-            workspaceId = workspaceId,
-            nowMillis = nowMillis
-        )
-
-        is ReviewTagPredicate.ExactTagNames -> database.reviewCountDao().observeReviewDueCountByAnyTags(
-            workspaceId = workspaceId,
-            nowMillis = nowMillis,
-            tagNames = tagPredicate.tagNames
-        )
-    }
-}
-
 /**
  * Re-queries with a fresh `now` once the next card becomes due, so the count stays current without
  * polling. Every collection owns its own clock.
@@ -237,7 +209,7 @@ internal fun observeReviewDueBadgeCountForPredicate(
         val nowMillisState = MutableStateFlow(value = System.currentTimeMillis())
         emitAll(
             nowMillisState.flatMapLatest { nowMillis ->
-                observeReviewDueBadgeCountRow(
+                observeReviewDueCountRow(
                     database = database,
                     workspaceId = workspaceId,
                     nowMillis = nowMillis,
@@ -254,7 +226,8 @@ internal fun observeReviewDueBadgeCountForPredicate(
     }
 }
 
-private fun observeReviewDueBadgeCountRow(
+/** Due count and the earliest future due time, both at [nowMillis]. */
+internal fun observeReviewDueCountRow(
     database: AppDatabase,
     workspaceId: String,
     nowMillis: Long,
@@ -291,17 +264,38 @@ internal fun observeReviewTotalCount(
     }
 }
 
-internal fun observePresentedCard(
+/**
+ * Review tag names, re-read with the full join only when tags, card-tag links, or the live card count
+ * change. A rating writes none of them, so it never re-reads every card for this.
+ * See docs/fsrs-scheduling-logic.md#non-blocking-review.
+ */
+internal fun observeReviewTagNamesOffRatingPath(
+    database: AppDatabase,
+    workspaceId: String
+): Flow<List<String>> {
+    return combine(
+        database.invalidationTracker.createFlow("tags", "card_tags"),
+        // A local delete writes only the card row; the live count is how it reaches this flow.
+        database.reviewCountDao().observeReviewTotalCount(workspaceId = workspaceId).distinctUntilChanged()
+    ) { _, _ ->
+        Unit
+    }.map {
+        database.tagDao().loadReviewTagNames(workspaceId = workspaceId)
+    }.distinctUntilChanged()
+}
+
+/** The shown card and the prepared next card by id, so both stay pinned outside the queue window. */
+internal fun observePinnedReviewCards(
     database: AppDatabase,
     workspaceId: String,
-    presentedCardId: String?
-): Flow<CardWithRelations?> {
-    return if (presentedCardId == null) {
-        flowOf(null)
+    cardIds: List<String>
+): Flow<List<CardWithRelations>> {
+    return if (cardIds.isEmpty()) {
+        flowOf(emptyList())
     } else {
-        database.cardDao().observeCardWithRelationsByWorkspace(
-            cardId = presentedCardId,
-            workspaceId = workspaceId
+        database.cardDao().observeCardsWithRelationsByWorkspaceAndIds(
+            workspaceId = workspaceId,
+            cardIds = cardIds
         )
     }
 }
@@ -349,28 +343,30 @@ internal fun isPendingReviewCardCounted(
     )
 }
 
-internal fun resolvePresentedCardSummary(
+/** The pinned card while it is still in review: in the queue window, or loaded and still due in the filter. */
+internal fun resolvePinnedCardStillInReview(
     canonicalCards: List<CardSummary>,
-    loadedPresentedCard: CardSummary?,
-    presentedCardId: String?,
+    loadedPinnedCard: CardSummary?,
+    pinnedCardId: String?,
     pendingReviewedCards: Set<PendingReviewedCard>,
     selectedFilter: ReviewFilter,
     decks: List<DeckSummary>,
     nowMillis: Long
 ): CardSummary? {
-    if (presentedCardId == null) {
-        return canonicalCards.firstOrNull()
+    if (pinnedCardId == null) {
+        return null
     }
 
-    val canonicalPresentedCard: CardSummary? = canonicalCards.firstOrNull { card ->
-        card.cardId == presentedCardId
+    val canonicalPinnedCard: CardSummary? = canonicalCards.firstOrNull { card ->
+        card.cardId == pinnedCardId
     }
-    if (canonicalPresentedCard != null) {
-        return canonicalPresentedCard
+    if (canonicalPinnedCard != null) {
+        return canonicalPinnedCard
     }
 
-    val candidate: CardSummary = loadedPresentedCard ?: return canonicalCards.firstOrNull()
-    if (isPreservablePresentedCard(
+    val candidate: CardSummary = loadedPinnedCard ?: return null
+    return if (
+        isPreservablePinnedCard(
             card = candidate,
             pendingReviewedCards = pendingReviewedCards,
             selectedFilter = selectedFilter,
@@ -378,13 +374,50 @@ internal fun resolvePresentedCardSummary(
             nowMillis = nowMillis
         )
     ) {
-        return candidate
+        candidate
+    } else {
+        null
     }
-
-    return canonicalCards.firstOrNull()
 }
 
-private fun isPreservablePresentedCard(
+/**
+ * The shown card stays until rated; if it leaves review, the prepared next card takes its place.
+ * See docs/fsrs-scheduling-logic.md#non-blocking-review.
+ */
+internal fun resolvePresentedCardSummary(
+    canonicalCards: List<CardSummary>,
+    presentedCardStillInReview: CardSummary?,
+    presentedCardId: String?,
+    preparedNextCardStillInReview: CardSummary?
+): CardSummary? {
+    if (presentedCardId == null) {
+        return canonicalCards.firstOrNull()
+    }
+
+    return presentedCardStillInReview ?: preparedNextCardStillInReview ?: canonicalCards.firstOrNull()
+}
+
+/**
+ * The prepared next card stays next while it is still in review, so newly due or reordered cards queue
+ * behind it; otherwise the first other queued card is prepared.
+ * See docs/fsrs-scheduling-logic.md#non-blocking-review.
+ */
+internal fun resolvePreparedNextCardSummary(
+    canonicalCards: List<CardSummary>,
+    presentedCard: CardSummary?,
+    preparedNextCardStillInReview: CardSummary?
+): CardSummary? {
+    val presentedCardId: String? = presentedCard?.cardId
+    if (preparedNextCardStillInReview != null && preparedNextCardStillInReview.cardId != presentedCardId) {
+        return preparedNextCardStillInReview
+    }
+
+    return canonicalCards.firstOrNull { card ->
+        card.cardId != presentedCardId
+    }
+}
+
+private fun isPreservablePinnedCard(
     card: CardSummary,
     pendingReviewedCards: Set<PendingReviewedCard>,
     selectedFilter: ReviewFilter,

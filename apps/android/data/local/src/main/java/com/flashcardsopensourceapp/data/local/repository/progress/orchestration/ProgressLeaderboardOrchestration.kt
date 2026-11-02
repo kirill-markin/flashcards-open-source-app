@@ -216,7 +216,7 @@ internal class ProgressLeaderboardOrchestration(
                     leaderboardCaches = inputs.leaderboardCaches,
                     scopeKey = scopeKey
                 ),
-                qualifiedReviewActivity = inputs.qualifiedReviewActivity,
+                qualifiedReviewActivity = inputs.heavyInputs.qualifiedReviewActivity,
                 didLastRemoteLoadFail = failedRemoteLoadScopeKeyMutable.value ==
                     serializeProgressLeaderboardScopeKey(scopeKey = scopeKey),
                 currentTimeMillis = clockSnapshot.currentTimeMillis

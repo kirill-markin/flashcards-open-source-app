@@ -107,6 +107,7 @@ class RtlLayoutTest : FirebaseAppInstrumentationTimeoutTest() {
                     preparedNextCard = null,
                     availableDeckFilters = emptyList(),
                     availableTagFilters = emptyList(),
+                    areFilterOptionsLoaded = true,
                     reviewLeaderboardBadge = ReviewLeaderboardBadgeState(
                         rank = null,
                         windowKey = null,

@@ -227,3 +227,36 @@ func defaultReviewTimelinePageLoader(
         }
     }.value
 }
+
+func loadProgressReviewedAtClientSourcesInBackground(
+    databaseURL: URL,
+    workspaceIds: [String],
+    installationId: String?
+) async throws -> ProgressReviewedAtClientSources {
+    try await Task.detached(priority: .utility) {
+        try Task.checkCancellation()
+        return try withTemporaryLocalLoaderDatabase(databaseURL: databaseURL) { database in
+            try database.core.inReadTransaction {
+                try readProgressReviewedAtClientSources(
+                    database: database,
+                    workspaceIds: workspaceIds,
+                    installationId: installationId
+                )
+            }
+        }
+    }.value
+}
+
+func loadWorkspaceTagsSummaryInBackground(
+    databaseURL: URL,
+    workspaceId: String
+) async throws -> WorkspaceTagsSummary {
+    try await Task.detached(priority: .utility) {
+        try Task.checkCancellation()
+        return try withTemporaryLocalLoaderDatabase(databaseURL: databaseURL) { database in
+            try database.core.inReadTransaction {
+                try database.loadWorkspaceTagsSummary(workspaceId: workspaceId)
+            }
+        }
+    }.value
+}

@@ -3,6 +3,7 @@ package com.flashcardsopensourceapp.data.local.repository.progress
 import com.flashcardsopensourceapp.core.observability.AppObservability
 import com.flashcardsopensourceapp.data.local.cloud.CloudPreferencesStore
 import com.flashcardsopensourceapp.data.local.database.core.AppDatabase
+import com.flashcardsopensourceapp.data.local.database.entities.ReviewLogEntity
 import com.flashcardsopensourceapp.data.local.model.progress.CloudProgressLeaderboardProfile
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressLeaderboardSnapshot
 import com.flashcardsopensourceapp.data.local.model.progress.ProgressReviewScheduleSnapshot
@@ -15,8 +16,10 @@ import com.flashcardsopensourceapp.data.local.repository.SyncRepository
 import com.flashcardsopensourceapp.data.local.repository.shared.TimeProvider
 import com.flashcardsopensourceapp.data.local.repository.progress.cache.LocalProgressCacheStore
 import com.flashcardsopensourceapp.data.local.repository.progress.cache.ProgressLocalCacheReadinessCoordinator
+import com.flashcardsopensourceapp.data.local.repository.progress.inputs.ProgressHeavyInputs
 import com.flashcardsopensourceapp.data.local.repository.progress.inputs.ProgressObservedInputs
 import com.flashcardsopensourceapp.data.local.repository.progress.inputs.createProgressClockSnapshot
+import com.flashcardsopensourceapp.data.local.repository.progress.inputs.observeProgressHeavyInputs
 import com.flashcardsopensourceapp.data.local.repository.progress.inputs.observeProgressInputs
 import com.flashcardsopensourceapp.data.local.repository.progress.orchestration.ProgressLeaderboardOrchestration
 import com.flashcardsopensourceapp.data.local.repository.progress.orchestration.ProgressReviewScheduleOrchestration
@@ -25,14 +28,39 @@ import com.flashcardsopensourceapp.data.local.repository.progress.orchestration.
 import com.flashcardsopensourceapp.data.local.repository.progress.orchestration.ProgressSummaryOrchestration
 import com.flashcardsopensourceapp.data.local.repository.progress.runtime.ProgressBackgroundLauncher
 import com.flashcardsopensourceapp.data.local.repository.progress.runtime.createProgressObservationVersions
+import java.util.concurrent.atomic.AtomicLong
+import kotlin.time.Duration
+import kotlin.time.Duration.Companion.seconds
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onStart
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.update
 
+private val progressDeferredRefreshDelay: Duration = 3.seconds
+
+/**
+ * Keeps whole-history Progress work off the rating path; see
+ * docs/fsrs-scheduling-logic.md#non-blocking-review. A rating patches the badges in memory, and
+ * the heavy inputs plus the charts built from them recompute only while Progress is visible, at
+ * start, and [progressDeferredRefreshDelay] after the last rating.
+ */
+@OptIn(ExperimentalCoroutinesApi::class, FlowPreview::class)
 class LocalProgressRepository(
     appScope: CoroutineScope,
-    database: AppDatabase,
+    private val database: AppDatabase,
     preferencesStore: CloudPreferencesStore,
     private val cloudAccountRepository: CloudAccountRepository,
     syncRepository: SyncRepository,
@@ -40,7 +68,8 @@ class LocalProgressRepository(
     observability: AppObservability,
     appVersion: String,
     versionCode: Int,
-    private val timeProvider: TimeProvider
+    private val timeProvider: TimeProvider,
+    isProgressScreenShown: Flow<Boolean>
 ) : ProgressRepository {
     private val observationVersions = createProgressObservationVersions(
         appVersion = appVersion,
@@ -99,21 +128,64 @@ class LocalProgressRepository(
         observationVersions = observationVersions
     )
 
-    // Captured handle for the input-observation flow so the lifecycle of this
-    // long-running collector is explicit rather than hidden inside an init block.
-    // Cancellation flows through appJob today; the handle is here so the collector
-    // is no longer anonymous and can be disposed independently in the future.
+    private val isProgressScreenVisible: StateFlow<Boolean> = isProgressScreenShown.stateIn(
+        scope = appScope,
+        started = SharingStarted.Eagerly,
+        initialValue = false
+    )
+    // Bumped after every committed rating. The hidden branch reloads heavy inputs when it differs
+    // from heavyInputsRatingVersion, so a rating committed before that branch subscribes still
+    // triggers the deferred refresh.
+    private val committedRatingVersion = MutableStateFlow(value = 0L)
+    private val heavyInputsRatingVersion = AtomicLong(0L)
+    // Read and written only by the input collector below.
+    private var lastChartHeavyInputs: ProgressHeavyInputs? = null
+
     private val observeInputsJob: Job = backgroundLauncher.launchAndLogFailure(
         event = "progress_inputs_collect_failed",
         fields = emptyList()
     ) {
+        val visibleOrDeferredHeavyInputs = isProgressScreenVisible.flatMapLatest { isVisible ->
+            if (isVisible) {
+                observeProgressHeavyInputs(
+                    database = database,
+                    timeProvider = timeProvider
+                ).onStart {
+                    heavyInputsRatingVersion.set(committedRatingVersion.value)
+                }
+            } else {
+                committedRatingVersion.filter { version ->
+                    version != heavyInputsRatingVersion.get()
+                }.debounce(timeout = progressDeferredRefreshDelay).map { version ->
+                    loadHeavyInputs(ratingVersion = version)
+                }
+            }
+        }.onStart {
+            emit(loadHeavyInputs(ratingVersion = committedRatingVersion.value))
+        }
         observeProgressInputs(
             database = database,
             preferencesStore = preferencesStore,
             syncRepository = syncRepository,
-            timeProvider = timeProvider
+            heavyInputs = visibleOrDeferredHeavyInputs
         ).collect { inputs ->
             handleProgressInputs(inputs = inputs)
+        }
+    }
+
+    private val committedReviewsJob: Job = backgroundLauncher.launchAndLogFailure(
+        event = "progress_committed_reviews_collect_failed",
+        fields = emptyList()
+    ) {
+        localProgressCacheStore.observeCommittedReviews().collect { reviewLog ->
+            scheduleDeferredProgressRefresh()
+            // Its own launch, so one failed patch neither ends this collector nor skips later ratings.
+            backgroundLauncher.launchAndLogFailure(
+                event = "progress_rating_badge_apply_failed",
+                fields = listOf("workspaceId" to reviewLog.workspaceId)
+            ) {
+                applyRatingToVisibleProgressBadges(reviewLog = reviewLog)
+            }
         }
     }
 
@@ -185,19 +257,32 @@ class LocalProgressRepository(
         return cloudAccountRepository.loadProgressLeaderboardProfile(publicProfileId = publicProfileId)
     }
 
+    private fun applyRatingToVisibleProgressBadges(reviewLog: ReviewLogEntity) {
+        summaryOrchestration.applyRating(
+            reviewLog = reviewLog,
+            clockSnapshot = createProgressClockSnapshot(timeProvider = timeProvider)
+        )
+    }
+
+    private fun scheduleDeferredProgressRefresh() {
+        committedRatingVersion.update { version -> version + 1L }
+    }
+
+    // ratingVersion is read before the query, so the loaded inputs include at least that rating.
+    private suspend fun loadHeavyInputs(ratingVersion: Long): ProgressHeavyInputs {
+        val heavyInputs = observeProgressHeavyInputs(
+            database = database,
+            timeProvider = timeProvider
+        ).first()
+        heavyInputsRatingVersion.set(ratingVersion)
+        return heavyInputs
+    }
+
     private fun handleProgressInputs(
         inputs: ProgressObservedInputs
     ) {
         val clockSnapshot = createProgressClockSnapshot(timeProvider = timeProvider)
         val summaryHandledInputs = summaryOrchestration.handleInputs(
-            inputs = inputs,
-            clockSnapshot = clockSnapshot
-        )
-        val seriesHandledInputs = seriesOrchestration.handleInputs(
-            inputs = inputs,
-            clockSnapshot = clockSnapshot
-        )
-        val reviewScheduleHandledInputs = reviewScheduleOrchestration.handleInputs(
             inputs = inputs,
             clockSnapshot = clockSnapshot
         )
@@ -215,20 +300,36 @@ class LocalProgressRepository(
                 ?.currentStreakDays
         )
 
-        if (
-            summaryHandledInputs.currentStoreState.isLocalCacheReady.not() ||
-            seriesHandledInputs.currentStoreState.isLocalCacheReady.not()
-        ) {
-            backgroundLauncher.launchAndLogFailure(
-                event = "progress_local_cache_ready_background_failed",
-                fields = listOf("timeZone" to summaryHandledInputs.currentStoreState.scopeKey.timeZone)
-            ) {
-                cacheReadinessCoordinator.ensureLocalCacheReady(
-                    timeZone = summaryHandledInputs.currentStoreState.scopeKey.timeZone
-                )
-            }
+        // Charts walk every card and the series range, so a change that brought no new heavy
+        // inputs, such as the outbox write of a rating, does not rebuild them while Progress is hidden.
+        val shouldRecomputeCharts = isProgressScreenVisible.value || inputs.heavyInputs !== lastChartHeavyInputs
+        if (shouldRecomputeCharts.not()) {
+            seriesOrchestration.rememberLatestInputs(inputs = inputs)
+            reviewScheduleOrchestration.rememberLatestInputs(inputs = inputs)
+            ensureLocalCacheReadyIfNeeded(
+                isLocalCacheReady = summaryHandledInputs.currentStoreState.isLocalCacheReady,
+                timeZone = summaryHandledInputs.currentStoreState.scopeKey.timeZone
+            )
+            summaryOrchestration.launchSyncCompletedRefreshIfNeeded(
+                handledInputs = summaryHandledInputs
+            )
+            return
         }
 
+        lastChartHeavyInputs = inputs.heavyInputs
+        val seriesHandledInputs = seriesOrchestration.handleInputs(
+            inputs = inputs,
+            clockSnapshot = clockSnapshot
+        )
+        val reviewScheduleHandledInputs = reviewScheduleOrchestration.handleInputs(
+            inputs = inputs,
+            clockSnapshot = clockSnapshot
+        )
+        ensureLocalCacheReadyIfNeeded(
+            isLocalCacheReady = summaryHandledInputs.currentStoreState.isLocalCacheReady &&
+                seriesHandledInputs.currentStoreState.isLocalCacheReady,
+            timeZone = summaryHandledInputs.currentStoreState.scopeKey.timeZone
+        )
         summaryOrchestration.launchSyncCompletedRefreshIfNeeded(
             handledInputs = summaryHandledInputs
         )
@@ -238,5 +339,21 @@ class LocalProgressRepository(
         reviewScheduleOrchestration.launchSyncCompletedRefreshIfNeeded(
             handledInputs = reviewScheduleHandledInputs
         )
+    }
+
+    private fun ensureLocalCacheReadyIfNeeded(
+        isLocalCacheReady: Boolean,
+        timeZone: String
+    ) {
+        if (isLocalCacheReady) {
+            return
+        }
+
+        backgroundLauncher.launchAndLogFailure(
+            event = "progress_local_cache_ready_background_failed",
+            fields = listOf("timeZone" to timeZone)
+        ) {
+            cacheReadinessCoordinator.ensureLocalCacheReady(timeZone = timeZone)
+        }
     }
 }

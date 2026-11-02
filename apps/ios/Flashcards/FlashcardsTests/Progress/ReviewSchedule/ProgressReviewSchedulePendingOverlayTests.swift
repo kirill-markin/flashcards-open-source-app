@@ -835,6 +835,8 @@ final class ProgressReviewSchedulePendingOverlayTests: ProgressStoreTestCase {
         )
         if allowsImmediateRefresh == false {
             fixture.context.store.updateCurrentVisibleTab(tab: .progress)
+            // Showing Progress rebuilds what the sync left stale off screen.
+            _ = try fixture.context.store.prepareProgressSnapshot(now: fixture.now)
         }
     }
 }

@@ -8,6 +8,7 @@ import com.flashcardsopensourceapp.data.local.database.entities.WorkspaceEntity
 import com.flashcardsopensourceapp.data.local.model.cards.DeckDraft
 import com.flashcardsopensourceapp.data.local.model.review.ReviewCardQueueStatus
 import com.flashcardsopensourceapp.data.local.model.review.ReviewFilter
+import com.flashcardsopensourceapp.data.local.model.review.ReviewSessionQueryInputs
 import com.flashcardsopensourceapp.data.local.model.cards.buildDeckFilterDefinition
 import com.flashcardsopensourceapp.data.local.support.LocalDatabaseTestRuntime
 import com.flashcardsopensourceapp.data.local.support.bootstrapTestWorkspace
@@ -18,6 +19,7 @@ import com.flashcardsopensourceapp.data.local.support.createTestReviewRepository
 import com.flashcardsopensourceapp.data.local.support.makeDueReviewOrderingCardEntity
 import com.flashcardsopensourceapp.data.local.support.makeNewReviewOrderingCardEntity
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -98,8 +100,14 @@ class LocalReviewRollbackContractTest {
 
         val sessionSnapshot = reviewRepository.observeReviewSession(
             selectedFilter = ReviewFilter.Tags(tags = listOf("Alpha", "missing")),
-            pendingReviewedCards = emptySet(),
-            presentedCardId = null
+            queryInputs = flowOf(
+                ReviewSessionQueryInputs(
+                    pendingReviewedCards = emptySet(),
+                    presentedCardId = null,
+                    preparedNextCardId = null,
+                    nowMillis = System.currentTimeMillis()
+                )
+            )
         ).first()
         val rollbackCard = reviewRepository.loadReviewCardForRollback(
             selectedFilter = sessionSnapshot.selectedFilter,
