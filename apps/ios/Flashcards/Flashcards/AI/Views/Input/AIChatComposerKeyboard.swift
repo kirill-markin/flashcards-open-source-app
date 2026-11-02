@@ -1,97 +1,47 @@
 import SwiftUI
 import UIKit
 
-/// Hosts the composer so a UIKit ancestor of its text view owns hardware Return.
-/// UIKit key commands fire only for hardware keyboards; on-screen Return keeps inserting a new line.
-struct AIChatComposerKeyboardHost<Content: View>: UIViewControllerRepresentable {
-    let isFocused: Binding<Bool>
+struct AIChatComposerKeyboardObserver: UIViewRepresentable {
+    let isEnabled: Bool
     let canSend: () -> Bool
     let onSend: () -> Void
-    let content: (FocusState<Bool>.Binding) -> Content
 
-    func makeUIViewController(context: Context) -> AIChatComposerKeyboardController {
-        let controller = AIChatComposerKeyboardController(rootView: self.rootView(context: context))
-        controller.view.backgroundColor = .clear
-        controller.sizingOptions = .intrinsicContentSize
-        controller.safeAreaRegions = []
-        self.updateUIViewController(controller, context: context)
-        return controller
+    func makeUIView(context: Context) -> AIChatComposerKeyboardCommandView {
+        let view = AIChatComposerKeyboardCommandView()
+        view.isUserInteractionEnabled = false
+        view.isAccessibilityElement = false
+        view.accessibilityElementsHidden = true
+        return view
     }
 
-    func updateUIViewController(_ controller: AIChatComposerKeyboardController, context: Context) {
-        controller.rootView = self.rootView(context: context)
-        controller.canSend = self.canSend
-        controller.onSend = self.onSend
+    func updateUIView(_ view: AIChatComposerKeyboardCommandView, context: Context) {
+        view.isEnabled = self.isEnabled
+        view.canSend = self.canSend
+        view.onSend = self.onSend
+        view.refreshCommands()
     }
 
-    func sizeThatFits(
-        _ proposal: ProposedViewSize,
-        uiViewController: AIChatComposerKeyboardController,
-        context: Context
-    ) -> CGSize? {
-        uiViewController.sizeThatFits(in: CGSize(
-            width: proposal.width ?? .greatestFiniteMagnitude,
-            height: .greatestFiniteMagnitude
-        ))
-    }
-
-    static func dismantleUIViewController(_ controller: AIChatComposerKeyboardController, coordinator: Void) {
-        controller.canSend = nil
-        controller.onSend = nil
-    }
-
-    private func rootView(context: Context) -> AnyView {
-        AnyView(
-            AIChatComposerFocusBridge(isFocused: self.isFocused, content: self.content)
-                .environment(\.self, context.environment)
-        )
+    static func dismantleUIView(_ view: AIChatComposerKeyboardCommandView, coordinator: Void) {
+        view.isEnabled = false
+        view.detach()
+        view.canSend = nil
+        view.onSend = nil
     }
 }
 
-/// A FocusState only tracks text fields rendered in its own hosting graph, so the hosted
-/// composer owns one and mirrors it into the chat's plain focus flag.
-private struct AIChatComposerFocusBridge<Content: View>: View {
-    @Binding var isFocused: Bool
-    let content: (FocusState<Bool>.Binding) -> Content
-    @FocusState private var isTextFieldFocused: Bool
-
-    var body: some View {
-        self.content(self.$isTextFieldFocused)
-            .onAppear {
-                self.applyFocusRequest(self.isFocused)
-            }
-            .onDisappear {
-                self.isFocused = false
-            }
-            .onChange(of: self.isFocused) { _, isFocused in
-                self.applyFocusRequest(isFocused)
-            }
-            .onChange(of: self.isTextFieldFocused) { _, isTextFieldFocused in
-                if self.isFocused != isTextFieldFocused {
-                    self.isFocused = isTextFieldFocused
-                }
-            }
-    }
-
-    /// SwiftUI silently drops a focus request the field cannot take, so on the next main-actor
-    /// turn the plain flag reads the real state back instead of staying stuck on the request.
-    private func applyFocusRequest(_ isFocused: Bool) {
-        guard self.isTextFieldFocused != isFocused else { return }
-        self.isTextFieldFocused = isFocused
-        Task { @MainActor in
-            guard self.isFocused == isFocused, self.isTextFieldFocused != isFocused else { return }
-            self.isFocused = self.isTextFieldFocused
-        }
-    }
-}
-
-/// Each modifier set also matches numeric-pad Enter, and the commands take priority over the text view.
 @MainActor
-private func makeComposerReturnKeyCommands(modifierFlags: [UIKeyModifierFlags], action: Selector) -> [UIKeyCommand] {
+private func makeComposerReturnKeyCommands(
+    modifierFlags: [UIKeyModifierFlags],
+    action: Selector,
+    identifier: String
+) -> [UIKeyCommand] {
     modifierFlags.flatMap { flags in
         [flags, flags.union(.numericPad)].flatMap { flags in
             ["\r", "\u{3}"].map { input in
-                let command = UIKeyCommand(input: input, modifierFlags: flags, action: action)
+                let command = UIKeyCommand(
+                    title: "", image: nil, action: action,
+                    input: input, modifierFlags: flags, propertyList: identifier
+                )
                 command.wantsPriorityOverSystemBehavior = true
                 return command
             }
@@ -99,51 +49,128 @@ private func makeComposerReturnKeyCommands(modifierFlags: [UIKeyModifierFlags], 
     }
 }
 
-@MainActor
-private func firstResponderTextInput(in view: UIView) -> UITextInput? {
-    if view.isFirstResponder { return view as? UITextInput }
-    return view.subviews.lazy.compactMap { firstResponderTextInput(in: $0) }.first
-}
-
-final class AIChatComposerKeyboardController: UIHostingController<AnyView> {
+final class AIChatComposerKeyboardCommandView: UIView {
+    var isEnabled = false
     var canSend: (() -> Bool)?
     var onSend: (() -> Void)?
+    private weak var commandController: UIViewController?
+    private let commandIdentifier = UUID().uuidString
+    private static var commandOwners: [String: CommandOwner] = [:]
 
-    private var focusedTextInput: UITextInput? {
-        self.viewIfLoaded.flatMap { firstResponderTextInput(in: $0) }
+    private final class CommandOwner {
+        weak var view: AIChatComposerKeyboardCommandView?
+        init(_ view: AIChatComposerKeyboardCommandView) { self.view = view }
     }
 
-    override var keyCommands: [UIKeyCommand]? {
-        let inheritedCommands = super.keyCommands ?? []
-        guard self.focusedTextInput != nil else { return inheritedCommands }
-        return inheritedCommands
-            + makeComposerReturnKeyCommands(
-                modifierFlags: [UIKeyModifierFlags()],
-                action: #selector(self.composerReturn(_:))
-            )
-            + makeComposerReturnKeyCommands(
-                modifierFlags: [.shift, .alternate],
-                action: #selector(self.composerLineBreak(_:))
-            )
-    }
+    private lazy var returnCommands: [UIKeyCommand] = makeComposerReturnKeyCommands(
+        modifierFlags: [UIKeyModifierFlags()],
+        action: #selector(UIViewController.nibomoSendComposerMessage(_:)),
+        identifier: self.commandIdentifier
+    )
+    private lazy var lineBreakCommands: [UIKeyCommand] = makeComposerReturnKeyCommands(
+        modifierFlags: [.shift, .alternate],
+        action: #selector(UIViewController.nibomoInsertComposerLineBreak(_:)),
+        identifier: self.commandIdentifier
+    )
 
-    override func canPerformAction(_ action: Selector, withSender sender: Any?) -> Bool {
-        if action == #selector(self.composerReturn(_:)) || action == #selector(self.composerLineBreak(_:)) {
-            // Marked text means an input method is composing; Return must confirm it instead.
-            guard let textInput = self.focusedTextInput else { return false }
-            return textInput.markedTextRange == nil
+    override func didMoveToWindow() {
+        super.didMoveToWindow()
+        self.detach()
+        guard let window = self.window else { return }
+        for name in [UITextView.textDidBeginEditingNotification, UITextView.textDidEndEditingNotification,
+                     UITextView.textDidChangeNotification, UITextField.textDidChangeNotification,
+                     UITextField.textDidBeginEditingNotification, UITextField.textDidEndEditingNotification,
+                     UIWindow.didBecomeKeyNotification, UIWindow.didResignKeyNotification] {
+            NotificationCenter.default.addObserver(self, selector: #selector(self.editingChanged), name: name, object: nil)
         }
-        return super.canPerformAction(action, withSender: sender)
+        if let scene = window.windowScene {
+            for name in [UIScene.didActivateNotification, UIScene.willDeactivateNotification] {
+                NotificationCenter.default.addObserver(self, selector: #selector(self.editingChanged), name: name, object: scene)
+            }
+        }
+        self.refreshCommands()
     }
 
-    /// Swallows Return when sending is unavailable; it never stops a running reply.
-    @objc private func composerReturn(_ command: UIKeyCommand) {
-        guard self.canSend?() == true else { return }
-        self.onSend?()
+    override func layoutSubviews() {
+        super.layoutSubviews()
+        self.refreshCommands()
     }
 
-    /// Inserts a plain "\n"; Mac text input can otherwise insert a line separator (U+2028).
-    @objc private func composerLineBreak(_ command: UIKeyCommand) {
-        self.focusedTextInput?.insertText("\n")
+    func detach() {
+        NotificationCenter.default.removeObserver(self)
+        self.removeCommands()
+        self.commandController = nil
+        Self.commandOwners[self.commandIdentifier] = nil
+    }
+
+    @objc private func editingChanged() {
+        self.refreshCommands()
+        DispatchQueue.main.async { [weak self] in self?.refreshCommands() }
+    }
+
+    func refreshCommands() {
+        let controller = self.eligibleController()
+        guard self.commandController !== controller else { return }
+        self.removeCommands()
+        self.commandController = controller
+        Self.commandOwners[self.commandIdentifier] = nil
+        if let controller {
+            Self.commandOwners[self.commandIdentifier] = CommandOwner(self)
+            for command in self.returnCommands + self.lineBreakCommands {
+                controller.addKeyCommand(command)
+            }
+        }
+    }
+
+    private func removeCommands() {
+        for command in self.returnCommands + self.lineBreakCommands {
+            self.commandController?.removeKeyCommand(command)
+        }
+    }
+
+    private func eligibleController() -> UIViewController? {
+        guard self.isEnabled, let window = self.window, isActiveKeyboardWindow(window),
+              let responder = firstResponderView(in: window),
+              let textInput = responder as? UITextInput,
+              textInput.markedTextRange == nil,
+              self.convert(self.bounds, to: window).intersects(responder.convert(responder.bounds, to: window)) else { return nil }
+        var nextResponder = self.next
+        while let owner = nextResponder {
+            if let controller = owner as? UIViewController {
+                guard responder.isDescendant(of: controller.view),
+                      hasCoveringPresentation(controller) == false else { return nil }
+                return controller
+            }
+            nextResponder = owner.next
+        }
+        return nil
+    }
+
+    static func sendMessage(_ command: UICommand) {
+        guard let identifier = command.propertyList as? String,
+              let view = self.commandOwners[identifier]?.view,
+              view.eligibleController() != nil,
+              view.canSend?() == true else { return }
+        view.onSend?()
+    }
+
+    static func insertLineBreak(_ command: UICommand) {
+        guard let identifier = command.propertyList as? String,
+              let view = self.commandOwners[identifier]?.view,
+              view.eligibleController() != nil,
+              let window = view.window,
+              let textInput = firstResponderView(in: window) as? UITextInput else { return }
+        // Mac text input can insert U+2028 instead of the draft's plain newline.
+        textInput.insertText("\n")
+    }
+}
+
+private extension UIViewController {
+    @objc func nibomoSendComposerMessage(_ command: UICommand) {
+        AIChatComposerKeyboardCommandView.sendMessage(command)
+    }
+
+    @objc func nibomoInsertComposerLineBreak(_ command: UICommand) {
+        AIChatComposerKeyboardCommandView.insertLineBreak(command)
     }
 }

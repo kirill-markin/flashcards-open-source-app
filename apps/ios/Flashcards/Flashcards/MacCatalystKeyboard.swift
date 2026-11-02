@@ -39,9 +39,8 @@ struct CardEditorKeyboardModifier: ViewModifier {
     }
 }
 
-#if targetEnvironment(macCatalyst)
 @MainActor
-private func isActiveKeyboardWindow(_ window: UIWindow?) -> Bool {
+func isActiveKeyboardWindow(_ window: UIWindow?) -> Bool {
     window?.isKeyWindow == true && window?.windowScene?.activationState == .foregroundActive
 }
 
@@ -56,10 +55,9 @@ private extension UIResponder {
     }
 }
 
-/// The first responder inside `view`. A nil-targeted action reaches it directly; walking
-/// the window's view tree instead cost seconds while the companion laid out.
+/// Probe the responder directly to avoid expensive window view-tree walks.
 @MainActor
-private func firstResponderView(in view: UIView) -> UIView? {
+func firstResponderView(in view: UIView) -> UIView? {
     FirstResponderProbe.responder = nil
     defer { FirstResponderProbe.responder = nil }
     UIApplication.shared.sendAction(#selector(UIResponder.nibomoReportFirstResponder(_:)), to: nil, from: nil, for: nil)
@@ -69,14 +67,15 @@ private func firstResponderView(in view: UIView) -> UIView? {
 }
 
 @MainActor
+func hasCoveringPresentation(_ controller: UIViewController) -> Bool {
+    controller.presentedViewController != nil || controller.children.contains(where: hasCoveringPresentation)
+}
+
+#if targetEnvironment(macCatalyst)
+@MainActor
 private func hasEditableResponder(in window: UIWindow) -> Bool {
     guard let responder = firstResponderView(in: window) else { return false }
     return responder is UIKeyInput || responder is UITextInput
-}
-
-@MainActor
-func hasCoveringPresentation(_ controller: UIViewController) -> Bool {
-    controller.presentedViewController != nil || controller.children.contains(where: hasCoveringPresentation)
 }
 
 private struct ComposerEscapeCommandObserver: UIViewRepresentable {
