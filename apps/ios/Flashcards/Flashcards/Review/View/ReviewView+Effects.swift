@@ -241,6 +241,8 @@ extension ReviewView {
         // The retained presentation can differ from the queue while submissions
         // and local edits reconcile. Prepare the same card the view renders.
         let currentCard = presentedCard
+        // The card a rating shows is the visible queue head after this one, so this is the card to prepare;
+        // every queue change re-prepares it. See docs/fsrs-scheduling-logic.md#non-blocking-review
         let nextCard = nextReviewCard(reviewQueue: reviewQueue)
         if currentCard != nil || nextCard != nil {
             await Task.yield()
@@ -272,6 +274,23 @@ extension ReviewView {
         if let technicalError = currentPreparedRevealStatePreparation?.technicalError {
             store.presentTechnicalError(technicalError)
         }
+
+        // Images follow the text so a slow download never delays the next card's text and answer buttons.
+        var imagePreparationSides: [ReviewImagePreparationSide] = []
+        if let currentCard, let currentState = currentPreparedRevealStatePreparation?.state {
+            let currentBackSide = ReviewImagePreparationSide(cardId: currentCard.cardId, content: currentState.backContent)
+            self.preparedImageCache.retainPreparedImages(for: [
+                ReviewImagePreparationSide(cardId: currentCard.cardId, content: currentState.frontContent),
+                currentBackSide
+            ])
+            imagePreparationSides.append(currentBackSide)
+        }
+        self.preparedImageCache.releaseImagesOutside(cardIds: Set([currentCard?.cardId, nextCard?.cardId].compactMap { $0 }))
+        if let nextCard, let nextState = nextPreparedNextRevealStatePreparation?.state {
+            imagePreparationSides.append(ReviewImagePreparationSide(cardId: nextCard.cardId, content: nextState.frontContent))
+            imagePreparationSides.append(ReviewImagePreparationSide(cardId: nextCard.cardId, content: nextState.backContent))
+        }
+        await self.preparedImageCache.prepareReviewImages(for: imagePreparationSides, store: store)
     }
 
     func cachedPreparedRevealState(card: Card) -> PreparedReviewRevealState? {
